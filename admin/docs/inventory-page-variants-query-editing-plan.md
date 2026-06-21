@@ -1,49 +1,102 @@
-# План интеграции Inventory Page через готовую Variants Query и редактирование в таблице
+# План интеграции Inventory Page через `catalogQuery.variants`
 
 ## Цель
 
-Перевести страницу `Inventory` с mock data на текущий Admin GraphQL API без изменений backend.
+Перевести страницу `Inventory` с mock data на существующий Admin GraphQL API без изменений backend.
 
-Первый API-backed шаг должен:
+В scope этого шага:
 
-- использовать готовую `catalogQuery.variants` как источник строк;
-- показывать product context для каждой variant строки в плоской AG Grid таблице;
-- сохранить текущий UX inventory page: cursor pagination, inline editing, floating save/discard panel, блокировку навигации при unsaved changes;
-- редактировать только inventory-owned поля через `inventoryMutation.inventoryItemUpdate`;
-- не добавлять backend bulk mutation, новую inventory connection или изменения контракта `catalogQuery.variants`.
+- читать строки через `catalogQuery.variants`;
+- использовать cursor pagination из `VariantConnection`;
+- показывать product context в плоской таблице, одна строка = один `Variant`;
+- сортировать через API `orderBy`, без локальной сортировки загруженной страницы;
+- всегда передавать `productId` первым sort key для product-first порядка;
+- редактировать `onHand` и `unavailable` через `inventoryMutation.inventoryItemUpdate`;
+- сохранить текущий inline editing UX: `readOnlyEdit`, pending edits store, floating save/discard panel, блокировку pagination/sort при unsaved changes.
 
-## Текущий baseline
+Out of scope:
 
-- Страница: `admin/src/domains/inventory/inventory/page/page.tsx`.
-- Hook: `admin/src/domains/inventory/inventory/hooks/use-inventory.ts` сейчас имитирует API и читает `mockInventoryList`.
-- Editing state: `useInventoryEditStore` хранит pending changes по `itemId` и полям `onHand`/`unavailable`.
-- Текущий `validateFieldChange` проверяет stock consistency на UI side. При API-backed интеграции его нужно сузить до presentation guards или убрать из save authority path: backend должен решать, допустимо ли изменение.
-- UI: таблица уже использует AG Grid `readOnlyEdit`, `FloatingPanelStack` для save/discard и блокирует pagination при unsaved changes.
-- Product module уже содержит `InventoryItemFields`, `INVENTORY_ITEM_UPDATE_MUTATION`, `useUpdateInventoryItems` и `INVENTORY_DEFAULT_WAREHOUSE_QUERY`. Для inventory page нельзя неявно импортировать operation document из product module: нужно завести module-local operation document или явно оформить compatibility re-export.
-- Существующий product `VariantFields` не включает весь product context, нужный inventory page, и не должен расширяться тяжелыми полями ради inventory page.
-- В текущей Admin schema у `Variant` нет отдельного поля `containerId`; для inventory page `containerId` в UI row model равен `Variant.product.id`.
+- backend changes;
+- новая inventory-owned variants connection;
+- bulk inventory update mutation;
+- `FilterWidget`, search UX и filter UX;
+- сортировка inventory-owned колонок через `catalogQuery.variants`.
 
-## Архитектурные правила
+## Фактический API-контракт
 
-- GraphQL operation documents для inventory page должны жить в `admin/src/domains/inventory/inventory/graphql`.
-- Hooks владеют Apollo `useQuery`/`useMutation`, loading/error/refetch и нормализацией API errors.
-- Components не импортируют mocks и не объявляют ad hoc GraphQL response types.
-- Generated API types импортируются напрямую из `@/graphql/types`.
-- UI-local row model допустим только как editor/table state, потому что AG Grid нужны derived fields и product context.
-- API-output view models не должны становиться вторым source of truth.
-- `reserved` остается read-only system field.
-- `available` может пересчитываться в UI только как preview/display value. Backend остается единственным источником бизнес-валидации и финального persisted state.
-- UI не должен реализовывать backend business rules. Допустимы только presentation guards: number input, integer parsing, empty value handling и подсветка draft diff.
-- Проверки реализации: не запускать `test` и `tsc`; при необходимости запускать build через project-approved flow.
+Source of truth:
 
-## API-контракт чтения
+- `services/catalog/src/api/graphql-admin/schema/base.graphql`
+- `services/catalog/src/api/graphql-admin/schema/__generated__/filters.graphql`
+- `services/catalog/src/api/graphql-admin/schema/variant.graphql`
+- `services/inventory/src/api/graphql-admin/schema/inventory-item.graphql`
+- `services/inventory/src/api/graphql-admin/schema/stock.graphql`
+- `e2e/queries/catalog-api/VariantFindMany.gql`
+- `e2e/tests/inventory-api/variant-query.spec.ts`
 
-Использовать готовую top-level variants connection:
+`catalogQuery.variants` уже поддерживает Relay pagination, `where` и `orderBy`:
 
 ```graphql
-query InventoryVariants($first: Int, $after: String, $last: Int, $before: String) {
+variants(
+  first: Int
+  after: String
+  last: Int
+  before: String
+  where: VariantWhereInput
+  orderBy: [VariantOrderByInput!]
+): VariantConnection!
+```
+
+`VariantOrderByInput`:
+
+```graphql
+input VariantOrderByInput {
+  field: VariantOrderField!
+  direction: SortDirection!
+}
+```
+
+Доступные `VariantOrderField` в текущем API:
+
+```graphql
+enum VariantOrderField {
+  productId
+  id
+  isDefault
+  handle
+  externalSystem
+  externalId
+  updatedAt
+  createdAt
+}
+```
+
+`sku`, `price`, `availableQuantity` и `totalAvailable` не являются `VariantOrderField`; это зафиксировано e2e тестом `inventory-api/variant-query.spec.ts`.
+
+`VariantWhereInput` доступен на API уровне, но search/filter UI не входит в этот план. Для первого шага `where` используется только если странице нужен технический API-фильтр. `FilterWidget` не мапится.
+
+## Query для страницы
+
+Inventory module должен объявить собственную operation в `admin/src/domains/inventory/inventory/graphql`, не расширяя product module fragments.
+
+```graphql
+query InventoryVariants(
+  $first: Int
+  $after: String
+  $last: Int
+  $before: String
+  $where: VariantWhereInput
+  $orderBy: [VariantOrderByInput!]
+) {
   catalogQuery {
-    variants(first: $first, after: $after, last: $last, before: $before) {
+    variants(
+      first: $first
+      after: $after
+      last: $last
+      before: $before
+      where: $where
+      orderBy: $orderBy
+    ) {
       edges {
         cursor
         node {
@@ -70,7 +123,23 @@ query InventoryVariants($first: Int, $after: String, $last: Int, $before: String
             }
           }
           inventoryItem {
-            ...InventoryItemFields
+            id
+            variantId
+            sku
+            trackInventory
+            continueSellingWhenOutOfStock
+            totalAvailable
+            stock {
+              id
+              warehouseId
+              variantId
+              quantityOnHand
+              reservedQuantity
+              unavailableQuantity
+              availableForSale
+              createdAt
+              updatedAt
+            }
           }
         }
       }
@@ -86,31 +155,68 @@ query InventoryVariants($first: Int, $after: String, $last: Int, $before: String
 }
 ```
 
-Inventory page should define its own lightweight fragment, for example `InventoryVariantFields`, in `admin/src/domains/inventory/inventory/graphql/fragments.ts`. Do not extend product module `VariantFields` just to add inventory-page product context, because that fragment is shared by product screens and changing it can increase unrelated query payloads.
+Notes:
 
-Примечания:
+- `Variant.product` comes from Catalog API and is required for row context.
+- `Variant.inventoryItem` comes from Inventory federation extension.
+- A row with `inventoryItem: null` renders read-only and is skipped by save.
+- The page must pass explicit `orderBy`; it must not rely on repository default ordering.
 
-- `Variant.product` есть в schema и является обязательным полем, поэтому product context не требует дополнительного `products -> variants` обхода.
-- `Variant.inventoryItem` читается прямо в `catalogQuery.variants` и является единственным source of truth для inventory item в первом шаге.
-- Если `Variant.inventoryItem` вернул `null`, строка отображается read-only и не участвует в save.
-- Фронтенд не добавляет новый backend contract: inventory page использует готовые query variables актуального `catalogQuery.variants` API.
-- Стабильный product-first порядок не является backend default. Frontend обязан всегда передавать sorting в API: первым sort key идет `productId`, вторым идет активное поле сортировки таблицы.
-- Если локальные generated types не отражают актуальный API, сначала нужно обновить generated GraphQL types через project-approved codegen/build flow, а не писать ad hoc types руками.
+## Sorting contract
 
-## Row model для таблицы
+Inventory page sorting is server-side only.
 
-Создать UI-local type в inventory module, например `InventoryVariantRow`:
+Rules:
+
+- AG Grid must not perform local loaded-page sorting.
+- Every `InventoryVariants` request must include `orderBy`.
+- `orderBy[0]` is always `{ field: "productId", direction: "asc" }`.
+- `orderBy[1]` is the active supported table sort field.
+- If no user sort is active, use deterministic fallback:
+
+```ts
+[
+  { field: "productId", direction: "asc" },
+  { field: "id", direction: "asc" },
+]
+```
+
+Supported table sort mapping in this step:
+
+| Table intent | API order field | Status |
+|---|---|---|
+| Product-first grouping | `productId` | Always first key |
+| Variant text/order fallback | `handle` | Supported |
+| Variant id fallback | `id` | Supported |
+| Default variant | `isDefault` | Supported |
+| Created date | `createdAt` | Supported |
+| Updated date | `updatedAt` | Supported |
+| External system/id | `externalSystem`, `externalId` | Supported if shown |
+| Variant title | none in current `VariantOrderField` | Do not expose as API sort |
+| SKU | none in current `VariantOrderField` | Do not expose as API sort |
+| On hand / unavailable / reserved / available | none in current `VariantOrderField` | Do not expose as API sort |
+
+If the UI shows a sortable Product/Variant column in this step, its API sort must map to `handle`, not `title`. Columns without API sort mapping must have AG Grid sort UI disabled.
+
+Sort changes:
+
+- reset cursor pagination to the first page;
+- are disabled while there are pending edits;
+- refetch through `InventoryVariants` with the new `orderBy`.
+
+## Row model
+
+Create a UI-local row type in the inventory module, for example `InventoryVariantRow`. This is allowed because AG Grid needs editor state and derived fields; it must not become a second API source of truth.
 
 ```ts
 interface InventoryVariantRow {
-  id: string; // Variant.id, используется как AG Grid row id
+  id: string;
   variantId: string;
-  containerId: string; // В первом шаге равно productId
   productId: string;
   productTitle: string;
   productHandle: string | null;
   variantTitle: string | null;
-  variantHandle: string | null;
+  variantHandle: string;
   imageUrl: string | null;
   sku: string | null;
   inventoryItemId: string | null;
@@ -130,34 +236,36 @@ interface InventoryVariantRow {
 
 Mapping rules:
 
-| UI field | API source | Rule |
-|---|---|---|
-| `id` | `Variant.id` | Keep global variant id for row identity. |
-| `variantId` | `Variant.id` | Explicit variant key for mutation/error mapping context. |
-| `containerId` | `Variant.product.id` | UI-only grouping/context key. Do not synthesize another id. |
-| `productId` | `Variant.product.id` | Product context key. |
-| `productTitle` | `Variant.product.title` | Product display label. |
-| `productHandle` | `Variant.product.handle` | Optional secondary label/link context. |
-| `variantTitle` | `Variant.title` | Display in variant column. |
-| `variantHandle` | `Variant.handle` | Optional fallback/secondary label. |
-| `imageUrl` | first variant media file url | Use empty state if absent. |
-| `sku` | `Variant.inventoryItem.sku` | Show empty state if item is missing. |
-| `inventoryItemId` | `Variant.inventoryItem.id` | Required for save. |
-| `warehouseStockId` | selected stock row id | Optional display/debug field. |
-| `warehouseId` | default warehouse stock row or default warehouse query | Required for stock update. |
-| `onHand` | selected stock row `quantityOnHand` | First step edits default warehouse only. |
-| `unavailable` | selected stock row `unavailableQuantity` | Editable. |
-| `reserved` | selected stock row `reservedQuantity` | Read-only. |
-| `available` | selected stock row `availableForSale` or UI preview | Do not trust stale derived value after local edits. |
+| UI field | API source |
+|---|---|
+| `id`, `variantId` | `Variant.id` |
+| `productId` | `Variant.product.id` |
+| `productTitle` | `Variant.product.title` |
+| `productHandle` | `Variant.product.handle` |
+| `variantTitle` | `Variant.title` |
+| `variantHandle` | `Variant.handle` |
+| `imageUrl` | first `Variant.media` item by `sortIndex`, then `file.url` |
+| `sku` | `Variant.inventoryItem.sku` |
+| `inventoryItemId` | `Variant.inventoryItem.id` |
+| `warehouseStockId` | selected `InventoryItem.stock[].id` |
+| `warehouseId` | selected stock warehouse id or default warehouse id |
+| `onHand` | selected stock `quantityOnHand` |
+| `unavailable` | selected stock `unavailableQuantity` |
+| `reserved` | selected stock `reservedQuantity` |
+| `available` | selected stock `availableForSale`, then UI preview after edits |
 
-Default warehouse rule:
+## Default warehouse
 
-- Load default warehouse inside `useInventoryVariants` via inventory-local query equivalent to `INVENTORY_DEFAULT_WAREHOUSE_QUERY`.
-- For every variant row, prefer `inventoryItem.stock.find(stock.warehouseId === defaultWarehouse.id)`.
-- If stock row for default warehouse is absent, display zero values but keep `warehouseId = defaultWarehouse.id`.
-- If default warehouse is absent, table can render read-only, save is disabled, and the page shows a clear error.
+The first implementation edits one warehouse: the default warehouse.
 
-`useInventoryVariants` should own both data dependencies needed to build rows:
+Rules:
+
+- `useInventoryVariants` loads default warehouse with an inventory-local operation equivalent to `INVENTORY_DEFAULT_WAREHOUSE_QUERY`.
+- Row mapping selects `inventoryItem.stock.find(stock.warehouseId === defaultWarehouse.id)`.
+- If stock for the default warehouse is absent, show zero values and keep `warehouseId = defaultWarehouse.id`.
+- If default warehouse is absent, render table read-only and disable save.
+
+`useInventoryVariants` return shape:
 
 ```ts
 interface UseInventoryVariantsReturn {
@@ -173,111 +281,48 @@ interface UseInventoryVariantsReturn {
 }
 ```
 
-`canEdit` is `false` when default warehouse is missing, required query data failed to load, or the page is in another read-only condition. Row mapping depends on `defaultWarehouse.id`, so this logic should not be deferred to the save hook.
-
-## Product context в таблице
-
-Первый API-backed шаг использует плоскую таблицу:
-
-- Keep flat `rowData`: one row per `Variant`.
-- Show product information in a visible Product/Variant column: product title, optional product handle, variant title, and variant media/empty state.
-- Keep visible stock columns focused on variant inventory: `Product / Variant`, `SKU`, `On hand`, `Unavailable`, `Reserved`, `Available`.
-- Do not present product-level totals in the first step. Full-catalog totals require server aggregation semantics and should be separate explicit work.
-
-Pagination behavior:
-
-- Continue using `CursorPagination`.
-- `rangeStart`/`rangeEnd` are based on current page size, current page index tracked by UI, and loaded count.
-- Navigation uses `pageInfo.startCursor`/`pageInfo.endCursor`.
-- Navigation is disabled while there are pending edits, as current page already does.
-- Changing page discards no data implicitly; user must save or discard first.
-
-## Sorting в первом шаге
-
-Backend не меняется в рамках этого плана. Inventory page использует готовый variants query API и передает sorting через его существующие variables. Страница не должна делать local loaded-page sorting для main list: cursor pagination делает такое поведение misleading.
-
-First-step behavior:
-
-- Keep AG Grid local sorting disabled; column sort changes are handled by updating variants query variables and refetching from the first page.
-- Every variants query must include product-first sorting. The first order key is always `productId` ascending.
-- The second order key is the active table sort field, for example variant `title`, `sku`, `onHand`, `unavailable`, `reserved`, or `available`, if the API supports that field.
-- If the user clears column sorting, keep deterministic fallback sorting as `productId` first and a stable variant key second.
-- Sort changes reset cursor pagination to the first page.
-- Sort changes are disabled while there are pending edits.
-- Columns that cannot be represented by the current API sort input must have AG Grid sort UI disabled.
-
-Out of scope for this plan:
-
-- `FilterWidget` integration;
-- search UX;
-- filter UX;
-- mapping search/filter values to variants query variables.
-
-Required sort shape:
-
-```ts
-const orderBy = [
-  { productId: "ASC" },
-  activeSort ?? { variantId: "ASC" },
-];
-```
-
-The exact TypeScript field names must come from generated Admin API types. Do not invent frontend-only sort field names in the GraphQL variables.
-
-## Inline editing flow
-
-Keep the existing `readOnlyEdit` pattern:
-
-1. User edits `onHand` or `unavailable`.
-2. `handleCellEditRequest` parses the numeric draft value and applies presentation-only guards.
-3. Store pending change in `useInventoryEditStore`.
-4. `displayData` merges server rows with pending edits.
-5. `availablePreview` recalculates immediately for display only.
-6. Floating editing panel appears with change count.
-7. Save maps changed rows to `ApiInventoryItemUpdateInput[]`.
-8. Mutations run sequentially through inventory-local save hook.
-9. On full success, clear edits and refetch variants.
-10. On backend `userErrors`/runtime errors, keep unresolved edits and show errors.
+## Inline editing
 
 Editable fields:
 
-- `onHand` maps to `input.stock.onHand`.
-- `unavailable` maps to `input.stock.unavailable`.
+- `onHand`
+- `unavailable`
 
 Read-only fields:
 
-- `reserved`;
-- `available`;
-- rows without `inventoryItemId`;
-- all rows when default warehouse is missing.
+- `reserved`
+- `available`
+- rows without `inventoryItemId`
+- all rows when default warehouse is missing
 
-Backend-owned rules:
+Flow:
 
-- non-negative stock constraints beyond input parsing;
-- unavailable/reserved/on-hand consistency;
-- backorder behavior;
-- reserved quantity authority;
-- stock change rejection;
-- transactional behavior across stock/SKU/cost/physical fields.
+1. User edits `onHand` or `unavailable`.
+2. `handleCellEditRequest` parses integer input and handles empty/invalid presentation states.
+3. UI stores pending change in `useInventoryEditStore`.
+4. `displayData` merges API rows with pending edits.
+5. `available` preview recalculates as `onHand - unavailable - reserved`.
+6. Floating save/discard panel appears.
+7. Save maps pending row edits to `InventoryItemUpdateInput[]`.
+8. Mutations run sequentially through inventory-local save hook.
+9. Full success clears edits and refetches variants.
+10. Failed rows keep their edits and show backend `userErrors` or runtime errors.
 
-UI may preview `available = onHand - unavailable - reserved`, but must not treat that preview as an authorization to save. The backend response decides whether the edit is accepted.
+Backend remains the authority for stock consistency. UI must not block save based on business rules like `unavailable <= onHand` except for basic input parsing.
 
-## Save input mapping
+## Save mapping
 
-Add a mapper in `admin/src/domains/inventory/inventory/mappers`, for example `inventory-variant-edit.mapper.ts`.
+Add inventory-local mapper:
 
-Do not reuse `admin/src/domains/inventory/products/mappers/product-variant-inventory.mapper.ts` as-is. That mapper belongs to the product variant editor flow: it can update SKU and performs UI-side stock consistency checks such as negative availability rejection. The inventory page mapper must have a narrower scope:
+```text
+admin/src/domains/inventory/inventory/mappers/inventory-variant-edit.mapper.ts
+```
 
-- accept only pending `onHand`/`unavailable` edits;
-- never send SKU, cost, weight, dimensions, `reserved`, or `available`;
-- only parse/preserve integer draft values and calculate deltas;
-- leave stock consistency and availability acceptance to `inventoryMutation.inventoryItemUpdate` `userErrors`.
+Input:
 
-Input to mapper:
-
-- original API-backed rows;
-- pending edits from `useInventoryEditStore`;
-- default warehouse id.
+- current `InventoryVariantRow[]`
+- pending edits from `useInventoryEditStore`
+- default warehouse id
 
 Output:
 
@@ -285,7 +330,7 @@ Output:
 ApiInventoryItemUpdateInput[]
 ```
 
-Mapping example:
+Mutation input:
 
 ```ts
 {
@@ -300,19 +345,18 @@ Mapping example:
 
 Rules:
 
-- Skip rows with no actual delta.
-- Do not send `reserved`.
-- Do not send `available`.
-- Do not send SKU/cost/weight/dimensions from inventory page.
-- If `inventoryItemId` is missing, skip that row from save and report that the variant has no inventory item loaded.
-- Creating or backfilling missing inventory items must be a separate explicit flow, outside this page integration.
+- send only changed rows;
+- send only `stock.warehouseId`, `stock.onHand`, `stock.unavailable`;
+- do not send SKU, cost, weight, dimensions, `reserved`, or `available`;
+- skip rows without `inventoryItemId` and report them as unsavable;
+- do not reuse product variant inventory mapper if it carries product-editor behavior or UI stock consistency validation.
 
-Partial save rule:
+Partial save:
 
-- Because first implementation runs per-row mutations, the save hook must return per-input success/error information.
-- If every changed row succeeds, clear all edits and refetch.
-- If some rows fail, clear edits only for rows confirmed successful, keep failed row edits, refetch, and show aggregated errors.
-- Do not call `onSaveSuccess` blindly on partial success.
+- save hook returns per-row success/error state;
+- full success clears all edits;
+- partial success clears only successful row edits, keeps failed row edits, refetches, and shows aggregated errors;
+- do not call global `onSaveSuccess` on partial failure.
 
 ## Module changes
 
@@ -343,49 +387,41 @@ admin/src/domains/inventory/inventory/
 
 Implementation steps:
 
-1. Add inventory module GraphQL operations: `InventoryVariants`, default warehouse query, and inventory-local `InventoryItemUpdate` mutation.
-2. Add operation types derived from generated API types.
-3. Add `useInventoryVariants`; the hook loads variants plus default warehouse and returns `rows`, `defaultWarehouse`, `pageInfo`, `totalCount`, `loading`, `error`, `canEdit`, `readOnlyReason`, and `refetch`.
-4. Add row mapper from `Variant` edge to `InventoryVariantRow`.
-5. Add edit mapper from pending changes to `ApiInventoryItemUpdateInput[]`.
-6. Add inventory-local save hook, for example `useSaveInventoryVariantEdits`, instead of importing product module save hook directly.
-7. Replace mock-backed `useInventory` usage in the page with API-backed hook.
-8. Replace `IInventoryListItem` component typing with `InventoryVariantRow`.
-9. Replace static pagination values with connection `pageInfo`/`totalCount`.
-10. Render flat variant rows with product context.
-11. Wire table sort controls to variants query variables; sorting must always prepend `productId` before the active table sort field.
-12. Replace mock save delay with actual `inventoryItemUpdate` save flow.
-13. Remove imports from `@/mocks/inventory/inventory-list` from inventory page flow.
-
-## Error handling
-
-- Query error: show page-level empty/error state through existing layout conventions.
-- Missing default warehouse: table can render read-only; save action is disabled with message.
-- Missing `inventoryItem`: allow display, keep row read-only, and show a clear error if a save is attempted for that row.
-- Mutation `userErrors`: aggregate messages, keep failed row edits, do not clear all edits blindly.
-- Runtime mutation errors: keep related edits and show an unexpected error message.
-- Partial mutation failure: clear successful row edits only, keep failed row edits, refetch, and show unresolved errors.
+1. Add inventory-local GraphQL fragments, `InventoryVariants`, default warehouse query, and `InventoryItemUpdate` mutation.
+2. Add operation response/variable types based on Admin API types used by the frontend.
+3. Add `useInventoryVariants` with variants query, default warehouse query, explicit `orderBy`, pagination state, loading/error handling, and row mapping.
+4. Add row mapper from `VariantEdge` to `InventoryVariantRow`.
+5. Add sort mapper from AG Grid sort state to `VariantOrderByInput[]`, always prepending `{ field: "productId", direction: "asc" }`.
+6. Add edit mapper to `ApiInventoryItemUpdateInput[]`.
+7. Add inventory-local save hook for sequential `inventoryItemUpdate`.
+8. Replace mock-backed `useInventory` usage in the page with `useInventoryVariants`.
+9. Replace `IInventoryListItem` typing in inventory table components with `InventoryVariantRow`.
+10. Replace static pagination with `pageInfo`/`totalCount`.
+11. Disable sort UI on columns that do not map to `VariantOrderField`.
+12. Remove imports from `@/mocks/inventory/inventory-list` from inventory page flow.
 
 ## Deferred work
 
 - `FilterWidget` integration.
-- Search UX and mapping search values to variants query variables.
-- Filter UX and mapping filter values to variants query variables.
-- Additional sort fields not yet exposed by the current variants query API.
-- Bulk `inventoryItemsUpdate` mutation with transactional all-or-nothing semantics.
+- Search UX.
+- Filter UX.
+- Sorting by inventory-owned fields such as SKU, on-hand, unavailable, reserved, available.
+- Bulk `inventoryItemsUpdate` mutation.
 - Multi-warehouse editing.
-- Product-level full-catalog inventory totals.
+- Product-level inventory totals.
 - Import/export actions.
 - Delete selected rows action.
 - Creating/backfilling missing inventory items from the inventory table.
 
 ## Verification
 
-- Manual review that inventory page no longer imports mock inventory data.
-- Confirm generated schema/types expose the actual `catalogQuery.variants` fields used by `InventoryVariants`.
-- Confirm `Variant.product` and `Variant.inventoryItem` are selected by the inventory-local operation.
-- Confirm AG Grid does not perform local loaded-page sorting.
-- Confirm variants query variables always include product-first sorting: `productId` first, active table sort field second.
-- Confirm e2e coverage verifies product-first sorting behavior.
-- Run project-approved build only if a code implementation is made.
+- Inventory page no longer imports mock inventory data.
+- `InventoryVariants` passes `orderBy` on every request.
+- `orderBy[0]` is always `{ field: "productId", direction: "asc" }`.
+- AG Grid does not sort locally.
+- Cursor pagination resets to first page after sort changes.
+- Sort is disabled while edits are pending.
+- Columns without `VariantOrderField` mapping are not sortable.
+- Save sends only `InventoryItemUpdateInput.stock` for `onHand`/`unavailable`.
+- Run project-approved build only if code is implemented.
 - Do not run `test` or `tsc` directly.
