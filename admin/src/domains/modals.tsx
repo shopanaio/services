@@ -312,6 +312,15 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Create Category modal
+    {
+      type: 'category-create',
+      component: dynamic(() =>
+        import('@/domains/inventory/categories/modals/create-category-modal').then(
+          (m) => m.CreateCategoryModal
+        )
+      ),
+    },
     // ========================================
     // Picker modals
     // ========================================

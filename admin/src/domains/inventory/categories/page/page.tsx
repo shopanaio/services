@@ -8,7 +8,6 @@ import {
   Flex,
   Image,
   Tag,
-  Tooltip,
   Typography,
 } from "antd";
 import {
@@ -63,7 +62,7 @@ import {
 import { formatDetailDate } from "@/domains/inventory/utils/format-detail-date";
 import { filterSchema } from "./filter-schema";
 import { useCategories } from "../hooks";
-import { useCategoryModal } from "../modals";
+import { useCategoryModal, useCreateCategoryModal } from "../modals";
 import type { CategoriesQueryVariables } from "../graphql";
 
 ModuleRegistry.registerModules([
@@ -306,7 +305,11 @@ const CategoryCellRenderer = (
   const thumbnail = getCategoryThumbnailFile(data);
 
   return (
-    <Flex align="center" gap="small">
+    <Flex
+      align="center"
+      gap="small"
+      data-testid={`categories-table-category-cell-${data.handle}`}
+    >
       {thumbnail?.url ? (
         <Image
           src={thumbnail.url}
@@ -325,8 +328,18 @@ const CategoryCellRenderer = (
         />
       )}
       <Flex vertical gap={0}>
-        <Typography.Text strong>{data.name}</Typography.Text>
-        <Typography.Text type="secondary">{data.handle}</Typography.Text>
+        <Typography.Text
+          strong
+          data-testid={`categories-table-name-cell-${data.handle}`}
+        >
+          {data.name}
+        </Typography.Text>
+        <Typography.Text
+          type="secondary"
+          data-testid={`categories-table-handle-cell-${data.handle}`}
+        >
+          {data.handle}
+        </Typography.Text>
       </Flex>
     </Flex>
   );
@@ -339,7 +352,18 @@ const StatusCellRenderer = (
   const color = isPublished ? "success" : "default";
   const label = isPublished ? "Published" : "Draft";
 
-  return <Tag color={color}>{label}</Tag>;
+  return (
+    <Tag
+      color={color}
+      data-testid={
+        props.data
+          ? `categories-table-status-cell-${props.data.handle}`
+          : undefined
+      }
+    >
+      {label}
+    </Tag>
+  );
 };
 
 const ProductsCountCellRenderer = (
@@ -349,10 +373,29 @@ const ProductsCountCellRenderer = (
 
   if (value === 0) {
     return (
-      <Typography.Text type="secondary">0 products</Typography.Text>
+      <Typography.Text
+        type="secondary"
+        data-testid={
+          props.data
+            ? `categories-table-products-cell-${props.data.handle}`
+            : undefined
+        }
+      >
+        0 products
+      </Typography.Text>
     );
   }
-  return <Typography.Text>{value} products</Typography.Text>;
+  return (
+    <Typography.Text
+      data-testid={
+        props.data
+          ? `categories-table-products-cell-${props.data.handle}`
+          : undefined
+      }
+    >
+      {value} products
+    </Typography.Text>
+  );
 };
 
 const TextCellRenderer = (
@@ -375,6 +418,7 @@ export default function CategoriesPage() {
       adapter: categoryFilterAdapter,
     });
   const { push: openCategoryModal } = useCategoryModal();
+  const { push: openCreateCategoryModal } = useCreateCategoryModal();
   const { initialState, onStateUpdated } = useGridState({
     storageKey: "categories-grid-state",
   });
@@ -430,7 +474,16 @@ export default function CategoriesPage() {
     pageInfo,
     loading,
     error,
+    refetch,
   } = useCategories(listQueryVariables);
+
+  const handleOpenCreateCategoryModal = useCallback(() => {
+    openCreateCategoryModal({
+      onCreated: () => {
+        void refetch();
+      },
+    });
+  }, [openCreateCategoryModal, refetch]);
 
   const handleSortChange = useCallback((model: SortModel[]) => {
     setSortModel(model);
@@ -547,13 +600,13 @@ export default function CategoriesPage() {
       title="Categories"
       count={totalCount}
       actions={
-        <Tooltip title="Category creation is not connected yet">
-          <span>
-            <Button icon={<PlusOutlined />} disabled>
-              Create
-            </Button>
-          </span>
-        </Tooltip>
+        <Button
+          data-testid="categories-create-button"
+          icon={<PlusOutlined />}
+          onClick={handleOpenCreateCategoryModal}
+        >
+          Create
+        </Button>
       }
     >
       <DataLayout.Toolbar
@@ -579,7 +632,7 @@ export default function CategoriesPage() {
         }}
       >
         {error && <Alert type="error" message={error.message} showIcon />}
-        <div style={{ flex: 1, minHeight: 0 }}>
+        <div style={{ flex: 1, minHeight: 0 }} data-testid="categories-table">
           <AgGridReact<ApiCategory>
             ref={gridRef}
             theme={agGridTheme}

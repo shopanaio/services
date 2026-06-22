@@ -1,5 +1,8 @@
 import type {
+  ApiCatalogMutation,
   ApiCatalogQuery,
+  ApiCategoryCreateInput,
+  ApiCategoryCreatePayload,
   ApiCategoryConnection,
   ApiCategoryOrderByInput,
   ApiCategoryWhereInput,
@@ -18,4 +21,14 @@ export interface CategoriesQueryVariables {
   before?: string | null;
   where?: ApiCategoryWhereInput | null;
   orderBy?: ApiCategoryOrderByInput[] | null;
+}
+
+export interface CategoryCreateMutationData {
+  catalogMutation: Pick<ApiCatalogMutation, "categoryCreate"> & {
+    categoryCreate: ApiCategoryCreatePayload;
+  };
+}
+
+export interface CategoryCreateMutationVariables {
+  input: ApiCategoryCreateInput;
 }

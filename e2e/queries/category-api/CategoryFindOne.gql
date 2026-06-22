@@ -49,6 +49,9 @@ query CategoryFindOne($id: ID!) {
       media {
         file {
           id
+          url
+          originalName
+          altText
         }
         sortIndex
       }
