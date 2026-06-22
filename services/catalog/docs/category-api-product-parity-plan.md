@@ -13,7 +13,7 @@
 
 Целевой API должен поддерживать:
 
-- API-backed flow для списка категорий, деталей, создания, обновления, удаления, иерархии, медиа, SEO и назначения продуктов.
+- API-backed flow для списка категорий, деталей, создания, обновления, удаления, иерархии, медиа, SEO и category-centric управления продуктами.
 - Primary category как явный read-side API-контракт. Write path для установки/смены `isPrimary`
   остается out of scope follow-up.
 - Product-style архитектуру мутаций: GraphQL namespace, global IDs, generated schemas, scripts, workflow orchestration для сложных обновлений, `userErrors` и предсказуемые payloads для refresh/cache.
@@ -592,19 +592,10 @@ _and: [
 getProductCategoryLinks(productId: string): Promise<ProductCategory[]>;
 getProductCategoryLinksByProductIds(productIds: readonly string[]): Promise<ProductCategory[]>;
 removeProductFromCategory(productId: string, categoryId: string): Promise<boolean>;
-removeProductFromCategories(productId: string, categoryIds: string[]): Promise<number>;
-syncProductCategories(input: {
-  productId: string;
-  categoryIds: string[];
-}): Promise<ProductCategory[]>;
-syncCategoryProducts(input: {
-  categoryId: string;
-  productIds: string[];
-}): Promise<ProductCategory[]>;
 ```
 
 Validation belongs in scripts. Repositories не должны silently invent fallback primary category behavior.
-Public `isPrimary` write helpers, including `setProductPrimaryCategory` or `primaryCategoryId` sync
+Public `isPrimary` write helpers, including `setProductPrimaryCategory` or `primaryCategoryId`
 inputs, are out of scope for this cutover and should be planned as a follow-up.
 
 ### Category Product Connection
@@ -848,24 +839,10 @@ Product-category link repository cutover:
 getProductCategoryLinks(productId: string): Promise<ProductCategory[]>;
 getProductCategoryLinksByProductIds(productIds: readonly string[]): Promise<ProductCategory[]>;
 removeProductFromCategory(productId: string, categoryId: string): Promise<boolean>;
-removeProductFromCategories(productId: string, categoryIds: string[]): Promise<number>;
-syncProductCategories(input: {
-  productId: string;
-  categoryIds: string[];
-}): Promise<ProductCategory[]>;
-syncCategoryProducts(input: {
-  categoryId: string;
-  productIds: string[];
-}): Promise<ProductCategory[]>;
 ```
 
 - Repository methods implement persistence only. Validation for duplicate IDs, missing category IDs,
   primary fallback policy on removal, and later primary write semantics belong in scripts.
-- `syncProductCategories` must preserve `lexoRank` for links that remain, delete removed links,
-  append new links at the end of each category, and must not change `isPrimary` in this cutover.
-- `syncCategoryProducts` must preserve rank for existing products in the category, append new
-  products after the current last rank, remove missing products, and not silently clear primary
-  assignments unless the script contract explicitly allowed it.
 
 Category product connection:
 
@@ -1080,9 +1057,10 @@ Old path removal:
 - The old monolithic `CategoryUpdateScript` may either be deleted or kept as a private helper only
   if it cannot be reached from public resolver paths and its behavior is wrapped by the unified
   atomic contract.
-- `categoryUpdateSort` can remain only if it is part of the final public post-cutover contract.
-  It must not be the only way to update category sort if unified `categoryUpdate.operations.sort`
-  exists.
+- Remove `categoryUpdateSort` from the public schema/resolver. Unified
+  `categoryUpdate.operations.sort` is the final public path for PLP sort settings.
+  `CategoryUpdateSortScript` may remain only as a private implementation detail behind the unified
+  atomic update contract.
 
 Workflow/script cutover acceptance criteria:
 
@@ -1177,8 +1155,8 @@ Mutation resolver cutover:
   - never throw for invalid user input IDs.
 - Existing `categoryAddProduct`, `categoryMoveProduct`, `categoryRebalance` stay script-backed only
   if they remain in the final public contract and return consistent `userErrors`.
-- `categoryUpdateSort` must either be removed from schema/resolver or kept as final public contract;
-  if kept, it must not conflict with unified `categoryUpdate.operations.sort`.
+- Remove `categoryUpdateSort` from schema/resolver; `categoryUpdate.operations.sort` is the only
+  public category sort update contract after the cutover.
 
 Category resolver cutover:
 
@@ -1398,7 +1376,7 @@ In-repo GraphQL consumer cutover:
 - Search and update all checked-in GraphQL documents/scripts that call old category contracts:
   - `categoryUpdate(input: ...)`;
   - old `CategoryUpdateInput.id`;
-  - `categoryUpdateSort` if it is removed from final schema;
+  - `categoryUpdateSort`;
   - any selection of removed `Product.categories`.
 - Update documents to use:
   - `categoryUpdate(categoryId:, expectedRevision:, operations:)`;
@@ -1553,9 +1531,9 @@ Manual/API verification checklist:
   does not increment `revision`, and does not emit `productUpdated`/`categoryUpdated`.
 - Move category through unified hierarchy update and verify descendant `path`/`depth` updates happen
   in `catalog.category`.
-- Remove category from product and verify `primaryCategory` and `categoryAssignments`; verify
+- Remove product from category and verify `primaryCategory` and `categoryAssignments`; verify
   `Product.categories` is absent from the final schema and generated resolver types.
-- Add, remove, sync и reorder products from category details.
+- Add, remove и reorder products from category details.
 - Verify product search index/category handles after product-category changes.
 - Verify no generated schema or resolver type still exposes old `categoryUpdate(input: ...)`.
 - Verify no `Product.categories`, `categoryUpdateV2` or deprecated compatibility field exists.
@@ -1568,7 +1546,6 @@ Manual/API verification checklist:
   `Product.primaryCategory` / `Product.categoryAssignments.isPrimary`, сохранение существующих
   `isPrimary` rows и validation при удалении primary assignment. Public API для установки/смены
   primary category должен быть отдельным follow-up.
-- Category-centric product sync должен возвращать validation error при попытке удалить primary assignment, если request не добавляет явную опцию `allowPrimaryFallback`.
 - Category media back-reference sync нужен только если media service already tracks product media back-references with the same ownership semantics.
 - Category name search/sort по translations не входит в обязательный table-based cutover. Если он
   добавляется позже, реализация не должна вводить dedicated category list view и не должна ломать
