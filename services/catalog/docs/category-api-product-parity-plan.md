@@ -392,7 +392,6 @@ interface CategoryUpdateWorkflowInput {
 }
 
 interface CategoryUpdateParams {
-  id: string;
   handle?: string;
   name?: string;
   content?: {
@@ -421,6 +420,11 @@ interface OperationResult {
   errors: UserError[];
 }
 ```
+
+`CategoryUpdateWorkflowInput.categoryId` is the only category ID source for the workflow.
+`CategoryUpdateParams` must not contain `id`, `categoryId` or any second category identifier.
+Resolvers decode the public `categoryUpdate(categoryId: ID!, ...)` argument once and pass the raw
+UUID as `CategoryUpdateWorkflowInput.categoryId`.
 
 Operation result semantics:
 
@@ -947,6 +951,8 @@ Unified category update workflow behavior:
   - `operations.hierarchy.parentId`;
   - `operations.media.fileIds`;
   - `operations.seo.ogImageId`.
+- The workflow DTO must keep category identity only in `CategoryUpdateWorkflowInput.categoryId`.
+  `operations` / `CategoryUpdateParams` must not carry a duplicate category id.
 - Missing, `null`, or empty `operations` follows current `ProductUpdateWorkflow` no-op semantics:
 
 ```ts
