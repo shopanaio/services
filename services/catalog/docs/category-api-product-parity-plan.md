@@ -1705,3 +1705,64 @@ Manual/API verification checklist:
 - Category name filtering/sorting по translations не входит в обязательный table-based cutover. Если
   он добавляется позже, он должен быть представлен generated drizzle-query schema and must not
   introduce a dedicated category list view or break cursor pagination by duplicating category rows.
+
+## Порядок Выполнения
+
+1. Подготовить schema cutover:
+   - обновить source GraphQL schema для `CatalogQuery.categories`, `categoryUpdate`,
+     `categoryRemoveProduct`, `Category.revision`, `Product.primaryCategory` и
+     `Product.categoryAssignments`;
+   - удалить публичный `Product.categories` и старую форму
+     `categoryUpdate(input: CategoryUpdateInput!)`;
+   - не добавлять manual category filter/order types.
+
+2. Подготовить database/model cutover:
+   - добавить `category.revision` в Drizzle model;
+   - заменить старый primary-category unique index на tenant-scoped index;
+   - сгенерировать migration через project-approved command;
+   - проверить, что migration не добавляет `category_list` и не оставляет старый
+     `idx_product_category_primary`.
+
+3. Перевести category repository на финальный read contract:
+   - добавить `categoryQuery` и `categoryRelayQuery`;
+   - заменить ручную pagination в `CategoryRepository.getConnection` на
+     `categoryRelayQuery.execute/count`;
+   - декодировать generated `IDFilter` values на resolver boundary;
+   - исправить `CategoryRepository.move()` с `inventory.category` на `catalog.category`;
+   - добавить repository methods для product-category links и affected product discovery.
+
+4. Реализовать read-side resolvers:
+   - добавить `Category.revision`;
+   - добавить `Product.primaryCategory` и `Product.categoryAssignments` через DataLoader;
+   - удалить resolver path для `Product.categories`;
+   - сохранить `Category.productsCount` как явный placeholder `0`.
+
+5. Реализовать script/workflow cutover:
+   - добавить DTO и `CategoryUpdateWorkflow`;
+   - реализовать revision compare-and-swap и no-op behavior как у `ProductUpdateWorkflow`;
+   - разнести category update sections на internal scripts;
+   - подключить `categoryUpdate` resolver к workflow;
+   - добавить `CategoryRemoveProductScript` и resolver mutation.
+
+6. Подключить event/index refresh:
+   - расширить shared и local `ProductFieldChanges.categories`;
+   - эмитить `productUpdated` fan-out после успешных category/category-link changes;
+   - не вызывать `SyncProductIndexScript` напрямую из category writes;
+   - убедиться, что failed sections не эмитят события, а successful partial sections эмитят.
+
+7. Обновить generated artifacts:
+   - сгенерировать drizzle-query GraphQL filter/order inputs;
+   - сгенерировать resolver types, Zod schemas, exported subgraph schema и composed schema;
+   - удалить все stale references на старый `categoryUpdate(input: ...)`,
+     `CategoryUpdateInput.id` и `Product.categories`.
+
+8. Обновить in-repo API consumers:
+   - переписать admin/backend GraphQL documents на новый `categoryUpdate` contract;
+   - заменить usage `Product.categories` на `primaryCategory` /
+     `categoryAssignments`;
+   - обновить cache/refetch paths для category mutations и product-category changes.
+
+9. Выполнить финальную ручную проверку:
+   - пройти checklist из раздела `Verification`;
+   - не запускать `test` или `tsc`;
+   - запускать build только если нужна проверка новой версии кода.
