@@ -154,9 +154,7 @@ The migration must replace that existing index instead of adding a second overla
 enum CategorySortBy {
   CREATED_AT
   UPDATED_AT
-  NAME
   HANDLE
-  PRODUCTS_COUNT
   PUBLISHED_AT
 }
 
@@ -189,7 +187,9 @@ type CatalogQuery {
 Implementation notes:
 
 - Relay helpers из `@shopana/drizzle-query`.
-- Search должен искать по translated category name.
+- Search должен искать по `category.handle` в этом cutover. Search/sort по translated category name
+  не входит в обязательный table-based cutover и может быть добавлен отдельно, если будет
+  реализован без dedicated category list view и без дублирования category rows.
 - `parentId` нужно декодировать из global category ID перед repository access.
 - `totalCount` должен учитывать те же filters, что и connection.
 - `hasPreviousPage`, `last` и `before` должны быть реализованы, а не hardcoded.
@@ -308,15 +308,20 @@ type CatalogMutation {
 
 Workflow behavior:
 
-- Валидировать `operations` до revision compare-and-swap. Пустой `operations` object без requested
-  sections должен вернуть `userErrors: [{ code: "EMPTY_UPDATE", field: ["operations"] }]` и не должен
-  инкрементить `revision`.
+- `operations` обязателен на GraphQL уровне, как часть нового публичного contract. Missing
+  `operations` должен отсекаться GraphQL validation, потому что argument non-null.
+- Пустой `operations` object без requested sections должен копировать текущее no-op поведение
+  `ProductUpdateWorkflow`: выполнить revision compare-and-swap, инкрементить `revision` при
+  successful CAS, не выполнять section scripts, вернуть updated category payload,
+  один `CATEGORY_UPDATE` result с `applied: true`, `userErrors: []`, не эмитить
+  `productUpdated`/`categoryUpdated`.
 - Захватить category revision через compare-and-swap до применения update sections.
 - CAS и все requested category sections должны быть atomic as a unit: либо все requested sections
   применены и `revision` инкрементирован ровно один раз, либо ни один section не применен и
   `revision` не меняется.
-- Не копировать текущую partial-apply семантику `ProductUpdateWorkflow`, где revision инкрементится
-  до операций и отдельные operation errors могут вернуться после частично примененных изменений.
+- Копировать product-style no-op update behavior для пустого `operations`, но не копировать текущую
+  partial-apply семантику `ProductUpdateWorkflow`, где отдельные operation errors могут вернуться
+  после частично примененных изменений.
 - Сформировать один workflow operation result типа `CATEGORY_UPDATE`, как `ProductUpdateWorkflow`
   формирует `PRODUCT_UPDATE` для product-level fields.
 - Запускать только scripts, нужные для переданных fields, но не превращать каждый внутренний script
@@ -375,10 +380,13 @@ interface CategoryOperationResult {
 
 Operation result semantics:
 
-- `operations` в GraphQL contract обязателен. Empty object считается validation error до выполнения
-  workflow operations и до revision acquire.
-- Если `operations` передан, не пустой и прошел revision check, workflow возвращает ровно один
-  `CATEGORY_UPDATE` result.
+- `operations` в GraphQL contract обязателен. Missing `operations` является GraphQL validation
+  error и не доходит до resolver/workflow.
+- Empty object является no-op update: после successful revision check workflow возвращает
+  updated category payload с новой revision, один `CATEGORY_UPDATE` result с `applied: true`,
+  `userErrors: []` и не эмитит events.
+- Если `operations` передан, содержит хотя бы один requested section и прошел revision check,
+  workflow возвращает ровно один `CATEGORY_UPDATE` result.
 - `CATEGORY_UPDATE.applied` равен `true`, только если все requested sections применились успешно.
 - Если любой internal script вернул validation/business errors, весь category update считается
   unapplied: `CATEGORY_UPDATE.applied` равен `false`, ошибки лежат в `CATEGORY_UPDATE.errors` и
@@ -485,9 +493,8 @@ Implementation notes:
 ### Category Connection
 
 Заменить текущий hand-rolled `getConnection` на relay query на базе `@shopana/drizzle-query`.
-Для списка категорий использовать dedicated read view, созданный специально под category list.
-Не строить root category list напрямую от `catalog.category`, потому что sorting/search требуют
-стабильной locale-aware name projection и агрегированного `productsCount`.
+Строить root category list напрямую от таблицы `catalog.category`, аналогично текущему
+`ProductRepository.getConnection`. Не добавлять dedicated `category_list` view для этого cutover.
 
 Required capabilities:
 
@@ -502,58 +509,18 @@ Required capabilities:
 
 Concrete integration instructions:
 
-1. Add dedicated category list Drizzle view and root query builders near the existing category
-   product relay query. `categoryRelayQuery` must be built from the Drizzle view object, not from
-   `catalog.category` plus ad-hoc joins in repository code:
+1. Add root query builders near the existing category product relay query. `categoryRelayQuery`
+   must be built from the `category` table, matching the product repository pattern:
 
 ```ts
-export const categoryList = catalogSchema.view("category_list").as((qb) =>
-  qb
-    .select({
-      projectId: category.projectId,
-      id: category.id,
-      parentId: category.parentId,
-      handle: category.handle,
-      publishedAt: category.publishedAt,
-      createdAt: category.createdAt,
-      updatedAt: category.updatedAt,
-      deletedAt: category.deletedAt,
-      depth: category.depth,
-      path: category.path,
-      locale: categoryTranslation.locale,
-      name: categoryTranslation.name,
-      productsCount: sql<number>`COALESCE(${categoryProductsCount.productsCount}, 0)`.as("products_count"),
-    })
-    .from(category)
-    .leftJoin(
-      categoryTranslation,
-      sql`${categoryTranslation.projectId} = ${category.projectId}
-        AND ${categoryTranslation.categoryId} = ${category.id}`,
-    )
-    .leftJoin(
-      categoryProductsCount,
-      sql`${categoryProductsCount.projectId} = ${category.projectId}
-        AND ${categoryProductsCount.categoryId} = ${category.id}`,
-    )
-);
-```
-
-The actual view definition must use the existing Drizzle model style. If Drizzle cannot express the
-`productsCount` aggregate inline cleanly, add a small supporting Drizzle view for category product
-counts and join it from `categoryList`. The generated SQL migration must create the same database
-view(s). `categoryList` must include only fields required for category list filtering, sorting,
-cursor building and node lookup, and it must include `locale` so the repository can scope category
-name search/sort to the current locale.
-
-```ts
-const categoryListQuery = createQuery(categoryList).maxLimit(100).defaultLimit(20);
+const categoryQuery = createQuery(category).maxLimit(100).defaultLimit(20);
 
 export const categoryRelayQuery = createRelayQuery(
-  createQuery(categoryList).include(["id"]).maxLimit(100).defaultLimit(20),
+  createQuery(category).include(["id"]).maxLimit(100).defaultLimit(20),
   { name: "category", tieBreaker: "id" },
 );
 
-export type CategoryQueryInput = InferExecuteOptions<typeof categoryListQuery>;
+export type CategoryQueryInput = InferExecuteOptions<typeof categoryQuery>;
 export type CategoryRelayInput = InferRelayInput<typeof categoryRelayQuery>;
 ```
 
@@ -569,7 +536,6 @@ async getConnection(args: CategoryRelayInput): Promise<CategoryConnectionResult>
   const mergedWhere: CategoryRelayInput["where"] = {
     _and: [
       { projectId: { _eq: this.storeId } },
-      { locale: { _eq: this.locale } },
       ...(hasDeletedAtFilter ? [] : [{ deletedAt: { _is: null } }]),
       ...(where ? [where] : []),
     ],
@@ -608,17 +574,19 @@ async getConnection(args: CategoryRelayInput): Promise<CategoryConnectionResult>
 - `where.parentId === undefined` means no parent filter.
 - `where.isPublished` maps to `publishedAt _is null` / `_isNot null`, unless a generated computed field is added.
 - `where.deletedAt` must be opt-in. Default category list keeps `{ deletedAt: { _is: null } }`.
-- `orderBy` must be converted from GraphQL enum names to drizzle-query field names.
+- `orderBy` must be converted from GraphQL enum names to drizzle-query field names available on
+  `category`.
 
-4. Implement category search with drizzle-query against the dedicated category list view instead of
-   repository-local SQL string assembly:
+4. Implement category search with the table-based relay query:
 
 - Search must match category `handle`.
-- Search must match translated category `name` from the current locale row in `category_list`.
-- Repository-level `mergedWhere` must always include `{ locale: { _eq: this.locale } }` for
-  `category_list` queries so each category has one list row and cursor pagination stays stable.
-- `PRODUCTS_COUNT` sorting uses the view's `productsCount` field. Do not compute products count
-  with per-row subqueries in the list resolver.
+- Search by translated category `name` can be added later only if it can be expressed without introducing
+  a category list view and without duplicating category rows across translations. If that is not
+  supported by the table-based query builder in this cutover, keep search limited to `handle` and
+  document translated-name search as follow-up.
+- `productsCount` field resolution should continue through the existing loader/repository aggregate
+  path, not per-row subqueries in the list resolver. Sorting by `productsCount` is not part of this
+  table-based cutover unless later implemented without a dedicated category list view.
 
 5. `totalCount` must always use the same `mergedWhere` as the relay query:
 
@@ -628,14 +596,13 @@ categoryRelayQuery.count(this.connection, { where: mergedWhere });
 
 Do not use the existing unfiltered `count()` method for connection `totalCount`.
 
-6. Keep tenant and locale constraints inside repository-level `mergedWhere` so consumers cannot omit
-   them. Keep the default soft-delete constraint there too, but skip it when `where.deletedAt` is
+6. Keep tenant constraints inside repository-level `mergedWhere` so consumers cannot omit them.
+   Keep the default soft-delete constraint there too, but skip it when `where.deletedAt` is
    explicitly provided:
 
 ```ts
 _and: [
   { projectId: { _eq: this.storeId } },
-  { locale: { _eq: this.locale } },
   ...(hasDeletedAtFilter ? [] : [{ deletedAt: { _is: null } }]),
   ...(where ? [where] : []),
 ]
@@ -817,16 +784,11 @@ Model changes:
 
 - `src/repositories/models/categories.ts`:
   - добавить `category.revision = integer("revision").notNull().default(0)`;
-  - добавить `categoryProductCounts` view или эквивалентный supporting view, если aggregate
-    `productsCount` не выражается cleanly inline;
-  - добавить dedicated `categoryList` Drizzle view с полями, нужными для list query:
-    `projectId`, `id`, `parentId`, `handle`, `publishedAt`, `createdAt`, `updatedAt`,
-    `deletedAt`, `depth`, `path`, `locale`, `name`, `productsCount`;
   - заменить `idx_product_category_primary` на финальный partial unique index по
     `(projectId, productId) WHERE is_primary = true`;
   - не оставлять одновременно старый product-only primary index и новый tenant-scoped index.
-- `src/repositories/models/index.ts` должен экспортировать новые view objects/types, если они
-  используются repository layer.
+- Не добавлять `category_list` или supporting aggregate views для category list в этом cutover.
+  Category list query должна работать от таблицы `catalog.category`, как product list.
 - `CategoryRepository` должен соответствовать repository KB pattern: использовать
   transaction-aware `this.connection`, всегда применять `projectId`/`storeId` scoping, и
   предпочтительно перейти на `extends BaseRepository`, чтобы не дублировать context/connection
@@ -835,9 +797,7 @@ Model changes:
 Migration SQL acceptance criteria:
 
 - Migration содержит `ALTER TABLE "catalog"."category" ADD COLUMN "revision" integer NOT NULL DEFAULT 0`.
-- Migration создает `catalog.category_list` и supporting aggregate view(s), если они добавлены в
-  Drizzle model. Имена колонок view должны совпадать с Drizzle model fields, используемыми
-  `@shopana/drizzle-query`.
+- Migration не создает `catalog.category_list` или supporting aggregate view(s) для category list.
 - Migration явно удаляет или переименовывает `idx_product_category_primary` до создания финального
   tenant-scoped index:
 
@@ -859,13 +819,13 @@ Category list repository cutover:
 
 - Заменить `CategoryRelayInput` с ручным `parentId?: string | null` на
   `InferRelayInput<typeof categoryRelayQuery>`.
-- Создать `categoryListQuery` и `categoryRelayQuery` на базе `categoryList` view:
+- Создать `categoryQuery` и `categoryRelayQuery` на базе таблицы `category`:
 
 ```ts
-const categoryListQuery = createQuery(categoryList).maxLimit(100).defaultLimit(20);
+const categoryQuery = createQuery(category).maxLimit(100).defaultLimit(20);
 
 export const categoryRelayQuery = createRelayQuery(
-  createQuery(categoryList).include(["id"]).maxLimit(100).defaultLimit(20),
+  createQuery(category).include(["id"]).maxLimit(100).defaultLimit(20),
   { name: "category", tieBreaker: "id" },
 );
 ```
@@ -873,8 +833,8 @@ export const categoryRelayQuery = createRelayQuery(
 - `CategoryRepository.getConnection(args)` должен:
   - принимать `first/after/last/before`, `where`, `orderBy`;
   - merge-ить repository-owned filters:
-    `{ projectId: { _eq: this.storeId } }`, `{ locale: { _eq: this.locale } }`,
-    и default `{ deletedAt: { _is: null } }`, если caller явно не передал `where.deletedAt`;
+    `{ projectId: { _eq: this.storeId } }` и default `{ deletedAt: { _is: null } }`, если caller
+    явно не передал `where.deletedAt`;
   - использовать `categoryRelayQuery.execute(this.connection, executeInput)`;
   - считать `totalCount` через `categoryRelayQuery.count(this.connection, { where: mergedWhere })`;
   - возвращать только `{ edges: [{ cursor, nodeId }], pageInfo, totalCount }`, чтобы сохранить
@@ -884,13 +844,13 @@ export const categoryRelayQuery = createRelayQuery(
   - hardcoded `hasPreviousPage: false`;
   - игнорирование `after`, `last`, `before`;
   - unfiltered `this.count()` для connection `totalCount`;
-  - sorting/search по ad-hoc SQL вне `@shopana/drizzle-query`, если это можно выразить через
-    `categoryList` view/query fields.
+  - dedicated `category_list` view для category list.
 - GraphQL-to-repository mapping остается на resolver boundary:
   - `where.parentId` декодируется из global category ID до repository call;
   - `parentId: null` означает root categories через `{ parentId: { _is: null } }`;
   - `isPublished` мапится на `publishedAt`;
-  - enum fields из `CategoryOrderByInput` мапятся на drizzle-query field names.
+  - enum fields из `CategoryOrderByInput` мапятся на drizzle-query field names that exist on
+    `category`.
 
 Hierarchy repository fix:
 
@@ -960,7 +920,7 @@ Repository cutover acceptance criteria:
 - `CategoryProductConnectionResolver` can keep using the base `{ cursor, node }` edge shape.
 - `CategoryRepository.move()` updates descendants in `catalog.category`.
 - Drizzle model, migration SQL and runtime repository fields agree on final names for
-  `revision`, `category_list`, `productsCount`, and primary-category unique index.
+  `revision` and primary-category unique index.
 
 ### 3. Script And Workflow Cutover
 
@@ -1006,13 +966,15 @@ Unified category update workflow behavior:
   - `operations.hierarchy.parentId`;
   - `operations.media.fileIds`;
   - `operations.seo.ogImageId`.
-- Empty `operations` object is rejected before workflow writes:
+- Missing `operations` is rejected by GraphQL validation because the argument is non-null.
+
+- Empty `operations` object follows current `ProductUpdateWorkflow` no-op semantics:
 
 ```ts
 {
-  category: null,
-  operationResults: [],
-  userErrors: [{ code: "EMPTY_UPDATE", field: ["operations"], message: "No category update operations requested" }],
+  category: { id: input.categoryId, revision },
+  operationResults: [{ type: "categoryUpdate", applied: true, errors: [] }],
+  userErrors: [],
 }
 ```
 
@@ -1026,8 +988,8 @@ Unified category update workflow behavior:
 }
 ```
 
-- If `operations` is non-empty and revision check passes, workflow returns exactly one public
-  operation result:
+- If `operations` contains at least one requested section and revision check passes, workflow
+  returns exactly one public operation result:
 
 ```ts
 {
@@ -1051,13 +1013,15 @@ Atomic implementation requirement:
   - that step runs `CategoryUpdateAtomicScript`;
   - `CategoryUpdateAtomicScript.execute()` is `@Transactional()` and performs:
     1. load category scoped by current project;
-    2. validate non-empty requested sections;
+    2. detect whether requested sections are present;
     3. perform revision compare-and-swap inside the transaction;
-    4. run requested section scripts or internal functions using transaction-aware repositories;
-    5. aggregate section errors;
-    6. if any section has user errors, signal rollback before commit and convert the rollback marker
+    4. for no-op updates, return the updated `{ id, revision }` and one successful
+       `categoryUpdate` operation result without running section scripts;
+    5. run requested section scripts or internal functions using transaction-aware repositories;
+    6. aggregate section errors;
+    7. if any section has user errors, signal rollback before commit and convert the rollback marker
        back to `userErrors` outside the transaction boundary;
-    7. return `{ category: { id, revision }, changes, userErrors: [] }` only after all writes succeed.
+    8. return `{ category: { id, revision }, changes, userErrors: [] }` only after all writes succeed.
 - A plain `return { userErrors }` from a transactional function after writes is forbidden because it
   can commit partial changes. Use an explicit rollback-capable transaction helper or a typed
   rollback exception that is caught and mapped back to public `userErrors`.
@@ -1151,7 +1115,6 @@ Stable user error contract:
   - `MISSING_PRODUCT`;
   - `INVALID_PARENT`;
   - `CIRCULAR_REFERENCE`;
-  - `EMPTY_UPDATE`;
   - `REVISION_CONFLICT`;
   - `PRIMARY_CATEGORY_REQUIRED_IN_SET`;
   - `PRIMARY_CATEGORY_REMOVAL_NOT_ALLOWED`;
@@ -1176,8 +1139,11 @@ Workflow/script cutover acceptance criteria:
 
 - `categoryUpdate` public resolver path is: GraphQL resolver -> `catalog.categoryUpdate` workflow ->
   one atomic category update step/script.
-- Empty update and revision conflict return no `operationResults`.
-- Successful non-empty update returns one `CATEGORY_UPDATE` result with `applied: true`.
+- Empty update returns updated category payload, increments revision after successful CAS, returns
+  one successful `CATEGORY_UPDATE` operation result, and emits no events.
+- Revision conflict returns no `operationResults`.
+- Successful update with at least one requested section returns one `CATEGORY_UPDATE` result with
+  `applied: true`.
 - Section validation failure returns one `CATEGORY_UPDATE` result with `applied: false`, duplicated
   aggregate `userErrors`, no category resolver payload, no event, no revision bump and no partial
   writes.
@@ -1258,7 +1224,8 @@ Mutation resolver cutover:
   - map internal operation result `"categoryUpdate"` to GraphQL enum `CATEGORY_UPDATE`;
   - return `category: new CategoryResolver(result.category.id, this.$ctx)` only when workflow
     returns a successful category payload;
-  - return `category: null` on empty update, revision conflict or section failure.
+  - return updated `category` resolver on empty no-op update after successful CAS;
+  - return `category: null` on revision conflict or section failure.
 - `CatalogMutationResolver.productUpdate`:
   - map `operations.categories` into `ProductUpdateParams.categories`;
   - decode all category IDs and optional primary category ID before workflow call;
@@ -1641,7 +1608,9 @@ Manual/API verification checklist:
 - Query category details with hierarchy, media, SEO и products.
 - Create category with parent, media, SEO и publish flag.
 - Update category sections with expected revision.
-- Verify empty `categoryUpdate.operations` returns `EMPTY_UPDATE` and does not increment `revision`.
+- Verify empty `categoryUpdate.operations` copies product update no-op behavior: it increments
+  `revision` after successful CAS, returns updated category payload, returns one successful
+  `CATEGORY_UPDATE` result with empty `errors`, returns empty `userErrors`, and emits no events.
 - Verify revision conflict returns `REVISION_CONFLICT`.
 - Verify validation failure in one category update section does not apply any other requested section,
   does not increment `revision`, and does not emit `productUpdated`/`categoryUpdated`.
@@ -1659,4 +1628,6 @@ Manual/API verification checklist:
 - Primary category остается optional: `primaryCategoryId` может быть `null`, но если он задан, он должен входить в `categoryIds`.
 - Category-centric product sync должен возвращать validation error при попытке удалить primary assignment, если request не добавляет явную опцию `allowPrimaryFallback`.
 - Category media back-reference sync нужен только если media service already tracks product media back-references with the same ownership semantics.
-- Category name search должен работать по current locale first. Поиск по всем translations допустим только если это явно поддержано query builder/view и не ломает pagination stability.
+- Category name search/sort по translations не входит в обязательный table-based cutover. Если он
+  добавляется позже, реализация не должна вводить dedicated category list view и не должна ломать
+  cursor pagination дублированием category rows.
