@@ -104,7 +104,9 @@ ALTER TABLE catalog.category
   ADD COLUMN revision integer NOT NULL DEFAULT 0;
 ```
 
-Каждый category update workflow должен сначала захватывать revision, а затем применять операции. Это должно работать так же, как `ProductUpdateWorkflow` для продуктов.
+Каждый category update workflow должен использовать product-style optimistic locking через revision
+compare-and-swap, но category update имеет более строгую all-or-nothing семантику, потому что наружу
+возвращается один public `CATEGORY_UPDATE` result.
 
 ### Product Category Relationship Metadata
 
@@ -144,6 +146,17 @@ CREATE UNIQUE INDEX product_category_one_primary_per_product_idx
   ON catalog.product_category(project_id, product_id)
   WHERE is_primary = true;
 ```
+
+Migration note: current model already has a partial unique index named
+`idx_product_category_primary` on `product_category(product_id) WHERE is_primary = true`.
+The migration must replace that existing index instead of adding a second overlapping constraint:
+
+- Drop or rename the existing `idx_product_category_primary` explicitly.
+- Create the final tenant-scoped partial unique index on `(project_id, product_id)`.
+- Update the Drizzle `productCategory` model in the same cutover so generated migrations and
+  runtime metadata describe the same index.
+- Do not leave both primary-category unique indexes active unless there is a documented reason; the
+  final invariant is one primary category per product within a project.
 
 ## Целевой Query Contract
 
@@ -301,7 +314,7 @@ type CategoryUpdatePayload {
 type CatalogMutation {
   categoryUpdate(
     categoryId: ID!
-    operations: CategoryUpdateInput
+    operations: CategoryUpdateInput!
     expectedRevision: Int
   ): CategoryUpdatePayload!
 }
@@ -309,14 +322,25 @@ type CatalogMutation {
 
 Workflow behavior:
 
-- Захватить category revision через compare-and-swap до любой операции.
+- Валидировать `operations` до revision compare-and-swap. Пустой `operations` object без requested
+  sections должен вернуть `userErrors: [{ code: "EMPTY_UPDATE", field: ["operations"] }]` и не должен
+  инкрементить `revision`.
+- Захватить category revision через compare-and-swap до применения update sections.
+- CAS и все requested category sections должны быть atomic as a unit: либо все requested sections
+  применены и `revision` инкрементирован ровно один раз, либо ни один section не применен и
+  `revision` не меняется.
+- Не копировать текущую partial-apply семантику `ProductUpdateWorkflow`, где revision инкрементится
+  до операций и отдельные operation errors могут вернуться после частично примененных изменений.
 - Сформировать один workflow operation result типа `CATEGORY_UPDATE`, как `ProductUpdateWorkflow`
   формирует `PRODUCT_UPDATE` для product-level fields.
 - Запускать только scripts, нужные для переданных fields, но не превращать каждый внутренний script
   в отдельный public `operationResults` item. Script split остается implementation detail.
 - Агрегировать ошибки scripts в `CATEGORY_UPDATE.errors` и в общий `userErrors`.
-- Эмитить `categoryUpdated` с partial delta, если что-то изменилось.
-- Возвращать updated category resolver.
+- Эмитить `categoryUpdated` с partial delta только после successful commit.
+- Возвращать updated category resolver только при successful commit.
+- If any requested section returns validation/business errors, roll back all category writes and the
+  revision acquire, return `CATEGORY_UPDATE.applied: false`, duplicate errors into aggregate
+  `userErrors`, do not emit `categoryUpdated`, and do not return a new revision for UI cache use.
 
 Suggested workflow DTO:
 
@@ -361,11 +385,14 @@ interface CategoryOperationResult {
 
 Operation result semantics:
 
-- Если `operations` передан и прошел revision check, workflow возвращает ровно один
+- `operations` в GraphQL contract обязателен. Empty object считается validation error до выполнения
+  workflow operations и до revision acquire.
+- Если `operations` передан, не пустой и прошел revision check, workflow возвращает ровно один
   `CATEGORY_UPDATE` result.
 - `CATEGORY_UPDATE.applied` равен `true`, только если все requested sections применились успешно.
-- Если часть scripts вернула validation/business errors, `CATEGORY_UPDATE.applied` равен `false`,
-  ошибки лежат в `CATEGORY_UPDATE.errors` и продублированы в aggregate `userErrors`.
+- Если любой internal script вернул validation/business errors, весь category update считается
+  unapplied: `CATEGORY_UPDATE.applied` равен `false`, ошибки лежат в `CATEGORY_UPDATE.errors` и
+  продублированы в aggregate `userErrors`; partial writes, revision bump и events запрещены.
 - Если revision check не прошел, `operationResults` остается пустым, как у `ProductUpdateWorkflow`
   при early failure до выполнения операций.
 
@@ -378,6 +405,11 @@ Recommended script split:
 - `CategoryUpdateMediaScript`: category media replacement и back-ref sync.
 - `CategoryMoveScript`: parent/hierarchy move.
 - `CategoryUpdateSortScript`: PLP default sort.
+
+Hierarchy must-fix: before wiring hierarchy into unified `categoryUpdate`, fix
+`CategoryRepository.move()` descendant path update SQL to target `catalog.category`, not
+`inventory.category`. Unified hierarchy update must not ship while descendant path updates point at
+the wrong schema.
 
 Cutover requirement: do not leave the old monolithic `CategoryUpdateScript` as the public mutation path. It may be reused internally only if wrapped behind section-specific internal scripts and the exposed workflow behavior matches the single `CATEGORY_UPDATE` operation-result contract in the same commit.
 
@@ -418,7 +450,10 @@ input ProductUpdateInput {
   - Обновляет `isPrimary`.
   - Сохраняет existing rank для links, которые остались.
   - Назначает новые ranks в конец каждой category.
-  - Touch product и increment revision через существующий workflow.
+  - Touch product через repository method, если текущая архитектура требует обновить `updatedAt`.
+  - Не инкрементит product `revision` самостоятельно. Revision уже захватывается и инкрементится
+    `ProductUpdateWorkflow` через compare-and-swap до выполнения scripts; второй bump внутри
+    `ProductUpdateCategoriesScript` запрещен.
   - Эмитит product delta с category IDs и primary category ID.
 
 Это основной API, который нужен product edit categories flow.
@@ -660,6 +695,35 @@ setProductPrimaryCategory(productId: string, primaryCategoryId: string | null): 
 
 Validation belongs in scripts. Repositories не должны silently invent fallback primary category behavior.
 
+### Category Product Edge Metadata
+
+`CategoryProductEdge.isPrimary` и `CategoryProductEdge.rank` — это metadata строки
+`product_category`, а не поля `Product`. Repository result для `getCategoryProductsConnection`
+должен возвращать эту metadata на edge level:
+
+```ts
+interface CategoryProductsConnectionResult {
+  edges: Array<{
+    cursor: string;
+    nodeId: string;
+    isPrimary: boolean;
+    rank: string;
+  }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
+```
+
+Resolver shape must be updated in the same cutover:
+
+- Не полагаться на текущий `BaseConnectionResolver.edges()`, который возвращает только
+  `{ cursor, node }`.
+- Preferred implementation: override `edges()` в `CategoryProductConnectionResolver` и вернуть
+  `{ cursor, node, isPrimary, rank }` для `CategoryProductEdge`.
+- Расширять общий `BaseConnectionResolver.EdgeData` metadata-полями только если такой edge metadata
+  pattern нужен нескольким connection types. Для одного `CategoryProductEdge` не раздувать общий
+  base contract.
+
 ## Resolver Plan
 
 ### Query Resolver
@@ -673,6 +737,8 @@ Validation belongs in scripts. Repositories не должны silently invent fa
 - Добавить `revision()`.
 - Оставить `products(args)` через `CategoryProductConnectionResolver`.
 - Добавить relation metadata в `CategoryProductEdge` через connection resolver data.
+- Переопределить edge resolver shape для `CategoryProductConnectionResolver`, чтобы `isPrimary` и
+  `rank` возвращались на edge level, а не терялись в `BaseConnectionResolver.edges()`.
 
 ### Product Resolver
 
@@ -723,7 +789,7 @@ Preferred first implementation:
 
 - Добавить category `revision`.
 - Заменить `catalogQuery.categories` signature на connection с `where` и `orderBy`.
-- Заменить `catalogMutation.categoryUpdate` signature на `categoryId`, `operations`, `expectedRevision`.
+- Заменить `catalogMutation.categoryUpdate` signature на `categoryId`, `operations: CategoryUpdateInput!`, `expectedRevision`.
 - Добавить отдельный `CategoryStatus` enum для category publication state, не переиспользовать `ProductStatus`.
 - Удалить старый публичный `categoryUpdate(input: CategoryUpdateInput!)` контракт из schema и generated types.
 - Добавить product category relationship metadata fields: `primaryCategory`, `categoryAssignments`, edge `isPrimary`, edge `rank`.
@@ -735,9 +801,12 @@ Preferred first implementation:
 
 - Добавить database migration для `category.revision`.
 - Добавить database migration/model для dedicated `category_list` view.
-- Добавить primary category uniqueness migration.
+- Заменить existing `idx_product_category_primary` на финальный tenant-scoped primary category
+  uniqueness index.
 - Реализовать full Relay category connection на `@shopana/drizzle-query`.
 - Удалить ручной cursor handling из `CategoryRepository.getConnection`.
+- Исправить `CategoryRepository.move()` descendant path update SQL: использовать `catalog.category`,
+  а не `inventory.category`, до подключения hierarchy section к unified `categoryUpdate`.
 - Добавить product-category link read/remove/sync/primary methods.
 - Сохранять все queries scoped by `projectId`.
 - Считать category connection `totalCount` с теми же filters, что и relay query.
@@ -745,6 +814,10 @@ Preferred first implementation:
 ### 3. Script And Workflow Cutover
 
 - Добавить `CategoryUpdateWorkflow` и сделать его единственным path для `categoryUpdate`.
+- Реализовать category update atomic boundary так, чтобы revision CAS и requested section writes
+  коммитились/откатывались вместе. Допустимо использовать один transactional workflow step или
+  один transactional internal script behind workflow; недопустимо разнести CAS и section writes по
+  независимым steps, если section failure не может откатить revision bump.
 - Разделить или wrap category update scripts по internal responsibility в этом же commit.
 - Возвращать один public `CATEGORY_UPDATE` operation result для unified category update,
   по аналогии с `PRODUCT_UPDATE` result в `ProductUpdateWorkflow`.
@@ -763,6 +836,9 @@ Preferred first implementation:
 - Добавить resolver fields для `revision`, `primaryCategory` и `categoryAssignments`.
 - Обновить `Product.categories`, если поле остается в schema, чтобы оно работало поверх нового assignment source. Иначе удалить его из schema и generated resolvers в этом же commit.
 - Добавить или обновить DataLoader для product-category links, чтобы новые fields не создавали N+1 queries.
+- Обновить `CategoryProductConnectionResolver.edges()` или общий connection edge contract так, чтобы
+  `CategoryProductEdge.isPrimary` и `CategoryProductEdge.rank` реально резолвились из
+  `product_category`.
 
 ### 5. Generated Artifacts Cutover
 
@@ -791,7 +867,12 @@ Manual/API verification checklist:
 - Query category details with hierarchy, media, SEO и products.
 - Create category with parent, media, SEO и publish flag.
 - Update category sections with expected revision.
+- Verify empty `categoryUpdate.operations` returns `EMPTY_UPDATE` and does not increment `revision`.
 - Verify revision conflict returns `REVISION_CONFLICT`.
+- Verify validation failure in one category update section does not apply any other requested section,
+  does not increment `revision`, and does not emit `categoryUpdated`.
+- Move category through unified hierarchy update and verify descendant `path`/`depth` updates happen
+  in `catalog.category`.
 - Assign product categories through `productUpdate.categories` with replace-set semantics.
 - Remove category from product and verify `primaryCategory`, `categoryAssignments` and `Product.categories` only if that convenience field remains in schema.
 - Add, remove, sync и reorder products from category details.
