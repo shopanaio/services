@@ -15,7 +15,7 @@ export interface ITagPickerPayload {
   initialSelection?: string[];
   excludeIds?: string[];
   maxSelection?: number;
-  onConfirm: (entities: IPickableEntity[]) => void;
+  onConfirm: (entities: IPickableEntity[], ids: string[]) => void;
 }
 
 export function TagPickerModal() {
@@ -43,9 +43,9 @@ export function TagPickerModal() {
   );
 
   const handleConfirm = useCallback(() => {
-    onConfirm(selectedEntities);
+    onConfirm(selectedEntities, selectedIds);
     forcePop();
-  }, [selectedEntities, onConfirm, forcePop]);
+  }, [selectedEntities, selectedIds, onConfirm, forcePop]);
 
   const handleCancel = useCallback(() => {
     forcePop();

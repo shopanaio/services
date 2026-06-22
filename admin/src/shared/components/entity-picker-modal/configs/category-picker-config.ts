@@ -1,24 +1,17 @@
 "use client";
 
-import {
-  useState,
-  useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { ColDef } from "ag-grid-community";
-import { EntityCellRenderer,
-  StatusCellRenderer } from "../cell-renderers";
+import { useCategories } from "@/domains/inventory/categories/hooks";
+import { EntityCellRenderer, StatusCellRenderer } from "../cell-renderers";
 import { registerEntityPickerConfig } from ".";
 import type {
   IEntityPickerConfig,
   IEntityPickerDataResult,
   IPickableEntity,
-  } from "../types";
-import {
-  FilterType,
-  enumOperators,
-} from "@/layouts/filters";
-import type { IFilterValue, IFilterSchema } from "@/layouts/filters/core/types";
-import type { ApiCategory } from "@/graphql/types";
-import { mockCategories } from "@/mocks/products/categories";
+} from "../types";
+import type { IFilterValue } from "@/layouts/filters/core/types";
+import type { ApiCategory, ApiCategoryWhereInput } from "@/graphql/types";
 
 interface CategoryPickerEntity extends IPickableEntity {
   handle: string;
@@ -36,74 +29,72 @@ function transformCategory(category: ApiCategory): CategoryPickerEntity {
   };
 }
 
-const categoryFilterSchema: IFilterSchema[] = [
-  {
-    key: "status",
-    label: "Status",
-    description: "Filter by category status",
-    type: FilterType.Enum,
-    operators: enumOperators,
-    payloadKey: "status",
-    options: [
-      { label: "Active", value: "active" },
-      { label: "Inactive", value: "inactive" },
-    ],
-  },
-];
-
 function useCategoriesPickerData(options: {
   filters: IFilterValue[];
   search: string;
   pageSize: number;
+  excludeIds: string[];
 }): IEntityPickerDataResult<CategoryPickerEntity> {
-  const { search, filters, pageSize } = options;
-  const [page, setPage] = useState(0);
+  const { pageSize, excludeIds } = options;
+  const [pageIndex, setPageIndex] = useState(0);
+  const [cursorHistory, setCursorHistory] = useState<Array<string | null>>([
+    null,
+  ]);
+  const after = cursorHistory[pageIndex] ?? null;
+  const where = useMemo<ApiCategoryWhereInput | null>(
+    () =>
+      excludeIds.length > 0
+        ? {
+            id: {
+              _notIn: excludeIds,
+            },
+          }
+        : null,
+    [excludeIds],
+  );
+  const { categories, totalCount, pageInfo, loading, error } = useCategories({
+    first: pageSize,
+    after,
+    where,
+    fetchPolicy: "network-only",
+  });
 
-  const allData = useMemo(() => {
-    let result = mockCategories.map(transformCategory);
+  const data = useMemo(
+    () => categories.map(transformCategory),
+    [categories],
+  );
 
-    if (search) {
-      const searchLower = search.toLowerCase();
-      result = result.filter((c) =>
-        c.title.toLowerCase().includes(searchLower) ||
-        c.handle.toLowerCase().includes(searchLower)
-      );
-    }
-
-    const statusFilter = filters.find((f) => f.schemaKey === "status");
-    if (statusFilter?.value) {
-      result = result.filter((c) => c.status === statusFilter.value);
-    }
-
-    return result;
-  }, [search, filters]);
-
-  const paginatedData = useMemo(() => {
-    const start = page * pageSize;
-    return allData.slice(start, start + pageSize);
-  }, [allData, page, pageSize]);
-
-  const total = allData.length;
-  const rangeStart = page * pageSize + 1;
-  const rangeEnd = Math.min((page + 1) * pageSize, total);
-  const hasNext = rangeEnd < total;
-  const hasPrev = page > 0;
+  const rangeStart = pageIndex * pageSize + 1;
+  const rangeEnd = Math.min((pageIndex + 1) * pageSize, totalCount);
+  const hasNext = pageInfo?.hasNextPage ?? false;
 
   return {
-    data: paginatedData,
-    isLoading: false,
-    error: null,
+    data,
+    isLoading: loading,
+    error,
     pagination: {
-      total,
+      total: totalCount,
       pageSize,
       hasNext,
-      hasPrev,
-      rangeStart: total > 0 ? rangeStart : 0,
+      hasPrev: pageIndex > 0,
+      rangeStart: totalCount > 0 ? rangeStart : 0,
       rangeEnd,
     },
-    onNext: () => setPage((p) => p + 1),
-    onPrev: () => setPage((p) => Math.max(0, p - 1)),
-    onPageSizeChange: () => setPage(0),
+    onNext: () => {
+      const nextCursor = pageInfo?.endCursor ?? null;
+      if (!nextCursor) return;
+      setCursorHistory((history) => {
+        const next = [...history];
+        next[pageIndex + 1] = nextCursor;
+        return next;
+      });
+      setPageIndex((index) => index + 1);
+    },
+    onPrev: () => setPageIndex((index) => Math.max(0, index - 1)),
+    onPageSizeChange: () => {
+      setPageIndex(0);
+      setCursorHistory([null]);
+    },
   };
 }
 
@@ -128,7 +119,8 @@ export const categoryPickerConfig: IEntityPickerConfig<CategoryPickerEntity> =
     entityType: "category",
     entityName: "Category",
     entityNamePlural: "Categories",
-    filterSchema: categoryFilterSchema,
+    filterSchema: [],
+    searchEnabled: false,
     columns: categoryPickerColumns,
     useData: useCategoriesPickerData,
     getRowId: (entity) => entity.id,

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Avatar,
   Breadcrumb,
   Button,
   Dropdown,
@@ -14,68 +13,24 @@ import {
   MoreOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
-import { EditAction } from "@/domains/inventory/products/components/edit-action";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { ApiCategory } from "@/graphql/types";
 import { useHierarchyStyles } from "../category-details-card.styles";
 
-const getStatusColor = (isPublished: boolean) =>
-  isPublished ? "var(--ant-color-success)" : "var(--ant-color-warning)";
-
-const getCategoryFeaturedUrl = (category: ApiCategory): string | undefined => {
-  const firstMedia = [...category.media].sort(
-    (a, b) => a.sortIndex - b.sortIndex,
-  )[0];
-  return firstMedia?.file.url;
-};
-
-interface SubcategoryCardProps {
-  child: ApiCategory;
-}
-
-const SubcategoryCard = ({ child }: SubcategoryCardProps) => {
-  const { styles } = useHierarchyStyles();
-  const statusColor = getStatusColor(child.isPublished);
-
-  return (
-    <div className={styles.subcategoryCard}>
-      <Flex vertical align="center" gap={8}>
-        <Avatar
-          size={48}
-          src={getCategoryFeaturedUrl(child)}
-          icon={<FolderOutlined />}
-          style={{ flexShrink: 0 }}
-        />
-        <Typography.Text strong ellipsis className={styles.subcategoryTitle}>
-          {child.name}
-        </Typography.Text>
-        <Typography.Text type="secondary" className={styles.subcategoryMeta}>
-          {child.productsCount} products
-        </Typography.Text>
-        <Flex align="center" gap={4}>
-          <span
-            className={styles.statusDot}
-            style={{ background: statusColor }}
-          />
-          <Typography.Text style={{ fontSize: 11, color: statusColor }}>
-            {child.isPublished ? "Published" : "Draft"}
-          </Typography.Text>
-        </Flex>
-      </Flex>
-    </div>
-  );
-};
-
 interface HierarchySectionProps {
   category: ApiCategory;
-  onEdit?: () => void;
-  onAddSubcategory?: () => void;
+  onEditParent?: () => void;
+  onClearParent?: () => void;
+  onEditSubcategories?: () => void;
+  onRemoveSubcategory?: (subcategory: ApiCategory) => void;
 }
 
 export const HierarchySection = ({
   category,
-  onEdit,
-  onAddSubcategory,
+  onEditParent,
+  onClearParent,
+  onEditSubcategories,
+  onRemoveSubcategory,
 }: HierarchySectionProps) => {
   const { styles } = useHierarchyStyles();
   const subcategories = category.children;
@@ -93,13 +48,39 @@ export const HierarchySection = ({
       <PaperHeader
         title="Hierarchy"
         actions={
-          onEdit ? (
-            <EditAction
-              onEdit={onEdit}
-              label="Edit hierarchy"
-              testId="category-hierarchy-actions-button"
+          <Dropdown
+            trigger={["click"]}
+            menu={{
+              items: [
+                {
+                  key: "edit-parent",
+                  label: "Edit parent",
+                  disabled: !onEditParent,
+                },
+                {
+                  key: "edit-subcategories",
+                  label: "Add subcategories",
+                  disabled: !onEditSubcategories,
+                },
+              ],
+              onClick: ({ key }) => {
+                if (key === "edit-parent") {
+                  onEditParent?.();
+                  return;
+                }
+
+                if (key === "edit-subcategories") {
+                  onEditSubcategories?.();
+                }
+              },
+            }}
+          >
+            <Button
+              size="small"
+              icon={<MoreOutlined />}
+              data-testid="category-hierarchy-actions-button"
             />
-          ) : null
+          </Dropdown>
         }
       />
 
@@ -109,21 +90,31 @@ export const HierarchySection = ({
         data-testid="category-hierarchy-breadcrumb"
       />
 
-      {category.parent && (
-        <Flex
-          align="center"
-          gap={8}
-          style={{ marginBottom: 16 }}
-          data-testid="category-hierarchy-parent"
-        >
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            Parent:
-          </Typography.Text>
+      <Flex
+        align="center"
+        gap={8}
+        style={{ marginBottom: 16 }}
+        data-testid="category-hierarchy-parent"
+      >
+        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+          Parent:
+        </Typography.Text>
+        {category.parent ? (
           <Dropdown
             trigger={["click"]}
             menu={{
               items: [
-                { key: "change", label: "Change parent", onClick: onEdit },
+                {
+                  key: "change",
+                  label: "Change parent",
+                  onClick: onEditParent,
+                },
+                {
+                  key: "clear",
+                  label: "Clear parent",
+                  onClick: onClearParent,
+                  disabled: !onClearParent,
+                },
               ],
             }}
           >
@@ -135,44 +126,87 @@ export const HierarchySection = ({
               </Flex>
             </Tag>
           </Dropdown>
-        </Flex>
-      )}
+        ) : (
+          <Tag
+            variant="outlined"
+            onClick={onEditParent}
+            style={{
+              cursor: "pointer",
+              background: "transparent",
+              borderStyle: "dashed",
+            }}
+          >
+            <Flex align="center" gap={4}>
+              <PlusOutlined />
+              Add Parent
+            </Flex>
+          </Tag>
+        )}
+      </Flex>
 
       <Typography.Text type="secondary" className={styles.sectionLabel}>
         Subcategories ({subcategories.length})
       </Typography.Text>
 
       {hasSubcategories ? (
-        <div className={styles.subcategoryGrid} style={{ marginTop: 8 }}>
+        <Flex gap={4} wrap="wrap" style={{ marginTop: 8 }}>
           {subcategories.map((child) => (
-            <SubcategoryCard key={child.id} child={child} />
+            <Dropdown
+              key={child.id}
+              trigger={["click"]}
+              menu={{
+                items: [
+                  {
+                    key: "delete",
+                    label: "Delete subcategory",
+                    onClick: () => onRemoveSubcategory?.(child),
+                    disabled: !onRemoveSubcategory,
+                  },
+                ],
+              }}
+            >
+              <Tag color="default" style={{ cursor: "pointer" }}>
+                <Flex align="center" gap={4}>
+                  {child.name}
+                  <MoreOutlined />
+                </Flex>
+              </Tag>
+            </Dropdown>
           ))}
-          <div className={styles.addSubcategoryCard} onClick={onAddSubcategory}>
-            <PlusOutlined style={{ fontSize: 16, marginBottom: 4 }} />
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              Add Subcategory
-            </Typography.Text>
-          </div>
-        </div>
-      ) : (
-        <Flex
-          vertical
-          align="center"
-          justify="center"
-          gap={8}
-          className={styles.emptyContainer}
-        >
-          <FolderOutlined className={styles.emptyIcon} />
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            This is a leaf category with no subcategories
-          </Typography.Text>
-          <Button
-            type="dashed"
-            icon={<PlusOutlined />}
-            onClick={onAddSubcategory}
+          <Tag
+            variant="outlined"
+            onClick={onEditSubcategories}
+            style={{
+              cursor: "pointer",
+              background: "transparent",
+              borderStyle: "dashed",
+            }}
           >
-            Create Subcategory
-          </Button>
+            <Flex align="center" gap={4}>
+              <PlusOutlined />
+              Add Subcategories
+            </Flex>
+          </Tag>
+        </Flex>
+      ) : (
+        <Flex gap={4} wrap="wrap" style={{ marginTop: 8 }}>
+          <Tag
+            variant="outlined"
+            onClick={onEditSubcategories}
+            style={{
+              cursor: "pointer",
+              background: "transparent",
+              borderStyle: "dashed",
+            }}
+          >
+            <Flex align="center" gap={4}>
+              <PlusOutlined />
+              Add Subcategories
+            </Flex>
+          </Tag>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            No subcategories assigned
+          </Typography.Text>
         </Flex>
       )}
     </Paper>

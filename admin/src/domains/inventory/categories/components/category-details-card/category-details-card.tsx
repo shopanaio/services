@@ -39,8 +39,10 @@ export const CategoryDetailsCard = ({
 
       <HierarchySection
         category={category}
-        onEdit={modals.editHierarchy}
-        onAddSubcategory={modals.addSubcategory}
+        onEditParent={modals.editParent}
+        onClearParent={modals.clearParent}
+        onEditSubcategories={modals.editSubcategories}
+        onRemoveSubcategory={modals.removeSubcategory}
       />
 
       <MediaSection gallery={gallery} onEdit={modals.editMedia} />

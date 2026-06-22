@@ -33,14 +33,17 @@ export const CategoryContentTabs = ({
       descriptionTestId="category-content-description"
       excerptTestId="category-content-excerpt"
       onEdit={onEdit}
-      emptyVariant="compact"
       descriptionEmpty={{
         title: "No description added",
-        actionLabel: "Add now",
+        description:
+          "Add a detailed category description to help customers understand what this category contains.",
+        actionLabel: "Add description",
       }}
       excerptEmpty={{
         title: "No excerpt added",
-        actionLabel: "Add now",
+        description:
+          "Add a short category excerpt for previews, search snippets, and quick scans.",
+        actionLabel: "Add excerpt",
       }}
       actions={
         <Flex gap={8}>

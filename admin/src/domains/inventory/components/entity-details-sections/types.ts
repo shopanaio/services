@@ -33,5 +33,4 @@ export interface EntityContentTabsProps {
   excerptTestId: string;
   descriptionEmpty: EntityContentTabsEmptyState;
   excerptEmpty: EntityContentTabsEmptyState;
-  emptyVariant?: "rich" | "compact";
 }

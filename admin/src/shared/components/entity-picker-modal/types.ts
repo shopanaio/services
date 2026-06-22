@@ -49,6 +49,8 @@ export interface IEntityPickerConfig<T extends IPickableEntity> {
   entityNamePlural: string;
   /** Filter schema for the entity */
   filterSchema: IFilterSchema[];
+  /** Whether the search input should be shown */
+  searchEnabled?: boolean;
   /** Column definitions for AG Grid */
   columns: ColDef<T>[];
   /** Data provider hook */
@@ -56,6 +58,7 @@ export interface IEntityPickerConfig<T extends IPickableEntity> {
     filters: IFilterValue[];
     search: string;
     pageSize: number;
+    excludeIds: string[];
   }) => IEntityPickerDataResult<T>;
   /** Get unique row ID */
   getRowId: (entity: T) => string;
@@ -82,7 +85,7 @@ export interface IEntityPickerPayload<T extends IPickableEntity = IPickableEntit
   initialSelection?: string[];
   excludeIds?: string[];
   maxSelection?: number;
-  onConfirm: (entities: T[]) => void;
+  onConfirm: (entities: T[], ids: string[]) => void;
 }
 
 /**

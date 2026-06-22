@@ -3,7 +3,6 @@ import type { IModalStackPayload } from "@/layouts/modals/types";
 import type { ApiCategory } from "@/graphql/types";
 import type {
   CategoryContentFormValues,
-  CategoryHierarchyFormValues,
   CategoryIdentityFormValues,
   CategoryMediaFormValues,
   CategorySeoFormValues,
@@ -21,7 +20,6 @@ export const CATEGORY_EDIT_IDENTITY_MODAL_TYPE = 'category-edit-identity';
 export const CATEGORY_EDIT_CONTENT_MODAL_TYPE = 'category-edit-content';
 export const CATEGORY_EDIT_SEO_MODAL_TYPE = 'category-edit-seo';
 export const CATEGORY_EDIT_MEDIA_MODAL_TYPE = 'category-edit-media';
-export const CATEGORY_EDIT_HIERARCHY_MODAL_TYPE = 'category-edit-hierarchy';
 export const CATEGORY_EDIT_SORT_MODAL_TYPE = 'category-edit-sort';
 export const CATEGORY_EDIT_STATUS_MODAL_TYPE = 'category-edit-status';
 export const CATEGORY_ASSIGN_PRODUCTS_MODAL_TYPE = 'category-assign-products';
@@ -72,13 +70,6 @@ export interface ICategoryEditMediaModalPayload
   ) => boolean | void | Promise<boolean | void>;
 }
 
-export interface ICategoryEditHierarchyModalPayload
-  extends ICategoryEditModalPayload {
-  onSave?: (
-    values: CategoryHierarchyFormValues,
-  ) => boolean | void | Promise<boolean | void>;
-}
-
 export interface ICategoryEditSortModalPayload
   extends ICategoryEditModalPayload {
   onSave?: (
@@ -108,7 +99,6 @@ declare module '@/layouts/modals' {
     [CATEGORY_EDIT_CONTENT_MODAL_TYPE]: ICategoryEditContentModalPayload;
     [CATEGORY_EDIT_SEO_MODAL_TYPE]: ICategoryEditSeoModalPayload;
     [CATEGORY_EDIT_MEDIA_MODAL_TYPE]: ICategoryEditMediaModalPayload;
-    [CATEGORY_EDIT_HIERARCHY_MODAL_TYPE]: ICategoryEditHierarchyModalPayload;
     [CATEGORY_EDIT_SORT_MODAL_TYPE]: ICategoryEditSortModalPayload;
     [CATEGORY_EDIT_STATUS_MODAL_TYPE]: ICategoryEditStatusModalPayload;
     [CATEGORY_ASSIGN_PRODUCTS_MODAL_TYPE]: ICategoryAssignProductsModalPayload;
@@ -134,9 +124,6 @@ export const useCategoryEditSeoModal = createModalStackHook(
 );
 export const useCategoryEditMediaModal = createModalStackHook(
   CATEGORY_EDIT_MEDIA_MODAL_TYPE,
-);
-export const useCategoryEditHierarchyModal = createModalStackHook(
-  CATEGORY_EDIT_HIERARCHY_MODAL_TYPE,
 );
 export const useCategoryEditSortModal = createModalStackHook(
   CATEGORY_EDIT_SORT_MODAL_TYPE,

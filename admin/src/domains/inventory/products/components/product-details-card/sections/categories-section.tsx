@@ -52,32 +52,29 @@ export const CategoriesSection = ({
   };
 
   const { openPicker } = useCategoryPicker({
-    initialSelection: categories.map((cat) => cat.id),
+    excludeIds: categories.map((cat) => cat.id),
     onConfirm: (entities: IPickableEntity[]) => {
       const existingById = new Map(categories.map((c) => [c.id, c]));
-      const newCategories = entities.map((entity) => {
-        const existing = existingById.get(entity.id);
-        if (existing) {
-          return existing;
-        }
-        const categoryHandle =
-          "handle" in entity && typeof entity.handle === "string"
-            ? entity.handle
-            : entity.id;
+      const newCategories = entities
+        .filter((entity) => !existingById.has(entity.id))
+        .map((entity) => {
+          const categoryHandle =
+            "handle" in entity && typeof entity.handle === "string"
+              ? entity.handle
+              : entity.id;
 
-        return createMockApiCategory({
-          id: entity.id,
-          name: entity.title,
-          handle: categoryHandle,
+          return createMockApiCategory({
+            id: entity.id,
+            name: entity.title,
+            handle: categoryHandle,
+          });
         });
-      });
-      setCategories(newCategories);
+      const nextCategories = [...categories, ...newCategories];
 
-      if (
-        primaryCategoryId &&
-        !entities.find((e) => e.id === primaryCategoryId)
-      ) {
-        setPrimaryCategoryId(newCategories[0]?.id ?? null);
+      setCategories(nextCategories);
+
+      if (!primaryCategoryId) {
+        setPrimaryCategoryId(nextCategories[0]?.id ?? null);
       }
     },
   });

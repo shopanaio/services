@@ -354,14 +354,6 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       ),
     },
     {
-      type: 'category-edit-hierarchy',
-      component: dynamic(() =>
-        import('@/domains/inventory/categories/modals/edit-category-hierarchy-modal').then(
-          (m) => m.EditCategoryHierarchyModal
-        )
-      ),
-    },
-    {
       type: 'category-edit-sort',
       component: dynamic(() =>
         import('@/domains/inventory/categories/modals/edit-category-sort-modal').then(

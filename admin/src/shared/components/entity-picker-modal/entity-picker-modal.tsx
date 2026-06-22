@@ -33,9 +33,9 @@ export function EntityPickerModal() {
   );
 
   const handleConfirm = useCallback(() => {
-    onConfirm(selectedEntities);
+    onConfirm(selectedEntities, selectedIds);
     forcePop();
-  }, [selectedEntities, onConfirm, forcePop]);
+  }, [selectedEntities, selectedIds, onConfirm, forcePop]);
 
   const handleCancel = useCallback(() => {
     forcePop();

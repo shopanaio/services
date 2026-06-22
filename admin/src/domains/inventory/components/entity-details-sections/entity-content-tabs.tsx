@@ -1,42 +1,21 @@
 "use client";
 
 import { Button, Flex, Tabs, Typography } from "antd";
-import { FileTextOutlined, WarningOutlined } from "@ant-design/icons";
+import { FileTextOutlined } from "@ant-design/icons";
 import { Paper } from "@/ui-kit/paper";
 import { useEntityContentTabsStyles } from "./entity-content-tabs.styles";
 import type { EntityContentTabsEmptyState, EntityContentTabsProps } from "./types";
 
 interface EmptyStateProps {
   state: EntityContentTabsEmptyState;
-  variant: "rich" | "compact";
   onEdit?: () => void;
 }
 
 const EntityContentEmptyState = ({
   state,
-  variant,
   onEdit,
 }: EmptyStateProps) => {
   const { styles } = useEntityContentTabsStyles();
-
-  if (variant === "compact") {
-    return (
-      <Flex align="center" gap={8} className={styles.compactEmptyContainer}>
-        <WarningOutlined className={styles.compactEmptyIcon} />
-        <Typography.Text type="secondary" className={styles.compactEmptyText}>
-          {state.title}
-        </Typography.Text>
-        <Button
-          type="link"
-          size="small"
-          onClick={onEdit}
-          className={styles.compactAddButton}
-        >
-          {state.actionLabel}
-        </Button>
-      </Flex>
-    );
-  }
 
   return (
     <div className={styles.richEmptyState}>
@@ -70,7 +49,6 @@ export const EntityContentTabs = ({
   excerptTestId,
   descriptionEmpty,
   excerptEmpty,
-  emptyVariant = "rich",
 }: EntityContentTabsProps) => {
   const { styles } = useEntityContentTabsStyles();
 
@@ -94,7 +72,6 @@ export const EntityContentTabs = ({
             ) : (
               <EntityContentEmptyState
                 state={descriptionEmpty}
-                variant={emptyVariant}
                 onEdit={onEdit}
               />
             ),
@@ -112,7 +89,6 @@ export const EntityContentTabs = ({
             ) : (
               <EntityContentEmptyState
                 state={excerptEmpty}
-                variant={emptyVariant}
                 onEdit={onEdit}
               />
             ),

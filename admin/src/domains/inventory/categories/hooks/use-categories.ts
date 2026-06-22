@@ -19,6 +19,7 @@ export interface UseCategoriesOptions extends RelayCursorPaginationVariables {
   where?: ApiCategoryWhereInput | null;
   orderBy?: ApiCategoryOrderByInput[] | null;
   skip?: boolean;
+  fetchPolicy?: "cache-and-network" | "network-only";
 }
 
 interface UseCategoriesReturn {
@@ -42,6 +43,7 @@ export function useCategories(
     where = null,
     orderBy = null,
     skip = false,
+    fetchPolicy = "cache-and-network",
   } = options;
 
   const { data, previousData, loading, error, refetch } = useQuery<
@@ -57,7 +59,7 @@ export function useCategories(
       orderBy,
     },
     skip,
-    fetchPolicy: "cache-and-network",
+    fetchPolicy,
   });
 
   const effectiveData = data ?? previousData;

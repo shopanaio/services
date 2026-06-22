@@ -25,7 +25,7 @@ export const CategoryModal = () => {
   }, [pop]);
 
   const renderContent = () => {
-    if (loading) {
+    if (loading && !category) {
       return (
         <Flex vertical gap={16} style={{ padding: 16 }}>
           <Skeleton active paragraph={{ rows: 4 }} />

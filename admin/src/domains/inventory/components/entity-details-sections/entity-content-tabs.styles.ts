@@ -89,17 +89,4 @@ export const useEntityContentTabsStyles = createStyles(({ token }) => ({
   richEmptyAction: {
     flexShrink: 0,
   },
-  compactEmptyContainer: {
-    padding: "16px 0",
-  },
-  compactEmptyIcon: {
-    color: token.colorTextQuaternary,
-  },
-  compactEmptyText: {
-    fontSize: 12,
-  },
-  compactAddButton: {
-    padding: 0,
-    height: "auto",
-  },
 }));

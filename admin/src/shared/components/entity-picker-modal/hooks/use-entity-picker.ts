@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useModalStack } from "@/layouts/modals";
-import type { IPickableEntity, IEntityPickerPayload } from "../types";
+import type { IPickableEntity } from "../types";
 import type { ApiFile } from "@/graphql/types";
 
 interface IUseEntityPickerOptions<T extends IPickableEntity> {
@@ -11,7 +11,7 @@ interface IUseEntityPickerOptions<T extends IPickableEntity> {
   initialSelection?: string[];
   excludeIds?: string[];
   maxSelection?: number;
-  onConfirm: (entities: T[]) => void;
+  onConfirm: (entities: T[], ids: string[]) => void;
 }
 
 /**

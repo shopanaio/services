@@ -40,6 +40,19 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
+function areStringArraysEqual(a: string[], b: string[]) {
+  return a.length === b.length && a.every((value, index) => value === b[index]);
+}
+
+function getMapEntitiesInOrder<T extends IPickableEntity>(
+  entityById: Map<string, T>,
+  ids: string[],
+) {
+  return ids
+    .map((id) => entityById.get(id))
+    .filter((entity): entity is T => Boolean(entity));
+}
+
 export function EntityPickerContent<T extends IPickableEntity>({
   config,
   selectionMode,
@@ -50,6 +63,15 @@ export function EntityPickerContent<T extends IPickableEntity>({
   const { styles } = useStyles();
   const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<T>>(null);
+  const selectedIdsRef = useRef<string[]>(initialSelection);
+  const selectedEntityByIdRef = useRef<Map<string, T>>(new Map());
+  const lastEmittedSelectionRef = useRef<{
+    ids: string[];
+    entityIds: string[];
+  }>({
+    ids: [],
+    entityIds: [],
+  });
   const [searchValue, setSearchValue] = useState("");
   const [pageSize, setPageSize] = useState(20);
   const [isGridReady, setIsGridReady] = useState(false);
@@ -58,6 +80,8 @@ export function EntityPickerContent<T extends IPickableEntity>({
   const { widgetProps, filters } = useFilters({
     schema: config.filterSchema,
   });
+  const showSearch = config.searchEnabled !== false;
+  const showToolbar = showSearch || config.filterSchema.length > 0;
 
   // Data fetching via config hook
   const { data, isLoading, pagination, onNext, onPrev, onPageSizeChange } =
@@ -65,6 +89,7 @@ export function EntityPickerContent<T extends IPickableEntity>({
       filters,
       search: searchValue,
       pageSize,
+      excludeIds,
     });
 
   // Filter out excluded IDs
@@ -73,14 +98,74 @@ export function EntityPickerContent<T extends IPickableEntity>({
     return data.filter((item) => !excludeIds.includes(config.getRowId(item)));
   }, [data, excludeIds, config]);
 
+  const emitSelectionChange = useCallback(
+    (selectedIds: string[]) => {
+      const selectedEntities = getMapEntitiesInOrder(
+        selectedEntityByIdRef.current,
+        selectedIds,
+      );
+      const selectedEntityIds = selectedEntities.map((entity) =>
+        config.getRowId(entity),
+      );
+      const lastSelection = lastEmittedSelectionRef.current;
+
+      if (
+        areStringArraysEqual(lastSelection.ids, selectedIds) &&
+        areStringArraysEqual(lastSelection.entityIds, selectedEntityIds)
+      ) {
+        return;
+      }
+
+      lastEmittedSelectionRef.current = {
+        ids: [...selectedIds],
+        entityIds: selectedEntityIds,
+      };
+      onSelectionChange(selectedIds, selectedEntities);
+    },
+    [config, onSelectionChange],
+  );
+
   // Handle selection changes
   const handleSelectionChanged = useCallback(
     (event: SelectionChangedEvent<T>) => {
       const selectedRows = event.api.getSelectedRows();
-      const selectedIds = selectedRows.map((row) => config.getRowId(row));
-      onSelectionChange(selectedIds, selectedRows);
+      const currentPageIds = new Set(
+        filteredData.map((item) => config.getRowId(item)),
+      );
+      const selectedPageIds = selectedRows.map((row) => config.getRowId(row));
+      const nextEntityById =
+        selectionMode === "single"
+          ? new Map<string, T>()
+          : new Map(selectedEntityByIdRef.current);
+
+      for (const id of currentPageIds) {
+        nextEntityById.delete(id);
+      }
+
+      for (const row of selectedRows) {
+        nextEntityById.set(config.getRowId(row), row);
+      }
+
+      const retainedIds =
+        selectionMode === "single"
+          ? []
+          : selectedIdsRef.current.filter((id) => !currentPageIds.has(id));
+      const selectedIds =
+        selectionMode === "single"
+          ? selectedPageIds.slice(0, 1)
+          : [...retainedIds, ...selectedPageIds];
+
+      selectedEntityByIdRef.current = nextEntityById;
+
+      if (areStringArraysEqual(selectedIdsRef.current, selectedIds)) {
+        emitSelectionChange(selectedIds);
+        return;
+      }
+
+      selectedIdsRef.current = selectedIds;
+      emitSelectionChange(selectedIds);
     },
-    [config, onSelectionChange]
+    [config, emitSelectionChange, filteredData, selectionMode],
   );
 
   // Handle page size change
@@ -92,19 +177,40 @@ export function EntityPickerContent<T extends IPickableEntity>({
     [onPageSizeChange]
   );
 
-  // Set initial selection when grid is ready
+  // Sync visible grid rows with the accumulated selection and hydrate entities
+  // for ids that were selected before the current page was loaded.
   useEffect(() => {
-    if (!isGridReady || !initialSelection.length) return;
+    if (!isGridReady) return;
 
     const api = gridRef.current?.api;
     if (!api) return;
 
+    const selectedIds = selectedIdsRef.current;
+    const selectedIdSet = new Set(selectedIds);
+    const nextEntityById = new Map(selectedEntityByIdRef.current);
+    let didHydrateSelectedEntity = false;
+
     api.forEachNode((node) => {
-      if (node.data && initialSelection.includes(config.getRowId(node.data))) {
-        node.setSelected(true);
+      if (!node.data) return;
+
+      const rowId = config.getRowId(node.data);
+      const shouldBeSelected = selectedIdSet.has(rowId);
+
+      if (node.isSelected() !== shouldBeSelected) {
+        node.setSelected(shouldBeSelected);
+      }
+
+      if (shouldBeSelected && nextEntityById.get(rowId) !== node.data) {
+        nextEntityById.set(rowId, node.data);
+        didHydrateSelectedEntity = true;
       }
     });
-  }, [isGridReady, initialSelection, config]);
+
+    if (didHydrateSelectedEntity) {
+      selectedEntityByIdRef.current = nextEntityById;
+      emitSelectionChange(selectedIds);
+    }
+  }, [isGridReady, filteredData, config, emitSelectionChange]);
 
   const handleGridReady = useCallback(() => {
     setIsGridReady(true);
@@ -115,17 +221,22 @@ export function EntityPickerContent<T extends IPickableEntity>({
       className={styles.container}
       data-testid={`${config.entityType}-picker-content`}
     >
-      {/* Toolbar with filters */}
-      <div className={styles.toolbar}>
-        <FilterWidget
-          {...widgetProps}
-          searchProps={{
-            searchValue,
-            onChangeSearchValue: setSearchValue,
-          }}
-          searchPlaceholder={`Search ${config.entityNamePlural.toLowerCase()}...`}
-        />
-      </div>
+      {showToolbar && (
+        <div className={styles.toolbar}>
+          <FilterWidget
+            {...widgetProps}
+            searchProps={
+              showSearch
+                ? {
+                    searchValue,
+                    onChangeSearchValue: setSearchValue,
+                  }
+                : undefined
+            }
+            searchPlaceholder={`Search ${config.entityNamePlural.toLowerCase()}...`}
+          />
+        </div>
+      )}
 
       {/* AG Grid */}
       <div
