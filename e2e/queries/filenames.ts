@@ -44,6 +44,7 @@ export type GraphQLFileName =
   | 'category-api/CategoryCategoryProducts'
   | 'category-api/CategoryCreate'
   | 'category-api/CategoryDelete'
+  | 'category-api/CategoryFindMany'
   | 'category-api/CategoryFindOne'
   | 'category-api/CategoryMoveProduct'
   | 'category-api/CategoryProducts'

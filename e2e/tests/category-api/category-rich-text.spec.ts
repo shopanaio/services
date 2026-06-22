@@ -49,9 +49,11 @@ test.describe('Category Rich Text API', () => {
 
     const { data: updateData } = await api.admin.mutation('category-api/CategoryUpdate', {
       variables: {
-        input: {
-          id: createResult.category.id,
-          excerpt: updatedExcerpt,
+        categoryId: createResult.category.id,
+        operations: {
+          content: {
+            excerpt: updatedExcerpt,
+          },
         },
       },
     });

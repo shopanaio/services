@@ -1,0 +1,46 @@
+query CategoryFindMany(
+  $first: Int
+  $after: String
+  $last: Int
+  $before: String
+  $where: CategoryWhereInput
+  $orderBy: [CategoryOrderByInput!]
+) {
+  catalogQuery {
+    categories(
+      first: $first
+      after: $after
+      last: $last
+      before: $before
+      where: $where
+      orderBy: $orderBy
+    ) {
+      edges {
+        cursor
+        node {
+          id
+          handle
+          name
+          depth
+          path
+          defaultSort
+          defaultSortDirection
+          isPublished
+          publishedAt
+          createdAt
+          updatedAt
+          parent {
+            id
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

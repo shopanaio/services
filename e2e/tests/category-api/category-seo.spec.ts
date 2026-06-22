@@ -148,8 +148,8 @@ test.describe('Category SEO API', () => {
     // Update with SEO
     const { data } = await api.admin.mutation('category-api/CategoryUpdate', {
       variables: {
-        input: {
-          id: category.id,
+        categoryId: category.id,
+        operations: {
           seo: {
             seoTitle: 'Updated SEO Title',
             seoDescription: 'Updated SEO description for better rankings.',
@@ -193,8 +193,8 @@ test.describe('Category SEO API', () => {
     // Update only seoTitle
     const { data } = await api.admin.mutation('category-api/CategoryUpdate', {
       variables: {
-        input: {
-          id: categoryId,
+        categoryId,
+        operations: {
           seo: {
             seoTitle: 'New SEO Title Only',
           },
@@ -231,8 +231,8 @@ test.describe('Category SEO API', () => {
     // Clear SEO by setting null values
     const { data } = await api.admin.mutation('category-api/CategoryUpdate', {
       variables: {
-        input: {
-          id: categoryId,
+        categoryId,
+        operations: {
           seo: {
             seoTitle: null,
             seoDescription: null,
