@@ -1007,6 +1007,10 @@ Partial-apply implementation requirement:
 - Independent workflow steps for CAS and individual sections are allowed. Their observable behavior
   must match `ProductUpdateWorkflow`: CAS failure is an early failure with no public operation result;
   section failure is a partial update with one public `CATEGORY_UPDATE` result.
+- Match the current `ProductUpdateWorkflow.run()` payload behavior: once revision acquisition
+  succeeds, the workflow returns `{ id, revision }` in the entity payload even when one or more
+  operation results have `applied: false`; resolver code maps that payload to the entity resolver
+  independently of aggregate `userErrors`.
 - The revision compare-and-swap must be project-scoped:
 
 ```ts
@@ -1182,10 +1186,11 @@ Mutation resolver cutover:
   - map GraphQL enum `CategoryStatus` to internal `"published" | "draft"`;
   - call broker workflow `catalog.categoryUpdate`;
   - map internal operation result `"categoryUpdate"` to GraphQL enum `CATEGORY_UPDATE`;
-  - return `category: new CategoryResolver(result.category.id, this.$ctx)` only when workflow
-    returns a successful category payload;
-  - return updated `category` resolver on empty no-op update after successful CAS;
-  - return `category: null` on revision conflict or section failure.
+  - return `category: new CategoryResolver(result.category.id, this.$ctx)` whenever workflow
+    returns a category payload, including no-op updates and partial-apply section failures after
+    successful CAS;
+  - return `category: null` only for early workflow failures before revision acquisition completes,
+    such as `NOT_FOUND` or `REVISION_CONFLICT`.
 - `categoryRemoveProduct`:
   - decode all IDs before script call;
   - call `CategoryRemoveProductScript`;
@@ -1500,6 +1505,7 @@ stale index.
 Files to update:
 
 - `packages/events/src/types.ts`;
+- `services/catalog/src/scripts/types/ProductChanges.ts`;
 - `services/catalog/src/workflows/CategoryUpdateWorkflow.ts`;
 - `services/catalog/src/scripts/category/CategoryRemoveProductScript.ts`;
 - `services/catalog/src/scripts/search-index/SyncProductIndexScript.ts` only if product/category
@@ -1528,8 +1534,57 @@ Category update event contract:
   delta under `ProductFieldChanges.categories`; `SyncProductIndexScript` reads committed
   `product_category` and category rows, so the event does not need to carry full denormalized search
   state.
+- Category-driven `productUpdated` events do not imply a product-row optimistic-lock update. Unless a
+  category/product-link script explicitly updates the product row, emit the affected product's current
+  `product.revision` value without incrementing it. The event is a reindex/cache refresh signal for
+  product-facing category data, not a product content revision acquisition.
 - If `categoryUpdated` is kept for category-domain consumers, it is optional, emitted only after
   commit, and must not replace `productUpdated` for product search freshness.
+
+Product category event payload contract:
+
+- Extend both shared event payload types and local workflow change types with the same field:
+
+```ts
+interface ProductFieldChanges {
+  categories?: ProductCategoryFieldChanges;
+}
+
+interface ProductCategoryFieldChanges {
+  changed: true;
+  reason: "assignment" | "categoryFields" | "rank";
+  categoryIds?: string[];
+}
+```
+
+- `categoryIds` contains raw UUIDs of categories whose link or category fields caused the refresh. It
+  is optional diagnostic/routing metadata only; consumers must not treat it as the full assigned
+  category set.
+- `reason: "assignment"` is used for add/remove link writes.
+- `reason: "categoryFields"` is used when category fields such as handle/name/status/hierarchy changed
+  and assigned products need refresh.
+- `reason: "rank"` is used for reorder/rebalance only if rank/order affects indexed data, cache keys
+  or product-facing category documents.
+- Emit payloads like:
+
+```ts
+{
+  productId,
+  storeId,
+  revision: currentProductRevision,
+  product: {
+    categories: {
+      changed: true,
+      reason: "categoryFields",
+      categoryIds: [categoryId],
+    },
+  },
+}
+```
+
+- Do not put category handles, category names, breadcrumbs, primary flags, ranks or denormalized
+  search documents into the event payload. `CatalogEventHandlers.handleProductUpdated` already
+  re-runs `SyncProductIndexScript` by `productId`, and that script reads committed category/link rows.
 
 Category-centric product management events/indexing:
 
@@ -1585,6 +1640,11 @@ Search-index acceptance criteria:
 - No retained category-centric operation has add/move-only event behavior that ignores remove.
 - No event/index side effect is emitted for failed category updates or rolled-back writes.
 - Event payload type definitions, workflow emitted payloads and handlers agree on field names.
+- Shared `packages/events/src/types.ts` and local
+  `services/catalog/src/scripts/types/ProductChanges.ts` both define
+  `ProductFieldChanges.categories` with the same `ProductCategoryFieldChanges` shape.
+- Category-driven `productUpdated` payloads include `product.categories.changed: true` and a stable
+  `reason`; they use the current product revision unless the product row was intentionally updated.
 - The final implementation has one documented path for category-link index refresh:
   `productUpdated` fan-out. Direct `SyncProductIndexScript` scheduling is not part of the final
   category/category-link write path.
@@ -1606,8 +1666,11 @@ Manual/API verification checklist:
   they increment `revision` after successful CAS, return updated category payload, return
   `operationResults: []`, return `userErrors: []`, and emit no events.
 - Verify revision conflict returns `REVISION_CONFLICT`.
-- Verify validation failure in one category update section does not apply any other requested section,
-  does not increment `revision`, and does not emit `productUpdated`/`categoryUpdated`.
+- Verify validation failure in one category update section copies `ProductUpdateWorkflow`
+  partial-apply behavior: successful CAS increments `revision` once, earlier successful sections and
+  their emitted events are retained, failed section errors are returned in one `CATEGORY_UPDATE` with
+  `applied: false`, aggregate `userErrors` contains the same errors, updated category payload is
+  returned, and no event is emitted for the failed section itself.
 - Move category through unified hierarchy update and verify descendant `path`/`depth` updates happen
   in `catalog.category`.
 - Remove product from category and verify `primaryCategory` and `categoryAssignments`; verify
