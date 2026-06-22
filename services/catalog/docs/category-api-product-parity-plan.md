@@ -6,7 +6,6 @@
 
 Это one-commit cutover plan. Изменение выполняется атомарно одним backend cutover без периода обратной совместимости:
 
-- Не добавлять `categoryUpdateV2`, legacy aliases или deprecated transitional fields.
 - Не поддерживать старую форму `categoryUpdate(input: CategoryUpdateInput!)`.
 - Не оставлять временные code paths, которые принимают старый и новый контракты одновременно.
 - Все GraphQL schema changes, resolvers, scripts, workflows, repositories, generated artifacts и API consumers внутри repo обновляются в одном change set.
@@ -15,7 +14,6 @@
 Целевой API должен поддерживать:
 
 - API-backed flow для списка категорий, деталей, создания, обновления, удаления, иерархии, медиа, SEO и назначения продуктов.
-- Редактирование категорий продукта через полноценный replace-set контракт, а не только через add/move операции.
 - Primary category как явный API-контракт.
 - Product-style архитектуру мутаций: GraphQL namespace, global IDs, generated schemas, scripts, workflow orchestration для сложных обновлений, `userErrors` и предсказуемые payloads для refresh/cache.
 
@@ -33,7 +31,7 @@
 
 - `catalogQuery.categories` принимает только pagination arguments. Нет `where`, `orderBy` и search.
 - Category connection pagination не является полноценной Relay pagination. Сейчас фактически поддерживается только первая forward page, а `hasPreviousPage` всегда `false`.
-- Product category assignment неполный. Есть `categoryAddProduct`, но нет remove или replace-set API.
+- Product category assignment неполный. Есть `categoryAddProduct`, но нет remove.
 - Primary category существует как `product_category.isPrimary`, но не экспонируется как стабильный API-контракт.
 - `Product.categories: [Category!]!` теряет metadata связи, например `isPrimary` и manual rank.
 - Resolver `categoryUpdate` принимает `defaultSort/defaultSortDirection`, но `CategoryUpdateInput` в schema эти поля не экспонирует. Публичный контракт сейчас использует `categoryUpdateSort`.
@@ -45,13 +43,12 @@
 
 - Использовать namespaces `catalogQuery` и `catalogMutation`.
 - Принимать и возвращать GraphQL global IDs на границе schema. Декодировать в UUID только в resolvers/scripts.
-- Заменять legacy GraphQL contracts напрямую. Не добавлять transitional `V2` API.
+- Заменять legacy GraphQL contracts напрямую.
 - Каждая mutation возвращает `userErrors`.
 - Сложные multi-field updates проходят через workflow с operation-level results.
 - Простые create/delete операции могут оставаться script-backed.
 - Scripts содержат business logic и возвращают `{ result/category/product?, changes?, userErrors }`.
 - Repositories остаются multi-tenant через текущий context и используют transaction-aware connection.
-- Не добавлять presentation-layer contracts в backend API plan.
 
 ## Целевой Backend Contract
 
@@ -116,19 +113,15 @@ compare-and-swap, но category update имеет более строгую all-
 type ProductCategoryAssignment {
   category: Category!
   isPrimary: Boolean!
-  rank: String!
 }
 
 extend type Product {
-  primaryCategory: Category
   categoryAssignments: [ProductCategoryAssignment!]!
 }
 
 type CategoryProductEdge {
   node: Product!
   cursor: String!
-  isPrimary: Boolean!
-  rank: String!
 }
 ```
 
@@ -150,13 +143,6 @@ CREATE UNIQUE INDEX product_category_one_primary_per_product_idx
 Migration note: current model already has a partial unique index named
 `idx_product_category_primary` on `product_category(product_id) WHERE is_primary = true`.
 The migration must replace that existing index instead of adding a second overlapping constraint:
-
-- Drop or rename the existing `idx_product_category_primary` explicitly.
-- Create the final tenant-scoped partial unique index on `(project_id, product_id)`.
-- Update the Drizzle `productCategory` model in the same cutover so generated migrations and
-  runtime metadata describe the same index.
-- Do not leave both primary-category unique indexes active unless there is a documented reason; the
-  final invariant is one primary category per product within a project.
 
 ## Целевой Query Contract
 
@@ -202,8 +188,8 @@ type CatalogQuery {
 
 Implementation notes:
 
-- Предпочесть Relay helpers из `@shopana/drizzle-query`, а не hand-rolled cursor handling.
-- Search должен искать по translated category name и category handle.
+- Relay helpers из `@shopana/drizzle-query`.
+- Search должен искать по translated category name.
 - `parentId` нужно декодировать из global category ID перед repository access.
 - `totalCount` должен учитывать те же filters, что и connection.
 - `hasPreviousPage`, `last` и `before` должны быть реализованы, а не hardcoded.
