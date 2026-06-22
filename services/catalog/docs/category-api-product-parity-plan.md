@@ -109,7 +109,10 @@ sections наружу возвращается один public `OperationResult`
 
 ### Product Category Relationship Metadata
 
-Новый product-facing контракт для category assignment должен быть явным и metadata-aware. Не сохранять `Product.categories` как compatibility requirement. Если поле остается в schema, оно должно быть обновлено в этом же cutover и считаться convenience display field, а не legacy contract.
+Новый product-facing контракт для category assignment должен быть явным и metadata-aware. Поле
+`Product.categories` полностью удаляется в этом cutover и не остается ни compatibility
+requirement, ни convenience display field. Все in-repo consumers должны перейти на
+`Product.primaryCategory` и `Product.categoryAssignments`.
 
 ```graphql
 type ProductCategoryAssignment {
@@ -118,6 +121,7 @@ type ProductCategoryAssignment {
 }
 
 extend type Product {
+  primaryCategory: Category
   categoryAssignments: [ProductCategoryAssignment!]!
 }
 
@@ -726,9 +730,8 @@ entity-specific файлы:
   - добавить `type ProductCategoryAssignment { category: Category!, isPrimary: Boolean! }`;
   - добавить поля `Product.primaryCategory: Category` и
     `Product.categoryAssignments: [ProductCategoryAssignment!]!`;
-  - принять явное решение по `Product.categories`: либо удалить поле в этом cutover, либо оставить как
-    convenience display field, работающий поверх нового assignment source. Нельзя оставлять его как
-    единственный product-category contract.
+  - удалить `Product.categories` из публичной schema в этом cutover. Не оставлять deprecated alias,
+    compatibility wrapper или convenience display field.
 
 Schema-level acceptance criteria:
 
@@ -739,8 +742,8 @@ Schema-level acceptance criteria:
   `ID`, чтобы resolver декодировал global category ID на GraphQL boundary.
 - `CategoryStatus` является отдельным enum и не переиспользует `ProductStatus`.
 - Все новые mutations и payloads возвращают `userErrors: [GenericUserError!]!`.
-- Product-facing category assignment metadata доступна через `primaryCategory`,
-  `categoryAssignments` и optional convenience `Product.categories`.
+- Product-facing category assignment metadata доступна только через `primaryCategory` и
+  `categoryAssignments`; `Product.categories` отсутствует в финальной schema.
 - После schema changes regenerate шаг из пункта 5 обязан удалить старые generated references:
   `CatalogMutationCategoryUpdateArgs.input`, старый `CategoryUpdateInput.id` и старый Zod schema shape.
 
@@ -1204,13 +1207,11 @@ Product resolver cutover:
   - order deterministically. Preferred order: primary assignment first, then `lexoRank`, otherwise
     category ID.
 - `Product.categories`:
-  - if schema keeps it, implement it as convenience display field over the same product-category
-    links DataLoader;
-  - it must not be the only category assignment API;
-  - it must not query `productCategoryIds` through an old ids-only loader if metadata loaders are
-    available;
-  - if schema removes it, remove resolver method and generated resolver references in the same
-    cutover.
+  - remove the field from `product.graphql`;
+  - remove the resolver method;
+  - remove generated resolver references through codegen;
+  - update all in-repo GraphQL documents and consumers to use `primaryCategory` and
+    `categoryAssignments`.
 
 Loader cutover:
 
@@ -1229,8 +1230,7 @@ productCategoryLinksByProductIds(productIds: readonly string[]): Promise<Product
 - Batch function calls one repository method for all product IDs and groups results by input
   product ID.
 - Register the loader in `src/loaders/Loader.ts`.
-- `Product.primaryCategory`, `Product.categoryAssignments` and optional `Product.categories` must
-  all use the metadata-aware loader.
+- `Product.primaryCategory` and `Product.categoryAssignments` must use the metadata-aware loader.
 - Keep existing `category`, `categoryTranslation`, `categoryMedia`, `categorySeo`,
   `categoryChildrenIds` and `categoryAncestorIds` loaders unless their contracts are intentionally
   changed. `categoryProductsCount` may remain registered if removing it creates unrelated churn, but
@@ -1261,11 +1261,10 @@ Resolver/loader acceptance criteria:
 - All mutation IDs are decoded before workflow/script calls.
 - Query resolver passes normalized repository input, not raw GraphQL category filters.
 - `categoryUpdate` resolver calls workflow only; it does not call category update scripts directly.
-- `Product.primaryCategory`, `Product.categoryAssignments` and optional `Product.categories` share
-  one batched product-category links loader.
+- `Product.primaryCategory` and `Product.categoryAssignments` share one batched product-category
+  links loader.
 - `CategoryProductEdge` remains `{ cursor, node }` and does not expose assignment metadata.
-- `Product.categories` is either removed everywhere or implemented as a convenience field over the
-  new assignment source.
+- `Product.categories` is removed everywhere and is not available as a convenience field.
 - Resolvers return resolver instances for entities and `userErrors` for user/business validation.
 
 ### 5. Generated Artifacts Cutover
@@ -1353,6 +1352,7 @@ operations?: InputMaybe<CategoryUpdateInput>;
 - `CatalogQueryCategoriesArgs` includes `where?: CategoryWhereInput` and
   `orderBy?: Array<CategoryOrderByInput>`.
 - `Product` generated type/resolver map includes `primaryCategory` and `categoryAssignments`.
+- `Product` generated type/resolver map does not include `categories`.
 - `CategoryProductEdge` generated type/resolver map does not include `isPrimary` or `rank`.
 - Generated mutation resolver map includes `categoryRemoveProduct`.
 
@@ -1399,7 +1399,7 @@ In-repo GraphQL consumer cutover:
   - `categoryUpdate(input: ...)`;
   - old `CategoryUpdateInput.id`;
   - `categoryUpdateSort` if it is removed from final schema;
-  - product category assignment flows that read only `Product.categories` when metadata is required.
+  - any selection of removed `Product.categories`.
 - Update documents to use:
   - `categoryUpdate(categoryId:, expectedRevision:, operations:)`;
   - `category.revision`;
@@ -1419,7 +1419,8 @@ Federation/schema acceptance criteria:
 - Exported/composed schemas do not contain:
   - `categoryUpdate(input: CategoryUpdateInput!)`;
   - `categoryUpdateV2`;
-  - deprecated compatibility aliases for category update.
+  - deprecated compatibility aliases for category update;
+  - `Product.categories`.
 - Federation composition must include new `Product` fields without ownership conflicts. Since catalog
   owns `Product`, these fields should be defined in catalog's product schema, not as extension fields
   from another service.
@@ -1432,6 +1433,7 @@ Generated artifacts cutover acceptance criteria:
   category mutations.
 - No generated or checked-in GraphQL source still exposes the old `categoryUpdate(input: ...)`
   contract.
+- No generated or checked-in GraphQL source still selects or exposes `Product.categories`.
 - No hand-edited generated artifact is required to make the working tree consistent.
 
 ### 6. Event And Index Cutover
@@ -1551,11 +1553,12 @@ Manual/API verification checklist:
   does not increment `revision`, and does not emit `productUpdated`/`categoryUpdated`.
 - Move category through unified hierarchy update and verify descendant `path`/`depth` updates happen
   in `catalog.category`.
-- Remove category from product and verify `primaryCategory`, `categoryAssignments` and `Product.categories` only if that convenience field remains in schema.
+- Remove category from product and verify `primaryCategory` and `categoryAssignments`; verify
+  `Product.categories` is absent from the final schema and generated resolver types.
 - Add, remove, sync и reorder products from category details.
 - Verify product search index/category handles after product-category changes.
 - Verify no generated schema or resolver type still exposes old `categoryUpdate(input: ...)`.
-- Verify no `categoryUpdateV2` or deprecated compatibility field exists.
+- Verify no `Product.categories`, `categoryUpdateV2` or deprecated compatibility field exists.
 
 ## Cutover Decisions
 
