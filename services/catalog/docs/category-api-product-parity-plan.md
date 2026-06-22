@@ -14,7 +14,8 @@
 Целевой API должен поддерживать:
 
 - API-backed flow для списка категорий, деталей, создания, обновления, удаления, иерархии, медиа, SEO и назначения продуктов.
-- Primary category как явный API-контракт.
+- Primary category как явный read-side API-контракт. Write path для установки/смены `isPrimary`
+  остается out of scope follow-up.
 - Product-style архитектуру мутаций: GraphQL namespace, global IDs, generated schemas, scripts, workflow orchestration для сложных обновлений, `userErrors` и предсказуемые payloads для refresh/cache.
 
 ## Текущее Состояние
@@ -128,7 +129,11 @@ type CategoryProductEdge {
 Repository/database rules:
 
 - Не больше одной primary category на product в рамках project.
-- `primaryCategoryId` должен быть `null` или входить в назначенные `categoryIds`.
+- В этом cutover `isPrimary` экспонируется read-side через `Product.primaryCategory` и
+  `Product.categoryAssignments`. Public write path для установки/смены primary category не входит в
+  scope и должен быть добавлен отдельным follow-up contract.
+- Future write path rule: `primaryCategoryId` должен быть `null` или входить в назначенные
+  `categoryIds`.
 - Product-category rows должны сохранять manual rank в рамках каждой category.
 - Удаление продукта из category должно удалять и его manual rank в этой category.
 
@@ -239,6 +244,11 @@ Required fixes:
 - Декодировать `parentId`, `mediaFileIds` и `seo.ogImageId`.
 - Синхронизировать media back-references, если category media должен отслеживаться media service.
 - Возвращать созданную category с достаточным набором fields для cache refresh.
+- `categoryCreate` не назначает продукты в этом cutover: в input нет `productIds` или
+  `primaryProductIds`, поэтому create сам по себе не эмитит `productUpdated` fan-out и не запускает
+  product search index refresh. Product index refresh появляется только после последующих
+  category-product link операций или после update полей category, влияющих на уже назначенные
+  продукты.
 
 ### Unified Category Update
 
@@ -582,16 +592,16 @@ removeProductFromCategories(productId: string, categoryIds: string[]): Promise<n
 syncProductCategories(input: {
   productId: string;
   categoryIds: string[];
-  primaryCategoryId?: string | null;
 }): Promise<ProductCategory[]>;
 syncCategoryProducts(input: {
   categoryId: string;
   productIds: string[];
 }): Promise<ProductCategory[]>;
-setProductPrimaryCategory(productId: string, primaryCategoryId: string | null): Promise<void>;
 ```
 
 Validation belongs in scripts. Repositories не должны silently invent fallback primary category behavior.
+Public `isPrimary` write helpers, including `setProductPrimaryCategory` or `primaryCategoryId` sync
+inputs, are out of scope for this cutover and should be planned as a follow-up.
 
 ### Category Product Connection
 
@@ -649,6 +659,8 @@ Product category changes должны обновлять product search indexes,
 
 Required event behavior:
 
+- `categoryCreate` без product assignments не эмитит `productUpdated`, потому что у новой category
+  еще нет affected products.
 - Category product add/remove/reorder эмитит `productUpdated` для каждого affected product после
   successful category/category-link write.
 - Category handle/name/status/hierarchy changes эмитят `productUpdated` fan-out для продуктов в
@@ -704,7 +716,7 @@ entity-specific файлы:
   - оставить `CategoryProductEdge` в форме `{ node: Product!, cursor: String! }` без
     product-category metadata fields.
 - `src/api/graphql-admin/schema/product.graphql`:
-  - добавить `type ProductCategoryAssignment { category: Category!, isPrimary: Boolean!, rank: String! }`;
+  - добавить `type ProductCategoryAssignment { category: Category!, isPrimary: Boolean! }`;
   - добавить поля `Product.primaryCategory: Category` и
     `Product.categoryAssignments: [ProductCategoryAssignment!]!`;
   - принять явное решение по `Product.categories`: либо удалить поле в этом cutover, либо оставить как
@@ -830,19 +842,17 @@ removeProductFromCategories(productId: string, categoryIds: string[]): Promise<n
 syncProductCategories(input: {
   productId: string;
   categoryIds: string[];
-  primaryCategoryId?: string | null;
 }): Promise<ProductCategory[]>;
 syncCategoryProducts(input: {
   categoryId: string;
   productIds: string[];
 }): Promise<ProductCategory[]>;
-setProductPrimaryCategory(productId: string, primaryCategoryId: string | null): Promise<void>;
 ```
 
 - Repository methods implement persistence only. Validation for duplicate IDs, missing category IDs,
-  primary category membership, and primary fallback policy belongs in scripts.
+  primary fallback policy on removal, and later primary write semantics belong in scripts.
 - `syncProductCategories` must preserve `lexoRank` for links that remain, delete removed links,
-  append new links at the end of each category, and update `isPrimary` without inventing fallback.
+  append new links at the end of each category, and must not change `isPrimary` in this cutover.
 - `syncCategoryProducts` must preserve rank for existing products in the category, append new
   products after the current last rank, remove missing products, and not silently clear primary
   assignments unless the script contract explicitly allowed it.
@@ -1179,11 +1189,12 @@ Product resolver cutover:
   - return `new CategoryResolver(primary.categoryId, this.$ctx)` or `null`.
 - Add `categoryAssignments()`:
   - load product-category links through the same DataLoader;
-  - return objects shaped as `{ category, isPrimary, rank }`;
+  - return objects shaped as `{ category, isPrimary }`;
   - `category` is a `CategoryResolver`;
-  - `rank` is `product_category.lexo_rank`;
-  - order deterministically. Preferred order: primary assignment first, then category handle/name
-    order if already loaded without extra N+1, otherwise category ID.
+  - `product_category.lexo_rank` remains internal ordering metadata and is not exposed on
+    `ProductCategoryAssignment`;
+  - order deterministically. Preferred order: primary assignment first, then `lexoRank`, otherwise
+    category ID.
 - `Product.categories`:
   - if schema keeps it, implement it as convenience display field over the same product-category
     links DataLoader;
@@ -1407,6 +1418,9 @@ Files to update:
 
 Category update event contract:
 
+- `categoryCreate` remains script-backed and does not assign products in this cutover. It may emit
+  optional category-domain events after commit, but must not emit `productUpdated` unless the public
+  create contract later gains product assignment input and actually creates `product_category` rows.
 - Do not add `categoryUpdated` as the product-index refresh path in this cutover.
 - `CategoryUpdateWorkflow` must discover affected product IDs and emit existing `productUpdated`
   events after atomic update commit succeeds when changed fields can affect product denormalized
@@ -1466,6 +1480,8 @@ After-commit scheduling rules:
 
 Search-index acceptance criteria:
 
+- Creating a category with parent/status/media/SEO but without product assignments does not emit
+  `productUpdated` and does not schedule product index refresh.
 - `categoryAddProduct` and `categoryRemoveProduct` refresh product search index for every affected
   product; retained reorder operations do the same when rank/order affects indexed data.
 - Category `handle` changes refresh product search index for all products assigned to that category,
@@ -1507,7 +1523,12 @@ Manual/API verification checklist:
 
 ## Cutover Decisions
 
-- Primary category остается optional: `primaryCategoryId` может быть `null`, но если он задан, он должен входить в `categoryIds`.
+- Follow-up primary write path rule: primary category остается optional; `primaryCategoryId` может
+  быть `null`, но если он задан, он должен входить в `categoryIds`.
+- `isPrimary` write path out of scope для этого cutover. В scope только read-side контракт
+  `Product.primaryCategory` / `Product.categoryAssignments.isPrimary`, сохранение существующих
+  `isPrimary` rows и validation при удалении primary assignment. Public API для установки/смены
+  primary category должен быть отдельным follow-up.
 - Category-centric product sync должен возвращать validation error при попытке удалить primary assignment, если request не добавляет явную опцию `allowPrimaryFallback`.
 - Category media back-reference sync нужен только если media service already tracks product media back-references with the same ownership semantics.
 - Category name search/sort по translations не входит в обязательный table-based cutover. Если он
