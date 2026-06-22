@@ -411,51 +411,6 @@ the wrong schema.
 
 Cutover requirement: do not leave the old monolithic `CategoryUpdateScript` as the public mutation path. It may be reused internally only if wrapped behind section-specific internal scripts and the exposed workflow behavior matches the single `CATEGORY_UPDATE` operation-result contract in the same commit.
 
-### Product Category Assignment From Product Editing
-
-Product edit categories должен быть частью product update architecture, потому что это меняет product-facing data.
-
-Расширить `ProductUpdateInput`:
-
-```graphql
-input ProductCategoriesInput {
-  categoryIds: [ID!]!
-  primaryCategoryId: ID
-}
-
-input ProductUpdateInput {
-  handle: String
-  title: String
-  content: ProductContentInput
-  seo: ProductSeoInput
-  status: ProductStatus
-  media: ProductMediaInput
-  categories: ProductCategoriesInput
-  variants: [VariantUpdateInput!]
-}
-```
-
-Расширить `ProductUpdateWorkflow`:
-
-- Добавить `categories?: ProductCategoriesParams` в `ProductUpdateParams`.
-- Добавить `ProductUpdateCategoriesScript`.
-- Script выполняет complete replace-set semantics:
-  - Декодирует и валидирует все category IDs.
-  - Отклоняет duplicate category IDs.
-  - Отклоняет missing categories.
-  - Вставляет missing links.
-  - Удаляет removed links.
-  - Обновляет `isPrimary`.
-  - Сохраняет existing rank для links, которые остались.
-  - Назначает новые ranks в конец каждой category.
-  - Touch product через repository method, если текущая архитектура требует обновить `updatedAt`.
-  - Не инкрементит product `revision` самостоятельно. Revision уже захватывается и инкрементится
-    `ProductUpdateWorkflow` через compare-and-swap до выполнения scripts; второй bump внутри
-    `ProductUpdateCategoriesScript` запрещен.
-  - Эмитит product delta с category IDs и primary category ID.
-
-Это основной API, который нужен product edit categories flow.
-
 ### Category Product Management From Category Details
 
 Category details также требует category-centric product management.
@@ -684,7 +639,6 @@ interface CategoryProductsConnectionResult {
 
 - Оставить namespace под `catalogMutation`.
 - Направить `categoryUpdate` через `CategoryUpdateWorkflow`.
-- Направить `productUpdate.categories` через `ProductUpdateWorkflow`.
 - Добавить `categoryRemoveProduct`.
 - Декодировать все global IDs на GraphQL boundary.
 - Не бросать validation errors для user input. Возвращать `userErrors`.
@@ -695,7 +649,6 @@ Product category changes должны обновлять product search indexes,
 
 Required event behavior:
 
-- Product category assignment через `productUpdate.categories` эмитит `productUpdated`.
 - Category product add/remove/reorder эмитит `productUpdated` для каждого affected product после
   successful category/category-link write.
 - Category handle/name/status/hierarchy changes эмитят `productUpdated` fan-out для продуктов в
@@ -754,8 +707,6 @@ entity-specific файлы:
   - добавить `type ProductCategoryAssignment { category: Category!, isPrimary: Boolean!, rank: String! }`;
   - добавить поля `Product.primaryCategory: Category` и
     `Product.categoryAssignments: [ProductCategoryAssignment!]!`;
-  - добавить `input ProductCategoriesInput { categoryIds: [ID!]!, primaryCategoryId: ID }`;
-  - добавить `categories: ProductCategoriesInput` в существующий `ProductUpdateInput`;
   - принять явное решение по `Product.categories`: либо удалить поле в этом cutover, либо оставить как
     convenience display field, работающий поверх нового assignment source. Нельзя оставлять его как
     единственный product-category contract.
@@ -953,8 +904,6 @@ Files to add/update:
   - `CategoryUpdateHierarchyScript` or wrapped `CategoryMoveScript`: parent/path/depth changes;
   - keep `CategoryUpdateSortScript` as sort section implementation or wrap it behind a section
     script with the unified error/result contract.
-- `src/scripts/product/`:
-  - add `ProductUpdateCategoriesScript` and export it from product script index.
 - `src/scripts/category/`:
   - add `CategoryRemoveProductScript`;
   - export new scripts from category script index.
@@ -1075,25 +1024,6 @@ Section script rules:
   - validate `defaultSort` and `defaultSortDirection`;
   - update PLP default sort fields as part of the same transaction.
 
-Product category assignment script:
-
-- `ProductUpdateCategoriesScript` plugs into `ProductUpdateWorkflow.stepProductUpdate()` as the
-  implementation for `ProductUpdateInput.categories`.
-- It performs replace-set semantics:
-  - reject duplicate category IDs;
-  - reject missing categories;
-  - require `primaryCategoryId` to be `null`/omitted or included in `categoryIds`;
-  - insert missing links;
-  - delete removed links;
-  - preserve `lexoRank` for links that remain;
-  - append new links at the end of each category;
-  - set exactly one `isPrimary` row when `primaryCategoryId` is provided, otherwise clear all primary
-    category rows for the product;
-  - touch product if existing product update scripts rely on `updatedAt` for refresh semantics;
-  - never increments product `revision`; `ProductUpdateWorkflow` owns revision.
-- It returns changes compatible with `ProductUpdatedEvent`/product delta so search index sync can be
-  triggered by existing product update handling.
-
 Category-centric product scripts:
 
 - `CategoryRemoveProductScript`:
@@ -1150,8 +1080,6 @@ Workflow/script cutover acceptance criteria:
 - Successful category update emits `productUpdated` fan-out after commit when changed category fields
   affect product search/index/cache data. If `categoryUpdated` is retained for category-domain
   consumers, it is emitted after commit and is not the product index refresh path.
-- Product category replace-set is implemented through `ProductUpdateWorkflow` and does not bump
-  product revision independently.
 - Category remove scripts return affected product IDs so event/index cutover can handle search
   refresh without extra discovery queries.
 
@@ -1184,9 +1112,6 @@ Global ID boundary rules:
   - `categoryUpdate.operations.hierarchy.parentId`;
   - `categoryUpdate.operations.media.fileIds`;
   - `categoryUpdate.operations.seo.ogImageId`;
-  - `productUpdate(productId)`;
-  - `productUpdate.operations.categories.categoryIds`;
-  - `productUpdate.operations.categories.primaryCategoryId`;
   - `categoryAddProduct`, `categoryMoveProduct`, `categoryRemoveProduct`,
     `categoryRebalance`.
 - Encode all entity IDs returned by resolvers at GraphQL boundary:
@@ -1226,11 +1151,6 @@ Mutation resolver cutover:
     returns a successful category payload;
   - return updated `category` resolver on empty no-op update after successful CAS;
   - return `category: null` on revision conflict or section failure.
-- `CatalogMutationResolver.productUpdate`:
-  - map `operations.categories` into `ProductUpdateParams.categories`;
-  - decode all category IDs and optional primary category ID before workflow call;
-  - do not call `ProductUpdateCategoriesScript` directly from resolver;
-  - preserve existing product/variant operation mapping.
 - `categoryRemoveProduct`:
   - decode all IDs before script call;
   - call `CategoryRemoveProductScript`;
@@ -1310,7 +1230,6 @@ Generated type/Zod integration:
 - After point 5 codegen, resolver imports must use generated args/types for:
   - `CatalogQueryCategoriesArgs`;
   - `CatalogMutationCategoryUpdateArgs`;
-  - `CatalogMutationProductUpdateArgs`;
   - `CatalogMutationCategoryRemoveProductArgs`.
 - Add `@ZodResolver(...)` for new script-backed mutations after generated schemas exist.
 - Do not hand-maintain stale inline TypeScript input shapes for category mutations once generated
@@ -1322,7 +1241,6 @@ Resolver/loader acceptance criteria:
 - All mutation IDs are decoded before workflow/script calls.
 - Query resolver passes normalized repository input, not raw GraphQL category filters.
 - `categoryUpdate` resolver calls workflow only; it does not call category update scripts directly.
-- `productUpdate.categories` reaches `ProductUpdateWorkflow`.
 - `Product.primaryCategory`, `Product.categoryAssignments` and optional `Product.categories` share
   one batched product-category links loader.
 - `CategoryProductEdge` remains `{ cursor, node }` and does not expose assignment metadata.
@@ -1390,7 +1308,6 @@ expectedRevision?: InputMaybe<Scalars["Int"]["input"]>;
 - `CategoryOperationResult` and `CategoryUpdateOperationType` are generated.
 - `CatalogQueryCategoriesArgs` includes `where?: CategoryWhereInput` and
   `orderBy?: Array<CategoryOrderByInput>`.
-- `ProductUpdateInput` includes `categories?: ProductCategoriesInput`.
 - `Product` generated type/resolver map includes `primaryCategory` and `categoryAssignments`.
 - `CategoryProductEdge` generated type/resolver map does not include `isPrimary` or `rank`.
 - Generated mutation resolver map includes `categoryRemoveProduct`.
@@ -1412,9 +1329,7 @@ expectedRevision?: InputMaybe<Scalars["Int"]["input"]>;
   - `CategoryMediaInputSchema`;
   - `CategoryHierarchyInputSchema`;
   - `CategorySortInputSchema`;
-  - `ProductCategoriesInputSchema`;
   - `CategoryRemoveProductInputSchema`.
-- `ProductUpdateInputSchema()` includes `categories`.
 - No generated Zod schema accepts the old `categoryUpdate(input: CategoryUpdateInput!)` shape.
 
 Source/generated drift checks:
@@ -1442,8 +1357,7 @@ In-repo GraphQL consumer cutover:
   - `categoryUpdate(categoryId:, operations:, expectedRevision:)`;
   - `category.revision`;
   - `Product.primaryCategory`;
-  - `Product.categoryAssignments`;
-  - `productUpdate.operations.categories`.
+  - `Product.categoryAssignments`.
 - Do not update generated GraphQL client outputs by hand. Update source documents and regenerate.
 
 Federation/schema acceptance criteria:
@@ -1454,7 +1368,6 @@ Federation/schema acceptance criteria:
   - final `CatalogMutation.categoryUpdate(categoryId, operations, expectedRevision)`;
   - `Product.primaryCategory`;
   - `Product.categoryAssignments`;
-  - `ProductCategoriesInput`;
   - `categoryRemoveProduct`.
 - Exported/composed schemas do not contain:
   - `categoryUpdate(input: CategoryUpdateInput!)`;
@@ -1484,41 +1397,13 @@ stale index.
 Files to update:
 
 - `packages/events/src/types.ts`;
-- `services/catalog/src/workflows/ProductUpdateWorkflow.ts`;
 - `services/catalog/src/workflows/CategoryUpdateWorkflow.ts`;
-- `services/catalog/src/scripts/product/ProductUpdateCategoriesScript.ts`;
 - `services/catalog/src/scripts/category/CategoryRemoveProductScript.ts`;
 - `services/catalog/src/scripts/search-index/SyncProductIndexScript.ts` only if product/category
   index payload shape changes;
 - `services/catalog/src/handlers/index.ts` only if existing `productUpdated` handler payload handling
   needs category delta support;
 - repository methods for affected product discovery from category/category links.
-
-Product category assignment event contract:
-
-- `ProductUpdateCategoriesScript` must return category assignment changes to
-  `ProductUpdateWorkflow`, for example:
-
-```ts
-categories: {
-  categoryIds: string[];
-  primaryCategoryId: string | null;
-}
-```
-
-- Extend `ProductFieldChanges` in `packages/events/src/types.ts` with compatible category delta:
-
-```ts
-categories?: {
-  categoryIds: string[];
-  primaryCategoryId: string | null;
-};
-```
-
-- `ProductUpdateWorkflow` emits existing `productUpdated` only after workflow update succeeds.
-- `ProductUpdateCategoriesScript` must not emit events by itself.
-- Existing `CatalogEventHandlers.handleProductUpdated` already runs `SyncProductIndexScript`; keep
-  product category assignment on that path so search index refresh stays centralized.
 
 Category update event contract:
 
@@ -1581,8 +1466,6 @@ After-commit scheduling rules:
 
 Search-index acceptance criteria:
 
-- Product category assignment through `productUpdate.operations.categories` triggers existing
-  `productUpdated` handling and re-runs `SyncProductIndexScript` for the product.
 - `categoryAddProduct` and `categoryRemoveProduct` refresh product search index for every affected
   product; retained reorder operations do the same when rank/order affects indexed data.
 - Category `handle` changes refresh product search index for all products assigned to that category,
@@ -1616,7 +1499,6 @@ Manual/API verification checklist:
   does not increment `revision`, and does not emit `productUpdated`/`categoryUpdated`.
 - Move category through unified hierarchy update and verify descendant `path`/`depth` updates happen
   in `catalog.category`.
-- Assign product categories through `productUpdate.categories` with replace-set semantics.
 - Remove category from product and verify `primaryCategory`, `categoryAssignments` and `Product.categories` only if that convenience field remains in schema.
 - Add, remove, sync и reorder products from category details.
 - Verify product search index/category handles after product-category changes.
