@@ -452,7 +452,7 @@ input ProductUpdateInput {
 
 Category details также требует category-centric product management.
 
-Добавить недостающие remove/sync operations:
+Добавить недостающую операцию удаления:
 
 ```graphql
 input CategoryRemoveProductInput {
@@ -461,16 +461,6 @@ input CategoryRemoveProductInput {
 }
 
 type CategoryRemoveProductPayload {
-  category: Category
-  userErrors: [GenericUserError!]!
-}
-
-input CategoryProductsSyncInput {
-  categoryId: ID!
-  productIds: [ID!]!
-}
-
-type CategoryProductsSyncPayload {
   category: Category
   userErrors: [GenericUserError!]!
 }
@@ -485,13 +475,9 @@ Keep existing category-centric operations only as part of the final post-cutover
 Добавить:
 
 - `categoryRemoveProduct`: удаляет один product из category.
-- `categoryProductsSync`: complete replace-set для вручную назначенных products category.
 
 Implementation notes:
 
-- `categoryProductsSync` должен сохранять rank для existing products, которые остаются.
-- New products нужно append после текущего last rank.
-- Removed products должны удалять rows из `product_category`.
 - Если удаляемая category была primary для product, clear primary или deterministic fallback допустимы только если product-level contract явно этого требует. Предпочтительно вернуть validation error, если не добавлен `allowPrimaryFallback`.
 
 ## Repository Plan
@@ -742,7 +728,7 @@ Resolver shape must be updated in the same cutover:
 - Оставить namespace под `catalogMutation`.
 - Направить `categoryUpdate` через `CategoryUpdateWorkflow`.
 - Направить `productUpdate.categories` через `ProductUpdateWorkflow`.
-- Добавить `categoryRemoveProduct` и `categoryProductsSync`.
+- Добавить `categoryRemoveProduct`.
 - Декодировать все global IDs на GraphQL boundary.
 - Не бросать validation errors для user input. Возвращать `userErrors`.
 
@@ -753,7 +739,7 @@ Product category changes должны обновлять product search indexes,
 Required event behavior:
 
 - Product category assignment через `productUpdate.categories` эмитит `productUpdated`.
-- Category product add/remove/sync/reorder эмитит `productUpdated` для каждого affected product после
+- Category product add/remove/reorder эмитит `productUpdated` для каждого affected product после
   successful category/category-link write.
 - Category handle/name/status/hierarchy changes эмитят `productUpdated` fan-out для продуктов в
   category, если category handles, searchable category labels, visibility или hierarchy denormalized.
@@ -792,8 +778,7 @@ entity-specific файлы:
     `where: CategoryWhereInput` и `orderBy: [CategoryOrderByInput!]`;
   - заменить `CatalogMutation.categoryUpdate(input: CategoryUpdateInput!)` на
     `categoryUpdate(categoryId: ID!, operations: CategoryUpdateInput!, expectedRevision: Int)`;
-  - добавить `categoryRemoveProduct(input: CategoryRemoveProductInput!)` и
-    `categoryProductsSync(input: CategoryProductsSyncInput!)`;
+  - добавить `categoryRemoveProduct(input: CategoryRemoveProductInput!)`;
   - не оставлять `categoryUpdateV2`, deprecated aliases или compatibility wrapper вокруг старой
     формы `categoryUpdate(input: ...)`.
 - `src/api/graphql-admin/schema/category.graphql`:
@@ -805,8 +790,7 @@ entity-specific файлы:
     `CategoryOperationResult`;
   - расширить `CategoryUpdatePayload` полем
     `operationResults: [CategoryOperationResult!]!`;
-  - добавить `CategoryRemoveProductInput`, `CategoryRemoveProductPayload`,
-    `CategoryProductsSyncInput`, `CategoryProductsSyncPayload`;
+  - добавить `CategoryRemoveProductInput`, `CategoryRemoveProductPayload`;
   - расширить `CategoryProductEdge` полями `isPrimary: Boolean!` и `rank: String!`.
 - `src/api/graphql-admin/schema/product.graphql`:
   - добавить `type ProductCategoryAssignment { category: Category!, isPrimary: Boolean!, rank: String! }`;
@@ -1025,7 +1009,6 @@ Files to add/update:
   - add `ProductUpdateCategoriesScript` and export it from product script index.
 - `src/scripts/category/`:
   - add `CategoryRemoveProductScript`;
-  - add `CategoryProductsSyncScript`;
   - export new scripts from category script index.
 
 Unified category update workflow behavior:
@@ -1168,15 +1151,6 @@ Category-centric product scripts:
     explicit `allowPrimaryFallback`;
   - removes the `product_category` row and therefore its rank;
   - returns affected product IDs for event/index handling.
-- `CategoryProductsSyncScript`:
-  - validates category existence;
-  - rejects duplicate product IDs;
-  - rejects missing products;
-  - preserves rank for existing products that remain;
-  - appends new products after the current last rank;
-  - removes rows for products not in the new set;
-  - rejects removal of primary assignments unless explicitly allowed by public contract;
-  - returns affected product IDs for event/index handling.
 
 Stable user error contract:
 
@@ -1224,7 +1198,7 @@ Workflow/script cutover acceptance criteria:
   consumers, it is emitted after commit and is not the product index refresh path.
 - Product category replace-set is implemented through `ProductUpdateWorkflow` and does not bump
   product revision independently.
-- Category remove/sync scripts return affected product IDs so event/index cutover can handle search
+- Category remove scripts return affected product IDs so event/index cutover can handle search
   refresh without extra discovery queries.
 
 ### 4. Resolver And Loader Cutover
@@ -1260,7 +1234,7 @@ Global ID boundary rules:
   - `productUpdate.operations.categories.categoryIds`;
   - `productUpdate.operations.categories.primaryCategoryId`;
   - `categoryAddProduct`, `categoryMoveProduct`, `categoryRemoveProduct`,
-    `categoryProductsSync`, `categoryRebalance`.
+    `categoryRebalance`.
 - Encode all entity IDs returned by resolvers at GraphQL boundary:
   - `Category.id` as `GlobalIdEntity.Category`;
   - `Product.id` as `GlobalIdEntity.Product`;
@@ -1302,9 +1276,9 @@ Mutation resolver cutover:
   - decode all category IDs and optional primary category ID before workflow call;
   - do not call `ProductUpdateCategoriesScript` directly from resolver;
   - preserve existing product/variant operation mapping.
-- `categoryRemoveProduct` and `categoryProductsSync`:
+- `categoryRemoveProduct`:
   - decode all IDs before script call;
-  - call `CategoryRemoveProductScript` and `CategoryProductsSyncScript`;
+  - call `CategoryRemoveProductScript`;
   - return `category` resolver on success and `userErrors` on validation failure;
   - never throw for invalid user input IDs.
 - Existing `categoryAddProduct`, `categoryMoveProduct`, `categoryRebalance` stay script-backed only
@@ -1395,8 +1369,7 @@ Generated type/Zod integration:
   - `CatalogQueryCategoriesArgs`;
   - `CatalogMutationCategoryUpdateArgs`;
   - `CatalogMutationProductUpdateArgs`;
-  - `CatalogMutationCategoryRemoveProductArgs`;
-  - `CatalogMutationCategoryProductsSyncArgs`.
+  - `CatalogMutationCategoryRemoveProductArgs`.
 - Add `@ZodResolver(...)` for new script-backed mutations after generated schemas exist.
 - Do not hand-maintain stale inline TypeScript input shapes for category mutations once generated
   types are available.
@@ -1479,7 +1452,7 @@ expectedRevision?: InputMaybe<Scalars["Int"]["input"]>;
 - `ProductUpdateInput` includes `categories?: ProductCategoriesInput`.
 - `Product` generated type/resolver map includes `primaryCategory` and `categoryAssignments`.
 - `CategoryProductEdge` generated type/resolver map includes `isPrimary` and `rank`.
-- Generated mutation resolver map includes `categoryRemoveProduct` and `categoryProductsSync`.
+- Generated mutation resolver map includes `categoryRemoveProduct`.
 
 `schemas.ts` acceptance criteria:
 
@@ -1499,8 +1472,7 @@ expectedRevision?: InputMaybe<Scalars["Int"]["input"]>;
   - `CategoryHierarchyInputSchema`;
   - `CategorySortInputSchema`;
   - `ProductCategoriesInputSchema`;
-  - `CategoryRemoveProductInputSchema`;
-  - `CategoryProductsSyncInputSchema`.
+  - `CategoryRemoveProductInputSchema`.
 - `ProductUpdateInputSchema()` includes `categories`.
 - No generated Zod schema accepts the old `categoryUpdate(input: CategoryUpdateInput!)` shape.
 
@@ -1546,8 +1518,7 @@ Federation/schema acceptance criteria:
   - `CategoryProductEdge.isPrimary`;
   - `CategoryProductEdge.rank`;
   - `ProductCategoriesInput`;
-  - `categoryRemoveProduct`;
-  - `categoryProductsSync`.
+  - `categoryRemoveProduct`.
 - Exported/composed schemas do not contain:
   - `categoryUpdate(input: CategoryUpdateInput!)`;
   - `categoryUpdateV2`;
@@ -1580,7 +1551,6 @@ Files to update:
 - `services/catalog/src/workflows/CategoryUpdateWorkflow.ts`;
 - `services/catalog/src/scripts/product/ProductUpdateCategoriesScript.ts`;
 - `services/catalog/src/scripts/category/CategoryRemoveProductScript.ts`;
-- `services/catalog/src/scripts/category/CategoryProductsSyncScript.ts`;
 - `services/catalog/src/scripts/search-index/SyncProductIndexScript.ts` only if product/category
   index payload shape changes;
 - `services/catalog/src/handlers/index.ts` only if existing `productUpdated` handler payload handling
@@ -1633,7 +1603,7 @@ Category update event contract:
 
 Category-centric product management events/indexing:
 
-- `CategoryRemoveProductScript` and `CategoryProductsSyncScript` must return affected product IDs.
+- `CategoryRemoveProductScript` must return affected product IDs.
 - After successful script commit, resolver/workflow layer emits `productUpdated` for each affected
   product with a category delta.
 - Do not run or schedule `SyncProductIndexScript` directly from category/category-link writes;
@@ -1642,8 +1612,7 @@ Category-centric product management events/indexing:
   - `categoryAddProduct`;
   - `categoryMoveProduct`;
   - `categoryRebalance` if rank/index semantics affect any indexed data;
-  - `categoryRemoveProduct`;
-  - `categoryProductsSync`.
+  - `categoryRemoveProduct`.
 
 Affected product discovery:
 
@@ -1657,10 +1626,9 @@ getProductIdsByCategoryIds(categoryIds: readonly string[]): Promise<Map<string, 
 - Discovery queries must be scoped by `projectId`.
 - For category handle/name/status/hierarchy changes, compute affected products from committed
   `product_category` rows for the changed category.
-- For category product sync/remove, use affected IDs returned by the script:
+- For category product add/remove/reorder, use affected IDs returned by the scripts:
   - removed product IDs;
   - added product IDs;
-  - products whose primary category changed;
   - products whose rank/order changed only if rank is indexed or cache keys depend on rank.
 
 After-commit scheduling rules:
@@ -1678,13 +1646,13 @@ Search-index acceptance criteria:
 
 - Product category assignment through `productUpdate.operations.categories` triggers existing
   `productUpdated` handling and re-runs `SyncProductIndexScript` for the product.
-- `categoryAddProduct`, `categoryRemoveProduct`, `categoryProductsSync` refresh product search index
-  for every affected product.
+- `categoryAddProduct` and `categoryRemoveProduct` refresh product search index for every affected
+  product; retained reorder operations do the same when rank/order affects indexed data.
 - Category `handle` changes refresh product search index for all products assigned to that category,
   because `SyncProductIndexScript` writes `categoryHandles`.
 - Category translated `name`/status/hierarchy changes refresh affected products only if those fields
   are denormalized into product search, visibility, cache keys or category-aware product documents.
-- No retained category-centric operation has add/move-only event behavior that ignores remove/sync.
+- No retained category-centric operation has add/move-only event behavior that ignores remove.
 - No event/index side effect is emitted for failed category updates or rolled-back writes.
 - Event payload type definitions, workflow emitted payloads and handlers agree on field names.
 - The final implementation has one documented path for category-link index refresh:
