@@ -153,10 +153,25 @@ import type {
   ProductFeatureUpdateInput,
   ProductFeatureDeleteInput,
   ProductFeaturesSyncInput,
+  CatalogMutationCategoryAddProductArgs,
+  CatalogMutationCategoryCreateArgs,
+  CatalogMutationCategoryDeleteArgs,
+  CatalogMutationCategoryMoveArgs,
+  CatalogMutationCategoryMoveProductArgs,
+  CatalogMutationCategoryRebalanceArgs,
+  CatalogMutationCategoryRemoveProductArgs,
+  CatalogMutationCategoryUpdateArgs,
   CatalogMutationProductUpdateArgs,
   RichTextInput,
 } from "./generated/types.js";
 import {
+  CategoryAddProductInputSchema,
+  CategoryCreateInputSchema,
+  CategoryDeleteInputSchema,
+  CategoryMoveInputSchema,
+  CategoryMoveProductInputSchema,
+  CategoryRebalanceInputSchema,
+  CategoryRemoveProductInputSchema,
   ProductCreateInputSchema,
   ProductDeleteInputSchema,
   ProductUpdateStatusInputSchema,
@@ -175,29 +190,6 @@ import {
   ProductFeaturesSyncInputSchema,
 } from "./generated/schemas.js";
 import { ProductBulkUpdateInputSchema } from "./validation/productBulkEditSchema.js";
-
-type CategoryUpdateGraphqlOperations = {
-  handle?: string | null;
-  name?: string | null;
-  content?: {
-    description?: RichTextInput | null;
-    excerpt?: RichTextInput | null;
-  } | null;
-  seo?: {
-    seoTitle?: string | null;
-    seoDescription?: string | null;
-    ogTitle?: string | null;
-    ogDescription?: string | null;
-    ogImageId?: string | null;
-  } | null;
-  status?: "DRAFT" | "PUBLISHED" | null;
-  media?: { fileIds: string[] } | null;
-  hierarchy?: { parentId?: string | null } | null;
-  sort?: {
-    defaultSort: "MANUAL" | "PRICE" | "NEWEST" | "NAME";
-    defaultSortDirection: "asc" | "desc";
-  } | null;
-};
 
 /**
  * Root Mutation resolver for Catalog Service.
@@ -221,7 +213,7 @@ export class MutationResolver extends CatalogType<Record<string, never>> {
  */
 export class CatalogMutationResolver extends CatalogType<Record<string, never>> {
   private mapCategoryUpdateOperations(
-    operations: CategoryUpdateGraphqlOperations | null | undefined
+    operations: CatalogMutationCategoryUpdateArgs["operations"]
   ):
     | { operations: CategoryUpdateParams | null | undefined }
     | { userErrors: UserError[] } {
@@ -322,21 +314,23 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
               : undefined,
         seo,
         status:
-          operations.status === "PUBLISHED"
+          String(operations.status) === "PUBLISHED"
             ? "published"
-            : operations.status === "DRAFT"
+            : String(operations.status) === "DRAFT"
               ? "draft"
               : undefined,
         media: operations.media ? { fileIds } : undefined,
         hierarchy,
         sort: operations.sort
           ? {
-              defaultSort: operations.sort.defaultSort.toLowerCase() as
+              defaultSort: String(operations.sort.defaultSort).toLowerCase() as
                 | "manual"
                 | "price"
                 | "newest"
                 | "name",
-              defaultSortDirection: operations.sort.defaultSortDirection,
+              defaultSortDirection: operations.sort.defaultSortDirection as
+                | "asc"
+                | "desc",
             }
           : undefined,
       },
@@ -1147,32 +1141,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   /**
    * Create a new category.
    */
-  async categoryCreate(args: {
-    input: {
-      handle: string;
-      name: string;
-      parentId?: string | null;
-      description?: {
-        text?: string | null;
-        html?: string | null;
-        json?: unknown | null;
-      } | null;
-      excerpt?: {
-        text?: string | null;
-        html?: string | null;
-        json?: unknown | null;
-      } | null;
-      seo?: {
-        seoTitle?: string | null;
-        seoDescription?: string | null;
-        ogTitle?: string | null;
-        ogDescription?: string | null;
-        ogImageId?: string | null;
-      } | null;
-      mediaFileIds?: string[] | null;
-      publish?: boolean | null;
-    };
-  }) {
+  @ZodResolver(CategoryCreateInputSchema())
+  async categoryCreate(args: CatalogMutationCategoryCreateArgs) {
     const { input } = args;
 
     const userErrors: UserError[] = [];
@@ -1260,32 +1230,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     };
   }
 
-  async categoryUpdate(args: {
-    categoryId: string;
-    expectedRevision?: number | null;
-    operations?: {
-      handle?: string | null;
-      name?: string | null;
-      content?: {
-        description?: RichTextInput | null;
-        excerpt?: RichTextInput | null;
-      } | null;
-      seo?: {
-        seoTitle?: string | null;
-        seoDescription?: string | null;
-        ogTitle?: string | null;
-        ogDescription?: string | null;
-        ogImageId?: string | null;
-      } | null;
-      status?: "DRAFT" | "PUBLISHED" | null;
-      media?: { fileIds: string[] } | null;
-      hierarchy?: { parentId?: string | null } | null;
-      sort?: {
-        defaultSort: "MANUAL" | "PRICE" | "NEWEST" | "NAME";
-        defaultSortDirection: "asc" | "desc";
-      } | null;
-    } | null;
-  }) {
+  async categoryUpdate(args: CatalogMutationCategoryUpdateArgs) {
     let categoryId: string;
     try {
       categoryId = decodeGlobalIdByType(
@@ -1356,18 +1301,23 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   /**
    * Move a category to a new parent.
    */
-  async categoryMove(args: {
-    input: {
-      id: string;
-      newParentId?: string | null;
-    };
-  }) {
+  @ZodResolver(CategoryMoveInputSchema())
+  async categoryMove(args: CatalogMutationCategoryMoveArgs) {
     const { input } = args;
 
-    const id = decodeGlobalIdByType(input.id, GlobalIdEntity.Category);
-    const newParentId = input.newParentId
-      ? decodeGlobalIdByType(input.newParentId, GlobalIdEntity.Category)
-      : null;
+    let id: string;
+    let newParentId: string | null;
+    try {
+      id = decodeGlobalIdByType(input.id, GlobalIdEntity.Category);
+      newParentId = input.newParentId
+        ? decodeGlobalIdByType(input.newParentId, GlobalIdEntity.Category)
+        : null;
+    } catch {
+      return {
+        category: null,
+        userErrors: [{ message: "Invalid ID format", code: "INVALID_ID" }],
+      };
+    }
 
     const result = await this.$ctx.kernel.runScript(CategoryMoveScript, {
       id,
@@ -1382,14 +1332,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     };
   }
 
-  async categoryMoveProduct(args: {
-    input: {
-      categoryId: string;
-      productId: string;
-      afterProductId?: string | null;
-      beforeProductId?: string | null;
-    };
-  }) {
+  @ZodResolver(CategoryMoveProductInputSchema())
+  async categoryMoveProduct(args: CatalogMutationCategoryMoveProductArgs) {
     const { input } = args;
     let categoryId: string;
     let productId: string;
@@ -1434,12 +1378,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     };
   }
 
-  async categoryAddProduct(args: {
-    input: {
-      categoryId: string;
-      productId: string;
-    };
-  }) {
+  @ZodResolver(CategoryAddProductInputSchema())
+  async categoryAddProduct(args: CatalogMutationCategoryAddProductArgs) {
     const { input } = args;
     let categoryId: string;
     let productId: string;
@@ -1474,7 +1414,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     };
   }
 
-  async categoryRebalance(args: { input: { categoryId: string } }) {
+  @ZodResolver(CategoryRebalanceInputSchema())
+  async categoryRebalance(args: CatalogMutationCategoryRebalanceArgs) {
     let categoryId: string;
     try {
       categoryId = decodeGlobalIdByType(
@@ -1507,12 +1448,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     };
   }
 
-  async categoryRemoveProduct(args: {
-    input: {
-      categoryId: string;
-      productId: string;
-    };
-  }) {
+  @ZodResolver(CategoryRemoveProductInputSchema())
+  async categoryRemoveProduct(args: CatalogMutationCategoryRemoveProductArgs) {
     const { input } = args;
     let categoryId: string;
     let productId: string;
@@ -1550,15 +1487,19 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   /**
    * Delete a category.
    */
-  async categoryDelete(args: {
-    input: {
-      id: string;
-      permanent?: boolean | null;
-    };
-  }) {
+  @ZodResolver(CategoryDeleteInputSchema())
+  async categoryDelete(args: CatalogMutationCategoryDeleteArgs) {
     const { input } = args;
 
-    const id = decodeGlobalIdByType(input.id, GlobalIdEntity.Category);
+    let id: string;
+    try {
+      id = decodeGlobalIdByType(input.id, GlobalIdEntity.Category);
+    } catch {
+      return {
+        deletedCategoryId: null,
+        userErrors: [{ message: "Invalid ID format", code: "INVALID_ID" }],
+      };
+    }
 
     const result = await this.$ctx.kernel.runScript(CategoryDeleteScript, {
       id,
