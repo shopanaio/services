@@ -35,11 +35,18 @@ export class ProductDeleteScript extends BaseScript<
     if (!existingProduct) {
       return {
         deletedProductId: undefined,
+        categoryIds: [],
         userErrors: [
           { message: "Product not found", field: ["id"], code: "NOT_FOUND" },
         ],
       };
     }
+
+    const categoryLinks =
+      await this.repository.category.getProductCategoryLinks(id);
+    const categoryIds = [
+      ...new Set(categoryLinks.map((link) => link.categoryId)),
+    ];
 
     const deleted = permanent
       ? await this.repository.product.hardDelete(id)
@@ -48,6 +55,7 @@ export class ProductDeleteScript extends BaseScript<
     if (!deleted) {
       return {
         deletedProductId: undefined,
+        categoryIds,
         userErrors: [
           { message: "Failed to delete product", code: "DELETE_FAILED" },
         ],
@@ -56,12 +64,13 @@ export class ProductDeleteScript extends BaseScript<
 
     this.logger.info({ productId: id, permanent }, "Product deleted");
 
-    return { deletedProductId: id, userErrors: [] };
+    return { deletedProductId: id, categoryIds, userErrors: [] };
   }
 
   protected handleError(_error: unknown): ProductDeleteResult {
     return {
       deletedProductId: undefined,
+      categoryIds: [],
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }

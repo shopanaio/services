@@ -389,6 +389,38 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     }
   }
 
+  private async emitProductDeleted(args: {
+    productId: string;
+    categoryIds: readonly string[] | undefined;
+  }): Promise<void> {
+    await this.$ctx.kernel.getServices().broker.runWorkflow(
+      "events.emit",
+      {
+        eventType: "productDeleted",
+        payload: {
+          productId: args.productId,
+          storeId: this.$ctx.store.id,
+          categoryIds: [...new Set(args.categoryIds ?? [])],
+        },
+        source: "catalog",
+        context: {
+          tenantId: this.$ctx.store.organizationId,
+          userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
+        },
+        subject: { type: "product", id: args.productId },
+        actor: this.$ctx.hasUser
+          ? { type: "user", id: this.$ctx.user.id }
+          : undefined,
+        emitKey: `product:${args.productId}:deleted`,
+      },
+      {
+        source: "workflow",
+        workflowId: `productDelete:${this.$ctx.store.id}:${this.$ctx.requestId}:${args.productId}`,
+        stepId: "emitProductDeleted",
+      }
+    );
+  }
+
   // ---- Product Mutations ----
 
   /**
@@ -473,6 +505,13 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       id: productId,
       permanent: input.permanent ?? undefined,
     });
+
+    if (result.userErrors.length === 0 && result.deletedProductId) {
+      await this.emitProductDeleted({
+        productId: result.deletedProductId,
+        categoryIds: result.categoryIds,
+      });
+    }
 
     return {
       deletedProductId: result.deletedProductId ?? null,

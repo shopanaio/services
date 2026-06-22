@@ -39,6 +39,7 @@ export namespace InventoryEvents {
   export interface ProductDeleted {
     productId: string;
     storeId: string;
+    categoryIds?: string[];
   }
 
   /** Emitted when entity is deleted and needs cleanup */

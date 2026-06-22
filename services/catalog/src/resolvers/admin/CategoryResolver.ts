@@ -163,7 +163,7 @@ export class CategoryResolver extends CatalogType<string, Category> {
    * Returns the count of products in this category
    */
   async productsCount(): Promise<number> {
-    return 0;
+    return (await this.$get("productsCount")) ?? 0;
   }
 
   /**

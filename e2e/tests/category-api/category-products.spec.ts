@@ -75,6 +75,41 @@ async function addProductToCategory(api: ApiFixtures['api'], categoryId: string,
   }
 }
 
+async function deleteProduct(api: ApiFixtures['api'], productId: string) {
+  const { data, errors } = await api.admin.mutation('inventory-api/ProductDelete', {
+    variables: {
+      input: { id: productId },
+    },
+  });
+  if (errors?.length) {
+    throw new Error(`ProductDelete errors: ${JSON.stringify(errors)}`);
+  }
+  const userErrors = data?.catalogMutation?.productDelete?.userErrors;
+  if (userErrors?.length) {
+    throw new Error(`ProductDelete userErrors: ${JSON.stringify(userErrors)}`);
+  }
+}
+
+async function getCategoryProductsSnapshot(api: ApiFixtures['api'], categoryId: string) {
+  const { data } = await api.admin.query('category-api/CategoryWithProducts', {
+    variables: {
+      id: categoryId,
+      first: 10,
+    },
+  });
+
+  const category = data.catalogQuery.category;
+  if (!category) {
+    throw new Error(`Category not found: ${categoryId}`);
+  }
+
+  return {
+    productsCount: category.productsCount,
+    totalCount: category.products.totalCount,
+    productIds: category.products.edges.map((edge) => edge.node.id),
+  };
+}
+
 // Prepare function for pagination tests
 async function prepareCategoryProducts(api: ApiFixtures['api']) {
   await api.session.setupUserAndStore();
@@ -217,6 +252,41 @@ test.describe('Category.products field - basic', () => {
     expect(cat?.products.edges).toHaveLength(1);
     expect(cat?.products.edges[0].node.id).toBe(product.id);
     expect(cat?.products.totalCount).toBe(1);
+  });
+
+  test('should update productsCount from product category assignment and delete events', async ({ api }) => {
+    const category = await api.admin.category.create({
+      handle: 'count-events-' + crypto.randomUUID().slice(0, 8),
+      name: 'Count Events Category',
+    });
+
+    const firstProduct = await createProduct(api, 'Count Events First Product', 1000);
+    const secondProduct = await createProduct(api, 'Count Events Second Product', 1000);
+
+    await addProductToCategory(api, category.id, firstProduct.id);
+    await addProductToCategory(api, category.id, secondProduct.id);
+
+    await expect
+      .poll(async () => (await getCategoryProductsSnapshot(api, category.id)).productsCount, {
+        timeout: 10_000,
+      })
+      .toBe(2);
+
+    const afterAssignment = await getCategoryProductsSnapshot(api, category.id);
+    expect(afterAssignment.totalCount).toBe(2);
+    expect(afterAssignment.productIds).toEqual(expect.arrayContaining([firstProduct.id, secondProduct.id]));
+
+    await deleteProduct(api, firstProduct.id);
+
+    await expect
+      .poll(async () => (await getCategoryProductsSnapshot(api, category.id)).productsCount, {
+        timeout: 10_000,
+      })
+      .toBe(1);
+
+    const afterDelete = await getCategoryProductsSnapshot(api, category.id);
+    expect(afterDelete.totalCount).toBe(1);
+    expect(afterDelete.productIds).toEqual([secondProduct.id]);
   });
 
   test('should sort by NAME ascending', async ({ api }) => {

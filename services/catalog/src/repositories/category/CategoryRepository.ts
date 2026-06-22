@@ -568,21 +568,62 @@ export class CategoryRepository extends BaseRepository {
     categoryIds: readonly string[],
   ): Promise<Map<string, number>> {
     if (categoryIds.length === 0) return new Map();
-    const results = await this.connection
+    const rows = await this.connection
+      .select({
+        categoryId: category.id,
+        count: category.productsCount,
+      })
+      .from(category)
+      .where(
+        and(
+          eq(category.projectId, this.storeId),
+          inArray(category.id, [...categoryIds]),
+          isNull(category.deletedAt),
+        ),
+      );
+
+    return new Map(rows.map((row) => [row.categoryId, row.count]));
+  }
+
+  async refreshProductsCountByCategoryIds(
+    categoryIds: readonly string[],
+  ): Promise<void> {
+    const uniqueCategoryIds = [...new Set(categoryIds)];
+    if (uniqueCategoryIds.length === 0) return;
+
+    const rows = await this.connection
       .select({
         categoryId: productCategory.categoryId,
-        count: count(),
+        count: count(productCategory.productId),
       })
       .from(productCategory)
+      .innerJoin(product, eq(product.id, productCategory.productId))
       .where(
         and(
           eq(productCategory.projectId, this.storeId),
-          inArray(productCategory.categoryId, [...categoryIds]),
+          eq(product.projectId, this.storeId),
+          inArray(productCategory.categoryId, uniqueCategoryIds),
+          isNull(product.deletedAt),
         ),
       )
       .groupBy(productCategory.categoryId);
 
-    return new Map(results.map((r) => [r.categoryId, r.count]));
+    const countByCategoryId = new Map(
+      rows.map((row) => [row.categoryId, row.count]),
+    );
+
+    for (const categoryId of uniqueCategoryIds) {
+      await this.connection
+        .update(category)
+        .set({ productsCount: countByCategoryId.get(categoryId) ?? 0 })
+        .where(
+          and(
+            eq(category.projectId, this.storeId),
+            eq(category.id, categoryId),
+            isNull(category.deletedAt),
+          ),
+        );
+    }
   }
 
   async addProductToCategory(

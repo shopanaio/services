@@ -15,3 +15,4 @@ export { CategoryRebalanceScript } from "./CategoryRebalanceScript.js";
 export { CategoryUpdateSortScript } from "./CategoryUpdateSortScript.js";
 export { CategoryAddProductScript } from "./CategoryAddProductScript.js";
 export { CategoryRemoveProductScript } from "./CategoryRemoveProductScript.js";
+export { CategoryProductsCountRefreshScript } from "./CategoryProductsCountRefreshScript.js";

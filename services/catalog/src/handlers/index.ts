@@ -14,6 +14,7 @@ import type {
 } from "@shopana/events";
 import { Kernel } from "../kernel/Kernel.js";
 import { FileHardDeletedScript } from "../scripts/media/FileHardDeletedScript.js";
+import { CategoryProductsCountRefreshScript } from "../scripts/category/index.js";
 import {
   DeleteProductIndexScript,
   SyncProductIndexScript,
@@ -85,12 +86,18 @@ export class CatalogEventHandlers extends EventHandlers {
           locale: "uk",
         }
       );
+      await this.refreshCategoryProductCounts({
+        categoryIds: params.event.payload.categoryIds,
+        storeId: params.event.payload.storeId,
+        organizationId: params.event.context.tenantId,
+        userId: params.event.context.userId,
+      });
       return { success: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(
         { error: message, productId: params.event.payload.productId },
-        "Failed to delete search indexes for productDeleted"
+        "Failed to handle productDeleted event"
       );
       return { success: false, error: { message, retryable: true } };
     }
@@ -114,6 +121,16 @@ export class CatalogEventHandlers extends EventHandlers {
         userId: params.event.context.userId,
         locale: "uk",
       };
+      const categories = params.event.payload.product?.categories;
+
+      if (categories?.changed && categories.reason === "assignment") {
+        await this.refreshCategoryProductCounts({
+          categoryIds: categories.categoryIds,
+          storeId: context.storeId,
+          organizationId: context.organizationId,
+          userId: context.userId,
+        });
+      }
 
       await this.kernel.runScript(
         SyncProductIndexScript,
@@ -136,6 +153,31 @@ export class CatalogEventHandlers extends EventHandlers {
         "Failed to sync search indexes for productUpdated"
       );
       return { success: false, error: { message, retryable: true } };
+    }
+  }
+
+  private async refreshCategoryProductCounts(params: {
+    categoryIds: readonly string[] | undefined;
+    storeId: string;
+    organizationId: string;
+    userId?: string;
+  }): Promise<void> {
+    const categoryIds = [...new Set(params.categoryIds ?? [])];
+    if (categoryIds.length === 0) return;
+
+    const result = await this.kernel.runScript(
+      CategoryProductsCountRefreshScript,
+      { categoryIds },
+      {
+        storeId: params.storeId,
+        organizationId: params.organizationId,
+        userId: params.userId,
+        locale: "uk",
+      },
+    );
+
+    if (!result.success) {
+      throw new Error("Failed to refresh category product counts");
     }
   }
 
