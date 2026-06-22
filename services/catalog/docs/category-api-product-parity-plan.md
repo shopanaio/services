@@ -212,7 +212,13 @@ Implementation notes:
 - SEO: `seo`;
 - media: `media`;
 - products connection: `products`;
-- aggregate count: `productsCount`.
+- compatibility count field: `productsCount`.
+
+`Category.productsCount` aggregate calculation is out of scope for this cutover. Keep the GraphQL
+field so existing selection sets do not fail, but implement the resolver as an explicit placeholder
+that returns `0`. Do not wire it to repository aggregate queries, category list views, denormalized
+counter columns or product-category loaders in this cutover. Real count semantics are a follow-up
+contract.
 
 ## Целевой Mutation Contract
 
@@ -549,9 +555,9 @@ async getConnection(args: CategoryRelayInput): Promise<CategoryConnectionResult>
   a category list view and without duplicating category rows across translations. If that is not
   supported by the table-based query builder in this cutover, keep search limited to `handle` and
   document translated-name search as follow-up.
-- `productsCount` field resolution should continue through the existing loader/repository aggregate
-  path, not per-row subqueries in the list resolver. Sorting by `productsCount` is not part of this
-  table-based cutover unless later implemented without a dedicated category list view.
+- `productsCount` aggregate resolution is out of scope. The field remains in schema only as a
+  compatibility placeholder and must return `0`; do not call repository aggregate queries from list
+  or details resolvers. Sorting by `productsCount` is not part of this table-based cutover.
 
 5. `totalCount` must always use the same `mergedWhere` as the relay query:
 
@@ -1181,6 +1187,8 @@ Category resolver cutover:
 
 - Add `revision()` field resolver that returns `category.revision`.
 - Keep `products(args)` returning `CategoryProductConnectionResolver`.
+- Keep `productsCount()` as an explicit placeholder resolver that returns `0`. Do not use the
+  existing `categoryProductsCount` loader or repository aggregate path in this cutover.
 - Ensure `media()` returns File references with the correct GraphQL boundary ID shape.
 - Keep hierarchy fields (`parent`, `children`, `ancestors`) resolver-instance based and DataLoader
   backed.
@@ -1230,8 +1238,9 @@ productCategoryLinksByProductIds(productIds: readonly string[]): Promise<Product
 - `Product.primaryCategory`, `Product.categoryAssignments` and optional `Product.categories` must
   all use the metadata-aware loader.
 - Keep existing `category`, `categoryTranslation`, `categoryMedia`, `categorySeo`,
-  `categoryChildrenIds`, `categoryAncestorIds` and `categoryProductsCount` loaders unless their
-  contracts are intentionally changed.
+  `categoryChildrenIds` and `categoryAncestorIds` loaders unless their contracts are intentionally
+  changed. `categoryProductsCount` may remain registered if removing it creates unrelated churn, but
+  `Category.productsCount()` must not call it in this cutover.
 
 Category product connection resolver cutover:
 
