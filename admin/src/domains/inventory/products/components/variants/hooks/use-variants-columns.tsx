@@ -266,7 +266,7 @@ export function useVariantsColumns(
 
             return (
               <span data-testid={`variants-editor-cell-option-${optionName}-${params.data.id}`}>
-                {params.value ?? ""}
+                {String(params.value ?? "")}
               </span>
             );
           },

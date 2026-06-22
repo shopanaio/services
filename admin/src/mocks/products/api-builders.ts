@@ -392,6 +392,7 @@ export const createMockApiCategory = (params: {
   children?: ApiCategory[];
   ancestors?: ApiCategory[];
   productsCount?: number;
+  revision?: number;
   createdAt?: string;
   updatedAt?: string;
   publishedAt?: string | null;
@@ -413,6 +414,7 @@ export const createMockApiCategory = (params: {
   depth: params.parent ? params.parent.depth + 1 : 0,
   defaultSort: ProductSortBy.Manual,
   defaultSortDirection: SortDirection.Asc,
+  revision: params.revision ?? 1,
   seo: null,
   publishedAt: params.publishedAt ?? MOCK_NOW,
   deletedAt: null,
@@ -537,7 +539,12 @@ export const createMockApiProduct = (params: {
     deletedAt: params.deletedAt ?? null,
     revision: params.revision ?? 1,
     features: params.features ?? [],
-    categories: params.categories ?? [],
+    categoryAssignments: (params.categories ?? []).map((category, index) => ({
+      __typename: "ProductCategoryAssignment",
+      category,
+      isPrimary: index === 0,
+    })),
+    primaryCategory: params.categories?.[0] ?? null,
     tags: params.tags ?? [],
     media: params.media ?? [],
     options: params.options,

@@ -1,91 +1,87 @@
 "use client";
 
 import { useCallback } from "react";
+import type { ApiCategory } from "@/graphql/types";
 import {
-  useEditMediaModal,
-  useEditSeoModal,
-  useEditTagsModal,
-  type IEditSeoModalPayload,
-} from "@/domains/inventory/products/modals";
-import type { ApiFile } from "@/graphql/types";
-import type { ICategoryDetail } from "../types";
+  useCategoryAssignProductsModal,
+  useCategoryEditContentModal,
+  useCategoryEditHierarchyModal,
+  useCategoryEditIdentityModal,
+  useCategoryEditMediaModal,
+  useCategoryEditSeoModal,
+  useCategoryEditSortModal,
+  useCategoryEditStatusModal,
+  useCreateCategoryModal,
+} from "../../../modals";
 
-export const useCategoryModals = (category: ICategoryDetail) => {
-  const { push: openEditMediaModal } = useEditMediaModal();
-  const { push: openEditSeoModal } = useEditSeoModal();
-  const { push: openEditTagsModal } = useEditTagsModal();
+export const useCategoryModals = (
+  category: ApiCategory,
+  onRefetch?: () => Promise<unknown>,
+) => {
+  const { push: openEditIdentityModal } = useCategoryEditIdentityModal();
+  const { push: openEditContentModal } = useCategoryEditContentModal();
+  const { push: openEditSeoModal } = useCategoryEditSeoModal();
+  const { push: openEditMediaModal } = useCategoryEditMediaModal();
+  const { push: openEditHierarchyModal } = useCategoryEditHierarchyModal();
+  const { push: openEditSortModal } = useCategoryEditSortModal();
+  const { push: openEditStatusModal } = useCategoryEditStatusModal();
+  const { push: openAssignProductsModal } = useCategoryAssignProductsModal();
+  const { push: openCreateCategoryModal } = useCreateCategoryModal();
 
-  const handleEditMedia = useCallback(() => {
-    openEditMediaModal({
-      productId: category.id,
-      featured: category.featured,
-      gallery: category.gallery,
-      onSave: (media: { featured: ApiFile | null; gallery: ApiFile[] }) => {
-        console.log("Saved category media:", media);
+  const handleSaved = useCallback(async () => {
+    await onRefetch?.();
+  }, [onRefetch]);
+
+  const editIdentity = useCallback(() => {
+    openEditIdentityModal({ category, onSaved: handleSaved });
+  }, [category, handleSaved, openEditIdentityModal]);
+
+  const editContent = useCallback(() => {
+    openEditContentModal({ category, onSaved: handleSaved });
+  }, [category, handleSaved, openEditContentModal]);
+
+  const editSeo = useCallback(() => {
+    openEditSeoModal({ category, onSaved: handleSaved });
+  }, [category, handleSaved, openEditSeoModal]);
+
+  const editMedia = useCallback(() => {
+    openEditMediaModal({ category, onSaved: handleSaved });
+  }, [category, handleSaved, openEditMediaModal]);
+
+  const editHierarchy = useCallback(() => {
+    openEditHierarchyModal({ category, onSaved: handleSaved });
+  }, [category, handleSaved, openEditHierarchyModal]);
+
+  const editSort = useCallback(() => {
+    openEditSortModal({ category, onSaved: handleSaved });
+  }, [category, handleSaved, openEditSortModal]);
+
+  const changeStatus = useCallback(() => {
+    openEditStatusModal({ category, onSaved: handleSaved });
+  }, [category, handleSaved, openEditStatusModal]);
+
+  const assignProducts = useCallback(() => {
+    openAssignProductsModal({ category, onSaved: handleSaved });
+  }, [category, handleSaved, openAssignProductsModal]);
+
+  const addSubcategory = useCallback(() => {
+    openCreateCategoryModal({
+      parentId: category.id,
+      onCreated: () => {
+        void handleSaved();
       },
     });
-  }, [category.id, category.featured, category.gallery, openEditMediaModal]);
-
-  const handleEditSeo = useCallback(() => {
-    openEditSeoModal({
-      productId: category.id,
-      productTitle: category.title,
-      productSlug: category.slug,
-      seoTitle: category.seoTitle,
-      seoDescription: category.seoDescription,
-      onSave: (
-        values: Parameters<NonNullable<IEditSeoModalPayload["onSave"]>>[0]
-      ) => {
-        console.log("Saved category SEO:", values);
-      },
-    });
-  }, [
-    category.id,
-    category.title,
-    category.slug,
-    category.seoTitle,
-    category.seoDescription,
-    openEditSeoModal,
-  ]);
-
-  const handleEditTags = useCallback(() => {
-    openEditTagsModal({
-      productId: category.id,
-      selectedTagIds: [],
-      onSave: (data: { tagIds: string[] }) => {
-        console.log("Saved category tags:", data);
-      },
-    });
-  }, [category.id, openEditTagsModal]);
-
-  const handleEditHierarchy = useCallback(() => {
-    console.log("Edit hierarchy for category:", category.id);
-  }, [category.id]);
-
-  const handleAddSubcategory = useCallback(() => {
-    console.log("Add subcategory to:", category.id);
-  }, [category.id]);
-
-  const handleOpenProductPicker = useCallback(() => {
-    console.log("Open product picker for category:", category.id);
-  }, [category.id]);
-
-  const handleArchiveCategory = useCallback(() => {
-    console.log("Archive category:", category.id);
-  }, [category.id]);
-
-  const handleDeleteCategory = useCallback(() => {
-    console.log("Delete category:", category.id);
-  }, [category.id]);
+  }, [category.id, handleSaved, openCreateCategoryModal]);
 
   return {
-    editMedia: handleEditMedia,
-    editSeo: handleEditSeo,
-    editTags: handleEditTags,
-    editHierarchy: handleEditHierarchy,
-    addSubcategory: handleAddSubcategory,
-    openProductPicker: handleOpenProductPicker,
-    archiveCategory: handleArchiveCategory,
-    deleteCategory: handleDeleteCategory,
+    editIdentity,
+    editContent,
+    editMedia,
+    editSeo,
+    editHierarchy,
+    editSort,
+    changeStatus,
+    addSubcategory,
+    assignProducts,
   };
 };

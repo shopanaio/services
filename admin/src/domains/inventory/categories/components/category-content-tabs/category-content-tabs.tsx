@@ -3,9 +3,8 @@
 import { createStyles } from "antd-style";
 import { Button, Typography, Tabs, Dropdown, Flex } from "antd";
 import { WarningOutlined, MoreOutlined } from "@ant-design/icons";
-import { AIButton } from "@/ui-kit/ai-button";
 import { Paper } from "@/ui-kit/paper";
-import type { ICategoryDetail } from "../category-details-card/types";
+import type { ApiCategory } from "@/graphql/types";
 
 // ============================================================================
 // Styles
@@ -85,7 +84,8 @@ const useStyles = createStyles(({ token }) => ({
 // ============================================================================
 
 interface ICategoryContentTabsProps {
-  category: ICategoryDetail;
+  category: ApiCategory;
+  onEdit?: () => void;
 }
 
 // ============================================================================
@@ -94,21 +94,12 @@ interface ICategoryContentTabsProps {
 
 export const CategoryContentTabs = ({
   category,
+  onEdit,
 }: ICategoryContentTabsProps) => {
   const { styles } = useStyles();
 
-  const handleWriteWithAI = () => {
-    console.log("AI writer for category:", category.id);
-  };
-
-  const handleEditDescription = () => {
-    console.log("Edit description for category:", category.id);
-  };
-
-  const descriptionHtml = category.description
-    ? `<p>${category.description}</p>`
-    : null;
-  const excerptHtml = category.excerpt ? `<p>${category.excerpt}</p>` : null;
+  const descriptionHtml = category.description?.html ?? null;
+  const excerptHtml = category.excerpt?.html ?? null;
 
   return (
     <Paper className={styles.tabsSection}>
@@ -117,14 +108,13 @@ export const CategoryContentTabs = ({
         size="middle"
         tabBarExtraContent={
           <Flex gap={8}>
-            <AIButton onClick={handleWriteWithAI} />
             <Dropdown
               menu={{
                 items: [
                   {
                     key: "edit",
                     label: "Edit content",
-                    onClick: handleEditDescription,
+                    onClick: onEdit,
                   },
                 ],
               }}
@@ -152,7 +142,7 @@ export const CategoryContentTabs = ({
                 <Button
                   type="link"
                   size="small"
-                  onClick={handleEditDescription}
+                  onClick={onEdit}
                   className={styles.addButton}
                 >
                   Add now
@@ -177,7 +167,7 @@ export const CategoryContentTabs = ({
                 <Button
                   type="link"
                   size="small"
-                  onClick={handleEditDescription}
+                  onClick={onEdit}
                   className={styles.addButton}
                 >
                   Add now

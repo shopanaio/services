@@ -321,6 +321,70 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    {
+      type: 'category-edit-identity',
+      component: dynamic(() =>
+        import('@/domains/inventory/categories/modals/edit-category-identity-modal').then(
+          (m) => m.EditCategoryIdentityModal
+        )
+      ),
+    },
+    {
+      type: 'category-edit-content',
+      component: dynamic(() =>
+        import('@/domains/inventory/categories/modals/edit-category-content-modal').then(
+          (m) => m.EditCategoryContentModal
+        )
+      ),
+    },
+    {
+      type: 'category-edit-seo',
+      component: dynamic(() =>
+        import('@/domains/inventory/categories/modals/edit-category-seo-modal').then(
+          (m) => m.EditCategorySeoModal
+        )
+      ),
+    },
+    {
+      type: 'category-edit-media',
+      component: dynamic(() =>
+        import('@/domains/inventory/categories/modals/edit-category-media-modal').then(
+          (m) => m.EditCategoryMediaModal
+        )
+      ),
+    },
+    {
+      type: 'category-edit-hierarchy',
+      component: dynamic(() =>
+        import('@/domains/inventory/categories/modals/edit-category-hierarchy-modal').then(
+          (m) => m.EditCategoryHierarchyModal
+        )
+      ),
+    },
+    {
+      type: 'category-edit-sort',
+      component: dynamic(() =>
+        import('@/domains/inventory/categories/modals/edit-category-sort-modal').then(
+          (m) => m.EditCategorySortModal
+        )
+      ),
+    },
+    {
+      type: 'category-edit-status',
+      component: dynamic(() =>
+        import('@/domains/inventory/categories/modals/edit-category-status-modal').then(
+          (m) => m.EditCategoryStatusModal
+        )
+      ),
+    },
+    {
+      type: 'category-assign-products',
+      component: dynamic(() =>
+        import('@/domains/inventory/categories/modals/assign-category-products-modal').then(
+          (m) => m.AssignCategoryProductsModal
+        )
+      ),
+    },
     // ========================================
     // Picker modals
     // ========================================

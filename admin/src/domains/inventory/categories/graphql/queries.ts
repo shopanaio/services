@@ -1,5 +1,9 @@
 import { gql } from "@apollo/client";
-import { CATEGORY_LIST_FRAGMENT } from "./fragments";
+import {
+  CATEGORY_DETAILS_FRAGMENT,
+  CATEGORY_LIST_FRAGMENT,
+  CATEGORY_PRODUCT_LIST_ITEM_FRAGMENT,
+} from "./fragments";
 
 export const CATEGORIES_QUERY = gql`
   query Categories(
@@ -36,4 +40,56 @@ export const CATEGORIES_QUERY = gql`
     }
   }
   ${CATEGORY_LIST_FRAGMENT}
+`;
+
+export const CATEGORY_DETAILS_QUERY = gql`
+  query CategoryDetails($id: ID!) {
+    catalogQuery {
+      category(id: $id) {
+        ...CategoryDetailsFields
+      }
+    }
+  }
+  ${CATEGORY_DETAILS_FRAGMENT}
+`;
+
+export const CATEGORY_PRODUCTS_QUERY = gql`
+  query CategoryProducts(
+    $id: ID!
+    $first: Int
+    $after: String
+    $last: Int
+    $before: String
+    $where: CategoryProductWhereInput
+    $orderBy: [ProductOrderByInput!]
+  ) {
+    catalogQuery {
+      category(id: $id) {
+        id
+        products(
+          first: $first
+          after: $after
+          last: $last
+          before: $before
+          where: $where
+          orderBy: $orderBy
+        ) {
+          edges {
+            cursor
+            node {
+              ...CategoryProductListItemFields
+            }
+          }
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+            startCursor
+            endCursor
+          }
+          totalCount
+        }
+      }
+    }
+  }
+  ${CATEGORY_PRODUCT_LIST_ITEM_FRAGMENT}
 `;

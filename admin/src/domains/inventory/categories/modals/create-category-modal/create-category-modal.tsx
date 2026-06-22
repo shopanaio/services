@@ -60,7 +60,14 @@ export const CreateCategoryModal = () => {
 
       if (userErrors.length > 0) {
         mapCategoryUserErrorsToFormErrors(userErrors).forEach((error) => {
-          setError(error.field, { message: error.message });
+          if (
+            error.field === "name" ||
+            error.field === "handle" ||
+            error.field === "description" ||
+            error.field === "media"
+          ) {
+            setError(error.field, { message: error.message });
+          }
         });
 
         message.error(userErrors[0].message);

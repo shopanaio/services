@@ -1,75 +1,43 @@
 "use client";
 
-import { useState } from "react";
-import { Typography, Flex, Button, Input, Dropdown, Image } from "antd";
+import { useMemo, useState } from "react";
+import { Alert, Button, Dropdown, Flex, Image, Skeleton, Tag, Typography } from "antd";
 import {
   PlusOutlined,
   SortAscendingOutlined,
-  LeftOutlined,
-  RightOutlined,
 } from "@ant-design/icons";
+import {
+  RelayCursorPagination,
+  useRelayCursorPagination,
+} from "@/ui-kit/cursor-pagination";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { EntityStatus } from "@/mocks/products/types";
+import type { ApiProduct, ApiProductOrderByInput } from "@/graphql/types";
+import { ProductSortBy, SortDirection } from "@/graphql/types";
+import { useCategoryProducts } from "../../../hooks";
 import { useProductsStyles } from "../category-details-card.styles";
-import type { ICategoryProduct } from "../types";
 
-// ============================================================================
-// Helpers
-// ============================================================================
-
-const formatPrice = (price: number) =>
-  new Intl.NumberFormat("ru-RU", {
-    style: "currency",
-    currency: "RUB",
-  }).format(price / 100);
-
-const getStockConfig = (inStock: boolean) => {
-  if (inStock) {
-    return {
-      color: "var(--ant-color-success)",
-      icon: "\u25CF",
-      label: "In Stock",
-    };
-  }
-  return {
-    color: "var(--ant-color-error)",
-    icon: "\u2715",
-    label: "Out of Stock",
-  };
+const getProductImageUrl = (product: ApiProduct): string | null => {
+  const firstMedia = [...product.media].sort(
+    (a, b) => a.sortIndex - b.sortIndex,
+  )[0];
+  return firstMedia?.file.url ?? null;
 };
 
-const getStatusLabel = (status: EntityStatus) => {
-  switch (status) {
-    case EntityStatus.PUBLISHED:
-      return "Active";
-    case EntityStatus.DRAFT:
-      return "Draft";
-    case EntityStatus.ARCHIVED:
-      return "Archived";
-    default:
-      return status;
-  }
-};
-
-// ============================================================================
-// ProductRow
-// ============================================================================
-
-interface IProductRowProps {
-  product: ICategoryProduct;
+interface ProductRowProps {
+  product: ApiProduct;
 }
 
-const ProductRow = ({ product }: IProductRowProps) => {
+const ProductRow = ({ product }: ProductRowProps) => {
   const { styles } = useProductsStyles();
-  const stock = getStockConfig(product.inStock);
+  const imageUrl = getProductImageUrl(product);
 
   return (
     <tr>
       <td>
         <Flex align="flex-start" gap={8}>
-          {product.featured ? (
+          {imageUrl ? (
             <Image
-              src={product.featured.url}
+              src={imageUrl}
               alt={product.title}
               width={40}
               height={40}
@@ -88,79 +56,104 @@ const ProductRow = ({ product }: IProductRowProps) => {
       </td>
       <td>
         <Typography.Text className={styles.productSku}>
-          {product.sku || "\u2014"}
+          {product.handle || "-"}
         </Typography.Text>
       </td>
-      <td style={{ textAlign: "right" }}>
-        <Typography.Text>{formatPrice(product.price)}</Typography.Text>
-      </td>
       <td>
-        <Flex align="center" gap={4}>
-          <span className={styles.stockIcon} style={{ color: stock.color }}>
-            {stock.icon}
-          </span>
-          <span className={styles.stockLabel} style={{ color: stock.color }}>
-            {stock.label}
-          </span>
-        </Flex>
+        <Tag color={product.isPublished ? "green" : "gold"}>
+          {product.isPublished ? "Published" : "Draft"}
+        </Tag>
       </td>
     </tr>
   );
 };
 
-// ============================================================================
-// ProductsSection
-// ============================================================================
-
-interface IProductsSectionProps {
-  products: ICategoryProduct[];
-  totalCount: number;
-  hasNextPage: boolean;
+interface ProductsSectionProps {
+  categoryId: string;
+  productsCount: number;
   onAssignProducts?: () => void;
 }
 
 export const ProductsSection = ({
-  products,
-  totalCount,
-  hasNextPage,
+  categoryId,
+  productsCount,
   onAssignProducts,
-}: IProductsSectionProps) => {
+}: ProductsSectionProps) => {
   const { styles } = useProductsStyles();
-  const [page, setPage] = useState(0);
+  const [orderBy, setOrderBy] = useState<ApiProductOrderByInput[] | null>(null);
+  const pagination = useRelayCursorPagination({
+    defaultPageSize: 10,
+    resetKey: JSON.stringify(orderBy),
+  });
+  const { products, totalCount, pageInfo, loading, error } =
+    useCategoryProducts(categoryId, {
+      ...pagination.variables,
+      orderBy,
+    });
+
+  const sortMenu = useMemo(
+    () => ({
+      items: [
+        {
+          key: "manual",
+          label: "Manual order",
+          onClick: () => setOrderBy([{ field: ProductSortBy.Manual }]),
+        },
+        {
+          key: "name-asc",
+          label: "Name A to Z",
+          onClick: () =>
+            setOrderBy([
+              { field: ProductSortBy.Name, direction: SortDirection.Asc },
+            ]),
+        },
+        {
+          key: "name-desc",
+          label: "Name Z to A",
+          onClick: () =>
+            setOrderBy([
+              { field: ProductSortBy.Name, direction: SortDirection.Desc },
+            ]),
+        },
+        {
+          key: "newest",
+          label: "Newest first",
+          onClick: () =>
+            setOrderBy([
+              { field: ProductSortBy.Newest, direction: SortDirection.Desc },
+            ]),
+        },
+        {
+          key: "price-asc",
+          label: "Price low to high",
+          onClick: () =>
+            setOrderBy([
+              { field: ProductSortBy.Price, direction: SortDirection.Asc },
+            ]),
+        },
+        {
+          key: "price-desc",
+          label: "Price high to low",
+          onClick: () =>
+            setOrderBy([
+              { field: ProductSortBy.Price, direction: SortDirection.Desc },
+            ]),
+        },
+      ],
+    }),
+    [],
+  );
 
   const hasProducts = products.length > 0;
-
-  const sortMenu = {
-    items: [
-      { key: "name-asc", label: "Name A \u2192 Z" },
-      { key: "name-desc", label: "Name Z \u2192 A" },
-      { type: "divider" as const },
-      { key: "price-asc", label: "Price: Low \u2192 High" },
-      { key: "price-desc", label: "Price: High \u2192 Low" },
-      { type: "divider" as const },
-      { key: "stock-asc", label: "Stock: Low \u2192 High" },
-      { key: "stock-desc", label: "Stock: High \u2192 Low" },
-    ],
-    onClick: ({ key }: { key: string }) => console.log("Sort by:", key),
-  };
 
   return (
     <Paper>
       <PaperHeader
-        title={`Products (${totalCount})`}
+        title={`Products (${productsCount})`}
         actions={
           <Flex gap={8} align="center">
-            <Input.Search
-              placeholder="Search..."
-              size="small"
-              style={{ width: 200 }}
-              onSearch={(value) => console.log("Search:", value)}
-            />
             <Dropdown menu={sortMenu} trigger={["click"]}>
-              <Button
-                size="small"
-                icon={<SortAscendingOutlined />}
-              />
+              <Button size="small" icon={<SortAscendingOutlined />} />
             </Dropdown>
             <Button
               size="small"
@@ -174,15 +167,18 @@ export const ProductsSection = ({
         }
       />
 
-      {hasProducts ? (
+      {error && <Alert type="error" message={error.message} showIcon />}
+
+      {loading && !hasProducts ? (
+        <Skeleton active paragraph={{ rows: 3 }} />
+      ) : hasProducts ? (
         <>
           <div style={{ overflowX: "auto" }}>
             <table className={styles.productsTable}>
               <thead>
                 <tr>
                   <th>Product</th>
-                  <th>SKU</th>
-                  <th style={{ textAlign: "right" }}>Price</th>
+                  <th>Handle</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -194,35 +190,18 @@ export const ProductsSection = ({
             </table>
           </div>
 
-          <Flex
-            justify="space-between"
-            align="center"
-            className={styles.pagination}
-          >
-            <Typography.Text
-              type="secondary"
-              className={styles.paginationCount}
-            >
-              {totalCount} products
-            </Typography.Text>
-            <Flex gap={4}>
-              <Button
-                size="small"
-                icon={<LeftOutlined />}
-                disabled={page === 0}
-                onClick={() => setPage((p) => p - 1)}
-              />
-              <Button
-                size="small"
-                icon={<RightOutlined />}
-                disabled={!hasNextPage}
-                onClick={() => setPage((p) => p + 1)}
-              />
-            </Flex>
-          </Flex>
+          <div className={styles.pagination}>
+            <RelayCursorPagination
+              name="category-products"
+              pagination={pagination}
+              pageInfo={pageInfo}
+              totalCount={totalCount}
+              loadedRowsCount={products.length}
+            />
+          </div>
         </>
       ) : (
-        <Flex gap={4} wrap="wrap" style={{ padding: "16px 0" }}>
+        <Flex gap={8} align="center" wrap="wrap" style={{ padding: "16px 0" }}>
           <Button
             size="small"
             type="primary"
