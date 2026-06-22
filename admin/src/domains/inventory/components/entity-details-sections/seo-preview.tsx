@@ -1,23 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { Tabs, Typography, Image, Flex } from "antd";
-import { GoogleOutlined, FacebookOutlined, PictureOutlined } from "@ant-design/icons";
-import { useStyles } from "./seo-preview.styles";
-import type { ISeoPreviewData } from "./seo-preview.types";
+import { Flex, Image, Tabs, Typography } from "antd";
+import {
+  FacebookOutlined,
+  GoogleOutlined,
+  PictureOutlined,
+} from "@ant-design/icons";
+import { useSeoPreviewStyles } from "./seo-preview.styles";
+import type { EntitySeoPreviewData } from "./types";
 
 const DEFAULT_BASE_URL = "yourstore.com";
 
-interface ISeoPreviewProps {
-  data: ISeoPreviewData;
+interface SeoPreviewProps {
+  data: EntitySeoPreviewData;
 }
 
-const GooglePreview = ({ data }: { data: ISeoPreviewData }) => {
-  const { styles } = useStyles();
-  const title = data.seoTitle || data.productTitle || "Untitled Product";
+const GooglePreview = ({ data }: SeoPreviewProps) => {
+  const { styles } = useSeoPreviewStyles();
+  const title = data.seoTitle || data.title || "Untitled Product";
   const description =
     data.seoDescription || "No description available for this product.";
   const baseUrl = data.baseUrl || DEFAULT_BASE_URL;
+  const resourcePath = data.resourcePath || `products › ${data.slug || "product"}`;
 
   return (
     <div className={styles.googlePreview} data-testid="seo-preview-google">
@@ -31,7 +36,7 @@ const GooglePreview = ({ data }: { data: ISeoPreviewData }) => {
         className={styles.googleUrl}
         data-testid="seo-preview-google-url"
       >
-        {baseUrl} › products › {data.productSlug || "product"}
+        {baseUrl} › {resourcePath}
       </Typography.Text>
       <Typography.Text
         className={styles.googleDescription}
@@ -43,10 +48,9 @@ const GooglePreview = ({ data }: { data: ISeoPreviewData }) => {
   );
 };
 
-const FacebookPreview = ({ data }: { data: ISeoPreviewData }) => {
-  const { styles } = useStyles();
-  const title =
-    data.ogTitle || data.seoTitle || data.productTitle || "Untitled";
+const FacebookPreview = ({ data }: SeoPreviewProps) => {
+  const { styles } = useSeoPreviewStyles();
+  const title = data.ogTitle || data.seoTitle || data.title || "Untitled";
   const description =
     data.ogDescription || data.seoDescription || "No description available.";
   const baseUrl = data.baseUrl || DEFAULT_BASE_URL;
@@ -92,8 +96,8 @@ const FacebookPreview = ({ data }: { data: ISeoPreviewData }) => {
   );
 };
 
-export const SeoPreview = ({ data }: ISeoPreviewProps) => {
-  const { styles } = useStyles();
+export const SeoPreview = ({ data }: SeoPreviewProps) => {
+  const { styles } = useSeoPreviewStyles();
   const [activeTab, setActiveTab] = useState("google");
 
   return (

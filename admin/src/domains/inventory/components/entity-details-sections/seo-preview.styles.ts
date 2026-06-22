@@ -1,17 +1,15 @@
 import { createStyles } from "antd-style";
 
-// Google SERP colors
 const GOOGLE_TITLE_COLOR = "#1a0dab";
 const GOOGLE_URL_COLOR = "#006621";
 const GOOGLE_DESCRIPTION_COLOR = "#545454";
 
-export const useStyles = createStyles(({ token }) => ({
+export const useSeoPreviewStyles = createStyles(({ token }) => ({
   previewTabs: {
     "& .ant-tabs-nav": {
       marginBottom: 12,
     },
   },
-  // Google preview
   googlePreview: {
     background: token.colorBgLayout,
     borderRadius: 8,
@@ -43,7 +41,6 @@ export const useStyles = createStyles(({ token }) => ({
     WebkitBoxOrient: "vertical",
     overflow: "hidden",
   },
-  // Facebook/Social preview
   socialPreview: {
     background: token.colorBgLayout,
     borderRadius: 8,

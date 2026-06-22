@@ -1,6 +1,6 @@
 import { createStyles } from "antd-style";
 
-export const useStyles = createStyles(({ token }) => ({
+export const useEntityEditFormStyles = createStyles(({ token }) => ({
   formItem: {
     marginBottom: 16,
   },
@@ -12,10 +12,19 @@ export const useStyles = createStyles(({ token }) => ({
     marginBottom: 4,
     fontSize: token.fontSize,
   },
+  error: {
+    color: token.colorError,
+    fontSize: token.fontSizeSM,
+    marginTop: 4,
+  },
+  extra: {
+    color: token.colorTextSecondary,
+    fontSize: token.fontSizeSM,
+    marginTop: 4,
+  },
   ogExtra: {
     fontSize: 12,
   },
-  // Image upload
   draggerIcon: {
     fontSize: 32,
     color: token.colorTextSecondary,

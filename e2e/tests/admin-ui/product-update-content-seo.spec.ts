@@ -1,5 +1,5 @@
 import { test } from '@fixtures/base.extend';
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import path from 'node:path';
 
 async function signIn(page: Page, email: string, password: string) {
@@ -25,6 +25,15 @@ async function completeProfileIfNeeded(page: Page) {
   await expect(firstNameInput).toBeHidden();
 }
 
+async function fillEditor(page: Page, editorWrapper: Locator, text: string) {
+  const editor = editorWrapper.locator('[contenteditable="true"]').first();
+  await editor.click();
+  await page.keyboard.type(text);
+  await expect(editor).toContainText(text);
+  await page.waitForTimeout(1000);
+  await editor.blur();
+}
+
 test.describe('Admin product details SEO update UI', () => {
   test('updates product SEO metadata from the product details modal', async ({
     api,
@@ -42,6 +51,8 @@ test.describe('Admin product details SEO update UI', () => {
     const seoDescription = `SEO description for product ${unique}`;
     const ogTitle = `OG title ${unique}`;
     const ogDescription = `OG description for product ${unique}`;
+    const description = `Updated product description ${unique}`;
+    const excerpt = `Updated product excerpt ${unique}`;
     const ogImageName = 'vase.jpg';
 
     const { data: createData } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
@@ -72,6 +83,24 @@ test.describe('Admin product details SEO update UI', () => {
 
     await expect(page.getByTestId('product-modal')).toBeVisible();
     await expect(page.getByTestId('product-detail-title')).toHaveText(title);
+
+    await page.getByTestId('product-content-actions-button').click();
+    await page.getByRole('menuitem', { name: 'Edit content' }).click();
+
+    const contentModal = page.getByTestId('edit-description-modal');
+    await expect(contentModal).toBeVisible();
+    await fillEditor(
+      page,
+      contentModal.getByTestId('edit-description-description-editor'),
+      description,
+    );
+    await contentModal.getByRole('tab', { name: 'Excerpt' }).click();
+    await fillEditor(page, contentModal.getByTestId('edit-description-excerpt-editor'), excerpt);
+    await page.getByTestId('submit-edit-description-form-button').click();
+    await expect(contentModal).toBeHidden();
+    await expect(page.getByTestId('product-content-description')).toContainText(description);
+    await page.getByRole('tab', { name: 'Excerpt' }).click();
+    await expect(page.getByTestId('product-content-excerpt')).toContainText(excerpt);
 
     await page.getByTestId('product-seo-actions-button').click();
     await page.getByRole('menuitem', { name: 'Edit SEO' }).click();
@@ -122,10 +151,22 @@ test.describe('Admin product details SEO update UI', () => {
               product.seo.ogTitle,
               product.seo.ogDescription,
               product.seo.ogImage?.originalName,
+              product.description?.text,
+              product.excerpt?.text,
             ].join('|')
           : null;
       })
-      .toBe([seoTitle, seoDescription, ogTitle, ogDescription, ogImageName].join('|'));
+      .toBe(
+        [
+          seoTitle,
+          seoDescription,
+          ogTitle,
+          ogDescription,
+          ogImageName,
+          description,
+          excerpt,
+        ].join('|'),
+      );
 
     await page.getByTestId('product-seo-actions-button').click();
     await page.getByRole('menuitem', { name: 'Edit SEO' }).click();

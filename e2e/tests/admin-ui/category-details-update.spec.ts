@@ -150,8 +150,8 @@ test.describe('Admin category details update UI', () => {
     await expect(seoModal.getByTestId('edit-seo-og-image-preview')).toBeVisible();
     await page.getByTestId('submit-edit-category-seo-form-button').click();
     await expect(seoModal).toBeHidden();
-    await expect(detailsCard.getByTestId('category-seo-title')).toHaveText(seoTitle);
-    await expect(detailsCard.getByTestId('category-seo-description')).toContainText(
+    await expect(detailsCard.getByTestId('seo-preview-google-title')).toHaveText(seoTitle);
+    await expect(detailsCard.getByTestId('seo-preview-google-description')).toContainText(
       seoDescription,
     );
     await expect(detailsCard.getByTestId('category-seo-og-image-link')).toBeVisible();
@@ -184,8 +184,8 @@ test.describe('Admin category details update UI', () => {
     await expect(detailsCard.getByTestId('category-detail-path')).toContainText(
       `${parentHandle}/${updatedHandle}`,
     );
-    await expect(detailsCard.getByTestId('category-seo-url')).toContainText(
-      `shopana.store/categories/${parentHandle}/${updatedHandle}`,
+    await expect(detailsCard.getByTestId('seo-preview-google-url')).toContainText(
+      `shopana.store › categories › ${parentHandle}/${updatedHandle}`,
     );
 
     await page.getByTestId('category-header-actions-button').click();

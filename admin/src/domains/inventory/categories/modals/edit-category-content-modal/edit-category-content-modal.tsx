@@ -1,20 +1,11 @@
 "use client";
 
-import { App, Tabs } from "antd";
+import { App } from "antd";
 import type { OutputData } from "@editorjs/editorjs";
-import { Controller, useForm } from "react-hook-form";
-import {
-  ModalHeader,
-  ModalLayout,
-  useModalStackContext,
-} from "@/layouts/modals";
-import { Paper } from "@/ui-kit/paper";
-import { Editor } from "@/ui-kit/editor";
+import { useModalStackContext } from "@/layouts/modals";
+import { EntityContentModal } from "@/domains/inventory/components/entity-edit-forms";
 import { useUpdateCategory } from "../../hooks";
-import {
-  mapCategoryContentToUpdateInput,
-  type CategoryContentFormValues,
-} from "../../mappers";
+import { mapCategoryContentToUpdateInput } from "../../mappers";
 import type { ICategoryEditContentModalPayload } from "../../modals";
 
 function parseEditorData(json: unknown): OutputData | null {
@@ -35,98 +26,37 @@ export const EditCategoryContentModal = () => {
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as ICategoryEditContentModalPayload;
   const { category, onSaved } = typedPayload;
-  const { updateCategory, loading } = useUpdateCategory();
-
-  const { control, handleSubmit } = useForm<CategoryContentFormValues>({
-    defaultValues: {
-      description: parseEditorData(category.description?.json),
-      excerpt: parseEditorData(category.excerpt?.json),
-    },
-  });
-
-  const onSubmit = async (values: CategoryContentFormValues) => {
-    const result = await updateCategory(
-      category.id,
-      mapCategoryContentToUpdateInput(values),
-      category.revision,
-    );
-
-    if (result.errors.length > 0) {
-      message.error(result.errors[0].message);
-      return;
-    }
-
-    message.success("Category content updated");
-    await onSaved?.();
-    pop();
-  };
+  const { updateCategory } = useUpdateCategory();
 
   return (
-    <ModalLayout
+    <EntityContentModal
       name="edit-category-content"
-      header={
-        <ModalHeader
-          name="edit-category-content"
-          title="Edit category content"
-          onClose={pop}
-          submitButtonProps={{
-            onClick: handleSubmit(onSubmit),
-            loading,
-          }}
-        />
-      }
-    >
-      <Paper>
-        <form>
-          <Tabs
-            type="card"
-            size="middle"
-            items={[
-              {
-                key: "description",
-                label: "Description",
-                forceRender: true,
-                children: (
-                  <Controller
-                    name="description"
-                    control={control}
-                    render={({ field }) => (
-                      <Editor
-                        value={field.value}
-                        onChange={field.onChange}
-                        placeholder="Write category description..."
-                        minHeight={250}
-                        autofocus
-                        data-testid="edit-category-content-description-editor"
-                      />
-                    )}
-                  />
-                ),
-              },
-              {
-                key: "excerpt",
-                label: "Excerpt",
-                forceRender: true,
-                children: (
-                  <Controller
-                    name="excerpt"
-                    control={control}
-                    render={({ field }) => (
-                      <Editor
-                        value={field.value}
-                        onChange={field.onChange}
-                        placeholder="Write a short category excerpt..."
-                        minHeight={150}
-                        data-testid="edit-category-content-excerpt-editor"
-                      />
-                    )}
-                  />
-                ),
-              },
-            ]}
-          />
-        </form>
-      </Paper>
-    </ModalLayout>
+      title="Edit category content"
+      initialValues={{
+        description: parseEditorData(category.description?.json),
+        excerpt: parseEditorData(category.excerpt?.json),
+      }}
+      descriptionPlaceholder="Write category description..."
+      excerptPlaceholder="Write a short category excerpt..."
+      descriptionTestId="edit-category-content-description-editor"
+      excerptTestId="edit-category-content-excerpt-editor"
+      onClose={pop}
+      onSubmit={async (values) => {
+        const result = await updateCategory(
+          category.id,
+          mapCategoryContentToUpdateInput(values),
+          category.revision,
+        );
+
+        if (result.errors.length > 0) {
+          message.error(result.errors[0].message);
+          return false;
+        }
+
+        message.success("Category content updated");
+        await onSaved?.();
+        return true;
+      }}
+    />
   );
 };

@@ -1,15 +1,15 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Typography } from "antd";
-import { useStyles } from "../edit-seo-modal.styles";
+import { useEntityEditFormStyles } from "./entity-edit-forms.styles";
 
-interface IFormFieldProps {
+interface FormFieldProps {
   label: string;
   children: ReactNode;
   isLast?: boolean;
 }
 
-export const FormField = ({ label, children, isLast }: IFormFieldProps) => {
-  const { styles } = useStyles();
+export const FormField = ({ label, children, isLast }: FormFieldProps) => {
+  const { styles } = useEntityEditFormStyles();
 
   return (
     <div className={isLast ? styles.formItemLast : styles.formItem}>

@@ -1,16 +1,16 @@
-import { Typography, Image, Button, Flex } from "antd";
-import { UploadOutlined, DeleteOutlined } from "@ant-design/icons";
-import { useStyles } from "../edit-seo-modal.styles";
+import { Button, Flex, Image, Typography } from "antd";
+import { DeleteOutlined, UploadOutlined } from "@ant-design/icons";
 import { useUploadMediaModal } from "@/domains/media/modals";
 import type { ApiFile } from "@/graphql/types";
+import { useEntityEditFormStyles } from "./entity-edit-forms.styles";
 
-interface IImageUploadProps {
+interface ImageUploadProps {
   value: ApiFile | null;
   onChange: (file: ApiFile | null) => void;
 }
 
-export const ImageUpload = ({ value, onChange }: IImageUploadProps) => {
-  const { styles } = useStyles();
+export const ImageUpload = ({ value, onChange }: ImageUploadProps) => {
+  const { styles } = useEntityEditFormStyles();
   const { push: openUploadModal } = useUploadMediaModal();
 
   const handleUploadClick = () => {
