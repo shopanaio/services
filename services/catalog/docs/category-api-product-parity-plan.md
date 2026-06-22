@@ -4,6 +4,14 @@
 
 Довести API категорий в Catalog до такого же уровня готовности к интеграции и архитектурной согласованности, как текущий Product API.
 
+Это one-commit cutover plan. Изменение выполняется атомарно одним backend cutover без периода обратной совместимости:
+
+- Не добавлять `categoryUpdateV2`, legacy aliases или deprecated transitional fields.
+- Не поддерживать старую форму `categoryUpdate(input: CategoryUpdateInput!)`.
+- Не оставлять временные code paths, которые принимают старый и новый контракты одновременно.
+- Все GraphQL schema changes, resolvers, scripts, workflows, repositories, generated artifacts и API consumers внутри repo обновляются в одном change set.
+- После cutover публичный контракт считается новым контрактом. Старые queries/mutations могут ломаться и должны быть переписаны в этом же коммите.
+
 Целевой API должен поддерживать:
 
 - API-backed flow для списка категорий, деталей, создания, обновления, удаления, иерархии, медиа, SEO и назначения продуктов.
@@ -37,6 +45,7 @@
 
 - Использовать namespaces `catalogQuery` и `catalogMutation`.
 - Принимать и возвращать GraphQL global IDs на границе schema. Декодировать в UUID только в resolvers/scripts.
+- Заменять legacy GraphQL contracts напрямую. Не добавлять transitional `V2` API.
 - Каждая mutation возвращает `userErrors`.
 - Сложные multi-field updates проходят через workflow с operation-level results.
 - Простые create/delete операции могут оставаться script-backed.
@@ -99,7 +108,7 @@ ALTER TABLE catalog.category
 
 ### Product Category Relationship Metadata
 
-Оставить `Product.categories` для backwards-compatible простого отображения, но добавить явные fields для metadata связи:
+Новый product-facing контракт для category assignment должен быть явным и metadata-aware. Не сохранять `Product.categories` как compatibility requirement. Если поле остается в schema, оно должно быть обновлено в этом же cutover и считаться convenience display field, а не legacy contract.
 
 ```graphql
 type ProductCategoryAssignment {
@@ -205,7 +214,7 @@ Implementation notes:
 
 ### Category Create
 
-Текущая форма acceptable. Оставить script-backed:
+Сохранить create как script-backed operation, но обновить schema и resolver в этом же cutover:
 
 ```graphql
 input CategoryCreateInput {
@@ -234,9 +243,9 @@ Required fixes:
 
 ### Unified Category Update
 
-Перевести category editing ближе к product update contract.
+Заменить текущую публичную `categoryUpdate` mutation на product-style update contract. Не добавлять `categoryUpdateV2` и не поддерживать старый `categoryUpdate(input: CategoryUpdateInput!)`.
 
-Предпочтительная итоговая schema:
+Итоговая schema:
 
 ```graphql
 input CategoryContentInput {
@@ -293,11 +302,6 @@ type CatalogMutation {
 }
 ```
 
-Compatibility option:
-
-- Если текущий `categoryUpdate(input: CategoryUpdateInput!)` должен остаться публичным, сначала добавить `categoryUpdateV2`, перевести consumers на него, затем deprecate legacy mutation.
-- Если внешних consumers нет, можно сразу заменить текущую mutation, чтобы API категорий и продуктов были consistent.
-
 Workflow behavior:
 
 - Захватить category revision через compare-and-swap до любой операции.
@@ -345,7 +349,7 @@ Recommended script split:
 - `CategoryMoveScript`: parent/hierarchy move.
 - `CategoryUpdateSortScript`: PLP default sort.
 
-Текущий монолитный `CategoryUpdateScript` можно временно оставить, но итоговая форма должна совпадать с product update responsibilities.
+Cutover requirement: do not leave the old monolithic `CategoryUpdateScript` as the public mutation path. It may be reused internally only if wrapped behind operation-specific scripts and the exposed workflow behavior matches the new operation-result contract in the same commit.
 
 ### Product Category Assignment From Product Editing
 
@@ -417,7 +421,7 @@ type CategoryProductsSyncPayload {
 }
 ```
 
-Оставить текущие operations:
+Keep existing category-centric operations only as part of the final post-cutover contract:
 
 - `categoryAddProduct`
 - `categoryMoveProduct`
@@ -451,6 +455,109 @@ Required capabilities:
 - `orderBy`
 - total count с filters
 - stable cursor tie-breaker по category ID
+
+Concrete integration instructions:
+
+1. Add dedicated root category query builders near the existing category product relay query:
+
+```ts
+const categoryQuery = createQuery(category).maxLimit(100).defaultLimit(20);
+
+export const categoryRelayQuery = createRelayQuery(
+  createQuery(category).include(["id"]).maxLimit(100).defaultLimit(20),
+  { name: "category", tieBreaker: "id" },
+);
+
+export type CategoryQueryInput = InferExecuteOptions<typeof categoryQuery>;
+export type CategoryRelayInput = InferRelayInput<typeof categoryRelayQuery>;
+```
+
+2. Replace `CategoryRepository.getConnection` manual cursor construction with `categoryRelayQuery.execute`.
+   Do not create cursors with `Buffer.from(category.id)`. Cursors, `hasNextPage`, `hasPreviousPage`,
+   `startCursor` and `endCursor` must come from drizzle-query relay result.
+
+```ts
+async getConnection(args: CategoryRelayInput): Promise<CategoryConnectionResult> {
+  const { where, orderBy, ...paginationArgs } = args;
+
+  const mergedWhere: CategoryRelayInput["where"] = {
+    _and: [
+      { projectId: { _eq: this.storeId } },
+      { deletedAt: { _is: null } },
+      ...(where ? [where] : []),
+    ],
+  };
+
+  const executeInput: CategoryRelayInput = {
+    ...paginationArgs,
+    where: mergedWhere,
+    orderBy: orderBy ?? [
+      { field: "createdAt", direction: "desc" },
+      { field: "id", direction: "desc" },
+    ],
+  };
+
+  const [result, totalCount] = await Promise.all([
+    categoryRelayQuery.execute(this.connection, executeInput),
+    categoryRelayQuery.count(this.connection, { where: mergedWhere }),
+  ]);
+
+  return {
+    edges: result.edges.map((edge) => ({
+      cursor: edge.cursor,
+      nodeId: edge.node.id,
+    })),
+    pageInfo: result.pageInfo,
+    totalCount,
+  };
+}
+```
+
+3. Map GraphQL input to drizzle-query input at the resolver/repository boundary:
+
+- `first`, `after`, `last`, `before` pass through unchanged.
+- `where.parentId` must be decoded from global category ID before repository access.
+- `where.parentId === null` means root categories: `{ parentId: { _is: null } }`.
+- `where.parentId === undefined` means no parent filter.
+- `where.isPublished` maps to `publishedAt _is null` / `_isNot null`, unless a generated computed field is added.
+- `where.deletedAt` must be opt-in. Default category list keeps `{ deletedAt: { _is: null } }`.
+- `orderBy` must be converted from GraphQL enum names to drizzle-query field names.
+
+4. Implement category search with drizzle-query instead of repository-local SQL string assembly:
+
+- Search must match category `handle`.
+- Search must match translated category `name`.
+- If direct filtering across `categoryTranslation` requires joins, define a `categoryTranslationQuery`
+  with `createQuery(categoryTranslation, ...)` and add a `translation` join field to the root category
+  query builder.
+- If translated name search needs locale scoping, include current `this.locale` in the search filter.
+- If `PRODUCTS_COUNT` sorting/filtering cannot be expressed through the base table, introduce a Drizzle
+  view with computed `productsCount` and build `categoryRelayQuery` from that view.
+
+5. `totalCount` must always use the same `mergedWhere` as the relay query:
+
+```ts
+categoryRelayQuery.count(this.connection, { where: mergedWhere });
+```
+
+Do not use the existing unfiltered `count()` method for connection `totalCount`.
+
+6. Keep tenant and soft-delete constraints inside repository-level `mergedWhere` so consumers cannot omit them:
+
+```ts
+_and: [
+  { projectId: { _eq: this.storeId } },
+  { deletedAt: { _is: null } },
+  ...(where ? [where] : []),
+]
+```
+
+7. Preserve the existing connection resolver contract:
+
+- Repository returns `{ edges: [{ cursor, nodeId }], pageInfo, totalCount }`.
+- `CategoryConnectionResolver` continues to load nodes through existing resolver/data-loader flow.
+- The repository should not return raw category records from `getConnection` unless the connection
+  resolver contract is intentionally changed.
 
 ### Product Category Links
 
@@ -491,7 +598,7 @@ Validation belongs in scripts. Repositories не должны silently invent fa
 
 ### Product Resolver
 
-- Оставить `categories()` для простого display.
+- Update or remove `categories()` in the same cutover. New integrations must use `primaryCategory()` and `categoryAssignments()` for assignment metadata.
 - Добавить `primaryCategory()`.
 - Добавить `categoryAssignments()`.
 - Использовать DataLoader для category links, чтобы избежать N+1 queries.
@@ -530,54 +637,65 @@ Preferred first implementation:
 - Проверить, что публичная schema содержит новые fields, inputs и payloads.
 - Проверить, что schema composition/federation проходит с новыми `Product` fields.
 
-## Implementation Phases
+## One-Commit Cutover Work Plan
 
-### 1. Backend Schema Contract
+Все пункты ниже входят в один commit. Нельзя merge/deploy частичный state, где schema уже изменилась, но resolvers/scripts/codegen/admin queries еще старые.
+
+### 1. Schema Cutover
 
 - Добавить category `revision`.
-- Добавить category list `where` и `orderBy`.
-- Добавить product category relationship metadata fields.
-- Добавить `ProductCategoriesInput`.
+- Заменить `catalogQuery.categories` signature на connection с `where` и `orderBy`.
+- Заменить `catalogMutation.categoryUpdate` signature на `categoryId`, `operations`, `expectedRevision`.
+- Удалить старый публичный `categoryUpdate(input: CategoryUpdateInput!)` контракт из schema и generated types.
+- Добавить product category relationship metadata fields: `primaryCategory`, `categoryAssignments`, edge `isPrimary`, edge `rank`.
+- Добавить `ProductCategoriesInput` в существующий `ProductUpdateInput`.
 - Добавить category remove/sync product mutations.
-- Решить, заменять ли `categoryUpdate` signature сразу или сначала добавить `categoryUpdateV2`.
+- Убрать или переподключить legacy fields/resolvers, которые конфликтуют с новым контрактом. Не оставлять deprecated aliases.
 
-### 2. Repository Support
+### 2. Migration And Repository Cutover
 
-- Реализовать full Relay category connection.
-- Добавить product-category link read/remove/sync/primary methods.
+- Добавить database migration для `category.revision`.
 - Добавить primary category uniqueness migration.
+- Реализовать full Relay category connection на `@shopana/drizzle-query`.
+- Удалить ручной cursor handling из `CategoryRepository.getConnection`.
+- Добавить product-category link read/remove/sync/primary methods.
 - Сохранять все queries scoped by `projectId`.
+- Считать category connection `totalCount` с теми же filters, что и relay query.
 
-### 3. Scripts And Workflows
+### 3. Script And Workflow Cutover
 
-- Добавить `CategoryUpdateWorkflow`.
-- Разделить или wrap category update scripts по operation responsibility.
+- Добавить `CategoryUpdateWorkflow` и сделать его единственным path для `categoryUpdate`.
+- Разделить или wrap category update scripts по operation responsibility в этом же commit.
 - Добавить `ProductUpdateCategoriesScript`.
 - Добавить `CategoryRemoveProductScript`.
 - Добавить `CategoryProductsSyncScript`.
 - Сделать stable `userErrors` codes и fields во всех scripts.
+- Убедиться, что old category update script не вызывается напрямую из resolver после cutover.
 
-### 4. Resolver Wiring
+### 4. Resolver And Loader Cutover
 
 - Декодировать global IDs на GraphQL boundary.
-- Подключить `categoryUpdate` к workflow.
+- Подключить новый `categoryUpdate` к workflow.
 - Подключить `productUpdate.categories`.
 - Подключить category remove/sync mutations.
 - Добавить resolver fields для `revision`, `primaryCategory` и `categoryAssignments`.
+- Обновить `Product.categories`, если поле остается в schema, чтобы оно работало поверх нового assignment source. Иначе удалить его из schema и generated resolvers в этом же commit.
+- Добавить или обновить DataLoader для product-category links, чтобы новые fields не создавали N+1 queries.
 
-### 5. Codegen
+### 5. Generated Artifacts Cutover
 
 - Regenerate service GraphQL generated types and schemas.
 - Regenerate Zod schemas for new GraphQL inputs.
-- Подтвердить, что generated resolver types совпадают с новой schema.
+- Regenerate schema composition/federation artifacts.
+- Update all in-repo GraphQL documents/queries/mutations that referenced old category contracts.
+- Remove generated references to the old `categoryUpdate(input: ...)` shape.
 
-### 6. API Integration
+### 6. Event And Index Cutover
 
-- Проверить category list query с `where` и `orderBy`.
-- Проверить category details query со всеми новыми fields.
-- Проверить category update workflow contract.
-- Проверить product category replace-set через `productUpdate.categories`.
-- Проверить category-centric add/remove/sync/reorder product operations.
+- Product category assignment через `productUpdate.categories` должен эмитить `productUpdated`.
+- Category product add/remove/sync должен обновлять search index для affected products.
+- Category handle/name/status changes должны schedule category-aware product index sync, если category handles или searchable labels denormalized.
+- Не оставлять old event behavior that only handles add/move without remove/sync.
 
 ### 7. Verification
 
@@ -593,14 +711,15 @@ Manual/API verification checklist:
 - Update category sections with expected revision.
 - Verify revision conflict returns `REVISION_CONFLICT`.
 - Assign product categories through `productUpdate.categories` with replace-set semantics.
-- Remove category from product and verify `Product.categories`, `primaryCategory` и `categoryAssignments`.
+- Remove category from product and verify `primaryCategory`, `categoryAssignments` and `Product.categories` only if that convenience field remains in schema.
 - Add, remove, sync и reorder products from category details.
 - Verify product search index/category handles after product-category changes.
+- Verify no generated schema or resolver type still exposes old `categoryUpdate(input: ...)`.
+- Verify no `categoryUpdateV2` or deprecated compatibility field exists.
 
-## Open Decisions
+## Cutover Decisions
 
-- Вводить ли `categoryUpdateV2` или заменить текущий `categoryUpdate` signature напрямую.
-- Должна ли primary category быть обязательной для каждого categorized product или optional.
-- Должен ли category-centric product sync автоматически clear primary category при удалении primary assignment или возвращать validation error.
-- Нужен ли для category media media-service back-reference sync как у product media.
-- Должен ли category name search работать только по current locale или по всем translations.
+- Primary category остается optional: `primaryCategoryId` может быть `null`, но если он задан, он должен входить в `categoryIds`.
+- Category-centric product sync должен возвращать validation error при попытке удалить primary assignment, если request не добавляет явную опцию `allowPrimaryFallback`.
+- Category media back-reference sync нужен только если media service already tracks product media back-references with the same ownership semantics.
+- Category name search должен работать по current locale first. Поиск по всем translations допустим только если это явно поддержано query builder/view и не ломает pagination stability.
