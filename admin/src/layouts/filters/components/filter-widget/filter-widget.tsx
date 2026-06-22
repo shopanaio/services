@@ -285,6 +285,7 @@ export const FilterWidget = ({
               <Input
                 className={styles.searchInput}
                 data-node-type="ui-filter-search"
+                data-testid="search-input"
                 variant="borderless"
                 placeholder={searchPlaceholder}
                 value={searchProps.searchValue}

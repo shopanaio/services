@@ -74,6 +74,7 @@ export const EditCategorySortModal = () => {
                 <Select
                   {...field}
                   style={{ width: "100%" }}
+                  data-testid="edit-category-sort-default-sort-select"
                   options={[
                     { label: "Manual", value: ProductSortBy.Manual },
                     { label: "Name", value: ProductSortBy.Name },
@@ -95,6 +96,7 @@ export const EditCategorySortModal = () => {
                   block
                   value={field.value}
                   onChange={field.onChange}
+                  data-testid="edit-category-sort-direction-segmented"
                   options={[
                     { label: "Ascending", value: SortDirection.Asc },
                     { label: "Descending", value: SortDirection.Desc },

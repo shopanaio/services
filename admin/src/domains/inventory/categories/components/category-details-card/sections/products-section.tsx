@@ -1,7 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Alert, Button, Dropdown, Flex, Image, Skeleton, Tag, Typography } from "antd";
+import {
+  Alert,
+  Button,
+  Dropdown,
+  Flex,
+  Image,
+  Skeleton,
+  Tag,
+  Typography,
+} from "antd";
 import {
   PlusOutlined,
   SortAscendingOutlined,
@@ -23,6 +32,24 @@ const getProductImageUrl = (product: ApiProduct): string | null => {
   return firstMedia?.file.url ?? null;
 };
 
+const formatProductSort = (value: ProductSortBy): string => {
+  switch (value) {
+    case ProductSortBy.Manual:
+      return "Manual";
+    case ProductSortBy.Name:
+      return "Name";
+    case ProductSortBy.Newest:
+      return "Newest";
+    case ProductSortBy.Price:
+      return "Price";
+    default:
+      return value;
+  }
+};
+
+const formatSortDirection = (value: SortDirection): string =>
+  value === SortDirection.Desc ? "Descending" : "Ascending";
+
 interface ProductRowProps {
   product: ApiProduct;
 }
@@ -32,7 +59,7 @@ const ProductRow = ({ product }: ProductRowProps) => {
   const imageUrl = getProductImageUrl(product);
 
   return (
-    <tr>
+    <tr data-testid={`category-products-row-${product.handle}`}>
       <td>
         <Flex align="flex-start" gap={8}>
           {imageUrl ? (
@@ -48,19 +75,29 @@ const ProductRow = ({ product }: ProductRowProps) => {
             <div className={styles.productImagePlaceholder} />
           )}
           <Flex vertical>
-            <Typography.Text strong className={styles.productTitle}>
+            <Typography.Text
+              strong
+              className={styles.productTitle}
+              data-testid={`category-products-title-cell-${product.handle}`}
+            >
               {product.title}
             </Typography.Text>
           </Flex>
         </Flex>
       </td>
       <td>
-        <Typography.Text className={styles.productSku}>
+        <Typography.Text
+          className={styles.productSku}
+          data-testid={`category-products-handle-cell-${product.handle}`}
+        >
           {product.handle || "-"}
         </Typography.Text>
       </td>
       <td>
-        <Tag color={product.isPublished ? "green" : "gold"}>
+        <Tag
+          color={product.isPublished ? "green" : "gold"}
+          data-testid={`category-products-status-cell-${product.handle}`}
+        >
           {product.isPublished ? "Published" : "Draft"}
         </Tag>
       </td>
@@ -71,12 +108,16 @@ const ProductRow = ({ product }: ProductRowProps) => {
 interface ProductsSectionProps {
   categoryId: string;
   productsCount: number;
+  defaultSort: ProductSortBy;
+  defaultSortDirection: SortDirection;
   onAssignProducts?: () => void;
 }
 
 export const ProductsSection = ({
   categoryId,
   productsCount,
+  defaultSort,
+  defaultSortDirection,
   onAssignProducts,
 }: ProductsSectionProps) => {
   const { styles } = useProductsStyles();
@@ -145,21 +186,38 @@ export const ProductsSection = ({
   );
 
   const hasProducts = products.length > 0;
+  const defaultSortLabel = `${formatProductSort(defaultSort)} / ${formatSortDirection(
+    defaultSortDirection,
+  )}`;
 
   return (
-    <Paper>
+    <Paper data-testid="category-products-section">
       <PaperHeader
         title={`Products (${productsCount})`}
+        extra={
+          <Typography.Text
+            type="secondary"
+            style={{ fontSize: 12 }}
+            data-testid="category-products-default-sort"
+          >
+            Default sort: {defaultSortLabel}
+          </Typography.Text>
+        }
         actions={
           <Flex gap={8} align="center">
             <Dropdown menu={sortMenu} trigger={["click"]}>
-              <Button size="small" icon={<SortAscendingOutlined />} />
+              <Button
+                size="small"
+                icon={<SortAscendingOutlined />}
+                data-testid="category-products-sort-menu-button"
+              />
             </Dropdown>
             <Button
               size="small"
               type="primary"
               icon={<PlusOutlined />}
               onClick={onAssignProducts}
+              data-testid="category-products-assign-button"
             >
               Assign
             </Button>

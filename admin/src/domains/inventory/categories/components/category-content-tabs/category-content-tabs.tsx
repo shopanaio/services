@@ -102,7 +102,7 @@ export const CategoryContentTabs = ({
   const excerptHtml = category.excerpt?.html ?? null;
 
   return (
-    <Paper className={styles.tabsSection}>
+    <Paper className={styles.tabsSection} data-testid="category-content-section">
       <Tabs
         type="card"
         size="middle"
@@ -120,7 +120,11 @@ export const CategoryContentTabs = ({
               }}
               trigger={["click"]}
             >
-              <Button size="small" icon={<MoreOutlined />} />
+              <Button
+                size="small"
+                icon={<MoreOutlined />}
+                data-testid="category-content-actions-button"
+              />
             </Dropdown>
           </Flex>
         }
@@ -128,9 +132,11 @@ export const CategoryContentTabs = ({
           {
             key: "description",
             label: "Description",
+            forceRender: true,
             children: descriptionHtml ? (
               <div
                 className={styles.renderedContent}
+                data-testid="category-content-description"
                 dangerouslySetInnerHTML={{ __html: descriptionHtml }}
               />
             ) : (
@@ -153,9 +159,11 @@ export const CategoryContentTabs = ({
           {
             key: "excerpt",
             label: "Excerpt",
+            forceRender: true,
             children: excerptHtml ? (
               <div
                 className={styles.renderedContent}
+                data-testid="category-content-excerpt"
                 dangerouslySetInnerHTML={{ __html: excerptHtml }}
               />
             ) : (

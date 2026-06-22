@@ -85,6 +85,7 @@ export const EditCategoryContentModal = () => {
               {
                 key: "description",
                 label: "Description",
+                forceRender: true,
                 children: (
                   <Controller
                     name="description"
@@ -96,6 +97,7 @@ export const EditCategoryContentModal = () => {
                         placeholder="Write category description..."
                         minHeight={250}
                         autofocus
+                        data-testid="edit-category-content-description-editor"
                       />
                     )}
                   />
@@ -104,6 +106,7 @@ export const EditCategoryContentModal = () => {
               {
                 key: "excerpt",
                 label: "Excerpt",
+                forceRender: true,
                 children: (
                   <Controller
                     name="excerpt"
@@ -114,6 +117,7 @@ export const EditCategoryContentModal = () => {
                         onChange={field.onChange}
                         placeholder="Write a short category excerpt..."
                         minHeight={150}
+                        data-testid="edit-category-content-excerpt-editor"
                       />
                     )}
                   />

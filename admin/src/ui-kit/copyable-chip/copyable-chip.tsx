@@ -18,6 +18,8 @@ export interface ICopyableChipProps {
   displayValue?: string;
   /** Use monospace font */
   mono?: boolean;
+  /** Test id forwarded to the rendered chip */
+  "data-testid"?: string;
 }
 
 // ============================================================================
@@ -66,6 +68,7 @@ export const CopyableChip = ({
   value,
   displayValue,
   mono,
+  "data-testid": dataTestId,
 }: ICopyableChipProps) => {
   const { styles } = useStyles();
   const [copied, setCopied] = useState(false);
@@ -78,7 +81,12 @@ export const CopyableChip = ({
 
   return (
     <Tooltip title={copied ? "Copied!" : undefined}>
-      <Tag color="default" onClick={handleCopy} className={styles.chip}>
+      <Tag
+        color="default"
+        onClick={handleCopy}
+        className={styles.chip}
+        data-testid={dataTestId}
+      >
         {label && (
           <Typography.Text type="secondary" className={styles.label}>
             {label}

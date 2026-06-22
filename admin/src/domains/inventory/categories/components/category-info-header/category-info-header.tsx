@@ -27,6 +27,7 @@ import {
 import { getStatusConfig } from "@/domains/inventory/products/components/product-info-header/utils";
 import { formatDetailDate } from "@/domains/inventory/utils/format-detail-date";
 import type { ApiCategory } from "@/graphql/types";
+import { getCategoryRoutePath } from "../../utils/category-route-path";
 import { useHeaderStyles } from "./category-info-header.styles";
 
 interface CategoryInfoHeaderProps {
@@ -46,7 +47,7 @@ export const CategoryInfoHeader = ({
   const [linkCopied, setLinkCopied] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
 
-  const categoryPath = category.path || category.handle;
+  const categoryPath = getCategoryRoutePath(category);
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const storefrontUrl = `${origin}/categories/${categoryPath}`;
   const statusConfig = getStatusConfig(
@@ -76,6 +77,7 @@ export const CategoryInfoHeader = ({
           color={statusConfig.color}
           icon={statusConfig.icon}
           className={styles.statusTag}
+          data-testid="category-detail-status"
         >
           {statusConfig.label}
         </Tag>
@@ -173,13 +175,17 @@ export const CategoryInfoHeader = ({
         }}
         trigger={["click"]}
       >
-        <Button size="small" icon={<MoreOutlined />} />
+        <Button
+          size="small"
+          icon={<MoreOutlined />}
+          data-testid="category-header-actions-button"
+        />
       </Dropdown>
     </Flex>
   );
 
   return (
-    <Paper>
+    <Paper data-testid="category-header-section">
       <PaperHeader title={statusTitle} actions={topBarActions} />
 
       <Flex vertical gap={8}>
@@ -188,12 +194,17 @@ export const CategoryInfoHeader = ({
           ellipsis={{ rows: 2, tooltip: category.name }}
           className={styles.categoryTitle}
           style={{ margin: 0 }}
+          data-testid="category-detail-title"
         >
           {category.name || "Untitled Category"}
         </Typography.Title>
 
         <Flex align="center" gap={12} wrap="wrap">
-          <CopyableChip label="/" value={categoryPath} />
+          <CopyableChip
+            label="/"
+            value={categoryPath}
+            data-testid="category-detail-path"
+          />
           <CopyableChip
             label="ID"
             value={category.id}
@@ -216,6 +227,7 @@ export const CategoryInfoHeader = ({
           type="secondary"
           ellipsis={{ rows: 2 }}
           style={{ margin: 0 }}
+          data-testid="category-detail-description-summary"
         >
           {category.description.text}
         </Typography.Paragraph>

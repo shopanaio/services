@@ -104,6 +104,7 @@ export const EditCategorySeoModal = () => {
                     maxLength={70}
                     showCount
                     status={errors.seoTitle ? "error" : undefined}
+                    data-testid="edit-category-seo-title-input"
                   />
                 )}
               />
@@ -127,6 +128,7 @@ export const EditCategorySeoModal = () => {
                     maxLength={160}
                     showCount
                     status={errors.seoDescription ? "error" : undefined}
+                    data-testid="edit-category-seo-description-input"
                   />
                 )}
               />
@@ -154,6 +156,7 @@ export const EditCategorySeoModal = () => {
                     maxLength={95}
                     showCount
                     status={errors.ogTitle ? "error" : undefined}
+                    data-testid="edit-category-seo-og-title-input"
                   />
                 )}
               />
@@ -172,6 +175,7 @@ export const EditCategorySeoModal = () => {
                     maxLength={95}
                     showCount
                     status={errors.ogDescription ? "error" : undefined}
+                    data-testid="edit-category-seo-og-description-input"
                   />
                 )}
               />

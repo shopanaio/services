@@ -89,18 +89,33 @@ export const HierarchySection = ({
   const hasSubcategories = subcategories.length > 0;
 
   return (
-    <Paper>
+    <Paper data-testid="category-hierarchy-section">
       <PaperHeader
         title="Hierarchy"
         actions={
-          onEdit ? <EditAction onEdit={onEdit} label="Edit hierarchy" /> : null
+          onEdit ? (
+            <EditAction
+              onEdit={onEdit}
+              label="Edit hierarchy"
+              testId="category-hierarchy-actions-button"
+            />
+          ) : null
         }
       />
 
-      <Breadcrumb items={breadcrumbItems} style={{ marginBottom: 12 }} />
+      <Breadcrumb
+        items={breadcrumbItems}
+        style={{ marginBottom: 12 }}
+        data-testid="category-hierarchy-breadcrumb"
+      />
 
       {category.parent && (
-        <Flex align="center" gap={8} style={{ marginBottom: 16 }}>
+        <Flex
+          align="center"
+          gap={8}
+          style={{ marginBottom: 16 }}
+          data-testid="category-hierarchy-parent"
+        >
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
             Parent:
           </Typography.Text>

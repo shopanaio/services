@@ -111,7 +111,10 @@ export function EntityPickerContent<T extends IPickableEntity>({
   }, []);
 
   return (
-    <div className={styles.container}>
+    <div
+      className={styles.container}
+      data-testid={`${config.entityType}-picker-content`}
+    >
       {/* Toolbar with filters */}
       <div className={styles.toolbar}>
         <FilterWidget
@@ -125,7 +128,10 @@ export function EntityPickerContent<T extends IPickableEntity>({
       </div>
 
       {/* AG Grid */}
-      <div className={styles.gridContainer}>
+      <div
+        className={styles.gridContainer}
+        data-testid={`${config.entityType}-picker-grid`}
+      >
         <AgGridReact<T>
           ref={gridRef}
           theme={agGridTheme}

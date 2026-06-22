@@ -87,6 +87,7 @@ export const EditCategoryIdentityModal = () => {
                   autoFocus
                   placeholder="Audio Equipment"
                   status={errors.name ? "error" : undefined}
+                  data-testid="edit-category-identity-name-input"
                 />
               )}
             />
@@ -109,6 +110,7 @@ export const EditCategoryIdentityModal = () => {
                   addonBefore="/categories/"
                   placeholder="audio-equipment"
                   status={errors.handle ? "error" : undefined}
+                  data-testid="edit-category-identity-handle-input"
                 />
               )}
             />

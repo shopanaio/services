@@ -22,7 +22,12 @@ export const CategoryDetailsCard = ({
     .map((item) => item.file);
 
   return (
-    <Flex vertical gap={12} style={{ width: "100%" }}>
+    <Flex
+      vertical
+      gap={12}
+      style={{ width: "100%" }}
+      data-testid="category-details-card"
+    >
       <CategoryInfoHeader
         category={category}
         onEditIdentity={modals.editIdentity}
@@ -43,6 +48,8 @@ export const CategoryDetailsCard = ({
       <ProductsSection
         categoryId={category.id}
         productsCount={category.productsCount}
+        defaultSort={category.defaultSort}
+        defaultSortDirection={category.defaultSortDirection}
         onAssignProducts={modals.assignProducts}
       />
 

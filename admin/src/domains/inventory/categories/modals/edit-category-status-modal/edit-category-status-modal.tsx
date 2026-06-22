@@ -71,6 +71,7 @@ export const EditCategoryStatusModal = () => {
                 block
                 value={field.value ? "published" : "draft"}
                 onChange={(value) => field.onChange(value === "published")}
+                data-testid="edit-category-status-segmented"
                 options={[
                   { label: "Draft", value: "draft" },
                   { label: "Published", value: "published" },

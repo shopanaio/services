@@ -10,6 +10,7 @@ import {
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { ApiCategory } from "@/graphql/types";
 import { useCategories, useUpdateCategory } from "../../hooks";
+import { getCategoryRoutePath } from "../../utils/category-route-path";
 import {
   mapCategoryHierarchyToUpdateInput,
   mapCategoryUserErrorsToFormErrors,
@@ -46,7 +47,7 @@ export const EditCategoryHierarchyModal = () => {
       .filter((candidate) => !isCategoryDescendant(candidate, category))
       .filter((candidate) => {
         if (!normalizedQuery) return true;
-        return `${candidate.name} ${candidate.handle} ${candidate.path}`
+        return `${candidate.name} ${candidate.handle} ${getCategoryRoutePath(candidate)}`
           .toLowerCase()
           .includes(normalizedQuery);
       })
@@ -93,17 +94,18 @@ export const EditCategoryHierarchyModal = () => {
     >
       <Paper>
         <PaperHeader title="Current path" />
-        <Typography.Text>{category.path || category.handle}</Typography.Text>
+        <Typography.Text>{getCategoryRoutePath(category)}</Typography.Text>
       </Paper>
 
       <Paper>
         <PaperHeader title="New parent" />
         <Flex vertical gap={12}>
-          <Input.Search
+          <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search categories..."
             allowClear
+            data-testid="edit-category-hierarchy-search-input"
           />
 
           {error && <Alert type="error" message={error.message} showIcon />}
@@ -119,6 +121,7 @@ export const EditCategoryHierarchyModal = () => {
                 setFieldError(null);
               }}
               style={{ width: "100%" }}
+              data-testid="edit-category-hierarchy-parent-radio-group"
             >
               <Flex vertical gap={8}>
                 <Radio value={null}>Root</Radio>
@@ -128,7 +131,7 @@ export const EditCategoryHierarchyModal = () => {
                       {candidate.name}
                     </span>
                     <Typography.Text type="secondary" style={{ marginLeft: 8 }}>
-                      {candidate.path}
+                      {getCategoryRoutePath(candidate)}
                     </Typography.Text>
                   </Radio>
                 ))}

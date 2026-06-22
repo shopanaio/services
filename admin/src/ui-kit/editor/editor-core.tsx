@@ -26,6 +26,7 @@ export interface EditorProps {
   readOnly?: boolean;
   minHeight?: number;
   autofocus?: boolean;
+  "data-testid"?: string;
 }
 
 const EditorCore = memo(function EditorCore({
@@ -35,6 +36,7 @@ const EditorCore = memo(function EditorCore({
   readOnly = false,
   minHeight = 100,
   autofocus = false,
+  "data-testid": dataTestId,
 }: EditorProps) {
   const { styles } = useStyles();
   const editorRef = useRef<EditorJS | null>(null);
@@ -99,7 +101,7 @@ const EditorCore = memo(function EditorCore({
   return (
     <>
       <EditorGlobalStyles />
-      <div className={styles.wrapper}>
+      <div className={styles.wrapper} data-testid={dataTestId}>
         <div id={holderId} className={safiro.className} style={{ minHeight }} />
       </div>
     </>

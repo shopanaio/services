@@ -24,15 +24,25 @@ export const MediaSection = ({ gallery, onEdit }: IMediaSectionProps) => {
   const overlayItemsCount = gallerySlice.length + (showMore ? 1 : 0) + 1;
 
   return (
-    <Paper>
+    <Paper data-testid="category-media-section">
       <PaperHeader
         title="Media"
-        actions={<EditAction onEdit={onEdit} label="Edit media" />}
+        actions={
+          <EditAction
+            onEdit={onEdit}
+            label="Edit media"
+            testId="category-media-actions-button"
+          />
+        }
       />
-      <div className={styles.mediaGrid}>
+      <div className={styles.mediaGrid} data-testid="category-media-grid">
         {gallerySlice.map((media, index) =>
           index === 0 ? (
-            <div key={media.id} className={styles.mediaFeaturedWrapper}>
+            <div
+              key={media.id}
+              className={styles.mediaFeaturedWrapper}
+              data-testid={`category-media-item-${media.id}`}
+            >
               <Image
                 src={media.url}
                 alt={media.altText || media.originalName || ""}
@@ -56,6 +66,7 @@ export const MediaSection = ({ gallery, onEdit }: IMediaSectionProps) => {
               src={media.url}
               alt={media.altText || media.originalName || ""}
               className={styles.mediaImage}
+              data-testid={`category-media-item-${media.id}`}
               preview={{
                 visible: false,
                 mask: (

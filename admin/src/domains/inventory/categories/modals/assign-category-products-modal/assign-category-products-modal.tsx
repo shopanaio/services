@@ -165,7 +165,12 @@ export const AssignCategoryProductsModal = () => {
             ) : null
           }
           actions={
-            <Button size="small" icon={<PlusOutlined />} onClick={openPicker}>
+            <Button
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={openPicker}
+              data-testid="assign-category-products-add-button"
+            >
               Add products
             </Button>
           }
@@ -186,6 +191,7 @@ export const AssignCategoryProductsModal = () => {
                   padding: "8px 0",
                   borderBottom: "1px solid var(--ant-color-border-secondary)",
                 }}
+                data-testid={`assign-category-products-selected-row-${product.id}`}
               >
                 <Flex align="center" gap={8}>
                   {product.image ? (
