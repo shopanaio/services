@@ -266,12 +266,17 @@ input CategorySortInput {
   defaultSortDirection: SortDirection!
 }
 
+enum CategoryStatus {
+  DRAFT
+  PUBLISHED
+}
+
 input CategoryUpdateInput {
   handle: String
   name: String
   content: CategoryContentInput
   seo: SeoInput
-  status: ProductStatus
+  status: CategoryStatus
   media: CategoryMediaInput
   hierarchy: CategoryHierarchyInput
   sort: CategorySortInput
@@ -305,8 +310,11 @@ type CatalogMutation {
 Workflow behavior:
 
 - Захватить category revision через compare-and-swap до любой операции.
-- Запускать только scripts, нужные для переданных fields.
-- Агрегировать operation errors в `operationResults` и `userErrors`.
+- Сформировать один workflow operation result типа `CATEGORY_UPDATE`, как `ProductUpdateWorkflow`
+  формирует `PRODUCT_UPDATE` для product-level fields.
+- Запускать только scripts, нужные для переданных fields, но не превращать каждый внутренний script
+  в отдельный public `operationResults` item. Script split остается implementation detail.
+- Агрегировать ошибки scripts в `CATEGORY_UPDATE.errors` и в общий `userErrors`.
 - Эмитить `categoryUpdated` с partial delta, если что-то изменилось.
 - Возвращать updated category resolver.
 
@@ -337,7 +345,29 @@ interface CategoryUpdateParams {
     defaultSortDirection: "asc" | "desc";
   };
 }
+
+interface CategoryUpdateWorkflowResult {
+  category: { id: string; revision: number } | null;
+  operationResults: CategoryOperationResult[];
+  userErrors: UserError[];
+}
+
+interface CategoryOperationResult {
+  type: "categoryUpdate";
+  applied: boolean;
+  errors: UserError[];
+}
 ```
+
+Operation result semantics:
+
+- Если `operations` передан и прошел revision check, workflow возвращает ровно один
+  `CATEGORY_UPDATE` result.
+- `CATEGORY_UPDATE.applied` равен `true`, только если все requested sections применились успешно.
+- Если часть scripts вернула validation/business errors, `CATEGORY_UPDATE.applied` равен `false`,
+  ошибки лежат в `CATEGORY_UPDATE.errors` и продублированы в aggregate `userErrors`.
+- Если revision check не прошел, `operationResults` остается пустым, как у `ProductUpdateWorkflow`
+  при early failure до выполнения операций.
 
 Recommended script split:
 
@@ -349,7 +379,7 @@ Recommended script split:
 - `CategoryMoveScript`: parent/hierarchy move.
 - `CategoryUpdateSortScript`: PLP default sort.
 
-Cutover requirement: do not leave the old monolithic `CategoryUpdateScript` as the public mutation path. It may be reused internally only if wrapped behind operation-specific scripts and the exposed workflow behavior matches the new operation-result contract in the same commit.
+Cutover requirement: do not leave the old monolithic `CategoryUpdateScript` as the public mutation path. It may be reused internally only if wrapped behind section-specific internal scripts and the exposed workflow behavior matches the single `CATEGORY_UPDATE` operation-result contract in the same commit.
 
 ### Product Category Assignment From Product Editing
 
@@ -646,6 +676,7 @@ Preferred first implementation:
 - Добавить category `revision`.
 - Заменить `catalogQuery.categories` signature на connection с `where` и `orderBy`.
 - Заменить `catalogMutation.categoryUpdate` signature на `categoryId`, `operations`, `expectedRevision`.
+- Добавить отдельный `CategoryStatus` enum для category publication state, не переиспользовать `ProductStatus`.
 - Удалить старый публичный `categoryUpdate(input: CategoryUpdateInput!)` контракт из schema и generated types.
 - Добавить product category relationship metadata fields: `primaryCategory`, `categoryAssignments`, edge `isPrimary`, edge `rank`.
 - Добавить `ProductCategoriesInput` в существующий `ProductUpdateInput`.
@@ -665,7 +696,9 @@ Preferred first implementation:
 ### 3. Script And Workflow Cutover
 
 - Добавить `CategoryUpdateWorkflow` и сделать его единственным path для `categoryUpdate`.
-- Разделить или wrap category update scripts по operation responsibility в этом же commit.
+- Разделить или wrap category update scripts по internal responsibility в этом же commit.
+- Возвращать один public `CATEGORY_UPDATE` operation result для unified category update,
+  по аналогии с `PRODUCT_UPDATE` result в `ProductUpdateWorkflow`.
 - Добавить `ProductUpdateCategoriesScript`.
 - Добавить `CategoryRemoveProductScript`.
 - Добавить `CategoryProductsSyncScript`.
