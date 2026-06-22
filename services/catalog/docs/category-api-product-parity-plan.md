@@ -104,9 +104,9 @@ ALTER TABLE catalog.category
 ```
 
 Каждый category update workflow должен использовать product-style optimistic locking через revision
-compare-and-swap, но category update имеет более строгую all-or-nothing семантику. Для requested
-sections наружу возвращается один public `OperationResult` с `type: CATEGORY_UPDATE`; no-op updates
-возвращают `operationResults: []`, как `productUpdate`.
+compare-and-swap и product-style partial-apply семантику. Для requested sections наружу
+возвращается один public `OperationResult` с `type: CATEGORY_UPDATE`; no-op updates возвращают
+`operationResults: []`, как `productUpdate`.
 
 ### Product Category Relationship Metadata
 
@@ -359,27 +359,26 @@ Workflow behavior:
   `operationResults: []`, `userErrors: []`, не эмитить
   `productUpdated`/`categoryUpdated`.
 - Захватить category revision через compare-and-swap до применения update sections.
-- CAS и все requested category sections должны быть atomic as a unit: либо все requested sections
-  применены и `revision` инкрементирован ровно один раз, либо ни один section не применен и
-  `revision` не меняется.
-- Копировать product-style no-op update behavior для пустого `operations`, но не копировать текущую
-  partial-apply семантику `ProductUpdateWorkflow`, где отдельные operation errors могут вернуться
-  после частично примененных изменений.
+- Копировать product-style partial-apply behavior: если одна requested section вернула
+  validation/business errors, ранее успешно примененные sections не откатываются, `revision`
+  остается уже инкрементированным после successful CAS, а оставшиеся sections могут быть выполнены
+  по тому же последовательному execution model, что и `ProductUpdateWorkflow`.
 - Если `operations` содержит хотя бы один requested section, сформировать один workflow operation
   result типа `CATEGORY_UPDATE`, как `ProductUpdateWorkflow` формирует `PRODUCT_UPDATE` для
   product-level fields.
 - Запускать только scripts, нужные для переданных fields, но не превращать каждый внутренний script
   в отдельный public `operationResults` item. Script split остается implementation detail.
 - Агрегировать ошибки scripts в `CATEGORY_UPDATE.errors` и в общий `userErrors`.
-- Для sections, которые меняют product-index-affecting category data, после successful commit
-  эмитить `productUpdated` fan-out для affected products тем же путем, что `ProductUpdateWorkflow`.
+- Для sections, которые успешно применились и меняют product-index-affecting category data, после
+  successful script/workflow step эмитить `productUpdated` fan-out для affected products тем же
+  путем, что `ProductUpdateWorkflow`.
 - `categoryUpdated` не является обязательным indexing contract для этого cutover; если он остается для
-  category-domain consumers, эмитить его только после successful commit.
-- Возвращать updated category resolver только при successful commit.
-- If any requested section returns validation/business errors, roll back all category writes and the
-  revision acquire, return `CATEGORY_UPDATE.applied: false`, duplicate errors into aggregate
-  `userErrors`, do not emit `productUpdated`/`categoryUpdated`, and do not return a new revision for
-  UI cache use.
+  category-domain consumers, эмитить его только для успешно примененных category changes.
+- Возвращать updated category resolver после successful CAS, даже если часть requested sections
+  вернула validation/business errors.
+- If any requested section returns validation/business errors, keep already applied section writes and
+  the acquired revision, return one `CATEGORY_UPDATE` with `applied: false`, duplicate errors into
+  aggregate `userErrors`, and emit events only for sections that actually produced changes.
 
 Suggested workflow DTO:
 
@@ -435,9 +434,9 @@ Operation result semantics:
 - Если `operations` передан, содержит хотя бы один requested section и прошел revision check,
   workflow возвращает ровно один `CATEGORY_UPDATE` result.
 - `CATEGORY_UPDATE.applied` равен `true`, только если все requested sections применились успешно.
-- Если любой internal script вернул validation/business errors, весь category update считается
-  unapplied: `CATEGORY_UPDATE.applied` равен `false`, ошибки лежат в `CATEGORY_UPDATE.errors` и
-  продублированы в aggregate `userErrors`; partial writes, revision bump и events запрещены.
+- Если любой internal script вернул validation/business errors, общий `CATEGORY_UPDATE.applied`
+  равен `false`, ошибки лежат в `CATEGORY_UPDATE.errors` и продублированы в aggregate `userErrors`;
+  успешно примененные sections, revision bump и события для реально измененных данных сохраняются.
 - Если revision check не прошел, `operationResults` остается пустым, как у `ProductUpdateWorkflow`
   при early failure до выполнения операций.
 
@@ -910,10 +909,11 @@ Repository cutover acceptance criteria:
 
 ### 3. Script And Workflow Cutover
 
-Script/workflow cutover должен дать один публичный write path для unified category update и не
-копировать partial-apply поведение `ProductUpdateWorkflow`. Главный invariant: category update
-либо применяет все requested sections и инкрементит `revision` ровно один раз, либо не применяет
-ничего и не меняет `revision`.
+Script/workflow cutover должен дать один публичный write path для unified category update и
+копировать partial-apply поведение `ProductUpdateWorkflow`. Главный invariant: после successful
+revision compare-and-swap `revision` инкрементится ровно один раз, requested sections выполняются
+как независимые логические части одного public update, а ошибки одной section не откатывают уже
+примененные sections.
 
 Files to add/update:
 
@@ -930,8 +930,8 @@ Files to add/update:
   - workflow name must be invoked as `catalog.categoryUpdate` from resolver;
   - exported/registered from `src/workflows/index.ts` in the same cutover.
 - `src/scripts/category/`:
-  - `CategoryUpdateAtomicScript` or equivalent transactional internal script that owns CAS +
-    requested section writes;
+  - section scripts for requested category update parts. A single orchestration helper is allowed,
+    but it must preserve product-style partial-apply semantics;
   - `CategoryUpdateIdentityScript`: `handle` and translated `name`;
   - `CategoryUpdateContentScript`: `description` and `excerpt`;
   - `CategoryUpdateSeoScript`: SEO and Open Graph;
@@ -986,33 +986,27 @@ Unified category update workflow behavior:
 
 - Resolver maps internal result type `"categoryUpdate"` to GraphQL enum `CATEGORY_UPDATE`.
 - `CATEGORY_UPDATE.applied` is `true` only when every requested section succeeds.
-- Any validation/business error from any requested section makes the whole category update
-  unapplied: all category writes, media/SEO writes, hierarchy writes and revision bump roll back.
+- Any validation/business error from any requested section makes the public `CATEGORY_UPDATE`
+  result `applied: false`, but does not roll back already applied sections or the revision bump.
 - Script split is internal. Do not expose one public `operationResults` item per section.
 
-Atomic implementation requirement:
+Partial-apply implementation requirement:
 
-- Use one transactional boundary for all category update writes. Preferred shape:
-  - `CategoryUpdateWorkflow.run()` does no database writes directly;
-  - it calls one workflow step, for example `stepApplyCategoryUpdate`;
-  - that step runs `CategoryUpdateAtomicScript`;
-  - `CategoryUpdateAtomicScript.execute()` is `@Transactional()` and performs:
-    1. load category scoped by current project;
-    2. detect whether requested sections are present;
-    3. perform revision compare-and-swap inside the transaction;
-    4. for no-op updates, return the updated `{ id, revision }`, `operationResults: []` and
-       `userErrors: []` without running section scripts;
-    5. run requested section scripts or internal functions using transaction-aware repositories;
-    6. aggregate section errors;
-    7. if any section has user errors, signal rollback before commit and convert the rollback marker
-       back to `userErrors` outside the transaction boundary;
-    8. return `{ category: { id, revision }, changes, userErrors: [] }` only after all writes succeed.
-- A plain `return { userErrors }` from a transactional function after writes is forbidden because it
-  can commit partial changes. Use an explicit rollback-capable transaction helper or a typed
-  rollback exception that is caught and mapped back to public `userErrors`.
-- Alternative is acceptable only if CAS and all section writes are guaranteed to rollback together.
-  Independent workflow steps for CAS and individual sections are forbidden because DBOS step
-  boundaries cannot provide the required all-or-nothing rollback after a later section failure.
+- Preferred shape mirrors `ProductUpdateWorkflow`:
+  - `CategoryUpdateWorkflow.run()` acquires revision first through a project-scoped CAS step;
+  - for no-op updates, it returns the updated `{ id, revision }`, `operationResults: []` and
+    `userErrors: []` without running section scripts;
+  - for requested sections, it runs only the relevant section scripts/steps in a deterministic order;
+  - each section script uses transaction-aware repositories and may be independently transactional;
+  - section scripts return `{ changes?, userErrors }` and do not throw for business validation errors;
+  - workflow aggregates all section errors into one public `CATEGORY_UPDATE` result and aggregate
+    `userErrors`;
+  - workflow emits follow-up events only for sections that produced changes.
+- A plain `return { userErrors }` from a section after earlier sections wrote data is allowed and is
+  part of the product-style partial-apply contract. It must not be interpreted as rollback.
+- Independent workflow steps for CAS and individual sections are allowed. Their observable behavior
+  must match `ProductUpdateWorkflow`: CAS failure is an early failure with no public operation result;
+  section failure is a partial update with one public `CATEGORY_UPDATE` result.
 - The revision compare-and-swap must be project-scoped:
 
 ```ts
@@ -1096,27 +1090,28 @@ Old path removal:
 - `CatalogMutationResolver.categoryUpdate` must no longer call `CategoryUpdateScript` directly.
 - The old monolithic `CategoryUpdateScript` may either be deleted or kept as a private helper only
   if it cannot be reached from public resolver paths and its behavior is wrapped by the unified
-  atomic contract.
+  partial-apply contract.
 - Remove `categoryUpdateSort` from the public schema/resolver. Unified
   `categoryUpdate.operations.sort` is the final public path for PLP sort settings.
   `CategoryUpdateSortScript` may remain only as a private implementation detail behind the unified
-  atomic update contract.
+  partial-apply update contract.
 
 Workflow/script cutover acceptance criteria:
 
 - `categoryUpdate` public resolver path is: GraphQL resolver -> `catalog.categoryUpdate` workflow ->
-  one atomic category update step/script.
+  product-style partial-apply workflow sections.
 - Empty update returns updated category payload, increments revision after successful CAS, returns
   `operationResults: []`, `userErrors: []`, and emits no events.
 - Revision conflict returns no `operationResults`.
 - Successful update with at least one requested section returns one `CATEGORY_UPDATE` result with
   `applied: true`.
 - Section validation failure returns one `CATEGORY_UPDATE` result with `applied: false`, duplicated
-  aggregate `userErrors`, no category resolver payload, no event, no revision bump and no partial
-  writes.
-- Successful category update emits `productUpdated` fan-out after commit when changed category fields
-  affect product search/index/cache data. If `categoryUpdated` is retained for category-domain
-  consumers, it is emitted after commit and is not the product index refresh path.
+  aggregate `userErrors`, updated category resolver payload after successful CAS, retained revision
+  bump and retained writes/events for sections that actually applied.
+- Successful category sections emit `productUpdated` fan-out after their writes are committed when
+  changed category fields affect product search/index/cache data. If `categoryUpdated` is retained
+  for category-domain consumers, it is emitted for applied category changes and is not the product
+  index refresh path.
 - Category remove scripts return affected product IDs so event/index cutover can handle search
   refresh without extra discovery queries.
 
@@ -1520,13 +1515,15 @@ Category update event contract:
   create contract later gains product assignment input and actually creates `product_category` rows.
 - Do not add `categoryUpdated` as the product-index refresh path in this cutover.
 - `CategoryUpdateWorkflow` must discover affected product IDs and emit existing `productUpdated`
-  events after atomic update commit succeeds when changed fields can affect product denormalized
-  search data:
+  events after successfully applied sections commit when changed fields can affect product
+  denormalized search data:
   - `handle`;
   - translated `name` if product search stores searchable category labels;
   - `status` if product search or product visibility depends on category publication;
   - hierarchy if product search stores category path/breadcrumbs.
-- Empty update, revision conflict and section validation failure must not emit `productUpdated`.
+- Empty update and revision conflict must not emit `productUpdated`. A section validation failure
+  emits no event for the failed section, but does not suppress events for other sections that already
+  applied and produced category changes.
 - For each affected product, the emitted `productUpdated` payload should include the current category
   delta under `ProductFieldChanges.categories`; `SyncProductIndexScript` reads committed
   `product_category` and category rows, so the event does not need to carry full denormalized search
@@ -1568,7 +1565,7 @@ After-commit scheduling rules:
 
 - `productUpdated` emission happens after successful commit of the write transaction.
 - If a workflow owns the write, schedule follow-up event/index work in a later workflow step after
-  the atomic write step returns success.
+  the relevant section step/script returns applied changes.
 - If a script is resolver-backed and transactional, do not emit from inside the transactional script.
   Return affected IDs to resolver/service layer and schedule follow-up work after script success.
 - Follow-up index sync failures should be retryable and must not roll back the already committed
