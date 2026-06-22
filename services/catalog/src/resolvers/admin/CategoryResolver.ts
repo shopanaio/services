@@ -57,6 +57,10 @@ export class CategoryResolver extends CatalogType<string, Category> {
     return this.$get("deletedAt");
   }
 
+  async revision() {
+    return this.$get("revision");
+  }
+
   async depth() {
     return this.$get("depth");
   }
@@ -141,7 +145,10 @@ export class CategoryResolver extends CatalogType<string, Category> {
   async media() {
     const mediaItems = await this.$ctx.loaders.categoryMedia.load(this.$props);
     return mediaItems.map((m) => ({
-      file: { __typename: "File" as const, id: m.fileId },
+      file: {
+        __typename: "File" as const,
+        id: encodeGlobalIdByType(m.fileId, GlobalIdEntity.File),
+      },
       sortIndex: m.sortIndex,
     }));
   }
@@ -156,7 +163,7 @@ export class CategoryResolver extends CatalogType<string, Category> {
    * Returns the count of products in this category
    */
   async productsCount(): Promise<number> {
-    return this.$ctx.loaders.categoryProductsCount.load(this.$props);
+    return 0;
   }
 
   /**

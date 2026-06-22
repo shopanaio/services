@@ -25,6 +25,9 @@ type Category implements Node @key(fields: "id") {
   """The date and time when the category was deleted (soft delete)."""
   deletedAt: DateTime
 
+  """Optimistic locking revision number. Incremented on each update."""
+  revision: Int!
+
   """The depth of this category in the hierarchy (0 for root)."""
   depth: Int!
 
@@ -153,30 +156,64 @@ input CategoryCreateInput {
   publish: Boolean
 }
 
+input CategoryContentInput {
+  """The category description."""
+  description: RichTextInput
+
+  """The short category excerpt."""
+  excerpt: RichTextInput
+}
+
+input CategoryMediaInput {
+  """File IDs for category media."""
+  fileIds: [ID!]!
+}
+
+input CategoryHierarchyInput {
+  """The new parent category ID, or null for root."""
+  parentId: ID
+}
+
+input CategorySortInput {
+  """Default product sort for this category PLP."""
+  defaultSort: ProductSortBy!
+
+  """Default sort direction for this category PLP."""
+  defaultSortDirection: SortDirection!
+}
+
+enum CategoryStatus {
+  DRAFT
+  PUBLISHED
+}
+
 """
-Input for updating a category.
+Input for updating a category through section-based operations.
 """
 input CategoryUpdateInput {
-  """The ID of the category to update."""
-  id: ID!
-
   """The URL-friendly handle for the category."""
   handle: String
 
   """The display name of the category."""
   name: String
 
-  """The category description."""
-  description: RichTextInput
-
-  """The short category excerpt."""
-  excerpt: RichTextInput
+  """Translated content."""
+  content: CategoryContentInput
 
   """SEO metadata."""
   seo: SeoInput
 
-  """File IDs for category media (replaces existing)."""
-  mediaFileIds: [ID!]
+  """Category status."""
+  status: CategoryStatus
+
+  """Category media replacement."""
+  media: CategoryMediaInput
+
+  """Hierarchy move."""
+  hierarchy: CategoryHierarchyInput
+
+  """PLP sort preferences."""
+  sort: CategorySortInput
 }
 
 """
@@ -213,14 +250,13 @@ input CategoryAddProductInput {
   productId: ID!
 }
 
-input CategoryRebalanceInput {
+input CategoryRemoveProductInput {
   categoryId: ID!
+  productId: ID!
 }
 
-input CategoryUpdateSortInput {
-  id: ID!
-  defaultSort: ProductSortBy!
-  defaultSortDirection: SortDirection!
+input CategoryRebalanceInput {
+  categoryId: ID!
 }
 
 # ---- Category Payloads ----
@@ -242,6 +278,9 @@ Payload for category update.
 type CategoryUpdatePayload {
   """The updated category."""
   category: Category
+
+  """Results of requested category update operations."""
+  operationResults: [OperationResult!]!
 
   """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!
@@ -279,12 +318,12 @@ type CategoryAddProductPayload {
   userErrors: [GenericUserError!]!
 }
 
-type CategoryRebalancePayload {
+type CategoryRemoveProductPayload {
   category: Category
   userErrors: [GenericUserError!]!
 }
 
-type CategoryUpdateSortPayload {
+type CategoryRebalancePayload {
   category: Category
   userErrors: [GenericUserError!]!
 }

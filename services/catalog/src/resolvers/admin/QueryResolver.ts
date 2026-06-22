@@ -57,7 +57,10 @@ import {
   PricingWidgetResolver,
   type PricingWidgetInput,
 } from "./PricingWidgetResolver.js";
-import { normalizeVariantWhereInput } from "./filter-normalizers.js";
+import {
+  normalizeCategoryWhereInput,
+  normalizeVariantWhereInput,
+} from "./filter-normalizers.js";
 import { CollectionRulesPreviewCountScript } from "../../scripts/collection/CollectionRulesPreviewCountScript.js";
 
 /**
@@ -205,7 +208,13 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    * Get a paginated list of categories.
    */
   categories(args: CategoryConnectionInput) {
-    return new CategoryConnectionResolver(args, this.$ctx);
+    return new CategoryConnectionResolver(
+      {
+        ...args,
+        where: normalizeCategoryWhereInput(args.where),
+      },
+      this.$ctx
+    );
   }
 
   async facetGroup(args: { id: string }) {

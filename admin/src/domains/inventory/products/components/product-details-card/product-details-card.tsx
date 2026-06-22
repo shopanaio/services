@@ -24,7 +24,9 @@ import type { ApiProduct } from "@/graphql/types";
 import type { IVariantsTableData, ProductDetailsSupplementalData } from "./types";
 import {
   getDefaultVariant,
+  getProductCategories,
   getProductMediaFiles,
+  getProductPrimaryCategory,
 } from "../../utils/api-product-display";
 
 // ============================================================================
@@ -90,8 +92,8 @@ export const ProductDetailsCard = ({
       {/* CATEGORIES & TAGS */}
 
       <CategoriesSection
-        primaryCategory={product.categories[0] ?? null}
-        categories={product.categories}
+        primaryCategory={getProductPrimaryCategory(product)}
+        categories={getProductCategories(product)}
       />
 
       {/* REVIEWS */}

@@ -252,8 +252,14 @@ export const PRODUCT_LIST_FRAGMENT = gql`
     media {
       ...ProductMediaItemFields
     }
-    categories {
+    primaryCategory {
       ...ProductCategoryFields
+    }
+    categoryAssignments {
+      isPrimary
+      category {
+        ...ProductCategoryFields
+      }
     }
     features {
       ...ProductFeatureFields
@@ -310,8 +316,14 @@ export const PRODUCT_DETAILS_FRAGMENT = gql`
     media {
       ...ProductMediaItemFields
     }
-    categories {
+    primaryCategory {
       ...ProductCategoryFields
+    }
+    categoryAssignments {
+      isPrimary
+      category {
+        ...ProductCategoryFields
+      }
     }
     tags {
       ...ProductTagFields
@@ -378,8 +390,14 @@ export const PRODUCT_MUTATION_RESULT_FRAGMENT = gql`
     media {
       ...ProductMediaItemFields
     }
-    categories {
+    primaryCategory {
       ...ProductCategoryFields
+    }
+    categoryAssignments {
+      isPrimary
+      category {
+        ...ProductCategoryFields
+      }
     }
     tags {
       ...ProductTagFields

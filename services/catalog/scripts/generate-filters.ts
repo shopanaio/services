@@ -3,8 +3,21 @@ import {
   generateOrderByInputType,
   generateWhereInputType,
 } from "@shopana/drizzle-query";
-import { categoryProductsRelayQuery } from "../src/repositories/category/CategoryRepository.js";
+import {
+  categoryProductsRelayQuery,
+  categoryRelayQuery,
+} from "../src/repositories/category/CategoryRepository.js";
 import { variantRelayQuery } from "../src/repositories/variant/VariantRepository.js";
+
+const categoryWhere = generateWhereInputType(categoryRelayQuery, "Category", {
+  includeDescriptions: true,
+  excludeFields: ["projectId", "deletedAt", "revision"],
+});
+
+const categoryOrderBy = generateOrderByInputType(categoryRelayQuery, "Category", {
+  includeDescriptions: true,
+  excludeFields: ["projectId", "deletedAt", "revision"],
+});
 
 const categoryProductWhere = generateWhereInputType(
   categoryProductsRelayQuery,
@@ -27,6 +40,12 @@ const variantOrderBy = generateOrderByInputType(variantRelayQuery, "Variant", {
 
 const content = `# Auto-generated GraphQL filter types for Catalog service.
 # Do not edit manually. Run: yarn generate:filters
+
+${categoryWhere}
+
+${categoryOrderBy}
+
+# ---- CategoryProduct ----
 
 ${categoryProductWhere}
 

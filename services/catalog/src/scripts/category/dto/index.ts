@@ -109,6 +109,7 @@ export interface CategoryMoveProductParams {
 
 export interface CategoryMoveProductResult {
   category?: Category;
+  affectedProductIds?: string[];
   userErrors: UserError[];
 }
 
@@ -118,6 +119,7 @@ export interface CategoryRebalanceParams {
 
 export interface CategoryRebalanceResult {
   category?: Category;
+  affectedProductIds?: string[];
   userErrors: UserError[];
 }
 
@@ -141,5 +143,6 @@ export interface CategoryAddProductParams {
 
 export interface CategoryAddProductResult {
   category?: Category;
+  affectedProductIds?: string[];
   userErrors: UserError[];
 }

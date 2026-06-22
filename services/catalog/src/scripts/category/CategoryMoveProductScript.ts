@@ -91,7 +91,11 @@ export class CategoryMoveProductScript extends BaseScript<
     await this.repository.category.updateProductCategoryRank(categoryId, productId, newRank);
 
     const refreshedCategory = await this.repository.category.findById(categoryId);
-    return { category: refreshedCategory ?? undefined, userErrors: [] };
+    return {
+      category: refreshedCategory ?? undefined,
+      affectedProductIds: [productId],
+      userErrors: [],
+    };
   }
 
   private validateParams(
@@ -279,6 +283,7 @@ export class CategoryMoveProductScript extends BaseScript<
 
     return {
       category: undefined,
+      affectedProductIds: [],
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }

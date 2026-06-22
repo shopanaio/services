@@ -46,6 +46,11 @@ input RichTextInput {
   json: JSON!
 }
 
+type ProductCategoryAssignment {
+  category: Category!
+  isPrimary: Boolean!
+}
+
 """
 A product represents an item that can be sold.
 """
@@ -94,8 +99,11 @@ type Product implements Node @key(fields: "id") {
   """The total number of variants for this product."""
   variantsCount: Int!
 
-  """The categories this product belongs to."""
-  categories: [Category!]!
+  """The primary category assigned to this product."""
+  primaryCategory: Category
+
+  """Category assignments with relationship metadata."""
+  categoryAssignments: [ProductCategoryAssignment!]!
 
   """The tags associated with this product."""
   tags: [Tag!]!
@@ -439,6 +447,7 @@ Type of operation in the unified update.
 enum OperationType {
   PRODUCT_UPDATE
   VARIANT_UPDATE
+  CATEGORY_UPDATE
 }
 
 """

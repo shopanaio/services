@@ -33,18 +33,19 @@ export class CategoryAddProductScript extends BaseScript<
     const existing = await this.repository.category.getProductCategory(categoryId, productId);
     if (existing) {
       // Already exists, return success
-      return { category, userErrors: [] };
+      return { category, affectedProductIds: [], userErrors: [] };
     }
 
     // Add product to category
     await this.repository.category.addProductToCategory(productId, categoryId, false);
 
-    return { category, userErrors: [] };
+    return { category, affectedProductIds: [productId], userErrors: [] };
   }
 
   protected handleError(_error: unknown): CategoryAddProductResult {
     return {
       category: undefined,
+      affectedProductIds: [],
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }

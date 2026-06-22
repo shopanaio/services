@@ -1,4 +1,5 @@
 import type {
+  ApiCategory,
   ApiFile,
   ApiProduct,
   ApiProductOption,
@@ -39,7 +40,18 @@ export const getProductTotalAvailable = (product: ApiProduct): number =>
 
 export const getProductPrimaryCategoryName = (
   product: ApiProduct,
-): string | null => product.categories[0]?.name ?? null;
+): string | null => getProductPrimaryCategory(product)?.name ?? null;
+
+export const getProductPrimaryCategory = (
+  product: ApiProduct,
+): ApiCategory | null =>
+  product.primaryCategory ??
+  product.categoryAssignments.find((assignment) => assignment.isPrimary)
+    ?.category ??
+  null;
+
+export const getProductCategories = (product: ApiProduct): ApiCategory[] =>
+  product.categoryAssignments.map((assignment) => assignment.category);
 
 export const getProductBrandName = (product: ApiProduct): string | null => {
   const brandFeature = product.features.find(

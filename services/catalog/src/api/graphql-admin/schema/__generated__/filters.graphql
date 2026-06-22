@@ -1,6 +1,70 @@
 # Auto-generated GraphQL filter types for Catalog service.
 # Do not edit manually. Run: yarn generate:filters
 
+"""Filter conditions for Category"""
+input CategoryWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [CategoryWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [CategoryWhereInput!]
+  """Negate the condition"""
+  _not: CategoryWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by parentId"""
+  parentId: IDFilter
+  """Filter by path"""
+  path: StringFilter
+  """Filter by depth"""
+  depth: IntFilter
+  """Filter by handle"""
+  handle: StringFilter
+  """Filter by defaultSort"""
+  defaultSort: StringFilter
+  """Filter by defaultSortDirection"""
+  defaultSortDirection: StringFilter
+  """Filter by publishedAt"""
+  publishedAt: DateTimeFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Fields available for sorting Category"""
+enum CategoryOrderField {
+  """Sort by id"""
+  id
+  """Sort by parentId"""
+  parentId
+  """Sort by path"""
+  path
+  """Sort by depth"""
+  depth
+  """Sort by handle"""
+  handle
+  """Sort by defaultSort"""
+  defaultSort
+  """Sort by defaultSortDirection"""
+  defaultSortDirection
+  """Sort by publishedAt"""
+  publishedAt
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+}
+
+"""Ordering configuration for Category"""
+input CategoryOrderByInput {
+  """Field to order by"""
+  field: CategoryOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- CategoryProduct ----
+
 """Filter conditions for CategoryProduct"""
 input CategoryProductWhereInput {
   """Logical AND of multiple conditions"""

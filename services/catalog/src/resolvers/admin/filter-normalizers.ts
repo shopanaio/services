@@ -4,6 +4,7 @@ import {
   type GlobalIdType,
 } from "@shopana/shared-graphql-guid";
 import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
+import type { CategoryRelayInput } from "../../repositories/category/CategoryRepository.js";
 
 type IdFilter = {
   _eq?: string | null;
@@ -103,4 +104,39 @@ export function normalizeVariantWhereInput(
   where: VariantRelayInput["where"] | null | undefined
 ): VariantRelayInput["where"] {
   return normalizeVariantWhereNode(where);
+}
+
+function normalizeCategoryWhereNode(
+  where: CategoryRelayInput["where"] | null | undefined
+): CategoryRelayInput["where"] {
+  if (!where) {
+    return undefined;
+  }
+
+  const normalized = { ...(where as WhereNode) };
+
+  normalized._and = normalizeWhereList<CategoryRelayInput["where"]>(
+    normalized._and,
+    normalizeCategoryWhereNode
+  );
+  normalized._or = normalizeWhereList<CategoryRelayInput["where"]>(
+    normalized._or,
+    normalizeCategoryWhereNode
+  );
+  normalized._not = normalizeCategoryWhereNode(
+    normalized._not as CategoryRelayInput["where"] | null | undefined
+  );
+  normalized.id = normalizeIdFilter(normalized.id, GlobalIdEntity.Category);
+  normalized.parentId = normalizeIdFilter(
+    normalized.parentId,
+    GlobalIdEntity.Category
+  );
+
+  return normalized as CategoryRelayInput["where"];
+}
+
+export function normalizeCategoryWhereInput(
+  where: CategoryRelayInput["where"] | null | undefined
+): CategoryRelayInput["where"] {
+  return normalizeCategoryWhereNode(where);
 }

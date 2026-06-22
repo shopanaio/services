@@ -26,6 +26,13 @@ export interface ProductFieldChanges {
   content?: ContentChanges;
   seo?: SeoChanges;
   media?: MediaChanges;
+  categories?: ProductCategoryFieldChanges;
+}
+
+export interface ProductCategoryFieldChanges {
+  changed: true;
+  reason: "assignment" | "categoryFields" | "rank";
+  categoryIds?: string[];
 }
 
 export interface RichTextChange {

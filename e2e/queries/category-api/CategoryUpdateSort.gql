@@ -1,12 +1,30 @@
-mutation CategoryUpdateSort($input: CategoryUpdateSortInput!) {
+mutation CategoryUpdateSort(
+  $categoryId: ID!
+  $expectedRevision: Int
+  $operations: CategoryUpdateInput
+) {
   catalogMutation {
-    categoryUpdateSort(input: $input) {
+    categoryUpdate(
+      categoryId: $categoryId
+      expectedRevision: $expectedRevision
+      operations: $operations
+    ) {
       category {
         id
         handle
+        revision
         name
         defaultSort
         defaultSortDirection
+      }
+      operationResults {
+        type
+        applied
+        errors {
+          message
+          code
+          field
+        }
       }
       userErrors {
         message

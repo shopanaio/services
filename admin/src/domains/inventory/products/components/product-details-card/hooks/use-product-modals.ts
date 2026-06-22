@@ -34,7 +34,11 @@ import {
   PRODUCT_PRICING_WIDGET_QUERY,
 } from "../../../graphql";
 import { prepareChangedVariantUpdateInputs } from "../../../mappers/product-variant-update.mapper";
-import { getProductMediaFiles } from "../../../utils/api-product-display";
+import {
+  getProductCategories,
+  getProductMediaFiles,
+  getProductPrimaryCategory,
+} from "../../../utils/api-product-display";
 
 interface UseProductModalsOptions {
   onProductRefresh?: () => Promise<unknown>;
@@ -120,10 +124,13 @@ export const useProductModals = (
   }, [message, product, openEditMediaModal, updateProduct]);
 
   const handleEditCategories = useCallback(() => {
+    const categories = getProductCategories(product);
+    const primaryCategory = getProductPrimaryCategory(product);
+
     openEditCategoriesModal({
       productId: product.id,
-      primaryCategoryId: product.categories[0]?.id ?? null,
-      categoryIds: product.categories?.map((c) => c.id) || [],
+      primaryCategoryId: primaryCategory?.id ?? null,
+      categoryIds: categories.map((c) => c.id),
       onSave: () => {
         message.info("Category assignment is not API-backed yet");
         return false;
@@ -131,8 +138,7 @@ export const useProductModals = (
     });
   }, [
     message,
-    product.id,
-    product.categories,
+    product,
     openEditCategoriesModal,
   ]);
 

@@ -168,6 +168,8 @@ type CatalogQuery {
     after: String
     last: Int
     before: String
+    where: CategoryWhereInput
+    orderBy: [CategoryOrderByInput!]
   ): CategoryConnection!
 
   """
@@ -362,9 +364,13 @@ type CatalogMutation {
   categoryCreate(input: CategoryCreateInput!): CategoryCreatePayload!
 
   """
-  Update an existing category
+  Unified category update with optimistic locking.
   """
-  categoryUpdate(input: CategoryUpdateInput!): CategoryUpdatePayload!
+  categoryUpdate(
+    categoryId: ID!
+    expectedRevision: Int
+    operations: CategoryUpdateInput
+  ): CategoryUpdatePayload!
 
   """
   Move a category to a new parent or position
@@ -382,14 +388,14 @@ type CatalogMutation {
   categoryAddProduct(input: CategoryAddProductInput!): CategoryAddProductPayload!
 
   """
+  Remove a product from a category
+  """
+  categoryRemoveProduct(input: CategoryRemoveProductInput!): CategoryRemoveProductPayload!
+
+  """
   Rebalance category tree positions
   """
   categoryRebalance(input: CategoryRebalanceInput!): CategoryRebalancePayload!
-
-  """
-  Update category sort order
-  """
-  categoryUpdateSort(input: CategoryUpdateSortInput!): CategoryUpdateSortPayload!
 
   """
   Delete a category

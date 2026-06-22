@@ -29,15 +29,17 @@ test.describe('Category Sort Configuration API', () => {
 
     const { data } = await api.admin.mutation('category-api/CategoryUpdateSort', {
       variables: {
-        input: {
-          id: category.id,
-          defaultSort: 'PRICE',
-          defaultSortDirection: 'asc',
+        categoryId: category.id,
+        operations: {
+          sort: {
+            defaultSort: 'PRICE',
+            defaultSortDirection: 'asc',
+          },
         },
       },
     });
 
-    const result = data.catalogMutation.categoryUpdateSort;
+    const result = data.catalogMutation.categoryUpdate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.category).toBeTruthy();
@@ -53,15 +55,17 @@ test.describe('Category Sort Configuration API', () => {
 
     const { data } = await api.admin.mutation('category-api/CategoryUpdateSort', {
       variables: {
-        input: {
-          id: category.id,
-          defaultSort: 'PRICE',
-          defaultSortDirection: 'desc',
+        categoryId: category.id,
+        operations: {
+          sort: {
+            defaultSort: 'PRICE',
+            defaultSortDirection: 'desc',
+          },
         },
       },
     });
 
-    const result = data.catalogMutation.categoryUpdateSort;
+    const result = data.catalogMutation.categoryUpdate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.category).toBeTruthy();
@@ -77,15 +81,17 @@ test.describe('Category Sort Configuration API', () => {
 
     const { data } = await api.admin.mutation('category-api/CategoryUpdateSort', {
       variables: {
-        input: {
-          id: category.id,
-          defaultSort: 'NEWEST',
-          defaultSortDirection: 'asc',
+        categoryId: category.id,
+        operations: {
+          sort: {
+            defaultSort: 'NEWEST',
+            defaultSortDirection: 'asc',
+          },
         },
       },
     });
 
-    const result = data.catalogMutation.categoryUpdateSort;
+    const result = data.catalogMutation.categoryUpdate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.category).toBeTruthy();
@@ -101,15 +107,17 @@ test.describe('Category Sort Configuration API', () => {
 
     const { data } = await api.admin.mutation('category-api/CategoryUpdateSort', {
       variables: {
-        input: {
-          id: category.id,
-          defaultSort: 'NEWEST',
-          defaultSortDirection: 'desc',
+        categoryId: category.id,
+        operations: {
+          sort: {
+            defaultSort: 'NEWEST',
+            defaultSortDirection: 'desc',
+          },
         },
       },
     });
 
-    const result = data.catalogMutation.categoryUpdateSort;
+    const result = data.catalogMutation.categoryUpdate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.category).toBeTruthy();
@@ -125,15 +133,17 @@ test.describe('Category Sort Configuration API', () => {
 
     const { data } = await api.admin.mutation('category-api/CategoryUpdateSort', {
       variables: {
-        input: {
-          id: category.id,
-          defaultSort: 'NAME',
-          defaultSortDirection: 'asc',
+        categoryId: category.id,
+        operations: {
+          sort: {
+            defaultSort: 'NAME',
+            defaultSortDirection: 'asc',
+          },
         },
       },
     });
 
-    const result = data.catalogMutation.categoryUpdateSort;
+    const result = data.catalogMutation.categoryUpdate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.category).toBeTruthy();
@@ -149,15 +159,17 @@ test.describe('Category Sort Configuration API', () => {
 
     const { data } = await api.admin.mutation('category-api/CategoryUpdateSort', {
       variables: {
-        input: {
-          id: category.id,
-          defaultSort: 'NAME',
-          defaultSortDirection: 'desc',
+        categoryId: category.id,
+        operations: {
+          sort: {
+            defaultSort: 'NAME',
+            defaultSortDirection: 'desc',
+          },
         },
       },
     });
 
-    const result = data.catalogMutation.categoryUpdateSort;
+    const result = data.catalogMutation.categoryUpdate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.category).toBeTruthy();
@@ -174,10 +186,12 @@ test.describe('Category Sort Configuration API', () => {
     // First change to something else
     await api.admin.mutation('category-api/CategoryUpdateSort', {
       variables: {
-        input: {
-          id: category.id,
-          defaultSort: 'PRICE',
-          defaultSortDirection: 'desc',
+        categoryId: category.id,
+        operations: {
+          sort: {
+            defaultSort: 'PRICE',
+            defaultSortDirection: 'desc',
+          },
         },
       },
     });
@@ -185,15 +199,17 @@ test.describe('Category Sort Configuration API', () => {
     // Then change back to MANUAL
     const { data } = await api.admin.mutation('category-api/CategoryUpdateSort', {
       variables: {
-        input: {
-          id: category.id,
-          defaultSort: 'MANUAL',
-          defaultSortDirection: 'asc',
+        categoryId: category.id,
+        operations: {
+          sort: {
+            defaultSort: 'MANUAL',
+            defaultSortDirection: 'asc',
+          },
         },
       },
     });
 
-    const result = data.catalogMutation.categoryUpdateSort;
+    const result = data.catalogMutation.categoryUpdate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.category).toBeTruthy();
@@ -209,15 +225,17 @@ test.describe('Category Sort Configuration API', () => {
     const { data } = await api.admin.mutation('category-api/CategoryUpdateSort', {
       throwOnError: false,
       variables: {
-        input: {
-          id: '00000000-0000-0000-0000-000000000000',
-          defaultSort: 'PRICE',
-          defaultSortDirection: 'asc',
+        categoryId: '00000000-0000-0000-0000-000000000000',
+        operations: {
+          sort: {
+            defaultSort: 'PRICE',
+            defaultSortDirection: 'asc',
+          },
         },
       },
     });
 
-    const result = data.catalogMutation.categoryUpdateSort;
+    const result = data.catalogMutation.categoryUpdate;
 
     expect(result.category).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);

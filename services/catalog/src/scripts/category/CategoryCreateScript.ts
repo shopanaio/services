@@ -30,7 +30,11 @@ export class CategoryCreateScript extends BaseScript<
       return {
         category: undefined,
         userErrors: [
-          { message: "Category handle already exists", field: ["handle"], code: "DUPLICATE" },
+          {
+            message: "Category handle already exists",
+            field: ["handle"],
+            code: "DUPLICATE_HANDLE",
+          },
         ],
       };
     }
@@ -40,11 +44,15 @@ export class CategoryCreateScript extends BaseScript<
       const parent = await this.repository.category.findById(parentId);
       if (!parent) {
         return {
-          category: undefined,
-          userErrors: [
-            { message: "Parent category not found", field: ["parentId"], code: "NOT_FOUND" },
-          ],
-        };
+        category: undefined,
+        userErrors: [
+            {
+              message: "Parent category not found",
+              field: ["parentId"],
+              code: "MISSING_CATEGORY",
+            },
+        ],
+      };
       }
     }
 

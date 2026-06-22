@@ -58,7 +58,7 @@ export class CategoryFixture {
 
   update = async (id: string, input: Partial<ApiCategoryUpdateInput>): Promise<CategoryData> => {
     const { data } = await this.gql.mutation('category-api/CategoryUpdate', {
-      variables: { input: { id, ...input } },
+      variables: { categoryId: id, operations: input },
     });
 
     const result = (
@@ -85,19 +85,27 @@ export class CategoryFixture {
     defaultSortDirection: SortDirection
   ): Promise<CategoryData> => {
     const { data } = await this.gql.mutation('category-api/CategoryUpdateSort', {
-      variables: { input: { id, defaultSort, defaultSortDirection } },
+      variables: {
+        categoryId: id,
+        operations: {
+          sort: {
+            defaultSort,
+            defaultSortDirection,
+          },
+        },
+      },
     });
 
     const result = (
       data as {
         catalogMutation: {
-          categoryUpdateSort: {
+          categoryUpdate: {
             category: CategoryData | null;
             userErrors: { code: string; message: string; field: string[] }[];
           };
         };
       }
-    ).catalogMutation.categoryUpdateSort;
+    ).catalogMutation.categoryUpdate;
 
     if (result.userErrors.length > 0 || !result.category) {
       throw new Error(`Failed to update category sort: ${JSON.stringify(result.userErrors)}`);

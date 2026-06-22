@@ -45,6 +45,7 @@ export class Loader {
   public readonly categoryAncestorIds;
   public readonly categoryProductsCount;
   public readonly productCategoryIds;
+  public readonly productCategoryLinksByProductId;
 
   // Tag
   public readonly tag;
@@ -154,6 +155,8 @@ export class Loader {
     this.categoryAncestorIds = categoryLoader.categoryAncestorIds;
     this.categoryProductsCount = categoryLoader.categoryProductsCount;
     this.productCategoryIds = categoryLoader.productCategoryIds;
+    this.productCategoryLinksByProductId =
+      categoryLoader.productCategoryLinksByProductId;
 
     // Tag
     this.tag = tagLoader.tag;

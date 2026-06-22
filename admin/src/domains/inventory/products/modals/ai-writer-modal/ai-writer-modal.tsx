@@ -32,7 +32,10 @@ import type {
 import { useStyles } from "./ai-writer-modal.styles";
 import type { IAIWriterForm, IGeneratedContent } from "./types";
 import { mockGenerateContent } from "@/mocks/products/ai-writer";
-import { getProductPrimaryPriceAmount } from "../../utils/api-product-display";
+import {
+  getProductPrimaryCategoryName,
+  getProductPrimaryPriceAmount,
+} from "../../utils/api-product-display";
 
 export const AIWriterModal = () => {
   const { styles } = useStyles();
@@ -67,7 +70,7 @@ export const AIWriterModal = () => {
   // Build product context for AI
   const productContext = {
     title: typedPayload.product.title,
-    category: typedPayload.product.categories[0]?.name ?? null,
+    category: getProductPrimaryCategoryName(typedPayload.product),
     attributes: typedPayload.product.features
       .flatMap((feature) =>
         feature.values.length > 0

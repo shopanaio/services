@@ -101,6 +101,13 @@ export interface ProductFieldChanges {
   content?: { description?: string | null; excerpt?: string | null };
   seo?: { title?: string | null; description?: string | null };
   media?: { fileIds: string[] };
+  categories?: ProductCategoryFieldChanges;
+}
+
+export interface ProductCategoryFieldChanges {
+  changed: true;
+  reason: "assignment" | "categoryFields" | "rank";
+  categoryIds?: string[];
 }
 
 export interface VariantFieldChanges {

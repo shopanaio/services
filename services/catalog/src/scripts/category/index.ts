@@ -1,9 +1,17 @@
 export * from "./dto/index.js";
 export { CategoryCreateScript } from "./CategoryCreateScript.js";
 export { CategoryUpdateScript } from "./CategoryUpdateScript.js";
+export { CategoryUpdateIdentityScript } from "./CategoryUpdateIdentityScript.js";
+export { CategoryUpdateContentScript } from "./CategoryUpdateContentScript.js";
+export { CategoryUpdateSeoScript } from "./CategoryUpdateSeoScript.js";
+export { CategoryUpdateStatusScript } from "./CategoryUpdateStatusScript.js";
+export { CategoryUpdateMediaScript } from "./CategoryUpdateMediaScript.js";
+export { CategoryUpdateHierarchyScript } from "./CategoryUpdateHierarchyScript.js";
+export { CategoryUpdateSortSectionScript } from "./CategoryUpdateSortSectionScript.js";
 export { CategoryDeleteScript } from "./CategoryDeleteScript.js";
 export { CategoryMoveScript } from "./CategoryMoveScript.js";
 export { CategoryMoveProductScript } from "./CategoryMoveProductScript.js";
 export { CategoryRebalanceScript } from "./CategoryRebalanceScript.js";
 export { CategoryUpdateSortScript } from "./CategoryUpdateSortScript.js";
 export { CategoryAddProductScript } from "./CategoryAddProductScript.js";
+export { CategoryRemoveProductScript } from "./CategoryRemoveProductScript.js";

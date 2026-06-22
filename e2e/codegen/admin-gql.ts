@@ -577,10 +577,10 @@ export type ApiCatalogMutation = {
   categoryMoveProduct: ApiCategoryMoveProductPayload;
   /** Rebalance category tree positions */
   categoryRebalance: ApiCategoryRebalancePayload;
-  /** Update an existing category */
+  /** Remove a product from a category */
+  categoryRemoveProduct: ApiCategoryRemoveProductPayload;
+  /** Unified category update with optimistic locking. */
   categoryUpdate: ApiCategoryUpdatePayload;
-  /** Update category sort order */
-  categoryUpdateSort: ApiCategoryUpdateSortPayload;
   /** Add products to a collection */
   collectionAddProducts: ApiCollectionAddProductsPayload;
   /** Create a new collection */
@@ -773,13 +773,15 @@ export type ApiCatalogMutationCategoryRebalanceArgs = {
 };
 
 
-export type ApiCatalogMutationCategoryUpdateArgs = {
-  input: ApiCategoryUpdateInput;
+export type ApiCatalogMutationCategoryRemoveProductArgs = {
+  input: ApiCategoryRemoveProductInput;
 };
 
 
-export type ApiCatalogMutationCategoryUpdateSortArgs = {
-  input: ApiCategoryUpdateSortInput;
+export type ApiCatalogMutationCategoryUpdateArgs = {
+  categoryId: Scalars['ID']['input'];
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  operations?: InputMaybe<ApiCategoryUpdateInput>;
 };
 
 
@@ -1144,6 +1146,8 @@ export type ApiCatalogQueryCategoriesArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCategoryOrderByInput>>;
+  where?: InputMaybe<ApiCategoryWhereInput>;
 };
 
 
@@ -1313,6 +1317,8 @@ export type ApiCategory = ApiNode & {
   productsCount: Scalars['Int']['output'];
   /** The date and time when the category was published, or null if unpublished. */
   publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Optimistic locking revision number. Incremented on each update. */
+  revision: Scalars['Int']['output'];
   /** SEO metadata. */
   seo?: Maybe<ApiSeo>;
   /** The date and time when the category was last updated. */
@@ -1350,6 +1356,13 @@ export type ApiCategoryConnection = {
   pageInfo: ApiPageInfo;
   /** The total number of categories. */
   totalCount: Scalars['Int']['output'];
+};
+
+export type ApiCategoryContentInput = {
+  /** The category description. */
+  description?: InputMaybe<ApiRichTextInput>;
+  /** The short category excerpt. */
+  excerpt?: InputMaybe<ApiRichTextInput>;
 };
 
 /** Input for creating a category. */
@@ -1407,6 +1420,16 @@ export type ApiCategoryEdge = {
   node: ApiCategory;
 };
 
+export type ApiCategoryHierarchyInput = {
+  /** The new parent category ID, or null for root. */
+  parentId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ApiCategoryMediaInput = {
+  /** File IDs for category media. */
+  fileIds: Array<Scalars['ID']['input']>;
+};
+
 /** A media item for a category. */
 export type ApiCategoryMediaItem = {
   __typename?: 'CategoryMediaItem';
@@ -1445,6 +1468,37 @@ export type ApiCategoryMoveProductPayload = {
   category?: Maybe<ApiCategory>;
   userErrors: Array<ApiGenericUserError>;
 };
+
+/** Ordering configuration for Category */
+export type ApiCategoryOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: CategoryOrderField;
+};
+
+/** Fields available for sorting Category */
+export type CategoryOrderField =
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by defaultSort */
+  | 'defaultSort'
+  /** Sort by defaultSortDirection */
+  | 'defaultSortDirection'
+  /** Sort by depth */
+  | 'depth'
+  /** Sort by handle */
+  | 'handle'
+  /** Sort by id */
+  | 'id'
+  /** Sort by parentId */
+  | 'parentId'
+  /** Sort by path */
+  | 'path'
+  /** Sort by publishedAt */
+  | 'publishedAt'
+  /** Sort by updatedAt */
+  | 'updatedAt';
 
 export type ApiCategoryProductConnection = {
   __typename?: 'CategoryProductConnection';
@@ -1485,22 +1539,46 @@ export type ApiCategoryRebalancePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-/** Input for updating a category. */
+export type ApiCategoryRemoveProductInput = {
+  categoryId: Scalars['ID']['input'];
+  productId: Scalars['ID']['input'];
+};
+
+export type ApiCategoryRemoveProductPayload = {
+  __typename?: 'CategoryRemoveProductPayload';
+  category?: Maybe<ApiCategory>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCategorySortInput = {
+  /** Default product sort for this category PLP. */
+  defaultSort: ProductSortBy;
+  /** Default sort direction for this category PLP. */
+  defaultSortDirection: SortDirection;
+};
+
+export type CategoryStatus =
+  | 'DRAFT'
+  | 'PUBLISHED';
+
+/** Input for updating a category through section-based operations. */
 export type ApiCategoryUpdateInput = {
-  /** The category description. */
-  description?: InputMaybe<ApiRichTextInput>;
-  /** The short category excerpt. */
-  excerpt?: InputMaybe<ApiRichTextInput>;
+  /** Translated content. */
+  content?: InputMaybe<ApiCategoryContentInput>;
   /** The URL-friendly handle for the category. */
   handle?: InputMaybe<Scalars['String']['input']>;
-  /** The ID of the category to update. */
-  id: Scalars['ID']['input'];
-  /** File IDs for category media (replaces existing). */
-  mediaFileIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Hierarchy move. */
+  hierarchy?: InputMaybe<ApiCategoryHierarchyInput>;
+  /** Category media replacement. */
+  media?: InputMaybe<ApiCategoryMediaInput>;
   /** The display name of the category. */
   name?: InputMaybe<Scalars['String']['input']>;
   /** SEO metadata. */
   seo?: InputMaybe<ApiSeoInput>;
+  /** PLP sort preferences. */
+  sort?: InputMaybe<ApiCategorySortInput>;
+  /** Category status. */
+  status?: InputMaybe<CategoryStatus>;
 };
 
 /** Payload for category update. */
@@ -1508,20 +1586,40 @@ export type ApiCategoryUpdatePayload = {
   __typename?: 'CategoryUpdatePayload';
   /** The updated category. */
   category?: Maybe<ApiCategory>;
+  /** Results of requested category update operations. */
+  operationResults: Array<ApiOperationResult>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
 };
 
-export type ApiCategoryUpdateSortInput = {
-  defaultSort: ProductSortBy;
-  defaultSortDirection: SortDirection;
-  id: Scalars['ID']['input'];
-};
-
-export type ApiCategoryUpdateSortPayload = {
-  __typename?: 'CategoryUpdateSortPayload';
-  category?: Maybe<ApiCategory>;
-  userErrors: Array<ApiGenericUserError>;
+/** Filter conditions for Category */
+export type ApiCategoryWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiCategoryWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiCategoryWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiCategoryWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by defaultSort */
+  defaultSort?: InputMaybe<ApiStringFilter>;
+  /** Filter by defaultSortDirection */
+  defaultSortDirection?: InputMaybe<ApiStringFilter>;
+  /** Filter by depth */
+  depth?: InputMaybe<ApiIntFilter>;
+  /** Filter by handle */
+  handle?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by parentId */
+  parentId?: InputMaybe<ApiIdFilter>;
+  /** Filter by path */
+  path?: InputMaybe<ApiStringFilter>;
+  /** Filter by publishedAt */
+  publishedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
 export type ApiCollection = ApiNode & {
@@ -4359,6 +4457,7 @@ export type ApiOperationResult = {
 
 /** Type of operation in the unified update. */
 export type OperationType =
+  | 'CATEGORY_UPDATE'
   | 'PRODUCT_UPDATE'
   | 'VARIANT_UPDATE';
 
@@ -4844,8 +4943,8 @@ export type ApiPricingWidgetPayload = {
 /** A product represents an item that can be sold. */
 export type ApiProduct = ApiNode & {
   __typename?: 'Product';
-  /** The categories this product belongs to. */
-  categories: Array<ApiCategory>;
+  /** Category assignments with relationship metadata. */
+  categoryAssignments: Array<ApiProductCategoryAssignment>;
   /** The date and time when the product was created. */
   createdAt: Scalars['DateTime']['output'];
   /** The date and time when the product was deleted (soft delete). */
@@ -4866,6 +4965,8 @@ export type ApiProduct = ApiNode & {
   media: Array<ApiProductMediaItem>;
   /** The options available for this product. */
   options: Array<ApiProductOption>;
+  /** The primary category assigned to this product. */
+  primaryCategory?: Maybe<ApiCategory>;
   /** The date and time when the product was published, or null if unpublished. */
   publishedAt?: Maybe<Scalars['DateTime']['output']>;
   /** Optimistic locking revision number. Incremented on each update. */
@@ -4961,6 +5062,12 @@ export type ApiProductBulkUpdatePayload = {
   job?: Maybe<ApiProductBulkUpdateJob>;
   /** Validation/execution errors. */
   userErrors: Array<ApiBulkUpdateUserError>;
+};
+
+export type ApiProductCategoryAssignment = {
+  __typename?: 'ProductCategoryAssignment';
+  category: ApiCategory;
+  isPrimary: Scalars['Boolean']['output'];
 };
 
 /** A connection to a list of Product items. */

@@ -158,12 +158,30 @@ export class ProductResolver extends CatalogType<string, Product> {
     return variantIds.length;
   }
 
-  /**
-   * Returns categories for this product
-   */
-  async categories(): Promise<CategoryResolver[]> {
-    const ids = await this.$ctx.loaders.productCategoryIds.load(this.$props);
-    return ids.map((id) => new CategoryResolver(id, this.$ctx));
+  async primaryCategory(): Promise<CategoryResolver | null> {
+    const links = await this.$ctx.loaders.productCategoryLinksByProductId.load(
+      this.$props
+    );
+    const primary = links.find((link) => link.isPrimary);
+    return primary ? new CategoryResolver(primary.categoryId, this.$ctx) : null;
+  }
+
+  async categoryAssignments() {
+    const links = await this.$ctx.loaders.productCategoryLinksByProductId.load(
+      this.$props
+    );
+
+    return [...links]
+      .sort((a, b) => {
+        if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
+        const rank = a.lexoRank.localeCompare(b.lexoRank);
+        if (rank !== 0) return rank;
+        return a.categoryId.localeCompare(b.categoryId);
+      })
+      .map((link) => ({
+        category: new CategoryResolver(link.categoryId, this.$ctx),
+        isPrimary: link.isPrimary,
+      }));
   }
 
   /**

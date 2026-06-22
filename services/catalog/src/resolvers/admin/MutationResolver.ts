@@ -6,6 +6,7 @@ import {
 import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
 import { CatalogType } from "./CatalogType.js";
 import { ProductResolver } from "./ProductResolver.js";
+import type { UserError } from "../../kernel/BaseScript.js";
 
 /**
  * Safely decode a global ID, returning null if invalid
@@ -37,14 +38,18 @@ import {
 } from "../../scripts/product/index.js";
 import {
   CategoryCreateScript,
-  CategoryUpdateScript,
   CategoryDeleteScript,
   CategoryMoveScript,
   CategoryMoveProductScript,
   CategoryRebalanceScript,
-  CategoryUpdateSortScript,
   CategoryAddProductScript,
+  CategoryRemoveProductScript,
 } from "../../scripts/category/index.js";
+import type {
+  CategoryUpdateParams,
+  CategoryUpdateWorkflowInput,
+  CategoryUpdateWorkflowResult,
+} from "../../workflows/dto/CategoryUpdateWorkflowDto.js";
 import {
   TagCreateScript,
   TagUpdateScript,
@@ -171,6 +176,29 @@ import {
 } from "./generated/schemas.js";
 import { ProductBulkUpdateInputSchema } from "./validation/productBulkEditSchema.js";
 
+type CategoryUpdateGraphqlOperations = {
+  handle?: string | null;
+  name?: string | null;
+  content?: {
+    description?: RichTextInput | null;
+    excerpt?: RichTextInput | null;
+  } | null;
+  seo?: {
+    seoTitle?: string | null;
+    seoDescription?: string | null;
+    ogTitle?: string | null;
+    ogDescription?: string | null;
+    ogImageId?: string | null;
+  } | null;
+  status?: "DRAFT" | "PUBLISHED" | null;
+  media?: { fileIds: string[] } | null;
+  hierarchy?: { parentId?: string | null } | null;
+  sort?: {
+    defaultSort: "MANUAL" | "PRICE" | "NEWEST" | "NAME";
+    defaultSortDirection: "asc" | "desc";
+  } | null;
+};
+
 /**
  * Root Mutation resolver for Catalog Service.
  * Decorated with @ApolloMutation to create Apollo-compatible resolver proxy.
@@ -192,6 +220,181 @@ export class MutationResolver extends CatalogType<Record<string, never>> {
  * Does NOT contain inventory mutations (warehouse, stock, dimensions, cost).
  */
 export class CatalogMutationResolver extends CatalogType<Record<string, never>> {
+  private mapCategoryUpdateOperations(
+    operations: CategoryUpdateGraphqlOperations | null | undefined
+  ):
+    | { operations: CategoryUpdateParams | null | undefined }
+    | { userErrors: UserError[] } {
+    if (operations === undefined || operations === null) {
+      return { operations };
+    }
+
+    const userErrors: UserError[] = [];
+
+    const seo =
+      operations.seo === null
+        ? null
+        : operations.seo
+          ? {
+              seoTitle: operations.seo.seoTitle ?? undefined,
+              seoDescription: operations.seo.seoDescription ?? undefined,
+              ogTitle: operations.seo.ogTitle ?? undefined,
+              ogDescription: operations.seo.ogDescription ?? undefined,
+              ogImageId: operations.seo.ogImageId
+                ? safeDecodeGlobalId(
+                    operations.seo.ogImageId,
+                    GlobalIdEntity.File
+                  )
+                : undefined,
+            }
+          : undefined;
+
+    if (operations.seo?.ogImageId && !seo?.ogImageId) {
+      userErrors.push({
+        message: "Invalid Open Graph image ID",
+        field: ["operations", "seo", "ogImageId"],
+        code: "INVALID_ID",
+      });
+    }
+
+    const fileIds: string[] = [];
+    if (operations.media) {
+      for (let index = 0; index < operations.media.fileIds.length; index++) {
+        const decoded = safeDecodeGlobalId(
+          operations.media.fileIds[index],
+          GlobalIdEntity.File
+        );
+        if (!decoded) {
+          userErrors.push({
+            message: "Invalid media file ID",
+            field: ["operations", "media", "fileIds", String(index)],
+            code: "INVALID_ID",
+          });
+        } else {
+          fileIds.push(decoded);
+        }
+      }
+    }
+
+    let hierarchy: CategoryUpdateParams["hierarchy"];
+    if (operations.hierarchy === null) {
+      hierarchy = null;
+    } else if (operations.hierarchy) {
+      hierarchy = {};
+      if (
+        Object.prototype.hasOwnProperty.call(operations.hierarchy, "parentId")
+      ) {
+        const parentId = operations.hierarchy.parentId;
+        if (parentId) {
+          const decoded = safeDecodeGlobalId(parentId, GlobalIdEntity.Category);
+          if (!decoded) {
+            userErrors.push({
+              message: "Invalid parent category ID",
+              field: ["operations", "hierarchy", "parentId"],
+              code: "INVALID_ID",
+            });
+          }
+          hierarchy.parentId = decoded;
+        } else {
+          hierarchy.parentId = null;
+        }
+      }
+    }
+
+    if (userErrors.length > 0) {
+      return { userErrors };
+    }
+
+    return {
+      operations: {
+        handle: operations.handle ?? undefined,
+        name: operations.name ?? undefined,
+        content:
+          operations.content === null
+            ? null
+            : operations.content
+              ? {
+                  description: mapRichTextInput(
+                    operations.content.description
+                  ),
+                  excerpt: mapRichTextInput(operations.content.excerpt),
+                }
+              : undefined,
+        seo,
+        status:
+          operations.status === "PUBLISHED"
+            ? "published"
+            : operations.status === "DRAFT"
+              ? "draft"
+              : undefined,
+        media: operations.media ? { fileIds } : undefined,
+        hierarchy,
+        sort: operations.sort
+          ? {
+              defaultSort: operations.sort.defaultSort.toLowerCase() as
+                | "manual"
+                | "price"
+                | "newest"
+                | "name",
+              defaultSortDirection: operations.sort.defaultSortDirection,
+            }
+          : undefined,
+      },
+    };
+  }
+
+  private async emitProductCategoryUpdated(args: {
+    productIds: readonly string[] | undefined;
+    reason: "assignment" | "rank";
+    categoryIds: string[];
+  }): Promise<void> {
+    const productIds = [...new Set(args.productIds ?? [])];
+    if (productIds.length === 0) return;
+
+    const products = await this.$ctx.kernel.repository.product.getByIds(
+      productIds
+    );
+    const revisionByProductId = new Map(
+      products.map((product) => [product.id, product.revision])
+    );
+
+    for (const productId of productIds) {
+      await this.$ctx.kernel.getServices().broker.runWorkflow(
+        "events.emit",
+        {
+          eventType: "productUpdated",
+          payload: {
+            productId,
+            storeId: this.$ctx.store.id,
+            revision: revisionByProductId.get(productId) ?? 0,
+            product: {
+              categories: {
+                changed: true,
+                reason: args.reason,
+                categoryIds: args.categoryIds,
+              },
+            },
+          },
+          source: "catalog",
+          context: {
+            tenantId: this.$ctx.store.organizationId,
+            userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
+          },
+          subject: { type: "product", id: productId },
+          actor: this.$ctx.hasUser
+            ? { type: "user", id: this.$ctx.user.id }
+            : undefined,
+          emitKey: `product:${productId}`,
+        },
+        {
+          source: "workflow",
+          workflowId: `categoryProduct:${this.$ctx.store.id}:${this.$ctx.requestId}:${productId}`,
+          stepId: "emitProductUpdated",
+        }
+      );
+    }
+  }
+
   // ---- Product Mutations ----
 
   /**
@@ -972,13 +1175,51 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   }) {
     const { input } = args;
 
-    // Decode Global IDs
+    const userErrors: UserError[] = [];
     const parentId = input.parentId
-      ? decodeGlobalIdByType(input.parentId, GlobalIdEntity.Category)
+      ? safeDecodeGlobalId(input.parentId, GlobalIdEntity.Category)
       : undefined;
-    const mediaFileIds = input.mediaFileIds?.map((id) =>
-      decodeGlobalIdByType(id, GlobalIdEntity.File)
-    );
+    if (input.parentId && !parentId) {
+      userErrors.push({
+        message: "Invalid parent category ID",
+        field: ["input", "parentId"],
+        code: "INVALID_ID",
+      });
+    }
+
+    const mediaFileIds: string[] = [];
+    if (input.mediaFileIds) {
+      for (let index = 0; index < input.mediaFileIds.length; index++) {
+        const decoded = safeDecodeGlobalId(
+          input.mediaFileIds[index],
+          GlobalIdEntity.File
+        );
+        if (!decoded) {
+          userErrors.push({
+            message: "Invalid media file ID",
+            field: ["input", "mediaFileIds", String(index)],
+            code: "INVALID_ID",
+          });
+        } else {
+          mediaFileIds.push(decoded);
+        }
+      }
+    }
+
+    const ogImageId = input.seo?.ogImageId
+      ? safeDecodeGlobalId(input.seo.ogImageId, GlobalIdEntity.File)
+      : undefined;
+    if (input.seo?.ogImageId && !ogImageId) {
+      userErrors.push({
+        message: "Invalid Open Graph image ID",
+        field: ["input", "seo", "ogImageId"],
+        code: "INVALID_ID",
+      });
+    }
+
+    if (userErrors.length > 0) {
+      return { category: null, userErrors };
+    }
 
     const result = await this.$ctx.kernel.runScript(CategoryCreateScript, {
       handle: input.handle,
@@ -1004,12 +1245,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
             seoDescription: input.seo.seoDescription ?? undefined,
             ogTitle: input.seo.ogTitle ?? undefined,
             ogDescription: input.seo.ogDescription ?? undefined,
-            ogImageId: input.seo.ogImageId
-              ? decodeGlobalIdByType(input.seo.ogImageId, GlobalIdEntity.File)
-              : undefined,
+            ogImageId,
           }
         : undefined,
-      mediaFileIds,
+      mediaFileIds: input.mediaFileIds ? mediaFileIds : undefined,
       publish: input.publish ?? undefined,
     });
 
@@ -1021,25 +1260,15 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     };
   }
 
-  /**
-   * Update an existing category.
-   */
   async categoryUpdate(args: {
-    input: {
-      id: string;
+    categoryId: string;
+    expectedRevision?: number | null;
+    operations?: {
       handle?: string | null;
-      defaultSort?: "MANUAL" | "PRICE" | "NEWEST" | "NAME" | null;
-      defaultSortDirection?: "asc" | "desc" | null;
       name?: string | null;
-      description?: {
-        text?: string | null;
-        html?: string | null;
-        json?: unknown | null;
-      } | null;
-      excerpt?: {
-        text?: string | null;
-        html?: string | null;
-        json?: unknown | null;
+      content?: {
+        description?: RichTextInput | null;
+        excerpt?: RichTextInput | null;
       } | null;
       seo?: {
         seoTitle?: string | null;
@@ -1048,70 +1277,78 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         ogDescription?: string | null;
         ogImageId?: string | null;
       } | null;
-      mediaFileIds?: string[] | null;
-    };
+      status?: "DRAFT" | "PUBLISHED" | null;
+      media?: { fileIds: string[] } | null;
+      hierarchy?: { parentId?: string | null } | null;
+      sort?: {
+        defaultSort: "MANUAL" | "PRICE" | "NEWEST" | "NAME";
+        defaultSortDirection: "asc" | "desc";
+      } | null;
+    } | null;
   }) {
-    const { input } = args;
+    let categoryId: string;
+    try {
+      categoryId = decodeGlobalIdByType(
+        args.categoryId,
+        GlobalIdEntity.Category
+      );
+    } catch {
+      return {
+        category: null,
+        operationResults: [],
+        userErrors: [
+          {
+            message: "Invalid category ID",
+            field: ["categoryId"],
+            code: "INVALID_ID",
+          },
+        ],
+      };
+    }
 
-    const id = decodeGlobalIdByType(input.id, GlobalIdEntity.Category);
-    const mediaFileIds = input.mediaFileIds?.map((id) =>
-      decodeGlobalIdByType(id, GlobalIdEntity.File)
-    );
+    const mapped = this.mapCategoryUpdateOperations(args.operations);
+    if ("userErrors" in mapped) {
+      return {
+        category: null,
+        operationResults: [],
+        userErrors: mapped.userErrors,
+      };
+    }
 
-    const result = await this.$ctx.kernel.runScript(CategoryUpdateScript, {
-      id,
-      handle: input.handle ?? undefined,
-      defaultSort: input.defaultSort?.toLowerCase() as
-        | "manual"
-        | "price"
-        | "newest"
-        | "name"
-        | undefined,
-      defaultSortDirection: (input.defaultSortDirection ?? undefined) as
-        | "asc"
-        | "desc"
-        | undefined,
-      name: input.name ?? undefined,
-      description: input.description === null
-        ? null
-        : input.description
-        ? {
-            text: input.description.text ?? "",
-            html: input.description.html ?? "",
-            json: (input.description.json ?? {}) as Record<string, unknown>,
-          }
-        : undefined,
-      excerpt:
-        input.excerpt === null
-          ? null
-          : input.excerpt
-          ? {
-              text: input.excerpt.text ?? "",
-              html: input.excerpt.html ?? "",
-              json: (input.excerpt.json ?? {}) as Record<string, unknown>,
-            }
-          : undefined,
-      seo:
-        input.seo === null
-          ? null
-          : input.seo
-          ? {
-              seoTitle: input.seo.seoTitle ?? undefined,
-              seoDescription: input.seo.seoDescription ?? undefined,
-              ogTitle: input.seo.ogTitle ?? undefined,
-              ogDescription: input.seo.ogDescription ?? undefined,
-              ogImageId: input.seo.ogImageId
-                ? decodeGlobalIdByType(input.seo.ogImageId, GlobalIdEntity.File)
-                : undefined,
-            }
-          : undefined,
-      mediaFileIds,
-    });
+    const workflowInput: CategoryUpdateWorkflowInput = {
+      categoryId,
+      expectedRevision: args.expectedRevision ?? undefined,
+      operations: mapped.operations,
+      context: {
+        organizationId: this.$ctx.store.organizationId,
+        projectId: this.$ctx.store.id,
+        storeId: this.$ctx.store.id,
+        userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
+        locale: this.$ctx.locale ?? "uk",
+      },
+    };
+
+    const result = (await this.$ctx.kernel
+      .getServices()
+      .broker.runWorkflow(
+        "catalog.categoryUpdate",
+        workflowInput,
+        {
+          source: "workflow",
+          workflowId: `categoryUpdate:${categoryId}:${this.$ctx.requestId}`,
+          stepId: "start",
+        }
+      )) as CategoryUpdateWorkflowResult;
 
     return {
       category: result.category
         ? new CategoryResolver(result.category.id, this.$ctx)
         : null,
+      operationResults: result.operationResults.map((item) => ({
+        type: "CATEGORY_UPDATE",
+        applied: item.applied,
+        errors: item.errors,
+      })),
       userErrors: result.userErrors,
     };
   }
@@ -1181,6 +1418,14 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       beforeProductId,
     });
 
+    if (result.userErrors.length === 0) {
+      await this.emitProductCategoryUpdated({
+        productIds: result.affectedProductIds,
+        reason: "rank",
+        categoryIds: [categoryId],
+      });
+    }
+
     return {
       category: result.category
         ? new CategoryResolver(result.category.id, this.$ctx)
@@ -1213,6 +1458,14 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       productId,
     });
 
+    if (result.userErrors.length === 0) {
+      await this.emitProductCategoryUpdated({
+        productIds: result.affectedProductIds,
+        reason: "assignment",
+        categoryIds: [categoryId],
+      });
+    }
+
     return {
       category: result.category
         ? new CategoryResolver(result.category.id, this.$ctx)
@@ -1238,6 +1491,14 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       categoryId,
     });
 
+    if (result.userErrors.length === 0) {
+      await this.emitProductCategoryUpdated({
+        productIds: result.affectedProductIds,
+        reason: "rank",
+        categoryIds: [categoryId],
+      });
+    }
+
     return {
       category: result.category
         ? new CategoryResolver(result.category.id, this.$ctx)
@@ -1246,31 +1507,37 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     };
   }
 
-  async categoryUpdateSort(args: {
+  async categoryRemoveProduct(args: {
     input: {
-      id: string;
-      defaultSort: "MANUAL" | "PRICE" | "NEWEST" | "NAME";
-      defaultSortDirection: "asc" | "desc";
+      categoryId: string;
+      productId: string;
     };
   }) {
-    let id: string;
+    const { input } = args;
+    let categoryId: string;
+    let productId: string;
     try {
-      id = decodeGlobalIdByType(args.input.id, GlobalIdEntity.Category);
+      categoryId = decodeGlobalIdByType(input.categoryId, GlobalIdEntity.Category);
+      productId = decodeGlobalIdByType(input.productId, GlobalIdEntity.Product);
     } catch {
       return {
         category: null,
         userErrors: [{ message: "Invalid ID format", code: "INVALID_ID" }],
       };
     }
-    const result = await this.$ctx.kernel.runScript(CategoryUpdateSortScript, {
-      id,
-      defaultSort: args.input.defaultSort.toLowerCase() as
-        | "manual"
-        | "price"
-        | "newest"
-        | "name",
-      defaultSortDirection: args.input.defaultSortDirection,
+
+    const result = await this.$ctx.kernel.runScript(CategoryRemoveProductScript, {
+      categoryId,
+      productId,
     });
+
+    if (result.userErrors.length === 0) {
+      await this.emitProductCategoryUpdated({
+        productIds: result.affectedProductIds,
+        reason: "assignment",
+        categoryIds: [categoryId],
+      });
+    }
 
     return {
       category: result.category
