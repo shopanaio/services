@@ -167,7 +167,12 @@ filters/sorts запрещены в этом cutover.
 `categoryRelayQuery` через `services/catalog/scripts/generate-filters.ts`, аналогично текущим
 `CategoryProductWhereInput`, `VariantWhereInput` и `VariantOrderByInput`.
 
-Expected generated shape:
+Important: `createQuery(category).include(["id"])` does not limit filter/order fields. It only
+forces `id` into selected relay rows for cursor/node mapping. Public generated inputs must exclude
+repository-owned fields `projectId` и `deletedAt` through `generateWhereInputType` /
+`generateOrderByInputType` `excludeFields`; repository добавляет эти filters самостоятельно.
+
+Expected public generated shape:
 
 ```graphql
 input CategoryWhereInput {
@@ -228,6 +233,9 @@ Implementation notes:
   корректно моделирует join без дублирования category rows.
 - ID values in generated `IDFilter` fields, включая `id` и `parentId`, нужно декодировать из
   global category IDs перед repository access.
+- `deletedAt` намеренно отсутствует в public generated `CategoryWhereInput` / `CategoryOrderField`,
+  хотя `categoryRelayQuery` может включать его как internal field для repository-owned soft-delete
+  filter.
 - `totalCount` должен учитывать те же filters, что и connection.
 - `hasPreviousPage`, `last` и `before` должны быть реализованы, а не hardcoded.
 
@@ -498,8 +506,10 @@ Implementation notes:
 Required capabilities:
 
 - `first/after/last/before`
-- generated `CategoryWhereInput` over fields exposed by `categoryRelayQuery`
-- generated `CategoryOrderByInput` / `CategoryOrderField` over fields exposed by `categoryRelayQuery`
+- generated public `CategoryWhereInput` from `categoryRelayQuery` using
+  `generateWhereInputType(..., { excludeFields: ["projectId", "deletedAt"] })`
+- generated public `CategoryOrderByInput` / `CategoryOrderField` from `categoryRelayQuery` using
+  `generateOrderByInputType(..., { excludeFields: ["projectId", "deletedAt"] })`
 - repository-owned tenant filter by `projectId`
 - default soft-delete filter `{ deletedAt: { _is: null } }`, always applied by the repository,
   matching `ProductRepository.getConnection`
@@ -848,8 +858,8 @@ export const categoryRelayQuery = createRelayQuery(
     repository call, including recursive logical filters and array operators;
   - root categories выражаются только generated filter `{ parentId: { _is: null } }`;
   - published/draft фильтруется только generated `publishedAt` null filters;
-  - generated `CategoryOrderByInput.field` соответствует drizzle-query field names from
-    `categoryRelayQuery`.
+  - generated `CategoryOrderByInput.field` соответствует public field names emitted by
+    `generateOrderByInputType(categoryRelayQuery, "Category", { excludeFields: ["projectId", "deletedAt"] })`.
 
 Hierarchy repository fix:
 
@@ -1371,8 +1381,9 @@ Drizzle-query generated schema requirements:
 - Generated files under `services/catalog/src/api/graphql-admin/schema/__generated__/` are the only
   schema owner for `CategoryWhereInput`, `CategoryOrderField` and `CategoryOrderByInput`.
 - Manual schema files must not define category list filter/order types.
-- Generated `CategoryWhereInput` must expose only fields known to `categoryRelayQuery`, excluding
-  repository-owned fields such as `projectId`.
+- Generated `CategoryWhereInput` must expose only fields emitted by
+  `generateWhereInputType(categoryRelayQuery, "Category", { excludeFields: ["projectId", "deletedAt"] })`.
+- Generated `CategoryOrderField` must not expose `projectId` or `deletedAt`.
 - Generated `CategoryOrderByInput` must use generated `CategoryOrderField`.
 - Search the composed source schema for duplicate type definitions before exporting/composing the
   subgraph.
@@ -1444,11 +1455,15 @@ rg 'CategoryUpdateInputSchema\\(\\).*id:' services/catalog/src/resolvers/admin/g
 rg 'categoryUpdateV2|@deprecated' services/catalog/src/api/graphql-admin/schema services/catalog/src/resolvers/admin
 rg 'input CategoryWhereInput|input CategoryOrderByInput|enum CategoryOrderField' services/catalog/src/api/graphql-admin/schema/__generated__/filters.graphql
 rg 'input CategoryWhereInput|input CategoryOrderByInput|enum CategoryOrderField' services/catalog/src/api/graphql-admin/schema --glob '!__generated__/filters.graphql'
+rg -U 'input CategoryWhereInput \{[^}]*deletedAt' services/catalog/src/api/graphql-admin/schema/__generated__/filters.graphql
+rg -U 'enum CategoryOrderField \{[^}]*deletedAt' services/catalog/src/api/graphql-admin/schema/__generated__/filters.graphql
 ```
 
 The old/deprecated category update checks above must return no matches. The category query input
 check must show exactly one generated schema owner for each public category query type, with no
-manual definitions.
+manual definitions. The generated `CategoryWhereInput` / `CategoryOrderField` `deletedAt` checks must
+return no matches; `deletedAt` remains repository-owned for category list. Other generated inputs in
+the same file, such as `CategoryProductWhereInput`, may still expose their own `deletedAt` filters.
 
 In-repo GraphQL consumer cutover:
 
