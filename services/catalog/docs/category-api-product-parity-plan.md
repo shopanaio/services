@@ -336,11 +336,15 @@ Workflow behavior:
 - Запускать только scripts, нужные для переданных fields, но не превращать каждый внутренний script
   в отдельный public `operationResults` item. Script split остается implementation detail.
 - Агрегировать ошибки scripts в `CATEGORY_UPDATE.errors` и в общий `userErrors`.
-- Эмитить `categoryUpdated` с partial delta только после successful commit.
+- Для sections, которые меняют product-index-affecting category data, после successful commit
+  эмитить `productUpdated` fan-out для affected products тем же путем, что `ProductUpdateWorkflow`.
+- `categoryUpdated` не является обязательным indexing contract для этого cutover; если он остается для
+  category-domain consumers, эмитить его только после successful commit.
 - Возвращать updated category resolver только при successful commit.
 - If any requested section returns validation/business errors, roll back all category writes and the
   revision acquire, return `CATEGORY_UPDATE.applied: false`, duplicate errors into aggregate
-  `userErrors`, do not emit `categoryUpdated`, and do not return a new revision for UI cache use.
+  `userErrors`, do not emit `productUpdated`/`categoryUpdated`, and do not return a new revision for
+  UI cache use.
 
 Suggested workflow DTO:
 
@@ -763,13 +767,19 @@ Product category changes должны обновлять product search indexes,
 Required event behavior:
 
 - Product category assignment через `productUpdate.categories` эмитит `productUpdated`.
-- Category product add/remove/sync эмитит product update events для affected products или напрямую schedules product index sync.
-- Category handle/name/status changes должны schedule category-aware product index sync для продуктов в category, если category handles или searchable category labels denormalized.
+- Category product add/remove/sync/reorder эмитит `productUpdated` для каждого affected product после
+  successful category/category-link write.
+- Category handle/name/status/hierarchy changes эмитят `productUpdated` fan-out для продуктов в
+  category, если category handles, searchable category labels, visibility или hierarchy denormalized.
 
-Preferred first implementation:
+Final implementation:
 
-- Для product category assignment использовать существующую `productUpdated` обработку через `ProductUpdateWorkflow`.
-- Для category-centric bulk changes запускать `SyncProductIndexScript` для affected products после transaction commit.
+- Использовать тот же путь, что `ProductUpdateWorkflow`: emit `productUpdated`;
+  `CatalogEventHandlers.handleProductUpdated` запускает `SyncProductIndexScript`.
+- Не добавлять direct `SyncProductIndexScript` scheduling как второй финальный путь для
+  category/category-link writes.
+- Category scripts возвращают affected product IDs и category/product delta; resolver/workflow layer
+  эмитит `productUpdated` после commit/script success.
 
 ## Generated Schema
 
@@ -1223,7 +1233,9 @@ Workflow/script cutover acceptance criteria:
 - Section validation failure returns one `CATEGORY_UPDATE` result with `applied: false`, duplicated
   aggregate `userErrors`, no category resolver payload, no event, no revision bump and no partial
   writes.
-- Successful category update emits/schedules `categoryUpdated` only after commit with partial delta.
+- Successful category update emits `productUpdated` fan-out after commit when changed category fields
+  affect product search/index/cache data. If `categoryUpdated` is retained for category-domain
+  consumers, it is emitted after commit and is not the product index refresh path.
 - Product category replace-set is implemented through `ProductUpdateWorkflow` and does not bump
   product revision independently.
 - Category remove/sync scripts return affected product IDs so event/index cutover can handle search
@@ -1585,7 +1597,8 @@ Files to update:
 - `services/catalog/src/scripts/category/CategoryProductsSyncScript.ts`;
 - `services/catalog/src/scripts/search-index/SyncProductIndexScript.ts` only if product/category
   index payload shape changes;
-- `services/catalog/src/handlers/index.ts` if new event types need handlers;
+- `services/catalog/src/handlers/index.ts` only if existing `productUpdated` handler payload handling
+  needs category delta support;
 - repository methods for affected product discovery from category/category links.
 
 Product category assignment event contract:
@@ -1616,53 +1629,29 @@ categories?: {
 
 Category update event contract:
 
-- Add `CategoryUpdatedPayload` and `CategoryUpdatedEvent` when unified category update emits
-  `categoryUpdated`:
-
-```ts
-export interface CategoryUpdatedPayload {
-  categoryId: string;
-  storeId: string;
-  revision: number;
-  category?: {
-    handle?: string;
-    name?: string;
-    status?: "draft" | "published";
-    seo?: { title?: string | null; description?: string | null };
-    media?: { fileIds: string[] };
-    hierarchy?: { parentId: string | null };
-    sort?: { defaultSort: string; defaultSortDirection: string };
-  };
-  affectedProductIds?: string[];
-}
-
-export interface CategoryUpdatedEvent
-  extends DomainEvent<"categoryUpdated", CategoryUpdatedPayload> {}
-```
-
-- `CategoryUpdateWorkflow` emits/schedules `categoryUpdated` only after atomic update commit
-  succeeds.
-- Empty update, revision conflict and section validation failure must not emit `categoryUpdated`.
-- Category event `affectedProductIds` must be populated when changed fields can affect product
-  denormalized search data:
+- Do not add `categoryUpdated` as the product-index refresh path in this cutover.
+- `CategoryUpdateWorkflow` must discover affected product IDs and emit existing `productUpdated`
+  events after atomic update commit succeeds when changed fields can affect product denormalized
+  search data:
   - `handle`;
   - translated `name` if product search stores searchable category labels;
   - `status` if product search or product visibility depends on category publication;
   - hierarchy if product search stores category path/breadcrumbs.
-- If no current consumer needs `categoryUpdated`, the workflow must still schedule product index
-  refresh for affected products directly after commit. Do not emit an event that no handler or
-  follow-up workflow consumes for required search freshness.
+- Empty update, revision conflict and section validation failure must not emit `productUpdated`.
+- For each affected product, the emitted `productUpdated` payload should include the current category
+  delta under `ProductFieldChanges.categories`; `SyncProductIndexScript` reads committed
+  `product_category` and category rows, so the event does not need to carry full denormalized search
+  state.
+- If `categoryUpdated` is kept for category-domain consumers, it is optional, emitted only after
+  commit, and must not replace `productUpdated` for product search freshness.
 
 Category-centric product management events/indexing:
 
 - `CategoryRemoveProductScript` and `CategoryProductsSyncScript` must return affected product IDs.
-- After successful script commit, resolver/workflow layer must do one of the following:
-  1. emit `productUpdated` for each affected product with a category delta; preferred when event volume
-     is small and existing `productUpdated` handler should own indexing;
-  2. schedule/run `SyncProductIndexScript` for each affected product after commit; preferred for bulk
-     category sync to avoid misleading productUpdated deltas or excessive event fan-out.
-- Do not run `SyncProductIndexScript` inside the same database transaction that mutates
-  `product_category`; it must observe committed link state.
+- After successful script commit, resolver/workflow layer emits `productUpdated` for each affected
+  product with a category delta.
+- Do not run or schedule `SyncProductIndexScript` directly from category/category-link writes;
+  `CatalogEventHandlers.handleProductUpdated` owns product index refresh.
 - Existing category-centric operations retained in the final API must use the same rule:
   - `categoryAddProduct`;
   - `categoryMoveProduct`;
@@ -1690,14 +1679,14 @@ getProductIdsByCategoryIds(categoryIds: readonly string[]): Promise<Map<string, 
 
 After-commit scheduling rules:
 
-- Event emission or index sync scheduling happens after successful commit of the write transaction.
+- `productUpdated` emission happens after successful commit of the write transaction.
 - If a workflow owns the write, schedule follow-up event/index work in a later workflow step after
   the atomic write step returns success.
 - If a script is resolver-backed and transactional, do not emit from inside the transactional script.
   Return affected IDs to resolver/service layer and schedule follow-up work after script success.
 - Follow-up index sync failures should be retryable and must not roll back the already committed
-  category/category-link write. Use existing event handler retry behavior or a retryable workflow
-  step.
+  category/category-link write. Use existing `productUpdated` handler retry behavior or a retryable
+  workflow step.
 
 Search-index acceptance criteria:
 
@@ -1712,9 +1701,9 @@ Search-index acceptance criteria:
 - No retained category-centric operation has add/move-only event behavior that ignores remove/sync.
 - No event/index side effect is emitted for failed category updates or rolled-back writes.
 - Event payload type definitions, workflow emitted payloads and handlers agree on field names.
-- The final implementation has one documented path for category-link index refresh: either
-  `productUpdated` fan-out or direct `SyncProductIndexScript` scheduling after commit. Mixed paths are
-  allowed only when bulk vs single-item behavior is explicitly documented.
+- The final implementation has one documented path for category-link index refresh:
+  `productUpdated` fan-out. Direct `SyncProductIndexScript` scheduling is not part of the final
+  category/category-link write path.
 
 ### 7. Verification
 
@@ -1731,7 +1720,7 @@ Manual/API verification checklist:
 - Verify empty `categoryUpdate.operations` returns `EMPTY_UPDATE` and does not increment `revision`.
 - Verify revision conflict returns `REVISION_CONFLICT`.
 - Verify validation failure in one category update section does not apply any other requested section,
-  does not increment `revision`, and does not emit `categoryUpdated`.
+  does not increment `revision`, and does not emit `productUpdated`/`categoryUpdated`.
 - Move category through unified hierarchy update and verify descendant `path`/`depth` updates happen
   in `catalog.category`.
 - Assign product categories through `productUpdate.categories` with replace-set semantics.
