@@ -474,6 +474,9 @@ Implementation notes:
 ### Category Connection
 
 Заменить текущий hand-rolled `getConnection` на relay query на базе `@shopana/drizzle-query`.
+Для списка категорий использовать dedicated read view, созданный специально под category list.
+Не строить root category list напрямую от `catalog.category`, потому что sorting/search требуют
+стабильной locale-aware name projection и агрегированного `productsCount`.
 
 Required capabilities:
 
@@ -488,17 +491,58 @@ Required capabilities:
 
 Concrete integration instructions:
 
-1. Add dedicated root category query builders near the existing category product relay query:
+1. Add dedicated category list Drizzle view and root query builders near the existing category
+   product relay query. `categoryRelayQuery` must be built from the Drizzle view object, not from
+   `catalog.category` plus ad-hoc joins in repository code:
 
 ```ts
-const categoryQuery = createQuery(category).maxLimit(100).defaultLimit(20);
+export const categoryList = catalogSchema.view("category_list").as((qb) =>
+  qb
+    .select({
+      projectId: category.projectId,
+      id: category.id,
+      parentId: category.parentId,
+      handle: category.handle,
+      publishedAt: category.publishedAt,
+      createdAt: category.createdAt,
+      updatedAt: category.updatedAt,
+      deletedAt: category.deletedAt,
+      depth: category.depth,
+      path: category.path,
+      locale: categoryTranslation.locale,
+      name: categoryTranslation.name,
+      productsCount: sql<number>`COALESCE(${categoryProductsCount.productsCount}, 0)`.as("products_count"),
+    })
+    .from(category)
+    .leftJoin(
+      categoryTranslation,
+      sql`${categoryTranslation.projectId} = ${category.projectId}
+        AND ${categoryTranslation.categoryId} = ${category.id}`,
+    )
+    .leftJoin(
+      categoryProductsCount,
+      sql`${categoryProductsCount.projectId} = ${category.projectId}
+        AND ${categoryProductsCount.categoryId} = ${category.id}`,
+    )
+);
+```
+
+The actual view definition must use the existing Drizzle model style. If Drizzle cannot express the
+`productsCount` aggregate inline cleanly, add a small supporting Drizzle view for category product
+counts and join it from `categoryList`. The generated SQL migration must create the same database
+view(s). `categoryList` must include only fields required for category list filtering, sorting,
+cursor building and node lookup, and it must include `locale` so the repository can scope category
+name search/sort to the current locale.
+
+```ts
+const categoryListQuery = createQuery(categoryList).maxLimit(100).defaultLimit(20);
 
 export const categoryRelayQuery = createRelayQuery(
-  createQuery(category).include(["id"]).maxLimit(100).defaultLimit(20),
+  createQuery(categoryList).include(["id"]).maxLimit(100).defaultLimit(20),
   { name: "category", tieBreaker: "id" },
 );
 
-export type CategoryQueryInput = InferExecuteOptions<typeof categoryQuery>;
+export type CategoryQueryInput = InferExecuteOptions<typeof categoryListQuery>;
 export type CategoryRelayInput = InferRelayInput<typeof categoryRelayQuery>;
 ```
 
@@ -509,11 +553,13 @@ export type CategoryRelayInput = InferRelayInput<typeof categoryRelayQuery>;
 ```ts
 async getConnection(args: CategoryRelayInput): Promise<CategoryConnectionResult> {
   const { where, orderBy, ...paginationArgs } = args;
+  const hasDeletedAtFilter = where && "deletedAt" in where;
 
   const mergedWhere: CategoryRelayInput["where"] = {
     _and: [
       { projectId: { _eq: this.storeId } },
-      { deletedAt: { _is: null } },
+      { locale: { _eq: this.locale } },
+      ...(hasDeletedAtFilter ? [] : [{ deletedAt: { _is: null } }]),
       ...(where ? [where] : []),
     ],
   };
@@ -553,16 +599,15 @@ async getConnection(args: CategoryRelayInput): Promise<CategoryConnectionResult>
 - `where.deletedAt` must be opt-in. Default category list keeps `{ deletedAt: { _is: null } }`.
 - `orderBy` must be converted from GraphQL enum names to drizzle-query field names.
 
-4. Implement category search with drizzle-query instead of repository-local SQL string assembly:
+4. Implement category search with drizzle-query against the dedicated category list view instead of
+   repository-local SQL string assembly:
 
 - Search must match category `handle`.
-- Search must match translated category `name`.
-- If direct filtering across `categoryTranslation` requires joins, define a `categoryTranslationQuery`
-  with `createQuery(categoryTranslation, ...)` and add a `translation` join field to the root category
-  query builder.
-- If translated name search needs locale scoping, include current `this.locale` in the search filter.
-- If `PRODUCTS_COUNT` sorting/filtering cannot be expressed through the base table, introduce a Drizzle
-  view with computed `productsCount` and build `categoryRelayQuery` from that view.
+- Search must match translated category `name` from the current locale row in `category_list`.
+- Repository-level `mergedWhere` must always include `{ locale: { _eq: this.locale } }` for
+  `category_list` queries so each category has one list row and cursor pagination stays stable.
+- `PRODUCTS_COUNT` sorting uses the view's `productsCount` field. Do not compute products count
+  with per-row subqueries in the list resolver.
 
 5. `totalCount` must always use the same `mergedWhere` as the relay query:
 
@@ -572,12 +617,15 @@ categoryRelayQuery.count(this.connection, { where: mergedWhere });
 
 Do not use the existing unfiltered `count()` method for connection `totalCount`.
 
-6. Keep tenant and soft-delete constraints inside repository-level `mergedWhere` so consumers cannot omit them:
+6. Keep tenant and locale constraints inside repository-level `mergedWhere` so consumers cannot omit
+   them. Keep the default soft-delete constraint there too, but skip it when `where.deletedAt` is
+   explicitly provided:
 
 ```ts
 _and: [
   { projectId: { _eq: this.storeId } },
-  { deletedAt: { _is: null } },
+  { locale: { _eq: this.locale } },
+  ...(hasDeletedAtFilter ? [] : [{ deletedAt: { _is: null } }]),
   ...(where ? [where] : []),
 ]
 ```
@@ -686,6 +734,7 @@ Preferred first implementation:
 ### 2. Migration And Repository Cutover
 
 - Добавить database migration для `category.revision`.
+- Добавить database migration/model для dedicated `category_list` view.
 - Добавить primary category uniqueness migration.
 - Реализовать full Relay category connection на `@shopana/drizzle-query`.
 - Удалить ручной cursor handling из `CategoryRepository.getConnection`.
