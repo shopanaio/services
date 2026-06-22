@@ -103,8 +103,9 @@ ALTER TABLE catalog.category
 ```
 
 Каждый category update workflow должен использовать product-style optimistic locking через revision
-compare-and-swap, но category update имеет более строгую all-or-nothing семантику, потому что наружу
-возвращается один public `CATEGORY_UPDATE` result.
+compare-and-swap, но category update имеет более строгую all-or-nothing семантику. Для requested
+sections наружу возвращается один public `OperationResult` с `type: CATEGORY_UPDATE`; no-op updates
+возвращают `operationResults: []`, как `productUpdate`.
 
 ### Product Category Relationship Metadata
 
@@ -297,39 +298,32 @@ input CategoryUpdateInput {
   sort: CategorySortInput
 }
 
-enum CategoryUpdateOperationType {
-  CATEGORY_UPDATE
-}
-
-type CategoryOperationResult {
-  type: CategoryUpdateOperationType!
-  applied: Boolean!
-  errors: [GenericUserError!]!
-}
-
 type CategoryUpdatePayload {
   category: Category
-  operationResults: [CategoryOperationResult!]!
+  operationResults: [OperationResult!]!
   userErrors: [GenericUserError!]!
+}
+
+extend enum OperationType {
+  CATEGORY_UPDATE
 }
 
 type CatalogMutation {
   categoryUpdate(
     categoryId: ID!
-    operations: CategoryUpdateInput!
     expectedRevision: Int
+    operations: CategoryUpdateInput
   ): CategoryUpdatePayload!
 }
 ```
 
 Workflow behavior:
 
-- `operations` обязателен на GraphQL уровне, как часть нового публичного contract. Missing
-  `operations` должен отсекаться GraphQL validation, потому что argument non-null.
-- Пустой `operations` object без requested sections должен копировать текущее no-op поведение
+- `operations` nullable на GraphQL уровне, как в `productUpdate`. Missing, `null` или пустой
+  `operations` object без requested sections должен копировать текущее no-op поведение
   `ProductUpdateWorkflow`: выполнить revision compare-and-swap, инкрементить `revision` при
   successful CAS, не выполнять section scripts, вернуть updated category payload,
-  один `CATEGORY_UPDATE` result с `applied: true`, `userErrors: []`, не эмитить
+  `operationResults: []`, `userErrors: []`, не эмитить
   `productUpdated`/`categoryUpdated`.
 - Захватить category revision через compare-and-swap до применения update sections.
 - CAS и все requested category sections должны быть atomic as a unit: либо все requested sections
@@ -338,8 +332,9 @@ Workflow behavior:
 - Копировать product-style no-op update behavior для пустого `operations`, но не копировать текущую
   partial-apply семантику `ProductUpdateWorkflow`, где отдельные operation errors могут вернуться
   после частично примененных изменений.
-- Сформировать один workflow operation result типа `CATEGORY_UPDATE`, как `ProductUpdateWorkflow`
-  формирует `PRODUCT_UPDATE` для product-level fields.
+- Если `operations` содержит хотя бы один requested section, сформировать один workflow operation
+  result типа `CATEGORY_UPDATE`, как `ProductUpdateWorkflow` формирует `PRODUCT_UPDATE` для
+  product-level fields.
 - Запускать только scripts, нужные для переданных fields, но не превращать каждый внутренний script
   в отдельный public `operationResults` item. Script split остается implementation detail.
 - Агрегировать ошибки scripts в `CATEGORY_UPDATE.errors` и в общий `userErrors`.
@@ -359,7 +354,7 @@ Suggested workflow DTO:
 interface CategoryUpdateWorkflowInput {
   categoryId: string;
   expectedRevision?: number;
-  operations: CategoryUpdateParams;
+  operations?: CategoryUpdateParams | null;
   context: WorkflowContext;
 }
 
@@ -383,11 +378,11 @@ interface CategoryUpdateParams {
 
 interface CategoryUpdateWorkflowResult {
   category: { id: string; revision: number } | null;
-  operationResults: CategoryOperationResult[];
+  operationResults: OperationResult[];
   userErrors: UserError[];
 }
 
-interface CategoryOperationResult {
+interface OperationResult {
   type: "categoryUpdate";
   applied: boolean;
   errors: UserError[];
@@ -396,11 +391,10 @@ interface CategoryOperationResult {
 
 Operation result semantics:
 
-- `operations` в GraphQL contract обязателен. Missing `operations` является GraphQL validation
-  error и не доходит до resolver/workflow.
-- Empty object является no-op update: после successful revision check workflow возвращает
-  updated category payload с новой revision, один `CATEGORY_UPDATE` result с `applied: true`,
-  `userErrors: []` и не эмитит events.
+- `operations` в GraphQL contract nullable, как в `productUpdate`. Missing, `null` или empty object
+  является no-op update: после successful revision check workflow возвращает
+  updated category payload с новой revision, `operationResults: []`, `userErrors: []` и не эмитит
+  events.
 - Если `operations` передан, содержит хотя бы один requested section и прошел revision check,
   workflow возвращает ровно один `CATEGORY_UPDATE` result.
 - `CATEGORY_UPDATE.applied` равен `true`, только если все requested sections применились успешно.
@@ -707,7 +701,7 @@ entity-specific файлы:
   - заменить `CatalogQuery.categories(first, after, last, before)` на финальную signature с
     `where: CategoryWhereInput` и `orderBy: [CategoryOrderByInput!]`;
   - заменить `CatalogMutation.categoryUpdate(input: CategoryUpdateInput!)` на
-    `categoryUpdate(categoryId: ID!, operations: CategoryUpdateInput!, expectedRevision: Int)`;
+    `categoryUpdate(categoryId: ID!, expectedRevision: Int, operations: CategoryUpdateInput)`;
   - добавить `categoryRemoveProduct(input: CategoryRemoveProductInput!)`;
   - не оставлять `categoryUpdateV2`, deprecated aliases или compatibility wrapper вокруг старой
     формы `categoryUpdate(input: ...)`.
@@ -720,10 +714,11 @@ entity-specific файлы:
     которые generator не может выразить;
   - заменить старый `CategoryUpdateInput` с embedded `id` на section-based input без `id`;
   - добавить `CategoryContentInput`, `CategoryMediaInput`, `CategoryHierarchyInput`,
-    `CategorySortInput`, `CategoryStatus`, `CategoryUpdateOperationType`,
-    `CategoryOperationResult`;
+    `CategorySortInput`, `CategoryStatus`;
+  - расширить общий `OperationType` значением `CATEGORY_UPDATE` вместо добавления отдельного
+    category-specific operation result type;
   - расширить `CategoryUpdatePayload` полем
-    `operationResults: [CategoryOperationResult!]!`;
+    `operationResults: [OperationResult!]!`;
   - добавить `CategoryRemoveProductInput`, `CategoryRemoveProductPayload`;
   - оставить `CategoryProductEdge` в форме `{ node: Product!, cursor: String! }` без
     product-category metadata fields.
@@ -908,7 +903,8 @@ Files to add/update:
   - `CategoryUpdateWorkflowInput`;
   - `CategoryUpdateParams`;
   - `CategoryUpdateWorkflowResult`;
-  - `CategoryOperationResult`;
+  - `OperationResult` compatible with product workflow result shape, with internal
+    `type: "categoryUpdate"`;
   - `CategoryChanges`;
   - reuse/import shared `WorkflowContext` shape compatible with product workflow context.
 - `src/workflows/CategoryUpdateWorkflow.ts`:
@@ -937,14 +933,12 @@ Unified category update workflow behavior:
   - `operations.hierarchy.parentId`;
   - `operations.media.fileIds`;
   - `operations.seo.ogImageId`.
-- Missing `operations` is rejected by GraphQL validation because the argument is non-null.
-
-- Empty `operations` object follows current `ProductUpdateWorkflow` no-op semantics:
+- Missing, `null`, or empty `operations` follows current `ProductUpdateWorkflow` no-op semantics:
 
 ```ts
 {
   category: { id: input.categoryId, revision },
-  operationResults: [{ type: "categoryUpdate", applied: true, errors: [] }],
+  operationResults: [],
   userErrors: [],
 }
 ```
@@ -986,8 +980,8 @@ Atomic implementation requirement:
     1. load category scoped by current project;
     2. detect whether requested sections are present;
     3. perform revision compare-and-swap inside the transaction;
-    4. for no-op updates, return the updated `{ id, revision }` and one successful
-       `categoryUpdate` operation result without running section scripts;
+    4. for no-op updates, return the updated `{ id, revision }`, `operationResults: []` and
+       `userErrors: []` without running section scripts;
     5. run requested section scripts or internal functions using transaction-aware repositories;
     6. aggregate section errors;
     7. if any section has user errors, signal rollback before commit and convert the rollback marker
@@ -1092,7 +1086,7 @@ Workflow/script cutover acceptance criteria:
 - `categoryUpdate` public resolver path is: GraphQL resolver -> `catalog.categoryUpdate` workflow ->
   one atomic category update step/script.
 - Empty update returns updated category payload, increments revision after successful CAS, returns
-  one successful `CATEGORY_UPDATE` operation result, and emits no events.
+  `operationResults: []`, `userErrors: []`, and emits no events.
 - Revision conflict returns no `operationResults`.
 - Successful update with at least one requested section returns one `CATEGORY_UPDATE` result with
   `applied: true`.
@@ -1344,14 +1338,18 @@ Generated files that must be updated:
 
 ```ts
 categoryId: Scalars["ID"]["input"];
-operations: CategoryUpdateInput;
 expectedRevision?: InputMaybe<Scalars["Int"]["input"]>;
+operations?: InputMaybe<CategoryUpdateInput>;
 ```
 
 - `CatalogMutationCategoryUpdateArgs` no longer has `input`.
 - `CategoryUpdateInput` no longer has `id`.
-- `CategoryUpdatePayload` includes `operationResults`.
-- `CategoryOperationResult` and `CategoryUpdateOperationType` are generated.
+- `CategoryUpdatePayload.operationResults` uses the shared generated `OperationResult` type, same as
+  `ProductUpdatePayload.operationResults`.
+- Generated `OperationType` includes `CATEGORY_UPDATE` in addition to existing product update
+  operation values.
+- No separate generated `CategoryOperationResult` or `CategoryUpdateOperationType` types exist in
+  the final schema.
 - `CatalogQueryCategoriesArgs` includes `where?: CategoryWhereInput` and
   `orderBy?: Array<CategoryOrderByInput>`.
 - `Product` generated type/resolver map includes `primaryCategory` and `categoryAssignments`.
@@ -1403,7 +1401,7 @@ In-repo GraphQL consumer cutover:
   - `categoryUpdateSort` if it is removed from final schema;
   - product category assignment flows that read only `Product.categories` when metadata is required.
 - Update documents to use:
-  - `categoryUpdate(categoryId:, operations:, expectedRevision:)`;
+  - `categoryUpdate(categoryId:, expectedRevision:, operations:)`;
   - `category.revision`;
   - `Product.primaryCategory`;
   - `Product.categoryAssignments`.
@@ -1414,7 +1412,7 @@ Federation/schema acceptance criteria:
 - Exported catalog admin subgraph schema contains:
   - `Category.revision`;
   - final `CatalogQuery.categories(where, orderBy)`;
-  - final `CatalogMutation.categoryUpdate(categoryId, operations, expectedRevision)`;
+  - final `CatalogMutation.categoryUpdate(categoryId, expectedRevision, operations)`;
   - `Product.primaryCategory`;
   - `Product.categoryAssignments`;
   - `categoryRemoveProduct`.
@@ -1545,9 +1543,9 @@ Manual/API verification checklist:
 - Query category details with hierarchy, media, SEO и products.
 - Create category with parent, media, SEO и publish flag.
 - Update category sections with expected revision.
-- Verify empty `categoryUpdate.operations` copies product update no-op behavior: it increments
-  `revision` after successful CAS, returns updated category payload, returns one successful
-  `CATEGORY_UPDATE` result with empty `errors`, returns empty `userErrors`, and emits no events.
+- Verify missing, `null`, and empty `categoryUpdate.operations` copy product update no-op behavior:
+  they increment `revision` after successful CAS, return updated category payload, return
+  `operationResults: []`, return `userErrors: []`, and emit no events.
 - Verify revision conflict returns `REVISION_CONFLICT`.
 - Verify validation failure in one category update section does not apply any other requested section,
   does not increment `revision`, and does not emit `productUpdated`/`categoryUpdated`.
