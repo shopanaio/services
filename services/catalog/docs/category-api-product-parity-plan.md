@@ -184,7 +184,6 @@ input CategoryWhereInput {
   publishedAt: DateTimeFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
-  deletedAt: DateTimeFilter
 }
 
 enum CategoryOrderField {
@@ -198,7 +197,6 @@ enum CategoryOrderField {
   publishedAt
   createdAt
   updatedAt
-  deletedAt
 }
 
 input CategoryOrderByInput {
@@ -503,8 +501,8 @@ Required capabilities:
 - generated `CategoryWhereInput` over fields exposed by `categoryRelayQuery`
 - generated `CategoryOrderByInput` / `CategoryOrderField` over fields exposed by `categoryRelayQuery`
 - repository-owned tenant filter by `projectId`
-- default soft-delete filter `{ deletedAt: { _is: null } }`, skipped only when generated
-  `where.deletedAt` is explicitly provided
+- default soft-delete filter `{ deletedAt: { _is: null } }`, always applied by the repository,
+  matching `ProductRepository.getConnection`
 - total count with the exact same merged generated filters as the relay query
 - stable cursor tie-breaker по category ID
 
@@ -532,12 +530,11 @@ export type CategoryRelayInput = InferRelayInput<typeof categoryRelayQuery>;
 ```ts
 async getConnection(args: CategoryRelayInput): Promise<CategoryConnectionResult> {
   const { where, orderBy, ...paginationArgs } = args;
-  const hasDeletedAtFilter = where && "deletedAt" in where;
 
   const mergedWhere: CategoryRelayInput["where"] = {
     _and: [
       { projectId: { _eq: this.storeId } },
-      ...(hasDeletedAtFilter ? [] : [{ deletedAt: { _is: null } }]),
+      { deletedAt: { _is: null } },
       ...(where ? [where] : []),
     ],
   };
@@ -578,7 +575,8 @@ async getConnection(args: CategoryRelayInput): Promise<CategoryConnectionResult>
   `where: { parentId: { _is: null } }`.
 - Published/draft filtering is expressed through generated `publishedAt` null filters:
   `{ publishedAt: { _isNot: null } }` / `{ publishedAt: { _is: null } }`.
-- `where.deletedAt` must be opt-in. Default category list keeps `{ deletedAt: { _is: null } }`.
+- `deletedAt` is not exposed as a public category list filter in this cutover. Category list follows
+  the product repository pattern and always applies repository-owned `{ deletedAt: { _is: null } }`.
 - `orderBy` shape must come from generated `CategoryOrderByInput`; resolver passes generated field
   names through after validating/normalizing enum casing required by generated types.
 
@@ -601,14 +599,14 @@ categoryRelayQuery.count(this.connection, { where: mergedWhere });
 
 Do not use the existing unfiltered `count()` method for connection `totalCount`.
 
-6. Keep tenant constraints inside repository-level `mergedWhere` so consumers cannot omit them.
-   Keep the default soft-delete constraint there too, but skip it when `where.deletedAt` is
-   explicitly provided:
+6. Keep tenant constraints and the default soft-delete constraint inside repository-level
+   `mergedWhere` so consumers cannot omit them. This intentionally mirrors
+   `ProductRepository.getConnection`:
 
 ```ts
 _and: [
   { projectId: { _eq: this.storeId } },
-  ...(hasDeletedAtFilter ? [] : [{ deletedAt: { _is: null } }]),
+  { deletedAt: { _is: null } },
   ...(where ? [where] : []),
 ]
 ```
@@ -832,8 +830,8 @@ export const categoryRelayQuery = createRelayQuery(
 - `CategoryRepository.getConnection(args)` должен:
   - принимать `first/after/last/before`, `where`, `orderBy`;
   - merge-ить repository-owned filters:
-    `{ projectId: { _eq: this.storeId } }` и default `{ deletedAt: { _is: null } }`, если caller
-    явно не передал `where.deletedAt`;
+    `{ projectId: { _eq: this.storeId } }` и default `{ deletedAt: { _is: null } }` всегда, как
+    `ProductRepository.getConnection`;
   - использовать `categoryRelayQuery.execute(this.connection, executeInput)`;
   - считать `totalCount` через `categoryRelayQuery.count(this.connection, { where: mergedWhere })`;
   - возвращать только `{ edges: [{ cursor, nodeId }], pageInfo, totalCount }`, чтобы сохранить
@@ -1302,12 +1300,12 @@ Generation order:
 ```ts
 const categoryWhere = generateWhereInputType(categoryRelayQuery, "Category", {
   includeDescriptions: true,
-  excludeFields: ["projectId"],
+  excludeFields: ["projectId", "deletedAt"],
 });
 
 const categoryOrderBy = generateOrderByInputType(categoryRelayQuery, "Category", {
   includeDescriptions: true,
-  excludeFields: ["projectId"],
+  excludeFields: ["projectId", "deletedAt"],
 });
 ```
 
