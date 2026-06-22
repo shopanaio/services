@@ -1,6 +1,6 @@
 "use client";
 
-import { Tag, Flex } from "antd";
+import { Flex } from "antd";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { KPITile } from "@/ui-kit/kpi-tile";
@@ -38,17 +38,6 @@ export const ShippingSection = ({
           label="Dimensions"
           value={formatApiDimensions(inventoryItem?.dimensions)}
           variant="info"
-          centered
-        />
-        <KPITile
-          label="Shipping"
-          value="Not configured"
-          variant="default"
-          badge={
-            <Tag color="default" style={{ margin: 0 }}>
-              Unknown
-            </Tag>
-          }
           centered
         />
       </Flex>
