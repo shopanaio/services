@@ -680,6 +680,8 @@ Final implementation:
 После backend schema changes:
 
 - Regenerate catalog GraphQL schema artifacts.
+- Regenerate `@shopana/drizzle-query` generated GraphQL schema artifacts for the new category
+  relay query, if category query filters/order inputs are owned by generated schema files.
 - Regenerate resolver generated types.
 - Regenerate Zod schemas generated from GraphQL inputs.
 - Проверить, что публичная schema содержит новые fields, inputs и payloads.
@@ -706,6 +708,10 @@ entity-specific файлы:
 - `src/api/graphql-admin/schema/category.graphql`:
   - добавить `Category.revision: Int!`;
   - добавить `CategorySortBy`, `CategoryOrderByInput`, `CategoryWhereInput`;
+  - если `CategoryWhereInput`/`CategoryOrderByInput` должны генерироваться из
+    `@shopana/drizzle-query`, не дублировать эти типы вручную в `category.graphql`; generated
+    schema становится source of truth, а manual schema содержит только category-specific additions,
+    которые generator не может выразить;
   - заменить старый `CategoryUpdateInput` с embedded `id` на section-based input без `id`;
   - добавить `CategoryContentInput`, `CategoryMediaInput`, `CategoryHierarchyInput`,
     `CategorySortInput`, `CategoryStatus`, `CategoryUpdateOperationType`,
@@ -1295,10 +1301,30 @@ npm run shopana -- schema --action build
 3. Если in-repo admin/e2e GraphQL documents have generated client types, regenerate them through the
    existing project codegen command for that package. Do not hand-edit generated client artifacts.
 
+4. If the category relay/filter/order schema is generated from `@shopana/drizzle-query`, regenerate
+   the admin schema generated files after adding `categoryQuery` / `categoryRelayQuery`. Do not
+   hand-edit files under `services/catalog/src/api/graphql-admin/schema/__generated__/`.
+
+Drizzle-query generated schema requirements:
+
+- The new category relay query must have one clear GraphQL schema owner for filter and order inputs:
+  either manual source schema or generated drizzle-query schema, not both.
+- If generated schema owns category filters/order inputs, generated files under
+  `services/catalog/src/api/graphql-admin/schema/__generated__/` must include the category filter,
+  order and sortable field definitions required by `CatalogQuery.categories(where, orderBy)`.
+- If manual schema owns `CategoryWhereInput` because it contains category-specific API fields like
+  `search`, `parentId` global ID and `isPublished`, the resolver must map that public API shape to
+  `CategoryRelayInput`; generated drizzle-query files must not define a conflicting
+  `CategoryWhereInput` or `CategoryOrderByInput`.
+- Search the composed source schema for duplicate type definitions before exporting/composing the
+  subgraph.
+
 Generated files that must be updated:
 
 - `services/catalog/src/resolvers/admin/generated/types.ts`;
 - `services/catalog/src/resolvers/admin/generated/schemas.ts`;
+- `services/catalog/src/api/graphql-admin/schema/__generated__/*.graphql`, when the
+  `@shopana/drizzle-query` schema generator owns any category query input types;
 - exported catalog admin subgraph schema under the repo's generated schema output;
 - composed admin supergraph/federation artifact if schema build writes it in this workspace;
 - any generated GraphQL document/client files that reference catalog admin mutations/queries.
@@ -1353,9 +1379,12 @@ rg 'CatalogMutationCategoryUpdateArgs = \\{\\n\\s*input:' services/catalog/src/r
 rg 'CategoryUpdateInput = \\{[^}]*id:' services/catalog/src/resolvers/admin/generated/types.ts
 rg 'CategoryUpdateInputSchema\\(\\).*id:' services/catalog/src/resolvers/admin/generated/schemas.ts
 rg 'categoryUpdateV2|@deprecated' services/catalog/src/api/graphql-admin/schema services/catalog/src/resolvers/admin
+rg 'input CategoryWhereInput|input CategoryOrderByInput|enum CategorySortBy' services/catalog/src/api/graphql-admin/schema
 ```
 
-All checks above must return no matches for old/deprecated category update contract.
+The old/deprecated category update checks above must return no matches. The category query input
+check must show exactly one schema owner for each public type name, with no duplicate manual and
+generated definitions.
 
 In-repo GraphQL consumer cutover:
 
