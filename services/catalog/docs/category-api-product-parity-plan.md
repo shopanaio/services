@@ -671,34 +671,25 @@ setProductPrimaryCategory(productId: string, primaryCategoryId: string | null): 
 
 Validation belongs in scripts. Repositories не должны silently invent fallback primary category behavior.
 
-### Category Product Edge Metadata
+### Category Product Connection
 
-`CategoryProductEdge.isPrimary` и `CategoryProductEdge.rank` — это metadata строки
-`product_category`, а не поля `Product`. Repository result для `getCategoryProductsConnection`
-должен возвращать эту metadata на edge level:
+`CategoryProductEdge` остается стандартным Relay edge с `node` и `cursor`.
+Metadata строки `product_category`, такая как `isPrimary` и `lexoRank`, не экспонируется на
+`CategoryProductEdge`. Product-facing metadata доступна через `Product.categoryAssignments`.
+
+Repository result для `getCategoryProductsConnection` должен оставаться compatible с текущим
+connection resolver contract:
 
 ```ts
 interface CategoryProductsConnectionResult {
   edges: Array<{
     cursor: string;
     nodeId: string;
-    isPrimary: boolean;
-    rank: string;
   }>;
   pageInfo: PageInfo;
   totalCount: number;
 }
 ```
-
-Resolver shape must be updated in the same cutover:
-
-- Не полагаться на текущий `BaseConnectionResolver.edges()`, который возвращает только
-  `{ cursor, node }`.
-- Preferred implementation: override `edges()` в `CategoryProductConnectionResolver` и вернуть
-  `{ cursor, node, isPrimary, rank }` для `CategoryProductEdge`.
-- Расширять общий `BaseConnectionResolver.EdgeData` metadata-полями только если такой edge metadata
-  pattern нужен нескольким connection types. Для одного `CategoryProductEdge` не раздувать общий
-  base contract.
 
 ## Resolver Plan
 
@@ -712,9 +703,8 @@ Resolver shape must be updated in the same cutover:
 
 - Добавить `revision()`.
 - Оставить `products(args)` через `CategoryProductConnectionResolver`.
-- Добавить relation metadata в `CategoryProductEdge` через connection resolver data.
-- Переопределить edge resolver shape для `CategoryProductConnectionResolver`, чтобы `isPrimary` и
-  `rank` возвращались на edge level, а не терялись в `BaseConnectionResolver.edges()`.
+- `CategoryProductEdge` не должен возвращать `isPrimary` или `rank`; эти поля доступны через
+  product-facing assignment API.
 
 ### Product Resolver
 
@@ -791,7 +781,8 @@ entity-specific файлы:
   - расширить `CategoryUpdatePayload` полем
     `operationResults: [CategoryOperationResult!]!`;
   - добавить `CategoryRemoveProductInput`, `CategoryRemoveProductPayload`;
-  - расширить `CategoryProductEdge` полями `isPrimary: Boolean!` и `rank: String!`.
+  - оставить `CategoryProductEdge` в форме `{ node: Product!, cursor: String! }` без
+    product-category metadata fields.
 - `src/api/graphql-admin/schema/product.graphql`:
   - добавить `type ProductCategoryAssignment { category: Category!, isPrimary: Boolean!, rank: String! }`;
   - добавить поля `Product.primaryCategory: Category` и
@@ -812,7 +803,7 @@ Schema-level acceptance criteria:
 - `CategoryStatus` является отдельным enum и не переиспользует `ProductStatus`.
 - Все новые mutations и payloads возвращают `userErrors: [GenericUserError!]!`.
 - Product-facing category assignment metadata доступна через `primaryCategory`,
-  `categoryAssignments`, `CategoryProductEdge.isPrimary` и `CategoryProductEdge.rank`.
+  `categoryAssignments` и optional convenience `Product.categories`.
 - После schema changes regenerate шаг из пункта 5 обязан удалить старые generated references:
   `CatalogMutationCategoryUpdateArgs.input`, старый `CategoryUpdateInput.id` и старый Zod schema shape.
 
@@ -945,21 +936,18 @@ setProductPrimaryCategory(productId: string, primaryCategoryId: string | null): 
   products after the current last rank, remove missing products, and not silently clear primary
   assignments unless the script contract explicitly allowed it.
 
-Category product connection metadata:
+Category product connection:
 
-- `getCategoryProductsConnection` result edges must include product-category row metadata:
+- `getCategoryProductsConnection` result edges stay standard Relay-style product edges:
 
 ```ts
 edges: Array<{
   cursor: string;
   nodeId: string;
-  isPrimary: boolean;
-  rank: string;
 }>;
 ```
 
-- `isPrimary` comes from `product_category.is_primary`; `rank` comes from
-  `product_category.lexo_rank`.
+- Product-category metadata is not exposed on `CategoryProductEdge`.
 - `totalCount` for category product connection must use the same merged filters as the relay query,
   not only `countProductsInCategory(categoryId)` when user `where` filters are present.
 
@@ -969,7 +957,7 @@ Repository cutover acceptance criteria:
 - All repository queries use transaction-aware `this.connection`; no direct `this.db` bypass.
 - `CategoryRepository.getConnection` relies on `@shopana/drizzle-query` relay output for cursors and
   pageInfo.
-- `CategoryProductEdge` metadata can be resolved without additional per-edge queries.
+- `CategoryProductConnectionResolver` can keep using the base `{ cursor, node }` edge shape.
 - `CategoryRepository.move()` updates descendants in `catalog.category`.
 - Drizzle model, migration SQL and runtime repository fields agree on final names for
   `revision`, `category_list`, `productsCount`, and primary-category unique index.
@@ -1293,8 +1281,8 @@ Category resolver cutover:
 - Ensure `media()` returns File references with the correct GraphQL boundary ID shape.
 - Keep hierarchy fields (`parent`, `children`, `ancestors`) resolver-instance based and DataLoader
   backed.
-- `CategoryProductEdge.isPrimary` and `CategoryProductEdge.rank` must be resolved from connection
-  edge data, not by loading `Product` and not by a per-edge repository query.
+- `CategoryProductEdge` must not expose `isPrimary` or `rank`; product-category assignment metadata
+  is resolved through `Product.primaryCategory` and `Product.categoryAssignments`.
 
 Product resolver cutover:
 
@@ -1343,24 +1331,11 @@ productCategoryLinksByProductIds(productIds: readonly string[]): Promise<Product
 
 Category product connection resolver cutover:
 
-- Preferred implementation: override `edges()` in `CategoryProductConnectionResolver`:
-
-```ts
-async edges() {
-  const edgesData = await this.$get("edges");
-  return (edgesData ?? []).map((edge) => ({
-    cursor: edge.cursor,
-    node: new ProductResolver(edge.nodeId, this.$ctx),
-    isPrimary: edge.isPrimary,
-    rank: edge.rank,
-  }));
-}
-```
-
-- Do not widen `BaseConnectionResolver.EdgeData` for one-off metadata unless at least one more
-  connection type needs metadata edges.
+- Keep `CategoryProductConnectionResolver` on the standard base connection edge shape:
+  `{ cursor, node }`.
+- Do not widen `BaseConnectionResolver.EdgeData` for product-category metadata.
 - `pageInfo()` and `totalCount()` should continue to use preloaded connection data.
-- `CategoryProductConnectionResolver.$preload()` must return repository edge metadata from
+- `CategoryProductConnectionResolver.$preload()` must return standard repository edges from
   `getCategoryProductsConnection`.
 
 Generated type/Zod integration:
@@ -1383,8 +1358,7 @@ Resolver/loader acceptance criteria:
 - `productUpdate.categories` reaches `ProductUpdateWorkflow`.
 - `Product.primaryCategory`, `Product.categoryAssignments` and optional `Product.categories` share
   one batched product-category links loader.
-- `CategoryProductEdge.isPrimary` and `CategoryProductEdge.rank` are available without per-edge
-  database calls.
+- `CategoryProductEdge` remains `{ cursor, node }` and does not expose assignment metadata.
 - `Product.categories` is either removed everywhere or implemented as a convenience field over the
   new assignment source.
 - Resolvers return resolver instances for entities and `userErrors` for user/business validation.
@@ -1451,7 +1425,7 @@ expectedRevision?: InputMaybe<Scalars["Int"]["input"]>;
   `orderBy?: Array<CategoryOrderByInput>`.
 - `ProductUpdateInput` includes `categories?: ProductCategoriesInput`.
 - `Product` generated type/resolver map includes `primaryCategory` and `categoryAssignments`.
-- `CategoryProductEdge` generated type/resolver map includes `isPrimary` and `rank`.
+- `CategoryProductEdge` generated type/resolver map does not include `isPrimary` or `rank`.
 - Generated mutation resolver map includes `categoryRemoveProduct`.
 
 `schemas.ts` acceptance criteria:
@@ -1502,8 +1476,6 @@ In-repo GraphQL consumer cutover:
   - `category.revision`;
   - `Product.primaryCategory`;
   - `Product.categoryAssignments`;
-  - `CategoryProductEdge.isPrimary`;
-  - `CategoryProductEdge.rank`;
   - `productUpdate.operations.categories`.
 - Do not update generated GraphQL client outputs by hand. Update source documents and regenerate.
 
@@ -1515,8 +1487,6 @@ Federation/schema acceptance criteria:
   - final `CatalogMutation.categoryUpdate(categoryId, operations, expectedRevision)`;
   - `Product.primaryCategory`;
   - `Product.categoryAssignments`;
-  - `CategoryProductEdge.isPrimary`;
-  - `CategoryProductEdge.rank`;
   - `ProductCategoriesInput`;
   - `categoryRemoveProduct`.
 - Exported/composed schemas do not contain:
