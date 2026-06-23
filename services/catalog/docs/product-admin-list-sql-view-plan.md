@@ -39,7 +39,7 @@ Postgres view -> Drizzle view model -> createRelayQuery -> generated GraphQL whe
 | Grid поле | View column | Source | Notes |
 | --- | --- | --- | --- |
 | Product title | `title` | `catalog.product_translation.title` | Locale-aware. View содержит `locale`, repository добавляет `locale = ctx.locale`. |
-| Status | `status` | `product.deleted_at`, `product.published_at` | Computed: `archived`, `published`, `draft`. MVP может не включать archived в default list из-за текущего `deletedAt IS NULL`. |
+| Status | `status` | `product.deleted_at`, `product.published_at` | Computed: `archived`, `published`, `draft`. Default list не включает archived из-за текущего `deletedAt IS NULL`. |
 | Category | `primaryCategoryName` | primary `product_category` + `category_translation.name` | Только primary category. |
 | Brand | `vendorName` | `catalog.vendor.name` через `product.vendor_id` | Использовать first-class `Vendor`, а не legacy feature convention. |
 | Stable cursor | `id` | `product.id` | Tie-breaker для keyset pagination. |
@@ -79,8 +79,6 @@ View должна быть locale-aware:
 - один row на product + product translation locale;
 - `ProductRepository` всегда добавляет `locale = this.ctx.locale ?? "uk"`;
 - category translation join по той же locale; vendor name берется из `catalog.vendor.name` и не локализуется в текущей модели.
-
-MVP assumption: listable product имеет `product_translation` для текущей locale. Если нужно сохранять продукты без перевода в списке, потребуется отдельная locale fallback projection, потому что обычная SQL view не знает request locale.
 
 ## SQL view sketch
 
