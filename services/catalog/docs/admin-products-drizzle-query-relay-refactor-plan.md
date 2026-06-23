@@ -73,6 +73,8 @@ input ProductOrderByInput {
 
 Это сохраняет существующую category-products семантику (`MANUAL/NAME/NEWEST/PRICE`) и позволяет root product table получить generated drizzle-query contract.
 
+Переименование manual `ProductOrderByInput` является обязательным первым шагом cutover. Нельзя добавлять generated `ProductOrderByInput`, пока ручной input остается объявлен в `product.graphql` или используется в `Category.products`, иначе schema composition/codegen получат конфликт имени.
+
 ## Target backend files
 
 ```text
@@ -374,8 +376,8 @@ Initial server-backed controls should only use generated fields:
 
 - search by `handle` via `{ handle: { _containsi: value } }`;
 - status filter can map to `publishedAt` only if product semantics are confirmed:
-  - published: `{ publishedAt: { _isNot: true } }`;
-  - draft: `{ publishedAt: { _is: true } }`;
+  - published: `{ publishedAt: { _isNot: null } }`;
+  - draft: `{ publishedAt: { _is: null } }`;
 - sort mappings:
   - `handle -> ProductOrderField.Handle`;
   - `createdAt -> ProductOrderField.CreatedAt`;
