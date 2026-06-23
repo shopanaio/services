@@ -55,17 +55,7 @@ query.mapWhereFields(mappers)
 Типы:
 
 ```ts
-export type WhereFieldOperator =
-  | "_eq"
-  | "_neq"
-  | "_gt"
-  | "_gte"
-  | "_lt"
-  | "_lte"
-  | "_in"
-  | "_notIn"
-  | "_between"
-  | "shorthand";
+export type WhereFieldOperator = OperatorKey | "shorthand";
 
 export type WhereFieldMapperContext = {
   path: string;
@@ -83,23 +73,32 @@ export type WhereFieldMapperConfig = {
   operators?: readonly WhereFieldOperator[];
 };
 
+export type LocalLeafPaths<Fields extends FieldsDef> = {
+  [K in keyof Fields & string]: Fields[K] extends true ? K : never;
+}[keyof Fields & string];
+
 export type WhereFieldMappers<Fields extends FieldsDef> = Partial<
-  Record<NestedLeafPaths<Fields>, WhereFieldMapper | WhereFieldMapperConfig>
+  Record<LocalLeafPaths<Fields>, WhereFieldMapper | WhereFieldMapperConfig>
 >;
 ```
 
-`NestedLeafPaths` нужен отдельно от текущего `NestedPaths`, потому что `NestedPaths` включает relation/container paths. Mapper должен назначаться только на leaf field path:
+`OperatorKey` берется из существующего runtime списка операторов в `operators.ts`.
+
+Mapper config scoped to query builder, где он объявлен. Он принимает только local leaf fields этого builder-а, а не relation/container paths от parent builder-а:
 
 ```ts
-type ProductPaths = NestedLeafPaths<{
+type ProductMapperPaths = LocalLeafPaths<{
   id: true;
+  projectId: true;
   variant: {
     id: true;
     productId: true;
   };
 }>;
-// "id" | "variant.id" | "variant.productId"
+// "id" | "projectId"
 ```
+
+Relation fields получают mapper rules из joined query builder-а, которому принадлежат эти поля.
 
 ### Пример для Catalog
 
@@ -132,24 +131,59 @@ export const productRelayQuery = createRelayQuery(
 );
 ```
 
-Для relation fields использовать полный path, чтобы не декодировать разные entity IDs одним leaf-name wildcard:
+### Наследование mapper-ов через joins
+
+Mapper принадлежит query builder-у, который определяет поле. Если parent query join-ит другой query builder, where-transform должен переключиться на mapper scope joined builder-а при входе в этот relation object.
+
+Пример:
 
 ```ts
-createQuery(variant)
+const categoryQuery = createQuery(category)
+  .mapWhereFields({
+    id: decodeCategoryGlobalId,
+    parentId: decodeCategoryGlobalId,
+  });
+
+const productQuery = createQuery(product, {
+  id: field(product.id),
+  category: field(product.id).leftJoin(categoryQuery, category.id),
+});
+
+// Использует mapper из categoryQuery для parentId.
+productQuery.execute(db, {
+  where: {
+    category: {
+      parentId: { _eq: categoryGlobalId },
+    },
+  },
+});
+```
+
+Для полей с одинаковым leaf name в разных joined schemas каждый joined builder маппит свое поле:
+
+```ts
+const variantQuery = createQuery(variant)
   .mapWhereFields({
     id: decodeVariantGlobalId,
     productId: decodeProductGlobalId,
   });
 
-createQuery(productWithRelations)
+const categoryQuery = createQuery(category)
   .mapWhereFields({
-    id: decodeProductGlobalId,
-    "variants.id": decodeVariantGlobalId,
-    "categories.id": decodeCategoryGlobalId,
+    id: decodeCategoryGlobalId,
+    parentId: decodeCategoryGlobalId,
   });
+
+const productWithRelations = createQuery(product, {
+  id: field(product.id),
+  variants: field(product.id).leftJoin(variantQuery, variant.productId),
+  category: field(product.id).leftJoin(categoryQuery, category.id),
+}).mapWhereField("id", decodeProductGlobalId);
 ```
 
-Не добавлять wildcard mapping вида `*.id` в первом шаге. Для global ID это небезопасно: одинаковый leaf `id` в разных relation paths может требовать разные `GlobalIdEntity`.
+Не добавлять wildcard mapping вроде `*.id` в первом шаге. Он не нужен, когда mapper lookup scoped to active builder, и небезопасен, если schema содержит поля с одинаковым leaf name, но разным public ID contract.
+
+`WhereFieldMapperContext.path` все равно должен содержать full path от root query, например `category.parentId`, чтобы debugging и error messages были понятными. Сам mapper lookup остается local to the active builder scope.
 
 ## Runtime pipeline
 
@@ -161,7 +195,21 @@ createQuery(productWithRelations)
 packages/drizzle-query/src/where-transform.ts
 ```
 
-Он принимает `where`, registry mappers и возвращает transformed where.
+Он принимает `where`, mapper scope текущего query builder-а и возвращает transformed where.
+
+Package-internal scope:
+
+```ts
+type WhereFieldMapperScope = {
+  mappers: Record<string, WhereFieldMapper | WhereFieldMapperConfig>;
+  relations: Record<string, () => WhereFieldMapperScope>;
+};
+```
+
+`FluentQueryBuilder` строит этот scope из:
+
+- собственного `config.whereFieldMappers`;
+- joined fields в `fieldsDef`, где каждая relation указывает на target builder `WhereFieldMapperScope`.
 
 Вызовы должны быть централизованы:
 
@@ -178,13 +226,16 @@ packages/drizzle-query/src/where-transform.ts
 - `CursorQueryBuilder.count()`;
 - `CursorQueryBuilder.getCountSql()`.
 
-Для Relay/Cursor wrappers лучше не дублировать алгоритм. `FluentQueryBuilder` должен дать package-internal метод:
+Для Relay/Cursor wrappers лучше не дублировать алгоритм. `FluentQueryBuilder` должен дать package-internal методы:
 
 ```ts
+getWhereMapperScope()
 mapWhereForExecution(where)
 ```
 
-Pagination wrappers вызывают его после выбора `input.where ?? defaultWhere`, но до передачи where в cursor builder.
+`RelayQueryBuilder.execute/getSql` и `CursorQueryBuilder.execute/getSql` вызывают `mapWhereForExecution()` после выбора `input.where ?? defaultWhere`, но до передачи where в cursor builders.
+
+`RelayQueryBuilder.count/getCountSql` и `CursorQueryBuilder.count/getCountSql` могут продолжать делегировать в `FluentQueryBuilder.count/getCountSql`, потому что fluent count methods уже применяют mapper. Не применять тот же mapper второй раз в этих wrappers.
 
 ### Что не маппить
 
@@ -194,9 +245,8 @@ Pagination wrappers вызывают его после выбора `input.where
 - `select`;
 - `filters` для cursor hash comparison;
 - cursor seek values. Для них уже есть отдельный `seekTransforms`;
-- repository-owned filters, которые repository добавляет уже в database format, если они мержатся после public where.
 
-Если финальная реализация применяет mapper ко всему merged where, mappers для ID должны быть idempotent: UUID остается UUID, global ID декодируется в UUID.
+Repository-owned filters могут находиться в том же merged `where`, что и public filters. Так как repositories часто merge-ят tenant/soft-delete filters до вызова query builder-а, Catalog ID mappers должны быть idempotent: UUID остается UUID, global ID декодируется в UUID.
 
 ## Алгоритм transformWhereInput
 
@@ -206,13 +256,13 @@ Pagination wrappers вызывают его после выбора `input.where
 - не использовать `JSON.parse(JSON.stringify(...))`;
 - сохранять structural sharing: если в subtree ничего не изменилось, возвращать исходную ссылку;
 - корректно проходить `_and`, `_or`, `_not` на любой глубине;
-- relation nesting строить через dot path (`category.parentId`, `variants.id`);
+- relation nesting использует joined builder scope; full dot path (`category.parentId`, `variants.id`) передается только в mapper context;
 - mapper применять только к leaf field values, а не к relation object.
 
 Псевдокод:
 
 ```ts
-function transformWhereNode(node, pathPrefix = "") {
+function transformWhereNode(node, scope, pathPrefix = "") {
   if (!isPlainObject(node)) return node;
 
   let changed = false;
@@ -221,7 +271,9 @@ function transformWhereNode(node, pathPrefix = "") {
   for (const [key, value] of Object.entries(node)) {
     if (key === "_and" || key === "_or") {
       const mappedList = Array.isArray(value)
-        ? value.map((item) => transformWhereNode(item, pathPrefix))
+        ? mapArrayWithStructuralSharing(value, (item) =>
+            transformWhereNode(item, scope, pathPrefix)
+          )
         : value;
       changed ||= mappedList !== value;
       next[key] = mappedList;
@@ -229,7 +281,7 @@ function transformWhereNode(node, pathPrefix = "") {
     }
 
     if (key === "_not") {
-      const mapped = transformWhereNode(value, pathPrefix);
+      const mapped = transformWhereNode(value, scope, pathPrefix);
       changed ||= mapped !== value;
       next[key] = mapped;
       continue;
@@ -241,15 +293,16 @@ function transformWhereNode(node, pathPrefix = "") {
     }
 
     const path = pathPrefix ? `${pathPrefix}.${key}` : key;
+    const childScope = scope.relations[key]?.();
 
-    if (isNestedWhereObject(value)) {
-      const mapped = transformWhereNode(value, path);
+    if (childScope && isNestedWhereObject(value)) {
+      const mapped = transformWhereNode(value, childScope, path);
       changed ||= mapped !== value;
       next[key] = mapped;
       continue;
     }
 
-    const mapped = transformFieldFilter(path, key, value);
+    const mapped = transformFieldFilter(scope.mappers[key], path, key, value);
     changed ||= mapped !== value;
     next[key] = mapped;
   }
@@ -258,7 +311,7 @@ function transformWhereNode(node, pathPrefix = "") {
 }
 ```
 
-`isNestedWhereObject(value)` должен совпадать с семантикой `WhereBuilder`: object без array и без filter operators считается nested where object.
+`isNestedWhereObject(value)` должен совпадать с семантикой `WhereBuilder`: object без array и без filter operators считается nested where object, но transformer углубляется только если в текущем mapper scope есть relation с таким ключом. Plain object для scalar field не исправлять в transformer; текущий `WhereBuilder`/validation продолжает отвечать за invalid filter shape.
 
 ## Operator mapping rules
 
@@ -303,9 +356,9 @@ Catalog для первого cutover может использовать tolera
 
 ## Изменения в drizzle-query
 
-1. Добавить `NestedLeafPaths` в `packages/drizzle-query/src/types.ts`.
+1. Добавить `LocalLeafPaths` в `packages/drizzle-query/src/types.ts`.
 2. Добавить типы mapper/config в `packages/drizzle-query/src/types.ts` или `packages/drizzle-query/src/where-transform.ts`.
-3. Добавить `transformWhereInput()` в `packages/drizzle-query/src/where-transform.ts`.
+3. Добавить `transformWhereInput()` и package-internal `WhereFieldMapperScope` в `packages/drizzle-query/src/where-transform.ts`.
 4. Расширить `FluentQueryConfig`:
 
 ```ts
@@ -322,11 +375,12 @@ mapWhereFields(mappers)
 6. Добавить package-internal метод в `FluentQueryBuilder`:
 
 ```ts
+getWhereMapperScope()
 mapWhereForExecution(where)
 ```
 
 7. Применить `mapWhereForExecution()` в `execute/getSql/count/getCountSql`.
-8. Обновить `RelayQueryBuilder` и `CursorQueryBuilder`, чтобы они маппили resolved where перед передачей в cursor builders.
+8. Обновить `RelayQueryBuilder.execute/getSql` и `CursorQueryBuilder.execute/getSql`, чтобы они маппили resolved where перед передачей в cursor builders. Count wrappers должны делегировать в fluent count methods без повторного transform.
 9. Экспортировать публичные mapper-типы из `packages/drizzle-query/src/index.ts`.
 
 ## Изменения в Catalog
@@ -344,7 +398,17 @@ createQuery(product)
 ```
 
 2. Если `productQuery.getMany/getOne` принимает API-shaped where от GraphQL, добавить тот же mapper и туда. Если `productQuery` используется только repository-internal, не добавлять.
-3. Перенести `categoryRelayQuery` mappings из `filter-normalizers.ts` в query config:
+3. В `categoryProductsRelayQuery` добавить mapper для `id`, потому что `CategoryProductWhereInput.id` фильтрует `product.id`:
+
+```ts
+categoryProductsQuery
+  .mapWhereField("id", decodeProductGlobalId)
+  .include(["id"])
+  .maxLimit(100)
+  .defaultLimit(20)
+```
+
+4. Перенести `categoryRelayQuery` mappings из `filter-normalizers.ts` в local query config:
 
 ```ts
 mapWhereFields({
@@ -353,7 +417,7 @@ mapWhereFields({
 })
 ```
 
-4. Перенести `variantRelayQuery` mappings:
+5. Перенести `variantRelayQuery` mappings в local query config:
 
 ```ts
 mapWhereFields({
@@ -362,17 +426,19 @@ mapWhereFields({
 })
 ```
 
-5. Удалить resolver-level `normalizeCategoryWhereInput` и `normalizeVariantWhereInput`, когда все callers перейдут на query-level mapping.
-6. Для специальных не-SQL filters вроде `CategoryHierarchyScopeInput` оставить отдельный API normalizer. Это не generated drizzle-query where и не должно попадать в generic mapper.
+6. Если `categoryQuery` или `variantQuery` используются как joined query builders, их mapper-ы должны наследоваться автоматически. Не добавлять на parent query full paths вроде `category.parentId`.
+7. Удалить resolver-level `normalizeCategoryWhereInput` и `normalizeVariantWhereInput`, когда все callers перейдут на query-level mapping.
+8. Для специальных не-SQL filters вроде `CategoryHierarchyScopeInput` оставить отдельный API normalizer. Это не generated drizzle-query where и не должно попадать в generic mapper.
 
 ## Важные edge cases
 
 - `_and`/`_or` могут содержать пустой массив: transformer сохраняет форму, SQL builder уже решает, что делать.
 - `null` и `undefined` не передавать в mapper, если operator не должен их обрабатывать. Текущий `WhereBuilder` пропускает такие значения.
 - `_not` должен сохранять тот же path prefix, потому что это логическое отрицание, а не relation nesting.
-- Relation object и filter object различаются через `isFilterObject`.
+- Relation object и filter object различаются через `isFilterObject`, а relation lookup идет через текущий mapper scope.
 - Mapper не должен менять ключ поля или operator, только значение.
 - Если mapper возвращает тот же value, subtree может сохранить старую ссылку.
+- Если joined builder имеет mapper для `id`, этот mapper применяется только внутри этой relation scope. Root `id` другого builder-а не затрагивается.
 
 ## Проверка реализации
 
@@ -381,10 +447,12 @@ mapWhereFields({
 - maps shorthand field filter;
 - maps `_eq`, `_neq`, `_in`, `_notIn`;
 - maps nested `_and/_or/_not`;
-- maps relation path по full path;
-- не маппит похожий leaf в другом path;
+- наследует mapper из joined query builder для relation where;
+- не маппит похожий leaf в другом joined scope, если child builder не объявил mapper;
+- mapper context получает full path вроде `category.parentId`;
 - не маппит `_is/_isNot`;
-- `execute`, `count`, `getSql`, Relay и Cursor используют одинаковый transformed where.
+- сохраняет structural sharing для неизмененных logical arrays/subtrees;
+- `execute`, `count`, `getSql`, Relay и Cursor используют одинаковый transformed public where без double-mapping cursor seek where.
 
 По проектному правилу не использовать `test`/`tsc` как проверку в этой задаче. Когда понадобится новая версия кода, проверять через build.
 
