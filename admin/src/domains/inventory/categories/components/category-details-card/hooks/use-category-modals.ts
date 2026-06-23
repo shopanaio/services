@@ -2,20 +2,24 @@
 
 import { useCallback, useMemo } from "react";
 import { App } from "antd";
-import type { ApiCategory } from "@/graphql/types";
-import { useCategoryPicker } from "@/shared/components/entity-picker-modal";
+import { CategoryStatus, type ApiCategory } from "@/graphql/types";
+import { useModalStackContext } from "@/layouts/modals";
 import {
+  useCategoryPicker,
+  useProductPicker,
+} from "@/shared/components/entity-picker-modal";
+import {
+  useAddCategoryProduct,
+  useDeleteCategory,
   useUpdateCategory,
   useUpdateCategorySubcategories,
 } from "../../../hooks";
 import {
-  useCategoryAssignProductsModal,
   useCategoryEditContentModal,
   useCategoryEditIdentityModal,
   useCategoryEditMediaModal,
   useCategoryEditSeoModal,
   useCategoryEditSortModal,
-  useCategoryEditStatusModal,
 } from "../../../modals";
 
 export const useCategoryModals = (
@@ -23,15 +27,16 @@ export const useCategoryModals = (
   onRefetch?: () => Promise<unknown>,
 ) => {
   const { message } = App.useApp();
+  const { forcePop } = useModalStackContext();
   const { push: openEditIdentityModal } = useCategoryEditIdentityModal();
   const { push: openEditContentModal } = useCategoryEditContentModal();
   const { push: openEditSeoModal } = useCategoryEditSeoModal();
   const { push: openEditMediaModal } = useCategoryEditMediaModal();
   const { push: openEditSortModal } = useCategoryEditSortModal();
-  const { push: openEditStatusModal } = useCategoryEditStatusModal();
-  const { push: openAssignProductsModal } = useCategoryAssignProductsModal();
   const { updateCategory } = useUpdateCategory();
+  const { deleteCategory } = useDeleteCategory();
   const { updateSubcategories } = useUpdateCategorySubcategories();
+  const { addCategoryProduct } = useAddCategoryProduct();
 
   const handleSaved = useCallback(async () => {
     await onRefetch?.();
@@ -58,12 +63,52 @@ export const useCategoryModals = (
   }, [category, handleSaved, openEditSortModal]);
 
   const changeStatus = useCallback(() => {
-    openEditStatusModal({ category, onSaved: handleSaved });
-  }, [category, handleSaved, openEditStatusModal]);
+    void (async () => {
+      const nextStatus = category.isPublished
+        ? CategoryStatus.Draft
+        : CategoryStatus.Published;
+      const result = await updateCategory(
+        category.id,
+        { status: nextStatus },
+        category.revision,
+      );
 
-  const assignProducts = useCallback(() => {
-    openAssignProductsModal({ category, onSaved: handleSaved });
-  }, [category, handleSaved, openAssignProductsModal]);
+      if (result.errors.length > 0) {
+        message.error(result.errors[0].message);
+        return;
+      }
+
+      message.success(
+        category.isPublished ? "Category unpublished" : "Category published",
+      );
+      await handleSaved();
+    })();
+  }, [
+    category.id,
+    category.isPublished,
+    category.revision,
+    handleSaved,
+    message,
+    updateCategory,
+  ]);
+
+  const archive = useCallback(() => {
+    void (async () => {
+      const result = await deleteCategory({
+        id: category.id,
+        permanent: false,
+      });
+
+      if (result.userErrors.length > 0) {
+        message.error(result.userErrors[0].message);
+        return;
+      }
+
+      message.success("Category archived");
+      await handleSaved();
+      forcePop();
+    })();
+  }, [category.id, deleteCategory, forcePop, handleSaved, message]);
 
   const parentInitialSelection = useMemo(
     () => (category.parent?.id ? [category.parent.id] : []),
@@ -160,6 +205,28 @@ export const useCategoryModals = (
     },
   });
 
+  const { openPicker: assignProducts } = useProductPicker({
+    selectionMode: "multi",
+    onConfirm: (_entities, selectedIds) => {
+      void (async () => {
+        for (const productId of selectedIds) {
+          const result = await addCategoryProduct({
+            categoryId: category.id,
+            productId,
+          });
+
+          if (result.userErrors.length > 0) {
+            message.error(result.userErrors[0].message);
+            return;
+          }
+        }
+
+        message.success("Category products updated");
+        await handleSaved();
+      })();
+    },
+  });
+
   const removeSubcategory = useCallback(
     (subcategory: ApiCategory) => {
       void (async () => {
@@ -190,6 +257,7 @@ export const useCategoryModals = (
     clearParent,
     editSort,
     changeStatus,
+    archive,
     editSubcategories,
     removeSubcategory,
     assignProducts,

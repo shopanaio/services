@@ -34,6 +34,7 @@ interface CategoryInfoHeaderProps {
   category: ApiCategory;
   onEditIdentity?: () => void;
   onChangeStatus?: () => void;
+  onArchive?: () => void;
   onEditSort?: () => void;
 }
 
@@ -41,6 +42,7 @@ export const CategoryInfoHeader = ({
   category,
   onEditIdentity,
   onChangeStatus,
+  onArchive,
   onEditSort,
 }: CategoryInfoHeaderProps) => {
   const { styles } = useHeaderStyles();
@@ -53,6 +55,7 @@ export const CategoryInfoHeader = ({
   const statusConfig = getStatusConfig(
     category.isPublished ? "published" : "draft",
   );
+  const statusActionLabel = category.isPublished ? "Unpublish" : "Publish";
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -163,13 +166,20 @@ export const CategoryInfoHeader = ({
             },
             {
               key: "status",
-              label: "Change status",
+              label: statusActionLabel,
               onClick: onChangeStatus,
             },
             {
               key: "sort",
               label: "Edit product sort",
               onClick: onEditSort,
+            },
+            { type: "divider" as const },
+            {
+              key: "archive",
+              label: "Archive",
+              danger: true,
+              onClick: onArchive,
             },
           ],
         }}
@@ -209,12 +219,6 @@ export const CategoryInfoHeader = ({
             label="ID"
             value={category.id}
             displayValue={category.id.slice(0, 8)}
-            mono
-          />
-          <CopyableChip
-            label="Revision"
-            value={String(category.revision)}
-            displayValue={String(category.revision)}
             mono
           />
         </Flex>

@@ -7,7 +7,6 @@ import type {
   CategoryMediaFormValues,
   CategorySeoFormValues,
   CategorySortFormValues,
-  CategoryStatusFormValues,
 } from "./mappers";
 
 // ============================================================================
@@ -21,8 +20,6 @@ export const CATEGORY_EDIT_CONTENT_MODAL_TYPE = 'category-edit-content';
 export const CATEGORY_EDIT_SEO_MODAL_TYPE = 'category-edit-seo';
 export const CATEGORY_EDIT_MEDIA_MODAL_TYPE = 'category-edit-media';
 export const CATEGORY_EDIT_SORT_MODAL_TYPE = 'category-edit-sort';
-export const CATEGORY_EDIT_STATUS_MODAL_TYPE = 'category-edit-status';
-export const CATEGORY_ASSIGN_PRODUCTS_MODAL_TYPE = 'category-assign-products';
 
 // ============================================================================
 // Payload Interfaces
@@ -77,16 +74,6 @@ export interface ICategoryEditSortModalPayload
   ) => boolean | void | Promise<boolean | void>;
 }
 
-export interface ICategoryEditStatusModalPayload
-  extends ICategoryEditModalPayload {
-  onSave?: (
-    values: CategoryStatusFormValues,
-  ) => boolean | void | Promise<boolean | void>;
-}
-
-export interface ICategoryAssignProductsModalPayload
-  extends ICategoryEditModalPayload {}
-
 // ============================================================================
 // Module Augmentation for Type Safety
 // ============================================================================
@@ -100,8 +87,6 @@ declare module '@/layouts/modals' {
     [CATEGORY_EDIT_SEO_MODAL_TYPE]: ICategoryEditSeoModalPayload;
     [CATEGORY_EDIT_MEDIA_MODAL_TYPE]: ICategoryEditMediaModalPayload;
     [CATEGORY_EDIT_SORT_MODAL_TYPE]: ICategoryEditSortModalPayload;
-    [CATEGORY_EDIT_STATUS_MODAL_TYPE]: ICategoryEditStatusModalPayload;
-    [CATEGORY_ASSIGN_PRODUCTS_MODAL_TYPE]: ICategoryAssignProductsModalPayload;
   }
 }
 
@@ -127,10 +112,4 @@ export const useCategoryEditMediaModal = createModalStackHook(
 );
 export const useCategoryEditSortModal = createModalStackHook(
   CATEGORY_EDIT_SORT_MODAL_TYPE,
-);
-export const useCategoryEditStatusModal = createModalStackHook(
-  CATEGORY_EDIT_STATUS_MODAL_TYPE,
-);
-export const useCategoryAssignProductsModal = createModalStackHook(
-  CATEGORY_ASSIGN_PRODUCTS_MODAL_TYPE,
 );

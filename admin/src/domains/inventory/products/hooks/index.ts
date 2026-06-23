@@ -3,6 +3,7 @@ export * from "./use-product";
 export * from "./use-product-pricing-widget";
 export * from "./use-create-product";
 export * from "./use-update-product";
+export * from "./use-update-product-status";
 export * from "./use-delete-product";
 export * from "./use-sync-product-features";
 export * from "./use-sync-product-options";

@@ -54,6 +54,20 @@ export const CATEGORY_UPDATE_MUTATION = gql`
   ${USER_ERROR_FRAGMENT}
 `;
 
+export const CATEGORY_DELETE_MUTATION = gql`
+  mutation CategoryDelete($input: CategoryDeleteInput!) {
+    catalogMutation {
+      categoryDelete(input: $input) {
+        deletedCategoryId
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${USER_ERROR_FRAGMENT}
+`;
+
 export const CATEGORY_ADD_PRODUCT_MUTATION = gql`
   mutation CategoryAddProduct($input: CategoryAddProductInput!) {
     catalogMutation {

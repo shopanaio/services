@@ -23,6 +23,7 @@ export interface IKPIData {
 export interface IProductInfoHeaderProps {
   product: ApiProduct;
   kpiData?: IKPIData;
+  onProductRefresh?: () => Promise<unknown>;
 }
 
 export interface IUserPopoverProps {

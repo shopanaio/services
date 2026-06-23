@@ -17,6 +17,7 @@ import {
   EyeOutlined,
   ShareAltOutlined,
 } from "@ant-design/icons";
+import { useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { KPITile } from "@/ui-kit/kpi-tile";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
@@ -38,15 +39,24 @@ import {
   getProductSku,
 } from "../../utils/api-product-display";
 import { getProductStatus } from "../../utils/product-status";
-import { useUpdateProduct } from "../../hooks";
+import { ProductStatusAction } from "@/graphql/types";
+import {
+  useDeleteProduct,
+  useUpdateProduct,
+  useUpdateProductStatus,
+} from "../../hooks";
 
 export const ProductInfoHeader = ({
   product,
   kpiData,
+  onProductRefresh,
 }: IProductInfoHeaderProps) => {
   const { styles } = useHeaderStyles();
   const { message } = App.useApp();
+  const { forcePop } = useModalStackContext();
   const { updateProduct } = useUpdateProduct();
+  const { updateProductStatus } = useUpdateProductStatus();
+  const { deleteProduct } = useDeleteProduct();
   const [kpiPeriod, setKpiPeriod] = useState<Period>("7d");
   const [compareEnabled, setCompareEnabled] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -76,6 +86,7 @@ export const ProductInfoHeader = ({
 
   const productStatus = getProductStatus(product);
   const statusConfig = getStatusConfig(productStatus);
+  const statusActionLabel = product.isPublished ? "Unpublish" : "Publish";
 
   const handleEditTitle = () => {
     openEditTitleModal({
@@ -100,6 +111,45 @@ export const ProductInfoHeader = ({
         return true;
       },
     });
+  };
+
+  const handleChangeStatus = () => {
+    void (async () => {
+      const result = await updateProductStatus({
+        productId: product.id,
+        action: product.isPublished
+          ? ProductStatusAction.Unpublish
+          : ProductStatusAction.Publish,
+      });
+
+      if (result.userErrors.length > 0) {
+        message.error(result.userErrors[0].message);
+        return;
+      }
+
+      message.success(
+        product.isPublished ? "Product unpublished" : "Product published",
+      );
+      await onProductRefresh?.();
+    })();
+  };
+
+  const handleArchive = () => {
+    void (async () => {
+      const result = await deleteProduct({
+        id: product.id,
+        permanent: false,
+      });
+
+      if (result.userErrors.length > 0) {
+        message.error(result.userErrors[0].message);
+        return;
+      }
+
+      message.success("Product archived");
+      await onProductRefresh?.();
+      forcePop();
+    })();
   };
 
   const kpi: IKPIData = kpiData || {
@@ -201,11 +251,21 @@ export const ProductInfoHeader = ({
         menu={{
           items: [
             { key: "edit", label: "Edit title", onClick: handleEditTitle },
+            {
+              key: "status",
+              label: statusActionLabel,
+              onClick: handleChangeStatus,
+            },
             { type: "divider" as const },
             { key: "duplicate", label: "Duplicate product" },
             { key: "export", label: "Export" },
             { type: "divider" as const },
-            { key: "archive", label: "Archive", danger: true },
+            {
+              key: "archive",
+              label: "Archive",
+              danger: true,
+              onClick: handleArchive,
+            },
           ],
         }}
         trigger={["click"]}

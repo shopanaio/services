@@ -32,6 +32,7 @@ export const CategoryDetailsCard = ({
         category={category}
         onEditIdentity={modals.editIdentity}
         onChangeStatus={modals.changeStatus}
+        onArchive={modals.archive}
         onEditSort={modals.editSort}
       />
 

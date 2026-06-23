@@ -6,6 +6,7 @@ import type {
   ApiCategoryAddProductPayload,
   ApiCategoryCreateInput,
   ApiCategoryCreatePayload,
+  ApiCategoryDeleteInput,
   ApiCategoryConnection,
   ApiCategoryMoveProductInput,
   ApiCategoryMoveProductPayload,
@@ -90,6 +91,19 @@ export interface CategoryUpdateMutationVariables {
   categoryId: string;
   expectedRevision?: number | null;
   operations?: ApiCategoryUpdateInput | null;
+}
+
+export interface CategoryDeleteMutationData {
+  catalogMutation: Pick<ApiCatalogMutation, "categoryDelete"> & {
+    categoryDelete: {
+      deletedCategoryId: string | null;
+      userErrors: ApiGenericUserError[];
+    };
+  };
+}
+
+export interface CategoryDeleteMutationVariables {
+  input: ApiCategoryDeleteInput;
 }
 
 export interface CategoryAddProductMutationData {

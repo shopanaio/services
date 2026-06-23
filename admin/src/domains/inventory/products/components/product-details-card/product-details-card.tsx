@@ -68,7 +68,7 @@ export const ProductDetailsCard = ({
   return (
     <Flex vertical gap={12} style={{ width: "100%" }}>
       {/* PRODUCT INFORMATION */}
-      <ProductInfoHeader product={product} />
+      <ProductInfoHeader product={product} onProductRefresh={onProductRefresh} />
 
       {/* CONTENT TABS */}
       <ProductContentTabs product={product} />

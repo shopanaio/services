@@ -361,22 +361,6 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
-    {
-      type: 'category-edit-status',
-      component: dynamic(() =>
-        import('@/domains/inventory/categories/modals/edit-category-status-modal').then(
-          (m) => m.EditCategoryStatusModal
-        )
-      ),
-    },
-    {
-      type: 'category-assign-products',
-      component: dynamic(() =>
-        import('@/domains/inventory/categories/modals/assign-category-products-modal').then(
-          (m) => m.AssignCategoryProductsModal
-        )
-      ),
-    },
     // ========================================
     // Picker modals
     // ========================================
