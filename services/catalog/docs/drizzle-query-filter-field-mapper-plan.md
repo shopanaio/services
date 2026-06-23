@@ -185,6 +185,18 @@ const productWithRelations = createQuery(product, {
 
 `WhereFieldMapperContext.path` все равно должен содержать full path от root query, например `category.parentId`, чтобы debugging и error messages были понятными. Сам mapper lookup остается local to the active builder scope.
 
+Mapper scope для relation fields нельзя восстанавливать из `ObjectSchema`: текущий schema layer хранит только `join.schema()` для SQL-building и не содержит config joined query builder-а. Scope должен строиться на уровне `FluentQueryBuilder` из исходного `fieldsDef`, пока доступен `JoinDefinition.target()`.
+
+При обходе `fieldsDef`:
+
+- simple fields остаются leaf полями текущего scope;
+- joined fields добавляются в `scope.relations`;
+- для joined field relation closure вызывает package-internal `targetBuilder.getWhereMapperScope()`;
+- `buildSchema()` продолжает отдавать в `ObjectSchema` только `schema: () => targetBuilder.getSchema()`;
+- mapper config не добавляется в `ObjectSchema` и не участвует в schema cache key.
+
+Так mapper scope становится параллельным config graph-ом рядом с SQL schema graph-ом: `ObjectSchema` отвечает за column/join SQL, а `WhereFieldMapperScope` отвечает только за value transform.
+
 ## Runtime pipeline
 
 ### Где применять mapper
@@ -210,6 +222,10 @@ type WhereFieldMapperScope = {
 
 - собственного `config.whereFieldMappers`;
 - joined fields в `fieldsDef`, где каждая relation указывает на target builder `WhereFieldMapperScope`.
+
+В реализации `getWhereMapperScope()` должен читать именно `this.fieldsDef`, а не `this.getSchema()`. Для каждого joined field нужно взять `joinDef.target()` и лениво связать relation с `targetBuilder.getWhereMapperScope()`. Это важно, потому что `ObjectSchema` видит только target schema и не знает о `whereFieldMappers` target builder-а.
+
+Scope можно кешировать на instance `FluentQueryBuilder`, но cache должен быть отдельным от `_schema`/`_queryBuilder`. Для защиты от циклических relation graphs использовать lazy relation closures; не раскрывать весь graph eager-recursively при создании root scope.
 
 Вызовы должны быть централизованы:
 
