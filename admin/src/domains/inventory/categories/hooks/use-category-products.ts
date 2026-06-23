@@ -4,9 +4,9 @@ import { useQuery } from "@apollo/client/react";
 import type {
   ApiCategoryProductConnection,
   ApiCategoryProductWhereInput,
+  ApiListingOrderByInput,
   ApiPageInfo,
   ApiProduct,
-  ApiProductOrderByInput,
 } from "@/graphql/types";
 import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
 import { CATEGORY_PRODUCTS_QUERY } from "../graphql";
@@ -18,7 +18,7 @@ import type {
 export interface UseCategoryProductsOptions
   extends RelayCursorPaginationVariables {
   where?: ApiCategoryProductWhereInput | null;
-  orderBy?: ApiProductOrderByInput[] | null;
+  orderBy?: ApiListingOrderByInput[] | null;
   skip?: boolean;
 }
 

@@ -7,9 +7,23 @@ import {
 } from "./fragments";
 
 export const PRODUCTS_QUERY = gql`
-  query Products($first: Int, $after: String, $last: Int, $before: String) {
+  query Products(
+    $first: Int
+    $after: String
+    $last: Int
+    $before: String
+    $where: ProductWhereInput
+    $orderBy: [ProductOrderByInput!]
+  ) {
     catalogQuery {
-      products(first: $first, after: $after, last: $last, before: $before) {
+      products(
+        first: $first
+        after: $after
+        last: $last
+        before: $before
+        where: $where
+        orderBy: $orderBy
+      ) {
         edges {
           cursor
           node {

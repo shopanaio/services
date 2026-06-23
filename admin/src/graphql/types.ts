@@ -1254,6 +1254,8 @@ export type ApiCatalogQueryProductsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiProductOrderByInput>>;
+  where?: InputMaybe<ApiProductWhereInput>;
 };
 
 
@@ -1340,7 +1342,7 @@ export type ApiCategoryProductsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
-  orderBy?: InputMaybe<Array<ApiProductOrderByInput>>;
+  orderBy?: InputMaybe<Array<ApiListingOrderByInput>>;
   where?: InputMaybe<ApiCategoryProductWhereInput>;
 };
 
@@ -1446,7 +1448,7 @@ export enum CategoryHierarchyScopeDirection {
 export type ApiCategoryHierarchyScopeInput = {
   direction: CategoryHierarchyScopeDirection;
   includeReference?: InputMaybe<Scalars['Boolean']['input']>;
-  mode?: InputMaybe<CategoryHierarchyScopeMode>;
+  mode: CategoryHierarchyScopeMode;
   referenceId: Scalars['ID']['input'];
 };
 
@@ -3891,6 +3893,12 @@ export type ApiLabel = {
   id: Scalars['ID']['output'];
 };
 
+/** Listing orderBy input for product listing pages. */
+export type ApiListingOrderByInput = {
+  direction?: InputMaybe<SortDirection>;
+  field: ProductSortBy;
+};
+
 /** Locale configuration for the project */
 export type ApiLocale = {
   __typename?: 'Locale';
@@ -5043,6 +5051,8 @@ export type ApiProduct = ApiNode & {
   variants: ApiVariantConnection;
   /** The total number of variants for this product. */
   variantsCount: Scalars['Int']['output'];
+  /** The vendor associated with this product. */
+  vendor?: Maybe<ApiVendor>;
 };
 
 
@@ -5667,11 +5677,43 @@ export type ApiProductOptionsSyncPayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-/** Standard orderBy input for product queries. */
+/** Ordering configuration for Product */
 export type ApiProductOrderByInput = {
-  direction?: InputMaybe<SortDirection>;
-  field: ProductSortBy;
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: ProductOrderField;
 };
+
+/** Fields available for sorting Product */
+export enum ProductOrderField {
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by currency */
+  Currency = 'currency',
+  /** Sort by handle */
+  Handle = 'handle',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by locale */
+  Locale = 'locale',
+  /** Sort by maxPriceMinor */
+  MaxPriceMinor = 'maxPriceMinor',
+  /** Sort by minPriceMinor */
+  MinPriceMinor = 'minPriceMinor',
+  /** Sort by name */
+  Name = 'name',
+  /** Sort by primaryCategoryId */
+  PrimaryCategoryId = 'primaryCategoryId',
+  /** Sort by primaryCategoryName */
+  PrimaryCategoryName = 'primaryCategoryName',
+  /** Sort by publishedAt */
+  PublishedAt = 'publishedAt',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt',
+  /** Sort by vendorId */
+  VendorId = 'vendorId'
+}
 
 /** SEO and Open Graph metadata for a product. */
 export type ApiProductSeo = {
@@ -5761,6 +5803,42 @@ export type ApiProductUpdateStatusPayload = {
   product?: Maybe<ApiProduct>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
+};
+
+/** Filter conditions for Product */
+export type ApiProductWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiProductWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiProductWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiProductWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by currency */
+  currency?: InputMaybe<ApiStringFilter>;
+  /** Filter by handle */
+  handle?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by locale */
+  locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by maxPriceMinor */
+  maxPriceMinor?: InputMaybe<ApiIntFilter>;
+  /** Filter by minPriceMinor */
+  minPriceMinor?: InputMaybe<ApiIntFilter>;
+  /** Filter by name */
+  name?: InputMaybe<ApiStringFilter>;
+  /** Filter by primaryCategoryId */
+  primaryCategoryId?: InputMaybe<ApiIdFilter>;
+  /** Filter by primaryCategoryName */
+  primaryCategoryName?: InputMaybe<ApiStringFilter>;
+  /** Filter by publishedAt */
+  publishedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by vendorId */
+  vendorId?: InputMaybe<ApiIdFilter>;
 };
 
 export type ApiPurchasable = {
@@ -7114,6 +7192,15 @@ export type ApiVariantWhereInput = {
   productId?: InputMaybe<ApiIdFilter>;
   /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+/** A vendor represents the supplier or brand owner associated with a product. */
+export type ApiVendor = ApiNode & {
+  __typename?: 'Vendor';
+  /** The globally unique ID of the vendor. */
+  id: Scalars['ID']['output'];
+  /** The display name of the vendor. */
+  name: Scalars['String']['output'];
 };
 
 /** A warehouse represents a physical location where inventory is stored. */

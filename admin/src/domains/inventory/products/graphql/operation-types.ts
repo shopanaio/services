@@ -18,8 +18,10 @@ import type {
   ApiProductInventoryWidget,
   ApiProductOption,
   ApiProductOptionsSyncInput,
+  ApiProductOrderByInput,
   ApiProductUpdateInput,
   ApiProductUpdateStatusInput,
+  ApiProductWhereInput,
   ApiVariantConnection,
   ApiWarehouseConnection,
   ApiWidgetQuery,
@@ -36,6 +38,8 @@ export interface ProductsQueryVariables {
   after?: string | null;
   last?: number;
   before?: string | null;
+  where?: ApiProductWhereInput | null;
+  orderBy?: ApiProductOrderByInput[] | null;
 }
 
 export interface ProductDetailsQueryData {

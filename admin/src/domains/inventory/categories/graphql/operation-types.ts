@@ -19,8 +19,8 @@ import type {
   ApiCategoryRemoveProductPayload,
   ApiCategoryUpdateInput,
   ApiGenericUserError,
+  ApiListingOrderByInput,
   ApiOperationResult,
-  ApiProductOrderByInput,
   ApiCategoryWhereInput,
 } from "@/graphql/types";
 
@@ -92,7 +92,7 @@ export interface CategoryProductsQueryVariables {
   last?: number;
   before?: string | null;
   where?: ApiCategoryProductWhereInput | null;
-  orderBy?: ApiProductOrderByInput[] | null;
+  orderBy?: ApiListingOrderByInput[] | null;
 }
 
 export interface CategoryUpdateMutationData {

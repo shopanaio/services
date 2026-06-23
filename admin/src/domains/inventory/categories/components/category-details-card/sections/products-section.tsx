@@ -22,7 +22,7 @@ import {
   useRelayCursorPagination,
 } from "@/ui-kit/cursor-pagination";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import type { ApiProduct, ApiProductOrderByInput } from "@/graphql/types";
+import type { ApiListingOrderByInput, ApiProduct } from "@/graphql/types";
 import { ProductSortBy, SortDirection } from "@/graphql/types";
 import { useCategoryProducts } from "../../../hooks";
 import { useProductsStyles } from "../category-details-card.styles";
@@ -123,7 +123,7 @@ export const ProductsSection = ({
   onAssignProducts,
 }: ProductsSectionProps) => {
   const { styles } = useProductsStyles();
-  const [orderBy, setOrderBy] = useState<ApiProductOrderByInput[] | null>(null);
+  const [orderBy, setOrderBy] = useState<ApiListingOrderByInput[] | null>(null);
   const pagination = useRelayCursorPagination({
     defaultPageSize: 10,
     resetKey: JSON.stringify(orderBy),

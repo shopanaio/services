@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useCallback } from "react";
-import { App, Image, Typography, Flex, Button, Tag } from "antd";
+import { Alert, App, Image, Typography, Flex, Button } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
 import { useModalStack } from "@/layouts/modals";
@@ -15,39 +15,156 @@ import {
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
-import { useFilters, FilterWidget } from "@/layouts/filters";
-import { CursorPagination } from "@/ui-kit/cursor-pagination";
+import {
+  FilterOperator,
+  useFilters,
+  FilterWidget,
+} from "@/layouts/filters";
+import type { IFilterAdapter } from "@/layouts/filters/core/types";
+import {
+  RelayCursorPagination,
+  useRelayCursorPagination,
+} from "@/ui-kit/cursor-pagination";
 import { FloatingPanelStack } from "@/ui-kit/floating-panel-stack";
 import type { ActionConfig } from "@/ui-kit/floating-panel-stack/core/types";
 import type { PanelConfig } from "@/ui-kit/floating-panel-stack/data-page/floating-panel-stack";
 import {
   useGridState,
+  useGridSort,
   useAgGridTheme,
   useAgGridRowSelection,
 } from "@/hooks";
+import type { SortModel } from "@/hooks/use-grid-sort";
 import { filterSchema } from "./filter-schema";
 import { useDeleteProduct, useProducts } from "../hooks";
 import { useBulkEditorStore } from "../modals/bulk-editor-modal";
 import { useProductCreateModal } from "../modals";
-import type { ApiProduct } from "@/graphql/types";
+import type {
+  ApiProduct,
+  ApiProductOrderByInput,
+  ApiProductWhereInput,
+  ApiStringFilter,
+} from "@/graphql/types";
+import {
+  ProductOrderField,
+  SortDirection,
+} from "@/graphql/types";
+import { useDefaultCurrency } from "@/domains/workspace";
 import {
   getProductBrandName,
+  getProductMaxPriceAmount,
+  getProductMinPriceAmount,
   getProductPrimaryCategoryName,
   getProductThumbnailFile,
-  getProductTotalAvailable,
 } from "../utils/api-product-display";
-import {
-  PRODUCT_STATUS_COLORS,
-  PRODUCT_STATUS_LABELS,
-  getProductStatus,
-  type ProductStatus,
-} from "../utils/product-status";
+import { formatPrice } from "../utils/price-formatting";
+import type { ProductsQueryVariables } from "../graphql";
 
 ModuleRegistry.registerModules([
   AllCommunityModule,
   RowSelectionModule,
   GridStateModule,
 ]);
+
+const PRODUCT_SORT_FIELDS: Partial<Record<string, ProductOrderField>> = {
+  title: ProductOrderField.Name,
+  minPriceMinor: ProductOrderField.MinPriceMinor,
+  maxPriceMinor: ProductOrderField.MaxPriceMinor,
+  primaryCategoryName: ProductOrderField.PrimaryCategoryName,
+};
+
+function isEmptyFilterValue(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    return value.length === 0 || value.every(isEmptyFilterValue);
+  }
+
+  return value === null || value === undefined || value === "";
+}
+
+function getFirstFilterValue(value: unknown): unknown {
+  if (!Array.isArray(value)) {
+    return value;
+  }
+
+  return value.find((item) => !isEmptyFilterValue(item));
+}
+
+function buildStringFilter(
+  operator: FilterOperator,
+  value: unknown,
+): ApiStringFilter | null {
+  const firstValue = getFirstFilterValue(value);
+
+  if (isEmptyFilterValue(firstValue)) {
+    return null;
+  }
+
+  const text = String(firstValue);
+
+  switch (operator) {
+    case FilterOperator.Eq:
+      return { _eq: text };
+    case FilterOperator.NotEq:
+      return { _neq: text };
+    case FilterOperator.ILike:
+    case FilterOperator.Like:
+      return { _containsi: text };
+    default:
+      return null;
+  }
+}
+
+const productFilterAdapter: IFilterAdapter<ApiProductWhereInput> = {
+  name: "product-where",
+  convert: (filter) => {
+    const condition = buildStringFilter(filter.operator, filter.value);
+
+    if (!condition) {
+      return null;
+    }
+
+    switch (filter.payloadKey) {
+      case "name":
+        return { name: condition };
+      case "handle":
+        return { handle: condition };
+      case "primaryCategoryName":
+        return { primaryCategoryName: condition };
+      default:
+        return null;
+    }
+  },
+  combine: (filters) => {
+    if (filters.length === 1) {
+      return filters[0];
+    }
+
+    return { _and: filters };
+  },
+  build: (combined) => combined,
+};
+
+function mapProductSortModelToOrderBy(
+  sortModel: SortModel[],
+): ApiProductOrderByInput[] | null {
+  const orderBy = sortModel
+    .map((sort) => {
+      const field = PRODUCT_SORT_FIELDS[sort.colId];
+
+      if (!field || !sort.sort) {
+        return null;
+      }
+
+      return {
+        field,
+        direction:
+          sort.sort === "desc" ? SortDirection.Desc : SortDirection.Asc,
+      };
+    })
+    .filter((item): item is ApiProductOrderByInput => item !== null);
+
+  return orderBy.length > 0 ? orderBy : null;
+}
 
 // Cell Renderers
 const ProductCellRenderer = (
@@ -79,51 +196,27 @@ const ProductCellRenderer = (
   );
 };
 
-const StatusCellRenderer = (
-  props: CustomCellRendererProps<ApiProduct, ProductStatus>,
-) => {
-  const { data, value } = props;
-  const status = value ?? "draft";
-
-  return (
-    <Tag
-      color={PRODUCT_STATUS_COLORS[status]}
-      data-testid={
-        data ? `products-table-status-cell-${data.handle}` : undefined
-      }
-    >
-      {PRODUCT_STATUS_LABELS[status]}
-    </Tag>
-  );
-};
-
-const InventoryCellRenderer = (
-  props: CustomCellRendererProps<ApiProduct, number>,
-) => {
-  const { data, value } = props;
-  const testId = data
-    ? `products-table-inventory-cell-${data.handle}`
-    : undefined;
-
-  if (value === 0) {
-    return (
-      <Typography.Text type="danger" data-testid={testId}>
-        0 in stock
-      </Typography.Text>
-    );
-  }
-  return (
-    <Typography.Text data-testid={testId}>
-      {value ?? 0} in stock
-    </Typography.Text>
-  );
-};
-
 const TextCellRenderer = (
   props: CustomCellRendererProps<ApiProduct, string | null>,
 ) => {
   const { value } = props;
-  return <Typography.Text>{value ?? ""}</Typography.Text>;
+  return <Typography.Text>{value ?? "\u2014"}</Typography.Text>;
+};
+
+const PriceCellRenderer = (
+  props: CustomCellRendererProps<ApiProduct, number | null> & {
+    currency?: string | null;
+  },
+) => {
+  const { value, currency } = props;
+
+  return (
+    <Typography.Text>
+      {value !== null && value !== undefined && currency
+        ? formatPrice(value, currency)
+        : "\u2014"}
+    </Typography.Text>
+  );
 };
 
 export default function ProductsPage() {
@@ -132,21 +225,73 @@ export default function ProductsPage() {
   const gridRef = useRef<AgGridReact<ApiProduct>>(null);
   const [searchValue, setSearchValue] = useState("");
   const [selectedCount, setSelectedCount] = useState(0);
-  const [pageSize, setPageSize] = useState(20);
-  const [pageIndex, setPageIndex] = useState(0);
-  const [cursorHistory, setCursorHistory] = useState<Array<string | null>>([
-    null,
-  ]);
-  const { widgetProps } = useFilters({ schema: filterSchema });
+  const [sortModel, setSortModel] = useState<SortModel[]>([]);
+  const defaultCurrency = useDefaultCurrency();
+  const { widgetProps, payload: filterWhere } =
+    useFilters<ApiProductWhereInput>({
+      schema: filterSchema,
+      adapter: productFilterAdapter,
+    });
   const { push } = useModalStack();
-  const after = cursorHistory[pageIndex] ?? null;
-  const { products, totalCount, pageInfo, loading, refetch } = useProducts({
-    first: pageSize,
-    after,
+  const where = useMemo<ApiProductWhereInput | null>(() => {
+    const filters: ApiProductWhereInput[] = [];
+    const query = searchValue.trim();
+
+    if (query) {
+      filters.push({ name: { _containsi: query } });
+    }
+
+    if (filterWhere) {
+      filters.push(filterWhere);
+    }
+
+    if (filters.length === 0) {
+      return null;
+    }
+
+    return filters.length === 1 ? filters[0] : { _and: filters };
+  }, [filterWhere, searchValue]);
+  const orderBy = useMemo(
+    () => mapProductSortModelToOrderBy(sortModel),
+    [sortModel],
+  );
+  const resetKey = useMemo(
+    () => JSON.stringify({ where, orderBy }),
+    [orderBy, where],
+  );
+  const pagination = useRelayCursorPagination({
+    defaultPageSize: 20,
+    resetKey,
   });
+  const listQueryVariables = useMemo<ProductsQueryVariables>(
+    () => ({
+      ...pagination.variables,
+      where,
+      orderBy,
+    }),
+    [orderBy, pagination.variables, where],
+  );
+  const {
+    products,
+    totalCount,
+    pageInfo,
+    loading,
+    error,
+    refetch,
+  } = useProducts(listQueryVariables);
   const { deleteProduct, loading: deletingProducts } = useDeleteProduct();
   const { initialState, onStateUpdated } = useGridState({
     storageKey: "products-grid-state",
+  });
+
+  const handleSortChange = useCallback((model: SortModel[]) => {
+    setSortModel(model);
+  }, []);
+
+  const { onSortChanged } = useGridSort<ApiProduct>({
+    gridRef,
+    sortModel,
+    onSortChange: handleSortChange,
   });
 
   // Bulk editor store
@@ -210,29 +355,6 @@ export default function ProductsPage() {
     await refetch();
   }, [deleteProduct, deselectAll, message, refetch]);
 
-  const handleNextPage = useCallback(() => {
-    if (!pageInfo?.endCursor) {
-      return;
-    }
-
-    setCursorHistory((current) => {
-      const next = current.slice(0, pageIndex + 1);
-      next[pageIndex + 1] = pageInfo.endCursor ?? null;
-      return next;
-    });
-    setPageIndex((current) => current + 1);
-  }, [pageInfo?.endCursor, pageIndex]);
-
-  const handlePreviousPage = useCallback(() => {
-    setPageIndex((current) => Math.max(0, current - 1));
-  }, []);
-
-  const handlePageSizeChange = useCallback((nextPageSize: number) => {
-    setPageSize(nextPageSize);
-    setPageIndex(0);
-    setCursorHistory([null]);
-  }, []);
-
   // Build selection actions
   const selectionActions = useMemo<ActionConfig[]>(
     () => [
@@ -253,7 +375,7 @@ export default function ProductsPage() {
         onClick: handleDeleteSelected,
       },
     ],
-    [handleBulkEdit, handleDeleteSelected],
+    [deletingProducts, handleBulkEdit, handleDeleteSelected],
   );
 
   // Build floating panels
@@ -279,42 +401,53 @@ export default function ProductsPage() {
         headerName: "Product",
         field: "title",
         cellRenderer: ProductCellRenderer,
+        flex: 2,
         minWidth: 300,
       },
       {
-        headerName: "Status",
-        valueGetter: ({ data }) => (data ? getProductStatus(data) : "draft"),
-        cellRenderer: StatusCellRenderer,
-        minWidth: 120,
+        headerName: "Min price",
+        colId: "minPriceMinor",
+        valueGetter: ({ data }) =>
+          data ? getProductMinPriceAmount(data) : null,
+        cellRenderer: PriceCellRenderer,
+        cellRendererParams: { currency: defaultCurrency },
+        minWidth: 130,
       },
       {
-        headerName: "Inventory",
-        valueGetter: ({ data }) => (data ? getProductTotalAvailable(data) : 0),
-        cellRenderer: InventoryCellRenderer,
-        minWidth: 120,
+        headerName: "Max price",
+        colId: "maxPriceMinor",
+        valueGetter: ({ data }) =>
+          data ? getProductMaxPriceAmount(data) : null,
+        cellRenderer: PriceCellRenderer,
+        cellRendererParams: { currency: defaultCurrency },
+        minWidth: 130,
       },
       {
         headerName: "Category",
+        colId: "primaryCategoryName",
         valueGetter: ({ data }) =>
           data ? getProductPrimaryCategoryName(data) : null,
         cellRenderer: TextCellRenderer,
-        minWidth: 120,
+        minWidth: 180,
       },
       {
         headerName: "Brand",
+        colId: "brand",
         valueGetter: ({ data }) => (data ? getProductBrandName(data) : null),
         cellRenderer: TextCellRenderer,
-        minWidth: 120,
+        minWidth: 160,
         resizable: false,
+        sortable: false,
       },
     ],
-    [],
+    [defaultCurrency],
   );
 
   const defaultColDef = useMemo<ColDef>(
     () => ({
       resizable: true,
-      sortable: false,
+      sortable: true,
+      comparator: () => 0,
       cellStyle: { display: "flex", alignItems: "center" },
     }),
     [],
@@ -347,6 +480,7 @@ export default function ProductsPage() {
               searchValue,
               onChangeSearchValue: setSearchValue,
             }}
+            searchPlaceholder="Search products..."
           />
         }
       />
@@ -359,6 +493,15 @@ export default function ProductsPage() {
           flexDirection: "column",
         }}
       >
+        {error && (
+          <Alert
+            type="error"
+            message={error.message}
+            showIcon
+            style={{ marginBottom: 12 }}
+          />
+        )}
+
         <div style={{ flex: 1 }} data-testid="products-table">
           <AgGridReact<ApiProduct>
             ref={gridRef}
@@ -375,23 +518,19 @@ export default function ProductsPage() {
             suppressMovableColumns
             onCellClicked={onCellClicked}
             onSelectionChanged={handleSelectionChanged}
+            onSortChanged={onSortChanged}
             rowStyle={{ cursor: "pointer" }}
             initialState={initialState}
             onStateUpdated={onStateUpdated}
           />
         </div>
 
-        <CursorPagination
+        <RelayCursorPagination
           name="products"
-          total={totalCount}
-          rangeStart={products.length ? pageIndex * pageSize + 1 : 0}
-          rangeEnd={Math.min(pageIndex * pageSize + products.length, totalCount)}
-          pageSize={pageSize}
-          hasNext={pageInfo?.hasNextPage ?? false}
-          hasPrev={pageIndex > 0}
-          onNext={handleNextPage}
-          onPrev={handlePreviousPage}
-          onPageSizeChange={handlePageSizeChange}
+          pagination={pagination}
+          pageInfo={pageInfo}
+          totalCount={totalCount}
+          loadedRowsCount={products.length}
         />
       </div>
 

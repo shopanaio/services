@@ -63,7 +63,7 @@ export const CATEGORY_PRODUCTS_QUERY = gql`
     $last: Int
     $before: String
     $where: CategoryProductWhereInput
-    $orderBy: [ProductOrderByInput!]
+    $orderBy: [ListingOrderByInput!]
   ) {
     catalogQuery {
       category(id: $id) {

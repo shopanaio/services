@@ -1,60 +1,10 @@
 import {
   FilterType,
-  numberOperators,
   stringOperators,
-  enumOperators,
 } from "@/layouts/filters";
 import type { IFilterSchema } from "@/layouts/filters/core/types";
-import { PRODUCT_STATUS_OPTIONS } from "../utils/product-status";
 
 export const filterSchema: IFilterSchema[] = [
-  {
-    key: "status",
-    label: "Status",
-    description: "Filter by product status",
-    type: FilterType.Enum,
-    operators: enumOperators,
-    payloadKey: "status",
-    options: PRODUCT_STATUS_OPTIONS,
-  },
-  {
-    key: "category",
-    label: "Category",
-    description: "Filter by category",
-    type: FilterType.Enum,
-    operators: enumOperators,
-    payloadKey: "category",
-    options: [
-      { label: "Phone", value: "Phone" },
-      { label: "Laptop", value: "Laptop" },
-      { label: "Audio", value: "Audio" },
-      { label: "Gaming", value: "Gaming" },
-      { label: "Accessory", value: "Accessory" },
-    ],
-  },
-  {
-    key: "brand",
-    label: "Brand",
-    description: "Filter by brand",
-    type: FilterType.Enum,
-    operators: enumOperators,
-    payloadKey: "brand",
-    options: [
-      { label: "Apple", value: "Apple" },
-      { label: "Samsung", value: "Samsung" },
-      { label: "Sony", value: "Sony" },
-      { label: "Microsoft", value: "Microsoft" },
-      { label: "Logitech", value: "Logitech" },
-    ],
-  },
-  {
-    key: "inventory",
-    label: "Inventory",
-    description: "Filter by inventory quantity",
-    type: FilterType.Number,
-    operators: numberOperators,
-    payloadKey: "inventory",
-  },
   {
     key: "name",
     label: "Name",
@@ -62,5 +12,21 @@ export const filterSchema: IFilterSchema[] = [
     type: FilterType.String,
     operators: stringOperators,
     payloadKey: "name",
+  },
+  {
+    key: "handle",
+    label: "Handle",
+    description: "Filter by product handle",
+    type: FilterType.String,
+    operators: stringOperators,
+    payloadKey: "handle",
+  },
+  {
+    key: "category",
+    label: "Category",
+    description: "Filter by primary category name",
+    type: FilterType.String,
+    operators: stringOperators,
+    payloadKey: "primaryCategoryName",
   },
 ];

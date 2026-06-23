@@ -1,18 +1,23 @@
 "use client";
 
 import { useQuery } from "@apollo/client/react";
-import type { ApiPageInfo, ApiProduct, ApiProductConnection } from "@/graphql/types";
+import type {
+  ApiPageInfo,
+  ApiProduct,
+  ApiProductConnection,
+  ApiProductOrderByInput,
+  ApiProductWhereInput,
+} from "@/graphql/types";
+import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
 import { PRODUCTS_QUERY } from "../graphql";
 import type {
   ProductsQueryData,
   ProductsQueryVariables,
 } from "../graphql";
 
-export interface UseProductsOptions {
-  first?: number;
-  after?: string | null;
-  last?: number;
-  before?: string | null;
+export interface UseProductsOptions extends RelayCursorPaginationVariables {
+  where?: ApiProductWhereInput | null;
+  orderBy?: ApiProductOrderByInput[] | null;
   skip?: boolean;
 }
 
@@ -32,6 +37,8 @@ export function useProducts(options: UseProductsOptions = {}): UseProductsReturn
     after = null,
     last,
     before = null,
+    where = null,
+    orderBy = null,
     skip = false,
   } = options;
 
@@ -39,7 +46,7 @@ export function useProducts(options: UseProductsOptions = {}): UseProductsReturn
     ProductsQueryData,
     ProductsQueryVariables
   >(PRODUCTS_QUERY, {
-    variables: { first, after, last, before },
+    variables: { first, after, last, before, where, orderBy },
     skip,
     fetchPolicy: "cache-and-network",
   });

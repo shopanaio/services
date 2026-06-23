@@ -7,7 +7,7 @@ import type {
 } from "@/graphql/types";
 
 export const getProductVariants = (product: ApiProduct): ApiVariant[] =>
-  product.variants.edges.map((edge) => edge.node);
+  product.variants?.edges.map((edge) => edge.node) ?? [];
 
 export const getDefaultVariant = (product: ApiProduct): ApiVariant | null => {
   const variants = getProductVariants(product);
@@ -32,6 +32,25 @@ export const getProductPrimaryPriceAmount = (
   product: ApiProduct,
 ): number | null => getDefaultVariant(product)?.price?.amountMinor ?? null;
 
+export const getProductPriceAmounts = (product: ApiProduct): number[] =>
+  getProductVariants(product)
+    .map((variant) => variant.price?.amountMinor ?? null)
+    .filter((amount): amount is number => amount !== null);
+
+export const getProductMinPriceAmount = (
+  product: ApiProduct,
+): number | null => {
+  const prices = getProductPriceAmounts(product);
+  return prices.length > 0 ? Math.min(...prices) : null;
+};
+
+export const getProductMaxPriceAmount = (
+  product: ApiProduct,
+): number | null => {
+  const prices = getProductPriceAmounts(product);
+  return prices.length > 0 ? Math.max(...prices) : null;
+};
+
 export const getProductTotalAvailable = (product: ApiProduct): number =>
   getProductVariants(product).reduce(
     (total, variant) => total + getVariantStockQuantity(variant),
@@ -46,15 +65,19 @@ export const getProductPrimaryCategory = (
   product: ApiProduct,
 ): ApiCategory | null =>
   product.primaryCategory ??
-  product.categoryAssignments.find((assignment) => assignment.isPrimary)
+  (product.categoryAssignments ?? []).find((assignment) => assignment.isPrimary)
     ?.category ??
   null;
 
 export const getProductCategories = (product: ApiProduct): ApiCategory[] =>
-  product.categoryAssignments.map((assignment) => assignment.category);
+  (product.categoryAssignments ?? []).map((assignment) => assignment.category);
 
 export const getProductBrandName = (product: ApiProduct): string | null => {
-  const brandFeature = product.features.find(
+  if (product.vendor?.name) {
+    return product.vendor.name;
+  }
+
+  const brandFeature = (product.features ?? []).find(
     (feature) =>
       feature.slug === "brand" || feature.name.toLowerCase() === "brand",
   );
@@ -71,7 +94,10 @@ export const getVariantStockQuantity = (variant: ApiVariant): number => {
 
   return (
     inventoryItem.totalAvailable ??
-    inventoryItem.stock.reduce((total, stock) => total + stock.quantityOnHand, 0)
+    (inventoryItem.stock ?? []).reduce(
+      (total, stock) => total + stock.quantityOnHand,
+      0,
+    )
   );
 };
 

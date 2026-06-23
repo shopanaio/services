@@ -221,6 +221,13 @@ export const PRODUCT_TAG_FRAGMENT = gql`
   }
 `;
 
+export const VENDOR_FRAGMENT = gql`
+  fragment VendorFields on Vendor {
+    id
+    name
+  }
+`;
+
 export const PRODUCT_FEATURE_FRAGMENT = gql`
   fragment ProductFeatureFields on ProductFeature {
     id
@@ -248,42 +255,36 @@ export const PRODUCT_LIST_FRAGMENT = gql`
     updatedAt
     deletedAt
     revision
-    variantsCount
     media {
       ...ProductMediaItemFields
     }
     primaryCategory {
       ...ProductCategoryFields
     }
-    categoryAssignments {
-      isPrimary
-      category {
-        ...ProductCategoryFields
-      }
-    }
-    features {
-      ...ProductFeatureFields
+    vendor {
+      ...VendorFields
     }
     variants(first: 100) {
       edges {
-        cursor
         node {
-          ...VariantFields
+          id
+          price {
+            id
+            amountMinor
+            compareAtMinor
+            currency
+            effectiveFrom
+            effectiveTo
+            isCurrent
+            recordedAt
+          }
         }
       }
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        startCursor
-        endCursor
-      }
-      totalCount
     }
   }
   ${PRODUCT_MEDIA_ITEM_FRAGMENT}
   ${PRODUCT_CATEGORY_FRAGMENT}
-  ${PRODUCT_FEATURE_FRAGMENT}
-  ${VARIANT_FRAGMENT}
+  ${VENDOR_FRAGMENT}
 `;
 
 export const PRODUCT_DETAILS_FRAGMENT = gql`
