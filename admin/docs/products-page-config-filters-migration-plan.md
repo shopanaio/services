@@ -40,7 +40,7 @@
 
 ## Доступный API contract
 
-Generated `ApiProductWhereInput` сейчас поддерживает:
+Generated `ApiProductWhereInput` поддерживает больше полей, чем нужно для этой миграции. Для target UX использовать только следующий subset:
 
 | API field | Filter type |
 |---|---|
@@ -51,6 +51,8 @@ Generated `ApiProductWhereInput` сейчас поддерживает:
 | `vendorId` | `ApiIdFilter` |
 | `minPriceMinor` | `ApiIntFilter` |
 | `maxPriceMinor` | `ApiIntFilter` |
+
+Также generated schema содержит `brandName: ApiStringFilter`, но для этой миграции его не использовать: Brand filter должен быть entity/relation filter по `vendorId`, чтобы UI работал с выбранным vendor id, а не со строковым совпадением имени.
 
 Generated `ProductOrderField` сейчас поддерживает:
 
@@ -79,7 +81,15 @@ Generated `ProductOrderField` сейчас поддерживает:
 
 Brand filter должен быть `FilterType.Relation` и должен отправлять entity ids в `vendorId._in`, потому что текущая generated schema представляет brand entity через `ApiProduct.vendor` / `ApiVendor`.
 
-Если в admin client нет vendor/brand list query или picker config, это blocker для brand filter implementation. Нужно сначала добавить vendor/brand picker и соответствующий API read path, а не деградировать filter до string input.
+Backend Catalog Admin API уже содержит vendors read path:
+
+- `services/catalog/src/api/graphql-admin/schema/base.graphql` exposes `vendor(id: ID!)` and `vendors(...)`;
+- `services/catalog/src/api/graphql-admin/schema/product.graphql` defines `Vendor`, `VendorConnection`, and `VendorEdge`;
+- `services/catalog/src/resolvers/admin/QueryResolver.ts` implements `vendor` and `vendors`.
+
+Current admin client generated types expose `ApiVendor` through `ApiProduct.vendor`, but `admin/src/graphql/types.ts` does not currently expose `catalogQuery.vendors` / `catalogQuery.vendor` entrypoints. Поэтому Brand filter implementation must include admin GraphQL integration/codegen for vendors before enabling the `vendor` relation filter in Products.
+
+Do not degrade Brand to `brandName` string filter. `brandName` can stay available in generated API types, but it is not the target UX for this migration.
 
 ## Shared changes
 
@@ -143,7 +153,20 @@ Important:
 
 - entity keys должны совпадать с registered picker configs. Сейчас category picker registered как `entityType: "category"`, не `"Category"`.
 - category picker уже есть: `admin/src/shared/components/entity-picker-modal/configs/category-picker-config.ts`.
-- vendor picker сейчас отсутствует, его нужно добавить для brand entity filter.
+- vendor picker сейчас отсутствует в admin, его нужно добавить для brand entity filter после подключения vendors query в generated admin GraphQL client.
+
+### 5. Admin vendors GraphQL integration
+
+Перед включением Brand filter в `filterSchema` добавить admin read integration для vendors:
+
+- обновить admin GraphQL composition/codegen так, чтобы generated `admin/src/graphql/types.ts` содержал `catalogQuery.vendors` / `catalogQuery.vendor`, `ApiVendorConnection`, `ApiVendorWhereInput`, `ApiVendorOrderByInput`, and `ApiCatalogQueryVendorsArgs`;
+- добавить vendors query operation under admin inventory domain. Если отдельного `vendors` module нет, допустимо держать module-local read path under `admin/src/domains/inventory/products/graphql` только для picker use case;
+- добавить `useVendors` hook, который возвращает generated API objects directly according to `knowledge/vault/patterns/admin-graphql-layer.md`;
+- добавить `vendor-picker-config.ts` for entity picker with `entityType: "vendor"`, columns `Vendor`/`Name`, pagination, optional search by `name._containsi`, and optional default order by name;
+- зарегистрировать vendor picker config in `admin/src/shared/components/entity-picker-modal/register.ts`;
+- only after this, enable `{ entity: "vendor", payloadKey: "vendorId" }` in Products filter schema.
+
+This is an implementation dependency, not a backend API blocker.
 
 ## Products filter schema target
 
@@ -226,6 +249,33 @@ Keep:
 Target setup:
 
 ```ts
+const productSortFieldMapping: SortFieldMapping<ProductOrderField> = {
+  title: ProductOrderField.Name,
+  minPriceMinor: ProductOrderField.MinPriceMinor,
+  maxPriceMinor: ProductOrderField.MaxPriceMinor,
+  primaryCategoryName: ProductOrderField.PrimaryCategoryName,
+  brand: ProductOrderField.BrandName,
+};
+
+const buildProductSearchCondition = (
+  search: string,
+): Partial<ApiProductWhereInput> => ({
+  name: { _containsi: search },
+});
+
+const productFilterTransformers = {
+  primaryCategoryId: createRelationInTransformer<ApiProductWhereInput>(
+    "primaryCategoryId",
+  ),
+  minPriceMinor: createMinorUnitPriceTransformer<ApiProductWhereInput>(
+    "minPriceMinor",
+  ),
+  maxPriceMinor: createMinorUnitPriceTransformer<ApiProductWhereInput>(
+    "maxPriceMinor",
+  ),
+  vendorId: createRelationInTransformer<ApiProductWhereInput>("vendorId"),
+};
+
 const pageConfig = usePageConfig<
   ApiProduct,
   ApiProductWhereInput,
@@ -234,31 +284,14 @@ const pageConfig = usePageConfig<
   gridRef,
   storageKey: "products-grid-state",
   filterSchema,
-  sortFieldMapping: {
-    title: ProductOrderField.Name,
-    minPriceMinor: ProductOrderField.MinPriceMinor,
-    maxPriceMinor: ProductOrderField.MaxPriceMinor,
-    primaryCategoryName: ProductOrderField.PrimaryCategoryName,
-    brand: ProductOrderField.BrandName,
-  },
+  sortFieldMapping: productSortFieldMapping,
   defaultPageSize: 20,
-  buildSearchCondition: (search) => ({
-    name: { _containsi: search },
-  }),
-  filterTransformers: {
-    primaryCategoryId: createRelationInTransformer<ApiProductWhereInput>(
-      "primaryCategoryId",
-    ),
-    minPriceMinor: createMinorUnitPriceTransformer<ApiProductWhereInput>(
-      "minPriceMinor",
-    ),
-    maxPriceMinor: createMinorUnitPriceTransformer<ApiProductWhereInput>(
-      "maxPriceMinor",
-    ),
-    vendorId: createRelationInTransformer<ApiProductWhereInput>("vendorId"),
-  },
+  buildSearchCondition: buildProductSearchCondition,
+  filterTransformers: productFilterTransformers,
 });
 ```
+
+Important: keep `sortFieldMapping`, `buildSearchCondition`, and `filterTransformers` as stable references, as shown above. Do not pass them inline from the component render. `usePageConfig` recomputes `where` / `orderBy` from these inputs and resets cursor pagination when they change.
 
 Do not add a string Brand filter. If `vendor` relation picker is not available, implement it before enabling the Brand filter.
 
@@ -377,12 +410,14 @@ Partial support:
 
 - Product API supports `vendorId`;
 - `ApiProduct.vendor` exists;
-- no vendor list query/picker was found in admin client.
+- backend Catalog Admin API supports `vendor` / `vendors`;
+- admin generated client currently does not expose `catalogQuery.vendors`;
+- no vendor picker config was found in admin client.
 
 Decision:
 
-- add module-local vendor/brand picker config and use `vendorId._in`;
-- if vendor list API does not exist, add backend/admin API support first;
+- add admin vendors GraphQL integration/codegen, `useVendors`, and vendor picker config;
+- use `vendorId._in` for Brand filter after vendors read path is available in admin client;
 - do not implement a string Brand filter for this migration.
 
 ### Price filters
@@ -403,28 +438,38 @@ Decision: use minor units in API. Preferred UI input is major units with transfo
 - Add reusable relation and minor-unit price transformers if they are useful beyond Products.
 - Keep Media page compiling with the old returned fields.
 
-### Phase 2: Relation controls
+### Phase 2: Admin vendors integration
+
+- Refresh admin GraphQL schema/codegen so `catalogQuery.vendors` and vendor connection/input types are available in `admin/src/graphql/types.ts`.
+- Add vendors query operation and `useVendors` hook.
+- Add/register `vendor-picker-config.ts`.
+- Keep Brand filter disabled until this phase is complete.
+
+### Phase 3: Relation controls
 
 - Add/register category relation control for filters.
 - Confirm selected relation values are stored as IDs.
-- Add/register vendor relation control and vendor picker config for Brand.
+- Add/register vendor relation control for Brand using the vendor picker config.
+- Keep `IFilterValue.value` for relation filters as `string[]` ids. Relation controls may keep a local label cache for display, but GraphQL transformer input must remain ids.
 
-### Phase 3: Products filter schema
+### Phase 4: Products filter schema
 
 - Replace `filter-schema.ts` with target filters.
 - Remove handle/name filter chips.
 - Use title toolbar search through `buildSearchCondition`.
 - Keep stock out of filter schema.
+- Add Brand only after Phase 2 provides vendors read path and vendor picker.
 
-### Phase 4: Products page migration
+### Phase 5: Products page migration
 
 - Replace manual page state with `usePageConfig`.
 - Build GraphQL query variables from `pageConfig`.
 - Wire `FilterWidget`, `AgGridReact`, and pagination to `pageConfig`.
 - Keep existing delete/refetch and modal behavior.
 - Keep server-side sorting behavior.
+- Use stable references for `sortFieldMapping`, `buildSearchCondition`, and `filterTransformers`.
 
-### Phase 5: Verification
+### Phase 6: Verification
 
 Do not run `test` or `tsc` per project instruction.
 
