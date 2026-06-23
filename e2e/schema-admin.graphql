@@ -1034,7 +1034,18 @@ type CatalogQuery {
   product(id: ID!): Product
 
   """Get products with Relay-style pagination"""
-  products(first: Int, after: String, last: Int, before: String): ProductConnection!
+  products(
+    first: Int
+    after: String
+    last: Int
+    before: String
+
+    """Filter conditions"""
+    where: ProductWhereInput
+
+    """Sort order"""
+    orderBy: [ProductOrderByInput!]
+  ): ProductConnection!
 
   """Get a variant by ID"""
   variant(id: ID!): Variant
@@ -1748,7 +1759,7 @@ type Category implements Node {
   media: [CategoryMediaItem!]!
 
   """Products in this category with pagination."""
-  products(first: Int, after: String, last: Int, before: String, orderBy: [ProductOrderByInput!], where: CategoryProductWhereInput): CategoryProductConnection!
+  products(first: Int, after: String, last: Int, before: String, orderBy: [ListingOrderByInput!], where: CategoryProductWhereInput): CategoryProductConnection!
 
   """The total number of products in this category."""
   productsCount: Int!
@@ -2442,6 +2453,17 @@ type ProductCategoryAssignment {
   isPrimary: Boolean!
 }
 
+"""
+A vendor represents the supplier or brand owner associated with a product.
+"""
+type Vendor implements Node {
+  """The globally unique ID of the vendor."""
+  id: ID!
+
+  """The display name of the vendor."""
+  name: String!
+}
+
 """A product represents an item that can be sold."""
 type Product implements Node {
   """The globally unique ID of the product."""
@@ -2469,6 +2491,9 @@ type Product implements Node {
 
   """Optimistic locking revision number. Incremented on each update."""
   revision: Int!
+
+  """The vendor associated with this product."""
+  vendor: Vendor
 
   """The variants of this product."""
   variants(first: Int, after: String, last: Int, before: String): VariantConnection!
@@ -2901,6 +2926,48 @@ interface Node {
 enum SortDirection {
   asc
   desc
+}
+
+"""Fields available for sorting Product"""
+enum ProductOrderField {
+  """Sort by id"""
+  id
+
+  """Sort by vendorId"""
+  vendorId
+
+  """Sort by handle"""
+  handle
+
+  """Sort by publishedAt"""
+  publishedAt
+
+  """Sort by createdAt"""
+  createdAt
+
+  """Sort by updatedAt"""
+  updatedAt
+
+  """Sort by locale"""
+  locale
+
+  """Sort by name"""
+  name
+
+  """Sort by currency"""
+  currency
+
+  """Sort by minPriceMinor"""
+  minPriceMinor
+
+  """Sort by maxPriceMinor"""
+  maxPriceMinor
+
+  """Sort by primaryCategoryId"""
+  primaryCategoryId
+
+  """Sort by primaryCategoryName"""
+  primaryCategoryName
 }
 
 """Fields available for sorting Category"""
@@ -3339,6 +3406,66 @@ input DateTimeFilter {
   _isNot: Boolean
 }
 
+"""Filter conditions for Product"""
+input ProductWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [ProductWhereInput!]
+
+  """Logical OR of multiple conditions"""
+  _or: [ProductWhereInput!]
+
+  """Negate the condition"""
+  _not: ProductWhereInput
+
+  """Filter by id"""
+  id: IDFilter
+
+  """Filter by vendorId"""
+  vendorId: IDFilter
+
+  """Filter by handle"""
+  handle: StringFilter
+
+  """Filter by publishedAt"""
+  publishedAt: DateTimeFilter
+
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+
+  """Filter by locale"""
+  locale: StringFilter
+
+  """Filter by name"""
+  name: StringFilter
+
+  """Filter by currency"""
+  currency: StringFilter
+
+  """Filter by minPriceMinor"""
+  minPriceMinor: IntFilter
+
+  """Filter by maxPriceMinor"""
+  maxPriceMinor: IntFilter
+
+  """Filter by primaryCategoryId"""
+  primaryCategoryId: IDFilter
+
+  """Filter by primaryCategoryName"""
+  primaryCategoryName: StringFilter
+}
+
+"""Ordering configuration for Product"""
+input ProductOrderByInput {
+  """Field to order by"""
+  field: ProductOrderField!
+
+  """Sort direction"""
+  direction: SortDirection!
+}
+
 """Filter conditions for Category"""
 input CategoryWhereInput {
   """Logical AND of multiple conditions"""
@@ -3628,7 +3755,7 @@ input CategoryHierarchyScopeInput {
   referenceId: ID!
   direction: CategoryHierarchyScopeDirection!
   includeReference: Boolean = false
-  mode: CategoryHierarchyScopeMode
+  mode: CategoryHierarchyScopeMode!
 }
 
 input CategoryCategoriesMetaInput {
@@ -4260,8 +4387,8 @@ input ProductSortInput {
   direction: SortDirection
 }
 
-"""Standard orderBy input for product queries."""
-input ProductOrderByInput {
+"""Listing orderBy input for product listing pages."""
+input ListingOrderByInput {
   field: ProductSortBy!
   direction: SortDirection
 }
