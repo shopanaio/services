@@ -41,9 +41,6 @@ products(
 - `services/catalog/src/resolvers/admin/QueryResolver.ts`
   - `products(args: ProductConnectionInput)` передает args напрямую в `ProductConnectionResolver`;
   - нет нормализации global ID фильтров для product `id` и потенциальных relation IDs.
-- `admin/src/domains/inventory/products/graphql/queries.ts`
-  - `PRODUCTS_QUERY` не принимает `where/orderBy`;
-  - product page пока не может включить server-side filters/sorts поверх Admin API.
 
 ## Главный конфликт схемы
 
@@ -68,8 +65,8 @@ input ProductOrderByInput {
 
 1. Освободить имя `ProductOrderByInput` для generated root products query.
 2. Переименовать текущий manual input в `ListingOrderByInput`.
-3. Оставить enum `ProductSortBy` для PLP/default sort и category products UI.
-4. Обновить `Category.products(orderBy:)`, `CategoryProductConnectionResolver`, admin category-products query/hook/types на `ListingOrderByInput`.
+3. Оставить enum `ProductSortBy` для PLP/default sort и category-products семантики.
+4. Обновить `Category.products(orderBy:)` и `CategoryProductConnectionResolver` на `ListingOrderByInput`.
 
 Это сохраняет существующую category-products семантику (`MANUAL/NAME/NEWEST/PRICE`) и позволяет root product table получить generated drizzle-query contract.
 
@@ -89,22 +86,6 @@ services/catalog/src/resolvers/admin/QueryResolver.ts
 services/catalog/src/resolvers/admin/filter-normalizers.ts
 services/catalog/src/resolvers/admin/generated/types.ts
 services/catalog/src/resolvers/admin/generated/schemas.ts
-```
-
-Frontend contract files after backend/schema cutover:
-
-```text
-admin/schema.graphql
-admin/src/graphql/types.ts
-admin/src/domains/inventory/products/graphql/queries.ts
-admin/src/domains/inventory/products/graphql/operation-types.ts
-admin/src/domains/inventory/products/hooks/use-products.ts
-admin/src/domains/inventory/products/page/page.tsx
-admin/src/domains/inventory/products/page/filter-schema.ts
-admin/src/domains/inventory/categories/graphql/queries.ts
-admin/src/domains/inventory/categories/graphql/operation-types.ts
-admin/src/domains/inventory/categories/hooks/use-category-products.ts
-admin/src/domains/inventory/categories/components/category-details-card/sections/products-section.tsx
 ```
 
 ## 1. Разделить root product order input и category-products order input
@@ -135,6 +116,13 @@ products(
 ```
 
 Обновить TypeScript resolver-local interface в `CategoryProductConnectionResolver.ts` с `ProductOrderByInput` на `ListingOrderByInput`.
+
+Runtime mapping в `CategoryRepository.getCategoryProductsConnection()` должен остаться без изменений:
+
+- `MANUAL` -> `category.lexoRank`;
+- `NAME` -> `translation.title`;
+- `NEWEST` -> `createdAt`;
+- `PRICE` -> `priceRange.minAmountMinor` для ascending и `priceRange.maxAmountMinor` для descending.
 
 ## 2. Создать product query builder для generated filters/sorts
 
@@ -170,7 +158,7 @@ Generated root product filters/sorts тогда включают поля produc
 - `inventory`: скорее inventory service/widget boundary, не добавлять в catalog product query без отдельного cross-service решения;
 - `variantsCount`: либо materialized/read model, либо отдельный view; не вычислять в resolver для сортировки.
 
-Recommended first cut: root products supports table-level filters/sorts only. UI controls для unsupported полей остаются выключенными или переводятся отдельным follow-up.
+Recommended first cut: root products supports table-level filters/sorts only. Unsupported fields require separate follow-up query-builder work.
 
 ## 3. Сгенерировать ProductWhereInput/ProductOrderByInput из drizzle-query
 
@@ -308,9 +296,7 @@ Do not use `this.count()` for filtered connection count.
 Required generated artifacts after source schema changes:
 
 - `services/catalog/src/resolvers/admin/generated/types.ts`;
-- `services/catalog/src/resolvers/admin/generated/schemas.ts`;
-- exported/composed admin schema artifacts consumed by `admin/schema.graphql`;
-- `admin/src/graphql/types.ts`.
+- `services/catalog/src/resolvers/admin/generated/schemas.ts`.
 
 Use project CLI/codegen/schema generation flow. Do not edit generated TS or generated GraphQL schema files by hand.
 
@@ -322,96 +308,7 @@ Important generation cwd detail:
 
 Project instruction: do not run `test` or `tsc`. Run `build` only when a new compiled code version is needed.
 
-## 8. Frontend Admin products query cutover
-
-After `admin/src/graphql/types.ts` contains `ApiProductWhereInput`, `ApiProductOrderByInput`, and `ProductOrderField`:
-
-### `products/graphql/queries.ts`
-
-```graphql
-query Products(
-  $first: Int
-  $after: String
-  $last: Int
-  $before: String
-  $where: ProductWhereInput
-  $orderBy: [ProductOrderByInput!]
-) {
-  catalogQuery {
-    products(
-      first: $first
-      after: $after
-      last: $last
-      before: $before
-      where: $where
-      orderBy: $orderBy
-    ) {
-      edges { cursor node { ...ProductListFields } }
-      pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
-      totalCount
-    }
-  }
-}
-```
-
-### `products/graphql/operation-types.ts`
-
-Add variables:
-
-```ts
-where?: ApiProductWhereInput | null;
-orderBy?: ApiProductOrderByInput[] | null;
-```
-
-### `use-products.ts`
-
-- extend options with `RelayCursorPaginationVariables`;
-- accept `where`, `orderBy`;
-- pass them to `PRODUCTS_QUERY`;
-- continue using `data ?? previousData`.
-
-### products page sorting/filtering
-
-Initial server-backed controls should only use generated fields:
-
-- search by `handle` via `{ handle: { _containsi: value } }`;
-- status filter can map to `publishedAt` only if product semantics are confirmed:
-  - published: `{ publishedAt: { _isNot: null } }`;
-  - draft: `{ publishedAt: { _is: null } }`;
-- sort mappings:
-  - `handle -> ProductOrderField.Handle`;
-  - `createdAt -> ProductOrderField.CreatedAt`;
-  - `updatedAt -> ProductOrderField.UpdatedAt`;
-  - `publishedAt -> ProductOrderField.PublishedAt`;
-
-Generated GraphQL enum values are lowercase field names (`handle`, `createdAt`, etc.), but generated frontend TypeScript enum members follow GraphQL Codegen naming (`Handle`, `CreatedAt`, etc.).
-
-Do not present `title`, `category`, `brand`, `inventory`, or `variantsCount` as server-backed filters/sorts until backend query builder exposes generated fields for them.
-
-Prefer `RelayCursorPagination`/`useRelayCursorPagination` for parity with categories/inventory pages. If keeping `CursorPagination` temporarily, reset cursor history when `where` or `orderBy` changes.
-
-## 9. Category-products frontend compatibility cutover
-
-Because manual PLP order input is renamed:
-
-- `admin/src/domains/inventory/categories/graphql/queries.ts`
-  - `$orderBy: [ListingOrderByInput!]`.
-- `admin/src/domains/inventory/categories/graphql/operation-types.ts`
-  - replace `ApiProductOrderByInput` with generated `ApiListingOrderByInput`.
-- `use-category-products.ts` and `products-section.tsx`
-  - update TypeScript imports/types only;
-  - keep `ProductSortBy.Manual/Name/Newest/Price` behavior.
-
-This is a schema compatibility rename, not a behavioral rewrite.
-
-Runtime mapping in `CategoryRepository.getCategoryProductsConnection()` must remain unchanged:
-
-- `MANUAL` -> `category.lexoRank`;
-- `NAME` -> `translation.title`;
-- `NEWEST` -> `createdAt`;
-- `PRICE` -> `priceRange.minAmountMinor` for ascending and `priceRange.maxAmountMinor` for descending.
-
-## 10. Drift and verification checks
+## 8. Drift and verification checks
 
 Do not run tests or `tsc`.
 
@@ -421,8 +318,7 @@ Use grep-style checks while implementing:
 rg 'products\\(' services/catalog/src/api/graphql-admin/schema/base.graphql
 rg 'input ProductWhereInput|enum ProductOrderField|input ProductOrderByInput' services/catalog/src/api/graphql-admin/schema/__generated__/filters.graphql
 rg 'input ProductWhereInput|enum ProductOrderField|input ProductOrderByInput' services/catalog/src/api/graphql-admin/schema --glob '!__generated__/filters.graphql'
-rg 'ListingOrderByInput|ProductOrderByInput' services/catalog/src/api/graphql-admin/schema services/catalog/src/resolvers/admin admin/src/domains/inventory/categories
-rg 'ProductWhereInput|ProductOrderField|ProductOrderByInput' admin/schema.graphql admin/src/graphql/types.ts
+rg 'ListingOrderByInput|ProductOrderByInput' services/catalog/src/api/graphql-admin/schema services/catalog/src/resolvers/admin
 ```
 
 Expected:
@@ -431,7 +327,7 @@ Expected:
 - no manual `ProductWhereInput` or generated-name `ProductOrderByInput` remains in non-generated catalog schema files;
 - category-products uses `ListingOrderByInput`;
 - root `CatalogQuery.products` exposes `where/orderBy`;
-- generated service/admin TS types reflect the final schema.
+- generated service admin resolver TS types reflect the final schema.
 - category-products still maps `MANUAL/NAME/NEWEST/PRICE` to the same repository order fields after the input rename.
 
 Build verification:
@@ -457,5 +353,4 @@ Manual API verification after implementation:
 - `QueryResolver.products()` normalizes product global ID filters before constructing `ProductConnectionResolver`.
 - `ProductRepository.getConnection()` uses `productRelayQuery.execute()` and `productRelayQuery.count()` with the same merged `where`.
 - Repository-internal filters keep `projectId = storeId` and `deletedAt is null` out of the public schema.
-- Admin frontend can pass `where/orderBy` for supported product fields after schema/codegen refresh.
 - Category-products runtime sort mapping for `MANUAL/NAME/NEWEST/PRICE` is unchanged.
