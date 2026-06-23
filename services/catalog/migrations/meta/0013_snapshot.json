@@ -1,5 +1,5 @@
 {
-  "id": "b1b7fb8b-e954-4a61-9acc-f9fd3b2edd4d",
+  "id": "bd61e9b9-1b4c-4ee3-93c7-2214a84519e8",
   "prevId": "da7a2937-aa53-4d57-91a5-5a69fba43439",
   "version": "7",
   "dialect": "postgresql",
@@ -6867,7 +6867,7 @@
           "notNull": true
         }
       },
-      "definition": "select \"catalog\".\"product\".\"project_id\", \"catalog\".\"product\".\"id\", \"catalog\".\"product\".\"vendor_id\", \"catalog\".\"product\".\"handle\", \"catalog\".\"product\".\"published_at\", \"catalog\".\"product\".\"created_at\", \"catalog\".\"product\".\"updated_at\", \"catalog\".\"product\".\"deleted_at\", \"catalog\".\"product\".\"revision\", \"catalog\".\"product_translation\".\"locale\", \"catalog\".\"product_translation\".\"name\" from \"catalog\".\"product\" inner join \"catalog\".\"product_translation\" on \"catalog\".\"product_translation\".\"project_id\" = \"catalog\".\"product\".\"project_id\" AND \"catalog\".\"product_translation\".\"product_id\" = \"catalog\".\"product\".\"id\"",
+      "definition": "select \"catalog\".\"product\".\"project_id\", \"catalog\".\"product\".\"id\", \"catalog\".\"product\".\"vendor_id\", \"catalog\".\"product\".\"handle\", \"catalog\".\"product\".\"published_at\", \"catalog\".\"product\".\"created_at\", \"catalog\".\"product\".\"updated_at\", \"catalog\".\"product\".\"deleted_at\", \"catalog\".\"product\".\"revision\", \"catalog\".\"product_translation\".\"locale\", \"catalog\".\"product_translation\".\"name\", \"catalog\".\"product_category\".\"category_id\" as \"primary_category_id\", \"catalog\".\"category_translation\".\"name\" as \"primary_category_name\" from \"catalog\".\"product\" inner join \"catalog\".\"product_translation\" on \"catalog\".\"product_translation\".\"project_id\" = \"catalog\".\"product\".\"project_id\" AND \"catalog\".\"product_translation\".\"product_id\" = \"catalog\".\"product\".\"id\" left join \"catalog\".\"product_category\" on \"catalog\".\"product_category\".\"project_id\" = \"catalog\".\"product\".\"project_id\" AND \"catalog\".\"product_category\".\"product_id\" = \"catalog\".\"product\".\"id\" AND \"catalog\".\"product_category\".\"is_primary\" = true left join \"catalog\".\"category_translation\" on \"catalog\".\"category_translation\".\"project_id\" = \"catalog\".\"product\".\"project_id\" AND \"catalog\".\"category_translation\".\"category_id\" = \"catalog\".\"product_category\".\"category_id\" AND \"catalog\".\"category_translation\".\"locale\" = \"catalog\".\"product_translation\".\"locale\"",
       "name": "product_list_view",
       "schema": "catalog",
       "isExisting": false,
