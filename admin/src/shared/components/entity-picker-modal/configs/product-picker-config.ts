@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import type { ColDef } from "ag-grid-community";
-import { filterSchema } from "@/domains/inventory/products/page/filter-schema";
 import { useProducts } from "@/domains/inventory/products/hooks";
 import {
   getProductBrandName,
@@ -173,7 +172,7 @@ export const productPickerConfig: IEntityPickerConfig<ProductPickerEntity> = {
   entityType: "product",
   entityName: "Product",
   entityNamePlural: "Products",
-  filterSchema,
+  filterSchema: [],
   columns: productPickerColumns,
   useData: useProductsPickerData,
   getRowId: (entity) => entity.id,

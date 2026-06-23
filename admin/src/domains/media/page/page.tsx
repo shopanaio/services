@@ -54,6 +54,10 @@ const sortFieldMapping: Record<string, FileOrderField> = {
   createdAt: FileOrderField.CreatedAt,
 };
 
+const mediaFilterTransformers = {
+  mimeType: createStartsWithTransformer<ApiFileWhereInput>("mimeType"),
+};
+
 // ============================================
 // Cell Renderers
 // ============================================
@@ -233,9 +237,7 @@ export default function MediaPage() {
     defaultSort: [{ colId: "createdAt", sort: "desc" }],
     defaultPageSize: 20,
     searchField: "originalName",
-    filterTransformers: {
-      mimeType: createStartsWithTransformer<ApiFileWhereInput>("mimeType"),
-    },
+    filterTransformers: mediaFilterTransformers,
   });
 
   const { files, totalCount, pageInfo, loading, refetch } = useFiles({

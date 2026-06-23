@@ -43,6 +43,43 @@ export const PRODUCTS_QUERY = gql`
   ${PRODUCT_LIST_FRAGMENT}
 `;
 
+export const VENDORS_QUERY = gql`
+  query Vendors(
+    $first: Int
+    $after: String
+    $last: Int
+    $before: String
+    $where: VendorWhereInput
+    $orderBy: [VendorOrderByInput!]
+  ) {
+    catalogQuery {
+      vendors(
+        first: $first
+        after: $after
+        last: $last
+        before: $before
+        where: $where
+        orderBy: $orderBy
+      ) {
+        edges {
+          cursor
+          node {
+            id
+            name
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+    }
+  }
+`;
+
 export const PRODUCT_DETAILS_QUERY = gql`
   query ProductDetails(
     $id: ID!

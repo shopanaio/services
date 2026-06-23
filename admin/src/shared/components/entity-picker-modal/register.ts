@@ -7,6 +7,7 @@ import { MediaPickerModal } from "./media-picker-modal";
 // Import entity configs to ensure they are registered
 import "./configs/product-picker-config";
 import "./configs/category-picker-config";
+import "./configs/vendor-picker-config";
 import "./configs/media-picker-config";
 
 /**

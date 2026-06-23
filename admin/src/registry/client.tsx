@@ -9,6 +9,7 @@ import { PathParamsProvider } from "./path-params-context";
 import { modulesContext } from "./modules-context";
 import type { ParamData } from "path-to-regexp";
 import { ModalStack } from "@/layouts/modals";
+import "@/layouts/filters/components/relation-control/register";
 
 // Initialize modules on client side (module-level, runs once)
 modulesContext.keys().forEach((key) => modulesContext(key));

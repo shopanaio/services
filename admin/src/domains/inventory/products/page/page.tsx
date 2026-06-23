@@ -15,26 +15,19 @@ import {
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
-import {
-  FilterOperator,
-  useFilters,
-  FilterWidget,
-} from "@/layouts/filters";
-import type { IFilterAdapter } from "@/layouts/filters/core/types";
-import {
-  RelayCursorPagination,
-  useRelayCursorPagination,
-} from "@/ui-kit/cursor-pagination";
+import { FilterWidget } from "@/layouts/filters";
+import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { FloatingPanelStack } from "@/ui-kit/floating-panel-stack";
 import type { ActionConfig } from "@/ui-kit/floating-panel-stack/core/types";
 import type { PanelConfig } from "@/ui-kit/floating-panel-stack/data-page/floating-panel-stack";
 import {
-  useGridState,
-  useGridSort,
+  createMinorUnitPriceTransformer,
+  createRelationInTransformer,
   useAgGridTheme,
   useAgGridRowSelection,
+  usePageConfig,
 } from "@/hooks";
-import type { SortModel } from "@/hooks/use-grid-sort";
+import type { FilterTransformer, SortFieldMapping } from "@/hooks";
 import { filterSchema } from "./filter-schema";
 import { useDeleteProduct, useProducts } from "../hooks";
 import { useBulkEditorStore } from "../modals/bulk-editor-modal";
@@ -43,12 +36,8 @@ import type {
   ApiProduct,
   ApiProductOrderByInput,
   ApiProductWhereInput,
-  ApiStringFilter,
 } from "@/graphql/types";
-import {
-  ProductOrderField,
-  SortDirection,
-} from "@/graphql/types";
+import { ProductOrderField } from "@/graphql/types";
 import { useDefaultCurrency } from "@/domains/workspace";
 import {
   getProductBrandName,
@@ -67,7 +56,7 @@ ModuleRegistry.registerModules([
   GridStateModule,
 ]);
 
-const PRODUCT_SORT_FIELDS: Partial<Record<string, ProductOrderField>> = {
+const productSortFieldMapping: SortFieldMapping<ProductOrderField> = {
   title: ProductOrderField.Name,
   minPriceMinor: ProductOrderField.MinPriceMinor,
   maxPriceMinor: ProductOrderField.MaxPriceMinor,
@@ -75,98 +64,24 @@ const PRODUCT_SORT_FIELDS: Partial<Record<string, ProductOrderField>> = {
   brand: ProductOrderField.BrandName,
 };
 
-function isEmptyFilterValue(value: unknown): boolean {
-  if (Array.isArray(value)) {
-    return value.length === 0 || value.every(isEmptyFilterValue);
-  }
+const buildProductSearchCondition = (
+  search: string,
+): Partial<ApiProductWhereInput> => ({
+  name: { _containsi: search },
+});
 
-  return value === null || value === undefined || value === "";
-}
-
-function getFirstFilterValue(value: unknown): unknown {
-  if (!Array.isArray(value)) {
-    return value;
-  }
-
-  return value.find((item) => !isEmptyFilterValue(item));
-}
-
-function buildStringFilter(
-  operator: FilterOperator,
-  value: unknown,
-): ApiStringFilter | null {
-  const firstValue = getFirstFilterValue(value);
-
-  if (isEmptyFilterValue(firstValue)) {
-    return null;
-  }
-
-  const text = String(firstValue);
-
-  switch (operator) {
-    case FilterOperator.Eq:
-      return { _eq: text };
-    case FilterOperator.NotEq:
-      return { _neq: text };
-    case FilterOperator.ILike:
-    case FilterOperator.Like:
-      return { _containsi: text };
-    default:
-      return null;
-  }
-}
-
-const productFilterAdapter: IFilterAdapter<ApiProductWhereInput> = {
-  name: "product-where",
-  convert: (filter) => {
-    const condition = buildStringFilter(filter.operator, filter.value);
-
-    if (!condition) {
-      return null;
-    }
-
-    switch (filter.payloadKey) {
-      case "name":
-        return { name: condition };
-      case "handle":
-        return { handle: condition };
-      case "primaryCategoryName":
-        return { primaryCategoryName: condition };
-      default:
-        return null;
-    }
-  },
-  combine: (filters) => {
-    if (filters.length === 1) {
-      return filters[0];
-    }
-
-    return { _and: filters };
-  },
-  build: (combined) => combined,
+const productFilterTransformers: Record<
+  string,
+  FilterTransformer<ApiProductWhereInput>
+> = {
+  primaryCategoryId:
+    createRelationInTransformer<ApiProductWhereInput>("primaryCategoryId"),
+  minPriceMinor:
+    createMinorUnitPriceTransformer<ApiProductWhereInput>("minPriceMinor"),
+  maxPriceMinor:
+    createMinorUnitPriceTransformer<ApiProductWhereInput>("maxPriceMinor"),
+  vendorId: createRelationInTransformer<ApiProductWhereInput>("vendorId"),
 };
-
-function mapProductSortModelToOrderBy(
-  sortModel: SortModel[],
-): ApiProductOrderByInput[] | null {
-  const orderBy = sortModel
-    .map((sort) => {
-      const field = PRODUCT_SORT_FIELDS[sort.colId];
-
-      if (!field || !sort.sort) {
-        return null;
-      }
-
-      return {
-        field,
-        direction:
-          sort.sort === "desc" ? SortDirection.Desc : SortDirection.Asc,
-      };
-    })
-    .filter((item): item is ApiProductOrderByInput => item !== null);
-
-  return orderBy.length > 0 ? orderBy : null;
-}
 
 // Cell Renderers
 const ProductCellRenderer = (
@@ -261,53 +176,41 @@ export default function ProductsPage() {
   const agGridTheme = useAgGridTheme();
   const { message } = App.useApp();
   const gridRef = useRef<AgGridReact<ApiProduct>>(null);
-  const [searchValue, setSearchValue] = useState("");
   const [selectedCount, setSelectedCount] = useState(0);
-  const [sortModel, setSortModel] = useState<SortModel[]>([]);
   const defaultCurrency = useDefaultCurrency();
-  const { widgetProps, payload: filterWhere } =
-    useFilters<ApiProductWhereInput>({
-      schema: filterSchema,
-      adapter: productFilterAdapter,
-    });
   const { push } = useModalStack();
-  const where = useMemo<ApiProductWhereInput | null>(() => {
-    const filters: ApiProductWhereInput[] = [];
-    const query = searchValue.trim();
-
-    if (query) {
-      filters.push({ name: { _containsi: query } });
-    }
-
-    if (filterWhere) {
-      filters.push(filterWhere);
-    }
-
-    if (filters.length === 0) {
-      return null;
-    }
-
-    return filters.length === 1 ? filters[0] : { _and: filters };
-  }, [filterWhere, searchValue]);
-  const orderBy = useMemo(
-    () => mapProductSortModelToOrderBy(sortModel),
-    [sortModel],
-  );
-  const resetKey = useMemo(
-    () => JSON.stringify({ where, orderBy }),
-    [orderBy, where],
-  );
-  const pagination = useRelayCursorPagination({
+  const pageConfig = usePageConfig<
+    ApiProduct,
+    ApiProductWhereInput,
+    ProductOrderField
+  >({
+    gridRef,
+    storageKey: "products-grid-state",
+    filterSchema,
+    sortFieldMapping: productSortFieldMapping,
     defaultPageSize: 20,
-    resetKey,
+    buildSearchCondition: buildProductSearchCondition,
+    filterTransformers: productFilterTransformers,
   });
   const listQueryVariables = useMemo<ProductsQueryVariables>(
     () => ({
-      ...pagination.variables,
-      where,
-      orderBy,
+      first: pageConfig.first,
+      after: pageConfig.after,
+      last: pageConfig.last,
+      before: pageConfig.before,
+      where: pageConfig.where ?? null,
+      orderBy: (pageConfig.orderBy ?? null) as
+        | ApiProductOrderByInput[]
+        | null,
     }),
-    [orderBy, pagination.variables, where],
+    [
+      pageConfig.first,
+      pageConfig.after,
+      pageConfig.last,
+      pageConfig.before,
+      pageConfig.where,
+      pageConfig.orderBy,
+    ],
   );
   const {
     products,
@@ -318,19 +221,19 @@ export default function ProductsPage() {
     refetch,
   } = useProducts(listQueryVariables);
   const { deleteProduct, loading: deletingProducts } = useDeleteProduct();
-  const { initialState, onStateUpdated } = useGridState({
-    storageKey: "products-grid-state",
-  });
+  const { goToNextPage, goToPrevPage } = pageConfig;
 
-  const handleSortChange = useCallback((model: SortModel[]) => {
-    setSortModel(model);
-  }, []);
+  const handleNextPage = useCallback(() => {
+    if (pageInfo?.endCursor) {
+      goToNextPage(pageInfo.endCursor);
+    }
+  }, [goToNextPage, pageInfo?.endCursor]);
 
-  const { onSortChanged } = useGridSort<ApiProduct>({
-    gridRef,
-    sortModel,
-    onSortChange: handleSortChange,
-  });
+  const handlePrevPage = useCallback(() => {
+    if (pageInfo?.startCursor) {
+      goToPrevPage(pageInfo.startCursor);
+    }
+  }, [goToPrevPage, pageInfo?.startCursor]);
 
   // Bulk editor store
   const setSelectedProducts = useBulkEditorStore((s) => s.setSelectedProducts);
@@ -528,11 +431,7 @@ export default function ProductsPage() {
       <DataLayout.Toolbar
         left={
           <FilterWidget
-            {...widgetProps}
-            searchProps={{
-              searchValue,
-              onChangeSearchValue: setSearchValue,
-            }}
+            {...pageConfig.filterWidgetProps}
             searchPlaceholder="Search products..."
           />
         }
@@ -571,19 +470,28 @@ export default function ProductsPage() {
             suppressMovableColumns
             onCellClicked={onCellClicked}
             onSelectionChanged={handleSelectionChanged}
-            onSortChanged={onSortChanged}
+            onSortChanged={pageConfig.onSortChanged}
             rowStyle={{ cursor: "pointer" }}
-            initialState={initialState}
-            onStateUpdated={onStateUpdated}
+            initialState={pageConfig.gridStateProps.initialState}
+            onStateUpdated={pageConfig.gridStateProps.onStateUpdated}
           />
         </div>
 
-        <RelayCursorPagination
+        <CursorPagination
           name="products"
-          pagination={pagination}
-          pageInfo={pageInfo}
-          totalCount={totalCount}
-          loadedRowsCount={products.length}
+          total={totalCount}
+          rangeStart={pageConfig.getRangeStart(products.length)}
+          rangeEnd={Math.min(
+            pageConfig.getRangeEnd(products.length),
+            totalCount,
+          )}
+          pageSize={pageConfig.pageSize}
+          pageSizeOptions={pageConfig.pageSizeOptions}
+          hasNext={pageInfo?.hasNextPage ?? false}
+          hasPrev={pageInfo?.hasPreviousPage ?? false}
+          onNext={handleNextPage}
+          onPrev={handlePrevPage}
+          onPageSizeChange={pageConfig.setPageSize}
         />
       </div>
 

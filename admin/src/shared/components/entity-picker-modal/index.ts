@@ -34,6 +34,9 @@ export { productPickerConfig } from "./configs/product-picker-config";
 // Category config (auto-registers)
 export { categoryPickerConfig } from "./configs/category-picker-config";
 
+// Vendor config (auto-registers)
+export { vendorPickerConfig } from "./configs/vendor-picker-config";
+
 // Tag config (auto-registers)
 export { tagPickerConfig } from "./configs/tag-picker-config";
 

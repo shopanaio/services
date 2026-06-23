@@ -1,4 +1,5 @@
 export * from "./use-products";
+export * from "./use-vendors";
 export * from "./use-product";
 export * from "./use-product-pricing-widget";
 export * from "./use-create-product";

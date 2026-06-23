@@ -364,6 +364,15 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     // ========================================
     // Picker modals
     // ========================================
+    // Generic Entity Picker modal
+    {
+      type: 'entity-picker',
+      component: dynamic(() =>
+        import('@/shared/components/entity-picker-modal/entity-picker-modal').then(
+          (m) => m.EntityPickerModal
+        )
+      ),
+    },
     // Product Picker modal
     {
       type: 'product-picker',

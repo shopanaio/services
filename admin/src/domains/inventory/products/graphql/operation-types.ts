@@ -22,6 +22,9 @@ import type {
   ApiProductUpdateInput,
   ApiProductUpdateStatusInput,
   ApiProductWhereInput,
+  ApiVendorConnection,
+  ApiVendorOrderByInput,
+  ApiVendorWhereInput,
   ApiVariantConnection,
   ApiWarehouseConnection,
   ApiWidgetQuery,
@@ -40,6 +43,21 @@ export interface ProductsQueryVariables {
   before?: string | null;
   where?: ApiProductWhereInput | null;
   orderBy?: ApiProductOrderByInput[] | null;
+}
+
+export interface VendorsQueryData {
+  catalogQuery: Pick<ApiCatalogQuery, "vendors"> & {
+    vendors: ApiVendorConnection;
+  };
+}
+
+export interface VendorsQueryVariables {
+  first?: number;
+  after?: string | null;
+  last?: number;
+  before?: string | null;
+  where?: ApiVendorWhereInput | null;
+  orderBy?: ApiVendorOrderByInput[] | null;
 }
 
 export interface ProductDetailsQueryData {
