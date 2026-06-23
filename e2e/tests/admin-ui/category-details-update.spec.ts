@@ -170,13 +170,13 @@ test.describe('Admin category details update UI', () => {
     ).toBeVisible();
 
     await page.getByTestId('category-hierarchy-actions-button').click();
-    await page.getByRole('menuitem', { name: 'Edit hierarchy' }).click();
-    const hierarchyModal = page.getByTestId('edit-category-hierarchy-modal');
-    await expect(hierarchyModal).toBeVisible();
-    await hierarchyModal.getByTestId('edit-category-hierarchy-search-input').fill(parentName);
-    await hierarchyModal.getByRole('radio', { name: new RegExp(parentName) }).click();
-    await page.getByTestId('submit-edit-category-hierarchy-form-button').click();
-    await expect(hierarchyModal).toBeHidden();
+    await page.getByRole('menuitem', { name: 'Edit parent' }).click();
+    const categoryPicker = page.getByTestId('category-picker-modal');
+    await expect(categoryPicker).toBeVisible();
+    await expect(categoryPicker.getByText(parentName)).toBeVisible();
+    await categoryPicker.getByText(parentName).click();
+    await categoryPicker.getByRole('button', { name: 'Confirm (1)' }).click();
+    await expect(categoryPicker).toBeHidden();
     await expect(detailsCard.getByTestId('category-hierarchy-parent')).toContainText(parentName);
     await expect(detailsCard.getByTestId('category-hierarchy-breadcrumb')).toContainText(
       parentName,

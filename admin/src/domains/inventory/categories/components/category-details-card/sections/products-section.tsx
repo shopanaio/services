@@ -13,8 +13,10 @@ import {
 } from "antd";
 import {
   PlusOutlined,
+  ShoppingOutlined,
   SortAscendingOutlined,
 } from "@ant-design/icons";
+import { EntityDetailsEmptyState } from "@/domains/inventory/components/entity-details-sections";
 import {
   RelayCursorPagination,
   useRelayCursorPagination,
@@ -259,19 +261,15 @@ export const ProductsSection = ({
           </div>
         </>
       ) : (
-        <Flex gap={8} align="center" wrap="wrap" style={{ padding: "16px 0" }}>
-          <Button
-            size="small"
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={onAssignProducts}
-          >
-            Assign Products
-          </Button>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            No products assigned to this category yet
-          </Typography.Text>
-        </Flex>
+        <EntityDetailsEmptyState
+          icon={<ShoppingOutlined />}
+          state={{
+            title: "No products assigned",
+            description: "Assign products to make them appear in this category.",
+            actionLabel: "Assign Products",
+          }}
+          onAction={onAssignProducts}
+        />
       )}
     </Paper>
   );

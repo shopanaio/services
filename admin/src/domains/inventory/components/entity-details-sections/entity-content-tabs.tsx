@@ -1,43 +1,10 @@
 "use client";
 
-import { Button, Flex, Tabs, Typography } from "antd";
-import { FileTextOutlined } from "@ant-design/icons";
+import { Flex, Tabs } from "antd";
 import { Paper } from "@/ui-kit/paper";
+import { EntityDetailsEmptyState } from "./entity-details-empty-state";
 import { useEntityContentTabsStyles } from "./entity-content-tabs.styles";
-import type { EntityContentTabsEmptyState, EntityContentTabsProps } from "./types";
-
-interface EmptyStateProps {
-  state: EntityContentTabsEmptyState;
-  onEdit?: () => void;
-}
-
-const EntityContentEmptyState = ({
-  state,
-  onEdit,
-}: EmptyStateProps) => {
-  const { styles } = useEntityContentTabsStyles();
-
-  return (
-    <div className={styles.richEmptyState}>
-      <div className={styles.richEmptyIcon}>
-        <FileTextOutlined />
-      </div>
-      <div className={styles.richEmptyContent}>
-        <Typography.Title level={5} className={styles.richEmptyTitle}>
-          {state.title}
-        </Typography.Title>
-        {state.description ? (
-          <Typography.Text type="secondary" className={styles.richEmptyText}>
-            {state.description}
-          </Typography.Text>
-        ) : null}
-      </div>
-      <Button type="primary" onClick={onEdit} className={styles.richEmptyAction}>
-        {state.actionLabel}
-      </Button>
-    </div>
-  );
-};
+import type { EntityContentTabsProps } from "./types";
 
 export const EntityContentTabs = ({
   descriptionHtml,
@@ -70,9 +37,9 @@ export const EntityContentTabs = ({
                 dangerouslySetInnerHTML={{ __html: descriptionHtml }}
               />
             ) : (
-              <EntityContentEmptyState
+              <EntityDetailsEmptyState
                 state={descriptionEmpty}
-                onEdit={onEdit}
+                onAction={onEdit}
               />
             ),
           },
@@ -87,9 +54,9 @@ export const EntityContentTabs = ({
                 dangerouslySetInnerHTML={{ __html: excerptHtml }}
               />
             ) : (
-              <EntityContentEmptyState
+              <EntityDetailsEmptyState
                 state={excerptEmpty}
-                onEdit={onEdit}
+                onAction={onEdit}
               />
             ),
           },
