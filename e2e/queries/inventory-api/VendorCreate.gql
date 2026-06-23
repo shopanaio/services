@@ -1,0 +1,15 @@
+mutation VendorCreate($input: VendorCreateInput!) {
+  catalogMutation {
+    vendorCreate(input: $input) {
+      vendor {
+        id
+        name
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

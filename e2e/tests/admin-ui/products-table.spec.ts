@@ -50,25 +50,16 @@ async function createCategory(api: Api, name: string, handle: string) {
   return result.category!;
 }
 
-async function setProductBrand(api: Api, productId: string, brandName: string, unique: string) {
-  const { data } = await api.admin.mutation('inventory-api/ProductFeaturesSync', {
-    variables: {
-      input: {
-        productId,
-        features: [
-          {
-            index: [0],
-            isGroup: false,
-            name: 'Brand',
-            slug: 'brand',
-            values: [{ index: 0, name: brandName, slug: `brand-${unique}` }],
-          },
-        ],
-      },
-    },
+async function createVendor(api: Api, name: string) {
+  const { data } = await api.admin.mutation('inventory-api/VendorCreate', {
+    variables: { input: { name } },
   });
 
-  expect(data.catalogMutation.productFeaturesSync.userErrors).toHaveLength(0);
+  const result = data.catalogMutation.vendorCreate;
+  expect(result.userErrors).toHaveLength(0);
+  expect(result.vendor?.id).toBeTruthy();
+
+  return result.vendor!;
 }
 
 async function addProductToCategory(api: Api, categoryId: string, productId: string) {
@@ -92,9 +83,28 @@ async function openProductsPage(page: Page, api: Api, organizationName: string) 
 }
 
 async function expectVisibleProductTitles(page: Page, expectedTitles: string[]) {
-  const titleCells = page.locator('[data-testid^="products-table-title-cell-"]');
-  await expect(titleCells).toHaveCount(expectedTitles.length);
-  await expect.poll(async () => titleCells.allTextContents()).toEqual(expectedTitles);
+  const rows = page.getByTestId('products-table').locator('.ag-center-cols-container .ag-row');
+
+  await expect(rows).toHaveCount(expectedTitles.length);
+  await expect
+    .poll(async () => {
+      const rowCount = await rows.count();
+      const visibleRows = await Promise.all(
+        Array.from({ length: rowCount }, async (_, index) => {
+          const row = rows.nth(index);
+          const rowIndex = Number(await row.getAttribute('row-index'));
+          const title =
+            (await row.locator('[data-testid^="products-table-title-cell-"]').textContent()) ?? '';
+
+          return { rowIndex, title };
+        }),
+      );
+
+      return visibleRows
+        .sort((left, right) => left.rowIndex - right.rowIndex)
+        .map((row) => row.title);
+    })
+    .toEqual(expectedTitles);
 }
 
 test.describe('Admin products table UI', () => {
@@ -129,6 +139,7 @@ test.describe('Admin products table UI', () => {
     expect(warehouseResult.warehouse?.id).toBeTruthy();
 
     const category = await createCategory(api, categoryName, `admin-table-category-${unique}`);
+    const vendor = await createVendor(api, brandName);
     expect(category.name).toBe(categoryName);
 
     const products = Array.from({ length: 5 }, (_, index) => {
@@ -161,6 +172,7 @@ test.describe('Admin products table UI', () => {
             ],
             variants: [{ handle: 'small' }, { handle: 'large' }],
             inventoryItem: { tracked: true },
+            vendorId: vendor.id,
           },
         },
       });
@@ -172,7 +184,6 @@ test.describe('Admin products table UI', () => {
       expect(createdProduct?.id).toBeTruthy();
 
       await addProductToCategory(api, category.id, createdProduct!.id);
-      await setProductBrand(api, createdProduct!.id, brandName, unique);
 
       const variants = createdProduct?.variants.edges.map((edge) => edge.node) ?? [];
       expect(variants).toHaveLength(2);
@@ -315,6 +326,7 @@ test.describe('Admin products table UI', () => {
         product.category,
         `sort-category-${product.title.toLowerCase().replace(/\s+/g, '-')}`,
       );
+      const vendor = await createVendor(api, product.brand);
 
       const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
         variables: {
@@ -332,6 +344,7 @@ test.describe('Admin products table UI', () => {
               },
             ],
             variants: [{ handle: 'small' }, { handle: 'large' }],
+            vendorId: vendor.id,
           },
         },
       });
@@ -341,7 +354,6 @@ test.describe('Admin products table UI', () => {
       const createdProduct = result.product!;
 
       await addProductToCategory(api, category.id, createdProduct.id);
-      await setProductBrand(api, createdProduct.id, product.brand, `${unique}-${product.handle}`);
 
       const variants = createdProduct.variants.edges.map((edge) => edge.node);
       expect(variants).toHaveLength(2);
