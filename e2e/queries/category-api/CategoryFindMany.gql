@@ -5,6 +5,7 @@ query CategoryFindMany(
   $before: String
   $where: CategoryWhereInput
   $orderBy: [CategoryOrderByInput!]
+  $meta: CategoryCategoriesMetaInput
 ) {
   catalogQuery {
     categories(
@@ -14,6 +15,7 @@ query CategoryFindMany(
       before: $before
       where: $where
       orderBy: $orderBy
+      meta: $meta
     ) {
       edges {
         cursor

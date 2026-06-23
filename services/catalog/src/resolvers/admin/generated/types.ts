@@ -912,6 +912,7 @@ export type CatalogQueryCategoriesArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<CategoryCategoriesMetaInput>;
   orderBy?: InputMaybe<Array<CategoryOrderByInput>>;
   where?: InputMaybe<CategoryWhereInput>;
 };
@@ -1113,6 +1114,10 @@ export type CategoryAddProductPayload = {
   userErrors: Array<GenericUserError>;
 };
 
+export type CategoryCategoriesMetaInput = {
+  hierarchyScope?: InputMaybe<CategoryHierarchyScopeInput>;
+};
+
 /** A connection to a list of Category items. */
 export type CategoryConnection = {
   __typename?: 'CategoryConnection';
@@ -1190,6 +1195,23 @@ export type CategoryHierarchyInput = {
   /** The new parent category ID, or null for root. */
   parentId?: InputMaybe<Scalars['ID']['input']>;
 };
+
+export enum CategoryHierarchyScopeDirection {
+  Ancestors = 'ANCESTORS',
+  Descendants = 'DESCENDANTS'
+}
+
+export type CategoryHierarchyScopeInput = {
+  direction: CategoryHierarchyScopeDirection;
+  includeReference?: InputMaybe<Scalars['Boolean']['input']>;
+  mode?: InputMaybe<CategoryHierarchyScopeMode>;
+  referenceId: Scalars['ID']['input'];
+};
+
+export enum CategoryHierarchyScopeMode {
+  Exclude = 'EXCLUDE',
+  Include = 'INCLUDE'
+}
 
 export type CategoryMediaInput = {
   /** File IDs for category media. */
@@ -4382,6 +4404,7 @@ export type ResolversTypes = ResolversObject<{
   Category: ResolverTypeWrapper<Category>;
   CategoryAddProductInput: CategoryAddProductInput;
   CategoryAddProductPayload: ResolverTypeWrapper<CategoryAddProductPayload>;
+  CategoryCategoriesMetaInput: CategoryCategoriesMetaInput;
   CategoryConnection: ResolverTypeWrapper<CategoryConnection>;
   CategoryContentInput: CategoryContentInput;
   CategoryCreateInput: CategoryCreateInput;
@@ -4390,6 +4413,9 @@ export type ResolversTypes = ResolversObject<{
   CategoryDeletePayload: ResolverTypeWrapper<CategoryDeletePayload>;
   CategoryEdge: ResolverTypeWrapper<CategoryEdge>;
   CategoryHierarchyInput: CategoryHierarchyInput;
+  CategoryHierarchyScopeDirection: CategoryHierarchyScopeDirection;
+  CategoryHierarchyScopeInput: CategoryHierarchyScopeInput;
+  CategoryHierarchyScopeMode: CategoryHierarchyScopeMode;
   CategoryMediaInput: CategoryMediaInput;
   CategoryMediaItem: ResolverTypeWrapper<CategoryMediaItem>;
   CategoryMoveInput: CategoryMoveInput;
@@ -4663,6 +4689,7 @@ export type ResolversParentTypes = ResolversObject<{
   Category: Category;
   CategoryAddProductInput: CategoryAddProductInput;
   CategoryAddProductPayload: CategoryAddProductPayload;
+  CategoryCategoriesMetaInput: CategoryCategoriesMetaInput;
   CategoryConnection: CategoryConnection;
   CategoryContentInput: CategoryContentInput;
   CategoryCreateInput: CategoryCreateInput;
@@ -4671,6 +4698,7 @@ export type ResolversParentTypes = ResolversObject<{
   CategoryDeletePayload: CategoryDeletePayload;
   CategoryEdge: CategoryEdge;
   CategoryHierarchyInput: CategoryHierarchyInput;
+  CategoryHierarchyScopeInput: CategoryHierarchyScopeInput;
   CategoryMediaInput: CategoryMediaInput;
   CategoryMediaItem: CategoryMediaItem;
   CategoryMoveInput: CategoryMoveInput;

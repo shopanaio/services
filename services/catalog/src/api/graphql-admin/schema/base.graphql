@@ -170,6 +170,7 @@ type CatalogQuery {
     before: String
     where: CategoryWhereInput
     orderBy: [CategoryOrderByInput!]
+    meta: CategoryCategoriesMetaInput
   ): CategoryConnection!
 
   """

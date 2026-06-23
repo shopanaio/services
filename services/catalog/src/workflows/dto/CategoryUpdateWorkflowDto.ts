@@ -19,7 +19,7 @@ export interface CategoryUpdateParams {
   seo?: CategorySeoParams | null;
   status?: "published" | "draft";
   media?: CategoryMediaParams;
-  hierarchy?: CategoryHierarchyParams;
+  hierarchy?: CategoryHierarchyParams | null;
   sort?: CategorySortParams;
 }
 

@@ -5,6 +5,9 @@ import {
 } from "@shopana/shared-graphql-guid";
 import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
 import type { CategoryRelayInput } from "../../repositories/category/CategoryRepository.js";
+import type { NormalizedCategoryHierarchyScope } from "../../repositories/category/CategoryHierarchyScope.js";
+
+export type { NormalizedCategoryHierarchyScope };
 
 type IdFilter = {
   _eq?: string | null;
@@ -16,6 +19,13 @@ type IdFilter = {
 };
 
 type WhereNode = Record<string, unknown>;
+
+type CategoryHierarchyScopeInput = {
+  referenceId?: string | null;
+  direction?: "ANCESTORS" | "DESCENDANTS" | null;
+  includeReference?: boolean | null;
+  mode?: "INCLUDE" | "EXCLUDE" | null;
+};
 
 function decodeGlobalIdOrReturnValue(
   id: string,
@@ -139,4 +149,46 @@ export function normalizeCategoryWhereInput(
   where: CategoryRelayInput["where"] | null | undefined
 ): CategoryRelayInput["where"] {
   return normalizeCategoryWhereNode(where);
+}
+
+export function normalizeCategoryHierarchyScopeInput(
+  input: CategoryHierarchyScopeInput | null | undefined
+): NormalizedCategoryHierarchyScope | undefined {
+  if (!input) {
+    return undefined;
+  }
+
+  if (
+    input.direction !== "ANCESTORS" &&
+    input.direction !== "DESCENDANTS"
+  ) {
+    return { kind: "empty" };
+  }
+
+  if (!input.referenceId) {
+    return { kind: "empty" };
+  }
+
+  let referenceId: string;
+  try {
+    referenceId = decodeGlobalIdByType(
+      input.referenceId,
+      GlobalIdEntity.Category
+    );
+  } catch {
+    return { kind: "empty" };
+  }
+
+  const mode = input.mode ?? "INCLUDE";
+  if (mode !== "INCLUDE" && mode !== "EXCLUDE") {
+    return { kind: "empty" };
+  }
+
+  return {
+    kind: "scope",
+    referenceId,
+    direction: input.direction,
+    includeReference: input.includeReference ?? false,
+    mode,
+  };
 }

@@ -38,7 +38,7 @@ import { FacetValueResolver } from "./FacetValueResolver.js";
 import { FacetSwatchResolver } from "./FacetSwatchResolver.js";
 import {
   CategoryConnectionResolver,
-  type CategoryConnectionInput,
+  type CategoryQueryCategoriesArgs,
 } from "./CategoryConnectionResolver.js";
 import {
   TagConnectionResolver,
@@ -58,6 +58,7 @@ import {
   type PricingWidgetInput,
 } from "./PricingWidgetResolver.js";
 import {
+  normalizeCategoryHierarchyScopeInput,
   normalizeCategoryWhereInput,
   normalizeVariantWhereInput,
 } from "./filter-normalizers.js";
@@ -207,11 +208,16 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
   /**
    * Get a paginated list of categories.
    */
-  categories(args: CategoryConnectionInput) {
+  categories(args: CategoryQueryCategoriesArgs) {
     return new CategoryConnectionResolver(
       {
         ...args,
         where: normalizeCategoryWhereInput(args.where),
+        meta: {
+          hierarchyScope: normalizeCategoryHierarchyScopeInput(
+            args.meta?.hierarchyScope
+          ),
+        },
       },
       this.$ctx
     );

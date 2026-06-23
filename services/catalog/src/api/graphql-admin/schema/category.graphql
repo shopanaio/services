@@ -127,6 +127,27 @@ type CategoryProductEdge {
 
 # ---- Category Inputs ----
 
+enum CategoryHierarchyScopeDirection {
+  ANCESTORS
+  DESCENDANTS
+}
+
+enum CategoryHierarchyScopeMode {
+  INCLUDE
+  EXCLUDE
+}
+
+input CategoryHierarchyScopeInput {
+  referenceId: ID!
+  direction: CategoryHierarchyScopeDirection!
+  includeReference: Boolean = false
+  mode: CategoryHierarchyScopeMode
+}
+
+input CategoryCategoriesMetaInput {
+  hierarchyScope: CategoryHierarchyScopeInput
+}
+
 """
 Input for creating a category.
 """

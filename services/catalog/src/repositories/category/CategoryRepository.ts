@@ -29,6 +29,7 @@ import {
   nextRank,
   rebalanceRanks,
 } from "../../scripts/shared/rank.js";
+import type { NormalizedCategoryHierarchyScope } from "./CategoryHierarchyScope.js";
 
 const categoryQuery = createQuery(category).maxLimit(100).defaultLimit(20);
 
@@ -39,6 +40,16 @@ export const categoryRelayQuery = createRelayQuery(
 
 export type CategoryQueryInput = InferExecuteOptions<typeof categoryQuery>;
 export type CategoryRelayInput = InferRelayInput<typeof categoryRelayQuery>;
+export type CategoryConnectionMetaInput = {
+  hierarchyScope?: NormalizedCategoryHierarchyScope;
+};
+export type CategoryConnectionInput = CategoryRelayInput & {
+  meta?: CategoryConnectionMetaInput;
+};
+
+const EMPTY_CATEGORY_WHERE: CategoryRelayInput["where"] = {
+  id: { _in: ["00000000-0000-0000-0000-000000000000"] },
+};
 
 // ---- Relay Query for Category Products ----
 
@@ -390,15 +401,19 @@ export class CategoryRepository extends BaseRepository {
   }
 
   async getConnection(
-    args: CategoryRelayInput,
+    args: CategoryConnectionInput,
   ): Promise<CategoryConnectionResult> {
-    const { where, orderBy, ...paginationArgs } = args;
+    const { where, orderBy, meta, ...paginationArgs } = args;
+    const scopeWhere = await this.buildHierarchyScopeWhere(
+      meta?.hierarchyScope,
+    );
 
     const mergedWhere: CategoryRelayInput["where"] = {
       _and: [
         { projectId: { _eq: this.storeId } },
         { deletedAt: { _is: null } },
         ...(where ? [where] : []),
+        ...(scopeWhere ? [scopeWhere] : []),
       ],
     };
 
@@ -424,6 +439,51 @@ export class CategoryRepository extends BaseRepository {
       pageInfo: result.pageInfo,
       totalCount,
     };
+  }
+
+  private async buildHierarchyScopeWhere(
+    scope: NormalizedCategoryHierarchyScope | undefined,
+  ): Promise<CategoryRelayInput["where"] | undefined> {
+    if (!scope) {
+      return undefined;
+    }
+
+    if (scope.kind === "empty") {
+      return EMPTY_CATEGORY_WHERE;
+    }
+
+    const reference = await this.findById(scope.referenceId);
+    if (!reference) {
+      return EMPTY_CATEGORY_WHERE;
+    }
+
+    if (scope.direction === "DESCENDANTS") {
+      const descendantsWhere: CategoryRelayInput["where"] = {
+        path: { _startsWith: `${reference.path}.` },
+      };
+      const includeWhere: CategoryRelayInput["where"] = scope.includeReference
+        ? {
+            _or: [
+              { id: { _eq: reference.id } },
+              descendantsWhere,
+            ],
+          }
+        : descendantsWhere;
+
+      return scope.mode === "EXCLUDE" ? { _not: includeWhere } : includeWhere;
+    }
+
+    const ancestorIds = reference.path
+      .split(".")
+      .filter((id) => scope.includeReference || id !== reference.id);
+
+    if (ancestorIds.length === 0) {
+      return scope.mode === "EXCLUDE" ? undefined : EMPTY_CATEGORY_WHERE;
+    }
+
+    return scope.mode === "EXCLUDE"
+      ? { id: { _notIn: ancestorIds } }
+      : { id: { _in: ancestorIds } };
   }
 
   async getOne(id: string): Promise<Category | null> {

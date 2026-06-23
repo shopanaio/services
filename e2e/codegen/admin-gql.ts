@@ -1146,6 +1146,7 @@ export type ApiCatalogQueryCategoriesArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<ApiCategoryCategoriesMetaInput>;
   orderBy?: InputMaybe<Array<ApiCategoryOrderByInput>>;
   where?: InputMaybe<ApiCategoryWhereInput>;
 };
@@ -1347,6 +1348,10 @@ export type ApiCategoryAddProductPayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+export type ApiCategoryCategoriesMetaInput = {
+  hierarchyScope?: InputMaybe<ApiCategoryHierarchyScopeInput>;
+};
+
 /** A connection to a list of Category items. */
 export type ApiCategoryConnection = {
   __typename?: 'CategoryConnection';
@@ -1424,6 +1429,21 @@ export type ApiCategoryHierarchyInput = {
   /** The new parent category ID, or null for root. */
   parentId?: InputMaybe<Scalars['ID']['input']>;
 };
+
+export type CategoryHierarchyScopeDirection =
+  | 'ANCESTORS'
+  | 'DESCENDANTS';
+
+export type ApiCategoryHierarchyScopeInput = {
+  direction: CategoryHierarchyScopeDirection;
+  includeReference?: InputMaybe<Scalars['Boolean']['input']>;
+  mode?: InputMaybe<CategoryHierarchyScopeMode>;
+  referenceId: Scalars['ID']['input'];
+};
+
+export type CategoryHierarchyScopeMode =
+  | 'EXCLUDE'
+  | 'INCLUDE';
 
 export type ApiCategoryMediaInput = {
   /** File IDs for category media. */

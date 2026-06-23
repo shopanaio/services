@@ -1102,7 +1102,7 @@ type CatalogQuery {
   facetSwatches: [FacetSwatch!]!
 
   """Get categories with Relay-style pagination"""
-  categories(first: Int, after: String, last: Int, before: String): CategoryConnection!
+  categories(first: Int, after: String, last: Int, before: String, where: CategoryWhereInput, orderBy: [CategoryOrderByInput!], meta: CategoryCategoriesMetaInput): CategoryConnection!
 
   """Get a tag by ID"""
   tag(id: ID!): Tag
@@ -1217,8 +1217,8 @@ type CatalogMutation {
   """Create a new category"""
   categoryCreate(input: CategoryCreateInput!): CategoryCreatePayload!
 
-  """Update an existing category"""
-  categoryUpdate(input: CategoryUpdateInput!): CategoryUpdatePayload!
+  """Unified category update with optimistic locking."""
+  categoryUpdate(categoryId: ID!, expectedRevision: Int, operations: CategoryUpdateInput): CategoryUpdatePayload!
 
   """Move a category to a new parent or position"""
   categoryMove(input: CategoryMoveInput!): CategoryMovePayload!
@@ -1229,11 +1229,11 @@ type CatalogMutation {
   """Add a product to a category"""
   categoryAddProduct(input: CategoryAddProductInput!): CategoryAddProductPayload!
 
+  """Remove a product from a category"""
+  categoryRemoveProduct(input: CategoryRemoveProductInput!): CategoryRemoveProductPayload!
+
   """Rebalance category tree positions"""
   categoryRebalance(input: CategoryRebalanceInput!): CategoryRebalancePayload!
-
-  """Update category sort order"""
-  categoryUpdateSort(input: CategoryUpdateSortInput!): CategoryUpdateSortPayload!
 
   """Delete a category"""
   categoryDelete(input: CategoryDeleteInput!): CategoryDeletePayload!
@@ -1708,6 +1708,9 @@ type Category implements Node {
   """The date and time when the category was deleted (soft delete)."""
   deletedAt: DateTime
 
+  """Optimistic locking revision number. Incremented on each update."""
+  revision: Int!
+
   """The depth of this category in the hierarchy (0 for root)."""
   depth: Int!
 
@@ -1806,6 +1809,9 @@ type CategoryUpdatePayload {
   """The updated category."""
   category: Category
 
+  """Results of requested category update operations."""
+  operationResults: [OperationResult!]!
+
   """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!
 }
@@ -1838,12 +1844,12 @@ type CategoryAddProductPayload {
   userErrors: [GenericUserError!]!
 }
 
-type CategoryRebalancePayload {
+type CategoryRemoveProductPayload {
   category: Category
   userErrors: [GenericUserError!]!
 }
 
-type CategoryUpdateSortPayload {
+type CategoryRebalancePayload {
   category: Category
   userErrors: [GenericUserError!]!
 }
@@ -2431,6 +2437,11 @@ type RichText {
   json: JSON!
 }
 
+type ProductCategoryAssignment {
+  category: Category!
+  isPrimary: Boolean!
+}
+
 """A product represents an item that can be sold."""
 type Product implements Node {
   """The globally unique ID of the product."""
@@ -2474,8 +2485,11 @@ type Product implements Node {
   """The total number of variants for this product."""
   variantsCount: Int!
 
-  """The categories this product belongs to."""
-  categories: [Category!]!
+  """The primary category assigned to this product."""
+  primaryCategory: Category
+
+  """Category assignments with relationship metadata."""
+  categoryAssignments: [ProductCategoryAssignment!]!
 
   """The tags associated with this product."""
   tags: [Tag!]!
@@ -2889,6 +2903,39 @@ enum SortDirection {
   desc
 }
 
+"""Fields available for sorting Category"""
+enum CategoryOrderField {
+  """Sort by id"""
+  id
+
+  """Sort by parentId"""
+  parentId
+
+  """Sort by path"""
+  path
+
+  """Sort by depth"""
+  depth
+
+  """Sort by handle"""
+  handle
+
+  """Sort by defaultSort"""
+  defaultSort
+
+  """Sort by defaultSortDirection"""
+  defaultSortDirection
+
+  """Sort by publishedAt"""
+  publishedAt
+
+  """Sort by createdAt"""
+  createdAt
+
+  """Sort by updatedAt"""
+  updatedAt
+}
+
 """Fields available for sorting Variant"""
 enum VariantOrderField {
   """Sort by productId"""
@@ -3056,6 +3103,21 @@ enum ProductSortBy {
   NAME
 }
 
+enum CategoryHierarchyScopeDirection {
+  ANCESTORS
+  DESCENDANTS
+}
+
+enum CategoryHierarchyScopeMode {
+  INCLUDE
+  EXCLUDE
+}
+
+enum CategoryStatus {
+  DRAFT
+  PUBLISHED
+}
+
 enum CollectionType {
   MANUAL
   RULE
@@ -3106,6 +3168,7 @@ enum OptionDisplayType {
 enum OperationType {
   PRODUCT_UPDATE
   VARIANT_UPDATE
+  CATEGORY_UPDATE
 }
 
 """Filter operators for String fields"""
@@ -3274,6 +3337,57 @@ input DateTimeFilter {
 
   """Is not null"""
   _isNot: Boolean
+}
+
+"""Filter conditions for Category"""
+input CategoryWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [CategoryWhereInput!]
+
+  """Logical OR of multiple conditions"""
+  _or: [CategoryWhereInput!]
+
+  """Negate the condition"""
+  _not: CategoryWhereInput
+
+  """Filter by id"""
+  id: IDFilter
+
+  """Filter by parentId"""
+  parentId: IDFilter
+
+  """Filter by path"""
+  path: StringFilter
+
+  """Filter by depth"""
+  depth: IntFilter
+
+  """Filter by handle"""
+  handle: StringFilter
+
+  """Filter by defaultSort"""
+  defaultSort: StringFilter
+
+  """Filter by defaultSortDirection"""
+  defaultSortDirection: StringFilter
+
+  """Filter by publishedAt"""
+  publishedAt: DateTimeFilter
+
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Ordering configuration for Category"""
+input CategoryOrderByInput {
+  """Field to order by"""
+  field: CategoryOrderField!
+
+  """Sort direction"""
+  direction: SortDirection!
 }
 
 """Filter conditions for CategoryProduct"""
@@ -3510,6 +3624,17 @@ input DeleteInput {
   id: ID!
 }
 
+input CategoryHierarchyScopeInput {
+  referenceId: ID!
+  direction: CategoryHierarchyScopeDirection!
+  includeReference: Boolean = false
+  mode: CategoryHierarchyScopeMode
+}
+
+input CategoryCategoriesMetaInput {
+  hierarchyScope: CategoryHierarchyScopeInput
+}
+
 """Input for creating a category."""
 input CategoryCreateInput {
   """The URL-friendly handle for the category."""
@@ -3537,28 +3662,57 @@ input CategoryCreateInput {
   publish: Boolean
 }
 
-"""Input for updating a category."""
-input CategoryUpdateInput {
-  """The ID of the category to update."""
-  id: ID!
+input CategoryContentInput {
+  """The category description."""
+  description: RichTextInput
 
+  """The short category excerpt."""
+  excerpt: RichTextInput
+}
+
+input CategoryMediaInput {
+  """File IDs for category media."""
+  fileIds: [ID!]!
+}
+
+input CategoryHierarchyInput {
+  """The new parent category ID, or null for root."""
+  parentId: ID
+}
+
+input CategorySortInput {
+  """Default product sort for this category PLP."""
+  defaultSort: ProductSortBy!
+
+  """Default sort direction for this category PLP."""
+  defaultSortDirection: SortDirection!
+}
+
+"""Input for updating a category through section-based operations."""
+input CategoryUpdateInput {
   """The URL-friendly handle for the category."""
   handle: String
 
   """The display name of the category."""
   name: String
 
-  """The category description."""
-  description: RichTextInput
-
-  """The short category excerpt."""
-  excerpt: RichTextInput
+  """Translated content."""
+  content: CategoryContentInput
 
   """SEO metadata."""
   seo: SeoInput
 
-  """File IDs for category media (replaces existing)."""
-  mediaFileIds: [ID!]
+  """Category status."""
+  status: CategoryStatus
+
+  """Category media replacement."""
+  media: CategoryMediaInput
+
+  """Hierarchy move."""
+  hierarchy: CategoryHierarchyInput
+
+  """PLP sort preferences."""
+  sort: CategorySortInput
 }
 
 """Input for moving a category in the hierarchy."""
@@ -3591,14 +3745,13 @@ input CategoryAddProductInput {
   productId: ID!
 }
 
-input CategoryRebalanceInput {
+input CategoryRemoveProductInput {
   categoryId: ID!
+  productId: ID!
 }
 
-input CategoryUpdateSortInput {
-  id: ID!
-  defaultSort: ProductSortBy!
-  defaultSortDirection: SortDirection!
+input CategoryRebalanceInput {
+  categoryId: ID!
 }
 
 input CollectionRuleInput {
