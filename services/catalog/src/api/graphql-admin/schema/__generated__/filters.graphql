@@ -1,6 +1,84 @@
 # Auto-generated GraphQL filter types for Catalog service.
 # Do not edit manually. Run: yarn generate:filters
 
+# ---- Product ----
+
+"""Filter conditions for Product"""
+input ProductWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [ProductWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [ProductWhereInput!]
+  """Negate the condition"""
+  _not: ProductWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by vendorId"""
+  vendorId: IDFilter
+  """Filter by handle"""
+  handle: StringFilter
+  """Filter by publishedAt"""
+  publishedAt: DateTimeFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+  """Filter by locale"""
+  locale: StringFilter
+  """Filter by name"""
+  name: StringFilter
+  """Filter by currency"""
+  currency: StringFilter
+  """Filter by minPriceMinor"""
+  minPriceMinor: IntFilter
+  """Filter by maxPriceMinor"""
+  maxPriceMinor: IntFilter
+  """Filter by primaryCategoryId"""
+  primaryCategoryId: IDFilter
+  """Filter by primaryCategoryName"""
+  primaryCategoryName: StringFilter
+}
+
+"""Fields available for sorting Product"""
+enum ProductOrderField {
+  """Sort by id"""
+  id
+  """Sort by vendorId"""
+  vendorId
+  """Sort by handle"""
+  handle
+  """Sort by publishedAt"""
+  publishedAt
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+  """Sort by locale"""
+  locale
+  """Sort by name"""
+  name
+  """Sort by currency"""
+  currency
+  """Sort by minPriceMinor"""
+  minPriceMinor
+  """Sort by maxPriceMinor"""
+  maxPriceMinor
+  """Sort by primaryCategoryId"""
+  primaryCategoryId
+  """Sort by primaryCategoryName"""
+  primaryCategoryName
+}
+
+"""Ordering configuration for Product"""
+input ProductOrderByInput {
+  """Field to order by"""
+  field: ProductOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- Category ----
+
 """Filter conditions for Category"""
 input CategoryWhereInput {
   """Logical AND of multiple conditions"""

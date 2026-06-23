@@ -28,11 +28,10 @@
  */
 
 import { writeFileSync } from "fs";
-import type { Table } from "drizzle-orm";
 import { FluentQueryBuilder } from "./builder/fluent-query-builder.js";
 import { RelayQueryBuilder, CursorQueryBuilder } from "./builder/pagination-query-builder.js";
 import type { FluentFieldsDef } from "./builder/fluent-types.js";
-import type { FieldsDef } from "./types.js";
+import type { FieldsDef, Selectable } from "./types.js";
 import {
   generateGraphQLTypes,
   generateBaseFilterTypes,
@@ -43,9 +42,10 @@ import {
 // Types
 // =============================================================================
 
-type AnyQueryBuilder = FluentQueryBuilder<Table, FluentFieldsDef, FieldsDef, unknown>
-  | RelayQueryBuilder<Table, FluentFieldsDef, FieldsDef, unknown>
-  | CursorQueryBuilder<Table, FluentFieldsDef, FieldsDef, unknown>;
+type AnyQueryBuilder =
+  | FluentQueryBuilder<Selectable, FluentFieldsDef, FieldsDef, unknown>
+  | RelayQueryBuilder<Selectable, FluentFieldsDef, FieldsDef, unknown>
+  | CursorQueryBuilder<Selectable, FluentFieldsDef, FieldsDef, unknown>;
 
 type QueryBuilderType = "fluent" | "relay" | "cursor";
 

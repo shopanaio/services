@@ -21,7 +21,7 @@ import type { Table } from "drizzle-orm";
 import type { FluentQueryBuilder } from "./builder/fluent-query-builder.js";
 import type { RelayQueryBuilder, CursorQueryBuilder } from "./builder/pagination-query-builder.js";
 import type { FluentFieldsDef } from "./builder/fluent-types.js";
-import type { FieldsDef } from "./types.js";
+import type { FieldsDef, Selectable } from "./types.js";
 
 /**
  * Drizzle ORM symbol for accessing columns
@@ -582,7 +582,7 @@ export type GeneratedGraphQLTypes = {
  * ```
  */
 export function generateGraphQLTypes<
-  T extends Table,
+  T extends Selectable,
   Fields extends FluentFieldsDef,
   InferredFields extends FieldsDef,
   Types,
@@ -653,7 +653,7 @@ export function generateBaseFilterTypes(): string {
  * ```
  */
 export function generateWhereInputType<
-  T extends Table,
+  T extends Selectable,
   Fields extends FluentFieldsDef,
   InferredFields extends FieldsDef,
   Types,
@@ -682,7 +682,7 @@ export function generateWhereInputType<
  * ```
  */
 export function generateOrderByInputType<
-  T extends Table,
+  T extends Selectable,
   Fields extends FluentFieldsDef,
   InferredFields extends FieldsDef,
   Types,

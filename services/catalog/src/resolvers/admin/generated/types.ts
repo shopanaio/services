@@ -1013,6 +1013,8 @@ export type CatalogQueryProductsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ProductOrderByInput>>;
+  where?: InputMaybe<ProductWhereInput>;
 };
 
 
@@ -1099,7 +1101,7 @@ export type CategoryProductsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
-  orderBy?: InputMaybe<Array<ProductOrderByInput>>;
+  orderBy?: InputMaybe<Array<ListingOrderByInput>>;
   where?: InputMaybe<CategoryProductWhereInput>;
 };
 
@@ -2505,6 +2507,12 @@ export type InventoryItemInput = {
   tracked: Scalars['Boolean']['input'];
 };
 
+/** Listing orderBy input for product listing pages. */
+export type ListingOrderByInput = {
+  direction?: InputMaybe<SortDirection>;
+  field: ProductSortBy;
+};
+
 /** Language/Locale codes based on ISO 639-1 and BCP 47 */
 export enum LocaleCode {
   /** Akan */
@@ -3533,11 +3541,43 @@ export type ProductOptionsSyncPayload = {
   userErrors: Array<GenericUserError>;
 };
 
-/** Standard orderBy input for product queries. */
+/** Ordering configuration for Product */
 export type ProductOrderByInput = {
-  direction?: InputMaybe<SortDirection>;
-  field: ProductSortBy;
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: ProductOrderField;
 };
+
+/** Fields available for sorting Product */
+export enum ProductOrderField {
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by currency */
+  Currency = 'currency',
+  /** Sort by handle */
+  Handle = 'handle',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by locale */
+  Locale = 'locale',
+  /** Sort by maxPriceMinor */
+  MaxPriceMinor = 'maxPriceMinor',
+  /** Sort by minPriceMinor */
+  MinPriceMinor = 'minPriceMinor',
+  /** Sort by name */
+  Name = 'name',
+  /** Sort by primaryCategoryId */
+  PrimaryCategoryId = 'primaryCategoryId',
+  /** Sort by primaryCategoryName */
+  PrimaryCategoryName = 'primaryCategoryName',
+  /** Sort by publishedAt */
+  PublishedAt = 'publishedAt',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt',
+  /** Sort by vendorId */
+  VendorId = 'vendorId'
+}
 
 /** SEO and Open Graph metadata for a product. */
 export type ProductSeo = {
@@ -3627,6 +3667,42 @@ export type ProductUpdateStatusPayload = {
   product: Maybe<Product>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
+};
+
+/** Filter conditions for Product */
+export type ProductWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ProductWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ProductWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ProductWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by currency */
+  currency?: InputMaybe<StringFilter>;
+  /** Filter by handle */
+  handle?: InputMaybe<StringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<IdFilter>;
+  /** Filter by locale */
+  locale?: InputMaybe<StringFilter>;
+  /** Filter by maxPriceMinor */
+  maxPriceMinor?: InputMaybe<IntFilter>;
+  /** Filter by minPriceMinor */
+  minPriceMinor?: InputMaybe<IntFilter>;
+  /** Filter by name */
+  name?: InputMaybe<StringFilter>;
+  /** Filter by primaryCategoryId */
+  primaryCategoryId?: InputMaybe<IdFilter>;
+  /** Filter by primaryCategoryName */
+  primaryCategoryName?: InputMaybe<StringFilter>;
+  /** Filter by publishedAt */
+  publishedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by vendorId */
+  vendorId?: InputMaybe<IdFilter>;
 };
 
 export type Query = {
@@ -4545,6 +4621,7 @@ export type ResolversTypes = ResolversObject<{
   IntFilter: IntFilter;
   InventoryItemInput: InventoryItemInput;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
+  ListingOrderByInput: ListingOrderByInput;
   LocaleCode: LocaleCode;
   LogicOperator: LogicOperator;
   Mutation: ResolverTypeWrapper<{}>;
@@ -4610,6 +4687,7 @@ export type ResolversTypes = ResolversObject<{
   ProductOptionsSyncInput: ProductOptionsSyncInput;
   ProductOptionsSyncPayload: ResolverTypeWrapper<ProductOptionsSyncPayload>;
   ProductOrderByInput: ProductOrderByInput;
+  ProductOrderField: ProductOrderField;
   ProductSeo: ResolverTypeWrapper<ProductSeo>;
   ProductSeoInput: ProductSeoInput;
   ProductSortBy: ProductSortBy;
@@ -4620,6 +4698,7 @@ export type ResolversTypes = ResolversObject<{
   ProductUpdatePayload: ResolverTypeWrapper<ProductUpdatePayload>;
   ProductUpdateStatusInput: ProductUpdateStatusInput;
   ProductUpdateStatusPayload: ResolverTypeWrapper<ProductUpdateStatusPayload>;
+  ProductWhereInput: ProductWhereInput;
   Query: ResolverTypeWrapper<{}>;
   RichText: ResolverTypeWrapper<RichText>;
   RichTextInput: RichTextInput;
@@ -4817,6 +4896,7 @@ export type ResolversParentTypes = ResolversObject<{
   IntFilter: IntFilter;
   InventoryItemInput: InventoryItemInput;
   JSON: Scalars['JSON']['output'];
+  ListingOrderByInput: ListingOrderByInput;
   Mutation: {};
   Node: ResolversInterfaceTypes<ResolversParentTypes>['Node'];
   OperationResult: OperationResult;
@@ -4884,6 +4964,7 @@ export type ResolversParentTypes = ResolversObject<{
   ProductUpdatePayload: ProductUpdatePayload;
   ProductUpdateStatusInput: ProductUpdateStatusInput;
   ProductUpdateStatusPayload: ProductUpdateStatusPayload;
+  ProductWhereInput: ProductWhereInput;
   Query: {};
   RichText: RichText;
   RichTextInput: RichTextInput;

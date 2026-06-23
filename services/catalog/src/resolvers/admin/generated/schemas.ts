@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BooleanFilter, BulkUpdateCancelReason, BulkUpdateItemStatus, BulkUpdateJobStatus, BulkUpdateOpType, BundleGroupCreateInput, BundleGroupUpdateInput, BundleItemCreateInput, BundleItemType, BundleItemUpdateInput, BundlePriceType, BundlePricingTemplateCreateInput, BundlePricingTemplateUpdateInput, CategoryAddProductInput, CategoryCategoriesMetaInput, CategoryContentInput, CategoryCreateInput, CategoryDeleteInput, CategoryHierarchyInput, CategoryHierarchyScopeDirection, CategoryHierarchyScopeInput, CategoryHierarchyScopeMode, CategoryMediaInput, CategoryMoveInput, CategoryMoveProductInput, CategoryOrderByInput, CategoryOrderField, CategoryProductWhereInput, CategoryProductsScopeInput, CategoryRebalanceInput, CategoryRemoveProductInput, CategorySortInput, CategoryStatus, CategoryUpdateInput, CategoryWhereInput, CollectionAddProductsInput, CollectionCreateInput, CollectionDeleteInput, CollectionMediaInput, CollectionMoveProductInput, CollectionRemoveProductsInput, CollectionRuleInput, CollectionType, CollectionUpdateInput, CollectionUpdateRulesInput, ConditionCategory, ConditionCreateInput, ConditionGroupCreateInput, ConditionGroupUpdateInput, ConditionSubject, ConditionUpdateInput, CurrencyCode, DateTimeFilter, DeleteInput, DependencyActionCreateInput, DependencyActionType, DependencyActionUpdateInput, DependencyRuleCreateInput, DependencyRuleUpdateInput, DependencyTargetType, DimensionUnit, FacetCreateInput, FacetDeleteInput, FacetGroupCreateInput, FacetGroupDeleteInput, FacetGroupUpdateInput, FacetSelectionMode, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueSort, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, InventoryItemInput, LocaleCode, LogicOperator, NumericOperator, OperationType, OptionDisplayType, PricingWidgetInput, ProductBulkUpdateInput, ProductBulkUpdateItem, ProductContentInput, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductDeleteInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductMediaInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionSyncItemInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueSyncInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductOptionsSyncInput, ProductOrderByInput, ProductSeoInput, ProductSortBy, ProductSortInput, ProductStatus, ProductStatusAction, ProductUpdateInput, ProductUpdateStatusInput, RichTextInput, SelectedOptionInput, SeoInput, SortDirection, StateCheckOperator, StringFilter, SwatchType, TagCreateInput, TagDeleteInput, TagUpdateInput, VariantCreateInput, VariantDeleteInput, VariantDimensionsOpInput, VariantInput, VariantInventoryOpInput, VariantMediaOpInput, VariantOptionLinkInput, VariantOptionsOpInput, VariantOrderByInput, VariantOrderField, VariantPricingOpInput, VariantUpdateInput, VariantUpdateMediaInput, VariantUpdateOptionsInput, VariantUpdatePricingInput, VariantWhereInput, WeightUnit } from './types.js'
+import { BooleanFilter, BulkUpdateCancelReason, BulkUpdateItemStatus, BulkUpdateJobStatus, BulkUpdateOpType, BundleGroupCreateInput, BundleGroupUpdateInput, BundleItemCreateInput, BundleItemType, BundleItemUpdateInput, BundlePriceType, BundlePricingTemplateCreateInput, BundlePricingTemplateUpdateInput, CategoryAddProductInput, CategoryCategoriesMetaInput, CategoryContentInput, CategoryCreateInput, CategoryDeleteInput, CategoryHierarchyInput, CategoryHierarchyScopeDirection, CategoryHierarchyScopeInput, CategoryHierarchyScopeMode, CategoryMediaInput, CategoryMoveInput, CategoryMoveProductInput, CategoryOrderByInput, CategoryOrderField, CategoryProductWhereInput, CategoryProductsScopeInput, CategoryRebalanceInput, CategoryRemoveProductInput, CategorySortInput, CategoryStatus, CategoryUpdateInput, CategoryWhereInput, CollectionAddProductsInput, CollectionCreateInput, CollectionDeleteInput, CollectionMediaInput, CollectionMoveProductInput, CollectionRemoveProductsInput, CollectionRuleInput, CollectionType, CollectionUpdateInput, CollectionUpdateRulesInput, ConditionCategory, ConditionCreateInput, ConditionGroupCreateInput, ConditionGroupUpdateInput, ConditionSubject, ConditionUpdateInput, CurrencyCode, DateTimeFilter, DeleteInput, DependencyActionCreateInput, DependencyActionType, DependencyActionUpdateInput, DependencyRuleCreateInput, DependencyRuleUpdateInput, DependencyTargetType, DimensionUnit, FacetCreateInput, FacetDeleteInput, FacetGroupCreateInput, FacetGroupDeleteInput, FacetGroupUpdateInput, FacetSelectionMode, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueSort, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, InventoryItemInput, ListingOrderByInput, LocaleCode, LogicOperator, NumericOperator, OperationType, OptionDisplayType, PricingWidgetInput, ProductBulkUpdateInput, ProductBulkUpdateItem, ProductContentInput, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductDeleteInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductMediaInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionSyncItemInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueSyncInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductOptionsSyncInput, ProductOrderByInput, ProductOrderField, ProductSeoInput, ProductSortBy, ProductSortInput, ProductStatus, ProductStatusAction, ProductUpdateInput, ProductUpdateStatusInput, ProductWhereInput, RichTextInput, SelectedOptionInput, SeoInput, SortDirection, StateCheckOperator, StringFilter, SwatchType, TagCreateInput, TagDeleteInput, TagUpdateInput, VariantCreateInput, VariantDeleteInput, VariantDimensionsOpInput, VariantInput, VariantInventoryOpInput, VariantMediaOpInput, VariantOptionLinkInput, VariantOptionsOpInput, VariantOrderByInput, VariantOrderField, VariantPricingOpInput, VariantUpdateInput, VariantUpdateMediaInput, VariantUpdateOptionsInput, VariantUpdatePricingInput, VariantWhereInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -62,6 +62,8 @@ export const NumericOperatorSchema = z.nativeEnum(NumericOperator);
 export const OperationTypeSchema = z.nativeEnum(OperationType);
 
 export const OptionDisplayTypeSchema = z.nativeEnum(OptionDisplayType);
+
+export const ProductOrderFieldSchema = z.nativeEnum(ProductOrderField);
 
 export const ProductSortBySchema = z.nativeEnum(ProductSortBy);
 
@@ -683,6 +685,13 @@ export function InventoryItemInputSchema(): z.ZodObject<Properties<InventoryItem
   })
 }
 
+export function ListingOrderByInputSchema(): z.ZodObject<Properties<ListingOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema.nullish(),
+    field: ProductSortBySchema
+  })
+}
+
 export function PricingWidgetInputSchema(): z.ZodObject<Properties<PricingWidgetInput>> {
   return z.object({
     after: z.string().nullish(),
@@ -942,8 +951,8 @@ export function ProductOptionsSyncInputSchema(): z.ZodObject<Properties<ProductO
 
 export function ProductOrderByInputSchema(): z.ZodObject<Properties<ProductOrderByInput>> {
   return z.object({
-    direction: SortDirectionSchema.nullish(),
-    field: ProductSortBySchema
+    direction: SortDirectionSchema,
+    field: ProductOrderFieldSchema
   })
 }
 
@@ -980,6 +989,27 @@ export function ProductUpdateStatusInputSchema(): z.ZodObject<Properties<Product
   return z.object({
     action: ProductStatusActionSchema,
     productId: z.string()
+  })
+}
+
+export function ProductWhereInputSchema(): z.ZodObject<Properties<ProductWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => ProductWhereInputSchema())).nullish(),
+    _not: z.lazy(() => ProductWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => ProductWhereInputSchema())).nullish(),
+    createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    currency: z.lazy(() => StringFilterSchema().nullish()),
+    handle: z.lazy(() => StringFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    locale: z.lazy(() => StringFilterSchema().nullish()),
+    maxPriceMinor: z.lazy(() => IntFilterSchema().nullish()),
+    minPriceMinor: z.lazy(() => IntFilterSchema().nullish()),
+    name: z.lazy(() => StringFilterSchema().nullish()),
+    primaryCategoryId: z.lazy(() => IdFilterSchema().nullish()),
+    primaryCategoryName: z.lazy(() => StringFilterSchema().nullish()),
+    publishedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    vendorId: z.lazy(() => IdFilterSchema().nullish())
   })
 }
 

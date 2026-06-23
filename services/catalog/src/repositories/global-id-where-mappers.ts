@@ -34,6 +34,10 @@ export const decodeCategoryGlobalId = createGlobalIdWhereFieldMapper(
   GlobalIdEntity.Category
 );
 
+export const decodeVendorGlobalId = createGlobalIdWhereFieldMapper(
+  GlobalIdEntity.Vendor
+);
+
 export const decodeVariantGlobalId = createGlobalIdWhereFieldMapper(
   GlobalIdEntity.Variant
 );

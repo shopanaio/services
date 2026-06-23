@@ -1,10 +1,10 @@
-import type { Table } from "drizzle-orm";
 import type {
   DrizzleExecutor,
   FieldsDef,
   NestedPaths,
   NestedWhereInput,
   OrderByItem,
+  Selectable,
 } from "../types.js";
 import type { SeekTransforms } from "../cursor/types.js";
 import { createRelayBuilder } from "../cursor/relay-builder.js";
@@ -119,7 +119,7 @@ export type RelayQuerySnapshot<InferredFields extends FieldsDef> = {
  * ```
  */
 export class RelayQueryBuilder<
-  T extends Table,
+  T extends Selectable,
   Fields extends FluentFieldsDef,
   InferredFields extends FieldsDef = ToFieldsDef<Fields>,
   Types = T["$inferSelect"]
@@ -405,7 +405,7 @@ export class RelayQueryBuilder<
  * ```
  */
 export function createRelayQuery<
-  T extends Table,
+  T extends Selectable,
   Fields extends FluentFieldsDef,
   InferredFields extends FieldsDef = ToFieldsDef<Fields>,
   Types = T["$inferSelect"]
@@ -495,7 +495,7 @@ export type CursorQuerySnapshot<InferredFields extends FieldsDef> = {
  * ```
  */
 export class CursorQueryBuilder<
-  T extends Table,
+  T extends Selectable,
   Fields extends FluentFieldsDef,
   InferredFields extends FieldsDef = ToFieldsDef<Fields>,
   Types = T["$inferSelect"]
@@ -782,7 +782,7 @@ export class CursorQueryBuilder<
  * ```
  */
 export function createCursorQuery<
-  T extends Table,
+  T extends Selectable,
   Fields extends FluentFieldsDef,
   InferredFields extends FieldsDef = ToFieldsDef<Fields>,
   Types = T["$inferSelect"]

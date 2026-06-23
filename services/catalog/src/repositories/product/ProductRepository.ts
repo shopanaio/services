@@ -3,7 +3,6 @@ import { randomUUID } from "crypto";
 import {
   createQuery,
   createRelayQuery,
-  field,
   type PageInfo,
   type InferExecuteOptions,
   type InferRelayInput,
@@ -11,8 +10,8 @@ import {
 import { BaseRepository } from "../BaseRepository.js";
 import {
   product,
+  productListView,
   productTranslation,
-  vendor,
   productOption,
   productFeature,
   type Product,
@@ -21,30 +20,22 @@ import {
   type ProductOption,
   type ProductFeature,
 } from "../models/index.js";
-import { decodeProductGlobalId } from "../global-id-where-mappers.js";
+import {
+  decodeCategoryGlobalId,
+  decodeProductGlobalId,
+  decodeVendorGlobalId,
+} from "../global-id-where-mappers.js";
 
 const productQuery = createQuery(product).maxLimit(100).defaultLimit(20);
 
-const vendorQuery = createQuery(vendor, {
-  id: field(vendor.id),
-  name: field(vendor.name),
-});
-
 export const productRelayQuery = createRelayQuery(
-  createQuery(product, {
-    id: field(product.id),
-    projectId: field(product.projectId),
-    handle: field(product.handle),
-    publishedAt: field(product.publishedAt),
-    updatedAt: field(product.updatedAt),
-    deletedAt: field(product.deletedAt),
-    createdAt: field(product.createdAt),
-    revision: field(product.revision),
-    vendorId: field(product.vendorId),
-    vendor: field(product.vendorId).leftJoin(vendorQuery, vendor.id),
-  })
+  createQuery(productListView)
     .include(["id"])
-    .mapWhereField("id", decodeProductGlobalId)
+    .mapWhereFields({
+      id: decodeProductGlobalId,
+      vendorId: decodeVendorGlobalId,
+      primaryCategoryId: decodeCategoryGlobalId,
+    })
     .maxLimit(100)
     .defaultLimit(20),
   { name: "product", tieBreaker: "id" }
@@ -62,6 +53,10 @@ export interface ProductConnectionResult {
 export class ProductRepository extends BaseRepository {
   private get locale(): string {
     return this.ctx.locale ?? "uk";
+  }
+
+  private get currency(): string {
+    return this.ctx.currency ?? "UAH";
   }
 
   // ============ CRUD ============
@@ -238,11 +233,18 @@ export class ProductRepository extends BaseRepository {
   async getConnection(args: ProductRelayInput): Promise<ProductConnectionResult> {
     const { where, orderBy, ...paginationArgs } = args;
 
-    // Merge user-provided where with projectId and deletedAt filters
+    // Scope list view rows to current tenant, locale, and currency.
     const mergedWhere: ProductRelayInput["where"] = {
       _and: [
         { projectId: { _eq: this.storeId } },
         { deletedAt: { _is: null } },
+        { locale: { _eq: this.locale } },
+        {
+          _or: [
+            { currency: { _eq: this.currency } },
+            { currency: { _is: null } },
+          ],
+        },
         ...(where ? [where] : []),
       ],
     };
@@ -258,7 +260,7 @@ export class ProductRepository extends BaseRepository {
 
     const [result, totalCount] = await Promise.all([
       productRelayQuery.execute(this.connection, executeInput),
-      this.count(),
+      productRelayQuery.count(this.connection, { where: mergedWhere }),
     ]);
 
     return {

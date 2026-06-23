@@ -10,8 +10,8 @@ input ProductSortInput {
   direction: SortDirection
 }
 
-"""Standard orderBy input for product queries."""
-input ProductOrderByInput {
+"""Listing orderBy input for product listing pages."""
+input ListingOrderByInput {
   field: ProductSortBy!
   direction: SortDirection
 }
