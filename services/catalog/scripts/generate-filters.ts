@@ -9,6 +9,7 @@ import {
   categoryRelayQuery,
 } from "../src/repositories/category/CategoryRepository.js";
 import { productRelayQuery } from "../src/repositories/product/ProductRepository.js";
+import { vendorRelayQuery } from "../src/repositories/vendor/VendorRepository.js";
 import { variantRelayQuery } from "../src/repositories/variant/VariantRepository.js";
 
 const productListFieldTypes: Record<string, GraphQLFieldType> = {
@@ -37,6 +38,23 @@ const productOrderBy = generateOrderByInputType(productRelayQuery, "Product", {
   includeDescriptions: true,
   fieldTypes: productListFieldTypes,
   excludeFields: ["projectId", "deletedAt", "revision"],
+});
+
+const vendorFieldTypes: Record<string, GraphQLFieldType> = {
+  id: "ID",
+  name: "String",
+};
+
+const vendorWhere = generateWhereInputType(vendorRelayQuery, "Vendor", {
+  includeDescriptions: true,
+  fieldTypes: vendorFieldTypes,
+  excludeFields: ["projectId"],
+});
+
+const vendorOrderBy = generateOrderByInputType(vendorRelayQuery, "Vendor", {
+  includeDescriptions: true,
+  fieldTypes: vendorFieldTypes,
+  excludeFields: ["projectId"],
 });
 
 const categoryWhere = generateWhereInputType(categoryRelayQuery, "Category", {
@@ -76,6 +94,12 @@ const content = `# Auto-generated GraphQL filter types for Catalog service.
 ${productWhere}
 
 ${productOrderBy}
+
+# ---- Vendor ----
+
+${vendorWhere}
+
+${vendorOrderBy}
 
 # ---- Category ----
 

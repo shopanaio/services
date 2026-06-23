@@ -89,6 +89,29 @@ type CatalogQuery {
   ): VariantConnection!
 
   """
+  Get a vendor by ID
+  """
+  vendor(id: ID!): Vendor
+
+  """
+  Get vendors with Relay-style pagination
+  """
+  vendors(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    """
+    Filter conditions
+    """
+    where: VendorWhereInput
+    """
+    Sort order
+    """
+    orderBy: [VendorOrderByInput!]
+  ): VendorConnection!
+
+  """
   Get bulk update job by ID.
   """
   productBulkUpdateJob(jobId: ID!): ProductBulkUpdateJob

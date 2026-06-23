@@ -26,6 +26,11 @@ import {
 } from "./ProductConnectionResolver.js";
 import { VariantResolver } from "./VariantResolver.js";
 import { CategoryResolver } from "./CategoryResolver.js";
+import { VendorResolver } from "./VendorResolver.js";
+import {
+  VendorConnectionResolver,
+  type VendorConnectionInput,
+} from "./VendorConnectionResolver.js";
 import { TagResolver } from "./TagResolver.js";
 import { CollectionResolver } from "./CollectionResolver.js";
 import { BundleGroupResolver } from "./BundleGroupResolver.js";
@@ -174,6 +179,29 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    */
   variants(args: VariantConnectionInput) {
     return new VariantConnectionResolver(args, this.$ctx);
+  }
+
+  // ---- Vendor Queries ----
+
+  /**
+   * Get a single vendor by ID.
+   * Returns null if vendor doesn't exist.
+   */
+  async vendor(args: { id: string }) {
+    const vendorId =
+      safeDecodeGlobalId(args.id, GlobalIdEntity.Vendor) ?? args.id;
+    const vendor = await this.$ctx.loaders.vendor.load(vendorId);
+    if (!vendor) {
+      return null;
+    }
+    return new VendorResolver(vendorId, this.$ctx);
+  }
+
+  /**
+   * Get a paginated list of vendors.
+   */
+  vendors(args: VendorConnectionInput) {
+    return new VendorConnectionResolver(args, this.$ctx);
   }
 
   // ═══════════════════════════════════════════════════════════

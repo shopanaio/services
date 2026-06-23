@@ -37,6 +37,10 @@ export {
   type VariantConnectionInput,
 } from "./VariantConnectionResolver.js";
 export {
+  VendorConnectionResolver,
+  type VendorConnectionInput,
+} from "./VendorConnectionResolver.js";
+export {
   CategoryConnectionResolver,
   type CategoryConnectionInput,
 } from "./CategoryConnectionResolver.js";

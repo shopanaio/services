@@ -63,6 +63,31 @@ type Vendor implements Node @key(fields: "id") {
 }
 
 """
+A connection to a list of Vendor items.
+"""
+type VendorConnection {
+  """A list of edges."""
+  edges: [VendorEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of vendors."""
+  totalCount: Int!
+}
+
+"""
+An edge in a Vendor connection.
+"""
+type VendorEdge {
+  """The item at the end of the edge."""
+  node: Vendor!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+"""
 A product represents an item that can be sold.
 """
 type Product implements Node @key(fields: "id") {

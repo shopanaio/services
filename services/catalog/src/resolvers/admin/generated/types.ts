@@ -879,6 +879,10 @@ export type CatalogQuery = {
   variant: Maybe<Variant>;
   /** Get variants with Relay-style pagination */
   variants: VariantConnection;
+  /** Get a vendor by ID */
+  vendor: Maybe<Vendor>;
+  /** Get vendors with Relay-style pagination */
+  vendors: VendorConnection;
 };
 
 
@@ -1043,6 +1047,21 @@ export type CatalogQueryVariantsArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
   orderBy?: InputMaybe<Array<VariantOrderByInput>>;
   where?: InputMaybe<VariantWhereInput>;
+};
+
+
+export type CatalogQueryVendorArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryVendorsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<VendorOrderByInput>>;
+  where?: InputMaybe<VendorWhereInput>;
 };
 
 /** A category represents a hierarchical grouping of products. */
@@ -3679,6 +3698,8 @@ export type ProductWhereInput = {
   _not?: InputMaybe<ProductWhereInput>;
   /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ProductWhereInput>>;
+  /** Filter by brandName */
+  brandName?: InputMaybe<StringFilter>;
   /** Filter by createdAt */
   createdAt?: InputMaybe<DateTimeFilter>;
   /** Filter by currency */
@@ -3699,8 +3720,6 @@ export type ProductWhereInput = {
   primaryCategoryId?: InputMaybe<IdFilter>;
   /** Filter by primaryCategoryName */
   primaryCategoryName?: InputMaybe<StringFilter>;
-  /** Filter by brandName */
-  brandName?: InputMaybe<StringFilter>;
   /** Filter by publishedAt */
   publishedAt?: InputMaybe<DateTimeFilter>;
   /** Filter by updatedAt */
@@ -4354,6 +4373,56 @@ export type Vendor = Node & {
   name: Scalars['String']['output'];
 };
 
+/** A connection to a list of Vendor items. */
+export type VendorConnection = {
+  __typename?: 'VendorConnection';
+  /** A list of edges. */
+  edges: Array<VendorEdge>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+  /** The total number of vendors. */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** An edge in a Vendor connection. */
+export type VendorEdge = {
+  __typename?: 'VendorEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String']['output'];
+  /** The item at the end of the edge. */
+  node: Vendor;
+};
+
+/** Ordering configuration for Vendor */
+export type VendorOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: VendorOrderField;
+};
+
+/** Fields available for sorting Vendor */
+export enum VendorOrderField {
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by name */
+  Name = 'name'
+}
+
+/** Filter conditions for Vendor */
+export type VendorWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<VendorWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<VendorWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<VendorWhereInput>>;
+  /** Filter by id */
+  id?: InputMaybe<IdFilter>;
+  /** Filter by name */
+  name?: InputMaybe<StringFilter>;
+};
+
 /** Weight measurement units */
 export enum WeightUnit {
   /** Gram */
@@ -4757,6 +4826,11 @@ export type ResolversTypes = ResolversObject<{
   VariantUpdatePricingPayload: ResolverTypeWrapper<VariantUpdatePricingPayload>;
   VariantWhereInput: VariantWhereInput;
   Vendor: ResolverTypeWrapper<Vendor>;
+  VendorConnection: ResolverTypeWrapper<VendorConnection>;
+  VendorEdge: ResolverTypeWrapper<VendorEdge>;
+  VendorOrderByInput: VendorOrderByInput;
+  VendorOrderField: VendorOrderField;
+  VendorWhereInput: VendorWhereInput;
   WeightUnit: WeightUnit;
   WidgetQuery: ResolverTypeWrapper<WidgetQuery>;
 }>;
@@ -5019,6 +5093,10 @@ export type ResolversParentTypes = ResolversObject<{
   VariantUpdatePricingPayload: VariantUpdatePricingPayload;
   VariantWhereInput: VariantWhereInput;
   Vendor: Vendor;
+  VendorConnection: VendorConnection;
+  VendorEdge: VendorEdge;
+  VendorOrderByInput: VendorOrderByInput;
+  VendorWhereInput: VendorWhereInput;
   WidgetQuery: WidgetQuery;
 }>;
 
@@ -5246,6 +5324,8 @@ export type CatalogQueryResolvers<ContextType = ServiceContext, ParentType exten
   tags?: Resolver<ResolversTypes['TagConnection'], ParentType, ContextType, Partial<CatalogQueryTagsArgs>>;
   variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType, RequireFields<CatalogQueryVariantArgs, 'id'>>;
   variants?: Resolver<ResolversTypes['VariantConnection'], ParentType, ContextType, Partial<CatalogQueryVariantsArgs>>;
+  vendor?: Resolver<Maybe<ResolversTypes['Vendor']>, ParentType, ContextType, RequireFields<CatalogQueryVendorArgs, 'id'>>;
+  vendors?: Resolver<ResolversTypes['VendorConnection'], ParentType, ContextType, Partial<CatalogQueryVendorsArgs>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -6160,6 +6240,19 @@ export type VendorResolvers<ContextType = ServiceContext, ParentType extends Res
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type VendorConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VendorConnection'] = ResolversParentTypes['VendorConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['VendorEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type VendorEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VendorEdge'] = ResolversParentTypes['VendorEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['Vendor'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type WidgetQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WidgetQuery'] = ResolversParentTypes['WidgetQuery']> = ResolversObject<{
   pricing?: Resolver<ResolversTypes['PricingWidgetPayload'], ParentType, ContextType, RequireFields<WidgetQueryPricingArgs, 'input'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -6298,5 +6391,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   VariantUpdateOptionsPayload?: VariantUpdateOptionsPayloadResolvers<ContextType>;
   VariantUpdatePricingPayload?: VariantUpdatePricingPayloadResolvers<ContextType>;
   Vendor?: VendorResolvers<ContextType>;
+  VendorConnection?: VendorConnectionResolvers<ContextType>;
+  VendorEdge?: VendorEdgeResolvers<ContextType>;
   WidgetQuery?: WidgetQueryResolvers<ContextType>;
 }>;

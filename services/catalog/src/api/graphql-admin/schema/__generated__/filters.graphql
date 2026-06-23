@@ -81,6 +81,38 @@ input ProductOrderByInput {
   direction: SortDirection!
 }
 
+# ---- Vendor ----
+
+"""Filter conditions for Vendor"""
+input VendorWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [VendorWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [VendorWhereInput!]
+  """Negate the condition"""
+  _not: VendorWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by name"""
+  name: StringFilter
+}
+
+"""Fields available for sorting Vendor"""
+enum VendorOrderField {
+  """Sort by id"""
+  id
+  """Sort by name"""
+  name
+}
+
+"""Ordering configuration for Vendor"""
+input VendorOrderByInput {
+  """Field to order by"""
+  field: VendorOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
 # ---- Category ----
 
 """Filter conditions for Category"""
