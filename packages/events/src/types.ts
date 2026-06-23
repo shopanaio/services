@@ -98,6 +98,7 @@ export interface ProductUpdatedPayload {
 export interface ProductFieldChanges {
   handle?: string;
   title?: string;
+  vendorId?: string | null;
   status?: "draft" | "published";
   content?: { description?: string | null; excerpt?: string | null };
   seo?: { title?: string | null; description?: string | null };

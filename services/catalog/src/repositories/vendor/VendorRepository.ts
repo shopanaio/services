@@ -1,4 +1,5 @@
 import { and, eq, inArray } from "drizzle-orm";
+import { randomUUID } from "crypto";
 import {
   createQuery,
   createRelayQuery,
@@ -6,7 +7,7 @@ import {
   type InferRelayInput,
 } from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
-import { vendor, type Vendor } from "../models/index.js";
+import { vendor, type NewVendor, type Vendor } from "../models/index.js";
 import { decodeVendorGlobalId } from "../global-id-where-mappers.js";
 
 export const vendorRelayQuery = createRelayQuery(
@@ -37,6 +38,31 @@ export class VendorRepository extends BaseRepository {
       .limit(1);
 
     return result[0] ?? null;
+  }
+
+  async findByName(name: string): Promise<Vendor | null> {
+    const result = await this.connection
+      .select()
+      .from(vendor)
+      .where(and(eq(vendor.projectId, this.storeId), eq(vendor.name, name)))
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
+  async create(data: { name: string }): Promise<Vendor> {
+    const newVendor: NewVendor = {
+      projectId: this.storeId,
+      id: randomUUID(),
+      name: data.name,
+    };
+
+    const result = await this.connection
+      .insert(vendor)
+      .values(newVendor)
+      .returning();
+
+    return result[0];
   }
 
   async getConnection(

@@ -6,6 +6,7 @@ import {
 import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
 import { CatalogType } from "./CatalogType.js";
 import { ProductResolver } from "./ProductResolver.js";
+import { VendorResolver } from "./VendorResolver.js";
 import type { UserError } from "../../kernel/BaseScript.js";
 
 /**
@@ -62,6 +63,7 @@ import type {
   WorkflowContext,
 } from "../../workflows/dto/ProductUpdateWorkflowDto.js";
 import type { ProductCreateParams, ProductCreateResult } from "../../sagas/index.js";
+import { VendorCreateScript } from "../../scripts/vendor/index.js";
 import {
   VariantCreateScript,
   VariantDeleteScript,
@@ -161,6 +163,7 @@ import type {
   CatalogMutationCategoryRebalanceArgs,
   CatalogMutationCategoryRemoveProductArgs,
   CatalogMutationCategoryUpdateArgs,
+  CatalogMutationVendorCreateArgs,
   CatalogMutationProductUpdateArgs,
   RichTextInput,
 } from "./generated/types.js";
@@ -172,6 +175,7 @@ import {
   CategoryMoveProductInputSchema,
   CategoryRebalanceInputSchema,
   CategoryRemoveProductInputSchema,
+  VendorCreateInputSchema,
   ProductCreateInputSchema,
   ProductDeleteInputSchema,
   ProductUpdateStatusInputSchema,
@@ -421,6 +425,25 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     );
   }
 
+  // ---- Vendor Mutations ----
+
+  /**
+   * Create a new vendor.
+   */
+  @ZodResolver(VendorCreateInputSchema())
+  async vendorCreate(args: CatalogMutationVendorCreateArgs) {
+    const result = await this.$ctx.kernel.runScript(VendorCreateScript, {
+      name: args.input.name,
+    });
+
+    return {
+      vendor: result.vendor
+        ? new VendorResolver(result.vendor.id, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
   // ---- Product Mutations ----
 
   /**
@@ -435,10 +458,14 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const mediaFileIds = input.mediaFileIds?.map((fileId) =>
       decodeGlobalIdByType(fileId, GlobalIdEntity.File)
     );
+    const vendorId = input.vendorId
+      ? decodeGlobalIdByType(input.vendorId, GlobalIdEntity.Vendor)
+      : undefined;
 
     const sagaInput: ProductCreateParams = {
       title: input.title,
       handle: input.handle,
+      vendorId,
       description: mapRichTextInput(input.description),
       excerpt: mapRichTextInput(input.excerpt),
       mediaFileIds,
@@ -561,12 +588,20 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const workflowOps: ProductUpdateOperation[] = [];
 
     if (operations) {
+      let vendorId: string | null | undefined;
+      if (Object.prototype.hasOwnProperty.call(operations, "vendorId")) {
+        vendorId = operations.vendorId
+          ? decodeGlobalIdByType(operations.vendorId, GlobalIdEntity.Vendor)
+          : null;
+      }
+
       workflowOps.push({
         type: "productUpdate",
         params: {
           id: decodedProductId,
           handle: operations.handle ?? undefined,
           title: operations.title ?? undefined,
+          vendorId,
           content: operations.content
             ? {
                 description: mapRichTextInput(operations.content.description),

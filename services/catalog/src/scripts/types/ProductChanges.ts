@@ -22,6 +22,7 @@ export interface ProductChanges {
 export interface ProductFieldChanges {
   handle?: string;
   title?: string;
+  vendorId?: string | null;
   status?: "draft" | "published";
   content?: ContentChanges;
   seo?: SeoChanges;
@@ -141,4 +142,5 @@ export interface StatusChanges {
 export interface ProductIdentityChanges {
   handle?: string;
   title?: string;
+  vendorId?: string | null;
 }

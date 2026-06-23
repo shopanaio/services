@@ -695,6 +695,8 @@ export type ApiCatalogMutation = {
   variantUpdateOptions: ApiVariantUpdateOptionsPayload;
   /** Update variant pricing information */
   variantUpdatePricing: ApiVariantUpdatePricingPayload;
+  /** Create a new vendor */
+  vendorCreate: ApiVendorCreatePayload;
 };
 
 
@@ -1046,6 +1048,11 @@ export type ApiCatalogMutationVariantUpdatePricingArgs = {
   input: ApiVariantUpdatePricingInput;
 };
 
+
+export type ApiCatalogMutationVendorCreateArgs = {
+  input: ApiVendorCreateInput;
+};
+
 export type ApiCatalogQuery = {
   __typename?: 'CatalogQuery';
   /** Get a bundle group by ID */
@@ -1113,6 +1120,10 @@ export type ApiCatalogQuery = {
   variant?: Maybe<ApiVariant>;
   /** Get variants with Relay-style pagination */
   variants: ApiVariantConnection;
+  /** Get a vendor by ID */
+  vendor?: Maybe<ApiVendor>;
+  /** Get vendors with Relay-style pagination */
+  vendors: ApiVendorConnection;
 };
 
 
@@ -1277,6 +1288,21 @@ export type ApiCatalogQueryVariantsArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
   orderBy?: InputMaybe<Array<ApiVariantOrderByInput>>;
   where?: InputMaybe<ApiVariantWhereInput>;
+};
+
+
+export type ApiCatalogQueryVendorArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryVendorsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiVendorOrderByInput>>;
+  where?: InputMaybe<ApiVendorWhereInput>;
 };
 
 /** A category represents a hierarchical grouping of products. */
@@ -5143,6 +5169,8 @@ export type ApiProductCreateInput = {
   title: Scalars['String']['input'];
   /** Variants to create (only enabled ones from UI). */
   variants?: InputMaybe<Array<ApiProductCreateVariantInput>>;
+  /** Vendor ID to associate with the product. */
+  vendorId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 /** Input for creating an option during product creation. */
@@ -5736,6 +5764,8 @@ export type ApiProductUpdateInput = {
   title?: InputMaybe<Scalars['String']['input']>;
   /** Variant updates. */
   variants?: InputMaybe<Array<ApiVariantUpdateInput>>;
+  /** Vendor ID to associate with the product. Pass null to clear. */
+  vendorId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 /** Payload for the unified product update mutation. */
@@ -5777,6 +5807,8 @@ export type ApiProductWhereInput = {
   _not?: InputMaybe<ApiProductWhereInput>;
   /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiProductWhereInput>>;
+  /** Filter by brandName */
+  brandName?: InputMaybe<ApiStringFilter>;
   /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
   /** Filter by currency */
@@ -5797,8 +5829,6 @@ export type ApiProductWhereInput = {
   primaryCategoryId?: InputMaybe<ApiIdFilter>;
   /** Filter by primaryCategoryName */
   primaryCategoryName?: InputMaybe<ApiStringFilter>;
-  /** Filter by brandName */
-  brandName?: InputMaybe<ApiStringFilter>;
   /** Filter by publishedAt */
   publishedAt?: InputMaybe<ApiDateTimeFilter>;
   /** Filter by updatedAt */
@@ -7161,6 +7191,70 @@ export type ApiVendor = ApiNode & {
   id: Scalars['ID']['output'];
   /** The display name of the vendor. */
   name: Scalars['String']['output'];
+};
+
+/** A connection to a list of Vendor items. */
+export type ApiVendorConnection = {
+  __typename?: 'VendorConnection';
+  /** A list of edges. */
+  edges: Array<ApiVendorEdge>;
+  /** Information to aid in pagination. */
+  pageInfo: ApiPageInfo;
+  /** The total number of vendors. */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Input for creating a vendor. */
+export type ApiVendorCreateInput = {
+  /** The display name of the vendor. */
+  name: Scalars['String']['input'];
+};
+
+/** Payload for vendor creation. */
+export type ApiVendorCreatePayload = {
+  __typename?: 'VendorCreatePayload';
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+  /** The created vendor. */
+  vendor?: Maybe<ApiVendor>;
+};
+
+/** An edge in a Vendor connection. */
+export type ApiVendorEdge = {
+  __typename?: 'VendorEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String']['output'];
+  /** The item at the end of the edge. */
+  node: ApiVendor;
+};
+
+/** Ordering configuration for Vendor */
+export type ApiVendorOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: VendorOrderField;
+};
+
+/** Fields available for sorting Vendor */
+export type VendorOrderField =
+  /** Sort by id */
+  | 'id'
+  /** Sort by name */
+  | 'name';
+
+/** Filter conditions for Vendor */
+export type ApiVendorWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiVendorWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiVendorWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiVendorWhereInput>>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by name */
+  name?: InputMaybe<ApiStringFilter>;
 };
 
 /** A warehouse represents a physical location where inventory is stored. */

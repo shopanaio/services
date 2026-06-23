@@ -5,7 +5,7 @@ import type { ProductIdentityChanges } from "../types/index.js";
 import { singleError } from "../types/index.js";
 
 /**
- * ProductUpdateScript handles product identity fields: handle and title.
+ * ProductUpdateScript handles product identity fields: handle, title, and vendor.
  *
  * For content (description/excerpt), use ProductSetContentScript.
  * For SEO, use ProductSetSeoScript.
@@ -14,12 +14,23 @@ import { singleError } from "../types/index.js";
  */
 export class ProductUpdateScript extends BaseScript<ProductUpdateParams, ProductUpdateResult> {
   protected async execute(params: ProductUpdateParams): Promise<ProductUpdateResult> {
-    const { id, handle, title } = params;
+    const { id, handle, title, vendorId } = params;
 
     // 1. Check if product exists
     const existingProduct = await this.repository.product.findById(id);
     if (!existingProduct) {
       return singleError("Product not found", "NOT_FOUND", ["id"]);
+    }
+
+    if (vendorId !== undefined && vendorId !== null) {
+      const vendor = await this.repository.vendor.findById(vendorId);
+      if (!vendor) {
+        return singleError(
+          "Vendor not found",
+          "MISSING_VENDOR",
+          ["vendorId"]
+        );
+      }
     }
 
     const locale = this.getLocale();
@@ -67,13 +78,19 @@ export class ProductUpdateScript extends BaseScript<ProductUpdateParams, Product
       }
     }
 
-    // 4. Touch product if anything changed
+    // 4. Update vendor if explicitly provided and different
+    if (vendorId !== undefined && vendorId !== existingProduct.vendorId) {
+      await this.repository.product.update(id, { vendorId });
+      changes.vendorId = vendorId;
+    }
+
+    // 5. Touch product if anything changed
     const hasChanges = Object.keys(changes).length > 0;
     if (hasChanges) {
       await this.repository.product.touch(id);
     }
 
-    // 5. Fetch updated product
+    // 6. Fetch updated product
     const product = await this.repository.product.findById(id);
     if (!product) {
       return singleError("Product not found after update", "INTERNAL_ERROR");

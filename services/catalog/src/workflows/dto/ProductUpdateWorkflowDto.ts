@@ -39,6 +39,7 @@ export interface ProductUpdateParams {
   id: string;
   handle?: string;
   title?: string;
+  vendorId?: string | null;
   content?: ProductContentParams;
   seo?: ProductSeoParams;
   status?: "published" | "draft";

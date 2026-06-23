@@ -22,6 +22,7 @@ export class ProductCreateScript extends BaseScript<
     const {
       title,
       handle,
+      vendorId,
       description,
       excerpt,
       mediaFileIds,
@@ -29,8 +30,24 @@ export class ProductCreateScript extends BaseScript<
       variants,
     } = params;
 
+    if (vendorId) {
+      const vendor = await this.repository.vendor.findById(vendorId);
+      if (!vendor) {
+        return {
+          product: undefined,
+          userErrors: [
+            {
+              message: "Vendor not found",
+              field: ["vendorId"],
+              code: "MISSING_VENDOR",
+            },
+          ],
+        };
+      }
+    }
+
     // 1. Create product with handle
-    const product = await this.repository.product.create({});
+    const product = await this.repository.product.create({ vendorId });
     await this.repository.product.update(product.id, { handle });
     const excerptStorage = toRichTextStorage(excerpt);
 

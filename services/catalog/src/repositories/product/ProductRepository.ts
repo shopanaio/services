@@ -93,13 +93,16 @@ export class ProductRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  async create(data: { publishedAt?: Date | string | null } = {}): Promise<Product> {
+  async create(
+    data: { vendorId?: string | null; publishedAt?: Date | string | null } = {}
+  ): Promise<Product> {
     const id = randomUUID();
     const now = new Date().toISOString();
 
     const newProduct: NewProduct = {
       projectId: this.storeId,
       id,
+      vendorId: data.vendorId ?? null,
       publishedAt: data.publishedAt instanceof Date ? data.publishedAt.toISOString() : data.publishedAt ?? null,
       createdAt: now,
       updatedAt: now,
@@ -128,13 +131,18 @@ export class ProductRepository extends BaseRepository {
 
   async update(
     id: string,
-    data: { handle?: string | null; publishedAt?: Date | string | null }
+    data: {
+      handle?: string | null;
+      vendorId?: string | null;
+      publishedAt?: Date | string | null;
+    }
   ): Promise<Product | null> {
     const updateData: Partial<NewProduct> = {
       updatedAt: new Date().toISOString(),
     };
 
     if (data.handle !== undefined) updateData.handle = data.handle;
+    if (data.vendorId !== undefined) updateData.vendorId = data.vendorId;
     if (data.publishedAt !== undefined) updateData.publishedAt = data.publishedAt instanceof Date ? data.publishedAt.toISOString() : data.publishedAt;
 
     const result = await this.connection

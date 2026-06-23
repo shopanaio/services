@@ -88,6 +88,25 @@ type VendorEdge {
 }
 
 """
+Input for creating a vendor.
+"""
+input VendorCreateInput {
+  """The display name of the vendor."""
+  name: String!
+}
+
+"""
+Payload for vendor creation.
+"""
+type VendorCreatePayload {
+  """The created vendor."""
+  vendor: Vendor
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
 A product represents an item that can be sold.
 """
 type Product implements Node @key(fields: "id") {
@@ -265,6 +284,9 @@ input ProductCreateInput {
   """URL-friendly handle for the product."""
   handle: String!
 
+  """Vendor ID to associate with the product."""
+  vendorId: ID
+
   """Product description."""
   description: RichTextInput
 
@@ -370,6 +392,9 @@ input ProductUpdateInput {
 
   """Product title."""
   title: String
+
+  """Vendor ID to associate with the product. Pass null to clear."""
+  vendorId: ID
 
   """Product content (description, excerpt)."""
   content: ProductContentInput

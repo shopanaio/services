@@ -266,6 +266,13 @@ type WidgetQuery {
 }
 
 type CatalogMutation {
+  # Vendor mutations
+
+  """
+  Create a new vendor
+  """
+  vendorCreate(input: VendorCreateInput!): VendorCreatePayload!
+
   # Product mutations
 
   """

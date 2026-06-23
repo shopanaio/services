@@ -461,6 +461,8 @@ export type CatalogMutation = {
   variantUpdateOptions: VariantUpdateOptionsPayload;
   /** Update variant pricing information */
   variantUpdatePricing: VariantUpdatePricingPayload;
+  /** Create a new vendor */
+  vendorCreate: VendorCreatePayload;
 };
 
 
@@ -810,6 +812,11 @@ export type CatalogMutationVariantUpdateOptionsArgs = {
 
 export type CatalogMutationVariantUpdatePricingArgs = {
   input: VariantUpdatePricingInput;
+};
+
+
+export type CatalogMutationVendorCreateArgs = {
+  input: VendorCreateInput;
 };
 
 export type CatalogQuery = {
@@ -3069,6 +3076,8 @@ export type ProductCreateInput = {
   title: Scalars['String']['input'];
   /** Variants to create (only enabled ones from UI). */
   variants?: InputMaybe<Array<ProductCreateVariantInput>>;
+  /** Vendor ID to associate with the product. */
+  vendorId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 /** Input for creating an option during product creation. */
@@ -3657,6 +3666,8 @@ export type ProductUpdateInput = {
   title?: InputMaybe<Scalars['String']['input']>;
   /** Variant updates. */
   variants?: InputMaybe<Array<VariantUpdateInput>>;
+  /** Vendor ID to associate with the product. Pass null to clear. */
+  vendorId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 /** Payload for the unified product update mutation. */
@@ -4384,6 +4395,21 @@ export type VendorConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
+/** Input for creating a vendor. */
+export type VendorCreateInput = {
+  /** The display name of the vendor. */
+  name: Scalars['String']['input'];
+};
+
+/** Payload for vendor creation. */
+export type VendorCreatePayload = {
+  __typename?: 'VendorCreatePayload';
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<GenericUserError>;
+  /** The created vendor. */
+  vendor: Maybe<Vendor>;
+};
+
 /** An edge in a Vendor connection. */
 export type VendorEdge = {
   __typename?: 'VendorEdge';
@@ -4827,6 +4853,8 @@ export type ResolversTypes = ResolversObject<{
   VariantWhereInput: VariantWhereInput;
   Vendor: ResolverTypeWrapper<Vendor>;
   VendorConnection: ResolverTypeWrapper<VendorConnection>;
+  VendorCreateInput: VendorCreateInput;
+  VendorCreatePayload: ResolverTypeWrapper<VendorCreatePayload>;
   VendorEdge: ResolverTypeWrapper<VendorEdge>;
   VendorOrderByInput: VendorOrderByInput;
   VendorOrderField: VendorOrderField;
@@ -5094,6 +5122,8 @@ export type ResolversParentTypes = ResolversObject<{
   VariantWhereInput: VariantWhereInput;
   Vendor: Vendor;
   VendorConnection: VendorConnection;
+  VendorCreateInput: VendorCreateInput;
+  VendorCreatePayload: VendorCreatePayload;
   VendorEdge: VendorEdge;
   VendorOrderByInput: VendorOrderByInput;
   VendorWhereInput: VendorWhereInput;
@@ -5289,6 +5319,7 @@ export type CatalogMutationResolvers<ContextType = ServiceContext, ParentType ex
   variantUpdateMedia?: Resolver<ResolversTypes['VariantUpdateMediaPayload'], ParentType, ContextType, RequireFields<CatalogMutationVariantUpdateMediaArgs, 'input'>>;
   variantUpdateOptions?: Resolver<ResolversTypes['VariantUpdateOptionsPayload'], ParentType, ContextType, RequireFields<CatalogMutationVariantUpdateOptionsArgs, 'input'>>;
   variantUpdatePricing?: Resolver<ResolversTypes['VariantUpdatePricingPayload'], ParentType, ContextType, RequireFields<CatalogMutationVariantUpdatePricingArgs, 'input'>>;
+  vendorCreate?: Resolver<ResolversTypes['VendorCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationVendorCreateArgs, 'input'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -6247,6 +6278,12 @@ export type VendorConnectionResolvers<ContextType = ServiceContext, ParentType e
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type VendorCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VendorCreatePayload'] = ResolversParentTypes['VendorCreatePayload']> = ResolversObject<{
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  vendor?: Resolver<Maybe<ResolversTypes['Vendor']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type VendorEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VendorEdge'] = ResolversParentTypes['VendorEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['Vendor'], ParentType, ContextType>;
@@ -6392,6 +6429,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   VariantUpdatePricingPayload?: VariantUpdatePricingPayloadResolvers<ContextType>;
   Vendor?: VendorResolvers<ContextType>;
   VendorConnection?: VendorConnectionResolvers<ContextType>;
+  VendorCreatePayload?: VendorCreatePayloadResolvers<ContextType>;
   VendorEdge?: VendorEdgeResolvers<ContextType>;
   WidgetQuery?: WidgetQueryResolvers<ContextType>;
 }>;

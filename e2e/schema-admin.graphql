@@ -1064,6 +1064,23 @@ type CatalogQuery {
     orderBy: [VariantOrderByInput!]
   ): VariantConnection!
 
+  """Get a vendor by ID"""
+  vendor(id: ID!): Vendor
+
+  """Get vendors with Relay-style pagination"""
+  vendors(
+    first: Int
+    after: String
+    last: Int
+    before: String
+
+    """Filter conditions"""
+    where: VendorWhereInput
+
+    """Sort order"""
+    orderBy: [VendorOrderByInput!]
+  ): VendorConnection!
+
   """Get bulk update job by ID."""
   productBulkUpdateJob(jobId: ID!): ProductBulkUpdateJob
 
@@ -1156,6 +1173,9 @@ type WidgetQuery {
 }
 
 type CatalogMutation {
+  """Create a new vendor"""
+  vendorCreate(input: VendorCreateInput!): VendorCreatePayload!
+
   """Create a new product"""
   productCreate(input: ProductCreateInput!): ProductCreatePayload!
 
@@ -2464,6 +2484,36 @@ type Vendor implements Node {
   name: String!
 }
 
+"""A connection to a list of Vendor items."""
+type VendorConnection {
+  """A list of edges."""
+  edges: [VendorEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of vendors."""
+  totalCount: Int!
+}
+
+"""An edge in a Vendor connection."""
+type VendorEdge {
+  """The item at the end of the edge."""
+  node: Vendor!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+"""Payload for vendor creation."""
+type VendorCreatePayload {
+  """The created vendor."""
+  vendor: Vendor
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
 """A product represents an item that can be sold."""
 type Product implements Node {
   """The globally unique ID of the product."""
@@ -2973,6 +3023,15 @@ enum ProductOrderField {
   brandName
 }
 
+"""Fields available for sorting Vendor"""
+enum VendorOrderField {
+  """Sort by id"""
+  id
+
+  """Sort by name"""
+  name
+}
+
 """Fields available for sorting Category"""
 enum CategoryOrderField {
   """Sort by id"""
@@ -3467,6 +3526,33 @@ input ProductWhereInput {
 input ProductOrderByInput {
   """Field to order by"""
   field: ProductOrderField!
+
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+"""Filter conditions for Vendor"""
+input VendorWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [VendorWhereInput!]
+
+  """Logical OR of multiple conditions"""
+  _or: [VendorWhereInput!]
+
+  """Negate the condition"""
+  _not: VendorWhereInput
+
+  """Filter by id"""
+  id: IDFilter
+
+  """Filter by name"""
+  name: StringFilter
+}
+
+"""Ordering configuration for Vendor"""
+input VendorOrderByInput {
+  """Field to order by"""
+  field: VendorOrderField!
 
   """Sort direction"""
   direction: SortDirection!
@@ -4411,6 +4497,12 @@ input RichTextInput {
   json: JSON!
 }
 
+"""Input for creating a vendor."""
+input VendorCreateInput {
+  """The display name of the vendor."""
+  name: String!
+}
+
 """Input for creating a feature during product creation."""
 input ProductFeatureInput {
   """The URL-friendly slug for the feature."""
@@ -4479,6 +4571,9 @@ input ProductCreateInput {
   """URL-friendly handle for the product."""
   handle: String!
 
+  """Vendor ID to associate with the product."""
+  vendorId: ID
+
   """Product description."""
   description: RichTextInput
 
@@ -4543,6 +4638,9 @@ input ProductUpdateInput {
 
   """Product title."""
   title: String
+
+  """Vendor ID to associate with the product. Pass null to clear."""
+  vendorId: ID
 
   """Product content (description, excerpt)."""
   content: ProductContentInput

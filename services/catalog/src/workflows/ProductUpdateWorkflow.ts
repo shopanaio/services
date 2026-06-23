@@ -215,14 +215,15 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     ctx: RunScriptContext,
   ): Promise<OperationResult> {
     const errors: UserError[] = [];
-    const { id, handle, title, content, seo, status, media } = params;
+    const { id, handle, title, vendorId, content, seo, status, media } = params;
 
-    // Identity fields (handle, title)
-    if (handle !== undefined || title !== undefined) {
+    // Identity fields (handle, title, vendor)
+    if (handle !== undefined || title !== undefined || vendorId !== undefined) {
       const r = await this.kernel.runScript(ProductUpdateScript, {
         id,
         handle,
         title,
+        vendorId,
       }, ctx);
       errors.push(...r.userErrors);
       if (r.changes) {

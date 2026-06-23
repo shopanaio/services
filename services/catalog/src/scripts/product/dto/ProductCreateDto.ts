@@ -46,6 +46,9 @@ export interface ProductCreateParams {
   readonly description?: RichTextInput | null;
   readonly excerpt?: RichTextInput | null;
 
+  /** Vendor ID to associate with the product */
+  readonly vendorId?: string;
+
   /** File IDs for product media (already uploaded) */
   readonly mediaFileIds?: string[];
 

@@ -702,6 +702,8 @@ export type ApiCatalogMutation = {
   variantUpdateOptions: ApiVariantUpdateOptionsPayload;
   /** Update variant pricing information */
   variantUpdatePricing: ApiVariantUpdatePricingPayload;
+  /** Create a new vendor */
+  vendorCreate: ApiVendorCreatePayload;
 };
 
 
@@ -1051,6 +1053,11 @@ export type ApiCatalogMutationVariantUpdateOptionsArgs = {
 
 export type ApiCatalogMutationVariantUpdatePricingArgs = {
   input: ApiVariantUpdatePricingInput;
+};
+
+
+export type ApiCatalogMutationVendorCreateArgs = {
+  input: ApiVendorCreateInput;
 };
 
 export type ApiCatalogQuery = {
@@ -5196,6 +5203,8 @@ export type ApiProductCreateInput = {
   title: Scalars['String']['input'];
   /** Variants to create (only enabled ones from UI). */
   variants?: InputMaybe<Array<ApiProductCreateVariantInput>>;
+  /** Vendor ID to associate with the product. */
+  vendorId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 /** Input for creating an option during product creation. */
@@ -5793,6 +5802,8 @@ export type ApiProductUpdateInput = {
   title?: InputMaybe<Scalars['String']['input']>;
   /** Variant updates. */
   variants?: InputMaybe<Array<ApiVariantUpdateInput>>;
+  /** Vendor ID to associate with the product. Pass null to clear. */
+  vendorId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 /** Payload for the unified product update mutation. */
@@ -7235,6 +7246,21 @@ export type ApiVendorConnection = {
   pageInfo: ApiPageInfo;
   /** The total number of vendors. */
   totalCount: Scalars['Int']['output'];
+};
+
+/** Input for creating a vendor. */
+export type ApiVendorCreateInput = {
+  /** The display name of the vendor. */
+  name: Scalars['String']['input'];
+};
+
+/** Payload for vendor creation. */
+export type ApiVendorCreatePayload = {
+  __typename?: 'VendorCreatePayload';
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+  /** The created vendor. */
+  vendor?: Maybe<ApiVendor>;
 };
 
 /** An edge in a Vendor connection. */
