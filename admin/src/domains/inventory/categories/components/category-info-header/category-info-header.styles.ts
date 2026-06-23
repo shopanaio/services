@@ -18,4 +18,8 @@ export const useHeaderStyles = createStyles(({ token }) => ({
   divider: {
     marginBlock: token.margin,
   },
+  kpiTile: {
+    padding: "12px 16px",
+    background: token.colorBgElevated,
+  },
 }));
