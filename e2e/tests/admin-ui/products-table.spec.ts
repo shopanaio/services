@@ -75,6 +75,68 @@ async function addProductToCategory(api: Api, categoryId: string, productId: str
   expect(data.catalogMutation.categoryAddProduct.userErrors).toHaveLength(0);
 }
 
+async function createProductWithPrices(
+  api: Api,
+  product: {
+    title: string;
+    handle: string;
+    categoryId: string;
+    vendorId: string;
+    minPriceMinor: number;
+    maxPriceMinor: number;
+  },
+) {
+  const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
+    variables: {
+      input: {
+        title: product.title,
+        handle: product.handle,
+        options: [
+          {
+            name: 'Size',
+            slug: 'size',
+            values: [
+              { name: 'Small', slug: 'small' },
+              { name: 'Large', slug: 'large' },
+            ],
+          },
+        ],
+        variants: [{ handle: 'small' }, { handle: 'large' }],
+        vendorId: product.vendorId,
+      },
+    },
+  });
+
+  const result = data.catalogMutation.productCreate;
+  expect(result.userErrors).toHaveLength(0);
+  expect(result.product?.id).toBeTruthy();
+
+  const createdProduct = result.product!;
+  await addProductToCategory(api, product.categoryId, createdProduct.id);
+
+  const variants = createdProduct.variants.edges.map((edge) => edge.node);
+  expect(variants).toHaveLength(2);
+
+  for (const variant of variants) {
+    const amountMinor =
+      variant.handle === 'small' ? product.minPriceMinor : product.maxPriceMinor;
+
+    const { data: pricingData } = await api.admin.mutation('inventory-api/VariantSetPricing', {
+      variables: {
+        input: {
+          variantId: variant.id,
+          currency: UAH,
+          amountMinor: String(amountMinor),
+        },
+      },
+    });
+
+    expect(pricingData.catalogMutation.variantUpdatePricing.userErrors).toHaveLength(0);
+  }
+
+  return createdProduct;
+}
+
 async function openProductsPage(page: Page, api: Api, organizationName: string) {
   await signIn(page, api.session.user.data.email, api.session.user.data.password);
   await completeProfileIfNeeded(page);
@@ -82,29 +144,115 @@ async function openProductsPage(page: Page, api: Api, organizationName: string) 
   await expect(page.getByTestId('page-title')).toHaveText('Products');
 }
 
+async function getVisibleProductTitles(page: Page) {
+  const rows = page.getByTestId('products-table').locator('.ag-center-cols-container .ag-row');
+
+  const rowCount = await rows.count();
+  const visibleRows = await Promise.all(
+    Array.from({ length: rowCount }, async (_, index) => {
+      const row = rows.nth(index);
+      const rowIndex = Number(await row.getAttribute('row-index'));
+      const title =
+        (await row.locator('[data-testid^="products-table-title-cell-"]').textContent()) ?? '';
+
+      return { rowIndex, title };
+    }),
+  );
+
+  return visibleRows
+    .sort((left, right) => left.rowIndex - right.rowIndex)
+    .map((row) => row.title);
+}
+
 async function expectVisibleProductTitles(page: Page, expectedTitles: string[]) {
   const rows = page.getByTestId('products-table').locator('.ag-center-cols-container .ag-row');
 
   await expect(rows).toHaveCount(expectedTitles.length);
+  await expect.poll(() => getVisibleProductTitles(page)).toEqual(expectedTitles);
+}
+
+async function expectVisibleProductTitlesUnordered(page: Page, expectedTitles: string[]) {
+  const rows = page.getByTestId('products-table').locator('.ag-center-cols-container .ag-row');
+
+  await expect(rows).toHaveCount(expectedTitles.length);
   await expect
-    .poll(async () => {
-      const rowCount = await rows.count();
-      const visibleRows = await Promise.all(
-        Array.from({ length: rowCount }, async (_, index) => {
-          const row = rows.nth(index);
-          const rowIndex = Number(await row.getAttribute('row-index'));
-          const title =
-            (await row.locator('[data-testid^="products-table-title-cell-"]').textContent()) ?? '';
+    .poll(async () => (await getVisibleProductTitles(page)).sort())
+    .toEqual([...expectedTitles].sort());
+}
 
-          return { rowIndex, title };
-        }),
-      );
+function productFilterTag(page: Page, label: string) {
+  return page.locator('[data-node-type="ui-filter-close-badge"]').filter({ hasText: label });
+}
 
-      return visibleRows
-        .sort((left, right) => left.rowIndex - right.rowIndex)
-        .map((row) => row.title);
-    })
-    .toEqual(expectedTitles);
+function filterMenuButton(page: Page) {
+  return page.locator('button').filter({ hasText: /^Filter$/ }).first();
+}
+
+async function expectProductFilterMenuOptions(page: Page) {
+  await filterMenuButton(page).click();
+
+  const dropdown = page.locator('.ant-dropdown').filter({ hasText: 'Primary category' }).last();
+
+  await expect(dropdown.getByRole('button', { name: 'Primary category' })).toBeVisible();
+  await expect(dropdown.getByRole('button', { name: 'Min price' })).toBeVisible();
+  await expect(dropdown.getByRole('button', { name: 'Max price' })).toBeVisible();
+  await expect(dropdown.getByRole('button', { name: 'Brand' })).toBeVisible();
+  await expect(dropdown.getByRole('button', { name: 'Name' })).toHaveCount(0);
+  await expect(dropdown.getByRole('button', { name: 'Handle' })).toHaveCount(0);
+  await expect(dropdown.getByRole('button', { name: 'Stock' })).toHaveCount(0);
+
+  await page.keyboard.press('Escape');
+}
+
+async function addProductFilter(page: Page, label: string) {
+  await filterMenuButton(page).click();
+  await page.getByRole('button', { name: label }).click();
+  await expect(productFilterTag(page, label).last()).toBeVisible();
+}
+
+async function removeProductFilter(page: Page, label: string) {
+  const filter = productFilterTag(page, label).last();
+
+  await filter.locator('[data-remove-tag]').click();
+  await expect(productFilterTag(page, label)).toHaveCount(0);
+}
+
+async function selectRelationFilterValue(
+  page: Page,
+  filterLabel: string,
+  pickerGridTestId: string,
+  entityLabel: string,
+) {
+  await productFilterTag(page, filterLabel).last().locator('[data-value-node] button').click();
+
+  const pickerGrid = page.getByTestId(pickerGridTestId);
+  const row = pickerGrid.locator('.ag-center-cols-container .ag-row').filter({
+    hasText: entityLabel,
+  });
+
+  await expect(row).toBeVisible();
+  await row.click();
+  await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(pickerGrid).toBeHidden();
+}
+
+async function addRelationProductFilter(
+  page: Page,
+  filterLabel: string,
+  pickerGridTestId: string,
+  entityLabel: string,
+) {
+  await addProductFilter(page, filterLabel);
+  await selectRelationFilterValue(page, filterLabel, pickerGridTestId, entityLabel);
+}
+
+async function addPriceProductFilter(page: Page, filterLabel: string, amountMajor: number) {
+  await addProductFilter(page, filterLabel);
+  await productFilterTag(page, filterLabel)
+    .last()
+    .locator('[data-value-node] input')
+    .fill(String(amountMajor));
 }
 
 test.describe('Admin products table UI', () => {
@@ -399,5 +547,132 @@ test.describe('Admin products table UI', () => {
       'Brand',
       [...products].sort((left, right) => left.brand.localeCompare(right.brand)).map((p) => p.title),
     );
+  });
+
+  test('filters products table by every available product filter', async ({
+    api,
+    page,
+  }) => {
+    api.session.user.data.password = 'StrongPassword123!';
+    await api.session.setupUser();
+    const organization = await api.session.setupOrganization();
+    await api.session.setupProject({
+      currencies: [UAH],
+      defaultCurrency: UAH,
+    });
+
+    const unique = crypto.randomUUID().slice(0, 8);
+    const primaryCategory = await createCategory(
+      api,
+      `Filter Primary Category ${unique}`,
+      `filter-primary-category-${unique}`,
+    );
+    const secondaryCategory = await createCategory(
+      api,
+      `Filter Secondary Category ${unique}`,
+      `filter-secondary-category-${unique}`,
+    );
+    const primaryVendor = await createVendor(api, `Filter Primary Vendor ${unique}`);
+    const secondaryVendor = await createVendor(api, `Filter Secondary Vendor ${unique}`);
+
+    const products = {
+      alpha: {
+        title: `Filter Alpha ${unique}`,
+        handle: `filter-alpha-${unique}`,
+        categoryId: primaryCategory.id,
+        vendorId: primaryVendor.id,
+        minPriceMinor: 1200,
+        maxPriceMinor: 3400,
+      },
+      beta: {
+        title: `Filter Beta ${unique}`,
+        handle: `filter-beta-${unique}`,
+        categoryId: primaryCategory.id,
+        vendorId: secondaryVendor.id,
+        minPriceMinor: 2500,
+        maxPriceMinor: 4500,
+      },
+      gamma: {
+        title: `Filter Gamma ${unique}`,
+        handle: `filter-gamma-${unique}`,
+        categoryId: secondaryCategory.id,
+        vendorId: primaryVendor.id,
+        minPriceMinor: 7700,
+        maxPriceMinor: 9100,
+      },
+      delta: {
+        title: `Filter Delta ${unique}`,
+        handle: `filter-delta-${unique}`,
+        categoryId: secondaryCategory.id,
+        vendorId: secondaryVendor.id,
+        minPriceMinor: 1500,
+        maxPriceMinor: 2200,
+      },
+      epsilon: {
+        title: `Filter Epsilon ${unique}`,
+        handle: `filter-epsilon-${unique}`,
+        categoryId: secondaryCategory.id,
+        vendorId: secondaryVendor.id,
+        minPriceMinor: 4300,
+        maxPriceMinor: 9900,
+      },
+    };
+
+    for (const product of Object.values(products)) {
+      await createProductWithPrices(api, product);
+    }
+
+    await openProductsPage(page, api, organization.name);
+    await expect(page.getByTestId('products-pagination-range')).toHaveText('1–5 of 5');
+    await expectProductFilterMenuOptions(page);
+
+    const allTitles = Object.values(products).map((product) => product.title);
+
+    await page.getByTestId('search-input').fill(`Alpha ${unique}`);
+    await expectVisibleProductTitlesUnordered(page, [products.alpha.title]);
+    await page.getByTestId('search-input').fill('');
+    await expectVisibleProductTitlesUnordered(page, allTitles);
+
+    await addRelationProductFilter(
+      page,
+      'Primary category',
+      'category-picker-grid',
+      primaryCategory.name,
+    );
+    await expectVisibleProductTitlesUnordered(page, [
+      products.alpha.title,
+      products.beta.title,
+    ]);
+    await removeProductFilter(page, 'Primary category');
+    await expectVisibleProductTitlesUnordered(page, allTitles);
+
+    await addRelationProductFilter(page, 'Brand', 'vendor-picker-grid', primaryVendor.name);
+    await expectVisibleProductTitlesUnordered(page, [
+      products.alpha.title,
+      products.gamma.title,
+    ]);
+    await removeProductFilter(page, 'Brand');
+    await expectVisibleProductTitlesUnordered(page, allTitles);
+
+    await addPriceProductFilter(page, 'Min price', 25);
+    await expectVisibleProductTitlesUnordered(page, [products.beta.title]);
+    await removeProductFilter(page, 'Min price');
+    await expectVisibleProductTitlesUnordered(page, allTitles);
+
+    await addPriceProductFilter(page, 'Max price', 91);
+    await expectVisibleProductTitlesUnordered(page, [products.gamma.title]);
+    await removeProductFilter(page, 'Max price');
+    await expectVisibleProductTitlesUnordered(page, allTitles);
+
+    await addRelationProductFilter(
+      page,
+      'Primary category',
+      'category-picker-grid',
+      primaryCategory.name,
+    );
+    await addRelationProductFilter(page, 'Brand', 'vendor-picker-grid', primaryVendor.name);
+    await addPriceProductFilter(page, 'Min price', 12);
+    await addPriceProductFilter(page, 'Max price', 34);
+    await expectVisibleProductTitlesUnordered(page, [products.alpha.title]);
   });
 });
