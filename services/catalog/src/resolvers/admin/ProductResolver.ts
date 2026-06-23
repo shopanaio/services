@@ -73,7 +73,7 @@ export class ProductResolver extends CatalogType<string, Product> {
     const translation = await this.$ctx.loaders.productTranslation.load(
       this.$props
     );
-    return translation?.title ?? "";
+    return translation?.name ?? "";
   }
 
   async description(): Promise<RichText | null> {

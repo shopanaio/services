@@ -31,14 +31,14 @@ export class ProductUpdateScript extends BaseScript<ProductUpdateParams, Product
     // 2. Update title if provided and different
     if (title !== undefined) {
       const existingTranslation = await this.repository.translation.getProductTranslation(id, locale);
-      const currentTitle = existingTranslation?.title ?? "";
+      const currentTitle = existingTranslation?.name ?? "";
 
       if (title !== currentTitle) {
         await this.repository.translation.upsertProductTranslation({
           projectId,
           productId: id,
           locale,
-          title,
+          name: title,
           descriptionText: existingTranslation?.descriptionText ?? null,
           descriptionHtml: existingTranslation?.descriptionHtml ?? null,
           descriptionJson: existingTranslation?.descriptionJson ?? null,

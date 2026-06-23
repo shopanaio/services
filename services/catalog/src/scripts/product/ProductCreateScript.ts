@@ -34,12 +34,12 @@ export class ProductCreateScript extends BaseScript<
     await this.repository.product.update(product.id, { handle });
     const excerptStorage = toRichTextStorage(excerpt);
 
-    // 2. Create product translation (title, description)
+    // 2. Create product translation (name, description)
     await this.repository.translation.upsertProductTranslation({
       projectId: this.getProjectId(),
       productId: product.id,
       locale: this.getLocale(),
-      title,
+      name: title,
       descriptionText: description?.text ?? null,
       descriptionHtml: description?.html ?? null,
       descriptionJson: serializeRichTextJson(description?.json),

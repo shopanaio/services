@@ -74,7 +74,7 @@ const productCategoryQuery = createQuery(productCategory, {
 
 const productTranslationQuery = createQuery(productTranslation, {
   productId: field(productTranslation.productId),
-  title: field(productTranslation.title),
+  name: field(productTranslation.name),
 });
 
 const priceRangeQuery = createQuery(productPriceRange, {
@@ -838,7 +838,7 @@ export class CategoryRepository extends BaseRepository {
         // Map field names to actual database fields
         switch (o.field?.toUpperCase()) {
           case "NAME":
-            return { field: "translation.title" as const, direction };
+            return { field: "translation.name" as const, direction };
           case "NEWEST":
             return { field: "createdAt" as const, direction };
           case "PRICE":

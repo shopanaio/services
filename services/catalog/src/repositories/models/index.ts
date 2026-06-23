@@ -28,6 +28,9 @@ export * from "./media";
 // Translations (i18n)
 export * from "./translations";
 
+// Product list view
+export * from "./productListView";
+
 // SEO (search engine & social media metadata)
 export * from "./seo";
 

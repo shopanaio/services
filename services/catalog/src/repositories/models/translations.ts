@@ -14,7 +14,7 @@ import { productFeature, productFeatureValue } from "./features";
 // ─────────────────────────────────────────────────────────────────────────────
 // Product Translations
 // ─────────────────────────────────────────────────────────────────────────────
-// Main product content: title, description, SEO fields
+// Main product content: name, description, SEO fields
 // Each product can have translations in multiple locales (uk, en, ru, etc.)
 
 export const productTranslation = catalogSchema.table(
@@ -27,7 +27,7 @@ export const productTranslation = catalogSchema.table(
     locale: varchar("locale", { length: 8 }).notNull(),
 
     // Content fields
-    title: text("title").notNull(),
+    name: text("name").notNull(),
 
     // Description in multiple formats
     descriptionText: text("description_text"), // Plain text (for search, Typesense)

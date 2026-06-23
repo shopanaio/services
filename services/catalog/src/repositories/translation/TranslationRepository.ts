@@ -77,7 +77,7 @@ export class TranslationRepository {
       .onConflictDoUpdate({
         target: [productTranslation.productId, productTranslation.locale],
         set: {
-          title: data.title,
+          name: data.name,
           descriptionText: data.descriptionText,
           descriptionHtml: data.descriptionHtml,
           descriptionJson: data.descriptionJson,
@@ -102,7 +102,7 @@ export class TranslationRepository {
       .onConflictDoUpdate({
         target: [productTranslation.productId, productTranslation.locale],
         set: {
-          title: sql`excluded.title`,
+          name: sql`excluded.name`,
           descriptionText: sql`excluded.description_text`,
           descriptionHtml: sql`excluded.description_html`,
           descriptionJson: sql`excluded.description_json`,

@@ -66,7 +66,7 @@ export class ProductUpdateContentScript extends BaseScript<ProductUpdateContentP
         projectId,
         productId: id,
         locale,
-        title: existingTranslation?.title ?? "",
+        name: existingTranslation?.name ?? "",
         descriptionText: nextDescription.text,
         descriptionHtml: nextDescription.html,
         descriptionJson: nextDescription.json,
