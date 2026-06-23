@@ -1350,6 +1350,7 @@ export type ApiCategoryAddProductPayload = {
 
 export type ApiCategoryCategoriesMetaInput = {
   hierarchyScope?: InputMaybe<ApiCategoryHierarchyScopeInput>;
+  productsScope?: InputMaybe<ApiCategoryProductsScopeInput>;
 };
 
 /** A connection to a list of Category items. */
@@ -1547,6 +1548,11 @@ export type ApiCategoryProductWhereInput = {
   deletedAt?: InputMaybe<ApiDateTimeFilter>;
   /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+};
+
+export type ApiCategoryProductsScopeInput = {
+  mode: CategoryHierarchyScopeMode;
+  referenceIds: Array<Scalars['ID']['input']>;
 };
 
 export type ApiCategoryRebalanceInput = {

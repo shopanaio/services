@@ -19,10 +19,16 @@ type CategoryHierarchyScopeArgs = {
 
 type CategoryCategoriesMetaArgs = {
   hierarchyScope?: CategoryHierarchyScopeArgs | null;
+  productsScope?: CategoryProductsScopeArgs | null;
 };
 
 export type CategoryQueryCategoriesArgs = CategoryRelayInput & {
   meta?: CategoryCategoriesMetaArgs | null;
+};
+
+type CategoryProductsScopeArgs = {
+  referenceIds: string[];
+  mode: "INCLUDE" | "EXCLUDE";
 };
 
 /**

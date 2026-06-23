@@ -1,20 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Tag, Typography, Flex, Dropdown } from "antd";
 import { PlusOutlined, MoreOutlined, StarFilled } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useCategoryPicker } from "@/shared/components/entity-picker-modal";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";
 import type { ApiCategory } from "@/graphql/types";
+import type { ApiCategoryCategoriesMetaInput } from "@/domains/inventory/categories/graphql";
 import { createMockApiCategory } from "@/mocks/products/api-builders";
 
 interface ICategoriesSectionProps {
+  productId?: string;
   primaryCategory?: ApiCategory | null;
   categories?: ApiCategory[];
 }
 
 export const CategoriesSection = ({
+  productId,
   primaryCategory: initialPrimaryCategory,
   categories: initialCategories = [],
 }: ICategoriesSectionProps) => {
@@ -51,8 +54,22 @@ export const CategoriesSection = ({
     setPrimaryCategoryId(id);
   };
 
+  const categoryPickerMeta = useMemo<ApiCategoryCategoriesMetaInput | undefined>(
+    () =>
+      productId
+        ? {
+            productsScope: {
+              referenceIds: [productId],
+              mode: "EXCLUDE",
+            },
+          }
+        : undefined,
+    [productId]
+  );
+
   const { openPicker } = useCategoryPicker({
     excludeIds: categories.map((cat) => cat.id),
+    queryMeta: categoryPickerMeta,
     onConfirm: (entities: IPickableEntity[]) => {
       const existingById = new Map(categories.map((c) => [c.id, c]));
       const newCategories = entities

@@ -3633,6 +3633,12 @@ input CategoryHierarchyScopeInput {
 
 input CategoryCategoriesMetaInput {
   hierarchyScope: CategoryHierarchyScopeInput
+  productsScope: CategoryProductsScopeInput
+}
+
+input CategoryProductsScopeInput {
+  referenceIds: [ID!]!
+  mode: CategoryHierarchyScopeMode!
 }
 
 """Input for creating a category."""

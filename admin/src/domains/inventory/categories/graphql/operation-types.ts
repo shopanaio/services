@@ -47,8 +47,14 @@ export interface ApiCategoryHierarchyScopeInput {
   mode?: "INCLUDE" | "EXCLUDE" | null;
 }
 
+export interface ApiCategoryProductsScopeInput {
+  referenceIds: string[];
+  mode: "INCLUDE" | "EXCLUDE";
+}
+
 export interface ApiCategoryCategoriesMetaInput {
   hierarchyScope?: ApiCategoryHierarchyScopeInput | null;
+  productsScope?: ApiCategoryProductsScopeInput | null;
 }
 
 export interface CategoryCreateMutationData {

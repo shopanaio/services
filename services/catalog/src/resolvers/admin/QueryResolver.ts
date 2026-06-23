@@ -59,6 +59,7 @@ import {
 } from "./PricingWidgetResolver.js";
 import {
   normalizeCategoryHierarchyScopeInput,
+  normalizeCategoryProductsScopeInput,
   normalizeCategoryWhereInput,
   normalizeVariantWhereInput,
 } from "./filter-normalizers.js";
@@ -216,6 +217,9 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
         meta: {
           hierarchyScope: normalizeCategoryHierarchyScopeInput(
             args.meta?.hierarchyScope
+          ),
+          productsScope: normalizeCategoryProductsScopeInput(
+            args.meta?.productsScope
           ),
         },
       },

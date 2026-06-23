@@ -30,6 +30,7 @@ import {
   rebalanceRanks,
 } from "../../scripts/shared/rank.js";
 import type { NormalizedCategoryHierarchyScope } from "./CategoryHierarchyScope.js";
+import type { NormalizedCategoryProductsScope } from "./CategoryProductsScope.js";
 
 const categoryQuery = createQuery(category).maxLimit(100).defaultLimit(20);
 
@@ -42,6 +43,7 @@ export type CategoryQueryInput = InferExecuteOptions<typeof categoryQuery>;
 export type CategoryRelayInput = InferRelayInput<typeof categoryRelayQuery>;
 export type CategoryConnectionMetaInput = {
   hierarchyScope?: NormalizedCategoryHierarchyScope;
+  productsScope?: NormalizedCategoryProductsScope;
 };
 export type CategoryConnectionInput = CategoryRelayInput & {
   meta?: CategoryConnectionMetaInput;
@@ -407,6 +409,9 @@ export class CategoryRepository extends BaseRepository {
     const scopeWhere = await this.buildHierarchyScopeWhere(
       meta?.hierarchyScope,
     );
+    const productsScopeWhere = await this.buildProductsScopeWhere(
+      meta?.productsScope,
+    );
 
     const mergedWhere: CategoryRelayInput["where"] = {
       _and: [
@@ -414,6 +419,7 @@ export class CategoryRepository extends BaseRepository {
         { deletedAt: { _is: null } },
         ...(where ? [where] : []),
         ...(scopeWhere ? [scopeWhere] : []),
+        ...(productsScopeWhere ? [productsScopeWhere] : []),
       ],
     };
 
@@ -484,6 +490,37 @@ export class CategoryRepository extends BaseRepository {
     return scope.mode === "EXCLUDE"
       ? { id: { _notIn: ancestorIds } }
       : { id: { _in: ancestorIds } };
+  }
+
+  private async buildProductsScopeWhere(
+    scope: NormalizedCategoryProductsScope | undefined,
+  ): Promise<CategoryRelayInput["where"] | undefined> {
+    if (!scope) {
+      return undefined;
+    }
+
+    if (scope.kind === "empty") {
+      return EMPTY_CATEGORY_WHERE;
+    }
+
+    const rows = await this.connection
+      .select({ categoryId: productCategory.categoryId })
+      .from(productCategory)
+      .where(
+        and(
+          eq(productCategory.projectId, this.storeId),
+          inArray(productCategory.productId, scope.referenceIds),
+        ),
+      );
+
+    const categoryIds = [...new Set(rows.map((row) => row.categoryId))];
+    if (categoryIds.length === 0) {
+      return scope.mode === "EXCLUDE" ? undefined : EMPTY_CATEGORY_WHERE;
+    }
+
+    return scope.mode === "EXCLUDE"
+      ? { id: { _notIn: categoryIds } }
+      : { id: { _in: categoryIds } };
   }
 
   async getOne(id: string): Promise<Category | null> {

@@ -92,6 +92,7 @@ export const ProductDetailsCard = ({
       {/* CATEGORIES & TAGS */}
 
       <CategoriesSection
+        productId={product.id}
         primaryCategory={getProductPrimaryCategory(product)}
         categories={getProductCategories(product)}
       />

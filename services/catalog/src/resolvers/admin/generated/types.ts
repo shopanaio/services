@@ -1116,6 +1116,7 @@ export type CategoryAddProductPayload = {
 
 export type CategoryCategoriesMetaInput = {
   hierarchyScope?: InputMaybe<CategoryHierarchyScopeInput>;
+  productsScope?: InputMaybe<CategoryProductsScopeInput>;
 };
 
 /** A connection to a list of Category items. */
@@ -1316,6 +1317,11 @@ export type CategoryProductWhereInput = {
   deletedAt?: InputMaybe<DateTimeFilter>;
   /** Filter by id */
   id?: InputMaybe<IdFilter>;
+};
+
+export type CategoryProductsScopeInput = {
+  mode: CategoryHierarchyScopeMode;
+  referenceIds: Array<Scalars['ID']['input']>;
 };
 
 export type CategoryRebalanceInput = {
@@ -4427,6 +4433,7 @@ export type ResolversTypes = ResolversObject<{
   CategoryProductConnection: ResolverTypeWrapper<CategoryProductConnection>;
   CategoryProductEdge: ResolverTypeWrapper<CategoryProductEdge>;
   CategoryProductWhereInput: CategoryProductWhereInput;
+  CategoryProductsScopeInput: CategoryProductsScopeInput;
   CategoryRebalanceInput: CategoryRebalanceInput;
   CategoryRebalancePayload: ResolverTypeWrapper<CategoryRebalancePayload>;
   CategoryRemoveProductInput: CategoryRemoveProductInput;
@@ -4709,6 +4716,7 @@ export type ResolversParentTypes = ResolversObject<{
   CategoryProductConnection: CategoryProductConnection;
   CategoryProductEdge: CategoryProductEdge;
   CategoryProductWhereInput: CategoryProductWhereInput;
+  CategoryProductsScopeInput: CategoryProductsScopeInput;
   CategoryRebalanceInput: CategoryRebalanceInput;
   CategoryRebalancePayload: CategoryRebalancePayload;
   CategoryRemoveProductInput: CategoryRemoveProductInput;

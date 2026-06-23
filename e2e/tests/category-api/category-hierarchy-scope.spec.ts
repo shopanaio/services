@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import type { ApiCatalogQuery, ApiCategory } from '@codegen/admin-gql';
+import type { ApiCatalogQuery, ApiCategory, ApiProduct } from '@codegen/admin-gql';
 import type { ApiFixtures } from '@fixtures/api/api';
 
 const catalog = (data: unknown) => data as { catalogQuery: ApiCatalogQuery };
@@ -13,6 +13,15 @@ type CategoryTree = {
   levelTwo: ApiCategory[][];
   levelThree: ApiCategory[][][];
   outside: ApiCategory;
+};
+
+type ProductsScopeFixture = {
+  prefix: string;
+  productOne: ApiProduct;
+  productTwo: ApiProduct;
+  productOneCategories: ApiCategory[];
+  productTwoCategories: ApiCategory[];
+  unassignedCategory: ApiCategory;
 };
 
 async function createCategoryTree(api: ApiFixtures['api']): Promise<CategoryTree> {
@@ -93,6 +102,71 @@ async function queryCategories(
   return {
     ...connection,
     nodes: connection.edges.map((edge) => edge.node),
+  };
+}
+
+async function createProduct(api: ApiFixtures['api'], title: string): Promise<ApiProduct> {
+  const handle = `${title.toLowerCase().replace(/\s+/g, '-')}-${randomUUID().slice(0, 8)}`;
+  const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
+    variables: {
+      input: { title, handle },
+    },
+  });
+
+  const result = data.catalogMutation.productCreate;
+  expect(result.userErrors).toHaveLength(0);
+  expect(result.product).toBeTruthy();
+
+  return result.product as ApiProduct;
+}
+
+async function addProductToCategory(
+  api: ApiFixtures['api'],
+  categoryId: string,
+  productId: string,
+) {
+  const { data } = await api.admin.mutation('category-api/CategoryAddProduct', {
+    variables: {
+      input: { categoryId, productId },
+    },
+  });
+
+  const result = data.catalogMutation.categoryAddProduct;
+  expect(result.userErrors).toHaveLength(0);
+}
+
+async function createProductsScopeFixture(
+  api: ApiFixtures['api'],
+): Promise<ProductsScopeFixture> {
+  await api.session.setupUserAndStore();
+
+  const prefix = `products-scope-${randomUUID().slice(0, 8)}`;
+  const categories = await Promise.all(
+    Array.from({ length: 5 }, (_, index) =>
+      api.admin.category.create({
+        handle: `${prefix}-category-${index + 1}`,
+        name: `Products Scope Category ${index + 1}`,
+      }),
+    ),
+  );
+  const [categoryOne, categoryTwo, categoryThree, categoryFour, unassignedCategory] =
+    categories as ApiCategory[];
+
+  const productOne = await createProduct(api, `${prefix} Product One`);
+  const productTwo = await createProduct(api, `${prefix} Product Two`);
+
+  await addProductToCategory(api, categoryOne.id, productOne.id);
+  await addProductToCategory(api, categoryTwo.id, productOne.id);
+  await addProductToCategory(api, categoryThree.id, productTwo.id);
+  await addProductToCategory(api, categoryFour.id, productTwo.id);
+
+  return {
+    prefix,
+    productOne,
+    productTwo,
+    productOneCategories: [categoryOne, categoryTwo],
+    productTwoCategories: [categoryThree, categoryFour],
+    unassignedCategory,
   };
 }
 
@@ -299,5 +373,67 @@ test.describe('Category hierarchy scope API', () => {
         currentCategorySubtree.map((category) => category.handle),
       ),
     );
+  });
+
+  test('filters category candidates by assigned products scope', async ({ api }) => {
+    const fixture = await createProductsScopeFixture(api);
+    const ownCategoriesWhere = { handle: { _startsWith: fixture.prefix } };
+    const productOneCategoryHandles = fixture.productOneCategories.map(
+      (category) => category.handle,
+    );
+    const productTwoCategoryHandles = fixture.productTwoCategories.map(
+      (category) => category.handle,
+    );
+
+    const productOneExcluded = await queryCategories(api, {
+      first: 10,
+      where: ownCategoriesWhere,
+      orderBy: [{ field: 'handle', direction: 'asc' }],
+      meta: {
+        productsScope: {
+          referenceIds: [fixture.productOne.id],
+          mode: 'EXCLUDE',
+        },
+      },
+    });
+
+    expect(productOneExcluded.totalCount).toBe(3);
+    expectHandles(productOneExcluded.nodes, [
+      ...productTwoCategoryHandles,
+      fixture.unassignedCategory.handle,
+    ]);
+    expect(productOneExcluded.nodes.map((category) => category.handle)).not.toEqual(
+      expect.arrayContaining(productOneCategoryHandles),
+    );
+
+    const productOneIncluded = await queryCategories(api, {
+      first: 10,
+      where: ownCategoriesWhere,
+      orderBy: [{ field: 'handle', direction: 'asc' }],
+      meta: {
+        productsScope: {
+          referenceIds: [fixture.productOne.id],
+          mode: 'INCLUDE',
+        },
+      },
+    });
+
+    expect(productOneIncluded.totalCount).toBe(2);
+    expectHandles(productOneIncluded.nodes, productOneCategoryHandles);
+
+    const bothProductsExcluded = await queryCategories(api, {
+      first: 10,
+      where: ownCategoriesWhere,
+      orderBy: [{ field: 'handle', direction: 'asc' }],
+      meta: {
+        productsScope: {
+          referenceIds: [fixture.productOne.id, fixture.productTwo.id],
+          mode: 'EXCLUDE',
+        },
+      },
+    });
+
+    expect(bothProductsExcluded.totalCount).toBe(1);
+    expectHandles(bothProductsExcluded.nodes, [fixture.unassignedCategory.handle]);
   });
 });
