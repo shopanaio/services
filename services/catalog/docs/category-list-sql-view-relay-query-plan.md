@@ -1,45 +1,96 @@
-# План: Category list SQL view + drizzle-query Relay filters/sorts
+# План: Category list small views + joined Relay query
 
 ## Цель
 
-Сделать `catalogQuery.categories` пригодным для Admin category grid: поля, по которым таблица должна показывать, сортировать и фильтровать строки, должны быть SQL-полями одного `drizzle-query` source.
+Сделать `catalogQuery.categories` пригодным для Admin category grid без большой плоской
+`category_list_view`, которая дублирует почти всю `catalog.category`.
 
-Целевые table fields:
+Новый target:
 
-- `name` / title категории из `catalog.category_translation.name`;
-- `isPublished` как SQL boolean для колонки `Status`;
-- `productsCount` из `catalog.category.products_count`;
-- `parentName` / parent title для колонки `Parent`;
-- `subcategoriesCount` для количества direct child categories;
-- существующие технические поля `id`, `parentId`, `handle`, `path`, `depth`, `publishedAt`, `createdAt`, `updatedAt`.
+```text
+catalog.category
+  + small view: catalog.category_list_labels_view
+  + optional small view: catalog.category_list_child_counts_view
+  -> createQuery(category, joins)
+  -> createRelayQuery(...)
+  -> generated GraphQL CategoryWhereInput / CategoryOrderField
+```
 
-Интеграция должна идти через Drizzle PostgreSQL view, `createQuery(view)`, `createRelayQuery(...)` и generated GraphQL `CategoryWhereInput`, `CategoryOrderField`, `CategoryOrderByInput`. Не добавлять ручные filter/order поля в GraphQL schema.
+Основная таблица `catalog.category` остается source для обычных table fields:
 
-## Контекст
+- `id`, `parentId`, `handle`, `path`, `depth`;
+- `defaultSort`, `defaultSortDirection`;
+- `productsCount`;
+- `publishedAt`, `createdAt`, `updatedAt`;
+- `deletedAt`, `revision`, `projectId` для repository-owned filters.
 
-Текущий backend:
+Small views нужны только для полей, которых нет в `category`:
 
-- `services/catalog/src/repositories/category/CategoryRepository.ts`
-  - `categoryRelayQuery` построен от базовой таблицы `category`;
-  - public generated `CategoryWhereInput` и `CategoryOrderField` содержат только table-level поля вроде `handle`, `path`, `depth`, `publishedAt`, `createdAt`, `updatedAt`;
-  - `getConnection()` уже использует `categoryRelayQuery.execute()` и `categoryRelayQuery.count()`.
-- `services/catalog/src/api/graphql-admin/schema/category.graphql`
-  - `Category.name`, `Category.parent`, `Category.children`, `Category.productsCount` резолвятся через resolver/loaders, поэтому эти поля видны в selection set, но не являются SQL-sort/filter fields для root list.
-- `admin/src/domains/inventory/categories/page/page.tsx`
-  - grid показывает `Category`, `Status`, `Products`, `Parent`, `Updated`;
-  - сортировка сейчас реально доступна только для `Updated`, потому что остальные поля не представлены в generated category order contract.
+- `name` из `catalog.category_translation.name`;
+- `parentName` из parent category translation;
+- `subcategoriesCount` как direct child count, если grid/filter действительно использует это поле.
 
-Нужный cutover: connection list остается `CategoryConnection`, nodes остаются `Category`, но source для cursor/filter/sort становится SQL view с вычисленными list fields.
+`isPublished` не требует отдельной view. Для этого cutover статус фильтруется/сортируется через
+`publishedAt`, чтобы GraphQL API соответствовал текущей модели `drizzle-query`.
+
+## Изученные локальные примеры
+
+Перед реализацией сверяться с этими примерами в workspace package `@shopana/drizzle-query`.
+
+- `packages/drizzle-query/src/__tests__/sql-view-snapshots.test.ts`
+  - `productsWithStatsQuery`: table -> view join через
+    `field(products.id).leftJoin(productStatsViewQuery, productStatsView.productId)`;
+  - `usersWithSummaryQuery`: table -> view join;
+  - `publishedWithCategoryStatsQuery`: view -> view join;
+  - `categoriesWithTranslationsQuery`: table -> joined translation query.
+- `packages/drizzle-query/src/__tests__/type-inference.test.ts`
+  - `productsViewWithJoinQuery`: view source + joined translation query.
+- `packages/drizzle-query/src/__tests__/builder.test.ts`
+  - join появляется в SQL только когда используется joined path в `select`, `where` или `order`;
+  - where по joined field пишется nested shape:
+    `{ translation: { value: { _containsi: "test" } } }`.
+- `packages/drizzle-query/src/__tests__/where-transform.test.ts`
+  - joined query использует mapper своего builder scope, например mapper translation не смешивается
+    с mapper product.
+- `services/catalog/src/repositories/product/ProductRepository.ts`
+  - текущий production-паттерн joined query: `vendor` join внутри `productRelayQuery`.
+
+Важное ограничение текущего GraphQL generator:
+
+- `packages/drizzle-query/src/graphql.ts` берет `query.getSnapshot().fields`;
+- `getSnapshot().fields` возвращает только top-level keys из `createQuery(..., fields)`;
+- joined field вроде `labels` будет виден generator как одно поле `labels`, а не как
+  `labels.name` / `labels.parentName`;
+- типы generator берет из base table columns, поэтому joined field без специальной поддержки
+  не может корректно стать public `name: StringFilter`.
+
+Вывод: query с join на view уже поддерживается для runtime SQL, Relay, where/order nested paths.
+GraphQL API для этого cutover должен отражать эту модель. То есть
+фильтр по имени должен быть nested:
+
+```graphql
+where: {
+  labels: {
+    name: { _containsi: "shoe" }
+  }
+}
+```
+
+Для `orderBy` dotted path нельзя представить напрямую в GraphQL enum value, поэтому generator должен
+либо кодировать nested path в enum name (`labels_name` -> `labels.name`), либо использовать другой
+уже принятый в проекте формат.
 
 ## Не цели
 
-- Не менять public `Category` node resolver на view-backed resolver. View нужна для list connection, cursor, sort и filter. Поля node по-прежнему могут резолвиться через loaders.
-- Не редактировать `services/catalog/src/api/graphql-admin/schema/__generated__/filters.graphql` вручную. Он должен обновляться генерацией.
-- Не добавлять кастомные ручные GraphQL inputs вроде `CategoryListWhereInput`.
-- Не запускать `test` или `tsc` для проверки этого change. Для реальной реализации использовать codegen/schema generation и build по проектным правилам.
+- Не менять public `Category` node resolver на view-backed resolver.
+- Не делать одну большую `category_list_view`, содержащую все поля `category`.
+- Не редактировать `services/catalog/src/api/graphql-admin/schema/__generated__/filters.graphql`
+  вручную.
+- Не добавлять ручные GraphQL inputs вроде `CategoryListWhereInput`.
+- Не запускать `test` или `tsc` для проверки. Для реализации использовать generation/build workflow.
 - Не редактировать changeset file.
 
-## 1. Добавить Drizzle view model
+## 1. Добавить small view для category labels
 
 Файл: `services/catalog/src/repositories/models/categories.ts`
 
@@ -48,35 +99,21 @@
 Рабочее имя:
 
 ```ts
-export const categoryListView = catalogSchema.view("category_list_view").as((qb) => ...)
+export const categoryListLabelsView = catalogSchema
+  .view("category_list_labels_view")
+  .as((qb) => ...);
 ```
 
-View должна возвращать одну строку на `(project_id, category_id, locale)`. Repository будет всегда добавлять internal filter `locale = this.locale`, поэтому public GraphQL filters не должны получать поле `locale`.
-
-Рекомендуемая форма view:
+View возвращает одну строку на `(project_id, category_id, locale)`:
 
 ```sql
-CREATE VIEW catalog.category_list_view AS
+CREATE VIEW catalog.category_list_labels_view AS
 SELECT
   c.project_id,
-  c.id,
-  c.parent_id,
-  c.path,
-  c.depth,
-  c.handle,
-  c.default_sort,
-  c.default_sort_direction,
-  c.published_at,
-  (c.published_at IS NOT NULL AND c.published_at <= now()) AS is_published,
-  c.products_count,
-  c.created_at,
-  c.updated_at,
-  c.deleted_at,
-  c.revision,
+  c.id AS category_id,
   ct.locale,
   ct.name AS name,
-  COALESCE(pct.name, 'Root') AS parent_name,
-  COALESCE(child_counts.subcategories_count, 0) AS subcategories_count
+  pct.name AS parent_name
 FROM catalog.category c
 JOIN catalog.category_translation ct
   ON ct.project_id = c.project_id
@@ -86,86 +123,152 @@ LEFT JOIN catalog.category p
  AND p.id = c.parent_id
  AND p.deleted_at IS NULL
 LEFT JOIN catalog.category_translation pct
-  ON pct.project_id = c.project_id
+  ON pct.project_id = p.project_id
  AND pct.category_id = p.id
- AND pct.locale = ct.locale
-LEFT JOIN (
-  SELECT
-    project_id,
-    parent_id,
-    COUNT(*)::int AS subcategories_count
-  FROM catalog.category
-  WHERE deleted_at IS NULL
-    AND parent_id IS NOT NULL
-  GROUP BY project_id, parent_id
-) child_counts
-  ON child_counts.project_id = c.project_id
- AND child_counts.parent_id = c.id;
+ AND pct.locale = ct.locale;
 ```
 
-Drizzle implementation notes:
+Drizzle notes:
 
 - Use table aliases for parent category and parent translation.
-- Keep `projectId`, `deletedAt`, `revision`, and `locale` in the view for repository-owned filters and internal consistency, but exclude them from public generated filters/orders.
-- Use `category.productsCount` rather than recalculating product count from `product_category`; existing scripts already maintain this denormalized counter.
-- `subcategoriesCount` means direct non-deleted children only. If UI later needs recursive descendants count, add a separate `descendantsCount` field instead of changing semantics.
-- `name` is the public filter/order field matching `Category.name`; do not call it `title` in GraphQL unless the API is intentionally renamed.
+- Keep `projectId`, `categoryId`, `locale`, `name`, `parentName` only.
+- Do not put `handle`, `path`, `depth`, timestamps, `productsCount`, `deletedAt`, `revision` into
+  this view; those remain on `category`.
+- Prefer `parentName = NULL` for root categories. UI can render `Root`. Do not hardcode `"Root"` in
+  SQL unless the API intentionally wants an English filter/sort value.
 
 Data invariant:
 
-- Each category that should appear in Admin list must have a `category_translation` row for `ctx.locale`.
-- If missing translations are possible, add a backfill or fallback policy before cutover. A locale-filtered view cannot sort by a missing localized title.
+- Every category visible in Admin list must have `category_translation` for `ctx.locale`.
+- If this is not guaranteed, add a backfill or fallback policy before cutover. Otherwise an
+  `innerJoin` to labels + `locale = ctx.locale` will hide categories missing that locale.
 
-## 2. Add migration through Drizzle generation
+## 2. Optional small view for direct child counts
 
-After adding the view model, generate a catalog migration through the project workflow.
+Only add this if `subcategoriesCount` is exposed as filter/order/display field in this cutover.
 
-Expected SQL migration effect:
-
-```sql
-CREATE VIEW "catalog"."category_list_view" AS (...);
-```
-
-Do not hand-edit Drizzle meta snapshots unless the project migration workflow requires it. If Drizzle Kit cannot generate the exact SQL cleanly, add a manual SQL migration with the same statement and keep the Drizzle model aligned.
-
-Potential index follow-ups:
-
-- Existing `idx_category_parent_id` helps child counting by parent, but a partial composite index can improve this view:
-  `category(project_id, parent_id) WHERE deleted_at IS NULL`.
-- Existing `idx_category_translation_project_locale` helps locale filtering.
-- `_containsi` filters on `name` / `parentName` may need `pg_trgm` GIN indexes later. Do not introduce `pg_trgm` in the first cut unless there is a measured need and extension policy is clear.
-
-## 3. Replace category relay source with the view
-
-File: `services/catalog/src/repositories/category/CategoryRepository.ts`
-
-Keep the exported name `categoryRelayQuery` so `services/catalog/scripts/generate-filters.ts` can continue to import it, but build it from `categoryListView`.
-
-Target shape:
+Рабочее имя:
 
 ```ts
-const categoryListQuery = createQuery(categoryListView, {
-  id: field(categoryListView.id),
-  projectId: field(categoryListView.projectId),
-  parentId: field(categoryListView.parentId),
-  path: field(categoryListView.path),
-  depth: field(categoryListView.depth),
-  handle: field(categoryListView.handle),
-  name: field(categoryListView.name),
-  parentName: field(categoryListView.parentName),
-  productsCount: field(categoryListView.productsCount),
-  subcategoriesCount: field(categoryListView.subcategoriesCount),
-  isPublished: field(categoryListView.isPublished),
-  defaultSort: field(categoryListView.defaultSort),
-  defaultSortDirection: field(categoryListView.defaultSortDirection),
-  publishedAt: field(categoryListView.publishedAt),
-  createdAt: field(categoryListView.createdAt),
-  updatedAt: field(categoryListView.updatedAt),
-  deletedAt: field(categoryListView.deletedAt),
-  revision: field(categoryListView.revision),
-  locale: field(categoryListView.locale),
+export const categoryListChildCountsView = catalogSchema
+  .view("category_list_child_counts_view")
+  .as((qb) => ...);
+```
+
+SQL shape:
+
+```sql
+CREATE VIEW catalog.category_list_child_counts_view AS
+SELECT
+  project_id,
+  parent_id AS category_id,
+  COUNT(*)::int AS subcategories_count
+FROM catalog.category
+WHERE deleted_at IS NULL
+  AND parent_id IS NOT NULL
+GROUP BY project_id, parent_id;
+```
+
+Semantics:
+
+- `subcategoriesCount` means direct non-deleted children only.
+- Categories with no children have no row in this view; the query layer must treat missing stats as
+  `0` for display/filter semantics.
+- If recursive descendants are needed later, add a separate `descendantsCount` field.
+
+Index follow-up:
+
+- Existing `idx_category_parent_id` helps, but a project-aware partial index is better:
+  `category(project_id, parent_id) WHERE deleted_at IS NULL`.
+
+## 3. Build category query with joins to small views
+
+Файл: `services/catalog/src/repositories/category/CategoryRepository.ts`
+
+Keep the exported name `categoryRelayQuery` so `services/catalog/scripts/generate-filters.ts` keeps
+importing the same symbol.
+
+Pattern from `drizzle-query` tests:
+
+```ts
+const categoryLabelsQuery = createQuery(categoryListLabelsView, {
+  projectId: field(categoryListLabelsView.projectId),
+  categoryId: field(categoryListLabelsView.categoryId),
+  locale: field(categoryListLabelsView.locale),
+  name: field(categoryListLabelsView.name),
+  parentName: field(categoryListLabelsView.parentName),
 });
 
+const categoryChildCountsQuery = createQuery(categoryListChildCountsView, {
+  projectId: field(categoryListChildCountsView.projectId),
+  categoryId: field(categoryListChildCountsView.categoryId),
+  subcategoriesCount: field(categoryListChildCountsView.subcategoriesCount),
+});
+
+const categoryListQuery = createQuery(category, {
+  id: field(category.id),
+  projectId: field(category.projectId),
+  parentId: field(category.parentId),
+  path: field(category.path),
+  depth: field(category.depth),
+  handle: field(category.handle),
+  defaultSort: field(category.defaultSort),
+  defaultSortDirection: field(category.defaultSortDirection),
+  productsCount: field(category.productsCount),
+  publishedAt: field(category.publishedAt),
+  createdAt: field(category.createdAt),
+  updatedAt: field(category.updatedAt),
+  deletedAt: field(category.deletedAt),
+  revision: field(category.revision),
+
+  labels: field(category.id).innerJoin(
+    categoryLabelsQuery,
+    categoryListLabelsView.categoryId,
+  ),
+
+  childCounts: field(category.id).leftJoin(
+    categoryChildCountsQuery,
+    categoryListChildCountsView.categoryId,
+  ),
+});
+```
+
+Join choices:
+
+- `labels` is `innerJoin` because localized `name` is required for list sorting/filtering.
+- `childCounts` is `leftJoin` so categories without children stay visible.
+- If `subcategoriesCount` is not included in this cutover, skip `categoryListChildCountsView` and
+  the `childCounts` join entirely.
+
+Repository-owned filters:
+
+```ts
+const mergedWhere: CategoryRelayInput["where"] = {
+  _and: [
+    { projectId: { _eq: this.storeId } },
+    { deletedAt: { _is: null } },
+    { labels: { projectId: { _eq: this.storeId } } },
+    { labels: { locale: { _eq: this.locale } } },
+    ...(where ? [where] : []),
+    ...(scopeWhere ? [scopeWhere] : []),
+    ...(productsScopeWhere ? [productsScopeWhere] : []),
+  ],
+};
+```
+
+Notes:
+
+- The locale filter must be repository-owned and always present. Without it, translation rows create
+  duplicate category rows and break Relay pagination/count.
+- Do not add `{ childCounts: { projectId: ... } }` to `where` unless null/no-children behavior is
+  handled explicitly. A `WHERE childCounts.projectId = ...` condition turns the left join into an
+  effective inner join and hides categories with zero children.
+- Since `category.id` is the primary key, joining child counts by `category_id` is tenant-safe. Keep
+  `projectId` in the child-count view for debugging and future composite join support.
+
+Relay query:
+
+```ts
 export const categoryRelayQuery = createRelayQuery(
   categoryListQuery
     .include(["id"])
@@ -179,22 +282,7 @@ export const categoryRelayQuery = createRelayQuery(
 );
 ```
 
-`CategoryRepository.getConnection()` must merge repository-owned filters:
-
-```ts
-const mergedWhere: CategoryRelayInput["where"] = {
-  _and: [
-    { projectId: { _eq: this.storeId } },
-    { deletedAt: { _is: null } },
-    { locale: { _eq: this.locale } },
-    ...(where ? [where] : []),
-    ...(scopeWhere ? [scopeWhere] : []),
-    ...(productsScopeWhere ? [productsScopeWhere] : []),
-  ],
-};
-```
-
-Default order should remain stable:
+Default order remains:
 
 ```ts
 orderBy: orderBy ?? [
@@ -203,55 +291,112 @@ orderBy: orderBy ?? [
 ]
 ```
 
-Important:
+Existing `scopeWhere` and `productsScopeWhere` continue using base fields `id`, `path`, `parentId`,
+so they stay compatible with the joined query.
 
-- `scopeWhere` and `productsScopeWhere` must still use fields present on `categoryListView`, especially `id`, `path`, and `parentId`.
-- `categoryRelayQuery.count(this.connection, { where: mergedWhere })` remains the source of `totalCount`.
-- Edges can continue returning only `nodeId: edge.node.id`; the `CategoryResolver` can load node fields normally.
+## 4. Generate nested Category filters and order fields
 
-## 4. Generate public Category filters and order fields from the view
+Файл: `services/catalog/scripts/generate-filters.ts`
 
-File: `services/catalog/scripts/generate-filters.ts`
+Category generation should expose joined fields in the same shape that `drizzle-query` accepts at
+runtime. Do not introduce top-level public fields for `labels.name` or `labels.parentName`.
 
-Keep category generation, but update excludes:
+Where input target:
+
+```graphql
+input CategoryWhereInput {
+  _and: [CategoryWhereInput!]
+  _or: [CategoryWhereInput!]
+  _not: CategoryWhereInput
+  id: IDFilter
+  parentId: IDFilter
+  handle: StringFilter
+  productsCount: IntFilter
+  publishedAt: DateTimeFilter
+  labels: CategoryLabelsWhereInput
+  childCounts: CategoryChildCountsWhereInput
+  ...
+}
+
+input CategoryLabelsWhereInput {
+  name: StringFilter
+  parentName: StringFilter
+}
+
+input CategoryChildCountsWhereInput {
+  subcategoriesCount: IntFilter
+}
+```
+
+Order field target:
+
+```graphql
+enum CategoryOrderField {
+  id
+  handle
+  productsCount
+  publishedAt
+  createdAt
+  updatedAt
+  labels_name
+  labels_parentName
+  childCounts_subcategoriesCount
+}
+```
+
+`labels_name` / `labels_parentName` are GraphQL-safe enum names for the existing `drizzle-query`
+paths `labels.name` / `labels.parentName`. The request mapper that converts GraphQL enum values to
+repository input must decode those enum names back to dotted paths before calling
+`categoryRelayQuery.execute`.
+
+Generator call should still exclude repository-owned internals:
 
 ```ts
 const categoryWhere = generateWhereInputType(categoryRelayQuery, "Category", {
   includeDescriptions: true,
-  excludeFields: ["projectId", "deletedAt", "revision", "locale"],
+  excludeFields: [
+    "projectId",
+    "deletedAt",
+    "revision",
+  ],
 });
 
 const categoryOrderBy = generateOrderByInputType(categoryRelayQuery, "Category", {
   includeDescriptions: true,
-  excludeFields: ["projectId", "deletedAt", "revision", "locale"],
+  excludeFields: [
+    "projectId",
+    "deletedAt",
+    "revision",
+  ],
 });
 ```
 
-Expected generated public additions:
+If nested GraphQL generation is considered too large for this category-grid cutover, fallback to a
+flat `category_list_view` remains the smaller implementation.
 
-```graphql
-input CategoryWhereInput {
-  name: StringFilter
-  parentName: StringFilter
-  productsCount: IntFilter
-  subcategoriesCount: IntFilter
-  isPublished: BooleanFilter
-  ...
-}
+Status filter/order uses `publishedAt`; do not add `isPublished` in this cutover.
 
-enum CategoryOrderField {
-  name
-  parentName
-  productsCount
-  subcategoriesCount
-  isPublished
-  ...
-}
+## 5. Migration workflow
+
+After adding the Drizzle view model(s), generate catalog migration through the project workflow.
+
+Expected migration effects:
+
+```sql
+CREATE VIEW "catalog"."category_list_labels_view" AS (...);
 ```
 
-Do not manually add these fields to `base.graphql` or `category.graphql`.
+Optional:
 
-## 5. Resolver and generated TypeScript updates
+```sql
+CREATE VIEW "catalog"."category_list_child_counts_view" AS (...);
+```
+
+Do not hand-edit Drizzle meta snapshots unless the project migration workflow requires it. If
+Drizzle Kit cannot generate exact SQL cleanly, add manual SQL migration and keep Drizzle model
+aligned with that SQL.
+
+## 6. Resolver and generated TypeScript updates
 
 Files:
 
@@ -265,26 +410,28 @@ Files:
 
 Expected work:
 
-1. Regenerate catalog admin GraphQL resolver types after `filters.graphql` changes.
-2. Recompose/fetch admin supergraph schema so `admin/schema.graphql` sees new generated category filters/order fields.
-3. Regenerate Admin frontend GraphQL types so `CategoryOrderField`, `ApiCategoryWhereInput`, and `ApiCategoryOrderByInput` include the new fields.
-4. Regenerate e2e schema/types if the project workflow requires it.
+1. Regenerate catalog filters after `categoryRelayQuery` and nested joined field generation changes.
+2. Regenerate catalog admin GraphQL resolver types after `filters.graphql` changes.
+3. Recompose/fetch admin supergraph schema so `admin/schema.graphql` sees new category fields.
+4. Regenerate Admin frontend GraphQL types.
+5. Regenerate e2e schema/types if the project workflow requires it.
 
-No resolver should manually map `name`, `parentName`, `productsCount`, `subcategoriesCount`, or `isPublished` order fields. They must pass through generated drizzle-query input.
+Resolvers should pass where/order to `categoryRelayQuery` in the same nested shape that
+`drizzle-query` accepts. If GraphQL enum values encode dotted paths, decode only the enum token
+(`labels_name`) to the existing path (`labels.name`); do not add top-level field mapping.
 
-## 6. Admin category grid integration
+## 7. Admin category grid integration
 
 File: `admin/src/domains/inventory/categories/page/page.tsx`
 
-Update sort mapping to generated SQL fields:
+Sort mapping after generated types include new fields:
 
 ```ts
 const CATEGORY_SORT_FIELDS: Partial<Record<string, CategoryOrderField>> = {
-  name: CategoryOrderField.Name,
-  isPublished: CategoryOrderField.IsPublished,
+  name: CategoryOrderField.LabelsName,
   productsCount: CategoryOrderField.ProductsCount,
-  parentName: CategoryOrderField.ParentName,
-  subcategoriesCount: CategoryOrderField.SubcategoriesCount,
+  parentName: CategoryOrderField.LabelsParentName,
+  subcategoriesCount: CategoryOrderField.ChildCountsSubcategoriesCount,
   updatedAt: CategoryOrderField.UpdatedAt,
   createdAt: CategoryOrderField.CreatedAt,
   publishedAt: CategoryOrderField.PublishedAt,
@@ -296,45 +443,33 @@ const CATEGORY_SORT_FIELDS: Partial<Record<string, CategoryOrderField>> = {
 Column mapping:
 
 - `Category`
-  - sort/filter field: `name`;
+  - sort field: `labels_name`;
+  - filter field: `labels.name`;
   - display still selects `Category.name` and `Category.handle`.
-- `Status`
-  - sort/filter field: `isPublished`;
-  - display still derives `Published` / `Draft` from `Category.isPublished`.
+- `Parent`
+  - sort field: `labels_parentName`;
+  - filter field: `labels.parentName`;
+  - display can keep `category.parent?.name ?? "Root"`.
 - `Products`
   - sort/filter field: `productsCount`.
-- `Parent`
-  - sort/filter field: `parentName`;
-  - display can keep `category.parent?.name ?? "Root"`.
 - `Subcategories`
-  - optional new column backed by `subcategoriesCount`;
-  - if added to UI, the GraphQL query must select a field for display. Since `Category` currently has `children` but not `subcategoriesCount`, either:
-    - add `subcategoriesCount: Int!` to `Category` and resolve it from existing child count/read model, or
-    - keep it as filter/sort-only until a display field is added.
-- `Updated`
-  - sort/filter field: `updatedAt`.
-
-Filter schema update:
-
-- Add `name` as `StringFilter`.
-- Add `parentName` as `StringFilter`.
-- Add `productsCount` as `NumberFilter`.
-- Add `subcategoriesCount` as `NumberFilter` only if the UI exposes that filter.
-- Add `isPublished` as boolean/status filter.
+  - use `childCounts.subcategoriesCount` only if the API field/filter/order is added.
+- `Status`
+  - use `publishedAt` filters and keep display from `Category.isPublished`.
 
 Search update:
 
 ```ts
 where: {
   _or: [
-    { name: { _containsi: query } },
+    { labels: { name: { _containsi: query } } },
     { handle: { _containsi: query } },
-    { parentName: { _containsi: query } },
+    { labels: { parentName: { _containsi: query } } },
   ],
 }
 ```
 
-## 7. Optional API addition: display `subcategoriesCount`
+## 8. Optional API addition: display subcategoriesCount
 
 If the category grid must display subcategory count, add a first-class GraphQL field:
 
@@ -345,51 +480,60 @@ type Category implements Node @key(fields: "id") {
 }
 ```
 
-Implementation options:
+Recommended first implementation:
 
-1. Add `subcategoriesCount` resolver that uses a DataLoader counting direct children by category IDs.
-2. Add `subcategoriesCount` to the base `category` table as denormalized data and maintain it in hierarchy scripts.
-3. Use the list view only for connection edge data and introduce a list-item GraphQL type.
+- Add DataLoader/repository method counting direct children by category IDs, or reuse
+  `category_list_child_counts_view` through a loader.
+- Sort/filter can still use the nested Relay query path.
+- Do not overload `children: [Category!]!` as a count field.
 
-Recommended first implementation: option 1 for display, while sort/filter still uses `category_list_view.subcategories_count`.
-
-Do not overload `children: [Category!]!` as a count field. It is a node relation and can be expensive.
-
-## 8. Verification checklist
+## 9. Verification checklist
 
 Do not run `test` or `tsc` for this task.
 
 For implementation verification use project generation/build workflow:
 
-1. Generate catalog migration after the Drizzle model change.
-2. Generate catalog filters so `CategoryWhereInput` / `CategoryOrderField` include view fields.
+1. Generate catalog migration after the Drizzle view model changes.
+2. Generate catalog filters so `CategoryWhereInput` / `CategoryOrderField` include nested joined
+   fields.
 3. Generate GraphQL resolver types.
 4. Compose/regenerate Admin schema and Admin frontend types.
 5. Run build only when a new code version needs validation.
 
 Manual behavior checks:
 
-- `catalogQuery.categories(orderBy: [{ field: name, direction: ASC }])` sorts by translated category name for current locale.
-- `where: { name: { _containsi: "shoe" } }` filters by translated category name.
-- `orderBy: [{ field: parentName, direction: ASC }]` sorts root categories with `Root` parent label consistently.
-- `where: { productsCount: { _gte: 1 } }` filters by denormalized product count.
-- `where: { subcategoriesCount: { _gt: 0 } }` filters categories with direct children.
-- `where: { isPublished: { _eq: true } }` matches published categories.
-- Existing `meta.hierarchyScope` and `meta.productsScope` still work with the view-backed relay query.
+- `catalogQuery.categories(orderBy: [{ field: labels_name, direction: ASC }])` sorts by translated
+  category name for current locale.
+- `where: { labels: { name: { _containsi: "shoe" } } }` filters by translated category name.
+- `where: { labels: { parentName: { _containsi: "summer" } } }` filters by parent translated
+  category name.
+- Root categories with `parentName = null` still render as `Root` in Admin UI.
+- `where: { productsCount: { _gte: 1 } }` filters by denormalized product count from `category`.
+- If included, `where: { childCounts: { subcategoriesCount: { _gt: 0 } } }` filters categories with
+  direct children.
+- Existing `meta.hierarchyScope` and `meta.productsScope` still work.
 - `totalCount` changes with the same filters as the paginated connection.
+- Missing current-locale translations are either backfilled/fallbacked or intentionally hidden.
 
 ## Rollout order
 
-1. Add `categoryListView` model and migration.
-2. Switch `categoryRelayQuery` to view-backed query and keep repository-owned filters.
-3. Regenerate generated category filters/order fields.
-4. Regenerate GraphQL and Admin types.
-5. Enable Admin sorting/filtering for `name`, `isPublished`, `productsCount`, `parentName`, `updatedAt`.
-6. Add `subcategoriesCount` display field only if the grid needs to render it, not just sort/filter by it.
+1. Add `categoryListLabelsView` Drizzle model and migration.
+2. Add `categoryListChildCountsView` only if this cutover exposes `subcategoriesCount`.
+3. Add nested joined field generation for Category filters/order fields without top-level fields.
+4. Switch `categoryRelayQuery` to base `category` query with joins to small views.
+5. Regenerate GraphQL and Admin types.
+6. Enable Admin sorting/filtering for `labels.name`, `labels.parentName`, `productsCount`, and
+   `publishedAt`.
+7. Add `subcategoriesCount` display field only if the grid needs to render it.
 
 ## Risks and decisions
 
-- Locale-specific view rows can hide categories missing the current locale translation. Decide whether that is acceptable or add a translation backfill/fallback.
-- Sorting by `parentName = 'Root'` is display-friendly but hardcodes an English label into SQL. If locale-sensitive root labels matter, use `parentName = NULL` for SQL and map root display in UI; add `parentSortName` if needed.
-- Non-materialized view sorting/filtering by translated names may become slow on large catalogs. Start with the simple view; move to materialized view/read model only with measured need.
-- `isPublished` uses `now()`, so results can change over time without row updates. This matches runtime resolver semantics.
+- The small-view approach avoids duplicating `category` columns, but generated GraphQL must support
+  nested joined fields in the same shape that `drizzle-query` already uses.
+- Locale-specific labels can hide categories missing the current locale translation.
+- Root parent label should stay UI display concern unless product/API explicitly wants `"Root"` as
+  filterable backend value.
+- Non-materialized label view sorting/filtering by translated names may become slow on large
+  catalogs. Add trigram indexes only after measurement and extension policy decision.
+- If nested joined field generation becomes larger than expected, the pragmatic fallback is one flat
+  list view.
