@@ -11,6 +11,7 @@ import type {
 import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
 import { CATEGORIES_QUERY } from "../graphql";
 import type {
+  ApiCategoryCategoriesMetaInput,
   CategoriesQueryData,
   CategoriesQueryVariables,
 } from "../graphql";
@@ -18,6 +19,7 @@ import type {
 export interface UseCategoriesOptions extends RelayCursorPaginationVariables {
   where?: ApiCategoryWhereInput | null;
   orderBy?: ApiCategoryOrderByInput[] | null;
+  meta?: ApiCategoryCategoriesMetaInput | null;
   skip?: boolean;
   fetchPolicy?: "cache-and-network" | "network-only";
 }
@@ -42,6 +44,7 @@ export function useCategories(
     before = null,
     where = null,
     orderBy = null,
+    meta = null,
     skip = false,
     fetchPolicy = "cache-and-network",
   } = options;
@@ -57,6 +60,7 @@ export function useCategories(
       before,
       where,
       orderBy,
+      meta,
     },
     skip,
     fetchPolicy,

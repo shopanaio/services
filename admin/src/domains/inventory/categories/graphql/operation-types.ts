@@ -37,6 +37,18 @@ export interface CategoriesQueryVariables {
   before?: string | null;
   where?: ApiCategoryWhereInput | null;
   orderBy?: ApiCategoryOrderByInput[] | null;
+  meta?: ApiCategoryCategoriesMetaInput | null;
+}
+
+export interface ApiCategoryHierarchyScopeInput {
+  referenceId: string;
+  direction: "ANCESTORS" | "DESCENDANTS";
+  includeReference?: boolean | null;
+  mode?: "INCLUDE" | "EXCLUDE" | null;
+}
+
+export interface ApiCategoryCategoriesMetaInput {
+  hierarchyScope?: ApiCategoryHierarchyScopeInput | null;
 }
 
 export interface CategoryCreateMutationData {

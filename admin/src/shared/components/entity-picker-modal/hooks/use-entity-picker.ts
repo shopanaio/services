@@ -11,6 +11,7 @@ interface IUseEntityPickerOptions<T extends IPickableEntity> {
   initialSelection?: string[];
   excludeIds?: string[];
   maxSelection?: number;
+  queryMeta?: unknown;
   onConfirm: (entities: T[], ids: string[]) => void;
 }
 
@@ -86,6 +87,7 @@ export function useProductPicker(
     initialSelection = [],
     excludeIds = [],
     maxSelection,
+    queryMeta,
     onConfirm,
   } = options;
 
@@ -95,6 +97,7 @@ export function useProductPicker(
       initialSelection,
       excludeIds,
       maxSelection,
+      queryMeta,
       onConfirm,
     });
   }, [
@@ -103,6 +106,7 @@ export function useProductPicker(
     initialSelection,
     excludeIds,
     maxSelection,
+    queryMeta,
     onConfirm,
   ]);
 
@@ -118,6 +122,7 @@ export function useCategoryPicker(
     initialSelection = [],
     excludeIds = [],
     maxSelection,
+    queryMeta,
     onConfirm,
   } = options;
 
@@ -127,6 +132,7 @@ export function useCategoryPicker(
       initialSelection,
       excludeIds,
       maxSelection,
+      queryMeta,
       onConfirm,
     });
   }, [
@@ -135,6 +141,7 @@ export function useCategoryPicker(
     initialSelection,
     excludeIds,
     maxSelection,
+    queryMeta,
     onConfirm,
   ]);
 

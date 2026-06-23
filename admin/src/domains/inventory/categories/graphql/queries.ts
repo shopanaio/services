@@ -13,6 +13,7 @@ export const CATEGORIES_QUERY = gql`
     $before: String
     $where: CategoryWhereInput
     $orderBy: [CategoryOrderByInput!]
+    $meta: CategoryCategoriesMetaInput
   ) {
     catalogQuery {
       categories(
@@ -22,6 +23,7 @@ export const CATEGORIES_QUERY = gql`
         before: $before
         where: $where
         orderBy: $orderBy
+        meta: $meta
       ) {
         edges {
           cursor

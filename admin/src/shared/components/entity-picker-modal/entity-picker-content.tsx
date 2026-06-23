@@ -58,6 +58,7 @@ export function EntityPickerContent<T extends IPickableEntity>({
   selectionMode,
   initialSelection,
   excludeIds,
+  queryMeta,
   onSelectionChange,
 }: IEntityPickerContentProps<T>) {
   const { styles } = useStyles();
@@ -90,6 +91,7 @@ export function EntityPickerContent<T extends IPickableEntity>({
       search: searchValue,
       pageSize,
       excludeIds,
+      queryMeta,
     });
 
   // Filter out excluded IDs

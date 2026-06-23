@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { ColDef } from "ag-grid-community";
 import { useCategories } from "@/domains/inventory/categories/hooks";
+import type { ApiCategoryCategoriesMetaInput } from "@/domains/inventory/categories/graphql";
 import { EntityCellRenderer, StatusCellRenderer } from "../cell-renderers";
 import { registerEntityPickerConfig } from ".";
 import type {
@@ -34,8 +35,9 @@ function useCategoriesPickerData(options: {
   search: string;
   pageSize: number;
   excludeIds: string[];
+  queryMeta?: unknown;
 }): IEntityPickerDataResult<CategoryPickerEntity> {
-  const { pageSize, excludeIds } = options;
+  const { pageSize, excludeIds, queryMeta } = options;
   const [pageIndex, setPageIndex] = useState(0);
   const [cursorHistory, setCursorHistory] = useState<Array<string | null>>([
     null,
@@ -56,6 +58,7 @@ function useCategoriesPickerData(options: {
     first: pageSize,
     after,
     where,
+    meta: queryMeta as ApiCategoryCategoriesMetaInput | null | undefined,
     fetchPolicy: "network-only",
   });
 

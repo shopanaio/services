@@ -59,6 +59,7 @@ export interface IEntityPickerConfig<T extends IPickableEntity> {
     search: string;
     pageSize: number;
     excludeIds: string[];
+    queryMeta?: unknown;
   }) => IEntityPickerDataResult<T>;
   /** Get unique row ID */
   getRowId: (entity: T) => string;
@@ -73,6 +74,7 @@ export interface IEntityPickerContentProps<T extends IPickableEntity> {
   initialSelection: string[];
   excludeIds: string[];
   maxSelection?: number;
+  queryMeta?: unknown;
   onSelectionChange: (selectedIds: string[], selectedEntities: T[]) => void;
 }
 
@@ -85,6 +87,7 @@ export interface IEntityPickerPayload<T extends IPickableEntity = IPickableEntit
   initialSelection?: string[];
   excludeIds?: string[];
   maxSelection?: number;
+  queryMeta?: unknown;
   onConfirm: (entities: T[], ids: string[]) => void;
 }
 

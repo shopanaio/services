@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { App } from "antd";
 import { CategoryStatus, type ApiCategory } from "@/graphql/types";
+import type { ApiCategoryCategoriesMetaInput } from "../../../graphql";
 import { useModalStackContext } from "@/layouts/modals";
 import {
   useCategoryPicker,
@@ -122,11 +123,34 @@ export const useCategoryModals = (
     () => [category.id, ...category.children.map((child) => child.id)],
     [category.children, category.id],
   );
+  const safeParentCandidatesMeta = useMemo<ApiCategoryCategoriesMetaInput>(
+    () => ({
+      hierarchyScope: {
+        referenceId: category.id,
+        direction: "DESCENDANTS",
+        includeReference: true,
+        mode: "EXCLUDE",
+      },
+    }),
+    [category.id],
+  );
+  const safeSubcategoryCandidatesMeta = useMemo<ApiCategoryCategoriesMetaInput>(
+    () => ({
+      hierarchyScope: {
+        referenceId: category.id,
+        direction: "ANCESTORS",
+        includeReference: true,
+        mode: "EXCLUDE",
+      },
+    }),
+    [category.id],
+  );
 
   const { openPicker: editParent } = useCategoryPicker({
     selectionMode: "single",
     initialSelection: parentInitialSelection,
     excludeIds: parentExcludeIds,
+    queryMeta: safeParentCandidatesMeta,
     onConfirm: (_entities, selectedIds) => {
       void (async () => {
         const parentId = selectedIds[0];
@@ -190,6 +214,7 @@ export const useCategoryModals = (
 
   const { openPicker: editSubcategories } = useCategoryPicker({
     excludeIds: subcategoryExcludeIds,
+    queryMeta: safeSubcategoryCandidatesMeta,
     onConfirm: (_entities, selectedIds) => {
       void (async () => {
         const result = await updateSubcategories(category, selectedIds);

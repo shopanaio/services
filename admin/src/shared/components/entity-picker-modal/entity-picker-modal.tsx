@@ -15,6 +15,7 @@ export function EntityPickerModal() {
     initialSelection = [],
     excludeIds = [],
     maxSelection,
+    queryMeta,
     onConfirm,
   } = typedPayload;
 
@@ -84,6 +85,7 @@ export function EntityPickerModal() {
         initialSelection={initialSelection}
         excludeIds={excludeIds}
         maxSelection={maxSelection}
+        queryMeta={queryMeta}
         onSelectionChange={handleSelectionChange}
       />
     </ModalLayout>

@@ -9,12 +9,14 @@ import {
 import { EntityPickerContent } from "./entity-picker-content";
 import { categoryPickerConfig } from "./configs/category-picker-config";
 import type { IPickableEntity } from "./types";
+import type { ApiCategoryCategoriesMetaInput } from "@/domains/inventory/categories/graphql";
 
 export interface ICategoryPickerPayload {
   selectionMode?: "single" | "multi";
   initialSelection?: string[];
   excludeIds?: string[];
   maxSelection?: number;
+  queryMeta?: ApiCategoryCategoriesMetaInput;
   onConfirm: (entities: IPickableEntity[], ids: string[]) => void;
 }
 
@@ -26,6 +28,7 @@ export function CategoryPickerModal() {
     initialSelection = [],
     excludeIds = [],
     maxSelection,
+    queryMeta,
     onConfirm,
   } = typedPayload;
 
@@ -76,6 +79,7 @@ export function CategoryPickerModal() {
         initialSelection={initialSelection}
         excludeIds={excludeIds}
         maxSelection={maxSelection}
+        queryMeta={queryMeta}
         onSelectionChange={handleSelectionChange}
       />
     </ModalLayout>
