@@ -31,11 +31,22 @@ import {
 } from "../../scripts/shared/rank.js";
 import type { NormalizedCategoryHierarchyScope } from "./CategoryHierarchyScope.js";
 import type { NormalizedCategoryProductsScope } from "./CategoryProductsScope.js";
+import {
+  decodeCategoryGlobalId,
+  decodeProductGlobalId,
+} from "../global-id-where-mappers.js";
 
 const categoryQuery = createQuery(category).maxLimit(100).defaultLimit(20);
 
 export const categoryRelayQuery = createRelayQuery(
-  createQuery(category).include(["id"]).maxLimit(100).defaultLimit(20),
+  createQuery(category)
+    .include(["id"])
+    .mapWhereFields({
+      id: decodeCategoryGlobalId,
+      parentId: decodeCategoryGlobalId,
+    })
+    .maxLimit(100)
+    .defaultLimit(20),
   { name: "category", tieBreaker: "id" },
 );
 
@@ -94,7 +105,11 @@ const categoryProductsQuery = createQuery(product, {
 });
 
 export const categoryProductsRelayQuery = createRelayQuery(
-  categoryProductsQuery.include(["id"]).maxLimit(100).defaultLimit(20),
+  categoryProductsQuery
+    .mapWhereField("id", decodeProductGlobalId)
+    .include(["id"])
+    .maxLimit(100)
+    .defaultLimit(20),
   { name: "categoryProduct", tieBreaker: "id" },
 );
 

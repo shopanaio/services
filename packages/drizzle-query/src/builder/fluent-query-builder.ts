@@ -8,6 +8,7 @@ import { createSchema, ObjectSchema, type FieldConfig, type Join } from "../sche
 import type {
   DrizzleExecutor,
   FieldsDef,
+  LocalLeafPaths,
   NestedPaths,
   NestedWhereInput,
   OrderByItem,
@@ -25,6 +26,13 @@ import type {
   QuerySnapshot,
   FluentQueryBuilderLike,
 } from "./fluent-types.js";
+import {
+  transformWhereInput,
+  type WhereFieldMapper,
+  type WhereFieldMapperConfig,
+  type WhereFieldMapperScope,
+  type WhereFieldMappers,
+} from "../where-transform.js";
 
 /**
  * Error thrown when limit exceeds maxLimit
@@ -77,6 +85,7 @@ export class FluentQueryBuilder<
   // Cached ObjectSchema and QueryBuilder
   private _schema: ObjectSchema | null = null;
   private _queryBuilder: QueryBuilder<T, string, FieldsDef, Types> | null = null;
+  private _whereMapperScope: WhereFieldMapperScope | null = null;
 
   constructor(
     table: T,
@@ -206,6 +215,37 @@ export class FluentQueryBuilder<
   }
 
   /**
+   * Map values for a local leaf field in where filters.
+   */
+  mapWhereField(
+    field: LocalLeafPaths<InferredFields>,
+    mapper: WhereFieldMapper | WhereFieldMapperConfig
+  ): FluentQueryBuilder<T, Fields, InferredFields, Types> {
+    return new FluentQueryBuilder(this.table, this.tableName, this.fieldsDef, {
+      ...this.config,
+      whereFieldMappers: {
+        ...this.config.whereFieldMappers,
+        [field]: mapper,
+      } as WhereFieldMappers<InferredFields>,
+    });
+  }
+
+  /**
+   * Map values for multiple local leaf fields in where filters.
+   */
+  mapWhereFields(
+    mappers: WhereFieldMappers<InferredFields>
+  ): FluentQueryBuilder<T, Fields, InferredFields, Types> {
+    return new FluentQueryBuilder(this.table, this.tableName, this.fieldsDef, {
+      ...this.config,
+      whereFieldMappers: {
+        ...this.config.whereFieldMappers,
+        ...mappers,
+      },
+    });
+  }
+
+  /**
    * Execute query and return results
    *
    * @example
@@ -271,8 +311,9 @@ export class FluentQueryBuilder<
     options?: CountOptions<InferredFields>
   ): Promise<number> {
     const where = options?.where ?? this.config.defaultWhere;
+    const mappedWhere = this.mapWhereForExecution(where);
     const qb = this.getQueryBuilder();
-    return qb.count(db, { where: where as NestedWhereInput<FieldsDef> });
+    return qb.count(db, { where: mappedWhere as NestedWhereInput<FieldsDef> });
   }
 
   /**
@@ -286,8 +327,11 @@ export class FluentQueryBuilder<
    */
   getCountSql(options?: CountOptions<InferredFields>): SQL {
     const where = options?.where ?? this.config.defaultWhere;
+    const mappedWhere = this.mapWhereForExecution(where);
     const qb = this.getQueryBuilder();
-    return qb.buildCountSql({ where: where as NestedWhereInput<FieldsDef> });
+    return qb.buildCountSql({
+      where: mappedWhere as NestedWhereInput<FieldsDef>,
+    });
   }
 
   /**
@@ -339,6 +383,29 @@ export class FluentQueryBuilder<
   }
 
   /**
+   * Get where mapper scope for this builder and joined relation builders.
+   *
+   * @internal
+   */
+  getWhereMapperScope(): WhereFieldMapperScope {
+    if (!this._whereMapperScope) {
+      this._whereMapperScope = this.buildWhereMapperScope();
+    }
+    return this._whereMapperScope;
+  }
+
+  /**
+   * Apply configured where field mappers before query execution.
+   *
+   * @internal
+   */
+  mapWhereForExecution(
+    where: NestedWhereInput<InferredFields> | null | undefined
+  ): NestedWhereInput<InferredFields> | null | undefined {
+    return transformWhereInput(where, this.getWhereMapperScope());
+  }
+
+  /**
    * Get the underlying QueryBuilder
    */
   getQueryBuilder(): QueryBuilder<T, string, FieldsDef, Types> {
@@ -368,7 +435,7 @@ export class FluentQueryBuilder<
 
       if (def.join) {
         const joinDef = def.join as JoinDefinition<FluentFieldsDef>;
-        const targetBuilder = joinDef.target() as FluentQueryBuilder<Selectable, FluentFieldsDef>;
+        const targetBuilder = joinDef.target();
         const join: Join = {
           type: joinDef.type,
           schema: () => targetBuilder.getSchema(),
@@ -385,6 +452,29 @@ export class FluentQueryBuilder<
       tableName: this.tableName,
       fields: schemaFields,
     }) as ObjectSchema;
+  }
+
+  private buildWhereMapperScope(): WhereFieldMapperScope {
+    const relations: WhereFieldMapperScope["relations"] = {};
+
+    for (const [name, fieldDef] of Object.entries(this.fieldsDef)) {
+      const def = fieldDef as FieldDefinition<FluentFieldsDef | undefined>;
+
+      if (def.join) {
+        const joinDef = def.join as JoinDefinition<FluentFieldsDef>;
+        relations[name] = () => joinDef.target().getWhereMapperScope();
+      }
+    }
+
+    return {
+      mappers: {
+        ...(this.config.whereFieldMappers as Record<
+          string,
+          WhereFieldMapper | WhereFieldMapperConfig
+        > | undefined),
+      },
+      relations,
+    };
   }
 
   private resolveOptions(
@@ -434,7 +524,9 @@ export class FluentQueryBuilder<
     }
 
     // Resolve where
-    const where = options?.where ?? this.config.defaultWhere;
+    const where = this.mapWhereForExecution(
+      options?.where ?? this.config.defaultWhere
+    );
 
     return {
       where: where as Record<string, unknown> | undefined,

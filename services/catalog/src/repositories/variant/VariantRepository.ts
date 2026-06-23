@@ -22,6 +22,10 @@ import {
   type Variant,
   type VariantTranslation,
 } from "../models/index.js";
+import {
+  decodeProductGlobalId,
+  decodeVariantGlobalId,
+} from "../global-id-where-mappers.js";
 
 const variantQuery = createQuery(variant).maxLimit(100).defaultLimit(20);
 
@@ -33,6 +37,10 @@ const variantPaginationQuery = createCursorQuery(
 export const variantRelayQuery = createRelayQuery(
   createQuery(variant)
     .include(["id", "productId"])
+    .mapWhereFields({
+      id: decodeVariantGlobalId,
+      productId: decodeProductGlobalId,
+    })
     .maxLimit(100)
     .defaultLimit(20),
   { name: "variant", tieBreaker: "id" }

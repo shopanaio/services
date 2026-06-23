@@ -60,8 +60,6 @@ import {
 import {
   normalizeCategoryHierarchyScopeInput,
   normalizeCategoryProductsScopeInput,
-  normalizeCategoryWhereInput,
-  normalizeVariantWhereInput,
 } from "./filter-normalizers.js";
 import { CollectionRulesPreviewCountScript } from "../../scripts/collection/CollectionRulesPreviewCountScript.js";
 
@@ -175,13 +173,7 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    * Get a paginated list of variants.
    */
   variants(args: VariantConnectionInput) {
-    return new VariantConnectionResolver(
-      {
-        ...args,
-        where: normalizeVariantWhereInput(args.where),
-      },
-      this.$ctx
-    );
+    return new VariantConnectionResolver(args, this.$ctx);
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -213,7 +205,6 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
     return new CategoryConnectionResolver(
       {
         ...args,
-        where: normalizeCategoryWhereInput(args.where),
         meta: {
           hierarchyScope: normalizeCategoryHierarchyScopeInput(
             args.meta?.hierarchyScope

@@ -19,11 +19,16 @@ import {
   type ProductOption,
   type ProductFeature,
 } from "../models/index.js";
+import { decodeProductGlobalId } from "../global-id-where-mappers.js";
 
 const productQuery = createQuery(product).maxLimit(100).defaultLimit(20);
 
 export const productRelayQuery = createRelayQuery(
-  createQuery(product).include(["id"]).maxLimit(100).defaultLimit(20),
+  createQuery(product)
+    .include(["id"])
+    .mapWhereField("id", decodeProductGlobalId)
+    .maxLimit(100)
+    .defaultLimit(20),
   { name: "product", tieBreaker: "id" }
 );
 

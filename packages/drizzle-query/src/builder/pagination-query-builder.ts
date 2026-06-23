@@ -198,6 +198,7 @@ export class RelayQueryBuilder<
     if (!where && snapshot.config.defaultWhere) {
       where = snapshot.config.defaultWhere;
     }
+    const mappedWhere = this.queryBuilder.mapWhereForExecution(where);
 
     // Merge order with default order from fluent builder
     let order = input.orderBy;
@@ -231,7 +232,7 @@ export class RelayQueryBuilder<
       after: input.after,
       last: input.last,
       before: input.before,
-      where: where as NestedWhereInput<FieldsDef>,
+      where: mappedWhere as NestedWhereInput<FieldsDef>,
       orderBy: order as never,
       select: select as never,
       filters: input.filters,
@@ -271,6 +272,7 @@ export class RelayQueryBuilder<
     if (!where && snapshot.config.defaultWhere) {
       where = snapshot.config.defaultWhere;
     }
+    const mappedWhere = this.queryBuilder.mapWhereForExecution(where);
 
     let order = input.orderBy;
     if (!order && snapshot.config.defaultOrder) {
@@ -302,7 +304,7 @@ export class RelayQueryBuilder<
       after: input.after,
       last: input.last,
       before: input.before,
-      where: where as NestedWhereInput<FieldsDef>,
+      where: mappedWhere as NestedWhereInput<FieldsDef>,
       orderBy: order as never,
       select: select as never,
       filters: input.filters,
@@ -572,6 +574,7 @@ export class CursorQueryBuilder<
     if (!where && snapshot.config.defaultWhere) {
       where = snapshot.config.defaultWhere;
     }
+    const mappedWhere = this.queryBuilder.mapWhereForExecution(where);
 
     let order = input.orderBy;
     if (!order && snapshot.config.defaultOrder) {
@@ -602,7 +605,7 @@ export class CursorQueryBuilder<
       limit: input.limit,
       direction: input.direction,
       cursor: input.cursor,
-      where: where as NestedWhereInput<FieldsDef>,
+      where: mappedWhere as NestedWhereInput<FieldsDef>,
       orderBy: order as never,
       select: select as never,
       filters: input.filters,
@@ -642,6 +645,7 @@ export class CursorQueryBuilder<
     if (!where && snapshot.config.defaultWhere) {
       where = snapshot.config.defaultWhere;
     }
+    const mappedWhere = this.queryBuilder.mapWhereForExecution(where);
 
     let order = input.orderBy;
     if (!order && snapshot.config.defaultOrder) {
@@ -672,7 +676,7 @@ export class CursorQueryBuilder<
       limit: input.limit,
       direction: input.direction,
       cursor: input.cursor,
-      where: where as NestedWhereInput<FieldsDef>,
+      where: mappedWhere as NestedWhereInput<FieldsDef>,
       orderBy: order as never,
       select: select as never,
       filters: input.filters,

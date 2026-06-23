@@ -37,6 +37,7 @@ export type { DrizzleExecutor, Selectable } from "./types.js";
 // Type helpers for nested paths
 export type {
   FieldsDef,
+  LocalLeafPaths,
   NestedPaths,
   NestedWhereInput,
   FilterOperators,
@@ -44,6 +45,14 @@ export type {
   ScalarValue,
   QueryBuilderConfig,
 } from "./types.js";
+
+export type {
+  WhereFieldMapper,
+  WhereFieldMapperConfig,
+  WhereFieldMapperContext,
+  WhereFieldOperator,
+  WhereFieldMappers,
+} from "./where-transform.js";
 
 // Type inference utilities
 export type {

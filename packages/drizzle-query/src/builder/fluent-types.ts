@@ -5,6 +5,11 @@ import type {
   OrderByItem,
   FilterValue,
 } from "../types.js";
+import type { ObjectSchema } from "../schema.js";
+import type {
+  WhereFieldMappers,
+  WhereFieldMapperScope,
+} from "../where-transform.js";
 import type {
   SimpleFieldDefinition,
   JoinFieldDefinition,
@@ -23,6 +28,9 @@ export interface FluentQueryBuilderLike<
   Fields extends FluentFieldsDef = FluentFieldsDef
 > {
   getFieldsDef(): Fields;
+  getSchema(): ObjectSchema;
+  /** @internal */
+  getWhereMapperScope(): WhereFieldMapperScope;
 }
 
 /**
@@ -102,6 +110,8 @@ export type FluentQueryConfig<Fields extends FieldsDef = FieldsDef> = {
   defaultLimit?: number;
   /** Default where conditions */
   defaultWhere?: NestedWhereInput<Fields>;
+  /** Field value mappers applied to where filters before SQL building */
+  whereFieldMappers?: WhereFieldMappers<Fields>;
 };
 
 /**
