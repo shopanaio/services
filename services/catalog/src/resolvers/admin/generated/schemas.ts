@@ -1007,6 +1007,7 @@ export function ProductWhereInputSchema(): z.ZodObject<Properties<ProductWhereIn
     name: z.lazy(() => StringFilterSchema().nullish()),
     primaryCategoryId: z.lazy(() => IdFilterSchema().nullish()),
     primaryCategoryName: z.lazy(() => StringFilterSchema().nullish()),
+    brandName: z.lazy(() => StringFilterSchema().nullish()),
     publishedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
     updatedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
     vendorId: z.lazy(() => IdFilterSchema().nullish())

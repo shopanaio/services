@@ -37,6 +37,8 @@ input ProductWhereInput {
   primaryCategoryId: IDFilter
   """Filter by primaryCategoryName"""
   primaryCategoryName: StringFilter
+  """Filter by brandName"""
+  brandName: StringFilter
 }
 
 """Fields available for sorting Product"""
@@ -67,6 +69,8 @@ enum ProductOrderField {
   primaryCategoryId
   """Sort by primaryCategoryName"""
   primaryCategoryName
+  """Sort by brandName"""
+  brandName
 }
 
 """Ordering configuration for Product"""

@@ -2968,6 +2968,9 @@ enum ProductOrderField {
 
   """Sort by primaryCategoryName"""
   primaryCategoryName
+
+  """Sort by brandName"""
+  brandName
 }
 
 """Fields available for sorting Category"""
@@ -3455,6 +3458,9 @@ input ProductWhereInput {
 
   """Filter by primaryCategoryName"""
   primaryCategoryName: StringFilter
+
+  """Filter by brandName"""
+  brandName: StringFilter
 }
 
 """Ordering configuration for Product"""

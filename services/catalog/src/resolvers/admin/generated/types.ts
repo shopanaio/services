@@ -3551,6 +3551,8 @@ export type ProductOrderByInput = {
 
 /** Fields available for sorting Product */
 export enum ProductOrderField {
+  /** Sort by brandName */
+  BrandName = 'brandName',
   /** Sort by createdAt */
   CreatedAt = 'createdAt',
   /** Sort by currency */
@@ -3697,6 +3699,8 @@ export type ProductWhereInput = {
   primaryCategoryId?: InputMaybe<IdFilter>;
   /** Filter by primaryCategoryName */
   primaryCategoryName?: InputMaybe<StringFilter>;
+  /** Filter by brandName */
+  brandName?: InputMaybe<StringFilter>;
   /** Filter by publishedAt */
   publishedAt?: InputMaybe<DateTimeFilter>;
   /** Filter by updatedAt */
@@ -6296,4 +6300,3 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   Vendor?: VendorResolvers<ContextType>;
   WidgetQuery?: WidgetQueryResolvers<ContextType>;
 }>;
-

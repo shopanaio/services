@@ -5687,6 +5687,8 @@ export type ApiProductOrderByInput = {
 
 /** Fields available for sorting Product */
 export enum ProductOrderField {
+  /** Sort by brandName */
+  BrandName = 'brandName',
   /** Sort by createdAt */
   CreatedAt = 'createdAt',
   /** Sort by currency */
@@ -5833,6 +5835,8 @@ export type ApiProductWhereInput = {
   primaryCategoryId?: InputMaybe<ApiIdFilter>;
   /** Filter by primaryCategoryName */
   primaryCategoryName?: InputMaybe<ApiStringFilter>;
+  /** Filter by brandName */
+  brandName?: InputMaybe<ApiStringFilter>;
   /** Filter by publishedAt */
   publishedAt?: InputMaybe<ApiDateTimeFilter>;
   /** Filter by updatedAt */

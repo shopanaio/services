@@ -72,6 +72,7 @@ const PRODUCT_SORT_FIELDS: Partial<Record<string, ProductOrderField>> = {
   minPriceMinor: ProductOrderField.MinPriceMinor,
   maxPriceMinor: ProductOrderField.MaxPriceMinor,
   primaryCategoryName: ProductOrderField.PrimaryCategoryName,
+  brand: ProductOrderField.BrandName,
 };
 
 function isEmptyFilterValue(value: unknown): boolean {
@@ -490,7 +491,6 @@ export default function ProductsPage() {
         cellRendererParams: { testIdSuffix: "brand" },
         minWidth: 160,
         resizable: false,
-        sortable: false,
       },
     ],
     [defaultCurrency],
