@@ -4,6 +4,7 @@ import { CategoryLoader } from "./CategoryLoader.js";
 import { FeatureLoader } from "./FeatureLoader.js";
 import { OptionLoader } from "./OptionLoader.js";
 import { ProductLoader } from "./ProductLoader.js";
+import { VendorLoader } from "./VendorLoader.js";
 import { TagLoader } from "./TagLoader.js";
 import { VariantLoader } from "./VariantLoader.js";
 import { FacetGroupLoader } from "./FacetGroupLoader.js";
@@ -25,6 +26,9 @@ export class Loader {
   public readonly productOption;
   public readonly productFeature;
   public readonly productMedia;
+
+  // Vendor
+  public readonly vendor;
 
   // Variant (without inventory fields - they live in Inventory Service)
   public readonly variant;
@@ -112,6 +116,7 @@ export class Loader {
 
   constructor(repository: Repository) {
     const productLoader = new ProductLoader(repository);
+    const vendorLoader = new VendorLoader(repository);
     const variantLoader = new VariantLoader(repository);
     const categoryLoader = new CategoryLoader(repository);
     const tagLoader = new TagLoader(repository);
@@ -135,6 +140,9 @@ export class Loader {
     this.productOption = productLoader.productOption;
     this.productFeature = productLoader.productFeature;
     this.productMedia = productLoader.productMedia;
+
+    // Vendor
+    this.vendor = vendorLoader.vendor;
 
     // Variant (without inventory fields)
     this.variant = variantLoader.variant;

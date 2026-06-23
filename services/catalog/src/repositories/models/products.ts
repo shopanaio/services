@@ -9,15 +9,18 @@ import {
   unique,
   uniqueIndex,
   check,
+  foreignKey,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { catalogSchema } from "./schema";
+import { vendor } from "./vendors";
 
 export const product = catalogSchema.table(
   "product",
   {
     projectId: uuid("project_id").notNull(),
     id: uuid("id").primaryKey(),
+    vendorId: uuid("vendor_id"),
     handle: varchar("handle", { length: 255 }),
     publishedAt: timestamp("published_at", { withTimezone: true, mode: "string" }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
@@ -39,12 +42,18 @@ export const product = catalogSchema.table(
       .where(sql`deleted_at IS NULL AND handle IS NOT NULL`),
     unique("product_project_id_id_unique").on(table.projectId, table.id),
     index("idx_product_project_id").on(table.projectId),
+    index("idx_product_vendor_id").on(table.vendorId),
     index("idx_product_created_at").on(table.createdAt),
     index("idx_product_updated_at").on(table.updatedAt),
     index("idx_product_deleted_at")
       .on(table.deletedAt)
       .where(sql`deleted_at IS NOT NULL`),
     index("idx_product_revision").on(table.id, table.revision),
+    foreignKey({
+      name: "product_vendor_fk",
+      columns: [table.projectId, table.vendorId],
+      foreignColumns: [vendor.projectId, vendor.id],
+    }),
   ]
 );
 

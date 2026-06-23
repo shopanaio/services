@@ -4,6 +4,9 @@ export * from "./schema";
 // Products & Variants
 export * from "./products";
 
+// Vendors
+export * from "./vendors";
+
 // Categories
 export * from "./categories";
 

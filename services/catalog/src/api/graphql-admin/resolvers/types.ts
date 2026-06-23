@@ -3,7 +3,7 @@ import type { Resolvers } from "../../../resolvers/admin/generated/types.js";
 /**
  * Type resolvers for interfaces and scalars.
  *
- * Note: Product, Variant, and Warehouse resolvers with @SubgraphReference
+ * Note: Product, Variant, Vendor, and Warehouse resolvers with @SubgraphReference
  * are now exported directly from index.ts. Their __resolveReference
  * is handled automatically by the decorator.
  */
@@ -28,6 +28,8 @@ export const typeResolvers: Partial<Resolvers> = {
       if ("swatchType" in record && "colorOne" in record && !("displayType" in record))
         return "FacetSwatch";
       if ("effectiveFrom" in record && "defaultSort" in record) return "Collection";
+      if ("name" in record && !("handle" in record) && !("path" in record))
+        return "Vendor";
       if ("handle" in record && "path" in record) return "Category";
       if ("handle" in record && !("path" in record)) return "Tag";
       if ("optionId" in record) return "ProductOptionValue";

@@ -12,6 +12,7 @@ import { FeatureResolver } from "./FeatureResolver.js";
 import { OptionResolver } from "./OptionResolver.js";
 import { ProductSeoResolver } from "./ProductSeoResolver.js";
 import { TagResolver } from "./TagResolver.js";
+import { VendorResolver } from "./VendorResolver.js";
 import { VariantConnectionResolver } from "./VariantConnectionResolver.js";
 import { toRichText } from "./helpers/richText.js";
 
@@ -61,6 +62,11 @@ export class ProductResolver extends CatalogType<string, Product> {
 
   async revision() {
     return this.$get("revision");
+  }
+
+  async vendor(): Promise<VendorResolver | null> {
+    const vendorId = await this.$get("vendorId");
+    return vendorId ? new VendorResolver(vendorId, this.$ctx) : null;
   }
 
   async title() {

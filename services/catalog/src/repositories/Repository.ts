@@ -1,6 +1,7 @@
 import { TransactionManager } from "@shopana/shared-kernel";
 import type { Database } from "../infrastructure/db/database";
 import { ProductRepository } from "./product/ProductRepository.js";
+import { VendorRepository } from "./vendor/VendorRepository.js";
 import { VariantRepository } from "./variant/VariantRepository.js";
 import { CategoryRepository } from "./category/CategoryRepository.js";
 import { TagRepository } from "./tag/TagRepository.js";
@@ -44,6 +45,7 @@ export type { Database };
  */
 export class Repository {
   public readonly product: ProductRepository;
+  public readonly vendor: VendorRepository;
   public readonly variant: VariantRepository;
   public readonly category: CategoryRepository;
   public readonly tag: TagRepository;
@@ -83,6 +85,7 @@ export class Repository {
 
   private constructor(
     product: ProductRepository,
+    vendor: VendorRepository,
     variant: VariantRepository,
     category: CategoryRepository,
     tag: TagRepository,
@@ -113,6 +116,7 @@ export class Repository {
     txManager: TransactionManager<Database>
   ) {
     this.product = product;
+    this.vendor = vendor;
     this.variant = variant;
     this.category = category;
     this.tag = tag;
@@ -154,6 +158,7 @@ export class Repository {
 
     // Create repositories
     const product = new ProductRepository(db, txManager);
+    const vendor = new VendorRepository(db, txManager);
     const variant = new VariantRepository(db, txManager);
     const category = new CategoryRepository(db, txManager);
     const tag = new TagRepository(db, txManager);
@@ -184,6 +189,7 @@ export class Repository {
 
     return new Repository(
       product,
+      vendor,
       variant,
       category,
       tag,

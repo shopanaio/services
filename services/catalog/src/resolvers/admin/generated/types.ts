@@ -2916,6 +2916,8 @@ export type Product = Node & {
   variants: VariantConnection;
   /** The total number of variants for this product. */
   variantsCount: Scalars['Int']['output'];
+  /** The vendor associated with this product. */
+  vendor: Maybe<Vendor>;
 };
 
 
@@ -4263,6 +4265,15 @@ export type VariantWhereInput = {
   updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
+/** A vendor represents the supplier or brand owner associated with a product. */
+export type Vendor = Node & {
+  __typename?: 'Vendor';
+  /** The globally unique ID of the vendor. */
+  id: Scalars['ID']['output'];
+  /** The display name of the vendor. */
+  name: Scalars['String']['output'];
+};
+
 /** Weight measurement units */
 export enum WeightUnit {
   /** Gram */
@@ -4370,7 +4381,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  Node: ( BundleGroup ) | ( BundleItem ) | ( BundlePricingTemplate ) | ( Category ) | ( Collection ) | ( Condition ) | ( Omit<ConditionGroup, 'conditions'> & { conditions: Array<_RefType['Condition']> } ) | ( DependencyAction ) | ( Omit<DependencyRule, 'actions' | 'conditionGroups'> & { actions: Array<_RefType['DependencyAction']>, conditionGroups: Array<_RefType['ConditionGroup']> } ) | ( Facet ) | ( FacetGroup ) | ( FacetSwatch ) | ( FacetValue ) | ( Product ) | ( ProductFeature ) | ( ProductFeatureValue ) | ( ProductOption ) | ( ProductOptionSwatch ) | ( ProductOptionValue ) | ( Tag ) | ( Variant ) | ( VariantCost ) | ( VariantPrice );
+  Node: ( BundleGroup ) | ( BundleItem ) | ( BundlePricingTemplate ) | ( Category ) | ( Collection ) | ( Condition ) | ( Omit<ConditionGroup, 'conditions'> & { conditions: Array<_RefType['Condition']> } ) | ( DependencyAction ) | ( Omit<DependencyRule, 'actions' | 'conditionGroups'> & { actions: Array<_RefType['DependencyAction']>, conditionGroups: Array<_RefType['ConditionGroup']> } ) | ( Facet ) | ( FacetGroup ) | ( FacetSwatch ) | ( FacetValue ) | ( Product ) | ( ProductFeature ) | ( ProductFeatureValue ) | ( ProductOption ) | ( ProductOptionSwatch ) | ( ProductOptionValue ) | ( Tag ) | ( Variant ) | ( VariantCost ) | ( VariantPrice ) | ( Vendor );
   UserError: ( BulkUpdateUserError ) | ( GenericUserError );
 }>;
 
@@ -4662,6 +4673,7 @@ export type ResolversTypes = ResolversObject<{
   VariantUpdatePricingInput: VariantUpdatePricingInput;
   VariantUpdatePricingPayload: ResolverTypeWrapper<VariantUpdatePricingPayload>;
   VariantWhereInput: VariantWhereInput;
+  Vendor: ResolverTypeWrapper<Vendor>;
   WeightUnit: WeightUnit;
   WidgetQuery: ResolverTypeWrapper<WidgetQuery>;
 }>;
@@ -4921,6 +4933,7 @@ export type ResolversParentTypes = ResolversObject<{
   VariantUpdatePricingInput: VariantUpdatePricingInput;
   VariantUpdatePricingPayload: VariantUpdatePricingPayload;
   VariantWhereInput: VariantWhereInput;
+  Vendor: Vendor;
   WidgetQuery: WidgetQuery;
 }>;
 
@@ -5600,7 +5613,7 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'BundleGroup' | 'BundleItem' | 'BundlePricingTemplate' | 'Category' | 'Collection' | 'Condition' | 'ConditionGroup' | 'DependencyAction' | 'DependencyRule' | 'Facet' | 'FacetGroup' | 'FacetSwatch' | 'FacetValue' | 'Product' | 'ProductFeature' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionSwatch' | 'ProductOptionValue' | 'Tag' | 'Variant' | 'VariantCost' | 'VariantPrice', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'BundleGroup' | 'BundleItem' | 'BundlePricingTemplate' | 'Category' | 'Collection' | 'Condition' | 'ConditionGroup' | 'DependencyAction' | 'DependencyRule' | 'Facet' | 'FacetGroup' | 'FacetSwatch' | 'FacetValue' | 'Product' | 'ProductFeature' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionSwatch' | 'ProductOptionValue' | 'Tag' | 'Variant' | 'VariantCost' | 'VariantPrice' | 'Vendor', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -5649,6 +5662,7 @@ export type ProductResolvers<ContextType = ServiceContext, ParentType extends Re
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   variants?: Resolver<ResolversTypes['VariantConnection'], ParentType, ContextType, Partial<ProductVariantsArgs>>;
   variantsCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  vendor?: Resolver<Maybe<ResolversTypes['Vendor']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -6054,6 +6068,13 @@ export type VariantUpdatePricingPayloadResolvers<ContextType = ServiceContext, P
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type VendorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Vendor'] = ResolversParentTypes['Vendor']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Vendor']>, { __typename: 'Vendor' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type WidgetQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WidgetQuery'] = ResolversParentTypes['WidgetQuery']> = ResolversObject<{
   pricing?: Resolver<ResolversTypes['PricingWidgetPayload'], ParentType, ContextType, RequireFields<WidgetQueryPricingArgs, 'input'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -6191,6 +6212,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   VariantUpdateMediaPayload?: VariantUpdateMediaPayloadResolvers<ContextType>;
   VariantUpdateOptionsPayload?: VariantUpdateOptionsPayloadResolvers<ContextType>;
   VariantUpdatePricingPayload?: VariantUpdatePricingPayloadResolvers<ContextType>;
+  Vendor?: VendorResolvers<ContextType>;
   WidgetQuery?: WidgetQueryResolvers<ContextType>;
 }>;
 

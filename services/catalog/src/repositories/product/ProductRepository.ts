@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import {
   createQuery,
   createRelayQuery,
+  field,
   type PageInfo,
   type InferExecuteOptions,
   type InferRelayInput,
@@ -11,6 +12,7 @@ import { BaseRepository } from "../BaseRepository.js";
 import {
   product,
   productTranslation,
+  vendor,
   productOption,
   productFeature,
   type Product,
@@ -23,8 +25,24 @@ import { decodeProductGlobalId } from "../global-id-where-mappers.js";
 
 const productQuery = createQuery(product).maxLimit(100).defaultLimit(20);
 
+const vendorQuery = createQuery(vendor, {
+  id: field(vendor.id),
+  name: field(vendor.name),
+});
+
 export const productRelayQuery = createRelayQuery(
-  createQuery(product)
+  createQuery(product, {
+    id: field(product.id),
+    projectId: field(product.projectId),
+    handle: field(product.handle),
+    publishedAt: field(product.publishedAt),
+    updatedAt: field(product.updatedAt),
+    deletedAt: field(product.deletedAt),
+    createdAt: field(product.createdAt),
+    revision: field(product.revision),
+    vendorId: field(product.vendorId),
+    vendor: field(product.vendorId).leftJoin(vendorQuery, vendor.id),
+  })
     .include(["id"])
     .mapWhereField("id", decodeProductGlobalId)
     .maxLimit(100)

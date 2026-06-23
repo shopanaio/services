@@ -52,6 +52,17 @@ type ProductCategoryAssignment {
 }
 
 """
+A vendor represents the supplier or brand owner associated with a product.
+"""
+type Vendor implements Node @key(fields: "id") {
+  """The globally unique ID of the vendor."""
+  id: ID!
+
+  """The display name of the vendor."""
+  name: String!
+}
+
+"""
 A product represents an item that can be sold.
 """
 type Product implements Node @key(fields: "id") {
@@ -78,6 +89,9 @@ type Product implements Node @key(fields: "id") {
 
   """Optimistic locking revision number. Incremented on each update."""
   revision: Int!
+
+  """The vendor associated with this product."""
+  vendor: Vendor
 
   """The variants of this product."""
   variants(

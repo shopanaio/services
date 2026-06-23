@@ -106,6 +106,7 @@ export enum GlobalIdEntity {
   Product = "Product",
   ProductVariant = "ProductVariant",
   Variant = "Variant",
+  Vendor = "Vendor",
   Category = "Category",
   Tag = "Tag",
   Collection = "Collection",
