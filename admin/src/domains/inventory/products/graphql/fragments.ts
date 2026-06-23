@@ -261,8 +261,17 @@ export const PRODUCT_LIST_FRAGMENT = gql`
     primaryCategory {
       ...ProductCategoryFields
     }
+    categoryAssignments {
+      isPrimary
+      category {
+        ...ProductCategoryFields
+      }
+    }
     vendor {
       ...VendorFields
+    }
+    features {
+      ...ProductFeatureFields
     }
     variants(first: 100) {
       edges {
@@ -278,12 +287,17 @@ export const PRODUCT_LIST_FRAGMENT = gql`
             isCurrent
             recordedAt
           }
+          inventoryItem {
+            ...InventoryItemFields
+          }
         }
       }
     }
   }
   ${PRODUCT_MEDIA_ITEM_FRAGMENT}
   ${PRODUCT_CATEGORY_FRAGMENT}
+  ${PRODUCT_FEATURE_FRAGMENT}
+  ${INVENTORY_ITEM_FRAGMENT}
   ${VENDOR_FRAGMENT}
 `;
 

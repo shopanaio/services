@@ -55,6 +55,7 @@ import {
   getProductMaxPriceAmount,
   getProductMinPriceAmount,
   getProductPrimaryCategoryName,
+  getProductTotalAvailable,
   getProductThumbnailFile,
 } from "../utils/api-product-display";
 import { formatPrice } from "../utils/price-formatting";
@@ -197,24 +198,60 @@ const ProductCellRenderer = (
 };
 
 const TextCellRenderer = (
-  props: CustomCellRendererProps<ApiProduct, string | null>,
+  props: CustomCellRendererProps<ApiProduct, string | null> & {
+    testIdSuffix?: string;
+  },
 ) => {
-  const { value } = props;
-  return <Typography.Text>{value ?? "\u2014"}</Typography.Text>;
+  const { data, value, testIdSuffix } = props;
+
+  return (
+    <Typography.Text
+      data-testid={
+        data && testIdSuffix
+          ? `products-table-${testIdSuffix}-cell-${data.handle}`
+          : undefined
+      }
+    >
+      {value ?? "\u2014"}
+    </Typography.Text>
+  );
 };
 
 const PriceCellRenderer = (
   props: CustomCellRendererProps<ApiProduct, number | null> & {
     currency?: string | null;
+    testIdSuffix?: string;
   },
 ) => {
-  const { value, currency } = props;
+  const { data, value, currency, testIdSuffix } = props;
 
   return (
-    <Typography.Text>
+    <Typography.Text
+      data-testid={
+        data && testIdSuffix
+          ? `products-table-${testIdSuffix}-cell-${data.handle}`
+          : undefined
+      }
+    >
       {value !== null && value !== undefined && currency
         ? formatPrice(value, currency)
         : "\u2014"}
+    </Typography.Text>
+  );
+};
+
+const StockCellRenderer = (
+  props: CustomCellRendererProps<ApiProduct, number>,
+) => {
+  const { data, value } = props;
+
+  return (
+    <Typography.Text
+      data-testid={
+        data ? `products-table-inventory-cell-${data.handle}` : undefined
+      }
+    >
+      {value} in stock
     </Typography.Text>
   );
 };
@@ -410,7 +447,10 @@ export default function ProductsPage() {
         valueGetter: ({ data }) =>
           data ? getProductMinPriceAmount(data) : null,
         cellRenderer: PriceCellRenderer,
-        cellRendererParams: { currency: defaultCurrency },
+        cellRendererParams: {
+          currency: defaultCurrency,
+          testIdSuffix: "min-price",
+        },
         minWidth: 130,
       },
       {
@@ -419,8 +459,19 @@ export default function ProductsPage() {
         valueGetter: ({ data }) =>
           data ? getProductMaxPriceAmount(data) : null,
         cellRenderer: PriceCellRenderer,
-        cellRendererParams: { currency: defaultCurrency },
+        cellRendererParams: {
+          currency: defaultCurrency,
+          testIdSuffix: "max-price",
+        },
         minWidth: 130,
+      },
+      {
+        headerName: "Stock",
+        colId: "stock",
+        valueGetter: ({ data }) => (data ? getProductTotalAvailable(data) : 0),
+        cellRenderer: StockCellRenderer,
+        minWidth: 120,
+        sortable: false,
       },
       {
         headerName: "Category",
@@ -428,6 +479,7 @@ export default function ProductsPage() {
         valueGetter: ({ data }) =>
           data ? getProductPrimaryCategoryName(data) : null,
         cellRenderer: TextCellRenderer,
+        cellRendererParams: { testIdSuffix: "category" },
         minWidth: 180,
       },
       {
@@ -435,6 +487,7 @@ export default function ProductsPage() {
         colId: "brand",
         valueGetter: ({ data }) => (data ? getProductBrandName(data) : null),
         cellRenderer: TextCellRenderer,
+        cellRendererParams: { testIdSuffix: "brand" },
         minWidth: 160,
         resizable: false,
         sortable: false,

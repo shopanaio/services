@@ -36,8 +36,16 @@ export class CategoryAddProductScript extends BaseScript<
       return { category, affectedProductIds: [], userErrors: [] };
     }
 
-    // Add product to category
-    await this.repository.category.addProductToCategory(productId, categoryId, false);
+    const existingLinks =
+      await this.repository.category.getProductCategoryLinks(productId);
+    const shouldSetPrimary = !existingLinks.some((link) => link.isPrimary);
+
+    // Add the first category as primary so product list views can display it.
+    await this.repository.category.addProductToCategory(
+      productId,
+      categoryId,
+      shouldSetPrimary,
+    );
 
     return { category, affectedProductIds: [productId], userErrors: [] };
   }
