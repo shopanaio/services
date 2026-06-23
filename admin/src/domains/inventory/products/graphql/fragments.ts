@@ -270,9 +270,6 @@ export const PRODUCT_LIST_FRAGMENT = gql`
     vendor {
       ...VendorFields
     }
-    features {
-      ...ProductFeatureFields
-    }
     variants(first: 100) {
       edges {
         node {
@@ -296,7 +293,6 @@ export const PRODUCT_LIST_FRAGMENT = gql`
   }
   ${PRODUCT_MEDIA_ITEM_FRAGMENT}
   ${PRODUCT_CATEGORY_FRAGMENT}
-  ${PRODUCT_FEATURE_FRAGMENT}
   ${INVENTORY_ITEM_FRAGMENT}
   ${VENDOR_FRAGMENT}
 `;

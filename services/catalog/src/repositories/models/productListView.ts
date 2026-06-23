@@ -1,13 +1,10 @@
 import { sql } from "drizzle-orm";
 import { catalogSchema } from "./schema";
 import { categoryTranslation, productCategory } from "./categories";
-import { productFeature, productFeatureValue } from "./features";
 import { productPriceRange } from "./pricing";
 import { product } from "./products";
-import {
-  productFeatureValueTranslation,
-  productTranslation,
-} from "./translations";
+import { productTranslation } from "./translations";
+import { vendor } from "./vendors";
 
 export const productListView = catalogSchema.view("product_list_view").as((qb) =>
   qb
@@ -28,7 +25,7 @@ export const productListView = catalogSchema.view("product_list_view").as((qb) =
       maxPriceMinor: sql<number>`${productPriceRange.maxAmountMinor}`.as("max_price_minor"),
       primaryCategoryId: sql<string>`${productCategory.categoryId}`.as("primary_category_id"),
       primaryCategoryName: sql<string>`${categoryTranslation.name}`.as("primary_category_name"),
-      brandName: sql<string>`${productFeatureValueTranslation.name}`.as("brand_name"),
+      brandName: sql<string>`${vendor.name}`.as("brand_name"),
     })
     .from(product)
     .innerJoin(
@@ -48,15 +45,7 @@ export const productListView = catalogSchema.view("product_list_view").as((qb) =
       sql`${categoryTranslation.projectId} = ${product.projectId} AND ${categoryTranslation.categoryId} = ${productCategory.categoryId} AND ${categoryTranslation.locale} = ${productTranslation.locale}`
     )
     .leftJoin(
-      productFeature,
-      sql`${productFeature.projectId} = ${product.projectId} AND ${productFeature.productId} = ${product.id} AND ${productFeature.slug} = 'brand'`
-    )
-    .leftJoin(
-      productFeatureValue,
-      sql`${productFeatureValue.projectId} = ${product.projectId} AND ${productFeatureValue.featureId} = ${productFeature.id} AND ${productFeatureValue.index} = 0`
-    )
-    .leftJoin(
-      productFeatureValueTranslation,
-      sql`${productFeatureValueTranslation.projectId} = ${product.projectId} AND ${productFeatureValueTranslation.featureValueId} = ${productFeatureValue.id} AND ${productFeatureValueTranslation.locale} = ${productTranslation.locale}`
+      vendor,
+      sql`${vendor.projectId} = ${product.projectId} AND ${vendor.id} = ${product.vendorId}`
     )
 );

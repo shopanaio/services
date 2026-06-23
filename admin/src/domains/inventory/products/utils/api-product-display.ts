@@ -73,16 +73,7 @@ export const getProductCategories = (product: ApiProduct): ApiCategory[] =>
   (product.categoryAssignments ?? []).map((assignment) => assignment.category);
 
 export const getProductBrandName = (product: ApiProduct): string | null => {
-  if (product.vendor?.name) {
-    return product.vendor.name;
-  }
-
-  const brandFeature = (product.features ?? []).find(
-    (feature) =>
-      feature.slug === "brand" || feature.name.toLowerCase() === "brand",
-  );
-
-  return brandFeature?.values[0]?.name ?? null;
+  return product.vendor?.name ?? null;
 };
 
 export const getVariantStockQuantity = (variant: ApiVariant): number => {
