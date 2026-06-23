@@ -141,7 +141,7 @@ input CategoryHierarchyScopeInput {
   referenceId: ID!
   direction: CategoryHierarchyScopeDirection!
   includeReference: Boolean = false
-  mode: CategoryHierarchyScopeMode
+  mode: CategoryHierarchyScopeMode!
 }
 
 input CategoryCategoriesMetaInput {

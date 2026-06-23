@@ -271,6 +271,7 @@ test.describe('Category hierarchy scope API', () => {
         hierarchyScope: {
           referenceId: tree.root.id,
           direction: 'DESCENDANTS',
+          mode: 'INCLUDE',
         },
       },
     });
@@ -292,6 +293,7 @@ test.describe('Category hierarchy scope API', () => {
         hierarchyScope: {
           referenceId: secondLevelNode.id,
           direction: 'DESCENDANTS',
+          mode: 'INCLUDE',
         },
       },
     });
@@ -310,6 +312,7 @@ test.describe('Category hierarchy scope API', () => {
         hierarchyScope: {
           referenceId: thirdLevelLeaf.id,
           direction: 'DESCENDANTS',
+          mode: 'INCLUDE',
         },
       },
     });

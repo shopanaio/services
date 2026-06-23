@@ -218,7 +218,7 @@ export function CategoryHierarchyScopeInputSchema(): z.ZodObject<Properties<Cate
   return z.object({
     direction: CategoryHierarchyScopeDirectionSchema,
     includeReference: z.boolean().default(false).nullish(),
-    mode: CategoryHierarchyScopeModeSchema.nullish(),
+    mode: CategoryHierarchyScopeModeSchema,
     referenceId: z.string()
   })
 }

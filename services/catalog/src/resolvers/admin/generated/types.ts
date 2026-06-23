@@ -1205,7 +1205,7 @@ export enum CategoryHierarchyScopeDirection {
 export type CategoryHierarchyScopeInput = {
   direction: CategoryHierarchyScopeDirection;
   includeReference?: InputMaybe<Scalars['Boolean']['input']>;
-  mode?: InputMaybe<CategoryHierarchyScopeMode>;
+  mode: CategoryHierarchyScopeMode;
   referenceId: Scalars['ID']['input'];
 };
 
