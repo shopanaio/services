@@ -1,4 +1,5 @@
 import type { ColDef, RowDragEnterEvent, RowDragEndEvent } from "ag-grid-community";
+import type { ICellSelection } from "@/shared/components/ag-grid-cell-selection";
 
 // Generic row interface - requires at least an id
 export interface IEditorRowBase {
@@ -30,6 +31,7 @@ export interface IEditorGridProps<T extends IEditorRowBase> {
   // Callbacks
   getRowClass?: (data: T) => string;
   onSetFieldValue: (rowId: string, field: string, originalValue: unknown, newValue: unknown) => void;
+  onSelectionEnter?: (cells: ICellSelection[]) => boolean | void;
 
   // Optional custom styles class
   className?: string;

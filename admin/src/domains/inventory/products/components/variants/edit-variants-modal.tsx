@@ -101,11 +101,16 @@ export const EditVariantsModal = () => {
         typedPayload.variants,
         typedPayload.productOptions,
         typedPayload.variantEditorScope?.type === "inventory"
-          ? { inventoryWarehouseId: typedPayload.variantEditorScope.warehouseId }
-          : undefined,
+          ? {
+              inventoryWarehouseId:
+                typedPayload.variantEditorScope.warehouseId,
+              productMediaFiles: typedPayload.productMediaFiles,
+            }
+          : { productMediaFiles: typedPayload.productMediaFiles },
       ),
     [
       typedPayload.productOptions,
+      typedPayload.productMediaFiles,
       typedPayload.variantEditorScope,
       typedPayload.variants,
     ],
@@ -220,6 +225,7 @@ export const EditVariantsModal = () => {
             ignoreUserSettings={!!availableColumns}
             defaultCurrency={defaultCurrency}
             productOptions={typedPayload.productOptions}
+            productMediaFiles={typedPayload.productMediaFiles ?? []}
           />
         </div>
       </div>

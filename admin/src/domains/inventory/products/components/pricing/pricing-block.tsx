@@ -93,6 +93,7 @@ export const PricingBlock = ({
           defaultCurrency,
           includePricing: true,
           includeInventory: false,
+          includeMedia: false,
         });
       } catch (err) {
         message.error(

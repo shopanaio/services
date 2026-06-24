@@ -1,4 +1,5 @@
 import type { IEditorRowBase } from "@/shared/components/editor-grid/types";
+import type { ApiFile } from "@/graphql/types";
 
 // ============================================================================
 // Variant Row Interface
@@ -15,7 +16,7 @@ export interface IVariantEditorInput {
   id: string;
   title: string;
   imageUrl?: string | null;
-  media?: string[] | null;
+  media?: ApiFile[] | null;
   options?: IVariantOption[];
   sku?: string | null;
   onHand?: number;
@@ -36,7 +37,7 @@ export interface IVariantEditorRow extends IEditorRowBase {
   // Display
   title: string;
   imageUrl: string | null;
-  media: string[] | null;
+  media: ApiFile[];
 
   // Options (dynamic, based on product options)
   options: IVariantOption[];

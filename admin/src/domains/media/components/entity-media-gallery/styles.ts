@@ -59,6 +59,19 @@ export const useStyles = createStyles(({ token }) => ({
   mediaItemDragging: {
     opacity: 0.5,
   },
+  mediaItemSelected: {
+    boxShadow: `inset 0 0 0 2px ${token.colorPrimary}`,
+  },
+  selectionCheckbox: {
+    position: "absolute",
+    top: 4,
+    left: 4,
+    zIndex: 3,
+    padding: 4,
+    borderRadius: 4,
+    background: token.colorBgElevated,
+    boxShadow: token.boxShadowTertiary,
+  },
   mediaImage: {
     width: "100%",
     height: "100%",
@@ -164,6 +177,10 @@ export const useStyles = createStyles(({ token }) => ({
   },
   listItemDragging: {
     opacity: 0.5,
+  },
+  listItemSelected: {
+    borderColor: token.colorPrimary,
+    boxShadow: `inset 0 0 0 1px ${token.colorPrimary}`,
   },
   listItemImage: {
     width: 40,

@@ -33,6 +33,7 @@ export const useCellSelection = <TData = unknown>(
     getCellValue,
     setCellValue,
     incrementCellValue,
+    onSelectionEnter,
   } = config;
 
   // Create isolated store for this grid instance
@@ -333,6 +334,16 @@ export const useCellSelection = <TData = unknown>(
         return;
       }
 
+      // Enter - allow custom editors for selected cells
+      if (event.key === "Enter" && onSelectionEnter) {
+        const handled = onSelectionEnter(state.selectedCells);
+
+        if (handled) {
+          event.preventDefault();
+          return;
+        }
+      }
+
       // Arrow Up/Down with Shift - increment/decrement numeric values
       if (event.shiftKey && incrementCellValue) {
         if (event.key === "ArrowUp") {
@@ -360,6 +371,7 @@ export const useCellSelection = <TData = unknown>(
     getCellValue,
     setCellValue,
     incrementCellValue,
+    onSelectionEnter,
   ]);
 
   return { api, handlers, store };

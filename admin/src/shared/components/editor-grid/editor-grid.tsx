@@ -184,6 +184,15 @@ const useStyles = createStyles(({ token }) => ({
       background: token.colorBgContainerDisabled,
       flexShrink: 0,
     },
+    ".ec-media-cell": {
+      width: "100%",
+      height: "100%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "flex-start",
+      gap: 6,
+      minWidth: 0,
+    },
 
     // === Dash (empty/N/A cell) ===
     ".ec-dash": {
@@ -341,6 +350,7 @@ export function EditorGrid<T extends IEditorRowBase>({
   headerHeight = 44,
   getRowClass,
   onSetFieldValue,
+  onSelectionEnter,
   rowDragManaged,
   onRowDragEnter,
   onRowDragEnd,
@@ -379,8 +389,9 @@ export function EditorGrid<T extends IEditorRowBase>({
           }
         }
       },
+      onSelectionEnter,
     }),
-    [displayRows, rows, selectableColumns, onSetFieldValue]
+    [displayRows, rows, selectableColumns, onSetFieldValue, onSelectionEnter]
   );
 
   return (

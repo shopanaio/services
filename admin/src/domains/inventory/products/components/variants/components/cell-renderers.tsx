@@ -2,7 +2,10 @@ import React from "react";
 import { Avatar } from "antd";
 import { PictureOutlined } from "@ant-design/icons";
 import type { CustomCellRendererProps } from "ag-grid-react";
-import { SelectableCell } from "@/shared/components/ag-grid-cell-selection";
+import {
+  SelectableCell,
+  useCellSelectionContext,
+} from "@/shared/components/ag-grid-cell-selection";
 import { Dash, Diff } from "@/shared/components/editor-grid";
 import type { IVariantEditorRow } from "../config/types";
 import { useVariantsEditorStore } from "../hooks";
@@ -45,30 +48,60 @@ function getPriceCellDisplayValue(
 // ============================================================================
 
 export const ImageCellRenderer: React.FC<
-  CustomCellRendererProps<IVariantEditorRow>
+  CustomCellRendererProps<IVariantEditorRow> & {
+    onEditMedia?: (rowId: string, selectedRowIds?: string[]) => void;
+  }
 > = (props) => {
   const { data } = props;
+  const { api: selectionApi } = useCellSelectionContext();
 
   if (!data) return null;
 
+  const openEditor = (event?: React.MouseEvent) => {
+    event?.stopPropagation();
+
+    if (!props.onEditMedia) {
+      return;
+    }
+
+    const selectedMediaRows = selectionApi.selectedCells
+      .filter((cell) => cell.field === "media")
+      .map((cell) => cell.rowId);
+    const targetRowIds = selectedMediaRows.includes(data.id)
+      ? selectedMediaRows
+      : [data.id];
+
+    props.onEditMedia(data.id, targetRowIds);
+  };
+
   const media = data.media;
-  if (!media || media.length === 0) {
-    return (
-      <TableCoverImage
-        src={null}
-        alt={data.title}
-        fallbackIcon={<PictureOutlined />}
-        size={32}
-      />
-    );
-  }
 
   return (
-    <Avatar.Group max={{ count: 3 }} size={32}>
-      {media.map((url, index) => (
-        <Avatar key={index} src={url} shape="square" />
-      ))}
-    </Avatar.Group>
+    <SelectableCell
+      rowId={data.id}
+      field="media"
+      testId={`variants-editor-cell-media-${data.id}`}
+    >
+      <div
+        className="ec-media-cell"
+        onDoubleClick={openEditor}
+      >
+        {!media || media.length === 0 ? (
+          <TableCoverImage
+            src={null}
+            alt={data.title}
+            fallbackIcon={<PictureOutlined />}
+            size={32}
+          />
+        ) : (
+          <Avatar.Group max={{ count: 3 }} size={32}>
+            {media.map((file) => (
+              <Avatar key={file.id} src={file.url} shape="square" />
+            ))}
+          </Avatar.Group>
+        )}
+      </div>
+    </SelectableCell>
   );
 };
 

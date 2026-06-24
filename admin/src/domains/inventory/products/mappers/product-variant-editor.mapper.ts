@@ -1,4 +1,4 @@
-import type { ApiProductOption, ApiVariant } from "@/graphql/types";
+import type { ApiFile, ApiProductOption, ApiVariant } from "@/graphql/types";
 import type {
   IVariantEditorInput,
   IVariantEditorRow,
@@ -10,6 +10,7 @@ import {
 
 export interface MapApiVariantsToEditorInputsOptions {
   inventoryWarehouseId?: string;
+  productMediaFiles?: ApiFile[];
 }
 
 export interface VariantEditorSaveRow {
@@ -28,6 +29,30 @@ export interface VariantEditorSaveRow {
   width: number | null;
   height: number | null;
   dimensionUnit: string;
+  mediaFileIds: string[];
+}
+
+function sortVariantMediaFiles(
+  variant: ApiVariant,
+  productMediaFiles?: ApiFile[],
+): ApiFile[] {
+  const productMediaOrder = new Map(
+    (productMediaFiles ?? []).map((file, index) => [file.id, index]),
+  );
+
+  return [...variant.media]
+    .sort((left, right) => {
+      const leftOrder = productMediaOrder.get(left.file.id);
+      const rightOrder = productMediaOrder.get(right.file.id);
+
+      if (leftOrder !== undefined || rightOrder !== undefined) {
+        return (leftOrder ?? Number.MAX_SAFE_INTEGER) -
+          (rightOrder ?? Number.MAX_SAFE_INTEGER);
+      }
+
+      return left.sortIndex - right.sortIndex;
+    })
+    .map((media) => media.file);
 }
 
 export function mapApiVariantToEditorInput(
@@ -63,8 +88,9 @@ export function mapApiVariantToEditorInput(
   const reserved = options?.inventoryWarehouseId
     ? warehouseStock?.reservedQuantity ?? 0
     : aggregateStock.reserved;
-  const sortedMedia = [...variant.media].sort(
-    (left, right) => left.sortIndex - right.sortIndex,
+  const sortedMediaFiles = sortVariantMediaFiles(
+    variant,
+    options?.productMediaFiles,
   );
 
   return {
@@ -72,8 +98,8 @@ export function mapApiVariantToEditorInput(
     ...mapApiDimensionsToVariantFields(variant.inventoryItem?.dimensions),
     id: variant.id,
     title: variant.title ?? variant.handle,
-    imageUrl: sortedMedia[0]?.file.url ?? null,
-    media: sortedMedia.map((media) => media.file.url),
+    imageUrl: sortedMediaFiles[0]?.url ?? null,
+    media: sortedMediaFiles,
     options: variant.selectedOptions.map((selectedOption) => {
       const option = optionsById.get(selectedOption.optionId);
       const value = option?.values.find(
@@ -124,5 +150,6 @@ export function getVariantEditorRowsForSave(
     width: row.width,
     height: row.height,
     dimensionUnit: row.dimensionUnit,
+    mediaFileIds: row.media.map((file) => file.id),
   }));
 }

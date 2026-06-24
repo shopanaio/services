@@ -12,7 +12,7 @@ Connection должен возвращать обычные `InventoryItem` node
 - `sku`;
 - stock columns выбранного склада: `quantityOnHand`, `reservedQuantity`,
   `unavailableQuantity`, `availableForSale`;
-- стабильным tie-breaker полям вроде `inventoryItemId` / `variantId`.
+- стабильным tie-breaker полям вроде `id` / `variantId`.
 
 `catalog` остается source of truth для продукта и переводов. `inventory` хранит
 только денормализованный read projection, нужный для списка и cursor pagination.
@@ -197,7 +197,6 @@ export const inventoryItemCatalogProjection = inventorySchema.table(
     projectId: uuid("project_id").notNull(),
     id: uuid("id").primaryKey().defaultRandom(),
 
-    inventoryItemId: uuid("inventory_item_id"),
     variantId: uuid("variant_id").notNull(),
     productId: uuid("product_id").notNull(),
     productHandle: text("product_handle"),
@@ -221,12 +220,14 @@ export const inventoryItemCatalogProjection = inventorySchema.table(
 Indexes/constraints:
 
 - unique `(project_id, variant_id)`;
-- index `(project_id, inventory_item_id)`;
 - index `(project_id, product_id)`;
 - index `(project_id, deleted_at)`.
 
-`inventoryItemId` can be nullable while events arrive out of order, but list view
-must inner join real `inventory_item` and return only existing inventory items.
+Do not store `inventoryItemId` in this projection. The invariant between Catalog
+variant and canonical Inventory item is `inventory_item.variant_id`, which is
+already unique. The list view must join real `inventory_item` by
+`(projectId, variantId)` and return only existing inventory items. This avoids a
+second identifier that would need out-of-order event synchronization.
 
 ### `inventory.inventory_product_translation`
 
@@ -411,7 +412,6 @@ const executeInput = {
   where: mergedWhere,
   orderBy: orderBy ?? [
     { field: "productName", direction: "asc" },
-    { field: "id", direction: "asc" },
   ],
 };
 
@@ -433,6 +433,9 @@ return {
 `totalCount` must use the exact same `mergedWhere`; otherwise filtered count will
 not match the returned edges.
 
+Do not add `id` manually to the default `orderBy`: `createRelayQuery` already
+receives `tieBreaker: "id"` and should append it for stable cursor ordering.
+
 ## GraphQL Resolver
 
 `InventoryQueryResolver.inventoryItems` should:
@@ -446,9 +449,8 @@ not match the returned edges.
 No `InventoryVariantListItem` / `InventoryItemListItem` GraphQL object should be
 introduced.
 
-If `InventoryItem.variant` is not in the schema yet, add it. The resolver already
-has enough data through `InventoryItem.variantId` to return a federation
-reference:
+Add `InventoryItem.variant` to the GraphQL schema. The resolver already has
+enough data through `InventoryItem.variantId` to return a federation reference:
 
 ```ts
 {
@@ -456,6 +458,36 @@ reference:
   id: encodeGlobalIdByType(variantId, GlobalIdEntity.Variant),
 }
 ```
+
+## Variant / InventoryItem Lifecycle
+
+`InventoryItem` is the canonical Inventory-owned entity for a Catalog variant,
+but Catalog owns the variant lifecycle. When Catalog deletes a variant,
+Inventory must stop exposing that item through list APIs immediately.
+
+Variant deletion rules:
+
+- `variantDeleted` must soft-delete the corresponding
+  `inventory_item_catalog_projection` row by `(projectId, variantId)`;
+- `inventoryQuery.inventoryItems` excludes the item through
+  `inventory_item_catalog_projection.deleted_at is null`;
+- canonical `inventory_item` may be retained for audit/history and to preserve
+  existing stock/cost/change records unless a separate hard-delete cleanup
+  policy is defined;
+- retained canonical `inventory_item` is not enough to make the item listable:
+  the list is controlled by the projection row lifecycle.
+
+Node lookup rules:
+
+- `inventoryItem(id)` should return the canonical item only if its projection row
+  is active; otherwise return `null` so deleted variants do not remain reachable
+  from Admin APIs;
+- `inventoryItemByVariant(variantId)` must not lazily recreate or expose an
+  `InventoryItem` when the projection row is missing or soft-deleted. It should
+  return `null` for deleted/unknown variants, or fetch the Catalog snapshot first
+  and only create/expose the item if Catalog confirms the variant is active;
+- federation reference resolution for `InventoryItem` should follow the same
+  active-projection rule to avoid returning orphan inventory entities.
 
 ## Catalog Snapshot Sync
 
@@ -470,8 +502,16 @@ Current risks:
 - if Inventory applies a title update without locale, it can overwrite the wrong
   translation row or only update `uk`.
 
-Preferred contract: add a catalog broker snapshot action that returns base
-projection plus translations.
+Required Phase 1 contract: add a catalog broker snapshot action that returns
+base projection plus translations.
+
+This is a prerequisite for Inventory projection handlers and for Admin migration.
+Do not implement `inventory_product_translation` updates from existing
+`productCreated.name` or `productUpdated.product.title` payloads directly:
+those payloads are not locale-complete and can write the wrong translation row.
+Until either this snapshot action exists or product events become explicitly
+locale-aware, Inventory must fetch the snapshot before writing localized product
+name rows.
 
 ```ts
 catalog.getInventoryItemProjectionSnapshot({
@@ -492,7 +532,6 @@ Response:
   revision: number | null;
   variants: Array<{
     variantId: string;
-    inventoryItemId?: string | null;
     externalSystem: string | null;
     externalId: string | null;
     deletedAt: string | null;
@@ -542,6 +581,17 @@ The list repository filters the view with `locale = ctx.locale ?? "uk"`, so:
 - Ukrainian Admin session filters/sorts by Ukrainian `productName`;
 - English Admin session filters/sorts by English `productName`;
 - changing the English name updates only the English translation row.
+
+## Implementation Order
+
+1. Add `catalog.getInventoryItemProjectionSnapshot` and make it return base
+   product/variant projection plus all requested product translations.
+2. Add Inventory projection tables/view/repository, but keep Admin on the old
+   query until backfill succeeds.
+3. Add Inventory event handlers that always use the snapshot action when the
+   event payload does not explicitly identify changed locales.
+4. Add backfill/reconciliation and run it for existing stores.
+5. Switch Admin Inventory page to `inventoryQuery.inventoryItems`.
 
 ## Inventory Event Handlers
 
@@ -640,7 +690,16 @@ ownership changes.
 
 ## Implementation Phases
 
-### Phase 1. DB model and view
+### Phase 1. Catalog snapshot provider
+
+- Add catalog broker action for inventory item projection snapshots.
+- Return base variant/product snapshot separately from product translations.
+- Include all locales or explicitly requested locales.
+- Do not include variant names.
+- Do not start Inventory projection event sync until this action exists, unless
+  product events are changed to be explicitly locale-aware first.
+
+### Phase 2. DB model and view
 
 - Add `inventoryItemCatalogProjection`.
 - Add `inventoryProductTranslation`.
@@ -648,22 +707,16 @@ ownership changes.
 - Export models from inventory repository models index.
 - Generate Drizzle migration for tables, indexes and view.
 
-### Phase 2. Repository and GraphQL schema
+### Phase 3. Repository and GraphQL schema
 
 - Implement `inventoryItem.getConnection(...)` over `inventoryItemListView`.
 - Extend `InventoryItemWhereInput` and `InventoryItemOrderByInput`.
 - Keep `InventoryItemConnection` / `InventoryItemEdge` returning
   `InventoryItem`.
-- Add `InventoryItem.variant` to schema if missing.
+- Add `InventoryItem.variant` to the GraphQL schema. The resolver already exists,
+  but the field must be present in schema before Admin can query it.
 - Update `InventoryQuery.inventoryItems` args to include Relay pagination,
   `warehouseId`, `where` and `orderBy`.
-
-### Phase 3. Catalog snapshot provider
-
-- Add catalog broker action for inventory item projection snapshots.
-- Return base variant/product snapshot separately from product translations.
-- Include all locales or explicitly requested locales.
-- Do not include variant names.
 
 ### Phase 4. Event sync
 
@@ -676,7 +729,8 @@ ownership changes.
 ### Phase 5. Backfill
 
 - Add rebuild script/CLI task.
-- Run it for existing stores before switching Admin Inventory page.
+- Run it for existing stores before switching Admin Inventory page. This is a
+  required migration gate, not an optional repair step.
 - Keep it as a repair/reconciliation tool.
 
 ### Phase 6. Admin read path

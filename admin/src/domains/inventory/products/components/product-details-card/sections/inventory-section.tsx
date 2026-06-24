@@ -241,6 +241,7 @@ export const InventorySection = ({
           defaultCurrency,
           includePricing: false,
           includeInventory: true,
+          includeMedia: false,
         });
       } catch (err) {
         message.error(

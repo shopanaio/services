@@ -128,8 +128,16 @@ export interface IEditVariantInventoryModalPayload extends IModalStackPayload {
 
 export interface IEditMediaModalPayload extends IModalStackPayload {
   productId?: string;
+  title?: string;
+  galleryTitle?: string;
   featured: ApiFile | null;
   gallery: ApiFile[];
+  selectionMode?: boolean;
+  selectedFileIds?: string[];
+  showUpload?: boolean;
+  allowDelete?: boolean;
+  allowSetFeatured?: boolean;
+  hasFeatured?: boolean;
   onSave?: (media: {
     featured: ApiFile | null;
     gallery: ApiFile[];
@@ -204,6 +212,7 @@ export interface IEditVariantsModalPayload extends IModalStackPayload {
   productId?: string;
   initialTab?: VariantTabKey;
   variants: ApiVariant[];
+  productMediaFiles?: ApiFile[];
   productOptions: ApiProductOption[];
   defaultCurrency?: CurrencyCode | null;
   variantEditorScope?: {

@@ -12,6 +12,7 @@ export interface PrepareChangedVariantUpdateInputsParams {
   warehouseId?: string | null;
   includePricing?: boolean;
   includeInventory?: boolean;
+  includeMedia?: boolean;
 }
 
 function parseRequiredMinorUnit(value: unknown): number {
@@ -264,6 +265,37 @@ function applyInventoryUpdate({
   }
 }
 
+function areSameFileIdSet(
+  left: readonly string[],
+  right: readonly string[],
+): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  const rightSet = new Set(right);
+
+  return left.every((fileId) => rightSet.has(fileId));
+}
+
+function applyMediaUpdate(
+  update: ApiVariantUpdateInput,
+  row: VariantEditorSaveRow,
+  variant: ApiVariant,
+) {
+  const originalFileIds = [...variant.media]
+    .sort((left, right) => left.sortIndex - right.sortIndex)
+    .map((media) => media.file.id);
+
+  if (areSameFileIdSet(row.mediaFileIds, originalFileIds)) {
+    return;
+  }
+
+  update.media = {
+    fileIds: row.mediaFileIds,
+  };
+}
+
 export function prepareChangedVariantUpdateInputs({
   rows,
   variants,
@@ -271,6 +303,7 @@ export function prepareChangedVariantUpdateInputs({
   warehouseId,
   includePricing = true,
   includeInventory = true,
+  includeMedia = true,
 }: PrepareChangedVariantUpdateInputsParams): ApiVariantUpdateInput[] {
   const variantsById = new Map(
     variants.map((variant) => [variant.id, variant]),
@@ -300,7 +333,16 @@ export function prepareChangedVariantUpdateInputs({
       });
     }
 
-    if (!update.pricing && !update.inventory && !update.dimensions) {
+    if (includeMedia) {
+      applyMediaUpdate(update, row, variant);
+    }
+
+    if (
+      !update.pricing &&
+      !update.inventory &&
+      !update.dimensions &&
+      !update.media
+    ) {
       updatesByVariantId.delete(row.id);
     }
   }

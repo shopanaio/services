@@ -9,7 +9,7 @@ export const MEDIA_COLUMNS: IVariantColumn[] = [
     field: "media",
     headerName: "Variant Media",
     defaultVisible: true,
-    editable: false,
+    editable: true,
     width: 120,
     minWidth: 80,
     type: "media",
@@ -150,6 +150,7 @@ export function createOptionColumns(optionGroups: IOptionGroup[]): IVariantColum
 // ============================================================================
 
 export const SELECTABLE_COLUMNS = [
+  "media",
   "price",
   "compareAtPrice",
   "costPrice",

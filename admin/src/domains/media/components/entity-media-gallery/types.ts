@@ -15,6 +15,16 @@ export interface IEntityMediaGalleryProps {
   showViewSwitcher?: boolean;
   /** Whether to show the upload area */
   showUpload?: boolean;
+  /** Whether media can be removed from the gallery */
+  allowDelete?: boolean;
+  /** Whether media can be promoted to featured */
+  allowSetFeatured?: boolean;
+  /** Whether checkbox selection is enabled */
+  selectionMode?: boolean;
+  /** Selected media IDs when selection mode is enabled */
+  selectedIds?: string[];
+  /** Called when selected media IDs change */
+  onSelectedIdsChange?: (ids: string[]) => void;
   /** Called when preview is requested */
   onPreview?: (item: ApiFile, index: number) => void;
   /** Accept attribute for file input */

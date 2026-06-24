@@ -43,6 +43,7 @@ interface UseProductModalsOptions {
 const GENERAL_VARIANTS_EDITABLE_COLUMNS: NonNullable<
   IEditVariantsModalPayload["editableColumns"]
 > = [
+  "media",
   "price",
   "compareAtPrice",
   "sku",
@@ -266,6 +267,7 @@ export const useProductModals = (
       openEditVariantsModal({
         productId: product.id,
         variants: hydratedVariants,
+        productMediaFiles: getProductMediaFiles(product),
         productOptions: product.options,
         defaultCurrency: options.defaultCurrency ?? null,
         variantEditorScope: {
@@ -288,6 +290,7 @@ export const useProductModals = (
               defaultCurrency: options.defaultCurrency ?? null,
               includePricing: true,
               includeInventory: true,
+              includeMedia: true,
             });
           } catch (err) {
             message.error(

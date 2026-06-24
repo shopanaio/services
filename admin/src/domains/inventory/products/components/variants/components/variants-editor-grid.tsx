@@ -3,6 +3,7 @@
 import React, { useCallback, useMemo, useEffect } from "react";
 import { App } from "antd";
 import { EditorGrid } from "@/shared/components/editor-grid";
+import type { ICellSelection } from "@/shared/components/ag-grid-cell-selection";
 import { validateFieldChange } from "@/shared/utils/inventory";
 import {
   DEFAULT_DIMENSION_UNIT,
@@ -18,7 +19,11 @@ import type {
   IOptionGroup,
   VariantColumnField,
 } from "../config/types";
-import type { ApiProductOption, CurrencyCode } from "@/graphql/types";
+import type { ApiFile, ApiProductOption, CurrencyCode } from "@/graphql/types";
+import {
+  useEditMediaModal,
+  type IEditMediaModalPayload,
+} from "../../../modals";
 
 // ============================================================================
 // Types
@@ -46,6 +51,7 @@ interface VariantsEditorGridProps {
   editableColumns?: VariantColumnField[];
   defaultCurrency?: CurrencyCode | null;
   productOptions?: ApiProductOption[];
+  productMediaFiles?: ApiFile[];
   dataTestId?: string;
 }
 
@@ -98,7 +104,7 @@ function variantsToRows(variants: IVariantEditorInput[]): IVariantEditorRow[] {
       id: v.id,
       title: v.title,
       imageUrl: v.imageUrl ?? null,
-      media: v.media ?? null,
+      media: v.media ?? [],
       options: v.options || [],
       // Inventory identification
       sku: v.sku ?? null,
@@ -134,6 +140,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   editableColumns,
   defaultCurrency,
   productOptions = [],
+  productMediaFiles = [],
   dataTestId = "variants-editor-grid",
 }) => {
   // Extract option groups for column generation
@@ -143,6 +150,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   );
 
   const { message } = App.useApp();
+  const { push: openEditMediaModal } = useEditMediaModal();
 
   // Transform variants to row data
   const initialRows = useMemo(
@@ -155,15 +163,6 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   // Store hooks
   const edits = useVariantsEditorStore((s) => s.edits);
   const setFieldValue = useVariantsEditorStore((s) => s.setFieldValue);
-
-  // Columns - pass availableColumns and ignoreUserSettings
-  const columns = useVariantsColumns({
-    optionGroups,
-    currency,
-    availableColumns,
-    editableColumns,
-    ignoreUserSettings,
-  });
 
   const rows = initialRows;
   const selectableColumns = useMemo(() => {
@@ -207,6 +206,95 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
     });
   }, [rows, edits]);
 
+  const openMediaEditor = useCallback(
+    (rowIds: string[]) => {
+      const uniqueRowIds = Array.from(new Set(rowIds));
+      const firstRow = displayRows.find((row) => row.id === uniqueRowIds[0]);
+
+      if (!firstRow || !isFieldEditable("media")) {
+        return;
+      }
+
+      const bulk = uniqueRowIds.length > 1;
+      const initialSelectedMedia = bulk ? [] : firstRow.media;
+      const initialSelectedIds = initialSelectedMedia.map((file) => file.id);
+      const initialSelectedIdSet = new Set(initialSelectedIds);
+      const gallery = [
+        ...initialSelectedMedia,
+        ...productMediaFiles.filter((file) => !initialSelectedIdSet.has(file.id)),
+      ];
+
+      openEditMediaModal({
+        title: bulk ? "Edit variants media" : "Edit variant media",
+        galleryTitle: "Variant Media",
+        featured: initialSelectedMedia[0] ?? null,
+        gallery,
+        selectionMode: true,
+        selectedFileIds: initialSelectedIds,
+        showUpload: false,
+        allowDelete: false,
+        allowSetFeatured: false,
+        hasFeatured: false,
+        onSave: (
+          media: Parameters<NonNullable<IEditMediaModalPayload["onSave"]>>[0],
+        ) => {
+          const selectedMedia = media.gallery;
+
+          for (const rowId of uniqueRowIds) {
+            const originalRow = rows.find((row) => row.id === rowId);
+
+            if (!originalRow) {
+              continue;
+            }
+
+            setFieldValue(rowId, "media", originalRow.media, selectedMedia);
+          }
+
+          return true;
+        },
+      });
+    },
+    [
+      displayRows,
+      isFieldEditable,
+      openEditMediaModal,
+      productMediaFiles,
+      rows,
+      setFieldValue,
+    ],
+  );
+
+  const handleOpenMediaEditor = useCallback(
+    (rowId: string, selectedRowIds?: string[]) => {
+      openMediaEditor(selectedRowIds?.length ? selectedRowIds : [rowId]);
+    },
+    [openMediaEditor],
+  );
+
+  const handleSelectionEnter = useCallback(
+    (cells: ICellSelection[]) => {
+      const mediaCells = cells.filter((cell) => cell.field === "media");
+
+      if (mediaCells.length === 0) {
+        return false;
+      }
+
+      openMediaEditor(mediaCells.map((cell) => cell.rowId));
+      return true;
+    },
+    [openMediaEditor],
+  );
+
+  // Columns - pass availableColumns and ignoreUserSettings
+  const columns = useVariantsColumns({
+    optionGroups,
+    currency,
+    availableColumns,
+    editableColumns,
+    ignoreUserSettings,
+    onEditMedia: isFieldEditable("media") ? handleOpenMediaEditor : undefined,
+  });
+
   // Notify parent of changes
   useEffect(() => {
     if (Object.keys(edits).length > 0) {
@@ -218,6 +306,16 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   const handleSetFieldValue = useCallback(
     (rowId: string, field: string, originalValue: unknown, newValue: unknown) => {
       if (!isFieldEditable(field)) {
+        return;
+      }
+
+      if (field === "media") {
+        if (newValue === null) {
+          setFieldValue(rowId, field, originalValue, []);
+        } else if (Array.isArray(newValue)) {
+          setFieldValue(rowId, field, originalValue, newValue);
+        }
+
         return;
       }
 
@@ -250,6 +348,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
       columns={columns}
       selectableColumns={selectableColumns}
       onSetFieldValue={handleSetFieldValue}
+      onSelectionEnter={handleSelectionEnter}
       dataTestId={dataTestId}
     />
   );

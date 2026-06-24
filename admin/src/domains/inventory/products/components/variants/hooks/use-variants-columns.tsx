@@ -46,6 +46,7 @@ export interface UseVariantsColumnsOptions {
    * ignoring user settings. Useful for restricted views.
    */
   ignoreUserSettings?: boolean;
+  onEditMedia?: (rowId: string, selectedRowIds?: string[]) => void;
 }
 
 // ============================================================================
@@ -199,6 +200,7 @@ export function useVariantsColumns(
     editableColumns,
     ignoreUserSettings = false,
     currency,
+    onEditMedia,
   } = normalizedOptions;
 
   const columnVisibility = useVariantsEditorStore((s) => s.columnVisibility);
@@ -241,6 +243,9 @@ export function useVariantsColumns(
         width: col.width,
         minWidth: 80,
         cellRenderer: ImageCellRenderer,
+        cellRendererParams: {
+          onEditMedia,
+        },
       });
     }
 
@@ -335,5 +340,6 @@ export function useVariantsColumns(
     editableColumns,
     ignoreUserSettings,
     currency,
+    onEditMedia,
   ]);
 }

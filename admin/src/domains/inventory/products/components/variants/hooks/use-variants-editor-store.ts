@@ -34,6 +34,34 @@ export const DEFAULT_VARIANTS_COLUMN_VISIBILITY: IColumnVisibility = {
   height: false,
 };
 
+function normalizeComparableValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => {
+      if (item && typeof item === "object" && "id" in item) {
+        return (item as { id: unknown }).id;
+      }
+
+      return item;
+    });
+  }
+
+  return value;
+}
+
+function areFieldValuesEqual(left: unknown, right: unknown): boolean {
+  const comparableLeft = normalizeComparableValue(left);
+  const comparableRight = normalizeComparableValue(right);
+
+  if (Array.isArray(comparableLeft) && Array.isArray(comparableRight)) {
+    return (
+      comparableLeft.length === comparableRight.length &&
+      comparableLeft.every((item, index) => item === comparableRight[index])
+    );
+  }
+
+  return comparableLeft === comparableRight;
+}
+
 // ============================================================================
 // Store Interface
 // ============================================================================
@@ -97,7 +125,7 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
             const rowEdits = state.edits[rowId] || {};
 
             // If reverted to original, remove the edit
-            if (originalValue === newValue) {
+            if (areFieldValuesEqual(originalValue, newValue)) {
               const { [field]: _, ...restFields } = rowEdits;
               if (Object.keys(restFields).length === 0) {
                 const { [rowId]: __, ...restEdits } = state.edits;
