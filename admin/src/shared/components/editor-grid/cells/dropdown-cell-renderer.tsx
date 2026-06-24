@@ -5,6 +5,7 @@ import { Dropdown } from "antd";
 import { DownOutlined } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import type { ICellRendererParams } from "ag-grid-community";
+import { Dash } from "./dash";
 
 // ============================================================================
 // Types
@@ -50,7 +51,7 @@ export function DropdownCellRenderer<TData extends { id: string }>({
 
   const currentValue = data[valueField] as string | undefined;
   const displayLabel =
-    options.find((opt) => opt.value === currentValue)?.label ?? currentValue ?? "—";
+    options.find((opt) => opt.value === currentValue)?.label ?? currentValue;
 
   const menuItems: MenuProps["items"] = options.map((opt) => ({
     key: opt.value,
@@ -86,7 +87,7 @@ export function DropdownCellRenderer<TData extends { id: string }>({
           padding: "0 11px",
         }}
       >
-        <span>{displayLabel}</span>
+        <span>{displayLabel ?? <Dash />}</span>
         <DownOutlined style={{ fontSize: 10, color: "rgba(0, 0, 0, 0.25)" }} />
       </div>
     </Dropdown>

@@ -1,6 +1,9 @@
 import { test } from '@fixtures/base.extend';
+import type { ApiFixtures } from '@fixtures/api/api';
 import { expect, type Locator, type Page } from '@playwright/test';
 import path from 'node:path';
+
+type Api = ApiFixtures['api'];
 
 async function signIn(page: Page, email: string, password: string) {
   await page.goto('/sign-in');
@@ -50,6 +53,52 @@ async function uploadVaseImage(page: Page) {
     .setInputFiles(path.resolve('archive/fixtures/images/vase.jpg'));
   await expect(page.getByText('Uploaded 1 file(s)')).toBeVisible();
   await expect(page.getByTestId('upload-media-modal')).toBeHidden();
+}
+
+async function createSimpleProduct(
+  api: Api,
+  title: string,
+  handle: string,
+) {
+  const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
+    variables: {
+      input: {
+        title,
+        handle,
+      },
+    },
+  });
+  const result = data.catalogMutation.productCreate;
+  expect(result.userErrors).toHaveLength(0);
+
+  if (!result.product?.id) {
+    throw new Error(`Created product id was not returned for ${title}`);
+  }
+
+  return {
+    id: result.product.id,
+    title,
+    handle,
+  };
+}
+
+async function selectProductInPicker(page: Page, title: string) {
+  const productPicker = page.getByTestId('product-picker-modal');
+  await productPicker.getByTestId('search-input').fill(title);
+  await expect(productPicker.getByText(title)).toBeVisible();
+  await productPicker.getByText(title).click();
+}
+
+async function expectProductHiddenInPicker(page: Page, title: string) {
+  const productPicker = page.getByTestId('product-picker-modal');
+  await productPicker.getByTestId('search-input').fill(title);
+  await expect(productPicker.getByText(title)).toBeHidden();
+}
+
+async function expectProductVisibleInPicker(page: Page, title: string) {
+  const productPicker = page.getByTestId('product-picker-modal');
+  await productPicker.getByTestId('search-input').fill(title);
+  await expect(productPicker.getByText(title)).toBeVisible();
 }
 
 test.describe('Admin category details update UI', () => {
@@ -240,7 +289,7 @@ test.describe('Admin category details update UI', () => {
       );
   });
 
-  test('assigns category products and reflects updated products data in the details card', async ({
+  test('assigns and removes category products from the details card', async ({
     api,
     page,
   }) => {
@@ -252,28 +301,29 @@ test.describe('Admin category details update UI', () => {
     const unique = crypto.randomUUID().slice(0, 8);
     const categoryName = `Admin Product Category ${unique}`;
     const categoryHandle = `admin-product-category-${unique}`;
-    const productTitle = `Assignable Product ${unique}`;
-    const productHandle = `assignable-product-${unique}`;
+    const firstProduct = {
+      title: `Assignable Product One ${unique}`,
+      handle: `assignable-product-one-${unique}`,
+    };
+    const secondProduct = {
+      title: `Assignable Product Two ${unique}`,
+      handle: `assignable-product-two-${unique}`,
+    };
+    const thirdProduct = {
+      title: `Assignable Product Three ${unique}`,
+      handle: `assignable-product-three-${unique}`,
+    };
 
     const category = await api.admin.category.create({
       name: categoryName,
       handle: categoryHandle,
     });
 
-    const { data: productData } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
-      variables: {
-        input: {
-          title: productTitle,
-          handle: productHandle,
-        },
-      },
-    });
-    const productResult = productData.catalogMutation.productCreate;
-    expect(productResult.userErrors).toHaveLength(0);
-    const productId = productResult.product?.id;
-    if (!productId) {
-      throw new Error('Created product id was not returned');
-    }
+    const products = [
+      await createSimpleProduct(api, firstProduct.title, firstProduct.handle),
+      await createSimpleProduct(api, secondProduct.title, secondProduct.handle),
+      await createSimpleProduct(api, thirdProduct.title, thirdProduct.handle),
+    ];
 
     const categoriesUrl = `/${organization.name}/${api.session.projectSlug}/categories`;
 
@@ -287,36 +337,51 @@ test.describe('Admin category details update UI', () => {
     );
 
     await detailsCard.getByTestId('category-products-assign-button').click();
-    const assignModal = page.getByTestId('assign-category-products-modal');
-    await expect(assignModal).toBeVisible();
-    await assignModal.getByTestId('assign-category-products-add-button').click();
-
     const productPicker = page.getByTestId('product-picker-modal');
     await expect(productPicker).toBeVisible();
-    await productPicker.getByTestId('search-input').fill(productTitle);
-    await expect(productPicker.getByText(productTitle)).toBeVisible();
-    await productPicker.getByText(productTitle).click();
+    await selectProductInPicker(page, products[0].title);
+    await selectProductInPicker(page, products[1].title);
     await page.getByTestId('submit-product-picker-form-button').click();
     await expect(productPicker).toBeHidden();
 
+    await expect(detailsCard.getByTestId('category-products-section')).toContainText(
+      'Products (2)',
+    );
     await expect(
-      assignModal.getByTestId(`assign-category-products-selected-row-${productId}`),
-    ).toContainText(productTitle);
-    await page.getByTestId('submit-assign-category-products-form-button').click();
-    await expect(assignModal).toBeHidden();
+      detailsCard.getByTestId(`category-products-title-cell-${products[0].handle}`),
+    ).toHaveText(products[0].title);
+    await expect(
+      detailsCard.getByTestId(`category-products-title-cell-${products[1].handle}`),
+    ).toHaveText(products[1].title);
+    await expect(
+      detailsCard.getByTestId(`category-products-handle-cell-${products[0].handle}`),
+    ).toHaveText(products[0].handle);
+    await expect(
+      detailsCard.getByTestId(`category-products-handle-cell-${products[1].handle}`),
+    ).toHaveText(products[1].handle);
+    await expect(
+      detailsCard.getByTestId(`category-products-status-cell-${products[0].handle}`),
+    ).toHaveText('Draft');
 
+    await detailsCard.getByTestId('category-products-assign-button').click();
+    await expect(productPicker).toBeVisible();
+    await expectProductHiddenInPicker(page, products[0].title);
+    await expectProductHiddenInPicker(page, products[1].title);
+    await expectProductVisibleInPicker(page, products[2].title);
+    await page.keyboard.press('Escape');
+    await expect(productPicker).toBeHidden();
+
+    await detailsCard.getByTestId(`category-products-remove-button-${products[0].handle}`).click();
+    await page.locator('.ant-popconfirm').getByRole('button', { name: 'Remove' }).click();
     await expect(detailsCard.getByTestId('category-products-section')).toContainText(
       'Products (1)',
     );
     await expect(
-      detailsCard.getByTestId(`category-products-title-cell-${productHandle}`),
-    ).toHaveText(productTitle);
+      detailsCard.getByTestId(`category-products-title-cell-${products[0].handle}`),
+    ).toBeHidden();
     await expect(
-      detailsCard.getByTestId(`category-products-handle-cell-${productHandle}`),
-    ).toHaveText(productHandle);
-    await expect(
-      detailsCard.getByTestId(`category-products-status-cell-${productHandle}`),
-    ).toHaveText('Draft');
+      detailsCard.getByTestId(`category-products-title-cell-${products[1].handle}`),
+    ).toHaveText(products[1].title);
 
     await expect
       .poll(async () => {
@@ -331,10 +396,10 @@ test.describe('Admin category details update UI', () => {
           ? [
               updatedCategory.productsCount,
               updatedCategory.products.totalCount,
-              updatedCategory.products.edges[0]?.node.id,
+              updatedCategory.products.edges.map((edge) => edge.node.id).join(','),
             ].join('|')
           : null;
       })
-      .toBe(`1|1|${productId}`);
+      .toBe(`1|1|${products[1].id}`);
   });
 });

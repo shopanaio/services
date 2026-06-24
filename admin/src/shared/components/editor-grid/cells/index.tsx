@@ -6,12 +6,7 @@ export {
   DropdownCellRenderer,
   YES_NO_OPTIONS,
 } from "./dropdown-cell-renderer";
-
-// =============================================================================
-// Dash (empty cell placeholder)
-// =============================================================================
-
-export const Dash = () => <span className="ec-dash" />;
+export { Dash } from "./dash";
 
 // =============================================================================
 // Diff Display (oldValue → newValue)

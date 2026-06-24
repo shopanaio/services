@@ -6,6 +6,7 @@ import type { ICellRendererParams } from "ag-grid-community";
 import type { ITableRow } from "../types";
 import type { PricingRuleTemplate, BundleItem } from "../../../types";
 import { BundlePriceType, PRICE_RULE_OPTIONS } from "../../../types";
+import { Dash } from "@/shared/components/editor-grid";
 
 // Helper to determine if pricingRule is a template
 const isTemplate = (
@@ -132,13 +133,13 @@ export const PriceValueCellRenderer = ({
   if (!data || data.type === "group") return null;
 
   const rule = data.pricingRule;
-  if (!rule) return "—";
+  if (!rule) return <Dash />;
 
   const priceType = isTemplate(rule) ? rule.priceType : rule.priceType;
   const priceValue = isTemplate(rule) ? rule.priceValue : rule.priceValue;
   const option = PRICE_RULE_OPTIONS.find((r) => r.value === priceType);
 
-  if (!option?.requiresValue) return "—";
-  if (priceValue == null) return "—";
+  if (!option?.requiresValue) return <Dash />;
+  if (priceValue == null) return <Dash />;
   return `${priceValue}${option.valueSuffix || ""}`;
 };

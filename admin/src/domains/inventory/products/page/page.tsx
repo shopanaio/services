@@ -48,6 +48,7 @@ import {
 } from "../utils/api-product-display";
 import { formatPrice } from "../utils/price-formatting";
 import type { ProductsQueryVariables } from "../graphql";
+import { Dash } from "@/shared/components/editor-grid";
 
 ModuleRegistry.registerModules([
   AllCommunityModule,
@@ -100,7 +101,7 @@ const TextCellRenderer = (
           : undefined
       }
     >
-      {value ?? "\u2014"}
+      {value ?? <Dash />}
     </Typography.Text>
   );
 };
@@ -123,7 +124,7 @@ const PriceCellRenderer = (
     >
       {value !== null && value !== undefined && currency
         ? formatPrice(value, currency)
-        : "\u2014"}
+        : <Dash />}
     </Typography.Text>
   );
 };

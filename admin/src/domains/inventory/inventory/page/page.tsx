@@ -12,6 +12,7 @@ import {
   RowSelectionModule,
   GridStateModule,
   CellEditRequestEvent,
+  ICellRendererParams,
   SelectionChangedEvent,
 } from "ag-grid-community";
 import { DataLayout } from "@/layouts/data";
@@ -50,6 +51,7 @@ import {
   OnHandCellRenderer,
   UnavailableCellRenderer,
 } from "../components";
+import { Dash } from "@/shared/components/editor-grid";
 
 ModuleRegistry.registerModules([
   AllCommunityModule,
@@ -69,6 +71,14 @@ const useStyles = createStyles(({ token }) => ({
       "&:hover": {
         opacity: 1,
       },
+    },
+    "& .ec-dash": {
+      display: "inline-block",
+      width: 24,
+      height: 4,
+      backgroundColor: token.colorBorder,
+      borderRadius: 2,
+      verticalAlign: "middle",
     },
   },
   gridContainer: {
@@ -99,6 +109,12 @@ function getFirstStoredError(
 ) {
   return submitErrors[0] ?? Object.values(rowErrors).flat()[0] ?? null;
 }
+
+const SkuCellRenderer = ({
+  value,
+}: ICellRendererParams<InventoryVariantRow>) => {
+  return value == null ? <Dash /> : <span>{String(value)}</span>;
+};
 
 export default function InventoryPage() {
   const { styles } = useStyles();
@@ -380,7 +396,7 @@ export default function InventoryPage() {
         field: "sku",
         minWidth: 120,
         sortable: false,
-        valueFormatter: ({ value }) => value ?? "-",
+        cellRenderer: SkuCellRenderer,
       },
       {
         headerName: "On hand",

@@ -3,15 +3,18 @@
 import { useMemo, useState } from "react";
 import {
   Alert,
+  App,
   Button,
   Dropdown,
   Flex,
   Image,
+  Popconfirm,
   Skeleton,
   Tag,
   Typography,
 } from "antd";
 import {
+  DeleteOutlined,
   PlusOutlined,
   ShoppingOutlined,
   SortAscendingOutlined,
@@ -24,7 +27,7 @@ import {
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import type { ApiListingOrderByInput, ApiProduct } from "@/graphql/types";
 import { ProductSortBy, SortDirection } from "@/graphql/types";
-import { useCategoryProducts } from "../../../hooks";
+import { useCategoryProducts, useRemoveCategoryProduct } from "../../../hooks";
 import { useProductsStyles } from "../category-details-card.styles";
 
 const getProductImageUrl = (product: ApiProduct): string | null => {
@@ -54,9 +57,11 @@ const formatSortDirection = (value: SortDirection): string =>
 
 interface ProductRowProps {
   product: ApiProduct;
+  isRemoving?: boolean;
+  onRemove?: (product: ApiProduct) => void;
 }
 
-const ProductRow = ({ product }: ProductRowProps) => {
+const ProductRow = ({ product, isRemoving, onRemove }: ProductRowProps) => {
   const { styles } = useProductsStyles();
   const imageUrl = getProductImageUrl(product);
 
@@ -103,6 +108,25 @@ const ProductRow = ({ product }: ProductRowProps) => {
           {product.isPublished ? "Published" : "Draft"}
         </Tag>
       </td>
+      <td style={{ textAlign: "right", width: 56 }}>
+        <Popconfirm
+          title="Remove product from category?"
+          description="The product will stay in the catalog."
+          okText="Remove"
+          okButtonProps={{ danger: true, loading: isRemoving }}
+          onConfirm={() => onRemove?.(product)}
+        >
+          <Button
+            size="small"
+            type="text"
+            danger
+            icon={<DeleteOutlined />}
+            loading={isRemoving}
+            aria-label={`Remove ${product.title} from category`}
+            data-testid={`category-products-remove-button-${product.handle}`}
+          />
+        </Popconfirm>
+      </td>
     </tr>
   );
 };
@@ -123,7 +147,11 @@ export const ProductsSection = ({
   onAssignProducts,
 }: ProductsSectionProps) => {
   const { styles } = useProductsStyles();
+  const { message } = App.useApp();
   const [orderBy, setOrderBy] = useState<ApiListingOrderByInput[] | null>(null);
+  const [removingProductId, setRemovingProductId] = useState<string | null>(
+    null,
+  );
   const pagination = useRelayCursorPagination({
     defaultPageSize: 10,
     resetKey: JSON.stringify(orderBy),
@@ -133,6 +161,7 @@ export const ProductsSection = ({
       ...pagination.variables,
       orderBy,
     });
+  const { removeCategoryProduct } = useRemoveCategoryProduct();
 
   const sortMenu = useMemo(
     () => ({
@@ -192,6 +221,26 @@ export const ProductsSection = ({
     defaultSortDirection,
   )}`;
 
+  const handleRemoveProduct = async (product: ApiProduct) => {
+    setRemovingProductId(product.id);
+
+    try {
+      const result = await removeCategoryProduct({
+        categoryId,
+        productId: product.id,
+      });
+
+      if (result.userErrors.length > 0) {
+        message.error(result.userErrors[0].message);
+        return;
+      }
+
+      message.success("Product removed from category");
+    } finally {
+      setRemovingProductId(null);
+    }
+  };
+
   return (
     <Paper data-testid="category-products-section">
       <PaperHeader
@@ -240,11 +289,17 @@ export const ProductsSection = ({
                   <th>Product</th>
                   <th>Handle</th>
                   <th>Status</th>
+                  <th aria-label="Actions" />
                 </tr>
               </thead>
               <tbody>
                 {products.map((product) => (
-                  <ProductRow key={product.id} product={product} />
+                  <ProductRow
+                    key={product.id}
+                    product={product}
+                    isRemoving={removingProductId === product.id}
+                    onRemove={handleRemoveProduct}
+                  />
                 ))}
               </tbody>
             </table>

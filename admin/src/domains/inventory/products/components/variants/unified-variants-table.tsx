@@ -19,6 +19,7 @@ import {
   getDimensionUnitLabel,
   getWeightUnitLabel,
 } from "../../utils/product-measurements";
+import { Dash } from "@/shared/components/editor-grid";
 
 // ============================================================================
 // Types
@@ -185,11 +186,7 @@ const PriceCellRenderer = (props: CustomCellRendererProps<IUnifiedVariantRow>) =
   const { value } = props;
 
   if (value === null || value === undefined) {
-    return (
-      <Typography.Text type="secondary" className={styles.priceCell}>
-        —
-      </Typography.Text>
-    );
+    return <Dash />;
   }
 
   return (
@@ -197,6 +194,28 @@ const PriceCellRenderer = (props: CustomCellRendererProps<IUnifiedVariantRow>) =
       {defaultFormatPrice(value)}
     </Typography.Text>
   );
+};
+
+const TextCellRenderer = ({
+  value,
+}: CustomCellRendererProps<IUnifiedVariantRow>) => {
+  return value == null ? <Dash /> : <span>{String(value)}</span>;
+};
+
+const WeightCellRenderer = ({
+  data,
+  value,
+}: CustomCellRendererProps<IUnifiedVariantRow>) => {
+  if (value == null) return <Dash />;
+  return <span>{value} {getWeightUnitLabel(data?.weightUnit)}</span>;
+};
+
+const DimensionCellRenderer = ({
+  data,
+  value,
+}: CustomCellRendererProps<IUnifiedVariantRow>) => {
+  if (value == null) return <Dash />;
+  return <span>{value} {getDimensionUnitLabel(data?.dimensionUnit)}</span>;
 };
 
 // ============================================================================
@@ -275,7 +294,7 @@ export const UnifiedVariantsTable = ({
         minWidth: 120,
         editable: true,
         cellEditor: "agTextCellEditor",
-        valueFormatter: (params) => params.value ?? "—",
+        cellRenderer: TextCellRenderer,
       },
       {
         headerName: "Stock",
@@ -300,7 +319,7 @@ export const UnifiedVariantsTable = ({
         minWidth: 140,
         editable: true,
         cellEditor: "agTextCellEditor",
-        valueFormatter: (params) => params.value ?? "—",
+        cellRenderer: TextCellRenderer,
       },
     ],
     []
@@ -317,8 +336,6 @@ export const UnifiedVariantsTable = ({
         cellRenderer: PriceCellRenderer,
         cellEditor: "agNumberCellEditor",
         cellEditorParams: { min: 0, precision: 0 },
-        valueFormatter: (params) =>
-          params.value != null ? defaultFormatPrice(params.value) : "—",
       },
       {
         headerName: "Compare at Price",
@@ -329,8 +346,6 @@ export const UnifiedVariantsTable = ({
         cellRenderer: PriceCellRenderer,
         cellEditor: "agNumberCellEditor",
         cellEditorParams: { min: 0, precision: 0 },
-        valueFormatter: (params) =>
-          params.value != null ? defaultFormatPrice(params.value) : "—",
       },
       {
         headerName: "Cost Price",
@@ -341,8 +356,6 @@ export const UnifiedVariantsTable = ({
         cellRenderer: PriceCellRenderer,
         cellEditor: "agNumberCellEditor",
         cellEditorParams: { min: 0, precision: 0 },
-        valueFormatter: (params) =>
-          params.value != null ? defaultFormatPrice(params.value) : "—",
       },
     ],
     []
@@ -358,12 +371,7 @@ export const UnifiedVariantsTable = ({
         editable: true,
         cellEditor: "agNumberCellEditor",
         cellEditorParams: { min: 0, precision: 2 },
-        valueFormatter: (params) => {
-          if (params.value === null || params.value === undefined) return "—";
-          return `${params.value} ${getWeightUnitLabel(
-            params.data?.weightUnit,
-          )}`;
-        },
+        cellRenderer: WeightCellRenderer,
       },
       {
         headerName: "Length",
@@ -373,7 +381,7 @@ export const UnifiedVariantsTable = ({
         editable: true,
         cellEditor: "agNumberCellEditor",
         cellEditorParams: { min: 0, precision: 2 },
-        valueFormatter: (params) => (params.value != null ? String(params.value) : "—"),
+        cellRenderer: TextCellRenderer,
       },
       {
         headerName: "Width",
@@ -383,7 +391,7 @@ export const UnifiedVariantsTable = ({
         editable: true,
         cellEditor: "agNumberCellEditor",
         cellEditorParams: { min: 0, precision: 2 },
-        valueFormatter: (params) => (params.value != null ? String(params.value) : "—"),
+        cellRenderer: TextCellRenderer,
       },
       {
         headerName: "Height",
@@ -393,12 +401,7 @@ export const UnifiedVariantsTable = ({
         editable: true,
         cellEditor: "agNumberCellEditor",
         cellEditorParams: { min: 0, precision: 2 },
-        valueFormatter: (params) => {
-          if (params.value === null || params.value === undefined) return "—";
-          return `${params.value} ${getDimensionUnitLabel(
-            params.data?.dimensionUnit,
-          )}`;
-        },
+        cellRenderer: DimensionCellRenderer,
       },
     ],
     []

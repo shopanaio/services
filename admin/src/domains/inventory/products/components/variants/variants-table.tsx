@@ -11,6 +11,7 @@ import {
   GetRowIdParams,
 } from "ag-grid-community";
 import { useAgGridTheme } from "@/hooks";
+import { Dash } from "@/shared/components/editor-grid";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -72,6 +73,14 @@ const useStyles = createStyles(({ token }) => ({
         opacity: 1,
       },
     },
+    "& .ec-dash": {
+      display: "inline-block",
+      width: 24,
+      height: 4,
+      backgroundColor: token.colorBorder,
+      borderRadius: 2,
+      verticalAlign: "middle",
+    },
   },
 }));
 
@@ -110,7 +119,9 @@ export function VariantsTable<T extends IVariantRowBase>({
         cols.push({
           headerName: group.title,
           valueGetter: (params) =>
-            (params.data as IVariantRowBase)?.options[group.slug] || "—",
+            (params.data as IVariantRowBase)?.options[group.slug] || null,
+          cellRenderer: ({ value }: { value?: unknown }) =>
+            value == null ? <Dash /> : <span>{String(value)}</span>,
           flex: 1,
           minWidth: 120,
         });

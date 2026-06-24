@@ -69,20 +69,6 @@ export class CategoryRemoveProductScript extends BaseScript<
       };
     }
 
-    if (link.isPrimary) {
-      return {
-        category: undefined,
-        affectedProductIds: [],
-        userErrors: [
-          {
-            message: "Cannot remove the primary category assignment",
-            field: ["input", "categoryId"],
-            code: "PRIMARY_CATEGORY_REMOVAL_NOT_ALLOWED",
-          },
-        ],
-      };
-    }
-
     await this.repository.category.removeProductFromCategory(
       params.productId,
       params.categoryId,

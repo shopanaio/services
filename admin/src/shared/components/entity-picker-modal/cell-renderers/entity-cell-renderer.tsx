@@ -4,6 +4,7 @@ import { Flex, Image, Typography } from "antd";
 import { createStyles } from "antd-style";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import type { IPickableEntity } from "../types";
+import { Dash } from "@/shared/components/editor-grid";
 
 const useStyles = createStyles(({ token }) => ({
   image: {
@@ -48,7 +49,9 @@ export function EntityCellRenderer<T extends IPickableEntity>(
           preview={false}
         />
       ) : (
-        <div className={styles.placeholder}>—</div>
+        <div className={styles.placeholder}>
+          <Dash />
+        </div>
       )}
       <Typography.Text strong className={styles.title}>
         {data.title}

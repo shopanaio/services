@@ -35,6 +35,7 @@ import type {
   ApiFileOrderByInput,
 } from "@/graphql/types";
 import { FileProvider } from "@/graphql/types";
+import { Dash } from "@/shared/components/editor-grid";
 
 ModuleRegistry.registerModules([
   AllCommunityModule,
@@ -120,7 +121,7 @@ const ProviderCellRenderer = (props: CustomCellRendererProps<ApiFile>) => {
 const SizeCellRenderer = (props: CustomCellRendererProps<ApiFile>) => {
   const { value } = props;
   if (!value || value === 0) {
-    return <Typography.Text type="secondary">-</Typography.Text>;
+    return <Dash />;
   }
 
   const formatBytes = (bytes: number): string => {
@@ -136,7 +137,7 @@ const SizeCellRenderer = (props: CustomCellRendererProps<ApiFile>) => {
 
 const DateCellRenderer = (props: CustomCellRendererProps<ApiFile>) => {
   const { value } = props;
-  if (!value) return <Typography.Text type="secondary">-</Typography.Text>;
+  if (!value) return <Dash />;
 
   const date = new Date(value);
   return (
@@ -169,7 +170,7 @@ const ReferencesCellRenderer = (props: CustomCellRendererProps<ApiFile>) => {
   const usage = data?.usage;
 
   if (!usage || usage.totalCount === 0) {
-    return <Typography.Text type="secondary">-</Typography.Text>;
+    return <Dash />;
   }
 
   const { byEntity, totalCount } = usage;

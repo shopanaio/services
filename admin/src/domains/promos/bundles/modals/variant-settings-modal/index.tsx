@@ -19,6 +19,7 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import { useAgGridTheme } from "@/hooks";
+import { Dash } from "@/shared/components/editor-grid";
 
 import type { IBundleItemVariantSettingsModalPayload } from "@/domains/promos/bundles/modals";
 
@@ -74,7 +75,7 @@ const calculateFinalPrice = (
   }
 };
 
-const formatPriceRule = (priceType: PriceType, priceValue: number | null): string => {
+const formatPriceRule = (priceType: PriceType, priceValue: number | null): string | null => {
   switch (priceType) {
     case "BASE":
       return "No change";
@@ -87,7 +88,7 @@ const formatPriceRule = (priceType: PriceType, priceValue: number | null): strin
     case "FREE":
       return "Free";
     default:
-      return "—";
+      return null;
   }
 };
 
@@ -151,6 +152,14 @@ const useStyles = createStyles(({ token }) => ({
     "& .ag-row-dragging": {
       cursor: "grabbing",
     },
+    "& .ec-dash": {
+      display: "inline-block",
+      width: 24,
+      height: 4,
+      backgroundColor: token.colorBorder,
+      borderRadius: 2,
+      verticalAlign: "middle",
+    },
   },
   sectionHeader: {
     display: "flex",
@@ -176,6 +185,12 @@ const BasePriceCellRenderer = ({ data }: ICellRendererParams<IVariantRow>) => {
 const FinalPriceCellRenderer = ({ data }: ICellRendererParams<IVariantRow>) => {
   if (!data) return null;
   return <span style={{ fontWeight: 500 }}>{formatPrice(data.finalPrice)}</span>;
+};
+
+const PriceRuleCellRenderer = ({
+  value,
+}: ICellRendererParams<IVariantRow>) => {
+  return value == null ? <Dash /> : <span>{String(value)}</span>;
 };
 
 // ============================================================================
@@ -371,6 +386,7 @@ export const VariantSettingsModal = () => {
         field: "price",
         width: 90,
         valueGetter: () => priceRuleLabel,
+        cellRenderer: PriceRuleCellRenderer,
         cellStyle: { color: "var(--ant-color-text-secondary)", fontSize: 12 },
       },
       {
