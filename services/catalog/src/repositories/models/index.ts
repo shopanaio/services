@@ -31,6 +31,7 @@ export * from "./translations";
 // List views
 export * from "./productListView";
 export * from "./categoryListView";
+export * from "./tagListView";
 
 // SEO (search engine & social media metadata)
 export * from "./seo";

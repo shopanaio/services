@@ -11,7 +11,7 @@ export type TagConnectionInput = TagRelayInput;
  * TagConnection - resolves paginated tag list
  * Uses cursor-based pagination with Relay-style Connection spec
  */
-export class TagConnectionResolver extends BaseConnectionResolver<TagRelayInput> {
+export class TagConnectionResolver extends BaseConnectionResolver<TagConnectionInput> {
   async $preload(): Promise<ConnectionData> {
     return this.$ctx.kernel
       .getServices()

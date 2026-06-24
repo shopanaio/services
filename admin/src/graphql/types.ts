@@ -1262,6 +1262,8 @@ export type ApiCatalogQueryTagsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiTagOrderByInput>>;
+  where?: InputMaybe<ApiTagWhereInput>;
 };
 
 
@@ -6572,6 +6574,32 @@ export type ApiTagEdge = {
   node: ApiTag;
 };
 
+/** Ordering configuration for Tag */
+export type ApiTagOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: TagOrderField;
+};
+
+/** Fields available for sorting Tag */
+export enum TagOrderField {
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by handle */
+  Handle = 'handle',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by locale */
+  Locale = 'locale',
+  /** Sort by name */
+  Name = 'name',
+  /** Sort by productsCount */
+  ProductsCount = 'productsCount',
+  /** Sort by projectId */
+  ProjectId = 'projectId'
+}
+
 /** Input for updating a tag. */
 export type ApiTagUpdateInput = {
   /** The URL-friendly handle for the tag. */
@@ -6589,6 +6617,30 @@ export type ApiTagUpdatePayload = {
   tag?: Maybe<ApiTag>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
+};
+
+/** Filter conditions for Tag */
+export type ApiTagWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiTagWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiTagWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiTagWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by handle */
+  handle?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by locale */
+  locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by name */
+  name?: InputMaybe<ApiStringFilter>;
+  /** Filter by productsCount */
+  productsCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by projectId */
+  projectId?: InputMaybe<ApiIdFilter>;
 };
 
 export enum ThresholdMethod {

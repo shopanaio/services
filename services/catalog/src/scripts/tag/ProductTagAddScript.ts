@@ -1,4 +1,4 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type {
   ProductTagAddParams,
   ProductTagAddResult,
@@ -8,6 +8,7 @@ export class ProductTagAddScript extends BaseScript<
   ProductTagAddParams,
   ProductTagAddResult
 > {
+  @Transactional()
   protected async execute(
     params: ProductTagAddParams
   ): Promise<ProductTagAddResult> {

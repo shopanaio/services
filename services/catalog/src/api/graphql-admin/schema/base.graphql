@@ -221,6 +221,14 @@ type CatalogQuery {
     after: String
     last: Int
     before: String
+    """
+    Filter conditions
+    """
+    where: TagWhereInput
+    """
+    Sort order
+    """
+    orderBy: [TagOrderByInput!]
   ): TagConnection!
 
   """

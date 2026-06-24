@@ -9,6 +9,7 @@ import {
   categoryRelayQuery,
 } from "../src/repositories/category/CategoryRepository.js";
 import { productRelayQuery } from "../src/repositories/product/ProductRepository.js";
+import { tagRelayQuery } from "../src/repositories/tag/TagRepository.js";
 import { vendorRelayQuery } from "../src/repositories/vendor/VendorRepository.js";
 import { variantRelayQuery } from "../src/repositories/variant/VariantRepository.js";
 
@@ -85,6 +86,26 @@ const categoryOrderBy = generateOrderByInputType(categoryRelayQuery, "Category",
   excludeFields: ["projectId", "deletedAt", "revision"],
 });
 
+const tagListFieldTypes: Record<string, GraphQLFieldType> = {
+  projectId: "ID",
+  id: "ID",
+  handle: "String",
+  createdAt: "DateTime",
+  productsCount: "Int",
+  locale: "String",
+  name: "String",
+};
+
+const tagWhere = generateWhereInputType(tagRelayQuery, "Tag", {
+  includeDescriptions: true,
+  fieldTypes: tagListFieldTypes,
+});
+
+const tagOrderBy = generateOrderByInputType(tagRelayQuery, "Tag", {
+  includeDescriptions: true,
+  fieldTypes: tagListFieldTypes,
+});
+
 const categoryProductWhere = generateWhereInputType(
   categoryProductsRelayQuery,
   "CategoryProduct",
@@ -124,6 +145,12 @@ ${vendorOrderBy}
 ${categoryWhere}
 
 ${categoryOrderBy}
+
+# ---- Tag ----
+
+${tagWhere}
+
+${tagOrderBy}
 
 # ---- CategoryProduct ----
 

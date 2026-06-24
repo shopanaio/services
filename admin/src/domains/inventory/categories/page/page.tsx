@@ -24,41 +24,30 @@ import {
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
-import {
-  FilterOperator,
-  useFilters,
-  FilterWidget,
-} from "@/layouts/filters";
-import type { IFilterAdapter } from "@/layouts/filters/core/types";
-import {
-  RelayCursorPagination,
-  useRelayCursorPagination,
-} from "@/ui-kit/cursor-pagination";
+import { FilterWidget } from "@/layouts/filters";
+import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { FloatingPanelStack } from "@/ui-kit/floating-panel-stack";
 import type { ActionConfig } from "@/ui-kit/floating-panel-stack/core/types";
 import type { PanelConfig } from "@/ui-kit/floating-panel-stack/data-page/floating-panel-stack";
 import {
-  useGridState,
-  useGridSort,
   useAgGridTheme,
   useAgGridRowSelection,
+  usePageConfig,
 } from "@/hooks";
-import type { SortModel } from "@/hooks/use-grid-sort";
 import type {
   ApiCategory,
-  ApiCategoryOrderByInput,
   ApiCategoryWhereInput,
-  ApiDateTimeFilter,
   ApiFile,
-  ApiIntFilter,
-  ApiStringFilter,
 } from "@/graphql/types";
-import {
-  CategoryOrderField,
-  SortDirection,
-} from "@/graphql/types";
+import { CategoryOrderField } from "@/graphql/types";
 import { formatDetailDate } from "@/domains/inventory/utils/format-detail-date";
 import { filterSchema } from "./filter-schema";
+import {
+  buildCategoriesQueryVariables,
+  buildCategorySearchCondition,
+  categoryFilterTransformers,
+  categorySortFieldMapping,
+} from "./page-config";
 import { useCategories } from "../hooks";
 import { useCategoryModal, useCreateCategoryModal } from "../modals";
 import type { CategoriesQueryVariables } from "../graphql";
@@ -69,223 +58,6 @@ ModuleRegistry.registerModules([
   RowSelectionModule,
   GridStateModule,
 ]);
-
-const CATEGORY_SORT_FIELDS: Partial<Record<string, CategoryOrderField>> = {
-  handle: CategoryOrderField.Handle,
-  depth: CategoryOrderField.Depth,
-  updatedAt: CategoryOrderField.UpdatedAt,
-  createdAt: CategoryOrderField.CreatedAt,
-  publishedAt: CategoryOrderField.PublishedAt,
-};
-
-function isEmptyFilterValue(value: unknown): boolean {
-  if (Array.isArray(value)) {
-    return value.length === 0 || value.every(isEmptyFilterValue);
-  }
-
-  return value === null || value === undefined || value === "";
-}
-
-function getFirstFilterValue(value: unknown): unknown {
-  if (!Array.isArray(value)) {
-    return value;
-  }
-
-  return value.find((item) => !isEmptyFilterValue(item));
-}
-
-function buildStringFilter(
-  operator: FilterOperator,
-  value: unknown,
-): ApiStringFilter | null {
-  const firstValue = getFirstFilterValue(value);
-
-  if (isEmptyFilterValue(firstValue)) {
-    return null;
-  }
-
-  const text = String(firstValue);
-
-  switch (operator) {
-    case FilterOperator.Eq:
-      return { _eq: text };
-    case FilterOperator.NotEq:
-      return { _neq: text };
-    case FilterOperator.ILike:
-    case FilterOperator.Like:
-      return { _containsi: text };
-    default:
-      return null;
-  }
-}
-
-function buildIntFilter(
-  operator: FilterOperator,
-  value: unknown,
-): ApiIntFilter | null {
-  const firstValue = getFirstFilterValue(value);
-
-  if (isEmptyFilterValue(firstValue)) {
-    return null;
-  }
-
-  const numberValue = Number(firstValue);
-
-  if (!Number.isFinite(numberValue)) {
-    return null;
-  }
-
-  switch (operator) {
-    case FilterOperator.Eq:
-      return { _eq: numberValue };
-    case FilterOperator.NotEq:
-      return { _neq: numberValue };
-    case FilterOperator.Gt:
-      return { _gt: numberValue };
-    case FilterOperator.Gte:
-      return { _gte: numberValue };
-    case FilterOperator.Lt:
-      return { _lt: numberValue };
-    case FilterOperator.Lte:
-      return { _lte: numberValue };
-    default:
-      return null;
-  }
-}
-
-function toDateTimeInput(value: unknown): string | null {
-  if (isEmptyFilterValue(value)) {
-    return null;
-  }
-
-  if (typeof value === "string") {
-    return value;
-  }
-
-  if (value instanceof Date) {
-    return value.toISOString();
-  }
-
-  if (typeof value === "object" && value !== null) {
-    const maybeDate = value as { toISOString?: () => string };
-
-    if (typeof maybeDate.toISOString === "function") {
-      return maybeDate.toISOString();
-    }
-  }
-
-  return null;
-}
-
-function buildDateTimeFilter(
-  operator: FilterOperator,
-  value: unknown,
-): ApiDateTimeFilter | null {
-  if (operator === FilterOperator.Between) {
-    const values = Array.isArray(value) ? value : [];
-    const [startValue, endValue] = values;
-    const start = toDateTimeInput(startValue);
-    const end = toDateTimeInput(endValue);
-    const filter: ApiDateTimeFilter = {};
-
-    if (start) {
-      filter._gte = start;
-    }
-
-    if (end) {
-      filter._lte = end;
-    }
-
-    return Object.keys(filter).length > 0 ? filter : null;
-  }
-
-  const dateValue = toDateTimeInput(getFirstFilterValue(value));
-
-  if (!dateValue) {
-    return null;
-  }
-
-  switch (operator) {
-    case FilterOperator.Eq:
-      return { _eq: dateValue };
-    case FilterOperator.NotEq:
-      return { _neq: dateValue };
-    case FilterOperator.Gt:
-      return { _gt: dateValue };
-    case FilterOperator.Gte:
-      return { _gte: dateValue };
-    case FilterOperator.Lt:
-      return { _lt: dateValue };
-    case FilterOperator.Lte:
-      return { _lte: dateValue };
-    default:
-      return null;
-  }
-}
-
-const categoryFilterAdapter: IFilterAdapter<ApiCategoryWhereInput> = {
-  name: "category-where",
-  convert: (filter) => {
-    switch (filter.payloadKey) {
-      case "handle": {
-        const condition = buildStringFilter(filter.operator, filter.value);
-        return condition ? { handle: condition } : null;
-      }
-      case "path": {
-        const condition = buildStringFilter(filter.operator, filter.value);
-        return condition ? { path: condition } : null;
-      }
-      case "depth": {
-        const condition = buildIntFilter(filter.operator, filter.value);
-        return condition ? { depth: condition } : null;
-      }
-      case "publishedAt": {
-        const condition = buildDateTimeFilter(filter.operator, filter.value);
-        return condition ? { publishedAt: condition } : null;
-      }
-      case "createdAt": {
-        const condition = buildDateTimeFilter(filter.operator, filter.value);
-        return condition ? { createdAt: condition } : null;
-      }
-      case "updatedAt": {
-        const condition = buildDateTimeFilter(filter.operator, filter.value);
-        return condition ? { updatedAt: condition } : null;
-      }
-      default:
-        return null;
-    }
-  },
-  combine: (filters) => {
-    if (filters.length === 1) {
-      return filters[0];
-    }
-
-    return { _and: filters };
-  },
-  build: (combined) => combined,
-};
-
-function mapCategorySortModelToOrderBy(
-  sortModel: SortModel[],
-): ApiCategoryOrderByInput[] | null {
-  const orderBy = sortModel
-    .map((sort) => {
-      const field = CATEGORY_SORT_FIELDS[sort.colId];
-
-      if (!field || !sort.sort) {
-        return null;
-      }
-
-      return {
-        field,
-        direction:
-          sort.sort === "desc" ? SortDirection.Desc : SortDirection.Asc,
-      };
-    })
-    .filter((item): item is ApiCategoryOrderByInput => item !== null);
-
-  return orderBy.length > 0 ? orderBy : null;
-}
 
 function getCategoryThumbnailFile(category: ApiCategory): ApiFile | null {
   const [thumbnail] = [...category.media].sort(
@@ -396,63 +168,33 @@ const DateCellRenderer = (
 export default function CategoriesPage() {
   const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<ApiCategory>>(null);
-  const [searchValue, setSearchValue] = useState("");
   const [selectedCount, setSelectedCount] = useState(0);
-  const [sortModel, setSortModel] = useState<SortModel[]>([]);
-  const { widgetProps, payload: filtersWhere } =
-    useFilters<ApiCategoryWhereInput>({
-      schema: filterSchema,
-      adapter: categoryFilterAdapter,
-    });
   const { push: openCategoryModal } = useCategoryModal();
   const { push: openCreateCategoryModal } = useCreateCategoryModal();
-  const { initialState, onStateUpdated } = useGridState({
+  const pageConfig = usePageConfig<
+    ApiCategory,
+    ApiCategoryWhereInput,
+    CategoryOrderField
+  >({
+    gridRef,
     storageKey: "categories-grid-state",
-  });
-
-  const where = useMemo<ApiCategoryWhereInput | null>(() => {
-    const conditions: ApiCategoryWhereInput[] = [];
-    const query = searchValue.trim();
-
-    if (query) {
-      conditions.push({ handle: { _containsi: query } });
-    }
-
-    if (filtersWhere) {
-      conditions.push(filtersWhere);
-    }
-
-    if (conditions.length === 0) {
-      return null;
-    }
-
-    if (conditions.length === 1) {
-      return conditions[0];
-    }
-
-    return { _and: conditions };
-  }, [filtersWhere, searchValue]);
-
-  const orderBy = useMemo(
-    () => mapCategorySortModelToOrderBy(sortModel),
-    [sortModel],
-  );
-  const resetKey = useMemo(
-    () => JSON.stringify({ where, orderBy }),
-    [orderBy, where],
-  );
-  const pagination = useRelayCursorPagination({
+    filterSchema,
+    sortFieldMapping: categorySortFieldMapping,
     defaultPageSize: 20,
-    resetKey,
+    buildSearchCondition: buildCategorySearchCondition,
+    filterTransformers: categoryFilterTransformers,
   });
 
   const listQueryVariables = useMemo<CategoriesQueryVariables>(
-    () => ({
-      ...pagination.variables,
-      where,
-      orderBy,
-    }),
-    [orderBy, pagination.variables, where],
+    () => buildCategoriesQueryVariables(pageConfig),
+    [
+      pageConfig.first,
+      pageConfig.after,
+      pageConfig.last,
+      pageConfig.before,
+      pageConfig.where,
+      pageConfig.orderBy,
+    ],
   );
 
   const {
@@ -472,15 +214,19 @@ export default function CategoriesPage() {
     });
   }, [openCreateCategoryModal, refetch]);
 
-  const handleSortChange = useCallback((model: SortModel[]) => {
-    setSortModel(model);
-  }, []);
+  const { goToNextPage, goToPrevPage } = pageConfig;
 
-  const { onSortChanged } = useGridSort<ApiCategory>({
-    gridRef,
-    sortModel,
-    onSortChange: handleSortChange,
-  });
+  const handleNextPage = useCallback(() => {
+    if (pageInfo?.endCursor) {
+      goToNextPage(pageInfo.endCursor);
+    }
+  }, [goToNextPage, pageInfo?.endCursor]);
+
+  const handlePrevPage = useCallback(() => {
+    if (pageInfo?.startCursor) {
+      goToPrevPage(pageInfo.startCursor);
+    }
+  }, [goToPrevPage, pageInfo?.startCursor]);
 
   const { rowSelection, selectionColumnDef, onCellClicked } =
     useAgGridRowSelection<ApiCategory>({
@@ -536,7 +282,13 @@ export default function CategoriesPage() {
         field: "name",
         cellRenderer: CategoryCellRenderer,
         minWidth: 300,
-        sortable: false,
+        flex: 1,
+      },
+      {
+        headerName: "Handle",
+        field: "handle",
+        cellRenderer: TextCellRenderer,
+        minWidth: 180,
       },
       {
         headerName: "Status",
@@ -551,7 +303,11 @@ export default function CategoriesPage() {
         cellRenderer: ProductsCountCellRenderer,
         minWidth: 120,
         resizable: false,
-        sortable: false,
+      },
+      {
+        headerName: "Depth",
+        field: "depth",
+        minWidth: 100,
       },
       {
         headerName: "Parent",
@@ -599,12 +355,8 @@ export default function CategoriesPage() {
       <DataLayout.Toolbar
         left={
           <FilterWidget
-            {...widgetProps}
-            searchProps={{
-              searchValue,
-              onChangeSearchValue: setSearchValue,
-            }}
-            searchPlaceholder="Search handles..."
+            {...pageConfig.filterWidgetProps}
+            searchPlaceholder="Search categories..."
           />
         }
       />
@@ -636,18 +388,27 @@ export default function CategoriesPage() {
             onCellClicked={onCellClicked}
             onSelectionChanged={handleSelectionChanged}
             rowStyle={{ cursor: "pointer" }}
-            initialState={initialState}
-            onStateUpdated={onStateUpdated}
-            onSortChanged={onSortChanged}
+            initialState={pageConfig.gridStateProps.initialState}
+            onStateUpdated={pageConfig.gridStateProps.onStateUpdated}
+            onSortChanged={pageConfig.onSortChanged}
           />
         </div>
 
-        <RelayCursorPagination
+        <CursorPagination
           name="categories"
-          pagination={pagination}
-          pageInfo={pageInfo}
-          totalCount={totalCount}
-          loadedRowsCount={categories.length}
+          total={totalCount}
+          rangeStart={pageConfig.getRangeStart(categories.length)}
+          rangeEnd={Math.min(
+            pageConfig.getRangeEnd(categories.length),
+            totalCount,
+          )}
+          pageSize={pageConfig.pageSize}
+          pageSizeOptions={pageConfig.pageSizeOptions}
+          hasNext={pageInfo?.hasNextPage ?? false}
+          hasPrev={pageInfo?.hasPreviousPage ?? false}
+          onNext={handleNextPage}
+          onPrev={handlePrevPage}
+          onPageSizeChange={pageConfig.setPageSize}
         />
       </div>
 

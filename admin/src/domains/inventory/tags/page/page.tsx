@@ -24,15 +24,17 @@ import {
   useAgGridTheme,
   usePageConfig,
 } from "@/hooks";
-import type { ApiTag } from "@/graphql/types";
+import type { ApiTag, ApiTagWhereInput } from "@/graphql/types";
+import { TagOrderField } from "@/graphql/types";
 import { formatDetailDate } from "@/domains/inventory/utils/format-detail-date";
 import { filterSchema } from "./filter-schema";
 import {
+  buildTagSearchCondition,
   buildTagsQueryVariables,
+  tagFilterTransformers,
   tagSortFieldMapping,
-  type TagsOrderField,
-  type TagsWhereInput,
 } from "./page-config";
+import type { TagsQueryVariables } from "../graphql";
 import { useTags } from "../hooks";
 import { useCreateTagModal, useTagModal } from "../modals";
 
@@ -84,20 +86,28 @@ const DateCellRenderer = (props: CustomCellRendererProps<ApiTag, string>) => (
 export default function TagsPage() {
   const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<ApiTag>>(null);
-  const pageConfig = usePageConfig<ApiTag, TagsWhereInput, TagsOrderField>({
+  const pageConfig = usePageConfig<
+    ApiTag,
+    ApiTagWhereInput,
+    TagOrderField
+  >({
     gridRef,
     storageKey: "tags-grid-state",
     filterSchema,
     sortFieldMapping: tagSortFieldMapping,
     defaultPageSize: 20,
+    buildSearchCondition: buildTagSearchCondition,
+    filterTransformers: tagFilterTransformers,
   });
-  const listQueryVariables = useMemo(
+  const listQueryVariables = useMemo<TagsQueryVariables>(
     () => buildTagsQueryVariables(pageConfig),
     [
       pageConfig.first,
       pageConfig.after,
       pageConfig.last,
       pageConfig.before,
+      pageConfig.where,
+      pageConfig.orderBy,
     ],
   );
   const {
@@ -132,20 +142,6 @@ export default function TagsPage() {
     }
   }, [goToPrevPage, pageInfo?.startCursor]);
 
-  const visibleTags = useMemo(() => {
-    const search = pageConfig.searchValue.trim().toLowerCase();
-
-    if (!search) {
-      return tags;
-    }
-
-    return tags.filter(
-      (tag) =>
-        tag.name.toLowerCase().includes(search) ||
-        tag.handle.toLowerCase().includes(search),
-    );
-  }, [pageConfig.searchValue, tags]);
-
   const columnDefs = useMemo<ColDef<ApiTag>[]>(
     () => [
       {
@@ -154,21 +150,23 @@ export default function TagsPage() {
         cellRenderer: TagCellRenderer,
         flex: 1,
         minWidth: 260,
-        sortable: false,
+      },
+      {
+        headerName: "Handle",
+        field: "handle",
+        minWidth: 180,
       },
       {
         headerName: "Products",
         field: "productsCount",
         cellRenderer: ProductsCountCellRenderer,
         minWidth: 130,
-        sortable: false,
       },
       {
         headerName: "Created",
         field: "createdAt",
         cellRenderer: DateCellRenderer,
         minWidth: 140,
-        sortable: false,
       },
     ],
     [],
@@ -177,7 +175,7 @@ export default function TagsPage() {
   const defaultColDef = useMemo<ColDef>(
     () => ({
       resizable: true,
-      sortable: false,
+      sortable: true,
       comparator: () => 0,
       cellStyle: { display: "flex", alignItems: "center" },
     }),
@@ -230,7 +228,7 @@ export default function TagsPage() {
           <AgGridReact<ApiTag>
             ref={gridRef}
             theme={agGridTheme}
-            rowData={visibleTags}
+            rowData={tags}
             loading={loading}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
@@ -243,6 +241,7 @@ export default function TagsPage() {
             }}
             suppressCellFocus
             suppressMovableColumns
+            onSortChanged={pageConfig.onSortChanged}
             initialState={pageConfig.gridStateProps.initialState}
             onStateUpdated={pageConfig.gridStateProps.onStateUpdated}
           />

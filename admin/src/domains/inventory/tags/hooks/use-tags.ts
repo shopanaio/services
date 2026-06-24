@@ -5,6 +5,8 @@ import type {
   ApiPageInfo,
   ApiTag,
   ApiTagConnection,
+  ApiTagOrderByInput,
+  ApiTagWhereInput,
 } from "@/graphql/types";
 import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
 import { TAGS_QUERY } from "../graphql";
@@ -14,6 +16,8 @@ import type {
 } from "../graphql";
 
 export interface UseTagsOptions extends RelayCursorPaginationVariables {
+  where?: ApiTagWhereInput | null;
+  orderBy?: ApiTagOrderByInput[] | null;
   skip?: boolean;
 }
 
@@ -33,6 +37,8 @@ export function useTags(options: UseTagsOptions = {}): UseTagsReturn {
     after = null,
     last,
     before = null,
+    where = null,
+    orderBy = null,
     skip = false,
   } = options;
 
@@ -40,7 +46,7 @@ export function useTags(options: UseTagsOptions = {}): UseTagsReturn {
     TagsQueryData,
     TagsQueryVariables
   >(TAGS_QUERY, {
-    variables: { first, after, last, before },
+    variables: { first, after, last, before, where, orderBy },
     skip,
     fetchPolicy: "cache-and-network",
   });

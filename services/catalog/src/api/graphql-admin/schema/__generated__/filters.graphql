@@ -189,6 +189,58 @@ input CategoryOrderByInput {
   direction: SortDirection!
 }
 
+# ---- Tag ----
+
+"""Filter conditions for Tag"""
+input TagWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [TagWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [TagWhereInput!]
+  """Negate the condition"""
+  _not: TagWhereInput
+  """Filter by projectId"""
+  projectId: IDFilter
+  """Filter by id"""
+  id: IDFilter
+  """Filter by handle"""
+  handle: StringFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by productsCount"""
+  productsCount: IntFilter
+  """Filter by locale"""
+  locale: StringFilter
+  """Filter by name"""
+  name: StringFilter
+}
+
+"""Fields available for sorting Tag"""
+enum TagOrderField {
+  """Sort by projectId"""
+  projectId
+  """Sort by id"""
+  id
+  """Sort by handle"""
+  handle
+  """Sort by createdAt"""
+  createdAt
+  """Sort by productsCount"""
+  productsCount
+  """Sort by locale"""
+  locale
+  """Sort by name"""
+  name
+}
+
+"""Ordering configuration for Tag"""
+input TagOrderByInput {
+  """Field to order by"""
+  field: TagOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
 # ---- CategoryProduct ----
 
 """Filter conditions for CategoryProduct"""

@@ -6,8 +6,10 @@ import type {
   ApiTagConnection,
   ApiTagCreateInput,
   ApiTagCreatePayload,
+  ApiTagOrderByInput,
   ApiTagUpdateInput,
   ApiTagUpdatePayload,
+  ApiTagWhereInput,
 } from "@/graphql/types";
 
 export interface TagsQueryData {
@@ -21,6 +23,8 @@ export interface TagsQueryVariables {
   after?: string | null;
   last?: number;
   before?: string | null;
+  where?: ApiTagWhereInput | null;
+  orderBy?: ApiTagOrderByInput[] | null;
 }
 
 export interface TagDetailsQueryData {

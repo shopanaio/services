@@ -1021,6 +1021,8 @@ export type CatalogQueryTagsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<TagOrderByInput>>;
+  where?: InputMaybe<TagWhereInput>;
 };
 
 
@@ -3949,6 +3951,32 @@ export type TagEdge = {
   node: Tag;
 };
 
+/** Ordering configuration for Tag */
+export type TagOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: TagOrderField;
+};
+
+/** Fields available for sorting Tag */
+export enum TagOrderField {
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by handle */
+  Handle = 'handle',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by locale */
+  Locale = 'locale',
+  /** Sort by name */
+  Name = 'name',
+  /** Sort by productsCount */
+  ProductsCount = 'productsCount',
+  /** Sort by projectId */
+  ProjectId = 'projectId'
+}
+
 /** Input for updating a tag. */
 export type TagUpdateInput = {
   /** The URL-friendly handle for the tag. */
@@ -3966,6 +3994,30 @@ export type TagUpdatePayload = {
   tag: Maybe<Tag>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
+};
+
+/** Filter conditions for Tag */
+export type TagWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<TagWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<TagWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<TagWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by handle */
+  handle?: InputMaybe<StringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<IdFilter>;
+  /** Filter by locale */
+  locale?: InputMaybe<StringFilter>;
+  /** Filter by name */
+  name?: InputMaybe<StringFilter>;
+  /** Filter by productsCount */
+  productsCount?: InputMaybe<IntFilter>;
+  /** Filter by projectId */
+  projectId?: InputMaybe<IdFilter>;
 };
 
 /** A generic user error interface for mutation responses. */
@@ -4822,8 +4874,11 @@ export type ResolversTypes = ResolversObject<{
   TagDeleteInput: TagDeleteInput;
   TagDeletePayload: ResolverTypeWrapper<TagDeletePayload>;
   TagEdge: ResolverTypeWrapper<TagEdge>;
+  TagOrderByInput: TagOrderByInput;
+  TagOrderField: TagOrderField;
   TagUpdateInput: TagUpdateInput;
   TagUpdatePayload: ResolverTypeWrapper<TagUpdatePayload>;
+  TagWhereInput: TagWhereInput;
   UserError: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['UserError']>;
   Variant: ResolverTypeWrapper<Variant>;
   VariantConnection: ResolverTypeWrapper<VariantConnection>;
@@ -5090,8 +5145,10 @@ export type ResolversParentTypes = ResolversObject<{
   TagDeleteInput: TagDeleteInput;
   TagDeletePayload: TagDeletePayload;
   TagEdge: TagEdge;
+  TagOrderByInput: TagOrderByInput;
   TagUpdateInput: TagUpdateInput;
   TagUpdatePayload: TagUpdatePayload;
+  TagWhereInput: TagWhereInput;
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
   Variant: Variant;
   VariantConnection: VariantConnection;

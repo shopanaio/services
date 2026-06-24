@@ -127,6 +127,13 @@
       "when": 1782303729038,
       "tag": "0017_previous_old_lace",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1782304212089,
+      "tag": "0018_abandoned_power_pack",
+      "breakpoints": true
     }
   ]
 }

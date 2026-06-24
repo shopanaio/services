@@ -12,13 +12,17 @@ import type {
 } from "../types";
 import { useTags } from "@/domains/inventory/tags/hooks";
 import {
-  buildTagsQueryVariables,
+  buildTagSearchCondition,
+  tagFilterTransformers,
   tagSortFieldMapping,
-  type TagsOrderField,
-  type TagsWhereInput,
 } from "@/domains/inventory/tags/page/page-config";
 import { filterSchema } from "@/domains/inventory/tags/page/filter-schema";
-import type { ApiTag } from "@/graphql/types";
+import type {
+  ApiTag,
+  ApiTagOrderByInput,
+  ApiTagWhereInput,
+} from "@/graphql/types";
+import { TagOrderField } from "@/graphql/types";
 
 interface ITagPickerEntity extends IPickableEntity {
   handle: string;
@@ -36,47 +40,55 @@ function transformTag(tag: ApiTag): ITagPickerEntity {
 }
 
 function useTagsPickerData(options: {
-  search: string;
   pageSize: number;
   first?: number;
   after?: string | null;
   last?: number;
   before?: string | null;
+  where?: object | null;
+  orderBy?: object[] | null;
   excludeIds: string[];
 }): IEntityPickerDataResult<ITagPickerEntity> {
-  const { search, pageSize, excludeIds } = options;
-  const tagQueryVariables = useMemo(
-    () =>
-      buildTagsQueryVariables({
-        first: options.first,
-        after: options.after ?? null,
-        last: options.last,
-        before: options.before ?? null,
-      }),
-    [options.first, options.after, options.last, options.before],
+  const {
+    pageSize,
+    first,
+    after,
+    last,
+    before,
+    where: inputWhere,
+    orderBy,
+    excludeIds,
+  } = options;
+  const where = useMemo<ApiTagWhereInput | null>(
+    () => {
+      const conditions: ApiTagWhereInput[] = [];
+
+      if (inputWhere) {
+        conditions.push(inputWhere as ApiTagWhereInput);
+      }
+
+      if (excludeIds.length > 0) {
+        conditions.push({ id: { _notIn: excludeIds } });
+      }
+
+      if (conditions.length === 0) return null;
+      if (conditions.length === 1) return conditions[0];
+
+      return { _and: conditions };
+    },
+    [excludeIds, inputWhere],
   );
-  const { tags, totalCount, pageInfo, loading, error } =
-    useTags(tagQueryVariables);
-  const excludedIdSet = useMemo(() => new Set(excludeIds), [excludeIds]);
-  const visibleTags = useMemo(() => {
-    const searchValue = search.trim().toLowerCase();
-
-    if (!searchValue) {
-      return tags;
-    }
-
-    return tags.filter(
-      (tag) =>
-        tag.name.toLowerCase().includes(searchValue) ||
-        tag.handle.toLowerCase().includes(searchValue),
-    );
-  }, [search, tags]);
+  const { tags, totalCount, pageInfo, loading, error } = useTags({
+    first,
+    after,
+    last,
+    before,
+    where,
+    orderBy: orderBy as ApiTagOrderByInput[] | null,
+  });
   const data = useMemo(
-    () =>
-      visibleTags
-        .filter((tag) => !excludedIdSet.has(tag.id))
-        .map(transformTag),
-    [excludedIdSet, visibleTags],
+    () => tags.map(transformTag),
+    [tags],
   );
 
   return {
@@ -104,17 +116,21 @@ const tagPickerColumns: ColDef<ITagPickerEntity>[] = [
     minWidth: 250,
   },
   {
+    headerName: "Handle",
+    field: "handle",
+    minWidth: 160,
+  },
+  {
     headerName: "Products",
     field: "productsCount",
     minWidth: 120,
-    sortable: false,
   },
 ];
 
 export const tagPickerConfig: IEntityPickerConfig<
   ITagPickerEntity,
-  TagsWhereInput,
-  TagsOrderField
+  ApiTagWhereInput,
+  TagOrderField
 > = {
   entityType: "tag",
   entityName: "Tag",
@@ -124,6 +140,8 @@ export const tagPickerConfig: IEntityPickerConfig<
   pageConfig: {
     storageKey: "tag-picker-grid-state",
     sortFieldMapping: tagSortFieldMapping,
+    buildSearchCondition: buildTagSearchCondition,
+    filterTransformers: tagFilterTransformers,
     defaultPageSize: 20,
   },
   useData: useTagsPickerData,

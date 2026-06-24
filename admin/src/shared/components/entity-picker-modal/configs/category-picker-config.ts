@@ -1,10 +1,16 @@
 "use client";
 
-import { createElement, useMemo, useState } from "react";
+import { createElement, useMemo } from "react";
 import type { ColDef } from "ag-grid-community";
 import { FolderOutlined } from "@ant-design/icons";
 import { useCategories } from "@/domains/inventory/categories/hooks";
 import type { ApiCategoryCategoriesMetaInput } from "@/domains/inventory/categories/graphql";
+import { filterSchema } from "@/domains/inventory/categories/page/filter-schema";
+import {
+  buildCategorySearchCondition,
+  categoryFilterTransformers,
+  categorySortFieldMapping,
+} from "@/domains/inventory/categories/page/page-config";
 import { EntityCellRenderer, StatusCellRenderer } from "../cell-renderers";
 import { registerEntityPickerConfig } from ".";
 import type {
@@ -12,8 +18,12 @@ import type {
   IEntityPickerDataResult,
   IPickableEntity,
 } from "../types";
-import type { IFilterValue } from "@/layouts/filters/core/types";
-import type { ApiCategory, ApiCategoryWhereInput } from "@/graphql/types";
+import type {
+  ApiCategory,
+  ApiCategoryOrderByInput,
+  ApiCategoryWhereInput,
+} from "@/graphql/types";
+import { CategoryOrderField } from "@/graphql/types";
 
 interface CategoryPickerEntity extends IPickableEntity {
   handle: string;
@@ -32,33 +42,53 @@ function transformCategory(category: ApiCategory): CategoryPickerEntity {
 }
 
 function useCategoriesPickerData(options: {
-  filters: IFilterValue[];
-  search: string;
   pageSize: number;
+  first?: number;
+  after?: string | null;
+  last?: number;
+  before?: string | null;
+  where?: object | null;
+  orderBy?: object[] | null;
   excludeIds: string[];
   queryMeta?: unknown;
 }): IEntityPickerDataResult<CategoryPickerEntity> {
-  const { pageSize, excludeIds, queryMeta } = options;
-  const [pageIndex, setPageIndex] = useState(0);
-  const [cursorHistory, setCursorHistory] = useState<Array<string | null>>([
-    null,
-  ]);
-  const after = cursorHistory[pageIndex] ?? null;
+  const {
+    pageSize,
+    first,
+    after,
+    last,
+    before,
+    where: inputWhere,
+    orderBy,
+    excludeIds,
+    queryMeta,
+  } = options;
   const where = useMemo<ApiCategoryWhereInput | null>(
-    () =>
-      excludeIds.length > 0
-        ? {
-            id: {
-              _notIn: excludeIds,
-            },
-          }
-        : null,
-    [excludeIds],
+    () => {
+      const conditions: ApiCategoryWhereInput[] = [];
+
+      if (inputWhere) {
+        conditions.push(inputWhere as ApiCategoryWhereInput);
+      }
+
+      if (excludeIds.length > 0) {
+        conditions.push({ id: { _notIn: excludeIds } });
+      }
+
+      if (conditions.length === 0) return null;
+      if (conditions.length === 1) return conditions[0];
+
+      return { _and: conditions };
+    },
+    [excludeIds, inputWhere],
   );
   const { categories, totalCount, pageInfo, loading, error } = useCategories({
-    first: pageSize,
+    first,
     after,
+    last,
+    before,
     where,
+    orderBy: orderBy as ApiCategoryOrderByInput[] | null,
     meta: queryMeta as ApiCategoryCategoriesMetaInput | null | undefined,
     fetchPolicy: "network-only",
   });
@@ -68,10 +98,6 @@ function useCategoriesPickerData(options: {
     [categories],
   );
 
-  const rangeStart = pageIndex * pageSize + 1;
-  const rangeEnd = Math.min((pageIndex + 1) * pageSize, totalCount);
-  const hasNext = pageInfo?.hasNextPage ?? false;
-
   return {
     data,
     isLoading: loading,
@@ -79,25 +105,10 @@ function useCategoriesPickerData(options: {
     pagination: {
       total: totalCount,
       pageSize,
-      hasNext,
-      hasPrev: pageIndex > 0,
-      rangeStart: totalCount > 0 ? rangeStart : 0,
-      rangeEnd,
-    },
-    onNext: () => {
-      const nextCursor = pageInfo?.endCursor ?? null;
-      if (!nextCursor) return;
-      setCursorHistory((history) => {
-        const next = [...history];
-        next[pageIndex + 1] = nextCursor;
-        return next;
-      });
-      setPageIndex((index) => index + 1);
-    },
-    onPrev: () => setPageIndex((index) => Math.max(0, index - 1)),
-    onPageSizeChange: () => {
-      setPageIndex(0);
-      setCursorHistory([null]);
+      hasNext: pageInfo?.hasNextPage ?? false,
+      hasPrev: pageInfo?.hasPreviousPage ?? false,
+      startCursor: pageInfo?.startCursor ?? null,
+      endCursor: pageInfo?.endCursor ?? null,
     },
   };
 }
@@ -112,23 +123,43 @@ const categoryPickerColumns: ColDef<CategoryPickerEntity>[] = [
     minWidth: 250,
   },
   {
+    headerName: "Handle",
+    field: "handle",
+    minWidth: 160,
+  },
+  {
     headerName: "Status",
     field: "status",
     cellRenderer: StatusCellRenderer,
     minWidth: 120,
+    sortable: false,
+  },
+  {
+    headerName: "Products",
+    field: "productsCount",
+    minWidth: 120,
   },
 ];
 
-export const categoryPickerConfig: IEntityPickerConfig<CategoryPickerEntity> =
-  {
-    entityType: "category",
-    entityName: "Category",
-    entityNamePlural: "Categories",
-    filterSchema: [],
-    searchEnabled: false,
-    columns: categoryPickerColumns,
-    useData: useCategoriesPickerData,
-    getRowId: (entity) => entity.id,
-  };
+export const categoryPickerConfig: IEntityPickerConfig<
+  CategoryPickerEntity,
+  ApiCategoryWhereInput,
+  CategoryOrderField
+> = {
+  entityType: "category",
+  entityName: "Category",
+  entityNamePlural: "Categories",
+  filterSchema,
+  columns: categoryPickerColumns,
+  pageConfig: {
+    storageKey: "category-picker-grid-state",
+    sortFieldMapping: categorySortFieldMapping,
+    buildSearchCondition: buildCategorySearchCondition,
+    filterTransformers: categoryFilterTransformers,
+    defaultPageSize: 20,
+  },
+  useData: useCategoriesPickerData,
+  getRowId: (entity) => entity.id,
+};
 
 registerEntityPickerConfig(categoryPickerConfig);
