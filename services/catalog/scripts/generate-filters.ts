@@ -57,14 +57,32 @@ const vendorOrderBy = generateOrderByInputType(vendorRelayQuery, "Vendor", {
   excludeFields: ["projectId"],
 });
 
+const categoryListFieldTypes: Record<string, GraphQLFieldType> = {
+  id: "ID",
+  parentId: "ID",
+  path: "String",
+  depth: "Int",
+  handle: "String",
+  defaultSort: "String",
+  defaultSortDirection: "String",
+  publishedAt: "DateTime",
+  createdAt: "DateTime",
+  updatedAt: "DateTime",
+  productsCount: "Int",
+  locale: "String",
+  name: "String",
+};
+
 const categoryWhere = generateWhereInputType(categoryRelayQuery, "Category", {
   includeDescriptions: true,
-  excludeFields: ["projectId", "deletedAt", "revision", "productsCount"],
+  fieldTypes: categoryListFieldTypes,
+  excludeFields: ["projectId", "deletedAt", "revision"],
 });
 
 const categoryOrderBy = generateOrderByInputType(categoryRelayQuery, "Category", {
   includeDescriptions: true,
-  excludeFields: ["projectId", "deletedAt", "revision", "productsCount"],
+  fieldTypes: categoryListFieldTypes,
+  excludeFields: ["projectId", "deletedAt", "revision"],
 });
 
 const categoryProductWhere = generateWhereInputType(

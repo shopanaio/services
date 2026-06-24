@@ -1266,10 +1266,16 @@ export enum CategoryOrderField {
   Handle = 'handle',
   /** Sort by id */
   Id = 'id',
+  /** Sort by locale */
+  Locale = 'locale',
+  /** Sort by name */
+  Name = 'name',
   /** Sort by parentId */
   ParentId = 'parentId',
   /** Sort by path */
   Path = 'path',
+  /** Sort by productsCount */
+  ProductsCount = 'productsCount',
   /** Sort by publishedAt */
   PublishedAt = 'publishedAt',
   /** Sort by updatedAt */
@@ -1383,10 +1389,16 @@ export type CategoryWhereInput = {
   handle?: InputMaybe<StringFilter>;
   /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by locale */
+  locale?: InputMaybe<StringFilter>;
+  /** Filter by name */
+  name?: InputMaybe<StringFilter>;
   /** Filter by parentId */
   parentId?: InputMaybe<IdFilter>;
   /** Filter by path */
   path?: InputMaybe<StringFilter>;
+  /** Filter by productsCount */
+  productsCount?: InputMaybe<IntFilter>;
   /** Filter by publishedAt */
   publishedAt?: InputMaybe<DateTimeFilter>;
   /** Filter by updatedAt */

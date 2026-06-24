@@ -143,6 +143,12 @@ input CategoryWhereInput {
   createdAt: DateTimeFilter
   """Filter by updatedAt"""
   updatedAt: DateTimeFilter
+  """Filter by productsCount"""
+  productsCount: IntFilter
+  """Filter by locale"""
+  locale: StringFilter
+  """Filter by name"""
+  name: StringFilter
 }
 
 """Fields available for sorting Category"""
@@ -167,6 +173,12 @@ enum CategoryOrderField {
   createdAt
   """Sort by updatedAt"""
   updatedAt
+  """Sort by productsCount"""
+  productsCount
+  """Sort by locale"""
+  locale
+  """Sort by name"""
+  name
 }
 
 """Ordering configuration for Category"""

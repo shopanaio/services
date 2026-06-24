@@ -1507,10 +1507,16 @@ export enum CategoryOrderField {
   Handle = 'handle',
   /** Sort by id */
   Id = 'id',
+  /** Sort by locale */
+  Locale = 'locale',
+  /** Sort by name */
+  Name = 'name',
   /** Sort by parentId */
   ParentId = 'parentId',
   /** Sort by path */
   Path = 'path',
+  /** Sort by productsCount */
+  ProductsCount = 'productsCount',
   /** Sort by publishedAt */
   PublishedAt = 'publishedAt',
   /** Sort by updatedAt */
@@ -1624,10 +1630,16 @@ export type ApiCategoryWhereInput = {
   handle?: InputMaybe<ApiStringFilter>;
   /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by locale */
+  locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by name */
+  name?: InputMaybe<ApiStringFilter>;
   /** Filter by parentId */
   parentId?: InputMaybe<ApiIdFilter>;
   /** Filter by path */
   path?: InputMaybe<ApiStringFilter>;
+  /** Filter by productsCount */
+  productsCount?: InputMaybe<ApiIntFilter>;
   /** Filter by publishedAt */
   publishedAt?: InputMaybe<ApiDateTimeFilter>;
   /** Filter by updatedAt */

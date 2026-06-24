@@ -11,6 +11,7 @@ import {
 import { BaseRepository } from "../BaseRepository.js";
 import {
   category,
+  categoryListView,
   categoryMedia,
   categoryTranslation,
   productCategory,
@@ -39,7 +40,7 @@ import {
 const categoryQuery = createQuery(category).maxLimit(100).defaultLimit(20);
 
 export const categoryRelayQuery = createRelayQuery(
-  createQuery(category)
+  createQuery(categoryListView)
     .include(["id"])
     .mapWhereFields({
       id: decodeCategoryGlobalId,
@@ -432,6 +433,7 @@ export class CategoryRepository extends BaseRepository {
       _and: [
         { projectId: { _eq: this.storeId } },
         { deletedAt: { _is: null } },
+        { locale: { _eq: this.locale } },
         ...(where ? [where] : []),
         ...(scopeWhere ? [scopeWhere] : []),
         ...(productsScopeWhere ? [productsScopeWhere] : []),

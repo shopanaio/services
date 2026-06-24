@@ -299,8 +299,11 @@ export function CategoryWhereInputSchema(): z.ZodObject<Properties<CategoryWhere
     depth: z.lazy(() => IntFilterSchema().nullish()),
     handle: z.lazy(() => StringFilterSchema().nullish()),
     id: z.lazy(() => IdFilterSchema().nullish()),
+    locale: z.lazy(() => StringFilterSchema().nullish()),
+    name: z.lazy(() => StringFilterSchema().nullish()),
     parentId: z.lazy(() => IdFilterSchema().nullish()),
     path: z.lazy(() => StringFilterSchema().nullish()),
+    productsCount: z.lazy(() => IntFilterSchema().nullish()),
     publishedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
     updatedAt: z.lazy(() => DateTimeFilterSchema().nullish())
   })
