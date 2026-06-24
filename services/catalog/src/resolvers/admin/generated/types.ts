@@ -120,6 +120,7 @@ export enum BulkUpdateJobStatus {
 
 export enum BulkUpdateOpType {
   ProductCategoryUpdate = 'PRODUCT_CATEGORY_UPDATE',
+  ProductTagUpdate = 'PRODUCT_TAG_UPDATE',
   ProductUpdate = 'PRODUCT_UPDATE',
   VariantUpdate = 'VARIANT_UPDATE'
 }
@@ -2801,6 +2802,7 @@ export type OperationResult = {
 export enum OperationType {
   CategoryUpdate = 'CATEGORY_UPDATE',
   ProductCategoryUpdate = 'PRODUCT_CATEGORY_UPDATE',
+  ProductTagUpdate = 'PRODUCT_TAG_UPDATE',
   ProductUpdate = 'PRODUCT_UPDATE',
   VariantUpdate = 'VARIANT_UPDATE'
 }
@@ -3625,6 +3627,19 @@ export enum ProductStatusAction {
   Unpublish = 'UNPUBLISH'
 }
 
+export enum ProductTagOperationAction {
+  Add = 'ADD',
+  Remove = 'REMOVE'
+}
+
+/** Product tag assignment operation for unified product updates. */
+export type ProductTagOperationInput = {
+  /** The assignment action to apply. */
+  action: ProductTagOperationAction;
+  /** The tag to update for the product. */
+  tagId: Scalars['ID']['input'];
+};
+
 /** Input for product-level fields in the unified update. */
 export type ProductUpdateInput = {
   /** Product category assignment operations. */
@@ -3639,6 +3654,8 @@ export type ProductUpdateInput = {
   seo?: InputMaybe<ProductSeoInput>;
   /** Product status: DRAFT or PUBLISHED. */
   status?: InputMaybe<ProductStatus>;
+  /** Product tag assignment operations. */
+  tags?: InputMaybe<Array<ProductTagOperationInput>>;
   /** Product title. */
   title?: InputMaybe<Scalars['String']['input']>;
   /** Variant updates. */
@@ -4768,6 +4785,8 @@ export type ResolversTypes = ResolversObject<{
   ProductSortInput: ProductSortInput;
   ProductStatus: ProductStatus;
   ProductStatusAction: ProductStatusAction;
+  ProductTagOperationAction: ProductTagOperationAction;
+  ProductTagOperationInput: ProductTagOperationInput;
   ProductUpdateInput: ProductUpdateInput;
   ProductUpdatePayload: ResolverTypeWrapper<ProductUpdatePayload>;
   ProductUpdateStatusInput: ProductUpdateStatusInput;
@@ -5038,6 +5057,7 @@ export type ResolversParentTypes = ResolversObject<{
   ProductSeo: ProductSeo;
   ProductSeoInput: ProductSeoInput;
   ProductSortInput: ProductSortInput;
+  ProductTagOperationInput: ProductTagOperationInput;
   ProductUpdateInput: ProductUpdateInput;
   ProductUpdatePayload: ProductUpdatePayload;
   ProductUpdateStatusInput: ProductUpdateStatusInput;

@@ -28,12 +28,19 @@ export interface ProductFieldChanges {
   seo?: SeoChanges;
   media?: MediaChanges;
   categories?: ProductCategoryFieldChanges;
+  tags?: ProductTagFieldChanges;
 }
 
 export interface ProductCategoryFieldChanges {
   changed: true;
   reason: "assignment" | "categoryFields" | "rank";
   categoryIds?: string[];
+}
+
+export interface ProductTagFieldChanges {
+  changed: true;
+  reason: "assignment";
+  tagIds?: string[];
 }
 
 export interface RichTextChange {

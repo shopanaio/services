@@ -36,3 +36,27 @@ export interface TagDeleteResult {
   deletedTagId?: string;
   userErrors: UserError[];
 }
+
+// ============ Product Tag Assignment ============
+
+export interface ProductTagAddParams {
+  productId: string;
+  tagId: string;
+}
+
+export interface ProductTagAddResult {
+  tag?: Tag;
+  affectedProductIds: string[];
+  userErrors: UserError[];
+}
+
+export interface ProductTagRemoveParams {
+  productId: string;
+  tagId: string;
+}
+
+export interface ProductTagRemoveResult {
+  tag?: Tag;
+  affectedProductIds: string[];
+  userErrors: UserError[];
+}

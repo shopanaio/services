@@ -21,6 +21,7 @@ enum BulkUpdateItemStatus {
 enum BulkUpdateOpType {
   PRODUCT_UPDATE
   PRODUCT_CATEGORY_UPDATE
+  PRODUCT_TAG_UPDATE
   VARIANT_UPDATE
 }
 

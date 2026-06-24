@@ -58,6 +58,7 @@ import type {
   ProductUpdateWorkflowResult,
   ProductUpdateOperation,
   ProductCategoryOperationAction,
+  ProductTagOperationAction,
   WorkflowContext,
 } from "../../workflows/dto/ProductUpdateWorkflowDto.js";
 import type { ProductCreateParams, ProductCreateResult } from "../../sagas/index.js";
@@ -576,6 +577,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     );
     const variants = operations?.variants;
     const categories = operations?.categories;
+    const tags = operations?.tags;
     const inputErrors: UserError[] = [];
 
     // Map GraphQL input to workflow operations
@@ -634,6 +636,12 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     if (categories) {
       const mapped = mapProductCategoryOperations(decodedProductId, categories);
+      workflowOps.push(...mapped.operations);
+      inputErrors.push(...mapped.errors);
+    }
+
+    if (tags) {
+      const mapped = mapProductTagOperations(decodedProductId, tags);
       workflowOps.push(...mapped.operations);
       inputErrors.push(...mapped.errors);
     }
@@ -3023,6 +3031,7 @@ function mapOperationsForBulk(
   const errors: UserError[] = [];
   const variants = operations?.variants;
   const categories = operations?.categories;
+  const tags = operations?.tags;
 
   if (hasProductUpdateFields(operations)) {
     result.push({
@@ -3073,6 +3082,12 @@ function mapOperationsForBulk(
       categories,
       productIndex,
     );
+    result.push(...mapped.operations);
+    errors.push(...mapped.errors);
+  }
+
+  if (tags) {
+    const mapped = mapProductTagOperations(decodedProductId, tags, productIndex);
     result.push(...mapped.operations);
     errors.push(...mapped.errors);
   }
@@ -3144,6 +3159,10 @@ function mapOperationsForBulk(
 
 type ProductCategoryOperationInput = NonNullable<
   NonNullable<ProductBulkUpdateInput["products"][0]["operations"]>["categories"]
+>[number];
+
+type ProductTagOperationInput = NonNullable<
+  NonNullable<ProductBulkUpdateInput["products"][0]["operations"]>["tags"]
 >[number];
 
 function mapProductCategoryOperations(
@@ -3236,12 +3255,72 @@ function mapProductCategoryOperationAction(
   }
 }
 
+function mapProductTagOperations(
+  productId: string,
+  tags: readonly ProductTagOperationInput[],
+  productIndex?: number,
+): { operations: ProductUpdateOperation[]; errors: UserError[] } {
+  const operations: ProductUpdateOperation[] = [];
+  const errors: UserError[] = [];
+
+  for (const [index, input] of tags.entries()) {
+    const fieldPrefix =
+      productIndex === undefined
+        ? ["operations", "tags", String(index)]
+        : [
+            "input",
+            "products",
+            String(productIndex),
+            "operations",
+            "tags",
+            String(index),
+          ];
+
+    const tagId = safeDecodeGlobalId(input.tagId, GlobalIdEntity.Tag);
+    if (!tagId) {
+      errors.push({
+        message: "Invalid ID format",
+        field: [...fieldPrefix, "tagId"],
+        code: "INVALID_ID",
+      });
+      continue;
+    }
+
+    operations.push({
+      type: "productTagUpdate",
+      params: {
+        productId,
+        tagId,
+        action: mapProductTagOperationAction(input.action),
+      },
+    });
+  }
+
+  return { operations, errors };
+}
+
+function mapProductTagOperationAction(
+  action: ProductTagOperationInput["action"],
+): ProductTagOperationAction {
+  switch (String(action)) {
+    case "ADD":
+      return "add";
+    case "REMOVE":
+      return "remove";
+    default:
+      throw new Error(`Unsupported product tag action: ${String(action)}`);
+  }
+}
+
 function toGraphqlOperationType(type: ProductUpdateOperation["type"]) {
   if (type === "productUpdate") {
     return "PRODUCT_UPDATE";
   }
   if (type === "productCategoryUpdate") {
     return "PRODUCT_CATEGORY_UPDATE";
+  }
+  if (type === "productTagUpdate") {
+    return "PRODUCT_TAG_UPDATE";
   }
   return "VARIANT_UPDATE";
 }

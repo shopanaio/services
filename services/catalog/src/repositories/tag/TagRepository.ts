@@ -231,6 +231,25 @@ export class TagRepository extends BaseRepository {
       );
   }
 
+  async getProductTag(
+    productId: string,
+    tagId: string
+  ): Promise<ProductTag | null> {
+    const result = await this.connection
+      .select()
+      .from(productTag)
+      .where(
+        and(
+          eq(productTag.projectId, this.storeId),
+          eq(productTag.productId, productId),
+          eq(productTag.tagId, tagId)
+        )
+      )
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
   async getTagProductLinks(tagIds: readonly string[]): Promise<ProductTag[]> {
     return this.connection
       .select()

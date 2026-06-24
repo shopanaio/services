@@ -399,6 +399,11 @@ enum ProductCategoryOperationAction {
   MOVE
 }
 
+enum ProductTagOperationAction {
+  ADD
+  REMOVE
+}
+
 """
 Product category assignment operation for unified product updates.
 """
@@ -414,6 +419,17 @@ input ProductCategoryOperationInput {
 
   """Move this product before another product in the category listing."""
   beforeProductId: ID
+}
+
+"""
+Product tag assignment operation for unified product updates.
+"""
+input ProductTagOperationInput {
+  """The tag to update for the product."""
+  tagId: ID!
+
+  """The assignment action to apply."""
+  action: ProductTagOperationAction!
 }
 
 """
@@ -443,6 +459,9 @@ input ProductUpdateInput {
 
   """Product category assignment operations."""
   categories: [ProductCategoryOperationInput!]
+
+  """Product tag assignment operations."""
+  tags: [ProductTagOperationInput!]
 
   """Variant updates."""
   variants: [VariantUpdateInput!]
@@ -548,6 +567,7 @@ enum OperationType {
   PRODUCT_UPDATE
   VARIANT_UPDATE
   PRODUCT_CATEGORY_UPDATE
+  PRODUCT_TAG_UPDATE
   CATEGORY_UPDATE
 }
 

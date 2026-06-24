@@ -16,6 +16,7 @@ import type {
   ProductUpdateWorkflowResult,
   ProductUpdateParams,
   ProductCategoryUpdateParams,
+  ProductTagUpdateParams,
   VariantUpdateParams,
   OperationResult,
   WorkflowContext,
@@ -38,6 +39,10 @@ import {
   CategoryRemoveProductScript,
   CategorySetProductPrimaryScript,
 } from "../scripts/category/index.js";
+import {
+  ProductTagAddScript,
+  ProductTagRemoveScript,
+} from "../scripts/tag/index.js";
 import { VariantUpdatePricingScript } from "../scripts/variant/VariantUpdatePricingScript.js";
 import { VariantUpdateMediaScript } from "../scripts/variant/VariantUpdateMediaScript.js";
 import {
@@ -114,6 +119,13 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
         results.push(result);
       } else if (op.type === "productCategoryUpdate") {
         const result = await this.stepProductCategoryUpdate(
+          op.params,
+          changes,
+          scriptCtx,
+        );
+        results.push(result);
+      } else if (op.type === "productTagUpdate") {
+        const result = await this.stepProductTagUpdate(
           op.params,
           changes,
           scriptCtx,
@@ -373,6 +385,56 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
     return {
       type: "productCategoryUpdate",
+      applied: errors.length === 0,
+      errors,
+    };
+  }
+
+  @WorkflowStep()
+  private async stepProductTagUpdate(
+    params: ProductTagUpdateParams,
+    changes: ProductChanges,
+    ctx: RunScriptContext,
+  ): Promise<OperationResult> {
+    const errors: UserError[] = [];
+    const { productId, tagId } = params;
+
+    let affectedProductIds: string[] | undefined;
+
+    if (params.action === "add") {
+      const r = await this.kernel.runScript(
+        ProductTagAddScript,
+        { productId, tagId },
+        ctx,
+      );
+      errors.push(...r.userErrors);
+      affectedProductIds = r.affectedProductIds;
+    } else {
+      const r = await this.kernel.runScript(
+        ProductTagRemoveScript,
+        { productId, tagId },
+        ctx,
+      );
+      errors.push(...r.userErrors);
+      affectedProductIds = r.affectedProductIds;
+    }
+
+    if (errors.length === 0 && affectedProductIds?.includes(productId)) {
+      const currentTags = changes.product?.tags;
+      const tagIds = [...new Set([...(currentTags?.tagIds ?? []), tagId])];
+
+      changes.product = {
+        ...changes.product,
+        tags: {
+          changed: true,
+          reason: "assignment",
+          tagIds,
+        },
+      };
+    }
+
+    return {
+      type: "productTagUpdate",
       applied: errors.length === 0,
       errors,
     };

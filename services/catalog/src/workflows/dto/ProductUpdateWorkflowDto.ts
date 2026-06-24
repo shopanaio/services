@@ -30,6 +30,7 @@ export interface WorkflowContext {
 export type ProductUpdateOperation =
   | { type: "productUpdate"; params: ProductUpdateParams }
   | { type: "productCategoryUpdate"; params: ProductCategoryUpdateParams }
+  | { type: "productTagUpdate"; params: ProductTagUpdateParams }
   | { type: "variantUpdate"; params: VariantUpdateParams };
 
 /**
@@ -76,6 +77,14 @@ export interface ProductCategoryUpdateParams {
   action: ProductCategoryOperationAction;
   afterProductId?: string | null;
   beforeProductId?: string | null;
+}
+
+export type ProductTagOperationAction = "add" | "remove";
+
+export interface ProductTagUpdateParams {
+  productId: string;
+  tagId: string;
+  action: ProductTagOperationAction;
 }
 
 /**
@@ -142,7 +151,11 @@ export interface ProductUpdateWorkflowResult {
  * Result of a single operation within the workflow.
  */
 export interface OperationResult {
-  type: "productUpdate" | "productCategoryUpdate" | "variantUpdate";
+  type:
+    | "productUpdate"
+    | "productCategoryUpdate"
+    | "productTagUpdate"
+    | "variantUpdate";
   applied: boolean;
   errors: UserError[];
 }
