@@ -198,6 +198,13 @@ const SortableGridItem = ({
         ]
       : []),
   ];
+  const handleItemClick = () => {
+    if (!selectionMode) {
+      return;
+    }
+
+    onSelectedChange(item.id, !selected);
+  };
 
   return (
     <div
@@ -211,6 +218,7 @@ const SortableGridItem = ({
         isDragging && styles.mediaItemDragging,
       )}
       data-testid={`entity-media-grid-item-${item.id}`}
+      onClick={handleItemClick}
     >
       {isFeatured && <FeaturedBadge />}
 
@@ -308,43 +316,13 @@ const SortableListItem = ({
 
   const name = getFileName(item);
   const ext = getFileExt(item);
-  const actionItems = [
-    ...(onPreview
-      ? [
-          {
-            key: "preview",
-            label: "Preview",
-            icon: <EyeOutlined />,
-            "data-testid": `entity-media-preview-menu-item-${item.id}`,
-            onClick: () => onPreview(item, index),
-          },
-        ]
-      : []),
-    ...(allowSetFeatured && !isFeatured
-      ? [
-          {
-            key: "setFeatured",
-            label: "Set as featured",
-            icon: <StarOutlined />,
-            "data-testid": `entity-media-set-featured-menu-item-${item.id}`,
-            onClick: () => onSetFeatured(item),
-          },
-        ]
-      : []),
-    ...(allowDelete
-      ? [
-          { type: "divider" as const },
-          {
-            key: "delete",
-            label: "Delete",
-            icon: <DeleteOutlined />,
-            danger: true,
-            "data-testid": `entity-media-delete-menu-item-${item.id}`,
-            onClick: () => onDelete(item.id),
-          },
-        ]
-      : []),
-  ];
+  const handleItemClick = () => {
+    if (!selectionMode) {
+      return;
+    }
+
+    onSelectedChange(item.id, !selected);
+  };
 
   return (
     <div
@@ -358,6 +336,7 @@ const SortableListItem = ({
         isDragging && styles.listItemDragging,
       )}
       data-testid={`entity-media-list-item-${item.id}`}
+      onClick={handleItemClick}
     >
       {selectionMode && (
         <div
@@ -427,19 +406,20 @@ const SortableListItem = ({
           </Tooltip>
         )}
 
-        {actionItems.length > 0 && (
-          <Dropdown
-            menu={{ items: actionItems }}
-            trigger={["click"]}
-          >
+        {allowDelete && (
+          <Tooltip title="Delete">
             <Button
               size="small"
               type="text"
-              icon={<MoreOutlined />}
-              data-testid={`entity-media-actions-button-${item.id}`}
-              onClick={(e) => e.stopPropagation()}
+              icon={<DeleteOutlined />}
+              data-testid={`entity-media-delete-button-${item.id}`}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(item.id);
+              }}
             />
-          </Dropdown>
+          </Tooltip>
         )}
       </div>
     </div>
@@ -454,12 +434,16 @@ interface IListItemPreviewProps {
   item: ApiFile;
   isFeatured: boolean;
   featuredLabel: string;
+  selectionMode: boolean;
+  selected: boolean;
 }
 
 const ListItemPreview = ({
   item,
   isFeatured,
   featuredLabel,
+  selectionMode,
+  selected,
 }: IListItemPreviewProps) => {
   const { styles } = useStyles();
   const name = getFileName(item);
@@ -473,6 +457,7 @@ const ListItemPreview = ({
         cursor: "grabbing",
       }}
     >
+      {selectionMode && <Checkbox checked={selected} />}
       <div className={styles.dragHandle}>
         <HolderOutlined />
       </div>
@@ -633,7 +618,7 @@ export const EntityMediaGallery = ({
   const hasMedia = value.length > 0;
 
   const renderHeader = () => {
-    if (!showViewSwitcher || !hasMedia) return null;
+    if ((!showViewSwitcher && !showUpload) || !hasMedia) return null;
 
     return (
       <Flex justify="space-between" align="center" style={{ marginBottom: 12 }}>
@@ -646,20 +631,22 @@ export const EntityMediaGallery = ({
               Browse
             </Button>
           )}
-          <Space.Compact size="small">
-            <Button
-              type={viewMode === "grid" ? "primary" : "default"}
-              icon={<AppstoreOutlined />}
-              data-testid="entity-media-grid-view-button"
-              onClick={() => setViewMode("grid")}
-            />
-            <Button
-              type={viewMode === "list" ? "primary" : "default"}
-              icon={<UnorderedListOutlined />}
-              data-testid="entity-media-list-view-button"
-              onClick={() => setViewMode("list")}
-            />
-          </Space.Compact>
+          {showViewSwitcher && (
+            <Space.Compact size="small">
+              <Button
+                type={viewMode === "grid" ? "primary" : "default"}
+                icon={<AppstoreOutlined />}
+                data-testid="entity-media-grid-view-button"
+                onClick={() => setViewMode("grid")}
+              />
+              <Button
+                type={viewMode === "list" ? "primary" : "default"}
+                icon={<UnorderedListOutlined />}
+                data-testid="entity-media-list-view-button"
+                onClick={() => setViewMode("list")}
+              />
+            </Space.Compact>
+          )}
         </Flex>
       </Flex>
     );
@@ -822,6 +809,8 @@ export const EntityMediaGallery = ({
               item={activeItem}
               isFeatured={hasFeatured && activeIndex === 0}
               featuredLabel={featuredLabel}
+              selectionMode={selectionMode}
+              selected={selectedIdSet.has(activeItem.id)}
             />
           ) : null}
         </DragOverlay>

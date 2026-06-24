@@ -108,7 +108,7 @@ export const EditMediaModal = () => {
           value={gallery}
           onChange={handleChange}
           title={typedPayload.galleryTitle ?? "Product Media"}
-          showViewSwitcher
+          viewMode="list"
           showUpload={showUpload}
           allowDelete={allowDelete}
           allowSetFeatured={allowSetFeatured}

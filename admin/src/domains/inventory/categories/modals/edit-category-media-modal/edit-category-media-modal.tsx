@@ -77,7 +77,7 @@ export const EditCategoryMediaModal = () => {
         value={files}
         onChange={handleChange}
         title="Category Media"
-        showViewSwitcher
+        viewMode="list"
         accept="image/*,video/*"
         hasFeatured
         featuredLabel="Featured"

@@ -60,7 +60,7 @@ export const useStyles = createStyles(({ token }) => ({
     opacity: 0.5,
   },
   mediaItemSelected: {
-    boxShadow: `inset 0 0 0 2px ${token.colorPrimary}`,
+    boxShadow: `inset 0 0 0 1px ${token.colorPrimary}`,
   },
   selectionCheckbox: {
     position: "absolute",
@@ -180,7 +180,6 @@ export const useStyles = createStyles(({ token }) => ({
   },
   listItemSelected: {
     borderColor: token.colorPrimary,
-    boxShadow: `inset 0 0 0 1px ${token.colorPrimary}`,
   },
   listItemImage: {
     width: 40,

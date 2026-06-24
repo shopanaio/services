@@ -459,6 +459,29 @@ enough data through `InventoryItem.variantId` to return a federation reference:
 }
 ```
 
+### Stock field loading
+
+`inventory_item_list_view` scopes list sorting/filtering to one selected
+warehouse, but `InventoryItem.stock` is still a canonical field that currently
+loads stock for all warehouses from `InventoryItemResolver.stock`.
+
+For the first migration step, Admin may continue to query `node.stock` and pick
+the selected warehouse client-side, but this creates N+1 and overfetch risk:
+each listed item can trigger a separate all-warehouses stock query.
+
+Before enabling the new Admin read path for large stores, add one of these
+mechanisms:
+
+- preferred: batch stock loading by variant IDs through a DataLoader, so
+  `InventoryItem.stock` resolves all listed nodes in one repository call;
+- alternative: add a scoped stock field/argument or connection path that returns
+  only the selected warehouse stock, while keeping canonical `stock` available
+  for all-warehouse reads.
+
+The list view's selected-warehouse values are for SQL filter/sort only; do not
+silently make `InventoryItem.stock` mean "selected warehouse only" without an
+explicit field/argument, because that would change canonical field semantics.
+
 ## Variant / InventoryItem Lifecycle
 
 `InventoryItem` is the canonical Inventory-owned entity for a Catalog variant,
@@ -505,6 +528,22 @@ Current risks:
 Required Phase 1 contract: add a catalog broker snapshot action that returns
 base projection plus translations.
 
+This must be a full inter-service contract, not an ad-hoc local helper:
+
+- add request/response types to `packages/broker-types` under Catalog actions,
+  for example `Catalog.GetInventoryItemProjectionSnapshotParams` and
+  `Catalog.GetInventoryItemProjectionSnapshotResult`;
+- register `@Action("getInventoryItemProjectionSnapshot")` in
+  `services/catalog/src/actions/index.ts` (currently Catalog broker actions only
+  expose `getOffers`);
+- execute the action under explicit Catalog service context built from
+  `storeId`, `organizationId`, request `locale` / default locale, and optional
+  `userId` / `requestId`; do not hardcode `uk` inside the action;
+- define retry semantics: broker failures, missing transient dependencies, and
+  snapshot query failures are retryable for Inventory event handlers;
+  invalid input and confirmed missing/deleted Catalog entities are not
+  retryable business outcomes.
+
 This is a prerequisite for Inventory projection handlers and for Admin migration.
 Do not implement `inventory_product_translation` updates from existing
 `productCreated.name` or `productUpdated.product.title` payloads directly:
@@ -516,11 +555,19 @@ name rows.
 ```ts
 catalog.getInventoryItemProjectionSnapshot({
   storeId: string;
+  organizationId: string;
+  locale?: string;
+  userId?: string;
+  requestId?: string;
   productId: string;
   variantIds?: string[];
   locales?: string[];
 })
 ```
+
+`locale` is the request context locale. `locales` is an optional translation
+filter for the snapshot payload; when omitted, Catalog should return all product
+translation rows needed to keep Inventory's projection locale-complete.
 
 Response:
 
@@ -586,12 +633,10 @@ The list repository filters the view with `locale = ctx.locale ?? "uk"`, so:
 
 1. Add `catalog.getInventoryItemProjectionSnapshot` and make it return base
    product/variant projection plus all requested product translations.
-2. Add Inventory projection tables/view/repository, but keep Admin on the old
-   query until backfill succeeds.
+2. Add Inventory projection tables/view/repository.
 3. Add Inventory event handlers that always use the snapshot action when the
    event payload does not explicitly identify changed locales.
-4. Add backfill/reconciliation and run it for existing stores.
-5. Switch Admin Inventory page to `inventoryQuery.inventoryItems`.
+4. Switch Admin Inventory page to `inventoryQuery.inventoryItems`.
 
 ## Inventory Event Handlers
 
@@ -619,31 +664,6 @@ Handler rules:
   revision is present;
 - `lastCatalogEventId` is stored for observability/debugging;
 - snapshot fetch failure is retryable.
-
-## Backfill / Reconciliation
-
-Existing stores need a rebuild path before Admin switches to the new query.
-
-Add inventory script/CLI task:
-
-```text
-inventory item-projection rebuild
-```
-
-Behavior:
-
-- page through catalog products through broker/API;
-- fetch inventory item projection snapshots in batches;
-- upsert base projection rows;
-- upsert all product translation rows;
-- soft-delete base rows for variants no longer returned;
-- support `--store-id`;
-- support optional `--product-id`;
-- log counts: products scanned, base rows upserted, translation rows upserted,
-  rows deleted, failures.
-
-This script is also the repair path if event delivery lags or projection drift
-is suspected.
 
 ## Admin Migration
 
@@ -693,6 +713,11 @@ ownership changes.
 ### Phase 1. Catalog snapshot provider
 
 - Add catalog broker action for inventory item projection snapshots.
+- Add typed broker contract in `packages/broker-types` and use it from both
+  Catalog action implementation and Inventory callers.
+- Register `@Action("getInventoryItemProjectionSnapshot")` in Catalog broker
+  actions and run it with explicit store/org/locale context.
+- Document and implement retry semantics for Inventory consumers of the action.
 - Return base variant/product snapshot separately from product translations.
 - Include all locales or explicitly requested locales.
 - Do not include variant names.
@@ -715,6 +740,8 @@ ownership changes.
   `InventoryItem`.
 - Add `InventoryItem.variant` to the GraphQL schema. The resolver already exists,
   but the field must be present in schema before Admin can query it.
+- Add a batched/scoped stock loading strategy so `node.stock` on the Admin list
+  does not run one all-warehouses query per row.
 - Update `InventoryQuery.inventoryItems` args to include Relay pagination,
   `warehouseId`, `where` and `orderBy`.
 
@@ -726,14 +753,7 @@ ownership changes.
   translation row.
 - Ensure variant create/delete flows emit events Inventory can consume.
 
-### Phase 5. Backfill
-
-- Add rebuild script/CLI task.
-- Run it for existing stores before switching Admin Inventory page. This is a
-  required migration gate, not an optional repair step.
-- Keep it as a repair/reconciliation tool.
-
-### Phase 6. Admin read path
+### Phase 5. Admin read path
 
 - Add inventory module GraphQL query document for `inventoryQuery.inventoryItems`.
 - Update generated Admin GraphQL types.
