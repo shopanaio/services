@@ -227,17 +227,10 @@ export const PRODUCT_LIST_FRAGMENT = gql`
         node {
           id
           price {
-            id
             amountMinor
-            compareAtMinor
-            currency
-            effectiveFrom
-            effectiveTo
-            isCurrent
-            recordedAt
           }
           inventoryItem {
-            ...InventoryItemFields
+            totalAvailable
           }
         }
       }
@@ -245,7 +238,6 @@ export const PRODUCT_LIST_FRAGMENT = gql`
   }
   ${PRODUCT_MEDIA_ITEM_FRAGMENT}
   ${PRODUCT_CATEGORY_FRAGMENT}
-  ${INVENTORY_ITEM_FRAGMENT}
   ${VENDOR_FRAGMENT}
 `;
 

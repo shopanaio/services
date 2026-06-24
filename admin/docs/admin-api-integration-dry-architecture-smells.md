@@ -2,6 +2,15 @@
 
 Дата анализа: 2026-06-24.
 
+## Статус исправлений
+
+Пункты 1 и 2 из этого отчета исправлены в admin-коде:
+
+- Пункт 1: feature-local `graphql/index.ts` для products/categories/tags больше не реэкспортит `operation-types`; `ApiCategoryCategoriesMetaInput` используется из generated `@/graphql/types`.
+- Пункт 2: общие `UserErrorFields`, `FileFields`, `RichTextFields` вынесены в shared fragments; одинаковые tag/category fragments сведены к одному источнику; product details/mutation получили общий base fragment; product list variant payload сужен до реально используемых `price.amountMinor` и `inventoryItem.totalAvailable`.
+
+Ограничение остается на уровне API-контракта: `ProductListFields` все еще вынужден запрашивать `variants(first: 100)` для расчета min/max price и stock, пока API не отдаст dedicated aggregate fields для списка товаров.
+
 ## Область анализа
 
 Проверены страницы, модалки, GraphQL documents, hooks и mappers для:
@@ -37,7 +46,9 @@
 
 Severity: высокая.
 
-Во всех трех модулях `graphql/index.ts` реэкспортирует `operation-types`:
+Статус: исправлено.
+
+До исправления во всех трех модулях `graphql/index.ts` реэкспортировал `operation-types`:
 
 - `products/graphql/index.ts:1-4`
 - `categories/graphql/index.ts:1-4`
@@ -45,39 +56,46 @@ Severity: высокая.
 
 Это провоцирует импорты operation/API typings из feature-local `../graphql`, хотя правило `admin-graphql-layer` говорит импортировать generated API types напрямую из `@/graphql/types`.
 
-Самый явный случай drift: `categories/graphql/operation-types.ts:39-54` заново объявляет `ApiCategoryHierarchyScopeInput`, `ApiCategoryProductsScopeInput`, `ApiCategoryCategoriesMetaInput`, хотя generated type уже есть в `admin/src/graphql/types.ts:1359-1362`. Дальше этот локальный `ApiCategoryCategoriesMetaInput` импортируется из feature barrel в:
+Самый явный случай drift был в `categories/graphql/operation-types.ts:39-54`: файл заново объявлял `ApiCategoryHierarchyScopeInput`, `ApiCategoryProductsScopeInput`, `ApiCategoryCategoriesMetaInput`, хотя generated type уже есть в `admin/src/graphql/types.ts:1359-1362`. Дальше этот локальный `ApiCategoryCategoriesMetaInput` импортировался из feature barrel в:
 
 - `shared/components/entity-picker-modal/category-picker-modal.tsx`
 - `shared/components/entity-picker-modal/configs/category-picker-config.ts`
 - `products/components/product-details-card/sections/categories-section.tsx`
 - `categories/components/category-details-card/hooks/use-category-modals.ts`
 
-Риск: generated schema меняется, а локальная копия типа остается прежней. Также имя с префиксом `Api` создает ложное ощущение, что это generated contract.
+Риск был в том, что generated schema меняется, а локальная копия типа остается прежней. Также имя с префиксом `Api` создавало ложное ощущение, что это generated contract.
 
-Рекомендация:
+Выполнено:
 
-- Оставить `graphql/index.ts` barrel только для operation documents или убрать его для типов.
-- Удалить локальные `ApiCategory*MetaInput` declarations.
-- Везде импортировать `ApiCategoryCategoriesMetaInput` из `@/graphql/types`.
-- В `operation-types.ts` держать только operation response/variables, построенные от generated types, без объявления `Api*` контрактов.
+- `graphql/index.ts` barrel оставлен только для operation documents.
+- Локальные `ApiCategory*MetaInput` declarations удалены.
+- `ApiCategoryCategoriesMetaInput` импортируется из `@/graphql/types`.
+- `operation-types.ts` содержит operation response/variables на базе generated types.
 
 ### 2. GraphQL fragments дублируются и местами слишком широкие
 
 Severity: средняя/высокая.
 
-Повторения:
+Статус: исправлено в части DRY и сужения list payload; API-level aggregate для полного удаления `variants(first: 100)` еще нужен.
+
+До исправления были повторения:
 
 - `UserErrorFields` есть в products (`products/graphql/fragments.ts:3-9`), categories (`categories/graphql/fragments.ts:3-9`) и tags как `TagUserErrorFields` (`tags/graphql/fragments.ts:3-9`).
 - `FileFields` в products (`products/graphql/fragments.ts:19-60`) и `CategoryFileFields` в categories (`categories/graphql/fragments.ts:11-52`) практически одинаковые.
 - `TagListFields`, `TagDetailsFields`, `TagMutationResultFields` содержат одинаковый набор полей (`tags/graphql/fragments.ts:11-39`).
 
-Отдельный performance smell: `ProductListFields` для list/table тянет `variants(first: 100)` с price и inventory (`products/graphql/fragments.ts:273-292`). Таблица затем считает min/max price и stock на клиенте. Это связывает список товаров с деталями вариантов, создает скрытый лимит `100` и переносит агрегирование из API в UI.
+Отдельный performance smell: `ProductListFields` для list/table тянул `variants(first: 100)` с широкими price и inventory (`products/graphql/fragments.ts:273-292`). Таблица затем считает min/max price и stock на клиенте. Это связывает список товаров с деталями вариантов, создает скрытый лимит `100` и переносит агрегирование из API в UI.
 
-Рекомендация:
+Выполнено:
 
-- Вынести стабильные shared fragments (`UserErrorFields`, `FileFields`, `RichTextFields`) в общий admin GraphQL layer, например `admin/src/domains/inventory/graphql` или `admin/src/graphql/fragments`.
-- Для tags оставить один fragment на одинаковый use case или явно разделить list/details, если детали реально начнут отличаться.
-- Для products list запросить API-level aggregate fields для min/max price и total stock, либо завести dedicated lightweight list fragment без `variants(first: 100)`.
+- Стабильные shared fragments (`UserErrorFields`, `FileFields`, `RichTextFields`) вынесены в общий admin GraphQL layer.
+- Для tags/category одинаковые fragments сведены к одному источнику.
+- Для products details/mutation выделен общий base fragment.
+- Для products list variant payload сужен до `price.amountMinor` и `inventoryItem.totalAvailable`.
+
+Осталось:
+
+- Для полного исправления performance smell на API уровне нужны aggregate fields для min/max price и total stock, чтобы убрать `variants(first: 100)` из list query.
 
 ### 3. Connection query hooks повторяют один и тот же шаблон
 
