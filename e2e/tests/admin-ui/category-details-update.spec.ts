@@ -354,12 +354,6 @@ test.describe('Admin category details update UI', () => {
       detailsCard.getByTestId(`category-products-title-cell-${products[1].handle}`),
     ).toHaveText(products[1].title);
     await expect(
-      detailsCard.getByTestId(`category-products-handle-cell-${products[0].handle}`),
-    ).toHaveText(products[0].handle);
-    await expect(
-      detailsCard.getByTestId(`category-products-handle-cell-${products[1].handle}`),
-    ).toHaveText(products[1].handle);
-    await expect(
       detailsCard.getByTestId(`category-products-status-cell-${products[0].handle}`),
     ).toHaveText('Draft');
 
@@ -371,8 +365,9 @@ test.describe('Admin category details update UI', () => {
     await page.keyboard.press('Escape');
     await expect(productPicker).toBeHidden();
 
-    await detailsCard.getByTestId(`category-products-remove-button-${products[0].handle}`).click();
-    await page.locator('.ant-popconfirm').getByRole('button', { name: 'Remove' }).click();
+    await detailsCard.getByTestId(`category-products-actions-button-${products[0].handle}`).click();
+    await page.getByRole('menuitem', { name: 'Unassign' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Unassign' }).click();
     await expect(detailsCard.getByTestId('category-products-section')).toContainText(
       'Products (1)',
     );

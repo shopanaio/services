@@ -8,17 +8,17 @@ import {
   Dropdown,
   Flex,
   Image,
-  Popconfirm,
   Skeleton,
   Tag,
   Typography,
 } from "antd";
 import {
-  DeleteOutlined,
+  MoreOutlined,
   PlusOutlined,
   ShoppingOutlined,
   SortAscendingOutlined,
 } from "@ant-design/icons";
+import type { MenuProps } from "antd";
 import { EntityDetailsEmptyState } from "@/domains/inventory/components/entity-details-sections";
 import {
   RelayCursorPagination,
@@ -64,6 +64,13 @@ interface ProductRowProps {
 const ProductRow = ({ product, isRemoving, onRemove }: ProductRowProps) => {
   const { styles } = useProductsStyles();
   const imageUrl = getProductImageUrl(product);
+  const actionItems: MenuProps["items"] = [
+    {
+      key: "unassign",
+      label: "Unassign",
+      onClick: () => onRemove?.(product),
+    },
+  ];
 
   return (
     <tr data-testid={`category-products-row-${product.handle}`}>
@@ -93,14 +100,6 @@ const ProductRow = ({ product, isRemoving, onRemove }: ProductRowProps) => {
         </Flex>
       </td>
       <td>
-        <Typography.Text
-          className={styles.productSku}
-          data-testid={`category-products-handle-cell-${product.handle}`}
-        >
-          {product.handle || "-"}
-        </Typography.Text>
-      </td>
-      <td>
         <Tag
           color={product.isPublished ? "green" : "gold"}
           data-testid={`category-products-status-cell-${product.handle}`}
@@ -109,23 +108,20 @@ const ProductRow = ({ product, isRemoving, onRemove }: ProductRowProps) => {
         </Tag>
       </td>
       <td style={{ textAlign: "right", width: 56 }}>
-        <Popconfirm
-          title="Remove product from category?"
-          description="The product will stay in the catalog."
-          okText="Remove"
-          okButtonProps={{ danger: true, loading: isRemoving }}
-          onConfirm={() => onRemove?.(product)}
+        <Dropdown
+          menu={{ items: actionItems }}
+          trigger={["click"]}
+          placement="bottomRight"
         >
           <Button
             size="small"
             type="text"
-            danger
-            icon={<DeleteOutlined />}
+            icon={<MoreOutlined />}
             loading={isRemoving}
-            aria-label={`Remove ${product.title} from category`}
-            data-testid={`category-products-remove-button-${product.handle}`}
+            aria-label={`Actions for ${product.title}`}
+            data-testid={`category-products-actions-button-${product.handle}`}
           />
-        </Popconfirm>
+        </Dropdown>
       </td>
     </tr>
   );
@@ -147,7 +143,7 @@ export const ProductsSection = ({
   onAssignProducts,
 }: ProductsSectionProps) => {
   const { styles } = useProductsStyles();
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const [orderBy, setOrderBy] = useState<ApiListingOrderByInput[] | null>(null);
   const [removingProductId, setRemovingProductId] = useState<string | null>(
     null,
@@ -241,6 +237,15 @@ export const ProductsSection = ({
     }
   };
 
+  const confirmRemoveProduct = (product: ApiProduct) => {
+    modal.confirm({
+      title: "Unassign product from category?",
+      content: "The product will stay in the catalog.",
+      okText: "Unassign",
+      onOk: () => handleRemoveProduct(product),
+    });
+  };
+
   return (
     <Paper data-testid="category-products-section">
       <PaperHeader
@@ -287,7 +292,6 @@ export const ProductsSection = ({
               <thead>
                 <tr>
                   <th>Product</th>
-                  <th>Handle</th>
                   <th>Status</th>
                   <th aria-label="Actions" />
                 </tr>
@@ -298,7 +302,7 @@ export const ProductsSection = ({
                     key={product.id}
                     product={product}
                     isRemoving={removingProductId === product.id}
-                    onRemove={handleRemoveProduct}
+                    onRemove={confirmRemoveProduct}
                   />
                 ))}
               </tbody>

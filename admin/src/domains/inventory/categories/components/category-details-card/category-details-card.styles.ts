@@ -138,11 +138,6 @@ export const useProductsStyles = createStyles(({ token }) => ({
   productTitle: {
     fontSize: 13,
   },
-  productSku: {
-    fontFamily: "ui-monospace, SFMono-Regular, monospace",
-    fontSize: 11,
-    color: token.colorTextSecondary,
-  },
   stockIcon: {
     fontSize: 10,
   },
