@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { createElement, useMemo } from "react";
 import type { ColDef } from "ag-grid-community";
+import { PictureOutlined } from "@ant-design/icons";
 import { useProducts } from "@/domains/inventory/products/hooks";
 import { filterSchema } from "@/domains/inventory/products/page/filter-schema";
 import {
@@ -114,6 +115,7 @@ const productPickerColumns: ColDef<ProductPickerEntity>[] = [
     headerName: "Product",
     field: "title",
     cellRenderer: EntityCellRenderer,
+    cellRendererParams: { fallbackIcon: createElement(PictureOutlined) },
     flex: 1,
     minWidth: 250,
   },

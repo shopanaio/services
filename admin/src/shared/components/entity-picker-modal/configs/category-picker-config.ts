@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { createElement, useMemo, useState } from "react";
 import type { ColDef } from "ag-grid-community";
+import { FolderOutlined } from "@ant-design/icons";
 import { useCategories } from "@/domains/inventory/categories/hooks";
 import type { ApiCategoryCategoriesMetaInput } from "@/domains/inventory/categories/graphql";
 import { EntityCellRenderer, StatusCellRenderer } from "../cell-renderers";
@@ -106,6 +107,7 @@ const categoryPickerColumns: ColDef<CategoryPickerEntity>[] = [
     headerName: "Category",
     field: "title",
     cellRenderer: EntityCellRenderer,
+    cellRendererParams: { fallbackIcon: createElement(FolderOutlined) },
     flex: 1,
     minWidth: 250,
   },

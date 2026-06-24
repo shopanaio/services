@@ -15,6 +15,10 @@ import {
   CalculatedAvailableCell,
 } from "@/shared/components/inventory-cells";
 
+function isEmptyCellValue(value: unknown): boolean {
+  return value === null || value === undefined || value === "";
+}
+
 // Title cell with hierarchy
 export const TitleCellRenderer: React.FC<
   CustomCellRendererProps<IBulkEditorRow>
@@ -125,7 +129,7 @@ export const TextCellRenderer: React.FC<
 
   return (
     <SelectableCell rowId={data.id} field={field}>
-      <span>{value ?? ""}</span>
+      {isEmptyCellValue(value) ? <Dash /> : <span>{String(value)}</span>}
     </SelectableCell>
   );
 };
@@ -150,7 +154,7 @@ export const PriceCellRenderer: React.FC<
 
   return (
     <SelectableCell rowId={data.id} field={field} className="ec-cell--right">
-      {formatPrice(value as number | null)}
+      {isEmptyCellValue(value) ? <Dash /> : formatPrice(value as number)}
     </SelectableCell>
   );
 };
@@ -180,8 +184,10 @@ export const NumberCellRenderer: React.FC<
     <SelectableCell rowId={data.id} field={field} className="ec-cell--right">
       {edit ? (
         <Diff originalValue={edit.originalValue} currentValue={edit.currentValue} />
+      ) : isEmptyCellValue(value) ? (
+        <Dash />
       ) : (
-        (value ?? "")
+        value
       )}
     </SelectableCell>
   );

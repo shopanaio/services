@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useCallback, useState, useEffect, useRef } from "react";
-import { Typography, Image, Tag } from "antd";
+import { Typography, Tag } from "antd";
+import { PictureOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { ColDef, CellValueChangedEvent } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
@@ -20,6 +21,7 @@ import {
   getWeightUnitLabel,
 } from "../../utils/product-measurements";
 import { Dash } from "@/shared/components/editor-grid";
+import { TableCoverImage } from "@/shared/components/table-cover-image";
 
 // ============================================================================
 // Types
@@ -83,7 +85,7 @@ export interface IUnifiedVariantsTableProps {
 // Styles
 // ============================================================================
 
-const useStyles = createStyles(({ token }) => ({
+const useStyles = createStyles(() => ({
   imageCell: {
     display: "flex",
     alignItems: "center",
@@ -92,13 +94,6 @@ const useStyles = createStyles(({ token }) => ({
   variantImage: {
     borderRadius: 4,
     objectFit: "cover" as const,
-  },
-  imagePlaceholder: {
-    width: 40,
-    height: 40,
-    background: token.colorBgContainerDisabled,
-    borderRadius: 4,
-    flexShrink: 0,
   },
   priceCell: {
     display: "flex",
@@ -144,18 +139,12 @@ const ImageCellRenderer = (props: CustomCellRendererProps<IUnifiedVariantRow>) =
 
   return (
     <div className={styles.imageCell}>
-      {data.imageUrl ? (
-        <Image
-          src={data.imageUrl}
-          alt={data.title}
-          width={40}
-          height={40}
-          className={styles.variantImage}
-          preview={false}
-        />
-      ) : (
-        <div className={styles.imagePlaceholder} />
-      )}
+      <TableCoverImage
+        src={data.imageUrl}
+        alt={data.title}
+        fallbackIcon={<PictureOutlined />}
+        className={styles.variantImage}
+      />
     </div>
   );
 };

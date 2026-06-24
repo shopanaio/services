@@ -1,8 +1,9 @@
 "use client";
 
-import { Typography, Button, Image, Dropdown, Flex } from "antd";
+import { Typography, Button, Dropdown, Flex } from "antd";
 import {
   MoreOutlined,
+  PictureOutlined,
   SortAscendingOutlined,
   LeftOutlined,
   RightOutlined,
@@ -25,6 +26,7 @@ import {
   formatApiDimensions,
   formatApiWeight,
 } from "../../../utils/product-measurements";
+import { TableCoverImage } from "@/shared/components/table-cover-image";
 
 // ============================================================================
 // Stock Status Config
@@ -116,18 +118,12 @@ const VariantRow = ({
       {/* VARIANT */}
       <td data-testid={`product-variants-cell-title-${variant.id}`}>
         <Flex align="flex-start" gap={8}>
-          {imageUrl ? (
-            <Image
-              src={imageUrl}
-              alt=""
-              width={40}
-              height={40}
-              className={styles.variantImage}
-              preview={false}
-            />
-          ) : (
-            <div className={styles.variantImagePlaceholder} />
-          )}
+          <TableCoverImage
+            src={imageUrl ?? null}
+            alt={variant.title ?? variant.handle}
+            fallbackIcon={<PictureOutlined />}
+            className={styles.variantImage}
+          />
           <Flex vertical>
             <Typography.Text strong className={styles.variantTitle}>
               {variant.title ?? variant.handle}

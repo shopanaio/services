@@ -321,8 +321,7 @@ export function shouldShowDash(
 }
 
 // Format price for display
-export function formatPrice(value: number | null): string {
-  if (value === null) return "";
+export function formatPrice(value: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",

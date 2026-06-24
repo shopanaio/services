@@ -1,8 +1,9 @@
 import React from "react";
 import { Avatar } from "antd";
+import { PictureOutlined } from "@ant-design/icons";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { SelectableCell } from "@/shared/components/ag-grid-cell-selection";
-import { Dash, Diff, ImagePlaceholder } from "@/shared/components/editor-grid";
+import { Dash, Diff } from "@/shared/components/editor-grid";
 import type { IVariantEditorRow } from "../config/types";
 import { useVariantsEditorStore } from "../hooks";
 import type { IFieldEdit } from "@/shared/components/editor-grid/types";
@@ -12,11 +13,16 @@ import {
   CalculatedAvailableCell,
 } from "@/shared/components/inventory-cells";
 import { formatPrice } from "../../../utils/price-formatting";
+import { TableCoverImage } from "@/shared/components/table-cover-image";
 
 export { formatPrice };
 
 interface PriceCellRendererParams {
   currency?: CurrencyCode | null;
+}
+
+function isEmptyCellValue(value: unknown): boolean {
+  return value === null || value === undefined || value === "";
 }
 
 function getPriceCellDisplayValue(
@@ -46,7 +52,16 @@ export const ImageCellRenderer: React.FC<
   if (!data) return null;
 
   const media = data.media;
-  if (!media || media.length === 0) return <ImagePlaceholder />;
+  if (!media || media.length === 0) {
+    return (
+      <TableCoverImage
+        src={null}
+        alt={data.title}
+        fallbackIcon={<PictureOutlined />}
+        size={32}
+      />
+    );
+  }
 
   return (
     <Avatar.Group max={{ count: 3 }} size={32}>
@@ -154,7 +169,7 @@ export const TextCellRenderer: React.FC<
       field={field}
       testId={`variants-editor-cell-${field}-${data.id}`}
     >
-      <span>{value ?? ""}</span>
+      {isEmptyCellValue(value) ? <Dash /> : <span>{String(value)}</span>}
     </SelectableCell>
   );
 };
@@ -214,8 +229,10 @@ export const NumberCellRenderer: React.FC<
           originalValue={edit.originalValue}
           currentValue={edit.currentValue}
         />
+      ) : isEmptyCellValue(value) ? (
+        <Dash />
       ) : (
-        value ?? ""
+        value
       )}
     </SelectableCell>
   );
@@ -233,7 +250,11 @@ export const OptionCellRenderer: React.FC<
   if (!data) return null;
 
   const option = data.options.find((o) => o.name === optionName);
-  const value = option?.value ?? "";
+  const value = option?.value;
 
-  return <span className="ec-option">{value}</span>;
+  return (
+    <span className="ec-option">
+      {isEmptyCellValue(value) ? <Dash /> : value}
+    </span>
+  );
 };

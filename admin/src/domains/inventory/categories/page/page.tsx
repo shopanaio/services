@@ -3,10 +3,8 @@
 import { useState, useMemo, useRef, useCallback } from "react";
 import {
   Alert,
-  Avatar,
   Button,
   Flex,
-  Image,
   Tag,
   Typography,
 } from "antd";
@@ -64,6 +62,7 @@ import { filterSchema } from "./filter-schema";
 import { useCategories } from "../hooks";
 import { useCategoryModal, useCreateCategoryModal } from "../modals";
 import type { CategoriesQueryVariables } from "../graphql";
+import { TableCoverImage } from "@/shared/components/table-cover-image";
 
 ModuleRegistry.registerModules([
   AllCommunityModule,
@@ -310,23 +309,11 @@ const CategoryCellRenderer = (
       gap="small"
       data-testid={`categories-table-category-cell-${data.handle}`}
     >
-      {thumbnail?.url ? (
-        <Image
-          src={thumbnail.url}
-          alt={thumbnail.altText ?? thumbnail.originalName ?? data.name}
-          width={40}
-          height={40}
-          style={{ borderRadius: 4, objectFit: "cover" }}
-          preview={false}
-        />
-      ) : (
-        <Avatar
-          size={40}
-          icon={<FolderOutlined />}
-          shape="square"
-          style={{ borderRadius: 4, flexShrink: 0 }}
-        />
-      )}
+      <TableCoverImage
+        src={thumbnail?.url ?? null}
+        alt={thumbnail?.altText ?? thumbnail?.originalName ?? data.name}
+        fallbackIcon={<FolderOutlined />}
+      />
       <Flex vertical gap={0}>
         <Typography.Text
           strong

@@ -7,13 +7,13 @@ import {
   Button,
   Dropdown,
   Flex,
-  Image,
   Skeleton,
   Tag,
   Typography,
 } from "antd";
 import {
   MoreOutlined,
+  PictureOutlined,
   PlusOutlined,
   ShoppingOutlined,
   SortAscendingOutlined,
@@ -29,6 +29,7 @@ import type { ApiListingOrderByInput, ApiProduct } from "@/graphql/types";
 import { ProductSortBy, SortDirection } from "@/graphql/types";
 import { useCategoryProducts, useRemoveCategoryProduct } from "../../../hooks";
 import { useProductsStyles } from "../category-details-card.styles";
+import { TableCoverImage } from "@/shared/components/table-cover-image";
 
 const getProductImageUrl = (product: ApiProduct): string | null => {
   const firstMedia = [...product.media].sort(
@@ -76,18 +77,12 @@ const ProductRow = ({ product, isRemoving, onRemove }: ProductRowProps) => {
     <tr data-testid={`category-products-row-${product.handle}`}>
       <td>
         <Flex align="flex-start" gap={8}>
-          {imageUrl ? (
-            <Image
-              src={imageUrl}
-              alt={product.title}
-              width={40}
-              height={40}
-              className={styles.productImage}
-              preview={false}
-            />
-          ) : (
-            <div className={styles.productImagePlaceholder} />
-          )}
+          <TableCoverImage
+            src={imageUrl}
+            alt={product.title}
+            fallbackIcon={<PictureOutlined />}
+            className={styles.productImage}
+          />
           <Flex vertical>
             <Typography.Text
               strong

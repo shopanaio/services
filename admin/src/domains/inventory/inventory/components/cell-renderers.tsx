@@ -1,4 +1,4 @@
-import { Avatar, Image, Typography, Flex } from "antd";
+import { Typography, Flex } from "antd";
 import { PictureOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import type { CustomCellRendererProps } from "ag-grid-react";
@@ -6,6 +6,7 @@ import { EditableNumberCell } from "./editable-number-cell";
 import { ReservedCell } from "@/shared/components/inventory-cells";
 import type { InventoryVariantRow } from "../mappers";
 import { getInventoryVariantCellTestId } from "./test-ids";
+import { TableCoverImage } from "@/shared/components/table-cover-image";
 
 const useStyles = createStyles(({ token }) => ({
   productImage: {
@@ -33,23 +34,12 @@ export const ProductCellRenderer = (
       gap="small"
       data-testid={getInventoryVariantCellTestId(data, "product")}
     >
-      {data.imageUrl ? (
-        <Image
-          src={data.imageUrl}
-          alt={data.productTitle}
-          width={40}
-          height={40}
-          className={styles.productImage}
-          preview={false}
-        />
-      ) : (
-        <Avatar
-          size={40}
-          icon={<PictureOutlined />}
-          shape="square"
-          className={styles.productImage}
-        />
-      )}
+      <TableCoverImage
+        src={data.imageUrl}
+        alt={data.productTitle}
+        fallbackIcon={<PictureOutlined />}
+        className={styles.productImage}
+      />
       <Flex vertical gap={0}>
         <Typography.Text
           strong

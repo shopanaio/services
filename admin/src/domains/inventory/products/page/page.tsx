@@ -1,8 +1,13 @@
 "use client";
 
 import { useState, useMemo, useRef, useCallback } from "react";
-import { Alert, App, Image, Typography, Flex, Button } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { Alert, App, Typography, Flex, Button } from "antd";
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  PictureOutlined,
+} from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
 import { useModalStack } from "@/layouts/modals";
 import {
@@ -49,6 +54,7 @@ import {
 import { formatPrice } from "../utils/price-formatting";
 import type { ProductsQueryVariables } from "../graphql";
 import { Dash } from "@/shared/components/editor-grid";
+import { TableCoverImage } from "@/shared/components/table-cover-image";
 
 ModuleRegistry.registerModules([
   AllCommunityModule,
@@ -69,18 +75,11 @@ const ProductCellRenderer = (
       gap="small"
       data-testid={`products-table-title-cell-${data.handle}`}
     >
-      {thumbnail ? (
-        <Image
-          src={thumbnail.url}
-          alt={thumbnail.altText ?? thumbnail.originalName ?? data.title}
-          width={40}
-          height={40}
-          style={{ borderRadius: 4, objectFit: "cover" }}
-          preview={false}
-        />
-      ) : (
-        <div style={{ width: 40, height: 40, flex: "0 0 40px" }} />
-      )}
+      <TableCoverImage
+        src={thumbnail?.url ?? null}
+        alt={thumbnail?.altText ?? thumbnail?.originalName ?? data.title}
+        fallbackIcon={<PictureOutlined />}
+      />
       <Typography.Text strong>{data.title}</Typography.Text>
     </Flex>
   );

@@ -128,13 +128,6 @@ export const useProductsStyles = createStyles(({ token }) => ({
     objectFit: "cover",
     flexShrink: 0,
   },
-  productImagePlaceholder: {
-    width: 40,
-    height: 40,
-    background: token.colorBgContainerDisabled,
-    borderRadius: 4,
-    flexShrink: 0,
-  },
   productTitle: {
     fontSize: 13,
   },

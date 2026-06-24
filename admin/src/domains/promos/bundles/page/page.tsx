@@ -1,8 +1,13 @@
 "use client";
 
 import { useState, useMemo, useRef, useCallback } from "react";
-import { Image, Typography, Flex, Button, Tag } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { Typography, Flex, Button, Tag } from "antd";
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  GiftOutlined,
+} from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
 import { useModalStack } from "@/layouts/modals";
 import {
@@ -29,6 +34,7 @@ import {
 import { filterSchema } from "./filter-schema";
 import { useBundles } from "../hooks";
 import type { IBundleListItem, BundleType } from "@/mocks/products/bundles-list";
+import { TableCoverImage } from "@/shared/components/table-cover-image";
 
 ModuleRegistry.registerModules([
   AllCommunityModule,
@@ -43,13 +49,10 @@ const BundleCellRenderer = (
   if (!data) return null;
   return (
     <Flex align="center" gap="small">
-      <Image
+      <TableCoverImage
         src={data.image}
         alt={data.name}
-        width={40}
-        height={40}
-        style={{ borderRadius: 4, objectFit: "cover" }}
-        preview={false}
+        fallbackIcon={<GiftOutlined />}
       />
       <Typography.Text strong>{data.name}</Typography.Text>
     </Flex>

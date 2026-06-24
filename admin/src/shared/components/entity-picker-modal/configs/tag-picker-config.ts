@@ -1,9 +1,11 @@
 "use client";
 
 import {
+  createElement,
   useState,
   useMemo } from "react";
 import type { ColDef } from "ag-grid-community";
+import { TagOutlined } from "@ant-design/icons";
 import { EntityCellRenderer,
   StatusCellRenderer } from "../cell-renderers";
 import { registerEntityPickerConfig } from ".";
@@ -112,6 +114,7 @@ const tagPickerColumns: ColDef<ITagPickerEntity>[] = [
     headerName: "Tag",
     field: "title",
     cellRenderer: EntityCellRenderer,
+    cellRendererParams: { fallbackIcon: createElement(TagOutlined) },
     flex: 1,
     minWidth: 250,
   },

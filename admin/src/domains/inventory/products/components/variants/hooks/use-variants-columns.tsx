@@ -12,6 +12,7 @@ import type {
   VariantColumnField,
 } from "../config/types";
 import type { CurrencyCode } from "@/graphql/types";
+import { Dash } from "@/shared/components/editor-grid";
 import {
   ImageCellRenderer,
   TitleCellRenderer,
@@ -257,7 +258,7 @@ export function useVariantsColumns(
           minWidth: col.minWidth,
           valueGetter: (params) => {
             const option = params.data?.options.find((o) => o.name === optionName);
-            return option?.value ?? "";
+            return option?.value ?? null;
           },
           cellRenderer: (params: { data?: IVariantEditorRow; value?: unknown }) => {
             if (!params.data) {
@@ -266,7 +267,9 @@ export function useVariantsColumns(
 
             return (
               <span data-testid={`variants-editor-cell-option-${optionName}-${params.data.id}`}>
-                {String(params.value ?? "")}
+                {params.value === null || params.value === undefined || params.value === ""
+                  ? <Dash />
+                  : String(params.value)}
               </span>
             );
           },

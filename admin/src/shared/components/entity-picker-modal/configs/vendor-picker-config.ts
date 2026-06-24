@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { createElement, useEffect, useMemo, useState } from "react";
 import type { ColDef } from "ag-grid-community";
+import { ShopOutlined } from "@ant-design/icons";
 import { useVendors } from "@/domains/inventory/products/hooks/use-vendors";
 import { EntityCellRenderer } from "../cell-renderers";
 import { registerEntityPickerConfig } from ".";
@@ -125,6 +126,7 @@ const vendorPickerColumns: ColDef<VendorPickerEntity>[] = [
     headerName: "Vendor",
     field: "title",
     cellRenderer: EntityCellRenderer,
+    cellRendererParams: { fallbackIcon: createElement(ShopOutlined) },
     flex: 1,
     minWidth: 250,
   },

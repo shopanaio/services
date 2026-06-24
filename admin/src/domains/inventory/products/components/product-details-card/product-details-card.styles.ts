@@ -161,13 +161,6 @@ export const useVariantsTableStyles = createStyles(({ token }) => ({
     objectFit: "cover",
     flexShrink: 0,
   },
-  variantImagePlaceholder: {
-    width: 40,
-    height: 40,
-    background: token.colorBgContainerDisabled,
-    borderRadius: 4,
-    flexShrink: 0,
-  },
   variantTitle: {
     fontSize: 13,
   },
