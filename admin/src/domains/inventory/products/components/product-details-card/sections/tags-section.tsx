@@ -13,6 +13,7 @@ import { useUpdateProduct } from "@/domains/inventory/products/hooks";
 interface TagItem {
   id: string;
   name: string;
+  handle?: string | null;
 }
 
 interface ITagsSectionProps {
@@ -25,6 +26,7 @@ interface ITagsSectionProps {
 const toTagItem = (tag: ApiTag): TagItem => ({
   id: tag.id,
   name: tag.name,
+  handle: tag.handle,
 });
 
 export const TagsSection = ({
@@ -102,6 +104,10 @@ export const TagsSection = ({
       .map((entity): TagItem => ({
         id: entity.id,
         name: entity.title,
+        handle:
+          "handle" in entity && typeof entity.handle === "string"
+            ? entity.handle
+            : null,
       }));
 
     if (newTags.length === 0) {
@@ -144,7 +150,7 @@ export const TagsSection = ({
   const isPending = pendingTagId !== null;
 
   return (
-    <Paper>
+    <Paper data-testid="product-tags-section">
       <PaperHeader title="Tags" />
       {hasTags ? (
         <Flex gap={4} wrap="wrap">
@@ -163,7 +169,14 @@ export const TagsSection = ({
                 ],
               }}
             >
-              <Tag style={{ cursor: "pointer" }}>
+              <Tag
+                style={{ cursor: "pointer" }}
+                data-testid={
+                  tag.handle
+                    ? `product-tags-item-${tag.handle}`
+                    : `product-tags-item-${tag.id}`
+                }
+              >
                 <Flex align="center" gap={4}>
                   {tag.name}
                   <MoreOutlined />
@@ -174,6 +187,7 @@ export const TagsSection = ({
           <Tag
             variant="outlined"
             onClick={isPending ? undefined : openPicker}
+            data-testid="product-tags-add-button"
             style={{
               cursor: isPending ? "not-allowed" : "pointer",
               background: "transparent",
@@ -191,6 +205,7 @@ export const TagsSection = ({
           <Tag
             variant="outlined"
             onClick={isPending ? undefined : openPicker}
+            data-testid="product-tags-add-button"
             style={{
               cursor: isPending ? "not-allowed" : "pointer",
               background: "transparent",
