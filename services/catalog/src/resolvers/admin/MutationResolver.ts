@@ -41,11 +41,7 @@ import {
   CategoryCreateScript,
   CategoryDeleteScript,
   CategoryMoveScript,
-  CategoryMoveProductScript,
   CategoryRebalanceScript,
-  CategoryAddProductScript,
-  CategoryRemoveProductScript,
-  CategorySetProductPrimaryScript,
 } from "../../scripts/category/index.js";
 import type {
   CategoryUpdateParams,
@@ -61,6 +57,7 @@ import type {
   ProductUpdateWorkflowInput,
   ProductUpdateWorkflowResult,
   ProductUpdateOperation,
+  ProductCategoryOperationAction,
   WorkflowContext,
 } from "../../workflows/dto/ProductUpdateWorkflowDto.js";
 import type { ProductCreateParams, ProductCreateResult } from "../../sagas/index.js";
@@ -156,26 +153,20 @@ import type {
   ProductFeatureUpdateInput,
   ProductFeatureDeleteInput,
   ProductFeaturesSyncInput,
-  CatalogMutationCategoryAddProductArgs,
   CatalogMutationCategoryCreateArgs,
   CatalogMutationCategoryDeleteArgs,
   CatalogMutationCategoryMoveArgs,
-  CatalogMutationCategoryMoveProductArgs,
   CatalogMutationCategoryRebalanceArgs,
-  CatalogMutationCategoryRemoveProductArgs,
   CatalogMutationCategoryUpdateArgs,
   CatalogMutationVendorCreateArgs,
   CatalogMutationProductUpdateArgs,
   RichTextInput,
 } from "./generated/types.js";
 import {
-  CategoryAddProductInputSchema,
   CategoryCreateInputSchema,
   CategoryDeleteInputSchema,
   CategoryMoveInputSchema,
-  CategoryMoveProductInputSchema,
   CategoryRebalanceInputSchema,
-  CategoryRemoveProductInputSchema,
   VendorCreateInputSchema,
   ProductCreateInputSchema,
   ProductDeleteInputSchema,
@@ -195,13 +186,6 @@ import {
   ProductFeaturesSyncInputSchema,
 } from "./generated/schemas.js";
 import { ProductBulkUpdateInputSchema } from "./validation/productBulkEditSchema.js";
-
-interface CatalogMutationCategorySetProductPrimaryArgs {
-  input: {
-    categoryId: string;
-    productId: string;
-  };
-}
 
 /**
  * Root Mutation resolver for Catalog Service.
@@ -581,7 +565,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
   /**
    * Unified product update with optimistic locking.
-   * Supports product and variant updates in a single request.
+   * Supports product, product category, and variant updates in a single request.
    * Does NOT support inventory operations (they live in Inventory Service).
    */
   async productUpdate(args: CatalogMutationProductUpdateArgs) {
@@ -591,6 +575,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       GlobalIdEntity.Product
     );
     const variants = operations?.variants;
+    const categories = operations?.categories;
 
     // Map GraphQL input to workflow operations
     const workflowOps: ProductUpdateOperation[] = [];
@@ -644,6 +629,12 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
             : undefined,
         },
       });
+    }
+
+    if (categories) {
+      workflowOps.push(
+        ...mapProductCategoryOperations(decodedProductId, categories),
+      );
     }
 
     if (variants) {
@@ -740,7 +731,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         ? new ProductResolver(result.product.id, this.$ctx)
         : null,
       operationResults: result.operationResults.map((r) => ({
-        type: r.type === "productUpdate" ? "PRODUCT_UPDATE" : "VARIANT_UPDATE",
+        type: toGraphqlOperationType(r.type),
         applied: r.applied,
         errors: r.errors,
       })),
@@ -1414,88 +1405,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     };
   }
 
-  @ZodResolver(CategoryMoveProductInputSchema())
-  async categoryMoveProduct(args: CatalogMutationCategoryMoveProductArgs) {
-    const { input } = args;
-    let categoryId: string;
-    let productId: string;
-    let afterProductId: string | undefined;
-    let beforeProductId: string | undefined;
-    try {
-      categoryId = decodeGlobalIdByType(input.categoryId, GlobalIdEntity.Category);
-      productId = decodeGlobalIdByType(input.productId, GlobalIdEntity.Product);
-      afterProductId = input.afterProductId
-        ? decodeGlobalIdByType(input.afterProductId, GlobalIdEntity.Product)
-        : undefined;
-      beforeProductId = input.beforeProductId
-        ? decodeGlobalIdByType(input.beforeProductId, GlobalIdEntity.Product)
-        : undefined;
-    } catch {
-      return {
-        category: null,
-        userErrors: [{ message: "Invalid ID format", code: "INVALID_ID" }],
-      };
-    }
-
-    const result = await this.$ctx.kernel.runScript(CategoryMoveProductScript, {
-      categoryId,
-      productId,
-      afterProductId,
-      beforeProductId,
-    });
-
-    if (result.userErrors.length === 0) {
-      await this.emitProductCategoryUpdated({
-        productIds: result.affectedProductIds,
-        reason: "rank",
-        categoryIds: [categoryId],
-      });
-    }
-
-    return {
-      category: result.category
-        ? new CategoryResolver(result.category.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  @ZodResolver(CategoryAddProductInputSchema())
-  async categoryAddProduct(args: CatalogMutationCategoryAddProductArgs) {
-    const { input } = args;
-    let categoryId: string;
-    let productId: string;
-    try {
-      categoryId = decodeGlobalIdByType(input.categoryId, GlobalIdEntity.Category);
-      productId = decodeGlobalIdByType(input.productId, GlobalIdEntity.Product);
-    } catch {
-      return {
-        category: null,
-        userErrors: [{ message: "Invalid ID format", code: "INVALID_ID" }],
-      };
-    }
-
-    const result = await this.$ctx.kernel.runScript(CategoryAddProductScript, {
-      categoryId,
-      productId,
-    });
-
-    if (result.userErrors.length === 0) {
-      await this.emitProductCategoryUpdated({
-        productIds: result.affectedProductIds,
-        reason: "assignment",
-        categoryIds: [categoryId],
-      });
-    }
-
-    return {
-      category: result.category
-        ? new CategoryResolver(result.category.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
   @ZodResolver(CategoryRebalanceInputSchema())
   async categoryRebalance(args: CatalogMutationCategoryRebalanceArgs) {
     let categoryId: string;
@@ -1518,85 +1427,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       await this.emitProductCategoryUpdated({
         productIds: result.affectedProductIds,
         reason: "rank",
-        categoryIds: [categoryId],
-      });
-    }
-
-    return {
-      category: result.category
-        ? new CategoryResolver(result.category.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  @ZodResolver(CategoryRemoveProductInputSchema())
-  async categoryRemoveProduct(args: CatalogMutationCategoryRemoveProductArgs) {
-    const { input } = args;
-    let categoryId: string;
-    let productId: string;
-    try {
-      categoryId = decodeGlobalIdByType(input.categoryId, GlobalIdEntity.Category);
-      productId = decodeGlobalIdByType(input.productId, GlobalIdEntity.Product);
-    } catch {
-      return {
-        category: null,
-        userErrors: [{ message: "Invalid ID format", code: "INVALID_ID" }],
-      };
-    }
-
-    const result = await this.$ctx.kernel.runScript(CategoryRemoveProductScript, {
-      categoryId,
-      productId,
-    });
-
-    if (result.userErrors.length === 0) {
-      await this.emitProductCategoryUpdated({
-        productIds: result.affectedProductIds,
-        reason: "assignment",
-        categoryIds: [categoryId],
-      });
-    }
-
-    return {
-      category: result.category
-        ? new CategoryResolver(result.category.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  async categorySetProductPrimary(
-    args: CatalogMutationCategorySetProductPrimaryArgs
-  ) {
-    const { input } = args;
-    let categoryId: string;
-    let productId: string;
-    try {
-      categoryId = decodeGlobalIdByType(
-        input.categoryId,
-        GlobalIdEntity.Category
-      );
-      productId = decodeGlobalIdByType(input.productId, GlobalIdEntity.Product);
-    } catch {
-      return {
-        category: null,
-        userErrors: [{ message: "Invalid ID format", code: "INVALID_ID" }],
-      };
-    }
-
-    const result = await this.$ctx.kernel.runScript(
-      CategorySetProductPrimaryScript,
-      {
-        categoryId,
-        productId,
-      },
-    );
-
-    if (result.userErrors.length === 0) {
-      await this.emitProductCategoryUpdated({
-        productIds: result.affectedProductIds,
-        reason: "assignment",
         categoryIds: [categoryId],
       });
     }
@@ -3146,6 +2976,7 @@ function mapOperationsForBulk(
   );
   const result: ProductUpdateOperation[] = [];
   const variants = operations?.variants;
+  const categories = operations?.categories;
 
   if (operations) {
     result.push({
@@ -3188,6 +3019,10 @@ function mapOperationsForBulk(
           : undefined,
       },
     });
+  }
+
+  if (categories) {
+    result.push(...mapProductCategoryOperations(decodedProductId, categories));
   }
 
   if (variants) {
@@ -3253,4 +3088,55 @@ function mapOperationsForBulk(
   }
 
   return result;
+}
+
+type ProductCategoryOperationInput = NonNullable<
+  NonNullable<ProductBulkUpdateInput["products"][0]["operations"]>["categories"]
+>[number];
+
+function mapProductCategoryOperations(
+  productId: string,
+  categories: readonly ProductCategoryOperationInput[],
+): ProductUpdateOperation[] {
+  return categories.map((input) => ({
+    type: "productCategoryUpdate",
+    params: {
+      productId,
+      categoryId: decodeGlobalIdByType(input.categoryId, GlobalIdEntity.Category),
+      action: mapProductCategoryOperationAction(input.action),
+      afterProductId: input.afterProductId
+        ? decodeGlobalIdByType(input.afterProductId, GlobalIdEntity.Product)
+        : undefined,
+      beforeProductId: input.beforeProductId
+        ? decodeGlobalIdByType(input.beforeProductId, GlobalIdEntity.Product)
+        : undefined,
+    },
+  }));
+}
+
+function mapProductCategoryOperationAction(
+  action: ProductCategoryOperationInput["action"],
+): ProductCategoryOperationAction {
+  switch (String(action)) {
+    case "ADD":
+      return "add";
+    case "REMOVE":
+      return "remove";
+    case "SET_PRIMARY":
+      return "setPrimary";
+    case "MOVE":
+      return "move";
+    default:
+      throw new Error(`Unsupported product category action: ${String(action)}`);
+  }
+}
+
+function toGraphqlOperationType(type: ProductUpdateOperation["type"]) {
+  if (type === "productUpdate") {
+    return "PRODUCT_UPDATE";
+  }
+  if (type === "productCategoryUpdate") {
+    return "PRODUCT_CATEGORY_UPDATE";
+  }
+  return "VARIANT_UPDATE";
 }

@@ -119,6 +119,7 @@ export enum BulkUpdateJobStatus {
 }
 
 export enum BulkUpdateOpType {
+  ProductCategoryUpdate = 'PRODUCT_CATEGORY_UPDATE',
   ProductUpdate = 'PRODUCT_UPDATE',
   VariantUpdate = 'VARIANT_UPDATE'
 }
@@ -331,20 +332,14 @@ export type CatalogMutation = {
   bundlePricingTemplateDelete: DeletePayload;
   /** Update an existing bundle pricing template */
   bundlePricingTemplateUpdate: BundlePricingTemplatePayload;
-  /** Add a product to a category */
-  categoryAddProduct: CategoryAddProductPayload;
   /** Create a new category */
   categoryCreate: CategoryCreatePayload;
   /** Delete a category */
   categoryDelete: CategoryDeletePayload;
   /** Move a category to a new parent or position */
   categoryMove: CategoryMovePayload;
-  /** Move a product within a category */
-  categoryMoveProduct: CategoryMoveProductPayload;
   /** Rebalance category tree positions */
   categoryRebalance: CategoryRebalancePayload;
-  /** Remove a product from a category */
-  categoryRemoveProduct: CategoryRemoveProductPayload;
   /** Unified category update with optimistic locking. */
   categoryUpdate: CategoryUpdatePayload;
   /** Add products to a collection */
@@ -511,11 +506,6 @@ export type CatalogMutationBundlePricingTemplateUpdateArgs = {
 };
 
 
-export type CatalogMutationCategoryAddProductArgs = {
-  input: CategoryAddProductInput;
-};
-
-
 export type CatalogMutationCategoryCreateArgs = {
   input: CategoryCreateInput;
 };
@@ -531,18 +521,8 @@ export type CatalogMutationCategoryMoveArgs = {
 };
 
 
-export type CatalogMutationCategoryMoveProductArgs = {
-  input: CategoryMoveProductInput;
-};
-
-
 export type CatalogMutationCategoryRebalanceArgs = {
   input: CategoryRebalanceInput;
-};
-
-
-export type CatalogMutationCategoryRemoveProductArgs = {
-  input: CategoryRemoveProductInput;
 };
 
 
@@ -1132,17 +1112,6 @@ export type CategoryProductsArgs = {
   where?: InputMaybe<CategoryProductWhereInput>;
 };
 
-export type CategoryAddProductInput = {
-  categoryId: Scalars['ID']['input'];
-  productId: Scalars['ID']['input'];
-};
-
-export type CategoryAddProductPayload = {
-  __typename?: 'CategoryAddProductPayload';
-  category: Maybe<Category>;
-  userErrors: Array<GenericUserError>;
-};
-
 export type CategoryCategoriesMetaInput = {
   hierarchyScope?: InputMaybe<CategoryHierarchyScopeInput>;
   productsScope?: InputMaybe<CategoryProductsScopeInput>;
@@ -1274,19 +1243,6 @@ export type CategoryMovePayload = {
   userErrors: Array<GenericUserError>;
 };
 
-export type CategoryMoveProductInput = {
-  afterProductId?: InputMaybe<Scalars['ID']['input']>;
-  beforeProductId?: InputMaybe<Scalars['ID']['input']>;
-  categoryId: Scalars['ID']['input'];
-  productId: Scalars['ID']['input'];
-};
-
-export type CategoryMoveProductPayload = {
-  __typename?: 'CategoryMoveProductPayload';
-  category: Maybe<Category>;
-  userErrors: Array<GenericUserError>;
-};
-
 /** Ordering configuration for Category */
 export type CategoryOrderByInput = {
   /** Sort direction */
@@ -1359,17 +1315,6 @@ export type CategoryRebalanceInput = {
 
 export type CategoryRebalancePayload = {
   __typename?: 'CategoryRebalancePayload';
-  category: Maybe<Category>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type CategoryRemoveProductInput = {
-  categoryId: Scalars['ID']['input'];
-  productId: Scalars['ID']['input'];
-};
-
-export type CategoryRemoveProductPayload = {
-  __typename?: 'CategoryRemoveProductPayload';
   category: Maybe<Category>;
   userErrors: Array<GenericUserError>;
 };
@@ -2855,6 +2800,7 @@ export type OperationResult = {
 /** Type of operation in the unified update. */
 export enum OperationType {
   CategoryUpdate = 'CATEGORY_UPDATE',
+  ProductCategoryUpdate = 'PRODUCT_CATEGORY_UPDATE',
   ProductUpdate = 'PRODUCT_UPDATE',
   VariantUpdate = 'VARIANT_UPDATE'
 }
@@ -3043,6 +2989,25 @@ export type ProductCategoryAssignment = {
   __typename?: 'ProductCategoryAssignment';
   category: Category;
   isPrimary: Scalars['Boolean']['output'];
+};
+
+export enum ProductCategoryOperationAction {
+  Add = 'ADD',
+  Move = 'MOVE',
+  Remove = 'REMOVE',
+  SetPrimary = 'SET_PRIMARY'
+}
+
+/** Product category assignment operation for unified product updates. */
+export type ProductCategoryOperationInput = {
+  /** The assignment action to apply. */
+  action: ProductCategoryOperationAction;
+  /** Move this product after another product in the category listing. */
+  afterProductId?: InputMaybe<Scalars['ID']['input']>;
+  /** Move this product before another product in the category listing. */
+  beforeProductId?: InputMaybe<Scalars['ID']['input']>;
+  /** The category to update for the product. */
+  categoryId: Scalars['ID']['input'];
 };
 
 /** A connection to a list of Product items. */
@@ -3662,6 +3627,8 @@ export enum ProductStatusAction {
 
 /** Input for product-level fields in the unified update. */
 export type ProductUpdateInput = {
+  /** Product category assignment operations. */
+  categories?: InputMaybe<Array<ProductCategoryOperationInput>>;
   /** Product content (description, excerpt). */
   content?: InputMaybe<ProductContentInput>;
   /** The URL-friendly handle for the product. */
@@ -4604,8 +4571,6 @@ export type ResolversTypes = ResolversObject<{
   CatalogMutation: ResolverTypeWrapper<Omit<CatalogMutation, 'bundleGroupCreate' | 'bundleGroupDelete' | 'bundleGroupUpdate' | 'bundleItemCreate' | 'bundleItemDelete' | 'bundleItemUpdate' | 'bundlePricingTemplateCreate' | 'bundlePricingTemplateDelete' | 'bundlePricingTemplateUpdate' | 'conditionCreate' | 'conditionDelete' | 'conditionGroupCreate' | 'conditionGroupDelete' | 'conditionGroupUpdate' | 'conditionUpdate' | 'dependencyActionCreate' | 'dependencyActionDelete' | 'dependencyActionUpdate' | 'dependencyRuleCreate' | 'dependencyRuleDelete' | 'dependencyRuleUpdate'> & { bundleGroupCreate: ResolversTypes['BundleGroupPayload'], bundleGroupDelete: ResolversTypes['DeletePayload'], bundleGroupUpdate: ResolversTypes['BundleGroupPayload'], bundleItemCreate: ResolversTypes['BundleItemPayload'], bundleItemDelete: ResolversTypes['DeletePayload'], bundleItemUpdate: ResolversTypes['BundleItemPayload'], bundlePricingTemplateCreate: ResolversTypes['BundlePricingTemplatePayload'], bundlePricingTemplateDelete: ResolversTypes['DeletePayload'], bundlePricingTemplateUpdate: ResolversTypes['BundlePricingTemplatePayload'], conditionCreate: ResolversTypes['ConditionPayload'], conditionDelete: ResolversTypes['DeletePayload'], conditionGroupCreate: ResolversTypes['ConditionGroupPayload'], conditionGroupDelete: ResolversTypes['DeletePayload'], conditionGroupUpdate: ResolversTypes['ConditionGroupPayload'], conditionUpdate: ResolversTypes['ConditionPayload'], dependencyActionCreate: ResolversTypes['DependencyActionPayload'], dependencyActionDelete: ResolversTypes['DeletePayload'], dependencyActionUpdate: ResolversTypes['DependencyActionPayload'], dependencyRuleCreate: ResolversTypes['DependencyRulePayload'], dependencyRuleDelete: ResolversTypes['DeletePayload'], dependencyRuleUpdate: ResolversTypes['DependencyRulePayload'] }>;
   CatalogQuery: ResolverTypeWrapper<Omit<CatalogQuery, 'dependencyRule' | 'dependencyRules' | 'node' | 'nodes'> & { dependencyRule?: Maybe<ResolversTypes['DependencyRule']>, dependencyRules: Array<ResolversTypes['DependencyRule']>, node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
   Category: ResolverTypeWrapper<Category>;
-  CategoryAddProductInput: CategoryAddProductInput;
-  CategoryAddProductPayload: ResolverTypeWrapper<CategoryAddProductPayload>;
   CategoryCategoriesMetaInput: CategoryCategoriesMetaInput;
   CategoryConnection: ResolverTypeWrapper<CategoryConnection>;
   CategoryContentInput: CategoryContentInput;
@@ -4622,8 +4587,6 @@ export type ResolversTypes = ResolversObject<{
   CategoryMediaItem: ResolverTypeWrapper<CategoryMediaItem>;
   CategoryMoveInput: CategoryMoveInput;
   CategoryMovePayload: ResolverTypeWrapper<CategoryMovePayload>;
-  CategoryMoveProductInput: CategoryMoveProductInput;
-  CategoryMoveProductPayload: ResolverTypeWrapper<CategoryMoveProductPayload>;
   CategoryOrderByInput: CategoryOrderByInput;
   CategoryOrderField: CategoryOrderField;
   CategoryProductConnection: ResolverTypeWrapper<CategoryProductConnection>;
@@ -4632,8 +4595,6 @@ export type ResolversTypes = ResolversObject<{
   CategoryProductsScopeInput: CategoryProductsScopeInput;
   CategoryRebalanceInput: CategoryRebalanceInput;
   CategoryRebalancePayload: ResolverTypeWrapper<CategoryRebalancePayload>;
-  CategoryRemoveProductInput: CategoryRemoveProductInput;
-  CategoryRemoveProductPayload: ResolverTypeWrapper<CategoryRemoveProductPayload>;
   CategorySortInput: CategorySortInput;
   CategoryStatus: CategoryStatus;
   CategoryUpdateInput: CategoryUpdateInput;
@@ -4751,6 +4712,8 @@ export type ResolversTypes = ResolversObject<{
   ProductBulkUpdatePayload: ResolverTypeWrapper<ProductBulkUpdatePayload>;
   ProductCategoriesScopeInput: ProductCategoriesScopeInput;
   ProductCategoryAssignment: ResolverTypeWrapper<ProductCategoryAssignment>;
+  ProductCategoryOperationAction: ProductCategoryOperationAction;
+  ProductCategoryOperationInput: ProductCategoryOperationInput;
   ProductConnection: ResolverTypeWrapper<ProductConnection>;
   ProductContentInput: ProductContentInput;
   ProductCreateInput: ProductCreateInput;
@@ -4903,8 +4866,6 @@ export type ResolversParentTypes = ResolversObject<{
   CatalogMutation: Omit<CatalogMutation, 'bundleGroupCreate' | 'bundleGroupDelete' | 'bundleGroupUpdate' | 'bundleItemCreate' | 'bundleItemDelete' | 'bundleItemUpdate' | 'bundlePricingTemplateCreate' | 'bundlePricingTemplateDelete' | 'bundlePricingTemplateUpdate' | 'conditionCreate' | 'conditionDelete' | 'conditionGroupCreate' | 'conditionGroupDelete' | 'conditionGroupUpdate' | 'conditionUpdate' | 'dependencyActionCreate' | 'dependencyActionDelete' | 'dependencyActionUpdate' | 'dependencyRuleCreate' | 'dependencyRuleDelete' | 'dependencyRuleUpdate'> & { bundleGroupCreate: ResolversParentTypes['BundleGroupPayload'], bundleGroupDelete: ResolversParentTypes['DeletePayload'], bundleGroupUpdate: ResolversParentTypes['BundleGroupPayload'], bundleItemCreate: ResolversParentTypes['BundleItemPayload'], bundleItemDelete: ResolversParentTypes['DeletePayload'], bundleItemUpdate: ResolversParentTypes['BundleItemPayload'], bundlePricingTemplateCreate: ResolversParentTypes['BundlePricingTemplatePayload'], bundlePricingTemplateDelete: ResolversParentTypes['DeletePayload'], bundlePricingTemplateUpdate: ResolversParentTypes['BundlePricingTemplatePayload'], conditionCreate: ResolversParentTypes['ConditionPayload'], conditionDelete: ResolversParentTypes['DeletePayload'], conditionGroupCreate: ResolversParentTypes['ConditionGroupPayload'], conditionGroupDelete: ResolversParentTypes['DeletePayload'], conditionGroupUpdate: ResolversParentTypes['ConditionGroupPayload'], conditionUpdate: ResolversParentTypes['ConditionPayload'], dependencyActionCreate: ResolversParentTypes['DependencyActionPayload'], dependencyActionDelete: ResolversParentTypes['DeletePayload'], dependencyActionUpdate: ResolversParentTypes['DependencyActionPayload'], dependencyRuleCreate: ResolversParentTypes['DependencyRulePayload'], dependencyRuleDelete: ResolversParentTypes['DeletePayload'], dependencyRuleUpdate: ResolversParentTypes['DependencyRulePayload'] };
   CatalogQuery: Omit<CatalogQuery, 'dependencyRule' | 'dependencyRules' | 'node' | 'nodes'> & { dependencyRule?: Maybe<ResolversParentTypes['DependencyRule']>, dependencyRules: Array<ResolversParentTypes['DependencyRule']>, node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>> };
   Category: Category;
-  CategoryAddProductInput: CategoryAddProductInput;
-  CategoryAddProductPayload: CategoryAddProductPayload;
   CategoryCategoriesMetaInput: CategoryCategoriesMetaInput;
   CategoryConnection: CategoryConnection;
   CategoryContentInput: CategoryContentInput;
@@ -4919,8 +4880,6 @@ export type ResolversParentTypes = ResolversObject<{
   CategoryMediaItem: CategoryMediaItem;
   CategoryMoveInput: CategoryMoveInput;
   CategoryMovePayload: CategoryMovePayload;
-  CategoryMoveProductInput: CategoryMoveProductInput;
-  CategoryMoveProductPayload: CategoryMoveProductPayload;
   CategoryOrderByInput: CategoryOrderByInput;
   CategoryProductConnection: CategoryProductConnection;
   CategoryProductEdge: CategoryProductEdge;
@@ -4928,8 +4887,6 @@ export type ResolversParentTypes = ResolversObject<{
   CategoryProductsScopeInput: CategoryProductsScopeInput;
   CategoryRebalanceInput: CategoryRebalanceInput;
   CategoryRebalancePayload: CategoryRebalancePayload;
-  CategoryRemoveProductInput: CategoryRemoveProductInput;
-  CategoryRemoveProductPayload: CategoryRemoveProductPayload;
   CategorySortInput: CategorySortInput;
   CategoryUpdateInput: CategoryUpdateInput;
   CategoryUpdatePayload: CategoryUpdatePayload;
@@ -5030,6 +4987,7 @@ export type ResolversParentTypes = ResolversObject<{
   ProductBulkUpdatePayload: ProductBulkUpdatePayload;
   ProductCategoriesScopeInput: ProductCategoriesScopeInput;
   ProductCategoryAssignment: ProductCategoryAssignment;
+  ProductCategoryOperationInput: ProductCategoryOperationInput;
   ProductConnection: ProductConnection;
   ProductContentInput: ProductContentInput;
   ProductCreateInput: ProductCreateInput;
@@ -5273,13 +5231,10 @@ export type CatalogMutationResolvers<ContextType = ServiceContext, ParentType ex
   bundlePricingTemplateCreate?: Resolver<ResolversTypes['BundlePricingTemplatePayload'], ParentType, ContextType, RequireFields<CatalogMutationBundlePricingTemplateCreateArgs, 'input'>>;
   bundlePricingTemplateDelete?: Resolver<ResolversTypes['DeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationBundlePricingTemplateDeleteArgs, 'input'>>;
   bundlePricingTemplateUpdate?: Resolver<ResolversTypes['BundlePricingTemplatePayload'], ParentType, ContextType, RequireFields<CatalogMutationBundlePricingTemplateUpdateArgs, 'input'>>;
-  categoryAddProduct?: Resolver<ResolversTypes['CategoryAddProductPayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryAddProductArgs, 'input'>>;
   categoryCreate?: Resolver<ResolversTypes['CategoryCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryCreateArgs, 'input'>>;
   categoryDelete?: Resolver<ResolversTypes['CategoryDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryDeleteArgs, 'input'>>;
   categoryMove?: Resolver<ResolversTypes['CategoryMovePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryMoveArgs, 'input'>>;
-  categoryMoveProduct?: Resolver<ResolversTypes['CategoryMoveProductPayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryMoveProductArgs, 'input'>>;
   categoryRebalance?: Resolver<ResolversTypes['CategoryRebalancePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryRebalanceArgs, 'input'>>;
-  categoryRemoveProduct?: Resolver<ResolversTypes['CategoryRemoveProductPayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryRemoveProductArgs, 'input'>>;
   categoryUpdate?: Resolver<ResolversTypes['CategoryUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryUpdateArgs, 'categoryId'>>;
   collectionAddProducts?: Resolver<ResolversTypes['CollectionAddProductsPayload'], ParentType, ContextType, RequireFields<CatalogMutationCollectionAddProductsArgs, 'input'>>;
   collectionCreate?: Resolver<ResolversTypes['CollectionCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationCollectionCreateArgs, 'input'>>;
@@ -5401,12 +5356,6 @@ export type CategoryResolvers<ContextType = ServiceContext, ParentType extends R
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type CategoryAddProductPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryAddProductPayload'] = ResolversParentTypes['CategoryAddProductPayload']> = ResolversObject<{
-  category?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type CategoryConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryConnection'] = ResolversParentTypes['CategoryConnection']> = ResolversObject<{
   edges?: Resolver<Array<ResolversTypes['CategoryEdge']>, ParentType, ContextType>;
   pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
@@ -5444,12 +5393,6 @@ export type CategoryMovePayloadResolvers<ContextType = ServiceContext, ParentTyp
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type CategoryMoveProductPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryMoveProductPayload'] = ResolversParentTypes['CategoryMoveProductPayload']> = ResolversObject<{
-  category?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type CategoryProductConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryProductConnection'] = ResolversParentTypes['CategoryProductConnection']> = ResolversObject<{
   edges?: Resolver<Array<ResolversTypes['CategoryProductEdge']>, ParentType, ContextType>;
   pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
@@ -5464,12 +5407,6 @@ export type CategoryProductEdgeResolvers<ContextType = ServiceContext, ParentTyp
 }>;
 
 export type CategoryRebalancePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryRebalancePayload'] = ResolversParentTypes['CategoryRebalancePayload']> = ResolversObject<{
-  category?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type CategoryRemoveProductPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryRemoveProductPayload'] = ResolversParentTypes['CategoryRemoveProductPayload']> = ResolversObject<{
   category?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -6325,18 +6262,15 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   CatalogMutation?: CatalogMutationResolvers<ContextType>;
   CatalogQuery?: CatalogQueryResolvers<ContextType>;
   Category?: CategoryResolvers<ContextType>;
-  CategoryAddProductPayload?: CategoryAddProductPayloadResolvers<ContextType>;
   CategoryConnection?: CategoryConnectionResolvers<ContextType>;
   CategoryCreatePayload?: CategoryCreatePayloadResolvers<ContextType>;
   CategoryDeletePayload?: CategoryDeletePayloadResolvers<ContextType>;
   CategoryEdge?: CategoryEdgeResolvers<ContextType>;
   CategoryMediaItem?: CategoryMediaItemResolvers<ContextType>;
   CategoryMovePayload?: CategoryMovePayloadResolvers<ContextType>;
-  CategoryMoveProductPayload?: CategoryMoveProductPayloadResolvers<ContextType>;
   CategoryProductConnection?: CategoryProductConnectionResolvers<ContextType>;
   CategoryProductEdge?: CategoryProductEdgeResolvers<ContextType>;
   CategoryRebalancePayload?: CategoryRebalancePayloadResolvers<ContextType>;
-  CategoryRemoveProductPayload?: CategoryRemoveProductPayloadResolvers<ContextType>;
   CategoryUpdatePayload?: CategoryUpdatePayloadResolvers<ContextType>;
   Collection?: CollectionResolvers<ContextType>;
   CollectionAddProductsPayload?: CollectionAddProductsPayloadResolvers<ContextType>;

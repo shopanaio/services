@@ -15,6 +15,7 @@ import type {
   ProductUpdateWorkflowInput,
   ProductUpdateWorkflowResult,
   ProductUpdateParams,
+  ProductCategoryUpdateParams,
   VariantUpdateParams,
   OperationResult,
   WorkflowContext,
@@ -31,6 +32,12 @@ import { ProductUpdateContentScript } from "../scripts/product/ProductUpdateCont
 import { ProductUpdateSeoScript } from "../scripts/product/ProductUpdateSeoScript.js";
 import { ProductUpdateStatusScript } from "../scripts/product/ProductUpdateStatusScript.js";
 import { ProductUpdateMediaScript } from "../scripts/product/ProductUpdateMediaScript.js";
+import {
+  CategoryAddProductScript,
+  CategoryMoveProductScript,
+  CategoryRemoveProductScript,
+  CategorySetProductPrimaryScript,
+} from "../scripts/category/index.js";
 import { VariantUpdatePricingScript } from "../scripts/variant/VariantUpdatePricingScript.js";
 import { VariantUpdateMediaScript } from "../scripts/variant/VariantUpdateMediaScript.js";
 import {
@@ -44,6 +51,7 @@ import {
  * - Optimistic locking via revision field
  * - Partial failure support (each operation independent)
  * - Event emission with partial snapshot of changes
+ * - Product category assignment operations for bulk and single updates
  *
  * Does NOT contain inventory operations (inventory, dimensions) - they live in Inventory Service.
  */
@@ -103,6 +111,13 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       const op = input.operations[i];
       if (op.type === "productUpdate") {
         const result = await this.stepProductUpdate(op.params, changes, scriptCtx);
+        results.push(result);
+      } else if (op.type === "productCategoryUpdate") {
+        const result = await this.stepProductCategoryUpdate(
+          op.params,
+          changes,
+          scriptCtx,
+        );
         results.push(result);
       } else {
         // Collect option updates for batch processing
@@ -281,6 +296,83 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
     return {
       type: "productUpdate",
+      applied: errors.length === 0,
+      errors,
+    };
+  }
+
+  @WorkflowStep()
+  private async stepProductCategoryUpdate(
+    params: ProductCategoryUpdateParams,
+    changes: ProductChanges,
+    ctx: RunScriptContext,
+  ): Promise<OperationResult> {
+    const errors: UserError[] = [];
+    const { productId, categoryId } = params;
+
+    let affectedProductIds: string[] | undefined;
+
+    if (params.action === "add") {
+      const r = await this.kernel.runScript(
+        CategoryAddProductScript,
+        { categoryId, productId },
+        ctx,
+      );
+      errors.push(...r.userErrors);
+      affectedProductIds = r.affectedProductIds;
+    } else if (params.action === "remove") {
+      const r = await this.kernel.runScript(
+        CategoryRemoveProductScript,
+        { categoryId, productId },
+        ctx,
+      );
+      errors.push(...r.userErrors);
+      affectedProductIds = r.affectedProductIds;
+    } else if (params.action === "setPrimary") {
+      const r = await this.kernel.runScript(
+        CategorySetProductPrimaryScript,
+        { categoryId, productId },
+        ctx,
+      );
+      errors.push(...r.userErrors);
+      affectedProductIds = r.affectedProductIds;
+    } else {
+      const r = await this.kernel.runScript(
+        CategoryMoveProductScript,
+        {
+          categoryId,
+          productId,
+          afterProductId: params.afterProductId ?? undefined,
+          beforeProductId: params.beforeProductId ?? undefined,
+        },
+        ctx,
+      );
+      errors.push(...r.userErrors);
+      affectedProductIds = r.affectedProductIds;
+    }
+
+    if (errors.length === 0 && affectedProductIds?.includes(productId)) {
+      const currentCategories = changes.product?.categories;
+      const categoryIds = [
+        ...new Set([...(currentCategories?.categoryIds ?? []), categoryId]),
+      ];
+      const reason =
+        params.action === "move" && currentCategories?.reason !== "assignment"
+          ? "rank"
+          : "assignment";
+
+      changes.product = {
+        ...changes.product,
+        categories: {
+          changed: true,
+          reason,
+          categoryIds,
+        },
+      };
+    }
+
+    return {
+      type: "productCategoryUpdate",
       applied: errors.length === 0,
       errors,
     };

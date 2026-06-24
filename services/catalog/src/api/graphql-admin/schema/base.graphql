@@ -421,26 +421,6 @@ type CatalogMutation {
   categoryMove(input: CategoryMoveInput!): CategoryMovePayload!
 
   """
-  Move a product within a category
-  """
-  categoryMoveProduct(input: CategoryMoveProductInput!): CategoryMoveProductPayload!
-
-  """
-  Add a product to a category
-  """
-  categoryAddProduct(input: CategoryAddProductInput!): CategoryAddProductPayload!
-
-  """
-  Remove a product from a category
-  """
-  categoryRemoveProduct(input: CategoryRemoveProductInput!): CategoryRemoveProductPayload!
-
-  """
-  Set an assigned category as the product primary category
-  """
-  categorySetProductPrimary(input: CategorySetProductPrimaryInput!): CategorySetProductPrimaryPayload!
-
-  """
   Rebalance category tree positions
   """
   categoryRebalance(input: CategoryRebalanceInput!): CategoryRebalancePayload!

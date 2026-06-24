@@ -132,5 +132,8 @@ function getOperationMetadata(op: ProductUpdateOperation): {
   if (op.type === "productUpdate") {
     return { opType: "productUpdate", variantId: null };
   }
+  if (op.type === "productCategoryUpdate") {
+    return { opType: "productCategoryUpdate", variantId: null };
+  }
   return { opType: "variantUpdate", variantId: op.params.variantId };
 }

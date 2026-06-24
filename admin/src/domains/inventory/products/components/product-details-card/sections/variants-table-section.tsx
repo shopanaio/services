@@ -22,10 +22,6 @@ import {
   getSelectedOptionLabels,
   getVariantStockQuantity,
 } from "../../../utils/api-product-display";
-import {
-  formatApiDimensions,
-  formatApiWeight,
-} from "../../../utils/product-measurements";
 import { TableCoverImage } from "@/shared/components/table-cover-image";
 
 // ============================================================================
@@ -191,18 +187,6 @@ const VariantRow = ({
         </Flex>
       </td>
 
-      {/* ATTRIBUTES */}
-      <td data-testid={`product-variants-cell-attributes-${variant.id}`}>
-        <Flex vertical>
-          <Typography.Text style={{ fontSize: 12 }}>
-            {formatApiWeight(inventoryItem?.weight)}
-          </Typography.Text>
-          <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-            {formatApiDimensions(inventoryItem?.dimensions)}
-          </Typography.Text>
-        </Flex>
-      </td>
-
       {/* ACTIONS */}
       <td style={{ textAlign: "center" }}>
         <Dropdown
@@ -320,7 +304,6 @@ export const VariantsTableSection = ({
               <th>Variant</th>
               <th>Pricing</th>
               <th>Inventory</th>
-              <th>Attributes</th>
               <th style={{ width: 48 }} />
             </tr>
           </thead>
@@ -337,7 +320,7 @@ export const VariantsTableSection = ({
               ))
             ) : (
               <tr>
-                <td colSpan={5}>
+                <td colSpan={4}>
                   <Flex justify="center" style={{ padding: "24px 12px" }}>
                     <Typography.Text type="secondary">
                       No variants on this page

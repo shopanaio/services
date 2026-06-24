@@ -29,6 +29,7 @@ export interface WorkflowContext {
  */
 export type ProductUpdateOperation =
   | { type: "productUpdate"; params: ProductUpdateParams }
+  | { type: "productCategoryUpdate"; params: ProductCategoryUpdateParams }
   | { type: "variantUpdate"; params: VariantUpdateParams };
 
 /**
@@ -61,6 +62,20 @@ export interface ProductSeoParams {
 
 export interface ProductMediaParams {
   fileIds: string[];
+}
+
+export type ProductCategoryOperationAction =
+  | "add"
+  | "remove"
+  | "setPrimary"
+  | "move";
+
+export interface ProductCategoryUpdateParams {
+  productId: string;
+  categoryId: string;
+  action: ProductCategoryOperationAction;
+  afterProductId?: string | null;
+  beforeProductId?: string | null;
 }
 
 /**
@@ -127,7 +142,7 @@ export interface ProductUpdateWorkflowResult {
  * Result of a single operation within the workflow.
  */
 export interface OperationResult {
-  type: "productUpdate" | "variantUpdate";
+  type: "productUpdate" | "productCategoryUpdate" | "variantUpdate";
   applied: boolean;
   errors: UserError[];
 }

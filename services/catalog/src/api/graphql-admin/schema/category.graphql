@@ -265,28 +265,6 @@ input CategoryDeleteInput {
   permanent: Boolean
 }
 
-input CategoryMoveProductInput {
-  categoryId: ID!
-  productId: ID!
-  afterProductId: ID
-  beforeProductId: ID
-}
-
-input CategoryAddProductInput {
-  categoryId: ID!
-  productId: ID!
-}
-
-input CategoryRemoveProductInput {
-  categoryId: ID!
-  productId: ID!
-}
-
-input CategorySetProductPrimaryInput {
-  categoryId: ID!
-  productId: ID!
-}
-
 input CategoryRebalanceInput {
   categoryId: ID!
 }
@@ -337,26 +315,6 @@ type CategoryDeletePayload {
   deletedCategoryId: ID
 
   """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-type CategoryMoveProductPayload {
-  category: Category
-  userErrors: [GenericUserError!]!
-}
-
-type CategoryAddProductPayload {
-  category: Category
-  userErrors: [GenericUserError!]!
-}
-
-type CategoryRemoveProductPayload {
-  category: Category
-  userErrors: [GenericUserError!]!
-}
-
-type CategorySetProductPrimaryPayload {
-  category: Category
   userErrors: [GenericUserError!]!
 }
 

@@ -7,6 +7,7 @@ import { CatalogType } from "./CatalogType.js";
 
 const OP_TYPE_MAP: Record<string, string> = {
   productUpdate: "PRODUCT_UPDATE",
+  productCategoryUpdate: "PRODUCT_CATEGORY_UPDATE",
   productSetStatus: "PRODUCT_SET_STATUS",
   variantSetSku: "VARIANT_SET_SKU",
   variantSetPricing: "VARIANT_SET_PRICING",

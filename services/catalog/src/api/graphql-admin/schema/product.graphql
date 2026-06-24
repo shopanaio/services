@@ -392,6 +392,30 @@ input ProductMediaInput {
   fileIds: [ID!]!
 }
 
+enum ProductCategoryOperationAction {
+  ADD
+  REMOVE
+  SET_PRIMARY
+  MOVE
+}
+
+"""
+Product category assignment operation for unified product updates.
+"""
+input ProductCategoryOperationInput {
+  """The category to update for the product."""
+  categoryId: ID!
+
+  """The assignment action to apply."""
+  action: ProductCategoryOperationAction!
+
+  """Move this product after another product in the category listing."""
+  afterProductId: ID
+
+  """Move this product before another product in the category listing."""
+  beforeProductId: ID
+}
+
 """
 Input for product-level fields in the unified update.
 """
@@ -416,6 +440,9 @@ input ProductUpdateInput {
 
   """Product media."""
   media: ProductMediaInput
+
+  """Product category assignment operations."""
+  categories: [ProductCategoryOperationInput!]
 
   """Variant updates."""
   variants: [VariantUpdateInput!]
@@ -520,6 +547,7 @@ Type of operation in the unified update.
 enum OperationType {
   PRODUCT_UPDATE
   VARIANT_UPDATE
+  PRODUCT_CATEGORY_UPDATE
   CATEGORY_UPDATE
 }
 
