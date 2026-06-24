@@ -10,7 +10,9 @@
     "grep": {},
     "grepInvert": null,
     "maxFailures": 0,
-    "metadata": {},
+    "metadata": {
+      "actualWorkers": 1
+    },
     "preserveOutput": "always",
     "reporter": [
       [
@@ -41,7 +43,9 @@
         "outputDir": "/Users/phl/Projects/shopana-io/services/e2e/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 1
+        },
         "id": "chromium",
         "name": "chromium",
         "testDir": "/Users/phl/Projects/shopana-io/services/e2e/tests",
@@ -64,26 +68,63 @@
       "reuseExistingServer": false
     }
   },
-  "suites": [],
-  "errors": [
+  "suites": [
     {
-      "message": "SyntaxError: TypeScript enum is not supported in strip-only mode",
-      "stack": "SyntaxError: TypeScript enum is not supported in strip-only mode\n    at eval (<anonymous>:1:1)",
-      "location": {
-        "file": "<anonymous>",
-        "column": 1,
-        "line": 1
-      }
-    },
-    {
-      "message": "Error: No tests found.\nMake sure that arguments are regular expressions matching test files.\nYou may need to escape symbols like \"$\" or \"*\" and quote the arguments.",
-      "stack": "Error: No tests found.\nMake sure that arguments are regular expressions matching test files.\nYou may need to escape symbols like \"$\" or \"*\" and quote the arguments."
+      "title": "admin-ui/product-pricing-widget.spec.ts",
+      "file": "admin-ui/product-pricing-widget.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Admin product pricing widget UI",
+          "file": "admin-ui/product-pricing-widget.spec.ts",
+          "line": 212,
+          "column": 6,
+          "specs": [
+            {
+              "title": "updates four variant prices through UI and reflects repeated API price changes",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 24100,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-24T09:11:42.285Z",
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2ca1a45bc1b3bc308d78-231da0b183b54a73b616",
+              "file": "admin-ui/product-pricing-widget.spec.ts",
+              "line": 213,
+              "column": 5
+            }
+          ]
+        }
+      ]
     }
   ],
+  "errors": [],
   "stats": {
-    "startTime": "2026-06-22T19:34:11.166Z",
-    "duration": 31.19799999999998,
-    "expected": 0,
+    "startTime": "2026-06-24T09:11:08.865Z",
+    "duration": 60473.365999999995,
+    "expected": 1,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

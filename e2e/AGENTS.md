@@ -7,7 +7,7 @@
 yarn playwright test tests/inventory-api/product-create.spec.ts --workers 1
 ```
 
-All commands run from this `e2e/` directory. Use `shopana_test` MCP tool or run from shell.
+All commands run from this `e2e/` directory. Use the `shopana_get_e2e_test_command` MCP tool to get the correct command and instructions, or run from shell.
 
 ## Testing Workflow
 

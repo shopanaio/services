@@ -15,7 +15,6 @@ Before creating implementation plans or making code/documentation changes, revie
 - **API:** GraphQL Federation (Apollo Server + Hive Gateway + Mesh Compose)
 - **Database:** PostgreSQL + Drizzle ORM + Knex (orders, checkout, delivery, pricing, apps)
 - **Workflows:** DBOS SDK
-- **Event Sourcing:** Emmett + Pongo + Dumbo (orders, checkout)
 - **Storage:** MinIO
 - **Cache:** Upstash Redis, cache-manager + Keyv
 - **Auth:** better-auth
@@ -44,7 +43,7 @@ Before creating implementation plans or making code/documentation changes, revie
 
 ## Development
 
-Use `shopana-cli` MCP tools for all development tasks (dev, build, migrate, codegen, schema, test).
+Use `shopana-cli` MCP tools for all development tasks (dev, build, migrate, codegen, schema, test, e2e, playwright).
 
 ## Admin Frontend
 

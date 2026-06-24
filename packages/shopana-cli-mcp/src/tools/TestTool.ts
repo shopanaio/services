@@ -10,63 +10,23 @@ function shellQuote(value: string) {
 const TestToolSchema = z.object({
   testPath: z
     .string()
-    .optional()
-    .describe('Specific test file or directory to run (e.g., "tests/users-api" or "tests/users-api/sign-in.spec.ts")'),
-  grep: z
-    .string()
-    .optional()
-    .describe('Only run tests matching this regular expression'),
-  project: z
-    .string()
-    .optional()
-    .describe('Run tests in specific project (default: chromium)'),
-  headed: z
-    .boolean()
-    .optional()
-    .describe('Run tests in headed mode (show browser window)'),
-  debug: z
-    .boolean()
-    .optional()
-    .describe('Run tests in debug mode with Playwright Inspector'),
-  workers: z
-    .number()
-    .optional()
-    .describe('Number of parallel workers (default: 5)'),
-  retries: z
-    .number()
-    .optional()
-    .describe('Number of retries for failed tests'),
-  reporter: z
-    .enum(['list', 'dot', 'line', 'html', 'json'])
-    .optional()
-    .describe('Test reporter to use'),
-  updateSnapshots: z
-    .boolean()
-    .optional()
-    .describe('Update snapshots with actual results'),
-  workingDir: z
-    .string()
-    .optional()
-    .describe('Working directory (defaults to current directory)')
+    .describe('Specific e2e spec file path for the generated command (e.g., "tests/users-api/sign-in.spec.ts")')
 });
 
 class TestTool extends MCPTool<typeof TestToolSchema> {
-  name = 'shopana_test';
-  description = `Print the Playwright end-to-end test command and run instructions.
+  name = 'shopana_get_e2e_test_command';
+  description = `Return the correct Playwright end-to-end test command and manual run instructions.
 
-This tool does not execute tests. It prints the command to run manually from the e2e/ package.
+This tool does not execute tests. It returns the command to run one specific spec file manually from the e2e/ package.
 
-The tool resolves the repository root from workingDir, then builds the Playwright command for e2e/ where playwright.config.ts is located. Both the repository root and the e2e/ directory are accepted as workingDir.
+The tool resolves the repository root from the current process directory, then builds the Playwright command for e2e/ where playwright.config.ts is located.
 
 Project rule:
   Run one spec file at a time. Do not run the entire suite or a whole directory.
+  Admin UI tests must be run with --headed.
 
 Examples:
-- Run specific test file: { "testPath": "tests/users-api/sign-in.spec.ts" }
-- Run tests matching pattern: { "grep": "sign-in" }
-- Run in headed mode: { "headed": true }
-- Run in debug mode: { "debug": true }
-- Run with specific workers: { "workers": 1 }
+- Get command for a specific test file: { "testPath": "tests/users-api/sign-in.spec.ts" }
 
 Test directories (inside e2e/tests/):
 - users-api: User authentication tests (sign-in, sign-up)
@@ -75,19 +35,17 @@ Test directories (inside e2e/tests/):
 
 Environment variables (already configured in e2e/.env):
 - BASE_URL: Base URL for the API
-- CI: Set to 'true' for CI mode (enables retries)
-- WORKERS: Number of parallel workers
 - NODE_OPTIONS: Include --experimental-transform-types when running the command manually`;
 
   schema = TestToolSchema;
 
   async execute(input: z.infer<typeof TestToolSchema>) {
-    const { testPath, grep, project, headed, debug, workers, retries, reporter, updateSnapshots, workingDir } = input;
+    const { testPath } = input;
 
     let e2eDir: string;
 
     try {
-      e2eDir = resolve(resolveE2eDir(workingDir));
+      e2eDir = resolve(resolveE2eDir());
     } catch (error: any) {
       return {
         content: [
@@ -102,45 +60,8 @@ Environment variables (already configured in e2e/.env):
       };
     }
 
-    const args = ['test'];
-
-    if (testPath) {
-      args.push(testPath);
-    }
-
-    if (grep) {
-      args.push('--grep', grep);
-    }
-
-    if (project) {
-      args.push('--project', project);
-    }
-
-    if (headed) {
-      args.push('--headed');
-    }
-
-    if (debug) {
-      args.push('--debug');
-    }
-
-    if (workers !== undefined) {
-      args.push('--workers', workers.toString());
-    }
-
-    if (retries !== undefined) {
-      args.push('--retries', retries.toString());
-    }
-
-    if (reporter) {
-      args.push('--reporter', reporter);
-    }
-
-    if (updateSnapshots) {
-      args.push('--update-snapshots');
-    }
-
-    const command = `yarn ${args.map(shellQuote).join(' ')}`;
+    const command = `yarn test ${shellQuote(testPath)}`;
+    const headedCommand = `${command} --headed`;
     const nodeOptions = withTransformTypesNodeOption();
 
     return {
@@ -155,14 +76,16 @@ Environment variables (already configured in e2e/.env):
             env: {
               NODE_OPTIONS: nodeOptions
             },
-            warning: 'If this is an admin UI test, --headed is required.',
             instructions: [
               'Do not start, stop, or restart services. The development server is managed separately.',
               'Run the command from the cwd shown above.',
               'Run one .spec.ts file at a time. Do not run the full suite or a whole directory.',
+              'If the spec is an admin UI test, run the headedCommand value instead of command.',
               'If running from a shell that does not already include the NODE_OPTIONS value, prefix the command with the NODE_OPTIONS value shown above.'
             ],
-            shellCommand: `cd ${shellQuote(e2eDir)} && NODE_OPTIONS=${shellQuote(nodeOptions)} ${command}`
+            headedCommand,
+            shellCommand: `cd ${shellQuote(e2eDir)} && NODE_OPTIONS=${shellQuote(nodeOptions)} ${command}`,
+            headedShellCommand: `cd ${shellQuote(e2eDir)} && NODE_OPTIONS=${shellQuote(nodeOptions)} ${headedCommand}`
           }, null, 2)
         }
       ]
