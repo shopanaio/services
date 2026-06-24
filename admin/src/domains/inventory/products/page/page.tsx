@@ -21,22 +21,21 @@ import { FloatingPanelStack } from "@/ui-kit/floating-panel-stack";
 import type { ActionConfig } from "@/ui-kit/floating-panel-stack/core/types";
 import type { PanelConfig } from "@/ui-kit/floating-panel-stack/data-page/floating-panel-stack";
 import {
-  createMinorUnitPriceTransformer,
-  createRelationInTransformer,
   useAgGridTheme,
   useAgGridRowSelection,
   usePageConfig,
 } from "@/hooks";
-import type { FilterTransformer, SortFieldMapping } from "@/hooks";
 import { filterSchema } from "./filter-schema";
+import {
+  buildProductSearchCondition,
+  buildProductsQueryVariables,
+  productFilterTransformers,
+  productSortFieldMapping,
+} from "./page-config";
 import { useDeleteProduct, useProducts } from "../hooks";
 import { useBulkEditorStore } from "../modals/bulk-editor-modal";
 import { useProductCreateModal } from "../modals";
-import type {
-  ApiProduct,
-  ApiProductOrderByInput,
-  ApiProductWhereInput,
-} from "@/graphql/types";
+import type { ApiProduct, ApiProductWhereInput } from "@/graphql/types";
 import { ProductOrderField } from "@/graphql/types";
 import { useDefaultCurrency } from "@/domains/workspace";
 import {
@@ -55,33 +54,6 @@ ModuleRegistry.registerModules([
   RowSelectionModule,
   GridStateModule,
 ]);
-
-const productSortFieldMapping: SortFieldMapping<ProductOrderField> = {
-  title: ProductOrderField.Name,
-  minPriceMinor: ProductOrderField.MinPriceMinor,
-  maxPriceMinor: ProductOrderField.MaxPriceMinor,
-  primaryCategoryName: ProductOrderField.PrimaryCategoryName,
-  brand: ProductOrderField.BrandName,
-};
-
-const buildProductSearchCondition = (
-  search: string,
-): Partial<ApiProductWhereInput> => ({
-  name: { _containsi: search },
-});
-
-const productFilterTransformers: Record<
-  string,
-  FilterTransformer<ApiProductWhereInput>
-> = {
-  primaryCategoryId:
-    createRelationInTransformer<ApiProductWhereInput>("primaryCategoryId"),
-  minPriceMinor:
-    createMinorUnitPriceTransformer<ApiProductWhereInput>("minPriceMinor"),
-  maxPriceMinor:
-    createMinorUnitPriceTransformer<ApiProductWhereInput>("maxPriceMinor"),
-  vendorId: createRelationInTransformer<ApiProductWhereInput>("vendorId"),
-};
 
 // Cell Renderers
 const ProductCellRenderer = (
@@ -193,16 +165,7 @@ export default function ProductsPage() {
     filterTransformers: productFilterTransformers,
   });
   const listQueryVariables = useMemo<ProductsQueryVariables>(
-    () => ({
-      first: pageConfig.first,
-      after: pageConfig.after,
-      last: pageConfig.last,
-      before: pageConfig.before,
-      where: pageConfig.where ?? null,
-      orderBy: (pageConfig.orderBy ?? null) as
-        | ApiProductOrderByInput[]
-        | null,
-    }),
+    () => buildProductsQueryVariables(pageConfig),
     [
       pageConfig.first,
       pageConfig.after,

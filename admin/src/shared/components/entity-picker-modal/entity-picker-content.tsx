@@ -6,15 +6,23 @@ import {
   ModuleRegistry,
   AllCommunityModule,
   RowSelectionModule,
+  GridStateModule,
   SelectionChangedEvent,
 } from "ag-grid-community";
 import { createStyles } from "antd-style";
-import { useFilters, FilterWidget } from "@/layouts/filters";
+import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import type { IEntityPickerContentProps, IPickableEntity } from "./types";
-import { useAgGridTheme } from "@/hooks";
+import { useAgGridTheme, usePageConfig } from "@/hooks";
+import type { FilterTransformer, SortFieldMapping } from "@/hooks";
 
-ModuleRegistry.registerModules([AllCommunityModule, RowSelectionModule]);
+ModuleRegistry.registerModules([
+  AllCommunityModule,
+  RowSelectionModule,
+  GridStateModule,
+]);
+
+const EMPTY_SORT_FIELD_MAPPING: SortFieldMapping<string> = {};
 
 const useStyles = createStyles(({ token }) => ({
   container: {
@@ -73,23 +81,49 @@ export function EntityPickerContent<T extends IPickableEntity>({
     ids: [],
     entityIds: [],
   });
-  const [searchValue, setSearchValue] = useState("");
-  const [pageSize, setPageSize] = useState(20);
   const [isGridReady, setIsGridReady] = useState(false);
-
-  // Filter state
-  const { widgetProps, filters } = useFilters({
-    schema: config.filterSchema,
+  const pageConfig = usePageConfig<T, object, string>({
+    gridRef,
+    storageKey:
+      config.pageConfig?.storageKey ?? `${config.entityType}-picker-grid-state`,
+    filterSchema: config.filterSchema,
+    sortFieldMapping:
+      (config.pageConfig?.sortFieldMapping ??
+        EMPTY_SORT_FIELD_MAPPING) as SortFieldMapping<string>,
+    defaultPageSize: config.pageConfig?.defaultPageSize,
+    pageSizeOptions: config.pageConfig?.pageSizeOptions,
+    buildSearchCondition: config.pageConfig?.buildSearchCondition as
+      | ((search: string) => Partial<object>)
+      | undefined,
+    filterTransformers: config.pageConfig?.filterTransformers as
+      | Record<string, FilterTransformer<object>>
+      | undefined,
   });
   const showSearch = config.searchEnabled !== false;
   const showToolbar = showSearch || config.filterSchema.length > 0;
 
   // Data fetching via config hook
-  const { data, isLoading, pagination, onNext, onPrev, onPageSizeChange } =
-    config.useData({
-      filters,
-      search: searchValue,
-      pageSize,
+  const {
+    data,
+    isLoading,
+    pagination,
+    onNext,
+    onPrev,
+    onPageSizeChange,
+  } = config.useData({
+      filters: pageConfig.filters,
+      search: pageConfig.searchValue,
+      pageSize: pageConfig.pageSize,
+      first: pageConfig.first,
+      after: pageConfig.after,
+      last: pageConfig.last,
+      before: pageConfig.before,
+      where: pageConfig.where ?? null,
+      orderBy: pageConfig.orderBy ?? null,
+      goToNextPage: pageConfig.goToNextPage,
+      goToPrevPage: pageConfig.goToPrevPage,
+      getRangeStart: pageConfig.getRangeStart,
+      getRangeEnd: pageConfig.getRangeEnd,
       excludeIds,
       queryMeta,
     });
@@ -173,10 +207,10 @@ export function EntityPickerContent<T extends IPickableEntity>({
   // Handle page size change
   const handlePageSizeChange = useCallback(
     (size: number) => {
-      setPageSize(size);
+      pageConfig.setPageSize(size);
       onPageSizeChange(size);
     },
-    [onPageSizeChange]
+    [onPageSizeChange, pageConfig],
   );
 
   // Sync visible grid rows with the accumulated selection and hydrate entities
@@ -226,13 +260,10 @@ export function EntityPickerContent<T extends IPickableEntity>({
       {showToolbar && (
         <div className={styles.toolbar}>
           <FilterWidget
-            {...widgetProps}
+            {...pageConfig.filterWidgetProps}
             searchProps={
               showSearch
-                ? {
-                    searchValue,
-                    onChangeSearchValue: setSearchValue,
-                  }
+                ? pageConfig.filterWidgetProps.searchProps
                 : undefined
             }
             searchPlaceholder={`Search ${config.entityNamePlural.toLowerCase()}...`}
@@ -267,11 +298,15 @@ export function EntityPickerContent<T extends IPickableEntity>({
           suppressMovableColumns
           onSelectionChanged={handleSelectionChanged}
           onGridReady={handleGridReady}
+          onSortChanged={pageConfig.onSortChanged}
           rowStyle={{ cursor: "pointer" }}
           loading={isLoading}
+          initialState={pageConfig.gridStateProps.initialState}
+          onStateUpdated={pageConfig.gridStateProps.onStateUpdated}
           defaultColDef={{
             resizable: false,
-            sortable: false,
+            sortable: Boolean(config.pageConfig?.sortFieldMapping),
+            comparator: () => 0,
             cellStyle: { display: "flex", alignItems: "center" },
           }}
         />

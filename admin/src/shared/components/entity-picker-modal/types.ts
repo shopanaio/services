@@ -1,5 +1,10 @@
 import type { ColDef } from "ag-grid-community";
 import type { IFilterSchema, IFilterValue } from "@/layouts/filters/core/types";
+import type {
+  FilterTransformer,
+  OrderByInput,
+  SortFieldMapping,
+} from "@/hooks";
 
 /**
  * Base interface for pickable entities
@@ -37,10 +42,26 @@ export interface IEntityPickerDataResult<T extends IPickableEntity> {
   onPageSizeChange: (size: number) => void;
 }
 
+export interface IEntityPickerPageConfig<
+  TWhereInput extends object = object,
+  TOrderField extends string = string,
+> {
+  storageKey?: string;
+  sortFieldMapping?: SortFieldMapping<TOrderField>;
+  buildSearchCondition?: (search: string) => Partial<TWhereInput>;
+  filterTransformers?: Record<string, FilterTransformer<TWhereInput>>;
+  defaultPageSize?: number;
+  pageSizeOptions?: number[];
+}
+
 /**
  * Configuration for a specific entity type
  */
-export interface IEntityPickerConfig<T extends IPickableEntity> {
+export interface IEntityPickerConfig<
+  T extends IPickableEntity,
+  TWhereInput extends object = object,
+  TOrderField extends string = string,
+> {
   /** Unique entity type identifier */
   entityType: string;
   /** Display name for the entity (singular) */
@@ -53,11 +74,23 @@ export interface IEntityPickerConfig<T extends IPickableEntity> {
   searchEnabled?: boolean;
   /** Column definitions for AG Grid */
   columns: ColDef<T>[];
+  /** Optional shared page config for server-backed search/filter/sort/pagination */
+  pageConfig?: IEntityPickerPageConfig<TWhereInput, TOrderField>;
   /** Data provider hook */
   useData: (options: {
     filters: IFilterValue[];
     search: string;
     pageSize: number;
+    first?: number;
+    after?: string | null;
+    last?: number;
+    before?: string | null;
+    where?: object | null;
+    orderBy?: OrderByInput<string>[] | null;
+    goToNextPage?: (endCursor: string) => void;
+    goToPrevPage?: (startCursor: string) => void;
+    getRangeStart?: (itemCount: number) => number;
+    getRangeEnd?: (itemCount: number) => number;
     excludeIds: string[];
     queryMeta?: unknown;
   }) => IEntityPickerDataResult<T>;

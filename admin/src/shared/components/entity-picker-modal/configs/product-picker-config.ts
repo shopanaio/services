@@ -1,11 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { ColDef } from "ag-grid-community";
 import { useProducts } from "@/domains/inventory/products/hooks";
+import { filterSchema } from "@/domains/inventory/products/page/filter-schema";
 import {
-  getProductBrandName,
-  getProductPrimaryCategoryName,
+  buildProductSearchCondition,
+  productFilterTransformers,
+  productSortFieldMapping,
+} from "@/domains/inventory/products/page/page-config";
+import {
   getProductThumbnailFile,
 } from "@/domains/inventory/products/utils/api-product-display";
 import { getProductStatus } from "@/domains/inventory/products/utils/product-status";
@@ -16,8 +20,12 @@ import type {
   IEntityPickerDataResult,
   IPickableEntity,
 } from "../types";
-import type { IFilterValue } from "@/layouts/filters/core/types";
-import type { ApiProduct } from "@/graphql/types";
+import type {
+  ApiProduct,
+  ApiProductOrderByInput,
+  ApiProductWhereInput,
+  ProductOrderField,
+} from "@/graphql/types";
 
 type ProductPickerEntity = IPickableEntity;
 
@@ -32,90 +40,62 @@ function transformProduct(product: ApiProduct): ProductPickerEntity {
   };
 }
 
-function getFilterValues(filter: IFilterValue | undefined): string[] {
-  if (!filter) {
-    return [];
-  }
-
-  if (Array.isArray(filter.value)) {
-    return filter.value.filter(
-      (value): value is string => typeof value === "string",
-    );
-  }
-
-  return typeof filter.value === "string" ? [filter.value] : [];
-}
-
-function filterCurrentProductPage(
-  products: ApiProduct[],
-  search: string,
-  filters: IFilterValue[],
-): ApiProduct[] {
-  const searchValue = search.trim().toLowerCase();
-  const statusValues = getFilterValues(
-    filters.find((filter) => filter.schemaKey === "status"),
-  );
-  const categoryValues = getFilterValues(
-    filters.find((filter) => filter.schemaKey === "category"),
-  );
-  const brandValues = getFilterValues(
-    filters.find((filter) => filter.schemaKey === "brand"),
-  );
-
-  return products.filter((product) => {
-    if (
-      searchValue &&
-      !product.title.toLowerCase().includes(searchValue) &&
-      !(product.handle ?? "").toLowerCase().includes(searchValue)
-    ) {
-      return false;
-    }
-
-    if (
-      statusValues.length > 0 &&
-      !statusValues.includes(getProductStatus(product))
-    ) {
-      return false;
-    }
-
-    if (
-      categoryValues.length > 0 &&
-      !categoryValues.includes(getProductPrimaryCategoryName(product) ?? "")
-    ) {
-      return false;
-    }
-
-    if (
-      brandValues.length > 0 &&
-      !brandValues.includes(getProductBrandName(product) ?? "")
-    ) {
-      return false;
-    }
-
-    return true;
-  });
-}
-
 function useProductsPickerData(options: {
-  filters: IFilterValue[];
-  search: string;
   pageSize: number;
+  first?: number;
+  after?: string | null;
+  last?: number;
+  before?: string | null;
+  where?: object | null;
+  orderBy?: object[] | null;
+  excludeIds: string[];
+  goToNextPage?: (endCursor: string) => void;
+  goToPrevPage?: (startCursor: string) => void;
+  getRangeStart?: (itemCount: number) => number;
+  getRangeEnd?: (itemCount: number) => number;
 }): IEntityPickerDataResult<ProductPickerEntity> {
-  const { filters, search, pageSize } = options;
-  const [pageIndex, setPageIndex] = useState(0);
-  const [cursorHistory, setCursorHistory] = useState<Array<string | null>>([
-    null,
-  ]);
-  const after = cursorHistory[pageIndex] ?? null;
-  const { products, totalCount, pageInfo, loading, error } = useProducts({
-    first: pageSize,
+  const {
+    pageSize,
+    first,
     after,
+    last,
+    before,
+    where,
+    orderBy,
+    excludeIds,
+    goToNextPage,
+    goToPrevPage,
+    getRangeStart,
+    getRangeEnd,
+  } = options;
+  const productsWhere = useMemo<ApiProductWhereInput | null>(() => {
+    const conditions: ApiProductWhereInput[] = [];
+
+    if (where) {
+      conditions.push(where as ApiProductWhereInput);
+    }
+
+    if (excludeIds.length > 0) {
+      conditions.push({ id: { _notIn: excludeIds } });
+    }
+
+    if (conditions.length === 0) return null;
+    if (conditions.length === 1) return conditions[0];
+
+    return { _and: conditions };
+  }, [excludeIds, where]);
+  const { products, totalCount, pageInfo, loading, error } = useProducts({
+    first,
+    after,
+    last,
+    before,
+    where: productsWhere,
+    orderBy: orderBy as ApiProductOrderByInput[] | null,
   });
 
   const data = useMemo(
-    () =>
-      filterCurrentProductPage(products, search, filters).map(transformProduct),
-    [products, search, filters],
+    () => products.map(transformProduct),
+    [products],
   );
 
   return {
@@ -126,29 +106,17 @@ function useProductsPickerData(options: {
       total: totalCount,
       pageSize,
       hasNext: pageInfo?.hasNextPage ?? false,
-      hasPrev: pageIndex > 0,
-      rangeStart: products.length > 0 ? pageIndex * pageSize + 1 : 0,
-      rangeEnd: Math.min(pageIndex * pageSize + products.length, totalCount),
+      hasPrev: pageInfo?.hasPreviousPage ?? false,
+      rangeStart: getRangeStart?.(products.length) ?? 0,
+      rangeEnd: Math.min(getRangeEnd?.(products.length) ?? 0, totalCount),
     },
     onNext: () => {
-      if (!pageInfo?.endCursor) {
-        return;
-      }
-
-      setCursorHistory((current) => {
-        const next = current.slice(0, pageIndex + 1);
-        next[pageIndex + 1] = pageInfo.endCursor ?? null;
-        return next;
-      });
-      setPageIndex((current) => current + 1);
+      if (pageInfo?.endCursor) goToNextPage?.(pageInfo.endCursor);
     },
     onPrev: () => {
-      setPageIndex((current) => Math.max(0, current - 1));
+      if (pageInfo?.startCursor) goToPrevPage?.(pageInfo.startCursor);
     },
-    onPageSizeChange: () => {
-      setPageIndex(0);
-      setCursorHistory([null]);
-    },
+    onPageSizeChange: () => {},
   };
 }
 
@@ -165,15 +133,27 @@ const productPickerColumns: ColDef<ProductPickerEntity>[] = [
     field: "status",
     cellRenderer: StatusCellRenderer,
     minWidth: 120,
+    sortable: false,
   },
 ];
 
-export const productPickerConfig: IEntityPickerConfig<ProductPickerEntity> = {
+export const productPickerConfig: IEntityPickerConfig<
+  ProductPickerEntity,
+  ApiProductWhereInput,
+  ProductOrderField
+> = {
   entityType: "product",
   entityName: "Product",
   entityNamePlural: "Products",
-  filterSchema: [],
+  filterSchema,
   columns: productPickerColumns,
+  pageConfig: {
+    storageKey: "product-picker-grid-state",
+    sortFieldMapping: productSortFieldMapping,
+    buildSearchCondition: buildProductSearchCondition,
+    filterTransformers: productFilterTransformers,
+    defaultPageSize: 20,
+  },
   useData: useProductsPickerData,
   getRowId: (entity) => entity.id,
 };

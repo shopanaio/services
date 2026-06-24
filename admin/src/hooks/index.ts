@@ -17,6 +17,7 @@ export type {
   FilterTransformer,
   OrderByInput,
   SortFieldMapping,
+  UsePageConfigReturn,
 } from "./use-page-config";
 
 export { useTreeTableDragDrop } from "./use-tree-table-drag-drop";
