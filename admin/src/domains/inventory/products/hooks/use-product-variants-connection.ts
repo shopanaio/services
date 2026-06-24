@@ -7,7 +7,7 @@ import { PRODUCT_VARIANTS_QUERY } from "../graphql";
 import type {
   ProductVariantsQueryData,
   ProductVariantsQueryVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 type ProductApolloClient = ReturnType<typeof useApolloClient>;
 

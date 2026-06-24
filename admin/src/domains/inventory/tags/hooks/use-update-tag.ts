@@ -12,7 +12,7 @@ import type {
   TagMutationResult,
   TagUpdateMutationData,
   TagUpdateMutationVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 interface UseUpdateTagReturn {
   updateTag: (input: ApiTagUpdateInput) => Promise<TagMutationResult>;

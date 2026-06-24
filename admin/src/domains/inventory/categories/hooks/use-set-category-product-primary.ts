@@ -16,7 +16,7 @@ import {
 import type {
   ProductCategoryUpdateMutationData,
   ProductCategoryUpdateMutationVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 interface CategoryProductMutationResult {
   category: ApiCategory | null;

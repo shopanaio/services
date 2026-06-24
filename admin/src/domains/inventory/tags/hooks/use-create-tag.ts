@@ -8,7 +8,7 @@ import type {
   TagCreateMutationData,
   TagCreateMutationVariables,
   TagMutationResult,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 interface UseCreateTagReturn {
   createTag: (input: ApiTagCreateInput) => Promise<TagMutationResult>;

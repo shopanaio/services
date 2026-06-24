@@ -11,7 +11,7 @@ import {
 import type {
   ProductCreateMutationData,
   ProductCreateMutationVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 export type { CreateProductInput };
 

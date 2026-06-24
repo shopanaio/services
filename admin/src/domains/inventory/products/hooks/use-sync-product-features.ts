@@ -12,7 +12,7 @@ import type {
   ProductFeaturesSyncMutationData,
   ProductFeaturesSyncMutationVariables,
   ProductFeaturesSyncProduct,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 interface SyncProductFeaturesResult {
   product: ProductFeaturesSyncProduct | null;

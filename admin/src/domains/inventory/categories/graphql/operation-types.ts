@@ -2,6 +2,7 @@ import type {
   ApiCatalogMutation,
   ApiCatalogQuery,
   ApiCategory,
+  ApiCategoryCategoriesMetaInput,
   ApiCategoryCreateInput,
   ApiCategoryCreatePayload,
   ApiCategoryDeleteInput,
@@ -34,23 +35,6 @@ export interface CategoriesQueryVariables {
   where?: ApiCategoryWhereInput | null;
   orderBy?: ApiCategoryOrderByInput[] | null;
   meta?: ApiCategoryCategoriesMetaInput | null;
-}
-
-export interface ApiCategoryHierarchyScopeInput {
-  referenceId: string;
-  direction: "ANCESTORS" | "DESCENDANTS";
-  includeReference?: boolean | null;
-  mode?: "INCLUDE" | "EXCLUDE" | null;
-}
-
-export interface ApiCategoryProductsScopeInput {
-  referenceIds: string[];
-  mode: "INCLUDE" | "EXCLUDE";
-}
-
-export interface ApiCategoryCategoriesMetaInput {
-  hierarchyScope?: ApiCategoryHierarchyScopeInput | null;
-  productsScope?: ApiCategoryProductsScopeInput | null;
 }
 
 export interface CategoryCreateMutationData {

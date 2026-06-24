@@ -14,7 +14,7 @@ import { PRODUCTS_QUERY } from "../graphql";
 import type {
   ProductsQueryData,
   ProductsQueryVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 export interface UseProductsOptions extends RelayCursorPaginationVariables {
   where?: ApiProductWhereInput | null;

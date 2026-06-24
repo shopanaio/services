@@ -1,8 +1,8 @@
 import { gql } from "@apollo/client";
+import { USER_ERROR_FRAGMENT } from "../../graphql/shared-fragments";
 import {
   CATEGORY_DETAILS_FRAGMENT,
   CATEGORY_MUTATION_RESULT_FRAGMENT,
-  USER_ERROR_FRAGMENT,
 } from "./fragments";
 
 export const CATEGORY_CREATE_MUTATION = gql`
@@ -10,7 +10,7 @@ export const CATEGORY_CREATE_MUTATION = gql`
     catalogMutation {
       categoryCreate(input: $input) {
         category {
-          ...CategoryMutationResultFields
+          ...CategorySummaryFields
         }
         userErrors {
           ...UserErrorFields

@@ -13,7 +13,7 @@ import type {
   ApiProductWhereInput,
 } from "@/graphql/types";
 import { ProductOrderField } from "@/graphql/types";
-import type { ProductsQueryVariables } from "../graphql";
+import type { ProductsQueryVariables } from "../graphql/operation-types";
 
 export const productSortFieldMapping: SortFieldMapping<ProductOrderField> = {
   title: ProductOrderField.Name,

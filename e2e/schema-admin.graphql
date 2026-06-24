@@ -1139,7 +1139,18 @@ type CatalogQuery {
   tag(id: ID!): Tag
 
   """Get tags with Relay-style pagination"""
-  tags(first: Int, after: String, last: Int, before: String): TagConnection!
+  tags(
+    first: Int
+    after: String
+    last: Int
+    before: String
+
+    """Filter conditions"""
+    where: TagWhereInput
+
+    """Sort order"""
+    orderBy: [TagOrderByInput!]
+  ): TagConnection!
 
   """Get a bundle group by ID"""
   bundleGroup(id: ID!): BundleGroup
@@ -2701,9 +2712,6 @@ type Tag implements Node {
   """The display name of the tag."""
   name: String!
 
-  """Products with this tag, with pagination."""
-  products(first: Int, after: String, last: Int, before: String): ProductConnection!
-
   """The total number of products with this tag."""
   productsCount: Int!
 }
@@ -3042,6 +3050,39 @@ enum CategoryOrderField {
 
   """Sort by updatedAt"""
   updatedAt
+
+  """Sort by productsCount"""
+  productsCount
+
+  """Sort by locale"""
+  locale
+
+  """Sort by name"""
+  name
+}
+
+"""Fields available for sorting Tag"""
+enum TagOrderField {
+  """Sort by projectId"""
+  projectId
+
+  """Sort by id"""
+  id
+
+  """Sort by handle"""
+  handle
+
+  """Sort by createdAt"""
+  createdAt
+
+  """Sort by productsCount"""
+  productsCount
+
+  """Sort by locale"""
+  locale
+
+  """Sort by name"""
+  name
 }
 
 """Fields available for sorting Variant"""
@@ -3090,6 +3131,7 @@ enum BulkUpdateItemStatus {
 enum BulkUpdateOpType {
   PRODUCT_UPDATE
   PRODUCT_CATEGORY_UPDATE
+  PRODUCT_TAG_UPDATE
   VARIANT_UPDATE
 }
 
@@ -3280,11 +3322,17 @@ enum ProductCategoryOperationAction {
   MOVE
 }
 
+enum ProductTagOperationAction {
+  ADD
+  REMOVE
+}
+
 """Type of operation in the unified update."""
 enum OperationType {
   PRODUCT_UPDATE
   VARIANT_UPDATE
   PRODUCT_CATEGORY_UPDATE
+  PRODUCT_TAG_UPDATE
   CATEGORY_UPDATE
 }
 
@@ -3586,12 +3634,63 @@ input CategoryWhereInput {
 
   """Filter by updatedAt"""
   updatedAt: DateTimeFilter
+
+  """Filter by productsCount"""
+  productsCount: IntFilter
+
+  """Filter by locale"""
+  locale: StringFilter
+
+  """Filter by name"""
+  name: StringFilter
 }
 
 """Ordering configuration for Category"""
 input CategoryOrderByInput {
   """Field to order by"""
   field: CategoryOrderField!
+
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+"""Filter conditions for Tag"""
+input TagWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [TagWhereInput!]
+
+  """Logical OR of multiple conditions"""
+  _or: [TagWhereInput!]
+
+  """Negate the condition"""
+  _not: TagWhereInput
+
+  """Filter by projectId"""
+  projectId: IDFilter
+
+  """Filter by id"""
+  id: IDFilter
+
+  """Filter by handle"""
+  handle: StringFilter
+
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+
+  """Filter by productsCount"""
+  productsCount: IntFilter
+
+  """Filter by locale"""
+  locale: StringFilter
+
+  """Filter by name"""
+  name: StringFilter
+}
+
+"""Ordering configuration for Tag"""
+input TagOrderByInput {
+  """Field to order by"""
+  field: TagOrderField!
 
   """Sort direction"""
   direction: SortDirection!
@@ -4626,6 +4725,15 @@ input ProductCategoryOperationInput {
   beforeProductId: ID
 }
 
+"""Product tag assignment operation for unified product updates."""
+input ProductTagOperationInput {
+  """The tag to update for the product."""
+  tagId: ID!
+
+  """The assignment action to apply."""
+  action: ProductTagOperationAction!
+}
+
 """Input for product-level fields in the unified update."""
 input ProductUpdateInput {
   """The URL-friendly handle for the product."""
@@ -4651,6 +4759,9 @@ input ProductUpdateInput {
 
   """Product category assignment operations."""
   categories: [ProductCategoryOperationInput!]
+
+  """Product tag assignment operations."""
+  tags: [ProductTagOperationInput!]
 
   """Variant updates."""
   variants: [VariantUpdateInput!]

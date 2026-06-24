@@ -6,8 +6,10 @@ import { PlusOutlined, MoreOutlined, StarFilled } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useCategoryPicker } from "@/shared/components/entity-picker-modal";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";
-import type { ApiCategory } from "@/graphql/types";
-import type { ApiCategoryCategoriesMetaInput } from "@/domains/inventory/categories/graphql";
+import type {
+  ApiCategory,
+  ApiCategoryCategoriesMetaInput,
+} from "@/graphql/types";
 import {
   useAddCategoryProduct,
   useRemoveCategoryProduct,

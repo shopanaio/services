@@ -52,7 +52,7 @@ import {
   getProductThumbnailFile,
 } from "../utils/api-product-display";
 import { formatPrice } from "../utils/price-formatting";
-import type { ProductsQueryVariables } from "../graphql";
+import type { ProductsQueryVariables } from "../graphql/operation-types";
 import { Dash } from "@/shared/components/editor-grid";
 import { TableCoverImage } from "@/shared/components/table-cover-image";
 

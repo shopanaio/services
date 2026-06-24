@@ -13,7 +13,7 @@ import { VENDORS_QUERY } from "../graphql";
 import type {
   VendorsQueryData,
   VendorsQueryVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 export interface UseVendorsOptions extends RelayCursorPaginationVariables {
   where?: ApiVendorWhereInput | null;

@@ -34,7 +34,7 @@ import {
   tagFilterTransformers,
   tagSortFieldMapping,
 } from "./page-config";
-import type { TagsQueryVariables } from "../graphql";
+import type { TagsQueryVariables } from "../graphql/operation-types";
 import { useTags } from "../hooks";
 import { useCreateTagModal, useTagModal } from "../modals";
 

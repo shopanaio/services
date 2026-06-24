@@ -7,7 +7,7 @@ import { INVENTORY_ITEM_BY_VARIANT_QUERY } from "../graphql";
 import type {
   InventoryItemByVariantQueryData,
   InventoryItemByVariantQueryVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 interface UseEnsureVariantInventoryItemsReturn {
   ensureVariantInventoryItems: (variants: ApiVariant[]) => Promise<ApiVariant[]>;

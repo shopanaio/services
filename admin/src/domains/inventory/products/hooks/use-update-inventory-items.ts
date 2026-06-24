@@ -11,7 +11,7 @@ import { INVENTORY_ITEM_UPDATE_MUTATION } from "../graphql";
 import type {
   InventoryItemUpdateMutationData,
   InventoryItemUpdateMutationVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 interface UpdateInventoryItemsResult {
   inventoryItems: ApiInventoryItem[];

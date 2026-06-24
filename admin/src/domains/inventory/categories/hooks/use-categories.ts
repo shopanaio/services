@@ -3,6 +3,7 @@
 import { useQuery } from "@apollo/client/react";
 import type {
   ApiCategory,
+  ApiCategoryCategoriesMetaInput,
   ApiCategoryConnection,
   ApiCategoryOrderByInput,
   ApiCategoryWhereInput,
@@ -11,10 +12,9 @@ import type {
 import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
 import { CATEGORIES_QUERY } from "../graphql";
 import type {
-  ApiCategoryCategoriesMetaInput,
   CategoriesQueryData,
   CategoriesQueryVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 export interface UseCategoriesOptions extends RelayCursorPaginationVariables {
   where?: ApiCategoryWhereInput | null;

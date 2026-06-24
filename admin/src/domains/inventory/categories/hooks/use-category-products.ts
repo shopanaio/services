@@ -13,7 +13,7 @@ import { CATEGORY_PRODUCTS_QUERY } from "../graphql";
 import type {
   CategoryProductsQueryData,
   CategoryProductsQueryVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 export interface UseCategoryProductsOptions
   extends RelayCursorPaginationVariables {

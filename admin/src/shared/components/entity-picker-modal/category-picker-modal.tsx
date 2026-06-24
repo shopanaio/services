@@ -9,7 +9,7 @@ import {
 import { EntityPickerContent } from "./entity-picker-content";
 import { categoryPickerConfig } from "./configs/category-picker-config";
 import type { IPickableEntity } from "./types";
-import type { ApiCategoryCategoriesMetaInput } from "@/domains/inventory/categories/graphql";
+import type { ApiCategoryCategoriesMetaInput } from "@/graphql/types";
 
 export interface ICategoryPickerPayload {
   selectionMode?: "single" | "multi";

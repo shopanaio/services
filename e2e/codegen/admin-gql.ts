@@ -1255,6 +1255,8 @@ export type ApiCatalogQueryTagsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiTagOrderByInput>>;
+  where?: InputMaybe<ApiTagWhereInput>;
 };
 
 
@@ -1498,10 +1500,16 @@ export type CategoryOrderField =
   | 'handle'
   /** Sort by id */
   | 'id'
+  /** Sort by locale */
+  | 'locale'
+  /** Sort by name */
+  | 'name'
   /** Sort by parentId */
   | 'parentId'
   /** Sort by path */
   | 'path'
+  /** Sort by productsCount */
+  | 'productsCount'
   /** Sort by publishedAt */
   | 'publishedAt'
   /** Sort by updatedAt */
@@ -1613,10 +1621,16 @@ export type ApiCategoryWhereInput = {
   handle?: InputMaybe<ApiStringFilter>;
   /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by locale */
+  locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by name */
+  name?: InputMaybe<ApiStringFilter>;
   /** Filter by parentId */
   parentId?: InputMaybe<ApiIdFilter>;
   /** Filter by path */
   path?: InputMaybe<ApiStringFilter>;
+  /** Filter by productsCount */
+  productsCount?: InputMaybe<ApiIntFilter>;
   /** Filter by publishedAt */
   publishedAt?: InputMaybe<ApiDateTimeFilter>;
   /** Filter by updatedAt */
@@ -6449,19 +6463,8 @@ export type ApiTag = ApiNode & {
   id: Scalars['ID']['output'];
   /** The display name of the tag. */
   name: Scalars['String']['output'];
-  /** Products with this tag, with pagination. */
-  products: ApiProductConnection;
   /** The total number of products with this tag. */
   productsCount: Scalars['Int']['output'];
-};
-
-
-/** A tag represents a simple label for organizing and filtering products. */
-export type ApiTagProductsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** A connection to a list of Tag items. */
@@ -6516,6 +6519,31 @@ export type ApiTagEdge = {
   node: ApiTag;
 };
 
+/** Ordering configuration for Tag */
+export type ApiTagOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: TagOrderField;
+};
+
+/** Fields available for sorting Tag */
+export type TagOrderField =
+  /** Sort by createdAt */
+  | 'createdAt'
+  /** Sort by handle */
+  | 'handle'
+  /** Sort by id */
+  | 'id'
+  /** Sort by locale */
+  | 'locale'
+  /** Sort by name */
+  | 'name'
+  /** Sort by productsCount */
+  | 'productsCount'
+  /** Sort by projectId */
+  | 'projectId';
+
 /** Input for updating a tag. */
 export type ApiTagUpdateInput = {
   /** The URL-friendly handle for the tag. */
@@ -6533,6 +6561,30 @@ export type ApiTagUpdatePayload = {
   tag?: Maybe<ApiTag>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
+};
+
+/** Filter conditions for Tag */
+export type ApiTagWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiTagWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiTagWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiTagWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by handle */
+  handle?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by locale */
+  locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by name */
+  name?: InputMaybe<ApiStringFilter>;
+  /** Filter by productsCount */
+  productsCount?: InputMaybe<ApiIntFilter>;
+  /** Filter by projectId */
+  projectId?: InputMaybe<ApiIdFilter>;
 };
 
 export type ThresholdMethod =

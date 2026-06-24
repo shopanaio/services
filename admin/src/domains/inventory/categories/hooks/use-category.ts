@@ -6,7 +6,7 @@ import { CATEGORY_DETAILS_QUERY } from "../graphql";
 import type {
   CategoryDetailsQueryData,
   CategoryDetailsQueryVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 interface UseCategoryReturn {
   category: ApiCategory | null;

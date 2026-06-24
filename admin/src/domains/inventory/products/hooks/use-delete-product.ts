@@ -7,7 +7,7 @@ import { PRODUCT_DELETE_MUTATION, PRODUCTS_QUERY } from "../graphql";
 import type {
   ProductDeleteMutationData,
   ProductDeleteMutationVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 interface DeleteProductResult {
   deletedProductId: string | null;

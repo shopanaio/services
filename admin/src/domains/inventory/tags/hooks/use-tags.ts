@@ -13,7 +13,7 @@ import { TAGS_QUERY } from "../graphql";
 import type {
   TagsQueryData,
   TagsQueryVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 export interface UseTagsOptions extends RelayCursorPaginationVariables {
   where?: ApiTagWhereInput | null;

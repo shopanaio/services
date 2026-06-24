@@ -1,63 +1,15 @@
 import { gql } from "@apollo/client";
+import {
+  FILE_FRAGMENT,
+  RICH_TEXT_FRAGMENT,
+  USER_ERROR_FRAGMENT,
+} from "../../graphql/shared-fragments";
 
-export const USER_ERROR_FRAGMENT = gql`
-  fragment UserErrorFields on GenericUserError {
-    code
-    field
-    message
-  }
-`;
-
-export const RICH_TEXT_FRAGMENT = gql`
-  fragment RichTextFields on RichText {
-    text
-    html
-    json
-  }
-`;
-
-export const FILE_FRAGMENT = gql`
-  fragment FileFields on File {
-    id
-    url
-    originalName
-    ext
-    mimeType
-    sizeBytes
-    provider
-    isProcessed
-    altText
-    createdAt
-    updatedAt
-    deletedAt
-    deletionState
-    dimensions {
-      width
-      height
-    }
-    durationMs
-    externalData {
-      externalId
-      providerMeta
-    }
-    meta
-    s3Data {
-      bucketId
-      etag
-      objectKey
-      storageClass
-    }
-    sourceUrl
-    usage {
-      totalCount
-      fileActive
-      byEntity {
-        entityType
-        count
-      }
-    }
-  }
-`;
+export {
+  FILE_FRAGMENT,
+  RICH_TEXT_FRAGMENT,
+  USER_ERROR_FRAGMENT,
+} from "../../graphql/shared-fragments";
 
 export const PRODUCT_MEDIA_ITEM_FRAGMENT = gql`
   fragment ProductMediaItemFields on ProductMediaItem {
@@ -297,8 +249,8 @@ export const PRODUCT_LIST_FRAGMENT = gql`
   ${VENDOR_FRAGMENT}
 `;
 
-export const PRODUCT_DETAILS_FRAGMENT = gql`
-  fragment ProductDetailsFields on Product {
+export const PRODUCT_EDITOR_BASE_FRAGMENT = gql`
+  fragment ProductEditorBaseFields on Product {
     id
     title
     handle
@@ -345,6 +297,19 @@ export const PRODUCT_DETAILS_FRAGMENT = gql`
     options {
       ...ProductOptionFields
     }
+  }
+  ${RICH_TEXT_FRAGMENT}
+  ${FILE_FRAGMENT}
+  ${PRODUCT_MEDIA_ITEM_FRAGMENT}
+  ${PRODUCT_CATEGORY_FRAGMENT}
+  ${PRODUCT_TAG_FRAGMENT}
+  ${PRODUCT_FEATURE_FRAGMENT}
+  ${PRODUCT_OPTION_FRAGMENT}
+`;
+
+export const PRODUCT_DETAILS_FRAGMENT = gql`
+  fragment ProductDetailsFields on Product {
+    ...ProductEditorBaseFields
     variants(first: $variantsFirst, after: $variantsAfter) {
       edges {
         cursor
@@ -361,64 +326,13 @@ export const PRODUCT_DETAILS_FRAGMENT = gql`
       totalCount
     }
   }
-  ${RICH_TEXT_FRAGMENT}
-  ${FILE_FRAGMENT}
-  ${PRODUCT_MEDIA_ITEM_FRAGMENT}
-  ${PRODUCT_CATEGORY_FRAGMENT}
-  ${PRODUCT_TAG_FRAGMENT}
-  ${PRODUCT_FEATURE_FRAGMENT}
-  ${PRODUCT_OPTION_FRAGMENT}
+  ${PRODUCT_EDITOR_BASE_FRAGMENT}
   ${VARIANT_FRAGMENT}
 `;
 
 export const PRODUCT_MUTATION_RESULT_FRAGMENT = gql`
   fragment ProductMutationResultFields on Product {
-    id
-    title
-    handle
-    isPublished
-    publishedAt
-    createdAt
-    updatedAt
-    deletedAt
-    revision
-    variantsCount
-    description {
-      ...RichTextFields
-    }
-    excerpt {
-      ...RichTextFields
-    }
-    seo {
-      seoTitle
-      seoDescription
-      ogTitle
-      ogDescription
-      ogImage {
-        ...FileFields
-      }
-    }
-    media {
-      ...ProductMediaItemFields
-    }
-    primaryCategory {
-      ...ProductCategoryFields
-    }
-    categoryAssignments {
-      isPrimary
-      category {
-        ...ProductCategoryFields
-      }
-    }
-    tags {
-      ...ProductTagFields
-    }
-    features {
-      ...ProductFeatureFields
-    }
-    options {
-      ...ProductOptionFields
-    }
+    ...ProductEditorBaseFields
     variants(first: 100) {
       edges {
         cursor
@@ -435,13 +349,7 @@ export const PRODUCT_MUTATION_RESULT_FRAGMENT = gql`
       totalCount
     }
   }
-  ${RICH_TEXT_FRAGMENT}
-  ${FILE_FRAGMENT}
-  ${PRODUCT_MEDIA_ITEM_FRAGMENT}
-  ${PRODUCT_CATEGORY_FRAGMENT}
-  ${PRODUCT_TAG_FRAGMENT}
-  ${PRODUCT_FEATURE_FRAGMENT}
-  ${PRODUCT_OPTION_FRAGMENT}
+  ${PRODUCT_EDITOR_BASE_FRAGMENT}
   ${VARIANT_FRAGMENT}
 `;
 

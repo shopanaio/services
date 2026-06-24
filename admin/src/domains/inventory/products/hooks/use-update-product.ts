@@ -12,7 +12,7 @@ import { PRODUCT_UPDATE_MUTATION } from "../graphql";
 import type {
   ProductUpdateMutationData,
   ProductUpdateMutationVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 import { normalizeProductUpdateErrors } from "../mappers/product-errors.mapper";
 
 interface UpdateProductInput {

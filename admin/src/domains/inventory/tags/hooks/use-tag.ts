@@ -6,7 +6,7 @@ import { TAG_DETAILS_QUERY } from "../graphql";
 import type {
   TagDetailsQueryData,
   TagDetailsQueryVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 interface UseTagReturn {
   tag: ApiTag | null;

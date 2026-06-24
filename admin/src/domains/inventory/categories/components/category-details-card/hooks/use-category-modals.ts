@@ -6,9 +6,9 @@ import {
   CategoryHierarchyScopeMode,
   CategoryStatus,
   type ApiCategory,
+  type ApiCategoryCategoriesMetaInput,
   type ApiProductProductsMetaInput,
 } from "@/graphql/types";
-import type { ApiCategoryCategoriesMetaInput } from "../../../graphql";
 import { useModalStackContext } from "@/layouts/modals";
 import {
   useCategoryPicker,

@@ -11,7 +11,7 @@ import { PRODUCT_UPDATE_STATUS_MUTATION } from "../graphql";
 import type {
   ProductUpdateStatusMutationData,
   ProductUpdateStatusMutationVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 interface UpdateProductStatusResult {
   product: ApiProduct | null;

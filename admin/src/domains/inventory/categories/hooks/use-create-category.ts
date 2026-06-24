@@ -11,7 +11,7 @@ import { CATEGORY_CREATE_MUTATION } from "../graphql";
 import type {
   CategoryCreateMutationData,
   CategoryCreateMutationVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 export type { CreateCategoryInput };
 

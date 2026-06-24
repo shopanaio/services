@@ -14,7 +14,7 @@ import type {
   ApiTagWhereInput,
 } from "@/graphql/types";
 import { TagOrderField } from "@/graphql/types";
-import type { TagsQueryVariables } from "../graphql";
+import type { TagsQueryVariables } from "../graphql/operation-types";
 
 type TagsWhereInput = ApiTagWhereInput;
 type TagsOrderField = TagOrderField;

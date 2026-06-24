@@ -2429,10 +2429,6 @@ type Tag implements Node @join__type(graph: CATALOG_ADMIN, key: "id")  @join__ty
   """
   name: String! @join__field(graph: CATALOG_ADMIN)
   """
-  Products with this tag, with pagination.
-  """
-  products(first: Int, after: String, last: Int, before: String) : ProductConnection! @join__field(graph: CATALOG_ADMIN)
-  """
   The total number of products with this tag.
   """
   productsCount: Int! @join__field(graph: CATALOG_ADMIN)

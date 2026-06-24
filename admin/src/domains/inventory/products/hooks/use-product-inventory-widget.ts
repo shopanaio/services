@@ -7,7 +7,7 @@ import { PRODUCT_INVENTORY_WIDGET_QUERY } from "../graphql";
 import type {
   ProductInventoryWidgetQueryData,
   ProductInventoryWidgetQueryVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 export interface UseProductInventoryWidgetOptions {
   productId: string | null;

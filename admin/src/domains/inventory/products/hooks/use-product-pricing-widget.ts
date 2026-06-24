@@ -13,7 +13,7 @@ import { PRODUCT_PRICING_WIDGET_QUERY } from "../graphql";
 import type {
   ProductPricingWidgetQueryData,
   ProductPricingWidgetQueryVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 import {
   useProductVariantsConnection,
   type UseProductVariantsConnectionReturn,

@@ -50,7 +50,7 @@ import {
 } from "./page-config";
 import { useCategories } from "../hooks";
 import { useCategoryModal, useCreateCategoryModal } from "../modals";
-import type { CategoriesQueryVariables } from "../graphql";
+import type { CategoriesQueryVariables } from "../graphql/operation-types";
 import { TableCoverImage } from "@/shared/components/table-cover-image";
 
 ModuleRegistry.registerModules([

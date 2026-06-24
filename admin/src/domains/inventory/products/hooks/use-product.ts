@@ -6,7 +6,7 @@ import { PRODUCT_DETAILS_QUERY } from "../graphql";
 import type {
   ProductDetailsQueryData,
   ProductDetailsQueryVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 export interface UseProductOptions {
   id: string | null;

@@ -7,7 +7,7 @@ import { INVENTORY_DEFAULT_WAREHOUSE_QUERY } from "../graphql";
 import type {
   InventoryDefaultWarehouseQueryData,
   InventoryDefaultWarehouseQueryVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 export interface UseDefaultWarehouseReturn {
   defaultWarehouse: ApiWarehouse | null;

@@ -22,7 +22,7 @@ export const TAGS_QUERY = gql`
         edges {
           cursor
           node {
-            ...TagListFields
+            ...TagFields
           }
         }
         pageInfo {
@@ -42,7 +42,7 @@ export const TAG_DETAILS_QUERY = gql`
   query TagDetails($id: ID!) {
     catalogQuery {
       tag(id: $id) {
-        ...TagDetailsFields
+        ...TagFields
       }
     }
   }

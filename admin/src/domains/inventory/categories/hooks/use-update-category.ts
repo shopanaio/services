@@ -16,7 +16,7 @@ import {
 import type {
   CategoryUpdateMutationData,
   CategoryUpdateMutationVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 import { normalizeCategoryUpdateErrors } from "../mappers";
 
 interface UpdateCategoryResult {

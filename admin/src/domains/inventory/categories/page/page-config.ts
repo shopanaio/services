@@ -14,7 +14,7 @@ import type {
   ApiStringFilter,
 } from "@/graphql/types";
 import { CategoryOrderField } from "@/graphql/types";
-import type { CategoriesQueryVariables } from "../graphql";
+import type { CategoriesQueryVariables } from "../graphql/operation-types";
 
 export const categorySortFieldMapping: SortFieldMapping<CategoryOrderField> = {
   title: CategoryOrderField.Name,

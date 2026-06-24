@@ -4,7 +4,6 @@ import { createElement, useMemo } from "react";
 import type { ColDef } from "ag-grid-community";
 import { FolderOutlined } from "@ant-design/icons";
 import { useCategories } from "@/domains/inventory/categories/hooks";
-import type { ApiCategoryCategoriesMetaInput } from "@/domains/inventory/categories/graphql";
 import { filterSchema } from "@/domains/inventory/categories/page/filter-schema";
 import {
   buildCategorySearchCondition,
@@ -20,6 +19,7 @@ import type {
 } from "../types";
 import type {
   ApiCategory,
+  ApiCategoryCategoriesMetaInput,
   ApiCategoryOrderByInput,
   ApiCategoryWhereInput,
 } from "@/graphql/types";

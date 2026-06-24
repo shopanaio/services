@@ -6507,19 +6507,8 @@ export type ApiTag = ApiNode & {
   id: Scalars['ID']['output'];
   /** The display name of the tag. */
   name: Scalars['String']['output'];
-  /** Products with this tag, with pagination. */
-  products: ApiProductConnection;
   /** The total number of products with this tag. */
   productsCount: Scalars['Int']['output'];
-};
-
-
-/** A tag represents a simple label for organizing and filtering products. */
-export type ApiTagProductsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** A connection to a list of Tag items. */

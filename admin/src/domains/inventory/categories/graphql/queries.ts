@@ -28,7 +28,7 @@ export const CATEGORIES_QUERY = gql`
         edges {
           cursor
           node {
-            ...CategoryListFields
+            ...CategorySummaryFields
           }
         }
         pageInfo {

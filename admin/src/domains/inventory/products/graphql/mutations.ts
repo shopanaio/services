@@ -1,11 +1,13 @@
 import { gql } from "@apollo/client";
 import {
   FILE_FRAGMENT,
+  USER_ERROR_FRAGMENT,
+} from "../../graphql/shared-fragments";
+import {
   INVENTORY_ITEM_FRAGMENT,
   PRODUCT_FEATURE_FRAGMENT,
   PRODUCT_MUTATION_RESULT_FRAGMENT,
   PRODUCT_OPTION_FRAGMENT,
-  USER_ERROR_FRAGMENT,
   VARIANT_FRAGMENT,
 } from "./fragments";
 

@@ -7,7 +7,7 @@ import { CATEGORIES_QUERY, CATEGORY_DELETE_MUTATION } from "../graphql";
 import type {
   CategoryDeleteMutationData,
   CategoryDeleteMutationVariables,
-} from "../graphql";
+} from "../graphql/operation-types";
 
 interface DeleteCategoryResult {
   deletedCategoryId: string | null;
