@@ -156,7 +156,12 @@ export const ProductDetailsCard = ({
       {/* BUNDLES CONTAINING THIS PRODUCT */}
       <BundlesSection bundles={supplementalData.includedInBundles} />
 
-      <TagsSection tags={product.tags} />
+      <TagsSection
+        productId={product.id}
+        productRevision={product.revision}
+        tags={product.tags}
+        onProductRefresh={onProductRefresh}
+      />
 
       {/* SEO */}
       <SeoBlock

@@ -1,45 +1,147 @@
 "use client";
 
-import { useState } from "react";
-import { Tag, Typography, Flex, Dropdown } from "antd";
+import { useEffect, useState } from "react";
+import { App, Tag, Typography, Flex, Dropdown } from "antd";
 import { PlusOutlined, MoreOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useTagPicker } from "@/shared/components/entity-picker-modal";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";
-import type { ApiTag } from "@/graphql/types";
-import { createMockApiTag } from "@/mocks/products/api-builders";
+import type { ApiTag, ApiProductUpdateInput } from "@/graphql/types";
+import { ProductTagOperationAction } from "@/graphql/types";
+import { useUpdateProduct } from "@/domains/inventory/products/hooks";
 
-interface ITagsSectionProps {
-  tags?: ApiTag[];
+interface TagItem {
+  id: string;
+  name: string;
 }
 
-export const TagsSection = ({ tags: initialTags = [] }: ITagsSectionProps) => {
-  const [tags, setTags] = useState<ApiTag[]>(initialTags);
+interface ITagsSectionProps {
+  productId?: string;
+  productRevision?: number | null;
+  tags?: ApiTag[];
+  onProductRefresh?: () => Promise<unknown>;
+}
 
-  const deleteTag = (id: string) => {
-    setTags((prev) => prev.filter((tag) => tag.id !== id));
+const toTagItem = (tag: ApiTag): TagItem => ({
+  id: tag.id,
+  name: tag.name,
+});
+
+export const TagsSection = ({
+  productId,
+  productRevision,
+  tags: initialTags = [],
+  onProductRefresh,
+}: ITagsSectionProps) => {
+  const { message } = App.useApp();
+  const { updateProduct } = useUpdateProduct();
+  const [pendingTagId, setPendingTagId] = useState<string | null>(null);
+  const [tags, setTags] = useState<TagItem[]>(() => initialTags.map(toTagItem));
+  const initialTagsKey = initialTags.map((tag) => tag.id).join("|");
+
+  useEffect(() => {
+    setTags(initialTags.map(toTagItem));
+  }, [initialTagsKey]);
+
+  const refreshProduct = async () => {
+    try {
+      await onProductRefresh?.();
+    } catch {
+      message.warning("Tag changes saved, but product refresh failed");
+    }
+  };
+
+  const saveTagOperations = async (operations: ApiProductUpdateInput["tags"]) => {
+    if (!productId) {
+      message.error("Product id is missing");
+      return false;
+    }
+
+    const result = await updateProduct({
+      productId,
+      expectedRevision: productRevision,
+      operations: {
+        tags: operations,
+      },
+    });
+
+    if (result.errors.length > 0) {
+      message.error(result.errors[0].message);
+      return false;
+    }
+
+    return true;
+  };
+
+  const deleteTag = async (id: string) => {
+    setPendingTagId(id);
+    try {
+      const saved = await saveTagOperations([
+        {
+          tagId: id,
+          action: ProductTagOperationAction.Remove,
+        },
+      ]);
+
+      if (!saved) {
+        return;
+      }
+
+      setTags((prev) => prev.filter((tag) => tag.id !== id));
+      await refreshProduct();
+      message.success("Tag removed from product");
+    } finally {
+      setPendingTagId(null);
+    }
+  };
+
+  const addTags = async (entities: IPickableEntity[]) => {
+    const existingById = new Map(tags.map((tag) => [tag.id, tag]));
+    const newTags = entities
+      .filter((entity) => !existingById.has(entity.id))
+      .map((entity): TagItem => ({
+        id: entity.id,
+        name: entity.title,
+      }));
+
+    if (newTags.length === 0) {
+      return;
+    }
+
+    setPendingTagId(newTags[0].id);
+    try {
+      const saved = await saveTagOperations(
+        newTags.map((tag) => ({
+          tagId: tag.id,
+          action: ProductTagOperationAction.Add,
+        })),
+      );
+
+      if (!saved) {
+        return;
+      }
+
+      setTags((prev) => [...prev, ...newTags]);
+      await refreshProduct();
+      message.success(
+        newTags.length === 1
+          ? "Tag added to product"
+          : "Tags added to product",
+      );
+    } finally {
+      setPendingTagId(null);
+    }
   };
 
   const { openPicker } = useTagPicker({
-    initialSelection: tags.map((tag) => tag.id),
+    excludeIds: tags.map((tag) => tag.id),
     onConfirm: (entities: IPickableEntity[]) => {
-      const existingById = new Map(tags.map((t) => [t.id, t]));
-      const newTags = entities.map((entity) => {
-        const existing = existingById.get(entity.id);
-        if (existing) {
-          return existing;
-        }
-        return createMockApiTag({
-          id: entity.id,
-          name: entity.title,
-          handle: entity.id,
-        });
-      });
-      setTags(newTags);
+      void addTags(entities);
     },
   });
 
   const hasTags = tags.length > 0;
+  const isPending = pendingTagId !== null;
 
   return (
     <Paper>
@@ -56,6 +158,7 @@ export const TagsSection = ({ tags: initialTags = [] }: ITagsSectionProps) => {
                     key: "delete",
                     label: "Delete tag",
                     onClick: () => deleteTag(tag.id),
+                    disabled: isPending,
                   },
                 ],
               }}
@@ -70,9 +173,9 @@ export const TagsSection = ({ tags: initialTags = [] }: ITagsSectionProps) => {
           ))}
           <Tag
             variant="outlined"
-            onClick={openPicker}
+            onClick={isPending ? undefined : openPicker}
             style={{
-              cursor: "pointer",
+              cursor: isPending ? "not-allowed" : "pointer",
               background: "transparent",
               borderStyle: "dashed",
             }}
@@ -87,9 +190,9 @@ export const TagsSection = ({ tags: initialTags = [] }: ITagsSectionProps) => {
         <Flex gap={4} wrap="wrap">
           <Tag
             variant="outlined"
-            onClick={openPicker}
+            onClick={isPending ? undefined : openPicker}
             style={{
-              cursor: "pointer",
+              cursor: isPending ? "not-allowed" : "pointer",
               background: "transparent",
               borderStyle: "dashed",
             }}
