@@ -14,7 +14,7 @@ async function signIn(page: Page, email: string, password: string) {
 }
 
 async function completeProfileIfNeeded(page: Page) {
-  const firstNameInput = page.getByPlaceholder('First name');
+  const firstNameInput = page.getByTestId('complete-profile-first-name-input');
   await firstNameInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null);
 
   if (!(await firstNameInput.isVisible().catch(() => false))) {
@@ -22,8 +22,8 @@ async function completeProfileIfNeeded(page: Page) {
   }
 
   await firstNameInput.fill('Test');
-  await page.getByPlaceholder('Last name').fill('User');
-  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByTestId('complete-profile-last-name-input').fill('User');
+  await page.getByTestId('complete-profile-submit-button').click();
   await expect(firstNameInput).toBeHidden();
 }
 
@@ -89,29 +89,19 @@ async function expectVisibleCategoryNamesUnordered(page: Page, expectedNames: st
     .toEqual([...expectedNames].sort());
 }
 
-function filterMenuButton(page: Page) {
-  return page.locator('button').filter({ hasText: /^Filter$/ }).first();
+async function addCategoryFilter(page: Page, label: string, testId: string) {
+  await page.getByTestId('filter-button').click();
+  await page.getByTestId(`filter-option-${testId}`).click();
+  await expect(page.getByTestId(`filter-badge-${testId}`).last()).toContainText(label);
 }
 
-function categoryFilterBadge(page: Page, label: string) {
-  return page.locator('[data-node-type="ui-filter-close-badge"]').filter({ hasText: label });
+async function removeCategoryFilter(page: Page, testId: string) {
+  await page.getByTestId(`filter-badge-remove-${testId}`).last().click();
+  await expect(page.getByTestId(`filter-badge-${testId}`)).toHaveCount(0);
 }
 
-async function addCategoryFilter(page: Page, label: string) {
-  await filterMenuButton(page).click();
-  await page.getByRole('button', { name: label }).click();
-  await expect(categoryFilterBadge(page, label).last()).toBeVisible();
-}
-
-async function removeCategoryFilter(page: Page, label: string) {
-  const filter = categoryFilterBadge(page, label).last();
-
-  await filter.locator('[data-remove-tag]').click();
-  await expect(categoryFilterBadge(page, label)).toHaveCount(0);
-}
-
-async function fillCategoryFilterValue(page: Page, label: string, value: string | number) {
-  const control = categoryFilterBadge(page, label).last().locator('[data-value-node]');
+async function fillCategoryFilterValue(page: Page, testId: string, value: string | number) {
+  const control = page.getByTestId(`filter-badge-value-${testId}`).last();
   const input = control.locator('input').first();
 
   await input.fill(String(value));
@@ -205,22 +195,22 @@ test.describe('Admin categories table UI', () => {
     await page.getByTestId('search-input').fill('');
     await expect(page.getByTestId('categories-pagination-range')).toHaveText('1–20 of 21');
 
-    await addCategoryFilter(page, 'Handle');
-    await fillCategoryFilterValue(page, 'Handle', `bravo-category-${unique}`);
+    await addCategoryFilter(page, 'Handle', 'handle');
+    await fillCategoryFilterValue(page, 'handle', `bravo-category-${unique}`);
     await expectVisibleCategoryNames(page, [`Bravo Category ${unique}`]);
-    await removeCategoryFilter(page, 'Handle');
+    await removeCategoryFilter(page, 'handle');
     await expect(page.getByTestId('categories-pagination-range')).toHaveText('1–20 of 21');
 
-    await addCategoryFilter(page, 'Products');
-    await fillCategoryFilterValue(page, 'Products', 3);
+    await addCategoryFilter(page, 'Products', 'productsCount');
+    await fillCategoryFilterValue(page, 'productsCount', 3);
     await expectVisibleCategoryNames(page, [`Echo Category ${unique}`]);
-    await removeCategoryFilter(page, 'Products');
+    await removeCategoryFilter(page, 'productsCount');
     await expect(page.getByTestId('categories-pagination-range')).toHaveText('1–20 of 21');
 
-    await addCategoryFilter(page, 'Depth');
-    await fillCategoryFilterValue(page, 'Depth', 1);
+    await addCategoryFilter(page, 'Depth', 'depth');
+    await fillCategoryFilterValue(page, 'depth', 1);
     await expectVisibleCategoryNames(page, [`Child Category ${unique}`]);
-    await removeCategoryFilter(page, 'Depth');
+    await removeCategoryFilter(page, 'depth');
     await expect(page.getByTestId('categories-pagination-range')).toHaveText('1–20 of 21');
 
     const table = page.getByTestId('categories-table');

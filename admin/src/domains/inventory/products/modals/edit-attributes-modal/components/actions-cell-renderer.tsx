@@ -17,7 +17,7 @@ export const ActionsCellRenderer = (params: IActionsCellRendererParams) => {
 
   const menuItems: Array<{
     key: string;
-    label: string;
+    label: React.ReactNode;
     icon: React.ReactNode;
     danger?: boolean;
   }> = [];
@@ -25,14 +25,14 @@ export const ActionsCellRenderer = (params: IActionsCellRendererParams) => {
   if (data.type === "group") {
     menuItems.push({
       key: "add-attribute",
-      label: "Add Attribute",
+      label: <span data-testid="edit-attributes-add-attribute-menu-item">Add Attribute</span>,
       icon: <PlusOutlined />,
     });
   }
 
   menuItems.push({
     key: "delete",
-    label: "Delete",
+    label: <span data-testid="edit-attributes-delete-menu-item">Delete</span>,
     icon: <DeleteOutlined />,
     danger: true,
   });

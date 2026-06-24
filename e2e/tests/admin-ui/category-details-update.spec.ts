@@ -15,7 +15,7 @@ async function signIn(page: Page, email: string, password: string) {
 }
 
 async function completeProfileIfNeeded(page: Page) {
-  const firstNameInput = page.getByPlaceholder('First name');
+  const firstNameInput = page.getByTestId('complete-profile-first-name-input');
   await firstNameInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null);
 
   if (!(await firstNameInput.isVisible().catch(() => false))) {
@@ -23,8 +23,8 @@ async function completeProfileIfNeeded(page: Page) {
   }
 
   await firstNameInput.fill('Test');
-  await page.getByPlaceholder('Last name').fill('User');
-  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByTestId('complete-profile-last-name-input').fill('User');
+  await page.getByTestId('complete-profile-submit-button').click();
   await expect(firstNameInput).toBeHidden();
 }
 
@@ -48,6 +48,7 @@ async function openCategoryDetails(page: Page, categoriesUrl: string, handle: st
 async function uploadVaseImage(page: Page) {
   await expect(page.getByTestId('upload-media-modal')).toBeVisible();
   await page
+    .getByTestId('upload-media-file-dragger')
     .locator('input[type="file"]')
     .last()
     .setInputFiles(path.resolve('archive/fixtures/images/vase.jpg'));
@@ -136,7 +137,7 @@ test.describe('Admin category details update UI', () => {
     const detailsCard = page.getByTestId('category-details-card');
 
     await page.getByTestId('category-header-actions-button').click();
-    await page.getByRole('menuitem', { name: 'Edit identity' }).click();
+    await page.getByTestId('category-header-edit-identity-menu-item').click();
     const identityModal = page.getByTestId('edit-category-identity-modal');
     await expect(identityModal).toBeVisible();
     await identityModal.getByTestId('edit-category-identity-name-input').fill(updatedName);
@@ -147,11 +148,11 @@ test.describe('Admin category details update UI', () => {
     await expect(detailsCard.getByTestId('category-detail-path')).toContainText(updatedHandle);
 
     await page.getByTestId('category-header-actions-button').click();
-    await page.getByRole('menuitem', { name: 'Publish' }).click();
+    await page.getByTestId('category-header-status-menu-item').click();
     await expect(detailsCard.getByTestId('category-detail-status')).toHaveText('Published');
 
     await page.getByTestId('category-content-actions-button').click();
-    await page.getByRole('menuitem', { name: 'Edit content' }).click();
+    await page.getByTestId('category-content-edit-menu-item').click();
     const contentModal = page.getByTestId('edit-category-content-modal');
     await expect(contentModal).toBeVisible();
     await fillEditor(
@@ -177,7 +178,7 @@ test.describe('Admin category details update UI', () => {
     await expect(detailsCard.getByTestId('category-content-excerpt')).toContainText(excerpt);
 
     await page.getByTestId('category-seo-actions-button').click();
-    await page.getByRole('menuitem', { name: 'Edit SEO' }).click();
+    await page.getByTestId('category-seo-actions-button-menu-item').click();
     const seoModal = page.getByTestId('edit-category-seo-modal');
     await expect(seoModal).toBeVisible();
     await seoModal.getByTestId('edit-category-seo-title-input').fill(seoTitle);
@@ -196,7 +197,7 @@ test.describe('Admin category details update UI', () => {
     await expect(detailsCard.getByTestId('category-seo-og-image-link')).toBeVisible();
 
     await page.getByTestId('category-media-actions-button').click();
-    await page.getByRole('menuitem', { name: 'Edit media' }).click();
+    await page.getByTestId('category-media-actions-button-menu-item').click();
     const mediaModal = page.getByTestId('edit-category-media-modal');
     await expect(mediaModal).toBeVisible();
     await mediaModal.getByTestId('entity-media-empty-upload-area').click();
@@ -209,12 +210,12 @@ test.describe('Admin category details update UI', () => {
     ).toBeVisible();
 
     await page.getByTestId('category-hierarchy-actions-button').click();
-    await page.getByRole('menuitem', { name: 'Edit parent' }).click();
+    await page.getByTestId('category-hierarchy-edit-parent-menu-item').click();
     const categoryPicker = page.getByTestId('category-picker-modal');
     await expect(categoryPicker).toBeVisible();
     await expect(categoryPicker.getByText(parentName)).toBeVisible();
     await categoryPicker.getByText(parentName).click();
-    await categoryPicker.getByRole('button', { name: 'Confirm (1)' }).click();
+    await page.getByTestId('submit-category-picker-form-button').click();
     await expect(categoryPicker).toBeHidden();
     await expect(detailsCard.getByTestId('category-hierarchy-parent')).toContainText(parentName);
     await expect(detailsCard.getByTestId('category-hierarchy-breadcrumb')).toContainText(
@@ -228,7 +229,7 @@ test.describe('Admin category details update UI', () => {
     );
 
     await page.getByTestId('category-header-actions-button').click();
-    await page.getByRole('menuitem', { name: 'Edit product sort' }).click();
+    await page.getByTestId('category-header-edit-sort-menu-item').click();
     const sortModal = page.getByTestId('edit-category-sort-modal');
     await expect(sortModal).toBeVisible();
     await sortModal.getByTestId('edit-category-sort-default-sort-select').click();
@@ -356,7 +357,7 @@ test.describe('Admin category details update UI', () => {
     await expect(productPicker).toBeHidden();
 
     await detailsCard.getByTestId(`category-products-actions-button-${products[0].handle}`).click();
-    await page.getByRole('menuitem', { name: 'Unassign' }).click();
+    await page.getByTestId(`category-products-unassign-menu-item-${products[0].handle}`).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Unassign' }).click();
     await expect(detailsCard.getByTestId('category-products-section')).toContainText(
       'Products (1)',

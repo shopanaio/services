@@ -15,7 +15,9 @@ export const DisplayTypeSelector = ({ value, onChange }: IDisplayTypeSelectorPro
     label: (
       <Flex gap={8} align="center">
         {option.icon}
-        <span>{option.label}</span>
+        <span data-testid={`edit-options-display-type-menu-item-${option.key}`}>
+          {option.label}
+        </span>
       </Flex>
     ),
     onClick: () => onChange(option.key),

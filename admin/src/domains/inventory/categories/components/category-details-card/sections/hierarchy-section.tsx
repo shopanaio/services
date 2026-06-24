@@ -54,12 +54,16 @@ export const HierarchySection = ({
               items: [
                 {
                   key: "edit-parent",
-                  label: "Edit parent",
+                  label: <span data-testid="category-hierarchy-edit-parent-menu-item">Edit parent</span>,
                   disabled: !onEditParent,
                 },
                 {
                   key: "edit-subcategories",
-                  label: "Add subcategories",
+                  label: (
+                    <span data-testid="category-hierarchy-add-subcategories-menu-item">
+                      Add subcategories
+                    </span>
+                  ),
                   disabled: !onEditSubcategories,
                 },
               ],

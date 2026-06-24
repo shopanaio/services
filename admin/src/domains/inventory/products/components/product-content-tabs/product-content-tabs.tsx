@@ -148,7 +148,7 @@ export const ProductContentTabs = ({ product }: IProductContentTabsProps) => {
               items: [
                 {
                   key: "edit",
-                  label: "Edit content",
+                  label: <span data-testid="product-content-edit-menu-item">Edit content</span>,
                   onClick: handleEditDescription,
                 },
               ],

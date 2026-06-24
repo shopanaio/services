@@ -250,19 +250,26 @@ export const ProductInfoHeader = ({
       <Dropdown
         menu={{
           items: [
-            { key: "edit", label: "Edit title", onClick: handleEditTitle },
+            {
+              key: "edit",
+              label: <span data-testid="product-title-edit-menu-item">Edit title</span>,
+              onClick: handleEditTitle,
+            },
             {
               key: "status",
-              label: statusActionLabel,
+              label: <span data-testid="product-title-status-menu-item">{statusActionLabel}</span>,
               onClick: handleChangeStatus,
             },
             { type: "divider" as const },
-            { key: "duplicate", label: "Duplicate product" },
-            { key: "export", label: "Export" },
+            {
+              key: "duplicate",
+              label: <span data-testid="product-title-duplicate-menu-item">Duplicate product</span>,
+            },
+            { key: "export", label: <span data-testid="product-title-export-menu-item">Export</span> },
             { type: "divider" as const },
             {
               key: "archive",
-              label: "Archive",
+              label: <span data-testid="product-title-archive-menu-item">Archive</span>,
               danger: true,
               onClick: handleArchive,
             },

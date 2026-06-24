@@ -25,7 +25,7 @@ async function signIn(page: Page, email: string, password: string) {
 }
 
 async function completeProfileIfNeeded(page: Page) {
-  const firstNameInput = page.getByPlaceholder('First name');
+  const firstNameInput = page.getByTestId('complete-profile-first-name-input');
   await firstNameInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null);
 
   if (!(await firstNameInput.isVisible().catch(() => false))) {
@@ -33,8 +33,8 @@ async function completeProfileIfNeeded(page: Page) {
   }
 
   await firstNameInput.fill('Test');
-  await page.getByPlaceholder('Last name').fill('User');
-  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByTestId('complete-profile-last-name-input').fill('User');
+  await page.getByTestId('complete-profile-submit-button').click();
   await expect(firstNameInput).toBeHidden();
 }
 
@@ -178,41 +178,29 @@ async function expectVisibleProductTitlesUnordered(page: Page, expectedTitles: s
     .toEqual([...expectedTitles].sort());
 }
 
-function productFilterTag(page: Page, label: string) {
-  return page.locator('[data-node-type="ui-filter-close-badge"]').filter({ hasText: label });
-}
-
-function filterMenuButton(page: Page) {
-  return page.locator('button').filter({ hasText: /^Filter$/ }).first();
-}
-
 async function expectProductFilterMenuOptions(page: Page) {
-  await filterMenuButton(page).click();
+  await page.getByTestId('filter-button').click();
 
-  const dropdown = page.locator('.ant-dropdown').filter({ hasText: 'Primary category' }).last();
-
-  await expect(dropdown.getByRole('button', { name: 'Primary category' })).toBeVisible();
-  await expect(dropdown.getByRole('button', { name: 'Min price' })).toBeVisible();
-  await expect(dropdown.getByRole('button', { name: 'Max price' })).toBeVisible();
-  await expect(dropdown.getByRole('button', { name: 'Brand' })).toBeVisible();
-  await expect(dropdown.getByRole('button', { name: 'Name' })).toHaveCount(0);
-  await expect(dropdown.getByRole('button', { name: 'Handle' })).toHaveCount(0);
-  await expect(dropdown.getByRole('button', { name: 'Stock' })).toHaveCount(0);
+  await expect(page.getByTestId('filter-option-primaryCategoryId')).toBeVisible();
+  await expect(page.getByTestId('filter-option-minPriceMinor')).toBeVisible();
+  await expect(page.getByTestId('filter-option-maxPriceMinor')).toBeVisible();
+  await expect(page.getByTestId('filter-option-vendorId')).toBeVisible();
+  await expect(page.getByTestId('filter-option-name')).toHaveCount(0);
+  await expect(page.getByTestId('filter-option-handle')).toHaveCount(0);
+  await expect(page.getByTestId('filter-option-stock')).toHaveCount(0);
 
   await page.keyboard.press('Escape');
 }
 
-async function addProductFilter(page: Page, label: string) {
-  await filterMenuButton(page).click();
-  await page.getByRole('button', { name: label }).click();
-  await expect(productFilterTag(page, label).last()).toBeVisible();
+async function addProductFilter(page: Page, label: string, testId: string) {
+  await page.getByTestId('filter-button').click();
+  await page.getByTestId(`filter-option-${testId}`).click();
+  await expect(page.getByTestId(`filter-badge-${testId}`).last()).toContainText(label);
 }
 
-async function removeProductFilter(page: Page, label: string) {
-  const filter = productFilterTag(page, label).last();
-
-  await filter.locator('[data-remove-tag]').click();
-  await expect(productFilterTag(page, label)).toHaveCount(0);
+async function removeProductFilter(page: Page, testId: string) {
+  await page.getByTestId(`filter-badge-remove-${testId}`).last().click();
+  await expect(page.getByTestId(`filter-badge-${testId}`)).toHaveCount(0);
 }
 
 async function selectRelationFilterValue(
@@ -221,7 +209,7 @@ async function selectRelationFilterValue(
   pickerGridTestId: string,
   entityLabel: string,
 ) {
-  await productFilterTag(page, filterLabel).last().locator('[data-value-node] button').click();
+  await page.getByTestId(`filter-badge-value-${filterLabel}`).last().locator('button').click();
 
   const pickerGrid = page.getByTestId(pickerGridTestId);
   const row = pickerGrid.locator('.ag-center-cols-container .ag-row').filter({
@@ -230,27 +218,25 @@ async function selectRelationFilterValue(
 
   await expect(row).toBeVisible();
   await row.click();
-  await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
-  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByTestId('submit-product-picker-form-button')).toBeEnabled();
+  await page.getByTestId('submit-product-picker-form-button').click();
   await expect(pickerGrid).toBeHidden();
 }
 
 async function addRelationProductFilter(
   page: Page,
   filterLabel: string,
+  filterTestId: string,
   pickerGridTestId: string,
   entityLabel: string,
 ) {
-  await addProductFilter(page, filterLabel);
-  await selectRelationFilterValue(page, filterLabel, pickerGridTestId, entityLabel);
+  await addProductFilter(page, filterLabel, filterTestId);
+  await selectRelationFilterValue(page, filterTestId, pickerGridTestId, entityLabel);
 }
 
-async function addPriceProductFilter(page: Page, filterLabel: string, amountMajor: number) {
-  await addProductFilter(page, filterLabel);
-  await productFilterTag(page, filterLabel)
-    .last()
-    .locator('[data-value-node] input')
-    .fill(String(amountMajor));
+async function addPriceProductFilter(page: Page, label: string, testId: string, amountMajor: number) {
+  await addProductFilter(page, label, testId);
+  await page.getByTestId(`filter-badge-value-${testId}`).last().locator('input').fill(String(amountMajor));
 }
 
 test.describe('Admin products table UI', () => {
@@ -634,6 +620,7 @@ test.describe('Admin products table UI', () => {
     await addRelationProductFilter(
       page,
       'Primary category',
+      'primaryCategoryId',
       'category-picker-grid',
       primaryCategory.name,
     );
@@ -641,36 +628,37 @@ test.describe('Admin products table UI', () => {
       products.alpha.title,
       products.beta.title,
     ]);
-    await removeProductFilter(page, 'Primary category');
+    await removeProductFilter(page, 'primaryCategoryId');
     await expectVisibleProductTitlesUnordered(page, allTitles);
 
-    await addRelationProductFilter(page, 'Brand', 'vendor-picker-grid', primaryVendor.name);
+    await addRelationProductFilter(page, 'Brand', 'vendorId', 'vendor-picker-grid', primaryVendor.name);
     await expectVisibleProductTitlesUnordered(page, [
       products.alpha.title,
       products.gamma.title,
     ]);
-    await removeProductFilter(page, 'Brand');
+    await removeProductFilter(page, 'vendorId');
     await expectVisibleProductTitlesUnordered(page, allTitles);
 
-    await addPriceProductFilter(page, 'Min price', 25);
+    await addPriceProductFilter(page, 'Min price', 'minPriceMinor', 25);
     await expectVisibleProductTitlesUnordered(page, [products.beta.title]);
-    await removeProductFilter(page, 'Min price');
+    await removeProductFilter(page, 'minPriceMinor');
     await expectVisibleProductTitlesUnordered(page, allTitles);
 
-    await addPriceProductFilter(page, 'Max price', 91);
+    await addPriceProductFilter(page, 'Max price', 'maxPriceMinor', 91);
     await expectVisibleProductTitlesUnordered(page, [products.gamma.title]);
-    await removeProductFilter(page, 'Max price');
+    await removeProductFilter(page, 'maxPriceMinor');
     await expectVisibleProductTitlesUnordered(page, allTitles);
 
     await addRelationProductFilter(
       page,
       'Primary category',
+      'primaryCategoryId',
       'category-picker-grid',
       primaryCategory.name,
     );
-    await addRelationProductFilter(page, 'Brand', 'vendor-picker-grid', primaryVendor.name);
-    await addPriceProductFilter(page, 'Min price', 12);
-    await addPriceProductFilter(page, 'Max price', 34);
+    await addRelationProductFilter(page, 'Brand', 'vendorId', 'vendor-picker-grid', primaryVendor.name);
+    await addPriceProductFilter(page, 'Min price', 'minPriceMinor', 12);
+    await addPriceProductFilter(page, 'Max price', 'maxPriceMinor', 34);
     await expectVisibleProductTitlesUnordered(page, [products.alpha.title]);
   });
 });

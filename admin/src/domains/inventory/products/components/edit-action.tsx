@@ -21,7 +21,13 @@ export const EditAction = ({
   return (
     <Dropdown
       menu={{
-        items: [{ key: "edit", label, disabled: isDisabled }],
+        items: [
+          {
+            key: "edit",
+            label: <span data-testid={testId ? `${testId}-menu-item` : undefined}>{label}</span>,
+            disabled: isDisabled,
+          },
+        ],
         onClick: () => {
           if (!isDisabled) {
             void onEdit();

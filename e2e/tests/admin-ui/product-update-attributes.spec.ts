@@ -13,7 +13,7 @@ async function signIn(page: Page, email: string, password: string) {
 }
 
 async function completeProfileIfNeeded(page: Page) {
-  const firstNameInput = page.getByPlaceholder('First name');
+  const firstNameInput = page.getByTestId('complete-profile-first-name-input');
   await firstNameInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null);
 
   if (!(await firstNameInput.isVisible().catch(() => false))) {
@@ -21,8 +21,8 @@ async function completeProfileIfNeeded(page: Page) {
   }
 
   await firstNameInput.fill('Test');
-  await page.getByPlaceholder('Last name').fill('User');
-  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByTestId('complete-profile-last-name-input').fill('User');
+  await page.getByTestId('complete-profile-submit-button').click();
   await expect(firstNameInput).toBeHidden();
 }
 
@@ -112,7 +112,7 @@ async function syncProductFeatures(
 
 async function openAttributesModal(page: Page) {
   await page.getByTestId('product-attributes-actions-button').click();
-  await page.getByRole('menuitem', { name: 'Edit attributes' }).click();
+  await page.getByTestId('product-attributes-actions-button-menu-item').click();
 
   const modal = page.getByTestId('edit-attributes-modal');
   await expect(modal).toBeVisible();
@@ -164,14 +164,14 @@ async function addChildAttribute(page: Page, modal: Locator, groupName: string) 
   await attributeRow(modal, groupName)
     .locator('button[data-testid^="edit-attributes-row-actions-"]')
     .click();
-  await page.getByRole('menuitem', { name: 'Add Attribute' }).click();
+  await page.getByTestId('edit-attributes-add-attribute-menu-item').click();
 }
 
 async function deleteAttributeRow(page: Page, modal: Locator, rowName: string) {
   await attributeRow(modal, rowName)
     .locator('button[data-testid^="edit-attributes-row-actions-"]')
     .click();
-  await page.getByRole('menuitem', { name: 'Delete' }).click();
+  await page.getByTestId('edit-attributes-delete-menu-item').click();
 }
 
 async function saveAttributes(page: Page) {

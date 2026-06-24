@@ -162,7 +162,17 @@ export const TagsSection = ({
                 items: [
                   {
                     key: "delete",
-                    label: "Delete tag",
+                    label: (
+                      <span
+                        data-testid={
+                          tag.handle
+                            ? `product-tags-delete-menu-item-${tag.handle}`
+                            : `product-tags-delete-menu-item-${tag.id}`
+                        }
+                      >
+                        Delete tag
+                      </span>
+                    ),
                     onClick: () => deleteTag(tag.id),
                     disabled: isPending,
                   },

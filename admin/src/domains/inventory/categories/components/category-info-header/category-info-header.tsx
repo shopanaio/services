@@ -181,23 +181,23 @@ export const CategoryInfoHeader = ({
           items: [
             {
               key: "identity",
-              label: "Edit identity",
+              label: <span data-testid="category-header-edit-identity-menu-item">Edit identity</span>,
               onClick: onEditIdentity,
             },
             {
               key: "status",
-              label: statusActionLabel,
+              label: <span data-testid="category-header-status-menu-item">{statusActionLabel}</span>,
               onClick: onChangeStatus,
             },
             {
               key: "sort",
-              label: "Edit product sort",
+              label: <span data-testid="category-header-edit-sort-menu-item">Edit product sort</span>,
               onClick: onEditSort,
             },
             { type: "divider" as const },
             {
               key: "archive",
-              label: "Archive",
+              label: <span data-testid="category-header-archive-menu-item">Archive</span>,
               danger: true,
               onClick: onArchive,
             },

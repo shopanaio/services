@@ -52,7 +52,7 @@ export const CategoryContentTabs = ({
               items: [
                 {
                   key: "edit",
-                  label: "Edit content",
+                  label: <span data-testid="category-content-edit-menu-item">Edit content</span>,
                   onClick: onEdit,
                 },
               ],

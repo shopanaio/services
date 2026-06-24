@@ -63,6 +63,7 @@ export function CategoryPickerModal() {
       bodyClassName="entity-picker-body"
       header={
         <ModalHeader
+          name="category-picker"
           title="Select Categories"
           onClose={handleCancel}
           submitButtonProps={{

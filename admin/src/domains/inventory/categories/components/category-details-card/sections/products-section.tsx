@@ -68,7 +68,7 @@ const ProductRow = ({ product, isRemoving, onRemove }: ProductRowProps) => {
   const actionItems: MenuProps["items"] = [
     {
       key: "unassign",
-      label: "Unassign",
+      label: <span data-testid={`category-products-unassign-menu-item-${product.handle}`}>Unassign</span>,
       onClick: () => onRemove?.(product),
     },
   ];

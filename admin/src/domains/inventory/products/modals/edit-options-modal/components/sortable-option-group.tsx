@@ -94,7 +94,7 @@ export const SortableOptionGroup = ({
   const menuItems = [
     {
       key: "delete",
-      label: "Delete option",
+      label: <span data-testid="edit-options-delete-option-menu-item">Delete option</span>,
       icon: <DeleteOutlined />,
       danger: true,
       onClick: onDeleteGroup,

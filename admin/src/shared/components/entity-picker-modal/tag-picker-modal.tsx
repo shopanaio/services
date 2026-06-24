@@ -60,6 +60,7 @@ export function TagPickerModal() {
       bodyClassName="entity-picker-body"
       header={
         <ModalHeader
+          name="tag-picker"
           title="Select Tags"
           onClose={handleCancel}
           submitButtonProps={{

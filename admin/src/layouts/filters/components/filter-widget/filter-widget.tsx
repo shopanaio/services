@@ -94,7 +94,11 @@ export const FilterWidget = ({
         }}
       >
         <div>
-          <Button type="text" className={styles.filterLabelButton}>
+          <Button
+            type="text"
+            className={styles.filterLabelButton}
+            data-testid={`filter-option-${record.payloadKey || record.key}`}
+          >
             {record.label}
             {!!record.children?.length && <RightOutlined style={{ fontSize: 16 }} />}
           </Button>
@@ -128,6 +132,7 @@ export const FilterWidget = ({
         <Badge
           key={it.payloadKey || idx}
           data-node-type="ui-filter-close-badge"
+          data-testid={`filter-badge-${it.payloadKey || it.schemaKey || idx}`}
           count={
             <div
               onClick={() => {
@@ -140,6 +145,7 @@ export const FilterWidget = ({
               }}
               role="button"
               data-remove-tag
+              data-testid={`filter-badge-remove-${it.payloadKey || it.schemaKey || idx}`}
               className={styles.filterCloseBadge}
             >
               <CloseOutlined />
@@ -198,6 +204,7 @@ export const FilterWidget = ({
               </div>
               <div
                 data-value-node
+                data-testid={`filter-badge-value-${it.payloadKey || it.schemaKey || idx}`}
                 className={`value-tag ${styles.filterNodeRight}`}
               >
                 <FilterValueControl
@@ -277,6 +284,7 @@ export const FilterWidget = ({
               onClick={() => setOpen(true)}
               icon={<FilterOutlined />}
               disabled={!options?.length}
+              data-testid="filter-button"
             >
               {filterButtonLabel}
             </Button>

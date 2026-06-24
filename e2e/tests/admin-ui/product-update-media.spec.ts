@@ -12,7 +12,7 @@ async function signIn(page: Page, email: string, password: string) {
 }
 
 async function completeProfileIfNeeded(page: Page) {
-  const firstNameInput = page.getByPlaceholder('First name');
+  const firstNameInput = page.getByTestId('complete-profile-first-name-input');
   await firstNameInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null);
 
   if (!(await firstNameInput.isVisible().catch(() => false))) {
@@ -20,13 +20,14 @@ async function completeProfileIfNeeded(page: Page) {
   }
 
   await firstNameInput.fill('Test');
-  await page.getByPlaceholder('Last name').fill('User');
-  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByTestId('complete-profile-last-name-input').fill('User');
+  await page.getByTestId('complete-profile-submit-button').click();
   await expect(firstNameInput).toBeHidden();
 }
 
 async function uploadMediaFile(page: Page, filePath: string) {
   await page
+    .getByTestId('upload-media-file-dragger')
     .locator('input[type="file"]')
     .last()
     .setInputFiles(filePath);
@@ -93,7 +94,7 @@ test.describe('Admin product details media update UI', () => {
     await expect(page.getByTestId('product-detail-title')).toHaveText(title);
 
     await page.getByTestId('product-media-actions-button').click();
-    await page.getByRole('menuitem', { name: 'Edit media' }).click();
+    await page.getByTestId('product-media-actions-button-menu-item').click();
 
     const editMediaModal = page.getByTestId('edit-media-modal');
     await expect(editMediaModal).toBeVisible();
@@ -133,7 +134,7 @@ test.describe('Admin product details media update UI', () => {
     await expect(page.getByTestId(`product-media-item-${addedFileIds[2]}`)).toBeVisible();
 
     await page.getByTestId('product-media-actions-button').click();
-    await page.getByRole('menuitem', { name: 'Edit media' }).click();
+    await page.getByTestId('product-media-actions-button-menu-item').click();
     const reorderModal = page.getByTestId('edit-media-modal');
     await expect(reorderModal).toBeVisible();
 
@@ -162,7 +163,7 @@ test.describe('Admin product details media update UI', () => {
     await page.getByTestId(`products-table-title-cell-${handle}`).click();
     await expect(page.getByTestId('product-modal')).toBeVisible();
     await page.getByTestId('product-media-actions-button').click();
-    await page.getByRole('menuitem', { name: 'Edit media' }).click();
+    await page.getByTestId('product-media-actions-button-menu-item').click();
 
     const removeOneModal = page.getByTestId('edit-media-modal');
     await expect(removeOneModal).toBeVisible();
@@ -180,7 +181,7 @@ test.describe('Admin product details media update UI', () => {
       .toBe(remainingIds.join('|'));
 
     await page.getByTestId('product-media-actions-button').click();
-    await page.getByRole('menuitem', { name: 'Edit media' }).click();
+    await page.getByTestId('product-media-actions-button-menu-item').click();
 
     const removeAllModal = page.getByTestId('edit-media-modal');
     await expect(removeAllModal).toBeVisible();

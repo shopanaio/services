@@ -14,7 +14,7 @@ async function signIn(page: Page, email: string, password: string) {
 }
 
 async function completeProfileIfNeeded(page: Page) {
-  const firstNameInput = page.getByPlaceholder('First name');
+  const firstNameInput = page.getByTestId('complete-profile-first-name-input');
   await firstNameInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null);
 
   if (!(await firstNameInput.isVisible().catch(() => false))) {
@@ -22,8 +22,8 @@ async function completeProfileIfNeeded(page: Page) {
   }
 
   await firstNameInput.fill('Test');
-  await page.getByPlaceholder('Last name').fill('User');
-  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByTestId('complete-profile-last-name-input').fill('User');
+  await page.getByTestId('complete-profile-submit-button').click();
   await expect(firstNameInput).toBeHidden();
 }
 
@@ -162,7 +162,7 @@ test.describe('Admin product tags update UI', () => {
     await expect(tagPicker).toBeHidden();
 
     await tagsSection.getByTestId(`product-tags-item-${tags[0].handle}`).click();
-    await page.getByRole('menuitem', { name: 'Delete tag' }).click();
+    await page.getByTestId(`product-tags-delete-menu-item-${tags[0].handle}`).click();
     await expect(tagsSection.getByTestId(`product-tags-item-${tags[0].handle}`)).toBeHidden();
     await expect(tagsSection.getByTestId(`product-tags-item-${tags[1].handle}`)).toContainText(
       tags[1].name,

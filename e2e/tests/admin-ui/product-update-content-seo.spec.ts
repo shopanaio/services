@@ -12,7 +12,7 @@ async function signIn(page: Page, email: string, password: string) {
 }
 
 async function completeProfileIfNeeded(page: Page) {
-  const firstNameInput = page.getByPlaceholder('First name');
+  const firstNameInput = page.getByTestId('complete-profile-first-name-input');
   await firstNameInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null);
 
   if (!(await firstNameInput.isVisible().catch(() => false))) {
@@ -20,8 +20,8 @@ async function completeProfileIfNeeded(page: Page) {
   }
 
   await firstNameInput.fill('Test');
-  await page.getByPlaceholder('Last name').fill('User');
-  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByTestId('complete-profile-last-name-input').fill('User');
+  await page.getByTestId('complete-profile-submit-button').click();
   await expect(firstNameInput).toBeHidden();
 }
 
@@ -85,7 +85,7 @@ test.describe('Admin product details SEO update UI', () => {
     await expect(page.getByTestId('product-detail-title')).toHaveText(title);
 
     await page.getByTestId('product-content-actions-button').click();
-    await page.getByRole('menuitem', { name: 'Edit content' }).click();
+    await page.getByTestId('product-content-edit-menu-item').click();
 
     const contentModal = page.getByTestId('edit-description-modal');
     await expect(contentModal).toBeVisible();
@@ -103,7 +103,7 @@ test.describe('Admin product details SEO update UI', () => {
     await expect(page.getByTestId('product-content-excerpt')).toContainText(excerpt);
 
     await page.getByTestId('product-seo-actions-button').click();
-    await page.getByRole('menuitem', { name: 'Edit SEO' }).click();
+    await page.getByTestId('product-seo-actions-button-menu-item').click();
 
     const seoModal = page.getByTestId('edit-seo-modal');
     await expect(seoModal).toBeVisible();
@@ -115,6 +115,7 @@ test.describe('Admin product details SEO update UI', () => {
 
     await expect(page.getByTestId('upload-media-modal')).toBeVisible();
     await page
+      .getByTestId('upload-media-file-dragger')
       .locator('input[type="file"]')
       .last()
       .setInputFiles(path.resolve('archive/fixtures/images/vase.jpg'));
@@ -169,7 +170,7 @@ test.describe('Admin product details SEO update UI', () => {
       );
 
     await page.getByTestId('product-seo-actions-button').click();
-    await page.getByRole('menuitem', { name: 'Edit SEO' }).click();
+    await page.getByTestId('product-seo-actions-button-menu-item').click();
 
     const reopenedSeoModal = page.getByTestId('edit-seo-modal');
     await expect(reopenedSeoModal.getByTestId('edit-seo-meta-title-input')).toHaveValue(seoTitle);

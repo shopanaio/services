@@ -145,7 +145,7 @@ export const VariantsColumnSettings: React.FC<VariantsColumnSettingsProps> = ({
       trigger="click"
       placement="bottomLeft"
     >
-      <Button size="small" icon={<SettingOutlined />}>
+      <Button size="small" icon={<SettingOutlined />} data-testid="variants-columns-button">
         Columns
       </Button>
     </Popover>

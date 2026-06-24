@@ -11,7 +11,7 @@ async function signIn(page: Page, email: string, password: string) {
 }
 
 async function completeProfileIfNeeded(page: Page) {
-  const firstNameInput = page.getByPlaceholder('First name');
+  const firstNameInput = page.getByTestId('complete-profile-first-name-input');
   await firstNameInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null);
 
   if (!(await firstNameInput.isVisible().catch(() => false))) {
@@ -19,8 +19,8 @@ async function completeProfileIfNeeded(page: Page) {
   }
 
   await firstNameInput.fill('Test');
-  await page.getByPlaceholder('Last name').fill('User');
-  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByTestId('complete-profile-last-name-input').fill('User');
+  await page.getByTestId('complete-profile-submit-button').click();
   await expect(firstNameInput).toBeHidden();
 }
 
@@ -72,7 +72,7 @@ test.describe('Admin product update UI', () => {
     await expect(page.getByTestId('product-detail-handle')).toContainText(originalHandle);
 
     await page.getByTestId('product-title-actions-button').click();
-    await page.getByRole('menuitem', { name: 'Edit title' }).click();
+    await page.getByTestId('product-title-edit-menu-item').click();
 
     await expect(page.getByTestId('edit-title-modal')).toBeVisible();
     await page.getByTestId('edit-title-title-input').fill(updatedTitle);

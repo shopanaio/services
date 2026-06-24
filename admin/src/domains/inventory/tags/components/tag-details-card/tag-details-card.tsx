@@ -46,7 +46,7 @@ export const TagDetailsCard = ({ tag, onRefetch }: TagDetailsCardProps) => {
                 items: [
                   {
                     key: "identity",
-                    label: "Edit identity",
+                    label: <span data-testid="tag-header-edit-identity-menu-item">Edit identity</span>,
                     onClick: () =>
                       openEditIdentityModal({
                         tag,

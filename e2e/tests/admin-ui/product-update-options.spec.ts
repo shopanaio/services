@@ -13,7 +13,7 @@ async function signIn(page: Page, email: string, password: string) {
 }
 
 async function completeProfileIfNeeded(page: Page) {
-  const firstNameInput = page.getByPlaceholder('First name');
+  const firstNameInput = page.getByTestId('complete-profile-first-name-input');
   await firstNameInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null);
 
   if (!(await firstNameInput.isVisible().catch(() => false))) {
@@ -21,8 +21,8 @@ async function completeProfileIfNeeded(page: Page) {
   }
 
   await firstNameInput.fill('Test');
-  await page.getByPlaceholder('Last name').fill('User');
-  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByTestId('complete-profile-last-name-input').fill('User');
+  await page.getByTestId('complete-profile-submit-button').click();
   await expect(firstNameInput).toBeHidden();
 }
 
@@ -85,7 +85,7 @@ async function readProductOptions(api: ApiFixture, productId: string) {
 
 async function openOptionsModal(page: Page) {
   await page.getByTestId('product-options-actions-button').click();
-  await page.getByRole('menuitem', { name: 'Edit options' }).click();
+  await page.getByTestId('product-options-actions-button-menu-item').click();
 
   const modal = page.getByTestId('edit-options-modal');
   await expect(modal).toBeVisible();
@@ -142,7 +142,7 @@ async function valueRow(card: Locator, text: string) {
 
 async function selectDisplayType(page: Page, card: Locator, label: string) {
   await card.getByTestId('edit-options-display-type-trigger').click();
-  await page.getByRole('menuitem', { name: label }).click();
+  await page.getByTestId(`edit-options-display-type-menu-item-${label.toUpperCase()}`).click();
 }
 
 async function saveOptions(page: Page) {
@@ -353,7 +353,7 @@ test.describe('Admin product details options update UI', () => {
     await (await valueRow(card, 'Matte')).getByTestId('edit-options-delete-value-button').click();
     const shadeCard = await optionCard(modal, 'Shade');
     await shadeCard.getByTestId('edit-options-delete-option-button').click();
-    await page.getByRole('menuitem', { name: 'Delete option' }).click();
+    await page.getByTestId('edit-options-delete-option-menu-item').click();
     await saveOptions(page);
 
     await expectSavedOptions(api, page, productId, {

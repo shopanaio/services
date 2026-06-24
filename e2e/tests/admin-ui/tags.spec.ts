@@ -14,7 +14,7 @@ async function signIn(page: Page, email: string, password: string) {
 }
 
 async function completeProfileIfNeeded(page: Page) {
-  const firstNameInput = page.getByPlaceholder('First name');
+  const firstNameInput = page.getByTestId('complete-profile-first-name-input');
   await firstNameInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null);
 
   if (!(await firstNameInput.isVisible().catch(() => false))) {
@@ -22,8 +22,8 @@ async function completeProfileIfNeeded(page: Page) {
   }
 
   await firstNameInput.fill('Test');
-  await page.getByPlaceholder('Last name').fill('User');
-  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByTestId('complete-profile-last-name-input').fill('User');
+  await page.getByTestId('complete-profile-submit-button').click();
   await expect(firstNameInput).toBeHidden();
 }
 
@@ -114,29 +114,19 @@ async function expectVisibleTagNamesUnordered(page: Page, expectedNames: string[
     .toEqual([...expectedNames].sort());
 }
 
-function filterMenuButton(page: Page) {
-  return page.locator('button').filter({ hasText: /^Filter$/ }).first();
+async function addTagFilter(page: Page, label: string, testId: string) {
+  await page.getByTestId('filter-button').click();
+  await page.getByTestId(`filter-option-${testId}`).click();
+  await expect(page.getByTestId(`filter-badge-${testId}`).last()).toContainText(label);
 }
 
-function tagFilterBadge(page: Page, label: string) {
-  return page.locator('[data-node-type="ui-filter-close-badge"]').filter({ hasText: label });
+async function removeTagFilter(page: Page, testId: string) {
+  await page.getByTestId(`filter-badge-remove-${testId}`).last().click();
+  await expect(page.getByTestId(`filter-badge-${testId}`)).toHaveCount(0);
 }
 
-async function addTagFilter(page: Page, label: string) {
-  await filterMenuButton(page).click();
-  await page.getByRole('button', { name: label }).click();
-  await expect(tagFilterBadge(page, label).last()).toBeVisible();
-}
-
-async function removeTagFilter(page: Page, label: string) {
-  const filter = tagFilterBadge(page, label).last();
-
-  await filter.locator('[data-remove-tag]').click();
-  await expect(tagFilterBadge(page, label)).toHaveCount(0);
-}
-
-async function fillTagFilterValue(page: Page, label: string, value: string | number) {
-  const control = tagFilterBadge(page, label).last().locator('[data-value-node]');
+async function fillTagFilterValue(page: Page, testId: string, value: string | number) {
+  const control = page.getByTestId(`filter-badge-value-${testId}`).last();
   const input = control.locator('input').first();
 
   await input.fill(String(value));
@@ -200,7 +190,7 @@ test.describe('Admin tags UI', () => {
     await expect(detailsCard.getByTestId('tag-detail-created-at')).toBeVisible();
 
     await page.getByTestId('tag-header-actions-button').click();
-    await page.getByRole('menuitem', { name: 'Edit identity' }).click();
+    await page.getByTestId('tag-header-edit-identity-menu-item').click();
     const identityModal = page.getByTestId('edit-tag-identity-modal');
     await expect(identityModal).toBeVisible();
     await identityModal.getByTestId('edit-tag-identity-name-input').fill(updatedName);
@@ -281,16 +271,16 @@ test.describe('Admin tags UI', () => {
     await page.getByTestId('search-input').fill('');
     await expect(page.getByTestId('tags-pagination-range')).toHaveText('1–20 of 21');
 
-    await addTagFilter(page, 'Handle');
-    await fillTagFilterValue(page, 'Handle', `bravo-tag-${unique}`);
+    await addTagFilter(page, 'Handle', 'handle');
+    await fillTagFilterValue(page, 'handle', `bravo-tag-${unique}`);
     await expectVisibleTagNames(page, [`Bravo Tag ${unique}`]);
-    await removeTagFilter(page, 'Handle');
+    await removeTagFilter(page, 'handle');
     await expect(page.getByTestId('tags-pagination-range')).toHaveText('1–20 of 21');
 
-    await addTagFilter(page, 'Products');
-    await fillTagFilterValue(page, 'Products', 3);
+    await addTagFilter(page, 'Products', 'productsCount');
+    await fillTagFilterValue(page, 'productsCount', 3);
     await expectVisibleTagNames(page, [`Echo Tag ${unique}`]);
-    await removeTagFilter(page, 'Products');
+    await removeTagFilter(page, 'productsCount');
     await expect(page.getByTestId('tags-pagination-range')).toHaveText('1–20 of 21');
 
     const table = page.getByTestId('tags-table');
