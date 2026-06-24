@@ -576,11 +576,12 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     );
     const variants = operations?.variants;
     const categories = operations?.categories;
+    const inputErrors: UserError[] = [];
 
     // Map GraphQL input to workflow operations
     const workflowOps: ProductUpdateOperation[] = [];
 
-    if (operations) {
+    if (hasProductUpdateFields(operations)) {
       let vendorId: string | null | undefined;
       if (Object.prototype.hasOwnProperty.call(operations, "vendorId")) {
         vendorId = operations.vendorId
@@ -632,9 +633,17 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     }
 
     if (categories) {
-      workflowOps.push(
-        ...mapProductCategoryOperations(decodedProductId, categories),
-      );
+      const mapped = mapProductCategoryOperations(decodedProductId, categories);
+      workflowOps.push(...mapped.operations);
+      inputErrors.push(...mapped.errors);
+    }
+
+    if (inputErrors.length > 0) {
+      return {
+        product: null,
+        operationResults: [],
+        userErrors: inputErrors,
+      };
     }
 
     if (variants) {
@@ -2202,11 +2211,46 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     };
 
     // Map products with transformed operations
-    const products: ProductBulkUpdateItem[] = input.products.map((item) => ({
-      productId: decodeGlobalIdByType(item.productId, GlobalIdEntity.Product),
-      expectedRevision: item.expectedRevision ?? undefined,
-      operations: mapOperationsForBulk(item.productId, item.operations),
-    }));
+    const inputErrors: Array<{
+      message: string;
+      field?: string[];
+      code?: string;
+      productId?: string | null;
+      variantId?: string | null;
+      operation?: string | null;
+    }> = [];
+    const products: ProductBulkUpdateItem[] = [];
+
+    for (const [index, item] of input.products.entries()) {
+      const decodedProductId = safeDecodeGlobalId(
+        item.productId,
+        GlobalIdEntity.Product,
+      );
+      if (!decodedProductId) {
+        inputErrors.push({
+          message: "Invalid ID format",
+          field: ["input", "products", String(index), "productId"],
+          code: "INVALID_ID",
+          productId: item.productId,
+        });
+        continue;
+      }
+
+      const mapped = mapOperationsForBulk(item.productId, item.operations, index);
+      inputErrors.push(...mapped.errors);
+      products.push({
+        productId: decodedProductId,
+        expectedRevision: item.expectedRevision ?? undefined,
+        operations: mapped.operations,
+      });
+    }
+
+    if (inputErrors.length > 0) {
+      return {
+        job: null,
+        userErrors: inputErrors,
+      };
+    }
 
     const idempotencyKey = this.$ctx.requestId;
 
@@ -2968,17 +3012,19 @@ function mapRichTextInput(
 
 function mapOperationsForBulk(
   productId: string,
-  operations: ProductBulkUpdateInput["products"][0]["operations"]
-): ProductUpdateOperation[] {
+  operations: ProductBulkUpdateInput["products"][0]["operations"],
+  productIndex?: number,
+): { operations: ProductUpdateOperation[]; errors: UserError[] } {
   const decodedProductId = decodeGlobalIdByType(
     productId,
     GlobalIdEntity.Product
   );
   const result: ProductUpdateOperation[] = [];
+  const errors: UserError[] = [];
   const variants = operations?.variants;
   const categories = operations?.categories;
 
-  if (operations) {
+  if (hasProductUpdateFields(operations)) {
     result.push({
       type: "productUpdate",
       params: {
@@ -3022,7 +3068,13 @@ function mapOperationsForBulk(
   }
 
   if (categories) {
-    result.push(...mapProductCategoryOperations(decodedProductId, categories));
+    const mapped = mapProductCategoryOperations(
+      decodedProductId,
+      categories,
+      productIndex,
+    );
+    result.push(...mapped.operations);
+    errors.push(...mapped.errors);
   }
 
   if (variants) {
@@ -3087,7 +3139,7 @@ function mapOperationsForBulk(
     }
   }
 
-  return result;
+  return { operations: result, errors };
 }
 
 type ProductCategoryOperationInput = NonNullable<
@@ -3097,21 +3149,74 @@ type ProductCategoryOperationInput = NonNullable<
 function mapProductCategoryOperations(
   productId: string,
   categories: readonly ProductCategoryOperationInput[],
-): ProductUpdateOperation[] {
-  return categories.map((input) => ({
-    type: "productCategoryUpdate",
-    params: {
-      productId,
-      categoryId: decodeGlobalIdByType(input.categoryId, GlobalIdEntity.Category),
-      action: mapProductCategoryOperationAction(input.action),
-      afterProductId: input.afterProductId
-        ? decodeGlobalIdByType(input.afterProductId, GlobalIdEntity.Product)
-        : undefined,
-      beforeProductId: input.beforeProductId
-        ? decodeGlobalIdByType(input.beforeProductId, GlobalIdEntity.Product)
-        : undefined,
-    },
-  }));
+  productIndex?: number,
+): { operations: ProductUpdateOperation[]; errors: UserError[] } {
+  const operations: ProductUpdateOperation[] = [];
+  const errors: UserError[] = [];
+
+  for (const [index, input] of categories.entries()) {
+    const fieldPrefix =
+      productIndex === undefined
+        ? ["operations", "categories", String(index)]
+        : [
+            "input",
+            "products",
+            String(productIndex),
+            "operations",
+            "categories",
+            String(index),
+          ];
+
+    const categoryId = safeDecodeGlobalId(
+      input.categoryId,
+      GlobalIdEntity.Category,
+    );
+    if (!categoryId) {
+      errors.push({
+        message: "Invalid ID format",
+        field: [...fieldPrefix, "categoryId"],
+        code: "INVALID_ID",
+      });
+      continue;
+    }
+
+    const afterProductId = input.afterProductId
+      ? safeDecodeGlobalId(input.afterProductId, GlobalIdEntity.Product)
+      : undefined;
+    if (input.afterProductId && !afterProductId) {
+      errors.push({
+        message: "Invalid ID format",
+        field: [...fieldPrefix, "afterProductId"],
+        code: "INVALID_ID",
+      });
+      continue;
+    }
+
+    const beforeProductId = input.beforeProductId
+      ? safeDecodeGlobalId(input.beforeProductId, GlobalIdEntity.Product)
+      : undefined;
+    if (input.beforeProductId && !beforeProductId) {
+      errors.push({
+        message: "Invalid ID format",
+        field: [...fieldPrefix, "beforeProductId"],
+        code: "INVALID_ID",
+      });
+      continue;
+    }
+
+    operations.push({
+      type: "productCategoryUpdate",
+      params: {
+        productId,
+        categoryId,
+        action: mapProductCategoryOperationAction(input.action),
+        afterProductId,
+        beforeProductId,
+      },
+    });
+  }
+
+  return { operations, errors };
 }
 
 function mapProductCategoryOperationAction(
@@ -3139,4 +3244,21 @@ function toGraphqlOperationType(type: ProductUpdateOperation["type"]) {
     return "PRODUCT_CATEGORY_UPDATE";
   }
   return "VARIANT_UPDATE";
+}
+
+function hasProductUpdateFields(
+  operations: ProductBulkUpdateInput["products"][0]["operations"],
+): operations is NonNullable<
+  ProductBulkUpdateInput["products"][0]["operations"]
+> {
+  if (!operations) return false;
+  return (
+    operations.handle !== undefined ||
+    operations.title !== undefined ||
+    Object.prototype.hasOwnProperty.call(operations, "vendorId") ||
+    operations.content !== undefined ||
+    operations.seo !== undefined ||
+    operations.status !== undefined ||
+    operations.media !== undefined
+  );
 }
