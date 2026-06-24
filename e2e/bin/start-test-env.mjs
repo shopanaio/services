@@ -20,6 +20,7 @@ const adminGatewayPort = Number(process.env.E2E_ADMIN_GATEWAY_PORT || 14001);
 const storefrontGatewayPort = Number(process.env.E2E_STOREFRONT_GATEWAY_PORT || 14000);
 const startDocker = process.env.E2E_START_DOCKER !== "false";
 const runMigrations = process.env.E2E_RUN_MIGRATIONS !== "false";
+const adminNextDistDir = process.env.E2E_ADMIN_NEXT_DIST_DIR || `.next-e2e-${adminPort}`;
 
 const children = [];
 let ready = false;
@@ -325,6 +326,7 @@ async function main() {
     cwd: adminDir,
     env: {
       ...baseEnv,
+      NEXT_DIST_DIR: adminNextDistDir,
       NEXT_PUBLIC_GRAPHQL_ENDPOINT: `http://127.0.0.1:${adminGatewayPort}/graphql`,
     },
   });
