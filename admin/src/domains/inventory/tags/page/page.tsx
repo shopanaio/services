@@ -3,11 +3,12 @@
 import { useMemo, useRef, useCallback } from "react";
 import {
   Alert,
+  Button,
   Flex,
   Tag,
   Typography,
 } from "antd";
-import { TagOutlined } from "@ant-design/icons";
+import { PlusOutlined, TagOutlined } from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
 import {
   ColDef,
@@ -33,6 +34,7 @@ import {
   type TagsWhereInput,
 } from "./page-config";
 import { useTags } from "../hooks";
+import { useCreateTagModal, useTagModal } from "../modals";
 
 ModuleRegistry.registerModules([
   AllCommunityModule,
@@ -104,8 +106,19 @@ export default function TagsPage() {
     pageInfo,
     loading,
     error,
+    refetch,
   } = useTags(listQueryVariables);
   const { goToNextPage, goToPrevPage } = pageConfig;
+  const { push: openTagModal } = useTagModal();
+  const { push: openCreateTagModal } = useCreateTagModal();
+
+  const handleOpenCreateTagModal = useCallback(() => {
+    openCreateTagModal({
+      onCreated: () => {
+        void refetch();
+      },
+    });
+  }, [openCreateTagModal, refetch]);
 
   const handleNextPage = useCallback(() => {
     if (pageInfo?.endCursor) {
@@ -176,6 +189,15 @@ export default function TagsPage() {
       name="tags"
       title="Tags"
       count={totalCount}
+      actions={
+        <Button
+          data-testid="tags-create-button"
+          icon={<PlusOutlined />}
+          onClick={handleOpenCreateTagModal}
+        >
+          Create
+        </Button>
+      }
     >
       <DataLayout.Toolbar
         left={
@@ -214,6 +236,11 @@ export default function TagsPage() {
             defaultColDef={defaultColDef}
             getRowId={(params) => params.data.id}
             rowHeight={52}
+            onRowClicked={(event) => {
+              if (event.data) {
+                openTagModal({ entityId: event.data.id });
+              }
+            }}
             suppressCellFocus
             suppressMovableColumns
             initialState={pageConfig.gridStateProps.initialState}

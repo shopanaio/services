@@ -353,6 +353,36 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       ),
     },
     // ========================================
+    // Tag modals
+    // ========================================
+    // Tag modal
+    {
+      type: 'tag',
+      component: dynamic(() =>
+        import('@/domains/inventory/tags/modals/tag-modal').then(
+          (m) => m.TagModal
+        )
+      ),
+    },
+    // Create Tag modal
+    {
+      type: 'tag-create',
+      component: dynamic(() =>
+        import('@/domains/inventory/tags/modals/create-tag-modal').then(
+          (m) => m.CreateTagModal
+        )
+      ),
+    },
+    // Edit tag identity modal
+    {
+      type: 'tag-edit-identity',
+      component: dynamic(() =>
+        import('@/domains/inventory/tags/modals/edit-tag-identity-modal').then(
+          (m) => m.EditTagIdentityModal
+        )
+      ),
+    },
+    // ========================================
     // Picker modals
     // ========================================
     // Generic Entity Picker modal

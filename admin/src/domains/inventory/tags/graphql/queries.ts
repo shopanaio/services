@@ -1,5 +1,5 @@
 import { gql } from "@apollo/client";
-import { TAG_LIST_FRAGMENT } from "./fragments";
+import { TAG_DETAILS_FRAGMENT, TAG_LIST_FRAGMENT } from "./fragments";
 
 export const TAGS_QUERY = gql`
   query Tags($first: Int, $after: String, $last: Int, $before: String) {
@@ -22,4 +22,15 @@ export const TAGS_QUERY = gql`
     }
   }
   ${TAG_LIST_FRAGMENT}
+`;
+
+export const TAG_DETAILS_QUERY = gql`
+  query TagDetails($id: ID!) {
+    catalogQuery {
+      tag(id: $id) {
+        ...TagDetailsFields
+      }
+    }
+  }
+  ${TAG_DETAILS_FRAGMENT}
 `;

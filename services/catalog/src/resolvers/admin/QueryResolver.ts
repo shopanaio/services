@@ -345,11 +345,12 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    * Returns null if tag doesn't exist.
    */
   async tag(args: { id: string }) {
-    const t = await this.$ctx.loaders.tag.load(args.id);
+    const tagId = safeDecodeGlobalId(args.id, GlobalIdEntity.Tag) ?? args.id;
+    const t = await this.$ctx.loaders.tag.load(tagId);
     if (!t) {
       return null;
     }
-    return new TagResolver(args.id, this.$ctx);
+    return new TagResolver(tagId, this.$ctx);
   }
 
   /**
