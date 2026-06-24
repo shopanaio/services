@@ -49,10 +49,6 @@ function useProductsPickerData(options: {
   where?: object | null;
   orderBy?: object[] | null;
   excludeIds: string[];
-  goToNextPage?: (endCursor: string) => void;
-  goToPrevPage?: (startCursor: string) => void;
-  getRangeStart?: (itemCount: number) => number;
-  getRangeEnd?: (itemCount: number) => number;
 }): IEntityPickerDataResult<ProductPickerEntity> {
   const {
     pageSize,
@@ -63,10 +59,6 @@ function useProductsPickerData(options: {
     where,
     orderBy,
     excludeIds,
-    goToNextPage,
-    goToPrevPage,
-    getRangeStart,
-    getRangeEnd,
   } = options;
   const productsWhere = useMemo<ApiProductWhereInput | null>(() => {
     const conditions: ApiProductWhereInput[] = [];
@@ -107,16 +99,9 @@ function useProductsPickerData(options: {
       pageSize,
       hasNext: pageInfo?.hasNextPage ?? false,
       hasPrev: pageInfo?.hasPreviousPage ?? false,
-      rangeStart: getRangeStart?.(products.length) ?? 0,
-      rangeEnd: Math.min(getRangeEnd?.(products.length) ?? 0, totalCount),
+      startCursor: pageInfo?.startCursor ?? null,
+      endCursor: pageInfo?.endCursor ?? null,
     },
-    onNext: () => {
-      if (pageInfo?.endCursor) goToNextPage?.(pageInfo.endCursor);
-    },
-    onPrev: () => {
-      if (pageInfo?.startCursor) goToPrevPage?.(pageInfo.startCursor);
-    },
-    onPageSizeChange: () => {},
   };
 }
 

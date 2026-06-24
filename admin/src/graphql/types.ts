@@ -1265,6 +1265,7 @@ export type ApiCatalogQueryProductsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<ApiProductProductsMetaInput>;
   orderBy?: InputMaybe<Array<ApiProductOrderByInput>>;
   where?: InputMaybe<ApiProductWhereInput>;
 };
@@ -5160,6 +5161,11 @@ export type ApiProductBulkUpdatePayload = {
   userErrors: Array<ApiBulkUpdateUserError>;
 };
 
+export type ApiProductCategoriesScopeInput = {
+  mode: CategoryHierarchyScopeMode;
+  referenceIds: Array<Scalars['ID']['input']>;
+};
+
 export type ApiProductCategoryAssignment = {
   __typename?: 'ProductCategoryAssignment';
   category: ApiCategory;
@@ -5744,6 +5750,10 @@ export enum ProductOrderField {
   /** Sort by vendorId */
   VendorId = 'vendorId'
 }
+
+export type ApiProductProductsMetaInput = {
+  categoriesScope?: InputMaybe<ApiProductCategoriesScopeInput>;
+};
 
 /** SEO and Open Graph metadata for a product. */
 export type ApiProductSeo = {

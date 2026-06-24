@@ -25,8 +25,10 @@ export interface IEntityPickerPagination {
   pageSize: number;
   hasNext: boolean;
   hasPrev: boolean;
-  rangeStart: number;
-  rangeEnd: number;
+  rangeStart?: number;
+  rangeEnd?: number;
+  startCursor?: string | null;
+  endCursor?: string | null;
 }
 
 /**
@@ -37,9 +39,9 @@ export interface IEntityPickerDataResult<T extends IPickableEntity> {
   isLoading: boolean;
   error: Error | null;
   pagination: IEntityPickerPagination;
-  onNext: () => void;
-  onPrev: () => void;
-  onPageSizeChange: (size: number) => void;
+  onNext?: () => void;
+  onPrev?: () => void;
+  onPageSizeChange?: (size: number) => void;
 }
 
 export interface IEntityPickerPageConfig<
@@ -87,10 +89,6 @@ export interface IEntityPickerConfig<
     before?: string | null;
     where?: object | null;
     orderBy?: OrderByInput<string>[] | null;
-    goToNextPage?: (endCursor: string) => void;
-    goToPrevPage?: (startCursor: string) => void;
-    getRangeStart?: (itemCount: number) => number;
-    getRangeEnd?: (itemCount: number) => number;
     excludeIds: string[];
     queryMeta?: unknown;
   }) => IEntityPickerDataResult<T>;

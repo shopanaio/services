@@ -82,6 +82,7 @@ export function EntityPickerContent<T extends IPickableEntity>({
     entityIds: [],
   });
   const [isGridReady, setIsGridReady] = useState(false);
+  const hasSharedPageConfig = Boolean(config.pageConfig);
   const pageConfig = usePageConfig<T, object, string>({
     gridRef,
     storageKey:
@@ -120,10 +121,6 @@ export function EntityPickerContent<T extends IPickableEntity>({
       before: pageConfig.before,
       where: pageConfig.where ?? null,
       orderBy: pageConfig.orderBy ?? null,
-      goToNextPage: pageConfig.goToNextPage,
-      goToPrevPage: pageConfig.goToPrevPage,
-      getRangeStart: pageConfig.getRangeStart,
-      getRangeEnd: pageConfig.getRangeEnd,
       excludeIds,
       queryMeta,
     });
@@ -208,10 +205,52 @@ export function EntityPickerContent<T extends IPickableEntity>({
   const handlePageSizeChange = useCallback(
     (size: number) => {
       pageConfig.setPageSize(size);
-      onPageSizeChange(size);
+      onPageSizeChange?.(size);
     },
     [onPageSizeChange, pageConfig],
   );
+
+  const handleNextPage = useCallback(() => {
+    if (!hasSharedPageConfig) {
+      onNext?.();
+      return;
+    }
+
+    if (pagination.endCursor) {
+      pageConfig.goToNextPage(pagination.endCursor);
+    }
+  }, [hasSharedPageConfig, onNext, pageConfig, pagination.endCursor]);
+
+  const handlePrevPage = useCallback(() => {
+    if (!hasSharedPageConfig) {
+      onPrev?.();
+      return;
+    }
+
+    if (pagination.startCursor) {
+      pageConfig.goToPrevPage(pagination.startCursor);
+    }
+  }, [hasSharedPageConfig, onPrev, pageConfig, pagination.startCursor]);
+
+  const paginationProps = useMemo(() => {
+    if (!hasSharedPageConfig) {
+      return {
+        ...pagination,
+        rangeStart: pagination.rangeStart ?? 0,
+        rangeEnd: pagination.rangeEnd ?? 0,
+      };
+    }
+
+    return {
+      ...pagination,
+      pageSize: pageConfig.pageSize,
+      rangeStart: pageConfig.getRangeStart(filteredData.length),
+      rangeEnd: Math.min(
+        pageConfig.getRangeEnd(filteredData.length),
+        pagination.total,
+      ),
+    };
+  }, [filteredData.length, hasSharedPageConfig, pageConfig, pagination]);
 
   // Sync visible grid rows with the accumulated selection and hydrate entities
   // for ids that were selected before the current page was loaded.
@@ -315,14 +354,14 @@ export function EntityPickerContent<T extends IPickableEntity>({
       {/* Pagination */}
       <div className={styles.pagination}>
         <CursorPagination
-          total={pagination.total}
-          rangeStart={pagination.rangeStart}
-          rangeEnd={pagination.rangeEnd}
-          pageSize={pagination.pageSize}
-          hasNext={pagination.hasNext}
-          hasPrev={pagination.hasPrev}
-          onNext={onNext}
-          onPrev={onPrev}
+          total={paginationProps.total}
+          rangeStart={paginationProps.rangeStart}
+          rangeEnd={paginationProps.rangeEnd}
+          pageSize={paginationProps.pageSize}
+          hasNext={paginationProps.hasNext}
+          hasPrev={paginationProps.hasPrev}
+          onNext={handleNextPage}
+          onPrev={handlePrevPage}
           onPageSizeChange={handlePageSizeChange}
         />
       </div>
