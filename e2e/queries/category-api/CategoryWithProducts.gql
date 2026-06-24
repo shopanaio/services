@@ -4,7 +4,7 @@ query CategoryWithProducts(
   $after: String
   $last: Int
   $before: String
-  $orderBy: [ProductOrderByInput!]
+  $orderBy: [ListingOrderByInput!]
   $where: CategoryProductWhereInput
 ) {
   catalogQuery {

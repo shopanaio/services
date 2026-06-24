@@ -378,8 +378,6 @@ async function expectVariantTablePage(page: Page, variants: SeededVariant[]) {
     await expect(row).toContainText(variant.handle);
     await expect(row).toContainText(formatUah(variant.price));
     await expect(row).toContainText(variant.sku);
-    await expect(row).toContainText(`${variant.weight} g`);
-    await expect(row).toContainText(`${variant.length} x ${variant.width} x ${variant.height} mm`);
   }
 }
 

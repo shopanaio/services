@@ -55,11 +55,7 @@ async function uploadVaseImage(page: Page) {
   await expect(page.getByTestId('upload-media-modal')).toBeHidden();
 }
 
-async function createSimpleProduct(
-  api: Api,
-  title: string,
-  handle: string,
-) {
+async function createSimpleProduct(api: Api, title: string, handle: string) {
   const { data } = await api.admin.mutation('inventory-api/ProductCreateSimple', {
     variables: {
       input: {
@@ -102,10 +98,7 @@ async function expectProductVisibleInPicker(page: Page, title: string) {
 }
 
 test.describe('Admin category details update UI', () => {
-  test('updates category details fields in one details session', async ({
-    api,
-    page,
-  }) => {
+  test('updates category details fields in one details session', async ({ api, page }) => {
     api.session.user.data.password = 'StrongPassword123!';
     await api.session.setupUser();
     const organization = await api.session.setupOrganization();
@@ -154,12 +147,7 @@ test.describe('Admin category details update UI', () => {
     await expect(detailsCard.getByTestId('category-detail-path')).toContainText(updatedHandle);
 
     await page.getByTestId('category-header-actions-button').click();
-    await page.getByRole('menuitem', { name: 'Change status' }).click();
-    const statusModal = page.getByTestId('edit-category-status-modal');
-    await expect(statusModal).toBeVisible();
-    await statusModal.locator('.ant-segmented-item').filter({ hasText: 'Published' }).click();
-    await page.getByTestId('submit-edit-category-status-form-button').click();
-    await expect(statusModal).toBeHidden();
+    await page.getByRole('menuitem', { name: 'Publish' }).click();
     await expect(detailsCard.getByTestId('category-detail-status')).toHaveText('Published');
 
     await page.getByTestId('category-content-actions-button').click();
@@ -182,7 +170,9 @@ test.describe('Admin category details update UI', () => {
     await expect(detailsCard.getByTestId('category-detail-description-summary')).toContainText(
       description,
     );
-    await expect(detailsCard.getByTestId('category-content-description')).toContainText(description);
+    await expect(detailsCard.getByTestId('category-content-description')).toContainText(
+      description,
+    );
     await detailsCard.getByRole('tab', { name: 'Excerpt' }).click();
     await expect(detailsCard.getByTestId('category-content-excerpt')).toContainText(excerpt);
 
@@ -242,7 +232,10 @@ test.describe('Admin category details update UI', () => {
     const sortModal = page.getByTestId('edit-category-sort-modal');
     await expect(sortModal).toBeVisible();
     await sortModal.getByTestId('edit-category-sort-default-sort-select').click();
-    await page.locator('.ant-select-item-option-content').getByText('Name', { exact: true }).click();
+    await page
+      .locator('.ant-select-item-option-content')
+      .getByText('Name', { exact: true })
+      .click();
     await sortModal.locator('.ant-segmented-item').filter({ hasText: 'Descending' }).click();
     await page.getByTestId('submit-edit-category-sort-form-button').click();
     await expect(sortModal).toBeHidden();
@@ -289,10 +282,7 @@ test.describe('Admin category details update UI', () => {
       );
   });
 
-  test('assigns and removes category products from the details card', async ({
-    api,
-    page,
-  }) => {
+  test('assigns and removes category products from the details card', async ({ api, page }) => {
     api.session.user.data.password = 'StrongPassword123!';
     await api.session.setupUser();
     const organization = await api.session.setupOrganization();
