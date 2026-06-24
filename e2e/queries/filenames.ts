@@ -96,6 +96,7 @@ export type GraphQLFileName =
   | 'inventory-api/ProductOptionsSync'
   | 'inventory-api/ProductUpdate'
   | 'inventory-api/ProductVariants'
+  | 'inventory-api/TagCreate'
   | 'inventory-api/VariantCreate'
   | 'inventory-api/VariantSetCost'
   | 'inventory-api/VariantSetDimensions'

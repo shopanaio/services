@@ -73,6 +73,11 @@ query ProductFindOne($id: ID!) {
           index
         }
       }
+      tags {
+        id
+        handle
+        name
+      }
       variantsCount
       variants(first: 10) {
         edges {

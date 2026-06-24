@@ -12,6 +12,7 @@ mutation ProductBulkUpdate($input: ProductBulkUpdateInput!) {
       userErrors {
         message
         code
+        field
       }
     }
   }

@@ -36,6 +36,27 @@ async function createProduct(api: Api, title: string, handle?: string) {
   };
 }
 
+async function createTag(api: Api, handle?: string, name?: string) {
+  const tagHandle =
+    handle ?? `test-tag-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const { data } = await api.admin.mutation('inventory-api/TagCreate', {
+    variables: {
+      input: {
+        handle: tagHandle,
+        name: name ?? tagHandle,
+      },
+    },
+  });
+
+  const result = data.catalogMutation.tagCreate;
+  expect(result.userErrors).toHaveLength(0);
+  if (!result.tag) {
+    throw new Error('Failed to create tag');
+  }
+
+  return result.tag;
+}
+
 /**
  * Helper to create a product with options and multiple variants
  */
@@ -320,6 +341,129 @@ test.describe('ProductUpdate API', () => {
       expect(result.product.excerpt.html).toBe('<p>New excerpt</p>');
       expect(result.product.excerpt.json.blocks[0].data.text).toBe('New excerpt');
       expect(result.product.seo.seoTitle).toBe('Multi-field SEO Title');
+    });
+  });
+
+  // ============================================
+  // SUCCESSFUL CASES - Product Tags
+  // ============================================
+
+  test.describe('Product Tag Updates', () => {
+    test('should add tag to product through productUpdate', async ({ api }) => {
+      const { productId, revision } = await createProduct(api, 'Tagged Product');
+      const tag = await createTag(api, undefined, 'Featured');
+
+      const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: revision,
+          operations: {
+            tags: [{ tagId: tag.id, action: 'ADD' }],
+          },
+        },
+      });
+
+      const result = data.catalogMutation.productUpdate;
+
+      expect(result.userErrors).toHaveLength(0);
+      expect(result.product.tags.map((item: { id: string }) => item.id)).toContain(tag.id);
+      expect(result.operationResults).toHaveLength(1);
+      expect(result.operationResults[0].type).toBe('PRODUCT_TAG_UPDATE');
+      expect(result.operationResults[0].applied).toBe(true);
+    });
+
+    test('should treat repeated tag add as successful idempotent operation', async ({ api }) => {
+      const { productId, revision } = await createProduct(api, 'Repeated Tag Product');
+      const tag = await createTag(api);
+
+      const first = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: revision,
+          operations: {
+            tags: [{ tagId: tag.id, action: 'ADD' }],
+          },
+        },
+      });
+
+      const firstResult = first.data.catalogMutation.productUpdate;
+      expect(firstResult.userErrors).toHaveLength(0);
+
+      const second = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: firstResult.product.revision,
+          operations: {
+            tags: [{ tagId: tag.id, action: 'ADD' }],
+          },
+        },
+      });
+
+      const secondResult = second.data.catalogMutation.productUpdate;
+      const assignedTagIds = secondResult.product.tags.map((item: { id: string }) => item.id);
+
+      expect(secondResult.userErrors).toHaveLength(0);
+      expect(secondResult.operationResults[0].type).toBe('PRODUCT_TAG_UPDATE');
+      expect(secondResult.operationResults[0].applied).toBe(true);
+      expect(assignedTagIds.filter((id: string) => id === tag.id)).toHaveLength(1);
+    });
+
+    test('should remove tag from product through productUpdate', async ({ api }) => {
+      const { productId, revision } = await createProduct(api, 'Remove Tag Product');
+      const tag = await createTag(api);
+
+      const add = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: revision,
+          operations: {
+            tags: [{ tagId: tag.id, action: 'ADD' }],
+          },
+        },
+      });
+      const addResult = add.data.catalogMutation.productUpdate;
+      expect(addResult.userErrors).toHaveLength(0);
+
+      const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: addResult.product.revision,
+          operations: {
+            tags: [{ tagId: tag.id, action: 'REMOVE' }],
+          },
+        },
+      });
+
+      const result = data.catalogMutation.productUpdate;
+
+      expect(result.userErrors).toHaveLength(0);
+      expect(result.product.tags.map((item: { id: string }) => item.id)).not.toContain(tag.id);
+      expect(result.operationResults[0].type).toBe('PRODUCT_TAG_UPDATE');
+      expect(result.operationResults[0].applied).toBe(true);
+    });
+
+    test('should fail removing tag that is not assigned to product', async ({ api }) => {
+      const { productId, revision } = await createProduct(api, 'Missing Tag Product');
+      const tag = await createTag(api);
+
+      const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: revision,
+          operations: {
+            tags: [{ tagId: tag.id, action: 'REMOVE' }],
+          },
+        },
+        throwOnError: false,
+      });
+
+      const result = data.catalogMutation.productUpdate;
+
+      expect(result.userErrors.length).toBeGreaterThan(0);
+      expect(result.userErrors[0].code).toBe('NOT_FOUND');
+      expect(result.operationResults[0].type).toBe('PRODUCT_TAG_UPDATE');
+      expect(result.operationResults[0].applied).toBe(false);
+      expect(result.product.tags).toHaveLength(0);
     });
   });
 
@@ -2031,6 +2175,30 @@ test.describe('ProductUpdate API', () => {
   // ============================================
 
   test.describe('Input Validation', () => {
+    test('should reject invalid tag ID in product tag operation', async ({ api }) => {
+      const { productId, revision } = await createProduct(api, 'Invalid Tag ID Product');
+      const wrongTypeTagId = encodeGlobalId(TypeName.Category, crypto.randomUUID());
+
+      const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: revision,
+          operations: {
+            tags: [{ tagId: wrongTypeTagId, action: 'ADD' }],
+          },
+        },
+        throwOnError: false,
+      });
+
+      const result = data.catalogMutation.productUpdate;
+
+      expect(result.product).toBeNull();
+      expect(result.operationResults).toHaveLength(0);
+      expect(result.userErrors).toHaveLength(1);
+      expect(result.userErrors[0].code).toBe('INVALID_ID');
+      expect(result.userErrors[0].field).toEqual(['operations', 'tags', '0', 'tagId']);
+    });
+
     test('should reject duplicate product handle', async ({ api }) => {
       // Create first product with a specific handle
       const uniqueHandle = `unique-handle-${Date.now()}`;

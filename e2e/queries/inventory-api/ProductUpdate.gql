@@ -40,6 +40,11 @@ mutation ProductUpdate($productId: ID!, $expectedRevision: Int, $operations: Pro
           }
           sortIndex
         }
+        tags {
+          id
+          handle
+          name
+        }
         variants(first: 20) {
           edges {
             node {
