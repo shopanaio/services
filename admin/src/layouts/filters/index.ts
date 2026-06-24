@@ -102,4 +102,11 @@ export type {
 export { useFilters, useFilterState } from './hooks';
 
 // Utils
-export { findFilter, findFilterByPayloadKey } from './utils';
+export {
+  createGraphqlDateTimeRangeFilterTransformer,
+  createGraphqlIntFilterTransformer,
+  createGraphqlStringFilterTransformer,
+  findFilter,
+  findFilterByPayloadKey,
+} from './utils';
+export type { GraphqlFilterTransformer } from './utils';

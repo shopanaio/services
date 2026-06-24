@@ -1,6 +1,5 @@
 "use client";
 
-import { useQuery } from "@apollo/client/react";
 import type {
   ApiCategoryProductConnection,
   ApiCategoryProductWhereInput,
@@ -8,6 +7,7 @@ import type {
   ApiPageInfo,
   ApiProduct,
 } from "@/graphql/types";
+import { useRelayConnectionQuery } from "@/graphql/hooks/use-relay-connection-query";
 import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
 import { CATEGORY_PRODUCTS_QUERY } from "../graphql";
 import type {
@@ -22,7 +22,7 @@ export interface UseCategoryProductsOptions
   skip?: boolean;
 }
 
-interface UseCategoryProductsReturn {
+export interface UseCategoryProductsReturn {
   products: ApiProduct[];
   connection: ApiCategoryProductConnection | null;
   totalCount: number;
@@ -46,10 +46,13 @@ export function useCategoryProducts(
     skip = false,
   } = options;
 
-  const { data, previousData, loading, error, refetch } = useQuery<
+  const result = useRelayConnectionQuery<
     CategoryProductsQueryData,
-    CategoryProductsQueryVariables
-  >(CATEGORY_PRODUCTS_QUERY, {
+    CategoryProductsQueryVariables,
+    ApiProduct,
+    ApiCategoryProductConnection
+  >({
+    query: CATEGORY_PRODUCTS_QUERY,
     variables: {
       id: categoryId ?? "",
       first,
@@ -61,18 +64,16 @@ export function useCategoryProducts(
     },
     skip: skip || !categoryId,
     fetchPolicy: "cache-and-network",
+    getConnection: (data) => data?.catalogQuery.category?.products,
   });
 
-  const effectiveData = data ?? previousData;
-  const connection = effectiveData?.catalogQuery.category?.products ?? null;
-
   return {
-    products: connection?.edges.map((edge) => edge.node) ?? [],
-    connection,
-    totalCount: connection?.totalCount ?? 0,
-    pageInfo: connection?.pageInfo ?? null,
-    loading,
-    error: error ?? null,
-    refetch: () => refetch(),
+    products: result.nodes,
+    connection: result.connection,
+    totalCount: result.totalCount,
+    pageInfo: result.pageInfo,
+    loading: result.loading,
+    error: result.error,
+    refetch: result.refetch,
   };
 }

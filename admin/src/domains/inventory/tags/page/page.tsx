@@ -20,10 +20,8 @@ import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
 import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
-import {
-  useAgGridTheme,
-  usePageConfig,
-} from "@/hooks";
+import { useAgGridTheme } from "@/hooks";
+import { useInventoryRelayListPage } from "@/domains/inventory/hooks";
 import type { ApiTag, ApiTagWhereInput } from "@/graphql/types";
 import { TagOrderField } from "@/graphql/types";
 import { formatDetailDate } from "@/domains/inventory/utils/format-detail-date";
@@ -34,7 +32,6 @@ import {
   tagFilterTransformers,
   tagSortFieldMapping,
 } from "./page-config";
-import type { TagsQueryVariables } from "../graphql/operation-types";
 import { useTags } from "../hooks";
 import { useCreateTagModal, useTagModal } from "../modals";
 
@@ -86,10 +83,22 @@ const DateCellRenderer = (props: CustomCellRendererProps<ApiTag, string>) => (
 export default function TagsPage() {
   const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<ApiTag>>(null);
-  const pageConfig = usePageConfig<
+  const {
+    pageConfig,
+    items: tags,
+    totalCount,
+    pageInfo,
+    loading,
+    error,
+    refetch,
+    handleNextPage,
+    handlePrevPage,
+  } = useInventoryRelayListPage<
     ApiTag,
     ApiTagWhereInput,
-    TagOrderField
+    TagOrderField,
+    ReturnType<typeof buildTagsQueryVariables>,
+    ReturnType<typeof useTags>
   >({
     gridRef,
     storageKey: "tags-grid-state",
@@ -98,27 +107,10 @@ export default function TagsPage() {
     defaultPageSize: 20,
     buildSearchCondition: buildTagSearchCondition,
     filterTransformers: tagFilterTransformers,
+    buildQueryVariables: buildTagsQueryVariables,
+    useListQuery: useTags,
+    getItems: (result) => result.tags,
   });
-  const listQueryVariables = useMemo<TagsQueryVariables>(
-    () => buildTagsQueryVariables(pageConfig),
-    [
-      pageConfig.first,
-      pageConfig.after,
-      pageConfig.last,
-      pageConfig.before,
-      pageConfig.where,
-      pageConfig.orderBy,
-    ],
-  );
-  const {
-    tags,
-    totalCount,
-    pageInfo,
-    loading,
-    error,
-    refetch,
-  } = useTags(listQueryVariables);
-  const { goToNextPage, goToPrevPage } = pageConfig;
   const { push: openTagModal } = useTagModal();
   const { push: openCreateTagModal } = useCreateTagModal();
 
@@ -129,18 +121,6 @@ export default function TagsPage() {
       },
     });
   }, [openCreateTagModal, refetch]);
-
-  const handleNextPage = useCallback(() => {
-    if (pageInfo?.endCursor) {
-      goToNextPage(pageInfo.endCursor);
-    }
-  }, [goToNextPage, pageInfo?.endCursor]);
-
-  const handlePrevPage = useCallback(() => {
-    if (pageInfo?.startCursor) {
-      goToPrevPage(pageInfo.startCursor);
-    }
-  }, [goToPrevPage, pageInfo?.startCursor]);
 
   const columnDefs = useMemo<ColDef<ApiTag>[]>(
     () => [

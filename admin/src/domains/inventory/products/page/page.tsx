@@ -28,8 +28,8 @@ import type { PanelConfig } from "@/ui-kit/floating-panel-stack/data-page/floati
 import {
   useAgGridTheme,
   useAgGridRowSelection,
-  usePageConfig,
 } from "@/hooks";
+import { useInventoryRelayListPage } from "@/domains/inventory/hooks";
 import { filterSchema } from "./filter-schema";
 import {
   buildProductSearchCondition,
@@ -52,7 +52,6 @@ import {
   getProductThumbnailFile,
 } from "../utils/api-product-display";
 import { formatPrice } from "../utils/price-formatting";
-import type { ProductsQueryVariables } from "../graphql/operation-types";
 import { Dash } from "@/shared/components/editor-grid";
 import { TableCoverImage } from "@/shared/components/table-cover-image";
 
@@ -151,10 +150,22 @@ export default function ProductsPage() {
   const [selectedCount, setSelectedCount] = useState(0);
   const defaultCurrency = useDefaultCurrency();
   const { push } = useModalStack();
-  const pageConfig = usePageConfig<
+  const {
+    pageConfig,
+    items: products,
+    totalCount,
+    pageInfo,
+    loading,
+    error,
+    refetch,
+    handleNextPage,
+    handlePrevPage,
+  } = useInventoryRelayListPage<
     ApiProduct,
     ApiProductWhereInput,
-    ProductOrderField
+    ProductOrderField,
+    ReturnType<typeof buildProductsQueryVariables>,
+    ReturnType<typeof useProducts>
   >({
     gridRef,
     storageKey: "products-grid-state",
@@ -163,40 +174,11 @@ export default function ProductsPage() {
     defaultPageSize: 20,
     buildSearchCondition: buildProductSearchCondition,
     filterTransformers: productFilterTransformers,
+    buildQueryVariables: buildProductsQueryVariables,
+    useListQuery: useProducts,
+    getItems: (result) => result.products,
   });
-  const listQueryVariables = useMemo<ProductsQueryVariables>(
-    () => buildProductsQueryVariables(pageConfig),
-    [
-      pageConfig.first,
-      pageConfig.after,
-      pageConfig.last,
-      pageConfig.before,
-      pageConfig.where,
-      pageConfig.orderBy,
-    ],
-  );
-  const {
-    products,
-    totalCount,
-    pageInfo,
-    loading,
-    error,
-    refetch,
-  } = useProducts(listQueryVariables);
   const { deleteProduct, loading: deletingProducts } = useDeleteProduct();
-  const { goToNextPage, goToPrevPage } = pageConfig;
-
-  const handleNextPage = useCallback(() => {
-    if (pageInfo?.endCursor) {
-      goToNextPage(pageInfo.endCursor);
-    }
-  }, [goToNextPage, pageInfo?.endCursor]);
-
-  const handlePrevPage = useCallback(() => {
-    if (pageInfo?.startCursor) {
-      goToPrevPage(pageInfo.startCursor);
-    }
-  }, [goToPrevPage, pageInfo?.startCursor]);
 
   // Bulk editor store
   const setSelectedProducts = useBulkEditorStore((s) => s.setSelectedProducts);

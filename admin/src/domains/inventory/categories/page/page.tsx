@@ -32,8 +32,8 @@ import type { PanelConfig } from "@/ui-kit/floating-panel-stack/data-page/floati
 import {
   useAgGridTheme,
   useAgGridRowSelection,
-  usePageConfig,
 } from "@/hooks";
+import { useInventoryRelayListPage } from "@/domains/inventory/hooks";
 import type {
   ApiCategory,
   ApiCategoryWhereInput,
@@ -50,7 +50,6 @@ import {
 } from "./page-config";
 import { useCategories } from "../hooks";
 import { useCategoryModal, useCreateCategoryModal } from "../modals";
-import type { CategoriesQueryVariables } from "../graphql/operation-types";
 import { TableCoverImage } from "@/shared/components/table-cover-image";
 
 ModuleRegistry.registerModules([
@@ -171,10 +170,22 @@ export default function CategoriesPage() {
   const [selectedCount, setSelectedCount] = useState(0);
   const { push: openCategoryModal } = useCategoryModal();
   const { push: openCreateCategoryModal } = useCreateCategoryModal();
-  const pageConfig = usePageConfig<
+  const {
+    pageConfig,
+    items: categories,
+    totalCount,
+    pageInfo,
+    loading,
+    error,
+    refetch,
+    handleNextPage,
+    handlePrevPage,
+  } = useInventoryRelayListPage<
     ApiCategory,
     ApiCategoryWhereInput,
-    CategoryOrderField
+    CategoryOrderField,
+    ReturnType<typeof buildCategoriesQueryVariables>,
+    ReturnType<typeof useCategories>
   >({
     gridRef,
     storageKey: "categories-grid-state",
@@ -183,28 +194,10 @@ export default function CategoriesPage() {
     defaultPageSize: 20,
     buildSearchCondition: buildCategorySearchCondition,
     filterTransformers: categoryFilterTransformers,
+    buildQueryVariables: buildCategoriesQueryVariables,
+    useListQuery: useCategories,
+    getItems: (result) => result.categories,
   });
-
-  const listQueryVariables = useMemo<CategoriesQueryVariables>(
-    () => buildCategoriesQueryVariables(pageConfig),
-    [
-      pageConfig.first,
-      pageConfig.after,
-      pageConfig.last,
-      pageConfig.before,
-      pageConfig.where,
-      pageConfig.orderBy,
-    ],
-  );
-
-  const {
-    categories,
-    totalCount,
-    pageInfo,
-    loading,
-    error,
-    refetch,
-  } = useCategories(listQueryVariables);
 
   const handleOpenCreateCategoryModal = useCallback(() => {
     openCreateCategoryModal({
@@ -213,20 +206,6 @@ export default function CategoriesPage() {
       },
     });
   }, [openCreateCategoryModal, refetch]);
-
-  const { goToNextPage, goToPrevPage } = pageConfig;
-
-  const handleNextPage = useCallback(() => {
-    if (pageInfo?.endCursor) {
-      goToNextPage(pageInfo.endCursor);
-    }
-  }, [goToNextPage, pageInfo?.endCursor]);
-
-  const handlePrevPage = useCallback(() => {
-    if (pageInfo?.startCursor) {
-      goToPrevPage(pageInfo.startCursor);
-    }
-  }, [goToPrevPage, pageInfo?.startCursor]);
 
   const { rowSelection, selectionColumnDef, onCellClicked } =
     useAgGridRowSelection<ApiCategory>({

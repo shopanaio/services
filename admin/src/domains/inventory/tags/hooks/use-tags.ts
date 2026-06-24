@@ -1,6 +1,5 @@
 "use client";
 
-import { useQuery } from "@apollo/client/react";
 import type {
   ApiPageInfo,
   ApiTag,
@@ -8,6 +7,7 @@ import type {
   ApiTagOrderByInput,
   ApiTagWhereInput,
 } from "@/graphql/types";
+import { useRelayConnectionQuery } from "@/graphql/hooks/use-relay-connection-query";
 import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
 import { TAGS_QUERY } from "../graphql";
 import type {
@@ -21,7 +21,7 @@ export interface UseTagsOptions extends RelayCursorPaginationVariables {
   skip?: boolean;
 }
 
-interface UseTagsReturn {
+export interface UseTagsReturn {
   tags: ApiTag[];
   connection: ApiTagConnection | null;
   totalCount: number;
@@ -42,25 +42,26 @@ export function useTags(options: UseTagsOptions = {}): UseTagsReturn {
     skip = false,
   } = options;
 
-  const { data, previousData, loading, error, refetch } = useQuery<
+  const result = useRelayConnectionQuery<
     TagsQueryData,
-    TagsQueryVariables
-  >(TAGS_QUERY, {
+    TagsQueryVariables,
+    ApiTag,
+    ApiTagConnection
+  >({
+    query: TAGS_QUERY,
     variables: { first, after, last, before, where, orderBy },
     skip,
     fetchPolicy: "cache-and-network",
+    getConnection: (data) => data?.catalogQuery.tags,
   });
 
-  const effectiveData = data ?? previousData;
-  const connection = effectiveData?.catalogQuery.tags ?? null;
-
   return {
-    tags: connection?.edges.map((edge) => edge.node) ?? [],
-    connection,
-    totalCount: connection?.totalCount ?? 0,
-    pageInfo: connection?.pageInfo ?? null,
-    loading,
-    error: error ?? null,
-    refetch: () => refetch(),
+    tags: result.nodes,
+    connection: result.connection,
+    totalCount: result.totalCount,
+    pageInfo: result.pageInfo,
+    loading: result.loading,
+    error: result.error,
+    refetch: result.refetch,
   };
 }

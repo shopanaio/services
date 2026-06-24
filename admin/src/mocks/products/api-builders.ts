@@ -452,7 +452,6 @@ export const createMockApiTag = (params: {
   name: params.name,
   handle: params.handle,
   productsCount: params.productsCount ?? 0,
-  products: createMockApiProductConnection([]),
   createdAt: params.createdAt ?? MOCK_NOW,
 });
 

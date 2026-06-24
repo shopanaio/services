@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { App } from "antd";
 import {
+  CategoryHierarchyScopeDirection,
   CategoryHierarchyScopeMode,
   CategoryStatus,
   type ApiCategory,
@@ -132,9 +133,9 @@ export const useCategoryModals = (
     () => ({
       hierarchyScope: {
         referenceId: category.id,
-        direction: "DESCENDANTS",
+        direction: CategoryHierarchyScopeDirection.Descendants,
         includeReference: true,
-        mode: "EXCLUDE",
+        mode: CategoryHierarchyScopeMode.Exclude,
       },
     }),
     [category.id],
@@ -143,9 +144,9 @@ export const useCategoryModals = (
     () => ({
       hierarchyScope: {
         referenceId: category.id,
-        direction: "ANCESTORS",
+        direction: CategoryHierarchyScopeDirection.Ancestors,
         includeReference: true,
-        mode: "EXCLUDE",
+        mode: CategoryHierarchyScopeMode.Exclude,
       },
     }),
     [category.id],

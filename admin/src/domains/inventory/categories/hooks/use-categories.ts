@@ -1,6 +1,5 @@
 "use client";
 
-import { useQuery } from "@apollo/client/react";
 import type {
   ApiCategory,
   ApiCategoryCategoriesMetaInput,
@@ -9,6 +8,7 @@ import type {
   ApiCategoryWhereInput,
   ApiPageInfo,
 } from "@/graphql/types";
+import { useRelayConnectionQuery } from "@/graphql/hooks/use-relay-connection-query";
 import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
 import { CATEGORIES_QUERY } from "../graphql";
 import type {
@@ -24,7 +24,7 @@ export interface UseCategoriesOptions extends RelayCursorPaginationVariables {
   fetchPolicy?: "cache-and-network" | "network-only";
 }
 
-interface UseCategoriesReturn {
+export interface UseCategoriesReturn {
   categories: ApiCategory[];
   connection: ApiCategoryConnection | null;
   totalCount: number;
@@ -49,10 +49,13 @@ export function useCategories(
     fetchPolicy = "cache-and-network",
   } = options;
 
-  const { data, previousData, loading, error, refetch } = useQuery<
+  const result = useRelayConnectionQuery<
     CategoriesQueryData,
-    CategoriesQueryVariables
-  >(CATEGORIES_QUERY, {
+    CategoriesQueryVariables,
+    ApiCategory,
+    ApiCategoryConnection
+  >({
+    query: CATEGORIES_QUERY,
     variables: {
       first,
       after,
@@ -64,18 +67,16 @@ export function useCategories(
     },
     skip,
     fetchPolicy,
+    getConnection: (data) => data?.catalogQuery.categories,
   });
 
-  const effectiveData = data ?? previousData;
-  const connection = effectiveData?.catalogQuery.categories ?? null;
-
   return {
-    categories: connection?.edges.map((edge) => edge.node) ?? [],
-    connection,
-    totalCount: connection?.totalCount ?? 0,
-    pageInfo: connection?.pageInfo ?? null,
-    loading,
-    error: error ?? null,
-    refetch: () => refetch(),
+    categories: result.nodes,
+    connection: result.connection,
+    totalCount: result.totalCount,
+    pageInfo: result.pageInfo,
+    loading: result.loading,
+    error: result.error,
+    refetch: result.refetch,
   };
 }

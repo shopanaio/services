@@ -10,6 +10,7 @@ import type {
   ApiCategory,
   ApiCategoryCategoriesMetaInput,
 } from "@/graphql/types";
+import { CategoryHierarchyScopeMode } from "@/graphql/types";
 import {
   useAddCategoryProduct,
   useRemoveCategoryProduct,
@@ -154,7 +155,7 @@ export const CategoriesSection = ({
         ? {
             productsScope: {
               referenceIds: [productId],
-              mode: "EXCLUDE",
+              mode: CategoryHierarchyScopeMode.Exclude,
             },
           }
         : undefined,

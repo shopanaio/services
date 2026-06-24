@@ -1,6 +1,5 @@
 "use client";
 
-import { useQuery } from "@apollo/client/react";
 import type {
   ApiPageInfo,
   ApiProduct,
@@ -9,6 +8,7 @@ import type {
   ApiProductProductsMetaInput,
   ApiProductWhereInput,
 } from "@/graphql/types";
+import { useRelayConnectionQuery } from "@/graphql/hooks/use-relay-connection-query";
 import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
 import { PRODUCTS_QUERY } from "../graphql";
 import type {
@@ -23,7 +23,7 @@ export interface UseProductsOptions extends RelayCursorPaginationVariables {
   skip?: boolean;
 }
 
-interface UseProductsReturn {
+export interface UseProductsReturn {
   products: ApiProduct[];
   connection: ApiProductConnection | null;
   totalCount: number;
@@ -45,25 +45,26 @@ export function useProducts(options: UseProductsOptions = {}): UseProductsReturn
     skip = false,
   } = options;
 
-  const { data, previousData, loading, error, refetch } = useQuery<
+  const result = useRelayConnectionQuery<
     ProductsQueryData,
-    ProductsQueryVariables
-  >(PRODUCTS_QUERY, {
+    ProductsQueryVariables,
+    ApiProduct,
+    ApiProductConnection
+  >({
+    query: PRODUCTS_QUERY,
     variables: { first, after, last, before, where, orderBy, meta },
     skip,
     fetchPolicy: "cache-and-network",
+    getConnection: (data) => data?.catalogQuery.products,
   });
 
-  const effectiveData = data ?? previousData;
-  const connection = effectiveData?.catalogQuery.products ?? null;
-
   return {
-    products: connection?.edges.map((edge) => edge.node) ?? [],
-    connection,
-    totalCount: connection?.totalCount ?? 0,
-    pageInfo: connection?.pageInfo ?? null,
-    loading,
-    error: error ?? null,
-    refetch: () => refetch(),
+    products: result.nodes,
+    connection: result.connection,
+    totalCount: result.totalCount,
+    pageInfo: result.pageInfo,
+    loading: result.loading,
+    error: result.error,
+    refetch: result.refetch,
   };
 }
