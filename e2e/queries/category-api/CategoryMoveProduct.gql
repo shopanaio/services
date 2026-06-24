@@ -1,10 +1,28 @@
-mutation CategoryMoveProduct($input: CategoryMoveProductInput!) {
+mutation CategoryMoveProduct(
+  $productId: ID!
+  $categoryId: ID!
+  $afterProductId: ID
+  $beforeProductId: ID
+  $expectedRevision: Int
+) {
   catalogMutation {
-    categoryMoveProduct(input: $input) {
-      category {
+    productUpdate(
+      productId: $productId
+      expectedRevision: $expectedRevision
+      operations: {
+        categories: [
+          {
+            categoryId: $categoryId
+            action: MOVE
+            afterProductId: $afterProductId
+            beforeProductId: $beforeProductId
+          }
+        ]
+      }
+    ) {
+      product {
         id
         handle
-        productsCount
       }
       userErrors {
         message

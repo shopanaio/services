@@ -65,14 +65,12 @@ async function createVendor(api: Api, name: string) {
 async function addProductToCategory(api: Api, categoryId: string, productId: string) {
   const { data } = await api.admin.mutation('category-api/CategoryAddProduct', {
     variables: {
-      input: {
-        categoryId,
-        productId,
-      },
+      categoryId,
+      productId,
     },
   });
 
-  expect(data.catalogMutation.categoryAddProduct.userErrors).toHaveLength(0);
+  expect(data.catalogMutation.productUpdate.userErrors).toHaveLength(0);
 }
 
 async function createProductWithPrices(

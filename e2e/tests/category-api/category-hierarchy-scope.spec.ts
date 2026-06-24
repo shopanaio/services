@@ -127,11 +127,12 @@ async function addProductToCategory(
 ) {
   const { data } = await api.admin.mutation('category-api/CategoryAddProduct', {
     variables: {
-      input: { categoryId, productId },
+      categoryId,
+      productId,
     },
   });
 
-  const result = data.catalogMutation.categoryAddProduct;
+  const result = data.catalogMutation.productUpdate;
   expect(result.userErrors).toHaveLength(0);
 }
 

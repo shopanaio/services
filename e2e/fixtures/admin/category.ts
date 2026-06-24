@@ -121,31 +121,34 @@ export class CategoryFixture {
   ): Promise<CategoryData> => {
     const { data } = await this.gql.mutation('category-api/CategoryMoveProduct', {
       variables: {
-        input: {
-          categoryId,
-          productId,
-          afterProductId: options.afterProductId,
-          beforeProductId: options.beforeProductId,
-        },
+        categoryId,
+        productId,
+        afterProductId: options.afterProductId,
+        beforeProductId: options.beforeProductId,
       },
     });
 
     const result = (
       data as {
         catalogMutation: {
-          categoryMoveProduct: {
-            category: CategoryData | null;
+          productUpdate: {
+            product: { id: string } | null;
             userErrors: { code: string; message: string; field: string[] }[];
           };
         };
       }
-    ).catalogMutation.categoryMoveProduct;
+    ).catalogMutation.productUpdate;
 
-    if (result.userErrors.length > 0 || !result.category) {
+    if (result.userErrors.length > 0 || !result.product) {
       throw new Error(`Failed to move product: ${JSON.stringify(result.userErrors)}`);
     }
 
-    return result.category;
+    const category = await this.findOne(categoryId);
+    if (!category) {
+      throw new Error(`Failed to load category after moving product: ${categoryId}`);
+    }
+
+    return category;
   };
 
   rebalance = async (categoryId: string): Promise<CategoryData> => {

@@ -42,12 +42,13 @@ async function createProduct(api: ApiFixtures['api'], title: string): Promise<Pr
 async function addProductToCategory(api: ApiFixtures['api'], categoryId: string, productId: string) {
   const { data } = await api.admin.mutation('category-api/CategoryAddProduct', {
     variables: {
-      input: { categoryId, productId },
+      categoryId,
+      productId,
     },
   });
-  if (data?.catalogMutation?.categoryAddProduct?.userErrors?.length > 0) {
+  if (data?.catalogMutation?.productUpdate?.userErrors?.length > 0) {
     throw new Error(
-      `CategoryAddProduct failed: ${JSON.stringify(data.catalogMutation.categoryAddProduct.userErrors)}`
+      `CategoryAddProduct failed: ${JSON.stringify(data.catalogMutation.productUpdate.userErrors)}`
     );
   }
 }
@@ -63,15 +64,14 @@ async function moveProduct(
 ) {
   const { data } = await api.admin.mutation('category-api/CategoryMoveProduct', {
     variables: {
-      input: {
-        categoryId,
-        productId,
-        ...options,
-      },
+      categoryId,
+      productId,
+      afterProductId: options.afterProductId,
+      beforeProductId: options.beforeProductId,
     },
   });
 
-  const result = data.catalogMutation.categoryMoveProduct;
+  const result = data.catalogMutation.productUpdate;
   if (result.userErrors?.length > 0) {
     throw new Error(`CategoryMoveProduct failed: ${JSON.stringify(result.userErrors)}`);
   }

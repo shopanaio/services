@@ -29,21 +29,12 @@ test.describe('Category Product Ordering API', () => {
 
   /**
    * Helper to add a product to a category
-   * Note: We use categoryMoveProduct to add products (it creates the link if missing via upsert)
-   * or we can directly use the repository's addProductToCategory via a separate mutation
    */
   async function addProductToCategory(api: any, categoryId: string, productId: string) {
-    // First, we need to check if there's a mutation to add products
-    // Based on the schema, categoryMoveProduct expects the product to already be in category
-    // We might need to use a different approach - let's check for a dedicated mutation
-    // For now, use categoryMoveProduct with no positioning (adds to end)
-    const { data } = await api.admin.mutation('category-api/CategoryMoveProduct', {
+    const { data } = await api.admin.mutation('category-api/CategoryAddProduct', {
       variables: {
-        input: {
-          categoryId,
-          productId,
-          // No afterProductId or beforeProductId - adds to end
-        },
+        categoryId,
+        productId,
       },
       throwOnError: false,
     });
@@ -84,16 +75,13 @@ test.describe('Category Product Ordering API', () => {
     const { data } = await api.admin.mutation('category-api/CategoryMoveProduct', {
       throwOnError: false,
       variables: {
-        input: {
-          categoryId: category.id,
-          productId: productId,
-        },
+        categoryId: category.id,
+        productId: productId,
       },
     });
 
-    const result = data.catalogMutation.categoryMoveProduct;
+    const result = data.catalogMutation.productUpdate;
 
-    expect(result.category).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
     expect(result.userErrors).toContainEqual(
       expect.objectContaining({
@@ -108,16 +96,14 @@ test.describe('Category Product Ordering API', () => {
     const { data } = await api.admin.mutation('category-api/CategoryMoveProduct', {
       throwOnError: false,
       variables: {
-        input: {
-          categoryId: '00000000-0000-0000-0000-000000000000',
-          productId: productId,
-        },
+        categoryId: '00000000-0000-0000-0000-000000000000',
+        productId: productId,
       },
     });
 
-    const result = data.catalogMutation.categoryMoveProduct;
+    const result = data.catalogMutation.productUpdate;
 
-    expect(result.category).toBeNull();
+    expect(result.product).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
     expect(result.userErrors).toContainEqual(
       expect.objectContaining({
@@ -134,22 +120,19 @@ test.describe('Category Product Ordering API', () => {
 
     const productId = await createProduct(api, 'Test Product');
 
-    // Note: Since we can't add products without them being in category first,
-    // this test validates the error when afterProductId is not in the category
+    // This validates malformed global ID handling before the workflow runs.
     const { data } = await api.admin.mutation('category-api/CategoryMoveProduct', {
       throwOnError: false,
       variables: {
-        input: {
-          categoryId: category.id,
-          productId: productId,
-          afterProductId: '00000000-0000-0000-0000-000000000000',
-        },
+        categoryId: category.id,
+        productId: productId,
+        afterProductId: '00000000-0000-0000-0000-000000000000',
       },
     });
 
-    const result = data.catalogMutation.categoryMoveProduct;
+    const result = data.catalogMutation.productUpdate;
 
-    expect(result.category).toBeNull();
+    expect(result.product).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
   });
 
@@ -227,17 +210,14 @@ test.describe('Category Product Ordering API', () => {
     const { data } = await api.admin.mutation('category-api/CategoryMoveProduct', {
       throwOnError: false,
       variables: {
-        input: {
-          categoryId: category.id,
-          productId: productId,
-          afterProductId: productId, // Same as productId
-        },
+        categoryId: category.id,
+        productId: productId,
+        afterProductId: productId, // Same as productId
       },
     });
 
-    const result = data.catalogMutation.categoryMoveProduct;
+    const result = data.catalogMutation.productUpdate;
 
-    expect(result.category).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
   });
 });

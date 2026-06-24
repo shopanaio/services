@@ -1045,6 +1045,9 @@ type CatalogQuery {
 
     """Sort order"""
     orderBy: [ProductOrderByInput!]
+
+    """Additional query metadata and scope filters"""
+    meta: ProductProductsMetaInput
   ): ProductConnection!
 
   """Get a variant by ID"""
@@ -1253,15 +1256,6 @@ type CatalogMutation {
 
   """Move a category to a new parent or position"""
   categoryMove(input: CategoryMoveInput!): CategoryMovePayload!
-
-  """Move a product within a category"""
-  categoryMoveProduct(input: CategoryMoveProductInput!): CategoryMoveProductPayload!
-
-  """Add a product to a category"""
-  categoryAddProduct(input: CategoryAddProductInput!): CategoryAddProductPayload!
-
-  """Remove a product from a category"""
-  categoryRemoveProduct(input: CategoryRemoveProductInput!): CategoryRemoveProductPayload!
 
   """Rebalance category tree positions"""
   categoryRebalance(input: CategoryRebalanceInput!): CategoryRebalancePayload!
@@ -1862,21 +1856,6 @@ type CategoryDeletePayload {
   deletedCategoryId: ID
 
   """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-type CategoryMoveProductPayload {
-  category: Category
-  userErrors: [GenericUserError!]!
-}
-
-type CategoryAddProductPayload {
-  category: Category
-  userErrors: [GenericUserError!]!
-}
-
-type CategoryRemoveProductPayload {
-  category: Category
   userErrors: [GenericUserError!]!
 }
 
@@ -3110,6 +3089,7 @@ enum BulkUpdateItemStatus {
 
 enum BulkUpdateOpType {
   PRODUCT_UPDATE
+  PRODUCT_CATEGORY_UPDATE
   VARIANT_UPDATE
 }
 
@@ -3293,10 +3273,18 @@ enum OptionDisplayType {
   BUTTONS
 }
 
+enum ProductCategoryOperationAction {
+  ADD
+  REMOVE
+  SET_PRIMARY
+  MOVE
+}
+
 """Type of operation in the unified update."""
 enum OperationType {
   PRODUCT_UPDATE
   VARIANT_UPDATE
+  PRODUCT_CATEGORY_UPDATE
   CATEGORY_UPDATE
 }
 
@@ -3958,23 +3946,6 @@ input CategoryDeleteInput {
   permanent: Boolean
 }
 
-input CategoryMoveProductInput {
-  categoryId: ID!
-  productId: ID!
-  afterProductId: ID
-  beforeProductId: ID
-}
-
-input CategoryAddProductInput {
-  categoryId: ID!
-  productId: ID!
-}
-
-input CategoryRemoveProductInput {
-  categoryId: ID!
-  productId: ID!
-}
-
 input CategoryRebalanceInput {
   categoryId: ID!
 }
@@ -4485,6 +4456,15 @@ input ListingOrderByInput {
   direction: SortDirection
 }
 
+input ProductProductsMetaInput {
+  categoriesScope: ProductCategoriesScopeInput
+}
+
+input ProductCategoriesScopeInput {
+  referenceIds: [ID!]!
+  mode: CategoryHierarchyScopeMode!
+}
+
 """Input for rich text content (all fields required)."""
 input RichTextInput {
   """Plain text content."""
@@ -4631,6 +4611,21 @@ input ProductMediaInput {
   fileIds: [ID!]!
 }
 
+"""Product category assignment operation for unified product updates."""
+input ProductCategoryOperationInput {
+  """The category to update for the product."""
+  categoryId: ID!
+
+  """The assignment action to apply."""
+  action: ProductCategoryOperationAction!
+
+  """Move this product after another product in the category listing."""
+  afterProductId: ID
+
+  """Move this product before another product in the category listing."""
+  beforeProductId: ID
+}
+
 """Input for product-level fields in the unified update."""
 input ProductUpdateInput {
   """The URL-friendly handle for the product."""
@@ -4653,6 +4648,9 @@ input ProductUpdateInput {
 
   """Product media."""
   media: ProductMediaInput
+
+  """Product category assignment operations."""
+  categories: [ProductCategoryOperationInput!]
 
   """Variant updates."""
   variants: [VariantUpdateInput!]

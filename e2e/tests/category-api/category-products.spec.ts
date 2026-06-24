@@ -64,14 +64,17 @@ async function createProduct(
 async function addProductToCategory(api: ApiFixtures['api'], categoryId: string, productId: string) {
   const { data, errors } = await api.admin.mutation('category-api/CategoryAddProduct', {
     variables: {
-      input: { categoryId, productId },
+      categoryId,
+      productId,
     },
   });
   if (errors?.length) {
     throw new Error(`CategoryAddProduct errors: ${JSON.stringify(errors)}`);
   }
-  if (data?.catalogMutation?.categoryAddProduct?.userErrors?.length > 0) {
-    throw new Error(`CategoryAddProduct userErrors: ${JSON.stringify(data.catalogMutation.categoryAddProduct.userErrors)}`);
+  if (data?.catalogMutation?.productUpdate?.userErrors?.length > 0) {
+    throw new Error(
+      `CategoryAddProduct userErrors: ${JSON.stringify(data.catalogMutation.productUpdate.userErrors)}`
+    );
   }
 }
 
