@@ -95,6 +95,7 @@ export const ProductDetailsCard = ({
         productId={product.id}
         primaryCategory={getProductPrimaryCategory(product)}
         categories={getProductCategories(product)}
+        onProductRefresh={onProductRefresh}
       />
 
       {/* REVIEWS */}

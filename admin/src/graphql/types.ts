@@ -586,6 +586,8 @@ export type ApiCatalogMutation = {
   categoryRebalance: ApiCategoryRebalancePayload;
   /** Remove a product from a category */
   categoryRemoveProduct: ApiCategoryRemoveProductPayload;
+  /** Set an assigned category as the product primary category */
+  categorySetProductPrimary: ApiCategorySetProductPrimaryPayload;
   /** Unified category update with optimistic locking. */
   categoryUpdate: ApiCategoryUpdatePayload;
   /** Add products to a collection */
@@ -784,6 +786,11 @@ export type ApiCatalogMutationCategoryRebalanceArgs = {
 
 export type ApiCatalogMutationCategoryRemoveProductArgs = {
   input: ApiCategoryRemoveProductInput;
+};
+
+
+export type ApiCatalogMutationCategorySetProductPrimaryArgs = {
+  input: ApiCategorySetProductPrimaryInput;
 };
 
 
@@ -1611,6 +1618,17 @@ export type ApiCategoryRemoveProductInput = {
 
 export type ApiCategoryRemoveProductPayload = {
   __typename?: 'CategoryRemoveProductPayload';
+  category?: Maybe<ApiCategory>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCategorySetProductPrimaryInput = {
+  categoryId: Scalars['ID']['input'];
+  productId: Scalars['ID']['input'];
+};
+
+export type ApiCategorySetProductPrimaryPayload = {
+  __typename?: 'CategorySetProductPrimaryPayload';
   category?: Maybe<ApiCategory>;
   userErrors: Array<ApiGenericUserError>;
 };

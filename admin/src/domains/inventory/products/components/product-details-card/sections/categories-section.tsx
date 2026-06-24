@@ -1,57 +1,149 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Tag, Typography, Flex, Dropdown } from "antd";
+import { useEffect, useMemo, useState } from "react";
+import { App, Dropdown, Flex, Tag, Typography } from "antd";
 import { PlusOutlined, MoreOutlined, StarFilled } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useCategoryPicker } from "@/shared/components/entity-picker-modal";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";
 import type { ApiCategory } from "@/graphql/types";
 import type { ApiCategoryCategoriesMetaInput } from "@/domains/inventory/categories/graphql";
-import { createMockApiCategory } from "@/mocks/products/api-builders";
+import {
+  useAddCategoryProduct,
+  useRemoveCategoryProduct,
+  useSetCategoryProductPrimary,
+} from "@/domains/inventory/categories/hooks";
+
+interface CategoryItem {
+  id: string;
+  name: string;
+}
 
 interface ICategoriesSectionProps {
   productId?: string;
   primaryCategory?: ApiCategory | null;
   categories?: ApiCategory[];
+  onProductRefresh?: () => Promise<unknown>;
 }
+
+const toCategoryItem = (category: ApiCategory): CategoryItem => ({
+  id: category.id,
+  name: category.name,
+});
 
 export const CategoriesSection = ({
   productId,
   primaryCategory: initialPrimaryCategory,
   categories: initialCategories = [],
+  onProductRefresh,
 }: ICategoriesSectionProps) => {
-  const [categories, setCategories] = useState<ApiCategory[]>(() => {
+  const { message } = App.useApp();
+  const { addCategoryProduct } = useAddCategoryProduct();
+  const { removeCategoryProduct } = useRemoveCategoryProduct();
+  const { setCategoryProductPrimary } = useSetCategoryProductPrimary();
+  const [pendingCategoryId, setPendingCategoryId] = useState<string | null>(
+    null,
+  );
+  const [categories, setCategories] = useState<CategoryItem[]>(() => {
     if (initialPrimaryCategory) {
       return [
-        initialPrimaryCategory,
-        ...initialCategories.filter(
-          (cat) => cat.id !== initialPrimaryCategory.id
-        ),
+        toCategoryItem(initialPrimaryCategory),
+        ...initialCategories
+          .filter((cat) => cat.id !== initialPrimaryCategory.id)
+          .map(toCategoryItem),
       ];
     }
-    return initialCategories;
+    return initialCategories.map(toCategoryItem);
   });
-
   const [primaryCategoryId, setPrimaryCategoryId] = useState<string | null>(
-    initialPrimaryCategory?.id ?? null
+    initialPrimaryCategory?.id ?? null,
   );
+  const initialCategoriesKey = initialCategories
+    .map((category) => category.id)
+    .join("|");
+  const initialPrimaryCategoryId = initialPrimaryCategory?.id ?? null;
+
+  useEffect(() => {
+    setCategories(
+      initialPrimaryCategory
+        ? [
+            toCategoryItem(initialPrimaryCategory),
+            ...initialCategories
+              .filter((cat) => cat.id !== initialPrimaryCategory.id)
+              .map(toCategoryItem),
+          ]
+        : initialCategories.map(toCategoryItem),
+    );
+    setPrimaryCategoryId(initialPrimaryCategory?.id ?? null);
+  }, [initialCategoriesKey, initialPrimaryCategoryId]);
 
   const primaryCategory =
     categories.find((cat) => cat.id === primaryCategoryId) ?? null;
   const nonPrimaryCategories = categories.filter(
-    (cat) => cat.id !== primaryCategoryId
+    (cat) => cat.id !== primaryCategoryId,
   );
 
-  const deleteCategory = (id: string) => {
-    setCategories((prev) => prev.filter((cat) => cat.id !== id));
-    if (primaryCategoryId === id) {
-      setPrimaryCategoryId(null);
+  const refreshProduct = async () => {
+    try {
+      await onProductRefresh?.();
+    } catch {
+      message.warning("Category changes saved, but product refresh failed");
     }
   };
 
-  const setPrimary = (id: string) => {
-    setPrimaryCategoryId(id);
+  const deleteCategory = async (id: string) => {
+    if (!productId) {
+      message.error("Product id is missing");
+      return;
+    }
+
+    setPendingCategoryId(id);
+    try {
+      const result = await removeCategoryProduct({
+        categoryId: id,
+        productId,
+      });
+
+      if (result.userErrors.length > 0) {
+        message.error(result.userErrors[0].message);
+        return;
+      }
+
+      setCategories((prev) => prev.filter((cat) => cat.id !== id));
+      if (primaryCategoryId === id) {
+        setPrimaryCategoryId(null);
+      }
+      await refreshProduct();
+      message.success("Category removed from product");
+    } finally {
+      setPendingCategoryId(null);
+    }
+  };
+
+  const setPrimary = async (id: string) => {
+    if (!productId) {
+      message.error("Product id is missing");
+      return;
+    }
+
+    setPendingCategoryId(id);
+    try {
+      const result = await setCategoryProductPrimary({
+        categoryId: id,
+        productId,
+      });
+
+      if (result.userErrors.length > 0) {
+        message.error(result.userErrors[0].message);
+        return;
+      }
+
+      setPrimaryCategoryId(id);
+      await refreshProduct();
+      message.success("Primary category updated");
+    } finally {
+      setPendingCategoryId(null);
+    }
   };
 
   const categoryPickerMeta = useMemo<ApiCategoryCategoriesMetaInput | undefined>(
@@ -67,36 +159,63 @@ export const CategoriesSection = ({
     [productId]
   );
 
+  const addCategories = async (entities: IPickableEntity[]) => {
+    if (!productId) {
+      message.error("Product id is missing");
+      return;
+    }
+
+    const existingById = new Map(categories.map((c) => [c.id, c]));
+    const newCategories = entities
+      .filter((entity) => !existingById.has(entity.id))
+      .map((entity): CategoryItem => ({
+        id: entity.id,
+        name: entity.title,
+      }));
+
+    if (newCategories.length === 0) {
+      return;
+    }
+
+    setPendingCategoryId(newCategories[0].id);
+    try {
+      for (const category of newCategories) {
+        const result = await addCategoryProduct({
+          categoryId: category.id,
+          productId,
+        });
+
+        if (result.userErrors.length > 0) {
+          message.error(result.userErrors[0].message);
+          return;
+        }
+      }
+
+      setCategories((prev) => [...prev, ...newCategories]);
+      if (!primaryCategoryId) {
+        setPrimaryCategoryId(newCategories[0]?.id ?? null);
+      }
+      await refreshProduct();
+      message.success(
+        newCategories.length === 1
+          ? "Category added to product"
+          : "Categories added to product",
+      );
+    } finally {
+      setPendingCategoryId(null);
+    }
+  };
+
   const { openPicker } = useCategoryPicker({
     excludeIds: categories.map((cat) => cat.id),
     queryMeta: categoryPickerMeta,
     onConfirm: (entities: IPickableEntity[]) => {
-      const existingById = new Map(categories.map((c) => [c.id, c]));
-      const newCategories = entities
-        .filter((entity) => !existingById.has(entity.id))
-        .map((entity) => {
-          const categoryHandle =
-            "handle" in entity && typeof entity.handle === "string"
-              ? entity.handle
-              : entity.id;
-
-          return createMockApiCategory({
-            id: entity.id,
-            name: entity.title,
-            handle: categoryHandle,
-          });
-        });
-      const nextCategories = [...categories, ...newCategories];
-
-      setCategories(nextCategories);
-
-      if (!primaryCategoryId) {
-        setPrimaryCategoryId(nextCategories[0]?.id ?? null);
-      }
+      void addCategories(entities);
     },
   });
 
   const hasCategories = categories.length > 0;
+  const isPending = pendingCategoryId !== null;
 
   return (
     <Paper>
@@ -112,6 +231,7 @@ export const CategoriesSection = ({
                     key: "delete",
                     label: "Delete category",
                     onClick: () => deleteCategory(primaryCategory.id),
+                    disabled: isPending,
                   },
                 ],
               }}
@@ -135,11 +255,13 @@ export const CategoriesSection = ({
                     key: "set-as-primary",
                     label: "Set as primary",
                     onClick: () => setPrimary(category.id),
+                    disabled: isPending,
                   },
                   {
                     key: "delete",
                     label: "Delete category",
                     onClick: () => deleteCategory(category.id),
+                    disabled: isPending,
                   },
                 ],
               }}
@@ -154,9 +276,9 @@ export const CategoriesSection = ({
           ))}
           <Tag
             variant="outlined"
-            onClick={openPicker}
+            onClick={isPending ? undefined : openPicker}
             style={{
-              cursor: "pointer",
+              cursor: isPending ? "not-allowed" : "pointer",
               background: "transparent",
               borderStyle: "dashed",
             }}
@@ -171,9 +293,9 @@ export const CategoriesSection = ({
         <Flex gap={4} wrap="wrap">
           <Tag
             variant="outlined"
-            onClick={openPicker}
+            onClick={isPending ? undefined : openPicker}
             style={{
-              cursor: "pointer",
+              cursor: isPending ? "not-allowed" : "pointer",
               background: "transparent",
               borderStyle: "dashed",
             }}

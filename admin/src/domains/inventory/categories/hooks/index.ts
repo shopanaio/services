@@ -7,5 +7,6 @@ export * from "./use-update-category";
 export * from "./use-update-category-subcategories";
 export * from "./use-add-category-product";
 export * from "./use-remove-category-product";
+export * from "./use-set-category-product-primary";
 export * from "./use-move-category-product";
 export * from "./use-rebalance-category";

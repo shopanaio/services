@@ -436,6 +436,11 @@ type CatalogMutation {
   categoryRemoveProduct(input: CategoryRemoveProductInput!): CategoryRemoveProductPayload!
 
   """
+  Set an assigned category as the product primary category
+  """
+  categorySetProductPrimary(input: CategorySetProductPrimaryInput!): CategorySetProductPrimaryPayload!
+
+  """
   Rebalance category tree positions
   """
   categoryRebalance(input: CategoryRebalanceInput!): CategoryRebalancePayload!

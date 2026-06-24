@@ -17,6 +17,8 @@ import type {
   ApiCategoryRebalancePayload,
   ApiCategoryRemoveProductInput,
   ApiCategoryRemoveProductPayload,
+  ApiCategorySetProductPrimaryInput,
+  ApiCategorySetProductPrimaryPayload,
   ApiCategoryUpdateInput,
   ApiGenericUserError,
   ApiListingOrderByInput,
@@ -142,6 +144,16 @@ export interface CategoryRemoveProductMutationData {
 
 export interface CategoryRemoveProductMutationVariables {
   input: ApiCategoryRemoveProductInput;
+}
+
+export interface CategorySetProductPrimaryMutationData {
+  catalogMutation: Pick<ApiCatalogMutation, "categorySetProductPrimary"> & {
+    categorySetProductPrimary: ApiCategorySetProductPrimaryPayload;
+  };
+}
+
+export interface CategorySetProductPrimaryMutationVariables {
+  input: ApiCategorySetProductPrimaryInput;
 }
 
 export interface CategoryMoveProductMutationData {

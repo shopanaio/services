@@ -104,6 +104,24 @@ export const CATEGORY_REMOVE_PRODUCT_MUTATION = gql`
   ${USER_ERROR_FRAGMENT}
 `;
 
+export const CATEGORY_SET_PRODUCT_PRIMARY_MUTATION = gql`
+  mutation CategorySetProductPrimary($input: CategorySetProductPrimaryInput!) {
+    catalogMutation {
+      categorySetProductPrimary(input: $input) {
+        category {
+          id
+          productsCount
+          updatedAt
+        }
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${USER_ERROR_FRAGMENT}
+`;
+
 export const CATEGORY_MOVE_PRODUCT_MUTATION = gql`
   mutation CategoryMoveProduct($input: CategoryMoveProductInput!) {
     catalogMutation {

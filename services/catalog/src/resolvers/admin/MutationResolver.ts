@@ -45,6 +45,7 @@ import {
   CategoryRebalanceScript,
   CategoryAddProductScript,
   CategoryRemoveProductScript,
+  CategorySetProductPrimaryScript,
 } from "../../scripts/category/index.js";
 import type {
   CategoryUpdateParams,
@@ -194,6 +195,13 @@ import {
   ProductFeaturesSyncInputSchema,
 } from "./generated/schemas.js";
 import { ProductBulkUpdateInputSchema } from "./validation/productBulkEditSchema.js";
+
+interface CatalogMutationCategorySetProductPrimaryArgs {
+  input: {
+    categoryId: string;
+    productId: string;
+  };
+}
 
 /**
  * Root Mutation resolver for Catalog Service.
@@ -1541,6 +1549,49 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       categoryId,
       productId,
     });
+
+    if (result.userErrors.length === 0) {
+      await this.emitProductCategoryUpdated({
+        productIds: result.affectedProductIds,
+        reason: "assignment",
+        categoryIds: [categoryId],
+      });
+    }
+
+    return {
+      category: result.category
+        ? new CategoryResolver(result.category.id, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async categorySetProductPrimary(
+    args: CatalogMutationCategorySetProductPrimaryArgs
+  ) {
+    const { input } = args;
+    let categoryId: string;
+    let productId: string;
+    try {
+      categoryId = decodeGlobalIdByType(
+        input.categoryId,
+        GlobalIdEntity.Category
+      );
+      productId = decodeGlobalIdByType(input.productId, GlobalIdEntity.Product);
+    } catch {
+      return {
+        category: null,
+        userErrors: [{ message: "Invalid ID format", code: "INVALID_ID" }],
+      };
+    }
+
+    const result = await this.$ctx.kernel.runScript(
+      CategorySetProductPrimaryScript,
+      {
+        categoryId,
+        productId,
+      },
+    );
 
     if (result.userErrors.length === 0) {
       await this.emitProductCategoryUpdated({

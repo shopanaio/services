@@ -765,6 +765,53 @@ export class CategoryRepository extends BaseRepository {
     return result[0];
   }
 
+  async setProductPrimaryCategory(
+    productId: string,
+    categoryId: string,
+  ): Promise<ProductCategory | null> {
+    return this.connection.transaction(async (tx) => {
+      const existing = await tx
+        .select()
+        .from(productCategory)
+        .where(
+          and(
+            eq(productCategory.projectId, this.storeId),
+            eq(productCategory.productId, productId),
+            eq(productCategory.categoryId, categoryId),
+          ),
+        )
+        .limit(1);
+
+      if (!existing[0]) {
+        return null;
+      }
+
+      await tx
+        .update(productCategory)
+        .set({ isPrimary: false })
+        .where(
+          and(
+            eq(productCategory.projectId, this.storeId),
+            eq(productCategory.productId, productId),
+          ),
+        );
+
+      const updated = await tx
+        .update(productCategory)
+        .set({ isPrimary: true })
+        .where(
+          and(
+            eq(productCategory.projectId, this.storeId),
+            eq(productCategory.productId, productId),
+            eq(productCategory.categoryId, categoryId),
+          ),
+        )
+        .returning();
+
+      return updated[0] ?? null;
+    });
+  }
+
   async getProductCategory(
     categoryId: string,
     productId: string,

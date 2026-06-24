@@ -282,6 +282,11 @@ input CategoryRemoveProductInput {
   productId: ID!
 }
 
+input CategorySetProductPrimaryInput {
+  categoryId: ID!
+  productId: ID!
+}
+
 input CategoryRebalanceInput {
   categoryId: ID!
 }
@@ -346,6 +351,11 @@ type CategoryAddProductPayload {
 }
 
 type CategoryRemoveProductPayload {
+  category: Category
+  userErrors: [GenericUserError!]!
+}
+
+type CategorySetProductPrimaryPayload {
   category: Category
   userErrors: [GenericUserError!]!
 }
