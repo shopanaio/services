@@ -1024,6 +1024,7 @@ export type CatalogQueryProductsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<ProductProductsMetaInput>;
   orderBy?: InputMaybe<Array<ProductOrderByInput>>;
   where?: InputMaybe<ProductWhereInput>;
 };
@@ -3033,6 +3034,11 @@ export type ProductBulkUpdatePayload = {
   userErrors: Array<BulkUpdateUserError>;
 };
 
+export type ProductCategoriesScopeInput = {
+  mode: CategoryHierarchyScopeMode;
+  referenceIds: Array<Scalars['ID']['input']>;
+};
+
 export type ProductCategoryAssignment = {
   __typename?: 'ProductCategoryAssignment';
   category: Category;
@@ -3608,6 +3614,10 @@ export enum ProductOrderField {
   /** Sort by vendorId */
   VendorId = 'vendorId'
 }
+
+export type ProductProductsMetaInput = {
+  categoriesScope?: InputMaybe<ProductCategoriesScopeInput>;
+};
 
 /** SEO and Open Graph metadata for a product. */
 export type ProductSeo = {
@@ -4739,6 +4749,7 @@ export type ResolversTypes = ResolversObject<{
   ProductBulkUpdateJobConnection: ResolverTypeWrapper<ProductBulkUpdateJobConnection>;
   ProductBulkUpdateJobEdge: ResolverTypeWrapper<ProductBulkUpdateJobEdge>;
   ProductBulkUpdatePayload: ResolverTypeWrapper<ProductBulkUpdatePayload>;
+  ProductCategoriesScopeInput: ProductCategoriesScopeInput;
   ProductCategoryAssignment: ResolverTypeWrapper<ProductCategoryAssignment>;
   ProductConnection: ResolverTypeWrapper<ProductConnection>;
   ProductContentInput: ProductContentInput;
@@ -4787,6 +4798,7 @@ export type ResolversTypes = ResolversObject<{
   ProductOptionsSyncPayload: ResolverTypeWrapper<ProductOptionsSyncPayload>;
   ProductOrderByInput: ProductOrderByInput;
   ProductOrderField: ProductOrderField;
+  ProductProductsMetaInput: ProductProductsMetaInput;
   ProductSeo: ResolverTypeWrapper<ProductSeo>;
   ProductSeoInput: ProductSeoInput;
   ProductSortBy: ProductSortBy;
@@ -5016,6 +5028,7 @@ export type ResolversParentTypes = ResolversObject<{
   ProductBulkUpdateJobConnection: ProductBulkUpdateJobConnection;
   ProductBulkUpdateJobEdge: ProductBulkUpdateJobEdge;
   ProductBulkUpdatePayload: ProductBulkUpdatePayload;
+  ProductCategoriesScopeInput: ProductCategoriesScopeInput;
   ProductCategoryAssignment: ProductCategoryAssignment;
   ProductConnection: ProductConnection;
   ProductContentInput: ProductContentInput;
@@ -5063,6 +5076,7 @@ export type ResolversParentTypes = ResolversObject<{
   ProductOptionsSyncInput: ProductOptionsSyncInput;
   ProductOptionsSyncPayload: ProductOptionsSyncPayload;
   ProductOrderByInput: ProductOrderByInput;
+  ProductProductsMetaInput: ProductProductsMetaInput;
   ProductSeo: ProductSeo;
   ProductSeoInput: ProductSeoInput;
   ProductSortInput: ProductSortInput;
@@ -6433,3 +6447,4 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   VendorEdge?: VendorEdgeResolvers<ContextType>;
   WidgetQuery?: WidgetQueryResolvers<ContextType>;
 }>;
+

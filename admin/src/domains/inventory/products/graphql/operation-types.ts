@@ -19,6 +19,7 @@ import type {
   ApiProductOption,
   ApiProductOptionsSyncInput,
   ApiProductOrderByInput,
+  ApiProductProductsMetaInput,
   ApiProductUpdateInput,
   ApiProductUpdateStatusInput,
   ApiProductWhereInput,
@@ -43,6 +44,7 @@ export interface ProductsQueryVariables {
   before?: string | null;
   where?: ApiProductWhereInput | null;
   orderBy?: ApiProductOrderByInput[] | null;
+  meta?: ApiProductProductsMetaInput | null;
 }
 
 export interface VendorsQueryData {

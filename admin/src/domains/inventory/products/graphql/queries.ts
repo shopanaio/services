@@ -14,6 +14,7 @@ export const PRODUCTS_QUERY = gql`
     $before: String
     $where: ProductWhereInput
     $orderBy: [ProductOrderByInput!]
+    $meta: ProductProductsMetaInput
   ) {
     catalogQuery {
       products(
@@ -23,6 +24,7 @@ export const PRODUCTS_QUERY = gql`
         before: $before
         where: $where
         orderBy: $orderBy
+        meta: $meta
       ) {
         edges {
           cursor

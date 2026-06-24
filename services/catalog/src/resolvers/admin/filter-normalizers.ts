@@ -4,8 +4,13 @@ import {
 } from "@shopana/shared-graphql-guid";
 import type { NormalizedCategoryHierarchyScope } from "../../repositories/category/CategoryHierarchyScope.js";
 import type { NormalizedCategoryProductsScope } from "../../repositories/category/CategoryProductsScope.js";
+import type { NormalizedProductCategoriesScope } from "../../repositories/product/ProductCategoriesScope.js";
 
-export type { NormalizedCategoryHierarchyScope, NormalizedCategoryProductsScope };
+export type {
+  NormalizedCategoryHierarchyScope,
+  NormalizedCategoryProductsScope,
+  NormalizedProductCategoriesScope,
+};
 
 type CategoryHierarchyScopeInput = {
   referenceId?: string | null;
@@ -15,6 +20,11 @@ type CategoryHierarchyScopeInput = {
 };
 
 type CategoryProductsScopeInput = {
+  referenceIds: string[];
+  mode: "INCLUDE" | "EXCLUDE";
+};
+
+type ProductCategoriesScopeInput = {
   referenceIds: string[];
   mode: "INCLUDE" | "EXCLUDE";
 };
@@ -81,6 +91,38 @@ export function normalizeCategoryProductsScopeInput(
   for (const id of input.referenceIds) {
     try {
       referenceIds.push(decodeGlobalIdByType(id, GlobalIdEntity.Product));
+    } catch {
+      return { kind: "empty" };
+    }
+  }
+
+  return {
+    kind: "scope",
+    referenceIds: [...new Set(referenceIds)],
+    mode,
+  };
+}
+
+export function normalizeProductCategoriesScopeInput(
+  input: ProductCategoriesScopeInput | null | undefined
+): NormalizedProductCategoriesScope | undefined {
+  if (!input) {
+    return undefined;
+  }
+
+  if (!input.referenceIds?.length) {
+    return { kind: "empty" };
+  }
+
+  const mode = input.mode;
+  if (mode !== "INCLUDE" && mode !== "EXCLUDE") {
+    return { kind: "empty" };
+  }
+
+  const referenceIds: string[] = [];
+  for (const id of input.referenceIds) {
+    try {
+      referenceIds.push(decodeGlobalIdByType(id, GlobalIdEntity.Category));
     } catch {
       return { kind: "empty" };
     }

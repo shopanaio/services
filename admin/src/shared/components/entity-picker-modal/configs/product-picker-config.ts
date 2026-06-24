@@ -23,6 +23,7 @@ import type {
 import type {
   ApiProduct,
   ApiProductOrderByInput,
+  ApiProductProductsMetaInput,
   ApiProductWhereInput,
   ProductOrderField,
 } from "@/graphql/types";
@@ -49,6 +50,7 @@ function useProductsPickerData(options: {
   where?: object | null;
   orderBy?: object[] | null;
   excludeIds: string[];
+  queryMeta?: unknown;
 }): IEntityPickerDataResult<ProductPickerEntity> {
   const {
     pageSize,
@@ -59,6 +61,7 @@ function useProductsPickerData(options: {
     where,
     orderBy,
     excludeIds,
+    queryMeta,
   } = options;
   const productsWhere = useMemo<ApiProductWhereInput | null>(() => {
     const conditions: ApiProductWhereInput[] = [];
@@ -83,6 +86,7 @@ function useProductsPickerData(options: {
     before,
     where: productsWhere,
     orderBy: orderBy as ApiProductOrderByInput[] | null,
+    meta: queryMeta as ApiProductProductsMetaInput | null | undefined,
   });
 
   const data = useMemo(

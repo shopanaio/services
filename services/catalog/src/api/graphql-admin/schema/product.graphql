@@ -16,6 +16,15 @@ input ListingOrderByInput {
   direction: SortDirection
 }
 
+input ProductProductsMetaInput {
+  categoriesScope: ProductCategoriesScopeInput
+}
+
+input ProductCategoriesScopeInput {
+  referenceIds: [ID!]!
+  mode: CategoryHierarchyScopeMode!
+}
+
 # ---- Product Types ----
 
 """

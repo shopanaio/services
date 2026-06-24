@@ -22,7 +22,7 @@ function safeDecodeGlobalId(
 }
 import {
   ProductConnectionResolver,
-  type ProductConnectionInput,
+  type ProductQueryProductsArgs,
 } from "./ProductConnectionResolver.js";
 import { VariantResolver } from "./VariantResolver.js";
 import { CategoryResolver } from "./CategoryResolver.js";
@@ -65,6 +65,7 @@ import {
 import {
   normalizeCategoryHierarchyScopeInput,
   normalizeCategoryProductsScopeInput,
+  normalizeProductCategoriesScopeInput,
 } from "./filter-normalizers.js";
 import { CollectionRulesPreviewCountScript } from "../../scripts/collection/CollectionRulesPreviewCountScript.js";
 
@@ -155,8 +156,18 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
   /**
    * Get a paginated list of products.
    */
-  products(args: ProductConnectionInput) {
-    return new ProductConnectionResolver(args, this.$ctx);
+  products(args: ProductQueryProductsArgs) {
+    return new ProductConnectionResolver(
+      {
+        ...args,
+        meta: {
+          categoriesScope: normalizeProductCategoriesScopeInput(
+            args.meta?.categoriesScope
+          ),
+        },
+      },
+      this.$ctx
+    );
   }
 
   // ---- Variant Queries ----

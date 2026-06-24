@@ -40,6 +40,7 @@ export function useEntityPicker<T extends IPickableEntity>(
     initialSelection = [],
     excludeIds = [],
     maxSelection,
+    queryMeta,
     onConfirm,
   } = options;
 
@@ -50,6 +51,7 @@ export function useEntityPicker<T extends IPickableEntity>(
       initialSelection,
       excludeIds,
       maxSelection,
+      queryMeta,
       onConfirm,
     });
   }, [
@@ -59,6 +61,7 @@ export function useEntityPicker<T extends IPickableEntity>(
     initialSelection,
     excludeIds,
     maxSelection,
+    queryMeta,
     onConfirm,
   ]);
 

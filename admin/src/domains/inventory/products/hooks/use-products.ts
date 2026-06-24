@@ -6,6 +6,7 @@ import type {
   ApiProduct,
   ApiProductConnection,
   ApiProductOrderByInput,
+  ApiProductProductsMetaInput,
   ApiProductWhereInput,
 } from "@/graphql/types";
 import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
@@ -18,6 +19,7 @@ import type {
 export interface UseProductsOptions extends RelayCursorPaginationVariables {
   where?: ApiProductWhereInput | null;
   orderBy?: ApiProductOrderByInput[] | null;
+  meta?: ApiProductProductsMetaInput | null;
   skip?: boolean;
 }
 
@@ -39,6 +41,7 @@ export function useProducts(options: UseProductsOptions = {}): UseProductsReturn
     before = null,
     where = null,
     orderBy = null,
+    meta = null,
     skip = false,
   } = options;
 
@@ -46,7 +49,7 @@ export function useProducts(options: UseProductsOptions = {}): UseProductsReturn
     ProductsQueryData,
     ProductsQueryVariables
   >(PRODUCTS_QUERY, {
-    variables: { first, after, last, before, where, orderBy },
+    variables: { first, after, last, before, where, orderBy, meta },
     skip,
     fetchPolicy: "cache-and-network",
   });

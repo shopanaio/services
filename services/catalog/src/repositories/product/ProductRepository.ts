@@ -10,6 +10,7 @@ import {
 import { BaseRepository } from "../BaseRepository.js";
 import {
   product,
+  productCategory,
   productListView,
   productTranslation,
   productOption,
@@ -25,6 +26,7 @@ import {
   decodeProductGlobalId,
   decodeVendorGlobalId,
 } from "../global-id-where-mappers.js";
+import type { NormalizedProductCategoriesScope } from "./ProductCategoriesScope.js";
 
 const productQuery = createQuery(product).maxLimit(100).defaultLimit(20);
 
@@ -43,6 +45,16 @@ export const productRelayQuery = createRelayQuery(
 
 export type ProductQueryInput = InferExecuteOptions<typeof productQuery>;
 export type ProductRelayInput = InferRelayInput<typeof productRelayQuery>;
+export type ProductConnectionMetaInput = {
+  categoriesScope?: NormalizedProductCategoriesScope;
+};
+export type ProductConnectionInput = ProductRelayInput & {
+  meta?: ProductConnectionMetaInput;
+};
+
+const EMPTY_PRODUCT_WHERE: ProductRelayInput["where"] = {
+  id: { _in: ["00000000-0000-0000-0000-000000000000"] },
+};
 
 export interface ProductConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
@@ -238,8 +250,11 @@ export class ProductRepository extends BaseRepository {
     return result[0]?.count ?? 0;
   }
 
-  async getConnection(args: ProductRelayInput): Promise<ProductConnectionResult> {
-    const { where, orderBy, ...paginationArgs } = args;
+  async getConnection(args: ProductConnectionInput): Promise<ProductConnectionResult> {
+    const { where, orderBy, meta, ...paginationArgs } = args;
+    const categoriesScopeWhere = await this.buildCategoriesScopeWhere(
+      meta?.categoriesScope
+    );
 
     // Scope list view rows to current tenant, locale, and currency.
     const mergedWhere: ProductRelayInput["where"] = {
@@ -254,6 +269,7 @@ export class ProductRepository extends BaseRepository {
           ],
         },
         ...(where ? [where] : []),
+        ...(categoriesScopeWhere ? [categoriesScopeWhere] : []),
       ],
     };
 
@@ -279,6 +295,37 @@ export class ProductRepository extends BaseRepository {
       pageInfo: result.pageInfo,
       totalCount,
     };
+  }
+
+  private async buildCategoriesScopeWhere(
+    scope: NormalizedProductCategoriesScope | undefined,
+  ): Promise<ProductRelayInput["where"] | undefined> {
+    if (!scope) {
+      return undefined;
+    }
+
+    if (scope.kind === "empty") {
+      return EMPTY_PRODUCT_WHERE;
+    }
+
+    const rows = await this.connection
+      .select({ productId: productCategory.productId })
+      .from(productCategory)
+      .where(
+        and(
+          eq(productCategory.projectId, this.storeId),
+          inArray(productCategory.categoryId, scope.referenceIds)
+        )
+      );
+
+    const productIds = [...new Set(rows.map((row) => row.productId))];
+    if (productIds.length === 0) {
+      return scope.mode === "EXCLUDE" ? undefined : EMPTY_PRODUCT_WHERE;
+    }
+
+    return scope.mode === "EXCLUDE"
+      ? { id: { _notIn: productIds } }
+      : { id: { _in: productIds } };
   }
 
   async getMany(input?: ProductQueryInput): Promise<Product[]> {

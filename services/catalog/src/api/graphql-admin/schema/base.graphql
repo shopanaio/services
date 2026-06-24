@@ -63,6 +63,10 @@ type CatalogQuery {
     Sort order
     """
     orderBy: [ProductOrderByInput!]
+    """
+    Additional query metadata and scope filters
+    """
+    meta: ProductProductsMetaInput
   ): ProductConnection!
 
   """

@@ -2,7 +2,12 @@
 
 import { useCallback, useMemo } from "react";
 import { App } from "antd";
-import { CategoryStatus, type ApiCategory } from "@/graphql/types";
+import {
+  CategoryHierarchyScopeMode,
+  CategoryStatus,
+  type ApiCategory,
+  type ApiProductProductsMetaInput,
+} from "@/graphql/types";
 import type { ApiCategoryCategoriesMetaInput } from "../../../graphql";
 import { useModalStackContext } from "@/layouts/modals";
 import {
@@ -145,6 +150,15 @@ export const useCategoryModals = (
     }),
     [category.id],
   );
+  const safeProductCandidatesMeta = useMemo<ApiProductProductsMetaInput>(
+    () => ({
+      categoriesScope: {
+        referenceIds: [category.id],
+        mode: CategoryHierarchyScopeMode.Exclude,
+      },
+    }),
+    [category.id],
+  );
 
   const { openPicker: editParent } = useCategoryPicker({
     selectionMode: "single",
@@ -232,6 +246,7 @@ export const useCategoryModals = (
 
   const { openPicker: assignProducts } = useProductPicker({
     selectionMode: "multi",
+    queryMeta: safeProductCandidatesMeta,
     onConfirm: (_entities, selectedIds) => {
       void (async () => {
         for (const productId of selectedIds) {
