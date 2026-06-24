@@ -4,18 +4,18 @@ import { useCallback } from "react";
 import { useMutation } from "@apollo/client/react";
 import type {
   ApiCategory,
-  ApiCategoryMoveProductInput,
   ApiGenericUserError,
 } from "@/graphql/types";
+import { ProductCategoryOperationAction } from "@/graphql/types";
 import {
   CATEGORIES_QUERY,
   CATEGORY_DETAILS_QUERY,
-  CATEGORY_MOVE_PRODUCT_MUTATION,
   CATEGORY_PRODUCTS_QUERY,
+  PRODUCT_CATEGORY_UPDATE_MUTATION,
 } from "../graphql";
 import type {
-  CategoryMoveProductMutationData,
-  CategoryMoveProductMutationVariables,
+  ProductCategoryUpdateMutationData,
+  ProductCategoryUpdateMutationVariables,
 } from "../graphql";
 
 interface CategoryProductMutationResult {
@@ -25,26 +25,43 @@ interface CategoryProductMutationResult {
 
 interface UseMoveCategoryProductReturn {
   moveCategoryProduct: (
-    input: ApiCategoryMoveProductInput,
+    input: CategoryProductMoveInput,
   ) => Promise<CategoryProductMutationResult>;
   loading: boolean;
   error: Error | null;
   reset: () => void;
 }
 
+interface CategoryProductMoveInput {
+  categoryId: string;
+  productId: string;
+  beforeProductId?: string | null;
+  afterProductId?: string | null;
+}
+
 export function useMoveCategoryProduct(): UseMoveCategoryProductReturn {
   const [moveProductMutation, { loading, error, reset }] = useMutation<
-    CategoryMoveProductMutationData,
-    CategoryMoveProductMutationVariables
-  >(CATEGORY_MOVE_PRODUCT_MUTATION);
+    ProductCategoryUpdateMutationData,
+    ProductCategoryUpdateMutationVariables
+  >(PRODUCT_CATEGORY_UPDATE_MUTATION);
 
   const moveCategoryProduct = useCallback(
     async (
-      input: ApiCategoryMoveProductInput,
+      input: CategoryProductMoveInput,
     ): Promise<CategoryProductMutationResult> => {
       try {
         const result = await moveProductMutation({
-          variables: { input },
+          variables: {
+            productId: input.productId,
+            categories: [
+              {
+                categoryId: input.categoryId,
+                action: ProductCategoryOperationAction.Move,
+                beforeProductId: input.beforeProductId,
+                afterProductId: input.afterProductId,
+              },
+            ],
+          },
           refetchQueries: [
             CATEGORY_DETAILS_QUERY,
             CATEGORY_PRODUCTS_QUERY,
@@ -52,10 +69,10 @@ export function useMoveCategoryProduct(): UseMoveCategoryProductReturn {
           ],
           awaitRefetchQueries: true,
         });
-        const payload = result.data?.catalogMutation.categoryMoveProduct;
+        const payload = result.data?.catalogMutation.productUpdate;
 
         return {
-          category: payload?.category ?? null,
+          category: null,
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {

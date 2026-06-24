@@ -207,15 +207,6 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
-    // Edit Categories modal
-    {
-      type: 'product-edit-categories',
-      component: dynamic(() =>
-        import('@/domains/inventory/products/modals/edit-categories-modal').then(
-          (m) => m.EditCategoriesModal
-        )
-      ),
-    },
     // Edit Tags modal
     {
       type: 'product-edit-tags',

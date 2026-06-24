@@ -68,68 +68,40 @@ export const CATEGORY_DELETE_MUTATION = gql`
   ${USER_ERROR_FRAGMENT}
 `;
 
-export const CATEGORY_ADD_PRODUCT_MUTATION = gql`
-  mutation CategoryAddProduct($input: CategoryAddProductInput!) {
+export const PRODUCT_CATEGORY_UPDATE_MUTATION = gql`
+  mutation ProductCategoryUpdate(
+    $productId: ID!
+    $categories: [ProductCategoryOperationInput!]!
+  ) {
     catalogMutation {
-      categoryAddProduct(input: $input) {
-        category {
+      productUpdate(
+        productId: $productId
+        operations: { categories: $categories }
+      ) {
+        product {
           id
-          productsCount
           updatedAt
+          revision
+          primaryCategory {
+            id
+            productsCount
+            updatedAt
+          }
+          categoryAssignments {
+            isPrimary
+            category {
+              id
+              productsCount
+              updatedAt
+            }
+          }
         }
-        userErrors {
-          ...UserErrorFields
-        }
-      }
-    }
-  }
-  ${USER_ERROR_FRAGMENT}
-`;
-
-export const CATEGORY_REMOVE_PRODUCT_MUTATION = gql`
-  mutation CategoryRemoveProduct($input: CategoryRemoveProductInput!) {
-    catalogMutation {
-      categoryRemoveProduct(input: $input) {
-        category {
-          id
-          productsCount
-          updatedAt
-        }
-        userErrors {
-          ...UserErrorFields
-        }
-      }
-    }
-  }
-  ${USER_ERROR_FRAGMENT}
-`;
-
-export const CATEGORY_SET_PRODUCT_PRIMARY_MUTATION = gql`
-  mutation CategorySetProductPrimary($input: CategorySetProductPrimaryInput!) {
-    catalogMutation {
-      categorySetProductPrimary(input: $input) {
-        category {
-          id
-          productsCount
-          updatedAt
-        }
-        userErrors {
-          ...UserErrorFields
-        }
-      }
-    }
-  }
-  ${USER_ERROR_FRAGMENT}
-`;
-
-export const CATEGORY_MOVE_PRODUCT_MUTATION = gql`
-  mutation CategoryMoveProduct($input: CategoryMoveProductInput!) {
-    catalogMutation {
-      categoryMoveProduct(input: $input) {
-        category {
-          id
-          productsCount
-          updatedAt
+        operationResults {
+          applied
+          type
+          errors {
+            ...UserErrorFields
+          }
         }
         userErrors {
           ...UserErrorFields

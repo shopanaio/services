@@ -4,18 +4,18 @@ import { useCallback } from "react";
 import { useMutation } from "@apollo/client/react";
 import type {
   ApiCategory,
-  ApiCategoryRemoveProductInput,
   ApiGenericUserError,
 } from "@/graphql/types";
+import { ProductCategoryOperationAction } from "@/graphql/types";
 import {
   CATEGORIES_QUERY,
   CATEGORY_DETAILS_QUERY,
   CATEGORY_PRODUCTS_QUERY,
-  CATEGORY_REMOVE_PRODUCT_MUTATION,
+  PRODUCT_CATEGORY_UPDATE_MUTATION,
 } from "../graphql";
 import type {
-  CategoryRemoveProductMutationData,
-  CategoryRemoveProductMutationVariables,
+  ProductCategoryUpdateMutationData,
+  ProductCategoryUpdateMutationVariables,
 } from "../graphql";
 
 interface CategoryProductMutationResult {
@@ -25,26 +25,37 @@ interface CategoryProductMutationResult {
 
 interface UseRemoveCategoryProductReturn {
   removeCategoryProduct: (
-    input: ApiCategoryRemoveProductInput,
+    input: CategoryProductInput,
   ) => Promise<CategoryProductMutationResult>;
   loading: boolean;
   error: Error | null;
   reset: () => void;
 }
 
+interface CategoryProductInput {
+  categoryId: string;
+  productId: string;
+}
+
 export function useRemoveCategoryProduct(): UseRemoveCategoryProductReturn {
   const [removeProductMutation, { loading, error, reset }] = useMutation<
-    CategoryRemoveProductMutationData,
-    CategoryRemoveProductMutationVariables
-  >(CATEGORY_REMOVE_PRODUCT_MUTATION);
+    ProductCategoryUpdateMutationData,
+    ProductCategoryUpdateMutationVariables
+  >(PRODUCT_CATEGORY_UPDATE_MUTATION);
 
   const removeCategoryProduct = useCallback(
-    async (
-      input: ApiCategoryRemoveProductInput,
-    ): Promise<CategoryProductMutationResult> => {
+    async (input: CategoryProductInput): Promise<CategoryProductMutationResult> => {
       try {
         const result = await removeProductMutation({
-          variables: { input },
+          variables: {
+            productId: input.productId,
+            categories: [
+              {
+                categoryId: input.categoryId,
+                action: ProductCategoryOperationAction.Remove,
+              },
+            ],
+          },
           refetchQueries: [
             CATEGORY_DETAILS_QUERY,
             CATEGORY_PRODUCTS_QUERY,
@@ -52,10 +63,10 @@ export function useRemoveCategoryProduct(): UseRemoveCategoryProductReturn {
           ],
           awaitRefetchQueries: true,
         });
-        const payload = result.data?.catalogMutation.categoryRemoveProduct;
+        const payload = result.data?.catalogMutation.productUpdate;
 
         return {
-          category: payload?.category ?? null,
+          category: null,
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {

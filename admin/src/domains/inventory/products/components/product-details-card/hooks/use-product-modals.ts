@@ -11,7 +11,6 @@ import {
   useEditAttributesModal,
   useEditSeoModal,
   useEditVariantsModal,
-  useEditCategoriesModal,
   useEditTagsModal,
   type IEditMediaModalPayload,
   type IEditSeoModalPayload,
@@ -34,11 +33,7 @@ import {
   PRODUCT_PRICING_WIDGET_QUERY,
 } from "../../../graphql";
 import { prepareChangedVariantUpdateInputs } from "../../../mappers/product-variant-update.mapper";
-import {
-  getProductCategories,
-  getProductMediaFiles,
-  getProductPrimaryCategory,
-} from "../../../utils/api-product-display";
+import { getProductMediaFiles } from "../../../utils/api-product-display";
 
 interface UseProductModalsOptions {
   onProductRefresh?: () => Promise<unknown>;
@@ -73,7 +68,6 @@ export const useProductModals = (
   const { push: openEditAttributesModal } = useEditAttributesModal();
   const { push: openEditSeoModal } = useEditSeoModal();
   const { push: openEditVariantsModal } = useEditVariantsModal();
-  const { push: openEditCategoriesModal } = useEditCategoriesModal();
   const { push: openEditTagsModal } = useEditTagsModal();
   const {
     loadAllProductVariants,
@@ -122,25 +116,6 @@ export const useProductModals = (
       },
     });
   }, [message, product, openEditMediaModal, updateProduct]);
-
-  const handleEditCategories = useCallback(() => {
-    const categories = getProductCategories(product);
-    const primaryCategory = getProductPrimaryCategory(product);
-
-    openEditCategoriesModal({
-      productId: product.id,
-      primaryCategoryId: primaryCategory?.id ?? null,
-      categoryIds: categories.map((c) => c.id),
-      onSave: () => {
-        message.info("Category assignment is not API-backed yet");
-        return false;
-      },
-    });
-  }, [
-    message,
-    product,
-    openEditCategoriesModal,
-  ]);
 
   const handleEditTags = useCallback(() => {
     openEditTagsModal({
@@ -393,7 +368,6 @@ export const useProductModals = (
   return {
     openProductModal: handleOpenProductModal,
     editMedia: handleEditMedia,
-    editCategories: handleEditCategories,
     editTags: handleEditTags,
     editOptions: handleEditOptions,
     editAttributes: handleEditAttributes,

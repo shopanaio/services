@@ -3,7 +3,6 @@ import type { IModalStackPayload } from "@/layouts/modals/types";
 import type { OutputData } from '@editorjs/editorjs';
 import type { RenderedContent } from '@/ui-kit/editor/renderers';
 import type {
-  ApiCategory,
   ApiFile,
   ApiProduct,
   ApiProductFeature,
@@ -33,7 +32,6 @@ export const PRODUCT_EDIT_ATTRIBUTES_MODAL_TYPE = 'product-edit-attributes';
 export const PRODUCT_EDIT_SEO_MODAL_TYPE = 'product-edit-seo';
 export const PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE = 'product-edit-variant-shipping';
 export const PRODUCT_EDIT_VARIANTS_MODAL_TYPE = 'product-edit-variants';
-export const PRODUCT_EDIT_CATEGORIES_MODAL_TYPE = 'product-edit-categories';
 export const PRODUCT_EDIT_TAGS_MODAL_TYPE = 'product-edit-tags';
 export const BULK_EDITOR_MODAL_TYPE = 'bulk-editor';
 
@@ -233,18 +231,6 @@ export interface IEditVariantsModalPayload extends IModalStackPayload {
   ) => boolean | void | Promise<boolean | void>;
 }
 
-export interface IEditCategoriesModalPayload extends IModalStackPayload {
-  productId?: string;
-  primaryCategoryId?: string | null;
-  categoryIds?: string[];
-  availableCategories?: ApiCategory[];
-  categoryHierarchy?: Record<string, string | null>;
-  onSave?: (data: {
-    primaryCategoryId: string | null;
-    categoryIds: string[];
-  }) => void;
-}
-
 export interface IEditTagsModalPayload extends IModalStackPayload {
   productId?: string;
   selectedTagIds?: string[];
@@ -281,7 +267,6 @@ declare module '@/layouts/modals' {
     [PRODUCT_EDIT_SEO_MODAL_TYPE]: IEditSeoModalPayload;
     [PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE]: IEditVariantShippingModalPayload;
     [PRODUCT_EDIT_VARIANTS_MODAL_TYPE]: IEditVariantsModalPayload;
-    [PRODUCT_EDIT_CATEGORIES_MODAL_TYPE]: IEditCategoriesModalPayload;
     [PRODUCT_EDIT_TAGS_MODAL_TYPE]: IEditTagsModalPayload;
     [BULK_EDITOR_MODAL_TYPE]: IBulkEditorModalPayload;
   }
@@ -451,22 +436,6 @@ export const useEditVariantShippingModal = createModalStackHook(PRODUCT_EDIT_VAR
  * ```
  */
 export const useEditVariantsModal = createModalStackHook(PRODUCT_EDIT_VARIANTS_MODAL_TYPE);
-
-/**
- * Hook to open edit categories modal
- *
- * @example
- * ```tsx
- * const { push } = useEditCategoriesModal();
- * push({
- *   productId: 'prod-123',
- *   primaryCategoryId: 'cat-1',
- *   categoryIds: ['cat-1', 'cat-2'],
- *   onSave: saveCategories
- * });
- * ```
- */
-export const useEditCategoriesModal = createModalStackHook(PRODUCT_EDIT_CATEGORIES_MODAL_TYPE);
 
 /**
  * Hook to open edit tags modal

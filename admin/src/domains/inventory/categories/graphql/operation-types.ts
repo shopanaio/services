@@ -2,27 +2,21 @@ import type {
   ApiCatalogMutation,
   ApiCatalogQuery,
   ApiCategory,
-  ApiCategoryAddProductInput,
-  ApiCategoryAddProductPayload,
   ApiCategoryCreateInput,
   ApiCategoryCreatePayload,
   ApiCategoryDeleteInput,
   ApiCategoryConnection,
-  ApiCategoryMoveProductInput,
-  ApiCategoryMoveProductPayload,
   ApiCategoryOrderByInput,
   ApiCategoryProductConnection,
   ApiCategoryProductWhereInput,
   ApiCategoryRebalanceInput,
   ApiCategoryRebalancePayload,
-  ApiCategoryRemoveProductInput,
-  ApiCategoryRemoveProductPayload,
-  ApiCategorySetProductPrimaryInput,
-  ApiCategorySetProductPrimaryPayload,
   ApiCategoryUpdateInput,
   ApiGenericUserError,
   ApiListingOrderByInput,
   ApiOperationResult,
+  ApiProduct,
+  ApiProductCategoryOperationInput,
   ApiCategoryWhereInput,
 } from "@/graphql/types";
 
@@ -126,44 +120,24 @@ export interface CategoryDeleteMutationVariables {
   input: ApiCategoryDeleteInput;
 }
 
-export interface CategoryAddProductMutationData {
-  catalogMutation: Pick<ApiCatalogMutation, "categoryAddProduct"> & {
-    categoryAddProduct: ApiCategoryAddProductPayload;
+export interface ProductCategoryUpdateMutationData {
+  catalogMutation: Pick<ApiCatalogMutation, "productUpdate"> & {
+    productUpdate: {
+      product: (
+        Pick<
+          ApiProduct,
+          "id" | "updatedAt" | "revision" | "primaryCategory" | "categoryAssignments"
+        >
+      ) | null;
+      operationResults: ApiOperationResult[];
+      userErrors: ApiGenericUserError[];
+    };
   };
 }
 
-export interface CategoryAddProductMutationVariables {
-  input: ApiCategoryAddProductInput;
-}
-
-export interface CategoryRemoveProductMutationData {
-  catalogMutation: Pick<ApiCatalogMutation, "categoryRemoveProduct"> & {
-    categoryRemoveProduct: ApiCategoryRemoveProductPayload;
-  };
-}
-
-export interface CategoryRemoveProductMutationVariables {
-  input: ApiCategoryRemoveProductInput;
-}
-
-export interface CategorySetProductPrimaryMutationData {
-  catalogMutation: Pick<ApiCatalogMutation, "categorySetProductPrimary"> & {
-    categorySetProductPrimary: ApiCategorySetProductPrimaryPayload;
-  };
-}
-
-export interface CategorySetProductPrimaryMutationVariables {
-  input: ApiCategorySetProductPrimaryInput;
-}
-
-export interface CategoryMoveProductMutationData {
-  catalogMutation: Pick<ApiCatalogMutation, "categoryMoveProduct"> & {
-    categoryMoveProduct: ApiCategoryMoveProductPayload;
-  };
-}
-
-export interface CategoryMoveProductMutationVariables {
-  input: ApiCategoryMoveProductInput;
+export interface ProductCategoryUpdateMutationVariables {
+  productId: string;
+  categories: ApiProductCategoryOperationInput[];
 }
 
 export interface CategoryRebalanceMutationData {

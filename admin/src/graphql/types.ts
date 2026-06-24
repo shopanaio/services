@@ -360,6 +360,7 @@ export enum BulkUpdateJobStatus {
 }
 
 export enum BulkUpdateOpType {
+  ProductCategoryUpdate = 'PRODUCT_CATEGORY_UPDATE',
   ProductUpdate = 'PRODUCT_UPDATE',
   VariantUpdate = 'VARIANT_UPDATE'
 }
@@ -572,22 +573,14 @@ export type ApiCatalogMutation = {
   bundlePricingTemplateDelete: ApiDeletePayload;
   /** Update an existing bundle pricing template */
   bundlePricingTemplateUpdate: ApiBundlePricingTemplatePayload;
-  /** Add a product to a category */
-  categoryAddProduct: ApiCategoryAddProductPayload;
   /** Create a new category */
   categoryCreate: ApiCategoryCreatePayload;
   /** Delete a category */
   categoryDelete: ApiCategoryDeletePayload;
   /** Move a category to a new parent or position */
   categoryMove: ApiCategoryMovePayload;
-  /** Move a product within a category */
-  categoryMoveProduct: ApiCategoryMoveProductPayload;
   /** Rebalance category tree positions */
   categoryRebalance: ApiCategoryRebalancePayload;
-  /** Remove a product from a category */
-  categoryRemoveProduct: ApiCategoryRemoveProductPayload;
-  /** Set an assigned category as the product primary category */
-  categorySetProductPrimary: ApiCategorySetProductPrimaryPayload;
   /** Unified category update with optimistic locking. */
   categoryUpdate: ApiCategoryUpdatePayload;
   /** Add products to a collection */
@@ -754,11 +747,6 @@ export type ApiCatalogMutationBundlePricingTemplateUpdateArgs = {
 };
 
 
-export type ApiCatalogMutationCategoryAddProductArgs = {
-  input: ApiCategoryAddProductInput;
-};
-
-
 export type ApiCatalogMutationCategoryCreateArgs = {
   input: ApiCategoryCreateInput;
 };
@@ -774,23 +762,8 @@ export type ApiCatalogMutationCategoryMoveArgs = {
 };
 
 
-export type ApiCatalogMutationCategoryMoveProductArgs = {
-  input: ApiCategoryMoveProductInput;
-};
-
-
 export type ApiCatalogMutationCategoryRebalanceArgs = {
   input: ApiCategoryRebalanceInput;
-};
-
-
-export type ApiCatalogMutationCategoryRemoveProductArgs = {
-  input: ApiCategoryRemoveProductInput;
-};
-
-
-export type ApiCatalogMutationCategorySetProductPrimaryArgs = {
-  input: ApiCategorySetProductPrimaryInput;
 };
 
 
@@ -1380,17 +1353,6 @@ export type ApiCategoryProductsArgs = {
   where?: InputMaybe<ApiCategoryProductWhereInput>;
 };
 
-export type ApiCategoryAddProductInput = {
-  categoryId: Scalars['ID']['input'];
-  productId: Scalars['ID']['input'];
-};
-
-export type ApiCategoryAddProductPayload = {
-  __typename?: 'CategoryAddProductPayload';
-  category?: Maybe<ApiCategory>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
 export type ApiCategoryCategoriesMetaInput = {
   hierarchyScope?: InputMaybe<ApiCategoryHierarchyScopeInput>;
   productsScope?: InputMaybe<ApiCategoryProductsScopeInput>;
@@ -1522,19 +1484,6 @@ export type ApiCategoryMovePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-export type ApiCategoryMoveProductInput = {
-  afterProductId?: InputMaybe<Scalars['ID']['input']>;
-  beforeProductId?: InputMaybe<Scalars['ID']['input']>;
-  categoryId: Scalars['ID']['input'];
-  productId: Scalars['ID']['input'];
-};
-
-export type ApiCategoryMoveProductPayload = {
-  __typename?: 'CategoryMoveProductPayload';
-  category?: Maybe<ApiCategory>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
 /** Ordering configuration for Category */
 export type ApiCategoryOrderByInput = {
   /** Sort direction */
@@ -1607,28 +1556,6 @@ export type ApiCategoryRebalanceInput = {
 
 export type ApiCategoryRebalancePayload = {
   __typename?: 'CategoryRebalancePayload';
-  category?: Maybe<ApiCategory>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-export type ApiCategoryRemoveProductInput = {
-  categoryId: Scalars['ID']['input'];
-  productId: Scalars['ID']['input'];
-};
-
-export type ApiCategoryRemoveProductPayload = {
-  __typename?: 'CategoryRemoveProductPayload';
-  category?: Maybe<ApiCategory>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-export type ApiCategorySetProductPrimaryInput = {
-  categoryId: Scalars['ID']['input'];
-  productId: Scalars['ID']['input'];
-};
-
-export type ApiCategorySetProductPrimaryPayload = {
-  __typename?: 'CategorySetProductPrimaryPayload';
   category?: Maybe<ApiCategory>;
   userErrors: Array<ApiGenericUserError>;
 };
@@ -4565,6 +4492,7 @@ export type ApiOperationResult = {
 /** Type of operation in the unified update. */
 export enum OperationType {
   CategoryUpdate = 'CATEGORY_UPDATE',
+  ProductCategoryUpdate = 'PRODUCT_CATEGORY_UPDATE',
   ProductUpdate = 'PRODUCT_UPDATE',
   VariantUpdate = 'VARIANT_UPDATE'
 }
@@ -5188,6 +5116,25 @@ export type ApiProductCategoryAssignment = {
   __typename?: 'ProductCategoryAssignment';
   category: ApiCategory;
   isPrimary: Scalars['Boolean']['output'];
+};
+
+export enum ProductCategoryOperationAction {
+  Add = 'ADD',
+  Move = 'MOVE',
+  Remove = 'REMOVE',
+  SetPrimary = 'SET_PRIMARY'
+}
+
+/** Product category assignment operation for unified product updates. */
+export type ApiProductCategoryOperationInput = {
+  /** The assignment action to apply. */
+  action: ProductCategoryOperationAction;
+  /** Move this product after another product in the category listing. */
+  afterProductId?: InputMaybe<Scalars['ID']['input']>;
+  /** Move this product before another product in the category listing. */
+  beforeProductId?: InputMaybe<Scalars['ID']['input']>;
+  /** The category to update for the product. */
+  categoryId: Scalars['ID']['input'];
 };
 
 /** A connection to a list of Product items. */
@@ -5816,6 +5763,8 @@ export enum ProductStatusAction {
 
 /** Input for product-level fields in the unified update. */
 export type ApiProductUpdateInput = {
+  /** Product category assignment operations. */
+  categories?: InputMaybe<Array<ApiProductCategoryOperationInput>>;
   /** Product content (description, excerpt). */
   content?: InputMaybe<ApiProductContentInput>;
   /** The URL-friendly handle for the product. */

@@ -623,7 +623,7 @@ useCategoryModals(category)
   ├── editMedia         → useEditMediaModal().push({ productId, featured, gallery, onSave })
   ├── editSeo           → useEditSeoModal().push({ productId, productTitle, productSlug, seoTitle, seoDescription, onSave })
   ├── editTags          → useEditTagsModal().push({ productId, selectedTagIds, onSave })
-  ├── editHierarchy     → useEditCategoriesModal().push({ productId, categoryIds, primaryCategoryId, onSave })
+  ├── editHierarchy     → useCategoryPicker().openPicker({ selectedIds, onConfirm })
   ├── openProductPicker → product picker modal
   ├── addSubcategory    → create category modal (parentId pre-filled)
   ├── archiveCategory   → confirm modal (warning)

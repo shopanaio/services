@@ -4,18 +4,18 @@ import { useCallback } from "react";
 import { useMutation } from "@apollo/client/react";
 import type {
   ApiCategory,
-  ApiCategoryAddProductInput,
   ApiGenericUserError,
 } from "@/graphql/types";
+import { ProductCategoryOperationAction } from "@/graphql/types";
 import {
   CATEGORIES_QUERY,
-  CATEGORY_ADD_PRODUCT_MUTATION,
   CATEGORY_DETAILS_QUERY,
   CATEGORY_PRODUCTS_QUERY,
+  PRODUCT_CATEGORY_UPDATE_MUTATION,
 } from "../graphql";
 import type {
-  CategoryAddProductMutationData,
-  CategoryAddProductMutationVariables,
+  ProductCategoryUpdateMutationData,
+  ProductCategoryUpdateMutationVariables,
 } from "../graphql";
 
 interface CategoryProductMutationResult {
@@ -25,26 +25,37 @@ interface CategoryProductMutationResult {
 
 interface UseAddCategoryProductReturn {
   addCategoryProduct: (
-    input: ApiCategoryAddProductInput,
+    input: CategoryProductInput,
   ) => Promise<CategoryProductMutationResult>;
   loading: boolean;
   error: Error | null;
   reset: () => void;
 }
 
+interface CategoryProductInput {
+  categoryId: string;
+  productId: string;
+}
+
 export function useAddCategoryProduct(): UseAddCategoryProductReturn {
   const [addProductMutation, { loading, error, reset }] = useMutation<
-    CategoryAddProductMutationData,
-    CategoryAddProductMutationVariables
-  >(CATEGORY_ADD_PRODUCT_MUTATION);
+    ProductCategoryUpdateMutationData,
+    ProductCategoryUpdateMutationVariables
+  >(PRODUCT_CATEGORY_UPDATE_MUTATION);
 
   const addCategoryProduct = useCallback(
-    async (
-      input: ApiCategoryAddProductInput,
-    ): Promise<CategoryProductMutationResult> => {
+    async (input: CategoryProductInput): Promise<CategoryProductMutationResult> => {
       try {
         const result = await addProductMutation({
-          variables: { input },
+          variables: {
+            productId: input.productId,
+            categories: [
+              {
+                categoryId: input.categoryId,
+                action: ProductCategoryOperationAction.Add,
+              },
+            ],
+          },
           refetchQueries: [
             CATEGORY_DETAILS_QUERY,
             CATEGORY_PRODUCTS_QUERY,
@@ -52,10 +63,10 @@ export function useAddCategoryProduct(): UseAddCategoryProductReturn {
           ],
           awaitRefetchQueries: true,
         });
-        const payload = result.data?.catalogMutation.categoryAddProduct;
+        const payload = result.data?.catalogMutation.productUpdate;
 
         return {
-          category: payload?.category ?? null,
+          category: null,
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {
