@@ -57,9 +57,21 @@ type InventoryQuery {
 }
 ```
 
-`warehouseId` задает stock scope для list filter/sort. Если он не передан,
-resolver может использовать default warehouse. Если default warehouse не
-настроен, resolver возвращает пустой connection, а Admin UI остается read-only.
+`warehouseId` задает optional stock scope только для stock columns. Сам
+`InventoryItem` может существовать без `WarehouseStock`, поэтому отсутствие
+`warehouseId` или stock row не должно исключать item из
+connection.
+
+Если `warehouseId` не передан, resolver возвращает base inventory item list:
+`productName`, `sku`, `trackInventory`, `continueSellingWhenOutOfStock` и
+другие non-stock поля. В этом режиме stock-specific filter/order fields
+(`quantityOnHand`, `reservedQuantity`, `unavailableQuantity`,
+`availableForSale`) должны быть отклонены как некорректный input или
+проигнорированы только через явно задокументированное API-поведение.
+
+Admin stock table, которому нужны stock columns, должен передавать явный
+`warehouseId`. Если для `(variantId, warehouseId)` нет строки
+`warehouse_stock`, stock values для list sort/filter/display считаются `0`.
 
 `InventoryItemConnection` и `InventoryItemEdge` остаются обычными:
 
@@ -287,13 +299,17 @@ Indexes/constraints:
 inventory.inventory_item_list_view
 ```
 
-View объединяет:
+View объединяет base item projection:
 
 - `inventory_item`;
 - `inventory_item_catalog_projection`;
-- `inventory_product_translation`;
-- `warehouses`;
-- `warehouse_stock`.
+- `inventory_product_translation`.
+
+Stock-scoped repository query может дополнительно `left join warehouse_stock`
+по выбранному `warehouseId`, когда нужны stock columns. View не должен
+`inner join`-ить `warehouses`, потому что это превращает canonical
+`InventoryItem` list в item × warehouse rows и делает наличие склада частью
+listability.
 
 Концептуальная Drizzle модель:
 
@@ -317,22 +333,11 @@ export const inventoryItemListView = inventorySchema
         continueSellingWhenOutOfStock:
           inventoryItem.continueSellingWhenOutOfStock,
 
-        warehouseId: warehouses.id,
-        stockId: warehouseStock.id,
-        quantityOnHand: sql<number>`coalesce(${warehouseStock.quantityOnHand}, 0)`.as("quantity_on_hand"),
-        reservedQuantity: sql<number>`coalesce(${warehouseStock.reservedQty}, 0)`.as("reserved_quantity"),
-        unavailableQuantity: sql<number>`coalesce(${warehouseStock.unavailableQty}, 0)`.as("unavailable_quantity"),
-        availableForSale: sql<number>`
-          coalesce(${warehouseStock.quantityOnHand}, 0)
-          - coalesce(${warehouseStock.reservedQty}, 0)
-          - coalesce(${warehouseStock.unavailableQty}, 0)
-        `.as("available_for_sale"),
         deletedAt: inventoryItemCatalogProjection.deletedAt,
         updatedAt: sql<string>`
           greatest(
             ${inventoryItem.updatedAt},
-            coalesce(${inventoryItemCatalogProjection.updatedAt}, ${inventoryItem.updatedAt}),
-            coalesce(${warehouseStock.updatedAt}, ${inventoryItem.updatedAt})
+            coalesce(${inventoryItemCatalogProjection.updatedAt}, ${inventoryItem.updatedAt})
           )
         `.as("updated_at"),
       })
@@ -347,27 +352,41 @@ export const inventoryItemListView = inventorySchema
         sql`${inventoryProductTranslation.projectId} = ${inventoryItem.projectId}
           AND ${inventoryProductTranslation.productId} = ${inventoryItemCatalogProjection.productId}`
       )
-      .innerJoin(
-        warehouses,
-        sql`${warehouses.projectId} = ${inventoryItem.projectId}`
-      )
-      .leftJoin(
-        warehouseStock,
-        sql`${warehouseStock.projectId} = ${inventoryItem.projectId}
-          AND ${warehouseStock.variantId} = ${inventoryItem.variantId}
-          AND ${warehouseStock.warehouseId} = ${warehouses.id}`
-      )
   );
 ```
 
-View intentionally does not filter locale or warehouse. Repository scope does
-that so the same view supports any locale and warehouse.
+View intentionally does not filter locale. Repository scope does that so the
+same view supports any locale.
+
+When `warehouseId` is present and request uses stock fields, the repository
+adds a query-level `left join warehouse_stock` scoped by:
+
+```sql
+warehouse_stock.project_id = inventory_item_list_view.project_id
+AND warehouse_stock.variant_id = inventory_item_list_view.variant_id
+AND warehouse_stock.warehouse_id = :warehouseId
+```
+
+The repository exposes stock expressions as list fields:
+
+```ts
+quantityOnHand = coalesce(warehouseStock.quantityOnHand, 0)
+reservedQuantity = coalesce(warehouseStock.reservedQty, 0)
+unavailableQuantity = coalesce(warehouseStock.unavailableQty, 0)
+availableForSale =
+  coalesce(warehouseStock.quantityOnHand, 0)
+  - coalesce(warehouseStock.reservedQty, 0)
+  - coalesce(warehouseStock.unavailableQty, 0)
+```
+
+`updatedAt` for stock-scoped sorting can include `warehouse_stock.updated_at`
+only when the stock join is active. Base list `updatedAt` should not depend on
+warehouse state.
 
 Repository scope must add:
 
 - `projectId = ctx.store.id`;
 - `locale = ctx.locale ?? "uk"`;
-- `warehouseId = selected/default warehouse`;
 - `deletedAt is null`.
 
 ## Repository
@@ -381,12 +400,11 @@ Relay query:
 ```ts
 export const inventoryItemRelayQuery = createRelayQuery(
   createQuery(inventoryItemListView)
-    .include(["id", "variantId", "warehouseId"])
+    .include(["id", "variantId"])
     .mapWhereFields({
       id: decodeInventoryItemGlobalId,
       productId: decodeProductGlobalId,
       variantId: decodeVariantGlobalId,
-      warehouseId: decodeWarehouseGlobalId,
     })
     .maxLimit(100)
     .defaultLimit(20),
@@ -401,7 +419,6 @@ const mergedWhere = {
   _and: [
     { projectId: { _eq: this.storeId } },
     { locale: { _eq: this.locale } },
-    { warehouseId: { _eq: warehouseId } },
     { deletedAt: { _is: null } },
     ...(where ? [where] : []),
   ],
@@ -430,6 +447,11 @@ return {
 };
 ```
 
+If request contains stock filter/order fields, `warehouseId` must be decoded and
+used to activate the stock-scoped query path. Missing `warehouseId` with stock
+fields should fail validation before query execution. Missing `warehouse_stock`
+rows after the scoped left join are treated as zero values.
+
 `totalCount` must use the exact same `mergedWhere`; otherwise filtered count will
 not match the returned edges.
 
@@ -441,7 +463,9 @@ receives `tieBreaker: "id"` and should append it for stable cursor ordering.
 `InventoryQueryResolver.inventoryItems` should:
 
 - decode optional `warehouseId`;
-- resolve default warehouse when `warehouseId` is omitted;
+- treat `warehouseId` as stock scope only, not as a requirement for listing
+  `InventoryItem`;
+- reject stock filter/order fields when `warehouseId` is omitted;
 - call inventory item connection repository;
 - return `InventoryItemConnection`;
 - create each edge node as `new InventoryItemResolver(nodeId, ctx)`.
