@@ -42,7 +42,7 @@ export const WAREHOUSES_QUERY = gql`
 `;
 
 export const WAREHOUSE_DETAILS_QUERY = gql`
-  query WarehouseDetails($id: ID!, $stockFirst: Int, $stockAfter: String) {
+  query WarehouseDetails($id: ID!) {
     inventoryQuery {
       warehouse(id: $id) {
         ...WarehouseDetailsFields

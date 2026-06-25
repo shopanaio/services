@@ -29,31 +29,5 @@ export const WAREHOUSE_DETAILS_FRAGMENT = gql`
     variantsCount
     createdAt
     updatedAt
-    stock(first: $stockFirst, after: $stockAfter) {
-      edges {
-        cursor
-        node {
-          id
-          variantId
-          quantityOnHand
-          reservedQuantity
-          unavailableQuantity
-          availableForSale
-          updatedAt
-          variant {
-            id
-            title
-            handle
-          }
-        }
-      }
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        startCursor
-        endCursor
-      }
-      totalCount
-    }
   }
 `;

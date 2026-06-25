@@ -34,8 +34,6 @@ export interface WarehouseDetailsQueryData {
 
 export interface WarehouseDetailsQueryVariables {
   id: string;
-  stockFirst?: number;
-  stockAfter?: string | null;
 }
 
 export interface WarehouseCreateMutationData {

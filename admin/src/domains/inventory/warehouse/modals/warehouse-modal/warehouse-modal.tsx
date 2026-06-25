@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { Alert, Flex, Skeleton } from "antd";
 import { ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { WarehouseDetailsCard } from "../../components/warehouse-details-card";
@@ -12,15 +12,9 @@ import {
   type IWarehouseModalPayload,
 } from "../index";
 
-const STOCK_PAGE_SIZE = 10;
-
 export function WarehouseModal() {
   const { payload, pop, forcePop } = useModalStackContext();
   const typedPayload = payload as IWarehouseModalPayload;
-  const [stockPageIndex, setStockPageIndex] = useState(0);
-  const [stockCursorHistory, setStockCursorHistory] = useState<
-    Array<string | null>
-  >([null]);
   const { push: openEditIdentityModal } = useWarehouseEditIdentityModal();
   const { push: openEditDefaultModal } = useWarehouseEditDefaultModal();
   const { push: openDeleteModal } = useWarehouseDeleteModal();
@@ -28,29 +22,19 @@ export function WarehouseModal() {
     typedPayload.entityId === undefined || typedPayload.entityId === null
       ? null
       : String(typedPayload.entityId);
-  const stockAfter = stockCursorHistory[stockPageIndex] ?? null;
   const detailsQueryVariables = useMemo(
     () =>
       entityId
         ? {
             id: entityId,
-            stockFirst: STOCK_PAGE_SIZE,
-            stockAfter,
           }
         : undefined,
-    [entityId, stockAfter],
+    [entityId],
   );
 
   const { warehouse, loading, error, refetch } = useWarehouse({
     id: entityId,
-    stockFirst: STOCK_PAGE_SIZE,
-    stockAfter,
   });
-
-  useEffect(() => {
-    setStockPageIndex(0);
-    setStockCursorHistory([null]);
-  }, [entityId]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -61,33 +45,6 @@ export function WarehouseModal() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [pop]);
-
-  const handleStockPageChange = useCallback(
-    (direction: "next" | "prev") => {
-      if (!warehouse) {
-        return;
-      }
-
-      if (direction === "next") {
-        const endCursor = warehouse.stock.pageInfo.endCursor;
-
-        if (!endCursor) {
-          return;
-        }
-
-        setStockCursorHistory((current) => {
-          const next = current.slice(0, stockPageIndex + 1);
-          next[stockPageIndex + 1] = endCursor;
-          return next;
-        });
-        setStockPageIndex((current) => current + 1);
-        return;
-      }
-
-      setStockPageIndex((current) => Math.max(0, current - 1));
-    },
-    [stockPageIndex, warehouse],
-  );
 
   const handleEditIdentity = useCallback(() => {
     if (!warehouse) {
@@ -178,7 +135,6 @@ export function WarehouseModal() {
     return (
       <WarehouseDetailsCard
         warehouse={warehouse}
-        onStockPageChange={handleStockPageChange}
         onEditIdentity={handleEditIdentity}
         onEditDefault={handleEditDefault}
         onDelete={handleDelete}
