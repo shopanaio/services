@@ -13,6 +13,7 @@ import type { PricingCursorInput } from "../../repositories/pricing/PricingRepos
 import { CatalogType } from "./CatalogType.js";
 import { ProductResolver } from "./ProductResolver.js";
 import { VariantPriceResolver } from "./VariantPriceResolver.js";
+import { InventoryItemResolver } from "./InventoryItemResolver.js";
 
 /**
  * Variant resolver for Catalog Service.
@@ -145,15 +146,11 @@ export class VariantResolver extends CatalogType<string, Variant> {
     }));
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // REMOVED from Catalog (moved to Inventory):
-  // - sku()
-  // - dimensions()
-  // - weight()
-  // - cost()
-  // - costHistory()
-  // - stock()
-  // - inStock()
-  // These fields are resolved via federation extend
-  // ═══════════════════════════════════════════════════════════
+  async inventoryItem() {
+    const item = await this.$ctx.loaders.inventoryItemByVariant.load(
+      this.$props
+    );
+    if (!item) return null;
+    return new InventoryItemResolver(item.id, this.$ctx);
+  }
 }

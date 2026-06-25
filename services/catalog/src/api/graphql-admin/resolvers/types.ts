@@ -16,6 +16,9 @@ import { ProductResolver } from "../../../resolvers/admin/ProductResolver.js";
 import { TagResolver } from "../../../resolvers/admin/TagResolver.js";
 import { VariantResolver } from "../../../resolvers/admin/VariantResolver.js";
 import { VendorResolver } from "../../../resolvers/admin/VendorResolver.js";
+import { InventoryItemResolver } from "../../../resolvers/admin/InventoryItemResolver.js";
+import { WarehouseResolver } from "../../../resolvers/admin/WarehouseResolver.js";
+import { StockResolver } from "../../../resolvers/admin/StockResolver.js";
 
 /**
  * Type resolvers for interfaces and scalars.
@@ -25,6 +28,13 @@ export const typeResolvers: Partial<Resolvers> = {
   Node: {
     __resolveType: (obj: unknown) => {
       const record = obj as Record<string, unknown>;
+      if (obj instanceof StockResolver) return "WarehouseStock";
+      if (obj instanceof WarehouseResolver) return "Warehouse";
+      if (obj instanceof InventoryItemResolver) return "InventoryItem";
+      if ("quantityOnHand" in record) return "WarehouseStock";
+      if ("code" in record && "isDefault" in record) return "Warehouse";
+      if ("variantId" in record && "trackInventory" in record)
+        return "InventoryItem";
       if ("variants" in record) return "Product";
       if ("productId" in record && "optionValueIds" in record) return "Variant";
       if ("displayType" in record) return "ProductOption";
@@ -199,6 +209,38 @@ export const typeResolvers: Partial<Resolvers> = {
         GlobalIdEntity.Vendor,
       );
       return VendorResolver.load(vendorId, fieldInfo, ctx);
+    },
+  },
+
+  InventoryItem: {
+    __resolveReference: async (
+      reference: { __typename: "InventoryItem"; id: string },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo,
+    ) => {
+      const fieldInfo = parseGraphqlInfo(info);
+      const itemId = decodeGlobalIdByType(
+        reference.id,
+        GlobalIdEntity.InventoryItem,
+      );
+      const item = await ctx.loaders.inventoryItem.load(itemId);
+      if (!item) return null;
+      return InventoryItemResolver.load(itemId, fieldInfo, ctx);
+    },
+  },
+
+  Warehouse: {
+    __resolveReference: async (
+      reference: { __typename: "Warehouse"; id: string },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo,
+    ) => {
+      const fieldInfo = parseGraphqlInfo(info);
+      const warehouseId = decodeGlobalIdByType(
+        reference.id,
+        GlobalIdEntity.Warehouse,
+      );
+      return WarehouseResolver.load(warehouseId, fieldInfo, ctx);
     },
   },
 };

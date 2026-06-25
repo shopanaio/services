@@ -22,6 +22,11 @@ extend type Query {
   Widget query namespace for dashboard widgets
   """
   widgetQuery: WidgetQuery! @shareable
+
+  """
+  Inventory query namespace for warehouse, stock, and inventory item operations
+  """
+  inventoryQuery: InventoryQuery!
 }
 
 extend type Mutation {
@@ -29,6 +34,11 @@ extend type Mutation {
   Catalog mutation namespace for product, variant, category, and collection operations
   """
   catalogMutation: CatalogMutation!
+
+  """
+  Inventory mutation namespace for warehouse, stock, and inventory item operations
+  """
+  inventoryMutation: InventoryMutation!
 }
 
 type CatalogQuery {
@@ -275,6 +285,83 @@ type WidgetQuery {
   Get pricing widget data for a variant.
   """
   pricing(input: PricingWidgetInput!): PricingWidgetPayload!
+
+  """
+  Get inventory widget data for a product.
+  Returns aggregated inventory metrics across all variants.
+  """
+  inventory(productId: ID!): ProductInventoryWidget
+}
+
+type InventoryQuery {
+  """
+  Get a node by its global ID
+  """
+  node(id: ID!): Node
+
+  """
+  Get multiple nodes by their global IDs
+  """
+  nodes(ids: [ID!]!): [Node]!
+
+  """
+  Get a warehouse by ID
+  """
+  warehouse(id: ID!): Warehouse
+
+  """
+  Get all warehouses
+  """
+  warehouses(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    """
+    Filter conditions
+    """
+    where: WarehouseWhereInput
+    """
+    Sort order
+    """
+    orderBy: [WarehouseOrderByInput!]
+  ): WarehouseConnection!
+
+  """
+  Get an inventory item by ID
+  """
+  inventoryItem(id: ID!): InventoryItem
+
+  """
+  Get an inventory item by variant ID
+  """
+  inventoryItemByVariant(variantId: ID!): InventoryItem
+
+  """
+  Get inventory items with Relay-style pagination
+  """
+  inventoryItems(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: InventoryItemWhereInput
+    orderBy: [InventoryItemOrderByInput!]
+    meta: InventoryItemInventoryItemsMetaInput
+  ): InventoryItemConnection!
+}
+
+type InventoryMutation {
+  # InventoryItem mutations
+  """
+  Update inventory item: stock, SKU, weight, cost, dimensions.
+  """
+  inventoryItemUpdate(input: InventoryItemUpdateInput!): InventoryItemUpdatePayload!
+
+  # Warehouse mutations
+  warehouseCreate(input: WarehouseCreateInput!): WarehouseCreatePayload!
+  warehouseUpdate(input: WarehouseUpdateInput!): WarehouseUpdatePayload!
+  warehouseDelete(input: WarehouseDeleteInput!): WarehouseDeletePayload!
 }
 
 type CatalogMutation {

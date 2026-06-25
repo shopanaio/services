@@ -53,17 +53,8 @@ type Variant implements Node @key(fields: "id") {
   """Media attached to this variant (images, videos)."""
   media: [VariantMediaItem!]!
 
-  # ═══════════════════════════════════════════════════════════
-  # The following fields have been REMOVED from Catalog (moved to Inventory):
-  # - sku: String
-  # - dimensions: VariantDimensions
-  # - weight: VariantWeight
-  # - cost: VariantCost
-  # - costHistory: VariantCostConnection!
-  # - stock: [WarehouseStock!]!
-  # - inStock: Boolean!
-  # These fields are added via federation extend in Inventory Service
-  # ═══════════════════════════════════════════════════════════
+  """Inventory item associated with this variant."""
+  inventoryItem: InventoryItem
 }
 
 """

@@ -1,5 +1,6 @@
 import {
   decodeGlobalIdByType,
+  encodeGlobalIdByType,
   GlobalIdEntity,
   type GlobalIdType,
 } from "@shopana/shared-graphql-guid";
@@ -7,6 +8,8 @@ import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
 import { CatalogType } from "./CatalogType.js";
 import { ProductResolver } from "./ProductResolver.js";
 import { VendorResolver } from "./VendorResolver.js";
+import { WarehouseResolver } from "./WarehouseResolver.js";
+import { InventoryItemResolver } from "./InventoryItemResolver.js";
 import type { UserError } from "../../kernel/BaseScript.js";
 
 /**
@@ -63,6 +66,12 @@ import type {
 } from "../../workflows/dto/ProductUpdateWorkflowDto.js";
 import type { ProductCreateParams, ProductCreateResult } from "../../sagas/index.js";
 import { VendorCreateScript } from "../../scripts/vendor/index.js";
+import { InventoryItemUpdateScript } from "../../scripts/inventory-item/index.js";
+import {
+  WarehouseCreateScript,
+  WarehouseDeleteScript,
+  WarehouseUpdateScript,
+} from "../../scripts/warehouse/index.js";
 import {
   VariantCreateScript,
   VariantDeleteScript,
@@ -161,6 +170,10 @@ import type {
   CatalogMutationCategoryUpdateArgs,
   CatalogMutationVendorCreateArgs,
   CatalogMutationProductUpdateArgs,
+  InventoryItemUpdateInput,
+  WarehouseCreateInput,
+  WarehouseUpdateInput,
+  WarehouseDeleteInput,
   RichTextInput,
 } from "./generated/types.js";
 import {
@@ -185,6 +198,10 @@ import {
   ProductFeatureUpdateInputSchema,
   ProductFeatureDeleteInputSchema,
   ProductFeaturesSyncInputSchema,
+  InventoryItemUpdateInputSchema,
+  WarehouseCreateInputSchema,
+  WarehouseUpdateInputSchema,
+  WarehouseDeleteInputSchema,
 } from "./generated/schemas.js";
 import { ProductBulkUpdateInputSchema } from "./validation/productBulkEditSchema.js";
 
@@ -201,6 +218,10 @@ export class MutationResolver extends CatalogType<Record<string, never>> {
   catalogMutation() {
     return new CatalogMutationResolver({}, this.$ctx);
   }
+
+  inventoryMutation() {
+    return new InventoryMutationResolver({}, this.$ctx);
+  }
 }
 
 /**
@@ -209,6 +230,137 @@ export class MutationResolver extends CatalogType<Record<string, never>> {
  * Does NOT contain inventory mutations (warehouse, stock, dimensions, cost).
  */
 export class CatalogMutationResolver extends CatalogType<Record<string, never>> {
+  @ZodResolver(InventoryItemUpdateInputSchema())
+  async inventoryItemUpdate(args: { input: InventoryItemUpdateInput }) {
+    const { input } = args;
+
+    const itemId = decodeGlobalIdByType(
+      input.id,
+      GlobalIdEntity.InventoryItem
+    );
+
+    const item = await this.$ctx.kernel.repository.inventoryItem.findById(itemId);
+    if (!item) {
+      return {
+        inventoryItem: null,
+        userErrors: [
+          { message: "Inventory item not found", code: "NOT_FOUND", field: ["id"] },
+        ],
+      };
+    }
+
+    const stock = input.stock
+      ? {
+          warehouseId: decodeGlobalIdByType(
+            input.stock.warehouseId,
+            GlobalIdEntity.Warehouse
+          ),
+          onHand: input.stock.onHand,
+          unavailable: input.stock.unavailable,
+        }
+      : undefined;
+
+    const result = await this.$ctx.kernel.runScript(InventoryItemUpdateScript, {
+      inventoryItemId: item.id,
+      variantId: item.variantId,
+      sku: input.sku,
+      trackInventory: input.trackInventory ?? undefined,
+      continueSellingWhenOutOfStock:
+        input.continueSellingWhenOutOfStock ?? undefined,
+      dimensions: input.dimensions
+        ? {
+            widthMm: input.dimensions.widthMm,
+            heightMm: input.dimensions.heightMm,
+            lengthMm: input.dimensions.lengthMm,
+          }
+        : undefined,
+      weight: input.weight
+        ? {
+            weightGrams: input.weight.weightGrams,
+          }
+        : undefined,
+      stock,
+      unitCost: input.unitCost
+        ? {
+            currency: input.unitCost.currency,
+            amountMinor: input.unitCost.amountMinor,
+          }
+        : undefined,
+    });
+
+    return {
+      inventoryItem:
+        result.userErrors.length === 0
+          ? new InventoryItemResolver(item.id, this.$ctx)
+          : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(WarehouseCreateInputSchema())
+  async warehouseCreate(args: { input: WarehouseCreateInput }) {
+    const { input } = args;
+
+    const result = await this.$ctx.kernel.runScript(WarehouseCreateScript, {
+      code: input.code,
+      name: input.name,
+      isDefault: input.isDefault ?? undefined,
+    });
+
+    return {
+      warehouse: result.warehouse
+        ? new WarehouseResolver(result.warehouse.id, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(WarehouseUpdateInputSchema())
+  async warehouseUpdate(args: { input: WarehouseUpdateInput }) {
+    const { input } = args;
+    const warehouseId = decodeGlobalIdByType(
+      input.id,
+      GlobalIdEntity.Warehouse
+    );
+
+    const result = await this.$ctx.kernel.runScript(WarehouseUpdateScript, {
+      id: warehouseId,
+      code: input.code ?? undefined,
+      name: input.name ?? undefined,
+      isDefault: input.isDefault ?? undefined,
+    });
+
+    return {
+      warehouse: result.warehouse
+        ? new WarehouseResolver(result.warehouse.id, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(WarehouseDeleteInputSchema())
+  async warehouseDelete(args: { input: WarehouseDeleteInput }) {
+    const { input } = args;
+    const warehouseId = decodeGlobalIdByType(
+      input.id,
+      GlobalIdEntity.Warehouse
+    );
+
+    const result = await this.$ctx.kernel.runScript(WarehouseDeleteScript, {
+      id: warehouseId,
+    });
+
+    return {
+      deletedWarehouseId: result.deletedWarehouseId
+        ? encodeGlobalIdByType(
+            result.deletedWarehouseId,
+            GlobalIdEntity.Warehouse
+          )
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
   private mapCategoryUpdateOperations(
     operations: CatalogMutationCategoryUpdateArgs["operations"]
   ):
@@ -3094,6 +3246,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     };
   }
 }
+
+export class InventoryMutationResolver extends CatalogMutationResolver {}
 
 // ─── Helpers ──────────────────────────────────────────────────
 

@@ -3824,10 +3824,7 @@ export type ApiInventoryItemWhereInput = {
 
 export type ApiInventoryMutation = {
   __typename?: 'InventoryMutation';
-  /**
-   * Update inventory item: stock, SKU, weight, cost, dimensions.
-   * Replaces variantUpdateInventory and variantUpdateDimensions.
-   */
+  /** Update inventory item: stock, SKU, weight, cost, dimensions. */
   inventoryItemUpdate: ApiInventoryItemUpdatePayload;
   warehouseCreate: ApiWarehouseCreatePayload;
   warehouseDelete: ApiWarehouseDeletePayload;
@@ -4526,6 +4523,7 @@ export type ApiMutation = {
   authMutation: ApiAuthMutation;
   /** Catalog mutation namespace for product, variant, category, and collection operations */
   catalogMutation: ApiCatalogMutation;
+  /** Inventory mutation namespace for warehouse, stock, and inventory item operations */
   inventoryMutation: ApiInventoryMutation;
   mediaMutation: ApiMediaMutation;
   orderMutation: ApiOrderMutation;
@@ -5958,6 +5956,7 @@ export type ApiQuery = {
   appsQuery: ApiAppsQuery;
   /** Catalog query namespace for product, variant, category, and collection operations */
   catalogQuery: ApiCatalogQuery;
+  /** Inventory query namespace for warehouse, stock, and inventory item operations */
   inventoryQuery: ApiInventoryQuery;
   mediaQuery: ApiMediaQuery;
   orderQuery: ApiOrderQuery;
@@ -6930,7 +6929,7 @@ export type ApiVariant = ApiNode & {
   handle: Scalars['String']['output'];
   /** The globally unique ID of the variant. */
   id: Scalars['ID']['output'];
-  /** Inventory item associated with this variant */
+  /** Inventory item associated with this variant. */
   inventoryItem?: Maybe<ApiInventoryItem>;
   /** Whether this is the default variant for the product. */
   isDefault: Scalars['Boolean']['output'];
@@ -7738,7 +7737,6 @@ export enum Join__Graph {
   AppsAdmin = 'APPS_ADMIN',
   CatalogAdmin = 'CATALOG_ADMIN',
   IamAdmin = 'IAM_ADMIN',
-  InventoryAdmin = 'INVENTORY_ADMIN',
   MediaAdmin = 'MEDIA_ADMIN',
   OrdersAdmin = 'ORDERS_ADMIN',
   ProjectAdmin = 'PROJECT_ADMIN'

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BooleanFilter, BulkUpdateCancelReason, BulkUpdateItemStatus, BulkUpdateJobStatus, BulkUpdateOpType, BundleGroupCreateInput, BundleGroupUpdateInput, BundleItemCreateInput, BundleItemType, BundleItemUpdateInput, BundlePriceType, BundlePricingTemplateCreateInput, BundlePricingTemplateUpdateInput, CategoryCategoriesMetaInput, CategoryContentInput, CategoryCreateInput, CategoryDeleteInput, CategoryHierarchyInput, CategoryHierarchyScopeDirection, CategoryHierarchyScopeInput, CategoryHierarchyScopeMode, CategoryMediaInput, CategoryMoveInput, CategoryOrderByInput, CategoryOrderField, CategoryProductWhereInput, CategoryProductsScopeInput, CategoryRebalanceInput, CategorySortInput, CategoryStatus, CategoryUpdateInput, CategoryWhereInput, CollectionAddProductsInput, CollectionCreateInput, CollectionDeleteInput, CollectionMediaInput, CollectionMoveProductInput, CollectionRemoveProductsInput, CollectionRuleInput, CollectionType, CollectionUpdateInput, CollectionUpdateRulesInput, ConditionCategory, ConditionCreateInput, ConditionGroupCreateInput, ConditionGroupUpdateInput, ConditionSubject, ConditionUpdateInput, CurrencyCode, DateTimeFilter, DeleteInput, DependencyActionCreateInput, DependencyActionType, DependencyActionUpdateInput, DependencyRuleCreateInput, DependencyRuleUpdateInput, DependencyTargetType, DimensionUnit, FacetCreateInput, FacetDeleteInput, FacetGroupCreateInput, FacetGroupDeleteInput, FacetGroupUpdateInput, FacetSelectionMode, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueSort, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, InventoryItemInput, ListingOrderByInput, LocaleCode, LogicOperator, NumericOperator, OperationType, OptionDisplayType, PricingWidgetInput, ProductBulkUpdateInput, ProductBulkUpdateItem, ProductCategoriesScopeInput, ProductCategoryOperationAction, ProductCategoryOperationInput, ProductContentInput, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductDeleteInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductMediaInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionSyncItemInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueSyncInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductOptionsSyncInput, ProductOrderByInput, ProductOrderField, ProductProductsMetaInput, ProductSeoInput, ProductSortBy, ProductSortInput, ProductStatus, ProductStatusAction, ProductTagOperationAction, ProductTagOperationInput, ProductUpdateInput, ProductUpdateStatusInput, ProductWhereInput, RichTextInput, SelectedOptionInput, SeoInput, SortDirection, StateCheckOperator, StringFilter, SwatchType, TagCreateInput, TagDeleteInput, TagOrderByInput, TagOrderField, TagUpdateInput, TagWhereInput, VariantCreateInput, VariantDeleteInput, VariantDimensionsOpInput, VariantInput, VariantInventoryOpInput, VariantMediaOpInput, VariantOptionLinkInput, VariantOptionsOpInput, VariantOrderByInput, VariantOrderField, VariantPricingOpInput, VariantUpdateInput, VariantUpdateMediaInput, VariantUpdateOptionsInput, VariantUpdatePricingInput, VariantWhereInput, VendorCreateInput, VendorOrderByInput, VendorOrderField, VendorWhereInput, WeightUnit } from './types.js'
+import { BooleanFilter, BulkUpdateCancelReason, BulkUpdateItemStatus, BulkUpdateJobStatus, BulkUpdateOpType, BundleGroupCreateInput, BundleGroupUpdateInput, BundleItemCreateInput, BundleItemType, BundleItemUpdateInput, BundlePriceType, BundlePricingTemplateCreateInput, BundlePricingTemplateUpdateInput, CategoryCategoriesMetaInput, CategoryContentInput, CategoryCreateInput, CategoryDeleteInput, CategoryHierarchyInput, CategoryHierarchyScopeDirection, CategoryHierarchyScopeInput, CategoryHierarchyScopeMode, CategoryMediaInput, CategoryMoveInput, CategoryOrderByInput, CategoryOrderField, CategoryProductWhereInput, CategoryProductsScopeInput, CategoryRebalanceInput, CategorySortInput, CategoryStatus, CategoryUpdateInput, CategoryWhereInput, CollectionAddProductsInput, CollectionCreateInput, CollectionDeleteInput, CollectionMediaInput, CollectionMoveProductInput, CollectionRemoveProductsInput, CollectionRuleInput, CollectionType, CollectionUpdateInput, CollectionUpdateRulesInput, ConditionCategory, ConditionCreateInput, ConditionGroupCreateInput, ConditionGroupUpdateInput, ConditionSubject, ConditionUpdateInput, CurrencyCode, DateTimeFilter, DeleteInput, DependencyActionCreateInput, DependencyActionType, DependencyActionUpdateInput, DependencyRuleCreateInput, DependencyRuleUpdateInput, DependencyTargetType, DimensionUnit, DimensionsInput, FacetCreateInput, FacetDeleteInput, FacetGroupCreateInput, FacetGroupDeleteInput, FacetGroupUpdateInput, FacetSelectionMode, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueSort, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, InventoryItemCostInput, InventoryItemDimensionsInput, InventoryItemInput, InventoryItemInventoryItemsMetaInput, InventoryItemOrderByInput, InventoryItemOrderField, InventoryItemStockInput, InventoryItemUpdateInput, InventoryItemWarehouseScopeInput, InventoryItemWarehouseScopeMode, InventoryItemWeightInput, InventoryItemWhereInput, ListingOrderByInput, LocaleCode, LogicOperator, NumericOperator, OperationType, OptionDisplayType, PricingWidgetInput, ProductBulkUpdateInput, ProductBulkUpdateItem, ProductCategoriesScopeInput, ProductCategoryOperationAction, ProductCategoryOperationInput, ProductContentInput, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductDeleteInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductMediaInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionSyncItemInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueSyncInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductOptionsSyncInput, ProductOrderByInput, ProductOrderField, ProductProductsMetaInput, ProductSeoInput, ProductSortBy, ProductSortInput, ProductStatus, ProductStatusAction, ProductTagOperationAction, ProductTagOperationInput, ProductUpdateInput, ProductUpdateStatusInput, ProductWhereInput, RichTextInput, SelectedOptionInput, SeoInput, SortDirection, StateCheckOperator, StringFilter, SwatchType, TagCreateInput, TagDeleteInput, TagOrderByInput, TagOrderField, TagUpdateInput, TagWhereInput, ThresholdMethod, VariantCreateInput, VariantDeleteInput, VariantDimensionsOpInput, VariantInput, VariantInventoryOpInput, VariantMediaOpInput, VariantOptionLinkInput, VariantOptionsOpInput, VariantOrderByInput, VariantOrderField, VariantPricingOpInput, VariantUpdateInput, VariantUpdateMediaInput, VariantUpdateOptionsInput, VariantUpdatePricingInput, VariantWhereInput, VendorCreateInput, VendorOrderByInput, VendorOrderField, VendorWhereInput, WarehouseConnectionInput, WarehouseCreateInput, WarehouseDeleteInput, WarehouseOrderByInput, WarehouseOrderField, WarehouseStockConnectionInput, WarehouseStockOrderByInput, WarehouseStockOrderField, WarehouseStockWhereInput, WarehouseUpdateInput, WarehouseWhereInput, WeightInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -53,6 +53,10 @@ export const FacetUiTypeSchema = z.nativeEnum(FacetUiType);
 
 export const FacetValueSortSchema = z.nativeEnum(FacetValueSort);
 
+export const InventoryItemOrderFieldSchema = z.nativeEnum(InventoryItemOrderField);
+
+export const InventoryItemWarehouseScopeModeSchema = z.nativeEnum(InventoryItemWarehouseScopeMode);
+
 export const LocaleCodeSchema = z.nativeEnum(LocaleCode);
 
 export const LogicOperatorSchema = z.nativeEnum(LogicOperator);
@@ -83,9 +87,15 @@ export const SwatchTypeSchema = z.nativeEnum(SwatchType);
 
 export const TagOrderFieldSchema = z.nativeEnum(TagOrderField);
 
+export const ThresholdMethodSchema = z.nativeEnum(ThresholdMethod);
+
 export const VariantOrderFieldSchema = z.nativeEnum(VariantOrderField);
 
 export const VendorOrderFieldSchema = z.nativeEnum(VendorOrderField);
+
+export const WarehouseOrderFieldSchema = z.nativeEnum(WarehouseOrderField);
+
+export const WarehouseStockOrderFieldSchema = z.nativeEnum(WarehouseStockOrderField);
 
 export const WeightUnitSchema = z.nativeEnum(WeightUnit);
 
@@ -508,6 +518,14 @@ export function DependencyRuleUpdateInputSchema(): z.ZodObject<Properties<Depend
   })
 }
 
+export function DimensionsInputSchema(): z.ZodObject<Properties<DimensionsInput>> {
+  return z.object({
+    height: z.number(),
+    length: z.number(),
+    width: z.number()
+  })
+}
+
 export function FacetCreateInputSchema(): z.ZodObject<Properties<FacetCreateInput>> {
   return z.object({
     facetType: FacetTypeSchema,
@@ -665,11 +683,91 @@ export function IntFilterSchema(): z.ZodObject<Properties<IntFilter>> {
   })
 }
 
+export function InventoryItemCostInputSchema(): z.ZodObject<Properties<InventoryItemCostInput>> {
+  return z.object({
+    amountMinor: z.string(),
+    currency: z.string()
+  })
+}
+
+export function InventoryItemDimensionsInputSchema(): z.ZodObject<Properties<InventoryItemDimensionsInput>> {
+  return z.object({
+    heightMm: z.number(),
+    lengthMm: z.number(),
+    widthMm: z.number()
+  })
+}
+
 export function InventoryItemInputSchema(): z.ZodObject<Properties<InventoryItemInput>> {
   return z.object({
     continueSellingWhenOutOfStock: z.boolean().nullish(),
     sku: z.string().nullish(),
     tracked: z.boolean()
+  })
+}
+
+export function InventoryItemInventoryItemsMetaInputSchema(): z.ZodObject<Properties<InventoryItemInventoryItemsMetaInput>> {
+  return z.object({
+    warehouseScope: z.lazy(() => InventoryItemWarehouseScopeInputSchema().nullish())
+  })
+}
+
+export function InventoryItemOrderByInputSchema(): z.ZodObject<Properties<InventoryItemOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: InventoryItemOrderFieldSchema
+  })
+}
+
+export function InventoryItemStockInputSchema(): z.ZodObject<Properties<InventoryItemStockInput>> {
+  return z.object({
+    onHand: z.number(),
+    unavailable: z.number().nullish(),
+    warehouseId: z.string()
+  })
+}
+
+export function InventoryItemUpdateInputSchema(): z.ZodObject<Properties<InventoryItemUpdateInput>> {
+  return z.object({
+    continueSellingWhenOutOfStock: z.boolean().nullish(),
+    dimensions: z.lazy(() => InventoryItemDimensionsInputSchema().nullish()),
+    id: z.string(),
+    sku: z.string().nullish(),
+    stock: z.lazy(() => InventoryItemStockInputSchema().nullish()),
+    trackInventory: z.boolean().nullish(),
+    unitCost: z.lazy(() => InventoryItemCostInputSchema().nullish()),
+    weight: z.lazy(() => InventoryItemWeightInputSchema().nullish())
+  })
+}
+
+export function InventoryItemWarehouseScopeInputSchema(): z.ZodObject<Properties<InventoryItemWarehouseScopeInput>> {
+  return z.object({
+    mode: InventoryItemWarehouseScopeModeSchema,
+    referenceIds: z.array(z.string())
+  })
+}
+
+export function InventoryItemWeightInputSchema(): z.ZodObject<Properties<InventoryItemWeightInput>> {
+  return z.object({
+    weightGrams: z.number()
+  })
+}
+
+export function InventoryItemWhereInputSchema(): z.ZodObject<Properties<InventoryItemWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => InventoryItemWhereInputSchema())).nullish(),
+    _not: z.lazy(() => InventoryItemWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => InventoryItemWhereInputSchema())).nullish(),
+    availableForSale: z.lazy(() => IntFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    productId: z.lazy(() => IdFilterSchema().nullish()),
+    productName: z.lazy(() => StringFilterSchema().nullish()),
+    quantityOnHand: z.lazy(() => IntFilterSchema().nullish()),
+    reservedQuantity: z.lazy(() => IntFilterSchema().nullish()),
+    sku: z.lazy(() => StringFilterSchema().nullish()),
+    trackInventory: z.lazy(() => BooleanFilterSchema().nullish()),
+    unavailableQuantity: z.lazy(() => IntFilterSchema().nullish()),
+    variantId: z.lazy(() => IdFilterSchema().nullish())
   })
 }
 
@@ -1269,5 +1367,98 @@ export function VendorWhereInputSchema(): z.ZodObject<Properties<VendorWhereInpu
     _or: z.array(z.lazy(() => VendorWhereInputSchema())).nullish(),
     id: z.lazy(() => IdFilterSchema().nullish()),
     name: z.lazy(() => StringFilterSchema().nullish())
+  })
+}
+
+export function WarehouseConnectionInputSchema(): z.ZodObject<Properties<WarehouseConnectionInput>> {
+  return z.object({
+    after: z.string().nullish(),
+    before: z.string().nullish(),
+    first: z.number().nullish(),
+    last: z.number().nullish(),
+    orderBy: z.array(z.lazy(() => WarehouseOrderByInputSchema())).nullish(),
+    where: z.lazy(() => WarehouseWhereInputSchema().nullish())
+  })
+}
+
+export function WarehouseCreateInputSchema(): z.ZodObject<Properties<WarehouseCreateInput>> {
+  return z.object({
+    code: z.string(),
+    isDefault: z.boolean().nullish(),
+    name: z.string()
+  })
+}
+
+export function WarehouseDeleteInputSchema(): z.ZodObject<Properties<WarehouseDeleteInput>> {
+  return z.object({
+    id: z.string()
+  })
+}
+
+export function WarehouseOrderByInputSchema(): z.ZodObject<Properties<WarehouseOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: WarehouseOrderFieldSchema
+  })
+}
+
+export function WarehouseStockConnectionInputSchema(): z.ZodObject<Properties<WarehouseStockConnectionInput>> {
+  return z.object({
+    after: z.string().nullish(),
+    before: z.string().nullish(),
+    first: z.number().nullish(),
+    last: z.number().nullish(),
+    orderBy: z.array(z.lazy(() => WarehouseStockOrderByInputSchema())).nullish(),
+    where: z.lazy(() => WarehouseStockWhereInputSchema().nullish())
+  })
+}
+
+export function WarehouseStockOrderByInputSchema(): z.ZodObject<Properties<WarehouseStockOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: WarehouseStockOrderFieldSchema
+  })
+}
+
+export function WarehouseStockWhereInputSchema(): z.ZodObject<Properties<WarehouseStockWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => WarehouseStockWhereInputSchema())).nullish(),
+    _not: z.lazy(() => WarehouseStockWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => WarehouseStockWhereInputSchema())).nullish(),
+    createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    quantityOnHand: z.lazy(() => IntFilterSchema().nullish()),
+    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    variantId: z.lazy(() => IdFilterSchema().nullish()),
+    warehouseId: z.lazy(() => IdFilterSchema().nullish())
+  })
+}
+
+export function WarehouseUpdateInputSchema(): z.ZodObject<Properties<WarehouseUpdateInput>> {
+  return z.object({
+    code: z.string().nullish(),
+    id: z.string(),
+    isDefault: z.boolean().nullish(),
+    name: z.string().nullish()
+  })
+}
+
+export function WarehouseWhereInputSchema(): z.ZodObject<Properties<WarehouseWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => WarehouseWhereInputSchema())).nullish(),
+    _not: z.lazy(() => WarehouseWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => WarehouseWhereInputSchema())).nullish(),
+    code: z.lazy(() => StringFilterSchema().nullish()),
+    createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    isDefault: z.lazy(() => BooleanFilterSchema().nullish()),
+    name: z.lazy(() => StringFilterSchema().nullish()),
+    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish())
+  })
+}
+
+export function WeightInputSchema(): z.ZodObject<Properties<WeightInput>> {
+  return z.object({
+    value: z.number()
   })
 }

@@ -1,0 +1,212 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# InventoryItem - единица учета запасов
+# ─────────────────────────────────────────────────────────────────────────────
+
+"""
+InventoryItem represents the inventory-specific data for a variant.
+Each Variant in Catalog has a corresponding InventoryItem in Inventory service.
+"""
+type InventoryItem implements Node @key(fields: "id") {
+  """Global ID (Relay)"""
+  id: ID!
+
+  """Reference to Catalog.Variant"""
+  variantId: ID!
+
+  """Catalog variant entity"""
+  variant: Variant!
+
+  """SKU code"""
+  sku: String
+
+  """Whether to track inventory for this item"""
+  trackInventory: Boolean!
+
+  """Whether to continue selling when out of stock"""
+  continueSellingWhenOutOfStock: Boolean!
+
+  """Physical dimensions (mm)"""
+  dimensions: InventoryItemDimensions
+
+  """Weight (grams)"""
+  weight: InventoryItemWeight
+
+  """Stock levels across warehouses"""
+  stock: [WarehouseStock!]!
+
+  """Total quantity available across all warehouses"""
+  totalAvailable: Int!
+
+  """Current unit cost"""
+  unitCost: InventoryItemCost
+
+  """When this item was created"""
+  createdAt: DateTime!
+
+  """When this item was last updated"""
+  updatedAt: DateTime!
+}
+
+type InventoryItemDimensions {
+  """Width in millimeters"""
+  widthMm: Int!
+  """Height in millimeters"""
+  heightMm: Int!
+  """Length in millimeters"""
+  lengthMm: Int!
+  """Display unit preference"""
+  displayUnit: DimensionUnit!
+}
+
+type InventoryItemWeight {
+  """Weight in grams"""
+  weightGrams: Int!
+  """Display unit preference"""
+  displayUnit: WeightUnit!
+}
+
+type InventoryItemCost {
+  """Currency code"""
+  currency: String!
+  """Cost in minor units (cents)"""
+  amountMinor: BigInt!
+  """Effective from date"""
+  effectiveFrom: DateTime!
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Connection types
+# ─────────────────────────────────────────────────────────────────────────────
+
+type InventoryItemConnection {
+  edges: [InventoryItemEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type InventoryItemEdge {
+  node: InventoryItem!
+  cursor: String!
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Input types
+# ─────────────────────────────────────────────────────────────────────────────
+
+input InventoryItemWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [InventoryItemWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [InventoryItemWhereInput!]
+  """Negate the condition"""
+  _not: InventoryItemWhereInput
+  """Filter by inventory item ID"""
+  id: IDFilter
+  """Filter by variant ID"""
+  variantId: IDFilter
+  """Filter by product ID"""
+  productId: IDFilter
+  """Filter by product name in the current locale"""
+  productName: StringFilter
+  """Filter by SKU"""
+  sku: StringFilter
+  """Filter by trackInventory"""
+  trackInventory: BooleanFilter
+  """Filter by quantity on hand in the selected warehouse scope"""
+  quantityOnHand: IntFilter
+  """Filter by reserved quantity in the selected warehouse scope"""
+  reservedQuantity: IntFilter
+  """Filter by unavailable quantity in the selected warehouse scope"""
+  unavailableQuantity: IntFilter
+  """Filter by available for sale quantity in the selected warehouse scope"""
+  availableForSale: IntFilter
+}
+
+enum InventoryItemOrderField {
+  productName
+  sku
+  quantityOnHand
+  reservedQuantity
+  unavailableQuantity
+  availableForSale
+  updatedAt
+  id
+  variantId
+}
+
+input InventoryItemOrderByInput {
+  field: InventoryItemOrderField!
+  direction: SortDirection!
+}
+
+input InventoryItemInventoryItemsMetaInput {
+  warehouseScope: InventoryItemWarehouseScopeInput
+}
+
+enum InventoryItemWarehouseScopeMode {
+  INCLUDE
+  EXCLUDE
+}
+
+input InventoryItemWarehouseScopeInput {
+  referenceIds: [ID!]!
+  mode: InventoryItemWarehouseScopeMode!
+}
+
+input InventoryItemUpdateInput {
+  """The inventory item ID to update"""
+  id: ID!
+
+  """New SKU value"""
+  sku: String
+
+  """Whether to track inventory"""
+  trackInventory: Boolean
+
+  """Whether to continue selling when out of stock"""
+  continueSellingWhenOutOfStock: Boolean
+
+  """Physical dimensions update"""
+  dimensions: InventoryItemDimensionsInput
+
+  """Weight update"""
+  weight: InventoryItemWeightInput
+
+  """Stock update for a specific warehouse"""
+  stock: InventoryItemStockInput
+
+  """Unit cost update"""
+  unitCost: InventoryItemCostInput
+}
+
+input InventoryItemDimensionsInput {
+  widthMm: Int!
+  heightMm: Int!
+  lengthMm: Int!
+}
+
+input InventoryItemWeightInput {
+  weightGrams: Int!
+}
+
+input InventoryItemStockInput {
+  warehouseId: ID!
+  onHand: Int!
+  unavailable: Int
+}
+
+input InventoryItemCostInput {
+  currency: String!
+  amountMinor: BigInt!
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Payload types
+# ─────────────────────────────────────────────────────────────────────────────
+
+type InventoryItemUpdatePayload {
+  """Updated inventory item"""
+  inventoryItem: InventoryItem
+  """List of errors"""
+  userErrors: [GenericUserError!]!
+}

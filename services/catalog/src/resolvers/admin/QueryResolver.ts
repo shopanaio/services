@@ -4,6 +4,7 @@ import {
   type GlobalIdType,
 } from "@shopana/shared-graphql-guid";
 import { ApolloQuery } from "@shopana/type-resolver";
+import { GraphQLError } from "graphql";
 import { CatalogType } from "./CatalogType.js";
 import { ProductResolver } from "./ProductResolver.js";
 
@@ -62,12 +63,41 @@ import {
   PricingWidgetResolver,
   type PricingWidgetInput,
 } from "./PricingWidgetResolver.js";
+import { InventoryWidgetResolver } from "./InventoryWidgetResolver.js";
+import { WarehouseResolver } from "./WarehouseResolver.js";
+import { InventoryItemResolver } from "./InventoryItemResolver.js";
+import { StockResolver } from "./StockResolver.js";
+import {
+  WarehouseConnectionResolver,
+  type WarehouseConnectionResolverInput,
+} from "./WarehouseConnectionResolver.js";
+import {
+  InventoryItemConnectionResolver,
+  type InventoryItemConnectionResolverInput,
+} from "./InventoryItemConnectionResolver.js";
 import {
   normalizeCategoryHierarchyScopeInput,
   normalizeCategoryProductsScopeInput,
   normalizeProductCategoriesScopeInput,
+  normalizeWarehouseWhereInput,
 } from "./filter-normalizers.js";
 import { CollectionRulesPreviewCountScript } from "../../scripts/collection/CollectionRulesPreviewCountScript.js";
+
+type InventoryItemWarehouseScopeArgs = {
+  referenceIds?: string[] | null;
+  mode?: "INCLUDE" | "EXCLUDE" | null;
+};
+
+type InventoryItemInventoryItemsMetaArgs = {
+  warehouseScope?: InventoryItemWarehouseScopeArgs | null;
+};
+
+type InventoryItemsArgs = Omit<
+  InventoryItemConnectionResolverInput,
+  "meta"
+> & {
+  meta?: InventoryItemInventoryItemsMetaArgs | null;
+};
 
 /**
  * Root Query resolver for Catalog Service.
@@ -89,12 +119,24 @@ export class QueryResolver extends CatalogType<Record<string, never>> {
   widgetQuery() {
     return new WidgetQueryResolver({}, this.$ctx);
   }
+
+  inventoryQuery() {
+    return new InventoryQueryResolver({}, this.$ctx);
+  }
 }
 
 /**
  * Widget query resolver for pricing.
  */
 export class WidgetQueryResolver extends CatalogType<Record<string, never>> {
+  inventory(args: { productId: string }) {
+    const productId = decodeGlobalIdByType(
+      args.productId,
+      GlobalIdEntity.Product
+    );
+    return new InventoryWidgetResolver(productId, this.$ctx);
+  }
+
   pricing(args: { input: PricingWidgetInput }) {
     const variantId = decodeGlobalIdByType(
       args.input.variantId,
@@ -126,15 +168,19 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
   /**
    * Get a node by ID (for Relay compatibility).
    */
-  node(args: { id: string }) {
-    return new ProductResolver(args.id, this.$ctx);
+  async node(args: { id: string }) {
+    const productId = safeDecodeGlobalId(args.id, GlobalIdEntity.Product);
+    if (!productId) return null;
+    const product = await this.$ctx.loaders.product.load(productId);
+    if (!product) return null;
+    return new ProductResolver(productId, this.$ctx);
   }
 
   /**
    * Get multiple nodes by IDs (for Relay compatibility).
    */
   nodes(args: { ids: string[] }) {
-    return args.ids.map((id) => new ProductResolver(id, this.$ctx));
+    return Promise.all(args.ids.map((id) => this.node({ id })));
   }
 
   // ---- Product Queries ----
@@ -215,11 +261,114 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
     return new VendorConnectionResolver(args, this.$ctx);
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // Warehouse Queries REMOVED (moved to Inventory Service)
-  // - warehouse(id)
-  // - warehouses(...)
-  // ═══════════════════════════════════════════════════════════
+  // ---- Warehouse Queries ----
+
+  async warehouse(args: { id: string }) {
+    const warehouseId = decodeGlobalIdByType(args.id, GlobalIdEntity.Warehouse);
+    const warehouse = await this.$ctx.loaders.warehouse.load(warehouseId);
+    if (!warehouse) {
+      return null;
+    }
+    return new WarehouseResolver(warehouseId, this.$ctx);
+  }
+
+  warehouses(args: WarehouseConnectionResolverInput) {
+    return new WarehouseConnectionResolver(
+      {
+        ...args,
+        where: normalizeWarehouseWhereInput(args.where),
+      },
+      this.$ctx
+    );
+  }
+
+  // ---- InventoryItem Queries ----
+
+  async inventoryItem(args: { id: string }) {
+    const itemId = decodeGlobalIdByType(args.id, GlobalIdEntity.InventoryItem);
+    const item = await this.$ctx.loaders.inventoryItem.load(itemId);
+    if (!item) return null;
+    return new InventoryItemResolver(item.id, this.$ctx);
+  }
+
+  async inventoryItemByVariant(args: { variantId: string }) {
+    const variantUuid = decodeGlobalIdByType(
+      args.variantId,
+      GlobalIdEntity.Variant
+    );
+    const item = await this.$ctx.loaders.inventoryItemByVariant.load(variantUuid);
+    if (!item) return null;
+    return new InventoryItemResolver(item.id, this.$ctx);
+  }
+
+  async inventoryItems(args: InventoryItemsArgs) {
+    const warehouseScope = await this.normalizeInventoryItemWarehouseScopeInput(
+      args.meta?.warehouseScope
+    );
+
+    if (warehouseScope.kind === "invalid") {
+      throw new GraphQLError(warehouseScope.message, {
+        extensions: { code: warehouseScope.code },
+      });
+    }
+
+    return new InventoryItemConnectionResolver(
+      {
+        ...args,
+        meta: { warehouseScope },
+      } as InventoryItemConnectionResolverInput,
+      this.$ctx
+    );
+  }
+
+  private async normalizeInventoryItemWarehouseScopeInput(
+    input: InventoryItemWarehouseScopeArgs | null | undefined
+  ): Promise<
+    | { kind: "all" }
+    | { kind: "empty" }
+    | { kind: "warehouse"; warehouseId: string }
+    | { kind: "invalid"; code: string; message: string }
+  > {
+    if (!input) {
+      return { kind: "all" };
+    }
+
+    if (input.mode !== "INCLUDE") {
+      return {
+        kind: "invalid",
+        code: "UNSUPPORTED_INVENTORY_ITEM_WAREHOUSE_SCOPE",
+        message: "Only warehouseScope mode INCLUDE is supported for inventoryItems.",
+      };
+    }
+
+    const referenceIds = input.referenceIds ?? [];
+    if (referenceIds.length !== 1) {
+      return {
+        kind: "invalid",
+        code: "UNSUPPORTED_INVENTORY_ITEM_WAREHOUSE_SCOPE",
+        message: "inventoryItems supports exactly one warehouseScope referenceId.",
+      };
+    }
+
+    let warehouseId: string;
+    try {
+      warehouseId = decodeGlobalIdByType(
+        referenceIds[0],
+        GlobalIdEntity.Warehouse
+      );
+    } catch {
+      return { kind: "empty" };
+    }
+
+    const warehouse = await this.$ctx.kernel.repository.warehouse.findById(
+      warehouseId
+    );
+    if (!warehouse) {
+      return { kind: "empty" };
+    }
+
+    return { kind: "warehouse", warehouseId };
+  }
 
   // ---- Category Queries ----
 
@@ -431,5 +580,54 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
     if (!productId) return [];
     const rules = await this.$ctx.kernel.repository.dependencyRule.findByProductId(productId);
     return rules.map((rule) => new DependencyRuleResolver(rule.id, this.$ctx));
+  }
+}
+
+export class InventoryQueryResolver extends CatalogQueryResolver {
+  async node(args: { id: string }) {
+    try {
+      const warehouseId = decodeGlobalIdByType(
+        args.id,
+        GlobalIdEntity.Warehouse
+      );
+      const warehouse = await this.$ctx.loaders.warehouse.load(warehouseId);
+      if (warehouse) {
+        return new WarehouseResolver(warehouseId, this.$ctx);
+      }
+    } catch {
+      // Not a Warehouse ID
+    }
+
+    try {
+      const inventoryItemId = decodeGlobalIdByType(
+        args.id,
+        GlobalIdEntity.InventoryItem
+      );
+      const item = await this.$ctx.loaders.inventoryItem.load(inventoryItemId);
+      if (item) {
+        return new InventoryItemResolver(item.id, this.$ctx);
+      }
+    } catch {
+      // Not an InventoryItem ID
+    }
+
+    try {
+      const stockId = decodeGlobalIdByType(
+        args.id,
+        GlobalIdEntity.WarehouseStock
+      );
+      const stock = await this.$ctx.kernel.repository.stock.findById(stockId);
+      if (stock) {
+        return new StockResolver(stock.id, this.$ctx);
+      }
+    } catch {
+      // Not a WarehouseStock ID
+    }
+
+    return null;
+  }
+
+  nodes(args: { ids: string[] }) {
+    return Promise.all(args.ids.map((id) => this.node({ id })));
   }
 }
