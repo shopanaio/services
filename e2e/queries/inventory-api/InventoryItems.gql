@@ -1,0 +1,55 @@
+query InventoryItems(
+  $first: Int
+  $after: String
+  $last: Int
+  $before: String
+  $where: InventoryItemWhereInput
+  $orderBy: [InventoryItemOrderByInput!]
+  $meta: InventoryItemInventoryItemsMetaInput
+) {
+  inventoryQuery {
+    inventoryItems(
+      first: $first
+      after: $after
+      last: $last
+      before: $before
+      where: $where
+      orderBy: $orderBy
+      meta: $meta
+    ) {
+      edges {
+        node {
+          id
+          variantId
+          sku
+          variant {
+            id
+            handle
+            product {
+              id
+              handle
+              title
+            }
+          }
+          stock {
+            id
+            warehouseId
+            quantityOnHand
+            unavailableQuantity
+            reservedQuantity
+            availableForSale
+          }
+          totalAvailable
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

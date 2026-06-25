@@ -4,10 +4,10 @@ import { expect, type Page } from '@playwright/test';
 
 type Api = ApiFixtures['api'];
 type SortDirection = 'asc' | 'desc';
-type VariantOrderField = 'productId' | 'id';
+type InventoryItemOrderField = 'productName' | 'id';
 
-interface VariantOrder {
-  field: VariantOrderField;
+interface InventoryItemOrder {
+  field: InventoryItemOrderField;
   direction: SortDirection;
 }
 
@@ -35,6 +35,7 @@ interface SeededVariant {
 
 interface InventoryFixture {
   warehouseId: string;
+  warehouseName: string;
   products: SeededProduct[];
   variants: SeededVariant[];
 }
@@ -70,6 +71,13 @@ async function completeProfileIfNeeded(page: Page) {
   await expect(firstNameInput).toBeHidden();
 }
 
+async function addTagSelectValue(page: Page, testId: string, value: string) {
+  const select = page.getByTestId(testId);
+  await select.click();
+  await page.keyboard.type(value);
+  await page.keyboard.press('Enter');
+}
+
 async function setupAdminUserAndStore(api: Api, page: Page) {
   api.session.user.data.password = 'StrongPassword123!';
   await api.session.setupUser();
@@ -80,6 +88,113 @@ async function setupAdminUserAndStore(api: Api, page: Page) {
   await completeProfileIfNeeded(page);
 
   return organization;
+}
+
+async function createWarehouseThroughUi(
+  api: Api,
+  page: Page,
+  organizationName: string,
+  unique: string,
+) {
+  const name = `Admin UI Office ${unique}`;
+  const code = `ADMIN-UI-OFFICE-${unique}`.toUpperCase();
+
+  await page.goto(`/${organizationName}/${api.session.projectSlug}/warehouses`);
+  await expect(page.getByTestId('page-title')).toHaveText('Warehouse');
+  await page.getByTestId('warehouse-create-button').click();
+  await page.getByTestId('create-warehouse-name-input').fill(name);
+  await page.getByTestId('create-warehouse-code-input').fill(code);
+  await page.getByTestId('submit-create-warehouse-form-button').click();
+  await expect(page.getByTestId('create-warehouse-modal')).toBeHidden({
+    timeout: 30_000,
+  });
+
+  let warehouse: { id: string; code: string; name: string } | null = null;
+
+  await expect
+    .poll(async () => {
+      const { data } = await api.admin.query('inventory-api/WarehouseFindMany', {
+        variables: {
+          first: 20,
+          where: { code: { _eq: code } },
+        },
+      });
+
+      warehouse = data.inventoryQuery.warehouses.edges.map((edge) => edge.node)[0] ?? null;
+
+      return warehouse?.id ?? null;
+    })
+    .not.toBeNull();
+
+  if (!warehouse) {
+    throw new Error(`Created warehouse ${code} was not found through the admin API`);
+  }
+
+  return warehouse;
+}
+
+async function findProductByHandle(api: Api, handle: string) {
+  const { data } = await api.admin.query('inventory-api/ProductFindMany', {
+    variables: {
+      first: 20,
+      where: { handle: { _eq: handle } },
+    },
+  });
+
+  return data.catalogQuery.products.edges.map((edge) => edge.node)[0] ?? null;
+}
+
+async function createProductWithVariantsThroughUi(
+  api: Api,
+  page: Page,
+  organizationName: string,
+  unique: string,
+) {
+  const title = `Admin UI Inventory Product ${unique}`;
+  const handle = `admin-ui-inventory-product-${unique}`;
+
+  await page.goto(`/${organizationName}/${api.session.projectSlug}/products`);
+  await expect(page.getByTestId('page-title')).toHaveText('Products');
+  await page.getByTestId('products-create-button').click();
+  await page.getByTestId('create-product-title-input').fill(title);
+  await page.getByTestId('create-product-handle-input').fill(handle);
+  await page.getByTestId('create-product-has-variants-switch').click();
+  await page.getByTestId('create-product-option-0-name-input').fill('Color');
+  await addTagSelectValue(page, 'create-product-option-0-values-select', 'Black');
+  await addTagSelectValue(page, 'create-product-option-0-values-select', 'White');
+
+  const variantRows = page
+    .getByTestId('create-product-variants-grid')
+    .locator('.ag-center-cols-container .ag-row');
+  await expect(variantRows).toHaveCount(2);
+
+  await page.getByTestId('submit-create-product-form-button').click();
+  await expect(page.getByTestId('create-product-modal')).toBeHidden({
+    timeout: 30_000,
+  });
+
+  let product: Awaited<ReturnType<typeof findProductByHandle>> = null;
+
+  await expect
+    .poll(async () => {
+      product = await findProductByHandle(api, handle);
+      return product?.id ?? null;
+    })
+    .not.toBeNull();
+
+  if (!product) {
+    throw new Error(`Created product ${handle} was not found through the admin API`);
+  }
+
+  const variants = product.variants.edges.map((edge) => edge.node);
+  expect(variants).toHaveLength(2);
+
+  return {
+    product,
+    title,
+    handle,
+    variants,
+  };
 }
 
 async function createDefaultWarehouse(api: Api, unique: string) {
@@ -227,19 +342,22 @@ async function seedInventoryFixture(
 
   return {
     warehouseId: warehouse.id,
+    warehouseName: warehouse.name,
     products,
     variants,
   };
 }
 
-function inventoryUrl(organizationName: string, projectSlug: string) {
-  return `/${organizationName}/${projectSlug}/inventory`;
+function inventoryUrl(organizationName: string, projectSlug: string, warehouseId?: string) {
+  const baseUrl = `/${organizationName}/${projectSlug}/inventory`;
+
+  return warehouseId ? `${baseUrl}/${warehouseId}` : baseUrl;
 }
 
-async function openInventoryPage(page: Page, url: string) {
+async function openInventoryPage(page: Page, url: string, expectedTitle: string) {
   await page.setViewportSize({ width: 1920, height: 1600 });
   await page.goto(url);
-  await expect(page.getByTestId('page-title')).toHaveText('Inventory');
+  await expect(page.getByTestId('page-title')).toHaveText(expectedTitle);
   await expect(page.getByTestId('inventory-table')).toBeVisible();
 }
 
@@ -254,10 +372,10 @@ function keyByVariantId(variants: SeededVariant[]) {
 async function fetchExpectedVariantKeys(
   api: Api,
   fixture: InventoryFixture,
-  orderBy: VariantOrder[],
+  orderBy: InventoryItemOrder[],
 ) {
   const keysById = keyByVariantId(fixture.variants);
-  const { data } = await api.admin.query('catalog-api/VariantFindMany', {
+  const { data } = await api.admin.query('inventory-api/InventoryItems', {
     variables: {
       first: fixture.variants.length,
       where: {
@@ -267,10 +385,10 @@ async function fetchExpectedVariantKeys(
     },
   });
 
-  return data.catalogQuery.variants.edges.map((edge) => {
-    const key = keysById.get(edge.node.id);
+  return data.inventoryQuery.inventoryItems.edges.map((edge) => {
+    const key = keysById.get(edge.node.variant.id);
     if (!key) {
-      throw new Error(`Unexpected variant returned: ${edge.node.id}`);
+      throw new Error(`Unexpected variant returned: ${edge.node.variant.id}`);
     }
 
     return key;
@@ -356,6 +474,51 @@ async function expectVariantInventoryApiState(
     .toEqual(expected);
 }
 
+async function expectVariantStockInWarehouse(api: Api, warehouseId: string, variantId: string) {
+  await expect
+    .poll(
+      async () => {
+        const { data } = await api.admin.query('inventory-api/InventoryItemByVariant', {
+          variables: { variantId },
+        });
+        const item = data.inventoryQuery.inventoryItemByVariant;
+        const stock = item?.stock.find((candidate) => candidate.warehouseId === warehouseId);
+
+        return {
+          exists: Boolean(stock),
+          onHand: stock?.quantityOnHand ?? null,
+          unavailable: stock?.unavailableQuantity ?? null,
+          available: stock?.availableForSale ?? null,
+        };
+      },
+      { timeout: 30_000 },
+    )
+    .toEqual({
+      exists: true,
+      onHand: 0,
+      unavailable: 0,
+      available: 0,
+    });
+}
+
+async function addVisiblePickerRowsForProduct(page: Page, productTitle: string, count: number) {
+  await expect(page.getByTestId('variant-picker-modal')).toBeVisible();
+  const rows = page
+    .getByTestId('variant-picker-grid')
+    .locator('.ag-center-cols-container .ag-row')
+    .filter({ hasText: productTitle });
+
+  await expect(rows).toHaveCount(count);
+
+  for (let index = 0; index < count; index += 1) {
+    await rows.nth(index).click();
+  }
+
+  await expect(page.getByTestId('submit-variant-picker-form-button')).toBeEnabled();
+  await page.getByTestId('submit-variant-picker-form-button').click();
+  await expect(page.getByTestId('variant-picker-modal')).toBeHidden();
+}
+
 test.describe('Admin inventory page UI', () => {
   test('shows variants in product-first API order and paginates through variants', async ({
     api,
@@ -364,16 +527,22 @@ test.describe('Admin inventory page UI', () => {
     const organization = await setupAdminUserAndStore(api, page);
     const fixture = await seedInventoryFixture(api, 7, 4);
     const expectedKeys = await fetchExpectedVariantKeys(api, fixture, [
-      { field: 'productId', direction: 'asc' },
-      { field: 'id', direction: 'asc' },
+      { field: 'productName', direction: 'asc' },
     ]);
 
-    await openInventoryPage(page, inventoryUrl(organization.name, api.session.projectSlug));
+    await openInventoryPage(
+      page,
+      inventoryUrl(organization.name, api.session.projectSlug),
+      'All Inventory',
+    );
 
     await expect(page.getByTestId('inventory-pagination-range')).toHaveText('1–20 of 28');
+    await expect(page.getByRole('button', { name: 'Create' })).toBeDisabled();
     await expectVisibleVariantOrder(page, expectedKeys, 12);
 
-    const firstVariant = fixture.variants.find((variant) => variantKey(variant) === expectedKeys[0]);
+    const firstVariant = fixture.variants.find(
+      (variant) => variantKey(variant) === expectedKeys[0],
+    );
     if (!firstVariant) {
       throw new Error('Expected first variant was not found in fixture');
     }
@@ -410,9 +579,9 @@ test.describe('Admin inventory page UI', () => {
     const organization = await setupAdminUserAndStore(api, page);
     const fixture = await seedInventoryFixture(api, 2, 2);
     const expectedByVariantId = new Map<string, ExpectedInventoryValues>();
-    const url = inventoryUrl(organization.name, api.session.projectSlug);
+    const url = inventoryUrl(organization.name, api.session.projectSlug, fixture.warehouseId);
 
-    await openInventoryPage(page, url);
+    await openInventoryPage(page, url, fixture.warehouseName);
     await expect(page.getByTestId('inventory-pagination-range')).toHaveText('1–4 of 4');
 
     for (const [index, variant] of fixture.variants.entries()) {
@@ -429,9 +598,7 @@ test.describe('Admin inventory page UI', () => {
       await editInventoryNumberCell(page, variant, 'on-hand', expected.onHand);
       await editInventoryNumberCell(page, variant, 'unavailable', expected.unavailable);
 
-      await expect(inventoryCell(page, variant, 'on-hand')).toContainText(
-        String(expected.onHand),
-      );
+      await expect(inventoryCell(page, variant, 'on-hand')).toContainText(String(expected.onHand));
       await expect(inventoryCell(page, variant, 'unavailable')).toContainText(
         String(expected.unavailable),
       );
@@ -440,9 +607,7 @@ test.describe('Admin inventory page UI', () => {
       );
     }
 
-    await expect(page.getByTestId('editing-panel-changes-label')).toHaveText(
-      'Unsaved changes (8)',
-    );
+    await expect(page.getByTestId('editing-panel-changes-label')).toHaveText('Unsaved changes (8)');
     await expect(page.getByTestId('inventory-pagination-next-button')).toBeDisabled();
 
     await page.getByTestId('editing-panel-save-button').click();
@@ -458,6 +623,7 @@ test.describe('Admin inventory page UI', () => {
     }
 
     await page.goto(url);
+    await expect(page.getByTestId('page-title')).toHaveText(fixture.warehouseName);
     await expect(page.getByTestId('inventory-pagination-range')).toHaveText('1–4 of 4');
 
     for (const variant of fixture.variants) {
@@ -473,6 +639,59 @@ test.describe('Admin inventory page UI', () => {
       await expect(inventoryCell(page, variant, 'available')).toHaveText(
         String(expected.available),
       );
+    }
+  });
+
+  test('creates a warehouse and product, then adds product variants to warehouse inventory', async ({
+    api,
+    page,
+  }) => {
+    const organization = await setupAdminUserAndStore(api, page);
+    const unique = crypto.randomUUID().slice(0, 8);
+    const warehouse = await createWarehouseThroughUi(api, page, organization.name, unique);
+    const product = await createProductWithVariantsThroughUi(api, page, organization.name, unique);
+    const warehouseInventoryUrl = inventoryUrl(
+      organization.name,
+      api.session.projectSlug,
+      warehouse.id,
+    );
+
+    await openInventoryPage(page, warehouseInventoryUrl, warehouse.name);
+    await expect(page.getByTestId('inventory-pagination-range')).toHaveText('0–0 of 0');
+
+    await page.getByRole('button', { name: 'Create' }).click();
+    await addVisiblePickerRowsForProduct(page, product.title, product.variants.length);
+
+    for (const variant of product.variants) {
+      await expectVariantStockInWarehouse(api, warehouse.id, variant.id);
+    }
+
+    await page.goto(warehouseInventoryUrl);
+    await expect(page.getByTestId('page-title')).toHaveText(warehouse.name);
+    await expect(page.getByTestId('inventory-pagination-range')).toHaveText('1–2 of 2');
+
+    for (const variant of product.variants) {
+      const row: SeededVariant = {
+        id: variant.id,
+        productId: product.product.id,
+        productTitle: product.title,
+        productHandle: product.handle,
+        handle: variant.handle,
+        isDefault: variant.isDefault,
+        inventoryItemId: '',
+        sku: '',
+        onHand: 0,
+        unavailable: 0,
+        reserved: 0,
+        available: 0,
+      };
+
+      await expect(
+        page.getByTestId(`inventory-table-product-cell-${variantKey(row)}`),
+      ).toBeVisible();
+      await expect(inventoryCell(page, row, 'on-hand')).toHaveText('0');
+      await expect(inventoryCell(page, row, 'unavailable')).toHaveText('0');
+      await expect(inventoryCell(page, row, 'available')).toHaveText('0');
     }
   });
 });

@@ -83,6 +83,7 @@ export type GraphQLFileName =
   | 'iam-api/Organizations'
   | 'iam-api/OwnershipTransfer'
   | 'inventory-api/InventoryItemByVariant'
+  | 'inventory-api/InventoryItems'
   | 'inventory-api/InventoryNodeFindOne'
   | 'inventory-api/ProductBulkUpdate'
   | 'inventory-api/ProductBulkUpdateJob'
