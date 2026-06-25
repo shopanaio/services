@@ -129,17 +129,18 @@ await this.repository.tag.upsertTranslation({
 
 ```sql
 insert into catalog.tag_translation (project_id, tag_id, locale, name)
-select t.project_id, t.id, 'uk', t.handle
+select t.project_id, t.id, s.default_locale, t.handle
 from catalog.tag t
+join project.store s on s.id = t.project_id
 where not exists (
   select 1
   from catalog.tag_translation tt
   where tt.tag_id = t.id
-    and tt.locale = 'uk'
+    and tt.locale = s.default_locale
 );
 ```
 
-Если в проекте дефолтная локаль не всегда `uk`, backfill лучше делать через проектную настройку локалей. Если такой настройки в миграции недоступно, использовать `uk` как текущий backend fallback, потому что `TagRepository.locale` и `BaseScript.getLocale()` уже падают обратно на `uk`.
+Backfill должен использовать проектную настройку default locale; если она недоступна в миграции, миграцию нужно разделить или передать locale явно, а не использовать backend fallback.
 
 ## Фаза 3. Поддержка денормализованного `productsCount`
 

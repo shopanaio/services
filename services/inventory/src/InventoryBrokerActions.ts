@@ -5,6 +5,7 @@ import {
   ServiceBroker,
   Action,
 } from "@shopana/shared-kernel";
+import type { ContextStore } from "@shopana/shared-context";
 import type { Inventory } from "@shopana/broker-types";
 import { Kernel } from "./kernel/Kernel.js";
 import { runWithContext, ServiceContext } from "./context/index.js";
@@ -17,6 +18,15 @@ import {
 import type { VariantCost, CurrencyCode } from "./resolvers/admin/interfaces/index.js";
 import { InventoryItemUpdateScript } from "./scripts/inventory-item/InventoryItemUpdateScript.js";
 import { InventoryItemUpdateDimensionsScript } from "./scripts/inventory-item/InventoryItemUpdateDimensionsScript.js";
+
+type GetStoreByIdResult = {
+  store: ContextStore | null;
+  userErrors: Array<{
+    code: string;
+    message: string;
+    field?: string[] | null;
+  }>;
+};
 
 export interface GetVariantCostParams {
   projectId: string;
@@ -39,22 +49,30 @@ export class InventoryBrokerActions extends BrokerActions {
     return Kernel.getInstance();
   }
 
+  private async getStoreContext(storeId: string): Promise<ContextStore> {
+    const result = await this.broker.call<
+      GetStoreByIdResult,
+      { id: string }
+    >("project.getStoreById", { id: storeId });
+
+    if (!result.store) {
+      const message =
+        result.userErrors[0]?.message ?? `Store with id "${storeId}" not found`;
+      throw new Error(message);
+    }
+
+    return result.store;
+  }
+
   private async runWithStoreContext<T>(storeId: string, fn: () => Promise<T>): Promise<T> {
     const kernel = this.kernel;
+    const store = await this.getStoreContext(storeId);
     const ctx = new ServiceContext({
       requestId: `broker-action-${Date.now()}`,
       kernel,
       loaders: new Loader(kernel.repository),
-      store: {
-        id: storeId,
-        name: storeId,
-        displayName: storeId,
-        organizationId: storeId,
-        timezone: "UTC",
-        email: null,
-        defaultLocale: "uk",
-        defaultCurrency: "UAH",
-      },
+      locale: store.defaultLocale,
+      store,
     });
     return runWithContext(ctx, fn);
   }

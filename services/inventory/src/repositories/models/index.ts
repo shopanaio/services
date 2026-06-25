@@ -3,6 +3,7 @@ export * from "./schema";
 
 // InventoryItem (1:1 with Catalog.Variant)
 export * from "./inventory-item";
+export * from "./inventory-item-list-views";
 
 // Cost
 export * from "./cost";

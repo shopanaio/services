@@ -42,8 +42,12 @@ export interface RunScriptContext {
   organizationId: string;
   /** Locale for translations */
   locale?: string;
+  /** Store default locale for translation fallback */
+  defaultLocale?: string;
   /** User ID if authenticated */
   userId?: string;
+  /** Request/correlation ID if available */
+  requestId?: string;
 }
 
 /**

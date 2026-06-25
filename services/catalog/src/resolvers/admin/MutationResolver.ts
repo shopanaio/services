@@ -418,6 +418,77 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     );
   }
 
+  private async emitVariantCreatedProductUpdated(args: {
+    productId: string;
+    variantId: string;
+  }): Promise<void> {
+    const product = await this.$ctx.kernel.repository.product.findById(
+      args.productId
+    );
+
+    await this.$ctx.kernel.getServices().broker.runWorkflow(
+      "events.emit",
+      {
+        eventType: "productUpdated",
+        payload: {
+          productId: args.productId,
+          storeId: this.$ctx.store.id,
+          revision: product?.revision ?? 0,
+          variants: {
+            [args.variantId]: {},
+          },
+        },
+        source: "catalog",
+        context: {
+          tenantId: this.$ctx.store.organizationId,
+          userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
+        },
+        subject: { type: "product", id: args.productId },
+        actor: this.$ctx.hasUser
+          ? { type: "user", id: this.$ctx.user.id }
+          : undefined,
+        emitKey: `product:${args.productId}:variant:${args.variantId}:created`,
+      },
+      {
+        source: "workflow",
+        workflowId: `variantCreate:${this.$ctx.store.id}:${this.$ctx.requestId}:${args.variantId}`,
+        stepId: "emitProductUpdated",
+      }
+    );
+  }
+
+  private async emitVariantDeleted(args: {
+    productId: string;
+    variantId: string;
+  }): Promise<void> {
+    await this.$ctx.kernel.getServices().broker.runWorkflow(
+      "events.emit",
+      {
+        eventType: "variantDeleted",
+        payload: {
+          productId: args.productId,
+          variantId: args.variantId,
+          storeId: this.$ctx.store.id,
+        },
+        source: "catalog",
+        context: {
+          tenantId: this.$ctx.store.organizationId,
+          userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
+        },
+        subject: { type: "variant", id: args.variantId },
+        actor: this.$ctx.hasUser
+          ? { type: "user", id: this.$ctx.user.id }
+          : undefined,
+        emitKey: `variant:${args.variantId}:deleted`,
+      },
+      {
+        source: "workflow",
+        workflowId: `variantDelete:${this.$ctx.store.id}:${this.$ctx.requestId}:${args.variantId}`,
+        stepId: "emitVariantDeleted",
+      }
+    );
+  }
+
   // ---- Vendor Mutations ----
 
   /**
@@ -725,7 +796,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         projectId: this.$ctx.store.id,
         storeId: this.$ctx.store.id,
         userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
-        locale: this.$ctx.locale ?? "uk",
+        locale: this.$ctx.locale ?? this.$ctx.store.defaultLocale,
       },
     };
 
@@ -764,16 +835,30 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   @ZodResolver(VariantCreateInputSchema())
   async variantCreate(args: { input: VariantCreateInput }) {
     const { input } = args;
+    const productId = decodeGlobalIdByType(
+      input.productId,
+      GlobalIdEntity.Product
+    );
 
     const result = await this.$ctx.kernel.runScript(VariantCreateScript, {
-      productId: input.productId,
+      productId,
       options: input.variant.options.map((opt) => ({
-        optionId: opt.optionId,
-        optionValueId: opt.optionValueId,
+        optionId: decodeGlobalIdByType(opt.optionId, GlobalIdEntity.Option),
+        optionValueId: decodeGlobalIdByType(
+          opt.optionValueId,
+          GlobalIdEntity.OptionValue
+        ),
       })),
       externalSystem: input.variant.externalSystem ?? undefined,
       externalId: input.variant.externalId ?? undefined,
     });
+
+    if (result.userErrors.length === 0 && result.variant) {
+      await this.emitVariantCreatedProductUpdated({
+        productId: result.variant.productId,
+        variantId: result.variant.id,
+      });
+    }
 
     return {
       variant: result.variant
@@ -789,11 +874,23 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   @ZodResolver(VariantDeleteInputSchema())
   async variantDelete(args: { input: VariantDeleteInput }) {
     const { input } = args;
+    const variantId = decodeGlobalIdByType(input.id, GlobalIdEntity.Variant);
 
     const result = await this.$ctx.kernel.runScript(VariantDeleteScript, {
-      id: input.id,
+      id: variantId,
       permanent: Boolean(input.permanent),
     });
+
+    if (
+      result.userErrors.length === 0 &&
+      result.deletedVariantId &&
+      result.productId
+    ) {
+      await this.emitVariantDeleted({
+        productId: result.productId,
+        variantId: result.deletedVariantId,
+      });
+    }
 
     return {
       deletedVariantId: result.deletedVariantId ?? null,
@@ -1359,7 +1456,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         projectId: this.$ctx.store.id,
         storeId: this.$ctx.store.id,
         userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
-        locale: this.$ctx.locale ?? "uk",
+        locale: this.$ctx.locale ?? this.$ctx.store.defaultLocale,
       },
     };
 
@@ -2215,7 +2312,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       projectId: this.$ctx.store.id,
       storeId: this.$ctx.store.id,
       userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
-      locale: this.$ctx.locale ?? "uk",
+      locale: this.$ctx.locale ?? this.$ctx.store.defaultLocale,
     };
 
     // Map products with transformed operations

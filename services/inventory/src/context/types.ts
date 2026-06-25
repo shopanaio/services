@@ -15,7 +15,7 @@ export interface ServiceContextOptions {
   store?: ContextStore;
   /** Authenticated user for admin API */
   user?: ContextUser;
-  /** Current locale for translations (default: 'uk') */
+  /** Current locale for translations */
   locale?: string;
   /** Current currency for pricing */
   currency?: string;
@@ -32,7 +32,7 @@ export class ServiceContext {
   readonly kernel: Kernel;
   /** DataLoaders for efficient batched data fetching */
   readonly loaders: Loader;
-  /** Current locale for translations (default: 'uk') */
+  /** Current locale for translations */
   readonly locale?: string;
   /** Current currency for pricing */
   readonly currency?: string;

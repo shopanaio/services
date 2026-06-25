@@ -13,6 +13,9 @@ type InventoryItem implements Node @key(fields: "id") {
   """Reference to Catalog.Variant"""
   variantId: ID!
 
+  """Catalog variant entity"""
+  variant: Variant!
+
   """SKU code"""
   sku: String
 
@@ -103,10 +106,63 @@ type InventoryItemEdge {
 # ─────────────────────────────────────────────────────────────────────────────
 
 input InventoryItemWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [InventoryItemWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [InventoryItemWhereInput!]
+  """Negate the condition"""
+  _not: InventoryItemWhereInput
+  """Filter by inventory item ID"""
+  id: IDFilter
+  """Filter by variant ID"""
+  variantId: IDFilter
+  """Filter by product ID"""
+  productId: IDFilter
+  """Filter by product name in the current locale"""
+  productName: StringFilter
   """Filter by SKU"""
   sku: StringFilter
   """Filter by trackInventory"""
-  trackInventory: Boolean
+  trackInventory: BooleanFilter
+  """Filter by quantity on hand in the selected warehouse scope"""
+  quantityOnHand: IntFilter
+  """Filter by reserved quantity in the selected warehouse scope"""
+  reservedQuantity: IntFilter
+  """Filter by unavailable quantity in the selected warehouse scope"""
+  unavailableQuantity: IntFilter
+  """Filter by available for sale quantity in the selected warehouse scope"""
+  availableForSale: IntFilter
+}
+
+enum InventoryItemOrderField {
+  productName
+  sku
+  quantityOnHand
+  reservedQuantity
+  unavailableQuantity
+  availableForSale
+  updatedAt
+  id
+  variantId
+}
+
+input InventoryItemOrderByInput {
+  field: InventoryItemOrderField!
+  direction: SortDirection!
+}
+
+input InventoryItemInventoryItemsMetaInput {
+  warehouseScope: InventoryItemWarehouseScopeInput
+}
+
+enum InventoryItemWarehouseScopeMode {
+  INCLUDE
+  EXCLUDE
+}
+
+input InventoryItemWarehouseScopeInput {
+  referenceIds: [ID!]!
+  mode: InventoryItemWarehouseScopeMode!
 }
 
 input InventoryItemUpdateInput {

@@ -89,7 +89,11 @@ type InventoryQuery {
   inventoryItems(
     first: Int
     after: String
+    last: Int
+    before: String
     where: InventoryItemWhereInput
+    orderBy: [InventoryItemOrderByInput!]
+    meta: InventoryItemInventoryItemsMetaInput
   ): InventoryItemConnection!
 }
 

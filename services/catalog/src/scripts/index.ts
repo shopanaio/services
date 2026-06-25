@@ -1,5 +1,6 @@
 // GetOffers script
 export * from './GetOffersScript.js';
+export * from './GetInventoryItemProjectionSnapshotScript.js';
 
 // Product scripts
 export * from './product/index.js';

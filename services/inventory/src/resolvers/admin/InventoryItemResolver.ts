@@ -126,9 +126,7 @@ export class InventoryItemResolver extends InventoryType<string, InventoryItem> 
    */
   async stock() {
     const variantId = await this.$get("variantId");
-    const stocks = await this.$ctx.kernel
-      .getServices()
-      .repository.stock.getByVariantId(variantId);
+    const stocks = await this.$ctx.loaders.stockByVariant.load(variantId);
 
     return stocks.map((s) => new StockResolver(s.id, this.$ctx));
   }
@@ -139,9 +137,7 @@ export class InventoryItemResolver extends InventoryType<string, InventoryItem> 
    */
   async totalAvailable() {
     const variantId = await this.$get("variantId");
-    const stocks = await this.$ctx.kernel
-      .getServices()
-      .repository.stock.getByVariantId(variantId);
+    const stocks = await this.$ctx.loaders.stockByVariant.load(variantId);
 
     return stocks.reduce(
       (sum, s) => sum + (s.quantityOnHand - s.reservedQty - s.unavailableQty),
@@ -154,9 +150,7 @@ export class InventoryItemResolver extends InventoryType<string, InventoryItem> 
    */
   async inStock() {
     const variantId = await this.$get("variantId");
-    const stocks = await this.$ctx.kernel
-      .getServices()
-      .repository.stock.getByVariantId(variantId);
+    const stocks = await this.$ctx.loaders.stockByVariant.load(variantId);
 
     return stocks.some((s) => s.quantityOnHand > 0);
   }

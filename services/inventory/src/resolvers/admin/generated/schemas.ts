@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, DimensionsInput, FloatFilter, IdFilter, IntFilter, InventoryItemCostInput, InventoryItemDimensionsInput, InventoryItemStockInput, InventoryItemUpdateInput, InventoryItemWeightInput, InventoryItemWhereInput, LocaleCode, SortDirection, StringFilter, ThresholdMethod, WarehouseConnectionInput, WarehouseCreateInput, WarehouseDeleteInput, WarehouseOrderByInput, WarehouseOrderField, WarehouseStockConnectionInput, WarehouseStockOrderByInput, WarehouseStockOrderField, WarehouseStockWhereInput, WarehouseUpdateInput, WarehouseWhereInput, WeightInput, WeightUnit } from './types.js'
+import { BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, DimensionsInput, FloatFilter, IdFilter, IntFilter, InventoryItemCostInput, InventoryItemDimensionsInput, InventoryItemInventoryItemsMetaInput, InventoryItemOrderByInput, InventoryItemOrderField, InventoryItemStockInput, InventoryItemUpdateInput, InventoryItemWarehouseScopeInput, InventoryItemWarehouseScopeMode, InventoryItemWeightInput, InventoryItemWhereInput, LocaleCode, SortDirection, StringFilter, ThresholdMethod, WarehouseConnectionInput, WarehouseCreateInput, WarehouseDeleteInput, WarehouseOrderByInput, WarehouseOrderField, WarehouseStockConnectionInput, WarehouseStockOrderByInput, WarehouseStockOrderField, WarehouseStockWhereInput, WarehouseUpdateInput, WarehouseWhereInput, WeightInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -14,6 +14,10 @@ export const definedNonNullAnySchema = z.any().refine((v) => isDefinedNonNullAny
 export const CurrencyCodeSchema = z.nativeEnum(CurrencyCode);
 
 export const DimensionUnitSchema = z.nativeEnum(DimensionUnit);
+
+export const InventoryItemOrderFieldSchema = z.nativeEnum(InventoryItemOrderField);
+
+export const InventoryItemWarehouseScopeModeSchema = z.nativeEnum(InventoryItemWarehouseScopeMode);
 
 export const LocaleCodeSchema = z.nativeEnum(LocaleCode);
 
@@ -118,6 +122,19 @@ export function InventoryItemDimensionsInputSchema(): z.ZodObject<Properties<Inv
   })
 }
 
+export function InventoryItemInventoryItemsMetaInputSchema(): z.ZodObject<Properties<InventoryItemInventoryItemsMetaInput>> {
+  return z.object({
+    warehouseScope: z.lazy(() => InventoryItemWarehouseScopeInputSchema().nullish())
+  })
+}
+
+export function InventoryItemOrderByInputSchema(): z.ZodObject<Properties<InventoryItemOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: InventoryItemOrderFieldSchema
+  })
+}
+
 export function InventoryItemStockInputSchema(): z.ZodObject<Properties<InventoryItemStockInput>> {
   return z.object({
     onHand: z.number(),
@@ -139,6 +156,13 @@ export function InventoryItemUpdateInputSchema(): z.ZodObject<Properties<Invento
   })
 }
 
+export function InventoryItemWarehouseScopeInputSchema(): z.ZodObject<Properties<InventoryItemWarehouseScopeInput>> {
+  return z.object({
+    mode: InventoryItemWarehouseScopeModeSchema,
+    referenceIds: z.array(z.string())
+  })
+}
+
 export function InventoryItemWeightInputSchema(): z.ZodObject<Properties<InventoryItemWeightInput>> {
   return z.object({
     weightGrams: z.number()
@@ -147,8 +171,19 @@ export function InventoryItemWeightInputSchema(): z.ZodObject<Properties<Invento
 
 export function InventoryItemWhereInputSchema(): z.ZodObject<Properties<InventoryItemWhereInput>> {
   return z.object({
+    _and: z.array(z.lazy(() => InventoryItemWhereInputSchema())).nullish(),
+    _not: z.lazy(() => InventoryItemWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => InventoryItemWhereInputSchema())).nullish(),
+    availableForSale: z.lazy(() => IntFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    productId: z.lazy(() => IdFilterSchema().nullish()),
+    productName: z.lazy(() => StringFilterSchema().nullish()),
+    quantityOnHand: z.lazy(() => IntFilterSchema().nullish()),
+    reservedQuantity: z.lazy(() => IntFilterSchema().nullish()),
     sku: z.lazy(() => StringFilterSchema().nullish()),
-    trackInventory: z.boolean().nullish()
+    trackInventory: z.lazy(() => BooleanFilterSchema().nullish()),
+    unavailableQuantity: z.lazy(() => IntFilterSchema().nullish()),
+    variantId: z.lazy(() => IdFilterSchema().nullish())
   })
 }
 

@@ -64,7 +64,7 @@ export interface ProductConnectionResult {
 
 export class ProductRepository extends BaseRepository {
   private get locale(): string {
-    return this.ctx.locale ?? "uk";
+    return this.ctx.locale ?? this.ctx.store.defaultLocale;
   }
 
   private get currency(): string {

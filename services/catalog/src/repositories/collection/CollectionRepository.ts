@@ -17,7 +17,7 @@ import {
 
 export class CollectionRepository extends BaseRepository {
   private get locale(): string {
-    return this.ctx.locale ?? "uk";
+    return this.ctx.locale ?? this.ctx.store.defaultLocale;
   }
 
   async findById(id: string): Promise<Collection | null> {

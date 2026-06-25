@@ -138,6 +138,16 @@ export interface VariantFieldChanges {
 export interface ProductUpdatedEvent
   extends DomainEvent<"productUpdated", ProductUpdatedPayload> {}
 
+export interface VariantDeletedEvent
+  extends DomainEvent<
+    "variantDeleted",
+    {
+      variantId: string;
+      productId: string;
+      storeId: string;
+    }
+  > {}
+
 export interface OrderCreatedEvent
   extends DomainEvent<
     "orderCreated",
@@ -191,6 +201,7 @@ export type ShopanaEvent =
   | ProductCreatedEvent
   | ProductDeletedEvent
   | ProductUpdatedEvent
+  | VariantDeletedEvent
   | OrderCreatedEvent
   | OrderCompletedEvent
   | StoreCreatedEvent

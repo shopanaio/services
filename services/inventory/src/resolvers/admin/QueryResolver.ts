@@ -3,6 +3,7 @@ import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import { ApolloQuery } from "@shopana/type-resolver";
+import { GraphQLError } from "graphql";
 import { InventoryType } from "./InventoryType.js";
 import { WarehouseResolver } from "./WarehouseResolver.js";
 import { InventoryItemResolver } from "./InventoryItemResolver.js";
@@ -12,7 +13,28 @@ import {
   WarehouseConnectionResolver,
   type WarehouseConnectionResolverInput,
 } from "./WarehouseConnectionResolver.js";
+import {
+  InventoryItemConnectionResolver,
+  type InventoryItemConnectionResolverInput,
+} from "./InventoryItemConnectionResolver.js";
 import { normalizeWarehouseWhereInput } from "./filter-normalizers.js";
+import type { NormalizedInventoryItemWarehouseScope } from "../../repositories/inventory-item/InventoryItemRepository.js";
+
+type InventoryItemWarehouseScopeArgs = {
+  referenceIds?: string[] | null;
+  mode?: "INCLUDE" | "EXCLUDE" | null;
+};
+
+type InventoryItemInventoryItemsMetaArgs = {
+  warehouseScope?: InventoryItemWarehouseScopeArgs | null;
+};
+
+type InventoryItemsArgs = Omit<
+  InventoryItemConnectionResolverInput,
+  "meta"
+> & {
+  meta?: InventoryItemInventoryItemsMetaArgs | null;
+};
 
 /**
  * Root Query resolver.
@@ -69,7 +91,7 @@ export class InventoryQueryResolver extends InventoryType<Record<string, never>>
     // Try to decode as InventoryItem
     try {
       const inventoryItemId = decodeGlobalIdByType(args.id, GlobalIdEntity.InventoryItem);
-      const item = await this.$ctx.kernel.repository.inventoryItem.findById(inventoryItemId);
+      const item = await this.$ctx.loaders.inventoryItem.load(inventoryItemId);
       if (item) {
         return new InventoryItemResolver(item.id, this.$ctx);
       }
@@ -133,44 +155,85 @@ export class InventoryQueryResolver extends InventoryType<Record<string, never>>
    */
   async inventoryItem(args: { id: string }) {
     const itemId = decodeGlobalIdByType(args.id, GlobalIdEntity.InventoryItem);
-    const item = await this.$ctx.kernel.repository.inventoryItem.findById(itemId);
+    const item = await this.$ctx.loaders.inventoryItem.load(itemId);
     if (!item) return null;
     return new InventoryItemResolver(item.id, this.$ctx);
   }
 
   /**
    * Get an inventory item by variant ID.
-   * Creates one if it doesn't exist (lazy creation).
    */
   async inventoryItemByVariant(args: { variantId: string }) {
     const variantUuid = decodeGlobalIdByType(args.variantId, GlobalIdEntity.Variant);
-    const item = await this.$ctx.kernel.repository.inventoryItem.upsertByVariantId(variantUuid, {});
+    const item = await this.$ctx.loaders.inventoryItemByVariant.load(variantUuid);
+    if (!item) return null;
     return new InventoryItemResolver(item.id, this.$ctx);
   }
 
   /**
    * Get inventory items with pagination.
    */
-  async inventoryItems(args: {
-    first?: number;
-    after?: string;
-    where?: { sku?: { _eq?: string; _contains?: string; _startsWith?: string }; trackInventory?: boolean };
-  }) {
-    // TODO: Implement proper pagination with cursor
-    // For now, return a simple list
-    const first = args.first ?? 20;
+  async inventoryItems(args: InventoryItemsArgs) {
+    const warehouseScope = await this.normalizeInventoryItemWarehouseScopeInput(
+      args.meta?.warehouseScope,
+    );
 
-    // This is a simplified implementation
-    // A full implementation would use cursor-based pagination
-    return {
-      edges: [],
-      pageInfo: {
-        hasNextPage: false,
-        hasPreviousPage: false,
-        startCursor: null,
-        endCursor: null,
-      },
-      totalCount: 0,
-    };
+    if (warehouseScope.kind === "invalid") {
+      throw new GraphQLError(warehouseScope.message, {
+        extensions: { code: warehouseScope.code },
+      });
+    }
+
+    return new InventoryItemConnectionResolver(
+      {
+        ...args,
+        meta: { warehouseScope },
+      } as InventoryItemConnectionResolverInput,
+      this.$ctx,
+    );
+  }
+
+  private async normalizeInventoryItemWarehouseScopeInput(
+    input: InventoryItemWarehouseScopeArgs | null | undefined,
+  ): Promise<NormalizedInventoryItemWarehouseScope> {
+    if (!input) {
+      return { kind: "all" };
+    }
+
+    if (input.mode !== "INCLUDE") {
+      return {
+        kind: "invalid",
+        code: "UNSUPPORTED_INVENTORY_ITEM_WAREHOUSE_SCOPE",
+        message: "Only warehouseScope mode INCLUDE is supported for inventoryItems.",
+      };
+    }
+
+    const referenceIds = input.referenceIds ?? [];
+    if (referenceIds.length !== 1) {
+      return {
+        kind: "invalid",
+        code: "UNSUPPORTED_INVENTORY_ITEM_WAREHOUSE_SCOPE",
+        message: "inventoryItems supports exactly one warehouseScope referenceId.",
+      };
+    }
+
+    let warehouseId: string;
+    try {
+      warehouseId = decodeGlobalIdByType(
+        referenceIds[0],
+        GlobalIdEntity.Warehouse,
+      );
+    } catch {
+      return { kind: "empty" };
+    }
+
+    const warehouse = await this.$ctx.kernel.repository.warehouse.findById(
+      warehouseId,
+    );
+    if (!warehouse) {
+      return { kind: "empty" };
+    }
+
+    return { kind: "warehouse", warehouseId };
   }
 }

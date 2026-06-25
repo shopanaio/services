@@ -165,7 +165,7 @@ async productBulkUpdate(
     projectId: this.$ctx.store.id,
     storeId: this.$ctx.store.id,
     userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
-    locale: this.$ctx.locale ?? "uk",
+    locale: this.$ctx.locale ?? this.$ctx.store.defaultLocale,
   };
 
   // Decode Global IDs and map operations

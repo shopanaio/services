@@ -1,8 +1,10 @@
 import {
   uuid,
   varchar,
+  text,
   boolean,
   timestamp,
+  integer,
   index,
   unique,
 } from "drizzle-orm/pg-core";
@@ -55,5 +57,48 @@ export const inventoryItem = inventorySchema.table(
   ]
 );
 
+export const inventoryItemCatalogProjection = inventorySchema.table(
+  "inventory_item_catalog_projection",
+  {
+    projectId: uuid("project_id").notNull(),
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    variantId: uuid("variant_id").notNull(),
+    productId: uuid("product_id").notNull(),
+    productHandle: text("product_handle"),
+
+    externalSystem: text("external_system"),
+    externalId: text("external_id"),
+
+    catalogRevision: integer("catalog_revision"),
+    lastCatalogEventId: text("last_catalog_event_id"),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("inventory_item_catalog_projection_project_variant_key").on(
+      table.projectId,
+      table.variantId
+    ),
+    index("idx_inventory_item_catalog_projection_project_product").on(
+      table.projectId,
+      table.productId
+    ),
+    index("idx_inventory_item_catalog_projection_project_deleted").on(
+      table.projectId,
+      table.deletedAt
+    ),
+  ]
+);
+
 export type InventoryItem = typeof inventoryItem.$inferSelect;
 export type NewInventoryItem = typeof inventoryItem.$inferInsert;
+export type InventoryItemCatalogProjection =
+  typeof inventoryItemCatalogProjection.$inferSelect;
+export type NewInventoryItemCatalogProjection =
+  typeof inventoryItemCatalogProjection.$inferInsert;

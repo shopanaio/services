@@ -43,7 +43,8 @@ export class TranslationRepository {
   }
 
   private get locale(): string {
-    return getContext().locale ?? "uk";
+    const context = getContext();
+    return context.locale ?? context.store.defaultLocale;
   }
 
   // ─────────────────────────────────────────────────────────────────────────

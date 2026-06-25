@@ -58,6 +58,8 @@ export const typeResolvers: Partial<Resolvers> = {
         reference.id,
         GlobalIdEntity.InventoryItem,
       );
+      const item = await ctx.loaders.inventoryItem.load(itemId);
+      if (!item) return null;
       return InventoryItemResolver.load(itemId, fieldInfo, ctx);
     },
   },

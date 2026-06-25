@@ -7,6 +7,7 @@ export interface VariantDeleteParams {
 
 export interface VariantDeleteResult {
   deletedVariantId?: string;
+  productId?: string;
   userErrors: UserError[];
 }
 
@@ -40,12 +41,13 @@ export class VariantDeleteScript extends BaseScript<VariantDeleteParams, Variant
 
     this.logger.info({ variantId: id, permanent }, "Variant deleted successfully");
 
-    return { deletedVariantId: id, userErrors: [] };
+    return { deletedVariantId: id, productId: existingVariant.productId, userErrors: [] };
   }
 
   protected handleError(_error: unknown): VariantDeleteResult {
     return {
       deletedVariantId: undefined,
+      productId: undefined,
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }

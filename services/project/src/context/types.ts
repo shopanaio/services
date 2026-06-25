@@ -40,7 +40,7 @@ export class ServiceContext {
   readonly loaders: Loader;
   /** Store slug from X-Store-Name header */
   readonly storeName?: string;
-  /** Current locale for translations (default: 'uk') */
+  /** Current locale for translations */
   readonly locale?: string;
 
   private _user?: ContextUser;

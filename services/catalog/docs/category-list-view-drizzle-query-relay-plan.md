@@ -28,7 +28,7 @@ Products list уже использует dedicated view:
 - `ProductRepository.getConnection()` добавляет repository-owned filters:
   - `projectId = storeId`;
   - `deletedAt IS NULL`;
-  - `locale = ctx.locale ?? "uk"`;
+  - `locale = ctx.locale ?? ctx.store.defaultLocale`;
   - `currency = ctx.currency ?? "UAH"` или `currency IS NULL`;
 - `totalCount` считается через `productRelayQuery.count()` с тем же `mergedWhere`, что и page query;
 - public ID filters мапятся из GraphQL global IDs в database UUID через `mapWhereFields`.

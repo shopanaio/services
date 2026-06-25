@@ -70,7 +70,10 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
    * Helper: get current locale
    */
   protected getLocale(): string {
-    return this.context.locale ?? "uk";
+    if (!this.context.locale) {
+      throw new Error("Locale is required in service context");
+    }
+    return this.context.locale;
   }
 
   /**

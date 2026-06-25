@@ -440,7 +440,7 @@ LEFT JOIN inventory.warehouse_stock stock
 Repository scope must add:
 
 - `projectId = ctx.store.id`;
-- `locale = ctx.locale ?? "uk"`;
+- `locale = ctx.locale ?? ctx.store.defaultLocale`;
 - `deletedAt is null`;
 - `warehouseScopeId = normalizedWarehouseId` only for the warehouse-scoped view.
 
@@ -754,9 +754,9 @@ Current risks:
 
 - `productUpdated.product.title` is a partial field and currently does not carry
   an explicit locale in the shared event type;
-- catalog handlers often default locale to `uk`;
+- catalog handlers can default locale without an explicit store default locale;
 - if Inventory applies a title update without locale, it can overwrite the wrong
-  translation row or only update `uk`.
+  translation row or only update one locale.
 
 Required Phase 1 contract: add a catalog broker snapshot action that returns
 base projection plus translations.
@@ -856,7 +856,7 @@ product translations for that product from catalog snapshot and upsert them all.
 Do not infer locale from handler defaults. Do not write a changed product name to
 `uk` unless the event/snapshot explicitly says the changed locale is `uk`.
 
-The list repository filters the view with `locale = ctx.locale ?? "uk"`, so:
+The list repository filters the view with `locale = ctx.locale ?? ctx.store.defaultLocale`, so:
 
 - Ukrainian request locale filters/sorts by Ukrainian `productName`;
 - English request locale filters/sorts by English `productName`;

@@ -525,6 +525,8 @@ export type InventoryItem = Node & {
   unitCost: Maybe<InventoryItemCost>;
   /** When this item was last updated */
   updatedAt: Scalars['DateTime']['output'];
+  /** Catalog variant entity */
+  variant: Variant;
   /** Reference to Catalog.Variant */
   variantId: Scalars['ID']['output'];
   /** Weight (grams) */
@@ -577,6 +579,27 @@ export type InventoryItemEdge = {
   node: InventoryItem;
 };
 
+export type InventoryItemInventoryItemsMetaInput = {
+  warehouseScope?: InputMaybe<InventoryItemWarehouseScopeInput>;
+};
+
+export type InventoryItemOrderByInput = {
+  direction: SortDirection;
+  field: InventoryItemOrderField;
+};
+
+export enum InventoryItemOrderField {
+  AvailableForSale = 'availableForSale',
+  Id = 'id',
+  ProductName = 'productName',
+  QuantityOnHand = 'quantityOnHand',
+  ReservedQuantity = 'reservedQuantity',
+  Sku = 'sku',
+  UnavailableQuantity = 'unavailableQuantity',
+  UpdatedAt = 'updatedAt',
+  VariantId = 'variantId'
+}
+
 export type InventoryItemStockInput = {
   onHand: Scalars['Int']['input'];
   unavailable?: InputMaybe<Scalars['Int']['input']>;
@@ -610,6 +633,16 @@ export type InventoryItemUpdatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+export type InventoryItemWarehouseScopeInput = {
+  mode: InventoryItemWarehouseScopeMode;
+  referenceIds: Array<Scalars['ID']['input']>;
+};
+
+export enum InventoryItemWarehouseScopeMode {
+  Exclude = 'EXCLUDE',
+  Include = 'INCLUDE'
+}
+
 export type InventoryItemWeight = {
   __typename?: 'InventoryItemWeight';
   /** Display unit preference */
@@ -623,10 +656,32 @@ export type InventoryItemWeightInput = {
 };
 
 export type InventoryItemWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<InventoryItemWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<InventoryItemWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<InventoryItemWhereInput>>;
+  /** Filter by available for sale quantity in the selected warehouse scope */
+  availableForSale?: InputMaybe<IntFilter>;
+  /** Filter by inventory item ID */
+  id?: InputMaybe<IdFilter>;
+  /** Filter by product ID */
+  productId?: InputMaybe<IdFilter>;
+  /** Filter by product name in the current locale */
+  productName?: InputMaybe<StringFilter>;
+  /** Filter by quantity on hand in the selected warehouse scope */
+  quantityOnHand?: InputMaybe<IntFilter>;
+  /** Filter by reserved quantity in the selected warehouse scope */
+  reservedQuantity?: InputMaybe<IntFilter>;
   /** Filter by SKU */
   sku?: InputMaybe<StringFilter>;
   /** Filter by trackInventory */
-  trackInventory?: InputMaybe<Scalars['Boolean']['input']>;
+  trackInventory?: InputMaybe<BooleanFilter>;
+  /** Filter by unavailable quantity in the selected warehouse scope */
+  unavailableQuantity?: InputMaybe<IntFilter>;
+  /** Filter by variant ID */
+  variantId?: InputMaybe<IdFilter>;
 };
 
 export type InventoryMutation = {
@@ -700,7 +755,11 @@ export type InventoryQueryInventoryItemByVariantArgs = {
 
 export type InventoryQueryInventoryItemsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<InventoryItemInventoryItemsMetaInput>;
+  orderBy?: InputMaybe<Array<InventoryItemOrderByInput>>;
   where?: InputMaybe<InventoryItemWhereInput>;
 };
 
@@ -1570,9 +1629,14 @@ export type ResolversTypes = ResolversObject<{
   InventoryItemDimensions: ResolverTypeWrapper<InventoryItemDimensions>;
   InventoryItemDimensionsInput: InventoryItemDimensionsInput;
   InventoryItemEdge: ResolverTypeWrapper<InventoryItemEdge>;
+  InventoryItemInventoryItemsMetaInput: InventoryItemInventoryItemsMetaInput;
+  InventoryItemOrderByInput: InventoryItemOrderByInput;
+  InventoryItemOrderField: InventoryItemOrderField;
   InventoryItemStockInput: InventoryItemStockInput;
   InventoryItemUpdateInput: InventoryItemUpdateInput;
   InventoryItemUpdatePayload: ResolverTypeWrapper<InventoryItemUpdatePayload>;
+  InventoryItemWarehouseScopeInput: InventoryItemWarehouseScopeInput;
+  InventoryItemWarehouseScopeMode: InventoryItemWarehouseScopeMode;
   InventoryItemWeight: ResolverTypeWrapper<InventoryItemWeight>;
   InventoryItemWeightInput: InventoryItemWeightInput;
   InventoryItemWhereInput: InventoryItemWhereInput;
@@ -1646,9 +1710,12 @@ export type ResolversParentTypes = ResolversObject<{
   InventoryItemDimensions: InventoryItemDimensions;
   InventoryItemDimensionsInput: InventoryItemDimensionsInput;
   InventoryItemEdge: InventoryItemEdge;
+  InventoryItemInventoryItemsMetaInput: InventoryItemInventoryItemsMetaInput;
+  InventoryItemOrderByInput: InventoryItemOrderByInput;
   InventoryItemStockInput: InventoryItemStockInput;
   InventoryItemUpdateInput: InventoryItemUpdateInput;
   InventoryItemUpdatePayload: InventoryItemUpdatePayload;
+  InventoryItemWarehouseScopeInput: InventoryItemWarehouseScopeInput;
   InventoryItemWeight: InventoryItemWeight;
   InventoryItemWeightInput: InventoryItemWeightInput;
   InventoryItemWhereInput: InventoryItemWhereInput;
@@ -1733,6 +1800,7 @@ export type InventoryItemResolvers<ContextType = ServiceContext, ParentType exte
   trackInventory?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   unitCost?: Resolver<Maybe<ResolversTypes['InventoryItemCost']>, ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  variant?: Resolver<ResolversTypes['Variant'], ParentType, ContextType>;
   variantId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   weight?: Resolver<Maybe<ResolversTypes['InventoryItemWeight']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;

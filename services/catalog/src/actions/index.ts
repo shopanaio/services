@@ -11,6 +11,11 @@ import {
   type GetOffersParams,
   type GetOffersResult,
 } from "../scripts/GetOffersScript.js";
+import {
+  GetInventoryItemProjectionSnapshotScript,
+  type GetInventoryItemProjectionSnapshotParams,
+  type GetInventoryItemProjectionSnapshotResult,
+} from "../scripts/GetInventoryItemProjectionSnapshotScript.js";
 
 /**
  * Catalog broker actions registered with @Action decorator.
@@ -33,5 +38,25 @@ export class CatalogBrokerActions extends BrokerActions {
   @Action("getOffers")
   async getOffers(params: GetOffersParams): Promise<GetOffersResult> {
     return this.kernel.runScript(GetOffersScript, params);
+  }
+
+  /**
+   * Action: getInventoryItemProjectionSnapshot - returns catalog data needed by Inventory read projection.
+   */
+  @Action("getInventoryItemProjectionSnapshot")
+  async getInventoryItemProjectionSnapshot(
+    params: GetInventoryItemProjectionSnapshotParams
+  ): Promise<GetInventoryItemProjectionSnapshotResult> {
+    return this.kernel.runScript(
+      GetInventoryItemProjectionSnapshotScript,
+      params,
+      {
+        storeId: params.storeId,
+        organizationId: params.organizationId,
+        locale: params.locale,
+        userId: params.userId,
+        requestId: params.requestId,
+      }
+    );
   }
 }

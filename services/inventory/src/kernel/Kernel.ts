@@ -120,13 +120,21 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
         organizationId: ctx.organizationId,
         timezone: "UTC",
         email: null,
-        defaultLocale: ctx.locale ?? "uk",
+        defaultLocale: this.resolveDefaultLocale(ctx),
         defaultCurrency: "UAH",
       },
       user: ctx.userId
         ? { id: ctx.userId, name: "workflow-user" }
         : undefined,
     });
+  }
+
+  private resolveDefaultLocale(ctx: RunScriptContext): string {
+    const defaultLocale = ctx.defaultLocale ?? ctx.locale;
+    if (!defaultLocale) {
+      throw new Error("RunScriptContext requires defaultLocale or locale");
+    }
+    return defaultLocale;
   }
 }
 

@@ -5,6 +5,7 @@ import {
   InjectBroker,
   ServiceBroker,
 } from "@shopana/shared-kernel";
+import type { ContextStore } from "@shopana/shared-context";
 import type {
   ProductCreatedEvent,
   ProductDeletedEvent,
@@ -21,6 +22,15 @@ import {
   SyncVariantIndexScript,
 } from "../scripts/search-index/index.js";
 
+type GetStoreByIdResult = {
+  store: ContextStore | null;
+  userErrors: Array<{
+    code: string;
+    message: string;
+    field?: string[] | null;
+  }>;
+};
+
 @Injectable()
 export class CatalogEventHandlers extends EventHandlers {
   constructor(@InjectBroker("catalog") broker: ServiceBroker) {
@@ -29,6 +39,21 @@ export class CatalogEventHandlers extends EventHandlers {
 
   private get kernel(): Kernel {
     return Kernel.getInstance();
+  }
+
+  private async getStoreContext(storeId: string): Promise<ContextStore> {
+    const result = await this.broker.call<
+      GetStoreByIdResult,
+      { id: string }
+    >("project.getStoreById", { id: storeId });
+
+    if (!result.store) {
+      const message =
+        result.userErrors[0]?.message ?? `Store with id "${storeId}" not found`;
+      throw new Error(message);
+    }
+
+    return result.store;
   }
 
   @EventHandler("productCreated")
@@ -40,11 +65,13 @@ export class CatalogEventHandlers extends EventHandlers {
       "Received productCreated event"
     );
     try {
+      const store = await this.getStoreContext(params.event.payload.storeId);
       const context = {
-        storeId: params.event.payload.storeId,
-        organizationId: params.event.context.tenantId,
+        storeId: store.id,
+        organizationId: store.organizationId,
         userId: params.event.context.userId,
-        locale: "uk",
+        locale: store.defaultLocale,
+        defaultLocale: store.defaultLocale,
       };
       await this.kernel.runScript(
         SyncProductIndexScript,
@@ -76,20 +103,21 @@ export class CatalogEventHandlers extends EventHandlers {
       "Received productDeleted event"
     );
     try {
+      const store = await this.getStoreContext(params.event.payload.storeId);
       await this.kernel.runScript(
         DeleteProductIndexScript,
         { productId: params.event.payload.productId },
         {
-          storeId: params.event.payload.storeId,
-          organizationId: params.event.context.tenantId,
+          storeId: store.id,
+          organizationId: store.organizationId,
           userId: params.event.context.userId,
-          locale: "uk",
+          locale: store.defaultLocale,
+          defaultLocale: store.defaultLocale,
         }
       );
       await this.refreshCategoryProductCounts({
         categoryIds: params.event.payload.categoryIds,
-        storeId: params.event.payload.storeId,
-        organizationId: params.event.context.tenantId,
+        store,
         userId: params.event.context.userId,
       });
       return { success: true };
@@ -112,22 +140,23 @@ export class CatalogEventHandlers extends EventHandlers {
       "Received productUpdated event"
     );
     try {
+      const store = await this.getStoreContext(params.event.payload.storeId);
       const variantIds = params.event.payload.variants
         ? Object.keys(params.event.payload.variants)
         : undefined;
       const context = {
-        storeId: params.event.payload.storeId,
-        organizationId: params.event.context.tenantId,
+        storeId: store.id,
+        organizationId: store.organizationId,
         userId: params.event.context.userId,
-        locale: "uk",
+        locale: store.defaultLocale,
+        defaultLocale: store.defaultLocale,
       };
       const categories = params.event.payload.product?.categories;
 
       if (categories?.changed && categories.reason === "assignment") {
         await this.refreshCategoryProductCounts({
           categoryIds: categories.categoryIds,
-          storeId: context.storeId,
-          organizationId: context.organizationId,
+          store,
           userId: context.userId,
         });
       }
@@ -158,8 +187,7 @@ export class CatalogEventHandlers extends EventHandlers {
 
   private async refreshCategoryProductCounts(params: {
     categoryIds: readonly string[] | undefined;
-    storeId: string;
-    organizationId: string;
+    store: ContextStore;
     userId?: string;
   }): Promise<void> {
     const categoryIds = [...new Set(params.categoryIds ?? [])];
@@ -169,10 +197,11 @@ export class CatalogEventHandlers extends EventHandlers {
       CategoryProductsCountRefreshScript,
       { categoryIds },
       {
-        storeId: params.storeId,
-        organizationId: params.organizationId,
+        storeId: params.store.id,
+        organizationId: params.store.organizationId,
         userId: params.userId,
-        locale: "uk",
+        locale: params.store.defaultLocale,
+        defaultLocale: params.store.defaultLocale,
       },
     );
 

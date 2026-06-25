@@ -132,7 +132,7 @@ export interface CategoryProductsConnectionResult {
 
 export class CategoryRepository extends BaseRepository {
   private get locale(): string {
-    return this.ctx.locale ?? "uk";
+    return this.ctx.locale ?? this.ctx.store.defaultLocale;
   }
 
   // ============ CRUD ============

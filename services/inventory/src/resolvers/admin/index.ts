@@ -22,6 +22,10 @@ export {
   type WarehouseConnectionResolverInput,
 } from "./WarehouseConnectionResolver.js";
 export { StockConnectionResolver } from "./StockConnectionResolver.js";
+export {
+  InventoryItemConnectionResolver,
+  type InventoryItemConnectionResolverInput,
+} from "./InventoryItemConnectionResolver.js";
 
 // Interfaces
 export * from "./interfaces/index.js";

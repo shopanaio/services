@@ -109,7 +109,7 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
    */
   private buildServiceContext(ctx: RunScriptContext): ServiceContext {
     return new ServiceContext({
-      requestId: `workflow-${Date.now()}`,
+      requestId: ctx.requestId ?? `workflow-${Date.now()}`,
       kernel: this,
       loaders: new Loader(this.repository),
       locale: ctx.locale,
@@ -120,13 +120,21 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
         organizationId: ctx.organizationId,
         timezone: "UTC",
         email: null,
-        defaultLocale: ctx.locale ?? "uk",
+        defaultLocale: this.resolveDefaultLocale(ctx),
         defaultCurrency: "UAH",
       },
       user: ctx.userId
         ? { id: ctx.userId, name: "workflow-user" }
         : undefined,
     });
+  }
+
+  private resolveDefaultLocale(ctx: RunScriptContext): string {
+    const defaultLocale = ctx.defaultLocale ?? ctx.locale;
+    if (!defaultLocale) {
+      throw new Error("RunScriptContext requires defaultLocale or locale");
+    }
+    return defaultLocale;
   }
 }
 

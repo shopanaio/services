@@ -13,6 +13,17 @@ export type {
   ExecuteResult,
 } from "./apps.js";
 
+// Catalog service actions
+export * as Catalog from "./catalog.js";
+export type {
+  GetInventoryItemProjectionSnapshotParams,
+  GetInventoryItemProjectionSnapshotResult,
+  InventoryItemProjectionSnapshot,
+  InventoryItemProjectionSnapshotErrorCode,
+  InventoryItemProjectionSnapshotTranslation,
+  InventoryItemProjectionSnapshotVariant,
+} from "./catalog.js";
+
 // Media service actions
 export * as Media from "./media.js";
 export type {
