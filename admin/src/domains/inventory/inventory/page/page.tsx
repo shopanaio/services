@@ -20,6 +20,7 @@ import { DataLayout } from "@/layouts/data";
 import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { FloatingPanelStack } from "@/ui-kit/floating-panel-stack";
+import { useVariantPicker } from "@/shared/components/entity-picker-modal";
 import type { ActionConfig } from "@/ui-kit/floating-panel-stack/core/types";
 import type { PanelConfig } from "@/ui-kit/floating-panel-stack/data-page/floating-panel-stack";
 import type { ModulePageProps } from "@/registry";
@@ -50,6 +51,8 @@ import {
 } from "../hooks";
 import {
   mapInventoryVariantEditsToProductBulkUpdateInput,
+  mapInventoryVariantSelectionsToProductBulkUpdateInput,
+  type InventoryVariantSelection,
   type InventoryVariantRow,
 } from "../mappers";
 import { validateFieldChange } from "@/shared/utils/inventory";
@@ -124,6 +127,18 @@ const SkuCellRenderer = ({
 }: ICellRendererParams<InventoryVariantRow>) => {
   return value == null ? <Dash /> : <span>{String(value)}</span>;
 };
+
+function isInventoryVariantSelection(
+  entity: unknown,
+): entity is InventoryVariantSelection {
+  return (
+    typeof entity === "object" &&
+    entity !== null &&
+    typeof (entity as Partial<InventoryVariantSelection>).productId ===
+      "string" &&
+    typeof (entity as Partial<InventoryVariantSelection>).variantId === "string"
+  );
+}
 
 export default function InventoryPage({ pathParams }: ModulePageProps) {
   const { styles } = useStyles();
@@ -205,7 +220,61 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
     getItems: (result) => result.rows,
   });
   const { activeWarehouseId, canEdit } = listResult;
-  const { saveInventoryVariantEdits } = useSaveInventoryVariantEdits();
+  const {
+    saveInventoryVariantEdits,
+    loading: savingInventoryVariants,
+  } = useSaveInventoryVariantEdits();
+  const handleVariantPickerConfirm = useCallback(
+    (entities: unknown[]) => {
+      void (async () => {
+        if (!activeWarehouseId) {
+          message.error("Select a warehouse to add variants to inventory.");
+          return;
+        }
+
+        const selectedVariants = entities.filter(isInventoryVariantSelection);
+
+        if (selectedVariants.length === 0) {
+          message.error("Select variants to add to inventory.");
+          return;
+        }
+
+        try {
+          const result = await saveInventoryVariantEdits(
+            mapInventoryVariantSelectionsToProductBulkUpdateInput(
+              selectedVariants,
+              activeWarehouseId,
+            ),
+          );
+          const firstError = result.userErrors[0] ?? null;
+
+          if (!result.jobId && firstError) {
+            message.error(firstError.message);
+            return;
+          }
+
+          if (!result.jobId) {
+            message.error("Inventory update was not accepted.");
+            return;
+          }
+
+          message.success(`Inventory update accepted. Job ${result.jobId}`);
+          await refetch();
+        } catch (submitError) {
+          message.error(toSubmitError(submitError).message);
+        }
+      })();
+    },
+    [activeWarehouseId, message, refetch, saveInventoryVariantEdits],
+  );
+  const variantPickerQueryMeta = useMemo(
+    () => ({ warehouseId: activeWarehouseId }),
+    [activeWarehouseId],
+  );
+  const { openPicker: openVariantPicker } = useVariantPicker({
+    queryMeta: variantPickerQueryMeta,
+    onConfirm: handleVariantPickerConfirm,
+  });
 
   const handleSortChanged = useCallback(
     (event: SortChangedEvent<InventoryVariantRow>) => {
@@ -607,8 +676,13 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
       count={totalCount}
       actions={
         <Flex gap="small">
-          <Button>Export</Button>
-          <Button>Import</Button>
+          <Button
+            disabled={!canEdit || savingInventoryVariants}
+            loading={savingInventoryVariants}
+            onClick={openVariantPicker}
+          >
+            Create
+          </Button>
         </Flex>
       }
     >

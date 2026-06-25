@@ -1,4 +1,7 @@
-import type { ApiProductBulkUpdateInput, ApiVariantUpdateInput } from "@/graphql/types";
+import type {
+  ApiProductBulkUpdateInput,
+  ApiVariantUpdateInput,
+} from "@/graphql/types";
 import type {
   InventorySubmitError,
   ItemEdits,
@@ -13,6 +16,41 @@ export interface InventoryVariantEditMappingResult {
   rowErrors: Record<string, InventorySubmitError[]>;
   submitErrors: InventorySubmitError[];
   operationsCount: number;
+}
+
+export interface InventoryVariantSelection {
+  productId: string;
+  variantId: string;
+}
+
+export function mapInventoryVariantSelectionsToProductBulkUpdateInput(
+  variants: InventoryVariantSelection[],
+  warehouseId: string,
+): ApiProductBulkUpdateInput {
+  const variantsByProduct = new Map<string, ApiVariantUpdateInput[]>();
+
+  for (const variant of variants) {
+    variantsByProduct.set(variant.productId, [
+      ...(variantsByProduct.get(variant.productId) ?? []),
+      {
+        variantId: variant.variantId,
+        inventory: {
+          warehouseId,
+          onHand: 0,
+          unavailable: 0,
+        },
+      },
+    ]);
+  }
+
+  return {
+    products: [...variantsByProduct.entries()].map(([productId, variants]) => ({
+      productId,
+      operations: {
+        variants,
+      },
+    })),
+  };
 }
 
 function hasPendingFieldEdits(edits: ItemEdits | undefined): edits is ItemEdits {

@@ -3,6 +3,7 @@ import {
   INVENTORY_ITEM_FRAGMENT,
   PRODUCT_DETAILS_FRAGMENT,
   PRODUCT_LIST_FRAGMENT,
+  PRODUCT_MEDIA_ITEM_FRAGMENT,
   VARIANT_FRAGMENT,
 } from "./fragments";
 
@@ -121,6 +122,52 @@ export const PRODUCT_VARIANTS_QUERY = gql`
     }
   }
   ${VARIANT_FRAGMENT}
+`;
+
+export const VARIANTS_QUERY = gql`
+  query Variants(
+    $first: Int
+    $after: String
+    $last: Int
+    $before: String
+    $where: VariantWhereInput
+    $orderBy: [VariantOrderByInput!]
+  ) {
+    catalogQuery {
+      variants(
+        first: $first
+        after: $after
+        last: $last
+        before: $before
+        where: $where
+        orderBy: $orderBy
+      ) {
+        edges {
+          cursor
+          node {
+            ...VariantFields
+            product {
+              id
+              title
+              handle
+              media {
+                ...ProductMediaItemFields
+              }
+            }
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+    }
+  }
+  ${VARIANT_FRAGMENT}
+  ${PRODUCT_MEDIA_ITEM_FRAGMENT}
 `;
 
 export const PRODUCT_PRICING_WIDGET_QUERY = gql`

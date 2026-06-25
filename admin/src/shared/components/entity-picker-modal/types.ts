@@ -94,6 +94,8 @@ export interface IEntityPickerConfig<
   }) => IEntityPickerDataResult<T>;
   /** Get unique row ID */
   getRowId: (entity: T) => string;
+  /** Whether a row cannot be selected */
+  isRowDisabled?: (entity: T) => boolean;
 }
 
 /**

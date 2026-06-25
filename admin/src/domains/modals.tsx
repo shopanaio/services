@@ -403,6 +403,15 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Variant Picker modal
+    {
+      type: 'variant-picker',
+      component: dynamic(() =>
+        import('@/shared/components/entity-picker-modal/variant-picker-modal').then(
+          (m) => m.VariantPickerModal
+        )
+      ),
+    },
     // Category Picker modal
     {
       type: 'category-picker',

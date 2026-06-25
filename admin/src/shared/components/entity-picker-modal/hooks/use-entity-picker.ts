@@ -116,6 +116,41 @@ export function useProductPicker(
   return { openPicker };
 }
 
+export function useVariantPicker(
+  options: Omit<IUseEntityPickerOptions<IPickableEntity>, "entityType">
+) {
+  const { push } = useModalStack();
+  const {
+    selectionMode = "multi",
+    initialSelection = [],
+    excludeIds = [],
+    maxSelection,
+    queryMeta,
+    onConfirm,
+  } = options;
+
+  const openPicker = useCallback(() => {
+    push("variant-picker", {
+      selectionMode,
+      initialSelection,
+      excludeIds,
+      maxSelection,
+      queryMeta,
+      onConfirm,
+    });
+  }, [
+    push,
+    selectionMode,
+    initialSelection,
+    excludeIds,
+    maxSelection,
+    queryMeta,
+    onConfirm,
+  ]);
+
+  return { openPicker };
+}
+
 export function useCategoryPicker(
   options: Omit<IUseEntityPickerOptions<IPickableEntity>, "entityType">
 ) {

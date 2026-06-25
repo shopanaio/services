@@ -269,7 +269,8 @@ export function EntityPickerContent<T extends IPickableEntity>({
       if (!node.data) return;
 
       const rowId = config.getRowId(node.data);
-      const shouldBeSelected = selectedIdSet.has(rowId);
+      const shouldBeSelected =
+        selectedIdSet.has(rowId) && !config.isRowDisabled?.(node.data);
 
       if (node.isSelected() !== shouldBeSelected) {
         node.setSelected(shouldBeSelected);
@@ -329,6 +330,8 @@ export function EntityPickerContent<T extends IPickableEntity>({
             headerCheckbox: selectionMode === "multi",
             enableClickSelection: true,
             enableSelectionWithoutKeys: true,
+            isRowSelectable: (node) =>
+              node.data ? !config.isRowDisabled?.(node.data) : false,
           }}
           selectionColumnDef={{
             cellStyle: { display: "flex", alignItems: "center" },
@@ -338,7 +341,14 @@ export function EntityPickerContent<T extends IPickableEntity>({
           onSelectionChanged={handleSelectionChanged}
           onGridReady={handleGridReady}
           onSortChanged={pageConfig.onSortChanged}
-          rowStyle={{ cursor: "pointer" }}
+          isRowSelectable={(node) =>
+            node.data ? !config.isRowDisabled?.(node.data) : false
+          }
+          getRowStyle={(params) =>
+            params.data && config.isRowDisabled?.(params.data)
+              ? { cursor: "not-allowed", opacity: 0.58 }
+              : { cursor: "pointer" }
+          }
           loading={isLoading}
           initialState={pageConfig.gridStateProps.initialState}
           onStateUpdated={pageConfig.gridStateProps.onStateUpdated}

@@ -3,6 +3,7 @@
 // Components
 export { EntityPickerModal } from "./entity-picker-modal";
 export { ProductPickerModal } from "./product-picker-modal";
+export { VariantPickerModal } from "./variant-picker-modal";
 export { CategoryPickerModal } from "./category-picker-modal";
 export { TagPickerModal } from "./tag-picker-modal";
 export { MediaPickerModal } from "./media-picker-modal";
@@ -15,6 +16,7 @@ export { EntityCellRenderer, StatusCellRenderer } from "./cell-renderers";
 export {
   useEntityPicker,
   useProductPicker,
+  useVariantPicker,
   useCategoryPicker,
   useTagPicker,
   useMediaPicker,
@@ -30,6 +32,9 @@ export {
 
 // Product config (auto-registers)
 export { productPickerConfig } from "./configs/product-picker-config";
+
+// Variant config (auto-registers)
+export { variantPickerConfig } from "./configs/variant-picker-config";
 
 // Category config (auto-registers)
 export { categoryPickerConfig } from "./configs/category-picker-config";
