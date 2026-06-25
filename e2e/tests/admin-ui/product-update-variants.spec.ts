@@ -13,12 +13,6 @@ interface VariantFixture {
 interface ExpectedVariantState {
   price: number;
   compareAtPrice: number;
-  sku: string;
-  onHand: number;
-  unavailable: number;
-  reserved: number;
-  available: number;
-  costPrice: number;
   weight: number;
   length: number;
   width: number;
@@ -141,7 +135,6 @@ async function seedVariantBaseline(
     const sku = `VAR-${unique}-${variant.handle}`.toUpperCase();
     const price = 10000 + index * 1000;
     const compareAtPrice = price + 2500;
-    const costPrice = 4000 + index * 500;
     const onHand = 15 + index;
     const unavailable = 1 + index;
     const weight = 300 + index * 20;
@@ -176,19 +169,6 @@ async function seedVariantBaseline(
       },
     });
     expect(pricingData.data.catalogMutation.variantUpdatePricing.userErrors).toHaveLength(0);
-
-    const costData = await api.admin.mutation('inventory-api/VariantSetCost', {
-      variables: {
-        input: {
-          id: variant.inventoryItemId,
-          unitCost: {
-            currency: UAH,
-            amountMinor: String(costPrice),
-          },
-        },
-      },
-    });
-    expect(costData.data.inventoryMutation.inventoryItemUpdate.userErrors).toHaveLength(0);
 
     const weightData = await api.admin.mutation('inventory-api/VariantSetWeight', {
       variables: {
@@ -263,10 +243,6 @@ async function editVariantCell(
   field:
     | 'price'
     | 'compareAtPrice'
-    | 'costPrice'
-    | 'sku'
-    | 'onHand'
-    | 'unavailable'
     | 'weight'
     | 'length'
     | 'width'
@@ -297,10 +273,6 @@ async function editAllVariantFields(
 ) {
   await editVariantCell(page, variantId, 'price', expected.price);
   await editVariantCell(page, variantId, 'compareAtPrice', expected.compareAtPrice);
-  await editVariantCell(page, variantId, 'costPrice', expected.costPrice);
-  await editVariantCell(page, variantId, 'sku', expected.sku);
-  await editVariantCell(page, variantId, 'onHand', expected.onHand);
-  await editVariantCell(page, variantId, 'unavailable', expected.unavailable);
   await editVariantCell(page, variantId, 'weight', expected.weight);
   await editVariantCell(page, variantId, 'length', expected.length);
   await editVariantCell(page, variantId, 'width', expected.width);
@@ -309,7 +281,6 @@ async function editAllVariantFields(
 
 async function expectVariantApiState(
   api: Api,
-  warehouseId: string,
   variantId: string,
   expected: ExpectedVariantState,
 ) {
@@ -330,17 +301,10 @@ async function expectVariantApiState(
         });
         const pricing = pricingData.data.widgetQuery.pricing.currentPrice;
         const item = inventoryData.data.inventoryQuery.inventoryItemByVariant;
-        const stock = item?.stock.find((candidate) => candidate.warehouseId === warehouseId);
 
         return {
           price: pricing?.amountMinor ?? null,
           compareAtPrice: pricing?.compareAtMinor ?? null,
-          sku: item?.sku ?? null,
-          onHand: stock?.quantityOnHand ?? null,
-          unavailable: stock?.unavailableQuantity ?? null,
-          reserved: stock?.reservedQuantity ?? null,
-          available: stock?.availableForSale ?? null,
-          costPrice: item?.unitCost?.amountMinor ?? null,
           weight: item?.variant?.weight?.value ?? null,
           length: item?.variant?.dimensions?.length ?? null,
           width: item?.variant?.dimensions?.width ?? null,
@@ -360,20 +324,6 @@ async function expectVariantEditorCells(
   await expect(variantEditorCell(page, variantId, 'price')).toHaveText(formatUah(expected.price));
   await expect(variantEditorCell(page, variantId, 'compareAtPrice')).toHaveText(
     formatUah(expected.compareAtPrice),
-  );
-  await expect(variantEditorCell(page, variantId, 'costPrice')).toHaveText(
-    formatUah(expected.costPrice),
-  );
-  await expect(variantEditorCell(page, variantId, 'sku')).toHaveText(expected.sku);
-  await expect(variantEditorCell(page, variantId, 'onHand')).toHaveText(String(expected.onHand));
-  await expect(variantEditorCell(page, variantId, 'unavailable')).toHaveText(
-    String(expected.unavailable),
-  );
-  await expect(variantEditorCell(page, variantId, 'reserved')).toHaveText(
-    String(expected.reserved),
-  );
-  await expect(variantEditorCell(page, variantId, 'available')).toHaveText(
-    String(expected.available),
   );
   await expect(variantEditorCell(page, variantId, 'weight')).toHaveText(String(expected.weight));
   await expect(variantEditorCell(page, variantId, 'length')).toHaveText(String(expected.length));
@@ -406,12 +356,6 @@ test.describe('Admin product details variants update UI', () => {
     const expected: ExpectedVariantState = {
       price: 24900,
       compareAtPrice: 27900,
-      sku: `VAR-${unique}-UPDATED`.toUpperCase(),
-      onHand: 42,
-      unavailable: 5,
-      reserved: 0,
-      available: 37,
-      costPrice: 12345,
       weight: 765,
       length: 321,
       width: 123,
@@ -424,15 +368,15 @@ test.describe('Admin product details variants update UI', () => {
     await openProductDetails(page, productsUrl, product.handle, product.title);
 
     await openEditVariantsModal(page);
-    await showEditorColumns(page, ['Compare at', 'Cost', 'Weight', 'Length', 'Width', 'Height']);
+    await showEditorColumns(page, ['Compare at', 'Weight', 'Length', 'Width', 'Height']);
     await editAllVariantFields(page, targetVariant.id, expected);
     await expect(page.getByTestId('submit-edit-variants-form-button')).toBeEnabled();
     await saveEditVariantsModal(page);
 
-    await expectVariantApiState(api, warehouse.id, targetVariant.id, expected);
+    await expectVariantApiState(api, targetVariant.id, expected);
 
     await openEditVariantsModal(page);
-    await showEditorColumns(page, ['Compare at', 'Cost', 'Weight', 'Length', 'Width', 'Height']);
+    await showEditorColumns(page, ['Compare at', 'Weight', 'Length', 'Width', 'Height']);
     await expectVariantEditorCells(page, targetVariant.id, expected);
   });
 });

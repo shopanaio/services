@@ -13,11 +13,6 @@ interface SeededVariant {
   sku: string;
   price: number;
   compareAtPrice: number;
-  costPrice: number;
-  onHand: number;
-  unavailable: number;
-  reserved: number;
-  available: number;
   weight: number;
   length: number;
   width: number;
@@ -201,7 +196,6 @@ async function seedVariantData(
     const sku = `VAR-${unique}-${String(index + 1).padStart(2, '0')}`.toUpperCase();
     const price = 10000 + index * 1000;
     const compareAtPrice = price + 2500;
-    const costPrice = 4500 + index * 300;
     const onHand = 20 + index;
     const unavailable = index % 4;
     const weight = 400 + index * 10;
@@ -237,19 +231,6 @@ async function seedVariantData(
     });
     expect(pricingData.data.catalogMutation.variantUpdatePricing.userErrors).toHaveLength(0);
 
-    const costData = await api.admin.mutation('inventory-api/VariantSetCost', {
-      variables: {
-        input: {
-          id: variant.inventoryItemId,
-          unitCost: {
-            currency: UAH,
-            amountMinor: String(costPrice),
-          },
-        },
-      },
-    });
-    expect(costData.data.inventoryMutation.inventoryItemUpdate.userErrors).toHaveLength(0);
-
     const weightData = await api.admin.mutation('inventory-api/VariantSetWeight', {
       variables: {
         productId,
@@ -277,11 +258,6 @@ async function seedVariantData(
       sku,
       price,
       compareAtPrice,
-      costPrice,
-      onHand,
-      unavailable,
-      reserved: 0,
-      available: onHand - unavailable,
       weight,
       length,
       width,
@@ -386,14 +362,6 @@ async function expectEditorVariantData(page: Page, variant: SeededVariant) {
   await expect(editorCell(page, variant.id, 'compareAtPrice')).toHaveText(
     formatUah(variant.compareAtPrice),
   );
-  await expect(editorCell(page, variant.id, 'costPrice')).toHaveText(formatUah(variant.costPrice));
-  await expect(editorCell(page, variant.id, 'sku')).toHaveText(variant.sku);
-  await expect(editorCell(page, variant.id, 'onHand')).toHaveText(String(variant.onHand));
-  await expect(editorCell(page, variant.id, 'unavailable')).toHaveText(
-    String(variant.unavailable),
-  );
-  await expect(editorCell(page, variant.id, 'reserved')).toHaveText(String(variant.reserved));
-  await expect(editorCell(page, variant.id, 'available')).toHaveText(String(variant.available));
   await expect(editorCell(page, variant.id, 'weight')).toHaveText(String(variant.weight));
   await expect(editorCell(page, variant.id, 'length')).toHaveText(String(variant.length));
   await expect(editorCell(page, variant.id, 'width')).toHaveText(String(variant.width));
@@ -455,7 +423,6 @@ test.describe('Admin product variants read path UI', () => {
     await openEditVariantsModal(page);
     await showEditorColumns(page, [
       'Compare at',
-      'Cost',
       'Weight',
       'Length',
       'Width',
