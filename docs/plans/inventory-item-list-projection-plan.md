@@ -389,6 +389,90 @@ Repository scope must add:
 - `locale = ctx.locale ?? "uk"`;
 - `deletedAt is null`.
 
+### Warehouse stock scope
+
+`warehouseId` is not a base-list filter. It is a runtime parameter for computing
+stock fields against one selected warehouse.
+
+Repository must split execution into two paths:
+
+1. **Base path**: used when request does not filter/order by stock fields.
+   It queries `inventory_item_list_view` directly and does not join
+   `warehouse_stock`.
+2. **Stock-scoped path**: used when request filters/orders by
+   `quantityOnHand`, `reservedQuantity`, `unavailableQuantity` or
+   `availableForSale`. It requires `warehouseId` and left-joins
+   `warehouse_stock` by `(projectId, variantId, warehouseId)`.
+
+This left join must be scoped by the selected warehouse ID as a join condition,
+not as a `where` condition, so missing stock rows stay listable:
+
+```sql
+FROM inventory.inventory_item_list_view item
+LEFT JOIN inventory.warehouse_stock stock
+  ON stock.project_id = item.project_id
+ AND stock.variant_id = item.variant_id
+ AND stock.warehouse_id = :warehouseId
+WHERE item.project_id = :storeId
+  AND item.locale = :locale
+  AND item.deleted_at IS NULL
+```
+
+The stock-scoped query exposes computed sortable/filterable fields:
+
+```sql
+coalesce(stock.quantity_on_hand, 0) AS quantity_on_hand
+coalesce(stock.reserved_qty, 0) AS reserved_quantity
+coalesce(stock.unavailable_qty, 0) AS unavailable_quantity
+coalesce(stock.quantity_on_hand, 0)
+  - coalesce(stock.reserved_qty, 0)
+  - coalesce(stock.unavailable_qty, 0) AS available_for_sale
+```
+
+Important behavior:
+
+- `warehouseId` must be decoded from GraphQL global ID before building the stock
+  query.
+- If stock fields are present in `where` or `orderBy` and `warehouseId` is
+  missing, resolver/repository returns a validation error.
+- If `warehouseId` is provided but no `warehouse_stock` row exists for an item,
+  computed stock fields are `0`.
+- `warehouseId` itself should not be included in `mergedWhere`, because that
+  would turn missing stock rows into filtered-out rows.
+- Optionally validate that the warehouse belongs to the current project before
+  executing the list query; this validation must not be implemented by changing
+  the item query to an inner join.
+
+Implementation shape:
+
+```ts
+const STOCK_FIELDS = new Set([
+  "quantityOnHand",
+  "reservedQuantity",
+  "unavailableQuantity",
+  "availableForSale",
+]);
+
+const usesStockFields =
+  containsWhereField(where, STOCK_FIELDS) ||
+  orderBy?.some((item) => STOCK_FIELDS.has(item.field));
+
+if (usesStockFields && !warehouseId) {
+  throw new UserInputError("warehouseId is required for stock filters/order");
+}
+
+const relayQuery = usesStockFields
+  ? createInventoryItemStockRelayQuery({ warehouseId })
+  : inventoryItemRelayQuery;
+```
+
+`createInventoryItemStockRelayQuery({ warehouseId })` must preserve the same
+base fields, cursor type and `tieBreaker: "id"` as `inventoryItemRelayQuery`.
+If `@shopana/drizzle-query` cannot express the runtime `warehouseId` join through
+its fluent `leftJoin` API, implement this stock-scoped connection with a small
+Drizzle SQL helper that reuses the same cursor encoding/order rules instead of
+putting `warehouse_stock` back into the base view.
+
 ## Repository
 
 Update `InventoryItemRepository` or add a small list-query repository used by it.
@@ -485,22 +569,28 @@ enough data through `InventoryItem.variantId` to return a federation reference:
 
 ### Stock field loading
 
-`inventory_item_list_view` scopes list sorting/filtering to one selected
-warehouse, but `InventoryItem.stock` is still a canonical field that currently
-loads stock for all warehouses from `InventoryItemResolver.stock`.
+Stock-scoped list sorting/filtering uses the selected `warehouseId`, but
+`InventoryItem.stock` is still a canonical field that loads stock for all
+warehouses from `InventoryItemResolver.stock`.
 
 For the first migration step, Admin may continue to query `node.stock` and pick
 the selected warehouse client-side, but this creates N+1 and overfetch risk:
 each listed item can trigger a separate all-warehouses stock query.
 
-Before enabling the new Admin read path for large stores, add one of these
-mechanisms:
+This does not need a new repository design. `StockRepository` already has
+`getByVariantsBatch(variantIds)`, so the implementation should wire that method
+through request-scoped DataLoader:
 
-- preferred: batch stock loading by variant IDs through a DataLoader, so
-  `InventoryItem.stock` resolves all listed nodes in one repository call;
-- alternative: add a scoped stock field/argument or connection path that returns
-  only the selected warehouse stock, while keeping canonical `stock` available
-  for all-warehouse reads.
+- add `stockByVariant` / `stockByVariants` loader that calls
+  `repository.stock.getByVariantsBatch([...variantIds])`;
+- update `InventoryItemResolver.stock()` to load all listed variants through
+  that DataLoader;
+- update `InventoryItemResolver.totalAvailable()` and `inStock()` to reuse the
+  same batched stock data instead of calling `getByVariantId()` per node.
+
+An alternative future improvement is a scoped stock field/argument or connection
+path that returns only the selected warehouse stock, while keeping canonical
+`stock` available for all-warehouse reads.
 
 The list view's selected-warehouse values are for SQL filter/sort only; do not
 silently make `InventoryItem.stock` mean "selected warehouse only" without an
@@ -764,8 +854,9 @@ ownership changes.
   `InventoryItem`.
 - Add `InventoryItem.variant` to the GraphQL schema. The resolver already exists,
   but the field must be present in schema before Admin can query it.
-- Add a batched/scoped stock loading strategy so `node.stock` on the Admin list
-  does not run one all-warehouses query per row.
+- Add a stock DataLoader backed by existing
+  `repository.stock.getByVariantsBatch()` and use it from
+  `InventoryItemResolver.stock()`, `totalAvailable()` and `inStock()`.
 - Update `InventoryQuery.inventoryItems` args to include Relay pagination,
   `warehouseId`, `where` and `orderBy`.
 
