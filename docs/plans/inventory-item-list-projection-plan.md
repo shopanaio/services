@@ -725,8 +725,8 @@ Variant deletion rules:
 
 Node lookup rules:
 
-- Query resolvers must be read-only. They must not create, upsert, backfill, or
-  repair `InventoryItem` / projection rows as a side effect of resolving
+- Query resolvers must be read-only. They must not create, upsert, or repair
+  `InventoryItem` / projection rows as a side effect of resolving
   `inventoryItem`, `inventoryItemByVariant`, federation references, or list
   nodes.
 - `inventoryItem(id)` should return the canonical item only if its projection row
@@ -736,15 +736,14 @@ Node lookup rules:
   `InventoryItem` when the projection row is missing or soft-deleted. It should
   return `null` for missing, deleted, or unknown variants. If a caller needs an
   item to exist, that must happen through a command/write path such as product
-  create saga, inventory broker action, projection event sync, or explicit
-  backfill/reindex job;
+  create saga, inventory broker action, or projection event sync;
 - federation reference resolution for `InventoryItem` should follow the same
   active-projection rule to avoid returning orphan inventory entities.
 
 The current `inventoryItemByVariant` resolver uses lazy `upsertByVariantId`.
 That behavior must be removed before read paths rely on
-`inventoryQuery.inventoryItems`. Existing active variants must be covered by a
-projection backfill/reindex step instead of being repaired by read queries.
+`inventoryQuery.inventoryItems`. Read queries must not repair missing projection
+state.
 
 ## Catalog Snapshot Sync
 
@@ -956,6 +955,7 @@ Handler rules:
 - Replacing stock write path.
 - Full-text search infrastructure.
 - Materialized view refresh strategy.
+- Projection data backfill / reindex.
 - Cross-service SQL joins into catalog schema.
 - Making projection the source of truth for product names.
 - Introducing a special list GraphQL node type.
@@ -965,3 +965,79 @@ Handler rules:
 - Extending `@shopana/drizzle-query` for runtime stock joins or runtime computed
   stock fields.
 - Running local test/tsc verification as part of this planning task.
+
+## Strict Execution Order
+
+### Phase 1. Catalog snapshot contract
+
+1. Add typed broker request/response contracts for
+   `catalog.getInventoryItemProjectionSnapshot` in `packages/broker-types`.
+2. Implement the Catalog snapshot query from `product`, `product_translation`
+   and `variant`.
+3. Register `@Action("getInventoryItemProjectionSnapshot")` in Catalog broker
+   actions.
+4. Execute the action under explicit store/org/locale context.
+5. Return base product/variant projection separately from product translations.
+6. Define retryable and non-retryable outcomes for Inventory callers.
+
+Do not start Inventory projection event sync before this phase is complete,
+unless product events are changed to be explicitly locale-aware first.
+
+### Phase 2. Inventory database model
+
+1. Add `inventoryItemCatalogProjection`.
+2. Add `inventoryProductTranslation`.
+3. Add `inventoryItemListAllStockView`.
+4. Add `inventoryItemListWarehouseStockView`.
+5. Export the new tables/views from the inventory repository models index.
+6. Generate the Drizzle migration for the new tables, indexes and views.
+
+### Phase 3. Inventory list repository
+
+1. Add relay query support for `inventoryItemListAllStockView`.
+2. Add relay query support for `inventoryItemListWarehouseStockView`.
+3. Map GraphQL-facing `where` fields, including global ID decoding for `id`,
+   `productId` and `variantId`.
+4. Keep `warehouseScopeId` internal to the repository path.
+5. Implement all-warehouses connection execution.
+6. Implement single-warehouse connection execution.
+7. Implement empty-scope connection execution.
+8. Use the same merged `where` for page edges and `totalCount`.
+
+### Phase 4. GraphQL schema and resolvers
+
+1. Extend `InventoryItemWhereInput`.
+2. Extend `InventoryItemOrderByInput`.
+3. Add `InventoryItemInventoryItemsMetaInput`.
+4. Add `InventoryItemWarehouseScopeInput` and
+   `InventoryItemWarehouseScopeMode`.
+5. Add `InventoryItem.variant` to the GraphQL schema.
+6. Normalize `meta.warehouseScope` in the resolver before calling the
+   repository.
+7. Return explicit input incompatibility errors for unsupported warehouse scope
+   combinations.
+8. Wire `InventoryQuery.inventoryItems` to `inventoryItem.getConnection(...)`.
+9. Make `inventoryItem`, `inventoryItemByVariant`, federation reference
+   resolution and list node resolution read-only.
+
+### Phase 5. Stock field batching
+
+1. Add a request-scoped stock-by-variant DataLoader.
+2. Back the loader with `repository.stock.getByVariantsBatch(...)`.
+3. Update `InventoryItemResolver.stock()` to use the loader.
+4. Update `InventoryItemResolver.totalAvailable()` to reuse the same loaded
+   stock data.
+5. Update `InventoryItemResolver.inStock()` to reuse the same loaded stock data.
+
+### Phase 6. Inventory projection event sync
+
+1. Extend inventory event handlers for `productCreated`.
+2. Extend inventory event handlers for `productUpdated`.
+3. Extend inventory event handlers for `productDeleted`.
+4. Extend inventory event handlers for `variantDeleted`.
+5. Fetch Catalog snapshots when event payloads are not locale-complete.
+6. Upsert base projection rows idempotently by `(projectId, variantId)`.
+7. Upsert translation rows idempotently by `(productId, locale)`.
+8. Apply `catalogRevision` ordering when revision is present.
+9. Persist `lastCatalogEventId` for observability/debugging.
+10. Ensure variant create/delete flows emit events Inventory can consume.
