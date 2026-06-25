@@ -53,6 +53,12 @@ type Variant implements Node @key(fields: "id") {
   """Media attached to this variant (images, videos)."""
   media: [VariantMediaItem!]!
 
+  """Physical dimensions (stored in millimeters)."""
+  dimensions: VariantDimensions
+
+  """Physical weight (stored in grams)."""
+  weight: VariantWeight
+
   """Inventory item associated with this variant."""
   inventoryItem: InventoryItem
 }

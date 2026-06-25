@@ -2508,7 +2508,7 @@ export type InventoryBackorder = {
 
 /**
  * InventoryItem represents the inventory-specific data for a variant.
- * Each Variant in Catalog has a corresponding InventoryItem in Inventory service.
+ * Each catalog variant can have a corresponding InventoryItem.
  */
 export type InventoryItem = Node & {
   __typename?: 'InventoryItem';
@@ -2516,8 +2516,6 @@ export type InventoryItem = Node & {
   continueSellingWhenOutOfStock: Scalars['Boolean']['output'];
   /** When this item was created */
   createdAt: Scalars['DateTime']['output'];
-  /** Physical dimensions (mm) */
-  dimensions: Maybe<InventoryItemDimensions>;
   /** Global ID (Relay) */
   id: Scalars['ID']['output'];
   /** SKU code */
@@ -2536,8 +2534,6 @@ export type InventoryItem = Node & {
   variant: Variant;
   /** Reference to Catalog.Variant */
   variantId: Scalars['ID']['output'];
-  /** Weight (grams) */
-  weight: Maybe<InventoryItemWeight>;
 };
 
 export type InventoryItemConnection = {
@@ -2560,18 +2556,6 @@ export type InventoryItemCost = {
 export type InventoryItemCostInput = {
   amountMinor: Scalars['BigInt']['input'];
   currency: Scalars['String']['input'];
-};
-
-export type InventoryItemDimensions = {
-  __typename?: 'InventoryItemDimensions';
-  /** Display unit preference */
-  displayUnit: DimensionUnit;
-  /** Height in millimeters */
-  heightMm: Scalars['Int']['output'];
-  /** Length in millimeters */
-  lengthMm: Scalars['Int']['output'];
-  /** Width in millimeters */
-  widthMm: Scalars['Int']['output'];
 };
 
 export type InventoryItemDimensionsInput = {
@@ -2659,14 +2643,6 @@ export enum InventoryItemWarehouseScopeMode {
   Exclude = 'EXCLUDE',
   Include = 'INCLUDE'
 }
-
-export type InventoryItemWeight = {
-  __typename?: 'InventoryItemWeight';
-  /** Display unit preference */
-  displayUnit: WeightUnit;
-  /** Weight in grams */
-  weightGrams: Scalars['Int']['output'];
-};
 
 export type InventoryItemWeightInput = {
   weightGrams: Scalars['Int']['input'];
@@ -4362,7 +4338,7 @@ export type UserError = {
 /**
  * A variant represents a specific version of a product, such as a size or color.
  * Catalog Service owns this type.
- * Inventory fields (sku, dimensions, weight, cost, stock) are added via federation extend in Inventory Service.
+ * Inventory fields (sku, dimensions, weight, cost, stock) are resolved by Catalog.
  */
 export type Variant = Node & {
   __typename?: 'Variant';
@@ -4370,6 +4346,8 @@ export type Variant = Node & {
   createdAt: Scalars['DateTime']['output'];
   /** The date and time when the variant was deleted (soft delete). */
   deletedAt: Maybe<Scalars['DateTime']['output']>;
+  /** Physical dimensions (stored in millimeters). */
+  dimensions: Maybe<VariantDimensions>;
   /** The external ID in the external system. */
   externalId: Maybe<Scalars['String']['output']>;
   /** The external system identifier for integration purposes. */
@@ -4396,13 +4374,15 @@ export type Variant = Node & {
   title: Maybe<Scalars['String']['output']>;
   /** The date and time when the variant was last updated. */
   updatedAt: Scalars['DateTime']['output'];
+  /** Physical weight (stored in grams). */
+  weight: Maybe<VariantWeight>;
 };
 
 
 /**
  * A variant represents a specific version of a product, such as a size or color.
  * Catalog Service owns this type.
- * Inventory fields (sku, dimensions, weight, cost, stock) are added via federation extend in Inventory Service.
+ * Inventory fields (sku, dimensions, weight, cost, stock) are resolved by Catalog.
  */
 export type VariantPriceHistoryArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -5421,7 +5401,6 @@ export type ResolversTypes = ResolversObject<{
   InventoryItemConnection: ResolverTypeWrapper<InventoryItemConnection>;
   InventoryItemCost: ResolverTypeWrapper<InventoryItemCost>;
   InventoryItemCostInput: InventoryItemCostInput;
-  InventoryItemDimensions: ResolverTypeWrapper<InventoryItemDimensions>;
   InventoryItemDimensionsInput: InventoryItemDimensionsInput;
   InventoryItemEdge: ResolverTypeWrapper<InventoryItemEdge>;
   InventoryItemInput: InventoryItemInput;
@@ -5433,7 +5412,6 @@ export type ResolversTypes = ResolversObject<{
   InventoryItemUpdatePayload: ResolverTypeWrapper<InventoryItemUpdatePayload>;
   InventoryItemWarehouseScopeInput: InventoryItemWarehouseScopeInput;
   InventoryItemWarehouseScopeMode: InventoryItemWarehouseScopeMode;
-  InventoryItemWeight: ResolverTypeWrapper<InventoryItemWeight>;
   InventoryItemWeightInput: InventoryItemWeightInput;
   InventoryItemWhereInput: InventoryItemWhereInput;
   InventoryMutation: ResolverTypeWrapper<InventoryMutation>;
@@ -5757,7 +5735,6 @@ export type ResolversParentTypes = ResolversObject<{
   InventoryItemConnection: InventoryItemConnection;
   InventoryItemCost: InventoryItemCost;
   InventoryItemCostInput: InventoryItemCostInput;
-  InventoryItemDimensions: InventoryItemDimensions;
   InventoryItemDimensionsInput: InventoryItemDimensionsInput;
   InventoryItemEdge: InventoryItemEdge;
   InventoryItemInput: InventoryItemInput;
@@ -5767,7 +5744,6 @@ export type ResolversParentTypes = ResolversObject<{
   InventoryItemUpdateInput: InventoryItemUpdateInput;
   InventoryItemUpdatePayload: InventoryItemUpdatePayload;
   InventoryItemWarehouseScopeInput: InventoryItemWarehouseScopeInput;
-  InventoryItemWeight: InventoryItemWeight;
   InventoryItemWeightInput: InventoryItemWeightInput;
   InventoryItemWhereInput: InventoryItemWhereInput;
   InventoryMutation: InventoryMutation;
@@ -6597,7 +6573,6 @@ export type InventoryItemResolvers<ContextType = ServiceContext, ParentType exte
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['InventoryItem']>, { __typename: 'InventoryItem' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   continueSellingWhenOutOfStock?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  dimensions?: Resolver<Maybe<ResolversTypes['InventoryItemDimensions']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   sku?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   stock?: Resolver<Array<ResolversTypes['WarehouseStock']>, ParentType, ContextType>;
@@ -6607,7 +6582,6 @@ export type InventoryItemResolvers<ContextType = ServiceContext, ParentType exte
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   variant?: Resolver<ResolversTypes['Variant'], ParentType, ContextType>;
   variantId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  weight?: Resolver<Maybe<ResolversTypes['InventoryItemWeight']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -6625,14 +6599,6 @@ export type InventoryItemCostResolvers<ContextType = ServiceContext, ParentType 
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type InventoryItemDimensionsResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['InventoryItemDimensions'] = ResolversParentTypes['InventoryItemDimensions']> = ResolversObject<{
-  displayUnit?: Resolver<ResolversTypes['DimensionUnit'], ParentType, ContextType>;
-  heightMm?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  lengthMm?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  widthMm?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type InventoryItemEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['InventoryItemEdge'] = ResolversParentTypes['InventoryItemEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['InventoryItem'], ParentType, ContextType>;
@@ -6642,12 +6608,6 @@ export type InventoryItemEdgeResolvers<ContextType = ServiceContext, ParentType 
 export type InventoryItemUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['InventoryItemUpdatePayload'] = ResolversParentTypes['InventoryItemUpdatePayload']> = ResolversObject<{
   inventoryItem?: Resolver<Maybe<ResolversTypes['InventoryItem']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type InventoryItemWeightResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['InventoryItemWeight'] = ResolversParentTypes['InventoryItemWeight']> = ResolversObject<{
-  displayUnit?: Resolver<ResolversTypes['WeightUnit'], ParentType, ContextType>;
-  weightGrams?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -7044,6 +7004,7 @@ export type VariantResolvers<ContextType = ServiceContext, ParentType extends Re
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Variant']>, { __typename: 'Variant' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  dimensions?: Resolver<Maybe<ResolversTypes['VariantDimensions']>, ParentType, ContextType>;
   externalId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   externalSystem?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -7057,6 +7018,7 @@ export type VariantResolvers<ContextType = ServiceContext, ParentType extends Re
   selectedOptions?: Resolver<Array<ResolversTypes['SelectedOption']>, ParentType, ContextType>;
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  weight?: Resolver<Maybe<ResolversTypes['VariantWeight']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -7357,10 +7319,8 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   InventoryItem?: InventoryItemResolvers<ContextType>;
   InventoryItemConnection?: InventoryItemConnectionResolvers<ContextType>;
   InventoryItemCost?: InventoryItemCostResolvers<ContextType>;
-  InventoryItemDimensions?: InventoryItemDimensionsResolvers<ContextType>;
   InventoryItemEdge?: InventoryItemEdgeResolvers<ContextType>;
   InventoryItemUpdatePayload?: InventoryItemUpdatePayloadResolvers<ContextType>;
-  InventoryItemWeight?: InventoryItemWeightResolvers<ContextType>;
   InventoryMutation?: InventoryMutationResolvers<ContextType>;
   InventoryQuantities?: InventoryQuantitiesResolvers<ContextType>;
   InventoryQuery?: InventoryQueryResolvers<ContextType>;

@@ -59,16 +59,6 @@ export const INVENTORY_ITEM_FRAGMENT = gql`
       createdAt
       updatedAt
     }
-    weight {
-      weightGrams
-      displayUnit
-    }
-    dimensions {
-      lengthMm
-      widthMm
-      heightMm
-      displayUnit
-    }
     unitCost {
       amountMinor
       currency
@@ -103,6 +93,14 @@ export const VARIANT_FRAGMENT = gql`
       effectiveTo
       isCurrent
       recordedAt
+    }
+    weight {
+      value
+    }
+    dimensions {
+      length
+      width
+      height
     }
     inventoryItem {
       ...InventoryItemFields

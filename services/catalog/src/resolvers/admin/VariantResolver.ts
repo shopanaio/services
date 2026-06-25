@@ -17,8 +17,8 @@ import { InventoryItemResolver } from "./InventoryItemResolver.js";
 
 /**
  * Variant resolver for Catalog Service.
- * Does NOT contain inventory fields (sku, dimensions, weight, cost, stock).
- * Those fields are resolved via federation extend in Inventory Service.
+ * Inventory-owned entity fields stay behind inventoryItem; physical measurements
+ * are exposed directly on the variant because they are keyed by variantId.
  */
 @SubgraphReference()
 export class VariantResolver extends CatalogType<string, Variant> {
@@ -144,6 +144,34 @@ export class VariantResolver extends CatalogType<string, Variant> {
       },
       sortIndex: media.sortIndex,
     }));
+  }
+
+  async dimensions() {
+    const dims = await this.$ctx.kernel
+      .getServices()
+      .repository.physical.getDimensionsByVariantIds([this.$props]);
+
+    const current = dims[0];
+    if (!current) return null;
+
+    return {
+      width: current.wMm,
+      length: current.lMm,
+      height: current.hMm,
+    };
+  }
+
+  async weight() {
+    const weights = await this.$ctx.kernel
+      .getServices()
+      .repository.physical.getWeightsByVariantIds([this.$props]);
+
+    const current = weights[0];
+    if (!current) return null;
+
+    return {
+      value: current.weightGr,
+    };
   }
 
   async inventoryItem() {

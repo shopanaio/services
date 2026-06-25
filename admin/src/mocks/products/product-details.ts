@@ -26,10 +26,10 @@ import { ConditionCategory,
 import {
   createMockApiInventoryItem,
   createMockApiInventoryItemCost,
-  createMockApiInventoryItemDimensions,
-  createMockApiInventoryItemWeight,
   createMockApiVariant,
+  createMockApiVariantDimensions,
   createMockApiVariantPrice,
+  createMockApiVariantWeight,
   createMockApiWarehouseStock,
 } from "./api-builders";
 
@@ -655,6 +655,20 @@ const createMockVariant = (index: number): ApiVariant => {
       amountMinor: basePrice,
       compareAtMinor: hasDiscount ? basePrice + 1000 : null,
     }),
+    weight:
+      index % 2 === 0
+        ? createMockApiVariantWeight({
+            value: 250 + index * 10,
+          })
+        : null,
+    dimensions:
+      index % 2 === 0
+        ? createMockApiVariantDimensions({
+            length: 200,
+            width: 150,
+            height: 50,
+          })
+        : null,
     inventoryItem: createMockApiInventoryItem({
       id: `inventory-${variantId}`,
       variantId,
@@ -669,20 +683,6 @@ const createMockVariant = (index: number): ApiVariant => {
       unitCost: createMockApiInventoryItemCost({
         amountMinor: Math.round(basePrice * 0.6),
       }),
-      weight:
-        index % 2 === 0
-          ? createMockApiInventoryItemWeight({
-              weightGrams: 250 + index * 10,
-            })
-          : null,
-      dimensions:
-        index % 2 === 0
-          ? createMockApiInventoryItemDimensions({
-              lengthMm: 200,
-              widthMm: 150,
-              heightMm: 50,
-            })
-          : null,
     }),
     media: [],
   });

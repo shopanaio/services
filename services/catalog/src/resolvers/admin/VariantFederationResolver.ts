@@ -56,10 +56,9 @@ export class VariantFederationResolver extends CatalogType<string, Record<string
     if (!current) return null;
 
     return {
-      widthMm: current.wMm,
-      lengthMm: current.lMm,
-      heightMm: current.hMm,
-      displayUnit: "mm",
+      width: current.wMm,
+      length: current.lMm,
+      height: current.hMm,
     };
   }
 
@@ -75,8 +74,7 @@ export class VariantFederationResolver extends CatalogType<string, Record<string
     if (!current) return null;
 
     return {
-      weightGrams: current.weightGr,
-      displayUnit: "g",
+      value: current.weightGr,
     };
   }
 

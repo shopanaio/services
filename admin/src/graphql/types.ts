@@ -3629,7 +3629,7 @@ export type ApiInventoryBackorder = {
 
 /**
  * InventoryItem represents the inventory-specific data for a variant.
- * Each Variant in Catalog has a corresponding InventoryItem in Inventory service.
+ * Each catalog variant can have a corresponding InventoryItem.
  */
 export type ApiInventoryItem = ApiNode & {
   __typename?: 'InventoryItem';
@@ -3637,8 +3637,6 @@ export type ApiInventoryItem = ApiNode & {
   continueSellingWhenOutOfStock: Scalars['Boolean']['output'];
   /** When this item was created */
   createdAt: Scalars['DateTime']['output'];
-  /** Physical dimensions (mm) */
-  dimensions?: Maybe<ApiInventoryItemDimensions>;
   /** Global ID (Relay) */
   id: Scalars['ID']['output'];
   /** SKU code */
@@ -3657,8 +3655,6 @@ export type ApiInventoryItem = ApiNode & {
   variant: ApiVariant;
   /** Reference to Catalog.Variant */
   variantId: Scalars['ID']['output'];
-  /** Weight (grams) */
-  weight?: Maybe<ApiInventoryItemWeight>;
 };
 
 export type ApiInventoryItemConnection = {
@@ -3681,18 +3677,6 @@ export type ApiInventoryItemCost = {
 export type ApiInventoryItemCostInput = {
   amountMinor: Scalars['BigInt']['input'];
   currency: Scalars['String']['input'];
-};
-
-export type ApiInventoryItemDimensions = {
-  __typename?: 'InventoryItemDimensions';
-  /** Display unit preference */
-  displayUnit: DimensionUnit;
-  /** Height in millimeters */
-  heightMm: Scalars['Int']['output'];
-  /** Length in millimeters */
-  lengthMm: Scalars['Int']['output'];
-  /** Width in millimeters */
-  widthMm: Scalars['Int']['output'];
 };
 
 export type ApiInventoryItemDimensionsInput = {
@@ -3780,14 +3764,6 @@ export enum InventoryItemWarehouseScopeMode {
   Exclude = 'EXCLUDE',
   Include = 'INCLUDE'
 }
-
-export type ApiInventoryItemWeight = {
-  __typename?: 'InventoryItemWeight';
-  /** Display unit preference */
-  displayUnit: WeightUnit;
-  /** Weight in grams */
-  weightGrams: Scalars['Int']['output'];
-};
 
 export type ApiInventoryItemWeightInput = {
   weightGrams: Scalars['Int']['input'];
@@ -6913,7 +6889,7 @@ export type ApiUserUpdateProfilePayload = {
 /**
  * A variant represents a specific version of a product, such as a size or color.
  * Catalog Service owns this type.
- * Inventory fields (sku, dimensions, weight, cost, stock) are added via federation extend in Inventory Service.
+ * Inventory fields (sku, dimensions, weight, cost, stock) are resolved by Catalog.
  */
 export type ApiVariant = ApiNode & {
   __typename?: 'Variant';
@@ -6921,6 +6897,8 @@ export type ApiVariant = ApiNode & {
   createdAt: Scalars['DateTime']['output'];
   /** The date and time when the variant was deleted (soft delete). */
   deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Physical dimensions (stored in millimeters). */
+  dimensions?: Maybe<ApiVariantDimensions>;
   /** The external ID in the external system. */
   externalId?: Maybe<Scalars['String']['output']>;
   /** The external system identifier for integration purposes. */
@@ -6947,13 +6925,15 @@ export type ApiVariant = ApiNode & {
   title?: Maybe<Scalars['String']['output']>;
   /** The date and time when the variant was last updated. */
   updatedAt: Scalars['DateTime']['output'];
+  /** Physical weight (stored in grams). */
+  weight?: Maybe<ApiVariantWeight>;
 };
 
 
 /**
  * A variant represents a specific version of a product, such as a size or color.
  * Catalog Service owns this type.
- * Inventory fields (sku, dimensions, weight, cost, stock) are added via federation extend in Inventory Service.
+ * Inventory fields (sku, dimensions, weight, cost, stock) are resolved by Catalog.
  */
 export type ApiVariantPriceHistoryArgs = {
   after?: InputMaybe<Scalars['String']['input']>;

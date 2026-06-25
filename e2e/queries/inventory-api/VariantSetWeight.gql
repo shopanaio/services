@@ -3,9 +3,11 @@ mutation VariantSetWeight($input: InventoryItemUpdateInput!) {
     inventoryItemUpdate(input: $input) {
       inventoryItem {
         id
-        weight {
-          weightGrams
-          displayUnit
+        variant {
+          id
+          weight {
+            value
+          }
         }
       }
       userErrors {

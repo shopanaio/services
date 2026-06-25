@@ -1,4 +1,4 @@
-import { DimensionUnit, OptionDisplayType, WeightUnit } from "@/graphql/types";
+import { OptionDisplayType } from "@/graphql/types";
 import type {
   ApiCategory,
   ApiProduct,
@@ -11,8 +11,6 @@ import {
   createMockApiFile,
   createMockApiInventoryItem,
   createMockApiInventoryItemCost,
-  createMockApiInventoryItemDimensions,
-  createMockApiInventoryItemWeight,
   createMockApiProduct,
   createMockApiProductMediaItem,
   createMockApiProductOption,
@@ -20,8 +18,10 @@ import {
   createMockApiProductOptionValue,
   createMockApiTag,
   createMockApiVariant,
+  createMockApiVariantDimensions,
   createMockApiVariantMediaItem,
   createMockApiVariantPrice,
+  createMockApiVariantWeight,
   createMockApiWarehouseStock,
 } from "./api-builders";
 
@@ -353,12 +353,6 @@ const createInventoryItem = (params: {
   sku: string;
   stock: number;
   costMinor: number;
-  weightGrams: number;
-  lengthMm: number;
-  widthMm: number;
-  heightMm: number;
-  weightUnit?: WeightUnit;
-  dimensionUnit?: DimensionUnit;
 }) =>
   createMockApiInventoryItem({
     id: `inventory-${params.variantId}`,
@@ -373,16 +367,6 @@ const createInventoryItem = (params: {
     ],
     unitCost: createMockApiInventoryItemCost({
       amountMinor: params.costMinor,
-    }),
-    weight: createMockApiInventoryItemWeight({
-      weightGrams: params.weightGrams,
-      displayUnit: params.weightUnit,
-    }),
-    dimensions: createMockApiInventoryItemDimensions({
-      lengthMm: params.lengthMm,
-      widthMm: params.widthMm,
-      heightMm: params.heightMm,
-      displayUnit: params.dimensionUnit,
     }),
   });
 
@@ -408,17 +392,17 @@ const createSimpleVariant = (params: {
       amountMinor: params.amountMinor,
       compareAtMinor: params.compareAtMinor ?? null,
     }),
+    weight: createMockApiVariantWeight({ value: 200 }),
+    dimensions: createMockApiVariantDimensions({
+      length: 700,
+      width: 500,
+      height: 20,
+    }),
     inventoryItem: createInventoryItem({
       variantId: params.id,
       sku: params.sku,
       stock: params.stock,
       costMinor: params.costMinor ?? Math.round(params.amountMinor * 0.6),
-      weightGrams: 200,
-      lengthMm: 700,
-      widthMm: 500,
-      heightMm: 20,
-      weightUnit: WeightUnit.G,
-      dimensionUnit: DimensionUnit.Cm,
     }),
     media: Array.from({ length: params.mediaCount ?? 5 }, (_, index) =>
       createMedia(params.mediaSeed, index),
@@ -447,17 +431,17 @@ const createPhoneVariant = (params: {
       amountMinor: params.priceMinor,
       compareAtMinor: params.compareAtMinor ?? null,
     }),
+    weight: createMockApiVariantWeight({ value: 221 }),
+    dimensions: createMockApiVariantDimensions({
+      length: 159,
+      width: 76,
+      height: 8,
+    }),
     inventoryItem: createInventoryItem({
       variantId: id,
       sku: `SKU-${VARIABLE_PRODUCT_ID.toUpperCase()}-${params.index}`,
       stock: params.stock,
       costMinor: Math.floor(params.priceMinor * 0.6),
-      weightGrams: 221,
-      lengthMm: 159,
-      widthMm: 76,
-      heightMm: 8,
-      weightUnit: WeightUnit.G,
-      dimensionUnit: DimensionUnit.Mm,
     }),
     selectedOptions: [
       {

@@ -3612,8 +3612,6 @@ export type ApiInventoryItem = ApiNode & {
   continueSellingWhenOutOfStock: Scalars['Boolean']['output'];
   /** When this item was created */
   createdAt: Scalars['DateTime']['output'];
-  /** Physical dimensions (mm) */
-  dimensions?: Maybe<ApiInventoryItemDimensions>;
   /** Global ID (Relay) */
   id: Scalars['ID']['output'];
   /** SKU code */
@@ -3628,10 +3626,10 @@ export type ApiInventoryItem = ApiNode & {
   unitCost?: Maybe<ApiInventoryItemCost>;
   /** When this item was last updated */
   updatedAt: Scalars['DateTime']['output'];
+  /** Catalog variant entity */
+  variant: ApiVariant;
   /** Reference to Catalog.Variant */
   variantId: Scalars['ID']['output'];
-  /** Weight (grams) */
-  weight?: Maybe<ApiInventoryItemWeight>;
 };
 
 export type ApiInventoryItemConnection = {
@@ -3656,18 +3654,6 @@ export type ApiInventoryItemCostInput = {
   currency: Scalars['String']['input'];
 };
 
-export type ApiInventoryItemDimensions = {
-  __typename?: 'InventoryItemDimensions';
-  /** Display unit preference */
-  displayUnit: DimensionUnit;
-  /** Height in millimeters */
-  heightMm: Scalars['Int']['output'];
-  /** Length in millimeters */
-  lengthMm: Scalars['Int']['output'];
-  /** Width in millimeters */
-  widthMm: Scalars['Int']['output'];
-};
-
 export type ApiInventoryItemDimensionsInput = {
   heightMm: Scalars['Int']['input'];
   lengthMm: Scalars['Int']['input'];
@@ -3689,6 +3675,26 @@ export type ApiInventoryItemInput = {
   /** Whether to track inventory for this product. */
   tracked: Scalars['Boolean']['input'];
 };
+
+export type ApiInventoryItemInventoryItemsMetaInput = {
+  warehouseScope?: InputMaybe<ApiInventoryItemWarehouseScopeInput>;
+};
+
+export type ApiInventoryItemOrderByInput = {
+  direction: SortDirection;
+  field: InventoryItemOrderField;
+};
+
+export type InventoryItemOrderField =
+  | 'availableForSale'
+  | 'id'
+  | 'productName'
+  | 'quantityOnHand'
+  | 'reservedQuantity'
+  | 'sku'
+  | 'unavailableQuantity'
+  | 'updatedAt'
+  | 'variantId';
 
 export type ApiInventoryItemStockInput = {
   onHand: Scalars['Int']['input'];
@@ -3723,31 +3729,51 @@ export type ApiInventoryItemUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-export type ApiInventoryItemWeight = {
-  __typename?: 'InventoryItemWeight';
-  /** Display unit preference */
-  displayUnit: WeightUnit;
-  /** Weight in grams */
-  weightGrams: Scalars['Int']['output'];
+export type ApiInventoryItemWarehouseScopeInput = {
+  mode: InventoryItemWarehouseScopeMode;
+  referenceIds: Array<Scalars['ID']['input']>;
 };
+
+export type InventoryItemWarehouseScopeMode =
+  | 'EXCLUDE'
+  | 'INCLUDE';
 
 export type ApiInventoryItemWeightInput = {
   weightGrams: Scalars['Int']['input'];
 };
 
 export type ApiInventoryItemWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiInventoryItemWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiInventoryItemWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiInventoryItemWhereInput>>;
+  /** Filter by available for sale quantity in the selected warehouse scope */
+  availableForSale?: InputMaybe<ApiIntFilter>;
+  /** Filter by inventory item ID */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by product ID */
+  productId?: InputMaybe<ApiIdFilter>;
+  /** Filter by product name in the current locale */
+  productName?: InputMaybe<ApiStringFilter>;
+  /** Filter by quantity on hand in the selected warehouse scope */
+  quantityOnHand?: InputMaybe<ApiIntFilter>;
+  /** Filter by reserved quantity in the selected warehouse scope */
+  reservedQuantity?: InputMaybe<ApiIntFilter>;
   /** Filter by SKU */
   sku?: InputMaybe<ApiStringFilter>;
   /** Filter by trackInventory */
-  trackInventory?: InputMaybe<Scalars['Boolean']['input']>;
+  trackInventory?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by unavailable quantity in the selected warehouse scope */
+  unavailableQuantity?: InputMaybe<ApiIntFilter>;
+  /** Filter by variant ID */
+  variantId?: InputMaybe<ApiIdFilter>;
 };
 
 export type ApiInventoryMutation = {
   __typename?: 'InventoryMutation';
-  /**
-   * Update inventory item: stock, SKU, weight, cost, dimensions.
-   * Replaces variantUpdateInventory and variantUpdateDimensions.
-   */
+  /** Update inventory item: stock, SKU, weight, cost, dimensions. */
   inventoryItemUpdate: ApiInventoryItemUpdatePayload;
   warehouseCreate: ApiWarehouseCreatePayload;
   warehouseDelete: ApiWarehouseDeletePayload;
@@ -3813,7 +3839,11 @@ export type ApiInventoryQueryInventoryItemByVariantArgs = {
 
 export type ApiInventoryQueryInventoryItemsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<ApiInventoryItemInventoryItemsMetaInput>;
+  orderBy?: InputMaybe<Array<ApiInventoryItemOrderByInput>>;
   where?: InputMaybe<ApiInventoryItemWhereInput>;
 };
 
@@ -4440,6 +4470,7 @@ export type ApiMutation = {
   authMutation: ApiAuthMutation;
   /** Catalog mutation namespace for product, variant, category, and collection operations */
   catalogMutation: ApiCatalogMutation;
+  /** Inventory mutation namespace for warehouse, stock, and inventory item operations */
   inventoryMutation: ApiInventoryMutation;
   mediaMutation: ApiMediaMutation;
   orderMutation: ApiOrderMutation;
@@ -5859,6 +5890,7 @@ export type ApiQuery = {
   appsQuery: ApiAppsQuery;
   /** Catalog query namespace for product, variant, category, and collection operations */
   catalogQuery: ApiCatalogQuery;
+  /** Inventory query namespace for warehouse, stock, and inventory item operations */
   inventoryQuery: ApiInventoryQuery;
   mediaQuery: ApiMediaQuery;
   orderQuery: ApiOrderQuery;
@@ -6817,6 +6849,8 @@ export type ApiVariant = ApiNode & {
   createdAt: Scalars['DateTime']['output'];
   /** The date and time when the variant was deleted (soft delete). */
   deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Physical dimensions (stored in millimeters). */
+  dimensions?: Maybe<ApiVariantDimensions>;
   /** The external ID in the external system. */
   externalId?: Maybe<Scalars['String']['output']>;
   /** The external system identifier for integration purposes. */
@@ -6825,7 +6859,7 @@ export type ApiVariant = ApiNode & {
   handle: Scalars['String']['output'];
   /** The globally unique ID of the variant. */
   id: Scalars['ID']['output'];
-  /** Inventory item associated with this variant */
+  /** Inventory item associated with this variant. */
   inventoryItem?: Maybe<ApiInventoryItem>;
   /** Whether this is the default variant for the product. */
   isDefault: Scalars['Boolean']['output'];
@@ -6843,6 +6877,8 @@ export type ApiVariant = ApiNode & {
   title?: Maybe<Scalars['String']['output']>;
   /** The date and time when the variant was last updated. */
   updatedAt: Scalars['DateTime']['output'];
+  /** Physical weight (stored in grams). */
+  weight?: Maybe<ApiVariantWeight>;
 };
 
 

@@ -182,11 +182,11 @@ function applyInventoryUpdate({
   const originalCostPrice = inventoryItem.unitCost?.amountMinor ?? null;
   const costChanged = costPrice !== originalCostPrice;
   const weight = parseOptionalInteger(row.weight, "Weight");
-  const originalWeight = inventoryItem.weight?.weightGrams ?? null;
+  const originalWeight = variant.weight?.value ?? null;
   const weightChanged = weight !== originalWeight;
-  const originalLength = inventoryItem.dimensions?.lengthMm ?? null;
-  const originalWidth = inventoryItem.dimensions?.widthMm ?? null;
-  const originalHeight = inventoryItem.dimensions?.heightMm ?? null;
+  const originalLength = variant.dimensions?.length ?? null;
+  const originalWidth = variant.dimensions?.width ?? null;
+  const originalHeight = variant.dimensions?.height ?? null;
   const length = parseOptionalInteger(row.length, "Length");
   const width = parseOptionalInteger(row.width, "Width");
   const height = parseOptionalInteger(row.height, "Height");

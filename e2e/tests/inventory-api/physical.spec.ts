@@ -61,9 +61,9 @@ test.describe('Physical Attributes API (Dimensions & Weight)', () => {
       const result = data.inventoryMutation.inventoryItemUpdate;
       expect(result.userErrors).toHaveLength(0);
       expect(result.inventoryItem).toBeTruthy();
-      expect(result.inventoryItem?.dimensions?.widthMm).toBe(100);
-      expect(result.inventoryItem?.dimensions?.lengthMm).toBe(200);
-      expect(result.inventoryItem?.dimensions?.heightMm).toBe(50);
+      expect(result.inventoryItem?.variant?.dimensions?.width).toBe(100);
+      expect(result.inventoryItem?.variant?.dimensions?.length).toBe(200);
+      expect(result.inventoryItem?.variant?.dimensions?.height).toBe(50);
     });
 
     test('should update variant dimensions', async ({ api }) => {
@@ -104,9 +104,9 @@ test.describe('Physical Attributes API (Dimensions & Weight)', () => {
 
       const result = data.inventoryMutation.inventoryItemUpdate;
       expect(result.userErrors).toHaveLength(0);
-      expect(result.inventoryItem?.dimensions?.widthMm).toBe(150);
-      expect(result.inventoryItem?.dimensions?.lengthMm).toBe(250);
-      expect(result.inventoryItem?.dimensions?.heightMm).toBe(75);
+      expect(result.inventoryItem?.variant?.dimensions?.width).toBe(150);
+      expect(result.inventoryItem?.variant?.dimensions?.length).toBe(250);
+      expect(result.inventoryItem?.variant?.dimensions?.height).toBe(75);
     });
 
     test('should return error for non-existent global inventory item ID', async ({ api }) => {
@@ -163,7 +163,7 @@ test.describe('Physical Attributes API (Dimensions & Weight)', () => {
       const result = data.inventoryMutation.inventoryItemUpdate;
       expect(result.userErrors).toHaveLength(0);
       expect(result.inventoryItem).toBeTruthy();
-      expect(result.inventoryItem?.weight?.weightGrams).toBe(500);
+      expect(result.inventoryItem?.variant?.weight?.value).toBe(500);
     });
 
     test('should update variant weight', async ({ api }) => {
@@ -200,7 +200,7 @@ test.describe('Physical Attributes API (Dimensions & Weight)', () => {
 
       const result = data.inventoryMutation.inventoryItemUpdate;
       expect(result.userErrors).toHaveLength(0);
-      expect(result.inventoryItem?.weight?.weightGrams).toBe(1000);
+      expect(result.inventoryItem?.variant?.weight?.value).toBe(1000);
     });
 
     test('should return error for non-existent global inventory item ID', async ({ api }) => {
@@ -266,7 +266,7 @@ test.describe('Physical Attributes API (Dimensions & Weight)', () => {
 
       expect(weightData.inventoryMutation.inventoryItemUpdate.userErrors).toHaveLength(0);
       expect(
-        weightData.inventoryMutation.inventoryItemUpdate.inventoryItem?.weight?.weightGrams,
+        weightData.inventoryMutation.inventoryItemUpdate.inventoryItem?.variant?.weight?.value,
       ).toBe(2500);
     });
   });

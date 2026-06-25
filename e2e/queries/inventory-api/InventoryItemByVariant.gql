@@ -21,19 +21,19 @@ query InventoryItemByVariant($variantId: ID!) {
         }
         variant {
           id
+          dimensions {
+            width
+            height
+            length
+          }
+          weight {
+            value
+          }
         }
       }
       unitCost {
         currency
         amountMinor
-      }
-      dimensions {
-        widthMm
-        heightMm
-        lengthMm
-      }
-      weight {
-        weightGrams
       }
     }
   }

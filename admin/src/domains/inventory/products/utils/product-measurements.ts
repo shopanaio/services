@@ -1,8 +1,5 @@
 import { DimensionUnit, WeightUnit } from "@/graphql/types";
-import type {
-  ApiInventoryItemDimensions,
-  ApiInventoryItemWeight,
-} from "@/graphql/types";
+import type { ApiVariantDimensions, ApiVariantWeight } from "@/graphql/types";
 
 export interface VariantWeightFields {
   weight: number | null;
@@ -96,45 +93,45 @@ const convertDimensionFromMillimeters = (
 };
 
 export const mapApiWeightToVariantFields = (
-  weight: ApiInventoryItemWeight | null | undefined,
+  weight: ApiVariantWeight | null | undefined,
 ): VariantWeightFields => ({
-  weight: weight?.weightGrams ?? null,
-  weightUnit: weight?.displayUnit ?? DEFAULT_WEIGHT_UNIT,
+  weight: weight?.value ?? null,
+  weightUnit: DEFAULT_WEIGHT_UNIT,
 });
 
 export const mapApiDimensionsToVariantFields = (
-  dimensions: ApiInventoryItemDimensions | null | undefined,
+  dimensions: ApiVariantDimensions | null | undefined,
 ): VariantDimensionFields => ({
-  length: dimensions?.lengthMm ?? null,
-  width: dimensions?.widthMm ?? null,
-  height: dimensions?.heightMm ?? null,
-  dimensionUnit: dimensions?.displayUnit ?? DEFAULT_DIMENSION_UNIT,
+  length: dimensions?.length ?? null,
+  width: dimensions?.width ?? null,
+  height: dimensions?.height ?? null,
+  dimensionUnit: DEFAULT_DIMENSION_UNIT,
 });
 
 export const formatApiWeight = (
-  weight: ApiInventoryItemWeight | null | undefined,
+  weight: ApiVariantWeight | null | undefined,
 ): string => {
   if (!weight) {
     return "-";
   }
 
-  const value = convertWeightFromGrams(weight.weightGrams, weight.displayUnit);
+  const value = convertWeightFromGrams(weight.value, DEFAULT_WEIGHT_UNIT);
 
-  return `${formatMeasurement(value)} ${getWeightUnitLabel(weight.displayUnit)}`;
+  return `${formatMeasurement(value)} ${getWeightUnitLabel(DEFAULT_WEIGHT_UNIT)}`;
 };
 
 export const formatApiDimensions = (
-  dimensions: ApiInventoryItemDimensions | null | undefined,
+  dimensions: ApiVariantDimensions | null | undefined,
 ): string => {
   if (!dimensions) {
     return "-";
   }
 
-  const unit = dimensions.displayUnit;
+  const unit = DEFAULT_DIMENSION_UNIT;
   const values = [
-    convertDimensionFromMillimeters(dimensions.lengthMm, unit),
-    convertDimensionFromMillimeters(dimensions.widthMm, unit),
-    convertDimensionFromMillimeters(dimensions.heightMm, unit),
+    convertDimensionFromMillimeters(dimensions.length, unit),
+    convertDimensionFromMillimeters(dimensions.width, unit),
+    convertDimensionFromMillimeters(dimensions.height, unit),
   ].map(formatMeasurement);
 
   return `${values.join(" x ")} ${getDimensionUnitLabel(unit)}`;

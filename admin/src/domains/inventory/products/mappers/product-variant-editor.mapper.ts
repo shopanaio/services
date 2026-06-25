@@ -94,8 +94,8 @@ export function mapApiVariantToEditorInput(
   );
 
   return {
-    ...mapApiWeightToVariantFields(variant.inventoryItem?.weight),
-    ...mapApiDimensionsToVariantFields(variant.inventoryItem?.dimensions),
+    ...mapApiWeightToVariantFields(variant.weight),
+    ...mapApiDimensionsToVariantFields(variant.dimensions),
     id: variant.id,
     title: variant.title ?? variant.handle,
     imageUrl: sortedMediaFiles[0]?.url ?? null,

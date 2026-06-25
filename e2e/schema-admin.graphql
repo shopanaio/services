@@ -2812,7 +2812,13 @@ type Variant implements Node {
   """Media attached to this variant (images, videos)."""
   media: [VariantMediaItem!]!
 
-  """Inventory item associated with this variant"""
+  """Physical dimensions (stored in millimeters)."""
+  dimensions: VariantDimensions
+
+  """Physical weight (stored in grams)."""
+  weight: VariantWeight
+
+  """Inventory item associated with this variant."""
   inventoryItem: InventoryItem
 }
 
@@ -5837,12 +5843,6 @@ type InventoryItem implements Node {
   """Whether to continue selling when out of stock"""
   continueSellingWhenOutOfStock: Boolean!
 
-  """Physical dimensions (mm)"""
-  dimensions: InventoryItemDimensions
-
-  """Weight (grams)"""
-  weight: InventoryItemWeight
-
   """Stock levels across warehouses"""
   stock: [WarehouseStock!]!
 
@@ -5857,28 +5857,6 @@ type InventoryItem implements Node {
 
   """When this item was last updated"""
   updatedAt: DateTime!
-}
-
-type InventoryItemDimensions {
-  """Width in millimeters"""
-  widthMm: Int!
-
-  """Height in millimeters"""
-  heightMm: Int!
-
-  """Length in millimeters"""
-  lengthMm: Int!
-
-  """Display unit preference"""
-  displayUnit: DimensionUnit!
-}
-
-type InventoryItemWeight {
-  """Weight in grams"""
-  weightGrams: Int!
-
-  """Display unit preference"""
-  displayUnit: WeightUnit!
 }
 
 type InventoryItemCost {

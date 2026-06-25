@@ -56,6 +56,14 @@ mutation ProductUpdate($productId: ID!, $expectedRevision: Int, $operations: Pro
                 amountMinor
                 compareAtMinor
               }
+              weight {
+                value
+              }
+              dimensions {
+                length
+                width
+                height
+              }
               inventoryItem {
                 id
                 sku
@@ -69,19 +77,9 @@ mutation ProductUpdate($productId: ID!, $expectedRevision: Int, $operations: Pro
                     code
                   }
                 }
-                weight {
-                  weightGrams
-                  displayUnit
-                }
                 unitCost {
                   currency
                   amountMinor
-                }
-                dimensions {
-                  lengthMm
-                  widthMm
-                  heightMm
-                  displayUnit
                 }
               }
               media {

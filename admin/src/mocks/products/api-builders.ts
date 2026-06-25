@@ -1,20 +1,16 @@
 import {
   CurrencyCode,
-  DimensionUnit,
   FileProvider,
   OptionDisplayType,
   ProductSortBy,
   SortDirection,
   SwatchType,
-  WeightUnit,
   type ApiCategory,
   type ApiCategoryConnection,
   type ApiCategoryProductConnection,
   type ApiFile,
   type ApiInventoryItem,
   type ApiInventoryItemCost,
-  type ApiInventoryItemDimensions,
-  type ApiInventoryItemWeight,
   type ApiPageInfo,
   type ApiProduct,
   type ApiProductConnection,
@@ -31,9 +27,11 @@ import {
   type ApiTagConnection,
   type ApiVariant,
   type ApiVariantConnection,
+  type ApiVariantDimensions,
   type ApiVariantMediaItem,
   type ApiVariantPrice,
   type ApiVariantPriceConnection,
+  type ApiVariantWeight,
   type ApiWarehouse,
   type ApiWarehouseStock,
 } from "@/graphql/types";
@@ -205,26 +203,22 @@ export const createMockApiInventoryItemCost = (params: {
   effectiveFrom: params.effectiveFrom ?? MOCK_NOW,
 });
 
-export const createMockApiInventoryItemWeight = (params: {
-  weightGrams: number;
-  displayUnit?: WeightUnit;
-}): ApiInventoryItemWeight => ({
-  __typename: "InventoryItemWeight",
-  weightGrams: params.weightGrams,
-  displayUnit: params.displayUnit ?? WeightUnit.G,
+export const createMockApiVariantWeight = (params: {
+  value: number;
+}): ApiVariantWeight => ({
+  __typename: "VariantWeight",
+  value: params.value,
 });
 
-export const createMockApiInventoryItemDimensions = (params: {
-  lengthMm: number;
-  widthMm: number;
-  heightMm: number;
-  displayUnit?: DimensionUnit;
-}): ApiInventoryItemDimensions => ({
-  __typename: "InventoryItemDimensions",
-  lengthMm: params.lengthMm,
-  widthMm: params.widthMm,
-  heightMm: params.heightMm,
-  displayUnit: params.displayUnit ?? DimensionUnit.Mm,
+export const createMockApiVariantDimensions = (params: {
+  length: number;
+  width: number;
+  height: number;
+}): ApiVariantDimensions => ({
+  __typename: "VariantDimensions",
+  length: params.length,
+  width: params.width,
+  height: params.height,
 });
 
 const createMockWarehouseStockConnection = (): ApiWarehouseStock["warehouse"]["stock"] => ({
@@ -291,8 +285,6 @@ export const createMockApiInventoryItem = (params: {
   sku?: string | null;
   stock?: ApiWarehouseStock[];
   totalAvailable?: number;
-  weight?: ApiInventoryItemWeight | null;
-  dimensions?: ApiInventoryItemDimensions | null;
   unitCost?: ApiInventoryItemCost | null;
   variant?: ApiVariant;
   trackInventory?: boolean;
@@ -304,8 +296,6 @@ export const createMockApiInventoryItem = (params: {
   sku: params.sku ?? null,
   stock: params.stock ?? [],
   totalAvailable: params.totalAvailable ?? 0,
-  weight: params.weight ?? null,
-  dimensions: params.dimensions ?? null,
   unitCost: params.unitCost ?? null,
   trackInventory: params.trackInventory ?? true,
   continueSellingWhenOutOfStock:
@@ -329,6 +319,8 @@ export const createMockApiVariant = (params: {
   title?: string | null;
   isDefault?: boolean;
   price?: ApiVariantPrice | null;
+  weight?: ApiVariantWeight | null;
+  dimensions?: ApiVariantDimensions | null;
   inventoryItem?: ApiInventoryItem | null;
   media?: ApiVariantMediaItem[];
   selectedOptions?: ApiSelectedOption[];
@@ -344,6 +336,8 @@ export const createMockApiVariant = (params: {
   title: params.title ?? null,
   isDefault: params.isDefault ?? false,
   price: params.price ?? null,
+  weight: params.weight ?? null,
+  dimensions: params.dimensions ?? null,
   inventoryItem: params.inventoryItem ?? null,
   media: params.media ?? [],
   selectedOptions: params.selectedOptions ?? [],

@@ -3,11 +3,13 @@ mutation VariantSetDimensions($input: InventoryItemUpdateInput!) {
     inventoryItemUpdate(input: $input) {
       inventoryItem {
         id
-        dimensions {
-          widthMm
-          heightMm
-          lengthMm
-          displayUnit
+        variant {
+          id
+          dimensions {
+            width
+            height
+            length
+          }
         }
       }
       userErrors {

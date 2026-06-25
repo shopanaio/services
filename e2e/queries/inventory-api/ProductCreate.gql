@@ -41,22 +41,20 @@ mutation ProductCreate($input: ProductCreateInput!) {
               id
               isDefault
               handle
+              dimensions {
+                width
+                height
+                length
+              }
+              weight {
+                value
+              }
               inventoryItem {
                 id
                 variantId
                 sku
                 trackInventory
                 continueSellingWhenOutOfStock
-                dimensions {
-                  widthMm
-                  heightMm
-                  lengthMm
-                  displayUnit
-                }
-                weight {
-                  weightGrams
-                  displayUnit
-                }
                 stock {
                   id
                   quantityOnHand

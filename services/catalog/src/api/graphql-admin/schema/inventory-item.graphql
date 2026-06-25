@@ -25,12 +25,6 @@ type InventoryItem implements Node @key(fields: "id") {
   """Whether to continue selling when out of stock"""
   continueSellingWhenOutOfStock: Boolean!
 
-  """Physical dimensions (mm)"""
-  dimensions: InventoryItemDimensions
-
-  """Weight (grams)"""
-  weight: InventoryItemWeight
-
   """Stock levels across warehouses"""
   stock: [WarehouseStock!]!
 
@@ -45,24 +39,6 @@ type InventoryItem implements Node @key(fields: "id") {
 
   """When this item was last updated"""
   updatedAt: DateTime!
-}
-
-type InventoryItemDimensions {
-  """Width in millimeters"""
-  widthMm: Int!
-  """Height in millimeters"""
-  heightMm: Int!
-  """Length in millimeters"""
-  lengthMm: Int!
-  """Display unit preference"""
-  displayUnit: DimensionUnit!
-}
-
-type InventoryItemWeight {
-  """Weight in grams"""
-  weightGrams: Int!
-  """Display unit preference"""
-  displayUnit: WeightUnit!
 }
 
 type InventoryItemCost {

@@ -15,7 +15,6 @@ import { VariantResolver } from "./VariantResolver.js";
  * Contains inventory-specific data:
  * - SKU
  * - Track inventory settings
- * - Dimensions and weight (via federation)
  * - Cost history (via federation)
  * - Stock levels (via federation)
  */
@@ -56,44 +55,6 @@ export class InventoryItemResolver extends CatalogType<string, InventoryItem> {
 
   async continueSellingWhenOutOfStock() {
     return (await this.$get("continueSellingWhenOutOfStock")) ?? false;
-  }
-
-  /**
-   * Dimensions from physical table.
-   */
-  async dimensions() {
-    const variantId = await this.$get("variantId");
-    const dims = await this.$ctx.kernel
-      .getServices()
-      .repository.physical.getDimensionsByVariantIds([variantId]);
-
-    const current = dims[0];
-    if (!current) return null;
-
-    return {
-      widthMm: current.wMm,
-      lengthMm: current.lMm,
-      heightMm: current.hMm,
-      displayUnit: "mm",
-    };
-  }
-
-  /**
-   * Weight from physical table.
-   */
-  async weight() {
-    const variantId = await this.$get("variantId");
-    const weights = await this.$ctx.kernel
-      .getServices()
-      .repository.physical.getWeightsByVariantIds([variantId]);
-
-    const current = weights[0];
-    if (!current) return null;
-
-    return {
-      weightGrams: current.weightGr,
-      displayUnit: "g",
-    };
   }
 
   /**

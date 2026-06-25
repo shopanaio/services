@@ -4,16 +4,16 @@ import {
   createMockApiFile,
   createMockApiInventoryItem,
   createMockApiInventoryItemCost,
-  createMockApiInventoryItemDimensions,
-  createMockApiInventoryItemWeight,
   createMockApiProduct,
   createMockApiProductConnection,
   createMockApiProductFeature,
   createMockApiProductFeatureValue,
   createMockApiProductMediaItem,
   createMockApiVariant,
+  createMockApiVariantDimensions,
   createMockApiVariantMediaItem,
   createMockApiVariantPrice,
+  createMockApiVariantWeight,
   createMockApiWarehouseStock,
   createMockPageInfo,
 } from "./api-builders";
@@ -138,6 +138,12 @@ const createListProduct = (_: unknown, index: number): ApiProduct => {
       id: `price-${variantId}`,
       amountMinor: 0,
     }),
+    weight: createMockApiVariantWeight({ value: 0 }),
+    dimensions: createMockApiVariantDimensions({
+      length: 0,
+      width: 0,
+      height: 0,
+    }),
     inventoryItem: createMockApiInventoryItem({
       id: `inventory-${variantId}`,
       variantId,
@@ -151,12 +157,6 @@ const createListProduct = (_: unknown, index: number): ApiProduct => {
       ],
       unitCost: createMockApiInventoryItemCost({
         amountMinor: 0,
-      }),
-      weight: createMockApiInventoryItemWeight({ weightGrams: 0 }),
-      dimensions: createMockApiInventoryItemDimensions({
-        lengthMm: 0,
-        widthMm: 0,
-        heightMm: 0,
       }),
     }),
     media: [

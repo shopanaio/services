@@ -21,10 +21,6 @@ mutation VariantSetStock($input: InventoryItemUpdateInput!) {
             code
           }
         }
-        weight {
-          weightGrams
-          displayUnit
-        }
         unitCost {
           currency
           amountMinor
