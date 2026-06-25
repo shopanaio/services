@@ -53,3 +53,15 @@ export * from "./productBulkFence";
 
 // Bundles
 export * from "./bundle";
+
+// Inventory
+export * from "./inventory-item";
+export * from "./inventory-item-list-views";
+export * from "./cost";
+export * from "./physical";
+export * from "./stock";
+export * from "./stock-changes";
+export * from "./reservations";
+export * from "./product-inventory-settings";
+export * from "./inbound-supply";
+export * from "./inventory-translations";
