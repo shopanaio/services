@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Button, Typography } from "antd";
+import { Typography } from "antd";
 import { FileTextOutlined } from "@ant-design/icons";
 import { useEntityContentTabsStyles } from "./entity-content-tabs.styles";
 import type { EntityContentTabsEmptyState } from "./types";
@@ -9,13 +9,11 @@ import type { EntityContentTabsEmptyState } from "./types";
 interface EntityDetailsEmptyStateProps {
   state: EntityContentTabsEmptyState;
   icon?: ReactNode;
-  onAction?: () => void;
 }
 
 export const EntityDetailsEmptyState = ({
   state,
   icon = <FileTextOutlined />,
-  onAction,
 }: EntityDetailsEmptyStateProps) => {
   const { styles } = useEntityContentTabsStyles();
 
@@ -32,13 +30,6 @@ export const EntityDetailsEmptyState = ({
           </Typography.Text>
         ) : null}
       </div>
-      <Button
-        type="primary"
-        onClick={onAction}
-        className={styles.richEmptyAction}
-      >
-        {state.actionLabel}
-      </Button>
     </div>
   );
 };

@@ -1,7 +1,9 @@
 import { useMemo, ReactNode } from "react";
 import { createStyles } from "antd-style";
 import { Descriptions, Flex, Typography } from "antd";
+import { TagsOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { EntityDetailsEmptyState } from "@/domains/inventory/components/entity-details-sections";
 import type { ApiProductFeature, ApiProductFeatureValue } from "@/graphql/types";
 
 // ============================================================================
@@ -190,12 +192,16 @@ export const AttributesSection = ({
             ))}
           </>
         ) : (
-          <Typography.Text
-            type="secondary"
-            data-testid="product-attributes-empty-state"
-          >
-            No attributes yet
-          </Typography.Text>
+          <div data-testid="product-attributes-empty-state">
+            <EntityDetailsEmptyState
+              icon={<TagsOutlined />}
+              state={{
+                title: "No attributes added",
+                description:
+                  "Add product attributes to describe specifications, materials, and other structured details.",
+              }}
+            />
+          </div>
         )}
       </Flex>
     </Paper>

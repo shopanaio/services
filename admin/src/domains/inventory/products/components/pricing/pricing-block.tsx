@@ -237,10 +237,7 @@ export const PricingBlock = ({
         />
 
         {selectedVariantId && !hasPriceRecords ? (
-          <PricingEmptyState
-            onAddPrice={product ? handleEditPrices : undefined}
-            isAddPriceLoading={isPreparingEditor}
-          />
+          <PricingEmptyState />
         ) : (
           <>
             <div className={styles.twoColumn}>

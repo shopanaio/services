@@ -9,6 +9,7 @@ import {
   PictureOutlined,
 } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { EntityDetailsEmptyState } from "@/domains/inventory/components/entity-details-sections";
 import { useOptionsStyles } from "../product-details-card.styles";
 import { OptionDisplayType, SwatchType, type ApiProductOption, type ApiProductOptionSwatch } from "@/graphql/types";
 
@@ -133,12 +134,16 @@ export const OptionsSection = ({ options, actions }: IOptionsSectionProps) => {
             );
           })
         ) : (
-          <Typography.Text
-            type="secondary"
-            data-testid="product-options-empty-state"
-          >
-            No options yet
-          </Typography.Text>
+          <div data-testid="product-options-empty-state">
+            <EntityDetailsEmptyState
+              icon={<MenuOutlined />}
+              state={{
+                title: "No options added",
+                description:
+                  "Add product options to define selectable values like size, color, or material.",
+              }}
+            />
+          </div>
         )}
       </Flex>
     </Paper>

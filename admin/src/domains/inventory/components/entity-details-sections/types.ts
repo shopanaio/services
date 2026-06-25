@@ -20,14 +20,12 @@ export interface EntitySeoBlockData extends EntitySeoPreviewData {
 export interface EntityContentTabsEmptyState {
   title: string;
   description?: string;
-  actionLabel: string;
 }
 
 export interface EntityContentTabsProps {
   descriptionHtml?: string | null;
   excerptHtml?: string | null;
   actions?: ReactNode;
-  onEdit?: () => void;
   sectionTestId?: string;
   descriptionTestId: string;
   excerptTestId: string;

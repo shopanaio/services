@@ -1,11 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { App, Dropdown, Flex, Tag, Typography } from "antd";
-import { PlusOutlined, MoreOutlined, StarFilled } from "@ant-design/icons";
+import { App, Button, Dropdown, Flex, Tag } from "antd";
+import {
+  FolderOutlined,
+  MoreOutlined,
+  PlusOutlined,
+  StarFilled,
+} from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useCategoryPicker } from "@/shared/components/entity-picker-modal";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";
+import { EntityDetailsEmptyState } from "@/domains/inventory/components/entity-details-sections";
 import type {
   ApiCategory,
   ApiCategoryCategoriesMetaInput,
@@ -222,7 +228,21 @@ export const CategoriesSection = ({
 
   return (
     <Paper>
-      <PaperHeader title="Categories" />
+      <PaperHeader
+        title="Categories"
+        actions={
+          !hasCategories ? (
+            <Button
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={isPending ? undefined : openPicker}
+              disabled={isPending}
+            >
+              Add Category
+            </Button>
+          ) : undefined
+        }
+      />
       {hasCategories ? (
         <Flex gap={4} wrap="wrap">
           {primaryCategory && (
@@ -293,25 +313,14 @@ export const CategoriesSection = ({
           </Tag>
         </Flex>
       ) : (
-        <Flex gap={4} wrap="wrap">
-          <Tag
-            variant="outlined"
-            onClick={isPending ? undefined : openPicker}
-            style={{
-              cursor: isPending ? "not-allowed" : "pointer",
-              background: "transparent",
-              borderStyle: "dashed",
-            }}
-          >
-            <Flex align="center" gap={4}>
-              <PlusOutlined />
-              Add Category
-            </Flex>
-          </Tag>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            No categories assigned
-          </Typography.Text>
-        </Flex>
+        <EntityDetailsEmptyState
+          icon={<FolderOutlined />}
+          state={{
+            title: "No categories added",
+            description:
+              "Add categories to organize this product in storefront navigation and collections.",
+          }}
+        />
       )}
     </Paper>
   );

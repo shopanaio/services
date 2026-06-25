@@ -127,18 +127,15 @@ export const ProductContentTabs = ({ product }: IProductContentTabsProps) => {
       excerptHtml={excerptHtml}
       descriptionTestId="product-content-description"
       excerptTestId="product-content-excerpt"
-      onEdit={handleEditDescription}
       descriptionEmpty={{
         title: "No description added",
         description:
           "Add a detailed product description to help customers understand features, materials, and usage.",
-        actionLabel: "Add description",
       }}
       excerptEmpty={{
         title: "No excerpt added",
         description:
           "Add a short summary for product previews, search snippets, and quick product scans.",
-        actionLabel: "Add excerpt",
       }}
       actions={
         <Flex gap={8}>

@@ -14,7 +14,6 @@ import {
   TagsSection,
   ReviewsSection,
   OptionsSection,
-  ShippingSection,
   BundlesSection,
   InventorySection,
   VariantsTableSection,
@@ -23,7 +22,6 @@ import { useProductModals } from "./hooks";
 import type { ApiProduct } from "@/graphql/types";
 import type { IVariantsTableData, ProductDetailsSupplementalData } from "./types";
 import {
-  getDefaultVariant,
   getProductCategories,
   getProductMediaFiles,
   getProductPrimaryCategory,
@@ -57,11 +55,9 @@ export const ProductDetailsCard = ({
     onProductRefresh,
     defaultCurrency,
   });
-  const isVariableProduct = product.variantsCount > 1;
   const shouldRenderVariantsSection =
     !!variantsTableData &&
     (variantsTableData.totalCount > 0 || product.variantsCount > 0);
-  const defaultVariant = getDefaultVariant(product);
 
   const handleEdit = (section: string) => onEditSection?.(section);
 
@@ -142,14 +138,6 @@ export const ProductDetailsCard = ({
           isEditLoading={modals.isEditVariantsLoading}
           isPageLoading={isVariantsPageLoading}
           onPageChange={onVariantsPageChange}
-        />
-      )}
-
-      {/* SHIPPING */}
-      {!isVariableProduct && (
-        <ShippingSection
-          variant={defaultVariant}
-          onEdit={() => handleEdit("shipping")}
         />
       )}
 

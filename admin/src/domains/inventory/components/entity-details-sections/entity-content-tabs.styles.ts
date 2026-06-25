@@ -47,8 +47,8 @@ export const useEntityContentTabsStyles = createStyles(({ token }) => ({
     },
   },
   richEmptyState: {
-    minHeight: 204,
-    padding: "28px 20px",
+    minHeight: 128,
+    padding: "16px 20px",
     borderRadius: 8,
     border: `1px dashed ${token.colorBorder}`,
     background: token.colorFillAlter,
@@ -56,19 +56,19 @@ export const useEntityContentTabsStyles = createStyles(({ token }) => ({
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
+    gap: 8,
     textAlign: "center",
   },
   richEmptyIcon: {
-    width: 44,
-    height: 44,
+    width: 36,
+    height: 36,
     borderRadius: "50%",
     background: token.colorPrimaryBg,
     color: token.colorPrimary,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: token.fontSizeXL,
+    fontSize: token.fontSizeLG,
   },
   richEmptyContent: {
     maxWidth: 360,
@@ -76,8 +76,8 @@ export const useEntityContentTabsStyles = createStyles(({ token }) => ({
   richEmptyTitle: {
     "&&": {
       margin: 0,
-      marginBottom: 4,
-      fontSize: token.fontSizeLG,
+      marginBottom: 2,
+      fontSize: token.fontSize,
     },
   },
   richEmptyText: {
@@ -85,8 +85,5 @@ export const useEntityContentTabsStyles = createStyles(({ token }) => ({
       display: "block",
       fontSize: token.fontSize,
     },
-  },
-  richEmptyAction: {
-    flexShrink: 0,
   },
 }));

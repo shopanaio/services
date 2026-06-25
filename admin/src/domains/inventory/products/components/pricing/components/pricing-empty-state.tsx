@@ -1,16 +1,8 @@
-import { Button, Typography } from "antd";
+import { Typography } from "antd";
 import { DollarOutlined } from "@ant-design/icons";
 import { useStyles } from "./pricing-empty-state.styles";
 
-interface IPricingEmptyStateProps {
-  onAddPrice?: () => void;
-  isAddPriceLoading?: boolean;
-}
-
-export const PricingEmptyState = ({
-  onAddPrice,
-  isAddPriceLoading,
-}: IPricingEmptyStateProps) => {
+export const PricingEmptyState = () => {
   const { styles } = useStyles();
 
   return (
@@ -27,11 +19,6 @@ export const PricingEmptyState = ({
           period statistics.
         </Typography.Text>
       </div>
-      {onAddPrice && (
-        <Button type="primary" onClick={onAddPrice} loading={isAddPriceLoading}>
-          Add price
-        </Button>
-      )}
     </div>
   );
 };

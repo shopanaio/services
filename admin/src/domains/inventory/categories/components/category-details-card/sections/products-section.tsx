@@ -320,9 +320,7 @@ export const ProductsSection = ({
           state={{
             title: "No products assigned",
             description: "Assign products to make them appear in this category.",
-            actionLabel: "Assign Products",
           }}
-          onAction={onAssignProducts}
         />
       )}
     </Paper>

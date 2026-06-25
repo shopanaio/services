@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { App, Tag, Typography, Flex, Dropdown } from "antd";
-import { PlusOutlined, MoreOutlined } from "@ant-design/icons";
+import { App, Button, Tag, Flex, Dropdown } from "antd";
+import { PlusOutlined, MoreOutlined, TagsOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useTagPicker } from "@/shared/components/entity-picker-modal";
 import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";
+import { EntityDetailsEmptyState } from "@/domains/inventory/components/entity-details-sections";
 import type { ApiTag, ApiProductUpdateInput } from "@/graphql/types";
 import { ProductTagOperationAction } from "@/graphql/types";
 import { useUpdateProduct } from "@/domains/inventory/products/hooks";
@@ -151,7 +152,22 @@ export const TagsSection = ({
 
   return (
     <Paper data-testid="product-tags-section">
-      <PaperHeader title="Tags" />
+      <PaperHeader
+        title="Tags"
+        actions={
+          !hasTags ? (
+            <Button
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={isPending ? undefined : openPicker}
+              data-testid="product-tags-add-button"
+              disabled={isPending}
+            >
+              Add Tag
+            </Button>
+          ) : undefined
+        }
+      />
       {hasTags ? (
         <Flex gap={4} wrap="wrap">
           {tags.map((tag) => (
@@ -211,26 +227,13 @@ export const TagsSection = ({
           </Tag>
         </Flex>
       ) : (
-        <Flex gap={4} wrap="wrap">
-          <Tag
-            variant="outlined"
-            onClick={isPending ? undefined : openPicker}
-            data-testid="product-tags-add-button"
-            style={{
-              cursor: isPending ? "not-allowed" : "pointer",
-              background: "transparent",
-              borderStyle: "dashed",
-            }}
-          >
-            <Flex align="center" gap={4}>
-              <PlusOutlined />
-              Add Tag
-            </Flex>
-          </Tag>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            No tags assigned
-          </Typography.Text>
-        </Flex>
+        <EntityDetailsEmptyState
+          icon={<TagsOutlined />}
+          state={{
+            title: "No tags added",
+            description: "Add tags to group products for filtering.",
+          }}
+        />
       )}
     </Paper>
   );

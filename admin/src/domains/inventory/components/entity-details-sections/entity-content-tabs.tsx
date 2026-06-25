@@ -10,7 +10,6 @@ export const EntityContentTabs = ({
   descriptionHtml,
   excerptHtml,
   actions,
-  onEdit,
   sectionTestId,
   descriptionTestId,
   excerptTestId,
@@ -37,10 +36,7 @@ export const EntityContentTabs = ({
                 dangerouslySetInnerHTML={{ __html: descriptionHtml }}
               />
             ) : (
-              <EntityDetailsEmptyState
-                state={descriptionEmpty}
-                onAction={onEdit}
-              />
+              <EntityDetailsEmptyState state={descriptionEmpty} />
             ),
           },
           {
@@ -54,10 +50,7 @@ export const EntityContentTabs = ({
                 dangerouslySetInnerHTML={{ __html: excerptHtml }}
               />
             ) : (
-              <EntityDetailsEmptyState
-                state={excerptEmpty}
-                onAction={onEdit}
-              />
+              <EntityDetailsEmptyState state={excerptEmpty} />
             ),
           },
         ]}

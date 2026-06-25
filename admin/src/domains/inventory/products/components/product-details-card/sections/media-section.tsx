@@ -1,10 +1,11 @@
 "use client";
 
 import { Image, Flex } from "antd";
-import { EyeOutlined, PlusOutlined } from "@ant-design/icons";
+import { EyeOutlined, PictureOutlined, PlusOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { FeaturedBadge } from "@/ui-kit/featured-badge";
 import { MediaPreview, useMediaPreview } from "@/domains/media/components/media-preview";
+import { EntityDetailsEmptyState } from "@/domains/inventory/components/entity-details-sections";
 import { EditAction } from "../../edit-action";
 import { MediaFilePlaceholder } from "../../media-file-placeholder";
 import { useMediaStyles } from "../product-details-card.styles";
@@ -22,6 +23,7 @@ export const MediaSection = ({ mediaFiles, onEdit }: IMediaSectionProps) => {
   const showMore = mediaFiles.length > 12;
   const visibleMediaFiles = mediaFiles.slice(0, showMore ? 11 : 12);
   const overlayItemsCount = visibleMediaFiles.length + (showMore ? 1 : 0) + 1; // +1 for upload cell
+  const hasMedia = mediaFiles.length > 0;
 
   return (
     <Paper>
@@ -35,14 +37,35 @@ export const MediaSection = ({ mediaFiles, onEdit }: IMediaSectionProps) => {
           />
         }
       />
-      <div className={styles.mediaGrid} data-testid="product-media-section">
-        {visibleMediaFiles.map((media, index) =>
-          index === 0 ? (
-            <div
-              key={media.id}
-              className={styles.mediaFeaturedWrapper}
-            >
+      {hasMedia ? (
+        <div className={styles.mediaGrid} data-testid="product-media-section">
+          {visibleMediaFiles.map((media, index) =>
+            index === 0 ? (
+              <div
+                key={media.id}
+                className={styles.mediaFeaturedWrapper}
+              >
+                <Image
+                  src={media.url}
+                  alt={media.altText || media.originalName || ""}
+                  className={styles.mediaImage}
+                  data-testid={`product-media-item-${media.id}`}
+                  preview={{
+                    visible: false,
+                    mask: (
+                      <Flex gap={4} className={styles.mediaPreview}>
+                        <EyeOutlined />
+                        Preview
+                      </Flex>
+                    ),
+                  }}
+                  onClick={() => mediaPreview.open(index)}
+                />
+                <FeaturedBadge />
+              </div>
+            ) : (
               <Image
+                key={media.id}
                 src={media.url}
                 alt={media.altText || media.originalName || ""}
                 className={styles.mediaImage}
@@ -58,63 +81,54 @@ export const MediaSection = ({ mediaFiles, onEdit }: IMediaSectionProps) => {
                 }}
                 onClick={() => mediaPreview.open(index)}
               />
-              <FeaturedBadge />
-            </div>
-          ) : (
-            <Image
-              key={media.id}
-              src={media.url}
-              alt={media.altText || media.originalName || ""}
-              className={styles.mediaImage}
-              data-testid={`product-media-item-${media.id}`}
-              preview={{
-                visible: false,
-                mask: (
-                  <Flex gap={4} className={styles.mediaPreview}>
-                    <EyeOutlined />
-                    Preview
-                  </Flex>
-                ),
+            )
+          )}
+          {showMore && (
+            <Flex
+              align="center"
+              justify="center"
+              className={styles.mediaMoreButton}
+              onClick={() => mediaPreview.open(11)}
+            >
+              +{mediaFiles.length - 11}
+            </Flex>
+          )}
+          <div className={styles.uploadCell}>
+            <div
+              className={styles.uploadArea}
+              data-testid="product-media-upload-area"
+              onClick={onEdit}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  onEdit();
+                }
               }}
-              onClick={() => mediaPreview.open(index)}
-            />
-          )
-        )}
-        {showMore && (
-          <Flex
-            align="center"
-            justify="center"
-            className={styles.mediaMoreButton}
-            onClick={() => mediaPreview.open(11)}
-          >
-            +{mediaFiles.length - 11}
-          </Flex>
-        )}
-        <div className={styles.uploadCell}>
-          <div
-            className={styles.uploadArea}
-            data-testid="product-media-upload-area"
-            onClick={onEdit}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                onEdit();
-              }
-            }}
-          >
-            <PlusOutlined className={styles.uploadIcon} />
+            >
+              <PlusOutlined className={styles.uploadIcon} />
+            </div>
+          </div>
+          <div className={styles.mediaOverlay}>
+            {Array.from({ length: overlayItemsCount }).map((_, idx) => (
+              <div key={`spacer-${idx}`} style={{ aspectRatio: "1/1" }} />
+            ))}
+            {Array.from({ length: Math.max(0, 13 - overlayItemsCount) }).map((_, idx) => (
+              <MediaFilePlaceholder key={`placeholder-${idx}`} />
+            ))}
           </div>
         </div>
-        <div className={styles.mediaOverlay}>
-          {Array.from({ length: overlayItemsCount }).map((_, idx) => (
-            <div key={`spacer-${idx}`} style={{ aspectRatio: "1/1" }} />
-          ))}
-          {Array.from({ length: Math.max(0, 13 - overlayItemsCount) }).map((_, idx) => (
-            <MediaFilePlaceholder key={`placeholder-${idx}`} />
-          ))}
+      ) : (
+        <div data-testid="product-media-section">
+          <EntityDetailsEmptyState
+            icon={<PictureOutlined />}
+            state={{
+              title: "No media added",
+              description: "Add product images to show visuals in storefronts and product previews.",
+            }}
+          />
         </div>
-      </div>
+      )}
 
       <MediaPreview
         items={mediaFiles}

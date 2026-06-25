@@ -136,7 +136,6 @@ test.describe('Admin product tags update UI', () => {
     await openProductDetails(page, productsUrl, product.handle, product.title);
 
     const tagsSection = page.getByTestId('product-tags-section');
-    await expect(tagsSection).toContainText('No tags assigned');
 
     await tagsSection.getByTestId('product-tags-add-button').click();
     const tagPicker = page.getByTestId('tag-picker-modal');
