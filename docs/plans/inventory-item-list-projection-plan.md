@@ -1,8 +1,8 @@
-# План: inventory item list projection для Admin stock table
+# План: inventory item list projection
 
 ## Цель
 
-Сделать `inventoryQuery.inventoryItems` основным API для Admin stock table.
+Сделать `inventoryQuery.inventoryItems` основным API для inventory item list.
 Connection должен возвращать обычные `InventoryItem` nodes, а не специальный
 `InventoryVariantListItem`.
 
@@ -19,7 +19,7 @@ Connection должен возвращать обычные `InventoryItem` node
 
 ## Почему не federation sort
 
-Текущий Admin Inventory page читает строки через `catalogQuery.variants`, а
+Текущий stock list read path читает строки через `catalogQuery.variants`, а
 inventory data резолвится через federation:
 
 ```graphql
@@ -93,7 +93,7 @@ type InventoryItemEdge {
 }
 ```
 
-`InventoryItem` должен оставаться canonical entity type. Если Admin page нужен
+`InventoryItem` должен оставаться canonical entity type. Если клиенту нужен
 product context, его нужно получать через reference к `Variant`:
 
 ```graphql
@@ -205,7 +205,7 @@ global IDs before building repository filters. In this phase only
 `mode: INCLUDE` with exactly one decoded warehouse id activates the
 warehouse-scoped view.
 
-Admin search мапится в query filter:
+Search мапится в query filter:
 
 ```ts
 where: {
@@ -679,11 +679,11 @@ Stock-scoped list sorting/filtering uses `meta.warehouseScope`, but
 `InventoryItem.stock` is still a canonical field that loads stock for all
 warehouses from `InventoryItemResolver.stock`.
 
-For the first migration step, Admin may continue to query `node.stock` and apply
-the same warehouse scope client-side for display: pick the selected warehouse
-when `warehouseScope` is supported `INCLUDE` with one id, or sum all warehouses
-when scope is omitted. Unsupported scopes return an input error and should not
-reach Admin display mapping. This creates N+1 and overfetch risk if stock
+For the first migration step, clients may continue to query `node.stock` and
+apply the same warehouse scope client-side for display: pick the selected
+warehouse when `warehouseScope` is supported `INCLUDE` with one id, or sum all
+warehouses when scope is omitted. Unsupported scopes return an input error and
+should not reach display mapping. This creates N+1 and overfetch risk if stock
 loading is not batched.
 
 This does not need a new repository design. `StockRepository` already has
@@ -731,7 +731,7 @@ Node lookup rules:
   nodes.
 - `inventoryItem(id)` should return the canonical item only if its projection row
   is active; otherwise return `null` so deleted variants do not remain reachable
-  from Admin APIs;
+  from list APIs;
 - `inventoryItemByVariant(variantId)` must not lazily recreate or expose an
   `InventoryItem` when the projection row is missing or soft-deleted. It should
   return `null` for missing, deleted, or unknown variants. If a caller needs an
@@ -742,7 +742,7 @@ Node lookup rules:
   active-projection rule to avoid returning orphan inventory entities.
 
 The current `inventoryItemByVariant` resolver uses lazy `upsertByVariantId`.
-That behavior must be removed before the Admin read path relies on
+That behavior must be removed before read paths rely on
 `inventoryQuery.inventoryItems`. Existing active variants must be covered by a
 projection backfill/reindex step instead of being repaired by read queries.
 
@@ -778,7 +778,7 @@ This must be a full inter-service contract, not an ad-hoc local helper:
   invalid input and confirmed missing/deleted Catalog entities are not
   retryable business outcomes.
 
-This is a prerequisite for Inventory projection handlers and for Admin migration.
+This is a prerequisite for Inventory projection handlers.
 Do not implement `inventory_product_translation` updates from existing
 `productCreated.name` or `productUpdated.product.title` payloads directly:
 those payloads are not locale-complete and can write the wrong translation row.
@@ -859,8 +859,8 @@ Do not infer locale from handler defaults. Do not write a changed product name t
 
 The list repository filters the view with `locale = ctx.locale ?? "uk"`, so:
 
-- Ukrainian Admin session filters/sorts by Ukrainian `productName`;
-- English Admin session filters/sorts by English `productName`;
+- Ukrainian request locale filters/sorts by Ukrainian `productName`;
+- English request locale filters/sorts by English `productName`;
 - changing the English name updates only the English translation row.
 
 ## Implementation Order
@@ -870,7 +870,6 @@ The list repository filters the view with `locale = ctx.locale ?? "uk"`, so:
 2. Add Inventory projection tables/view/repository.
 3. Add Inventory event handlers that always use the snapshot action when the
    event payload does not explicitly identify changed locales.
-4. Switch Admin Inventory page to `inventoryQuery.inventoryItems`.
 
 ## Inventory Event Handlers
 
@@ -886,8 +885,7 @@ Handle:
 - `variantDeleted`: soft-delete base projection row by variantId.
 
 Variant create/delete flows must emit a product-level change event or dedicated
-variant event. If current variant mutations do not emit events, add that before
-switching Admin Inventory page to the new query.
+variant event.
 
 Handler rules:
 
@@ -898,72 +896,6 @@ Handler rules:
   revision is present;
 - `lastCatalogEventId` is stored for observability/debugging;
 - snapshot fetch failure is retryable.
-
-## Admin Migration
-
-Replace Inventory page read query:
-
-- from `catalogQuery.variants`;
-- to `inventoryQuery.inventoryItems`.
-
-The UI should still use generated API types directly. Row mapping can read:
-
-- `node.id`;
-- `node.variantId`;
-- `node.sku`;
-- `node.trackInventory`;
-- `node.continueSellingWhenOutOfStock`;
-- `node.variant.product.title` for display;
-- `node.stock` for display values, applying the same `warehouseScope` client-side
-  until an explicit scoped stock summary field exists.
-
-New sort mapping can expose:
-
-- `productName`;
-- `sku`;
-- `quantityOnHand`;
-- `reservedQuantity`;
-- `unavailableQuantity`;
-- `availableForSale`;
-- `updatedAt`.
-
-Stock sort/filter mapping must pass warehouse selection through `meta`, not
-through `where`:
-
-```ts
-meta: selectedWarehouseId
-  ? {
-      warehouseScope: {
-        referenceIds: [selectedWarehouseId],
-        mode: "INCLUDE",
-      },
-    }
-  : null
-```
-
-If Admin selects one warehouse, stock sort/filter values represent that
-warehouse. If Admin does not select a warehouse, values are summed across all
-existing warehouses. The Admin stock table warehouse selector should be
-single-select for this query. The GraphQL input remains array-shaped for future
-multi-warehouse support, but Admin should send at most one id in this phase.
-If Admin sends `EXCLUDE`, zero ids, or multiple ids, the API returns an explicit
-input incompatibility error instead of falling back to all-warehouse totals.
-
-Search/filter mapping:
-
-```ts
-where: {
-  _or: [
-    { productName: { _containsi: search } },
-    { sku: { _containsi: search } },
-  ],
-}
-```
-
-The existing save path can remain unchanged for the first step. This plan is
-about the read model/list query. A later step can move stock writes from
-`catalogMutation.productBulkUpdate` to inventory-owned bulk mutation if write
-ownership changes.
 
 ## Implementation Phases
 
@@ -998,7 +930,7 @@ ownership changes.
 - Keep `InventoryItemConnection` / `InventoryItemEdge` returning
   `InventoryItem`.
 - Add `InventoryItem.variant` to the GraphQL schema. The resolver already exists,
-  but the field must be present in schema before Admin can query it.
+  but the field must be present in schema before clients can query it.
 - Add a stock DataLoader backed by existing
   `repository.stock.getByVariantsBatch()` and use it from
   `InventoryItemResolver.stock()`, `totalAvailable()` and `inStock()`.
@@ -1018,14 +950,6 @@ ownership changes.
 - Ensure locale-specific product name changes update only the matching
   translation row.
 - Ensure variant create/delete flows emit events Inventory can consume.
-
-### Phase 5. Admin read path
-
-- Add inventory module GraphQL query document for `inventoryQuery.inventoryItems`.
-- Update generated Admin GraphQL types.
-- Update row mapper to consume `InventoryItem` nodes.
-- Enable server-side sort/search/filter for product name and stock columns.
-- Reset cursor pagination on sort/filter changes.
 
 ## Out of Scope
 
