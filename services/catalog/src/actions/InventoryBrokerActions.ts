@@ -128,15 +128,15 @@ export class InventoryBrokerActions extends BrokerActions {
 
       if (!cost) return null;
 
-      return {
-        id: cost.id,
-        currency: cost.currency as CurrencyCode,
-        unitCostMinor: cost.unitCostMinor,
-        effectiveFrom: new Date(cost.effectiveFrom),
-        effectiveTo: cost.effectiveTo ? new Date(cost.effectiveTo) : null,
-        recordedAt: new Date(cost.recordedAt),
-        isCurrent: cost.effectiveTo === null,
-      };
+	      return {
+	        id: cost.id,
+	        currency: cost.currency as CurrencyCode,
+	        unitCostMinor: cost.unitCostMinor,
+	        effectiveFrom: new Date(cost.effectiveFrom).toISOString(),
+	        effectiveTo: cost.effectiveTo ? new Date(cost.effectiveTo).toISOString() : null,
+	        recordedAt: new Date(cost.recordedAt).toISOString(),
+	        isCurrent: cost.effectiveTo === null,
+	      };
     });
   }
 

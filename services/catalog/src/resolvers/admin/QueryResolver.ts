@@ -583,7 +583,7 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
   }
 }
 
-export class InventoryQueryResolver extends CatalogQueryResolver {
+export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
   async node(args: { id: string }) {
     try {
       const warehouseId = decodeGlobalIdByType(

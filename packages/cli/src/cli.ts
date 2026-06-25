@@ -26,7 +26,6 @@ program
   .option("-s, --service <services...>", "Build specific service(s)")
   .option("-p, --packages", "Build only packages")
   .option("--parallel", "Build services in parallel")
-  .option("--no-check", "Skip TypeScript type checking")
   .action(buildCommand);
 
 // Dev command

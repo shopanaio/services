@@ -18,10 +18,6 @@ const BuildToolSchema = z.object({
     .boolean()
     .optional()
     .describe('Build services in parallel for faster builds'),
-  skipTypeCheck: z
-    .boolean()
-    .optional()
-    .describe('Skip TypeScript type checking (not recommended, type checking is enabled by default)'),
   workingDir: z
     .string()
     .optional()
@@ -39,14 +35,13 @@ Examples:
 - Build packages only: { "packagesOnly": true }
 - Build specific services: { "services": ["checkout", "orders"] }
 - Build in parallel: { "parallel": true }
-- Skip type checking (not recommended): { "skipTypeCheck": true }
 
 Available services: apps, bootstrap, catalog, checkout, delivery, events, iam, media, orders, payments, pricing, project, reviews, search`;
 
   schema = BuildToolSchema;
 
   async execute(input: z.infer<typeof BuildToolSchema>) {
-    const { services, packagesOnly, parallel, skipTypeCheck, workingDir } = input;
+    const { services, packagesOnly, parallel, workingDir } = input;
 
     let command = 'yarn shopana build';
 
@@ -58,10 +53,6 @@ Available services: apps, bootstrap, catalog, checkout, delivery, events, iam, m
 
     if (parallel) {
       command += ' --parallel';
-    }
-
-    if (skipTypeCheck) {
-      command += ' --no-check';
     }
 
     try {

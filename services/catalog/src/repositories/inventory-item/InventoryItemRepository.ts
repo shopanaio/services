@@ -54,6 +54,10 @@ export type InventoryItemListRelayInput = InferRelayInput<
 type InventoryItemWarehouseListRelayInput = InferRelayInput<
   typeof inventoryItemWarehouseStockRelayQuery
 >;
+type InventoryItemListWhere = NonNullable<InventoryItemListRelayInput["where"]>;
+type InventoryItemWarehouseListWhere = NonNullable<
+  InventoryItemWarehouseListRelayInput["where"]
+>;
 
 export type NormalizedInventoryItemWarehouseScope =
   | { kind: "all" }
@@ -378,7 +382,7 @@ export class InventoryItemRepository extends BaseRepository {
       return emptyInventoryItemConnection();
     }
 
-    const baseWhere = [
+    const baseWhere: InventoryItemListWhere[] = [
       { projectId: { _eq: this.storeId } },
       { locale: { _eq: this.locale } },
       { deletedAt: { _is: null } },
@@ -390,11 +394,13 @@ export class InventoryItemRepository extends BaseRepository {
     ];
 
     if (warehouseScope.kind === "warehouse") {
-      const mergedWhere: InventoryItemWarehouseListRelayInput["where"] = {
+      const warehouseBaseWhere =
+        baseWhere as unknown as InventoryItemWarehouseListWhere[];
+      const mergedWhere: InventoryItemWarehouseListWhere = {
         _and: [
-          ...baseWhere,
+          ...warehouseBaseWhere,
           { warehouseScopeId: { _eq: warehouseScope.warehouseId } },
-        ] as InventoryItemWarehouseListRelayInput["where"][],
+        ],
       };
       const executeInput: InventoryItemWarehouseListRelayInput = {
         ...paginationArgs,
@@ -424,8 +430,8 @@ export class InventoryItemRepository extends BaseRepository {
       };
     }
 
-    const mergedWhere: InventoryItemListRelayInput["where"] = {
-      _and: baseWhere as InventoryItemListRelayInput["where"][],
+    const mergedWhere: InventoryItemListWhere = {
+      _and: baseWhere,
     };
     const executeInput: InventoryItemListRelayInput = {
       ...paginationArgs,
