@@ -3,7 +3,6 @@
 import { useCallback, useMemo, useState, CSSProperties } from "react";
 import {
   Button,
-  Checkbox,
   Typography,
   Tooltip,
   Dropdown,
@@ -198,14 +197,6 @@ const SortableGridItem = ({
         ]
       : []),
   ];
-  const handleItemClick = () => {
-    if (!selectionMode) {
-      return;
-    }
-
-    onSelectedChange(item.id, !selected);
-  };
-
   return (
     <div
       ref={setNodeRef}
@@ -214,29 +205,12 @@ const SortableGridItem = ({
       {...attributes}
       className={cx(
         styles.mediaItem,
-        selected && styles.mediaItemSelected,
+        selected && !selectionMode && styles.mediaItemSelected,
         isDragging && styles.mediaItemDragging,
       )}
       data-testid={`entity-media-grid-item-${item.id}`}
-      onClick={handleItemClick}
     >
       {isFeatured && <FeaturedBadge />}
-
-      {selectionMode && (
-        <div
-          className={styles.selectionCheckbox}
-          onClick={(event) => event.stopPropagation()}
-          onPointerDown={(event) => event.stopPropagation()}
-        >
-          <Checkbox
-            checked={selected}
-            data-testid={`entity-media-select-checkbox-${item.id}`}
-            onChange={(event) =>
-              onSelectedChange(item.id, event.target.checked)
-            }
-          />
-        </div>
-      )}
 
       <img src={item.url} alt={name} className={styles.mediaImage} />
 
@@ -283,6 +257,8 @@ interface ISortableListItemProps {
   selectionMode: boolean;
   selected: boolean;
   onSelectedChange: (id: string, selected: boolean) => void;
+  selectionAction?: "add" | "remove";
+  sortableDisabled?: boolean;
 }
 
 const SortableListItem = ({
@@ -298,6 +274,8 @@ const SortableListItem = ({
   selectionMode,
   selected,
   onSelectedChange,
+  selectionAction,
+  sortableDisabled = false,
 }: ISortableListItemProps) => {
   const { styles, cx } = useStyles();
   const {
@@ -307,7 +285,7 @@ const SortableListItem = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: item.id });
+  } = useSortable({ id: item.id, disabled: sortableDisabled });
 
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -316,13 +294,10 @@ const SortableListItem = ({
 
   const name = getFileName(item);
   const ext = getFileExt(item);
-  const handleItemClick = () => {
-    if (!selectionMode) {
-      return;
-    }
-
-    onSelectedChange(item.id, !selected);
-  };
+  const showRemoveButton = selectionMode
+    ? selectionAction === "remove"
+    : allowDelete;
+  const showAddButton = selectionMode && selectionAction === "add";
 
   return (
     <div
@@ -332,32 +307,19 @@ const SortableListItem = ({
       {...attributes}
       className={cx(
         styles.listItem,
-        selected && styles.listItemSelected,
+        selected && !selectionMode && styles.listItemSelected,
+        selectionMode && styles.listItemSelectionMode,
+        sortableDisabled && styles.listItemStatic,
         isDragging && styles.listItemDragging,
       )}
       data-testid={`entity-media-list-item-${item.id}`}
-      onClick={handleItemClick}
     >
-      {selectionMode && (
-        <div
-          onClick={(event) => event.stopPropagation()}
-          onPointerDown={(event) => event.stopPropagation()}
-        >
-          <Checkbox
-            checked={selected}
-            data-testid={`entity-media-select-checkbox-${item.id}`}
-            onChange={(event) =>
-              onSelectedChange(item.id, event.target.checked)
-            }
-          />
+      <div className={styles.listItemMedia}>
+        <div className={styles.dragHandle}>
+          <HolderOutlined />
         </div>
-      )}
-
-      <div className={styles.dragHandle}>
-        <HolderOutlined />
+        <img src={item.url} alt={name} className={styles.listItemImage} />
       </div>
-
-      <img src={item.url} alt={name} className={styles.listItemImage} />
 
       <div className={styles.listItemInfo}>
         <Typography.Text className={styles.listItemName}>
@@ -391,7 +353,7 @@ const SortableListItem = ({
           </Tooltip>
         )}
 
-        {allowSetFeatured && !isFeatured && (
+        {allowSetFeatured && !isFeatured && !showAddButton && (
           <Tooltip title="Set as featured">
             <Button
               size="small"
@@ -406,8 +368,8 @@ const SortableListItem = ({
           </Tooltip>
         )}
 
-        {allowDelete && (
-          <Tooltip title="Delete">
+        {showRemoveButton && (
+          <Tooltip title={selectionMode ? "Remove" : "Delete"}>
             <Button
               size="small"
               type="text"
@@ -416,7 +378,27 @@ const SortableListItem = ({
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
-                onDelete(item.id);
+                if (selectionMode) {
+                  onSelectedChange(item.id, false);
+                } else {
+                  onDelete(item.id);
+                }
+              }}
+            />
+          </Tooltip>
+        )}
+
+        {showAddButton && (
+          <Tooltip title="Add">
+            <Button
+              size="small"
+              type="text"
+              icon={<PlusOutlined />}
+              data-testid={`entity-media-add-button-${item.id}`}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectedChange(item.id, true);
               }}
             />
           </Tooltip>
@@ -434,16 +416,12 @@ interface IListItemPreviewProps {
   item: ApiFile;
   isFeatured: boolean;
   featuredLabel: string;
-  selectionMode: boolean;
-  selected: boolean;
 }
 
 const ListItemPreview = ({
   item,
   isFeatured,
   featuredLabel,
-  selectionMode,
-  selected,
 }: IListItemPreviewProps) => {
   const { styles } = useStyles();
   const name = getFileName(item);
@@ -457,11 +435,12 @@ const ListItemPreview = ({
         cursor: "grabbing",
       }}
     >
-      {selectionMode && <Checkbox checked={selected} />}
-      <div className={styles.dragHandle}>
-        <HolderOutlined />
+      <div className={styles.listItemMedia}>
+        <div className={styles.dragHandle}>
+          <HolderOutlined />
+        </div>
+        <img src={item.url} alt={name} className={styles.listItemImage} />
       </div>
-      <img src={item.url} alt={name} className={styles.listItemImage} />
       <div className={styles.listItemInfo}>
         <Typography.Text className={styles.listItemName}>
           {name}
@@ -515,6 +494,14 @@ export const EntityMediaGallery = ({
   const viewMode = controlledViewMode ?? internalViewMode;
   const setViewMode = onViewModeChange ?? setInternalViewMode;
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const selectedItems = useMemo(
+    () => value.filter((item) => selectedIdSet.has(item.id)),
+    [selectedIdSet, value],
+  );
+  const unselectedItems = useMemo(
+    () => value.filter((item) => !selectedIdSet.has(item.id)),
+    [selectedIdSet, value],
+  );
 
   // Handle files selected from media picker
   const handleMediaPickerConfirm = useCallback((files: ApiFile[]) => {
@@ -597,10 +584,29 @@ export const EntityMediaGallery = ({
       const nextIds = selected
         ? Array.from(new Set([...selectedIds, id]))
         : selectedIds.filter((selectedId) => selectedId !== id);
+      const nextSelectedIdSet = new Set(nextIds);
+      const targetItem = value.find((item) => item.id === id);
+      const nextSelectedItems = value.filter((item) =>
+        nextSelectedIdSet.has(item.id),
+      );
+      const nextUnselectedItems = value.filter((item) =>
+        !nextSelectedIdSet.has(item.id),
+      );
 
+      if (targetItem) {
+        onChange([
+          ...nextSelectedItems,
+          ...(selected
+            ? nextUnselectedItems
+            : [
+                targetItem,
+                ...nextUnselectedItems.filter((item) => item.id !== id),
+              ]),
+        ]);
+      }
       onSelectedIdsChange(nextIds);
     },
-    [onSelectedIdsChange, selectedIds],
+    [onChange, onSelectedIdsChange, selectedIds, value],
   );
 
   const handlePreview = useCallback(
@@ -775,8 +781,94 @@ export const EntityMediaGallery = ({
           </>
         )}
 
+        {/* Selection list view */}
+        {hasMedia && viewMode === "list" && selectionMode && (
+          <div className={styles.listContainer}>
+            <div className={styles.listSection}>
+              <Typography.Text
+                type="secondary"
+                className={styles.listSectionTitle}
+              >
+                Active
+              </Typography.Text>
+              {selectedItems.length > 0 ? (
+                <SortableContext
+                  items={selectedItems.map((it) => it.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {selectedItems.map((item, idx) => (
+                    <SortableListItem
+                      key={item.id}
+                      item={item}
+                      index={idx}
+                      isFeatured={hasFeatured && idx === 0}
+                      featuredLabel={featuredLabel}
+                      onSetFeatured={handleSetFeatured}
+                      onDelete={handleDelete}
+                      onPreview={handlePreview}
+                      allowDelete
+                      allowSetFeatured={allowSetFeatured}
+                      selectionMode={selectionMode}
+                      selected
+                      onSelectedChange={handleSelectedChange}
+                      selectionAction="remove"
+                    />
+                  ))}
+                </SortableContext>
+              ) : (
+                <div className={styles.emptySelectionState}>
+                  <Typography.Text type="secondary">
+                    No active media selected
+                  </Typography.Text>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.listSection}>
+              <Typography.Text
+                type="secondary"
+                className={styles.listSectionTitle}
+              >
+                Available
+              </Typography.Text>
+              {unselectedItems.length > 0 ? (
+                <SortableContext
+                  items={unselectedItems.map((it) => it.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {unselectedItems.map((item, idx) => (
+                    <SortableListItem
+                      key={item.id}
+                      item={item}
+                      index={selectedItems.length + idx}
+                      isFeatured={false}
+                      featuredLabel={featuredLabel}
+                      onSetFeatured={handleSetFeatured}
+                      onDelete={handleDelete}
+                      onPreview={handlePreview}
+                      allowDelete={false}
+                      allowSetFeatured={false}
+                      selectionMode={selectionMode}
+                      selected={false}
+                      onSelectedChange={handleSelectedChange}
+                      selectionAction="add"
+                      sortableDisabled
+                    />
+                  ))}
+                </SortableContext>
+              ) : (
+                <div className={styles.emptySelectionState}>
+                  <Typography.Text type="secondary">
+                    All media selected
+                  </Typography.Text>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* List view */}
-        {hasMedia && viewMode === "list" && (
+        {hasMedia && viewMode === "list" && !selectionMode && (
           <div className={styles.listContainer}>
             <SortableContext
               items={value.map((it) => it.id)}
@@ -809,8 +901,6 @@ export const EntityMediaGallery = ({
               item={activeItem}
               isFeatured={hasFeatured && activeIndex === 0}
               featuredLabel={featuredLabel}
-              selectionMode={selectionMode}
-              selected={selectedIdSet.has(activeItem.id)}
             />
           ) : null}
         </DragOverlay>

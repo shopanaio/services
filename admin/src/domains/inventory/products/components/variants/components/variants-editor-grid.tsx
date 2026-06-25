@@ -233,8 +233,8 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
         selectedFileIds: initialSelectedIds,
         showUpload: false,
         allowDelete: false,
-        allowSetFeatured: false,
-        hasFeatured: false,
+        allowSetFeatured: true,
+        hasFeatured: true,
         onSave: (
           media: Parameters<NonNullable<IEditMediaModalPayload["onSave"]>>[0],
         ) => {

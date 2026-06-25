@@ -62,16 +62,6 @@ export const useStyles = createStyles(({ token }) => ({
   mediaItemSelected: {
     boxShadow: `inset 0 0 0 1px ${token.colorPrimary}`,
   },
-  selectionCheckbox: {
-    position: "absolute",
-    top: 4,
-    left: 4,
-    zIndex: 3,
-    padding: 4,
-    borderRadius: 4,
-    background: token.colorBgElevated,
-    boxShadow: token.boxShadowTertiary,
-  },
   mediaImage: {
     width: "100%",
     height: "100%",
@@ -160,7 +150,18 @@ export const useStyles = createStyles(({ token }) => ({
   listContainer: {
     display: "flex",
     flexDirection: "column",
+    gap: 16,
+  },
+  listSection: {
+    display: "flex",
+    flexDirection: "column",
     gap: 8,
+  },
+  listSectionTitle: {
+    fontSize: 12,
+    fontWeight: 500,
+    textTransform: "uppercase",
+    letterSpacing: 0,
   },
   listItem: {
     display: "flex",
@@ -180,6 +181,18 @@ export const useStyles = createStyles(({ token }) => ({
   },
   listItemSelected: {
     borderColor: token.colorPrimary,
+  },
+  listItemSelectionMode: {
+    cursor: "pointer",
+  },
+  listItemStatic: {
+    cursor: "pointer",
+  },
+  listItemMedia: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 0,
   },
   listItemImage: {
     width: 40,
@@ -217,9 +230,14 @@ export const useStyles = createStyles(({ token }) => ({
   dragHandle: {
     cursor: "grab",
     color: token.colorTextSecondary,
-    padding: 4,
     "&:hover": {
       color: token.colorText,
     },
+  },
+  emptySelectionState: {
+    padding: "12px 8px",
+    border: `1px dashed ${token.colorBorder}`,
+    borderRadius: 8,
+    background: token.colorBgLayout,
   },
 }));
