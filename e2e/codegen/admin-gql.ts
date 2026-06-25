@@ -3604,7 +3604,7 @@ export type ApiInventoryBackorder = {
 
 /**
  * InventoryItem represents the inventory-specific data for a variant.
- * Each Variant in Catalog has a corresponding InventoryItem in Inventory service.
+ * Each catalog variant can have a corresponding InventoryItem.
  */
 export type ApiInventoryItem = ApiNode & {
   __typename?: 'InventoryItem';
@@ -6809,7 +6809,7 @@ export type ApiUserUpdateProfilePayload = {
 /**
  * A variant represents a specific version of a product, such as a size or color.
  * Catalog Service owns this type.
- * Inventory fields (sku, dimensions, weight, cost, stock) are added via federation extend in Inventory Service.
+ * Inventory fields (sku, dimensions, weight, cost, stock) are resolved by Catalog.
  */
 export type ApiVariant = ApiNode & {
   __typename?: 'Variant';
@@ -6849,7 +6849,7 @@ export type ApiVariant = ApiNode & {
 /**
  * A variant represents a specific version of a product, such as a size or color.
  * Catalog Service owns this type.
- * Inventory fields (sku, dimensions, weight, cost, stock) are added via federation extend in Inventory Service.
+ * Inventory fields (sku, dimensions, weight, cost, stock) are resolved by Catalog.
  */
 export type ApiVariantPriceHistoryArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -7628,7 +7628,6 @@ export type Join__Graph =
   | 'APPS_ADMIN'
   | 'CATALOG_ADMIN'
   | 'IAM_ADMIN'
-  | 'INVENTORY_ADMIN'
   | 'MEDIA_ADMIN'
   | 'ORDERS_ADMIN'
   | 'PROJECT_ADMIN';

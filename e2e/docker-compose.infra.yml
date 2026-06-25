@@ -51,8 +51,6 @@ services:
       mc anonymous set public myminio/catalog;
       mc mb myminio/media --ignore-existing;
       mc anonymous set public myminio/media;
-      mc mb myminio/inventory --ignore-existing;
-      mc anonymous set public myminio/inventory;
       echo 'Buckets created';
       exit 0;
       "

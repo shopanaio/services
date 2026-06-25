@@ -2767,7 +2767,7 @@ type TagDeletePayload {
 """
 A variant represents a specific version of a product, such as a size or color.
 Catalog Service owns this type.
-Inventory fields (sku, dimensions, weight, cost, stock) are added via federation extend in Inventory Service.
+Inventory fields (sku, dimensions, weight, cost, stock) are resolved by Catalog.
 """
 type Variant implements Node {
   """The globally unique ID of the variant."""
@@ -5819,7 +5819,7 @@ type InventoryMutation {
 
 """
 InventoryItem represents the inventory-specific data for a variant.
-Each Variant in Catalog has a corresponding InventoryItem in Inventory service.
+Each catalog variant can have a corresponding InventoryItem.
 """
 type InventoryItem implements Node {
   """Global ID (Relay)"""

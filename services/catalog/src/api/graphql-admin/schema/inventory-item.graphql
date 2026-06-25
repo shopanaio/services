@@ -4,7 +4,7 @@
 
 """
 InventoryItem represents the inventory-specific data for a variant.
-Each Variant in Catalog has a corresponding InventoryItem in Inventory service.
+Each catalog variant can have a corresponding InventoryItem.
 """
 type InventoryItem implements Node @key(fields: "id") {
   """Global ID (Relay)"""

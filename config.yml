@@ -64,8 +64,6 @@ services:
       <<: *s3_default
       bucket: catalog
 
-  inventory: {}
-
   media:
     ports:
       admin_graphql: 10007

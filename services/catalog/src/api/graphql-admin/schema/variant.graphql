@@ -3,7 +3,7 @@
 """
 A variant represents a specific version of a product, such as a size or color.
 Catalog Service owns this type.
-Inventory fields (sku, dimensions, weight, cost, stock) are added via federation extend in Inventory Service.
+Inventory fields (sku, dimensions, weight, cost, stock) are resolved by Catalog.
 """
 type Variant implements Node @key(fields: "id") {
   """The globally unique ID of the variant."""
