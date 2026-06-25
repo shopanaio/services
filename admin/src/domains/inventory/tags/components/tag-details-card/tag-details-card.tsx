@@ -2,13 +2,10 @@
 
 import { Button, Dropdown, Flex, Tag, Typography } from "antd";
 import {
-  CalendarOutlined,
   MoreOutlined,
-  ShoppingOutlined,
   TagOutlined,
 } from "@ant-design/icons";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
-import { KPITile } from "@/ui-kit/kpi-tile";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { formatDetailDate } from "@/domains/inventory/utils/format-detail-date";
 import { useTagEditIdentityModal } from "../../modals";
@@ -89,27 +86,6 @@ export const TagDetailsCard = ({ tag, onRefetch }: TagDetailsCardProps) => {
               mono
             />
           </Flex>
-        </Flex>
-      </Paper>
-
-      <Paper data-testid="tag-usage-section">
-        <PaperHeader title="Usage" />
-        <Flex gap={8} wrap="wrap">
-          <KPITile
-            label="Products"
-            value={tag.productsCount}
-            secondary="Assigned products"
-            icon={<ShoppingOutlined />}
-            variant="primary"
-            dataTestId="tag-detail-products-count"
-          />
-          <KPITile
-            label="Created"
-            value={formatDetailDate(tag.createdAt)}
-            secondary="Tag creation date"
-            icon={<CalendarOutlined />}
-            dataTestId="tag-detail-created-at"
-          />
         </Flex>
       </Paper>
     </Flex>

@@ -88,64 +88,69 @@ export const HierarchySection = ({
         }
       />
 
-      <Breadcrumb
-        items={breadcrumbItems}
-        style={{ marginBottom: 12 }}
-        data-testid="category-hierarchy-breadcrumb"
-      />
-
-      <Flex
-        align="center"
-        gap={8}
-        style={{ marginBottom: 16 }}
-        data-testid="category-hierarchy-parent"
-      >
-        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          Parent:
+      <Flex vertical gap={8} style={{ marginBottom: 16 }}>
+        <Typography.Text type="secondary" className={styles.sectionLabel}>
+          Breadcrumbs
         </Typography.Text>
-        {category.parent ? (
-          <Dropdown
-            trigger={["click"]}
-            menu={{
-              items: [
-                {
-                  key: "change",
-                  label: "Change parent",
-                  onClick: onEditParent,
-                },
-                {
-                  key: "clear",
-                  label: "Clear parent",
-                  onClick: onClearParent,
-                  disabled: !onClearParent,
-                },
-              ],
-            }}
-          >
-            <Tag color="blue" style={{ cursor: "pointer" }}>
+        <Breadcrumb
+          items={breadcrumbItems}
+          data-testid="category-hierarchy-breadcrumb"
+        />
+      </Flex>
+
+      <Flex vertical gap={8} style={{ marginBottom: 16 }}>
+        <Typography.Text type="secondary" className={styles.sectionLabel}>
+          Parent
+        </Typography.Text>
+        <Flex
+          align="center"
+          gap={8}
+          data-testid="category-hierarchy-parent"
+        >
+          {category.parent ? (
+            <Dropdown
+              trigger={["click"]}
+              menu={{
+                items: [
+                  {
+                    key: "change",
+                    label: "Change parent",
+                    onClick: onEditParent,
+                  },
+                  {
+                    key: "clear",
+                    label: "Clear parent",
+                    onClick: onClearParent,
+                    disabled: !onClearParent,
+                  },
+                ],
+              }}
+            >
+              <Tag color="blue" style={{ cursor: "pointer" }}>
+                <Flex align="center" gap={4}>
+                  <FolderOutlined />
+                  {category.parent.name}
+                  <MoreOutlined />
+                </Flex>
+              </Tag>
+            </Dropdown>
+          ) : (
+            <Tag
+              variant="outlined"
+              onClick={onEditParent}
+              style={{
+                cursor: "pointer",
+                background: "transparent",
+                borderStyle: "dashed",
+              }}
+            >
               <Flex align="center" gap={4}>
-                <FolderOutlined />
-                {category.parent.name}
-                <MoreOutlined />
+                <PlusOutlined />
+                Add Parent
               </Flex>
             </Tag>
-          </Dropdown>
-        ) : (
-          <Tag
-            variant="outlined"
-            onClick={onEditParent}
-            style={{
-              cursor: "pointer",
-              background: "transparent",
-              borderStyle: "dashed",
-            }}
-          >
-            <Flex align="center" gap={4}>
-              <PlusOutlined />
-              Add Parent
-            </Flex>
-          </Tag>
-        )}
+          )}
+        </Flex>
       </Flex>
 
       <Typography.Text type="secondary" className={styles.sectionLabel}>
@@ -208,9 +213,6 @@ export const HierarchySection = ({
               Add Subcategories
             </Flex>
           </Tag>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            No subcategories assigned
-          </Typography.Text>
         </Flex>
       )}
     </Paper>
