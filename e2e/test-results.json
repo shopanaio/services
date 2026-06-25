@@ -79,17 +79,21 @@
         {
           "title": "Admin inventory page UI",
           "file": "admin-ui/inventory-page.spec.ts",
-          "line": 339,
+          "line": 362,
           "column": 6,
           "specs": [
             {
-              "title": "shows variants in product-first API order and paginates through variants",
+              "title": "edits warehouse-scoped quantities and persists them through bulk update",
               "ok": true,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 30000,
-                  "annotations": [],
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "slow"
+                    }
+                  ],
                   "expectedStatus": "passed",
                   "projectId": "chromium",
                   "projectName": "chromium",
@@ -98,87 +102,21 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 11283,
+                      "duration": 16832,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-25T19:38:44.079Z",
+                      "startTime": "2026-06-25T20:26:39.467Z",
                       "attachments": []
                     }
                   ],
                   "status": "expected"
                 }
               ],
-              "id": "1b79c680960b7e5f9da1-2253aaf4d217902fcdbd",
+              "id": "1b79c680960b7e5f9da1-bd813c609007f7086210",
               "file": "admin-ui/inventory-page.spec.ts",
-              "line": 340,
-              "column": 5
-            },
-            {
-              "title": "edits on-hand and unavailable quantities and persists them through bulk update",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 9525,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-25T19:38:56.164Z",
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "1b79c680960b7e5f9da1-ed8df2acdd792024d3f5",
-              "file": "admin-ui/inventory-page.spec.ts",
-              "line": 371,
-              "column": 5
-            },
-            {
-              "title": "creates a warehouse and product, then shows product variant rows in each warehouse inventory",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 13761,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-25T19:39:05.694Z",
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "1b79c680960b7e5f9da1-57498309ce2f6adcbfd3",
-              "file": "admin-ui/inventory-page.spec.ts",
-              "line": 419,
+              "line": 394,
               "column": 5
             }
           ]
@@ -188,9 +126,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-06-25T19:38:11.388Z",
-    "duration": 69998.52200000001,
-    "expected": 3,
+    "startTime": "2026-06-25T20:26:08.328Z",
+    "duration": 49970.189,
+    "expected": 1,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0
