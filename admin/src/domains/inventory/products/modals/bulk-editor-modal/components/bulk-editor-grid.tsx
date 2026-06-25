@@ -44,11 +44,6 @@ const useStyles = createStyles(({ token }) => ({
 const SELECTABLE_COLUMNS = [
   "price",
   "compareAtPrice",
-  "costPrice",
-  "onHand",
-  "unavailable",
-  "sku",
-  "barcode",
   "weight",
   "length",
   "width",

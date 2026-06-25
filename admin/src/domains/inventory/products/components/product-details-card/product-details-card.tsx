@@ -80,9 +80,7 @@ export const ProductDetailsCard = ({
 
       {/* INVENTORY */}
       <InventorySection
-        onEdit={() => handleEdit("inventory")}
         product={product}
-        onProductRefresh={onProductRefresh}
       />
 
       {/* CATEGORIES & TAGS */}

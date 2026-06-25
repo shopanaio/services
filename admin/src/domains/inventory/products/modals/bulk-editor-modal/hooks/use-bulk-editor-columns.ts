@@ -11,7 +11,6 @@ import {
   ALL_COLUMNS,
   PRODUCT_COLUMNS,
   PRICING_COLUMNS,
-  INVENTORY_COLUMNS,
   ATTRIBUTES_COLUMNS,
   VARIANT_FIELDS,
 } from "../types";
@@ -91,7 +90,7 @@ function createValueSetter(field: keyof IBulkEditorRow) {
 }
 
 // Price fields
-const PRICE_FIELDS = new Set(["price", "compareAtPrice", "costPrice"]);
+const PRICE_FIELDS = new Set(["price", "compareAtPrice"]);
 
 // Get cell renderer based on column type and field
 function getCellRenderer(column: (typeof ALL_COLUMNS)[0]) {
@@ -153,7 +152,6 @@ function getCellEditorParams(column: (typeof ALL_COLUMNS)[0]) {
       return { values: ["mm", "cm", "m", "in"] };
     case "price":
     case "compareAtPrice":
-    case "costPrice":
       return { min: 0, precision: 2 };
     case "onHand":
     case "unavailable":
@@ -207,11 +205,7 @@ export function useBulkEditorColumns(): ColDef<IBulkEditorRow>[] {
     }
 
     // Variant columns (including all groups)
-    const variantColumnGroups = [
-      PRICING_COLUMNS,
-      INVENTORY_COLUMNS,
-      ATTRIBUTES_COLUMNS,
-    ];
+    const variantColumnGroups = [PRICING_COLUMNS, ATTRIBUTES_COLUMNS];
 
     for (const group of variantColumnGroups) {
       for (const col of group) {

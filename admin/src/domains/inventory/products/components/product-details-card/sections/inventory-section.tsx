@@ -2,101 +2,27 @@
 
 import {
   Typography,
-  App,
   Button,
   Tag,
-  Dropdown,
   Skeleton,
   Flex,
 } from "antd";
 import {
-  MoreOutlined,
   ClockCircleFilled,
   WarningOutlined,
   StopOutlined,
 } from "@ant-design/icons";
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { KPITile } from "@/ui-kit/kpi-tile";
-import { useDefaultCurrency } from "@/domains/workspace";
 import { useInventoryStyles } from "../product-details-card.styles";
-import { useEditVariantsModal } from "../../../modals";
 import { ThresholdMethod } from "@/graphql/types";
-import type {
-  ApiProduct,
-  ApiProductUpdateInput,
-  ApiVariant,
-  ApiVariantUpdateInput,
-} from "@/graphql/types";
-import { useDefaultWarehouse } from "../../../hooks/use-default-warehouse";
-import { useEnsureVariantInventoryItems } from "../../../hooks/use-ensure-variant-inventory-items";
+import type { ApiProduct } from "@/graphql/types";
 import { useProductInventoryWidget } from "../../../hooks/use-product-inventory-widget";
-import { useProductVariantsLoader } from "../../../hooks/use-product-variants-loader";
-import { useUpdateProduct } from "../../../hooks/use-update-product";
-import { prepareChangedVariantUpdateInputs } from "../../../mappers/product-variant-update.mapper";
-import type { VariantEditorSaveRow } from "../../../mappers/product-variant-editor.mapper";
 
 // ============================================================================
 // Sub-components
 // ============================================================================
-
-interface IInventoryActionsProps {
-  onAction: (action: string) => void;
-  isPreparingEditor?: boolean;
-}
-
-const InventoryActions = ({
-  onAction,
-  isPreparingEditor = false,
-}: IInventoryActionsProps) => {
-  const items = [
-    {
-      key: "edit",
-      label: "Edit inventory",
-      disabled: isPreparingEditor,
-      "data-testid": "inventory-widget-edit-inventory-menu-item",
-    },
-  ];
-
-  return (
-    <Dropdown
-      menu={{
-        items,
-        onClick: ({ key }) => onAction(key),
-      }}
-      trigger={["click"]}
-    >
-      <Button
-        size="small"
-        icon={<MoreOutlined />}
-        loading={isPreparingEditor}
-        data-testid="inventory-widget-actions-button"
-      />
-    </Dropdown>
-  );
-};
-
-interface IInventoryHeaderProps {
-  onAction: (action: string) => void;
-  isPreparingEditor?: boolean;
-}
-
-const InventoryHeader = ({
-  onAction,
-  isPreparingEditor,
-}: IInventoryHeaderProps) => {
-  return (
-    <PaperHeader
-      title="Inventory"
-      actions={
-        <InventoryActions
-          onAction={onAction}
-          isPreparingEditor={isPreparingEditor}
-        />
-      }
-    />
-  );
-};
 
 const InventoryLoadingSkeleton = () => {
   const { styles } = useInventoryStyles();
@@ -190,190 +116,19 @@ function formatSkuPercent(count: number, total: number): string {
 // ============================================================================
 
 interface IInventorySectionProps {
-  onEdit?: () => void;
   product: ApiProduct;
-  onProductRefresh?: () => Promise<unknown>;
 }
 
 export const InventorySection = ({
-  onEdit,
   product,
-  onProductRefresh,
 }: IInventorySectionProps) => {
   const { styles } = useInventoryStyles();
-  const { message } = App.useApp();
-  const defaultCurrency = useDefaultCurrency();
-  const { push: pushEditVariantsModal } = useEditVariantsModal();
-  const { loadAllProductVariants } = useProductVariantsLoader();
-  const {
-    defaultWarehouse,
-    refetch: refetchDefaultWarehouse,
-  } = useDefaultWarehouse();
-  const { ensureVariantInventoryItems } = useEnsureVariantInventoryItems();
-  const { updateProduct } = useUpdateProduct();
   const {
     data: stats,
     isLoading,
     error,
-    refetch: refetchInventoryWidget,
   } = useProductInventoryWidget({ productId: product.id });
   const [activeKPI, setActiveKPI] = useState<string | undefined>();
-  const [isPreparingEditor, setIsPreparingEditor] = useState(false);
-
-  const handleSaveInventory = useCallback(
-    async (
-      rows: VariantEditorSaveRow[],
-      editorVariants: ApiVariant[],
-      warehouseId: string | null,
-    ): Promise<boolean> => {
-      if (!warehouseId) {
-        message.error("Default warehouse is required to save inventory.");
-        return false;
-      }
-
-      let variantUpdates: ApiVariantUpdateInput[];
-
-      try {
-        variantUpdates = prepareChangedVariantUpdateInputs({
-          rows,
-          variants: editorVariants,
-          warehouseId,
-          defaultCurrency,
-          includePricing: false,
-          includeInventory: true,
-          includeMedia: false,
-        });
-      } catch (err) {
-        message.error(
-          err instanceof Error ? err.message : "Variant inventory is invalid.",
-        );
-        return false;
-      }
-
-      if (variantUpdates.length === 0) {
-        message.info("No inventory changes to save");
-        return true;
-      }
-
-      const operations: ApiProductUpdateInput = {
-        variants: variantUpdates,
-      };
-      const result = await updateProduct({
-        productId: product.id,
-        expectedRevision: product.revision,
-        operations,
-      });
-
-      if (result.errors.length > 0) {
-        message.error(
-          result.errors[0].message || "Inventory updates could not be saved.",
-        );
-        return false;
-      }
-
-      const refreshResults = await Promise.allSettled([
-        onProductRefresh?.(),
-        refetchInventoryWidget(),
-        loadAllProductVariants(product, { forceNetwork: true }),
-      ]);
-      const refreshFailed = refreshResults.some(
-        (refreshResult) => refreshResult.status === "rejected",
-      );
-
-      if (refreshFailed) {
-        message.warning("Inventory updated, but refresh failed");
-      } else {
-        message.success("Inventory updated");
-      }
-
-      return true;
-    },
-    [
-      defaultCurrency,
-      loadAllProductVariants,
-      message,
-      onProductRefresh,
-      product,
-      refetchInventoryWidget,
-      updateProduct,
-    ],
-  );
-
-  const handleEditInventory = useCallback(async () => {
-    setIsPreparingEditor(true);
-
-    try {
-      const editorVariants = await loadAllProductVariants(product);
-      const hydratedVariants =
-        await ensureVariantInventoryItems(editorVariants);
-      const resolvedDefaultWarehouse =
-        defaultWarehouse ?? (await refetchDefaultWarehouse());
-
-      if (!resolvedDefaultWarehouse) {
-        message.error("Default warehouse is required to edit inventory.");
-        return;
-      }
-
-      pushEditVariantsModal({
-        productId: product.id,
-        initialTab: "inventory",
-        variants: hydratedVariants,
-        productOptions: product.options,
-        defaultCurrency,
-        variantEditorScope: {
-          type: "inventory",
-          warehouseId: resolvedDefaultWarehouse.id,
-        },
-        availableColumns: [
-          "sku",
-          "onHand",
-          "unavailable",
-          "reserved",
-          "available",
-        ],
-        showColumnSettings: false,
-        onSave: (rows: VariantEditorSaveRow[]) =>
-          handleSaveInventory(
-            rows,
-            hydratedVariants,
-            resolvedDefaultWarehouse.id,
-          ),
-      });
-    } catch (err) {
-      message.error(
-        err instanceof Error
-          ? err.message
-          : "Product inventory could not be prepared",
-      );
-    } finally {
-      setIsPreparingEditor(false);
-    }
-  }, [
-    defaultCurrency,
-    defaultWarehouse,
-    ensureVariantInventoryItems,
-    handleSaveInventory,
-    loadAllProductVariants,
-    message,
-    product,
-    pushEditVariantsModal,
-    refetchDefaultWarehouse,
-  ]);
-
-  const handleAction = useCallback(
-    (action: string) => {
-      if (action === "edit") {
-        void handleEditInventory();
-      } else if (
-        action === "adjust" ||
-        action === "transfer" ||
-        action === "reserve"
-      ) {
-        onEdit?.();
-      }
-    },
-    [handleEditInventory, onEdit],
-  );
 
   const handleKPIClick = (kpi: string) => {
     setActiveKPI(activeKPI === kpi ? undefined : kpi);
@@ -393,10 +148,7 @@ export const InventorySection = ({
 
   return (
     <Paper className={styles.inventoryCard} data-testid="inventory-widget">
-      <InventoryHeader
-        onAction={handleAction}
-        isPreparingEditor={isPreparingEditor}
-      />
+      <PaperHeader title="Inventory" />
 
       {/* Section A: Quantity */}
       <Typography.Text

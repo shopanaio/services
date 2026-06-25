@@ -29,7 +29,6 @@ import {
 import { useDefaultWarehouse } from "../../../hooks/use-default-warehouse";
 import { useEnsureVariantInventoryItems } from "../../../hooks/use-ensure-variant-inventory-items";
 import {
-  PRODUCT_INVENTORY_WIDGET_QUERY,
   PRODUCT_PRICING_WIDGET_QUERY,
 } from "../../../graphql";
 import { prepareChangedVariantUpdateInputs } from "../../../mappers/product-variant-update.mapper";
@@ -46,10 +45,6 @@ const GENERAL_VARIANTS_EDITABLE_COLUMNS: NonNullable<
   "media",
   "price",
   "compareAtPrice",
-  "sku",
-  "onHand",
-  "unavailable",
-  "costPrice",
   "weight",
   "length",
   "width",
@@ -205,10 +200,8 @@ export const useProductModals = (
   const refreshAfterVariantSave = useCallback(
     async ({
       pricingChanged,
-      inventoryChanged,
     }: {
       pricingChanged: boolean;
-      inventoryChanged: boolean;
     }): Promise<boolean> => {
       const refreshes: Promise<unknown>[] = [
         loadAllProductVariants(product, { forceNetwork: true }),
@@ -221,10 +214,6 @@ export const useProductModals = (
 
       if (pricingChanged) {
         include.push(PRODUCT_PRICING_WIDGET_QUERY);
-      }
-
-      if (inventoryChanged) {
-        include.push(PRODUCT_INVENTORY_WIDGET_QUERY);
       }
 
       if (include.length > 0) {
@@ -289,7 +278,8 @@ export const useProductModals = (
               warehouseId: resolvedDefaultWarehouse.id,
               defaultCurrency: options.defaultCurrency ?? null,
               includePricing: true,
-              includeInventory: true,
+              includeInventory: false,
+              includeShipping: true,
               includeMedia: true,
             });
           } catch (err) {
@@ -326,13 +316,8 @@ export const useProductModals = (
           const pricingChanged = variantUpdates.some(
             (update) => !!update.pricing,
           );
-          const inventoryChanged = variantUpdates.some(
-            (update) => !!update.inventory || !!update.dimensions,
-          );
-
           const refreshSucceeded = await refreshAfterVariantSave({
             pricingChanged,
-            inventoryChanged,
           });
 
           if (refreshSucceeded) {

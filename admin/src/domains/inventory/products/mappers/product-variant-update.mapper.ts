@@ -12,6 +12,7 @@ export interface PrepareChangedVariantUpdateInputsParams {
   warehouseId?: string | null;
   includePricing?: boolean;
   includeInventory?: boolean;
+  includeShipping?: boolean;
   includeMedia?: boolean;
 }
 
@@ -181,19 +182,6 @@ function applyInventoryUpdate({
   const costPrice = parseOptionalInteger(row.costPrice, "Cost");
   const originalCostPrice = inventoryItem.unitCost?.amountMinor ?? null;
   const costChanged = costPrice !== originalCostPrice;
-  const weight = parseOptionalInteger(row.weight, "Weight");
-  const originalWeight = variant.weight?.value ?? null;
-  const weightChanged = weight !== originalWeight;
-  const originalLength = variant.dimensions?.length ?? null;
-  const originalWidth = variant.dimensions?.width ?? null;
-  const originalHeight = variant.dimensions?.height ?? null;
-  const length = parseOptionalInteger(row.length, "Length");
-  const width = parseOptionalInteger(row.width, "Width");
-  const height = parseOptionalInteger(row.height, "Height");
-  const dimensionsChanged =
-    length !== originalLength ||
-    width !== originalWidth ||
-    height !== originalHeight;
 
   if (available < 0) {
     throw new Error("This change would result in negative availability.");
@@ -201,36 +189,6 @@ function applyInventoryUpdate({
 
   if (costChanged && costPrice === null && originalCostPrice !== null) {
     throw new Error("Clearing existing unit cost is not supported.");
-  }
-
-  if (weightChanged && weight === null && originalWeight !== null) {
-    throw new Error("Clearing existing weight is not supported.");
-  }
-
-  if (dimensionsChanged) {
-    if (
-      (length === null && originalLength !== null) ||
-      (width === null && originalWidth !== null) ||
-      (height === null && originalHeight !== null)
-    ) {
-      throw new Error("Clearing existing dimensions is not supported.");
-    }
-
-    if (length === null || width === null || height === null) {
-      throw new Error(
-        "Length, width, and height are required to save dimensions.",
-      );
-    }
-
-    update.dimensions = {
-      length: parsePositiveInteger(length, "Length"),
-      width: parsePositiveInteger(width, "Width"),
-      height: parsePositiveInteger(height, "Height"),
-    };
-  }
-
-  if (weightChanged && weight !== null) {
-    update.weight = parsePositiveInteger(weight, "Weight");
   }
 
   if (!skuChanged && !stockChanged && !costChanged) {
@@ -262,6 +220,56 @@ function applyInventoryUpdate({
 
     update.inventory.unitCostMinor = costPrice;
     update.inventory.costCurrency = defaultCurrency;
+  }
+}
+
+function applyShippingUpdate(
+  update: ApiVariantUpdateInput,
+  row: VariantEditorSaveRow,
+  variant: ApiVariant,
+) {
+  const weight = parseOptionalInteger(row.weight, "Weight");
+  const originalWeight = variant.weight?.value ?? null;
+  const weightChanged = weight !== originalWeight;
+  const originalLength = variant.dimensions?.length ?? null;
+  const originalWidth = variant.dimensions?.width ?? null;
+  const originalHeight = variant.dimensions?.height ?? null;
+  const length = parseOptionalInteger(row.length, "Length");
+  const width = parseOptionalInteger(row.width, "Width");
+  const height = parseOptionalInteger(row.height, "Height");
+  const dimensionsChanged =
+    length !== originalLength ||
+    width !== originalWidth ||
+    height !== originalHeight;
+
+  if (weightChanged && weight === null && originalWeight !== null) {
+    throw new Error("Clearing existing weight is not supported.");
+  }
+
+  if (dimensionsChanged) {
+    if (
+      (length === null && originalLength !== null) ||
+      (width === null && originalWidth !== null) ||
+      (height === null && originalHeight !== null)
+    ) {
+      throw new Error("Clearing existing dimensions is not supported.");
+    }
+
+    if (length === null || width === null || height === null) {
+      throw new Error(
+        "Length, width, and height are required to save dimensions.",
+      );
+    }
+
+    update.dimensions = {
+      length: parsePositiveInteger(length, "Length"),
+      width: parsePositiveInteger(width, "Width"),
+      height: parsePositiveInteger(height, "Height"),
+    };
+  }
+
+  if (weightChanged && weight !== null) {
+    update.weight = parsePositiveInteger(weight, "Weight");
   }
 }
 
@@ -303,6 +311,7 @@ export function prepareChangedVariantUpdateInputs({
   warehouseId,
   includePricing = true,
   includeInventory = true,
+  includeShipping = true,
   includeMedia = true,
 }: PrepareChangedVariantUpdateInputsParams): ApiVariantUpdateInput[] {
   const variantsById = new Map(
@@ -331,6 +340,10 @@ export function prepareChangedVariantUpdateInputs({
         warehouseId,
         defaultCurrency,
       });
+    }
+
+    if (includeShipping) {
+      applyShippingUpdate(update, row, variant);
     }
 
     if (includeMedia) {

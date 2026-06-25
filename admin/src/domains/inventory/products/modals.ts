@@ -222,7 +222,7 @@ export interface IEditVariantsModalPayload extends IModalStackPayload {
   /**
    * When provided, only these columns will be shown.
    * If undefined, all columns are available with user settings.
-   * Example: ['price', 'compareAtPrice', 'costPrice'] for pricing-only modal.
+   * Example: ['price', 'compareAtPrice'] for pricing-only modal.
    */
   availableColumns?: VariantColumnField[];
   /**

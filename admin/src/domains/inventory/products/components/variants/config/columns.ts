@@ -33,14 +33,6 @@ export const PRICING_COLUMNS: IVariantColumn[] = [
     width: 130,
     type: "number",
   },
-  {
-    field: "costPrice",
-    headerName: "Cost",
-    defaultVisible: false,
-    editable: true,
-    width: 110,
-    type: "number",
-  },
 ];
 
 export const INVENTORY_COLUMNS: IVariantColumn[] = [
@@ -125,7 +117,6 @@ export const ATTRIBUTES_COLUMNS: IVariantColumn[] = [
 // Combined for backwards compatibility
 export const VARIANT_COLUMNS: IVariantColumn[] = [
   ...PRICING_COLUMNS,
-  ...INVENTORY_COLUMNS,
   ...ATTRIBUTES_COLUMNS,
 ];
 
@@ -153,10 +144,6 @@ export const SELECTABLE_COLUMNS = [
   "media",
   "price",
   "compareAtPrice",
-  "costPrice",
-  "onHand",
-  "unavailable",
-  "sku",
   "weight",
   "length",
   "width",
