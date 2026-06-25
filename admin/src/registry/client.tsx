@@ -24,6 +24,18 @@ export function useSidebarItems(): SidebarItem[] {
   return useContext(SidebarItemsContext);
 }
 
+export function SidebarRuntimeProviders() {
+  const providers = moduleRegistry.getSidebarRuntimeComponents();
+
+  return (
+    <>
+      {providers.map((Provider, index) => (
+        <Provider key={index} />
+      ))}
+    </>
+  );
+}
+
 // ============================================================================
 // Modal Stack Registration
 // ============================================================================

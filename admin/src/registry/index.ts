@@ -14,7 +14,12 @@ export {
 } from "./server";
 
 // Client-side context and hooks
-export { useSidebarItems, ModuleProvider, ClientLayoutResolver } from "./client";
+export {
+  useSidebarItems,
+  SidebarRuntimeProviders,
+  ModuleProvider,
+  ClientLayoutResolver,
+} from "./client";
 
 // Path params context and hooks
 export {

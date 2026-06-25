@@ -41,27 +41,3 @@ export const INVENTORY_ITEMS_QUERY = gql`
 `;
 
 export const INVENTORY_VARIANTS_QUERY = INVENTORY_ITEMS_QUERY;
-
-export const INVENTORY_DEFAULT_WAREHOUSE_QUERY = gql`
-  query InventoryPageDefaultWarehouse {
-    inventoryQuery {
-      warehouses(first: 1, where: { isDefault: { _eq: true } }) {
-        edges {
-          node {
-            id
-            code
-            name
-            isDefault
-          }
-        }
-        pageInfo {
-          hasNextPage
-          hasPreviousPage
-          startCursor
-          endCursor
-        }
-        totalCount
-      }
-    }
-  }
-`;

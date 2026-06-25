@@ -7,7 +7,6 @@ import type {
   ApiInventoryItemWhereInput,
   ApiInventoryQuery,
   ApiProductBulkUpdateInput,
-  ApiWarehouseConnection,
   BulkUpdateJobStatus,
 } from "@/graphql/types";
 
@@ -29,14 +28,6 @@ export interface InventoryItemsQueryVariables {
 
 export type InventoryVariantsQueryData = InventoryItemsQueryData;
 export type InventoryVariantsQueryVariables = InventoryItemsQueryVariables;
-
-export interface InventoryDefaultWarehouseQueryData {
-  inventoryQuery: Pick<ApiInventoryQuery, "warehouses"> & {
-    warehouses: ApiWarehouseConnection;
-  };
-}
-
-export type InventoryDefaultWarehouseQueryVariables = Record<string, never>;
 
 export interface InventoryProductBulkUpdateMutationData {
   catalogMutation: Pick<ApiCatalogMutation, "productBulkUpdate"> & {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { useQuery } from "@apollo/client/react";
 import type {
   ApiInventoryItem,
   ApiInventoryItemConnection,
@@ -9,18 +8,12 @@ import type {
   ApiInventoryItemOrderByInput,
   ApiInventoryItemWhereInput,
   ApiPageInfo,
-  ApiWarehouse,
 } from "@/graphql/types";
 import { InventoryItemWarehouseScopeMode } from "@/graphql/types";
 import { useRelayConnectionQuery } from "@/graphql/hooks/use-relay-connection-query";
 import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
-import {
-  INVENTORY_DEFAULT_WAREHOUSE_QUERY,
-  INVENTORY_ITEMS_QUERY,
-} from "../graphql";
+import { INVENTORY_ITEMS_QUERY } from "../graphql";
 import type {
-  InventoryDefaultWarehouseQueryData,
-  InventoryDefaultWarehouseQueryVariables,
   InventoryItemsQueryData,
   InventoryItemsQueryVariables,
 } from "../graphql";
@@ -34,13 +27,14 @@ export interface UseInventoryItemsOptions
   where?: ApiInventoryItemWhereInput | null;
   orderBy?: ApiInventoryItemOrderByInput[] | null;
   meta?: ApiInventoryItemInventoryItemsMetaInput | null;
+  warehouseId?: string | null;
   skip?: boolean;
 }
 
 export interface UseInventoryItemsReturn {
   rows: InventoryVariantRow[];
   connection: ApiInventoryItemConnection | null;
-  defaultWarehouse: ApiWarehouse | null;
+  activeWarehouseId: string | null;
   pageInfo: ApiPageInfo | null;
   totalCount: number;
   loading: boolean;
@@ -50,17 +44,17 @@ export interface UseInventoryItemsReturn {
   refetch: () => Promise<unknown>;
 }
 
-function buildDefaultWarehouseScopeMeta(
-  defaultWarehouse: Pick<ApiWarehouse, "id"> | null,
+function buildWarehouseScopeMeta(
+  warehouseId: string | null,
 ): ApiInventoryItemInventoryItemsMetaInput | null {
-  if (!defaultWarehouse) {
+  if (!warehouseId) {
     return null;
   }
 
   return {
     warehouseScope: {
       mode: InventoryItemWarehouseScopeMode.Include,
-      referenceIds: [defaultWarehouse.id],
+      referenceIds: [warehouseId],
     },
   };
 }
@@ -73,29 +67,33 @@ export function useInventoryItems({
   where = null,
   orderBy = null,
   meta = null,
+  warehouseId = null,
   skip = false,
 }: UseInventoryItemsOptions): UseInventoryItemsReturn {
-  const {
-    data: warehouseData,
-    previousData: previousWarehouseData,
-    loading: warehouseLoading,
-    error: warehouseError,
-    refetch: refetchDefaultWarehouse,
-  } = useQuery<
-    InventoryDefaultWarehouseQueryData,
-    InventoryDefaultWarehouseQueryVariables
-  >(INVENTORY_DEFAULT_WAREHOUSE_QUERY, {
-    fetchPolicy: "cache-and-network",
-    skip,
-  });
-
-  const effectiveWarehouseData = warehouseData ?? previousWarehouseData;
-  const defaultWarehouse =
-    effectiveWarehouseData?.inventoryQuery.warehouses.edges[0]?.node ?? null;
-  const waitingForWarehouse = warehouseLoading && !effectiveWarehouseData;
+  const activeWarehouseId = warehouseId;
   const inventoryItemsMeta = useMemo(
-    () => meta ?? buildDefaultWarehouseScopeMeta(defaultWarehouse),
-    [defaultWarehouse, meta],
+    () => meta ?? buildWarehouseScopeMeta(activeWarehouseId),
+    [activeWarehouseId, meta],
+  );
+  const inventoryItemsVariables = useMemo<InventoryItemsQueryVariables>(
+    () => ({
+      first,
+      after,
+      last,
+      before,
+      where,
+      orderBy,
+      ...(inventoryItemsMeta ? { meta: inventoryItemsMeta } : {}),
+    }),
+    [
+      after,
+      before,
+      first,
+      inventoryItemsMeta,
+      last,
+      orderBy,
+      where,
+    ],
   );
 
   const inventoryResult = useRelayConnectionQuery<
@@ -105,16 +103,8 @@ export function useInventoryItems({
     ApiInventoryItemConnection
   >({
     query: INVENTORY_ITEMS_QUERY,
-    variables: {
-      first,
-      after,
-      last,
-      before,
-      where,
-      orderBy,
-      meta: inventoryItemsMeta,
-    },
-    skip: skip || waitingForWarehouse,
+    variables: inventoryItemsVariables,
+    skip,
     fetchPolicy: "cache-and-network",
     getConnection: (data) => data?.inventoryQuery.inventoryItems,
   });
@@ -123,31 +113,28 @@ export function useInventoryItems({
   const rows = useMemo(
     () =>
       connection
-        ? mapInventoryVariantEdgesToRows(connection.edges, defaultWarehouse)
+        ? mapInventoryVariantEdgesToRows(connection.edges, activeWarehouseId)
         : [],
-    [connection, defaultWarehouse],
+    [activeWarehouseId, connection],
   );
 
   const refetch = useCallback(async () => {
-    await Promise.all([
-      refetchDefaultWarehouse(),
-      inventoryResult.refetch(),
-    ]);
-  }, [inventoryResult, refetchDefaultWarehouse]);
+    await inventoryResult.refetch();
+  }, [inventoryResult]);
 
-  const readOnlyReason = defaultWarehouse
+  const readOnlyReason = activeWarehouseId
     ? null
-    : "Default warehouse is not configured";
+    : "Select a warehouse to edit inventory.";
 
   return {
     rows,
     connection,
-    defaultWarehouse,
+    activeWarehouseId,
     pageInfo: inventoryResult.pageInfo,
     totalCount: inventoryResult.totalCount,
-    loading: warehouseLoading || inventoryResult.loading,
-    error: inventoryResult.error ?? warehouseError ?? null,
-    canEdit: Boolean(defaultWarehouse),
+    loading: inventoryResult.loading,
+    error: inventoryResult.error,
+    canEdit: Boolean(activeWarehouseId),
     readOnlyReason,
     refetch,
   };

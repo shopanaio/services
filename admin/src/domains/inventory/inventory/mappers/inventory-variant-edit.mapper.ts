@@ -30,7 +30,7 @@ function addRowError(
 export function mapInventoryVariantEditsToProductBulkUpdateInput(
   rows: InventoryVariantRow[],
   edits: Record<string, ItemEdits>,
-  defaultWarehouseId: string | null,
+  activeWarehouseId: string | null,
 ): InventoryVariantEditMappingResult {
   const rowsById = new Map(rows.map((row) => [row.id, row]));
   const rowErrors: Record<string, InventorySubmitError[]> = {};
@@ -61,13 +61,19 @@ export function mapInventoryVariantEditsToProductBulkUpdateInput(
       continue;
     }
 
-    const warehouseId = row.warehouseId ?? defaultWarehouseId;
+    const warehouseId = row.warehouseId ?? activeWarehouseId;
 
     if (!warehouseId) {
       addRowError(rowErrors, row.id, {
-        message: "Default warehouse is not configured.",
-        code: "DEFAULT_WAREHOUSE_MISSING",
-        field: ["products", "operations", "variants", "inventory", "warehouseId"],
+        message: "Select a warehouse to edit inventory.",
+        code: "WAREHOUSE_SCOPE_REQUIRED",
+        field: [
+          "products",
+          "operations",
+          "variants",
+          "inventory",
+          "warehouseId",
+        ],
       });
       continue;
     }

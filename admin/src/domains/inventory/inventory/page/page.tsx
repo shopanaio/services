@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { Alert, App, Flex, Button } from "antd";
 import { DeleteOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
@@ -22,12 +22,17 @@ import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { FloatingPanelStack } from "@/ui-kit/floating-panel-stack";
 import type { ActionConfig } from "@/ui-kit/floating-panel-stack/core/types";
 import type { PanelConfig } from "@/ui-kit/floating-panel-stack/data-page/floating-panel-stack";
+import type { ModulePageProps } from "@/registry";
+import { useWarehouses } from "@/domains/inventory/warehouse/hooks";
 import {
   useAgGridTheme,
   useAgGridRowSelection,
 } from "@/hooks";
 import { useInventoryRelayListPage } from "@/domains/inventory/hooks";
-import type { ApiInventoryItemWhereInput } from "@/graphql/types";
+import type {
+  ApiInventoryItemWhereInput,
+  ApiWarehouseWhereInput,
+} from "@/graphql/types";
 import { InventoryItemOrderField } from "@/graphql/types";
 import { filterSchema } from "./filter-schema";
 import {
@@ -40,6 +45,7 @@ import {
   useInventoryEditStore,
   useInventoryItems,
   useSaveInventoryVariantEdits,
+  type UseInventoryItemsOptions,
   type InventorySubmitError,
 } from "../hooks";
 import {
@@ -119,11 +125,13 @@ const SkuCellRenderer = ({
   return value == null ? <Dash /> : <span>{String(value)}</span>;
 };
 
-export default function InventoryPage() {
+export default function InventoryPage({ pathParams }: ModulePageProps) {
   const { styles } = useStyles();
   const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<InventoryVariantRow>>(null);
   const restoringSortRef = useRef(false);
+  const warehouseId =
+    typeof pathParams.warehouseId === "string" ? pathParams.warehouseId : null;
 
   const {
     discardAll,
@@ -144,6 +152,28 @@ export default function InventoryPage() {
 
   const hasUnsavedChanges = Object.keys(edits).length > 0;
   const canNavigate = !hasUnsavedChanges && status !== "saving";
+  const titleWarehouseWhere = useMemo<ApiWarehouseWhereInput | null>(
+    () => (warehouseId ? { id: { _eq: warehouseId } } : null),
+    [warehouseId],
+  );
+  const { warehouses: titleWarehouses } = useWarehouses({
+    first: 1,
+    where: titleWarehouseWhere,
+    skip: !warehouseId,
+  });
+  const titleWarehouse = titleWarehouses[0] ?? null;
+  const pageTitle = warehouseId
+    ? titleWarehouse?.name || titleWarehouse?.code || "Inventory"
+    : "All Inventory";
+  const buildInventoryItemsVariables = useCallback(
+    (
+      pageConfig: Parameters<typeof buildInventoryItemsQueryVariables>[0],
+    ): UseInventoryItemsOptions => ({
+      ...buildInventoryItemsQueryVariables(pageConfig),
+      warehouseId,
+    }),
+    [warehouseId],
+  );
 
   const {
     pageConfig,
@@ -160,7 +190,7 @@ export default function InventoryPage() {
     InventoryVariantRow,
     ApiInventoryItemWhereInput,
     InventoryItemOrderField,
-    ReturnType<typeof buildInventoryItemsQueryVariables>,
+    UseInventoryItemsOptions,
     ReturnType<typeof useInventoryItems>
   >({
     gridRef,
@@ -170,11 +200,11 @@ export default function InventoryPage() {
     defaultPageSize: 20,
     buildSearchCondition: buildInventorySearchCondition,
     filterTransformers: inventoryFilterTransformers,
-    buildQueryVariables: buildInventoryItemsQueryVariables,
+    buildQueryVariables: buildInventoryItemsVariables,
     useListQuery: useInventoryItems,
     getItems: (result) => result.rows,
   });
-  const { defaultWarehouse, canEdit } = listResult;
+  const { activeWarehouseId, canEdit } = listResult;
   const { saveInventoryVariantEdits } = useSaveInventoryVariantEdits();
 
   const handleSortChanged = useCallback(
@@ -206,8 +236,17 @@ export default function InventoryPage() {
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
+  useEffect(() => {
+    discardAll();
+    setSelectedIds([]);
+  }, [discardAll, warehouseId]);
+
   // Compute display data by merging server data with pending edits
   const displayData = useMemo(() => {
+    if (!canEdit) {
+      return serverData;
+    }
+
     return serverData.map((item) => {
       const itemEdits = edits[item.id];
       if (!itemEdits) return item;
@@ -224,7 +263,7 @@ export default function InventoryPage() {
         available,
       };
     });
-  }, [serverData, edits]);
+  }, [canEdit, serverData, edits]);
 
   const handleDiscard = useCallback(() => {
     discardAll();
@@ -239,10 +278,22 @@ export default function InventoryPage() {
     startSaving();
     clearStoredErrors();
 
+    if (!activeWarehouseId) {
+      const readOnlyError = {
+        message: "Select a warehouse to edit inventory.",
+        code: "WAREHOUSE_SCOPE_REQUIRED",
+      };
+
+      setSubmitErrors([readOnlyError]);
+      finishSaving();
+      message.error(readOnlyError.message);
+      return;
+    }
+
     const mapping = mapInventoryVariantEditsToProductBulkUpdateInput(
       serverData,
       edits,
-      defaultWarehouse?.id ?? null,
+      activeWarehouseId,
     );
     const hasRowErrors = Object.keys(mapping.rowErrors).length > 0;
     const hasSubmitErrors = mapping.submitErrors.length > 0;
@@ -301,7 +352,7 @@ export default function InventoryPage() {
     }
   }, [
     clearStoredErrors,
-    defaultWarehouse?.id,
+    activeWarehouseId,
     edits,
     finishSaving,
     message,
@@ -523,7 +574,7 @@ export default function InventoryPage() {
       });
     }
 
-    if (selectedIds.length > 0) {
+    if (canEdit && selectedIds.length > 0) {
       // eslint-disable-next-line react-hooks/refs -- deselectAll is called on click, not during render
       result.push({
         type: "selection",
@@ -536,6 +587,7 @@ export default function InventoryPage() {
     return result;
   }, [
     changesCount,
+    canEdit,
     deselectAll,
     firstStoredError,
     handleDiscard,
@@ -551,7 +603,7 @@ export default function InventoryPage() {
   return (
     <DataLayout
       name="inventory"
-      title="Inventory"
+      title={pageTitle}
       count={totalCount}
       actions={
         <Flex gap="small">
@@ -589,12 +641,12 @@ export default function InventoryPage() {
             getRowId={(params) => params.data.id}
             rowHeight={56}
             loading={loading}
-            rowSelection={rowSelection}
-            selectionColumnDef={selectionColumnDef}
+            rowSelection={canEdit ? rowSelection : undefined}
+            selectionColumnDef={canEdit ? selectionColumnDef : undefined}
             suppressMovableColumns
             readOnlyEdit
             onCellEditRequest={handleCellEditRequest}
-            onCellClicked={onCellClicked}
+            onCellClicked={canEdit ? onCellClicked : undefined}
             onSelectionChanged={handleSelectionChanged}
             initialState={pageConfig.gridStateProps.initialState}
             onStateUpdated={pageConfig.gridStateProps.onStateUpdated}

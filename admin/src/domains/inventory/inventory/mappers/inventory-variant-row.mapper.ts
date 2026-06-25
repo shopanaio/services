@@ -1,4 +1,4 @@
-import type { ApiInventoryItemEdge, ApiWarehouse } from "@/graphql/types";
+import type { ApiInventoryItemEdge } from "@/graphql/types";
 
 export interface InventoryVariantRow {
   id: string;
@@ -25,8 +25,6 @@ export interface InventoryVariantRow {
   readOnlyReason: string | null;
 }
 
-type DefaultWarehouse = Pick<ApiWarehouse, "id"> | null;
-
 function getPrimaryImageUrl(edge: ApiInventoryItemEdge): string | null {
   const primaryMedia = edge.node.variant.media.reduce<
     ApiInventoryItemEdge["node"]["variant"]["media"][number] | null
@@ -41,24 +39,43 @@ function getPrimaryImageUrl(edge: ApiInventoryItemEdge): string | null {
   return primaryMedia?.file.url ?? null;
 }
 
+function sumStockField(
+  stock: ApiInventoryItemEdge["node"]["stock"],
+  field:
+    | "quantityOnHand"
+    | "unavailableQuantity"
+    | "reservedQuantity"
+    | "availableForSale",
+) {
+  return stock.reduce((total, item) => total + item[field], 0);
+}
+
 export function mapInventoryVariantEdgeToRow(
   edge: ApiInventoryItemEdge,
-  defaultWarehouse: DefaultWarehouse,
+  warehouseId: string | null,
 ): InventoryVariantRow {
   const inventoryItem = edge.node;
   const variant = inventoryItem.variant;
-  const selectedStock = defaultWarehouse
-    ? inventoryItem.stock.find((stock) => stock.warehouseId === defaultWarehouse.id) ??
+  const selectedStock = warehouseId
+    ? inventoryItem.stock.find((stock) => stock.warehouseId === warehouseId) ??
       null
     : null;
 
-  const onHand = selectedStock?.quantityOnHand ?? 0;
-  const unavailable = selectedStock?.unavailableQuantity ?? 0;
-  const reserved = selectedStock?.reservedQuantity ?? 0;
-  const available = selectedStock?.availableForSale ?? onHand - unavailable - reserved;
+  const onHand = selectedStock
+    ? selectedStock.quantityOnHand
+    : sumStockField(inventoryItem.stock, "quantityOnHand");
+  const unavailable = selectedStock
+    ? selectedStock.unavailableQuantity
+    : sumStockField(inventoryItem.stock, "unavailableQuantity");
+  const reserved = selectedStock
+    ? selectedStock.reservedQuantity
+    : sumStockField(inventoryItem.stock, "reservedQuantity");
+  const available = selectedStock
+    ? selectedStock.availableForSale
+    : inventoryItem.totalAvailable;
 
-  const readOnlyReason = !defaultWarehouse
-    ? "Default warehouse is not configured"
+  const readOnlyReason = !warehouseId
+    ? "Select a warehouse to edit inventory."
     : null;
 
   return {
@@ -74,7 +91,7 @@ export function mapInventoryVariantEdgeToRow(
     sku: inventoryItem.sku ?? null,
     inventoryItemId: inventoryItem.id,
     warehouseStockId: selectedStock?.id ?? null,
-    warehouseId: selectedStock?.warehouseId ?? defaultWarehouse?.id ?? null,
+    warehouseId: selectedStock?.warehouseId ?? warehouseId,
     onHand,
     unavailable,
     reserved,
@@ -90,7 +107,9 @@ export function mapInventoryVariantEdgeToRow(
 
 export function mapInventoryVariantEdgesToRows(
   edges: ApiInventoryItemEdge[],
-  defaultWarehouse: DefaultWarehouse,
+  warehouseId: string | null,
 ): InventoryVariantRow[] {
-  return edges.map((edge) => mapInventoryVariantEdgeToRow(edge, defaultWarehouse));
+  return edges.map((edge) =>
+    mapInventoryVariantEdgeToRow(edge, warehouseId),
+  );
 }

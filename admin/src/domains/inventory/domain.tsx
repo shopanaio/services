@@ -1,6 +1,7 @@
 import { AppLayout } from "@/layouts/app/components/layout/layout";
 import { registerDomain } from "@/registry";
 import { AppstoreOutlined, ShopOutlined } from "@ant-design/icons";
+import { InventorySidebarConfigLoader } from "./components/inventory-sidebar-config-loader";
 
 registerDomain({
   key: "store",
@@ -20,4 +21,5 @@ registerDomain({
     icon: <AppstoreOutlined />,
     order: 2,
   },
+  sidebarRuntime: InventorySidebarConfigLoader,
 });

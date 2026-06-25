@@ -7,7 +7,7 @@ registerModule({
   sidebar: {
     label: "Warehouse",
     icon: null,
-    order: 2,
+    order: 1000,
   },
   items: [
     {
