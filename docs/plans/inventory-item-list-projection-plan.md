@@ -10,7 +10,7 @@ Connection должен возвращать обычные `InventoryItem` node
 
 - `productName` в текущей локали;
 - `sku`;
-- stock columns выбранного склада: `quantityOnHand`, `reservedQuantity`,
+- stock columns по warehouse scope: `quantityOnHand`, `reservedQuantity`,
   `unavailableQuantity`, `availableForSale`;
 - стабильным tie-breaker полям вроде `id` / `variantId`.
 
@@ -50,28 +50,32 @@ type InventoryQuery {
     after: String
     last: Int
     before: String
-    warehouseId: ID
     where: InventoryItemWhereInput
     orderBy: [InventoryItemOrderByInput!]
+    meta: InventoryItemInventoryItemsMetaInput
   ): InventoryItemConnection!
 }
 ```
 
-`warehouseId` задает optional stock scope только для stock columns. Сам
-`InventoryItem` может существовать без `WarehouseStock`, поэтому отсутствие
-`warehouseId` или stock row не должно исключать item из
-connection.
+`warehouseScope` задает optional stock scope только для stock columns и живет в
+`meta`, как `products(..., meta: { categoriesScope })` и
+`categories(..., meta: { hierarchyScope, productsScope })` в Catalog service.
+Это не обычный `where`: scope меняет SQL expression для stock fields, но не
+делает наличие `warehouse_stock` частью listability.
 
-Если `warehouseId` не передан, resolver возвращает base inventory item list:
-`productName`, `sku`, `trackInventory`, `continueSellingWhenOutOfStock` и
-другие non-stock поля. В этом режиме stock-specific filter/order fields
-(`quantityOnHand`, `reservedQuantity`, `unavailableQuantity`,
-`availableForSale`) должны быть отклонены как некорректный input или
-проигнорированы только через явно задокументированное API-поведение.
+Если `meta.warehouseScope` не передан, stock fields считаются суммой по всем
+существующим `warehouse_stock` rows текущего project. Это значит, что
+`quantityOnHand`, `reservedQuantity`, `unavailableQuantity` и
+`availableForSale` можно использовать в `where` / `orderBy` без явного склада.
 
-Admin stock table, которому нужны stock columns, должен передавать явный
-`warehouseId`. Если для `(variantId, warehouseId)` нет строки
-`warehouse_stock`, stock values для list sort/filter/display считаются `0`.
+Если `meta.warehouseScope.referenceIds` содержит один warehouse в режиме
+`INCLUDE`, repository делает выборку только по нему без aggregation. Если
+передано несколько warehouses, результат stock fields суммируется по выбранным
+warehouses. В режиме `EXCLUDE` результат суммируется по всем warehouses кроме
+переданных. Если для item нет подходящих stock rows, stock values считаются `0`.
+
+Сам `InventoryItem` может существовать без `WarehouseStock`, поэтому отсутствие
+stock row не должно исключать item из connection.
 
 `InventoryItemConnection` и `InventoryItemEdge` остаются обычными:
 
@@ -175,6 +179,28 @@ input InventoryItemOrderByInput {
   direction: SortDirection!
 }
 ```
+
+Metadata input follows the Catalog connection pattern:
+
+```graphql
+input InventoryItemInventoryItemsMetaInput {
+  warehouseScope: InventoryItemWarehouseScopeInput
+}
+
+enum InventoryItemWarehouseScopeMode {
+  INCLUDE
+  EXCLUDE
+}
+
+input InventoryItemWarehouseScopeInput {
+  referenceIds: [ID!]!
+  mode: InventoryItemWarehouseScopeMode!
+}
+```
+
+`referenceIds` are `Warehouse` global IDs. The resolver normalizes them before
+calling the repository, just like Catalog normalizes category/product scope
+global IDs before building repository filters.
 
 Admin search мапится в query filter:
 
@@ -306,7 +332,7 @@ View объединяет base item projection:
 - `inventory_product_translation`.
 
 Stock-scoped repository query может дополнительно `left join warehouse_stock`
-по выбранному `warehouseId`, когда нужны stock columns. View не должен
+или aggregated stock subquery, когда нужны stock columns. View не должен
 `inner join`-ить `warehouses`, потому что это превращает canonical
 `InventoryItem` list в item × warehouse rows и делает наличие склада частью
 listability.
@@ -358,8 +384,17 @@ export const inventoryItemListView = inventorySchema
 View intentionally does not filter locale. Repository scope does that so the
 same view supports any locale.
 
-When `warehouseId` is present and request uses stock fields, the repository
-adds a query-level `left join warehouse_stock` scoped by:
+When request uses stock fields, the repository resolves
+`meta.warehouseScope` into one of three SQL shapes:
+
+1. **No warehouse scope**: aggregate all existing `warehouse_stock` rows for the
+   current project.
+2. **Single `INCLUDE` warehouse**: `left join warehouse_stock` directly by that
+   one warehouse, without aggregation.
+3. **Multiple `INCLUDE` warehouses or any `EXCLUDE` scope**: join an aggregated
+   subquery grouped by `(projectId, variantId)`.
+
+Single-warehouse `INCLUDE` join:
 
 ```sql
 warehouse_stock.project_id = inventory_item_list_view.project_id
@@ -367,21 +402,44 @@ AND warehouse_stock.variant_id = inventory_item_list_view.variant_id
 AND warehouse_stock.warehouse_id = :warehouseId
 ```
 
+Aggregated warehouse scope shape:
+
+```sql
+LEFT JOIN (
+  SELECT
+    project_id,
+    variant_id,
+    SUM(quantity_on_hand) AS quantity_on_hand,
+    SUM(reserved_qty) AS reserved_quantity,
+    SUM(unavailable_qty) AS unavailable_quantity,
+    MAX(updated_at) AS updated_at
+  FROM inventory.warehouse_stock
+  WHERE project_id = :storeId
+    -- INCLUDE: AND warehouse_id IN (:warehouseIds)
+    -- EXCLUDE: AND warehouse_id NOT IN (:warehouseIds)
+    -- omitted scope: no warehouse_id predicate
+  GROUP BY project_id, variant_id
+) stock_scope
+  ON stock_scope.project_id = inventory_item_list_view.project_id
+ AND stock_scope.variant_id = inventory_item_list_view.variant_id
+```
+
 The repository exposes stock expressions as list fields:
 
 ```ts
-quantityOnHand = coalesce(warehouseStock.quantityOnHand, 0)
-reservedQuantity = coalesce(warehouseStock.reservedQty, 0)
-unavailableQuantity = coalesce(warehouseStock.unavailableQty, 0)
+quantityOnHand = coalesce(stockScope.quantityOnHand, 0)
+reservedQuantity = coalesce(stockScope.reservedQuantity, 0)
+unavailableQuantity = coalesce(stockScope.unavailableQuantity, 0)
 availableForSale =
-  coalesce(warehouseStock.quantityOnHand, 0)
-  - coalesce(warehouseStock.reservedQty, 0)
-  - coalesce(warehouseStock.unavailableQty, 0)
+  coalesce(stockScope.quantityOnHand, 0)
+  - coalesce(stockScope.reservedQuantity, 0)
+  - coalesce(stockScope.unavailableQuantity, 0)
 ```
 
-`updatedAt` for stock-scoped sorting can include `warehouse_stock.updated_at`
-only when the stock join is active. Base list `updatedAt` should not depend on
-warehouse state.
+`updatedAt` for stock-scoped sorting can include the selected stock row's
+`updated_at` in the single-warehouse path, or `MAX(warehouse_stock.updated_at)`
+in the aggregated path. Base list `updatedAt` should not depend on warehouse
+state.
 
 Repository scope must add:
 
@@ -391,57 +449,53 @@ Repository scope must add:
 
 ### Warehouse stock scope
 
-`warehouseId` is not a base-list filter. It is a runtime parameter for computing
-stock fields against one selected warehouse.
+`warehouseScope` is not a base-list filter. It is a runtime metadata scope for
+computing stock fields. It must not be merged into `where`, because that would
+turn missing stock rows into filtered-out rows.
 
-Repository must split execution into two paths:
+Repository must split execution into these paths:
 
 1. **Base path**: used when request does not filter/order by stock fields.
    It queries `inventory_item_list_view` directly and does not join
    `warehouse_stock`.
-2. **Stock-scoped path**: used when request filters/orders by
-   `quantityOnHand`, `reservedQuantity`, `unavailableQuantity` or
-   `availableForSale`. It requires `warehouseId` and left-joins
-   `warehouse_stock` by `(projectId, variantId, warehouseId)`.
-
-This left join must be scoped by the selected warehouse ID as a join condition,
-not as a `where` condition, so missing stock rows stay listable:
-
-```sql
-FROM inventory.inventory_item_list_view item
-LEFT JOIN inventory.warehouse_stock stock
-  ON stock.project_id = item.project_id
- AND stock.variant_id = item.variant_id
- AND stock.warehouse_id = :warehouseId
-WHERE item.project_id = :storeId
-  AND item.locale = :locale
-  AND item.deleted_at IS NULL
-```
-
-The stock-scoped query exposes computed sortable/filterable fields:
-
-```sql
-coalesce(stock.quantity_on_hand, 0) AS quantity_on_hand
-coalesce(stock.reserved_qty, 0) AS reserved_quantity
-coalesce(stock.unavailable_qty, 0) AS unavailable_quantity
-coalesce(stock.quantity_on_hand, 0)
-  - coalesce(stock.reserved_qty, 0)
-  - coalesce(stock.unavailable_qty, 0) AS available_for_sale
-```
+2. **Single warehouse path**: used when request filters/orders by stock fields
+   and normalized `warehouseScope` is `INCLUDE` with exactly one warehouse. It
+   left-joins `warehouse_stock` by `(projectId, variantId, warehouseId)` and
+   does not aggregate.
+3. **Aggregated stock path**: used when request filters/orders by stock fields
+   and `warehouseScope` is omitted, has multiple `INCLUDE` warehouses, or has
+   `EXCLUDE` mode. It left-joins an aggregate grouped by `(projectId, variantId)`.
 
 Important behavior:
 
-- `warehouseId` must be decoded from GraphQL global ID before building the stock
-  query.
-- If stock fields are present in `where` or `orderBy` and `warehouseId` is
-  missing, resolver/repository returns a validation error.
-- If `warehouseId` is provided but no `warehouse_stock` row exists for an item,
-  computed stock fields are `0`.
-- `warehouseId` itself should not be included in `mergedWhere`, because that
-  would turn missing stock rows into filtered-out rows.
-- Optionally validate that the warehouse belongs to the current project before
-  executing the list query; this validation must not be implemented by changing
-  the item query to an inner join.
+- `meta.warehouseScope.referenceIds` must be decoded from `Warehouse` global IDs
+  before building the stock query.
+- Stock fields in `where` or `orderBy` are valid without `warehouseScope`; the
+  default scope is all existing warehouses in the current project.
+- `INCLUDE` with one warehouse means direct selected-warehouse values.
+- `INCLUDE` with multiple warehouses means sums across those warehouses.
+- `EXCLUDE` means sums across all warehouses except the referenced warehouses.
+- Missing matching `warehouse_stock` rows produce `0` values for computed stock
+  fields.
+- `kind: "empty"` means an explicitly provided scope resolved to no warehouses;
+  stock expressions are `0` for every item, but the base item list is not made
+  empty by the warehouse metadata itself.
+- Optionally validate that referenced warehouses belong to the current project
+  before executing the list query; this validation must not be implemented by
+  changing the item query to an inner join.
+
+Repository-normalized type mirrors Catalog scope normalizers:
+
+```ts
+type NormalizedInventoryItemWarehouseScope =
+  | { kind: "all" }
+  | { kind: "empty" }
+  | {
+      kind: "scope";
+      referenceIds: string[];
+      mode: "INCLUDE" | "EXCLUDE";
+    };
+```
 
 Implementation shape:
 
@@ -457,21 +511,22 @@ const usesStockFields =
   containsWhereField(where, STOCK_FIELDS) ||
   orderBy?.some((item) => STOCK_FIELDS.has(item.field));
 
-if (usesStockFields && !warehouseId) {
-  throw new UserInputError("warehouseId is required for stock filters/order");
-}
+const warehouseScope = meta?.warehouseScope ?? { kind: "all" };
 
 const relayQuery = usesStockFields
-  ? createInventoryItemStockRelayQuery({ warehouseId })
+  ? createInventoryItemStockRelayQuery({ warehouseScope })
   : inventoryItemRelayQuery;
 ```
 
-`createInventoryItemStockRelayQuery({ warehouseId })` must preserve the same
+`containsWhereField` must walk nested `_and`, `_or` and `_not` recursively.
+
+`createInventoryItemStockRelayQuery({ warehouseScope })` must preserve the same
 base fields, cursor type and `tieBreaker: "id"` as `inventoryItemRelayQuery`.
-If `@shopana/drizzle-query` cannot express the runtime `warehouseId` join through
-its fluent `leftJoin` API, implement this stock-scoped connection with a small
-Drizzle SQL helper that reuses the same cursor encoding/order rules instead of
-putting `warehouse_stock` back into the base view.
+This stock-scoped connection must be implemented through `@shopana/drizzle-query`
+only. Do not add a separate Drizzle SQL helper for Relay pagination. If the
+current `@shopana/drizzle-query` API cannot express runtime stock joins or
+computed stock fields, extend `@shopana/drizzle-query` first and then use the
+extended API from Inventory.
 
 ## Repository
 
@@ -499,6 +554,20 @@ export const inventoryItemRelayQuery = createRelayQuery(
 `getConnection()`:
 
 ```ts
+export type InventoryItemConnectionMetaInput = {
+  warehouseScope?: NormalizedInventoryItemWarehouseScope;
+};
+
+export type InventoryItemConnectionInput = InventoryItemRelayInput & {
+  meta?: InventoryItemConnectionMetaInput;
+};
+
+const { where, orderBy, meta, ...paginationArgs } = args;
+const warehouseScope = meta?.warehouseScope ?? { kind: "all" };
+const usesStockFields =
+  containsWhereField(where, STOCK_FIELDS) ||
+  orderBy?.some((item) => STOCK_FIELDS.has(item.field));
+
 const mergedWhere = {
   _and: [
     { projectId: { _eq: this.storeId } },
@@ -507,6 +576,10 @@ const mergedWhere = {
     ...(where ? [where] : []),
   ],
 };
+
+const relayQuery = usesStockFields
+  ? createInventoryItemStockRelayQuery({ warehouseScope })
+  : inventoryItemRelayQuery;
 
 const executeInput = {
   ...paginationArgs,
@@ -517,8 +590,8 @@ const executeInput = {
 };
 
 const [result, totalCount] = await Promise.all([
-  inventoryItemRelayQuery.execute(this.connection, executeInput),
-  inventoryItemRelayQuery.count(this.connection, { where: mergedWhere }),
+  relayQuery.execute(this.connection, executeInput),
+  relayQuery.count(this.connection, { where: mergedWhere }),
 ]);
 
 return {
@@ -531,10 +604,10 @@ return {
 };
 ```
 
-If request contains stock filter/order fields, `warehouseId` must be decoded and
-used to activate the stock-scoped query path. Missing `warehouseId` with stock
-fields should fail validation before query execution. Missing `warehouse_stock`
-rows after the scoped left join are treated as zero values.
+If request contains stock filter/order fields, normalized `warehouseScope` is
+used to activate the stock-scoped query path. Missing `warehouseScope` means
+aggregate across all existing warehouses. Missing `warehouse_stock` rows after
+the scoped join are treated as zero values.
 
 `totalCount` must use the exact same `mergedWhere`; otherwise filtered count will
 not match the returned edges.
@@ -546,10 +619,13 @@ receives `tieBreaker: "id"` and should append it for stable cursor ordering.
 
 `InventoryQueryResolver.inventoryItems` should:
 
-- decode optional `warehouseId`;
-- treat `warehouseId` as stock scope only, not as a requirement for listing
-  `InventoryItem`;
-- reject stock filter/order fields when `warehouseId` is omitted;
+- normalize optional `meta.warehouseScope` through a resolver helper, mirroring
+  `normalizeProductCategoriesScopeInput` and `normalizeCategoryProductsScopeInput`;
+- decode `meta.warehouseScope.referenceIds` as `Warehouse` global IDs;
+- treat `warehouseScope` as stock expression scope only, not as a requirement
+  for listing `InventoryItem`;
+- allow stock filter/order fields when `warehouseScope` is omitted, using the
+  default all-warehouses aggregate scope;
 - call inventory item connection repository;
 - return `InventoryItemConnection`;
 - create each edge node as `new InventoryItemResolver(nodeId, ctx)`.
@@ -569,13 +645,16 @@ enough data through `InventoryItem.variantId` to return a federation reference:
 
 ### Stock field loading
 
-Stock-scoped list sorting/filtering uses the selected `warehouseId`, but
+Stock-scoped list sorting/filtering uses `meta.warehouseScope`, but
 `InventoryItem.stock` is still a canonical field that loads stock for all
 warehouses from `InventoryItemResolver.stock`.
 
-For the first migration step, Admin may continue to query `node.stock` and pick
-the selected warehouse client-side, but this creates N+1 and overfetch risk:
-each listed item can trigger a separate all-warehouses stock query.
+For the first migration step, Admin may continue to query `node.stock` and apply
+the same warehouse scope client-side for display: pick one warehouse for single
+`INCLUDE`, sum selected warehouses for multi-`INCLUDE`, sum all except excluded
+warehouses for `EXCLUDE`, and sum all warehouses when scope is omitted. This
+creates N+1 and overfetch risk: each listed item can trigger a separate
+all-warehouses stock query.
 
 This does not need a new repository design. `StockRepository` already has
 `getByVariantsBatch(variantIds)`, so the implementation should wire that method
@@ -588,12 +667,12 @@ through request-scoped DataLoader:
 - update `InventoryItemResolver.totalAvailable()` and `inStock()` to reuse the
   same batched stock data instead of calling `getByVariantId()` per node.
 
-An alternative future improvement is a scoped stock field/argument or connection
-path that returns only the selected warehouse stock, while keeping canonical
-`stock` available for all-warehouse reads.
+An alternative future improvement is a scoped stock summary field/argument or
+connection path that returns only the scoped stock aggregate, while keeping
+canonical `stock` available for all-warehouse reads.
 
-The list view's selected-warehouse values are for SQL filter/sort only; do not
-silently make `InventoryItem.stock` mean "selected warehouse only" without an
+The list view's warehouse-scoped values are for SQL filter/sort only; do not
+silently make `InventoryItem.stock` mean "warehouseScope only" without an
 explicit field/argument, because that would change canonical field semantics.
 
 ## Variant / InventoryItem Lifecycle
@@ -794,7 +873,8 @@ The UI should still use generated API types directly. Row mapping can read:
 - `node.trackInventory`;
 - `node.continueSellingWhenOutOfStock`;
 - `node.variant.product.title` for display;
-- `node.stock` for selected warehouse stock values.
+- `node.stock` for display values, applying the same `warehouseScope` client-side
+  until an explicit scoped stock summary field exists.
 
 New sort mapping can expose:
 
@@ -805,6 +885,25 @@ New sort mapping can expose:
 - `unavailableQuantity`;
 - `availableForSale`;
 - `updatedAt`.
+
+Stock sort/filter mapping must pass warehouse selection through `meta`, not
+through `where`:
+
+```ts
+meta: selectedWarehouseIds.length
+  ? {
+      warehouseScope: {
+        referenceIds: selectedWarehouseIds,
+        mode: "INCLUDE",
+      },
+    }
+  : null
+```
+
+If Admin selects one warehouse, stock sort/filter values represent that
+warehouse. If Admin selects several warehouses, values are summed across them.
+If Admin does not select warehouses, values are summed across all existing
+warehouses.
 
 Search/filter mapping:
 
@@ -858,7 +957,9 @@ ownership changes.
   `repository.stock.getByVariantsBatch()` and use it from
   `InventoryItemResolver.stock()`, `totalAvailable()` and `inStock()`.
 - Update `InventoryQuery.inventoryItems` args to include Relay pagination,
-  `warehouseId`, `where` and `orderBy`.
+  `where`, `orderBy` and `meta`.
+- Add `InventoryItemWarehouseScopeInput` and resolver-side normalization for
+  `meta.warehouseScope.referenceIds`.
 
 ### Phase 4. Event sync
 
