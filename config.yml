@@ -64,16 +64,7 @@ services:
       <<: *s3_default
       bucket: catalog
 
-  inventory:
-    ports:
-      admin_graphql: 10005
-      metrics: 3034
-    db:
-      <<: *db_default
-      schema: null
-    s3:
-      <<: *s3_default
-      bucket: inventory
+  inventory: {}
 
   media:
     ports:

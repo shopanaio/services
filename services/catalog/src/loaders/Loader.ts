@@ -14,6 +14,9 @@ import { FacetSwatchLoader } from "./FacetSwatchLoader.js";
 import { CollectionLoader } from "./CollectionLoader.js";
 import { BundleLoader } from "./BundleLoader.js";
 import { BulkEditLoader } from "./BulkEditLoader.js";
+import { WarehouseLoader } from "./WarehouseLoader.js";
+import { InventoryItemLoader } from "./InventoryItemLoader.js";
+import { StockLoader } from "./StockLoader.js";
 
 export class Loader {
   // Product
@@ -111,6 +114,16 @@ export class Loader {
   public readonly bulkEditJobProgress;
   public readonly bulkEditJobTotalProducts;
 
+  // Warehouse
+  public readonly warehouse;
+
+  // InventoryItem
+  public readonly inventoryItem;
+  public readonly inventoryItemByVariant;
+
+  // Stock
+  public readonly stockByVariant;
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: DataLoader<any, any>;
 
@@ -129,6 +142,9 @@ export class Loader {
     const collectionLoader = new CollectionLoader(repository);
     const bundleLoader = new BundleLoader(repository);
     const bulkEditLoader = new BulkEditLoader(repository);
+    const warehouseLoader = new WarehouseLoader(repository);
+    const inventoryItemLoader = new InventoryItemLoader(repository);
+    const stockLoader = new StockLoader(repository);
 
     // Product
     this.product = productLoader.product;
@@ -225,5 +241,15 @@ export class Loader {
     this.bulkEditItem = bulkEditLoader.bulkEditItem;
     this.bulkEditJobProgress = bulkEditLoader.bulkEditJobProgress;
     this.bulkEditJobTotalProducts = bulkEditLoader.bulkEditJobTotalProducts;
+
+    // Warehouse
+    this.warehouse = warehouseLoader.warehouse;
+
+    // InventoryItem
+    this.inventoryItem = inventoryItemLoader.inventoryItem;
+    this.inventoryItemByVariant = inventoryItemLoader.inventoryItemByVariant;
+
+    // Stock
+    this.stockByVariant = stockLoader.stockByVariant;
   }
 }

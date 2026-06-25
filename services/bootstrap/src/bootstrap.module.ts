@@ -7,7 +7,6 @@ import {
   type DatabaseModuleOptions,
 } from "@shopana/shared-kernel";
 import { PaymentsModule } from "@shopana/payments-service";
-import { InventoryModule } from "@shopana/inventory-service";
 import { AppsModule } from "@shopana/apps-service";
 import { MediaModule } from "@shopana/media-service";
 import { CheckoutModule } from "@shopana/checkout-service";
@@ -45,7 +44,6 @@ export class BootstrapModule {
       DatabaseModule.forRoot(options.database),
       BrokerCoreModule.forRoot(options),
       PaymentsModule,
-      InventoryModule,
       EventsModule,
       AppsModule,
       MediaModule,
