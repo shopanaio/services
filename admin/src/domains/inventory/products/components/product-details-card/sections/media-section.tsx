@@ -1,11 +1,11 @@
 "use client";
 
 import { Image, Flex } from "antd";
-import { EyeOutlined, PictureOutlined, PlusOutlined } from "@ant-design/icons";
+import { EyeOutlined, PlusOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { FeaturedBadge } from "@/ui-kit/featured-badge";
 import { MediaPreview, useMediaPreview } from "@/domains/media/components/media-preview";
-import { EntityDetailsEmptyState } from "@/domains/inventory/components/entity-details-sections";
+import { EntityMediaEmptyState } from "@/domains/inventory/components/entity-details-sections";
 import { EditAction } from "../../edit-action";
 import { MediaFilePlaceholder } from "../../media-file-placeholder";
 import { useMediaStyles } from "../product-details-card.styles";
@@ -120,13 +120,7 @@ export const MediaSection = ({ mediaFiles, onEdit }: IMediaSectionProps) => {
         </div>
       ) : (
         <div data-testid="product-media-section">
-          <EntityDetailsEmptyState
-            icon={<PictureOutlined />}
-            state={{
-              title: "No media added",
-              description: "Add product images to show visuals in storefronts and product previews.",
-            }}
-          />
+          <EntityMediaEmptyState />
         </div>
       )}
 
