@@ -1,7 +1,7 @@
 "use client";
 
 export {
-  useInventoryVariants as useInventory,
-  type UseInventoryVariantsOptions as UseInventoryOptions,
-  type UseInventoryVariantsReturn as UseInventoryReturn,
-} from "./use-inventory-variants";
+  useInventoryItems as useInventory,
+  type UseInventoryItemsOptions as UseInventoryOptions,
+  type UseInventoryItemsReturn as UseInventoryReturn,
+} from "./use-inventory-items";

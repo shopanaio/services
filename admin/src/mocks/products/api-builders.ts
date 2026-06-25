@@ -294,6 +294,7 @@ export const createMockApiInventoryItem = (params: {
   weight?: ApiInventoryItemWeight | null;
   dimensions?: ApiInventoryItemDimensions | null;
   unitCost?: ApiInventoryItemCost | null;
+  variant?: ApiVariant;
   trackInventory?: boolean;
   continueSellingWhenOutOfStock?: boolean;
 }): ApiInventoryItem => ({
@@ -309,6 +310,7 @@ export const createMockApiInventoryItem = (params: {
   trackInventory: params.trackInventory ?? true,
   continueSellingWhenOutOfStock:
     params.continueSellingWhenOutOfStock ?? false,
+  variant: params.variant ?? ({} as ApiVariant),
   createdAt: MOCK_NOW,
   updatedAt: MOCK_NOW,
 });

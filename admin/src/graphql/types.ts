@@ -3653,6 +3653,8 @@ export type ApiInventoryItem = ApiNode & {
   unitCost?: Maybe<ApiInventoryItemCost>;
   /** When this item was last updated */
   updatedAt: Scalars['DateTime']['output'];
+  /** Catalog variant entity */
+  variant: ApiVariant;
   /** Reference to Catalog.Variant */
   variantId: Scalars['ID']['output'];
   /** Weight (grams) */
@@ -3715,6 +3717,27 @@ export type ApiInventoryItemInput = {
   tracked: Scalars['Boolean']['input'];
 };
 
+export type ApiInventoryItemInventoryItemsMetaInput = {
+  warehouseScope?: InputMaybe<ApiInventoryItemWarehouseScopeInput>;
+};
+
+export type ApiInventoryItemOrderByInput = {
+  direction: SortDirection;
+  field: InventoryItemOrderField;
+};
+
+export enum InventoryItemOrderField {
+  AvailableForSale = 'availableForSale',
+  Id = 'id',
+  ProductName = 'productName',
+  QuantityOnHand = 'quantityOnHand',
+  ReservedQuantity = 'reservedQuantity',
+  Sku = 'sku',
+  UnavailableQuantity = 'unavailableQuantity',
+  UpdatedAt = 'updatedAt',
+  VariantId = 'variantId'
+}
+
 export type ApiInventoryItemStockInput = {
   onHand: Scalars['Int']['input'];
   unavailable?: InputMaybe<Scalars['Int']['input']>;
@@ -3748,6 +3771,16 @@ export type ApiInventoryItemUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+export type ApiInventoryItemWarehouseScopeInput = {
+  mode: InventoryItemWarehouseScopeMode;
+  referenceIds: Array<Scalars['ID']['input']>;
+};
+
+export enum InventoryItemWarehouseScopeMode {
+  Exclude = 'EXCLUDE',
+  Include = 'INCLUDE'
+}
+
 export type ApiInventoryItemWeight = {
   __typename?: 'InventoryItemWeight';
   /** Display unit preference */
@@ -3761,10 +3794,32 @@ export type ApiInventoryItemWeightInput = {
 };
 
 export type ApiInventoryItemWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiInventoryItemWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiInventoryItemWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiInventoryItemWhereInput>>;
+  /** Filter by available for sale quantity in the selected warehouse scope */
+  availableForSale?: InputMaybe<ApiIntFilter>;
+  /** Filter by inventory item ID */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by product ID */
+  productId?: InputMaybe<ApiIdFilter>;
+  /** Filter by product name in the current locale */
+  productName?: InputMaybe<ApiStringFilter>;
+  /** Filter by quantity on hand in the selected warehouse scope */
+  quantityOnHand?: InputMaybe<ApiIntFilter>;
+  /** Filter by reserved quantity in the selected warehouse scope */
+  reservedQuantity?: InputMaybe<ApiIntFilter>;
   /** Filter by SKU */
   sku?: InputMaybe<ApiStringFilter>;
   /** Filter by trackInventory */
-  trackInventory?: InputMaybe<Scalars['Boolean']['input']>;
+  trackInventory?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by unavailable quantity in the selected warehouse scope */
+  unavailableQuantity?: InputMaybe<ApiIntFilter>;
+  /** Filter by variant ID */
+  variantId?: InputMaybe<ApiIdFilter>;
 };
 
 export type ApiInventoryMutation = {
@@ -3838,7 +3893,11 @@ export type ApiInventoryQueryInventoryItemByVariantArgs = {
 
 export type ApiInventoryQueryInventoryItemsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<ApiInventoryItemInventoryItemsMetaInput>;
+  orderBy?: InputMaybe<Array<ApiInventoryItemOrderByInput>>;
   where?: InputMaybe<ApiInventoryItemWhereInput>;
 };
 

@@ -14,33 +14,36 @@ import {
   CellEditRequestEvent,
   ICellRendererParams,
   SelectionChangedEvent,
+  SortChangedEvent,
 } from "ag-grid-community";
 import { DataLayout } from "@/layouts/data";
-import { useFilters, FilterWidget } from "@/layouts/filters";
-import {
-  RelayCursorPagination,
-  useRelayCursorPagination,
-} from "@/ui-kit/cursor-pagination";
+import { FilterWidget } from "@/layouts/filters";
+import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { FloatingPanelStack } from "@/ui-kit/floating-panel-stack";
 import type { ActionConfig } from "@/ui-kit/floating-panel-stack/core/types";
 import type { PanelConfig } from "@/ui-kit/floating-panel-stack/data-page/floating-panel-stack";
 import {
-  useGridState,
-  useGridSort,
   useAgGridTheme,
   useAgGridRowSelection,
 } from "@/hooks";
-import type { SortModel } from "@/hooks/use-grid-sort";
+import { useInventoryRelayListPage } from "@/domains/inventory/hooks";
+import type { ApiInventoryItemWhereInput } from "@/graphql/types";
+import { InventoryItemOrderField } from "@/graphql/types";
 import { filterSchema } from "./filter-schema";
 import {
+  buildInventoryItemsQueryVariables,
+  buildInventorySearchCondition,
+  inventoryFilterTransformers,
+  inventorySortFieldMapping,
+} from "./page-config";
+import {
   useInventoryEditStore,
-  useInventoryVariants,
+  useInventoryItems,
   useSaveInventoryVariantEdits,
   type InventorySubmitError,
 } from "../hooks";
 import {
   mapInventoryVariantEditsToProductBulkUpdateInput,
-  mapInventoryVariantSortModelToOrderBy,
   type InventoryVariantRow,
 } from "../mappers";
 import { validateFieldChange } from "@/shared/utils/inventory";
@@ -120,12 +123,7 @@ export default function InventoryPage() {
   const { styles } = useStyles();
   const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<InventoryVariantRow>>(null);
-  const [searchValue, setSearchValue] = useState("");
-  const [sortModel, setSortModel] = useState<SortModel[]>([]);
-  const { widgetProps } = useFilters({ schema: filterSchema });
-  const { initialState, onStateUpdated } = useGridState({
-    storageKey: "inventory-grid-state",
-  });
+  const restoringSortRef = useRef(false);
 
   const {
     discardAll,
@@ -147,48 +145,63 @@ export default function InventoryPage() {
   const hasUnsavedChanges = Object.keys(edits).length > 0;
   const canNavigate = !hasUnsavedChanges && status !== "saving";
 
-  const orderBy = useMemo(
-    () => mapInventoryVariantSortModelToOrderBy(sortModel),
-    [sortModel],
-  );
-  const orderByResetKey = useMemo(() => JSON.stringify(orderBy), [orderBy]);
-  const pagination = useRelayCursorPagination({
-    defaultPageSize: 20,
-    resetKey: orderByResetKey,
-  });
-
   const {
-    rows: serverData,
-    defaultWarehouse,
+    pageConfig,
+    listResult,
+    items: serverData,
     pageInfo,
     totalCount,
     loading,
     error,
-    canEdit,
     refetch,
-  } = useInventoryVariants({
-    ...pagination.variables,
-    orderBy,
+    handleNextPage,
+    handlePrevPage,
+  } = useInventoryRelayListPage<
+    InventoryVariantRow,
+    ApiInventoryItemWhereInput,
+    InventoryItemOrderField,
+    ReturnType<typeof buildInventoryItemsQueryVariables>,
+    ReturnType<typeof useInventoryItems>
+  >({
+    gridRef,
+    storageKey: "inventory-grid-state",
+    filterSchema,
+    sortFieldMapping: inventorySortFieldMapping,
+    defaultPageSize: 20,
+    buildSearchCondition: buildInventorySearchCondition,
+    filterTransformers: inventoryFilterTransformers,
+    buildQueryVariables: buildInventoryItemsQueryVariables,
+    useListQuery: useInventoryItems,
+    getItems: (result) => result.rows,
   });
+  const { defaultWarehouse, canEdit } = listResult;
   const { saveInventoryVariantEdits } = useSaveInventoryVariantEdits();
 
-  const handleSortChange = useCallback(
-    (model: SortModel[]) => {
-      if (!canNavigate) {
-        message.warning("Save or discard changes to sort inventory.");
+  const handleSortChanged = useCallback(
+    (event: SortChangedEvent<InventoryVariantRow>) => {
+      if (restoringSortRef.current) {
+        restoringSortRef.current = false;
         return;
       }
 
-      setSortModel(model);
-    },
-    [canNavigate, message],
-  );
+      if (!canNavigate) {
+        message.warning("Save or discard changes to sort inventory.");
+        restoringSortRef.current = true;
+        event.api.applyColumnState({
+          state: pageConfig.sortModel.map((sort, index) => ({
+            colId: sort.colId,
+            sort: sort.sort,
+            sortIndex: index,
+          })),
+          defaultState: { sort: null },
+        });
+        return;
+      }
 
-  const { onSortChanged } = useGridSort<InventoryVariantRow>({
-    gridRef,
-    sortModel,
-    onSortChange: handleSortChange,
-  });
+      pageConfig.onSortChanged(event);
+    },
+    [canNavigate, message, pageConfig],
+  );
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -550,11 +563,8 @@ export default function InventoryPage() {
       <DataLayout.Toolbar
         left={
           <FilterWidget
-            {...widgetProps}
-            searchProps={{
-              searchValue,
-              onChangeSearchValue: setSearchValue,
-            }}
+            {...pageConfig.filterWidgetProps}
+            searchPlaceholder="Search inventory..."
           />
         }
       />
@@ -586,19 +596,28 @@ export default function InventoryPage() {
             onCellEditRequest={handleCellEditRequest}
             onCellClicked={onCellClicked}
             onSelectionChanged={handleSelectionChanged}
-            initialState={initialState}
-            onStateUpdated={onStateUpdated}
-            onSortChanged={onSortChanged}
+            initialState={pageConfig.gridStateProps.initialState}
+            onStateUpdated={pageConfig.gridStateProps.onStateUpdated}
+            onSortChanged={handleSortChanged}
             stopEditingWhenCellsLoseFocus
           />
         </div>
 
-        <RelayCursorPagination
+        <CursorPagination
           name="inventory"
-          pagination={pagination}
-          pageInfo={pageInfo}
-          totalCount={totalCount}
-          loadedRowsCount={displayData.length}
+          total={totalCount}
+          rangeStart={pageConfig.getRangeStart(displayData.length)}
+          rangeEnd={Math.min(
+            pageConfig.getRangeEnd(displayData.length),
+            totalCount,
+          )}
+          pageSize={pageConfig.pageSize}
+          pageSizeOptions={pageConfig.pageSizeOptions}
+          hasNext={pageInfo?.hasNextPage ?? false}
+          hasPrev={pageInfo?.hasPreviousPage ?? false}
+          onNext={handleNextPage}
+          onPrev={handlePrevPage}
+          onPageSizeChange={pageConfig.setPageSize}
           disabled={!canNavigate}
           disabledReason="Save or discard changes to navigate"
         />

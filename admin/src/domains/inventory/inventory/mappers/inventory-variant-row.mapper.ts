@@ -1,4 +1,4 @@
-import type { ApiVariantEdge, ApiWarehouse } from "@/graphql/types";
+import type { ApiInventoryItemEdge, ApiWarehouse } from "@/graphql/types";
 
 export interface InventoryVariantRow {
   id: string;
@@ -27,9 +27,9 @@ export interface InventoryVariantRow {
 
 type DefaultWarehouse = Pick<ApiWarehouse, "id"> | null;
 
-function getPrimaryImageUrl(edge: ApiVariantEdge): string | null {
-  const primaryMedia = edge.node.media.reduce<
-    ApiVariantEdge["node"]["media"][number] | null
+function getPrimaryImageUrl(edge: ApiInventoryItemEdge): string | null {
+  const primaryMedia = edge.node.variant.media.reduce<
+    ApiInventoryItemEdge["node"]["variant"]["media"][number] | null
   >((current, item) => {
     if (!current) {
       return item;
@@ -42,13 +42,13 @@ function getPrimaryImageUrl(edge: ApiVariantEdge): string | null {
 }
 
 export function mapInventoryVariantEdgeToRow(
-  edge: ApiVariantEdge,
+  edge: ApiInventoryItemEdge,
   defaultWarehouse: DefaultWarehouse,
 ): InventoryVariantRow {
-  const variant = edge.node;
-  const inventoryItem = variant.inventoryItem ?? null;
+  const inventoryItem = edge.node;
+  const variant = inventoryItem.variant;
   const selectedStock = defaultWarehouse
-    ? inventoryItem?.stock.find((stock) => stock.warehouseId === defaultWarehouse.id) ??
+    ? inventoryItem.stock.find((stock) => stock.warehouseId === defaultWarehouse.id) ??
       null
     : null;
 
@@ -59,12 +59,10 @@ export function mapInventoryVariantEdgeToRow(
 
   const readOnlyReason = !defaultWarehouse
     ? "Default warehouse is not configured"
-    : !inventoryItem?.id
-      ? "Inventory item is missing"
-      : null;
+    : null;
 
   return {
-    id: variant.id,
+    id: inventoryItem.id,
     variantId: variant.id,
     productId: variant.product.id,
     productTitle: variant.product.title,
@@ -73,17 +71,17 @@ export function mapInventoryVariantEdgeToRow(
     variantHandle: variant.handle,
     isDefault: variant.isDefault,
     imageUrl: getPrimaryImageUrl(edge),
-    sku: inventoryItem?.sku ?? null,
-    inventoryItemId: inventoryItem?.id ?? null,
+    sku: inventoryItem.sku ?? null,
+    inventoryItemId: inventoryItem.id,
     warehouseStockId: selectedStock?.id ?? null,
     warehouseId: selectedStock?.warehouseId ?? defaultWarehouse?.id ?? null,
     onHand,
     unavailable,
     reserved,
     available,
-    trackInventory: inventoryItem?.trackInventory ?? false,
+    trackInventory: inventoryItem.trackInventory,
     continueSellingWhenOutOfStock:
-      inventoryItem?.continueSellingWhenOutOfStock ?? false,
+      inventoryItem.continueSellingWhenOutOfStock,
     cursor: edge.cursor,
     readOnly: Boolean(readOnlyReason),
     readOnlyReason,
@@ -91,7 +89,7 @@ export function mapInventoryVariantEdgeToRow(
 }
 
 export function mapInventoryVariantEdgesToRows(
-  edges: ApiVariantEdge[],
+  edges: ApiInventoryItemEdge[],
   defaultWarehouse: DefaultWarehouse,
 ): InventoryVariantRow[] {
   return edges.map((edge) => mapInventoryVariantEdgeToRow(edge, defaultWarehouse));

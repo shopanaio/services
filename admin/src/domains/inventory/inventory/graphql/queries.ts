@@ -1,28 +1,30 @@
 import { gql } from "@apollo/client";
-import { INVENTORY_VARIANT_ROW_FRAGMENT } from "./fragments";
+import { INVENTORY_ITEM_ROW_FRAGMENT } from "./fragments";
 
-export const INVENTORY_VARIANTS_QUERY = gql`
-  query InventoryVariants(
+export const INVENTORY_ITEMS_QUERY = gql`
+  query InventoryItems(
     $first: Int
     $after: String
     $last: Int
     $before: String
-    $where: VariantWhereInput
-    $orderBy: [VariantOrderByInput!]
+    $where: InventoryItemWhereInput
+    $orderBy: [InventoryItemOrderByInput!]
+    $meta: InventoryItemInventoryItemsMetaInput
   ) {
-    catalogQuery {
-      variants(
+    inventoryQuery {
+      inventoryItems(
         first: $first
         after: $after
         last: $last
         before: $before
         where: $where
         orderBy: $orderBy
+        meta: $meta
       ) {
         edges {
           cursor
           node {
-            ...InventoryVariantRowFields
+            ...InventoryItemRowFields
           }
         }
         pageInfo {
@@ -35,8 +37,10 @@ export const INVENTORY_VARIANTS_QUERY = gql`
       }
     }
   }
-  ${INVENTORY_VARIANT_ROW_FRAGMENT}
+  ${INVENTORY_ITEM_ROW_FRAGMENT}
 `;
+
+export const INVENTORY_VARIANTS_QUERY = INVENTORY_ITEMS_QUERY;
 
 export const INVENTORY_DEFAULT_WAREHOUSE_QUERY = gql`
   query InventoryPageDefaultWarehouse {

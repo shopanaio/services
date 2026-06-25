@@ -20,7 +20,7 @@ export const filterSchema: IFilterSchema[] = [
     description: "Filter by available quantity",
     type: FilterType.Number,
     operators: numberOperators,
-    payloadKey: "available",
+    payloadKey: "availableForSale",
   },
   {
     key: "reserved",
@@ -28,7 +28,7 @@ export const filterSchema: IFilterSchema[] = [
     description: "Filter by reserved quantity",
     type: FilterType.Number,
     operators: numberOperators,
-    payloadKey: "reserved",
+    payloadKey: "reservedQuantity",
   },
   {
     key: "unavailable",
@@ -36,6 +36,14 @@ export const filterSchema: IFilterSchema[] = [
     description: "Filter by unavailable quantity",
     type: FilterType.Number,
     operators: numberOperators,
-    payloadKey: "unavailable",
+    payloadKey: "unavailableQuantity",
+  },
+  {
+    key: "onHand",
+    label: "On hand",
+    description: "Filter by on hand quantity",
+    type: FilterType.Number,
+    operators: numberOperators,
+    payloadKey: "quantityOnHand",
   },
 ];

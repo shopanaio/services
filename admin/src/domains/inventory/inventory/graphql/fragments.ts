@@ -33,8 +33,8 @@ export const INVENTORY_VARIANT_STOCK_FRAGMENT = gql`
   }
 `;
 
-export const INVENTORY_VARIANT_ITEM_FRAGMENT = gql`
-  fragment InventoryVariantItemFields on InventoryItem {
+export const INVENTORY_ITEM_FRAGMENT = gql`
+  fragment InventoryListItemFields on InventoryItem {
     id
     variantId
     sku
@@ -47,6 +47,30 @@ export const INVENTORY_VARIANT_ITEM_FRAGMENT = gql`
   }
   ${INVENTORY_VARIANT_STOCK_FRAGMENT}
 `;
+
+export const INVENTORY_ITEM_ROW_FRAGMENT = gql`
+  fragment InventoryItemRowFields on InventoryItem {
+    ...InventoryListItemFields
+    variant {
+      id
+      title
+      handle
+      isDefault
+      product {
+        id
+        title
+        handle
+      }
+      media {
+        ...InventoryVariantMediaFields
+      }
+    }
+  }
+  ${INVENTORY_VARIANT_MEDIA_FRAGMENT}
+  ${INVENTORY_ITEM_FRAGMENT}
+`;
+
+export const INVENTORY_VARIANT_ITEM_FRAGMENT = INVENTORY_ITEM_FRAGMENT;
 
 export const INVENTORY_VARIANT_ROW_FRAGMENT = gql`
   fragment InventoryVariantRowFields on Variant {
@@ -67,11 +91,11 @@ export const INVENTORY_VARIANT_ROW_FRAGMENT = gql`
       ...InventoryVariantMediaFields
     }
     inventoryItem {
-      ...InventoryVariantItemFields
+      ...InventoryListItemFields
     }
   }
   ${INVENTORY_VARIANT_MEDIA_FRAGMENT}
-  ${INVENTORY_VARIANT_ITEM_FRAGMENT}
+  ${INVENTORY_ITEM_FRAGMENT}
 `;
 
 export const INVENTORY_PRODUCT_BULK_UPDATE_USER_ERROR_FRAGMENT = gql`

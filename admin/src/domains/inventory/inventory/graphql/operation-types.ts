@@ -1,30 +1,34 @@
 import type {
   ApiBulkUpdateUserError,
   ApiCatalogMutation,
-  ApiCatalogQuery,
+  ApiInventoryItemConnection,
+  ApiInventoryItemInventoryItemsMetaInput,
+  ApiInventoryItemOrderByInput,
+  ApiInventoryItemWhereInput,
   ApiInventoryQuery,
   ApiProductBulkUpdateInput,
-  ApiVariantConnection,
-  ApiVariantOrderByInput,
-  ApiVariantWhereInput,
   ApiWarehouseConnection,
   BulkUpdateJobStatus,
 } from "@/graphql/types";
 
-export interface InventoryVariantsQueryData {
-  catalogQuery: Pick<ApiCatalogQuery, "variants"> & {
-    variants: ApiVariantConnection;
+export interface InventoryItemsQueryData {
+  inventoryQuery: Pick<ApiInventoryQuery, "inventoryItems"> & {
+    inventoryItems: ApiInventoryItemConnection;
   };
 }
 
-export interface InventoryVariantsQueryVariables {
+export interface InventoryItemsQueryVariables {
   first?: number;
   after?: string | null;
   last?: number;
   before?: string | null;
-  where?: ApiVariantWhereInput | null;
-  orderBy: ApiVariantOrderByInput[];
+  where?: ApiInventoryItemWhereInput | null;
+  orderBy?: ApiInventoryItemOrderByInput[] | null;
+  meta?: ApiInventoryItemInventoryItemsMetaInput | null;
 }
+
+export type InventoryVariantsQueryData = InventoryItemsQueryData;
+export type InventoryVariantsQueryVariables = InventoryItemsQueryVariables;
 
 export interface InventoryDefaultWarehouseQueryData {
   inventoryQuery: Pick<ApiInventoryQuery, "warehouses"> & {
