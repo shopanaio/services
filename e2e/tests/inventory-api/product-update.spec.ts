@@ -529,16 +529,16 @@ test.describe('ProductUpdate API', () => {
             variants: [
               {
                 variantId,
-                inventory: {
-                  warehouseId: warehouse.id,
-                  onHand: 100,
-                  unavailable: 5,
-                  sku: 'SKU-TEST-001',
-                  weight: 500, // 500 grams
-                  unitCostMinor: '5000', // 50.00 UAH cost
-                  costCurrency: 'UAH',
-                },
-              },
+	                inventory: {
+	                  warehouseId: warehouse.id,
+	                  onHand: 100,
+	                  unavailable: 5,
+	                  sku: 'SKU-TEST-001',
+	                  unitCostMinor: '5000', // 50.00 UAH cost
+	                  costCurrency: 'UAH',
+	                },
+	                weight: 500, // 500 grams
+	              },
             ],
           },
         },

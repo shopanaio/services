@@ -3679,12 +3679,6 @@ export type ApiInventoryItemCostInput = {
   currency: Scalars['String']['input'];
 };
 
-export type ApiInventoryItemDimensionsInput = {
-  heightMm: Scalars['Int']['input'];
-  lengthMm: Scalars['Int']['input'];
-  widthMm: Scalars['Int']['input'];
-};
-
 export type ApiInventoryItemEdge = {
   __typename?: 'InventoryItemEdge';
   cursor: Scalars['String']['output'];
@@ -3731,8 +3725,6 @@ export type ApiInventoryItemStockInput = {
 export type ApiInventoryItemUpdateInput = {
   /** Whether to continue selling when out of stock */
   continueSellingWhenOutOfStock?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Physical dimensions update */
-  dimensions?: InputMaybe<ApiInventoryItemDimensionsInput>;
   /** The inventory item ID to update */
   id: Scalars['ID']['input'];
   /** New SKU value */
@@ -3743,8 +3735,6 @@ export type ApiInventoryItemUpdateInput = {
   trackInventory?: InputMaybe<Scalars['Boolean']['input']>;
   /** Unit cost update */
   unitCost?: InputMaybe<ApiInventoryItemCostInput>;
-  /** Weight update */
-  weight?: InputMaybe<ApiInventoryItemWeightInput>;
 };
 
 export type ApiInventoryItemUpdatePayload = {
@@ -3764,10 +3754,6 @@ export enum InventoryItemWarehouseScopeMode {
   Exclude = 'EXCLUDE',
   Include = 'INCLUDE'
 }
-
-export type ApiInventoryItemWeightInput = {
-  weightGrams: Scalars['Int']['input'];
-};
 
 export type ApiInventoryItemWhereInput = {
   /** Logical AND of multiple conditions */
@@ -3800,7 +3786,7 @@ export type ApiInventoryItemWhereInput = {
 
 export type ApiInventoryMutation = {
   __typename?: 'InventoryMutation';
-  /** Update inventory item: stock, SKU, weight, cost, dimensions. */
+  /** Update inventory item: stock, SKU, and cost. */
   inventoryItemUpdate: ApiInventoryItemUpdatePayload;
   warehouseCreate: ApiWarehouseCreatePayload;
   warehouseDelete: ApiWarehouseDeletePayload;
@@ -7084,8 +7070,6 @@ export type ApiVariantInventoryOpInput = {
   unitCostMinor?: InputMaybe<Scalars['BigInt']['input']>;
   /** The warehouse ID. */
   warehouseId: Scalars['ID']['input'];
-  /** Weight in grams. */
-  weight?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** Media attached to a variant with sort order. */
@@ -7213,7 +7197,7 @@ export type ApiVariantPricingOpInput = {
 export type ApiVariantUpdateInput = {
   /** Variant dimensions. */
   dimensions?: InputMaybe<ApiVariantDimensionsOpInput>;
-  /** Variant inventory (stock, SKU, weight, cost). */
+  /** Variant inventory item data (stock, SKU, cost). */
   inventory?: InputMaybe<ApiVariantInventoryOpInput>;
   /** Variant media. */
   media?: InputMaybe<ApiVariantMediaOpInput>;
@@ -7223,6 +7207,8 @@ export type ApiVariantUpdateInput = {
   pricing?: InputMaybe<ApiVariantPricingOpInput>;
   /** The variant ID. */
   variantId: Scalars['ID']['input'];
+  /** Variant weight in grams. */
+  weight?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** Input for updating variant media (replaces all existing media). */

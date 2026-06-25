@@ -1,14 +1,41 @@
-mutation VariantSetDimensions($input: InventoryItemUpdateInput!) {
-  inventoryMutation {
-    inventoryItemUpdate(input: $input) {
-      inventoryItem {
+mutation VariantSetDimensions(
+  $productId: ID!
+  $expectedRevision: Int
+  $variantId: ID!
+  $width: Int!
+  $height: Int!
+  $length: Int!
+) {
+  catalogMutation {
+    productUpdate(
+      productId: $productId
+      expectedRevision: $expectedRevision
+      operations: {
+        variants: [
+          {
+            variantId: $variantId
+            dimensions: {
+              width: $width
+              height: $height
+              length: $length
+            }
+          }
+        ]
+      }
+    ) {
+      product {
         id
-        variant {
-          id
-          dimensions {
-            width
-            height
-            length
+        revision
+        variants(first: 10) {
+          edges {
+            node {
+              id
+              dimensions {
+                width
+                height
+                length
+              }
+            }
           }
         }
       }

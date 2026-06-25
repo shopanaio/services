@@ -49,6 +49,7 @@ import {
   VariantBatchUpdateOptionsScript,
   type VariantOptionsUpdate,
 } from "../scripts/variant/VariantBatchUpdateOptionsScript.js";
+import { InventoryItemUpdateScript } from "../scripts/inventory-item/InventoryItemUpdateScript.js";
 
 /**
  * ProductUpdateWorkflow for Catalog Service.
@@ -58,7 +59,8 @@ import {
  * - Event emission with partial snapshot of changes
  * - Product category assignment operations for bulk and single updates
  *
- * Does NOT contain inventory operations (inventory, dimensions) - they live in Inventory Service.
+ * Inventory entity operations are delegated to Inventory. Physical measurements
+ * are exposed as variant-level operations because they are keyed by variantId.
  */
 @Injectable()
 export class ProductUpdateWorkflow extends BrokerWorkflows {
@@ -480,7 +482,6 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
           onHand: params.inventory.onHand,
           unavailable: params.inventory.unavailable,
           sku: params.inventory.sku,
-          weight: params.inventory.weight,
           unitCostMinor: params.inventory.unitCostMinor,
           costCurrency: params.inventory.costCurrency,
         },
@@ -492,6 +493,15 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
           field: e.field,
         })));
       }
+    }
+
+    if (params.weight !== undefined) {
+      const r = await this.kernel.runScript(InventoryItemUpdateScript, {
+        variantId,
+        weight: params.weight,
+      }, ctx);
+      errors.push(...r.userErrors);
+      if (r.changes?.weight !== undefined) mergeVariantChanges({ weight: r.changes.weight });
     }
 
     if (params.dimensions) {

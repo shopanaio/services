@@ -142,27 +142,11 @@ input InventoryItemUpdateInput {
   """Whether to continue selling when out of stock"""
   continueSellingWhenOutOfStock: Boolean
 
-  """Physical dimensions update"""
-  dimensions: InventoryItemDimensionsInput
-
-  """Weight update"""
-  weight: InventoryItemWeightInput
-
   """Stock update for a specific warehouse"""
   stock: InventoryItemStockInput
 
   """Unit cost update"""
   unitCost: InventoryItemCostInput
-}
-
-input InventoryItemDimensionsInput {
-  widthMm: Int!
-  heightMm: Int!
-  lengthMm: Int!
-}
-
-input InventoryItemWeightInput {
-  weightGrams: Int!
 }
 
 input InventoryItemStockInput {

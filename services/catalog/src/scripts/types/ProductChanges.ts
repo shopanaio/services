@@ -82,6 +82,7 @@ export interface VariantChanges {
   pricing?: PricingChanges;
   inventory?: InventoryChanges;
   dimensions?: DimensionsChanges;
+  weight?: number;
   media?: MediaChanges;
   options?: OptionLinkChanges[];
 }
@@ -103,7 +104,6 @@ export interface InventoryChanges {
   onHand: number;
   unavailable: number;
   sku?: string | null;
-  weight?: number | null;
   unitCostMinor?: number | null;
   costCurrency?: string | null;
 }

@@ -354,7 +354,7 @@ type InventoryQuery {
 type InventoryMutation {
   # InventoryItem mutations
   """
-  Update inventory item: stock, SKU, weight, cost, dimensions.
+  Update inventory item: stock, SKU, and cost.
   """
   inventoryItemUpdate(input: InventoryItemUpdateInput!): InventoryItemUpdatePayload!
 

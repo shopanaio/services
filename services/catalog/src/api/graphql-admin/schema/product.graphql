@@ -497,9 +497,6 @@ input VariantInventoryOpInput {
   """SKU code."""
   sku: String
 
-  """Weight in grams."""
-  weight: Int
-
   """Unit cost in minor units (cents)."""
   unitCostMinor: BigInt
 
@@ -547,11 +544,14 @@ input VariantUpdateInput {
   """Variant pricing."""
   pricing: VariantPricingOpInput
 
-  """Variant inventory (stock, SKU, weight, cost)."""
+  """Variant inventory item data (stock, SKU, cost)."""
   inventory: VariantInventoryOpInput
 
   """Variant dimensions."""
   dimensions: VariantDimensionsOpInput
+
+  """Variant weight in grams."""
+  weight: Int
 
   """Variant media."""
   media: VariantMediaOpInput

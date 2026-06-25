@@ -267,18 +267,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       trackInventory: input.trackInventory ?? undefined,
       continueSellingWhenOutOfStock:
         input.continueSellingWhenOutOfStock ?? undefined,
-      dimensions: input.dimensions
-        ? {
-            widthMm: input.dimensions.widthMm,
-            heightMm: input.dimensions.heightMm,
-            lengthMm: input.dimensions.lengthMm,
-          }
-        : undefined,
-      weight: input.weight
-        ? {
-            weightGrams: input.weight.weightGrams,
-          }
-        : undefined,
       stock,
       unitCost: input.unitCost
         ? {
@@ -911,7 +899,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
                   onHand: vu.inventory.onHand,
                   unavailable: vu.inventory.unavailable ?? undefined,
                   sku: vu.inventory.sku,
-                  weight: vu.inventory.weight,
                   unitCostMinor:
                     vu.inventory.unitCostMinor === undefined
                       ? undefined
@@ -928,6 +915,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
                   length: vu.dimensions.length,
                 }
               : undefined,
+            weight: vu.weight,
             media: vu.media
               ? {
                   fileIds: vu.media.fileIds.map((id) =>
@@ -3377,7 +3365,6 @@ function mapOperationsForBulk(
                 onHand: vu.inventory.onHand,
                 unavailable: vu.inventory.unavailable ?? undefined,
                 sku: vu.inventory.sku,
-                weight: vu.inventory.weight,
                 unitCostMinor:
                   vu.inventory.unitCostMinor === undefined
                     ? undefined
@@ -3394,6 +3381,7 @@ function mapOperationsForBulk(
                 length: vu.dimensions.length,
               }
             : undefined,
+          weight: vu.weight,
           media: vu.media
             ? {
                 fileIds: vu.media.fileIds.map((id) =>

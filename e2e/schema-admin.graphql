@@ -4799,9 +4799,6 @@ input VariantInventoryOpInput {
   """SKU code."""
   sku: String
 
-  """Weight in grams."""
-  weight: Int
-
   """Unit cost in minor units (cents)."""
   unitCostMinor: BigInt
 
@@ -4841,11 +4838,14 @@ input VariantUpdateInput {
   """Variant pricing."""
   pricing: VariantPricingOpInput
 
-  """Variant inventory (stock, SKU, weight, cost)."""
+  """Variant inventory item data (stock, SKU, cost)."""
   inventory: VariantInventoryOpInput
 
   """Variant dimensions."""
   dimensions: VariantDimensionsOpInput
+
+  """Variant weight in grams."""
+  weight: Int
 
   """Variant media."""
   media: VariantMediaOpInput
@@ -5814,7 +5814,7 @@ type InventoryQuery {
 
 type InventoryMutation {
   """
-  Update inventory item: stock, SKU, weight, cost, dimensions.
+  Update inventory item: stock, SKU, and cost.
   Replaces variantUpdateInventory and variantUpdateDimensions.
   """
   inventoryItemUpdate(input: InventoryItemUpdateInput!): InventoryItemUpdatePayload!
@@ -6275,27 +6275,11 @@ input InventoryItemUpdateInput {
   """Whether to continue selling when out of stock"""
   continueSellingWhenOutOfStock: Boolean
 
-  """Physical dimensions update"""
-  dimensions: InventoryItemDimensionsInput
-
-  """Weight update"""
-  weight: InventoryItemWeightInput
-
   """Stock update for a specific warehouse"""
   stock: InventoryItemStockInput
 
   """Unit cost update"""
   unitCost: InventoryItemCostInput
-}
-
-input InventoryItemDimensionsInput {
-  widthMm: Int!
-  heightMm: Int!
-  lengthMm: Int!
-}
-
-input InventoryItemWeightInput {
-  weightGrams: Int!
 }
 
 input InventoryItemStockInput {

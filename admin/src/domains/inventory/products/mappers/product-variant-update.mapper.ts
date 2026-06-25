@@ -229,7 +229,11 @@ function applyInventoryUpdate({
     };
   }
 
-  if (!skuChanged && !stockChanged && !costChanged && !weightChanged) {
+  if (weightChanged && weight !== null) {
+    update.weight = parsePositiveInteger(weight, "Weight");
+  }
+
+  if (!skuChanged && !stockChanged && !costChanged) {
     return;
   }
 
@@ -258,10 +262,6 @@ function applyInventoryUpdate({
 
     update.inventory.unitCostMinor = costPrice;
     update.inventory.costCurrency = defaultCurrency;
-  }
-
-  if (weightChanged && weight !== null) {
-    update.inventory.weight = parsePositiveInteger(weight, "Weight");
   }
 }
 
@@ -341,6 +341,7 @@ export function prepareChangedVariantUpdateInputs({
       !update.pricing &&
       !update.inventory &&
       !update.dimensions &&
+      update.weight === undefined &&
       !update.media
     ) {
       updatesByVariantId.delete(row.id);

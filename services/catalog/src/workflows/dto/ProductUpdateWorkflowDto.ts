@@ -96,6 +96,7 @@ export interface VariantUpdateParams {
   pricing?: VariantPricingParams;
   inventory?: VariantInventoryParams;
   dimensions?: VariantDimensionsParams;
+  weight?: number | null;
   media?: VariantMediaParams;
   options?: VariantOptionsParams;
 }
@@ -111,7 +112,6 @@ export interface VariantInventoryParams {
   onHand: number;
   unavailable?: number;
   sku?: string | null;
-  weight?: number | null;
   unitCostMinor?: number | null;
   costCurrency?: string | null;
 }

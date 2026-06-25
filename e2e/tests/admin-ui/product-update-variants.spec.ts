@@ -132,6 +132,7 @@ async function createProductWithVariants(api: Api, unique: string) {
 
 async function seedVariantBaseline(
   api: Api,
+  productId: string,
   warehouseId: string,
   unique: string,
   variants: VariantFixture[],
@@ -191,29 +192,23 @@ async function seedVariantBaseline(
 
     const weightData = await api.admin.mutation('inventory-api/VariantSetWeight', {
       variables: {
-        input: {
-          id: variant.inventoryItemId,
-          weight: {
-            weightGrams: weight,
-          },
-        },
+        productId,
+        variantId: variant.id,
+        weight,
       },
     });
-    expect(weightData.data.inventoryMutation.inventoryItemUpdate.userErrors).toHaveLength(0);
+    expect(weightData.data.catalogMutation.productUpdate.userErrors).toHaveLength(0);
 
     const dimensionsData = await api.admin.mutation('inventory-api/VariantSetDimensions', {
       variables: {
-        input: {
-          id: variant.inventoryItemId,
-          dimensions: {
-            lengthMm: length,
-            widthMm: width,
-            heightMm: height,
-          },
-        },
+        productId,
+        variantId: variant.id,
+        length,
+        width,
+        height,
       },
     });
-    expect(dimensionsData.data.inventoryMutation.inventoryItemUpdate.userErrors).toHaveLength(0);
+    expect(dimensionsData.data.catalogMutation.productUpdate.userErrors).toHaveLength(0);
   }
 }
 
@@ -401,7 +396,7 @@ test.describe('Admin product details variants update UI', () => {
     const unique = crypto.randomUUID().slice(0, 8);
     const warehouse = await createDefaultWarehouse(api, unique);
     const product = await createProductWithVariants(api, unique);
-    await seedVariantBaseline(api, warehouse.id, unique, product.variants);
+    await seedVariantBaseline(api, product.id, warehouse.id, unique, product.variants);
 
     const targetVariant = product.variants.find((variant) => variant.handle === 'black');
     if (!targetVariant) {

@@ -2558,12 +2558,6 @@ export type InventoryItemCostInput = {
   currency: Scalars['String']['input'];
 };
 
-export type InventoryItemDimensionsInput = {
-  heightMm: Scalars['Int']['input'];
-  lengthMm: Scalars['Int']['input'];
-  widthMm: Scalars['Int']['input'];
-};
-
 export type InventoryItemEdge = {
   __typename?: 'InventoryItemEdge';
   cursor: Scalars['String']['output'];
@@ -2610,8 +2604,6 @@ export type InventoryItemStockInput = {
 export type InventoryItemUpdateInput = {
   /** Whether to continue selling when out of stock */
   continueSellingWhenOutOfStock?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Physical dimensions update */
-  dimensions?: InputMaybe<InventoryItemDimensionsInput>;
   /** The inventory item ID to update */
   id: Scalars['ID']['input'];
   /** New SKU value */
@@ -2622,8 +2614,6 @@ export type InventoryItemUpdateInput = {
   trackInventory?: InputMaybe<Scalars['Boolean']['input']>;
   /** Unit cost update */
   unitCost?: InputMaybe<InventoryItemCostInput>;
-  /** Weight update */
-  weight?: InputMaybe<InventoryItemWeightInput>;
 };
 
 export type InventoryItemUpdatePayload = {
@@ -2643,10 +2633,6 @@ export enum InventoryItemWarehouseScopeMode {
   Exclude = 'EXCLUDE',
   Include = 'INCLUDE'
 }
-
-export type InventoryItemWeightInput = {
-  weightGrams: Scalars['Int']['input'];
-};
 
 export type InventoryItemWhereInput = {
   /** Logical AND of multiple conditions */
@@ -2679,7 +2665,7 @@ export type InventoryItemWhereInput = {
 
 export type InventoryMutation = {
   __typename?: 'InventoryMutation';
-  /** Update inventory item: stock, SKU, weight, cost, dimensions. */
+  /** Update inventory item: stock, SKU, and cost. */
   inventoryItemUpdate: InventoryItemUpdatePayload;
   warehouseCreate: WarehouseCreatePayload;
   warehouseDelete: WarehouseDeletePayload;
@@ -4533,8 +4519,6 @@ export type VariantInventoryOpInput = {
   unitCostMinor?: InputMaybe<Scalars['BigInt']['input']>;
   /** The warehouse ID. */
   warehouseId: Scalars['ID']['input'];
-  /** Weight in grams. */
-  weight?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** Media attached to a variant with sort order. */
@@ -4662,7 +4646,7 @@ export type VariantPricingOpInput = {
 export type VariantUpdateInput = {
   /** Variant dimensions. */
   dimensions?: InputMaybe<VariantDimensionsOpInput>;
-  /** Variant inventory (stock, SKU, weight, cost). */
+  /** Variant inventory item data (stock, SKU, cost). */
   inventory?: InputMaybe<VariantInventoryOpInput>;
   /** Variant media. */
   media?: InputMaybe<VariantMediaOpInput>;
@@ -4672,6 +4656,8 @@ export type VariantUpdateInput = {
   pricing?: InputMaybe<VariantPricingOpInput>;
   /** The variant ID. */
   variantId: Scalars['ID']['input'];
+  /** Variant weight in grams. */
+  weight?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** Input for updating variant media (replaces all existing media). */
@@ -5401,7 +5387,6 @@ export type ResolversTypes = ResolversObject<{
   InventoryItemConnection: ResolverTypeWrapper<InventoryItemConnection>;
   InventoryItemCost: ResolverTypeWrapper<InventoryItemCost>;
   InventoryItemCostInput: InventoryItemCostInput;
-  InventoryItemDimensionsInput: InventoryItemDimensionsInput;
   InventoryItemEdge: ResolverTypeWrapper<InventoryItemEdge>;
   InventoryItemInput: InventoryItemInput;
   InventoryItemInventoryItemsMetaInput: InventoryItemInventoryItemsMetaInput;
@@ -5412,7 +5397,6 @@ export type ResolversTypes = ResolversObject<{
   InventoryItemUpdatePayload: ResolverTypeWrapper<InventoryItemUpdatePayload>;
   InventoryItemWarehouseScopeInput: InventoryItemWarehouseScopeInput;
   InventoryItemWarehouseScopeMode: InventoryItemWarehouseScopeMode;
-  InventoryItemWeightInput: InventoryItemWeightInput;
   InventoryItemWhereInput: InventoryItemWhereInput;
   InventoryMutation: ResolverTypeWrapper<InventoryMutation>;
   InventoryQuantities: ResolverTypeWrapper<InventoryQuantities>;
@@ -5735,7 +5719,6 @@ export type ResolversParentTypes = ResolversObject<{
   InventoryItemConnection: InventoryItemConnection;
   InventoryItemCost: InventoryItemCost;
   InventoryItemCostInput: InventoryItemCostInput;
-  InventoryItemDimensionsInput: InventoryItemDimensionsInput;
   InventoryItemEdge: InventoryItemEdge;
   InventoryItemInput: InventoryItemInput;
   InventoryItemInventoryItemsMetaInput: InventoryItemInventoryItemsMetaInput;
@@ -5744,7 +5727,6 @@ export type ResolversParentTypes = ResolversObject<{
   InventoryItemUpdateInput: InventoryItemUpdateInput;
   InventoryItemUpdatePayload: InventoryItemUpdatePayload;
   InventoryItemWarehouseScopeInput: InventoryItemWarehouseScopeInput;
-  InventoryItemWeightInput: InventoryItemWeightInput;
   InventoryItemWhereInput: InventoryItemWhereInput;
   InventoryMutation: InventoryMutation;
   InventoryQuantities: InventoryQuantities;
