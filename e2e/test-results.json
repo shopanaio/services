@@ -11,7 +11,7 @@
     "grepInvert": null,
     "maxFailures": 0,
     "metadata": {
-      "actualWorkers": 3
+      "actualWorkers": 1
     },
     "preserveOutput": "always",
     "reporter": [
@@ -44,7 +44,7 @@
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
-          "actualWorkers": 3
+          "actualWorkers": 1
         },
         "id": "chromium",
         "name": "chromium",
@@ -60,7 +60,7 @@
     "updateSnapshots": "missing",
     "updateSourceMethod": "patch",
     "version": "1.51.1",
-    "workers": 5,
+    "workers": 1,
     "webServer": {
       "command": "node bin/start-test-env.mjs",
       "url": "http://127.0.0.1:3300",
@@ -79,12 +79,12 @@
         {
           "title": "Admin inventory page UI",
           "file": "admin-ui/inventory-page.spec.ts",
-          "line": 376,
+          "line": 339,
           "column": 6,
           "specs": [
             {
               "title": "shows variants in product-first API order and paginates through variants",
-              "ok": false,
+              "ok": true,
               "tags": [],
               "tests": [
                 {
@@ -97,50 +97,27 @@
                     {
                       "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 20961,
-                      "error": {
-                        "value": "[\n  {\n    message: 'Cannot return null for non-nullable field Variant.handle.',\n    path: [\n      'inventoryQuery',\n      'inventoryItems',\n      'edges',\n      0,\n      'node',\n      'variant',\n      'handle'\n    ],\n    extensions: {\n      code: 'INTERNAL_SERVER_ERROR',\n      stacktrace: [Array],\n      serviceName: 'catalog-admin'\n    }\n  }\n]"
-                      },
-                      "errors": [
-                        {
-                          "message": "[\n  {\n    message: 'Cannot return null for non-nullable field Variant.handle.',\n    path: [\n      'inventoryQuery',\n      'inventoryItems',\n      'edges',\n      0,\n      'node',\n      'variant',\n      'handle'\n    ],\n    extensions: {\n      code: 'INTERNAL_SERVER_ERROR',\n      stacktrace: [Array],\n      serviceName: 'catalog-admin'\n    }\n  }\n]"
-                        }
-                      ],
+                      "status": "passed",
+                      "duration": 11283,
+                      "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-25T19:23:22.834Z",
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "/Users/phl/Projects/shopana-io/services/e2e/test-results/admin-ui-inventory-page-Ad-a9c77--paginates-through-variants-chromium/test-failed-1.png"
-                        },
-                        {
-                          "name": "video",
-                          "contentType": "video/webm",
-                          "path": "/Users/phl/Projects/shopana-io/services/e2e/test-results/admin-ui-inventory-page-Ad-a9c77--paginates-through-variants-chromium/video.webm"
-                        },
-                        {
-                          "name": "trace",
-                          "contentType": "application/zip",
-                          "path": "/Users/phl/Projects/shopana-io/services/e2e/test-results/admin-ui-inventory-page-Ad-a9c77--paginates-through-variants-chromium/trace.zip"
-                        }
-                      ]
+                      "startTime": "2026-06-25T19:38:44.079Z",
+                      "attachments": []
                     }
                   ],
-                  "status": "unexpected"
+                  "status": "expected"
                 }
               ],
               "id": "1b79c680960b7e5f9da1-2253aaf4d217902fcdbd",
               "file": "admin-ui/inventory-page.spec.ts",
-              "line": 377,
+              "line": 340,
               "column": 5
             },
             {
               "title": "edits on-hand and unavailable quantities and persists them through bulk update",
-              "ok": false,
+              "ok": true,
               "tags": [],
               "tests": [
                 {
@@ -151,88 +128,29 @@
                   "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": 1,
-                      "parallelIndex": 1,
-                      "status": "failed",
-                      "duration": 23034,
-                      "error": {
-                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: getByTestId('inventory-pagination-range')\nExpected string: \u001b[32m\"\u001b[7m1–4\u001b[27m of \u001b[7m4\u001b[27m\"\u001b[39m\nReceived string: \u001b[31m\"\u001b[7m0–0\u001b[27m of \u001b[7m0\u001b[27m\"\u001b[39m\nCall log:\n\u001b[2m  - expect.toHaveText with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('inventory-pagination-range')\u001b[22m\n\u001b[2m    9 × locator resolved to <span data-testid=\"inventory-pagination-range\" class=\"ant-typography ant-typography-secondary css-var-_r_0_\">0–0 of 0</span>\u001b[22m\n\u001b[2m      - unexpected value \"0–0 of 0\"\u001b[22m\n",
-                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: getByTestId('inventory-pagination-range')\nExpected string: \u001b[32m\"\u001b[7m1–4\u001b[27m of \u001b[7m4\u001b[27m\"\u001b[39m\nReceived string: \u001b[31m\"\u001b[7m0–0\u001b[27m of \u001b[7m0\u001b[27m\"\u001b[39m\nCall log:\n\u001b[2m  - expect.toHaveText with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('inventory-pagination-range')\u001b[22m\n\u001b[2m    9 × locator resolved to <span data-testid=\"inventory-pagination-range\" class=\"ant-typography ant-typography-secondary css-var-_r_0_\">0–0 of 0</span>\u001b[22m\n\u001b[2m      - unexpected value \"0–0 of 0\"\u001b[22m\n\n    at /Users/phl/Projects/shopana-io/services/e2e/tests/admin-ui/inventory-page.spec.ts:414:70",
-                        "matcherResult": {
-                          "name": "toHaveText",
-                          "expected": "1–4 of 4",
-                          "message": "\u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: getByTestId('inventory-pagination-range')\nExpected string: \u001b[32m\"\u001b[7m1–4\u001b[27m of \u001b[7m4\u001b[27m\"\u001b[39m\nReceived string: \u001b[31m\"\u001b[7m0–0\u001b[27m of \u001b[7m0\u001b[27m\"\u001b[39m\nCall log:\n\u001b[2m  - expect.toHaveText with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('inventory-pagination-range')\u001b[22m\n\u001b[2m    9 × locator resolved to <span data-testid=\"inventory-pagination-range\" class=\"ant-typography ant-typography-secondary css-var-_r_0_\">0–0 of 0</span>\u001b[22m\n\u001b[2m      - unexpected value \"0–0 of 0\"\u001b[22m\n",
-                          "pass": false,
-                          "actual": "0–0 of 0",
-                          "log": [
-                            "  - expect.toHaveText with timeout 5000ms",
-                            "  - waiting for getByTestId('inventory-pagination-range')",
-                            "    9 × locator resolved to <span data-testid=\"inventory-pagination-range\" class=\"ant-typography ant-typography-secondary css-var-_r_0_\">0–0 of 0</span>",
-                            "      - unexpected value \"0–0 of 0\""
-                          ],
-                          "timeout": 5000
-                        },
-                        "location": {
-                          "file": "/Users/phl/Projects/shopana-io/services/e2e/tests/admin-ui/inventory-page.spec.ts",
-                          "column": 70,
-                          "line": 414
-                        },
-                        "snippet": "  412 |   page: Page,\n  413 |   expectedKeys: string[],\n> 414 |   minVisibleRows: number,\n      |                          ^\n  415 | ) {\n  416 |   await expect\n  417 |     .poll(async () => {"
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "/Users/phl/Projects/shopana-io/services/e2e/tests/admin-ui/inventory-page.spec.ts",
-                            "column": 70,
-                            "line": 414
-                          },
-                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: getByTestId('inventory-pagination-range')\nExpected string: \u001b[32m\"\u001b[7m1–4\u001b[27m of \u001b[7m4\u001b[27m\"\u001b[39m\nReceived string: \u001b[31m\"\u001b[7m0–0\u001b[27m of \u001b[7m0\u001b[27m\"\u001b[39m\nCall log:\n\u001b[2m  - expect.toHaveText with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('inventory-pagination-range')\u001b[22m\n\u001b[2m    9 × locator resolved to <span data-testid=\"inventory-pagination-range\" class=\"ant-typography ant-typography-secondary css-var-_r_0_\">0–0 of 0</span>\u001b[22m\n\u001b[2m      - unexpected value \"0–0 of 0\"\u001b[22m\n\n\n  412 |   page: Page,\n  413 |   expectedKeys: string[],\n> 414 |   minVisibleRows: number,\n      |                          ^\n  415 | ) {\n  416 |   await expect\n  417 |     .poll(async () => {\n    at /Users/phl/Projects/shopana-io/services/e2e/tests/admin-ui/inventory-page.spec.ts:414:70"
-                        }
-                      ],
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 9525,
+                      "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-25T19:23:22.835Z",
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "/Users/phl/Projects/shopana-io/services/e2e/test-results/admin-ui-inventory-page-Ad-63ad2-ts-them-through-bulk-update-chromium/test-failed-1.png"
-                        },
-                        {
-                          "name": "video",
-                          "contentType": "video/webm",
-                          "path": "/Users/phl/Projects/shopana-io/services/e2e/test-results/admin-ui-inventory-page-Ad-63ad2-ts-them-through-bulk-update-chromium/video.webm"
-                        },
-                        {
-                          "name": "_prompt-0",
-                          "contentType": "text/markdown",
-                          "body": "IyBJbnN0cnVjdGlvbnMKCi0gRm9sbG93aW5nIFBsYXl3cmlnaHQgdGVzdCBmYWlsZWQuCi0gRXhwbGFpbiB3aHksIGJlIGNvbmNpc2UsIHJlc3BlY3QgUGxheXdyaWdodCBiZXN0IHByYWN0aWNlcy4KLSBQcm92aWRlIGEgc25pcHBldCBvZiBjb2RlIHdpdGggdGhlIGZpeCwgaWYgcG9zc2libGUuCgojIFRlc3QgaW5mbwoKLSBOYW1lOiBBZG1pbiBpbnZlbnRvcnkgcGFnZSBVSSA+PiBlZGl0cyBvbi1oYW5kIGFuZCB1bmF2YWlsYWJsZSBxdWFudGl0aWVzIGFuZCBwZXJzaXN0cyB0aGVtIHRocm91Z2ggYnVsayB1cGRhdGUKLSBMb2NhdGlvbjogL1VzZXJzL3BobC9Qcm9qZWN0cy9zaG9wYW5hLWlvL3NlcnZpY2VzL2UyZS90ZXN0cy9hZG1pbi11aS9pbnZlbnRvcnktcGFnZS5zcGVjLnRzOjQwODo1CgojIEVycm9yIGRldGFpbHMKCmBgYApFcnJvcjogVGltZWQgb3V0IDUwMDBtcyB3YWl0aW5nIGZvciBleHBlY3QobG9jYXRvcikudG9IYXZlVGV4dChleHBlY3RlZCkKCkxvY2F0b3I6IGdldEJ5VGVzdElkKCdpbnZlbnRvcnktcGFnaW5hdGlvbi1yYW5nZScpCkV4cGVjdGVkIHN0cmluZzogIjHigJM0IG9mIDQiClJlY2VpdmVkIHN0cmluZzogIjDigJMwIG9mIDAiCkNhbGwgbG9nOgogIC0gZXhwZWN0LnRvSGF2ZVRleHQgd2l0aCB0aW1lb3V0IDUwMDBtcwogIC0gd2FpdGluZyBmb3IgZ2V0QnlUZXN0SWQoJ2ludmVudG9yeS1wYWdpbmF0aW9uLXJhbmdlJykKICAgIDkgw5cgbG9jYXRvciByZXNvbHZlZCB0byA8c3BhbiBkYXRhLXRlc3RpZD0iaW52ZW50b3J5LXBhZ2luYXRpb24tcmFuZ2UiIGNsYXNzPSJhbnQtdHlwb2dyYXBoeSBhbnQtdHlwb2dyYXBoeS1zZWNvbmRhcnkgY3NzLXZhci1fcl8wXyI+MOKAkzAgb2YgMDwvc3Bhbj4KICAgICAgLSB1bmV4cGVjdGVkIHZhbHVlICIw4oCTMCBvZiAwIgoKICAgIGF0IC9Vc2Vycy9waGwvUHJvamVjdHMvc2hvcGFuYS1pby9zZXJ2aWNlcy9lMmUvdGVzdHMvYWRtaW4tdWkvaW52ZW50b3J5LXBhZ2Uuc3BlYy50czo0MTQ6NzAKYGBgCgojIFBhZ2Ugc25hcHNob3QKCmBgYHlhbWwKLSBhbGVydAotIGNvbXBsZW1lbnRhcnkKLSBjb21wbGVtZW50YXJ5OgogIC0gaW1nCiAgLSBpbWcgInNob3AiCiAgLSBzdHJvbmc6IFBsYXl3cmlnaHQgUHJvamVjdAogIC0gdGV4dDogVGVzdCBPcmdhbml6YXRpb24KICAtIG1lbnU6CiAgICAtIGltZyAic2hvcCIKICAgIC0gdGV4dDogU3RvcmUKICAgIC0gZ3JvdXA6CiAgICAgIC0gbWVudWl0ZW0gIlByb2R1Y3RzIgogICAgICAtIG1lbnVpdGVtICJDYXRlZ29yaWVzIgogICAgICAtIG1lbnVpdGVtICJUYWdzIgogICAgLSBpbWcgImFwcHN0b3JlIgogICAgLSB0ZXh0OiBJbnZlbnRvcnkKICAgIC0gZ3JvdXA6CiAgICAgIC0gbWVudWl0ZW0gIkFsbCBJbnZlbnRvcnkiCiAgICAgIC0gbWVudWl0ZW0gIkludmVudG9yeSBQYWdlIGE4NWM5YmExIgogICAgICAtIG1lbnVpdGVtICJXYXJlaG91c2UiCiAgICAtIGltZyAicGljdHVyZSIKICAgIC0gdGV4dDogTWVkaWEKICAgIC0gZ3JvdXA6CiAgICAgIC0gbWVudWl0ZW0gIkZpbGVzIgogICAgLSBpbWcgImdpZnQiCiAgICAtIHRleHQ6IFByb21vcwogICAgLSBncm91cDoKICAgICAgLSBtZW51aXRlbSAiQnVuZGxlcyIKLSBoZWFkaW5nICJJbnZlbnRvcnkgUGFnZSBhODVjOWJhMSIgW2xldmVsPTRdCi0gYnV0dG9uICJDcmVhdGUiCi0gYnV0dG9uICJmaWx0ZXIgRmlsdGVyIjoKICAtIGltZyAiZmlsdGVyIgogIC0gdGV4dDogRmlsdGVyCi0gdGV4dGJveCAiU2VhcmNoIGludmVudG9yeS4uLiIKLSBhbGVydDoKICAtIGltZyAiY2xvc2UtY2lyY2xlIgogIC0gdGV4dDogQ2Fubm90IHJldHVybiBudWxsIGZvciBub24tbnVsbGFibGUgZmllbGQgVmFyaWFudC5oYW5kbGUuCi0gdGV4dDogTm8gUm93cyBUbyBTaG93Ci0gZ3JpZDoKICAtIHJvd2dyb3VwOgogICAgLSByb3cgIkNvbHVtbiB3aXRoIEhlYWRlciBTZWxlY3Rpb24gUHJvZHVjdCBTS1UgT24gaGFuZCBVbmF2YWlsYWJsZSBSZXNlcnZlZCBBdmFpbGFibGUiOgogICAgICAtIGNvbHVtbmhlYWRlciAiQ29sdW1uIHdpdGggSGVhZGVyIFNlbGVjdGlvbiI6CiAgICAgICAgLSBjaGVja2JveCAiQ29sdW1uIHdpdGggSGVhZGVyIFNlbGVjdGlvbiIgW2Rpc2FibGVkXQogICAgICAtIGNvbHVtbmhlYWRlciAiUHJvZHVjdCIKICAgICAgLSBjb2x1bW5oZWFkZXIgIlNLVSIKICAgICAgLSBjb2x1bW5oZWFkZXIgIk9uIGhhbmQiCiAgICAgIC0gY29sdW1uaGVhZGVyICJVbmF2YWlsYWJsZSIKICAgICAgLSBjb2x1bW5oZWFkZXIgIlJlc2VydmVkIgogICAgICAtIGNvbHVtbmhlYWRlciAiQXZhaWxhYmxlIgogIC0gcm93Z3JvdXAKICAtIHJvd2dyb3VwCiAgLSByb3dncm91cAogIC0gcm93Z3JvdXAKICAtIHRleHQ6IE5vIFJvd3MgVG8gU2hvdwotIHRleHQ6ICJSb3dzIHBlciBwYWdlOiAyMCIKLSBjb21ib2JveAotIGltZyAiZG93biIKLSB0ZXh0OiAw4oCTMCBvZiAwCi0gYnV0dG9uICJsZWZ0IiBbZGlzYWJsZWRdOgogIC0gaW1nICJsZWZ0IgotIGJ1dHRvbiAicmlnaHQiIFtkaXNhYmxlZF06CiAgLSBpbWcgInJpZ2h0IgpgYGAKCiMgVGVzdCBzb3VyY2UKCmBgYHRzCiAgMzE0IHwgICAgICAgfSwKICAzMTUgfCAgICAgfSk7CiAgMzE2IHwKICAzMTcgfCAgICAgZXhwZWN0KGRhdGEuaW52ZW50b3J5TXV0YXRpb24uaW52ZW50b3J5SXRlbVVwZGF0ZS51c2VyRXJyb3JzKS50b0hhdmVMZW5ndGgoMCk7CiAgMzE4IHwKICAzMTkgfCAgICAgdmFyaWFudC5za3UgPSBza3U7CiAgMzIwIHwgICAgIHZhcmlhbnQub25IYW5kID0gb25IYW5kOwogIDMyMSB8ICAgICB2YXJpYW50LnVuYXZhaWxhYmxlID0gdW5hdmFpbGFibGU7CiAgMzIyIHwgICAgIHZhcmlhbnQucmVzZXJ2ZWQgPSAwOwogIDMyMyB8ICAgICB2YXJpYW50LmF2YWlsYWJsZSA9IG9uSGFuZCAtIHVuYXZhaWxhYmxlOwogIDMyNCB8ICAgfQogIDMyNSB8IH0KICAzMjYgfAogIDMyNyB8IGFzeW5jIGZ1bmN0aW9uIHNlZWRJbnZlbnRvcnlGaXh0dXJlKAogIDMyOCB8ICAgYXBpOiBBcGksCiAgMzI5IHwgICBwcm9kdWN0Q291bnQ6IG51bWJlciwKICAzMzAgfCAgIHZhcmlhbnRzUGVyUHJvZHVjdDogbnVtYmVyLAogIDMzMSB8ICk6IFByb21pc2U8SW52ZW50b3J5Rml4dHVyZT4gewogIDMzMiB8ICAgY29uc3QgdW5pcXVlID0gY3J5cHRvLnJhbmRvbVVVSUQoKS5zbGljZSgwLCA4KTsKICAzMzMgfCAgIGNvbnN0IHdhcmVob3VzZSA9IGF3YWl0IGNyZWF0ZURlZmF1bHRXYXJlaG91c2UoYXBpLCB1bmlxdWUpOwogIDMzNCB8ICAgY29uc3QgcHJvZHVjdHM6IFNlZWRlZFByb2R1Y3RbXSA9IFtdOwogIDMzNSB8CiAgMzM2IHwgICBmb3IgKGxldCBwcm9kdWN0SW5kZXggPSAwOyBwcm9kdWN0SW5kZXggPCBwcm9kdWN0Q291bnQ7IHByb2R1Y3RJbmRleCArPSAxKSB7CiAgMzM3IHwgICAgIHByb2R1Y3RzLnB1c2goYXdhaXQgY3JlYXRlVHJhY2tlZFByb2R1Y3QoYXBpLCB1bmlxdWUsIHByb2R1Y3RJbmRleCwgdmFyaWFudHNQZXJQcm9kdWN0KSk7CiAgMzM4IHwgICB9CiAgMzM5IHwKICAzNDAgfCAgIGNvbnN0IHZhcmlhbnRzID0gcHJvZHVjdHMuZmxhdE1hcCgocHJvZHVjdCkgPT4gcHJvZHVjdC52YXJpYW50cyk7CiAgMzQxIHwgICBhd2FpdCBzZWVkU3RvY2soYXBpLCB3YXJlaG91c2UuaWQsIHVuaXF1ZSwgdmFyaWFudHMpOwogIDM0MiB8CiAgMzQzIHwgICByZXR1cm4gewogIDM0NCB8ICAgICB3YXJlaG91c2VJZDogd2FyZWhvdXNlLmlkLAogIDM0NSB8ICAgICB3YXJlaG91c2VOYW1lOiB3YXJlaG91c2UubmFtZSwKICAzNDYgfCAgICAgcHJvZHVjdHMsCiAgMzQ3IHwgICAgIHZhcmlhbnRzLAogIDM0OCB8ICAgfTsKICAzNDkgfCB9CiAgMzUwIHwKICAzNTEgfCBmdW5jdGlvbiBpbnZlbnRvcnlVcmwob3JnYW5pemF0aW9uTmFtZTogc3RyaW5nLCBwcm9qZWN0U2x1Zzogc3RyaW5nLCB3YXJlaG91c2VJZD86IHN0cmluZykgewogIDM1MiB8ICAgY29uc3QgYmFzZVVybCA9IGAvJHtvcmdhbml6YXRpb25OYW1lfS8ke3Byb2plY3RTbHVnfS9pbnZlbnRvcnlgOwogIDM1MyB8CiAgMzU0IHwgICByZXR1cm4gd2FyZWhvdXNlSWQgPyBgJHtiYXNlVXJsfS8ke3dhcmVob3VzZUlkfWAgOiBiYXNlVXJsOwogIDM1NSB8IH0KICAzNTYgfAogIDM1NyB8IGFzeW5jIGZ1bmN0aW9uIG9wZW5JbnZlbnRvcnlQYWdlKHBhZ2U6IFBhZ2UsIHVybDogc3RyaW5nLCBleHBlY3RlZFRpdGxlOiBzdHJpbmcpIHsKICAzNTggfCAgIGF3YWl0IHBhZ2Uuc2V0Vmlld3BvcnRTaXplKHsgd2lkdGg6IDE5MjAsIGhlaWdodDogMTYwMCB9KTsKICAzNTkgfCAgIGF3YWl0IHBhZ2UuZ290byh1cmwpOwogIDM2MCB8ICAgYXdhaXQgZXhwZWN0KHBhZ2UuZ2V0QnlUZXN0SWQoJ3BhZ2UtdGl0bGUnKSkudG9IYXZlVGV4dChleHBlY3RlZFRpdGxlKTsKICAzNjEgfCAgIGF3YWl0IGV4cGVjdChwYWdlLmdldEJ5VGVzdElkKCdpbnZlbnRvcnktdGFibGUnKSkudG9CZVZpc2libGUoKTsKICAzNjIgfCB9CiAgMzYzIHwKICAzNjQgfCBmdW5jdGlvbiB2YXJpYW50S2V5KHZhcmlhbnQ6IFNlZWRlZFZhcmlhbnQpIHsKICAzNjUgfCAgIHJldHVybiBgJHt2YXJpYW50LnByb2R1Y3RIYW5kbGV9LSR7dmFyaWFudC5oYW5kbGV9YDsKICAzNjYgfCB9CiAgMzY3IHwKICAzNjggfCBmdW5jdGlvbiBrZXlCeVZhcmlhbnRJZCh2YXJpYW50czogU2VlZGVkVmFyaWFudFtdKSB7CiAgMzY5IHwgICByZXR1cm4gbmV3IE1hcCh2YXJpYW50cy5tYXAoKHZhcmlhbnQpID0+IFt2YXJpYW50LmlkLCB2YXJpYW50S2V5KHZhcmlhbnQpXSBhcyBjb25zdCkpOwogIDM3MCB8IH0KICAzNzEgfAogIDM3MiB8IGFzeW5jIGZ1bmN0aW9uIGZldGNoRXhwZWN0ZWRWYXJpYW50S2V5cygKICAzNzMgfCAgIGFwaTogQXBpLAogIDM3NCB8ICAgZml4dHVyZTogSW52ZW50b3J5Rml4dHVyZSwKICAzNzUgfCAgIG9yZGVyQnk6IEludmVudG9yeUl0ZW1PcmRlcltdLAogIDM3NiB8ICkgewogIDM3NyB8ICAgY29uc3Qga2V5c0J5SWQgPSBrZXlCeVZhcmlhbnRJZChmaXh0dXJlLnZhcmlhbnRzKTsKICAzNzggfCAgIGNvbnN0IHsgZGF0YSB9ID0gYXdhaXQgYXBpLmFkbWluLnF1ZXJ5KCdpbnZlbnRvcnktYXBpL0ludmVudG9yeUl0ZW1zJywgewogIDM3OSB8ICAgICB2YXJpYWJsZXM6IHsKICAzODAgfCAgICAgICBmaXJzdDogZml4dHVyZS52YXJpYW50cy5sZW5ndGgsCiAgMzgxIHwgICAgICAgd2hlcmU6IHsKICAzODIgfCAgICAgICAgIHByb2R1Y3RJZDogeyBfaW46IGZpeHR1cmUucHJvZHVjdHMubWFwKChwcm9kdWN0KSA9PiBwcm9kdWN0LmlkKSB9LAogIDM4MyB8ICAgICAgIH0sCiAgMzg0IHwgICAgICAgb3JkZXJCeSwKICAzODUgfCAgICAgfSwKICAzODYgfCAgIH0pOwogIDM4NyB8CiAgMzg4IHwgICByZXR1cm4gZGF0YS5pbnZlbnRvcnlRdWVyeS5pbnZlbnRvcnlJdGVtcy5lZGdlcy5tYXAoKGVkZ2UpID0+IHsKICAzODkgfCAgICAgY29uc3Qga2V5ID0ga2V5c0J5SWQuZ2V0KGVkZ2Uubm9kZS52YXJpYW50LmlkKTsKICAzOTAgfCAgICAgaWYgKCFrZXkpIHsKICAzOTEgfCAgICAgICB0aHJvdyBuZXcgRXJyb3IoYFVuZXhwZWN0ZWQgdmFyaWFudCByZXR1cm5lZDogJHtlZGdlLm5vZGUudmFyaWFudC5pZH1gKTsKICAzOTIgfCAgICAgfQogIDM5MyB8CiAgMzk0IHwgICAgIHJldHVybiBrZXk7CiAgMzk1IHwgICB9KTsKICAzOTYgfCB9CiAgMzk3IHwKICAzOTggfCBhc3luYyBmdW5jdGlvbiB2aXNpYmxlSW52ZW50b3J5VmFyaWFudEtleXMocGFnZTogUGFnZSkgewogIDM5OSB8ICAgcmV0dXJuIHBhZ2UubG9jYXRvcignW2RhdGEtdGVzdGlkXj0iaW52ZW50b3J5LXRhYmxlLXByb2R1Y3QtY2VsbC0iXScpLmV2YWx1YXRlQWxsKChub2RlcykgPT4KICA0MDAgfCAgICAgbm9kZXMubWFwKChub2RlKSA9PiB7CiAgNDAxIHwgICAgICAgY29uc3QgdGVzdElkID0gbm9kZS5nZXRBdHRyaWJ1dGUoJ2RhdGEtdGVzdGlkJyk7CiAgNDAyIHwgICAgICAgaWYgKCF0ZXN0SWQpIHsKICA0MDMgfCAgICAgICAgIHRocm93IG5ldyBFcnJvcignSW52ZW50b3J5IHByb2R1Y3QgY2VsbCBpcyBtaXNzaW5nIGRhdGEtdGVzdGlkJyk7CiAgNDA0IHwgICAgICAgfQogIDQwNSB8CiAgNDA2IHwgICAgICAgcmV0dXJuIHRlc3RJZC5yZXBsYWNlKCdpbnZlbnRvcnktdGFibGUtcHJvZHVjdC1jZWxsLScsICcnKTsKICA0MDcgfCAgICAgfSksCiAgNDA4IHwgICApOwogIDQwOSB8IH0KICA0MTAgfAogIDQxMSB8IGFzeW5jIGZ1bmN0aW9uIGV4cGVjdFZpc2libGVWYXJpYW50T3JkZXIoCiAgNDEyIHwgICBwYWdlOiBQYWdlLAogIDQxMyB8ICAgZXhwZWN0ZWRLZXlzOiBzdHJpbmdbXSwKPiA0MTQgfCAgIG1pblZpc2libGVSb3dzOiBudW1iZXIsCiAgICAgIHwgICAgICAgICAgICAgICAgICAgICAgICAgIF4gRXJyb3I6IFRpbWVkIG91dCA1MDAwbXMgd2FpdGluZyBmb3IgZXhwZWN0KGxvY2F0b3IpLnRvSGF2ZVRleHQoZXhwZWN0ZWQpCiAgNDE1IHwgKSB7CiAgNDE2IHwgICBhd2FpdCBleHBlY3QKICA0MTcgfCAgICAgLnBvbGwoYXN5bmMgKCkgPT4gewogIDQxOCB8ICAgICAgIGNvbnN0IGtleXMgPSBhd2FpdCB2aXNpYmxlSW52ZW50b3J5VmFyaWFudEtleXMocGFnZSk7CiAgNDE5IHwgICAgICAgaWYgKGtleXMubGVuZ3RoIDwgbWluVmlzaWJsZVJvd3MpIHsKICA0MjAgfCAgICAgICAgIHJldHVybiBudWxsOwogIDQyMSB8ICAgICAgIH0KICA0MjIgfAogIDQyMyB8ICAgICAgIHJldHVybiBrZXlzLnNsaWNlKDAsIG1pblZpc2libGVSb3dzKTsKICA0MjQgfCAgICAgfSkKICA0MjUgfCAgICAgLnRvRXF1YWwoZXhwZWN0ZWRLZXlzLnNsaWNlKDAsIG1pblZpc2libGVSb3dzKSk7CiAgNDI2IHwgfQogIDQyNyB8CiAgNDI4IHwgZnVuY3Rpb24gaW52ZW50b3J5Q2VsbChwYWdlOiBQYWdlLCB2YXJpYW50OiBTZWVkZWRWYXJpYW50LCBmaWVsZDogc3RyaW5nKSB7CiAgNDI5IHwgICByZXR1cm4gcGFnZS5nZXRCeVRlc3RJZChgaW52ZW50b3J5LXRhYmxlLSR7ZmllbGR9LWNlbGwtJHt2YXJpYW50S2V5KHZhcmlhbnQpfWApOwogIDQzMCB8IH0KICA0MzEgfAogIDQzMiB8IGFzeW5jIGZ1bmN0aW9uIGVkaXRJbnZlbnRvcnlOdW1iZXJDZWxsKAogIDQzMyB8ICAgcGFnZTogUGFnZSwKICA0MzQgfCAgIHZhcmlhbnQ6IFNlZWRlZFZhcmlhbnQsCiAgNDM1IHwgICBmaWVsZDogJ29uLWhhbmQnIHwgJ3VuYXZhaWxhYmxlJywKICA0MzYgfCAgIHZhbHVlOiBudW1iZXIsCiAgNDM3IHwgKSB7CiAgNDM4IHwgICBhd2FpdCBpbnZlbnRvcnlDZWxsKHBhZ2UsIHZhcmlhbnQsIGZpZWxkKS5zY3JvbGxJbnRvVmlld0lmTmVlZGVkKCk7CiAgNDM5IHwgICBhd2FpdCBpbnZlbnRvcnlDZWxsKHBhZ2UsIHZhcmlhbnQsIGZpZWxkKS5kYmxjbGljaygpOwogIDQ0MCB8CiAgNDQxIHwgICBjb25zdCBpbnB1dCA9IHBhZ2UKICA0NDIgfCAgICAgLmdldEJ5VGVzdElkKCdpbnZlbnRvcnktdGFibGUnKQogIDQ0MyB8ICAgICAubG9jYXRvcignaW5wdXRbdHlwZT0ibnVtYmVyIl0sIGlucHV0LmFnLWNlbGwtZWRpdC1pbnB1dDpub3QoW3R5cGU9ImNoZWNrYm94Il0pJykKICA0NDQgfCAgICAgLmxhc3QoKTsKICA0NDUgfAogIDQ0NiB8ICAgYXdhaXQgZXhwZWN0KGlucHV0KS50b0JlVmlzaWJsZSgpOwogIDQ0NyB8ICAgYXdhaXQgaW5wdXQuZmlsbChTdHJpbmcodmFsdWUpKTsKICA0NDggfCAgIGF3YWl0IGlucHV0LnByZXNzKCdFbnRlcicpOwogIDQ0OSB8IH0KICA0NTAgfAogIDQ1MSB8IGFzeW5jIGZ1bmN0aW9uIGV4cGVjdFZhcmlhbnRJbnZlbnRvcnlBcGlTdGF0ZSgKICA0NTIgfCAgIGFwaTogQXBpLAogIDQ1MyB8ICAgd2FyZWhvdXNlSWQ6IHN0cmluZywKICA0NTQgfCAgIHZhcmlhbnQ6IFNlZWRlZFZhcmlhbnQsCiAgNDU1IHwgICBleHBlY3RlZDogRXhwZWN0ZWRJbnZlbnRvcnlWYWx1ZXMsCiAgNDU2IHwgKSB7CiAgNDU3IHwgICBhd2FpdCBleHBlY3QKICA0NTggfCAgICAgLnBvbGwoCiAgNDU5IHwgICAgICAgYXN5bmMgKCkgPT4gewogIDQ2MCB8ICAgICAgICAgY29uc3QgeyBkYXRhIH0gPSBhd2FpdCBhcGkuYWRtaW4ucXVlcnkoJ2ludmVudG9yeS1hcGkvSW52ZW50b3J5SXRlbUJ5VmFyaWFudCcsIHsKICA0NjEgfCAgICAgICAgICAgdmFyaWFibGVzOiB7IHZhcmlhbnRJZDogdmFyaWFudC5pZCB9LAogIDQ2MiB8ICAgICAgICAgfSk7CiAgNDYzIHwgICAgICAgICBjb25zdCBpdGVtID0gZGF0YS5pbnZlbnRvcnlRdWVyeS5pbnZlbnRvcnlJdGVtQnlWYXJpYW50OwogIDQ2NCB8ICAgICAgICAgY29uc3Qgc3RvY2sgPSBpdGVtPy5zdG9jay5maW5kKChjYW5kaWRhdGUpID0+IGNhbmRpZGF0ZS53YXJlaG91c2VJZCA9PT0gd2FyZWhvdXNlSWQpOwogIDQ2NSB8CiAgNDY2IHwgICAgICAgICByZXR1cm4gewogIDQ2NyB8ICAgICAgICAgICBvbkhhbmQ6IHN0b2NrPy5xdWFudGl0eU9uSGFuZCA/PyBudWxsLAogIDQ2OCB8ICAgICAgICAgICB1bmF2YWlsYWJsZTogc3RvY2s/LnVuYXZhaWxhYmxlUXVhbnRpdHkgPz8gbnVsbCwKICA0NjkgfCAgICAgICAgICAgYXZhaWxhYmxlOiBzdG9jaz8uYXZhaWxhYmxlRm9yU2FsZSA/PyBudWxsLAogIDQ3MCB8ICAgICAgICAgfTsKICA0NzEgfCAgICAgICB9LAogIDQ3MiB8ICAgICAgIHsgdGltZW91dDogMzBfMDAwIH0sCiAgNDczIHwgICAgICkKICA0NzQgfCAgICAgLnRvRXF1YWwoZXhwZWN0ZWQpOwogIDQ3NSB8IH0KICA0NzYgfAogIDQ3NyB8IGFzeW5jIGZ1bmN0aW9uIGV4cGVjdFZhcmlhbnRTdG9ja0luV2FyZWhvdXNlKGFwaTogQXBpLCB3YXJlaG91c2VJZDogc3RyaW5nLCB2YXJpYW50SWQ6IHN0cmluZykgewogIDQ3OCB8ICAgYXdhaXQgZXhwZWN0CiAgNDc5IHwgICAgIC5wb2xsKAogIDQ4MCB8ICAgICAgIGFzeW5jICgpID0+IHsKICA0ODEgfCAgICAgICAgIGNvbnN0IHsgZGF0YSB9ID0gYXdhaXQgYXBpLmFkbWluLnF1ZXJ5KCdpbnZlbnRvcnktYXBpL0ludmVudG9yeUl0ZW1CeVZhcmlhbnQnLCB7CiAgNDgyIHwgICAgICAgICAgIHZhcmlhYmxlczogeyB2YXJpYW50SWQgfSwKICA0ODMgfCAgICAgICAgIH0pOwogIDQ4NCB8ICAgICAgICAgY29uc3QgaXRlbSA9IGRhdGEuaW52ZW50b3J5UXVlcnkuaW52ZW50b3J5SXRlbUJ5VmFyaWFudDsKICA0ODUgfCAgICAgICAgIGNvbnN0IHN0b2NrID0gaXRlbT8uc3RvY2suZmluZCgoY2FuZGlkYXRlKSA9PiBjYW5kaWRhdGUud2FyZWhvdXNlSWQgPT09IHdhcmVob3VzZUlkKTsKICA0ODYgfAogIDQ4NyB8ICAgICAgICAgcmV0dXJuIHsKICA0ODggfCAgICAgICAgICAgZXhpc3RzOiBCb29sZWFuKHN0b2NrKSwKICA0ODkgfCAgICAgICAgICAgb25IYW5kOiBzdG9jaz8ucXVhbnRpdHlPbkhhbmQgPz8gbnVsbCwKICA0OTAgfCAgICAgICAgICAgdW5hdmFpbGFibGU6IHN0b2NrPy51bmF2YWlsYWJsZVF1YW50aXR5ID8/IG51bGwsCiAgNDkxIHwgICAgICAgICAgIGF2YWlsYWJsZTogc3RvY2s/LmF2YWlsYWJsZUZvclNhbGUgPz8gbnVsbCwKICA0OTIgfCAgICAgICAgIH07CiAgNDkzIHwgICAgICAgfSwKICA0OTQgfCAgICAgICB7IHRpbWVvdXQ6IDMwXzAwMCB9LAogIDQ5NSB8ICAgICApCiAgNDk2IHwgICAgIC50b0VxdWFsKHsKICA0OTcgfCAgICAgICBleGlzdHM6IHRydWUsCiAgNDk4IHwgICAgICAgb25IYW5kOiAwLAogIDQ5OSB8ICAgICAgIHVuYXZhaWxhYmxlOiAwLAogIDUwMCB8ICAgICAgIGF2YWlsYWJsZTogMCwKICA1MDEgfCAgICAgfSk7CiAgNTAyIHwgfQogIDUwMyB8CiAgNTA0IHwgYXN5bmMgZnVuY3Rpb24gYWRkVmlzaWJsZVBpY2tlclJvd3NGb3JQcm9kdWN0KHBhZ2U6IFBhZ2UsIHByb2R1Y3RUaXRsZTogc3RyaW5nLCBjb3VudDogbnVtYmVyKSB7CiAgNTA1IHwgICBhd2FpdCBleHBlY3QocGFnZS5nZXRCeVRlc3RJZCgndmFyaWFudC1waWNrZXItbW9kYWwnKSkudG9CZVZpc2libGUoKTsKICA1MDYgfCAgIGNvbnN0IHJvd3MgPSBwYWdlCiAgNTA3IHwgICAgIC5nZXRCeVRlc3RJZCgndmFyaWFudC1waWNrZXItZ3JpZCcpCiAgNTA4IHwgICAgIC5sb2NhdG9yKCcuYWctY2VudGVyLWNvbHMtY29udGFpbmVyIC5hZy1yb3cnKQogIDUwOSB8ICAgICAuZmlsdGVyKHsgaGFzVGV4dDogcHJvZHVjdFRpdGxlIH0pOwogIDUxMCB8CiAgNTExIHwgICBhd2FpdCBleHBlY3Qocm93cykudG9IYXZlQ291bnQoY291bnQpOwogIDUxMiB8CiAgNTEzIHwgICBmb3IgKGxldCBpbmRleCA9IDA7IGluZGV4IDwgY291bnQ7IGluZGV4ICs9IDEpIHsKICA1MTQgfCAgICAgYXdhaXQgcm93cy5udGgoaW5kZXgpLmNsaWNrKCk7CmBgYA=="
-                        },
-                        {
-                          "name": "trace",
-                          "contentType": "application/zip",
-                          "path": "/Users/phl/Projects/shopana-io/services/e2e/test-results/admin-ui-inventory-page-Ad-63ad2-ts-them-through-bulk-update-chromium/trace.zip"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "/Users/phl/Projects/shopana-io/services/e2e/tests/admin-ui/inventory-page.spec.ts",
-                        "column": 70,
-                        "line": 414
-                      }
+                      "startTime": "2026-06-25T19:38:56.164Z",
+                      "attachments": []
                     }
                   ],
-                  "status": "unexpected"
+                  "status": "expected"
                 }
               ],
               "id": "1b79c680960b7e5f9da1-ed8df2acdd792024d3f5",
               "file": "admin-ui/inventory-page.spec.ts",
-              "line": 408,
+              "line": 371,
               "column": 5
             },
             {
-              "title": "creates a warehouse and product, then adds product variants to warehouse inventory",
-              "ok": false,
+              "title": "creates a warehouse and product, then shows product variant rows in each warehouse inventory",
+              "ok": true,
               "tags": [],
               "tests": [
                 {
@@ -243,61 +161,24 @@
                   "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": 2,
-                      "parallelIndex": 2,
-                      "status": "timedOut",
-                      "duration": 30473,
-                      "error": {
-                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
-                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
-                      },
-                      "errors": [
-                        {
-                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
-                        },
-                        {
-                          "location": {
-                            "file": "/Users/phl/Projects/shopana-io/services/e2e/tests/admin-ui/inventory-page.spec.ts",
-                            "column": 70,
-                            "line": 473
-                          },
-                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: getByTestId('inventory-pagination-range')\nExpected string: \u001b[32m\"\u001b[7m1–2\u001b[27m of \u001b[7m2\u001b[27m\"\u001b[39m\nReceived string: \u001b[31m\"\u001b[7m0–0\u001b[27m of \u001b[7m0\u001b[27m\"\u001b[39m\nCall log:\n\u001b[2m  - expect.toHaveText with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('inventory-pagination-range')\u001b[22m\n\u001b[2m    7 × locator resolved to <span data-testid=\"inventory-pagination-range\" class=\"ant-typography ant-typography-secondary css-var-_r_0_\">0–0 of 0</span>\u001b[22m\n\u001b[2m      - unexpected value \"0–0 of 0\"\u001b[22m\n\n\n  471 |       },\n  472 |       { timeout: 30_000 },\n> 473 |     )\n      |      ^\n  474 |     .toEqual(expected);\n  475 | }\n  476 |\n    at /Users/phl/Projects/shopana-io/services/e2e/tests/admin-ui/inventory-page.spec.ts:473:70"
-                        }
-                      ],
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 13761,
+                      "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-25T19:23:22.835Z",
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "/Users/phl/Projects/shopana-io/services/e2e/test-results/admin-ui-inventory-page-Ad-cbb3d-ants-to-warehouse-inventory-chromium/test-failed-1.png"
-                        },
-                        {
-                          "name": "video",
-                          "contentType": "video/webm",
-                          "path": "/Users/phl/Projects/shopana-io/services/e2e/test-results/admin-ui-inventory-page-Ad-cbb3d-ants-to-warehouse-inventory-chromium/video.webm"
-                        },
-                        {
-                          "name": "_prompt-1",
-                          "contentType": "text/markdown",
-                          "body": "IyBJbnN0cnVjdGlvbnMKCi0gRm9sbG93aW5nIFBsYXl3cmlnaHQgdGVzdCBmYWlsZWQuCi0gRXhwbGFpbiB3aHksIGJlIGNvbmNpc2UsIHJlc3BlY3QgUGxheXdyaWdodCBiZXN0IHByYWN0aWNlcy4KLSBQcm92aWRlIGEgc25pcHBldCBvZiBjb2RlIHdpdGggdGhlIGZpeCwgaWYgcG9zc2libGUuCgojIFRlc3QgaW5mbwoKLSBOYW1lOiBBZG1pbiBpbnZlbnRvcnkgcGFnZSBVSSA+PiBjcmVhdGVzIGEgd2FyZWhvdXNlIGFuZCBwcm9kdWN0LCB0aGVuIGFkZHMgcHJvZHVjdCB2YXJpYW50cyB0byB3YXJlaG91c2UgaW52ZW50b3J5Ci0gTG9jYXRpb246IC9Vc2Vycy9waGwvUHJvamVjdHMvc2hvcGFuYS1pby9zZXJ2aWNlcy9lMmUvdGVzdHMvYWRtaW4tdWkvaW52ZW50b3J5LXBhZ2Uuc3BlYy50czo0NTY6NQoKIyBFcnJvciBkZXRhaWxzCgpgYGAKRXJyb3I6IGV4cGVjdChsb2NhdG9yKS50b0hhdmVUZXh0KGV4cGVjdGVkKQoKTG9jYXRvcjogZ2V0QnlUZXN0SWQoJ2ludmVudG9yeS1wYWdpbmF0aW9uLXJhbmdlJykKRXhwZWN0ZWQgc3RyaW5nOiAiMeKAkzIgb2YgMiIKUmVjZWl2ZWQgc3RyaW5nOiAiMOKAkzAgb2YgMCIKQ2FsbCBsb2c6CiAgLSBleHBlY3QudG9IYXZlVGV4dCB3aXRoIHRpbWVvdXQgNTAwMG1zCiAgLSB3YWl0aW5nIGZvciBnZXRCeVRlc3RJZCgnaW52ZW50b3J5LXBhZ2luYXRpb24tcmFuZ2UnKQogICAgNyDDlyBsb2NhdG9yIHJlc29sdmVkIHRvIDxzcGFuIGRhdGEtdGVzdGlkPSJpbnZlbnRvcnktcGFnaW5hdGlvbi1yYW5nZSIgY2xhc3M9ImFudC10eXBvZ3JhcGh5IGFudC10eXBvZ3JhcGh5LXNlY29uZGFyeSBjc3MtdmFyLV9yXzBfIj4w4oCTMCBvZiAwPC9zcGFuPgogICAgICAtIHVuZXhwZWN0ZWQgdmFsdWUgIjDigJMwIG9mIDAiCgogICAgYXQgL1VzZXJzL3BobC9Qcm9qZWN0cy9zaG9wYW5hLWlvL3NlcnZpY2VzL2UyZS90ZXN0cy9hZG1pbi11aS9pbnZlbnRvcnktcGFnZS5zcGVjLnRzOjQ3Mzo3MApgYGAKCiMgUGFnZSBzbmFwc2hvdAoKYGBgeWFtbAotIGFsZXJ0Ci0gY29tcGxlbWVudGFyeQotIGNvbXBsZW1lbnRhcnk6CiAgLSBpbWcKICAtIGltZyAic2hvcCIKICAtIHN0cm9uZzogUGxheXdyaWdodCBQcm9qZWN0CiAgLSB0ZXh0OiBUZXN0IE9yZ2FuaXphdGlvbgogIC0gbWVudToKICAgIC0gaW1nICJzaG9wIgogICAgLSB0ZXh0OiBTdG9yZQogICAgLSBncm91cDoKICAgICAgLSBtZW51aXRlbSAiUHJvZHVjdHMiCiAgICAgIC0gbWVudWl0ZW0gIkNhdGVnb3JpZXMiCiAgICAgIC0gbWVudWl0ZW0gIlRhZ3MiCiAgICAtIGltZyAiYXBwc3RvcmUiCiAgICAtIHRleHQ6IEludmVudG9yeQogICAgLSBncm91cDoKICAgICAgLSBtZW51aXRlbSAiQWxsIEludmVudG9yeSIKICAgICAgLSBtZW51aXRlbSAiQWRtaW4gVUkgT2ZmaWNlIGZiMzE3ZGQ4IgogICAgICAtIG1lbnVpdGVtICJXYXJlaG91c2UiCiAgICAtIGltZyAicGljdHVyZSIKICAgIC0gdGV4dDogTWVkaWEKICAgIC0gZ3JvdXA6CiAgICAgIC0gbWVudWl0ZW0gIkZpbGVzIgogICAgLSBpbWcgImdpZnQiCiAgICAtIHRleHQ6IFByb21vcwogICAgLSBncm91cDoKICAgICAgLSBtZW51aXRlbSAiQnVuZGxlcyIKLSBoZWFkaW5nICJBZG1pbiBVSSBPZmZpY2UgZmIzMTdkZDgiIFtsZXZlbD00XQotIGJ1dHRvbiAiQ3JlYXRlIgotIGJ1dHRvbiAiZmlsdGVyIEZpbHRlciI6CiAgLSBpbWcgImZpbHRlciIKICAtIHRleHQ6IEZpbHRlcgotIHRleHRib3ggIlNlYXJjaCBpbnZlbnRvcnkuLi4iCi0gYWxlcnQ6CiAgLSBpbWcgImNsb3NlLWNpcmNsZSIKICAtIHRleHQ6IENhbm5vdCByZXR1cm4gbnVsbCBmb3Igbm9uLW51bGxhYmxlIGZpZWxkIFZhcmlhbnQuaGFuZGxlLgotIHRleHQ6IE5vIFJvd3MgVG8gU2hvdwotIGdyaWQ6CiAgLSByb3dncm91cDoKICAgIC0gcm93ICJDb2x1bW4gd2l0aCBIZWFkZXIgU2VsZWN0aW9uIFByb2R1Y3QgU0tVIE9uIGhhbmQgVW5hdmFpbGFibGUgUmVzZXJ2ZWQgQXZhaWxhYmxlIjoKICAgICAgLSBjb2x1bW5oZWFkZXIgIkNvbHVtbiB3aXRoIEhlYWRlciBTZWxlY3Rpb24iOgogICAgICAgIC0gY2hlY2tib3ggIkNvbHVtbiB3aXRoIEhlYWRlciBTZWxlY3Rpb24iIFtkaXNhYmxlZF0KICAgICAgLSBjb2x1bW5oZWFkZXIgIlByb2R1Y3QiCiAgICAgIC0gY29sdW1uaGVhZGVyICJTS1UiCiAgICAgIC0gY29sdW1uaGVhZGVyICJPbiBoYW5kIgogICAgICAtIGNvbHVtbmhlYWRlciAiVW5hdmFpbGFibGUiCiAgICAgIC0gY29sdW1uaGVhZGVyICJSZXNlcnZlZCIKICAgICAgLSBjb2x1bW5oZWFkZXIgIkF2YWlsYWJsZSIKICAtIHJvd2dyb3VwCiAgLSByb3dncm91cAogIC0gcm93Z3JvdXAKICAtIHJvd2dyb3VwCiAgLSB0ZXh0OiBObyBSb3dzIFRvIFNob3cKLSB0ZXh0OiAiUm93cyBwZXIgcGFnZTogMjAiCi0gY29tYm9ib3gKLSBpbWcgImRvd24iCi0gdGV4dDogMOKAkzAgb2YgMAotIGJ1dHRvbiAibGVmdCIgW2Rpc2FibGVkXToKICAtIGltZyAibGVmdCIKLSBidXR0b24gInJpZ2h0IiBbZGlzYWJsZWRdOgogIC0gaW1nICJyaWdodCIKYGBgCgojIFRlc3Qgc291cmNlCgpgYGB0cwogIDM3MyB8ICAgYXBpOiBBcGksCiAgMzc0IHwgICBmaXh0dXJlOiBJbnZlbnRvcnlGaXh0dXJlLAogIDM3NSB8ICAgb3JkZXJCeTogSW52ZW50b3J5SXRlbU9yZGVyW10sCiAgMzc2IHwgKSB7CiAgMzc3IHwgICBjb25zdCBrZXlzQnlJZCA9IGtleUJ5VmFyaWFudElkKGZpeHR1cmUudmFyaWFudHMpOwogIDM3OCB8ICAgY29uc3QgeyBkYXRhIH0gPSBhd2FpdCBhcGkuYWRtaW4ucXVlcnkoJ2ludmVudG9yeS1hcGkvSW52ZW50b3J5SXRlbXMnLCB7CiAgMzc5IHwgICAgIHZhcmlhYmxlczogewogIDM4MCB8ICAgICAgIGZpcnN0OiBmaXh0dXJlLnZhcmlhbnRzLmxlbmd0aCwKICAzODEgfCAgICAgICB3aGVyZTogewogIDM4MiB8ICAgICAgICAgcHJvZHVjdElkOiB7IF9pbjogZml4dHVyZS5wcm9kdWN0cy5tYXAoKHByb2R1Y3QpID0+IHByb2R1Y3QuaWQpIH0sCiAgMzgzIHwgICAgICAgfSwKICAzODQgfCAgICAgICBvcmRlckJ5LAogIDM4NSB8ICAgICB9LAogIDM4NiB8ICAgfSk7CiAgMzg3IHwKICAzODggfCAgIHJldHVybiBkYXRhLmludmVudG9yeVF1ZXJ5LmludmVudG9yeUl0ZW1zLmVkZ2VzLm1hcCgoZWRnZSkgPT4gewogIDM4OSB8ICAgICBjb25zdCBrZXkgPSBrZXlzQnlJZC5nZXQoZWRnZS5ub2RlLnZhcmlhbnQuaWQpOwogIDM5MCB8ICAgICBpZiAoIWtleSkgewogIDM5MSB8ICAgICAgIHRocm93IG5ldyBFcnJvcihgVW5leHBlY3RlZCB2YXJpYW50IHJldHVybmVkOiAke2VkZ2Uubm9kZS52YXJpYW50LmlkfWApOwogIDM5MiB8ICAgICB9CiAgMzkzIHwKICAzOTQgfCAgICAgcmV0dXJuIGtleTsKICAzOTUgfCAgIH0pOwogIDM5NiB8IH0KICAzOTcgfAogIDM5OCB8IGFzeW5jIGZ1bmN0aW9uIHZpc2libGVJbnZlbnRvcnlWYXJpYW50S2V5cyhwYWdlOiBQYWdlKSB7CiAgMzk5IHwgICByZXR1cm4gcGFnZS5sb2NhdG9yKCdbZGF0YS10ZXN0aWRePSJpbnZlbnRvcnktdGFibGUtcHJvZHVjdC1jZWxsLSJdJykuZXZhbHVhdGVBbGwoKG5vZGVzKSA9PgogIDQwMCB8ICAgICBub2Rlcy5tYXAoKG5vZGUpID0+IHsKICA0MDEgfCAgICAgICBjb25zdCB0ZXN0SWQgPSBub2RlLmdldEF0dHJpYnV0ZSgnZGF0YS10ZXN0aWQnKTsKICA0MDIgfCAgICAgICBpZiAoIXRlc3RJZCkgewogIDQwMyB8ICAgICAgICAgdGhyb3cgbmV3IEVycm9yKCdJbnZlbnRvcnkgcHJvZHVjdCBjZWxsIGlzIG1pc3NpbmcgZGF0YS10ZXN0aWQnKTsKICA0MDQgfCAgICAgICB9CiAgNDA1IHwKICA0MDYgfCAgICAgICByZXR1cm4gdGVzdElkLnJlcGxhY2UoJ2ludmVudG9yeS10YWJsZS1wcm9kdWN0LWNlbGwtJywgJycpOwogIDQwNyB8ICAgICB9KSwKICA0MDggfCAgICk7CiAgNDA5IHwgfQogIDQxMCB8CiAgNDExIHwgYXN5bmMgZnVuY3Rpb24gZXhwZWN0VmlzaWJsZVZhcmlhbnRPcmRlcigKICA0MTIgfCAgIHBhZ2U6IFBhZ2UsCiAgNDEzIHwgICBleHBlY3RlZEtleXM6IHN0cmluZ1tdLAogIDQxNCB8ICAgbWluVmlzaWJsZVJvd3M6IG51bWJlciwKICA0MTUgfCApIHsKICA0MTYgfCAgIGF3YWl0IGV4cGVjdAogIDQxNyB8ICAgICAucG9sbChhc3luYyAoKSA9PiB7CiAgNDE4IHwgICAgICAgY29uc3Qga2V5cyA9IGF3YWl0IHZpc2libGVJbnZlbnRvcnlWYXJpYW50S2V5cyhwYWdlKTsKICA0MTkgfCAgICAgICBpZiAoa2V5cy5sZW5ndGggPCBtaW5WaXNpYmxlUm93cykgewogIDQyMCB8ICAgICAgICAgcmV0dXJuIG51bGw7CiAgNDIxIHwgICAgICAgfQogIDQyMiB8CiAgNDIzIHwgICAgICAgcmV0dXJuIGtleXMuc2xpY2UoMCwgbWluVmlzaWJsZVJvd3MpOwogIDQyNCB8ICAgICB9KQogIDQyNSB8ICAgICAudG9FcXVhbChleHBlY3RlZEtleXMuc2xpY2UoMCwgbWluVmlzaWJsZVJvd3MpKTsKICA0MjYgfCB9CiAgNDI3IHwKICA0MjggfCBmdW5jdGlvbiBpbnZlbnRvcnlDZWxsKHBhZ2U6IFBhZ2UsIHZhcmlhbnQ6IFNlZWRlZFZhcmlhbnQsIGZpZWxkOiBzdHJpbmcpIHsKICA0MjkgfCAgIHJldHVybiBwYWdlLmdldEJ5VGVzdElkKGBpbnZlbnRvcnktdGFibGUtJHtmaWVsZH0tY2VsbC0ke3ZhcmlhbnRLZXkodmFyaWFudCl9YCk7CiAgNDMwIHwgfQogIDQzMSB8CiAgNDMyIHwgYXN5bmMgZnVuY3Rpb24gZWRpdEludmVudG9yeU51bWJlckNlbGwoCiAgNDMzIHwgICBwYWdlOiBQYWdlLAogIDQzNCB8ICAgdmFyaWFudDogU2VlZGVkVmFyaWFudCwKICA0MzUgfCAgIGZpZWxkOiAnb24taGFuZCcgfCAndW5hdmFpbGFibGUnLAogIDQzNiB8ICAgdmFsdWU6IG51bWJlciwKICA0MzcgfCApIHsKICA0MzggfCAgIGF3YWl0IGludmVudG9yeUNlbGwocGFnZSwgdmFyaWFudCwgZmllbGQpLnNjcm9sbEludG9WaWV3SWZOZWVkZWQoKTsKICA0MzkgfCAgIGF3YWl0IGludmVudG9yeUNlbGwocGFnZSwgdmFyaWFudCwgZmllbGQpLmRibGNsaWNrKCk7CiAgNDQwIHwKICA0NDEgfCAgIGNvbnN0IGlucHV0ID0gcGFnZQogIDQ0MiB8ICAgICAuZ2V0QnlUZXN0SWQoJ2ludmVudG9yeS10YWJsZScpCiAgNDQzIHwgICAgIC5sb2NhdG9yKCdpbnB1dFt0eXBlPSJudW1iZXIiXSwgaW5wdXQuYWctY2VsbC1lZGl0LWlucHV0Om5vdChbdHlwZT0iY2hlY2tib3giXSknKQogIDQ0NCB8ICAgICAubGFzdCgpOwogIDQ0NSB8CiAgNDQ2IHwgICBhd2FpdCBleHBlY3QoaW5wdXQpLnRvQmVWaXNpYmxlKCk7CiAgNDQ3IHwgICBhd2FpdCBpbnB1dC5maWxsKFN0cmluZyh2YWx1ZSkpOwogIDQ0OCB8ICAgYXdhaXQgaW5wdXQucHJlc3MoJ0VudGVyJyk7CiAgNDQ5IHwgfQogIDQ1MCB8CiAgNDUxIHwgYXN5bmMgZnVuY3Rpb24gZXhwZWN0VmFyaWFudEludmVudG9yeUFwaVN0YXRlKAogIDQ1MiB8ICAgYXBpOiBBcGksCiAgNDUzIHwgICB3YXJlaG91c2VJZDogc3RyaW5nLAogIDQ1NCB8ICAgdmFyaWFudDogU2VlZGVkVmFyaWFudCwKICA0NTUgfCAgIGV4cGVjdGVkOiBFeHBlY3RlZEludmVudG9yeVZhbHVlcywKICA0NTYgfCApIHsKICA0NTcgfCAgIGF3YWl0IGV4cGVjdAogIDQ1OCB8ICAgICAucG9sbCgKICA0NTkgfCAgICAgICBhc3luYyAoKSA9PiB7CiAgNDYwIHwgICAgICAgICBjb25zdCB7IGRhdGEgfSA9IGF3YWl0IGFwaS5hZG1pbi5xdWVyeSgnaW52ZW50b3J5LWFwaS9JbnZlbnRvcnlJdGVtQnlWYXJpYW50JywgewogIDQ2MSB8ICAgICAgICAgICB2YXJpYWJsZXM6IHsgdmFyaWFudElkOiB2YXJpYW50LmlkIH0sCiAgNDYyIHwgICAgICAgICB9KTsKICA0NjMgfCAgICAgICAgIGNvbnN0IGl0ZW0gPSBkYXRhLmludmVudG9yeVF1ZXJ5LmludmVudG9yeUl0ZW1CeVZhcmlhbnQ7CiAgNDY0IHwgICAgICAgICBjb25zdCBzdG9jayA9IGl0ZW0/LnN0b2NrLmZpbmQoKGNhbmRpZGF0ZSkgPT4gY2FuZGlkYXRlLndhcmVob3VzZUlkID09PSB3YXJlaG91c2VJZCk7CiAgNDY1IHwKICA0NjYgfCAgICAgICAgIHJldHVybiB7CiAgNDY3IHwgICAgICAgICAgIG9uSGFuZDogc3RvY2s/LnF1YW50aXR5T25IYW5kID8/IG51bGwsCiAgNDY4IHwgICAgICAgICAgIHVuYXZhaWxhYmxlOiBzdG9jaz8udW5hdmFpbGFibGVRdWFudGl0eSA/PyBudWxsLAogIDQ2OSB8ICAgICAgICAgICBhdmFpbGFibGU6IHN0b2NrPy5hdmFpbGFibGVGb3JTYWxlID8/IG51bGwsCiAgNDcwIHwgICAgICAgICB9OwogIDQ3MSB8ICAgICAgIH0sCiAgNDcyIHwgICAgICAgeyB0aW1lb3V0OiAzMF8wMDAgfSwKPiA0NzMgfCAgICAgKQogICAgICB8ICAgICAgXiBFcnJvcjogZXhwZWN0KGxvY2F0b3IpLnRvSGF2ZVRleHQoZXhwZWN0ZWQpCiAgNDc0IHwgICAgIC50b0VxdWFsKGV4cGVjdGVkKTsKICA0NzUgfCB9CiAgNDc2IHwKICA0NzcgfCBhc3luYyBmdW5jdGlvbiBleHBlY3RWYXJpYW50U3RvY2tJbldhcmVob3VzZShhcGk6IEFwaSwgd2FyZWhvdXNlSWQ6IHN0cmluZywgdmFyaWFudElkOiBzdHJpbmcpIHsKICA0NzggfCAgIGF3YWl0IGV4cGVjdAogIDQ3OSB8ICAgICAucG9sbCgKICA0ODAgfCAgICAgICBhc3luYyAoKSA9PiB7CiAgNDgxIHwgICAgICAgICBjb25zdCB7IGRhdGEgfSA9IGF3YWl0IGFwaS5hZG1pbi5xdWVyeSgnaW52ZW50b3J5LWFwaS9JbnZlbnRvcnlJdGVtQnlWYXJpYW50JywgewogIDQ4MiB8ICAgICAgICAgICB2YXJpYWJsZXM6IHsgdmFyaWFudElkIH0sCiAgNDgzIHwgICAgICAgICB9KTsKICA0ODQgfCAgICAgICAgIGNvbnN0IGl0ZW0gPSBkYXRhLmludmVudG9yeVF1ZXJ5LmludmVudG9yeUl0ZW1CeVZhcmlhbnQ7CiAgNDg1IHwgICAgICAgICBjb25zdCBzdG9jayA9IGl0ZW0/LnN0b2NrLmZpbmQoKGNhbmRpZGF0ZSkgPT4gY2FuZGlkYXRlLndhcmVob3VzZUlkID09PSB3YXJlaG91c2VJZCk7CiAgNDg2IHwKICA0ODcgfCAgICAgICAgIHJldHVybiB7CiAgNDg4IHwgICAgICAgICAgIGV4aXN0czogQm9vbGVhbihzdG9jayksCiAgNDg5IHwgICAgICAgICAgIG9uSGFuZDogc3RvY2s/LnF1YW50aXR5T25IYW5kID8/IG51bGwsCiAgNDkwIHwgICAgICAgICAgIHVuYXZhaWxhYmxlOiBzdG9jaz8udW5hdmFpbGFibGVRdWFudGl0eSA/PyBudWxsLAogIDQ5MSB8ICAgICAgICAgICBhdmFpbGFibGU6IHN0b2NrPy5hdmFpbGFibGVGb3JTYWxlID8/IG51bGwsCiAgNDkyIHwgICAgICAgICB9OwogIDQ5MyB8ICAgICAgIH0sCiAgNDk0IHwgICAgICAgeyB0aW1lb3V0OiAzMF8wMDAgfSwKICA0OTUgfCAgICAgKQogIDQ5NiB8ICAgICAudG9FcXVhbCh7CiAgNDk3IHwgICAgICAgZXhpc3RzOiB0cnVlLAogIDQ5OCB8ICAgICAgIG9uSGFuZDogMCwKICA0OTkgfCAgICAgICB1bmF2YWlsYWJsZTogMCwKICA1MDAgfCAgICAgICBhdmFpbGFibGU6IDAsCiAgNTAxIHwgICAgIH0pOwogIDUwMiB8IH0KICA1MDMgfAogIDUwNCB8IGFzeW5jIGZ1bmN0aW9uIGFkZFZpc2libGVQaWNrZXJSb3dzRm9yUHJvZHVjdChwYWdlOiBQYWdlLCBwcm9kdWN0VGl0bGU6IHN0cmluZywgY291bnQ6IG51bWJlcikgewogIDUwNSB8ICAgYXdhaXQgZXhwZWN0KHBhZ2UuZ2V0QnlUZXN0SWQoJ3ZhcmlhbnQtcGlja2VyLW1vZGFsJykpLnRvQmVWaXNpYmxlKCk7CiAgNTA2IHwgICBjb25zdCByb3dzID0gcGFnZQogIDUwNyB8ICAgICAuZ2V0QnlUZXN0SWQoJ3ZhcmlhbnQtcGlja2VyLWdyaWQnKQogIDUwOCB8ICAgICAubG9jYXRvcignLmFnLWNlbnRlci1jb2xzLWNvbnRhaW5lciAuYWctcm93JykKICA1MDkgfCAgICAgLmZpbHRlcih7IGhhc1RleHQ6IHByb2R1Y3RUaXRsZSB9KTsKICA1MTAgfAogIDUxMSB8ICAgYXdhaXQgZXhwZWN0KHJvd3MpLnRvSGF2ZUNvdW50KGNvdW50KTsKICA1MTIgfAogIDUxMyB8ICAgZm9yIChsZXQgaW5kZXggPSAwOyBpbmRleCA8IGNvdW50OyBpbmRleCArPSAxKSB7CiAgNTE0IHwgICAgIGF3YWl0IHJvd3MubnRoKGluZGV4KS5jbGljaygpOwogIDUxNSB8ICAgfQogIDUxNiB8CiAgNTE3IHwgICBhd2FpdCBleHBlY3QocGFnZS5nZXRCeVRlc3RJZCgnc3VibWl0LXZhcmlhbnQtcGlja2VyLWZvcm0tYnV0dG9uJykpLnRvQmVFbmFibGVkKCk7CiAgNTE4IHwgICBhd2FpdCBwYWdlLmdldEJ5VGVzdElkKCdzdWJtaXQtdmFyaWFudC1waWNrZXItZm9ybS1idXR0b24nKS5jbGljaygpOwogIDUxOSB8ICAgYXdhaXQgZXhwZWN0KHBhZ2UuZ2V0QnlUZXN0SWQoJ3ZhcmlhbnQtcGlja2VyLW1vZGFsJykpLnRvQmVIaWRkZW4oKTsKICA1MjAgfCB9CiAgNTIxIHwKICA1MjIgfCB0ZXN0LmRlc2NyaWJlKCdBZG1pbiBpbnZlbnRvcnkgcGFnZSBVSScsICgpID0+IHsKICA1MjMgfCAgIHRlc3QoJ3Nob3dzIHZhcmlhbnRzIGluIHByb2R1Y3QtZmlyc3QgQVBJIG9yZGVyIGFuZCBwYWdpbmF0ZXMgdGhyb3VnaCB2YXJpYW50cycsIGFzeW5jICh7CiAgNTI0IHwgICAgIGFwaSwKICA1MjUgfCAgICAgcGFnZSwKICA1MjYgfCAgIH0pID0+IHsKICA1MjcgfCAgICAgY29uc3Qgb3JnYW5pemF0aW9uID0gYXdhaXQgc2V0dXBBZG1pblVzZXJBbmRTdG9yZShhcGksIHBhZ2UpOwogIDUyOCB8ICAgICBjb25zdCBmaXh0dXJlID0gYXdhaXQgc2VlZEludmVudG9yeUZpeHR1cmUoYXBpLCA3LCA0KTsKICA1MjkgfCAgICAgY29uc3QgZXhwZWN0ZWRLZXlzID0gYXdhaXQgZmV0Y2hFeHBlY3RlZFZhcmlhbnRLZXlzKGFwaSwgZml4dHVyZSwgWwogIDUzMCB8ICAgICAgIHsgZmllbGQ6ICdwcm9kdWN0TmFtZScsIGRpcmVjdGlvbjogJ2FzYycgfSwKICA1MzEgfCAgICAgXSk7CiAgNTMyIHwKICA1MzMgfCAgICAgYXdhaXQgb3BlbkludmVudG9yeVBhZ2UoCiAgNTM0IHwgICAgICAgcGFnZSwKICA1MzUgfCAgICAgICBpbnZlbnRvcnlVcmwob3JnYW5pemF0aW9uLm5hbWUsIGFwaS5zZXNzaW9uLnByb2plY3RTbHVnKSwKICA1MzYgfCAgICAgICAnQWxsIEludmVudG9yeScsCiAgNTM3IHwgICAgICk7CiAgNTM4IHwKICA1MzkgfCAgICAgYXdhaXQgZXhwZWN0KHBhZ2UuZ2V0QnlUZXN0SWQoJ2ludmVudG9yeS1wYWdpbmF0aW9uLXJhbmdlJykpLnRvSGF2ZVRleHQoJzHigJMyMCBvZiAyOCcpOwogIDU0MCB8ICAgICBhd2FpdCBleHBlY3QocGFnZS5nZXRCeVJvbGUoJ2J1dHRvbicsIHsgbmFtZTogJ0NyZWF0ZScgfSkpLnRvQmVEaXNhYmxlZCgpOwogIDU0MSB8ICAgICBhd2FpdCBleHBlY3RWaXNpYmxlVmFyaWFudE9yZGVyKHBhZ2UsIGV4cGVjdGVkS2V5cywgMTIpOwogIDU0MiB8CiAgNTQzIHwgICAgIGNvbnN0IGZpcnN0VmFyaWFudCA9IGZpeHR1cmUudmFyaWFudHMuZmluZCgKICA1NDQgfCAgICAgICAodmFyaWFudCkgPT4gdmFyaWFudEtleSh2YXJpYW50KSA9PT0gZXhwZWN0ZWRLZXlzWzBdLAogIDU0NSB8ICAgICApOwogIDU0NiB8ICAgICBpZiAoIWZpcnN0VmFyaWFudCkgewogIDU0NyB8ICAgICAgIHRocm93IG5ldyBFcnJvcignRXhwZWN0ZWQgZmlyc3QgdmFyaWFudCB3YXMgbm90IGZvdW5kIGluIGZpeHR1cmUnKTsKICA1NDggfCAgICAgfQogIDU0OSB8CiAgNTUwIHwgICAgIGF3YWl0IGV4cGVjdChpbnZlbnRvcnlDZWxsKHBhZ2UsIGZpcnN0VmFyaWFudCwgJ3Byb2R1Y3QtdGl0bGUnKSkudG9IYXZlVGV4dCgKICA1NTEgfCAgICAgICBmaXJzdFZhcmlhbnQucHJvZHVjdFRpdGxlLAogIDU1MiB8ICAgICApOwogIDU1MyB8ICAgICBhd2FpdCBleHBlY3QoaW52ZW50b3J5Q2VsbChwYWdlLCBmaXJzdFZhcmlhbnQsICd2YXJpYW50LXRpdGxlJykpLnRvSGF2ZVRleHQoCiAgNTU0IHwgICAgICAgZmlyc3RWYXJpYW50LmhhbmRsZSwKICA1NTUgfCAgICAgKTsKICA1NTYgfCAgICAgYXdhaXQgZXhwZWN0KGludmVudG9yeUNlbGwocGFnZSwgZmlyc3RWYXJpYW50LCAnb24taGFuZCcpKS50b0hhdmVUZXh0KAogIDU1NyB8ICAgICAgIFN0cmluZyhmaXJzdFZhcmlhbnQub25IYW5kKSwKICA1NTggfCAgICAgKTsKICA1NTkgfCAgICAgYXdhaXQgZXhwZWN0KGludmVudG9yeUNlbGwocGFnZSwgZmlyc3RWYXJpYW50LCAndW5hdmFpbGFibGUnKSkudG9IYXZlVGV4dCgKICA1NjAgfCAgICAgICBTdHJpbmcoZmlyc3RWYXJpYW50LnVuYXZhaWxhYmxlKSwKICA1NjEgfCAgICAgKTsKICA1NjIgfCAgICAgYXdhaXQgZXhwZWN0KGludmVudG9yeUNlbGwocGFnZSwgZmlyc3RWYXJpYW50LCAnYXZhaWxhYmxlJykpLnRvSGF2ZVRleHQoCiAgNTYzIHwgICAgICAgU3RyaW5nKGZpcnN0VmFyaWFudC5hdmFpbGFibGUpLAogIDU2NCB8ICAgICApOwogIDU2NSB8CiAgNTY2IHwgICAgIGF3YWl0IHBhZ2UuZ2V0QnlUZXN0SWQoJ2ludmVudG9yeS1wYWdpbmF0aW9uLW5leHQtYnV0dG9uJykuY2xpY2soKTsKICA1NjcgfCAgICAgYXdhaXQgZXhwZWN0KHBhZ2UuZ2V0QnlUZXN0SWQoJ2ludmVudG9yeS1wYWdpbmF0aW9uLXJhbmdlJykpLnRvSGF2ZVRleHQoJzIx4oCTMjggb2YgMjgnKTsKICA1NjggfCAgICAgYXdhaXQgZXhwZWN0VmlzaWJsZVZhcmlhbnRPcmRlcihwYWdlLCBleHBlY3RlZEtleXMuc2xpY2UoMjApLCA4KTsKICA1NjkgfAogIDU3MCB8ICAgICBhd2FpdCBwYWdlLmdldEJ5VGVzdElkKCdpbnZlbnRvcnktcGFnaW5hdGlvbi1wcmV2LWJ1dHRvbicpLmNsaWNrKCk7CiAgNTcxIHwgICAgIGF3YWl0IGV4cGVjdChwYWdlLmdldEJ5VGVzdElkKCdpbnZlbnRvcnktcGFnaW5hdGlvbi1yYW5nZScpKS50b0hhdmVUZXh0KCcx4oCTMjAgb2YgMjgnKTsKICA1NzIgfCAgICAgYXdhaXQgZXhwZWN0VmlzaWJsZVZhcmlhbnRPcmRlcihwYWdlLCBleHBlY3RlZEtleXMsIDEyKTsKICA1NzMgfCAgIH0pOwpgYGA="
-                        },
-                        {
-                          "name": "trace",
-                          "contentType": "application/zip",
-                          "path": "/Users/phl/Projects/shopana-io/services/e2e/test-results/admin-ui-inventory-page-Ad-cbb3d-ants-to-warehouse-inventory-chromium/trace.zip"
-                        }
-                      ]
+                      "startTime": "2026-06-25T19:39:05.694Z",
+                      "attachments": []
                     }
                   ],
-                  "status": "unexpected"
+                  "status": "expected"
                 }
               ],
-              "id": "1b79c680960b7e5f9da1-b03bcb1bdf7fc4c567bc",
+              "id": "1b79c680960b7e5f9da1-57498309ce2f6adcbfd3",
               "file": "admin-ui/inventory-page.spec.ts",
-              "line": 456,
+              "line": 419,
               "column": 5
             }
           ]
@@ -307,11 +188,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-06-25T19:22:49.563Z",
-    "duration": 66632.617,
-    "expected": 0,
+    "startTime": "2026-06-25T19:38:11.388Z",
+    "duration": 69998.52200000001,
+    "expected": 3,
     "skipped": 0,
-    "unexpected": 3,
+    "unexpected": 0,
     "flaky": 0
   }
 }

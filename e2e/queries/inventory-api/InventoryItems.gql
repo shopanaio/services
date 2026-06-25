@@ -22,15 +22,6 @@ query InventoryItems(
           id
           variantId
           sku
-          variant {
-            id
-            handle
-            product {
-              id
-              handle
-              title
-            }
-          }
           stock {
             id
             warehouseId

@@ -1,8 +1,12 @@
 import { SubgraphReference } from "@shopana/type-resolver";
-import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import type { InventoryItem } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
 import { StockResolver } from "./StockResolver.js";
+import { VariantResolver } from "./VariantResolver.js";
 
 /**
  * InventoryItemResolver - resolves InventoryItem GraphQL type.
@@ -39,10 +43,7 @@ export class InventoryItemResolver extends CatalogType<string, InventoryItem> {
    */
   async variant() {
     const variantId = await this.$get("variantId");
-    return {
-      __typename: "Variant" as const,
-      id: encodeGlobalIdByType(variantId, GlobalIdEntity.Variant),
-    };
+    return new VariantResolver(variantId, this.$ctx);
   }
 
   async sku() {

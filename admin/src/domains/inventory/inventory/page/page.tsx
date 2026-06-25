@@ -25,10 +25,7 @@ import type { ActionConfig } from "@/ui-kit/floating-panel-stack/core/types";
 import type { PanelConfig } from "@/ui-kit/floating-panel-stack/data-page/floating-panel-stack";
 import type { ModulePageProps } from "@/registry";
 import { useWarehouses } from "@/domains/inventory/warehouse/hooks";
-import {
-  useAgGridTheme,
-  useAgGridRowSelection,
-} from "@/hooks";
+import { useAgGridTheme, useAgGridRowSelection } from "@/hooks";
 import { useInventoryRelayListPage } from "@/domains/inventory/hooks";
 import type {
   ApiInventoryItemWhereInput,
@@ -169,13 +166,26 @@ function isInventoryVariantSelection(
   );
 }
 
+function decodePathParam(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 export default function InventoryPage({ pathParams }: ModulePageProps) {
   const { styles } = useStyles();
   const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<InventoryVariantRow>>(null);
   const restoringSortRef = useRef(false);
-  const warehouseId =
-    typeof pathParams.warehouseId === "string" ? pathParams.warehouseId : null;
+  const warehouseId = decodePathParam(
+    typeof pathParams.warehouseId === "string" ? pathParams.warehouseId : null,
+  );
 
   const {
     discardAll,
@@ -249,10 +259,8 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
     getItems: (result) => result.rows,
   });
   const { activeWarehouseId, canEdit } = listResult;
-  const {
-    saveInventoryVariantEdits,
-    loading: savingInventoryVariants,
-  } = useSaveInventoryVariantEdits();
+  const { saveInventoryVariantEdits, loading: savingInventoryVariants } =
+    useSaveInventoryVariantEdits();
   const handleVariantPickerConfirm = useCallback(
     (entities: unknown[]) => {
       void (async () => {
@@ -351,8 +359,9 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
 
       const sku = itemEdits.sku?.currentValue ?? item.sku;
       const onHand = Number(itemEdits.onHand?.currentValue ?? item.onHand);
-      const unavailable =
-        Number(itemEdits.unavailable?.currentValue ?? item.unavailable);
+      const unavailable = Number(
+        itemEdits.unavailable?.currentValue ?? item.unavailable,
+      );
       const available = onHand - unavailable - item.reserved;
 
       return {
@@ -410,7 +419,9 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
         mapping.submitErrors[0] ??
         Object.values(mapping.rowErrors).flat()[0] ??
         null;
-      message.error(firstError?.message ?? "Fix inventory errors before saving.");
+      message.error(
+        firstError?.message ?? "Fix inventory errors before saving.",
+      );
       return;
     }
 
@@ -493,7 +504,9 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
       if (!data) return;
 
       if (data.readOnly || !canEdit) {
-        message.error(data.readOnlyReason ?? "This inventory row is read-only.");
+        message.error(
+          data.readOnlyReason ?? "This inventory row is read-only.",
+        );
         return;
       }
 
@@ -525,8 +538,9 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
 
       // Get current values (from edits or original server data)
       const currentEdits = edits[data.id];
-      const currentOnHand =
-        Number(currentEdits?.onHand?.currentValue ?? serverItem.onHand);
+      const currentOnHand = Number(
+        currentEdits?.onHand?.currentValue ?? serverItem.onHand,
+      );
       const currentUnavailable = Number(
         currentEdits?.unavailable?.currentValue ?? serverItem.unavailable,
       );
