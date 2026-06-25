@@ -1,10 +1,11 @@
 import { create } from "zustand";
 
-export type EditableField = "onHand" | "unavailable";
+export type EditableField = "sku" | "onHand" | "unavailable";
+export type EditableValue = string | number | null;
 
 export interface FieldEdit {
-  originalValue: number;
-  currentValue: number;
+  originalValue: EditableValue;
+  currentValue: EditableValue;
 }
 
 export type ItemEdits = Partial<Record<EditableField, FieldEdit>>;
@@ -26,8 +27,8 @@ interface InventoryEditStore {
   setFieldValue: (
     itemId: string,
     field: EditableField,
-    originalValue: number,
-    newValue: number
+    originalValue: EditableValue,
+    newValue: EditableValue
   ) => void;
   discardAll: () => void;
   discardItem: (itemId: string) => void;

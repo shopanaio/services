@@ -119,13 +119,18 @@ export function mapInventoryVariantEditsToProductBulkUpdateInput(
     const nextOnHand = rowEdits.onHand?.currentValue ?? row.onHand;
     const nextUnavailable =
       rowEdits.unavailable?.currentValue ?? row.unavailable;
+    const nextSku =
+      rowEdits.sku?.currentValue === undefined
+        ? row.sku
+        : rowEdits.sku.currentValue;
 
     const variantInput: ApiVariantUpdateInput = {
       variantId: row.variantId,
       inventory: {
         warehouseId,
-        onHand: nextOnHand,
-        unavailable: nextUnavailable,
+        onHand: Number(nextOnHand),
+        sku: nextSku == null ? null : String(nextSku),
+        unavailable: Number(nextUnavailable),
       },
     };
 

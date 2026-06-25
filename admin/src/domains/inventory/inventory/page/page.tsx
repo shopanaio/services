@@ -44,6 +44,7 @@ import {
 } from "./page-config";
 import {
   useInventoryEditStore,
+  type EditableField,
   useInventoryItems,
   useSaveInventoryVariantEdits,
   type UseInventoryItemsOptions,
@@ -123,8 +124,36 @@ function getFirstStoredError(
 }
 
 const SkuCellRenderer = ({
+  data,
   value,
 }: ICellRendererParams<InventoryVariantRow>) => {
+  const { getFieldEdit } = useInventoryEditStore();
+
+  if (!data) return null;
+
+  const fieldEdit = getFieldEdit(data.id, "sku");
+
+  if (fieldEdit) {
+    const originalValue =
+      fieldEdit.originalValue == null ? (
+        <Dash />
+      ) : (
+        String(fieldEdit.originalValue)
+      );
+    const currentValue =
+      fieldEdit.currentValue == null ? (
+        <Dash />
+      ) : (
+        String(fieldEdit.currentValue)
+      );
+
+    return (
+      <span>
+        {originalValue} → {currentValue}
+      </span>
+    );
+  }
+
   return value == null ? <Dash /> : <span>{String(value)}</span>;
 };
 
@@ -320,13 +349,15 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
       const itemEdits = edits[item.id];
       if (!itemEdits) return item;
 
-      const onHand = itemEdits.onHand?.currentValue ?? item.onHand;
+      const sku = itemEdits.sku?.currentValue ?? item.sku;
+      const onHand = Number(itemEdits.onHand?.currentValue ?? item.onHand);
       const unavailable =
-        itemEdits.unavailable?.currentValue ?? item.unavailable;
+        Number(itemEdits.unavailable?.currentValue ?? item.unavailable);
       const available = onHand - unavailable - item.reserved;
 
       return {
         ...item,
+        sku: sku == null ? null : String(sku),
         onHand,
         unavailable,
         available,
@@ -466,7 +497,16 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
         return;
       }
 
-      const field = colDef.field as "onHand" | "unavailable";
+      const field = colDef.field as EditableField;
+      if (field === "sku") {
+        const serverItem = serverData.find((item) => item.id === data.id);
+        if (!serverItem) return;
+
+        const nextSku = String(newValue ?? "").trim() || null;
+        setFieldValue(data.id, "sku", serverItem.sku, nextSku);
+        return;
+      }
+
       if (field !== "onHand" && field !== "unavailable") return;
 
       const parsedValue =
@@ -486,9 +526,10 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
       // Get current values (from edits or original server data)
       const currentEdits = edits[data.id];
       const currentOnHand =
-        currentEdits?.onHand?.currentValue ?? serverItem.onHand;
-      const currentUnavailable =
-        currentEdits?.unavailable?.currentValue ?? serverItem.unavailable;
+        Number(currentEdits?.onHand?.currentValue ?? serverItem.onHand);
+      const currentUnavailable = Number(
+        currentEdits?.unavailable?.currentValue ?? serverItem.unavailable,
+      );
 
       // Validate using shared validator
       const result = validateFieldChange(field, parsedValue, {
@@ -530,6 +571,7 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
         field: "sku",
         minWidth: 120,
         cellRenderer: SkuCellRenderer,
+        editable: ({ data }) => canEdit && !data?.readOnly,
       },
       {
         headerName: "On hand",
