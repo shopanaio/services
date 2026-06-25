@@ -62,9 +62,9 @@ type InventoryQuery {
 `categories(..., meta: { hierarchyScope, productsScope })` в Catalog service.
 В упрощенной версии GraphQL input сохраняет будущий формат `referenceIds +
 mode`, но repository поддерживает только `mode: INCLUDE` с ровно одним warehouse
-reference. Unsupported scope варианты пропускаются: `EXCLUDE` и `INCLUDE` с
-нулем или несколькими ids не применяют warehouse scope и используют all-stock
-view.
+reference. Unsupported scope варианты не должны silently fallback-ить в
+all-stock view: `EXCLUDE` и `INCLUDE` с нулем или несколькими ids должны вернуть
+явную input incompatibility error до выполнения list query.
 
 Если `meta.warehouseScope` не передан, stock fields считаются суммой по всем
 существующим `warehouse_stock` rows текущего project. Это значит, что
@@ -448,7 +448,8 @@ Repository scope must add:
 
 `warehouseScope` keeps the future-compatible `INCLUDE` / `EXCLUDE` input shape,
 but this plan only supports `INCLUDE` with exactly one warehouse id. Unsupported
-scope variants are skipped and fall back to all-warehouse totals.
+scope variants are incompatible with this phase and must produce an explicit
+GraphQL input error before executing the list query.
 
 Repository must split execution into these paths:
 
@@ -459,10 +460,10 @@ Repository must split execution into these paths:
    `INCLUDE` with exactly one valid warehouse id. It queries
    `inventory_item_list_warehouse_stock_view` and adds an internal
    `warehouseScopeId = warehouseId` filter.
-3. **Skipped scope path**: used when `warehouseScope` is `EXCLUDE` or `INCLUDE`
-   with zero/multiple ids. It uses the all-warehouses path. This preserves the
-   public input shape while making unsupported scope combinations no-ops for
-   this phase.
+3. **Invalid scope path**: used when `warehouseScope` is `EXCLUDE` or `INCLUDE`
+   with zero/multiple ids. The resolver returns an input incompatibility error;
+   it must not call the repository and must not silently use all-warehouse
+   totals.
 4. **Empty scope path**: used when an explicitly provided single warehouse
    reference is invalid or resolves to no warehouse in the current project. It
    returns an empty connection. This is distinct from a valid warehouse with no
@@ -475,7 +476,9 @@ Important behavior:
   before choosing the repository query.
 - Only `mode: INCLUDE` with exactly one decoded id can produce
   `{ kind: "warehouse" }`.
-- `mode: EXCLUDE` and `mode: INCLUDE` with zero/multiple ids produce
+- `mode: EXCLUDE` and `mode: INCLUDE` with zero/multiple ids produce a
+  resolver-level input error such as
+  `UNSUPPORTED_INVENTORY_ITEM_WAREHOUSE_SCOPE`; they do not produce
   `{ kind: "all" }`.
 - Stock fields in `where` or `orderBy` are valid without `warehouseScope`; the
   default scope is all existing warehouses in the current project.
@@ -492,15 +495,28 @@ Repository-normalized type mirrors Catalog scope normalizers:
 type NormalizedInventoryItemWarehouseScope =
   | { kind: "all" }
   | { kind: "empty" }
-  | { kind: "warehouse"; warehouseId: string };
+  | { kind: "warehouse"; warehouseId: string }
+  | { kind: "invalid"; code: string; message: string };
 ```
 
 Normalization rules:
 
 ```ts
 if (!input) return { kind: "all" };
-if (input.mode !== "INCLUDE") return { kind: "all" };
-if (input.referenceIds?.length !== 1) return { kind: "all" };
+if (input.mode !== "INCLUDE") {
+  return {
+    kind: "invalid",
+    code: "UNSUPPORTED_INVENTORY_ITEM_WAREHOUSE_SCOPE",
+    message: "Only warehouseScope mode INCLUDE is supported for inventoryItems.",
+  };
+}
+if (input.referenceIds?.length !== 1) {
+  return {
+    kind: "invalid",
+    code: "UNSUPPORTED_INVENTORY_ITEM_WAREHOUSE_SCOPE",
+    message: "inventoryItems supports exactly one warehouseScope referenceId.",
+  };
+}
 
 const warehouseId = decodeWarehouseGlobalId(input.referenceIds[0]);
 if (!warehouseId) return { kind: "empty" };
@@ -508,9 +524,11 @@ if (!warehouseId) return { kind: "empty" };
 return { kind: "warehouse", warehouseId };
 ```
 
-Optionally validate that the decoded warehouse belongs to the current project
-before executing the list query. A decoded but missing/foreign warehouse should
-produce `{ kind: "empty" }`, not an inner join that changes item listability.
+The resolver must throw/return the normalized input error before calling the
+repository. Optionally validate that the decoded warehouse belongs to the current
+project before executing the list query. A decoded but missing/foreign warehouse
+should produce `{ kind: "empty" }`, not an inner join that changes item
+listability.
 
 ## Repository
 
@@ -630,10 +648,12 @@ receives `tieBreaker: "id"` and should append it for stable cursor ordering.
 - normalize optional `meta.warehouseScope` through a resolver helper, mirroring
   `normalizeProductCategoriesScopeInput` and `normalizeCategoryProductsScopeInput`;
 - decode `meta.warehouseScope.referenceIds` as `Warehouse` global IDs;
-- pass either `{ kind: "all" }`, `{ kind: "warehouse", warehouseId }`, or
-  `{ kind: "empty" }` to the repository;
-- skip unsupported scope combinations by normalizing `EXCLUDE` and multi-id
-  `INCLUDE` to `{ kind: "all" }`;
+- return a GraphQL input incompatibility error for unsupported scope
+  combinations such as `EXCLUDE`, `INCLUDE` with zero ids, or `INCLUDE` with
+  multiple ids;
+- pass only valid normalized scopes `{ kind: "all" }`,
+  `{ kind: "warehouse", warehouseId }`, or `{ kind: "empty" }` to the
+  repository;
 - allow stock filter/order fields when `warehouseScope` is omitted, using the
   default all-warehouses view;
 - call inventory item connection repository;
@@ -662,7 +682,8 @@ warehouses from `InventoryItemResolver.stock`.
 For the first migration step, Admin may continue to query `node.stock` and apply
 the same warehouse scope client-side for display: pick the selected warehouse
 when `warehouseScope` is supported `INCLUDE` with one id, or sum all warehouses
-when scope is omitted/skipped. This creates N+1 and overfetch risk if stock
+when scope is omitted. Unsupported scopes return an input error and should not
+reach Admin display mapping. This creates N+1 and overfetch risk if stock
 loading is not batched.
 
 This does not need a new repository design. `StockRepository` already has
@@ -704,15 +725,26 @@ Variant deletion rules:
 
 Node lookup rules:
 
+- Query resolvers must be read-only. They must not create, upsert, backfill, or
+  repair `InventoryItem` / projection rows as a side effect of resolving
+  `inventoryItem`, `inventoryItemByVariant`, federation references, or list
+  nodes.
 - `inventoryItem(id)` should return the canonical item only if its projection row
   is active; otherwise return `null` so deleted variants do not remain reachable
   from Admin APIs;
 - `inventoryItemByVariant(variantId)` must not lazily recreate or expose an
   `InventoryItem` when the projection row is missing or soft-deleted. It should
-  return `null` for deleted/unknown variants, or fetch the Catalog snapshot first
-  and only create/expose the item if Catalog confirms the variant is active;
+  return `null` for missing, deleted, or unknown variants. If a caller needs an
+  item to exist, that must happen through a command/write path such as product
+  create saga, inventory broker action, projection event sync, or explicit
+  backfill/reindex job;
 - federation reference resolution for `InventoryItem` should follow the same
   active-projection rule to avoid returning orphan inventory entities.
+
+The current `inventoryItemByVariant` resolver uses lazy `upsertByVariantId`.
+That behavior must be removed before the Admin read path relies on
+`inventoryQuery.inventoryItems`. Existing active variants must be covered by a
+projection backfill/reindex step instead of being repaired by read queries.
 
 ## Catalog Snapshot Sync
 
@@ -914,6 +946,8 @@ warehouse. If Admin does not select a warehouse, values are summed across all
 existing warehouses. The Admin stock table warehouse selector should be
 single-select for this query. The GraphQL input remains array-shaped for future
 multi-warehouse support, but Admin should send at most one id in this phase.
+If Admin sends `EXCLUDE`, zero ids, or multiple ids, the API returns an explicit
+input incompatibility error instead of falling back to all-warehouse totals.
 
 Search/filter mapping:
 
@@ -972,6 +1006,10 @@ ownership changes.
   `where`, `orderBy` and `meta`.
 - Add `InventoryItemWarehouseScopeInput` and resolver-side normalization for
   `meta.warehouseScope.referenceIds` / `mode`.
+- Make `inventoryItem`, `inventoryItemByVariant`, federation reference
+  resolution, and list node resolution read-only. Remove lazy
+  `upsertByVariantId` from query resolvers; missing active projection means the
+  resolver returns `null`, not that it creates or repairs data.
 
 ### Phase 4. Event sync
 
@@ -998,8 +1036,8 @@ ownership changes.
 - Making projection the source of truth for product names.
 - Introducing a special list GraphQL node type.
 - Applying multi-warehouse `INCLUDE` or `EXCLUDE` warehouse scope semantics.
-  The input shape remains, but unsupported combinations are skipped in this
-  phase.
+  The input shape remains, but unsupported combinations return an explicit input
+  incompatibility error in this phase.
 - Extending `@shopana/drizzle-query` for runtime stock joins or runtime computed
   stock fields.
 - Running local test/tsc verification as part of this planning task.
