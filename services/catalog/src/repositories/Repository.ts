@@ -22,6 +22,12 @@ import { FacetSwatchRepository } from "./facet/FacetSwatchRepository.js";
 import { CollectionRepository } from "./collection/CollectionRepository.js";
 import { CollectionItemRepository } from "./collection/CollectionItemRepository.js";
 import { CollectionRuleRepository } from "./collection/CollectionRuleRepository.js";
+import { CostRepository } from "./cost/CostRepository.js";
+import { PhysicalRepository } from "./physical/PhysicalRepository.js";
+import { StockRepository } from "./stock/StockRepository.js";
+import { WarehouseRepository } from "./warehouse/WarehouseRepository.js";
+import { InventoryItemRepository } from "./inventory-item/InventoryItemRepository.js";
+import { InventoryWidgetRepository } from "./inventory-widget/InventoryWidgetRepository.js";
 import {
   BundleGroupRepository,
   BundleItemRepository,
@@ -39,10 +45,6 @@ export interface RepositoryConfig {
 // Re-export Database type for scripts that need to access it
 export type { Database };
 
-/**
- * Repository aggregator for Catalog Service.
- * Does not contain inventory-related repositories (cost, physical, stock, warehouse).
- */
 export class Repository {
   public readonly product: ProductRepository;
   public readonly vendor: VendorRepository;
@@ -66,6 +68,12 @@ export class Repository {
   public readonly collection: CollectionRepository;
   public readonly collectionItem: CollectionItemRepository;
   public readonly collectionRule: CollectionRuleRepository;
+  public readonly inventoryItem: InventoryItemRepository;
+  public readonly inventoryWidget: InventoryWidgetRepository;
+  public readonly cost: CostRepository;
+  public readonly physical: PhysicalRepository;
+  public readonly stock: StockRepository;
+  public readonly warehouse: WarehouseRepository;
   public readonly bundleGroup: BundleGroupRepository;
   public readonly bundleItem: BundleItemRepository;
   public readonly bundlePricingTemplate: BundlePricingTemplateRepository;
@@ -106,6 +114,12 @@ export class Repository {
     collection: CollectionRepository,
     collectionItem: CollectionItemRepository,
     collectionRule: CollectionRuleRepository,
+    inventoryItem: InventoryItemRepository,
+    inventoryWidget: InventoryWidgetRepository,
+    cost: CostRepository,
+    physical: PhysicalRepository,
+    stock: StockRepository,
+    warehouse: WarehouseRepository,
     bundleGroup: BundleGroupRepository,
     bundleItem: BundleItemRepository,
     bundlePricingTemplate: BundlePricingTemplateRepository,
@@ -137,6 +151,12 @@ export class Repository {
     this.collection = collection;
     this.collectionItem = collectionItem;
     this.collectionRule = collectionRule;
+    this.inventoryItem = inventoryItem;
+    this.inventoryWidget = inventoryWidget;
+    this.cost = cost;
+    this.physical = physical;
+    this.stock = stock;
+    this.warehouse = warehouse;
     this.bundleGroup = bundleGroup;
     this.bundleItem = bundleItem;
     this.bundlePricingTemplate = bundlePricingTemplate;
@@ -179,6 +199,12 @@ export class Repository {
     const collection = new CollectionRepository(db, txManager);
     const collectionItem = new CollectionItemRepository(db, txManager);
     const collectionRule = new CollectionRuleRepository(db, txManager);
+    const inventoryItem = new InventoryItemRepository(db, txManager);
+    const inventoryWidget = new InventoryWidgetRepository(db, txManager);
+    const cost = new CostRepository(db, txManager);
+    const physical = new PhysicalRepository(db, txManager);
+    const stock = new StockRepository(db, txManager);
+    const warehouse = new WarehouseRepository(db, txManager);
     const bundleGroup = new BundleGroupRepository(db, txManager);
     const bundleItem = new BundleItemRepository(db, txManager);
     const bundlePricingTemplate = new BundlePricingTemplateRepository(db, txManager);
@@ -210,6 +236,12 @@ export class Repository {
       collection,
       collectionItem,
       collectionRule,
+      inventoryItem,
+      inventoryWidget,
+      cost,
+      physical,
+      stock,
+      warehouse,
       bundleGroup,
       bundleItem,
       bundlePricingTemplate,

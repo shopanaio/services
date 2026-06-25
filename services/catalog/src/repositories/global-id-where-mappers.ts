@@ -30,6 +30,10 @@ export const decodeProductGlobalId = createGlobalIdWhereFieldMapper(
   GlobalIdEntity.Product
 );
 
+export const decodeInventoryItemGlobalId = createGlobalIdWhereFieldMapper(
+  GlobalIdEntity.InventoryItem
+);
+
 export const decodeCategoryGlobalId = createGlobalIdWhereFieldMapper(
   GlobalIdEntity.Category
 );
@@ -44,4 +48,8 @@ export const decodeVendorGlobalId = createGlobalIdWhereFieldMapper(
 
 export const decodeVariantGlobalId = createGlobalIdWhereFieldMapper(
   GlobalIdEntity.Variant
+);
+
+export const decodeWarehouseGlobalId = createGlobalIdWhereFieldMapper(
+  GlobalIdEntity.Warehouse
 );

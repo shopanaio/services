@@ -9,6 +9,7 @@ import {
   productOptionValueTranslation,
   productFeatureTranslation,
   productFeatureValueTranslation,
+  warehouseTranslation,
   productSeo,
   categorySeo,
   type ProductTranslation,
@@ -23,6 +24,8 @@ import {
   type NewProductFeatureTranslation,
   type ProductFeatureValueTranslation,
   type NewProductFeatureValueTranslation,
+  type WarehouseTranslation,
+  type NewWarehouseTranslation,
   type ProductSeo,
   type NewProductSeo,
   type CategorySeo,
@@ -209,6 +212,43 @@ export class TranslationRepository {
           productFeatureValueTranslation.featureValueId,
           productFeatureValueTranslation.locale,
         ],
+        set: { name: data.name },
+      })
+      .returning();
+
+    return result[0];
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Warehouse Translations
+  // ─────────────────────────────────────────────────────────────────────────
+
+  async getWarehouseTranslation(
+    warehouseId: string,
+    locale: string
+  ): Promise<WarehouseTranslation | undefined> {
+    const result = await this.connection
+      .select()
+      .from(warehouseTranslation)
+      .where(
+        and(
+          eq(warehouseTranslation.warehouseId, warehouseId),
+          eq(warehouseTranslation.locale, locale)
+        )
+      )
+      .limit(1);
+
+    return result[0];
+  }
+
+  async upsertWarehouseTranslation(
+    data: NewWarehouseTranslation
+  ): Promise<WarehouseTranslation> {
+    const result = await this.connection
+      .insert(warehouseTranslation)
+      .values(data)
+      .onConflictDoUpdate({
+        target: [warehouseTranslation.warehouseId, warehouseTranslation.locale],
         set: { name: data.name },
       })
       .returning();
