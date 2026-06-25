@@ -84,13 +84,15 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
       return result;
     }
 
-    await this.emitProductCreated(result.product, input);
-
     // Step 2: Create inventory items for all variants
     const variants = result.product._variants ?? [];
     if (variants.length > 0) {
       await this.createInventoryItems(variants.map((v) => v.id), input.inventoryItem, input.storeId);
     }
+
+    // Child workflows cannot be started from a DBOS step. Emit after inventory
+    // items exist so inventory list projection can immediately join them.
+    await this.emitProductCreated(result.product, input);
 
     // Step 3: Sync product media back-refs (only after successful DB commit)
     if (result.productMedia) {
@@ -105,7 +107,6 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
     return this.kernel.runScript(ProductCreateScript, input, ctx);
   }
 
-  @SagaStep()
   private async emitProductCreated(
     product: NonNullable<ProductCreateResult["product"]>,
     input: ProductCreateParams
