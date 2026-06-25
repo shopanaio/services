@@ -41,12 +41,11 @@ Returns:
       services: {
         apps: 'Application management and configuration',
         bootstrap: 'Service orchestrator and entrypoint',
-        catalog: 'Products, variants, categories, tags, options, features',
+        catalog: 'Products, variants, categories, tags, options, features, stock, and warehouses',
         checkout: 'Shopping cart, checkout flow, and line items',
         delivery: 'Shipping providers integration (Nova Poshta, Meest)',
         events: 'Event persistence and dispatch',
         iam: 'Identity and access management',
-        inventory: 'Stock levels and inventory management',
         media: 'File storage and media assets management',
         orders: 'Order processing and fulfillment',
         payments: 'Payment providers integration',

@@ -1,41 +1,6 @@
-import { sql } from "drizzle-orm";
-import {
-  boolean,
-  integer,
-  text,
-  timestamp,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
-import { catalogSchema } from "./schema";
-
-const inventoryItemListViewColumns = {
-  projectId: uuid("project_id").notNull(),
-  id: uuid("id").notNull(),
-  variantId: uuid("variant_id").notNull(),
-  productId: uuid("product_id").notNull(),
-  productHandle: text("product_handle"),
-  locale: varchar("locale", { length: 8 }).notNull(),
-  productName: text("product_name").notNull(),
-  sku: varchar("sku", { length: 255 }),
-  trackInventory: boolean("track_inventory").notNull(),
-  continueSellingWhenOutOfStock: boolean(
-    "continue_selling_when_out_of_stock"
-  ).notNull(),
-  deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
-  updatedAt: timestamp("updated_at", {
-    withTimezone: true,
-    mode: "string",
-  }).notNull(),
-  quantityOnHand: integer("quantity_on_hand").notNull(),
-  reservedQuantity: integer("reserved_quantity").notNull(),
-  unavailableQuantity: integer("unavailable_quantity").notNull(),
-  availableForSale: integer("available_for_sale").notNull(),
-};
-
-export const inventoryItemListAllStockView = catalogSchema
-  .view("inventory_item_list_all_stock_view", inventoryItemListViewColumns)
-  .as(sql`
+DROP VIEW IF EXISTS "catalog"."inventory_item_list_warehouse_stock_view";--> statement-breakpoint
+DROP VIEW IF EXISTS "catalog"."inventory_item_list_all_stock_view";--> statement-breakpoint
+CREATE VIEW "catalog"."inventory_item_list_all_stock_view" AS (
     SELECT
       item.project_id,
       item.id,
@@ -83,14 +48,8 @@ export const inventoryItemListAllStockView = catalogSchema
     ) stock
       ON stock.project_id = item.project_id
      AND stock.variant_id = item.variant_id
-  `);
-
-export const inventoryItemListWarehouseStockView = catalogSchema
-  .view("inventory_item_list_warehouse_stock_view", {
-    ...inventoryItemListViewColumns,
-    warehouseScopeId: uuid("warehouse_scope_id").notNull(),
-  })
-  .as(sql`
+  );--> statement-breakpoint
+CREATE VIEW "catalog"."inventory_item_list_warehouse_stock_view" AS (
     SELECT
       item.project_id,
       item.id,
@@ -133,9 +92,6 @@ export const inventoryItemListWarehouseStockView = catalogSchema
       ON stock.project_id = item.project_id
      AND stock.variant_id = item.variant_id
      AND stock.warehouse_id = warehouse.id
-  `);
-
-export type InventoryItemListAllStockView =
-  typeof inventoryItemListAllStockView.$inferSelect;
-export type InventoryItemListWarehouseStockView =
-  typeof inventoryItemListWarehouseStockView.$inferSelect;
+  );--> statement-breakpoint
+DROP TABLE IF EXISTS "catalog"."inventory_item_catalog_projection";--> statement-breakpoint
+DROP TABLE IF EXISTS "catalog"."inventory_product_translation";

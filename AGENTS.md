@@ -29,12 +29,11 @@ Before creating implementation plans or making code/documentation changes, revie
 | --------- | ------------------------------------------------------- |
 | apps      | Application management and configuration                |
 | bootstrap | Service orchestrator and entrypoint                     |
-| catalog   | Products, variants, categories, tags, options, features |
+| catalog   | Products, variants, categories, tags, options, features, stock, warehouses |
 | checkout  | Shopping cart, checkout flow, line items                |
 | delivery  | Shipping providers (Nova Poshta, Meest)                 |
 | events    | Event persistence and dispatch                          |
 | iam       | Identity and access management                          |
-| inventory | Stock levels and inventory management                   |
 | media     | File storage and media assets                           |
 | orders    | Order processing and fulfillment                        |
 | payments  | Payment providers integration                           |

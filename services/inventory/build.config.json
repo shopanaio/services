@@ -1,9 +1,0 @@
-{
-  "entryPoint": "src/inventory.module.ts",
-  "assets": [
-    {
-      "include": "../../packages/shared-references/graphql/**/*.graphql",
-      "outDir": "dist/schema"
-    }
-  ]
-}

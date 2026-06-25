@@ -93,7 +93,7 @@ Use shopana_build to build all packages
 ### Starting Development
 
 ```
-Start dev server for inventory service
+Start dev server for catalog service
 ```
 
 ### Generating Migrations
@@ -126,11 +126,11 @@ Help fix error "Cannot find module @shopana/shared-kernel"
 
 - `apps` - Application management
 - `bootstrap` - Service orchestrator
+- `catalog` - Products, stock, and warehouses
 - `checkout` - Cart and checkout flow
 - `delivery` - Delivery integration
+- `events` - Event persistence and dispatch
 - `iam` - Identity and access management
-- `inventory` - Products and stock
-- `listing` - Product listings
 - `media` - File storage
 - `orders` - Order processing
 - `payments` - Payment integration

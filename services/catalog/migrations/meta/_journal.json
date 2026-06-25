@@ -8,6 +8,13 @@
       "when": 1782408933504,
       "tag": "0000_cuddly_shard",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1782408933505,
+      "tag": "0001_remove_inventory_catalog_projection",
+      "breakpoints": true
     }
   ]
 }

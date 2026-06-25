@@ -210,10 +210,10 @@ function getDatabaseUrl(serviceName?: string): string {
     }
   }
 
-  // Try inventory config as default (most services use same DB)
-  const inventoryUrl = getServiceDatabaseUrl("inventory");
-  if (inventoryUrl) {
-    return inventoryUrl;
+  // Try catalog config as default (most services use same DB)
+  const catalogUrl = getServiceDatabaseUrl("catalog");
+  if (catalogUrl) {
+    return catalogUrl;
   }
 
   // Default local development URL

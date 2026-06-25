@@ -11,7 +11,6 @@ import { z } from "zod";
 import type { Media, Inventory } from "@shopana/broker-types";
 import { Kernel } from "../kernel/Kernel.js";
 import { ProductCreateScript } from "../scripts/product/ProductCreateScript.js";
-import { SyncInventoryItemCatalogProjectionScript } from "../scripts/inventory-item/index.js";
 import type {
   ProductCreateParams,
   ProductCreateResult,
@@ -91,10 +90,8 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
       await this.createInventoryItems(variants.map((v) => v.id), input.inventoryItem, input.storeId);
     }
 
-    await this.syncInventoryCatalogProjection(result.product.id);
-
     // Child workflows cannot be started from a DBOS step. Emit after inventory
-    // items exist so inventory list projection can immediately join them.
+    // items exist so inventory list views can immediately join them.
     await this.emitProductCreated(result.product, input);
 
     // Step 3: Sync product media back-refs (only after successful DB commit)
@@ -162,20 +159,6 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
       );
 
       this.logger.log({ variantId }, "Created inventory item for variant");
-    }
-  }
-
-  @SagaStep()
-  private async syncInventoryCatalogProjection(productId: string): Promise<void> {
-    const result = await this.kernel.runScript(
-      SyncInventoryItemCatalogProjectionScript,
-      { productId }
-    );
-
-    if (!result.success) {
-      throw new Error(
-        result.userErrors[0]?.message ?? "Failed to sync inventory catalog projection"
-      );
     }
   }
 

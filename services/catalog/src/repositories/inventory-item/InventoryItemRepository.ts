@@ -1,6 +1,5 @@
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import type { Catalog } from "@shopana/broker-types";
 import {
   createQuery,
   createRelayQuery,
@@ -10,14 +9,12 @@ import {
 import { BaseRepository } from "../BaseRepository.js";
 import {
   inventoryItem,
-  inventoryItemCatalogProjection,
   inventoryItemListAllStockView,
   inventoryItemListWarehouseStockView,
-  inventoryProductTranslation,
+  product,
   type InventoryItem,
-  type NewInventoryItemCatalogProjection,
   type NewInventoryItem,
-  type NewInventoryProductTranslation,
+  variant,
 } from "../models/index.js";
 import {
   decodeInventoryItemGlobalId,
@@ -231,17 +228,25 @@ export class InventoryItemRepository extends BaseRepository {
       .select(inventoryItemSelectColumns)
       .from(inventoryItem)
       .innerJoin(
-        inventoryItemCatalogProjection,
+        variant,
         and(
-          eq(inventoryItemCatalogProjection.projectId, inventoryItem.projectId),
-          eq(inventoryItemCatalogProjection.variantId, inventoryItem.variantId)
+          eq(variant.projectId, inventoryItem.projectId),
+          eq(variant.id, inventoryItem.variantId)
+        )
+      )
+      .innerJoin(
+        product,
+        and(
+          eq(product.projectId, inventoryItem.projectId),
+          eq(product.id, variant.productId)
         )
       )
       .where(
         and(
           eq(inventoryItem.projectId, this.storeId),
           eq(inventoryItem.id, id),
-          isNull(inventoryItemCatalogProjection.deletedAt)
+          isNull(variant.deletedAt),
+          isNull(product.deletedAt)
         )
       )
       .limit(1);
@@ -254,17 +259,25 @@ export class InventoryItemRepository extends BaseRepository {
       .select(inventoryItemSelectColumns)
       .from(inventoryItem)
       .innerJoin(
-        inventoryItemCatalogProjection,
+        variant,
         and(
-          eq(inventoryItemCatalogProjection.projectId, inventoryItem.projectId),
-          eq(inventoryItemCatalogProjection.variantId, inventoryItem.variantId)
+          eq(variant.projectId, inventoryItem.projectId),
+          eq(variant.id, inventoryItem.variantId)
+        )
+      )
+      .innerJoin(
+        product,
+        and(
+          eq(product.projectId, inventoryItem.projectId),
+          eq(product.id, variant.productId)
         )
       )
       .where(
         and(
           eq(inventoryItem.projectId, this.storeId),
           eq(inventoryItem.variantId, variantId),
-          isNull(inventoryItemCatalogProjection.deletedAt)
+          isNull(variant.deletedAt),
+          isNull(product.deletedAt)
         )
       )
       .limit(1);
@@ -279,17 +292,25 @@ export class InventoryItemRepository extends BaseRepository {
       .select(inventoryItemSelectColumns)
       .from(inventoryItem)
       .innerJoin(
-        inventoryItemCatalogProjection,
+        variant,
         and(
-          eq(inventoryItemCatalogProjection.projectId, inventoryItem.projectId),
-          eq(inventoryItemCatalogProjection.variantId, inventoryItem.variantId)
+          eq(variant.projectId, inventoryItem.projectId),
+          eq(variant.id, inventoryItem.variantId)
+        )
+      )
+      .innerJoin(
+        product,
+        and(
+          eq(product.projectId, inventoryItem.projectId),
+          eq(product.id, variant.productId)
         )
       )
       .where(
         and(
           eq(inventoryItem.projectId, this.storeId),
           inArray(inventoryItem.id, [...ids]),
-          isNull(inventoryItemCatalogProjection.deletedAt)
+          isNull(variant.deletedAt),
+          isNull(product.deletedAt)
         )
       );
   }
@@ -303,17 +324,25 @@ export class InventoryItemRepository extends BaseRepository {
       .select(inventoryItemSelectColumns)
       .from(inventoryItem)
       .innerJoin(
-        inventoryItemCatalogProjection,
+        variant,
         and(
-          eq(inventoryItemCatalogProjection.projectId, inventoryItem.projectId),
-          eq(inventoryItemCatalogProjection.variantId, inventoryItem.variantId)
+          eq(variant.projectId, inventoryItem.projectId),
+          eq(variant.id, inventoryItem.variantId)
+        )
+      )
+      .innerJoin(
+        product,
+        and(
+          eq(product.projectId, inventoryItem.projectId),
+          eq(product.id, variant.productId)
         )
       )
       .where(
         and(
           eq(inventoryItem.projectId, this.storeId),
           inArray(inventoryItem.variantId, [...variantIds]),
-          isNull(inventoryItemCatalogProjection.deletedAt)
+          isNull(variant.deletedAt),
+          isNull(product.deletedAt)
         )
       );
   }
@@ -478,136 +507,4 @@ export class InventoryItemRepository extends BaseRepository {
     });
   }
 
-  // ============ Catalog projection sync ============
-
-  async upsertCatalogProjectionSnapshot(
-    snapshot: Catalog.InventoryItemProjectionSnapshot,
-    eventId?: string
-  ): Promise<void> {
-    const now = new Date().toISOString();
-    const deletedAt = snapshot.deletedAt ?? null;
-
-    await this.upsertCatalogProjectionRows(
-      snapshot.variants.map((variantSnapshot) => ({
-        projectId: this.storeId,
-        variantId: variantSnapshot.variantId,
-        productId: snapshot.productId,
-        productHandle: snapshot.productHandle,
-        externalSystem: variantSnapshot.externalSystem,
-        externalId: variantSnapshot.externalId,
-        catalogRevision: snapshot.revision,
-        lastCatalogEventId: eventId ?? null,
-        deletedAt: variantSnapshot.deletedAt ?? deletedAt,
-        updatedAt: now,
-      }))
-    );
-
-    await this.upsertProductTranslations(
-      snapshot.translations.map((translation) => ({
-        projectId: this.storeId,
-        productId: translation.productId,
-        locale: translation.locale,
-        name: translation.name,
-      }))
-    );
-  }
-
-  async upsertCatalogProjectionRows(
-    rows: NewInventoryItemCatalogProjection[]
-  ): Promise<void> {
-    if (rows.length === 0) return;
-
-    await this.connection
-      .insert(inventoryItemCatalogProjection)
-      .values(rows)
-      .onConflictDoUpdate({
-        target: [
-          inventoryItemCatalogProjection.projectId,
-          inventoryItemCatalogProjection.variantId,
-        ],
-        set: {
-          productId: sql`excluded.product_id`,
-          productHandle: sql`excluded.product_handle`,
-          externalSystem: sql`excluded.external_system`,
-          externalId: sql`excluded.external_id`,
-          catalogRevision: sql`excluded.catalog_revision`,
-          lastCatalogEventId: sql`excluded.last_catalog_event_id`,
-          deletedAt: sql`excluded.deleted_at`,
-          updatedAt: sql`excluded.updated_at`,
-        },
-        setWhere: sql`
-          ${inventoryItemCatalogProjection.catalogRevision} IS NULL
-          OR excluded.catalog_revision IS NULL
-          OR excluded.catalog_revision >= ${inventoryItemCatalogProjection.catalogRevision}
-        `,
-      });
-  }
-
-  async upsertProductTranslations(
-    translations: NewInventoryProductTranslation[]
-  ): Promise<void> {
-    if (translations.length === 0) return;
-
-    await this.connection
-      .insert(inventoryProductTranslation)
-      .values(translations)
-      .onConflictDoUpdate({
-        target: [
-          inventoryProductTranslation.productId,
-          inventoryProductTranslation.locale,
-        ],
-        set: {
-          projectId: sql`excluded.project_id`,
-          name: sql`excluded.name`,
-        },
-      });
-  }
-
-  async softDeleteCatalogProjectionByProductId(
-    productId: string,
-    eventId?: string
-  ): Promise<void> {
-    const now = new Date().toISOString();
-    const updateData: Partial<NewInventoryItemCatalogProjection> = {
-      deletedAt: now,
-      updatedAt: now,
-    };
-    if (eventId) {
-      updateData.lastCatalogEventId = eventId;
-    }
-
-    await this.connection
-      .update(inventoryItemCatalogProjection)
-      .set(updateData)
-      .where(
-        and(
-          eq(inventoryItemCatalogProjection.projectId, this.storeId),
-          eq(inventoryItemCatalogProjection.productId, productId)
-        )
-      );
-  }
-
-  async softDeleteCatalogProjectionByVariantId(
-    variantId: string,
-    eventId?: string
-  ): Promise<void> {
-    const now = new Date().toISOString();
-    const updateData: Partial<NewInventoryItemCatalogProjection> = {
-      deletedAt: now,
-      updatedAt: now,
-    };
-    if (eventId) {
-      updateData.lastCatalogEventId = eventId;
-    }
-
-    await this.connection
-      .update(inventoryItemCatalogProjection)
-      .set(updateData)
-      .where(
-        and(
-          eq(inventoryItemCatalogProjection.projectId, this.storeId),
-          eq(inventoryItemCatalogProjection.variantId, variantId)
-        )
-      );
-  }
 }

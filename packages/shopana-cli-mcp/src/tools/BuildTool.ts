@@ -9,7 +9,7 @@ const BuildToolSchema = z.object({
   services: z
     .array(z.string())
     .optional()
-    .describe('Specific service(s) to build. Available: apps, bootstrap, checkout, delivery, iam, inventory, listing, media, orders, payments, pricing, project, reviews, search'),
+    .describe('Specific service(s) to build. Available: apps, bootstrap, catalog, checkout, delivery, events, iam, media, orders, payments, pricing, project, reviews, search'),
   packagesOnly: z
     .boolean()
     .optional()
@@ -41,7 +41,7 @@ Examples:
 - Build in parallel: { "parallel": true }
 - Skip type checking (not recommended): { "skipTypeCheck": true }
 
-Available services: apps, bootstrap, checkout, delivery, iam, inventory, listing, media, orders, payments, pricing, project, reviews, search`;
+Available services: apps, bootstrap, catalog, checkout, delivery, events, iam, media, orders, payments, pricing, project, reviews, search`;
 
   schema = BuildToolSchema;
 

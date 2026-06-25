@@ -9,7 +9,7 @@ const CodegenToolSchema = z.object({
   service: z
     .string()
     .optional()
-    .describe('Generate types for specific service only. Available: apps, bootstrap, checkout, delivery, iam, inventory, listing, media, orders, payments, pricing, project, reviews, search'),
+    .describe('Generate types for specific service only. Available: apps, bootstrap, catalog, checkout, delivery, events, iam, media, orders, payments, pricing, project, reviews, search'),
   workingDir: z
     .string()
     .optional()
@@ -26,7 +26,7 @@ Examples:
 - Generate for all services: {}
 - Generate for specific service: { "service": "checkout" }
 
-Available services: apps, bootstrap, checkout, delivery, iam, inventory, listing, media, orders, payments, pricing, project, reviews, search`;
+Available services: apps, bootstrap, catalog, checkout, delivery, events, iam, media, orders, payments, pricing, project, reviews, search`;
 
   schema = CodegenToolSchema;
 
