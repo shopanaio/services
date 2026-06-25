@@ -6,3 +6,4 @@ export * from "./product-options.mapper";
 export * from "./product-option-errors.mapper";
 export * from "./product-variant-editor.mapper";
 export * from "./product-variant-update.mapper";
+export * from "./product-variant-options.mapper";

@@ -8,6 +8,7 @@ import {
   RowSelectionModule,
   GridStateModule,
   SelectionChangedEvent,
+  type RowStyle,
 } from "ag-grid-community";
 import { createStyles } from "antd-style";
 import { FilterWidget } from "@/layouts/filters";
@@ -344,7 +345,7 @@ export function EntityPickerContent<T extends IPickableEntity>({
           isRowSelectable={(node) =>
             node.data ? !config.isRowDisabled?.(node.data) : false
           }
-          getRowStyle={(params) =>
+          getRowStyle={(params): RowStyle =>
             params.data && config.isRowDisabled?.(params.data)
               ? { cursor: "not-allowed", opacity: 0.58 }
               : { cursor: "pointer" }

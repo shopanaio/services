@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useRef, useMemo, useState } from "react";
-import { Divider, Tag } from "antd";
+import { Divider, Tag, App } from "antd";
 import { createStyles } from "antd-style";
 import { ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { useDefaultCurrency } from "@/domains/workspace";
@@ -11,8 +11,16 @@ import {
   extractOptionGroups,
   VariantsEditorGrid,
 } from "./components/variants-editor-grid";
-import type { IVariantEditorRow, IOptionGroup } from "./config/types";
+import type {
+  IVariantEditorRow,
+  IOptionGroup,
+} from "./config/types";
 import type { IEditVariantsModalPayload } from "../../modals";
+import {
+  apiVariantsToVariantOptionRows,
+  validateVariantOptionRows,
+  variantOptionRowsToProductUpdateInput,
+} from "../../mappers";
 import {
   getVariantEditorRowsForSave,
   mapApiVariantsToEditorInputs,
@@ -71,6 +79,7 @@ const useStyles = createStyles(() => ({
 
 export const EditVariantsModal = () => {
   const { styles } = useStyles();
+  const { message } = App.useApp();
   const { payload, pop, setDirty } = useModalStackContext();
   const typedPayload = payload as IEditVariantsModalPayload;
   const [submitting, setSubmitting] = useState(false);
@@ -122,12 +131,21 @@ export const EditVariantsModal = () => {
     [typedPayload.productOptions, variantInputs]
   );
 
+  const originalOptionRows = useMemo(
+    () =>
+      apiVariantsToVariantOptionRows(
+        typedPayload.variants,
+        typedPayload.productOptions,
+      ),
+    [typedPayload.productOptions, typedPayload.variants],
+  );
+
   // Track current rows for save
   const rowDataRef = useRef<IVariantEditorRow[]>([]);
 
   // Sync dirty state
   useEffect(() => {
-    // setDirty(hasChanges);
+    setDirty(hasChanges);
   }, [hasChanges, setDirty]);
 
   // Reset edits on mount/unmount
@@ -151,12 +169,32 @@ export const EditVariantsModal = () => {
 
   // Handle save
   const handleSave = useCallback(async () => {
-    const dataForSave = getVariantEditorRowsForSave(rowDataRef.current);
+    const currentRows =
+      rowDataRef.current.length > 0 ? rowDataRef.current : originalOptionRows;
+    const optionValidation = validateVariantOptionRows(
+      currentRows,
+      typedPayload.productOptions,
+    );
+
+    if (optionValidation.hasErrors) {
+      message.error(optionValidation.messages[0] ?? "Variant options are invalid.");
+      return;
+    }
+
+    const optionOperations = variantOptionRowsToProductUpdateInput(
+      currentRows,
+      originalOptionRows,
+      typedPayload.productOptions,
+    );
+    const dataForSave = getVariantEditorRowsForSave(currentRows);
     setSubmitting(true);
     startSaving();
 
     try {
-      const result = await typedPayload.onSave?.(dataForSave);
+      const result = await typedPayload.onSave?.(
+        dataForSave,
+        optionOperations.variants?.length ? optionOperations : undefined,
+      );
 
       if (result === false) {
         onSaveError();
@@ -170,7 +208,15 @@ export const EditVariantsModal = () => {
     } finally {
       setSubmitting(false);
     }
-  }, [typedPayload, startSaving, onSaveError, onSaveSuccess, pop]);
+  }, [
+    message,
+    originalOptionRows,
+    typedPayload,
+    startSaving,
+    onSaveError,
+    onSaveSuccess,
+    pop,
+  ]);
 
   // Handle escape key
   useEffect(() => {

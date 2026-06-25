@@ -208,6 +208,10 @@ const useStyles = createStyles(({ token }) => ({
     ".ec-option": {
       color: token.colorTextSecondary,
     },
+
+    ".variant-option-cell-dropdown": {
+      padding: "0 !important",
+    },
   },
 }));
 

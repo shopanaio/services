@@ -9,7 +9,7 @@ interface DynamicSidebarState {
   clearChildren: (parentKey: string) => void;
 }
 
-function areSidebarItemsEqual(left: SidebarItem[], right: SidebarItem[]) {
+function areSidebarItemsEqual(left: SidebarItem[], right: SidebarItem[]): boolean {
   if (left.length !== right.length) {
     return false;
   }
@@ -28,7 +28,7 @@ function areSidebarItemsEqual(left: SidebarItem[], right: SidebarItem[]) {
   });
 }
 
-function sortSidebarItems(items: SidebarItem[]) {
+function sortSidebarItems(items: SidebarItem[]): SidebarItem[] {
   return items
     .map((item, index) => ({ item, index }))
     .sort((left, right) => {

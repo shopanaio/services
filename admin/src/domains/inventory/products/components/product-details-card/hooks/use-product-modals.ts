@@ -268,6 +268,7 @@ export const useProductModals = (
           rows: Parameters<
             NonNullable<IEditVariantsModalPayload["onSave"]>
           >[0],
+          additionalOperations?: ApiProductUpdateInput,
         ): Promise<boolean> => {
           let variantUpdates: ApiVariantUpdateInput[];
 
@@ -291,14 +292,19 @@ export const useProductModals = (
             return false;
           }
 
-          if (variantUpdates.length === 0) {
+          const operations: ApiProductUpdateInput = {
+            ...additionalOperations,
+            variants: [
+              ...variantUpdates,
+              ...(additionalOperations?.variants ?? []),
+            ],
+          };
+
+          if (!operations.variants || operations.variants.length === 0) {
             message.info("No variant changes to save");
             return true;
           }
 
-          const operations: ApiProductUpdateInput = {
-            variants: variantUpdates,
-          };
           const result = await updateProduct({
             productId: product.id,
             expectedRevision: product.revision,

@@ -107,10 +107,21 @@ export function mapApiVariantToEditorInput(
       );
 
       return {
+        optionId: selectedOption.optionId,
+        optionValueId: selectedOption.optionValueId,
         name: option?.name ?? "Option",
         value: value?.name ?? "Unknown option",
       };
     }),
+    selectedOptionValueIds: Object.fromEntries(
+      productOptions.map((option) => {
+        const selectedOption = variant.selectedOptions.find(
+          (candidate) => candidate.optionId === option.id,
+        );
+
+        return [option.id, selectedOption?.optionValueId ?? null];
+      }),
+    ),
     sku: variant.inventoryItem?.sku ?? null,
     onHand,
     unavailable,

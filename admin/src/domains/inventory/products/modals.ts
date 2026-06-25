@@ -7,6 +7,7 @@ import type {
   ApiProduct,
   ApiProductFeature,
   ApiProductOption,
+  ApiProductUpdateInput,
   ApiTag,
   ApiVariant,
   CurrencyCode,
@@ -237,6 +238,7 @@ export interface IEditVariantsModalPayload extends IModalStackPayload {
   showColumnSettings?: boolean;
   onSave?: (
     variants: VariantEditorSaveRow[],
+    additionalOperations?: ApiProductUpdateInput,
   ) => boolean | void | Promise<boolean | void>;
 }
 

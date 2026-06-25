@@ -8,6 +8,8 @@ import type { ApiFile } from "@/graphql/types";
 export type StockStatus = "in_stock" | "low_stock" | "out_of_stock";
 
 export interface IVariantOption {
+  optionId?: string;
+  optionValueId?: string;
   name: string;
   value: string;
 }
@@ -18,6 +20,7 @@ export interface IVariantEditorInput {
   imageUrl?: string | null;
   media?: ApiFile[] | null;
   options?: IVariantOption[];
+  selectedOptionValueIds?: Record<string, string | null>;
   sku?: string | null;
   onHand?: number;
   unavailable?: number;
@@ -41,6 +44,7 @@ export interface IVariantEditorRow extends IEditorRowBase {
 
   // Options (dynamic, based on product options)
   options: IVariantOption[];
+  selectedOptionValueIds: Record<string, string | null>;
 
   // Inventory identification
   sku: string | null;
@@ -63,6 +67,15 @@ export interface IVariantEditorRow extends IEditorRowBase {
   width: number | null;
   height: number | null;
   dimensionUnit: string;
+}
+
+export interface VariantOptionRowsValidationResult {
+  rows: IVariantEditorRow[];
+  hasErrors: boolean;
+  duplicateRowIds: string[];
+  incompleteRowIds: string[];
+  invalidRowIds: string[];
+  messages: string[];
 }
 
 // ============================================================================

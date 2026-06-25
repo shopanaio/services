@@ -106,6 +106,7 @@ function variantsToRows(variants: IVariantEditorInput[]): IVariantEditorRow[] {
       imageUrl: v.imageUrl ?? null,
       media: v.media ?? [],
       options: v.options || [],
+      selectedOptionValueIds: v.selectedOptionValueIds ?? {},
       // Inventory identification
       sku: v.sku ?? null,
       // Inventory quantities
@@ -285,14 +286,33 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
     [openMediaEditor],
   );
 
+  const handleOptionValueChange = useCallback(
+    (rowId: string, optionId: string, optionValueId: string) => {
+      const row = displayRows.find((candidate) => candidate.id === rowId);
+      const originalRow = rows.find((candidate) => candidate.id === rowId);
+
+      if (!row || !originalRow) {
+        return;
+      }
+
+      setFieldValue(rowId, "selectedOptionValueIds", originalRow.selectedOptionValueIds, {
+        ...row.selectedOptionValueIds,
+        [optionId]: optionValueId,
+      });
+    },
+    [displayRows, rows, setFieldValue],
+  );
+
   // Columns - pass availableColumns and ignoreUserSettings
   const columns = useVariantsColumns({
     optionGroups,
+    productOptions,
     currency,
     availableColumns,
     editableColumns,
     ignoreUserSettings,
     onEditMedia: isFieldEditable("media") ? handleOpenMediaEditor : undefined,
+    onOptionValueChange: handleOptionValueChange,
   });
 
   // Notify parent of changes

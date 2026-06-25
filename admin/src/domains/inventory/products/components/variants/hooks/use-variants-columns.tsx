@@ -1,4 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
+import { Dropdown } from "antd";
+import { DownOutlined } from "@ant-design/icons";
+import type { MenuProps } from "antd";
 import type { ColDef, ValueGetterParams, ValueSetterParams } from "ag-grid-community";
 import { useVariantsEditorStore } from "./use-variants-editor-store";
 import {
@@ -11,7 +14,7 @@ import type {
   IOptionGroup,
   VariantColumnField,
 } from "../config/types";
-import type { CurrencyCode } from "@/graphql/types";
+import type { ApiProductOption, CurrencyCode } from "@/graphql/types";
 import { Dash } from "@/shared/components/editor-grid";
 import {
   ImageCellRenderer,
@@ -30,6 +33,7 @@ import { formatCurrencySymbol } from "../../../utils/price-formatting";
 
 export interface UseVariantsColumnsOptions {
   optionGroups: IOptionGroup[];
+  productOptions?: ApiProductOption[];
   currency?: CurrencyCode | null;
   /**
    * When provided, only these columns will be available.
@@ -47,6 +51,74 @@ export interface UseVariantsColumnsOptions {
    */
   ignoreUserSettings?: boolean;
   onEditMedia?: (rowId: string, selectedRowIds?: string[]) => void;
+  onOptionValueChange?: (
+    rowId: string,
+    optionId: string,
+    optionValueId: string,
+  ) => void;
+}
+
+interface OptionDropdownCellProps {
+  row: IVariantEditorRow;
+  option: ApiProductOption;
+  onChange?: (rowId: string, optionId: string, optionValueId: string) => void;
+}
+
+function OptionDropdownCell({
+  row,
+  option,
+  onChange,
+}: OptionDropdownCellProps) {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const selectedValueId = row.selectedOptionValueIds[option.id];
+  const selectedValue = option.values.find((value) => value.id === selectedValueId);
+  const items: MenuProps["items"] = [...option.values]
+    .sort((left, right) => left.sortIndex - right.sortIndex)
+    .map((value) => ({
+      key: value.id,
+      label: value.name,
+    }));
+
+  return (
+    <Dropdown
+      menu={{
+        items,
+        onClick: ({ key }) => {
+          onChange?.(row.id, option.id, key);
+          setOpen(false);
+        },
+      }}
+      trigger={["contextMenu"]}
+      open={open}
+      onOpenChange={(visible) => {
+        if (!visible) setOpen(false);
+      }}
+      dropdownRender={(menu) => (
+        <div style={{ width: triggerRef.current?.offsetWidth }}>{menu}</div>
+      )}
+    >
+      <div
+        ref={triggerRef}
+        onDoubleClick={() => setOpen(true)}
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 11px",
+          gap: 8,
+        }}
+        data-testid={`variants-editor-cell-option-${option.id}-${row.id}`}
+      >
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {selectedValue?.name ?? <Dash />}
+        </span>
+        <DownOutlined style={{ fontSize: 10, color: "rgba(0, 0, 0, 0.25)" }} />
+      </div>
+    </Dropdown>
+  );
 }
 
 // ============================================================================
@@ -196,11 +268,13 @@ export function useVariantsColumns(
 
   const {
     optionGroups,
+    productOptions = [],
     availableColumns,
     editableColumns,
     ignoreUserSettings = false,
     currency,
     onEditMedia,
+    onOptionValueChange,
   } = normalizedOptions;
 
   const columnVisibility = useVariantsEditorStore((s) => s.columnVisibility);
@@ -251,23 +325,42 @@ export function useVariantsColumns(
 
     // Option columns (dynamic) - only show when not restricted or when user settings allow
     if (!ignoreUserSettings) {
+      const productOptionsByName = new Map(
+        productOptions.map((option) => [option.name, option]),
+      );
       const optionCols = createOptionColumns(optionGroups);
       for (const col of optionCols) {
         if (!isOptionColumnVisible(col.headerName)) continue;
 
         const optionName = col.headerName;
+        const productOption = productOptionsByName.get(optionName);
         columns.push({
           colId: col.field,
           headerName: col.headerName,
           width: col.width,
           minWidth: col.minWidth,
+          cellClass: productOption ? "variant-option-cell-dropdown" : undefined,
           valueGetter: (params) => {
-            const option = params.data?.options.find((o) => o.name === optionName);
+            if (productOption) {
+              return params.data?.selectedOptionValueIds[productOption.id] ?? null;
+            }
+
+            const option = params.data?.options.find((item) => item.name === optionName);
             return option?.value ?? null;
           },
           cellRenderer: (params: { data?: IVariantEditorRow; value?: unknown }) => {
             if (!params.data) {
               return null;
+            }
+
+            if (productOption) {
+              return (
+                <OptionDropdownCell
+                  row={params.data}
+                  option={productOption}
+                  onChange={onOptionValueChange}
+                />
+              );
             }
 
             return (
@@ -335,11 +428,13 @@ export function useVariantsColumns(
   }, [
     columnVisibility,
     optionGroups,
+    productOptions,
     isOptionColumnVisible,
     availableColumns,
     editableColumns,
     ignoreUserSettings,
     currency,
     onEditMedia,
+    onOptionValueChange,
   ]);
 }
