@@ -6,12 +6,9 @@ import {
   ServiceBroker,
 } from "@shopana/shared-kernel";
 import type { ContextStore } from "@shopana/shared-context";
-import type { Catalog } from "@shopana/broker-types";
 import type {
   EventHandlerResponse,
-  ProductCreatedEvent,
   ProductDeletedEvent,
-  ProductUpdatedEvent,
   VariantDeletedEvent,
 } from "@shopana/events";
 import { Kernel } from "../kernel/Kernel.js";
@@ -36,6 +33,8 @@ type GetStoreByIdResult = {
  *
  * Note: InventoryItem creation is now handled by ProductCreateSaga
  * via the inventory.createItem broker action.
+ * Catalog projection sync for product create/update is handled by direct script
+ * calls in the Catalog product create/update flows.
  */
 @Injectable()
 export class InventoryEventHandlers extends EventHandlers {
@@ -84,52 +83,6 @@ export class InventoryEventHandlers extends EventHandlers {
     }
 
     return result.store;
-  }
-
-  @EventHandler("productCreated", { retry: { maxAttempts: 5 } })
-  async handleProductCreated(params: {
-    event: ProductCreatedEvent;
-  }): Promise<EventHandlerResponse> {
-    const event = params.event;
-    this.logger.debug(
-      { eventId: event.eventId, productId: event.payload.productId },
-      "Received productCreated event"
-    );
-
-    return this.syncCatalogSnapshot({
-      eventId: event.eventId,
-      requestId: event.context.correlationId,
-      storeId: event.payload.storeId,
-      organizationId: event.context.tenantId,
-      userId: event.context.userId,
-      productId: event.payload.productId,
-    });
-  }
-
-  @EventHandler("productUpdated", { retry: { maxAttempts: 5 } })
-  async handleProductUpdated(params: {
-    event: ProductUpdatedEvent;
-  }): Promise<EventHandlerResponse> {
-    const event = params.event;
-    this.logger.debug(
-      { eventId: event.eventId, productId: event.payload.productId },
-      "Received productUpdated event"
-    );
-
-    const variantIds =
-      event.payload.product == null && event.payload.variants
-        ? Object.keys(event.payload.variants)
-        : undefined;
-
-    return this.syncCatalogSnapshot({
-      eventId: event.eventId,
-      requestId: event.context.correlationId,
-      storeId: event.payload.storeId,
-      organizationId: event.context.tenantId,
-      userId: event.context.userId,
-      productId: event.payload.productId,
-      variantIds,
-    });
   }
 
   @EventHandler("productDeleted", { retry: { maxAttempts: 5 } })
@@ -212,67 +165,6 @@ export class InventoryEventHandlers extends EventHandlers {
       this.logger.error(
         { error: message, variantId, productId },
         "Failed to soft-delete inventory item catalog projection for variantDeleted"
-      );
-      return { success: false, error: { message, retryable: true } };
-    }
-  }
-
-  private async syncCatalogSnapshot(params: {
-    eventId: string;
-    requestId?: string;
-    storeId: string;
-    organizationId: string;
-    userId?: string;
-    productId: string;
-    variantIds?: string[];
-  }): Promise<EventHandlerResponse> {
-    try {
-      const store = await this.getStoreContext(params.storeId);
-
-      return await this.runWithStoreContext(
-        {
-          requestId: params.requestId,
-          store,
-          userId: params.userId,
-        },
-        async () => {
-          const result = await this.broker.call<
-            Catalog.GetInventoryItemProjectionSnapshotResult,
-            Catalog.GetInventoryItemProjectionSnapshotParams
-          >("catalog.getInventoryItemProjectionSnapshot", {
-            storeId: params.storeId,
-            organizationId: params.organizationId,
-            locale: store.defaultLocale,
-            userId: params.userId,
-            requestId: params.requestId,
-            productId: params.productId,
-            variantIds: params.variantIds,
-          });
-
-          if (!result.ok) {
-            return {
-              success: false,
-              error: {
-                message: result.message,
-                code: result.code,
-                retryable: result.retryable,
-              },
-            };
-          }
-
-          await this.kernel.repository.inventoryItem.upsertCatalogProjectionSnapshot(
-            result.snapshot,
-            params.eventId
-          );
-
-          return { success: true };
-        }
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(
-        { error: message, productId: params.productId },
-        "Failed to sync inventory item catalog projection snapshot"
       );
       return { success: false, error: { message, retryable: true } };
     }

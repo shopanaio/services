@@ -49,6 +49,7 @@ import {
   VariantBatchUpdateOptionsScript,
   type VariantOptionsUpdate,
 } from "../scripts/variant/VariantBatchUpdateOptionsScript.js";
+import { SyncInventoryItemCatalogProjectionScript } from "../scripts/inventory-item/index.js";
 
 /**
  * ProductUpdateWorkflow for Catalog Service.
@@ -176,6 +177,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       changes.product !== undefined || changes.variants !== undefined;
     if (hasChanges) {
       await this.workflowEmitEvent(input, changes, revision);
+      await this.stepSyncInventoryCatalogProjection(input.productId, changes, scriptCtx);
     }
 
     return {
@@ -573,6 +575,30 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       applied: result.applied,
       errors: result.errors,
     }));
+  }
+
+  @WorkflowStep()
+  private async stepSyncInventoryCatalogProjection(
+    productId: string,
+    changes: ProductChanges,
+    ctx: RunScriptContext,
+  ): Promise<void> {
+    const variantIds =
+      changes.product == null && changes.variants
+        ? Object.keys(changes.variants)
+        : undefined;
+
+    const result = await this.kernel.runScript(
+      SyncInventoryItemCatalogProjectionScript,
+      { productId, variantIds },
+      ctx
+    );
+
+    if (!result.success) {
+      throw new Error(
+        result.userErrors[0]?.message ?? "Failed to sync inventory catalog projection"
+      );
+    }
   }
 
   /**

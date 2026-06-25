@@ -66,7 +66,10 @@ import type {
 } from "../../workflows/dto/ProductUpdateWorkflowDto.js";
 import type { ProductCreateParams, ProductCreateResult } from "../../sagas/index.js";
 import { VendorCreateScript } from "../../scripts/vendor/index.js";
-import { InventoryItemUpdateScript } from "../../scripts/inventory-item/index.js";
+import {
+  InventoryItemUpdateScript,
+  SyncInventoryItemCatalogProjectionScript,
+} from "../../scripts/inventory-item/index.js";
 import {
   WarehouseCreateScript,
   WarehouseDeleteScript,
@@ -535,6 +538,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           stepId: "emitProductUpdated",
         }
       );
+
+      await this.syncInventoryCatalogProjection({ productId });
     }
   }
 
@@ -607,6 +612,30 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         stepId: "emitProductUpdated",
       }
     );
+
+    await this.syncInventoryCatalogProjection({
+      productId: args.productId,
+      variantIds: [args.variantId],
+    });
+  }
+
+  private async syncInventoryCatalogProjection(args: {
+    productId: string;
+    variantIds?: string[];
+  }): Promise<void> {
+    const result = await this.$ctx.kernel.runScript(
+      SyncInventoryItemCatalogProjectionScript,
+      {
+        productId: args.productId,
+        variantIds: args.variantIds,
+      }
+    );
+
+    if (!result.success) {
+      throw new Error(
+        result.userErrors[0]?.message ?? "Failed to sync inventory catalog projection"
+      );
+    }
   }
 
   private async emitVariantDeleted(args: {
