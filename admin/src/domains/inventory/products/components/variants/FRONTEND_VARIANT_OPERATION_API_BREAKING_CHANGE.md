@@ -8,8 +8,15 @@ shape with the approved operation-style breaking change.
 
 Backend schema, backend workflows, generated backend resolver files, changesets,
 tests, and backend validation rules are intentionally out of scope here. This
-document assumes the backend schema has already been updated and frontend
-GraphQL codegen has produced the new generated API types in `@/graphql/types`.
+document assumes the backend schema has already been updated.
+
+Before migrating Admin frontend code, run the frontend GraphQL schema/codegen
+step so `@/graphql/types` reflects the backend breaking change. The generated
+Admin API types must expose `ApiVariantOperationInput`,
+`VariantOperationAction`, `ApiOperationResult.clientMutationId`,
+`ApiOperationResult.entityId`, and
+`ApiProductUpdateInput.variants?: ApiVariantOperationInput[] | null`.
+Do not manually edit generated GraphQL types.
 
 ## Breaking change summary
 
@@ -34,22 +41,23 @@ Expected generated types after schema/codegen:
 ```ts
 import type {
   ApiProductUpdateInput,
-  ApiVariantOperationAction,
   ApiVariantOperationInput,
 } from "@/graphql/types";
+import { VariantOperationAction } from "@/graphql/types";
 ```
 
-Expected enum values:
+Expected enum values. The Admin codegen uses `enumPrefix: false`, so generated
+enum names are expected to omit the `Api` prefix:
 
 ```ts
-ApiVariantOperationAction.Create
-ApiVariantOperationAction.Update
-ApiVariantOperationAction.Delete
+VariantOperationAction.Create
+VariantOperationAction.Update
+VariantOperationAction.Delete
 ```
 
 If codegen emits string literal unions instead of an enum, use the generated
-shape directly and keep the sent values as `"CREATE"`, `"UPDATE"`, and
-`"DELETE"`.
+shape directly. If the enum name differs after codegen, use the generated enum
+name directly and keep the sent values as `"CREATE"`, `"UPDATE"`, and `"DELETE"`.
 
 ## Product update input contract
 
@@ -63,7 +71,7 @@ Valid frontend payload examples:
 
 ```ts
 const updateExistingVariant: ApiVariantOperationInput = {
-  action: ApiVariantOperationAction.Update,
+  action: VariantOperationAction.Update,
   variantId: row.id,
   pricing: {
     currency,
@@ -75,7 +83,7 @@ const updateExistingVariant: ApiVariantOperationInput = {
 
 ```ts
 const createDraftVariant: ApiVariantOperationInput = {
-  action: ApiVariantOperationAction.Create,
+  action: VariantOperationAction.Create,
   clientMutationId: row.clientMutationId,
   options: {
     set: productOptions.map((option) => ({
@@ -102,16 +110,18 @@ spreadsheet implementation does not expose delete UI:
 
 ```ts
 const deleteVariant: ApiVariantOperationInput = {
-  action: ApiVariantOperationAction.Delete,
+  action: VariantOperationAction.Delete,
   variantId,
 };
 ```
 
 ## Frontend files to migrate
 
-The expected frontend API changes are limited to these product Admin files:
+The expected spreadsheet editor API changes include these product Admin files:
 
+- `admin/src/domains/inventory/products/graphql/mutations.ts`
 - `admin/src/domains/inventory/products/graphql/operation-types.ts`
+- `admin/src/domains/inventory/products/mappers/product-errors.mapper.ts`
 - `admin/src/domains/inventory/products/mappers/product-variant-update.mapper.ts`
 - `admin/src/domains/inventory/products/mappers/product-variant-editor.mapper.ts`
 - `admin/src/domains/inventory/products/mappers/product-variant-options.mapper.ts`
@@ -121,6 +131,17 @@ The expected frontend API changes are limited to these product Admin files:
 - `admin/src/domains/inventory/products/components/variants/config/types.ts`
 - `admin/src/domains/inventory/products/components/variants/edit-variants-modal.tsx`
 - `admin/src/domains/inventory/products/components/variants/components/variants-editor-grid.tsx`
+
+The backend breaking change also affects any other Admin frontend flow that
+writes to `ProductUpdateInput.variants`, including bulk update inputs. At the
+time of writing, inventory bulk editing still builds old `ApiVariantUpdateInput`
+items and must be migrated too:
+
+- `admin/src/domains/inventory/inventory/mappers/inventory-variant-edit.mapper.ts`
+
+That mapper must emit `action: UPDATE` variant operation items inside
+`ApiProductBulkUpdateInput.products[].operations.variants`; otherwise inventory
+bulk save will break after frontend schema/codegen updates.
 
 Do not introduce feature-scoped aliases that re-export generated API types from
 `@/graphql/types`. Per the Admin GraphQL layer rules, use generated API types
@@ -224,15 +245,26 @@ onSave?: (
 ) => boolean | void | Promise<boolean | void>;
 ```
 
-to a structured API:
+to a structured API that returns enough mutation metadata for the modal to keep
+or materialize draft rows after backend validation and partial create failures:
 
 ```ts
+export interface EditVariantsSaveResult {
+  ok: boolean;
+  operationResults: ApiOperationResult[];
+  userErrors: ApiGenericUserError[];
+}
+
 onSave?: (input: {
   existingRows: VariantEditorSaveRow[];
   draftRows: VariantEditorSaveRow[];
   additionalOperations?: ApiProductUpdateInput;
-}) => boolean | void | Promise<boolean | void>;
+}) => EditVariantsSaveResult | Promise<EditVariantsSaveResult>;
 ```
+
+Callsites that do not need row-level result handling, such as pricing-only
+edits, should still return this shape with the `operationResults` and
+`userErrors` returned by `productUpdate`.
 
 `useVariantsEditorStore` owns all mutable `EditVariantsModal` state while the
 modal is open. That includes existing-row edits, draft rows, the blank input row,
@@ -245,6 +277,10 @@ zustand store only for the open editor session, use `draft:` ids, and must be
 cleared by the same store action that clears existing edits on successful save
 or modal close. Blank rows use `blank:` ids, stay in the store as input affordance
 state, and are never included in save payloads.
+
+Only column visibility settings may remain in the persisted zustand slice.
+Session state such as `existingEdits`, `draftRows`, `blankRow`, `rowErrors`,
+`status`, and save results must not be persisted across modal sessions.
 
 The store API should expose enough derived selectors/actions for the modal and
 grid to avoid duplicating row assembly logic:
@@ -296,10 +332,17 @@ store, and `EditVariantsModal` remains an orchestration/rendering component.
    `variantOptionRowsToProductUpdateInput`.
 6. Pass only draft rows to `prepareDraftVariantCreateOperations`.
 7. Call `onSave({ existingRows, draftRows, additionalOperations })`.
-8. If `onSave` returns success, call the store session reset action and close
+8. If `onSave` returns `ok: true`, call the store session reset action and close
    the modal.
-9. If save fails, keep existing edits, draft rows, blank row state, and row
+9. If `onSave` returns `ok: false`, inspect `operationResults` and `userErrors`,
+   materialize draft rows that have `variantCreate.entityId`, attach row errors,
+   and keep the modal open.
+10. If save fails, keep existing edits, draft rows, blank row state, and row
    errors in the store so the user can fix and retry.
+
+The modal must not keep a parallel mutable `rowDataRef` or React state copy for
+the current rows. Save must read the current rows from store selectors so the
+store is the single owner of open-session editor state.
 
 ## Mapper API
 
@@ -325,7 +368,7 @@ Each returned existing-row item must include:
 
 ```ts
 {
-  action: ApiVariantOperationAction.Update,
+  action: VariantOperationAction.Update,
   variantId: row.id,
   // changed fields only
 }
@@ -352,7 +395,7 @@ Each returned draft-row item must include:
 
 ```ts
 {
-  action: ApiVariantOperationAction.Create,
+  action: VariantOperationAction.Create,
   clientMutationId: row.clientMutationId,
   options: {
     set: productOptions.map((option) => ({
@@ -380,7 +423,7 @@ belong to `prepareDraftVariantCreateOperations`.
 ```ts
 return {
   variants: changedRows.map((row) => ({
-    action: ApiVariantOperationAction.Update,
+    action: VariantOperationAction.Update,
     variantId: row.id,
     options: {
       set: sortProductOptions(productOptions).map((option) => ({
@@ -417,7 +460,7 @@ onSave: async ({
   existingRows,
   draftRows,
   additionalOperations,
-}): Promise<boolean> => {
+}): Promise<EditVariantsSaveResult> => {
   const updateOperations = prepareChangedVariantUpdateOperations({
     rows: existingRows,
     variants,
@@ -453,7 +496,21 @@ onSave: async ({
     operations,
   });
 
-  // existing error and refresh handling remains here
+  if (result.errors.length > 0) {
+    return {
+      ok: false,
+      operationResults: result.operationResults,
+      userErrors: result.userErrors,
+    };
+  }
+
+  // existing refresh handling remains here
+
+  return {
+    ok: true,
+    operationResults: result.operationResults,
+    userErrors: result.userErrors,
+  };
 };
 ```
 
@@ -469,6 +526,25 @@ The pricing widget edit-prices flow also uses `EditVariantsModal` and
 `prepareChangedVariantUpdateInputs` today. It must migrate to the same
 `prepareChangedVariantUpdateOperations` mapper and send pricing-only
 `action: UPDATE` operations through `productUpdate`.
+
+The inventory bulk edit flow must migrate from `ApiVariantUpdateInput[]` to
+variant operation inputs as well. Both inventory selection initialization and
+inventory row edit saves should send inventory updates as:
+
+```ts
+{
+  action: VariantOperationAction.Update,
+  variantId,
+  inventory: {
+    warehouseId,
+    onHand,
+    unavailable,
+    sku,
+  },
+}
+```
+
+If codegen emits a different enum name, use the generated enum name directly.
 
 ## Frontend validation contract
 
@@ -529,6 +605,21 @@ materialization results to draft rows. If `clientMutationId` is absent, fall
 back to `userErrors.field` / `operationResults[].errors[].field` paths such as
 `["variants", "0", "options"]`.
 
+Row-level API error mapping belongs in a mapper/helper, not inline in the modal.
+Extend the product error mapping layer so it can derive row errors from both
+`operationResults[].errors` and `userErrors`. Mapping rules:
+
+- for `variantCreate`, use `operationResult.clientMutationId` first;
+- when `clientMutationId` is absent, use the variant operation index from the
+  error field path to find the submitted draft row;
+- for `variantUpdate`, use the submitted operation order, field path variant
+  index, or the corresponding submitted row to attach errors to an existing row;
+- when a `variantCreate` result contains `entityId`, move the row from
+  `kind: "draft"` to `kind: "existing"` before the next retry;
+- keep only edits for fields that failed when the backend reports field-specific
+  errors; if the result does not identify failed fields, keep the row-level error
+  and leave the row dirty so the user can retry without losing input.
+
 On backend validation errors, the modal must remain open and retain draft rows.
 On successful save, `useProductModals` should continue to refresh variants via
 `loadAllProductVariants(product, { forceNetwork: true })`, refresh product data
@@ -538,14 +629,23 @@ pricing changed.
 ## Acceptance criteria
 
 - All frontend writes to `ApiProductUpdateInput.variants` include `action`.
+- All frontend writes to
+  `ApiProductBulkUpdateInput.products[].operations.variants` include `action`.
 - Existing variant edits are sent as `action: UPDATE`.
 - Pricing widget variant price edits are sent as `action: UPDATE`.
+- Inventory bulk variant edits are sent as `action: UPDATE`.
 - New spreadsheet draft variants are sent as `action: CREATE` with
   `clientMutationId`.
 - The modal `onSave` API separates `existingRows` and `draftRows`.
+- The modal `onSave` result includes `operationResults` and `userErrors` so the
+  modal can handle row-level backend results.
 - Existing edits, draft rows, blank row state, validation/API row errors, dirty
   state, save status, and column settings are owned by `useVariantsEditorStore`
   for the open editor session.
+- Only column visibility settings are persisted; draft rows, blank row state,
+  row errors, save status, and edit-session data are not persisted.
+- `EditVariantsModal` does not keep current rows in `rowDataRef` or parallel
+  component state; save reads rows through store selectors.
 - `variantCreate` results with `entityId` materialize the matching draft row in
   `useVariantsEditorStore`, even when `applied` is `false`, so retry saves use
   `action: UPDATE` instead of duplicate `CREATE`.
