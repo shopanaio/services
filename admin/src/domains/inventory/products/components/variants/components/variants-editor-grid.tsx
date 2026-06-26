@@ -1,10 +1,8 @@
 "use client";
 
 import React, { useCallback, useMemo, useEffect } from "react";
-import { App } from "antd";
 import { EditorGrid } from "@/shared/components/editor-grid";
 import type { ICellSelection } from "@/shared/components/ag-grid-cell-selection";
-import { validateFieldChange } from "@/shared/utils/inventory";
 import {
   DEFAULT_DIMENSION_UNIT,
   DEFAULT_WEIGHT_UNIT,
@@ -94,39 +92,24 @@ function extractOptionGroups(
 }
 
 function variantsToRows(variants: IVariantEditorInput[]): IVariantEditorRow[] {
-  return variants.map((v) => {
-    const onHand = v.onHand ?? 0;
-    const unavailable = v.unavailable ?? 0;
-    const reserved = v.reserved ?? 0;
-    const available = onHand - unavailable - reserved;
-
-    return {
-      id: v.id,
-      title: v.title,
-      imageUrl: v.imageUrl ?? null,
-      media: v.media ?? [],
-      options: v.options || [],
-      selectedOptionValueIds: v.selectedOptionValueIds ?? {},
-      // Inventory identification
-      sku: v.sku ?? null,
-      // Inventory quantities
-      onHand,
-      unavailable,
-      reserved,
-      available,
-      // Pricing
-      price: v.price ?? null,
-      compareAtPrice: v.compareAtPrice ?? null,
-      costPrice: v.costPrice ?? null,
-      // Shipping
-      weight: v.weight ?? null,
-      weightUnit: v.weightUnit ?? DEFAULT_WEIGHT_UNIT,
-      length: v.length ?? null,
-      width: v.width ?? null,
-      height: v.height ?? null,
-      dimensionUnit: v.dimensionUnit ?? DEFAULT_DIMENSION_UNIT,
-    };
-  });
+  return variants.map((v) => ({
+    id: v.id,
+    title: v.title,
+    imageUrl: v.imageUrl ?? null,
+    media: v.media ?? [],
+    options: v.options || [],
+    selectedOptionValueIds: v.selectedOptionValueIds ?? {},
+    // Pricing
+    price: v.price ?? null,
+    compareAtPrice: v.compareAtPrice ?? null,
+    // Shipping
+    weight: v.weight ?? null,
+    weightUnit: v.weightUnit ?? DEFAULT_WEIGHT_UNIT,
+    length: v.length ?? null,
+    width: v.width ?? null,
+    height: v.height ?? null,
+    dimensionUnit: v.dimensionUnit ?? DEFAULT_DIMENSION_UNIT,
+  }));
 }
 
 // ============================================================================
@@ -150,7 +133,6 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
     [variants, productOptions]
   );
 
-  const { message } = App.useApp();
   const { push: openEditMediaModal } = useEditMediaModal();
 
   // Transform variants to row data
@@ -195,12 +177,6 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
       const updatedRow = { ...row };
       for (const [field, edit] of Object.entries(rowEdits)) {
         (updatedRow as Record<string, unknown>)[field] = edit.currentValue;
-      }
-
-      // Recalculate available if any inventory field was edited
-      if (rowEdits.onHand || rowEdits.unavailable || rowEdits.reserved) {
-        updatedRow.available =
-          updatedRow.onHand - updatedRow.unavailable - updatedRow.reserved;
       }
 
       return updatedRow;
@@ -339,26 +315,9 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
         return;
       }
 
-      // Validate inventory fields using shared validator
-      if (field === "onHand" || field === "unavailable") {
-        const row = rows.find((r) => r.id === rowId);
-        if (row) {
-          const result = validateFieldChange(field, Number(newValue), {
-            onHand: row.onHand,
-            unavailable: row.unavailable,
-            reserved: row.reserved,
-            available: row.available,
-          });
-          if (!result.isValid) {
-            message.error(result.errors[0]?.message || "Invalid value");
-            return;
-          }
-        }
-      }
-
       setFieldValue(rowId, field, originalValue, newValue);
     },
-    [isFieldEditable, setFieldValue, rows, message]
+    [isFieldEditable, setFieldValue]
   );
 
   return (

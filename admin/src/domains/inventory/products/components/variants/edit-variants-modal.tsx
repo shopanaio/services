@@ -109,18 +109,11 @@ export const EditVariantsModal = () => {
       mapApiVariantsToEditorInputs(
         typedPayload.variants,
         typedPayload.productOptions,
-        typedPayload.variantEditorScope?.type === "inventory"
-          ? {
-              inventoryWarehouseId:
-                typedPayload.variantEditorScope.warehouseId,
-              productMediaFiles: typedPayload.productMediaFiles,
-            }
-          : { productMediaFiles: typedPayload.productMediaFiles },
+        { productMediaFiles: typedPayload.productMediaFiles },
       ),
     [
       typedPayload.productOptions,
       typedPayload.productMediaFiles,
-      typedPayload.variantEditorScope,
       typedPayload.variants,
     ],
   );

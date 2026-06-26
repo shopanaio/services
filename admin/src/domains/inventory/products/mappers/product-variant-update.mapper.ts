@@ -9,9 +9,7 @@ export interface PrepareChangedVariantUpdateInputsParams {
   rows: VariantEditorSaveRow[];
   variants: ApiVariant[];
   defaultCurrency: CurrencyCode | null | undefined;
-  warehouseId?: string | null;
   includePricing?: boolean;
-  includeInventory?: boolean;
   includeShipping?: boolean;
   includeMedia?: boolean;
 }
@@ -34,16 +32,6 @@ function parseOptionalMinorUnit(value: unknown): number | null {
   return parseRequiredMinorUnit(value);
 }
 
-function normalizeSku(value: unknown): string | null {
-  if (value === null || value === undefined) {
-    return null;
-  }
-
-  const trimmed = String(value).trim();
-
-  return trimmed.length > 0 ? trimmed : null;
-}
-
 function parseOptionalInteger(
   value: unknown,
   label: string,
@@ -56,20 +44,6 @@ function parseOptionalInteger(
 
   if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
     throw new Error(`${label} must be a whole number.`);
-  }
-
-  return parsed;
-}
-
-function parseNonNegativeInteger(value: unknown, label: string): number {
-  const parsed = parseOptionalInteger(value, label);
-
-  if (parsed === null) {
-    throw new Error(`${label} is required.`);
-  }
-
-  if (parsed < 0) {
-    throw new Error(`${label} cannot be negative.`);
   }
 
   return parsed;
@@ -137,90 +111,6 @@ function applyPricingUpdate(
     amountMinor,
     compareAtMinor,
   };
-}
-
-function applyInventoryUpdate({
-  update,
-  row,
-  variant,
-  warehouseId,
-  defaultCurrency,
-}: {
-  update: ApiVariantUpdateInput;
-  row: VariantEditorSaveRow;
-  variant: ApiVariant;
-  warehouseId: string | null | undefined;
-  defaultCurrency: CurrencyCode | null | undefined;
-}) {
-  const inventoryItem = variant.inventoryItem ?? null;
-
-  if (!inventoryItem) {
-    throw new Error(
-      `Inventory item is missing for variant ${variant.title ?? variant.handle}.`,
-    );
-  }
-
-  const stock = warehouseId
-    ? inventoryItem.stock.find(
-        (candidate) => candidate.warehouseId === warehouseId,
-      )
-    : null;
-  const sku = normalizeSku(row.sku);
-  const originalSku = normalizeSku(inventoryItem.sku ?? null);
-  const onHand = parseNonNegativeInteger(row.onHand, "On hand quantity");
-  const unavailable = parseNonNegativeInteger(
-    row.unavailable,
-    "Unavailable quantity",
-  );
-  const reserved = parseNonNegativeInteger(row.reserved, "Reserved quantity");
-  const available = onHand - unavailable - reserved;
-  const originalOnHand = stock?.quantityOnHand ?? 0;
-  const originalUnavailable = stock?.unavailableQuantity ?? 0;
-  const skuChanged = sku !== originalSku;
-  const stockChanged =
-    onHand !== originalOnHand || unavailable !== originalUnavailable;
-  const costPrice = parseOptionalInteger(row.costPrice, "Cost");
-  const originalCostPrice = inventoryItem.unitCost?.amountMinor ?? null;
-  const costChanged = costPrice !== originalCostPrice;
-
-  if (available < 0) {
-    throw new Error("This change would result in negative availability.");
-  }
-
-  if (costChanged && costPrice === null && originalCostPrice !== null) {
-    throw new Error("Clearing existing unit cost is not supported.");
-  }
-
-  if (!skuChanged && !stockChanged && !costChanged) {
-    return;
-  }
-
-  if (!warehouseId) {
-    throw new Error("Default warehouse is required to save inventory.");
-  }
-
-  update.inventory = {
-    warehouseId,
-    onHand,
-    unavailable,
-  };
-
-  if (skuChanged) {
-    update.inventory.sku = sku;
-  }
-
-  if (costChanged && costPrice !== null) {
-    if (costPrice < 0) {
-      throw new Error("Cost cannot be negative.");
-    }
-
-    if (!defaultCurrency) {
-      throw new Error("Store default currency is required to save unit cost.");
-    }
-
-    update.inventory.unitCostMinor = costPrice;
-    update.inventory.costCurrency = defaultCurrency;
-  }
 }
 
 function applyShippingUpdate(
@@ -308,9 +198,7 @@ export function prepareChangedVariantUpdateInputs({
   rows,
   variants,
   defaultCurrency,
-  warehouseId,
   includePricing = true,
-  includeInventory = true,
   includeShipping = true,
   includeMedia = true,
 }: PrepareChangedVariantUpdateInputsParams): ApiVariantUpdateInput[] {
@@ -332,16 +220,6 @@ export function prepareChangedVariantUpdateInputs({
       applyPricingUpdate(update, row, variant, defaultCurrency);
     }
 
-    if (includeInventory) {
-      applyInventoryUpdate({
-        update,
-        row,
-        variant,
-        warehouseId,
-        defaultCurrency,
-      });
-    }
-
     if (includeShipping) {
       applyShippingUpdate(update, row, variant);
     }
@@ -352,7 +230,6 @@ export function prepareChangedVariantUpdateInputs({
 
     if (
       !update.pricing &&
-      !update.inventory &&
       !update.dimensions &&
       update.weight === undefined &&
       !update.media

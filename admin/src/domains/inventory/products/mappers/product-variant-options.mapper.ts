@@ -12,7 +12,7 @@ const sortProductOptions = (productOptions: ApiProductOption[]) =>
   [...productOptions].sort((a, b) => a.sortIndex - b.sortIndex);
 
 const getVariantTitle = (variant: ApiVariant) =>
-  variant.title?.trim() || variant.handle || variant.inventoryItem?.sku || variant.id;
+  variant.title?.trim() || variant.handle || variant.id;
 
 export function buildCombinationKey(
   row: Pick<IVariantEditorRow, "selectedOptionValueIds">,
@@ -53,14 +53,8 @@ export function apiVariantsToVariantOptionRows(
       media: [],
       options: [],
       selectedOptionValueIds,
-      sku: null,
-      onHand: 0,
-      unavailable: 0,
-      reserved: 0,
-      available: 0,
       price: null,
       compareAtPrice: null,
-      costPrice: null,
       weight: null,
       weightUnit: "g",
       length: null,

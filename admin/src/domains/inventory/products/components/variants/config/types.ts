@@ -21,13 +21,8 @@ export interface IVariantEditorInput {
   media?: ApiFile[] | null;
   options?: IVariantOption[];
   selectedOptionValueIds?: Record<string, string | null>;
-  sku?: string | null;
-  onHand?: number;
-  unavailable?: number;
-  reserved?: number;
   price?: number | null;
   compareAtPrice?: number | null;
-  costPrice?: number | null;
   weight?: number | null;
   weightUnit?: string;
   length?: number | null;
@@ -46,19 +41,9 @@ export interface IVariantEditorRow extends IEditorRowBase {
   options: IVariantOption[];
   selectedOptionValueIds: Record<string, string | null>;
 
-  // Inventory identification
-  sku: string | null;
-
-  // Inventory quantities (same model as inventory table)
-  onHand: number;
-  unavailable: number;
-  reserved: number;
-  available: number; // calculated: onHand - unavailable - reserved
-
   // Pricing
   price: number | null;
   compareAtPrice: number | null;
-  costPrice: number | null;
 
   // Shipping
   weight: number | null;
@@ -99,14 +84,8 @@ export interface IVariantColumn {
 
 export type VariantColumnField =
   | "media"
-  | "sku"
   | "price"
   | "compareAtPrice"
-  | "costPrice"
-  | "onHand"
-  | "unavailable"
-  | "reserved"
-  | "available"
   | "weight"
   | "length"
   | "width"

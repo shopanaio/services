@@ -10,7 +10,5 @@ export {
   NumberCellRenderer,
   PriceCellRenderer,
   OptionCellRenderer,
-  ReservedCellRenderer,
-  AvailableCellRenderer,
   formatPrice,
 } from "./cell-renderers";

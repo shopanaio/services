@@ -128,7 +128,7 @@ export function VariantsTable<T extends IVariantRowBase>({
       });
     }
 
-    // Add additional columns (pricing, inventory, etc.)
+    // Add additional columns such as pricing or shipping attributes.
     cols.push(...additionalColumns);
 
     // Make the last column non-resizable

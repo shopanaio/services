@@ -35,50 +35,6 @@ export const PRICING_COLUMNS: IVariantColumn[] = [
   },
 ];
 
-export const INVENTORY_COLUMNS: IVariantColumn[] = [
-  {
-    field: "sku",
-    headerName: "SKU",
-    defaultVisible: true,
-    editable: true,
-    width: 150,
-    minWidth: 150,
-    type: "text",
-  },
-  {
-    field: "onHand",
-    headerName: "On hand",
-    defaultVisible: true,
-    editable: true,
-    width: 100,
-    type: "number",
-  },
-  {
-    field: "unavailable",
-    headerName: "Unavailable",
-    defaultVisible: true,
-    editable: true,
-    width: 110,
-    type: "number",
-  },
-  {
-    field: "reserved",
-    headerName: "Reserved",
-    defaultVisible: true,
-    editable: false, // managed by order system
-    width: 100,
-    type: "number",
-  },
-  {
-    field: "available",
-    headerName: "Available",
-    defaultVisible: true,
-    editable: false, // calculated
-    width: 100,
-    type: "number",
-  },
-];
-
 export const ATTRIBUTES_COLUMNS: IVariantColumn[] = [
   {
     field: "weight",

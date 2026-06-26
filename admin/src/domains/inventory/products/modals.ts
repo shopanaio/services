@@ -26,7 +26,6 @@ export const PRODUCT_EDIT_DESCRIPTION_MODAL_TYPE = 'product-edit-description';
 export const PRODUCT_AI_WRITER_MODAL_TYPE = 'product-ai-writer';
 export const PRODUCT_PRICE_HISTORY_MODAL_TYPE = 'product-price-history';
 export const PRODUCT_EDIT_VARIANT_PRICING_MODAL_TYPE = 'product-edit-variant-pricing';
-export const PRODUCT_EDIT_VARIANT_INVENTORY_MODAL_TYPE = 'product-edit-variant-inventory';
 export const PRODUCT_EDIT_MEDIA_MODAL_TYPE = 'product-edit-media';
 export const PRODUCT_EDIT_OPTIONS_MODAL_TYPE = 'product-edit-options';
 export const PRODUCT_EDIT_ATTRIBUTES_MODAL_TYPE = 'product-edit-attributes';
@@ -101,29 +100,6 @@ export interface IEditVariantPricingModalPayload extends IModalStackPayload {
     price: number | null;
     compareAtPrice: number | null;
     costPrice: number | null;
-  }>) => void;
-}
-
-export interface IEditVariantInventoryModalPayload extends IModalStackPayload {
-  productId?: string;
-  variants: Array<{
-    id: string;
-    title: string;
-    sku?: string | null;
-    stock?: number;
-    weight?: number | null;
-    weightUnit?: string;
-    barcode?: string | null;
-    options?: IVariantPricingOption[];
-  }>;
-  lowStockThreshold?: number;
-  onSave?: (variants: Array<{
-    id: string;
-    sku: string | null;
-    stock: number;
-    weight: number | null;
-    weightUnit: string;
-    barcode: string | null;
   }>) => void;
 }
 
@@ -204,22 +180,15 @@ export interface IEditVariantShippingModalPayload extends IModalStackPayload {
   }>) => void;
 }
 
-export type VariantTabKey = 'inventory' | 'pricing' | 'shipping' | 'media' | 'options';
-
 // Re-export for convenience
 export type { VariantColumnField };
 
 export interface IEditVariantsModalPayload extends IModalStackPayload {
   productId?: string;
-  initialTab?: VariantTabKey;
   variants: ApiVariant[];
   productMediaFiles?: ApiFile[];
   productOptions: ApiProductOption[];
   defaultCurrency?: CurrencyCode | null;
-  variantEditorScope?: {
-    type: "inventory";
-    warehouseId: string;
-  };
   /**
    * When provided, only these columns will be shown.
    * If undefined, all columns are available with user settings.
@@ -271,7 +240,6 @@ declare module '@/layouts/modals' {
     [PRODUCT_AI_WRITER_MODAL_TYPE]: IProductAIWriterModalPayload;
     [PRODUCT_PRICE_HISTORY_MODAL_TYPE]: IProductPriceHistoryModalPayload;
     [PRODUCT_EDIT_VARIANT_PRICING_MODAL_TYPE]: IEditVariantPricingModalPayload;
-    [PRODUCT_EDIT_VARIANT_INVENTORY_MODAL_TYPE]: IEditVariantInventoryModalPayload;
     [PRODUCT_EDIT_MEDIA_MODAL_TYPE]: IEditMediaModalPayload;
     [PRODUCT_EDIT_OPTIONS_MODAL_TYPE]: IEditOptionsModalPayload;
     [PRODUCT_EDIT_ATTRIBUTES_MODAL_TYPE]: IEditAttributesModalPayload;
@@ -365,17 +333,6 @@ export const useProductPriceHistoryModal = createModalStackHook(PRODUCT_PRICE_HI
 export const useEditVariantPricingModal = createModalStackHook(PRODUCT_EDIT_VARIANT_PRICING_MODAL_TYPE);
 
 /**
- * Hook to open edit variant inventory modal
- *
- * @example
- * ```tsx
- * const { push } = useEditVariantInventoryModal();
- * push({ variants: [...], onSave: saveVariantInventory });
- * ```
- */
-export const useEditVariantInventoryModal = createModalStackHook(PRODUCT_EDIT_VARIANT_INVENTORY_MODAL_TYPE);
-
-/**
  * Hook to open edit media modal
  *
  * @example
@@ -443,7 +400,7 @@ export const useEditVariantShippingModal = createModalStackHook(PRODUCT_EDIT_VAR
  * @example
  * ```tsx
  * const { push } = useEditVariantsModal();
- * push({ variants: [...], initialTab: 'pricing', onSave: saveVariants });
+ * push({ variants: [...], onSave: saveVariants });
  * ```
  */
 export const useEditVariantsModal = createModalStackHook(PRODUCT_EDIT_VARIANTS_MODAL_TYPE);

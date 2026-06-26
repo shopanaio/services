@@ -9,20 +9,13 @@ import {
 } from "../utils/product-measurements";
 
 export interface MapApiVariantsToEditorInputsOptions {
-  inventoryWarehouseId?: string;
   productMediaFiles?: ApiFile[];
 }
 
 export interface VariantEditorSaveRow {
   id: string;
-  sku: string | null;
-  onHand: number;
-  unavailable: number;
-  reserved: number;
-  available: number;
   price: number | null;
   compareAtPrice: number | null;
-  costPrice: number | null;
   weight: number | null;
   weightUnit: string;
   length: number | null;
@@ -63,31 +56,6 @@ export function mapApiVariantToEditorInput(
   const optionsById = new Map(
     productOptions.map((option) => [option.id, option]),
   );
-  const stockRows = variant.inventoryItem?.stock ?? [];
-  const warehouseStock = options?.inventoryWarehouseId
-    ? variant.inventoryItem?.stock.find(
-        (stock) => stock.warehouseId === options.inventoryWarehouseId,
-      )
-    : null;
-  const aggregateStock = stockRows.reduce(
-    (total, stock) => ({
-      onHand: total.onHand + stock.quantityOnHand,
-      unavailable: total.unavailable + stock.unavailableQuantity,
-      reserved: total.reserved + stock.reservedQuantity,
-    }),
-    { onHand: 0, unavailable: 0, reserved: 0 },
-  );
-  const onHand = options?.inventoryWarehouseId
-    ? warehouseStock?.quantityOnHand ?? 0
-    : stockRows.length > 0
-      ? aggregateStock.onHand
-      : variant.inventoryItem?.totalAvailable ?? 0;
-  const unavailable = options?.inventoryWarehouseId
-    ? warehouseStock?.unavailableQuantity ?? 0
-    : aggregateStock.unavailable;
-  const reserved = options?.inventoryWarehouseId
-    ? warehouseStock?.reservedQuantity ?? 0
-    : aggregateStock.reserved;
   const sortedMediaFiles = sortVariantMediaFiles(
     variant,
     options?.productMediaFiles,
@@ -122,13 +90,8 @@ export function mapApiVariantToEditorInput(
         return [option.id, selectedOption?.optionValueId ?? null];
       }),
     ),
-    sku: variant.inventoryItem?.sku ?? null,
-    onHand,
-    unavailable,
-    reserved,
     price: variant.price?.amountMinor ?? null,
     compareAtPrice: variant.price?.compareAtMinor ?? null,
-    costPrice: variant.inventoryItem?.unitCost?.amountMinor ?? null,
   };
 }
 
@@ -147,14 +110,8 @@ export function getVariantEditorRowsForSave(
 ): VariantEditorSaveRow[] {
   return rows.map((row) => ({
     id: row.id,
-    sku: row.sku,
-    onHand: row.onHand,
-    unavailable: row.unavailable,
-    reserved: row.reserved,
-    available: row.available,
     price: row.price,
     compareAtPrice: row.compareAtPrice,
-    costPrice: row.costPrice,
     weight: row.weight,
     weightUnit: row.weightUnit,
     length: row.length,

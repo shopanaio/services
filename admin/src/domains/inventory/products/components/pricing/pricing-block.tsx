@@ -92,7 +92,6 @@ export const PricingBlock = ({
           variants: editorVariants,
           defaultCurrency,
           includePricing: true,
-          includeInventory: false,
           includeShipping: false,
           includeMedia: false,
         });
@@ -163,7 +162,6 @@ export const PricingBlock = ({
 
       openEditVariantsModal({
         productId: product.id,
-        initialTab: "pricing",
         variants: editorVariants,
         productOptions: product.options,
         defaultCurrency,

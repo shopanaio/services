@@ -22,8 +22,6 @@ import {
   TextCellRenderer,
   NumberCellRenderer,
   PriceCellRenderer,
-  ReservedCellRenderer,
-  AvailableCellRenderer,
 } from "../components/cell-renderers";
 import { formatCurrencySymbol } from "../../../utils/price-formatting";
 
@@ -125,7 +123,7 @@ function OptionDropdownCell({
 // Price fields
 // ============================================================================
 
-const PRICE_FIELDS = new Set(["price", "compareAtPrice", "costPrice"]);
+const PRICE_FIELDS = new Set(["price", "compareAtPrice"]);
 
 function getColumnHeaderName(
   headerName: string,
@@ -143,11 +141,7 @@ function getColumnHeaderName(
 // Get cell renderer based on column type and field
 // ============================================================================
 
-function getCellRenderer(type?: string, field?: string) {
-  // Special renderers for inventory fields
-  if (field === "reserved") return ReservedCellRenderer;
-  if (field === "available") return AvailableCellRenderer;
-
+function getCellRenderer(type?: string) {
   switch (type) {
     case "number":
       return NumberCellRenderer;
@@ -195,11 +189,6 @@ function getCellEditorParams(field: string) {
     case "price":
     case "compareAtPrice":
       return { min: 0, precision: 2 };
-    case "costPrice":
-      return { min: 0, precision: 0 };
-    case "onHand":
-    case "unavailable":
-      return { min: 0, precision: 0 };
     case "weight":
     case "length":
     case "width":
@@ -390,7 +379,7 @@ export function useVariantsColumns(
       // Use appropriate renderer based on field type
       const cellRenderer = PRICE_FIELDS.has(col.field)
         ? PriceCellRenderer
-        : getCellRenderer(col.type, col.field);
+        : getCellRenderer(col.type);
       const isEditable =
         col.editable &&
         (!editableColumns ||

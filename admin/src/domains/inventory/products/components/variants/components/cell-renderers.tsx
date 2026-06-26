@@ -11,10 +11,6 @@ import type { IVariantEditorRow } from "../config/types";
 import { useVariantsEditorStore } from "../hooks";
 import type { IFieldEdit } from "@/shared/components/editor-grid/types";
 import type { CurrencyCode } from "@/graphql/types";
-import {
-  ReservedCell,
-  CalculatedAvailableCell,
-} from "@/shared/components/inventory-cells";
 import { formatPrice } from "../../../utils/price-formatting";
 import { TableCoverImage } from "@/shared/components/table-cover-image";
 
@@ -120,66 +116,6 @@ export const TitleCellRenderer: React.FC<
     <div className="ec-title">
       <span className="ec-title__text">{data.title}</span>
     </div>
-  );
-};
-
-// ============================================================================
-// Reserved Cell (read-only, managed by order system)
-// Uses shared ReservedCell component
-// ============================================================================
-
-export const ReservedCellRenderer: React.FC<
-  CustomCellRendererProps<IVariantEditorRow>
-> = (props) => {
-  const { data, value } = props;
-  if (!data) return null;
-  return (
-    <ReservedCell
-      value={(value as number) ?? 0}
-      testId={`variants-editor-cell-reserved-${data.id}`}
-    />
-  );
-};
-
-// ============================================================================
-// Available Cell (calculated: onHand - unavailable - reserved)
-// Uses shared CalculatedAvailableCell component
-// ============================================================================
-
-export const AvailableCellRenderer: React.FC<
-  CustomCellRendererProps<IVariantEditorRow>
-> = (props) => {
-  const { data } = props;
-  const getFieldEdit = useVariantsEditorStore((s) => s.getFieldEdit);
-
-  if (!data) return null;
-
-  const onHandEdit = getFieldEdit(data.id, "onHand");
-  const unavailableEdit = getFieldEdit(data.id, "unavailable");
-
-  return (
-    <CalculatedAvailableCell
-      onHand={data.onHand}
-      unavailable={data.unavailable}
-      reserved={data.reserved}
-      onHandEdit={
-        onHandEdit
-          ? {
-              originalValue: onHandEdit.originalValue as number,
-              currentValue: onHandEdit.currentValue as number,
-            }
-          : undefined
-      }
-      unavailableEdit={
-        unavailableEdit
-          ? {
-              originalValue: unavailableEdit.originalValue as number,
-              currentValue: unavailableEdit.currentValue as number,
-            }
-          : undefined
-      }
-      testId={`variants-editor-cell-available-${data.id}`}
-    />
   );
 };
 

@@ -19,15 +19,8 @@ export const DEFAULT_VARIANTS_COLUMN_VISIBILITY: IColumnVisibility = {
   media: true,
   // Options columns are always visible by default (handled dynamically)
   // Variant columns
-  sku: true,
   price: true,
   compareAtPrice: false,
-  costPrice: false,
-  // Inventory columns (same model as inventory table)
-  onHand: true,
-  unavailable: true,
-  reserved: true,
-  available: true,
   weight: false,
   length: false,
   width: false,

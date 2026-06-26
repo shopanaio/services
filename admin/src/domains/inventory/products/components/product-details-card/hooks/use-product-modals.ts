@@ -26,8 +26,6 @@ import {
   useProductVariantsLoader,
   useUpdateProduct,
 } from "../../../hooks";
-import { useDefaultWarehouse } from "../../../hooks/use-default-warehouse";
-import { useEnsureVariantInventoryItems } from "../../../hooks/use-ensure-variant-inventory-items";
 import {
   PRODUCT_PRICING_WIDGET_QUERY,
 } from "../../../graphql";
@@ -69,11 +67,6 @@ export const useProductModals = (
     loadAllProductVariants,
     loading: isEditVariantsLoading,
   } = useProductVariantsLoader();
-  const {
-    defaultWarehouse,
-    refetch: refetchDefaultWarehouse,
-  } = useDefaultWarehouse();
-  const { ensureVariantInventoryItems } = useEnsureVariantInventoryItems();
   const [isPreparingEditVariants, setIsPreparingEditVariants] =
     useState(false);
 
@@ -243,26 +236,13 @@ export const useProductModals = (
 
     try {
       const variants = await loadAllProductVariants(product);
-      const hydratedVariants =
-        await ensureVariantInventoryItems(variants);
-      const resolvedDefaultWarehouse =
-        defaultWarehouse ?? (await refetchDefaultWarehouse());
-
-      if (!resolvedDefaultWarehouse) {
-        message.error("Default warehouse is required to edit variants.");
-        return;
-      }
 
       openEditVariantsModal({
         productId: product.id,
-        variants: hydratedVariants,
+        variants,
         productMediaFiles: getProductMediaFiles(product),
         productOptions: product.options,
         defaultCurrency: options.defaultCurrency ?? null,
-        variantEditorScope: {
-          type: "inventory",
-          warehouseId: resolvedDefaultWarehouse.id,
-        },
         editableColumns: GENERAL_VARIANTS_EDITABLE_COLUMNS,
         onSave: async (
           rows: Parameters<
@@ -275,11 +255,9 @@ export const useProductModals = (
           try {
             variantUpdates = prepareChangedVariantUpdateInputs({
               rows,
-              variants: hydratedVariants,
-              warehouseId: resolvedDefaultWarehouse.id,
+              variants,
               defaultCurrency: options.defaultCurrency ?? null,
               includePricing: true,
-              includeInventory: false,
               includeShipping: true,
               includeMedia: true,
             });
@@ -345,8 +323,6 @@ export const useProductModals = (
       setIsPreparingEditVariants(false);
     }
   }, [
-    defaultWarehouse,
-    ensureVariantInventoryItems,
     isEditVariantsLoading,
     isPreparingEditVariants,
     loadAllProductVariants,
@@ -354,7 +330,6 @@ export const useProductModals = (
     options.defaultCurrency,
     product,
     openEditVariantsModal,
-    refetchDefaultWarehouse,
     refreshAfterVariantSave,
     updateProduct,
   ]);

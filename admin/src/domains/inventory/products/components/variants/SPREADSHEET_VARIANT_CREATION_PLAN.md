@@ -28,7 +28,7 @@
 - `useVariantsEditorStore` хранит cell edits по `row.id` и настройки колонок.
 - Существующие варианты сохраняются через `productUpdate` и `ProductUpdateInput.variants`.
 - `ProductUpdateInput.variants` сейчас покрывает update существующих вариантов, но не покрывает создание новых вариантов.
-- В API есть отдельный `catalogMutation.variantCreate`, но для spreadsheet-save он не подходит, потому что нужен один атомарный save через `productUpdate`.
+- В API есть отдельный `catalogMutation.variantCreate`, но для spreadsheet-save он не подходит, потому что UI должен отправлять один unified save через `productUpdate`.
 
 ## Целевой GraphQL contract
 
@@ -63,21 +63,30 @@ type ProductVariantDeleteOperationInput = {
 };
 ```
 
-Если изменение `variants` с массива на объект слишком рискованно для текущих callers, допустим промежуточный контракт:
-
-```ts
-type ProductUpdateInput = {
-  variants?: VariantUpdateInput[];
-  variantCreates?: ProductVariantCreateOperationInput[];
-  variantDeletes?: ProductVariantDeleteOperationInput[];
-};
-```
-
-Но целевая форма всё равно должна быть `variants: { create, update, delete }`, потому что она явно описывает batch operations и проще расширяется.
+`variants` должен иметь форму `{ create, update, delete }`, потому что она явно описывает batch operations и проще расширяется.
 
 ## Backend workflow
 
 `productUpdate` должен выполнять create/update variants в одном workflow.
+
+Spreadsheet-save должен использовать существующую модель `productUpdate`:
+одна GraphQL mutation, один workflow, результат через `operationResults` и
+`userErrors`. Workflow может сохранять partial-failure поведение текущего
+`ProductUpdateWorkflow`: отдельные операции могут применяться или возвращать
+ошибки независимо.
+
+Для create/update/delete variant batch нужна pre-validation фаза внутри
+`productUpdate`, но она не должна менять общую семантику workflow:
+
+1. До выполнения variant writes декодировать incoming global ids.
+2. Загрузить product state, необходимый для проверки variant batch.
+3. Проверить batch-инварианты, которые нельзя безопасно проверять по одной
+   операции: принадлежность option values продукту, уникальность combinations,
+   capacity, дубликаты внутри request, валидность `clientMutationId`.
+4. Если batch-level validation не проходит, вернуть ошибки в `operationResults`
+   для соответствующих operations.
+5. Если batch-level validation проходит, выполнить operations в текущей
+   `productUpdate` модели и вернуть итог через `ProductUpdatePayload`.
 
 Порядок обработки:
 
@@ -104,7 +113,8 @@ type ProductUpdateInput = {
    - update operations с изменением options не создают дубликаты;
    - pricing/media/dimensions/inventory inputs валидны;
    - `clientMutationId` уникален внутри request.
-4. Если есть ошибки, вернуть `userErrors` / `operationResults` без partial writes.
+4. Если есть batch-level ошибки, вернуть их через `userErrors` /
+   `operationResults` для соответствующих operations.
 5. Если validation успешна:
    - создать новые variants;
    - создать option links для новых variants;
@@ -115,7 +125,9 @@ type ProductUpdateInput = {
    - отправить нужные domain events.
 6. Вернуть `ProductUpdatePayload`.
 
-Транзакционная граница должна быть явной. Если repositories позволяют выполнить это в одной DB transaction, workflow должен использовать transaction. Если нет, до реализации нужно зафиксировать стратегию rollback/compensation, потому что spreadsheet-save не должен давать тихий partial save.
+Workflow должен явно документировать, какие ошибки считаются batch-level
+validation errors, а какие остаются operation-level errors в существующей
+`operationResults` модели.
 
 ## Operation results
 
@@ -384,17 +396,15 @@ Backend:
 
 ## Риски и решения
 
-- **Изменение формы `ProductUpdateInput.variants` может сломать существующие callers.**
-  Если риск высокий, сначала добавить `variantCreates` рядом с текущим `variants`, затем отдельно мигрировать к `variants: { create, update, delete }`.
-
 - **Temporary row ids могут конфликтовать с existing variant ids.**
   Использовать строгие prefixes: `draft:` и `blank:`.
 
 - **Bulk paste может создать много draft rows.**
   Добавить лимит или явное validation message, если это станет проблемой.
 
-- **Partial save недопустим.**
-  Backend workflow должен использовать transaction или валидировать все операции до write-части и явно документировать rollback strategy.
+- **Batch validation не должна конфликтовать с текущим partial-failure workflow.**
+  Проверки уникальности combinations и capacity должны выполняться до variant
+  writes, но результат всё равно должен возвращаться через `operationResults`.
 
 - **Ошибки backend нужно привязать к draft rows.**
   Использовать `clientMutationId` в create operations и operation results.
