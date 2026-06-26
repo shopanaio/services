@@ -79,11 +79,11 @@
         {
           "title": "Admin product options and variants lifecycle UI",
           "file": "admin-ui/product-options-variants-lifecycle.spec.ts",
-          "line": 413,
+          "line": 425,
           "column": 6,
           "specs": [
             {
-              "title": "deletes a variant from the variants table and keeps it deleted after reload",
+              "title": "creates options and variants for a regular product and keeps all values after reload",
               "ok": true,
               "tags": [],
               "tests": [
@@ -98,21 +98,21 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 16030,
+                      "duration": 33143,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-26T13:49:45.954Z",
+                      "startTime": "2026-06-26T13:55:32.901Z",
                       "attachments": []
                     }
                   ],
                   "status": "expected"
                 }
               ],
-              "id": "159600ed0cc0b468b960-078edb7b370ea308815b",
+              "id": "159600ed0cc0b468b960-4fc6d120abcab1f2a36c",
               "file": "admin-ui/product-options-variants-lifecycle.spec.ts",
-              "line": 566,
+              "line": 427,
               "column": 5
             }
           ]
@@ -122,8 +122,8 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-06-26T13:49:13.357Z",
-    "duration": 50843.23,
+    "startTime": "2026-06-26T13:54:59.447Z",
+    "duration": 70611.511,
     "expected": 1,
     "skipped": 0,
     "unexpected": 0,

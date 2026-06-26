@@ -373,12 +373,17 @@ async function selectOptionValue(
   option: ProductOptionFixture,
   variantId: string,
   valueName: string,
+  input?: {
+    assertCellText?: boolean;
+  },
 ) {
   const cell = optionEditorCell(page, option.id, variantId);
   await cell.scrollIntoViewIfNeeded();
   await cell.dblclick();
   await page.getByRole('menuitem').filter({ hasText: valueName }).last().click();
-  await expect(cell).toHaveText(valueName);
+  if (input?.assertCellText ?? true) {
+    await expect(cell).toHaveText(valueName);
+  }
 }
 
 async function fillVariantRow(
@@ -405,15 +410,30 @@ async function getGridRowIds(page: Page) {
   );
 }
 
-async function addDraftVariantRow(page: Page) {
+async function createDraftVariantRowFromBlank(
+  page: Page,
+  options: ProductOptionFixture[],
+  expected: VariantState,
+) {
   const previousIds = new Set(await getGridRowIds(page));
-  await page.getByRole('button', { name: 'Add variant' }).click();
+  const blankId = [...previousIds].find((id) => id.startsWith('blank:'));
 
-  return expect
-    .poll(async () => {
-      const currentIds = await getGridRowIds(page);
-      return currentIds.find((id) => id.startsWith('draft:') && !previousIds.has(id)) ?? null;
-    })
+  if (!blankId) {
+    throw new Error('Blank variant row was not found');
+  }
+
+  await selectOptionValue(page, optionByName(options, 'Color'), blankId, expected.color, {
+    assertCellText: false,
+  });
+
+  const draftId = await expect
+    .poll(
+      async () => {
+        const currentIds = await getGridRowIds(page);
+        return currentIds.find((id) => id.startsWith('draft:') && !previousIds.has(id)) ?? null;
+      },
+      { timeout: 10_000 },
+    )
     .not.toBeNull()
     .then(async () => {
       const currentIds = await getGridRowIds(page);
@@ -423,6 +443,9 @@ async function addDraftVariantRow(page: Page) {
       }
       return createdId;
     });
+
+  await fillVariantRow(page, options, draftId, expected);
+  return draftId;
 }
 
 async function saveVariants(page: Page) {
@@ -531,8 +554,11 @@ test.describe('Admin product options and variants lifecycle UI', () => {
     await fillVariantRow(page, options, firstVariant.id, variantState(0, BASE_COMBINATIONS[0]));
 
     for (const [index, combo] of BASE_COMBINATIONS.slice(1).entries()) {
-      const draftId = await addDraftVariantRow(page);
-      await fillVariantRow(page, options, draftId, variantState(index + 1, combo));
+      await createDraftVariantRowFromBlank(
+        page,
+        options,
+        variantState(index + 1, combo),
+      );
     }
 
     await saveVariants(page);
@@ -609,9 +635,12 @@ test.describe('Admin product options and variants lifecycle UI', () => {
 
     for (const [index, combo] of EXPANDED_COMBINATIONS.entries()) {
       const existingVariant = variantsByHandle.get(comboHandle(combo));
-      const variantId = existingVariant?.id ?? (await addDraftVariantRow(page));
 
-      await fillVariantRow(page, options, variantId, variantState(index, combo));
+      if (existingVariant) {
+        await fillVariantRow(page, options, existingVariant.id, variantState(index, combo));
+      } else {
+        await createDraftVariantRowFromBlank(page, options, variantState(index, combo));
+      }
     }
 
     await saveVariants(page);
@@ -663,11 +692,9 @@ test.describe('Admin product options and variants lifecycle UI', () => {
     }
 
     for (const [index, combo] of BASE_COMBINATIONS.entries()) {
-      const draftId = await addDraftVariantRow(page);
-      await fillVariantRow(
+      await createDraftVariantRowFromBlank(
         page,
         options,
-        draftId,
         variantState(existingVariantSwaps.length + index, combo),
       );
     }
