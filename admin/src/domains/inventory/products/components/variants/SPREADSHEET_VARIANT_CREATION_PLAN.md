@@ -34,6 +34,11 @@
 
 Нужно расширить `ProductUpdateInput`, чтобы он поддерживал create/update операций над variants в одном payload.
 
+Это утверждённый командой архитекторов breaking change: текущее поле
+`ProductUpdateInput.variants: [VariantUpdateInput!]` должно быть заменено на
+операционный объект. Совместимый additive contract с отдельным полем для create
+не используется в этой задаче.
+
 Рекомендуемая форма:
 
 ```ts
@@ -54,7 +59,6 @@ type ProductVariantCreateOperationInput = {
   media?: VariantMediaInput;
   weight?: number;
   dimensions?: VariantDimensionsInput;
-  inventory?: VariantInventoryInput;
 };
 
 type ProductVariantDeleteOperationInput = {
@@ -63,7 +67,7 @@ type ProductVariantDeleteOperationInput = {
 };
 ```
 
-`variants` должен иметь форму `{ create, update, delete }`, потому что она явно описывает batch operations и проще расширяется.
+`variants` должен иметь форму `{ create, update, delete }`, потому что она явно описывает batch operations и проще расширяется. Миграция остальных callers вне этого spreadsheet-flow не входит в scope плана.
 
 ## Backend workflow
 
@@ -95,14 +99,13 @@ Spreadsheet-save должен использовать существующую 
    - `optionId`;
    - `optionValueId`;
    - `fileId`;
-   - `warehouseId`;
    - `variantId`.
 2. Загрузить текущий product state:
    - product revision;
    - existing variants;
    - product options и option values;
    - текущие selected option links;
-   - нужные inventory/media/pricing данные.
+   - нужные media/pricing данные.
 3. Провалидировать весь batch до записи:
    - `expectedRevision`;
    - все option values принадлежат options этого product;
@@ -111,14 +114,14 @@ Spreadsheet-save должен использовать существующую 
    - create combinations не дублируют existing variants;
    - create combinations не дублируют друг друга;
    - update operations с изменением options не создают дубликаты;
-   - pricing/media/dimensions/inventory inputs валидны;
+   - pricing/media/dimensions inputs валидны;
    - `clientMutationId` уникален внутри request.
 4. Если есть batch-level ошибки, вернуть их через `userErrors` /
    `operationResults` для соответствующих operations.
 5. Если validation успешна:
    - создать новые variants;
    - создать option links для новых variants;
-   - применить pricing/media/weight/dimensions/inventory для новых variants;
+   - применить pricing/media/weight/dimensions для новых variants;
    - применить updates существующих variants;
    - применить delete operations, если они входят в scope;
    - обновить product revision;
@@ -349,21 +352,19 @@ function draftRowToVariantCreateOperation(
 }
 ```
 
-Inventory fields включать только если backend create operation поддерживает создание/обновление inventory item для нового variant в том же workflow.
-
 ## Файлы, которые ожидаемо нужно менять
 
 Frontend:
 
-- `admin/src/domains/inventory/products/components/variants/edit-variants-modal.tsx`
-- `admin/src/domains/inventory/products/components/variants/components/variants-editor-grid.tsx`
-- `admin/src/domains/inventory/products/components/variants/config/types.ts`
-- `admin/src/domains/inventory/products/mappers/product-variant-options.mapper.ts`
-- `admin/src/domains/inventory/products/mappers/product-variant-editor.mapper.ts`
-- `admin/src/domains/inventory/products/mappers/product-variant-update.mapper.ts`
-- `admin/src/domains/inventory/products/components/product-details-card/hooks/use-product-modals.ts`
-- `admin/src/domains/inventory/products/modals.ts`
-- `admin/src/domains/inventory/products/graphql/operation-types.ts`
+- `components/variants/edit-variants-modal.tsx`
+- `components/variants/components/variants-editor-grid.tsx`
+- `components/variants/config/types.ts`
+- `mappers/product-variant-options.mapper.ts`
+- `mappers/product-variant-editor.mapper.ts`
+- `mappers/product-variant-update.mapper.ts`
+- `components/product-details-card/hooks/use-product-modals.ts`
+- `modals.ts`
+- `graphql/operation-types.ts`
 
 Backend:
 
