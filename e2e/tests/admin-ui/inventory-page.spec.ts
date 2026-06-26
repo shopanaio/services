@@ -356,12 +356,20 @@ test.describe('Admin inventory page UI', () => {
     const secondWarehouse = await createWarehouse(api, `${unique}-second`);
     const firstProduct = await createTrackedProduct(api, unique, 0, 2);
     const secondProduct = await createTrackedProduct(api, unique, 1, 2);
-    const importProduct = await createTrackedProduct(api, unique, 2, 3);
-    const importedVariants = importProduct.variants.slice(0, 2);
+    const importProducts = [
+      await createTrackedProduct(api, unique, 2, 3),
+      await createTrackedProduct(api, unique, 3, 3),
+      await createTrackedProduct(api, unique, 4, 3),
+    ];
+    const importVariantsByProduct = importProducts.map((product) => ({
+      product,
+      variants: product.variants.slice(0, 2),
+    }));
+    const importProductVariants = importProducts.flatMap((product) => product.variants);
     const firstWarehouseVisibleVariants = [...firstProduct.variants];
-    const firstWarehouseHiddenVariants = [...secondProduct.variants, ...importProduct.variants];
+    const firstWarehouseHiddenVariants = [...secondProduct.variants, ...importProductVariants];
     const secondWarehouseVisibleVariants = [...secondProduct.variants];
-    const secondWarehouseHiddenVariants = [...firstProduct.variants, ...importProduct.variants];
+    const secondWarehouseHiddenVariants = [...firstProduct.variants, ...importProductVariants];
 
     await seedStock(api, firstWarehouse.id, `${unique}-first`, firstProduct.variants);
     await seedStock(api, secondWarehouse.id, `${unique}-second`, secondProduct.variants, {
@@ -484,16 +492,23 @@ test.describe('Admin inventory page UI', () => {
     );
     await openInventoryPage(page, firstWarehouseUrl, firstWarehouse.name);
     await expect(page.getByTestId('inventory-pagination-range')).toHaveText('1–2 of 2');
-    await expectInventoryPageExcludesVariants(page, importProduct.variants);
+    await expectInventoryPageExcludesVariants(page, importProductVariants);
 
-    await importVariantsFromPicker(page, importProduct.title, importedVariants);
+    for (const importSelection of importVariantsByProduct) {
+      await importVariantsFromPicker(
+        page,
+        importSelection.product.title,
+        importSelection.variants,
+      );
 
-    for (const variant of importedVariants) {
-      const expected = expectedInventoryValues(variant, 0, 0);
-      firstWarehouseExpected.set(variant.id, expected);
-      await expectVariantInventoryApiState(api, firstWarehouse.id, variant, expected);
+      for (const variant of importSelection.variants) {
+        const expected = expectedInventoryValues(variant, 0, 0);
+        firstWarehouseExpected.set(variant.id, expected);
+        await expectVariantInventoryApiState(api, firstWarehouse.id, variant, expected);
+      }
     }
 
+    const importedVariants = importVariantsByProduct.flatMap(({ variants }) => variants);
     firstWarehouseVisibleVariants.push(...importedVariants);
     const importedVariantIds = new Set(importedVariants.map((variant) => variant.id));
     for (let index = firstWarehouseHiddenVariants.length - 1; index >= 0; index -= 1) {
@@ -505,7 +520,7 @@ test.describe('Admin inventory page UI', () => {
 
     await page.goto(firstWarehouseUrl);
     await expect(page.getByTestId('page-title')).toHaveText(firstWarehouse.name);
-    await expect(page.getByTestId('inventory-pagination-range')).toHaveText('1–4 of 4');
+    await expect(page.getByTestId('inventory-pagination-range')).toHaveText('1–8 of 8');
     await expectInventoryPageValues(page, firstWarehouseVisibleVariants, firstWarehouseExpected);
     await expectInventoryPageExcludesVariants(page, firstWarehouseHiddenVariants);
 
