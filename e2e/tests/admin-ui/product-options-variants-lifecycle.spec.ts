@@ -431,6 +431,13 @@ async function saveVariants(page: Page) {
   await expect(page.getByTestId('edit-variants-modal')).toBeHidden();
 }
 
+async function deleteVariantRow(page: Page, variantId: string) {
+  const row = page.locator(`.ag-row[row-id="${variantId}"]`);
+  await row.scrollIntoViewIfNeeded();
+  await page.getByTestId(`variants-editor-delete-row-${variantId}`).click();
+  await expect(row).toBeHidden();
+}
+
 async function readVariantRowSummary(
   page: Page,
   options: ProductOptionFixture[],
@@ -674,5 +681,43 @@ test.describe('Admin product options and variants lifecycle UI', () => {
       product,
       expectedStates(expected),
     );
+  });
+
+  test('deletes a variant from the variants table and keeps it deleted after reload', async ({
+    api,
+    page,
+  }) => {
+    const { productsUrl } = await setupAdmin(api, page);
+    const unique = crypto.randomUUID().slice(0, 8);
+    const product = await createProduct(api, unique, { withOptionsAndVariants: true });
+
+    await openProductDetails(page, productsUrl, product);
+
+    const variants = await readProductVariants(api, product.id);
+    const targetVariant = variants.find((variant) => variant.handle === 'black-large');
+    if (!targetVariant) {
+      throw new Error('Variant black-large was not created');
+    }
+
+    await expect(page.getByTestId(`product-variants-row-${targetVariant.id}`)).toBeVisible();
+    await openEditVariantsModal(page);
+    await deleteVariantRow(page, targetVariant.id);
+    await saveVariants(page);
+
+    await expect
+      .poll(async () => (await readProductVariants(api, product.id)).map((variant) => variant.id))
+      .not.toContain(targetVariant.id);
+
+    await reloadAndOpenProductDetails(page, productsUrl, product);
+    const remainingVariants = await readProductVariants(api, product.id);
+    expect(remainingVariants).toHaveLength(3);
+    expect(remainingVariants.map((variant) => variant.handle).sort()).toEqual([
+      'black-small',
+      'white-large',
+      'white-small',
+    ]);
+
+    await expect(page.getByTestId(`product-variants-row-${targetVariant.id}`)).toBeHidden();
+    await expect(page.getByTestId('product-variants-table').locator('tbody tr')).toHaveCount(3);
   });
 });
