@@ -1,5 +1,18 @@
 # План создания вариантов в spreadsheet-режиме
 
+## Approved breaking change
+
+Это утверждённый командой архитекторов breaking change: текущее поле
+`ProductUpdateInput.variants: [VariantUpdateInput!]` должно быть заменено на
+operation-style contract для `CREATE`/`UPDATE`/`DELETE` variant operations.
+Совместимый additive contract с отдельным полем для create не используется в
+этой задаче.
+
+Все существующие frontend/backend callsites, которые отправляют
+`ProductUpdateInput.variants`, должны быть мигрированы на новый operation-style
+contract в рамках этой задачи. Backward compatibility со старым
+`variants: [VariantUpdateInput!]` shape не требуется.
+
 ## Цель
 
 Сделать редактор вариантов похожим на spreadsheet:
@@ -20,13 +33,6 @@
 4. Backend должен валидировать весь batch до записи, насколько это возможно.
 5. Результат save должен приходить через существующий `ProductUpdatePayload`: `product`, `operationResults`, `userErrors`.
 6. После успешного save UI делает refetch variants и закрывает модалку.
-
-## Out of scope
-
-- Миграция всех существующих frontend/backend вызовов `ProductUpdateInput.variants`
-  на новый operation-style contract не входит в этот план. В рамках spreadsheet
-  flow меняются только необходимые места, чтобы `EditVariantsModal` мог отправить
-  `CREATE`/`UPDATE` операции через один `productUpdate`.
 
 ## Текущее состояние
 
