@@ -79,10 +79,10 @@ export interface MediaChanges {
  * Variant-level changes aggregation.
  */
 export interface VariantChanges {
+  lifecycle?: "created" | "updated" | "deleted";
   pricing?: PricingChanges;
   inventory?: InventoryChanges;
-  dimensions?: DimensionsChanges;
-  weight?: number;
+  physical?: PhysicalChanges;
   media?: MediaChanges;
   options?: OptionLinkChanges[];
 }
@@ -117,15 +117,6 @@ export interface PhysicalChanges {
   height?: number;
   length?: number;
   weight?: number;
-}
-
-/**
- * Dimensions-only changes for a variant.
- */
-export interface DimensionsChanges {
-  width: number;
-  height: number;
-  length: number;
 }
 
 /**

@@ -120,13 +120,13 @@ export interface ProductTagFieldChanges {
 }
 
 export interface VariantFieldChanges {
+  lifecycle?: "created" | "updated" | "deleted";
   pricing?: { currency: string; amount: number; compareAt?: number | null };
   inventory?: {
     warehouseId: string;
     onHand: number;
     unavailable: number;
     sku?: string | null;
-    weight?: number | null;
     unitCostMinor?: number | null;
     costCurrency?: string | null;
   };

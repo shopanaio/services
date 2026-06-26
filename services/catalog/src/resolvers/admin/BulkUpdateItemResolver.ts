@@ -16,6 +16,9 @@ const OP_TYPE_MAP: Record<string, string> = {
   variantSetStock: "VARIANT_SET_STOCK",
   variantSetDimensions: "VARIANT_SET_DIMENSIONS",
   variantSetWeight: "VARIANT_SET_WEIGHT",
+  variantCreate: "VARIANT_CREATE",
+  variantUpdate: "VARIANT_UPDATE",
+  variantDelete: "VARIANT_DELETE",
 };
 
 export class BulkUpdateItemResolver extends CatalogType<string, BulkEditItem> {

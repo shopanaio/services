@@ -148,6 +148,7 @@ import type { ProductBulkUpdateItem } from "../../workflows/dto/BulkEditWorkflow
 import type {
   ProductCreateInput,
   ProductBulkUpdateInput,
+  ProductUpdateInput,
   ProductDeleteInput,
   ProductUpdateStatusInput,
   VariantCreateInput,
@@ -779,160 +780,55 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
   /**
    * Unified product update with optimistic locking.
-   * Supports product, product category, and variant updates in a single request.
-   * Does NOT support inventory operations (they live in Inventory Service).
+   * Supports product, category, tag, and variant operations in a single request.
    */
   async productUpdate(args: CatalogMutationProductUpdateArgs) {
     const { productId, expectedRevision, operations } = args;
-    const decodedProductId = decodeGlobalIdByType(
+    const decodedProductId = safeDecodeGlobalId(
       productId,
-      GlobalIdEntity.Product
+      GlobalIdEntity.Product,
     );
-    const variants = operations?.variants;
-    const categories = operations?.categories;
-    const tags = operations?.tags;
-    const inputErrors: UserError[] = [];
-
-    // Map GraphQL input to workflow operations
-    const workflowOps: ProductUpdateOperation[] = [];
-
-    if (hasProductUpdateFields(operations)) {
-      let vendorId: string | null | undefined;
-      if (Object.prototype.hasOwnProperty.call(operations, "vendorId")) {
-        vendorId = operations.vendorId
-          ? decodeGlobalIdByType(operations.vendorId, GlobalIdEntity.Vendor)
-          : null;
-      }
-
-      workflowOps.push({
-        type: "productUpdate",
-        params: {
-          id: decodedProductId,
-          handle: operations.handle ?? undefined,
-          title: operations.title ?? undefined,
-          vendorId,
-          content: operations.content
-            ? {
-                description: mapRichTextInput(operations.content.description),
-                excerpt: mapRichTextInput(operations.content.excerpt),
-              }
-            : undefined,
-          seo: operations.seo
-            ? {
-                title: operations.seo.seoTitle ?? undefined,
-                description: operations.seo.seoDescription ?? undefined,
-                ogTitle: operations.seo.ogTitle ?? undefined,
-                ogDescription: operations.seo.ogDescription ?? undefined,
-                ogImageId: operations.seo.ogImageId
-                  ? decodeGlobalIdByType(
-                      operations.seo.ogImageId,
-                      GlobalIdEntity.File
-                    )
-                  : undefined,
-              }
-            : undefined,
-          status: operations.status
-            ? operations.status === "PUBLISHED"
-              ? "published"
-              : "draft"
-            : undefined,
-          media: operations.media
-            ? {
-                fileIds: operations.media.fileIds.map((id) =>
-                  decodeGlobalIdByType(id, GlobalIdEntity.File)
-                ),
-              }
-            : undefined,
-        },
-      });
-    }
-
-    if (categories) {
-      const mapped = mapProductCategoryOperations(decodedProductId, categories);
-      workflowOps.push(...mapped.operations);
-      inputErrors.push(...mapped.errors);
-    }
-
-    if (tags) {
-      const mapped = mapProductTagOperations(decodedProductId, tags);
-      workflowOps.push(...mapped.operations);
-      inputErrors.push(...mapped.errors);
-    }
-
-    if (inputErrors.length > 0) {
+    if (!decodedProductId) {
+      const error = {
+        message: "Invalid ID format",
+        field: ["productId"],
+        code: "INVALID_ID",
+      };
       return {
         product: null,
-        operationResults: [],
-        userErrors: inputErrors,
+        operationResults: [
+          {
+            type: "PRODUCT_UPDATE",
+            applied: false,
+            errors: [error],
+          },
+        ],
+        userErrors: [error],
       };
     }
 
-    if (variants) {
-      for (const vu of variants) {
-        const variantId = decodeGlobalIdByType(
-          vu.variantId,
-          GlobalIdEntity.Variant
-        );
+    const mapped = mapProductUpdateInput({
+      productId: decodedProductId,
+      operations,
+      expectedRevision: expectedRevision ?? undefined,
+    });
 
-        workflowOps.push({
-          type: "variantUpdate",
-          params: {
-            variantId,
-            pricing: vu.pricing
-              ? {
-                  currency: vu.pricing.currency,
-                  amountMinor: Number(vu.pricing.amountMinor),
-                  compareAtMinor:
-                    vu.pricing.compareAtMinor === undefined
-                      ? undefined
-                      : vu.pricing.compareAtMinor === null
-                        ? null
-                        : Number(vu.pricing.compareAtMinor),
-                }
-              : undefined,
-            inventory: vu.inventory
-              ? {
-                  warehouseId: decodeGlobalIdByType(
-                    vu.inventory.warehouseId,
-                    GlobalIdEntity.Warehouse
-                  ),
-                  onHand: vu.inventory.onHand,
-                  unavailable: vu.inventory.unavailable ?? undefined,
-                  sku: vu.inventory.sku,
-                  unitCostMinor:
-                    vu.inventory.unitCostMinor === undefined
-                      ? undefined
-                      : vu.inventory.unitCostMinor === null
-                        ? null
-                        : Number(vu.inventory.unitCostMinor),
-                  costCurrency: vu.inventory.costCurrency,
-                }
-              : undefined,
-            dimensions: vu.dimensions
-              ? {
-                  width: vu.dimensions.width,
-                  height: vu.dimensions.height,
-                  length: vu.dimensions.length,
-                }
-              : undefined,
-            weight: vu.weight,
-            media: vu.media
-              ? {
-                  fileIds: vu.media.fileIds.map((id) =>
-                    decodeGlobalIdByType(id, GlobalIdEntity.File)
-                  ),
-                }
-              : undefined,
-            options: vu.options ? { set: vu.options.set } : undefined,
-          },
-        });
-      }
+    if (mapped.errors.length > 0) {
+      const operationResults = mapped.entries.map((entry) =>
+        mapPreflightEntryToGraphqlResult(entry, mapped.errors.length > 0),
+      );
+
+      return {
+        product: null,
+        operationResults,
+        userErrors: mapped.errors,
+      };
     }
 
     const workflowInput: ProductUpdateWorkflowInput = {
       productId: decodedProductId,
       expectedRevision: expectedRevision ?? undefined,
-      operations: workflowOps,
+      operations: mapped.operations,
       context: {
         organizationId: this.$ctx.store.organizationId,
         projectId: this.$ctx.store.id,
@@ -963,6 +859,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       operationResults: result.operationResults.map((r) => ({
         type: toGraphqlOperationType(r.type),
         applied: r.applied,
+        clientMutationId: r.clientMutationId,
+        entityId: r.entityId
+          ? encodeGlobalIdByType(r.entityId, GlobalIdEntity.Variant)
+          : undefined,
         errors: r.errors,
       })),
       userErrors: result.userErrors,
@@ -2483,7 +2383,12 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         continue;
       }
 
-      const mapped = mapOperationsForBulk(item.productId, item.operations, index);
+      const mapped = mapProductUpdateInput({
+        productId: decodedProductId,
+        operations: item.operations,
+        expectedRevision: item.expectedRevision ?? undefined,
+        productIndex: index,
+      });
       inputErrors.push(...mapped.errors);
       products.push({
         productId: decodedProductId,
@@ -3259,143 +3164,503 @@ function mapRichTextInput(
   };
 }
 
-function mapOperationsForBulk(
-  productId: string,
-  operations: ProductBulkUpdateInput["products"][0]["operations"],
-  productIndex?: number,
-): { operations: ProductUpdateOperation[]; errors: UserError[] } {
-  const decodedProductId = decodeGlobalIdByType(
-    productId,
-    GlobalIdEntity.Product
-  );
+interface ProductUpdateInputMappingArgs {
+  productId: string;
+  operations?: ProductUpdateInput | null;
+  expectedRevision?: number;
+  productIndex?: number;
+}
+
+interface ProductUpdateMappedEntry {
+  type: ProductUpdateOperation["type"];
+  operation?: ProductUpdateOperation;
+  errors: UserError[];
+  clientMutationId?: string;
+  entityId?: string;
+}
+
+interface ProductUpdateInputMappingResult {
+  operations: ProductUpdateOperation[];
+  entries: ProductUpdateMappedEntry[];
+  errors: UserError[];
+}
+
+function mapProductUpdateInput(
+  args: ProductUpdateInputMappingArgs,
+): ProductUpdateInputMappingResult {
+  const { productId, operations, expectedRevision, productIndex } = args;
   const result: ProductUpdateOperation[] = [];
+  const entries: ProductUpdateMappedEntry[] = [];
   const errors: UserError[] = [];
   const variants = operations?.variants;
   const categories = operations?.categories;
   const tags = operations?.tags;
+  const operationsFieldPrefix = productIndex === undefined
+    ? ["operations"]
+    : ["input", "products", String(productIndex), "operations"];
 
   if (hasProductUpdateFields(operations)) {
-    result.push({
+    const productErrors: UserError[] = [];
+    const productOperation = mapProductLevelOperation(
+      productId,
+      operations,
+      operationsFieldPrefix,
+      productErrors,
+    );
+
+    entries.push({
       type: "productUpdate",
-      params: {
-        id: decodedProductId,
-        handle: operations.handle ?? undefined,
-        title: operations.title ?? undefined,
-        content: operations.content
-          ? {
-              description: mapRichTextInput(operations.content.description),
-              excerpt: mapRichTextInput(operations.content.excerpt),
-            }
-          : undefined,
-        seo: operations.seo
-          ? {
-              title: operations.seo.seoTitle ?? undefined,
-              description: operations.seo.seoDescription ?? undefined,
-              ogTitle: operations.seo.ogTitle ?? undefined,
-              ogDescription: operations.seo.ogDescription ?? undefined,
-              ogImageId: operations.seo.ogImageId
-                ? decodeGlobalIdByType(
-                    operations.seo.ogImageId,
-                    GlobalIdEntity.File
-                  )
-                : undefined,
-            }
-          : undefined,
-        status: operations.status
-          ? operations.status === "PUBLISHED"
-            ? "published"
-            : "draft"
-          : undefined,
-        media: operations.media
-          ? {
-              fileIds: operations.media.fileIds.map((id) =>
-                decodeGlobalIdByType(id, GlobalIdEntity.File)
-              ),
-            }
-          : undefined,
-      },
+      operation: productOperation,
+      errors: productErrors,
     });
+
+    if (productOperation) {
+      result.push(productOperation);
+    }
+    errors.push(...productErrors);
   }
 
   if (categories) {
     const mapped = mapProductCategoryOperations(
-      decodedProductId,
+      productId,
       categories,
       productIndex,
     );
     result.push(...mapped.operations);
+    entries.push(
+      ...mapped.operations.map((operation) => ({
+        type: operation.type,
+        operation,
+        errors: [],
+      })),
+    );
     errors.push(...mapped.errors);
   }
 
   if (tags) {
-    const mapped = mapProductTagOperations(decodedProductId, tags, productIndex);
+    const mapped = mapProductTagOperations(productId, tags, productIndex);
     result.push(...mapped.operations);
+    entries.push(
+      ...mapped.operations.map((operation) => ({
+        type: operation.type,
+        operation,
+        errors: [],
+      })),
+    );
     errors.push(...mapped.errors);
   }
 
   if (variants) {
-    for (const vu of variants) {
-      const variantId = decodeGlobalIdByType(
-        vu.variantId,
-        GlobalIdEntity.Variant
-      );
-
-      result.push({
-        type: "variantUpdate",
-        params: {
-          variantId,
-          pricing: vu.pricing
-            ? {
-                currency: vu.pricing.currency,
-                amountMinor: Number(vu.pricing.amountMinor),
-                compareAtMinor:
-                  vu.pricing.compareAtMinor === undefined
-                    ? undefined
-                    : vu.pricing.compareAtMinor === null
-                      ? null
-                      : Number(vu.pricing.compareAtMinor),
-              }
-            : undefined,
-          inventory: vu.inventory
-            ? {
-                warehouseId: decodeGlobalIdByType(
-                  vu.inventory.warehouseId,
-                  GlobalIdEntity.Warehouse
-                ),
-                onHand: vu.inventory.onHand,
-                unavailable: vu.inventory.unavailable ?? undefined,
-                sku: vu.inventory.sku,
-                unitCostMinor:
-                  vu.inventory.unitCostMinor === undefined
-                    ? undefined
-                    : vu.inventory.unitCostMinor === null
-                      ? null
-                      : Number(vu.inventory.unitCostMinor),
-                costCurrency: vu.inventory.costCurrency,
-              }
-            : undefined,
-          dimensions: vu.dimensions
-            ? {
-                width: vu.dimensions.width,
-                height: vu.dimensions.height,
-                length: vu.dimensions.length,
-              }
-            : undefined,
-          weight: vu.weight,
-          media: vu.media
-            ? {
-                fileIds: vu.media.fileIds.map((id) =>
-                  decodeGlobalIdByType(id, GlobalIdEntity.File)
-                ),
-              }
-            : undefined,
-          options: vu.options ? { set: vu.options.set } : undefined,
-        },
+    if (expectedRevision === undefined) {
+      const field =
+        productIndex === undefined
+          ? ["expectedRevision"]
+          : ["input", "products", String(productIndex), "expectedRevision"];
+      errors.push({
+        message: "Expected revision is required for variant operations",
+        field,
+        code: "EXPECTED_REVISION_REQUIRED",
       });
+    }
+
+    for (const [variantIndex, input] of variants.entries()) {
+      const fieldPrefix = [
+        ...operationsFieldPrefix,
+        "variants",
+        String(variantIndex),
+      ];
+      const entry = mapVariantOperationInput(productId, input, fieldPrefix);
+      entries.push(entry);
+      errors.push(...entry.errors);
+      if (entry.operation) {
+        result.push(entry.operation);
+      }
     }
   }
 
-  return { operations: result, errors };
+  return { operations: result, entries, errors };
+}
+
+function mapProductLevelOperation(
+  productId: string,
+  operations: NonNullable<ProductUpdateInput>,
+  fieldPrefix: string[],
+  errors: UserError[],
+): ProductUpdateOperation | undefined {
+  let vendorId: string | null | undefined;
+  if (Object.prototype.hasOwnProperty.call(operations, "vendorId")) {
+    vendorId = operations.vendorId
+      ? decodeInputId(
+          operations.vendorId,
+          GlobalIdEntity.Vendor,
+          [...fieldPrefix, "vendorId"],
+          errors,
+        )
+      : null;
+  }
+
+  let ogImageId: string | undefined;
+  if (operations.seo?.ogImageId) {
+    ogImageId = decodeInputId(
+      operations.seo.ogImageId,
+      GlobalIdEntity.File,
+      [...fieldPrefix, "seo", "ogImageId"],
+      errors,
+    );
+  }
+
+  const productMediaFileIds = operations.media
+    ? decodeInputIds(
+        operations.media.fileIds,
+        GlobalIdEntity.File,
+        [...fieldPrefix, "media", "fileIds"],
+        errors,
+      )
+    : undefined;
+
+  if (errors.length > 0) {
+    return undefined;
+  }
+
+  return {
+    type: "productUpdate",
+    params: {
+      id: productId,
+      handle: operations.handle ?? undefined,
+      title: operations.title ?? undefined,
+      vendorId,
+      content: operations.content
+        ? {
+            description: mapRichTextInput(operations.content.description),
+            excerpt: mapRichTextInput(operations.content.excerpt),
+          }
+        : undefined,
+      seo: operations.seo
+        ? {
+            title: operations.seo.seoTitle ?? undefined,
+            description: operations.seo.seoDescription ?? undefined,
+            ogTitle: operations.seo.ogTitle ?? undefined,
+            ogDescription: operations.seo.ogDescription ?? undefined,
+            ogImageId,
+          }
+        : undefined,
+      status: operations.status
+        ? operations.status === "PUBLISHED"
+          ? "published"
+          : "draft"
+        : undefined,
+      media: productMediaFileIds ? { fileIds: productMediaFileIds } : undefined,
+    },
+    meta: { fieldPrefix },
+  };
+}
+
+type VariantOperationInput = NonNullable<ProductUpdateInput["variants"]>[number];
+
+function mapVariantOperationInput(
+  productId: string,
+  input: VariantOperationInput,
+  fieldPrefix: string[],
+): ProductUpdateMappedEntry {
+  const errors: UserError[] = [];
+  const clientMutationId =
+    typeof input.clientMutationId === "string"
+      ? input.clientMutationId.trim()
+      : undefined;
+  const variantId = input.variantId
+    ? decodeInputId(
+        input.variantId,
+        GlobalIdEntity.Variant,
+        [...fieldPrefix, "variantId"],
+        errors,
+      )
+    : undefined;
+
+  switch (String(input.action)) {
+    case "CREATE": {
+      if (input.variantId) {
+        errors.push({
+          message: "Variant ID is not allowed for create operations",
+          field: [...fieldPrefix, "variantId"],
+          code: "FIELD_NOT_ALLOWED",
+        });
+      }
+      if (!clientMutationId) {
+        errors.push({
+          message: "Client mutation ID is required for variant create operations",
+          field: [...fieldPrefix, "clientMutationId"],
+          code: "REQUIRED",
+        });
+      }
+      if (!input.options) {
+        errors.push({
+          message: "Options are required for variant create operations",
+          field: [...fieldPrefix, "options"],
+          code: "REQUIRED",
+        });
+      }
+
+      const params = mapVariantPayloadParams(input, fieldPrefix, errors);
+      const operation =
+        errors.length === 0 && clientMutationId && params.options
+          ? ({
+              type: "variantCreate",
+              params: {
+                productId,
+                clientMutationId,
+                options: params.options,
+                pricing: params.pricing,
+                inventory: params.inventory,
+                dimensions: params.dimensions,
+                weight: params.weight,
+                media: params.media,
+              },
+              meta: { fieldPrefix },
+            } satisfies ProductUpdateOperation)
+          : undefined;
+
+      return {
+        type: "variantCreate",
+        operation,
+        errors,
+        clientMutationId,
+      };
+    }
+
+    case "UPDATE": {
+      if (!input.variantId) {
+        errors.push({
+          message: "Variant ID is required for variant update operations",
+          field: [...fieldPrefix, "variantId"],
+          code: "REQUIRED",
+        });
+      }
+      const params = mapVariantPayloadParams(input, fieldPrefix, errors);
+      const operation =
+        errors.length === 0 && variantId
+          ? ({
+              type: "variantUpdate",
+              params: {
+                variantId,
+                pricing: params.pricing,
+                inventory: params.inventory,
+                dimensions: params.dimensions,
+                weight: params.weight,
+                media: params.media,
+                options: params.options,
+              },
+              meta: { fieldPrefix },
+            } satisfies ProductUpdateOperation)
+          : undefined;
+
+      return {
+        type: "variantUpdate",
+        operation,
+        errors,
+        entityId: variantId,
+      };
+    }
+
+    case "DELETE": {
+      if (!input.variantId) {
+        errors.push({
+          message: "Variant ID is required for variant delete operations",
+          field: [...fieldPrefix, "variantId"],
+          code: "REQUIRED",
+        });
+      }
+
+      const forbiddenFields: Array<keyof VariantOperationInput> = [
+        "clientMutationId",
+        "options",
+        "pricing",
+        "inventory",
+        "media",
+        "weight",
+        "dimensions",
+      ];
+      for (const field of forbiddenFields) {
+        if (input[field] !== undefined && input[field] !== null) {
+          errors.push({
+            message: `${String(field)} is not allowed for variant delete operations`,
+            field: [...fieldPrefix, String(field)],
+            code: "FIELD_NOT_ALLOWED",
+          });
+        }
+      }
+
+      const operation =
+        errors.length === 0 && variantId
+          ? ({
+              type: "variantDelete",
+              params: { variantId },
+              meta: { fieldPrefix },
+            } satisfies ProductUpdateOperation)
+          : undefined;
+
+      return {
+        type: "variantDelete",
+        operation,
+        errors,
+        entityId: variantId,
+      };
+    }
+
+    default:
+      errors.push({
+        message: "Unsupported variant operation action",
+        field: [...fieldPrefix, "action"],
+        code: "INVALID_ACTION",
+      });
+      return { type: "variantUpdate", errors };
+  }
+}
+
+function mapVariantPayloadParams(
+  input: VariantOperationInput,
+  fieldPrefix: string[],
+  errors: UserError[],
+) {
+  const options = input.options
+    ? {
+        set: input.options.set.map((link, index) => ({
+          optionId:
+            decodeInputId(
+              link.optionId,
+              GlobalIdEntity.Option,
+              [...fieldPrefix, "options", "set", String(index), "optionId"],
+              errors,
+            ) ?? "",
+          optionValueId:
+            decodeInputId(
+              link.optionValueId,
+              GlobalIdEntity.OptionValue,
+              [
+                ...fieldPrefix,
+                "options",
+                "set",
+                String(index),
+                "optionValueId",
+              ],
+              errors,
+            ) ?? "",
+        })),
+      }
+    : undefined;
+
+  const pricing = input.pricing
+    ? {
+        currency: input.pricing.currency,
+        amountMinor: Number(input.pricing.amountMinor),
+        compareAtMinor:
+          input.pricing.compareAtMinor === undefined
+            ? undefined
+            : input.pricing.compareAtMinor === null
+              ? null
+              : Number(input.pricing.compareAtMinor),
+      }
+    : undefined;
+
+  const inventory = input.inventory
+    ? {
+        warehouseId:
+          decodeInputId(
+            input.inventory.warehouseId,
+            GlobalIdEntity.Warehouse,
+            [...fieldPrefix, "inventory", "warehouseId"],
+            errors,
+          ) ?? "",
+        onHand: input.inventory.onHand,
+        unavailable: input.inventory.unavailable ?? undefined,
+        sku: input.inventory.sku,
+        unitCostMinor:
+          input.inventory.unitCostMinor === undefined
+            ? undefined
+            : input.inventory.unitCostMinor === null
+              ? null
+              : Number(input.inventory.unitCostMinor),
+        costCurrency: input.inventory.costCurrency,
+      }
+    : undefined;
+
+  const dimensions = input.dimensions
+    ? {
+        width: input.dimensions.width,
+        height: input.dimensions.height,
+        length: input.dimensions.length,
+      }
+    : undefined;
+
+  const media = input.media
+    ? {
+        fileIds: decodeInputIds(
+          input.media.fileIds,
+          GlobalIdEntity.File,
+          [...fieldPrefix, "media", "fileIds"],
+          errors,
+        ),
+      }
+    : undefined;
+
+  const weight = Object.prototype.hasOwnProperty.call(input, "weight")
+    ? input.weight
+    : undefined;
+
+  return { options, pricing, inventory, dimensions, weight, media };
+}
+
+function decodeInputId(
+  value: string,
+  expectedType: GlobalIdType,
+  field: string[],
+  errors: UserError[],
+): string | undefined {
+  const decoded = safeDecodeGlobalId(value, expectedType);
+  if (!decoded) {
+    errors.push({
+      message: "Invalid ID format",
+      field,
+      code: "INVALID_ID",
+    });
+  }
+  return decoded ?? undefined;
+}
+
+function decodeInputIds(
+  values: readonly string[],
+  expectedType: GlobalIdType,
+  fieldPrefix: string[],
+  errors: UserError[],
+): string[] {
+  return values.map((value, index) =>
+    decodeInputId(value, expectedType, [...fieldPrefix, String(index)], errors) ??
+    "",
+  );
+}
+
+function mapPreflightEntryToGraphqlResult(
+  entry: ProductUpdateMappedEntry,
+  hasBatchErrors: boolean,
+) {
+  const errors =
+    entry.errors.length > 0 || !hasBatchErrors
+      ? entry.errors
+      : [
+          {
+            message: "Batch validation failed",
+            code: "BATCH_VALIDATION_FAILED",
+          },
+        ];
+
+  return {
+    type: toGraphqlOperationType(entry.type),
+    applied: false,
+    clientMutationId: entry.clientMutationId,
+    entityId: entry.entityId
+      ? encodeGlobalIdByType(entry.entityId, GlobalIdEntity.Variant)
+      : undefined,
+    errors,
+  };
 }
 
 type ProductCategoryOperationInput = NonNullable<
@@ -3473,6 +3738,7 @@ function mapProductCategoryOperations(
         afterProductId,
         beforeProductId,
       },
+      meta: { fieldPrefix },
     });
   }
 
@@ -3534,6 +3800,7 @@ function mapProductTagOperations(
         tagId,
         action: mapProductTagOperationAction(input.action),
       },
+      meta: { fieldPrefix },
     });
   }
 
@@ -3563,14 +3830,18 @@ function toGraphqlOperationType(type: ProductUpdateOperation["type"]) {
   if (type === "productTagUpdate") {
     return "PRODUCT_TAG_UPDATE";
   }
+  if (type === "variantCreate") {
+    return "VARIANT_CREATE";
+  }
+  if (type === "variantDelete") {
+    return "VARIANT_DELETE";
+  }
   return "VARIANT_UPDATE";
 }
 
 function hasProductUpdateFields(
-  operations: ProductBulkUpdateInput["products"][0]["operations"],
-): operations is NonNullable<
-  ProductBulkUpdateInput["products"][0]["operations"]
-> {
+  operations?: ProductUpdateInput | null,
+): operations is ProductUpdateInput {
   if (!operations) return false;
   return (
     operations.handle !== undefined ||

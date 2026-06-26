@@ -122,6 +122,8 @@ export enum BulkUpdateOpType {
   ProductCategoryUpdate = 'PRODUCT_CATEGORY_UPDATE',
   ProductTagUpdate = 'PRODUCT_TAG_UPDATE',
   ProductUpdate = 'PRODUCT_UPDATE',
+  VariantCreate = 'VARIANT_CREATE',
+  VariantDelete = 'VARIANT_DELETE',
   VariantUpdate = 'VARIANT_UPDATE'
 }
 
@@ -3086,6 +3088,10 @@ export type OperationResult = {
   __typename?: 'OperationResult';
   /** Whether the operation was applied successfully. */
   applied: Scalars['Boolean']['output'];
+  /** Per-request client correlation key for create operations. */
+  clientMutationId: Maybe<Scalars['String']['output']>;
+  /** Entity affected by this operation. */
+  entityId: Maybe<Scalars['ID']['output']>;
   /** Errors that occurred during this operation. */
   errors: Array<GenericUserError>;
   /** The type of operation. */
@@ -3098,6 +3104,8 @@ export enum OperationType {
   ProductCategoryUpdate = 'PRODUCT_CATEGORY_UPDATE',
   ProductTagUpdate = 'PRODUCT_TAG_UPDATE',
   ProductUpdate = 'PRODUCT_UPDATE',
+  VariantCreate = 'VARIANT_CREATE',
+  VariantDelete = 'VARIANT_DELETE',
   VariantUpdate = 'VARIANT_UPDATE'
 }
 
@@ -3961,8 +3969,8 @@ export type ProductUpdateInput = {
   tags?: InputMaybe<Array<ProductTagOperationInput>>;
   /** Product title. */
   title?: InputMaybe<Scalars['String']['input']>;
-  /** Variant updates. */
-  variants?: InputMaybe<Array<VariantUpdateInput>>;
+  /** Variant create, update, and delete operations. */
+  variants?: InputMaybe<Array<VariantOperationInput>>;
   /** Vendor ID to associate with the product. Pass null to clear. */
   vendorId?: InputMaybe<Scalars['ID']['input']>;
 };
@@ -4536,6 +4544,35 @@ export type VariantMediaOpInput = {
   fileIds: Array<Scalars['ID']['input']>;
 };
 
+/** Variant operation action in the unified product update. */
+export enum VariantOperationAction {
+  Create = 'CREATE',
+  Delete = 'DELETE',
+  Update = 'UPDATE'
+}
+
+/** Input for a single variant operation. */
+export type VariantOperationInput = {
+  /** The operation to apply. */
+  action: VariantOperationAction;
+  /** Per-request client correlation key for create operations. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** Variant dimensions. */
+  dimensions?: InputMaybe<VariantDimensionsOpInput>;
+  /** Variant inventory item data (stock, SKU, cost). */
+  inventory?: InputMaybe<VariantInventoryOpInput>;
+  /** Variant media. */
+  media?: InputMaybe<VariantMediaOpInput>;
+  /** Variant options. */
+  options?: InputMaybe<VariantOptionsOpInput>;
+  /** Variant pricing. */
+  pricing?: InputMaybe<VariantPricingOpInput>;
+  /** The variant ID for update/delete operations. */
+  variantId?: InputMaybe<Scalars['ID']['input']>;
+  /** Variant weight in grams. */
+  weight?: InputMaybe<Scalars['Int']['input']>;
+};
+
 /** Input for linking a variant to an option value. */
 export type VariantOptionLinkInput = {
   /** The option ID. */
@@ -4640,24 +4677,6 @@ export type VariantPricingOpInput = {
   compareAtMinor?: InputMaybe<Scalars['BigInt']['input']>;
   /** The currency code. */
   currency: CurrencyCode;
-};
-
-/** Input for a single variant update. */
-export type VariantUpdateInput = {
-  /** Variant dimensions. */
-  dimensions?: InputMaybe<VariantDimensionsOpInput>;
-  /** Variant inventory item data (stock, SKU, cost). */
-  inventory?: InputMaybe<VariantInventoryOpInput>;
-  /** Variant media. */
-  media?: InputMaybe<VariantMediaOpInput>;
-  /** Variant options. */
-  options?: InputMaybe<VariantOptionsOpInput>;
-  /** Variant pricing. */
-  pricing?: InputMaybe<VariantPricingOpInput>;
-  /** The variant ID. */
-  variantId: Scalars['ID']['input'];
-  /** Variant weight in grams. */
-  weight?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** Input for updating variant media (replaces all existing media). */
@@ -5530,6 +5549,8 @@ export type ResolversTypes = ResolversObject<{
   VariantInventoryOpInput: VariantInventoryOpInput;
   VariantMediaItem: ResolverTypeWrapper<VariantMediaItem>;
   VariantMediaOpInput: VariantMediaOpInput;
+  VariantOperationAction: VariantOperationAction;
+  VariantOperationInput: VariantOperationInput;
   VariantOptionLinkInput: VariantOptionLinkInput;
   VariantOptionsOpInput: VariantOptionsOpInput;
   VariantOrderByInput: VariantOrderByInput;
@@ -5539,7 +5560,6 @@ export type ResolversTypes = ResolversObject<{
   VariantPriceEdge: ResolverTypeWrapper<VariantPriceEdge>;
   VariantPriceHistoryStatistics: ResolverTypeWrapper<VariantPriceHistoryStatistics>;
   VariantPricingOpInput: VariantPricingOpInput;
-  VariantUpdateInput: VariantUpdateInput;
   VariantUpdateMediaInput: VariantUpdateMediaInput;
   VariantUpdateMediaPayload: ResolverTypeWrapper<VariantUpdateMediaPayload>;
   VariantUpdateOptionsInput: VariantUpdateOptionsInput;
@@ -5844,6 +5864,7 @@ export type ResolversParentTypes = ResolversObject<{
   VariantInventoryOpInput: VariantInventoryOpInput;
   VariantMediaItem: VariantMediaItem;
   VariantMediaOpInput: VariantMediaOpInput;
+  VariantOperationInput: VariantOperationInput;
   VariantOptionLinkInput: VariantOptionLinkInput;
   VariantOptionsOpInput: VariantOptionsOpInput;
   VariantOrderByInput: VariantOrderByInput;
@@ -5852,7 +5873,6 @@ export type ResolversParentTypes = ResolversObject<{
   VariantPriceEdge: VariantPriceEdge;
   VariantPriceHistoryStatistics: VariantPriceHistoryStatistics;
   VariantPricingOpInput: VariantPricingOpInput;
-  VariantUpdateInput: VariantUpdateInput;
   VariantUpdateMediaInput: VariantUpdateMediaInput;
   VariantUpdateMediaPayload: VariantUpdateMediaPayload;
   VariantUpdateOptionsInput: VariantUpdateOptionsInput;
@@ -6644,6 +6664,8 @@ export type NodeResolvers<ContextType = ServiceContext, ParentType extends Resol
 
 export type OperationResultResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['OperationResult'] = ResolversParentTypes['OperationResult']> = ResolversObject<{
   applied?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  clientMutationId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  entityId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   errors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   type?: Resolver<ResolversTypes['OperationType'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;

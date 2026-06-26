@@ -138,5 +138,11 @@ function getOperationMetadata(op: ProductUpdateOperation): {
   if (op.type === "productTagUpdate") {
     return { opType: "productTagUpdate", variantId: null };
   }
+  if (op.type === "variantCreate") {
+    return { opType: "variantCreate", variantId: null };
+  }
+  if (op.type === "variantDelete") {
+    return { opType: "variantDelete", variantId: op.params.variantId };
+  }
   return { opType: "variantUpdate", variantId: op.params.variantId };
 }

@@ -27,11 +27,41 @@ export interface WorkflowContext {
 /**
  * Operation types - product or variant level updates.
  */
+export interface ProductUpdateOperationMeta {
+  fieldPrefix?: string[];
+}
+
 export type ProductUpdateOperation =
-  | { type: "productUpdate"; params: ProductUpdateParams }
-  | { type: "productCategoryUpdate"; params: ProductCategoryUpdateParams }
-  | { type: "productTagUpdate"; params: ProductTagUpdateParams }
-  | { type: "variantUpdate"; params: VariantUpdateParams };
+  | {
+      type: "productUpdate";
+      params: ProductUpdateParams;
+      meta?: ProductUpdateOperationMeta;
+    }
+  | {
+      type: "productCategoryUpdate";
+      params: ProductCategoryUpdateParams;
+      meta?: ProductUpdateOperationMeta;
+    }
+  | {
+      type: "productTagUpdate";
+      params: ProductTagUpdateParams;
+      meta?: ProductUpdateOperationMeta;
+    }
+  | {
+      type: "variantCreate";
+      params: VariantCreateParams;
+      meta?: ProductUpdateOperationMeta;
+    }
+  | {
+      type: "variantUpdate";
+      params: VariantUpdateParams;
+      meta?: ProductUpdateOperationMeta;
+    }
+  | {
+      type: "variantDelete";
+      params: VariantDeleteParams;
+      meta?: ProductUpdateOperationMeta;
+    };
 
 /**
  * Product-level update parameters.
@@ -87,6 +117,17 @@ export interface ProductTagUpdateParams {
   action: ProductTagOperationAction;
 }
 
+export interface VariantCreateParams {
+  productId: string;
+  clientMutationId: string;
+  options: VariantOptionsParams;
+  pricing?: VariantPricingParams;
+  inventory?: VariantInventoryParams;
+  dimensions?: VariantDimensionsParams;
+  weight?: number | null;
+  media?: VariantMediaParams;
+}
+
 /**
  * Variant-level update parameters.
  * All fields are optional - only provided fields are updated.
@@ -99,6 +140,10 @@ export interface VariantUpdateParams {
   weight?: number | null;
   media?: VariantMediaParams;
   options?: VariantOptionsParams;
+}
+
+export interface VariantDeleteParams {
+  variantId: string;
 }
 
 export interface VariantPricingParams {
@@ -155,7 +200,11 @@ export interface OperationResult {
     | "productUpdate"
     | "productCategoryUpdate"
     | "productTagUpdate"
+    | "variantCreate"
+    | "variantDelete"
     | "variantUpdate";
   applied: boolean;
+  clientMutationId?: string;
+  entityId?: string;
   errors: UserError[];
 }

@@ -463,8 +463,17 @@ input ProductUpdateInput {
   """Product tag assignment operations."""
   tags: [ProductTagOperationInput!]
 
-  """Variant updates."""
-  variants: [VariantUpdateInput!]
+  """Variant create, update, and delete operations."""
+  variants: [VariantOperationInput!]
+}
+
+"""
+Variant operation action in the unified product update.
+"""
+enum VariantOperationAction {
+  CREATE
+  UPDATE
+  DELETE
 }
 
 """
@@ -535,11 +544,17 @@ input VariantOptionsOpInput {
 }
 
 """
-Input for a single variant update.
+Input for a single variant operation.
 """
-input VariantUpdateInput {
-  """The variant ID."""
-  variantId: ID!
+input VariantOperationInput {
+  """The operation to apply."""
+  action: VariantOperationAction!
+
+  """The variant ID for update/delete operations."""
+  variantId: ID
+
+  """Per-request client correlation key for create operations."""
+  clientMutationId: String
 
   """Variant pricing."""
   pricing: VariantPricingOpInput
@@ -565,7 +580,9 @@ Type of operation in the unified update.
 """
 enum OperationType {
   PRODUCT_UPDATE
+  VARIANT_CREATE
   VARIANT_UPDATE
+  VARIANT_DELETE
   PRODUCT_CATEGORY_UPDATE
   PRODUCT_TAG_UPDATE
   CATEGORY_UPDATE
@@ -580,6 +597,12 @@ type OperationResult {
 
   """Whether the operation was applied successfully."""
   applied: Boolean!
+
+  """Per-request client correlation key for create operations."""
+  clientMutationId: String
+
+  """Entity affected by this operation."""
+  entityId: ID
 
   """Errors that occurred during this operation."""
   errors: [GenericUserError!]!

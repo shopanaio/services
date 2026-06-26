@@ -6,7 +6,7 @@ import {
   unchangedResult,
   singleError,
 } from "../types/ScriptResult.js";
-import type { DimensionsChanges } from "../types/ProductChanges.js";
+import type { PhysicalChanges } from "../types/ProductChanges.js";
 
 export interface InventoryItemUpdateDimensionsParams {
   readonly variantId: string;
@@ -15,7 +15,7 @@ export interface InventoryItemUpdateDimensionsParams {
   readonly length: number; // mm
 }
 
-export type InventoryItemUpdateDimensionsResult = ScriptResult<ItemDimensions, DimensionsChanges>;
+export type InventoryItemUpdateDimensionsResult = ScriptResult<ItemDimensions, PhysicalChanges>;
 
 /**
  * Script for updating inventory item dimensions.
@@ -74,7 +74,7 @@ export class InventoryItemUpdateDimensionsScript extends BaseScript<
       hMm: height,
     });
 
-    const changes: DimensionsChanges = { width, height, length };
+    const changes: PhysicalChanges = { width, height, length };
 
     this.logger.info(
       { variantId, width, height, length },
