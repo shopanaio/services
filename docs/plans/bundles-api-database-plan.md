@@ -2,7 +2,7 @@
 
 ## Цель
 
-Описать фактическую схему базы данных для bundles в catalog service и зафиксировать, каких данных не хватает для полноценной интеграции bundles с admin API, storefront API, inventory offers и checkout.
+Описать фактическую схему базы данных для bundles в catalog service и зафиксировать, каких данных не хватает для полноценной интеграции bundles с admin API и inventory offers.
 
 Текущая реализация хранит bundle как набор таблиц, которые напрямую ссылаются на product через `product_id`.
 
@@ -284,7 +284,7 @@ erDiagram
 
 `product` отвечает за товарную сущность: handle, publish status, title, variants, media, SEO.
 
-`bundles` отвечает за bundle configuration: группы, items, templates, dependency rules, storefront behavior и checkout behavior.
+`bundles` отвечает за bundle configuration: группы, items, templates и dependency rules.
 
 Связь:
 
@@ -307,14 +307,12 @@ Aggregate root для bundle configuration.
 | `id` | `uuid` | yes | Primary key. Используется как `Bundle.id` в API. |
 | `project_id` | `uuid` | yes | Tenant/project scope. |
 | `product_id` | `uuid` | yes | Product, который является bundle product. |
-| `enabled` | `boolean` | yes | Включено ли bundle behavior для storefront/checkout. |
-| `revision` | `integer` | yes | Версия bundle configuration для cache invalidation, storefront projection и checkout snapshot. Default `0`. |
+| `enabled` | `boolean` | yes | Включено ли bundle behavior. |
+| `revision` | `integer` | yes | Версия bundle configuration для cache invalidation. Default `0`. |
 | `status` | `varchar(32)` | no | Статус bundle config, если product status недостаточен: `DRAFT`, `ACTIVE`, `ARCHIVED`. |
 | `bundle_type` | `varchar(32)` | no | Admin preset/type: `FIXED`, `MIX_AND_MATCH`, `CUSTOM`, etc. |
-| `display_style` | `varchar(32)` | no | Storefront UI: `ACCORDION`, `TABS`, `FLAT`, `WIZARD`. |
 | `selection_mode` | `varchar(32)` | no | Модель выбора items, например guided/free-form. |
 | `out_of_stock_behavior` | `varchar(32)` | no | `HIDE`, `DISABLE`, `BACKORDER`. |
-| `price_display_mode` | `varchar(32)` | no | Как показывать bundle price breakdown. |
 | `created_at` | `timestamp with timezone` | yes | Creation timestamp. |
 | `updated_at` | `timestamp with timezone` | yes | Update timestamp. |
 
@@ -332,7 +330,7 @@ Aggregate root для bundle configuration.
 - `product_id` остается только на `bundles`. Остальные bundle tables должны получать принадлежность к product через `bundle_id -> bundles.product_id`.
 - Все FK из bundle child tables должны быть tenant-safe: `(project_id, bundle_id)` -> `bundles(project_id, id)`, а не только `bundle_id -> bundles.id`.
 - Все repositories/loaders/resolvers продолжают фильтровать по `project_id`/`storeId`.
-- `revision` инкрементится при любом изменении bundle configuration: groups, items, templates, dependency rules, conditions, actions и storefront/checkout behavior fields. Checkout snapshot должен хранить revision, с которым была провалидирована selection.
+- `revision` инкрементится при любом изменении bundle configuration: groups, items, templates, dependency rules, conditions и actions.
 
 ### Изменения существующих таблиц
 
@@ -477,10 +475,8 @@ erDiagram
     int revision
     string status
     string bundle_type
-    string display_style
     string selection_mode
     string out_of_stock_behavior
-    string price_display_mode
   }
 
   BUNDLE_GROUP {
@@ -544,11 +540,10 @@ erDiagram
 
 - `bundles` list query без тяжелого join по groups.
 - Явное включение/выключение bundle behavior.
-- Настройки storefront configurator.
 - Разделение product publish status и bundle config readiness.
 - Единый target id для dependency rules на уровне всего bundle.
 - Явный признак, что product является bundle: наличие row `(project_id, product_id)` в `bundles`.
-- Единый `revision` для invalidation storefront projection, inventory offers и checkout snapshot.
+- Единый `revision` для invalidation inventory offers.
 
 ### 2. Stable public bundle identity
 
@@ -585,40 +580,7 @@ Compatibility layer:
 - Новые mutations должны принимать `bundleId` для groups/templates/rules. Legacy mutations с `productId` могут создавать/read-through `bundles` row и возвращать warning/deprecation в userErrors только если это согласовано с API contract.
 - `Product.bundle` становится canonical entrypoint для product details UI.
 
-### 3. Storefront projection fields
-
-Storefront и inventory plugin нуждаются в denormalized read shape:
-
-- parent product id;
-- groups in display order;
-- items in display order;
-- resolved variant/product data;
-- effective price config после template fallback;
-- visibility/default selection;
-- quantity limits;
-- dependency rules, если configurator применяет их на клиенте.
-
-Можно не создавать отдельную таблицу на первом этапе, но нужно спроектировать read model или resolver contract. Если производительность станет проблемой, добавить projection table.
-
-Вариант projection table: `bundle_storefront_projection`.
-
-| Колонка | Тип | Назначение |
-| --- | --- | --- |
-| `project_id` | `uuid` | Tenant/project scope. |
-| `bundle_id` | `uuid` | Bundle owner. |
-| `product_id` | `uuid` | Denormalized product owner, optional. Можно получить через `bundles.product_id`. |
-| `revision` | `integer` | Значение `bundles.revision`, на котором собран payload. |
-| `payload` | `jsonb` | Собранный storefront bundle contract. |
-| `updated_at` | `timestamp with timezone` | Projection timestamp. |
-
-Constraints:
-
-- primary/unique `(project_id, bundle_id)`
-- FK `(project_id, bundle_id)` -> `bundles(project_id, id)`, cascade delete
-
-Если projection table не создается на первом этапе, resolver/read model contract все равно должен отдавать `revision`, чтобы storefront, inventory plugin и checkout могли связать validation result с конкретной версией bundle config.
-
-### 4. Price type compatibility
+### 3. Price type compatibility
 
 В текущей catalog schema price type хранится как string, а API enum сейчас такой:
 
@@ -628,7 +590,7 @@ Constraints:
 - `PERCENT_OFF`
 - `AMOUNT_OFF`
 
-Checkout/inventory используют другой набор:
+Inventory использует другой набор:
 
 - `BASE`
 - `FREE`
@@ -638,18 +600,18 @@ Checkout/inventory используют другой набор:
 - `MARKUP_PERCENT`
 - `OVERRIDE`
 
-Нужно спроектировать canonical enum и mapping. Без этого storefront bundle config и checkout line `priceConfig` будут расходиться.
+Нужно спроектировать canonical enum и mapping. Без этого bundle config и inventory price config будут расходиться.
 
 Рекомендация:
 
-- В catalog хранить canonical bundle price type, близкий к checkout semantics:
+- В catalog хранить canonical bundle price type, близкий к inventory semantics:
   `BASE`, `FREE`, `OVERRIDE`, `DISCOUNT_AMOUNT`, `DISCOUNT_PERCENT`, `MARKUP_AMOUNT`, `MARKUP_PERCENT`.
 - В admin API можно временно маппить старые names:
   `FIXED -> OVERRIDE`, `PERCENT_OFF -> DISCOUNT_PERCENT`, `AMOUNT_OFF -> DISCOUNT_AMOUNT`.
 - Для `DISCOUNT_PERCENT` и `MARKUP_PERCENT` хранить `price_value` в basis points (`1000` = `10%`). API/SDK может продолжать отдавать percent как decimal number (`10` = `10%`), но DB storage должен быть integer basis points.
 - Миграция legacy `PERCENT_OFF` должна нормализовать старые значения. Если старый API принимал whole percent (`10` = `10%`), при миграции нужно записать `1000`.
 
-### 5. Money and currency model
+### 4. Money and currency model
 
 `price_value` сейчас integer без currency. Для первого API этапа нужно зафиксировать один контракт:
 
@@ -659,7 +621,7 @@ Checkout/inventory используют другой набор:
 - Не добавлять `currency_code` к `bundle_pricing_template`, `bundle_item`, `dependency_action` в v1. По проектному правилу стандартные monetary API values считаются normalized к default currency проекта.
 - Если позже появится multi-currency bundle pricing, это должен быть отдельный explicit pricing model/projection, а не переиспользование per-record `currency_code` как display source.
 
-### 6. Item reference integrity
+### 5. Item reference integrity
 
 `bundle_item` допускает обе nullable ссылки: `ref_product_id`, `ref_variant_id`. Нужно добавить DB-level или script-level constraints:
 
@@ -673,92 +635,7 @@ Checkout/inventory используют другой набор:
 
 DB-level check constraints в Drizzle нужно добавить для взаимоисключающих nullable refs и quantity limits. Cross-table ownership, который не покрывается FK (`featured_image_id` same project, variant belongs to product, excluded variants belong to product), должно быть обязательной script validation.
 
-### 7. Selection validation model
-
-Сейчас есть:
-
-- group-level `min_selection`, `max_selection`;
-- item-level `min_qty`, `max_qty`, `default_qty`, `selected`;
-- dependency action `SET_REQUIRED`.
-
-Не хватает явного результата validation для checkout:
-
-- какая группа обязательна после dependency rules;
-- какие items видимы/доступны;
-- какие default selections применены;
-- почему выбор невалиден.
-
-Это можно решать без новых таблиц, но нужен API model:
-
-```graphql
-type BundleSelectionValidation {
-  valid: Boolean!
-  errors: [BundleSelectionError!]!
-  normalizedSelection: BundleSelection!
-  appliedActions: [BundleAppliedAction!]!
-}
-```
-
-Если validation должна быть auditable, добавить таблицу не нужно; checkout snapshot должен хранить applied config.
-
-### 8. Checkout snapshot fields
-
-Checkout line уже хранит parent/child hierarchy и `priceConfig`, но API input принимает только `purchasableId` child item. Этого мало, если один variant встречается в нескольких bundle items или groups.
-
-Нужно расширить contract на трех уровнях:
-
-1. Storefront/checkout input должен передавать identity выбранной bundle option.
-2. Checkout -> inventory offers contract должен передавать эту identity дальше, чтобы inventory plugin не искал child только по variant id.
-3. Checkout line snapshot должен сохранять applied bundle metadata для order/debug/reprice/audit.
-
-Целевой child input:
-
-```graphql
-input CheckoutChildLineInput {
-  quantity: Int!
-  purchasableId: ID!
-  bundleId: ID!
-  bundleGroupId: ID!
-  bundleItemId: ID!
-  bundleRevision: Int!
-  purchasableSnapshot: PurchasableSnapshotInput
-}
-```
-
-Целевой inventory provider input:
-
-```typescript
-type GetOffersChildInput = {
-  lineId: string;
-  purchasableId: string;
-  quantity: number;
-  bundleId: string;
-  bundleGroupId: string;
-  bundleItemId: string;
-  bundleRevision: number;
-};
-```
-
-Inventory plugin должен валидировать child по `bundleItemId`, а не только по `purchasableId`. Это обязательно, потому что один variant может встречаться в нескольких bundle items с разными quantity limits, visibility и price config.
-
-Нужно спроектировать хранение в checkout line snapshot:
-
-| Данные | Назначение |
-| --- | --- |
-| `bundle_id` | Bundle aggregate id. |
-| `bundle_product_id` | Parent bundle product. Можно денормализовать из `bundles.product_id`. |
-| `bundle_group_id` | Из какой группы выбран child. |
-| `bundle_item_id` | Какой bundle item выбран. |
-| `bundle_revision` | Какая версия `bundles.revision` применена. |
-| `applied_price_type` | Canonical price type. |
-| `applied_price_value` | Applied value. |
-| `applied_actions` | Optional JSON snapshot applied dependency actions, если dependency engine влияет на validation/price. |
-
-Это может быть отдельными колонками в checkout line table или частью existing snapshot JSON. Для query/filter/debug лучше отдельные nullable columns на child lines.
-
-Если checkout хранит отдельные columns, `bundle_id`, `bundle_group_id`, `bundle_item_id`, `bundle_revision`, `applied_price_type`, `applied_price_value` должны попадать в write model, read model, checkout SDK DTO и order line creation.
-
-### 9. Dependency target consistency
+### 6. Dependency target consistency
 
 `condition.target_id` сейчас non-null, но `target_type = BUNDLE` не имеет естественного target id в текущей схеме, кроме product id.
 
@@ -770,7 +647,7 @@ Inventory plugin должен валидировать child по `bundleItemId`
 - Scripts должны валидировать, что target принадлежит тому же `project_id` и тому же `bundle_id`, что и owning rule.
 - Legacy nullable `dependency_action.target_id` для `BUNDLE` нужно backfill на owning `dependency_rule.bundle_id`; после этого API должен требовать `targetId` для всех target types.
 
-### 10. Reorder and batch update data
+### 7. Reorder and batch update data
 
 Текущий `sort_index` подходит для drag-and-drop, но API должен поддерживать batch mutations:
 
@@ -789,7 +666,7 @@ Inventory plugin должен валидировать child по `bundleItemId`
 
 Каждая batch mutation должна проверять, что передан полный список siblings в рамках owner scope, выполнять update в transaction и инкрементить `bundles.revision`.
 
-### 11. Back references for "included in bundles"
+### 8. Back references for "included in bundles"
 
 Product details UI показывает bundles, в которые входит product. Сейчас это можно получить через:
 
@@ -817,8 +694,8 @@ Product details UI показывает bundles, в которые входит 
 
 1. `bundles`
    - Явный aggregate root для bundle.
-   - Хранит status/settings/display behavior.
-   - Хранит `revision` для cache invalidation и checkout snapshot.
+   - Хранит status/settings.
+   - Хранит `revision` для cache invalidation.
    - Дает стабильный `Bundle.id`.
    - Связан с product 1:1 через unique `(project_id, product_id)`.
    - Является признаком, что product это bundle.
@@ -841,51 +718,14 @@ Product details UI показывает bundles, в которые входит 
    - Percent хранится в basis points.
    - Amount хранится в minor units default currency проекта.
 
-5. Checkout/inventory bundle selection metadata
-   - Либо nullable columns на checkout lines, либо structured snapshot.
-   - Нужна связь child line с `bundle_group_id` и `bundle_item_id`.
-   - `bundleId`, `bundleGroupId`, `bundleItemId`, `bundleRevision` должны идти в checkout input и inventory `GetOffersChildInput`.
-
-6. Storefront projection
-   - Можно начать с resolver/read model без таблицы.
-   - Таблицу добавить, если query станет тяжелым.
-   - Read model должен отдавать `revision`.
-
 Опционально позже:
 
-7. `bundle_item_reference_projection`
+5. `bundle_item_reference_projection`
    - Для быстрых "included in bundles" списков в admin product details.
-
-## Миграционный порядок
-
-1. Добавить таблицу `bundles` с `revision`, `enabled`, status/settings fields, unique `(project_id, id)`, unique `(project_id, product_id)` и FK `(project_id, product_id)` -> `product(project_id, id)`.
-2. Backfill `bundles` по уникальному набору `(project_id, product_id)` из `bundle_group`, `bundle_pricing_template`, `dependency_rule`.
-3. Добавить nullable `bundle_id` в `bundle_group`, `bundle_pricing_template`, `dependency_rule` и `bundle_item`.
-4. Backfill `bundle_id` в `bundle_group`, `bundle_pricing_template`, `dependency_rule` через join `child.project_id = bundles.project_id AND child.product_id = bundles.product_id`.
-5. Backfill `bundle_item.bundle_id` через join `bundle_item.project_id = bundle_group.project_id AND bundle_item.group_id = bundle_group.id`.
-6. Добавить новые indexes на `bundle_id` и временно оставить старые indexes на `product_id`.
-7. Добавить `GlobalIdEntity.Bundle`, `BundleRepository`, loaders (`bundle`, `bundleByProductId`), `BundleResolver`, Node resolution и `Product.bundle`.
-8. Добавить bundle-based repository methods/loaders/resolvers/scripts. Старые product-based API entrypoints оставить как compatibility wrappers.
-9. Перевести новые mutations на `bundleId`; legacy mutations с `productId` должны находить или создавать `bundles` row перед записью child records.
-10. Backfill `condition.target_id` и `dependency_action.target_id` для `target_type = BUNDLE` на `bundles.id`; обновить resolvers/scripts на `GlobalIdEntity.Bundle`.
-11. Сделать `bundle_id` not null в `bundle_group`, `bundle_pricing_template`, `dependency_rule`, `bundle_item` и добавить FK `(project_id, bundle_id)` -> `bundles(project_id, id)`.
-12. Добавить tenant-safe FK/unique constraints для child tables:
-    - `bundle_group`: unique `(project_id, bundle_id, id)`.
-    - `bundle_pricing_template`: unique `(project_id, bundle_id, id)`.
-    - `bundle_item`: FK `(project_id, bundle_id, group_id)` -> `bundle_group(project_id, bundle_id, id)`.
-    - `bundle_item`: FK `(project_id, bundle_id, pricing_template_id)` -> `bundle_pricing_template(project_id, bundle_id, id)`, `set null` on delete.
-    - `condition_group`, `condition`, `dependency_action`: tenant-safe FK through `(project_id, ...)`.
-13. Зафиксировать canonical price enum, добавить mapper старых значений и миграцию legacy `price_type`/`price_value` (`FIXED -> OVERRIDE`, `PERCENT_OFF -> DISCOUNT_PERCENT`, `AMOUNT_OFF -> DISCOUNT_AMOUNT`, percent -> basis points).
-14. Расширить storefront API bundle shape/read model с `revision` и effective price config.
-15. Расширить checkout input, checkout DTOs, inventory `GetOffersChildInput`, inventory plugin validation и checkout line snapshot для `bundleId`, `bundleGroupId`, `bundleItemId`, `bundleRevision`, applied price metadata.
-16. Инкрементить `bundles.revision` во всех scripts, которые меняют bundle config или reorder data.
-17. После миграционного окна deprecated/удалить `product_id` из `bundle_group`, `bundle_pricing_template`, `dependency_rule` и product-based API entrypoints.
-18. После стабилизации API решить, нужна ли projection table для storefront и back references.
 
 ## Открытые решения
 
 1. Bundle lifecycle должен наследовать product status или иметь отдельный `bundles.status`.
-2. Dependency rules исполняются на storefront, в catalog validation API, в inventory offers или в checkout.
-3. `PRODUCT` bundle item должен раскрывать все variants на storefront или требовать выбора конкретного variant до checkout.
+2. Dependency rules исполняются в catalog validation API или в inventory offers.
+3. `PRODUCT` bundle item должен раскрывать все variants или требовать выбора конкретного variant.
 4. Нужен ли denormalized `product_id` в projection/read tables, если canonical owner уже `bundle_id`.
-5. Нужна ли physical projection table для storefront сразу или достаточно resolver/read model на первом этапе.
