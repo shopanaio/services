@@ -26,13 +26,6 @@ interface SeededVariant {
   available: number;
 }
 
-interface InventoryFixture {
-  warehouseId: string;
-  warehouseName: string;
-  products: SeededProduct[];
-  variants: SeededVariant[];
-}
-
 interface ExpectedInventoryValues {
   onHand: number;
   unavailable: number;
@@ -215,30 +208,6 @@ async function seedStock(
   }
 }
 
-async function seedInventoryFixture(
-  api: Api,
-  productCount: number,
-  variantsPerProduct: number,
-): Promise<InventoryFixture> {
-  const unique = crypto.randomUUID().slice(0, 8);
-  const warehouse = await createDefaultWarehouse(api, unique);
-  const products: SeededProduct[] = [];
-
-  for (let productIndex = 0; productIndex < productCount; productIndex += 1) {
-    products.push(await createTrackedProduct(api, unique, productIndex, variantsPerProduct));
-  }
-
-  const variants = products.flatMap((product) => product.variants);
-  await seedStock(api, warehouse.id, unique, variants);
-
-  return {
-    warehouseId: warehouse.id,
-    warehouseName: warehouse.name,
-    products,
-    variants,
-  };
-}
-
 function inventoryUrl(organizationName: string, projectSlug: string, warehouseId?: string) {
   const baseUrl = `/${organizationName}/${projectSlug}/inventory`;
 
@@ -332,6 +301,14 @@ async function expectInventoryPageValues(
   }
 }
 
+async function expectInventoryPageExcludesVariants(page: Page, variants: SeededVariant[]) {
+  for (const variant of variants) {
+    await expect(inventoryCell(page, variant, 'on-hand')).toHaveCount(0);
+    await expect(inventoryCell(page, variant, 'unavailable')).toHaveCount(0);
+    await expect(inventoryCell(page, variant, 'available')).toHaveCount(0);
+  }
+}
+
 test.describe('Admin inventory page UI', () => {
   test('edits warehouse-scoped quantities and persists them through bulk update', async ({
     api,
@@ -340,20 +317,22 @@ test.describe('Admin inventory page UI', () => {
     test.slow();
 
     const organization = await setupAdminUserAndStore(api, page);
-    const fixture = await seedInventoryFixture(api, 2, 2);
     const unique = crypto.randomUUID().slice(0, 8);
-    const secondWarehouseQuantityOffset = 70;
+    const firstWarehouse = await createDefaultWarehouse(api, `${unique}-first`);
     const secondWarehouse = await createWarehouse(api, `${unique}-second`);
-    await seedStock(api, secondWarehouse.id, `${unique}-second`, fixture.variants, {
-      quantityOffset: secondWarehouseQuantityOffset,
-      updateFixture: false,
+    const firstProduct = await createTrackedProduct(api, unique, 0, 2);
+    const secondProduct = await createTrackedProduct(api, unique, 1, 2);
+
+    await seedStock(api, firstWarehouse.id, `${unique}-first`, firstProduct.variants);
+    await seedStock(api, secondWarehouse.id, `${unique}-second`, secondProduct.variants, {
+      quantityOffset: 70,
     });
 
     const expectedByWarehouse = new Map<string, Map<string, ExpectedInventoryValues>>([
       [
-        fixture.warehouseId,
+        firstWarehouse.id,
         new Map(
-          fixture.variants.map((variant) => [
+          firstProduct.variants.map((variant) => [
             variant.id,
             expectedInventoryValues(variant, variant.onHand, variant.unavailable),
           ] as const),
@@ -362,28 +341,28 @@ test.describe('Admin inventory page UI', () => {
       [
         secondWarehouse.id,
         new Map(
-          fixture.variants.map((variant, index) => {
-            const onHand = 30 + index * 3 + secondWarehouseQuantityOffset;
-            const unavailable = index % 3;
-
-            return [variant.id, expectedInventoryValues(variant, onHand, unavailable)] as const;
-          }),
+          secondProduct.variants.map((variant) => [
+            variant.id,
+            expectedInventoryValues(variant, variant.onHand, variant.unavailable),
+          ] as const),
         ),
       ],
     ]);
 
     const warehouseEdits = [
       {
-        id: fixture.warehouseId,
-        name: fixture.warehouseName,
-        variantIndexes: [0, 1],
+        id: firstWarehouse.id,
+        name: firstWarehouse.name,
+        visibleVariants: firstProduct.variants,
+        hiddenVariants: secondProduct.variants,
         onHandBase: 111,
         unavailableBase: 4,
       },
       {
         id: secondWarehouse.id,
         name: secondWarehouse.name,
-        variantIndexes: [2, 3],
+        visibleVariants: secondProduct.variants,
+        hiddenVariants: firstProduct.variants,
         onHandBase: 211,
         unavailableBase: 7,
       },
@@ -397,14 +376,11 @@ test.describe('Admin inventory page UI', () => {
       }
 
       await openInventoryPage(page, url, warehouseEdit.name);
-      await expect(page.getByTestId('inventory-pagination-range')).toHaveText('1–4 of 4');
+      await expect(page.getByTestId('inventory-pagination-range')).toHaveText('1–2 of 2');
+      await expectInventoryPageValues(page, warehouseEdit.visibleVariants, expectedForWarehouse);
+      await expectInventoryPageExcludesVariants(page, warehouseEdit.hiddenVariants);
 
-      for (const [editIndex, variantIndex] of warehouseEdit.variantIndexes.entries()) {
-        const variant = fixture.variants[variantIndex];
-        if (!variant) {
-          throw new Error(`Missing fixture variant at index ${variantIndex}`);
-        }
-
+      for (const [editIndex, variant] of warehouseEdit.visibleVariants.entries()) {
         const expected = expectedInventoryValues(
           variant,
           warehouseEdit.onHandBase + editIndex * 13,
@@ -436,7 +412,10 @@ test.describe('Admin inventory page UI', () => {
       await expect(page.getByTestId('editing-panel-save-button')).toBeHidden({ timeout: 30_000 });
 
       for (const [warehouseId, expectedByVariantId] of expectedByWarehouse) {
-        for (const variant of fixture.variants) {
+        const variants =
+          warehouseId === firstWarehouse.id ? firstProduct.variants : secondProduct.variants;
+
+        for (const variant of variants) {
           const expected = expectedByVariantId.get(variant.id);
           if (!expected) {
             throw new Error(`Missing expected values for variant ${variant.id}`);
@@ -448,8 +427,9 @@ test.describe('Admin inventory page UI', () => {
 
       await page.goto(url);
       await expect(page.getByTestId('page-title')).toHaveText(warehouseEdit.name);
-      await expect(page.getByTestId('inventory-pagination-range')).toHaveText('1–4 of 4');
-      await expectInventoryPageValues(page, fixture.variants, expectedForWarehouse);
+      await expect(page.getByTestId('inventory-pagination-range')).toHaveText('1–2 of 2');
+      await expectInventoryPageValues(page, warehouseEdit.visibleVariants, expectedForWarehouse);
+      await expectInventoryPageExcludesVariants(page, warehouseEdit.hiddenVariants);
     }
 
     for (const warehouseEdit of warehouseEdits) {
@@ -463,8 +443,9 @@ test.describe('Admin inventory page UI', () => {
         inventoryUrl(organization.name, api.session.projectSlug, warehouseEdit.id),
         warehouseEdit.name,
       );
-      await expect(page.getByTestId('inventory-pagination-range')).toHaveText('1–4 of 4');
-      await expectInventoryPageValues(page, fixture.variants, expectedForWarehouse);
+      await expect(page.getByTestId('inventory-pagination-range')).toHaveText('1–2 of 2');
+      await expectInventoryPageValues(page, warehouseEdit.visibleVariants, expectedForWarehouse);
+      await expectInventoryPageExcludesVariants(page, warehouseEdit.hiddenVariants);
     }
   });
 });

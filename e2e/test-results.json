@@ -79,7 +79,7 @@
         {
           "title": "Admin inventory page UI",
           "file": "admin-ui/inventory-page.spec.ts",
-          "line": 231,
+          "line": 222,
           "column": 6,
           "specs": [
             {
@@ -102,12 +102,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 17928,
+                      "duration": 18143,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-26T16:38:55.243Z",
+                      "startTime": "2026-06-26T16:48:35.759Z",
                       "attachments": []
                     }
                   ],
@@ -116,7 +116,7 @@
               ],
               "id": "1b79c680960b7e5f9da1-bd813c609007f7086210",
               "file": "admin-ui/inventory-page.spec.ts",
-              "line": 232,
+              "line": 223,
               "column": 5
             }
           ]
@@ -126,8 +126,8 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-06-26T16:38:21.019Z",
-    "duration": 54715.201,
+    "startTime": "2026-06-26T16:48:02.953Z",
+    "duration": 53578.778,
     "expected": 1,
     "skipped": 0,
     "unexpected": 0,
