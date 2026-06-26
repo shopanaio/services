@@ -27,51 +27,59 @@
 - `VariantsEditorGrid` превращает API-варианты в строки и рендерит их через `EditorGrid`.
 - `useVariantsEditorStore` хранит cell edits по `row.id` и настройки колонок.
 - Существующие варианты сохраняются через `productUpdate` и `ProductUpdateInput.variants`.
-- `ProductUpdateInput.variants` сейчас покрывает update существующих вариантов, но не покрывает создание новых вариантов.
+- Текущий `ProductUpdateInput.variants` покрывает update существующих вариантов, но не покрывает создание новых вариантов.
 - В API есть отдельный `catalogMutation.variantCreate`, но для spreadsheet-save он не подходит, потому что UI должен отправлять один unified save через `productUpdate`.
 
 ## Целевой GraphQL contract
 
-Нужно расширить `ProductUpdateInput`, чтобы он поддерживал create/update операций над variants в одном payload.
-
-Это утверждённый командой архитекторов breaking change: текущее поле
-`ProductUpdateInput.variants: [VariantUpdateInput!]` должно быть заменено на
-операционный объект. Совместимый additive contract с отдельным полем для create
-не используется в этой задаче.
+Нужно расширить в `ProductUpdateInput` поле `variants`, чтобы один массив
+`VariantOperationInput` поддерживал разные типы операций над variants в одном
+payload.
 
 Рекомендуемая форма:
 
-```ts
-type ProductUpdateInput = {
-  variants?: ProductVariantOperationsInput;
-};
+```graphql
+input ProductUpdateInput {
+  variants: [VariantOperationInput!]
+}
 
-type ProductVariantOperationsInput = {
-  create?: ProductVariantCreateOperationInput[];
-  update?: VariantUpdateInput[];
-  delete?: ProductVariantDeleteOperationInput[];
-};
+enum VariantOperationAction {
+  CREATE
+  UPDATE
+  DELETE
+}
 
-type ProductVariantCreateOperationInput = {
-  clientMutationId: string;
-  options: VariantOptionLinkInput[];
-  pricing?: VariantPricingInput;
-  media?: VariantMediaInput;
-  weight?: number;
-  dimensions?: VariantDimensionsInput;
-};
-
-type ProductVariantDeleteOperationInput = {
-  variantId: ID!;
-  permanent?: boolean;
-};
+input VariantOperationInput {
+  action: VariantOperationAction!
+  variantId: ID
+  clientMutationId: String
+  options: VariantOptionsOpInput
+  pricing: VariantPricingOpInput
+  media: VariantMediaOpInput
+  weight: Int
+  dimensions: VariantDimensionsOpInput
+}
 ```
 
-`variants` должен иметь форму `{ create, update, delete }`, потому что она явно описывает batch operations и проще расширяется. Миграция остальных callers вне этого spreadsheet-flow не входит в scope плана.
+`action` обязателен для каждого элемента массива.
+
+Правила валидации:
+
+- `action: "CREATE"`:
+  - `variantId` запрещён;
+  - `clientMutationId` обязателен;
+  - `options` обязательны;
+  - разрешены `pricing`, `media`, `weight`, `dimensions`.
+- `action: "UPDATE"`:
+  - `variantId` обязателен;
+  - разрешены `options`, `pricing`, `media`, `weight`, `dimensions`.
+- `action: "DELETE"`:
+  - `variantId` обязателен;
+  - кроме `action` и `variantId` другие поля запрещены.
 
 ## Backend workflow
 
-`productUpdate` должен выполнять create/update variants в одном workflow.
+`productUpdate` должен выполнять `CREATE`/`UPDATE`/`DELETE` variant operations в одном workflow.
 
 Spreadsheet-save должен использовать существующую модель `productUpdate`:
 одна GraphQL mutation, один workflow, результат через `operationResults` и
@@ -79,7 +87,7 @@ Spreadsheet-save должен использовать существующую 
 `ProductUpdateWorkflow`: отдельные операции могут применяться или возвращать
 ошибки независимо.
 
-Для create/update/delete variant batch нужна pre-validation фаза внутри
+Для batch массива `variants` нужна pre-validation фаза внутри
 `productUpdate`, но она не должна менять общую семантику workflow:
 
 1. До выполнения variant writes декодировать incoming global ids.
@@ -108,12 +116,16 @@ Spreadsheet-save должен использовать существующую 
    - нужные media/pricing данные.
 3. Провалидировать весь batch до записи:
    - `expectedRevision`;
+   - `action` указан и равен `CREATE`, `UPDATE` или `DELETE`;
+   - `CREATE` operations не содержат `variantId`;
+   - `UPDATE` operations содержат `variantId`;
+   - `DELETE` operations содержат только `action` и `variantId`;
    - все option values принадлежат options этого product;
-   - каждая create operation содержит значение для каждой product option;
-   - общее количество existing variants плюс create operations не превышает количество возможных option combinations;
-   - create combinations не дублируют existing variants;
-   - create combinations не дублируют друг друга;
-   - update operations с изменением options не создают дубликаты;
+   - каждая `CREATE` operation содержит значение для каждой product option;
+   - общее количество existing variants плюс `CREATE` operations не превышает количество возможных option combinations;
+   - `CREATE` combinations не дублируют existing variants;
+   - `CREATE` combinations не дублируют друг друга;
+   - `UPDATE` operations с изменением options не создают дубликаты;
    - pricing/media/dimensions inputs валидны;
    - `clientMutationId` уникален внутри request.
 4. Если есть batch-level ошибки, вернуть их через `userErrors` /
@@ -123,7 +135,7 @@ Spreadsheet-save должен использовать существующую 
    - создать option links для новых variants;
    - применить pricing/media/weight/dimensions для новых variants;
    - применить updates существующих variants;
-   - применить delete operations, если они входят в scope;
+   - применить `DELETE` operations;
    - обновить product revision;
    - отправить нужные domain events.
 6. Вернуть `ProductUpdatePayload`.
@@ -151,7 +163,7 @@ type OperationResult {
 Минимально достаточно вернуть ошибки с `field`, где путь содержит индекс create operation:
 
 ```ts
-field: ["variants", "create", "0", "options"]
+field: ["variants", "0", "options"]
 ```
 
 Но `clientMutationId` лучше для UI, потому что draft rows имеют временные ids.
@@ -288,8 +300,8 @@ onSave?: (input: {
 
 Шаги:
 
-1. Из existing rows подготовить `variants.update` через текущую логику `prepareChangedVariantUpdateInputs`.
-2. Из draft rows подготовить `variants.create`.
+1. Из existing rows подготовить элементы `variants` с `action: "UPDATE"` через текущую логику `prepareChangedVariantUpdateInputs`.
+2. Из draft rows подготовить элементы `variants` с `action: "CREATE"`.
 3. Смержить с `additionalOperations`, если они есть.
 4. Вызвать `updateProduct` один раз:
 
@@ -323,13 +335,16 @@ Draft row должна мапиться примерно так:
 function draftRowToVariantCreateOperation(
   row: VariantEditorSaveRow,
   productOptions: ApiProductOption[],
-): ProductVariantCreateOperationInput {
+): VariantOperationInput {
   return {
+    action: "CREATE",
     clientMutationId: row.clientMutationId,
-    options: productOptions.map((option) => ({
-      optionId: option.id,
-      optionValueId: row.selectedOptionValueIds[option.id],
-    })),
+    options: {
+      set: productOptions.map((option) => ({
+        optionId: option.id,
+        optionValueId: row.selectedOptionValueIds[option.id],
+      })),
+    },
     pricing: row.price != null
       ? {
           currency,
@@ -389,7 +404,7 @@ Backend:
 - нельзя добавить больше вариантов, чем существует уникальных комбинаций option values;
 - когда все option combinations заняты, blank row не создаёт новый draft variant;
 - `Save` отправляет ровно одну `productUpdate` mutation;
-- в payload одной mutation есть updates существующих variants и creates новых variants;
+- в payload одной mutation есть массив `variants` с `action: "UPDATE"` для существующих variants и `action: "CREATE"` для новых variants;
 - backend создаёт новые variants, option links и поддерживаемые поля в одном workflow;
 - при backend validation error UI не закрывает модалку и не теряет draft rows;
 - после успешного save модалка закрывается, variants refetch обновляет таблицу товара;
