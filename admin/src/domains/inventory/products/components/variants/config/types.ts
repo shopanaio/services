@@ -6,6 +6,7 @@ import type { ApiFile } from "@/graphql/types";
 // ============================================================================
 
 export type StockStatus = "in_stock" | "low_stock" | "out_of_stock";
+export type VariantEditorRowKind = "existing" | "draft" | "blank";
 
 export interface IVariantOption {
   optionId?: string;
@@ -16,6 +17,8 @@ export interface IVariantOption {
 
 export interface IVariantEditorInput {
   id: string;
+  kind?: VariantEditorRowKind;
+  clientMutationId?: string;
   title: string;
   imageUrl?: string | null;
   media?: ApiFile[] | null;
@@ -32,10 +35,14 @@ export interface IVariantEditorInput {
 }
 
 export interface IVariantEditorRow extends IEditorRowBase {
+  kind?: VariantEditorRowKind;
+  clientMutationId?: string;
+
   // Display
   title: string;
   imageUrl: string | null;
   media: ApiFile[];
+  rowError?: string | null;
 
   // Options (dynamic, based on product options)
   options: IVariantOption[];

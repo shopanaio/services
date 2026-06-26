@@ -46,6 +46,8 @@ export const PRODUCT_UPDATE_MUTATION = gql`
         operationResults {
           applied
           type
+          clientMutationId
+          entityId
           errors {
             ...UserErrorFields
           }

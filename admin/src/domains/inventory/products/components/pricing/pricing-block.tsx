@@ -9,15 +9,19 @@ import type {
   ApiProductUpdateInput,
   ApiVariant,
   ApiVariantPriceConnection,
-  ApiVariantUpdateInput,
 } from "@/graphql/types";
 import { useDefaultCurrency } from "@/domains/workspace";
 import { useProductPricingWidget } from "../../hooks/use-product-pricing-widget";
 import { useProductVariantsLoader } from "../../hooks/use-product-variants-loader";
 import { useUpdateProduct } from "../../hooks/use-update-product";
 import type { VariantEditorSaveRow } from "../../mappers/product-variant-editor.mapper";
-import { prepareChangedVariantUpdateInputs } from "../../mappers/product-variant-update.mapper";
-import { useEditVariantsModal, useProductPriceHistoryModal } from "../../modals";
+import { prepareChangedVariantUpdateOperations } from "../../mappers/product-variant-update.mapper";
+import {
+  useEditVariantsModal,
+  useProductPriceHistoryModal,
+  type EditVariantsSaveInput,
+  type EditVariantsSaveResult,
+} from "../../modals";
 import { CurrentPriceColumn } from "./components/current-price-column";
 import { KPIRow } from "./components/kpi-row";
 import { PriceHistoryChartColumn } from "./components/price-history-chart-column";
@@ -79,15 +83,24 @@ export const PricingBlock = ({
     async (
       rows: VariantEditorSaveRow[],
       editorVariants: ApiVariant[],
-    ): Promise<boolean> => {
+    ): Promise<EditVariantsSaveResult> => {
       if (!product) {
-        return false;
+        return {
+          ok: false,
+          operationResults: [],
+          userErrors: [
+            {
+              message: "Product is required to save variant prices.",
+              code: "PRODUCT_REQUIRED",
+            },
+          ],
+        };
       }
 
-      let variantUpdates: ApiVariantUpdateInput[];
+      let variantOperations: NonNullable<ApiProductUpdateInput["variants"]>;
 
       try {
-        variantUpdates = prepareChangedVariantUpdateInputs({
+        variantOperations = prepareChangedVariantUpdateOperations({
           rows,
           variants: editorVariants,
           defaultCurrency,
@@ -99,16 +112,32 @@ export const PricingBlock = ({
         message.error(
           err instanceof Error ? err.message : "Variant prices are invalid.",
         );
-        return false;
+        return {
+          ok: false,
+          operationResults: [],
+          userErrors: [
+            {
+              message:
+                err instanceof Error
+                  ? err.message
+                  : "Variant prices are invalid.",
+              code: "VARIANT_PRICES_INVALID",
+            },
+          ],
+        };
       }
 
-      if (variantUpdates.length === 0) {
+      if (variantOperations.length === 0) {
         message.info("No price changes to save");
-        return true;
+        return {
+          ok: true,
+          operationResults: [],
+          userErrors: [],
+        };
       }
 
       const operations: ApiProductUpdateInput = {
-        variants: variantUpdates,
+        variants: variantOperations,
       };
 
       const result = await updateProduct({
@@ -119,7 +148,11 @@ export const PricingBlock = ({
 
       if (result.errors.length > 0) {
         message.error(result.errors[0].message);
-        return false;
+        return {
+          ok: false,
+          operationResults: result.operationResults,
+          userErrors: result.userErrors,
+        };
       }
 
       const refreshResults = await Promise.allSettled([
@@ -137,7 +170,11 @@ export const PricingBlock = ({
         message.success("Variant prices updated");
       }
 
-      return true;
+      return {
+        ok: true,
+        operationResults: result.operationResults,
+        userErrors: result.userErrors,
+      };
     },
     [
       message,
@@ -167,8 +204,9 @@ export const PricingBlock = ({
         defaultCurrency,
         availableColumns: ["price", "compareAtPrice"],
         showColumnSettings: false,
-        onSave: (rows: VariantEditorSaveRow[]) =>
-          handleSavePrices(rows, editorVariants),
+        allowDraftRows: false,
+        onSave: (input: EditVariantsSaveInput) =>
+          handleSavePrices(input.existingRows, editorVariants),
       });
     } catch (err) {
       message.error(

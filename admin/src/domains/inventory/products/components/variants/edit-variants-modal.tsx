@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useCallback, useRef, useMemo, useState } from "react";
-import { Divider, Tag, App } from "antd";
+import { useEffect, useCallback, useMemo } from "react";
+import { Button, Divider, Tag, App } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { useDefaultCurrency } from "@/domains/workspace";
@@ -21,9 +22,10 @@ import {
   validateVariantOptionRows,
   variantOptionRowsToProductUpdateInput,
 } from "../../mappers";
+import { mapVariantOperationResultsToRowState } from "../../mappers/product-errors.mapper";
 import {
-  getVariantEditorRowsForSave,
   mapApiVariantsToEditorInputs,
+  mapVariantEditorInputsToRows,
 } from "../../mappers/product-variant-editor.mapper";
 
 // ============================================================================
@@ -82,21 +84,29 @@ export const EditVariantsModal = () => {
   const { message } = App.useApp();
   const { payload, pop, setDirty } = useModalStackContext();
   const typedPayload = payload as IEditVariantsModalPayload;
-  const [submitting, setSubmitting] = useState(false);
   const storeDefaultCurrency = useDefaultCurrency();
   const defaultCurrency =
     typedPayload.defaultCurrency ?? storeDefaultCurrency ?? null;
+  const allowDraftRows = typedPayload.allowDraftRows ?? true;
 
   // Store
   const hasChanges = useVariantsEditorStore((s) => s.hasChanges());
   const changesCount = useVariantsEditorStore((s) => s.getChangesCount());
   const status = useVariantsEditorStore((s) => s.status);
-  const resetEdits = useVariantsEditorStore((s) => s.resetEdits);
+  const initializeSession = useVariantsEditorStore((s) => s.initializeSession);
+  const resetSession = useVariantsEditorStore((s) => s.resetSession);
   const startSaving = useVariantsEditorStore((s) => s.startSaving);
   const onSaveSuccess = useVariantsEditorStore((s) => s.onSaveSuccess);
   const onSaveError = useVariantsEditorStore((s) => s.onSaveError);
+  const addDraftRow = useVariantsEditorStore((s) => s.addDraftRow);
+  const setRowErrors = useVariantsEditorStore((s) => s.setRowErrors);
+  const materializeDraftRows = useVariantsEditorStore(
+    (s) => s.materializeDraftRows,
+  );
+  const getCurrentRows = useVariantsEditorStore((s) => s.getCurrentRows);
+  const getRowsForSave = useVariantsEditorStore((s) => s.getRowsForSave);
 
-  const isSaving = submitting || status === "saving";
+  const isSaving = status === "saving";
 
   // Column restrictions from payload
   const availableColumns = typedPayload.availableColumns;
@@ -125,85 +135,129 @@ export const EditVariantsModal = () => {
   );
 
   const originalOptionRows = useMemo(
-    () =>
-      apiVariantsToVariantOptionRows(
-        typedPayload.variants,
-        typedPayload.productOptions,
-      ),
+    () => apiVariantsToVariantOptionRows(
+      typedPayload.variants,
+      typedPayload.productOptions,
+    ),
     [typedPayload.productOptions, typedPayload.variants],
   );
 
-  // Track current rows for save
-  const rowDataRef = useRef<IVariantEditorRow[]>([]);
+  const baseRows = useMemo(
+    () => mapVariantEditorInputsToRows(variantInputs),
+    [variantInputs],
+  );
 
   // Sync dirty state
   useEffect(() => {
     setDirty(hasChanges);
   }, [hasChanges, setDirty]);
 
-  // Reset edits on mount/unmount
+  // Reset session on mount/unmount
   useEffect(() => {
-    resetEdits();
+    initializeSession({ includeBlankRow: allowDraftRows });
     return () => {
-      resetEdits();
+      resetSession();
     };
-  }, [resetEdits]);
-
-  // Handle row changes
-  const handleChange = useCallback((rows: IVariantEditorRow[]) => {
-    rowDataRef.current = rows;
-  }, []);
+  }, [allowDraftRows, initializeSession, resetSession]);
 
   // Handle close
   const handleClose = useCallback(() => {
-    resetEdits();
+    resetSession();
     pop();
-  }, [resetEdits, pop]);
+  }, [resetSession, pop]);
+
+  const handleAddDraftRow = useCallback(() => {
+    addDraftRow();
+  }, [addDraftRow]);
 
   // Handle save
   const handleSave = useCallback(async () => {
-    const currentRows =
-      rowDataRef.current.length > 0 ? rowDataRef.current : originalOptionRows;
+    const currentRows = getCurrentRows(baseRows).filter(
+      (row) => row.kind !== "blank",
+    );
     const optionValidation = validateVariantOptionRows(
       currentRows,
       typedPayload.productOptions,
     );
 
     if (optionValidation.hasErrors) {
+      const validationRowErrors: Record<string, string | null> = {};
+
+      for (const row of optionValidation.rows as Array<
+        IVariantEditorRow & { validationMessage?: string | null }
+      >) {
+        if (row.validationMessage) {
+          validationRowErrors[row.id] = row.validationMessage;
+        }
+      }
+
+      setRowErrors(validationRowErrors);
       message.error(optionValidation.messages[0] ?? "Variant options are invalid.");
       return;
     }
 
+    setRowErrors({});
+    const { existingRows, draftRows } = getRowsForSave(baseRows);
+    const existingCurrentRows = currentRows.filter(
+      (row) => row.kind !== "draft",
+    );
     const optionOperations = variantOptionRowsToProductUpdateInput(
-      currentRows,
+      existingCurrentRows,
       originalOptionRows,
       typedPayload.productOptions,
     );
-    const dataForSave = getVariantEditorRowsForSave(currentRows);
-    setSubmitting(true);
+    const additionalOperations = optionOperations.variants?.length
+      ? optionOperations
+      : undefined;
+
     startSaving();
 
     try {
-      const result = await typedPayload.onSave?.(
-        dataForSave,
-        optionOperations.variants?.length ? optionOperations : undefined,
-      );
+      const result = await typedPayload.onSave?.({
+        existingRows,
+        draftRows,
+        additionalOperations,
+      });
 
-      if (result === false) {
-        onSaveError();
+      if (!result || result.ok) {
+        onSaveSuccess();
+        pop();
         return;
       }
 
-      onSaveSuccess();
-      pop();
-    } catch {
+      const rowState = mapVariantOperationResultsToRowState({
+        existingRows,
+        draftRows,
+        additionalOperations,
+        operationResults: result.operationResults,
+        userErrors: result.userErrors,
+      });
+
+      materializeDraftRows(rowState.materializedDraftRows);
+      setRowErrors(rowState.rowErrors);
       onSaveError();
-    } finally {
-      setSubmitting(false);
+
+      message.error(
+        rowState.firstMessage ??
+          result.userErrors[0]?.message ??
+          "Variant changes could not be saved.",
+      );
+    } catch (err) {
+      onSaveError();
+      message.error(
+        err instanceof Error
+          ? err.message
+          : "Variant changes could not be saved.",
+      );
     }
   }, [
+    baseRows,
+    getCurrentRows,
+    getRowsForSave,
     message,
     originalOptionRows,
+    materializeDraftRows,
+    setRowErrors,
     typedPayload,
     startSaving,
     onSaveError,
@@ -223,10 +277,23 @@ export const EditVariantsModal = () => {
   }, [handleClose]);
 
   // Header extra: Columns button (conditionally shown)
-  const headerExtra = showColumnSettings ? (
+  const headerExtra = allowDraftRows || showColumnSettings ? (
     <div className={styles.headerExtra}>
-      <VariantsColumnSettings optionGroups={optionGroups} />
-      <Divider type="vertical" style={{ height: 48, margin: 0 }} />
+      {allowDraftRows ? (
+        <Button
+          icon={<PlusOutlined />}
+          onClick={handleAddDraftRow}
+          disabled={isSaving}
+        >
+          Add variant
+        </Button>
+      ) : null}
+      {showColumnSettings ? (
+        <>
+          <VariantsColumnSettings optionGroups={optionGroups} />
+          <Divider type="vertical" style={{ height: 48, margin: 0 }} />
+        </>
+      ) : null}
     </div>
   ) : null;
 
@@ -258,13 +325,13 @@ export const EditVariantsModal = () => {
         <div className={styles.gridContainer}>
           <VariantsEditorGrid
             variants={variantInputs}
-            onChange={handleChange}
             availableColumns={availableColumns}
             editableColumns={editableColumns}
             ignoreUserSettings={!!availableColumns}
             defaultCurrency={defaultCurrency}
             productOptions={typedPayload.productOptions}
             productMediaFiles={typedPayload.productMediaFiles ?? []}
+            allowDraftRows={allowDraftRows}
           />
         </div>
       </div>

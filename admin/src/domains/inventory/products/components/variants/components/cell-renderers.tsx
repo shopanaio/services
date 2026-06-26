@@ -115,6 +115,14 @@ export const TitleCellRenderer: React.FC<
   return (
     <div className="ec-title">
       <span className="ec-title__text">{data.title}</span>
+      {data.rowError ? (
+        <span
+          className="ec-title__error"
+          title={data.rowError}
+        >
+          {data.rowError}
+        </span>
+      ) : null}
     </div>
   );
 };

@@ -1,7 +1,8 @@
 import type {
   ApiProductBulkUpdateInput,
-  ApiVariantUpdateInput,
+  ApiVariantOperationInput,
 } from "@/graphql/types";
+import { VariantOperationAction } from "@/graphql/types";
 import type {
   InventorySubmitError,
   ItemEdits,
@@ -27,12 +28,13 @@ export function mapInventoryVariantSelectionsToProductBulkUpdateInput(
   variants: InventoryVariantSelection[],
   warehouseId: string,
 ): ApiProductBulkUpdateInput {
-  const variantsByProduct = new Map<string, ApiVariantUpdateInput[]>();
+  const variantsByProduct = new Map<string, ApiVariantOperationInput[]>();
 
   for (const variant of variants) {
     variantsByProduct.set(variant.productId, [
       ...(variantsByProduct.get(variant.productId) ?? []),
       {
+        action: VariantOperationAction.Update,
         variantId: variant.variantId,
         inventory: {
           warehouseId,
@@ -73,7 +75,7 @@ export function mapInventoryVariantEditsToProductBulkUpdateInput(
   const rowsById = new Map(rows.map((row) => [row.id, row]));
   const rowErrors: Record<string, InventorySubmitError[]> = {};
   const submitErrors: InventorySubmitError[] = [];
-  const variantsByProduct = new Map<string, ApiVariantUpdateInput[]>();
+  const variantsByProduct = new Map<string, ApiVariantOperationInput[]>();
 
   for (const [rowId, rowEdits] of Object.entries(edits)) {
     if (!hasPendingFieldEdits(rowEdits)) {
@@ -124,7 +126,8 @@ export function mapInventoryVariantEditsToProductBulkUpdateInput(
         ? row.sku
         : rowEdits.sku.currentValue;
 
-    const variantInput: ApiVariantUpdateInput = {
+    const variantInput: ApiVariantOperationInput = {
+      action: VariantOperationAction.Update,
       variantId: row.variantId,
       inventory: {
         warehouseId,

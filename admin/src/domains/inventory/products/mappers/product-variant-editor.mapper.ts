@@ -4,6 +4,8 @@ import type {
   IVariantEditorRow,
 } from "../components/variants/config/types";
 import {
+  DEFAULT_DIMENSION_UNIT,
+  DEFAULT_WEIGHT_UNIT,
   mapApiDimensionsToVariantFields,
   mapApiWeightToVariantFields,
 } from "../utils/product-measurements";
@@ -14,6 +16,9 @@ export interface MapApiVariantsToEditorInputsOptions {
 
 export interface VariantEditorSaveRow {
   id: string;
+  kind?: "existing" | "draft" | "blank";
+  clientMutationId?: string;
+  selectedOptionValueIds: Record<string, string | null>;
   price: number | null;
   compareAtPrice: number | null;
   weight: number | null;
@@ -65,6 +70,7 @@ export function mapApiVariantToEditorInput(
     ...mapApiWeightToVariantFields(variant.weight),
     ...mapApiDimensionsToVariantFields(variant.dimensions),
     id: variant.id,
+    kind: "existing",
     title: variant.title ?? variant.handle,
     imageUrl: sortedMediaFiles[0]?.url ?? null,
     media: sortedMediaFiles,
@@ -105,11 +111,37 @@ export function mapApiVariantsToEditorInputs(
   );
 }
 
+export function mapVariantEditorInputsToRows(
+  inputs: IVariantEditorInput[],
+): IVariantEditorRow[] {
+  return inputs.map((input) => ({
+    id: input.id,
+    kind: input.kind,
+    clientMutationId: input.clientMutationId,
+    title: input.title,
+    imageUrl: input.imageUrl ?? null,
+    media: input.media ?? [],
+    options: input.options ?? [],
+    selectedOptionValueIds: input.selectedOptionValueIds ?? {},
+    price: input.price ?? null,
+    compareAtPrice: input.compareAtPrice ?? null,
+    weight: input.weight ?? null,
+    weightUnit: input.weightUnit ?? DEFAULT_WEIGHT_UNIT,
+    length: input.length ?? null,
+    width: input.width ?? null,
+    height: input.height ?? null,
+    dimensionUnit: input.dimensionUnit ?? DEFAULT_DIMENSION_UNIT,
+  }));
+}
+
 export function getVariantEditorRowsForSave(
   rows: IVariantEditorRow[],
 ): VariantEditorSaveRow[] {
   return rows.map((row) => ({
     id: row.id,
+    kind: row.kind,
+    clientMutationId: row.clientMutationId,
+    selectedOptionValueIds: row.selectedOptionValueIds,
     price: row.price,
     compareAtPrice: row.compareAtPrice,
     weight: row.weight,

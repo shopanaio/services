@@ -1,13 +1,24 @@
 import type {
+  ApiProductOption,
   ApiVariant,
-  ApiVariantUpdateInput,
+  ApiVariantOperationInput,
   CurrencyCode,
 } from "@/graphql/types";
+import { VariantOperationAction } from "@/graphql/types";
 import type { VariantEditorSaveRow } from "./product-variant-editor.mapper";
 
-export interface PrepareChangedVariantUpdateInputsParams {
+export interface PrepareChangedVariantUpdateOperationsParams {
   rows: VariantEditorSaveRow[];
   variants: ApiVariant[];
+  defaultCurrency: CurrencyCode | null | undefined;
+  includePricing?: boolean;
+  includeShipping?: boolean;
+  includeMedia?: boolean;
+}
+
+export interface PrepareDraftVariantCreateOperationsParams {
+  rows: VariantEditorSaveRow[];
+  productOptions: ApiProductOption[];
   defaultCurrency: CurrencyCode | null | undefined;
   includePricing?: boolean;
   includeShipping?: boolean;
@@ -17,8 +28,8 @@ export interface PrepareChangedVariantUpdateInputsParams {
 function parseRequiredMinorUnit(value: unknown): number {
   const parsed = Number(value);
 
-  if (!Number.isFinite(parsed)) {
-    throw new Error("Prices must be valid minor-unit numbers.");
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+    throw new Error("Prices must be valid whole minor-unit numbers.");
   }
 
   return parsed;
@@ -64,16 +75,19 @@ function parsePositiveInteger(value: unknown, label: string): number {
 }
 
 function getOrCreateUpdate(
-  updatesByVariantId: Map<string, ApiVariantUpdateInput>,
+  updatesByVariantId: Map<string, ApiVariantOperationInput>,
   variantId: string,
-): ApiVariantUpdateInput {
+): ApiVariantOperationInput {
   const existing = updatesByVariantId.get(variantId);
 
   if (existing) {
     return existing;
   }
 
-  const update: ApiVariantUpdateInput = { variantId };
+  const update: ApiVariantOperationInput = {
+    action: VariantOperationAction.Update,
+    variantId,
+  };
 
   updatesByVariantId.set(variantId, update);
 
@@ -81,7 +95,7 @@ function getOrCreateUpdate(
 }
 
 function applyPricingUpdate(
-  update: ApiVariantUpdateInput,
+  update: ApiVariantOperationInput,
   row: VariantEditorSaveRow,
   variant: ApiVariant,
   defaultCurrency: CurrencyCode | null | undefined,
@@ -98,6 +112,19 @@ function applyPricingUpdate(
     return;
   }
 
+  applyPricingOperation(update, amountMinor, compareAtMinor, defaultCurrency);
+}
+
+function applyPricingOperation(
+  operation: ApiVariantOperationInput,
+  amountMinor: number | null,
+  compareAtMinor: number | null,
+  defaultCurrency: CurrencyCode | null | undefined,
+) {
+  if (amountMinor === null && compareAtMinor === null) {
+    return;
+  }
+
   if (amountMinor === null) {
     throw new Error("Price is required to save variant pricing.");
   }
@@ -106,7 +133,7 @@ function applyPricingUpdate(
     throw new Error("Store default currency is required to save new prices.");
   }
 
-  update.pricing = {
+  operation.pricing = {
     currency: defaultCurrency,
     amountMinor,
     compareAtMinor,
@@ -114,7 +141,7 @@ function applyPricingUpdate(
 }
 
 function applyShippingUpdate(
-  update: ApiVariantUpdateInput,
+  update: ApiVariantOperationInput,
   row: VariantEditorSaveRow,
   variant: ApiVariant,
 ) {
@@ -137,30 +164,37 @@ function applyShippingUpdate(
   }
 
   if (dimensionsChanged) {
-    if (
-      (length === null && originalLength !== null) ||
-      (width === null && originalWidth !== null) ||
-      (height === null && originalHeight !== null)
-    ) {
-      throw new Error("Clearing existing dimensions is not supported.");
-    }
-
-    if (length === null || width === null || height === null) {
-      throw new Error(
-        "Length, width, and height are required to save dimensions.",
-      );
-    }
-
-    update.dimensions = {
-      length: parsePositiveInteger(length, "Length"),
-      width: parsePositiveInteger(width, "Width"),
-      height: parsePositiveInteger(height, "Height"),
-    };
+    applyDimensionsOperation(update, length, width, height);
   }
 
   if (weightChanged && weight !== null) {
     update.weight = parsePositiveInteger(weight, "Weight");
   }
+}
+
+function applyDimensionsOperation(
+  operation: ApiVariantOperationInput,
+  length: number | null,
+  width: number | null,
+  height: number | null,
+) {
+  const hasDimension = length !== null || width !== null || height !== null;
+
+  if (!hasDimension) {
+    return;
+  }
+
+  if (length === null || width === null || height === null) {
+    throw new Error(
+      "Length, width, and height are required to save dimensions.",
+    );
+  }
+
+  operation.dimensions = {
+    length: parsePositiveInteger(length, "Length"),
+    width: parsePositiveInteger(width, "Width"),
+    height: parsePositiveInteger(height, "Height"),
+  };
 }
 
 function areSameFileIdSet(
@@ -177,7 +211,7 @@ function areSameFileIdSet(
 }
 
 function applyMediaUpdate(
-  update: ApiVariantUpdateInput,
+  update: ApiVariantOperationInput,
   row: VariantEditorSaveRow,
   variant: ApiVariant,
 ) {
@@ -194,49 +228,155 @@ function applyMediaUpdate(
   };
 }
 
-export function prepareChangedVariantUpdateInputs({
+function applyMaterializedRowFields(
+  operation: ApiVariantOperationInput,
+  row: VariantEditorSaveRow,
+  defaultCurrency: CurrencyCode | null | undefined,
+  options: {
+    includePricing: boolean;
+    includeShipping: boolean;
+    includeMedia: boolean;
+  },
+) {
+  if (options.includePricing) {
+    applyPricingOperation(
+      operation,
+      parseOptionalMinorUnit(row.price),
+      parseOptionalMinorUnit(row.compareAtPrice),
+      defaultCurrency,
+    );
+  }
+
+  if (options.includeShipping) {
+    const weight = parseOptionalInteger(row.weight, "Weight");
+    const length = parseOptionalInteger(row.length, "Length");
+    const width = parseOptionalInteger(row.width, "Width");
+    const height = parseOptionalInteger(row.height, "Height");
+
+    if (weight !== null) {
+      operation.weight = parsePositiveInteger(weight, "Weight");
+    }
+
+    applyDimensionsOperation(operation, length, width, height);
+  }
+
+  if (options.includeMedia && row.mediaFileIds.length > 0) {
+    operation.media = {
+      fileIds: row.mediaFileIds,
+    };
+  }
+}
+
+function hasVariantOperationFields(operation: ApiVariantOperationInput): boolean {
+  return Boolean(
+    operation.pricing ||
+      operation.dimensions ||
+      operation.weight !== undefined ||
+      operation.media ||
+      operation.options ||
+      operation.inventory,
+  );
+}
+
+export function prepareChangedVariantUpdateOperations({
   rows,
   variants,
   defaultCurrency,
   includePricing = true,
   includeShipping = true,
   includeMedia = true,
-}: PrepareChangedVariantUpdateInputsParams): ApiVariantUpdateInput[] {
+}: PrepareChangedVariantUpdateOperationsParams): ApiVariantOperationInput[] {
   const variantsById = new Map(
     variants.map((variant) => [variant.id, variant]),
   );
-  const updatesByVariantId = new Map<string, ApiVariantUpdateInput>();
+  const updatesByVariantId = new Map<string, ApiVariantOperationInput>();
 
   for (const row of rows) {
-    const variant = variantsById.get(row.id);
-
-    if (!variant) {
+    if (row.kind === "draft" || row.kind === "blank") {
       continue;
     }
 
     const update = getOrCreateUpdate(updatesByVariantId, row.id);
+    const variant = variantsById.get(row.id);
 
-    if (includePricing) {
-      applyPricingUpdate(update, row, variant, defaultCurrency);
+    if (variant) {
+      if (includePricing) {
+        applyPricingUpdate(update, row, variant, defaultCurrency);
+      }
+
+      if (includeShipping) {
+        applyShippingUpdate(update, row, variant);
+      }
+
+      if (includeMedia) {
+        applyMediaUpdate(update, row, variant);
+      }
+    } else {
+      applyMaterializedRowFields(update, row, defaultCurrency, {
+        includePricing,
+        includeShipping,
+        includeMedia,
+      });
     }
 
-    if (includeShipping) {
-      applyShippingUpdate(update, row, variant);
-    }
-
-    if (includeMedia) {
-      applyMediaUpdate(update, row, variant);
-    }
-
-    if (
-      !update.pricing &&
-      !update.dimensions &&
-      update.weight === undefined &&
-      !update.media
-    ) {
+    if (!hasVariantOperationFields(update)) {
       updatesByVariantId.delete(row.id);
     }
   }
 
   return Array.from(updatesByVariantId.values());
+}
+
+export function prepareDraftVariantCreateOperations({
+  rows,
+  productOptions,
+  defaultCurrency,
+  includePricing = true,
+  includeShipping = true,
+  includeMedia = true,
+}: PrepareDraftVariantCreateOperationsParams): ApiVariantOperationInput[] {
+  const sortedProductOptions = [...productOptions].sort(
+    (left, right) => left.sortIndex - right.sortIndex,
+  );
+
+  return rows
+    .filter((row) => row.kind === "draft")
+    .map((row) => {
+      if (!row.clientMutationId) {
+        throw new Error("Draft variant is missing clientMutationId.");
+      }
+
+      const operation: ApiVariantOperationInput = {
+        action: VariantOperationAction.Create,
+        clientMutationId: row.clientMutationId,
+        options: {
+          set: sortedProductOptions.map((option) => {
+            const optionValueId = row.selectedOptionValueIds[option.id];
+
+            if (!optionValueId) {
+              throw new Error("Draft variants must select every option value.");
+            }
+
+            if (!option.values.some((value) => value.id === optionValueId)) {
+              throw new Error(
+                "Draft variant selected option values are invalid.",
+              );
+            }
+
+            return {
+              optionId: option.id,
+              optionValueId,
+            };
+          }),
+        },
+      };
+
+      applyMaterializedRowFields(operation, row, defaultCurrency, {
+        includePricing,
+        includeShipping,
+        includeMedia,
+      });
+
+      return operation;
+    });
 }

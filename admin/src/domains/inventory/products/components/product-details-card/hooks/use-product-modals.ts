@@ -14,12 +14,13 @@ import {
   useEditTagsModal,
   type IEditMediaModalPayload,
   type IEditSeoModalPayload,
+  type EditVariantsSaveInput,
+  type EditVariantsSaveResult,
   type IEditVariantsModalPayload,
 } from "../../../modals";
 import type {
   ApiProduct,
   ApiProductUpdateInput,
-  ApiVariantUpdateInput,
   CurrencyCode,
 } from "@/graphql/types";
 import {
@@ -29,7 +30,10 @@ import {
 import {
   PRODUCT_PRICING_WIDGET_QUERY,
 } from "../../../graphql";
-import { prepareChangedVariantUpdateInputs } from "../../../mappers/product-variant-update.mapper";
+import {
+  prepareChangedVariantUpdateOperations,
+  prepareDraftVariantCreateOperations,
+} from "../../../mappers/product-variant-update.mapper";
 import { getProductMediaFiles } from "../../../utils/api-product-display";
 
 interface UseProductModalsOptions {
@@ -245,17 +249,24 @@ export const useProductModals = (
         defaultCurrency: options.defaultCurrency ?? null,
         editableColumns: GENERAL_VARIANTS_EDITABLE_COLUMNS,
         onSave: async (
-          rows: Parameters<
-            NonNullable<IEditVariantsModalPayload["onSave"]>
-          >[0],
-          additionalOperations?: ApiProductUpdateInput,
-        ): Promise<boolean> => {
-          let variantUpdates: ApiVariantUpdateInput[];
+          input: EditVariantsSaveInput,
+        ): Promise<EditVariantsSaveResult> => {
+          const { existingRows, draftRows, additionalOperations } = input;
+          let updateOperations: NonNullable<ApiProductUpdateInput["variants"]>;
+          let createOperations: NonNullable<ApiProductUpdateInput["variants"]>;
 
           try {
-            variantUpdates = prepareChangedVariantUpdateInputs({
-              rows,
+            updateOperations = prepareChangedVariantUpdateOperations({
+              rows: existingRows,
               variants,
+              defaultCurrency: options.defaultCurrency ?? null,
+              includePricing: true,
+              includeShipping: true,
+              includeMedia: true,
+            });
+            createOperations = prepareDraftVariantCreateOperations({
+              rows: draftRows,
+              productOptions: product.options,
               defaultCurrency: options.defaultCurrency ?? null,
               includePricing: true,
               includeShipping: true,
@@ -267,20 +278,38 @@ export const useProductModals = (
                 ? err.message
                 : "Variant changes are invalid.",
             );
-            return false;
+            return {
+              ok: false,
+              operationResults: [],
+              userErrors: [
+                {
+                  message:
+                    err instanceof Error
+                      ? err.message
+                      : "Variant changes are invalid.",
+                  code: "VARIANT_CHANGES_INVALID",
+                },
+              ],
+            };
           }
 
+          const variantOperations = [
+            ...updateOperations,
+            ...createOperations,
+            ...(additionalOperations?.variants ?? []),
+          ];
           const operations: ApiProductUpdateInput = {
             ...additionalOperations,
-            variants: [
-              ...variantUpdates,
-              ...(additionalOperations?.variants ?? []),
-            ],
+            variants: variantOperations,
           };
 
           if (!operations.variants || operations.variants.length === 0) {
             message.info("No variant changes to save");
-            return true;
+            return {
+              ok: true,
+              operationResults: [],
+              userErrors: [],
+            };
           }
 
           const result = await updateProduct({
@@ -294,11 +323,15 @@ export const useProductModals = (
               result.errors[0].message ||
                 "Variant changes could not be saved.",
             );
-            return false;
+            return {
+              ok: false,
+              operationResults: result.operationResults,
+              userErrors: result.userErrors,
+            };
           }
 
-          const pricingChanged = variantUpdates.some(
-            (update) => !!update.pricing,
+          const pricingChanged = variantOperations.some(
+            (operation) => !!operation.pricing,
           );
           const refreshSucceeded = await refreshAfterVariantSave({
             pricingChanged,
@@ -310,7 +343,11 @@ export const useProductModals = (
             message.warning("Variant changes saved, but refresh failed");
           }
 
-          return true;
+          return {
+            ok: true,
+            operationResults: result.operationResults,
+            userErrors: result.userErrors,
+          };
         },
       });
     } catch (err) {

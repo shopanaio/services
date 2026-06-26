@@ -4,6 +4,8 @@ import type { OutputData } from '@editorjs/editorjs';
 import type { RenderedContent } from '@/ui-kit/editor/renderers';
 import type {
   ApiFile,
+  ApiGenericUserError,
+  ApiOperationResult,
   ApiProduct,
   ApiProductFeature,
   ApiProductOption,
@@ -183,6 +185,18 @@ export interface IEditVariantShippingModalPayload extends IModalStackPayload {
 // Re-export for convenience
 export type { VariantColumnField };
 
+export interface EditVariantsSaveResult {
+  ok: boolean;
+  operationResults: ApiOperationResult[];
+  userErrors: ApiGenericUserError[];
+}
+
+export interface EditVariantsSaveInput {
+  existingRows: VariantEditorSaveRow[];
+  draftRows: VariantEditorSaveRow[];
+  additionalOperations?: ApiProductUpdateInput;
+}
+
 export interface IEditVariantsModalPayload extends IModalStackPayload {
   productId?: string;
   variants: ApiVariant[];
@@ -205,10 +219,13 @@ export interface IEditVariantsModalPayload extends IModalStackPayload {
    * Set to false when using restricted columns without user customization.
    */
   showColumnSettings?: boolean;
+  /**
+   * Whether this editor session can create draft variant rows. Defaults to true.
+   */
+  allowDraftRows?: boolean;
   onSave?: (
-    variants: VariantEditorSaveRow[],
-    additionalOperations?: ApiProductUpdateInput,
-  ) => boolean | void | Promise<boolean | void>;
+    input: EditVariantsSaveInput,
+  ) => EditVariantsSaveResult | Promise<EditVariantsSaveResult>;
 }
 
 export interface IEditTagsModalPayload extends IModalStackPayload {

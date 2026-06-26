@@ -3,6 +3,7 @@ import type {
   ApiProductUpdateInput,
   ApiVariant,
 } from "@/graphql/types";
+import { VariantOperationAction } from "@/graphql/types";
 import type {
   IVariantEditorRow,
   VariantOptionRowsValidationResult,
@@ -69,6 +70,12 @@ export function validateVariantOptionRows(
   rows: IVariantEditorRow[],
   productOptions: ApiProductOption[],
 ): VariantOptionRowsValidationResult {
+  const maxCombinations = productOptions.length === 0
+    ? 1
+    : productOptions.reduce(
+        (count, option) => count * Math.max(option.values.length, 1),
+        1,
+      );
   const valueIdsByOptionId = new Map(
     productOptions.map((option) => [
       option.id,
@@ -142,6 +149,11 @@ export function validateVariantOptionRows(
   });
 
   const messages: string[] = [];
+  if (rows.length > maxCombinations) {
+    messages.push(
+      `Variant rows exceed the ${maxCombinations} possible option combination(s).`,
+    );
+  }
   if (incompleteRowIds.size > 0) {
     messages.push(`${incompleteRowIds.size} variant row(s) have incomplete options.`);
   }
@@ -172,11 +184,16 @@ export function variantOptionRowsToProductUpdateInput(
   );
   const changedRows = rows.filter(
     (row) =>
+      row.kind !== "draft" &&
+      row.kind !== "blank" &&
+      !row.id.startsWith("draft:") &&
+      !row.id.startsWith("blank:") &&
       buildCombinationKey(row, productOptions) !== originalKeysByRowId.get(row.id),
   );
 
   return {
     variants: changedRows.map((row) => ({
+      action: VariantOperationAction.Update,
       variantId: row.id,
       options: {
         set: sortProductOptions(productOptions).map((option) => ({

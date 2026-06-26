@@ -162,6 +162,13 @@ const useStyles = createStyles(({ token }) => ({
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
     },
+    ".ec-title__error": {
+      color: token.colorError,
+      fontSize: 12,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+    },
     ".ec-title--product": {
       fontWeight: 500,
     },

@@ -3,14 +3,11 @@
 import React, { useCallback, useMemo, useEffect } from "react";
 import { EditorGrid } from "@/shared/components/editor-grid";
 import type { ICellSelection } from "@/shared/components/ag-grid-cell-selection";
-import {
-  DEFAULT_DIMENSION_UNIT,
-  DEFAULT_WEIGHT_UNIT,
-} from "@/domains/inventory/products/utils/product-measurements";
 import { useVariantsEditorStore, useVariantsColumns } from "../hooks";
 import {
   SELECTABLE_COLUMNS,
 } from "../config";
+import { mapVariantEditorInputsToRows } from "../../../mappers/product-variant-editor.mapper";
 import type {
   IVariantEditorInput,
   IVariantEditorRow,
@@ -50,6 +47,7 @@ interface VariantsEditorGridProps {
   defaultCurrency?: CurrencyCode | null;
   productOptions?: ApiProductOption[];
   productMediaFiles?: ApiFile[];
+  allowDraftRows?: boolean;
   dataTestId?: string;
 }
 
@@ -91,27 +89,6 @@ function extractOptionGroups(
   }));
 }
 
-function variantsToRows(variants: IVariantEditorInput[]): IVariantEditorRow[] {
-  return variants.map((v) => ({
-    id: v.id,
-    title: v.title,
-    imageUrl: v.imageUrl ?? null,
-    media: v.media ?? [],
-    options: v.options || [],
-    selectedOptionValueIds: v.selectedOptionValueIds ?? {},
-    // Pricing
-    price: v.price ?? null,
-    compareAtPrice: v.compareAtPrice ?? null,
-    // Shipping
-    weight: v.weight ?? null,
-    weightUnit: v.weightUnit ?? DEFAULT_WEIGHT_UNIT,
-    length: v.length ?? null,
-    width: v.width ?? null,
-    height: v.height ?? null,
-    dimensionUnit: v.dimensionUnit ?? DEFAULT_DIMENSION_UNIT,
-  }));
-}
-
 // ============================================================================
 // Component
 // ============================================================================
@@ -125,6 +102,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   defaultCurrency,
   productOptions = [],
   productMediaFiles = [],
+  allowDraftRows = true,
   dataTestId = "variants-editor-grid",
 }) => {
   // Extract option groups for column generation
@@ -137,7 +115,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
 
   // Transform variants to row data
   const initialRows = useMemo(
-    () => variantsToRows(variants),
+    () => mapVariantEditorInputsToRows(variants),
     [variants]
   );
 
@@ -145,9 +123,22 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
 
   // Store hooks
   const edits = useVariantsEditorStore((s) => s.edits);
+  const draftRows = useVariantsEditorStore((s) => s.draftRows);
+  const blankRow = useVariantsEditorStore((s) => s.blankRow);
+  const rowErrors = useVariantsEditorStore((s) => s.rowErrors);
   const setFieldValue = useVariantsEditorStore((s) => s.setFieldValue);
+  const getCurrentRows = useVariantsEditorStore((s) => s.getCurrentRows);
 
-  const rows = initialRows;
+  const rows = useMemo(() => {
+    const sessionRows = allowDraftRows && blankRow
+      ? [...draftRows, blankRow]
+      : draftRows;
+
+    return [...initialRows, ...sessionRows].map((row) => ({
+      ...row,
+      rowError: rowErrors[row.id] ?? null,
+    }));
+  }, [allowDraftRows, blankRow, draftRows, initialRows, rowErrors]);
   const selectableColumns = useMemo(() => {
     if (!editableColumns) {
       return SELECTABLE_COLUMNS;
@@ -170,18 +161,20 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
 
   // Compute display rows (with edits applied)
   const displayRows = useMemo(() => {
-    return rows.map((row) => {
-      const rowEdits = edits[row.id];
-      if (!rowEdits) return row;
+    const currentRows = getCurrentRows(initialRows);
 
-      const updatedRow = { ...row };
-      for (const [field, edit] of Object.entries(rowEdits)) {
-        (updatedRow as Record<string, unknown>)[field] = edit.currentValue;
-      }
-
-      return updatedRow;
-    });
-  }, [rows, edits]);
+    return allowDraftRows
+      ? currentRows
+      : currentRows.filter((row) => row.kind !== "blank");
+  }, [
+    allowDraftRows,
+    blankRow,
+    draftRows,
+    edits,
+    getCurrentRows,
+    initialRows,
+    rowErrors,
+  ]);
 
   const openMediaEditor = useCallback(
     (rowIds: string[]) => {
@@ -291,12 +284,12 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
     onOptionValueChange: handleOptionValueChange,
   });
 
-  // Notify parent of changes
+  // Notify compatible external consumers of store-owned rows.
   useEffect(() => {
-    if (Object.keys(edits).length > 0) {
+    if (Object.keys(edits).length > 0 || draftRows.length > 0) {
       onChange?.(displayRows);
     }
-  }, [displayRows, edits, onChange]);
+  }, [displayRows, draftRows.length, edits, onChange]);
 
   // Handle field value change with validation
   const handleSetFieldValue = useCallback(

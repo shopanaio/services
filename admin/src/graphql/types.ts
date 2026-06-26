@@ -363,6 +363,8 @@ export enum BulkUpdateOpType {
   ProductCategoryUpdate = 'PRODUCT_CATEGORY_UPDATE',
   ProductTagUpdate = 'PRODUCT_TAG_UPDATE',
   ProductUpdate = 'PRODUCT_UPDATE',
+  VariantCreate = 'VARIANT_CREATE',
+  VariantDelete = 'VARIANT_DELETE',
   VariantUpdate = 'VARIANT_UPDATE'
 }
 
@@ -4517,6 +4519,10 @@ export type ApiOperationResult = {
   __typename?: 'OperationResult';
   /** Whether the operation was applied successfully. */
   applied: Scalars['Boolean']['output'];
+  /** Per-request client correlation key for create operations. */
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  /** Entity affected by this operation. */
+  entityId?: Maybe<Scalars['ID']['output']>;
   /** Errors that occurred during this operation. */
   errors: Array<ApiGenericUserError>;
   /** The type of operation. */
@@ -4529,6 +4535,8 @@ export enum OperationType {
   ProductCategoryUpdate = 'PRODUCT_CATEGORY_UPDATE',
   ProductTagUpdate = 'PRODUCT_TAG_UPDATE',
   ProductUpdate = 'PRODUCT_UPDATE',
+  VariantCreate = 'VARIANT_CREATE',
+  VariantDelete = 'VARIANT_DELETE',
   VariantUpdate = 'VARIANT_UPDATE'
 }
 
@@ -5827,8 +5835,8 @@ export type ApiProductUpdateInput = {
   tags?: InputMaybe<Array<ApiProductTagOperationInput>>;
   /** Product title. */
   title?: InputMaybe<Scalars['String']['input']>;
-  /** Variant updates. */
-  variants?: InputMaybe<Array<ApiVariantUpdateInput>>;
+  /** Variant create, update, and delete operations. */
+  variants?: InputMaybe<Array<ApiVariantOperationInput>>;
   /** Vendor ID to associate with the product. Pass null to clear. */
   vendorId?: InputMaybe<Scalars['ID']['input']>;
 };
@@ -7087,6 +7095,35 @@ export type ApiVariantMediaOpInput = {
   fileIds: Array<Scalars['ID']['input']>;
 };
 
+/** Variant operation action in the unified product update. */
+export enum VariantOperationAction {
+  Create = 'CREATE',
+  Delete = 'DELETE',
+  Update = 'UPDATE'
+}
+
+/** Input for a single variant operation. */
+export type ApiVariantOperationInput = {
+  /** The operation to apply. */
+  action: VariantOperationAction;
+  /** Per-request client correlation key for create operations. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** Variant dimensions. */
+  dimensions?: InputMaybe<ApiVariantDimensionsOpInput>;
+  /** Variant inventory item data (stock, SKU, cost). */
+  inventory?: InputMaybe<ApiVariantInventoryOpInput>;
+  /** Variant media. */
+  media?: InputMaybe<ApiVariantMediaOpInput>;
+  /** Variant options. */
+  options?: InputMaybe<ApiVariantOptionsOpInput>;
+  /** Variant pricing. */
+  pricing?: InputMaybe<ApiVariantPricingOpInput>;
+  /** The variant ID for update/delete operations. */
+  variantId?: InputMaybe<Scalars['ID']['input']>;
+  /** Variant weight in grams. */
+  weight?: InputMaybe<Scalars['Int']['input']>;
+};
+
 /** Input for linking a variant to an option value. */
 export type ApiVariantOptionLinkInput = {
   /** The option ID. */
@@ -7191,24 +7228,6 @@ export type ApiVariantPricingOpInput = {
   compareAtMinor?: InputMaybe<Scalars['BigInt']['input']>;
   /** The currency code. */
   currency: CurrencyCode;
-};
-
-/** Input for a single variant update. */
-export type ApiVariantUpdateInput = {
-  /** Variant dimensions. */
-  dimensions?: InputMaybe<ApiVariantDimensionsOpInput>;
-  /** Variant inventory item data (stock, SKU, cost). */
-  inventory?: InputMaybe<ApiVariantInventoryOpInput>;
-  /** Variant media. */
-  media?: InputMaybe<ApiVariantMediaOpInput>;
-  /** Variant options. */
-  options?: InputMaybe<ApiVariantOptionsOpInput>;
-  /** Variant pricing. */
-  pricing?: InputMaybe<ApiVariantPricingOpInput>;
-  /** The variant ID. */
-  variantId: Scalars['ID']['input'];
-  /** Variant weight in grams. */
-  weight?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** Input for updating variant media (replaces all existing media). */
