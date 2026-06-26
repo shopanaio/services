@@ -75,6 +75,7 @@ import {
   InventoryItemConnectionResolver,
   type InventoryItemConnectionResolverInput,
 } from "./InventoryItemConnectionResolver.js";
+import type { NormalizedInventoryItemWarehouseScope } from "../../repositories/inventory-item/InventoryItemRepository.js";
 import {
   normalizeCategoryHierarchyScopeInput,
   normalizeCategoryProductsScopeInput,
@@ -259,115 +260,6 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    */
   vendors(args: VendorConnectionInput) {
     return new VendorConnectionResolver(args, this.$ctx);
-  }
-
-  // ---- Warehouse Queries ----
-
-  async warehouse(args: { id: string }) {
-    const warehouseId = decodeGlobalIdByType(args.id, GlobalIdEntity.Warehouse);
-    const warehouse = await this.$ctx.loaders.warehouse.load(warehouseId);
-    if (!warehouse) {
-      return null;
-    }
-    return new WarehouseResolver(warehouseId, this.$ctx);
-  }
-
-  warehouses(args: WarehouseConnectionResolverInput) {
-    return new WarehouseConnectionResolver(
-      {
-        ...args,
-        where: normalizeWarehouseWhereInput(args.where),
-      },
-      this.$ctx
-    );
-  }
-
-  // ---- InventoryItem Queries ----
-
-  async inventoryItem(args: { id: string }) {
-    const itemId = decodeGlobalIdByType(args.id, GlobalIdEntity.InventoryItem);
-    const item = await this.$ctx.loaders.inventoryItem.load(itemId);
-    if (!item) return null;
-    return new InventoryItemResolver(item.id, this.$ctx);
-  }
-
-  async inventoryItemByVariant(args: { variantId: string }) {
-    const variantUuid = decodeGlobalIdByType(
-      args.variantId,
-      GlobalIdEntity.Variant
-    );
-    const item = await this.$ctx.loaders.inventoryItemByVariant.load(variantUuid);
-    if (!item) return null;
-    return new InventoryItemResolver(item.id, this.$ctx);
-  }
-
-  async inventoryItems(args: InventoryItemsArgs) {
-    const warehouseScope = await this.normalizeInventoryItemWarehouseScopeInput(
-      args.meta?.warehouseScope
-    );
-
-    if (warehouseScope.kind === "invalid") {
-      throw new GraphQLError(warehouseScope.message, {
-        extensions: { code: warehouseScope.code },
-      });
-    }
-
-    return new InventoryItemConnectionResolver(
-      {
-        ...args,
-        meta: { warehouseScope },
-      } as InventoryItemConnectionResolverInput,
-      this.$ctx
-    );
-  }
-
-  private async normalizeInventoryItemWarehouseScopeInput(
-    input: InventoryItemWarehouseScopeArgs | null | undefined
-  ): Promise<
-    | { kind: "all" }
-    | { kind: "empty" }
-    | { kind: "warehouse"; warehouseId: string }
-    | { kind: "invalid"; code: string; message: string }
-  > {
-    if (!input) {
-      return { kind: "all" };
-    }
-
-    if (input.mode !== "INCLUDE") {
-      return {
-        kind: "invalid",
-        code: "UNSUPPORTED_INVENTORY_ITEM_WAREHOUSE_SCOPE",
-        message: "Only warehouseScope mode INCLUDE is supported for inventoryItems.",
-      };
-    }
-
-    const referenceIds = input.referenceIds ?? [];
-    if (referenceIds.length !== 1) {
-      return {
-        kind: "invalid",
-        code: "UNSUPPORTED_INVENTORY_ITEM_WAREHOUSE_SCOPE",
-        message: "inventoryItems supports exactly one warehouseScope referenceId.",
-      };
-    }
-
-    let warehouseId: string;
-    try {
-      warehouseId = decodeGlobalIdByType(
-        referenceIds[0],
-        GlobalIdEntity.Warehouse
-      );
-    } catch {
-      return { kind: "empty" };
-    }
-
-    const warehouse = await this.$ctx.kernel.repository.warehouse.findById(
-      warehouseId
-    );
-    if (!warehouse) {
-      return { kind: "empty" };
-    }
-
-    return { kind: "warehouse", warehouseId };
   }
 
   // ---- Category Queries ----
@@ -629,5 +521,105 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
 
   nodes(args: { ids: string[] }) {
     return Promise.all(args.ids.map((id) => this.node({ id })));
+  }
+
+  async warehouse(args: { id: string }) {
+    const warehouseId = decodeGlobalIdByType(args.id, GlobalIdEntity.Warehouse);
+    const warehouse = await this.$ctx.loaders.warehouse.load(warehouseId);
+    if (!warehouse) {
+      return null;
+    }
+    return new WarehouseResolver(warehouseId, this.$ctx);
+  }
+
+  warehouses(args: WarehouseConnectionResolverInput) {
+    return new WarehouseConnectionResolver(
+      {
+        ...args,
+        where: normalizeWarehouseWhereInput(args.where),
+      },
+      this.$ctx
+    );
+  }
+
+  async inventoryItem(args: { id: string }) {
+    const itemId = decodeGlobalIdByType(args.id, GlobalIdEntity.InventoryItem);
+    const item = await this.$ctx.loaders.inventoryItem.load(itemId);
+    if (!item) return null;
+    return new InventoryItemResolver(item.id, this.$ctx);
+  }
+
+  async inventoryItemByVariant(args: { variantId: string }) {
+    const variantUuid = decodeGlobalIdByType(
+      args.variantId,
+      GlobalIdEntity.Variant
+    );
+    const item = await this.$ctx.loaders.inventoryItemByVariant.load(variantUuid);
+    if (!item) return null;
+    return new InventoryItemResolver(item.id, this.$ctx);
+  }
+
+  async inventoryItems(args: InventoryItemsArgs) {
+    const warehouseScope = await this.normalizeInventoryItemWarehouseScopeInput(
+      args.meta?.warehouseScope
+    );
+
+    if (warehouseScope.kind === "invalid") {
+      throw new GraphQLError(warehouseScope.message, {
+        extensions: { code: warehouseScope.code },
+      });
+    }
+
+    return new InventoryItemConnectionResolver(
+      {
+        ...args,
+        meta: { warehouseScope },
+      } as InventoryItemConnectionResolverInput,
+      this.$ctx
+    );
+  }
+
+  private async normalizeInventoryItemWarehouseScopeInput(
+    input: InventoryItemWarehouseScopeArgs | null | undefined
+  ): Promise<NormalizedInventoryItemWarehouseScope> {
+    if (!input) {
+      return { kind: "all" };
+    }
+
+    if (input.mode !== "INCLUDE") {
+      return {
+        kind: "invalid",
+        code: "UNSUPPORTED_INVENTORY_ITEM_WAREHOUSE_SCOPE",
+        message: "Only warehouseScope mode INCLUDE is supported for inventoryItems.",
+      };
+    }
+
+    const referenceIds = input.referenceIds ?? [];
+    if (referenceIds.length !== 1) {
+      return {
+        kind: "invalid",
+        code: "UNSUPPORTED_INVENTORY_ITEM_WAREHOUSE_SCOPE",
+        message: "inventoryItems supports exactly one warehouseScope referenceId.",
+      };
+    }
+
+    let warehouseId: string;
+    try {
+      warehouseId = decodeGlobalIdByType(
+        referenceIds[0]!,
+        GlobalIdEntity.Warehouse
+      );
+    } catch {
+      return { kind: "empty" };
+    }
+
+    const warehouse = await this.$ctx.kernel.repository.warehouse.findById(
+      warehouseId
+    );
+    if (!warehouse) {
+      return { kind: "empty" };
+    }
+
+    return { kind: "warehouse", warehouseId };
   }
 }
