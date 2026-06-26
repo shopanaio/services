@@ -229,6 +229,10 @@ function inventoryCell(page: Page, variant: SeededVariant, field: string) {
   return page.getByTestId(`inventory-table-${field}-cell-${variantKey(variant)}`);
 }
 
+function inventoryPaginationRange(count: number) {
+  return `1–${count} of ${count}`;
+}
+
 function expectedInventoryValues(variant: SeededVariant, onHand: number, unavailable: number) {
   return {
     onHand,
@@ -254,6 +258,36 @@ async function editInventoryNumberCell(
   await expect(input).toBeVisible();
   await input.fill(String(value));
   await input.press('Enter');
+}
+
+async function importVariantsFromPicker(
+  page: Page,
+  productTitle: string,
+  variants: SeededVariant[],
+) {
+  await page.getByTestId('inventory-import-button').click();
+
+  const modal = page.getByTestId('variant-picker-modal');
+  await expect(modal).toBeVisible();
+  await modal.getByTestId('search-input').fill(productTitle);
+
+  for (const variant of variants) {
+    const row = modal
+      .locator('.ag-center-cols-container .ag-row:not(.ag-opacity-zero)')
+      .filter({
+        hasText: productTitle,
+      })
+      .filter({
+        hasText: variant.handle,
+      });
+
+    await expect(row).toBeVisible();
+    await row.click();
+  }
+
+  await expect(page.getByTestId('submit-variant-picker-form-button')).toBeEnabled();
+  await page.getByTestId('submit-variant-picker-form-button').click();
+  await expect(modal).toBeHidden();
 }
 
 async function expectVariantInventoryApiState(
@@ -322,6 +356,12 @@ test.describe('Admin inventory page UI', () => {
     const secondWarehouse = await createWarehouse(api, `${unique}-second`);
     const firstProduct = await createTrackedProduct(api, unique, 0, 2);
     const secondProduct = await createTrackedProduct(api, unique, 1, 2);
+    const importProduct = await createTrackedProduct(api, unique, 2, 3);
+    const importedVariants = importProduct.variants.slice(0, 2);
+    const firstWarehouseVisibleVariants = [...firstProduct.variants];
+    const firstWarehouseHiddenVariants = [...secondProduct.variants, ...importProduct.variants];
+    const secondWarehouseVisibleVariants = [...secondProduct.variants];
+    const secondWarehouseHiddenVariants = [...firstProduct.variants, ...importProduct.variants];
 
     await seedStock(api, firstWarehouse.id, `${unique}-first`, firstProduct.variants);
     await seedStock(api, secondWarehouse.id, `${unique}-second`, secondProduct.variants, {
@@ -353,16 +393,16 @@ test.describe('Admin inventory page UI', () => {
       {
         id: firstWarehouse.id,
         name: firstWarehouse.name,
-        visibleVariants: firstProduct.variants,
-        hiddenVariants: secondProduct.variants,
+        visibleVariants: firstWarehouseVisibleVariants,
+        hiddenVariants: firstWarehouseHiddenVariants,
         onHandBase: 111,
         unavailableBase: 4,
       },
       {
         id: secondWarehouse.id,
         name: secondWarehouse.name,
-        visibleVariants: secondProduct.variants,
-        hiddenVariants: firstProduct.variants,
+        visibleVariants: secondWarehouseVisibleVariants,
+        hiddenVariants: secondWarehouseHiddenVariants,
         onHandBase: 211,
         unavailableBase: 7,
       },
@@ -432,6 +472,43 @@ test.describe('Admin inventory page UI', () => {
       await expectInventoryPageExcludesVariants(page, warehouseEdit.hiddenVariants);
     }
 
+    const firstWarehouseExpected = expectedByWarehouse.get(firstWarehouse.id);
+    if (!firstWarehouseExpected) {
+      throw new Error(`Missing expected values for warehouse ${firstWarehouse.id}`);
+    }
+
+    const firstWarehouseUrl = inventoryUrl(
+      organization.name,
+      api.session.projectSlug,
+      firstWarehouse.id,
+    );
+    await openInventoryPage(page, firstWarehouseUrl, firstWarehouse.name);
+    await expect(page.getByTestId('inventory-pagination-range')).toHaveText('1–2 of 2');
+    await expectInventoryPageExcludesVariants(page, importProduct.variants);
+
+    await importVariantsFromPicker(page, importProduct.title, importedVariants);
+
+    for (const variant of importedVariants) {
+      const expected = expectedInventoryValues(variant, 0, 0);
+      firstWarehouseExpected.set(variant.id, expected);
+      await expectVariantInventoryApiState(api, firstWarehouse.id, variant, expected);
+    }
+
+    firstWarehouseVisibleVariants.push(...importedVariants);
+    const importedVariantIds = new Set(importedVariants.map((variant) => variant.id));
+    for (let index = firstWarehouseHiddenVariants.length - 1; index >= 0; index -= 1) {
+      const hiddenVariant = firstWarehouseHiddenVariants[index];
+      if (hiddenVariant && importedVariantIds.has(hiddenVariant.id)) {
+        firstWarehouseHiddenVariants.splice(index, 1);
+      }
+    }
+
+    await page.goto(firstWarehouseUrl);
+    await expect(page.getByTestId('page-title')).toHaveText(firstWarehouse.name);
+    await expect(page.getByTestId('inventory-pagination-range')).toHaveText('1–4 of 4');
+    await expectInventoryPageValues(page, firstWarehouseVisibleVariants, firstWarehouseExpected);
+    await expectInventoryPageExcludesVariants(page, firstWarehouseHiddenVariants);
+
     for (const warehouseEdit of warehouseEdits) {
       const expectedForWarehouse = expectedByWarehouse.get(warehouseEdit.id);
       if (!expectedForWarehouse) {
@@ -443,7 +520,9 @@ test.describe('Admin inventory page UI', () => {
         inventoryUrl(organization.name, api.session.projectSlug, warehouseEdit.id),
         warehouseEdit.name,
       );
-      await expect(page.getByTestId('inventory-pagination-range')).toHaveText('1–2 of 2');
+      await expect(page.getByTestId('inventory-pagination-range')).toHaveText(
+        inventoryPaginationRange(warehouseEdit.visibleVariants.length),
+      );
       await expectInventoryPageValues(page, warehouseEdit.visibleVariants, expectedForWarehouse);
       await expectInventoryPageExcludesVariants(page, warehouseEdit.hiddenVariants);
     }

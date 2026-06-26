@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
-import { Alert, App } from "antd";
-import { DeleteOutlined } from "@ant-design/icons";
+import { Alert, App, Button } from "antd";
+import { DeleteOutlined, ImportOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { AgGridReact } from "ag-grid-react";
 import {
@@ -48,8 +48,11 @@ import {
 } from "../hooks";
 import {
   mapInventoryVariantEditsToProductBulkUpdateInput,
+  mapInventoryVariantSelectionsToProductBulkUpdateInput,
   type InventoryVariantRow,
 } from "../mappers";
+import { useVariantPicker } from "@/shared/components/entity-picker-modal/hooks/use-entity-picker";
+import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";
 import { validateFieldChange } from "@/shared/utils/inventory";
 import {
   CalculatedAvailableCell,
@@ -151,6 +154,11 @@ const SkuCellRenderer = ({
   return value == null ? <Dash /> : <span>{String(value)}</span>;
 };
 
+interface InventoryImportVariantEntity extends IPickableEntity {
+  variantId: string;
+  productId: string;
+}
+
 function decodePathParam(value: string | null): string | null {
   if (!value) {
     return null;
@@ -245,6 +253,67 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
   });
   const { activeWarehouseId, canEdit } = listResult;
   const { saveInventoryVariantEdits } = useSaveInventoryVariantEdits();
+
+  const handleImportVariants = useCallback(
+    async (entities: IPickableEntity[]) => {
+      if (!activeWarehouseId) {
+        message.error("Select a warehouse to import variants.");
+        return;
+      }
+
+      const variants = entities as InventoryImportVariantEntity[];
+      if (variants.length === 0) {
+        return;
+      }
+
+      try {
+        const result = await saveInventoryVariantEdits(
+          mapInventoryVariantSelectionsToProductBulkUpdateInput(
+            variants.map((variant) => ({
+              productId: variant.productId,
+              variantId: variant.variantId,
+            })),
+            activeWarehouseId,
+          ),
+        );
+        const firstError = result.userErrors[0] ?? null;
+
+        if (firstError) {
+          message.error(firstError.message);
+          return;
+        }
+
+        if (!result.jobId) {
+          message.error("Inventory import was not accepted.");
+          return;
+        }
+
+        message.success(
+          variants.length === 1
+            ? "Variant import accepted."
+            : `${variants.length} variant imports accepted.`,
+        );
+        await refetch();
+      } catch (importError) {
+        message.error(toSubmitError(importError).message);
+      }
+    },
+    [activeWarehouseId, message, refetch, saveInventoryVariantEdits],
+  );
+  const { openPicker: openVariantPicker } = useVariantPicker({
+    selectionMode: "multi",
+    queryMeta: { warehouseId: activeWarehouseId },
+    onConfirm: handleImportVariants,
+  });
+
+  const handleOpenImportPicker = useCallback(() => {
+    if (!activeWarehouseId) {
+      message.error("Select a warehouse to import variants.");
+      return;
+    }
+
+    openVariantPicker();
+  }, [activeWarehouseId, message, openVariantPicker]);
 
   const handleSortChanged = useCallback(
     (event: SortChangedEvent<InventoryVariantRow>) => {
@@ -663,6 +732,16 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
       name="inventory"
       title={pageTitle}
       count={totalCount}
+      actions={
+        <Button
+          data-testid="inventory-import-button"
+          disabled={!canEdit || !activeWarehouseId || status === "saving"}
+          icon={<ImportOutlined />}
+          onClick={handleOpenImportPicker}
+        >
+          Import
+        </Button>
+      }
     >
       <DataLayout.Toolbar
         left={

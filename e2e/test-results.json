@@ -10,9 +10,7 @@
     "grep": {},
     "grepInvert": null,
     "maxFailures": 0,
-    "metadata": {
-      "actualWorkers": 1
-    },
+    "metadata": {},
     "preserveOutput": "always",
     "reporter": [
       [
@@ -43,9 +41,7 @@
         "outputDir": "/Users/phl/Projects/shopana-io/services/e2e/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {
-          "actualWorkers": 1
-        },
+        "metadata": {},
         "id": "chromium",
         "name": "chromium",
         "testDir": "/Users/phl/Projects/shopana-io/services/e2e/tests",
@@ -68,67 +64,17 @@
       "reuseExistingServer": false
     }
   },
-  "suites": [
+  "suites": [],
+  "errors": [
     {
-      "title": "admin-ui/inventory-page.spec.ts",
-      "file": "admin-ui/inventory-page.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Admin inventory page UI",
-          "file": "admin-ui/inventory-page.spec.ts",
-          "line": 222,
-          "column": 6,
-          "specs": [
-            {
-              "title": "edits warehouse-scoped quantities and persists them through bulk update",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "slow"
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 18143,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-06-26T16:48:35.759Z",
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "1b79c680960b7e5f9da1-bd813c609007f7086210",
-              "file": "admin-ui/inventory-page.spec.ts",
-              "line": 223,
-              "column": 5
-            }
-          ]
-        }
-      ]
+      "message": "Error: Process from config.webServer exited early.",
+      "stack": "Error: Process from config.webServer exited early."
     }
   ],
-  "errors": [],
   "stats": {
-    "startTime": "2026-06-26T16:48:02.953Z",
-    "duration": 53578.778,
-    "expected": 1,
+    "startTime": "2026-06-26T20:02:22.453Z",
+    "duration": 84622.99200000001,
+    "expected": 0,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0
