@@ -82,7 +82,7 @@ const useStyles = createStyles(() => ({
 export const EditVariantsModal = () => {
   const { styles } = useStyles();
   const { message } = App.useApp();
-  const { payload, pop, setDirty } = useModalStackContext();
+  const { payload, pop, forcePop, setDirty } = useModalStackContext();
   const typedPayload = payload as IEditVariantsModalPayload;
   const storeDefaultCurrency = useDefaultCurrency();
   const defaultCurrency =
@@ -221,7 +221,8 @@ export const EditVariantsModal = () => {
 
       if (!result || result.ok) {
         onSaveSuccess();
-        pop();
+        setDirty(false);
+        forcePop();
         return;
       }
 
@@ -263,7 +264,8 @@ export const EditVariantsModal = () => {
     startSaving,
     onSaveError,
     onSaveSuccess,
-    pop,
+    forcePop,
+    setDirty,
   ]);
 
   // Handle escape key
