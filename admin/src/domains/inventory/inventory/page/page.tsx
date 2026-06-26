@@ -600,7 +600,6 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
         cellEditorParams: { min: 0 },
         editable: ({ data }) => canEdit && !data?.readOnly,
         minWidth: 120,
-        type: "rightAligned",
       },
       {
         headerName: "Unavailable",
@@ -611,7 +610,6 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
         cellEditorParams: { min: 0 },
         editable: ({ data }) => canEdit && !data?.readOnly,
         minWidth: 120,
-        type: "rightAligned",
       },
       {
         headerName: "Reserved",
@@ -619,7 +617,6 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
         field: "reserved",
         cellRenderer: ReservedCellRenderer,
         minWidth: 120,
-        type: "rightAligned",
       },
       {
         headerName: "Available",
@@ -628,7 +625,6 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
         cellRenderer: CalculatedAvailableCell,
         minWidth: 120,
         flex: 1,
-        type: "rightAligned",
         resizable: false,
       },
     ],
