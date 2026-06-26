@@ -10,6 +10,7 @@ import type {
   ApiProductFeature,
   ApiProductOption,
   ApiProductUpdateInput,
+  ApiVariantOperationInput,
   ApiTag,
   ApiVariant,
   CurrencyCode,
@@ -189,6 +190,7 @@ export interface EditVariantsSaveResult {
   ok: boolean;
   operationResults: ApiOperationResult[];
   userErrors: ApiGenericUserError[];
+  submittedVariantOperations?: ApiVariantOperationInput[];
 }
 
 export interface EditVariantsSaveInput {

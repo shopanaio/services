@@ -124,6 +124,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   // Store hooks
   const edits = useVariantsEditorStore((s) => s.edits);
   const draftRows = useVariantsEditorStore((s) => s.draftRows);
+  const materializedRows = useVariantsEditorStore((s) => s.materializedRows);
   const blankRow = useVariantsEditorStore((s) => s.blankRow);
   const rowErrors = useVariantsEditorStore((s) => s.rowErrors);
   const setFieldValue = useVariantsEditorStore((s) => s.setFieldValue);
@@ -131,14 +132,21 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
 
   const rows = useMemo(() => {
     const sessionRows = allowDraftRows && blankRow
-      ? [...draftRows, blankRow]
-      : draftRows;
+      ? [...materializedRows, ...draftRows, blankRow]
+      : [...materializedRows, ...draftRows];
 
     return [...initialRows, ...sessionRows].map((row) => ({
       ...row,
       rowError: rowErrors[row.id] ?? null,
     }));
-  }, [allowDraftRows, blankRow, draftRows, initialRows, rowErrors]);
+  }, [
+    allowDraftRows,
+    blankRow,
+    draftRows,
+    initialRows,
+    materializedRows,
+    rowErrors,
+  ]);
   const selectableColumns = useMemo(() => {
     if (!editableColumns) {
       return SELECTABLE_COLUMNS;
@@ -173,6 +181,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
     edits,
     getCurrentRows,
     initialRows,
+    materializedRows,
     rowErrors,
   ]);
 
@@ -286,10 +295,20 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
 
   // Notify compatible external consumers of store-owned rows.
   useEffect(() => {
-    if (Object.keys(edits).length > 0 || draftRows.length > 0) {
+    if (
+      Object.keys(edits).length > 0 ||
+      draftRows.length > 0 ||
+      materializedRows.length > 0
+    ) {
       onChange?.(displayRows);
     }
-  }, [displayRows, draftRows.length, edits, onChange]);
+  }, [
+    displayRows,
+    draftRows.length,
+    edits,
+    materializedRows.length,
+    onChange,
+  ]);
 
   // Handle field value change with validation
   const handleSetFieldValue = useCallback(

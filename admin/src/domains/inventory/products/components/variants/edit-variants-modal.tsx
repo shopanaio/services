@@ -229,6 +229,7 @@ export const EditVariantsModal = () => {
         existingRows,
         draftRows,
         additionalOperations,
+        submittedVariantOperations: result.submittedVariantOperations,
         operationResults: result.operationResults,
         userErrors: result.userErrors,
       });

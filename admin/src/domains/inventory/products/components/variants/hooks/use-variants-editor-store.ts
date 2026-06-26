@@ -171,6 +171,29 @@ function withRowError(
   };
 }
 
+function applyRowEdits(
+  row: IVariantEditorRow,
+  rowEdits: IRowEdits | undefined,
+): IVariantEditorRow {
+  if (!rowEdits) {
+    return row;
+  }
+
+  const updatedRow = { ...row };
+  for (const [field, edit] of Object.entries(rowEdits)) {
+    (updatedRow as Record<string, unknown>)[field] = edit.currentValue;
+  }
+
+  if (rowEdits.media) {
+    const media = rowEdits.media.currentValue;
+    updatedRow.imageUrl = Array.isArray(media)
+      ? media[0]?.url ?? null
+      : updatedRow.imageUrl;
+  }
+
+  return updatedRow;
+}
+
 function getOperationErrorMessage(errors: ApiGenericUserError[]): string | null {
   if (errors.length === 0) {
     return null;
@@ -187,6 +210,7 @@ interface VariantsEditorStore {
   // State
   edits: Record<string, IRowEdits>;
   draftRows: IVariantEditorRow[];
+  materializedRows: IVariantEditorRow[];
   blankRow: IVariantEditorRow | null;
   rowErrors: Record<string, string | null>;
   columnVisibility: IColumnVisibility;
@@ -252,6 +276,7 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
         // Initial state
         edits: {},
         draftRows: [],
+        materializedRows: [],
         blankRow: null,
         rowErrors: {},
         columnVisibility: DEFAULT_VARIANTS_COLUMN_VISIBILITY,
@@ -263,6 +288,7 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
           set({
             edits: {},
             draftRows: [],
+            materializedRows: [],
             blankRow: options?.includeBlankRow
               ? createEmptyEditorRow("blank")
               : null,
@@ -273,6 +299,7 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
           set({
             edits: {},
             draftRows: [],
+            materializedRows: [],
             blankRow: null,
             rowErrors: {},
             status: "idle",
@@ -352,7 +379,13 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
           });
         },
 
-        discardAll: () => set({ edits: {}, draftRows: [], rowErrors: {} }),
+        discardAll: () =>
+          set({
+            edits: {},
+            draftRows: [],
+            materializedRows: [],
+            rowErrors: {},
+          }),
         discardRow: (rowId) =>
           set((state) => {
             const { [rowId]: _, ...restEdits } = state.edits;
@@ -361,6 +394,9 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
             return {
               edits: restEdits,
               draftRows: state.draftRows.filter((row) => row.id !== rowId),
+              materializedRows: state.materializedRows.filter(
+                (row) => row.id !== rowId,
+              ),
               rowErrors: restErrors,
             };
           }),
@@ -387,7 +423,9 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
         materializeDraftRows: (results) =>
           set((state) => {
             const rowErrors = { ...state.rowErrors };
+            let edits = { ...state.edits };
             let draftRows = state.draftRows;
+            let materializedRows = state.materializedRows;
 
             for (const result of results) {
               const draft = draftRows.find(
@@ -403,18 +441,31 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
                 ...draft,
                 id: result.entityId,
                 kind: "existing" as const,
+                clientMutationId: undefined,
                 rowError: message,
               };
 
               delete rowErrors[draft.id];
               rowErrors[result.entityId] = message;
-              draftRows = draftRows.map((row) =>
-                row.id === draft.id ? nextRow : row,
-              );
+              draftRows = draftRows.filter((row) => row.id !== draft.id);
+              materializedRows = [
+                ...materializedRows.filter((row) => row.id !== result.entityId),
+                nextRow,
+              ];
+
+              if (edits[draft.id]) {
+                const { [draft.id]: draftEdits, ...restEdits } = edits;
+                edits = {
+                  ...restEdits,
+                  [result.entityId]: draftEdits,
+                };
+              }
             }
 
             return {
+              edits,
               draftRows,
+              materializedRows,
               rowErrors,
             };
           }),
@@ -460,42 +511,40 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
         // Selectors
         hasChanges: () =>
           Object.keys(get().edits).length > 0 ||
-          get().draftRows.length > 0,
+          get().draftRows.length > 0 ||
+          get().materializedRows.length > 0,
         getChangesCount: () => {
           const editCount = Object.values(get().edits).reduce(
             (count, rowEdits) => count + Object.keys(rowEdits).length,
             0,
           );
 
-          return editCount + get().draftRows.length;
+          return (
+            editCount +
+            get().draftRows.length +
+            get().materializedRows.length
+          );
         },
         getCurrentRows: (baseRows) => {
           const state = get();
-          const rows = baseRows.map((row) => {
-            const rowEdits = state.edits[row.id];
-            if (!rowEdits) {
-              return withRowError(row, state.rowErrors);
-            }
-
-            const updatedRow = { ...row };
-            for (const [field, edit] of Object.entries(rowEdits)) {
-              (updatedRow as Record<string, unknown>)[field] =
-                edit.currentValue;
-            }
-
-            if (rowEdits.media) {
-              const media = rowEdits.media.currentValue;
-              updatedRow.imageUrl = Array.isArray(media)
-                ? media[0]?.url ?? null
-                : updatedRow.imageUrl;
-            }
-
-            return withRowError(updatedRow, state.rowErrors);
-          });
-
-          const sessionRows = state.draftRows.map((row) =>
-            withRowError(row, state.rowErrors),
+          const rows = baseRows.map((row) =>
+            withRowError(
+              applyRowEdits(row, state.edits[row.id]),
+              state.rowErrors,
+            ),
           );
+
+          const sessionRows = [
+            ...state.materializedRows.map((row) =>
+              withRowError(
+                applyRowEdits(row, state.edits[row.id]),
+                state.rowErrors,
+              ),
+            ),
+            ...state.draftRows.map((row) =>
+              withRowError(row, state.rowErrors),
+            ),
+          ];
 
           if (state.blankRow) {
             sessionRows.push(withRowError(state.blankRow, state.rowErrors));

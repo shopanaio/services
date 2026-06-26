@@ -2,6 +2,7 @@ import type {
   ApiGenericUserError,
   ApiOperationResult,
   ApiProductUpdateInput,
+  ApiVariantOperationInput,
 } from "@/graphql/types";
 import { OperationType, VariantOperationAction } from "@/graphql/types";
 import type { VariantEditorSaveRow } from "./product-variant-editor.mapper";
@@ -89,6 +90,7 @@ export interface VariantOperationRowStateInput {
   existingRows: VariantEditorSaveRow[];
   draftRows: VariantEditorSaveRow[];
   additionalOperations?: ApiProductUpdateInput;
+  submittedVariantOperations?: ApiVariantOperationInput[];
   operationResults: ApiOperationResult[];
   userErrors: ApiGenericUserError[];
 }
@@ -133,17 +135,19 @@ function getFallbackRowForVariantIndex(
   input: VariantOperationRowStateInput,
   index: number,
 ): VariantEditorSaveRow | null {
+  const submittedOperation = input.submittedVariantOperations?.[index];
   const additionalOperation = input.additionalOperations?.variants?.[index];
+  const operation = submittedOperation ?? additionalOperation;
 
-  if (additionalOperation?.action === VariantOperationAction.Create) {
+  if (operation?.action === VariantOperationAction.Create) {
     return input.draftRows.find(
-      (row) => row.clientMutationId === additionalOperation.clientMutationId,
+      (row) => row.clientMutationId === operation.clientMutationId,
     ) ?? null;
   }
 
-  if (additionalOperation?.variantId) {
+  if (operation?.variantId) {
     return input.existingRows.find(
-      (row) => row.id === additionalOperation.variantId,
+      (row) => row.id === operation.variantId,
     ) ?? null;
   }
 
@@ -178,7 +182,11 @@ export function mapVariantOperationResultsToRowState(
     }
 
     if (operationResult.type === OperationType.VariantCreate) {
-      const clientMutationId = operationResult.clientMutationId ?? undefined;
+      const fallbackRow = getFallbackRowForVariantIndex(input, index);
+      const clientMutationId =
+        operationResult.clientMutationId ??
+        fallbackRow?.clientMutationId ??
+        undefined;
       const draftRow = clientMutationId
         ? draftRowsByClientMutationId.get(clientMutationId)
         : undefined;

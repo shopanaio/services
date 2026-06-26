@@ -152,6 +152,7 @@ export const PricingBlock = ({
           ok: false,
           operationResults: result.operationResults,
           userErrors: result.userErrors,
+          submittedVariantOperations: variantOperations,
         };
       }
 
@@ -174,6 +175,7 @@ export const PricingBlock = ({
         ok: true,
         operationResults: result.operationResults,
         userErrors: result.userErrors,
+        submittedVariantOperations: variantOperations,
       };
     },
     [

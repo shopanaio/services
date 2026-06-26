@@ -327,6 +327,7 @@ export const useProductModals = (
               ok: false,
               operationResults: result.operationResults,
               userErrors: result.userErrors,
+              submittedVariantOperations: variantOperations,
             };
           }
 
@@ -347,6 +348,7 @@ export const useProductModals = (
             ok: true,
             operationResults: result.operationResults,
             userErrors: result.userErrors,
+            submittedVariantOperations: variantOperations,
           };
         },
       });
