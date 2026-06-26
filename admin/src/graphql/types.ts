@@ -3837,6 +3837,8 @@ export type ApiInventoryQuery = {
   nodes: Array<Maybe<ApiNode>>;
   /** Get a warehouse by ID */
   warehouse?: Maybe<ApiWarehouse>;
+  /** Get variants that can still be assigned to the selected warehouse */
+  warehouseAssignableVariants: ApiVariantConnection;
   /** Get all warehouses */
   warehouses: ApiWarehouseConnection;
 };
@@ -3875,6 +3877,17 @@ export type ApiInventoryQueryNodesArgs = {
 
 export type ApiInventoryQueryWarehouseArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type ApiInventoryQueryWarehouseAssignableVariantsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiWarehouseAssignableVariantOrderByInput>>;
+  warehouseId: Scalars['ID']['input'];
+  where?: InputMaybe<ApiWarehouseAssignableVariantWhereInput>;
 };
 
 
@@ -7422,6 +7435,53 @@ export type ApiWarehouseStockArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
   orderBy?: InputMaybe<Array<ApiWarehouseStockOrderByInput>>;
   where?: InputMaybe<ApiWarehouseStockWhereInput>;
+};
+
+export type ApiWarehouseAssignableVariantOrderByInput = {
+  direction: SortDirection;
+  field: WarehouseAssignableVariantOrderField;
+};
+
+export enum WarehouseAssignableVariantOrderField {
+  CreatedAt = 'createdAt',
+  ExternalId = 'externalId',
+  ExternalSystem = 'externalSystem',
+  Handle = 'handle',
+  Id = 'id',
+  IsDefault = 'isDefault',
+  ProductId = 'productId',
+  ProductName = 'productName',
+  Sku = 'sku',
+  UpdatedAt = 'updatedAt'
+}
+
+export type ApiWarehouseAssignableVariantWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiWarehouseAssignableVariantWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiWarehouseAssignableVariantWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiWarehouseAssignableVariantWhereInput>>;
+  /** Filter by creation date */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by external ID */
+  externalId?: InputMaybe<ApiStringFilter>;
+  /** Filter by external system */
+  externalSystem?: InputMaybe<ApiStringFilter>;
+  /** Filter by variant handle */
+  handle?: InputMaybe<ApiStringFilter>;
+  /** Filter by variant ID */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by default variant flag */
+  isDefault?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by product ID */
+  productId?: InputMaybe<ApiIdFilter>;
+  /** Filter by product name in the current locale */
+  productName?: InputMaybe<ApiStringFilter>;
+  /** Filter by variant SKU */
+  sku?: InputMaybe<ApiStringFilter>;
+  /** Filter by update date */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
 /** A connection to a list of Warehouse items. */

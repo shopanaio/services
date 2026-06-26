@@ -170,6 +170,54 @@ export const VARIANTS_QUERY = gql`
   ${PRODUCT_MEDIA_ITEM_FRAGMENT}
 `;
 
+export const WAREHOUSE_ASSIGNABLE_VARIANTS_QUERY = gql`
+  query WarehouseAssignableVariants(
+    $warehouseId: ID!
+    $first: Int
+    $after: String
+    $last: Int
+    $before: String
+    $where: WarehouseAssignableVariantWhereInput
+    $orderBy: [WarehouseAssignableVariantOrderByInput!]
+  ) {
+    inventoryQuery {
+      warehouseAssignableVariants(
+        warehouseId: $warehouseId
+        first: $first
+        after: $after
+        last: $last
+        before: $before
+        where: $where
+        orderBy: $orderBy
+      ) {
+        edges {
+          cursor
+          node {
+            ...VariantFields
+            product {
+              id
+              title
+              handle
+              media {
+                ...ProductMediaItemFields
+              }
+            }
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+    }
+  }
+  ${VARIANT_FRAGMENT}
+  ${PRODUCT_MEDIA_ITEM_FRAGMENT}
+`;
+
 export const PRODUCT_PRICING_WIDGET_QUERY = gql`
   query ProductPricingWidget($input: PricingWidgetInput!) {
     widgetQuery {

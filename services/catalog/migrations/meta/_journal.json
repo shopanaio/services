@@ -22,6 +22,13 @@
       "when": 1782408933506,
       "tag": "0002_inventory_item_warehouse_stock_presence",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1782497841889,
+      "tag": "0003_productive_nehzno",
+      "breakpoints": true
     }
   ]
 }

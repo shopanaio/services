@@ -32,6 +32,7 @@ export * from "./translations";
 export * from "./productListView";
 export * from "./categoryListView";
 export * from "./tagListView";
+export * from "./variantWarehouseCandidateView";
 
 // SEO (search engine & social media metadata)
 export * from "./seo";

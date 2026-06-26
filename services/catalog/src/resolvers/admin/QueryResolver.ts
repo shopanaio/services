@@ -53,6 +53,8 @@ import {
 import {
   VariantConnectionResolver,
   type VariantConnectionInput,
+  WarehouseAssignableVariantConnectionResolver,
+  type WarehouseAssignableVariantConnectionInput,
 } from "./VariantConnectionResolver.js";
 import { ProductBulkUpdateJobResolver } from "./ProductBulkUpdateJobResolver.js";
 import {
@@ -575,6 +577,27 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
         ...args,
         meta: { warehouseScope },
       } as InventoryItemConnectionResolverInput,
+      this.$ctx
+    );
+  }
+
+  async warehouseAssignableVariants(
+    args: WarehouseAssignableVariantConnectionInput
+  ) {
+    const warehouseId = decodeGlobalIdByType(
+      args.warehouseId,
+      GlobalIdEntity.Warehouse
+    );
+    const warehouse = await this.$ctx.kernel.repository.warehouse.findById(
+      warehouseId
+    );
+
+    return new WarehouseAssignableVariantConnectionResolver(
+      {
+        ...args,
+        warehouseId,
+        empty: !warehouse,
+      },
       this.$ctx
     );
   }

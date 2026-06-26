@@ -349,6 +349,66 @@ type InventoryQuery {
     orderBy: [InventoryItemOrderByInput!]
     meta: InventoryItemInventoryItemsMetaInput
   ): InventoryItemConnection!
+
+  """
+  Get variants that can still be assigned to the selected warehouse
+  """
+  warehouseAssignableVariants(
+    warehouseId: ID!
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: WarehouseAssignableVariantWhereInput
+    orderBy: [WarehouseAssignableVariantOrderByInput!]
+  ): VariantConnection!
+}
+
+input WarehouseAssignableVariantWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [WarehouseAssignableVariantWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [WarehouseAssignableVariantWhereInput!]
+  """Negate the condition"""
+  _not: WarehouseAssignableVariantWhereInput
+  """Filter by variant ID"""
+  id: IDFilter
+  """Filter by product ID"""
+  productId: IDFilter
+  """Filter by product name in the current locale"""
+  productName: StringFilter
+  """Filter by variant SKU"""
+  sku: StringFilter
+  """Filter by default variant flag"""
+  isDefault: BooleanFilter
+  """Filter by variant handle"""
+  handle: StringFilter
+  """Filter by external system"""
+  externalSystem: StringFilter
+  """Filter by external ID"""
+  externalId: StringFilter
+  """Filter by creation date"""
+  createdAt: DateTimeFilter
+  """Filter by update date"""
+  updatedAt: DateTimeFilter
+}
+
+enum WarehouseAssignableVariantOrderField {
+  productName
+  sku
+  id
+  productId
+  isDefault
+  handle
+  externalSystem
+  externalId
+  createdAt
+  updatedAt
+}
+
+input WarehouseAssignableVariantOrderByInput {
+  field: WarehouseAssignableVariantOrderField!
+  direction: SortDirection!
 }
 
 type InventoryMutation {

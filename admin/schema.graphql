@@ -483,6 +483,18 @@ type InventoryQuery @join__type(graph: CATALOG_ADMIN)  {
     orderBy: [InventoryItemOrderByInput!]
     meta: InventoryItemInventoryItemsMetaInput
   ): InventoryItemConnection!
+  """
+  Get variants that can still be assigned to the selected warehouse
+  """
+  warehouseAssignableVariants(
+    warehouseId: ID!
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: WarehouseAssignableVariantWhereInput
+    orderBy: [WarehouseAssignableVariantOrderByInput!]
+  ): VariantConnection!
 }
 
 type InventoryMutation @join__type(graph: CATALOG_ADMIN)  {
@@ -6586,6 +6598,19 @@ enum InventoryItemOrderField @join__type(graph: CATALOG_ADMIN)  {
   variantId @join__enumValue(graph: CATALOG_ADMIN) 
 }
 
+enum WarehouseAssignableVariantOrderField @join__type(graph: CATALOG_ADMIN)  {
+  productName @join__enumValue(graph: CATALOG_ADMIN) 
+  sku @join__enumValue(graph: CATALOG_ADMIN) 
+  id @join__enumValue(graph: CATALOG_ADMIN) 
+  productId @join__enumValue(graph: CATALOG_ADMIN) 
+  isDefault @join__enumValue(graph: CATALOG_ADMIN) 
+  handle @join__enumValue(graph: CATALOG_ADMIN) 
+  externalSystem @join__enumValue(graph: CATALOG_ADMIN) 
+  externalId @join__enumValue(graph: CATALOG_ADMIN) 
+  createdAt @join__enumValue(graph: CATALOG_ADMIN) 
+  updatedAt @join__enumValue(graph: CATALOG_ADMIN) 
+}
+
 enum InventoryItemWarehouseScopeMode @join__type(graph: CATALOG_ADMIN)  {
   INCLUDE @join__enumValue(graph: CATALOG_ADMIN) 
   EXCLUDE @join__enumValue(graph: CATALOG_ADMIN) 
@@ -9104,6 +9129,66 @@ input InventoryItemWhereInput @join__type(graph: CATALOG_ADMIN)  {
 
 input InventoryItemOrderByInput @join__type(graph: CATALOG_ADMIN)  {
   field: InventoryItemOrderField!
+  direction: SortDirection!
+}
+
+input WarehouseAssignableVariantWhereInput @join__type(graph: CATALOG_ADMIN)  {
+  """
+  Logical AND of multiple conditions
+  """
+  _and: [WarehouseAssignableVariantWhereInput!]
+  """
+  Logical OR of multiple conditions
+  """
+  _or: [WarehouseAssignableVariantWhereInput!]
+  """
+  Negate the condition
+  """
+  _not: WarehouseAssignableVariantWhereInput
+  """
+  Filter by variant ID
+  """
+  id: IDFilter
+  """
+  Filter by product ID
+  """
+  productId: IDFilter
+  """
+  Filter by product name in the current locale
+  """
+  productName: StringFilter
+  """
+  Filter by variant SKU
+  """
+  sku: StringFilter
+  """
+  Filter by default variant flag
+  """
+  isDefault: BooleanFilter
+  """
+  Filter by variant handle
+  """
+  handle: StringFilter
+  """
+  Filter by external system
+  """
+  externalSystem: StringFilter
+  """
+  Filter by external ID
+  """
+  externalId: StringFilter
+  """
+  Filter by creation date
+  """
+  createdAt: DateTimeFilter
+  """
+  Filter by update date
+  """
+  updatedAt: DateTimeFilter
+}
+
+input WarehouseAssignableVariantOrderByInput @join__type(graph: CATALOG_ADMIN)  {
+  field: WarehouseAssignableVariantOrderField!
   direction: SortDirection!
 }
 

@@ -29,6 +29,8 @@ import type {
   ApiVariantConnection,
   ApiVariantOrderByInput,
   ApiVariantWhereInput,
+  ApiWarehouseAssignableVariantOrderByInput,
+  ApiWarehouseAssignableVariantWhereInput,
   ApiWarehouseConnection,
   ApiWidgetQuery,
 } from "@/graphql/types";
@@ -103,6 +105,22 @@ export interface VariantsQueryVariables {
   before?: string | null;
   where?: ApiVariantWhereInput | null;
   orderBy?: ApiVariantOrderByInput[] | null;
+}
+
+export interface WarehouseAssignableVariantsQueryData {
+  inventoryQuery: Pick<ApiInventoryQuery, "warehouseAssignableVariants"> & {
+    warehouseAssignableVariants: ApiVariantConnection;
+  };
+}
+
+export interface WarehouseAssignableVariantsQueryVariables {
+  warehouseId: string;
+  first?: number;
+  after?: string | null;
+  last?: number;
+  before?: string | null;
+  where?: ApiWarehouseAssignableVariantWhereInput | null;
+  orderBy?: ApiWarehouseAssignableVariantOrderByInput[] | null;
 }
 
 export interface ProductPricingWidgetQueryData {

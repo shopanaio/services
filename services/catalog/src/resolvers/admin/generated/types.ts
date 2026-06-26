@@ -2716,6 +2716,8 @@ export type InventoryQuery = {
   nodes: Array<Maybe<Node>>;
   /** Get a warehouse by ID */
   warehouse: Maybe<Warehouse>;
+  /** Get variants that can still be assigned to the selected warehouse */
+  warehouseAssignableVariants: VariantConnection;
   /** Get all warehouses */
   warehouses: WarehouseConnection;
 };
@@ -2754,6 +2756,17 @@ export type InventoryQueryNodesArgs = {
 
 export type InventoryQueryWarehouseArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type InventoryQueryWarehouseAssignableVariantsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<WarehouseAssignableVariantOrderByInput>>;
+  warehouseId: Scalars['ID']['input'];
+  where?: InputMaybe<WarehouseAssignableVariantWhereInput>;
 };
 
 
@@ -4873,6 +4886,53 @@ export type WarehouseStockArgs = {
   where?: InputMaybe<WarehouseStockWhereInput>;
 };
 
+export type WarehouseAssignableVariantOrderByInput = {
+  direction: SortDirection;
+  field: WarehouseAssignableVariantOrderField;
+};
+
+export enum WarehouseAssignableVariantOrderField {
+  CreatedAt = 'createdAt',
+  ExternalId = 'externalId',
+  ExternalSystem = 'externalSystem',
+  Handle = 'handle',
+  Id = 'id',
+  IsDefault = 'isDefault',
+  ProductId = 'productId',
+  ProductName = 'productName',
+  Sku = 'sku',
+  UpdatedAt = 'updatedAt'
+}
+
+export type WarehouseAssignableVariantWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<WarehouseAssignableVariantWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<WarehouseAssignableVariantWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<WarehouseAssignableVariantWhereInput>>;
+  /** Filter by creation date */
+  createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by external ID */
+  externalId?: InputMaybe<StringFilter>;
+  /** Filter by external system */
+  externalSystem?: InputMaybe<StringFilter>;
+  /** Filter by variant handle */
+  handle?: InputMaybe<StringFilter>;
+  /** Filter by variant ID */
+  id?: InputMaybe<IdFilter>;
+  /** Filter by default variant flag */
+  isDefault?: InputMaybe<BooleanFilter>;
+  /** Filter by product ID */
+  productId?: InputMaybe<IdFilter>;
+  /** Filter by product name in the current locale */
+  productName?: InputMaybe<StringFilter>;
+  /** Filter by variant SKU */
+  sku?: InputMaybe<StringFilter>;
+  /** Filter by update date */
+  updatedAt?: InputMaybe<DateTimeFilter>;
+};
+
 /** A connection to a list of Warehouse items. */
 export type WarehouseConnection = {
   __typename?: 'WarehouseConnection';
@@ -5577,6 +5637,9 @@ export type ResolversTypes = ResolversObject<{
   VendorOrderField: VendorOrderField;
   VendorWhereInput: VendorWhereInput;
   Warehouse: ResolverTypeWrapper<Warehouse>;
+  WarehouseAssignableVariantOrderByInput: WarehouseAssignableVariantOrderByInput;
+  WarehouseAssignableVariantOrderField: WarehouseAssignableVariantOrderField;
+  WarehouseAssignableVariantWhereInput: WarehouseAssignableVariantWhereInput;
   WarehouseConnection: ResolverTypeWrapper<WarehouseConnection>;
   WarehouseConnectionInput: WarehouseConnectionInput;
   WarehouseCreateInput: WarehouseCreateInput;
@@ -5889,6 +5952,8 @@ export type ResolversParentTypes = ResolversObject<{
   VendorOrderByInput: VendorOrderByInput;
   VendorWhereInput: VendorWhereInput;
   Warehouse: Warehouse;
+  WarehouseAssignableVariantOrderByInput: WarehouseAssignableVariantOrderByInput;
+  WarehouseAssignableVariantWhereInput: WarehouseAssignableVariantWhereInput;
   WarehouseConnection: WarehouseConnection;
   WarehouseConnectionInput: WarehouseConnectionInput;
   WarehouseCreateInput: WarehouseCreateInput;
@@ -6636,6 +6701,7 @@ export type InventoryQueryResolvers<ContextType = ServiceContext, ParentType ext
   node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<InventoryQueryNodeArgs, 'id'>>;
   nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<InventoryQueryNodesArgs, 'ids'>>;
   warehouse?: Resolver<Maybe<ResolversTypes['Warehouse']>, ParentType, ContextType, RequireFields<InventoryQueryWarehouseArgs, 'id'>>;
+  warehouseAssignableVariants?: Resolver<ResolversTypes['VariantConnection'], ParentType, ContextType, RequireFields<InventoryQueryWarehouseAssignableVariantsArgs, 'warehouseId'>>;
   warehouses?: Resolver<ResolversTypes['WarehouseConnection'], ParentType, ContextType, Partial<InventoryQueryWarehousesArgs>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;

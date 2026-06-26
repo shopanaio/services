@@ -15,6 +15,7 @@ import {
   productOption,
   productOptionVariantLink,
   variant,
+  variantWarehouseCandidateView,
   variantTranslation,
   type ItemPricing,
   type NewVariant,
@@ -46,11 +47,26 @@ export const variantRelayQuery = createRelayQuery(
   { name: "variant", tieBreaker: "id" }
 );
 
+export const warehouseAssignableVariantRelayQuery = createRelayQuery(
+  createQuery(variantWarehouseCandidateView)
+    .include(["id", "productId"])
+    .mapWhereFields({
+      id: decodeVariantGlobalId,
+      productId: decodeProductGlobalId,
+    })
+    .maxLimit(100)
+    .defaultLimit(20),
+  { name: "variant", tieBreaker: "id" }
+);
+
 export type VariantQueryInput = InferExecuteOptions<typeof variantQuery>;
 export type VariantCursorInput = InferCursorInput<
   typeof variantPaginationQuery
 >;
 export type VariantRelayInput = InferRelayInput<typeof variantRelayQuery>;
+export type WarehouseAssignableVariantRelayInput = InferRelayInput<
+  typeof warehouseAssignableVariantRelayQuery
+>;
 
 export interface VariantConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
@@ -338,6 +354,58 @@ export class VariantRepository extends BaseRepository {
     const [result, totalCount] = await Promise.all([
       variantRelayQuery.execute(this.connection, executeInput),
       variantRelayQuery.count(this.connection, { where: mergedWhere }),
+    ]);
+
+    return {
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        nodeId: edge.node.id,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
+  }
+
+  async getWarehouseAssignableConnection(
+    warehouseId: string,
+    args: WarehouseAssignableVariantRelayInput
+  ): Promise<VariantConnectionResult> {
+    const { where, orderBy } = args;
+    const assignableWhere =
+      where as WarehouseAssignableVariantRelayInput["where"];
+
+    const mergedWhere: WarehouseAssignableVariantRelayInput["where"] = {
+      _and: [
+        { projectId: { _eq: this.storeId } },
+        { warehouseScopeId: { _eq: warehouseId } },
+        { locale: { _eq: this.locale } },
+        { deletedAt: { _is: null } },
+        { productDeletedAt: { _is: null } },
+        ...(assignableWhere ? [assignableWhere] : []),
+      ],
+    };
+
+    const executeInput: WarehouseAssignableVariantRelayInput = {
+      first: args.first,
+      after: args.after,
+      last: args.last,
+      before: args.before,
+      where: mergedWhere,
+      orderBy:
+        (orderBy as WarehouseAssignableVariantRelayInput["orderBy"]) ?? [
+          { field: "createdAt", direction: "desc" },
+          { field: "id", direction: "desc" },
+        ],
+    };
+
+    const [result, totalCount] = await Promise.all([
+      warehouseAssignableVariantRelayQuery.execute(
+        this.connection,
+        executeInput
+      ),
+      warehouseAssignableVariantRelayQuery.count(this.connection, {
+        where: mergedWhere,
+      }),
     ]);
 
     return {

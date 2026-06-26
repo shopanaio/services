@@ -6,13 +6,17 @@ import type {
   ApiVariantConnection,
   ApiVariantOrderByInput,
   ApiVariantWhereInput,
+  ApiWarehouseAssignableVariantOrderByInput,
+  ApiWarehouseAssignableVariantWhereInput,
 } from "@/graphql/types";
 import { useRelayConnectionQuery } from "@/graphql/hooks/use-relay-connection-query";
 import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
-import { VARIANTS_QUERY } from "../graphql";
+import { VARIANTS_QUERY, WAREHOUSE_ASSIGNABLE_VARIANTS_QUERY } from "../graphql";
 import type {
   VariantsQueryData,
   VariantsQueryVariables,
+  WarehouseAssignableVariantsQueryData,
+  WarehouseAssignableVariantsQueryVariables,
 } from "../graphql/operation-types";
 
 export interface UseVariantsOptions extends RelayCursorPaginationVariables {
@@ -53,6 +57,52 @@ export function useVariants(options: UseVariantsOptions = {}): UseVariantsReturn
     skip,
     fetchPolicy: "cache-and-network",
     getConnection: (data) => data?.catalogQuery.variants,
+  });
+
+  return {
+    variants: result.nodes,
+    connection: result.connection,
+    totalCount: result.totalCount,
+    pageInfo: result.pageInfo,
+    loading: result.loading,
+    error: result.error,
+    refetch: result.refetch,
+  };
+}
+
+export interface UseWarehouseAssignableVariantsOptions
+  extends Omit<UseVariantsOptions, "where" | "orderBy"> {
+  warehouseId: string;
+  where?: ApiWarehouseAssignableVariantWhereInput | null;
+  orderBy?: ApiWarehouseAssignableVariantOrderByInput[] | null;
+}
+
+export function useWarehouseAssignableVariants(
+  options: UseWarehouseAssignableVariantsOptions,
+): UseVariantsReturn {
+  const {
+    warehouseId,
+    first,
+    after = null,
+    last,
+    before = null,
+    where = null,
+    orderBy = null,
+    skip = false,
+  } = options;
+
+  const result = useRelayConnectionQuery<
+    WarehouseAssignableVariantsQueryData,
+    WarehouseAssignableVariantsQueryVariables,
+    ApiVariant,
+    ApiVariantConnection
+  >({
+    query: WAREHOUSE_ASSIGNABLE_VARIANTS_QUERY,
+    variables: { warehouseId, first, after, last, before, where, orderBy },
+    skip,
+    fetchPolicy: "cache-and-network",
+    getConnection: (data) =>
+      data?.inventoryQuery.warehouseAssignableVariants,
   });
 
   return {
