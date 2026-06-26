@@ -70,26 +70,30 @@
   },
   "suites": [
     {
-      "title": "admin-ui/product-options-variants-lifecycle.spec.ts",
-      "file": "admin-ui/product-options-variants-lifecycle.spec.ts",
+      "title": "admin-ui/inventory-page.spec.ts",
+      "file": "admin-ui/inventory-page.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "Admin product options and variants lifecycle UI",
-          "file": "admin-ui/product-options-variants-lifecycle.spec.ts",
-          "line": 425,
+          "title": "Admin inventory page UI",
+          "file": "admin-ui/inventory-page.spec.ts",
+          "line": 231,
           "column": 6,
           "specs": [
             {
-              "title": "creates options and variants for a regular product and keeps all values after reload",
+              "title": "edits warehouse-scoped quantities and persists them through bulk update",
               "ok": true,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 120000,
-                  "annotations": [],
+                  "timeout": 90000,
+                  "annotations": [
+                    {
+                      "type": "slow"
+                    }
+                  ],
                   "expectedStatus": "passed",
                   "projectId": "chromium",
                   "projectName": "chromium",
@@ -98,21 +102,21 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 33143,
+                      "duration": 17928,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-26T13:55:32.901Z",
+                      "startTime": "2026-06-26T16:38:55.243Z",
                       "attachments": []
                     }
                   ],
                   "status": "expected"
                 }
               ],
-              "id": "159600ed0cc0b468b960-4fc6d120abcab1f2a36c",
-              "file": "admin-ui/product-options-variants-lifecycle.spec.ts",
-              "line": 427,
+              "id": "1b79c680960b7e5f9da1-bd813c609007f7086210",
+              "file": "admin-ui/inventory-page.spec.ts",
+              "line": 232,
               "column": 5
             }
           ]
@@ -122,8 +126,8 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-06-26T13:54:59.447Z",
-    "duration": 70611.511,
+    "startTime": "2026-06-26T16:38:21.019Z",
+    "duration": 54715.201,
     "expected": 1,
     "skipped": 0,
     "unexpected": 0,

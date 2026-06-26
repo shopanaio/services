@@ -75,7 +75,10 @@ export function mapInventoryVariantEditsToProductBulkUpdateInput(
   const rowsById = new Map(rows.map((row) => [row.id, row]));
   const rowErrors: Record<string, InventorySubmitError[]> = {};
   const submitErrors: InventorySubmitError[] = [];
-  const variantsByProduct = new Map<string, ApiVariantOperationInput[]>();
+  const variantsByProduct = new Map<
+    string,
+    { expectedRevision: number; variants: ApiVariantOperationInput[] }
+  >();
 
   for (const [rowId, rowEdits] of Object.entries(edits)) {
     if (!hasPendingFieldEdits(rowEdits)) {
@@ -137,14 +140,16 @@ export function mapInventoryVariantEditsToProductBulkUpdateInput(
       },
     };
 
-    variantsByProduct.set(row.productId, [
-      ...(variantsByProduct.get(row.productId) ?? []),
-      variantInput,
-    ]);
+    const productGroup = variantsByProduct.get(row.productId) ?? {
+      expectedRevision: row.productRevision,
+      variants: [],
+    };
+    productGroup.variants.push(variantInput);
+    variantsByProduct.set(row.productId, productGroup);
   }
 
   const operationsCount = [...variantsByProduct.values()].reduce(
-    (count, variants) => count + variants.length,
+    (count, group) => count + group.variants.length,
     0,
   );
 
@@ -179,8 +184,9 @@ export function mapInventoryVariantEditsToProductBulkUpdateInput(
     input: {
       products: [...variantsByProduct.entries()].map(([productId, variants]) => ({
         productId,
+        expectedRevision: variants.expectedRevision,
         operations: {
-          variants,
+          variants: variants.variants,
         },
       })),
     },

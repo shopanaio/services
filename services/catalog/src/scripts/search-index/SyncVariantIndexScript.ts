@@ -59,8 +59,13 @@ export class SyncVariantIndexScript extends BaseScript<
     const offersResult = (await this.services.broker.call(
       "inventory.getOffers",
       {
-        storeId: this.getProjectId(),
-        variantIds,
+        projectId: this.getProjectId(),
+        requestId: this.context.requestId,
+        items: variantIds.map((variantId) => ({
+          lineId: variantId,
+          purchasableId: variantId,
+          quantity: 1,
+        })),
       }
     )) as {
       offers?: Array<{

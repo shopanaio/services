@@ -4,6 +4,7 @@ export interface InventoryVariantRow {
   id: string;
   variantId: string;
   productId: string;
+  productRevision: number;
   productTitle: string;
   productHandle: string | null;
   variantTitle: string | null;
@@ -82,6 +83,7 @@ export function mapInventoryVariantEdgeToRow(
     id: inventoryItem.id,
     variantId: variant.id,
     productId: variant.product.id,
+    productRevision: variant.product.revision,
     productTitle: variant.product.title,
     productHandle: variant.product.handle ?? null,
     variantTitle: variant.title ?? null,

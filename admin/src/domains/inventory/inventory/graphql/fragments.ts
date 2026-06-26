@@ -60,6 +60,7 @@ export const INVENTORY_ITEM_ROW_FRAGMENT = gql`
         id
         title
         handle
+        revision
       }
       media {
         ...InventoryVariantMediaFields
