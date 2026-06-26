@@ -5,8 +5,13 @@ import type {
   ApiInventoryItemInventoryItemsMetaInput,
   ApiInventoryItemOrderByInput,
   ApiInventoryItemWhereInput,
+  ApiInventoryMutation,
   ApiInventoryQuery,
+  ApiGenericUserError,
   ApiProductBulkUpdateInput,
+  ApiWarehouseStock,
+  ApiWarehouseStockCreateInput,
+  ApiWarehouseStockDeleteInput,
   BulkUpdateJobStatus,
 } from "@/graphql/types";
 
@@ -43,4 +48,30 @@ export interface InventoryProductBulkUpdateMutationData {
 
 export interface InventoryProductBulkUpdateMutationVariables {
   input: ApiProductBulkUpdateInput;
+}
+
+export interface WarehouseStockCreateMutationData {
+  inventoryMutation: Pick<ApiInventoryMutation, "warehouseStockCreate"> & {
+    warehouseStockCreate: {
+      warehouseStocks: ApiWarehouseStock[];
+      userErrors: ApiGenericUserError[];
+    };
+  };
+}
+
+export interface WarehouseStockCreateMutationVariables {
+  input: ApiWarehouseStockCreateInput;
+}
+
+export interface WarehouseStockDeleteMutationData {
+  inventoryMutation: Pick<ApiInventoryMutation, "warehouseStockDelete"> & {
+    warehouseStockDelete: {
+      deletedWarehouseStockIds: string[];
+      userErrors: ApiGenericUserError[];
+    };
+  };
+}
+
+export interface WarehouseStockDeleteMutationVariables {
+  input: ApiWarehouseStockDeleteInput;
 }

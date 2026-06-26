@@ -197,3 +197,63 @@ type WarehouseDeletePayload {
   """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!
 }
+
+"""
+Item input for creating variant stock in a warehouse.
+"""
+input WarehouseStockCreateItemInput {
+  """The variant whose stock should be added."""
+  variantId: ID!
+
+  """The warehouse to add stock to."""
+  warehouseId: ID!
+}
+
+"""
+Input for creating variant stock in warehouses.
+"""
+input WarehouseStockCreateInput {
+  """Stock records to create."""
+  items: [WarehouseStockCreateItemInput!]!
+}
+
+"""
+Payload for warehouse stock creation.
+"""
+type WarehouseStockCreatePayload {
+  """The created warehouse stock records."""
+  warehouseStocks: [WarehouseStock!]!
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Item input for deleting variant stock from a warehouse.
+"""
+input WarehouseStockDeleteItemInput {
+  """The variant whose stock should be removed."""
+  variantId: ID!
+
+  """The warehouse to remove stock from."""
+  warehouseId: ID!
+}
+
+"""
+Input for deleting variant stock from warehouses.
+"""
+input WarehouseStockDeleteInput {
+  """Stock records to delete."""
+  items: [WarehouseStockDeleteItemInput!]!
+}
+
+"""
+Payload for warehouse stock deletion.
+"""
+type WarehouseStockDeletePayload {
+  """The IDs of the deleted warehouse stock records."""
+  deletedWarehouseStockIds: [ID!]!
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}

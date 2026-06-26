@@ -41,6 +41,8 @@ import {
 import {
   useInventoryEditStore,
   type EditableField,
+  useCreateWarehouseStock,
+  useDeleteWarehouseStock,
   useInventoryItems,
   useSaveInventoryVariantEdits,
   type UseInventoryItemsOptions,
@@ -48,7 +50,6 @@ import {
 } from "../hooks";
 import {
   mapInventoryVariantEditsToProductBulkUpdateInput,
-  mapInventoryVariantSelectionsToProductBulkUpdateInput,
   type InventoryVariantRow,
 } from "../mappers";
 import { useVariantPicker } from "@/shared/components/entity-picker-modal/hooks/use-entity-picker";
@@ -156,8 +157,6 @@ const SkuCellRenderer = ({
 
 interface InventoryImportVariantEntity extends IPickableEntity {
   variantId: string;
-  productId: string;
-  productRevision: number;
 }
 
 function decodePathParam(value: string | null): string | null {
@@ -197,6 +196,14 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
     status,
   } = useInventoryEditStore();
   const { message } = App.useApp();
+  const {
+    createWarehouseStock,
+    loading: creatingWarehouseStock,
+  } = useCreateWarehouseStock();
+  const {
+    deleteWarehouseStock,
+    loading: deletingWarehouseStock,
+  } = useDeleteWarehouseStock();
 
   const hasUnsavedChanges = Object.keys(edits).length > 0;
   const canNavigate = !hasUnsavedChanges && status !== "saving";
@@ -257,6 +264,10 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
 
   const handleImportVariants = useCallback(
     async (entities: IPickableEntity[]) => {
+      if (creatingWarehouseStock) {
+        return;
+      }
+
       if (!activeWarehouseId) {
         message.error("Select a warehouse to import variants.");
         return;
@@ -268,16 +279,12 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
       }
 
       try {
-        const result = await saveInventoryVariantEdits(
-          mapInventoryVariantSelectionsToProductBulkUpdateInput(
-            variants.map((variant) => ({
-              productId: variant.productId,
-              productRevision: variant.productRevision,
-              variantId: variant.variantId,
-            })),
-            activeWarehouseId,
-          ),
-        );
+        const result = await createWarehouseStock({
+          items: variants.map((variant) => ({
+            variantId: variant.variantId,
+            warehouseId: activeWarehouseId,
+          })),
+        });
         const firstError = result.userErrors[0] ?? null;
 
         if (firstError) {
@@ -285,22 +292,29 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
           return;
         }
 
-        if (!result.jobId) {
-          message.error("Inventory import was not accepted.");
+        const createdCount = result.warehouseStocks.length;
+        if (createdCount === 0) {
+          message.error("Variant import was not accepted.");
           return;
         }
 
         message.success(
-          variants.length === 1
-            ? "Variant import accepted."
-            : `${variants.length} variant imports accepted.`,
+          createdCount === 1
+            ? "Variant imported."
+            : `${createdCount} variants imported.`,
         );
         await refetch();
       } catch (importError) {
         message.error(toSubmitError(importError).message);
       }
     },
-    [activeWarehouseId, message, refetch, saveInventoryVariantEdits],
+    [
+      activeWarehouseId,
+      createWarehouseStock,
+      creatingWarehouseStock,
+      message,
+      refetch,
+    ],
   );
   const { openPicker: openVariantPicker } = useVariantPicker({
     selectionMode: "multi",
@@ -496,11 +510,80 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
   }, []);
 
   // Delete selected items
-  const handleDeleteSelected = useCallback(() => {
-    // TODO: Implement delete mutation
-    console.log("Delete items:", selectedIds);
+  const handleDeleteSelected = useCallback(async () => {
+    if (deletingWarehouseStock || status === "saving") {
+      return;
+    }
+
+    if (hasUnsavedChanges) {
+      message.warning("Save or discard changes before deleting inventory.");
+      return;
+    }
+
+    if (!activeWarehouseId) {
+      message.error("Select a warehouse to delete inventory.");
+      return;
+    }
+
+    const selectedRows = selectedIds
+      .map((id) => serverData.find((item) => item.id === id) ?? null)
+      .filter((item): item is InventoryVariantRow => item !== null);
+
+    if (selectedRows.length === 0) {
+      return;
+    }
+
+    const nonEmptyRows = selectedRows.filter(
+      (row) => row.onHand !== 0 || row.reserved !== 0 || row.unavailable !== 0,
+    );
+
+    if (nonEmptyRows.length > 0) {
+      message.warning(
+        nonEmptyRows.length === 1
+          ? "Set stock quantities to 0 before deleting this inventory item."
+          : "Set stock quantities to 0 before deleting selected inventory items.",
+      );
+      return;
+    }
+
+    const result = await deleteWarehouseStock({
+      items: selectedRows.map((row) => ({
+        variantId: row.variantId,
+        warehouseId: row.warehouseId ?? activeWarehouseId,
+      })),
+    });
+    const firstError = result.userErrors[0] ?? null;
+
+    if (firstError) {
+      message.error(firstError.message);
+      return;
+    }
+
+    const deletedCount = result.deletedWarehouseStockIds.length;
+    if (deletedCount === 0) {
+      message.error("Inventory item was not deleted.");
+      return;
+    }
+
+    message.success(
+      deletedCount === 1
+        ? "Inventory item deleted."
+        : `${deletedCount} inventory items deleted.`,
+    );
     deselectAll();
-  }, [selectedIds, deselectAll]);
+    await refetch();
+  }, [
+    activeWarehouseId,
+    deleteWarehouseStock,
+    deletingWarehouseStock,
+    deselectAll,
+    hasUnsavedChanges,
+    message,
+    refetch,
+    selectedIds,
+    serverData,
+    status,
+  ]);
 
   const handleCellEditRequest = useCallback(
     (event: CellEditRequestEvent<InventoryVariantRow>) => {
@@ -649,10 +732,12 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
         label: "Delete",
         icon: <DeleteOutlined />,
         danger: true,
+        loading: deletingWarehouseStock,
+        disabled: deletingWarehouseStock || status === "saving",
         onClick: handleDeleteSelected,
       },
     ],
-    [handleDeleteSelected],
+    [deletingWarehouseStock, handleDeleteSelected, status],
   );
 
   // Derive reactive values from edits
@@ -733,8 +818,14 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
       actions={
         <Button
           data-testid="inventory-import-button"
-          disabled={!canEdit || !activeWarehouseId || status === "saving"}
+          disabled={
+            !canEdit ||
+            !activeWarehouseId ||
+            creatingWarehouseStock ||
+            status === "saving"
+          }
           icon={<ImportOutlined />}
+          loading={creatingWarehouseStock}
           onClick={handleOpenImportPicker}
         >
           Import

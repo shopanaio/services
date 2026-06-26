@@ -39,3 +39,6 @@ export * from './inventory-item/index.js';
 
 // Warehouse scripts
 export * from './warehouse/index.js';
+
+// Stock scripts
+export * from './stock/index.js';

@@ -5,11 +5,13 @@ import {
   type GlobalIdType,
 } from "@shopana/shared-graphql-guid";
 import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
+import { z } from "zod";
 import { CatalogType } from "./CatalogType.js";
 import { ProductResolver } from "./ProductResolver.js";
 import { VendorResolver } from "./VendorResolver.js";
 import { WarehouseResolver } from "./WarehouseResolver.js";
 import { InventoryItemResolver } from "./InventoryItemResolver.js";
+import { StockResolver } from "./StockResolver.js";
 import type { UserError } from "../../kernel/BaseScript.js";
 
 /**
@@ -24,6 +26,26 @@ function safeDecodeGlobalId(
   } catch {
     return null;
   }
+}
+
+interface WarehouseStockMutationItemInput {
+  variantId: string;
+  warehouseId: string;
+}
+
+interface WarehouseStockMutationInput {
+  items: WarehouseStockMutationItemInput[];
+}
+
+function WarehouseStockMutationInputSchema() {
+  return z.object({
+    items: z.array(
+      z.object({
+        variantId: z.string(),
+        warehouseId: z.string(),
+      }),
+    ),
+  });
 }
 import { VariantResolver } from "./VariantResolver.js";
 import { OptionResolver } from "./OptionResolver.js";
@@ -72,6 +94,10 @@ import {
   WarehouseDeleteScript,
   WarehouseUpdateScript,
 } from "../../scripts/warehouse/index.js";
+import {
+  WarehouseStockCreateScript,
+  WarehouseStockDeleteScript,
+} from "../../scripts/stock/index.js";
 import {
   VariantCreateScript,
   VariantDeleteScript,
@@ -346,6 +372,114 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
             GlobalIdEntity.Warehouse
           )
         : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(WarehouseStockMutationInputSchema())
+  async warehouseStockCreate(args: { input: WarehouseStockMutationInput }) {
+    const { input } = args;
+    const userErrors: UserError[] = [];
+    const decodedItems: WarehouseStockMutationItemInput[] = [];
+
+    for (const [index, item] of input.items.entries()) {
+      const fieldPrefix = ["items", String(index)];
+      const variantId = safeDecodeGlobalId(
+        item.variantId,
+        GlobalIdEntity.Variant
+      );
+      const warehouseId = safeDecodeGlobalId(
+        item.warehouseId,
+        GlobalIdEntity.Warehouse
+      );
+
+      if (!variantId) {
+        userErrors.push({
+          message: "Invalid variant ID",
+          code: "INVALID_ID",
+          field: [...fieldPrefix, "variantId"],
+        });
+        continue;
+      }
+
+      if (!warehouseId) {
+        userErrors.push({
+          message: "Invalid warehouse ID",
+          code: "INVALID_ID",
+          field: [...fieldPrefix, "warehouseId"],
+        });
+        continue;
+      }
+
+      decodedItems.push({ variantId, warehouseId });
+    }
+
+    if (userErrors.length > 0) {
+      return { warehouseStocks: [], userErrors };
+    }
+
+    const result = await this.$ctx.kernel.runScript(WarehouseStockCreateScript, {
+      items: decodedItems,
+    });
+
+    return {
+      warehouseStocks: result.warehouseStocks.map(
+        (stock) => new StockResolver(stock.id, this.$ctx)
+      ),
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(WarehouseStockMutationInputSchema())
+  async warehouseStockDelete(args: { input: WarehouseStockMutationInput }) {
+    const { input } = args;
+    const userErrors: UserError[] = [];
+    const decodedItems: WarehouseStockMutationItemInput[] = [];
+
+    for (const [index, item] of input.items.entries()) {
+      const fieldPrefix = ["items", String(index)];
+      const variantId = safeDecodeGlobalId(
+        item.variantId,
+        GlobalIdEntity.Variant
+      );
+      const warehouseId = safeDecodeGlobalId(
+        item.warehouseId,
+        GlobalIdEntity.Warehouse
+      );
+
+      if (!variantId) {
+        userErrors.push({
+          message: "Invalid variant ID",
+          code: "INVALID_ID",
+          field: [...fieldPrefix, "variantId"],
+        });
+        continue;
+      }
+
+      if (!warehouseId) {
+        userErrors.push({
+          message: "Invalid warehouse ID",
+          code: "INVALID_ID",
+          field: [...fieldPrefix, "warehouseId"],
+        });
+        continue;
+      }
+
+      decodedItems.push({ variantId, warehouseId });
+    }
+
+    if (userErrors.length > 0) {
+      return { deletedWarehouseStockIds: [], userErrors };
+    }
+
+    const result = await this.$ctx.kernel.runScript(WarehouseStockDeleteScript, {
+      items: decodedItems,
+    });
+
+    return {
+      deletedWarehouseStockIds: result.deletedWarehouseStockIds.map((stockId) =>
+        encodeGlobalIdByType(stockId, GlobalIdEntity.WarehouseStock)
+      ),
       userErrors: result.userErrors,
     };
   }

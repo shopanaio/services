@@ -3792,6 +3792,8 @@ export type ApiInventoryMutation = {
   inventoryItemUpdate: ApiInventoryItemUpdatePayload;
   warehouseCreate: ApiWarehouseCreatePayload;
   warehouseDelete: ApiWarehouseDeletePayload;
+  warehouseStockCreate: ApiWarehouseStockCreatePayload;
+  warehouseStockDelete: ApiWarehouseStockDeletePayload;
   warehouseUpdate: ApiWarehouseUpdatePayload;
 };
 
@@ -3808,6 +3810,16 @@ export type ApiInventoryMutationWarehouseCreateArgs = {
 
 export type ApiInventoryMutationWarehouseDeleteArgs = {
   input: ApiWarehouseDeleteInput;
+};
+
+
+export type ApiInventoryMutationWarehouseStockCreateArgs = {
+  input: ApiWarehouseStockCreateInput;
+};
+
+
+export type ApiInventoryMutationWarehouseStockDeleteArgs = {
+  input: ApiWarehouseStockDeleteInput;
 };
 
 
@@ -7630,6 +7642,52 @@ export type ApiWarehouseStockConnectionInput = {
   orderBy?: InputMaybe<Array<ApiWarehouseStockOrderByInput>>;
   /** Filter conditions */
   where?: InputMaybe<ApiWarehouseStockWhereInput>;
+};
+
+/** Input for creating variant stock in warehouses. */
+export type ApiWarehouseStockCreateInput = {
+  /** Stock records to create. */
+  items: Array<ApiWarehouseStockCreateItemInput>;
+};
+
+/** Item input for creating variant stock in a warehouse. */
+export type ApiWarehouseStockCreateItemInput = {
+  /** The variant whose stock should be added. */
+  variantId: Scalars['ID']['input'];
+  /** The warehouse to add stock to. */
+  warehouseId: Scalars['ID']['input'];
+};
+
+/** Payload for warehouse stock creation. */
+export type ApiWarehouseStockCreatePayload = {
+  __typename?: 'WarehouseStockCreatePayload';
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+  /** The created warehouse stock records. */
+  warehouseStocks: Array<ApiWarehouseStock>;
+};
+
+/** Input for deleting variant stock from warehouses. */
+export type ApiWarehouseStockDeleteInput = {
+  /** Stock records to delete. */
+  items: Array<ApiWarehouseStockDeleteItemInput>;
+};
+
+/** Item input for deleting variant stock from a warehouse. */
+export type ApiWarehouseStockDeleteItemInput = {
+  /** The variant whose stock should be removed. */
+  variantId: Scalars['ID']['input'];
+  /** The warehouse to remove stock from. */
+  warehouseId: Scalars['ID']['input'];
+};
+
+/** Payload for warehouse stock deletion. */
+export type ApiWarehouseStockDeletePayload = {
+  __typename?: 'WarehouseStockDeletePayload';
+  /** The IDs of the deleted warehouse stock records. */
+  deletedWarehouseStockIds: Array<Scalars['ID']['output']>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
 };
 
 /** An edge in a WarehouseStock connection. */

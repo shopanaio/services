@@ -422,6 +422,10 @@ type InventoryMutation {
   warehouseCreate(input: WarehouseCreateInput!): WarehouseCreatePayload!
   warehouseUpdate(input: WarehouseUpdateInput!): WarehouseUpdatePayload!
   warehouseDelete(input: WarehouseDeleteInput!): WarehouseDeletePayload!
+
+  # Stock mutations
+  warehouseStockCreate(input: WarehouseStockCreateInput!): WarehouseStockCreatePayload!
+  warehouseStockDelete(input: WarehouseStockDeleteInput!): WarehouseStockDeletePayload!
 }
 
 type CatalogMutation {
