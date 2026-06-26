@@ -292,7 +292,7 @@ export const EditVariantsModal = () => {
       {showColumnSettings ? (
         <>
           <VariantsColumnSettings optionGroups={optionGroups} />
-          <Divider type="vertical" style={{ height: 48, margin: 0 }} />
+          <Divider orientation="vertical" style={{ height: 48, margin: 0 }} />
         </>
       ) : null}
     </div>

@@ -81,7 +81,7 @@ export const NavigableDropdown = ({ levels, children }: INavigableDropdownProps)
         setOpen(v);
         if (!v) setActiveParent(null);
       }}
-      dropdownRender={(menu) =>
+      popupRender={(menu) =>
         activeParent && activeLevel && activeLevel.children?.length ? (
           <div className={styles.panel}>
             <div

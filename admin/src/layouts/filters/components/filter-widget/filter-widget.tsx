@@ -231,7 +231,7 @@ export const FilterWidget = ({
       <Flex gap="small" align="center" style={{ width: '100%' }}>
         <Dropdown
           trigger={['click']}
-          dropdownRender={() => (
+          popupRender={() => (
             <Card styles={{ body: cardBodyStyle }}>
               {!!nestedOptions?.length && (
                 <Flex style={{ marginBottom: 16, paddingLeft: 8 }} gap="small" vertical>

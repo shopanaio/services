@@ -103,7 +103,7 @@ export const PriceRuleCellRenderer = ({
       onOpenChange={(visible) => {
         if (!visible) setOpen(false);
       }}
-      dropdownRender={(menu) => (
+      popupRender={(menu) => (
         <div style={{ width: triggerRef.current?.offsetWidth }}>{menu}</div>
       )}
     >

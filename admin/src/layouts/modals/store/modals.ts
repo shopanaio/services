@@ -88,11 +88,19 @@ export const useModalStackStore = create<IModalStackState>((set, get) => ({
   },
 
   setDirty: (uuid, isDirty) => {
-    set((state) => ({
-      items: state.items.map((it) =>
-        it.uuid === uuid ? { ...it, isDirty } : it
-      ),
-    }));
+    set((state) => {
+      const item = state.items.find((it) => it.uuid === uuid);
+
+      if (!item || item.isDirty === isDirty) {
+        return state;
+      }
+
+      return {
+        items: state.items.map((it) =>
+          it.uuid === uuid ? { ...it, isDirty } : it
+        ),
+      };
+    });
   },
 
   updatePayload: (uuid, payload) => {

@@ -71,7 +71,7 @@ export function DropdownCellRenderer<TData extends { id: string }>({
       onOpenChange={(visible) => {
         if (!visible) setOpen(false);
       }}
-      dropdownRender={(menu) => (
+      popupRender={(menu) => (
         <div style={{ width: triggerRef.current?.offsetWidth }}>{menu}</div>
       )}
     >
