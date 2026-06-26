@@ -1,6 +1,6 @@
 import React from "react";
-import { Avatar } from "antd";
-import { PictureOutlined } from "@ant-design/icons";
+import { Avatar, Button } from "antd";
+import { DeleteOutlined, PictureOutlined } from "@ant-design/icons";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import {
   SelectableCell,
@@ -212,6 +212,39 @@ export const NumberCellRenderer: React.FC<
         value
       )}
     </SelectableCell>
+  );
+};
+
+// ============================================================================
+// Actions Cell
+// ============================================================================
+
+export const ActionsCellRenderer: React.FC<
+  CustomCellRendererProps<IVariantEditorRow> & {
+    onDeleteRow?: (rowId: string) => void;
+  }
+> = (props) => {
+  const { data } = props;
+
+  if (!data || data.kind === "blank") {
+    return null;
+  }
+
+  return (
+    <div className="ec-cell ec-cell--center">
+      <Button
+        size="small"
+        type="text"
+        danger
+        icon={<DeleteOutlined />}
+        aria-label="Delete variant"
+        data-testid={`variants-editor-delete-row-${data.id}`}
+        onClick={(event) => {
+          event.stopPropagation();
+          props.onDeleteRow?.(data.id);
+        }}
+      />
+    </div>
   );
 };
 

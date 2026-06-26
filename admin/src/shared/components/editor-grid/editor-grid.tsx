@@ -93,7 +93,7 @@ const useStyles = createStyles(({ token }) => ({
     },
 
     // Pinned columns
-    ".ag-pinned-left-cols-container": {
+    ".ag-pinned-left-cols-container, .ag-pinned-right-cols-container": {
       backgroundColor: token.colorBgContainer,
     },
 

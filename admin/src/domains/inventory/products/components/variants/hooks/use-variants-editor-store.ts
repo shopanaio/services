@@ -211,6 +211,8 @@ interface VariantsEditorStore {
   edits: Record<string, IRowEdits>;
   draftRows: IVariantEditorRow[];
   materializedRows: IVariantEditorRow[];
+  deletedExistingRows: IVariantEditorRow[];
+  committedDeletedRowIds: string[];
   blankRow: IVariantEditorRow | null;
   rowErrors: Record<string, string | null>;
   columnVisibility: IColumnVisibility;
@@ -234,6 +236,9 @@ interface VariantsEditorStore {
   addDraftRow: () => void;
   updateDraftRow: (rowId: string, patch: Partial<IVariantEditorRow>) => void;
   removeDraftRow: (rowId: string) => void;
+  deleteVariantRow: (row: IVariantEditorRow) => void;
+  commitDeletedRows: (rowIds: string[]) => void;
+  restoreDeletedRows: (rowErrors: Record<string, string | null>) => void;
   materializeDraftRows: (
     results: VariantDraftMaterializationResult[],
   ) => void;
@@ -258,6 +263,7 @@ interface VariantsEditorStore {
   getRowsForSave: (baseRows: IVariantEditorRow[]) => {
     existingRows: VariantEditorSaveRow[];
     draftRows: VariantEditorSaveRow[];
+    deletedRows: VariantEditorSaveRow[];
   };
   getRowEdits: (rowId: string) => IRowEdits | undefined;
   getFieldEdit: (rowId: string, field: string) => IFieldEdit | undefined;
@@ -277,6 +283,8 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
         edits: {},
         draftRows: [],
         materializedRows: [],
+        deletedExistingRows: [],
+        committedDeletedRowIds: [],
         blankRow: null,
         rowErrors: {},
         columnVisibility: DEFAULT_VARIANTS_COLUMN_VISIBILITY,
@@ -289,6 +297,8 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
             edits: {},
             draftRows: [],
             materializedRows: [],
+            deletedExistingRows: [],
+            committedDeletedRowIds: [],
             blankRow: options?.includeBlankRow
               ? createEmptyEditorRow("blank")
               : null,
@@ -300,6 +310,8 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
             edits: {},
             draftRows: [],
             materializedRows: [],
+            deletedExistingRows: [],
+            committedDeletedRowIds: [],
             blankRow: null,
             rowErrors: {},
             status: "idle",
@@ -384,6 +396,8 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
             edits: {},
             draftRows: [],
             materializedRows: [],
+            deletedExistingRows: [],
+            committedDeletedRowIds: [],
             rowErrors: {},
           }),
         discardRow: (rowId) =>
@@ -395,6 +409,9 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
               edits: restEdits,
               draftRows: state.draftRows.filter((row) => row.id !== rowId),
               materializedRows: state.materializedRows.filter(
+                (row) => row.id !== rowId,
+              ),
+              deletedExistingRows: state.deletedExistingRows.filter(
                 (row) => row.id !== rowId,
               ),
               rowErrors: restErrors,
@@ -418,6 +435,86 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
             return {
               draftRows: state.draftRows.filter((row) => row.id !== rowId),
               rowErrors: restErrors,
+            };
+          }),
+        deleteVariantRow: (row) =>
+          set((state) => {
+            const { [row.id]: _, ...restEdits } = state.edits;
+            const { [row.id]: __, ...restErrors } = state.rowErrors;
+
+            if (row.kind === "blank") {
+              return {};
+            }
+
+            if (row.kind === "draft") {
+              return {
+                draftRows: state.draftRows.filter(
+                  (draftRow) => draftRow.id !== row.id,
+                ),
+                rowErrors: restErrors,
+              };
+            }
+
+            if (
+              state.deletedExistingRows.some(
+                (deletedRow) => deletedRow.id === row.id,
+              ) ||
+              state.committedDeletedRowIds.includes(row.id)
+            ) {
+              return {
+                edits: restEdits,
+                rowErrors: restErrors,
+              };
+            }
+
+            return {
+              edits: restEdits,
+              deletedExistingRows: [...state.deletedExistingRows, row],
+              rowErrors: restErrors,
+            };
+          }),
+        commitDeletedRows: (rowIds) =>
+          set((state) => {
+            if (rowIds.length === 0) {
+              return {};
+            }
+
+            const rowIdSet = new Set(rowIds);
+
+            return {
+              deletedExistingRows: state.deletedExistingRows.filter(
+                (row) => !rowIdSet.has(row.id),
+              ),
+              committedDeletedRowIds: Array.from(
+                new Set([...state.committedDeletedRowIds, ...rowIds]),
+              ),
+            };
+          }),
+        restoreDeletedRows: (rowErrors) =>
+          set((state) => {
+            const restoreRowIds = new Set(
+              state.deletedExistingRows
+                .map((row) => row.id)
+                .filter((rowId) => rowErrors[rowId]),
+            );
+
+            if (restoreRowIds.size === 0) {
+              return {};
+            }
+
+            return {
+              deletedExistingRows: state.deletedExistingRows.filter(
+                (row) => !restoreRowIds.has(row.id),
+              ),
+              rowErrors: {
+                ...state.rowErrors,
+                ...Object.fromEntries(
+                  Array.from(restoreRowIds).map((rowId) => [
+                    rowId,
+                    rowErrors[rowId],
+                  ]),
+                ),
+              },
             };
           }),
         materializeDraftRows: (results) =>
@@ -512,7 +609,8 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
         hasChanges: () =>
           Object.keys(get().edits).length > 0 ||
           get().draftRows.length > 0 ||
-          get().materializedRows.length > 0,
+          get().materializedRows.length > 0 ||
+          get().deletedExistingRows.length > 0,
         getChangesCount: () => {
           const editCount = Object.values(get().edits).reduce(
             (count, rowEdits) => count + Object.keys(rowEdits).length,
@@ -522,25 +620,34 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
           return (
             editCount +
             get().draftRows.length +
-            get().materializedRows.length
+            get().materializedRows.length +
+            get().deletedExistingRows.length
           );
         },
         getCurrentRows: (baseRows) => {
           const state = get();
-          const rows = baseRows.map((row) =>
-            withRowError(
-              applyRowEdits(row, state.edits[row.id]),
-              state.rowErrors,
-            ),
-          );
-
-          const sessionRows = [
-            ...state.materializedRows.map((row) =>
+          const hiddenRowIds = new Set([
+            ...state.deletedExistingRows.map((row) => row.id),
+            ...state.committedDeletedRowIds,
+          ]);
+          const rows = baseRows
+            .filter((row) => !hiddenRowIds.has(row.id))
+            .map((row) =>
               withRowError(
                 applyRowEdits(row, state.edits[row.id]),
                 state.rowErrors,
               ),
-            ),
+            );
+
+          const sessionRows = [
+            ...state.materializedRows
+              .filter((row) => !hiddenRowIds.has(row.id))
+              .map((row) =>
+                withRowError(
+                  applyRowEdits(row, state.edits[row.id]),
+                  state.rowErrors,
+                ),
+              ),
             ...state.draftRows.map((row) =>
               withRowError(row, state.rowErrors),
             ),
@@ -564,6 +671,7 @@ export const useVariantsEditorStore = create<VariantsEditorStore>()(
             draftRows: rows
               .filter((row) => row.kind === "draft")
               .map(rowToSaveRow),
+            deletedRows: get().deletedExistingRows.map(rowToSaveRow),
           };
         },
         getRowEdits: (rowId) => get().edits[rowId],

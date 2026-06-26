@@ -18,10 +18,12 @@ import {
   type EditVariantsSaveResult,
   type IEditVariantsModalPayload,
 } from "../../../modals";
-import type {
-  ApiProduct,
-  ApiProductUpdateInput,
-  CurrencyCode,
+import {
+  VariantOperationAction,
+  type ApiProduct,
+  type ApiProductUpdateInput,
+  type ApiVariantOperationInput,
+  type CurrencyCode,
 } from "@/graphql/types";
 import {
   useProductVariantsLoader,
@@ -251,11 +253,17 @@ export const useProductModals = (
         onSave: async (
           input: EditVariantsSaveInput,
         ): Promise<EditVariantsSaveResult> => {
-          const { existingRows, draftRows, additionalOperations } = input;
+          const { existingRows, draftRows, deletedRows, additionalOperations } =
+            input;
           let updateOperations: NonNullable<ApiProductUpdateInput["variants"]>;
           let createOperations: NonNullable<ApiProductUpdateInput["variants"]>;
+          let deleteOperations: ApiVariantOperationInput[];
 
           try {
+            deleteOperations = deletedRows.map((row) => ({
+              action: VariantOperationAction.Delete,
+              variantId: row.id,
+            }));
             updateOperations = prepareChangedVariantUpdateOperations({
               rows: existingRows,
               variants,
@@ -294,6 +302,7 @@ export const useProductModals = (
           }
 
           const variantOperations = [
+            ...deleteOperations,
             ...updateOperations,
             ...createOperations,
             ...(additionalOperations?.variants ?? []),

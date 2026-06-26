@@ -89,6 +89,7 @@ export function normalizeProductUpdateErrors(
 export interface VariantOperationRowStateInput {
   existingRows: VariantEditorSaveRow[];
   draftRows: VariantEditorSaveRow[];
+  deletedRows: VariantEditorSaveRow[];
   additionalOperations?: ApiProductUpdateInput;
   submittedVariantOperations?: ApiVariantOperationInput[];
   operationResults: ApiOperationResult[];
@@ -103,6 +104,7 @@ export interface VariantOperationRowState {
     applied: boolean;
     errors: ApiGenericUserError[];
   }>;
+  appliedDeletedRowIds: string[];
   firstMessage: string | null;
 }
 
@@ -146,7 +148,7 @@ function getFallbackRowForVariantIndex(
   }
 
   if (operation?.variantId) {
-    return input.existingRows.find(
+    return [...input.existingRows, ...input.deletedRows].find(
       (row) => row.id === operation.variantId,
     ) ?? null;
   }
@@ -160,6 +162,7 @@ export function mapVariantOperationResultsToRowState(
   const rowErrors: Record<string, string | null> = {};
   const materializedDraftRows: VariantOperationRowState["materializedDraftRows"] =
     [];
+  const appliedDeletedRowIds: string[] = [];
   const draftRowsByClientMutationId = new Map(
     input.draftRows
       .filter((row) => row.clientMutationId)
@@ -167,6 +170,9 @@ export function mapVariantOperationResultsToRowState(
   );
   const existingRowsById = new Map(
     input.existingRows.map((row) => [row.id, row]),
+  );
+  const deletedRowsById = new Map(
+    input.deletedRows.map((row) => [row.id, row]),
   );
   let firstMessage: string | null = null;
 
@@ -217,6 +223,21 @@ export function mapVariantOperationResultsToRowState(
       } else if (rowId && message) {
         rowErrors[rowId] = message;
       }
+      continue;
+    }
+
+    if (operationResult.type === OperationType.VariantDelete) {
+      const rowId =
+        operationResult.entityId ??
+        getFallbackRowForVariantIndex(input, index)?.id;
+
+      if (rowId && operationResult.applied) {
+        appliedDeletedRowIds.push(rowId);
+      }
+
+      if (rowId && message && deletedRowsById.has(rowId)) {
+        rowErrors[rowId] = message;
+      }
     }
   }
 
@@ -250,6 +271,7 @@ export function mapVariantOperationResultsToRowState(
   return {
     rowErrors,
     materializedDraftRows,
+    appliedDeletedRowIds,
     firstMessage,
   };
 }

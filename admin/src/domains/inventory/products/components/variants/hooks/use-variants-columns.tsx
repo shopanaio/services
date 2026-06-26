@@ -22,6 +22,7 @@ import {
   TextCellRenderer,
   NumberCellRenderer,
   PriceCellRenderer,
+  ActionsCellRenderer,
 } from "../components/cell-renderers";
 import { formatCurrencySymbol } from "../../../utils/price-formatting";
 
@@ -54,6 +55,7 @@ export interface UseVariantsColumnsOptions {
     optionId: string,
     optionValueId: string,
   ) => void;
+  onDeleteRow?: (rowId: string) => void;
 }
 
 interface OptionDropdownCellProps {
@@ -264,6 +266,7 @@ export function useVariantsColumns(
     currency,
     onEditMedia,
     onOptionValueChange,
+    onDeleteRow,
   } = normalizedOptions;
 
   const columnVisibility = useVariantsEditorStore((s) => s.columnVisibility);
@@ -413,6 +416,24 @@ export function useVariantsColumns(
       });
     }
 
+    if (onDeleteRow) {
+      columns.push({
+        colId: "actions",
+        headerName: "",
+        pinned: "right",
+        width: 56,
+        minWidth: 56,
+        maxWidth: 56,
+        resizable: false,
+        sortable: false,
+        suppressNavigable: true,
+        cellRenderer: ActionsCellRenderer,
+        cellRendererParams: {
+          onDeleteRow,
+        },
+      });
+    }
+
     return columns;
   }, [
     columnVisibility,
@@ -425,5 +446,6 @@ export function useVariantsColumns(
     currency,
     onEditMedia,
     onOptionValueChange,
+    onDeleteRow,
   ]);
 }

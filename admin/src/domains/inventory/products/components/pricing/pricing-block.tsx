@@ -207,6 +207,7 @@ export const PricingBlock = ({
         availableColumns: ["price", "compareAtPrice"],
         showColumnSettings: false,
         allowDraftRows: false,
+        allowDeleteRows: false,
         onSave: (input: EditVariantsSaveInput) =>
           handleSavePrices(input.existingRows, editorVariants),
       });

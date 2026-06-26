@@ -196,6 +196,7 @@ export interface EditVariantsSaveResult {
 export interface EditVariantsSaveInput {
   existingRows: VariantEditorSaveRow[];
   draftRows: VariantEditorSaveRow[];
+  deletedRows: VariantEditorSaveRow[];
   additionalOperations?: ApiProductUpdateInput;
 }
 
@@ -225,6 +226,10 @@ export interface IEditVariantsModalPayload extends IModalStackPayload {
    * Whether this editor session can create draft variant rows. Defaults to true.
    */
   allowDraftRows?: boolean;
+  /**
+   * Whether this editor session can delete variant rows. Defaults to allowDraftRows.
+   */
+  allowDeleteRows?: boolean;
   onSave?: (
     input: EditVariantsSaveInput,
   ) => EditVariantsSaveResult | Promise<EditVariantsSaveResult>;

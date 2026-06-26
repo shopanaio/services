@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useMemo } from "react";
-import { Button, Divider, Tag, App } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { Divider, Tag, App } from "antd";
 import { createStyles } from "antd-style";
 import { ModalLayout, useModalStackContext } from "@/layouts/modals";
 import { useDefaultCurrency } from "@/domains/workspace";
@@ -88,6 +87,7 @@ export const EditVariantsModal = () => {
   const defaultCurrency =
     typedPayload.defaultCurrency ?? storeDefaultCurrency ?? null;
   const allowDraftRows = typedPayload.allowDraftRows ?? true;
+  const allowDeleteRows = typedPayload.allowDeleteRows ?? allowDraftRows;
 
   // Store
   const hasChanges = useVariantsEditorStore((s) => s.hasChanges());
@@ -98,8 +98,9 @@ export const EditVariantsModal = () => {
   const startSaving = useVariantsEditorStore((s) => s.startSaving);
   const onSaveSuccess = useVariantsEditorStore((s) => s.onSaveSuccess);
   const onSaveError = useVariantsEditorStore((s) => s.onSaveError);
-  const addDraftRow = useVariantsEditorStore((s) => s.addDraftRow);
   const setRowErrors = useVariantsEditorStore((s) => s.setRowErrors);
+  const commitDeletedRows = useVariantsEditorStore((s) => s.commitDeletedRows);
+  const restoreDeletedRows = useVariantsEditorStore((s) => s.restoreDeletedRows);
   const materializeDraftRows = useVariantsEditorStore(
     (s) => s.materializeDraftRows,
   );
@@ -166,10 +167,6 @@ export const EditVariantsModal = () => {
     pop();
   }, [resetSession, pop]);
 
-  const handleAddDraftRow = useCallback(() => {
-    addDraftRow();
-  }, [addDraftRow]);
-
   // Handle save
   const handleSave = useCallback(async () => {
     const currentRows = getCurrentRows(baseRows).filter(
@@ -197,7 +194,7 @@ export const EditVariantsModal = () => {
     }
 
     setRowErrors({});
-    const { existingRows, draftRows } = getRowsForSave(baseRows);
+    const { existingRows, draftRows, deletedRows } = getRowsForSave(baseRows);
     const existingCurrentRows = currentRows.filter(
       (row) => row.kind !== "draft",
     );
@@ -216,6 +213,7 @@ export const EditVariantsModal = () => {
       const result = await typedPayload.onSave?.({
         existingRows,
         draftRows,
+        deletedRows,
         additionalOperations,
       });
 
@@ -229,6 +227,7 @@ export const EditVariantsModal = () => {
       const rowState = mapVariantOperationResultsToRowState({
         existingRows,
         draftRows,
+        deletedRows,
         additionalOperations,
         submittedVariantOperations: result.submittedVariantOperations,
         operationResults: result.operationResults,
@@ -236,6 +235,8 @@ export const EditVariantsModal = () => {
       });
 
       materializeDraftRows(rowState.materializedDraftRows);
+      commitDeletedRows(rowState.appliedDeletedRowIds);
+      restoreDeletedRows(rowState.rowErrors);
       setRowErrors(rowState.rowErrors);
       onSaveError();
 
@@ -258,7 +259,9 @@ export const EditVariantsModal = () => {
     getRowsForSave,
     message,
     originalOptionRows,
+    commitDeletedRows,
     materializeDraftRows,
+    restoreDeletedRows,
     setRowErrors,
     typedPayload,
     startSaving,
@@ -280,23 +283,10 @@ export const EditVariantsModal = () => {
   }, [handleClose]);
 
   // Header extra: Columns button (conditionally shown)
-  const headerExtra = allowDraftRows || showColumnSettings ? (
+  const headerExtra = showColumnSettings ? (
     <div className={styles.headerExtra}>
-      {allowDraftRows ? (
-        <Button
-          icon={<PlusOutlined />}
-          onClick={handleAddDraftRow}
-          disabled={isSaving}
-        >
-          Add variant
-        </Button>
-      ) : null}
-      {showColumnSettings ? (
-        <>
-          <VariantsColumnSettings optionGroups={optionGroups} />
-          <Divider orientation="vertical" style={{ height: 48, margin: 0 }} />
-        </>
-      ) : null}
+      <VariantsColumnSettings optionGroups={optionGroups} />
+      <Divider orientation="vertical" style={{ height: 48, margin: 0 }} />
     </div>
   ) : null;
 
@@ -335,6 +325,7 @@ export const EditVariantsModal = () => {
             productOptions={typedPayload.productOptions}
             productMediaFiles={typedPayload.productMediaFiles ?? []}
             allowDraftRows={allowDraftRows}
+            allowDeleteRows={allowDeleteRows}
           />
         </div>
       </div>

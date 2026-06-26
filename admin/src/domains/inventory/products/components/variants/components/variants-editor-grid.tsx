@@ -48,6 +48,7 @@ interface VariantsEditorGridProps {
   productOptions?: ApiProductOption[];
   productMediaFiles?: ApiFile[];
   allowDraftRows?: boolean;
+  allowDeleteRows?: boolean;
   dataTestId?: string;
 }
 
@@ -103,6 +104,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   productOptions = [],
   productMediaFiles = [],
   allowDraftRows = true,
+  allowDeleteRows = true,
   dataTestId = "variants-editor-grid",
 }) => {
   // Extract option groups for column generation
@@ -125,9 +127,16 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   const edits = useVariantsEditorStore((s) => s.edits);
   const draftRows = useVariantsEditorStore((s) => s.draftRows);
   const materializedRows = useVariantsEditorStore((s) => s.materializedRows);
+  const deletedExistingRows = useVariantsEditorStore(
+    (s) => s.deletedExistingRows,
+  );
+  const committedDeletedRowIds = useVariantsEditorStore(
+    (s) => s.committedDeletedRowIds,
+  );
   const blankRow = useVariantsEditorStore((s) => s.blankRow);
   const rowErrors = useVariantsEditorStore((s) => s.rowErrors);
   const setFieldValue = useVariantsEditorStore((s) => s.setFieldValue);
+  const deleteVariantRow = useVariantsEditorStore((s) => s.deleteVariantRow);
   const getCurrentRows = useVariantsEditorStore((s) => s.getCurrentRows);
 
   const rows = useMemo(() => {
@@ -179,6 +188,8 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
     blankRow,
     draftRows,
     edits,
+    deletedExistingRows,
+    committedDeletedRowIds,
     getCurrentRows,
     initialRows,
     materializedRows,
@@ -281,6 +292,19 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
     [displayRows, rows, setFieldValue],
   );
 
+  const handleDeleteRow = useCallback(
+    (rowId: string) => {
+      const row = displayRows.find((candidate) => candidate.id === rowId);
+
+      if (!row) {
+        return;
+      }
+
+      deleteVariantRow(row);
+    },
+    [deleteVariantRow, displayRows],
+  );
+
   // Columns - pass availableColumns and ignoreUserSettings
   const columns = useVariantsColumns({
     optionGroups,
@@ -291,6 +315,7 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
     ignoreUserSettings,
     onEditMedia: isFieldEditable("media") ? handleOpenMediaEditor : undefined,
     onOptionValueChange: handleOptionValueChange,
+    onDeleteRow: allowDeleteRows ? handleDeleteRow : undefined,
   });
 
   // Notify compatible external consumers of store-owned rows.
@@ -298,12 +323,14 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
     if (
       Object.keys(edits).length > 0 ||
       draftRows.length > 0 ||
-      materializedRows.length > 0
+      materializedRows.length > 0 ||
+      deletedExistingRows.length > 0
     ) {
       onChange?.(displayRows);
     }
   }, [
     displayRows,
+    deletedExistingRows.length,
     draftRows.length,
     edits,
     materializedRows.length,
