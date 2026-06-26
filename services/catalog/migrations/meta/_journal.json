@@ -15,6 +15,13 @@
       "when": 1782408933505,
       "tag": "0001_remove_inventory_catalog_projection",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782408933506,
+      "tag": "0002_inventory_item_warehouse_stock_presence",
+      "breakpoints": true
     }
   ]
 }

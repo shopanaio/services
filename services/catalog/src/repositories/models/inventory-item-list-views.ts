@@ -99,7 +99,7 @@ export const inventoryItemListWarehouseStockView = catalogSchema
       product.handle AS product_handle,
       translation.locale,
       translation.name AS product_name,
-      warehouse.id AS warehouse_scope_id,
+      stock.warehouse_id AS warehouse_scope_id,
       item.sku,
       item.track_inventory,
       item.continue_selling_when_out_of_stock,
@@ -109,13 +109,13 @@ export const inventoryItemListWarehouseStockView = catalogSchema
         product.updated_at,
         variant.updated_at
       ) AS updated_at,
-      coalesce(stock.quantity_on_hand, 0)::integer AS quantity_on_hand,
-      coalesce(stock.reserved_qty, 0)::integer AS reserved_quantity,
-      coalesce(stock.unavailable_qty, 0)::integer AS unavailable_quantity,
+      stock.quantity_on_hand::integer AS quantity_on_hand,
+      stock.reserved_qty::integer AS reserved_quantity,
+      stock.unavailable_qty::integer AS unavailable_quantity,
       (
-        coalesce(stock.quantity_on_hand, 0)
-        - coalesce(stock.reserved_qty, 0)
-        - coalesce(stock.unavailable_qty, 0)
+        stock.quantity_on_hand
+        - stock.reserved_qty
+        - stock.unavailable_qty
       )::integer AS available_for_sale
     FROM catalog.inventory_item item
     JOIN catalog.variant variant
@@ -127,12 +127,9 @@ export const inventoryItemListWarehouseStockView = catalogSchema
     JOIN catalog.product_translation translation
       ON translation.project_id = item.project_id
      AND translation.product_id = product.id
-    JOIN catalog.warehouses warehouse
-      ON warehouse.project_id = item.project_id
-    LEFT JOIN catalog.warehouse_stock stock
+    JOIN catalog.warehouse_stock stock
       ON stock.project_id = item.project_id
      AND stock.variant_id = item.variant_id
-     AND stock.warehouse_id = warehouse.id
   `);
 
 export type InventoryItemListAllStockView =
