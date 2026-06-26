@@ -617,4 +617,62 @@ test.describe('Admin product options and variants lifecycle UI', () => {
       expectedStates(EXPANDED_COMBINATIONS),
     );
   });
+
+  test('creates variants and swaps expanded options so new variants keep previous combinations', async ({
+    api,
+    page,
+  }) => {
+    const { productsUrl } = await setupAdmin(api, page);
+    const unique = crypto.randomUUID().slice(0, 8);
+    const product = await createProduct(api, unique, { withOptionsAndVariants: true });
+
+    await openProductDetails(page, productsUrl, product);
+    await addExpandedOptionValuesInDetails(page);
+
+    const options = await readProductOptions(api, product.id);
+    const variants = await readProductVariants(api, product.id);
+    const variantsByHandle = new Map(variants.map((variant) => [variant.handle, variant] as const));
+    const existingVariantSwaps = [
+      { fromHandle: 'black-small', combo: { color: 'Red', size: 'Medium' } },
+      { fromHandle: 'black-large', combo: { color: 'Red', size: 'Small' } },
+      { fromHandle: 'white-small', combo: { color: 'Red', size: 'Large' } },
+      { fromHandle: 'white-large', combo: { color: 'Black', size: 'Medium' } },
+    ] as const;
+    const expected = [
+      ...existingVariantSwaps.map((item) => item.combo),
+      ...BASE_COMBINATIONS,
+    ];
+
+    await openEditVariantsModal(page);
+    await showEditorColumns(page, EDITOR_COLUMNS);
+
+    for (const [index, item] of existingVariantSwaps.entries()) {
+      const variant = variantsByHandle.get(item.fromHandle);
+      if (!variant) {
+        throw new Error(`Variant ${item.fromHandle} was not created`);
+      }
+
+      await fillVariantRow(page, options, variant.id, variantState(index, item.combo));
+    }
+
+    for (const [index, combo] of BASE_COMBINATIONS.entries()) {
+      const draftId = await addDraftVariantRow(page);
+      await fillVariantRow(
+        page,
+        options,
+        draftId,
+        variantState(existingVariantSwaps.length + index, combo),
+      );
+    }
+
+    await saveVariants(page);
+
+    await expectVariantsAfterReload(
+      api,
+      page,
+      productsUrl,
+      product,
+      expectedStates(expected),
+    );
+  });
 });
