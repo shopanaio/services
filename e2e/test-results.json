@@ -60,7 +60,7 @@
     "updateSnapshots": "missing",
     "updateSourceMethod": "patch",
     "version": "1.51.1",
-    "workers": 1,
+    "workers": 5,
     "webServer": {
       "command": "node bin/start-test-env.mjs",
       "url": "http://127.0.0.1:3300",
@@ -70,30 +70,26 @@
   },
   "suites": [
     {
-      "title": "admin-ui/inventory-page.spec.ts",
-      "file": "admin-ui/inventory-page.spec.ts",
+      "title": "admin-ui/product-options-variants-lifecycle.spec.ts",
+      "file": "admin-ui/product-options-variants-lifecycle.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "Admin inventory page UI",
-          "file": "admin-ui/inventory-page.spec.ts",
-          "line": 362,
+          "title": "Admin product options and variants lifecycle UI",
+          "file": "admin-ui/product-options-variants-lifecycle.spec.ts",
+          "line": 413,
           "column": 6,
           "specs": [
             {
-              "title": "edits warehouse-scoped quantities and persists them through bulk update",
+              "title": "deletes a variant from the variants table and keeps it deleted after reload",
               "ok": true,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 90000,
-                  "annotations": [
-                    {
-                      "type": "slow"
-                    }
-                  ],
+                  "timeout": 120000,
+                  "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "chromium",
                   "projectName": "chromium",
@@ -102,21 +98,21 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 16832,
+                      "duration": 16030,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-06-25T20:26:39.467Z",
+                      "startTime": "2026-06-26T13:49:45.954Z",
                       "attachments": []
                     }
                   ],
                   "status": "expected"
                 }
               ],
-              "id": "1b79c680960b7e5f9da1-bd813c609007f7086210",
-              "file": "admin-ui/inventory-page.spec.ts",
-              "line": 394,
+              "id": "159600ed0cc0b468b960-078edb7b370ea308815b",
+              "file": "admin-ui/product-options-variants-lifecycle.spec.ts",
+              "line": 566,
               "column": 5
             }
           ]
@@ -126,8 +122,8 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-06-25T20:26:08.328Z",
-    "duration": 49970.189,
+    "startTime": "2026-06-26T13:49:13.357Z",
+    "duration": 50843.23,
     "expected": 1,
     "skipped": 0,
     "unexpected": 0,

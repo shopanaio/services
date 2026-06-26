@@ -432,10 +432,10 @@ async function saveVariants(page: Page) {
 }
 
 async function deleteVariantRow(page: Page, variantId: string) {
-  const row = page.locator(`.ag-row[row-id="${variantId}"]`);
-  await row.scrollIntoViewIfNeeded();
-  await page.getByTestId(`variants-editor-delete-row-${variantId}`).click();
-  await expect(row).toBeHidden();
+  const deleteButton = page.getByTestId(`variants-editor-delete-row-${variantId}`);
+  await deleteButton.scrollIntoViewIfNeeded();
+  await deleteButton.click();
+  await expect(deleteButton).toBeHidden();
 }
 
 async function readVariantRowSummary(
