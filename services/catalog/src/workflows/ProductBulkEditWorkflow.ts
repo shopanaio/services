@@ -113,39 +113,40 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows {
     items: BulkEditItem[],
     result: ProductUpdateWorkflowResult
   ): Promise<void> {
-    // If workflow-level error (e.g., revision conflict)
+    if (result.operationResults.length > 0) {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const opResult = result.operationResults[i];
+
+        if (!opResult) {
+          await this.stepTryMarkItemFailed(item.id, [
+            {
+              message: "Missing operation result",
+              code: "MISSING_OPERATION_RESULT",
+            },
+          ]);
+          continue;
+        }
+
+        if (opResult.applied) {
+          await this.stepTryMarkItemSucceeded(item.id);
+        } else {
+          await this.stepTryMarkItemFailed(
+            item.id,
+            opResult.errors.map(toBulkEditError)
+          );
+        }
+      }
+      return;
+    }
+
+    // If workflow-level error without per-operation results (e.g., revision conflict)
     if (result.product === null && result.userErrors.length > 0) {
-      const errors: BulkEditError[] = result.userErrors.map((e) => ({
-        message: e.message,
-        code: e.code ?? "UNKNOWN",
-        field: e.field,
-      }));
+      const errors: BulkEditError[] = result.userErrors.map(toBulkEditError);
       await Promise.all(
         items.map((item) => this.stepTryMarkItemFailed(item.id, errors))
       );
       return;
-    }
-
-    // Map operation results to items by index
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      const opResult = result.operationResults[i];
-
-      if (!opResult) {
-        await this.stepTryMarkItemSucceeded(item.id);
-        continue;
-      }
-
-      if (opResult.applied) {
-        await this.stepTryMarkItemSucceeded(item.id);
-      } else {
-        const errors: BulkEditError[] = opResult.errors.map((e) => ({
-          message: e.message,
-          code: e.code ?? "UNKNOWN",
-          field: e.field,
-        }));
-        await this.stepTryMarkItemFailed(item.id, errors);
-      }
     }
   }
 
@@ -242,4 +243,16 @@ function groupItemsByProduct(
   );
 
   return groups;
+}
+
+function toBulkEditError(error: {
+  message: string;
+  code?: string;
+  field?: string[];
+}): BulkEditError {
+  return {
+    message: error.message,
+    code: error.code ?? "UNKNOWN",
+    field: error.field,
+  };
 }

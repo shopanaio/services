@@ -1,24 +1,24 @@
-# Variant Option Async Swap Handle Consistency Plan
+# План консистентности handle при асинхронном swap опций варианта
 
-## Goal
+## Цель
 
-Allow product variant option combinations to be swapped through asynchronous, time-stretched workflows without temporarily breaking business operations, while keeping `variant.handle` unique for active variants.
+Разрешить swap комбинаций опций вариантов продукта через асинхронные, растянутые во времени workflows, не ломая временно бизнес-операции и сохраняя уникальность `variant.handle` для активных вариантов.
 
-The target behavior is:
+Целевое поведение:
 
-- Active variants keep a database-enforced unique `handle` per product.
-- Option combination changes can be staged asynchronously.
-- A swap that would temporarily duplicate an option-derived handle is represented as an explicit pending operation, not as an invalid active state.
-- Finalization applies the new option links and final handles atomically for a product-scoped operation.
+- Активные варианты сохраняют уникальный `handle` в рамках продукта, и это гарантируется базой данных.
+- Изменения комбинаций опций можно staged-ить асинхронно.
+- Swap, который временно дал бы duplicate option-derived handle, представлен как явная pending operation, а не как невалидное активное состояние.
+- Финализация применяет новые option links и финальные handles атомарно для операции в рамках одного продукта.
 
-## Current Context
+## Текущий контекст
 
-- Variant option links are stored in `catalog.product_option_variant_link`.
-- The table primary key is `(variant_id, option_id)`, so one variant can have only one value per option.
-- There is no database constraint that directly prevents two variants from having the same option-value combination.
-- Duplicate option combinations are effectively prevented by `catalog.variant.handle`.
-- `variant.handle` is rebuilt from option value slugs by `VariantUpdateOptionsScript` and `VariantBatchUpdateOptionsScript`.
-- `catalog.variant` has the partial unique index:
+- Связи опций варианта хранятся в `catalog.product_option_variant_link`.
+- Primary key таблицы: `(variant_id, option_id)`, поэтому один вариант может иметь только одно значение для каждой опции.
+- Прямого database constraint, который запрещает двум вариантам иметь одинаковую option-value комбинацию, нет.
+- Дубли комбинаций опций фактически запрещаются через `catalog.variant.handle`.
+- `variant.handle` пересобирается из slug значений опций в `VariantUpdateOptionsScript` и `VariantBatchUpdateOptionsScript`.
+- В `catalog.variant` есть partial unique index:
 
 ```ts
 uniqueIndex("variant_product_id_handle_key")
@@ -26,38 +26,38 @@ uniqueIndex("variant_product_id_handle_key")
   .where(sql`deleted_at IS NULL`)
 ```
 
-- The current batch script already uses temporary handles to support synchronous swaps inside one backend operation.
-- The problem appears when option changes are asynchronous and the swap is stretched across multiple operations or worker steps.
+- Текущий batch script уже использует временные handles, чтобы поддерживать синхронные swaps внутри одной backend operation.
+- Проблема возникает, когда изменения опций асинхронные и swap растянут на несколько операций или шагов worker-а.
 
-## Design Principle
+## Принцип дизайна
 
-Do not make the active catalog state temporarily inconsistent.
+Не делать активное состояние каталога временно неконсистентным.
 
-If a swap is stretched over time, it must be modeled as an operation with state. The active read model should either:
+Если swap растянут во времени, его нужно моделировать как operation со state. Активная read model должна либо:
 
-1. Continue serving the old stable variant option links and handles until the operation finalizes.
-2. Or explicitly exclude variants in a non-active transition state from handle-based active lookups.
+1. Продолжать отдавать старые стабильные option links и handles до финализации operation.
+2. Либо явно исключать варианты в non-active transitional state из активных handle-based lookups.
 
-The preferred approach is to keep the active state stable and store pending option changes separately.
+Предпочтительный подход: держать active state стабильным, а pending option changes хранить отдельно.
 
-## Recommended Architecture
+## Рекомендуемая архитектура
 
-Use a product-scoped pending operation model.
+Использовать pending operation model в рамках продукта.
 
 ### Active State
 
-Keep the current active tables as the published catalog state:
+Оставить текущие активные таблицы как published catalog state:
 
 - `catalog.variant`
 - `catalog.product_option_variant_link`
 
-Keep `variant_product_id_handle_key` as a hard database invariant for active variants.
+Оставить `variant_product_id_handle_key` как жесткий database invariant для активных вариантов.
 
 ### Pending State
 
-Add a pending operation table for asynchronous option changes.
+Добавить таблицу pending operations для асинхронных изменений опций.
 
-Example tables:
+Пример таблиц:
 
 ```sql
 CREATE TABLE catalog.variant_option_change_operation (
@@ -81,54 +81,54 @@ CREATE TABLE catalog.variant_option_change_operation_item (
 );
 ```
 
-Recommended statuses:
+Рекомендуемые statuses:
 
-| Status | Meaning |
+| Status | Значение |
 | --- | --- |
-| `pending` | Operation was accepted but not processed yet. |
-| `applying` | Worker is applying the operation. |
-| `applied` | Operation finalized successfully. |
-| `failed` | Operation could not be applied and needs user/system action. |
-| `cancelled` | Operation was cancelled before finalization. |
+| `pending` | Operation принята, но еще не обработана. |
+| `applying` | Worker применяет operation. |
+| `applied` | Operation успешно финализирована. |
+| `failed` | Operation не удалось применить, нужно действие пользователя или системы. |
+| `cancelled` | Operation отменена до финализации. |
 
-## Finalization Flow
+## Flow финализации
 
-A worker or DBOS workflow finalizes the operation.
+Worker или DBOS workflow финализирует operation.
 
-1. Load the operation and its items.
-2. Acquire a product-scoped lock.
-3. Validate that all variants still exist and belong to the product.
-4. Validate that all options and values still belong to the product.
-5. Validate each variant has at most one value per option.
-6. Build the desired option links for every affected variant.
-7. Build final handles from the desired links.
-8. Detect duplicate final handles inside the operation.
-9. Detect conflicts with active variants outside the operation.
-10. In one transaction:
-    - set temporary unique handles for affected variants;
-    - replace option links for affected variants;
-    - set final handles;
-    - mark operation `applied`.
+1. Загрузить operation и ее items.
+2. Взять product-scoped lock.
+3. Проверить, что все variants все еще существуют и принадлежат продукту.
+4. Проверить, что все options и values все еще принадлежат продукту.
+5. Проверить, что у каждого variant максимум одно value на option.
+6. Собрать desired option links для каждого затронутого variant.
+7. Собрать финальные handles из desired links.
+8. Найти duplicate final handles внутри operation.
+9. Найти конфликты с active variants вне operation.
+10. В одной транзакции:
+    - выставить временные уникальные handles для затронутых variants;
+    - заменить option links для затронутых variants;
+    - выставить финальные handles;
+    - отметить operation как `applied`.
 
-The active unique index on `(product_id, handle)` remains enabled during the final transaction. If the final state is invalid, the transaction fails and the operation is marked `failed`.
+Активный unique index на `(product_id, handle)` остается включенным во время финальной транзакции. Если финальное состояние невалидно, транзакция падает, а operation помечается как `failed`.
 
 ## Product Locking
 
-Use one product-scoped lock during finalization to prevent concurrent operations from racing on the same product.
+Во время финализации нужен один product-scoped lock, чтобы конкурентные operations не гонялись за один и тот же продукт.
 
-Options:
+Варианты:
 
-- PostgreSQL advisory transaction lock using a stable hash of `product_id`.
-- A product operation lock table with `product_id`, `operation_id`, and expiration.
-- DBOS workflow-level serialization if the project already has a reliable per-product queue pattern.
+- PostgreSQL advisory transaction lock через стабильный hash от `product_id`.
+- Таблица product operation locks с `product_id`, `operation_id` и expiration.
+- DBOS workflow-level serialization, если в проекте уже есть надежный per-product queue pattern.
 
-The lock should cover the final validation and write transaction.
+Lock должен покрывать финальную валидацию и write transaction.
 
-## API Shape
+## Форма API
 
-Do not expose asynchronous swap as a series of independent variant option updates.
+Не exposing-ить асинхронный swap как серию независимых update-ов опций варианта.
 
-Add or adapt an operation-oriented API:
+Добавить или адаптировать operation-oriented API:
 
 ```graphql
 input VariantOptionChangeInput {
@@ -141,7 +141,7 @@ input ProductVariantOptionsChangeOperationInput {
 }
 ```
 
-Possible mutation:
+Возможная mutation:
 
 ```graphql
 productVariantOptionsChangeCreate(
@@ -150,37 +150,37 @@ productVariantOptionsChangeCreate(
 ): ProductVariantOptionsChangeOperationPayload!
 ```
 
-Payload should return:
+Payload должен возвращать:
 
 - operation id;
 - operation status;
-- validation errors for immediately detectable issues;
+- validation errors для проблем, которые можно определить сразу;
 - affected variant ids.
 
-The existing synchronous `productUpdate` batch path can remain for immediate, atomic edits.
+Существующий синхронный batch path через `productUpdate` может остаться для immediate atomic edits.
 
-## Read Path Behavior
+## Поведение Read Path
 
-Default catalog reads should return active state only.
+Обычные catalog reads должны возвращать только active state.
 
-Admin reads can optionally include pending operation metadata:
+Admin reads могут опционально включать metadata pending operation:
 
-- variant has pending option changes;
+- у variant есть pending option changes;
 - operation status;
-- desired option links for preview;
-- operation error if failed.
+- desired option links для preview;
+- operation error, если она failed.
 
-Handle-based reads must remain unambiguous. They should not resolve from pending option links.
+Handle-based reads должны оставаться однозначными. Они не должны resolve-иться из pending option links.
 
-## Why Not Drop The Unique Index
+## Почему не надо просто удалить unique index
 
-Dropping `variant_product_id_handle_key` would allow the temporary duplicate, but it also allows permanent duplicate active handles. That weakens the wrong invariant.
+Удаление `variant_product_id_handle_key` разрешит временный duplicate, но также разрешит постоянные duplicate active handles. Это ослабляет не тот invariant.
 
-The desired invariant is not "handles may duplicate". The desired invariant is "active handles are unique, and pending operations may temporarily describe a state that is not active yet".
+Нужный invariant не "handles могут дублироваться". Нужный invariant: "active handles уникальны, а pending operations могут временно описывать состояние, которое еще не является active".
 
-## Alternative: Partial Unique Index By State
+## Альтернатива: Partial Unique Index по state
 
-An alternative is to add state directly to `catalog.variant`:
+Альтернативный подход - добавить state прямо в `catalog.variant`:
 
 ```sql
 ALTER TABLE catalog.variant
@@ -192,70 +192,70 @@ WHERE deleted_at IS NULL
   AND option_sync_state = 'active';
 ```
 
-During an asynchronous swap, affected variants move to `reconfiguring`, and the unique index no longer applies to them.
+Во время асинхронного swap затронутые variants переходят в `reconfiguring`, и unique index больше к ним не применяется.
 
-This is more invasive for read paths:
+Это сильнее влияет на read paths:
 
-- all active catalog queries must filter `option_sync_state = 'active'`;
-- handle lookup must define behavior for reconfiguring variants;
-- checkout, pricing, inventory, and storefront flows must know whether reconfiguring variants are sellable.
+- все active catalog queries должны фильтровать `option_sync_state = 'active'`;
+- handle lookup должен определить поведение для reconfiguring variants;
+- checkout, pricing, inventory и storefront flows должны понимать, продаваемы ли reconfiguring variants.
 
-Use this only if the product needs the active variant rows themselves to enter a transitional state.
+Использовать это стоит только если продукту действительно нужно, чтобы сами active variant rows входили в transitional state.
 
 ## Backend Changes
 
-Recommended implementation steps:
+Рекомендуемые шаги реализации:
 
-1. Add Drizzle models for operation and operation item tables.
-2. Add migrations through the project migration generation flow.
-3. Add a repository for creating, reading, and updating variant option change operations.
-4. Add a script/workflow to create an operation after immediate validation.
-5. Add a finalizer script/workflow that applies an operation under product lock.
-6. Reuse `buildVariantHandle` for final handle calculation.
-7. Keep temporary handle logic similar to `VariantBatchUpdateOptionsScript`.
-8. Make duplicate-handle errors operation-level failures, not partial variant updates.
+1. Добавить Drizzle models для operation и operation item tables.
+2. Добавить migrations через project migration generation flow.
+3. Добавить repository для create/read/update variant option change operations.
+4. Добавить script/workflow, который создает operation после immediate validation.
+5. Добавить finalizer script/workflow, который применяет operation под product lock.
+6. Переиспользовать `buildVariantHandle` для расчета final handle.
+7. Оставить temporary handle logic похожей на `VariantBatchUpdateOptionsScript`.
+8. Ошибки duplicate-handle делать operation-level failures, а не partial variant updates.
 
 ## Frontend Changes
 
-Admin variant option editing should distinguish two save modes:
+Admin-редактирование опций варианта должно различать два режима сохранения:
 
-- immediate save through existing `productUpdate` when the backend can apply changes atomically;
-- asynchronous operation creation when the UI intentionally schedules a staged/sync workflow.
+- immediate save через существующий `productUpdate`, когда backend может применить изменения атомарно;
+- создание asynchronous operation, когда UI намеренно планирует staged/sync workflow.
 
-For asynchronous mode:
+Для asynchronous mode:
 
-- submit all affected rows as one operation;
-- show operation status after creation;
-- do not block UI draft validation only because an intermediate step would duplicate an existing combination;
-- still show final-state duplicate errors if the desired final state has duplicate handles.
+- отправлять все affected rows как одну operation;
+- показывать operation status после создания;
+- не блокировать UI draft validation только потому, что промежуточный шаг дал бы duplicate существующей комбинации;
+- все еще показывать final-state duplicate errors, если desired final state имеет duplicate handles.
 
 ## Failure Handling
 
-When finalization fails:
+Когда финализация падает:
 
-- leave active variant state unchanged;
-- mark operation `failed`;
-- store a stable error code and human-readable message;
-- expose the failed operation to Admin;
-- allow retry if the failure is transient;
-- require user edits if the final desired state is invalid.
+- оставить active variant state неизмененным;
+- отметить operation как `failed`;
+- сохранить стабильный error code и человекочитаемый message;
+- показать failed operation в Admin;
+- разрешить retry, если failure transient;
+- требовать пользовательских правок, если финальное desired state невалидно.
 
-Avoid partial application. A failed operation should not leave some variants with new option links and others with old links.
+Избегать partial application. Failed operation не должна оставлять часть variants с новыми option links, а часть со старыми.
 
-## Open Decisions
+## Открытые решения
 
-- Whether pending operation tables should store only affected variants or the full desired option matrix for the product.
-- Whether operations are created by Admin only or also by import/sync integrations.
-- Whether pending option changes should be visible in storefront reads. Recommended default: no.
-- Whether `variant.handle` remains strictly option-derived after finalization or gains a uniqueness suffix.
-- Which project lock mechanism should be standardized for catalog workflows.
+- Должны ли pending operation tables хранить только affected variants или полную desired option matrix продукта.
+- Создаются ли operations только из Admin или также из import/sync integrations.
+- Должны ли pending option changes быть видимыми в storefront reads. Рекомендуемый default: нет.
+- Остается ли `variant.handle` строго option-derived после финализации или получает uniqueness suffix.
+- Какой механизм product lock нужно стандартизировать для catalog workflows.
 
 ## Acceptance Criteria
 
-- Active variants cannot have duplicate `(product_id, handle)` while `deleted_at IS NULL`.
-- A time-stretched swap can be accepted as one pending operation.
-- The pending operation can describe desired option links that would conflict if applied one variant at a time.
-- Finalization applies all affected variants atomically.
-- Finalization either succeeds fully or leaves active state unchanged.
-- Handle-based reads remain deterministic.
-- Existing synchronous batch swap behavior continues to work.
+- Active variants не могут иметь duplicate `(product_id, handle)`, пока `deleted_at IS NULL`.
+- Time-stretched swap можно принять как одну pending operation.
+- Pending operation может описывать desired option links, которые конфликтовали бы при применении по одному variant за раз.
+- Финализация применяет все affected variants атомарно.
+- Финализация либо полностью успешна, либо оставляет active state неизмененным.
+- Handle-based reads остаются deterministic.
+- Существующее синхронное batch swap behavior продолжает работать.
