@@ -150,6 +150,7 @@ export const VARIANTS_QUERY = gql`
               id
               title
               handle
+              revision
               media {
                 ...ProductMediaItemFields
               }
@@ -198,6 +199,7 @@ export const WAREHOUSE_ASSIGNABLE_VARIANTS_QUERY = gql`
               id
               title
               handle
+              revision
               media {
                 ...ProductMediaItemFields
               }

@@ -21,6 +21,7 @@ export interface InventoryVariantEditMappingResult {
 
 export interface InventoryVariantSelection {
   productId: string;
+  productRevision: number;
   variantId: string;
 }
 
@@ -28,28 +29,34 @@ export function mapInventoryVariantSelectionsToProductBulkUpdateInput(
   variants: InventoryVariantSelection[],
   warehouseId: string,
 ): ApiProductBulkUpdateInput {
-  const variantsByProduct = new Map<string, ApiVariantOperationInput[]>();
+  const variantsByProduct = new Map<
+    string,
+    { expectedRevision: number; variants: ApiVariantOperationInput[] }
+  >();
 
   for (const variant of variants) {
-    variantsByProduct.set(variant.productId, [
-      ...(variantsByProduct.get(variant.productId) ?? []),
-      {
-        action: VariantOperationAction.Update,
-        variantId: variant.variantId,
-        inventory: {
-          warehouseId,
-          onHand: 0,
-          unavailable: 0,
-        },
+    const productGroup = variantsByProduct.get(variant.productId) ?? {
+      expectedRevision: variant.productRevision,
+      variants: [],
+    };
+    productGroup.variants.push({
+      action: VariantOperationAction.Update,
+      variantId: variant.variantId,
+      inventory: {
+        warehouseId,
+        onHand: 0,
+        unavailable: 0,
       },
-    ]);
+    });
+    variantsByProduct.set(variant.productId, productGroup);
   }
 
   return {
-    products: [...variantsByProduct.entries()].map(([productId, variants]) => ({
+    products: [...variantsByProduct.entries()].map(([productId, group]) => ({
       productId,
+      expectedRevision: group.expectedRevision,
       operations: {
-        variants,
+        variants: group.variants,
       },
     })),
   };

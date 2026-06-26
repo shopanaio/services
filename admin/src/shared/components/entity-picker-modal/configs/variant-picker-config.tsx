@@ -39,6 +39,7 @@ interface VariantPickerQueryMeta {
 interface VariantPickerEntity extends IPickableEntity {
   variantId: string;
   productId: string;
+  productRevision: number;
   productTitle: string;
   variantTitle: string;
   sku: string | null;
@@ -105,6 +106,7 @@ function transformVariant(
 	    id: variant.id,
 	    variantId: variant.id,
 	    productId: variant.product.id,
+    productRevision: variant.product.revision,
 	    title: `${variant.product.title} / ${variantLabel}`,
     productTitle: variant.product.title,
     variantTitle: variantLabel,

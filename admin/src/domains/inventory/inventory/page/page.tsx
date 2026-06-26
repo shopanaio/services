@@ -157,6 +157,7 @@ const SkuCellRenderer = ({
 interface InventoryImportVariantEntity extends IPickableEntity {
   variantId: string;
   productId: string;
+  productRevision: number;
 }
 
 function decodePathParam(value: string | null): string | null {
@@ -271,6 +272,7 @@ export default function InventoryPage({ pathParams }: ModulePageProps) {
           mapInventoryVariantSelectionsToProductBulkUpdateInput(
             variants.map((variant) => ({
               productId: variant.productId,
+              productRevision: variant.productRevision,
               variantId: variant.variantId,
             })),
             activeWarehouseId,
