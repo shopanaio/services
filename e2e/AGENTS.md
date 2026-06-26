@@ -120,6 +120,6 @@ CLIENT_GRAPHQL_URL=http://127.0.0.1:14000/graphql
 CONFIG_FILE=config.e2e.yml
 ```
 
-The isolated Docker infra uses PostgreSQL on `15432`, MinIO on `19000`, and local data under `.tmp/e2e-data`.
+The isolated Docker infra uses PostgreSQL on `15432`, MinIO on `19000`.
 
 Use `E2E_CONFIG_FILE=...` to point the auto-start runtime at another config file.
