@@ -40,8 +40,8 @@ variant operations внутри одной существующей mutation `pr
 - `productUpdate` принимает один batch variant operations в
   `ProductUpdateInput.variants`.
 - Backend декодирует и валидирует весь batch до любых write-side effects.
-- `expectedRevision` проверяется до записи и не должен инкрементироваться, если
-  batch-level validation падает.
+- `expectedRevision` обязателен для любых variant operations, проверяется до
+  записи и не должен инкрементироваться, если batch-level validation падает.
 - Variant create/update/delete выполняются внутри существующей модели
   `ProductUpdateWorkflow`.
 - Результаты возвращаются через существующий `ProductUpdatePayload`:
@@ -79,6 +79,9 @@ variant operations внутри одной существующей mutation `pr
   cross-field shape validation for `action`, field-path construction и shared
   mapping для single/bulk. Resolver не должен запускать `ProductUpdateWorkflow`,
   если decode или action-shape validation падает.
+- Requests с непустым `ProductUpdateInput.variants` обязаны передавать
+  `expectedRevision`. Отсутствующий `expectedRevision` является resolver
+  preflight validation error и не должен запускать `ProductUpdateWorkflow`.
 - Workflow layer владеет product-state batch validation. Это держит single
   `productUpdate` и async bulk jobs на одной реализации invariants.
 - `ProductUpdateWorkflow` должен выполнять `stepPreValidateVariantBatch` до
@@ -240,6 +243,9 @@ type ProductUpdateOperation =
   - `CREATE`: нет `variantId`, required `clientMutationId`, required `options`;
   - `UPDATE`: required `variantId`;
   - `DELETE`: required `variantId`, нет других payload fields.
+- Валидировать, что `expectedRevision` передан, если `variants[]` содержит хотя
+  бы одну operation. При отсутствии `expectedRevision` вернуть validation error
+  через `userErrors` и не запускать workflow.
 - Сохранять mapped operation order:
   - одна `productUpdate` operation первой, если есть product-level fields;
   - `categories[]` в request order;
@@ -416,7 +422,8 @@ stepEmitEvent
 
 Если variant operations отсутствуют, существующий product/category/tag flow
 может сохранить текущее поведение. Если variant operations присутствуют,
-validation должна выполняться до revision acquire.
+`expectedRevision` обязателен, validation должна выполняться до revision acquire,
+а `stepAcquireRevision` должен использовать CAS по этому `expectedRevision`.
 
 Для requests, которые включают variant operations, failed variant batch блокирует
 все operations в этом `productUpdate` request, потому что revision не acquired и
@@ -845,6 +852,9 @@ change.
 - `OperationResult` включает `variantCreate`, `variantUpdate`,
   `variantDelete`, `clientMutationId` и `entityId`.
 - Batch validation выполняется до optimistic revision acquire/increment.
+- `expectedRevision` обязателен для любых `ProductUpdateInput.variants`
+  operations; отсутствие revision возвращает validation error без запуска
+  workflow.
 - Failed batch validation не меняет `product.revision`.
 - Duplicate option combinations reject-ятся до writes.
 - Create operations создают variant row и option links в product update workflow.
