@@ -18,6 +18,7 @@ export const productListView = catalogSchema.view("product_list_view").as((qb) =
       updatedAt: product.updatedAt,
       deletedAt: product.deletedAt,
       revision: product.revision,
+      kind: product.kind,
       locale: productTranslation.locale,
       name: productTranslation.name,
       currency: productPriceRange.currency,

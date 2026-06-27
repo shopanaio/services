@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  integer,
   text,
   timestamp,
   uuid,
@@ -13,6 +14,7 @@ export const variantWarehouseCandidateView = catalogSchema
     projectId: uuid("project_id").notNull(),
     warehouseScopeId: uuid("warehouse_scope_id").notNull(),
     productId: uuid("product_id").notNull(),
+    kind: integer("kind").notNull(),
     locale: varchar("locale", { length: 8 }).notNull(),
     productName: text("product_name").notNull(),
     id: uuid("id").notNull(),
@@ -41,6 +43,7 @@ export const variantWarehouseCandidateView = catalogSchema
       variant.project_id,
       warehouse.id AS warehouse_scope_id,
       variant.product_id,
+      variant.kind,
       translation.locale,
       translation.name AS product_name,
       variant.id,

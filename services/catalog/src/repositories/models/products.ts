@@ -31,15 +31,18 @@ export const product = catalogSchema.table(
       .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
     revision: integer("revision").notNull().default(0),
+    kind: integer("kind").notNull().default(1),
   },
   (table) => [
     check(
       "product_published_requires_handle",
       sql`published_at IS NULL OR handle IS NOT NULL`
     ),
+    check("product_kind_positive", sql`kind > 0`),
     uniqueIndex("product_project_id_handle_key")
       .on(table.projectId, table.handle)
       .where(sql`deleted_at IS NULL AND handle IS NOT NULL`),
+    uniqueIndex("product_id_kind_unique").on(table.id, table.kind),
     unique("product_project_id_id_unique").on(table.projectId, table.id),
     index("idx_product_project_id").on(table.projectId),
     index("idx_product_vendor_id").on(table.vendorId),
@@ -61,9 +64,8 @@ export const variant = catalogSchema.table(
   "variant",
   {
     projectId: uuid("project_id").notNull(),
-    productId: uuid("product_id")
-      .notNull()
-      .references(() => product.id, { onDelete: "cascade" }),
+    productId: uuid("product_id").notNull(),
+    kind: integer("kind").notNull().default(1),
     id: uuid("id").primaryKey(),
     isDefault: boolean("is_default").notNull().default(false),
     handle: varchar("handle", { length: 255 }).notNull(),
@@ -83,6 +85,7 @@ export const variant = catalogSchema.table(
       "variant_handle_required_if_not_default",
       sql`is_default = true OR length(handle) > 0`
     ),
+    check("variant_kind_positive", sql`kind > 0`),
     uniqueIndex("variant_product_id_default_key")
       .on(table.productId)
       .where(sql`is_default = true AND deleted_at IS NULL`),
@@ -110,6 +113,11 @@ export const variant = catalogSchema.table(
     index("idx_variant_deleted_at")
       .on(table.deletedAt)
       .where(sql`deleted_at IS NOT NULL`),
+    foreignKey({
+      name: "variant_product_kind_fk",
+      columns: [table.productId, table.kind],
+      foreignColumns: [product.id, product.kind],
+    }).onDelete("cascade"),
   ]
 );
 
