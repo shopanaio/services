@@ -74,6 +74,7 @@ export const variantWarehouseCandidateView = catalogSchema
      AND stock.variant_id = variant.id
      AND stock.warehouse_id = warehouse.id
     WHERE stock.id IS NULL
+      AND variant.kind = 'BASE'
   `);
 
 export type VariantWarehouseCandidateView =
