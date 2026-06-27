@@ -16,6 +16,9 @@
   `BundleConfigurationVariant`.
 - Translation-таблицы не обязаны публиковаться отдельными GraphQL типами: публичное поле
   `title` резолвится из текущей locale.
+- Mutation naming follows existing Catalog Admin API patterns:
+  `*Create` / `*Update` / `*Delete` for ordinary entity lifecycle operations,
+  and `*Sync` for complete replace operations over ordered child collections.
 - Payload мутаций возвращает измененный `bundle`/`configuration` и
   `userErrors: [GenericUserError!]!`.
 - Bundle pricing API следует normalized DB-модели:
@@ -23,7 +26,7 @@
   `bundle_price_rule_amount` и `bundle_price_rule_percent`.
 - Catalog Admin API должен оставаться namespace-based: bundle queries добавляются в
   `CatalogQuery`, bundle mutations - в `CatalogMutation`. Не добавлять root-level
-  `Query.bundle` / `Mutation.bundleSave`.
+  `Query.bundle` / `Mutation.bundleCreate` / `Mutation.bundleConfigurationSync`.
 - Catalog service владеет `Product` и `Variant`, поэтому bundle-поля добавляются в
   существующие owned type definitions, а не через `extend type Product` /
   `extend type Variant` в отдельном subgraph.
@@ -504,22 +507,30 @@ surfaces.
 type CatalogMutation {
   # ... existing catalog mutations
 
-  """Create or update bundle root for a product with kind = BUNDLE."""
-  bundleSave(input: BundleSaveInput!): BundlePayload!
+  """Create bundle root for a product with kind = BUNDLE."""
+  bundleCreate(input: BundleCreateInput!): BundleCreatePayload!
 
-  """Replace one bundle configuration as a single snapshot."""
-  bundleConfigurationSave(input: BundleConfigurationSaveInput!): BundleConfigurationPayload!
+  """Update bundle root settings."""
+  bundleUpdate(input: BundleUpdateInput!): BundleUpdatePayload!
+
+  """Sync one bundle configuration as a complete snapshot."""
+  bundleConfigurationSync(input: BundleConfigurationSyncInput!): BundleConfigurationSyncPayload!
 
   """Delete one bundle configuration."""
   bundleConfigurationDelete(input: BundleConfigurationDeleteInput!): BundleConfigurationDeletePayload!
 }
 
-type BundlePayload {
+type BundleCreatePayload {
   bundle: Bundle
   userErrors: [GenericUserError!]!
 }
 
-type BundleConfigurationPayload {
+type BundleUpdatePayload {
+  bundle: Bundle
+  userErrors: [GenericUserError!]!
+}
+
+type BundleConfigurationSyncPayload {
   configuration: BundleConfiguration
   userErrors: [GenericUserError!]!
 }
@@ -533,12 +544,9 @@ type BundleConfigurationDeletePayload {
 ## Mutation Inputs
 
 ```graphql
-input BundleSaveInput {
-  """Existing bundle ID. Null creates a new bundle root."""
-  id: ID
-
-  """Product ID. Required when id is null."""
-  productId: ID
+input BundleCreateInput {
+  """Product ID for the product with kind = BUNDLE."""
+  productId: ID!
 
   """High-level bundle type."""
   type: BundleType
@@ -547,8 +555,19 @@ input BundleSaveInput {
   displayStyle: BundleDisplayStyle
 }
 
-input BundleConfigurationSaveInput {
-  """Existing configuration ID. Null creates a new configuration."""
+input BundleUpdateInput {
+  """The bundle root to update."""
+  id: ID!
+
+  """High-level bundle type."""
+  type: BundleType
+
+  """Configurator display style."""
+  displayStyle: BundleDisplayStyle
+}
+
+input BundleConfigurationSyncInput {
+  """Existing configuration ID. Null creates a new configuration snapshot."""
   id: ID
 
   """Bundle root ID. Required when id is null."""
@@ -557,16 +576,16 @@ input BundleConfigurationSaveInput {
   """Configuration name."""
   name: String!
 
-  """Complete list of variants assigned to this configuration."""
+  """Complete list of variants assigned to this configuration. Replaces existing assignments."""
   variantIds: [ID!]!
 
-  """Complete list of pricing templates."""
+  """Complete list of pricing templates. Replaces existing templates."""
   pricingTemplates: [BundlePricingTemplateInput!]!
 
-  """Complete list of groups."""
+  """Complete list of groups. Replaces existing groups/items/option selections."""
   groups: [BundleGroupInput!]!
 
-  """Complete list of dependency rules."""
+  """Complete list of dependency rules. Replaces existing rules/conditions/actions."""
   dependencyRules: [BundleDependencyRuleInput!]!
 }
 
@@ -808,7 +827,7 @@ input BundleDependencyActionInput {
 
 ## Валидация
 
-- `BundleSaveInput.productId` должен ссылаться на `Product.kind = BUNDLE`.
+- `BundleCreateInput.productId` должен ссылаться на `Product.kind = BUNDLE`.
 - Для одного product разрешен только один `Bundle`.
 - Все `variantIds` в configuration assignment должны принадлежать bundle product.
 - Каждый variant может быть назначен только одной configuration.
