@@ -2,7 +2,8 @@
 
 Bundle — это продукт с `product.kind = 1` и отдельной 1:1 записью в таблице `bundle`.
 На уровне API/кода числовой `product.kind` мапится в `ProductKind` (`0` → `BASE`, `1` → `BUNDLE`).
-Все bundle-таблицы ссылаются на `bundle.id`, а не напрямую на `product.id`.
+Bundle root ссылается на `product.id`; configuration-scoped таблицы ссылаются на
+`bundle_configuration.id`.
 Структура бандла хранится в `bundle_configuration`: одна конфигурация содержит groups/items/pricing templates/dependency rules и может быть назначена одному или нескольким вариантам bundle product.
 
 ## ER Diagram
@@ -33,7 +34,6 @@ Bundle — это продукт с `product.kind = 1` и отдельной 1:1
 │   bundle_group   │
 ├──────────────────┤
 │ id (PK)          │
-│ bundle_id (FK)   │
 │ configuration_id │
 │ sort_index       │
 │ min_selection    │
@@ -98,7 +98,6 @@ Bundle — это продукт с `product.kind = 1` и отдельной 1:1
 │  bundle_pricing_template   │
 ├────────────────────────────┤
 │ id (PK)                    │
-│ bundle_id (FK)             │
 │ configuration_id (FK)      │
 │ name                       │
 │ price_rule_id (FK)         │
@@ -109,9 +108,9 @@ Bundle — это продукт с `product.kind = 1` и отдельной 1:1
 │     bundle_price_rule      │       │ bundle_price_rule_amount   │
 ├────────────────────────────┤       ├────────────────────────────┤
 │ id (PK)                    │──1:N──│ price_rule_id (PK, FK)     │
-│ bundle_id (FK)             │       │ currency (PK)              │
-│ configuration_id (FK)      │       │ amount_minor               │
-│ price_type                 │       │ project_id                 │
+│ configuration_id (FK)      │       │ currency (PK)              │
+│ price_type                 │       │ amount_minor               │
+│                            │       │ project_id                 │
 └────────────────────────────┘       └────────────────────────────┘
                │ 1:0..1
                ▼
@@ -131,7 +130,6 @@ Bundle — это продукт с `product.kind = 1` и отдельной 1:1
 │  dependency_rule   │       │  condition_group   │       │    condition       │
 ├────────────────────┤       ├────────────────────┤       ├────────────────────┤
 │ id (PK)            │──1:N──│ id (PK)            │──1:N──│ id (PK)            │
-│ bundle_id (FK)     │       │ rule_id (FK)       │       │ group_id (FK)      │
 │ configuration_id   │       │ logic_operator     │       │ category           │
 │ name               │       │ sort_index         │       │ subject            │
 │ enabled            │       └────────────────────┘       │ operator           │
@@ -409,9 +407,8 @@ Do not add `variant_id` to `bundle_group`, `bundle_item`, `bundle_pricing_templa
 then loading all configuration-scoped data through `configuration_id`.
 
 The write layer must validate that `bundle_configuration_variant.variant_id` belongs to
-`bundle.product_id` through `variant.product_id`. If strict database-level enforcement is
-needed, add composite unique keys and a composite FK against `(project_id, product_id, id)` on
-`variant`.
+`bundle.product_id` through `variant.product_id`. Do not add database constraints by
+`project_id` for this relationship.
 
 ### Bundle Price Rule
 
@@ -436,16 +433,12 @@ export const bundlePriceRule = catalogSchema.table(
   {
     id: uuid("id").primaryKey(),
     projectId: uuid("project_id").notNull(),
-    bundleId: uuid("bundle_id")
-      .notNull()
-      .references(() => bundle.id, { onDelete: "cascade" }),
     configurationId: uuid("configuration_id")
       .notNull()
       .references(() => bundleConfiguration.id, { onDelete: "cascade" }),
     priceType: varchar("price_type", { length: 32 }).notNull(), // BundlePriceType
   },
   (table) => [
-    index("idx_bundle_price_rule_bundle_id").on(table.bundleId),
     index("idx_bundle_price_rule_configuration_id").on(table.configurationId),
   ]
 );
@@ -493,11 +486,14 @@ export const bundlePriceRulePercent = catalogSchema.table(
 ```
 
 `bundle_price_rule_amount` stores money amounts only for `FIXED` and `DISCOUNT_FIXED`.
+`amount_minor` uses `bigint("amount_minor", { mode: "number" })` to match the existing
+`item_pricing.amount_minor` product price model.
 `bundle_price_rule_percent` stores percent values only for `DISCOUNT_PERCENT`.
 `BASE` and `FREE` do not use value rows. Enforce the required value table for each `price_type` in the bundle write scripts and, if needed, with database triggers because row-level `CHECK` constraints cannot validate child-row existence by parent `price_type`.
 
-Template, item, and action price-rule references must point to a rule from the same `project_id`, `bundle_id`, and `configuration_id`.
-This can be enforced in write scripts, or at the database level with composite keys if the implementation needs strict cross-table tenant/bundle consistency.
+Template, item, and action price-rule references must point to a rule from the same
+`configuration_id`. Enforce this in write scripts; do not add database constraints by
+`project_id` for these references.
 
 ### Bundle Pricing Template
 
@@ -509,9 +505,6 @@ export const bundlePricingTemplate = catalogSchema.table(
   {
     id: uuid("id").primaryKey(),
     projectId: uuid("project_id").notNull(),
-    bundleId: uuid("bundle_id")
-      .notNull()
-      .references(() => bundle.id, { onDelete: "cascade" }),
     configurationId: uuid("configuration_id")
       .notNull()
       .references(() => bundleConfiguration.id, { onDelete: "cascade" }),
@@ -522,7 +515,6 @@ export const bundlePricingTemplate = catalogSchema.table(
     sortIndex: integer("sort_index").notNull().default(0),
   },
   (table) => [
-    index("idx_bundle_pricing_template_bundle_id").on(table.bundleId),
     index("idx_bundle_pricing_template_configuration_id").on(
       table.configurationId
     ),
@@ -539,9 +531,6 @@ export const bundleGroup = catalogSchema.table(
   {
     id: uuid("id").primaryKey(),
     projectId: uuid("project_id").notNull(),
-    bundleId: uuid("bundle_id")
-      .notNull()
-      .references(() => bundle.id, { onDelete: "cascade" }),
     configurationId: uuid("configuration_id")
       .notNull()
       .references(() => bundleConfiguration.id, { onDelete: "cascade" }),
@@ -556,9 +545,18 @@ export const bundleGroup = catalogSchema.table(
       .defaultNow(),
   },
   (table) => [
-    index("idx_bundle_group_bundle_id").on(table.bundleId),
     index("idx_bundle_group_configuration_id").on(table.configurationId),
     index("idx_bundle_group_sort").on(table.configurationId, table.sortIndex),
+    check(
+      "bundle_group_selection_check",
+      sql`(
+        (${table.minSelection} IS NULL OR ${table.minSelection} >= 0)
+        AND
+        (${table.maxSelection} IS NULL OR ${table.maxSelection} >= 0)
+        AND
+        (${table.minSelection} IS NULL OR ${table.maxSelection} IS NULL OR ${table.maxSelection} >= ${table.minSelection})
+      )`
+    ),
   ]
 );
 ```
@@ -637,6 +635,24 @@ export const bundleItem = catalogSchema.table(
     index("idx_bundle_item_ref_variant_id").on(table.refVariantId),
     index("idx_bundle_item_sort").on(table.groupId, table.sortIndex),
     index("idx_bundle_item_price_rule_id").on(table.priceRuleId),
+    check(
+      "bundle_item_quantity_check",
+      sql`(
+        (${table.minQty} IS NULL OR ${table.minQty} >= 0)
+        AND
+        (${table.defaultQty} IS NULL OR ${table.minQty} IS NULL OR ${table.defaultQty} >= ${table.minQty})
+        AND
+        (${table.maxQty} IS NULL OR ${table.minQty} IS NULL OR ${table.maxQty} >= ${table.minQty})
+      )`
+    ),
+    check(
+      "bundle_item_reference_check",
+      sql`(
+        (${table.itemType} = 'PRODUCT' AND ${table.refProductId} IS NOT NULL AND ${table.refVariantId} IS NULL)
+        OR
+        (${table.itemType} = 'VARIANT' AND ${table.refVariantId} IS NOT NULL AND ${table.refProductId} IS NULL)
+      )`
+    ),
     check(
       "bundle_item_pricing_source_check",
       sql`NOT (${table.pricingTemplateId} IS NOT NULL AND ${table.priceRuleId} IS NOT NULL)`
@@ -792,9 +808,6 @@ export const dependencyRule = catalogSchema.table(
   {
     id: uuid("id").primaryKey(),
     projectId: uuid("project_id").notNull(),
-    bundleId: uuid("bundle_id")
-      .notNull()
-      .references(() => bundle.id, { onDelete: "cascade" }),
     configurationId: uuid("configuration_id")
       .notNull()
       .references(() => bundleConfiguration.id, { onDelete: "cascade" }),
@@ -810,7 +823,6 @@ export const dependencyRule = catalogSchema.table(
       .defaultNow(),
   },
   (table) => [
-    index("idx_dependency_rule_bundle_id").on(table.bundleId),
     index("idx_dependency_rule_configuration_id").on(table.configurationId),
     index("idx_dependency_rule_priority").on(
       table.configurationId,
@@ -974,7 +986,7 @@ export type DependencyAction = typeof dependencyAction.$inferSelect;
 | **Configuration root** | `bundle_configuration` owns groups, items, pricing templates, and dependency rules | Allows different structure and rules per bundle variant without duplicating the root bundle |
 | **Default configuration** | One `is_default = true` configuration per bundle | Variants without explicit mapping still resolve to a complete bundle setup |
 | **Variant mapping** | `bundle_configuration_variant` maps root bundle variants to configurations | One configuration can be reused by many variants; each variant can have only one active configuration |
-| **Bundle table FKs** | Configuration-scoped tables store `bundle_id` and `configuration_id` | `configuration_id` selects the active setup; `bundle_id` keeps loading and consistency checks simple |
+| **Configuration-scoped FKs** | Configuration-scoped tables store only `configuration_id` | Avoids duplicating `bundle_id`; bundle ownership is resolved through `bundle_configuration` |
 | **Product FK** | `bundle.product_id` → `product.id` | Only the root bundle row links to product |
 | **Pricing** | Normalized price rule | `bundle_price_rule` stores only the rule type; `bundle_price_rule_amount` and `bundle_price_rule_percent` store type-specific values |
 | **Pricing ownership** | Regular FKs to `bundle_price_rule` | Avoids polymorphic `owner_type + owner_id` and avoids nullable owner-specific FK columns on amount rows |
@@ -997,15 +1009,12 @@ export type DependencyAction = typeof dependencyAction.$inferSelect;
 | `bundle_configuration` | `idx_bundle_configuration_bundle_id` | Load configurations by bundle |
 | `bundle_configuration` | `bundle_configuration_default_unique` | Enforce a single default configuration per bundle |
 | `bundle_configuration_variant` | `bundle_configuration_variant_unique` | Enforce a single active configuration per bundle variant |
-| `bundle_group` | `idx_bundle_group_bundle_id` | Find all groups for bundle maintenance operations |
 | `bundle_group` | `idx_bundle_group_configuration_id` | Load groups by resolved configuration |
 | `bundle_group` | `idx_bundle_group_sort` | Ordered retrieval |
 | `bundle_group_translation` | `idx_..._project_locale` | Resolve group titles for current locale |
-| `bundle_price_rule` | `idx_bundle_price_rule_bundle_id` | Find all price rules for bundle maintenance operations |
 | `bundle_price_rule` | `idx_..._configuration_id` | Load price rules by resolved configuration |
 | `bundle_price_rule_amount` | `idx_..._project_currency` | Resolve rule amounts for project currency |
 | `bundle_price_rule_percent` | `idx_..._project_id` | Resolve percent values by project |
-| `bundle_pricing_template` | `idx_..._bundle_id` | Find all templates for bundle maintenance operations |
 | `bundle_pricing_template` | `idx_..._configuration_id` | Load templates by resolved configuration |
 | `bundle_pricing_template` | `idx_..._price_rule_id` | Follow template to reusable price rule |
 | `bundle_item` | `idx_bundle_item_group_id` | Load items by group |
@@ -1016,7 +1025,6 @@ export type DependencyAction = typeof dependencyAction.$inferSelect;
 | `bundle_item_option_value_selection` | `idx_..._option_id` | Load allowed/disabled values for an option selection |
 | `bundle_item_option_value_selection` | `idx_..._status` | Resolve selected values and admin review states |
 | `bundle_item_translation` | `idx_..._project_locale` | Resolve item title overrides for current locale |
-| `dependency_rule` | `idx_dependency_rule_bundle_id` | Find all rules for bundle maintenance operations |
 | `dependency_rule` | `idx_dependency_rule_configuration_id` | Load rules by resolved configuration |
 | `dependency_rule` | `idx_dependency_rule_priority` | Priority-based evaluation |
 | `condition` | `idx_condition_target` | Find conditions affecting target |
