@@ -791,10 +791,10 @@ type CatalogMutation {
     operations: BundleUpdateInput
   ): BundleUpdatePayload!
 
-  """Sync one bundle configuration as a complete snapshot."""
+  """Sync one bundle configuration as a complete snapshot with optimistic locking."""
   bundleConfigurationSync(input: BundleConfigurationSyncInput!): BundleConfigurationSyncPayload!
 
-  """Delete one bundle configuration."""
+  """Delete one bundle configuration with optimistic locking."""
   bundleConfigurationDelete(input: BundleConfigurationDeleteInput!): BundleConfigurationDeletePayload!
 }
 
@@ -902,6 +902,15 @@ input BundleConfigurationSyncInput {
   """Product global ID of the bundle. Required when id is null."""
   bundleId: ID
 
+  """Expected parent bundle product revision. Required for optimistic locking."""
+  expectedRevision: Int!
+
+  """
+  Expected updatedAt value of the existing configuration.
+  Required when id is provided, ignored when creating a new configuration.
+  """
+  expectedConfigurationUpdatedAt: DateTime
+
   """Configuration name."""
   name: String!
 
@@ -920,6 +929,12 @@ input BundleConfigurationSyncInput {
 
 input BundleConfigurationDeleteInput {
   id: ID!
+
+  """Expected parent bundle product revision. Required for optimistic locking."""
+  expectedRevision: Int!
+
+  """Expected updatedAt value of the configuration being deleted."""
+  expectedConfigurationUpdatedAt: DateTime!
 }
 
 input BundleGroupInput {
@@ -1165,6 +1180,31 @@ input BundleDependencyActionInput {
 - `CatalogQuery.bundle(id:)`, `bundleUpdate(bundleId:)` и
   `BundleConfigurationSyncInput.bundleId` принимают только `Product` global ID,
   который указывает на `catalog.product.kind = BUNDLE`.
+- `bundleConfigurationSync` является complete replace mutation и должен всегда
+  выполняться с optimistic locking: `expectedRevision` обязателен и сравнивается с
+  текущим `catalog.product.revision` parent bundle product до замены snapshot.
+- Если `BundleConfigurationSyncInput.id` передан, то
+  `expectedConfigurationUpdatedAt` обязателен и должен совпадать с текущим
+  `bundle_configuration.updated_at`; mismatch возвращает `GenericUserError` и не
+  меняет данные.
+- Если `BundleConfigurationSyncInput.id` не передан, то `bundleId` обязателен,
+  `expectedConfigurationUpdatedAt` игнорируется, а `expectedRevision` все равно
+  проверяется на parent bundle product перед созданием configuration.
+- `bundleConfigurationDelete` также должен проверять `expectedRevision` parent
+  bundle product и `expectedConfigurationUpdatedAt` удаляемой configuration до
+  удаления snapshot.
+- `bundleConfigurationSync` должен выполняться в одной DB transaction: lock parent
+  `catalog.product` row, проверить `expectedRevision`, проверить/создать
+  `bundle_configuration`, заменить children snapshot, обновить
+  `bundle_configuration.updated_at`, затем увеличить `catalog.product.revision`
+  и `catalog.product.updated_at`.
+- `bundleConfigurationDelete` должен выполняться в одной DB transaction: lock
+  parent `catalog.product` row, проверить `expectedRevision`, проверить
+  `bundle_configuration.updated_at`, удалить configuration snapshot, затем
+  увеличить `catalog.product.revision` и `catalog.product.updated_at`.
+- Любое успешное изменение структуры бандла через `bundleConfigurationSync` или
+  `bundleConfigurationDelete` должно bump-ить `catalog.product.revision`, чтобы
+  `bundleUpdate` и configuration sync видели общий concurrency token.
 - Для одного internal product row разрешен только один `Bundle`.
 - Все `variantIds` в configuration assignment должны принадлежать этому bundle.
 - Каждый variant может быть назначен только одной configuration.
