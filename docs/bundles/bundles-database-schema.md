@@ -631,6 +631,8 @@ export const bundleItem = catalogSchema.table(
         AND
         (${table.defaultQty} IS NULL OR ${table.minQty} IS NULL OR ${table.defaultQty} >= ${table.minQty})
         AND
+        (${table.defaultQty} IS NULL OR ${table.maxQty} IS NULL OR ${table.defaultQty} <= ${table.maxQty})
+        AND
         (${table.maxQty} IS NULL OR ${table.minQty} IS NULL OR ${table.maxQty} >= ${table.minQty})
       )`
     ),
