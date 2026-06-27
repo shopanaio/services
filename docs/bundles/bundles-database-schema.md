@@ -180,15 +180,15 @@ enum DependencyActionType {
 ## Drizzle Schema
 
 ```typescript
-// services/pricing/src/repositories/models/schema.ts
+// services/catalog/src/repositories/models/schema.ts
 import { pgSchema } from "drizzle-orm/pg-core";
-export const pricingSchema = pgSchema("pricing");
+export const catalogSchema = pgSchema("catalog");
 ```
 
 ### Bundle Pricing Template
 
 ```typescript
-// services/pricing/src/repositories/models/bundles.ts
+// services/catalog/src/repositories/models/bundle.ts
 import {
   uuid,
   varchar,
@@ -198,9 +198,9 @@ import {
   jsonb,
   index,
 } from "drizzle-orm/pg-core";
-import { pricingSchema } from "./schema";
+import { catalogSchema } from "./schema";
 
-export const bundlePricingTemplate = pricingSchema.table(
+export const bundlePricingTemplate = catalogSchema.table(
   "bundle_pricing_template",
   {
     id: uuid("id").primaryKey(),
@@ -220,7 +220,7 @@ export const bundlePricingTemplate = pricingSchema.table(
 ### Bundle Group
 
 ```typescript
-export const bundleGroup = pricingSchema.table(
+export const bundleGroup = catalogSchema.table(
   "bundle_group",
   {
     id: uuid("id").primaryKey(),
@@ -247,7 +247,7 @@ export const bundleGroup = pricingSchema.table(
 ### Bundle Item
 
 ```typescript
-export const bundleItem = pricingSchema.table(
+export const bundleItem = catalogSchema.table(
   "bundle_item",
   {
     id: uuid("id").primaryKey(),
@@ -305,7 +305,7 @@ export const bundleItem = pricingSchema.table(
 ### Dependency Rule
 
 ```typescript
-export const dependencyRule = pricingSchema.table(
+export const dependencyRule = catalogSchema.table(
   "dependency_rule",
   {
     id: uuid("id").primaryKey(),
@@ -332,7 +332,7 @@ export const dependencyRule = pricingSchema.table(
 ### Condition Group
 
 ```typescript
-export const conditionGroup = pricingSchema.table(
+export const conditionGroup = catalogSchema.table(
   "condition_group",
   {
     id: uuid("id").primaryKey(),
@@ -352,7 +352,7 @@ export const conditionGroup = pricingSchema.table(
 ### Condition
 
 ```typescript
-export const condition = pricingSchema.table(
+export const condition = catalogSchema.table(
   "condition",
   {
     id: uuid("id").primaryKey(),
@@ -391,7 +391,7 @@ export const condition = pricingSchema.table(
 ### Dependency Action
 
 ```typescript
-export const dependencyAction = pricingSchema.table(
+export const dependencyAction = catalogSchema.table(
   "dependency_action",
   {
     id: uuid("id").primaryKey(),
