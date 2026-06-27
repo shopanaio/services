@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1782408933504,
-      "tag": "0000_cuddly_shard",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1782408933505,
-      "tag": "0001_remove_inventory_catalog_projection",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1782408933506,
-      "tag": "0002_inventory_item_warehouse_stock_presence",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1782497841889,
-      "tag": "0003_productive_nehzno",
+      "when": 1782579652614,
+      "tag": "0000_mature_charles_xavier",
       "breakpoints": true
     }
   ]

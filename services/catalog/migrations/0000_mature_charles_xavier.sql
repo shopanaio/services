@@ -1,5 +1,6 @@
 CREATE SCHEMA "catalog";
 --> statement-breakpoint
+CREATE TYPE "catalog"."product_kind" AS ENUM('BASE', 'BUNDLE');--> statement-breakpoint
 CREATE TYPE "catalog"."currency" AS ENUM('UAH', 'USD', 'EUR');--> statement-breakpoint
 CREATE TYPE "catalog"."bulk_edit_job_status" AS ENUM('QUEUED', 'RUNNING', 'COMPLETED', 'CANCELLED');--> statement-breakpoint
 CREATE TYPE "catalog"."bulk_edit_cancel_reason" AS ENUM('USER', 'SUPERSEDED', 'SYSTEM');--> statement-breakpoint
@@ -21,6 +22,7 @@ CREATE TABLE "catalog"."product" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"deleted_at" timestamp with time zone,
 	"revision" integer DEFAULT 0 NOT NULL,
+	"kind" "catalog"."product_kind" DEFAULT 'BASE' NOT NULL,
 	CONSTRAINT "product_project_id_id_unique" UNIQUE("project_id","id"),
 	CONSTRAINT "product_published_requires_handle" CHECK (published_at IS NULL OR handle IS NOT NULL)
 );
@@ -28,6 +30,7 @@ CREATE TABLE "catalog"."product" (
 CREATE TABLE "catalog"."variant" (
 	"project_id" uuid NOT NULL,
 	"product_id" uuid NOT NULL,
+	"kind" "catalog"."product_kind" DEFAULT 'BASE' NOT NULL,
 	"id" uuid PRIMARY KEY NOT NULL,
 	"is_default" boolean DEFAULT false NOT NULL,
 	"handle" varchar(255) NOT NULL,
@@ -190,7 +193,7 @@ CREATE TABLE "catalog"."product_feature" (
 	"index" integer[] NOT NULL,
 	"is_group" boolean DEFAULT false NOT NULL,
 	"parent_id" uuid,
-	CONSTRAINT "product_feature_product_id_index_uniq" UNIQUE("product_id","index") DEFERRABLE INITIALLY DEFERRED,
+	CONSTRAINT "product_feature_product_id_index_uniq" UNIQUE("product_id","index"),
 	CONSTRAINT "product_feature_product_id_slug_uniq" UNIQUE("product_id","slug"),
 	CONSTRAINT "feature_group_no_parent" CHECK ("catalog"."product_feature"."is_group" = false OR "catalog"."product_feature"."parent_id" IS NULL),
 	CONSTRAINT "feature_index_not_empty" CHECK (array_length("catalog"."product_feature"."index", 1) > 0),
@@ -203,7 +206,7 @@ CREATE TABLE "catalog"."product_feature_value" (
 	"feature_id" uuid NOT NULL,
 	"slug" varchar(255) NOT NULL,
 	"index" integer NOT NULL,
-	CONSTRAINT "product_feature_value_feature_id_index_uniq" UNIQUE("feature_id","index") DEFERRABLE INITIALLY DEFERRED,
+	CONSTRAINT "product_feature_value_feature_id_index_uniq" UNIQUE("feature_id","index"),
 	CONSTRAINT "product_feature_value_feature_id_slug_uniq" UNIQUE("feature_id","slug")
 );
 --> statement-breakpoint
@@ -531,16 +534,56 @@ CREATE TABLE "catalog"."product_bulk_fence" (
 	CONSTRAINT "product_bulk_fence_project_id_product_id_pk" PRIMARY KEY("project_id","product_id")
 );
 --> statement-breakpoint
-CREATE TABLE "catalog"."bundle_group" (
+CREATE TABLE "catalog"."bundle" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"project_id" uuid NOT NULL,
 	"product_id" uuid NOT NULL,
-	"title" varchar(255) NOT NULL,
+	"type" varchar(32),
+	"display_style" varchar(32) DEFAULT 'accordion' NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "catalog"."bundle_configuration" (
+	"id" uuid PRIMARY KEY NOT NULL,
+	"project_id" uuid NOT NULL,
+	"bundle_id" uuid NOT NULL,
+	"name" varchar(255) NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "catalog"."bundle_configuration_variant" (
+	"project_id" uuid NOT NULL,
+	"configuration_id" uuid NOT NULL,
+	"variant_id" uuid NOT NULL,
+	CONSTRAINT "bundle_configuration_variant_configuration_id_variant_id_pk" PRIMARY KEY("configuration_id","variant_id")
+);
+--> statement-breakpoint
+CREATE TABLE "catalog"."bundle_group" (
+	"id" uuid PRIMARY KEY NOT NULL,
+	"project_id" uuid NOT NULL,
+	"configuration_id" uuid NOT NULL,
 	"sort_index" integer DEFAULT 0 NOT NULL,
 	"min_selection" integer,
 	"max_selection" integer,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "bundle_group_selection_check" CHECK ((
+        ("catalog"."bundle_group"."min_selection" IS NULL OR "catalog"."bundle_group"."min_selection" >= 0)
+        AND
+        ("catalog"."bundle_group"."max_selection" IS NULL OR "catalog"."bundle_group"."max_selection" >= 0)
+        AND
+        ("catalog"."bundle_group"."min_selection" IS NULL OR "catalog"."bundle_group"."max_selection" IS NULL OR "catalog"."bundle_group"."max_selection" >= "catalog"."bundle_group"."min_selection")
+      ))
+);
+--> statement-breakpoint
+CREATE TABLE "catalog"."bundle_group_translation" (
+	"project_id" uuid NOT NULL,
+	"group_id" uuid NOT NULL,
+	"locale" varchar(8) NOT NULL,
+	"name" text NOT NULL,
+	CONSTRAINT "bundle_group_translation_group_id_locale_pk" PRIMARY KEY("group_id","locale")
 );
 --> statement-breakpoint
 CREATE TABLE "catalog"."bundle_item" (
@@ -551,28 +594,93 @@ CREATE TABLE "catalog"."bundle_item" (
 	"sort_index" integer DEFAULT 0 NOT NULL,
 	"ref_product_id" uuid,
 	"ref_variant_id" uuid,
-	"title" varchar(255),
 	"featured_image_id" uuid,
-	"excluded_variant_ids" jsonb,
 	"min_qty" integer DEFAULT 1,
 	"max_qty" integer,
 	"default_qty" integer DEFAULT 1,
-	"price_type" varchar(32),
-	"price_value" integer,
+	"price_rule_id" uuid,
 	"pricing_template_id" uuid,
 	"visible" boolean DEFAULT true NOT NULL,
 	"selected" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "bundle_item_quantity_check" CHECK ((
+        ("catalog"."bundle_item"."min_qty" IS NULL OR "catalog"."bundle_item"."min_qty" >= 0)
+        AND
+        ("catalog"."bundle_item"."default_qty" IS NULL OR "catalog"."bundle_item"."min_qty" IS NULL OR "catalog"."bundle_item"."default_qty" >= "catalog"."bundle_item"."min_qty")
+        AND
+        ("catalog"."bundle_item"."default_qty" IS NULL OR "catalog"."bundle_item"."max_qty" IS NULL OR "catalog"."bundle_item"."default_qty" <= "catalog"."bundle_item"."max_qty")
+        AND
+        ("catalog"."bundle_item"."max_qty" IS NULL OR "catalog"."bundle_item"."min_qty" IS NULL OR "catalog"."bundle_item"."max_qty" >= "catalog"."bundle_item"."min_qty")
+      )),
+	CONSTRAINT "bundle_item_reference_check" CHECK ((
+        ("catalog"."bundle_item"."item_type" = 'PRODUCT' AND "catalog"."bundle_item"."ref_product_id" IS NOT NULL AND "catalog"."bundle_item"."ref_variant_id" IS NULL)
+        OR
+        ("catalog"."bundle_item"."item_type" = 'VARIANT' AND "catalog"."bundle_item"."ref_variant_id" IS NOT NULL AND "catalog"."bundle_item"."ref_product_id" IS NULL)
+      )),
+	CONSTRAINT "bundle_item_pricing_source_check" CHECK (NOT ("catalog"."bundle_item"."pricing_template_id" IS NOT NULL AND "catalog"."bundle_item"."price_rule_id" IS NOT NULL))
+);
+--> statement-breakpoint
+CREATE TABLE "catalog"."bundle_item_option_selection" (
+	"id" uuid PRIMARY KEY NOT NULL,
+	"project_id" uuid NOT NULL,
+	"item_id" uuid NOT NULL,
+	"ref_option_id" uuid NOT NULL,
+	"parent_option_id" uuid,
+	"sort_index" integer DEFAULT 0 NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "catalog"."bundle_item_option_value_selection" (
+	"id" uuid PRIMARY KEY NOT NULL,
+	"project_id" uuid NOT NULL,
+	"option_selection_id" uuid NOT NULL,
+	"ref_option_value_id" uuid,
+	"value" text NOT NULL,
+	"status" varchar(32) DEFAULT 'SELECTED' NOT NULL,
+	"sort_index" integer DEFAULT 0 NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "catalog"."bundle_item_translation" (
+	"project_id" uuid NOT NULL,
+	"item_id" uuid NOT NULL,
+	"locale" varchar(8) NOT NULL,
+	"name" text NOT NULL,
+	CONSTRAINT "bundle_item_translation_item_id_locale_pk" PRIMARY KEY("item_id","locale")
+);
+--> statement-breakpoint
+CREATE TABLE "catalog"."bundle_price_rule" (
+	"id" uuid PRIMARY KEY NOT NULL,
+	"project_id" uuid NOT NULL,
+	"configuration_id" uuid NOT NULL,
+	"price_type" varchar(32) NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "catalog"."bundle_price_rule_amount" (
+	"project_id" uuid NOT NULL,
+	"price_rule_id" uuid NOT NULL,
+	"currency" "catalog"."currency" NOT NULL,
+	"amount_minor" bigint NOT NULL,
+	CONSTRAINT "bundle_price_rule_amount_price_rule_id_currency_pk" PRIMARY KEY("price_rule_id","currency"),
+	CONSTRAINT "bundle_price_rule_amount_minor_check" CHECK ("catalog"."bundle_price_rule_amount"."amount_minor" >= 0)
+);
+--> statement-breakpoint
+CREATE TABLE "catalog"."bundle_price_rule_percent" (
+	"project_id" uuid NOT NULL,
+	"price_rule_id" uuid PRIMARY KEY NOT NULL,
+	"percent_value" integer NOT NULL,
+	CONSTRAINT "bundle_price_rule_percent_value_check" CHECK ("catalog"."bundle_price_rule_percent"."percent_value" >= 0 AND "catalog"."bundle_price_rule_percent"."percent_value" <= 100)
 );
 --> statement-breakpoint
 CREATE TABLE "catalog"."bundle_pricing_template" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"project_id" uuid NOT NULL,
-	"product_id" uuid NOT NULL,
+	"configuration_id" uuid NOT NULL,
 	"name" varchar(255) NOT NULL,
-	"price_type" varchar(32) NOT NULL,
-	"price_value" integer,
+	"price_rule_id" uuid NOT NULL,
 	"sort_index" integer DEFAULT 0 NOT NULL
 );
 --> statement-breakpoint
@@ -605,16 +713,20 @@ CREATE TABLE "catalog"."dependency_action" (
 	"target_type" varchar(32) NOT NULL,
 	"target_id" uuid,
 	"required_value" boolean,
-	"price_type" varchar(32),
-	"price_value" integer,
+	"price_rule_id" uuid,
 	"stackable" boolean DEFAULT false NOT NULL,
-	"sort_index" integer DEFAULT 0 NOT NULL
+	"sort_index" integer DEFAULT 0 NOT NULL,
+	CONSTRAINT "dependency_action_price_rule_check" CHECK ((
+        ("catalog"."dependency_action"."action_type" = 'ADJUST_PRICE' AND "catalog"."dependency_action"."price_rule_id" IS NOT NULL)
+        OR
+        ("catalog"."dependency_action"."action_type" <> 'ADJUST_PRICE' AND "catalog"."dependency_action"."price_rule_id" IS NULL)
+      ))
 );
 --> statement-breakpoint
 CREATE TABLE "catalog"."dependency_rule" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"project_id" uuid NOT NULL,
-	"product_id" uuid NOT NULL,
+	"configuration_id" uuid NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"enabled" boolean DEFAULT true NOT NULL,
 	"priority" integer DEFAULT 0 NOT NULL,
@@ -634,22 +746,6 @@ CREATE TABLE "catalog"."inventory_item" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "inventory_item_variant_id_unique" UNIQUE("variant_id"),
 	CONSTRAINT "inventory_item_sku_unique" UNIQUE("project_id","sku")
-);
---> statement-breakpoint
-CREATE TABLE "catalog"."inventory_item_catalog_projection" (
-	"project_id" uuid NOT NULL,
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"variant_id" uuid NOT NULL,
-	"product_id" uuid NOT NULL,
-	"product_handle" text,
-	"external_system" text,
-	"external_id" text,
-	"catalog_revision" integer,
-	"last_catalog_event_id" text,
-	"deleted_at" timestamp with time zone,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "inventory_item_catalog_projection_project_variant_key" UNIQUE("project_id","variant_id")
 );
 --> statement-breakpoint
 CREATE TABLE "catalog"."product_variant_cost_history" (
@@ -789,14 +885,6 @@ CREATE TABLE "catalog"."inbound_supply" (
 	CONSTRAINT "inbound_supply_qty_received_check" CHECK ("catalog"."inbound_supply"."qty_received" >= 0)
 );
 --> statement-breakpoint
-CREATE TABLE "catalog"."inventory_product_translation" (
-	"project_id" uuid NOT NULL,
-	"product_id" uuid NOT NULL,
-	"locale" varchar(8) NOT NULL,
-	"name" text NOT NULL,
-	CONSTRAINT "inventory_product_translation_product_id_locale_pk" PRIMARY KEY("product_id","locale")
-);
---> statement-breakpoint
 CREATE TABLE "catalog"."warehouse_translation" (
 	"project_id" uuid NOT NULL,
 	"warehouse_id" uuid NOT NULL,
@@ -806,7 +894,7 @@ CREATE TABLE "catalog"."warehouse_translation" (
 );
 --> statement-breakpoint
 ALTER TABLE "catalog"."product" ADD CONSTRAINT "product_vendor_fk" FOREIGN KEY ("project_id","vendor_id") REFERENCES "catalog"."vendor"("project_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "catalog"."variant" ADD CONSTRAINT "variant_product_id_product_id_fk" FOREIGN KEY ("product_id") REFERENCES "catalog"."product"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."variant" ADD CONSTRAINT "variant_product_kind_fk" FOREIGN KEY ("product_id","kind") REFERENCES "catalog"."product"("id","kind") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."category_media" ADD CONSTRAINT "category_media_category_id_category_id_fk" FOREIGN KEY ("category_id") REFERENCES "catalog"."category"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."category_translation" ADD CONSTRAINT "category_translation_category_id_category_id_fk" FOREIGN KEY ("category_id") REFERENCES "catalog"."category"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."product_category" ADD CONSTRAINT "product_category_product_id_product_id_fk" FOREIGN KEY ("product_id") REFERENCES "catalog"."product"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -824,8 +912,8 @@ ALTER TABLE "catalog"."product_option_variant_link" ADD CONSTRAINT "product_opti
 ALTER TABLE "catalog"."product_option_variant_link" ADD CONSTRAINT "product_option_variant_link_option_id_product_option_id_fk" FOREIGN KEY ("option_id") REFERENCES "catalog"."product_option"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."product_option_variant_link" ADD CONSTRAINT "product_option_variant_link_option_value_id_product_option_value_id_fk" FOREIGN KEY ("option_value_id") REFERENCES "catalog"."product_option_value"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."product_feature" ADD CONSTRAINT "product_feature_product_id_product_id_fk" FOREIGN KEY ("product_id") REFERENCES "catalog"."product"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "catalog"."product_feature" ADD CONSTRAINT "product_feature_parent_id_product_feature_id_fk" FOREIGN KEY ("parent_id") REFERENCES "catalog"."product_feature"("id") ON DELETE cascade ON UPDATE no action DEFERRABLE INITIALLY DEFERRED;--> statement-breakpoint
-ALTER TABLE "catalog"."product_feature_value" ADD CONSTRAINT "product_feature_value_feature_id_product_feature_id_fk" FOREIGN KEY ("feature_id") REFERENCES "catalog"."product_feature"("id") ON DELETE cascade ON UPDATE no action DEFERRABLE INITIALLY DEFERRED;--> statement-breakpoint
+ALTER TABLE "catalog"."product_feature" ADD CONSTRAINT "product_feature_parent_id_product_feature_id_fk" FOREIGN KEY ("parent_id") REFERENCES "catalog"."product_feature"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."product_feature_value" ADD CONSTRAINT "product_feature_value_feature_id_product_feature_id_fk" FOREIGN KEY ("feature_id") REFERENCES "catalog"."product_feature"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."product_media" ADD CONSTRAINT "product_media_product_fk" FOREIGN KEY ("project_id","product_id") REFERENCES "catalog"."product"("project_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."variant_media" ADD CONSTRAINT "variant_media_product_media_fk" FOREIGN KEY ("project_id","product_id","product_media_id") REFERENCES "catalog"."product_media"("project_id","product_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."variant_media" ADD CONSTRAINT "variant_media_variant_fk" FOREIGN KEY ("project_id","product_id","variant_id") REFERENCES "catalog"."variant"("project_id","product_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -856,17 +944,38 @@ ALTER TABLE "catalog"."collection_seo" ADD CONSTRAINT "collection_seo_collection
 ALTER TABLE "catalog"."collection_translation" ADD CONSTRAINT "collection_translation_collection_id_collection_id_fk" FOREIGN KEY ("collection_id") REFERENCES "catalog"."collection"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."bulk_edit_item" ADD CONSTRAINT "bulk_edit_item_job_id_bulk_edit_job_id_fk" FOREIGN KEY ("job_id") REFERENCES "catalog"."bulk_edit_job"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."product_bulk_fence" ADD CONSTRAINT "product_bulk_fence_job_id_bulk_edit_job_id_fk" FOREIGN KEY ("job_id") REFERENCES "catalog"."bulk_edit_job"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."bundle" ADD CONSTRAINT "bundle_product_id_product_id_fk" FOREIGN KEY ("product_id") REFERENCES "catalog"."product"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."bundle_configuration" ADD CONSTRAINT "bundle_configuration_bundle_id_bundle_id_fk" FOREIGN KEY ("bundle_id") REFERENCES "catalog"."bundle"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."bundle_configuration_variant" ADD CONSTRAINT "bundle_configuration_variant_configuration_id_bundle_configuration_id_fk" FOREIGN KEY ("configuration_id") REFERENCES "catalog"."bundle_configuration"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."bundle_configuration_variant" ADD CONSTRAINT "bundle_configuration_variant_variant_id_variant_id_fk" FOREIGN KEY ("variant_id") REFERENCES "catalog"."variant"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."bundle_group" ADD CONSTRAINT "bundle_group_configuration_id_bundle_configuration_id_fk" FOREIGN KEY ("configuration_id") REFERENCES "catalog"."bundle_configuration"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."bundle_group_translation" ADD CONSTRAINT "bundle_group_translation_group_id_bundle_group_id_fk" FOREIGN KEY ("group_id") REFERENCES "catalog"."bundle_group"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."bundle_item" ADD CONSTRAINT "bundle_item_group_id_bundle_group_id_fk" FOREIGN KEY ("group_id") REFERENCES "catalog"."bundle_group"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."bundle_item" ADD CONSTRAINT "bundle_item_price_rule_id_bundle_price_rule_id_fk" FOREIGN KEY ("price_rule_id") REFERENCES "catalog"."bundle_price_rule"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."bundle_item" ADD CONSTRAINT "bundle_item_pricing_template_id_bundle_pricing_template_id_fk" FOREIGN KEY ("pricing_template_id") REFERENCES "catalog"."bundle_pricing_template"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."bundle_item_option_selection" ADD CONSTRAINT "bundle_item_option_selection_item_id_bundle_item_id_fk" FOREIGN KEY ("item_id") REFERENCES "catalog"."bundle_item"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."bundle_item_option_selection" ADD CONSTRAINT "bundle_item_option_selection_ref_option_id_product_option_id_fk" FOREIGN KEY ("ref_option_id") REFERENCES "catalog"."product_option"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."bundle_item_option_selection" ADD CONSTRAINT "bundle_item_option_selection_parent_option_id_product_option_id_fk" FOREIGN KEY ("parent_option_id") REFERENCES "catalog"."product_option"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."bundle_item_option_value_selection" ADD CONSTRAINT "bundle_item_option_value_selection_option_selection_id_bundle_item_option_selection_id_fk" FOREIGN KEY ("option_selection_id") REFERENCES "catalog"."bundle_item_option_selection"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."bundle_item_option_value_selection" ADD CONSTRAINT "bundle_item_option_value_selection_ref_option_value_id_product_option_value_id_fk" FOREIGN KEY ("ref_option_value_id") REFERENCES "catalog"."product_option_value"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."bundle_item_translation" ADD CONSTRAINT "bundle_item_translation_item_id_bundle_item_id_fk" FOREIGN KEY ("item_id") REFERENCES "catalog"."bundle_item"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."bundle_price_rule" ADD CONSTRAINT "bundle_price_rule_configuration_id_bundle_configuration_id_fk" FOREIGN KEY ("configuration_id") REFERENCES "catalog"."bundle_configuration"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."bundle_price_rule_amount" ADD CONSTRAINT "bundle_price_rule_amount_price_rule_id_bundle_price_rule_id_fk" FOREIGN KEY ("price_rule_id") REFERENCES "catalog"."bundle_price_rule"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."bundle_price_rule_percent" ADD CONSTRAINT "bundle_price_rule_percent_price_rule_id_bundle_price_rule_id_fk" FOREIGN KEY ("price_rule_id") REFERENCES "catalog"."bundle_price_rule"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."bundle_pricing_template" ADD CONSTRAINT "bundle_pricing_template_configuration_id_bundle_configuration_id_fk" FOREIGN KEY ("configuration_id") REFERENCES "catalog"."bundle_configuration"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."bundle_pricing_template" ADD CONSTRAINT "bundle_pricing_template_price_rule_id_bundle_price_rule_id_fk" FOREIGN KEY ("price_rule_id") REFERENCES "catalog"."bundle_price_rule"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."condition" ADD CONSTRAINT "condition_group_id_condition_group_id_fk" FOREIGN KEY ("group_id") REFERENCES "catalog"."condition_group"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."condition_group" ADD CONSTRAINT "condition_group_rule_id_dependency_rule_id_fk" FOREIGN KEY ("rule_id") REFERENCES "catalog"."dependency_rule"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."dependency_action" ADD CONSTRAINT "dependency_action_rule_id_dependency_rule_id_fk" FOREIGN KEY ("rule_id") REFERENCES "catalog"."dependency_rule"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."dependency_action" ADD CONSTRAINT "dependency_action_price_rule_id_bundle_price_rule_id_fk" FOREIGN KEY ("price_rule_id") REFERENCES "catalog"."bundle_price_rule"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "catalog"."dependency_rule" ADD CONSTRAINT "dependency_rule_configuration_id_bundle_configuration_id_fk" FOREIGN KEY ("configuration_id") REFERENCES "catalog"."bundle_configuration"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."warehouse_stock" ADD CONSTRAINT "warehouse_stock_warehouse_fk" FOREIGN KEY ("project_id","warehouse_id") REFERENCES "catalog"."warehouses"("project_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."stock_changes" ADD CONSTRAINT "stock_changes_warehouse_id_warehouses_id_fk" FOREIGN KEY ("warehouse_id") REFERENCES "catalog"."warehouses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."reservations" ADD CONSTRAINT "reservations_warehouse_id_warehouses_id_fk" FOREIGN KEY ("warehouse_id") REFERENCES "catalog"."warehouses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."inbound_supply" ADD CONSTRAINT "inbound_supply_warehouse_id_warehouses_id_fk" FOREIGN KEY ("warehouse_id") REFERENCES "catalog"."warehouses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."warehouse_translation" ADD CONSTRAINT "warehouse_translation_warehouse_id_warehouses_id_fk" FOREIGN KEY ("warehouse_id") REFERENCES "catalog"."warehouses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "product_project_id_handle_key" ON "catalog"."product" USING btree ("project_id","handle") WHERE deleted_at IS NULL AND handle IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "product_id_kind_unique" ON "catalog"."product" USING btree ("id","kind");--> statement-breakpoint
 CREATE INDEX "idx_product_project_id" ON "catalog"."product" USING btree ("project_id");--> statement-breakpoint
 CREATE INDEX "idx_product_vendor_id" ON "catalog"."product" USING btree ("vendor_id");--> statement-breakpoint
 CREATE INDEX "idx_product_created_at" ON "catalog"."product" USING btree ("created_at");--> statement-breakpoint
@@ -889,7 +998,6 @@ CREATE UNIQUE INDEX "category_project_id_handle_key" ON "catalog"."category" USI
 CREATE INDEX "idx_category_project_id" ON "catalog"."category" USING btree ("project_id");--> statement-breakpoint
 CREATE INDEX "idx_category_parent_id" ON "catalog"."category" USING btree ("parent_id");--> statement-breakpoint
 CREATE INDEX "idx_category_path" ON "catalog"."category" USING btree ("path");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_category_project_path_prefix" ON "catalog"."category" ("project_id", "path" text_pattern_ops) WHERE "deleted_at" IS NULL;--> statement-breakpoint
 CREATE INDEX "idx_category_published" ON "catalog"."category" USING btree ("project_id","published_at") WHERE deleted_at IS NULL;--> statement-breakpoint
 CREATE INDEX "idx_category_media_category" ON "catalog"."category_media" USING btree ("category_id");--> statement-breakpoint
 CREATE INDEX "idx_category_translation_project" ON "catalog"."category_translation" USING btree ("project_id");--> statement-breakpoint
@@ -964,31 +1072,43 @@ CREATE INDEX "bulk_edit_job_project_status_idx" ON "catalog"."bulk_edit_job" USI
 CREATE INDEX "bulk_edit_item_project_product_status_idx" ON "catalog"."bulk_edit_item" USING btree ("project_id","product_id","status");--> statement-breakpoint
 CREATE INDEX "bulk_edit_item_job_chunk_op_idx" ON "catalog"."bulk_edit_item" USING btree ("job_id","chunk_index","op_index");--> statement-breakpoint
 CREATE INDEX "bulk_edit_item_job_status_idx" ON "catalog"."bulk_edit_item" USING btree ("job_id","status");--> statement-breakpoint
-CREATE INDEX "idx_bundle_group_product_id" ON "catalog"."bundle_group" USING btree ("product_id");--> statement-breakpoint
-CREATE INDEX "idx_bundle_group_sort" ON "catalog"."bundle_group" USING btree ("product_id","sort_index");--> statement-breakpoint
-CREATE INDEX "idx_bundle_group_project_id" ON "catalog"."bundle_group" USING btree ("project_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "bundle_product_id_unique" ON "catalog"."bundle" USING btree ("product_id");--> statement-breakpoint
+CREATE INDEX "idx_bundle_project_id" ON "catalog"."bundle" USING btree ("project_id");--> statement-breakpoint
+CREATE INDEX "idx_bundle_configuration_bundle_id" ON "catalog"."bundle_configuration" USING btree ("bundle_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "bundle_configuration_variant_unique" ON "catalog"."bundle_configuration_variant" USING btree ("variant_id");--> statement-breakpoint
+CREATE INDEX "idx_bundle_configuration_variant_project_id" ON "catalog"."bundle_configuration_variant" USING btree ("project_id");--> statement-breakpoint
+CREATE INDEX "idx_bundle_group_configuration_id" ON "catalog"."bundle_group" USING btree ("configuration_id");--> statement-breakpoint
+CREATE INDEX "idx_bundle_group_sort" ON "catalog"."bundle_group" USING btree ("configuration_id","sort_index");--> statement-breakpoint
+CREATE INDEX "idx_bundle_group_translation_project_locale" ON "catalog"."bundle_group_translation" USING btree ("project_id","locale");--> statement-breakpoint
 CREATE INDEX "idx_bundle_item_group_id" ON "catalog"."bundle_item" USING btree ("group_id");--> statement-breakpoint
 CREATE INDEX "idx_bundle_item_ref_product_id" ON "catalog"."bundle_item" USING btree ("ref_product_id");--> statement-breakpoint
 CREATE INDEX "idx_bundle_item_ref_variant_id" ON "catalog"."bundle_item" USING btree ("ref_variant_id");--> statement-breakpoint
 CREATE INDEX "idx_bundle_item_sort" ON "catalog"."bundle_item" USING btree ("group_id","sort_index");--> statement-breakpoint
-CREATE INDEX "idx_bundle_item_project_id" ON "catalog"."bundle_item" USING btree ("project_id");--> statement-breakpoint
-CREATE INDEX "idx_bundle_pricing_template_product_id" ON "catalog"."bundle_pricing_template" USING btree ("product_id");--> statement-breakpoint
-CREATE INDEX "idx_bundle_pricing_template_project_id" ON "catalog"."bundle_pricing_template" USING btree ("project_id");--> statement-breakpoint
+CREATE INDEX "idx_bundle_item_price_rule_id" ON "catalog"."bundle_item" USING btree ("price_rule_id");--> statement-breakpoint
+CREATE INDEX "idx_bundle_item_option_selection_item_id" ON "catalog"."bundle_item_option_selection" USING btree ("item_id");--> statement-breakpoint
+CREATE INDEX "idx_bundle_item_option_selection_ref_option_id" ON "catalog"."bundle_item_option_selection" USING btree ("ref_option_id");--> statement-breakpoint
+CREATE INDEX "idx_bundle_item_option_selection_parent_option_id" ON "catalog"."bundle_item_option_selection" USING btree ("parent_option_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "bundle_item_option_selection_item_option_unique" ON "catalog"."bundle_item_option_selection" USING btree ("item_id","ref_option_id");--> statement-breakpoint
+CREATE INDEX "idx_bundle_item_option_value_selection_option_id" ON "catalog"."bundle_item_option_value_selection" USING btree ("option_selection_id");--> statement-breakpoint
+CREATE INDEX "idx_bundle_item_option_value_selection_ref_value_id" ON "catalog"."bundle_item_option_value_selection" USING btree ("ref_option_value_id");--> statement-breakpoint
+CREATE INDEX "idx_bundle_item_option_value_selection_status" ON "catalog"."bundle_item_option_value_selection" USING btree ("option_selection_id","status");--> statement-breakpoint
+CREATE UNIQUE INDEX "bundle_item_option_value_selection_value_unique" ON "catalog"."bundle_item_option_value_selection" USING btree ("option_selection_id","value");--> statement-breakpoint
+CREATE INDEX "idx_bundle_item_translation_project_locale" ON "catalog"."bundle_item_translation" USING btree ("project_id","locale");--> statement-breakpoint
+CREATE INDEX "idx_bundle_price_rule_configuration_id" ON "catalog"."bundle_price_rule" USING btree ("configuration_id");--> statement-breakpoint
+CREATE INDEX "idx_bundle_price_rule_amount_project_currency" ON "catalog"."bundle_price_rule_amount" USING btree ("project_id","currency");--> statement-breakpoint
+CREATE INDEX "idx_bundle_price_rule_percent_project_id" ON "catalog"."bundle_price_rule_percent" USING btree ("project_id");--> statement-breakpoint
+CREATE INDEX "idx_bundle_pricing_template_configuration_id" ON "catalog"."bundle_pricing_template" USING btree ("configuration_id");--> statement-breakpoint
+CREATE INDEX "idx_bundle_pricing_template_price_rule_id" ON "catalog"."bundle_pricing_template" USING btree ("price_rule_id");--> statement-breakpoint
 CREATE INDEX "idx_condition_group_id" ON "catalog"."condition" USING btree ("group_id");--> statement-breakpoint
 CREATE INDEX "idx_condition_target" ON "catalog"."condition" USING btree ("target_type","target_id");--> statement-breakpoint
-CREATE INDEX "idx_condition_project_id" ON "catalog"."condition" USING btree ("project_id");--> statement-breakpoint
 CREATE INDEX "idx_condition_group_rule_id" ON "catalog"."condition_group" USING btree ("rule_id");--> statement-breakpoint
-CREATE INDEX "idx_condition_group_project_id" ON "catalog"."condition_group" USING btree ("project_id");--> statement-breakpoint
 CREATE INDEX "idx_dependency_action_rule_id" ON "catalog"."dependency_action" USING btree ("rule_id");--> statement-breakpoint
 CREATE INDEX "idx_dependency_action_target" ON "catalog"."dependency_action" USING btree ("target_type","target_id");--> statement-breakpoint
-CREATE INDEX "idx_dependency_action_project_id" ON "catalog"."dependency_action" USING btree ("project_id");--> statement-breakpoint
-CREATE INDEX "idx_dependency_rule_product_id" ON "catalog"."dependency_rule" USING btree ("product_id");--> statement-breakpoint
-CREATE INDEX "idx_dependency_rule_priority" ON "catalog"."dependency_rule" USING btree ("product_id","priority");--> statement-breakpoint
-CREATE INDEX "idx_dependency_rule_project_id" ON "catalog"."dependency_rule" USING btree ("project_id");--> statement-breakpoint
+CREATE INDEX "idx_dependency_action_price_rule_id" ON "catalog"."dependency_action" USING btree ("price_rule_id");--> statement-breakpoint
+CREATE INDEX "idx_dependency_rule_configuration_id" ON "catalog"."dependency_rule" USING btree ("configuration_id");--> statement-breakpoint
+CREATE INDEX "idx_dependency_rule_priority" ON "catalog"."dependency_rule" USING btree ("configuration_id","priority");--> statement-breakpoint
 CREATE INDEX "idx_inventory_item_variant" ON "catalog"."inventory_item" USING btree ("variant_id");--> statement-breakpoint
 CREATE INDEX "idx_inventory_item_project" ON "catalog"."inventory_item" USING btree ("project_id");--> statement-breakpoint
-CREATE INDEX "idx_inventory_item_catalog_projection_project_product" ON "catalog"."inventory_item_catalog_projection" USING btree ("project_id","product_id");--> statement-breakpoint
-CREATE INDEX "idx_inventory_item_catalog_projection_project_deleted" ON "catalog"."inventory_item_catalog_projection" USING btree ("project_id","deleted_at");--> statement-breakpoint
 CREATE INDEX "idx_product_variant_cost_history_variant_currency_effective_from" ON "catalog"."product_variant_cost_history" USING btree ("project_id","variant_id","currency","effective_from");--> statement-breakpoint
 CREATE INDEX "idx_product_variant_cost_history_variant_effective_from" ON "catalog"."product_variant_cost_history" USING btree ("project_id","variant_id","effective_from");--> statement-breakpoint
 CREATE INDEX "idx_product_variant_cost_history_recorded_at" ON "catalog"."product_variant_cost_history" USING btree ("project_id","recorded_at");--> statement-breakpoint
@@ -1009,31 +1129,67 @@ CREATE INDEX "idx_stock_changes_reason_seq" ON "catalog"."stock_changes" USING b
 CREATE INDEX "idx_reservations_variant" ON "catalog"."reservations" USING btree ("variant_id");--> statement-breakpoint
 CREATE INDEX "idx_reservations_order" ON "catalog"."reservations" USING btree ("order_system","order_id");--> statement-breakpoint
 CREATE INDEX "idx_inbound_supply_variant_date" ON "catalog"."inbound_supply" USING btree ("variant_id","warehouse_id","expected_at");--> statement-breakpoint
-CREATE INDEX "idx_inventory_product_translation_project" ON "catalog"."inventory_product_translation" USING btree ("project_id");--> statement-breakpoint
-CREATE INDEX "idx_inventory_product_translation_project_locale" ON "catalog"."inventory_product_translation" USING btree ("project_id","locale");--> statement-breakpoint
-CREATE INDEX "idx_inventory_product_translation_project_locale_name" ON "catalog"."inventory_product_translation" USING btree ("project_id","locale","name");--> statement-breakpoint
 CREATE INDEX "idx_warehouse_translation_project" ON "catalog"."warehouse_translation" USING btree ("project_id");--> statement-breakpoint
 CREATE VIEW "catalog"."product_price_range" AS (select "catalog"."item_pricing"."project_id", "catalog"."variant"."product_id", "catalog"."item_pricing"."currency", MIN("catalog"."item_pricing"."amount_minor") as "min_amount_minor", MAX("catalog"."item_pricing"."amount_minor") as "max_amount_minor" from "catalog"."item_pricing" inner join "catalog"."variant" on "catalog"."variant"."id" = "catalog"."item_pricing"."variant_id" AND "catalog"."variant"."deleted_at" IS NULL where "catalog"."item_pricing"."effective_to" IS NULL group by "catalog"."item_pricing"."project_id", "catalog"."variant"."product_id", "catalog"."item_pricing"."currency");--> statement-breakpoint
 CREATE VIEW "catalog"."variant_prices_current" AS (select "id", "project_id", "variant_id", "currency", "amount_minor", "compare_at_minor", "effective_from", "effective_to", "recorded_at" from "catalog"."item_pricing" where "catalog"."item_pricing"."effective_to" IS NULL);--> statement-breakpoint
-CREATE VIEW "catalog"."product_list_view" AS (select "catalog"."product"."project_id", "catalog"."product"."id", "catalog"."product"."vendor_id", "catalog"."product"."handle", "catalog"."product"."published_at", "catalog"."product"."created_at", "catalog"."product"."updated_at", "catalog"."product"."deleted_at", "catalog"."product"."revision", "catalog"."product_translation"."locale", "catalog"."product_translation"."name", "product_price_range"."currency", "min_amount_minor" as "min_price_minor", "max_amount_minor" as "max_price_minor", "catalog"."product_category"."category_id" as "primary_category_id", "catalog"."category_translation"."name" as "primary_category_name", "catalog"."vendor"."name" as "brand_name" from "catalog"."product" inner join "catalog"."product_translation" on "catalog"."product_translation"."project_id" = "catalog"."product"."project_id" AND "catalog"."product_translation"."product_id" = "catalog"."product"."id" left join "catalog"."product_price_range" on "product_price_range"."project_id" = "catalog"."product"."project_id" AND "product_price_range"."product_id" = "catalog"."product"."id" left join "catalog"."product_category" on "catalog"."product_category"."project_id" = "catalog"."product"."project_id" AND "catalog"."product_category"."product_id" = "catalog"."product"."id" AND "catalog"."product_category"."is_primary" = true left join "catalog"."category_translation" on "catalog"."category_translation"."project_id" = "catalog"."product"."project_id" AND "catalog"."category_translation"."category_id" = "catalog"."product_category"."category_id" AND "catalog"."category_translation"."locale" = "catalog"."product_translation"."locale" left join "catalog"."vendor" on "catalog"."vendor"."project_id" = "catalog"."product"."project_id" AND "catalog"."vendor"."id" = "catalog"."product"."vendor_id");--> statement-breakpoint
+CREATE VIEW "catalog"."product_list_view" AS (select "catalog"."product"."project_id", "catalog"."product"."id", "catalog"."product"."vendor_id", "catalog"."product"."handle", "catalog"."product"."published_at", "catalog"."product"."created_at", "catalog"."product"."updated_at", "catalog"."product"."deleted_at", "catalog"."product"."revision", "catalog"."product"."kind", "catalog"."product_translation"."locale", "catalog"."product_translation"."name", "product_price_range"."currency", "min_amount_minor" as "min_price_minor", "max_amount_minor" as "max_price_minor", "catalog"."product_category"."category_id" as "primary_category_id", "catalog"."category_translation"."name" as "primary_category_name", "catalog"."vendor"."name" as "brand_name" from "catalog"."product" inner join "catalog"."product_translation" on "catalog"."product_translation"."project_id" = "catalog"."product"."project_id" AND "catalog"."product_translation"."product_id" = "catalog"."product"."id" left join "catalog"."product_price_range" on "product_price_range"."project_id" = "catalog"."product"."project_id" AND "product_price_range"."product_id" = "catalog"."product"."id" left join "catalog"."product_category" on "catalog"."product_category"."project_id" = "catalog"."product"."project_id" AND "catalog"."product_category"."product_id" = "catalog"."product"."id" AND "catalog"."product_category"."is_primary" = true left join "catalog"."category_translation" on "catalog"."category_translation"."project_id" = "catalog"."product"."project_id" AND "catalog"."category_translation"."category_id" = "catalog"."product_category"."category_id" AND "catalog"."category_translation"."locale" = "catalog"."product_translation"."locale" left join "catalog"."vendor" on "catalog"."vendor"."project_id" = "catalog"."product"."project_id" AND "catalog"."vendor"."id" = "catalog"."product"."vendor_id");--> statement-breakpoint
 CREATE VIEW "catalog"."category_list_view" AS (select "catalog"."category"."project_id", "catalog"."category"."id", "catalog"."category"."parent_id", "catalog"."category"."path", "catalog"."category"."depth", "catalog"."category"."handle", "catalog"."category"."default_sort", "catalog"."category"."default_sort_direction", "catalog"."category"."published_at", "catalog"."category"."created_at", "catalog"."category"."updated_at", "catalog"."category"."deleted_at", "catalog"."category"."revision", "catalog"."category"."products_count", "catalog"."category_translation"."locale", "catalog"."category_translation"."name" from "catalog"."category" inner join "catalog"."category_translation" on "catalog"."category_translation"."project_id" = "catalog"."category"."project_id" AND "catalog"."category_translation"."category_id" = "catalog"."category"."id");--> statement-breakpoint
 CREATE VIEW "catalog"."tag_list_view" AS (select "catalog"."tag"."project_id", "catalog"."tag"."id", "catalog"."tag"."handle", "catalog"."tag"."created_at", "catalog"."tag"."products_count", "catalog"."tag_translation"."locale", "catalog"."tag_translation"."name" from "catalog"."tag" inner join "catalog"."tag_translation" on "catalog"."tag_translation"."project_id" = "catalog"."tag"."project_id" AND "catalog"."tag_translation"."tag_id" = "catalog"."tag"."id");--> statement-breakpoint
+CREATE VIEW "catalog"."variant_warehouse_candidate_view" AS (
+    SELECT
+      variant.project_id,
+      warehouse.id AS warehouse_scope_id,
+      variant.product_id,
+      variant.kind,
+      translation.locale,
+      translation.name AS product_name,
+      variant.id,
+      variant.is_default,
+      variant.handle,
+      variant.sku,
+      variant.external_system,
+      variant.external_id,
+      variant.updated_at,
+      variant.created_at,
+      variant.deleted_at,
+      product.deleted_at AS product_deleted_at,
+      item.id AS inventory_item_id
+    FROM catalog.variant variant
+    JOIN catalog.product product
+      ON product.project_id = variant.project_id
+     AND product.id = variant.product_id
+    JOIN catalog.warehouses warehouse
+      ON warehouse.project_id = variant.project_id
+    JOIN catalog.product_translation translation
+      ON translation.project_id = variant.project_id
+     AND translation.product_id = product.id
+    LEFT JOIN catalog.inventory_item item
+      ON item.project_id = variant.project_id
+     AND item.variant_id = variant.id
+    LEFT JOIN catalog.warehouse_stock stock
+      ON stock.project_id = variant.project_id
+     AND stock.variant_id = variant.id
+     AND stock.warehouse_id = warehouse.id
+    WHERE stock.id IS NULL
+  );--> statement-breakpoint
 CREATE VIEW "catalog"."inventory_item_list_all_stock_view" AS (
     SELECT
       item.project_id,
       item.id,
       item.variant_id,
-      projection.product_id,
-      projection.product_handle,
+      product.id AS product_id,
+      variant.kind,
+      product.handle AS product_handle,
       translation.locale,
       translation.name AS product_name,
       item.sku,
       item.track_inventory,
       item.continue_selling_when_out_of_stock,
-      projection.deleted_at,
+      coalesce(variant.deleted_at, product.deleted_at) AS deleted_at,
       greatest(
         item.updated_at,
-        coalesce(projection.updated_at, item.updated_at)
+        product.updated_at,
+        variant.updated_at
       ) AS updated_at,
       coalesce(stock.quantity_on_hand, 0)::integer AS quantity_on_hand,
       coalesce(stock.reserved_quantity, 0)::integer AS reserved_quantity,
@@ -1044,12 +1200,15 @@ CREATE VIEW "catalog"."inventory_item_list_all_stock_view" AS (
         - coalesce(stock.unavailable_quantity, 0)
       )::integer AS available_for_sale
     FROM catalog.inventory_item item
-    JOIN catalog.inventory_item_catalog_projection projection
-      ON projection.project_id = item.project_id
-     AND projection.variant_id = item.variant_id
-    JOIN catalog.inventory_product_translation translation
+    JOIN catalog.variant variant
+      ON variant.project_id = item.project_id
+     AND variant.id = item.variant_id
+    JOIN catalog.product product
+      ON product.project_id = item.project_id
+     AND product.id = variant.product_id
+    JOIN catalog.product_translation translation
       ON translation.project_id = item.project_id
-     AND translation.product_id = projection.product_id
+     AND translation.product_id = product.id
     LEFT JOIN (
       SELECT
         project_id,
@@ -1068,39 +1227,41 @@ CREATE VIEW "catalog"."inventory_item_list_warehouse_stock_view" AS (
       item.project_id,
       item.id,
       item.variant_id,
-      projection.product_id,
-      projection.product_handle,
+      product.id AS product_id,
+      variant.kind,
+      product.handle AS product_handle,
       translation.locale,
       translation.name AS product_name,
-      warehouse.id AS warehouse_scope_id,
+      stock.warehouse_id AS warehouse_scope_id,
       item.sku,
       item.track_inventory,
       item.continue_selling_when_out_of_stock,
-      projection.deleted_at,
+      coalesce(variant.deleted_at, product.deleted_at) AS deleted_at,
       greatest(
         item.updated_at,
-        coalesce(projection.updated_at, item.updated_at)
+        product.updated_at,
+        variant.updated_at
       ) AS updated_at,
-      coalesce(stock.quantity_on_hand, 0)::integer AS quantity_on_hand,
-      coalesce(stock.reserved_qty, 0)::integer AS reserved_quantity,
-      coalesce(stock.unavailable_qty, 0)::integer AS unavailable_quantity,
+      stock.quantity_on_hand::integer AS quantity_on_hand,
+      stock.reserved_qty::integer AS reserved_quantity,
+      stock.unavailable_qty::integer AS unavailable_quantity,
       (
-        coalesce(stock.quantity_on_hand, 0)
-        - coalesce(stock.reserved_qty, 0)
-        - coalesce(stock.unavailable_qty, 0)
+        stock.quantity_on_hand
+        - stock.reserved_qty
+        - stock.unavailable_qty
       )::integer AS available_for_sale
     FROM catalog.inventory_item item
-    JOIN catalog.inventory_item_catalog_projection projection
-      ON projection.project_id = item.project_id
-     AND projection.variant_id = item.variant_id
-    JOIN catalog.inventory_product_translation translation
+    JOIN catalog.variant variant
+      ON variant.project_id = item.project_id
+     AND variant.id = item.variant_id
+    JOIN catalog.product product
+      ON product.project_id = item.project_id
+     AND product.id = variant.product_id
+    JOIN catalog.product_translation translation
       ON translation.project_id = item.project_id
-     AND translation.product_id = projection.product_id
-    JOIN catalog.warehouses warehouse
-      ON warehouse.project_id = item.project_id
-    LEFT JOIN catalog.warehouse_stock stock
+     AND translation.product_id = product.id
+    JOIN catalog.warehouse_stock stock
       ON stock.project_id = item.project_id
      AND stock.variant_id = item.variant_id
-     AND stock.warehouse_id = warehouse.id
   );--> statement-breakpoint
 CREATE VIEW "catalog"."variant_costs_current" AS (select "id", "project_id", "variant_id", "currency", "unit_cost_minor", "effective_from", "effective_to", "recorded_at" from "catalog"."product_variant_cost_history" where "catalog"."product_variant_cost_history"."effective_to" IS NULL);
