@@ -34,10 +34,6 @@ import {
 } from "./VendorConnectionResolver.js";
 import { TagResolver } from "./TagResolver.js";
 import { CollectionResolver } from "./CollectionResolver.js";
-import { BundleGroupResolver } from "./BundleGroupResolver.js";
-import { BundleItemResolver } from "./BundleItemResolver.js";
-import { BundlePricingTemplateResolver } from "./BundlePricingTemplateResolver.js";
-import { DependencyRuleResolver } from "./DependencyRuleResolver.js";
 import { FacetGroupResolver } from "./FacetGroupResolver.js";
 import { FacetResolver } from "./FacetResolver.js";
 import { FacetValueResolver } from "./FacetValueResolver.js";
@@ -419,61 +415,6 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
 
   productBulkUpdateJobs(args: ProductBulkUpdateJobConnectionInput) {
     return new ProductBulkUpdateJobConnectionResolver(args, this.$ctx);
-  }
-
-  // ---- Bundle Queries ----
-
-  async bundleGroup(args: { id: string }) {
-    const id = safeDecodeGlobalId(args.id, GlobalIdEntity.BundleGroup);
-    if (!id) return null;
-    const group = await this.$ctx.kernel.repository.bundleGroup.findById(id);
-    if (!group) return null;
-    return new BundleGroupResolver(group.id, this.$ctx);
-  }
-
-  async bundleGroups(args: { productId: string }) {
-    const productId = safeDecodeGlobalId(args.productId, GlobalIdEntity.Product);
-    if (!productId) return [];
-    const groups = await this.$ctx.kernel.repository.bundleGroup.findByProductId(productId);
-    return groups.map((group) => new BundleGroupResolver(group.id, this.$ctx));
-  }
-
-  async bundleItem(args: { id: string }) {
-    const id = safeDecodeGlobalId(args.id, GlobalIdEntity.BundleItem);
-    if (!id) return null;
-    const item = await this.$ctx.kernel.repository.bundleItem.findById(id);
-    if (!item) return null;
-    return new BundleItemResolver(item.id, this.$ctx);
-  }
-
-  async bundlePricingTemplate(args: { id: string }) {
-    const id = safeDecodeGlobalId(args.id, GlobalIdEntity.BundlePricingTemplate);
-    if (!id) return null;
-    const template = await this.$ctx.kernel.repository.bundlePricingTemplate.findById(id);
-    if (!template) return null;
-    return new BundlePricingTemplateResolver(template.id, this.$ctx);
-  }
-
-  async bundlePricingTemplates(args: { productId: string }) {
-    const productId = safeDecodeGlobalId(args.productId, GlobalIdEntity.Product);
-    if (!productId) return [];
-    const templates = await this.$ctx.kernel.repository.bundlePricingTemplate.findByProductId(productId);
-    return templates.map((template) => new BundlePricingTemplateResolver(template.id, this.$ctx));
-  }
-
-  async dependencyRule(args: { id: string }) {
-    const id = safeDecodeGlobalId(args.id, GlobalIdEntity.DependencyRule);
-    if (!id) return null;
-    const rule = await this.$ctx.kernel.repository.dependencyRule.findById(id);
-    if (!rule) return null;
-    return new DependencyRuleResolver(rule.id, this.$ctx);
-  }
-
-  async dependencyRules(args: { productId: string }) {
-    const productId = safeDecodeGlobalId(args.productId, GlobalIdEntity.Product);
-    if (!productId) return [];
-    const rules = await this.$ctx.kernel.repository.dependencyRule.findByProductId(productId);
-    return rules.map((rule) => new DependencyRuleResolver(rule.id, this.$ctx));
   }
 }
 

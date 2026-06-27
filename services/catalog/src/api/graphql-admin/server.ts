@@ -80,7 +80,6 @@ export async function startServer(serverConfig: ServerConfig) {
     // Service-specific schemas
     "base.graphql",
     "bulk.graphql",
-    "bundle.graphql",
     "category.graphql",
     "collection.graphql",
     "facet.graphql",

@@ -28,15 +28,6 @@ import { StockRepository } from "./stock/StockRepository.js";
 import { WarehouseRepository } from "./warehouse/WarehouseRepository.js";
 import { InventoryItemRepository } from "./inventory-item/InventoryItemRepository.js";
 import { InventoryWidgetRepository } from "./inventory-widget/InventoryWidgetRepository.js";
-import {
-  BundleGroupRepository,
-  BundleItemRepository,
-  BundlePricingTemplateRepository,
-  DependencyRuleRepository,
-  ConditionGroupRepository,
-  ConditionRepository,
-  DependencyActionRepository,
-} from "./bundle/index.js";
 
 export interface RepositoryConfig {
   db: Database;
@@ -74,13 +65,6 @@ export class Repository {
   public readonly physical: PhysicalRepository;
   public readonly stock: StockRepository;
   public readonly warehouse: WarehouseRepository;
-  public readonly bundleGroup: BundleGroupRepository;
-  public readonly bundleItem: BundleItemRepository;
-  public readonly bundlePricingTemplate: BundlePricingTemplateRepository;
-  public readonly dependencyRule: DependencyRuleRepository;
-  public readonly conditionGroup: ConditionGroupRepository;
-  public readonly condition: ConditionRepository;
-  public readonly dependencyAction: DependencyActionRepository;
   public readonly txManager: TransactionManager<Database>;
 
   /**
@@ -120,13 +104,6 @@ export class Repository {
     physical: PhysicalRepository,
     stock: StockRepository,
     warehouse: WarehouseRepository,
-    bundleGroup: BundleGroupRepository,
-    bundleItem: BundleItemRepository,
-    bundlePricingTemplate: BundlePricingTemplateRepository,
-    dependencyRule: DependencyRuleRepository,
-    conditionGroup: ConditionGroupRepository,
-    condition: ConditionRepository,
-    dependencyAction: DependencyActionRepository,
     txManager: TransactionManager<Database>
   ) {
     this.product = product;
@@ -157,13 +134,6 @@ export class Repository {
     this.physical = physical;
     this.stock = stock;
     this.warehouse = warehouse;
-    this.bundleGroup = bundleGroup;
-    this.bundleItem = bundleItem;
-    this.bundlePricingTemplate = bundlePricingTemplate;
-    this.dependencyRule = dependencyRule;
-    this.conditionGroup = conditionGroup;
-    this.condition = condition;
-    this.dependencyAction = dependencyAction;
     this.txManager = txManager;
   }
 
@@ -205,13 +175,6 @@ export class Repository {
     const physical = new PhysicalRepository(db, txManager);
     const stock = new StockRepository(db, txManager);
     const warehouse = new WarehouseRepository(db, txManager);
-    const bundleGroup = new BundleGroupRepository(db, txManager);
-    const bundleItem = new BundleItemRepository(db, txManager);
-    const bundlePricingTemplate = new BundlePricingTemplateRepository(db, txManager);
-    const dependencyRule = new DependencyRuleRepository(db, txManager);
-    const conditionGroup = new ConditionGroupRepository(db, txManager);
-    const condition = new ConditionRepository(db, txManager);
-    const dependencyAction = new DependencyActionRepository(db, txManager);
 
     return new Repository(
       product,
@@ -242,13 +205,6 @@ export class Repository {
       physical,
       stock,
       warehouse,
-      bundleGroup,
-      bundleItem,
-      bundlePricingTemplate,
-      dependencyRule,
-      conditionGroup,
-      condition,
-      dependencyAction,
       txManager
     );
   }

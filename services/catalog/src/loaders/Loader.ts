@@ -12,7 +12,6 @@ import { FacetLoader } from "./FacetLoader.js";
 import { FacetValueLoader } from "./FacetValueLoader.js";
 import { FacetSwatchLoader } from "./FacetSwatchLoader.js";
 import { CollectionLoader } from "./CollectionLoader.js";
-import { BundleLoader } from "./BundleLoader.js";
 import { BulkEditLoader } from "./BulkEditLoader.js";
 import { WarehouseLoader } from "./WarehouseLoader.js";
 import { InventoryItemLoader } from "./InventoryItemLoader.js";
@@ -92,22 +91,6 @@ export class Loader {
   public readonly collectionSeo;
   public readonly collectionMedia;
 
-  // Bundles
-  public readonly bundleGroup;
-  public readonly bundleGroupsByProductId;
-  public readonly bundleItem;
-  public readonly bundleItemsByGroupId;
-  public readonly bundlePricingTemplate;
-  public readonly bundlePricingTemplatesByProductId;
-  public readonly dependencyRule;
-  public readonly dependencyRulesByProductId;
-  public readonly conditionGroup;
-  public readonly conditionGroupsByRuleId;
-  public readonly condition;
-  public readonly conditionsByGroupId;
-  public readonly dependencyAction;
-  public readonly dependencyActionsByRuleId;
-
   // Bulk edit
   public readonly bulkEditJob;
   public readonly bulkEditItem;
@@ -140,7 +123,6 @@ export class Loader {
     const facetValueLoader = new FacetValueLoader(repository);
     const facetSwatchLoader = new FacetSwatchLoader(repository);
     const collectionLoader = new CollectionLoader(repository);
-    const bundleLoader = new BundleLoader(repository);
     const bulkEditLoader = new BulkEditLoader(repository);
     const warehouseLoader = new WarehouseLoader(repository);
     const inventoryItemLoader = new InventoryItemLoader(repository);
@@ -219,22 +201,6 @@ export class Loader {
     this.collectionTranslation = collectionLoader.collectionTranslation;
     this.collectionSeo = collectionLoader.collectionSeo;
     this.collectionMedia = collectionLoader.collectionMedia;
-
-    // Bundles
-    this.bundleGroup = bundleLoader.bundleGroup;
-    this.bundleGroupsByProductId = bundleLoader.bundleGroupsByProductId;
-    this.bundleItem = bundleLoader.bundleItem;
-    this.bundleItemsByGroupId = bundleLoader.bundleItemsByGroupId;
-    this.bundlePricingTemplate = bundleLoader.bundlePricingTemplate;
-    this.bundlePricingTemplatesByProductId = bundleLoader.bundlePricingTemplatesByProductId;
-    this.dependencyRule = bundleLoader.dependencyRule;
-    this.dependencyRulesByProductId = bundleLoader.dependencyRulesByProductId;
-    this.conditionGroup = bundleLoader.conditionGroup;
-    this.conditionGroupsByRuleId = bundleLoader.conditionGroupsByRuleId;
-    this.condition = bundleLoader.condition;
-    this.conditionsByGroupId = bundleLoader.conditionsByGroupId;
-    this.dependencyAction = bundleLoader.dependencyAction;
-    this.dependencyActionsByRuleId = bundleLoader.dependencyActionsByRuleId;
 
     // Bulk edit
     this.bulkEditJob = bulkEditLoader.bulkEditJob;
