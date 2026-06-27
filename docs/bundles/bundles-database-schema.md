@@ -32,7 +32,6 @@ Bundle — это продукт с `product.kind = 1` и отдельной 1:1
 ├──────────────────┤
 │ id (PK)          │
 │ bundle_id (FK)   │
-│ title            │
 │ sort_index       │
 │ min_selection    │
 │ max_selection    │
@@ -49,7 +48,6 @@ Bundle — это продукт с `product.kind = 1` и отдельной 1:1
 │ sort_index       │
 │ ref_product_id   │
 │ ref_variant_id   │
-│ title            │
 │ featured_img_id  │
 │ min_qty          │
 │ max_qty          │
@@ -61,6 +59,14 @@ Bundle — это продукт с `product.kind = 1` и отдельной 1:1
 │ selected         │
 │ excluded_variants│
 └──────────────────┘
+
+┌────────────────────────────┐       ┌────────────────────────────┐
+│ bundle_group_translation   │       │ bundle_item_translation    │
+├────────────────────────────┤       ├────────────────────────────┤
+│ group_id (PK, FK)          │       │ item_id (PK, FK)           │
+│ locale (PK)                │       │ locale (PK)                │
+│ name                       │       │ name                       │
+└────────────────────────────┘       └────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                           DEPENDENCY RULES                                    │
@@ -118,6 +124,23 @@ enum BundleItemType {
   PRODUCT = "PRODUCT",   // Simple product without variants
   VARIANT = "VARIANT",   // Specific variant of a product
 }
+```
+
+### BundleType API Mapping
+```typescript
+enum BundleType {
+  FIXED = "FIXED",                 // DB value: 0
+  MULTIPACK = "MULTIPACK",         // DB value: 1
+  MIX_AND_MATCH = "MIX_AND_MATCH", // DB value: 2
+  CUSTOM = "CUSTOM",               // DB value: 3
+}
+
+const BUNDLE_TYPE_DB = {
+  FIXED: 0,
+  MULTIPACK: 1,
+  MIX_AND_MATCH: 2,
+  CUSTOM: 3,
+} as const;
 ```
 
 ### BundlePriceType
@@ -235,7 +258,9 @@ import {
   boolean,
   integer,
   jsonb,
+  text,
   index,
+  primaryKey,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { catalogSchema } from "./schema";
@@ -249,6 +274,10 @@ export const bundle = catalogSchema.table(
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
+    type: integer("type"), // BundleType DB value, null = custom/unspecified
+    displayStyle: varchar("display_style", { length: 32 })
+      .notNull()
+      .default("accordion"), // DisplayStyle
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -308,7 +337,6 @@ export const bundleGroup = catalogSchema.table(
     bundleId: uuid("bundle_id")
       .notNull()
       .references(() => bundle.id, { onDelete: "cascade" }),
-    title: varchar("title", { length: 255 }).notNull(),
     sortIndex: integer("sort_index").notNull().default(0),
     minSelection: integer("min_selection"), // null = no minimum
     maxSelection: integer("max_selection"), // null = no maximum
@@ -322,6 +350,29 @@ export const bundleGroup = catalogSchema.table(
   (table) => [
     index("idx_bundle_group_bundle_id").on(table.bundleId),
     index("idx_bundle_group_sort").on(table.bundleId, table.sortIndex),
+  ]
+);
+```
+
+### Bundle Group Translation
+
+```typescript
+export const bundleGroupTranslation = catalogSchema.table(
+  "bundle_group_translation",
+  {
+    projectId: uuid("project_id").notNull(),
+    groupId: uuid("group_id")
+      .notNull()
+      .references(() => bundleGroup.id, { onDelete: "cascade" }),
+    locale: varchar("locale", { length: 8 }).notNull(),
+    name: text("name").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.groupId, table.locale] }),
+    index("idx_bundle_group_translation_project_locale").on(
+      table.projectId,
+      table.locale
+    ),
   ]
 );
 ```
@@ -347,7 +398,6 @@ export const bundleItem = catalogSchema.table(
     refVariantId: uuid("ref_variant_id"),  // FK to catalog.variant
 
     // Customization
-    title: varchar("title", { length: 255 }), // overrides product title
     featuredImageId: uuid("featured_image_id"), // FK to media
 
     // For PRODUCT type: excluded variant IDs
@@ -380,6 +430,29 @@ export const bundleItem = catalogSchema.table(
     index("idx_bundle_item_ref_product_id").on(table.refProductId),
     index("idx_bundle_item_ref_variant_id").on(table.refVariantId),
     index("idx_bundle_item_sort").on(table.groupId, table.sortIndex),
+  ]
+);
+```
+
+### Bundle Item Translation
+
+```typescript
+export const bundleItemTranslation = catalogSchema.table(
+  "bundle_item_translation",
+  {
+    projectId: uuid("project_id").notNull(),
+    itemId: uuid("item_id")
+      .notNull()
+      .references(() => bundleItem.id, { onDelete: "cascade" }),
+    locale: varchar("locale", { length: 8 }).notNull(),
+    name: text("name").notNull(), // item title override in this locale
+  },
+  (table) => [
+    primaryKey({ columns: [table.itemId, table.locale] }),
+    index("idx_bundle_item_translation_project_locale").on(
+      table.projectId,
+      table.locale
+    ),
   ]
 );
 ```
@@ -520,8 +593,12 @@ export type Bundle = typeof bundle.$inferSelect;
 export type NewBundle = typeof bundle.$inferInsert;
 export type BundleGroup = typeof bundleGroup.$inferSelect;
 export type NewBundleGroup = typeof bundleGroup.$inferInsert;
+export type BundleGroupTranslation = typeof bundleGroupTranslation.$inferSelect;
+export type NewBundleGroupTranslation = typeof bundleGroupTranslation.$inferInsert;
 export type BundleItem = typeof bundleItem.$inferSelect;
 export type NewBundleItem = typeof bundleItem.$inferInsert;
+export type BundleItemTranslation = typeof bundleItemTranslation.$inferSelect;
+export type NewBundleItemTranslation = typeof bundleItemTranslation.$inferInsert;
 export type BundlePricingTemplate = typeof bundlePricingTemplate.$inferSelect;
 export type NewBundlePricingTemplate = typeof bundlePricingTemplate.$inferInsert;
 export type DependencyRule = typeof dependencyRule.$inferSelect;
@@ -542,9 +619,12 @@ export type NewDependencyAction = typeof dependencyAction.$inferInsert;
 |--------|----------|-----------|
 | **Product kind** | `product.kind = 0 \| 1 \| ...` in DB, mapped to API enum | DB stores compact numeric discriminator; API/code exposes `BASE` / `BUNDLE` |
 | **Bundle root** | `bundle` table is 1:1 with `product` | Keeps bundle-specific aggregate root separate from base product fields |
+| **Bundle type** | `bundle.type = 0 \| 1 \| 2 \| 3 \| null` in DB, mapped to API enum | Supports admin bundle type labels and filters without changing product fields |
+| **Display style** | `bundle.display_style` | Storefront rendering mode: accordion, tabs, flat, or wizard |
 | **Bundle table FKs** | Bundle tables use `bundle_id` | Bundle structure depends on bundle aggregate, not directly on product |
 | **Product FK** | `bundle.product_id` → `product.id` | Only the root bundle row links to product |
 | **Pricing** | Inline + Template | `price_type/value` for custom, `pricing_template_id` for reuse |
+| **Group/item titles** | Stored as `name` in `bundle_group_translation` and `bundle_item_translation` | Same locale-aware pattern as `product_translation`; API can expose this value as `title` |
 | **Excluded Variants** | JSONB array | Avoids join table for rarely-used feature |
 | **Condition Groups** | Separate table | Supports nested AND/OR logic |
 | **project_id** | On all tables | Data-level multi-tenancy |
@@ -561,9 +641,11 @@ export type NewDependencyAction = typeof dependencyAction.$inferInsert;
 | `bundle` | `bundle_product_id_unique` | Enforce one bundle row per bundle product |
 | `bundle_group` | `idx_bundle_group_bundle_id` | Load groups by bundle |
 | `bundle_group` | `idx_bundle_group_sort` | Ordered retrieval |
+| `bundle_group_translation` | `idx_..._project_locale` | Resolve group titles for current locale |
 | `bundle_pricing_template` | `idx_..._bundle_id` | Load templates by bundle |
 | `bundle_item` | `idx_bundle_item_group_id` | Load items by group |
 | `bundle_item` | `idx_bundle_item_sort` | Ordered retrieval |
+| `bundle_item_translation` | `idx_..._project_locale` | Resolve item title overrides for current locale |
 | `dependency_rule` | `idx_dependency_rule_bundle_id` | Load rules by bundle |
 | `dependency_rule` | `idx_dependency_rule_priority` | Priority-based evaluation |
 | `condition` | `idx_condition_target` | Find conditions affecting target |
@@ -575,6 +657,8 @@ export type NewDependencyAction = typeof dependencyAction.$inferInsert;
 
 ### Load bundle groups with items
 ```typescript
+const locale = context.locale ?? store.defaultLocale;
+
 const [bundleRow] = await db
   .select()
   .from(bundle)
@@ -590,6 +674,29 @@ const groups = await db.query.bundleGroup.findMany({
     },
   },
 });
+
+const groupIds = groups.map((group) => group.id);
+const itemIds = groups.flatMap((group) => group.items.map((item) => item.id));
+
+const groupTranslations = await db
+  .select()
+  .from(bundleGroupTranslation)
+  .where(
+    and(
+      inArray(bundleGroupTranslation.groupId, groupIds),
+      eq(bundleGroupTranslation.locale, locale)
+    )
+  );
+
+const itemTranslations = await db
+  .select()
+  .from(bundleItemTranslation)
+  .where(
+    and(
+      inArray(bundleItemTranslation.itemId, itemIds),
+      eq(bundleItemTranslation.locale, locale)
+    )
+  );
 ```
 
 ### Load dependency rules for bundle product
