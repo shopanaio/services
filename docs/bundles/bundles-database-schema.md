@@ -21,9 +21,9 @@ Bundle — это продукт с `product.kind = 1` и отдельной 1:1
 │ id (PK)          │──1:N──│ id (PK)          │       │ id (PK)            │
 │ product_id (FK)  │       │ bundle_id (FK)   │       │ bundle_id (FK)     │
 │ created_at       │       │ name             │       │ name               │
-│ updated_at       │       │ price_type       │       │ enabled            │
-└──────────────────┘       │ price_value      │       │ priority           │
-         │                 └──────────────────┘       │ logic_operator     │
+│ updated_at       │       │ price_rule_id FK │       │ enabled            │
+└──────────────────┘       └──────────────────┘       │ priority           │
+         │                                            │ logic_operator     │
          │                                            └────────────────────┘
          │ 1:N
          ▼
@@ -52,8 +52,7 @@ Bundle — это продукт с `product.kind = 1` и отдельной 1:1
 │ min_qty          │
 │ max_qty          │
 │ default_qty      │
-│ price_type       │
-│ price_value      │
+│ price_rule_id    │
 │ pricing_tmpl_id  │
 │ visible          │
 │ selected         │
@@ -66,6 +65,15 @@ Bundle — это продукт с `product.kind = 1` и отдельной 1:1
 │ group_id (PK, FK)          │       │ item_id (PK, FK)           │
 │ locale (PK)                │       │ locale (PK)                │
 │ name                       │       │ name                       │
+└────────────────────────────┘       └────────────────────────────┘
+
+┌────────────────────────────┐       ┌────────────────────────────┐
+│     bundle_price_rule      │       │ bundle_price_rule_amount   │
+├────────────────────────────┤       ├────────────────────────────┤
+│ id (PK)                    │──1:N──│ price_rule_id (PK, FK)     │
+│ bundle_id (FK)             │       │ currency (PK)              │
+│ price_type                 │       │ amount_minor               │
+│ percent_value              │       │ project_id                 │
 └────────────────────────────┘       └────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────┐
@@ -94,8 +102,7 @@ Bundle — это продукт с `product.kind = 1` и отдельной 1:1
                  │ target_type        │
                  │ target_id          │
                  │ required_value     │
-                 │ price_type         │
-                 │ price_value        │
+                 │ price_rule_id      │
                  │ stackable          │
                  │ sort_index         │
                  └────────────────────┘
@@ -285,20 +292,81 @@ export const bundle = catalogSchema.table(
 );
 ```
 
-### Bundle Pricing Template
+### Bundle Price Rule
 
 ```typescript
 // services/catalog/src/repositories/models/bundle.ts
 import {
   uuid,
   varchar,
-  timestamp,
-  boolean,
   integer,
-  jsonb,
+  bigint,
   index,
+  primaryKey,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { catalogSchema } from "./schema";
+import { currencyEnum } from "./pricing";
+
+export const bundlePriceRule = catalogSchema.table(
+  "bundle_price_rule",
+  {
+    id: uuid("id").primaryKey(),
+    projectId: uuid("project_id").notNull(),
+    bundleId: uuid("bundle_id")
+      .notNull()
+      .references(() => bundle.id, { onDelete: "cascade" }),
+    priceType: varchar("price_type", { length: 32 }).notNull(), // BundlePriceType
+    percentValue: integer("percent_value"), // for DISCOUNT_PERCENT
+  },
+  (table) => [
+    index("idx_bundle_price_rule_bundle_id").on(table.bundleId),
+    check(
+      "bundle_price_rule_percent_value_check",
+      sql`(
+        (${table.priceType} = 'DISCOUNT_PERCENT' AND ${table.percentValue} IS NOT NULL)
+        OR
+        (${table.priceType} <> 'DISCOUNT_PERCENT' AND ${table.percentValue} IS NULL)
+      )`
+    ),
+  ]
+);
+
+export const bundlePriceRuleAmount = catalogSchema.table(
+  "bundle_price_rule_amount",
+  {
+    projectId: uuid("project_id").notNull(),
+    priceRuleId: uuid("price_rule_id")
+      .notNull()
+      .references(() => bundlePriceRule.id, { onDelete: "cascade" }),
+    currency: currencyEnum("currency").notNull(),
+    amountMinor: bigint("amount_minor", { mode: "number" }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.priceRuleId, table.currency] }),
+    index("idx_bundle_price_rule_amount_project_currency").on(
+      table.projectId,
+      table.currency
+    ),
+    check(
+      "bundle_price_rule_amount_minor_check",
+      sql`${table.amountMinor} >= 0`
+    ),
+  ]
+);
+```
+
+`bundle_price_rule_amount` stores money amounts only for `FIXED` and `DISCOUNT_FIXED`.
+`BASE`, `FREE`, and `DISCOUNT_PERCENT` do not use amount rows. Enforce this in the bundle write scripts and, if needed, with a database trigger because a row-level `CHECK` cannot validate child-row existence by parent `price_type`.
+
+Template, item, and action price-rule references must point to a rule from the same `project_id` and `bundle_id`.
+This can be enforced in write scripts, or at the database level with composite keys if the implementation needs strict cross-table tenant/bundle consistency.
+
+### Bundle Pricing Template
+
+```typescript
+// services/catalog/src/repositories/models/bundle.ts
 
 export const bundlePricingTemplate = catalogSchema.table(
   "bundle_pricing_template",
@@ -309,12 +377,14 @@ export const bundlePricingTemplate = catalogSchema.table(
       .notNull()
       .references(() => bundle.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 255 }).notNull(),
-    priceType: varchar("price_type", { length: 32 }).notNull(), // BundlePriceType
-    priceValue: integer("price_value"), // cents, nullable for BASE/FREE
+    priceRuleId: uuid("price_rule_id")
+      .notNull()
+      .references(() => bundlePriceRule.id, { onDelete: "restrict" }),
     sortIndex: integer("sort_index").notNull().default(0),
   },
   (table) => [
     index("idx_bundle_pricing_template_bundle_id").on(table.bundleId),
+    index("idx_bundle_pricing_template_price_rule_id").on(table.priceRuleId),
   ]
 );
 ```
@@ -401,9 +471,9 @@ export const bundleItem = catalogSchema.table(
     maxQty: integer("max_qty"), // null = no limit
     defaultQty: integer("default_qty").default(1), // initial quantity when added to cart
 
-    // Pricing (inline or template reference)
-    priceType: varchar("price_type", { length: 32 }), // BundlePriceType
-    priceValue: integer("price_value"), // cents
+    // Pricing (custom rule or template reference)
+    priceRuleId: uuid("price_rule_id")
+      .references(() => bundlePriceRule.id, { onDelete: "set null" }),
     pricingTemplateId: uuid("pricing_template_id")
       .references(() => bundlePricingTemplate.id, { onDelete: "set null" }),
 
@@ -423,6 +493,11 @@ export const bundleItem = catalogSchema.table(
     index("idx_bundle_item_ref_product_id").on(table.refProductId),
     index("idx_bundle_item_ref_variant_id").on(table.refVariantId),
     index("idx_bundle_item_sort").on(table.groupId, table.sortIndex),
+    index("idx_bundle_item_price_rule_id").on(table.priceRuleId),
+    check(
+      "bundle_item_pricing_source_check",
+      sql`NOT (${table.pricingTemplateId} IS NOT NULL AND ${table.priceRuleId} IS NOT NULL)`
+    ),
   ]
 );
 ```
@@ -560,8 +635,8 @@ export const dependencyAction = catalogSchema.table(
 
     // Action-specific fields
     requiredValue: boolean("required_value"), // for SET_REQUIRED
-    priceType: varchar("price_type", { length: 32 }), // for ADJUST_PRICE
-    priceValue: integer("price_value"), // for ADJUST_PRICE
+    priceRuleId: uuid("price_rule_id")
+      .references(() => bundlePriceRule.id, { onDelete: "restrict" }), // for ADJUST_PRICE
 
     // Stacking behavior
     stackable: boolean("stackable").notNull().default(false),
@@ -573,6 +648,15 @@ export const dependencyAction = catalogSchema.table(
   (table) => [
     index("idx_dependency_action_rule_id").on(table.ruleId),
     index("idx_dependency_action_target").on(table.targetType, table.targetId),
+    index("idx_dependency_action_price_rule_id").on(table.priceRuleId),
+    check(
+      "dependency_action_price_rule_check",
+      sql`(
+        (${table.actionType} = 'ADJUST_PRICE' AND ${table.priceRuleId} IS NOT NULL)
+        OR
+        (${table.actionType} <> 'ADJUST_PRICE' AND ${table.priceRuleId} IS NULL)
+      )`
+    ),
   ]
 );
 ```
@@ -590,6 +674,8 @@ export type NewBundleGroupTranslation = typeof bundleGroupTranslation.$inferInse
 export type BundleItem = typeof bundleItem.$inferSelect;
 export type NewBundleItem = typeof bundleItem.$inferInsert;
 export type BundleItemTranslation = typeof bundleItemTranslation.$inferSelect;
+export type BundlePriceRule = typeof bundlePriceRule.$inferSelect;
+export type BundlePriceRuleAmount = typeof bundlePriceRuleAmount.$inferSelect;
 export type BundlePricingTemplate = typeof bundlePricingTemplate.$inferSelect;
 export type DependencyRule = typeof dependencyRule.$inferSelect;
 export type NewDependencyRule = typeof dependencyRule.$inferInsert;
@@ -610,12 +696,13 @@ export type DependencyAction = typeof dependencyAction.$inferSelect;
 | **Display style** | `bundle.display_style` | Storefront rendering mode: accordion, tabs, flat, or wizard |
 | **Bundle table FKs** | Bundle tables use `bundle_id` | Bundle structure depends on bundle aggregate, not directly on product |
 | **Product FK** | `bundle.product_id` → `product.id` | Only the root bundle row links to product |
-| **Pricing** | Inline + Template | `price_type/value` for custom, `pricing_template_id` for reuse |
+| **Pricing** | Normalized price rule | `bundle_price_rule` stores type/percent, `bundle_price_rule_amount` stores money per currency, template/item/action reference the rule by FK |
+| **Pricing ownership** | Regular FKs to `bundle_price_rule` | Avoids polymorphic `owner_type + owner_id` and avoids nullable owner-specific FK columns on amount rows |
 | **Group/item titles** | Stored as `name` in `bundle_group_translation` and `bundle_item_translation` | Same locale-aware pattern as `product_translation`; API can expose this value as `title` |
 | **Excluded Variants** | JSONB array | Avoids join table for rarely-used feature |
 | **Condition Groups** | Separate table | Supports nested AND/OR logic |
 | **project_id** | On all tables | Data-level multi-tenancy |
-| **Money values** | Integer (cents) | Avoids floating point precision issues |
+| **Money values** | `amount_minor` bigint by currency | Avoids floating point precision issues and supports fixed/discount amounts in multiple currencies |
 | **ref_product_id** | Prefixed with `ref_` | Distinguishes item referenced product from bundle owner product |
 | **Action stacking** | `stackable` boolean on action | Controls if effects accumulate (true) or replace (false, higher priority wins) |
 
@@ -629,14 +716,19 @@ export type DependencyAction = typeof dependencyAction.$inferSelect;
 | `bundle_group` | `idx_bundle_group_bundle_id` | Load groups by bundle |
 | `bundle_group` | `idx_bundle_group_sort` | Ordered retrieval |
 | `bundle_group_translation` | `idx_..._project_locale` | Resolve group titles for current locale |
+| `bundle_price_rule` | `idx_bundle_price_rule_bundle_id` | Load price rules by bundle |
+| `bundle_price_rule_amount` | `idx_..._project_currency` | Resolve rule amounts for project currency |
 | `bundle_pricing_template` | `idx_..._bundle_id` | Load templates by bundle |
+| `bundle_pricing_template` | `idx_..._price_rule_id` | Follow template to reusable price rule |
 | `bundle_item` | `idx_bundle_item_group_id` | Load items by group |
 | `bundle_item` | `idx_bundle_item_sort` | Ordered retrieval |
+| `bundle_item` | `idx_bundle_item_price_rule_id` | Resolve custom item price rule |
 | `bundle_item_translation` | `idx_..._project_locale` | Resolve item title overrides for current locale |
 | `dependency_rule` | `idx_dependency_rule_bundle_id` | Load rules by bundle |
 | `dependency_rule` | `idx_dependency_rule_priority` | Priority-based evaluation |
 | `condition` | `idx_condition_target` | Find conditions affecting target |
 | `dependency_action` | `idx_dependency_action_target` | Find actions affecting target |
+| `dependency_action` | `idx_dependency_action_price_rule_id` | Resolve action price adjustment rule |
 
 ---
 
