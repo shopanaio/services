@@ -73,8 +73,17 @@ Bundle — это продукт с `product.kind = 1` и отдельной 1:1
 │ id (PK)                    │──1:N──│ price_rule_id (PK, FK)     │
 │ bundle_id (FK)             │       │ currency (PK)              │
 │ price_type                 │       │ amount_minor               │
-│ percent_value              │       │ project_id                 │
-└────────────────────────────┘       └────────────────────────────┘
+└────────────────────────────┘       │ project_id                 │
+                                     └────────────────────────────┘
+               │ 1:0..1
+               ▼
+┌────────────────────────────┐
+│  bundle_price_rule_percent │
+├────────────────────────────┤
+│ price_rule_id (PK, FK)     │
+│ percent_value              │
+│ project_id                 │
+└────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                           DEPENDENCY RULES                                   │
@@ -318,18 +327,9 @@ export const bundlePriceRule = catalogSchema.table(
       .notNull()
       .references(() => bundle.id, { onDelete: "cascade" }),
     priceType: varchar("price_type", { length: 32 }).notNull(), // BundlePriceType
-    percentValue: integer("percent_value"), // for DISCOUNT_PERCENT
   },
   (table) => [
     index("idx_bundle_price_rule_bundle_id").on(table.bundleId),
-    check(
-      "bundle_price_rule_percent_value_check",
-      sql`(
-        (${table.priceType} = 'DISCOUNT_PERCENT' AND ${table.percentValue} IS NOT NULL)
-        OR
-        (${table.priceType} <> 'DISCOUNT_PERCENT' AND ${table.percentValue} IS NULL)
-      )`
-    ),
   ]
 );
 
@@ -355,10 +355,29 @@ export const bundlePriceRuleAmount = catalogSchema.table(
     ),
   ]
 );
+
+export const bundlePriceRulePercent = catalogSchema.table(
+  "bundle_price_rule_percent",
+  {
+    projectId: uuid("project_id").notNull(),
+    priceRuleId: uuid("price_rule_id")
+      .primaryKey()
+      .references(() => bundlePriceRule.id, { onDelete: "cascade" }),
+    percentValue: integer("percent_value").notNull(),
+  },
+  (table) => [
+    index("idx_bundle_price_rule_percent_project_id").on(table.projectId),
+    check(
+      "bundle_price_rule_percent_value_check",
+      sql`${table.percentValue} >= 0 AND ${table.percentValue} <= 100`
+    ),
+  ]
+);
 ```
 
 `bundle_price_rule_amount` stores money amounts only for `FIXED` and `DISCOUNT_FIXED`.
-`BASE`, `FREE`, and `DISCOUNT_PERCENT` do not use amount rows. Enforce this in the bundle write scripts and, if needed, with a database trigger because a row-level `CHECK` cannot validate child-row existence by parent `price_type`.
+`bundle_price_rule_percent` stores percent values only for `DISCOUNT_PERCENT`.
+`BASE` and `FREE` do not use value rows. Enforce the required value table for each `price_type` in the bundle write scripts and, if needed, with database triggers because row-level `CHECK` constraints cannot validate child-row existence by parent `price_type`.
 
 Template, item, and action price-rule references must point to a rule from the same `project_id` and `bundle_id`.
 This can be enforced in write scripts, or at the database level with composite keys if the implementation needs strict cross-table tenant/bundle consistency.
@@ -676,6 +695,7 @@ export type NewBundleItem = typeof bundleItem.$inferInsert;
 export type BundleItemTranslation = typeof bundleItemTranslation.$inferSelect;
 export type BundlePriceRule = typeof bundlePriceRule.$inferSelect;
 export type BundlePriceRuleAmount = typeof bundlePriceRuleAmount.$inferSelect;
+export type BundlePriceRulePercent = typeof bundlePriceRulePercent.$inferSelect;
 export type BundlePricingTemplate = typeof bundlePricingTemplate.$inferSelect;
 export type DependencyRule = typeof dependencyRule.$inferSelect;
 export type NewDependencyRule = typeof dependencyRule.$inferInsert;
@@ -696,7 +716,7 @@ export type DependencyAction = typeof dependencyAction.$inferSelect;
 | **Display style** | `bundle.display_style` | Storefront rendering mode: accordion, tabs, flat, or wizard |
 | **Bundle table FKs** | Bundle tables use `bundle_id` | Bundle structure depends on bundle aggregate, not directly on product |
 | **Product FK** | `bundle.product_id` → `product.id` | Only the root bundle row links to product |
-| **Pricing** | Normalized price rule | `bundle_price_rule` stores type/percent, `bundle_price_rule_amount` stores money per currency, template/item/action reference the rule by FK |
+| **Pricing** | Normalized price rule | `bundle_price_rule` stores only the rule type; `bundle_price_rule_amount` and `bundle_price_rule_percent` store type-specific values |
 | **Pricing ownership** | Regular FKs to `bundle_price_rule` | Avoids polymorphic `owner_type + owner_id` and avoids nullable owner-specific FK columns on amount rows |
 | **Group/item titles** | Stored as `name` in `bundle_group_translation` and `bundle_item_translation` | Same locale-aware pattern as `product_translation`; API can expose this value as `title` |
 | **Excluded Variants** | JSONB array | Avoids join table for rarely-used feature |
@@ -718,6 +738,7 @@ export type DependencyAction = typeof dependencyAction.$inferSelect;
 | `bundle_group_translation` | `idx_..._project_locale` | Resolve group titles for current locale |
 | `bundle_price_rule` | `idx_bundle_price_rule_bundle_id` | Load price rules by bundle |
 | `bundle_price_rule_amount` | `idx_..._project_currency` | Resolve rule amounts for project currency |
+| `bundle_price_rule_percent` | `idx_..._project_id` | Resolve percent values by project |
 | `bundle_pricing_template` | `idx_..._bundle_id` | Load templates by bundle |
 | `bundle_pricing_template` | `idx_..._price_rule_id` | Follow template to reusable price rule |
 | `bundle_item` | `idx_bundle_item_group_id` | Load items by group |
