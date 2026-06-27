@@ -213,7 +213,7 @@ enum BundlePriceType {
 
 ### DisplayStyle
 ```typescript
-type DisplayStyle = "accordion" | "tabs" | "flat" | "wizard";
+type DisplayStyle = "ACCORDION" | "TABS" | "FLAT" | "WIZARD";
 ```
 
 ### OutOfStockBehavior
@@ -366,7 +366,7 @@ export const bundle = catalogSchema.table(
     type: varchar("type", { length: 32 }), // BundleType string, null = custom/unspecified
     displayStyle: varchar("display_style", { length: 32 })
       .notNull()
-      .default("accordion"), // DisplayStyle
+      .default("ACCORDION"), // DisplayStyle
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -1007,7 +1007,7 @@ export type DependencyAction = typeof dependencyAction.$inferSelect;
 | **Variant kind** | `variant.kind` mirrors `product.kind`; enforced by FK `(variant.product_id, variant.kind)` → `(product.id, product.kind)` | Keeps variant-level reads/filtering explicit while preventing mixed product/variant kinds |
 | **Bundle root** | `bundle` table is 1:1 with `product` | Keeps bundle-specific aggregate root separate from base product fields |
 | **Bundle type** | `bundle.type = "FIXED" \| "MULTIPACK" \| "MIX_AND_MATCH" \| "CUSTOM" \| null` in DB | Stores the bundle type as a readable string for admin labels and filters without numeric mapping |
-| **Display style** | `bundle.display_style` | Storefront rendering mode: accordion, tabs, flat, or wizard |
+| **Display style** | `bundle.display_style = "ACCORDION" \| "TABS" \| "FLAT" \| "WIZARD"` | Storefront rendering mode stored as uppercase strings to match GraphQL enum values |
 | **Configuration root** | `bundle_configuration` owns groups, items, pricing templates, and dependency rules | Allows different structure and rules per bundle variant without duplicating the root bundle |
 | **Variant mapping** | `bundle_configuration_variant` maps root bundle variants to configurations | One configuration can be reused by many variants; each variant can have only one active configuration |
 | **Configuration-scoped FKs** | Configuration-scoped tables store only `configuration_id` | Avoids duplicating `bundle_id`; bundle ownership is resolved through `bundle_configuration` |

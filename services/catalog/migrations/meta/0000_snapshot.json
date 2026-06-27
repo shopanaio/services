@@ -5766,7 +5766,7 @@
           "type": "varchar(32)",
           "primaryKey": false,
           "notNull": true,
-          "default": "'accordion'"
+          "default": "'ACCORDION'"
         },
         "created_at": {
           "name": "created_at",
@@ -5834,7 +5834,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "bundle_display_style_check": {
+          "name": "bundle_display_style_check",
+          "value": "\"catalog\".\"bundle\".\"display_style\" IN ('ACCORDION', 'TABS', 'FLAT', 'WIZARD')"
+        }
+      },
       "isRLSEnabled": false
     },
     "catalog.bundle_configuration": {

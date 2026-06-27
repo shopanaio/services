@@ -15,6 +15,13 @@
       "when": 1782580178931,
       "tag": "0001_bored_red_skull",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782585871300,
+      "tag": "0002_uppercase_bundle_display_style",
+      "breakpoints": true
     }
   ]
 }

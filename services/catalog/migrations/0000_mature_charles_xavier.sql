@@ -539,9 +539,10 @@ CREATE TABLE "catalog"."bundle" (
 	"project_id" uuid NOT NULL,
 	"product_id" uuid NOT NULL,
 	"type" varchar(32),
-	"display_style" varchar(32) DEFAULT 'accordion' NOT NULL,
+	"display_style" varchar(32) DEFAULT 'ACCORDION' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "bundle_display_style_check" CHECK ("catalog"."bundle"."display_style" IN ('ACCORDION', 'TABS', 'FLAT', 'WIZARD'))
 );
 --> statement-breakpoint
 CREATE TABLE "catalog"."bundle_configuration" (

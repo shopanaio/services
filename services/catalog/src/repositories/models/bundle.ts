@@ -32,7 +32,7 @@ export const bundle = catalogSchema.table(
     type: varchar("type", { length: 32 }),
     displayStyle: varchar("display_style", { length: 32 })
       .notNull()
-      .default("accordion"),
+      .default("ACCORDION"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -43,6 +43,10 @@ export const bundle = catalogSchema.table(
   (table) => [
     uniqueIndex("bundle_product_id_unique").on(table.productId),
     index("idx_bundle_project_id").on(table.projectId),
+    check(
+      "bundle_display_style_check",
+      sql`${table.displayStyle} IN ('ACCORDION', 'TABS', 'FLAT', 'WIZARD')`
+    ),
   ]
 );
 
