@@ -21,8 +21,21 @@
 - Bundle pricing API следует normalized DB-модели:
   `bundle_price_rule` хранит только `priceType`, значения лежат в
   `bundle_price_rule_amount` и `bundle_price_rule_percent`.
+- Catalog Admin API должен оставаться namespace-based: bundle queries добавляются в
+  `CatalogQuery`, bundle mutations - в `CatalogMutation`. Не добавлять root-level
+  `Query.bundle` / `Mutation.bundleSave`.
+- Catalog service владеет `Product` и `Variant`, поэтому bundle-поля добавляются в
+  существующие owned type definitions, а не через `extend type Product` /
+  `extend type Variant` в отдельном subgraph.
+- Все bundle queries/mutations должны scope-иться по текущему project/store через
+  request context. `projectId` из DB не публикуется в GraphQL.
 
-## Product и Variant extensions
+## Product и Variant owned field additions
+
+Catalog service already owns `Product` and `Variant`. Add these fields to the
+existing type definitions in `product.graphql` and `variant.graphql`; do not create
+separate `extend type Product` / `extend type Variant` declarations for this
+service.
 
 ```graphql
 enum ProductKind {
@@ -30,7 +43,8 @@ enum ProductKind {
   BUNDLE
 }
 
-extend type Product {
+type Product implements Node @key(fields: "id") {
+  # Existing catalog-owned fields stay unchanged.
   """Product discriminator."""
   kind: ProductKind!
 
@@ -38,7 +52,8 @@ extend type Product {
   bundle: Bundle
 }
 
-extend type Variant {
+type Variant implements Node @key(fields: "id") {
+  # Existing catalog-owned fields stay unchanged.
   """Variant discriminator. Must match parent product kind."""
   kind: ProductKind!
 
@@ -453,26 +468,42 @@ type BundleDependencyAction implements Node @key(fields: "id") {
 
 ## Query API
 
+There is no separate `CatalogQuery.bundles` list query. A bundle is listed as a
+`Product` with `kind = BUNDLE`, using the existing product listing/Relay connection
+surface:
+
 ```graphql
-extend type Query {
-  """Get bundle root by ID."""
-  bundle(id: ID!): Bundle
-
-  """Get bundle root by product ID."""
-  bundleByProduct(productId: ID!): Bundle
-
-  """Get a bundle configuration by ID."""
-  bundleConfiguration(id: ID!): BundleConfiguration
-
-  """Get the configuration assigned to a variant."""
-  bundleConfigurationByVariant(variantId: ID!): BundleConfiguration
+catalogQuery {
+  products(where: { kind: { _eq: BUNDLE } }) {
+    edges {
+      node {
+        id
+        kind
+        title
+        bundle {
+          id
+          type
+          displayStyle
+        }
+      }
+    }
+  }
 }
 ```
+
+Nested bundle structure fields (`configurations`, `groups`, `items`,
+`pricingTemplates`, `dependencyRules`, `conditionGroups`, `conditions`, `actions`)
+remain ordered snapshot arrays, not Relay connections. They are edited as one
+configuration-scoped snapshot and are expected to be loaded as a bounded bundle
+configuration tree. List-level Relay pagination stays on existing product listing
+surfaces.
 
 ## Mutation API
 
 ```graphql
-extend type Mutation {
+type CatalogMutation {
+  # ... existing catalog mutations
+
   """Create or update bundle root for a product with kind = BUNDLE."""
   bundleSave(input: BundleSaveInput!): BundlePayload!
 
@@ -777,17 +808,28 @@ input BundleDependencyActionInput {
 
 ## Валидация
 
-- `BundleCreateInput.productId` должен ссылаться на `Product.kind = BUNDLE`.
+- `BundleSaveInput.productId` должен ссылаться на `Product.kind = BUNDLE`.
 - Для одного product разрешен только один `Bundle`.
 - Все `variantIds` в configuration assignment должны принадлежать bundle product.
 - Каждый variant может быть назначен только одной configuration.
+- Все IDs в input принимаются как GraphQL global IDs и декодируются к ожидаемым
+  `GlobalIdEntity`; invalid type должен возвращать `GenericUserError`.
+- Все операции фильтруются по текущему `projectId` из context. Запрещено читать или
+  менять bundle-структуру другого project/store даже при валидном UUID.
 - `BundleGroupInput.title` обязателен и пишется в `bundle_group_translation` текущей locale.
 - `BundleItemInput.title`, если передан, пишется в `bundle_item_translation` текущей locale.
+- `BundleGroup.title: String!` должен иметь fallback для чтения: текущая locale,
+  затем default/project locale, затем пустая строка или user-visible validation error
+  при сохранении. Нельзя возвращать null из non-null GraphQL поля.
 - Для `itemType = PRODUCT` требуется `refProductId`, а `refVariantId` должен быть null.
 - Для `itemType = VARIANT` требуется `refVariantId`, а `refProductId` должен быть null.
+- `refProductId`, `refVariantId`, `optionId`, `optionValueId`, `featuredImageId`,
+  `pricingTemplateId` должны ссылаться на сущности текущего project/store.
+- `featuredImageId` не защищен DB FK в bundle-модели, поэтому существование `File`
+  валидируется на service layer.
 - `optionSelections` разрешены только для `itemType = PRODUCT`.
-- У item может быть либо inline `priceRule`, либо `pricingTemplateId` /
-  `pricingTemplateClientMutationId`, но не оба источника одновременно.
+- У item может быть либо inline `priceRule`, либо `pricingTemplateId`, но не оба
+  источника одновременно.
 - `BASE` и `FREE` не принимают `amounts` и `percent`.
 - `FIXED` и `DISCOUNT_FIXED` требуют `amounts`.
 - `DISCOUNT_PERCENT` требует `percent.value` в диапазоне `0..100`.
@@ -809,16 +851,43 @@ input BundleDependencyActionInput {
 | `BundleGroup.title` | `catalog.bundle_group_translation.name` for current locale |
 | `BundleItem` | `catalog.bundle_item` |
 | `BundleItem.title` | `catalog.bundle_item_translation.name` for current locale |
+| `BundleItem.featuredImage` | `catalog.bundle_item.featured_image_id` -> federated `File` |
 | `BundleItemOptionSelection` | `catalog.bundle_item_option_selection` |
+| `BundleItemOptionSelection.optionId` | `catalog.bundle_item_option_selection.ref_option_id` |
+| `BundleItemOptionSelection.parentOptionId` | `catalog.bundle_item_option_selection.parent_option_id` |
 | `BundleItemOptionValueSelection` | `catalog.bundle_item_option_value_selection` |
+| `BundleItemOptionValueSelection.optionValueId` | `catalog.bundle_item_option_value_selection.ref_option_value_id` |
 | `BundlePriceRule` | `catalog.bundle_price_rule`, `catalog.bundle_price_rule_amount`, `catalog.bundle_price_rule_percent` |
 | `BundlePriceRule.amounts` | `catalog.bundle_price_rule_amount` |
-| `BundlePriceRule.percent` | `catalog.bundle_price_rule_percent` |
+| `BundlePriceRule.percent.value` | `catalog.bundle_price_rule_percent.percent_value` |
 | `BundlePricingTemplate` | `catalog.bundle_pricing_template` |
 | `BundleDependencyRule` | `catalog.dependency_rule` |
 | `BundleConditionGroup` | `catalog.condition_group` |
 | `BundleCondition` | `catalog.condition` |
 | `BundleDependencyAction` | `catalog.dependency_action` |
+
+`catalog.*.project_id` columns are implementation scoping fields and are not exposed
+in GraphQL. Repositories/resolvers must include the current project/store scope in
+all reads and writes.
+
+## Relay и Node
+
+Bundle entities that implement `Node` must be resolvable through the existing
+`CatalogQuery.node(id:)` / `CatalogQuery.nodes(ids:)` entry points. Adding
+`implements Node` is not sufficient by itself.
+
+Implementation requirements:
+
+- Add all bundle node entities to `GlobalIdEntity`.
+- Encode every `id` field with the matching `GlobalIdEntity`.
+- Decode query and mutation input IDs by expected entity type.
+- Extend `CatalogQuery.node(id:)` dispatch to handle bundle node IDs.
+- Do not expose `bundle_configuration_variant` as `Node`: it is an assignment table
+  with composite key `configuration_id + variant_id`.
+- Use existing product `Connection`/`Edge`/`PageInfo` surfaces to list bundle
+  products via `Product.kind = BUNDLE`.
+- Keep configuration internals as ordered snapshot arrays unless a real UI/API need
+  appears for independently paginating groups/items/rules.
 
 ## Global ID entities
 
