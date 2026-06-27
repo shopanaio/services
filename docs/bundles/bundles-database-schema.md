@@ -3,6 +3,7 @@
 Bundle — это продукт с `product.kind = 1` и отдельной 1:1 записью в таблице `bundle`.
 На уровне API/кода числовой `product.kind` мапится в `ProductKind` (`0` → `BASE`, `1` → `BUNDLE`).
 Все bundle-таблицы ссылаются на `bundle.id`, а не напрямую на `product.id`.
+Структура бандла хранится в `bundle_configuration`: одна конфигурация содержит groups/items/pricing templates/dependency rules и может быть назначена одному или нескольким вариантам bundle product.
 
 ## ER Diagram
 
@@ -15,23 +16,25 @@ Bundle — это продукт с `product.kind = 1` и отдельной 1:1
                                      │
                                      │ 1:1 (kind = 1 / BUNDLE)
                                      ▼
-┌──────────────────┐       ┌──────────────────┐       ┌────────────────────┐
-│      bundle      │       │ pricing_template │       │  dependency_rule   │
-├──────────────────┤       ├──────────────────┤       ├────────────────────┤
-│ id (PK)          │──1:N──│ id (PK)          │       │ id (PK)            │
-│ product_id (FK)  │       │ bundle_id (FK)   │       │ bundle_id (FK)     │
-│ created_at       │       │ name             │       │ name               │
-│ updated_at       │       │ price_rule_id FK │       │ enabled            │
-└──────────────────┘       └──────────────────┘       │ priority           │
-         │                                            │ logic_operator     │
-         │                                            └────────────────────┘
-         │ 1:N
+┌──────────────────┐       ┌────────────────────────┐       ┌─────────────────────────────┐
+│      bundle      │       │  bundle_configuration  │       │ bundle_configuration_variant │
+├──────────────────┤       ├────────────────────────┤       ├─────────────────────────────┤
+│ id (PK)          │──1:N──│ id (PK)                │──1:N──│ configuration_id (PK, FK)    │
+│ product_id (FK)  │       │ bundle_id (FK)         │       │ variant_id (PK, FK)          │
+│ type             │       │ name                   │       └─────────────────────────────┘
+│ display_style    │       │ is_default             │                       │
+│ created_at       │       │ created_at             │                       │ N:1
+│ updated_at       │       │ updated_at             │                       ▼
+└──────────────────┘       └────────────────────────┘              catalog.variant
+         │                            │
+         │                            │ 1:N
          ▼
 ┌──────────────────┐
 │   bundle_group   │
 ├──────────────────┤
 │ id (PK)          │
 │ bundle_id (FK)   │
+│ configuration_id │
 │ sort_index       │
 │ min_selection    │
 │ max_selection    │
@@ -91,14 +94,25 @@ Bundle — это продукт с `product.kind = 1` и отдельной 1:1
 │ name                       │       │ name                       │
 └────────────────────────────┘       └────────────────────────────┘
 
+┌────────────────────────────┐
+│  bundle_pricing_template   │
+├────────────────────────────┤
+│ id (PK)                    │
+│ bundle_id (FK)             │
+│ configuration_id (FK)      │
+│ name                       │
+│ price_rule_id (FK)         │
+│ sort_index                 │
+└────────────────────────────┘
+
 ┌────────────────────────────┐       ┌────────────────────────────┐
 │     bundle_price_rule      │       │ bundle_price_rule_amount   │
 ├────────────────────────────┤       ├────────────────────────────┤
 │ id (PK)                    │──1:N──│ price_rule_id (PK, FK)     │
 │ bundle_id (FK)             │       │ currency (PK)              │
-│ price_type                 │       │ amount_minor               │
-└────────────────────────────┘       │ project_id                 │
-                                     └────────────────────────────┘
+│ configuration_id (FK)      │       │ amount_minor               │
+│ price_type                 │       │ project_id                 │
+└────────────────────────────┘       └────────────────────────────┘
                │ 1:0..1
                ▼
 ┌────────────────────────────┐
@@ -118,12 +132,13 @@ Bundle — это продукт с `product.kind = 1` и отдельной 1:1
 ├────────────────────┤       ├────────────────────┤       ├────────────────────┤
 │ id (PK)            │──1:N──│ id (PK)            │──1:N──│ id (PK)            │
 │ bundle_id (FK)     │       │ rule_id (FK)       │       │ group_id (FK)      │
-│ name               │       │ logic_operator     │       │ category           │
-│ enabled            │       │ sort_index         │       │ subject            │
-│ priority           │       └────────────────────┘       │ operator           │
-│ logic_operator     │                                    │ target_type        │
-│ created_at         │                                    │ target_id          │
-│ updated_at         │                                    │ value              │
+│ configuration_id   │       │ logic_operator     │       │ category           │
+│ name               │       │ sort_index         │       │ subject            │
+│ enabled            │       └────────────────────┘       │ operator           │
+│ priority           │                                    │ target_type        │
+│ logic_operator     │                                    │ target_id          │
+│ created_at         │                                    │ value              │
+│ updated_at         │                                    │ sort_index         │
 └────────────────────┘                                    └────────────────────┘
         │
         │        ┌────────────────────┐
@@ -305,8 +320,9 @@ import {
   primaryKey,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { catalogSchema } from "./schema";
-import { product } from "./products";
+import { product, variant } from "./products";
 
 export const bundle = catalogSchema.table(
   "bundle",
@@ -334,6 +350,69 @@ export const bundle = catalogSchema.table(
 );
 ```
 
+### Bundle Configuration
+
+```typescript
+// services/catalog/src/repositories/models/bundle.ts
+
+export const bundleConfiguration = catalogSchema.table(
+  "bundle_configuration",
+  {
+    id: uuid("id").primaryKey(),
+    projectId: uuid("project_id").notNull(),
+    bundleId: uuid("bundle_id")
+      .notNull()
+      .references(() => bundle.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 255 }).notNull(),
+    isDefault: boolean("is_default").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_bundle_configuration_bundle_id").on(table.bundleId),
+    uniqueIndex("bundle_configuration_default_unique")
+      .on(table.bundleId)
+      .where(sql`${table.isDefault} = true`),
+  ]
+);
+
+export const bundleConfigurationVariant = catalogSchema.table(
+  "bundle_configuration_variant",
+  {
+    projectId: uuid("project_id").notNull(),
+    configurationId: uuid("configuration_id")
+      .notNull()
+      .references(() => bundleConfiguration.id, { onDelete: "cascade" }),
+    variantId: uuid("variant_id")
+      .notNull()
+      .references(() => variant.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.configurationId, table.variantId] }),
+    uniqueIndex("bundle_configuration_variant_unique").on(table.variantId),
+    index("idx_bundle_configuration_variant_project_id").on(table.projectId),
+  ]
+);
+```
+
+`bundle_configuration` is the structure profile for a bundle. It owns groups, items,
+pricing templates, and dependency rules. `bundle_configuration_variant` assigns a profile to
+one or more variants of the root bundle product. A variant without an explicit assignment uses
+the default configuration for the same bundle.
+
+Do not add `variant_id` to `bundle_group`, `bundle_item`, `bundle_pricing_template`, or
+`dependency_rule`. Variant-specific behavior is selected by resolving a configuration first,
+then loading all configuration-scoped data through `configuration_id`.
+
+The write layer must validate that `bundle_configuration_variant.variant_id` belongs to
+`bundle.product_id` through `variant.product_id`. If strict database-level enforcement is
+needed, add composite unique keys and a composite FK against `(project_id, product_id, id)` on
+`variant`.
+
 ### Bundle Price Rule
 
 ```typescript
@@ -360,10 +439,14 @@ export const bundlePriceRule = catalogSchema.table(
     bundleId: uuid("bundle_id")
       .notNull()
       .references(() => bundle.id, { onDelete: "cascade" }),
+    configurationId: uuid("configuration_id")
+      .notNull()
+      .references(() => bundleConfiguration.id, { onDelete: "cascade" }),
     priceType: varchar("price_type", { length: 32 }).notNull(), // BundlePriceType
   },
   (table) => [
     index("idx_bundle_price_rule_bundle_id").on(table.bundleId),
+    index("idx_bundle_price_rule_configuration_id").on(table.configurationId),
   ]
 );
 
@@ -413,7 +496,7 @@ export const bundlePriceRulePercent = catalogSchema.table(
 `bundle_price_rule_percent` stores percent values only for `DISCOUNT_PERCENT`.
 `BASE` and `FREE` do not use value rows. Enforce the required value table for each `price_type` in the bundle write scripts and, if needed, with database triggers because row-level `CHECK` constraints cannot validate child-row existence by parent `price_type`.
 
-Template, item, and action price-rule references must point to a rule from the same `project_id` and `bundle_id`.
+Template, item, and action price-rule references must point to a rule from the same `project_id`, `bundle_id`, and `configuration_id`.
 This can be enforced in write scripts, or at the database level with composite keys if the implementation needs strict cross-table tenant/bundle consistency.
 
 ### Bundle Pricing Template
@@ -429,6 +512,9 @@ export const bundlePricingTemplate = catalogSchema.table(
     bundleId: uuid("bundle_id")
       .notNull()
       .references(() => bundle.id, { onDelete: "cascade" }),
+    configurationId: uuid("configuration_id")
+      .notNull()
+      .references(() => bundleConfiguration.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 255 }).notNull(),
     priceRuleId: uuid("price_rule_id")
       .notNull()
@@ -437,6 +523,9 @@ export const bundlePricingTemplate = catalogSchema.table(
   },
   (table) => [
     index("idx_bundle_pricing_template_bundle_id").on(table.bundleId),
+    index("idx_bundle_pricing_template_configuration_id").on(
+      table.configurationId
+    ),
     index("idx_bundle_pricing_template_price_rule_id").on(table.priceRuleId),
   ]
 );
@@ -453,6 +542,9 @@ export const bundleGroup = catalogSchema.table(
     bundleId: uuid("bundle_id")
       .notNull()
       .references(() => bundle.id, { onDelete: "cascade" }),
+    configurationId: uuid("configuration_id")
+      .notNull()
+      .references(() => bundleConfiguration.id, { onDelete: "cascade" }),
     sortIndex: integer("sort_index").notNull().default(0),
     minSelection: integer("min_selection"), // null = no minimum
     maxSelection: integer("max_selection"), // null = no maximum
@@ -465,7 +557,8 @@ export const bundleGroup = catalogSchema.table(
   },
   (table) => [
     index("idx_bundle_group_bundle_id").on(table.bundleId),
-    index("idx_bundle_group_sort").on(table.bundleId, table.sortIndex),
+    index("idx_bundle_group_configuration_id").on(table.configurationId),
+    index("idx_bundle_group_sort").on(table.configurationId, table.sortIndex),
   ]
 );
 ```
@@ -702,6 +795,9 @@ export const dependencyRule = catalogSchema.table(
     bundleId: uuid("bundle_id")
       .notNull()
       .references(() => bundle.id, { onDelete: "cascade" }),
+    configurationId: uuid("configuration_id")
+      .notNull()
+      .references(() => bundleConfiguration.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 255 }).notNull(),
     enabled: boolean("enabled").notNull().default(true),
     priority: integer("priority").notNull().default(0),
@@ -715,7 +811,11 @@ export const dependencyRule = catalogSchema.table(
   },
   (table) => [
     index("idx_dependency_rule_bundle_id").on(table.bundleId),
-    index("idx_dependency_rule_priority").on(table.bundleId, table.priority),
+    index("idx_dependency_rule_configuration_id").on(table.configurationId),
+    index("idx_dependency_rule_priority").on(
+      table.configurationId,
+      table.priority
+    ),
   ]
 );
 ```
@@ -833,6 +933,12 @@ export const dependencyAction = catalogSchema.table(
 
 ```typescript
 export type Bundle = typeof bundle.$inferSelect;
+export type BundleConfiguration = typeof bundleConfiguration.$inferSelect;
+export type NewBundleConfiguration = typeof bundleConfiguration.$inferInsert;
+export type BundleConfigurationVariant =
+  typeof bundleConfigurationVariant.$inferSelect;
+export type NewBundleConfigurationVariant =
+  typeof bundleConfigurationVariant.$inferInsert;
 export type BundleGroup = typeof bundleGroup.$inferSelect;
 export type NewBundleGroup = typeof bundleGroup.$inferInsert;
 export type BundleGroupTranslation = typeof bundleGroupTranslation.$inferSelect;
@@ -865,7 +971,10 @@ export type DependencyAction = typeof dependencyAction.$inferSelect;
 | **Bundle root** | `bundle` table is 1:1 with `product` | Keeps bundle-specific aggregate root separate from base product fields |
 | **Bundle type** | `bundle.type = "FIXED" \| "MULTIPACK" \| "MIX_AND_MATCH" \| "CUSTOM" \| null` in DB | Stores the bundle type as a readable string for admin labels and filters without numeric mapping |
 | **Display style** | `bundle.display_style` | Storefront rendering mode: accordion, tabs, flat, or wizard |
-| **Bundle table FKs** | Bundle tables use `bundle_id` | Bundle structure depends on bundle aggregate, not directly on product |
+| **Configuration root** | `bundle_configuration` owns groups, items, pricing templates, and dependency rules | Allows different structure and rules per bundle variant without duplicating the root bundle |
+| **Default configuration** | One `is_default = true` configuration per bundle | Variants without explicit mapping still resolve to a complete bundle setup |
+| **Variant mapping** | `bundle_configuration_variant` maps root bundle variants to configurations | One configuration can be reused by many variants; each variant can have only one active configuration |
+| **Bundle table FKs** | Configuration-scoped tables store `bundle_id` and `configuration_id` | `configuration_id` selects the active setup; `bundle_id` keeps loading and consistency checks simple |
 | **Product FK** | `bundle.product_id` → `product.id` | Only the root bundle row links to product |
 | **Pricing** | Normalized price rule | `bundle_price_rule` stores only the rule type; `bundle_price_rule_amount` and `bundle_price_rule_percent` store type-specific values |
 | **Pricing ownership** | Regular FKs to `bundle_price_rule` | Avoids polymorphic `owner_type + owner_id` and avoids nullable owner-specific FK columns on amount rows |
@@ -885,13 +994,19 @@ export type DependencyAction = typeof dependencyAction.$inferSelect;
 | Table | Index | Purpose |
 |-------|-------|---------|
 | `bundle` | `bundle_product_id_unique` | Enforce one bundle row per bundle product |
-| `bundle_group` | `idx_bundle_group_bundle_id` | Load groups by bundle |
+| `bundle_configuration` | `idx_bundle_configuration_bundle_id` | Load configurations by bundle |
+| `bundle_configuration` | `bundle_configuration_default_unique` | Enforce a single default configuration per bundle |
+| `bundle_configuration_variant` | `bundle_configuration_variant_unique` | Enforce a single active configuration per bundle variant |
+| `bundle_group` | `idx_bundle_group_bundle_id` | Find all groups for bundle maintenance operations |
+| `bundle_group` | `idx_bundle_group_configuration_id` | Load groups by resolved configuration |
 | `bundle_group` | `idx_bundle_group_sort` | Ordered retrieval |
 | `bundle_group_translation` | `idx_..._project_locale` | Resolve group titles for current locale |
-| `bundle_price_rule` | `idx_bundle_price_rule_bundle_id` | Load price rules by bundle |
+| `bundle_price_rule` | `idx_bundle_price_rule_bundle_id` | Find all price rules for bundle maintenance operations |
+| `bundle_price_rule` | `idx_..._configuration_id` | Load price rules by resolved configuration |
 | `bundle_price_rule_amount` | `idx_..._project_currency` | Resolve rule amounts for project currency |
 | `bundle_price_rule_percent` | `idx_..._project_id` | Resolve percent values by project |
-| `bundle_pricing_template` | `idx_..._bundle_id` | Load templates by bundle |
+| `bundle_pricing_template` | `idx_..._bundle_id` | Find all templates for bundle maintenance operations |
+| `bundle_pricing_template` | `idx_..._configuration_id` | Load templates by resolved configuration |
 | `bundle_pricing_template` | `idx_..._price_rule_id` | Follow template to reusable price rule |
 | `bundle_item` | `idx_bundle_item_group_id` | Load items by group |
 | `bundle_item` | `idx_bundle_item_sort` | Ordered retrieval |
@@ -901,7 +1016,8 @@ export type DependencyAction = typeof dependencyAction.$inferSelect;
 | `bundle_item_option_value_selection` | `idx_..._option_id` | Load allowed/disabled values for an option selection |
 | `bundle_item_option_value_selection` | `idx_..._status` | Resolve selected values and admin review states |
 | `bundle_item_translation` | `idx_..._project_locale` | Resolve item title overrides for current locale |
-| `dependency_rule` | `idx_dependency_rule_bundle_id` | Load rules by bundle |
+| `dependency_rule` | `idx_dependency_rule_bundle_id` | Find all rules for bundle maintenance operations |
+| `dependency_rule` | `idx_dependency_rule_configuration_id` | Load rules by resolved configuration |
 | `dependency_rule` | `idx_dependency_rule_priority` | Priority-based evaluation |
 | `condition` | `idx_condition_target` | Find conditions affecting target |
 | `dependency_action` | `idx_dependency_action_target` | Find actions affecting target |
@@ -911,18 +1027,68 @@ export type DependencyAction = typeof dependencyAction.$inferSelect;
 
 ## Example Queries
 
+### Resolve bundle configuration for variant
+```typescript
+const [bundleRow] = await db
+  .select()
+  .from(bundle)
+  .where(
+    and(
+      eq(bundle.projectId, context.projectId),
+      eq(bundle.productId, productId)
+    )
+  )
+  .limit(1);
+
+const [variantConfiguration] = selectedBundleVariantId
+  ? await db
+      .select({ configuration: bundleConfiguration })
+      .from(bundleConfigurationVariant)
+      .innerJoin(
+        bundleConfiguration,
+        eq(bundleConfiguration.id, bundleConfigurationVariant.configurationId)
+      )
+      .where(
+        and(
+          eq(bundleConfigurationVariant.projectId, context.projectId),
+          eq(bundleConfiguration.bundleId, bundleRow.id),
+          eq(bundleConfigurationVariant.variantId, selectedBundleVariantId)
+        )
+      )
+      .limit(1)
+  : [];
+
+const [defaultConfiguration] = variantConfiguration
+  ? []
+  : await db
+      .select()
+      .from(bundleConfiguration)
+      .where(
+        and(
+          eq(bundleConfiguration.projectId, context.projectId),
+          eq(bundleConfiguration.bundleId, bundleRow.id),
+          eq(bundleConfiguration.isDefault, true)
+        )
+      )
+      .limit(1);
+
+const configurationRow =
+  variantConfiguration?.configuration ?? defaultConfiguration;
+```
+
+`selectedBundleVariantId` must be a variant of `bundle.product_id`. Enforce this in the write
+path when creating `bundle_configuration_variant`; the read path should only resolve mappings
+inside the current bundle.
+The bundle create/update scripts must ensure every bundle has exactly one default configuration;
+if resolution returns no configuration, treat the bundle as misconfigured and do not expose it as
+sellable.
+
 ### Load bundle groups with items
 ```typescript
 const locale = context.locale ?? store.defaultLocale;
 
-const [bundleRow] = await db
-  .select()
-  .from(bundle)
-  .where(eq(bundle.productId, productId))
-  .limit(1);
-
 const groups = await db.query.bundleGroup.findMany({
-  where: eq(bundleGroup.bundleId, bundleRow.id),
+  where: eq(bundleGroup.configurationId, configurationRow.id),
   orderBy: [asc(bundleGroup.sortIndex)],
   with: {
     items: {
@@ -985,11 +1151,11 @@ For example, `Color in [Red, Black]` and `Size in [S, M]` resolves to all catalo
 whose option values match that intersection. `DESELECTED`, `NEW`, and `UNAVAILABLE` values are
 kept for admin review and synchronization, but they are not exposed as sellable values by default.
 
-### Load dependency rules for bundle product
+### Load dependency rules for bundle configuration
 ```typescript
 const rules = await db.query.dependencyRule.findMany({
   where: and(
-    eq(dependencyRule.bundleId, bundleRow.id),
+    eq(dependencyRule.configurationId, configurationRow.id),
     eq(dependencyRule.enabled, true)
   ),
   orderBy: [desc(dependencyRule.priority)],
