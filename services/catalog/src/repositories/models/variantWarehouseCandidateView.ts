@@ -1,12 +1,12 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
-  integer,
   text,
   timestamp,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { productKindEnum } from "./products";
 import { catalogSchema } from "./schema";
 
 export const variantWarehouseCandidateView = catalogSchema
@@ -14,7 +14,7 @@ export const variantWarehouseCandidateView = catalogSchema
     projectId: uuid("project_id").notNull(),
     warehouseScopeId: uuid("warehouse_scope_id").notNull(),
     productId: uuid("product_id").notNull(),
-    kind: integer("kind").notNull(),
+    kind: productKindEnum("kind").notNull(),
     locale: varchar("locale", { length: 8 }).notNull(),
     productName: text("product_name").notNull(),
     id: uuid("id").notNull(),

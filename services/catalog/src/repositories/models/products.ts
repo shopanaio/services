@@ -15,6 +15,11 @@ import { sql } from "drizzle-orm";
 import { catalogSchema } from "./schema";
 import { vendor } from "./vendors";
 
+export const productKindEnum = catalogSchema.enum("product_kind", [
+  "BASE",
+  "BUNDLE",
+]);
+
 export const product = catalogSchema.table(
   "product",
   {
@@ -31,14 +36,13 @@ export const product = catalogSchema.table(
       .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
     revision: integer("revision").notNull().default(0),
-    kind: integer("kind").notNull().default(1),
+    kind: productKindEnum("kind").notNull().default("BASE"),
   },
   (table) => [
     check(
       "product_published_requires_handle",
       sql`published_at IS NULL OR handle IS NOT NULL`
     ),
-    check("product_kind_positive", sql`kind > 0`),
     uniqueIndex("product_project_id_handle_key")
       .on(table.projectId, table.handle)
       .where(sql`deleted_at IS NULL AND handle IS NOT NULL`),
@@ -65,7 +69,7 @@ export const variant = catalogSchema.table(
   {
     projectId: uuid("project_id").notNull(),
     productId: uuid("product_id").notNull(),
-    kind: integer("kind").notNull().default(1),
+    kind: productKindEnum("kind").notNull().default("BASE"),
     id: uuid("id").primaryKey(),
     isDefault: boolean("is_default").notNull().default(false),
     handle: varchar("handle", { length: 255 }).notNull(),
@@ -85,7 +89,6 @@ export const variant = catalogSchema.table(
       "variant_handle_required_if_not_default",
       sql`is_default = true OR length(handle) > 0`
     ),
-    check("variant_kind_positive", sql`kind > 0`),
     uniqueIndex("variant_product_id_default_key")
       .on(table.productId)
       .where(sql`is_default = true AND deleted_at IS NULL`),
