@@ -126,21 +126,14 @@ enum BundleItemType {
 }
 ```
 
-### BundleType API Mapping
+### BundleType
 ```typescript
 enum BundleType {
-  FIXED = "FIXED",                 // DB value: 0
-  MULTIPACK = "MULTIPACK",         // DB value: 1
-  MIX_AND_MATCH = "MIX_AND_MATCH", // DB value: 2
-  CUSTOM = "CUSTOM",               // DB value: 3
+  FIXED = "FIXED",
+  MULTIPACK = "MULTIPACK",
+  MIX_AND_MATCH = "MIX_AND_MATCH",
+  CUSTOM = "CUSTOM",
 }
-
-const BUNDLE_TYPE_DB = {
-  FIXED: 0,
-  MULTIPACK: 1,
-  MIX_AND_MATCH: 2,
-  CUSTOM: 3,
-} as const;
 ```
 
 ### BundlePriceType
@@ -274,7 +267,7 @@ export const bundle = catalogSchema.table(
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
-    type: integer("type"), // BundleType DB value, null = custom/unspecified
+    type: varchar("type", { length: 32 }), // BundleType string, null = custom/unspecified
     displayStyle: varchar("display_style", { length: 32 })
       .notNull()
       .default("accordion"), // DisplayStyle
@@ -619,7 +612,7 @@ export type NewDependencyAction = typeof dependencyAction.$inferInsert;
 |--------|----------|-----------|
 | **Product kind** | `product.kind = 0 \| 1 \| ...` in DB, mapped to API enum | DB stores compact numeric discriminator; API/code exposes `BASE` / `BUNDLE` |
 | **Bundle root** | `bundle` table is 1:1 with `product` | Keeps bundle-specific aggregate root separate from base product fields |
-| **Bundle type** | `bundle.type = 0 \| 1 \| 2 \| 3 \| null` in DB, mapped to API enum | Supports admin bundle type labels and filters without changing product fields |
+| **Bundle type** | `bundle.type = "FIXED" \| "MULTIPACK" \| "MIX_AND_MATCH" \| "CUSTOM" \| null` in DB | Stores the bundle type as a readable string for admin labels and filters without numeric mapping |
 | **Display style** | `bundle.display_style` | Storefront rendering mode: accordion, tabs, flat, or wizard |
 | **Bundle table FKs** | Bundle tables use `bundle_id` | Bundle structure depends on bundle aggregate, not directly on product |
 | **Product FK** | `bundle.product_id` → `product.id` | Only the root bundle row links to product |
