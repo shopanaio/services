@@ -8,7 +8,7 @@ Bundle — это продукт с `product.kind = 1` и отдельной 1:1
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              BUNDLES SCHEMA                                  │
+│                              BUNDLES SCHEMA                                 │
 └─────────────────────────────────────────────────────────────────────────────┘
 
                               catalog.product
@@ -69,7 +69,7 @@ Bundle — это продукт с `product.kind = 1` и отдельной 1:1
 └────────────────────────────┘       └────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                           DEPENDENCY RULES                                    │
+│                           DEPENDENCY RULES                                   │
 └──────────────────────────────────────────────────────────────────────────────┘
 
 ┌────────────────────┐       ┌────────────────────┐       ┌────────────────────┐
@@ -583,7 +583,6 @@ export const dependencyAction = catalogSchema.table(
 
 ```typescript
 export type Bundle = typeof bundle.$inferSelect;
-export type NewBundle = typeof bundle.$inferInsert;
 export type BundleGroup = typeof bundleGroup.$inferSelect;
 export type NewBundleGroup = typeof bundleGroup.$inferInsert;
 export type BundleGroupTranslation = typeof bundleGroupTranslation.$inferSelect;
@@ -591,17 +590,12 @@ export type NewBundleGroupTranslation = typeof bundleGroupTranslation.$inferInse
 export type BundleItem = typeof bundleItem.$inferSelect;
 export type NewBundleItem = typeof bundleItem.$inferInsert;
 export type BundleItemTranslation = typeof bundleItemTranslation.$inferSelect;
-export type NewBundleItemTranslation = typeof bundleItemTranslation.$inferInsert;
 export type BundlePricingTemplate = typeof bundlePricingTemplate.$inferSelect;
-export type NewBundlePricingTemplate = typeof bundlePricingTemplate.$inferInsert;
 export type DependencyRule = typeof dependencyRule.$inferSelect;
 export type NewDependencyRule = typeof dependencyRule.$inferInsert;
 export type ConditionGroup = typeof conditionGroup.$inferSelect;
-export type NewConditionGroup = typeof conditionGroup.$inferInsert;
 export type Condition = typeof condition.$inferSelect;
-export type NewCondition = typeof condition.$inferInsert;
 export type DependencyAction = typeof dependencyAction.$inferSelect;
-export type NewDependencyAction = typeof dependencyAction.$inferInsert;
 ```
 
 ---
