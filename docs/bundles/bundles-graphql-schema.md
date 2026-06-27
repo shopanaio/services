@@ -4,10 +4,13 @@
 `docs/bundles/bundles-database-schema.md`.
 
 Ключевой принцип: bundle в Admin GraphQL API является отдельным catalog type для
-продаваемой сущности. На уровне хранения он создается как `catalog.product` с
-`kind = BUNDLE` плюс 1:1 запись в `catalog.bundle`, но клиент не создает bundle
-через существующий `productId`. `bundleCreate` создает новый bundle sellable item
-и bundle root в одной операции.
+продаваемой сущности, но его публичный identity остается identity продукта. На
+уровне хранения он создается как `catalog.product` с `kind = BUNDLE` плюс 1:1
+служебная запись в `catalog.bundle`, но `catalog.bundle` не является отдельной
+GraphQL-сущностью и не получает публичный ID. `Bundle.id` всегда кодирует
+`catalog.product.id` с `GlobalIdEntity.Product`. Клиент не создает bundle через
+существующий `productId`: `bundleCreate` создает новый bundle sellable product и
+внутренний bundle root в одной операции.
 Структура бандла редактируется через configuration-scoped snapshot input: одна
 конфигурация содержит groups/items/pricing templates/dependency rules.
 
@@ -15,6 +18,8 @@
 
 - `Bundle` - отдельный GraphQL type для продукта с `kind = BUNDLE`; он публикует
   product-like поля напрямую и добавляет bundle-specific поля.
+- `Bundle.id` - это `Product` global ID от `catalog.product.id`; в API нет
+  отдельной сущности для строки `catalog.bundle`.
 - `catalog.product` / `catalog.variant` остаются общими DB-таблицами для BASE и
   BUNDLE, но API не моделирует Bundle как `Product.bundle`.
 - `BundleConfiguration` - владелец структуры бандла.
@@ -37,13 +42,24 @@
   публикуются на `Bundle`, а не как `Product.bundle`.
 - Все bundle queries/mutations должны scope-иться по текущему project/store через
   request context. `projectId` из DB не публикуется в GraphQL.
+- Для плоских catalog/listing списков, где рядом отображаются обычные продукты и
+  бандлы, использовать общий GraphQL interface (`CatalogSellable`), а не union.
+  `Product` и `Bundle` реализуют этот interface, поэтому UI может читать общие
+  поля без дублирования inline fragments и добирать subtype-specific поля через
+  `... on Product` / `... on Bundle`.
+- Поля category/listing/search, которые возвращают смешанный список BASE/BUNDLE
+  продаваемых сущностей, не должны называться `products`, если они могут вернуть
+  `Bundle`. Использовать нейтральные имена вроде `items`, `sellables` или
+  `catalogItems`.
 
 ## Product, Bundle и Variant owned field additions
 
 Catalog service already owns `Product`, `Bundle`, and `Variant`. `Product` keeps
 the discriminator so generic catalog internals can distinguish BASE/BUNDLE rows,
 but `Product` does not expose a `bundle` field. Bundle-specific reads go through
-the `Bundle` type and `CatalogQuery.bundle` / `CatalogQuery.bundles`.
+the `Bundle` type and `CatalogQuery.bundle` / `CatalogQuery.bundles`. `Bundle`
+uses the same public ID namespace as `Product`: a bundle ID is a `Product` global
+ID whose decoded product row has `kind = BUNDLE`.
 
 ```graphql
 enum ProductKind {
@@ -51,10 +67,57 @@ enum ProductKind {
   BUNDLE
 }
 
-type Product implements Node @key(fields: "id") {
-  # Existing catalog-owned fields stay unchanged.
+interface CatalogSellable implements Node {
+  """The Product global ID of the sellable catalog item."""
+  id: ID!
+
   """Product discriminator."""
   kind: ProductKind!
+
+  """The URL-friendly handle."""
+  handle: String
+
+  """Localized title."""
+  title: String!
+
+  """Media registered on this sellable item."""
+  media: [ProductMediaItem!]!
+
+  """The primary category assigned to this sellable item."""
+  primaryCategory: Category
+
+  """The tags associated with this sellable item."""
+  tags: [Tag!]!
+
+  """The total number of variants."""
+  variantsCount: Int!
+}
+
+type Product implements Node & CatalogSellable @key(fields: "id") {
+  # Existing catalog-owned fields stay unchanged.
+  """The Product global ID."""
+  id: ID!
+
+  """Product discriminator."""
+  kind: ProductKind!
+
+  """The URL-friendly handle."""
+  handle: String
+
+  """Localized product title."""
+  title: String!
+
+  """Media registered on this product."""
+  media: [ProductMediaItem!]!
+
+  """The primary category assigned to this product."""
+  primaryCategory: Category
+
+  """The tags associated with this product."""
+  tags: [Tag!]!
+
+  """The total number of variants."""
+  variantsCount: Int!
 }
 
 type Variant implements Node @key(fields: "id") {
@@ -142,9 +205,12 @@ enum BundleDependencyActionType {
   ADJUST_PRICE
 }
 
-type Bundle implements Node @key(fields: "id") {
-  """The globally unique ID of the bundle sellable item."""
+type Bundle implements Node & CatalogSellable @key(fields: "id") {
+  """The Product global ID of the bundle sellable item."""
   id: ID!
+
+  """Product discriminator. Always BUNDLE for this type."""
+  kind: ProductKind!
 
   """The URL-friendly handle for the bundle."""
   handle: String
@@ -246,6 +312,31 @@ type BundleEdge {
   cursor: String!
 }
 
+"""
+A connection to a mixed list of sellable catalog items.
+"""
+type CatalogSellableConnection {
+  """A list of edges."""
+  edges: [CatalogSellableEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of sellable catalog items."""
+  totalCount: Int!
+}
+
+"""
+An edge in a CatalogSellable connection.
+"""
+type CatalogSellableEdge {
+  """The item at the end of the edge."""
+  node: CatalogSellable!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
 type BundleConfiguration implements Node @key(fields: "id") {
   """The globally unique ID of the configuration."""
   id: ID!
@@ -253,7 +344,7 @@ type BundleConfiguration implements Node @key(fields: "id") {
   """The bundle root this configuration belongs to."""
   bundle: Bundle!
 
-  """The bundle root ID."""
+  """The Product global ID of the bundle this configuration belongs to."""
   bundleId: ID!
 
   """Configuration name."""
@@ -601,7 +692,7 @@ query namespace directly:
 type CatalogQuery {
   # ... existing catalog queries
 
-  """Get a bundle by ID."""
+  """Get a bundle by Product global ID. The product must have kind = BUNDLE."""
   bundle(id: ID!): Bundle
 
   """Get bundles with Relay-style pagination."""
@@ -622,6 +713,64 @@ Nested bundle structure fields (`configurations`, `groups`, `items`,
 remain ordered snapshot arrays, not Relay connections. They are edited as one
 configuration-scoped snapshot and are expected to be loaded as a bounded bundle
 configuration tree. List-level Relay pagination is on `CatalogQuery.bundles`.
+
+Flat merchandising/listing surfaces that can contain both BASE products and
+BUNDLE products should return `CatalogSellableConnection`, not `BundleConnection`
+or a GraphQL union. This keeps the UI list contract stable for shared card/list
+fields while still allowing subtype-specific fragments.
+
+Example category/listing shape:
+
+```graphql
+type Category implements Node @key(fields: "id") {
+  # ... existing category fields
+
+  """Sellable catalog items assigned to this category, including products and bundles."""
+  items(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: CatalogSellableWhereInput
+    orderBy: [CatalogSellableOrderByInput!]
+  ): CatalogSellableConnection!
+}
+```
+
+Recommended UI query pattern:
+
+```graphql
+query CategoryItems($categoryId: ID!, $first: Int, $after: String) {
+  catalogQuery {
+    category(id: $categoryId) {
+      items(first: $first, after: $after) {
+        edges {
+          node {
+            id
+            kind
+            title
+            handle
+            media {
+              # ProductMediaItem fields
+            }
+            variantsCount
+            ... on Bundle {
+              type
+              displayStyle
+            }
+          }
+          cursor
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        totalCount
+      }
+    }
+  }
+}
+```
 
 ## Mutation API
 
@@ -750,7 +899,7 @@ input BundleConfigurationSyncInput {
   """Existing configuration ID. Null creates a new configuration snapshot."""
   id: ID
 
-  """Bundle root ID. Required when id is null."""
+  """Product global ID of the bundle. Required when id is null."""
   bundleId: ID
 
   """Configuration name."""
@@ -1011,6 +1160,11 @@ input BundleDependencyActionInput {
   связанную запись `catalog.bundle`, переводы, media/options/variants и inventory
   по тем же правилам, что `ProductCreateInput`.
 - Клиент не передает существующий `productId` в `bundleCreate`.
+- `bundleCreate` возвращает `Bundle.id`, закодированный как `GlobalIdEntity.Product`
+  от созданного `catalog.product.id`.
+- `CatalogQuery.bundle(id:)`, `bundleUpdate(bundleId:)` и
+  `BundleConfigurationSyncInput.bundleId` принимают только `Product` global ID,
+  который указывает на `catalog.product.kind = BUNDLE`.
 - Для одного internal product row разрешен только один `Bundle`.
 - Все `variantIds` в configuration assignment должны принадлежать этому bundle.
 - Каждый variant может быть назначен только одной configuration.
@@ -1055,8 +1209,12 @@ input BundleDependencyActionInput {
 | --- | --- |
 | `Product.kind` | `catalog.product.kind` |
 | `Variant.kind` | `catalog.variant.kind` |
-| `Bundle` | `catalog.product(kind = BUNDLE)` + `catalog.bundle` |
+| `CatalogSellable` | GraphQL interface over sellable `catalog.product` rows; concrete resolver returns `Product` for `kind = BASE` and `Bundle` for `kind = BUNDLE` |
+| `Bundle.id` | `catalog.product.id` encoded as `GlobalIdEntity.Product`; no public ID for `catalog.bundle.id` |
+| `Bundle` | `catalog.product(kind = BUNDLE)` + internal `catalog.bundle` row for bundle-specific fields |
+| `Bundle.type`, `Bundle.displayStyle` | `catalog.bundle.type`, `catalog.bundle.display_style` |
 | `Bundle.configurations`, `BundleConfiguration` | `catalog.bundle_configuration` |
+| `BundleConfiguration.bundleId` | parent `catalog.product.id` encoded as `GlobalIdEntity.Product`; service maps it to internal `catalog.bundle.id` for DB writes |
 | `BundleConfiguration.variants` | `catalog.bundle_configuration_variant` + `catalog.variant` |
 | `BundleGroup` | `catalog.bundle_group` |
 | `BundleGroup.title` | `catalog.bundle_group_translation.name` for current locale |
@@ -1083,20 +1241,32 @@ all reads and writes.
 
 ## Relay и Node
 
-Bundle entities that implement `Node` must be resolvable through the existing
+Bundle API objects that implement `Node` must be resolvable through the existing
 `CatalogQuery.node(id:)` / `CatalogQuery.nodes(ids:)` entry points. Adding
 `implements Node` is not sufficient by itself.
 
 Implementation requirements:
 
-- Add all bundle node entities to `GlobalIdEntity`.
+- Do not add a separate `GlobalIdEntity.Bundle`: `Bundle.id` uses
+  `GlobalIdEntity.Product` and validates `product.kind = BUNDLE`.
+- Add all bundle structure node entities to `GlobalIdEntity`.
 - Encode every `id` field with the matching `GlobalIdEntity`.
 - Decode query and mutation input IDs by expected entity type.
-- Extend `CatalogQuery.node(id:)` dispatch to handle bundle node IDs.
+- Extend `CatalogQuery.node(id:)` dispatch so a `Product` ID whose row has
+  `kind = BUNDLE` resolves as `Bundle`, while `kind = BASE` resolves as `Product`.
+- Implement `CatalogSellable` as a GraphQL interface, not a union, for flat
+  category/listing/search connections that can contain both BASE products and
+  BUNDLE products.
+- `CatalogSellableConnection.node` resolves concrete type from
+  `catalog.product.kind`: `BASE` -> `Product`, `BUNDLE` -> `Bundle`.
+- Do not add a separate `GlobalIdEntity.CatalogSellable`: the concrete object ID
+  remains the `Product` global ID.
 - Do not expose `bundle_configuration_variant` as `Node`: it is an assignment table
   with composite key `configuration_id + variant_id`.
 - Use `BundleConnection` / `BundleEdge` / `PageInfo` to list bundles through
   `CatalogQuery.bundles`.
+- Use `CatalogSellableConnection` / `CatalogSellableEdge` / `PageInfo` for mixed
+  category/listing/search result sets.
 - Keep configuration internals as ordered snapshot arrays unless a real UI/API need
   appears for independently paginating groups/items/rules.
 
@@ -1105,7 +1275,6 @@ Implementation requirements:
 Нужно добавить только сущности, которые реально реализуют `Node`:
 
 ```typescript
-Bundle = "Bundle"
 BundleConfiguration = "BundleConfiguration"
 BundleGroup = "BundleGroup"
 BundleItem = "BundleItem"
@@ -1119,6 +1288,8 @@ BundleCondition = "BundleCondition"
 BundleDependencyAction = "BundleDependencyAction"
 ```
 
+`Bundle` не получает отдельный `GlobalIdEntity`, потому что в API это продукт с
+`kind = BUNDLE`, а не публичная проекция строки `catalog.bundle`.
 `bundle_configuration_variant` не получает отдельный GraphQL `Node`, потому что в DB это
 assignment с составным ключом `configuration_id + variant_id`.
 Concrete price rule GraphQL types (`BundleFixedPriceRule`,
