@@ -1,6 +1,8 @@
 # Bundles Database Schema
 
-Bundle — это продукт. Все таблицы ссылаются напрямую на `inventory.product.id`.
+Bundle — это продукт с `product.kind = 1` и отдельной 1:1 записью в таблице `bundle`.
+На уровне API/кода числовой `product.kind` мапится в `ProductKind` (`0` → `BASE`, `1` → `BUNDLE`).
+Все bundle-таблицы ссылаются на `bundle.id`, а не напрямую на `product.id`.
 
 ## ER Diagram
 
@@ -9,21 +11,32 @@ Bundle — это продукт. Все таблицы ссылаются на�
 │                              BUNDLES SCHEMA                                  │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-                              inventory.product
+                              catalog.product
                                      │
-         ┌───────────────────────────┼───────────────────────────┐
-         │                           │                           │
-         ▼                           ▼                           ▼
+                                     │ 1:1 (kind = 1 / BUNDLE)
+                                     ▼
 ┌──────────────────┐       ┌──────────────────┐       ┌────────────────────┐
-│   bundle_group   │       │ pricing_template │       │  dependency_rule   │
+│      bundle      │       │ pricing_template │       │  dependency_rule   │
 ├──────────────────┤       ├──────────────────┤       ├────────────────────┤
 │ id (PK)          │──1:N──│ id (PK)          │       │ id (PK)            │
-│ product_id (FK)  │       │ product_id (FK)  │       │ product_id (FK)    │
-│ title            │       │ name             │       │ name               │
-│ sort_index       │       │ price_type       │       │ enabled            │
-│ min_selection    │       │ price_value      │       │ priority           │
-│ max_selection    │       └──────────────────┘       │ logic_operator     │
-└──────────────────┘                                  └────────────────────┘
+│ product_id (FK)  │       │ bundle_id (FK)   │       │ bundle_id (FK)     │
+│ created_at       │       │ name             │       │ name               │
+│ updated_at       │       │ price_type       │       │ enabled            │
+└──────────────────┘       │ price_value      │       │ priority           │
+         │                 └──────────────────┘       │ logic_operator     │
+         │                                            └────────────────────┘
+         │ 1:N
+         ▼
+┌──────────────────┐
+│   bundle_group   │
+├──────────────────┤
+│ id (PK)          │
+│ bundle_id (FK)   │
+│ title            │
+│ sort_index       │
+│ min_selection    │
+│ max_selection    │
+└──────────────────┘
          │
          │ 1:N
          ▼
@@ -57,7 +70,7 @@ Bundle — это продукт. Все таблицы ссылаются на�
 │  dependency_rule   │       │  condition_group   │       │    condition       │
 ├────────────────────┤       ├────────────────────┤       ├────────────────────┤
 │ id (PK)            │──1:N──│ id (PK)            │──1:N──│ id (PK)            │
-│ product_id (FK)    │       │ rule_id (FK)       │       │ group_id (FK)      │
+│ bundle_id (FK)     │       │ rule_id (FK)       │       │ group_id (FK)      │
 │ name               │       │ logic_operator     │       │ category           │
 │ enabled            │       │ sort_index         │       │ subject            │
 │ priority           │       └────────────────────┘       │ operator           │
@@ -85,6 +98,19 @@ Bundle — это продукт. Все таблицы ссылаются на�
 ---
 
 ## Enums
+
+### ProductKind API Mapping
+```typescript
+enum ProductKind {
+  BASE = "BASE",     // DB value: 0
+  BUNDLE = "BUNDLE", // DB value: 1
+}
+
+const PRODUCT_KIND_DB = {
+  BASE: 0,
+  BUNDLE: 1,
+} as const;
+```
 
 ### BundleItemType
 ```typescript
@@ -185,6 +211,58 @@ import { pgSchema } from "drizzle-orm/pg-core";
 export const catalogSchema = pgSchema("catalog");
 ```
 
+### Product Kind
+
+```typescript
+// services/catalog/src/repositories/models/products.ts
+export const product = catalogSchema.table(
+  "product",
+  {
+    // existing product columns...
+    kind: integer("kind").notNull().default(0), // 0 = BASE, 1 = BUNDLE
+  }
+);
+```
+
+### Bundle
+
+```typescript
+// services/catalog/src/repositories/models/bundle.ts
+import {
+  uuid,
+  varchar,
+  timestamp,
+  boolean,
+  integer,
+  jsonb,
+  index,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
+import { catalogSchema } from "./schema";
+import { product } from "./products";
+
+export const bundle = catalogSchema.table(
+  "bundle",
+  {
+    id: uuid("id").primaryKey(),
+    projectId: uuid("project_id").notNull(),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => product.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("bundle_product_id_unique").on(table.productId),
+    index("idx_bundle_project_id").on(table.projectId),
+  ]
+);
+```
+
 ### Bundle Pricing Template
 
 ```typescript
@@ -205,14 +283,16 @@ export const bundlePricingTemplate = catalogSchema.table(
   {
     id: uuid("id").primaryKey(),
     projectId: uuid("project_id").notNull(),
-    productId: uuid("product_id").notNull(), // FK to inventory.product
+    bundleId: uuid("bundle_id")
+      .notNull()
+      .references(() => bundle.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 255 }).notNull(),
     priceType: varchar("price_type", { length: 32 }).notNull(), // BundlePriceType
     priceValue: integer("price_value"), // cents, nullable for BASE/FREE
     sortIndex: integer("sort_index").notNull().default(0),
   },
   (table) => [
-    index("idx_bundle_pricing_template_product_id").on(table.productId),
+    index("idx_bundle_pricing_template_bundle_id").on(table.bundleId),
   ]
 );
 ```
@@ -225,7 +305,9 @@ export const bundleGroup = catalogSchema.table(
   {
     id: uuid("id").primaryKey(),
     projectId: uuid("project_id").notNull(),
-    productId: uuid("product_id").notNull(), // FK to inventory.product
+    bundleId: uuid("bundle_id")
+      .notNull()
+      .references(() => bundle.id, { onDelete: "cascade" }),
     title: varchar("title", { length: 255 }).notNull(),
     sortIndex: integer("sort_index").notNull().default(0),
     minSelection: integer("min_selection"), // null = no minimum
@@ -238,8 +320,8 @@ export const bundleGroup = catalogSchema.table(
       .defaultNow(),
   },
   (table) => [
-    index("idx_bundle_group_product_id").on(table.productId),
-    index("idx_bundle_group_sort").on(table.productId, table.sortIndex),
+    index("idx_bundle_group_bundle_id").on(table.bundleId),
+    index("idx_bundle_group_sort").on(table.bundleId, table.sortIndex),
   ]
 );
 ```
@@ -260,9 +342,9 @@ export const bundleItem = catalogSchema.table(
     itemType: varchar("item_type", { length: 32 }).notNull(), // PRODUCT | VARIANT
     sortIndex: integer("sort_index").notNull().default(0),
 
-    // References to inventory (one of these based on itemType)
-    refProductId: uuid("ref_product_id"),  // FK to inventory.product
-    refVariantId: uuid("ref_variant_id"),  // FK to inventory.variant
+    // References to catalog entities (one of these based on itemType)
+    refProductId: uuid("ref_product_id"),  // FK to catalog.product
+    refVariantId: uuid("ref_variant_id"),  // FK to catalog.variant
 
     // Customization
     title: varchar("title", { length: 255 }), // overrides product title
@@ -310,7 +392,9 @@ export const dependencyRule = catalogSchema.table(
   {
     id: uuid("id").primaryKey(),
     projectId: uuid("project_id").notNull(),
-    productId: uuid("product_id").notNull(), // FK to inventory.product
+    bundleId: uuid("bundle_id")
+      .notNull()
+      .references(() => bundle.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 255 }).notNull(),
     enabled: boolean("enabled").notNull().default(true),
     priority: integer("priority").notNull().default(0),
@@ -323,8 +407,8 @@ export const dependencyRule = catalogSchema.table(
       .defaultNow(),
   },
   (table) => [
-    index("idx_dependency_rule_product_id").on(table.productId),
-    index("idx_dependency_rule_priority").on(table.productId, table.priority),
+    index("idx_dependency_rule_bundle_id").on(table.bundleId),
+    index("idx_dependency_rule_priority").on(table.bundleId, table.priority),
   ]
 );
 ```
@@ -432,6 +516,8 @@ export const dependencyAction = catalogSchema.table(
 ## Type Exports
 
 ```typescript
+export type Bundle = typeof bundle.$inferSelect;
+export type NewBundle = typeof bundle.$inferInsert;
 export type BundleGroup = typeof bundleGroup.$inferSelect;
 export type NewBundleGroup = typeof bundleGroup.$inferInsert;
 export type BundleItem = typeof bundleItem.$inferSelect;
@@ -454,14 +540,16 @@ export type NewDependencyAction = typeof dependencyAction.$inferInsert;
 
 | Aspect | Decision | Rationale |
 |--------|----------|-----------|
-| **Bundle = Product** | Direct FK to `inventory.product` | No separate bundle entity, product IS bundle |
-| **Cross-schema FK** | `product_id` → `inventory.product.id` | Logical FK, cascade handled at app level |
+| **Product kind** | `product.kind = 0 \| 1 \| ...` in DB, mapped to API enum | DB stores compact numeric discriminator; API/code exposes `BASE` / `BUNDLE` |
+| **Bundle root** | `bundle` table is 1:1 with `product` | Keeps bundle-specific aggregate root separate from base product fields |
+| **Bundle table FKs** | Bundle tables use `bundle_id` | Bundle structure depends on bundle aggregate, not directly on product |
+| **Product FK** | `bundle.product_id` → `product.id` | Only the root bundle row links to product |
 | **Pricing** | Inline + Template | `price_type/value` for custom, `pricing_template_id` for reuse |
 | **Excluded Variants** | JSONB array | Avoids join table for rarely-used feature |
 | **Condition Groups** | Separate table | Supports nested AND/OR logic |
 | **project_id** | On all tables | Data-level multi-tenancy |
 | **Money values** | Integer (cents) | Avoids floating point precision issues |
-| **ref_product_id** | Prefixed with `ref_` | Distinguishes referenced product from bundle product |
+| **ref_product_id** | Prefixed with `ref_` | Distinguishes item referenced product from bundle owner product |
 | **Action stacking** | `stackable` boolean on action | Controls if effects accumulate (true) or replace (false, higher priority wins) |
 
 ---
@@ -470,12 +558,13 @@ export type NewDependencyAction = typeof dependencyAction.$inferInsert;
 
 | Table | Index | Purpose |
 |-------|-------|---------|
-| `bundle_group` | `idx_bundle_group_product_id` | Load groups by product |
+| `bundle` | `bundle_product_id_unique` | Enforce one bundle row per bundle product |
+| `bundle_group` | `idx_bundle_group_bundle_id` | Load groups by bundle |
 | `bundle_group` | `idx_bundle_group_sort` | Ordered retrieval |
-| `bundle_pricing_template` | `idx_..._product_id` | Load templates by product |
+| `bundle_pricing_template` | `idx_..._bundle_id` | Load templates by bundle |
 | `bundle_item` | `idx_bundle_item_group_id` | Load items by group |
 | `bundle_item` | `idx_bundle_item_sort` | Ordered retrieval |
-| `dependency_rule` | `idx_dependency_rule_product_id` | Load rules by product |
+| `dependency_rule` | `idx_dependency_rule_bundle_id` | Load rules by bundle |
 | `dependency_rule` | `idx_dependency_rule_priority` | Priority-based evaluation |
 | `condition` | `idx_condition_target` | Find conditions affecting target |
 | `dependency_action` | `idx_dependency_action_target` | Find actions affecting target |
@@ -486,8 +575,14 @@ export type NewDependencyAction = typeof dependencyAction.$inferInsert;
 
 ### Load bundle groups with items
 ```typescript
+const [bundleRow] = await db
+  .select()
+  .from(bundle)
+  .where(eq(bundle.productId, productId))
+  .limit(1);
+
 const groups = await db.query.bundleGroup.findMany({
-  where: eq(bundleGroup.productId, productId),
+  where: eq(bundleGroup.bundleId, bundleRow.id),
   orderBy: [asc(bundleGroup.sortIndex)],
   with: {
     items: {
@@ -497,11 +592,11 @@ const groups = await db.query.bundleGroup.findMany({
 });
 ```
 
-### Load dependency rules for product
+### Load dependency rules for bundle product
 ```typescript
 const rules = await db.query.dependencyRule.findMany({
   where: and(
-    eq(dependencyRule.productId, productId),
+    eq(dependencyRule.bundleId, bundleRow.id),
     eq(dependencyRule.enabled, true)
   ),
   orderBy: [desc(dependencyRule.priority)],
