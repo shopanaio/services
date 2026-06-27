@@ -56,8 +56,32 @@ Bundle — это продукт с `product.kind = 1` и отдельной 1:1
 │ pricing_tmpl_id  │
 │ visible          │
 │ selected         │
-│ excluded_variants│
 └──────────────────┘
+         │
+         │ 1:N
+         ▼
+┌──────────────────────────────┐
+│ bundle_item_option_selection │
+├──────────────────────────────┤
+│ id (PK)                      │
+│ item_id (FK)                 │
+│ ref_option_id                │
+│ parent_option_id             │
+│ sort_index                   │
+└──────────────────────────────┘
+         │
+         │ 1:N
+         ▼
+┌────────────────────────────────────┐
+│ bundle_item_option_value_selection │
+├────────────────────────────────────┤
+│ id (PK)                            │
+│ option_selection_id (FK)           │
+│ ref_option_value_id                │
+│ value                              │
+│ status                             │
+│ sort_index                         │
+└────────────────────────────────────┘
 
 ┌────────────────────────────┐       ┌────────────────────────────┐
 │ bundle_group_translation   │       │ bundle_item_translation    │
@@ -137,8 +161,18 @@ const PRODUCT_KIND_DB = {
 ### BundleItemType
 ```typescript
 enum BundleItemType {
-  PRODUCT = "PRODUCT",   // Simple product without variants
-  VARIANT = "VARIANT",   // Specific variant of a product
+  PRODUCT = "PRODUCT",   // Component product; allowed variants are derived from option selections
+  VARIANT = "VARIANT",   // Fixed component variant; no option selection is needed
+}
+```
+
+### BundleItemOptionValueSelectionStatus
+```typescript
+enum BundleItemOptionValueSelectionStatus {
+  SELECTED = "SELECTED",       // Option value is allowed inside this bundle item
+  DESELECTED = "DESELECTED",   // Option value is intentionally disabled for this bundle item
+  NEW = "NEW",                 // Option value appeared after bundle configuration and needs admin review
+  UNAVAILABLE = "UNAVAILABLE", // Option value was configured before but no longer exists or is not sellable
 }
 ```
 
@@ -266,7 +300,6 @@ import {
   timestamp,
   boolean,
   integer,
-  jsonb,
   text,
   index,
   primaryKey,
@@ -317,6 +350,7 @@ import {
 import { sql } from "drizzle-orm";
 import { catalogSchema } from "./schema";
 import { currencyEnum } from "./pricing";
+import { productOption, productOptionValue } from "./options";
 
 export const bundlePriceRule = catalogSchema.table(
   "bundle_price_rule",
@@ -482,9 +516,6 @@ export const bundleItem = catalogSchema.table(
     // Customization
     featuredImageId: uuid("featured_image_id"), // FK to media
 
-    // For PRODUCT type: excluded variant IDs
-    excludedVariantIds: jsonb("excluded_variant_ids").$type<string[]>(),
-
     // Quantity constraints
     minQty: integer("min_qty").default(1),
     maxQty: integer("max_qty"), // null = no limit
@@ -520,6 +551,122 @@ export const bundleItem = catalogSchema.table(
   ]
 );
 ```
+
+`PRODUCT` items point to a component product. Their sellable variants are derived from
+`bundle_item_option_selection` and `bundle_item_option_value_selection`.
+`VARIANT` items point to a fixed component variant and do not need option selections.
+
+The bundle schema does not store `excluded_variant_ids`. Variant availability is expressed
+through option value statuses, and the runtime resolves the matching catalog variants from the
+selected option values.
+
+### Bundle Item Option Selection
+
+```typescript
+export const bundleItemOptionSelection = catalogSchema.table(
+  "bundle_item_option_selection",
+  {
+    id: uuid("id").primaryKey(),
+    projectId: uuid("project_id").notNull(),
+    itemId: uuid("item_id")
+      .notNull()
+      .references(() => bundleItem.id, { onDelete: "cascade" }),
+
+    // Component product option, for example Color, Size, Material.
+    refOptionId: uuid("ref_option_id")
+      .notNull()
+      .references(() => productOption.id, { onDelete: "cascade" }),
+
+    // Optional parent bundle product option used when component options drive
+    // parent bundle variant generation.
+    parentOptionId: uuid("parent_option_id")
+      .references(() => productOption.id, { onDelete: "set null" }),
+
+    sortIndex: integer("sort_index").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_bundle_item_option_selection_item_id").on(table.itemId),
+    index("idx_bundle_item_option_selection_ref_option_id").on(
+      table.refOptionId
+    ),
+    index("idx_bundle_item_option_selection_parent_option_id").on(
+      table.parentOptionId
+    ),
+    uniqueIndex("bundle_item_option_selection_item_option_unique").on(
+      table.itemId,
+      table.refOptionId
+    ),
+  ]
+);
+```
+
+`ref_option_id` is the option on the referenced component product.
+`parent_option_id` is nullable because many bundles do not expose component options as parent
+bundle options. For example, a fixed bundle can still restrict a component product to allowed
+colors without creating a parent `Color` option on the bundle product.
+
+### Bundle Item Option Value Selection
+
+```typescript
+export const bundleItemOptionValueSelection = catalogSchema.table(
+  "bundle_item_option_value_selection",
+  {
+    id: uuid("id").primaryKey(),
+    projectId: uuid("project_id").notNull(),
+    optionSelectionId: uuid("option_selection_id")
+      .notNull()
+      .references(() => bundleItemOptionSelection.id, { onDelete: "cascade" }),
+
+    // Prefer refOptionValueId when product option values are normalized.
+    // Keep value as a snapshot/fallback for deleted or not-yet-normalized values.
+    refOptionValueId: uuid("ref_option_value_id")
+      .references(() => productOptionValue.id, { onDelete: "set null" }),
+    value: text("value").notNull(),
+
+    status: varchar("status", { length: 32 }).notNull().default("SELECTED"),
+    sortIndex: integer("sort_index").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_bundle_item_option_value_selection_option_id").on(
+      table.optionSelectionId
+    ),
+    index("idx_bundle_item_option_value_selection_ref_value_id").on(
+      table.refOptionValueId
+    ),
+    index("idx_bundle_item_option_value_selection_status").on(
+      table.optionSelectionId,
+      table.status
+    ),
+    uniqueIndex("bundle_item_option_value_selection_value_unique").on(
+      table.optionSelectionId,
+      table.value
+    ),
+  ]
+);
+```
+
+Option value statuses replace `excluded_variant_ids`:
+
+- `SELECTED` means the value is allowed for this bundle item.
+- `DESELECTED` means the value is intentionally disabled for this bundle item.
+- `NEW` means the value was added to the component product after bundle setup and needs admin review.
+- `UNAVAILABLE` means the value was configured before but is no longer present or sellable.
+
+For `PRODUCT` items, the storefront exposes only `SELECTED` option values by default. Checkout
+resolves the final component variant from the selected option values and stores the concrete
+variant in cart/order component lines.
 
 ### Bundle Item Translation
 
@@ -693,6 +840,10 @@ export type NewBundleGroupTranslation = typeof bundleGroupTranslation.$inferInse
 export type BundleItem = typeof bundleItem.$inferSelect;
 export type NewBundleItem = typeof bundleItem.$inferInsert;
 export type BundleItemTranslation = typeof bundleItemTranslation.$inferSelect;
+export type BundleItemOptionSelection =
+  typeof bundleItemOptionSelection.$inferSelect;
+export type BundleItemOptionValueSelection =
+  typeof bundleItemOptionValueSelection.$inferSelect;
 export type BundlePriceRule = typeof bundlePriceRule.$inferSelect;
 export type BundlePriceRuleAmount = typeof bundlePriceRuleAmount.$inferSelect;
 export type BundlePriceRulePercent = typeof bundlePriceRulePercent.$inferSelect;
@@ -719,7 +870,8 @@ export type DependencyAction = typeof dependencyAction.$inferSelect;
 | **Pricing** | Normalized price rule | `bundle_price_rule` stores only the rule type; `bundle_price_rule_amount` and `bundle_price_rule_percent` store type-specific values |
 | **Pricing ownership** | Regular FKs to `bundle_price_rule` | Avoids polymorphic `owner_type + owner_id` and avoids nullable owner-specific FK columns on amount rows |
 | **Group/item titles** | Stored as `name` in `bundle_group_translation` and `bundle_item_translation` | Same locale-aware pattern as `product_translation`; API can expose this value as `title` |
-| **Excluded Variants** | JSONB array | Avoids join table for rarely-used feature |
+| **Variant availability** | Option value selections under `bundle_item` | Replaces `excluded_variant_ids`; admins configure allowed Color/Size/etc values and runtime resolves matching variants |
+| **Option value lifecycle** | `SELECTED` / `DESELECTED` / `NEW` / `UNAVAILABLE` statuses | Distinguishes manually disabled values from new catalog values and values that disappeared after bundle setup |
 | **Condition Groups** | Separate table | Supports nested AND/OR logic |
 | **project_id** | On all tables | Data-level multi-tenancy |
 | **Money values** | `amount_minor` bigint by currency | Avoids floating point precision issues and supports fixed/discount amounts in multiple currencies |
@@ -744,6 +896,10 @@ export type DependencyAction = typeof dependencyAction.$inferSelect;
 | `bundle_item` | `idx_bundle_item_group_id` | Load items by group |
 | `bundle_item` | `idx_bundle_item_sort` | Ordered retrieval |
 | `bundle_item` | `idx_bundle_item_price_rule_id` | Resolve custom item price rule |
+| `bundle_item_option_selection` | `idx_..._item_id` | Load option restrictions for an item |
+| `bundle_item_option_selection` | `idx_..._ref_option_id` | Find bundle items using a component product option |
+| `bundle_item_option_value_selection` | `idx_..._option_id` | Load allowed/disabled values for an option selection |
+| `bundle_item_option_value_selection` | `idx_..._status` | Resolve selected values and admin review states |
 | `bundle_item_translation` | `idx_..._project_locale` | Resolve item title overrides for current locale |
 | `dependency_rule` | `idx_dependency_rule_bundle_id` | Load rules by bundle |
 | `dependency_rule` | `idx_dependency_rule_priority` | Priority-based evaluation |
@@ -798,6 +954,36 @@ const itemTranslations = await db
     )
   );
 ```
+
+### Load selected option values for bundle items
+```typescript
+const optionSelections = await db
+  .select()
+  .from(bundleItemOptionSelection)
+  .where(inArray(bundleItemOptionSelection.itemId, itemIds))
+  .orderBy(asc(bundleItemOptionSelection.sortIndex));
+
+const optionSelectionIds = optionSelections.map((selection) => selection.id);
+
+const optionValues = await db
+  .select()
+  .from(bundleItemOptionValueSelection)
+  .where(
+    and(
+      inArray(
+        bundleItemOptionValueSelection.optionSelectionId,
+        optionSelectionIds
+      ),
+      eq(bundleItemOptionValueSelection.status, "SELECTED")
+    )
+  )
+  .orderBy(asc(bundleItemOptionValueSelection.sortIndex));
+```
+
+For a `PRODUCT` bundle item, selected option values define the allowed component variants.
+For example, `Color in [Red, Black]` and `Size in [S, M]` resolves to all catalog variants
+whose option values match that intersection. `DESELECTED`, `NEW`, and `UNAVAILABLE` values are
+kept for admin review and synchronization, but they are not exposed as sellable values by default.
 
 ### Load dependency rules for bundle product
 ```typescript
