@@ -3,14 +3,20 @@
 Документ описывает целевую GraphQL-схему для бандлов. Источник модели данных:
 `docs/bundles/bundles-database-schema.md`.
 
-Ключевой принцип: bundle не становится отдельным каталогом сущностей в API. Бандл остается
-`Product` с `kind = BUNDLE`, а bundle-структура доступна через поля продукта и варианта.
+Ключевой принцип: bundle в Admin GraphQL API является отдельным catalog type для
+продаваемой сущности. На уровне хранения он создается как `catalog.product` с
+`kind = BUNDLE` плюс 1:1 запись в `catalog.bundle`, но клиент не создает bundle
+через существующий `productId`. `bundleCreate` создает новый bundle sellable item
+и bundle root в одной операции.
 Структура бандла редактируется через configuration-scoped snapshot input: одна
 конфигурация содержит groups/items/pricing templates/dependency rules.
 
 ## Принципы схемы
 
-- `Bundle` - это root-запись 1:1 к `Product`.
+- `Bundle` - отдельный GraphQL type для продукта с `kind = BUNDLE`; он публикует
+  product-like поля напрямую и добавляет bundle-specific поля.
+- `catalog.product` / `catalog.variant` остаются общими DB-таблицами для BASE и
+  BUNDLE, но API не моделирует Bundle как `Product.bundle`.
 - `BundleConfiguration` - владелец структуры бандла.
 - Variant не хранит структуру напрямую, а получает ее через
   `BundleConfigurationVariant`.
@@ -27,18 +33,17 @@
 - Catalog Admin API должен оставаться namespace-based: bundle queries добавляются в
   `CatalogQuery`, bundle mutations - в `CatalogMutation`. Не добавлять root-level
   `Query.bundle` / `Mutation.bundleCreate` / `Mutation.bundleConfigurationSync`.
-- Catalog service владеет `Product` и `Variant`, поэтому bundle-поля добавляются в
-  существующие owned type definitions, а не через `extend type Product` /
-  `extend type Variant` в отдельном subgraph.
+- Catalog service владеет `Product`, `Variant` и `Bundle`; bundle-specific поля
+  публикуются на `Bundle`, а не как `Product.bundle`.
 - Все bundle queries/mutations должны scope-иться по текущему project/store через
   request context. `projectId` из DB не публикуется в GraphQL.
 
-## Product и Variant owned field additions
+## Product, Bundle и Variant owned field additions
 
-Catalog service already owns `Product` and `Variant`. Add these fields to the
-existing type definitions in `product.graphql` and `variant.graphql`; do not create
-separate `extend type Product` / `extend type Variant` declarations for this
-service.
+Catalog service already owns `Product`, `Bundle`, and `Variant`. `Product` keeps
+the discriminator so generic catalog internals can distinguish BASE/BUNDLE rows,
+but `Product` does not expose a `bundle` field. Bundle-specific reads go through
+the `Bundle` type and `CatalogQuery.bundle` / `CatalogQuery.bundles`.
 
 ```graphql
 enum ProductKind {
@@ -50,9 +55,6 @@ type Product implements Node @key(fields: "id") {
   # Existing catalog-owned fields stay unchanged.
   """Product discriminator."""
   kind: ProductKind!
-
-  """Bundle settings and configurations. Null for BASE products."""
-  bundle: Bundle
 }
 
 type Variant implements Node @key(fields: "id") {
@@ -141,14 +143,73 @@ enum BundleDependencyActionType {
 }
 
 type Bundle implements Node @key(fields: "id") {
-  """The globally unique ID of the bundle root."""
+  """The globally unique ID of the bundle sellable item."""
   id: ID!
 
-  """The product this bundle belongs to."""
-  product: Product!
+  """The URL-friendly handle for the bundle."""
+  handle: String
 
-  """The product ID this bundle belongs to."""
-  productId: ID!
+  """The date and time when the bundle was published, or null if unpublished."""
+  publishedAt: DateTime
+
+  """Whether the bundle is currently published."""
+  isPublished: Boolean!
+
+  """The date and time when the bundle was created."""
+  createdAt: DateTime!
+
+  """The date and time when the bundle was last updated."""
+  updatedAt: DateTime!
+
+  """The date and time when the bundle was deleted (soft delete)."""
+  deletedAt: DateTime
+
+  """Optimistic locking revision number. Incremented on each update."""
+  revision: Int!
+
+  """The vendor associated with this bundle."""
+  vendor: Vendor
+
+  """The variants of this bundle."""
+  variants(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): VariantConnection!
+
+  """Media registered on this bundle."""
+  media: [ProductMediaItem!]!
+
+  """The options available for this bundle."""
+  options: [ProductOption!]!
+
+  """The features of this bundle."""
+  features: [ProductFeature!]!
+
+  """The total number of variants for this bundle."""
+  variantsCount: Int!
+
+  """The primary category assigned to this bundle."""
+  primaryCategory: Category
+
+  """Category assignments with relationship metadata."""
+  categoryAssignments: [ProductCategoryAssignment!]!
+
+  """The tags associated with this bundle."""
+  tags: [Tag!]!
+
+  """Bundle title."""
+  title: String!
+
+  """Bundle description."""
+  description: RichText
+
+  """Short excerpt."""
+  excerpt: RichText
+
+  """SEO and Open Graph metadata."""
+  seo: ProductSeo
 
   """High-level bundle type."""
   type: BundleType
@@ -156,14 +217,33 @@ type Bundle implements Node @key(fields: "id") {
   """Configurator display style."""
   displayStyle: BundleDisplayStyle!
 
-  """All bundle configurations for this product."""
+  """All bundle configurations for this bundle."""
   configurations: [BundleConfiguration!]!
+}
 
-  """The date and time when the bundle root was created."""
-  createdAt: DateTime!
+"""
+A connection to a list of Bundle items.
+"""
+type BundleConnection {
+  """A list of edges."""
+  edges: [BundleEdge!]!
 
-  """The date and time when the bundle root was last updated."""
-  updatedAt: DateTime!
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of bundles."""
+  totalCount: Int!
+}
+
+"""
+An edge in a Bundle connection.
+"""
+type BundleEdge {
+  """The item at the end of the edge."""
+  node: Bundle!
+
+  """A cursor for use in pagination."""
+  cursor: String!
 }
 
 type BundleConfiguration implements Node @key(fields: "id") {
@@ -332,18 +412,61 @@ type BundleItemOptionValueSelection implements Node @key(fields: "id") {
   sortIndex: Int!
 }
 
-type BundlePriceRule implements Node @key(fields: "id") {
+interface BundlePriceRule implements Node {
+  """The globally unique ID of the price rule."""
+  id: ID!
+
+  """Pricing strategy."""
+  priceType: BundlePriceType!
+}
+
+type BundleBasePriceRule implements Node & BundlePriceRule @key(fields: "id") {
+  """The globally unique ID of the price rule."""
+  id: ID!
+
+  """Pricing strategy."""
+  priceType: BundlePriceType!
+}
+
+type BundleFixedPriceRule implements Node & BundlePriceRule @key(fields: "id") {
   """The globally unique ID of the price rule."""
   id: ID!
 
   """Pricing strategy."""
   priceType: BundlePriceType!
 
-  """Money values for FIXED and DISCOUNT_FIXED rules."""
+  """Money values for FIXED rules."""
   amounts: [BundlePriceRuleAmount!]!
+}
+
+type BundleDiscountPercentPriceRule implements Node & BundlePriceRule @key(fields: "id") {
+  """The globally unique ID of the price rule."""
+  id: ID!
+
+  """Pricing strategy."""
+  priceType: BundlePriceType!
 
   """Percent row for DISCOUNT_PERCENT rules."""
-  percent: BundlePriceRulePercent
+  percent: BundlePriceRulePercent!
+}
+
+type BundleDiscountFixedPriceRule implements Node & BundlePriceRule @key(fields: "id") {
+  """The globally unique ID of the price rule."""
+  id: ID!
+
+  """Pricing strategy."""
+  priceType: BundlePriceType!
+
+  """Money values for DISCOUNT_FIXED rules."""
+  amounts: [BundlePriceRuleAmount!]!
+}
+
+type BundleFreePriceRule implements Node & BundlePriceRule @key(fields: "id") {
+  """The globally unique ID of the price rule."""
+  id: ID!
+
+  """Pricing strategy."""
+  priceType: BundlePriceType!
 }
 
 type BundlePriceRuleAmount {
@@ -471,26 +594,26 @@ type BundleDependencyAction implements Node @key(fields: "id") {
 
 ## Query API
 
-There is no separate `CatalogQuery.bundles` list query. A bundle is listed as a
-`Product` with `kind = BUNDLE`, using the existing product listing/Relay connection
-surface:
+Because `Bundle` is a separate Admin GraphQL type, bundle reads use the catalog
+query namespace directly:
 
 ```graphql
-catalogQuery {
-  products(where: { kind: { _eq: BUNDLE } }) {
-    edges {
-      node {
-        id
-        kind
-        title
-        bundle {
-          id
-          type
-          displayStyle
-        }
-      }
-    }
-  }
+type CatalogQuery {
+  # ... existing catalog queries
+
+  """Get a bundle by ID."""
+  bundle(id: ID!): Bundle
+
+  """Get bundles with Relay-style pagination."""
+  bundles(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: BundleWhereInput
+    orderBy: [BundleOrderByInput!]
+    meta: BundleBundlesMetaInput
+  ): BundleConnection!
 }
 ```
 
@@ -498,8 +621,7 @@ Nested bundle structure fields (`configurations`, `groups`, `items`,
 `pricingTemplates`, `dependencyRules`, `conditionGroups`, `conditions`, `actions`)
 remain ordered snapshot arrays, not Relay connections. They are edited as one
 configuration-scoped snapshot and are expected to be loaded as a bounded bundle
-configuration tree. List-level Relay pagination stays on existing product listing
-surfaces.
+configuration tree. List-level Relay pagination is on `CatalogQuery.bundles`.
 
 ## Mutation API
 
@@ -507,11 +629,18 @@ surfaces.
 type CatalogMutation {
   # ... existing catalog mutations
 
-  """Create bundle root for a product with kind = BUNDLE."""
+  """Create a new bundle sellable item."""
   bundleCreate(input: BundleCreateInput!): BundleCreatePayload!
 
-  """Update bundle root settings."""
-  bundleUpdate(input: BundleUpdateInput!): BundleUpdatePayload!
+  """Unified bundle update with optimistic locking."""
+  bundleUpdate(
+    """The bundle ID to update."""
+    bundleId: ID!
+    """Expected revision for optimistic locking. If provided, fails if bundle was modified."""
+    expectedRevision: Int
+    """Bundle-level operations."""
+    operations: BundleUpdateInput
+  ): BundleUpdatePayload!
 
   """Sync one bundle configuration as a complete snapshot."""
   bundleConfigurationSync(input: BundleConfigurationSyncInput!): BundleConfigurationSyncPayload!
@@ -545,8 +674,32 @@ type BundleConfigurationDeletePayload {
 
 ```graphql
 input BundleCreateInput {
-  """Product ID for the product with kind = BUNDLE."""
-  productId: ID!
+  """Bundle title."""
+  title: String!
+
+  """URL-friendly handle for the bundle."""
+  handle: String!
+
+  """Vendor ID to associate with the bundle."""
+  vendorId: ID
+
+  """Bundle description."""
+  description: RichTextInput
+
+  """Short excerpt in multiple formats."""
+  excerpt: RichTextInput
+
+  """File IDs for bundle media (already uploaded via mediaMutation.fileUpload)."""
+  mediaFileIds: [ID!]
+
+  """Bundle options."""
+  options: [ProductCreateOptionInput!]
+
+  """Bundle variants to create."""
+  variants: [ProductCreateVariantInput!]
+
+  """Inventory tracking settings for the bundle."""
+  inventoryItem: InventoryItemInput
 
   """High-level bundle type."""
   type: BundleType
@@ -556,8 +709,35 @@ input BundleCreateInput {
 }
 
 input BundleUpdateInput {
-  """The bundle root to update."""
-  id: ID!
+  """The URL-friendly handle for the bundle."""
+  handle: String
+
+  """Bundle title."""
+  title: String
+
+  """Vendor ID to associate with the bundle. Pass null to clear."""
+  vendorId: ID
+
+  """Bundle content (description, excerpt)."""
+  content: ProductContentInput
+
+  """SEO and Open Graph metadata."""
+  seo: ProductSeoInput
+
+  """Bundle status: DRAFT or PUBLISHED."""
+  status: ProductStatus
+
+  """Bundle media."""
+  media: ProductMediaInput
+
+  """Bundle category assignment operations."""
+  categories: [ProductCategoryOperationInput!]
+
+  """Bundle tag assignment operations."""
+  tags: [ProductTagOperationInput!]
+
+  """Variant create, update, and delete operations."""
+  variants: [VariantOperationInput!]
 
   """High-level bundle type."""
   type: BundleType
@@ -827,9 +1007,12 @@ input BundleDependencyActionInput {
 
 ## Валидация
 
-- `BundleCreateInput.productId` должен ссылаться на `Product.kind = BUNDLE`.
-- Для одного product разрешен только один `Bundle`.
-- Все `variantIds` в configuration assignment должны принадлежать bundle product.
+- `BundleCreateInput` создает новую запись `catalog.product(kind = BUNDLE)`,
+  связанную запись `catalog.bundle`, переводы, media/options/variants и inventory
+  по тем же правилам, что `ProductCreateInput`.
+- Клиент не передает существующий `productId` в `bundleCreate`.
+- Для одного internal product row разрешен только один `Bundle`.
+- Все `variantIds` в configuration assignment должны принадлежать этому bundle.
 - Каждый variant может быть назначен только одной configuration.
 - Все IDs в input принимаются как GraphQL global IDs и декодируются к ожидаемым
   `GlobalIdEntity`; invalid type должен возвращать `GenericUserError`.
@@ -849,9 +1032,18 @@ input BundleDependencyActionInput {
 - `optionSelections` разрешены только для `itemType = PRODUCT`.
 - У item может быть либо inline `priceRule`, либо `pricingTemplateId`, но не оба
   источника одновременно.
-- `BASE` и `FREE` не принимают `amounts` и `percent`.
-- `FIXED` и `DISCOUNT_FIXED` требуют `amounts`.
-- `DISCOUNT_PERCENT` требует `percent.value` в диапазоне `0..100`.
+- `BundlePriceRule` в output резолвится в concrete type по `priceType`:
+  `BASE` -> `BundleBasePriceRule`, `FIXED` -> `BundleFixedPriceRule`,
+  `DISCOUNT_PERCENT` -> `BundleDiscountPercentPriceRule`,
+  `DISCOUNT_FIXED` -> `BundleDiscountFixedPriceRule`, `FREE` -> `BundleFreePriceRule`.
+- `BundlePriceRuleInput` остается discriminator-based, потому что GraphQL не
+  поддерживает input unions.
+- Для `BundlePriceRuleInput.priceType = BASE` и `FREE` поля `amounts` и `percent`
+  должны быть null.
+- Для `BundlePriceRuleInput.priceType = FIXED` и `DISCOUNT_FIXED` требуется
+  непустой `amounts`; currencies внутри одного rule уникальны.
+- Для `BundlePriceRuleInput.priceType = DISCOUNT_PERCENT` требуется `percent.value`
+  в диапазоне `0..100`.
 - Для `STATE_CHECK` допустимы только `IS_SELECTED`, `IS_NOT_SELECTED`; `value` должен быть null.
 - Для `NUMERIC` допустимы только `GTE`, `EQ`, `LTE`; `value` обязателен.
 - `ADJUST_PRICE` требует `priceRule`.
@@ -863,7 +1055,7 @@ input BundleDependencyActionInput {
 | --- | --- |
 | `Product.kind` | `catalog.product.kind` |
 | `Variant.kind` | `catalog.variant.kind` |
-| `Product.bundle`, `Bundle` | `catalog.bundle` |
+| `Bundle` | `catalog.product(kind = BUNDLE)` + `catalog.bundle` |
 | `Bundle.configurations`, `BundleConfiguration` | `catalog.bundle_configuration` |
 | `BundleConfiguration.variants` | `catalog.bundle_configuration_variant` + `catalog.variant` |
 | `BundleGroup` | `catalog.bundle_group` |
@@ -876,9 +1068,9 @@ input BundleDependencyActionInput {
 | `BundleItemOptionSelection.parentOptionId` | `catalog.bundle_item_option_selection.parent_option_id` |
 | `BundleItemOptionValueSelection` | `catalog.bundle_item_option_value_selection` |
 | `BundleItemOptionValueSelection.optionValueId` | `catalog.bundle_item_option_value_selection.ref_option_value_id` |
-| `BundlePriceRule` | `catalog.bundle_price_rule`, `catalog.bundle_price_rule_amount`, `catalog.bundle_price_rule_percent` |
-| `BundlePriceRule.amounts` | `catalog.bundle_price_rule_amount` |
-| `BundlePriceRule.percent.value` | `catalog.bundle_price_rule_percent.percent_value` |
+| `BundlePriceRule` interface | `catalog.bundle_price_rule.price_type` discriminator |
+| `BundleFixedPriceRule.amounts`, `BundleDiscountFixedPriceRule.amounts` | `catalog.bundle_price_rule_amount` |
+| `BundleDiscountPercentPriceRule.percent.value` | `catalog.bundle_price_rule_percent.percent_value` |
 | `BundlePricingTemplate` | `catalog.bundle_pricing_template` |
 | `BundleDependencyRule` | `catalog.dependency_rule` |
 | `BundleConditionGroup` | `catalog.condition_group` |
@@ -903,8 +1095,8 @@ Implementation requirements:
 - Extend `CatalogQuery.node(id:)` dispatch to handle bundle node IDs.
 - Do not expose `bundle_configuration_variant` as `Node`: it is an assignment table
   with composite key `configuration_id + variant_id`.
-- Use existing product `Connection`/`Edge`/`PageInfo` surfaces to list bundle
-  products via `Product.kind = BUNDLE`.
+- Use `BundleConnection` / `BundleEdge` / `PageInfo` to list bundles through
+  `CatalogQuery.bundles`.
 - Keep configuration internals as ordered snapshot arrays unless a real UI/API need
   appears for independently paginating groups/items/rules.
 
@@ -929,3 +1121,6 @@ BundleDependencyAction = "BundleDependencyAction"
 
 `bundle_configuration_variant` не получает отдельный GraphQL `Node`, потому что в DB это
 assignment с составным ключом `configuration_id + variant_id`.
+Concrete price rule GraphQL types (`BundleFixedPriceRule`,
+`BundleDiscountPercentPriceRule`, etc.) use the same `BundlePriceRule` global ID
+entity because they are projections of one `bundle_price_rule` row.
