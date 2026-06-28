@@ -18,8 +18,7 @@ import {
   ReviewsSection,
   } from "@/domains/inventory/products/components/product-details-card/sections";
 import {
-  GroupsSection,
-  DependencyRulesSection,
+  BundleSection,
   } from "./sections";
 import {
   useEditMediaModal,
@@ -246,13 +245,12 @@ export const BundleDetailsCard = ({
         categories={mockData.categories.list}
       />
 
-      {/* BUNDLE ITEMS */}
-      <GroupsSection groups={groups} bundleType={mockData.bundleType} onEdit={handleEditGroups} />
-
-      {/* DEPENDENCY RULES */}
-      <DependencyRulesSection
-        dependencyRules={dependencyRules}
+      {/* BUNDLE */}
+      <BundleSection
         groups={groups}
+        bundleType={mockData.bundleType}
+        dependencyRules={dependencyRules}
+        onEditGroups={handleEditGroups}
         onOpenChart={handleOpenChart}
         onAddRule={handleAddRule}
         onEditRule={handleEditRule}

@@ -4,17 +4,11 @@ import {
   Typography,
   Empty,
   Tag,
-  Dropdown,
   Button } from "antd";
 import {
-  PartitionOutlined,
-  PlusOutlined,
-  MoreOutlined,
   RightOutlined,
   } from "@ant-design/icons";
 import { createStyles } from "antd-style";
-import { Paper,
-  PaperHeader } from "@/ui-kit/paper";
 import type { IBundleGroup } from "@/domains/promos/bundles/types";
 import type { IDependencyRule } from "@/domains/promos/bundles/dependency-rules/types";
 import {
@@ -119,11 +113,6 @@ const useStyles = createStyles(({ token }) => ({
     fontSize: 12,
     color: token.colorTextSecondary,
   },
-  subtitle: {
-    fontSize: 12,
-    color: token.colorTextTertiary,
-    marginBottom: 8,
-  },
 }));
 
 // ============================================================================
@@ -176,8 +165,6 @@ const FlowBlock = ({
 interface IDependencyRulesSectionProps {
   dependencyRules: IDependencyRule[];
   groups: IBundleGroup[];
-  onOpenChart: () => void;
-  onAddRule: () => void;
   onEditRule: (ruleId: string) => void;
 }
 
@@ -188,46 +175,12 @@ interface IDependencyRulesSectionProps {
 export const DependencyRulesSection = ({
   dependencyRules,
   groups,
-  onOpenChart,
-  onAddRule,
   onEditRule,
 }: IDependencyRulesSectionProps) => {
   const { styles, theme } = useStyles();
 
-  const activeCount = dependencyRules.filter((r) => r.enabled).length;
-  const disabledCount = dependencyRules.length - activeCount;
-
   return (
-    <Paper>
-      <PaperHeader
-        title="Pricing Rules"
-        actions={
-          <Dropdown
-            menu={{
-              items: [
-                {
-                  key: "add",
-                  icon: <PlusOutlined />,
-                  label: "Add Rule",
-                },
-                {
-                  key: "chart",
-                  icon: <PartitionOutlined />,
-                  label: "Open Chart",
-                  disabled: dependencyRules.length === 0,
-                },
-              ],
-              onClick: ({ key }) => {
-                if (key === "add") onAddRule();
-                if (key === "chart") onOpenChart();
-              },
-            }}
-            trigger={["click"]}
-          >
-            <Button size="small" icon={<MoreOutlined />} />
-          </Dropdown>
-        }
-      />
+    <>
       {dependencyRules.length === 0 ? (
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -235,10 +188,6 @@ export const DependencyRulesSection = ({
         />
       ) : (
         <>
-          <div className={styles.subtitle}>
-            {activeCount} active
-            {disabledCount > 0 && ` · ${disabledCount} disabled`}
-          </div>
           <div className={styles.rules}>
             {dependencyRules.map((rule) => (
               <div
@@ -320,6 +269,6 @@ export const DependencyRulesSection = ({
           </div>
         </>
       )}
-    </Paper>
+    </>
   );
 };
