@@ -2,6 +2,7 @@ import { gql } from "@apollo/client";
 import { USER_ERROR_FRAGMENT } from "../../graphql/shared-fragments";
 import {
   CATEGORY_DETAILS_FRAGMENT,
+  FILE_FRAGMENT,
   CATEGORY_MUTATION_RESULT_FRAGMENT,
 } from "./fragments";
 
@@ -80,8 +81,18 @@ export const PRODUCT_CATEGORY_UPDATE_MUTATION = gql`
       ) {
         product {
           id
+          kind
+          title
+          handle
+          isPublished
           updatedAt
           revision
+          media {
+            sortIndex
+            file {
+              ...FileFields
+            }
+          }
           primaryCategory {
             id
             productsCount
@@ -109,6 +120,7 @@ export const PRODUCT_CATEGORY_UPDATE_MUTATION = gql`
       }
     }
   }
+  ${FILE_FRAGMENT}
   ${USER_ERROR_FRAGMENT}
 `;
 

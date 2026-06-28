@@ -182,6 +182,9 @@ export function makeClient() {
 
   return new ApolloClient({
     cache: new InMemoryCache({
+      possibleTypes: {
+        Listing: ["Product", "Bundle"],
+      },
       typePolicies: {
         Query: {
           fields: {
