@@ -13,7 +13,7 @@ GraphQL-сущностью и не получает публичный ID. `Bund
 внутренний bundle root в одной операции.
 Структура бандла редактируется через scoped configuration mutations:
 UI сохраняет отдельные sections/modals (groups/items, pricing templates,
-dependency rules, settings), а не отправляет весь configuration tree одним
+dependency rules, configuration metadata), а не отправляет весь configuration tree одним
 большим input.
 
 ## Принципы схемы
@@ -651,7 +651,7 @@ type BundleCondition implements Node @key(fields: "id") {
   """Target type."""
   targetType: BundleDependencyTargetType!
 
-  """Target ID. Points to a group or item inside the same configuration."""
+  """Target ID. Points to an item, group, or the parent bundle product."""
   targetId: ID!
 
   """Numeric value for numeric conditions."""
@@ -800,11 +800,11 @@ type CatalogMutation {
   """Create one bundle configuration."""
   bundleConfigurationCreate(input: BundleConfigurationCreateInput!): BundleConfigurationPayload!
 
-  """Update configuration metadata/settings."""
+  """Update configuration metadata."""
   bundleConfigurationUpdate(input: BundleConfigurationUpdateInput!): BundleConfigurationPayload!
 
   """Delete one bundle configuration with optimistic locking."""
-  bundleConfigurationDelete(input: BundleConfigurationDeleteInput!): DeletePayload!
+  bundleConfigurationDelete(input: BundleConfigurationDeleteInput!): BundleConfigurationDeletePayload!
 
   """Sync all groups/items for one bundle configuration."""
   bundleGroupsSync(input: BundleGroupsSyncInput!): BundleGroupsSyncPayload!
@@ -828,6 +828,12 @@ type BundleUpdatePayload {
 
 type BundleConfigurationPayload {
   configuration: BundleConfiguration
+  userErrors: [GenericUserError!]!
+}
+
+type BundleConfigurationDeletePayload {
+  deletedConfigurationId: ID
+  bundle: Bundle
   userErrors: [GenericUserError!]!
 }
 
@@ -1187,7 +1193,7 @@ input BundleConditionSyncInput {
   """Target type."""
   targetType: BundleDependencyTargetType!
 
-  """Target ID."""
+  """Target ID. Points to an item, group, or the parent bundle product."""
   targetId: ID!
 
   """Numeric value for numeric conditions."""
@@ -1207,7 +1213,7 @@ input BundleDependencyActionSyncInput {
   """Target type."""
   targetType: BundleDependencyTargetType!
 
-  """Target ID."""
+  """Target ID. Null is allowed when targetType is BUNDLE."""
   targetId: ID
 
   """Required value for SET_REQUIRED."""
@@ -1255,8 +1261,8 @@ input BundleDependencyActionSyncInput {
   этом scope, отсутствующий во входном списке, удаляется.
 - Порядок groups/items/templates/condition groups/conditions/actions задается
   через `sortIndex`; порядок rules задается через `priority`.
-- Variant assignments configuration меняются через
-  `BundleConfigurationUpdateInput.variantIds`, без отдельной mutation.
+- Variant assignments configuration меняются через операции создания/обновления
+  bundle variant: variant указывает `bundleConfigurationId`.
 - Локальные UI IDs (`grp-*`, `item-*`, `tpl-*`, `rule-*` и `crypto.randomUUID()`
   draft IDs) не являются GraphQL IDs и не отправляются как `id`. Новые rows
   отправляются без `id`; backend возвращает final server IDs в payload, после
@@ -1264,12 +1270,14 @@ input BundleDependencyActionSyncInput {
 - Cross-scope references require existing server IDs. Например,
   `pricingTemplateId` в `bundleGroupsSync` должен ссылаться на template, уже
   сохраненный через `bundlePricingTemplatesSync`, а dependency rule `targetId`
-  должен ссылаться на group/item, уже сохраненный через `bundleGroupsSync`.
+  должен ссылаться на group/item, уже сохраненный через `bundleGroupsSync`, или
+  на parent bundle product для `targetType = BUNDLE`.
 - Любое успешное изменение структуры бандла через scoped sync mutations должно
   bump-ить `catalog.product.revision`, чтобы `bundleUpdate` и bundle structure
   mutations видели общий concurrency token.
 - Для одного internal product row разрешен только один `Bundle`.
-- Все `variantIds` в configuration assignment должны принадлежать этому bundle.
+- `bundleConfigurationId` в variant operation должен указывать на configuration
+  этого же bundle.
 - Каждый variant может быть назначен только одной configuration.
 - Все IDs в input принимаются как GraphQL global IDs и декодируются к ожидаемым
   `GlobalIdEntity`; invalid type должен возвращать `GenericUserError`.
