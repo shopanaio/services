@@ -4,7 +4,7 @@ import {
   type GlobalId,
   GLOBAL_ID_NAMESPACE,
   type GlobalIdType,
-} from './index.js';
+} from "./core.js";
 
 interface DecodedGlobalId extends GlobalId {
   typeName: GlobalIdType | string;
