@@ -895,7 +895,6 @@ CREATE TABLE "catalog"."warehouse_translation" (
 );
 --> statement-breakpoint
 ALTER TABLE "catalog"."product" ADD CONSTRAINT "product_vendor_fk" FOREIGN KEY ("project_id","vendor_id") REFERENCES "catalog"."vendor"("project_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "catalog"."variant" ADD CONSTRAINT "variant_product_kind_fk" FOREIGN KEY ("product_id","kind") REFERENCES "catalog"."product"("id","kind") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."category_media" ADD CONSTRAINT "category_media_category_id_category_id_fk" FOREIGN KEY ("category_id") REFERENCES "catalog"."category"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."category_translation" ADD CONSTRAINT "category_translation_category_id_category_id_fk" FOREIGN KEY ("category_id") REFERENCES "catalog"."category"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."product_category" ADD CONSTRAINT "product_category_product_id_product_id_fk" FOREIGN KEY ("product_id") REFERENCES "catalog"."product"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -976,7 +975,6 @@ ALTER TABLE "catalog"."reservations" ADD CONSTRAINT "reservations_warehouse_id_w
 ALTER TABLE "catalog"."inbound_supply" ADD CONSTRAINT "inbound_supply_warehouse_id_warehouses_id_fk" FOREIGN KEY ("warehouse_id") REFERENCES "catalog"."warehouses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."warehouse_translation" ADD CONSTRAINT "warehouse_translation_warehouse_id_warehouses_id_fk" FOREIGN KEY ("warehouse_id") REFERENCES "catalog"."warehouses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "product_project_id_handle_key" ON "catalog"."product" USING btree ("project_id","handle") WHERE deleted_at IS NULL AND handle IS NOT NULL;--> statement-breakpoint
-CREATE UNIQUE INDEX "product_id_kind_unique" ON "catalog"."product" USING btree ("id","kind");--> statement-breakpoint
 CREATE INDEX "idx_product_project_id" ON "catalog"."product" USING btree ("project_id");--> statement-breakpoint
 CREATE INDEX "idx_product_vendor_id" ON "catalog"."product" USING btree ("vendor_id");--> statement-breakpoint
 CREATE INDEX "idx_product_created_at" ON "catalog"."product" USING btree ("created_at");--> statement-breakpoint

@@ -97,27 +97,6 @@
           "method": "btree",
           "with": {}
         },
-        "product_id_kind_unique": {
-          "name": "product_id_kind_unique",
-          "columns": [
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "kind",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "idx_product_project_id": {
           "name": "idx_product_project_id",
           "columns": [
@@ -518,24 +497,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "variant_product_kind_fk": {
-          "name": "variant_product_kind_fk",
-          "tableFrom": "variant",
-          "tableTo": "product",
-          "schemaTo": "catalog",
-          "columnsFrom": [
-            "product_id",
-            "kind"
-          ],
-          "columnsTo": [
-            "id",
-            "kind"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "variant_project_id_product_id_id_unique": {

@@ -46,7 +46,6 @@ export const product = catalogSchema.table(
     uniqueIndex("product_project_id_handle_key")
       .on(table.projectId, table.handle)
       .where(sql`deleted_at IS NULL AND handle IS NOT NULL`),
-    uniqueIndex("product_id_kind_unique").on(table.id, table.kind),
     unique("product_project_id_id_unique").on(table.projectId, table.id),
     index("idx_product_project_id").on(table.projectId),
     index("idx_product_vendor_id").on(table.vendorId),
@@ -116,11 +115,6 @@ export const variant = catalogSchema.table(
     index("idx_variant_deleted_at")
       .on(table.deletedAt)
       .where(sql`deleted_at IS NOT NULL`),
-    foreignKey({
-      name: "variant_product_kind_fk",
-      columns: [table.productId, table.kind],
-      foreignColumns: [product.id, product.kind],
-    }).onDelete("cascade"),
   ]
 );
 
