@@ -18,9 +18,10 @@ export const BUNDLE_LIST_ITEM_FIELDS = gql`
     media {
       sortIndex
       file {
-        ...BundleListFileFields
+        url
+        altText
+        originalName
       }
     }
   }
-  ${BUNDLE_LIST_FILE_FIELDS}
 `;

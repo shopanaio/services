@@ -200,22 +200,17 @@ export const PRODUCT_LIST_FRAGMENT = gql`
     title
     handle
     isPublished
-    publishedAt
-    createdAt
-    updatedAt
-    deletedAt
-    revision
     media {
-      ...ProductMediaItemFields
+      sortIndex
+      file {
+        url
+        originalName
+        altText
+      }
     }
     primaryCategory {
-      ...ProductCategoryFields
-    }
-    categoryAssignments {
-      isPrimary
-      category {
-        ...ProductCategoryFields
-      }
+      id
+      name
     }
     vendor {
       ...VendorFields
@@ -234,8 +229,6 @@ export const PRODUCT_LIST_FRAGMENT = gql`
       }
     }
   }
-  ${PRODUCT_MEDIA_ITEM_FRAGMENT}
-  ${PRODUCT_CATEGORY_FRAGMENT}
   ${VENDOR_FRAGMENT}
 `;
 
