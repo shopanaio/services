@@ -1,24 +1,10 @@
-import {
-  FilterType,
-  stringOperators,
-  enumOperators,
-} from "@/layouts/filters";
+import { FilterType, enumOperators } from "@/layouts/filters";
 import type { IFilterSchema } from "@/layouts/filters/core/types";
 import { BundleType } from "@/graphql/types";
+import { productLikeBaseFilterSchema } from "@/domains/inventory/products/list-page";
 
 export const filterSchema: IFilterSchema[] = [
-  {
-    key: "status",
-    label: "Status",
-    description: "Filter by bundle status",
-    type: FilterType.Enum,
-    operators: enumOperators,
-    payloadKey: "status",
-    options: [
-      { label: "Published", value: "published" },
-      { label: "Draft", value: "draft" },
-    ],
-  },
+  ...productLikeBaseFilterSchema,
   {
     key: "bundleType",
     label: "Bundle Type",
@@ -32,13 +18,5 @@ export const filterSchema: IFilterSchema[] = [
       { label: "Mix & Match", value: BundleType.MixAndMatch },
       { label: "Custom", value: BundleType.Custom },
     ],
-  },
-  {
-    key: "name",
-    label: "Name",
-    description: "Filter by bundle name",
-    type: FilterType.String,
-    operators: stringOperators,
-    payloadKey: "name",
   },
 ];

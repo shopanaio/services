@@ -1,10 +1,5 @@
-import {
-  createMinorUnitPriceTransformer,
-  createRelationInTransformer,
-} from "@/hooks";
 import type {
   FilterTransformer,
-  OrderByInput,
   SortFieldMapping,
   UsePageConfigReturn,
 } from "@/hooks";
@@ -13,34 +8,31 @@ import type {
   ApiProductWhereInput,
 } from "@/graphql/types";
 import { ProductOrderField } from "@/graphql/types";
+import {
+  buildProductLikeQueryVariables,
+  buildProductLikeSearchCondition,
+  createProductLikeFilterTransformers,
+  createProductLikeSortFieldMapping,
+  toProductLikeQueryVariables,
+} from "../list-page";
 import type { ProductsQueryVariables } from "../graphql/operation-types";
 
-export const productSortFieldMapping: SortFieldMapping<ProductOrderField> = {
-  title: ProductOrderField.Name,
-  minPriceMinor: ProductOrderField.MinPriceMinor,
-  maxPriceMinor: ProductOrderField.MaxPriceMinor,
-  primaryCategoryName: ProductOrderField.PrimaryCategoryName,
-  brand: ProductOrderField.BrandName,
-};
+export const productSortFieldMapping: SortFieldMapping<ProductOrderField> =
+  createProductLikeSortFieldMapping<ProductOrderField>({
+    Name: ProductOrderField.Name,
+    MinPriceMinor: ProductOrderField.MinPriceMinor,
+    MaxPriceMinor: ProductOrderField.MaxPriceMinor,
+    PrimaryCategoryName: ProductOrderField.PrimaryCategoryName,
+    BrandName: ProductOrderField.BrandName,
+  });
 
-export const buildProductSearchCondition = (
-  search: string,
-): Partial<ApiProductWhereInput> => ({
-  name: { _containsi: search },
-});
+export const buildProductSearchCondition =
+  buildProductLikeSearchCondition<ApiProductWhereInput>;
 
 export const productFilterTransformers: Record<
   string,
   FilterTransformer<ApiProductWhereInput>
-> = {
-  primaryCategoryId:
-    createRelationInTransformer<ApiProductWhereInput>("primaryCategoryId"),
-  minPriceMinor:
-    createMinorUnitPriceTransformer<ApiProductWhereInput>("minPriceMinor"),
-  maxPriceMinor:
-    createMinorUnitPriceTransformer<ApiProductWhereInput>("maxPriceMinor"),
-  vendorId: createRelationInTransformer<ApiProductWhereInput>("vendorId"),
-};
+> = createProductLikeFilterTransformers<ApiProductWhereInput>();
 
 export function buildProductsQueryVariables(
   pageConfig: Pick<
@@ -48,14 +40,12 @@ export function buildProductsQueryVariables(
     "first" | "after" | "last" | "before" | "where" | "orderBy"
   >,
 ): ProductsQueryVariables {
-  return {
-    first: pageConfig.first,
-    after: pageConfig.after,
-    last: pageConfig.last,
-    before: pageConfig.before,
-    where: pageConfig.where ?? null,
-    orderBy: (pageConfig.orderBy ?? null) as ApiProductOrderByInput[] | null,
-  };
+  return buildProductLikeQueryVariables<
+    ProductsQueryVariables,
+    ApiProductWhereInput,
+    ProductOrderField,
+    ApiProductOrderByInput
+  >(pageConfig);
 }
 
 export function toProductsQueryVariables(
@@ -64,11 +54,10 @@ export function toProductsQueryVariables(
     "first" | "after" | "last" | "before" | "where" | "orderBy"
   >,
 ): ProductsQueryVariables {
-  return buildProductsQueryVariables({
-    ...pageConfig,
-    where: pageConfig.where as ApiProductWhereInput | undefined,
-    orderBy: pageConfig.orderBy as
-      | OrderByInput<ProductOrderField>[]
-      | undefined,
-  });
+  return toProductLikeQueryVariables<
+    ProductsQueryVariables,
+    ApiProductWhereInput,
+    ProductOrderField,
+    ApiProductOrderByInput
+  >(pageConfig);
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useCallback } from "react";
-import { Typography, Flex, Button, Tag } from "antd";
+import { Alert, Typography, Flex, Button, Tag } from "antd";
 import {
   PlusOutlined,
   EditOutlined,
@@ -20,21 +20,31 @@ import {
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
-import { useFilters, FilterWidget } from "@/layouts/filters";
+import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import { FloatingPanelStack } from "@/ui-kit/floating-panel-stack";
 import type { ActionConfig } from "@/ui-kit/floating-panel-stack/core/types";
 import type { PanelConfig } from "@/ui-kit/floating-panel-stack/data-page/floating-panel-stack";
 import {
-  useGridState,
-  useGridSort,
   useAgGridTheme,
   useAgGridRowSelection,
 } from "@/hooks";
+import { useInventoryRelayListPage } from "@/domains/inventory/hooks";
 import { filterSchema } from "./filter-schema";
+import {
+  buildBundleSearchCondition,
+  buildBundlesQueryVariables,
+  bundleFilterTransformers,
+  bundleSortFieldMapping,
+} from "./page-config";
 import { useBundles } from "../hooks";
 import { TableCoverImage } from "@/shared/components/table-cover-image";
-import { BundleType, type ApiBundle } from "@/graphql/types";
+import {
+  BundleOrderField,
+  BundleType,
+  type ApiBundle,
+  type ApiBundleWhereInput,
+} from "@/graphql/types";
 
 ModuleRegistry.registerModules([
   AllCommunityModule,
@@ -47,12 +57,12 @@ const BundleCellRenderer = (
 ) => {
   const { data } = props;
   if (!data) return null;
-  const imageUrl = data.media[0]?.file.url;
+  const thumbnail = data.media[0]?.file;
   return (
     <Flex align="center" gap="small">
       <TableCoverImage
-        src={imageUrl}
-        alt={data.title}
+        src={thumbnail?.url ?? null}
+        alt={thumbnail?.altText ?? thumbnail?.originalName ?? data.title}
         fallbackIcon={<GiftOutlined />}
       />
       <Typography.Text strong>{data.title}</Typography.Text>
@@ -94,20 +104,34 @@ const StatusCellRenderer = (
 export default function BundlesPage() {
   const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<ApiBundle>>(null);
-  const [searchValue, setSearchValue] = useState("");
   const [selectedCount, setSelectedCount] = useState(0);
-  const { widgetProps } = useFilters({ schema: filterSchema });
   const { push } = useModalStack();
-  const { data: bundles } = useBundles();
-  const { initialState, onStateUpdated } = useGridState({
-    storageKey: "bundles-grid-state",
-  });
-
-  const { onSortChanged } = useGridSort({
+  const {
+    pageConfig,
+    items: bundles,
+    totalCount,
+    pageInfo,
+    loading,
+    error,
+    handleNextPage,
+    handlePrevPage,
+  } = useInventoryRelayListPage<
+    ApiBundle,
+    ApiBundleWhereInput,
+    BundleOrderField,
+    ReturnType<typeof buildBundlesQueryVariables>,
+    ReturnType<typeof useBundles>
+  >({
     gridRef,
-    onSortChange: (model) => {
-      console.log("Sort changed:", model);
-    },
+    storageKey: "bundles-grid-state",
+    filterSchema,
+    sortFieldMapping: bundleSortFieldMapping,
+    defaultPageSize: 20,
+    buildSearchCondition: buildBundleSearchCondition,
+    filterTransformers: bundleFilterTransformers,
+    buildQueryVariables: buildBundlesQueryVariables,
+    useListQuery: useBundles,
+    getItems: (result) => result.bundles,
   });
 
   const { rowSelection, selectionColumnDef, onCellClicked } =
@@ -195,6 +219,7 @@ export default function BundlesPage() {
         cellRenderer: StatusCellRenderer,
         minWidth: 120,
         resizable: false,
+        sortable: false,
       },
     ],
     [],
@@ -218,7 +243,7 @@ export default function BundlesPage() {
     <DataLayout
       name="bundles"
       title="Bundles"
-      count={bundles.length}
+      count={totalCount}
       actions={
         <Button icon={<PlusOutlined />} onClick={handleCreate}>
           Create
@@ -228,11 +253,8 @@ export default function BundlesPage() {
       <DataLayout.Toolbar
         left={
           <FilterWidget
-            {...widgetProps}
-            searchProps={{
-              searchValue,
-              onChangeSearchValue: setSearchValue,
-            }}
+            {...pageConfig.filterWidgetProps}
+            searchPlaceholder="Search bundles..."
           />
         }
       />
@@ -245,11 +267,21 @@ export default function BundlesPage() {
           flexDirection: "column",
         }}
       >
+        {error && (
+          <Alert
+            type="error"
+            message={error.message}
+            showIcon
+            style={{ marginBottom: 12 }}
+          />
+        )}
+
         <div style={{ flex: 1 }}>
           <AgGridReact<ApiBundle>
             ref={gridRef}
             theme={agGridTheme}
             rowData={bundles}
+            loading={loading}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
             getRowId={(params) => params.data.id}
@@ -260,23 +292,28 @@ export default function BundlesPage() {
             suppressMovableColumns
             onCellClicked={onCellClicked}
             onSelectionChanged={handleSelectionChanged}
+            onSortChanged={pageConfig.onSortChanged}
             rowStyle={{ cursor: "pointer" }}
-            initialState={initialState}
-            onStateUpdated={onStateUpdated}
-            onSortChanged={onSortChanged}
+            initialState={pageConfig.gridStateProps.initialState}
+            onStateUpdated={pageConfig.gridStateProps.onStateUpdated}
           />
         </div>
 
         <CursorPagination
-          total={bundles.length}
-          rangeStart={1}
-          rangeEnd={bundles.length}
-          pageSize={20}
-          hasNext={false}
-          hasPrev={false}
-          onNext={() => {}}
-          onPrev={() => {}}
-          onPageSizeChange={() => {}}
+          name="bundles"
+          total={totalCount}
+          rangeStart={pageConfig.getRangeStart(bundles.length)}
+          rangeEnd={Math.min(
+            pageConfig.getRangeEnd(bundles.length),
+            totalCount,
+          )}
+          pageSize={pageConfig.pageSize}
+          pageSizeOptions={pageConfig.pageSizeOptions}
+          hasNext={pageInfo?.hasNextPage ?? false}
+          hasPrev={pageInfo?.hasPreviousPage ?? false}
+          onNext={handleNextPage}
+          onPrev={handlePrevPage}
+          onPageSizeChange={pageConfig.setPageSize}
         />
       </div>
 
