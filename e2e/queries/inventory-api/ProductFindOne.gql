@@ -85,6 +85,19 @@ query ProductFindOne($id: ID!) {
             id
             handle
             isDefault
+            price {
+              currency
+              amountMinor
+              compareAtMinor
+            }
+            weight {
+              value
+            }
+            dimensions {
+              length
+              width
+              height
+            }
             inventoryItem {
               id
               sku

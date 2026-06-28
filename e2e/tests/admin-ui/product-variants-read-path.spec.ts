@@ -348,6 +348,12 @@ function optionEditorCell(page: Page, variantId: string, optionName: string) {
   return page.getByTestId(`variants-editor-cell-option-${optionName}-${variantId}`);
 }
 
+function editorVariantRows(page: Page) {
+  return page
+    .getByTestId('variants-editor-grid')
+    .locator('.ag-center-cols-container .ag-row:not([row-id^="blank:"])');
+}
+
 async function expectVariantTablePage(page: Page, variants: SeededVariant[]) {
   const rows = page.getByTestId('product-variants-table').locator('tbody tr');
   await expect(rows).toHaveCount(variants.length);
@@ -438,9 +444,7 @@ test.describe('Admin product variants read path UI', () => {
       'Height',
     ]);
 
-    await expect(
-      page.getByTestId('variants-editor-grid').locator('.ag-center-cols-container .ag-row'),
-    ).toHaveCount(VARIANT_COUNT);
+    await expect(editorVariantRows(page)).toHaveCount(VARIANT_COUNT);
 
     await expectEditorVariantData(page, variants[0]);
     await expectEditorVariantData(page, variants[9]);

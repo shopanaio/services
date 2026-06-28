@@ -94,7 +94,7 @@ export class ProductUpdateMediaScript extends BaseScript<
   ): Promise<void> {
     try {
       await this.services.broker.runSaga<unknown, BackRefNotifyInput>(
-        "backRefNotify",
+        "catalog.backRefNotify",
         {
           entityRef: {
             service: "catalog",

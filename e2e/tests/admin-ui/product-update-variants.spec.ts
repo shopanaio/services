@@ -290,34 +290,27 @@ async function editAllVariantFields(
 
 async function expectVariantApiState(
   api: Api,
+  productId: string,
   variantId: string,
   expected: ExpectedVariantState,
 ) {
   await expect
     .poll(
       async () => {
-        const pricingData = await api.admin.query('inventory-api/WidgetPricing', {
-          variables: {
-            input: {
-              variantId,
-              currency: UAH,
-              first: 10,
-            },
-          },
+        const { data } = await api.admin.query('inventory-api/ProductFindOne', {
+          variables: { id: productId },
         });
-        const inventoryData = await api.admin.query('inventory-api/InventoryItemByVariant', {
-          variables: { variantId },
-        });
-        const pricing = pricingData.data.widgetQuery.pricing.currentPrice;
-        const item = inventoryData.data.inventoryQuery.inventoryItemByVariant;
+        const variant = data.catalogQuery.product?.variants?.edges
+          .map((edge) => edge.node)
+          .find((node) => node.id === variantId);
 
         return {
-          price: pricing?.amountMinor ?? null,
-          compareAtPrice: pricing?.compareAtMinor ?? null,
-          weight: item?.variant?.weight?.value ?? null,
-          length: item?.variant?.dimensions?.length ?? null,
-          width: item?.variant?.dimensions?.width ?? null,
-          height: item?.variant?.dimensions?.height ?? null,
+          price: variant?.price?.amountMinor ?? null,
+          compareAtPrice: variant?.price?.compareAtMinor ?? null,
+          weight: variant?.weight?.value ?? null,
+          length: variant?.dimensions?.length ?? null,
+          width: variant?.dimensions?.width ?? null,
+          height: variant?.dimensions?.height ?? null,
         };
       },
       { timeout: 20_000 },
@@ -389,7 +382,7 @@ test.describe('Admin product details variants update UI', () => {
     await expect(page.getByTestId('submit-edit-variants-form-button')).toBeEnabled();
     await saveEditVariantsModal(page);
 
-    await expectVariantApiState(api, targetVariant.id, expected);
+    await expectVariantApiState(api, product.id, targetVariant.id, expected);
 
     await openEditVariantsModal(page);
     await showEditorColumns(page, ['Compare at', 'Weight', 'Length', 'Width', 'Height']);

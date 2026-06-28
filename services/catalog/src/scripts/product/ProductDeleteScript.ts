@@ -103,7 +103,7 @@ export class ProductDeleteScript extends BaseScript<
   private async clearProductBackRefs(productId: string): Promise<void> {
     try {
       await this.services.broker.runSaga<unknown, BackRefNotifyInput>(
-        "backRefNotify",
+        "catalog.backRefNotify",
         {
           entityRef: {
             service: "catalog",
