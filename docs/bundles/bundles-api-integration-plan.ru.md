@@ -25,7 +25,7 @@
   - cursor pagination;
   - `useRelayConnectionQuery`.
 - `BundlesPage` с реальной таблицей, но mock hook и ручные filters/grid/sort/pagination.
-- В текущей структуре `admin/src/domains/promos/bundles/page/` есть `filter-schema.ts` и `page.tsx`, но нет `page-config.ts`; план должен явно добавить этот файл как тонкую bundle-specific настройку поверх shared product-like helpers.
+- В текущей структуре `admin/src/domains/inventory/bundles/page/` есть `filter-schema.ts` и `page.tsx`, но нет `page-config.ts`; план должен явно добавить этот файл как тонкую bundle-specific настройку поверх shared product-like helpers.
 
 Архитектурный риск, которого нужно избежать:
 
@@ -41,7 +41,7 @@
 
 `admin/src/domains/inventory/products/list-page/`
 
-Почему здесь, а не в `promos/bundles`:
+Почему здесь, а не в `inventory/bundles`:
 
 - shared filters/sort/search уже принадлежат product/listing list behavior;
 - bundle page должна только добавить `bundleType` и свой query.
@@ -128,31 +128,29 @@ type ProductLikeCommonOrderField =
   | "MinPriceMinor"
   | "MaxPriceMinor"
   | "PrimaryCategoryName"
-  | "BrandName"
-  | "CreatedAt"
-  | "UpdatedAt"
-  | "PublishedAt";
+  | "BrandName";
 
-export type ProductLikeOrderFieldEnum = Record<
-  ProductLikeCommonOrderField,
-  string
->;
+export type ProductLikeOrderFieldEnum = {
+  Name: string;
+} & Partial<Record<Exclude<ProductLikeCommonOrderField, "Name">, string>>;
 
 export function createProductLikeSortFieldMapping<
   TOrderField extends string,
 >(
   fields: ProductLikeOrderFieldEnum,
 ): SortFieldMapping<TOrderField> {
-  return {
+  const mapping: Record<string, string> = {
     title: fields.Name,
-    minPriceMinor: fields.MinPriceMinor,
-    maxPriceMinor: fields.MaxPriceMinor,
-    primaryCategoryName: fields.PrimaryCategoryName,
-    brand: fields.BrandName,
-    createdAt: fields.CreatedAt,
-    updatedAt: fields.UpdatedAt,
-    publishedAt: fields.PublishedAt,
-  } as SortFieldMapping<TOrderField>;
+  };
+
+  if (fields.MinPriceMinor) mapping.minPriceMinor = fields.MinPriceMinor;
+  if (fields.MaxPriceMinor) mapping.maxPriceMinor = fields.MaxPriceMinor;
+  if (fields.PrimaryCategoryName) {
+    mapping.primaryCategoryName = fields.PrimaryCategoryName;
+  }
+  if (fields.BrandName) mapping.brand = fields.BrandName;
+
+  return mapping as SortFieldMapping<TOrderField>;
 }
 
 export function buildProductLikeSearchCondition<TWhereInput extends object>(
@@ -270,7 +268,13 @@ import {
 import type { ProductsQueryVariables } from "../graphql/operation-types";
 
 export const productSortFieldMapping =
-  createProductLikeSortFieldMapping<ProductOrderField>(ProductOrderField);
+  createProductLikeSortFieldMapping<ProductOrderField>({
+    Name: ProductOrderField.Name,
+    MinPriceMinor: ProductOrderField.MinPriceMinor,
+    MaxPriceMinor: ProductOrderField.MaxPriceMinor,
+    PrimaryCategoryName: ProductOrderField.PrimaryCategoryName,
+    BrandName: ProductOrderField.BrandName,
+  });
 
 export const buildProductSearchCondition =
   buildProductLikeSearchCondition<ApiProductWhereInput>;
@@ -304,7 +308,7 @@ Products behavior should not change.
 Создать:
 
 ```text
-admin/src/domains/promos/bundles/graphql/
+admin/src/domains/inventory/bundles/graphql/
   fragments.ts
   queries.ts
   operation-types.ts
@@ -477,6 +481,8 @@ export const BUNDLE_LIST_ITEM_FIELDS = gql`
 
 `BundleListItemFields` не должен быть минимальным table-only fragment: он покрывает shared listing contract (`vendor`, `media`, `options`, `features`, `primaryCategory`, `tags`, `description`, `excerpt`, `seo`) и добавляет bundle-specific `type`.
 
+Перед реализацией fragment надо сверить с актуальной generated GraphQL schema. Если часть полей shared listing contract для `Bundle` отсутствует или временно не резолвится, не добавлять output mapper и не возвращаться к mock shape: сузить fragment до реально доступных API-полей, необходимых текущему list UI, и оставить расширение fragment отдельным шагом.
+
 ### `queries.ts`
 
 ```ts
@@ -564,7 +570,7 @@ export type * from "./operation-types";
 
 Файл:
 
-`admin/src/domains/promos/bundles/hooks/use-bundles.ts`
+`admin/src/domains/inventory/bundles/hooks/use-bundles.ts`
 
 Удалить mock implementation:
 
@@ -649,7 +655,7 @@ export function useBundles(options: UseBundlesOptions = {}): UseBundlesReturn {
 
 Файл:
 
-`admin/src/domains/promos/bundles/page/filter-schema.ts`
+`admin/src/domains/inventory/bundles/page/filter-schema.ts`
 
 Собрать schema из common filters + bundle-specific filter:
 
@@ -682,7 +688,7 @@ export const filterSchema: IFilterSchema[] = [
 
 Файл:
 
-`admin/src/domains/promos/bundles/page/page-config.ts`
+`admin/src/domains/inventory/bundles/page/page-config.ts`
 
 ```ts
 import type {
@@ -706,7 +712,13 @@ import {
 import type { BundlesQueryVariables } from "../graphql";
 
 export const bundleSortFieldMapping: SortFieldMapping<BundleOrderField> = {
-  ...createProductLikeSortFieldMapping<BundleOrderField>(BundleOrderField),
+  ...createProductLikeSortFieldMapping<BundleOrderField>({
+    Name: BundleOrderField.Name,
+    MinPriceMinor: BundleOrderField.MinPriceMinor,
+    MaxPriceMinor: BundleOrderField.MaxPriceMinor,
+    PrimaryCategoryName: BundleOrderField.PrimaryCategoryName,
+    BrandName: BundleOrderField.BrandName,
+  }),
   // UI field is ApiBundle.type, list view/order field is bundleType.
   type: BundleOrderField.BundleType,
 };
@@ -760,7 +772,7 @@ export function toBundlesQueryVariables(
 
 Файл:
 
-`admin/src/domains/promos/bundles/page/page.tsx`
+`admin/src/domains/inventory/bundles/page/page.tsx`
 
 Удалить ручное состояние:
 
@@ -954,14 +966,14 @@ const columnDefs = useMemo<ColDef<ApiBundle>[]>(
 | `admin/src/domains/inventory/products/list-page/index.ts` | Barrel. |
 | `admin/src/domains/inventory/products/page/filter-schema.ts` | Re-export common schema. |
 | `admin/src/domains/inventory/products/page/page-config.ts` | Перейти на common factories. |
-| `admin/src/domains/promos/bundles/graphql/fragments.ts` | Bundle list fragment. |
-| `admin/src/domains/promos/bundles/graphql/queries.ts` | `BUNDLES_QUERY`. |
-| `admin/src/domains/promos/bundles/graphql/operation-types.ts` | Operation data/variables. |
-| `admin/src/domains/promos/bundles/graphql/index.ts` | Export operations/types. |
-| `admin/src/domains/promos/bundles/hooks/use-bundles.ts` | GraphQL-backed Relay hook. |
-| `admin/src/domains/promos/bundles/page/filter-schema.ts` | Common filters + `bundleType`. |
-| `admin/src/domains/promos/bundles/page/page-config.ts` | Thin bundle-specific config. |
-| `admin/src/domains/promos/bundles/page/page.tsx` | Интеграция через `useInventoryRelayListPage`. |
+| `admin/src/domains/inventory/bundles/graphql/fragments.ts` | Bundle list fragment. |
+| `admin/src/domains/inventory/bundles/graphql/queries.ts` | `BUNDLES_QUERY`. |
+| `admin/src/domains/inventory/bundles/graphql/operation-types.ts` | Operation data/variables. |
+| `admin/src/domains/inventory/bundles/graphql/index.ts` | Export operations/types. |
+| `admin/src/domains/inventory/bundles/hooks/use-bundles.ts` | GraphQL-backed Relay hook. |
+| `admin/src/domains/inventory/bundles/page/filter-schema.ts` | Common filters + `bundleType`. |
+| `admin/src/domains/inventory/bundles/page/page-config.ts` | Thin bundle-specific config. |
+| `admin/src/domains/inventory/bundles/page/page.tsx` | Интеграция через `useInventoryRelayListPage`. |
 
 ## 9. Что не делать
 
