@@ -122,6 +122,8 @@ const categoryListingQuery = createQuery(listingListView, {
   locale: field(listingListView.locale),
   name: field(listingListView.name),
   currency: field(listingListView.currency),
+  minAmountMinor: field(listingListView.minAmountMinor),
+  maxAmountMinor: field(listingListView.maxAmountMinor),
   minPriceMinor: field(listingListView.minPriceMinor),
   maxPriceMinor: field(listingListView.maxPriceMinor),
   primaryCategoryId: field(listingListView.primaryCategoryId),
@@ -1093,7 +1095,7 @@ export class CategoryRepository extends BaseRepository {
           return { field: "category.lexoRank", direction };
         case "PRICE":
           return {
-            field: direction === "asc" ? "minPriceMinor" : "maxPriceMinor",
+            field: direction === "asc" ? "minAmountMinor" : "maxAmountMinor",
             direction,
           };
         case "NEWEST":
@@ -1143,6 +1145,8 @@ export class CategoryRepository extends BaseRepository {
       case "locale":
       case "name":
       case "currency":
+      case "minAmountMinor":
+      case "maxAmountMinor":
       case "minPriceMinor":
       case "maxPriceMinor":
       case "primaryCategoryId":

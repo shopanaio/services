@@ -215,13 +215,15 @@ export const PRODUCT_LIST_FRAGMENT = gql`
     vendor {
       ...VendorFields
     }
+    priceRange {
+      minPriceAmount
+      maxPriceAmount
+      currency
+    }
     variants(first: 100) {
       edges {
         node {
           id
-          price {
-            amountMinor
-          }
           inventoryItem {
             totalAvailable
           }

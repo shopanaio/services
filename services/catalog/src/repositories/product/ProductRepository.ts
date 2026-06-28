@@ -9,12 +9,13 @@ import {
 } from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
 import {
-  product,
-  bundle,
-  bundleListView,
-  productCategory,
-  listingListView,
-  productListView,
+	  product,
+	  bundle,
+	  bundleListView,
+	  productPriceRange,
+	  productCategory,
+	  listingListView,
+	  productListView,
   productTranslation,
   productOption,
   productFeature,
@@ -22,9 +23,10 @@ import {
   type Bundle,
   type NewProduct,
   type ProductTranslation,
-  type ProductOption,
-  type ProductFeature,
-} from "../models/index.js";
+	  type ProductOption,
+	  type ProductFeature,
+	  type ProductPriceRange,
+	} from "../models/index.js";
 import {
   decodeCategoryGlobalId,
   decodeProductGlobalId,
@@ -94,6 +96,8 @@ const EMPTY_PRODUCT_WHERE: ProductRelayInput["where"] = {
   id: { _in: ["00000000-0000-0000-0000-000000000000"] },
 };
 
+type Currency = "UAH" | "USD" | "EUR";
+
 export interface ProductConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
   pageInfo: PageInfo;
@@ -105,8 +109,8 @@ export class ProductRepository extends BaseRepository {
     return this.ctx.locale ?? this.ctx.store.defaultLocale;
   }
 
-  private get currency(): string {
-    return this.ctx.currency ?? "UAH";
+  private get currency(): Currency {
+    return (this.ctx.currency ?? "UAH") as Currency;
   }
 
   // ============ CRUD ============
@@ -464,6 +468,23 @@ export class ProductRepository extends BaseRepository {
         and(
           eq(bundle.projectId, this.storeId),
           inArray(bundle.productId, [...productIds])
+        )
+      );
+  }
+
+  async getPriceRangesByProductIds(
+    productIds: readonly string[],
+  ): Promise<ProductPriceRange[]> {
+    if (productIds.length === 0) return [];
+
+    return this.connection
+      .select()
+      .from(productPriceRange)
+      .where(
+        and(
+          eq(productPriceRange.projectId, this.storeId),
+          inArray(productPriceRange.productId, [...productIds]),
+          eq(productPriceRange.currency, this.currency)
         )
       );
   }

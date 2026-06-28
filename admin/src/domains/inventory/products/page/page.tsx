@@ -111,6 +111,7 @@ const PriceCellRenderer = (
   },
 ) => {
   const { data, value, currency, testIdSuffix } = props;
+  const displayCurrency = data?.priceRange?.currency ?? currency;
 
   return (
     <Typography.Text
@@ -120,8 +121,8 @@ const PriceCellRenderer = (
           : undefined
       }
     >
-      {value !== null && value !== undefined && currency
-        ? formatPrice(value, currency)
+      {value !== null && value !== undefined && displayCurrency
+        ? formatPrice(value, displayCurrency)
         : <Dash />}
     </Typography.Text>
   );

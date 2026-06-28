@@ -39,17 +39,11 @@ export const getProductPriceAmounts = (product: ApiProduct): number[] =>
 
 export const getProductMinPriceAmount = (
   product: ApiProduct,
-): number | null => {
-  const prices = getProductPriceAmounts(product);
-  return prices.length > 0 ? Math.min(...prices) : null;
-};
+): number | null => product.priceRange?.minPriceAmount ?? null;
 
 export const getProductMaxPriceAmount = (
   product: ApiProduct,
-): number | null => {
-  const prices = getProductPriceAmounts(product);
-  return prices.length > 0 ? Math.max(...prices) : null;
-};
+): number | null => product.priceRange?.maxPriceAmount ?? null;
 
 export const getProductTotalAvailable = (product: ApiProduct): number =>
   getProductVariants(product).reduce(

@@ -188,6 +188,9 @@ type Product implements Node & Listing @key(fields: "id") {
 
   """SEO and Open Graph metadata."""
   seo: ProductSeo
+
+  """Current product price range in the selected currency."""
+  priceRange: ProductPriceRange
 }
 
 """

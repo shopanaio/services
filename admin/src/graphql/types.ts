@@ -415,6 +415,8 @@ export type ApiBundle = ApiListing & ApiNode & {
   media: Array<ApiProductMediaItem>;
   /** The options available for this bundle. */
   options: Array<ApiProductOption>;
+  /** Current bundle price range in the selected currency. */
+  priceRange?: Maybe<ApiProductPriceRange>;
   /** The primary category assigned to this bundle. */
   primaryCategory?: Maybe<ApiCategory>;
   /** The date and time when the bundle was published, or null if unpublished. */
@@ -1041,8 +1043,12 @@ export enum BundleOrderField {
   Id = 'id',
   /** Sort by locale */
   Locale = 'locale',
+  /** Sort by maxAmountMinor */
+  MaxAmountMinor = 'maxAmountMinor',
   /** Sort by maxPriceMinor */
   MaxPriceMinor = 'maxPriceMinor',
+  /** Sort by minAmountMinor */
+  MinAmountMinor = 'minAmountMinor',
   /** Sort by minPriceMinor */
   MinPriceMinor = 'minPriceMinor',
   /** Sort by name */
@@ -1217,8 +1223,12 @@ export type ApiBundleWhereInput = {
   id?: InputMaybe<ApiIdFilter>;
   /** Filter by locale */
   locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by maxAmountMinor */
+  maxAmountMinor?: InputMaybe<ApiIntFilter>;
   /** Filter by maxPriceMinor */
   maxPriceMinor?: InputMaybe<ApiIntFilter>;
+  /** Filter by minAmountMinor */
+  minAmountMinor?: InputMaybe<ApiIntFilter>;
   /** Filter by minPriceMinor */
   minPriceMinor?: InputMaybe<ApiIntFilter>;
   /** Filter by name */
@@ -4266,6 +4276,8 @@ export type ApiListing = {
   kind: ProductKind;
   /** Media registered on this listing item. */
   media: Array<ApiProductMediaItem>;
+  /** Current product price range in the selected currency. */
+  priceRange?: Maybe<ApiProductPriceRange>;
   /** Localized title. */
   title: Scalars['String']['output'];
 };
@@ -4314,8 +4326,12 @@ export enum ListingOrderField {
   Kind = 'kind',
   /** Sort by locale */
   Locale = 'locale',
+  /** Sort by maxAmountMinor */
+  MaxAmountMinor = 'maxAmountMinor',
   /** Sort by maxPriceMinor */
   MaxPriceMinor = 'maxPriceMinor',
+  /** Sort by minAmountMinor */
+  MinAmountMinor = 'minAmountMinor',
   /** Sort by minPriceMinor */
   MinPriceMinor = 'minPriceMinor',
   /** Sort by name */
@@ -4354,8 +4370,12 @@ export type ApiListingWhereInput = {
   kind?: InputMaybe<ApiStringFilter>;
   /** Filter by locale */
   locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by maxAmountMinor */
+  maxAmountMinor?: InputMaybe<ApiIntFilter>;
   /** Filter by maxPriceMinor */
   maxPriceMinor?: InputMaybe<ApiIntFilter>;
+  /** Filter by minAmountMinor */
+  minAmountMinor?: InputMaybe<ApiIntFilter>;
   /** Filter by minPriceMinor */
   minPriceMinor?: InputMaybe<ApiIntFilter>;
   /** Filter by name */
@@ -5504,6 +5524,8 @@ export type ApiProduct = ApiListing & ApiNode & {
   media: Array<ApiProductMediaItem>;
   /** The options available for this product. */
   options: Array<ApiProductOption>;
+  /** Current product price range in the selected currency. */
+  priceRange?: Maybe<ApiProductPriceRange>;
   /** The primary category assigned to this product. */
   primaryCategory?: Maybe<ApiCategory>;
   /** The date and time when the product was published, or null if unpublished. */
@@ -6201,8 +6223,12 @@ export enum ProductOrderField {
   Id = 'id',
   /** Sort by locale */
   Locale = 'locale',
+  /** Sort by maxAmountMinor */
+  MaxAmountMinor = 'maxAmountMinor',
   /** Sort by maxPriceMinor */
   MaxPriceMinor = 'maxPriceMinor',
+  /** Sort by minAmountMinor */
+  MinAmountMinor = 'minAmountMinor',
   /** Sort by minPriceMinor */
   MinPriceMinor = 'minPriceMinor',
   /** Sort by name */
@@ -6218,6 +6244,16 @@ export enum ProductOrderField {
   /** Sort by vendorId */
   VendorId = 'vendorId'
 }
+
+export type ApiProductPriceRange = {
+  __typename?: 'ProductPriceRange';
+  /** Currency code used for the returned price amounts. */
+  currency: CurrencyCode;
+  /** Maximum product price amount in minor units. */
+  maxPriceAmount: Scalars['BigInt']['output'];
+  /** Minimum product price amount in minor units. */
+  minPriceAmount: Scalars['BigInt']['output'];
+};
 
 export type ApiProductProductsMetaInput = {
   categoriesScope?: InputMaybe<ApiProductCategoriesScopeInput>;
@@ -6352,8 +6388,12 @@ export type ApiProductWhereInput = {
   id?: InputMaybe<ApiIdFilter>;
   /** Filter by locale */
   locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by maxAmountMinor */
+  maxAmountMinor?: InputMaybe<ApiIntFilter>;
   /** Filter by maxPriceMinor */
   maxPriceMinor?: InputMaybe<ApiIntFilter>;
+  /** Filter by minAmountMinor */
+  minAmountMinor?: InputMaybe<ApiIntFilter>;
   /** Filter by minPriceMinor */
   minPriceMinor?: InputMaybe<ApiIntFilter>;
   /** Filter by name */

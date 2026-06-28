@@ -138,6 +138,9 @@ type Bundle implements Node & Listing @key(fields: "id") {
   """SEO and Open Graph metadata."""
   seo: ProductSeo
 
+  """Current bundle price range in the selected currency."""
+  priceRange: ProductPriceRange
+
   """High-level bundle type."""
   type: BundleType
 

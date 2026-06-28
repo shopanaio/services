@@ -29,6 +29,7 @@ export class Loader {
   public readonly productFeature;
   public readonly productMedia;
   public readonly bundleByProductId;
+  public readonly productPriceRange;
 
   // Vendor
   public readonly vendor;
@@ -140,6 +141,7 @@ export class Loader {
     this.productFeature = productLoader.productFeature;
     this.productMedia = productLoader.productMedia;
     this.bundleByProductId = productLoader.bundleByProductId;
+    this.productPriceRange = productLoader.productPriceRange;
 
     // Vendor
     this.vendor = vendorLoader.vendor;

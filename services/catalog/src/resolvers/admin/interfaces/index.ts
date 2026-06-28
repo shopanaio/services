@@ -88,6 +88,18 @@ export interface VariantPrice {
 }
 
 /**
+ * Product-level price range in the selected currency.
+ */
+export interface ProductPriceRange {
+  /** Minimum product price amount in minor units */
+  minPriceAmount: number;
+  /** Maximum product price amount in minor units */
+  maxPriceAmount: number;
+  /** The currency code */
+  currency: CurrencyCode;
+}
+
+/**
  * Represents the cost of a variant
  */
 export interface VariantCost {

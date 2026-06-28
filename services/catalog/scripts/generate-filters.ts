@@ -44,6 +44,8 @@ const productListFieldTypes: Record<string, GraphQLFieldType> = {
   locale: "String",
   name: "String",
   currency: "String",
+  minAmountMinor: "Int",
+  maxAmountMinor: "Int",
   minPriceMinor: "Int",
   maxPriceMinor: "Int",
   primaryCategoryId: "ID",

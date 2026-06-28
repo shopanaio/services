@@ -3,7 +3,11 @@ import {
   encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
-import type { ProductMediaItem, RichText } from "./interfaces/index.js";
+import type {
+  ProductMediaItem,
+  ProductPriceRange,
+  RichText,
+} from "./interfaces/index.js";
 import type { Product } from "../../repositories/models/index.js";
 import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
 import { CatalogType } from "./CatalogType.js";
@@ -107,6 +111,17 @@ export class ProductResolver extends CatalogType<string, Product> {
     const seoData = await this.$ctx.loaders.productSeo.load(this.$props);
     if (!seoData) return null;
     return new ProductSeoResolver(seoData, this.$ctx);
+  }
+
+  async priceRange(): Promise<ProductPriceRange | null> {
+    const range = await this.$ctx.loaders.productPriceRange.load(this.$props);
+    if (!range) return null;
+
+    return {
+      minPriceAmount: range.minAmountMinor,
+      maxPriceAmount: range.maxAmountMinor,
+      currency: range.currency as ProductPriceRange["currency"],
+    };
   }
 
   /**

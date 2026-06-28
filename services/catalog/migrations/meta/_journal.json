@@ -43,6 +43,13 @@
       "when": 1782668683853,
       "tag": "0005_sloppy_zombie",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782676374294,
+      "tag": "0006_chemical_hulk",
+      "breakpoints": true
     }
   ]
 }

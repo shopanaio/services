@@ -174,6 +174,8 @@ export type Bundle = Listing & Node & {
   media: Array<ProductMediaItem>;
   /** The options available for this bundle. */
   options: Array<ProductOption>;
+  /** Current bundle price range in the selected currency. */
+  priceRange: Maybe<ProductPriceRange>;
   /** The primary category assigned to this bundle. */
   primaryCategory: Maybe<Category>;
   /** The date and time when the bundle was published, or null if unpublished. */
@@ -800,8 +802,12 @@ export enum BundleOrderField {
   Id = 'id',
   /** Sort by locale */
   Locale = 'locale',
+  /** Sort by maxAmountMinor */
+  MaxAmountMinor = 'maxAmountMinor',
   /** Sort by maxPriceMinor */
   MaxPriceMinor = 'maxPriceMinor',
+  /** Sort by minAmountMinor */
+  MinAmountMinor = 'minAmountMinor',
   /** Sort by minPriceMinor */
   MinPriceMinor = 'minPriceMinor',
   /** Sort by name */
@@ -976,8 +982,12 @@ export type BundleWhereInput = {
   id?: InputMaybe<IdFilter>;
   /** Filter by locale */
   locale?: InputMaybe<StringFilter>;
+  /** Filter by maxAmountMinor */
+  maxAmountMinor?: InputMaybe<IntFilter>;
   /** Filter by maxPriceMinor */
   maxPriceMinor?: InputMaybe<IntFilter>;
+  /** Filter by minAmountMinor */
+  minAmountMinor?: InputMaybe<IntFilter>;
   /** Filter by minPriceMinor */
   minPriceMinor?: InputMaybe<IntFilter>;
   /** Filter by name */
@@ -3140,6 +3150,8 @@ export type Listing = {
   kind: ProductKind;
   /** Media registered on this listing item. */
   media: Array<ProductMediaItem>;
+  /** Current product price range in the selected currency. */
+  priceRange: Maybe<ProductPriceRange>;
   /** Localized title. */
   title: Scalars['String']['output'];
 };
@@ -3188,8 +3200,12 @@ export enum ListingOrderField {
   Kind = 'kind',
   /** Sort by locale */
   Locale = 'locale',
+  /** Sort by maxAmountMinor */
+  MaxAmountMinor = 'maxAmountMinor',
   /** Sort by maxPriceMinor */
   MaxPriceMinor = 'maxPriceMinor',
+  /** Sort by minAmountMinor */
+  MinAmountMinor = 'minAmountMinor',
   /** Sort by minPriceMinor */
   MinPriceMinor = 'minPriceMinor',
   /** Sort by name */
@@ -3228,8 +3244,12 @@ export type ListingWhereInput = {
   kind?: InputMaybe<StringFilter>;
   /** Filter by locale */
   locale?: InputMaybe<StringFilter>;
+  /** Filter by maxAmountMinor */
+  maxAmountMinor?: InputMaybe<IntFilter>;
   /** Filter by maxPriceMinor */
   maxPriceMinor?: InputMaybe<IntFilter>;
+  /** Filter by minAmountMinor */
+  minAmountMinor?: InputMaybe<IntFilter>;
   /** Filter by minPriceMinor */
   minPriceMinor?: InputMaybe<IntFilter>;
   /** Filter by name */
@@ -3638,6 +3658,8 @@ export type Product = Listing & Node & {
   media: Array<ProductMediaItem>;
   /** The options available for this product. */
   options: Array<ProductOption>;
+  /** Current product price range in the selected currency. */
+  priceRange: Maybe<ProductPriceRange>;
   /** The primary category assigned to this product. */
   primaryCategory: Maybe<Category>;
   /** The date and time when the product was published, or null if unpublished. */
@@ -4335,8 +4357,12 @@ export enum ProductOrderField {
   Id = 'id',
   /** Sort by locale */
   Locale = 'locale',
+  /** Sort by maxAmountMinor */
+  MaxAmountMinor = 'maxAmountMinor',
   /** Sort by maxPriceMinor */
   MaxPriceMinor = 'maxPriceMinor',
+  /** Sort by minAmountMinor */
+  MinAmountMinor = 'minAmountMinor',
   /** Sort by minPriceMinor */
   MinPriceMinor = 'minPriceMinor',
   /** Sort by name */
@@ -4352,6 +4378,16 @@ export enum ProductOrderField {
   /** Sort by vendorId */
   VendorId = 'vendorId'
 }
+
+export type ProductPriceRange = {
+  __typename?: 'ProductPriceRange';
+  /** Currency code used for the returned price amounts. */
+  currency: CurrencyCode;
+  /** Maximum product price amount in minor units. */
+  maxPriceAmount: Scalars['BigInt']['output'];
+  /** Minimum product price amount in minor units. */
+  minPriceAmount: Scalars['BigInt']['output'];
+};
 
 export type ProductProductsMetaInput = {
   categoriesScope?: InputMaybe<ProductCategoriesScopeInput>;
@@ -4486,8 +4522,12 @@ export type ProductWhereInput = {
   id?: InputMaybe<IdFilter>;
   /** Filter by locale */
   locale?: InputMaybe<StringFilter>;
+  /** Filter by maxAmountMinor */
+  maxAmountMinor?: InputMaybe<IntFilter>;
   /** Filter by maxPriceMinor */
   maxPriceMinor?: InputMaybe<IntFilter>;
+  /** Filter by minAmountMinor */
+  minAmountMinor?: InputMaybe<IntFilter>;
   /** Filter by minPriceMinor */
   minPriceMinor?: InputMaybe<IntFilter>;
   /** Filter by name */
@@ -6074,6 +6114,7 @@ export type ResolversTypes = ResolversObject<{
   ProductOptionsSyncPayload: ResolverTypeWrapper<Omit<ProductOptionsSyncPayload, 'product'> & { product?: Maybe<ResolversTypes['Product']> }>;
   ProductOrderByInput: ProductOrderByInput;
   ProductOrderField: ProductOrderField;
+  ProductPriceRange: ResolverTypeWrapper<ProductPriceRange>;
   ProductProductsMetaInput: ProductProductsMetaInput;
   ProductSeo: ResolverTypeWrapper<ProductSeo>;
   ProductSeoInput: ProductSeoInput;
@@ -6428,6 +6469,7 @@ export type ResolversParentTypes = ResolversObject<{
   ProductOptionsSyncInput: ProductOptionsSyncInput;
   ProductOptionsSyncPayload: Omit<ProductOptionsSyncPayload, 'product'> & { product?: Maybe<ResolversParentTypes['Product']> };
   ProductOrderByInput: ProductOrderByInput;
+  ProductPriceRange: ProductPriceRange;
   ProductProductsMetaInput: ProductProductsMetaInput;
   ProductSeo: ProductSeo;
   ProductSeoInput: ProductSeoInput;
@@ -6599,6 +6641,7 @@ export type BundleResolvers<ContextType = ServiceContext, ParentType extends Res
   kind?: Resolver<ResolversTypes['ProductKind'], ParentType, ContextType>;
   media?: Resolver<Array<ResolversTypes['ProductMediaItem']>, ParentType, ContextType>;
   options?: Resolver<Array<ResolversTypes['ProductOption']>, ParentType, ContextType>;
+  priceRange?: Resolver<Maybe<ResolversTypes['ProductPriceRange']>, ParentType, ContextType>;
   primaryCategory?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
   publishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
@@ -7384,6 +7427,7 @@ export type ListingResolvers<ContextType = ServiceContext, ParentType extends Re
   isPublished?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   kind?: Resolver<ResolversTypes['ProductKind'], ParentType, ContextType>;
   media?: Resolver<Array<ResolversTypes['ProductMediaItem']>, ParentType, ContextType>;
+  priceRange?: Resolver<Maybe<ResolversTypes['ProductPriceRange']>, ParentType, ContextType>;
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 }>;
 
@@ -7449,6 +7493,7 @@ export type ProductResolvers<ContextType = ServiceContext, ParentType extends Re
   kind?: Resolver<ResolversTypes['ProductKind'], ParentType, ContextType>;
   media?: Resolver<Array<ResolversTypes['ProductMediaItem']>, ParentType, ContextType>;
   options?: Resolver<Array<ResolversTypes['ProductOption']>, ParentType, ContextType>;
+  priceRange?: Resolver<Maybe<ResolversTypes['ProductPriceRange']>, ParentType, ContextType>;
   primaryCategory?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
   publishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
@@ -7646,6 +7691,13 @@ export type ProductOptionsSyncPayloadResolvers<ContextType = ServiceContext, Par
   options?: Resolver<Array<ResolversTypes['ProductOption']>, ParentType, ContextType>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductPriceRangeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductPriceRange'] = ResolversParentTypes['ProductPriceRange']> = ResolversObject<{
+  currency?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
+  maxPriceAmount?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
+  minPriceAmount?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -8137,6 +8189,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ProductOptionUpdatePayload?: ProductOptionUpdatePayloadResolvers<ContextType>;
   ProductOptionValue?: ProductOptionValueResolvers<ContextType>;
   ProductOptionsSyncPayload?: ProductOptionsSyncPayloadResolvers<ContextType>;
+  ProductPriceRange?: ProductPriceRangeResolvers<ContextType>;
   ProductSeo?: ProductSeoResolvers<ContextType>;
   ProductUpdatePayload?: ProductUpdatePayloadResolvers<ContextType>;
   ProductUpdateStatusPayload?: ProductUpdateStatusPayloadResolvers<ContextType>;
