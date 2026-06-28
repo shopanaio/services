@@ -381,8 +381,8 @@ test.describe('Admin category details update UI', () => {
         return updatedCategory
           ? [
               updatedCategory.productsCount,
-              updatedCategory.products.totalCount,
-              updatedCategory.products.edges.map((edge) => edge.node.id).join(','),
+              updatedCategory.listing.totalCount,
+              updatedCategory.listing.edges.map((edge) => edge.node.id).join(','),
             ].join('|')
           : null;
       })
