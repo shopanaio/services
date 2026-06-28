@@ -24,6 +24,8 @@ interface ExpectedVariantPage {
   endCursor: string | null | undefined;
 }
 
+type OptionIdsByName = Record<'Color' | 'Size', string>;
+
 const UAH = 'UAH';
 const VARIANT_COUNT = 12;
 const COLORS = [
@@ -144,6 +146,9 @@ async function createProductWithVariants(api: Api, unique: string) {
     revision: product.revision as number,
     title,
     handle,
+    optionIdsByName: Object.fromEntries(
+      product.options.map((option) => [option.name, option.id]),
+    ) as OptionIdsByName,
   };
 }
 
@@ -344,8 +349,8 @@ function editorCell(page: Page, variantId: string, field: string) {
   return page.getByTestId(`variants-editor-cell-${field}-${variantId}`);
 }
 
-function optionEditorCell(page: Page, variantId: string, optionName: string) {
-  return page.getByTestId(`variants-editor-cell-option-${optionName}-${variantId}`);
+function optionEditorCell(page: Page, variantId: string, optionId: string) {
+  return page.getByTestId(`variants-editor-cell-option-${optionId}-${variantId}`);
 }
 
 function editorVariantRows(page: Page) {
@@ -366,12 +371,16 @@ async function expectVariantTablePage(page: Page, variants: SeededVariant[]) {
   }
 }
 
-async function expectEditorVariantData(page: Page, variant: SeededVariant) {
+async function expectEditorVariantData(
+  page: Page,
+  variant: SeededVariant,
+  optionIdsByName: OptionIdsByName,
+) {
   const grid = page.getByTestId('variants-editor-grid');
 
   await expect(grid.getByText(variant.handle, { exact: true })).toBeVisible();
-  await expect(optionEditorCell(page, variant.id, 'Color')).toHaveText(variant.color);
-  await expect(optionEditorCell(page, variant.id, 'Size')).toHaveText(variant.size);
+  await expect(optionEditorCell(page, variant.id, optionIdsByName.Color)).toHaveText(variant.color);
+  await expect(optionEditorCell(page, variant.id, optionIdsByName.Size)).toHaveText(variant.size);
   await expect(editorCell(page, variant.id, 'price')).toHaveText(formatUah(variant.price));
   await expect(editorCell(page, variant.id, 'compareAtPrice')).toHaveText(
     formatUah(variant.compareAtPrice),
@@ -446,9 +455,9 @@ test.describe('Admin product variants read path UI', () => {
 
     await expect(editorVariantRows(page)).toHaveCount(VARIANT_COUNT);
 
-    await expectEditorVariantData(page, variants[0]);
-    await expectEditorVariantData(page, variants[9]);
-    await expectEditorVariantData(page, variants[10]);
-    await expectEditorVariantData(page, variants[11]);
+    await expectEditorVariantData(page, variants[0], product.optionIdsByName);
+    await expectEditorVariantData(page, variants[9], product.optionIdsByName);
+    await expectEditorVariantData(page, variants[10], product.optionIdsByName);
+    await expectEditorVariantData(page, variants[11], product.optionIdsByName);
   });
 });
