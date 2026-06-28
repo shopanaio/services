@@ -1,5 +1,18 @@
 [
   {
+    "label": "Run Full Dev Stack",
+    "command": "source ~/.nvm/nvm.sh && nvm use 22 && docker compose up -d postgres minio && until [ \"$(docker inspect -f '{{.State.Health.Status}}' shopana-postgres 2>/dev/null)\" = healthy ] && [ \"$(docker inspect -f '{{.State.Health.Status}}' shopana-minio 2>/dev/null)\" = healthy ]; do sleep 1; done && docker compose up minio-init && yarn shopana db migrate && { yarn shopana gateway & gateway_pid=$!; yarn shopana dev & bootstrap_pid=$!; (cd admin && yarn && yarn dev) & admin_pid=$!; trap 'kill $gateway_pid $bootstrap_pid $admin_pid 2>/dev/null' INT TERM EXIT; wait $gateway_pid $bootstrap_pid $admin_pid; }",
+    "use_new_terminal": true,
+    "allow_concurrent_runs": false,
+    "reveal": "always",
+    "shell": {
+      "with_arguments": {
+        "program": "/bin/zsh",
+        "args": ["-c"],
+      },
+    },
+  },
+  {
     "label": "Run Infrastructure",
     "command": "docker compose up",
     "use_new_terminal": true,
@@ -69,9 +82,9 @@
     "reveal": "always",
   },
   {
-    "label": "Run Admin Next",
+    "label": "Run Admin",
     "command": "source ~/.nvm/nvm.sh && nvm use 22 && yarn && yarn dev",
-    "cwd": "$ZED_WORKTREE_ROOT/admin-next",
+    "cwd": "$ZED_WORKTREE_ROOT/admin",
     "use_new_terminal": true,
     "allow_concurrent_runs": false,
     "reveal": "always",
