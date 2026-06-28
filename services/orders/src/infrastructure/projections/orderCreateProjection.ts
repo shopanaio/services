@@ -6,7 +6,6 @@ import { knex } from "@src/infrastructure/db/knex";
 import { Money } from "@shopana/shared-money";
 import { OrderCommandMetadata } from "@src/domain/order/commands";
 import { consumeOrderCreateProjectionContext } from "@src/application/usecases/orderCreateProjectionContext";
-import { App } from "@src/ioc/container";
 import { coerceMoney, coerceNullableMoney } from "@src/utils/money";
 
 type OrderCreatedEvent = Event & {
@@ -43,6 +42,7 @@ const uuidArray = (ids: readonly string[]) =>
 export const orderCreateProjection =
   postgreSQLRawBatchSQLProjection<OrderCreatedEvent>(async (events, context) => {
     const sqls: ReturnType<typeof rawSql>[] = [];
+    const { App } = await import("@src/ioc/container");
     const { orderNumberRepository } = App.getInstance();
 
     for (const event of events) {

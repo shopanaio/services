@@ -3,11 +3,8 @@ import type { StreamNamePolicyPort } from "@src/application/ports/streamNamePort
 import type { Logger } from "pino";
 import type { ShippingApiClient, PricingApiClient, InventoryApiClient, CheckoutApiClient } from "@shopana/shared-service-api";
 
-// Import use cases
-import {
-  CreateOrderUseCase,
-  GetOrderByIdUseCase,
-} from "@src/application/usecases";
+import { CreateOrderUseCase } from "@src/application/usecases/orderCreate";
+import { GetOrderByIdUseCase } from "@src/application/usecases/orderGetById";
 import { OrderService } from "@src/application/services/orderService";
 import { OrderReadRepository } from "@src/application/read/orderReadRepository";
 import { OrdersPiiRepository } from "@src/infrastructure/pii/ordersPiiRepository";
