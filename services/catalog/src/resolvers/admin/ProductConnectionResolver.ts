@@ -2,7 +2,6 @@ import type {
   ProductConnectionInput,
   ProductRelayInput,
 } from "../../repositories/product/ProductRepository.js";
-import { ProductResolver } from "./ProductResolver.js";
 import {
   BaseConnectionResolver,
   type ConnectionData,
@@ -34,7 +33,7 @@ export class ProductConnectionResolver extends BaseConnectionResolver<ProductCon
       .repository.product.getConnection(this.$props);
   }
 
-  protected createNodeResolver(nodeId: string) {
-    return new ProductResolver(nodeId, this.$ctx);
+  protected async createNodeResolver(nodeId: string) {
+    return this.resolvers.product(nodeId);
   }
 }

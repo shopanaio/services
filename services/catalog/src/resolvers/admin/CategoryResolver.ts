@@ -8,14 +8,8 @@ import type { Category } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
 import { SeoResolver } from "./SeoResolver.js";
 import { toRichText } from "./helpers/richText.js";
-import {
-  CategoryProductConnectionResolver,
-  type CategoryProductConnectionInput,
-} from "./CategoryProductConnectionResolver.js";
-import {
-  CategoryListingConnectionResolver,
-  type CategoryListingConnectionInput,
-} from "./CategoryListingConnectionResolver.js";
+import type { CategoryProductConnectionInput } from "./CategoryProductConnectionResolver.js";
+import type { CategoryListingConnectionInput } from "./CategoryListingConnectionResolver.js";
 
 /**
  * Category resolver - resolves Category domain interface.
@@ -177,20 +171,20 @@ export class CategoryResolver extends CatalogType<string, Category> {
   /**
    * Returns paginated listing items in this category.
    */
-  listing(args: Omit<CategoryListingConnectionInput, "categoryId">) {
-    return new CategoryListingConnectionResolver(
-      { categoryId: this.$props, ...args },
-      this.$ctx
-    );
+  async listing(args: Omit<CategoryListingConnectionInput, "categoryId">) {
+    return this.resolvers.categoryListingConnection({
+      categoryId: this.$props,
+      ...args,
+    });
   }
 
   /**
    * Returns paginated products in this category
    */
-  products(args: Omit<CategoryProductConnectionInput, "categoryId">) {
-    return new CategoryProductConnectionResolver(
-      { categoryId: this.$props, ...args },
-      this.$ctx
-    );
+  async products(args: Omit<CategoryProductConnectionInput, "categoryId">) {
+    return this.resolvers.categoryProductConnection({
+      categoryId: this.$props,
+      ...args,
+    });
   }
 }

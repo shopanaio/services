@@ -4,7 +4,6 @@ import {
 } from "@shopana/shared-graphql-guid";
 import { CatalogType } from "./CatalogType.js";
 import type { FacetValue } from "../../repositories/models/index.js";
-import { FacetResolver } from "./FacetResolver.js";
 import { FacetSwatchResolver } from "./FacetSwatchResolver.js";
 
 export class FacetValueResolver extends CatalogType<string, FacetValue> {
@@ -22,7 +21,7 @@ export class FacetValueResolver extends CatalogType<string, FacetValue> {
 
   async facet() {
     const facetId = await this.$get("facetId");
-    return new FacetResolver(facetId, this.$ctx);
+    return this.resolvers.facet(facetId);
   }
 
   async slug() {

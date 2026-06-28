@@ -1,4 +1,3 @@
-import { ProductResolver } from "./ProductResolver.js";
 import {
   BaseConnectionResolver,
   type ConnectionData,
@@ -34,7 +33,7 @@ export class CategoryProductConnectionResolver extends BaseConnectionResolver<Ca
     return res;
   }
 
-  protected createNodeResolver(nodeId: string) {
-    return new ProductResolver(nodeId, this.$ctx);
+  protected async createNodeResolver(nodeId: string) {
+    return this.resolvers.product(nodeId);
   }
 }

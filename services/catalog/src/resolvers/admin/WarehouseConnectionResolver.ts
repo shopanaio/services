@@ -1,5 +1,4 @@
 import type { WarehouseRelayInput } from "../../repositories/warehouse/WarehouseRepository.js";
-import { WarehouseResolver } from "./WarehouseResolver.js";
 import {
   BaseConnectionResolver,
   type ConnectionData,
@@ -18,7 +17,7 @@ export class WarehouseConnectionResolver extends BaseConnectionResolver<Warehous
       .repository.warehouse.getConnection(this.$props);
   }
 
-  protected createNodeResolver(nodeId: string) {
-    return new WarehouseResolver(nodeId, this.$ctx);
+  protected async createNodeResolver(nodeId: string) {
+    return this.resolvers.warehouse(nodeId);
   }
 }

@@ -7,13 +7,11 @@ import type { ProductMediaItem, RichText } from "./interfaces/index.js";
 import type { Product } from "../../repositories/models/index.js";
 import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
 import { CatalogType } from "./CatalogType.js";
-import { CategoryResolver } from "./CategoryResolver.js";
 import { FeatureResolver } from "./FeatureResolver.js";
 import { OptionResolver } from "./OptionResolver.js";
 import { ProductSeoResolver } from "./ProductSeoResolver.js";
 import { TagResolver } from "./TagResolver.js";
 import { VendorResolver } from "./VendorResolver.js";
-import { VariantConnectionResolver } from "./VariantConnectionResolver.js";
 import { toRichText } from "./helpers/richText.js";
 
 /**
@@ -115,14 +113,11 @@ export class ProductResolver extends CatalogType<string, Product> {
    * Returns variant connection for this product
    * @param args - Pagination arguments (first, last, after, before)
    */
-  variants(args: VariantRelayInput) {
-    return new VariantConnectionResolver(
-      {
-        ...args,
-        productId: this.$props,
-      },
-      this.$ctx
-    );
+  async variants(args: VariantRelayInput) {
+    return this.resolvers.variantConnection({
+      ...args,
+      productId: this.$props,
+    });
   }
 
   async media(): Promise<ProductMediaItem[]> {
@@ -168,12 +163,12 @@ export class ProductResolver extends CatalogType<string, Product> {
     return variantIds.length;
   }
 
-  async primaryCategory(): Promise<CategoryResolver | null> {
+  async primaryCategory() {
     const links = await this.$ctx.loaders.productCategoryLinksByProductId.load(
       this.$props
     );
     const primary = links.find((link) => link.isPrimary);
-    return primary ? new CategoryResolver(primary.categoryId, this.$ctx) : null;
+    return primary ? this.resolvers.category(primary.categoryId) : null;
   }
 
   async categoryAssignments() {
@@ -181,17 +176,17 @@ export class ProductResolver extends CatalogType<string, Product> {
       this.$props
     );
 
-    return [...links]
+    return Promise.all([...links]
       .sort((a, b) => {
         if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
         const rank = a.lexoRank.localeCompare(b.lexoRank);
         if (rank !== 0) return rank;
         return a.categoryId.localeCompare(b.categoryId);
       })
-      .map((link) => ({
-        category: new CategoryResolver(link.categoryId, this.$ctx),
+      .map(async (link) => ({
+        category: await this.resolvers.category(link.categoryId),
         isPrimary: link.isPrimary,
-      }));
+      })));
   }
 
   /**

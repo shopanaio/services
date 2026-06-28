@@ -1,5 +1,4 @@
 import type { StockRelayInput } from "../../repositories/stock/StockRepository.js";
-import { StockResolver } from "./StockResolver.js";
 import {
   BaseConnectionResolver,
   type ConnectionData,
@@ -16,7 +15,7 @@ export class StockConnectionResolver extends BaseConnectionResolver<StockRelayIn
       .repository.stock.getConnection(this.$props);
   }
 
-  protected createNodeResolver(nodeId: string) {
-    return new StockResolver(nodeId, this.$ctx);
+  protected async createNodeResolver(nodeId: string) {
+    return this.resolvers.stock(nodeId);
   }
 }

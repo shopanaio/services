@@ -3,7 +3,6 @@ import type {
   VariantRelayInput,
   WarehouseAssignableVariantRelayInput,
 } from "../../repositories/variant/VariantRepository.js";
-import { VariantResolver } from "./VariantResolver.js";
 import {
   BaseConnectionResolver,
   type ConnectionData,
@@ -67,8 +66,8 @@ export class VariantConnectionResolver extends BaseConnectionResolver<VariantCon
       .repository.variant.getConnectionByProductId(productId, args);
   }
 
-  protected createNodeResolver(nodeId: string) {
-    return new VariantResolver(nodeId, this.$ctx);
+  protected async createNodeResolver(nodeId: string) {
+    return this.resolvers.variant(nodeId);
   }
 }
 
@@ -87,7 +86,7 @@ export class WarehouseAssignableVariantConnectionResolver extends BaseConnection
       );
   }
 
-  protected createNodeResolver(nodeId: string) {
-    return new VariantResolver(nodeId, this.$ctx);
+  protected async createNodeResolver(nodeId: string) {
+    return this.resolvers.variant(nodeId);
   }
 }

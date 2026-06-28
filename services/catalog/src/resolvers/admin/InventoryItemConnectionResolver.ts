@@ -1,5 +1,4 @@
 import type { InventoryItemConnectionInput } from "../../repositories/inventory-item/InventoryItemRepository.js";
-import { InventoryItemResolver } from "./InventoryItemResolver.js";
 import {
   BaseConnectionResolver,
   type ConnectionData,
@@ -18,7 +17,7 @@ export class InventoryItemConnectionResolver extends BaseConnectionResolver<Inve
       .repository.inventoryItem.getConnection(this.$props);
   }
 
-  protected createNodeResolver(nodeId: string) {
-    return new InventoryItemResolver(nodeId, this.$ctx);
+  protected async createNodeResolver(nodeId: string) {
+    return this.resolvers.inventoryItem(nodeId);
   }
 }

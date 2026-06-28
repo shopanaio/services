@@ -4,7 +4,6 @@ import {
 } from "@shopana/shared-graphql-guid";
 import type { WarehouseStock } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
-import { WarehouseResolver } from "./WarehouseResolver.js";
 
 /**
  * Stock view - resolves WarehouseStock domain interface
@@ -37,7 +36,7 @@ export class StockResolver extends CatalogType<string, WarehouseStock> {
 
   async warehouse() {
     const warehouseId = await this.$get("warehouseId");
-    return warehouseId ? new WarehouseResolver(warehouseId, this.$ctx) : null;
+    return warehouseId ? this.resolvers.warehouse(warehouseId) : null;
   }
 
   /**

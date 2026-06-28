@@ -2,7 +2,6 @@ import type {
   CategoryConnectionInput,
   CategoryRelayInput,
 } from "../../repositories/category/CategoryRepository.js";
-import { CategoryResolver } from "./CategoryResolver.js";
 import {
   BaseConnectionResolver,
   type ConnectionData,
@@ -42,7 +41,7 @@ export class CategoryConnectionResolver extends BaseConnectionResolver<CategoryC
       .repository.category.getConnection(this.$props);
   }
 
-  protected createNodeResolver(nodeId: string) {
-    return new CategoryResolver(nodeId, this.$ctx);
+  protected async createNodeResolver(nodeId: string) {
+    return this.resolvers.category(nodeId);
   }
 }

@@ -11,9 +11,7 @@ import type {
 import type { Variant } from "../../repositories/models/index.js";
 import type { PricingCursorInput } from "../../repositories/pricing/PricingRepository.js";
 import { CatalogType } from "./CatalogType.js";
-import { ProductResolver } from "./ProductResolver.js";
 import { VariantPriceResolver } from "./VariantPriceResolver.js";
-import { InventoryItemResolver } from "./InventoryItemResolver.js";
 
 /**
  * Variant resolver for Catalog Service.
@@ -39,7 +37,7 @@ export class VariantResolver extends CatalogType<string, Variant> {
   }
 
   async product() {
-    return new ProductResolver(await this.$get("productId"), this.$ctx);
+    return this.resolvers.product(await this.$get("productId"));
   }
 
   async isDefault() {
@@ -179,6 +177,6 @@ export class VariantResolver extends CatalogType<string, Variant> {
       this.$props
     );
     if (!item) return null;
-    return new InventoryItemResolver(item.id, this.$ctx);
+    return this.resolvers.inventoryItem(item.id);
   }
 }

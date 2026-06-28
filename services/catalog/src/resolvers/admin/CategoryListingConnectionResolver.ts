@@ -2,9 +2,7 @@ import type {
   CategoryListingConnectionResult,
   CategoryListingRelayInput,
 } from "../../repositories/category/CategoryRepository.js";
-import { BundleResolver } from "./BundleResolver.js";
 import { CatalogType } from "./CatalogType.js";
-import { ProductResolver } from "./ProductResolver.js";
 
 export interface CategoryListingConnectionInput {
   categoryId: string;
@@ -34,10 +32,12 @@ export class CategoryListingConnectionResolver extends CatalogType<
 
   async edges() {
     const edgesData = (await this.$get("edges")) ?? [];
-    return edgesData.map((edge) => ({
-      cursor: edge.cursor,
-      node: this.createNodeResolver(edge),
-    }));
+    return Promise.all(
+      edgesData.map(async (edge) => ({
+        cursor: edge.cursor,
+        node: await this.createNodeResolver(edge),
+      }))
+    );
   }
 
   async pageInfo() {
@@ -48,10 +48,12 @@ export class CategoryListingConnectionResolver extends CatalogType<
     return (await this.$get("totalCount")) ?? 0;
   }
 
-  private createNodeResolver(edge: CategoryListingEdge) {
-    return edge.kind === "BUNDLE"
-      ? new BundleResolver(edge.nodeId, this.$ctx)
-      : new ProductResolver(edge.nodeId, this.$ctx);
+  private async createNodeResolver(edge: CategoryListingEdge) {
+    if (edge.kind === "BUNDLE") {
+      return this.resolvers.bundle(edge.nodeId);
+    }
+
+    return this.resolvers.product(edge.nodeId);
   }
 }
 

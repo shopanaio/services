@@ -4,8 +4,6 @@ import {
 } from "@shopana/shared-graphql-guid";
 import { CatalogType } from "./CatalogType.js";
 import type { Facet } from "../../repositories/models/index.js";
-import { FacetGroupResolver } from "./FacetGroupResolver.js";
-import { FacetValueResolver } from "./FacetValueResolver.js";
 
 export class FacetResolver extends CatalogType<string, Facet> {
   async $preload() {
@@ -58,7 +56,7 @@ export class FacetResolver extends CatalogType<string, Facet> {
   async group() {
     const groupId = await this.$get("groupId");
     if (!groupId) return null;
-    return new FacetGroupResolver(groupId, this.$ctx);
+    return this.resolvers.facetGroup(groupId);
   }
 
   async minValues() {
@@ -79,6 +77,6 @@ export class FacetResolver extends CatalogType<string, Facet> {
 
   async values() {
     const ids = await this.$ctx.loaders.facetValueIds.load(this.$props);
-    return ids.map((id) => new FacetValueResolver(id, this.$ctx));
+    return Promise.all(ids.map((id) => this.resolvers.facetValue(id)));
   }
 }

@@ -6,7 +6,6 @@ import { SubgraphReference } from "@shopana/type-resolver";
 import type { Warehouse } from "../../repositories/models/index.js";
 import type { StockRelayInput } from "../../repositories/stock/StockRepository.js";
 import { CatalogType } from "./CatalogType.js";
-import { StockConnectionResolver } from "./StockConnectionResolver.js";
 import { normalizeWarehouseStockWhereInput } from "./filter-normalizers.js";
 
 /**
@@ -57,17 +56,14 @@ export class WarehouseResolver extends CatalogType<string, Warehouse> {
     const { where, ...rest } = args;
     const normalizedWhere = normalizeWarehouseStockWhereInput(where);
 
-    return new StockConnectionResolver(
-      {
-        ...rest,
-        where: {
-          _and: [
-            { warehouseId: { _eq: this.$props } },
-            ...(normalizedWhere ? [normalizedWhere] : []),
-          ],
-        },
+    return this.resolvers.stockConnection({
+      ...rest,
+      where: {
+        _and: [
+          { warehouseId: { _eq: this.$props } },
+          ...(normalizedWhere ? [normalizedWhere] : []),
+        ],
       },
-      this.$ctx,
-    );
+    });
   }
 }

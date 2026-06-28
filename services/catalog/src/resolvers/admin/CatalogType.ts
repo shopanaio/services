@@ -8,6 +8,10 @@ import {
 } from "@shopana/type-resolver";
 import type { ServiceContext } from "../../context/types.js";
 import { AuthProvider } from "../../kernel/Authorizable.js";
+import {
+  getResolverRegistry,
+  type ResolverRegistry,
+} from "./ResolverRegistry.js";
 
 export { Cache };
 
@@ -49,6 +53,10 @@ export abstract class CatalogType<TValue, TData = unknown>
   static executor = createExecutor<ServiceContext>({
     middleware: [createAuthorizationMiddleware()],
   });
+
+  protected get resolvers(): ResolverRegistry {
+    return getResolverRegistry(this.$ctx);
+  }
 
   protected getCache(): CacheStore {
     // TODO: Add cache to kernel services when needed
