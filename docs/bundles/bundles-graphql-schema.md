@@ -11,8 +11,10 @@ GraphQL-сущностью и не получает публичный ID. `Bund
 `catalog.product.id` с `GlobalIdEntity.Product`. Клиент не создает bundle через
 существующий `productId`: `bundleCreate` создает новый bundle sellable product и
 внутренний bundle root в одной операции.
-Структура бандла редактируется через configuration-scoped snapshot input: одна
-конфигурация содержит groups/items/pricing templates/dependency rules.
+Структура бандла редактируется через granular configuration-scoped mutations:
+UI сохраняет отдельные sections/modals (groups/items, pricing templates,
+dependency rules, settings), а не отправляет весь configuration tree одним
+большим input.
 
 ## Принципы схемы
 
@@ -28,16 +30,17 @@ GraphQL-сущностью и не получает публичный ID. `Bund
 - Translation-таблицы не обязаны публиковаться отдельными GraphQL типами: публичное поле
   `title` резолвится из текущей locale.
 - Mutation naming follows existing Catalog Admin API patterns:
-  `*Create` / `*Update` / `*Delete` for ordinary entity lifecycle operations,
-  and `*Sync` for complete replace operations over ordered child collections.
-- Payload мутаций возвращает измененный `bundle`/`configuration` и
+  `*Create` / `*Update` / `*Delete` for ordinary entity lifecycle operations.
+  Do not add separately named bulk-replace mutations for bundle structure.
+- Payload мутаций возвращает измененную сущность (`bundle`, `configuration`,
+  `bundleGroup`, `bundleItem`, `bundlePricingTemplate`, `dependencyRule`) и
   `userErrors: [GenericUserError!]!`.
 - Bundle pricing API следует normalized DB-модели:
   `bundle_price_rule` хранит только `priceType`, значения лежат в
   `bundle_price_rule_amount` и `bundle_price_rule_percent`.
 - Catalog Admin API должен оставаться namespace-based: bundle queries добавляются в
   `CatalogQuery`, bundle mutations - в `CatalogMutation`. Не добавлять root-level
-  `Query.bundle` / `Mutation.bundleCreate` / `Mutation.bundleConfigurationSync`.
+  `Query.bundle` / `Mutation.bundleCreate`.
 - Catalog service владеет `Product`, `Variant` и `Bundle`; bundle-specific поля
   публикуются на `Bundle`, а не как `Product.bundle`.
 - Все bundle queries/mutations должны scope-иться по текущему project/store через
@@ -710,9 +713,10 @@ type CatalogQuery {
 
 Nested bundle structure fields (`configurations`, `groups`, `items`,
 `pricingTemplates`, `dependencyRules`, `conditionGroups`, `conditions`, `actions`)
-remain ordered snapshot arrays, not Relay connections. They are edited as one
-configuration-scoped snapshot and are expected to be loaded as a bounded bundle
-configuration tree. List-level Relay pagination is on `CatalogQuery.bundles`.
+remain ordered arrays, not Relay connections. They are loaded as a bounded bundle
+configuration tree, but edited through granular mutations scoped to the
+configuration/group/rule being changed. List-level Relay pagination is on
+`CatalogQuery.bundles`.
 
 Flat merchandising/listing surfaces that can contain both BASE products and
 BUNDLE products should return `CatalogSellableConnection`, not `BundleConnection`
@@ -785,17 +789,56 @@ type CatalogMutation {
   bundleUpdate(
     """The bundle ID to update."""
     bundleId: ID!
-    """Expected revision for optimistic locking. If provided, fails if bundle was modified."""
-    expectedRevision: Int
+    """Expected revision for optimistic locking."""
+    expectedRevision: Int!
     """Bundle-level operations."""
     operations: BundleUpdateInput
   ): BundleUpdatePayload!
 
-  """Sync one bundle configuration as a complete snapshot with optimistic locking."""
-  bundleConfigurationSync(input: BundleConfigurationSyncInput!): BundleConfigurationSyncPayload!
+  """Create one bundle configuration."""
+  bundleConfigurationCreate(input: BundleConfigurationCreateInput!): BundleConfigurationPayload!
+
+  """Update configuration metadata/settings."""
+  bundleConfigurationUpdate(input: BundleConfigurationUpdateInput!): BundleConfigurationPayload!
 
   """Delete one bundle configuration with optimistic locking."""
-  bundleConfigurationDelete(input: BundleConfigurationDeleteInput!): BundleConfigurationDeletePayload!
+  bundleConfigurationDelete(input: BundleConfigurationDeleteInput!): DeletePayload!
+
+  """Create one group inside a configuration."""
+  bundleGroupCreate(input: BundleGroupCreateInput!): BundleGroupPayload!
+
+  """Update one group."""
+  bundleGroupUpdate(input: BundleGroupUpdateInput!): BundleGroupPayload!
+
+  """Delete one group."""
+  bundleGroupDelete(input: BundleStructureDeleteInput!): DeletePayload!
+
+  """Create one item inside a group."""
+  bundleItemCreate(input: BundleItemCreateInput!): BundleItemPayload!
+
+  """Update one item."""
+  bundleItemUpdate(input: BundleItemUpdateInput!): BundleItemPayload!
+
+  """Delete one item."""
+  bundleItemDelete(input: BundleStructureDeleteInput!): DeletePayload!
+
+  """Create one reusable pricing template."""
+  bundlePricingTemplateCreate(input: BundlePricingTemplateCreateInput!): BundlePricingTemplatePayload!
+
+  """Update one reusable pricing template."""
+  bundlePricingTemplateUpdate(input: BundlePricingTemplateUpdateInput!): BundlePricingTemplatePayload!
+
+  """Delete one reusable pricing template."""
+  bundlePricingTemplateDelete(input: BundleStructureDeleteInput!): DeletePayload!
+
+  """Create one dependency rule with its condition/action tree."""
+  dependencyRuleCreate(input: DependencyRuleCreateInput!): DependencyRulePayload!
+
+  """Replace one dependency rule draft with its condition/action tree."""
+  dependencyRuleUpdate(input: DependencyRuleUpdateInput!): DependencyRulePayload!
+
+  """Delete one dependency rule."""
+  dependencyRuleDelete(input: BundleStructureDeleteInput!): DeletePayload!
 }
 
 type BundleCreatePayload {
@@ -808,13 +851,28 @@ type BundleUpdatePayload {
   userErrors: [GenericUserError!]!
 }
 
-type BundleConfigurationSyncPayload {
+type BundleConfigurationPayload {
   configuration: BundleConfiguration
   userErrors: [GenericUserError!]!
 }
 
-type BundleConfigurationDeletePayload {
-  deletedBundleConfigurationId: ID
+type BundleGroupPayload {
+  bundleGroup: BundleGroup
+  userErrors: [GenericUserError!]!
+}
+
+type BundleItemPayload {
+  bundleItem: BundleItem
+  userErrors: [GenericUserError!]!
+}
+
+type BundlePricingTemplatePayload {
+  bundlePricingTemplate: BundlePricingTemplate
+  userErrors: [GenericUserError!]!
+}
+
+type DependencyRulePayload {
+  dependencyRule: BundleDependencyRule
   userErrors: [GenericUserError!]!
 }
 ```
@@ -895,77 +953,68 @@ input BundleUpdateInput {
   displayStyle: BundleDisplayStyle
 }
 
-input BundleConfigurationSyncInput {
-  """Existing configuration ID. Null creates a new configuration snapshot."""
-  id: ID
-
-  """Product global ID of the bundle. Required when id is null."""
-  bundleId: ID
+input BundleConfigurationCreateInput {
+  """Product global ID of the bundle."""
+  bundleId: ID!
 
   """Expected parent bundle product revision. Required for optimistic locking."""
   expectedRevision: Int!
-
-  """
-  Expected updatedAt value of the existing configuration.
-  Required when id is provided, ignored when creating a new configuration.
-  """
-  expectedConfigurationUpdatedAt: DateTime
 
   """Configuration name."""
   name: String!
 
-  """Complete list of variants assigned to this configuration. Replaces existing assignments."""
-  variantIds: [ID!]!
+  """Variants assigned to this configuration."""
+  variantIds: [ID!]
+}
 
-  """Complete list of pricing templates. Replaces existing templates."""
-  pricingTemplates: [BundlePricingTemplateInput!]!
+input BundleConfigurationUpdateInput {
+  id: ID!
+  expectedRevision: Int!
+  name: String
 
-  """Complete list of groups. Replaces existing groups/items/option selections."""
-  groups: [BundleGroupInput!]!
-
-  """Complete list of dependency rules. Replaces existing rules/conditions/actions."""
-  dependencyRules: [BundleDependencyRuleInput!]!
+  """If provided, replaces variants assigned to this configuration."""
+  variantIds: [ID!]
 }
 
 input BundleConfigurationDeleteInput {
   id: ID!
-
-  """Expected parent bundle product revision. Required for optimistic locking."""
   expectedRevision: Int!
-
-  """Expected updatedAt value of the configuration being deleted."""
-  expectedConfigurationUpdatedAt: DateTime!
 }
 
-input BundleGroupInput {
-  """Existing group ID. Null creates a new group."""
-  id: ID
+input BundleStructureDeleteInput {
+  id: ID!
+  expectedRevision: Int!
+}
 
-  """Sort order within the configuration."""
-  sortIndex: Int!
+input BundleGroupCreateInput {
+  configurationId: ID!
+  expectedRevision: Int!
 
   """Localized title for current locale."""
   title: String!
 
-  """Minimum selected items in this group."""
   minSelection: Int
-
-  """Maximum selected items in this group."""
   maxSelection: Int
-
-  """Complete list of items."""
-  items: [BundleItemInput!]!
+  sortIndex: Int
 }
 
-input BundleItemInput {
-  """Existing item ID. Null creates a new item."""
-  id: ID
+input BundleGroupUpdateInput {
+  id: ID!
+  expectedRevision: Int!
+  """Localized title for current locale."""
+  title: String
+
+  minSelection: Int
+  maxSelection: Int
+  sortIndex: Int
+}
+
+input BundleItemCreateInput {
+  groupId: ID!
+  expectedRevision: Int!
 
   """Whether the item references a product or a concrete variant."""
   itemType: BundleItemType!
-
-  """Sort order within the group."""
-  sortIndex: Int!
 
   """Referenced product ID for PRODUCT items."""
   refProductId: ID
@@ -992,7 +1041,7 @@ input BundleItemInput {
   pricingTemplateId: ID
 
   """Allowed option/value selections for PRODUCT items."""
-  optionSelections: [BundleItemOptionSelectionInput!]!
+  optionSelections: [BundleItemOptionSelectionInput!]
 
   """Optional localized title override for current locale."""
   title: String
@@ -1002,6 +1051,28 @@ input BundleItemInput {
 
   """Whether item is selected by default."""
   selected: Boolean!
+
+  """Sort order within the group."""
+  sortIndex: Int
+}
+
+input BundleItemUpdateInput {
+  id: ID!
+  expectedRevision: Int!
+  itemType: BundleItemType
+  refProductId: ID
+  refVariantId: ID
+  featuredImageId: ID
+  minQty: Int
+  maxQty: Int
+  defaultQty: Int
+  priceRule: BundlePriceRuleInput
+  pricingTemplateId: ID
+  optionSelections: [BundleItemOptionSelectionInput!]
+  title: String
+  visible: Boolean
+  selected: Boolean
+  sortIndex: Int
 }
 
 input BundleItemOptionSelectionInput {
@@ -1065,9 +1136,9 @@ input BundlePriceRulePercentInput {
   value: Int!
 }
 
-input BundlePricingTemplateInput {
-  """Existing pricing template ID. Null creates a new template."""
-  id: ID
+input BundlePricingTemplateCreateInput {
+  configurationId: ID!
+  expectedRevision: Int!
 
   """Template name."""
   name: String!
@@ -1076,12 +1147,20 @@ input BundlePricingTemplateInput {
   priceRule: BundlePriceRuleInput!
 
   """Sort order within configuration."""
-  sortIndex: Int!
+  sortIndex: Int
 }
 
-input BundleDependencyRuleInput {
-  """Existing rule ID. Null creates a new rule."""
-  id: ID
+input BundlePricingTemplateUpdateInput {
+  id: ID!
+  expectedRevision: Int!
+  name: String
+  priceRule: BundlePriceRuleInput
+  sortIndex: Int
+}
+
+input DependencyRuleCreateInput {
+  configurationId: ID!
+  expectedRevision: Int!
 
   """Rule name."""
   name: String!
@@ -1100,6 +1179,29 @@ input BundleDependencyRuleInput {
 
   """Complete list of actions."""
   actions: [BundleDependencyActionInput!]!
+}
+
+input DependencyRuleUpdateInput {
+  id: ID!
+  expectedRevision: Int!
+
+  """Rule name."""
+  name: String
+
+  """Whether the rule is enabled."""
+  enabled: Boolean
+
+  """Rule priority."""
+  priority: Int
+
+  """How condition groups are combined."""
+  logicOperator: BundleLogicOperator
+
+  """Complete list of condition groups. Replaces this rule's condition tree if provided."""
+  conditionGroups: [BundleConditionGroupInput!]
+
+  """Complete list of actions. Replaces this rule's actions if provided."""
+  actions: [BundleDependencyActionInput!]
 }
 
 input BundleConditionGroupInput {
@@ -1178,33 +1280,28 @@ input BundleDependencyActionInput {
 - `bundleCreate` возвращает `Bundle.id`, закодированный как `GlobalIdEntity.Product`
   от созданного `catalog.product.id`.
 - `CatalogQuery.bundle(id:)`, `bundleUpdate(bundleId:)` и
-  `BundleConfigurationSyncInput.bundleId` принимают только `Product` global ID,
+  `BundleConfigurationCreateInput.bundleId` принимают только `Product` global ID,
   который указывает на `catalog.product.kind = BUNDLE`.
-- `bundleConfigurationSync` является complete replace mutation и должен всегда
-  выполняться с optimistic locking: `expectedRevision` обязателен и сравнивается с
-  текущим `catalog.product.revision` parent bundle product до замены snapshot.
-- Если `BundleConfigurationSyncInput.id` передан, то
-  `expectedConfigurationUpdatedAt` обязателен и должен совпадать с текущим
-  `bundle_configuration.updated_at`; mismatch возвращает `GenericUserError` и не
-  меняет данные.
-- Если `BundleConfigurationSyncInput.id` не передан, то `bundleId` обязателен,
-  `expectedConfigurationUpdatedAt` игнорируется, а `expectedRevision` все равно
-  проверяется на parent bundle product перед созданием configuration.
-- `bundleConfigurationDelete` также должен проверять `expectedRevision` parent
-  bundle product и `expectedConfigurationUpdatedAt` удаляемой configuration до
-  удаления snapshot.
-- `bundleConfigurationSync` должен выполняться в одной DB transaction: lock parent
-  `catalog.product` row, проверить `expectedRevision`, проверить/создать
-  `bundle_configuration`, заменить children snapshot, обновить
-  `bundle_configuration.updated_at`, затем увеличить `catalog.product.revision`
-  и `catalog.product.updated_at`.
-- `bundleConfigurationDelete` должен выполняться в одной DB transaction: lock
-  parent `catalog.product` row, проверить `expectedRevision`, проверить
-  `bundle_configuration.updated_at`, удалить configuration snapshot, затем
+- Все mutations, меняющие bundle product или его configuration tree, выполняются с
+  optimistic locking: `expectedRevision` обязателен и сравнивается с текущим
+  `catalog.product.revision` parent bundle product.
+- Каждая granular mutation должна выполняться в одной DB transaction: lock parent
+  `catalog.product` row, проверить `expectedRevision`, проверить project/store
+  scope, изменить только заявленную сущность или rule draft, затем
   увеличить `catalog.product.revision` и `catalog.product.updated_at`.
-- Любое успешное изменение структуры бандла через `bundleConfigurationSync` или
-  `bundleConfigurationDelete` должно bump-ить `catalog.product.revision`, чтобы
-  `bundleUpdate` и configuration sync видели общий concurrency token.
+- Порядок groups/items/templates меняется через `sortIndex` в соответствующих
+  `*Create` / `*Update` input, без отдельной mutation для порядка.
+- Variant assignments configuration меняются через
+  `BundleConfigurationUpdateInput.variantIds`, без отдельной mutation.
+- `dependencyRuleCreate` и `dependencyRuleUpdate` могут принимать/заменять весь
+  condition/action tree одного rule, потому что UI редактирует rule как отдельный
+  draft. Они не должны заменять groups/items/templates всей configuration.
+- Локальные UI IDs (`grp-*`, `item-*`, `tpl-*`, `rule-*` и `crypto.randomUUID()`
+  draft IDs) не являются GraphQL IDs. Backend принимает только server global IDs;
+  после create UI должен заменить локальную draft-сущность ID из payload.
+- Любое успешное изменение структуры бандла через granular mutations должно
+  bump-ить `catalog.product.revision`, чтобы `bundleUpdate` и bundle structure
+  mutations видели общий concurrency token.
 - Для одного internal product row разрешен только один `Bundle`.
 - Все `variantIds` в configuration assignment должны принадлежать этому bundle.
 - Каждый variant может быть назначен только одной configuration.
@@ -1212,8 +1309,10 @@ input BundleDependencyActionInput {
   `GlobalIdEntity`; invalid type должен возвращать `GenericUserError`.
 - Все операции фильтруются по текущему `projectId` из context. Запрещено читать или
   менять bundle-структуру другого project/store даже при валидном UUID.
-- `BundleGroupInput.title` обязателен и пишется в `bundle_group_translation` текущей locale.
-- `BundleItemInput.title`, если передан, пишется в `bundle_item_translation` текущей locale.
+- `BundleGroupCreateInput.title` обязателен и пишется в
+  `bundle_group_translation` текущей locale.
+- `BundleItemCreateInput.title` / `BundleItemUpdateInput.title`, если передан,
+  пишется в `bundle_item_translation` текущей locale.
 - `BundleGroup.title: String!` должен иметь fallback для чтения: текущая locale,
   затем default/project locale, затем пустая строка или user-visible validation error
   при сохранении. Нельзя возвращать null из non-null GraphQL поля.
@@ -1307,8 +1406,10 @@ Implementation requirements:
   `CatalogQuery.bundles`.
 - Use `CatalogSellableConnection` / `CatalogSellableEdge` / `PageInfo` for mixed
   category/listing/search result sets.
-- Keep configuration internals as ordered snapshot arrays unless a real UI/API need
-  appears for independently paginating groups/items/rules.
+- Keep configuration internals as ordered arrays for reads unless a real UI/API
+  need appears for independently paginating groups/items/rules. Writes stay
+  granular and scoped to the edited entity, ordered child collection, or one
+  dependency-rule draft.
 
 ## Global ID entities
 
