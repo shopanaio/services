@@ -255,9 +255,9 @@ export type BundleConditionGroup = Node & {
   sortIndex: Scalars['Int']['output'];
 };
 
-export type BundleConditionGroupSyncInput = {
+export type BundleConditionGroupSyncItemInput = {
   /** Complete list of conditions. */
-  conditions: Array<BundleConditionSyncInput>;
+  conditions: Array<BundleConditionSyncItemInput>;
   /** Existing condition group ID. Null creates a new group. */
   id?: InputMaybe<Scalars['ID']['input']>;
   /** How conditions are combined. */
@@ -280,7 +280,7 @@ export enum BundleConditionSubject {
   ItemSelected = 'ITEM_SELECTED'
 }
 
-export type BundleConditionSyncInput = {
+export type BundleConditionSyncItemInput = {
   /** Condition category. */
   category: BundleConditionCategory;
   /** Existing condition ID. Null creates a new condition. */
@@ -418,7 +418,7 @@ export type BundleDependencyAction = Node & {
   targetType: BundleDependencyTargetType;
 };
 
-export type BundleDependencyActionSyncInput = {
+export type BundleDependencyActionSyncItemInput = {
   /** Action type. */
   actionType: BundleDependencyActionType;
   /** Existing action ID. Null creates a new action. */
@@ -468,9 +468,9 @@ export type BundleDependencyRule = Node & {
 
 export type BundleDependencyRuleSyncItemInput = {
   /** Complete list of actions. */
-  actions: Array<BundleDependencyActionSyncInput>;
+  actions: Array<BundleDependencyActionSyncItemInput>;
   /** Complete list of condition groups. */
-  conditionGroups: Array<BundleConditionGroupSyncInput>;
+  conditionGroups: Array<BundleConditionGroupSyncItemInput>;
   /** Whether the rule is enabled. */
   enabled: Scalars['Boolean']['input'];
   /**
@@ -591,7 +591,7 @@ export type BundleGroupSyncItemInput = {
    */
   id?: InputMaybe<Scalars['ID']['input']>;
   /** Complete list of items inside this group. */
-  items: Array<BundleItemSyncInput>;
+  items: Array<BundleItemSyncItemInput>;
   maxSelection?: InputMaybe<Scalars['Int']['input']>;
   minSelection?: InputMaybe<Scalars['Int']['input']>;
   /** Sort order within the configuration. */
@@ -681,7 +681,7 @@ export type BundleItemOptionSelection = Node & {
   values: Array<BundleItemOptionValueSelection>;
 };
 
-export type BundleItemOptionSelectionSyncInput = {
+export type BundleItemOptionSelectionSyncItemInput = {
   /** Existing option selection ID. Null creates a new option selection. */
   id?: InputMaybe<Scalars['ID']['input']>;
   /** Referenced product option ID. */
@@ -691,7 +691,7 @@ export type BundleItemOptionSelectionSyncInput = {
   /** Sort order within option selections. */
   sortIndex: Scalars['Int']['input'];
   /** Complete list of option value selections. */
-  values: Array<BundleItemOptionValueSelectionSyncInput>;
+  values: Array<BundleItemOptionValueSelectionSyncItemInput>;
 };
 
 export type BundleItemOptionValueSelection = Node & {
@@ -717,7 +717,7 @@ export enum BundleItemOptionValueSelectionStatus {
   Unavailable = 'UNAVAILABLE'
 }
 
-export type BundleItemOptionValueSelectionSyncInput = {
+export type BundleItemOptionValueSelectionSyncItemInput = {
   /** Existing value selection ID. Null creates a new value selection. */
   id?: InputMaybe<Scalars['ID']['input']>;
   /** Referenced product option value ID. */
@@ -730,7 +730,7 @@ export type BundleItemOptionValueSelectionSyncInput = {
   value: Scalars['String']['input'];
 };
 
-export type BundleItemSyncInput = {
+export type BundleItemSyncItemInput = {
   /** Default quantity. */
   defaultQty?: InputMaybe<Scalars['Int']['input']>;
   /** Featured image override. */
@@ -747,7 +747,7 @@ export type BundleItemSyncInput = {
   /** Minimum selectable quantity. */
   minQty?: InputMaybe<Scalars['Int']['input']>;
   /** Allowed option/value selections for PRODUCT items. */
-  optionSelections?: InputMaybe<Array<BundleItemOptionSelectionSyncInput>>;
+  optionSelections?: InputMaybe<Array<BundleItemOptionSelectionSyncItemInput>>;
   /** Inline price rule. Cannot be used together with pricingTemplateId. */
   priceRule?: InputMaybe<BundlePriceRuleInput>;
   /** Reusable pricing template ID. Cannot be used together with priceRule. */
@@ -4987,8 +4987,6 @@ export enum VariantOperationAction {
 export type VariantOperationInput = {
   /** The operation to apply. */
   action: VariantOperationAction;
-  /** Bundle configuration assignment for bundle variants. */
-  bundleConfigurationId?: InputMaybe<Scalars['ID']['input']>;
   /** Per-request client correlation key for create operations. */
   clientMutationId?: InputMaybe<Scalars['String']['input']>;
   /** Variant dimensions. */
@@ -5799,10 +5797,10 @@ export type ResolversTypes = ResolversObject<{
   BundleCondition: ResolverTypeWrapper<BundleCondition>;
   BundleConditionCategory: BundleConditionCategory;
   BundleConditionGroup: ResolverTypeWrapper<BundleConditionGroup>;
-  BundleConditionGroupSyncInput: BundleConditionGroupSyncInput;
+  BundleConditionGroupSyncItemInput: BundleConditionGroupSyncItemInput;
   BundleConditionOperator: BundleConditionOperator;
   BundleConditionSubject: BundleConditionSubject;
-  BundleConditionSyncInput: BundleConditionSyncInput;
+  BundleConditionSyncItemInput: BundleConditionSyncItemInput;
   BundleConfiguration: ResolverTypeWrapper<Omit<BundleConfiguration, 'bundle' | 'dependencyRules' | 'groups' | 'pricingTemplates' | 'variants'> & { bundle: ResolversTypes['Bundle'], dependencyRules: Array<ResolversTypes['BundleDependencyRule']>, groups: Array<ResolversTypes['BundleGroup']>, pricingTemplates: Array<ResolversTypes['BundlePricingTemplate']>, variants: Array<ResolversTypes['Variant']> }>;
   BundleConfigurationCreateInput: BundleConfigurationCreateInput;
   BundleConfigurationDeleteInput: BundleConfigurationDeleteInput;
@@ -5813,7 +5811,7 @@ export type ResolversTypes = ResolversObject<{
   BundleCreateInput: BundleCreateInput;
   BundleCreatePayload: ResolverTypeWrapper<Omit<BundleCreatePayload, 'bundle'> & { bundle?: Maybe<ResolversTypes['Bundle']> }>;
   BundleDependencyAction: ResolverTypeWrapper<Omit<BundleDependencyAction, 'priceRule'> & { priceRule?: Maybe<ResolversTypes['BundlePriceRule']> }>;
-  BundleDependencyActionSyncInput: BundleDependencyActionSyncInput;
+  BundleDependencyActionSyncItemInput: BundleDependencyActionSyncItemInput;
   BundleDependencyActionType: BundleDependencyActionType;
   BundleDependencyRule: ResolverTypeWrapper<Omit<BundleDependencyRule, 'actions'> & { actions: Array<ResolversTypes['BundleDependencyAction']> }>;
   BundleDependencyRuleSyncItemInput: BundleDependencyRuleSyncItemInput;
@@ -5832,11 +5830,11 @@ export type ResolversTypes = ResolversObject<{
   BundleGroupsSyncPayload: ResolverTypeWrapper<Omit<BundleGroupsSyncPayload, 'configuration' | 'groups'> & { configuration?: Maybe<ResolversTypes['BundleConfiguration']>, groups: Array<ResolversTypes['BundleGroup']> }>;
   BundleItem: ResolverTypeWrapper<Omit<BundleItem, 'group' | 'priceRule' | 'pricingTemplate' | 'refProduct' | 'refVariant'> & { group: ResolversTypes['BundleGroup'], priceRule?: Maybe<ResolversTypes['BundlePriceRule']>, pricingTemplate?: Maybe<ResolversTypes['BundlePricingTemplate']>, refProduct?: Maybe<ResolversTypes['Product']>, refVariant?: Maybe<ResolversTypes['Variant']> }>;
   BundleItemOptionSelection: ResolverTypeWrapper<BundleItemOptionSelection>;
-  BundleItemOptionSelectionSyncInput: BundleItemOptionSelectionSyncInput;
+  BundleItemOptionSelectionSyncItemInput: BundleItemOptionSelectionSyncItemInput;
   BundleItemOptionValueSelection: ResolverTypeWrapper<BundleItemOptionValueSelection>;
   BundleItemOptionValueSelectionStatus: BundleItemOptionValueSelectionStatus;
-  BundleItemOptionValueSelectionSyncInput: BundleItemOptionValueSelectionSyncInput;
-  BundleItemSyncInput: BundleItemSyncInput;
+  BundleItemOptionValueSelectionSyncItemInput: BundleItemOptionValueSelectionSyncItemInput;
+  BundleItemSyncItemInput: BundleItemSyncItemInput;
   BundleItemType: BundleItemType;
   BundleLogicOperator: BundleLogicOperator;
   BundleOrderByInput: BundleOrderByInput;
@@ -6188,8 +6186,8 @@ export type ResolversParentTypes = ResolversObject<{
   BundleBundlesMetaInput: BundleBundlesMetaInput;
   BundleCondition: BundleCondition;
   BundleConditionGroup: BundleConditionGroup;
-  BundleConditionGroupSyncInput: BundleConditionGroupSyncInput;
-  BundleConditionSyncInput: BundleConditionSyncInput;
+  BundleConditionGroupSyncItemInput: BundleConditionGroupSyncItemInput;
+  BundleConditionSyncItemInput: BundleConditionSyncItemInput;
   BundleConfiguration: Omit<BundleConfiguration, 'bundle' | 'dependencyRules' | 'groups' | 'pricingTemplates' | 'variants'> & { bundle: ResolversParentTypes['Bundle'], dependencyRules: Array<ResolversParentTypes['BundleDependencyRule']>, groups: Array<ResolversParentTypes['BundleGroup']>, pricingTemplates: Array<ResolversParentTypes['BundlePricingTemplate']>, variants: Array<ResolversParentTypes['Variant']> };
   BundleConfigurationCreateInput: BundleConfigurationCreateInput;
   BundleConfigurationDeleteInput: BundleConfigurationDeleteInput;
@@ -6200,7 +6198,7 @@ export type ResolversParentTypes = ResolversObject<{
   BundleCreateInput: BundleCreateInput;
   BundleCreatePayload: Omit<BundleCreatePayload, 'bundle'> & { bundle?: Maybe<ResolversParentTypes['Bundle']> };
   BundleDependencyAction: Omit<BundleDependencyAction, 'priceRule'> & { priceRule?: Maybe<ResolversParentTypes['BundlePriceRule']> };
-  BundleDependencyActionSyncInput: BundleDependencyActionSyncInput;
+  BundleDependencyActionSyncItemInput: BundleDependencyActionSyncItemInput;
   BundleDependencyRule: Omit<BundleDependencyRule, 'actions'> & { actions: Array<ResolversParentTypes['BundleDependencyAction']> };
   BundleDependencyRuleSyncItemInput: BundleDependencyRuleSyncItemInput;
   BundleDependencyRulesSyncInput: BundleDependencyRulesSyncInput;
@@ -6216,10 +6214,10 @@ export type ResolversParentTypes = ResolversObject<{
   BundleGroupsSyncPayload: Omit<BundleGroupsSyncPayload, 'configuration' | 'groups'> & { configuration?: Maybe<ResolversParentTypes['BundleConfiguration']>, groups: Array<ResolversParentTypes['BundleGroup']> };
   BundleItem: Omit<BundleItem, 'group' | 'priceRule' | 'pricingTemplate' | 'refProduct' | 'refVariant'> & { group: ResolversParentTypes['BundleGroup'], priceRule?: Maybe<ResolversParentTypes['BundlePriceRule']>, pricingTemplate?: Maybe<ResolversParentTypes['BundlePricingTemplate']>, refProduct?: Maybe<ResolversParentTypes['Product']>, refVariant?: Maybe<ResolversParentTypes['Variant']> };
   BundleItemOptionSelection: BundleItemOptionSelection;
-  BundleItemOptionSelectionSyncInput: BundleItemOptionSelectionSyncInput;
+  BundleItemOptionSelectionSyncItemInput: BundleItemOptionSelectionSyncItemInput;
   BundleItemOptionValueSelection: BundleItemOptionValueSelection;
-  BundleItemOptionValueSelectionSyncInput: BundleItemOptionValueSelectionSyncInput;
-  BundleItemSyncInput: BundleItemSyncInput;
+  BundleItemOptionValueSelectionSyncItemInput: BundleItemOptionValueSelectionSyncItemInput;
+  BundleItemSyncItemInput: BundleItemSyncItemInput;
   BundleOrderByInput: BundleOrderByInput;
   BundlePriceRule: ResolversInterfaceTypes<ResolversParentTypes>['BundlePriceRule'];
   BundlePriceRuleAmount: BundlePriceRuleAmount;

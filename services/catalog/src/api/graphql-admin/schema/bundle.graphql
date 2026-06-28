@@ -728,10 +728,10 @@ input BundleGroupSyncItemInput {
   sortIndex: Int!
 
   """Complete list of items inside this group."""
-  items: [BundleItemSyncInput!]!
+  items: [BundleItemSyncItemInput!]!
 }
 
-input BundleItemSyncInput {
+input BundleItemSyncItemInput {
   """
   Existing item ID. Null creates a new item.
   Existing items in this group but missing from BundleGroupSyncItemInput.items are deleted.
@@ -766,7 +766,7 @@ input BundleItemSyncInput {
   pricingTemplateId: ID
 
   """Allowed option/value selections for PRODUCT items."""
-  optionSelections: [BundleItemOptionSelectionSyncInput!]
+  optionSelections: [BundleItemOptionSelectionSyncItemInput!]
 
   """Optional localized title override for current locale."""
   title: String
@@ -781,7 +781,7 @@ input BundleItemSyncInput {
   sortIndex: Int!
 }
 
-input BundleItemOptionSelectionSyncInput {
+input BundleItemOptionSelectionSyncItemInput {
   """Existing option selection ID. Null creates a new option selection."""
   id: ID
 
@@ -795,10 +795,10 @@ input BundleItemOptionSelectionSyncInput {
   sortIndex: Int!
 
   """Complete list of option value selections."""
-  values: [BundleItemOptionValueSelectionSyncInput!]!
+  values: [BundleItemOptionValueSelectionSyncItemInput!]!
 }
 
-input BundleItemOptionValueSelectionSyncInput {
+input BundleItemOptionValueSelectionSyncItemInput {
   """Existing value selection ID. Null creates a new value selection."""
   id: ID
 
@@ -903,13 +903,13 @@ input BundleDependencyRuleSyncItemInput {
   logicOperator: BundleLogicOperator!
 
   """Complete list of condition groups."""
-  conditionGroups: [BundleConditionGroupSyncInput!]!
+  conditionGroups: [BundleConditionGroupSyncItemInput!]!
 
   """Complete list of actions."""
-  actions: [BundleDependencyActionSyncInput!]!
+  actions: [BundleDependencyActionSyncItemInput!]!
 }
 
-input BundleConditionGroupSyncInput {
+input BundleConditionGroupSyncItemInput {
   """Existing condition group ID. Null creates a new group."""
   id: ID
 
@@ -920,10 +920,10 @@ input BundleConditionGroupSyncInput {
   sortIndex: Int!
 
   """Complete list of conditions."""
-  conditions: [BundleConditionSyncInput!]!
+  conditions: [BundleConditionSyncItemInput!]!
 }
 
-input BundleConditionSyncInput {
+input BundleConditionSyncItemInput {
   """Existing condition ID. Null creates a new condition."""
   id: ID
 
@@ -949,7 +949,7 @@ input BundleConditionSyncInput {
   sortIndex: Int!
 }
 
-input BundleDependencyActionSyncInput {
+input BundleDependencyActionSyncItemInput {
   """Existing action ID. Null creates a new action."""
   id: ID
 
