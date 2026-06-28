@@ -1,27 +1,33 @@
 # План интеграции Bundles API с UI-таблицей
 
-## Задача
+## Цель
 
-Подключить существующую таблицу на странице `admin/src/domains/promos/bundles/page/page.tsx` к GraphQL API `catalogQuery.bundles`.
+Подключить существующую таблицу `BundlesPage` к `catalogQuery.bundles` по тому же паттерну, который уже используется на странице продуктов:
 
-Текущий UI уже есть: это `AgGridReact<ApiBundle>` на странице Bundles. Нужно убрать mock-источник из `useBundles` и передать в эту же таблицу данные API.
+- `useInventoryRelayListPage`;
+- `usePageConfig`;
+- `FilterWidget {...pageConfig.filterWidgetProps}`;
+- сортировка через `pageConfig.onSortChanged`;
+- pagination через `pageConfig`;
+- query variables через отдельный `page-config.ts`.
 
-## Реальная таблица, которую интегрируем
+Файл UI-таблицы: `admin/src/domains/promos/bundles/page/page.tsx`.
 
-Файл: `admin/src/domains/promos/bundles/page/page.tsx`
+## Текущая UI-таблица
 
-| Участок | Текущий код | Что должно стать |
+В `page.tsx` уже есть реальная таблица:
+
+| UI | Сейчас | Нужно |
 | --- | --- | --- |
-| Источник строк | `const { data: bundles } = useBundles();` | `useBundles(queryState)` должен читать `catalogQuery.bundles` через Apollo. |
-| Счетчик layout | `count={bundles.length}` | `count={totalCount}` из `BundleConnection.totalCount`. |
-| AG Grid rows | `rowData={bundles}` | `rowData={bundles}`, где `bundles = edges.map(edge => edge.node)`. |
-| Колонки | `columnDefs`: `Bundle`, `Type`, `Status` | Колонки остаются теми же. Новые колонки не добавлять. |
-| Pagination | `CursorPagination` с заглушками | Подключить `pageInfo`, `totalCount`, `pageSize`, `goNext`, `goPrev`, `changePageSize`. |
-| Sort | `console.log("Sort changed:", model)` | Преобразовать sort model в `ApiBundleOrderByInput[]` и refetch первой страницы. |
-| Row click | `push("bundle", { entityId: data.id, level: 1 })` | Оставить без изменений. |
-| Selection | `FloatingPanelStack panels={panels}` | Оставить без изменений. |
+| Hook данных | `const { data: bundles } = useBundles();` | Использовать `useInventoryRelayListPage(...)`, как в `ProductsPage`. |
+| Фильтры | `useFilters({ schema: filterSchema })` и ручной `FilterWidget` | Убрать ручной `useFilters`; использовать `pageConfig.filterWidgetProps`. |
+| Сортировка | `useGridSort` + `console.log` | Убрать ручной `useGridSort`; использовать `pageConfig.onSortChanged`. |
+| Grid state | `useGridState` вручную | Убрать ручной `useGridState`; использовать `pageConfig.gridStateProps`. |
+| Rows | `rowData={bundles}` | `rowData={bundles}` из API result. |
+| Count | `count={bundles.length}` | `count={totalCount}`. |
+| Pagination | Заглушки `hasNext={false}`, `onNext={() => {}}` | Использовать `handleNextPage`, `handlePrevPage`, `pageConfig.setPageSize`. |
 
-Текущие реальные колонки:
+Колонки остаются текущими:
 
 | Колонка | `field` | Renderer | API поля |
 | --- | --- | --- | --- |
@@ -29,7 +35,15 @@
 | `Type` | `type` | `BundleTypeCellRenderer` | `type` |
 | `Status` | `isPublished` | `StatusCellRenderer` | `isPublished` |
 
-## GraphQL для этой таблицы
+План должен следовать Admin GraphQL layer conventions:
+
+- GraphQL operations живут в module-specific `graphql/` папке;
+- operation types строятся от generated schema types из `@/graphql/types`;
+- list hook разворачивает Relay connection в `ApiBundle[]`, `totalCount`, `pageInfo`;
+- для Relay list hooks использовать общий `useRelayConnectionQuery`, как в `useProducts`;
+- UI потребляет generated `ApiBundle` напрямую, без локальной view model.
+
+## GraphQL operations
 
 Создать `admin/src/domains/promos/bundles/graphql/fragments.ts`:
 
@@ -40,8 +54,13 @@ export const BUNDLE_LIST_ITEM_FIELDS = gql`
   fragment BundleListItemFields on Bundle {
     id
     title
+    handle
     type
     isPublished
+    publishedAt
+    createdAt
+    updatedAt
+    revision
     media {
       file {
         id
@@ -103,23 +122,16 @@ export const BUNDLES_QUERY = gql`
 
 ```ts
 import type {
-  ApiBundle,
+  ApiBundleConnection,
   ApiBundleBundlesMetaInput,
   ApiBundleOrderByInput,
   ApiBundleWhereInput,
-  ApiPageInfo,
+  ApiCatalogQuery,
 } from "@/graphql/types";
 
 export interface BundlesQueryData {
-  catalogQuery: {
-    bundles: {
-      edges: Array<{
-        cursor: string;
-        node: ApiBundle;
-      }>;
-      pageInfo: ApiPageInfo;
-      totalCount: number;
-    };
+  catalogQuery: Pick<ApiCatalogQuery, "bundles"> & {
+    bundles: ApiBundleConnection;
   };
 }
 
@@ -128,9 +140,9 @@ export interface BundlesQueryVariables {
   after?: string | null;
   last?: number;
   before?: string | null;
-  where?: ApiBundleWhereInput;
-  orderBy?: ApiBundleOrderByInput[];
-  meta?: ApiBundleBundlesMetaInput;
+  where?: ApiBundleWhereInput | null;
+  orderBy?: ApiBundleOrderByInput[] | null;
+  meta?: ApiBundleBundlesMetaInput | null;
 }
 ```
 
@@ -146,115 +158,291 @@ export type * from "./operation-types";
 
 Файл: `admin/src/domains/promos/bundles/hooks/use-bundles.ts`
 
-Удалить:
+Удалить mock implementation:
 
 - `useState`;
 - `useEffect`;
 - `setTimeout`;
 - `mockBundles`;
-- option `delay`.
+- `delay`.
 
-Сделать hook API-backed:
+Сделать API hook по тому же Relay connection паттерну, что и `admin/src/domains/inventory/products/hooks/use-products.ts`:
 
 ```ts
-import { useMemo } from "react";
-import { useQuery } from "@apollo/client";
-import type { ApiBundle, ApiPageInfo } from "@/graphql/types";
-import {
-  BUNDLES_QUERY,
-  type BundlesQueryData,
-  type BundlesQueryVariables,
-} from "../graphql";
+import type {
+  ApiBundle,
+  ApiBundleConnection,
+  ApiBundleBundlesMetaInput,
+  ApiBundleOrderByInput,
+  ApiBundleWhereInput,
+  ApiPageInfo,
+} from "@/graphql/types";
+import { useRelayConnectionQuery } from "@/graphql/hooks/use-relay-connection-query";
+import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
+import { BUNDLES_QUERY } from "../graphql";
+import type { BundlesQueryData, BundlesQueryVariables } from "../graphql";
 
-interface UseBundlesReturn {
-  items: ApiBundle[];
+export interface UseBundlesOptions extends RelayCursorPaginationVariables {
+  where?: ApiBundleWhereInput | null;
+  orderBy?: ApiBundleOrderByInput[] | null;
+  meta?: ApiBundleBundlesMetaInput | null;
+  skip?: boolean;
+}
+
+export interface UseBundlesReturn {
+  bundles: ApiBundle[];
+  connection: ApiBundleConnection | null;
   totalCount: number;
   pageInfo: ApiPageInfo | null;
   loading: boolean;
   error: Error | null;
-  refetch: () => Promise<void>;
+  refetch: () => Promise<unknown>;
 }
 
-export function useBundles(variables: BundlesQueryVariables): UseBundlesReturn {
-  const { data, loading, error, refetch } = useQuery<
+export function useBundles(options: UseBundlesOptions = {}): UseBundlesReturn {
+  const {
+    first,
+    after = null,
+    last,
+    before = null,
+    where = null,
+    orderBy = null,
+    meta = null,
+    skip = false,
+  } = options;
+
+  const result = useRelayConnectionQuery<
     BundlesQueryData,
-    BundlesQueryVariables
-  >(BUNDLES_QUERY, {
-    variables,
-    notifyOnNetworkStatusChange: true,
+    BundlesQueryVariables,
+    ApiBundle,
+    ApiBundleConnection
+  >({
+    query: BUNDLES_QUERY,
+    variables: { first, after, last, before, where, orderBy, meta },
+    skip,
+    fetchPolicy: "cache-and-network",
+    getConnection: (data) => data?.catalogQuery.bundles,
   });
 
-  const connection = data?.catalogQuery.bundles;
-
-  const items = useMemo(
-    () => connection?.edges.map((edge) => edge.node) ?? [],
-    [connection?.edges],
-  );
-
   return {
-    items,
-    totalCount: connection?.totalCount ?? 0,
-    pageInfo: connection?.pageInfo ?? null,
-    loading,
-    error: error ?? null,
-    refetch: async () => {
-      await refetch();
-    },
+    bundles: result.nodes,
+    connection: result.connection,
+    totalCount: result.totalCount,
+    pageInfo: result.pageInfo,
+    loading: result.loading,
+    error: result.error,
+    refetch: result.refetch,
   };
 }
 ```
 
-## Query state в `page.tsx`
+## `page-config.ts` для Bundles
 
-Добавить в `BundlesPage` состояние API-запроса:
+Создать `admin/src/domains/promos/bundles/page/page-config.ts`.
 
-```ts
-const [pageSize, setPageSize] = useState(20);
-const [cursor, setCursor] = useState<{
-  direction: "next" | "prev" | null;
-  after?: string | null;
-  before?: string | null;
-}>({ direction: null });
-const [orderBy, setOrderBy] = useState<ApiBundleOrderByInput[]>([]);
-```
-
-Добавить helper:
+Это обязательный файл интеграции, как `admin/src/domains/inventory/products/page/page-config.ts`.
 
 ```ts
-const resetCursor = useCallback(() => {
-  setCursor({ direction: null });
-}, []);
+import type {
+  FilterTransformer,
+  OrderByInput,
+  SortFieldMapping,
+  UsePageConfigReturn,
+} from "@/hooks";
+import type {
+  ApiBundleOrderByInput,
+  ApiBundleWhereInput,
+} from "@/graphql/types";
+import { BundleOrderField } from "@/graphql/types";
+import type { BundlesQueryVariables } from "../graphql";
+
+export const bundleSortFieldMapping: SortFieldMapping<BundleOrderField> = {
+  title: BundleOrderField.Name,
+  type: BundleOrderField.BundleType,
+};
+
+export const buildBundleSearchCondition = (
+  search: string,
+): Partial<ApiBundleWhereInput> => ({
+  name: { _containsi: search },
+});
+
+export const bundleFilterTransformers: Record<
+  string,
+  FilterTransformer<ApiBundleWhereInput>
+> = {
+  status: (filter) => {
+    if (filter.value === "published") {
+      return { publishedAt: { _isNot: null } };
+    }
+
+    if (filter.value === "draft") {
+      return { publishedAt: { _is: null } };
+    }
+
+    return null;
+  },
+};
+
+export function buildBundlesQueryVariables(
+  pageConfig: Pick<
+    UsePageConfigReturn<ApiBundleWhereInput, BundleOrderField>,
+    "first" | "after" | "last" | "before" | "where" | "orderBy"
+  >,
+): BundlesQueryVariables {
+  return {
+    first: pageConfig.first,
+    after: pageConfig.after,
+    last: pageConfig.last,
+    before: pageConfig.before,
+    where: pageConfig.where ?? null,
+    orderBy: (pageConfig.orderBy ?? null) as ApiBundleOrderByInput[] | null,
+  };
+}
+
+export function toBundlesQueryVariables(
+  pageConfig: Pick<
+    UsePageConfigReturn<object, string>,
+    "first" | "after" | "last" | "before" | "where" | "orderBy"
+  >,
+): BundlesQueryVariables {
+  return buildBundlesQueryVariables({
+    ...pageConfig,
+    where: pageConfig.where as ApiBundleWhereInput | undefined,
+    orderBy: pageConfig.orderBy as
+      | OrderByInput<BundleOrderField>[]
+      | undefined,
+  });
+}
 ```
 
-Собрать variables:
+### Фильтр `bundleType`
+
+`admin/src/domains/promos/bundles/page/filter-schema.ts` уже содержит:
 
 ```ts
-const queryState = useMemo(
-  () => ({
-    first: cursor.direction === "prev" ? undefined : pageSize,
-    after: cursor.direction === "next" ? cursor.after : undefined,
-    last: cursor.direction === "prev" ? pageSize : undefined,
-    before: cursor.direction === "prev" ? cursor.before : undefined,
-    orderBy,
-  }),
-  [cursor, pageSize, orderBy],
-);
+{
+  key: "bundleType",
+  label: "Bundle Type",
+  type: FilterType.Enum,
+  operators: enumOperators,
+  payloadKey: "bundleType",
+  options: [
+    { label: "Fixed Kit", value: BundleType.Fixed },
+    { label: "Multipack", value: BundleType.Multipack },
+    { label: "Mix & Match", value: BundleType.MixAndMatch },
+    { label: "Custom", value: BundleType.Custom },
+  ],
+}
 ```
 
-Подключить hook:
+План интеграции должен сохранить этот фильтр и провести его через `usePageConfig` в `ApiBundleWhereInput.bundleType`.
+
+Отдельный transformer для `bundleType` не нужен: `payloadKey: "bundleType"` и стандартная логика `usePageConfig` уже формируют `where.bundleType` с выбранным оператором.
+
+### Сортировка `bundleType`
+
+Для текущей колонки:
+
+```ts
+{
+  headerName: "Type",
+  field: "type",
+  cellRenderer: BundleTypeCellRenderer,
+  minWidth: 140,
+}
+```
+
+должна работать серверная сортировка через:
+
+```ts
+type: BundleOrderField.BundleType
+```
+
+в `bundleSortFieldMapping`.
+
+## Интеграция в `BundlesPage`
+
+В `admin/src/domains/promos/bundles/page/page.tsx` заменить ручные page hooks:
+
+Удалить:
+
+```ts
+import { useFilters, FilterWidget } from "@/layouts/filters";
+import {
+  useGridState,
+  useGridSort,
+  useAgGridTheme,
+  useAgGridRowSelection,
+} from "@/hooks";
+```
+
+Оставить `FilterWidget`, но убрать `useFilters`:
+
+```ts
+import { FilterWidget } from "@/layouts/filters";
+import {
+  useAgGridTheme,
+  useAgGridRowSelection,
+} from "@/hooks";
+import { useInventoryRelayListPage } from "@/domains/inventory/hooks";
+```
+
+Добавить imports:
+
+```ts
+import {
+  buildBundleSearchCondition,
+  buildBundlesQueryVariables,
+  bundleFilterTransformers,
+  bundleSortFieldMapping,
+} from "./page-config";
+import type { ApiBundle, ApiBundleWhereInput } from "@/graphql/types";
+import { BundleOrderField, BundleType } from "@/graphql/types";
+```
+
+Внутри `BundlesPage` удалить:
+
+```ts
+const [searchValue, setSearchValue] = useState("");
+const { widgetProps } = useFilters({ schema: filterSchema });
+const { data: bundles } = useBundles();
+const { initialState, onStateUpdated } = useGridState(...);
+const { onSortChanged } = useGridSort(...);
+```
+
+Добавить:
 
 ```ts
 const {
+  pageConfig,
   items: bundles,
   totalCount,
   pageInfo,
   loading,
   error,
   refetch,
-} = useBundles(queryState);
+  handleNextPage,
+  handlePrevPage,
+} = useInventoryRelayListPage<
+  ApiBundle,
+  ApiBundleWhereInput,
+  BundleOrderField,
+  ReturnType<typeof buildBundlesQueryVariables>,
+  ReturnType<typeof useBundles>
+>({
+  gridRef,
+  storageKey: "bundles-grid-state",
+  filterSchema,
+  sortFieldMapping: bundleSortFieldMapping,
+  defaultPageSize: 20,
+  buildSearchCondition: buildBundleSearchCondition,
+  filterTransformers: bundleFilterTransformers,
+  buildQueryVariables: buildBundlesQueryVariables,
+  useListQuery: useBundles,
+  getItems: (result) => result.bundles,
+});
 ```
-
-## Замены в JSX `page.tsx`
 
 `DataLayout`:
 
@@ -267,6 +455,15 @@ const {
 >
 ```
 
+`FilterWidget`:
+
+```tsx
+<FilterWidget
+  {...pageConfig.filterWidgetProps}
+  searchPlaceholder="Search bundles..."
+/>
+```
+
 `AgGridReact`:
 
 ```tsx
@@ -274,6 +471,7 @@ const {
   ref={gridRef}
   theme={agGridTheme}
   rowData={bundles}
+  loading={loading}
   columnDefs={columnDefs}
   defaultColDef={defaultColDef}
   getRowId={(params) => params.data.id}
@@ -284,171 +482,130 @@ const {
   suppressMovableColumns
   onCellClicked={onCellClicked}
   onSelectionChanged={handleSelectionChanged}
+  onSortChanged={pageConfig.onSortChanged}
   rowStyle={{ cursor: "pointer" }}
-  initialState={initialState}
-  onStateUpdated={onStateUpdated}
-  onSortChanged={onSortChanged}
+  initialState={pageConfig.gridStateProps.initialState}
+  onStateUpdated={pageConfig.gridStateProps.onStateUpdated}
 />
 ```
-
-`rowData` остается `bundles`, но это уже не mock data. Это alias для `items` из API hook.
 
 `CursorPagination`:
 
 ```tsx
 <CursorPagination
+  name="bundles"
   total={totalCount}
-  rangeStart={totalCount === 0 ? 0 : 1}
-  rangeEnd={bundles.length}
-  pageSize={pageSize}
+  rangeStart={pageConfig.getRangeStart(bundles.length)}
+  rangeEnd={Math.min(pageConfig.getRangeEnd(bundles.length), totalCount)}
+  pageSize={pageConfig.pageSize}
+  pageSizeOptions={pageConfig.pageSizeOptions}
   hasNext={pageInfo?.hasNextPage ?? false}
   hasPrev={pageInfo?.hasPreviousPage ?? false}
-  onNext={goNext}
-  onPrev={goPrev}
-  onPageSizeChange={changePageSize}
+  onNext={handleNextPage}
+  onPrev={handlePrevPage}
+  onPageSizeChange={pageConfig.setPageSize}
 />
 ```
 
-Добавить handlers:
+## Колонки и сортировка
+
+Оставить текущие `columnDefs`, но проверить sortable behavior:
 
 ```ts
-const goNext = useCallback(() => {
-  if (!pageInfo?.endCursor) return;
-  setCursor({ direction: "next", after: pageInfo.endCursor });
-}, [pageInfo?.endCursor]);
-
-const goPrev = useCallback(() => {
-  if (!pageInfo?.startCursor) return;
-  setCursor({ direction: "prev", before: pageInfo.startCursor });
-}, [pageInfo?.startCursor]);
-
-const changePageSize = useCallback((nextPageSize: number) => {
-  setPageSize(nextPageSize);
-  setCursor({ direction: null });
-}, []);
+const columnDefs = useMemo<ColDef<ApiBundle>[]>(
+  () => [
+    {
+      headerName: "Bundle",
+      field: "title",
+      cellRenderer: BundleCellRenderer,
+      minWidth: 280,
+    },
+    {
+      headerName: "Type",
+      field: "type",
+      cellRenderer: BundleTypeCellRenderer,
+      minWidth: 140,
+    },
+    {
+      headerName: "Status",
+      field: "isPublished",
+      cellRenderer: StatusCellRenderer,
+      minWidth: 120,
+      resizable: false,
+      sortable: false,
+    },
+  ],
+  [],
+);
 ```
 
-Если текущий `CursorPagination` требует другой тип аргументов для `onPageSizeChange`, использовать фактический prop type компонента.
+Почему `Status` `sortable: false`: UI-колонка показывает boolean `isPublished`, а серверная сортировка доступна по `publishedAt`. Это не прямой эквивалент сортировки boolean-статуса, поэтому колонка не должна показывать серверную сортировку до отдельного решения UX/API.
 
-## Сортировка реальной таблицы
+Сортируемые поля:
 
-Сейчас:
-
-```ts
-const { onSortChanged } = useGridSort({
-  gridRef,
-  onSortChange: (model) => {
-    console.log("Sort changed:", model);
-  },
-});
-```
-
-Должно стать:
-
-```ts
-const { onSortChanged } = useGridSort({
-  gridRef,
-  onSortChange: (model) => {
-    setOrderBy(mapBundleGridSortToOrderBy(model));
-    resetCursor();
-  },
-});
-```
-
-Создать mapper `admin/src/domains/promos/bundles/mappers/bundle-list-query.mapper.ts`:
-
-```ts
-import type { SortModelItem } from "ag-grid-community";
-import type { ApiBundleOrderByInput } from "@/graphql/types";
-
-export function mapBundleGridSortToOrderBy(
-  model: SortModelItem[],
-): ApiBundleOrderByInput[] {
-  return model.flatMap((item) => {
-    const direction = item.sort === "desc" ? "DESC" : "ASC";
-
-    switch (item.colId) {
-      case "title":
-        return [{ name: direction }];
-      default:
-        return [];
-    }
-  });
-}
-```
-
-Перед реализацией проверить фактический generated тип `ApiBundleOrderByInput`. Если поле называется не `name`, использовать реальное поле из `admin/src/graphql/types.ts`.
-
-Для колонок `type` и `isPublished`, если API не поддерживает сортировку по ним, выставить в `columnDefs` `sortable: false`, чтобы UI не показывал нерабочую сортировку.
-
-## Фильтры и поиск
-
-`FilterWidget` уже подключен в `page.tsx`, но текущий файл не передает filter state в `useBundles`.
-
-Нужно:
-
-1. Проверить фактический контракт `useFilters`.
-2. Получить из него состояние фильтров, если оно доступно.
-3. Создать mapper в `bundle-list-query.mapper.ts`, который возвращает `ApiBundleWhereInput`.
-4. Добавить `where` в `queryState`.
-5. При изменении `searchValue` или фильтров вызывать `resetCursor()`.
-
-Для поиска по названию:
-
-```ts
-where: mapBundleFiltersToWhere({
-  searchValue,
-  filters,
-})
-```
-
-Mapper должен использовать только реальные поля `ApiBundleWhereInput` из generated types. Не добавлять frontend-only поля.
-
-## Loading, error, empty
-
-Подключить состояния к той же таблице:
-
-| Состояние hook | UI поведение |
+| Column `field` | API order field |
 | --- | --- |
-| `loading` | Показать AG Grid loading overlay или loading state существующего layout-а. |
-| `error` | Показать inline error над таблицей и кнопку `refetch`. |
-| `bundles.length === 0 && !loading` | Показать empty state таблицы. |
+| `title` | `BundleOrderField.Name` |
+| `type` | `BundleOrderField.BundleType` |
 
-Если текущая версия AG Grid поддерживает `loading`, передать prop. Если нет, управлять overlay через `gridRef.current?.api` в `useEffect`.
+## Error/loading
 
-## Файлы, которые нужно изменить
+Как на Products page, добавить `Alert` перед таблицей:
+
+```tsx
+{error && (
+  <Alert
+    type="error"
+    message={error.message}
+    showIcon
+    style={{ marginBottom: 12 }}
+  />
+)}
+```
+
+И передать loading в grid:
+
+```tsx
+loading={loading}
+```
+
+## Файлы
 
 | Файл | Изменение |
 | --- | --- |
-| `admin/src/domains/promos/bundles/graphql/fragments.ts` | Добавить fragment для текущих колонок таблицы. |
-| `admin/src/domains/promos/bundles/graphql/queries.ts` | Добавить `BUNDLES_QUERY`. |
-| `admin/src/domains/promos/bundles/graphql/operation-types.ts` | Добавить типы operation data/variables. |
-| `admin/src/domains/promos/bundles/graphql/index.ts` | Экспортировать operations и operation types. |
-| `admin/src/domains/promos/bundles/hooks/use-bundles.ts` | Заменить mock hook на Apollo `useQuery`. |
-| `admin/src/domains/promos/bundles/mappers/bundle-list-query.mapper.ts` | Добавить mapper сортировки и фильтров. |
-| `admin/src/domains/promos/bundles/mappers/index.ts` | Экспортировать mapper. |
-| `admin/src/domains/promos/bundles/page/page.tsx` | Подключить API hook к существующей таблице, pagination, sort, loading/error. |
+| `admin/src/domains/promos/bundles/graphql/fragments.ts` | Fragment для строк текущей таблицы. |
+| `admin/src/domains/promos/bundles/graphql/queries.ts` | `BUNDLES_QUERY`. |
+| `admin/src/domains/promos/bundles/graphql/operation-types.ts` | Operation data/variables. |
+| `admin/src/domains/promos/bundles/graphql/index.ts` | Экспорт operations/types. |
+| `admin/src/domains/promos/bundles/hooks/use-bundles.ts` | API-backed Relay connection hook через `useRelayConnectionQuery`. |
+| `admin/src/domains/promos/bundles/page/page-config.ts` | Search, filters, sort mapping, query variables. |
+| `admin/src/domains/promos/bundles/page/page.tsx` | Интеграция через `useInventoryRelayListPage`. |
 
 ## Что не делать
 
 - Не создавать новую таблицу.
-- Не добавлять новые колонки сверх текущих `Bundle`, `Type`, `Status`.
+- Не добавлять новые колонки.
+- Не писать ручной pagination state вместо `usePageConfig`.
+- Не писать ручной `useGridSort` вместо `pageConfig.onSortChanged`.
+- Не писать ручной `useFilters` вместо `pageConfig.filterWidgetProps`.
+- Не писать ручной unwrap Relay connection через `useQuery`; использовать `useRelayConnectionQuery`.
 - Не маппить `ApiBundle` в локальную view model.
 - Не использовать `admin/src/mocks/products/bundles-list.ts` в API hook.
 - Не запускать `test` и `tsc`.
 - Не редактировать changeset.
 
-## Проверка после реализации
+## Проверка
 
 Ручная проверка:
 
-- открыть страницу Bundles;
-- убедиться, что текущая AG Grid таблица заполняется из `catalogQuery.bundles`;
-- проверить, что `BundleCellRenderer` показывает `title` и image из API;
-- проверить, что `Type` и `Status` читаются из API;
-- проверить next/prev в `CursorPagination`;
-- проверить click по row: модалка открывается с `entityId = ApiBundle.id`;
-- проверить empty/error/loading состояния.
+- таблица Bundles показывает rows из `catalogQuery.bundles`;
+- search работает по `name`;
+- фильтр `Bundle Type` отправляет `where.bundleType`;
+- фильтр `Status` отправляет условие по `publishedAt`;
+- сортировка `Bundle` отправляет `BundleOrderField.Name`;
+- сортировка `Type` отправляет `BundleOrderField.BundleType`;
+- `Status` не показывает нерабочую серверную сортировку;
+- pagination использует `pageConfig` и `pageInfo`;
+- row click открывает bundle modal с `ApiBundle.id`.
 
 Если нужна проверка сборкой, запускать build, не `test` и не `tsc`.
-
