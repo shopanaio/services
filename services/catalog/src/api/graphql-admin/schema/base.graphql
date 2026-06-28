@@ -79,6 +79,20 @@ type CatalogQuery {
     meta: ProductProductsMetaInput
   ): ProductConnection!
 
+  """Get a bundle by Product global ID. The product must have kind = BUNDLE."""
+  bundle(id: ID!): Bundle
+
+  """Get bundles with Relay-style pagination."""
+  bundles(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: BundleWhereInput
+    orderBy: [BundleOrderByInput!]
+    meta: BundleBundlesMetaInput
+  ): BundleConnection!
+
   """
   Get a variant by ID
   """
@@ -431,6 +445,37 @@ type CatalogMutation {
     """Product-level operations."""
     operations: ProductUpdateInput
   ): ProductUpdatePayload!
+
+  """Create a new bundle sellable item."""
+  bundleCreate(input: BundleCreateInput!): BundleCreatePayload!
+
+  """Unified bundle update with optimistic locking."""
+  bundleUpdate(
+    """The bundle ID to update."""
+    bundleId: ID!
+    """Expected revision for optimistic locking."""
+    expectedRevision: Int!
+    """Bundle-level operations."""
+    operations: BundleUpdateInput
+  ): BundleUpdatePayload!
+
+  """Create one bundle configuration."""
+  bundleConfigurationCreate(input: BundleConfigurationCreateInput!): BundleConfigurationPayload!
+
+  """Update configuration metadata."""
+  bundleConfigurationUpdate(input: BundleConfigurationUpdateInput!): BundleConfigurationPayload!
+
+  """Delete one bundle configuration with optimistic locking."""
+  bundleConfigurationDelete(input: BundleConfigurationDeleteInput!): BundleConfigurationDeletePayload!
+
+  """Sync all groups/items for one bundle configuration."""
+  bundleGroupsSync(input: BundleGroupsSyncInput!): BundleGroupsSyncPayload!
+
+  """Sync all reusable pricing templates for one bundle configuration."""
+  bundlePricingTemplatesSync(input: BundlePricingTemplatesSyncInput!): BundlePricingTemplatesSyncPayload!
+
+  """Sync all dependency rules for one bundle configuration."""
+  bundleDependencyRulesSync(input: BundleDependencyRulesSyncInput!): BundleDependencyRulesSyncPayload!
 
   # Variant mutations
 

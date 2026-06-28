@@ -385,197 +385,834 @@ export type ApiBulkUpdateUserError = ApiUserError & {
   variantId?: Maybe<Scalars['ID']['output']>;
 };
 
-/** A group of items within a bundle (e.g., "Choose your processor", "Select accessories"). */
-export type ApiBundleGroup = ApiNode & {
-  __typename?: 'BundleGroup';
+export type ApiBundle = ApiCatalogSellable & ApiNode & {
+  __typename?: 'Bundle';
+  /** Category assignments with relationship metadata. */
+  categoryAssignments: Array<ApiProductCategoryAssignment>;
+  /** All bundle configurations for this bundle. */
+  configurations: Array<ApiBundleConfiguration>;
+  /** The date and time when the bundle was created. */
   createdAt: Scalars['DateTime']['output'];
+  /** The date and time when the bundle was deleted (soft delete). */
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Bundle description. */
+  description?: Maybe<ApiRichText>;
+  /** Configurator display style. */
+  displayStyle: BundleDisplayStyle;
+  /** Short excerpt. */
+  excerpt?: Maybe<ApiRichText>;
+  /** The features of this bundle. */
+  features: Array<ApiProductFeature>;
+  /** The URL-friendly handle for the bundle. */
+  handle?: Maybe<Scalars['String']['output']>;
+  /** The Product global ID of the bundle sellable item. */
   id: Scalars['ID']['output'];
-  items: Array<ApiBundleItem>;
-  maxSelection?: Maybe<Scalars['Int']['output']>;
-  minSelection?: Maybe<Scalars['Int']['output']>;
-  productId: Scalars['ID']['output'];
-  sortIndex: Scalars['Int']['output'];
+  /** Whether the bundle is currently published. */
+  isPublished: Scalars['Boolean']['output'];
+  /** Product discriminator. Always BUNDLE for this type. */
+  kind: ProductKind;
+  /** Media registered on this bundle. */
+  media: Array<ApiProductMediaItem>;
+  /** The options available for this bundle. */
+  options: Array<ApiProductOption>;
+  /** The primary category assigned to this bundle. */
+  primaryCategory?: Maybe<ApiCategory>;
+  /** The date and time when the bundle was published, or null if unpublished. */
+  publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Optimistic locking revision number. Incremented on each update. */
+  revision: Scalars['Int']['output'];
+  /** SEO and Open Graph metadata. */
+  seo?: Maybe<ApiProductSeo>;
+  /** The tags associated with this bundle. */
+  tags: Array<ApiTag>;
+  /** Bundle title. */
   title: Scalars['String']['output'];
+  /** High-level bundle type. */
+  type?: Maybe<BundleType>;
+  /** The date and time when the bundle was last updated. */
+  updatedAt: Scalars['DateTime']['output'];
+  /** The variants of this bundle. */
+  variants: ApiVariantConnection;
+  /** The total number of variants for this bundle. */
+  variantsCount: Scalars['Int']['output'];
+  /** The vendor associated with this bundle. */
+  vendor?: Maybe<ApiVendor>;
+};
+
+
+export type ApiBundleVariantsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiBundleBasePriceRule = ApiBundlePriceRule & ApiNode & {
+  __typename?: 'BundleBasePriceRule';
+  /** The globally unique ID of the price rule. */
+  id: Scalars['ID']['output'];
+  /** Pricing strategy. */
+  priceType: BundlePriceType;
+};
+
+export type ApiBundleBundlesMetaInput = {
+  categoriesScope?: InputMaybe<ApiProductCategoriesScopeInput>;
+};
+
+export type ApiBundleCondition = ApiNode & {
+  __typename?: 'BundleCondition';
+  /** Condition category. */
+  category: BundleConditionCategory;
+  /** The globally unique ID of the condition. */
+  id: Scalars['ID']['output'];
+  /** Condition operator. */
+  operator: BundleConditionOperator;
+  /** Sort order within the condition group. */
+  sortIndex: Scalars['Int']['output'];
+  /** Condition subject. */
+  subject: BundleConditionSubject;
+  /** Target ID. Points to an item, group, or the parent bundle product. */
+  targetId: Scalars['ID']['output'];
+  /** Target type. */
+  targetType: BundleDependencyTargetType;
+  /** Numeric value for numeric conditions. */
+  value?: Maybe<Scalars['Int']['output']>;
+};
+
+export enum BundleConditionCategory {
+  Numeric = 'NUMERIC',
+  StateCheck = 'STATE_CHECK'
+}
+
+export type ApiBundleConditionGroup = ApiNode & {
+  __typename?: 'BundleConditionGroup';
+  /** Conditions in this group. */
+  conditions: Array<ApiBundleCondition>;
+  /** The globally unique ID of the condition group. */
+  id: Scalars['ID']['output'];
+  /** How conditions are combined. */
+  logicOperator: BundleLogicOperator;
+  /** Sort order within the rule. */
+  sortIndex: Scalars['Int']['output'];
+};
+
+export type ApiBundleConditionGroupSyncInput = {
+  /** Complete list of conditions. */
+  conditions: Array<ApiBundleConditionSyncInput>;
+  /** Existing condition group ID. Null creates a new group. */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** How conditions are combined. */
+  logicOperator: BundleLogicOperator;
+  /** Sort order within the rule. */
+  sortIndex: Scalars['Int']['input'];
+};
+
+export enum BundleConditionOperator {
+  Eq = 'EQ',
+  Gte = 'GTE',
+  IsNotSelected = 'IS_NOT_SELECTED',
+  IsSelected = 'IS_SELECTED',
+  Lte = 'LTE'
+}
+
+export enum BundleConditionSubject {
+  GroupTotalQty = 'GROUP_TOTAL_QTY',
+  ItemQty = 'ITEM_QTY',
+  ItemSelected = 'ITEM_SELECTED'
+}
+
+export type ApiBundleConditionSyncInput = {
+  /** Condition category. */
+  category: BundleConditionCategory;
+  /** Existing condition ID. Null creates a new condition. */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Condition operator. */
+  operator: BundleConditionOperator;
+  /** Sort order within the condition group. */
+  sortIndex: Scalars['Int']['input'];
+  /** Condition subject. */
+  subject: BundleConditionSubject;
+  /** Target ID. Points to an item, group, or the parent bundle product. */
+  targetId: Scalars['ID']['input'];
+  /** Target type. */
+  targetType: BundleDependencyTargetType;
+  /** Numeric value for numeric conditions. */
+  value?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ApiBundleConfiguration = ApiNode & {
+  __typename?: 'BundleConfiguration';
+  /** The bundle root this configuration belongs to. */
+  bundle: ApiBundle;
+  /** The Product global ID of the bundle this configuration belongs to. */
+  bundleId: Scalars['ID']['output'];
+  /** The date and time when the configuration was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Dependency rules in priority order. */
+  dependencyRules: Array<ApiBundleDependencyRule>;
+  /** Groups in configurator order. */
+  groups: Array<ApiBundleGroup>;
+  /** The globally unique ID of the configuration. */
+  id: Scalars['ID']['output'];
+  /** Configuration name. */
+  name: Scalars['String']['output'];
+  /** Reusable pricing templates. */
+  pricingTemplates: Array<ApiBundlePricingTemplate>;
+  /** The date and time when the configuration was last updated. */
+  updatedAt: Scalars['DateTime']['output'];
+  /** Variants that use this configuration. */
+  variants: Array<ApiVariant>;
+};
+
+export type ApiBundleConfigurationCreateInput = {
+  /** Product global ID of the bundle. */
+  bundleId: Scalars['ID']['input'];
+  /** Expected parent bundle product revision. Required for optimistic locking. */
+  expectedRevision: Scalars['Int']['input'];
+  /** Configuration name. */
+  name: Scalars['String']['input'];
+};
+
+export type ApiBundleConfigurationDeleteInput = {
+  expectedRevision: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+};
+
+export type ApiBundleConfigurationDeletePayload = {
+  __typename?: 'BundleConfigurationDeletePayload';
+  bundle?: Maybe<ApiBundle>;
+  deletedConfigurationId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiBundleConfigurationPayload = {
+  __typename?: 'BundleConfigurationPayload';
+  configuration?: Maybe<ApiBundleConfiguration>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiBundleConfigurationUpdateInput = {
+  expectedRevision: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** A connection to a list of Bundle items. */
+export type ApiBundleConnection = {
+  __typename?: 'BundleConnection';
+  /** A list of edges. */
+  edges: Array<ApiBundleEdge>;
+  /** Information to aid in pagination. */
+  pageInfo: ApiPageInfo;
+  /** The total number of bundles. */
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiBundleCreateInput = {
+  /** Bundle description. */
+  description?: InputMaybe<ApiRichTextInput>;
+  /** Configurator display style. */
+  displayStyle?: InputMaybe<BundleDisplayStyle>;
+  /** Short excerpt in multiple formats. */
+  excerpt?: InputMaybe<ApiRichTextInput>;
+  /** URL-friendly handle for the bundle. */
+  handle: Scalars['String']['input'];
+  /** Inventory tracking settings for the bundle. */
+  inventoryItem?: InputMaybe<ApiInventoryItemInput>;
+  /** File IDs for bundle media (already uploaded via mediaMutation.fileUpload). */
+  mediaFileIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Bundle options. */
+  options?: InputMaybe<Array<ApiProductCreateOptionInput>>;
+  /** Bundle title. */
+  title: Scalars['String']['input'];
+  /** High-level bundle type. */
+  type?: InputMaybe<BundleType>;
+  /** Bundle variants to create. */
+  variants?: InputMaybe<Array<ApiProductCreateVariantInput>>;
+  /** Vendor ID to associate with the bundle. */
+  vendorId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ApiBundleCreatePayload = {
+  __typename?: 'BundleCreatePayload';
+  bundle?: Maybe<ApiBundle>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiBundleDependencyAction = ApiNode & {
+  __typename?: 'BundleDependencyAction';
+  /** Action type. */
+  actionType: BundleDependencyActionType;
+  /** The globally unique ID of the action. */
+  id: Scalars['ID']['output'];
+  /** Price rule for ADJUST_PRICE. */
+  priceRule?: Maybe<ApiBundlePriceRule>;
+  /** Required value for SET_REQUIRED. */
+  requiredValue?: Maybe<Scalars['Boolean']['output']>;
+  /** Sort order within the rule. */
+  sortIndex: Scalars['Int']['output'];
+  /** Whether this action can stack with other matching actions. */
+  stackable: Scalars['Boolean']['output'];
+  /** Target ID. Null is allowed when targetType is BUNDLE. */
+  targetId?: Maybe<Scalars['ID']['output']>;
+  /** Target type. */
+  targetType: BundleDependencyTargetType;
+};
+
+export type ApiBundleDependencyActionSyncInput = {
+  /** Action type. */
+  actionType: BundleDependencyActionType;
+  /** Existing action ID. Null creates a new action. */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Price rule for ADJUST_PRICE. */
+  priceRule?: InputMaybe<ApiBundlePriceRuleInput>;
+  /** Required value for SET_REQUIRED. */
+  requiredValue?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Sort order within the rule. */
+  sortIndex: Scalars['Int']['input'];
+  /** Whether this action can stack with other matching actions. */
+  stackable: Scalars['Boolean']['input'];
+  /** Target ID. Null is allowed when targetType is BUNDLE. */
+  targetId?: InputMaybe<Scalars['ID']['input']>;
+  /** Target type. */
+  targetType: BundleDependencyTargetType;
+};
+
+export enum BundleDependencyActionType {
+  AdjustPrice = 'ADJUST_PRICE',
+  Hide = 'HIDE',
+  SetRequired = 'SET_REQUIRED',
+  Show = 'SHOW'
+}
+
+export type ApiBundleDependencyRule = ApiNode & {
+  __typename?: 'BundleDependencyRule';
+  /** Actions applied when conditions match. */
+  actions: Array<ApiBundleDependencyAction>;
+  /** Condition groups. */
+  conditionGroups: Array<ApiBundleConditionGroup>;
+  /** The date and time when the rule was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Whether the rule is enabled. */
+  enabled: Scalars['Boolean']['output'];
+  /** The globally unique ID of the dependency rule. */
+  id: Scalars['ID']['output'];
+  /** How condition groups are combined. */
+  logicOperator: BundleLogicOperator;
+  /** Rule name. */
+  name: Scalars['String']['output'];
+  /** Rule priority. Lower values are evaluated first. */
+  priority: Scalars['Int']['output'];
+  /** The date and time when the rule was last updated. */
   updatedAt: Scalars['DateTime']['output'];
 };
 
-export type ApiBundleGroupCreateInput = {
+export type ApiBundleDependencyRuleSyncItemInput = {
+  /** Complete list of actions. */
+  actions: Array<ApiBundleDependencyActionSyncInput>;
+  /** Complete list of condition groups. */
+  conditionGroups: Array<ApiBundleConditionGroupSyncInput>;
+  /** Whether the rule is enabled. */
+  enabled: Scalars['Boolean']['input'];
+  /**
+   * Existing dependency rule ID. Null creates a new rule.
+   * Existing rules in this configuration but missing from
+   * BundleDependencyRulesSyncInput.dependencyRules are deleted.
+   */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** How condition groups are combined. */
+  logicOperator: BundleLogicOperator;
+  /** Rule name. */
+  name: Scalars['String']['input'];
+  /** Rule priority. */
+  priority: Scalars['Int']['input'];
+};
+
+export type ApiBundleDependencyRulesSyncInput = {
+  configurationId: Scalars['ID']['input'];
+  /**
+   * Complete list of dependency rules for this configuration.
+   * Rules not present in this list are deleted.
+   */
+  dependencyRules: Array<ApiBundleDependencyRuleSyncItemInput>;
+  expectedRevision: Scalars['Int']['input'];
+};
+
+export type ApiBundleDependencyRulesSyncPayload = {
+  __typename?: 'BundleDependencyRulesSyncPayload';
+  configuration?: Maybe<ApiBundleConfiguration>;
+  dependencyRules: Array<ApiBundleDependencyRule>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export enum BundleDependencyTargetType {
+  Bundle = 'BUNDLE',
+  Group = 'GROUP',
+  Item = 'ITEM'
+}
+
+export type ApiBundleDiscountFixedPriceRule = ApiBundlePriceRule & ApiNode & {
+  __typename?: 'BundleDiscountFixedPriceRule';
+  /** Money values for DISCOUNT_FIXED rules. */
+  amounts: Array<ApiBundlePriceRuleAmount>;
+  /** The globally unique ID of the price rule. */
+  id: Scalars['ID']['output'];
+  /** Pricing strategy. */
+  priceType: BundlePriceType;
+};
+
+export type ApiBundleDiscountPercentPriceRule = ApiBundlePriceRule & ApiNode & {
+  __typename?: 'BundleDiscountPercentPriceRule';
+  /** The globally unique ID of the price rule. */
+  id: Scalars['ID']['output'];
+  /** Percent row for DISCOUNT_PERCENT rules. */
+  percent: ApiBundlePriceRulePercent;
+  /** Pricing strategy. */
+  priceType: BundlePriceType;
+};
+
+export enum BundleDisplayStyle {
+  Accordion = 'ACCORDION',
+  Flat = 'FLAT',
+  Tabs = 'TABS',
+  Wizard = 'WIZARD'
+}
+
+/** An edge in a Bundle connection. */
+export type ApiBundleEdge = {
+  __typename?: 'BundleEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String']['output'];
+  /** The item at the end of the edge. */
+  node: ApiBundle;
+};
+
+export type ApiBundleFixedPriceRule = ApiBundlePriceRule & ApiNode & {
+  __typename?: 'BundleFixedPriceRule';
+  /** Money values for FIXED rules. */
+  amounts: Array<ApiBundlePriceRuleAmount>;
+  /** The globally unique ID of the price rule. */
+  id: Scalars['ID']['output'];
+  /** Pricing strategy. */
+  priceType: BundlePriceType;
+};
+
+export type ApiBundleFreePriceRule = ApiBundlePriceRule & ApiNode & {
+  __typename?: 'BundleFreePriceRule';
+  /** The globally unique ID of the price rule. */
+  id: Scalars['ID']['output'];
+  /** Pricing strategy. */
+  priceType: BundlePriceType;
+};
+
+export type ApiBundleGroup = ApiNode & {
+  __typename?: 'BundleGroup';
+  /** The date and time when the group was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** The globally unique ID of the group. */
+  id: Scalars['ID']['output'];
+  /** Items in group order. */
+  items: Array<ApiBundleItem>;
+  /** Maximum selected items in this group. Null means no maximum. */
+  maxSelection?: Maybe<Scalars['Int']['output']>;
+  /** Minimum selected items in this group. Null means no minimum. */
+  minSelection?: Maybe<Scalars['Int']['output']>;
+  /** Sort order within the configuration. */
+  sortIndex: Scalars['Int']['output'];
+  /** Display title from current locale. */
+  title: Scalars['String']['output'];
+  /** The date and time when the group was last updated. */
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiBundleGroupSyncItemInput = {
+  /**
+   * Existing group ID. Null creates a new group.
+   * Existing groups in this configuration but missing from BundleGroupsSyncInput.groups are deleted.
+   */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Complete list of items inside this group. */
+  items: Array<ApiBundleItemSyncInput>;
   maxSelection?: InputMaybe<Scalars['Int']['input']>;
   minSelection?: InputMaybe<Scalars['Int']['input']>;
-  productId: Scalars['ID']['input'];
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  /** Sort order within the configuration. */
+  sortIndex: Scalars['Int']['input'];
+  /** Localized title for current locale. */
   title: Scalars['String']['input'];
 };
 
-export type ApiBundleGroupPayload = {
-  __typename?: 'BundleGroupPayload';
-  bundleGroup?: Maybe<ApiBundleGroup>;
-  userErrors: Array<ApiUserError>;
+export type ApiBundleGroupsSyncInput = {
+  configurationId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  /**
+   * Complete list of groups for this configuration.
+   * Groups not present in this list are deleted.
+   */
+  groups: Array<ApiBundleGroupSyncItemInput>;
 };
 
-export type ApiBundleGroupUpdateInput = {
-  id: Scalars['ID']['input'];
-  maxSelection?: InputMaybe<Scalars['Int']['input']>;
-  minSelection?: InputMaybe<Scalars['Int']['input']>;
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
-  title?: InputMaybe<Scalars['String']['input']>;
+export type ApiBundleGroupsSyncPayload = {
+  __typename?: 'BundleGroupsSyncPayload';
+  configuration?: Maybe<ApiBundleConfiguration>;
+  groups: Array<ApiBundleGroup>;
+  userErrors: Array<ApiGenericUserError>;
 };
 
-/** An individual item within a bundle group. */
 export type ApiBundleItem = ApiNode & {
   __typename?: 'BundleItem';
+  /** The date and time when the item was created. */
   createdAt: Scalars['DateTime']['output'];
-  /** Default quantity when item is added to cart */
-  defaultQty: Scalars['Int']['output'];
-  /** Excluded variant IDs when itemType is PRODUCT */
-  excludedVariantIds?: Maybe<Array<Scalars['ID']['output']>>;
-  /** Custom featured image override */
-  featuredImageId?: Maybe<Scalars['ID']['output']>;
+  /** Default quantity. */
+  defaultQty?: Maybe<Scalars['Int']['output']>;
+  /** Featured image override. */
+  featuredImage?: Maybe<ApiFile>;
+  /** The group this item belongs to. */
+  group: ApiBundleGroup;
+  /** The group ID. */
   groupId: Scalars['ID']['output'];
+  /** The globally unique ID of the item. */
   id: Scalars['ID']['output'];
+  /** Whether the item references a product or a concrete variant. */
   itemType: BundleItemType;
-  /** Maximum quantity that can be selected (null = unlimited) */
+  /** Maximum selectable quantity. Null means unlimited. */
   maxQty?: Maybe<Scalars['Int']['output']>;
-  /** Minimum quantity that can be selected */
-  minQty: Scalars['Int']['output'];
-  /** Inline pricing type */
-  priceType?: Maybe<BundlePriceType>;
-  /** Inline pricing value (cents) */
-  priceValue?: Maybe<Scalars['Int']['output']>;
-  /** Resolved pricing template */
+  /** Minimum selectable quantity. */
+  minQty?: Maybe<Scalars['Int']['output']>;
+  /** Allowed option/value selections for PRODUCT items. */
+  optionSelections: Array<ApiBundleItemOptionSelection>;
+  /** Inline price rule. Null when pricingTemplate is used. */
+  priceRule?: Maybe<ApiBundlePriceRule>;
+  /** Reusable pricing template. Null when inline priceRule is used. */
   pricingTemplate?: Maybe<ApiBundlePricingTemplate>;
-  /** Reference to a pricing template */
-  pricingTemplateId?: Maybe<Scalars['ID']['output']>;
-  /** Reference to product (when itemType is PRODUCT) */
+  /** Referenced product for PRODUCT items. */
+  refProduct?: Maybe<ApiProduct>;
+  /** Referenced product ID for PRODUCT items. */
   refProductId?: Maybe<Scalars['ID']['output']>;
-  /** Reference to variant (when itemType is VARIANT) */
+  /** Referenced variant for VARIANT items. */
+  refVariant?: Maybe<ApiVariant>;
+  /** Referenced variant ID for VARIANT items. */
   refVariantId?: Maybe<Scalars['ID']['output']>;
-  /** Whether item is selected by default */
+  /** Whether item is selected by default. */
   selected: Scalars['Boolean']['output'];
+  /** Sort order within the group. */
   sortIndex: Scalars['Int']['output'];
-  /** Custom title override for this bundle item */
+  /** Optional display title override from current locale. */
   title?: Maybe<Scalars['String']['output']>;
+  /** The date and time when the item was last updated. */
   updatedAt: Scalars['DateTime']['output'];
-  /** Whether item is visible in the bundle configurator */
+  /** Whether item is visible in the configurator. */
   visible: Scalars['Boolean']['output'];
 };
 
-export type ApiBundleItemCreateInput = {
+export type ApiBundleItemOptionSelection = ApiNode & {
+  __typename?: 'BundleItemOptionSelection';
+  /** The globally unique ID of the option selection. */
+  id: Scalars['ID']['output'];
+  /** Referenced product option. */
+  option: ApiProductOption;
+  /** Referenced product option ID. */
+  optionId: Scalars['ID']['output'];
+  /** Parent option for dependent option trees. */
+  parentOption?: Maybe<ApiProductOption>;
+  /** Parent option ID. */
+  parentOptionId?: Maybe<Scalars['ID']['output']>;
+  /** Sort order within item option selections. */
+  sortIndex: Scalars['Int']['output'];
+  /** Allowed values for this option. */
+  values: Array<ApiBundleItemOptionValueSelection>;
+};
+
+export type ApiBundleItemOptionSelectionSyncInput = {
+  /** Existing option selection ID. Null creates a new option selection. */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Referenced product option ID. */
+  optionId: Scalars['ID']['input'];
+  /** Parent option ID for dependent option trees. */
+  parentOptionId?: InputMaybe<Scalars['ID']['input']>;
+  /** Sort order within option selections. */
+  sortIndex: Scalars['Int']['input'];
+  /** Complete list of option value selections. */
+  values: Array<ApiBundleItemOptionValueSelectionSyncInput>;
+};
+
+export type ApiBundleItemOptionValueSelection = ApiNode & {
+  __typename?: 'BundleItemOptionValueSelection';
+  /** The globally unique ID of the option value selection. */
+  id: Scalars['ID']['output'];
+  /** Referenced product option value. Null when the value is unavailable. */
+  optionValue?: Maybe<ApiProductOptionValue>;
+  /** Referenced product option value ID. */
+  optionValueId?: Maybe<Scalars['ID']['output']>;
+  /** Sort order within option values. */
+  sortIndex: Scalars['Int']['output'];
+  /** Selection status. */
+  status: BundleItemOptionValueSelectionStatus;
+  /** Stable value copy for displaying stale/unavailable values. */
+  value: Scalars['String']['output'];
+};
+
+export enum BundleItemOptionValueSelectionStatus {
+  Deselected = 'DESELECTED',
+  New = 'NEW',
+  Selected = 'SELECTED',
+  Unavailable = 'UNAVAILABLE'
+}
+
+export type ApiBundleItemOptionValueSelectionSyncInput = {
+  /** Existing value selection ID. Null creates a new value selection. */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Referenced product option value ID. */
+  optionValueId?: InputMaybe<Scalars['ID']['input']>;
+  /** Sort order within option values. */
+  sortIndex: Scalars['Int']['input'];
+  /** Selection status. */
+  status: BundleItemOptionValueSelectionStatus;
+  /** Stable value copy for displaying stale/unavailable values. */
+  value: Scalars['String']['input'];
+};
+
+export type ApiBundleItemSyncInput = {
+  /** Default quantity. */
   defaultQty?: InputMaybe<Scalars['Int']['input']>;
-  excludedVariantIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Featured image override. */
   featuredImageId?: InputMaybe<Scalars['ID']['input']>;
-  groupId: Scalars['ID']['input'];
+  /**
+   * Existing item ID. Null creates a new item.
+   * Existing items in this group but missing from BundleGroupSyncItemInput.items are deleted.
+   */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Whether the item references a product or a concrete variant. */
   itemType: BundleItemType;
+  /** Maximum selectable quantity. */
   maxQty?: InputMaybe<Scalars['Int']['input']>;
+  /** Minimum selectable quantity. */
   minQty?: InputMaybe<Scalars['Int']['input']>;
-  priceType?: InputMaybe<BundlePriceType>;
-  priceValue?: InputMaybe<Scalars['Int']['input']>;
+  /** Allowed option/value selections for PRODUCT items. */
+  optionSelections?: InputMaybe<Array<ApiBundleItemOptionSelectionSyncInput>>;
+  /** Inline price rule. Cannot be used together with pricingTemplateId. */
+  priceRule?: InputMaybe<ApiBundlePriceRuleInput>;
+  /** Reusable pricing template ID. Cannot be used together with priceRule. */
   pricingTemplateId?: InputMaybe<Scalars['ID']['input']>;
+  /** Referenced product ID for PRODUCT items. */
   refProductId?: InputMaybe<Scalars['ID']['input']>;
+  /** Referenced variant ID for VARIANT items. */
   refVariantId?: InputMaybe<Scalars['ID']['input']>;
-  selected?: InputMaybe<Scalars['Boolean']['input']>;
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  /** Whether item is selected by default. */
+  selected: Scalars['Boolean']['input'];
+  /** Sort order within the group. */
+  sortIndex: Scalars['Int']['input'];
+  /** Optional localized title override for current locale. */
   title?: InputMaybe<Scalars['String']['input']>;
-  visible?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Whether item is visible in the configurator. */
+  visible: Scalars['Boolean']['input'];
 };
 
-export type ApiBundleItemPayload = {
-  __typename?: 'BundleItemPayload';
-  bundleItem?: Maybe<ApiBundleItem>;
-  userErrors: Array<ApiUserError>;
-};
-
-/** The type of item in a bundle group. */
 export enum BundleItemType {
-  /** Item references an entire product (variant selection happens at checkout) */
   Product = 'PRODUCT',
-  /** Item references a specific variant */
   Variant = 'VARIANT'
 }
 
-export type ApiBundleItemUpdateInput = {
-  defaultQty?: InputMaybe<Scalars['Int']['input']>;
-  excludedVariantIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  featuredImageId?: InputMaybe<Scalars['ID']['input']>;
-  id: Scalars['ID']['input'];
-  maxQty?: InputMaybe<Scalars['Int']['input']>;
-  minQty?: InputMaybe<Scalars['Int']['input']>;
-  priceType?: InputMaybe<BundlePriceType>;
-  priceValue?: InputMaybe<Scalars['Int']['input']>;
-  pricingTemplateId?: InputMaybe<Scalars['ID']['input']>;
-  selected?: InputMaybe<Scalars['Boolean']['input']>;
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
-  title?: InputMaybe<Scalars['String']['input']>;
-  visible?: InputMaybe<Scalars['Boolean']['input']>;
-};
-
-/** The pricing strategy for bundle items. */
-export enum BundlePriceType {
-  /** Discount by absolute amount (in cents) */
-  AmountOff = 'AMOUNT_OFF',
-  /** Use base product/variant price (no modification) */
-  Base = 'BASE',
-  /** Fixed price (overrides base price) */
-  Fixed = 'FIXED',
-  /** Item is free when included in bundle */
-  Free = 'FREE',
-  /** Discount by percentage (0-100) */
-  PercentOff = 'PERCENT_OFF'
+export enum BundleLogicOperator {
+  And = 'AND',
+  Or = 'OR'
 }
 
-/** A pricing template that can be reused across bundle items. */
+export type ApiBundleOrderByInput = {
+  direction: SortDirection;
+  field: BundleOrderField;
+};
+
+export enum BundleOrderField {
+  BrandName = 'brandName',
+  CreatedAt = 'createdAt',
+  Currency = 'currency',
+  Handle = 'handle',
+  Id = 'id',
+  Locale = 'locale',
+  MaxPriceMinor = 'maxPriceMinor',
+  MinPriceMinor = 'minPriceMinor',
+  Name = 'name',
+  PrimaryCategoryId = 'primaryCategoryId',
+  PrimaryCategoryName = 'primaryCategoryName',
+  PublishedAt = 'publishedAt',
+  UpdatedAt = 'updatedAt',
+  VendorId = 'vendorId'
+}
+
+export type ApiBundlePriceRule = {
+  /** The globally unique ID of the price rule. */
+  id: Scalars['ID']['output'];
+  /** Pricing strategy. */
+  priceType: BundlePriceType;
+};
+
+export type ApiBundlePriceRuleAmount = {
+  __typename?: 'BundlePriceRuleAmount';
+  /** Amount in minor units. */
+  amountMinor: Scalars['BigInt']['output'];
+  /** The currency code. */
+  currency: CurrencyCode;
+};
+
+export type ApiBundlePriceRuleAmountInput = {
+  /** Amount in minor units. */
+  amountMinor: Scalars['BigInt']['input'];
+  /** The currency code. */
+  currency: CurrencyCode;
+};
+
+export type ApiBundlePriceRuleInput = {
+  /** Money values for FIXED and DISCOUNT_FIXED rules. */
+  amounts?: InputMaybe<Array<ApiBundlePriceRuleAmountInput>>;
+  /** Existing price rule ID. Null creates a new price rule. */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Percent value for DISCOUNT_PERCENT rules. */
+  percent?: InputMaybe<ApiBundlePriceRulePercentInput>;
+  /** Pricing strategy. */
+  priceType: BundlePriceType;
+};
+
+export type ApiBundlePriceRulePercent = {
+  __typename?: 'BundlePriceRulePercent';
+  /** Percent value, 0..100. */
+  value: Scalars['Int']['output'];
+};
+
+export type ApiBundlePriceRulePercentInput = {
+  /** Percent value, 0..100. */
+  value: Scalars['Int']['input'];
+};
+
+export enum BundlePriceType {
+  Base = 'BASE',
+  DiscountFixed = 'DISCOUNT_FIXED',
+  DiscountPercent = 'DISCOUNT_PERCENT',
+  Fixed = 'FIXED',
+  Free = 'FREE'
+}
+
 export type ApiBundlePricingTemplate = ApiNode & {
   __typename?: 'BundlePricingTemplate';
+  /** The globally unique ID of the pricing template. */
   id: Scalars['ID']['output'];
+  /** Template name. */
   name: Scalars['String']['output'];
-  priceType: BundlePriceType;
-  priceValue?: Maybe<Scalars['Int']['output']>;
-  productId: Scalars['ID']['output'];
+  /** Reusable price rule. */
+  priceRule: ApiBundlePriceRule;
+  /** Sort order within configuration. */
   sortIndex: Scalars['Int']['output'];
 };
 
-export type ApiBundlePricingTemplateCreateInput = {
+export type ApiBundlePricingTemplateSyncItemInput = {
+  /**
+   * Existing pricing template ID. Null creates a new template.
+   * Existing templates in this configuration but missing from
+   * BundlePricingTemplatesSyncInput.pricingTemplates are deleted.
+   */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Template name. */
   name: Scalars['String']['input'];
-  priceType: BundlePriceType;
-  priceValue?: InputMaybe<Scalars['Int']['input']>;
-  productId: Scalars['ID']['input'];
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  /** Reusable price rule. */
+  priceRule: ApiBundlePriceRuleInput;
+  /** Sort order within configuration. */
+  sortIndex: Scalars['Int']['input'];
 };
 
-export type ApiBundlePricingTemplatePayload = {
-  __typename?: 'BundlePricingTemplatePayload';
-  bundlePricingTemplate?: Maybe<ApiBundlePricingTemplate>;
-  userErrors: Array<ApiUserError>;
+export type ApiBundlePricingTemplatesSyncInput = {
+  configurationId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  /**
+   * Complete list of pricing templates for this configuration.
+   * Templates not present in this list are deleted.
+   */
+  pricingTemplates: Array<ApiBundlePricingTemplateSyncItemInput>;
 };
 
-export type ApiBundlePricingTemplateUpdateInput = {
-  id: Scalars['ID']['input'];
-  name?: InputMaybe<Scalars['String']['input']>;
-  priceType?: InputMaybe<BundlePriceType>;
-  priceValue?: InputMaybe<Scalars['Int']['input']>;
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+export type ApiBundlePricingTemplatesSyncPayload = {
+  __typename?: 'BundlePricingTemplatesSyncPayload';
+  configuration?: Maybe<ApiBundleConfiguration>;
+  pricingTemplates: Array<ApiBundlePricingTemplate>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export enum BundleType {
+  Custom = 'CUSTOM',
+  Fixed = 'FIXED',
+  MixAndMatch = 'MIX_AND_MATCH',
+  Multipack = 'MULTIPACK'
+}
+
+export type ApiBundleUpdateInput = {
+  /** Bundle category assignment operations. */
+  categories?: InputMaybe<Array<ApiProductCategoryOperationInput>>;
+  /** Bundle content (description, excerpt). */
+  content?: InputMaybe<ApiProductContentInput>;
+  /** Configurator display style. */
+  displayStyle?: InputMaybe<BundleDisplayStyle>;
+  /** The URL-friendly handle for the bundle. */
+  handle?: InputMaybe<Scalars['String']['input']>;
+  /** Bundle media. */
+  media?: InputMaybe<ApiProductMediaInput>;
+  /** SEO and Open Graph metadata. */
+  seo?: InputMaybe<ApiProductSeoInput>;
+  /** Bundle status: DRAFT or PUBLISHED. */
+  status?: InputMaybe<ProductStatus>;
+  /** Bundle tag assignment operations. */
+  tags?: InputMaybe<Array<ApiProductTagOperationInput>>;
+  /** Bundle title. */
+  title?: InputMaybe<Scalars['String']['input']>;
+  /** High-level bundle type. */
+  type?: InputMaybe<BundleType>;
+  /** Variant create, update, and delete operations. */
+  variants?: InputMaybe<Array<ApiVariantOperationInput>>;
+  /** Vendor ID to associate with the bundle. Pass null to clear. */
+  vendorId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ApiBundleUpdatePayload = {
+  __typename?: 'BundleUpdatePayload';
+  bundle?: Maybe<ApiBundle>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiBundleWhereInput = {
+  _and?: InputMaybe<Array<ApiBundleWhereInput>>;
+  _not?: InputMaybe<ApiBundleWhereInput>;
+  _or?: InputMaybe<Array<ApiBundleWhereInput>>;
+  brandName?: InputMaybe<ApiStringFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  currency?: InputMaybe<ApiStringFilter>;
+  handle?: InputMaybe<ApiStringFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  locale?: InputMaybe<ApiStringFilter>;
+  maxPriceMinor?: InputMaybe<ApiIntFilter>;
+  minPriceMinor?: InputMaybe<ApiIntFilter>;
+  name?: InputMaybe<ApiStringFilter>;
+  primaryCategoryId?: InputMaybe<ApiIdFilter>;
+  primaryCategoryName?: InputMaybe<ApiStringFilter>;
+  publishedAt?: InputMaybe<ApiDateTimeFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  vendorId?: InputMaybe<ApiIdFilter>;
 };
 
 export type ApiCatalogMutation = {
   __typename?: 'CatalogMutation';
-  /** Create a new bundle group for a product */
-  bundleGroupCreate: ApiBundleGroupPayload;
-  /** Delete a bundle group */
-  bundleGroupDelete: ApiDeletePayload;
-  /** Update an existing bundle group */
-  bundleGroupUpdate: ApiBundleGroupPayload;
-  /** Create a new bundle item within a group */
-  bundleItemCreate: ApiBundleItemPayload;
-  /** Delete a bundle item */
-  bundleItemDelete: ApiDeletePayload;
-  /** Update an existing bundle item */
-  bundleItemUpdate: ApiBundleItemPayload;
-  /** Create a new bundle pricing template */
-  bundlePricingTemplateCreate: ApiBundlePricingTemplatePayload;
-  /** Delete a bundle pricing template */
-  bundlePricingTemplateDelete: ApiDeletePayload;
-  /** Update an existing bundle pricing template */
-  bundlePricingTemplateUpdate: ApiBundlePricingTemplatePayload;
+  /** Create one bundle configuration. */
+  bundleConfigurationCreate: ApiBundleConfigurationPayload;
+  /** Delete one bundle configuration with optimistic locking. */
+  bundleConfigurationDelete: ApiBundleConfigurationDeletePayload;
+  /** Update configuration metadata. */
+  bundleConfigurationUpdate: ApiBundleConfigurationPayload;
+  /** Create a new bundle sellable item. */
+  bundleCreate: ApiBundleCreatePayload;
+  /** Sync all dependency rules for one bundle configuration. */
+  bundleDependencyRulesSync: ApiBundleDependencyRulesSyncPayload;
+  /** Sync all groups/items for one bundle configuration. */
+  bundleGroupsSync: ApiBundleGroupsSyncPayload;
+  /** Sync all reusable pricing templates for one bundle configuration. */
+  bundlePricingTemplatesSync: ApiBundlePricingTemplatesSyncPayload;
+  /** Unified bundle update with optimistic locking. */
+  bundleUpdate: ApiBundleUpdatePayload;
   /** Create a new category */
   categoryCreate: ApiCategoryCreatePayload;
   /** Delete a category */
@@ -600,30 +1237,6 @@ export type ApiCatalogMutation = {
   collectionUpdate: ApiCollectionUpdatePayload;
   /** Update collection rules for automatic product inclusion */
   collectionUpdateRules: ApiCollectionUpdateRulesPayload;
-  /** Create a new condition within a condition group */
-  conditionCreate: ApiConditionPayload;
-  /** Delete a condition */
-  conditionDelete: ApiDeletePayload;
-  /** Create a new condition group for a dependency rule */
-  conditionGroupCreate: ApiConditionGroupPayload;
-  /** Delete a condition group */
-  conditionGroupDelete: ApiDeletePayload;
-  /** Update an existing condition group */
-  conditionGroupUpdate: ApiConditionGroupPayload;
-  /** Update an existing condition */
-  conditionUpdate: ApiConditionPayload;
-  /** Create a new action for a dependency rule */
-  dependencyActionCreate: ApiDependencyActionPayload;
-  /** Delete a dependency action */
-  dependencyActionDelete: ApiDeletePayload;
-  /** Update an existing dependency action */
-  dependencyActionUpdate: ApiDependencyActionPayload;
-  /** Create a new dependency rule for a product */
-  dependencyRuleCreate: ApiDependencyRulePayload;
-  /** Delete a dependency rule */
-  dependencyRuleDelete: ApiDeletePayload;
-  /** Update an existing dependency rule */
-  dependencyRuleUpdate: ApiDependencyRulePayload;
   /** Create a new facet */
   facetCreate: ApiFacetCreatePayload;
   /** Delete a facet */
@@ -705,48 +1318,45 @@ export type ApiCatalogMutation = {
 };
 
 
-export type ApiCatalogMutationBundleGroupCreateArgs = {
-  input: ApiBundleGroupCreateInput;
+export type ApiCatalogMutationBundleConfigurationCreateArgs = {
+  input: ApiBundleConfigurationCreateInput;
 };
 
 
-export type ApiCatalogMutationBundleGroupDeleteArgs = {
-  input: ApiDeleteInput;
+export type ApiCatalogMutationBundleConfigurationDeleteArgs = {
+  input: ApiBundleConfigurationDeleteInput;
 };
 
 
-export type ApiCatalogMutationBundleGroupUpdateArgs = {
-  input: ApiBundleGroupUpdateInput;
+export type ApiCatalogMutationBundleConfigurationUpdateArgs = {
+  input: ApiBundleConfigurationUpdateInput;
 };
 
 
-export type ApiCatalogMutationBundleItemCreateArgs = {
-  input: ApiBundleItemCreateInput;
+export type ApiCatalogMutationBundleCreateArgs = {
+  input: ApiBundleCreateInput;
 };
 
 
-export type ApiCatalogMutationBundleItemDeleteArgs = {
-  input: ApiDeleteInput;
+export type ApiCatalogMutationBundleDependencyRulesSyncArgs = {
+  input: ApiBundleDependencyRulesSyncInput;
 };
 
 
-export type ApiCatalogMutationBundleItemUpdateArgs = {
-  input: ApiBundleItemUpdateInput;
+export type ApiCatalogMutationBundleGroupsSyncArgs = {
+  input: ApiBundleGroupsSyncInput;
 };
 
 
-export type ApiCatalogMutationBundlePricingTemplateCreateArgs = {
-  input: ApiBundlePricingTemplateCreateInput;
+export type ApiCatalogMutationBundlePricingTemplatesSyncArgs = {
+  input: ApiBundlePricingTemplatesSyncInput;
 };
 
 
-export type ApiCatalogMutationBundlePricingTemplateDeleteArgs = {
-  input: ApiDeleteInput;
-};
-
-
-export type ApiCatalogMutationBundlePricingTemplateUpdateArgs = {
-  input: ApiBundlePricingTemplateUpdateInput;
+export type ApiCatalogMutationBundleUpdateArgs = {
+  bundleId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  operations?: InputMaybe<ApiBundleUpdateInput>;
 };
 
 
@@ -809,66 +1419,6 @@ export type ApiCatalogMutationCollectionUpdateArgs = {
 
 export type ApiCatalogMutationCollectionUpdateRulesArgs = {
   input: ApiCollectionUpdateRulesInput;
-};
-
-
-export type ApiCatalogMutationConditionCreateArgs = {
-  input: ApiConditionCreateInput;
-};
-
-
-export type ApiCatalogMutationConditionDeleteArgs = {
-  input: ApiDeleteInput;
-};
-
-
-export type ApiCatalogMutationConditionGroupCreateArgs = {
-  input: ApiConditionGroupCreateInput;
-};
-
-
-export type ApiCatalogMutationConditionGroupDeleteArgs = {
-  input: ApiDeleteInput;
-};
-
-
-export type ApiCatalogMutationConditionGroupUpdateArgs = {
-  input: ApiConditionGroupUpdateInput;
-};
-
-
-export type ApiCatalogMutationConditionUpdateArgs = {
-  input: ApiConditionUpdateInput;
-};
-
-
-export type ApiCatalogMutationDependencyActionCreateArgs = {
-  input: ApiDependencyActionCreateInput;
-};
-
-
-export type ApiCatalogMutationDependencyActionDeleteArgs = {
-  input: ApiDeleteInput;
-};
-
-
-export type ApiCatalogMutationDependencyActionUpdateArgs = {
-  input: ApiDependencyActionUpdateInput;
-};
-
-
-export type ApiCatalogMutationDependencyRuleCreateArgs = {
-  input: ApiDependencyRuleCreateInput;
-};
-
-
-export type ApiCatalogMutationDependencyRuleDeleteArgs = {
-  input: ApiDeleteInput;
-};
-
-
-export type ApiCatalogMutationDependencyRuleUpdateArgs = {
-  input: ApiDependencyRuleUpdateInput;
 };
 
 
@@ -1045,16 +1595,10 @@ export type ApiCatalogMutationVendorCreateArgs = {
 
 export type ApiCatalogQuery = {
   __typename?: 'CatalogQuery';
-  /** Get a bundle group by ID */
-  bundleGroup?: Maybe<ApiBundleGroup>;
-  /** Get all bundle groups for a product */
-  bundleGroups: Array<ApiBundleGroup>;
-  /** Get a bundle item by ID */
-  bundleItem?: Maybe<ApiBundleItem>;
-  /** Get a bundle pricing template by ID */
-  bundlePricingTemplate?: Maybe<ApiBundlePricingTemplate>;
-  /** Get all pricing templates for a product */
-  bundlePricingTemplates: Array<ApiBundlePricingTemplate>;
+  /** Get a bundle by Product global ID. The product must have kind = BUNDLE. */
+  bundle?: Maybe<ApiBundle>;
+  /** Get bundles with Relay-style pagination. */
+  bundles: ApiBundleConnection;
   /** Get categories with Relay-style pagination */
   categories: ApiCategoryConnection;
   /** Get a category by ID */
@@ -1067,10 +1611,6 @@ export type ApiCatalogQuery = {
   collectionRulesPreviewCount: Scalars['Int']['output'];
   /** Get collections with Relay-style pagination */
   collections: ApiCollectionConnection;
-  /** Get a dependency rule by ID */
-  dependencyRule?: Maybe<ApiDependencyRule>;
-  /** Get all dependency rules for a product */
-  dependencyRules: Array<ApiDependencyRule>;
   /** Get a facet by ID */
   facet?: Maybe<ApiFacet>;
   /** Get a facet group by ID */
@@ -1117,28 +1657,19 @@ export type ApiCatalogQuery = {
 };
 
 
-export type ApiCatalogQueryBundleGroupArgs = {
+export type ApiCatalogQueryBundleArgs = {
   id: Scalars['ID']['input'];
 };
 
 
-export type ApiCatalogQueryBundleGroupsArgs = {
-  productId: Scalars['ID']['input'];
-};
-
-
-export type ApiCatalogQueryBundleItemArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiCatalogQueryBundlePricingTemplateArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiCatalogQueryBundlePricingTemplatesArgs = {
-  productId: Scalars['ID']['input'];
+export type ApiCatalogQueryBundlesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<ApiBundleBundlesMetaInput>;
+  orderBy?: InputMaybe<Array<ApiBundleOrderByInput>>;
+  where?: InputMaybe<ApiBundleWhereInput>;
 };
 
 
@@ -1178,16 +1709,6 @@ export type ApiCatalogQueryCollectionsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
-export type ApiCatalogQueryDependencyRuleArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiCatalogQueryDependencyRulesArgs = {
-  productId: Scalars['ID']['input'];
 };
 
 
@@ -1298,6 +1819,89 @@ export type ApiCatalogQueryVendorsArgs = {
   where?: InputMaybe<ApiVendorWhereInput>;
 };
 
+export type ApiCatalogSellable = {
+  /** The URL-friendly handle. */
+  handle?: Maybe<Scalars['String']['output']>;
+  /** The Product global ID of the sellable catalog item. */
+  id: Scalars['ID']['output'];
+  /** Product discriminator. */
+  kind: ProductKind;
+  /** Media registered on this sellable item. */
+  media: Array<ApiProductMediaItem>;
+  /** The primary category assigned to this sellable item. */
+  primaryCategory?: Maybe<ApiCategory>;
+  /** The tags associated with this sellable item. */
+  tags: Array<ApiTag>;
+  /** Localized title. */
+  title: Scalars['String']['output'];
+  /** The total number of variants. */
+  variantsCount: Scalars['Int']['output'];
+};
+
+/** A connection to a mixed list of sellable catalog items. */
+export type ApiCatalogSellableConnection = {
+  __typename?: 'CatalogSellableConnection';
+  /** A list of edges. */
+  edges: Array<ApiCatalogSellableEdge>;
+  /** Information to aid in pagination. */
+  pageInfo: ApiPageInfo;
+  /** The total number of sellable catalog items. */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** An edge in a CatalogSellable connection. */
+export type ApiCatalogSellableEdge = {
+  __typename?: 'CatalogSellableEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String']['output'];
+  /** The item at the end of the edge. */
+  node: ApiCatalogSellable;
+};
+
+export type ApiCatalogSellableOrderByInput = {
+  direction: SortDirection;
+  field: CatalogSellableOrderField;
+};
+
+export enum CatalogSellableOrderField {
+  BrandName = 'brandName',
+  CreatedAt = 'createdAt',
+  Currency = 'currency',
+  Handle = 'handle',
+  Id = 'id',
+  Kind = 'kind',
+  Locale = 'locale',
+  MaxPriceMinor = 'maxPriceMinor',
+  MinPriceMinor = 'minPriceMinor',
+  Name = 'name',
+  PrimaryCategoryId = 'primaryCategoryId',
+  PrimaryCategoryName = 'primaryCategoryName',
+  PublishedAt = 'publishedAt',
+  UpdatedAt = 'updatedAt',
+  VendorId = 'vendorId'
+}
+
+export type ApiCatalogSellableWhereInput = {
+  _and?: InputMaybe<Array<ApiCatalogSellableWhereInput>>;
+  _not?: InputMaybe<ApiCatalogSellableWhereInput>;
+  _or?: InputMaybe<Array<ApiCatalogSellableWhereInput>>;
+  brandName?: InputMaybe<ApiStringFilter>;
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  currency?: InputMaybe<ApiStringFilter>;
+  handle?: InputMaybe<ApiStringFilter>;
+  id?: InputMaybe<ApiIdFilter>;
+  kind?: InputMaybe<ApiStringFilter>;
+  locale?: InputMaybe<ApiStringFilter>;
+  maxPriceMinor?: InputMaybe<ApiIntFilter>;
+  minPriceMinor?: InputMaybe<ApiIntFilter>;
+  name?: InputMaybe<ApiStringFilter>;
+  primaryCategoryId?: InputMaybe<ApiIdFilter>;
+  primaryCategoryName?: InputMaybe<ApiStringFilter>;
+  publishedAt?: InputMaybe<ApiDateTimeFilter>;
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  vendorId?: InputMaybe<ApiIdFilter>;
+};
+
 /** A category represents a hierarchical grouping of products. */
 export type ApiCategory = ApiNode & {
   __typename?: 'Category';
@@ -1325,6 +1929,8 @@ export type ApiCategory = ApiNode & {
   id: Scalars['ID']['output'];
   /** Whether the category is currently published. */
   isPublished: Scalars['Boolean']['output'];
+  /** Sellable catalog items assigned to this category, including products and bundles. */
+  items: ApiCatalogSellableConnection;
   /** Media files associated with this category. */
   media: Array<ApiCategoryMediaItem>;
   /** The display name of the category. */
@@ -1345,6 +1951,17 @@ export type ApiCategory = ApiNode & {
   seo?: Maybe<ApiSeo>;
   /** The date and time when the category was last updated. */
   updatedAt: Scalars['DateTime']['output'];
+};
+
+
+/** A category represents a hierarchical grouping of products. */
+export type ApiCategoryItemsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiCatalogSellableOrderByInput>>;
+  where?: InputMaybe<ApiCatalogSellableWhereInput>;
 };
 
 
@@ -1845,94 +2462,6 @@ export type ApiCollectionUpdateRulesPayload = {
   __typename?: 'CollectionUpdateRulesPayload';
   collection?: Maybe<ApiCollection>;
   userErrors: Array<ApiGenericUserError>;
-};
-
-/** A single condition within a condition group. */
-export type ApiCondition = ApiNode & {
-  __typename?: 'Condition';
-  category: ConditionCategory;
-  groupId: Scalars['ID']['output'];
-  id: Scalars['ID']['output'];
-  operator: Scalars['String']['output'];
-  sortIndex: Scalars['Int']['output'];
-  subject: ConditionSubject;
-  targetId: Scalars['ID']['output'];
-  targetType: DependencyTargetType;
-  value?: Maybe<Scalars['Int']['output']>;
-};
-
-/** The category of a dependency condition. */
-export enum ConditionCategory {
-  /** Numeric comparison (gte, eq, lte) */
-  Numeric = 'NUMERIC',
-  /** State check (is selected, is not selected) */
-  StateCheck = 'STATE_CHECK'
-}
-
-export type ApiConditionCreateInput = {
-  category: ConditionCategory;
-  groupId: Scalars['ID']['input'];
-  operator: Scalars['String']['input'];
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
-  subject: ConditionSubject;
-  targetId: Scalars['ID']['input'];
-  targetType: DependencyTargetType;
-  value?: InputMaybe<Scalars['Int']['input']>;
-};
-
-/** A group of conditions within a dependency rule. */
-export type ApiConditionGroup = ApiNode & {
-  __typename?: 'ConditionGroup';
-  conditions: Array<ApiCondition>;
-  id: Scalars['ID']['output'];
-  logicOperator: LogicOperator;
-  ruleId: Scalars['ID']['output'];
-  sortIndex: Scalars['Int']['output'];
-};
-
-export type ApiConditionGroupCreateInput = {
-  logicOperator?: InputMaybe<LogicOperator>;
-  ruleId: Scalars['ID']['input'];
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
-};
-
-export type ApiConditionGroupPayload = {
-  __typename?: 'ConditionGroupPayload';
-  conditionGroup?: Maybe<ApiConditionGroup>;
-  userErrors: Array<ApiUserError>;
-};
-
-export type ApiConditionGroupUpdateInput = {
-  id: Scalars['ID']['input'];
-  logicOperator?: InputMaybe<LogicOperator>;
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
-};
-
-export type ApiConditionPayload = {
-  __typename?: 'ConditionPayload';
-  condition?: Maybe<ApiCondition>;
-  userErrors: Array<ApiUserError>;
-};
-
-/** The subject of a dependency condition. */
-export enum ConditionSubject {
-  /** Check group total quantity */
-  GroupTotalQty = 'GROUP_TOTAL_QTY',
-  /** Check item quantity */
-  ItemQty = 'ITEM_QTY',
-  /** Check if an item is selected */
-  ItemSelected = 'ITEM_SELECTED'
-}
-
-export type ApiConditionUpdateInput = {
-  category?: InputMaybe<ConditionCategory>;
-  id: Scalars['ID']['input'];
-  operator?: InputMaybe<Scalars['String']['input']>;
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
-  subject?: InputMaybe<ConditionSubject>;
-  targetId?: InputMaybe<Scalars['ID']['input']>;
-  targetType?: InputMaybe<DependencyTargetType>;
-  value?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export enum CountryCode {
@@ -2754,120 +3283,6 @@ export type ApiDateTimeFilter = {
   /** Not equals */
   _neq?: InputMaybe<Scalars['DateTime']['input']>;
 };
-
-export type ApiDeleteInput = {
-  id: Scalars['ID']['input'];
-};
-
-export type ApiDeletePayload = {
-  __typename?: 'DeletePayload';
-  deletedId?: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<ApiUserError>;
-};
-
-/** An action to perform when a dependency rule's conditions are met. */
-export type ApiDependencyAction = ApiNode & {
-  __typename?: 'DependencyAction';
-  actionType: DependencyActionType;
-  id: Scalars['ID']['output'];
-  priceType?: Maybe<BundlePriceType>;
-  priceValue?: Maybe<Scalars['Int']['output']>;
-  requiredValue?: Maybe<Scalars['Boolean']['output']>;
-  ruleId: Scalars['ID']['output'];
-  sortIndex: Scalars['Int']['output'];
-  stackable: Scalars['Boolean']['output'];
-  targetId?: Maybe<Scalars['ID']['output']>;
-  targetType: DependencyTargetType;
-};
-
-export type ApiDependencyActionCreateInput = {
-  actionType: DependencyActionType;
-  priceType?: InputMaybe<BundlePriceType>;
-  priceValue?: InputMaybe<Scalars['Int']['input']>;
-  requiredValue?: InputMaybe<Scalars['Boolean']['input']>;
-  ruleId: Scalars['ID']['input'];
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
-  stackable?: InputMaybe<Scalars['Boolean']['input']>;
-  targetId?: InputMaybe<Scalars['ID']['input']>;
-  targetType: DependencyTargetType;
-};
-
-export type ApiDependencyActionPayload = {
-  __typename?: 'DependencyActionPayload';
-  dependencyAction?: Maybe<ApiDependencyAction>;
-  userErrors: Array<ApiUserError>;
-};
-
-/** The type of action to perform when a dependency rule matches. */
-export enum DependencyActionType {
-  /** Adjust the price of the target */
-  AdjustPrice = 'ADJUST_PRICE',
-  /** Hide the target */
-  Hide = 'HIDE',
-  /** Make the target required */
-  SetRequired = 'SET_REQUIRED',
-  /** Show the target */
-  Show = 'SHOW'
-}
-
-export type ApiDependencyActionUpdateInput = {
-  actionType?: InputMaybe<DependencyActionType>;
-  id: Scalars['ID']['input'];
-  priceType?: InputMaybe<BundlePriceType>;
-  priceValue?: InputMaybe<Scalars['Int']['input']>;
-  requiredValue?: InputMaybe<Scalars['Boolean']['input']>;
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
-  stackable?: InputMaybe<Scalars['Boolean']['input']>;
-  targetId?: InputMaybe<Scalars['ID']['input']>;
-  targetType?: InputMaybe<DependencyTargetType>;
-};
-
-/** A dependency rule that controls bundle behavior based on conditions. */
-export type ApiDependencyRule = ApiNode & {
-  __typename?: 'DependencyRule';
-  actions: Array<ApiDependencyAction>;
-  conditionGroups: Array<ApiConditionGroup>;
-  createdAt: Scalars['DateTime']['output'];
-  enabled: Scalars['Boolean']['output'];
-  id: Scalars['ID']['output'];
-  logicOperator: LogicOperator;
-  name: Scalars['String']['output'];
-  priority: Scalars['Int']['output'];
-  productId: Scalars['ID']['output'];
-  updatedAt: Scalars['DateTime']['output'];
-};
-
-export type ApiDependencyRuleCreateInput = {
-  enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  logicOperator?: InputMaybe<LogicOperator>;
-  name: Scalars['String']['input'];
-  priority?: InputMaybe<Scalars['Int']['input']>;
-  productId: Scalars['ID']['input'];
-};
-
-export type ApiDependencyRulePayload = {
-  __typename?: 'DependencyRulePayload';
-  dependencyRule?: Maybe<ApiDependencyRule>;
-  userErrors: Array<ApiUserError>;
-};
-
-export type ApiDependencyRuleUpdateInput = {
-  enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  id: Scalars['ID']['input'];
-  logicOperator?: InputMaybe<LogicOperator>;
-  name?: InputMaybe<Scalars['String']['input']>;
-  priority?: InputMaybe<Scalars['Int']['input']>;
-};
-
-/** The target type for conditions and actions. */
-export enum DependencyTargetType {
-  /** Target the entire bundle */
-  Bundle = 'BUNDLE',
-  /** Target an entire bundle group */
-  Group = 'GROUP',
-  /** Target a specific bundle item */
-  Item = 'ITEM'
-}
 
 /** Dimension (length) measurement units */
 export enum DimensionUnit {
@@ -4265,12 +4680,6 @@ export type ApiLocaleUpdatePayload = {
   userErrors: Array<ApiUserError>;
 };
 
-/** Logic operator for combining conditions or condition groups. */
-export enum LogicOperator {
-  And = 'AND',
-  Or = 'OR'
-}
-
 /** Image/video dimensions. */
 export type ApiMediaDimensions = {
   __typename?: 'MediaDimensions';
@@ -4531,13 +4940,6 @@ export type ApiNode = {
   /** The globally unique ID of the object. */
   id: Scalars['ID']['output'];
 };
-
-/** The operator for numeric conditions. */
-export enum NumericOperator {
-  Eq = 'EQ',
-  Gte = 'GTE',
-  Lte = 'LTE'
-}
 
 /** Result of a single operation in the unified update. */
 export type ApiOperationResult = {
@@ -5050,7 +5452,7 @@ export type ApiPricingWidgetPayload = {
 };
 
 /** A product represents an item that can be sold. */
-export type ApiProduct = ApiNode & {
+export type ApiProduct = ApiCatalogSellable & ApiNode & {
   __typename?: 'Product';
   /** Category assignments with relationship metadata. */
   categoryAssignments: Array<ApiProductCategoryAssignment>;
@@ -5066,10 +5468,12 @@ export type ApiProduct = ApiNode & {
   features: Array<ApiProductFeature>;
   /** The URL-friendly handle for the product. */
   handle?: Maybe<Scalars['String']['output']>;
-  /** The globally unique ID of the product. */
+  /** The Product global ID. */
   id: Scalars['ID']['output'];
   /** Whether the product is currently published. */
   isPublished: Scalars['Boolean']['output'];
+  /** Product discriminator. */
+  kind: ProductKind;
   /** Media registered on this product. */
   media: Array<ApiProductMediaItem>;
   /** The options available for this product. */
@@ -5509,6 +5913,11 @@ export type ApiProductInventoryWidget = {
   quantities: ApiInventoryQuantities;
   skuStatus: ApiInventorySkuStatus;
 };
+
+export enum ProductKind {
+  Base = 'BASE',
+  Bundle = 'BUNDLE'
+}
 
 /** Input for product media. */
 export type ApiProductMediaInput = {
@@ -6266,12 +6675,6 @@ export enum SortDirection {
   Desc = 'desc'
 }
 
-/** The operator for state check conditions. */
-export enum StateCheckOperator {
-  IsNotSelected = 'IS_NOT_SELECTED',
-  IsSelected = 'IS_SELECTED'
-}
-
 /** A store */
 export type ApiStore = {
   __typename?: 'Store';
@@ -6912,6 +7315,8 @@ export type ApiUserUpdateProfilePayload = {
  */
 export type ApiVariant = ApiNode & {
   __typename?: 'Variant';
+  /** Bundle configuration assigned to this variant. Null for BASE variants. */
+  bundleConfiguration?: Maybe<ApiBundleConfiguration>;
   /** The date and time when the variant was created. */
   createdAt: Scalars['DateTime']['output'];
   /** The date and time when the variant was deleted (soft delete). */
@@ -6930,6 +7335,8 @@ export type ApiVariant = ApiNode & {
   inventoryItem?: Maybe<ApiInventoryItem>;
   /** Whether this is the default variant for the product. */
   isDefault: Scalars['Boolean']['output'];
+  /** Variant discriminator. Must match parent product kind. */
+  kind: ProductKind;
   /** Media attached to this variant (images, videos). */
   media: Array<ApiVariantMediaItem>;
   /** Current price for this variant. */
@@ -7131,6 +7538,8 @@ export enum VariantOperationAction {
 export type ApiVariantOperationInput = {
   /** The operation to apply. */
   action: VariantOperationAction;
+  /** Bundle configuration assignment for bundle variants. */
+  bundleConfigurationId?: InputMaybe<Scalars['ID']['input']>;
   /** Per-request client correlation key for create operations. */
   clientMutationId?: InputMaybe<Scalars['String']['input']>;
   /** Variant dimensions. */

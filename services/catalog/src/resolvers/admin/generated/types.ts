@@ -144,8 +144,834 @@ export type BulkUpdateUserError = UserError & {
   variantId: Maybe<Scalars['ID']['output']>;
 };
 
+export type Bundle = CatalogSellable & Node & {
+  __typename?: 'Bundle';
+  /** Category assignments with relationship metadata. */
+  categoryAssignments: Array<ProductCategoryAssignment>;
+  /** All bundle configurations for this bundle. */
+  configurations: Array<BundleConfiguration>;
+  /** The date and time when the bundle was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** The date and time when the bundle was deleted (soft delete). */
+  deletedAt: Maybe<Scalars['DateTime']['output']>;
+  /** Bundle description. */
+  description: Maybe<RichText>;
+  /** Configurator display style. */
+  displayStyle: BundleDisplayStyle;
+  /** Short excerpt. */
+  excerpt: Maybe<RichText>;
+  /** The features of this bundle. */
+  features: Array<ProductFeature>;
+  /** The URL-friendly handle for the bundle. */
+  handle: Maybe<Scalars['String']['output']>;
+  /** The Product global ID of the bundle sellable item. */
+  id: Scalars['ID']['output'];
+  /** Whether the bundle is currently published. */
+  isPublished: Scalars['Boolean']['output'];
+  /** Product discriminator. Always BUNDLE for this type. */
+  kind: ProductKind;
+  /** Media registered on this bundle. */
+  media: Array<ProductMediaItem>;
+  /** The options available for this bundle. */
+  options: Array<ProductOption>;
+  /** The primary category assigned to this bundle. */
+  primaryCategory: Maybe<Category>;
+  /** The date and time when the bundle was published, or null if unpublished. */
+  publishedAt: Maybe<Scalars['DateTime']['output']>;
+  /** Optimistic locking revision number. Incremented on each update. */
+  revision: Scalars['Int']['output'];
+  /** SEO and Open Graph metadata. */
+  seo: Maybe<ProductSeo>;
+  /** The tags associated with this bundle. */
+  tags: Array<Tag>;
+  /** Bundle title. */
+  title: Scalars['String']['output'];
+  /** High-level bundle type. */
+  type: Maybe<BundleType>;
+  /** The date and time when the bundle was last updated. */
+  updatedAt: Scalars['DateTime']['output'];
+  /** The variants of this bundle. */
+  variants: VariantConnection;
+  /** The total number of variants for this bundle. */
+  variantsCount: Scalars['Int']['output'];
+  /** The vendor associated with this bundle. */
+  vendor: Maybe<Vendor>;
+};
+
+
+export type BundleVariantsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type BundleBasePriceRule = BundlePriceRule & Node & {
+  __typename?: 'BundleBasePriceRule';
+  /** The globally unique ID of the price rule. */
+  id: Scalars['ID']['output'];
+  /** Pricing strategy. */
+  priceType: BundlePriceType;
+};
+
+export type BundleBundlesMetaInput = {
+  categoriesScope?: InputMaybe<ProductCategoriesScopeInput>;
+};
+
+export type BundleCondition = Node & {
+  __typename?: 'BundleCondition';
+  /** Condition category. */
+  category: BundleConditionCategory;
+  /** The globally unique ID of the condition. */
+  id: Scalars['ID']['output'];
+  /** Condition operator. */
+  operator: BundleConditionOperator;
+  /** Sort order within the condition group. */
+  sortIndex: Scalars['Int']['output'];
+  /** Condition subject. */
+  subject: BundleConditionSubject;
+  /** Target ID. Points to an item, group, or the parent bundle product. */
+  targetId: Scalars['ID']['output'];
+  /** Target type. */
+  targetType: BundleDependencyTargetType;
+  /** Numeric value for numeric conditions. */
+  value: Maybe<Scalars['Int']['output']>;
+};
+
+export enum BundleConditionCategory {
+  Numeric = 'NUMERIC',
+  StateCheck = 'STATE_CHECK'
+}
+
+export type BundleConditionGroup = Node & {
+  __typename?: 'BundleConditionGroup';
+  /** Conditions in this group. */
+  conditions: Array<BundleCondition>;
+  /** The globally unique ID of the condition group. */
+  id: Scalars['ID']['output'];
+  /** How conditions are combined. */
+  logicOperator: BundleLogicOperator;
+  /** Sort order within the rule. */
+  sortIndex: Scalars['Int']['output'];
+};
+
+export type BundleConditionGroupSyncInput = {
+  /** Complete list of conditions. */
+  conditions: Array<BundleConditionSyncInput>;
+  /** Existing condition group ID. Null creates a new group. */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** How conditions are combined. */
+  logicOperator: BundleLogicOperator;
+  /** Sort order within the rule. */
+  sortIndex: Scalars['Int']['input'];
+};
+
+export enum BundleConditionOperator {
+  Eq = 'EQ',
+  Gte = 'GTE',
+  IsNotSelected = 'IS_NOT_SELECTED',
+  IsSelected = 'IS_SELECTED',
+  Lte = 'LTE'
+}
+
+export enum BundleConditionSubject {
+  GroupTotalQty = 'GROUP_TOTAL_QTY',
+  ItemQty = 'ITEM_QTY',
+  ItemSelected = 'ITEM_SELECTED'
+}
+
+export type BundleConditionSyncInput = {
+  /** Condition category. */
+  category: BundleConditionCategory;
+  /** Existing condition ID. Null creates a new condition. */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Condition operator. */
+  operator: BundleConditionOperator;
+  /** Sort order within the condition group. */
+  sortIndex: Scalars['Int']['input'];
+  /** Condition subject. */
+  subject: BundleConditionSubject;
+  /** Target ID. Points to an item, group, or the parent bundle product. */
+  targetId: Scalars['ID']['input'];
+  /** Target type. */
+  targetType: BundleDependencyTargetType;
+  /** Numeric value for numeric conditions. */
+  value?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type BundleConfiguration = Node & {
+  __typename?: 'BundleConfiguration';
+  /** The bundle root this configuration belongs to. */
+  bundle: Bundle;
+  /** The Product global ID of the bundle this configuration belongs to. */
+  bundleId: Scalars['ID']['output'];
+  /** The date and time when the configuration was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Dependency rules in priority order. */
+  dependencyRules: Array<BundleDependencyRule>;
+  /** Groups in configurator order. */
+  groups: Array<BundleGroup>;
+  /** The globally unique ID of the configuration. */
+  id: Scalars['ID']['output'];
+  /** Configuration name. */
+  name: Scalars['String']['output'];
+  /** Reusable pricing templates. */
+  pricingTemplates: Array<BundlePricingTemplate>;
+  /** The date and time when the configuration was last updated. */
+  updatedAt: Scalars['DateTime']['output'];
+  /** Variants that use this configuration. */
+  variants: Array<Variant>;
+};
+
+export type BundleConfigurationCreateInput = {
+  /** Product global ID of the bundle. */
+  bundleId: Scalars['ID']['input'];
+  /** Expected parent bundle product revision. Required for optimistic locking. */
+  expectedRevision: Scalars['Int']['input'];
+  /** Configuration name. */
+  name: Scalars['String']['input'];
+};
+
+export type BundleConfigurationDeleteInput = {
+  expectedRevision: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+};
+
+export type BundleConfigurationDeletePayload = {
+  __typename?: 'BundleConfigurationDeletePayload';
+  bundle: Maybe<Bundle>;
+  deletedConfigurationId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type BundleConfigurationPayload = {
+  __typename?: 'BundleConfigurationPayload';
+  configuration: Maybe<BundleConfiguration>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type BundleConfigurationUpdateInput = {
+  expectedRevision: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** A connection to a list of Bundle items. */
+export type BundleConnection = {
+  __typename?: 'BundleConnection';
+  /** A list of edges. */
+  edges: Array<BundleEdge>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+  /** The total number of bundles. */
+  totalCount: Scalars['Int']['output'];
+};
+
+export type BundleCreateInput = {
+  /** Bundle description. */
+  description?: InputMaybe<RichTextInput>;
+  /** Configurator display style. */
+  displayStyle?: InputMaybe<BundleDisplayStyle>;
+  /** Short excerpt in multiple formats. */
+  excerpt?: InputMaybe<RichTextInput>;
+  /** URL-friendly handle for the bundle. */
+  handle: Scalars['String']['input'];
+  /** Inventory tracking settings for the bundle. */
+  inventoryItem?: InputMaybe<InventoryItemInput>;
+  /** File IDs for bundle media (already uploaded via mediaMutation.fileUpload). */
+  mediaFileIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Bundle options. */
+  options?: InputMaybe<Array<ProductCreateOptionInput>>;
+  /** Bundle title. */
+  title: Scalars['String']['input'];
+  /** High-level bundle type. */
+  type?: InputMaybe<BundleType>;
+  /** Bundle variants to create. */
+  variants?: InputMaybe<Array<ProductCreateVariantInput>>;
+  /** Vendor ID to associate with the bundle. */
+  vendorId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type BundleCreatePayload = {
+  __typename?: 'BundleCreatePayload';
+  bundle: Maybe<Bundle>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type BundleDependencyAction = Node & {
+  __typename?: 'BundleDependencyAction';
+  /** Action type. */
+  actionType: BundleDependencyActionType;
+  /** The globally unique ID of the action. */
+  id: Scalars['ID']['output'];
+  /** Price rule for ADJUST_PRICE. */
+  priceRule: Maybe<BundlePriceRule>;
+  /** Required value for SET_REQUIRED. */
+  requiredValue: Maybe<Scalars['Boolean']['output']>;
+  /** Sort order within the rule. */
+  sortIndex: Scalars['Int']['output'];
+  /** Whether this action can stack with other matching actions. */
+  stackable: Scalars['Boolean']['output'];
+  /** Target ID. Null is allowed when targetType is BUNDLE. */
+  targetId: Maybe<Scalars['ID']['output']>;
+  /** Target type. */
+  targetType: BundleDependencyTargetType;
+};
+
+export type BundleDependencyActionSyncInput = {
+  /** Action type. */
+  actionType: BundleDependencyActionType;
+  /** Existing action ID. Null creates a new action. */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Price rule for ADJUST_PRICE. */
+  priceRule?: InputMaybe<BundlePriceRuleInput>;
+  /** Required value for SET_REQUIRED. */
+  requiredValue?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Sort order within the rule. */
+  sortIndex: Scalars['Int']['input'];
+  /** Whether this action can stack with other matching actions. */
+  stackable: Scalars['Boolean']['input'];
+  /** Target ID. Null is allowed when targetType is BUNDLE. */
+  targetId?: InputMaybe<Scalars['ID']['input']>;
+  /** Target type. */
+  targetType: BundleDependencyTargetType;
+};
+
+export enum BundleDependencyActionType {
+  AdjustPrice = 'ADJUST_PRICE',
+  Hide = 'HIDE',
+  SetRequired = 'SET_REQUIRED',
+  Show = 'SHOW'
+}
+
+export type BundleDependencyRule = Node & {
+  __typename?: 'BundleDependencyRule';
+  /** Actions applied when conditions match. */
+  actions: Array<BundleDependencyAction>;
+  /** Condition groups. */
+  conditionGroups: Array<BundleConditionGroup>;
+  /** The date and time when the rule was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Whether the rule is enabled. */
+  enabled: Scalars['Boolean']['output'];
+  /** The globally unique ID of the dependency rule. */
+  id: Scalars['ID']['output'];
+  /** How condition groups are combined. */
+  logicOperator: BundleLogicOperator;
+  /** Rule name. */
+  name: Scalars['String']['output'];
+  /** Rule priority. Lower values are evaluated first. */
+  priority: Scalars['Int']['output'];
+  /** The date and time when the rule was last updated. */
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type BundleDependencyRuleSyncItemInput = {
+  /** Complete list of actions. */
+  actions: Array<BundleDependencyActionSyncInput>;
+  /** Complete list of condition groups. */
+  conditionGroups: Array<BundleConditionGroupSyncInput>;
+  /** Whether the rule is enabled. */
+  enabled: Scalars['Boolean']['input'];
+  /**
+   * Existing dependency rule ID. Null creates a new rule.
+   * Existing rules in this configuration but missing from
+   * BundleDependencyRulesSyncInput.dependencyRules are deleted.
+   */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** How condition groups are combined. */
+  logicOperator: BundleLogicOperator;
+  /** Rule name. */
+  name: Scalars['String']['input'];
+  /** Rule priority. */
+  priority: Scalars['Int']['input'];
+};
+
+export type BundleDependencyRulesSyncInput = {
+  configurationId: Scalars['ID']['input'];
+  /**
+   * Complete list of dependency rules for this configuration.
+   * Rules not present in this list are deleted.
+   */
+  dependencyRules: Array<BundleDependencyRuleSyncItemInput>;
+  expectedRevision: Scalars['Int']['input'];
+};
+
+export type BundleDependencyRulesSyncPayload = {
+  __typename?: 'BundleDependencyRulesSyncPayload';
+  configuration: Maybe<BundleConfiguration>;
+  dependencyRules: Array<BundleDependencyRule>;
+  userErrors: Array<GenericUserError>;
+};
+
+export enum BundleDependencyTargetType {
+  Bundle = 'BUNDLE',
+  Group = 'GROUP',
+  Item = 'ITEM'
+}
+
+export type BundleDiscountFixedPriceRule = BundlePriceRule & Node & {
+  __typename?: 'BundleDiscountFixedPriceRule';
+  /** Money values for DISCOUNT_FIXED rules. */
+  amounts: Array<BundlePriceRuleAmount>;
+  /** The globally unique ID of the price rule. */
+  id: Scalars['ID']['output'];
+  /** Pricing strategy. */
+  priceType: BundlePriceType;
+};
+
+export type BundleDiscountPercentPriceRule = BundlePriceRule & Node & {
+  __typename?: 'BundleDiscountPercentPriceRule';
+  /** The globally unique ID of the price rule. */
+  id: Scalars['ID']['output'];
+  /** Percent row for DISCOUNT_PERCENT rules. */
+  percent: BundlePriceRulePercent;
+  /** Pricing strategy. */
+  priceType: BundlePriceType;
+};
+
+export enum BundleDisplayStyle {
+  Accordion = 'ACCORDION',
+  Flat = 'FLAT',
+  Tabs = 'TABS',
+  Wizard = 'WIZARD'
+}
+
+/** An edge in a Bundle connection. */
+export type BundleEdge = {
+  __typename?: 'BundleEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String']['output'];
+  /** The item at the end of the edge. */
+  node: Bundle;
+};
+
+export type BundleFixedPriceRule = BundlePriceRule & Node & {
+  __typename?: 'BundleFixedPriceRule';
+  /** Money values for FIXED rules. */
+  amounts: Array<BundlePriceRuleAmount>;
+  /** The globally unique ID of the price rule. */
+  id: Scalars['ID']['output'];
+  /** Pricing strategy. */
+  priceType: BundlePriceType;
+};
+
+export type BundleFreePriceRule = BundlePriceRule & Node & {
+  __typename?: 'BundleFreePriceRule';
+  /** The globally unique ID of the price rule. */
+  id: Scalars['ID']['output'];
+  /** Pricing strategy. */
+  priceType: BundlePriceType;
+};
+
+export type BundleGroup = Node & {
+  __typename?: 'BundleGroup';
+  /** The date and time when the group was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** The globally unique ID of the group. */
+  id: Scalars['ID']['output'];
+  /** Items in group order. */
+  items: Array<BundleItem>;
+  /** Maximum selected items in this group. Null means no maximum. */
+  maxSelection: Maybe<Scalars['Int']['output']>;
+  /** Minimum selected items in this group. Null means no minimum. */
+  minSelection: Maybe<Scalars['Int']['output']>;
+  /** Sort order within the configuration. */
+  sortIndex: Scalars['Int']['output'];
+  /** Display title from current locale. */
+  title: Scalars['String']['output'];
+  /** The date and time when the group was last updated. */
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type BundleGroupSyncItemInput = {
+  /**
+   * Existing group ID. Null creates a new group.
+   * Existing groups in this configuration but missing from BundleGroupsSyncInput.groups are deleted.
+   */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Complete list of items inside this group. */
+  items: Array<BundleItemSyncInput>;
+  maxSelection?: InputMaybe<Scalars['Int']['input']>;
+  minSelection?: InputMaybe<Scalars['Int']['input']>;
+  /** Sort order within the configuration. */
+  sortIndex: Scalars['Int']['input'];
+  /** Localized title for current locale. */
+  title: Scalars['String']['input'];
+};
+
+export type BundleGroupsSyncInput = {
+  configurationId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  /**
+   * Complete list of groups for this configuration.
+   * Groups not present in this list are deleted.
+   */
+  groups: Array<BundleGroupSyncItemInput>;
+};
+
+export type BundleGroupsSyncPayload = {
+  __typename?: 'BundleGroupsSyncPayload';
+  configuration: Maybe<BundleConfiguration>;
+  groups: Array<BundleGroup>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type BundleItem = Node & {
+  __typename?: 'BundleItem';
+  /** The date and time when the item was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Default quantity. */
+  defaultQty: Maybe<Scalars['Int']['output']>;
+  /** Featured image override. */
+  featuredImage: Maybe<File>;
+  /** The group this item belongs to. */
+  group: BundleGroup;
+  /** The group ID. */
+  groupId: Scalars['ID']['output'];
+  /** The globally unique ID of the item. */
+  id: Scalars['ID']['output'];
+  /** Whether the item references a product or a concrete variant. */
+  itemType: BundleItemType;
+  /** Maximum selectable quantity. Null means unlimited. */
+  maxQty: Maybe<Scalars['Int']['output']>;
+  /** Minimum selectable quantity. */
+  minQty: Maybe<Scalars['Int']['output']>;
+  /** Allowed option/value selections for PRODUCT items. */
+  optionSelections: Array<BundleItemOptionSelection>;
+  /** Inline price rule. Null when pricingTemplate is used. */
+  priceRule: Maybe<BundlePriceRule>;
+  /** Reusable pricing template. Null when inline priceRule is used. */
+  pricingTemplate: Maybe<BundlePricingTemplate>;
+  /** Referenced product for PRODUCT items. */
+  refProduct: Maybe<Product>;
+  /** Referenced product ID for PRODUCT items. */
+  refProductId: Maybe<Scalars['ID']['output']>;
+  /** Referenced variant for VARIANT items. */
+  refVariant: Maybe<Variant>;
+  /** Referenced variant ID for VARIANT items. */
+  refVariantId: Maybe<Scalars['ID']['output']>;
+  /** Whether item is selected by default. */
+  selected: Scalars['Boolean']['output'];
+  /** Sort order within the group. */
+  sortIndex: Scalars['Int']['output'];
+  /** Optional display title override from current locale. */
+  title: Maybe<Scalars['String']['output']>;
+  /** The date and time when the item was last updated. */
+  updatedAt: Scalars['DateTime']['output'];
+  /** Whether item is visible in the configurator. */
+  visible: Scalars['Boolean']['output'];
+};
+
+export type BundleItemOptionSelection = Node & {
+  __typename?: 'BundleItemOptionSelection';
+  /** The globally unique ID of the option selection. */
+  id: Scalars['ID']['output'];
+  /** Referenced product option. */
+  option: ProductOption;
+  /** Referenced product option ID. */
+  optionId: Scalars['ID']['output'];
+  /** Parent option for dependent option trees. */
+  parentOption: Maybe<ProductOption>;
+  /** Parent option ID. */
+  parentOptionId: Maybe<Scalars['ID']['output']>;
+  /** Sort order within item option selections. */
+  sortIndex: Scalars['Int']['output'];
+  /** Allowed values for this option. */
+  values: Array<BundleItemOptionValueSelection>;
+};
+
+export type BundleItemOptionSelectionSyncInput = {
+  /** Existing option selection ID. Null creates a new option selection. */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Referenced product option ID. */
+  optionId: Scalars['ID']['input'];
+  /** Parent option ID for dependent option trees. */
+  parentOptionId?: InputMaybe<Scalars['ID']['input']>;
+  /** Sort order within option selections. */
+  sortIndex: Scalars['Int']['input'];
+  /** Complete list of option value selections. */
+  values: Array<BundleItemOptionValueSelectionSyncInput>;
+};
+
+export type BundleItemOptionValueSelection = Node & {
+  __typename?: 'BundleItemOptionValueSelection';
+  /** The globally unique ID of the option value selection. */
+  id: Scalars['ID']['output'];
+  /** Referenced product option value. Null when the value is unavailable. */
+  optionValue: Maybe<ProductOptionValue>;
+  /** Referenced product option value ID. */
+  optionValueId: Maybe<Scalars['ID']['output']>;
+  /** Sort order within option values. */
+  sortIndex: Scalars['Int']['output'];
+  /** Selection status. */
+  status: BundleItemOptionValueSelectionStatus;
+  /** Stable value copy for displaying stale/unavailable values. */
+  value: Scalars['String']['output'];
+};
+
+export enum BundleItemOptionValueSelectionStatus {
+  Deselected = 'DESELECTED',
+  New = 'NEW',
+  Selected = 'SELECTED',
+  Unavailable = 'UNAVAILABLE'
+}
+
+export type BundleItemOptionValueSelectionSyncInput = {
+  /** Existing value selection ID. Null creates a new value selection. */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Referenced product option value ID. */
+  optionValueId?: InputMaybe<Scalars['ID']['input']>;
+  /** Sort order within option values. */
+  sortIndex: Scalars['Int']['input'];
+  /** Selection status. */
+  status: BundleItemOptionValueSelectionStatus;
+  /** Stable value copy for displaying stale/unavailable values. */
+  value: Scalars['String']['input'];
+};
+
+export type BundleItemSyncInput = {
+  /** Default quantity. */
+  defaultQty?: InputMaybe<Scalars['Int']['input']>;
+  /** Featured image override. */
+  featuredImageId?: InputMaybe<Scalars['ID']['input']>;
+  /**
+   * Existing item ID. Null creates a new item.
+   * Existing items in this group but missing from BundleGroupSyncItemInput.items are deleted.
+   */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Whether the item references a product or a concrete variant. */
+  itemType: BundleItemType;
+  /** Maximum selectable quantity. */
+  maxQty?: InputMaybe<Scalars['Int']['input']>;
+  /** Minimum selectable quantity. */
+  minQty?: InputMaybe<Scalars['Int']['input']>;
+  /** Allowed option/value selections for PRODUCT items. */
+  optionSelections?: InputMaybe<Array<BundleItemOptionSelectionSyncInput>>;
+  /** Inline price rule. Cannot be used together with pricingTemplateId. */
+  priceRule?: InputMaybe<BundlePriceRuleInput>;
+  /** Reusable pricing template ID. Cannot be used together with priceRule. */
+  pricingTemplateId?: InputMaybe<Scalars['ID']['input']>;
+  /** Referenced product ID for PRODUCT items. */
+  refProductId?: InputMaybe<Scalars['ID']['input']>;
+  /** Referenced variant ID for VARIANT items. */
+  refVariantId?: InputMaybe<Scalars['ID']['input']>;
+  /** Whether item is selected by default. */
+  selected: Scalars['Boolean']['input'];
+  /** Sort order within the group. */
+  sortIndex: Scalars['Int']['input'];
+  /** Optional localized title override for current locale. */
+  title?: InputMaybe<Scalars['String']['input']>;
+  /** Whether item is visible in the configurator. */
+  visible: Scalars['Boolean']['input'];
+};
+
+export enum BundleItemType {
+  Product = 'PRODUCT',
+  Variant = 'VARIANT'
+}
+
+export enum BundleLogicOperator {
+  And = 'AND',
+  Or = 'OR'
+}
+
+export type BundleOrderByInput = {
+  direction: SortDirection;
+  field: BundleOrderField;
+};
+
+export enum BundleOrderField {
+  BrandName = 'brandName',
+  CreatedAt = 'createdAt',
+  Currency = 'currency',
+  Handle = 'handle',
+  Id = 'id',
+  Locale = 'locale',
+  MaxPriceMinor = 'maxPriceMinor',
+  MinPriceMinor = 'minPriceMinor',
+  Name = 'name',
+  PrimaryCategoryId = 'primaryCategoryId',
+  PrimaryCategoryName = 'primaryCategoryName',
+  PublishedAt = 'publishedAt',
+  UpdatedAt = 'updatedAt',
+  VendorId = 'vendorId'
+}
+
+export type BundlePriceRule = {
+  /** The globally unique ID of the price rule. */
+  id: Scalars['ID']['output'];
+  /** Pricing strategy. */
+  priceType: BundlePriceType;
+};
+
+export type BundlePriceRuleAmount = {
+  __typename?: 'BundlePriceRuleAmount';
+  /** Amount in minor units. */
+  amountMinor: Scalars['BigInt']['output'];
+  /** The currency code. */
+  currency: CurrencyCode;
+};
+
+export type BundlePriceRuleAmountInput = {
+  /** Amount in minor units. */
+  amountMinor: Scalars['BigInt']['input'];
+  /** The currency code. */
+  currency: CurrencyCode;
+};
+
+export type BundlePriceRuleInput = {
+  /** Money values for FIXED and DISCOUNT_FIXED rules. */
+  amounts?: InputMaybe<Array<BundlePriceRuleAmountInput>>;
+  /** Existing price rule ID. Null creates a new price rule. */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Percent value for DISCOUNT_PERCENT rules. */
+  percent?: InputMaybe<BundlePriceRulePercentInput>;
+  /** Pricing strategy. */
+  priceType: BundlePriceType;
+};
+
+export type BundlePriceRulePercent = {
+  __typename?: 'BundlePriceRulePercent';
+  /** Percent value, 0..100. */
+  value: Scalars['Int']['output'];
+};
+
+export type BundlePriceRulePercentInput = {
+  /** Percent value, 0..100. */
+  value: Scalars['Int']['input'];
+};
+
+export enum BundlePriceType {
+  Base = 'BASE',
+  DiscountFixed = 'DISCOUNT_FIXED',
+  DiscountPercent = 'DISCOUNT_PERCENT',
+  Fixed = 'FIXED',
+  Free = 'FREE'
+}
+
+export type BundlePricingTemplate = Node & {
+  __typename?: 'BundlePricingTemplate';
+  /** The globally unique ID of the pricing template. */
+  id: Scalars['ID']['output'];
+  /** Template name. */
+  name: Scalars['String']['output'];
+  /** Reusable price rule. */
+  priceRule: BundlePriceRule;
+  /** Sort order within configuration. */
+  sortIndex: Scalars['Int']['output'];
+};
+
+export type BundlePricingTemplateSyncItemInput = {
+  /**
+   * Existing pricing template ID. Null creates a new template.
+   * Existing templates in this configuration but missing from
+   * BundlePricingTemplatesSyncInput.pricingTemplates are deleted.
+   */
+  id?: InputMaybe<Scalars['ID']['input']>;
+  /** Template name. */
+  name: Scalars['String']['input'];
+  /** Reusable price rule. */
+  priceRule: BundlePriceRuleInput;
+  /** Sort order within configuration. */
+  sortIndex: Scalars['Int']['input'];
+};
+
+export type BundlePricingTemplatesSyncInput = {
+  configurationId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  /**
+   * Complete list of pricing templates for this configuration.
+   * Templates not present in this list are deleted.
+   */
+  pricingTemplates: Array<BundlePricingTemplateSyncItemInput>;
+};
+
+export type BundlePricingTemplatesSyncPayload = {
+  __typename?: 'BundlePricingTemplatesSyncPayload';
+  configuration: Maybe<BundleConfiguration>;
+  pricingTemplates: Array<BundlePricingTemplate>;
+  userErrors: Array<GenericUserError>;
+};
+
+export enum BundleType {
+  Custom = 'CUSTOM',
+  Fixed = 'FIXED',
+  MixAndMatch = 'MIX_AND_MATCH',
+  Multipack = 'MULTIPACK'
+}
+
+export type BundleUpdateInput = {
+  /** Bundle category assignment operations. */
+  categories?: InputMaybe<Array<ProductCategoryOperationInput>>;
+  /** Bundle content (description, excerpt). */
+  content?: InputMaybe<ProductContentInput>;
+  /** Configurator display style. */
+  displayStyle?: InputMaybe<BundleDisplayStyle>;
+  /** The URL-friendly handle for the bundle. */
+  handle?: InputMaybe<Scalars['String']['input']>;
+  /** Bundle media. */
+  media?: InputMaybe<ProductMediaInput>;
+  /** SEO and Open Graph metadata. */
+  seo?: InputMaybe<ProductSeoInput>;
+  /** Bundle status: DRAFT or PUBLISHED. */
+  status?: InputMaybe<ProductStatus>;
+  /** Bundle tag assignment operations. */
+  tags?: InputMaybe<Array<ProductTagOperationInput>>;
+  /** Bundle title. */
+  title?: InputMaybe<Scalars['String']['input']>;
+  /** High-level bundle type. */
+  type?: InputMaybe<BundleType>;
+  /** Variant create, update, and delete operations. */
+  variants?: InputMaybe<Array<VariantOperationInput>>;
+  /** Vendor ID to associate with the bundle. Pass null to clear. */
+  vendorId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type BundleUpdatePayload = {
+  __typename?: 'BundleUpdatePayload';
+  bundle: Maybe<Bundle>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type BundleWhereInput = {
+  _and?: InputMaybe<Array<BundleWhereInput>>;
+  _not?: InputMaybe<BundleWhereInput>;
+  _or?: InputMaybe<Array<BundleWhereInput>>;
+  brandName?: InputMaybe<StringFilter>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  currency?: InputMaybe<StringFilter>;
+  handle?: InputMaybe<StringFilter>;
+  id?: InputMaybe<IdFilter>;
+  locale?: InputMaybe<StringFilter>;
+  maxPriceMinor?: InputMaybe<IntFilter>;
+  minPriceMinor?: InputMaybe<IntFilter>;
+  name?: InputMaybe<StringFilter>;
+  primaryCategoryId?: InputMaybe<IdFilter>;
+  primaryCategoryName?: InputMaybe<StringFilter>;
+  publishedAt?: InputMaybe<DateTimeFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+  vendorId?: InputMaybe<IdFilter>;
+};
+
 export type CatalogMutation = {
   __typename?: 'CatalogMutation';
+  /** Create one bundle configuration. */
+  bundleConfigurationCreate: BundleConfigurationPayload;
+  /** Delete one bundle configuration with optimistic locking. */
+  bundleConfigurationDelete: BundleConfigurationDeletePayload;
+  /** Update configuration metadata. */
+  bundleConfigurationUpdate: BundleConfigurationPayload;
+  /** Create a new bundle sellable item. */
+  bundleCreate: BundleCreatePayload;
+  /** Sync all dependency rules for one bundle configuration. */
+  bundleDependencyRulesSync: BundleDependencyRulesSyncPayload;
+  /** Sync all groups/items for one bundle configuration. */
+  bundleGroupsSync: BundleGroupsSyncPayload;
+  /** Sync all reusable pricing templates for one bundle configuration. */
+  bundlePricingTemplatesSync: BundlePricingTemplatesSyncPayload;
+  /** Unified bundle update with optimistic locking. */
+  bundleUpdate: BundleUpdatePayload;
   /** Create a new category */
   categoryCreate: CategoryCreatePayload;
   /** Delete a category */
@@ -248,6 +1074,48 @@ export type CatalogMutation = {
   variantUpdatePricing: VariantUpdatePricingPayload;
   /** Create a new vendor */
   vendorCreate: VendorCreatePayload;
+};
+
+
+export type CatalogMutationBundleConfigurationCreateArgs = {
+  input: BundleConfigurationCreateInput;
+};
+
+
+export type CatalogMutationBundleConfigurationDeleteArgs = {
+  input: BundleConfigurationDeleteInput;
+};
+
+
+export type CatalogMutationBundleConfigurationUpdateArgs = {
+  input: BundleConfigurationUpdateInput;
+};
+
+
+export type CatalogMutationBundleCreateArgs = {
+  input: BundleCreateInput;
+};
+
+
+export type CatalogMutationBundleDependencyRulesSyncArgs = {
+  input: BundleDependencyRulesSyncInput;
+};
+
+
+export type CatalogMutationBundleGroupsSyncArgs = {
+  input: BundleGroupsSyncInput;
+};
+
+
+export type CatalogMutationBundlePricingTemplatesSyncArgs = {
+  input: BundlePricingTemplatesSyncInput;
+};
+
+
+export type CatalogMutationBundleUpdateArgs = {
+  bundleId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  operations?: InputMaybe<BundleUpdateInput>;
 };
 
 
@@ -486,6 +1354,10 @@ export type CatalogMutationVendorCreateArgs = {
 
 export type CatalogQuery = {
   __typename?: 'CatalogQuery';
+  /** Get a bundle by Product global ID. The product must have kind = BUNDLE. */
+  bundle: Maybe<Bundle>;
+  /** Get bundles with Relay-style pagination. */
+  bundles: BundleConnection;
   /** Get categories with Relay-style pagination */
   categories: CategoryConnection;
   /** Get a category by ID */
@@ -541,6 +1413,22 @@ export type CatalogQuery = {
   vendor: Maybe<Vendor>;
   /** Get vendors with Relay-style pagination */
   vendors: VendorConnection;
+};
+
+
+export type CatalogQueryBundleArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryBundlesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta?: InputMaybe<BundleBundlesMetaInput>;
+  orderBy?: InputMaybe<Array<BundleOrderByInput>>;
+  where?: InputMaybe<BundleWhereInput>;
 };
 
 
@@ -690,6 +1578,89 @@ export type CatalogQueryVendorsArgs = {
   where?: InputMaybe<VendorWhereInput>;
 };
 
+export type CatalogSellable = {
+  /** The URL-friendly handle. */
+  handle: Maybe<Scalars['String']['output']>;
+  /** The Product global ID of the sellable catalog item. */
+  id: Scalars['ID']['output'];
+  /** Product discriminator. */
+  kind: ProductKind;
+  /** Media registered on this sellable item. */
+  media: Array<ProductMediaItem>;
+  /** The primary category assigned to this sellable item. */
+  primaryCategory: Maybe<Category>;
+  /** The tags associated with this sellable item. */
+  tags: Array<Tag>;
+  /** Localized title. */
+  title: Scalars['String']['output'];
+  /** The total number of variants. */
+  variantsCount: Scalars['Int']['output'];
+};
+
+/** A connection to a mixed list of sellable catalog items. */
+export type CatalogSellableConnection = {
+  __typename?: 'CatalogSellableConnection';
+  /** A list of edges. */
+  edges: Array<CatalogSellableEdge>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+  /** The total number of sellable catalog items. */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** An edge in a CatalogSellable connection. */
+export type CatalogSellableEdge = {
+  __typename?: 'CatalogSellableEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String']['output'];
+  /** The item at the end of the edge. */
+  node: CatalogSellable;
+};
+
+export type CatalogSellableOrderByInput = {
+  direction: SortDirection;
+  field: CatalogSellableOrderField;
+};
+
+export enum CatalogSellableOrderField {
+  BrandName = 'brandName',
+  CreatedAt = 'createdAt',
+  Currency = 'currency',
+  Handle = 'handle',
+  Id = 'id',
+  Kind = 'kind',
+  Locale = 'locale',
+  MaxPriceMinor = 'maxPriceMinor',
+  MinPriceMinor = 'minPriceMinor',
+  Name = 'name',
+  PrimaryCategoryId = 'primaryCategoryId',
+  PrimaryCategoryName = 'primaryCategoryName',
+  PublishedAt = 'publishedAt',
+  UpdatedAt = 'updatedAt',
+  VendorId = 'vendorId'
+}
+
+export type CatalogSellableWhereInput = {
+  _and?: InputMaybe<Array<CatalogSellableWhereInput>>;
+  _not?: InputMaybe<CatalogSellableWhereInput>;
+  _or?: InputMaybe<Array<CatalogSellableWhereInput>>;
+  brandName?: InputMaybe<StringFilter>;
+  createdAt?: InputMaybe<DateTimeFilter>;
+  currency?: InputMaybe<StringFilter>;
+  handle?: InputMaybe<StringFilter>;
+  id?: InputMaybe<IdFilter>;
+  kind?: InputMaybe<StringFilter>;
+  locale?: InputMaybe<StringFilter>;
+  maxPriceMinor?: InputMaybe<IntFilter>;
+  minPriceMinor?: InputMaybe<IntFilter>;
+  name?: InputMaybe<StringFilter>;
+  primaryCategoryId?: InputMaybe<IdFilter>;
+  primaryCategoryName?: InputMaybe<StringFilter>;
+  publishedAt?: InputMaybe<DateTimeFilter>;
+  updatedAt?: InputMaybe<DateTimeFilter>;
+  vendorId?: InputMaybe<IdFilter>;
+};
+
 /** A category represents a hierarchical grouping of products. */
 export type Category = Node & {
   __typename?: 'Category';
@@ -717,6 +1688,8 @@ export type Category = Node & {
   id: Scalars['ID']['output'];
   /** Whether the category is currently published. */
   isPublished: Scalars['Boolean']['output'];
+  /** Sellable catalog items assigned to this category, including products and bundles. */
+  items: CatalogSellableConnection;
   /** Media files associated with this category. */
   media: Array<CategoryMediaItem>;
   /** The display name of the category. */
@@ -737,6 +1710,17 @@ export type Category = Node & {
   seo: Maybe<Seo>;
   /** The date and time when the category was last updated. */
   updatedAt: Scalars['DateTime']['output'];
+};
+
+
+/** A category represents a hierarchical grouping of products. */
+export type CategoryItemsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<CatalogSellableOrderByInput>>;
+  where?: InputMaybe<CatalogSellableWhereInput>;
 };
 
 
@@ -2602,7 +3586,7 @@ export type PricingWidgetPayload = {
 };
 
 /** A product represents an item that can be sold. */
-export type Product = Node & {
+export type Product = CatalogSellable & Node & {
   __typename?: 'Product';
   /** Category assignments with relationship metadata. */
   categoryAssignments: Array<ProductCategoryAssignment>;
@@ -2618,10 +3602,12 @@ export type Product = Node & {
   features: Array<ProductFeature>;
   /** The URL-friendly handle for the product. */
   handle: Maybe<Scalars['String']['output']>;
-  /** The globally unique ID of the product. */
+  /** The Product global ID. */
   id: Scalars['ID']['output'];
   /** Whether the product is currently published. */
   isPublished: Scalars['Boolean']['output'];
+  /** Product discriminator. */
+  kind: ProductKind;
   /** Media registered on this product. */
   media: Array<ProductMediaItem>;
   /** The options available for this product. */
@@ -3061,6 +4047,11 @@ export type ProductInventoryWidget = {
   quantities: InventoryQuantities;
   skuStatus: InventorySkuStatus;
 };
+
+export enum ProductKind {
+  Base = 'BASE',
+  Bundle = 'BUNDLE'
+}
 
 /** Input for product media. */
 export type ProductMediaInput = {
@@ -3773,6 +4764,8 @@ export type UserError = {
  */
 export type Variant = Node & {
   __typename?: 'Variant';
+  /** Bundle configuration assigned to this variant. Null for BASE variants. */
+  bundleConfiguration: Maybe<BundleConfiguration>;
   /** The date and time when the variant was created. */
   createdAt: Scalars['DateTime']['output'];
   /** The date and time when the variant was deleted (soft delete). */
@@ -3791,6 +4784,8 @@ export type Variant = Node & {
   inventoryItem: Maybe<InventoryItem>;
   /** Whether this is the default variant for the product. */
   isDefault: Scalars['Boolean']['output'];
+  /** Variant discriminator. Must match parent product kind. */
+  kind: ProductKind;
   /** Media attached to this variant (images, videos). */
   media: Array<VariantMediaItem>;
   /** Current price for this variant. */
@@ -3992,6 +4987,8 @@ export enum VariantOperationAction {
 export type VariantOperationInput = {
   /** The operation to apply. */
   action: VariantOperationAction;
+  /** Bundle configuration assignment for bundle variants. */
+  bundleConfigurationId?: InputMaybe<Scalars['ID']['input']>;
   /** Per-request client correlation key for create operations. */
   clientMutationId?: InputMaybe<Scalars['String']['input']>;
   /** Variant dimensions. */
@@ -4773,7 +5770,9 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  Node: ( Category ) | ( Collection ) | ( Facet ) | ( FacetGroup ) | ( FacetSwatch ) | ( FacetValue ) | ( InventoryItem ) | ( Product ) | ( ProductFeature ) | ( ProductFeatureValue ) | ( ProductOption ) | ( ProductOptionSwatch ) | ( ProductOptionValue ) | ( Tag ) | ( Variant ) | ( VariantCost ) | ( VariantPrice ) | ( Vendor ) | ( Warehouse ) | ( WarehouseStock );
+  BundlePriceRule: ( BundleBasePriceRule ) | ( BundleDiscountFixedPriceRule ) | ( BundleDiscountPercentPriceRule ) | ( BundleFixedPriceRule ) | ( BundleFreePriceRule );
+  CatalogSellable: ( Omit<Bundle, 'categoryAssignments' | 'configurations' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, configurations: Array<_RefType['BundleConfiguration']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, primaryCategory?: Maybe<_RefType['Category']>, variants: _RefType['VariantConnection'] } ) | ( Omit<Product, 'categoryAssignments' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, primaryCategory?: Maybe<_RefType['Category']>, variants: _RefType['VariantConnection'] } );
+  Node: ( Omit<Bundle, 'categoryAssignments' | 'configurations' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, configurations: Array<_RefType['BundleConfiguration']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, primaryCategory?: Maybe<_RefType['Category']>, variants: _RefType['VariantConnection'] } ) | ( BundleBasePriceRule ) | ( BundleCondition ) | ( BundleConditionGroup ) | ( Omit<BundleConfiguration, 'bundle' | 'dependencyRules' | 'groups' | 'pricingTemplates' | 'variants'> & { bundle: _RefType['Bundle'], dependencyRules: Array<_RefType['BundleDependencyRule']>, groups: Array<_RefType['BundleGroup']>, pricingTemplates: Array<_RefType['BundlePricingTemplate']>, variants: Array<_RefType['Variant']> } ) | ( Omit<BundleDependencyAction, 'priceRule'> & { priceRule?: Maybe<_RefType['BundlePriceRule']> } ) | ( Omit<BundleDependencyRule, 'actions'> & { actions: Array<_RefType['BundleDependencyAction']> } ) | ( BundleDiscountFixedPriceRule ) | ( BundleDiscountPercentPriceRule ) | ( BundleFixedPriceRule ) | ( BundleFreePriceRule ) | ( Omit<BundleGroup, 'items'> & { items: Array<_RefType['BundleItem']> } ) | ( Omit<BundleItem, 'group' | 'priceRule' | 'pricingTemplate' | 'refProduct' | 'refVariant'> & { group: _RefType['BundleGroup'], priceRule?: Maybe<_RefType['BundlePriceRule']>, pricingTemplate?: Maybe<_RefType['BundlePricingTemplate']>, refProduct?: Maybe<_RefType['Product']>, refVariant?: Maybe<_RefType['Variant']> } ) | ( BundleItemOptionSelection ) | ( BundleItemOptionValueSelection ) | ( Omit<BundlePricingTemplate, 'priceRule'> & { priceRule: _RefType['BundlePriceRule'] } ) | ( Omit<Category, 'ancestors' | 'children' | 'description' | 'excerpt' | 'items' | 'parent' | 'products'> & { ancestors: Array<_RefType['Category']>, children: Array<_RefType['Category']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, items: _RefType['CatalogSellableConnection'], parent?: Maybe<_RefType['Category']>, products: _RefType['CategoryProductConnection'] } ) | ( Omit<Collection, 'description' | 'excerpt' | 'products'> & { description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, products: _RefType['CollectionProductConnection'] } ) | ( Facet ) | ( FacetGroup ) | ( FacetSwatch ) | ( FacetValue ) | ( Omit<InventoryItem, 'stock' | 'variant'> & { stock: Array<_RefType['WarehouseStock']>, variant: _RefType['Variant'] } ) | ( Omit<Product, 'categoryAssignments' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, primaryCategory?: Maybe<_RefType['Category']>, variants: _RefType['VariantConnection'] } ) | ( ProductFeature ) | ( ProductFeatureValue ) | ( ProductOption ) | ( ProductOptionSwatch ) | ( ProductOptionValue ) | ( Tag ) | ( Omit<Variant, 'bundleConfiguration' | 'inventoryItem' | 'product'> & { bundleConfiguration?: Maybe<_RefType['BundleConfiguration']>, inventoryItem?: Maybe<_RefType['InventoryItem']>, product: _RefType['Product'] } ) | ( VariantCost ) | ( VariantPrice ) | ( Vendor ) | ( Omit<Warehouse, 'stock'> & { stock: _RefType['WarehouseStockConnection'] } ) | ( Omit<WarehouseStock, 'variant' | 'warehouse'> & { variant: _RefType['Variant'], warehouse: _RefType['Warehouse'] } );
   UserError: ( BulkUpdateUserError ) | ( GenericUserError );
 }>;
 
@@ -4794,17 +5793,86 @@ export type ResolversTypes = ResolversObject<{
   BulkUpdateJobStatus: BulkUpdateJobStatus;
   BulkUpdateOpType: BulkUpdateOpType;
   BulkUpdateUserError: ResolverTypeWrapper<BulkUpdateUserError>;
-  CatalogMutation: ResolverTypeWrapper<CatalogMutation>;
-  CatalogQuery: ResolverTypeWrapper<Omit<CatalogQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
-  Category: ResolverTypeWrapper<Category>;
+  Bundle: ResolverTypeWrapper<Omit<Bundle, 'categoryAssignments' | 'configurations' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<ResolversTypes['ProductCategoryAssignment']>, configurations: Array<ResolversTypes['BundleConfiguration']>, description?: Maybe<ResolversTypes['RichText']>, excerpt?: Maybe<ResolversTypes['RichText']>, primaryCategory?: Maybe<ResolversTypes['Category']>, variants: ResolversTypes['VariantConnection'] }>;
+  BundleBasePriceRule: ResolverTypeWrapper<BundleBasePriceRule>;
+  BundleBundlesMetaInput: BundleBundlesMetaInput;
+  BundleCondition: ResolverTypeWrapper<BundleCondition>;
+  BundleConditionCategory: BundleConditionCategory;
+  BundleConditionGroup: ResolverTypeWrapper<BundleConditionGroup>;
+  BundleConditionGroupSyncInput: BundleConditionGroupSyncInput;
+  BundleConditionOperator: BundleConditionOperator;
+  BundleConditionSubject: BundleConditionSubject;
+  BundleConditionSyncInput: BundleConditionSyncInput;
+  BundleConfiguration: ResolverTypeWrapper<Omit<BundleConfiguration, 'bundle' | 'dependencyRules' | 'groups' | 'pricingTemplates' | 'variants'> & { bundle: ResolversTypes['Bundle'], dependencyRules: Array<ResolversTypes['BundleDependencyRule']>, groups: Array<ResolversTypes['BundleGroup']>, pricingTemplates: Array<ResolversTypes['BundlePricingTemplate']>, variants: Array<ResolversTypes['Variant']> }>;
+  BundleConfigurationCreateInput: BundleConfigurationCreateInput;
+  BundleConfigurationDeleteInput: BundleConfigurationDeleteInput;
+  BundleConfigurationDeletePayload: ResolverTypeWrapper<Omit<BundleConfigurationDeletePayload, 'bundle'> & { bundle?: Maybe<ResolversTypes['Bundle']> }>;
+  BundleConfigurationPayload: ResolverTypeWrapper<Omit<BundleConfigurationPayload, 'configuration'> & { configuration?: Maybe<ResolversTypes['BundleConfiguration']> }>;
+  BundleConfigurationUpdateInput: BundleConfigurationUpdateInput;
+  BundleConnection: ResolverTypeWrapper<Omit<BundleConnection, 'edges'> & { edges: Array<ResolversTypes['BundleEdge']> }>;
+  BundleCreateInput: BundleCreateInput;
+  BundleCreatePayload: ResolverTypeWrapper<Omit<BundleCreatePayload, 'bundle'> & { bundle?: Maybe<ResolversTypes['Bundle']> }>;
+  BundleDependencyAction: ResolverTypeWrapper<Omit<BundleDependencyAction, 'priceRule'> & { priceRule?: Maybe<ResolversTypes['BundlePriceRule']> }>;
+  BundleDependencyActionSyncInput: BundleDependencyActionSyncInput;
+  BundleDependencyActionType: BundleDependencyActionType;
+  BundleDependencyRule: ResolverTypeWrapper<Omit<BundleDependencyRule, 'actions'> & { actions: Array<ResolversTypes['BundleDependencyAction']> }>;
+  BundleDependencyRuleSyncItemInput: BundleDependencyRuleSyncItemInput;
+  BundleDependencyRulesSyncInput: BundleDependencyRulesSyncInput;
+  BundleDependencyRulesSyncPayload: ResolverTypeWrapper<Omit<BundleDependencyRulesSyncPayload, 'configuration' | 'dependencyRules'> & { configuration?: Maybe<ResolversTypes['BundleConfiguration']>, dependencyRules: Array<ResolversTypes['BundleDependencyRule']> }>;
+  BundleDependencyTargetType: BundleDependencyTargetType;
+  BundleDiscountFixedPriceRule: ResolverTypeWrapper<BundleDiscountFixedPriceRule>;
+  BundleDiscountPercentPriceRule: ResolverTypeWrapper<BundleDiscountPercentPriceRule>;
+  BundleDisplayStyle: BundleDisplayStyle;
+  BundleEdge: ResolverTypeWrapper<Omit<BundleEdge, 'node'> & { node: ResolversTypes['Bundle'] }>;
+  BundleFixedPriceRule: ResolverTypeWrapper<BundleFixedPriceRule>;
+  BundleFreePriceRule: ResolverTypeWrapper<BundleFreePriceRule>;
+  BundleGroup: ResolverTypeWrapper<Omit<BundleGroup, 'items'> & { items: Array<ResolversTypes['BundleItem']> }>;
+  BundleGroupSyncItemInput: BundleGroupSyncItemInput;
+  BundleGroupsSyncInput: BundleGroupsSyncInput;
+  BundleGroupsSyncPayload: ResolverTypeWrapper<Omit<BundleGroupsSyncPayload, 'configuration' | 'groups'> & { configuration?: Maybe<ResolversTypes['BundleConfiguration']>, groups: Array<ResolversTypes['BundleGroup']> }>;
+  BundleItem: ResolverTypeWrapper<Omit<BundleItem, 'group' | 'priceRule' | 'pricingTemplate' | 'refProduct' | 'refVariant'> & { group: ResolversTypes['BundleGroup'], priceRule?: Maybe<ResolversTypes['BundlePriceRule']>, pricingTemplate?: Maybe<ResolversTypes['BundlePricingTemplate']>, refProduct?: Maybe<ResolversTypes['Product']>, refVariant?: Maybe<ResolversTypes['Variant']> }>;
+  BundleItemOptionSelection: ResolverTypeWrapper<BundleItemOptionSelection>;
+  BundleItemOptionSelectionSyncInput: BundleItemOptionSelectionSyncInput;
+  BundleItemOptionValueSelection: ResolverTypeWrapper<BundleItemOptionValueSelection>;
+  BundleItemOptionValueSelectionStatus: BundleItemOptionValueSelectionStatus;
+  BundleItemOptionValueSelectionSyncInput: BundleItemOptionValueSelectionSyncInput;
+  BundleItemSyncInput: BundleItemSyncInput;
+  BundleItemType: BundleItemType;
+  BundleLogicOperator: BundleLogicOperator;
+  BundleOrderByInput: BundleOrderByInput;
+  BundleOrderField: BundleOrderField;
+  BundlePriceRule: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['BundlePriceRule']>;
+  BundlePriceRuleAmount: ResolverTypeWrapper<BundlePriceRuleAmount>;
+  BundlePriceRuleAmountInput: BundlePriceRuleAmountInput;
+  BundlePriceRuleInput: BundlePriceRuleInput;
+  BundlePriceRulePercent: ResolverTypeWrapper<BundlePriceRulePercent>;
+  BundlePriceRulePercentInput: BundlePriceRulePercentInput;
+  BundlePriceType: BundlePriceType;
+  BundlePricingTemplate: ResolverTypeWrapper<Omit<BundlePricingTemplate, 'priceRule'> & { priceRule: ResolversTypes['BundlePriceRule'] }>;
+  BundlePricingTemplateSyncItemInput: BundlePricingTemplateSyncItemInput;
+  BundlePricingTemplatesSyncInput: BundlePricingTemplatesSyncInput;
+  BundlePricingTemplatesSyncPayload: ResolverTypeWrapper<Omit<BundlePricingTemplatesSyncPayload, 'configuration' | 'pricingTemplates'> & { configuration?: Maybe<ResolversTypes['BundleConfiguration']>, pricingTemplates: Array<ResolversTypes['BundlePricingTemplate']> }>;
+  BundleType: BundleType;
+  BundleUpdateInput: BundleUpdateInput;
+  BundleUpdatePayload: ResolverTypeWrapper<Omit<BundleUpdatePayload, 'bundle'> & { bundle?: Maybe<ResolversTypes['Bundle']> }>;
+  BundleWhereInput: BundleWhereInput;
+  CatalogMutation: ResolverTypeWrapper<Omit<CatalogMutation, 'bundleConfigurationCreate' | 'bundleConfigurationDelete' | 'bundleConfigurationUpdate' | 'bundleCreate' | 'bundleDependencyRulesSync' | 'bundleGroupsSync' | 'bundlePricingTemplatesSync' | 'bundleUpdate' | 'categoryCreate' | 'categoryMove' | 'categoryRebalance' | 'categoryUpdate' | 'collectionAddProducts' | 'collectionCreate' | 'collectionMoveProduct' | 'collectionRemoveProducts' | 'collectionUpdate' | 'collectionUpdateRules' | 'productCreate' | 'productFeatureCreate' | 'productFeatureDelete' | 'productFeatureUpdate' | 'productFeaturesSync' | 'productOptionCreate' | 'productOptionDelete' | 'productOptionUpdate' | 'productOptionsSync' | 'productUpdate' | 'productUpdateStatus' | 'variantCreate' | 'variantDelete' | 'variantUpdateMedia' | 'variantUpdateOptions' | 'variantUpdatePricing'> & { bundleConfigurationCreate: ResolversTypes['BundleConfigurationPayload'], bundleConfigurationDelete: ResolversTypes['BundleConfigurationDeletePayload'], bundleConfigurationUpdate: ResolversTypes['BundleConfigurationPayload'], bundleCreate: ResolversTypes['BundleCreatePayload'], bundleDependencyRulesSync: ResolversTypes['BundleDependencyRulesSyncPayload'], bundleGroupsSync: ResolversTypes['BundleGroupsSyncPayload'], bundlePricingTemplatesSync: ResolversTypes['BundlePricingTemplatesSyncPayload'], bundleUpdate: ResolversTypes['BundleUpdatePayload'], categoryCreate: ResolversTypes['CategoryCreatePayload'], categoryMove: ResolversTypes['CategoryMovePayload'], categoryRebalance: ResolversTypes['CategoryRebalancePayload'], categoryUpdate: ResolversTypes['CategoryUpdatePayload'], collectionAddProducts: ResolversTypes['CollectionAddProductsPayload'], collectionCreate: ResolversTypes['CollectionCreatePayload'], collectionMoveProduct: ResolversTypes['CollectionMoveProductPayload'], collectionRemoveProducts: ResolversTypes['CollectionRemoveProductsPayload'], collectionUpdate: ResolversTypes['CollectionUpdatePayload'], collectionUpdateRules: ResolversTypes['CollectionUpdateRulesPayload'], productCreate: ResolversTypes['ProductCreatePayload'], productFeatureCreate: ResolversTypes['ProductFeatureCreatePayload'], productFeatureDelete: ResolversTypes['ProductFeatureDeletePayload'], productFeatureUpdate: ResolversTypes['ProductFeatureUpdatePayload'], productFeaturesSync: ResolversTypes['ProductFeaturesSyncPayload'], productOptionCreate: ResolversTypes['ProductOptionCreatePayload'], productOptionDelete: ResolversTypes['ProductOptionDeletePayload'], productOptionUpdate: ResolversTypes['ProductOptionUpdatePayload'], productOptionsSync: ResolversTypes['ProductOptionsSyncPayload'], productUpdate: ResolversTypes['ProductUpdatePayload'], productUpdateStatus: ResolversTypes['ProductUpdateStatusPayload'], variantCreate: ResolversTypes['VariantCreatePayload'], variantDelete: ResolversTypes['VariantDeletePayload'], variantUpdateMedia: ResolversTypes['VariantUpdateMediaPayload'], variantUpdateOptions: ResolversTypes['VariantUpdateOptionsPayload'], variantUpdatePricing: ResolversTypes['VariantUpdatePricingPayload'] }>;
+  CatalogQuery: ResolverTypeWrapper<Omit<CatalogQuery, 'bundle' | 'bundles' | 'categories' | 'category' | 'collection' | 'collectionByHandle' | 'collections' | 'node' | 'nodes' | 'product' | 'products' | 'variant' | 'variants'> & { bundle?: Maybe<ResolversTypes['Bundle']>, bundles: ResolversTypes['BundleConnection'], categories: ResolversTypes['CategoryConnection'], category?: Maybe<ResolversTypes['Category']>, collection?: Maybe<ResolversTypes['Collection']>, collectionByHandle?: Maybe<ResolversTypes['Collection']>, collections: ResolversTypes['CollectionConnection'], node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>>, product?: Maybe<ResolversTypes['Product']>, products: ResolversTypes['ProductConnection'], variant?: Maybe<ResolversTypes['Variant']>, variants: ResolversTypes['VariantConnection'] }>;
+  CatalogSellable: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['CatalogSellable']>;
+  CatalogSellableConnection: ResolverTypeWrapper<Omit<CatalogSellableConnection, 'edges'> & { edges: Array<ResolversTypes['CatalogSellableEdge']> }>;
+  CatalogSellableEdge: ResolverTypeWrapper<Omit<CatalogSellableEdge, 'node'> & { node: ResolversTypes['CatalogSellable'] }>;
+  CatalogSellableOrderByInput: CatalogSellableOrderByInput;
+  CatalogSellableOrderField: CatalogSellableOrderField;
+  CatalogSellableWhereInput: CatalogSellableWhereInput;
+  Category: ResolverTypeWrapper<Omit<Category, 'ancestors' | 'children' | 'description' | 'excerpt' | 'items' | 'parent' | 'products'> & { ancestors: Array<ResolversTypes['Category']>, children: Array<ResolversTypes['Category']>, description?: Maybe<ResolversTypes['RichText']>, excerpt?: Maybe<ResolversTypes['RichText']>, items: ResolversTypes['CatalogSellableConnection'], parent?: Maybe<ResolversTypes['Category']>, products: ResolversTypes['CategoryProductConnection'] }>;
   CategoryCategoriesMetaInput: CategoryCategoriesMetaInput;
-  CategoryConnection: ResolverTypeWrapper<CategoryConnection>;
+  CategoryConnection: ResolverTypeWrapper<Omit<CategoryConnection, 'edges'> & { edges: Array<ResolversTypes['CategoryEdge']> }>;
   CategoryContentInput: CategoryContentInput;
   CategoryCreateInput: CategoryCreateInput;
-  CategoryCreatePayload: ResolverTypeWrapper<CategoryCreatePayload>;
+  CategoryCreatePayload: ResolverTypeWrapper<Omit<CategoryCreatePayload, 'category'> & { category?: Maybe<ResolversTypes['Category']> }>;
   CategoryDeleteInput: CategoryDeleteInput;
   CategoryDeletePayload: ResolverTypeWrapper<CategoryDeletePayload>;
-  CategoryEdge: ResolverTypeWrapper<CategoryEdge>;
+  CategoryEdge: ResolverTypeWrapper<Omit<CategoryEdge, 'node'> & { node: ResolversTypes['Category'] }>;
   CategoryHierarchyInput: CategoryHierarchyInput;
   CategoryHierarchyScopeDirection: CategoryHierarchyScopeDirection;
   CategoryHierarchyScopeInput: CategoryHierarchyScopeInput;
@@ -4812,44 +5880,44 @@ export type ResolversTypes = ResolversObject<{
   CategoryMediaInput: CategoryMediaInput;
   CategoryMediaItem: ResolverTypeWrapper<CategoryMediaItem>;
   CategoryMoveInput: CategoryMoveInput;
-  CategoryMovePayload: ResolverTypeWrapper<CategoryMovePayload>;
+  CategoryMovePayload: ResolverTypeWrapper<Omit<CategoryMovePayload, 'category'> & { category?: Maybe<ResolversTypes['Category']> }>;
   CategoryOrderByInput: CategoryOrderByInput;
   CategoryOrderField: CategoryOrderField;
-  CategoryProductConnection: ResolverTypeWrapper<CategoryProductConnection>;
-  CategoryProductEdge: ResolverTypeWrapper<CategoryProductEdge>;
+  CategoryProductConnection: ResolverTypeWrapper<Omit<CategoryProductConnection, 'edges'> & { edges: Array<ResolversTypes['CategoryProductEdge']> }>;
+  CategoryProductEdge: ResolverTypeWrapper<Omit<CategoryProductEdge, 'node'> & { node: ResolversTypes['Product'] }>;
   CategoryProductWhereInput: CategoryProductWhereInput;
   CategoryProductsScopeInput: CategoryProductsScopeInput;
   CategoryRebalanceInput: CategoryRebalanceInput;
-  CategoryRebalancePayload: ResolverTypeWrapper<CategoryRebalancePayload>;
+  CategoryRebalancePayload: ResolverTypeWrapper<Omit<CategoryRebalancePayload, 'category'> & { category?: Maybe<ResolversTypes['Category']> }>;
   CategorySortInput: CategorySortInput;
   CategoryStatus: CategoryStatus;
   CategoryUpdateInput: CategoryUpdateInput;
-  CategoryUpdatePayload: ResolverTypeWrapper<CategoryUpdatePayload>;
+  CategoryUpdatePayload: ResolverTypeWrapper<Omit<CategoryUpdatePayload, 'category'> & { category?: Maybe<ResolversTypes['Category']> }>;
   CategoryWhereInput: CategoryWhereInput;
-  Collection: ResolverTypeWrapper<Collection>;
+  Collection: ResolverTypeWrapper<Omit<Collection, 'description' | 'excerpt' | 'products'> & { description?: Maybe<ResolversTypes['RichText']>, excerpt?: Maybe<ResolversTypes['RichText']>, products: ResolversTypes['CollectionProductConnection'] }>;
   CollectionAddProductsInput: CollectionAddProductsInput;
-  CollectionAddProductsPayload: ResolverTypeWrapper<CollectionAddProductsPayload>;
-  CollectionConnection: ResolverTypeWrapper<CollectionConnection>;
+  CollectionAddProductsPayload: ResolverTypeWrapper<Omit<CollectionAddProductsPayload, 'collection'> & { collection?: Maybe<ResolversTypes['Collection']> }>;
+  CollectionConnection: ResolverTypeWrapper<Omit<CollectionConnection, 'edges'> & { edges: Array<ResolversTypes['CollectionEdge']> }>;
   CollectionCreateInput: CollectionCreateInput;
-  CollectionCreatePayload: ResolverTypeWrapper<CollectionCreatePayload>;
+  CollectionCreatePayload: ResolverTypeWrapper<Omit<CollectionCreatePayload, 'collection'> & { collection?: Maybe<ResolversTypes['Collection']> }>;
   CollectionDeleteInput: CollectionDeleteInput;
   CollectionDeletePayload: ResolverTypeWrapper<CollectionDeletePayload>;
-  CollectionEdge: ResolverTypeWrapper<CollectionEdge>;
+  CollectionEdge: ResolverTypeWrapper<Omit<CollectionEdge, 'node'> & { node: ResolversTypes['Collection'] }>;
   CollectionMediaInput: CollectionMediaInput;
   CollectionMediaItem: ResolverTypeWrapper<CollectionMediaItem>;
   CollectionMoveProductInput: CollectionMoveProductInput;
-  CollectionMoveProductPayload: ResolverTypeWrapper<CollectionMoveProductPayload>;
-  CollectionProductConnection: ResolverTypeWrapper<CollectionProductConnection>;
-  CollectionProductEdge: ResolverTypeWrapper<CollectionProductEdge>;
+  CollectionMoveProductPayload: ResolverTypeWrapper<Omit<CollectionMoveProductPayload, 'collection'> & { collection?: Maybe<ResolversTypes['Collection']> }>;
+  CollectionProductConnection: ResolverTypeWrapper<Omit<CollectionProductConnection, 'edges'> & { edges: Array<ResolversTypes['CollectionProductEdge']> }>;
+  CollectionProductEdge: ResolverTypeWrapper<Omit<CollectionProductEdge, 'node'> & { node: ResolversTypes['Product'] }>;
   CollectionRemoveProductsInput: CollectionRemoveProductsInput;
-  CollectionRemoveProductsPayload: ResolverTypeWrapper<CollectionRemoveProductsPayload>;
+  CollectionRemoveProductsPayload: ResolverTypeWrapper<Omit<CollectionRemoveProductsPayload, 'collection'> & { collection?: Maybe<ResolversTypes['Collection']> }>;
   CollectionRule: ResolverTypeWrapper<CollectionRule>;
   CollectionRuleInput: CollectionRuleInput;
   CollectionType: CollectionType;
   CollectionUpdateInput: CollectionUpdateInput;
-  CollectionUpdatePayload: ResolverTypeWrapper<CollectionUpdatePayload>;
+  CollectionUpdatePayload: ResolverTypeWrapper<Omit<CollectionUpdatePayload, 'collection'> & { collection?: Maybe<ResolversTypes['Collection']> }>;
   CollectionUpdateRulesInput: CollectionUpdateRulesInput;
-  CollectionUpdateRulesPayload: ResolverTypeWrapper<CollectionUpdateRulesPayload>;
+  CollectionUpdateRulesPayload: ResolverTypeWrapper<Omit<CollectionUpdateRulesPayload, 'collection'> & { collection?: Maybe<ResolversTypes['Collection']> }>;
   CurrencyCode: CurrencyCode;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   DateTimeFilter: DateTimeFilter;
@@ -4896,24 +5964,24 @@ export type ResolversTypes = ResolversObject<{
   IntFilter: IntFilter;
   InventoryAlertThreshold: ResolverTypeWrapper<InventoryAlertThreshold>;
   InventoryBackorder: ResolverTypeWrapper<InventoryBackorder>;
-  InventoryItem: ResolverTypeWrapper<InventoryItem>;
-  InventoryItemConnection: ResolverTypeWrapper<InventoryItemConnection>;
+  InventoryItem: ResolverTypeWrapper<Omit<InventoryItem, 'stock' | 'variant'> & { stock: Array<ResolversTypes['WarehouseStock']>, variant: ResolversTypes['Variant'] }>;
+  InventoryItemConnection: ResolverTypeWrapper<Omit<InventoryItemConnection, 'edges'> & { edges: Array<ResolversTypes['InventoryItemEdge']> }>;
   InventoryItemCost: ResolverTypeWrapper<InventoryItemCost>;
   InventoryItemCostInput: InventoryItemCostInput;
-  InventoryItemEdge: ResolverTypeWrapper<InventoryItemEdge>;
+  InventoryItemEdge: ResolverTypeWrapper<Omit<InventoryItemEdge, 'node'> & { node: ResolversTypes['InventoryItem'] }>;
   InventoryItemInput: InventoryItemInput;
   InventoryItemInventoryItemsMetaInput: InventoryItemInventoryItemsMetaInput;
   InventoryItemOrderByInput: InventoryItemOrderByInput;
   InventoryItemOrderField: InventoryItemOrderField;
   InventoryItemStockInput: InventoryItemStockInput;
   InventoryItemUpdateInput: InventoryItemUpdateInput;
-  InventoryItemUpdatePayload: ResolverTypeWrapper<InventoryItemUpdatePayload>;
+  InventoryItemUpdatePayload: ResolverTypeWrapper<Omit<InventoryItemUpdatePayload, 'inventoryItem'> & { inventoryItem?: Maybe<ResolversTypes['InventoryItem']> }>;
   InventoryItemWarehouseScopeInput: InventoryItemWarehouseScopeInput;
   InventoryItemWarehouseScopeMode: InventoryItemWarehouseScopeMode;
   InventoryItemWhereInput: InventoryItemWhereInput;
-  InventoryMutation: ResolverTypeWrapper<InventoryMutation>;
+  InventoryMutation: ResolverTypeWrapper<Omit<InventoryMutation, 'inventoryItemUpdate' | 'warehouseCreate' | 'warehouseStockCreate' | 'warehouseUpdate'> & { inventoryItemUpdate: ResolversTypes['InventoryItemUpdatePayload'], warehouseCreate: ResolversTypes['WarehouseCreatePayload'], warehouseStockCreate: ResolversTypes['WarehouseStockCreatePayload'], warehouseUpdate: ResolversTypes['WarehouseUpdatePayload'] }>;
   InventoryQuantities: ResolverTypeWrapper<InventoryQuantities>;
-  InventoryQuery: ResolverTypeWrapper<Omit<InventoryQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
+  InventoryQuery: ResolverTypeWrapper<Omit<InventoryQuery, 'inventoryItem' | 'inventoryItemByVariant' | 'inventoryItems' | 'node' | 'nodes' | 'warehouse' | 'warehouseAssignableVariants' | 'warehouses'> & { inventoryItem?: Maybe<ResolversTypes['InventoryItem']>, inventoryItemByVariant?: Maybe<ResolversTypes['InventoryItem']>, inventoryItems: ResolversTypes['InventoryItemConnection'], node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>>, warehouse?: Maybe<ResolversTypes['Warehouse']>, warehouseAssignableVariants: ResolversTypes['VariantConnection'], warehouses: ResolversTypes['WarehouseConnection'] }>;
   InventorySkuStatus: ResolverTypeWrapper<InventorySkuStatus>;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   ListingOrderByInput: ListingOrderByInput;
@@ -4926,7 +5994,7 @@ export type ResolversTypes = ResolversObject<{
   PageInfo: ResolverTypeWrapper<PageInfo>;
   PricingWidgetInput: PricingWidgetInput;
   PricingWidgetPayload: ResolverTypeWrapper<PricingWidgetPayload>;
-  Product: ResolverTypeWrapper<Product>;
+  Product: ResolverTypeWrapper<Omit<Product, 'categoryAssignments' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<ResolversTypes['ProductCategoryAssignment']>, description?: Maybe<ResolversTypes['RichText']>, excerpt?: Maybe<ResolversTypes['RichText']>, primaryCategory?: Maybe<ResolversTypes['Category']>, variants: ResolversTypes['VariantConnection'] }>;
   ProductBulkUpdateInput: ProductBulkUpdateInput;
   ProductBulkUpdateItem: ProductBulkUpdateItem;
   ProductBulkUpdateJob: ResolverTypeWrapper<ProductBulkUpdateJob>;
@@ -4934,55 +6002,56 @@ export type ResolversTypes = ResolversObject<{
   ProductBulkUpdateJobEdge: ResolverTypeWrapper<ProductBulkUpdateJobEdge>;
   ProductBulkUpdatePayload: ResolverTypeWrapper<ProductBulkUpdatePayload>;
   ProductCategoriesScopeInput: ProductCategoriesScopeInput;
-  ProductCategoryAssignment: ResolverTypeWrapper<ProductCategoryAssignment>;
+  ProductCategoryAssignment: ResolverTypeWrapper<Omit<ProductCategoryAssignment, 'category'> & { category: ResolversTypes['Category'] }>;
   ProductCategoryOperationAction: ProductCategoryOperationAction;
   ProductCategoryOperationInput: ProductCategoryOperationInput;
-  ProductConnection: ResolverTypeWrapper<ProductConnection>;
+  ProductConnection: ResolverTypeWrapper<Omit<ProductConnection, 'edges'> & { edges: Array<ResolversTypes['ProductEdge']> }>;
   ProductContentInput: ProductContentInput;
   ProductCreateInput: ProductCreateInput;
   ProductCreateOptionInput: ProductCreateOptionInput;
   ProductCreateOptionValueInput: ProductCreateOptionValueInput;
-  ProductCreatePayload: ResolverTypeWrapper<ProductCreatePayload>;
+  ProductCreatePayload: ResolverTypeWrapper<Omit<ProductCreatePayload, 'product'> & { product?: Maybe<ResolversTypes['Product']> }>;
   ProductCreateVariantInput: ProductCreateVariantInput;
   ProductDeleteInput: ProductDeleteInput;
   ProductDeletePayload: ResolverTypeWrapper<ProductDeletePayload>;
-  ProductEdge: ResolverTypeWrapper<ProductEdge>;
+  ProductEdge: ResolverTypeWrapper<Omit<ProductEdge, 'node'> & { node: ResolversTypes['Product'] }>;
   ProductFeature: ResolverTypeWrapper<ProductFeature>;
   ProductFeatureCreateInput: ProductFeatureCreateInput;
-  ProductFeatureCreatePayload: ResolverTypeWrapper<ProductFeatureCreatePayload>;
+  ProductFeatureCreatePayload: ResolverTypeWrapper<Omit<ProductFeatureCreatePayload, 'product'> & { product?: Maybe<ResolversTypes['Product']> }>;
   ProductFeatureDeleteInput: ProductFeatureDeleteInput;
-  ProductFeatureDeletePayload: ResolverTypeWrapper<ProductFeatureDeletePayload>;
+  ProductFeatureDeletePayload: ResolverTypeWrapper<Omit<ProductFeatureDeletePayload, 'product'> & { product?: Maybe<ResolversTypes['Product']> }>;
   ProductFeatureInput: ProductFeatureInput;
   ProductFeatureSyncItemInput: ProductFeatureSyncItemInput;
   ProductFeatureUpdateInput: ProductFeatureUpdateInput;
-  ProductFeatureUpdatePayload: ResolverTypeWrapper<ProductFeatureUpdatePayload>;
+  ProductFeatureUpdatePayload: ResolverTypeWrapper<Omit<ProductFeatureUpdatePayload, 'product'> & { product?: Maybe<ResolversTypes['Product']> }>;
   ProductFeatureValue: ResolverTypeWrapper<ProductFeatureValue>;
   ProductFeatureValueCreateInput: ProductFeatureValueCreateInput;
   ProductFeatureValueSyncInput: ProductFeatureValueSyncInput;
   ProductFeatureValueUpdateInput: ProductFeatureValueUpdateInput;
   ProductFeatureValuesInput: ProductFeatureValuesInput;
   ProductFeaturesSyncInput: ProductFeaturesSyncInput;
-  ProductFeaturesSyncPayload: ResolverTypeWrapper<ProductFeaturesSyncPayload>;
+  ProductFeaturesSyncPayload: ResolverTypeWrapper<Omit<ProductFeaturesSyncPayload, 'product'> & { product?: Maybe<ResolversTypes['Product']> }>;
   ProductInventoryWidget: ResolverTypeWrapper<ProductInventoryWidget>;
+  ProductKind: ProductKind;
   ProductMediaInput: ProductMediaInput;
   ProductMediaItem: ResolverTypeWrapper<ProductMediaItem>;
   ProductOption: ResolverTypeWrapper<ProductOption>;
   ProductOptionCreateInput: ProductOptionCreateInput;
-  ProductOptionCreatePayload: ResolverTypeWrapper<ProductOptionCreatePayload>;
+  ProductOptionCreatePayload: ResolverTypeWrapper<Omit<ProductOptionCreatePayload, 'product'> & { product?: Maybe<ResolversTypes['Product']> }>;
   ProductOptionDeleteInput: ProductOptionDeleteInput;
-  ProductOptionDeletePayload: ResolverTypeWrapper<ProductOptionDeletePayload>;
+  ProductOptionDeletePayload: ResolverTypeWrapper<Omit<ProductOptionDeletePayload, 'product'> & { product?: Maybe<ResolversTypes['Product']> }>;
   ProductOptionSwatch: ResolverTypeWrapper<ProductOptionSwatch>;
   ProductOptionSwatchInput: ProductOptionSwatchInput;
   ProductOptionSyncItemInput: ProductOptionSyncItemInput;
   ProductOptionUpdateInput: ProductOptionUpdateInput;
-  ProductOptionUpdatePayload: ResolverTypeWrapper<ProductOptionUpdatePayload>;
+  ProductOptionUpdatePayload: ResolverTypeWrapper<Omit<ProductOptionUpdatePayload, 'product'> & { product?: Maybe<ResolversTypes['Product']> }>;
   ProductOptionValue: ResolverTypeWrapper<ProductOptionValue>;
   ProductOptionValueCreateInput: ProductOptionValueCreateInput;
   ProductOptionValueSyncInput: ProductOptionValueSyncInput;
   ProductOptionValueUpdateInput: ProductOptionValueUpdateInput;
   ProductOptionValuesInput: ProductOptionValuesInput;
   ProductOptionsSyncInput: ProductOptionsSyncInput;
-  ProductOptionsSyncPayload: ResolverTypeWrapper<ProductOptionsSyncPayload>;
+  ProductOptionsSyncPayload: ResolverTypeWrapper<Omit<ProductOptionsSyncPayload, 'product'> & { product?: Maybe<ResolversTypes['Product']> }>;
   ProductOrderByInput: ProductOrderByInput;
   ProductOrderField: ProductOrderField;
   ProductProductsMetaInput: ProductProductsMetaInput;
@@ -4995,9 +6064,9 @@ export type ResolversTypes = ResolversObject<{
   ProductTagOperationAction: ProductTagOperationAction;
   ProductTagOperationInput: ProductTagOperationInput;
   ProductUpdateInput: ProductUpdateInput;
-  ProductUpdatePayload: ResolverTypeWrapper<ProductUpdatePayload>;
+  ProductUpdatePayload: ResolverTypeWrapper<Omit<ProductUpdatePayload, 'product'> & { product?: Maybe<ResolversTypes['Product']> }>;
   ProductUpdateStatusInput: ProductUpdateStatusInput;
-  ProductUpdateStatusPayload: ResolverTypeWrapper<ProductUpdateStatusPayload>;
+  ProductUpdateStatusPayload: ResolverTypeWrapper<Omit<ProductUpdateStatusPayload, 'product'> & { product?: Maybe<ResolversTypes['Product']> }>;
   ProductWhereInput: ProductWhereInput;
   Query: ResolverTypeWrapper<{}>;
   RichText: ResolverTypeWrapper<RichText>;
@@ -5024,18 +6093,18 @@ export type ResolversTypes = ResolversObject<{
   TagWhereInput: TagWhereInput;
   ThresholdMethod: ThresholdMethod;
   UserError: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['UserError']>;
-  Variant: ResolverTypeWrapper<Variant>;
-  VariantConnection: ResolverTypeWrapper<VariantConnection>;
+  Variant: ResolverTypeWrapper<Omit<Variant, 'bundleConfiguration' | 'inventoryItem' | 'product'> & { bundleConfiguration?: Maybe<ResolversTypes['BundleConfiguration']>, inventoryItem?: Maybe<ResolversTypes['InventoryItem']>, product: ResolversTypes['Product'] }>;
+  VariantConnection: ResolverTypeWrapper<Omit<VariantConnection, 'edges'> & { edges: Array<ResolversTypes['VariantEdge']> }>;
   VariantCost: ResolverTypeWrapper<VariantCost>;
   VariantCostConnection: ResolverTypeWrapper<VariantCostConnection>;
   VariantCostEdge: ResolverTypeWrapper<VariantCostEdge>;
   VariantCreateInput: VariantCreateInput;
-  VariantCreatePayload: ResolverTypeWrapper<VariantCreatePayload>;
+  VariantCreatePayload: ResolverTypeWrapper<Omit<VariantCreatePayload, 'variant'> & { variant?: Maybe<ResolversTypes['Variant']> }>;
   VariantDeleteInput: VariantDeleteInput;
-  VariantDeletePayload: ResolverTypeWrapper<VariantDeletePayload>;
+  VariantDeletePayload: ResolverTypeWrapper<Omit<VariantDeletePayload, 'product'> & { product?: Maybe<ResolversTypes['Product']> }>;
   VariantDimensions: ResolverTypeWrapper<VariantDimensions>;
   VariantDimensionsOpInput: VariantDimensionsOpInput;
-  VariantEdge: ResolverTypeWrapper<VariantEdge>;
+  VariantEdge: ResolverTypeWrapper<Omit<VariantEdge, 'node'> & { node: ResolversTypes['Variant'] }>;
   VariantInput: VariantInput;
   VariantInventoryOpInput: VariantInventoryOpInput;
   VariantMediaItem: ResolverTypeWrapper<VariantMediaItem>;
@@ -5052,11 +6121,11 @@ export type ResolversTypes = ResolversObject<{
   VariantPriceHistoryStatistics: ResolverTypeWrapper<VariantPriceHistoryStatistics>;
   VariantPricingOpInput: VariantPricingOpInput;
   VariantUpdateMediaInput: VariantUpdateMediaInput;
-  VariantUpdateMediaPayload: ResolverTypeWrapper<VariantUpdateMediaPayload>;
+  VariantUpdateMediaPayload: ResolverTypeWrapper<Omit<VariantUpdateMediaPayload, 'variant'> & { variant?: Maybe<ResolversTypes['Variant']> }>;
   VariantUpdateOptionsInput: VariantUpdateOptionsInput;
-  VariantUpdateOptionsPayload: ResolverTypeWrapper<VariantUpdateOptionsPayload>;
+  VariantUpdateOptionsPayload: ResolverTypeWrapper<Omit<VariantUpdateOptionsPayload, 'variant'> & { variant?: Maybe<ResolversTypes['Variant']> }>;
   VariantUpdatePricingInput: VariantUpdatePricingInput;
-  VariantUpdatePricingPayload: ResolverTypeWrapper<VariantUpdatePricingPayload>;
+  VariantUpdatePricingPayload: ResolverTypeWrapper<Omit<VariantUpdatePricingPayload, 'variant'> & { variant?: Maybe<ResolversTypes['Variant']> }>;
   VariantWeight: ResolverTypeWrapper<VariantWeight>;
   VariantWhereInput: VariantWhereInput;
   Vendor: ResolverTypeWrapper<Vendor>;
@@ -5067,34 +6136,34 @@ export type ResolversTypes = ResolversObject<{
   VendorOrderByInput: VendorOrderByInput;
   VendorOrderField: VendorOrderField;
   VendorWhereInput: VendorWhereInput;
-  Warehouse: ResolverTypeWrapper<Warehouse>;
+  Warehouse: ResolverTypeWrapper<Omit<Warehouse, 'stock'> & { stock: ResolversTypes['WarehouseStockConnection'] }>;
   WarehouseAssignableVariantOrderByInput: WarehouseAssignableVariantOrderByInput;
   WarehouseAssignableVariantOrderField: WarehouseAssignableVariantOrderField;
   WarehouseAssignableVariantWhereInput: WarehouseAssignableVariantWhereInput;
-  WarehouseConnection: ResolverTypeWrapper<WarehouseConnection>;
+  WarehouseConnection: ResolverTypeWrapper<Omit<WarehouseConnection, 'edges'> & { edges: Array<ResolversTypes['WarehouseEdge']> }>;
   WarehouseConnectionInput: WarehouseConnectionInput;
   WarehouseCreateInput: WarehouseCreateInput;
-  WarehouseCreatePayload: ResolverTypeWrapper<WarehouseCreatePayload>;
+  WarehouseCreatePayload: ResolverTypeWrapper<Omit<WarehouseCreatePayload, 'warehouse'> & { warehouse?: Maybe<ResolversTypes['Warehouse']> }>;
   WarehouseDeleteInput: WarehouseDeleteInput;
   WarehouseDeletePayload: ResolverTypeWrapper<WarehouseDeletePayload>;
-  WarehouseEdge: ResolverTypeWrapper<WarehouseEdge>;
+  WarehouseEdge: ResolverTypeWrapper<Omit<WarehouseEdge, 'node'> & { node: ResolversTypes['Warehouse'] }>;
   WarehouseOrderByInput: WarehouseOrderByInput;
   WarehouseOrderField: WarehouseOrderField;
-  WarehouseStock: ResolverTypeWrapper<WarehouseStock>;
-  WarehouseStockConnection: ResolverTypeWrapper<WarehouseStockConnection>;
+  WarehouseStock: ResolverTypeWrapper<Omit<WarehouseStock, 'variant' | 'warehouse'> & { variant: ResolversTypes['Variant'], warehouse: ResolversTypes['Warehouse'] }>;
+  WarehouseStockConnection: ResolverTypeWrapper<Omit<WarehouseStockConnection, 'edges'> & { edges: Array<ResolversTypes['WarehouseStockEdge']> }>;
   WarehouseStockConnectionInput: WarehouseStockConnectionInput;
   WarehouseStockCreateInput: WarehouseStockCreateInput;
   WarehouseStockCreateItemInput: WarehouseStockCreateItemInput;
-  WarehouseStockCreatePayload: ResolverTypeWrapper<WarehouseStockCreatePayload>;
+  WarehouseStockCreatePayload: ResolverTypeWrapper<Omit<WarehouseStockCreatePayload, 'warehouseStocks'> & { warehouseStocks: Array<ResolversTypes['WarehouseStock']> }>;
   WarehouseStockDeleteInput: WarehouseStockDeleteInput;
   WarehouseStockDeleteItemInput: WarehouseStockDeleteItemInput;
   WarehouseStockDeletePayload: ResolverTypeWrapper<WarehouseStockDeletePayload>;
-  WarehouseStockEdge: ResolverTypeWrapper<WarehouseStockEdge>;
+  WarehouseStockEdge: ResolverTypeWrapper<Omit<WarehouseStockEdge, 'node'> & { node: ResolversTypes['WarehouseStock'] }>;
   WarehouseStockOrderByInput: WarehouseStockOrderByInput;
   WarehouseStockOrderField: WarehouseStockOrderField;
   WarehouseStockWhereInput: WarehouseStockWhereInput;
   WarehouseUpdateInput: WarehouseUpdateInput;
-  WarehouseUpdatePayload: ResolverTypeWrapper<WarehouseUpdatePayload>;
+  WarehouseUpdatePayload: ResolverTypeWrapper<Omit<WarehouseUpdatePayload, 'warehouse'> & { warehouse?: Maybe<ResolversTypes['Warehouse']> }>;
   WarehouseWhereInput: WarehouseWhereInput;
   WeightInput: WeightInput;
   WeightUnit: WeightUnit;
@@ -5114,57 +6183,113 @@ export type ResolversParentTypes = ResolversObject<{
   String: Scalars['String']['output'];
   BulkUpdateJobProgress: BulkUpdateJobProgress;
   BulkUpdateUserError: BulkUpdateUserError;
-  CatalogMutation: CatalogMutation;
-  CatalogQuery: Omit<CatalogQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>> };
-  Category: Category;
+  Bundle: Omit<Bundle, 'categoryAssignments' | 'configurations' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<ResolversParentTypes['ProductCategoryAssignment']>, configurations: Array<ResolversParentTypes['BundleConfiguration']>, description?: Maybe<ResolversParentTypes['RichText']>, excerpt?: Maybe<ResolversParentTypes['RichText']>, primaryCategory?: Maybe<ResolversParentTypes['Category']>, variants: ResolversParentTypes['VariantConnection'] };
+  BundleBasePriceRule: BundleBasePriceRule;
+  BundleBundlesMetaInput: BundleBundlesMetaInput;
+  BundleCondition: BundleCondition;
+  BundleConditionGroup: BundleConditionGroup;
+  BundleConditionGroupSyncInput: BundleConditionGroupSyncInput;
+  BundleConditionSyncInput: BundleConditionSyncInput;
+  BundleConfiguration: Omit<BundleConfiguration, 'bundle' | 'dependencyRules' | 'groups' | 'pricingTemplates' | 'variants'> & { bundle: ResolversParentTypes['Bundle'], dependencyRules: Array<ResolversParentTypes['BundleDependencyRule']>, groups: Array<ResolversParentTypes['BundleGroup']>, pricingTemplates: Array<ResolversParentTypes['BundlePricingTemplate']>, variants: Array<ResolversParentTypes['Variant']> };
+  BundleConfigurationCreateInput: BundleConfigurationCreateInput;
+  BundleConfigurationDeleteInput: BundleConfigurationDeleteInput;
+  BundleConfigurationDeletePayload: Omit<BundleConfigurationDeletePayload, 'bundle'> & { bundle?: Maybe<ResolversParentTypes['Bundle']> };
+  BundleConfigurationPayload: Omit<BundleConfigurationPayload, 'configuration'> & { configuration?: Maybe<ResolversParentTypes['BundleConfiguration']> };
+  BundleConfigurationUpdateInput: BundleConfigurationUpdateInput;
+  BundleConnection: Omit<BundleConnection, 'edges'> & { edges: Array<ResolversParentTypes['BundleEdge']> };
+  BundleCreateInput: BundleCreateInput;
+  BundleCreatePayload: Omit<BundleCreatePayload, 'bundle'> & { bundle?: Maybe<ResolversParentTypes['Bundle']> };
+  BundleDependencyAction: Omit<BundleDependencyAction, 'priceRule'> & { priceRule?: Maybe<ResolversParentTypes['BundlePriceRule']> };
+  BundleDependencyActionSyncInput: BundleDependencyActionSyncInput;
+  BundleDependencyRule: Omit<BundleDependencyRule, 'actions'> & { actions: Array<ResolversParentTypes['BundleDependencyAction']> };
+  BundleDependencyRuleSyncItemInput: BundleDependencyRuleSyncItemInput;
+  BundleDependencyRulesSyncInput: BundleDependencyRulesSyncInput;
+  BundleDependencyRulesSyncPayload: Omit<BundleDependencyRulesSyncPayload, 'configuration' | 'dependencyRules'> & { configuration?: Maybe<ResolversParentTypes['BundleConfiguration']>, dependencyRules: Array<ResolversParentTypes['BundleDependencyRule']> };
+  BundleDiscountFixedPriceRule: BundleDiscountFixedPriceRule;
+  BundleDiscountPercentPriceRule: BundleDiscountPercentPriceRule;
+  BundleEdge: Omit<BundleEdge, 'node'> & { node: ResolversParentTypes['Bundle'] };
+  BundleFixedPriceRule: BundleFixedPriceRule;
+  BundleFreePriceRule: BundleFreePriceRule;
+  BundleGroup: Omit<BundleGroup, 'items'> & { items: Array<ResolversParentTypes['BundleItem']> };
+  BundleGroupSyncItemInput: BundleGroupSyncItemInput;
+  BundleGroupsSyncInput: BundleGroupsSyncInput;
+  BundleGroupsSyncPayload: Omit<BundleGroupsSyncPayload, 'configuration' | 'groups'> & { configuration?: Maybe<ResolversParentTypes['BundleConfiguration']>, groups: Array<ResolversParentTypes['BundleGroup']> };
+  BundleItem: Omit<BundleItem, 'group' | 'priceRule' | 'pricingTemplate' | 'refProduct' | 'refVariant'> & { group: ResolversParentTypes['BundleGroup'], priceRule?: Maybe<ResolversParentTypes['BundlePriceRule']>, pricingTemplate?: Maybe<ResolversParentTypes['BundlePricingTemplate']>, refProduct?: Maybe<ResolversParentTypes['Product']>, refVariant?: Maybe<ResolversParentTypes['Variant']> };
+  BundleItemOptionSelection: BundleItemOptionSelection;
+  BundleItemOptionSelectionSyncInput: BundleItemOptionSelectionSyncInput;
+  BundleItemOptionValueSelection: BundleItemOptionValueSelection;
+  BundleItemOptionValueSelectionSyncInput: BundleItemOptionValueSelectionSyncInput;
+  BundleItemSyncInput: BundleItemSyncInput;
+  BundleOrderByInput: BundleOrderByInput;
+  BundlePriceRule: ResolversInterfaceTypes<ResolversParentTypes>['BundlePriceRule'];
+  BundlePriceRuleAmount: BundlePriceRuleAmount;
+  BundlePriceRuleAmountInput: BundlePriceRuleAmountInput;
+  BundlePriceRuleInput: BundlePriceRuleInput;
+  BundlePriceRulePercent: BundlePriceRulePercent;
+  BundlePriceRulePercentInput: BundlePriceRulePercentInput;
+  BundlePricingTemplate: Omit<BundlePricingTemplate, 'priceRule'> & { priceRule: ResolversParentTypes['BundlePriceRule'] };
+  BundlePricingTemplateSyncItemInput: BundlePricingTemplateSyncItemInput;
+  BundlePricingTemplatesSyncInput: BundlePricingTemplatesSyncInput;
+  BundlePricingTemplatesSyncPayload: Omit<BundlePricingTemplatesSyncPayload, 'configuration' | 'pricingTemplates'> & { configuration?: Maybe<ResolversParentTypes['BundleConfiguration']>, pricingTemplates: Array<ResolversParentTypes['BundlePricingTemplate']> };
+  BundleUpdateInput: BundleUpdateInput;
+  BundleUpdatePayload: Omit<BundleUpdatePayload, 'bundle'> & { bundle?: Maybe<ResolversParentTypes['Bundle']> };
+  BundleWhereInput: BundleWhereInput;
+  CatalogMutation: Omit<CatalogMutation, 'bundleConfigurationCreate' | 'bundleConfigurationDelete' | 'bundleConfigurationUpdate' | 'bundleCreate' | 'bundleDependencyRulesSync' | 'bundleGroupsSync' | 'bundlePricingTemplatesSync' | 'bundleUpdate' | 'categoryCreate' | 'categoryMove' | 'categoryRebalance' | 'categoryUpdate' | 'collectionAddProducts' | 'collectionCreate' | 'collectionMoveProduct' | 'collectionRemoveProducts' | 'collectionUpdate' | 'collectionUpdateRules' | 'productCreate' | 'productFeatureCreate' | 'productFeatureDelete' | 'productFeatureUpdate' | 'productFeaturesSync' | 'productOptionCreate' | 'productOptionDelete' | 'productOptionUpdate' | 'productOptionsSync' | 'productUpdate' | 'productUpdateStatus' | 'variantCreate' | 'variantDelete' | 'variantUpdateMedia' | 'variantUpdateOptions' | 'variantUpdatePricing'> & { bundleConfigurationCreate: ResolversParentTypes['BundleConfigurationPayload'], bundleConfigurationDelete: ResolversParentTypes['BundleConfigurationDeletePayload'], bundleConfigurationUpdate: ResolversParentTypes['BundleConfigurationPayload'], bundleCreate: ResolversParentTypes['BundleCreatePayload'], bundleDependencyRulesSync: ResolversParentTypes['BundleDependencyRulesSyncPayload'], bundleGroupsSync: ResolversParentTypes['BundleGroupsSyncPayload'], bundlePricingTemplatesSync: ResolversParentTypes['BundlePricingTemplatesSyncPayload'], bundleUpdate: ResolversParentTypes['BundleUpdatePayload'], categoryCreate: ResolversParentTypes['CategoryCreatePayload'], categoryMove: ResolversParentTypes['CategoryMovePayload'], categoryRebalance: ResolversParentTypes['CategoryRebalancePayload'], categoryUpdate: ResolversParentTypes['CategoryUpdatePayload'], collectionAddProducts: ResolversParentTypes['CollectionAddProductsPayload'], collectionCreate: ResolversParentTypes['CollectionCreatePayload'], collectionMoveProduct: ResolversParentTypes['CollectionMoveProductPayload'], collectionRemoveProducts: ResolversParentTypes['CollectionRemoveProductsPayload'], collectionUpdate: ResolversParentTypes['CollectionUpdatePayload'], collectionUpdateRules: ResolversParentTypes['CollectionUpdateRulesPayload'], productCreate: ResolversParentTypes['ProductCreatePayload'], productFeatureCreate: ResolversParentTypes['ProductFeatureCreatePayload'], productFeatureDelete: ResolversParentTypes['ProductFeatureDeletePayload'], productFeatureUpdate: ResolversParentTypes['ProductFeatureUpdatePayload'], productFeaturesSync: ResolversParentTypes['ProductFeaturesSyncPayload'], productOptionCreate: ResolversParentTypes['ProductOptionCreatePayload'], productOptionDelete: ResolversParentTypes['ProductOptionDeletePayload'], productOptionUpdate: ResolversParentTypes['ProductOptionUpdatePayload'], productOptionsSync: ResolversParentTypes['ProductOptionsSyncPayload'], productUpdate: ResolversParentTypes['ProductUpdatePayload'], productUpdateStatus: ResolversParentTypes['ProductUpdateStatusPayload'], variantCreate: ResolversParentTypes['VariantCreatePayload'], variantDelete: ResolversParentTypes['VariantDeletePayload'], variantUpdateMedia: ResolversParentTypes['VariantUpdateMediaPayload'], variantUpdateOptions: ResolversParentTypes['VariantUpdateOptionsPayload'], variantUpdatePricing: ResolversParentTypes['VariantUpdatePricingPayload'] };
+  CatalogQuery: Omit<CatalogQuery, 'bundle' | 'bundles' | 'categories' | 'category' | 'collection' | 'collectionByHandle' | 'collections' | 'node' | 'nodes' | 'product' | 'products' | 'variant' | 'variants'> & { bundle?: Maybe<ResolversParentTypes['Bundle']>, bundles: ResolversParentTypes['BundleConnection'], categories: ResolversParentTypes['CategoryConnection'], category?: Maybe<ResolversParentTypes['Category']>, collection?: Maybe<ResolversParentTypes['Collection']>, collectionByHandle?: Maybe<ResolversParentTypes['Collection']>, collections: ResolversParentTypes['CollectionConnection'], node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>>, product?: Maybe<ResolversParentTypes['Product']>, products: ResolversParentTypes['ProductConnection'], variant?: Maybe<ResolversParentTypes['Variant']>, variants: ResolversParentTypes['VariantConnection'] };
+  CatalogSellable: ResolversInterfaceTypes<ResolversParentTypes>['CatalogSellable'];
+  CatalogSellableConnection: Omit<CatalogSellableConnection, 'edges'> & { edges: Array<ResolversParentTypes['CatalogSellableEdge']> };
+  CatalogSellableEdge: Omit<CatalogSellableEdge, 'node'> & { node: ResolversParentTypes['CatalogSellable'] };
+  CatalogSellableOrderByInput: CatalogSellableOrderByInput;
+  CatalogSellableWhereInput: CatalogSellableWhereInput;
+  Category: Omit<Category, 'ancestors' | 'children' | 'description' | 'excerpt' | 'items' | 'parent' | 'products'> & { ancestors: Array<ResolversParentTypes['Category']>, children: Array<ResolversParentTypes['Category']>, description?: Maybe<ResolversParentTypes['RichText']>, excerpt?: Maybe<ResolversParentTypes['RichText']>, items: ResolversParentTypes['CatalogSellableConnection'], parent?: Maybe<ResolversParentTypes['Category']>, products: ResolversParentTypes['CategoryProductConnection'] };
   CategoryCategoriesMetaInput: CategoryCategoriesMetaInput;
-  CategoryConnection: CategoryConnection;
+  CategoryConnection: Omit<CategoryConnection, 'edges'> & { edges: Array<ResolversParentTypes['CategoryEdge']> };
   CategoryContentInput: CategoryContentInput;
   CategoryCreateInput: CategoryCreateInput;
-  CategoryCreatePayload: CategoryCreatePayload;
+  CategoryCreatePayload: Omit<CategoryCreatePayload, 'category'> & { category?: Maybe<ResolversParentTypes['Category']> };
   CategoryDeleteInput: CategoryDeleteInput;
   CategoryDeletePayload: CategoryDeletePayload;
-  CategoryEdge: CategoryEdge;
+  CategoryEdge: Omit<CategoryEdge, 'node'> & { node: ResolversParentTypes['Category'] };
   CategoryHierarchyInput: CategoryHierarchyInput;
   CategoryHierarchyScopeInput: CategoryHierarchyScopeInput;
   CategoryMediaInput: CategoryMediaInput;
   CategoryMediaItem: CategoryMediaItem;
   CategoryMoveInput: CategoryMoveInput;
-  CategoryMovePayload: CategoryMovePayload;
+  CategoryMovePayload: Omit<CategoryMovePayload, 'category'> & { category?: Maybe<ResolversParentTypes['Category']> };
   CategoryOrderByInput: CategoryOrderByInput;
-  CategoryProductConnection: CategoryProductConnection;
-  CategoryProductEdge: CategoryProductEdge;
+  CategoryProductConnection: Omit<CategoryProductConnection, 'edges'> & { edges: Array<ResolversParentTypes['CategoryProductEdge']> };
+  CategoryProductEdge: Omit<CategoryProductEdge, 'node'> & { node: ResolversParentTypes['Product'] };
   CategoryProductWhereInput: CategoryProductWhereInput;
   CategoryProductsScopeInput: CategoryProductsScopeInput;
   CategoryRebalanceInput: CategoryRebalanceInput;
-  CategoryRebalancePayload: CategoryRebalancePayload;
+  CategoryRebalancePayload: Omit<CategoryRebalancePayload, 'category'> & { category?: Maybe<ResolversParentTypes['Category']> };
   CategorySortInput: CategorySortInput;
   CategoryUpdateInput: CategoryUpdateInput;
-  CategoryUpdatePayload: CategoryUpdatePayload;
+  CategoryUpdatePayload: Omit<CategoryUpdatePayload, 'category'> & { category?: Maybe<ResolversParentTypes['Category']> };
   CategoryWhereInput: CategoryWhereInput;
-  Collection: Collection;
+  Collection: Omit<Collection, 'description' | 'excerpt' | 'products'> & { description?: Maybe<ResolversParentTypes['RichText']>, excerpt?: Maybe<ResolversParentTypes['RichText']>, products: ResolversParentTypes['CollectionProductConnection'] };
   CollectionAddProductsInput: CollectionAddProductsInput;
-  CollectionAddProductsPayload: CollectionAddProductsPayload;
-  CollectionConnection: CollectionConnection;
+  CollectionAddProductsPayload: Omit<CollectionAddProductsPayload, 'collection'> & { collection?: Maybe<ResolversParentTypes['Collection']> };
+  CollectionConnection: Omit<CollectionConnection, 'edges'> & { edges: Array<ResolversParentTypes['CollectionEdge']> };
   CollectionCreateInput: CollectionCreateInput;
-  CollectionCreatePayload: CollectionCreatePayload;
+  CollectionCreatePayload: Omit<CollectionCreatePayload, 'collection'> & { collection?: Maybe<ResolversParentTypes['Collection']> };
   CollectionDeleteInput: CollectionDeleteInput;
   CollectionDeletePayload: CollectionDeletePayload;
-  CollectionEdge: CollectionEdge;
+  CollectionEdge: Omit<CollectionEdge, 'node'> & { node: ResolversParentTypes['Collection'] };
   CollectionMediaInput: CollectionMediaInput;
   CollectionMediaItem: CollectionMediaItem;
   CollectionMoveProductInput: CollectionMoveProductInput;
-  CollectionMoveProductPayload: CollectionMoveProductPayload;
-  CollectionProductConnection: CollectionProductConnection;
-  CollectionProductEdge: CollectionProductEdge;
+  CollectionMoveProductPayload: Omit<CollectionMoveProductPayload, 'collection'> & { collection?: Maybe<ResolversParentTypes['Collection']> };
+  CollectionProductConnection: Omit<CollectionProductConnection, 'edges'> & { edges: Array<ResolversParentTypes['CollectionProductEdge']> };
+  CollectionProductEdge: Omit<CollectionProductEdge, 'node'> & { node: ResolversParentTypes['Product'] };
   CollectionRemoveProductsInput: CollectionRemoveProductsInput;
-  CollectionRemoveProductsPayload: CollectionRemoveProductsPayload;
+  CollectionRemoveProductsPayload: Omit<CollectionRemoveProductsPayload, 'collection'> & { collection?: Maybe<ResolversParentTypes['Collection']> };
   CollectionRule: CollectionRule;
   CollectionRuleInput: CollectionRuleInput;
   CollectionUpdateInput: CollectionUpdateInput;
-  CollectionUpdatePayload: CollectionUpdatePayload;
+  CollectionUpdatePayload: Omit<CollectionUpdatePayload, 'collection'> & { collection?: Maybe<ResolversParentTypes['Collection']> };
   CollectionUpdateRulesInput: CollectionUpdateRulesInput;
-  CollectionUpdateRulesPayload: CollectionUpdateRulesPayload;
+  CollectionUpdateRulesPayload: Omit<CollectionUpdateRulesPayload, 'collection'> & { collection?: Maybe<ResolversParentTypes['Collection']> };
   DateTime: Scalars['DateTime']['output'];
   DateTimeFilter: DateTimeFilter;
   DimensionsInput: DimensionsInput;
@@ -5205,22 +6330,22 @@ export type ResolversParentTypes = ResolversObject<{
   IntFilter: IntFilter;
   InventoryAlertThreshold: InventoryAlertThreshold;
   InventoryBackorder: InventoryBackorder;
-  InventoryItem: InventoryItem;
-  InventoryItemConnection: InventoryItemConnection;
+  InventoryItem: Omit<InventoryItem, 'stock' | 'variant'> & { stock: Array<ResolversParentTypes['WarehouseStock']>, variant: ResolversParentTypes['Variant'] };
+  InventoryItemConnection: Omit<InventoryItemConnection, 'edges'> & { edges: Array<ResolversParentTypes['InventoryItemEdge']> };
   InventoryItemCost: InventoryItemCost;
   InventoryItemCostInput: InventoryItemCostInput;
-  InventoryItemEdge: InventoryItemEdge;
+  InventoryItemEdge: Omit<InventoryItemEdge, 'node'> & { node: ResolversParentTypes['InventoryItem'] };
   InventoryItemInput: InventoryItemInput;
   InventoryItemInventoryItemsMetaInput: InventoryItemInventoryItemsMetaInput;
   InventoryItemOrderByInput: InventoryItemOrderByInput;
   InventoryItemStockInput: InventoryItemStockInput;
   InventoryItemUpdateInput: InventoryItemUpdateInput;
-  InventoryItemUpdatePayload: InventoryItemUpdatePayload;
+  InventoryItemUpdatePayload: Omit<InventoryItemUpdatePayload, 'inventoryItem'> & { inventoryItem?: Maybe<ResolversParentTypes['InventoryItem']> };
   InventoryItemWarehouseScopeInput: InventoryItemWarehouseScopeInput;
   InventoryItemWhereInput: InventoryItemWhereInput;
-  InventoryMutation: InventoryMutation;
+  InventoryMutation: Omit<InventoryMutation, 'inventoryItemUpdate' | 'warehouseCreate' | 'warehouseStockCreate' | 'warehouseUpdate'> & { inventoryItemUpdate: ResolversParentTypes['InventoryItemUpdatePayload'], warehouseCreate: ResolversParentTypes['WarehouseCreatePayload'], warehouseStockCreate: ResolversParentTypes['WarehouseStockCreatePayload'], warehouseUpdate: ResolversParentTypes['WarehouseUpdatePayload'] };
   InventoryQuantities: InventoryQuantities;
-  InventoryQuery: Omit<InventoryQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>> };
+  InventoryQuery: Omit<InventoryQuery, 'inventoryItem' | 'inventoryItemByVariant' | 'inventoryItems' | 'node' | 'nodes' | 'warehouse' | 'warehouseAssignableVariants' | 'warehouses'> & { inventoryItem?: Maybe<ResolversParentTypes['InventoryItem']>, inventoryItemByVariant?: Maybe<ResolversParentTypes['InventoryItem']>, inventoryItems: ResolversParentTypes['InventoryItemConnection'], node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>>, warehouse?: Maybe<ResolversParentTypes['Warehouse']>, warehouseAssignableVariants: ResolversParentTypes['VariantConnection'], warehouses: ResolversParentTypes['WarehouseConnection'] };
   InventorySkuStatus: InventorySkuStatus;
   JSON: Scalars['JSON']['output'];
   ListingOrderByInput: ListingOrderByInput;
@@ -5230,7 +6355,7 @@ export type ResolversParentTypes = ResolversObject<{
   PageInfo: PageInfo;
   PricingWidgetInput: PricingWidgetInput;
   PricingWidgetPayload: PricingWidgetPayload;
-  Product: Product;
+  Product: Omit<Product, 'categoryAssignments' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<ResolversParentTypes['ProductCategoryAssignment']>, description?: Maybe<ResolversParentTypes['RichText']>, excerpt?: Maybe<ResolversParentTypes['RichText']>, primaryCategory?: Maybe<ResolversParentTypes['Category']>, variants: ResolversParentTypes['VariantConnection'] };
   ProductBulkUpdateInput: ProductBulkUpdateInput;
   ProductBulkUpdateItem: ProductBulkUpdateItem;
   ProductBulkUpdateJob: ProductBulkUpdateJob;
@@ -5238,54 +6363,54 @@ export type ResolversParentTypes = ResolversObject<{
   ProductBulkUpdateJobEdge: ProductBulkUpdateJobEdge;
   ProductBulkUpdatePayload: ProductBulkUpdatePayload;
   ProductCategoriesScopeInput: ProductCategoriesScopeInput;
-  ProductCategoryAssignment: ProductCategoryAssignment;
+  ProductCategoryAssignment: Omit<ProductCategoryAssignment, 'category'> & { category: ResolversParentTypes['Category'] };
   ProductCategoryOperationInput: ProductCategoryOperationInput;
-  ProductConnection: ProductConnection;
+  ProductConnection: Omit<ProductConnection, 'edges'> & { edges: Array<ResolversParentTypes['ProductEdge']> };
   ProductContentInput: ProductContentInput;
   ProductCreateInput: ProductCreateInput;
   ProductCreateOptionInput: ProductCreateOptionInput;
   ProductCreateOptionValueInput: ProductCreateOptionValueInput;
-  ProductCreatePayload: ProductCreatePayload;
+  ProductCreatePayload: Omit<ProductCreatePayload, 'product'> & { product?: Maybe<ResolversParentTypes['Product']> };
   ProductCreateVariantInput: ProductCreateVariantInput;
   ProductDeleteInput: ProductDeleteInput;
   ProductDeletePayload: ProductDeletePayload;
-  ProductEdge: ProductEdge;
+  ProductEdge: Omit<ProductEdge, 'node'> & { node: ResolversParentTypes['Product'] };
   ProductFeature: ProductFeature;
   ProductFeatureCreateInput: ProductFeatureCreateInput;
-  ProductFeatureCreatePayload: ProductFeatureCreatePayload;
+  ProductFeatureCreatePayload: Omit<ProductFeatureCreatePayload, 'product'> & { product?: Maybe<ResolversParentTypes['Product']> };
   ProductFeatureDeleteInput: ProductFeatureDeleteInput;
-  ProductFeatureDeletePayload: ProductFeatureDeletePayload;
+  ProductFeatureDeletePayload: Omit<ProductFeatureDeletePayload, 'product'> & { product?: Maybe<ResolversParentTypes['Product']> };
   ProductFeatureInput: ProductFeatureInput;
   ProductFeatureSyncItemInput: ProductFeatureSyncItemInput;
   ProductFeatureUpdateInput: ProductFeatureUpdateInput;
-  ProductFeatureUpdatePayload: ProductFeatureUpdatePayload;
+  ProductFeatureUpdatePayload: Omit<ProductFeatureUpdatePayload, 'product'> & { product?: Maybe<ResolversParentTypes['Product']> };
   ProductFeatureValue: ProductFeatureValue;
   ProductFeatureValueCreateInput: ProductFeatureValueCreateInput;
   ProductFeatureValueSyncInput: ProductFeatureValueSyncInput;
   ProductFeatureValueUpdateInput: ProductFeatureValueUpdateInput;
   ProductFeatureValuesInput: ProductFeatureValuesInput;
   ProductFeaturesSyncInput: ProductFeaturesSyncInput;
-  ProductFeaturesSyncPayload: ProductFeaturesSyncPayload;
+  ProductFeaturesSyncPayload: Omit<ProductFeaturesSyncPayload, 'product'> & { product?: Maybe<ResolversParentTypes['Product']> };
   ProductInventoryWidget: ProductInventoryWidget;
   ProductMediaInput: ProductMediaInput;
   ProductMediaItem: ProductMediaItem;
   ProductOption: ProductOption;
   ProductOptionCreateInput: ProductOptionCreateInput;
-  ProductOptionCreatePayload: ProductOptionCreatePayload;
+  ProductOptionCreatePayload: Omit<ProductOptionCreatePayload, 'product'> & { product?: Maybe<ResolversParentTypes['Product']> };
   ProductOptionDeleteInput: ProductOptionDeleteInput;
-  ProductOptionDeletePayload: ProductOptionDeletePayload;
+  ProductOptionDeletePayload: Omit<ProductOptionDeletePayload, 'product'> & { product?: Maybe<ResolversParentTypes['Product']> };
   ProductOptionSwatch: ProductOptionSwatch;
   ProductOptionSwatchInput: ProductOptionSwatchInput;
   ProductOptionSyncItemInput: ProductOptionSyncItemInput;
   ProductOptionUpdateInput: ProductOptionUpdateInput;
-  ProductOptionUpdatePayload: ProductOptionUpdatePayload;
+  ProductOptionUpdatePayload: Omit<ProductOptionUpdatePayload, 'product'> & { product?: Maybe<ResolversParentTypes['Product']> };
   ProductOptionValue: ProductOptionValue;
   ProductOptionValueCreateInput: ProductOptionValueCreateInput;
   ProductOptionValueSyncInput: ProductOptionValueSyncInput;
   ProductOptionValueUpdateInput: ProductOptionValueUpdateInput;
   ProductOptionValuesInput: ProductOptionValuesInput;
   ProductOptionsSyncInput: ProductOptionsSyncInput;
-  ProductOptionsSyncPayload: ProductOptionsSyncPayload;
+  ProductOptionsSyncPayload: Omit<ProductOptionsSyncPayload, 'product'> & { product?: Maybe<ResolversParentTypes['Product']> };
   ProductOrderByInput: ProductOrderByInput;
   ProductProductsMetaInput: ProductProductsMetaInput;
   ProductSeo: ProductSeo;
@@ -5293,9 +6418,9 @@ export type ResolversParentTypes = ResolversObject<{
   ProductSortInput: ProductSortInput;
   ProductTagOperationInput: ProductTagOperationInput;
   ProductUpdateInput: ProductUpdateInput;
-  ProductUpdatePayload: ProductUpdatePayload;
+  ProductUpdatePayload: Omit<ProductUpdatePayload, 'product'> & { product?: Maybe<ResolversParentTypes['Product']> };
   ProductUpdateStatusInput: ProductUpdateStatusInput;
-  ProductUpdateStatusPayload: ProductUpdateStatusPayload;
+  ProductUpdateStatusPayload: Omit<ProductUpdateStatusPayload, 'product'> & { product?: Maybe<ResolversParentTypes['Product']> };
   ProductWhereInput: ProductWhereInput;
   Query: {};
   RichText: RichText;
@@ -5318,18 +6443,18 @@ export type ResolversParentTypes = ResolversObject<{
   TagUpdatePayload: TagUpdatePayload;
   TagWhereInput: TagWhereInput;
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
-  Variant: Variant;
-  VariantConnection: VariantConnection;
+  Variant: Omit<Variant, 'bundleConfiguration' | 'inventoryItem' | 'product'> & { bundleConfiguration?: Maybe<ResolversParentTypes['BundleConfiguration']>, inventoryItem?: Maybe<ResolversParentTypes['InventoryItem']>, product: ResolversParentTypes['Product'] };
+  VariantConnection: Omit<VariantConnection, 'edges'> & { edges: Array<ResolversParentTypes['VariantEdge']> };
   VariantCost: VariantCost;
   VariantCostConnection: VariantCostConnection;
   VariantCostEdge: VariantCostEdge;
   VariantCreateInput: VariantCreateInput;
-  VariantCreatePayload: VariantCreatePayload;
+  VariantCreatePayload: Omit<VariantCreatePayload, 'variant'> & { variant?: Maybe<ResolversParentTypes['Variant']> };
   VariantDeleteInput: VariantDeleteInput;
-  VariantDeletePayload: VariantDeletePayload;
+  VariantDeletePayload: Omit<VariantDeletePayload, 'product'> & { product?: Maybe<ResolversParentTypes['Product']> };
   VariantDimensions: VariantDimensions;
   VariantDimensionsOpInput: VariantDimensionsOpInput;
-  VariantEdge: VariantEdge;
+  VariantEdge: Omit<VariantEdge, 'node'> & { node: ResolversParentTypes['Variant'] };
   VariantInput: VariantInput;
   VariantInventoryOpInput: VariantInventoryOpInput;
   VariantMediaItem: VariantMediaItem;
@@ -5344,11 +6469,11 @@ export type ResolversParentTypes = ResolversObject<{
   VariantPriceHistoryStatistics: VariantPriceHistoryStatistics;
   VariantPricingOpInput: VariantPricingOpInput;
   VariantUpdateMediaInput: VariantUpdateMediaInput;
-  VariantUpdateMediaPayload: VariantUpdateMediaPayload;
+  VariantUpdateMediaPayload: Omit<VariantUpdateMediaPayload, 'variant'> & { variant?: Maybe<ResolversParentTypes['Variant']> };
   VariantUpdateOptionsInput: VariantUpdateOptionsInput;
-  VariantUpdateOptionsPayload: VariantUpdateOptionsPayload;
+  VariantUpdateOptionsPayload: Omit<VariantUpdateOptionsPayload, 'variant'> & { variant?: Maybe<ResolversParentTypes['Variant']> };
   VariantUpdatePricingInput: VariantUpdatePricingInput;
-  VariantUpdatePricingPayload: VariantUpdatePricingPayload;
+  VariantUpdatePricingPayload: Omit<VariantUpdatePricingPayload, 'variant'> & { variant?: Maybe<ResolversParentTypes['Variant']> };
   VariantWeight: VariantWeight;
   VariantWhereInput: VariantWhereInput;
   Vendor: Vendor;
@@ -5358,31 +6483,31 @@ export type ResolversParentTypes = ResolversObject<{
   VendorEdge: VendorEdge;
   VendorOrderByInput: VendorOrderByInput;
   VendorWhereInput: VendorWhereInput;
-  Warehouse: Warehouse;
+  Warehouse: Omit<Warehouse, 'stock'> & { stock: ResolversParentTypes['WarehouseStockConnection'] };
   WarehouseAssignableVariantOrderByInput: WarehouseAssignableVariantOrderByInput;
   WarehouseAssignableVariantWhereInput: WarehouseAssignableVariantWhereInput;
-  WarehouseConnection: WarehouseConnection;
+  WarehouseConnection: Omit<WarehouseConnection, 'edges'> & { edges: Array<ResolversParentTypes['WarehouseEdge']> };
   WarehouseConnectionInput: WarehouseConnectionInput;
   WarehouseCreateInput: WarehouseCreateInput;
-  WarehouseCreatePayload: WarehouseCreatePayload;
+  WarehouseCreatePayload: Omit<WarehouseCreatePayload, 'warehouse'> & { warehouse?: Maybe<ResolversParentTypes['Warehouse']> };
   WarehouseDeleteInput: WarehouseDeleteInput;
   WarehouseDeletePayload: WarehouseDeletePayload;
-  WarehouseEdge: WarehouseEdge;
+  WarehouseEdge: Omit<WarehouseEdge, 'node'> & { node: ResolversParentTypes['Warehouse'] };
   WarehouseOrderByInput: WarehouseOrderByInput;
-  WarehouseStock: WarehouseStock;
-  WarehouseStockConnection: WarehouseStockConnection;
+  WarehouseStock: Omit<WarehouseStock, 'variant' | 'warehouse'> & { variant: ResolversParentTypes['Variant'], warehouse: ResolversParentTypes['Warehouse'] };
+  WarehouseStockConnection: Omit<WarehouseStockConnection, 'edges'> & { edges: Array<ResolversParentTypes['WarehouseStockEdge']> };
   WarehouseStockConnectionInput: WarehouseStockConnectionInput;
   WarehouseStockCreateInput: WarehouseStockCreateInput;
   WarehouseStockCreateItemInput: WarehouseStockCreateItemInput;
-  WarehouseStockCreatePayload: WarehouseStockCreatePayload;
+  WarehouseStockCreatePayload: Omit<WarehouseStockCreatePayload, 'warehouseStocks'> & { warehouseStocks: Array<ResolversParentTypes['WarehouseStock']> };
   WarehouseStockDeleteInput: WarehouseStockDeleteInput;
   WarehouseStockDeleteItemInput: WarehouseStockDeleteItemInput;
   WarehouseStockDeletePayload: WarehouseStockDeletePayload;
-  WarehouseStockEdge: WarehouseStockEdge;
+  WarehouseStockEdge: Omit<WarehouseStockEdge, 'node'> & { node: ResolversParentTypes['WarehouseStock'] };
   WarehouseStockOrderByInput: WarehouseStockOrderByInput;
   WarehouseStockWhereInput: WarehouseStockWhereInput;
   WarehouseUpdateInput: WarehouseUpdateInput;
-  WarehouseUpdatePayload: WarehouseUpdatePayload;
+  WarehouseUpdatePayload: Omit<WarehouseUpdatePayload, 'warehouse'> & { warehouse?: Maybe<ResolversParentTypes['Warehouse']> };
   WarehouseWhereInput: WarehouseWhereInput;
   WeightInput: WeightInput;
   WidgetQuery: WidgetQuery;
@@ -5442,7 +6567,294 @@ export type BulkUpdateUserErrorResolvers<ContextType = ServiceContext, ParentTyp
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type BundleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Bundle'] = ResolversParentTypes['Bundle']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Bundle']>, { __typename: 'Bundle' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  categoryAssignments?: Resolver<Array<ResolversTypes['ProductCategoryAssignment']>, ParentType, ContextType>;
+  configurations?: Resolver<Array<ResolversTypes['BundleConfiguration']>, ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  description?: Resolver<Maybe<ResolversTypes['RichText']>, ParentType, ContextType>;
+  displayStyle?: Resolver<ResolversTypes['BundleDisplayStyle'], ParentType, ContextType>;
+  excerpt?: Resolver<Maybe<ResolversTypes['RichText']>, ParentType, ContextType>;
+  features?: Resolver<Array<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
+  handle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isPublished?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  kind?: Resolver<ResolversTypes['ProductKind'], ParentType, ContextType>;
+  media?: Resolver<Array<ResolversTypes['ProductMediaItem']>, ParentType, ContextType>;
+  options?: Resolver<Array<ResolversTypes['ProductOption']>, ParentType, ContextType>;
+  primaryCategory?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
+  publishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  seo?: Resolver<Maybe<ResolversTypes['ProductSeo']>, ParentType, ContextType>;
+  tags?: Resolver<Array<ResolversTypes['Tag']>, ParentType, ContextType>;
+  title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  type?: Resolver<Maybe<ResolversTypes['BundleType']>, ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  variants?: Resolver<ResolversTypes['VariantConnection'], ParentType, ContextType, Partial<BundleVariantsArgs>>;
+  variantsCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  vendor?: Resolver<Maybe<ResolversTypes['Vendor']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleBasePriceRuleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleBasePriceRule'] = ResolversParentTypes['BundleBasePriceRule']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['BundleBasePriceRule']>, { __typename: 'BundleBasePriceRule' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  priceType?: Resolver<ResolversTypes['BundlePriceType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleConditionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleCondition'] = ResolversParentTypes['BundleCondition']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['BundleCondition']>, { __typename: 'BundleCondition' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  category?: Resolver<ResolversTypes['BundleConditionCategory'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  operator?: Resolver<ResolversTypes['BundleConditionOperator'], ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  subject?: Resolver<ResolversTypes['BundleConditionSubject'], ParentType, ContextType>;
+  targetId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  targetType?: Resolver<ResolversTypes['BundleDependencyTargetType'], ParentType, ContextType>;
+  value?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleConditionGroupResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleConditionGroup'] = ResolversParentTypes['BundleConditionGroup']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['BundleConditionGroup']>, { __typename: 'BundleConditionGroup' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  conditions?: Resolver<Array<ResolversTypes['BundleCondition']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  logicOperator?: Resolver<ResolversTypes['BundleLogicOperator'], ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleConfigurationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleConfiguration'] = ResolversParentTypes['BundleConfiguration']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['BundleConfiguration']>, { __typename: 'BundleConfiguration' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  bundle?: Resolver<ResolversTypes['Bundle'], ParentType, ContextType>;
+  bundleId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  dependencyRules?: Resolver<Array<ResolversTypes['BundleDependencyRule']>, ParentType, ContextType>;
+  groups?: Resolver<Array<ResolversTypes['BundleGroup']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  pricingTemplates?: Resolver<Array<ResolversTypes['BundlePricingTemplate']>, ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  variants?: Resolver<Array<ResolversTypes['Variant']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleConfigurationDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleConfigurationDeletePayload'] = ResolversParentTypes['BundleConfigurationDeletePayload']> = ResolversObject<{
+  bundle?: Resolver<Maybe<ResolversTypes['Bundle']>, ParentType, ContextType>;
+  deletedConfigurationId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleConfigurationPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleConfigurationPayload'] = ResolversParentTypes['BundleConfigurationPayload']> = ResolversObject<{
+  configuration?: Resolver<Maybe<ResolversTypes['BundleConfiguration']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleConnection'] = ResolversParentTypes['BundleConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['BundleEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleCreatePayload'] = ResolversParentTypes['BundleCreatePayload']> = ResolversObject<{
+  bundle?: Resolver<Maybe<ResolversTypes['Bundle']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleDependencyActionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleDependencyAction'] = ResolversParentTypes['BundleDependencyAction']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['BundleDependencyAction']>, { __typename: 'BundleDependencyAction' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  actionType?: Resolver<ResolversTypes['BundleDependencyActionType'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  priceRule?: Resolver<Maybe<ResolversTypes['BundlePriceRule']>, ParentType, ContextType>;
+  requiredValue?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  stackable?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  targetId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  targetType?: Resolver<ResolversTypes['BundleDependencyTargetType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleDependencyRuleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleDependencyRule'] = ResolversParentTypes['BundleDependencyRule']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['BundleDependencyRule']>, { __typename: 'BundleDependencyRule' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  actions?: Resolver<Array<ResolversTypes['BundleDependencyAction']>, ParentType, ContextType>;
+  conditionGroups?: Resolver<Array<ResolversTypes['BundleConditionGroup']>, ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  enabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  logicOperator?: Resolver<ResolversTypes['BundleLogicOperator'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  priority?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleDependencyRulesSyncPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleDependencyRulesSyncPayload'] = ResolversParentTypes['BundleDependencyRulesSyncPayload']> = ResolversObject<{
+  configuration?: Resolver<Maybe<ResolversTypes['BundleConfiguration']>, ParentType, ContextType>;
+  dependencyRules?: Resolver<Array<ResolversTypes['BundleDependencyRule']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleDiscountFixedPriceRuleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleDiscountFixedPriceRule'] = ResolversParentTypes['BundleDiscountFixedPriceRule']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['BundleDiscountFixedPriceRule']>, { __typename: 'BundleDiscountFixedPriceRule' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  amounts?: Resolver<Array<ResolversTypes['BundlePriceRuleAmount']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  priceType?: Resolver<ResolversTypes['BundlePriceType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleDiscountPercentPriceRuleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleDiscountPercentPriceRule'] = ResolversParentTypes['BundleDiscountPercentPriceRule']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['BundleDiscountPercentPriceRule']>, { __typename: 'BundleDiscountPercentPriceRule' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  percent?: Resolver<ResolversTypes['BundlePriceRulePercent'], ParentType, ContextType>;
+  priceType?: Resolver<ResolversTypes['BundlePriceType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleEdge'] = ResolversParentTypes['BundleEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['Bundle'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleFixedPriceRuleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleFixedPriceRule'] = ResolversParentTypes['BundleFixedPriceRule']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['BundleFixedPriceRule']>, { __typename: 'BundleFixedPriceRule' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  amounts?: Resolver<Array<ResolversTypes['BundlePriceRuleAmount']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  priceType?: Resolver<ResolversTypes['BundlePriceType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleFreePriceRuleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleFreePriceRule'] = ResolversParentTypes['BundleFreePriceRule']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['BundleFreePriceRule']>, { __typename: 'BundleFreePriceRule' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  priceType?: Resolver<ResolversTypes['BundlePriceType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleGroupResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleGroup'] = ResolversParentTypes['BundleGroup']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['BundleGroup']>, { __typename: 'BundleGroup' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  items?: Resolver<Array<ResolversTypes['BundleItem']>, ParentType, ContextType>;
+  maxSelection?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  minSelection?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleGroupsSyncPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleGroupsSyncPayload'] = ResolversParentTypes['BundleGroupsSyncPayload']> = ResolversObject<{
+  configuration?: Resolver<Maybe<ResolversTypes['BundleConfiguration']>, ParentType, ContextType>;
+  groups?: Resolver<Array<ResolversTypes['BundleGroup']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleItemResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleItem'] = ResolversParentTypes['BundleItem']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['BundleItem']>, { __typename: 'BundleItem' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  defaultQty?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  featuredImage?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
+  group?: Resolver<ResolversTypes['BundleGroup'], ParentType, ContextType>;
+  groupId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  itemType?: Resolver<ResolversTypes['BundleItemType'], ParentType, ContextType>;
+  maxQty?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  minQty?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  optionSelections?: Resolver<Array<ResolversTypes['BundleItemOptionSelection']>, ParentType, ContextType>;
+  priceRule?: Resolver<Maybe<ResolversTypes['BundlePriceRule']>, ParentType, ContextType>;
+  pricingTemplate?: Resolver<Maybe<ResolversTypes['BundlePricingTemplate']>, ParentType, ContextType>;
+  refProduct?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
+  refProductId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  refVariant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
+  refVariantId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  selected?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  visible?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleItemOptionSelectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleItemOptionSelection'] = ResolversParentTypes['BundleItemOptionSelection']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['BundleItemOptionSelection']>, { __typename: 'BundleItemOptionSelection' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  option?: Resolver<ResolversTypes['ProductOption'], ParentType, ContextType>;
+  optionId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  parentOption?: Resolver<Maybe<ResolversTypes['ProductOption']>, ParentType, ContextType>;
+  parentOptionId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  values?: Resolver<Array<ResolversTypes['BundleItemOptionValueSelection']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleItemOptionValueSelectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleItemOptionValueSelection'] = ResolversParentTypes['BundleItemOptionValueSelection']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['BundleItemOptionValueSelection']>, { __typename: 'BundleItemOptionValueSelection' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  optionValue?: Resolver<Maybe<ResolversTypes['ProductOptionValue']>, ParentType, ContextType>;
+  optionValueId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  status?: Resolver<ResolversTypes['BundleItemOptionValueSelectionStatus'], ParentType, ContextType>;
+  value?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundlePriceRuleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundlePriceRule'] = ResolversParentTypes['BundlePriceRule']> = ResolversObject<{
+  __resolveType: TypeResolveFn<'BundleBasePriceRule' | 'BundleDiscountFixedPriceRule' | 'BundleDiscountPercentPriceRule' | 'BundleFixedPriceRule' | 'BundleFreePriceRule', ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  priceType?: Resolver<ResolversTypes['BundlePriceType'], ParentType, ContextType>;
+}>;
+
+export type BundlePriceRuleAmountResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundlePriceRuleAmount'] = ResolversParentTypes['BundlePriceRuleAmount']> = ResolversObject<{
+  amountMinor?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
+  currency?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundlePriceRulePercentResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundlePriceRulePercent'] = ResolversParentTypes['BundlePriceRulePercent']> = ResolversObject<{
+  value?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundlePricingTemplateResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundlePricingTemplate'] = ResolversParentTypes['BundlePricingTemplate']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['BundlePricingTemplate']>, { __typename: 'BundlePricingTemplate' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  priceRule?: Resolver<ResolversTypes['BundlePriceRule'], ParentType, ContextType>;
+  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundlePricingTemplatesSyncPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundlePricingTemplatesSyncPayload'] = ResolversParentTypes['BundlePricingTemplatesSyncPayload']> = ResolversObject<{
+  configuration?: Resolver<Maybe<ResolversTypes['BundleConfiguration']>, ParentType, ContextType>;
+  pricingTemplates?: Resolver<Array<ResolversTypes['BundlePricingTemplate']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type BundleUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['BundleUpdatePayload'] = ResolversParentTypes['BundleUpdatePayload']> = ResolversObject<{
+  bundle?: Resolver<Maybe<ResolversTypes['Bundle']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type CatalogMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CatalogMutation'] = ResolversParentTypes['CatalogMutation']> = ResolversObject<{
+  bundleConfigurationCreate?: Resolver<ResolversTypes['BundleConfigurationPayload'], ParentType, ContextType, RequireFields<CatalogMutationBundleConfigurationCreateArgs, 'input'>>;
+  bundleConfigurationDelete?: Resolver<ResolversTypes['BundleConfigurationDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationBundleConfigurationDeleteArgs, 'input'>>;
+  bundleConfigurationUpdate?: Resolver<ResolversTypes['BundleConfigurationPayload'], ParentType, ContextType, RequireFields<CatalogMutationBundleConfigurationUpdateArgs, 'input'>>;
+  bundleCreate?: Resolver<ResolversTypes['BundleCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationBundleCreateArgs, 'input'>>;
+  bundleDependencyRulesSync?: Resolver<ResolversTypes['BundleDependencyRulesSyncPayload'], ParentType, ContextType, RequireFields<CatalogMutationBundleDependencyRulesSyncArgs, 'input'>>;
+  bundleGroupsSync?: Resolver<ResolversTypes['BundleGroupsSyncPayload'], ParentType, ContextType, RequireFields<CatalogMutationBundleGroupsSyncArgs, 'input'>>;
+  bundlePricingTemplatesSync?: Resolver<ResolversTypes['BundlePricingTemplatesSyncPayload'], ParentType, ContextType, RequireFields<CatalogMutationBundlePricingTemplatesSyncArgs, 'input'>>;
+  bundleUpdate?: Resolver<ResolversTypes['BundleUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationBundleUpdateArgs, 'bundleId' | 'expectedRevision'>>;
   categoryCreate?: Resolver<ResolversTypes['CategoryCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryCreateArgs, 'input'>>;
   categoryDelete?: Resolver<ResolversTypes['CategoryDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryDeleteArgs, 'input'>>;
   categoryMove?: Resolver<ResolversTypes['CategoryMovePayload'], ParentType, ContextType, RequireFields<CatalogMutationCategoryMoveArgs, 'input'>>;
@@ -5493,6 +6905,8 @@ export type CatalogMutationResolvers<ContextType = ServiceContext, ParentType ex
 }>;
 
 export type CatalogQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CatalogQuery'] = ResolversParentTypes['CatalogQuery']> = ResolversObject<{
+  bundle?: Resolver<Maybe<ResolversTypes['Bundle']>, ParentType, ContextType, RequireFields<CatalogQueryBundleArgs, 'id'>>;
+  bundles?: Resolver<ResolversTypes['BundleConnection'], ParentType, ContextType, Partial<CatalogQueryBundlesArgs>>;
   categories?: Resolver<ResolversTypes['CategoryConnection'], ParentType, ContextType, Partial<CatalogQueryCategoriesArgs>>;
   category?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType, RequireFields<CatalogQueryCategoryArgs, 'id'>>;
   collection?: Resolver<Maybe<ResolversTypes['Collection']>, ParentType, ContextType, RequireFields<CatalogQueryCollectionArgs, 'id'>>;
@@ -5522,6 +6936,31 @@ export type CatalogQueryResolvers<ContextType = ServiceContext, ParentType exten
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type CatalogSellableResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CatalogSellable'] = ResolversParentTypes['CatalogSellable']> = ResolversObject<{
+  __resolveType: TypeResolveFn<'Bundle' | 'Product', ParentType, ContextType>;
+  handle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  kind?: Resolver<ResolversTypes['ProductKind'], ParentType, ContextType>;
+  media?: Resolver<Array<ResolversTypes['ProductMediaItem']>, ParentType, ContextType>;
+  primaryCategory?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
+  tags?: Resolver<Array<ResolversTypes['Tag']>, ParentType, ContextType>;
+  title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  variantsCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+}>;
+
+export type CatalogSellableConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CatalogSellableConnection'] = ResolversParentTypes['CatalogSellableConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['CatalogSellableEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CatalogSellableEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CatalogSellableEdge'] = ResolversParentTypes['CatalogSellableEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['CatalogSellable'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type CategoryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Category'] = ResolversParentTypes['Category']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Category']>, { __typename: 'Category' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   ancestors?: Resolver<Array<ResolversTypes['Category']>, ParentType, ContextType>;
@@ -5536,6 +6975,7 @@ export type CategoryResolvers<ContextType = ServiceContext, ParentType extends R
   handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isPublished?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  items?: Resolver<ResolversTypes['CatalogSellableConnection'], ParentType, ContextType, Partial<CategoryItemsArgs>>;
   media?: Resolver<Array<ResolversTypes['CategoryMediaItem']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   parent?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
@@ -5966,7 +7406,7 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Category' | 'Collection' | 'Facet' | 'FacetGroup' | 'FacetSwatch' | 'FacetValue' | 'InventoryItem' | 'Product' | 'ProductFeature' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionSwatch' | 'ProductOptionValue' | 'Tag' | 'Variant' | 'VariantCost' | 'VariantPrice' | 'Vendor' | 'Warehouse' | 'WarehouseStock', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'Bundle' | 'BundleBasePriceRule' | 'BundleCondition' | 'BundleConditionGroup' | 'BundleConfiguration' | 'BundleDependencyAction' | 'BundleDependencyRule' | 'BundleDiscountFixedPriceRule' | 'BundleDiscountPercentPriceRule' | 'BundleFixedPriceRule' | 'BundleFreePriceRule' | 'BundleGroup' | 'BundleItem' | 'BundleItemOptionSelection' | 'BundleItemOptionValueSelection' | 'BundlePricingTemplate' | 'Category' | 'Collection' | 'Facet' | 'FacetGroup' | 'FacetSwatch' | 'FacetValue' | 'InventoryItem' | 'Product' | 'ProductFeature' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionSwatch' | 'ProductOptionValue' | 'Tag' | 'Variant' | 'VariantCost' | 'VariantPrice' | 'Vendor' | 'Warehouse' | 'WarehouseStock', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -6006,6 +7446,7 @@ export type ProductResolvers<ContextType = ServiceContext, ParentType extends Re
   handle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isPublished?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  kind?: Resolver<ResolversTypes['ProductKind'], ParentType, ContextType>;
   media?: Resolver<Array<ResolversTypes['ProductMediaItem']>, ParentType, ContextType>;
   options?: Resolver<Array<ResolversTypes['ProductOption']>, ParentType, ContextType>;
   primaryCategory?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
@@ -6314,6 +7755,7 @@ export type UserErrorResolvers<ContextType = ServiceContext, ParentType extends 
 
 export type VariantResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Variant'] = ResolversParentTypes['Variant']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Variant']>, { __typename: 'Variant' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  bundleConfiguration?: Resolver<Maybe<ResolversTypes['BundleConfiguration']>, ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   dimensions?: Resolver<Maybe<ResolversTypes['VariantDimensions']>, ParentType, ContextType>;
@@ -6323,6 +7765,7 @@ export type VariantResolvers<ContextType = ServiceContext, ParentType extends Re
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   inventoryItem?: Resolver<Maybe<ResolversTypes['InventoryItem']>, ParentType, ContextType>;
   isDefault?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  kind?: Resolver<ResolversTypes['ProductKind'], ParentType, ContextType>;
   media?: Resolver<Array<ResolversTypes['VariantMediaItem']>, ParentType, ContextType>;
   price?: Resolver<Maybe<ResolversTypes['VariantPrice']>, ParentType, ContextType>;
   priceHistory?: Resolver<ResolversTypes['VariantPriceConnection'], ParentType, ContextType, Partial<VariantPriceHistoryArgs>>;
@@ -6576,8 +8019,39 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   BulkUpdateItemEdge?: BulkUpdateItemEdgeResolvers<ContextType>;
   BulkUpdateJobProgress?: BulkUpdateJobProgressResolvers<ContextType>;
   BulkUpdateUserError?: BulkUpdateUserErrorResolvers<ContextType>;
+  Bundle?: BundleResolvers<ContextType>;
+  BundleBasePriceRule?: BundleBasePriceRuleResolvers<ContextType>;
+  BundleCondition?: BundleConditionResolvers<ContextType>;
+  BundleConditionGroup?: BundleConditionGroupResolvers<ContextType>;
+  BundleConfiguration?: BundleConfigurationResolvers<ContextType>;
+  BundleConfigurationDeletePayload?: BundleConfigurationDeletePayloadResolvers<ContextType>;
+  BundleConfigurationPayload?: BundleConfigurationPayloadResolvers<ContextType>;
+  BundleConnection?: BundleConnectionResolvers<ContextType>;
+  BundleCreatePayload?: BundleCreatePayloadResolvers<ContextType>;
+  BundleDependencyAction?: BundleDependencyActionResolvers<ContextType>;
+  BundleDependencyRule?: BundleDependencyRuleResolvers<ContextType>;
+  BundleDependencyRulesSyncPayload?: BundleDependencyRulesSyncPayloadResolvers<ContextType>;
+  BundleDiscountFixedPriceRule?: BundleDiscountFixedPriceRuleResolvers<ContextType>;
+  BundleDiscountPercentPriceRule?: BundleDiscountPercentPriceRuleResolvers<ContextType>;
+  BundleEdge?: BundleEdgeResolvers<ContextType>;
+  BundleFixedPriceRule?: BundleFixedPriceRuleResolvers<ContextType>;
+  BundleFreePriceRule?: BundleFreePriceRuleResolvers<ContextType>;
+  BundleGroup?: BundleGroupResolvers<ContextType>;
+  BundleGroupsSyncPayload?: BundleGroupsSyncPayloadResolvers<ContextType>;
+  BundleItem?: BundleItemResolvers<ContextType>;
+  BundleItemOptionSelection?: BundleItemOptionSelectionResolvers<ContextType>;
+  BundleItemOptionValueSelection?: BundleItemOptionValueSelectionResolvers<ContextType>;
+  BundlePriceRule?: BundlePriceRuleResolvers<ContextType>;
+  BundlePriceRuleAmount?: BundlePriceRuleAmountResolvers<ContextType>;
+  BundlePriceRulePercent?: BundlePriceRulePercentResolvers<ContextType>;
+  BundlePricingTemplate?: BundlePricingTemplateResolvers<ContextType>;
+  BundlePricingTemplatesSyncPayload?: BundlePricingTemplatesSyncPayloadResolvers<ContextType>;
+  BundleUpdatePayload?: BundleUpdatePayloadResolvers<ContextType>;
   CatalogMutation?: CatalogMutationResolvers<ContextType>;
   CatalogQuery?: CatalogQueryResolvers<ContextType>;
+  CatalogSellable?: CatalogSellableResolvers<ContextType>;
+  CatalogSellableConnection?: CatalogSellableConnectionResolvers<ContextType>;
+  CatalogSellableEdge?: CatalogSellableEdgeResolvers<ContextType>;
   Category?: CategoryResolvers<ContextType>;
   CategoryConnection?: CategoryConnectionResolvers<ContextType>;
   CategoryCreatePayload?: CategoryCreatePayloadResolvers<ContextType>;

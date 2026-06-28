@@ -60,6 +60,11 @@ type ProductCategoryAssignment {
   isPrimary: Boolean!
 }
 
+enum ProductKind {
+  BASE
+  BUNDLE
+}
+
 """
 A vendor represents the supplier or brand owner associated with a product.
 """
@@ -118,9 +123,12 @@ type VendorCreatePayload {
 """
 A product represents an item that can be sold.
 """
-type Product implements Node @key(fields: "id") {
-  """The globally unique ID of the product."""
+type Product implements Node & CatalogSellable @key(fields: "id") {
+  """The Product global ID."""
   id: ID!
+
+  """Product discriminator."""
+  kind: ProductKind!
 
   """The URL-friendly handle for the product."""
   handle: String

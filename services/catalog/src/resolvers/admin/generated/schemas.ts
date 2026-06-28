@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BooleanFilter, BulkUpdateCancelReason, BulkUpdateItemStatus, BulkUpdateJobStatus, BulkUpdateOpType, CategoryCategoriesMetaInput, CategoryContentInput, CategoryCreateInput, CategoryDeleteInput, CategoryHierarchyInput, CategoryHierarchyScopeDirection, CategoryHierarchyScopeInput, CategoryHierarchyScopeMode, CategoryMediaInput, CategoryMoveInput, CategoryOrderByInput, CategoryOrderField, CategoryProductWhereInput, CategoryProductsScopeInput, CategoryRebalanceInput, CategorySortInput, CategoryStatus, CategoryUpdateInput, CategoryWhereInput, CollectionAddProductsInput, CollectionCreateInput, CollectionDeleteInput, CollectionMediaInput, CollectionMoveProductInput, CollectionRemoveProductsInput, CollectionRuleInput, CollectionType, CollectionUpdateInput, CollectionUpdateRulesInput, CurrencyCode, DateTimeFilter, DimensionUnit, DimensionsInput, FacetCreateInput, FacetDeleteInput, FacetGroupCreateInput, FacetGroupDeleteInput, FacetGroupUpdateInput, FacetSelectionMode, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueSort, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, InventoryItemCostInput, InventoryItemInput, InventoryItemInventoryItemsMetaInput, InventoryItemOrderByInput, InventoryItemOrderField, InventoryItemStockInput, InventoryItemUpdateInput, InventoryItemWarehouseScopeInput, InventoryItemWarehouseScopeMode, InventoryItemWhereInput, ListingOrderByInput, LocaleCode, OperationType, OptionDisplayType, PricingWidgetInput, ProductBulkUpdateInput, ProductBulkUpdateItem, ProductCategoriesScopeInput, ProductCategoryOperationAction, ProductCategoryOperationInput, ProductContentInput, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductDeleteInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductMediaInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionSyncItemInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueSyncInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductOptionsSyncInput, ProductOrderByInput, ProductOrderField, ProductProductsMetaInput, ProductSeoInput, ProductSortBy, ProductSortInput, ProductStatus, ProductStatusAction, ProductTagOperationAction, ProductTagOperationInput, ProductUpdateInput, ProductUpdateStatusInput, ProductWhereInput, RichTextInput, SelectedOptionInput, SeoInput, SortDirection, StringFilter, SwatchType, TagCreateInput, TagDeleteInput, TagOrderByInput, TagOrderField, TagUpdateInput, TagWhereInput, ThresholdMethod, VariantCreateInput, VariantDeleteInput, VariantDimensionsOpInput, VariantInput, VariantInventoryOpInput, VariantMediaOpInput, VariantOperationAction, VariantOperationInput, VariantOptionLinkInput, VariantOptionsOpInput, VariantOrderByInput, VariantOrderField, VariantPricingOpInput, VariantUpdateMediaInput, VariantUpdateOptionsInput, VariantUpdatePricingInput, VariantWhereInput, VendorCreateInput, VendorOrderByInput, VendorOrderField, VendorWhereInput, WarehouseAssignableVariantOrderByInput, WarehouseAssignableVariantOrderField, WarehouseAssignableVariantWhereInput, WarehouseConnectionInput, WarehouseCreateInput, WarehouseDeleteInput, WarehouseOrderByInput, WarehouseOrderField, WarehouseStockConnectionInput, WarehouseStockCreateInput, WarehouseStockCreateItemInput, WarehouseStockDeleteInput, WarehouseStockDeleteItemInput, WarehouseStockOrderByInput, WarehouseStockOrderField, WarehouseStockWhereInput, WarehouseUpdateInput, WarehouseWhereInput, WeightInput, WeightUnit } from './types.js'
+import { BooleanFilter, BulkUpdateCancelReason, BulkUpdateItemStatus, BulkUpdateJobStatus, BulkUpdateOpType, BundleBundlesMetaInput, BundleConditionCategory, BundleConditionGroupSyncInput, BundleConditionOperator, BundleConditionSubject, BundleConditionSyncInput, BundleConfigurationCreateInput, BundleConfigurationDeleteInput, BundleConfigurationUpdateInput, BundleCreateInput, BundleDependencyActionSyncInput, BundleDependencyActionType, BundleDependencyRuleSyncItemInput, BundleDependencyRulesSyncInput, BundleDependencyTargetType, BundleDisplayStyle, BundleGroupSyncItemInput, BundleGroupsSyncInput, BundleItemOptionSelectionSyncInput, BundleItemOptionValueSelectionStatus, BundleItemOptionValueSelectionSyncInput, BundleItemSyncInput, BundleItemType, BundleLogicOperator, BundleOrderByInput, BundleOrderField, BundlePriceRuleAmountInput, BundlePriceRuleInput, BundlePriceRulePercentInput, BundlePriceType, BundlePricingTemplateSyncItemInput, BundlePricingTemplatesSyncInput, BundleType, BundleUpdateInput, BundleWhereInput, CatalogSellableOrderByInput, CatalogSellableOrderField, CatalogSellableWhereInput, CategoryCategoriesMetaInput, CategoryContentInput, CategoryCreateInput, CategoryDeleteInput, CategoryHierarchyInput, CategoryHierarchyScopeDirection, CategoryHierarchyScopeInput, CategoryHierarchyScopeMode, CategoryMediaInput, CategoryMoveInput, CategoryOrderByInput, CategoryOrderField, CategoryProductWhereInput, CategoryProductsScopeInput, CategoryRebalanceInput, CategorySortInput, CategoryStatus, CategoryUpdateInput, CategoryWhereInput, CollectionAddProductsInput, CollectionCreateInput, CollectionDeleteInput, CollectionMediaInput, CollectionMoveProductInput, CollectionRemoveProductsInput, CollectionRuleInput, CollectionType, CollectionUpdateInput, CollectionUpdateRulesInput, CurrencyCode, DateTimeFilter, DimensionUnit, DimensionsInput, FacetCreateInput, FacetDeleteInput, FacetGroupCreateInput, FacetGroupDeleteInput, FacetGroupUpdateInput, FacetSelectionMode, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueSort, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, InventoryItemCostInput, InventoryItemInput, InventoryItemInventoryItemsMetaInput, InventoryItemOrderByInput, InventoryItemOrderField, InventoryItemStockInput, InventoryItemUpdateInput, InventoryItemWarehouseScopeInput, InventoryItemWarehouseScopeMode, InventoryItemWhereInput, ListingOrderByInput, LocaleCode, OperationType, OptionDisplayType, PricingWidgetInput, ProductBulkUpdateInput, ProductBulkUpdateItem, ProductCategoriesScopeInput, ProductCategoryOperationAction, ProductCategoryOperationInput, ProductContentInput, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductDeleteInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductKind, ProductMediaInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionSyncItemInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueSyncInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductOptionsSyncInput, ProductOrderByInput, ProductOrderField, ProductProductsMetaInput, ProductSeoInput, ProductSortBy, ProductSortInput, ProductStatus, ProductStatusAction, ProductTagOperationAction, ProductTagOperationInput, ProductUpdateInput, ProductUpdateStatusInput, ProductWhereInput, RichTextInput, SelectedOptionInput, SeoInput, SortDirection, StringFilter, SwatchType, TagCreateInput, TagDeleteInput, TagOrderByInput, TagOrderField, TagUpdateInput, TagWhereInput, ThresholdMethod, VariantCreateInput, VariantDeleteInput, VariantDimensionsOpInput, VariantInput, VariantInventoryOpInput, VariantMediaOpInput, VariantOperationAction, VariantOperationInput, VariantOptionLinkInput, VariantOptionsOpInput, VariantOrderByInput, VariantOrderField, VariantPricingOpInput, VariantUpdateMediaInput, VariantUpdateOptionsInput, VariantUpdatePricingInput, VariantWhereInput, VendorCreateInput, VendorOrderByInput, VendorOrderField, VendorWhereInput, WarehouseAssignableVariantOrderByInput, WarehouseAssignableVariantOrderField, WarehouseAssignableVariantWhereInput, WarehouseConnectionInput, WarehouseCreateInput, WarehouseDeleteInput, WarehouseOrderByInput, WarehouseOrderField, WarehouseStockConnectionInput, WarehouseStockCreateInput, WarehouseStockCreateItemInput, WarehouseStockDeleteInput, WarehouseStockDeleteItemInput, WarehouseStockOrderByInput, WarehouseStockOrderField, WarehouseStockWhereInput, WarehouseUpdateInput, WarehouseWhereInput, WeightInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -18,6 +18,32 @@ export const BulkUpdateItemStatusSchema = z.nativeEnum(BulkUpdateItemStatus);
 export const BulkUpdateJobStatusSchema = z.nativeEnum(BulkUpdateJobStatus);
 
 export const BulkUpdateOpTypeSchema = z.nativeEnum(BulkUpdateOpType);
+
+export const BundleConditionCategorySchema = z.nativeEnum(BundleConditionCategory);
+
+export const BundleConditionOperatorSchema = z.nativeEnum(BundleConditionOperator);
+
+export const BundleConditionSubjectSchema = z.nativeEnum(BundleConditionSubject);
+
+export const BundleDependencyActionTypeSchema = z.nativeEnum(BundleDependencyActionType);
+
+export const BundleDependencyTargetTypeSchema = z.nativeEnum(BundleDependencyTargetType);
+
+export const BundleDisplayStyleSchema = z.nativeEnum(BundleDisplayStyle);
+
+export const BundleItemOptionValueSelectionStatusSchema = z.nativeEnum(BundleItemOptionValueSelectionStatus);
+
+export const BundleItemTypeSchema = z.nativeEnum(BundleItemType);
+
+export const BundleLogicOperatorSchema = z.nativeEnum(BundleLogicOperator);
+
+export const BundleOrderFieldSchema = z.nativeEnum(BundleOrderField);
+
+export const BundlePriceTypeSchema = z.nativeEnum(BundlePriceType);
+
+export const BundleTypeSchema = z.nativeEnum(BundleType);
+
+export const CatalogSellableOrderFieldSchema = z.nativeEnum(CatalogSellableOrderField);
 
 export const CategoryHierarchyScopeDirectionSchema = z.nativeEnum(CategoryHierarchyScopeDirection);
 
@@ -52,6 +78,8 @@ export const OperationTypeSchema = z.nativeEnum(OperationType);
 export const OptionDisplayTypeSchema = z.nativeEnum(OptionDisplayType);
 
 export const ProductCategoryOperationActionSchema = z.nativeEnum(ProductCategoryOperationAction);
+
+export const ProductKindSchema = z.nativeEnum(ProductKind);
 
 export const ProductOrderFieldSchema = z.nativeEnum(ProductOrderField);
 
@@ -91,6 +119,280 @@ export function BooleanFilterSchema(): z.ZodObject<Properties<BooleanFilter>> {
     _is: z.boolean().nullish(),
     _isNot: z.boolean().nullish(),
     _neq: z.boolean().nullish()
+  })
+}
+
+export function BundleBundlesMetaInputSchema(): z.ZodObject<Properties<BundleBundlesMetaInput>> {
+  return z.object({
+    categoriesScope: z.lazy(() => ProductCategoriesScopeInputSchema().nullish())
+  })
+}
+
+export function BundleConditionGroupSyncInputSchema(): z.ZodObject<Properties<BundleConditionGroupSyncInput>> {
+  return z.object({
+    conditions: z.array(z.lazy(() => BundleConditionSyncInputSchema())),
+    id: z.string().nullish(),
+    logicOperator: BundleLogicOperatorSchema,
+    sortIndex: z.number()
+  })
+}
+
+export function BundleConditionSyncInputSchema(): z.ZodObject<Properties<BundleConditionSyncInput>> {
+  return z.object({
+    category: BundleConditionCategorySchema,
+    id: z.string().nullish(),
+    operator: BundleConditionOperatorSchema,
+    sortIndex: z.number(),
+    subject: BundleConditionSubjectSchema,
+    targetId: z.string(),
+    targetType: BundleDependencyTargetTypeSchema,
+    value: z.number().nullish()
+  })
+}
+
+export function BundleConfigurationCreateInputSchema(): z.ZodObject<Properties<BundleConfigurationCreateInput>> {
+  return z.object({
+    bundleId: z.string(),
+    expectedRevision: z.number(),
+    name: z.string()
+  })
+}
+
+export function BundleConfigurationDeleteInputSchema(): z.ZodObject<Properties<BundleConfigurationDeleteInput>> {
+  return z.object({
+    expectedRevision: z.number(),
+    id: z.string()
+  })
+}
+
+export function BundleConfigurationUpdateInputSchema(): z.ZodObject<Properties<BundleConfigurationUpdateInput>> {
+  return z.object({
+    expectedRevision: z.number(),
+    id: z.string(),
+    name: z.string().nullish()
+  })
+}
+
+export function BundleCreateInputSchema(): z.ZodObject<Properties<BundleCreateInput>> {
+  return z.object({
+    description: z.lazy(() => RichTextInputSchema().nullish()),
+    displayStyle: BundleDisplayStyleSchema.nullish(),
+    excerpt: z.lazy(() => RichTextInputSchema().nullish()),
+    handle: z.string(),
+    inventoryItem: z.lazy(() => InventoryItemInputSchema().nullish()),
+    mediaFileIds: z.array(z.string()).nullish(),
+    options: z.array(z.lazy(() => ProductCreateOptionInputSchema())).nullish(),
+    title: z.string(),
+    type: BundleTypeSchema.nullish(),
+    variants: z.array(z.lazy(() => ProductCreateVariantInputSchema())).nullish(),
+    vendorId: z.string().nullish()
+  })
+}
+
+export function BundleDependencyActionSyncInputSchema(): z.ZodObject<Properties<BundleDependencyActionSyncInput>> {
+  return z.object({
+    actionType: BundleDependencyActionTypeSchema,
+    id: z.string().nullish(),
+    priceRule: z.lazy(() => BundlePriceRuleInputSchema().nullish()),
+    requiredValue: z.boolean().nullish(),
+    sortIndex: z.number(),
+    stackable: z.boolean(),
+    targetId: z.string().nullish(),
+    targetType: BundleDependencyTargetTypeSchema
+  })
+}
+
+export function BundleDependencyRuleSyncItemInputSchema(): z.ZodObject<Properties<BundleDependencyRuleSyncItemInput>> {
+  return z.object({
+    actions: z.array(z.lazy(() => BundleDependencyActionSyncInputSchema())),
+    conditionGroups: z.array(z.lazy(() => BundleConditionGroupSyncInputSchema())),
+    enabled: z.boolean(),
+    id: z.string().nullish(),
+    logicOperator: BundleLogicOperatorSchema,
+    name: z.string(),
+    priority: z.number()
+  })
+}
+
+export function BundleDependencyRulesSyncInputSchema(): z.ZodObject<Properties<BundleDependencyRulesSyncInput>> {
+  return z.object({
+    configurationId: z.string(),
+    dependencyRules: z.array(z.lazy(() => BundleDependencyRuleSyncItemInputSchema())),
+    expectedRevision: z.number()
+  })
+}
+
+export function BundleGroupSyncItemInputSchema(): z.ZodObject<Properties<BundleGroupSyncItemInput>> {
+  return z.object({
+    id: z.string().nullish(),
+    items: z.array(z.lazy(() => BundleItemSyncInputSchema())),
+    maxSelection: z.number().nullish(),
+    minSelection: z.number().nullish(),
+    sortIndex: z.number(),
+    title: z.string()
+  })
+}
+
+export function BundleGroupsSyncInputSchema(): z.ZodObject<Properties<BundleGroupsSyncInput>> {
+  return z.object({
+    configurationId: z.string(),
+    expectedRevision: z.number(),
+    groups: z.array(z.lazy(() => BundleGroupSyncItemInputSchema()))
+  })
+}
+
+export function BundleItemOptionSelectionSyncInputSchema(): z.ZodObject<Properties<BundleItemOptionSelectionSyncInput>> {
+  return z.object({
+    id: z.string().nullish(),
+    optionId: z.string(),
+    parentOptionId: z.string().nullish(),
+    sortIndex: z.number(),
+    values: z.array(z.lazy(() => BundleItemOptionValueSelectionSyncInputSchema()))
+  })
+}
+
+export function BundleItemOptionValueSelectionSyncInputSchema(): z.ZodObject<Properties<BundleItemOptionValueSelectionSyncInput>> {
+  return z.object({
+    id: z.string().nullish(),
+    optionValueId: z.string().nullish(),
+    sortIndex: z.number(),
+    status: BundleItemOptionValueSelectionStatusSchema,
+    value: z.string()
+  })
+}
+
+export function BundleItemSyncInputSchema(): z.ZodObject<Properties<BundleItemSyncInput>> {
+  return z.object({
+    defaultQty: z.number().nullish(),
+    featuredImageId: z.string().nullish(),
+    id: z.string().nullish(),
+    itemType: BundleItemTypeSchema,
+    maxQty: z.number().nullish(),
+    minQty: z.number().nullish(),
+    optionSelections: z.array(z.lazy(() => BundleItemOptionSelectionSyncInputSchema())).nullish(),
+    priceRule: z.lazy(() => BundlePriceRuleInputSchema().nullish()),
+    pricingTemplateId: z.string().nullish(),
+    refProductId: z.string().nullish(),
+    refVariantId: z.string().nullish(),
+    selected: z.boolean(),
+    sortIndex: z.number(),
+    title: z.string().nullish(),
+    visible: z.boolean()
+  })
+}
+
+export function BundleOrderByInputSchema(): z.ZodObject<Properties<BundleOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: BundleOrderFieldSchema
+  })
+}
+
+export function BundlePriceRuleAmountInputSchema(): z.ZodObject<Properties<BundlePriceRuleAmountInput>> {
+  return z.object({
+    amountMinor: z.string(),
+    currency: CurrencyCodeSchema
+  })
+}
+
+export function BundlePriceRuleInputSchema(): z.ZodObject<Properties<BundlePriceRuleInput>> {
+  return z.object({
+    amounts: z.array(z.lazy(() => BundlePriceRuleAmountInputSchema())).nullish(),
+    id: z.string().nullish(),
+    percent: z.lazy(() => BundlePriceRulePercentInputSchema().nullish()),
+    priceType: BundlePriceTypeSchema
+  })
+}
+
+export function BundlePriceRulePercentInputSchema(): z.ZodObject<Properties<BundlePriceRulePercentInput>> {
+  return z.object({
+    value: z.number()
+  })
+}
+
+export function BundlePricingTemplateSyncItemInputSchema(): z.ZodObject<Properties<BundlePricingTemplateSyncItemInput>> {
+  return z.object({
+    id: z.string().nullish(),
+    name: z.string(),
+    priceRule: z.lazy(() => BundlePriceRuleInputSchema()),
+    sortIndex: z.number()
+  })
+}
+
+export function BundlePricingTemplatesSyncInputSchema(): z.ZodObject<Properties<BundlePricingTemplatesSyncInput>> {
+  return z.object({
+    configurationId: z.string(),
+    expectedRevision: z.number(),
+    pricingTemplates: z.array(z.lazy(() => BundlePricingTemplateSyncItemInputSchema()))
+  })
+}
+
+export function BundleUpdateInputSchema(): z.ZodObject<Properties<BundleUpdateInput>> {
+  return z.object({
+    categories: z.array(z.lazy(() => ProductCategoryOperationInputSchema())).nullish(),
+    content: z.lazy(() => ProductContentInputSchema().nullish()),
+    displayStyle: BundleDisplayStyleSchema.nullish(),
+    handle: z.string().nullish(),
+    media: z.lazy(() => ProductMediaInputSchema().nullish()),
+    seo: z.lazy(() => ProductSeoInputSchema().nullish()),
+    status: ProductStatusSchema.nullish(),
+    tags: z.array(z.lazy(() => ProductTagOperationInputSchema())).nullish(),
+    title: z.string().nullish(),
+    type: BundleTypeSchema.nullish(),
+    variants: z.array(z.lazy(() => VariantOperationInputSchema())).nullish(),
+    vendorId: z.string().nullish()
+  })
+}
+
+export function BundleWhereInputSchema(): z.ZodObject<Properties<BundleWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => BundleWhereInputSchema())).nullish(),
+    _not: z.lazy(() => BundleWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => BundleWhereInputSchema())).nullish(),
+    brandName: z.lazy(() => StringFilterSchema().nullish()),
+    createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    currency: z.lazy(() => StringFilterSchema().nullish()),
+    handle: z.lazy(() => StringFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    locale: z.lazy(() => StringFilterSchema().nullish()),
+    maxPriceMinor: z.lazy(() => IntFilterSchema().nullish()),
+    minPriceMinor: z.lazy(() => IntFilterSchema().nullish()),
+    name: z.lazy(() => StringFilterSchema().nullish()),
+    primaryCategoryId: z.lazy(() => IdFilterSchema().nullish()),
+    primaryCategoryName: z.lazy(() => StringFilterSchema().nullish()),
+    publishedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    vendorId: z.lazy(() => IdFilterSchema().nullish())
+  })
+}
+
+export function CatalogSellableOrderByInputSchema(): z.ZodObject<Properties<CatalogSellableOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: CatalogSellableOrderFieldSchema
+  })
+}
+
+export function CatalogSellableWhereInputSchema(): z.ZodObject<Properties<CatalogSellableWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => CatalogSellableWhereInputSchema())).nullish(),
+    _not: z.lazy(() => CatalogSellableWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => CatalogSellableWhereInputSchema())).nullish(),
+    brandName: z.lazy(() => StringFilterSchema().nullish()),
+    createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    currency: z.lazy(() => StringFilterSchema().nullish()),
+    handle: z.lazy(() => StringFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    kind: z.lazy(() => StringFilterSchema().nullish()),
+    locale: z.lazy(() => StringFilterSchema().nullish()),
+    maxPriceMinor: z.lazy(() => IntFilterSchema().nullish()),
+    minPriceMinor: z.lazy(() => IntFilterSchema().nullish()),
+    name: z.lazy(() => StringFilterSchema().nullish()),
+    primaryCategoryId: z.lazy(() => IdFilterSchema().nullish()),
+    primaryCategoryName: z.lazy(() => StringFilterSchema().nullish()),
+    publishedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    vendorId: z.lazy(() => IdFilterSchema().nullish())
   })
 }
 
@@ -1066,6 +1368,7 @@ export function VariantMediaOpInputSchema(): z.ZodObject<Properties<VariantMedia
 export function VariantOperationInputSchema(): z.ZodObject<Properties<VariantOperationInput>> {
   return z.object({
     action: VariantOperationActionSchema,
+    bundleConfigurationId: z.string().nullish(),
     clientMutationId: z.string().nullish(),
     dimensions: z.lazy(() => VariantDimensionsOpInputSchema().nullish()),
     inventory: z.lazy(() => VariantInventoryOpInputSchema().nullish()),

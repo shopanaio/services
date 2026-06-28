@@ -1,0 +1,92 @@
+# ---- Catalog Sellable Types ----
+
+interface CatalogSellable implements Node {
+  """The Product global ID of the sellable catalog item."""
+  id: ID!
+
+  """Product discriminator."""
+  kind: ProductKind!
+
+  """The URL-friendly handle."""
+  handle: String
+
+  """Localized title."""
+  title: String!
+
+  """Media registered on this sellable item."""
+  media: [ProductMediaItem!]!
+
+  """The primary category assigned to this sellable item."""
+  primaryCategory: Category
+
+  """The tags associated with this sellable item."""
+  tags: [Tag!]!
+
+  """The total number of variants."""
+  variantsCount: Int!
+}
+
+"""A connection to a mixed list of sellable catalog items."""
+type CatalogSellableConnection {
+  """A list of edges."""
+  edges: [CatalogSellableEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of sellable catalog items."""
+  totalCount: Int!
+}
+
+"""An edge in a CatalogSellable connection."""
+type CatalogSellableEdge {
+  """The item at the end of the edge."""
+  node: CatalogSellable!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+input CatalogSellableWhereInput {
+  _and: [CatalogSellableWhereInput!]
+  _or: [CatalogSellableWhereInput!]
+  _not: CatalogSellableWhereInput
+  id: IDFilter
+  kind: StringFilter
+  vendorId: IDFilter
+  handle: StringFilter
+  publishedAt: DateTimeFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  locale: StringFilter
+  name: StringFilter
+  currency: StringFilter
+  minPriceMinor: IntFilter
+  maxPriceMinor: IntFilter
+  primaryCategoryId: IDFilter
+  primaryCategoryName: StringFilter
+  brandName: StringFilter
+}
+
+enum CatalogSellableOrderField {
+  id
+  kind
+  vendorId
+  handle
+  publishedAt
+  createdAt
+  updatedAt
+  locale
+  name
+  currency
+  minPriceMinor
+  maxPriceMinor
+  primaryCategoryId
+  primaryCategoryName
+  brandName
+}
+
+input CatalogSellableOrderByInput {
+  field: CatalogSellableOrderField!
+  direction: SortDirection!
+}
