@@ -144,7 +144,7 @@ export type BulkUpdateUserError = UserError & {
   variantId: Maybe<Scalars['ID']['output']>;
 };
 
-export type Bundle = CatalogSellable & Node & {
+export type Bundle = Listing & Node & {
   __typename?: 'Bundle';
   /** Category assignments with relationship metadata. */
   categoryAssignments: Array<ProductCategoryAssignment>;
@@ -1578,89 +1578,6 @@ export type CatalogQueryVendorsArgs = {
   where?: InputMaybe<VendorWhereInput>;
 };
 
-export type CatalogSellable = {
-  /** The URL-friendly handle. */
-  handle: Maybe<Scalars['String']['output']>;
-  /** The Product global ID of the sellable catalog item. */
-  id: Scalars['ID']['output'];
-  /** Product discriminator. */
-  kind: ProductKind;
-  /** Media registered on this sellable item. */
-  media: Array<ProductMediaItem>;
-  /** The primary category assigned to this sellable item. */
-  primaryCategory: Maybe<Category>;
-  /** The tags associated with this sellable item. */
-  tags: Array<Tag>;
-  /** Localized title. */
-  title: Scalars['String']['output'];
-  /** The total number of variants. */
-  variantsCount: Scalars['Int']['output'];
-};
-
-/** A connection to a mixed list of sellable catalog items. */
-export type CatalogSellableConnection = {
-  __typename?: 'CatalogSellableConnection';
-  /** A list of edges. */
-  edges: Array<CatalogSellableEdge>;
-  /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-  /** The total number of sellable catalog items. */
-  totalCount: Scalars['Int']['output'];
-};
-
-/** An edge in a CatalogSellable connection. */
-export type CatalogSellableEdge = {
-  __typename?: 'CatalogSellableEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String']['output'];
-  /** The item at the end of the edge. */
-  node: CatalogSellable;
-};
-
-export type CatalogSellableOrderByInput = {
-  direction: SortDirection;
-  field: CatalogSellableOrderField;
-};
-
-export enum CatalogSellableOrderField {
-  BrandName = 'brandName',
-  CreatedAt = 'createdAt',
-  Currency = 'currency',
-  Handle = 'handle',
-  Id = 'id',
-  Kind = 'kind',
-  Locale = 'locale',
-  MaxPriceMinor = 'maxPriceMinor',
-  MinPriceMinor = 'minPriceMinor',
-  Name = 'name',
-  PrimaryCategoryId = 'primaryCategoryId',
-  PrimaryCategoryName = 'primaryCategoryName',
-  PublishedAt = 'publishedAt',
-  UpdatedAt = 'updatedAt',
-  VendorId = 'vendorId'
-}
-
-export type CatalogSellableWhereInput = {
-  _and?: InputMaybe<Array<CatalogSellableWhereInput>>;
-  _not?: InputMaybe<CatalogSellableWhereInput>;
-  _or?: InputMaybe<Array<CatalogSellableWhereInput>>;
-  brandName?: InputMaybe<StringFilter>;
-  createdAt?: InputMaybe<DateTimeFilter>;
-  currency?: InputMaybe<StringFilter>;
-  handle?: InputMaybe<StringFilter>;
-  id?: InputMaybe<IdFilter>;
-  kind?: InputMaybe<StringFilter>;
-  locale?: InputMaybe<StringFilter>;
-  maxPriceMinor?: InputMaybe<IntFilter>;
-  minPriceMinor?: InputMaybe<IntFilter>;
-  name?: InputMaybe<StringFilter>;
-  primaryCategoryId?: InputMaybe<IdFilter>;
-  primaryCategoryName?: InputMaybe<StringFilter>;
-  publishedAt?: InputMaybe<DateTimeFilter>;
-  updatedAt?: InputMaybe<DateTimeFilter>;
-  vendorId?: InputMaybe<IdFilter>;
-};
-
 /** A category represents a hierarchical grouping of products. */
 export type Category = Node & {
   __typename?: 'Category';
@@ -1688,8 +1605,10 @@ export type Category = Node & {
   id: Scalars['ID']['output'];
   /** Whether the category is currently published. */
   isPublished: Scalars['Boolean']['output'];
-  /** Sellable catalog items assigned to this category, including products and bundles. */
-  items: CatalogSellableConnection;
+  /** Catalog listing items assigned to this category, including products and bundles. */
+  listing: ListingConnection;
+  /** The total number of listing items in this category. */
+  listingCount: Scalars['Int']['output'];
   /** Media files associated with this category. */
   media: Array<CategoryMediaItem>;
   /** The display name of the category. */
@@ -1698,10 +1617,6 @@ export type Category = Node & {
   parent: Maybe<Category>;
   /** The materialized path for this category. */
   path: Scalars['String']['output'];
-  /** Products in this category with pagination. */
-  products: CategoryProductConnection;
-  /** The total number of products in this category. */
-  productsCount: Scalars['Int']['output'];
   /** The date and time when the category was published, or null if unpublished. */
   publishedAt: Maybe<Scalars['DateTime']['output']>;
   /** Optimistic locking revision number. Incremented on each update. */
@@ -1714,24 +1629,13 @@ export type Category = Node & {
 
 
 /** A category represents a hierarchical grouping of products. */
-export type CategoryItemsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  orderBy?: InputMaybe<Array<CatalogSellableOrderByInput>>;
-  where?: InputMaybe<CatalogSellableWhereInput>;
-};
-
-
-/** A category represents a hierarchical grouping of products. */
-export type CategoryProductsArgs = {
+export type CategoryListingArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
   orderBy?: InputMaybe<Array<ListingOrderByInput>>;
-  where?: InputMaybe<CategoryProductWhereInput>;
+  where?: InputMaybe<ListingWhereInput>;
 };
 
 export type CategoryCategoriesMetaInput = {
@@ -1902,35 +1806,6 @@ export enum CategoryOrderField {
   /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
-
-export type CategoryProductConnection = {
-  __typename?: 'CategoryProductConnection';
-  edges: Array<CategoryProductEdge>;
-  pageInfo: PageInfo;
-  totalCount: Scalars['Int']['output'];
-};
-
-export type CategoryProductEdge = {
-  __typename?: 'CategoryProductEdge';
-  cursor: Scalars['String']['output'];
-  node: Product;
-};
-
-/** Filter conditions for CategoryProduct */
-export type CategoryProductWhereInput = {
-  /** Logical AND of multiple conditions */
-  _and?: InputMaybe<Array<CategoryProductWhereInput>>;
-  /** Negate the condition */
-  _not?: InputMaybe<CategoryProductWhereInput>;
-  /** Logical OR of multiple conditions */
-  _or?: InputMaybe<Array<CategoryProductWhereInput>>;
-  /** Filter by createdAt */
-  createdAt?: InputMaybe<DateTimeFilter>;
-  /** Filter by deletedAt */
-  deletedAt?: InputMaybe<DateTimeFilter>;
-  /** Filter by id */
-  id?: InputMaybe<IdFilter>;
-};
 
 export type CategoryProductsScopeInput = {
   mode: CategoryHierarchyScopeMode;
@@ -3214,10 +3089,119 @@ export type InventorySkuStatus = {
   total: Scalars['Int']['output'];
 };
 
-/** Listing orderBy input for product listing pages. */
+export type Listing = {
+  /** The URL-friendly handle. */
+  handle: Maybe<Scalars['String']['output']>;
+  /** The Product global ID of the catalog listing item. */
+  id: Scalars['ID']['output'];
+  /** Product discriminator. */
+  kind: ProductKind;
+  /** Media registered on this listing item. */
+  media: Array<ProductMediaItem>;
+  /** Localized title. */
+  title: Scalars['String']['output'];
+};
+
+/** A connection to a mixed list of catalog listing items. */
+export type ListingConnection = {
+  __typename?: 'ListingConnection';
+  /** A list of edges. */
+  edges: Array<ListingEdge>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+  /** The total number of catalog listing items. */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** An edge in a Listing connection. */
+export type ListingEdge = {
+  __typename?: 'ListingEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String']['output'];
+  /** The item at the end of the edge. */
+  node: Listing;
+};
+
+/** Ordering configuration for Listing */
 export type ListingOrderByInput = {
-  direction?: InputMaybe<SortDirection>;
-  field: ProductSortBy;
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: ListingOrderField;
+};
+
+/** Fields available for sorting Listing */
+export enum ListingOrderField {
+  /** Sort by brandName */
+  BrandName = 'brandName',
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by currency */
+  Currency = 'currency',
+  /** Sort by handle */
+  Handle = 'handle',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by kind */
+  Kind = 'kind',
+  /** Sort by locale */
+  Locale = 'locale',
+  /** Sort by maxPriceMinor */
+  MaxPriceMinor = 'maxPriceMinor',
+  /** Sort by minPriceMinor */
+  MinPriceMinor = 'minPriceMinor',
+  /** Sort by name */
+  Name = 'name',
+  /** Sort by primaryCategoryId */
+  PrimaryCategoryId = 'primaryCategoryId',
+  /** Sort by primaryCategoryName */
+  PrimaryCategoryName = 'primaryCategoryName',
+  /** Sort by publishedAt */
+  PublishedAt = 'publishedAt',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt',
+  /** Sort by vendorId */
+  VendorId = 'vendorId'
+}
+
+/** Filter conditions for Listing */
+export type ListingWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ListingWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ListingWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ListingWhereInput>>;
+  /** Filter by brandName */
+  brandName?: InputMaybe<StringFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by currency */
+  currency?: InputMaybe<StringFilter>;
+  /** Filter by handle */
+  handle?: InputMaybe<StringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<IdFilter>;
+  /** Filter by kind */
+  kind?: InputMaybe<StringFilter>;
+  /** Filter by locale */
+  locale?: InputMaybe<StringFilter>;
+  /** Filter by maxPriceMinor */
+  maxPriceMinor?: InputMaybe<IntFilter>;
+  /** Filter by minPriceMinor */
+  minPriceMinor?: InputMaybe<IntFilter>;
+  /** Filter by name */
+  name?: InputMaybe<StringFilter>;
+  /** Filter by primaryCategoryId */
+  primaryCategoryId?: InputMaybe<IdFilter>;
+  /** Filter by primaryCategoryName */
+  primaryCategoryName?: InputMaybe<StringFilter>;
+  /** Filter by publishedAt */
+  publishedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by vendorId */
+  vendorId?: InputMaybe<IdFilter>;
 };
 
 /** Language/Locale codes based on ISO 639-1 and BCP 47 */
@@ -3586,7 +3570,7 @@ export type PricingWidgetPayload = {
 };
 
 /** A product represents an item that can be sold. */
-export type Product = CatalogSellable & Node & {
+export type Product = Listing & Node & {
   __typename?: 'Product';
   /** Category assignments with relationship metadata. */
   categoryAssignments: Array<ProductCategoryAssignment>;
@@ -5769,8 +5753,8 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
   BundlePriceRule: ( BundleBasePriceRule ) | ( BundleDiscountFixedPriceRule ) | ( BundleDiscountPercentPriceRule ) | ( BundleFixedPriceRule ) | ( BundleFreePriceRule );
-  CatalogSellable: ( Omit<Bundle, 'categoryAssignments' | 'configurations' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, configurations: Array<_RefType['BundleConfiguration']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, primaryCategory?: Maybe<_RefType['Category']>, variants: _RefType['VariantConnection'] } ) | ( Omit<Product, 'categoryAssignments' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, primaryCategory?: Maybe<_RefType['Category']>, variants: _RefType['VariantConnection'] } );
-  Node: ( Omit<Bundle, 'categoryAssignments' | 'configurations' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, configurations: Array<_RefType['BundleConfiguration']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, primaryCategory?: Maybe<_RefType['Category']>, variants: _RefType['VariantConnection'] } ) | ( BundleBasePriceRule ) | ( BundleCondition ) | ( BundleConditionGroup ) | ( Omit<BundleConfiguration, 'bundle' | 'dependencyRules' | 'groups' | 'pricingTemplates' | 'variants'> & { bundle: _RefType['Bundle'], dependencyRules: Array<_RefType['BundleDependencyRule']>, groups: Array<_RefType['BundleGroup']>, pricingTemplates: Array<_RefType['BundlePricingTemplate']>, variants: Array<_RefType['Variant']> } ) | ( Omit<BundleDependencyAction, 'priceRule'> & { priceRule?: Maybe<_RefType['BundlePriceRule']> } ) | ( Omit<BundleDependencyRule, 'actions'> & { actions: Array<_RefType['BundleDependencyAction']> } ) | ( BundleDiscountFixedPriceRule ) | ( BundleDiscountPercentPriceRule ) | ( BundleFixedPriceRule ) | ( BundleFreePriceRule ) | ( Omit<BundleGroup, 'items'> & { items: Array<_RefType['BundleItem']> } ) | ( Omit<BundleItem, 'group' | 'priceRule' | 'pricingTemplate' | 'refProduct' | 'refVariant'> & { group: _RefType['BundleGroup'], priceRule?: Maybe<_RefType['BundlePriceRule']>, pricingTemplate?: Maybe<_RefType['BundlePricingTemplate']>, refProduct?: Maybe<_RefType['Product']>, refVariant?: Maybe<_RefType['Variant']> } ) | ( BundleItemOptionSelection ) | ( BundleItemOptionValueSelection ) | ( Omit<BundlePricingTemplate, 'priceRule'> & { priceRule: _RefType['BundlePriceRule'] } ) | ( Omit<Category, 'ancestors' | 'children' | 'description' | 'excerpt' | 'items' | 'parent' | 'products'> & { ancestors: Array<_RefType['Category']>, children: Array<_RefType['Category']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, items: _RefType['CatalogSellableConnection'], parent?: Maybe<_RefType['Category']>, products: _RefType['CategoryProductConnection'] } ) | ( Omit<Collection, 'description' | 'excerpt' | 'products'> & { description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, products: _RefType['CollectionProductConnection'] } ) | ( Facet ) | ( FacetGroup ) | ( FacetSwatch ) | ( FacetValue ) | ( Omit<InventoryItem, 'stock' | 'variant'> & { stock: Array<_RefType['WarehouseStock']>, variant: _RefType['Variant'] } ) | ( Omit<Product, 'categoryAssignments' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, primaryCategory?: Maybe<_RefType['Category']>, variants: _RefType['VariantConnection'] } ) | ( ProductFeature ) | ( ProductFeatureValue ) | ( ProductOption ) | ( ProductOptionSwatch ) | ( ProductOptionValue ) | ( Tag ) | ( Omit<Variant, 'bundleConfiguration' | 'inventoryItem' | 'product'> & { bundleConfiguration?: Maybe<_RefType['BundleConfiguration']>, inventoryItem?: Maybe<_RefType['InventoryItem']>, product: _RefType['Product'] } ) | ( VariantCost ) | ( VariantPrice ) | ( Vendor ) | ( Omit<Warehouse, 'stock'> & { stock: _RefType['WarehouseStockConnection'] } ) | ( Omit<WarehouseStock, 'variant' | 'warehouse'> & { variant: _RefType['Variant'], warehouse: _RefType['Warehouse'] } );
+  Listing: ( Omit<Bundle, 'categoryAssignments' | 'configurations' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, configurations: Array<_RefType['BundleConfiguration']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, primaryCategory?: Maybe<_RefType['Category']>, variants: _RefType['VariantConnection'] } ) | ( Omit<Product, 'categoryAssignments' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, primaryCategory?: Maybe<_RefType['Category']>, variants: _RefType['VariantConnection'] } );
+  Node: ( Omit<Bundle, 'categoryAssignments' | 'configurations' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, configurations: Array<_RefType['BundleConfiguration']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, primaryCategory?: Maybe<_RefType['Category']>, variants: _RefType['VariantConnection'] } ) | ( BundleBasePriceRule ) | ( BundleCondition ) | ( BundleConditionGroup ) | ( Omit<BundleConfiguration, 'bundle' | 'dependencyRules' | 'groups' | 'pricingTemplates' | 'variants'> & { bundle: _RefType['Bundle'], dependencyRules: Array<_RefType['BundleDependencyRule']>, groups: Array<_RefType['BundleGroup']>, pricingTemplates: Array<_RefType['BundlePricingTemplate']>, variants: Array<_RefType['Variant']> } ) | ( Omit<BundleDependencyAction, 'priceRule'> & { priceRule?: Maybe<_RefType['BundlePriceRule']> } ) | ( Omit<BundleDependencyRule, 'actions'> & { actions: Array<_RefType['BundleDependencyAction']> } ) | ( BundleDiscountFixedPriceRule ) | ( BundleDiscountPercentPriceRule ) | ( BundleFixedPriceRule ) | ( BundleFreePriceRule ) | ( Omit<BundleGroup, 'items'> & { items: Array<_RefType['BundleItem']> } ) | ( Omit<BundleItem, 'group' | 'priceRule' | 'pricingTemplate' | 'refProduct' | 'refVariant'> & { group: _RefType['BundleGroup'], priceRule?: Maybe<_RefType['BundlePriceRule']>, pricingTemplate?: Maybe<_RefType['BundlePricingTemplate']>, refProduct?: Maybe<_RefType['Product']>, refVariant?: Maybe<_RefType['Variant']> } ) | ( BundleItemOptionSelection ) | ( BundleItemOptionValueSelection ) | ( Omit<BundlePricingTemplate, 'priceRule'> & { priceRule: _RefType['BundlePriceRule'] } ) | ( Omit<Category, 'ancestors' | 'children' | 'description' | 'excerpt' | 'listing' | 'parent'> & { ancestors: Array<_RefType['Category']>, children: Array<_RefType['Category']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, listing: _RefType['ListingConnection'], parent?: Maybe<_RefType['Category']> } ) | ( Omit<Collection, 'description' | 'excerpt' | 'products'> & { description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, products: _RefType['CollectionProductConnection'] } ) | ( Facet ) | ( FacetGroup ) | ( FacetSwatch ) | ( FacetValue ) | ( Omit<InventoryItem, 'stock' | 'variant'> & { stock: Array<_RefType['WarehouseStock']>, variant: _RefType['Variant'] } ) | ( Omit<Product, 'categoryAssignments' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, primaryCategory?: Maybe<_RefType['Category']>, variants: _RefType['VariantConnection'] } ) | ( ProductFeature ) | ( ProductFeatureValue ) | ( ProductOption ) | ( ProductOptionSwatch ) | ( ProductOptionValue ) | ( Tag ) | ( Omit<Variant, 'bundleConfiguration' | 'inventoryItem' | 'product'> & { bundleConfiguration?: Maybe<_RefType['BundleConfiguration']>, inventoryItem?: Maybe<_RefType['InventoryItem']>, product: _RefType['Product'] } ) | ( VariantCost ) | ( VariantPrice ) | ( Vendor ) | ( Omit<Warehouse, 'stock'> & { stock: _RefType['WarehouseStockConnection'] } ) | ( Omit<WarehouseStock, 'variant' | 'warehouse'> & { variant: _RefType['Variant'], warehouse: _RefType['Warehouse'] } );
   UserError: ( BulkUpdateUserError ) | ( GenericUserError );
 }>;
 
@@ -5856,13 +5840,7 @@ export type ResolversTypes = ResolversObject<{
   BundleWhereInput: BundleWhereInput;
   CatalogMutation: ResolverTypeWrapper<Omit<CatalogMutation, 'bundleConfigurationCreate' | 'bundleConfigurationDelete' | 'bundleConfigurationUpdate' | 'bundleCreate' | 'bundleDependencyRulesSync' | 'bundleGroupsSync' | 'bundlePricingTemplatesSync' | 'bundleUpdate' | 'categoryCreate' | 'categoryMove' | 'categoryRebalance' | 'categoryUpdate' | 'collectionAddProducts' | 'collectionCreate' | 'collectionMoveProduct' | 'collectionRemoveProducts' | 'collectionUpdate' | 'collectionUpdateRules' | 'productCreate' | 'productFeatureCreate' | 'productFeatureDelete' | 'productFeatureUpdate' | 'productFeaturesSync' | 'productOptionCreate' | 'productOptionDelete' | 'productOptionUpdate' | 'productOptionsSync' | 'productUpdate' | 'productUpdateStatus' | 'variantCreate' | 'variantDelete' | 'variantUpdateMedia' | 'variantUpdateOptions' | 'variantUpdatePricing'> & { bundleConfigurationCreate: ResolversTypes['BundleConfigurationPayload'], bundleConfigurationDelete: ResolversTypes['BundleConfigurationDeletePayload'], bundleConfigurationUpdate: ResolversTypes['BundleConfigurationPayload'], bundleCreate: ResolversTypes['BundleCreatePayload'], bundleDependencyRulesSync: ResolversTypes['BundleDependencyRulesSyncPayload'], bundleGroupsSync: ResolversTypes['BundleGroupsSyncPayload'], bundlePricingTemplatesSync: ResolversTypes['BundlePricingTemplatesSyncPayload'], bundleUpdate: ResolversTypes['BundleUpdatePayload'], categoryCreate: ResolversTypes['CategoryCreatePayload'], categoryMove: ResolversTypes['CategoryMovePayload'], categoryRebalance: ResolversTypes['CategoryRebalancePayload'], categoryUpdate: ResolversTypes['CategoryUpdatePayload'], collectionAddProducts: ResolversTypes['CollectionAddProductsPayload'], collectionCreate: ResolversTypes['CollectionCreatePayload'], collectionMoveProduct: ResolversTypes['CollectionMoveProductPayload'], collectionRemoveProducts: ResolversTypes['CollectionRemoveProductsPayload'], collectionUpdate: ResolversTypes['CollectionUpdatePayload'], collectionUpdateRules: ResolversTypes['CollectionUpdateRulesPayload'], productCreate: ResolversTypes['ProductCreatePayload'], productFeatureCreate: ResolversTypes['ProductFeatureCreatePayload'], productFeatureDelete: ResolversTypes['ProductFeatureDeletePayload'], productFeatureUpdate: ResolversTypes['ProductFeatureUpdatePayload'], productFeaturesSync: ResolversTypes['ProductFeaturesSyncPayload'], productOptionCreate: ResolversTypes['ProductOptionCreatePayload'], productOptionDelete: ResolversTypes['ProductOptionDeletePayload'], productOptionUpdate: ResolversTypes['ProductOptionUpdatePayload'], productOptionsSync: ResolversTypes['ProductOptionsSyncPayload'], productUpdate: ResolversTypes['ProductUpdatePayload'], productUpdateStatus: ResolversTypes['ProductUpdateStatusPayload'], variantCreate: ResolversTypes['VariantCreatePayload'], variantDelete: ResolversTypes['VariantDeletePayload'], variantUpdateMedia: ResolversTypes['VariantUpdateMediaPayload'], variantUpdateOptions: ResolversTypes['VariantUpdateOptionsPayload'], variantUpdatePricing: ResolversTypes['VariantUpdatePricingPayload'] }>;
   CatalogQuery: ResolverTypeWrapper<Omit<CatalogQuery, 'bundle' | 'bundles' | 'categories' | 'category' | 'collection' | 'collectionByHandle' | 'collections' | 'node' | 'nodes' | 'product' | 'products' | 'variant' | 'variants'> & { bundle?: Maybe<ResolversTypes['Bundle']>, bundles: ResolversTypes['BundleConnection'], categories: ResolversTypes['CategoryConnection'], category?: Maybe<ResolversTypes['Category']>, collection?: Maybe<ResolversTypes['Collection']>, collectionByHandle?: Maybe<ResolversTypes['Collection']>, collections: ResolversTypes['CollectionConnection'], node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>>, product?: Maybe<ResolversTypes['Product']>, products: ResolversTypes['ProductConnection'], variant?: Maybe<ResolversTypes['Variant']>, variants: ResolversTypes['VariantConnection'] }>;
-  CatalogSellable: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['CatalogSellable']>;
-  CatalogSellableConnection: ResolverTypeWrapper<Omit<CatalogSellableConnection, 'edges'> & { edges: Array<ResolversTypes['CatalogSellableEdge']> }>;
-  CatalogSellableEdge: ResolverTypeWrapper<Omit<CatalogSellableEdge, 'node'> & { node: ResolversTypes['CatalogSellable'] }>;
-  CatalogSellableOrderByInput: CatalogSellableOrderByInput;
-  CatalogSellableOrderField: CatalogSellableOrderField;
-  CatalogSellableWhereInput: CatalogSellableWhereInput;
-  Category: ResolverTypeWrapper<Omit<Category, 'ancestors' | 'children' | 'description' | 'excerpt' | 'items' | 'parent' | 'products'> & { ancestors: Array<ResolversTypes['Category']>, children: Array<ResolversTypes['Category']>, description?: Maybe<ResolversTypes['RichText']>, excerpt?: Maybe<ResolversTypes['RichText']>, items: ResolversTypes['CatalogSellableConnection'], parent?: Maybe<ResolversTypes['Category']>, products: ResolversTypes['CategoryProductConnection'] }>;
+  Category: ResolverTypeWrapper<Omit<Category, 'ancestors' | 'children' | 'description' | 'excerpt' | 'listing' | 'parent'> & { ancestors: Array<ResolversTypes['Category']>, children: Array<ResolversTypes['Category']>, description?: Maybe<ResolversTypes['RichText']>, excerpt?: Maybe<ResolversTypes['RichText']>, listing: ResolversTypes['ListingConnection'], parent?: Maybe<ResolversTypes['Category']> }>;
   CategoryCategoriesMetaInput: CategoryCategoriesMetaInput;
   CategoryConnection: ResolverTypeWrapper<Omit<CategoryConnection, 'edges'> & { edges: Array<ResolversTypes['CategoryEdge']> }>;
   CategoryContentInput: CategoryContentInput;
@@ -5881,9 +5859,6 @@ export type ResolversTypes = ResolversObject<{
   CategoryMovePayload: ResolverTypeWrapper<Omit<CategoryMovePayload, 'category'> & { category?: Maybe<ResolversTypes['Category']> }>;
   CategoryOrderByInput: CategoryOrderByInput;
   CategoryOrderField: CategoryOrderField;
-  CategoryProductConnection: ResolverTypeWrapper<Omit<CategoryProductConnection, 'edges'> & { edges: Array<ResolversTypes['CategoryProductEdge']> }>;
-  CategoryProductEdge: ResolverTypeWrapper<Omit<CategoryProductEdge, 'node'> & { node: ResolversTypes['Product'] }>;
-  CategoryProductWhereInput: CategoryProductWhereInput;
   CategoryProductsScopeInput: CategoryProductsScopeInput;
   CategoryRebalanceInput: CategoryRebalanceInput;
   CategoryRebalancePayload: ResolverTypeWrapper<Omit<CategoryRebalancePayload, 'category'> & { category?: Maybe<ResolversTypes['Category']> }>;
@@ -5982,7 +5957,12 @@ export type ResolversTypes = ResolversObject<{
   InventoryQuery: ResolverTypeWrapper<Omit<InventoryQuery, 'inventoryItem' | 'inventoryItemByVariant' | 'inventoryItems' | 'node' | 'nodes' | 'warehouse' | 'warehouseAssignableVariants' | 'warehouses'> & { inventoryItem?: Maybe<ResolversTypes['InventoryItem']>, inventoryItemByVariant?: Maybe<ResolversTypes['InventoryItem']>, inventoryItems: ResolversTypes['InventoryItemConnection'], node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>>, warehouse?: Maybe<ResolversTypes['Warehouse']>, warehouseAssignableVariants: ResolversTypes['VariantConnection'], warehouses: ResolversTypes['WarehouseConnection'] }>;
   InventorySkuStatus: ResolverTypeWrapper<InventorySkuStatus>;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
+  Listing: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Listing']>;
+  ListingConnection: ResolverTypeWrapper<Omit<ListingConnection, 'edges'> & { edges: Array<ResolversTypes['ListingEdge']> }>;
+  ListingEdge: ResolverTypeWrapper<Omit<ListingEdge, 'node'> & { node: ResolversTypes['Listing'] }>;
   ListingOrderByInput: ListingOrderByInput;
+  ListingOrderField: ListingOrderField;
+  ListingWhereInput: ListingWhereInput;
   LocaleCode: LocaleCode;
   Mutation: ResolverTypeWrapper<{}>;
   Node: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Node']>;
@@ -6234,12 +6214,7 @@ export type ResolversParentTypes = ResolversObject<{
   BundleWhereInput: BundleWhereInput;
   CatalogMutation: Omit<CatalogMutation, 'bundleConfigurationCreate' | 'bundleConfigurationDelete' | 'bundleConfigurationUpdate' | 'bundleCreate' | 'bundleDependencyRulesSync' | 'bundleGroupsSync' | 'bundlePricingTemplatesSync' | 'bundleUpdate' | 'categoryCreate' | 'categoryMove' | 'categoryRebalance' | 'categoryUpdate' | 'collectionAddProducts' | 'collectionCreate' | 'collectionMoveProduct' | 'collectionRemoveProducts' | 'collectionUpdate' | 'collectionUpdateRules' | 'productCreate' | 'productFeatureCreate' | 'productFeatureDelete' | 'productFeatureUpdate' | 'productFeaturesSync' | 'productOptionCreate' | 'productOptionDelete' | 'productOptionUpdate' | 'productOptionsSync' | 'productUpdate' | 'productUpdateStatus' | 'variantCreate' | 'variantDelete' | 'variantUpdateMedia' | 'variantUpdateOptions' | 'variantUpdatePricing'> & { bundleConfigurationCreate: ResolversParentTypes['BundleConfigurationPayload'], bundleConfigurationDelete: ResolversParentTypes['BundleConfigurationDeletePayload'], bundleConfigurationUpdate: ResolversParentTypes['BundleConfigurationPayload'], bundleCreate: ResolversParentTypes['BundleCreatePayload'], bundleDependencyRulesSync: ResolversParentTypes['BundleDependencyRulesSyncPayload'], bundleGroupsSync: ResolversParentTypes['BundleGroupsSyncPayload'], bundlePricingTemplatesSync: ResolversParentTypes['BundlePricingTemplatesSyncPayload'], bundleUpdate: ResolversParentTypes['BundleUpdatePayload'], categoryCreate: ResolversParentTypes['CategoryCreatePayload'], categoryMove: ResolversParentTypes['CategoryMovePayload'], categoryRebalance: ResolversParentTypes['CategoryRebalancePayload'], categoryUpdate: ResolversParentTypes['CategoryUpdatePayload'], collectionAddProducts: ResolversParentTypes['CollectionAddProductsPayload'], collectionCreate: ResolversParentTypes['CollectionCreatePayload'], collectionMoveProduct: ResolversParentTypes['CollectionMoveProductPayload'], collectionRemoveProducts: ResolversParentTypes['CollectionRemoveProductsPayload'], collectionUpdate: ResolversParentTypes['CollectionUpdatePayload'], collectionUpdateRules: ResolversParentTypes['CollectionUpdateRulesPayload'], productCreate: ResolversParentTypes['ProductCreatePayload'], productFeatureCreate: ResolversParentTypes['ProductFeatureCreatePayload'], productFeatureDelete: ResolversParentTypes['ProductFeatureDeletePayload'], productFeatureUpdate: ResolversParentTypes['ProductFeatureUpdatePayload'], productFeaturesSync: ResolversParentTypes['ProductFeaturesSyncPayload'], productOptionCreate: ResolversParentTypes['ProductOptionCreatePayload'], productOptionDelete: ResolversParentTypes['ProductOptionDeletePayload'], productOptionUpdate: ResolversParentTypes['ProductOptionUpdatePayload'], productOptionsSync: ResolversParentTypes['ProductOptionsSyncPayload'], productUpdate: ResolversParentTypes['ProductUpdatePayload'], productUpdateStatus: ResolversParentTypes['ProductUpdateStatusPayload'], variantCreate: ResolversParentTypes['VariantCreatePayload'], variantDelete: ResolversParentTypes['VariantDeletePayload'], variantUpdateMedia: ResolversParentTypes['VariantUpdateMediaPayload'], variantUpdateOptions: ResolversParentTypes['VariantUpdateOptionsPayload'], variantUpdatePricing: ResolversParentTypes['VariantUpdatePricingPayload'] };
   CatalogQuery: Omit<CatalogQuery, 'bundle' | 'bundles' | 'categories' | 'category' | 'collection' | 'collectionByHandle' | 'collections' | 'node' | 'nodes' | 'product' | 'products' | 'variant' | 'variants'> & { bundle?: Maybe<ResolversParentTypes['Bundle']>, bundles: ResolversParentTypes['BundleConnection'], categories: ResolversParentTypes['CategoryConnection'], category?: Maybe<ResolversParentTypes['Category']>, collection?: Maybe<ResolversParentTypes['Collection']>, collectionByHandle?: Maybe<ResolversParentTypes['Collection']>, collections: ResolversParentTypes['CollectionConnection'], node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>>, product?: Maybe<ResolversParentTypes['Product']>, products: ResolversParentTypes['ProductConnection'], variant?: Maybe<ResolversParentTypes['Variant']>, variants: ResolversParentTypes['VariantConnection'] };
-  CatalogSellable: ResolversInterfaceTypes<ResolversParentTypes>['CatalogSellable'];
-  CatalogSellableConnection: Omit<CatalogSellableConnection, 'edges'> & { edges: Array<ResolversParentTypes['CatalogSellableEdge']> };
-  CatalogSellableEdge: Omit<CatalogSellableEdge, 'node'> & { node: ResolversParentTypes['CatalogSellable'] };
-  CatalogSellableOrderByInput: CatalogSellableOrderByInput;
-  CatalogSellableWhereInput: CatalogSellableWhereInput;
-  Category: Omit<Category, 'ancestors' | 'children' | 'description' | 'excerpt' | 'items' | 'parent' | 'products'> & { ancestors: Array<ResolversParentTypes['Category']>, children: Array<ResolversParentTypes['Category']>, description?: Maybe<ResolversParentTypes['RichText']>, excerpt?: Maybe<ResolversParentTypes['RichText']>, items: ResolversParentTypes['CatalogSellableConnection'], parent?: Maybe<ResolversParentTypes['Category']>, products: ResolversParentTypes['CategoryProductConnection'] };
+  Category: Omit<Category, 'ancestors' | 'children' | 'description' | 'excerpt' | 'listing' | 'parent'> & { ancestors: Array<ResolversParentTypes['Category']>, children: Array<ResolversParentTypes['Category']>, description?: Maybe<ResolversParentTypes['RichText']>, excerpt?: Maybe<ResolversParentTypes['RichText']>, listing: ResolversParentTypes['ListingConnection'], parent?: Maybe<ResolversParentTypes['Category']> };
   CategoryCategoriesMetaInput: CategoryCategoriesMetaInput;
   CategoryConnection: Omit<CategoryConnection, 'edges'> & { edges: Array<ResolversParentTypes['CategoryEdge']> };
   CategoryContentInput: CategoryContentInput;
@@ -6255,9 +6230,6 @@ export type ResolversParentTypes = ResolversObject<{
   CategoryMoveInput: CategoryMoveInput;
   CategoryMovePayload: Omit<CategoryMovePayload, 'category'> & { category?: Maybe<ResolversParentTypes['Category']> };
   CategoryOrderByInput: CategoryOrderByInput;
-  CategoryProductConnection: Omit<CategoryProductConnection, 'edges'> & { edges: Array<ResolversParentTypes['CategoryProductEdge']> };
-  CategoryProductEdge: Omit<CategoryProductEdge, 'node'> & { node: ResolversParentTypes['Product'] };
-  CategoryProductWhereInput: CategoryProductWhereInput;
   CategoryProductsScopeInput: CategoryProductsScopeInput;
   CategoryRebalanceInput: CategoryRebalanceInput;
   CategoryRebalancePayload: Omit<CategoryRebalancePayload, 'category'> & { category?: Maybe<ResolversParentTypes['Category']> };
@@ -6346,7 +6318,11 @@ export type ResolversParentTypes = ResolversObject<{
   InventoryQuery: Omit<InventoryQuery, 'inventoryItem' | 'inventoryItemByVariant' | 'inventoryItems' | 'node' | 'nodes' | 'warehouse' | 'warehouseAssignableVariants' | 'warehouses'> & { inventoryItem?: Maybe<ResolversParentTypes['InventoryItem']>, inventoryItemByVariant?: Maybe<ResolversParentTypes['InventoryItem']>, inventoryItems: ResolversParentTypes['InventoryItemConnection'], node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>>, warehouse?: Maybe<ResolversParentTypes['Warehouse']>, warehouseAssignableVariants: ResolversParentTypes['VariantConnection'], warehouses: ResolversParentTypes['WarehouseConnection'] };
   InventorySkuStatus: InventorySkuStatus;
   JSON: Scalars['JSON']['output'];
+  Listing: ResolversInterfaceTypes<ResolversParentTypes>['Listing'];
+  ListingConnection: Omit<ListingConnection, 'edges'> & { edges: Array<ResolversParentTypes['ListingEdge']> };
+  ListingEdge: Omit<ListingEdge, 'node'> & { node: ResolversParentTypes['Listing'] };
   ListingOrderByInput: ListingOrderByInput;
+  ListingWhereInput: ListingWhereInput;
   Mutation: {};
   Node: ResolversInterfaceTypes<ResolversParentTypes>['Node'];
   OperationResult: OperationResult;
@@ -6934,31 +6910,6 @@ export type CatalogQueryResolvers<ContextType = ServiceContext, ParentType exten
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type CatalogSellableResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CatalogSellable'] = ResolversParentTypes['CatalogSellable']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Bundle' | 'Product', ParentType, ContextType>;
-  handle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  kind?: Resolver<ResolversTypes['ProductKind'], ParentType, ContextType>;
-  media?: Resolver<Array<ResolversTypes['ProductMediaItem']>, ParentType, ContextType>;
-  primaryCategory?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
-  tags?: Resolver<Array<ResolversTypes['Tag']>, ParentType, ContextType>;
-  title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  variantsCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-}>;
-
-export type CatalogSellableConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CatalogSellableConnection'] = ResolversParentTypes['CatalogSellableConnection']> = ResolversObject<{
-  edges?: Resolver<Array<ResolversTypes['CatalogSellableEdge']>, ParentType, ContextType>;
-  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
-  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type CatalogSellableEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CatalogSellableEdge'] = ResolversParentTypes['CatalogSellableEdge']> = ResolversObject<{
-  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  node?: Resolver<ResolversTypes['CatalogSellable'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type CategoryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Category'] = ResolversParentTypes['Category']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Category']>, { __typename: 'Category' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   ancestors?: Resolver<Array<ResolversTypes['Category']>, ParentType, ContextType>;
@@ -6973,13 +6924,12 @@ export type CategoryResolvers<ContextType = ServiceContext, ParentType extends R
   handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isPublished?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  items?: Resolver<ResolversTypes['CatalogSellableConnection'], ParentType, ContextType, Partial<CategoryItemsArgs>>;
+  listing?: Resolver<ResolversTypes['ListingConnection'], ParentType, ContextType, Partial<CategoryListingArgs>>;
+  listingCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   media?: Resolver<Array<ResolversTypes['CategoryMediaItem']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   parent?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
   path?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  products?: Resolver<ResolversTypes['CategoryProductConnection'], ParentType, ContextType, Partial<CategoryProductsArgs>>;
-  productsCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   publishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   seo?: Resolver<Maybe<ResolversTypes['Seo']>, ParentType, ContextType>;
@@ -7021,19 +6971,6 @@ export type CategoryMediaItemResolvers<ContextType = ServiceContext, ParentType 
 export type CategoryMovePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryMovePayload'] = ResolversParentTypes['CategoryMovePayload']> = ResolversObject<{
   category?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type CategoryProductConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryProductConnection'] = ResolversParentTypes['CategoryProductConnection']> = ResolversObject<{
-  edges?: Resolver<Array<ResolversTypes['CategoryProductEdge']>, ParentType, ContextType>;
-  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
-  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type CategoryProductEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CategoryProductEdge'] = ResolversParentTypes['CategoryProductEdge']> = ResolversObject<{
-  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  node?: Resolver<ResolversTypes['Product'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -7397,6 +7334,28 @@ export type InventorySkuStatusResolvers<ContextType = ServiceContext, ParentType
 export interface JsonScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['JSON'], any> {
   name: 'JSON';
 }
+
+export type ListingResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Listing'] = ResolversParentTypes['Listing']> = ResolversObject<{
+  __resolveType: TypeResolveFn<'Bundle' | 'Product', ParentType, ContextType>;
+  handle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  kind?: Resolver<ResolversTypes['ProductKind'], ParentType, ContextType>;
+  media?: Resolver<Array<ResolversTypes['ProductMediaItem']>, ParentType, ContextType>;
+  title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+}>;
+
+export type ListingConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ListingConnection'] = ResolversParentTypes['ListingConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['ListingEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ListingEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ListingEdge'] = ResolversParentTypes['ListingEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['Listing'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
 
 export type MutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
   catalogMutation?: Resolver<ResolversTypes['CatalogMutation'], ParentType, ContextType>;
@@ -8047,9 +8006,6 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   BundleUpdatePayload?: BundleUpdatePayloadResolvers<ContextType>;
   CatalogMutation?: CatalogMutationResolvers<ContextType>;
   CatalogQuery?: CatalogQueryResolvers<ContextType>;
-  CatalogSellable?: CatalogSellableResolvers<ContextType>;
-  CatalogSellableConnection?: CatalogSellableConnectionResolvers<ContextType>;
-  CatalogSellableEdge?: CatalogSellableEdgeResolvers<ContextType>;
   Category?: CategoryResolvers<ContextType>;
   CategoryConnection?: CategoryConnectionResolvers<ContextType>;
   CategoryCreatePayload?: CategoryCreatePayloadResolvers<ContextType>;
@@ -8057,8 +8013,6 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   CategoryEdge?: CategoryEdgeResolvers<ContextType>;
   CategoryMediaItem?: CategoryMediaItemResolvers<ContextType>;
   CategoryMovePayload?: CategoryMovePayloadResolvers<ContextType>;
-  CategoryProductConnection?: CategoryProductConnectionResolvers<ContextType>;
-  CategoryProductEdge?: CategoryProductEdgeResolvers<ContextType>;
   CategoryRebalancePayload?: CategoryRebalancePayloadResolvers<ContextType>;
   CategoryUpdatePayload?: CategoryUpdatePayloadResolvers<ContextType>;
   Collection?: CollectionResolvers<ContextType>;
@@ -8107,6 +8061,9 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   InventoryQuery?: InventoryQueryResolvers<ContextType>;
   InventorySkuStatus?: InventorySkuStatusResolvers<ContextType>;
   JSON?: GraphQLScalarType;
+  Listing?: ListingResolvers<ContextType>;
+  ListingConnection?: ListingConnectionResolvers<ContextType>;
+  ListingEdge?: ListingEdgeResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   Node?: NodeResolvers<ContextType>;
   OperationResult?: OperationResultResolvers<ContextType>;

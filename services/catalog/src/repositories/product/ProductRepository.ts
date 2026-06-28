@@ -10,6 +10,7 @@ import {
 import { BaseRepository } from "../BaseRepository.js";
 import {
   product,
+  bundle,
   productCategory,
   listingListView,
   productListView,
@@ -17,6 +18,7 @@ import {
   productOption,
   productFeature,
   type Product,
+  type Bundle,
   type NewProduct,
   type ProductTranslation,
   type ProductOption,
@@ -382,6 +384,19 @@ export class ProductRepository extends BaseRepository {
           eq(product.projectId, this.storeId),
           inArray(product.id, [...productIds]),
           isNull(product.deletedAt)
+        )
+      );
+  }
+
+  async getBundlesByProductIds(productIds: readonly string[]): Promise<Bundle[]> {
+    if (productIds.length === 0) return [];
+    return this.connection
+      .select()
+      .from(bundle)
+      .where(
+        and(
+          eq(bundle.projectId, this.storeId),
+          inArray(bundle.productId, [...productIds])
         )
       );
   }

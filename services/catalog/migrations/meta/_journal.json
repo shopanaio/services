@@ -22,6 +22,13 @@
       "when": 1782585871300,
       "tag": "0002_uppercase_bundle_display_style",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1782646999564,
+      "tag": "0003_absurd_cerise",
+      "breakpoints": true
     }
   ]
 }

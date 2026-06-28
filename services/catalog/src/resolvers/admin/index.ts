@@ -15,6 +15,7 @@ export {
 
 // Type resolvers
 export { ProductResolver } from "./ProductResolver.js";
+export { BundleResolver } from "./BundleResolver.js";
 export { VendorResolver } from "./VendorResolver.js";
 export { ProductSeoResolver } from "./ProductSeoResolver.js";
 export { SeoResolver } from "./SeoResolver.js";
@@ -57,6 +58,10 @@ export {
   CategoryConnectionResolver,
   type CategoryConnectionInput,
 } from "./CategoryConnectionResolver.js";
+export {
+  CategoryListingConnectionResolver,
+  type CategoryListingConnectionInput,
+} from "./CategoryListingConnectionResolver.js";
 export {
   TagConnectionResolver,
   type TagConnectionInput,

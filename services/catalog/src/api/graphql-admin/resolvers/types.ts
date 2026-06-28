@@ -12,6 +12,7 @@ import { FeatureResolver } from "../../../resolvers/admin/FeatureResolver.js";
 import { FeatureValueResolver } from "../../../resolvers/admin/FeatureValueResolver.js";
 import { OptionResolver } from "../../../resolvers/admin/OptionResolver.js";
 import { OptionValueResolver } from "../../../resolvers/admin/OptionValueResolver.js";
+import { BundleResolver } from "../../../resolvers/admin/BundleResolver.js";
 import { ProductResolver } from "../../../resolvers/admin/ProductResolver.js";
 import { TagResolver } from "../../../resolvers/admin/TagResolver.js";
 import { VariantResolver } from "../../../resolvers/admin/VariantResolver.js";
@@ -19,6 +20,17 @@ import { VendorResolver } from "../../../resolvers/admin/VendorResolver.js";
 import { InventoryItemResolver } from "../../../resolvers/admin/InventoryItemResolver.js";
 import { WarehouseResolver } from "../../../resolvers/admin/WarehouseResolver.js";
 import { StockResolver } from "../../../resolvers/admin/StockResolver.js";
+
+function resolveListingType(obj: unknown): "Bundle" | "Product" | null {
+  if (obj instanceof BundleResolver) return "Bundle";
+  if (obj instanceof ProductResolver) return "Product";
+
+  const record = obj as Record<string, unknown>;
+  if (record.kind === "BUNDLE") return "Bundle";
+  if (record.kind === "BASE") return "Product";
+
+  return null;
+}
 
 /**
  * Type resolvers for interfaces and scalars.
@@ -28,6 +40,8 @@ export const typeResolvers: Partial<Resolvers> = {
   Node: {
     __resolveType: (obj: unknown) => {
       const record = obj as Record<string, unknown>;
+      if (obj instanceof BundleResolver) return "Bundle";
+      if (obj instanceof ProductResolver) return "Product";
       if (obj instanceof StockResolver) return "WarehouseStock";
       if (obj instanceof WarehouseResolver) return "Warehouse";
       if (obj instanceof InventoryItemResolver) return "InventoryItem";
@@ -60,6 +74,10 @@ export const typeResolvers: Partial<Resolvers> = {
     },
   },
 
+  Listing: {
+    __resolveType: resolveListingType,
+  },
+
   UserError: {
     __resolveType: () => "GenericUserError",
   },
@@ -77,6 +95,21 @@ export const typeResolvers: Partial<Resolvers> = {
         GlobalIdEntity.Product,
       );
       return ProductResolver.load(productId, fieldInfo, ctx);
+    },
+  },
+
+  Bundle: {
+    __resolveReference: async (
+      reference: { __typename: "Bundle"; id: string },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo,
+    ) => {
+      const fieldInfo = parseGraphqlInfo(info);
+      const productId = decodeGlobalIdByType(
+        reference.id,
+        GlobalIdEntity.Product,
+      );
+      return BundleResolver.load(productId, fieldInfo, ctx);
     },
   },
 

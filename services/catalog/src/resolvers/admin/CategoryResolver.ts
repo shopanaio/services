@@ -12,6 +12,10 @@ import {
   CategoryProductConnectionResolver,
   type CategoryProductConnectionInput,
 } from "./CategoryProductConnectionResolver.js";
+import {
+  CategoryListingConnectionResolver,
+  type CategoryListingConnectionInput,
+} from "./CategoryListingConnectionResolver.js";
 
 /**
  * Category resolver - resolves Category domain interface.
@@ -164,6 +168,20 @@ export class CategoryResolver extends CatalogType<string, Category> {
    */
   async productsCount(): Promise<number> {
     return (await this.$get("productsCount")) ?? 0;
+  }
+
+  async listingCount(): Promise<number> {
+    return (await this.$get("productsCount")) ?? 0;
+  }
+
+  /**
+   * Returns paginated listing items in this category.
+   */
+  listing(args: Omit<CategoryListingConnectionInput, "categoryId">) {
+    return new CategoryListingConnectionResolver(
+      { categoryId: this.$props, ...args },
+      this.$ctx
+    );
   }
 
   /**
