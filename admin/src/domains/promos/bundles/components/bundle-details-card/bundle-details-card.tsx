@@ -34,6 +34,7 @@ import { EntityStatus,
   IProduct } from "@/mocks/products/types";
 import type { IBundleDetailsMockData } from "@/mocks/products/bundle-details";
 import type {
+  IBundleConfiguration,
   IBundleGroup,
   } from "@/domains/promos/bundles/types";
 import { LogicOperator,
@@ -66,10 +67,80 @@ export const BundleDetailsCard = ({
   const { push: openDependencyChartModal } = useDependencyChartModal();
 
   // State
-  const [groups, setGroups] = useState<IBundleGroup[]>(mockData.bundleItems);
-  const [dependencyRules, setDependencyRules] = useState<IDependencyRule[]>(
-    mockData.dependencyRules
+  const [activeConfigurationId, setActiveConfigurationId] = useState(
+    mockData.configurations[0]?.id ?? ""
   );
+  const [configurations, setConfigurations] = useState<
+    IBundleConfiguration[]
+  >(mockData.configurations);
+  const activeConfiguration = useMemo(
+    () =>
+      configurations.find(
+        (configuration) => configuration.id === activeConfigurationId,
+      ) ?? configurations[0],
+    [activeConfigurationId, configurations],
+  );
+  const groups = activeConfiguration?.bundleItems ?? [];
+  const dependencyRules = activeConfiguration?.dependencyRules ?? [];
+
+  const updateActiveConfiguration = useCallback(
+    (updater: (configuration: IBundleConfiguration) => IBundleConfiguration) => {
+      setConfigurations((currentConfigurations) =>
+        currentConfigurations.map((configuration) =>
+          configuration.id === activeConfiguration?.id
+            ? updater(configuration)
+            : configuration,
+        ),
+      );
+    },
+    [activeConfiguration?.id],
+  );
+
+  const handleCreateConfiguration = useCallback((sourceConfigurationId?: string) => {
+    const sourceConfiguration =
+      configurations.find(
+        (configuration) => configuration.id === sourceConfigurationId,
+      ) ?? activeConfiguration;
+
+    if (!sourceConfiguration) return;
+
+    const newConfigurationId = `bundle-config-${Date.now()}`;
+
+    setConfigurations((currentConfigurations) => [
+      ...currentConfigurations,
+      {
+        ...sourceConfiguration,
+        id: newConfigurationId,
+        title: `Configuration ${currentConfigurations.length + 1}`,
+      },
+    ]);
+    setActiveConfigurationId(newConfigurationId);
+  }, [activeConfiguration, configurations]);
+
+  const handleDeleteConfiguration = useCallback((configurationId: string) => {
+    setConfigurations((currentConfigurations) => {
+      if (currentConfigurations.length <= 1) {
+        return currentConfigurations;
+      }
+
+      const configurationIndex = currentConfigurations.findIndex(
+        (configuration) => configuration.id === configurationId,
+      );
+      const nextConfigurations = currentConfigurations.filter(
+        (configuration) => configuration.id !== configurationId,
+      );
+
+      if (configurationId === activeConfigurationId) {
+        const nextActiveConfiguration =
+          nextConfigurations[Math.max(0, configurationIndex - 1)] ??
+          nextConfigurations[0];
+
+        setActiveConfigurationId(nextActiveConfiguration?.id ?? "");
+      }
+
+      return nextConfigurations;
+    });
+  }, [activeConfigurationId]);
   const apiProduct = useMemo(
     () =>
       createMockApiProduct({
@@ -132,20 +203,26 @@ export const BundleDetailsCard = ({
     openEditGroupsModal({
       groups,
       onSave: (updatedGroups: IBundleGroup[]) => {
-        setGroups(updatedGroups);
+        updateActiveConfiguration((configuration) => ({
+          ...configuration,
+          bundleItems: updatedGroups,
+        }));
       },
     });
-  }, [groups, openEditGroupsModal]);
+  }, [groups, openEditGroupsModal, updateActiveConfiguration]);
 
   const handleOpenChart = useCallback(() => {
     openDependencyChartModal({
       groups,
       rules: dependencyRules,
       onSave: (updatedRules: IDependencyRule[]) => {
-        setDependencyRules(updatedRules);
+        updateActiveConfiguration((configuration) => ({
+          ...configuration,
+          dependencyRules: updatedRules,
+        }));
       },
     });
-  }, [groups, dependencyRules, openDependencyChartModal]);
+  }, [groups, dependencyRules, openDependencyChartModal, updateActiveConfiguration]);
 
   const handleAddRule = useCallback(() => {
     const maxPriority = Math.max(0, ...dependencyRules.map((r) => r.priority));
@@ -163,10 +240,13 @@ export const BundleDetailsCard = ({
       rules: [...dependencyRules, newRule],
       selectedRuleId: newRule.id,
       onSave: (updatedRules: IDependencyRule[]) => {
-        setDependencyRules(updatedRules);
+        updateActiveConfiguration((configuration) => ({
+          ...configuration,
+          dependencyRules: updatedRules,
+        }));
       },
     });
-  }, [groups, dependencyRules, openDependencyChartModal]);
+  }, [groups, dependencyRules, openDependencyChartModal, updateActiveConfiguration]);
 
   const handleEditRule = useCallback(
     (ruleId: string) => {
@@ -175,11 +255,14 @@ export const BundleDetailsCard = ({
         rules: dependencyRules,
         selectedRuleId: ruleId,
         onSave: (updatedRules: IDependencyRule[]) => {
-          setDependencyRules(updatedRules);
+          updateActiveConfiguration((configuration) => ({
+            ...configuration,
+            dependencyRules: updatedRules,
+          }));
         },
       });
     },
-    [groups, dependencyRules, openDependencyChartModal]
+    [groups, dependencyRules, openDependencyChartModal, updateActiveConfiguration]
   );
 
   const handleEditMedia = useCallback(() => {
@@ -247,9 +330,12 @@ export const BundleDetailsCard = ({
 
       {/* BUNDLE */}
       <BundleSection
-        groups={groups}
+        configurations={configurations}
+        activeConfigurationId={activeConfiguration?.id ?? ""}
         bundleType={mockData.bundleType}
-        dependencyRules={dependencyRules}
+        onConfigurationChange={setActiveConfigurationId}
+        onCreateConfiguration={handleCreateConfiguration}
+        onDeleteConfiguration={handleDeleteConfiguration}
         onEditGroups={handleEditGroups}
         onOpenChart={handleOpenChart}
         onAddRule={handleAddRule}

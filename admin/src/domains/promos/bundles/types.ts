@@ -1,5 +1,6 @@
 import type { ApiFile, ApiProduct, ApiVariant } from "@/graphql/types";
 import { BundleItemType, BundlePriceType } from "@/graphql/types";
+import type { IDependencyRule } from "./dependency-rules/types";
 
 /**
  * Display style for storefront
@@ -90,6 +91,17 @@ export interface IBundleGroup {
 
   /** Items in this group */
   items: BundleItem[];
+}
+
+// ============================================================================
+// Bundle Configuration
+// ============================================================================
+
+export interface IBundleConfiguration {
+  id: string;
+  title: string;
+  bundleItems: IBundleGroup[];
+  dependencyRules: IDependencyRule[];
 }
 
 // ============================================================================

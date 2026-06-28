@@ -4,7 +4,11 @@
 
 import type { IProduct } from "./types";
 import type { IAttributeRow } from "./attributes";
-import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/promos/bundles/types";
+import type {
+  IBundleConfiguration,
+  IBundleGroup,
+  PricingRuleTemplate,
+} from "@/domains/promos/bundles/types";
 import type { IReviewsData } from "@/domains/inventory/products/components/product-details-card/types";
 import { EntityStatus, WeightUnit, DimensionUnit, type ITag as IProductTag } from "./types";
 import { mockCategories } from "./categories";
@@ -165,9 +169,8 @@ export interface IBundleDetailsMockData {
   tags: ApiTag[];
   attributes: IAttributeRow[];
   reviews: IReviewsData;
-  bundleItems: IBundleGroup[];
+  configurations: IBundleConfiguration[];
   pricingTemplates: PricingRuleTemplate[];
-  dependencyRules: IDependencyRule[];
 }
 
 export const bundleDetailsMockData: IBundleDetailsMockData = {
@@ -208,7 +211,25 @@ export const bundleDetailsMockData: IBundleDetailsMockData = {
       { stars: 1, count: 1, percent: 2 },
     ],
   },
-  bundleItems: productDetailsMockData.bundleItems,
+  configurations: [
+    {
+      id: "bundle-config-1",
+      title: "Configuration 1",
+      bundleItems: productDetailsMockData.bundleItems,
+      dependencyRules: productDetailsMockData.dependencyRules,
+    },
+    {
+      id: "bundle-config-2",
+      title: "Configuration 2",
+      bundleItems: productDetailsMockData.bundleItems,
+      dependencyRules: productDetailsMockData.dependencyRules,
+    },
+    {
+      id: "bundle-config-3",
+      title: "Configuration 3",
+      bundleItems: productDetailsMockData.bundleItems,
+      dependencyRules: productDetailsMockData.dependencyRules,
+    },
+  ],
   pricingTemplates: productDetailsMockData.pricingTemplates,
-  dependencyRules: productDetailsMockData.dependencyRules,
 };
