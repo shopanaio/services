@@ -163,7 +163,7 @@ export type Bundle = Listing & Node & {
   /** The features of this bundle. */
   features: Array<ProductFeature>;
   /** The URL-friendly handle for the bundle. */
-  handle: Maybe<Scalars['String']['output']>;
+  handle: Scalars['String']['output'];
   /** The Product global ID of the bundle sellable item. */
   id: Scalars['ID']['output'];
   /** Whether the bundle is currently published. */
@@ -1607,8 +1607,6 @@ export type Category = Node & {
   isPublished: Scalars['Boolean']['output'];
   /** Catalog listing items assigned to this category, including products and bundles. */
   listing: ListingConnection;
-  /** The total number of listing items in this category. */
-  listingCount: Scalars['Int']['output'];
   /** Media files associated with this category. */
   media: Array<CategoryMediaItem>;
   /** The display name of the category. */
@@ -1617,6 +1615,8 @@ export type Category = Node & {
   parent: Maybe<Category>;
   /** The materialized path for this category. */
   path: Scalars['String']['output'];
+  /** The total number of products in this category. */
+  productsCount: Scalars['Int']['output'];
   /** The date and time when the category was published, or null if unpublished. */
   publishedAt: Maybe<Scalars['DateTime']['output']>;
   /** Optimistic locking revision number. Incremented on each update. */
@@ -3091,9 +3091,11 @@ export type InventorySkuStatus = {
 
 export type Listing = {
   /** The URL-friendly handle. */
-  handle: Maybe<Scalars['String']['output']>;
+  handle: Scalars['String']['output'];
   /** The Product global ID of the catalog listing item. */
   id: Scalars['ID']['output'];
+  /** Whether the listing item is currently published. */
+  isPublished: Scalars['Boolean']['output'];
   /** Product discriminator. */
   kind: ProductKind;
   /** Media registered on this listing item. */
@@ -3585,7 +3587,7 @@ export type Product = Listing & Node & {
   /** The features of this product. */
   features: Array<ProductFeature>;
   /** The URL-friendly handle for the product. */
-  handle: Maybe<Scalars['String']['output']>;
+  handle: Scalars['String']['output'];
   /** The Product global ID. */
   id: Scalars['ID']['output'];
   /** Whether the product is currently published. */
@@ -6551,7 +6553,7 @@ export type BundleResolvers<ContextType = ServiceContext, ParentType extends Res
   displayStyle?: Resolver<ResolversTypes['BundleDisplayStyle'], ParentType, ContextType>;
   excerpt?: Resolver<Maybe<ResolversTypes['RichText']>, ParentType, ContextType>;
   features?: Resolver<Array<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
-  handle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isPublished?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   kind?: Resolver<ResolversTypes['ProductKind'], ParentType, ContextType>;
@@ -6925,11 +6927,11 @@ export type CategoryResolvers<ContextType = ServiceContext, ParentType extends R
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isPublished?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   listing?: Resolver<ResolversTypes['ListingConnection'], ParentType, ContextType, Partial<CategoryListingArgs>>;
-  listingCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   media?: Resolver<Array<ResolversTypes['CategoryMediaItem']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   parent?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
   path?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  productsCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   publishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   seo?: Resolver<Maybe<ResolversTypes['Seo']>, ParentType, ContextType>;
@@ -7337,8 +7339,9 @@ export interface JsonScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes
 
 export type ListingResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Listing'] = ResolversParentTypes['Listing']> = ResolversObject<{
   __resolveType: TypeResolveFn<'Bundle' | 'Product', ParentType, ContextType>;
-  handle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isPublished?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   kind?: Resolver<ResolversTypes['ProductKind'], ParentType, ContextType>;
   media?: Resolver<Array<ResolversTypes['ProductMediaItem']>, ParentType, ContextType>;
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -7400,7 +7403,7 @@ export type ProductResolvers<ContextType = ServiceContext, ParentType extends Re
   description?: Resolver<Maybe<ResolversTypes['RichText']>, ParentType, ContextType>;
   excerpt?: Resolver<Maybe<ResolversTypes['RichText']>, ParentType, ContextType>;
   features?: Resolver<Array<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
-  handle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isPublished?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   kind?: Resolver<ResolversTypes['ProductKind'], ParentType, ContextType>;

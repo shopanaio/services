@@ -8,13 +8,13 @@ import type {
   ApiCategoryDeleteInput,
   ApiCategoryConnection,
   ApiCategoryOrderByInput,
-  ApiCategoryProductConnection,
-  ApiCategoryProductWhereInput,
   ApiCategoryRebalanceInput,
   ApiCategoryRebalancePayload,
   ApiCategoryUpdateInput,
   ApiGenericUserError,
+  ApiListingConnection,
   ApiListingOrderByInput,
+  ApiListingWhereInput,
   ApiOperationResult,
   ApiProduct,
   ApiProductCategoryOperationInput,
@@ -59,8 +59,8 @@ export interface CategoryDetailsQueryVariables {
 
 export interface CategoryProductsQueryData {
   catalogQuery: Pick<ApiCatalogQuery, "category"> & {
-    category: (Pick<ApiCategory, "id" | "products"> & {
-      products: ApiCategoryProductConnection;
+    category: (Pick<ApiCategory, "id" | "listing"> & {
+      listing: ApiListingConnection;
     }) | null;
   };
 }
@@ -71,7 +71,7 @@ export interface CategoryProductsQueryVariables {
   after?: string | null;
   last?: number;
   before?: string | null;
-  where?: ApiCategoryProductWhereInput | null;
+  where?: ApiListingWhereInput | null;
   orderBy?: ApiListingOrderByInput[] | null;
 }
 

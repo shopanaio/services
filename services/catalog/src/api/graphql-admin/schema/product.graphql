@@ -125,7 +125,7 @@ type Product implements Node & Listing @key(fields: "id") {
   kind: ProductKind!
 
   """The URL-friendly handle for the product."""
-  handle: String
+  handle: String!
 
   """The date and time when the product was published, or null if unpublished."""
   publishedAt: DateTime

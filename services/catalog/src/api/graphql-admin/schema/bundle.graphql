@@ -79,7 +79,7 @@ type Bundle implements Node & Listing @key(fields: "id") {
   kind: ProductKind!
 
   """The URL-friendly handle for the bundle."""
-  handle: String
+  handle: String!
 
   """The date and time when the bundle was published, or null if unpublished."""
   publishedAt: DateTime

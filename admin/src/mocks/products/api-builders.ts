@@ -2,15 +2,16 @@ import {
   CurrencyCode,
   FileProvider,
   OptionDisplayType,
+  ProductKind,
   ProductSortBy,
   SortDirection,
   SwatchType,
   type ApiCategory,
   type ApiCategoryConnection,
-  type ApiCategoryProductConnection,
   type ApiFile,
   type ApiInventoryItem,
   type ApiInventoryItemCost,
+  type ApiListingConnection,
   type ApiPageInfo,
   type ApiProduct,
   type ApiProductConnection,
@@ -335,6 +336,7 @@ export const createMockApiVariant = (params: {
   handle: params.handle,
   title: params.title ?? null,
   isDefault: params.isDefault ?? false,
+  kind: ProductKind.Base,
   price: params.price ?? null,
   weight: params.weight ?? null,
   dimensions: params.dimensions ?? null,
@@ -368,13 +370,15 @@ export const createMockApiVariantConnection = (
   totalCount,
 });
 
+export const createMockApiListingConnection = (): ApiListingConnection => ({
+  __typename: "ListingConnection",
+  edges: [],
+  pageInfo: createMockPageInfo(),
+  totalCount: 0,
+});
+
 export const createMockApiCategoryProductConnection =
-  (): ApiCategoryProductConnection => ({
-    __typename: "CategoryProductConnection",
-    edges: [],
-    pageInfo: createMockPageInfo(),
-    totalCount: 0,
-  });
+  createMockApiListingConnection;
 
 export const createMockApiCategory = (params: {
   id: string;
@@ -405,7 +409,7 @@ export const createMockApiCategory = (params: {
   children: params.children ?? [],
   ancestors: params.ancestors ?? [],
   productsCount: params.productsCount ?? 0,
-  products: createMockApiCategoryProductConnection(),
+  listing: createMockApiListingConnection(),
   path: params.parent ? `${params.parent.path}/${params.handle}` : params.handle,
   depth: params.parent ? params.parent.depth + 1 : 0,
   defaultSort: ProductSortBy.Manual,
@@ -502,7 +506,7 @@ export const createMockApiProductFeature = (params: {
 export const createMockApiProduct = (params: {
   id: string;
   title: string;
-  handle?: string | null;
+  handle: string;
   isPublished: boolean;
   description?: ApiRichText | null;
   excerpt?: ApiRichText | null;
@@ -522,8 +526,9 @@ export const createMockApiProduct = (params: {
   const product: ApiProduct = {
     __typename: "Product",
     id: params.id,
+    kind: ProductKind.Base,
     title: params.title,
-    handle: params.handle ?? null,
+    handle: params.handle,
     isPublished: params.isPublished,
     publishedAt: params.publishedAt ?? (params.isPublished ? MOCK_NOW : null),
     description: params.description ?? null,

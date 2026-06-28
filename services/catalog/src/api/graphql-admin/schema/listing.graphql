@@ -7,8 +7,11 @@ interface Listing implements Node {
   """Product discriminator."""
   kind: ProductKind!
 
+  """Whether the listing item is currently published."""
+  isPublished: Boolean!
+
   """The URL-friendly handle."""
-  handle: String
+  handle: String!
 
   """Localized title."""
   title: String!

@@ -404,7 +404,7 @@ export type ApiBundle = ApiListing & ApiNode & {
   /** The features of this bundle. */
   features: Array<ApiProductFeature>;
   /** The URL-friendly handle for the bundle. */
-  handle?: Maybe<Scalars['String']['output']>;
+  handle: Scalars['String']['output'];
   /** The Product global ID of the bundle sellable item. */
   id: Scalars['ID']['output'];
   /** Whether the bundle is currently published. */
@@ -1848,8 +1848,6 @@ export type ApiCategory = ApiNode & {
   isPublished: Scalars['Boolean']['output'];
   /** Catalog listing items assigned to this category, including products and bundles. */
   listing: ApiListingConnection;
-  /** The total number of listing items in this category. */
-  listingCount: Scalars['Int']['output'];
   /** Media files associated with this category. */
   media: Array<ApiCategoryMediaItem>;
   /** The display name of the category. */
@@ -1858,6 +1856,8 @@ export type ApiCategory = ApiNode & {
   parent?: Maybe<ApiCategory>;
   /** The materialized path for this category. */
   path: Scalars['String']['output'];
+  /** The total number of products in this category. */
+  productsCount: Scalars['Int']['output'];
   /** The date and time when the category was published, or null if unpublished. */
   publishedAt?: Maybe<Scalars['DateTime']['output']>;
   /** Optimistic locking revision number. Incremented on each update. */
@@ -4217,9 +4217,11 @@ export type ApiLabel = {
 
 export type ApiListing = {
   /** The URL-friendly handle. */
-  handle?: Maybe<Scalars['String']['output']>;
+  handle: Scalars['String']['output'];
   /** The Product global ID of the catalog listing item. */
   id: Scalars['ID']['output'];
+  /** Whether the listing item is currently published. */
+  isPublished: Scalars['Boolean']['output'];
   /** Product discriminator. */
   kind: ProductKind;
   /** Media registered on this listing item. */
@@ -5451,7 +5453,7 @@ export type ApiProduct = ApiListing & ApiNode & {
   /** The features of this product. */
   features: Array<ApiProductFeature>;
   /** The URL-friendly handle for the product. */
-  handle?: Maybe<Scalars['String']['output']>;
+  handle: Scalars['String']['output'];
   /** The Product global ID. */
   id: Scalars['ID']['output'];
   /** Whether the product is currently published. */

@@ -137,9 +137,9 @@ export const CURRENT_STORE_QUERY = gql`
  * Get a single store by ID with full details.
  */
 export const STORE_QUERY = gql`
-  query Store($id: ID!, $organizationId: ID!) {
+  query Store($organizationId: ID!) {
     storeQuery {
-      store(id: $id, organizationId: $organizationId) {
+      stores(organizationId: $organizationId) {
         ...StoreFields
       }
     }

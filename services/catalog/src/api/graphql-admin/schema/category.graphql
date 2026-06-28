@@ -74,8 +74,8 @@ type Category implements Node @key(fields: "id") {
     orderBy: [ListingOrderByInput!]
   ): ListingConnection!
 
-  """The total number of listing items in this category."""
-  listingCount: Int!
+  """The total number of products in this category."""
+  productsCount: Int!
 }
 
 """

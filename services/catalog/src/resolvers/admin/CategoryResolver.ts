@@ -164,10 +164,6 @@ export class CategoryResolver extends CatalogType<string, Category> {
     return (await this.$get("productsCount")) ?? 0;
   }
 
-  async listingCount(): Promise<number> {
-    return (await this.$get("productsCount")) ?? 0;
-  }
-
   /**
    * Returns paginated listing items in this category.
    */

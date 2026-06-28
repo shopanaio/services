@@ -110,11 +110,12 @@ export const CATEGORY_DETAILS_FRAGMENT = gql`
 `;
 
 export const CATEGORY_PRODUCT_LIST_ITEM_FRAGMENT = gql`
-  fragment CategoryProductListItemFields on Product {
+  fragment CategoryProductListItemFields on Listing {
     id
+    kind
+    isPublished
     title
     handle
-    isPublished
     media {
       sortIndex
       file {

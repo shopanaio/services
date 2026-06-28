@@ -1,16 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  Alert,
-  App,
-  Button,
-  Dropdown,
-  Flex,
-  Skeleton,
-  Tag,
-  Typography,
-} from "antd";
+import { Alert, App, Button, Dropdown, Flex, Skeleton, Tag, Typography } from "antd";
 import {
   MoreOutlined,
   PictureOutlined,
@@ -20,21 +11,16 @@ import {
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { EntityDetailsEmptyState } from "@/domains/inventory/components/entity-details-sections";
-import {
-  RelayCursorPagination,
-  useRelayCursorPagination,
-} from "@/ui-kit/cursor-pagination";
+import { RelayCursorPagination, useRelayCursorPagination } from "@/ui-kit/cursor-pagination";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import type { ApiListingOrderByInput, ApiProduct } from "@/graphql/types";
-import { ProductSortBy, SortDirection } from "@/graphql/types";
+import type { ApiListing, ApiListingOrderByInput } from "@/graphql/types";
+import { ListingOrderField, ProductSortBy, SortDirection } from "@/graphql/types";
 import { useCategoryProducts, useRemoveCategoryProduct } from "../../../hooks";
 import { useProductsStyles } from "../category-details-card.styles";
 import { TableCoverImage } from "@/shared/components/table-cover-image";
 
-const getProductImageUrl = (product: ApiProduct): string | null => {
-  const firstMedia = [...product.media].sort(
-    (a, b) => a.sortIndex - b.sortIndex,
-  )[0];
+const getProductImageUrl = (product: ApiListing): string | null => {
+  const firstMedia = [...product.media].sort((a, b) => a.sortIndex - b.sortIndex)[0];
   return firstMedia?.file.url ?? null;
 };
 
@@ -57,9 +43,9 @@ const formatSortDirection = (value: SortDirection): string =>
   value === SortDirection.Desc ? "Descending" : "Ascending";
 
 interface ProductRowProps {
-  product: ApiProduct;
+  product: ApiListing;
   isRemoving?: boolean;
-  onRemove?: (product: ApiProduct) => void;
+  onRemove?: (product: ApiListing) => void;
 }
 
 const ProductRow = ({ product, isRemoving, onRemove }: ProductRowProps) => {
@@ -68,7 +54,9 @@ const ProductRow = ({ product, isRemoving, onRemove }: ProductRowProps) => {
   const actionItems: MenuProps["items"] = [
     {
       key: "unassign",
-      label: <span data-testid={`category-products-unassign-menu-item-${product.handle}`}>Unassign</span>,
+      label: (
+        <span data-testid={`category-products-unassign-menu-item-${product.handle}`}>Unassign</span>
+      ),
       onClick: () => onRemove?.(product),
     },
   ];
@@ -103,11 +91,7 @@ const ProductRow = ({ product, isRemoving, onRemove }: ProductRowProps) => {
         </Tag>
       </td>
       <td style={{ textAlign: "right", width: 56 }}>
-        <Dropdown
-          menu={{ items: actionItems }}
-          trigger={["click"]}
-          placement="bottomRight"
-        >
+        <Dropdown menu={{ items: actionItems }} trigger={["click"]} placement="bottomRight">
           <Button
             size="small"
             type="text"
@@ -140,18 +124,15 @@ export const ProductsSection = ({
   const { styles } = useProductsStyles();
   const { message, modal } = App.useApp();
   const [orderBy, setOrderBy] = useState<ApiListingOrderByInput[] | null>(null);
-  const [removingProductId, setRemovingProductId] = useState<string | null>(
-    null,
-  );
+  const [removingProductId, setRemovingProductId] = useState<string | null>(null);
   const pagination = useRelayCursorPagination({
     defaultPageSize: 10,
     resetKey: JSON.stringify(orderBy),
   });
-  const { products, totalCount, pageInfo, loading, error } =
-    useCategoryProducts(categoryId, {
-      ...pagination.variables,
-      orderBy,
-    });
+  const { products, totalCount, pageInfo, loading, error } = useCategoryProducts(categoryId, {
+    ...pagination.variables,
+    orderBy,
+  });
   const { removeCategoryProduct } = useRemoveCategoryProduct();
 
   const sortMenu = useMemo(
@@ -160,47 +141,37 @@ export const ProductsSection = ({
         {
           key: "manual",
           label: "Manual order",
-          onClick: () => setOrderBy([{ field: ProductSortBy.Manual }]),
+          onClick: () => setOrderBy(null),
         },
         {
           key: "name-asc",
           label: "Name A to Z",
           onClick: () =>
-            setOrderBy([
-              { field: ProductSortBy.Name, direction: SortDirection.Asc },
-            ]),
+            setOrderBy([{ field: ListingOrderField.Name, direction: SortDirection.Asc }]),
         },
         {
           key: "name-desc",
           label: "Name Z to A",
           onClick: () =>
-            setOrderBy([
-              { field: ProductSortBy.Name, direction: SortDirection.Desc },
-            ]),
+            setOrderBy([{ field: ListingOrderField.Name, direction: SortDirection.Desc }]),
         },
         {
           key: "newest",
           label: "Newest first",
           onClick: () =>
-            setOrderBy([
-              { field: ProductSortBy.Newest, direction: SortDirection.Desc },
-            ]),
+            setOrderBy([{ field: ListingOrderField.CreatedAt, direction: SortDirection.Desc }]),
         },
         {
           key: "price-asc",
           label: "Price low to high",
           onClick: () =>
-            setOrderBy([
-              { field: ProductSortBy.Price, direction: SortDirection.Asc },
-            ]),
+            setOrderBy([{ field: ListingOrderField.MinPriceMinor, direction: SortDirection.Asc }]),
         },
         {
           key: "price-desc",
           label: "Price high to low",
           onClick: () =>
-            setOrderBy([
-              { field: ProductSortBy.Price, direction: SortDirection.Desc },
-            ]),
+            setOrderBy([{ field: ListingOrderField.MinPriceMinor, direction: SortDirection.Desc }]),
         },
       ],
     }),
@@ -212,7 +183,7 @@ export const ProductsSection = ({
     defaultSortDirection,
   )}`;
 
-  const handleRemoveProduct = async (product: ApiProduct) => {
+  const handleRemoveProduct = async (product: ApiListing) => {
     setRemovingProductId(product.id);
 
     try {
@@ -232,7 +203,7 @@ export const ProductsSection = ({
     }
   };
 
-  const confirmRemoveProduct = (product: ApiProduct) => {
+  const confirmRemoveProduct = (product: ApiListing) => {
     modal.confirm({
       title: "Unassign product from category?",
       content: "The product will stay in the catalog.",
