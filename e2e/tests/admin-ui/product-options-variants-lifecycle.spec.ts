@@ -691,6 +691,10 @@ test.describe('Admin product options and variants lifecycle UI', () => {
       await fillVariantRow(page, options, variant.id, variantState(index, item.combo));
     }
 
+    await saveVariants(page);
+    await openEditVariantsModal(page);
+    await showEditorColumns(page, EDITOR_COLUMNS);
+
     for (const [index, combo] of BASE_COMBINATIONS.entries()) {
       await createDraftVariantRowFromBlank(
         page,

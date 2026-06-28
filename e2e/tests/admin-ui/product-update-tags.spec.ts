@@ -77,13 +77,12 @@ async function openProductDetails(page: Page, productsUrl: string, handle: strin
   await expect(page.getByTestId('product-detail-title')).toHaveText(title);
 }
 
-async function selectTagInPicker(page: Page, name: string) {
+async function selectVisibleTagInPicker(page: Page, name: string) {
   const tagPicker = page.getByTestId('tag-picker-modal');
-  await tagPicker.getByTestId('search-input').fill(name);
-
   const row = tagPicker.locator('.ag-center-cols-container .ag-row:not(.ag-opacity-zero)').filter({
     hasText: name,
   });
+
   await expect(row).toBeVisible();
   await row.click();
 }
@@ -140,9 +139,9 @@ test.describe('Admin product tags update UI', () => {
     await tagsSection.getByTestId('product-tags-add-button').click();
     const tagPicker = page.getByTestId('tag-picker-modal');
     await expect(tagPicker).toBeVisible();
-    await selectTagInPicker(page, tags[0].name);
-    await selectTagInPicker(page, tags[1].name);
-    await page.getByTestId('submit-form-button').click();
+    await selectVisibleTagInPicker(page, tags[0].name);
+    await selectVisibleTagInPicker(page, tags[1].name);
+    await page.getByTestId('submit-tag-picker-form-button').click();
     await expect(tagPicker).toBeHidden();
 
     await expect(tagsSection.getByTestId(`product-tags-item-${tags[0].handle}`)).toContainText(

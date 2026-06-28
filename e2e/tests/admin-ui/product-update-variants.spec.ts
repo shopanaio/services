@@ -118,6 +118,7 @@ async function createProductWithVariants(api: Api, unique: string) {
 
   return {
     id: product.id as string,
+    revision: product.revision as number,
     title,
     handle,
     variants,
@@ -127,10 +128,13 @@ async function createProductWithVariants(api: Api, unique: string) {
 async function seedVariantBaseline(
   api: Api,
   productId: string,
+  initialRevision: number,
   warehouseId: string,
   unique: string,
   variants: VariantFixture[],
 ) {
+  let expectedRevision = initialRevision;
+
   for (const [index, variant] of variants.entries()) {
     const sku = `VAR-${unique}-${variant.handle}`.toUpperCase();
     const price = 10000 + index * 1000;
@@ -173,15 +177,18 @@ async function seedVariantBaseline(
     const weightData = await api.admin.mutation('inventory-api/VariantSetWeight', {
       variables: {
         productId,
+        expectedRevision,
         variantId: variant.id,
         weight,
       },
     });
     expect(weightData.data.catalogMutation.productUpdate.userErrors).toHaveLength(0);
+    expectedRevision = weightData.data.catalogMutation.productUpdate.product?.revision ?? expectedRevision;
 
     const dimensionsData = await api.admin.mutation('inventory-api/VariantSetDimensions', {
       variables: {
         productId,
+        expectedRevision,
         variantId: variant.id,
         length,
         width,
@@ -189,6 +196,8 @@ async function seedVariantBaseline(
       },
     });
     expect(dimensionsData.data.catalogMutation.productUpdate.userErrors).toHaveLength(0);
+    expectedRevision =
+      dimensionsData.data.catalogMutation.productUpdate.product?.revision ?? expectedRevision;
   }
 }
 
@@ -346,7 +355,14 @@ test.describe('Admin product details variants update UI', () => {
     const unique = crypto.randomUUID().slice(0, 8);
     const warehouse = await createDefaultWarehouse(api, unique);
     const product = await createProductWithVariants(api, unique);
-    await seedVariantBaseline(api, product.id, warehouse.id, unique, product.variants);
+    await seedVariantBaseline(
+      api,
+      product.id,
+      product.revision,
+      warehouse.id,
+      unique,
+      product.variants,
+    );
 
     const targetVariant = product.variants.find((variant) => variant.handle === 'black');
     if (!targetVariant) {

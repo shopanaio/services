@@ -141,6 +141,7 @@ async function createProductWithVariants(api: Api, unique: string) {
 
   return {
     id: product.id as string,
+    revision: product.revision as number,
     title,
     handle,
   };
@@ -178,11 +179,13 @@ async function fetchProductVariants(api: Api, productId: string) {
 async function seedVariantData(
   api: Api,
   productId: string,
+  initialRevision: number,
   warehouseId: string,
   unique: string,
   variants: Array<{ id: string; handle: string; inventoryItemId: string }>,
 ): Promise<SeededVariant[]> {
   const seeded: SeededVariant[] = [];
+  let expectedRevision = initialRevision;
   const variantsByHandle = new Map(
     variantConfigs().map((variant) => [variant.handle, variant] as const),
   );
@@ -234,15 +237,18 @@ async function seedVariantData(
     const weightData = await api.admin.mutation('inventory-api/VariantSetWeight', {
       variables: {
         productId,
+        expectedRevision,
         variantId: variant.id,
         weight,
       },
     });
     expect(weightData.data.catalogMutation.productUpdate.userErrors).toHaveLength(0);
+    expectedRevision = weightData.data.catalogMutation.productUpdate.product?.revision ?? expectedRevision;
 
     const dimensionsData = await api.admin.mutation('inventory-api/VariantSetDimensions', {
       variables: {
         productId,
+        expectedRevision,
         variantId: variant.id,
         length,
         width,
@@ -250,6 +256,8 @@ async function seedVariantData(
       },
     });
     expect(dimensionsData.data.catalogMutation.productUpdate.userErrors).toHaveLength(0);
+    expectedRevision =
+      dimensionsData.data.catalogMutation.productUpdate.product?.revision ?? expectedRevision;
 
     seeded.push({
       ...variant,
@@ -387,6 +395,7 @@ test.describe('Admin product variants read path UI', () => {
     const variants = await seedVariantData(
       api,
       product.id,
+      product.revision,
       warehouse.id,
       unique,
       await fetchProductVariants(api, product.id),

@@ -79,11 +79,14 @@ async function createSimpleProduct(api: Api, title: string, handle: string) {
   };
 }
 
-async function selectProductInPicker(page: Page, title: string) {
+async function selectVisibleProductInPicker(page: Page, title: string) {
   const productPicker = page.getByTestId('product-picker-modal');
-  await productPicker.getByTestId('search-input').fill(title);
-  await expect(productPicker.getByText(title)).toBeVisible();
-  await productPicker.getByText(title).click();
+  const row = productPicker.locator('.ag-center-cols-container .ag-row').filter({
+    hasText: title,
+  });
+
+  await expect(row).toBeVisible();
+  await row.click();
 }
 
 async function expectProductHiddenInPicker(page: Page, title: string) {
@@ -330,8 +333,8 @@ test.describe('Admin category details update UI', () => {
     await detailsCard.getByTestId('category-products-assign-button').click();
     const productPicker = page.getByTestId('product-picker-modal');
     await expect(productPicker).toBeVisible();
-    await selectProductInPicker(page, products[0].title);
-    await selectProductInPicker(page, products[1].title);
+    await selectVisibleProductInPicker(page, products[0].title);
+    await selectVisibleProductInPicker(page, products[1].title);
     await page.getByTestId('submit-product-picker-form-button').click();
     await expect(productPicker).toBeHidden();
 

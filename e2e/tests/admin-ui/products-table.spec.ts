@@ -218,8 +218,8 @@ async function selectRelationFilterValue(
 
   await expect(row).toBeVisible();
   await row.click();
-  await expect(page.getByTestId('submit-product-picker-form-button')).toBeEnabled();
-  await page.getByTestId('submit-product-picker-form-button').click();
+  await expect(page.getByTestId('submit-form-button')).toBeEnabled();
+  await page.getByTestId('submit-form-button').click();
   await expect(pickerGrid).toBeHidden();
 }
 

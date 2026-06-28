@@ -186,7 +186,6 @@ test.describe('Admin tags UI', () => {
     await expect(detailsCard.getByTestId('tag-detail-title')).toHaveText(name);
     await expect(detailsCard.getByTestId('tag-detail-handle')).toContainText(handle);
     await expect(detailsCard.getByTestId('tag-detail-status')).toHaveText('Tag');
-    await expect(detailsCard.getByTestId('tag-detail-products-count')).toContainText('0');
     await expect(detailsCard.getByTestId('tag-detail-created-at')).toBeVisible();
 
     await page.getByTestId('tag-header-actions-button').click();

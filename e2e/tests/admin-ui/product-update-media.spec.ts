@@ -35,6 +35,31 @@ async function uploadMediaFile(page: Page, filePath: string) {
   await expect(page.getByTestId('upload-media-modal')).toBeHidden();
 }
 
+async function browseUploadAndSelectMedia(
+  page: Page,
+  modal: ReturnType<Page['getByTestId']>,
+  filePath: string,
+) {
+  const fileName = path.basename(filePath);
+
+  await modal.getByRole('button', { name: 'Browse' }).click();
+  const mediaPicker = page.getByTestId('media-picker-modal');
+  await expect(mediaPicker).toBeVisible();
+
+  await mediaPicker.getByRole('button', { name: /Upload images/ }).click();
+  await expect(page.getByTestId('upload-media-modal')).toBeVisible();
+  await uploadMediaFile(page, filePath);
+
+  const row = mediaPicker
+    .locator('.ag-center-cols-container .ag-row')
+    .filter({ hasText: fileName });
+  await expect(row).toBeVisible();
+  await row.click();
+
+  await page.getByTestId('submit-media-picker-form-button').click();
+  await expect(mediaPicker).toBeHidden();
+}
+
 async function readProductMedia(
   api: Parameters<Parameters<typeof test>[1]>[0]['api'],
   productId: string,
@@ -103,13 +128,8 @@ test.describe('Admin product details media update UI', () => {
     await expect(page.getByTestId('upload-media-modal')).toBeVisible();
     await uploadMediaFile(page, vasePath);
 
-    await editMediaModal.getByTestId('entity-media-upload-area').click();
-    await expect(page.getByTestId('upload-media-modal')).toBeVisible();
-    await uploadMediaFile(page, vasePath);
-
-    await editMediaModal.getByTestId('entity-media-upload-area').click();
-    await expect(page.getByTestId('upload-media-modal')).toBeVisible();
-    await uploadMediaFile(page, lampPath);
+    await browseUploadAndSelectMedia(page, editMediaModal, vasePath);
+    await browseUploadAndSelectMedia(page, editMediaModal, lampPath);
 
     await expect(editMediaModal.getByAltText('vase.jpg')).toHaveCount(2);
     await expect(editMediaModal.getByAltText('lamp.jpg')).toBeVisible();
@@ -139,7 +159,6 @@ test.describe('Admin product details media update UI', () => {
     await expect(reorderModal).toBeVisible();
 
     const lastFileId = addedFileIds[2];
-    await reorderModal.getByTestId('entity-media-list-view-button').click();
     await reorderModal.getByTestId(`entity-media-set-featured-button-${lastFileId}`).click();
     await page.getByTestId('submit-edit-media-form-button').click();
     await expect(page.getByTestId('edit-media-modal')).toBeHidden();
