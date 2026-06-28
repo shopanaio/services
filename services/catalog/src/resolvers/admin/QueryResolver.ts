@@ -75,6 +75,7 @@ import {
   type InventoryItemConnectionResolverInput,
 } from "./InventoryItemConnectionResolver.js";
 import type { NormalizedInventoryItemWarehouseScope } from "../../repositories/inventory-item/InventoryItemRepository.js";
+import type { CatalogQueryBundlesArgs } from "./generated/types.js";
 import {
   normalizeCategoryHierarchyScopeInput,
   normalizeCategoryProductsScopeInput,
@@ -216,6 +217,25 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
       },
       this.$ctx
     );
+  }
+
+  // ---- Bundle Query Stubs ----
+
+  async bundle(_args: { id: string }) {
+    return null;
+  }
+
+  bundles(_args: CatalogQueryBundlesArgs) {
+    return {
+      edges: [],
+      pageInfo: {
+        hasNextPage: false,
+        hasPreviousPage: false,
+        startCursor: null,
+        endCursor: null,
+      },
+      totalCount: 0,
+    };
   }
 
   // ---- Variant Queries ----

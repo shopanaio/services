@@ -147,6 +147,13 @@ import type {
   ProductUpdateInput,
   ProductDeleteInput,
   ProductUpdateStatusInput,
+  BundleCreateInput,
+  BundleConfigurationCreateInput,
+  BundleConfigurationUpdateInput,
+  BundleConfigurationDeleteInput,
+  BundleGroupsSyncInput,
+  BundlePricingTemplatesSyncInput,
+  BundleDependencyRulesSyncInput,
   VariantCreateInput,
   VariantDeleteInput,
   VariantUpdatePricingInput,
@@ -166,6 +173,7 @@ import type {
   CatalogMutationCategoryRebalanceArgs,
   CatalogMutationCategoryUpdateArgs,
   CatalogMutationVendorCreateArgs,
+  CatalogMutationBundleUpdateArgs,
   CatalogMutationProductUpdateArgs,
   InventoryItemUpdateInput,
   WarehouseCreateInput,
@@ -182,6 +190,13 @@ import {
   ProductCreateInputSchema,
   ProductDeleteInputSchema,
   ProductUpdateStatusInputSchema,
+  BundleCreateInputSchema,
+  BundleConfigurationCreateInputSchema,
+  BundleConfigurationUpdateInputSchema,
+  BundleConfigurationDeleteInputSchema,
+  BundleGroupsSyncInputSchema,
+  BundlePricingTemplatesSyncInputSchema,
+  BundleDependencyRulesSyncInputSchema,
   VariantCreateInputSchema,
   VariantDeleteInputSchema,
   VariantUpdatePricingInputSchema,
@@ -970,6 +985,85 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         errors: r.errors,
       })),
       userErrors: result.userErrors,
+    };
+  }
+
+  // ---- Bundle Mutation Stubs ----
+
+  @ZodResolver(BundleCreateInputSchema())
+  async bundleCreate(_args: { input: BundleCreateInput }) {
+    return {
+      bundle: null,
+      userErrors: [],
+    };
+  }
+
+  async bundleUpdate(_args: CatalogMutationBundleUpdateArgs) {
+    return {
+      bundle: null,
+      userErrors: [],
+    };
+  }
+
+  @ZodResolver(BundleConfigurationCreateInputSchema())
+  async bundleConfigurationCreate(_args: {
+    input: BundleConfigurationCreateInput;
+  }) {
+    return {
+      configuration: null,
+      userErrors: [],
+    };
+  }
+
+  @ZodResolver(BundleConfigurationUpdateInputSchema())
+  async bundleConfigurationUpdate(_args: {
+    input: BundleConfigurationUpdateInput;
+  }) {
+    return {
+      configuration: null,
+      userErrors: [],
+    };
+  }
+
+  @ZodResolver(BundleConfigurationDeleteInputSchema())
+  async bundleConfigurationDelete(_args: {
+    input: BundleConfigurationDeleteInput;
+  }) {
+    return {
+      deletedConfigurationId: null,
+      bundle: null,
+      userErrors: [],
+    };
+  }
+
+  @ZodResolver(BundleGroupsSyncInputSchema())
+  async bundleGroupsSync(_args: { input: BundleGroupsSyncInput }) {
+    return {
+      configuration: null,
+      groups: [],
+      userErrors: [],
+    };
+  }
+
+  @ZodResolver(BundlePricingTemplatesSyncInputSchema())
+  async bundlePricingTemplatesSync(_args: {
+    input: BundlePricingTemplatesSyncInput;
+  }) {
+    return {
+      configuration: null,
+      pricingTemplates: [],
+      userErrors: [],
+    };
+  }
+
+  @ZodResolver(BundleDependencyRulesSyncInputSchema())
+  async bundleDependencyRulesSync(_args: {
+    input: BundleDependencyRulesSyncInput;
+  }) {
+    return {
+      configuration: null,
+      dependencyRules: [],
+      userErrors: [],
     };
   }
 
