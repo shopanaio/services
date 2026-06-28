@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { catalogSchema } from "./schema";
+import { bundle } from "./bundle";
 import { categoryTranslation, productCategory } from "./categories";
 import { productPriceRange } from "./pricing";
 import { product } from "./products";
@@ -118,6 +119,7 @@ export const bundleListView = catalogSchema.view("bundle_list_view").as((qb) =>
       primaryCategoryId: sql<string>`${productCategory.categoryId}`.as("primary_category_id"),
       primaryCategoryName: sql<string>`${categoryTranslation.name}`.as("primary_category_name"),
       brandName: sql<string>`${vendor.name}`.as("brand_name"),
+      bundleType: sql<string>`${bundle.type}`.as("bundle_type"),
     })
     .from(product)
     .innerJoin(
@@ -139,6 +141,10 @@ export const bundleListView = catalogSchema.view("bundle_list_view").as((qb) =>
     .leftJoin(
       vendor,
       sql`${vendor.projectId} = ${product.projectId} AND ${vendor.id} = ${product.vendorId}`
+    )
+    .leftJoin(
+      bundle,
+      sql`${bundle.projectId} = ${product.projectId} AND ${bundle.productId} = ${product.id}`
     )
     .where(sql`${product.kind} = 'BUNDLE'`)
 );

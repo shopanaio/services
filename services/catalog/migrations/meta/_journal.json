@@ -29,6 +29,20 @@
       "when": 1782646999564,
       "tag": "0003_absurd_cerise",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1782668476000,
+      "tag": "0004_rainy_jack_power",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782668683853,
+      "tag": "0005_sloppy_zombie",
+      "breakpoints": true
     }
   ]
 }

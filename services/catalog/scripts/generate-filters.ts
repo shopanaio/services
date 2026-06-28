@@ -6,6 +6,7 @@ import {
 } from "@shopana/drizzle-query";
 import { categoryRelayQuery } from "../src/repositories/category/CategoryRepository.js";
 import {
+  bundleRelayQuery,
   listingRelayQuery,
   productRelayQuery,
 } from "../src/repositories/product/ProductRepository.js";
@@ -75,6 +76,23 @@ const productWhere = generateWhereInputType(productRelayQuery, "Product", {
 const productOrderBy = generateOrderByInputType(productRelayQuery, "Product", {
   includeDescriptions: true,
   fieldTypes: productListFieldTypes,
+  excludeFields: ["projectId", "deletedAt", "revision", "kind"],
+});
+
+const bundleListFieldTypes: Record<string, GraphQLFieldType> = {
+  ...productListFieldTypes,
+  bundleType: "String",
+};
+
+const bundleWhere = generateWhereInputType(bundleRelayQuery, "Bundle", {
+  includeDescriptions: true,
+  fieldTypes: bundleListFieldTypes,
+  excludeFields: ["projectId", "deletedAt", "revision", "kind"],
+});
+
+const bundleOrderBy = generateOrderByInputType(bundleRelayQuery, "Bundle", {
+  includeDescriptions: true,
+  fieldTypes: bundleListFieldTypes,
   excludeFields: ["projectId", "deletedAt", "revision", "kind"],
 });
 
@@ -200,6 +218,12 @@ ${listingOrderBy}
 ${productWhere}
 
 ${productOrderBy}
+
+# ---- Bundle ----
+
+${bundleWhere}
+
+${bundleOrderBy}
 
 # ---- Vendor ----
 

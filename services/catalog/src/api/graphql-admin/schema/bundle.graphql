@@ -520,48 +520,6 @@ input BundleBundlesMetaInput {
   categoriesScope: ProductCategoriesScopeInput
 }
 
-input BundleWhereInput {
-  _and: [BundleWhereInput!]
-  _or: [BundleWhereInput!]
-  _not: BundleWhereInput
-  id: IDFilter
-  vendorId: IDFilter
-  handle: StringFilter
-  publishedAt: DateTimeFilter
-  createdAt: DateTimeFilter
-  updatedAt: DateTimeFilter
-  locale: StringFilter
-  name: StringFilter
-  currency: StringFilter
-  minPriceMinor: IntFilter
-  maxPriceMinor: IntFilter
-  primaryCategoryId: IDFilter
-  primaryCategoryName: StringFilter
-  brandName: StringFilter
-}
-
-enum BundleOrderField {
-  id
-  vendorId
-  handle
-  publishedAt
-  createdAt
-  updatedAt
-  locale
-  name
-  currency
-  minPriceMinor
-  maxPriceMinor
-  primaryCategoryId
-  primaryCategoryName
-  brandName
-}
-
-input BundleOrderByInput {
-  field: BundleOrderField!
-  direction: SortDirection!
-}
-
 # ---- Bundle Mutation Payloads ----
 
 type BundleCreatePayload {

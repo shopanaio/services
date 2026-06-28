@@ -165,6 +165,90 @@ input ProductOrderByInput {
   direction: SortDirection!
 }
 
+# ---- Bundle ----
+
+"""Filter conditions for Bundle"""
+input BundleWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [BundleWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [BundleWhereInput!]
+  """Negate the condition"""
+  _not: BundleWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by vendorId"""
+  vendorId: IDFilter
+  """Filter by handle"""
+  handle: StringFilter
+  """Filter by publishedAt"""
+  publishedAt: DateTimeFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+  """Filter by locale"""
+  locale: StringFilter
+  """Filter by name"""
+  name: StringFilter
+  """Filter by currency"""
+  currency: StringFilter
+  """Filter by minPriceMinor"""
+  minPriceMinor: IntFilter
+  """Filter by maxPriceMinor"""
+  maxPriceMinor: IntFilter
+  """Filter by primaryCategoryId"""
+  primaryCategoryId: IDFilter
+  """Filter by primaryCategoryName"""
+  primaryCategoryName: StringFilter
+  """Filter by brandName"""
+  brandName: StringFilter
+  """Filter by bundleType"""
+  bundleType: StringFilter
+}
+
+"""Fields available for sorting Bundle"""
+enum BundleOrderField {
+  """Sort by id"""
+  id
+  """Sort by vendorId"""
+  vendorId
+  """Sort by handle"""
+  handle
+  """Sort by publishedAt"""
+  publishedAt
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+  """Sort by locale"""
+  locale
+  """Sort by name"""
+  name
+  """Sort by currency"""
+  currency
+  """Sort by minPriceMinor"""
+  minPriceMinor
+  """Sort by maxPriceMinor"""
+  maxPriceMinor
+  """Sort by primaryCategoryId"""
+  primaryCategoryId
+  """Sort by primaryCategoryName"""
+  primaryCategoryName
+  """Sort by brandName"""
+  brandName
+  """Sort by bundleType"""
+  bundleType
+}
+
+"""Ordering configuration for Bundle"""
+input BundleOrderByInput {
+  """Field to order by"""
+  field: BundleOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
 # ---- Vendor ----
 
 """Filter conditions for Vendor"""

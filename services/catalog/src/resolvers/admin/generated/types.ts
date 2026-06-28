@@ -776,25 +776,45 @@ export enum BundleLogicOperator {
   Or = 'OR'
 }
 
+/** Ordering configuration for Bundle */
 export type BundleOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: BundleOrderField;
 };
 
+/** Fields available for sorting Bundle */
 export enum BundleOrderField {
+  /** Sort by brandName */
   BrandName = 'brandName',
+  /** Sort by bundleType */
+  BundleType = 'bundleType',
+  /** Sort by createdAt */
   CreatedAt = 'createdAt',
+  /** Sort by currency */
   Currency = 'currency',
+  /** Sort by handle */
   Handle = 'handle',
+  /** Sort by id */
   Id = 'id',
+  /** Sort by locale */
   Locale = 'locale',
+  /** Sort by maxPriceMinor */
   MaxPriceMinor = 'maxPriceMinor',
+  /** Sort by minPriceMinor */
   MinPriceMinor = 'minPriceMinor',
+  /** Sort by name */
   Name = 'name',
+  /** Sort by primaryCategoryId */
   PrimaryCategoryId = 'primaryCategoryId',
+  /** Sort by primaryCategoryName */
   PrimaryCategoryName = 'primaryCategoryName',
+  /** Sort by publishedAt */
   PublishedAt = 'publishedAt',
+  /** Sort by updatedAt */
   UpdatedAt = 'updatedAt',
+  /** Sort by vendorId */
   VendorId = 'vendorId'
 }
 
@@ -934,23 +954,43 @@ export type BundleUpdatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+/** Filter conditions for Bundle */
 export type BundleWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<BundleWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<BundleWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<BundleWhereInput>>;
+  /** Filter by brandName */
   brandName?: InputMaybe<StringFilter>;
+  /** Filter by bundleType */
+  bundleType?: InputMaybe<StringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by currency */
   currency?: InputMaybe<StringFilter>;
+  /** Filter by handle */
   handle?: InputMaybe<StringFilter>;
+  /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by locale */
   locale?: InputMaybe<StringFilter>;
+  /** Filter by maxPriceMinor */
   maxPriceMinor?: InputMaybe<IntFilter>;
+  /** Filter by minPriceMinor */
   minPriceMinor?: InputMaybe<IntFilter>;
+  /** Filter by name */
   name?: InputMaybe<StringFilter>;
+  /** Filter by primaryCategoryId */
   primaryCategoryId?: InputMaybe<IdFilter>;
+  /** Filter by primaryCategoryName */
   primaryCategoryName?: InputMaybe<StringFilter>;
+  /** Filter by publishedAt */
   publishedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by vendorId */
   vendorId?: InputMaybe<IdFilter>;
 };
 

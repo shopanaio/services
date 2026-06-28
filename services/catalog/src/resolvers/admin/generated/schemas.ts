@@ -350,6 +350,7 @@ export function BundleWhereInputSchema(): z.ZodObject<Properties<BundleWhereInpu
     _not: z.lazy(() => BundleWhereInputSchema().nullish()),
     _or: z.array(z.lazy(() => BundleWhereInputSchema())).nullish(),
     brandName: z.lazy(() => StringFilterSchema().nullish()),
+    bundleType: z.lazy(() => StringFilterSchema().nullish()),
     createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
     currency: z.lazy(() => StringFilterSchema().nullish()),
     handle: z.lazy(() => StringFilterSchema().nullish()),

@@ -11,6 +11,7 @@ import { BaseRepository } from "../BaseRepository.js";
 import {
   product,
   bundle,
+  bundleListView,
   productCategory,
   listingListView,
   productListView,
@@ -59,9 +60,23 @@ export const productRelayQuery = createRelayQuery(
   { name: "product", tieBreaker: "id" }
 );
 
+export const bundleRelayQuery = createRelayQuery(
+  createQuery(bundleListView)
+    .include(["id"])
+    .mapWhereFields({
+      id: decodeProductGlobalId,
+      vendorId: decodeVendorGlobalId,
+      primaryCategoryId: decodeCategoryGlobalId,
+    })
+    .maxLimit(100)
+    .defaultLimit(20),
+  { name: "bundle", tieBreaker: "id" }
+);
+
 export type ProductQueryInput = InferExecuteOptions<typeof productQuery>;
 export type ListingRelayInput = InferRelayInput<typeof listingRelayQuery>;
 export type ProductRelayInput = InferRelayInput<typeof productRelayQuery>;
+export type BundleRelayInput = InferRelayInput<typeof bundleRelayQuery>;
 export type ProductConnectionMetaInput = {
   categoriesScope?: NormalizedProductCategoriesScope;
 };
