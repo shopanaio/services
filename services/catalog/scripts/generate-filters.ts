@@ -4,10 +4,7 @@ import {
   generateWhereInputType,
   type GraphQLFieldType,
 } from "@shopana/drizzle-query";
-import {
-  categoryProductsRelayQuery,
-  categoryRelayQuery,
-} from "../src/repositories/category/CategoryRepository.js";
+import { categoryRelayQuery } from "../src/repositories/category/CategoryRepository.js";
 import { productRelayQuery } from "../src/repositories/product/ProductRepository.js";
 import { tagRelayQuery } from "../src/repositories/tag/TagRepository.js";
 import { vendorRelayQuery } from "../src/repositories/vendor/VendorRepository.js";
@@ -32,13 +29,13 @@ const productListFieldTypes: Record<string, GraphQLFieldType> = {
 const productWhere = generateWhereInputType(productRelayQuery, "Product", {
   includeDescriptions: true,
   fieldTypes: productListFieldTypes,
-  excludeFields: ["projectId", "deletedAt", "revision"],
+  excludeFields: ["projectId", "deletedAt", "revision", "kind"],
 });
 
 const productOrderBy = generateOrderByInputType(productRelayQuery, "Product", {
   includeDescriptions: true,
   fieldTypes: productListFieldTypes,
-  excludeFields: ["projectId", "deletedAt", "revision"],
+  excludeFields: ["projectId", "deletedAt", "revision", "kind"],
 });
 
 const vendorFieldTypes: Record<string, GraphQLFieldType> = {
@@ -106,23 +103,14 @@ const tagOrderBy = generateOrderByInputType(tagRelayQuery, "Tag", {
   fieldTypes: tagListFieldTypes,
 });
 
-const categoryProductWhere = generateWhereInputType(
-  categoryProductsRelayQuery,
-  "CategoryProduct",
-  {
-    includeDescriptions: true,
-    excludeFields: ["projectId", "category", "translation", "priceRange"],
-  }
-);
-
 const variantWhere = generateWhereInputType(variantRelayQuery, "Variant", {
   includeDescriptions: true,
-  excludeFields: ["projectId", "deletedAt", "sku"],
+  excludeFields: ["projectId", "deletedAt", "sku", "kind"],
 });
 
 const variantOrderBy = generateOrderByInputType(variantRelayQuery, "Variant", {
   includeDescriptions: true,
-  excludeFields: ["projectId", "deletedAt", "sku"],
+  excludeFields: ["projectId", "deletedAt", "sku", "kind"],
 });
 
 const content = `# Auto-generated GraphQL filter types for Catalog service.
@@ -151,10 +139,6 @@ ${categoryOrderBy}
 ${tagWhere}
 
 ${tagOrderBy}
-
-# ---- CategoryProduct ----
-
-${categoryProductWhere}
 
 # ---- Variant ----
 

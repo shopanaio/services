@@ -10,12 +10,6 @@ input ProductSortInput {
   direction: SortDirection
 }
 
-"""Listing orderBy input for product listing pages."""
-input ListingOrderByInput {
-  field: ProductSortBy!
-  direction: SortDirection
-}
-
 input ProductProductsMetaInput {
   categoriesScope: ProductCategoriesScopeInput
 }
@@ -123,7 +117,7 @@ type VendorCreatePayload {
 """
 A product represents an item that can be sold.
 """
-type Product implements Node & CatalogSellable @key(fields: "id") {
+type Product implements Node & Listing @key(fields: "id") {
   """The Product global ID."""
   id: ID!
 

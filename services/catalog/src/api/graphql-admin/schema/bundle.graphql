@@ -71,7 +71,7 @@ enum BundleDependencyActionType {
   ADJUST_PRICE
 }
 
-type Bundle implements Node & CatalogSellable @key(fields: "id") {
+type Bundle implements Node & Listing @key(fields: "id") {
   """The Product global ID of the bundle sellable item."""
   id: ID!
 

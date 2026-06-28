@@ -241,24 +241,6 @@ input TagOrderByInput {
   direction: SortDirection!
 }
 
-# ---- CategoryProduct ----
-
-"""Filter conditions for CategoryProduct"""
-input CategoryProductWhereInput {
-  """Logical AND of multiple conditions"""
-  _and: [CategoryProductWhereInput!]
-  """Logical OR of multiple conditions"""
-  _or: [CategoryProductWhereInput!]
-  """Negate the condition"""
-  _not: CategoryProductWhereInput
-  """Filter by id"""
-  id: IDFilter
-  """Filter by createdAt"""
-  createdAt: DateTimeFilter
-  """Filter by deletedAt"""
-  deletedAt: DateTimeFilter
-}
-
 # ---- Warehouse ----
 
 """Filter conditions for Warehouse"""

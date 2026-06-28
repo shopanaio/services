@@ -64,28 +64,18 @@ type Category implements Node @key(fields: "id") {
   """Media files associated with this category."""
   media: [CategoryMediaItem!]!
 
-  """Products in this category with pagination."""
-  products(
+  """Catalog listing items assigned to this category, including products and bundles."""
+  listing(
     first: Int
     after: String
     last: Int
     before: String
+    where: ListingWhereInput
     orderBy: [ListingOrderByInput!]
-    where: CategoryProductWhereInput
-  ): CategoryProductConnection!
+  ): ListingConnection!
 
-  """Sellable catalog items assigned to this category, including products and bundles."""
-  items(
-    first: Int
-    after: String
-    last: Int
-    before: String
-    where: CatalogSellableWhereInput
-    orderBy: [CatalogSellableOrderByInput!]
-  ): CatalogSellableConnection!
-
-  """The total number of products in this category."""
-  productsCount: Int!
+  """The total number of listing items in this category."""
+  listingCount: Int!
 }
 
 """
@@ -121,17 +111,6 @@ type CategoryEdge {
   node: Category!
 
   """A cursor for use in pagination."""
-  cursor: String!
-}
-
-type CategoryProductConnection {
-  edges: [CategoryProductEdge!]!
-  pageInfo: PageInfo!
-  totalCount: Int!
-}
-
-type CategoryProductEdge {
-  node: Product!
   cursor: String!
 }
 
