@@ -39,6 +39,7 @@ import {
 } from "./page-config";
 import { useBundles } from "../hooks";
 import { TableCoverImage } from "@/shared/components/table-cover-image";
+import { Dash } from "@/shared/components/editor-grid";
 import {
   BundleOrderField,
   BundleType,
@@ -67,6 +68,26 @@ const BundleCellRenderer = (
       />
       <Typography.Text strong>{data.title}</Typography.Text>
     </Flex>
+  );
+};
+
+const TextCellRenderer = (
+  props: CustomCellRendererProps<ApiBundle, string | null> & {
+    testIdSuffix?: string;
+  },
+) => {
+  const { data, value, testIdSuffix } = props;
+
+  return (
+    <Typography.Text
+      data-testid={
+        data && testIdSuffix
+          ? `bundles-table-${testIdSuffix}-cell-${data.handle}`
+          : undefined
+      }
+    >
+      {value ?? <Dash />}
+    </Typography.Text>
   );
 };
 
@@ -100,6 +121,12 @@ const StatusCellRenderer = (
     </Tag>
   );
 };
+
+const getBundlePrimaryCategoryName = (bundle: ApiBundle): string | null =>
+  bundle.primaryCategory?.name ??
+  (bundle.categoryAssignments ?? []).find((assignment) => assignment.isPrimary)
+    ?.category.name ??
+  null;
 
 export default function BundlesPage() {
   const agGridTheme = useAgGridTheme();
@@ -205,7 +232,17 @@ export default function BundlesPage() {
         headerName: "Bundle",
         field: "title",
         cellRenderer: BundleCellRenderer,
+        flex: 2,
         minWidth: 280,
+      },
+      {
+        headerName: "Category",
+        colId: "primaryCategoryName",
+        valueGetter: ({ data }) =>
+          data ? getBundlePrimaryCategoryName(data) : null,
+        cellRenderer: TextCellRenderer,
+        cellRendererParams: { testIdSuffix: "category" },
+        minWidth: 180,
       },
       {
         headerName: "Type",

@@ -47,6 +47,10 @@ export {
   type ProductConnectionInput,
 } from "./ProductConnectionResolver.js";
 export {
+  BundleConnectionResolver,
+  type BundleConnectionInput,
+} from "./BundleConnectionResolver.js";
+export {
   VariantConnectionResolver,
   type VariantConnectionInput,
 } from "./VariantConnectionResolver.js";

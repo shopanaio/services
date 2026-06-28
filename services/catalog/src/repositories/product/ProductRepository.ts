@@ -83,6 +83,12 @@ export type ProductConnectionMetaInput = {
 export type ProductConnectionInput = ProductRelayInput & {
   meta?: ProductConnectionMetaInput;
 };
+export type BundleConnectionMetaInput = {
+  categoriesScope?: NormalizedProductCategoriesScope;
+};
+export type BundleConnectionInput = BundleRelayInput & {
+  meta?: BundleConnectionMetaInput;
+};
 
 const EMPTY_PRODUCT_WHERE: ProductRelayInput["where"] = {
   id: { _in: ["00000000-0000-0000-0000-000000000000"] },
@@ -317,6 +323,52 @@ export class ProductRepository extends BaseRepository {
     const [result, totalCount] = await Promise.all([
       productRelayQuery.execute(this.connection, executeInput),
       productRelayQuery.count(this.connection, { where: mergedWhere }),
+    ]);
+
+    return {
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        nodeId: edge.node.id,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
+  }
+
+  async getBundleConnection(args: BundleConnectionInput): Promise<ProductConnectionResult> {
+    const { where, orderBy, meta, ...paginationArgs } = args;
+    const categoriesScopeWhere = await this.buildCategoriesScopeWhere(
+      meta?.categoriesScope
+    );
+
+    const mergedWhere: BundleRelayInput["where"] = {
+      _and: [
+        { projectId: { _eq: this.storeId } },
+        { deletedAt: { _is: null } },
+        { locale: { _eq: this.locale } },
+        {
+          _or: [
+            { currency: { _eq: this.currency } },
+            { currency: { _is: null } },
+          ],
+        },
+        ...(where ? [where] : []),
+        ...(categoriesScopeWhere ? [categoriesScopeWhere] : []),
+      ],
+    };
+
+    const executeInput: BundleRelayInput = {
+      ...paginationArgs,
+      where: mergedWhere,
+      orderBy: orderBy ?? [
+        { field: "createdAt", direction: "desc" },
+        { field: "id", direction: "desc" },
+      ],
+    };
+
+    const [result, totalCount] = await Promise.all([
+      bundleRelayQuery.execute(this.connection, executeInput),
+      bundleRelayQuery.count(this.connection, { where: mergedWhere }),
     ]);
 
     return {

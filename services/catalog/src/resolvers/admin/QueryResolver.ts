@@ -26,6 +26,10 @@ import {
   ProductConnectionResolver,
   type ProductQueryProductsArgs,
 } from "./ProductConnectionResolver.js";
+import {
+  BundleConnectionResolver,
+  type BundleQueryBundlesArgs,
+} from "./BundleConnectionResolver.js";
 import { VariantResolver } from "./VariantResolver.js";
 import { CategoryResolver } from "./CategoryResolver.js";
 import { VendorResolver } from "./VendorResolver.js";
@@ -75,7 +79,6 @@ import {
   type InventoryItemConnectionResolverInput,
 } from "./InventoryItemConnectionResolver.js";
 import type { NormalizedInventoryItemWarehouseScope } from "../../repositories/inventory-item/InventoryItemRepository.js";
-import type { CatalogQueryBundlesArgs } from "./generated/types.js";
 import {
   normalizeCategoryHierarchyScopeInput,
   normalizeCategoryProductsScopeInput,
@@ -219,23 +222,30 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
     );
   }
 
-  // ---- Bundle Query Stubs ----
+  // ---- Bundle Queries ----
 
-  async bundle(_args: { id: string }) {
-    return null;
+  async bundle(args: { id: string }) {
+    const productId =
+      safeDecodeGlobalId(args.id, GlobalIdEntity.Product) ?? args.id;
+    const product = await this.$ctx.loaders.product.load(productId);
+    if (!product || product.kind !== "BUNDLE") {
+      return null;
+    }
+    return new BundleResolver(productId, this.$ctx);
   }
 
-  bundles(_args: CatalogQueryBundlesArgs) {
-    return {
-      edges: [],
-      pageInfo: {
-        hasNextPage: false,
-        hasPreviousPage: false,
-        startCursor: null,
-        endCursor: null,
+  bundles(args: BundleQueryBundlesArgs) {
+    return new BundleConnectionResolver(
+      {
+        ...args,
+        meta: {
+          categoriesScope: normalizeProductCategoriesScopeInput(
+            args.meta?.categoriesScope
+          ),
+        },
       },
-      totalCount: 0,
-    };
+      this.$ctx
+    );
   }
 
   // ---- Variant Queries ----

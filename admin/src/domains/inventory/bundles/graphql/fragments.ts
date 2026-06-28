@@ -12,6 +12,7 @@ export const BUNDLE_LIST_FILE_FIELDS = gql`
 export const BUNDLE_LIST_ITEM_FIELDS = gql`
   fragment BundleListItemFields on Bundle {
     id
+    handle
     title
     type
     isPublished
@@ -21,6 +22,20 @@ export const BUNDLE_LIST_ITEM_FIELDS = gql`
         url
         altText
         originalName
+      }
+    }
+    primaryCategory {
+      id
+      name
+    }
+    variants(first: 100) {
+      edges {
+        node {
+          id
+          price {
+            amountMinor
+          }
+        }
       }
     }
   }
