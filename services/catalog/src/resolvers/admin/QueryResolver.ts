@@ -7,6 +7,7 @@ import { ApolloQuery } from "@shopana/type-resolver";
 import { GraphQLError } from "graphql";
 import { CatalogType } from "./CatalogType.js";
 import { ProductResolver } from "./ProductResolver.js";
+import { BundleResolver } from "./BundleResolver.js";
 
 /**
  * Safely decode a global ID, returning null if invalid
@@ -172,7 +173,9 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
     if (!productId) return null;
     const product = await this.$ctx.loaders.product.load(productId);
     if (!product) return null;
-    return new ProductResolver(productId, this.$ctx);
+    return product.kind === "BUNDLE"
+      ? new BundleResolver(productId, this.$ctx)
+      : new ProductResolver(productId, this.$ctx);
   }
 
   /**

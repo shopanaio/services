@@ -21,9 +21,15 @@ import { InventoryItemResolver } from "../../../resolvers/admin/InventoryItemRes
 import { WarehouseResolver } from "../../../resolvers/admin/WarehouseResolver.js";
 import { StockResolver } from "../../../resolvers/admin/StockResolver.js";
 
-function resolveListingType(obj: unknown): "Bundle" | "Product" | null {
+async function resolveProductBackedType(
+  obj: unknown,
+): Promise<"Bundle" | "Product" | null> {
   if (obj instanceof BundleResolver) return "Bundle";
-  if (obj instanceof ProductResolver) return "Product";
+  if (obj instanceof ProductResolver) {
+    const product = await obj.$ctx.loaders.product.load(obj.$props);
+    if (!product) return null;
+    return product.kind === "BUNDLE" ? "Bundle" : "Product";
+  }
 
   const record = obj as Record<string, unknown>;
   if (record.kind === "BUNDLE") return "Bundle";
@@ -38,10 +44,10 @@ function resolveListingType(obj: unknown): "Bundle" | "Product" | null {
 export const typeResolvers: Partial<Resolvers> = {
   // Interface resolvers
   Node: {
-    __resolveType: (obj: unknown) => {
+    __resolveType: async (obj: unknown) => {
       const record = obj as Record<string, unknown>;
-      if (obj instanceof BundleResolver) return "Bundle";
-      if (obj instanceof ProductResolver) return "Product";
+      const productBackedType = await resolveProductBackedType(obj);
+      if (productBackedType) return productBackedType;
       if (obj instanceof StockResolver) return "WarehouseStock";
       if (obj instanceof WarehouseResolver) return "Warehouse";
       if (obj instanceof InventoryItemResolver) return "InventoryItem";
@@ -75,7 +81,7 @@ export const typeResolvers: Partial<Resolvers> = {
   },
 
   Listing: {
-    __resolveType: resolveListingType,
+    __resolveType: resolveProductBackedType,
   },
 
   UserError: {
