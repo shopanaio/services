@@ -7,7 +7,7 @@ import type {
   DependencyTargetType,
   DependencyActionType,
 } from "./enums";
-import type { BundlePriceType } from "../types";
+import type { BundlePriceType } from "@/graphql/types";
 
 // ============================================================================
 // Conditions

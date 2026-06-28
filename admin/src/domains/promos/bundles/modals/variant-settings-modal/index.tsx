@@ -20,6 +20,7 @@ import {
 } from "@/layouts/modals";
 import { useAgGridTheme } from "@/hooks";
 import { Dash } from "@/shared/components/editor-grid";
+import { BundlePriceType } from "@/graphql/types";
 
 import type { IBundleItemVariantSettingsModalPayload } from "@/domains/promos/bundles/modals";
 
@@ -37,7 +38,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 // Types
 // ============================================================================
 
-type PriceType = "BASE" | "FIXED" | "DISCOUNT_PERCENT" | "DISCOUNT_FIXED" | "FREE";
+type PriceType = BundlePriceType;
 
 interface IVariantRow {
   id: string;
@@ -60,15 +61,15 @@ const calculateFinalPrice = (
   priceValue: number | null
 ): number => {
   switch (priceType) {
-    case "BASE":
+    case BundlePriceType.Base:
       return basePrice;
-    case "FIXED":
+    case BundlePriceType.Fixed:
       return priceValue ?? 0;
-    case "DISCOUNT_PERCENT":
+    case BundlePriceType.DiscountPercent:
       return basePrice * (1 - (priceValue ?? 0) / 100);
-    case "DISCOUNT_FIXED":
+    case BundlePriceType.DiscountFixed:
       return basePrice - (priceValue ?? 0);
-    case "FREE":
+    case BundlePriceType.Free:
       return 0;
     default:
       return basePrice;
@@ -77,15 +78,15 @@ const calculateFinalPrice = (
 
 const formatPriceRule = (priceType: PriceType, priceValue: number | null): string | null => {
   switch (priceType) {
-    case "BASE":
+    case BundlePriceType.Base:
       return "No change";
-    case "FIXED":
+    case BundlePriceType.Fixed:
       return `Fixed: ${formatPrice(priceValue ?? 0)}`;
-    case "DISCOUNT_PERCENT":
+    case BundlePriceType.DiscountPercent:
       return `-${priceValue ?? 0}%`;
-    case "DISCOUNT_FIXED":
+    case BundlePriceType.DiscountFixed:
       return `-${formatPrice(priceValue ?? 0)}`;
-    case "FREE":
+    case BundlePriceType.Free:
       return "Free";
     default:
       return null;
@@ -209,7 +210,7 @@ export const VariantSettingsModal = () => {
   const {
     productTitle = "Product",
     availableVariantIds: initialVariantIds,
-    priceType = "BASE" as PriceType,
+    priceType = BundlePriceType.Base,
     priceValue = null,
     variants = [],
     options = [],

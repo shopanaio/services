@@ -29,9 +29,8 @@ import type {
   BundleItem,
   PricingRuleTemplate,
 } from "../../../types";
+import { BundleItemType, BundlePriceType } from "@/graphql/types";
 import {
-  BundleItemType,
-  BundlePriceType,
   PRICE_RULE_OPTIONS,
 } from "../../../types";
 import type { ApiProduct } from "@/graphql/types";
@@ -148,7 +147,7 @@ export const rowsToGroups = (rows: ITableRow[]): IBundleGroup[] => {
       minQty: itemRow.minQty ?? null,
       maxQty: itemRow.maxQty ?? null,
       pricingRule: itemRow.pricingRule ?? {
-        priceType: BundlePriceType.BASE,
+        priceType: BundlePriceType.Base,
         priceValue: null,
       },
       visible: itemRow.visible ?? "yes",
@@ -224,7 +223,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
     const existingProductIds = useMemo(() => {
       if (!addingToGroupId) return [];
       return allRows
-        .filter((r) => r.parentId === addingToGroupId && r.itemType === "PRODUCT")
+        .filter((r) => r.parentId === addingToGroupId && r.itemType === BundleItemType.Product)
         .map((r) => r.assignedProduct?.id)
         .filter(Boolean) as string[];
     }, [allRows, addingToGroupId]);
@@ -250,14 +249,14 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
             parentId: addingToGroupId,
             sortIndex: maxSortIndex + 1 + index,
             level: 1,
-            itemType: "PRODUCT",
+            itemType: BundleItemType.Product,
             assignedProduct: product as ApiProduct,
             title: null,
             featuredImage: null,
             minQty: null,
             maxQty: null,
             pricingRule: {
-              priceType: BundlePriceType.BASE,
+              priceType: BundlePriceType.Base,
               priceValue: null,
             },
             visible: "yes",
@@ -359,7 +358,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
 
     const handleEditVariants = useCallback(
       (row: ITableRow) => {
-        if (row.itemType !== "PRODUCT" || !row.assignedProduct) return;
+        if (row.itemType !== BundleItemType.Product || !row.assignedProduct) return;
 
         const assignedProduct = row.assignedProduct;
         const variantsFromConnection =
@@ -367,8 +366,8 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
 
         const priceType =
           row.pricingRule && "id" in row.pricingRule
-            ? "BASE"
-            : row.pricingRule?.priceType ?? "BASE";
+            ? BundlePriceType.Base
+            : row.pricingRule?.priceType ?? BundlePriceType.Base;
         const priceValue =
           row.pricingRule && "id" in row.pricingRule
             ? null
@@ -422,7 +421,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
 
     const handleIncludeVariants = useCallback(
       (row: ITableRow) => {
-        if (row.itemType !== "PRODUCT" || !row.assignedProduct) return;
+        if (row.itemType !== BundleItemType.Product || !row.assignedProduct) return;
 
         const assignedProduct = row.assignedProduct;
         const variantsFromConnection =
@@ -448,7 +447,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
                 parentId: row.parentId,
                 sortIndex: row.sortIndex + index,
                 level: 1,
-                itemType: "VARIANT" as const,
+                itemType: BundleItemType.Variant,
                 assignedVariant: variant,
                 minQty: row.minQty,
                 maxQty: row.maxQty,
@@ -481,7 +480,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
 
     const handleShowAsProduct = useCallback(
       (row: ITableRow) => {
-        if (row.itemType !== "VARIANT" || !row.assignedVariant) return;
+        if (row.itemType !== BundleItemType.Variant || !row.assignedVariant) return;
 
         const productId = row.assignedVariant.product?.id;
         if (!productId) return;
@@ -498,7 +497,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
         setAllRows((prev) => {
           const firstVariantIndex = prev.findIndex(
             (r) =>
-              r.itemType === "VARIANT" &&
+              r.itemType === BundleItemType.Variant &&
               r.assignedVariant?.product?.id === productId
           );
           if (firstVariantIndex === -1) return prev;
@@ -506,7 +505,7 @@ export const BundleGroupsGrid = forwardRef<BundleGroupsGridHandle, BundleGroupsG
           const newRows = prev.filter(
             (r) =>
               !(
-                r.itemType === "VARIANT" &&
+                r.itemType === BundleItemType.Variant &&
                 r.assignedVariant?.product?.id === productId
               )
           );

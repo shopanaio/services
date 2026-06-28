@@ -3,9 +3,8 @@ import type {
   BundleItem,
   PricingRuleTemplate,
 } from "@/domains/promos/bundles/types";
+import { BundleItemType, BundlePriceType } from "@/graphql/types";
 import {
-  BundleItemType,
-  BundlePriceType,
   PRICE_RULE_OPTIONS,
 } from "@/domains/promos/bundles/types";
 
@@ -13,7 +12,7 @@ export const getItemImageUrl = (item: BundleItem): string | null => {
   if (item.featuredImage?.url) {
     return item.featuredImage.url;
   }
-  if (item.itemType === BundleItemType.VARIANT && item.assignedVariant) {
+  if (item.itemType === BundleItemType.Variant && item.assignedVariant) {
     return item.assignedVariant.media?.[0]?.file?.url ?? null;
   }
   return null;
@@ -21,7 +20,7 @@ export const getItemImageUrl = (item: BundleItem): string | null => {
 
 export const getItemName = (item: BundleItem): string => {
   if (item.title) return item.title;
-  if (item.itemType === BundleItemType.VARIANT && item.assignedVariant) {
+  if (item.itemType === BundleItemType.Variant && item.assignedVariant) {
     return item.assignedVariant.title ?? "Variant";
   }
   if (item.assignedProduct) {
@@ -41,7 +40,7 @@ export const getPriceRuleLabel = (
 ): string | null => {
   if (!rule) return null;
   const { priceType, priceValue } = rule;
-  if (priceType === BundlePriceType.BASE) return null;
+  if (priceType === BundlePriceType.Base) return null;
 
   if (isTemplate(rule) && rule.name) return rule.name;
 
@@ -58,11 +57,11 @@ export const getPriceRuleLabel = (
 
 export const getPriceRuleColor = (priceType: BundlePriceType): string => {
   switch (priceType) {
-    case BundlePriceType.DISCOUNT_PERCENT:
-    case BundlePriceType.DISCOUNT_FIXED:
-    case BundlePriceType.FREE:
+    case BundlePriceType.DiscountPercent:
+    case BundlePriceType.DiscountFixed:
+    case BundlePriceType.Free:
       return "green";
-    case BundlePriceType.FIXED:
+    case BundlePriceType.Fixed:
       return "blue";
     default:
       return "default";

@@ -26,8 +26,8 @@ import {
 import type { ColumnsType } from "antd/es/table";
 
 import { Paper, PaperHeader } from "@/ui-kit/paper";
+import { BundlePriceType } from "@/graphql/types";
 import {
-  BundlePriceType,
   type PricingRuleTemplate,
   PRICE_RULE_OPTIONS,
 } from "@/domains/promos/bundles/types";
@@ -99,7 +99,7 @@ export const TemplatesTab = ({
     const newTemplate: IEditingTemplate = {
       id: `tpl-${Date.now()}`,
       name: "",
-      priceType: BundlePriceType.DISCOUNT_PERCENT,
+      priceType: BundlePriceType.DiscountPercent,
       priceValue: 10,
       isNew: true,
     };
@@ -183,8 +183,8 @@ export const TemplatesTab = ({
                     ...editingTemplate,
                     priceType: value,
                     priceValue:
-                      value === BundlePriceType.FREE ||
-                      value === BundlePriceType.BASE
+                      value === BundlePriceType.Free ||
+                      value === BundlePriceType.Base
                         ? null
                         : editingTemplate.priceValue ?? 10,
                   })

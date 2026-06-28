@@ -1,15 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  mockBundlesList,
-  type IBundleListItem,
-} from "@/mocks/products/bundles-list";
+import type { ApiBundle } from "@/graphql/types";
+import { mockBundles } from "@/mocks/products/bundles-list";
 
 interface UseBundlesOptions {
   delay?: number;
 }
 
 interface UseBundlesReturn {
-  data: IBundleListItem[];
+  data: ApiBundle[];
   isLoading: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
@@ -18,7 +16,7 @@ interface UseBundlesReturn {
 export function useBundles(options: UseBundlesOptions = {}): UseBundlesReturn {
   const { delay = 500 } = options;
 
-  const [data, setData] = useState<IBundleListItem[]>([]);
+  const [data, setData] = useState<ApiBundle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -28,7 +26,7 @@ export function useBundles(options: UseBundlesOptions = {}): UseBundlesReturn {
 
     try {
       await new Promise((resolve) => setTimeout(resolve, delay));
-      setData(mockBundlesList);
+      setData(mockBundles);
     } catch (err) {
       setError(
         err instanceof Error ? err : new Error("Failed to fetch bundles"),

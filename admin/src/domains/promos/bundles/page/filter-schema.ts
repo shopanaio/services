@@ -4,6 +4,7 @@ import {
   enumOperators,
 } from "@/layouts/filters";
 import type { IFilterSchema } from "@/layouts/filters/core/types";
+import { BundleType } from "@/graphql/types";
 
 export const filterSchema: IFilterSchema[] = [
   {
@@ -26,10 +27,10 @@ export const filterSchema: IFilterSchema[] = [
     operators: enumOperators,
     payloadKey: "bundleType",
     options: [
-      { label: "Fixed Kit", value: "FIXED" },
-      { label: "Multipack", value: "MULTIPACK" },
-      { label: "Mix & Match", value: "MIX_AND_MATCH" },
-      { label: "Custom", value: "null" },
+      { label: "Fixed Kit", value: BundleType.Fixed },
+      { label: "Multipack", value: BundleType.Multipack },
+      { label: "Mix & Match", value: BundleType.MixAndMatch },
+      { label: "Custom", value: BundleType.Custom },
     ],
   },
   {

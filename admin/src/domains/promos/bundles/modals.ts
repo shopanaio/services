@@ -1,5 +1,6 @@
 import { createModalStackHook } from "@/layouts/modals";
 import type { IModalStackPayload } from "@/layouts/modals/types";
+import type { BundlePriceType } from "@/graphql/types";
 import type {
   IBundleGroup,
   IDependencyRule,
@@ -46,7 +47,7 @@ export interface IBundleItemVariantSettingsModalPayload extends IModalStackPaylo
   productId: string;
   productTitle: string;
   availableVariantIds: string[] | null;
-  priceType: "BASE" | "FIXED" | "DISCOUNT_PERCENT" | "DISCOUNT_FIXED" | "FREE";
+  priceType: BundlePriceType;
   priceValue: number | null;
   variants: Array<{
     id: string;

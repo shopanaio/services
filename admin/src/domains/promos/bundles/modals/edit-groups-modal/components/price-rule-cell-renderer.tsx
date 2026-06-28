@@ -5,7 +5,8 @@ import type { MenuProps } from "antd";
 import type { ICellRendererParams } from "ag-grid-community";
 import type { ITableRow } from "../types";
 import type { PricingRuleTemplate, BundleItem } from "../../../types";
-import { BundlePriceType, PRICE_RULE_OPTIONS } from "../../../types";
+import { BundlePriceType } from "@/graphql/types";
+import { PRICE_RULE_OPTIONS } from "../../../types";
 import { Dash } from "@/shared/components/editor-grid";
 
 // Helper to determine if pricingRule is a template

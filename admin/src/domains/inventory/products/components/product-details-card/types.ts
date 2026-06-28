@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/promos/bundles/types";
-import type { IBundleListItem } from "@/mocks/products/bundles-list";
 import type {
+  ApiBundle,
   ApiProductInventoryWidget,
   ApiVariant,
   ApiPageInfo,
@@ -55,5 +55,5 @@ export interface ProductDetailsSupplementalData {
   dependencyRules: IDependencyRule[];
   inventory: ApiProductInventoryWidget;
   /** Bundles that include this product */
-  includedInBundles: IBundleListItem[];
+  includedInBundles: ApiBundle[];
 }

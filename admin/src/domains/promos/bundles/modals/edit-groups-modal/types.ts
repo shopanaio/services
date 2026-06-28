@@ -1,5 +1,11 @@
-import type { ApiFile, ApiProduct, ApiVariant } from "@/graphql/types";
-import type { BundlePriceType, PricingRuleTemplate } from "../../types";
+import type {
+  ApiFile,
+  ApiProduct,
+  ApiVariant,
+  BundleItemType,
+  BundlePriceType,
+} from "@/graphql/types";
+import type { PricingRuleTemplate } from "../../types";
 
 // ============================================================================
 // Row Types
@@ -24,7 +30,7 @@ export interface ITableRow {
   maxSelection?: number | null;
 
   // Item-specific fields
-  itemType?: "PRODUCT" | "VARIANT";
+  itemType?: BundleItemType;
   assignedProduct?: ApiProduct;
   assignedVariant?: ApiVariant;
   excludeAssignedProductVariants?: string[] | null;

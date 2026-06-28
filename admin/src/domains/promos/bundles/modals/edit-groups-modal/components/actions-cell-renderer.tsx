@@ -10,6 +10,7 @@ import type { ICellRendererParams } from "ag-grid-community";
 import type { MenuProps } from "antd";
 import { useStyles } from "../edit-groups-modal.styles";
 import type { ITableRow } from "../types";
+import { BundleItemType } from "@/graphql/types";
 
 export interface IActionsCellRendererParams
   extends ICellRendererParams<ITableRow> {
@@ -72,7 +73,7 @@ export const ActionsCellRenderer = (params: IActionsCellRendererParams) => {
   }
 
   // Item actions (product or variant)
-  if (data.itemType === "VARIANT") {
+  if (data.itemType === BundleItemType.Variant) {
     const menuItems: MenuProps["items"] = [
       ...(onShowAsProduct
         ? [

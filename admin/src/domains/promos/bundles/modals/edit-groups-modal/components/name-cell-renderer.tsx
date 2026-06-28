@@ -8,7 +8,7 @@ import { Avatar } from "antd";
 import type { ICellRendererParams } from "ag-grid-community";
 import { useStyles } from "../edit-groups-modal.styles";
 import type { ITableRow } from "../types";
-import type { ApiProduct, ApiVariant } from "@/graphql/types";
+import { BundleItemType, type ApiProduct, type ApiVariant } from "@/graphql/types";
 
 export interface INameCellRendererParams
   extends ICellRendererParams<ITableRow> {
@@ -78,7 +78,7 @@ export const NameCellRenderer = (params: INameCellRendererParams) => {
   }
 
   // Render item row (product or variant)
-  if (data.itemType === "VARIANT") {
+  if (data.itemType === BundleItemType.Variant) {
     const variant = data.assignedVariant;
     const productTitle = variant?.product?.title;
     const variantTitle =

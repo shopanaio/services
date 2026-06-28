@@ -5,14 +5,13 @@
 import type { IProduct } from "./types";
 import type { IAttributeRow } from "./attributes";
 import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/promos/bundles/types";
-import type { BundleType } from "@/mocks/products/bundles-list";
 import type { IReviewsData } from "@/domains/inventory/products/components/product-details-card/types";
 import { EntityStatus, WeightUnit, DimensionUnit, type ITag as IProductTag } from "./types";
 import { mockCategories } from "./categories";
 import { mockTags } from "./tags";
 import { createMockData as createAttributesMockData } from "./attributes";
 import { productDetailsMockData } from "./product-details";
-import type { ApiCategory, ApiFile, ApiRichText, ApiTag, FileProvider } from "@/graphql/types";
+import { BundleType, type ApiCategory, type ApiFile, type ApiRichText, type ApiTag, type FileProvider } from "@/graphql/types";
 
 const generateId = (): string => Math.random().toString(36).substring(2, 11);
 
@@ -172,7 +171,7 @@ export interface IBundleDetailsMockData {
 }
 
 export const bundleDetailsMockData: IBundleDetailsMockData = {
-  bundleType: "MIX_AND_MATCH",
+  bundleType: BundleType.MixAndMatch,
   categories: {
     primary: mockCategories[0],
     list: mockCategories.slice(1, 3),

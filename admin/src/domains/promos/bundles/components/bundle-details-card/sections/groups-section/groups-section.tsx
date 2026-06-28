@@ -4,7 +4,7 @@ import { Tag } from "antd";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "@/domains/inventory/products/components/edit-action";
 import type { IBundleGroup } from "@/domains/promos/bundles/types";
-import type { BundleType } from "@/mocks/products/bundles-list";
+import type { BundleType } from "@/graphql/types";
 import { BUNDLE_TYPE_CONFIG } from "./constants";
 import { useStyles } from "./styles";
 import { GroupLane } from "./components/group-lane";

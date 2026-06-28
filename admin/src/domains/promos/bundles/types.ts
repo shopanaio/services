@@ -1,34 +1,5 @@
 import type { ApiFile, ApiProduct, ApiVariant } from "@/graphql/types";
-
-// ============================================================================
-// Enums
-// ============================================================================
-
-/**
- * Bundle item type - determines how the item is displayed
- */
-export enum BundleItemType {
-  /** Simple product without variants */
-  PRODUCT = "PRODUCT",
-  /** Specific variant of a product */
-  VARIANT = "VARIANT",
-}
-
-/**
- * Price rule types for bundle items
- */
-export enum BundlePriceType {
-  /** No changes, use base product price */
-  BASE = "BASE",
-  /** Override with fixed price */
-  FIXED = "FIXED",
-  /** Subtract percentage from base */
-  DISCOUNT_PERCENT = "DISCOUNT_PERCENT",
-  /** Subtract fixed amount from base */
-  DISCOUNT_FIXED = "DISCOUNT_FIXED",
-  /** 100% discount, free in bundle */
-  FREE = "FREE",
-}
+import { BundleItemType, BundlePriceType } from "@/graphql/types";
 
 /**
  * Display style for storefront
@@ -178,34 +149,34 @@ export interface PriceRuleOption {
 }
 
 export const PRICE_RULE_OPTIONS: PriceRuleOption[] = [
-  { value: BundlePriceType.BASE, label: "No change" },
+  { value: BundlePriceType.Base, label: "No change" },
   {
-    value: BundlePriceType.FIXED,
+    value: BundlePriceType.Fixed,
     label: "Fixed price",
     requiresValue: true,
     valueSuffix: "$",
   },
   {
-    value: BundlePriceType.DISCOUNT_PERCENT,
+    value: BundlePriceType.DiscountPercent,
     label: "Discount %",
     requiresValue: true,
     valueSuffix: "%",
   },
   {
-    value: BundlePriceType.DISCOUNT_FIXED,
+    value: BundlePriceType.DiscountFixed,
     label: "Discount $",
     requiresValue: true,
     valueSuffix: "$",
   },
   {
-    value: BundlePriceType.FREE,
+    value: BundlePriceType.Free,
     label: "Free",
   },
 ];
 
 export const ITEM_TYPE_LABELS: Record<BundleItemType, string> = {
-  [BundleItemType.PRODUCT]: "Product",
-  [BundleItemType.VARIANT]: "Variant",
+  [BundleItemType.Product]: "Product",
+  [BundleItemType.Variant]: "Variant",
 };
 
 export const STOCK_STATUS_LABELS: Record<StockStatus, string> = {

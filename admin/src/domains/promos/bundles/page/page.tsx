@@ -33,8 +33,8 @@ import {
 } from "@/hooks";
 import { filterSchema } from "./filter-schema";
 import { useBundles } from "../hooks";
-import type { IBundleListItem, BundleType } from "@/mocks/products/bundles-list";
 import { TableCoverImage } from "@/shared/components/table-cover-image";
+import { BundleType, type ApiBundle } from "@/graphql/types";
 
 ModuleRegistry.registerModules([
   AllCommunityModule,
@@ -43,33 +43,35 @@ ModuleRegistry.registerModules([
 ]);
 
 const BundleCellRenderer = (
-  props: CustomCellRendererProps<IBundleListItem>,
+  props: CustomCellRendererProps<ApiBundle>,
 ) => {
   const { data } = props;
   if (!data) return null;
+  const imageUrl = data.media[0]?.file.url;
   return (
     <Flex align="center" gap="small">
       <TableCoverImage
-        src={data.image}
-        alt={data.name}
+        src={imageUrl}
+        alt={data.title}
         fallbackIcon={<GiftOutlined />}
       />
-      <Typography.Text strong>{data.name}</Typography.Text>
+      <Typography.Text strong>{data.title}</Typography.Text>
     </Flex>
   );
 };
 
 const BUNDLE_TYPE_CONFIG: Record<
-  string,
+  BundleType,
   { color: string; label: string }
 > = {
-  FIXED: { color: "blue", label: "Fixed Kit" },
-  MULTIPACK: { color: "cyan", label: "Multipack" },
-  MIX_AND_MATCH: { color: "purple", label: "Mix & Match" },
+  [BundleType.Fixed]: { color: "blue", label: "Fixed Kit" },
+  [BundleType.Multipack]: { color: "cyan", label: "Multipack" },
+  [BundleType.MixAndMatch]: { color: "purple", label: "Mix & Match" },
+  [BundleType.Custom]: { color: "default", label: "Custom" },
 };
 
 const BundleTypeCellRenderer = (
-  props: CustomCellRendererProps<IBundleListItem>,
+  props: CustomCellRendererProps<ApiBundle>,
 ) => {
   const { value } = props;
   const config = value
@@ -79,20 +81,19 @@ const BundleTypeCellRenderer = (
 };
 
 const StatusCellRenderer = (
-  props: CustomCellRendererProps<IBundleListItem>,
+  props: CustomCellRendererProps<ApiBundle>,
 ) => {
   const { value } = props;
-  const config: Record<string, { color: string; label: string }> = {
-    published: { color: "success", label: "Published" },
-    draft: { color: "default", label: "Draft" },
-  };
-  const { color, label } = config[value] || config.draft;
-  return <Tag color={color}>{label}</Tag>;
+  return (
+    <Tag color={value ? "success" : "default"}>
+      {value ? "Published" : "Draft"}
+    </Tag>
+  );
 };
 
 export default function BundlesPage() {
   const agGridTheme = useAgGridTheme();
-  const gridRef = useRef<AgGridReact<IBundleListItem>>(null);
+  const gridRef = useRef<AgGridReact<ApiBundle>>(null);
   const [searchValue, setSearchValue] = useState("");
   const [selectedCount, setSelectedCount] = useState(0);
   const { widgetProps } = useFilters({ schema: filterSchema });
@@ -110,12 +111,12 @@ export default function BundlesPage() {
   });
 
   const { rowSelection, selectionColumnDef, onCellClicked } =
-    useAgGridRowSelection<IBundleListItem>({
+    useAgGridRowSelection<ApiBundle>({
       onRowAction: (data) => push("bundle", { entityId: data.id, level: 1 }),
     });
 
   const handleSelectionChanged = useCallback(
-    (event: SelectionChangedEvent<IBundleListItem>) => {
+    (event: SelectionChangedEvent<ApiBundle>) => {
       const selectedRows = event.api.getSelectedRows();
       setSelectedCount(selectedRows.length);
     },
@@ -174,23 +175,23 @@ export default function BundlesPage() {
     return result;
   }, [selectedCount, selectionActions, deselectAll]);
 
-  const columnDefs = useMemo<ColDef<IBundleListItem>[]>(
+  const columnDefs = useMemo<ColDef<ApiBundle>[]>(
     () => [
       {
         headerName: "Bundle",
-        field: "name",
+        field: "title",
         cellRenderer: BundleCellRenderer,
         minWidth: 280,
       },
       {
         headerName: "Type",
-        field: "bundleType",
+        field: "type",
         cellRenderer: BundleTypeCellRenderer,
         minWidth: 140,
       },
       {
         headerName: "Status",
-        field: "status",
+        field: "isPublished",
         cellRenderer: StatusCellRenderer,
         minWidth: 120,
         resizable: false,
@@ -245,7 +246,7 @@ export default function BundlesPage() {
         }}
       >
         <div style={{ flex: 1 }}>
-          <AgGridReact<IBundleListItem>
+          <AgGridReact<ApiBundle>
             ref={gridRef}
             theme={agGridTheme}
             rowData={bundles}

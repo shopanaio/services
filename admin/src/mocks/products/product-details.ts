@@ -1,10 +1,11 @@
-import {
-  mockBundlesList } from "./bundles-list";
+import { mockBundles } from "./bundles-list";
 import type {
   ProductDetailsSupplementalData,
   IVariantsTableData,
   } from "@/domains/inventory/products/components/product-details-card/types";
 import {
+  BundleItemType,
+  BundlePriceType,
   ThresholdMethod,
   ApiPageInfo,
   ApiProductInventoryWidget,
@@ -13,8 +14,7 @@ import {
 import type { IBundleGroup,
   PricingRuleTemplate,
   IDependencyRule } from "@/domains/promos/bundles/types";
-import { BundleItemType,
-  BundlePriceType,
+import {
   DependencyActionType,
   DependencyTargetType } from "@/domains/promos/bundles/types";
 import { ConditionCategory,
@@ -85,31 +85,31 @@ const mockBundleGroups: IBundleGroup[] = [
     items: [
       {
         id: "item-1",
-        itemType: BundleItemType.PRODUCT,
+        itemType: BundleItemType.Product,
         sortIndex: 0,
         minQty: 1,
         maxQty: 3,
-        pricingRule: { priceType: BundlePriceType.BASE, priceValue: null },
+        pricingRule: { priceType: BundlePriceType.Base, priceValue: null },
         title: "Premium Case",
         featuredImage: null,
       },
       {
         id: "item-2",
-        itemType: BundleItemType.PRODUCT,
+        itemType: BundleItemType.Product,
         sortIndex: 1,
         minQty: null,
         maxQty: 2,
-        pricingRule: { priceType: BundlePriceType.DISCOUNT_PERCENT, priceValue: 10 },
+        pricingRule: { priceType: BundlePriceType.DiscountPercent, priceValue: 10 },
         title: "Pro Charger 65W",
         featuredImage: null,
       },
       {
         id: "item-3",
-        itemType: BundleItemType.PRODUCT,
+        itemType: BundleItemType.Product,
         sortIndex: 2,
         minQty: null,
         maxQty: null,
-        pricingRule: { priceType: BundlePriceType.FREE, priceValue: null },
+        pricingRule: { priceType: BundlePriceType.Free, priceValue: null },
         title: "Screen Protector",
         featuredImage: null,
       },
@@ -124,21 +124,21 @@ const mockBundleGroups: IBundleGroup[] = [
     items: [
       {
         id: "item-4",
-        itemType: BundleItemType.PRODUCT,
+        itemType: BundleItemType.Product,
         sortIndex: 0,
         minQty: null,
         maxQty: 1,
-        pricingRule: { priceType: BundlePriceType.FREE, priceValue: null },
+        pricingRule: { priceType: BundlePriceType.Free, priceValue: null },
         title: "1 Year Standard Warranty (included)",
         featuredImage: null,
       },
       {
         id: "item-5",
-        itemType: BundleItemType.PRODUCT,
+        itemType: BundleItemType.Product,
         sortIndex: 1,
         minQty: null,
         maxQty: 1,
-        pricingRule: { priceType: BundlePriceType.FIXED, priceValue: 12990 },
+        pricingRule: { priceType: BundlePriceType.Fixed, priceValue: 12990 },
         title: "2 Year Extended Warranty",
         featuredImage: null,
       },
@@ -151,19 +151,19 @@ const mockPricingTemplates: PricingRuleTemplate[] = [
   {
     id: "tpl-1",
     name: "Bundle Discount",
-    priceType: BundlePriceType.DISCOUNT_PERCENT,
+    priceType: BundlePriceType.DiscountPercent,
     priceValue: 15,
   },
   {
     id: "tpl-2",
     name: "Premium Fixed",
-    priceType: BundlePriceType.FIXED,
+    priceType: BundlePriceType.Fixed,
     priceValue: 2999,
   },
   {
     id: "tpl-3",
     name: "Free Accessory",
-    priceType: BundlePriceType.FREE,
+    priceType: BundlePriceType.Free,
     priceValue: null,
   },
 ];
@@ -273,7 +273,7 @@ const mockDependencyRules: IDependencyRule[] = [
         actionType: DependencyActionType.ADJUST_PRICE,
         targetType: DependencyTargetType.ITEM,
         targetId: "item-3",
-        priceType: BundlePriceType.DISCOUNT_PERCENT,
+        priceType: BundlePriceType.DiscountPercent,
         priceValue: 20,
       },
       {
@@ -328,7 +328,7 @@ const mockDependencyRules: IDependencyRule[] = [
         id: "act-4-1",
         actionType: DependencyActionType.ADJUST_PRICE,
         targetType: DependencyTargetType.BUNDLE,
-        priceType: BundlePriceType.DISCOUNT_PERCENT,
+        priceType: BundlePriceType.DiscountPercent,
         priceValue: 15,
       },
     ],
@@ -384,7 +384,7 @@ const mockDependencyRules: IDependencyRule[] = [
         actionType: DependencyActionType.ADJUST_PRICE,
         targetType: DependencyTargetType.ITEM,
         targetId: "item-5",
-        priceType: BundlePriceType.FREE,
+        priceType: BundlePriceType.Free,
         priceValue: null,
       },
     ],
@@ -460,14 +460,14 @@ const mockDependencyRules: IDependencyRule[] = [
         actionType: DependencyActionType.ADJUST_PRICE,
         targetType: DependencyTargetType.ITEM,
         targetId: "item-3",
-        priceType: BundlePriceType.FREE,
+        priceType: BundlePriceType.Free,
         priceValue: null,
       },
       {
         id: "act-7-2",
         actionType: DependencyActionType.ADJUST_PRICE,
         targetType: DependencyTargetType.BUNDLE,
-        priceType: BundlePriceType.DISCOUNT_FIXED,
+        priceType: BundlePriceType.DiscountFixed,
         priceValue: 5000,
       },
     ],
@@ -557,7 +557,7 @@ const mockDependencyRules: IDependencyRule[] = [
         actionType: DependencyActionType.ADJUST_PRICE,
         targetType: DependencyTargetType.ITEM,
         targetId: "item-5",
-        priceType: BundlePriceType.DISCOUNT_PERCENT,
+        priceType: BundlePriceType.DiscountPercent,
         priceValue: 50,
       },
       {
@@ -607,7 +607,7 @@ const mockDependencyRules: IDependencyRule[] = [
         id: "act-10-1",
         actionType: DependencyActionType.ADJUST_PRICE,
         targetType: DependencyTargetType.BUNDLE,
-        priceType: BundlePriceType.FIXED,
+        priceType: BundlePriceType.Fixed,
         priceValue: 9999,
       },
       {
@@ -626,7 +626,7 @@ export const productDetailsMockData: ProductDetailsSupplementalData = {
   pricingTemplates: mockPricingTemplates,
   dependencyRules: mockDependencyRules,
   inventory: getMockInventoryWidget(),
-  includedInBundles: mockBundlesList.slice(0, 4),
+  includedInBundles: mockBundles.slice(0, 4),
 };
 
 // ============================================================================

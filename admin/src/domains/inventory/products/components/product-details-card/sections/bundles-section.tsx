@@ -5,16 +5,17 @@ import { GiftOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useBundleModal } from "@/domains/promos/bundles/modals";
 import { useBundlesSectionStyles } from "../product-details-card.styles";
-import type { BundleType, IBundleListItem } from "@/mocks/products/bundles-list";
+import { BundleType, type ApiBundle } from "@/graphql/types";
 
 const BUNDLE_TYPE_CONFIG: Record<BundleType, { label: string; color: string }> = {
-  FIXED: { label: "Fixed", color: "blue" },
-  MULTIPACK: { label: "Multipack", color: "green" },
-  MIX_AND_MATCH: { label: "Mix & Match", color: "purple" },
+  [BundleType.Fixed]: { label: "Fixed", color: "blue" },
+  [BundleType.Multipack]: { label: "Multipack", color: "green" },
+  [BundleType.MixAndMatch]: { label: "Mix & Match", color: "purple" },
+  [BundleType.Custom]: { label: "Custom", color: "default" },
 };
 
 interface IBundlesSectionProps {
-  bundles: IBundleListItem[];
+  bundles: ApiBundle[];
 }
 
 export const BundlesSection = ({ bundles }: IBundlesSectionProps) => {
@@ -37,9 +38,10 @@ export const BundlesSection = ({ bundles }: IBundlesSectionProps) => {
       />
       <div className={styles.bundlesGrid}>
         {bundles.map((bundle) => {
-          const typeConfig = bundle.bundleType
-            ? BUNDLE_TYPE_CONFIG[bundle.bundleType]
+          const typeConfig = bundle.type
+            ? BUNDLE_TYPE_CONFIG[bundle.type]
             : null;
+          const imageUrl = bundle.media[0]?.file.url;
 
           return (
             <div
@@ -49,7 +51,7 @@ export const BundlesSection = ({ bundles }: IBundlesSectionProps) => {
             >
               <Flex gap={10} align="center">
                 <Avatar
-                  src={bundle.image}
+                  src={imageUrl}
                   size={40}
                   shape="square"
                   className={styles.bundleAvatar}
@@ -57,7 +59,7 @@ export const BundlesSection = ({ bundles }: IBundlesSectionProps) => {
                 />
                 <Flex vertical gap={4} flex={1} style={{ minWidth: 0 }}>
                   <Typography.Text strong ellipsis className={styles.bundleName}>
-                    {bundle.name}
+                    {bundle.title}
                   </Typography.Text>
                   <Flex gap={4} wrap="wrap">
                     {typeConfig && (
@@ -65,14 +67,14 @@ export const BundlesSection = ({ bundles }: IBundlesSectionProps) => {
                         {typeConfig.label}
                       </Tag>
                     )}
-                    {!typeConfig && bundle.bundleType === null && (
+                    {!typeConfig && bundle.type === null && (
                       <Tag className={styles.bundleTypeTag}>Custom</Tag>
                     )}
                     <Tag
-                      color={bundle.status === "published" ? "success" : "default"}
+                      color={bundle.isPublished ? "success" : "default"}
                       className={styles.bundleStatusTag}
                     >
-                      {bundle.status === "published" ? "Published" : "Draft"}
+                      {bundle.isPublished ? "Published" : "Draft"}
                     </Tag>
                   </Flex>
                 </Flex>
