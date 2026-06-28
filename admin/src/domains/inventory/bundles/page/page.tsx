@@ -40,6 +40,8 @@ import {
 import { useBundles } from "../hooks";
 import { TableCoverImage } from "@/shared/components/table-cover-image";
 import { Dash } from "@/shared/components/editor-grid";
+import { useDefaultCurrency } from "@/domains/workspace";
+import { formatPrice } from "@/domains/inventory/products/utils/price-formatting";
 import {
   BundleOrderField,
   BundleType,
@@ -91,6 +93,30 @@ const TextCellRenderer = (
   );
 };
 
+const PriceCellRenderer = (
+  props: CustomCellRendererProps<ApiBundle, number | null> & {
+    currency?: string | null;
+    testIdSuffix?: string;
+  },
+) => {
+  const { data, value, currency, testIdSuffix } = props;
+  const displayCurrency = data?.priceRange?.currency ?? currency;
+
+  return (
+    <Typography.Text
+      data-testid={
+        data && testIdSuffix
+          ? `bundles-table-${testIdSuffix}-cell-${data.handle}`
+          : undefined
+      }
+    >
+      {value !== null && value !== undefined && displayCurrency
+        ? formatPrice(value, displayCurrency)
+        : <Dash />}
+    </Typography.Text>
+  );
+};
+
 const BUNDLE_TYPE_CONFIG: Record<
   BundleType,
   { color: string; label: string }
@@ -128,10 +154,17 @@ const getBundlePrimaryCategoryName = (bundle: ApiBundle): string | null =>
     ?.category.name ??
   null;
 
+const getBundleMinPriceAmount = (bundle: ApiBundle): number | null =>
+  bundle.priceRange?.minPriceAmount ?? null;
+
+const getBundleMaxPriceAmount = (bundle: ApiBundle): number | null =>
+  bundle.priceRange?.maxPriceAmount ?? null;
+
 export default function BundlesPage() {
   const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<ApiBundle>>(null);
   const [selectedCount, setSelectedCount] = useState(0);
+  const defaultCurrency = useDefaultCurrency();
   const { push } = useModalStack();
   const {
     pageConfig,
@@ -236,6 +269,30 @@ export default function BundlesPage() {
         minWidth: 280,
       },
       {
+        headerName: "Min price",
+        colId: "minPriceMinor",
+        valueGetter: ({ data }) =>
+          data ? getBundleMinPriceAmount(data) : null,
+        cellRenderer: PriceCellRenderer,
+        cellRendererParams: {
+          currency: defaultCurrency,
+          testIdSuffix: "min-price",
+        },
+        minWidth: 130,
+      },
+      {
+        headerName: "Max price",
+        colId: "maxPriceMinor",
+        valueGetter: ({ data }) =>
+          data ? getBundleMaxPriceAmount(data) : null,
+        cellRenderer: PriceCellRenderer,
+        cellRendererParams: {
+          currency: defaultCurrency,
+          testIdSuffix: "max-price",
+        },
+        minWidth: 130,
+      },
+      {
         headerName: "Category",
         colId: "primaryCategoryName",
         valueGetter: ({ data }) =>
@@ -259,7 +316,7 @@ export default function BundlesPage() {
         sortable: false,
       },
     ],
-    [],
+    [defaultCurrency],
   );
 
   const defaultColDef = useMemo<ColDef>(

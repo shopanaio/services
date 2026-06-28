@@ -28,15 +28,10 @@ export const BUNDLE_LIST_ITEM_FIELDS = gql`
       id
       name
     }
-    variants(first: 100) {
-      edges {
-        node {
-          id
-          price {
-            amountMinor
-          }
-        }
-      }
+    priceRange {
+      minPriceAmount
+      maxPriceAmount
+      currency
     }
   }
 `;
