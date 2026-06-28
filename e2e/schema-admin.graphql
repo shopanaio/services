@@ -1572,7 +1572,7 @@ type Bundle implements Node & Listing {
   kind: ProductKind!
 
   """The URL-friendly handle for the bundle."""
-  handle: String
+  handle: String!
 
   """
   The date and time when the bundle was published, or null if unpublished.
@@ -2109,8 +2109,8 @@ type Category implements Node {
   """
   listing(first: Int, after: String, last: Int, before: String, where: ListingWhereInput, orderBy: [ListingOrderByInput!]): ListingConnection!
 
-  """The total number of listing items in this category."""
-  listingCount: Int!
+  """The total number of products in this category."""
+  productsCount: Int!
 }
 
 """A media item for a category."""
@@ -2970,7 +2970,7 @@ type Product implements Node & Listing {
   kind: ProductKind!
 
   """The URL-friendly handle for the product."""
-  handle: String
+  handle: String!
 
   """
   The date and time when the product was published, or null if unpublished.
@@ -3605,8 +3605,11 @@ interface Listing implements Node {
   """Product discriminator."""
   kind: ProductKind!
 
+  """Whether the listing item is currently published."""
+  isPublished: Boolean!
+
   """The URL-friendly handle."""
-  handle: String
+  handle: String!
 
   """Localized title."""
   title: String!

@@ -1,7 +1,12 @@
-mutation BundleGroupDelete($input: DeleteInput!) {
+mutation BundleGroupDelete($input: BundleGroupsSyncInput!) {
   catalogMutation {
-    bundleGroupDelete(input: $input) {
-      deletedId
+    bundleGroupsSync(input: $input) {
+      configuration {
+        id
+      }
+      groups {
+        id
+      }
       userErrors {
         message
         code

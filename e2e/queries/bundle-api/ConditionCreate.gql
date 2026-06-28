@@ -1,16 +1,23 @@
-mutation ConditionCreate($input: ConditionCreateInput!) {
+mutation ConditionCreate($input: BundleDependencyRulesSyncInput!) {
   catalogMutation {
-    conditionCreate(input: $input) {
-      condition {
+    bundleDependencyRulesSync(input: $input) {
+      dependencyRules {
         id
-        groupId
-        category
-        subject
-        operator
-        targetType
-        targetId
-        value
-        sortIndex
+        conditionGroups {
+          id
+          logicOperator
+          sortIndex
+          conditions {
+            id
+            category
+            subject
+            operator
+            targetType
+            targetId
+            value
+            sortIndex
+          }
+        }
       }
       userErrors {
         message

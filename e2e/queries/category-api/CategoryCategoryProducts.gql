@@ -2,8 +2,8 @@ query CategoryCategoryProducts(
   $id: ID!
   $first: Int
   $after: String
-  $filters: ProductFiltersInput
-  $sort: ProductSortInput
+  $where: ListingWhereInput
+  $orderBy: [ListingOrderByInput!]
 ) {
   catalogQuery {
     category(id: $id) {
@@ -12,29 +12,27 @@ query CategoryCategoryProducts(
       name
       defaultSort
       defaultSortDirection
-      categoryProducts(
-        first: $first
-        after: $after
-        filters: $filters
-        sort: $sort
-      ) {
+      listing(first: $first, after: $after, where: $where, orderBy: $orderBy) {
         edges {
           node {
             id
+            kind
             title
             handle
             isPublished
-            variants(first: 1) {
-              edges {
-                node {
-                  id
-                  price {
-                    amountMinor
-                    currency
-                  }
-                  inventoryItem {
+            ... on Product {
+              variants(first: 1) {
+                edges {
+                  node {
                     id
-                    totalAvailable
+                    price {
+                      amountMinor
+                      currency
+                    }
+                    inventoryItem {
+                      id
+                      totalAvailable
+                    }
                   }
                 }
               }
@@ -49,31 +47,6 @@ query CategoryCategoryProducts(
           endCursor
         }
         totalCount
-        facets {
-          priceRange {
-            minMinor
-            maxMinor
-          }
-          groups {
-            name
-            facets {
-              facetType
-              slug
-              label
-              uiType
-              selectionMode
-              totalCount
-              values {
-                slug
-                label
-                count
-                swatch {
-                  id
-                }
-              }
-            }
-          }
-        }
       }
     }
   }

@@ -1,21 +1,22 @@
-mutation ConditionGroupUpdate($input: ConditionGroupUpdateInput!) {
+mutation ConditionGroupUpdate($input: BundleDependencyRulesSyncInput!) {
   catalogMutation {
-    conditionGroupUpdate(input: $input) {
-      conditionGroup {
+    bundleDependencyRulesSync(input: $input) {
+      dependencyRules {
         id
-        ruleId
-        logicOperator
-        sortIndex
-        conditions {
+        conditionGroups {
           id
-          groupId
-          category
-          subject
-          operator
-          targetType
-          targetId
-          value
+          logicOperator
           sortIndex
+          conditions {
+            id
+            category
+            subject
+            operator
+            targetType
+            targetId
+            value
+            sortIndex
+          }
         }
       }
       userErrors {

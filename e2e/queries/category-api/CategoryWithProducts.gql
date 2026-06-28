@@ -5,7 +5,7 @@ query CategoryWithProducts(
   $last: Int
   $before: String
   $orderBy: [ListingOrderByInput!]
-  $where: CategoryProductWhereInput
+  $where: ListingWhereInput
 ) {
   catalogQuery {
     category(id: $id) {
@@ -13,10 +13,12 @@ query CategoryWithProducts(
       handle
       name
       productsCount
-      products(first: $first, after: $after, last: $last, before: $before, orderBy: $orderBy, where: $where) {
+      listing(first: $first, after: $after, last: $last, before: $before, orderBy: $orderBy, where: $where) {
         edges {
           node {
             id
+            kind
+            isPublished
             title
             handle
           }

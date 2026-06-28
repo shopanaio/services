@@ -1,17 +1,17 @@
-mutation DependencyActionCreate($input: DependencyActionCreateInput!) {
+mutation DependencyActionCreate($input: BundleDependencyRulesSyncInput!) {
   catalogMutation {
-    dependencyActionCreate(input: $input) {
-      dependencyAction {
+    bundleDependencyRulesSync(input: $input) {
+      dependencyRules {
         id
-        ruleId
-        actionType
-        targetType
-        targetId
-        requiredValue
-        priceType
-        priceValue
-        stackable
-        sortIndex
+        actions {
+          id
+          actionType
+          targetType
+          targetId
+          requiredValue
+          stackable
+          sortIndex
+        }
       }
       userErrors {
         message

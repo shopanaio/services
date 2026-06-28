@@ -1,32 +1,28 @@
-mutation BundleItemCreate($input: BundleItemCreateInput!) {
+mutation BundleItemCreate($input: BundleGroupsSyncInput!) {
   catalogMutation {
-    bundleItemCreate(input: $input) {
-      bundleItem {
+    bundleGroupsSync(input: $input) {
+      groups {
         id
-        groupId
-        itemType
-        sortIndex
-        refProductId
-        refVariantId
-        title
-        featuredImageId
-        excludedVariantIds
-        minQty
-        maxQty
-        defaultQty
-        priceType
-        priceValue
-        pricingTemplateId
-        pricingTemplate {
+        items {
           id
-          name
-          priceType
-          priceValue
+          groupId
+          itemType
+          sortIndex
+          refProductId
+          refVariantId
+          title
+          minQty
+          maxQty
+          defaultQty
+          pricingTemplate {
+            id
+            name
+          }
+          visible
+          selected
+          createdAt
+          updatedAt
         }
-        visible
-        selected
-        createdAt
-        updatedAt
       }
       userErrors {
         message

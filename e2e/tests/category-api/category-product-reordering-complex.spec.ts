@@ -90,7 +90,7 @@ async function getProductsInOrder(api: ApiFixtures['api'], categoryId: string): 
     },
   });
 
-  return data.catalogQuery.category.products.edges.map((e: any) => e.node.title);
+  return data.catalogQuery.category.listing.edges.map((e: any) => e.node.title);
 }
 
 /**

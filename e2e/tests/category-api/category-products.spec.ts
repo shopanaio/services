@@ -108,8 +108,8 @@ async function getCategoryProductsSnapshot(api: ApiFixtures['api'], categoryId: 
 
   return {
     productsCount: category.productsCount,
-    totalCount: category.products.totalCount,
-    productIds: category.products.edges.map((edge) => edge.node.id),
+    totalCount: category.listing.totalCount,
+    productIds: category.listing.edges.map((edge) => edge.node.id),
   };
 }
 
@@ -153,7 +153,7 @@ async function prepareCategoryProducts(api: ApiFixtures['api']) {
 // Use the pagination builder for comprehensive tests
 createConnectionPaginationTests<CategoryProduct>({
   queryName: 'category-api/CategoryWithProducts',
-  suiteName: 'Category.products cursor pagination',
+  suiteName: 'Category.listing cursor pagination',
   prepare: prepareCategoryProducts,
   sortCases: [
     // MANUAL sorting (insertion order)
@@ -202,15 +202,15 @@ createConnectionPaginationTests<CategoryProduct>({
     },
   ],
   getConnection: (data) => {
-    const d = data as { catalogQuery: { category: { products: Connection<CategoryProduct> } } };
-    return d.catalogQuery.category.products;
+    const d = data as { catalogQuery: { category: { listing: Connection<CategoryProduct> } } };
+    return d.catalogQuery.category.listing;
   },
   pageSize: 2,
   skipCursorValidation: true, // Skip cursor validation for now
 });
 
 // Basic functional tests
-test.describe('Category.products field - basic', () => {
+test.describe('Category.listing field - basic', () => {
   test.beforeEach(async ({ api }) => {
     await api.session.setupUserAndStore();
   });
@@ -230,8 +230,8 @@ test.describe('Category.products field - basic', () => {
 
     const cat = data.catalogQuery.category;
     expect(cat).toBeTruthy();
-    expect(cat?.products.edges).toHaveLength(0);
-    expect(cat?.products.totalCount).toBe(0);
+    expect(cat?.listing.edges).toHaveLength(0);
+    expect(cat?.listing.totalCount).toBe(0);
     expect(cat?.productsCount).toBe(0);
   });
 
@@ -252,9 +252,9 @@ test.describe('Category.products field - basic', () => {
     });
 
     const cat = data.catalogQuery.category;
-    expect(cat?.products.edges).toHaveLength(1);
-    expect(cat?.products.edges[0].node.id).toBe(product.id);
-    expect(cat?.products.totalCount).toBe(1);
+    expect(cat?.listing.edges).toHaveLength(1);
+    expect(cat?.listing.edges[0].node.id).toBe(product.id);
+    expect(cat?.listing.totalCount).toBe(1);
   });
 
   test('should update productsCount from product category assignment and delete events', async ({ api }) => {
@@ -313,7 +313,7 @@ test.describe('Category.products field - basic', () => {
       },
     });
 
-    const titles = data.catalogQuery.category?.products.edges.map((e) => e.node.title);
+    const titles = data.catalogQuery.category?.listing.edges.map((e) => e.node.title);
     expect(titles).toEqual(['Apple', 'Mango', 'Zebra']);
   });
 
@@ -338,7 +338,7 @@ test.describe('Category.products field - basic', () => {
       },
     });
 
-    const titles = data.catalogQuery.category?.products.edges.map((e) => e.node.title);
+    const titles = data.catalogQuery.category?.listing.edges.map((e) => e.node.title);
     expect(titles).toEqual(['Cheap', 'Medium', 'Expensive']);
   });
 
@@ -364,7 +364,7 @@ test.describe('Category.products field - basic', () => {
     });
 
     const cat = data.catalogQuery.category;
-    const titles = cat?.products.edges.map((e) => e.node.title);
+    const titles = cat?.listing.edges.map((e) => e.node.title);
     // Newest first = reverse creation order
     expect(titles).toEqual(['Third Created', 'Second Created', 'First Created']);
   });
@@ -391,7 +391,7 @@ test.describe('Category.products field - basic', () => {
     });
 
     const cat = data.catalogQuery.category;
-    const titles = cat?.products.edges.map((e) => e.node.title);
+    const titles = cat?.listing.edges.map((e) => e.node.title);
     // Manual = insertion order
     expect(titles).toEqual(['First Added', 'Second Added', 'Third Added']);
   });

@@ -13,39 +13,39 @@ related:
 ---
 # @shopana/drizzle-mutation
 
-Architecture plan for a type-safe mutation planner for Drizzle ORM.
+Архитектурный план type-safe mutation planner для Drizzle ORM.
 
-## Goal
+## Цель
 
-`@shopana/drizzle-mutation` should generate deterministic database mutation plans from typed input and current database state. It complements `@shopana/drizzle-query`: query builders read graph-shaped data, mutation builders synchronize graph-shaped aggregate input back into PostgreSQL.
+`@shopana/drizzle-mutation` должен генерировать детерминированные планы мутаций базы данных на основе типизированного input и текущего состояния в базе. Пакет дополняет `@shopana/drizzle-query`: query builders читают graph-shaped данные, а mutation builders синхронизируют graph-shaped aggregate input обратно в PostgreSQL.
 
-The package should not replace scripts, repositories, validation, authorization, or business workflows. It should be a lower-level repository helper for repetitive insert, update, delete, and nested collection synchronization logic.
+Пакет не должен заменять scripts, repositories, validation, authorization или business workflows. Это низкоуровневый repository helper для повторяющейся логики insert, update, delete и синхронизации вложенных коллекций.
 
-## Problem
+## Проблема
 
-Complex update mutations often need the same sequence of steps:
+Сложные update mutations часто требуют одной и той же последовательности шагов:
 
-1. Load the current aggregate from the database.
-2. Compare it with user input.
-3. Update changed scalar fields.
-4. Insert nested records that are present in input but missing in the database.
-5. Update nested records that exist in both places.
-6. Delete, soft-delete, detach, or ignore nested records missing from input.
-7. Execute all operations in one transaction.
+1. Загрузить текущий aggregate из базы данных.
+2. Сравнить его с пользовательским input.
+3. Обновить измененные scalar fields.
+4. Вставить вложенные записи, которые есть в input, но отсутствуют в базе.
+5. Обновить вложенные записи, которые существуют и в input, и в базе.
+6. Удалить, soft-delete, detach или проигнорировать вложенные записи, отсутствующие в input.
+7. Выполнить все операции в одной транзакции.
 
-Hand-writing this logic in every repository creates duplicated code and inconsistent behavior around tenancy filters, timestamps, optimistic locking, nested deletes, and idempotent updates.
+Если писать эту логику вручную в каждом repository, появляется дублирование и несогласованное поведение вокруг tenancy filters, timestamps, optimistic locking, nested deletes и idempotent updates.
 
-## Non-Goals
+## Не Цели
 
-- Do not expose raw JSON Patch as the primary public API.
-- Do not encode business rules in the mutation builder.
-- Do not run authorization checks.
-- Do not replace Script Pattern for GraphQL mutations.
-- Do not bypass repository transaction-aware connections.
-- Do not infer destructive deletes without explicit configuration.
-- Do not generate Drizzle migrations.
+- Не выставлять raw JSON Patch как основной публичный API.
+- Не кодировать business rules внутри mutation builder.
+- Не выполнять authorization checks.
+- Не заменять Script Pattern для GraphQL mutations.
+- Не обходить repository transaction-aware connections.
+- Не выводить destructive deletes неявно без явной конфигурации.
+- Не генерировать Drizzle migrations.
 
-## Layering
+## Слои
 
 ```text
 GraphQL resolver
@@ -65,11 +65,11 @@ GraphQL resolver
         -> Drizzle ORM
 ```
 
-Repositories remain the integration point. They pass `this.connection` to the mutation builder so transaction propagation still comes from `TransactionManager`.
+Repositories остаются точкой интеграции. Они передают `this.connection` в mutation builder, поэтому transaction propagation по-прежнему идет через `TransactionManager`.
 
-## Core Concept
+## Основная Идея
 
-The central abstraction is an aggregate mutation config:
+Центральная абстракция - aggregate mutation config:
 
 ```typescript
 import { createMutation, field, relation } from "@shopana/drizzle-mutation";
@@ -109,7 +109,7 @@ export const productMutation = createMutation(products, {
 });
 ```
 
-Example repository usage:
+Пример использования в repository:
 
 ```typescript
 async syncProduct(input: ProductSyncInput): Promise<ProductMutationResult> {
@@ -121,11 +121,11 @@ async syncProduct(input: ProductSyncInput): Promise<ProductMutationResult> {
 }
 ```
 
-## Public API
+## Публичный API
 
 ### createMutation()
 
-Creates an immutable mutation builder for one aggregate root.
+Создает immutable mutation builder для одного aggregate root.
 
 ```typescript
 const mutation = createMutation(table, config)
@@ -134,11 +134,11 @@ const mutation = createMutation(table, config)
   .optimisticLock({ column: products.updatedAt });
 ```
 
-Configuration methods should return a new builder, matching the `drizzle-query` immutable builder style.
+Configuration methods должны возвращать новый builder, как в immutable builder style у `drizzle-query`.
 
 ### diff()
 
-Builds a mutation plan without executing it.
+Строит mutation plan без выполнения.
 
 ```typescript
 const plan = await productMutation.diff(db, {
@@ -151,14 +151,14 @@ const plan = await productMutation.diff(db, {
 Use cases:
 
 - audit preview;
-- debugging generated operations;
+- debugging сгенерированных операций;
 - dry-run validation;
 - snapshot testing;
-- event payload construction.
+- построение event payload.
 
 ### apply()
 
-Builds and executes a mutation plan.
+Строит и выполняет mutation plan.
 
 ```typescript
 const result = await productMutation.apply(db, {
@@ -168,11 +168,11 @@ const result = await productMutation.apply(db, {
 });
 ```
 
-`apply()` must execute against the connection passed by the repository. It must not create a new database connection or transaction manager.
+`apply()` должен выполняться через connection, переданный repository. Он не должен создавать новое подключение к базе или новый transaction manager.
 
 ### plan()
 
-Builds a plan from already-loaded current state.
+Строит plan из уже загруженного current state.
 
 ```typescript
 const current = await repository.product.findAggregate(input.id);
@@ -183,11 +183,11 @@ const plan = productMutation.plan({
 });
 ```
 
-This avoids duplicate reads when a script or repository has already loaded the aggregate for business validation.
+Это позволяет избежать повторного чтения, если script или repository уже загрузили aggregate для business validation.
 
-## Operation Model
+## Модель Операций
 
-The internal planner emits normalized operations:
+Внутренний planner генерирует нормализованные операции:
 
 ```typescript
 type MutationOperation =
@@ -237,9 +237,9 @@ interface DetachOperation {
 }
 ```
 
-The execution layer converts these operations to Drizzle insert, update, and delete calls.
+Execution layer преобразует эти операции в Drizzle insert, update и delete calls.
 
-## Internal Architecture
+## Внутренняя Архитектура
 
 ```text
 createMutation()
@@ -269,32 +269,32 @@ createMutation()
      - reports affected rows and conflicts
 ```
 
-## Diff Semantics
+## Семантика Diff
 
 ### Object Fields
 
-For scalar fields:
+Для scalar fields:
 
-- `undefined` means "not provided" and must not update a column.
-- `null` means "set database column to null" when the field is nullable.
-- equal values produce no operation.
-- changed values produce one update operation for the owning row.
+- `undefined` означает "не передано" и не должен обновлять колонку.
+- `null` означает "установить database column в null", если field nullable.
+- равные значения не создают операции.
+- измененные значения создают одну update operation для owning row.
 
 ### Collections
 
-Collection items must have an identity strategy:
+Collection items должны иметь identity strategy:
 
 ```typescript
 identity: "id"
 ```
 
-or:
+или:
 
 ```typescript
 identity: (item) => item.sku
 ```
 
-Matching rules:
+Правила matching:
 
 | Input item | Database item | Result |
 |------------|---------------|--------|
@@ -303,31 +303,31 @@ Matching rules:
 | missing | present | configured missing policy |
 | missing | missing | no-op |
 
-The builder must reject collection sync when it cannot determine stable identity.
+Builder должен отклонять collection sync, если не может определить стабильную identity.
 
 ### Missing Policy
 
-Relations must explicitly define how to handle database rows missing from input:
+Relations должны явно определять, что делать с database rows, отсутствующими в input:
 
 | Policy | Behavior |
 |--------|----------|
-| `ignore` | leave database rows unchanged |
-| `delete` | physically delete missing rows |
-| `softDelete` | set configured delete marker |
-| `detach` | set foreign key to null |
-| `forbid` | fail planning if input omits existing rows |
+| `ignore` | оставить database rows без изменений |
+| `delete` | физически удалить missing rows |
+| `softDelete` | установить configured delete marker |
+| `detach` | установить foreign key в null |
+| `forbid` | упасть на planning, если input пропускает existing rows |
 
-Default policy should be `ignore`.
+Default policy должна быть `ignore`.
 
-## Tenancy and Scope
+## Tenancy и Scope
 
-Every root and relation config should support a `scope` callback:
+Каждый root и relation config должен поддерживать `scope` callback:
 
 ```typescript
 scope: ({ ctx }) => eq(products.projectId, ctx.store.id)
 ```
 
-The scope must be applied to:
+Scope должен применяться к:
 
 - root snapshot loads;
 - relation snapshot loads;
@@ -335,11 +335,11 @@ The scope must be applied to:
 - delete where clauses;
 - optimistic-lock checks.
 
-The package should prefer explicit scope configuration over implicit column-name conventions.
+Пакет должен предпочитать явную scope configuration, а не implicit conventions по именам колонок.
 
 ## Optimistic Locking
 
-Optimistic locking should be optional but first-class:
+Optimistic locking должен быть optional, но first-class:
 
 ```typescript
 optimisticLock: {
@@ -348,7 +348,7 @@ optimisticLock: {
 }
 ```
 
-If the current database value does not match the expected input value, execution should fail with a conflict result before applying later operations.
+Если текущее значение в базе не совпадает с ожидаемым значением из input, execution должен завершиться conflict result до применения последующих операций.
 
 Result shape:
 
@@ -360,11 +360,11 @@ interface MutationConflict {
 }
 ```
 
-Scripts should translate conflicts into GraphQL `userErrors`.
+Scripts должны переводить conflicts в GraphQL `userErrors`.
 
-## Timestamps and Generated Values
+## Timestamps и Generated Values
 
-The builder should support generated values without owning domain-specific ID rules:
+Builder должен поддерживать generated values, но не владеть domain-specific ID rules:
 
 ```typescript
 defaults: {
@@ -383,15 +383,15 @@ timestamps: {
 }
 ```
 
-Rules:
+Правила:
 
-- insert sets both `createdAt` and `updatedAt`;
-- update sets only `updatedAt` when at least one persisted field changed;
-- no-op plans must not touch timestamps.
+- insert выставляет и `createdAt`, и `updatedAt`;
+- update выставляет только `updatedAt`, когда изменилось хотя бы одно persisted field;
+- no-op plans не должны менять timestamps.
 
 ## Hooks
 
-Hooks should be scoped to persistence concerns, not business logic:
+Hooks должны быть ограничены persistence concerns, а не business logic:
 
 ```typescript
 hooks: {
@@ -401,46 +401,46 @@ hooks: {
 }
 ```
 
-Allowed hook use cases:
+Разрешенные use cases для hooks:
 
 - audit metadata;
 - normalized value transforms;
 - operation logging;
 - injecting generated persistence fields.
 
-Disallowed hook use cases:
+Запрещенные use cases для hooks:
 
 - permission checks;
 - external API calls;
 - payment capture;
 - workflow orchestration;
-- domain transitions that belong in scripts.
+- domain transitions, которые должны жить в scripts.
 
 ## Error Model
 
-The package should throw or return structured technical errors:
+Пакет должен throw или return structured technical errors:
 
 | Error | Meaning |
 |-------|---------|
-| `InvalidMutationConfigError` | config cannot be compiled |
-| `MissingIdentityError` | collection item cannot be matched |
-| `MutationConflictError` | optimistic lock or affected-row mismatch |
-| `MutationExecutionError` | Drizzle operation failed |
-| `UnsafeDeleteError` | destructive operation lacks explicit policy or scope |
+| `InvalidMutationConfigError` | config нельзя скомпилировать |
+| `MissingIdentityError` | collection item нельзя сопоставить |
+| `MutationConflictError` | optimistic lock или affected-row mismatch |
+| `MutationExecutionError` | Drizzle operation упала |
+| `UnsafeDeleteError` | destructive operation не имеет явной policy или scope |
 
-Repository methods may let these errors bubble to scripts. Scripts convert them to service-specific `userErrors`.
+Repository methods могут позволить этим errors подняться до scripts. Scripts переводят их в service-specific `userErrors`.
 
 ## Type Inference
 
-The package should infer:
+Пакет должен infer:
 
-- input type from configured fields and relations;
+- input type из configured fields и relations;
 - plan operation paths;
 - result entity keys;
 - missing-policy-specific input requirements;
 - nullable versus optional field behavior.
 
-Example:
+Пример:
 
 ```typescript
 export type ProductMutationInput = InferMutationInput<typeof productMutation>;
@@ -448,35 +448,35 @@ export type ProductMutationPlan = InferMutationPlan<typeof productMutation>;
 export type ProductMutationResult = InferMutationResult<typeof productMutation>;
 ```
 
-## Execution Ordering
+## Порядок Выполнения
 
-The plan builder must order operations by dependency:
+Plan builder должен упорядочивать операции по dependencies:
 
 1. Root insert.
-2. Parent updates required by child inserts.
+2. Parent updates, необходимые для child inserts.
 3. Child inserts.
 4. Child updates.
-5. Child detach or soft-delete.
+5. Child detach или soft-delete.
 6. Child physical delete.
 7. Root update.
 8. Root delete.
 
-Physical deletes should normally run from deepest child to root. Inserts should run from root to child so foreign keys are available.
+Physical deletes обычно должны выполняться от самого глубокого child к root. Inserts должны выполняться от root к child, чтобы foreign keys уже были доступны.
 
 ## Idempotency
 
-The builder should aim for deterministic plans:
+Builder должен стремиться к deterministic plans:
 
 - stable operation ordering;
-- stable generated IDs when caller provides them;
-- no update operations for unchanged values;
-- no timestamp changes for no-op plans.
+- stable generated IDs, если caller их передает;
+- отсутствие update operations для неизмененных значений;
+- отсутствие timestamp changes для no-op plans.
 
-Durable idempotency and workflow retry behavior should remain in DBOS scripts/workflows. The mutation builder can expose plan hashes for idempotency keys, but should not own workflow execution.
+Durable idempotency и workflow retry behavior должны оставаться в DBOS scripts/workflows. Mutation builder может expose plan hashes для idempotency keys, но не должен владеть workflow execution.
 
-## Audit and Events
+## Audit и Events
 
-`diff()` should expose enough metadata for audit/event construction:
+`diff()` должен предоставлять достаточно metadata для построения audit/events:
 
 ```typescript
 interface MutationChange {
@@ -488,9 +488,9 @@ interface MutationChange {
 }
 ```
 
-Scripts decide which changes become domain events.
+Scripts решают, какие changes становятся domain events.
 
-## Package Structure
+## Структура Пакета
 
 ```text
 packages/drizzle-mutation/
@@ -535,20 +535,20 @@ packages/drizzle-mutation/
 
 ## MVP Scope
 
-The first version should be deliberately narrow:
+Первая версия должна быть намеренно узкой:
 
-- one aggregate root table;
-- scalar insert and update;
+- одна aggregate root table;
+- scalar insert и update;
 - one-level `hasMany` relation;
-- `ignore`, `delete`, and `forbid` missing policies;
-- tenant `scope` applied to all writes;
-- `createdAt` and `updatedAt` helper support;
-- `diff()`, `plan()`, and `apply()`;
-- no GraphQL codegen;
-- no DBOS integration;
-- no many-to-many sync.
+- missing policies `ignore`, `delete` и `forbid`;
+- tenant `scope`, применяемый ко всем writes;
+- поддержка helpers для `createdAt` и `updatedAt`;
+- `diff()`, `plan()` и `apply()`;
+- без GraphQL codegen;
+- без DBOS integration;
+- без many-to-many sync.
 
-## Later Phases
+## Следующие Фазы
 
 ### Phase 1: Core Planner
 
@@ -561,9 +561,9 @@ The first version should be deliberately narrow:
 ### Phase 2: Repository Integration
 
 - Drizzle executor;
-- transaction-aware connection usage;
+- использование transaction-aware connection;
 - tenant scope enforcement;
-- timestamp and default value helpers;
+- helpers для timestamp и default values;
 - affected-row verification.
 
 ### Phase 3: Nested Aggregates
@@ -585,9 +585,9 @@ The first version should be deliberately narrow:
 ### Phase 5: Developer Experience
 
 - type inference helpers;
-- better error messages;
+- более понятные error messages;
 - plan pretty-printer;
-- cookbook examples for catalog products, variants, media, and options.
+- cookbook examples для catalog products, variants, media и options.
 
 ### Phase 6: Advanced Sync
 
@@ -597,7 +597,7 @@ The first version should be deliberately narrow:
 - bulk apply;
 - audit change emitters.
 
-## Example: Product Aggregate Sync
+## Пример: Product Aggregate Sync
 
 Input:
 
@@ -643,30 +643,30 @@ insert product_variants values (...)
 delete product_variants where project_id and id
 ```
 
-## Open Questions
+## Открытые Вопросы
 
-- Should generated IDs be created by the builder or always passed by repositories?
-- Should `apply()` return only affected IDs or re-select the aggregate after execution?
-- Should relation input default to full sync or partial patch semantics?
-- Should soft-delete rows be included in snapshot loading for restore support?
-- Should plan execution stop at first conflict or collect all detectable conflicts first?
-- Should this package share field metadata with `@shopana/drizzle-query` or keep independent helpers?
+- Должен ли builder создавать generated IDs или repositories всегда должны передавать их сами?
+- Должен ли `apply()` возвращать только affected IDs или заново читать aggregate после execution?
+- Должен ли relation input по умолчанию означать full sync или partial patch semantics?
+- Нужно ли включать soft-delete rows в snapshot loading для restore support?
+- Должен ли plan execution останавливаться на первом conflict или сначала собирать все detectable conflicts?
+- Должен ли этот пакет переиспользовать field metadata из `@shopana/drizzle-query` или держать независимые helpers?
 
-## Recommended Defaults
+## Рекомендуемые Defaults
 
 | Concern | Default |
 |---------|---------|
 | Missing collection rows | `ignore` |
-| Destructive delete | require explicit relation policy |
+| Destructive delete | требует явной relation policy |
 | Field omitted from input | no update |
 | Field set to `null` | set nullable column to null |
 | Empty `set` object | no operation |
 | Timestamp on no-op | unchanged |
 | Scope | required for tenant-owned aggregates |
-| Execution | repository-provided connection only |
+| Execution | только repository-provided connection |
 | Builder style | immutable fluent API |
 
-## See Also
+## См. Также
 
 - [[drizzle-query/index]] - query builder package
 - [[patterns/repository]] - repository pattern with transaction-aware connections

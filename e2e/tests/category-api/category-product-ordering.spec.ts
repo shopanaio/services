@@ -50,11 +50,11 @@ test.describe('Category Product Ordering API', () => {
       variables: {
         categoryId,
         first: 20,
-        sort: { by: 'MANUAL', direction: 'asc' },
+        orderBy: [{ field: 'MANUAL', direction: 'asc' }],
       },
     });
 
-    return data.catalogQuery.categoryProducts.edges.map((e: any) => ({
+    return data.catalogQuery.category.listing.edges.map((e: any) => ({
       id: e.node.id,
       title: e.node.title,
     }));

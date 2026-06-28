@@ -1,39 +1,23 @@
-mutation DependencyRuleUpdate($input: DependencyRuleUpdateInput!) {
+mutation DependencyRuleUpdate($input: BundleDependencyRulesSyncInput!) {
   catalogMutation {
-    dependencyRuleUpdate(input: $input) {
-      dependencyRule {
+    bundleDependencyRulesSync(input: $input) {
+      dependencyRules {
         id
-        productId
         name
         enabled
         priority
         logicOperator
         conditionGroups {
           id
-          ruleId
           logicOperator
           sortIndex
-          conditions {
-            id
-            groupId
-            category
-            subject
-            operator
-            targetType
-            targetId
-            value
-            sortIndex
-          }
         }
         actions {
           id
-          ruleId
           actionType
           targetType
           targetId
           requiredValue
-          priceType
-          priceValue
           stackable
           sortIndex
         }

@@ -1,43 +1,39 @@
 query DependencyRule($id: ID!) {
   catalogQuery {
-    dependencyRule(id: $id) {
-      id
-      productId
-      name
-      enabled
-      priority
-      logicOperator
-      conditionGroups {
+    node(id: $id) {
+      ... on BundleDependencyRule {
         id
-        ruleId
+        name
+        enabled
+        priority
         logicOperator
-        sortIndex
-        conditions {
+        conditionGroups {
           id
-          groupId
-          category
-          subject
-          operator
+          logicOperator
+          sortIndex
+          conditions {
+            id
+            category
+            subject
+            operator
+            targetType
+            targetId
+            value
+            sortIndex
+          }
+        }
+        actions {
+          id
+          actionType
           targetType
           targetId
-          value
+          requiredValue
+          stackable
           sortIndex
         }
+        createdAt
+        updatedAt
       }
-      actions {
-        id
-        ruleId
-        actionType
-        targetType
-        targetId
-        requiredValue
-        priceType
-        priceValue
-        stackable
-        sortIndex
-      }
-      createdAt
-      updatedAt
     }
   }
 }

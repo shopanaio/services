@@ -1,31 +1,33 @@
 query BundleItem($id: ID!) {
   catalogQuery {
-    bundleItem(id: $id) {
-      id
-      groupId
-      itemType
-      sortIndex
-      refProductId
-      refVariantId
-      title
-      featuredImageId
-      excludedVariantIds
-      minQty
-      maxQty
-      defaultQty
-      priceType
-      priceValue
-      pricingTemplateId
-      pricingTemplate {
+    node(id: $id) {
+      ... on BundleItem {
         id
-        name
-        priceType
-        priceValue
+        groupId
+        itemType
+        sortIndex
+        refProductId
+        refVariantId
+        title
+        featuredImage {
+          id
+        }
+        minQty
+        maxQty
+        defaultQty
+        pricingTemplate {
+          id
+          name
+          priceRule {
+            id
+            priceType
+          }
+        }
+        visible
+        selected
+        createdAt
+        updatedAt
       }
-      visible
-      selected
-      createdAt
-      updatedAt
     }
   }
 }

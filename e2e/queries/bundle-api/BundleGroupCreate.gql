@@ -1,9 +1,8 @@
-mutation BundleGroupCreate($input: BundleGroupCreateInput!) {
+mutation BundleGroupCreate($input: BundleGroupsSyncInput!) {
   catalogMutation {
-    bundleGroupCreate(input: $input) {
-      bundleGroup {
+    bundleGroupsSync(input: $input) {
+      groups {
         id
-        productId
         title
         sortIndex
         minSelection

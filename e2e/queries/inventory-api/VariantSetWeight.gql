@@ -11,6 +11,7 @@ mutation VariantSetWeight(
       operations: {
         variants: [
           {
+            action: UPDATE
             variantId: $variantId
             weight: $weight
           }
