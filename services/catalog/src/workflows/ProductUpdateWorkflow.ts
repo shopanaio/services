@@ -55,6 +55,7 @@ import {
   type VariantOptionsUpdate,
 } from "../scripts/variant/VariantBatchUpdateOptionsScript.js";
 import { InventoryItemUpdateScript } from "../scripts/inventory-item/InventoryItemUpdateScript.js";
+import type { BackRefNotifyInput } from "../sagas/index.js";
 
 type VariantWorkflowOperation = Extract<
   ProductUpdateOperation,
@@ -220,6 +221,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     const hasChanges =
       changes.product !== undefined || changes.variants !== undefined;
     if (hasChanges) {
+      await this.workflowNotifyProductMediaBackRefs(input, changes);
       await this.workflowEmitEvent(input, changes, revision);
     }
 
@@ -1245,6 +1247,48 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       applied: result.applied,
       errors: result.errors,
     }));
+  }
+
+  /**
+   * Emit productUpdated event with partial snapshot.
+   */
+  private async workflowNotifyProductMediaBackRefs(
+    input: ProductUpdateWorkflowInput,
+    changes: ProductChanges,
+  ): Promise<void> {
+    const mediaChanges = changes.product?.media;
+
+    if (!mediaChanges) {
+      return;
+    }
+
+    try {
+      await this.broker.runSaga<unknown, BackRefNotifyInput>(
+        "catalog.backRefNotify",
+        {
+          entityRef: {
+            service: "catalog",
+            entityType: "product",
+            entityId: input.productId,
+          },
+          fileIds: mediaChanges.fileIds,
+        },
+        {
+          source: "workflow",
+          workflowId: `productUpdate:${input.productId}`,
+          stepId: "notifyProductMediaBackRefs",
+        },
+      );
+    } catch (error) {
+      this.logger.error(
+        {
+          productId: input.productId,
+          error,
+          fileCount: mediaChanges.fileIds.length,
+        },
+        "Failed to start product media back-ref sync saga",
+      );
+    }
   }
 
   /**

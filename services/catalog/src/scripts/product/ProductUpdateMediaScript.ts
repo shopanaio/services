@@ -4,7 +4,6 @@ import type {
   ProductUpdateMediaResult,
 } from "./dto/ProductUpdateMediaDto.js";
 import type { MediaChanges } from "../types/index.js";
-import type { BackRefNotifyInput } from "../../sagas/index.js";
 import { singleError } from "../types/index.js";
 
 /**
@@ -18,13 +17,7 @@ export class ProductUpdateMediaScript extends BaseScript<
   protected async execute(
     params: ProductUpdateMediaParams
   ): Promise<ProductUpdateMediaResult> {
-    const result = await this.updateProductMediaRegistry(params);
-
-    if (result.userErrors.length === 0 && result.changes) {
-      await this.notifyBackRefs(params.id, result.changes.fileIds);
-    }
-
-    return result;
+    return this.updateProductMediaRegistry(params);
   }
 
   @Transactional()
@@ -88,32 +81,4 @@ export class ProductUpdateMediaScript extends BaseScript<
     };
   }
 
-  private async notifyBackRefs(
-    productId: string,
-    fileIds: string[]
-  ): Promise<void> {
-    try {
-      await this.services.broker.runSaga<unknown, BackRefNotifyInput>(
-        "catalog.backRefNotify",
-        {
-          entityRef: {
-            service: "catalog",
-            entityType: "product",
-            entityId: productId,
-          },
-          fileIds,
-        },
-        {
-          source: "workflow",
-          workflowId: `productUpdateMedia:${productId}`,
-          stepId: "notifyBackRefs",
-        }
-      );
-    } catch (error) {
-      this.logger.error(
-        { productId, error, fileCount: fileIds.length },
-        "Failed to start product media back-ref sync saga"
-      );
-    }
-  }
 }

@@ -186,8 +186,7 @@ test.describe('Admin product details media update UI', () => {
 
     const removeOneModal = page.getByTestId('edit-media-modal');
     await expect(removeOneModal).toBeVisible();
-    await removeOneModal.getByTestId(`entity-media-actions-button-${addedFileIds[0]}`).click();
-    await page.getByTestId(`entity-media-delete-menu-item-${addedFileIds[0]}`).click();
+    await removeOneModal.getByTestId(`entity-media-delete-button-${addedFileIds[0]}`).click();
     await page.getByTestId('submit-edit-media-form-button').click();
     await expect(page.getByTestId('edit-media-modal')).toBeHidden();
 
@@ -206,8 +205,7 @@ test.describe('Admin product details media update UI', () => {
     await expect(removeAllModal).toBeVisible();
 
     for (const fileId of remainingIds) {
-      await removeAllModal.getByTestId(`entity-media-actions-button-${fileId}`).click();
-      await page.getByTestId(`entity-media-delete-menu-item-${fileId}`).click();
+      await removeAllModal.getByTestId(`entity-media-delete-button-${fileId}`).click();
     }
 
     await page.getByTestId('submit-edit-media-form-button').click();
@@ -223,6 +221,6 @@ test.describe('Admin product details media update UI', () => {
     await expect(
       page.getByTestId('product-media-section').locator('[data-testid^="product-media-item-"]'),
     ).toHaveCount(0);
-    await expect(page.getByTestId('product-media-upload-area')).toBeVisible();
+    await expect(page.getByTestId('product-media-section')).toContainText('No media added');
   });
 });
