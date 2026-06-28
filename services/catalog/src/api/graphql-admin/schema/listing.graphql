@@ -15,15 +15,6 @@ interface Listing implements Node {
 
   """Media registered on this listing item."""
   media: [ProductMediaItem!]!
-
-  """The primary category assigned to this listing item."""
-  primaryCategory: Category
-
-  """The tags associated with this listing item."""
-  tags: [Tag!]!
-
-  """The total number of variants."""
-  variantsCount: Int!
 }
 
 """A connection to a mixed list of catalog listing items."""
