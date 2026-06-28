@@ -1,1 +1,1 @@
-export { addJsExtensionPlugin } from "./esbuild.js";
+export { addJsExtensionPlugin, detectCircularImportsPlugin } from "./esbuild.js";

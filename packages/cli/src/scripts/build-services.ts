@@ -6,7 +6,10 @@
  */
 
 import { build } from "esbuild";
-import { addJsExtensionPlugin } from "@shopana/build-tools/esbuild";
+import {
+  addJsExtensionPlugin,
+  detectCircularImportsPlugin,
+} from "@shopana/build-tools/esbuild";
 import {
   existsSync,
   readdirSync,
@@ -170,7 +173,7 @@ export async function buildService(serviceName: string, options?: BuildOptions):
       sourcemap: true,
       minify: false,
       conditions: ["source"],
-      plugins: [addJsExtensionPlugin],
+      plugins: [addJsExtensionPlugin, detectCircularImportsPlugin],
       logLevel: "warning",
     });
 

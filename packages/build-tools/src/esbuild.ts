@@ -1,6 +1,7 @@
 import { readFileSync, existsSync, statSync } from "fs";
-import { dirname, resolve, extname } from "path";
-import type { Plugin } from "esbuild";
+import { dirname, resolve, extname, parse } from "path";
+import { parseCircular, parseDependencyTree, prettyCircular } from "dpdm";
+import type { BuildOptions, PartialMessage, Plugin } from "esbuild";
 
 /**
  * Custom esbuild plugin to add .js extension only to relative file imports.
@@ -60,6 +61,72 @@ export const addJsExtensionPlugin: Plugin = {
         contents: transformed,
         loader: "ts",
       };
+    });
+  },
+};
+
+function getEntryPointPaths(entryPoints: BuildOptions["entryPoints"]): string[] {
+  if (!entryPoints) return [];
+
+  if (Array.isArray(entryPoints)) {
+    return entryPoints.map((entryPoint) => {
+      if (typeof entryPoint === "string") return entryPoint;
+      return entryPoint.in;
+    });
+  }
+
+  return Object.values(entryPoints);
+}
+
+function findNearestTsconfigDir(filePath: string): string | undefined {
+  let currentDir = dirname(resolve(filePath));
+  const rootDir = parse(currentDir).root;
+
+  while (currentDir !== rootDir) {
+    if (existsSync(resolve(currentDir, "tsconfig.json"))) {
+      return currentDir;
+    }
+
+    currentDir = dirname(currentDir);
+  }
+
+  return existsSync(resolve(rootDir, "tsconfig.json")) ? rootDir : undefined;
+}
+
+export const detectCircularImportsPlugin: Plugin = {
+  name: "detect-circular-imports",
+  setup(build) {
+    build.onStart(async () => {
+      const entryPoints = getEntryPointPaths(build.initialOptions.entryPoints);
+
+      if (entryPoints.length === 0) return;
+
+      const cwd =
+        build.initialOptions.absWorkingDir ??
+        findNearestTsconfigDir(entryPoints[0]) ??
+        process.cwd();
+      const tsconfig = existsSync(resolve(cwd, "tsconfig.json")) ? "tsconfig.json" : undefined;
+      const tree = await parseDependencyTree(entryPoints, {
+        cwd,
+        context: cwd,
+        tsconfig,
+        transform: true,
+        skipDynamicImports: true,
+      });
+      const circulars = parseCircular(tree);
+
+      if (circulars.length === 0) return;
+
+      const errors: PartialMessage[] = [
+        {
+          text: [
+            `Circular imports detected (${circulars.length}):`,
+            prettyCircular(circulars, "  "),
+          ].join("\n"),
+        },
+      ];
+
+      return { errors };
     });
   },
 };
