@@ -8,7 +8,7 @@ import type {
   IBundleConfiguration,
   IBundleGroup,
   PricingRuleTemplate,
-} from "@/domains/promos/bundles/types";
+} from "@/domains/inventory/bundles/types";
 import type { IReviewsData } from "@/domains/inventory/products/components/product-details-card/types";
 import { EntityStatus, WeightUnit, DimensionUnit, type ITag as IProductTag } from "./types";
 import { mockCategories } from "./categories";

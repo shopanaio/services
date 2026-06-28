@@ -3,7 +3,7 @@
 import { Typography, Flex, Tag, Avatar } from "antd";
 import { GiftOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { useBundleModal } from "@/domains/promos/bundles/modals";
+import { useBundleModal } from "@/domains/inventory/bundles/modals";
 import { useBundlesSectionStyles } from "../product-details-card.styles";
 import { BundleType, type ApiBundle } from "@/graphql/types";
 

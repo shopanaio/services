@@ -7,7 +7,7 @@ registerModule({
   sidebar: {
     label: "Tags",
     icon: null,
-    order: 3,
+    order: 4,
   },
   items: [
     {

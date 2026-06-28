@@ -13,16 +13,16 @@ import {
   } from "@/graphql/types";
 import type { IBundleGroup,
   PricingRuleTemplate,
-  IDependencyRule } from "@/domains/promos/bundles/types";
+  IDependencyRule } from "@/domains/inventory/bundles/types";
 import {
   DependencyActionType,
-  DependencyTargetType } from "@/domains/promos/bundles/types";
+  DependencyTargetType } from "@/domains/inventory/bundles/types";
 import { ConditionCategory,
   ConditionSubject,
   StateCheckOperator,
   LogicOperator,
   ComparisonOperator,
-} from "@/domains/promos/bundles/dependency-rules";
+} from "@/domains/inventory/bundles/dependency-rules";
 import {
   createMockApiInventoryItem,
   createMockApiInventoryItemCost,

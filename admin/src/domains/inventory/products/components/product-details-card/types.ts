@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/promos/bundles/types";
+import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/inventory/bundles/types";
 import type {
   ApiBundle,
   ApiProductInventoryWidget,

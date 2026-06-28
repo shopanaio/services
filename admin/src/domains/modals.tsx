@@ -220,7 +220,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'bundle-item-variant-settings',
       component: dynamic(() =>
-        import('@/domains/promos/bundles/modals/variant-settings-modal').then(
+        import('@/domains/inventory/bundles/modals/variant-settings-modal').then(
           (m) => m.VariantSettingsModal
         )
       ),
@@ -229,7 +229,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'dependency-chart',
       component: dynamic(() =>
-        import('@/domains/promos/bundles/modals/dependency-chart-modal').then(
+        import('@/domains/inventory/bundles/modals/dependency-chart-modal').then(
           (m) => m.DependencyChartModal
         )
       ),
@@ -446,7 +446,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'bundle',
       component: dynamic(() =>
-        import('@/domains/promos/bundles/modals/bundle-modal').then(
+        import('@/domains/inventory/bundles/modals/bundle-modal').then(
           (m) => m.BundleModal
         )
       ),
@@ -455,7 +455,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'bundle-edit-groups',
       component: dynamic(() =>
-        import('@/domains/promos/bundles/modals/edit-groups-modal').then(
+        import('@/domains/inventory/bundles/modals/edit-groups-modal').then(
           (m) => m.EditGroupsModal
         )
       ),
@@ -464,7 +464,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'bundle-edit-configuration',
       component: dynamic(() =>
-        import('@/domains/promos/bundles/modals/edit-configuration-modal').then(
+        import('@/domains/inventory/bundles/modals/edit-configuration-modal').then(
           (m) => m.EditConfigurationModal
         )
       ),
@@ -473,7 +473,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'bundle-edit-templates',
       component: dynamic(() =>
-        import('@/domains/promos/bundles/modals/edit-templates-modal').then(
+        import('@/domains/inventory/bundles/modals/edit-templates-modal').then(
           (m) => m.EditTemplatesModal
         )
       ),
@@ -482,7 +482,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'bundle-edit-settings',
       component: dynamic(() =>
-        import('@/domains/promos/bundles/modals/edit-settings-modal').then(
+        import('@/domains/inventory/bundles/modals/edit-settings-modal').then(
           (m) => m.EditSettingsModal
         )
       ),
