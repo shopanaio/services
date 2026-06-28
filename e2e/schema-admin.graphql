@@ -9,12 +9,16 @@ type Query {
   """Widget query namespace for dashboard widgets"""
   widgetQuery: WidgetQuery!
 
+  """
+  Inventory query namespace for warehouse, stock, and inventory item operations
+  """
+  inventoryQuery: InventoryQuery!
+
   """User management queries."""
   userQuery: UserQuery!
 
   """Organization queries namespace."""
   organizationQuery: OrganizationQuery!
-  inventoryQuery: InventoryQuery!
   mediaQuery: MediaQuery!
   orderQuery: OrderQuery!
 
@@ -30,6 +34,11 @@ type Mutation {
   """
   catalogMutation: CatalogMutation!
 
+  """
+  Inventory mutation namespace for warehouse, stock, and inventory item operations
+  """
+  inventoryMutation: InventoryMutation!
+
   """User management mutations."""
   userMutation: UserMutation!
 
@@ -41,7 +50,6 @@ type Mutation {
 
   """Organization management mutations."""
   organizationMutation: OrganizationMutation!
-  inventoryMutation: InventoryMutation!
   mediaMutation: MediaMutation!
   orderMutation: OrderMutation!
 
@@ -1050,6 +1058,14 @@ type CatalogQuery {
     meta: ProductProductsMetaInput
   ): ProductConnection!
 
+  """
+  Get a bundle by Product global ID. The product must have kind = BUNDLE.
+  """
+  bundle(id: ID!): Bundle
+
+  """Get bundles with Relay-style pagination."""
+  bundles(first: Int, after: String, last: Int, before: String, where: BundleWhereInput, orderBy: [BundleOrderByInput!], meta: BundleBundlesMetaInput): BundleConnection!
+
   """Get a variant by ID"""
   variant(id: ID!): Variant
 
@@ -1151,27 +1167,6 @@ type CatalogQuery {
     """Sort order"""
     orderBy: [TagOrderByInput!]
   ): TagConnection!
-
-  """Get a bundle group by ID"""
-  bundleGroup(id: ID!): BundleGroup
-
-  """Get all bundle groups for a product"""
-  bundleGroups(productId: ID!): [BundleGroup!]!
-
-  """Get a bundle item by ID"""
-  bundleItem(id: ID!): BundleItem
-
-  """Get a bundle pricing template by ID"""
-  bundlePricingTemplate(id: ID!): BundlePricingTemplate
-
-  """Get all pricing templates for a product"""
-  bundlePricingTemplates(productId: ID!): [BundlePricingTemplate!]!
-
-  """Get a dependency rule by ID"""
-  dependencyRule(id: ID!): DependencyRule
-
-  """Get all dependency rules for a product"""
-  dependencyRules(productId: ID!): [DependencyRule!]!
 }
 
 """Widget query namespace for dashboard widgets."""
@@ -1184,6 +1179,53 @@ type WidgetQuery {
   Returns aggregated inventory metrics across all variants.
   """
   inventory(productId: ID!): ProductInventoryWidget
+}
+
+type InventoryQuery {
+  """Get a node by its global ID"""
+  node(id: ID!): Node
+
+  """Get multiple nodes by their global IDs"""
+  nodes(ids: [ID!]!): [Node]!
+
+  """Get a warehouse by ID"""
+  warehouse(id: ID!): Warehouse
+
+  """Get all warehouses"""
+  warehouses(
+    first: Int
+    after: String
+    last: Int
+    before: String
+
+    """Filter conditions"""
+    where: WarehouseWhereInput
+
+    """Sort order"""
+    orderBy: [WarehouseOrderByInput!]
+  ): WarehouseConnection!
+
+  """Get an inventory item by ID"""
+  inventoryItem(id: ID!): InventoryItem
+
+  """Get an inventory item by variant ID"""
+  inventoryItemByVariant(variantId: ID!): InventoryItem
+
+  """Get inventory items with Relay-style pagination"""
+  inventoryItems(first: Int, after: String, last: Int, before: String, where: InventoryItemWhereInput, orderBy: [InventoryItemOrderByInput!], meta: InventoryItemInventoryItemsMetaInput): InventoryItemConnection!
+
+  """Get variants that can still be assigned to the selected warehouse"""
+  warehouseAssignableVariants(warehouseId: ID!, first: Int, after: String, last: Int, before: String, where: WarehouseAssignableVariantWhereInput, orderBy: [WarehouseAssignableVariantOrderByInput!]): VariantConnection!
+}
+
+type InventoryMutation {
+  """Update inventory item: stock, SKU, and cost."""
+  inventoryItemUpdate(input: InventoryItemUpdateInput!): InventoryItemUpdatePayload!
+  warehouseCreate(input: WarehouseCreateInput!): WarehouseCreatePayload!
+  warehouseUpdate(input: WarehouseUpdateInput!): WarehouseUpdatePayload!
+  warehouseDelete(input: WarehouseDeleteInput!): WarehouseDeletePayload!
+  warehouseStockCreate(input: WarehouseStockCreateInput!): WarehouseStockCreatePayload!
+  warehouseStockDelete(input: WarehouseStockDeleteInput!): WarehouseStockDeletePayload!
 }
 
 type CatalogMutation {
@@ -1215,6 +1257,39 @@ type CatalogMutation {
     """Product-level operations."""
     operations: ProductUpdateInput
   ): ProductUpdatePayload!
+
+  """Create a new bundle sellable item."""
+  bundleCreate(input: BundleCreateInput!): BundleCreatePayload!
+
+  """Unified bundle update with optimistic locking."""
+  bundleUpdate(
+    """The bundle ID to update."""
+    bundleId: ID!
+
+    """Expected revision for optimistic locking."""
+    expectedRevision: Int!
+
+    """Bundle-level operations."""
+    operations: BundleUpdateInput
+  ): BundleUpdatePayload!
+
+  """Create one bundle configuration."""
+  bundleConfigurationCreate(input: BundleConfigurationCreateInput!): BundleConfigurationPayload!
+
+  """Update configuration metadata."""
+  bundleConfigurationUpdate(input: BundleConfigurationUpdateInput!): BundleConfigurationPayload!
+
+  """Delete one bundle configuration with optimistic locking."""
+  bundleConfigurationDelete(input: BundleConfigurationDeleteInput!): BundleConfigurationDeletePayload!
+
+  """Sync all groups/items for one bundle configuration."""
+  bundleGroupsSync(input: BundleGroupsSyncInput!): BundleGroupsSyncPayload!
+
+  """Sync all reusable pricing templates for one bundle configuration."""
+  bundlePricingTemplatesSync(input: BundlePricingTemplatesSyncInput!): BundlePricingTemplatesSyncPayload!
+
+  """Sync all dependency rules for one bundle configuration."""
+  bundleDependencyRulesSync(input: BundleDependencyRulesSyncInput!): BundleDependencyRulesSyncPayload!
 
   """Create a new variant for a product"""
   variantCreate(input: VariantCreateInput!): VariantCreatePayload!
@@ -1345,69 +1420,6 @@ type CatalogMutation {
   Requires X-Idempotency-Key header.
   """
   productBulkUpdate(input: ProductBulkUpdateInput!): ProductBulkUpdatePayload!
-
-  """Create a new bundle group for a product"""
-  bundleGroupCreate(input: BundleGroupCreateInput!): BundleGroupPayload!
-
-  """Update an existing bundle group"""
-  bundleGroupUpdate(input: BundleGroupUpdateInput!): BundleGroupPayload!
-
-  """Delete a bundle group"""
-  bundleGroupDelete(input: DeleteInput!): DeletePayload!
-
-  """Create a new bundle item within a group"""
-  bundleItemCreate(input: BundleItemCreateInput!): BundleItemPayload!
-
-  """Update an existing bundle item"""
-  bundleItemUpdate(input: BundleItemUpdateInput!): BundleItemPayload!
-
-  """Delete a bundle item"""
-  bundleItemDelete(input: DeleteInput!): DeletePayload!
-
-  """Create a new bundle pricing template"""
-  bundlePricingTemplateCreate(input: BundlePricingTemplateCreateInput!): BundlePricingTemplatePayload!
-
-  """Update an existing bundle pricing template"""
-  bundlePricingTemplateUpdate(input: BundlePricingTemplateUpdateInput!): BundlePricingTemplatePayload!
-
-  """Delete a bundle pricing template"""
-  bundlePricingTemplateDelete(input: DeleteInput!): DeletePayload!
-
-  """Create a new dependency rule for a product"""
-  dependencyRuleCreate(input: DependencyRuleCreateInput!): DependencyRulePayload!
-
-  """Update an existing dependency rule"""
-  dependencyRuleUpdate(input: DependencyRuleUpdateInput!): DependencyRulePayload!
-
-  """Delete a dependency rule"""
-  dependencyRuleDelete(input: DeleteInput!): DeletePayload!
-
-  """Create a new condition group for a dependency rule"""
-  conditionGroupCreate(input: ConditionGroupCreateInput!): ConditionGroupPayload!
-
-  """Update an existing condition group"""
-  conditionGroupUpdate(input: ConditionGroupUpdateInput!): ConditionGroupPayload!
-
-  """Delete a condition group"""
-  conditionGroupDelete(input: DeleteInput!): DeletePayload!
-
-  """Create a new condition within a condition group"""
-  conditionCreate(input: ConditionCreateInput!): ConditionPayload!
-
-  """Update an existing condition"""
-  conditionUpdate(input: ConditionUpdateInput!): ConditionPayload!
-
-  """Delete a condition"""
-  conditionDelete(input: DeleteInput!): DeletePayload!
-
-  """Create a new action for a dependency rule"""
-  dependencyActionCreate(input: DependencyActionCreateInput!): DependencyActionPayload!
-
-  """Update an existing dependency action"""
-  dependencyActionUpdate(input: DependencyActionUpdateInput!): DependencyActionPayload!
-
-  """Delete a dependency action"""
-  dependencyActionDelete(input: DeleteInput!): DeletePayload!
 }
 
 """Result of bulk update start/cancel."""
@@ -1552,171 +1564,480 @@ type BulkUpdateUserError implements UserError {
   operation: String
 }
 
-"""A pricing template that can be reused across bundle items."""
-type BundlePricingTemplate implements Node {
+type Bundle implements Node & Listing {
+  """The Product global ID of the bundle sellable item."""
   id: ID!
-  productId: ID!
-  name: String!
-  priceType: BundlePriceType!
-  priceValue: Int
-  sortIndex: Int!
+
+  """Product discriminator. Always BUNDLE for this type."""
+  kind: ProductKind!
+
+  """The URL-friendly handle for the bundle."""
+  handle: String
+
+  """
+  The date and time when the bundle was published, or null if unpublished.
+  """
+  publishedAt: DateTime
+
+  """Whether the bundle is currently published."""
+  isPublished: Boolean!
+
+  """The date and time when the bundle was created."""
+  createdAt: DateTime!
+
+  """The date and time when the bundle was last updated."""
+  updatedAt: DateTime!
+
+  """The date and time when the bundle was deleted (soft delete)."""
+  deletedAt: DateTime
+
+  """Optimistic locking revision number. Incremented on each update."""
+  revision: Int!
+
+  """The vendor associated with this bundle."""
+  vendor: Vendor
+
+  """The variants of this bundle."""
+  variants(first: Int, after: String, last: Int, before: String): VariantConnection!
+
+  """Media registered on this bundle."""
+  media: [ProductMediaItem!]!
+
+  """The options available for this bundle."""
+  options: [ProductOption!]!
+
+  """The features of this bundle."""
+  features: [ProductFeature!]!
+
+  """The total number of variants for this bundle."""
+  variantsCount: Int!
+
+  """The primary category assigned to this bundle."""
+  primaryCategory: Category
+
+  """Category assignments with relationship metadata."""
+  categoryAssignments: [ProductCategoryAssignment!]!
+
+  """The tags associated with this bundle."""
+  tags: [Tag!]!
+
+  """Bundle title."""
+  title: String!
+
+  """Bundle description."""
+  description: RichText
+
+  """Short excerpt."""
+  excerpt: RichText
+
+  """SEO and Open Graph metadata."""
+  seo: ProductSeo
+
+  """High-level bundle type."""
+  type: BundleType
+
+  """Configurator display style."""
+  displayStyle: BundleDisplayStyle!
+
+  """All bundle configurations for this bundle."""
+  configurations: [BundleConfiguration!]!
 }
 
-"""
-A group of items within a bundle (e.g., "Choose your processor", "Select accessories").
-"""
-type BundleGroup implements Node {
+"""A connection to a list of Bundle items."""
+type BundleConnection {
+  """A list of edges."""
+  edges: [BundleEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of bundles."""
+  totalCount: Int!
+}
+
+"""An edge in a Bundle connection."""
+type BundleEdge {
+  """The item at the end of the edge."""
+  node: Bundle!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+type BundleConfiguration implements Node {
+  """The globally unique ID of the configuration."""
   id: ID!
-  productId: ID!
-  title: String!
-  sortIndex: Int!
-  minSelection: Int
-  maxSelection: Int
-  items: [BundleItem!]!
+
+  """The bundle root this configuration belongs to."""
+  bundle: Bundle!
+
+  """The Product global ID of the bundle this configuration belongs to."""
+  bundleId: ID!
+
+  """Configuration name."""
+  name: String!
+
+  """Variants that use this configuration."""
+  variants: [Variant!]!
+
+  """Groups in configurator order."""
+  groups: [BundleGroup!]!
+
+  """Reusable pricing templates."""
+  pricingTemplates: [BundlePricingTemplate!]!
+
+  """Dependency rules in priority order."""
+  dependencyRules: [BundleDependencyRule!]!
+
+  """The date and time when the configuration was created."""
   createdAt: DateTime!
+
+  """The date and time when the configuration was last updated."""
   updatedAt: DateTime!
 }
 
-"""An individual item within a bundle group."""
-type BundleItem implements Node {
+type BundleGroup implements Node {
+  """The globally unique ID of the group."""
   id: ID!
-  groupId: ID!
-  itemType: BundleItemType!
+
+  """Sort order within the configuration."""
   sortIndex: Int!
 
-  """Reference to product (when itemType is PRODUCT)"""
+  """Display title from current locale."""
+  title: String!
+
+  """Minimum selected items in this group. Null means no minimum."""
+  minSelection: Int
+
+  """Maximum selected items in this group. Null means no maximum."""
+  maxSelection: Int
+
+  """Items in group order."""
+  items: [BundleItem!]!
+
+  """The date and time when the group was created."""
+  createdAt: DateTime!
+
+  """The date and time when the group was last updated."""
+  updatedAt: DateTime!
+}
+
+type BundleItem implements Node {
+  """The globally unique ID of the item."""
+  id: ID!
+
+  """The group this item belongs to."""
+  group: BundleGroup!
+
+  """The group ID."""
+  groupId: ID!
+
+  """Whether the item references a product or a concrete variant."""
+  itemType: BundleItemType!
+
+  """Sort order within the group."""
+  sortIndex: Int!
+
+  """Referenced product for PRODUCT items."""
+  refProduct: Product
+
+  """Referenced product ID for PRODUCT items."""
   refProductId: ID
 
-  """Reference to variant (when itemType is VARIANT)"""
+  """Referenced variant for VARIANT items."""
+  refVariant: Variant
+
+  """Referenced variant ID for VARIANT items."""
   refVariantId: ID
 
-  """Custom title override for this bundle item"""
-  title: String
+  """Featured image override."""
+  featuredImage: File
 
-  """Custom featured image override"""
-  featuredImageId: ID
+  """Minimum selectable quantity."""
+  minQty: Int
 
-  """Excluded variant IDs when itemType is PRODUCT"""
-  excludedVariantIds: [ID!]
-
-  """Minimum quantity that can be selected"""
-  minQty: Int!
-
-  """Maximum quantity that can be selected (null = unlimited)"""
+  """Maximum selectable quantity. Null means unlimited."""
   maxQty: Int
 
-  """Default quantity when item is added to cart"""
-  defaultQty: Int!
+  """Default quantity."""
+  defaultQty: Int
 
-  """Inline pricing type"""
-  priceType: BundlePriceType
+  """Inline price rule. Null when pricingTemplate is used."""
+  priceRule: BundlePriceRule
 
-  """Inline pricing value (cents)"""
-  priceValue: Int
-
-  """Reference to a pricing template"""
-  pricingTemplateId: ID
-
-  """Resolved pricing template"""
+  """Reusable pricing template. Null when inline priceRule is used."""
   pricingTemplate: BundlePricingTemplate
 
-  """Whether item is visible in the bundle configurator"""
+  """Allowed option/value selections for PRODUCT items."""
+  optionSelections: [BundleItemOptionSelection!]!
+
+  """Optional display title override from current locale."""
+  title: String
+
+  """Whether item is visible in the configurator."""
   visible: Boolean!
 
-  """Whether item is selected by default"""
+  """Whether item is selected by default."""
   selected: Boolean!
+
+  """The date and time when the item was created."""
   createdAt: DateTime!
+
+  """The date and time when the item was last updated."""
   updatedAt: DateTime!
 }
 
-"""A dependency rule that controls bundle behavior based on conditions."""
-type DependencyRule implements Node {
+type BundleItemOptionSelection implements Node {
+  """The globally unique ID of the option selection."""
   id: ID!
-  productId: ID!
+
+  """Referenced product option."""
+  option: ProductOption!
+
+  """Referenced product option ID."""
+  optionId: ID!
+
+  """Parent option for dependent option trees."""
+  parentOption: ProductOption
+
+  """Parent option ID."""
+  parentOptionId: ID
+
+  """Allowed values for this option."""
+  values: [BundleItemOptionValueSelection!]!
+
+  """Sort order within item option selections."""
+  sortIndex: Int!
+}
+
+type BundleItemOptionValueSelection implements Node {
+  """The globally unique ID of the option value selection."""
+  id: ID!
+
+  """Referenced product option value. Null when the value is unavailable."""
+  optionValue: ProductOptionValue
+
+  """Referenced product option value ID."""
+  optionValueId: ID
+
+  """Stable value copy for displaying stale/unavailable values."""
+  value: String!
+
+  """Selection status."""
+  status: BundleItemOptionValueSelectionStatus!
+
+  """Sort order within option values."""
+  sortIndex: Int!
+}
+
+type BundleBasePriceRule implements Node & BundlePriceRule {
+  """The globally unique ID of the price rule."""
+  id: ID!
+
+  """Pricing strategy."""
+  priceType: BundlePriceType!
+}
+
+type BundleFixedPriceRule implements Node & BundlePriceRule {
+  """The globally unique ID of the price rule."""
+  id: ID!
+
+  """Pricing strategy."""
+  priceType: BundlePriceType!
+
+  """Money values for FIXED rules."""
+  amounts: [BundlePriceRuleAmount!]!
+}
+
+type BundleDiscountPercentPriceRule implements Node & BundlePriceRule {
+  """The globally unique ID of the price rule."""
+  id: ID!
+
+  """Pricing strategy."""
+  priceType: BundlePriceType!
+
+  """Percent row for DISCOUNT_PERCENT rules."""
+  percent: BundlePriceRulePercent!
+}
+
+type BundleDiscountFixedPriceRule implements Node & BundlePriceRule {
+  """The globally unique ID of the price rule."""
+  id: ID!
+
+  """Pricing strategy."""
+  priceType: BundlePriceType!
+
+  """Money values for DISCOUNT_FIXED rules."""
+  amounts: [BundlePriceRuleAmount!]!
+}
+
+type BundleFreePriceRule implements Node & BundlePriceRule {
+  """The globally unique ID of the price rule."""
+  id: ID!
+
+  """Pricing strategy."""
+  priceType: BundlePriceType!
+}
+
+type BundlePriceRuleAmount {
+  """The currency code."""
+  currency: CurrencyCode!
+
+  """Amount in minor units."""
+  amountMinor: BigInt!
+}
+
+type BundlePriceRulePercent {
+  """Percent value, 0..100."""
+  value: Int!
+}
+
+type BundlePricingTemplate implements Node {
+  """The globally unique ID of the pricing template."""
+  id: ID!
+
+  """Template name."""
   name: String!
+
+  """Reusable price rule."""
+  priceRule: BundlePriceRule!
+
+  """Sort order within configuration."""
+  sortIndex: Int!
+}
+
+type BundleDependencyRule implements Node {
+  """The globally unique ID of the dependency rule."""
+  id: ID!
+
+  """Rule name."""
+  name: String!
+
+  """Whether the rule is enabled."""
   enabled: Boolean!
+
+  """Rule priority. Lower values are evaluated first."""
   priority: Int!
-  logicOperator: LogicOperator!
-  conditionGroups: [ConditionGroup!]!
-  actions: [DependencyAction!]!
+
+  """How condition groups are combined."""
+  logicOperator: BundleLogicOperator!
+
+  """Condition groups."""
+  conditionGroups: [BundleConditionGroup!]!
+
+  """Actions applied when conditions match."""
+  actions: [BundleDependencyAction!]!
+
+  """The date and time when the rule was created."""
   createdAt: DateTime!
+
+  """The date and time when the rule was last updated."""
   updatedAt: DateTime!
 }
 
-"""A group of conditions within a dependency rule."""
-type ConditionGroup implements Node {
+type BundleConditionGroup implements Node {
+  """The globally unique ID of the condition group."""
   id: ID!
-  ruleId: ID!
-  logicOperator: LogicOperator!
+
+  """How conditions are combined."""
+  logicOperator: BundleLogicOperator!
+
+  """Conditions in this group."""
+  conditions: [BundleCondition!]!
+
+  """Sort order within the rule."""
   sortIndex: Int!
-  conditions: [Condition!]!
 }
 
-"""A single condition within a condition group."""
-type Condition implements Node {
+type BundleCondition implements Node {
+  """The globally unique ID of the condition."""
   id: ID!
-  groupId: ID!
-  category: ConditionCategory!
-  subject: ConditionSubject!
-  operator: String!
-  targetType: DependencyTargetType!
+
+  """Condition category."""
+  category: BundleConditionCategory!
+
+  """Condition subject."""
+  subject: BundleConditionSubject!
+
+  """Condition operator."""
+  operator: BundleConditionOperator!
+
+  """Target type."""
+  targetType: BundleDependencyTargetType!
+
+  """Target ID. Points to an item, group, or the parent bundle product."""
   targetId: ID!
+
+  """Numeric value for numeric conditions."""
   value: Int
+
+  """Sort order within the condition group."""
   sortIndex: Int!
 }
 
-"""An action to perform when a dependency rule's conditions are met."""
-type DependencyAction implements Node {
+type BundleDependencyAction implements Node {
+  """The globally unique ID of the action."""
   id: ID!
-  ruleId: ID!
-  actionType: DependencyActionType!
-  targetType: DependencyTargetType!
+
+  """Action type."""
+  actionType: BundleDependencyActionType!
+
+  """Target type."""
+  targetType: BundleDependencyTargetType!
+
+  """Target ID. Null is allowed when targetType is BUNDLE."""
   targetId: ID
+
+  """Required value for SET_REQUIRED."""
   requiredValue: Boolean
-  priceType: BundlePriceType
-  priceValue: Int
+
+  """Price rule for ADJUST_PRICE."""
+  priceRule: BundlePriceRule
+
+  """Whether this action can stack with other matching actions."""
   stackable: Boolean!
+
+  """Sort order within the rule."""
   sortIndex: Int!
 }
 
-type BundleGroupPayload {
-  bundleGroup: BundleGroup
-  userErrors: [UserError!]!
+type BundleCreatePayload {
+  bundle: Bundle
+  userErrors: [GenericUserError!]!
 }
 
-type BundleItemPayload {
-  bundleItem: BundleItem
-  userErrors: [UserError!]!
+type BundleUpdatePayload {
+  bundle: Bundle
+  userErrors: [GenericUserError!]!
 }
 
-type BundlePricingTemplatePayload {
-  bundlePricingTemplate: BundlePricingTemplate
-  userErrors: [UserError!]!
+type BundleConfigurationPayload {
+  configuration: BundleConfiguration
+  userErrors: [GenericUserError!]!
 }
 
-type DependencyRulePayload {
-  dependencyRule: DependencyRule
-  userErrors: [UserError!]!
+type BundleConfigurationDeletePayload {
+  deletedConfigurationId: ID
+  bundle: Bundle
+  userErrors: [GenericUserError!]!
 }
 
-type ConditionGroupPayload {
-  conditionGroup: ConditionGroup
-  userErrors: [UserError!]!
+type BundleGroupsSyncPayload {
+  configuration: BundleConfiguration
+  groups: [BundleGroup!]!
+  userErrors: [GenericUserError!]!
 }
 
-type ConditionPayload {
-  condition: Condition
-  userErrors: [UserError!]!
+type BundlePricingTemplatesSyncPayload {
+  configuration: BundleConfiguration
+  pricingTemplates: [BundlePricingTemplate!]!
+  userErrors: [GenericUserError!]!
 }
 
-type DependencyActionPayload {
-  dependencyAction: DependencyAction
-  userErrors: [UserError!]!
-}
-
-type DeletePayload {
-  deletedId: ID
-  userErrors: [UserError!]!
+type BundleDependencyRulesSyncPayload {
+  configuration: BundleConfiguration
+  dependencyRules: [BundleDependencyRule!]!
+  userErrors: [GenericUserError!]!
 }
 
 """A category represents a hierarchical grouping of products."""
@@ -1783,11 +2104,13 @@ type Category implements Node {
   """Media files associated with this category."""
   media: [CategoryMediaItem!]!
 
-  """Products in this category with pagination."""
-  products(first: Int, after: String, last: Int, before: String, orderBy: [ListingOrderByInput!], where: CategoryProductWhereInput): CategoryProductConnection!
+  """
+  Catalog listing items assigned to this category, including products and bundles.
+  """
+  listing(first: Int, after: String, last: Int, before: String, where: ListingWhereInput, orderBy: [ListingOrderByInput!]): ListingConnection!
 
-  """The total number of products in this category."""
-  productsCount: Int!
+  """The total number of listing items in this category."""
+  listingCount: Int!
 }
 
 """A media item for a category."""
@@ -1817,17 +2140,6 @@ type CategoryEdge {
   node: Category!
 
   """A cursor for use in pagination."""
-  cursor: String!
-}
-
-type CategoryProductConnection {
-  edges: [CategoryProductEdge!]!
-  pageInfo: PageInfo!
-  totalCount: Int!
-}
-
-type CategoryProductEdge {
-  node: Product!
   cursor: String!
 }
 
@@ -2164,6 +2476,133 @@ type ProductFeatureDeletePayload {
   userErrors: [GenericUserError!]!
 }
 
+"""
+InventoryItem represents the inventory-specific data for a variant.
+Each catalog variant can have a corresponding InventoryItem.
+"""
+type InventoryItem implements Node {
+  """Global ID (Relay)"""
+  id: ID!
+
+  """Reference to Catalog.Variant"""
+  variantId: ID!
+
+  """Catalog variant entity"""
+  variant: Variant!
+
+  """SKU code"""
+  sku: String
+
+  """Whether to track inventory for this item"""
+  trackInventory: Boolean!
+
+  """Whether to continue selling when out of stock"""
+  continueSellingWhenOutOfStock: Boolean!
+
+  """Stock levels across warehouses"""
+  stock: [WarehouseStock!]!
+
+  """Total quantity available across all warehouses"""
+  totalAvailable: Int!
+
+  """Current unit cost"""
+  unitCost: InventoryItemCost
+
+  """When this item was created"""
+  createdAt: DateTime!
+
+  """When this item was last updated"""
+  updatedAt: DateTime!
+}
+
+type InventoryItemCost {
+  """Currency code"""
+  currency: String!
+
+  """Cost in minor units (cents)"""
+  amountMinor: BigInt!
+
+  """Effective from date"""
+  effectiveFrom: DateTime!
+}
+
+type InventoryItemConnection {
+  edges: [InventoryItemEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type InventoryItemEdge {
+  node: InventoryItem!
+  cursor: String!
+}
+
+type InventoryItemUpdatePayload {
+  """Updated inventory item"""
+  inventoryItem: InventoryItem
+
+  """List of errors"""
+  userErrors: [GenericUserError!]!
+}
+
+type SkuStatusMetric {
+  count: Int!
+  averageDays: Float
+}
+
+type InventoryQuantities {
+  availableForSale: Int!
+  onHand: Int!
+  reserved: Int!
+  unavailable: Int!
+}
+
+type InventorySkuStatus {
+  total: Int!
+  lowStock: SkuStatusMetric!
+  outOfStock: SkuStatusMetric!
+  backorder: SkuStatusMetric!
+}
+
+type InventoryBackorder {
+  quantity: Int!
+  etaAvgDays: Float
+}
+
+type InventoryAlertThreshold {
+  method: ThresholdMethod!
+  minimumStock: Int!
+}
+
+type ProductInventoryWidget {
+  quantities: InventoryQuantities!
+  availableChange7d: Int!
+  skuStatus: InventorySkuStatus!
+  backorder: InventoryBackorder!
+  alertThreshold: InventoryAlertThreshold!
+}
+
+"""A connection to a mixed list of catalog listing items."""
+type ListingConnection {
+  """A list of edges."""
+  edges: [ListingEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of catalog listing items."""
+  totalCount: Int!
+}
+
+"""An edge in a Listing connection."""
+type ListingEdge {
+  """The item at the end of the edge."""
+  node: Listing!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
 """Media registered on a product with sort order."""
 type ProductMediaItem {
   """The file from the Media service."""
@@ -2310,6 +2749,24 @@ type ProductOptionsSyncPayload {
 
   """List of errors that occurred."""
   userErrors: [GenericUserError!]!
+}
+
+"""Physical dimensions of a variant (stored in millimeters)."""
+type VariantDimensions {
+  """Width in millimeters."""
+  width: Int!
+
+  """Length in millimeters."""
+  length: Int!
+
+  """Height in millimeters."""
+  height: Int!
+}
+
+"""Physical weight of a variant (stored in grams)."""
+type VariantWeight {
+  """Weight in grams."""
+  value: Int!
 }
 
 """Represents a price for a variant."""
@@ -2505,9 +2962,12 @@ type VendorCreatePayload {
 }
 
 """A product represents an item that can be sold."""
-type Product implements Node {
-  """The globally unique ID of the product."""
+type Product implements Node & Listing {
+  """The Product global ID."""
   id: ID!
+
+  """Product discriminator."""
+  kind: ProductKind!
 
   """The URL-friendly handle for the product."""
   handle: String
@@ -2628,6 +3088,12 @@ type OperationResult {
   """Whether the operation was applied successfully."""
   applied: Boolean!
 
+  """Per-request client correlation key for create operations."""
+  clientMutationId: String
+
+  """Entity affected by this operation."""
+  entityId: ID
+
   """Errors that occurred during this operation."""
   errors: [GenericUserError!]!
 }
@@ -2696,6 +3162,167 @@ type ProductSeo {
   ogTitle: String
   ogDescription: String
   ogImage: File
+}
+
+"""A warehouse represents a physical location where inventory is stored."""
+type Warehouse implements Node {
+  """The globally unique ID of the warehouse."""
+  id: ID!
+
+  """The unique code identifying this warehouse."""
+  code: String!
+
+  """The display name of the warehouse."""
+  name: String!
+
+  """Whether this is the default warehouse for the project."""
+  isDefault: Boolean!
+
+  """The date and time when the warehouse was created."""
+  createdAt: DateTime!
+
+  """The date and time when the warehouse was last updated."""
+  updatedAt: DateTime!
+
+  """Stock levels for all variants in this warehouse."""
+  stock(
+    first: Int
+    after: String
+    last: Int
+    before: String
+
+    """Filter conditions"""
+    where: WarehouseStockWhereInput
+
+    """Sort order"""
+    orderBy: [WarehouseStockOrderByInput!]
+  ): WarehouseStockConnection!
+
+  """Total number of variants stocked in this warehouse."""
+  variantsCount: Int!
+}
+
+"""A connection to a list of Warehouse items."""
+type WarehouseConnection {
+  """A list of edges."""
+  edges: [WarehouseEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of warehouses."""
+  totalCount: Int!
+}
+
+"""An edge in a Warehouse connection."""
+type WarehouseEdge {
+  """The item at the end of the edge."""
+  node: Warehouse!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+"""Represents stock level for a variant in a specific warehouse."""
+type WarehouseStock implements Node {
+  """The globally unique ID of the stock record."""
+  id: ID!
+
+  """The globally unique ID of the warehouse this stock belongs to."""
+  warehouseId: ID!
+
+  """The globally unique ID of the variant this stock belongs to."""
+  variantId: ID!
+
+  """The warehouse where this stock is located."""
+  warehouse: Warehouse!
+
+  """The variant this stock record is for."""
+  variant: Variant!
+
+  """The quantity currently on hand."""
+  quantityOnHand: Int!
+
+  """The quantity currently reserved."""
+  reservedQuantity: Int!
+
+  """The quantity currently unavailable."""
+  unavailableQuantity: Int!
+
+  """The quantity available for sale."""
+  availableForSale: Int!
+
+  """The date and time when the stock was created."""
+  createdAt: DateTime!
+
+  """The date and time when the stock was last updated."""
+  updatedAt: DateTime!
+}
+
+"""A connection to a list of WarehouseStock items."""
+type WarehouseStockConnection {
+  """A list of edges."""
+  edges: [WarehouseStockEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of stock records."""
+  totalCount: Int!
+}
+
+"""An edge in a WarehouseStock connection."""
+type WarehouseStockEdge {
+  """The item at the end of the edge."""
+  node: WarehouseStock!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+"""Payload for warehouse creation."""
+type WarehouseCreatePayload {
+  """The created warehouse."""
+  warehouse: Warehouse
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for warehouse update."""
+type WarehouseUpdatePayload {
+  """The updated warehouse."""
+  warehouse: Warehouse
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for warehouse deletion."""
+type WarehouseDeletePayload {
+  """The ID of the deleted warehouse."""
+  deletedWarehouseId: ID
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for warehouse stock creation."""
+type WarehouseStockCreatePayload {
+  """The created warehouse stock records."""
+  warehouseStocks: [WarehouseStock!]!
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for warehouse stock deletion."""
+type WarehouseStockDeletePayload {
+  """The IDs of the deleted warehouse stock records."""
+  deletedWarehouseStockIds: [ID!]!
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
 }
 
 """A tag represents a simple label for organizing and filtering products."""
@@ -2773,6 +3400,9 @@ type Variant implements Node {
   """The globally unique ID of the variant."""
   id: ID!
 
+  """Variant discriminator. Must match parent product kind."""
+  kind: ProductKind!
+
   """The product this variant belongs to."""
   product: Product!
 
@@ -2820,6 +3450,9 @@ type Variant implements Node {
 
   """Inventory item associated with this variant."""
   inventoryItem: InventoryItem
+
+  """Bundle configuration assigned to this variant. Null for BASE variants."""
+  bundleConfiguration: BundleConfiguration
 }
 
 """A connection to a list of Variant items."""
@@ -2965,10 +3598,83 @@ interface Node {
   id: ID!
 }
 
+interface Listing implements Node {
+  """The Product global ID of the catalog listing item."""
+  id: ID!
+
+  """Product discriminator."""
+  kind: ProductKind!
+
+  """The URL-friendly handle."""
+  handle: String
+
+  """Localized title."""
+  title: String!
+
+  """Media registered on this listing item."""
+  media: [ProductMediaItem!]!
+}
+
+interface BundlePriceRule implements Node {
+  """The globally unique ID of the price rule."""
+  id: ID!
+
+  """Pricing strategy."""
+  priceType: BundlePriceType!
+}
+
 """Sort direction"""
 enum SortDirection {
   asc
   desc
+}
+
+"""Fields available for sorting Listing"""
+enum ListingOrderField {
+  """Sort by id"""
+  id
+
+  """Sort by vendorId"""
+  vendorId
+
+  """Sort by handle"""
+  handle
+
+  """Sort by publishedAt"""
+  publishedAt
+
+  """Sort by createdAt"""
+  createdAt
+
+  """Sort by updatedAt"""
+  updatedAt
+
+  """Sort by kind"""
+  kind
+
+  """Sort by locale"""
+  locale
+
+  """Sort by name"""
+  name
+
+  """Sort by currency"""
+  currency
+
+  """Sort by minPriceMinor"""
+  minPriceMinor
+
+  """Sort by maxPriceMinor"""
+  maxPriceMinor
+
+  """Sort by primaryCategoryId"""
+  primaryCategoryId
+
+  """Sort by primaryCategoryName"""
+  primaryCategoryName
+
+  """Sort by brandName"""
+  brandName
 }
 
 """Fields available for sorting Product"""
@@ -3091,6 +3797,48 @@ enum TagOrderField {
   name
 }
 
+"""Fields available for sorting Warehouse"""
+enum WarehouseOrderField {
+  """Sort by id"""
+  id
+
+  """Sort by code"""
+  code
+
+  """Sort by name"""
+  name
+
+  """Sort by isDefault"""
+  isDefault
+
+  """Sort by createdAt"""
+  createdAt
+
+  """Sort by updatedAt"""
+  updatedAt
+}
+
+"""Fields available for sorting WarehouseStock"""
+enum WarehouseStockOrderField {
+  """Sort by id"""
+  id
+
+  """Sort by warehouseId"""
+  warehouseId
+
+  """Sort by variantId"""
+  variantId
+
+  """Sort by quantityOnHand"""
+  quantityOnHand
+
+  """Sort by updatedAt"""
+  updatedAt
+
+  """Sort by createdAt"""
+  createdAt
+}
+
 """Fields available for sorting Variant"""
 enum VariantOrderField {
   """Sort by productId"""
@@ -3125,6 +3873,19 @@ enum BulkUpdateJobStatus {
   CANCELLED
 }
 
+enum WarehouseAssignableVariantOrderField {
+  productName
+  sku
+  id
+  productId
+  isDefault
+  handle
+  externalSystem
+  externalId
+  createdAt
+  updatedAt
+}
+
 enum BulkUpdateItemStatus {
   PENDING
   RUNNING
@@ -3138,7 +3899,9 @@ enum BulkUpdateOpType {
   PRODUCT_UPDATE
   PRODUCT_CATEGORY_UPDATE
   PRODUCT_TAG_UPDATE
+  VARIANT_CREATE
   VARIANT_UPDATE
+  VARIANT_DELETE
 }
 
 enum BulkUpdateCancelReason {
@@ -3157,100 +3920,97 @@ enum ProductStatus {
   PUBLISHED
 }
 
-"""The type of item in a bundle group."""
-enum BundleItemType {
-  """
-  Item references an entire product (variant selection happens at checkout)
-  """
-  PRODUCT
+enum BundleType {
+  FIXED
+  MULTIPACK
+  MIX_AND_MATCH
+  CUSTOM
+}
 
-  """Item references a specific variant"""
+enum BundleDisplayStyle {
+  ACCORDION
+  TABS
+  FLAT
+  WIZARD
+}
+
+enum BundleItemType {
+  PRODUCT
   VARIANT
 }
 
-"""The pricing strategy for bundle items."""
+enum BundleItemOptionValueSelectionStatus {
+  SELECTED
+  DESELECTED
+  NEW
+  UNAVAILABLE
+}
+
 enum BundlePriceType {
-  """Use base product/variant price (no modification)"""
   BASE
-
-  """Item is free when included in bundle"""
-  FREE
-
-  """Fixed price (overrides base price)"""
   FIXED
-
-  """Discount by percentage (0-100)"""
-  PERCENT_OFF
-
-  """Discount by absolute amount (in cents)"""
-  AMOUNT_OFF
+  DISCOUNT_PERCENT
+  DISCOUNT_FIXED
+  FREE
 }
 
-"""The subject of a dependency condition."""
-enum ConditionSubject {
-  """Check if an item is selected"""
-  ITEM_SELECTED
-
-  """Check item quantity"""
-  ITEM_QTY
-
-  """Check group total quantity"""
-  GROUP_TOTAL_QTY
+enum BundleLogicOperator {
+  AND
+  OR
 }
 
-"""The category of a dependency condition."""
-enum ConditionCategory {
-  """State check (is selected, is not selected)"""
+enum BundleConditionCategory {
   STATE_CHECK
-
-  """Numeric comparison (gte, eq, lte)"""
   NUMERIC
 }
 
-"""The operator for state check conditions."""
-enum StateCheckOperator {
-  IS_SELECTED
-  IS_NOT_SELECTED
+enum BundleConditionSubject {
+  ITEM_SELECTED
+  ITEM_QTY
+  GROUP_TOTAL_QTY
 }
 
-"""The operator for numeric conditions."""
-enum NumericOperator {
+enum BundleConditionOperator {
+  IS_SELECTED
+  IS_NOT_SELECTED
   GTE
   EQ
   LTE
 }
 
-"""The target type for conditions and actions."""
-enum DependencyTargetType {
-  """Target a specific bundle item"""
+enum BundleDependencyTargetType {
   ITEM
-
-  """Target an entire bundle group"""
   GROUP
-
-  """Target the entire bundle"""
   BUNDLE
 }
 
-"""The type of action to perform when a dependency rule matches."""
-enum DependencyActionType {
-  """Show the target"""
+enum BundleDependencyActionType {
   SHOW
-
-  """Hide the target"""
   HIDE
-
-  """Make the target required"""
   SET_REQUIRED
-
-  """Adjust the price of the target"""
   ADJUST_PRICE
 }
 
-"""Logic operator for combining conditions or condition groups."""
-enum LogicOperator {
-  AND
-  OR
+enum ProductKind {
+  BASE
+  BUNDLE
+}
+
+enum BundleOrderField {
+  id
+  vendorId
+  handle
+  publishedAt
+  createdAt
+  updatedAt
+  locale
+  name
+  currency
+  minPriceMinor
+  maxPriceMinor
+  primaryCategoryId
+  primaryCategoryName
+  brandName
 }
 
 enum ProductSortBy {
@@ -3314,6 +4074,28 @@ enum SwatchType {
   IMAGE
 }
 
+enum InventoryItemOrderField {
+  productName
+  sku
+  quantityOnHand
+  reservedQuantity
+  unavailableQuantity
+  availableForSale
+  updatedAt
+  id
+  variantId
+}
+
+enum InventoryItemWarehouseScopeMode {
+  INCLUDE
+  EXCLUDE
+}
+
+enum ThresholdMethod {
+  SAFETY_STOCK
+  REORDER_POINT
+}
+
 """Display type for product options in the UI."""
 enum OptionDisplayType {
   DROPDOWN
@@ -3333,10 +4115,19 @@ enum ProductTagOperationAction {
   REMOVE
 }
 
+"""Variant operation action in the unified product update."""
+enum VariantOperationAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
 """Type of operation in the unified update."""
 enum OperationType {
   PRODUCT_UPDATE
+  VARIANT_CREATE
   VARIANT_UPDATE
+  VARIANT_DELETE
   PRODUCT_CATEGORY_UPDATE
   PRODUCT_TAG_UPDATE
   CATEGORY_UPDATE
@@ -3508,6 +4299,72 @@ input DateTimeFilter {
 
   """Is not null"""
   _isNot: Boolean
+}
+
+"""Filter conditions for Listing"""
+input ListingWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [ListingWhereInput!]
+
+  """Logical OR of multiple conditions"""
+  _or: [ListingWhereInput!]
+
+  """Negate the condition"""
+  _not: ListingWhereInput
+
+  """Filter by id"""
+  id: IDFilter
+
+  """Filter by vendorId"""
+  vendorId: IDFilter
+
+  """Filter by handle"""
+  handle: StringFilter
+
+  """Filter by publishedAt"""
+  publishedAt: DateTimeFilter
+
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+
+  """Filter by kind"""
+  kind: StringFilter
+
+  """Filter by locale"""
+  locale: StringFilter
+
+  """Filter by name"""
+  name: StringFilter
+
+  """Filter by currency"""
+  currency: StringFilter
+
+  """Filter by minPriceMinor"""
+  minPriceMinor: IntFilter
+
+  """Filter by maxPriceMinor"""
+  maxPriceMinor: IntFilter
+
+  """Filter by primaryCategoryId"""
+  primaryCategoryId: IDFilter
+
+  """Filter by primaryCategoryName"""
+  primaryCategoryName: StringFilter
+
+  """Filter by brandName"""
+  brandName: StringFilter
+}
+
+"""Ordering configuration for Listing"""
+input ListingOrderByInput {
+  """Field to order by"""
+  field: ListingOrderField!
+
+  """Sort direction"""
+  direction: SortDirection!
 }
 
 """Filter conditions for Product"""
@@ -3702,25 +4559,124 @@ input TagOrderByInput {
   direction: SortDirection!
 }
 
-"""Filter conditions for CategoryProduct"""
-input CategoryProductWhereInput {
+"""Filter conditions for Warehouse"""
+input WarehouseWhereInput {
   """Logical AND of multiple conditions"""
-  _and: [CategoryProductWhereInput!]
+  _and: [WarehouseWhereInput!]
 
   """Logical OR of multiple conditions"""
-  _or: [CategoryProductWhereInput!]
+  _or: [WarehouseWhereInput!]
 
   """Negate the condition"""
-  _not: CategoryProductWhereInput
+  _not: WarehouseWhereInput
 
   """Filter by id"""
   id: IDFilter
 
+  """Filter by code"""
+  code: StringFilter
+
+  """Filter by name"""
+  name: StringFilter
+
+  """Filter by isDefault"""
+  isDefault: BooleanFilter
+
   """Filter by createdAt"""
   createdAt: DateTimeFilter
 
-  """Filter by deletedAt"""
-  deletedAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Ordering configuration for Warehouse"""
+input WarehouseOrderByInput {
+  """Field to order by"""
+  field: WarehouseOrderField!
+
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+"""Relay-style pagination input for Warehouse"""
+input WarehouseConnectionInput {
+  """Returns the first n items"""
+  first: Int
+
+  """Returns items after this cursor"""
+  after: String
+
+  """Returns the last n items"""
+  last: Int
+
+  """Returns items before this cursor"""
+  before: String
+
+  """Filter conditions"""
+  where: WarehouseWhereInput
+
+  """Sort order"""
+  orderBy: [WarehouseOrderByInput!]
+}
+
+"""Filter conditions for WarehouseStock"""
+input WarehouseStockWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [WarehouseStockWhereInput!]
+
+  """Logical OR of multiple conditions"""
+  _or: [WarehouseStockWhereInput!]
+
+  """Negate the condition"""
+  _not: WarehouseStockWhereInput
+
+  """Filter by id"""
+  id: IDFilter
+
+  """Filter by warehouseId"""
+  warehouseId: IDFilter
+
+  """Filter by variantId"""
+  variantId: IDFilter
+
+  """Filter by quantityOnHand"""
+  quantityOnHand: IntFilter
+
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+}
+
+"""Ordering configuration for WarehouseStock"""
+input WarehouseStockOrderByInput {
+  """Field to order by"""
+  field: WarehouseStockOrderField!
+
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+"""Relay-style pagination input for WarehouseStock"""
+input WarehouseStockConnectionInput {
+  """Returns the first n items"""
+  first: Int
+
+  """Returns items after this cursor"""
+  after: String
+
+  """Returns the last n items"""
+  last: Int
+
+  """Returns items before this cursor"""
+  before: String
+
+  """Filter conditions"""
+  where: WarehouseStockWhereInput
+
+  """Sort order"""
+  orderBy: [WarehouseStockOrderByInput!]
 }
 
 """Filter conditions for Variant"""
@@ -3768,6 +4724,52 @@ input VariantOrderByInput {
   direction: SortDirection!
 }
 
+input WarehouseAssignableVariantWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [WarehouseAssignableVariantWhereInput!]
+
+  """Logical OR of multiple conditions"""
+  _or: [WarehouseAssignableVariantWhereInput!]
+
+  """Negate the condition"""
+  _not: WarehouseAssignableVariantWhereInput
+
+  """Filter by variant ID"""
+  id: IDFilter
+
+  """Filter by product ID"""
+  productId: IDFilter
+
+  """Filter by product name in the current locale"""
+  productName: StringFilter
+
+  """Filter by variant SKU"""
+  sku: StringFilter
+
+  """Filter by default variant flag"""
+  isDefault: BooleanFilter
+
+  """Filter by variant handle"""
+  handle: StringFilter
+
+  """Filter by external system"""
+  externalSystem: StringFilter
+
+  """Filter by external ID"""
+  externalId: StringFilter
+
+  """Filter by creation date"""
+  createdAt: DateTimeFilter
+
+  """Filter by update date"""
+  updatedAt: DateTimeFilter
+}
+
+input WarehouseAssignableVariantOrderByInput {
+  field: WarehouseAssignableVariantOrderField!
+  direction: SortDirection!
+}
+
 """
 Bulk update input - same structure as productUpdate but for multiple products.
 Max 100 products, 500 operations total.
@@ -3791,149 +4793,406 @@ input ProductBulkUpdateItem {
   operations: ProductUpdateInput
 }
 
-input BundleGroupCreateInput {
-  productId: ID!
+input BundleBundlesMetaInput {
+  categoriesScope: ProductCategoriesScopeInput
+}
+
+input BundleWhereInput {
+  _and: [BundleWhereInput!]
+  _or: [BundleWhereInput!]
+  _not: BundleWhereInput
+  id: IDFilter
+  vendorId: IDFilter
+  handle: StringFilter
+  publishedAt: DateTimeFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+  locale: StringFilter
+  name: StringFilter
+  currency: StringFilter
+  minPriceMinor: IntFilter
+  maxPriceMinor: IntFilter
+  primaryCategoryId: IDFilter
+  primaryCategoryName: StringFilter
+  brandName: StringFilter
+}
+
+input BundleOrderByInput {
+  field: BundleOrderField!
+  direction: SortDirection!
+}
+
+input BundleCreateInput {
+  """Bundle title."""
   title: String!
-  sortIndex: Int
-  minSelection: Int
-  maxSelection: Int
+
+  """URL-friendly handle for the bundle."""
+  handle: String!
+
+  """Vendor ID to associate with the bundle."""
+  vendorId: ID
+
+  """Bundle description."""
+  description: RichTextInput
+
+  """Short excerpt in multiple formats."""
+  excerpt: RichTextInput
+
+  """
+  File IDs for bundle media (already uploaded via mediaMutation.fileUpload).
+  """
+  mediaFileIds: [ID!]
+
+  """Bundle options."""
+  options: [ProductCreateOptionInput!]
+
+  """Bundle variants to create."""
+  variants: [ProductCreateVariantInput!]
+
+  """Inventory tracking settings for the bundle."""
+  inventoryItem: InventoryItemInput
+
+  """High-level bundle type."""
+  type: BundleType
+
+  """Configurator display style."""
+  displayStyle: BundleDisplayStyle
 }
 
-input BundleGroupUpdateInput {
-  id: ID!
+input BundleUpdateInput {
+  """The URL-friendly handle for the bundle."""
+  handle: String
+
+  """Bundle title."""
   title: String
-  sortIndex: Int
-  minSelection: Int
-  maxSelection: Int
+
+  """Vendor ID to associate with the bundle. Pass null to clear."""
+  vendorId: ID
+
+  """Bundle content (description, excerpt)."""
+  content: ProductContentInput
+
+  """SEO and Open Graph metadata."""
+  seo: ProductSeoInput
+
+  """Bundle status: DRAFT or PUBLISHED."""
+  status: ProductStatus
+
+  """Bundle media."""
+  media: ProductMediaInput
+
+  """Bundle category assignment operations."""
+  categories: [ProductCategoryOperationInput!]
+
+  """Bundle tag assignment operations."""
+  tags: [ProductTagOperationInput!]
+
+  """Variant create, update, and delete operations."""
+  variants: [VariantOperationInput!]
+
+  """High-level bundle type."""
+  type: BundleType
+
+  """Configurator display style."""
+  displayStyle: BundleDisplayStyle
 }
 
-input BundleItemCreateInput {
-  groupId: ID!
+input BundleConfigurationCreateInput {
+  """Product global ID of the bundle."""
+  bundleId: ID!
+
+  """
+  Expected parent bundle product revision. Required for optimistic locking.
+  """
+  expectedRevision: Int!
+
+  """Configuration name."""
+  name: String!
+}
+
+input BundleConfigurationUpdateInput {
+  id: ID!
+  expectedRevision: Int!
+  name: String
+}
+
+input BundleConfigurationDeleteInput {
+  id: ID!
+  expectedRevision: Int!
+}
+
+input BundleGroupsSyncInput {
+  configurationId: ID!
+  expectedRevision: Int!
+
+  """
+  Complete list of groups for this configuration.
+  Groups not present in this list are deleted.
+  """
+  groups: [BundleGroupSyncItemInput!]!
+}
+
+input BundleGroupSyncItemInput {
+  """
+  Existing group ID. Null creates a new group.
+  Existing groups in this configuration but missing from BundleGroupsSyncInput.groups are deleted.
+  """
+  id: ID
+
+  """Localized title for current locale."""
+  title: String!
+  minSelection: Int
+  maxSelection: Int
+
+  """Sort order within the configuration."""
+  sortIndex: Int!
+
+  """Complete list of items inside this group."""
+  items: [BundleItemSyncItemInput!]!
+}
+
+input BundleItemSyncItemInput {
+  """
+  Existing item ID. Null creates a new item.
+  Existing items in this group but missing from BundleGroupSyncItemInput.items are deleted.
+  """
+  id: ID
+
+  """Whether the item references a product or a concrete variant."""
   itemType: BundleItemType!
-  sortIndex: Int
+
+  """Referenced product ID for PRODUCT items."""
   refProductId: ID
+
+  """Referenced variant ID for VARIANT items."""
   refVariantId: ID
-  title: String
+
+  """Featured image override."""
   featuredImageId: ID
-  excludedVariantIds: [ID!]
+
+  """Minimum selectable quantity."""
   minQty: Int
+
+  """Maximum selectable quantity."""
   maxQty: Int
+
+  """Default quantity."""
   defaultQty: Int
-  priceType: BundlePriceType
-  priceValue: Int
+
+  """Inline price rule. Cannot be used together with pricingTemplateId."""
+  priceRule: BundlePriceRuleInput
+
+  """Reusable pricing template ID. Cannot be used together with priceRule."""
   pricingTemplateId: ID
-  visible: Boolean
-  selected: Boolean
+
+  """Allowed option/value selections for PRODUCT items."""
+  optionSelections: [BundleItemOptionSelectionSyncItemInput!]
+
+  """Optional localized title override for current locale."""
+  title: String
+
+  """Whether item is visible in the configurator."""
+  visible: Boolean!
+
+  """Whether item is selected by default."""
+  selected: Boolean!
+
+  """Sort order within the group."""
+  sortIndex: Int!
 }
 
-input BundleItemUpdateInput {
-  id: ID!
-  title: String
-  featuredImageId: ID
-  excludedVariantIds: [ID!]
-  minQty: Int
-  maxQty: Int
-  defaultQty: Int
-  priceType: BundlePriceType
-  priceValue: Int
-  pricingTemplateId: ID
-  visible: Boolean
-  selected: Boolean
-  sortIndex: Int
+input BundleItemOptionSelectionSyncItemInput {
+  """Existing option selection ID. Null creates a new option selection."""
+  id: ID
+
+  """Referenced product option ID."""
+  optionId: ID!
+
+  """Parent option ID for dependent option trees."""
+  parentOptionId: ID
+
+  """Sort order within option selections."""
+  sortIndex: Int!
+
+  """Complete list of option value selections."""
+  values: [BundleItemOptionValueSelectionSyncItemInput!]!
 }
 
-input BundlePricingTemplateCreateInput {
-  productId: ID!
-  name: String!
+input BundleItemOptionValueSelectionSyncItemInput {
+  """Existing value selection ID. Null creates a new value selection."""
+  id: ID
+
+  """Referenced product option value ID."""
+  optionValueId: ID
+
+  """Stable value copy for displaying stale/unavailable values."""
+  value: String!
+
+  """Selection status."""
+  status: BundleItemOptionValueSelectionStatus!
+
+  """Sort order within option values."""
+  sortIndex: Int!
+}
+
+input BundlePriceRuleInput {
+  """Existing price rule ID. Null creates a new price rule."""
+  id: ID
+
+  """Pricing strategy."""
   priceType: BundlePriceType!
-  priceValue: Int
-  sortIndex: Int
+
+  """Money values for FIXED and DISCOUNT_FIXED rules."""
+  amounts: [BundlePriceRuleAmountInput!]
+
+  """Percent value for DISCOUNT_PERCENT rules."""
+  percent: BundlePriceRulePercentInput
 }
 
-input BundlePricingTemplateUpdateInput {
-  id: ID!
-  name: String
-  priceType: BundlePriceType
-  priceValue: Int
-  sortIndex: Int
+input BundlePriceRuleAmountInput {
+  """The currency code."""
+  currency: CurrencyCode!
+
+  """Amount in minor units."""
+  amountMinor: BigInt!
 }
 
-input DependencyRuleCreateInput {
-  productId: ID!
+input BundlePriceRulePercentInput {
+  """Percent value, 0..100."""
+  value: Int!
+}
+
+input BundlePricingTemplatesSyncInput {
+  configurationId: ID!
+  expectedRevision: Int!
+
+  """
+  Complete list of pricing templates for this configuration.
+  Templates not present in this list are deleted.
+  """
+  pricingTemplates: [BundlePricingTemplateSyncItemInput!]!
+}
+
+input BundlePricingTemplateSyncItemInput {
+  """
+  Existing pricing template ID. Null creates a new template.
+  Existing templates in this configuration but missing from
+  BundlePricingTemplatesSyncInput.pricingTemplates are deleted.
+  """
+  id: ID
+
+  """Template name."""
   name: String!
-  enabled: Boolean
-  priority: Int
-  logicOperator: LogicOperator
+
+  """Reusable price rule."""
+  priceRule: BundlePriceRuleInput!
+
+  """Sort order within configuration."""
+  sortIndex: Int!
 }
 
-input DependencyRuleUpdateInput {
-  id: ID!
-  name: String
-  enabled: Boolean
-  priority: Int
-  logicOperator: LogicOperator
+input BundleDependencyRulesSyncInput {
+  configurationId: ID!
+  expectedRevision: Int!
+
+  """
+  Complete list of dependency rules for this configuration.
+  Rules not present in this list are deleted.
+  """
+  dependencyRules: [BundleDependencyRuleSyncItemInput!]!
 }
 
-input ConditionGroupCreateInput {
-  ruleId: ID!
-  logicOperator: LogicOperator
-  sortIndex: Int
+input BundleDependencyRuleSyncItemInput {
+  """
+  Existing dependency rule ID. Null creates a new rule.
+  Existing rules in this configuration but missing from
+  BundleDependencyRulesSyncInput.dependencyRules are deleted.
+  """
+  id: ID
+
+  """Rule name."""
+  name: String!
+
+  """Whether the rule is enabled."""
+  enabled: Boolean!
+
+  """Rule priority."""
+  priority: Int!
+
+  """How condition groups are combined."""
+  logicOperator: BundleLogicOperator!
+
+  """Complete list of condition groups."""
+  conditionGroups: [BundleConditionGroupSyncItemInput!]!
+
+  """Complete list of actions."""
+  actions: [BundleDependencyActionSyncItemInput!]!
 }
 
-input ConditionGroupUpdateInput {
-  id: ID!
-  logicOperator: LogicOperator
-  sortIndex: Int
+input BundleConditionGroupSyncItemInput {
+  """Existing condition group ID. Null creates a new group."""
+  id: ID
+
+  """How conditions are combined."""
+  logicOperator: BundleLogicOperator!
+
+  """Sort order within the rule."""
+  sortIndex: Int!
+
+  """Complete list of conditions."""
+  conditions: [BundleConditionSyncItemInput!]!
 }
 
-input ConditionCreateInput {
-  groupId: ID!
-  category: ConditionCategory!
-  subject: ConditionSubject!
-  operator: String!
-  targetType: DependencyTargetType!
+input BundleConditionSyncItemInput {
+  """Existing condition ID. Null creates a new condition."""
+  id: ID
+
+  """Condition category."""
+  category: BundleConditionCategory!
+
+  """Condition subject."""
+  subject: BundleConditionSubject!
+
+  """Condition operator."""
+  operator: BundleConditionOperator!
+
+  """Target type."""
+  targetType: BundleDependencyTargetType!
+
+  """Target ID. Points to an item, group, or the parent bundle product."""
   targetId: ID!
+
+  """Numeric value for numeric conditions."""
   value: Int
-  sortIndex: Int
+
+  """Sort order within the condition group."""
+  sortIndex: Int!
 }
 
-input ConditionUpdateInput {
-  id: ID!
-  category: ConditionCategory
-  subject: ConditionSubject
-  operator: String
-  targetType: DependencyTargetType
-  targetId: ID
-  value: Int
-  sortIndex: Int
-}
+input BundleDependencyActionSyncItemInput {
+  """Existing action ID. Null creates a new action."""
+  id: ID
 
-input DependencyActionCreateInput {
-  ruleId: ID!
-  actionType: DependencyActionType!
-  targetType: DependencyTargetType!
+  """Action type."""
+  actionType: BundleDependencyActionType!
+
+  """Target type."""
+  targetType: BundleDependencyTargetType!
+
+  """Target ID. Null is allowed when targetType is BUNDLE."""
   targetId: ID
+
+  """Required value for SET_REQUIRED."""
   requiredValue: Boolean
-  priceType: BundlePriceType
-  priceValue: Int
-  stackable: Boolean
-  sortIndex: Int
-}
 
-input DependencyActionUpdateInput {
-  id: ID!
-  actionType: DependencyActionType
-  targetType: DependencyTargetType
-  targetId: ID
-  requiredValue: Boolean
-  priceType: BundlePriceType
-  priceValue: Int
-  stackable: Boolean
-  sortIndex: Int
-}
+  """Price rule for ADJUST_PRICE."""
+  priceRule: BundlePriceRuleInput
 
-input DeleteInput {
-  id: ID!
+  """Whether this action can stack with other matching actions."""
+  stackable: Boolean!
+
+  """Sort order within the rule."""
+  sortIndex: Int!
 }
 
 input CategoryHierarchyScopeInput {
@@ -4335,6 +5594,92 @@ input ProductFeatureDeleteInput {
   id: ID!
 }
 
+input InventoryItemWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [InventoryItemWhereInput!]
+
+  """Logical OR of multiple conditions"""
+  _or: [InventoryItemWhereInput!]
+
+  """Negate the condition"""
+  _not: InventoryItemWhereInput
+
+  """Filter by inventory item ID"""
+  id: IDFilter
+
+  """Filter by variant ID"""
+  variantId: IDFilter
+
+  """Filter by product ID"""
+  productId: IDFilter
+
+  """Filter by product name in the current locale"""
+  productName: StringFilter
+
+  """Filter by SKU"""
+  sku: StringFilter
+
+  """Filter by trackInventory"""
+  trackInventory: BooleanFilter
+
+  """Filter by quantity on hand in the selected warehouse scope"""
+  quantityOnHand: IntFilter
+
+  """Filter by reserved quantity in the selected warehouse scope"""
+  reservedQuantity: IntFilter
+
+  """Filter by unavailable quantity in the selected warehouse scope"""
+  unavailableQuantity: IntFilter
+
+  """Filter by available for sale quantity in the selected warehouse scope"""
+  availableForSale: IntFilter
+}
+
+input InventoryItemOrderByInput {
+  field: InventoryItemOrderField!
+  direction: SortDirection!
+}
+
+input InventoryItemInventoryItemsMetaInput {
+  warehouseScope: InventoryItemWarehouseScopeInput
+}
+
+input InventoryItemWarehouseScopeInput {
+  referenceIds: [ID!]!
+  mode: InventoryItemWarehouseScopeMode!
+}
+
+input InventoryItemUpdateInput {
+  """The inventory item ID to update"""
+  id: ID!
+
+  """New SKU value"""
+  sku: String
+
+  """Whether to track inventory"""
+  trackInventory: Boolean
+
+  """Whether to continue selling when out of stock"""
+  continueSellingWhenOutOfStock: Boolean
+
+  """Stock update for a specific warehouse"""
+  stock: InventoryItemStockInput
+
+  """Unit cost update"""
+  unitCost: InventoryItemCostInput
+}
+
+input InventoryItemStockInput {
+  warehouseId: ID!
+  onHand: Int!
+  unavailable: Int
+}
+
+input InventoryItemCostInput {
+  currency: String!
+  amountMinor: BigInt!
+}
+
 """Input for updating variant media (replaces all existing media)."""
 input VariantUpdateMediaInput {
   """The variant ID."""
@@ -4514,6 +5859,24 @@ input ProductOptionsSyncInput {
   options: [ProductOptionSyncItemInput!]!
 }
 
+"""Input for setting dimensions (in millimeters)."""
+input DimensionsInput {
+  """Width in millimeters."""
+  width: Int!
+
+  """Length in millimeters."""
+  length: Int!
+
+  """Height in millimeters."""
+  height: Int!
+}
+
+"""Input for setting weight (in grams)."""
+input WeightInput {
+  """Weight in grams."""
+  value: Int!
+}
+
 """Input for pricing widget query."""
 input PricingWidgetInput {
   """The variant ID to get pricing data for."""
@@ -4552,12 +5915,6 @@ input VariantUpdatePricingInput {
 
 input ProductSortInput {
   by: ProductSortBy!
-  direction: SortDirection
-}
-
-"""Listing orderBy input for product listing pages."""
-input ListingOrderByInput {
-  field: ProductSortBy!
   direction: SortDirection
 }
 
@@ -4769,8 +6126,8 @@ input ProductUpdateInput {
   """Product tag assignment operations."""
   tags: [ProductTagOperationInput!]
 
-  """Variant updates."""
-  variants: [VariantUpdateInput!]
+  """Variant create, update, and delete operations."""
+  variants: [VariantOperationInput!]
 }
 
 """Input for variant pricing in the unified update."""
@@ -4830,10 +6187,16 @@ input VariantOptionsOpInput {
   set: [VariantOptionLinkInput!]!
 }
 
-"""Input for a single variant update."""
-input VariantUpdateInput {
-  """The variant ID."""
-  variantId: ID!
+"""Input for a single variant operation."""
+input VariantOperationInput {
+  """The operation to apply."""
+  action: VariantOperationAction!
+
+  """The variant ID for update/delete operations."""
+  variantId: ID
+
+  """Per-request client correlation key for create operations."""
+  clientMutationId: String
 
   """Variant pricing."""
   pricing: VariantPricingOpInput
@@ -4879,6 +6242,69 @@ input ProductSeoInput {
   ogTitle: String
   ogDescription: String
   ogImageId: ID
+}
+
+"""Input for creating a warehouse."""
+input WarehouseCreateInput {
+  """The unique code for the warehouse."""
+  code: String!
+
+  """The display name for the warehouse."""
+  name: String!
+
+  """Whether this should be the default warehouse."""
+  isDefault: Boolean
+}
+
+"""Input for updating a warehouse."""
+input WarehouseUpdateInput {
+  """The ID of the warehouse to update."""
+  id: ID!
+
+  """The new code for the warehouse."""
+  code: String
+
+  """The new name for the warehouse."""
+  name: String
+
+  """Whether this should be the default warehouse."""
+  isDefault: Boolean
+}
+
+"""Input for deleting a warehouse."""
+input WarehouseDeleteInput {
+  """The ID of the warehouse to delete."""
+  id: ID!
+}
+
+"""Item input for creating variant stock in a warehouse."""
+input WarehouseStockCreateItemInput {
+  """The variant whose stock should be added."""
+  variantId: ID!
+
+  """The warehouse to add stock to."""
+  warehouseId: ID!
+}
+
+"""Input for creating variant stock in warehouses."""
+input WarehouseStockCreateInput {
+  """Stock records to create."""
+  items: [WarehouseStockCreateItemInput!]!
+}
+
+"""Item input for deleting variant stock from a warehouse."""
+input WarehouseStockDeleteItemInput {
+  """The variant whose stock should be removed."""
+  variantId: ID!
+
+  """The warehouse to remove stock from."""
+  warehouseId: ID!
+}
+
+"""Input for deleting variant stock from warehouses."""
+input WarehouseStockDeleteInput {
+  """Stock records to delete."""
+  items: [WarehouseStockDeleteItemInput!]!
 }
 
 """Input for creating a tag."""
@@ -5776,572 +7202,6 @@ input UserUpdatePasswordInput {
 
   """New password."""
   newPassword: String!
-}
-
-type InventoryQuery {
-  """Get a node by its global ID"""
-  node(id: ID!): Node
-
-  """Get multiple nodes by their global IDs"""
-  nodes(ids: [ID!]!): [Node]!
-
-  """Get a warehouse by ID"""
-  warehouse(id: ID!): Warehouse
-
-  """Get all warehouses"""
-  warehouses(
-    first: Int
-    after: String
-    last: Int
-    before: String
-
-    """Filter conditions"""
-    where: WarehouseWhereInput
-
-    """Sort order"""
-    orderBy: [WarehouseOrderByInput!]
-  ): WarehouseConnection!
-
-  """Get an inventory item by ID"""
-  inventoryItem(id: ID!): InventoryItem
-
-  """Get an inventory item by variant ID"""
-  inventoryItemByVariant(variantId: ID!): InventoryItem
-
-  """Get inventory items with Relay-style pagination"""
-  inventoryItems(first: Int, after: String, where: InventoryItemWhereInput): InventoryItemConnection!
-}
-
-type InventoryMutation {
-  """
-  Update inventory item: stock, SKU, and cost.
-  Replaces variantUpdateInventory and variantUpdateDimensions.
-  """
-  inventoryItemUpdate(input: InventoryItemUpdateInput!): InventoryItemUpdatePayload!
-  warehouseCreate(input: WarehouseCreateInput!): WarehouseCreatePayload!
-  warehouseUpdate(input: WarehouseUpdateInput!): WarehouseUpdatePayload!
-  warehouseDelete(input: WarehouseDeleteInput!): WarehouseDeletePayload!
-}
-
-"""
-InventoryItem represents the inventory-specific data for a variant.
-Each catalog variant can have a corresponding InventoryItem.
-"""
-type InventoryItem implements Node {
-  """Global ID (Relay)"""
-  id: ID!
-
-  """Reference to Catalog.Variant"""
-  variantId: ID!
-
-  """SKU code"""
-  sku: String
-
-  """Whether to track inventory for this item"""
-  trackInventory: Boolean!
-
-  """Whether to continue selling when out of stock"""
-  continueSellingWhenOutOfStock: Boolean!
-
-  """Stock levels across warehouses"""
-  stock: [WarehouseStock!]!
-
-  """Total quantity available across all warehouses"""
-  totalAvailable: Int!
-
-  """Current unit cost"""
-  unitCost: InventoryItemCost
-
-  """When this item was created"""
-  createdAt: DateTime!
-
-  """When this item was last updated"""
-  updatedAt: DateTime!
-}
-
-type InventoryItemCost {
-  """Currency code"""
-  currency: String!
-
-  """Cost in minor units (cents)"""
-  amountMinor: BigInt!
-
-  """Effective from date"""
-  effectiveFrom: DateTime!
-}
-
-type InventoryItemConnection {
-  edges: [InventoryItemEdge!]!
-  pageInfo: PageInfo!
-  totalCount: Int!
-}
-
-type InventoryItemEdge {
-  node: InventoryItem!
-  cursor: String!
-}
-
-type InventoryItemUpdatePayload {
-  """Updated inventory item"""
-  inventoryItem: InventoryItem
-
-  """List of errors"""
-  userErrors: [GenericUserError!]!
-}
-
-type SkuStatusMetric {
-  count: Int!
-  averageDays: Float
-}
-
-type InventoryQuantities {
-  availableForSale: Int!
-  onHand: Int!
-  reserved: Int!
-  unavailable: Int!
-}
-
-type InventorySkuStatus {
-  total: Int!
-  lowStock: SkuStatusMetric!
-  outOfStock: SkuStatusMetric!
-  backorder: SkuStatusMetric!
-}
-
-type InventoryBackorder {
-  quantity: Int!
-  etaAvgDays: Float
-}
-
-type InventoryAlertThreshold {
-  method: ThresholdMethod!
-  minimumStock: Int!
-}
-
-type ProductInventoryWidget {
-  quantities: InventoryQuantities!
-  availableChange7d: Int!
-  skuStatus: InventorySkuStatus!
-  backorder: InventoryBackorder!
-  alertThreshold: InventoryAlertThreshold!
-}
-
-"""Physical dimensions of a variant (stored in millimeters)."""
-type VariantDimensions {
-  """Width in millimeters."""
-  width: Int!
-
-  """Length in millimeters."""
-  length: Int!
-
-  """Height in millimeters."""
-  height: Int!
-}
-
-"""Physical weight of a variant (stored in grams)."""
-type VariantWeight {
-  """Weight in grams."""
-  value: Int!
-}
-
-"""A warehouse represents a physical location where inventory is stored."""
-type Warehouse implements Node {
-  """The globally unique ID of the warehouse."""
-  id: ID!
-
-  """The unique code identifying this warehouse."""
-  code: String!
-
-  """The display name of the warehouse."""
-  name: String!
-
-  """Whether this is the default warehouse for the project."""
-  isDefault: Boolean!
-
-  """The date and time when the warehouse was created."""
-  createdAt: DateTime!
-
-  """The date and time when the warehouse was last updated."""
-  updatedAt: DateTime!
-
-  """Stock levels for all variants in this warehouse."""
-  stock(
-    first: Int
-    after: String
-    last: Int
-    before: String
-
-    """Filter conditions"""
-    where: WarehouseStockWhereInput
-
-    """Sort order"""
-    orderBy: [WarehouseStockOrderByInput!]
-  ): WarehouseStockConnection!
-
-  """Total number of variants stocked in this warehouse."""
-  variantsCount: Int!
-}
-
-"""A connection to a list of Warehouse items."""
-type WarehouseConnection {
-  """A list of edges."""
-  edges: [WarehouseEdge!]!
-
-  """Information to aid in pagination."""
-  pageInfo: PageInfo!
-
-  """The total number of warehouses."""
-  totalCount: Int!
-}
-
-"""An edge in a Warehouse connection."""
-type WarehouseEdge {
-  """The item at the end of the edge."""
-  node: Warehouse!
-
-  """A cursor for use in pagination."""
-  cursor: String!
-}
-
-"""Represents stock level for a variant in a specific warehouse."""
-type WarehouseStock implements Node {
-  """The globally unique ID of the stock record."""
-  id: ID!
-
-  """The globally unique ID of the warehouse this stock belongs to."""
-  warehouseId: ID!
-
-  """The globally unique ID of the variant this stock belongs to."""
-  variantId: ID!
-
-  """The warehouse where this stock is located."""
-  warehouse: Warehouse!
-
-  """The variant this stock record is for."""
-  variant: Variant!
-
-  """The quantity currently on hand."""
-  quantityOnHand: Int!
-
-  """The quantity currently reserved."""
-  reservedQuantity: Int!
-
-  """The quantity currently unavailable."""
-  unavailableQuantity: Int!
-
-  """The quantity available for sale."""
-  availableForSale: Int!
-
-  """The date and time when the stock was created."""
-  createdAt: DateTime!
-
-  """The date and time when the stock was last updated."""
-  updatedAt: DateTime!
-}
-
-"""A connection to a list of WarehouseStock items."""
-type WarehouseStockConnection {
-  """A list of edges."""
-  edges: [WarehouseStockEdge!]!
-
-  """Information to aid in pagination."""
-  pageInfo: PageInfo!
-
-  """The total number of stock records."""
-  totalCount: Int!
-}
-
-"""An edge in a WarehouseStock connection."""
-type WarehouseStockEdge {
-  """The item at the end of the edge."""
-  node: WarehouseStock!
-
-  """A cursor for use in pagination."""
-  cursor: String!
-}
-
-"""Payload for warehouse creation."""
-type WarehouseCreatePayload {
-  """The created warehouse."""
-  warehouse: Warehouse
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Payload for warehouse update."""
-type WarehouseUpdatePayload {
-  """The updated warehouse."""
-  warehouse: Warehouse
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Payload for warehouse deletion."""
-type WarehouseDeletePayload {
-  """The ID of the deleted warehouse."""
-  deletedWarehouseId: ID
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Fields available for sorting Warehouse"""
-enum WarehouseOrderField {
-  """Sort by id"""
-  id
-
-  """Sort by code"""
-  code
-
-  """Sort by name"""
-  name
-
-  """Sort by isDefault"""
-  isDefault
-
-  """Sort by createdAt"""
-  createdAt
-
-  """Sort by updatedAt"""
-  updatedAt
-}
-
-"""Fields available for sorting WarehouseStock"""
-enum WarehouseStockOrderField {
-  """Sort by id"""
-  id
-
-  """Sort by warehouseId"""
-  warehouseId
-
-  """Sort by variantId"""
-  variantId
-
-  """Sort by quantityOnHand"""
-  quantityOnHand
-
-  """Sort by updatedAt"""
-  updatedAt
-
-  """Sort by createdAt"""
-  createdAt
-}
-
-enum ThresholdMethod {
-  SAFETY_STOCK
-  REORDER_POINT
-}
-
-"""Filter conditions for Warehouse"""
-input WarehouseWhereInput {
-  """Logical AND of multiple conditions"""
-  _and: [WarehouseWhereInput!]
-
-  """Logical OR of multiple conditions"""
-  _or: [WarehouseWhereInput!]
-
-  """Negate the condition"""
-  _not: WarehouseWhereInput
-
-  """Filter by id"""
-  id: IDFilter
-
-  """Filter by code"""
-  code: StringFilter
-
-  """Filter by name"""
-  name: StringFilter
-
-  """Filter by isDefault"""
-  isDefault: BooleanFilter
-
-  """Filter by createdAt"""
-  createdAt: DateTimeFilter
-
-  """Filter by updatedAt"""
-  updatedAt: DateTimeFilter
-}
-
-"""Ordering configuration for Warehouse"""
-input WarehouseOrderByInput {
-  """Field to order by"""
-  field: WarehouseOrderField!
-
-  """Sort direction"""
-  direction: SortDirection!
-}
-
-"""Relay-style pagination input for Warehouse"""
-input WarehouseConnectionInput {
-  """Returns the first n items"""
-  first: Int
-
-  """Returns items after this cursor"""
-  after: String
-
-  """Returns the last n items"""
-  last: Int
-
-  """Returns items before this cursor"""
-  before: String
-
-  """Filter conditions"""
-  where: WarehouseWhereInput
-
-  """Sort order"""
-  orderBy: [WarehouseOrderByInput!]
-}
-
-"""Filter conditions for WarehouseStock"""
-input WarehouseStockWhereInput {
-  """Logical AND of multiple conditions"""
-  _and: [WarehouseStockWhereInput!]
-
-  """Logical OR of multiple conditions"""
-  _or: [WarehouseStockWhereInput!]
-
-  """Negate the condition"""
-  _not: WarehouseStockWhereInput
-
-  """Filter by id"""
-  id: IDFilter
-
-  """Filter by warehouseId"""
-  warehouseId: IDFilter
-
-  """Filter by variantId"""
-  variantId: IDFilter
-
-  """Filter by quantityOnHand"""
-  quantityOnHand: IntFilter
-
-  """Filter by updatedAt"""
-  updatedAt: DateTimeFilter
-
-  """Filter by createdAt"""
-  createdAt: DateTimeFilter
-}
-
-"""Ordering configuration for WarehouseStock"""
-input WarehouseStockOrderByInput {
-  """Field to order by"""
-  field: WarehouseStockOrderField!
-
-  """Sort direction"""
-  direction: SortDirection!
-}
-
-"""Relay-style pagination input for WarehouseStock"""
-input WarehouseStockConnectionInput {
-  """Returns the first n items"""
-  first: Int
-
-  """Returns items after this cursor"""
-  after: String
-
-  """Returns the last n items"""
-  last: Int
-
-  """Returns items before this cursor"""
-  before: String
-
-  """Filter conditions"""
-  where: WarehouseStockWhereInput
-
-  """Sort order"""
-  orderBy: [WarehouseStockOrderByInput!]
-}
-
-input InventoryItemWhereInput {
-  """Filter by SKU"""
-  sku: StringFilter
-
-  """Filter by trackInventory"""
-  trackInventory: Boolean
-}
-
-input InventoryItemUpdateInput {
-  """The inventory item ID to update"""
-  id: ID!
-
-  """New SKU value"""
-  sku: String
-
-  """Whether to track inventory"""
-  trackInventory: Boolean
-
-  """Whether to continue selling when out of stock"""
-  continueSellingWhenOutOfStock: Boolean
-
-  """Stock update for a specific warehouse"""
-  stock: InventoryItemStockInput
-
-  """Unit cost update"""
-  unitCost: InventoryItemCostInput
-}
-
-input InventoryItemStockInput {
-  warehouseId: ID!
-  onHand: Int!
-  unavailable: Int
-}
-
-input InventoryItemCostInput {
-  currency: String!
-  amountMinor: BigInt!
-}
-
-"""Input for setting dimensions (in millimeters)."""
-input DimensionsInput {
-  """Width in millimeters."""
-  width: Int!
-
-  """Length in millimeters."""
-  length: Int!
-
-  """Height in millimeters."""
-  height: Int!
-}
-
-"""Input for setting weight (in grams)."""
-input WeightInput {
-  """Weight in grams."""
-  value: Int!
-}
-
-"""Input for creating a warehouse."""
-input WarehouseCreateInput {
-  """The unique code for the warehouse."""
-  code: String!
-
-  """The display name for the warehouse."""
-  name: String!
-
-  """Whether this should be the default warehouse."""
-  isDefault: Boolean
-}
-
-"""Input for updating a warehouse."""
-input WarehouseUpdateInput {
-  """The ID of the warehouse to update."""
-  id: ID!
-
-  """The new code for the warehouse."""
-  code: String
-
-  """The new name for the warehouse."""
-  name: String
-
-  """Whether this should be the default warehouse."""
-  isDefault: Boolean
-}
-
-"""Input for deleting a warehouse."""
-input WarehouseDeleteInput {
-  """The ID of the warehouse to delete."""
-  id: ID!
 }
 
 scalar Upload

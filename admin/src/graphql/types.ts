@@ -385,7 +385,7 @@ export type ApiBulkUpdateUserError = ApiUserError & {
   variantId?: Maybe<Scalars['ID']['output']>;
 };
 
-export type ApiBundle = ApiCatalogSellable & ApiNode & {
+export type ApiBundle = ApiListing & ApiNode & {
   __typename?: 'Bundle';
   /** Category assignments with relationship metadata. */
   categoryAssignments: Array<ApiProductCategoryAssignment>;
@@ -496,9 +496,9 @@ export type ApiBundleConditionGroup = ApiNode & {
   sortIndex: Scalars['Int']['output'];
 };
 
-export type ApiBundleConditionGroupSyncInput = {
+export type ApiBundleConditionGroupSyncItemInput = {
   /** Complete list of conditions. */
-  conditions: Array<ApiBundleConditionSyncInput>;
+  conditions: Array<ApiBundleConditionSyncItemInput>;
   /** Existing condition group ID. Null creates a new group. */
   id?: InputMaybe<Scalars['ID']['input']>;
   /** How conditions are combined. */
@@ -521,7 +521,7 @@ export enum BundleConditionSubject {
   ItemSelected = 'ITEM_SELECTED'
 }
 
-export type ApiBundleConditionSyncInput = {
+export type ApiBundleConditionSyncItemInput = {
   /** Condition category. */
   category: BundleConditionCategory;
   /** Existing condition ID. Null creates a new condition. */
@@ -659,7 +659,7 @@ export type ApiBundleDependencyAction = ApiNode & {
   targetType: BundleDependencyTargetType;
 };
 
-export type ApiBundleDependencyActionSyncInput = {
+export type ApiBundleDependencyActionSyncItemInput = {
   /** Action type. */
   actionType: BundleDependencyActionType;
   /** Existing action ID. Null creates a new action. */
@@ -709,9 +709,9 @@ export type ApiBundleDependencyRule = ApiNode & {
 
 export type ApiBundleDependencyRuleSyncItemInput = {
   /** Complete list of actions. */
-  actions: Array<ApiBundleDependencyActionSyncInput>;
+  actions: Array<ApiBundleDependencyActionSyncItemInput>;
   /** Complete list of condition groups. */
-  conditionGroups: Array<ApiBundleConditionGroupSyncInput>;
+  conditionGroups: Array<ApiBundleConditionGroupSyncItemInput>;
   /** Whether the rule is enabled. */
   enabled: Scalars['Boolean']['input'];
   /**
@@ -832,7 +832,7 @@ export type ApiBundleGroupSyncItemInput = {
    */
   id?: InputMaybe<Scalars['ID']['input']>;
   /** Complete list of items inside this group. */
-  items: Array<ApiBundleItemSyncInput>;
+  items: Array<ApiBundleItemSyncItemInput>;
   maxSelection?: InputMaybe<Scalars['Int']['input']>;
   minSelection?: InputMaybe<Scalars['Int']['input']>;
   /** Sort order within the configuration. */
@@ -922,7 +922,7 @@ export type ApiBundleItemOptionSelection = ApiNode & {
   values: Array<ApiBundleItemOptionValueSelection>;
 };
 
-export type ApiBundleItemOptionSelectionSyncInput = {
+export type ApiBundleItemOptionSelectionSyncItemInput = {
   /** Existing option selection ID. Null creates a new option selection. */
   id?: InputMaybe<Scalars['ID']['input']>;
   /** Referenced product option ID. */
@@ -932,7 +932,7 @@ export type ApiBundleItemOptionSelectionSyncInput = {
   /** Sort order within option selections. */
   sortIndex: Scalars['Int']['input'];
   /** Complete list of option value selections. */
-  values: Array<ApiBundleItemOptionValueSelectionSyncInput>;
+  values: Array<ApiBundleItemOptionValueSelectionSyncItemInput>;
 };
 
 export type ApiBundleItemOptionValueSelection = ApiNode & {
@@ -958,7 +958,7 @@ export enum BundleItemOptionValueSelectionStatus {
   Unavailable = 'UNAVAILABLE'
 }
 
-export type ApiBundleItemOptionValueSelectionSyncInput = {
+export type ApiBundleItemOptionValueSelectionSyncItemInput = {
   /** Existing value selection ID. Null creates a new value selection. */
   id?: InputMaybe<Scalars['ID']['input']>;
   /** Referenced product option value ID. */
@@ -971,7 +971,7 @@ export type ApiBundleItemOptionValueSelectionSyncInput = {
   value: Scalars['String']['input'];
 };
 
-export type ApiBundleItemSyncInput = {
+export type ApiBundleItemSyncItemInput = {
   /** Default quantity. */
   defaultQty?: InputMaybe<Scalars['Int']['input']>;
   /** Featured image override. */
@@ -988,7 +988,7 @@ export type ApiBundleItemSyncInput = {
   /** Minimum selectable quantity. */
   minQty?: InputMaybe<Scalars['Int']['input']>;
   /** Allowed option/value selections for PRODUCT items. */
-  optionSelections?: InputMaybe<Array<ApiBundleItemOptionSelectionSyncInput>>;
+  optionSelections?: InputMaybe<Array<ApiBundleItemOptionSelectionSyncItemInput>>;
   /** Inline price rule. Cannot be used together with pricingTemplateId. */
   priceRule?: InputMaybe<ApiBundlePriceRuleInput>;
   /** Reusable pricing template ID. Cannot be used together with priceRule. */
@@ -1819,89 +1819,6 @@ export type ApiCatalogQueryVendorsArgs = {
   where?: InputMaybe<ApiVendorWhereInput>;
 };
 
-export type ApiCatalogSellable = {
-  /** The URL-friendly handle. */
-  handle?: Maybe<Scalars['String']['output']>;
-  /** The Product global ID of the sellable catalog item. */
-  id: Scalars['ID']['output'];
-  /** Product discriminator. */
-  kind: ProductKind;
-  /** Media registered on this sellable item. */
-  media: Array<ApiProductMediaItem>;
-  /** The primary category assigned to this sellable item. */
-  primaryCategory?: Maybe<ApiCategory>;
-  /** The tags associated with this sellable item. */
-  tags: Array<ApiTag>;
-  /** Localized title. */
-  title: Scalars['String']['output'];
-  /** The total number of variants. */
-  variantsCount: Scalars['Int']['output'];
-};
-
-/** A connection to a mixed list of sellable catalog items. */
-export type ApiCatalogSellableConnection = {
-  __typename?: 'CatalogSellableConnection';
-  /** A list of edges. */
-  edges: Array<ApiCatalogSellableEdge>;
-  /** Information to aid in pagination. */
-  pageInfo: ApiPageInfo;
-  /** The total number of sellable catalog items. */
-  totalCount: Scalars['Int']['output'];
-};
-
-/** An edge in a CatalogSellable connection. */
-export type ApiCatalogSellableEdge = {
-  __typename?: 'CatalogSellableEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String']['output'];
-  /** The item at the end of the edge. */
-  node: ApiCatalogSellable;
-};
-
-export type ApiCatalogSellableOrderByInput = {
-  direction: SortDirection;
-  field: CatalogSellableOrderField;
-};
-
-export enum CatalogSellableOrderField {
-  BrandName = 'brandName',
-  CreatedAt = 'createdAt',
-  Currency = 'currency',
-  Handle = 'handle',
-  Id = 'id',
-  Kind = 'kind',
-  Locale = 'locale',
-  MaxPriceMinor = 'maxPriceMinor',
-  MinPriceMinor = 'minPriceMinor',
-  Name = 'name',
-  PrimaryCategoryId = 'primaryCategoryId',
-  PrimaryCategoryName = 'primaryCategoryName',
-  PublishedAt = 'publishedAt',
-  UpdatedAt = 'updatedAt',
-  VendorId = 'vendorId'
-}
-
-export type ApiCatalogSellableWhereInput = {
-  _and?: InputMaybe<Array<ApiCatalogSellableWhereInput>>;
-  _not?: InputMaybe<ApiCatalogSellableWhereInput>;
-  _or?: InputMaybe<Array<ApiCatalogSellableWhereInput>>;
-  brandName?: InputMaybe<ApiStringFilter>;
-  createdAt?: InputMaybe<ApiDateTimeFilter>;
-  currency?: InputMaybe<ApiStringFilter>;
-  handle?: InputMaybe<ApiStringFilter>;
-  id?: InputMaybe<ApiIdFilter>;
-  kind?: InputMaybe<ApiStringFilter>;
-  locale?: InputMaybe<ApiStringFilter>;
-  maxPriceMinor?: InputMaybe<ApiIntFilter>;
-  minPriceMinor?: InputMaybe<ApiIntFilter>;
-  name?: InputMaybe<ApiStringFilter>;
-  primaryCategoryId?: InputMaybe<ApiIdFilter>;
-  primaryCategoryName?: InputMaybe<ApiStringFilter>;
-  publishedAt?: InputMaybe<ApiDateTimeFilter>;
-  updatedAt?: InputMaybe<ApiDateTimeFilter>;
-  vendorId?: InputMaybe<ApiIdFilter>;
-};
-
 /** A category represents a hierarchical grouping of products. */
 export type ApiCategory = ApiNode & {
   __typename?: 'Category';
@@ -1929,8 +1846,10 @@ export type ApiCategory = ApiNode & {
   id: Scalars['ID']['output'];
   /** Whether the category is currently published. */
   isPublished: Scalars['Boolean']['output'];
-  /** Sellable catalog items assigned to this category, including products and bundles. */
-  items: ApiCatalogSellableConnection;
+  /** Catalog listing items assigned to this category, including products and bundles. */
+  listing: ApiListingConnection;
+  /** The total number of listing items in this category. */
+  listingCount: Scalars['Int']['output'];
   /** Media files associated with this category. */
   media: Array<ApiCategoryMediaItem>;
   /** The display name of the category. */
@@ -1939,10 +1858,6 @@ export type ApiCategory = ApiNode & {
   parent?: Maybe<ApiCategory>;
   /** The materialized path for this category. */
   path: Scalars['String']['output'];
-  /** Products in this category with pagination. */
-  products: ApiCategoryProductConnection;
-  /** The total number of products in this category. */
-  productsCount: Scalars['Int']['output'];
   /** The date and time when the category was published, or null if unpublished. */
   publishedAt?: Maybe<Scalars['DateTime']['output']>;
   /** Optimistic locking revision number. Incremented on each update. */
@@ -1955,24 +1870,13 @@ export type ApiCategory = ApiNode & {
 
 
 /** A category represents a hierarchical grouping of products. */
-export type ApiCategoryItemsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  orderBy?: InputMaybe<Array<ApiCatalogSellableOrderByInput>>;
-  where?: InputMaybe<ApiCatalogSellableWhereInput>;
-};
-
-
-/** A category represents a hierarchical grouping of products. */
-export type ApiCategoryProductsArgs = {
+export type ApiCategoryListingArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
   orderBy?: InputMaybe<Array<ApiListingOrderByInput>>;
-  where?: InputMaybe<ApiCategoryProductWhereInput>;
+  where?: InputMaybe<ApiListingWhereInput>;
 };
 
 export type ApiCategoryCategoriesMetaInput = {
@@ -2143,35 +2047,6 @@ export enum CategoryOrderField {
   /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
-
-export type ApiCategoryProductConnection = {
-  __typename?: 'CategoryProductConnection';
-  edges: Array<ApiCategoryProductEdge>;
-  pageInfo: ApiPageInfo;
-  totalCount: Scalars['Int']['output'];
-};
-
-export type ApiCategoryProductEdge = {
-  __typename?: 'CategoryProductEdge';
-  cursor: Scalars['String']['output'];
-  node: ApiProduct;
-};
-
-/** Filter conditions for CategoryProduct */
-export type ApiCategoryProductWhereInput = {
-  /** Logical AND of multiple conditions */
-  _and?: InputMaybe<Array<ApiCategoryProductWhereInput>>;
-  /** Negate the condition */
-  _not?: InputMaybe<ApiCategoryProductWhereInput>;
-  /** Logical OR of multiple conditions */
-  _or?: InputMaybe<Array<ApiCategoryProductWhereInput>>;
-  /** Filter by createdAt */
-  createdAt?: InputMaybe<ApiDateTimeFilter>;
-  /** Filter by deletedAt */
-  deletedAt?: InputMaybe<ApiDateTimeFilter>;
-  /** Filter by id */
-  id?: InputMaybe<ApiIdFilter>;
-};
 
 export type ApiCategoryProductsScopeInput = {
   mode: CategoryHierarchyScopeMode;
@@ -4340,10 +4215,119 @@ export type ApiLabel = {
   id: Scalars['ID']['output'];
 };
 
-/** Listing orderBy input for product listing pages. */
+export type ApiListing = {
+  /** The URL-friendly handle. */
+  handle?: Maybe<Scalars['String']['output']>;
+  /** The Product global ID of the catalog listing item. */
+  id: Scalars['ID']['output'];
+  /** Product discriminator. */
+  kind: ProductKind;
+  /** Media registered on this listing item. */
+  media: Array<ApiProductMediaItem>;
+  /** Localized title. */
+  title: Scalars['String']['output'];
+};
+
+/** A connection to a mixed list of catalog listing items. */
+export type ApiListingConnection = {
+  __typename?: 'ListingConnection';
+  /** A list of edges. */
+  edges: Array<ApiListingEdge>;
+  /** Information to aid in pagination. */
+  pageInfo: ApiPageInfo;
+  /** The total number of catalog listing items. */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** An edge in a Listing connection. */
+export type ApiListingEdge = {
+  __typename?: 'ListingEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String']['output'];
+  /** The item at the end of the edge. */
+  node: ApiListing;
+};
+
+/** Ordering configuration for Listing */
 export type ApiListingOrderByInput = {
-  direction?: InputMaybe<SortDirection>;
-  field: ProductSortBy;
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: ListingOrderField;
+};
+
+/** Fields available for sorting Listing */
+export enum ListingOrderField {
+  /** Sort by brandName */
+  BrandName = 'brandName',
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by currency */
+  Currency = 'currency',
+  /** Sort by handle */
+  Handle = 'handle',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by kind */
+  Kind = 'kind',
+  /** Sort by locale */
+  Locale = 'locale',
+  /** Sort by maxPriceMinor */
+  MaxPriceMinor = 'maxPriceMinor',
+  /** Sort by minPriceMinor */
+  MinPriceMinor = 'minPriceMinor',
+  /** Sort by name */
+  Name = 'name',
+  /** Sort by primaryCategoryId */
+  PrimaryCategoryId = 'primaryCategoryId',
+  /** Sort by primaryCategoryName */
+  PrimaryCategoryName = 'primaryCategoryName',
+  /** Sort by publishedAt */
+  PublishedAt = 'publishedAt',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt',
+  /** Sort by vendorId */
+  VendorId = 'vendorId'
+}
+
+/** Filter conditions for Listing */
+export type ApiListingWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiListingWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiListingWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiListingWhereInput>>;
+  /** Filter by brandName */
+  brandName?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by currency */
+  currency?: InputMaybe<ApiStringFilter>;
+  /** Filter by handle */
+  handle?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by kind */
+  kind?: InputMaybe<ApiStringFilter>;
+  /** Filter by locale */
+  locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by maxPriceMinor */
+  maxPriceMinor?: InputMaybe<ApiIntFilter>;
+  /** Filter by minPriceMinor */
+  minPriceMinor?: InputMaybe<ApiIntFilter>;
+  /** Filter by name */
+  name?: InputMaybe<ApiStringFilter>;
+  /** Filter by primaryCategoryId */
+  primaryCategoryId?: InputMaybe<ApiIdFilter>;
+  /** Filter by primaryCategoryName */
+  primaryCategoryName?: InputMaybe<ApiStringFilter>;
+  /** Filter by publishedAt */
+  publishedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by vendorId */
+  vendorId?: InputMaybe<ApiIdFilter>;
 };
 
 /** Locale configuration for the project */
@@ -5452,7 +5436,7 @@ export type ApiPricingWidgetPayload = {
 };
 
 /** A product represents an item that can be sold. */
-export type ApiProduct = ApiCatalogSellable & ApiNode & {
+export type ApiProduct = ApiListing & ApiNode & {
   __typename?: 'Product';
   /** Category assignments with relationship metadata. */
   categoryAssignments: Array<ApiProductCategoryAssignment>;
@@ -7538,8 +7522,6 @@ export enum VariantOperationAction {
 export type ApiVariantOperationInput = {
   /** The operation to apply. */
   action: VariantOperationAction;
-  /** Bundle configuration assignment for bundle variants. */
-  bundleConfigurationId?: InputMaybe<Scalars['ID']['input']>;
   /** Per-request client correlation key for create operations. */
   clientMutationId?: InputMaybe<Scalars['String']['input']>;
   /** Variant dimensions. */
