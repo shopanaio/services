@@ -1,51 +1,341 @@
-# План интеграции Bundles API с UI-таблицей
+# План интеграции Bundles UI-таблицы с GraphQL
 
 ## Цель
 
-Подключить существующую таблицу `BundlesPage` к `catalogQuery.bundles` по тому же паттерну, который уже используется на странице продуктов:
+Подключить таблицу `BundlesPage` к реальному `catalogQuery.bundles` без копирования product-list логики.
 
-- `useInventoryRelayListPage`;
-- `usePageConfig`;
-- `FilterWidget {...pageConfig.filterWidgetProps}`;
-- сортировка через `pageConfig.onSortChanged`;
-- pagination через `pageConfig`;
-- query variables через отдельный `page-config.ts`.
+Контекст Admin UI:
 
-Файл UI-таблицы: `admin/src/domains/promos/bundles/page/page.tsx`.
+- Bundles table использует тот же list UX, что Products table;
+- общие поля списка (`id`, `handle`, `publishedAt`, `createdAt`, `updatedAt`, `revision`, `vendor`, `media`, `options`, `features`, `primaryCategory`, `tags`, `title`, `description`, `excerpt`, `seo`) совпадают с product/listing contract;
+- bundle-специфика для UI-таблицы — `type`;
+- list filter/order contract почти совпадает с products и дополнительно содержит `bundleType`.
 
-## Текущая UI-таблица
+Поэтому Admin-интеграция должна вынести общий product-like/listing list config и использовать его в Products и Bundles.
 
-В `page.tsx` уже есть реальная таблица:
+## Текущее состояние
 
-| UI | Сейчас | Нужно |
-| --- | --- | --- |
-| Hook данных | `const { data: bundles } = useBundles();` | Использовать `useInventoryRelayListPage(...)`, как в `ProductsPage`. |
-| Фильтры | `useFilters({ schema: filterSchema })` и ручной `FilterWidget` | Убрать ручной `useFilters`; использовать `pageConfig.filterWidgetProps`. |
-| Сортировка | `useGridSort` + `console.log` | Убрать ручной `useGridSort`; использовать `pageConfig.onSortChanged`. |
-| Grid state | `useGridState` вручную | Убрать ручной `useGridState`; использовать `pageConfig.gridStateProps`. |
-| Rows | `rowData={bundles}` | `rowData={bundles}` из API result. |
-| Count | `count={bundles.length}` | `count={totalCount}`. |
-| Pagination | Заглушки `hasNext={false}`, `onNext={() => {}}` | Использовать `handleNextPage`, `handlePrevPage`, `pageConfig.setPageSize`. |
+Уже есть:
 
-Колонки остаются текущими:
+- `ProductsPage` с правильным pattern:
+  - `useInventoryRelayListPage`;
+  - `usePageConfig`;
+  - `FilterWidget {...pageConfig.filterWidgetProps}`;
+  - `pageConfig.onSortChanged`;
+  - cursor pagination;
+  - `useRelayConnectionQuery`.
+- `BundlesPage` с реальной таблицей, но mock hook и ручные filters/grid/sort/pagination.
 
-| Колонка | `field` | Renderer | API поля |
-| --- | --- | --- | --- |
-| `Bundle` | `title` | `BundleCellRenderer` | `id`, `title`, `media.file.url` |
-| `Type` | `type` | `BundleTypeCellRenderer` | `type` |
-| `Status` | `isPublished` | `StatusCellRenderer` | `isPublished` |
+Архитектурный риск, которого нужно избежать:
 
-План должен следовать Admin GraphQL layer conventions:
+- отдельный `bundles/page/page-config.ts` может легко превратиться в копию product list config;
+- bundle и product list filters/sort/search фактически общие, кроме `bundleType` и другого query;
+- нужно вынести общий модуль, а bundle оставить тонкой настройкой.
 
-- GraphQL operations живут в module-specific `graphql/` папке;
-- operation types строятся от generated schema types из `@/graphql/types`;
-- list hook разворачивает Relay connection в `ApiBundle[]`, `totalCount`, `pageInfo`;
-- для Relay list hooks использовать общий `useRelayConnectionQuery`, как в `useProducts`;
-- UI потребляет generated `ApiBundle` напрямую, без локальной view model.
+## Admin frontend design
 
-## GraphQL operations
+## 1. Общий module для product-like list pages
 
-Создать `admin/src/domains/promos/bundles/graphql/fragments.ts`:
+Создать общий frontend module:
+
+`admin/src/domains/inventory/products/list-page/`
+
+Почему здесь, а не в `promos/bundles`:
+
+- shared filters/sort/search уже принадлежат product/listing list behavior;
+- bundle page должна только добавить `bundleType` и свой query.
+
+Файлы:
+
+```text
+admin/src/domains/inventory/products/list-page/
+  filter-schema.ts
+  page-config.ts
+  index.ts
+```
+
+### `filter-schema.ts`
+
+Вынести общие product-like фильтры из ProductsPage:
+
+```ts
+import {
+  FilterType,
+  priceOperators,
+  relationOperators,
+  stringOperators,
+  dateOperators,
+} from "@/layouts/filters";
+import type { IFilterSchema } from "@/layouts/filters/core/types";
+
+export const productLikeBaseFilterSchema: IFilterSchema[] = [
+  {
+    key: "primaryCategory",
+    label: "Primary category",
+    description: "Filter by primary category",
+    type: FilterType.Relation,
+    operators: relationOperators,
+    payloadKey: "primaryCategoryId",
+    entity: "category",
+  },
+  {
+    key: "minPrice",
+    label: "Min price",
+    description: "Filter by minimum price",
+    type: FilterType.Price,
+    operators: priceOperators,
+    payloadKey: "minPriceMinor",
+  },
+  {
+    key: "maxPrice",
+    label: "Max price",
+    description: "Filter by maximum price",
+    type: FilterType.Price,
+    operators: priceOperators,
+    payloadKey: "maxPriceMinor",
+  },
+  {
+    key: "brand",
+    label: "Brand",
+    description: "Filter by brand/vendor",
+    type: FilterType.Relation,
+    operators: relationOperators,
+    payloadKey: "vendorId",
+    entity: "vendor",
+  },
+  {
+    key: "name",
+    label: "Name",
+    description: "Filter by name",
+    type: FilterType.String,
+    operators: stringOperators,
+    payloadKey: "name",
+  },
+  {
+    key: "publishedAt",
+    label: "Published at",
+    description: "Filter by publication date",
+    type: FilterType.DateRange,
+    operators: dateOperators,
+    payloadKey: "publishedAt",
+  },
+];
+```
+
+Не добавлять сюда `bundleType`: это bundle-specific filter.
+
+### `page-config.ts`
+
+Вынести shared builders и factories.
+
+```ts
+import {
+  createMinorUnitPriceTransformer,
+  createRelationInTransformer,
+} from "@/hooks";
+import type {
+  FilterTransformer,
+  OrderByInput,
+  SortFieldMapping,
+  UsePageConfigReturn,
+} from "@/hooks";
+import {
+  createGraphqlDateTimeRangeFilterTransformer,
+  createGraphqlStringFilterTransformer,
+} from "@/layouts/filters";
+
+type ProductLikeCommonOrderField =
+  | "Name"
+  | "MinPriceMinor"
+  | "MaxPriceMinor"
+  | "PrimaryCategoryName"
+  | "BrandName"
+  | "CreatedAt"
+  | "UpdatedAt"
+  | "PublishedAt";
+
+export type ProductLikeOrderFieldEnum = Record<
+  ProductLikeCommonOrderField,
+  string
+>;
+
+export function createProductLikeSortFieldMapping<
+  TOrderField extends string,
+>(
+  fields: ProductLikeOrderFieldEnum,
+): SortFieldMapping<TOrderField> {
+  return {
+    title: fields.Name,
+    minPriceMinor: fields.MinPriceMinor,
+    maxPriceMinor: fields.MaxPriceMinor,
+    primaryCategoryName: fields.PrimaryCategoryName,
+    brand: fields.BrandName,
+    createdAt: fields.CreatedAt,
+    updatedAt: fields.UpdatedAt,
+    publishedAt: fields.PublishedAt,
+  } as SortFieldMapping<TOrderField>;
+}
+
+export function buildProductLikeSearchCondition<TWhereInput extends object>(
+  search: string,
+): Partial<TWhereInput> {
+  return { name: { _containsi: search } } as Partial<TWhereInput>;
+}
+
+export function createProductLikeFilterTransformers<
+  TWhereInput extends object,
+>(): Record<string, FilterTransformer<TWhereInput>> {
+  return {
+    name: createGraphqlStringFilterTransformer<TWhereInput>("name"),
+    primaryCategoryId:
+      createRelationInTransformer<TWhereInput>("primaryCategoryId"),
+    minPriceMinor:
+      createMinorUnitPriceTransformer<TWhereInput>("minPriceMinor"),
+    maxPriceMinor:
+      createMinorUnitPriceTransformer<TWhereInput>("maxPriceMinor"),
+    vendorId: createRelationInTransformer<TWhereInput>("vendorId"),
+    publishedAt:
+      createGraphqlDateTimeRangeFilterTransformer<TWhereInput>("publishedAt"),
+  };
+}
+
+export function buildProductLikeQueryVariables<
+  TVariables,
+  TWhereInput extends object,
+  TOrderField extends string,
+  TOrderByInput,
+>(
+  pageConfig: Pick<
+    UsePageConfigReturn<TWhereInput, TOrderField>,
+    "first" | "after" | "last" | "before" | "where" | "orderBy"
+  >,
+): TVariables {
+  return {
+    first: pageConfig.first,
+    after: pageConfig.after,
+    last: pageConfig.last,
+    before: pageConfig.before,
+    where: pageConfig.where ?? null,
+    orderBy: (pageConfig.orderBy ?? null) as TOrderByInput[] | null,
+  } as TVariables;
+}
+
+export function toProductLikeQueryVariables<
+  TVariables,
+  TWhereInput extends object,
+  TOrderField extends string,
+  TOrderByInput,
+>(
+  pageConfig: Pick<
+    UsePageConfigReturn<object, string>,
+    "first" | "after" | "last" | "before" | "where" | "orderBy"
+  >,
+): TVariables {
+  return buildProductLikeQueryVariables<
+    TVariables,
+    TWhereInput,
+    TOrderField,
+    TOrderByInput
+  >({
+    ...pageConfig,
+    where: pageConfig.where as TWhereInput | undefined,
+    orderBy: pageConfig.orderBy as
+      | OrderByInput<TOrderField>[]
+      | undefined,
+  });
+}
+```
+
+Цель helper-ов:
+
+- не импортировать `productSortFieldMapping` в bundles;
+- не смешивать `ApiProductWhereInput` и `ApiBundleWhereInput`;
+- переиспользовать behavior через generic factories;
+- оставить generated GraphQL types видимыми в конкретных page-config files.
+
+### `index.ts`
+
+```ts
+export * from "./filter-schema";
+export * from "./page-config";
+```
+
+## 2. Обновить ProductsPage config на общий module
+
+Файл:
+
+`admin/src/domains/inventory/products/page/filter-schema.ts`
+
+Заменить локальное определение common filters на re-export:
+
+```ts
+export { productLikeBaseFilterSchema as filterSchema } from "../list-page";
+```
+
+Файл:
+
+`admin/src/domains/inventory/products/page/page-config.ts`
+
+Оставить product-specific binding generated types/enums:
+
+```ts
+import type {
+  ApiProductOrderByInput,
+  ApiProductWhereInput,
+} from "@/graphql/types";
+import { ProductOrderField } from "@/graphql/types";
+import {
+  buildProductLikeQueryVariables,
+  buildProductLikeSearchCondition,
+  createProductLikeFilterTransformers,
+  createProductLikeSortFieldMapping,
+  toProductLikeQueryVariables,
+} from "../list-page";
+import type { ProductsQueryVariables } from "../graphql/operation-types";
+
+export const productSortFieldMapping =
+  createProductLikeSortFieldMapping<ProductOrderField>(ProductOrderField);
+
+export const buildProductSearchCondition =
+  buildProductLikeSearchCondition<ApiProductWhereInput>;
+
+export const productFilterTransformers =
+  createProductLikeFilterTransformers<ApiProductWhereInput>();
+
+export function buildProductsQueryVariables(...): ProductsQueryVariables {
+  return buildProductLikeQueryVariables<
+    ProductsQueryVariables,
+    ApiProductWhereInput,
+    ProductOrderField,
+    ApiProductOrderByInput
+  >(pageConfig);
+}
+
+export function toProductsQueryVariables(...): ProductsQueryVariables {
+  return toProductLikeQueryVariables<
+    ProductsQueryVariables,
+    ApiProductWhereInput,
+    ProductOrderField,
+    ApiProductOrderByInput
+  >(pageConfig);
+}
+```
+
+Products behavior should not change.
+
+## 3. Admin GraphQL operations for Bundles
+
+Создать:
+
+```text
+admin/src/domains/promos/bundles/graphql/
+  fragments.ts
+  queries.ts
+  operation-types.ts
+  index.ts
+```
+
+### `fragments.ts`
 
 ```ts
 import { gql } from "@apollo/client";
@@ -71,7 +361,7 @@ export const BUNDLE_LIST_ITEM_FIELDS = gql`
 `;
 ```
 
-Создать `admin/src/domains/promos/bundles/graphql/queries.ts`:
+### `queries.ts`
 
 ```ts
 import { gql } from "@apollo/client";
@@ -118,7 +408,7 @@ export const BUNDLES_QUERY = gql`
 `;
 ```
 
-Создать `admin/src/domains/promos/bundles/graphql/operation-types.ts`:
+### `operation-types.ts`
 
 ```ts
 import type {
@@ -146,7 +436,7 @@ export interface BundlesQueryVariables {
 }
 ```
 
-Создать `admin/src/domains/promos/bundles/graphql/index.ts`:
+### `index.ts`
 
 ```ts
 export * from "./fragments";
@@ -154,9 +444,11 @@ export * from "./queries";
 export type * from "./operation-types";
 ```
 
-## Hook `useBundles`
+## 4. GraphQL hook `useBundles`
 
-Файл: `admin/src/domains/promos/bundles/hooks/use-bundles.ts`
+Файл:
+
+`admin/src/domains/promos/bundles/hooks/use-bundles.ts`
 
 Удалить mock implementation:
 
@@ -164,9 +456,10 @@ export type * from "./operation-types";
 - `useEffect`;
 - `setTimeout`;
 - `mockBundles`;
-- `delay`.
+- `delay`;
+- return shape `{ data, isLoading }`.
 
-Сделать API hook по тому же Relay connection паттерну, что и `admin/src/domains/inventory/products/hooks/use-products.ts`:
+Сделать Relay hook:
 
 ```ts
 import type {
@@ -236,11 +529,44 @@ export function useBundles(options: UseBundlesOptions = {}): UseBundlesReturn {
 }
 ```
 
-## `page-config.ts` для Bundles
+## 5. Bundle page config как тонкая настройка
 
-Создать `admin/src/domains/promos/bundles/page/page-config.ts`.
+Файл:
 
-Это обязательный файл интеграции, как `admin/src/domains/inventory/products/page/page-config.ts`.
+`admin/src/domains/promos/bundles/page/filter-schema.ts`
+
+Собрать schema из common filters + bundle-specific filter:
+
+```ts
+import { FilterType, enumOperators } from "@/layouts/filters";
+import type { IFilterSchema } from "@/layouts/filters/core/types";
+import { BundleType } from "@/graphql/types";
+import { productLikeBaseFilterSchema } from "@/domains/inventory/products/list-page";
+
+export const filterSchema: IFilterSchema[] = [
+  ...productLikeBaseFilterSchema,
+  {
+    key: "bundleType",
+    label: "Bundle Type",
+    description: "Filter by bundle type",
+    type: FilterType.Enum,
+    operators: enumOperators,
+    payloadKey: "bundleType",
+    options: [
+      { label: "Fixed Kit", value: BundleType.Fixed },
+      { label: "Multipack", value: BundleType.Multipack },
+      { label: "Mix & Match", value: BundleType.MixAndMatch },
+      { label: "Custom", value: BundleType.Custom },
+    ],
+  },
+];
+```
+
+Не добавлять отдельный `status` filter, если общий `publishedAt` уже есть. Если нужен именно status UX (`Published/Draft`), его надо добавлять как отдельный shared status transformer, но не смешивать с date range `publishedAt`.
+
+Файл:
+
+`admin/src/domains/promos/bundles/page/page-config.ts`
 
 ```ts
 import type {
@@ -254,34 +580,29 @@ import type {
   ApiBundleWhereInput,
 } from "@/graphql/types";
 import { BundleOrderField } from "@/graphql/types";
+import {
+  buildProductLikeQueryVariables,
+  buildProductLikeSearchCondition,
+  createProductLikeFilterTransformers,
+  createProductLikeSortFieldMapping,
+  toProductLikeQueryVariables,
+} from "@/domains/inventory/products/list-page";
 import type { BundlesQueryVariables } from "../graphql";
 
 export const bundleSortFieldMapping: SortFieldMapping<BundleOrderField> = {
-  title: BundleOrderField.Name,
+  ...createProductLikeSortFieldMapping<BundleOrderField>(BundleOrderField),
+  // UI field is ApiBundle.type, list view/order field is bundleType.
   type: BundleOrderField.BundleType,
 };
 
-export const buildBundleSearchCondition = (
-  search: string,
-): Partial<ApiBundleWhereInput> => ({
-  name: { _containsi: search },
-});
+export const buildBundleSearchCondition =
+  buildProductLikeSearchCondition<ApiBundleWhereInput>;
 
 export const bundleFilterTransformers: Record<
   string,
   FilterTransformer<ApiBundleWhereInput>
 > = {
-  status: (filter) => {
-    if (filter.value === "published") {
-      return { publishedAt: { _isNot: null } };
-    }
-
-    if (filter.value === "draft") {
-      return { publishedAt: { _is: null } };
-    }
-
-    return null;
-  },
+  ...createProductLikeFilterTransformers<ApiBundleWhereInput>(),
 };
 
 export function buildBundlesQueryVariables(
@@ -290,14 +611,12 @@ export function buildBundlesQueryVariables(
     "first" | "after" | "last" | "before" | "where" | "orderBy"
   >,
 ): BundlesQueryVariables {
-  return {
-    first: pageConfig.first,
-    after: pageConfig.after,
-    last: pageConfig.last,
-    before: pageConfig.before,
-    where: pageConfig.where ?? null,
-    orderBy: (pageConfig.orderBy ?? null) as ApiBundleOrderByInput[] | null,
-  };
+  return buildProductLikeQueryVariables<
+    BundlesQueryVariables,
+    ApiBundleWhereInput,
+    BundleOrderField,
+    ApiBundleOrderByInput
+  >(pageConfig);
 }
 
 export function toBundlesQueryVariables(
@@ -306,91 +625,45 @@ export function toBundlesQueryVariables(
     "first" | "after" | "last" | "before" | "where" | "orderBy"
   >,
 ): BundlesQueryVariables {
-  return buildBundlesQueryVariables({
-    ...pageConfig,
-    where: pageConfig.where as ApiBundleWhereInput | undefined,
-    orderBy: pageConfig.orderBy as
-      | OrderByInput<BundleOrderField>[]
-      | undefined,
-  });
+  return toProductLikeQueryVariables<
+    BundlesQueryVariables,
+    ApiBundleWhereInput,
+    BundleOrderField,
+    ApiBundleOrderByInput
+  >(pageConfig);
 }
 ```
 
-### Фильтр `bundleType`
+Почему `bundleType` transformer не нужен:
 
-`admin/src/domains/promos/bundles/page/filter-schema.ts` уже содержит:
+- filter uses `enumOperators`;
+- `usePageConfig` handles `FilterOperator.In` with arrays;
+- `ApiBundleWhereInput.bundleType` is `StringFilter`, so `{ bundleType: { _in: [...] } }` matches generated input.
 
-```ts
-{
-  key: "bundleType",
-  label: "Bundle Type",
-  type: FilterType.Enum,
-  operators: enumOperators,
-  payloadKey: "bundleType",
-  options: [
-    { label: "Fixed Kit", value: BundleType.Fixed },
-    { label: "Multipack", value: BundleType.Multipack },
-    { label: "Mix & Match", value: BundleType.MixAndMatch },
-    { label: "Custom", value: BundleType.Custom },
-  ],
-}
-```
+## 6. Интеграция в `BundlesPage`
 
-План интеграции должен сохранить этот фильтр и провести его через `usePageConfig` в `ApiBundleWhereInput.bundleType`.
+Файл:
 
-Отдельный transformer для `bundleType` не нужен: `payloadKey: "bundleType"` и стандартная логика `usePageConfig` уже формируют `where.bundleType` с выбранным оператором.
+`admin/src/domains/promos/bundles/page/page.tsx`
 
-### Сортировка `bundleType`
+Удалить ручное состояние:
 
-Для текущей колонки:
+- `searchValue`;
+- `useFilters`;
+- mock `const { data: bundles } = useBundles()`;
+- `useGridState`;
+- `useGridSort`.
+
+Импорты:
 
 ```ts
-{
-  headerName: "Type",
-  field: "type",
-  cellRenderer: BundleTypeCellRenderer,
-  minWidth: 140,
-}
-```
-
-должна работать серверная сортировка через:
-
-```ts
-type: BundleOrderField.BundleType
-```
-
-в `bundleSortFieldMapping`.
-
-## Интеграция в `BundlesPage`
-
-В `admin/src/domains/promos/bundles/page/page.tsx` заменить ручные page hooks:
-
-Удалить:
-
-```ts
-import { useFilters, FilterWidget } from "@/layouts/filters";
-import {
-  useGridState,
-  useGridSort,
-  useAgGridTheme,
-  useAgGridRowSelection,
-} from "@/hooks";
-```
-
-Оставить `FilterWidget`, но убрать `useFilters`:
-
-```ts
+import { Alert, Typography, Flex, Button, Tag } from "antd";
 import { FilterWidget } from "@/layouts/filters";
 import {
   useAgGridTheme,
   useAgGridRowSelection,
 } from "@/hooks";
 import { useInventoryRelayListPage } from "@/domains/inventory/hooks";
-```
-
-Добавить imports:
-
-```ts
 import {
   buildBundleSearchCondition,
   buildBundlesQueryVariables,
@@ -401,17 +674,7 @@ import type { ApiBundle, ApiBundleWhereInput } from "@/graphql/types";
 import { BundleOrderField, BundleType } from "@/graphql/types";
 ```
 
-Внутри `BundlesPage` удалить:
-
-```ts
-const [searchValue, setSearchValue] = useState("");
-const { widgetProps } = useFilters({ schema: filterSchema });
-const { data: bundles } = useBundles();
-const { initialState, onStateUpdated } = useGridState(...);
-const { onSortChanged } = useGridSort(...);
-```
-
-Добавить:
+Page hook:
 
 ```ts
 const {
@@ -421,7 +684,6 @@ const {
   pageInfo,
   loading,
   error,
-  refetch,
   handleNextPage,
   handlePrevPage,
 } = useInventoryRelayListPage<
@@ -444,6 +706,8 @@ const {
 });
 ```
 
+Не деструктурировать `refetch`, если он не используется.
+
 `DataLayout`:
 
 ```tsx
@@ -462,6 +726,19 @@ const {
   {...pageConfig.filterWidgetProps}
   searchPlaceholder="Search bundles..."
 />
+```
+
+Error/loading:
+
+```tsx
+{error && (
+  <Alert
+    type="error"
+    message={error.message}
+    showIcon
+    style={{ marginBottom: 12 }}
+  />
+)}
 ```
 
 `AgGridReact`:
@@ -507,9 +784,9 @@ const {
 />
 ```
 
-## Колонки и сортировка
+## 7. Колонки BundlesPage
 
-Оставить текущие `columnDefs`, но проверить sortable behavior:
+Текущие колонки оставить, но включить server sort только для реально сматченных полей.
 
 ```ts
 const columnDefs = useMemo<ColDef<ApiBundle>[]>(
@@ -539,72 +816,75 @@ const columnDefs = useMemo<ColDef<ApiBundle>[]>(
 );
 ```
 
-Почему `Status` `sortable: false`: UI-колонка показывает boolean `isPublished`, а серверная сортировка доступна по `publishedAt`. Это не прямой эквивалент сортировки boolean-статуса, поэтому колонка не должна показывать серверную сортировку до отдельного решения UX/API.
+Сортировка:
 
-Сортируемые поля:
-
-| Column `field` | API order field |
+| UI column field | GraphQL order field |
 | --- | --- |
 | `title` | `BundleOrderField.Name` |
 | `type` | `BundleOrderField.BundleType` |
 
-## Error/loading
+`Status` не сортировать:
 
-Как на Products page, добавить `Alert` перед таблицей:
+- UI показывает boolean `isPublished`;
+- GraphQL order field — `publishedAt`;
+- это не тот же UX, что сортировка boolean Published/Draft.
 
-```tsx
-{error && (
-  <Alert
-    type="error"
-    message={error.message}
-    showIcon
-    style={{ marginBottom: 12 }}
-  />
-)}
-```
-
-И передать loading в grid:
-
-```tsx
-loading={loading}
-```
-
-## Файлы
+## 8. Файлы
 
 | Файл | Изменение |
 | --- | --- |
-| `admin/src/domains/promos/bundles/graphql/fragments.ts` | Fragment для строк текущей таблицы. |
+| `admin/src/domains/inventory/products/list-page/filter-schema.ts` | Общие product-like filters. |
+| `admin/src/domains/inventory/products/list-page/page-config.ts` | Общие factories/builders. |
+| `admin/src/domains/inventory/products/list-page/index.ts` | Barrel. |
+| `admin/src/domains/inventory/products/page/filter-schema.ts` | Re-export common schema. |
+| `admin/src/domains/inventory/products/page/page-config.ts` | Перейти на common factories. |
+| `admin/src/domains/promos/bundles/graphql/fragments.ts` | Bundle list fragment. |
 | `admin/src/domains/promos/bundles/graphql/queries.ts` | `BUNDLES_QUERY`. |
 | `admin/src/domains/promos/bundles/graphql/operation-types.ts` | Operation data/variables. |
-| `admin/src/domains/promos/bundles/graphql/index.ts` | Экспорт operations/types. |
-| `admin/src/domains/promos/bundles/hooks/use-bundles.ts` | API-backed Relay connection hook через `useRelayConnectionQuery`. |
-| `admin/src/domains/promos/bundles/page/page-config.ts` | Search, filters, sort mapping, query variables. |
+| `admin/src/domains/promos/bundles/graphql/index.ts` | Export operations/types. |
+| `admin/src/domains/promos/bundles/hooks/use-bundles.ts` | GraphQL-backed Relay hook. |
+| `admin/src/domains/promos/bundles/page/filter-schema.ts` | Common filters + `bundleType`. |
+| `admin/src/domains/promos/bundles/page/page-config.ts` | Thin bundle-specific config. |
 | `admin/src/domains/promos/bundles/page/page.tsx` | Интеграция через `useInventoryRelayListPage`. |
 
-## Что не делать
+## 9. Что не делать
 
-- Не создавать новую таблицу.
-- Не добавлять новые колонки.
-- Не писать ручной pagination state вместо `usePageConfig`.
-- Не писать ручной `useGridSort` вместо `pageConfig.onSortChanged`.
-- Не писать ручной `useFilters` вместо `pageConfig.filterWidgetProps`.
-- Не писать ручной unwrap Relay connection через `useQuery`; использовать `useRelayConnectionQuery`.
-- Не маппить `ApiBundle` в локальную view model.
-- Не использовать `admin/src/mocks/products/bundles-list.ts` в API hook.
+- Не создавать независимую копию product page config внутри bundles.
+- Не импортировать `productSortFieldMapping` напрямую в bundles.
+- Не типизировать bundle filters через `ApiProductWhereInput`.
+- Не добавлять local view model для `ApiBundle`.
+- Не unwrap Relay connection вручную через `useQuery`; использовать `useRelayConnectionQuery`.
+- Не использовать `admin/src/mocks/products/bundles-list.ts` в GraphQL hook.
+- Не писать ручной pagination/sort/filter state вместо `useInventoryRelayListPage`.
 - Не запускать `test` и `tsc`.
 - Не редактировать changeset.
 
-## Проверка
+## 10. Проверка
 
-Ручная проверка:
+Admin GraphQL/manual:
 
-- таблица Bundles показывает rows из `catalogQuery.bundles`;
-- search работает по `name`;
-- фильтр `Bundle Type` отправляет `where.bundleType`;
-- фильтр `Status` отправляет условие по `publishedAt`;
-- сортировка `Bundle` отправляет `BundleOrderField.Name`;
-- сортировка `Type` отправляет `BundleOrderField.BundleType`;
-- `Status` не показывает нерабочую серверную сортировку;
+- `where.name` работает для bundles;
+- `where.bundleType` работает для bundles;
+- `orderBy.name` работает для bundles;
+- `orderBy.bundleType` работает для bundles;
+- pagination по `first/after/last/before` работает;
+- `meta.categoriesScope` работает для bundles, если UI начнет его передавать.
+
+Admin manual:
+
+- Products page не изменила поведение после перехода на common module;
+- Bundles table показывает rows из `catalogQuery.bundles`;
+- search отправляет `where.name`;
+- common filters отправляют те же поля, что Products page:
+  - `primaryCategoryId`;
+  - `minPriceMinor`;
+  - `maxPriceMinor`;
+  - `vendorId`;
+  - `publishedAt`;
+- Bundle Type filter отправляет `where.bundleType`;
+- sort Bundle отправляет `BundleOrderField.Name`;
+- sort Type отправляет `BundleOrderField.BundleType`;
+- Status column не показывает server sort;
 - pagination использует `pageConfig` и `pageInfo`;
 - row click открывает bundle modal с `ApiBundle.id`.
 
