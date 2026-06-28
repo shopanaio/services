@@ -4,6 +4,7 @@ import type { KeyboardEvent, MouseEvent } from "react";
 import { App, Button, Dropdown, Flex, Tabs, Tag, Typography } from "antd";
 import {
   DeleteOutlined,
+  EditOutlined,
   MoreOutlined,
   PartitionOutlined,
   PlusOutlined,
@@ -42,6 +43,7 @@ interface IBundleSectionProps {
   bundleType?: BundleType | null;
   onConfigurationChange: (configurationId: string) => void;
   onCreateConfiguration: (sourceConfigurationId?: string) => void;
+  onEditConfiguration: (configurationId: string) => void;
   onDeleteConfiguration: (configurationId: string) => void;
   onEditGroups: () => void;
   onOpenChart: () => void;
@@ -55,6 +57,7 @@ export const BundleSection = ({
   bundleType,
   onConfigurationChange,
   onCreateConfiguration,
+  onEditConfiguration,
   onDeleteConfiguration,
   onEditGroups,
   onOpenChart,
@@ -108,6 +111,11 @@ export const BundleSection = ({
         menu={{
           items: [
             {
+              key: "edit",
+              icon: <EditOutlined />,
+              label: "Edit configuration",
+            },
+            {
               key: "delete",
               icon: <DeleteOutlined />,
               label: "Delete configuration",
@@ -118,6 +126,7 @@ export const BundleSection = ({
           onClick: ({ key, domEvent }) => {
             domEvent.stopPropagation();
 
+            if (key === "edit") onEditConfiguration(configuration.id);
             if (key === "delete") handleDeleteConfiguration(configuration);
           },
         }}

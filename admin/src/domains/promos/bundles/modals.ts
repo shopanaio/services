@@ -10,6 +10,7 @@ import type {
 
 export const BUNDLE_MODAL_TYPE = "bundle";
 export const BUNDLE_EDIT_GROUPS_MODAL_TYPE = "bundle-edit-groups";
+export const BUNDLE_EDIT_CONFIGURATION_MODAL_TYPE = "bundle-edit-configuration";
 export const BUNDLE_EDIT_TEMPLATES_MODAL_TYPE = "bundle-edit-templates";
 export const BUNDLE_EDIT_SETTINGS_MODAL_TYPE = "bundle-edit-settings";
 export const BUNDLE_ITEM_VARIANT_SETTINGS_MODAL_TYPE = "bundle-item-variant-settings";
@@ -23,6 +24,13 @@ export interface IBundleEditGroupsModalPayload extends IModalStackPayload {
   groups: IBundleGroup[];
   pricingTemplates: PricingRuleTemplate[];
   onSave?: (groups: IBundleGroup[]) => void;
+}
+
+export interface IBundleEditConfigurationModalPayload extends IModalStackPayload {
+  title: string;
+  modalTitle?: string;
+  submitLabel?: string;
+  onSave?: (data: { title: string }) => void;
 }
 
 export interface IBundleEditTemplatesModalPayload extends IModalStackPayload {
@@ -77,6 +85,7 @@ declare module "@/layouts/modals" {
   interface ModalStackPayloads {
     [BUNDLE_MODAL_TYPE]: IBundleModalPayload;
     [BUNDLE_EDIT_GROUPS_MODAL_TYPE]: IBundleEditGroupsModalPayload;
+    [BUNDLE_EDIT_CONFIGURATION_MODAL_TYPE]: IBundleEditConfigurationModalPayload;
     [BUNDLE_EDIT_TEMPLATES_MODAL_TYPE]: IBundleEditTemplatesModalPayload;
     [BUNDLE_EDIT_SETTINGS_MODAL_TYPE]: IBundleEditSettingsModalPayload;
     [BUNDLE_ITEM_VARIANT_SETTINGS_MODAL_TYPE]: IBundleItemVariantSettingsModalPayload;
@@ -86,6 +95,7 @@ declare module "@/layouts/modals" {
 
 export const useBundleModal = createModalStackHook(BUNDLE_MODAL_TYPE);
 export const useEditBundleGroupsModal = createModalStackHook(BUNDLE_EDIT_GROUPS_MODAL_TYPE);
+export const useEditBundleConfigurationModal = createModalStackHook(BUNDLE_EDIT_CONFIGURATION_MODAL_TYPE);
 export const useEditBundleTemplatesModal = createModalStackHook(BUNDLE_EDIT_TEMPLATES_MODAL_TYPE);
 export const useEditBundleSettingsModal = createModalStackHook(BUNDLE_EDIT_SETTINGS_MODAL_TYPE);
 export const useBundleItemVariantSettingsModal = createModalStackHook(BUNDLE_ITEM_VARIANT_SETTINGS_MODAL_TYPE);

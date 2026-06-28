@@ -28,6 +28,7 @@ import {
   } from "@/domains/inventory/products/modals";
 import {
   useEditBundleGroupsModal,
+  useEditBundleConfigurationModal,
   useDependencyChartModal,
   } from "@/domains/promos/bundles/modals";
 import { EntityStatus,
@@ -64,6 +65,7 @@ export const BundleDetailsCard = ({
   const { push: openEditMediaModal } = useEditMediaModal();
   const { push: openEditSeoModal } = useEditSeoModal();
   const { push: openEditGroupsModal } = useEditBundleGroupsModal();
+  const { push: openEditConfigurationModal } = useEditBundleConfigurationModal();
   const { push: openDependencyChartModal } = useDependencyChartModal();
 
   // State
@@ -97,25 +99,62 @@ export const BundleDetailsCard = ({
   );
 
   const handleCreateConfiguration = useCallback((sourceConfigurationId?: string) => {
-    const sourceConfiguration =
-      configurations.find(
-        (configuration) => configuration.id === sourceConfigurationId,
-      ) ?? activeConfiguration;
+    openEditConfigurationModal({
+      title: `Configuration ${configurations.length + 1}`,
+      modalTitle: "New Bundle Configuration",
+      submitLabel: "Create",
+      onSave: ({ title }) => {
+        const newConfigurationId = `bundle-config-${Date.now()}`;
 
-    if (!sourceConfiguration) return;
+        setConfigurations((currentConfigurations) => {
+          const sourceConfiguration =
+            currentConfigurations.find(
+              (configuration) => configuration.id === sourceConfigurationId,
+            ) ??
+            currentConfigurations.find(
+              (configuration) => configuration.id === activeConfigurationId,
+            ) ??
+            currentConfigurations[0];
 
-    const newConfigurationId = `bundle-config-${Date.now()}`;
+          if (!sourceConfiguration) return currentConfigurations;
 
-    setConfigurations((currentConfigurations) => [
-      ...currentConfigurations,
-      {
-        ...sourceConfiguration,
-        id: newConfigurationId,
-        title: `Configuration ${currentConfigurations.length + 1}`,
+          return [
+            ...currentConfigurations,
+            {
+              ...sourceConfiguration,
+              id: newConfigurationId,
+              title,
+            },
+          ];
+        });
+        setActiveConfigurationId(newConfigurationId);
       },
-    ]);
-    setActiveConfigurationId(newConfigurationId);
-  }, [activeConfiguration, configurations]);
+    });
+  }, [
+    activeConfigurationId,
+    configurations.length,
+    openEditConfigurationModal,
+  ]);
+
+  const handleEditConfiguration = useCallback((configurationId: string) => {
+    const configuration = configurations.find(
+      (item) => item.id === configurationId,
+    );
+
+    if (!configuration) return;
+
+    openEditConfigurationModal({
+      title: configuration.title,
+      modalTitle: "Edit Bundle Configuration",
+      onSave: ({ title }) => {
+        setConfigurations((currentConfigurations) =>
+          currentConfigurations.map((item) =>
+            item.id === configurationId ? { ...item, title } : item,
+          ),
+        );
+      },
+    });
+  }, [configurations, openEditConfigurationModal]);
 
   const handleDeleteConfiguration = useCallback((configurationId: string) => {
     setConfigurations((currentConfigurations) => {
@@ -202,6 +241,7 @@ export const BundleDetailsCard = ({
   const handleEditGroups = useCallback(() => {
     openEditGroupsModal({
       groups,
+      pricingTemplates: mockData.pricingTemplates,
       onSave: (updatedGroups: IBundleGroup[]) => {
         updateActiveConfiguration((configuration) => ({
           ...configuration,
@@ -209,7 +249,12 @@ export const BundleDetailsCard = ({
         }));
       },
     });
-  }, [groups, openEditGroupsModal, updateActiveConfiguration]);
+  }, [
+    groups,
+    mockData.pricingTemplates,
+    openEditGroupsModal,
+    updateActiveConfiguration,
+  ]);
 
   const handleOpenChart = useCallback(() => {
     openDependencyChartModal({
@@ -335,6 +380,7 @@ export const BundleDetailsCard = ({
         bundleType={mockData.bundleType}
         onConfigurationChange={setActiveConfigurationId}
         onCreateConfiguration={handleCreateConfiguration}
+        onEditConfiguration={handleEditConfiguration}
         onDeleteConfiguration={handleDeleteConfiguration}
         onEditGroups={handleEditGroups}
         onOpenChart={handleOpenChart}

@@ -460,6 +460,15 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Bundle Edit Configuration modal
+    {
+      type: 'bundle-edit-configuration',
+      component: dynamic(() =>
+        import('@/domains/promos/bundles/modals/edit-configuration-modal').then(
+          (m) => m.EditConfigurationModal
+        )
+      ),
+    },
     // Bundle Edit Templates modal
     {
       type: 'bundle-edit-templates',
