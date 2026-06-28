@@ -25,6 +25,7 @@
   - cursor pagination;
   - `useRelayConnectionQuery`.
 - `BundlesPage` с реальной таблицей, но mock hook и ручные filters/grid/sort/pagination.
+- В текущей структуре `admin/src/domains/promos/bundles/page/` есть `filter-schema.ts` и `page.tsx`, но нет `page-config.ts`; план должен явно добавить этот файл как тонкую bundle-specific настройку поверх shared product-like helpers.
 
 Архитектурный риск, которого нужно избежать:
 
@@ -63,8 +64,6 @@ import {
   FilterType,
   priceOperators,
   relationOperators,
-  stringOperators,
-  dateOperators,
 } from "@/layouts/filters";
 import type { IFilterSchema } from "@/layouts/filters/core/types";
 
@@ -103,22 +102,6 @@ export const productLikeBaseFilterSchema: IFilterSchema[] = [
     payloadKey: "vendorId",
     entity: "vendor",
   },
-  {
-    key: "name",
-    label: "Name",
-    description: "Filter by name",
-    type: FilterType.String,
-    operators: stringOperators,
-    payloadKey: "name",
-  },
-  {
-    key: "publishedAt",
-    label: "Published at",
-    description: "Filter by publication date",
-    type: FilterType.DateRange,
-    operators: dateOperators,
-    payloadKey: "publishedAt",
-  },
 ];
 ```
 
@@ -139,10 +122,6 @@ import type {
   SortFieldMapping,
   UsePageConfigReturn,
 } from "@/hooks";
-import {
-  createGraphqlDateTimeRangeFilterTransformer,
-  createGraphqlStringFilterTransformer,
-} from "@/layouts/filters";
 
 type ProductLikeCommonOrderField =
   | "Name"
@@ -186,7 +165,6 @@ export function createProductLikeFilterTransformers<
   TWhereInput extends object,
 >(): Record<string, FilterTransformer<TWhereInput>> {
   return {
-    name: createGraphqlStringFilterTransformer<TWhereInput>("name"),
     primaryCategoryId:
       createRelationInTransformer<TWhereInput>("primaryCategoryId"),
     minPriceMinor:
@@ -194,8 +172,6 @@ export function createProductLikeFilterTransformers<
     maxPriceMinor:
       createMinorUnitPriceTransformer<TWhereInput>("maxPriceMinor"),
     vendorId: createRelationInTransformer<TWhereInput>("vendorId"),
-    publishedAt:
-      createGraphqlDateTimeRangeFilterTransformer<TWhereInput>("publishedAt"),
   };
 }
 
@@ -339,6 +315,103 @@ admin/src/domains/promos/bundles/graphql/
 
 ```ts
 import { gql } from "@apollo/client";
+import {
+  FILE_FRAGMENT,
+  RICH_TEXT_FRAGMENT,
+} from "@/domains/inventory/graphql/shared-fragments";
+
+export const BUNDLE_LIST_MEDIA_ITEM_FIELDS = gql`
+  fragment BundleListMediaItemFields on ProductMediaItem {
+    sortIndex
+    file {
+      ...FileFields
+    }
+  }
+  ${FILE_FRAGMENT}
+`;
+
+export const BUNDLE_LIST_CATEGORY_FIELDS = gql`
+  fragment BundleListCategoryFields on Category {
+    id
+    name
+    handle
+    isPublished
+    productsCount
+    media {
+      sortIndex
+      file {
+        ...FileFields
+      }
+    }
+  }
+  ${FILE_FRAGMENT}
+`;
+
+export const BUNDLE_LIST_TAG_FIELDS = gql`
+  fragment BundleListTagFields on Tag {
+    id
+    name
+    handle
+    productsCount
+  }
+`;
+
+export const BUNDLE_LIST_VENDOR_FIELDS = gql`
+  fragment BundleListVendorFields on Vendor {
+    id
+    name
+  }
+`;
+
+export const BUNDLE_LIST_FEATURE_FIELDS = gql`
+  fragment BundleListFeatureFields on ProductFeature {
+    id
+    name
+    slug
+    isGroup
+    index
+    values {
+      id
+      name
+      slug
+      index
+    }
+  }
+`;
+
+export const BUNDLE_LIST_OPTION_VALUE_FIELDS = gql`
+  fragment BundleListOptionValueFields on ProductOptionValue {
+    id
+    name
+    slug
+    sortIndex
+    swatch {
+      id
+      swatchType
+      colorOne
+      colorTwo
+      metadata
+      file {
+        ...FileFields
+      }
+    }
+  }
+  ${FILE_FRAGMENT}
+`;
+
+export const BUNDLE_LIST_OPTION_FIELDS = gql`
+  fragment BundleListOptionFields on ProductOption {
+    id
+    name
+    slug
+    displayType
+    sortIndex
+    values {
+      ...BundleListOptionValueFields
+    }
+  }
+  ${BUNDLE_LIST_OPTION_VALUE_FIELDS}
+`;
 
 export const BUNDLE_LIST_ITEM_FIELDS = gql`
   fragment BundleListItemFields on Bundle {
@@ -351,15 +424,58 @@ export const BUNDLE_LIST_ITEM_FIELDS = gql`
     createdAt
     updatedAt
     revision
-    media {
-      file {
-        id
-        url
+    description {
+      ...RichTextFields
+    }
+    excerpt {
+      ...RichTextFields
+    }
+    seo {
+      seoTitle
+      seoDescription
+      ogTitle
+      ogDescription
+      ogImage {
+        ...FileFields
       }
     }
+    media {
+      ...BundleListMediaItemFields
+    }
+    primaryCategory {
+      ...BundleListCategoryFields
+    }
+    categoryAssignments {
+      isPrimary
+      category {
+        ...BundleListCategoryFields
+      }
+    }
+    vendor {
+      ...BundleListVendorFields
+    }
+    tags {
+      ...BundleListTagFields
+    }
+    features {
+      ...BundleListFeatureFields
+    }
+    options {
+      ...BundleListOptionFields
+    }
   }
+  ${RICH_TEXT_FRAGMENT}
+  ${FILE_FRAGMENT}
+  ${BUNDLE_LIST_MEDIA_ITEM_FIELDS}
+  ${BUNDLE_LIST_CATEGORY_FIELDS}
+  ${BUNDLE_LIST_VENDOR_FIELDS}
+  ${BUNDLE_LIST_TAG_FIELDS}
+  ${BUNDLE_LIST_FEATURE_FIELDS}
+  ${BUNDLE_LIST_OPTION_FIELDS}
 `;
 ```
+
+`BundleListItemFields` не должен быть минимальным table-only fragment: он покрывает shared listing contract (`vendor`, `media`, `options`, `features`, `primaryCategory`, `tags`, `description`, `excerpt`, `seo`) и добавляет bundle-specific `type`.
 
 ### `queries.ts`
 
@@ -562,7 +678,7 @@ export const filterSchema: IFilterSchema[] = [
 ];
 ```
 
-Не добавлять отдельный `status` filter, если общий `publishedAt` уже есть. Если нужен именно status UX (`Published/Draft`), его надо добавлять как отдельный shared status transformer, но не смешивать с date range `publishedAt`.
+Не добавлять отдельный `status` filter в рамках этой интеграции: текущий `ApiBundleWhereInput` не содержит `status`. Если нужен именно status UX (`Published/Draft`), его надо добавлять как отдельный transformer к реальному API-полю, не смешивая с date range `publishedAt`.
 
 Файл:
 
@@ -880,7 +996,6 @@ Admin manual:
   - `minPriceMinor`;
   - `maxPriceMinor`;
   - `vendorId`;
-  - `publishedAt`;
 - Bundle Type filter отправляет `where.bundleType`;
 - sort Bundle отправляет `BundleOrderField.Name`;
 - sort Type отправляет `BundleOrderField.BundleType`;
