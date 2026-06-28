@@ -1,6 +1,90 @@
 # Auto-generated GraphQL filter types for Catalog service.
 # Do not edit manually. Run: yarn generate:filters
 
+# ---- Listing ----
+
+"""Filter conditions for Listing"""
+input ListingWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [ListingWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [ListingWhereInput!]
+  """Negate the condition"""
+  _not: ListingWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by vendorId"""
+  vendorId: IDFilter
+  """Filter by handle"""
+  handle: StringFilter
+  """Filter by publishedAt"""
+  publishedAt: DateTimeFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+  """Filter by kind"""
+  kind: StringFilter
+  """Filter by locale"""
+  locale: StringFilter
+  """Filter by name"""
+  name: StringFilter
+  """Filter by currency"""
+  currency: StringFilter
+  """Filter by minPriceMinor"""
+  minPriceMinor: IntFilter
+  """Filter by maxPriceMinor"""
+  maxPriceMinor: IntFilter
+  """Filter by primaryCategoryId"""
+  primaryCategoryId: IDFilter
+  """Filter by primaryCategoryName"""
+  primaryCategoryName: StringFilter
+  """Filter by brandName"""
+  brandName: StringFilter
+}
+
+"""Fields available for sorting Listing"""
+enum ListingOrderField {
+  """Sort by id"""
+  id
+  """Sort by vendorId"""
+  vendorId
+  """Sort by handle"""
+  handle
+  """Sort by publishedAt"""
+  publishedAt
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+  """Sort by kind"""
+  kind
+  """Sort by locale"""
+  locale
+  """Sort by name"""
+  name
+  """Sort by currency"""
+  currency
+  """Sort by minPriceMinor"""
+  minPriceMinor
+  """Sort by maxPriceMinor"""
+  maxPriceMinor
+  """Sort by primaryCategoryId"""
+  primaryCategoryId
+  """Sort by primaryCategoryName"""
+  primaryCategoryName
+  """Sort by brandName"""
+  brandName
+}
+
+"""Ordering configuration for Listing"""
+input ListingOrderByInput {
+  """Field to order by"""
+  field: ListingOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
 # ---- Product ----
 
 """Filter conditions for Product"""

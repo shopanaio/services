@@ -6,6 +6,51 @@ import { product } from "./products";
 import { productTranslation } from "./translations";
 import { vendor } from "./vendors";
 
+export const listingListView = catalogSchema.view("listing_list_view").as((qb) =>
+  qb
+    .select({
+      projectId: product.projectId,
+      id: product.id,
+      vendorId: product.vendorId,
+      handle: product.handle,
+      publishedAt: product.publishedAt,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+      deletedAt: product.deletedAt,
+      revision: product.revision,
+      kind: product.kind,
+      locale: productTranslation.locale,
+      name: productTranslation.name,
+      currency: productPriceRange.currency,
+      minPriceMinor: sql<number>`${productPriceRange.minAmountMinor}`.as("min_price_minor"),
+      maxPriceMinor: sql<number>`${productPriceRange.maxAmountMinor}`.as("max_price_minor"),
+      primaryCategoryId: sql<string>`${productCategory.categoryId}`.as("primary_category_id"),
+      primaryCategoryName: sql<string>`${categoryTranslation.name}`.as("primary_category_name"),
+      brandName: sql<string>`${vendor.name}`.as("brand_name"),
+    })
+    .from(product)
+    .innerJoin(
+      productTranslation,
+      sql`${productTranslation.projectId} = ${product.projectId} AND ${productTranslation.productId} = ${product.id}`
+    )
+    .leftJoin(
+      productPriceRange,
+      sql`${productPriceRange.projectId} = ${product.projectId} AND ${productPriceRange.productId} = ${product.id}`
+    )
+    .leftJoin(
+      productCategory,
+      sql`${productCategory.projectId} = ${product.projectId} AND ${productCategory.productId} = ${product.id} AND ${productCategory.isPrimary} = true`
+    )
+    .leftJoin(
+      categoryTranslation,
+      sql`${categoryTranslation.projectId} = ${product.projectId} AND ${categoryTranslation.categoryId} = ${productCategory.categoryId} AND ${categoryTranslation.locale} = ${productTranslation.locale}`
+    )
+    .leftJoin(
+      vendor,
+      sql`${vendor.projectId} = ${product.projectId} AND ${vendor.id} = ${product.vendorId}`
+    )
+);
+
 export const productListView = catalogSchema.view("product_list_view").as((qb) =>
   qb
     .select({
@@ -100,3 +145,4 @@ export const bundleListView = catalogSchema.view("bundle_list_view").as((qb) =>
 
 export type ProductListView = typeof productListView.$inferSelect;
 export type BundleListView = typeof bundleListView.$inferSelect;
+export type ListingListView = typeof listingListView.$inferSelect;

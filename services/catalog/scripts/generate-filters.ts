@@ -5,10 +5,33 @@ import {
   type GraphQLFieldType,
 } from "@shopana/drizzle-query";
 import { categoryRelayQuery } from "../src/repositories/category/CategoryRepository.js";
-import { productRelayQuery } from "../src/repositories/product/ProductRepository.js";
+import {
+  listingRelayQuery,
+  productRelayQuery,
+} from "../src/repositories/product/ProductRepository.js";
 import { tagRelayQuery } from "../src/repositories/tag/TagRepository.js";
 import { vendorRelayQuery } from "../src/repositories/vendor/VendorRepository.js";
 import { variantRelayQuery } from "../src/repositories/variant/VariantRepository.js";
+import { warehouseRelayQuery } from "../src/repositories/warehouse/WarehouseRepository.js";
+import { stockRelayQuery } from "../src/repositories/stock/StockRepository.js";
+
+function generateConnectionInputType(name: string): string {
+  return `"""Relay-style pagination input for ${name}"""
+input ${name}ConnectionInput {
+  """Returns the first n items"""
+  first: Int
+  """Returns items after this cursor"""
+  after: String
+  """Returns the last n items"""
+  last: Int
+  """Returns items before this cursor"""
+  before: String
+  """Filter conditions"""
+  where: ${name}WhereInput
+  """Sort order"""
+  orderBy: [${name}OrderByInput!]
+}`;
+}
 
 const productListFieldTypes: Record<string, GraphQLFieldType> = {
   id: "ID",
@@ -25,6 +48,23 @@ const productListFieldTypes: Record<string, GraphQLFieldType> = {
   primaryCategoryId: "ID",
   primaryCategoryName: "String",
 };
+
+const listingListFieldTypes: Record<string, GraphQLFieldType> = {
+  ...productListFieldTypes,
+  kind: "String",
+};
+
+const listingWhere = generateWhereInputType(listingRelayQuery, "Listing", {
+  includeDescriptions: true,
+  fieldTypes: listingListFieldTypes,
+  excludeFields: ["projectId", "deletedAt", "revision"],
+});
+
+const listingOrderBy = generateOrderByInputType(listingRelayQuery, "Listing", {
+  includeDescriptions: true,
+  fieldTypes: listingListFieldTypes,
+  excludeFields: ["projectId", "deletedAt", "revision"],
+});
 
 const productWhere = generateWhereInputType(productRelayQuery, "Product", {
   includeDescriptions: true,
@@ -103,6 +143,39 @@ const tagOrderBy = generateOrderByInputType(tagRelayQuery, "Tag", {
   fieldTypes: tagListFieldTypes,
 });
 
+const warehouseWhere = generateWhereInputType(warehouseRelayQuery, "Warehouse", {
+  includeDescriptions: true,
+  excludeFields: ["projectId"],
+});
+
+const warehouseOrderBy = generateOrderByInputType(warehouseRelayQuery, "Warehouse", {
+  includeDescriptions: true,
+  excludeFields: ["projectId"],
+});
+
+const warehouseConnectionInput = generateConnectionInputType("Warehouse");
+
+const warehouseStockWhere = generateWhereInputType(
+  stockRelayQuery,
+  "WarehouseStock",
+  {
+    includeDescriptions: true,
+    excludeFields: ["projectId", "reservedQty", "unavailableQty"],
+  }
+);
+
+const warehouseStockOrderBy = generateOrderByInputType(
+  stockRelayQuery,
+  "WarehouseStock",
+  {
+    includeDescriptions: true,
+    excludeFields: ["projectId", "reservedQty", "unavailableQty"],
+  }
+);
+
+const warehouseStockConnectionInput =
+  generateConnectionInputType("WarehouseStock");
+
 const variantWhere = generateWhereInputType(variantRelayQuery, "Variant", {
   includeDescriptions: true,
   excludeFields: ["projectId", "deletedAt", "sku", "kind"],
@@ -115,6 +188,12 @@ const variantOrderBy = generateOrderByInputType(variantRelayQuery, "Variant", {
 
 const content = `# Auto-generated GraphQL filter types for Catalog service.
 # Do not edit manually. Run: yarn generate:filters
+
+# ---- Listing ----
+
+${listingWhere}
+
+${listingOrderBy}
 
 # ---- Product ----
 
@@ -139,6 +218,22 @@ ${categoryOrderBy}
 ${tagWhere}
 
 ${tagOrderBy}
+
+# ---- Warehouse ----
+
+${warehouseWhere}
+
+${warehouseOrderBy}
+
+${warehouseConnectionInput}
+
+# ---- WarehouseStock ----
+
+${warehouseStockWhere}
+
+${warehouseStockOrderBy}
+
+${warehouseStockConnectionInput}
 
 # ---- Variant ----
 

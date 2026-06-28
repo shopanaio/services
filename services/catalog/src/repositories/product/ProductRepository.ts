@@ -11,6 +11,7 @@ import { BaseRepository } from "../BaseRepository.js";
 import {
   product,
   productCategory,
+  listingListView,
   productListView,
   productTranslation,
   productOption,
@@ -30,6 +31,19 @@ import type { NormalizedProductCategoriesScope } from "./ProductCategoriesScope.
 
 const productQuery = createQuery(product).maxLimit(100).defaultLimit(20);
 
+export const listingRelayQuery = createRelayQuery(
+  createQuery(listingListView)
+    .include(["id"])
+    .mapWhereFields({
+      id: decodeProductGlobalId,
+      vendorId: decodeVendorGlobalId,
+      primaryCategoryId: decodeCategoryGlobalId,
+    })
+    .maxLimit(100)
+    .defaultLimit(20),
+  { name: "listing", tieBreaker: "id" }
+);
+
 export const productRelayQuery = createRelayQuery(
   createQuery(productListView)
     .include(["id"])
@@ -44,6 +58,7 @@ export const productRelayQuery = createRelayQuery(
 );
 
 export type ProductQueryInput = InferExecuteOptions<typeof productQuery>;
+export type ListingRelayInput = InferRelayInput<typeof listingRelayQuery>;
 export type ProductRelayInput = InferRelayInput<typeof productRelayQuery>;
 export type ProductConnectionMetaInput = {
   categoriesScope?: NormalizedProductCategoriesScope;
