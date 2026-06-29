@@ -105,6 +105,55 @@ DB таблицы:
 собрать одно публичное значение фильтра из нескольких внутренних значений.
 Например, значение "Red" может включать `red`, `dark-red`, `wine-red`.
 
+## Группировка нескольких source values в один FacetValue
+
+Группировка работает не через отдельную group table, а через несколько строк в
+`catalog.facet_value_source_handle`, которые указывают на один и тот же
+`facet_value_id`.
+
+Пример: в каталоге реально существуют разные option value slugs:
+
+- `red`;
+- `dark-red`;
+- `wine-red`;
+- `burgundy`.
+
+Покупателю не обязательно видеть четыре отдельных фильтра цвета. Для витрины
+можно создать одно публичное значение:
+
+```text
+Facet: Color
+FacetValue:
+  slug: red
+  label: Red
+```
+
+И привязать к нему несколько source handles:
+
+```text
+facet_value_source_handle:
+  facet_value_id: <Red value id>, source_handle: red
+  facet_value_id: <Red value id>, source_handle: dark-red
+  facet_value_id: <Red value id>, source_handle: wine-red
+  facet_value_id: <Red value id>, source_handle: burgundy
+```
+
+Когда пользователь выбирает `Color = Red`, backend трактует это как:
+
+```text
+red OR dark-red OR wine-red OR burgundy
+```
+
+То есть товар или вариант подходит под фильтр, если его исходные данные содержат
+хотя бы один из привязанных source handles.
+
+Такая схема нужна, чтобы:
+
+- объединять близкие внутренние значения в одно понятное публичное значение;
+- не показывать покупателю технические или слишком детальные значения;
+- менять UX фильтров без переписывания товаров и вариантов;
+- поддерживать один и тот же механизм для `TAG`, `FEATURE` и `OPTION`.
+
 Ограничения:
 
 - `facet_value.facet_id + facet_value.slug` уникальны;
