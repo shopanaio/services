@@ -27,6 +27,7 @@
     "glob": "^11.0.0",
     "graphql": "^16.9.0",
     "graphql-tag": "^2.12.6",
+    "node-pg-migrate": "^8.0.4",
     "ora": "^8.1.0",
     "postgres": "^3.4.7",
     "yaml": "^2.6.1"
