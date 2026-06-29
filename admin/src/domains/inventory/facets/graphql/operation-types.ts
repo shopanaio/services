@@ -1,0 +1,157 @@
+import type {
+  ApiFacet,
+  ApiFacetCreateInput,
+  ApiFacetCreatePayload,
+  ApiFacetDeleteInput,
+  ApiFacetDeletePayload,
+  ApiFacetSwatch,
+  ApiFacetUpdateInput,
+  ApiFacetUpdatePayload,
+  ApiFacetValue,
+  ApiFacetValueCreateInput,
+  ApiFacetValueCreatePayload,
+  ApiFacetValueDeleteInput,
+  ApiFacetValueDeletePayload,
+  ApiFacetValueUpdateInput,
+  ApiFacetValueUpdatePayload,
+  ApiFile,
+  ApiGenericUserError,
+} from "@/graphql/types";
+
+export type FacetSwatchFields = Pick<
+  ApiFacetSwatch,
+  "id" | "swatchType" | "colorOne" | "colorTwo" | "metadata"
+> & {
+  file: ApiFile | null;
+};
+
+export type FacetValueGridFields = Pick<
+  ApiFacetValue,
+  "id" | "label" | "slug" | "sortIndex" | "enabled" | "sourceHandles"
+> & {
+  swatch: FacetSwatchFields | null;
+};
+
+export type FacetGridFields = Pick<
+  ApiFacet,
+  | "id"
+  | "label"
+  | "slug"
+  | "facetType"
+  | "uiType"
+  | "selectionMode"
+  | "sortIndex"
+  | "sourceHandles"
+> & {
+  values: FacetValueGridFields[];
+};
+
+export type FacetValueDetailsFields = FacetValueGridFields & {
+  facet: Pick<ApiFacet, "id" | "label" | "facetType">;
+};
+
+export interface FacetGridQueryData {
+  catalogQuery: {
+    facets: FacetGridFields[];
+  };
+}
+
+export interface FacetDetailsQueryData {
+  catalogQuery: {
+    facet: FacetGridFields | null;
+  };
+}
+
+export interface FacetDetailsQueryVariables {
+  id: string;
+}
+
+export interface FacetValueDetailsQueryData {
+  catalogQuery: {
+    facetValue: FacetValueDetailsFields | null;
+  };
+}
+
+export interface FacetValueDetailsQueryVariables {
+  id: string;
+}
+
+export interface FacetCreateMutationData {
+  catalogMutation: {
+    facetCreate: Omit<ApiFacetCreatePayload, "facet"> & {
+      facet: FacetGridFields | null;
+    };
+  };
+}
+
+export interface FacetCreateMutationVariables {
+  input: ApiFacetCreateInput;
+}
+
+export interface FacetUpdateMutationData {
+  catalogMutation: {
+    facetUpdate: Omit<ApiFacetUpdatePayload, "facet"> & {
+      facet: FacetGridFields | null;
+    };
+  };
+}
+
+export interface FacetUpdateMutationVariables {
+  input: ApiFacetUpdateInput;
+}
+
+export interface FacetDeleteMutationData {
+  catalogMutation: {
+    facetDelete: ApiFacetDeletePayload;
+  };
+}
+
+export interface FacetDeleteMutationVariables {
+  input: ApiFacetDeleteInput;
+}
+
+export interface FacetValueCreateMutationData {
+  catalogMutation: {
+    facetValueCreate: Omit<ApiFacetValueCreatePayload, "facetValue"> & {
+      facetValue: (FacetValueGridFields & { facet: Pick<ApiFacet, "id"> }) | null;
+    };
+  };
+}
+
+export interface FacetValueCreateMutationVariables {
+  input: ApiFacetValueCreateInput;
+}
+
+export interface FacetValueUpdateMutationData {
+  catalogMutation: {
+    facetValueUpdate: Omit<ApiFacetValueUpdatePayload, "facetValue"> & {
+      facetValue: (FacetValueGridFields & { facet: Pick<ApiFacet, "id"> }) | null;
+    };
+  };
+}
+
+export interface FacetValueUpdateMutationVariables {
+  input: ApiFacetValueUpdateInput;
+}
+
+export interface FacetValueDeleteMutationData {
+  catalogMutation: {
+    facetValueDelete: ApiFacetValueDeletePayload;
+  };
+}
+
+export interface FacetValueDeleteMutationVariables {
+  input: ApiFacetValueDeleteInput;
+}
+
+export interface FacetMutationResult {
+  facet: FacetGridFields | null;
+  userErrors: ApiGenericUserError[];
+}
+
+export interface FacetValueMutationResult {
+  facetValue:
+    | (FacetValueGridFields & { facet?: Pick<ApiFacet, "id"> | null })
+    | null;
+  userErrors: ApiGenericUserError[];
+}

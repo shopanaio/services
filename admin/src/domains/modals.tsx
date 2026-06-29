@@ -383,6 +383,57 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       ),
     },
     // ========================================
+    // Facet modals
+    // ========================================
+    {
+      type: 'facet-create',
+      component: dynamic(() =>
+        import('@/domains/inventory/facets/modals/create-facet-modal').then(
+          (m) => m.CreateFacetModal
+        )
+      ),
+    },
+    {
+      type: 'facet-edit',
+      component: dynamic(() =>
+        import('@/domains/inventory/facets/modals/edit-facet-modal').then(
+          (m) => m.EditFacetModal
+        )
+      ),
+    },
+    {
+      type: 'facet-order-edit',
+      component: dynamic(() =>
+        import('@/domains/inventory/facets/modals/edit-facet-order-modal').then(
+          (m) => m.EditFacetOrderModal
+        )
+      ),
+    },
+    {
+      type: 'facet-value-create',
+      component: dynamic(() =>
+        import('@/domains/inventory/facets/modals/create-facet-value-modal').then(
+          (m) => m.CreateFacetValueModal
+        )
+      ),
+    },
+    {
+      type: 'facet-value-edit',
+      component: dynamic(() =>
+        import('@/domains/inventory/facets/modals/edit-facet-value-modal').then(
+          (m) => m.EditFacetValueModal
+        )
+      ),
+    },
+    {
+      type: 'facet-value-link-sources',
+      component: dynamic(() =>
+        import('@/domains/inventory/facets/modals/link-source-values-modal').then(
+          (m) => m.LinkSourceValuesModal
+        )
+      ),
+    },
+    // ========================================
     // Picker modals
     // ========================================
     // Generic Entity Picker modal
