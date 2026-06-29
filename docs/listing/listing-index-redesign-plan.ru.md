@@ -6,10 +6,141 @@
 
 Обратная совместимость не требуется. Можно удалять старые таблицы, модели, репозитории и скрипты без dual-write, compatibility views и миграции старых данных. После изменения индексы пересобираются полным rebuild.
 
+## Storefront операции, которые должен поддерживать listing index
+
+Listing index обслуживает только операции витрины, связанные с выдачей товаров,
+structured filtering, facets, counts, pagination и sort. Backend sync/rebuild
+операции описаны отдельно в lifecycle section и не являются storefront
+операциями.
+
+### Entry points выдачи
+
+- Category PLP: открыть страницу категории и получить товары, total, facets,
+  counts, pageInfo и sort options в рамках category navigation scope.
+- Manual collection PLP: открыть ручную подборку и сохранить порядок
+  `collection_item.lexo_rank`.
+- Rule collection PLP: открыть динамическую подборку, где collection rules
+  компилируются в product-level и variant-level predicates.
+- Global catalog listing: открыть общий каталог проекта без category или
+  collection scope, но с теми же visibility, filters, facets, counts,
+  pagination и sort.
+- Search results listing: применить structured listing pipeline к candidate set
+  текстового поиска. Текстовый search index возвращает candidate product ids и
+  relevance score, а listing index применяет visibility, filters, facets,
+  counts, pagination и business sort.
+
+### Scope и visibility
+
+- Применить `project_id` isolation ко всем storefront queries.
+- Применить request currency для price filter, price range и price sort, если
+  storefront contract разрешает multi-currency выдачу.
+- Применить locale для locale-dependent sort и последующей hydration карточек.
+- Показывать только published products; soft-deleted products не должны
+  присутствовать в index.
+- Использовать category только как navigation scope и rule field, не как
+  storefront facet.
+
+### Product-level filtering
+
+- Фильтровать по configured tag facet values.
+- Фильтровать по configured feature facet values.
+- Фильтровать по `vendor_id` как first-class storefront filter на первом этапе.
+- Фильтровать rule collections по `category_handles`, `tag_handles`,
+  `feature_value_handles`, product kind, dates and visibility fields where
+  supported by rule compiler.
+- Поддерживать OR внутри одного product-level `facet_id`.
+- Поддерживать AND между разными product-level `facet_id`.
+- Игнорировать invalid или unconfigured facet values, которые не резолвятся в
+  enabled `facet_value` + `facet_value_source_handle`.
+
+### Variant-level filtering
+
+- Фильтровать по option facets так, чтобы все active option predicates
+  применялись к одному и тому же in-stock variant row.
+- Фильтровать по price range через `has_price = true` и `price_minor` в request
+  currency только среди variants в наличии.
+- Фильтровать по `in_stock` как availability toggle на product aggregate; сами
+  variant-level filters уже ограничены in-stock variant rows.
+- Комбинировать active `OPTION` и `PRICE` predicates в одном in-stock variant
+  predicate group. Нельзя удовлетворять `color:red` одним variant, а `size:xl`
+  или price другим variant того же product.
+- Storefront variant matching всегда строится от in-stock variants. Если variant
+  не в наличии, он не должен удовлетворять option filters, price filters,
+  matched variant sort, option counts или variant-level collection rules.
+- Поддерживать OR внутри одного option `facet_id` и AND между разными option
+  `facet_id`.
+
+### Facet resolution и value visibility
+
+- Batch-resolve storefront tokens `facetSlug:valueSlug` через `facet`,
+  `facet_value` и `facet_value_source_handle`.
+- Возвращать на storefront только configured facets и enabled `facet_value`
+  rows.
+- Не возвращать raw tag/feature/option source handles наружу.
+- Поддерживать merged values: один `facet_value` может мапиться на несколько
+  source handles.
+- Не показывать values без enabled `facet_value` и без source mapping.
+
+### Facet aggregation
+
+- Считать facet counts по full listing scope, а не по текущей странице товаров.
+- Считать product-level facet counts для tag и feature.
+- Считать option facet counts variant-correct только по in-stock variants и
+  возвращать `COUNT(DISTINCT product_id)`, а не count variants.
+- Поддерживать facet isolation: count для value считается со всеми активными
+  filters, кроме filter своего `facet_id`.
+- Делать isolation именно по `facet_id`, не по `facet_type`, чтобы два feature
+  facets не влияли друг на друга как один общий type.
+- Группировать counts merged values по `facet_value_id` и не double-count
+  product, если несколько source handles одного product ведут к одному
+  `facet_value`.
+- Считать price range virtual facet: min/max price по in-stock variants с
+  применением всех active filters, кроме active price predicate.
+- Считать in-stock virtual facet: count products с in-stock variant с
+  применением всех active filters, кроме active in-stock predicate.
+- Считать total count со всеми active filters без isolation.
+
+### Sorting
+
+- Все storefront sorts должны сначала показывать товары в наличии, а товары не
+  в наличии отправлять в конец списка. Availability bucket применяется перед
+  выбранной пользователем сортировкой: `in_stock DESC`, затем requested sort
+  keys, затем `product_id ASC`.
+- Поддерживать manual sort для category/manual collection через `manual_rank`.
+- Поддерживать newest sort по `published_at DESC NULLS LAST`,
+  `product_created_at DESC`, `product_id ASC`.
+- Поддерживать created sort по `product_created_at DESC`, `product_id ASC`.
+- Поддерживать name sort через locale-specific `product_translation` join.
+- Поддерживать price ascending: lowest in-stock product aggregate price when no
+  active variant filters exist, otherwise lowest matching in-stock variant
+  price.
+- Поддерживать price descending: highest in-stock product aggregate or highest
+  matching in-stock variant price according to explicit product requirement.
+- Поддерживать relevance sort for search results через score из search candidate
+  set, with `product_id ASC` tie-breaker.
+- Все sorts должны быть deterministic и завершаться stable tie-breaker
+  `product_id ASC`.
+
+### Pagination и result shape
+
+- Поддерживать cursor pagination для всех storefront sorts.
+- Cursor должен включать значения sort keys, `product_id` tie-breaker и filter
+  hash, чтобы invalid cursor при изменении filters не применялся к другой
+  выдаче.
+- Возвращать `edges`, `pageInfo`, `totalCount`, facets and applied filters
+  metadata without loading all candidate products into memory.
+- Listing index возвращает ordered product ids and listing aggregates.
+  Hydration карточек товара должна выполняться отдельным batch pipeline без
+  N+1: title, handle, media, display price, badges, swatches and availability
+  labels.
+
 ## Цели
 
 1. Сделать read model, которая явно обслуживает Product Listing Page: scope, filters, facets, counts, total, pagination и sort.
-2. Сохранить variant-correct semantics для `OPTION`, `PRICE`, `IN_STOCK`: все variant-level predicates должны применяться к одному и тому же variant row.
+2. Сохранить variant-correct semantics для `OPTION` и `PRICE`: все
+   variant-level predicates должны применяться к одному и тому же in-stock
+   variant row. `IN_STOCK` остается storefront availability toggle поверх
+   product aggregate.
 3. Считать facet counts в PostgreSQL, а не циклами в TypeScript.
 4. Поддержать facet isolation: count для значения считается со всеми активными фильтрами, кроме фильтра своего facet id.
 5. Оставить array + GIN модель для source handles до реальной просадки. Нормализованные inverted-index таблицы не вводить сейчас.
@@ -79,7 +210,10 @@ Column semantics:
 - Soft-deleted products should have all index rows deleted, not kept with `status = 'deleted'`.
 - `feature_value_handles` uses composite source handles: `feature_slug:value_slug`.
 - `category_handles` is used for navigation scope and collection rules, not storefront facet aggregation.
-- `min_price_minor` / `max_price_minor` are aggregates from active variant rows in the same currency where `price_minor IS NOT NULL`.
+- `min_price_minor` / `max_price_minor` are storefront filter/sort aggregates
+  from active in-stock variant rows in the same currency where
+  `has_price = true`. Out-of-stock variant prices do not affect listing price
+  filters, price ranges or price sort.
 - `in_stock` and `total_stock` are aggregates from active variants. They are duplicated per currency intentionally to keep listing query single-table-first.
 
 Indexes:
@@ -92,6 +226,7 @@ CREATE INDEX idx_product_listing_visible_newest
   ON catalog.product_listing_index (
     project_id,
     currency,
+    in_stock DESC,
     published_at DESC NULLS LAST,
     product_created_at DESC,
     product_id
@@ -102,6 +237,7 @@ CREATE INDEX idx_product_listing_visible_created
   ON catalog.product_listing_index (
     project_id,
     currency,
+    in_stock DESC,
     product_created_at DESC,
     product_id
   )
@@ -111,6 +247,7 @@ CREATE INDEX idx_product_listing_visible_price_asc
   ON catalog.product_listing_index (
     project_id,
     currency,
+    in_stock DESC,
     min_price_minor ASC,
     product_id
   )
@@ -120,6 +257,7 @@ CREATE INDEX idx_product_listing_visible_price_desc
   ON catalog.product_listing_index (
     project_id,
     currency,
+    in_stock DESC,
     min_price_minor DESC,
     product_id
   )
@@ -144,7 +282,9 @@ CREATE INDEX idx_product_listing_category_handles_gin
 
 ### `catalog.variant_listing_index`
 
-Одна строка на variant + currency. Таблица содержит variant-level predicates для корректного option/price/stock filtering.
+Одна строка на variant + currency. Таблица содержит variant-level predicates
+для корректного option/price filtering и availability-aware storefront
+matching.
 
 ```sql
 CREATE TABLE catalog.variant_listing_index (
@@ -174,7 +314,12 @@ Column semantics:
 
 - `option_value_handles` uses composite source handles: `option_slug:value_slug`.
 - Rows are written for active variants and enabled project currencies.
-- If a variant has no price in a currency, keep the row with `has_price = false` and `price_minor = NULL`. Price filters exclude it; option and stock filters can still evaluate it.
+- If a variant has no price in a currency, keep the row with `has_price = false`
+  and `price_minor = NULL`. Price filters exclude it; option filters can still
+  evaluate it when the row is in stock.
+- Storefront variant matching uses only rows where `in_stock = true`.
+  Out-of-stock variants do not satisfy option filters, price filters, option
+  counts, matched variant price sort or variant-level collection rules.
 - Deleted variants should have all currency rows deleted.
 
 Indexes:
@@ -193,11 +338,11 @@ CREATE INDEX idx_variant_listing_product_price
     product_id,
     price_minor
   )
-  WHERE has_price = true;
+  WHERE has_price = true AND in_stock = true;
 
 CREATE INDEX idx_variant_listing_price
   ON catalog.variant_listing_index (project_id, currency, price_minor)
-  WHERE has_price = true;
+  WHERE has_price = true AND in_stock = true;
 
 CREATE INDEX idx_variant_listing_in_stock
   ON catalog.variant_listing_index (project_id, currency, in_stock);
@@ -241,14 +386,23 @@ Variant-level filters:
 
 - `option`
 - `price`
-- `in_stock`
+
+Availability filter:
+
+- `in_stock` как storefront availability toggle по product aggregate
+  `product_listing_index.in_stock`. Variant-level matching уже всегда
+  ограничен in-stock variant rows.
 
 Правила комбинирования:
 
 - OR внутри одного facet id.
 - AND между разными facet id.
-- Variant-level filters должны быть в одном variant predicate group. Нельзя проверять `color:red` на одном variant, а `size:xl` или `in_stock` на другом.
-- Price filters используют `has_price = true` и `price_minor`.
+- Variant-level filters должны быть в одном in-stock variant predicate group.
+  Нельзя проверять `color:red` на одном variant, а `size:xl` или price на
+  другом.
+- Option filters, price filters, option counts and matched variant sort all
+  require `vli.in_stock = true`.
+- Price filters additionally use `has_price = true` и `price_minor`.
 - `price` и `in_stock` являются virtual facets: у них нет `facet_value_source_handle`.
 
 ## Listing query flow
@@ -349,14 +503,14 @@ variant_pass_products AS (
   JOIN base_all b ON b.product_id = vli.product_id
   WHERE vli.project_id = :projectId
     AND vli.currency = :currency
+    -- storefront variant matching uses only in-stock variants
+    AND vli.in_stock = true
     -- one predicate per active OPTION facet id
     AND (vli.option_value_handles && :colorHandles::text[])
     AND (vli.option_value_handles && :sizeHandles::text[])
     -- price filter
     AND (:priceMin IS NULL OR (vli.has_price = true AND vli.price_minor >= :priceMin))
     AND (:priceMax IS NULL OR (vli.has_price = true AND vli.price_minor <= :priceMax))
-    -- stock filter
-    AND (:inStock IS NULL OR vli.in_stock = :inStock)
 )
 ```
 
@@ -373,6 +527,7 @@ filtered_products AS (
     AND b.passes_f_feature_material
     -- first-class product filters
     AND (:vendorId IS NULL OR b.vendor_id = :vendorId)
+    AND (:inStockOnly = false OR b.in_stock = true)
     -- variant filters
     AND (:variantFiltersActive = false OR vpp.product_id IS NOT NULL)
 )
@@ -382,14 +537,17 @@ For rule collections, compiled variant rules use the same single-EXISTS rule as 
 
 ## Sort
 
-All sorts must be deterministic. Always append `product_id ASC` as final tie-breaker.
+All sorts must be deterministic. All storefront sorts first group products by
+availability: `in_stock DESC`, so sellable/in-stock products are shown before
+out-of-stock products. Then apply the requested sort keys. Always append
+`product_id ASC` as final tie-breaker.
 
 ### Manual
 
 Category and manual collection:
 
 ```sql
-ORDER BY manual_rank ASC NULLS LAST, product_id ASC
+ORDER BY in_stock DESC, manual_rank ASC NULLS LAST, product_id ASC
 ```
 
 Rule collections do not have manual rank. They fall back to collection default sort or `newest`.
@@ -397,13 +555,13 @@ Rule collections do not have manual rank. They fall back to collection default s
 ### Newest
 
 ```sql
-ORDER BY published_at DESC NULLS LAST, product_created_at DESC, product_id ASC
+ORDER BY in_stock DESC, published_at DESC NULLS LAST, product_created_at DESC, product_id ASC
 ```
 
 ### Created
 
 ```sql
-ORDER BY product_created_at DESC, product_id ASC
+ORDER BY in_stock DESC, product_created_at DESC, product_id ASC
 ```
 
 ### Name
@@ -415,18 +573,20 @@ LEFT JOIN catalog.product_translation pt
   ON pt.project_id = fp.project_id
  AND pt.product_id = fp.product_id
  AND pt.locale = :locale
-ORDER BY pt.name ASC NULLS LAST, fp.product_id ASC
+ORDER BY fp.in_stock DESC, pt.name ASC NULLS LAST, fp.product_id ASC
 ```
 
 ### Price
 
-When there are no active variant-level filters, use product aggregates:
+When there are no active variant-level filters, use product aggregates. These
+aggregates are computed only from in-stock variants:
 
 ```sql
-ORDER BY min_price_minor ASC NULLS LAST, product_id ASC
+ORDER BY in_stock DESC, min_price_minor ASC NULLS LAST, product_id ASC
 ```
 
-When `OPTION`, `price` or `in_stock` filters are active, compute price from matching variants:
+When `OPTION`, `price` or `in_stock` filters are active, compute price from
+matching in-stock variants:
 
 ```sql
 matched_variant_prices AS (
@@ -438,13 +598,17 @@ matched_variant_prices AS (
   WHERE vli.project_id = :projectId
     AND vli.currency = :currency
     AND vli.has_price = true
+    AND vli.in_stock = true
     -- same active variant predicates as listing filter
   GROUP BY vli.product_id
 )
-ORDER BY mvp.sort_price_minor ASC NULLS LAST, fp.product_id ASC
+ORDER BY fp.in_stock DESC, mvp.sort_price_minor ASC NULLS LAST, fp.product_id ASC
 ```
 
-For `price_desc`, use `MAX(vli.price_minor)` or `min_price_minor DESC` depending on product requirements. Default recommendation: `price_asc` uses lowest matching variant price; `price_desc` uses highest matching variant price.
+For `price_desc`, use `MAX(vli.price_minor)` over matching in-stock variants or
+`max_price_minor DESC` depending on product requirements. Default
+recommendation: `price_asc` uses lowest matching in-stock variant price;
+`price_desc` uses highest matching in-stock variant price.
 
 ## Facet aggregation
 
@@ -493,6 +657,7 @@ SELECT
         AND (pm.facet_id = :featureFacetId OR passes_f_feature_material)
         -- first-class filters
         AND (:vendorId IS NULL OR vendor_id = :vendorId)
+        AND (:inStockOnly = false OR b.in_stock = true)
         -- variant pass
         AND (:variantFiltersActive = false OR product_id IN (SELECT product_id FROM variant_pass_products))
     ) AS count
@@ -515,11 +680,13 @@ option_sources AS (
   CROSS JOIN LATERAL unnest(vli.option_value_handles) AS source_handle
   WHERE vli.project_id = :projectId
     AND vli.currency = :currency
+    AND vli.in_stock = true
     -- active product-level filters stay applied
     AND b.passes_f_tag_sale
     AND b.passes_f_feature_material
     -- active option filters except current option facet are injected per count query
-    -- active price/in_stock filters stay applied
+    -- active price filter stays applied and also uses in-stock variants
+    -- active in_stock toggle is applied through b.in_stock
 ),
 option_mapped AS (
   SELECT
@@ -544,11 +711,16 @@ FROM option_mapped
 GROUP BY facet_id, facet_value_id;
 ```
 
-For each option facet id, omit only that facet's option predicate. Keep all other option predicates, product-level predicates, price and stock predicates.
+For each option facet id, omit only that facet's option predicate. Keep all
+other option predicates, product-level predicates, price predicates and
+availability toggle. Option counts are computed only from in-stock variants.
 
 ### Price range
 
-Price range is a virtual facet. It excludes the active price predicate but keeps product-level filters, option filters and stock filter.
+Price range is a virtual facet. It excludes the active price predicate but keeps
+product-level filters, option filters and availability toggle. The range is
+calculated only from in-stock variants, so out-of-stock variants never expand or
+shrink the storefront price slider.
 
 ```sql
 SELECT
@@ -559,15 +731,18 @@ JOIN base b ON b.product_id = vli.product_id
 WHERE vli.project_id = :projectId
   AND vli.currency = :currency
   AND vli.has_price = true
+  AND vli.in_stock = true
   -- product-level filters applied
   -- option filters applied
-  -- in_stock filter applied
+  -- in_stock availability toggle applied through base/product aggregate
   -- price filter omitted
 ```
 
 ### In-stock count
 
-`IN_STOCK` is a virtual facet. It excludes the active in-stock predicate but keeps product-level filters, option filters and price filter.
+`IN_STOCK` is a virtual facet. It excludes the active availability toggle but
+keeps product-level filters, option filters and price filter. Price filter
+predicates and option predicates still evaluate only in-stock variants.
 
 ```sql
 SELECT COUNT(DISTINCT vli.product_id) AS in_stock_count
@@ -579,7 +754,7 @@ WHERE vli.project_id = :projectId
   -- product-level filters applied
   -- option filters applied
   -- price filter applied
-  -- in_stock filter omitted
+  -- in_stock availability toggle omitted
 ```
 
 ### Total count
@@ -633,6 +808,8 @@ Replace scripts:
 2. If product is deleted or missing, delete product and variant listing rows.
 3. Load categories, tags, features and build arrays.
 4. Load variant aggregates from `variant_listing_index` grouped by currency.
+   Price aggregates use only rows with `has_price = true` and
+   `in_stock = true`; stock aggregates still use all active variants.
 5. Upsert one row per product/currency.
 6. If no currency rows exist yet, create rows for enabled project currencies with empty aggregates.
 
@@ -681,8 +858,12 @@ Facet configuration changes do not require listing index rebuild unless source h
 ## Acceptance criteria
 
 - Product-level filters use `product_listing_index`.
-- Variant-level filters use one grouped predicate over `variant_listing_index`.
+- Variant-level filters use one grouped in-stock predicate over
+  `variant_listing_index`.
 - Price sort uses product aggregate only when there are no active variant-level filters; otherwise it uses matched variant prices.
+- Option filter, option counts, price filter, price range, price sort and
+  variant-level collection rules use only in-stock variants.
+- All storefront sorts place in-stock products before out-of-stock products.
 - Facet counts are computed over full scope, not current page items.
 - Facet counts isolate by `facet_id`.
 - Option counts use `COUNT(DISTINCT product_id)`.
