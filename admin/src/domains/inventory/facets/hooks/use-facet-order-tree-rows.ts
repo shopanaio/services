@@ -1,20 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { RowDragEndEvent, RowDragEnterEvent } from "ag-grid-community";
+import { useCallback, useEffect, useRef } from "react";
+import type { Dispatch, SetStateAction } from "react";
+import { useTreeTableDragDrop } from "@/hooks";
 import type { FacetGridRow } from "../mappers";
 import type { FacetOrderEdit } from "../mappers/facet-order.mapper";
-import {
-  buildFacetVisibleRows,
-  getExpandedFacetIds,
-  getFacetRowClass,
-} from "./facet-flat-tree";
+import { areFacetRowsSame } from "./facet-flat-tree";
 
 interface UseFacetOrderTreeRowsOptions {
   initialRows: FacetGridRow[];
   onFacetOrderEdit: (rowId: string, edit: FacetOrderEdit) => void;
   onInvalidMove: (message: string) => void;
-  valueDragMode?: "disabled";
+  valueDragMode?: "disabled" | "same-facet";
 }
 
 export function useFacetOrderTreeRows({
@@ -22,135 +19,87 @@ export function useFacetOrderTreeRows({
   onFacetOrderEdit,
   onInvalidMove,
 }: UseFacetOrderTreeRowsOptions) {
-  const [allRows, setAllRows] = useState<FacetGridRow[]>(initialRows);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(() =>
-    getExpandedFacetIds(initialRows),
-  );
   const originalRowsRef = useRef<FacetGridRow[]>(initialRows);
-  const expandedBeforeDragRef = useRef<Set<string> | null>(null);
-  const draggingRowIdRef = useRef<string | null>(null);
+  const setAllRowsRef =
+    useRef<Dispatch<SetStateAction<FacetGridRow[]>> | null>(null);
 
-  useEffect(() => {
-    originalRowsRef.current = initialRows;
-    setAllRows(initialRows);
-    setExpandedIds(getExpandedFacetIds(initialRows));
-  }, [initialRows]);
-
-  const visibleRows = useMemo(
-    () => buildFacetVisibleRows(allRows, expandedIds),
-    [allRows, expandedIds],
-  );
-
-  const handleToggleExpand = useCallback((id: string) => {
-    setExpandedIds((current) => {
-      const next = new Set(current);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
-
-  const handleRowDragEnter = useCallback(
-    (event: RowDragEnterEvent<FacetGridRow>) => {
-      const movingData = event.node?.data;
-      if (!movingData) {
-        return;
-      }
-
-      if (movingData.type !== "facet") {
-        onInvalidMove("Facet values can only be reordered inside their facet");
-        return;
-      }
-
-      if (draggingRowIdRef.current === movingData.id) {
-        return;
-      }
-
-      draggingRowIdRef.current = movingData.id;
-      expandedBeforeDragRef.current = new Set(expandedIds);
-      setExpandedIds(new Set());
-    },
-    [expandedIds, onInvalidMove],
-  );
-
-  const handleRowDragEnd = useCallback(
-    (event: RowDragEndEvent<FacetGridRow>) => {
-      const savedExpandedIds = expandedBeforeDragRef.current;
-      draggingRowIdRef.current = null;
-      expandedBeforeDragRef.current = null;
-
-      const movingData = event.node?.data;
-      if (!movingData || movingData.type !== "facet") {
-        if (savedExpandedIds) {
-          setExpandedIds(savedExpandedIds);
+  const handleRowsChange = useCallback(
+    (nextRows: FacetGridRow[]) => {
+      const invalidValueMove = nextRows.some((row) => {
+        if (row.type !== "value") {
+          return false;
         }
-        onInvalidMove("Facet values can only be reordered inside their facet");
-        return;
-      }
-
-      const visualRows: FacetGridRow[] = [];
-      event.api.forEachNodeAfterFilterAndSort((node) => {
-        if (node.data) {
-          visualRows.push(node.data);
-        }
-      });
-
-      if (visualRows.some((row) => row.type !== "facet")) {
-        if (savedExpandedIds) {
-          setExpandedIds(savedExpandedIds);
-        }
-        setAllRows(originalRowsRef.current);
-        onInvalidMove("Facet values can only be reordered inside their facet");
-        return;
-      }
-
-      const nextSortIndexByFacetId = new Map<string, number>();
-      visualRows.forEach((row) => {
-        nextSortIndexByFacetId.set(row.id, nextSortIndexByFacetId.size);
-      });
-
-      setAllRows((currentRows) =>
-        currentRows.map((row) =>
-          row.type === "facet" && nextSortIndexByFacetId.has(row.id)
-            ? { ...row, sortIndex: nextSortIndexByFacetId.get(row.id)! }
-            : row,
-        ),
-      );
-
-      for (const [rowId, sortIndex] of nextSortIndexByFacetId.entries()) {
         const originalRow = originalRowsRef.current.find(
-          (row) => row.id === rowId,
+          (candidate) => candidate.id === row.id,
+        );
+        return !originalRow || row.parentId !== originalRow.parentId;
+      });
+
+      if (invalidValueMove) {
+        queueMicrotask(() => {
+          setAllRowsRef.current?.(originalRowsRef.current);
+        });
+        onInvalidMove("Facet values can only be reordered inside their facet");
+        return;
+      }
+
+      for (const row of nextRows) {
+        if (row.type !== "facet" && row.type !== "value") {
+          continue;
+        }
+        const originalRow = originalRowsRef.current.find(
+          (candidate) => candidate.id === row.id,
         );
         if (!originalRow) {
           continue;
         }
 
-        onFacetOrderEdit(rowId, {
-          rowKind: "facet",
-          parentId: null,
+        onFacetOrderEdit(row.id, {
+          rowKind: row.type,
+          parentId: row.parentId,
           originalParentId: originalRow.parentId,
           originalSortIndex: originalRow.sortIndex,
-          sortIndex,
+          sortIndex: row.sortIndex,
         });
-      }
-
-      if (savedExpandedIds) {
-        setExpandedIds(savedExpandedIds);
       }
     },
     [onFacetOrderEdit, onInvalidMove],
   );
 
+  const {
+    allRows,
+    visibleRows,
+    expandedIds,
+    handleToggleExpand,
+    handleRowDragEnter,
+    handleRowDragEnd,
+    getRowClass,
+    setAllRows,
+  } = useTreeTableDragDrop<FacetGridRow>({
+    initialRows,
+    groupType: "facet",
+    onRowsChange: handleRowsChange,
+  });
+
+  useEffect(() => {
+    setAllRowsRef.current = setAllRows;
+  }, [setAllRows]);
+
+  useEffect(() => {
+    if (!areFacetRowsSame(originalRowsRef.current, initialRows)) {
+      originalRowsRef.current = initialRows;
+    }
+    setAllRows((current) =>
+      areFacetRowsSame(current, initialRows) ? current : initialRows,
+    );
+  }, [initialRows, setAllRows]);
+
   const resetRows = useCallback((nextRows: FacetGridRow[]) => {
     originalRowsRef.current = nextRows;
-    setAllRows(nextRows);
-    setExpandedIds(getExpandedFacetIds(nextRows));
-  }, []);
-
-  const getRowClass = useCallback(getFacetRowClass, []);
+    setAllRows((current) =>
+      areFacetRowsSame(current, nextRows) ? current : nextRows,
+    );
+  }, [setAllRows]);
 
   return {
     allRows,

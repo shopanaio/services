@@ -21,9 +21,15 @@ export function FacetLinkedSourcesCell(params: FacetLinkedSourcesCellParams) {
       return <Typography.Text type="secondary">Automatic</Typography.Text>;
     }
 
+    const count = row.linkedSourceHandlesCount ?? 0;
+
     return (
       <Typography.Text type="secondary">
-        {row.valuesCount ?? 0} values
+        {count === 0
+          ? "No linked sources"
+          : count === 1
+            ? "1 linked source"
+            : `${count} linked sources`}
       </Typography.Text>
     );
   }

@@ -102,7 +102,7 @@ export function EditFacetOrderModal() {
     initialRows: typedPayload.rows,
     onFacetOrderEdit: handleFacetOrderEdit,
     onInvalidMove: (warning) => message.warning(warning),
-    valueDragMode: "disabled",
+    valueDragMode: "same-facet",
   });
 
   const { saveFacetOrder } = useSaveFacetOrder({
@@ -137,7 +137,8 @@ export function EditFacetOrderModal() {
         headerName: "Facet / Value",
         flex: 1,
         minWidth: 340,
-        rowDrag: (params) => params.data?.type === "facet",
+        rowDrag: (params) =>
+          params.data?.type === "facet" || params.data?.type === "value",
         cellRenderer: FacetTreeNameCell,
         cellRendererParams: {
           expandedIds,
@@ -150,11 +151,6 @@ export function EditFacetOrderModal() {
         minWidth: 120,
         valueGetter: ({ data }) =>
           data?.type === "facet" ? data.facetType : "value",
-      },
-      {
-        field: "sortIndex",
-        headerName: "Order",
-        minWidth: 100,
       },
     ],
     [allRows, expandedIds, handleToggleExpand],

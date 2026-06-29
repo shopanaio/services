@@ -3,9 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FacetGridRow } from "../mappers";
 import {
+  areFacetRowsSame,
+  areSetsEqual,
   buildFacetVisibleRows,
   getExpandedFacetIds,
   getFacetRowClass,
+  getSyncedExpandedFacetIds,
 } from "./facet-flat-tree";
 
 export function useFacetTreeRows(initialRows: FacetGridRow[]) {
@@ -15,21 +18,12 @@ export function useFacetTreeRows(initialRows: FacetGridRow[]) {
   );
 
   useEffect(() => {
-    setAllRows(initialRows);
+    setAllRows((current) =>
+      areFacetRowsSame(current, initialRows) ? current : initialRows,
+    );
     setExpandedIds((current) => {
-      const next = new Set(current);
-      const currentRowIds = new Set<string>(initialRows.map((row) => row.id));
-      for (const rowId of next) {
-        if (!currentRowIds.has(rowId)) {
-          next.delete(rowId);
-        }
-      }
-      for (const row of initialRows) {
-        if (row.type === "facet" && row.valuesCount && row.valuesCount > 0) {
-          next.add(row.id);
-        }
-      }
-      return next;
+      const next = getSyncedExpandedFacetIds(initialRows, current);
+      return areSetsEqual(current, next) ? current : next;
     });
   }, [initialRows]);
 
@@ -51,11 +45,19 @@ export function useFacetTreeRows(initialRows: FacetGridRow[]) {
   }, []);
 
   const expandFacet = useCallback((id: string) => {
-    setExpandedIds((current) => new Set([...current, id]));
+    setExpandedIds((current) => {
+      if (current.has(id)) {
+        return current;
+      }
+      return new Set([...current, id]);
+    });
   }, []);
 
   const collapseFacet = useCallback((id: string) => {
     setExpandedIds((current) => {
+      if (!current.has(id)) {
+        return current;
+      }
       const next = new Set(current);
       next.delete(id);
       return next;
@@ -63,8 +65,13 @@ export function useFacetTreeRows(initialRows: FacetGridRow[]) {
   }, []);
 
   const resetRowsFromServer = useCallback((nextRows: FacetGridRow[]) => {
-    setAllRows(nextRows);
-    setExpandedIds(getExpandedFacetIds(nextRows));
+    setAllRows((current) =>
+      areFacetRowsSame(current, nextRows) ? current : nextRows,
+    );
+    setExpandedIds((current) => {
+      const next = getExpandedFacetIds(nextRows);
+      return areSetsEqual(current, next) ? current : next;
+    });
   }, []);
 
   const getRowClass = useCallback(getFacetRowClass, []);

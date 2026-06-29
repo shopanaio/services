@@ -529,11 +529,6 @@ export default function FacetsPage() {
         cellRenderer: FacetSwatchCell,
       },
       {
-        field: "sortIndex",
-        headerName: "Order",
-        minWidth: 100,
-      },
-      {
         headerName: "",
         width: 72,
         pinned: "right",
