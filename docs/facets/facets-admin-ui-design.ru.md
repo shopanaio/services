@@ -1,30 +1,28 @@
 # Facets: дизайн Admin UI
 
-Документ проектирует страницу управления storefront facets в Admin UI. Основа:
-`docs/facets/facets-data-model.ru.md`, текущие Admin UI паттерны Shopana,
-а также UX-подходы Shopify, MedusaJS и Saleor: спокойная рабочая страница,
-табличный список, быстрые действия в строках, drawers/modals для редактирования
-и отдельные панели для сложной настройки значений.
+Документ проектирует страницу управления storefront facets в существующей
+админке Shopana. Основа: `docs/facets/facets-data-model.ru.md`, текущие
+inventory pages, `edit-attributes-modal` и inventory inline editing.
 
-## Цель страницы
+Актуальная модель UI: основная таблица является двумерной AG Grid структурой
+`Facet -> FacetValue`.
 
-Админ должен управлять фильтрами каталожного листинга без знания внутренней
-модели БД:
+- `Facet` - parent row.
+- `FacetValue` - child row.
+- `FacetGroup` в этой странице не участвует: группы не показываются, не
+  редактируются и не влияют на DnD.
+- Если backend поле `groupId` остается в `Facet`, UI не отправляет его при
+  обычном редактировании. На create можно оставлять `groupId: null`.
 
-- создавать и сортировать группы фильтров;
-- создавать facets по источникам `PRICE`, `TAG`, `FEATURE`, `OPTION`,
-  `IN_STOCK`;
-- настраивать label, slug, UI type, selection mode, группу, порядок, видимость
-  и SEO-флаг;
-- управлять значениями для `TAG`, `FEATURE`, `OPTION`;
-- группировать несколько source handles в одно публичное значение;
-- назначать swatches для значений;
-- видеть, какие facets вычисляемые и не имеют ручных значений;
-- не смешивать эту страницу с `FilterWidget` таблиц админки.
+Tree/DnD поведение должно повторять `edit-attributes-modal`, но persistence
+pending edits должен повторять inventory page: zustand state и нижняя save
+panel.
 
-## Место в навигации
+## Навигация
 
-Рекомендуемое расположение: `Inventory -> Facets`.
+Раздел: `Inventory`.
+
+Пункт меню: `Facets`.
 
 URL:
 
@@ -36,203 +34,597 @@ URL:
 
 ```text
 admin/src/domains/inventory/facets/
+  register.tsx
+  modals.ts
   page/
+    page.tsx
+    filter-schema.ts
+    page-config.ts
   components/
+    facet-tree-name-cell.tsx
+    facet-tree-actions-cell.tsx
+    facet-linked-sources-cell.tsx
+    facet-swatch-cell.tsx
+    facet-select-cell.tsx
+    facet-boolean-cell.tsx
   modals/
+    create-facet-modal/
+    edit-facet-modal/
+    edit-facet-value-modal/
+    link-source-values-modal/
+    merge-facet-values-modal/
+    edit-facet-swatch-modal/
   graphql/
   hooks/
+    use-facet-grid-edit-store.ts
+    use-facet-tree-rows.ts
   mappers/
 ```
 
-Страница использует `DataLayout`, `AgGrid`/`DataTable`, `ModalStack` и generated
-GraphQL types из `@/graphql/types`. Facets API вызывается через
-`catalogQuery.facets`, `catalogQuery.facetGroups`, `catalogQuery.facetValues`,
-`catalogQuery.facetSwatches` и `catalogMutation.facet*`.
+## Основная страница
 
-## Информационная архитектура
+Страница строится как остальные inventory list pages:
 
-Основной экран состоит из четырех рабочих областей:
+- `DataLayout` с `title="Facets"`;
+- в header одна primary action кнопка `Create`;
+- сверху `DataLayout.Toolbar` с `FilterWidget`: search + filters;
+- внутри `AgGridReact`;
+- снизу `FloatingPanelStack` с editing panel, когда есть pending changes.
 
-1. `Facets` - список всех фильтров, сгруппированный по `FacetGroup`.
-2. `Groups` - редактор layout-блоков витринного фильтра: название блока,
-   порядок блоков, collapsed state и распределение уже созданных facets по
-   группам.
-3. `Swatches` - библиотека цветовых, градиентных и image-маркеров.
-4. `Preview` - read-only предпросмотр того, как фильтры выглядят для витрины.
+`CursorPagination` для основной таблицы не нужен, если backend отдает все
+facets и values: reorder требует полный набор строк. Если позже facets станет
+слишком много, нужно добавлять dedicated server-side reorder API, а не
+пагинировать текущий drag table.
 
-`Facets` остается главной вкладкой для настройки поведения фильтров. `Groups`
-не дублирует список filters: это отдельный structural editor, похожий на
-настройку секций sidebar в storefront. В нем админ работает с группами как с
-контейнерами, а facets внутри групп отображаются компактными элементами без
-редактирования их бизнес-логики.
-
-## Главная страница
+### Wireframe
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ Inventory / Facets                                             [Create facet]│
-│ Manage storefront filters shown in category and search listings              │
+│ Facets                                                            [+ Create] │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ [Facets] [Groups] [Swatches] [Preview]                 Search facets... [⚙] │
+│ [Search facets and values...] [Source v] [UI type v] [Has values v] [Reset] │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ Status: 12 facets · 4 groups · 38 values · 9 swatches                        │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ Group: Main filters                                      [Edit] [Add facet] │
-│ ┌─drag─┬─────────────┬─────────┬──────────┬───────────┬────────┬──────────┐ │
-│ │  ⋮⋮  │ Label       │ Source  │ UI       │ Values    │ Status │ Actions  │ │
-│ ├──────┼─────────────┼─────────┼──────────┼───────────┼────────┼──────────┤ │
-│ │  ⋮⋮  │ Price       │ PRICE   │ RANGE    │ Automatic │ Active │ ⋯        │ │
-│ │  ⋮⋮  │ Availability│ IN_STOCK│ BOOLEAN  │ Automatic │ Active │ ⋯        │ │
-│ │  ⋮⋮  │ Color       │ OPTION  │ CHECKBOX │ 12 values │ Active │ ⋯        │ │
-│ │  ⋮⋮  │ Brand       │ TAG     │ DROPDOWN │ 24 values │ Active │ ⋯        │ │
-│ └──────┴─────────────┴─────────┴──────────┴───────────┴────────┴──────────┘ │
+│ ┌──────────────────────────────────────────────────────────────────────────┐ │
+│ │ Facet / Value                 Source    UI        Linked sources  ⋯     │ │
+│ ├──────────────────────────────────────────────────────────────────────────┤ │
+│ │ ▸ [facet] Price               PRICE     RANGE     Automatic       ⋯     │ │
+│ │ ▸ [facet] Availability        IN_STOCK  BOOLEAN   Automatic       ⋯     │ │
+│ │ ▾ [facet] Color               OPTION    CHECKBOX  12 values       ⋯     │ │
+│ │   ⋮⋮ Red                      value     enabled   4 linked        ⋯     │ │
+│ │   ⋮⋮ Blue                     value     enabled   2 linked        ⋯     │ │
+│ │   ⋮⋮ Burgundy                 value     disabled  1 linked        ⋯     │ │
+│ │ ▾ [facet] Brand               TAG       DROPDOWN  24 values       ⋯     │ │
+│ │   ⋮⋮ Nike                     value     enabled   nike            ⋯     │ │
+│ │   ⋮⋮ Adidas                   value     enabled   adidas          ⋯     │ │
+│ │ ▸ [facet] Material            FEATURE   CHECKBOX  5 values        ⋯     │ │
+│ └──────────────────────────────────────────────────────────────────────────┘ │
 │                                                                              │
-│ Group: Product details                                  [Edit] [Add facet] │
-│ ┌─drag─┬─────────────┬─────────┬──────────┬───────────┬────────┬──────────┐ │
-│ │  ⋮⋮  │ Size        │ OPTION  │ RADIO    │ 8 values  │ Active │ ⋯        │ │
-│ │  ⋮⋮  │ Material    │ FEATURE │ CHECKBOX │ 5 values  │ Active │ ⋯        │ │
-│ └──────┴─────────────┴─────────┴──────────┴───────────┴────────┴──────────┘ │
-│                                                                              │
-│ Ungrouped                                                [Add facet]        │
-│ ┌─drag─┬─────────────┬─────────┬──────────┬───────────┬────────┬──────────┐ │
-│ │  ⋮⋮  │ Sale        │ TAG     │ CHECKBOX │ 3 values  │ Active │ ⋯        │ │
-│ └──────┴─────────────┴─────────┴──────────┴───────────┴────────┴──────────┘ │
+│        floating panel appears only with local edits:                          │
+│        [Unsaved changes (5)]                         [Discard] [Save]        │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Поведение основной страницы
+`PRICE` and `IN_STOCK` are parent rows without editable child values. They may
+still have an expand placeholder for row alignment, but expanding does nothing.
 
-- Строка facet открывает drawer деталей.
-- Drag handle меняет `sortIndex` внутри группы.
-- Перетаскивание facet между группами меняет `groupId` и `sortIndex`.
-- `Ungrouped` показывает facets с `groupId = null`.
-- В колонке `Values` для `PRICE` и `IN_STOCK` всегда отображается `Automatic`.
-- Для дискретных facets показывается количество enabled/total values.
-- Кнопка `Create facet` открывает modal создания.
-- `Add facet` в группе открывает тот же modal, но preselect `groupId`.
-- Row actions: `Edit`, `Manage values`, `Duplicate`, `Delete`.
-- `Manage values` disabled для `PRICE` и `IN_STOCK`.
+## Row model
 
-## Вкладка Groups
+Grid rows must be compatible with `useTreeTableDragDrop`, like
+`AttributeEditorRow` in edit attributes.
+
+```ts
+type FacetGridRowType = "facet" | "value";
+
+interface FacetGridRow extends ITreeTableRow {
+  id: string;
+  apiId?: string;
+  type: FacetGridRowType;
+  parentId: string | null;
+  level: 0 | 1;
+  sortIndex: number;
+  name: string;
+
+  // facet rows
+  slug?: string;
+  facetType?: FacetType;
+  uiType?: FacetUiType;
+  selectionMode?: FacetSelectionMode;
+  minValues?: number;
+  maxValuesVisible?: number;
+  valueSort?: FacetValueSort;
+  indexable?: boolean;
+  valuesCount?: number;
+  enabledValuesCount?: number;
+  linkedSourceHandlesCount?: number;
+
+  // value rows
+  enabled?: boolean;
+  sourceHandles?: string[];
+  swatchId?: string | null;
+  swatch?: ApiFacetSwatch | null;
+}
+```
+
+Mapping:
+
+- `Facet` -> `type: "facet"`, `parentId: null`, `apiId = facet.id`,
+  `level = 0`;
+- `FacetValue` -> `type: "value"`, `parentId = facet.id`,
+  `apiId = value.id`, `level = 1`;
+- `PRICE` and `IN_STOCK` facets never receive value child rows;
+- `TAG`, `FEATURE`, `OPTION` facets receive child rows from `facet.values`;
+- `FacetGroup` is ignored by this row model.
+
+## Attributes grid mechanics to reuse
+
+`edit-attributes-modal` does not use AG Grid tree data mode. It builds a flat
+row array and computes visible tree manually:
+
+- source rows are stored in `allRows`;
+- grid receives only `visibleRows`;
+- `visibleRows` is built from root rows sorted by `sortIndex`;
+- child rows are appended immediately after a parent only when `expandedIds`
+  contains the parent id;
+- row visual level comes from `row.level`, not AG Grid tree data;
+- indentation is drawn in the name cell by `level * 24`;
+- `getRowClass` returns `row-group` or `row-child`;
+- `row-group` has stronger text weight;
+- `row-child` uses normal container background.
+
+For facets use the same manual tree approach:
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ Groups                                                       [Create group] │
-│ Arrange storefront filter sections and assign facets to them                 │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ Unassigned facets: [Sale TAG] [Vendor TAG]                    [Assign all] │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ ⋮⋮ Main filters                                      Expanded by default  ⋯ │
-│    Storefront order: 10                                                     │
-│    ┌────────────────────────────────────────────────────────────────────┐    │
-│    │ [Price PRICE] [Availability IN_STOCK] [Color OPTION] [Brand TAG]   │    │
-│    └────────────────────────────────────────────────────────────────────┘    │
-│                                                                              │
-│ ⋮⋮ Product details                                  Collapsed by default  ⋯ │
-│    Storefront order: 20                                                     │
-│    ┌────────────────────────────────────────────────────────────────────┐    │
-│    │ [Size OPTION] [Material FEATURE]                         [+ Add]   │    │
-│    └────────────────────────────────────────────────────────────────────┘    │
-│                                                                              │
-│ ⋮⋮ Merchandising                                    Expanded by default  ⋯ │
-│    Storefront order: 30                                                     │
-│    ┌────────────────────────────────────────────────────────────────────┐    │
-│    │ Drop facets here                                           [+ Add] │    │
-│    └────────────────────────────────────────────────────────────────────┘    │
-└──────────────────────────────────────────────────────────────────────────────┘
+allRows
+  facet: Price
+  facet: Availability
+  facet: Color
+  value: Red, parentId = Color
+  value: Blue, parentId = Color
+  facet: Brand
+  value: Nike, parentId = Brand
+
+visibleRows
+  depends on expandedIds
 ```
 
-Отличие от вкладки `Facets`: здесь не редактируются `facetType`, `uiType`,
-`selectionMode`, values и source handles. Вкладка отвечает только за storefront
-layout:
+Do not use `treeData`, `getDataPath`, master/detail, row grouping, or nested
+tables. This must stay the same flat AG Grid pattern as attributes grid.
 
-- создать/переименовать группу;
-- изменить порядок групп через drag handle или `Move up/down`;
-- переключить `collapsed` как default state группы на витрине;
-- назначить существующий facet в группу;
-- вынести facet в `Unassigned`;
-- быстро увидеть состав каждой группы.
+## Columns
 
-`collapsed` трактуется как storefront default state группы. Удаление группы
-должно предлагать только layout-safe сценарий: удалить группу и переместить ее
-facets в `Unassigned`. Удаление самих facets из этой вкладки недоступно, чтобы
-не смешивать управление контейнерами и управление фильтрами.
+| Column | Facet row | Value row | Editable |
+| --- | --- | --- | --- |
+| `Facet / Value` | facet label + slug, expand icon | public value label + slug | facet label, value label |
+| `Source` | `facetType` | `value` | no |
+| `UI / Status` | `uiType` + `selectionMode` | `enabled` | facet UI/status, value enabled |
+| `Linked sources` | `Automatic` or `N values` | chips/count for `sourceHandles` | opens link modal |
+| `Swatch` | empty or count summary | swatch preview | opens swatch picker/modal |
+| `Visibility` | min/max/value sort | `sortIndex` | facet visibility, value order |
+| `SEO` | `indexable` | empty | facet indexable |
+| `Actions` | menu | menu | no |
 
-## Вкладка Swatches
+Actions is always the rightmost column.
+
+### Name cell
+
+Reuse the visual pattern from
+`admin/src/domains/inventory/products/modals/edit-attributes-modal/components/name-cell-renderer.tsx`:
+
+- indent by `level * 24`;
+- expand/collapse icon for facet rows with values;
+- facet icon for parent rows;
+- value/tag icon for child rows;
+- row drag handle on the same first column;
+- facet rows use `row-group`;
+- value rows use `row-child`.
+
+### Actions column
+
+Rightmost `ActionsCellRenderer` mirrors edit attributes.
+
+Facet row menu:
+
+- `Edit`;
+- `Create value` for `TAG`, `FEATURE`, `OPTION`;
+- `Duplicate`;
+- `Delete`.
+
+Value row menu:
+
+- `Edit`;
+- `Link source values`;
+- `Duplicate`;
+- `Delete`.
+
+`Delete` is destructive and opens confirmation. If there are unsaved grid edits,
+delete is disabled and shows message: save or discard changes first.
+
+## DnD behavior
+
+Reuse `useTreeTableDragDrop` from `admin/src/hooks/use-tree-table-drag-drop.ts`.
+Do not implement a second drag model.
+
+Use facets as the hook "group" rows:
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ Swatches                                                   [Create swatch] │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ Type: [All v]                                      Search swatches...       │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ ┌────────────┬──────────┬────────────────────────┬────────────┬──────────┐ │
-│ │ Preview    │ Type     │ Value                  │ Used by    │ Actions  │ │
-│ ├────────────┼──────────┼────────────────────────┼────────────┼──────────┤ │
-│ │ ● #D92D20  │ COLOR    │ colorOne #D92D20       │ Red        │ Edit ⋯   │ │
-│ │ ◐ blue/red │ GRADIENT │ #1D4ED8 -> #DC2626     │ Team color │ Edit ⋯   │ │
-│ │ ▣ image    │ IMAGE    │ file: swatch-red.png   │ Pattern    │ Edit ⋯   │ │
-│ └────────────┴──────────┴────────────────────────┴────────────┴──────────┘ │
-└──────────────────────────────────────────────────────────────────────────────┘
+useTreeTableDragDrop<FacetGridRow>({
+  initialRows,
+  groupType: "facet",
+  onRowsChange: markTreeDirty,
+})
 ```
 
-Swatch library нужна потому, что `FacetSwatch` является отдельной сущностью и
-может переиспользоваться разными `FacetValue`. В value editor также должен быть
-inline path: создать swatch без ухода со страницы значения.
-
-## Вкладка Preview
+Required grid setup:
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ Preview                                                                      │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ Device: [Desktop] [Mobile]                 Category: [All products v]       │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ ┌──────────────────────────────┐ ┌─────────────────────────────────────────┐ │
-│ │ Filters                      │ │ Notes                                   │ │
-│ │ Main filters                 │ │ Counts are not connected in Admin API   │ │
-│ │  Price        [──────]       │ │ yet. This preview validates structure,  │ │
-│ │  In stock     [x] Available  │ │ labels, order, UI type, and swatches.  │ │
-│ │  Color        □ Red ●        │ │                                         │ │
-│ │               □ Blue ●       │ │ Future: use listing facets endpoint.   │ │
-│ │ Product details              │ │                                         │ │
-│ │  Size         ○ S ○ M ○ L    │ │                                         │ │
-│ └──────────────────────────────┘ └─────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────────────────────┘
+ModuleRegistry.registerModules([AllCommunityModule, RowDragModule, GridStateModule])
+
+<AgGridReact<FacetGridRow>
+  rowData={visibleRows}
+  rowDragManaged
+  animateRows
+  suppressMovableColumns
+  getRowId={getRowId}
+  getRowClass={getRowClass}
+  onRowDragEnter={handleRowDragEnter}
+  onRowDragEnd={handleRowDragEnd}
+/>
 ```
 
-Preview на первом этапе read-only и строится из admin configuration. Counts не
-нужно имитировать, пока listing facets не подключены в API.
+Exact mechanics inherited from `edit-attributes-modal`:
+
+- `onRowDragEnter` stores `expandedBeforeDragRef`;
+- if dragged row has `type === groupType`, all parent rows collapse by
+  `setExpandedIds(new Set())`;
+- for facets this means dragging a `Facet` collapses all facets;
+- dragging a `FacetValue` does not collapse all facets;
+- `onRowDragEnd` reads current grid visual order through
+  `event.api.forEachNodeAfterFilterAndSort`;
+- it walks rows top-to-bottom and keeps `currentGroupId`;
+- when the row is a facet, it becomes a root row and receives next root
+  `sortIndex`;
+- when the row is a value and `currentGroupId` exists, it becomes a child of
+  that facet and receives next child `sortIndex`;
+- after row updates, previous expanded state is restored;
+- `onRowsChange` marks the tree dirty.
+
+Facet-specific constraints around the reused hook:
+
+- `FacetValue` cannot be root. If the hook would place a value before any facet,
+  revert that move or attach it back to its previous facet.
+- `FacetValue` cannot be dropped under `PRICE` or `IN_STOCK`.
+- Moving values across facets is allowed only between compatible discrete facet
+  types when the user confirms it. Default behavior should keep values inside
+  their current facet.
+- Moving a value across facets persists as delete/create or as
+  `facetValueUpdate({ id, facetId })` only if backend supports changing
+  `facetId`. Current API input does not expose `facetId` on update, so Phase 1
+  should restrict value DnD to the same facet.
+- Facet DnD updates `Facet.sortIndex`.
+- Value DnD inside same facet updates `FacetValue.sortIndex`.
+
+Extra page rule:
+
+- DnD is enabled only when search/filter/sort is cleared. Reordering a filtered
+  subset would persist incorrect `sortIndex`. If user starts drag with active
+  filters, show warning and block drag: `Clear filters before reordering facets`.
+
+## Inline editing
+
+There are two existing patterns and both matter:
+
+1. Attributes grid edits local tree rows directly:
+   - `editable: true`;
+   - `onCellValueChanged` for `name`;
+   - `valueGetter`/`valueSetter` for comma-separated values;
+   - `valueSetter` calls `updateRow(...)` and returns `false`;
+   - `onRowsChange` calls `setDirty(true)`.
+2. Inventory page persists inline edits through zustand and bottom panel:
+   - `readOnlyEdit`;
+   - `onCellEditRequest`;
+   - store holds original/current values;
+   - display data is server data merged with pending edits;
+   - `FloatingPanelStack` shows Save/Discard.
+
+For facets use attributes grid for tree/DnD and inventory page for pending
+persistence:
+
+- grid uses `readOnlyEdit`;
+- cell edits are captured in `onCellEditRequest`;
+- pending changes live in zustand;
+- server rows are merged with pending edits for display;
+- bottom `FloatingPanelStack` editing panel appears when edits exist;
+- `Save` sends all pending changes;
+- `Discard` clears local edits.
+
+DnD is the exception: `useTreeTableDragDrop` still updates `allRows` locally so
+the user immediately sees moved rows. Every valid DnD update also writes a
+`reorderEdit` into zustand. Discard resets `allRows` from latest server rows and
+clears `reorderEdits`.
+
+Do not use `onCellValueChanged` as the only source of pending field edits,
+because page-level save/discard needs original/current values like inventory.
+
+### Store shape
+
+```ts
+type FacetGridEditableField =
+  | "facet.label"
+  | "facet.slug"
+  | "facet.uiType"
+  | "facet.selectionMode"
+  | "facet.minValues"
+  | "facet.maxValuesVisible"
+  | "facet.valueSort"
+  | "facet.indexable"
+  | "value.label"
+  | "value.slug"
+  | "value.enabled"
+  | "value.sourceHandles"
+  | "value.swatchId";
+
+interface FacetGridFieldEdit {
+  originalValue: string | number | boolean | string[] | null;
+  currentValue: string | number | boolean | string[] | null;
+}
+
+interface FacetGridReorderEdit {
+  parentId: string | null;
+  sortIndex: number;
+}
+
+interface FacetGridEditStore {
+  fieldEdits: Record<string, Record<FacetGridEditableField, FacetGridFieldEdit>>;
+  reorderEdits: Record<string, FacetGridReorderEdit>;
+  rowErrors: Record<string, ApiGenericUserError[]>;
+  submitErrors: ApiGenericUserError[];
+  status: "idle" | "saving";
+}
+```
+
+`rowId` for store:
+
+- facet: `facet:${apiId}`;
+- value: `value:${apiId}`.
+
+### Save flow
+
+Save maps local state to backend mutations:
+
+1. facet field edits -> `facetUpdate`;
+2. value field edits -> `facetValueUpdate`;
+3. facet reorder -> `facetUpdate({ id, sortIndex })`;
+4. value reorder inside same facet -> `facetValueUpdate({ id, sortIndex })`.
+
+For first implementation, sequential mutations are acceptable because API has
+no bulk reorder mutation. If a mutation fails:
+
+- keep local edits;
+- attach errors to row if possible;
+- show first error in custom floating panel above editing panel or as
+  `App.message.error`;
+- do not clear store.
+
+### Cell editing by column
+
+| Column | Edit handling |
+| --- | --- |
+| facet label | text editor -> `facet.label` |
+| facet slug | text editor -> `facet.slug` |
+| facet UI | select editor constrained by `facetType` |
+| facet selection | select editor constrained by `uiType` |
+| facet visibility | compact custom cell, opens edit modal or inline numeric editors |
+| facet SEO | boolean renderer/editor -> `facet.indexable` |
+| value label | text editor -> `value.label` |
+| value slug | text editor -> `value.slug` |
+| value enabled | boolean renderer/editor -> `value.enabled` |
+| linked sources | opens link source values modal -> `value.sourceHandles` |
+| swatch | opens swatch picker/modal -> `value.swatchId` |
+
+## Row click
+
+- Facet row click opens `edit-facet-modal`.
+- Value row click opens `edit-facet-value-modal`.
+- Expand/collapse icon click only toggles facet expansion.
+- Cells with inline editors and action buttons must stop propagation.
 
 ## Create facet modal
 
+Header `Create` opens create facet modal.
+
 ```text
-┌────────────────────────────────────────────────────────────┐
-│ Create facet                                           [×] │
-├────────────────────────────────────────────────────────────┤
-│ Source                                                     │
-│ [PRICE] [TAG] [FEATURE] [OPTION] [IN_STOCK]                │
-│                                                            │
-│ Label *                                                    │
-│ [ Color                                              ]     │
-│ Slug *                                                     │
-│ [ color                                              ]     │
-│                                                            │
-│ Display                                                    │
-│ UI type *              Selection mode                      │
-│ [CHECKBOX v]           [MULTI v]                           │
-│                                                            │
-│ Organization                                               │
-│ Group                  Sort index                          │
-│ [Main filters v]       [30]                                │
-│                                                            │
-│ [Cancel]                                      [Create]     │
-└────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────┐
+│ ← Create facet                                                   [Create] │
+├────────────────────────────────────────────────────────────────────────────┤
+│        ┌────────────────────────────────────────────────────────────┐      │
+│        │ General                                                    │      │
+│        │ Label *                     Slug *                         │      │
+│        │ [Color                    ] [color                       ] │      │
+│        │ Source *                                                    │      │
+│        │ [OPTION v]                                                  │      │
+│        └────────────────────────────────────────────────────────────┘      │
+│        ┌────────────────────────────────────────────────────────────┐      │
+│        │ Display                                                    │      │
+│        │ UI type *                  Selection mode                  │      │
+│        │ [CHECKBOX v]              [MULTI v]                        │      │
+│        └────────────────────────────────────────────────────────────┘      │
+└────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Динамические правила modal
+No group selector. Created facet is appended to root facet rows by `sortIndex`.
 
-Допустимые `uiType` зависят от `facetType`:
+After create:
+
+- `TAG`, `FEATURE`, `OPTION`: append facet row and optionally open value create
+  flow;
+- `PRICE`, `IN_STOCK`: append facet row without values.
+
+## Edit facet modal
+
+Facet row click opens fullscreen `ModalLayout` for advanced facet editing.
+
+```text
+┌────────────────────────────────────────────────────────────────────────────┐
+│ ← Color                                                           [Save]  │
+├────────────────────────────────────────────────────────────────────────────┤
+│ ┌──────────────────────────────────────┐ ┌─────────────────────────────┐   │
+│ │ General                              │ │ Visibility                  │   │
+│ │ Label              [Color]           │ │ Min values        [1]       │   │
+│ │ Slug               [color]           │ │ Max visible       [8]       │   │
+│ │ Source             OPTION            │ │ Value sort        [CUSTOM]  │   │
+│ │ UI type            [CHECKBOX]        │ │ Indexable         [x]       │   │
+│ │ Selection mode     [MULTI]           │ │                             │   │
+│ └──────────────────────────────────────┘ └─────────────────────────────┘   │
+│ ┌──────────────────────────────────────────────────────────────────────┐   │
+│ │ Values                                                [+ Create]     │   │
+│ │ 12 public values, 31 linked source handles                           │   │
+│ └──────────────────────────────────────────────────────────────────────┘   │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+`facetType` is immutable after create.
+
+For `PRICE` and `IN_STOCK`, values are computed:
+
+```text
+Values are calculated automatically.
+PRICE returns price range. IN_STOCK returns availability count.
+```
+
+No create value action for computed facets.
+
+## FacetValue rows and linked source values
+
+`TAG`, `FEATURE` and `OPTION` facets support Shopify-like linked values: one
+public storefront value can represent multiple source values.
+
+Backend model:
+
+- one `FacetValue`;
+- many `FacetValue.sourceHandles`;
+- source handles are tag handles, feature slugs or option value slugs.
+
+UX principle:
+
+- storefront sees one public value, for example `Red`;
+- admin links several internal source values to it:
+  `red`, `dark-red`, `wine-red`, `burgundy`;
+- selecting `Red` on storefront means source handle OR logic.
+
+### Edit value modal
+
+Value row click opens edit modal.
+
+```text
+┌────────────────────────────────────────────────────────────────────────────┐
+│ ← Red                                                              [Save] │
+├────────────────────────────────────────────────────────────────────────────┤
+│        ┌────────────────────────────────────────────────────────────┐      │
+│        │ Identity                                                   │      │
+│        │ Label *                    Slug *                          │      │
+│        │ [Red                     ] [red                          ] │      │
+│        │ Enabled                                                    │      │
+│        │ [x]                                                        │      │
+│        └────────────────────────────────────────────────────────────┘      │
+│        ┌────────────────────────────────────────────────────────────┐      │
+│        │ Linked source values                         [Edit links] │      │
+│        │ red, dark-red, wine-red, burgundy                         │      │
+│        └────────────────────────────────────────────────────────────┘      │
+│        ┌────────────────────────────────────────────────────────────┐      │
+│        │ Swatch                                      [Edit swatch] │      │
+│        │ ● #D92D20                                                  │      │
+│        └────────────────────────────────────────────────────────────┘      │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Link source values modal
+
+```text
+┌────────────────────────────────────────────────────────────────────────────┐
+│ ← Link source values: Red                                         [Save]  │
+├────────────────────────────────────────────────────────────────────────────┤
+│ [Search option values...]                                                │
+│                                                                            │
+│ ┌──────────────────────────────────┐ ┌─────────────────────────────────┐  │
+│ │ Available source values          │ │ Linked to "Red"                 │  │
+│ ├──────────────────────────────────┤ ├─────────────────────────────────┤  │
+│ │ [ ] red                          │ │ [x] red                         │  │
+│ │ [ ] dark-red                     │ │ [x] dark-red                    │  │
+│ │ [ ] wine-red                     │ │ [x] wine-red                    │  │
+│ │ [ ] burgundy                     │ │ [x] burgundy                    │  │
+│ │ [disabled] blue - used by Blue   │ │                                 │  │
+│ └──────────────────────────────────┘ └─────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+Behavior:
+
+- left list is built from real source entities when available;
+- manual handle entry remains available because backend stores strings;
+- already linked handles are disabled and show the public value that owns them;
+- save writes `FacetValue.sourceHandles`;
+- empty linked handles is invalid for `TAG`, `FEATURE`, `OPTION`.
+
+### Merge selected values
+
+Selecting several child value rows under the same facet enables:
+
+```text
+[Merge into one value]
+```
+
+Flow:
+
+1. user selects values `Red`, `Dark red`, `Wine red`;
+2. modal asks target public label/slug;
+3. source handles from all selected values are combined;
+4. old values are deleted or disabled after confirmation;
+5. resulting value owns all source handles.
+
+This is the explicit UX for connecting several public values into one public
+storefront option without manually copying handles.
+
+## Swatches
+
+Swatches are managed from value rows/modals, not as first-class rows in the main
+grid.
+
+Create/edit swatch:
+
+```text
+┌────────────────────────────────────────────────────────────────────────────┐
+│ ← Create swatch                                                 [Create] │
+├────────────────────────────────────────────────────────────────────────────┤
+│ Type: [COLOR] [GRADIENT] [IMAGE]                                          │
+│                                                                            │
+│ Color one     [#D92D20]                                                    │
+│ Color two     [disabled for COLOR]                                         │
+│ Image         [Select from media library]                                  │
+│ Preview       ●                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+Rules:
+
+- `COLOR`: `colorOne`;
+- `GRADIENT`: `colorOne`, `colorTwo`;
+- `IMAGE`: `fileId` from media picker;
+- metadata stays hidden/advanced until a concrete use case appears.
+
+## Validation
+
+Facet:
+
+- `label` required;
+- `slug` required and valid slug;
+- `facetType` required on create and immutable after create;
+- `uiType` must be valid for `facetType`;
+- `groupId` is not exposed in UI;
+- `minValues >= 0`;
+- `maxValuesVisible >= 0`, `0` means no limit;
+- `sortIndex >= 0`.
+
+Allowed UI types:
 
 | Facet type | UI types |
 | --- | --- |
@@ -242,507 +634,97 @@ Preview на первом этапе read-only и строится из admin co
 | `OPTION` | `CHECKBOX`, `RADIO`, `DROPDOWN` |
 | `IN_STOCK` | `BOOLEAN`, `CHECKBOX`, `RADIO`, `DROPDOWN` |
 
-`selectionMode`:
-
-- `SINGLE` доступен для `RADIO`, `DROPDOWN`, `BOOLEAN`;
-- `MULTI` доступен для `CHECKBOX` и может быть доступен для `DROPDOWN`;
-- для `PRICE` с `RANGE` selection mode визуально скрывается или фиксируется
-  backend default, чтобы не создавать ложный UX.
-
-После создания:
-
-- для `TAG`, `FEATURE`, `OPTION` открыть drawer facet на вкладке `Values`;
-- для `PRICE`, `IN_STOCK` открыть drawer на вкладке `Settings`.
-
-## Facet details drawer
-
-```text
-┌──────────────────────────────────────────────────────────────────┐
-│ Color                                                [Save] [⋯]  │
-│ OPTION · CHECKBOX · MULTI · slug: color                         │
-├──────────────────────────────────────────────────────────────────┤
-│ [Settings] [Values] [Visibility] [Preview]                       │
-├──────────────────────────────────────────────────────────────────┤
-│ Settings                                                         │
-│ Label *                  Slug *                                  │
-│ [Color             ]     [color                            ]     │
-│                                                                  │
-│ Source                  UI type              Selection mode       │
-│ [OPTION disabled]       [CHECKBOX v]         [MULTI v]           │
-│                                                                  │
-│ Group                   Sort index                               │
-│ [Main filters v]        [30]                                     │
-│                                                                  │
-│ Value sort              Max visible values                       │
-│ [CUSTOM v]              [8]                                      │
-│                                                                  │
-│ Minimum values          Indexable                                │
-│ [1]                     [x] Include in future SEO config         │
-└──────────────────────────────────────────────────────────────────┘
-```
-
-`facetType` после создания не редактируется. Смена источника меняет смысл
-source handles и должна выполняться через создание нового facet.
-
-### Вкладка Values
-
-Для `TAG`, `FEATURE`, `OPTION`:
-
-```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ Values                                                       [Create value] │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ Search values...                         Sort: [Custom v]  Show: [All v]   │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ ┌─drag─┬──────────┬────────────┬────────────────────────────┬──────┬─────┐ │
-│ │ ⋮⋮   │ Value    │ Swatch     │ Source handles             │ On   │ ⋯   │ │
-│ ├──────┼──────────┼────────────┼────────────────────────────┼──────┼─────┤ │
-│ │ ⋮⋮   │ Red      │ ● #D92D20  │ red, dark-red, wine-red    │ ✓    │ ⋯   │ │
-│ │ ⋮⋮   │ Blue     │ ● #2563EB  │ blue, navy                 │ ✓    │ ⋯   │ │
-│ │ ⋮⋮   │ Burgundy │ -          │ burgundy                   │ off  │ ⋯   │ │
-│ └──────┴──────────┴────────────┴────────────────────────────┴──────┴─────┘ │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
-Для `PRICE` и `IN_STOCK`:
-
-```text
-┌────────────────────────────────────────────────────────────┐
-│ Values                                                     │
-├────────────────────────────────────────────────────────────┤
-│ This facet is calculated automatically.                    │
-│ Manual values are not available for PRICE and IN_STOCK.    │
-│                                                            │
-│ PRICE returns price range and count.                       │
-│ IN_STOCK returns availability count.                       │
-└────────────────────────────────────────────────────────────┘
-```
-
-### Вкладка Visibility
-
-```text
-┌────────────────────────────────────────────────────────────┐
-│ Visibility                                                 │
-├────────────────────────────────────────────────────────────┤
-│ Minimum relevant values                                    │
-│ [1]                                                        │
-│ Hide facet when fewer values are available in listing.     │
-│                                                            │
-│ Max visible values                                         │
-│ [8]                                                        │
-│ 0 means no limit. Storefront can show "Show more".         │
-│                                                            │
-│ Value sorting                                              │
-│ [COUNT] [ALPHA] [CUSTOM]                                   │
-│                                                            │
-│ Indexable                                                  │
-│ [x] Mark selected URLs as eligible for future SEO rules    │
-└────────────────────────────────────────────────────────────┘
-```
-
-### Вкладка Preview в drawer
-
-```text
-┌────────────────────────────────────────────────────────────┐
-│ Preview: Color                                             │
-├────────────────────────────────────────────────────────────┤
-│ CHECKBOX · MULTI                                           │
-│                                                            │
-│ □ Red        ●                                             │
-│ □ Blue       ●                                             │
-│ □ Burgundy   -                                             │
-│                                                            │
-│ maxValuesVisible: 8 · valueSort: CUSTOM                    │
-└────────────────────────────────────────────────────────────┘
-```
-
-## Create/edit value modal
-
-```text
-┌────────────────────────────────────────────────────────────┐
-│ Create value for Color                                 [×] │
-├────────────────────────────────────────────────────────────┤
-│ Label *                                                    │
-│ [Red                                                ]      │
-│ Slug *                                                     │
-│ [red                                                ]      │
-│                                                            │
-│ Source handles *                                           │
-│ [ red x ] [ dark-red x ] [ wine-red x ] [Search source...] │
-│                                                            │
-│ Swatch                                                     │
-│ [● Red swatch v]                         [Create swatch]  │
-│                                                            │
-│ Sort index                                                 │
-│ [10]                                                       │
-│                                                            │
-│ Enabled                                                    │
-│ [x] Show this value on storefront                          │
-│                                                            │
-│ [Cancel]                                      [Create]     │
-└────────────────────────────────────────────────────────────┘
-```
-
-### Source handle picker
-
-Picker зависит от типа parent facet:
-
-- `TAG` ищет tag handles;
-- `FEATURE` ищет feature slugs;
-- `OPTION` ищет option value slugs.
-
-UX:
-
-- multi-select с chips;
-- быстрый поиск по label/slug/handle;
-- предупреждение, если source handle уже используется в другом value этого
-  facet или в другом facet того же `facetType`;
-- возможность вставить handle вручную, если backend/source entity уже известен,
-  но отдельный picker еще не реализован;
-- пустой `sourceHandles` запрещен для `TAG`, `FEATURE`, `OPTION`.
-
-```text
-┌──────────────────────────────────────────────┐
-│ Search source handles                         │
-├──────────────────────────────────────────────┤
-│ [red] Red                                     │
-│       option value slug: red                  │
-│ [dark-red] Dark red                           │
-│       option value slug: dark-red             │
-│ [wine-red] Wine red                           │
-│       option value slug: wine-red             │
-│                                              │
-│ Already used                                  │
-│ [burgundy] Burgundy - used by "Burgundy"      │
-└──────────────────────────────────────────────┘
-```
-
-## Create/edit swatch modal
-
-```text
-┌────────────────────────────────────────────────────────────┐
-│ Create swatch                                          [×] │
-├────────────────────────────────────────────────────────────┤
-│ Type                                                       │
-│ [COLOR] [GRADIENT] [IMAGE]                                │
-│                                                            │
-│ COLOR                                                      │
-│ Color                                                      │
-│ [#D92D20]                                                  │
-│                                                            │
-│ GRADIENT                                                   │
-│ Color one                  Color two                       │
-│ [#1D4ED8]                  [#DC2626]                       │
-│                                                            │
-│ IMAGE                                                      │
-│ Image                                                      │
-│ [Select from media library]                                │
-│                                                            │
-│ Metadata                                                   │
-│ [{ "name": "red" }]                                        │
-│                                                            │
-│ Preview                                                    │
-│ ● / ◐ / ▣                                                  │
-│                                                            │
-│ [Cancel]                                      [Create]     │
-└────────────────────────────────────────────────────────────┘
-```
-
-Правила:
-
-- `COLOR`: нужен `colorOne`;
-- `GRADIENT`: нужны `colorOne` и `colorTwo`;
-- `IMAGE`: нужен `fileId`;
-- metadata редактируется как advanced JSON поле, свернуто по умолчанию.
-
-## Delete confirmations
-
-### Delete facet
-
-```text
-┌──────────────────────────────────────────────┐
-│ Delete facet "Color"?                         │
-├──────────────────────────────────────────────┤
-│ This removes the storefront filter and all    │
-│ configured public values for this facet.      │
-│ Product data, tags, features and options are  │
-│ not deleted.                                  │
-│                                              │
-│ [Cancel]                         [Delete]    │
-└──────────────────────────────────────────────┘
-```
-
-### Delete value
-
-```text
-┌──────────────────────────────────────────────┐
-│ Delete value "Red"?                           │
-├──────────────────────────────────────────────┤
-│ Source handles red, dark-red and wine-red     │
-│ will become available for mapping again.      │
-│                                              │
-│ [Cancel]                         [Delete]    │
-└──────────────────────────────────────────────┘
-```
-
-### Delete swatch
-
-```text
-┌──────────────────────────────────────────────┐
-│ Delete swatch?                                │
-├──────────────────────────────────────────────┤
-│ Values using this swatch will lose their      │
-│ visual marker. Labels and source handles stay │
-│ unchanged.                                    │
-│                                              │
-│ [Cancel]                         [Delete]    │
-└──────────────────────────────────────────────┘
-```
-
-## Empty states
-
-### No facets
-
-```text
-┌──────────────────────────────────────────────┐
-│ No storefront filters yet                     │
-│ Create price, availability, tag, feature or   │
-│ option facets to control listing filters.     │
-│                                              │
-│ [Create facet]                                │
-└──────────────────────────────────────────────┘
-```
-
-### No values in discrete facet
-
-```text
-┌──────────────────────────────────────────────┐
-│ No values configured                          │
-│ Add public values and map them to source      │
-│ handles from catalog data.                    │
-│                                              │
-│ [Create value]                                │
-└──────────────────────────────────────────────┘
-```
-
-### No swatches
-
-```text
-┌──────────────────────────────────────────────┐
-│ No swatches                                   │
-│ Create color, gradient or image swatches for  │
-│ visual filter values such as colors.          │
-│                                              │
-│ [Create swatch]                               │
-└──────────────────────────────────────────────┘
-```
-
-## Validation and user errors
-
-Frontend validation mirrors backend rules but does not replace backend
-`userErrors`.
-
-Facet:
-
-- `label` required;
-- `slug` required and valid slug;
-- `facetType` required on create and immutable after create;
-- `uiType` must be valid for selected `facetType`;
-- `groupId` nullable;
-- `minValues >= 0`;
-- `maxValuesVisible >= 0`, где `0` означает no limit;
-- `sortIndex >= 0`;
-- duplicate slug показывается как form error.
-
 Facet value:
 
-- allowed only for `TAG`, `FEATURE`, `OPTION`;
+- allowed only under `TAG`, `FEATURE`, `OPTION`;
 - `label` required;
 - `slug` required and valid slug;
 - `sourceHandles` required and non-empty;
-- `sourceHandles` must be unique by backend constraints;
+- duplicate/ambiguous source handle errors come from backend `userErrors`;
 - `swatchId` nullable;
-- `enabled` defaults to true.
+- `enabled` defaults to true;
+- value rows cannot be root rows.
 
-Facet swatch:
+## GraphQL integration
 
-- `swatchType` required;
-- `COLOR` requires `colorOne`;
-- `GRADIENT` requires `colorOne` and `colorTwo`;
-- `IMAGE` requires `fileId`.
+Follow `knowledge/vault/patterns/admin-graphql-layer.md`:
 
-## Component breakdown
+- generated API types are imported directly from `@/graphql/types`;
+- hooks unwrap `catalogQuery`/`catalogMutation`;
+- mappers convert form/grid edits to API inputs;
+- no API-output view models for server data;
+- UI-local row models are allowed for the tree grid and editor state.
 
-```text
-facets/page/facets-page.tsx
-facets/components/facet-groups-board.tsx
-facets/components/facet-row-actions.tsx
-facets/components/facet-status-tag.tsx
-facets/components/facet-values-table.tsx
-facets/components/facet-preview.tsx
-facets/components/swatch-preview.tsx
-facets/components/source-handle-picker.tsx
-facets/modals/facet-create-modal/
-facets/modals/facet-details-drawer/
-facets/modals/facet-value-modal/
-facets/modals/facet-group-modal/
-facets/modals/facet-swatch-modal/
-facets/modals/delete-confirmation-modal/
-```
-
-Hooks:
-
-```text
-use-facets.ts
-use-facet-groups.ts
-use-facet-values.ts
-use-facet-swatches.ts
-use-create-facet.ts
-use-update-facet.ts
-use-delete-facet.ts
-use-create-facet-value.ts
-use-update-facet-value.ts
-use-delete-facet-value.ts
-use-create-facet-group.ts
-use-update-facet-group.ts
-use-delete-facet-group.ts
-use-create-facet-swatch.ts
-use-update-facet-swatch.ts
-use-delete-facet-swatch.ts
-```
-
-Mappers:
-
-```text
-facet-input.mapper.ts
-facet-value-input.mapper.ts
-facet-group-input.mapper.ts
-facet-swatch-input.mapper.ts
-facet-errors.mapper.ts
-```
-
-## GraphQL operation shape
-
-Fragments должны быть small and screen-oriented:
+Initial query should load facets with nested values:
 
 ```graphql
-fragment FacetListItemFields on Facet {
-  id
-  label
-  slug
-  facetType
-  uiType
-  selectionMode
-  sortIndex
-  minValues
-  maxValuesVisible
-  valueSort
-  indexable
-  values {
-    id
-    enabled
-  }
-  group {
-    id
-    name
-    sortIndex
-    collapsed
-  }
-}
-```
-
-Для drawer:
-
-```graphql
-fragment FacetDetailsFields on Facet {
-  id
-  label
-  slug
-  facetType
-  uiType
-  selectionMode
-  sortIndex
-  minValues
-  maxValuesVisible
-  valueSort
-  indexable
-  values {
-    id
-    label
-    slug
-    sourceHandles
-    sortIndex
-    enabled
-    swatch {
+query FacetGrid {
+  catalogQuery {
+    facets {
       id
-      swatchType
-      colorOne
-      colorTwo
-      file {
+      label
+      slug
+      facetType
+      uiType
+      selectionMode
+      sortIndex
+      minValues
+      maxValuesVisible
+      valueSort
+      indexable
+      values {
         id
-        url
-        altText
-        originalName
+        label
+        slug
+        sortIndex
+        enabled
+        sourceHandles
+        swatch {
+          id
+          swatchType
+          colorOne
+          colorTwo
+          file {
+            id
+            url
+            altText
+            originalName
+          }
+        }
       }
     }
   }
-  group {
-    id
-    name
-    collapsed
-  }
 }
 ```
 
-Mutation hooks должны возвращать `userErrors` и после успешных create/update/delete
-обновлять `facetGroups`, `facets`, `facetValues` или `facetSwatches` через
-`refetchQueries` на первом этапе. `cache.modify` можно добавить позже, когда
-стабилизируется список и порядок.
+No `facetGroups` query is required for this UI.
 
-## Состояния loading/error
+## Implementation phases
 
-- Page loading: skeleton строк групп и facets.
-- Drawer loading: skeleton формы и таблицы values.
-- Mutation loading: кнопка save/delete в loading state, поля не блокируются
-  полностью, кроме destructive action.
-- API `userErrors`: показывать inline form errors и `App.message.error` только
-  для ошибок без field.
-- Network/runtime error: `Alert` в верхней части текущей вкладки.
+Phase 1:
 
-## Accessibility and keyboard
+- main `Facet -> FacetValue` AG Grid;
+- `useTreeTableDragDrop` reuse with `groupType: "facet"`;
+- no group rows or group UI;
+- inline editing store with bottom `FloatingPanelStack` save/discard;
+- create facet modal;
+- edit facet modal;
+- value row editing modal;
+- actions column with Delete;
+- linked source handles modal.
 
-- Все icon-only actions имеют tooltip и accessible label.
-- Drag ordering имеет альтернативу через action menu: `Move up`, `Move down`,
-  `Move to group`.
-- Таблицы поддерживают row click, но action buttons не должны открывать drawer.
-- Modal submit доступен через Enter только когда фокус не находится в chips/json
-  editor.
-- Color inputs имеют текстовое hex поле рядом с picker.
+Phase 2:
 
-## Приоритеты реализации
+- source picker backed by real tag/feature/option queries;
+- merge selected values flow;
+- swatch create/edit from value modal;
+- value DnD inside same facet.
 
-### Phase 1
+Phase 3:
 
-- Основная вкладка `Facets`;
-- CRUD groups;
-- CRUD facets;
-- drawer settings;
-- values table and value modal for `TAG`, `FEATURE`, `OPTION`;
-- disabled automatic values state for `PRICE`, `IN_STOCK`;
-- swatch CRUD with color/gradient/image;
-- basic preview without counts.
-
-### Phase 2
-
-- Drag-and-drop reorder with persisted `sortIndex`;
-- source handle picker connected to real tag/feature/option queries;
-- conflict warnings for already mapped source handles;
-- duplicate facet/value action;
-- mobile preview.
-
-### Phase 3
-
-- Listing API counts preview;
-- bulk value import from source handles;
-- localization UI for translation tables;
+- dedicated bulk/reorder backend mutation if sequential updates become too slow;
+- optional value move between compatible facets if backend adds safe support;
+- storefront listing preview with counts when API exposes configured listing
+  facets;
+- translations UI for labels;
 - SEO/indexable rules editor when backend contract exists.
