@@ -10,7 +10,6 @@ import {
   Flex,
   Input,
   Skeleton,
-  Switch,
   Typography,
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
@@ -24,26 +23,25 @@ import {
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
   getAllowedFacetUiTypes,
-  getDefaultFacetSelectionMode,
   isDiscreteFacetType,
   mapFacetFormToUpdateInput,
   mapFacetUserErrorsToFormErrors,
 } from "../../mappers";
 import {
+  useCreateFacetValue,
   useDeleteFacetValue,
   useFacet,
   useUpsertFacetSwatch,
   useUpdateFacet,
   useUpdateFacetValue,
 } from "../../hooks";
-import {
-  useCreateFacetValueModal,
-  type IEditFacetModalPayload,
-} from "../../modals";
+import { type IEditFacetModalPayload } from "../../modals";
 import type {
   FacetSwatchFields,
   FacetValueGridFields,
 } from "../../graphql/operation-types";
+import { createTemporaryOptionValueId } from "../../../products/mappers";
+import { DEFAULT_SWATCH } from "../../../products/modals/edit-options-modal/edit-options-modal.constants";
 import type {
   OptionEditorSwatch,
   OptionEditorValue,
@@ -52,7 +50,6 @@ import { editFacetSchema, type EditFacetFormValues } from "./schema";
 import { FacetUiTypeSelector } from "../components/facet-ui-type-selector";
 import { FacetValuesList } from "./components/facet-values-list";
 import {
-  FacetSelectionMode,
   FacetUiType,
   SwatchType,
   type ApiFacetSwatchCreateInput,
@@ -86,7 +83,6 @@ const EMPTY_VALUES: EditFacetFormValues = {
   label: "",
   slug: "",
   uiType: FacetUiType.Checkbox,
-  selectionMode: FacetSelectionMode.Multi,
 };
 
 const DATA_URL_PATTERN = /^data:/i;
@@ -195,14 +191,13 @@ function editorSwatchToUpdateInput(
 
 export function EditFacetModal() {
   const { styles } = useStyles();
-  const { message, modal } = App.useApp();
+  const { message } = App.useApp();
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IEditFacetModalPayload;
   const {
     facet,
     loading: loadingFacet,
     error,
-    refetch: refetchFacet,
   } = useFacet(typedPayload.facetId);
   const { updateFacet, loading: saving } = useUpdateFacet();
   const { updateFacetValue } = useUpdateFacetValue();
@@ -211,10 +206,11 @@ export function EditFacetModal() {
     updateFacetSwatch,
     loading: savingSwatch,
   } = useUpsertFacetSwatch();
-  const { deleteFacetValue } = useDeleteFacetValue();
-  const { push: openCreateValueModal } = useCreateFacetValueModal();
+  const { createFacetValue, loading: creatingValue } = useCreateFacetValue();
+  const { deleteFacetValue, loading: deletingValue } = useDeleteFacetValue();
   const [savingValueOrder, setSavingValueOrder] = useState(false);
   const [editorValues, setEditorValues] = useState<OptionEditorValue[]>([]);
+  const [deletedValueIds, setDeletedValueIds] = useState<string[]>([]);
 
   const methods = useForm<EditFacetFormValues>({
     resolver: zodResolver(editFacetSchema),
@@ -232,7 +228,6 @@ export function EditFacetModal() {
       label: facet.label,
       slug: facet.slug,
       uiType: facet.uiType,
-      selectionMode: facet.selectionMode,
     });
   }, [facet, reset]);
 
@@ -246,18 +241,29 @@ export function EditFacetModal() {
     }
 
     setEditorValues(facetValuesToEditorValues(facet.values));
+    setDeletedValueIds([]);
   }, [facet]);
-
-  const handleNestedValueSaved = useCallback(async () => {
-    await refetchFacet();
-    await typedPayload.onSaved?.();
-  }, [refetchFacet, typedPayload]);
 
   const uiTypeOptions = useMemo(
     () =>
       facet ? getAllowedFacetUiTypes(facet.facetType) : [],
     [facet],
   );
+
+  const handleAddValue = useCallback(() => {
+    setEditorValues((current) =>
+      normalizeValueSortIndexes([
+        ...current,
+        {
+          id: createTemporaryOptionValueId(),
+          name: "",
+          slug: "",
+          sortIndex: current.length,
+          swatch: { ...DEFAULT_SWATCH },
+        },
+      ]),
+    );
+  }, []);
 
   const onSubmit = useCallback(
     async (values: EditFacetFormValues) => {
@@ -282,9 +288,6 @@ export function EditFacetModal() {
           if (userError.field === "uiType") {
             setError("uiType", { message: userError.message });
           }
-          if (userError.field === "selectionMode") {
-            setError("selectionMode", { message: userError.message });
-          }
         });
         message.error(result.userErrors[0].message);
         return;
@@ -292,14 +295,25 @@ export function EditFacetModal() {
 
       try {
         setSavingValueOrder(true);
+        for (const valueId of deletedValueIds) {
+          const deleteResult = await deleteFacetValue({ id: valueId });
+
+          if (deleteResult.userErrors.length > 0) {
+            message.error(deleteResult.userErrors[0].message);
+            return;
+          }
+        }
+
         for (const [sortIndex, value] of editorValues.entries()) {
-          if (!value.apiId) {
-            continue;
+          const trimmedName = value.name.trim();
+          if (!trimmedName) {
+            message.error("Value name is required.");
+            return;
           }
 
-          const original = facet.values.find(
-            (candidate) => candidate.id === value.apiId,
-          );
+          const original = value.apiId
+            ? facet.values.find((candidate) => candidate.id === value.apiId)
+            : null;
           let swatchId = original?.swatch?.id ?? null;
 
           if (value.swatch) {
@@ -319,7 +333,25 @@ export function EditFacetModal() {
             swatchId = swatchResult.facetSwatch?.id ?? swatchId;
           }
 
-          const trimmedName = value.name.trim();
+          if (!value.apiId) {
+            const createResult = await createFacetValue({
+              facetId: facet.id,
+              label: trimmedName,
+              slug: slugify(trimmedName),
+              enabled: true,
+              sourceHandles: [],
+              swatchId,
+              sortIndex,
+            });
+
+            if (createResult.userErrors.length > 0) {
+              message.error(createResult.userErrors[0].message);
+              return;
+            }
+
+            continue;
+          }
+
           const labelChanged = original?.label !== trimmedName;
           const slug = slugify(trimmedName);
           const sortIndexChanged = original?.sortIndex !== sortIndex;
@@ -358,7 +390,10 @@ export function EditFacetModal() {
     },
     [
       facet,
+      createFacetValue,
       createFacetSwatch,
+      deletedValueIds,
+      deleteFacetValue,
       editorValues,
       message,
       pop,
@@ -373,33 +408,19 @@ export function EditFacetModal() {
   const handleDeleteValue = useCallback(
     (valueIndex: number) => {
       const value = editorValues[valueIndex];
-      if (!value?.apiId) {
-        setEditorValues((current) =>
-          normalizeValueSortIndexes(
-            current.filter((_, index) => index !== valueIndex),
-          ),
+      if (value?.apiId) {
+        setDeletedValueIds((current) =>
+          current.includes(value.apiId!) ? current : [...current, value.apiId!],
         );
-        return;
       }
 
-      modal.confirm({
-        title: "Delete facet value?",
-        content: value.name,
-        okText: "Delete",
-        okButtonProps: { danger: true },
-        async onOk() {
-          const result = await deleteFacetValue({ id: value.apiId! });
-          if (result.userErrors.length > 0) {
-            message.error(result.userErrors[0].message);
-            return;
-          }
-
-          message.success("Facet value deleted.");
-          await handleNestedValueSaved();
-        },
-      });
+      setEditorValues((current) =>
+        normalizeValueSortIndexes(
+          current.filter((_, index) => index !== valueIndex),
+        ),
+      );
     },
-    [deleteFacetValue, editorValues, handleNestedValueSaved, message, modal],
+    [editorValues],
   );
 
   if (loadingFacet && !facet) {
@@ -436,10 +457,6 @@ export function EditFacetModal() {
   }
 
   const discrete = isDiscreteFacetType(facet.facetType);
-  const linkedSourceHandlesCount = facet.values.reduce(
-    (count, value) => count + value.sourceHandles.length,
-    facet.sourceHandles.length,
-  );
 
   return (
     <FormProvider {...methods}>
@@ -451,7 +468,12 @@ export function EditFacetModal() {
             title={facet.label}
             onClose={pop}
             submitButtonProps={{
-              loading: saving || savingValueOrder || savingSwatch,
+              loading:
+                saving ||
+                savingValueOrder ||
+                savingSwatch ||
+                creatingValue ||
+                deletingValue,
               onClick: handleSubmit(onSubmit),
             }}
           />
@@ -483,14 +505,7 @@ export function EditFacetModal() {
                               <FacetUiTypeSelector
                                 value={uiTypeField.value}
                                 options={uiTypeOptions}
-                                onChange={(value) => {
-                                  uiTypeField.onChange(value);
-                                  setValue(
-                                    "selectionMode",
-                                    getDefaultFacetSelectionMode(value),
-                                    { shouldValidate: true },
-                                  );
-                                }}
+                                onChange={uiTypeField.onChange}
                               />
                             )}
                           />
@@ -513,39 +528,13 @@ export function EditFacetModal() {
             actions={
               discrete ? (
                 <Flex gap={8} align="center">
-                  <Controller
-                    name="selectionMode"
-                    control={control}
-                    render={({ field }) => (
-                      <Switch
-                        checked={field.value === FacetSelectionMode.Multi}
-                        checkedChildren="Multi"
-                        unCheckedChildren="Single"
-                        onChange={(checked) =>
-                          field.onChange(
-                            checked
-                              ? FacetSelectionMode.Multi
-                              : FacetSelectionMode.Single,
-                          )
-                        }
-                      />
-                    )}
-                  />
                   <Button
                     size="small"
+                    type="text"
                     icon={<PlusOutlined />}
-                    onClick={() =>
-                      openCreateValueModal({
-                        facetId: facet.id,
-                        facetLabel: facet.label,
-                        facetType: facet.facetType,
-                        nextSortIndex: facet.values.length,
-                        onSaved: handleNestedValueSaved,
-                      })
-                    }
-                  >
-                    Create
-                  </Button>
+                    aria-label="Create value"
+                    onClick={handleAddValue}
+                  />
                 </Flex>
               ) : null
             }
@@ -575,9 +564,6 @@ export function EditFacetModal() {
                 }
                 onDeleteValue={handleDeleteValue}
               />
-              <Typography.Text type="secondary">
-                {linkedSourceHandlesCount} linked source handles
-              </Typography.Text>
             </Flex>
           ) : (
             <Typography.Text type="secondary">

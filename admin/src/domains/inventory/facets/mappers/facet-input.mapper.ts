@@ -14,7 +14,6 @@ export interface FacetFormInput {
   slug: string;
   facetType: FacetType;
   uiType: FacetUiType;
-  selectionMode: FacetSelectionMode;
 }
 
 export function getAllowedFacetUiTypes(facetType: FacetType): FacetUiType[] {
@@ -52,7 +51,7 @@ export function mapFacetFormToCreateInput(
     slug: normalizeFacetSlug(values.slug),
     facetType: values.facetType,
     uiType: values.uiType,
-    selectionMode: values.selectionMode,
+    selectionMode: FacetSelectionMode.Multi,
     groupId: null,
     sortIndex,
   };
@@ -67,6 +66,5 @@ export function mapFacetFormToUpdateInput(
     label: values.label.trim(),
     slug: normalizeFacetSlug(values.slug),
     uiType: values.uiType,
-    selectionMode: values.selectionMode,
   };
 }

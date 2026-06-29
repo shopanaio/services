@@ -40,7 +40,6 @@ import {
   useCreateFacetValueModal,
   useEditFacetModal,
   useEditFacetOrderModal,
-  useEditFacetValueModal,
 } from "../modals";
 import { filterSchema } from "./filter-schema";
 import { filterFacetGridRows } from "./page-config";
@@ -132,7 +131,6 @@ export default function FacetsPage() {
   const { push: openEditFacetModal } = useEditFacetModal();
   const { push: openEditFacetOrderModal } = useEditFacetOrderModal();
   const { push: openCreateFacetValueModal } = useCreateFacetValueModal();
-  const { push: openEditFacetValueModal } = useEditFacetValueModal();
 
   const baseRows = useMemo(() => apiFacetsToFacetGridRows(facets), [facets]);
   const filteredRows = useMemo(
@@ -183,20 +181,15 @@ export default function FacetsPage() {
       }
       if (row.type === "facet") {
         openEditFacetModal({ facetId: row.apiId, onSaved: refetchAndReset });
-      } else {
-        openEditFacetValueModal({
-          valueId: row.apiId,
-          onSaved: refetchAndReset,
-        });
       }
     },
-    [openEditFacetModal, openEditFacetValueModal, refetchAndReset],
+    [openEditFacetModal, refetchAndReset],
   );
 
   const handleDuplicate = useCallback(
     (row: FacetGridRow) => {
       if (row.type === "facet") {
-        if (!row.facetType || !row.uiType || !row.selectionMode) {
+        if (!row.facetType || !row.uiType) {
           return;
         }
 
@@ -207,7 +200,6 @@ export default function FacetsPage() {
             slug: `${row.slug ?? row.name}-copy`,
             facetType: row.facetType,
             uiType: row.uiType,
-            selectionMode: row.selectionMode,
           },
           onSaved: refetchAndReset,
         });
@@ -330,7 +322,6 @@ export default function FacetsPage() {
         cellRenderer: FacetValuesCell,
         cellRendererParams: {
           allRows: baseRows,
-          onEditValue: handleRowEdit,
         },
       },
       {

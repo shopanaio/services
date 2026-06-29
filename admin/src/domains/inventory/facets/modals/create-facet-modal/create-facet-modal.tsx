@@ -14,7 +14,6 @@ import {
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
   getAllowedFacetUiTypes,
-  getDefaultFacetSelectionMode,
   getDefaultFacetUiType,
   mapFacetFormToCreateInput,
   mapFacetUserErrorsToFormErrors,
@@ -23,7 +22,7 @@ import { useCreateFacet } from "../../hooks";
 import type { ICreateFacetModalPayload } from "../../modals";
 import { FacetUiTypeSelector } from "../components/facet-ui-type-selector";
 import { createFacetSchema, type CreateFacetFormValues } from "./schema";
-import { FacetSelectionMode, FacetType } from "@/graphql/types";
+import { FacetType } from "@/graphql/types";
 
 const useStyles = createStyles(({ token }) => ({
   fieldGroup: {
@@ -56,7 +55,6 @@ const DEFAULT_VALUES: CreateFacetFormValues = {
   slug: "",
   facetType: FacetType.Option,
   uiType: getDefaultFacetUiType(FacetType.Option),
-  selectionMode: FacetSelectionMode.Multi,
 };
 
 export function CreateFacetModal() {
@@ -87,9 +85,6 @@ export function CreateFacetModal() {
     if (!allowed.includes(uiType)) {
       const nextUiType = getDefaultFacetUiType(facetType);
       setValue("uiType", nextUiType, { shouldValidate: true });
-      setValue("selectionMode", getDefaultFacetSelectionMode(nextUiType), {
-        shouldValidate: true,
-      });
     }
   }, [facetType, setValue, uiType]);
 
@@ -117,9 +112,6 @@ export function CreateFacetModal() {
           }
           if (error.field === "uiType") {
             setError("uiType", { message: error.message });
-          }
-          if (error.field === "selectionMode") {
-            setError("selectionMode", { message: error.message });
           }
           if (error.field === "facetType") {
             setError("facetType", { message: error.message });
@@ -181,14 +173,7 @@ export function CreateFacetModal() {
                               <FacetUiTypeSelector
                                 value={uiTypeField.value}
                                 options={uiTypeOptions}
-                                onChange={(value) => {
-                                  uiTypeField.onChange(value);
-                                  setValue(
-                                    "selectionMode",
-                                    getDefaultFacetSelectionMode(value),
-                                    { shouldValidate: true },
-                                  );
-                                }}
+                                onChange={uiTypeField.onChange}
                               />
                             )}
                           />
