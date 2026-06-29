@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { App, Input, Select, Tooltip } from "antd";
-import { InfoCircleOutlined } from "@ant-design/icons";
+import { App, Flex, Input, Select } from "antd";
 import { createStyles } from "antd-style";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
 import {
@@ -22,6 +21,7 @@ import {
 } from "../../mappers";
 import { useCreateFacet } from "../../hooks";
 import type { ICreateFacetModalPayload } from "../../modals";
+import { FacetUiTypeSelector } from "../components/facet-ui-type-selector";
 import { createFacetSchema, type CreateFacetFormValues } from "./schema";
 import { FacetSelectionMode, FacetType } from "@/graphql/types";
 
@@ -65,9 +65,6 @@ export function CreateFacetModal() {
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as ICreateFacetModalPayload;
   const { createFacet, loading } = useCreateFacet();
-  const [isSlugManual, setIsSlugManual] = useState(
-    Boolean(typedPayload.initialValues?.slug),
-  );
 
   const methods = useForm<CreateFacetFormValues>({
     resolver: zodResolver(createFacetSchema),
@@ -82,10 +79,8 @@ export function CreateFacetModal() {
   const uiType = watch("uiType");
 
   useEffect(() => {
-    if (!isSlugManual && label) {
-      setValue("slug", slugify(label), { shouldValidate: true });
-    }
-  }, [isSlugManual, label, setValue]);
+    setValue("slug", slugify(label), { shouldValidate: Boolean(label) });
+  }, [label, setValue]);
 
   useEffect(() => {
     const allowed = getAllowedFacetUiTypes(facetType);
@@ -99,18 +94,17 @@ export function CreateFacetModal() {
   }, [facetType, setValue, uiType]);
 
   const uiTypeOptions = useMemo(
-    () =>
-      getAllowedFacetUiTypes(facetType).map((value) => ({
-        value,
-        label: value,
-      })),
+    () => getAllowedFacetUiTypes(facetType),
     [facetType],
   );
 
   const onSubmit = useCallback(
     async (values: CreateFacetFormValues) => {
       const result = await createFacet(
-        mapFacetFormToCreateInput(values, typedPayload.nextSortIndex),
+        mapFacetFormToCreateInput(
+          { ...values, slug: slugify(values.label) },
+          typedPayload.nextSortIndex,
+        ),
       );
 
       if (result.userErrors.length > 0) {
@@ -174,32 +168,32 @@ export function CreateFacetModal() {
                       autoFocus
                       placeholder="Color"
                       status={error ? "error" : undefined}
-                    />
-                    {error && <div className={styles.error}>{error.message}</div>}
-                  </>
-                )}
-              />
-            </div>
-            <div className={styles.field}>
-              <div className={styles.label}>
-                Slug
-                <Tooltip title="URL-friendly identifier. Auto-generated from label until edited.">
-                  <InfoCircleOutlined />
-                </Tooltip>
-              </div>
-              <Controller
-                name="slug"
-                control={control}
-                render={({ field, fieldState: { error } }) => (
-                  <>
-                    <Input
-                      {...field}
-                      placeholder="color"
-                      status={error ? "error" : undefined}
-                      onChange={(event) => {
-                        setIsSlugManual(true);
-                        field.onChange(slugify(event.target.value));
-                      }}
+                      suffix={
+                        <Flex
+                          gap={4}
+                          align="center"
+                          onPointerDown={(event) => event.stopPropagation()}
+                        >
+                          <Controller
+                            name="uiType"
+                            control={control}
+                            render={({ field: uiTypeField }) => (
+                              <FacetUiTypeSelector
+                                value={uiTypeField.value}
+                                options={uiTypeOptions}
+                                onChange={(value) => {
+                                  uiTypeField.onChange(value);
+                                  setValue(
+                                    "selectionMode",
+                                    getDefaultFacetSelectionMode(value),
+                                    { shouldValidate: true },
+                                  );
+                                }}
+                              />
+                            )}
+                          />
+                        </Flex>
+                      }
                     />
                     {error && <div className={styles.error}>{error.message}</div>}
                   </>
@@ -232,59 +226,6 @@ export function CreateFacetModal() {
           </div>
         </Paper>
 
-        <Paper>
-          <PaperHeader title="Display" />
-          <div className={styles.fieldGroup}>
-            <div className={styles.field}>
-              <div className={styles.label}>UI type</div>
-              <Controller
-                name="uiType"
-                control={control}
-                render={({ field, fieldState: { error } }) => (
-                  <>
-                    <Select
-                      {...field}
-                      style={{ width: "100%" }}
-                      options={uiTypeOptions}
-                      status={error ? "error" : undefined}
-                      onChange={(value) => {
-                        field.onChange(value);
-                        setValue(
-                          "selectionMode",
-                          getDefaultFacetSelectionMode(value),
-                          { shouldValidate: true },
-                        );
-                      }}
-                    />
-                    {error && <div className={styles.error}>{error.message}</div>}
-                  </>
-                )}
-              />
-            </div>
-            <div className={styles.field}>
-              <div className={styles.label}>Selection mode</div>
-              <Controller
-                name="selectionMode"
-                control={control}
-                render={({ field, fieldState: { error } }) => (
-                  <>
-                    <Select
-                      {...field}
-                      style={{ width: "100%" }}
-                      disabled={uiTypeOptions.length === 1}
-                      options={Object.values(FacetSelectionMode).map((value) => ({
-                        value,
-                        label: value,
-                      }))}
-                      status={error ? "error" : undefined}
-                    />
-                    {error && <div className={styles.error}>{error.message}</div>}
-                  </>
-                )}
-              />
-            </div>
-          </div>
-        </Paper>
       </ModalLayout>
     </FormProvider>
   );

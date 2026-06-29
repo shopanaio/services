@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const createFacetValueSchema = z.object({
   label: z.string().trim().min(1, "Label is required"),
-  slug: z.string().trim().min(1, "Slug is required"),
+  slug: z.string().trim().optional().default(""),
   enabled: z.boolean(),
   sourceHandles: z
     .array(z.string())

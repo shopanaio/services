@@ -17,7 +17,7 @@ const selectionModeValues = Object.values(FacetSelectionMode) as [
 
 export const createFacetSchema = z.object({
   label: z.string().trim().min(1, "Label is required"),
-  slug: z.string().trim().min(1, "Slug is required"),
+  slug: z.string().trim().optional().default(""),
   facetType: z.enum(facetTypeValues),
   uiType: z.enum(facetUiTypeValues),
   selectionMode: z.enum(selectionModeValues),

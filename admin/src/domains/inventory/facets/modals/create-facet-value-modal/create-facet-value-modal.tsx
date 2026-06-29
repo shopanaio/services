@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { App, Checkbox, Input, Select } from "antd";
@@ -62,9 +62,6 @@ export function CreateFacetValueModal() {
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as ICreateFacetValueModalPayload;
   const { createFacetValue, loading } = useCreateFacetValue();
-  const [isSlugManual, setIsSlugManual] = useState(
-    Boolean(typedPayload.initialValues?.slug),
-  );
 
   const methods = useForm<CreateFacetValueFormValues>({
     resolver: zodResolver(createFacetValueSchema),
@@ -77,10 +74,8 @@ export function CreateFacetValueModal() {
   const label = watch("label");
 
   useEffect(() => {
-    if (!isSlugManual && label) {
-      setValue("slug", slugify(label), { shouldValidate: true });
-    }
-  }, [isSlugManual, label, setValue]);
+    setValue("slug", slugify(label), { shouldValidate: Boolean(label) });
+  }, [label, setValue]);
 
   const onSubmit = useCallback(
     async (values: CreateFacetValueFormValues) => {
@@ -103,7 +98,7 @@ export function CreateFacetValueModal() {
       const result = await createFacetValue(
         mapFacetValueFormToCreateInput(
           typedPayload.facetId,
-          { ...values, sourceHandles },
+          { ...values, slug: slugify(values.label), sourceHandles },
           typedPayload.nextSortIndex,
         ),
       );
@@ -163,27 +158,6 @@ export function CreateFacetValueModal() {
                       autoFocus
                       placeholder="Red"
                       status={error ? "error" : undefined}
-                    />
-                    {error && <div className={styles.error}>{error.message}</div>}
-                  </>
-                )}
-              />
-            </div>
-            <div className={styles.field}>
-              <div className={styles.label}>Slug</div>
-              <Controller
-                name="slug"
-                control={control}
-                render={({ field, fieldState: { error } }) => (
-                  <>
-                    <Input
-                      {...field}
-                      placeholder="red"
-                      status={error ? "error" : undefined}
-                      onChange={(event) => {
-                        setIsSlugManual(true);
-                        field.onChange(slugify(event.target.value));
-                      }}
                     />
                     {error && <div className={styles.error}>{error.message}</div>}
                   </>

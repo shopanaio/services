@@ -12,7 +12,7 @@ const selectionModeValues = Object.values(FacetSelectionMode) as [
 
 export const editFacetSchema = z.object({
   label: z.string().trim().min(1, "Label is required"),
-  slug: z.string().trim().min(1, "Slug is required"),
+  slug: z.string().trim().optional().default(""),
   uiType: z.enum(facetUiTypeValues),
   selectionMode: z.enum(selectionModeValues),
 });

@@ -95,6 +95,7 @@ export function EditFacetValueModal() {
   });
   const { control, handleSubmit, reset, setError, setValue, watch } = methods;
   const sourceHandles = watch("sourceHandles");
+  const label = watch("label");
 
   useEffect(() => {
     if (!facetValue) {
@@ -108,6 +109,10 @@ export function EditFacetValueModal() {
       swatchId: facetValue.swatch?.id ?? null,
     });
   }, [facetValue, reset]);
+
+  useEffect(() => {
+    setValue("slug", slugify(label), { shouldValidate: Boolean(label) });
+  }, [label, setValue]);
 
   const onSubmit = useCallback(
     async (values: EditFacetValueFormValues) => {
@@ -134,6 +139,7 @@ export function EditFacetValueModal() {
       const result = await updateFacetValue(
         mapFacetValueFormToUpdateInput(facetValue.id, {
           ...values,
+          slug: slugify(values.label),
           sourceHandles: normalizedHandles,
         }),
       );
@@ -223,25 +229,6 @@ export function EditFacetValueModal() {
                     <Input
                       {...field}
                       status={fieldError ? "error" : undefined}
-                    />
-                    {fieldError && (
-                      <div className={styles.error}>{fieldError.message}</div>
-                    )}
-                  </>
-                )}
-              />
-            </div>
-            <div className={styles.field}>
-              <div className={styles.label}>Slug</div>
-              <Controller
-                name="slug"
-                control={control}
-                render={({ field, fieldState: { error: fieldError } }) => (
-                  <>
-                    <Input
-                      {...field}
-                      status={fieldError ? "error" : undefined}
-                      onChange={(event) => field.onChange(slugify(event.target.value))}
                     />
                     {fieldError && (
                       <div className={styles.error}>{fieldError.message}</div>

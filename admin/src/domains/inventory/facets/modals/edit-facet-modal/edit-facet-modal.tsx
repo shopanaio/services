@@ -9,8 +9,8 @@ import {
   Button,
   Flex,
   Input,
-  Select,
   Skeleton,
+  Switch,
   Typography,
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
@@ -49,6 +49,7 @@ import type {
   OptionEditorValue,
 } from "../../../products/modals/edit-options-modal/types";
 import { editFacetSchema, type EditFacetFormValues } from "./schema";
+import { FacetUiTypeSelector } from "../components/facet-ui-type-selector";
 import { FacetValuesList } from "./components/facet-values-list";
 import {
   FacetSelectionMode,
@@ -78,15 +79,6 @@ const useStyles = createStyles(({ token }) => ({
     fontSize: 12,
     color: token.colorError,
     marginTop: 4,
-  },
-  statRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 16,
-    padding: "4px 0",
-  },
-  muted: {
-    color: token.colorTextSecondary,
   },
 }));
 
@@ -229,7 +221,7 @@ export function EditFacetModal() {
     defaultValues: EMPTY_VALUES,
   });
   const { control, handleSubmit, reset, setError, setValue, watch } = methods;
-  const uiType = watch("uiType");
+  const label = watch("label");
 
   useEffect(() => {
     if (!facet) {
@@ -243,6 +235,10 @@ export function EditFacetModal() {
       selectionMode: facet.selectionMode,
     });
   }, [facet, reset]);
+
+  useEffect(() => {
+    setValue("slug", slugify(label), { shouldValidate: Boolean(label) });
+  }, [label, setValue]);
 
   useEffect(() => {
     if (!facet) {
@@ -259,12 +255,7 @@ export function EditFacetModal() {
 
   const uiTypeOptions = useMemo(
     () =>
-      facet
-        ? getAllowedFacetUiTypes(facet.facetType).map((value) => ({
-            value,
-            label: value,
-          }))
-        : [],
+      facet ? getAllowedFacetUiTypes(facet.facetType) : [],
     [facet],
   );
 
@@ -274,7 +265,12 @@ export function EditFacetModal() {
         return;
       }
 
-      const result = await updateFacet(mapFacetFormToUpdateInput(facet.id, values));
+      const result = await updateFacet(
+        mapFacetFormToUpdateInput(facet.id, {
+          ...values,
+          slug: slugify(values.label),
+        }),
+      );
       if (result.userErrors.length > 0) {
         mapFacetUserErrorsToFormErrors(result.userErrors).forEach((userError) => {
           if (userError.field === "label") {
@@ -325,16 +321,24 @@ export function EditFacetModal() {
 
           const trimmedName = value.name.trim();
           const labelChanged = original?.label !== trimmedName;
+          const slug = slugify(trimmedName);
           const sortIndexChanged = original?.sortIndex !== sortIndex;
+          const slugChanged = original?.slug !== slug;
           const swatchChanged = original?.swatch?.id !== swatchId;
 
-          if (!labelChanged && !sortIndexChanged && !swatchChanged) {
+          if (
+            !labelChanged &&
+            !slugChanged &&
+            !sortIndexChanged &&
+            !swatchChanged
+          ) {
             continue;
           }
 
           const orderResult = await updateFacetValue({
             id: value.apiId,
             ...(labelChanged ? { label: trimmedName } : {}),
+            ...(slugChanged ? { slug } : {}),
             sortIndex,
             ...(swatchChanged ? { swatchId } : {}),
           });
@@ -466,90 +470,32 @@ export function EditFacetModal() {
                     <Input
                       {...field}
                       status={fieldError ? "error" : undefined}
-                    />
-                    {fieldError && (
-                      <div className={styles.error}>{fieldError.message}</div>
-                    )}
-                  </>
-                )}
-              />
-            </div>
-            <div className={styles.field}>
-              <div className={styles.label}>Slug</div>
-              <Controller
-                name="slug"
-                control={control}
-                render={({ field, fieldState: { error: fieldError } }) => (
-                  <>
-                    <Input
-                      {...field}
-                      status={fieldError ? "error" : undefined}
-                      onChange={(event) => field.onChange(slugify(event.target.value))}
-                    />
-                    {fieldError && (
-                      <div className={styles.error}>{fieldError.message}</div>
-                    )}
-                  </>
-                )}
-              />
-            </div>
-          </div>
-          <div className={styles.statRow}>
-            <Typography.Text className={styles.muted}>Source</Typography.Text>
-            <Typography.Text strong>{facet.facetType}</Typography.Text>
-          </div>
-          <div className={styles.statRow}>
-            <Typography.Text className={styles.muted}>Order</Typography.Text>
-            <Typography.Text strong>{facet.sortIndex}</Typography.Text>
-          </div>
-          <div className={styles.fieldGroup} style={{ marginTop: 16 }}>
-            <div className={styles.field}>
-              <div className={styles.label}>UI type</div>
-              <Controller
-                name="uiType"
-                control={control}
-                render={({ field, fieldState: { error: fieldError } }) => (
-                  <>
-                    <Select
-                      {...field}
-                      style={{ width: "100%" }}
-                      options={uiTypeOptions}
-                      status={fieldError ? "error" : undefined}
-                      onChange={(value) => {
-                        field.onChange(value);
-                        setValue(
-                          "selectionMode",
-                          getDefaultFacetSelectionMode(value),
-                          { shouldValidate: true },
-                        );
-                      }}
-                    />
-                    {fieldError && (
-                      <div className={styles.error}>{fieldError.message}</div>
-                    )}
-                  </>
-                )}
-              />
-            </div>
-            <div className={styles.field}>
-              <div className={styles.label}>Selection mode</div>
-              <Controller
-                name="selectionMode"
-                control={control}
-                render={({ field, fieldState: { error: fieldError } }) => (
-                  <>
-                    <Select
-                      {...field}
-                      style={{ width: "100%" }}
-                      disabled={
-                        uiType === FacetUiType.Range ||
-                        uiType === FacetUiType.Boolean
+                      suffix={
+                        <Flex
+                          gap={4}
+                          align="center"
+                          onPointerDown={(event) => event.stopPropagation()}
+                        >
+                          <Controller
+                            name="uiType"
+                            control={control}
+                            render={({ field: uiTypeField }) => (
+                              <FacetUiTypeSelector
+                                value={uiTypeField.value}
+                                options={uiTypeOptions}
+                                onChange={(value) => {
+                                  uiTypeField.onChange(value);
+                                  setValue(
+                                    "selectionMode",
+                                    getDefaultFacetSelectionMode(value),
+                                    { shouldValidate: true },
+                                  );
+                                }}
+                              />
+                            )}
+                          />
+                        </Flex>
                       }
-                      options={Object.values(FacetSelectionMode).map((value) => ({
-                        value,
-                        label: value,
-                      }))}
-                      status={fieldError ? "error" : undefined}
                     />
                     {fieldError && (
                       <div className={styles.error}>{fieldError.message}</div>
@@ -566,21 +512,41 @@ export function EditFacetModal() {
             title="Values"
             actions={
               discrete ? (
-                <Button
-                  size="small"
-                  icon={<PlusOutlined />}
-                  onClick={() =>
-                    openCreateValueModal({
-                      facetId: facet.id,
-                      facetLabel: facet.label,
-                      facetType: facet.facetType,
-                      nextSortIndex: facet.values.length,
-                      onSaved: handleNestedValueSaved,
-                    })
-                  }
-                >
-                  Create
-                </Button>
+                <Flex gap={8} align="center">
+                  <Controller
+                    name="selectionMode"
+                    control={control}
+                    render={({ field }) => (
+                      <Switch
+                        checked={field.value === FacetSelectionMode.Multi}
+                        checkedChildren="Multi"
+                        unCheckedChildren="Single"
+                        onChange={(checked) =>
+                          field.onChange(
+                            checked
+                              ? FacetSelectionMode.Multi
+                              : FacetSelectionMode.Single,
+                          )
+                        }
+                      />
+                    )}
+                  />
+                  <Button
+                    size="small"
+                    icon={<PlusOutlined />}
+                    onClick={() =>
+                      openCreateValueModal({
+                        facetId: facet.id,
+                        facetLabel: facet.label,
+                        facetType: facet.facetType,
+                        nextSortIndex: facet.values.length,
+                        onSaved: handleNestedValueSaved,
+                      })
+                    }
+                  >
+                    Create
+                  </Button>
+                </Flex>
               ) : null
             }
           />
@@ -594,7 +560,9 @@ export function EditFacetModal() {
                 onUpdateValueName={(valueIndex, name) =>
                   setEditorValues((current) =>
                     current.map((value, index) =>
-                      index === valueIndex ? { ...value, name } : value,
+                      index === valueIndex
+                        ? { ...value, name, slug: slugify(name) }
+                        : value,
                     ),
                   )
                 }
