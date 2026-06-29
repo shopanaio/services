@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Alert, App, Button, Flex, Typography } from "antd";
+import { Alert, App, Button, Flex, Tag, Typography } from "antd";
 import { PlusOutlined, RetweetOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { AgGridReact } from "ag-grid-react";
@@ -11,6 +11,7 @@ import {
   ColDef,
   GetRowIdParams,
   GridStateModule,
+  ICellRendererParams,
   ModuleRegistry,
 } from "ag-grid-community";
 import { DataLayout } from "@/layouts/data";
@@ -77,6 +78,17 @@ const useStyles = createStyles(({ token }) => ({
       },
     },
   },
+  metaTag: {
+    marginInlineEnd: 0,
+    minHeight: 22,
+    paddingInline: 8,
+    borderRadius: token.borderRadiusSM,
+    background: token.colorFillQuaternary,
+    color: token.colorTextSecondary,
+    fontSize: 12,
+    fontWeight: 500,
+    lineHeight: "22px",
+  },
 }));
 
 function shouldIgnoreRowClick(event: CellClickedEvent<FacetGridRow>): boolean {
@@ -90,6 +102,17 @@ function shouldIgnoreRowClick(event: CellClickedEvent<FacetGridRow>): boolean {
       "[data-stop-row-click],button,.ant-select,.ant-switch,.ant-dropdown",
     ),
   );
+}
+
+function formatFacetMetaValue(value: string | undefined): string {
+  if (!value) {
+    return "";
+  }
+
+  return value
+    .toLowerCase()
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 export default function FacetsPage() {
@@ -282,11 +305,23 @@ export default function FacetsPage() {
         headerName: "Display type",
         minWidth: 150,
         valueGetter: ({ data }) => data?.uiType ?? "",
+        cellRenderer: ({ value }: ICellRendererParams<FacetGridRow, string>) =>
+          value ? (
+            <Tag bordered={false} className={styles.metaTag}>
+              {formatFacetMetaValue(value)}
+            </Tag>
+          ) : null,
       },
       {
         headerName: "Selection mode",
         minWidth: 150,
         valueGetter: ({ data }) => data?.selectionMode ?? "",
+        cellRenderer: ({ value }: ICellRendererParams<FacetGridRow, string>) =>
+          value ? (
+            <Tag bordered={false} className={styles.metaTag}>
+              {formatFacetMetaValue(value)}
+            </Tag>
+          ) : null,
       },
       {
         headerName: "Values",
@@ -306,8 +341,9 @@ export default function FacetsPage() {
       },
       {
         headerName: "",
-        width: 72,
-        pinned: "right",
+        width: 48,
+        minWidth: 48,
+        maxWidth: 48,
         cellRenderer: FacetTreeActionsCell,
         cellRendererParams: {
           onEdit: handleRowEdit,
@@ -326,6 +362,7 @@ export default function FacetsPage() {
       handleDuplicate,
       handleRowEdit,
       openCreateValueForFacet,
+      styles.metaTag,
     ],
   );
 

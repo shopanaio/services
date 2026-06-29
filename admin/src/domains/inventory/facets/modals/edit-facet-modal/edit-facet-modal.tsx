@@ -1,9 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Alert, App, Button, Flex, Input, Select, Skeleton, Typography } from "antd";
+import {
+  Alert,
+  App,
+  Button,
+  Flex,
+  Input,
+  Select,
+  Skeleton,
+  Typography,
+} from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
@@ -20,13 +29,34 @@ import {
   mapFacetFormToUpdateInput,
   mapFacetUserErrorsToFormErrors,
 } from "../../mappers";
-import { useFacet, useUpdateFacet } from "../../hooks";
+import {
+  useDeleteFacetValue,
+  useFacet,
+  useUpsertFacetSwatch,
+  useUpdateFacet,
+  useUpdateFacetValue,
+} from "../../hooks";
 import {
   useCreateFacetValueModal,
   type IEditFacetModalPayload,
 } from "../../modals";
+import type {
+  FacetSwatchFields,
+  FacetValueGridFields,
+} from "../../graphql/operation-types";
+import type {
+  OptionEditorSwatch,
+  OptionEditorValue,
+} from "../../../products/modals/edit-options-modal/types";
 import { editFacetSchema, type EditFacetFormValues } from "./schema";
-import { FacetSelectionMode, FacetUiType } from "@/graphql/types";
+import { FacetValuesList } from "./components/facet-values-list";
+import {
+  FacetSelectionMode,
+  FacetUiType,
+  SwatchType,
+  type ApiFacetSwatchCreateInput,
+  type ApiFacetSwatchUpdateInput,
+} from "@/graphql/types";
 
 const useStyles = createStyles(({ token }) => ({
   fieldGroup: {
@@ -67,14 +97,132 @@ const EMPTY_VALUES: EditFacetFormValues = {
   selectionMode: FacetSelectionMode.Multi,
 };
 
+const DATA_URL_PATTERN = /^data:/i;
+
+function isExistingApiFileId(
+  fileId: string | null | undefined,
+): fileId is string {
+  return Boolean(fileId && !DATA_URL_PATTERN.test(fileId));
+}
+
+function swatchMetadataInput(
+  metadata: unknown,
+): Record<string, unknown> | null | undefined {
+  if (metadata === null || metadata === undefined) {
+    return metadata;
+  }
+
+  return typeof metadata === "object"
+    ? (metadata as Record<string, unknown>)
+    : undefined;
+}
+
+function facetSwatchToEditorSwatch(
+  swatch: FacetSwatchFields | null | undefined,
+): OptionEditorSwatch | null {
+  if (!swatch) {
+    return null;
+  }
+
+  return {
+    swatchType: swatch.swatchType,
+    colorOne: swatch.colorOne,
+    colorTwo: swatch.colorTwo,
+    fileId:
+      swatch.swatchType === SwatchType.Image ? swatch.file?.id ?? null : null,
+    fileUrl:
+      swatch.swatchType === SwatchType.Image ? swatch.file?.url ?? null : null,
+    metadata: swatch.metadata,
+  };
+}
+
+function facetValuesToEditorValues(
+  values: FacetValueGridFields[],
+): OptionEditorValue[] {
+  return [...values]
+    .sort((first, second) => first.sortIndex - second.sortIndex)
+    .map((value, index) => ({
+      id: value.id,
+      apiId: value.id,
+      apiSwatchId: value.swatch?.id,
+      name: value.label,
+      slug: value.slug,
+      sortIndex: index,
+      swatch: facetSwatchToEditorSwatch(value.swatch),
+    }));
+}
+
+function normalizeValueSortIndexes(
+  values: OptionEditorValue[],
+): OptionEditorValue[] {
+  return values.map((value, sortIndex) => ({
+    ...value,
+    sortIndex,
+  }));
+}
+
+function editorSwatchToCreateInput(
+  swatch: OptionEditorSwatch,
+): ApiFacetSwatchCreateInput {
+  const input: ApiFacetSwatchCreateInput = {
+    swatchType: swatch.swatchType,
+  };
+  const metadata = swatchMetadataInput(swatch.metadata);
+
+  if (metadata !== undefined) {
+    input.metadata = metadata;
+  }
+
+  if (swatch.swatchType === SwatchType.Color) {
+    input.colorOne = swatch.colorOne ?? null;
+    return input;
+  }
+
+  if (swatch.swatchType === SwatchType.Gradient) {
+    input.colorOne = swatch.colorOne ?? null;
+    input.colorTwo = swatch.colorTwo ?? null;
+    return input;
+  }
+
+  if (swatch.swatchType === SwatchType.Image) {
+    input.fileId = isExistingApiFileId(swatch.fileId) ? swatch.fileId : null;
+  }
+
+  return input;
+}
+
+function editorSwatchToUpdateInput(
+  id: string,
+  swatch: OptionEditorSwatch,
+): ApiFacetSwatchUpdateInput {
+  return {
+    id,
+    ...editorSwatchToCreateInput(swatch),
+  };
+}
+
 export function EditFacetModal() {
   const { styles } = useStyles();
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IEditFacetModalPayload;
-  const { facet, loading: loadingFacet, error } = useFacet(typedPayload.facetId);
+  const {
+    facet,
+    loading: loadingFacet,
+    error,
+    refetch: refetchFacet,
+  } = useFacet(typedPayload.facetId);
   const { updateFacet, loading: saving } = useUpdateFacet();
+  const { updateFacetValue } = useUpdateFacetValue();
+  const {
+    createFacetSwatch,
+    updateFacetSwatch,
+    loading: savingSwatch,
+  } = useUpsertFacetSwatch();
+  const { deleteFacetValue } = useDeleteFacetValue();
   const { push: openCreateValueModal } = useCreateFacetValueModal();
+  const [savingValueOrder, setSavingValueOrder] = useState(false);
+  const [editorValues, setEditorValues] = useState<OptionEditorValue[]>([]);
 
   const methods = useForm<EditFacetFormValues>({
     resolver: zodResolver(editFacetSchema),
@@ -95,6 +243,19 @@ export function EditFacetModal() {
       selectionMode: facet.selectionMode,
     });
   }, [facet, reset]);
+
+  useEffect(() => {
+    if (!facet) {
+      return;
+    }
+
+    setEditorValues(facetValuesToEditorValues(facet.values));
+  }, [facet]);
+
+  const handleNestedValueSaved = useCallback(async () => {
+    await refetchFacet();
+    await typedPayload.onSaved?.();
+  }, [refetchFacet, typedPayload]);
 
   const uiTypeOptions = useMemo(
     () =>
@@ -133,11 +294,108 @@ export function EditFacetModal() {
         return;
       }
 
+      try {
+        setSavingValueOrder(true);
+        for (const [sortIndex, value] of editorValues.entries()) {
+          if (!value.apiId) {
+            continue;
+          }
+
+          const original = facet.values.find(
+            (candidate) => candidate.id === value.apiId,
+          );
+          let swatchId = original?.swatch?.id ?? null;
+
+          if (value.swatch) {
+            const swatchResult = swatchId
+              ? await updateFacetSwatch(
+                  editorSwatchToUpdateInput(swatchId, value.swatch),
+                )
+              : await createFacetSwatch(
+                  editorSwatchToCreateInput(value.swatch),
+                );
+
+            if (swatchResult.userErrors.length > 0) {
+              message.error(swatchResult.userErrors[0].message);
+              return;
+            }
+
+            swatchId = swatchResult.facetSwatch?.id ?? swatchId;
+          }
+
+          const trimmedName = value.name.trim();
+          const labelChanged = original?.label !== trimmedName;
+          const sortIndexChanged = original?.sortIndex !== sortIndex;
+          const swatchChanged = original?.swatch?.id !== swatchId;
+
+          if (!labelChanged && !sortIndexChanged && !swatchChanged) {
+            continue;
+          }
+
+          const orderResult = await updateFacetValue({
+            id: value.apiId,
+            ...(labelChanged ? { label: trimmedName } : {}),
+            sortIndex,
+            ...(swatchChanged ? { swatchId } : {}),
+          });
+
+          if (orderResult.userErrors.length > 0) {
+            message.error(orderResult.userErrors[0].message);
+            return;
+          }
+        }
+      } finally {
+        setSavingValueOrder(false);
+      }
+
       message.success("Facet updated.");
       await typedPayload.onSaved?.();
       pop();
     },
-    [facet, message, pop, setError, typedPayload, updateFacet],
+    [
+      facet,
+      createFacetSwatch,
+      editorValues,
+      message,
+      pop,
+      setError,
+      typedPayload,
+      updateFacet,
+      updateFacetSwatch,
+      updateFacetValue,
+    ],
+  );
+
+  const handleDeleteValue = useCallback(
+    (valueIndex: number) => {
+      const value = editorValues[valueIndex];
+      if (!value?.apiId) {
+        setEditorValues((current) =>
+          normalizeValueSortIndexes(
+            current.filter((_, index) => index !== valueIndex),
+          ),
+        );
+        return;
+      }
+
+      modal.confirm({
+        title: "Delete facet value?",
+        content: value.name,
+        okText: "Delete",
+        okButtonProps: { danger: true },
+        async onOk() {
+          const result = await deleteFacetValue({ id: value.apiId! });
+          if (result.userErrors.length > 0) {
+            message.error(result.userErrors[0].message);
+            return;
+          }
+
+          message.success("Facet value deleted.");
+          await handleNestedValueSaved();
+        },
+      });
+    },
+    [deleteFacetValue, editorValues, handleNestedValueSaved, message, modal],
   );
 
   if (loadingFacet && !facet) {
@@ -189,7 +447,7 @@ export function EditFacetModal() {
             title={facet.label}
             onClose={pop}
             submitButtonProps={{
-              loading: saving,
+              loading: saving || savingValueOrder || savingSwatch,
               onClick: handleSubmit(onSubmit),
             }}
           />
@@ -317,7 +575,7 @@ export function EditFacetModal() {
                       facetLabel: facet.label,
                       facetType: facet.facetType,
                       nextSortIndex: facet.values.length,
-                      onSaved: typedPayload.onSaved,
+                      onSaved: handleNestedValueSaved,
                     })
                   }
                 >
@@ -327,10 +585,28 @@ export function EditFacetModal() {
             }
           />
           {discrete ? (
-            <Flex vertical gap={4}>
-              <Typography.Text>
-                {facet.values.length} public values
-              </Typography.Text>
+            <Flex vertical gap={8}>
+              <FacetValuesList
+                values={editorValues}
+                onReorder={(values) =>
+                  setEditorValues(normalizeValueSortIndexes(values))
+                }
+                onUpdateValueName={(valueIndex, name) =>
+                  setEditorValues((current) =>
+                    current.map((value, index) =>
+                      index === valueIndex ? { ...value, name } : value,
+                    ),
+                  )
+                }
+                onUpdateValueSwatch={(valueIndex, swatch) =>
+                  setEditorValues((current) =>
+                    current.map((value, index) =>
+                      index === valueIndex ? { ...value, swatch } : value,
+                    ),
+                  )
+                }
+                onDeleteValue={handleDeleteValue}
+              />
               <Typography.Text type="secondary">
                 {linkedSourceHandlesCount} linked source handles
               </Typography.Text>

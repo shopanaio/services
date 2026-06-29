@@ -37,6 +37,7 @@ export function FacetValuesCell(params: FacetValuesCellParams) {
       {visibleValues.map((value) => (
         <Tag
           key={value.id}
+          bordered={false}
           className={styles.valueTag}
           onClick={(event) => {
             event.stopPropagation();

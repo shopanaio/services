@@ -53,7 +53,7 @@ export const useFacetCellStyles = createStyles(({ token }) => ({
     width: "100%",
     display: "flex",
     alignItems: "center",
-    justifyContent: "flex-end",
+    justifyContent: "center",
   },
   linkedCell: {
     display: "flex",
@@ -74,9 +74,23 @@ export const useFacetCellStyles = createStyles(({ token }) => ({
     cursor: "pointer",
     display: "inline-flex",
     alignItems: "center",
+    minHeight: 22,
+    paddingInline: 7,
+    borderRadius: token.borderRadiusSM,
+    background: token.colorFillQuaternary,
+    color: token.colorTextSecondary,
+    fontWeight: 500,
     overflow: "hidden",
+    transition: "background 0.2s, color 0.2s",
+    "&:hover": {
+      background: token.colorFillSecondary,
+      color: token.colorText,
+    },
     "& .ant-typography": {
       maxWidth: "100%",
+      color: "inherit",
+      fontSize: 12,
+      lineHeight: "20px",
     },
   },
   disabledValueText: {

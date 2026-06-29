@@ -5,6 +5,10 @@ import type {
   ApiFacetDeleteInput,
   ApiFacetDeletePayload,
   ApiFacetSwatch,
+  ApiFacetSwatchCreateInput,
+  ApiFacetSwatchCreatePayload,
+  ApiFacetSwatchUpdateInput,
+  ApiFacetSwatchUpdatePayload,
   ApiFacetUpdateInput,
   ApiFacetUpdatePayload,
   ApiFacetValue,
@@ -144,6 +148,30 @@ export interface FacetValueDeleteMutationVariables {
   input: ApiFacetValueDeleteInput;
 }
 
+export interface FacetSwatchCreateMutationData {
+  catalogMutation: {
+    facetSwatchCreate: Omit<ApiFacetSwatchCreatePayload, "facetSwatch"> & {
+      facetSwatch: FacetSwatchFields | null;
+    };
+  };
+}
+
+export interface FacetSwatchCreateMutationVariables {
+  input: ApiFacetSwatchCreateInput;
+}
+
+export interface FacetSwatchUpdateMutationData {
+  catalogMutation: {
+    facetSwatchUpdate: Omit<ApiFacetSwatchUpdatePayload, "facetSwatch"> & {
+      facetSwatch: FacetSwatchFields | null;
+    };
+  };
+}
+
+export interface FacetSwatchUpdateMutationVariables {
+  input: ApiFacetSwatchUpdateInput;
+}
+
 export interface FacetMutationResult {
   facet: FacetGridFields | null;
   userErrors: ApiGenericUserError[];
@@ -153,5 +181,10 @@ export interface FacetValueMutationResult {
   facetValue:
     | (FacetValueGridFields & { facet?: Pick<ApiFacet, "id"> | null })
     | null;
+  userErrors: ApiGenericUserError[];
+}
+
+export interface FacetSwatchMutationResult {
+  facetSwatch: FacetSwatchFields | null;
   userErrors: ApiGenericUserError[];
 }
