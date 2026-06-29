@@ -200,7 +200,9 @@ CREATE TABLE catalog.product_listing_index (
   indexed_at             timestamptz NOT NULL DEFAULT now(),
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (product_id, currency)
+  PRIMARY KEY (project_id, product_id, currency),
+  CONSTRAINT chk_product_listing_status
+    CHECK (status IN ('published', 'draft'))
 );
 ```
 
@@ -258,10 +260,10 @@ CREATE INDEX idx_product_listing_visible_price_desc
     project_id,
     currency,
     in_stock DESC,
-    min_price_minor DESC,
+    max_price_minor DESC,
     product_id
   )
-  WHERE status = 'published' AND min_price_minor IS NOT NULL;
+  WHERE status = 'published' AND max_price_minor IS NOT NULL;
 
 CREATE INDEX idx_product_listing_vendor
   ON catalog.product_listing_index (project_id, currency, vendor_id)
@@ -279,6 +281,14 @@ CREATE INDEX idx_product_listing_feature_value_handles_gin
 CREATE INDEX idx_product_listing_category_handles_gin
   ON catalog.product_listing_index USING GIN (category_handles);
 ```
+
+The array GIN indexes above are intentionally simple first-version indexes.
+All listing queries still start with `project_id` and `currency` predicates.
+Before production-scale rollout, validate bitmap-and plans for btree tenant
+indexes plus array GIN indexes with `EXPLAIN ANALYZE` on production-like data.
+If plans show high cross-project GIN scan cost, replace or supplement these
+with tenant-aware composite GIN indexes through `btree_gin`, for example
+`USING GIN (project_id, currency, tag_handles)`.
 
 ### `catalog.variant_listing_index`
 
@@ -306,7 +316,7 @@ CREATE TABLE catalog.variant_listing_index (
   indexed_at             timestamptz NOT NULL DEFAULT now(),
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (variant_id, currency)
+  PRIMARY KEY (project_id, variant_id, currency)
 );
 ```
 
@@ -350,6 +360,30 @@ CREATE INDEX idx_variant_listing_in_stock
 CREATE INDEX idx_variant_listing_option_value_handles_gin
   ON catalog.variant_listing_index USING GIN (option_value_handles);
 ```
+
+As with product array indexes, validate tenant btree + option GIN plans with
+`EXPLAIN ANALYZE`. If variant row count or project count makes global GIN scans
+too expensive, add a tenant-aware `btree_gin` composite index such as
+`USING GIN (project_id, currency, option_value_handles)`.
+
+### External indexes required for listing operations
+
+The listing index does not replace scope and locale sort indexes on canonical
+tables. These indexes are required for the planned query shapes:
+
+```sql
+CREATE INDEX idx_product_category_listing_scope
+  ON catalog.product_category (project_id, category_id, lexo_rank, product_id);
+
+CREATE INDEX idx_collection_item_listing_scope
+  ON catalog.collection_item (project_id, collection_id, lexo_rank, product_id);
+
+CREATE INDEX idx_product_translation_listing_name
+  ON catalog.product_translation (project_id, locale, name, product_id);
+```
+
+If existing migrations already provide equivalent indexes, reuse them instead
+of creating duplicates.
 
 ## Facet tables
 
@@ -426,7 +460,10 @@ Category scope:
 
 ```sql
 WITH scope_products AS (
-  SELECT pc.product_id, pc.lexo_rank AS manual_rank
+  SELECT
+    pc.product_id,
+    pc.lexo_rank AS manual_rank,
+    NULL::numeric AS relevance_score
   FROM catalog.product_category pc
   WHERE pc.project_id = :projectId
     AND pc.category_id = :categoryId
@@ -437,7 +474,10 @@ Manual collection scope:
 
 ```sql
 WITH scope_products AS (
-  SELECT ci.product_id, ci.lexo_rank AS manual_rank
+  SELECT
+    ci.product_id,
+    ci.lexo_rank AS manual_rank,
+    NULL::numeric AS relevance_score
   FROM catalog.collection_item ci
   WHERE ci.project_id = :projectId
     AND ci.collection_id = :collectionId
@@ -448,7 +488,10 @@ Rule collection scope:
 
 ```sql
 WITH scope_products AS (
-  SELECT pli.product_id, NULL::text AS manual_rank
+  SELECT
+    pli.product_id,
+    NULL::text AS manual_rank,
+    NULL::numeric AS relevance_score
   FROM catalog.product_listing_index pli
   WHERE pli.project_id = :projectId
     AND pli.currency = :currency
@@ -458,6 +501,39 @@ WITH scope_products AS (
 )
 ```
 
+Global catalog scope:
+
+```sql
+WITH scope_products AS (
+  SELECT pli.product_id, NULL::text AS manual_rank, NULL::numeric AS relevance_score
+  FROM catalog.product_listing_index pli
+  WHERE pli.project_id = :projectId
+    AND pli.currency = :currency
+    AND pli.status = 'published'
+)
+```
+
+Search results scope:
+
+Text search stays outside listing index. It provides an ephemeral candidate set
+with product ids and relevance score. Listing index then applies visibility,
+structured filters, facets, counts and business sort to that candidate set.
+
+```sql
+WITH search_candidates(product_id, relevance_score) AS (
+  VALUES
+    -- (:productId, :score), supplied by text search pipeline
+),
+scope_products AS (
+  SELECT sc.product_id, NULL::text AS manual_rank, sc.relevance_score
+  FROM search_candidates sc
+)
+```
+
+Search candidate input must be passed as a SQL relation (`VALUES`, temp table or
+unnested typed arrays), not loaded and filtered in TypeScript. For relevance
+sort, cursor values include `in_stock`, `relevance_score` and `product_id`.
+
 ### 3. Base product set
 
 `base_all` is the stable universe for facets. It includes scope and visibility, but does not apply user facet filters.
@@ -466,7 +542,8 @@ WITH scope_products AS (
 base_all AS (
   SELECT
     pli.*,
-    sp.manual_rank
+    sp.manual_rank,
+    sp.relevance_score
   FROM scope_products sp
   JOIN catalog.product_listing_index pli
     ON pli.product_id = sp.product_id
@@ -576,6 +653,18 @@ LEFT JOIN catalog.product_translation pt
 ORDER BY fp.in_stock DESC, pt.name ASC NULLS LAST, fp.product_id ASC
 ```
 
+This sort requires an index equivalent to
+`product_translation(project_id, locale, name, product_id)`.
+
+### Relevance
+
+Relevance is available only for search results listing and comes from the search
+candidate set, not from listing index.
+
+```sql
+ORDER BY fp.in_stock DESC, fp.relevance_score DESC NULLS LAST, fp.product_id ASC
+```
+
 ### Price
 
 When there are no active variant-level filters, use product aggregates. These
@@ -614,6 +703,13 @@ recommendation: `price_asc` uses lowest matching in-stock variant price;
 
 Facet aggregation uses `base_all`, not only current page items.
 
+Aggregation must be limited to storefront-configured facets that are enabled for
+the current project/listing context. Do not aggregate every source handle that
+has any historical mapping. The aggregation repository should first resolve the
+enabled facet ids and only then map source handles through
+`facet_value_source_handle` for those facet ids. This keeps counts aligned with
+storefront visibility and prevents unnecessary `unnest + COUNT(DISTINCT)` work.
+
 ### Product-level discrete facets
 
 Unnest source handles from `base_all`, map them through `facet_value_source_handle`, then aggregate by `facet_value_id`.
@@ -636,6 +732,7 @@ product_mapped AS (
     ON fvsh.project_id = :projectId
    AND fvsh.facet_type = ps.facet_type
    AND fvsh.source_handle = ps.source_handle
+   AND fvsh.facet_id = ANY(:enabledFacetIds::uuid[])
   JOIN catalog.facet_value fv
     ON fv.id = fvsh.facet_value_id
    AND fv.facet_id = fvsh.facet_id
@@ -698,6 +795,7 @@ option_mapped AS (
     ON fvsh.project_id = :projectId
    AND fvsh.facet_type = 'option'
    AND fvsh.source_handle = os.source_handle
+   AND fvsh.facet_id = ANY(:enabledOptionFacetIds::uuid[])
   JOIN catalog.facet_value fv
     ON fv.id = fvsh.facet_value_id
    AND fv.facet_id = fvsh.facet_id
@@ -870,7 +968,17 @@ Facet configuration changes do not require listing index rebuild unless source h
 - Merged `facet_value_source_handle` values do not double-count products.
 - Invalid/unconfigured facet values are ignored.
 - Listing queries do not load all candidate products/variants into memory.
+- Global catalog and search result listings use the same SQL listing pipeline as
+  category and collection listings.
+- Relevance sort is available only for search listings and uses score from the
+  search candidate relation.
+- Product and variant listing index primary keys include `project_id`.
+- Product price descending sort uses `max_price_minor` when no active
+  variant-level filters exist.
 - Full rebuild can recreate both index tables from source tables.
+- `EXPLAIN ANALYZE` on production-like data confirms acceptable plans for:
+  visible sort queries, variant predicate grouping, product facet counts,
+  option facet counts, price range and matched variant price sort.
 
 ## Deferred optimization
 
