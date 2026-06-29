@@ -192,7 +192,7 @@ product/variant и один currency-sliced набор facet tokens.
 ```sql
 CREATE TABLE catalog.product_listing_index (
   project_id             uuid NOT NULL,
-  product_id             uuid NOT NULL REFERENCES catalog.product(id) ON DELETE CASCADE,
+  product_id             uuid NOT NULL,
   currency               varchar(3) NOT NULL,
 
   kind                   catalog.product_kind NOT NULL,
@@ -217,6 +217,10 @@ CREATE TABLE catalog.product_listing_index (
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
   PRIMARY KEY (project_id, product_id, currency),
+  CONSTRAINT fk_product_listing_product
+    FOREIGN KEY (project_id, product_id)
+    REFERENCES catalog.product(project_id, id)
+    ON DELETE CASCADE,
   CONSTRAINT chk_product_listing_status
     CHECK (status IN ('published', 'draft'))
 );
@@ -308,8 +312,8 @@ matching.
 ```sql
 CREATE TABLE catalog.variant_listing_index (
   project_id             uuid NOT NULL,
-  product_id             uuid NOT NULL REFERENCES catalog.product(id) ON DELETE CASCADE,
-  variant_id             uuid NOT NULL REFERENCES catalog.variant(id) ON DELETE CASCADE,
+  product_id             uuid NOT NULL,
+  variant_id             uuid NOT NULL,
   currency               varchar(3) NOT NULL,
 
   kind                   catalog.product_kind NOT NULL,
@@ -325,7 +329,15 @@ CREATE TABLE catalog.variant_listing_index (
   indexed_at             timestamptz NOT NULL DEFAULT now(),
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, variant_id, currency)
+  PRIMARY KEY (project_id, variant_id, currency),
+  CONSTRAINT fk_variant_listing_product
+    FOREIGN KEY (project_id, product_id)
+    REFERENCES catalog.product(project_id, id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_variant_listing_variant
+    FOREIGN KEY (project_id, product_id, variant_id)
+    REFERENCES catalog.variant(project_id, product_id, id)
+    ON DELETE CASCADE
 );
 ```
 
@@ -381,13 +393,25 @@ the normalized inverted index for product-level storefront facets (`tag` and
 CREATE TABLE catalog.product_listing_facet_token (
   project_id             uuid NOT NULL,
   currency               varchar(3) NOT NULL,
-  product_id             uuid NOT NULL REFERENCES catalog.product(id) ON DELETE CASCADE,
-  facet_id               uuid NOT NULL REFERENCES catalog.facet(id) ON DELETE CASCADE,
-  facet_value_id         uuid NOT NULL REFERENCES catalog.facet_value(id) ON DELETE CASCADE,
+  product_id             uuid NOT NULL,
+  facet_id               uuid NOT NULL,
+  facet_value_id         uuid NOT NULL,
   facet_type             varchar(16) NOT NULL, -- 'tag' | 'feature'
   indexed_at             timestamptz NOT NULL DEFAULT now(),
 
   PRIMARY KEY (project_id, currency, product_id, facet_id, facet_value_id),
+  CONSTRAINT fk_product_listing_facet_token_product
+    FOREIGN KEY (project_id, product_id)
+    REFERENCES catalog.product(project_id, id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_product_listing_facet_token_facet
+    FOREIGN KEY (project_id, facet_id)
+    REFERENCES catalog.facet(project_id, id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_product_listing_facet_token_value
+    FOREIGN KEY (project_id, facet_id, facet_value_id)
+    REFERENCES catalog.facet_value(project_id, facet_id, id)
+    ON DELETE CASCADE,
   CONSTRAINT chk_product_listing_facet_token_type
     CHECK (facet_type IN ('tag', 'feature'))
 );
@@ -429,13 +453,29 @@ in-stock variant row.
 CREATE TABLE catalog.variant_listing_facet_token (
   project_id             uuid NOT NULL,
   currency               varchar(3) NOT NULL,
-  product_id             uuid NOT NULL REFERENCES catalog.product(id) ON DELETE CASCADE,
-  variant_id             uuid NOT NULL REFERENCES catalog.variant(id) ON DELETE CASCADE,
-  facet_id               uuid NOT NULL REFERENCES catalog.facet(id) ON DELETE CASCADE,
-  facet_value_id         uuid NOT NULL REFERENCES catalog.facet_value(id) ON DELETE CASCADE,
+  product_id             uuid NOT NULL,
+  variant_id             uuid NOT NULL,
+  facet_id               uuid NOT NULL,
+  facet_value_id         uuid NOT NULL,
   indexed_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, currency, variant_id, facet_id, facet_value_id)
+  PRIMARY KEY (project_id, currency, variant_id, facet_id, facet_value_id),
+  CONSTRAINT fk_variant_listing_facet_token_product
+    FOREIGN KEY (project_id, product_id)
+    REFERENCES catalog.product(project_id, id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_variant_listing_facet_token_variant
+    FOREIGN KEY (project_id, product_id, variant_id)
+    REFERENCES catalog.variant(project_id, product_id, id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_variant_listing_facet_token_facet
+    FOREIGN KEY (project_id, facet_id)
+    REFERENCES catalog.facet(project_id, id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_variant_listing_facet_token_value
+    FOREIGN KEY (project_id, facet_id, facet_value_id)
+    REFERENCES catalog.facet_value(project_id, facet_id, id)
+    ON DELETE CASCADE
 );
 ```
 
@@ -477,7 +517,31 @@ mapping is currency-independent. This keeps storefront queries on the same
 `variant_listing_index`, and avoids special-case joins in multi-currency
 listings.
 
-### External indexes required for listing operations
+### External constraints and indexes required for listing operations
+
+The listing index uses composite foreign keys that include `project_id`, so the
+canonical tables must expose matching unique keys. Existing equivalent
+constraints should be reused instead of duplicated.
+
+```sql
+-- Existing product/variant models already provide equivalent unique keys.
+ALTER TABLE catalog.product
+  ADD CONSTRAINT product_project_id_id_unique
+  UNIQUE (project_id, id);
+
+ALTER TABLE catalog.variant
+  ADD CONSTRAINT variant_project_id_product_id_id_unique
+  UNIQUE (project_id, product_id, id);
+
+-- Add these if facet canonical tables do not already have equivalent keys.
+ALTER TABLE catalog.facet
+  ADD CONSTRAINT facet_project_id_id_unique
+  UNIQUE (project_id, id);
+
+ALTER TABLE catalog.facet_value
+  ADD CONSTRAINT facet_value_project_id_facet_id_id_unique
+  UNIQUE (project_id, facet_id, id);
+```
 
 The listing index does not replace scope and locale sort indexes on canonical
 tables. These indexes are required for the planned query shapes:
@@ -1265,6 +1329,11 @@ Facet source mapping changes require token refresh:
 - Relevance sort is available only for search listings and uses score from the
   search candidate relation.
 - Product and variant listing index primary keys include `project_id`.
+- Listing read-model foreign keys include `project_id`: product rows reference
+  `product(project_id, id)`, variant rows reference
+  `variant(project_id, product_id, id)`, and facet token rows reference
+  project-scoped `facet` / `facet_value` keys. The database must reject
+  cross-project product, variant, facet or facet value combinations.
 - Facet token primary keys include `project_id`, `currency` and the resolved
   `facet_id` / `facet_value_id`.
 - Product price descending sort uses `max_price_minor` when no active
