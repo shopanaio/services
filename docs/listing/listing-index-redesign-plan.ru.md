@@ -44,7 +44,7 @@ structured filtering, facets, counts, pagination и sort. Backend sync/rebuild
 
 - Фильтровать по configured tag facet values.
 - Фильтровать по configured feature facet values.
-- Фильтровать по `vendor_id` как first-class storefront filter на первом этапе.
+- Фильтровать по `vendor_id` как явный storefront filter.
 - Фильтровать rule collections по `category_handles`, `tag_handles`,
   `feature_value_handles`, product kind, dates and visibility fields where
   supported by rule compiler.
@@ -214,7 +214,7 @@ Column semantics:
   from active in-stock variant rows in the same currency where
   `has_price = true`. Out-of-stock variant prices do not affect listing price
   filters, price ranges or price sort.
-- `in_stock` and `total_stock` are aggregates from active variants. They are duplicated per currency intentionally to keep listing query single-table-first.
+- `in_stock` and `total_stock` are aggregates from active variants. They are duplicated per currency intentionally to keep listing query centered on one primary table.
 
 Indexes:
 
@@ -379,7 +379,7 @@ Product-level filters:
 
 - `tag`
 - `feature`
-- `vendor_id` как first-class filter, не generic facet на первом этапе
+- `vendor_id` как явный filter, не generic facet
 - `category_handles` только для navigation scope и collection rules
 
 Variant-level filters:
@@ -407,7 +407,7 @@ Availability filter:
 
 ## Listing query flow
 
-Все listing queries строятся как SQL-first pipeline. TypeScript отвечает за parsing input, resolve filters, сбор SQL fragments и mapping результата.
+Все listing queries строятся как SQL-driven pipeline. TypeScript отвечает за parsing input, resolve filters, сбор SQL fragments и mapping результата.
 
 ### 1. Resolve request
 
@@ -417,7 +417,7 @@ Input normalizer:
 2. Определяет listing scope: category, manual collection или rule collection.
 3. Batch-resolve generic facet tokens через `facet` + `facet_value` + `facet_value_source_handle`.
 4. Группирует resolved filters по `facet_id`.
-5. Отдельно нормализует first-class filters: `price`, `in_stock`, `vendor_id`.
+5. Отдельно нормализует явные filters: `price`, `in_stock`, `vendor_id`.
 6. Собирает sort descriptor.
 
 ### 2. Scope CTE
@@ -525,7 +525,7 @@ filtered_products AS (
     -- all active product-level facet booleans
     b.passes_f_tag_sale
     AND b.passes_f_feature_material
-    -- first-class product filters
+    -- explicit product filters
     AND (:vendorId IS NULL OR b.vendor_id = :vendorId)
     AND (:inStockOnly = false OR b.in_stock = true)
     -- variant filters
@@ -537,7 +537,7 @@ For rule collections, compiled variant rules use the same single-EXISTS rule as 
 
 ## Sort
 
-All sorts must be deterministic. All storefront sorts first group products by
+All sorts must be deterministic. All storefront sorts start by grouping products by
 availability: `in_stock DESC`, so sellable/in-stock products are shown before
 out-of-stock products. Then apply the requested sort keys. Always append
 `product_id ASC` as final tie-breaker.
@@ -655,7 +655,7 @@ SELECT
         -- product-level isolation
         (pm.facet_id = :tagFacetId OR passes_f_tag_sale)
         AND (pm.facet_id = :featureFacetId OR passes_f_feature_material)
-        -- first-class filters
+        -- explicit filters
         AND (:vendorId IS NULL OR vendor_id = :vendorId)
         AND (:inStockOnly = false OR b.in_stock = true)
         -- variant pass
@@ -817,7 +817,7 @@ Replace scripts:
 
 1. Truncate both listing index tables.
 2. Process products in batches.
-3. Sync variant index first.
+3. Sync variant index before product aggregates.
 4. Sync product index aggregates second.
 5. Log total products, variants, currencies and skipped rows.
 
