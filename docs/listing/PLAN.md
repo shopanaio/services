@@ -1,41 +1,41 @@
-# Catalog: Categories, Collections & Facets — Implementation Plan
+# Catalog: категории, коллекции и фасеты - план реализации
 
-## Overview
+## Обзор
 
-Three distinct domain concepts, all inside the **catalog** service:
+Три отдельные доменные концепции внутри сервиса **catalog**:
 
-| Concept | Role | Managed by |
+| Концепция | Роль | Кто управляет |
 |---------|------|------------|
-| **Category** | Stable taxonomy, navigation skeleton, SEO pages | Content managers |
-| **Collection** | Merchandising product groupings (manual / rule-based) | Merchandisers, marketers |
-| **Facet** | Facet display configuration (groups, order, UI types, labels) — per project | Catalog admins |
+| **Category** | Стабильная таксономия, каркас навигации, SEO-страницы | Контент-менеджеры |
+| **Collection** | Мерчандайзинговые группы товаров: ручные или основанные на правилах | Мерчандайзеры, маркетологи |
+| **Facet** | Конфигурация отображения фасетов: группы, порядок, UI-типы, подписи, на уровне проекта | Администраторы каталога |
 
-Products are assigned to categories explicitly (by humans, bulk ops, or import).
-Collections assemble products by rules or manual picks.
-Facets on a collection PLP are computed on-the-fly from products present, rendered according to project-level facet setup.
+Товары назначаются в категории явно: вручную, bulk-операциями или импортом.
+Коллекции собирают товары правилами или ручным выбором.
+Фасеты на collection PLP вычисляются на лету из присутствующих товаров и рендерятся согласно настройке фасетов на уровне проекта.
 
-**Scope (Phase 1):** PostgreSQL only. No Typesense, no full-text search, no algorithmic collections.
-**Currency scope (Phase 1):** Listing price filters/sort/range are single-currency (store base currency).
+**Область Phase 1:** только PostgreSQL. Без Typesense, без full-text search, без algorithmic collections.
+**Область валют Phase 1:** listing price filters/sort/range работают в одной валюте, base currency магазина.
 
-**Important (listing correctness):** filters split into:
-- **Product-level** constraints (fast, `catalog.product_search_index`): `TAG/FEATURE/STATUS`.
-- **Variant-level** constraints (correct for option combinations, `catalog.variant_search_index`): `OPTION`, `price`, `in_stock`.
+**Важно для корректности listing:** фильтры делятся на:
+- **Product-level** ограничения: быстрые, через `catalog.product_search_index`: `TAG/FEATURE/STATUS`.
+- **Variant-level** ограничения: корректные для комбинаций опций, через `catalog.variant_search_index`: `OPTION`, `price`, `in_stock`.
 
-`STATUS` in `product_search_index` is derived from catalog state:
-- `published` when `product.published_at IS NOT NULL AND product.deleted_at IS NULL`
-- `draft` otherwise
+`STATUS` в `product_search_index` выводится из состояния catalog:
+- `published`, когда `product.published_at IS NOT NULL AND product.deleted_at IS NULL`
+- `draft` во всех остальных случаях
 
-`CATEGORY` is not a storefront facet/filter on category PLPs; it is used as navigation context and as a rule field for rule-based collections.
+`CATEGORY` не является storefront facet/filter на category PLP. Категория используется как навигационный контекст и как поле правил для collections, основанных на правилах.
 
 ---
 
-## 1. Categories — What Changes
+## 1. Категории - что меняется
 
-Categories already exist (`catalog.category`, `product_category`). This plan adds:
+Categories уже существуют (`catalog.category`, `product_category`). Этот план добавляет:
 
-### 1.1 Category sort order for products
+### 1.1 Порядок товаров внутри категории
 
-Products inside a category need explicit ordering (merchandiser drag & drop). Currently `product_category` has `sortIndex` (integer). We replace this with `lexo_rank` for O(1) reorder:
+Товарам внутри категории нужен явный порядок для drag & drop мерчандайзером. Сейчас в `product_category` есть `sortIndex` (integer). Заменяем его на `lexo_rank` для O(1) reorder:
 
 ```sql
 -- ALTER product_category:
@@ -44,15 +44,15 @@ Products inside a category need explicit ordering (merchandiser drag & drop). Cu
 --   ADD INDEX idx_product_category_rank (category_id, lexo_rank)
 ```
 
-**Why lexo_rank instead of sortIndex:** Integer sort requires rewriting O(N) rows on reorder. Lexo_rank inserts a midpoint string between two neighbors — single row update.
+**Почему lexo_rank вместо sortIndex:** integer sort требует переписывать O(N) строк при reorder. Lexo_rank вставляет midpoint string между двумя соседями - обновляется одна строка.
 
-To hide a product from a category — remove the `product_category` row. No `excluded` flag needed: categories are managed explicitly by humans.
+Чтобы скрыть товар из категории, нужно удалить строку `product_category`. Флаг `excluded` не нужен: категории управляются явно людьми.
 
-**Migration note:** when replacing `sort_index` with `lexo_rank`, run a one-time backfill ordered by existing `sort_index, product_id`, then only after successful backfill drop `sort_index`.
+**Примечание по миграции:** при замене `sort_index` на `lexo_rank` выполнить one-time backfill в порядке `sort_index, product_id`, и только после успешного backfill удалить `sort_index`.
 
-### 1.2 Category sort settings
+### 1.2 Настройки сортировки категории
 
-Add sort preference to category:
+Добавить preference сортировки в category:
 
 ```sql
 -- ALTER category:
@@ -60,11 +60,11 @@ Add sort preference to category:
 --   ADD default_sort_direction varchar(4) NOT NULL DEFAULT 'asc'
 ```
 
-Values: `'manual'`, `'price'`, `'newest'`, `'name'`
+Значения: `'manual'`, `'price'`, `'newest'`, `'name'`
 
-### 1.3 Category SEO
+### 1.3 SEO категории
 
-New table, same structure as `product_seo`:
+Новая таблица с той же структурой, что и `product_seo`:
 
 ```sql
 catalog.category_seo (
@@ -91,18 +91,18 @@ CREATE INDEX idx_category_seo_project_locale ON catalog.category_seo (project_id
 
 ---
 
-## 2. Collections
+## 2. Коллекции
 
-A **collection** is a named product grouping for merchandising/marketing, independent of the category tree.
+**Collection** - именованная группа товаров для мерчандайзинга или маркетинга, независимая от дерева категорий.
 
-### 2.1 Collection types
+### 2.1 Типы коллекций
 
-| Type | How products are selected |
+| Тип | Как выбираются товары |
 |------|--------------------------|
-| **manual** | Admin explicitly adds products, orders via lexo_rank |
-| **rule** | System evaluates conditions against `product_search_index` |
+| **manual** | Admin явно добавляет товары и упорядочивает их через lexo_rank |
+| **rule** | Система вычисляет условия относительно `product_search_index` |
 
-### 2.2 Database schema
+### 2.2 Схема базы данных
 
 ```sql
 catalog.collection (
@@ -194,7 +194,7 @@ catalog.collection_media (
 )
 ```
 
-### 2.3 Collection items (manual collections only)
+### 2.3 Элементы коллекции только для manual collections
 
 ```sql
 catalog.collection_item (
@@ -213,10 +213,10 @@ CREATE INDEX idx_collection_item_rank
   ON catalog.collection_item (collection_id, lexo_rank);
 ```
 
-**For manual collections:** all products are in `collection_item` with lexo_rank.
-**For rule collections:** products are computed from rules — no `collection_item` rows. To remove a product from a rule collection, adjust the rules or the product's attributes.
+**Для manual collections:** все товары находятся в `collection_item` с `lexo_rank`.
+**Для rule collections:** товары вычисляются из rules, строк `collection_item` нет. Чтобы убрать товар из rule collection, нужно изменить rules или атрибуты товара.
 
-### 2.4 Collection rules
+### 2.4 Правила коллекций
 
 ```sql
 catalog.collection_rule (
@@ -241,11 +241,11 @@ catalog.collection_rule (
 CREATE INDEX idx_collection_rule_collection ON catalog.collection_rule(collection_id);
 ```
 
-**Rule groups:**
+**Группы правил:**
 - `product-level`: `tag`, `feature`, `category`, `created_at`
 - `variant-level`: `option`, `price`, `in_stock`
 
-**Examples:**
+**Примеры:**
 ```json
 { "field": "tag", "operator": "in", "value": ["sale", "new-arrival"] }
 { "field": "price", "operator": "between", "value": [1000, 5000] }
@@ -254,41 +254,41 @@ CREATE INDEX idx_collection_rule_collection ON catalog.collection_rule(collectio
 { "field": "category", "operator": "in", "value": ["shoes", "running"] }
 ```
 
-Rules are evaluated against `product_search_index`, with variant-correct predicates (`option`, `price`, `in_stock`) resolved via `variant_search_index`.
+Rules вычисляются относительно `product_search_index`, а variant-correct predicates (`option`, `price`, `in_stock`) резолвятся через `variant_search_index`.
 
-**Rule evaluation contract (normative):**
-- Product-level fields (`tag`, `feature`, `category`, `created_at`) are evaluated on `product_search_index`.
-- Variant-bound fields (`option`, `price`, `in_stock`) MUST be compiled into a single `EXISTS` over `variant_search_index`.
-- Independent `EXISTS` blocks per variant-bound rule are forbidden because they can match different variants of the same product and produce false positives.
-- Authoritative SQL semantics are defined in §9.
+**Контракт вычисления правил (нормативно):**
+- Product-level fields (`tag`, `feature`, `category`, `created_at`) вычисляются на `product_search_index`.
+- Variant-bound fields (`option`, `price`, `in_stock`) MUST компилироваться в один `EXISTS` по `variant_search_index`.
+- Независимые `EXISTS` blocks для каждого variant-bound rule запрещены, потому что они могут совпасть с разными variants одного товара и дать false positives.
+- Авторитетная SQL-семантика определена в §9.
 
 ---
 
-## 3. Facets (project-level)
+## 3. Фасеты на уровне проекта
 
-### 3.1 Core idea
+### 3.1 Основная идея
 
-Facet setup defines **what** facets and values are allowed on PLPs, plus how they are displayed. Product data is used only for counts. The setup controls:
+Facet setup определяет, **какие** фасеты и значения разрешены на PLP, и как они отображаются. Данные товаров используются только для counts. Setup контролирует:
 
-- Which facets to show and in what order
-- Grouping (e.g., "Main filters", "Material & Care")
-- UI type per facet (multi-select checkboxes, single-select, range slider, boolean toggle, color swatches)
-- Label overrides and value sort order
-- Which values are exposed (enabled `facet_value` only for discrete facets)
-- Display rules (min distinct values to show, collapse threshold)
-- Facet list comes from `facet`; value list for `TAG`/`FEATURE`/`OPTION` comes from enabled `facet_value`; `PRICE`/`IN_STOCK` are computed facets without `facet_value` rows; counts are computed from the base product set and update as filters change
+- Какие фасеты показывать и в каком порядке
+- Группировку, например "Main filters", "Material & Care"
+- UI type для каждого фасета: multi-select checkboxes, single-select, range slider, boolean toggle, color swatches
+- Label overrides и порядок значений
+- Какие values доступны, только enabled `facet_value` для discrete facets
+- Display rules: минимум distinct values для показа, collapse threshold
+- Список фасетов идет из `facet`; список values для `TAG`/`FEATURE`/`OPTION` идет из enabled `facet_value`; `PRICE`/`IN_STOCK` - computed facets без строк `facet_value`; counts вычисляются из base product set и обновляются при изменении filters
 
-Raw option/feature/tag values from products are never returned to the storefront; only configured `facet_value` entries are exposed.
+Raw option/feature/tag values из products никогда не возвращаются в storefront. Наружу отдаются только настроенные `facet_value` entries.
 
-**Type-specific value contract (normative):**
-- `TAG` / `FEATURE` / `OPTION` are discrete facets: they use `facet_value` + `facet_value_source_handle` mappings.
-- `PRICE` is a range facet: it does not use `facet_value` or `facet_value_source_handle`.
-- `IN_STOCK` is a boolean facet: it does not use `facet_value` or `facet_value_source_handle`.
-- Any `FacetValueCreate/Update` attempt for `PRICE` or `IN_STOCK` must fail validation in scripts.
+**Контракт значений по типам (нормативно):**
+- `TAG` / `FEATURE` / `OPTION` - discrete facets: используют `facet_value` + `facet_value_source_handle` mappings.
+- `PRICE` - range facet: не использует `facet_value` или `facet_value_source_handle`.
+- `IN_STOCK` - boolean facet: не использует `facet_value` или `facet_value_source_handle`.
+- Любая попытка `FacetValueCreate/Update` для `PRICE` или `IN_STOCK` должна падать на validation в scripts.
 
-Setup is per-project — one flat list of facet groups and facets per project.
+Setup задается per-project: один плоский список facet groups и facets на проект.
 
-### 3.2 Database schema
+### 3.2 Схема базы данных
 
 ```sql
 catalog.facet_group (
@@ -383,13 +383,13 @@ CREATE INDEX idx_facet_translation_project_locale
   ON catalog.facet_translation (project_id, locale);
 ```
 
-`facet_source_handle` is intentionally removed. `facet_value_source_handle` is the only source mapping table in this plan.
+`facet_source_handle` намеренно удален. `facet_value_source_handle` - единственная source mapping table в этом плане.
 
 ---
 
-### 3.3 Facet Values
+### 3.3 Значения фасетов
 
-Настройка значений внутри фасета: кастомные label, порядок, swatch, объединение source values.
+Настройка значений внутри фасета: custom label, порядок, swatch, объединение source values.
 
 ```sql
 -- Same structure as product_option_swatch (intentional duplication — separate domain, same shape)
@@ -459,12 +459,12 @@ CREATE INDEX idx_facet_value_translation_project_locale
 ```
 
 **Назначение:**
-- `facet_swatch` — визуальный swatch для значения фасета (аналог `product_option_swatch`)
-- `facet_value` — настроенное значение: порядок, enabled, swatch
-- `facet_value_source_handle` — единственный source mapping (`source_handle -> facet_value`) с DB-level уникальностью:
+- `facet_swatch` - визуальный swatch для значения фасета, аналог `product_option_swatch`.
+- `facet_value` - настроенное значение: порядок, enabled, swatch.
+- `facet_value_source_handle` - единственный source mapping (`source_handle -> facet_value`) с DB-level уникальностью:
   - в пределах `project_id + facet_id`
-  - и в пределах `project_id + facet_type` (чтобы один source_handle не попадал в два фасета одного типа)
-- `facet_value_translation` — display label for storefront (no source fallback)
+  - и в пределах `project_id + facet_type`, чтобы один source_handle не попадал в два фасета одного типа
+- `facet_value_translation` - display label для storefront без source fallback.
 
 **Резолюция label и swatch:**
 
@@ -472,27 +472,27 @@ CREATE INDEX idx_facet_value_translation_project_locale
 |-----------|-------|--------|
 | 1 | `facet_value_translation` | `facet_swatch` через `facet_value.swatch_id` |
 
-Source translations and product option swatches are not used in storefront responses.
+Source translations и product option swatches не используются в storefront responses.
 
-Если `facet_value` не создан — значение не показывается на storefront.
+Если `facet_value` не создан, значение не показывается на storefront.
 
 ---
 
-### 3.4 Slug Resolution — Stored Slugs, App-Generated
+### 3.4 Резолюция slug - сохраненные slugs, генерируются приложением
 
-Slugs live on `facet.slug` and `facet_value.slug` — not on translation tables. A facet is one entity regardless of locale: "Цвет", "Color", "Farbe" all share slug `color`. Slug is locale-independent.
+Slugs живут на `facet.slug` и `facet_value.slug`, а не в translation tables. Facet является одной entity независимо от locale: "Цвет", "Color", "Farbe" используют общий slug `color`. Slug не зависит от locale.
 
-#### Why stored slug (not computed)
+#### Почему slug хранится, а не вычисляется
 
-- **All-language support.** SQL `IMMUTABLE` functions cannot handle CJK, Arabic, Hindi, Thai, Georgian, etc. Slug is provided by the frontend — admin decides the URL-friendly identifier.
-- **Locale-independent.** Slug belongs to the entity, not to a translation. One facet = one slug across all locales.
-- **DB uniqueness is explicit.** `UNIQUE(project_id, slug)` on `facet`, `UNIQUE(facet_id, slug)` on `facet_value`, plus link-table constraints for source handles.
+- **Поддержка всех языков.** SQL `IMMUTABLE` functions не умеют корректно обрабатывать CJK, Arabic, Hindi, Thai, Georgian и т.д. Slug приходит с frontend, admin выбирает URL-friendly identifier.
+- **Locale-independent.** Slug принадлежит entity, а не translation. Один facet = один slug во всех locales.
+- **DB uniqueness явная.** `UNIQUE(project_id, slug)` на `facet`, `UNIQUE(facet_id, slug)` на `facet_value`, плюс constraints link-table для source handles.
 
-#### Slug source
+#### Источник slug
 
-Slug is provided by the frontend (admin UI) on create and update. The backend validates format (`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`) and uniqueness. No auto-generation — the admin is responsible for choosing a meaningful, URL-safe slug.
+Slug передается frontend (admin UI) при create и update. Backend валидирует format (`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`) и uniqueness. Auto-generation нет: admin отвечает за выбор понятного и URL-safe slug.
 
-#### Querying slugs (for API responses)
+#### Получение slugs для API responses
 
 ```sql
 -- Facet slugs
@@ -512,9 +512,9 @@ WHERE fv.facet_id = :facetId
   AND fvt.locale = :locale;
 ```
 
-#### Resolving slug → search index handle (for filter inputs)
+#### Резолюция slug -> search index handle для filter inputs
 
-Storefront passes `facetSlug:valueSlug` strings via the unified `ProductFiltersInput.facets` field. All facet types (tag, feature, option) use one canonical resolution path through `facet` + `facet_value` + `facet_value_source_handle`:
+Storefront передает строки `facetSlug:valueSlug` через единое поле `ProductFiltersInput.facets`. Все facet types (`tag`, `feature`, `option`) используют один canonical resolution path через `facet` + `facet_value` + `facet_value_source_handle`:
 
 ```sql
 -- Resolve (facetSlug, valueSlug) -> (facet_id, facet_type, source_handles)
@@ -539,19 +539,19 @@ WHERE f.project_id = :projectId
 GROUP BY f.id, f.facet_type, fv.id;
 ```
 
-`valueSlug` must resolve to an existing enabled `facet_value` row. If no row is found, the filter value is invalid and must be ignored.
+`valueSlug` должен резолвиться в существующую enabled строку `facet_value`. Если строка не найдена, filter value считается invalid и должен игнорироваться.
 
-`facet_type` determines which index column to query: `TAG` -> `product_search_index.tag_handles`, `FEATURE` -> `product_search_index.feature_slugs`, `OPTION` -> `variant_search_index.option_slugs`. Multi-select facets use CNF: OR inside one facet, AND between facets. Single-select facets use exact match.
+`facet_type` определяет, какую index column query использует: `TAG` -> `product_search_index.tag_handles`, `FEATURE` -> `product_search_index.feature_slugs`, `OPTION` -> `variant_search_index.option_slugs`. Multi-select facets используют CNF: OR внутри одного facet, AND между facets. Single-select facets используют exact match.
 
-Lookup uses `UNIQUE(project_id, slug)` on `facet`, `UNIQUE(facet_id, slug)` on `facet_value`, and indexed join to `facet_value_source_handle` (`project_id + facet_type + source_handle`). Results are cached per request.
+Lookup использует `UNIQUE(project_id, slug)` на `facet`, `UNIQUE(facet_id, slug)` на `facet_value` и indexed join к `facet_value_source_handle` (`project_id + facet_type + source_handle`). Results кешируются per request.
 
 ---
 
 ## 4. Product Search Index
 
-Denormalized **product-level** table for fast queries. Used by category PLPs (product listing), collection rule evaluation, and collection faceted filtering.
+Denormalized **product-level** таблица для быстрых queries. Используется category PLPs (product listing), collection rule evaluation и collection faceted filtering.
 
-**No product name in this index.** Product names are multilingual and live in `product_translation`. Sort-by-name uses a JOIN on `product_translation` at query time (see §5). This avoids duplicating translatable content into the index and keeps the search index language-agnostic — important because the separate search service will have its own index and Typesense already stores per-locale titles for full-text search.
+**Product name в этом index отсутствует.** Product names multilingual и живут в `product_translation`. Sort-by-name использует JOIN на `product_translation` во время query, см. §5. Это не дублирует translatable content в index и оставляет search index language-agnostic. Это важно, потому что отдельный search service будет иметь собственный index, а Typesense уже хранит per-locale titles для full-text search.
 
 ```sql
 catalog.product_search_index (
@@ -566,16 +566,16 @@ catalog.product_search_index (
 )
 ```
 
-Indexes: GIN on arrays, B-tree on status/created_at, plus:
+Indexes: GIN на arrays, B-tree на status/created_at, плюс:
 
 ```sql
 CREATE INDEX idx_product_search_index_project_status
   ON catalog.product_search_index (project_id, status);
 ```
 
-### Variant Search Index (for OPTION + variant-bound filters)
+### Variant Search Index для OPTION и variant-bound filters
 
-Denormalized **variant-level** table for correct option combination filtering and variant-bound facets.
+Denormalized **variant-level** таблица для корректной option combination filtering и variant-bound facets.
 
 ```sql
 catalog.variant_search_index (
@@ -608,51 +608,51 @@ CREATE INDEX idx_variant_search_index_option_slugs_gin
   ON catalog.variant_search_index USING GIN (option_slugs);
 ```
 
-### Slug → composite handle lookup (for storefront filter inputs)
+### Lookup slug -> composite handle для storefront filter inputs
 
-Both the search index and facets store **slugs/handles** (not UUIDs). The variant search index stores composite slugs (`option_slug:value_slug`) for options, and facets map display slugs to source composite handles via `facet_value_source_handle`.
+Search index и facets хранят **slugs/handles**, не UUIDs. Variant search index хранит composite slugs (`option_slug:value_slug`) для options, а facets мапят display slugs в source composite handles через `facet_value_source_handle`.
 
-Storefront passes facet filters via the unified `ProductFiltersInput.facets` field as `facetSlug:valueSlug` strings. Resolution is through facets (see §3.4):
+Storefront передает facet filters через единое поле `ProductFiltersInput.facets` как строки `facetSlug:valueSlug`. Resolution идет через facets, см. §3.4:
 1. `facet.slug` -> `facet_type`
-2. `facet_value.slug` -> rows in `facet_value_source_handle` (configured values only)
-3. Query the appropriate index column:
+2. `facet_value.slug` -> rows в `facet_value_source_handle`, только configured values
+3. Query соответствующей index column:
    - `TAG` -> `product_search_index.tag_handles`
    - `FEATURE` -> `product_search_index.feature_slugs`
    - `OPTION` -> `variant_search_index.option_slugs`
 
-`CATEGORY` is intentionally excluded from storefront facet filters in Phase 1.
+`CATEGORY` намеренно исключен из storefront facet filters в Phase 1.
 
-Unconfigured values are not allowed for storefront filtering. If a `valueSlug` has no matching `facet_value` row, the filter value is ignored.
+Unconfigured values не разрешены для storefront filtering. Если `valueSlug` не имеет matching `facet_value` row, filter value игнорируется.
 
-### Sync flow
+### Поток синхронизации
 
-`SyncProductIndexScript` runs on productCreated/Updated/Deleted events:
-1. Load product + categories → collect `category.handle` values → `category_handles`
-2. Load product tags → collect `tag.handle` values → `tag_handles`
-3. Load product features + values → build `feature.slug + ':' + featureValue.slug` composites → `feature_slugs`
+`SyncProductIndexScript` запускается на productCreated/Updated/Deleted events:
+1. Load product + categories -> collect `category.handle` values -> `category_handles`
+2. Load product tags -> collect `tag.handle` values -> `tag_handles`
+3. Load product features + values -> build `feature.slug + ':' + featureValue.slug` composites -> `feature_slugs`
 4. Compute `status` from `product.published_at/deleted_at`
 5. UPSERT into `product_search_index` with slug/handle arrays
 
-No translation data is synced — the index contains only structured/numeric fields and slugs/handles.
+Translation data не синхронизируется: index содержит только structured/numeric fields и slugs/handles.
 
-`SyncVariantIndexScript` runs from product lifecycle events (`productCreated`, `productDeleted`, `productUpdated`) and inspects `productUpdated.payload.variants` to determine affected variants:
+`SyncVariantIndexScript` запускается из product lifecycle events (`productCreated`, `productDeleted`, `productUpdated`) и смотрит `productUpdated.payload.variants`, чтобы определить affected variants:
 1. Load variant + parent product_id
-2. Load variant option values → build `option.slug + ':' + optionValue.slug` composites → `option_slugs`
+2. Load variant option values -> build `option.slug + ':' + optionValue.slug` composites -> `option_slugs`
 3. Load variant price in store base currency (`price_currency`, `price_minor`)
-4. Broker call `inventory.getOffers` for stock (variant scoped)
-5. UPSERT into `variant_search_index` (1 row per variant)
+4. Broker call `inventory.getOffers` для stock, scoped by variant
+5. UPSERT into `variant_search_index`, 1 row per variant
 
 ---
 
-## 5. PLP Query Flow (Category & Collection)
+## 5. PLP Query Flow для Category и Collection
 
 ### 5.1 Category PLP
 
-```
+```text
 QueryCategoryProductsScript:
   Input: { categoryId, locale, filters?, sort?, pagination }
   
-  1. Load category → get default_sort
+  1. Load category -> get default_sort
   2. Build query:
        product_category pc
        JOIN product_search_index psi ON pc.product_id = psi.product_id
@@ -661,10 +661,10 @@ QueryCategoryProductsScript:
          AND [apply product-level filters: TAG/FEATURE]
          AND [apply variant-level filters via EXISTS on variant_search_index when OPTION and/or PRICE and/or in_stock filters are present]
   3. Apply sort:
-       'manual' → ORDER BY pc.lexo_rank ASC, psi.product_id ASC
-       'price'  → ORDER BY min matched variant price ASC NULLS LAST, psi.product_id ASC
-       'newest' → ORDER BY psi.created_at DESC, psi.product_id ASC
-       'name'   → LEFT JOIN product_translation pt
+       'manual' -> ORDER BY pc.lexo_rank ASC, psi.product_id ASC
+       'price'  -> ORDER BY min matched variant price ASC NULLS LAST, psi.product_id ASC
+       'newest' -> ORDER BY psi.created_at DESC, psi.product_id ASC
+       'name'   -> LEFT JOIN product_translation pt
                      ON pt.product_id = psi.product_id AND pt.locale = :locale
                    ORDER BY pt.title ASC NULLS LAST, psi.product_id ASC
   4. Paginate (Relay cursor)
@@ -672,24 +672,24 @@ QueryCategoryProductsScript:
   6. Return { products, facets, totalCount, pageInfo }
 ```
 
-The `name` sort JOINs `product_translation` using the request locale. The `product_translation` table has a composite PK `(product_id, locale)` so the join is index-only. LEFT JOIN ensures products without a translation for the requested locale still appear (sorted last via `NULLS LAST`).
+Sort `name` делает JOIN к `product_translation` по request locale. У `product_translation` composite PK `(product_id, locale)`, поэтому join index-only. LEFT JOIN гарантирует, что товары без translation для request locale все равно попадут в выдачу, с сортировкой в конец через `NULLS LAST`.
 
-**Variant filter semantics (Category PLP):**
-- `TAG/FEATURE/STATUS` remain product-level (on `product_search_index`).
-- `OPTION`, `price`, and `in_stock` filters must be variant-correct:
-  - Apply as `EXISTS (SELECT 1 FROM variant_search_index vsi WHERE vsi.project_id = psi.project_id AND vsi.product_id = psi.product_id AND [variant predicates])`.
-  - All active variant predicates (`OPTION`, `price`, `in_stock`) must be inside the same EXISTS.
+**Семантика variant filters для Category PLP:**
+- `TAG/FEATURE/STATUS` остаются product-level, на `product_search_index`.
+- `OPTION`, `price` и `in_stock` filters должны быть variant-correct:
+  - Применяются как `EXISTS (SELECT 1 FROM variant_search_index vsi WHERE vsi.project_id = psi.project_id AND vsi.product_id = psi.product_id AND [variant predicates])`.
+  - Все активные variant predicates (`OPTION`, `price`, `in_stock`) должны быть внутри одного EXISTS.
 
-**Price sort semantics (Category PLP):**
-- Define `sort_price_minor` as the MIN(`vsi.price_minor`) among variants that pass active variant predicates (CTE `min_price_per_product`) and `vsi.price_currency = :priceCurrency`, then order by that.
+**Семантика price sort для Category PLP:**
+- Определить `sort_price_minor` как MIN(`vsi.price_minor`) среди variants, которые проходят active variant predicates (CTE `min_price_per_product`) и `vsi.price_currency = :priceCurrency`, затем сортировать по нему.
 
 ### 5.2 Collection PLP
 
-```
+```text
 QueryCollectionProductsScript:
   Input: { collectionId, locale, filters?, sort?, pagination }
   
-  1. Load collection → type, rules, default_sort
+  1. Load collection -> type, rules, default_sort
   2. Check collection availability:
      - `deleted_at IS NULL`
      - `published_at IS NOT NULL AND published_at <= now()`
@@ -716,10 +716,10 @@ QueryCollectionProductsScript:
   
   4. Apply facet filters from user
   5. Sort:
-       'manual' → ORDER BY ci.lexo_rank ASC, psi.product_id ASC
-       'price'  → ORDER BY min matched variant price ASC NULLS LAST, psi.product_id ASC
-       'newest' → ORDER BY psi.created_at DESC, psi.product_id ASC
-       'name'   → LEFT JOIN product_translation pt
+       'manual' -> ORDER BY ci.lexo_rank ASC, psi.product_id ASC
+       'price'  -> ORDER BY min matched variant price ASC NULLS LAST, psi.product_id ASC
+       'newest' -> ORDER BY psi.created_at DESC, psi.product_id ASC
+       'name'   -> LEFT JOIN product_translation pt
                      ON pt.product_id = psi.product_id AND pt.locale = :locale
                    ORDER BY pt.title ASC NULLS LAST, psi.product_id ASC
   6. Paginate
@@ -727,31 +727,31 @@ QueryCollectionProductsScript:
   8. Return { products, facets, totalCount, pageInfo }
 ```
 
-### 5.3 Facet computation
+### 5.3 Вычисление фасетов
 
-For a given product set (from category or collection).
+Для заданного product set из category или collection.
 
-**Note on category:** `category_handles` is stored in `product_search_index` for collection rule evaluation (e.g., "all products in category X"), but category is **not** a facet type. Categories are a navigation axis, not a filterable attribute on PLPs. `FacetType` enum is `PRICE | TAG | FEATURE | OPTION | IN_STOCK` — no `CATEGORY`. The `category_handles` array is not unnested during facet aggregation.
+**Note on category:** `category_handles` хранится в `product_search_index` для collection rule evaluation, например "all products in category X", но category **не является** facet type. Categories - ось навигации, а не filterable attribute на PLP. `FacetType` enum: `PRICE | TAG | FEATURE | OPTION | IN_STOCK`, без `CATEGORY`. Array `category_handles` не unnested при facet aggregation.
 
-Three key concerns:
+Три ключевых момента:
 
-1. **Stable facet/value list** — derived from the base product set (category/collection without user filters). The list of facets and their values does not change when filters change; only counts update.
-2. **Facet isolation** — counts for each facet are computed **without** that facet's filter applied (but with all other facet filters). This lets the user see sibling values and switch between them. Standard e-commerce pattern.
-3. **Merged values** — when one `facet_value` maps to multiple rows in `facet_value_source_handle`, their counts must be merged into one display value.
+1. **Стабильный список facets/values** - выводится из base product set: category/collection без user filters. Список фасетов и values не меняется при изменении filters, меняются только counts.
+2. **Facet isolation** - counts для каждого facet вычисляются **без** filter этого же facet, но со всеми остальными facet filters. Это позволяет пользователю видеть sibling values и переключаться между ними. Стандартный паттерн e-commerce.
+3. **Merged values** - когда один `facet_value` мапится на несколько строк `facet_value_source_handle`, counts должны объединяться в одно display value.
 
-#### 5.3.1 Single-query approach with boolean filter columns
+#### 5.3.1 Подход одним query с boolean filter columns
 
-Instead of N+1 separate queries, keep a single product base scan and:
-- compute product-level pass booleans from `product_search_index` (`TAG/FEATURE`)
-- compute a **variant pass set** from `variant_search_index` when any variant-scoped filter is active (`OPTION`/`price`/`in_stock`)
-- compute `TAG/FEATURE` facet counts off the product base (with the variant pass set applied)
-- compute `OPTION` facet counts off the variant index, but return `COUNT(DISTINCT product_id)` so products are not double-counted
+Вместо N+1 отдельных queries нужно держать один product base scan и:
+- вычислить product-level pass booleans из `product_search_index` (`TAG/FEATURE`)
+- вычислить **variant pass set** из `variant_search_index`, когда активен любой variant-scoped filter (`OPTION`/`price`/`in_stock`)
+- считать `TAG/FEATURE` facet counts от product base, с примененным variant pass set
+- считать `OPTION` facet counts от variant index, но возвращать `COUNT(DISTINCT product_id)`, чтобы не считать products дважды
 
-**Step 1: Base CTE with per-facet-id boolean columns (no user filters)**
+**Step 1: Base CTE с per-facet-id boolean columns, без user filters**
 
-One boolean per active **product-level facet_id** (multi-select uses OR inside facet).
+Один boolean на каждый активный **product-level facet_id**. Multi-select использует OR внутри facet.
 
-If a facet has **no selected values**, do not create its `passes_*` boolean and do not apply that facet filter in the product query (treat as `TRUE`). Never use `array && '{}'`.
+Если у facet **нет selected values**, не создавать его `passes_*` boolean и не применять этот facet filter в product query, то есть считать `TRUE`. Никогда не использовать `array && '{}'`.
 
 ```sql
 -- Example: user selected Color=[Red, Blue], Size=[42], Material=[Cotton], Tags=[Sale],
@@ -799,11 +799,11 @@ base AS (
 )
 ```
 
-`base_all` defines the stable universe (no user filters). `base` adds boolean filter columns for counts, but does not filter rows. This guarantees that the facet and value lists are stable, while counts change with filters. When no variant filters are active, `passes_variant` should be treated as `TRUE` (skip `passes_variant_products` entirely).
+`base_all` задает стабильную universe без user filters. `base` добавляет boolean filter columns для counts, но не фильтрует rows. Это гарантирует, что списки facet/value стабильны, а counts меняются с filters. Когда variant filters не активны, `passes_variant` должен считаться `TRUE`, а `passes_variant_products` нужно полностью пропускать.
 
-**Step 2: Aggregation with facet isolation via FILTER**
+**Step 2: Aggregation с facet isolation через FILTER**
 
-Counts for each facet are computed with all other filters applied, but **without that exact facet_id predicate**. This keeps sibling values visible even when multiple facets share one type (for example, two `FEATURE` facets).
+Counts для каждого facet вычисляются со всеми остальными filters, но **без predicate именно этого facet_id**. Это сохраняет sibling values видимыми даже когда несколько facets имеют один type, например два `FEATURE` facets.
 
 ```sql
 WITH unnested AS (
@@ -868,26 +868,26 @@ SELECT
 FROM counts
 ```
 
-`FILTER` predicate is generated per request from active facet IDs:
-- include all active product-level facet booleans
-- for each row's `m.facet_id`, skip only its own boolean via `(m.facet_id = :currentFacetId OR passes_f_<facetId>)`
-- never branch only by `facet_type`
+`FILTER` predicate генерируется per request из active facet IDs:
+- включить все active product-level facet booleans
+- для `m.facet_id` текущей строки пропустить только свой boolean через `(m.facet_id = :currentFacetId OR passes_f_<facetId>)`
+- никогда не branch only by `facet_type`
 
-**OPTION facet counts (variant-correct):** compute from `variant_search_index`, but return `COUNT(DISTINCT product_id)`.
-Facet isolation still applies by `facet_id`: to compute counts for one OPTION facet, omit only that facet's option predicate, but keep:
-- all active product-level filters (`TAG/FEATURE/STATUS`)
-- all other active OPTION predicates
-- variant-bound `price` and `in_stock` predicates
+**OPTION facet counts (variant-correct):** вычислять из `variant_search_index`, но возвращать `COUNT(DISTINCT product_id)`.
+Facet isolation все равно применяется по `facet_id`: для counts одного OPTION facet опускается только option predicate этого facet, но сохраняются:
+- все active product-level filters (`TAG/FEATURE/STATUS`)
+- все остальные active OPTION predicates
+- variant-bound `price` и `in_stock` predicates
 
-**Configured values only:** counts and value lists are built solely from enabled `facet_value` rows. Any source value without a `facet_value` mapping is ignored.
+**Только configured values:** counts и value lists строятся только из enabled `facet_value` rows. Любое source value без `facet_value` mapping игнорируется.
 
-**Step 3: Price range, in-stock count, and total (with facet isolation)**
+**Step 3: Price range, in-stock count и total с facet isolation**
 
-Total count uses all active filters.
+Total count использует все active filters.
 
-For correctness with OPTION filters, `PRICE` and `IN_STOCK` aggregations should be computed from `variant_search_index`, scoped to the eligible product set:
-- `PRICE` range: exclude the price predicate (facet isolation), keep all other active filters (product-level + OPTION + in_stock).
-- `IN_STOCK` count: exclude the in_stock predicate (facet isolation), keep all other active filters (product-level + OPTION + price).
+Для корректности с OPTION filters, aggregations `PRICE` и `IN_STOCK` должны вычисляться из `variant_search_index`, scoped to eligible product set:
+- `PRICE` range: исключить price predicate (facet isolation), сохранить все остальные active filters (product-level + OPTION + in_stock).
+- `IN_STOCK` count: исключить in_stock predicate (facet isolation), сохранить все остальные active filters (product-level + OPTION + price).
 
 ```sql
 SELECT
@@ -896,39 +896,39 @@ SELECT
 FROM base
 ```
 
-**Why this works:**
-- Single sequential scan of `product_search_index` (base CTE materialized once)
-- When variant filters are active: one scan of `variant_search_index` to materialize `passes_variant_products`
-- `FILTER (WHERE ...)` is a Postgres aggregate clause — no subqueries, no extra scans
-- Facet isolation: omit one boolean per facet **ID** from the FILTER conjunction
-- When no facet filters are active, all `passes_X` columns are absent and FILTER clauses are omitted — degenerates to plain `COUNT(*)`
-- Cost: each facet adds 1 boolean column + 1 COUNT column
+**Почему это работает:**
+- Один sequential scan `product_search_index`, base CTE materialized один раз.
+- Когда variant filters активны: один scan `variant_search_index`, чтобы materialize `passes_variant_products`.
+- `FILTER (WHERE ...)` - Postgres aggregate clause: без subqueries и дополнительных scans.
+- Facet isolation: из FILTER conjunction пропускается один boolean на facet **ID**.
+- Когда facet filters не активны, все `passes_X` columns отсутствуют и FILTER clauses опускаются - это превращается в обычный `COUNT(*)`.
+- Cost: каждый facet добавляет 1 boolean column + 1 COUNT column.
 
-#### 5.3.2 Merged value deduplication
+#### 5.3.2 Дедупликация объединенных values
 
-For discrete facets (`TAG`/`FEATURE`/`OPTION`), counts are grouped by `facet_value.id` **after** mapping source values to `facet_value`, using `COUNT(DISTINCT product_id)`. This prevents double-counting when a product has multiple source slugs that map to the same display value. Values without a `facet_value` mapping are excluded from results.
+Для discrete facets (`TAG`/`FEATURE`/`OPTION`) counts группируются по `facet_value.id` **после** mapping source values в `facet_value`, используя `COUNT(DISTINCT product_id)`. Это предотвращает double-counting, когда у товара несколько source slugs мапятся на одно display value. Values без `facet_value` mapping исключаются из results.
 
-#### 5.3.3 Assembly
+#### 5.3.3 Сборка результата
 
-The aggregated data is assembled using the project's `facet` setup:
-- Which facets to include (only those defined in `facet`)
-- Order and grouping (via `facet_group`)
-- UI type and selection mode
-- Facet inclusion is decided from the base set (no user filters): hide a facet only if the base set has fewer distinct configured values with `count > 0` than `min_values`
-- Value lists for `TAG`/`FEATURE`/`OPTION` are derived from enabled `facet_value` rows and remain stable; values with `count = 0` stay in the list (typically rendered disabled)
-- `PRICE` is assembled from computed `priceRange` (no `facet_value` list)
-- `IN_STOCK` is assembled from computed boolean counts (no `facet_value` list)
-- Value count limits (`max_values_visible`)
-- Labels from `facet_value_translation` (no source fallback)
-- Slugs from `facet.slug` and (for discrete facets) `facet_value.slug` (for `FacetResult.slug` and `FacetResultValue.slug`)
+Aggregated data собирается с учетом project `facet` setup:
+- Какие facets включать, только определенные в `facet`.
+- Порядок и группировка через `facet_group`.
+- UI type и selection mode.
+- Facet inclusion решается по base set без user filters: скрывать facet только если в base set меньше distinct configured values с `count > 0`, чем `min_values`.
+- Value lists для `TAG`/`FEATURE`/`OPTION` выводятся из enabled `facet_value` rows и остаются стабильными; values с `count = 0` остаются в списке, обычно disabled.
+- `PRICE` собирается из computed `priceRange`, без `facet_value` list.
+- `IN_STOCK` собирается из computed boolean counts, без `facet_value` list.
+- Value count limits (`max_values_visible`).
+- Labels из `facet_value_translation`, без source fallback.
+- Slugs из `facet.slug` и, для discrete facets, `facet_value.slug`, для `FacetResult.slug` и `FacetResultValue.slug`.
 
 ---
 
-## 6. File Structure — New & Modified
+## 6. Структура файлов - новые и измененные файлы
 
-### New files
+### Новые файлы
 
-```
+```text
 src/repositories/models/
   searchIndex.ts                        # product_search_index
   variantSearchIndex.ts                 # variant_search_index
@@ -1009,9 +1009,9 @@ src/api/graphql-admin/schema/
   facet.graphql
 ```
 
-### Modified files
+### Измененные файлы
 
-```
+```text
 src/repositories/models/index.ts           # export new model files
 src/repositories/models/categories.ts      # add lexo_rank to product_category; add default_sort to category
 src/repositories/models/features.ts        # add slug to product_feature and product_feature_value
@@ -1031,9 +1031,9 @@ src/resolvers/admin/MutationResolver.ts    # wire new collection/facet mutations
 
 ---
 
-## 7. GraphQL Schema
+## 7. GraphQL-схема
 
-### 7.1 Category extensions (in `category.graphql`)
+### 7.1 Расширения Category в `category.graphql`
 
 ```graphql
 # Add to Category type:
@@ -1041,7 +1041,7 @@ defaultSort: ProductSortBy!
 defaultSortDirection: SortDirection!
 seo: Seo
 
-"""Category products with sorting, filtering, and pagination."""
+"""Товары категории с сортировкой, фильтрацией и pagination."""
 categoryProducts(
   first: Int
   after: String
@@ -1077,7 +1077,7 @@ type CategoryUpdateSortPayload { category: Category, userErrors: [GenericUserErr
 #   seo: SeoInput
 ```
 
-### 7.2 Collection (in `collection.graphql`)
+### 7.2 Collection в `collection.graphql`
 
 ```graphql
 type Collection implements Node @key(fields: "id") {
@@ -1172,14 +1172,14 @@ input CollectionUpdateRulesInput { collectionId: ID!, rules: [CollectionRuleInpu
 input CollectionRuleInput { field: String!, operator: String!, value: JSON! }
 ```
 
-`CollectionCreateInput.defaultSort` is optional with type-aware defaults:
-- `type=MANUAL` -> default to `MANUAL`
-- `type=RULE` -> default to `NEWEST`
+`CollectionCreateInput.defaultSort` optional и имеет type-aware defaults:
+- `type=MANUAL` -> default `MANUAL`
+- `type=RULE` -> default `NEWEST`
 
-`CollectionUpdateInput.defaultSort` must be validated against collection type:
-- `RULE` collections cannot use `MANUAL`
+`CollectionUpdateInput.defaultSort` должен валидироваться против collection type:
+- `RULE` collections не могут использовать `MANUAL`
 
-### 7.3 Facets (in `facet.graphql`)
+### 7.3 Facets в `facet.graphql`
 
 ```graphql
 type FacetGroup implements Node {
@@ -1195,7 +1195,7 @@ type FacetGroup implements Node {
 type Facet implements Node {
   id: ID!
   facetType: FacetType!
-  """For TAG/FEATURE/OPTION: derived from distinct source keys in facet_value_source_handle. Empty for PRICE, IN_STOCK."""
+  """Для TAG/FEATURE/OPTION: выводится из distinct source keys в facet_value_source_handle. Empty для PRICE, IN_STOCK."""
   sourceHandles: [String!]!
   slug: String!
   label: String!
@@ -1268,13 +1268,13 @@ type FacetSwatchUpdatePayload { facetSwatch: FacetSwatch, userErrors: [GenericUs
 type FacetSwatchDeletePayload { deletedFacetSwatchId: ID, userErrors: [GenericUserError!]! }
 ```
 
-### 7.4 Shared types
+### 7.4 Общие типы
 
 ```graphql
 """
-Generic SEO and Open Graph metadata. Used by Category, Collection, and Product.
-Replaces the old per-entity SEO types (ProductSeo is kept as alias for backward compatibility).
-Locale is resolved from the request context header — no locale argument on the field.
+Generic SEO and Open Graph metadata. Используется Category, Collection и Product.
+Заменяет старые per-entity SEO types; ProductSeo сохраняется как alias для backward compatibility.
+Locale резолвится из request context header, без locale argument на field.
 """
 type Seo {
   seoTitle: String
@@ -1292,7 +1292,7 @@ input SeoInput {
   ogImageId: ID
 }
 
-"""Backward compatibility — existing Product.seo returns this. Same shape as Seo."""
+"""Backward compatibility: existing Product.seo returns this. Same shape as Seo."""
 type ProductSeo {
   seoTitle: String
   seoDescription: String
@@ -1310,27 +1310,27 @@ enum SortDirection { ASC DESC }
 
 input ProductFiltersInput {
   """
-  Unified facet filters. Format: 'facetSlug:valueSlug'.
-  Works for ALL discrete facet types (tag, feature, option) — resolved via facet.slug + facet_value.slug (see §3.4).
-  Multiple values for the same facetSlug are combined using OR (overlap).
-  Different facetSlugs are always AND-ed together.
+  Unified facet filters. Формат: 'facetSlug:valueSlug'.
+  Работает для всех discrete facet types (tag, feature, option), резолвится через facet.slug + facet_value.slug, см. §3.4.
+  Несколько values для одного facetSlug комбинируются через OR (overlap).
+  Разные facetSlugs всегда AND-ed together.
   """
   facets: [String!]
   """
   Range facet filters.
-  Phase 1 supports only the `price` facetSlug.
-  Price can also be passed via the shorthand priceMinMinor/priceMaxMinor fields.
-  All price fields are in store base currency minor units.
+  Phase 1 поддерживает только `price` facetSlug.
+  Price также можно передавать через shorthand поля priceMinMinor/priceMaxMinor.
+  Все price fields в minor units base currency магазина.
   """
   ranges: [FacetRangeFilterInput!]
-  """Shorthand for price range filter. Equivalent to ranges: [{ facetSlug: "price", min: X, max: Y }]."""
+  """Shorthand для price range filter. Эквивалент ranges: [{ facetSlug: "price", min: X, max: Y }]."""
   priceMinMinor: BigInt
   priceMaxMinor: BigInt
   inStock: Boolean
 }
 
 input FacetRangeFilterInput {
-  """Slug of the RANGE-type facet. In Phase 1 only 'price' is valid."""
+  """Slug RANGE-type facet. В Phase 1 валиден только 'price'."""
   facetSlug: String!
   min: BigInt
   max: BigInt
@@ -1344,7 +1344,7 @@ input ProductSortInput {
 enum ProductSortBy { MANUAL PRICE NEWEST NAME }
 
 
-"""Computed facet results for a product listing page."""
+"""Computed facet results для страницы product listing."""
 type Facets {
   priceRange: PriceRange
   groups: [FacetResultGroup!]!
@@ -1358,7 +1358,7 @@ type FacetResultGroup {
 
 type FacetResult {
   facetType: FacetType!
-  """Facet slug — used in filter inputs as the facetSlug part of 'facetSlug:valueSlug'."""
+  """Facet slug: используется в filter inputs как facetSlug часть 'facetSlug:valueSlug'."""
   slug: String!
   label: String!
   uiType: FacetUIType!
@@ -1368,11 +1368,11 @@ type FacetResult {
 }
 
 type FacetResultValue {
-  """Value slug — used in filter inputs as the valueSlug part of 'facetSlug:valueSlug'."""
+  """Value slug: используется в filter inputs как valueSlug часть 'facetSlug:valueSlug'."""
   slug: String!
   label: String
   count: Int!
-  """Swatch from FacetSwatch. Present only when facet_value has a swatch override."""
+  """Swatch из FacetSwatch. Присутствует только когда у facet_value есть swatch override."""
   swatch: FacetSwatch
 }
 
@@ -1382,7 +1382,7 @@ type PriceRange {
 }
 ```
 
-### 7.5 CatalogQuery / CatalogMutation additions (in `base.graphql`)
+### 7.5 Добавления CatalogQuery / CatalogMutation в `base.graphql`
 
 ```graphql
 # CatalogQuery:
@@ -1439,24 +1439,24 @@ categoryUpdateSort(input: CategoryUpdateSortInput!): CategoryUpdateSortPayload!
 
 ---
 
-## 8. Ordering Algorithm
+## 8. Алгоритм упорядочивания
 
-Same lexo_rank approach for both category products and collection items.
+Одинаковый подход `lexo_rank` для товаров категории и collection items.
 
 **Manual sort:** `ORDER BY lexo_rank ASC`
 
-**Alternative sorts:** `JOIN product_search_index` for price/created_at; `JOIN product_translation` for name (locale-aware). lexo_rank preserved for switching back to manual.
-All non-manual sorts must include deterministic tie-breaker `product_id ASC` for stable Relay pagination.
+**Alternative sorts:** `JOIN product_search_index` для price/created_at; `JOIN product_translation` для name, locale-aware. `lexo_rank` сохраняется для переключения обратно на manual.
+Все non-manual sorts должны включать deterministic tie-breaker `product_id ASC` для стабильной Relay pagination.
 
 **Drag & drop:** `newRank = midpoint(afterRank, beforeRank)`, single row UPDATE.
 
-**Rebalance:** When any lexo_rank exceeds 48 chars, reassign evenly spaced ranks across all items.
+**Rebalance:** когда любой `lexo_rank` становится длиннее 48 chars, ranks всех items переназначаются равномерно.
 
 ---
 
-## 9. Collection Rule Evaluation
+## 9. Вычисление правил коллекции
 
-Rules in `collection_rule` are evaluated primarily against `product_search_index`, with variant-correct handling for OPTION, `price`, and `in_stock` via `variant_search_index`:
+Rules в `collection_rule` вычисляются в первую очередь относительно `product_search_index`, с variant-correct обработкой OPTION, `price` и `in_stock` через `variant_search_index`:
 
 ```sql
 -- Compilation model:
@@ -1546,15 +1546,15 @@ WHERE psi.project_id = :projectId
 -- All rules AND-ed together
 ```
 
-Rule `value` fields store handles/slugs (not UUIDs): tag handles, composite option/feature slugs, category handles.
+Поля `value` в rules хранят handles/slugs, не UUIDs: tag handles, composite option/feature slugs, category handles.
 
-All rules are AND-ed together.
+Все rules AND-ed together.
 
 ---
 
-## 10. Broker Dependencies
+## 10. Broker-зависимости
 
-One external call:
+Один внешний call:
 
 ```typescript
 broker.call<Inventory.GetOffersResult, Inventory.GetOffersParams>(
@@ -1562,114 +1562,114 @@ broker.call<Inventory.GetOffersResult, Inventory.GetOffersParams>(
 );
 ```
 
-Everything else is local to catalog.
+Все остальное локально для catalog.
 
 ---
 
-## 11. Implementation Order
+## 11. Порядок реализации
 
-### Rollout Contract (mandatory)
+### Rollout contract (обязательно)
 
-`ProductFiltersInput.facets` (`facetSlug:valueSlug`) must not be exposed until facet mapping is fully operational.
+`ProductFiltersInput.facets` (`facetSlug:valueSlug`) нельзя expose, пока facet mapping не работает полностью.
 
 Required atomic rollout slice:
-1. DB + models for `facet`, `facet_value`, `facet_value_source_handle`
-2. Admin CRUD and data population for facet mappings
+1. DB + models для `facet`, `facet_value`, `facet_value_source_handle`
+2. Admin CRUD и наполнение data для facet mappings
 3. Runtime resolver `facetSlug:valueSlug -> source_handle[]`
-4. Listing query integration using resolved source handles
-5. Public GraphQL exposure of `ProductFiltersInput.facets`
+4. Listing query integration с использованием resolved source handles
+5. Public GraphQL exposure `ProductFiltersInput.facets`
 
-Before step 5, keep `facets` behind a feature flag (or omit from public schema).
+До step 5 держать `facets` за feature flag или не включать в public schema.
 
-### Phase 0: Slug Infrastructure
+### Phase 0: инфраструктура slug
 
-`product_option` and `product_option_value` already have `slug` columns. `category` and `tag` already have `handle` columns. Only features need slugs added.
+У `product_option` и `product_option_value` уже есть columns `slug`. У `category` и `tag` уже есть columns `handle`. Slugs нужно добавить только для features.
 
-**Current `product_feature` columns:** `id`, `project_id`, `product_id`, `index` (int[]), `is_group`, `parent_id`. No slug.
-**Current `product_feature_value` columns:** `id`, `project_id`, `feature_id`, `index` (int). No slug.
+**Текущие columns `product_feature`:** `id`, `project_id`, `product_id`, `index` (int[]), `is_group`, `parent_id`. Slug отсутствует.
+**Текущие columns `product_feature_value`:** `id`, `project_id`, `feature_id`, `index` (int). Slug отсутствует.
 
-1. **Add `slug` column to `product_feature`:**
+1. **Добавить column `slug` в `product_feature`:**
    ```sql
    ALTER TABLE catalog.product_feature
      ADD COLUMN slug varchar(255) NOT NULL;
    CREATE UNIQUE INDEX product_feature_product_id_slug_uniq
      ON catalog.product_feature (product_id, slug);
    ```
-   Same pattern as `product_option.slug` — unique per product.
+   Тот же pattern, что `product_option.slug`: unique per product.
 
-2. **Add `slug` column to `product_feature_value`:**
+2. **Добавить column `slug` в `product_feature_value`:**
    ```sql
    ALTER TABLE catalog.product_feature_value
      ADD COLUMN slug varchar(255) NOT NULL;
    CREATE UNIQUE INDEX product_feature_value_feature_id_slug_uniq
      ON catalog.product_feature_value (feature_id, slug);
    ```
-   Same pattern as `product_option_value.slug` — unique per feature.
+   Тот же pattern, что `product_option_value.slug`: unique per feature.
 
-3. **Add slug validation utility** — shared helper to validate slug format (`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`). Note: regex allows single-char slugs (e.g., "s", "m", "l" for sizes).
+3. **Добавить slug validation utility** - shared helper для validation slug format (`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`). Note: regex разрешает single-char slugs, например "s", "m", "l" для sizes.
 
-4. **Backfill existing feature slugs** — one-time migration for legacy rows:
-   - Slugs for existing records are generated only for migration bootstrap.
-   - Runtime create/update remains frontend-provided slug only.
-   - **Collision handling:** append `-2`, `-3`, etc. within the same parent scope.
-   - Run as a one-time data migration after the schema migration.
+4. **Backfill existing feature slugs** - one-time migration для legacy rows:
+   - Slugs для существующих records генерируются только для migration bootstrap.
+   - Runtime create/update остается frontend-provided slug only.
+   - **Collision handling:** добавлять `-2`, `-3` и т.д. в том же parent scope.
+   - Запустить как one-time data migration после schema migration.
 
-5. **Update Drizzle models** — add `slug` to `productFeature` and `productFeatureValue` in `src/repositories/models/features.ts`
+5. **Обновить Drizzle models** - добавить `slug` в `productFeature` и `productFeatureValue` в `src/repositories/models/features.ts`.
 
-6. **Update feature CRUD scripts** — require `slug` on create, allow update. Validate format and uniqueness.
+6. **Обновить feature CRUD scripts** - требовать `slug` при create, разрешить update. Валидировать format и uniqueness.
 
-7. **Generate & apply migration**
+7. **Сгенерировать и применить migration**
 
 ### Phase 1A: Search Index + Category Products
 
-1. **Drizzle models:** `searchIndex.ts` — product_search_index
-2. **Drizzle models:** `variantSearchIndex.ts` — variant_search_index
-3. **Alter `product_category`:** add `lexo_rank`, backfill from `sortIndex`, switch reads/writes to `lexo_rank`, then drop `sortIndex`
-4. **Alter `category`:** add `default_sort`, `default_sort_direction`
-5. **Category SEO:** add `category_seo` model + TranslationRepository + loader/resolver wiring
-6. **Generate migration**
-7. **SearchIndexRepository** — upsert, delete, base listing predicates
-8. **VariantSearchIndexRepository** — upsert, delete, variant predicate helpers
-9. **SyncProductIndexScript** — build index row from local data
-10. **SyncVariantIndexScript** — upsert per-variant rows from local data + inventory broker
+1. **Drizzle models:** `searchIndex.ts` - product_search_index
+2. **Drizzle models:** `variantSearchIndex.ts` - variant_search_index
+3. **Alter `product_category`:** добавить `lexo_rank`, backfill из `sortIndex`, переключить reads/writes на `lexo_rank`, затем удалить `sortIndex`
+4. **Alter `category`:** добавить `default_sort`, `default_sort_direction`
+5. **Category SEO:** добавить model `category_seo` + TranslationRepository + loader/resolver wiring
+6. **Сгенерировать migration**
+7. **SearchIndexRepository** - upsert, delete, base listing predicates
+8. **VariantSearchIndexRepository** - upsert, delete, variant predicate helpers
+9. **SyncProductIndexScript** - build index row from local data
+10. **SyncVariantIndexScript** - upsert per-variant rows from local data + inventory broker
 11. **Event handlers**:
-    - productCreated → sync both indexes for the full product
-    - productUpdated → sync both indexes using changed product + changed variants from partial payload
-    - productDeleted → delete from both indexes
+    - productCreated -> sync both indexes for the full product
+    - productUpdated -> sync both indexes using changed product + changed variants from partial payload
+    - productDeleted -> delete from both indexes
 12. **Category product scripts:** QueryCategoryProductsScript, CategoryMoveProductScript, CategoryRebalanceScript, CategoryUpdateSortScript
-13. **Listing query foundation:** apply OPTION + `price` + `in_stock` via `variant_search_index` EXISTS/CTE; keep TAG/FEATURE/STATUS product-level
+13. **Listing query foundation:** apply OPTION + `price` + `in_stock` через `variant_search_index` EXISTS/CTE; оставить TAG/FEATURE/STATUS product-level
 14. **GraphQL:** extend Category type, add category product + sort/SEO mutations
 15. **Resolvers & loaders**
-16. **Build & test**
-17. **Run one-time backfill/rebuild scripts for both indexes before enabling listing queries**
-18. **Regenerate GraphQL admin generated types/resolver signatures and fix compile errors**
+16. **Build**
+17. **Запустить one-time backfill/rebuild scripts для обоих indexes перед включением listing queries**
+18. **Regenerate GraphQL admin generated types/resolver signatures и исправить compile errors**
 
-### Phase 1B: Facets
+### Phase 1B: фасеты
 
 1. **Drizzle models:** `facet.ts`
-2. **Generate migration**
+2. **Сгенерировать migration**
 3. **Facet repositories:** FacetGroupRepository, FacetRepository, FacetValueRepository, FacetSwatchRepository
 4. **Facet scripts:** FacetGroup CRUD, Facet CRUD, FacetValue CRUD, FacetSwatch CRUD, ResolveFacetsScript
-5. **Listing integration (required before public `filters.facets`):** switch listing facet resolution/counting to configured `facet`/`facet_value` mappings, including `facetSlug:valueSlug -> source_handle[]` resolution
+5. **Listing integration, требуется до public `filters.facets`:** переключить listing facet resolution/counting на configured `facet`/`facet_value` mappings, включая `facetSlug:valueSlug -> source_handle[]` resolution
 6. **GraphQL:** facet.graphql (FacetValue + FacetSwatch), add to CatalogQuery/CatalogMutation
 7. **Resolvers & loaders**
-8. **Build & test**
-9. **Regenerate GraphQL admin generated types/resolver signatures and fix compile errors**
+8. **Build**
+9. **Regenerate GraphQL admin generated types/resolver signatures и исправить compile errors**
 
-### Phase 1C: Collections
+### Phase 1C: коллекции
 
 1. **Drizzle models:** `collection.ts`
-2. **Generate migration**
+2. **Сгенерировать migration**
 3. **Collection repositories:** CollectionRepository, CollectionItemRepository, CollectionRuleRepository
 4. **Collection scripts:** CRUD, add/remove/move/rebalance (manual), rules (rule), QueryCollectionProductsScript; implement rule compiler split (`product-level` vs `variant-level`) with single shared `EXISTS` for all variant-level predicates
 5. **GraphQL:** collection.graphql (inputs incl. SEO/media), add to CatalogQuery/CatalogMutation
 6. **Resolvers & loaders**
-7. **Build & test**
-8. **Regenerate GraphQL admin generated types/resolver signatures and fix compile errors**
+7. **Build**
+8. **Regenerate GraphQL admin generated types/resolver signatures и исправить compile errors**
 
 ---
 
-## 12. Reference Files (within Catalog)
+## 12. Reference files внутри Catalog
 
 | Pattern | Reference File |
 |---------|---------------|
