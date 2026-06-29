@@ -15,13 +15,13 @@ import { useFacetCellStyles } from "./facet-cell-styles";
 
 export interface FacetTreeActionsCellParams
   extends ICellRendererParams<FacetGridRow> {
-  hasUnsavedChanges: boolean;
+  hasUnsavedChanges?: boolean;
   onEdit: (row: FacetGridRow) => void;
   onCreateValue: (row: FacetGridRow) => void;
-  onLinkSourceValues: (row: FacetGridRow) => void;
+  onLinkSourceValues?: (row: FacetGridRow) => void;
   onDuplicate: (row: FacetGridRow) => void;
   onDelete: (row: FacetGridRow) => void;
-  onBlockedDelete: () => void;
+  onBlockedDelete?: () => void;
 }
 
 export function FacetTreeActionsCell(params: FacetTreeActionsCellParams) {
@@ -31,7 +31,7 @@ export function FacetTreeActionsCell(params: FacetTreeActionsCellParams) {
     return null;
   }
 
-  const deleteDisabled = params.hasUnsavedChanges;
+  const deleteDisabled = params.hasUnsavedChanges ?? false;
   const items: MenuProps["items"] = [
     {
       key: "edit",
@@ -85,14 +85,14 @@ export function FacetTreeActionsCell(params: FacetTreeActionsCellParams) {
               params.onCreateValue(row);
             }
             if (key === "link-source-values") {
-              params.onLinkSourceValues(row);
+              params.onLinkSourceValues?.(row);
             }
             if (key === "duplicate") {
               params.onDuplicate(row);
             }
             if (key === "delete") {
               if (deleteDisabled) {
-                params.onBlockedDelete();
+                params.onBlockedDelete?.();
                 return;
               }
               params.onDelete(row);

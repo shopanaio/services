@@ -4,11 +4,7 @@ import { useCallback } from "react";
 import { App } from "antd";
 import type { ApiGenericUserError } from "@/graphql/types";
 import type { FacetGridFields } from "../graphql/operation-types";
-import {
-  apiFacetsToFacetGridRows,
-  mapFacetOrderEditsToInputs,
-  type FacetGridRow,
-} from "../mappers";
+import { mapFacetOrderEditsToInputs } from "../mappers";
 import type {
   FacetOrderEdit,
   FacetOrderRowId,
@@ -18,7 +14,6 @@ import { useUpdateFacetValue } from "./use-update-facet-value";
 
 interface UseSaveFacetOrderOptions {
   refetchFacets: () => Promise<FacetGridFields[]>;
-  resetRowsFromServer: (nextRows: FacetGridRow[]) => void;
   onSaved: () => void;
 }
 
@@ -38,7 +33,6 @@ function getUnexpectedError(error: unknown): ApiGenericUserError {
 
 export function useSaveFacetOrder({
   refetchFacets,
-  resetRowsFromServer,
   onSaved,
 }: UseSaveFacetOrderOptions) {
   const { message } = App.useApp();
@@ -82,8 +76,7 @@ export function useSaveFacetOrder({
           }
         }
 
-        const freshFacets = await refetchFacets();
-        resetRowsFromServer(apiFacetsToFacetGridRows(freshFacets));
+        await refetchFacets();
         message.success("Facet order saved.");
         onSaved();
         return { ok: true, rowErrors: {}, submitErrors: [] };
@@ -93,7 +86,7 @@ export function useSaveFacetOrder({
         return { ok: false, rowErrors: {}, submitErrors: [submitError] };
       }
     },
-    [message, onSaved, refetchFacets, resetRowsFromServer, updateFacet, updateFacetValue],
+    [message, onSaved, refetchFacets, updateFacet, updateFacetValue],
   );
 
   return { saveFacetOrder };

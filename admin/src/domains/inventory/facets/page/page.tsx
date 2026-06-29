@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, App, Button, Flex, Typography } from "antd";
 import { PlusOutlined, RetweetOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
@@ -8,42 +8,30 @@ import { AgGridReact } from "ag-grid-react";
 import {
   AllCommunityModule,
   CellClickedEvent,
-  CellEditRequestEvent,
   ColDef,
   GetRowIdParams,
   GridStateModule,
-  ICellRendererParams,
   ModuleRegistry,
 } from "ag-grid-community";
 import { DataLayout } from "@/layouts/data";
 import { FilterWidget, useFilters } from "@/layouts/filters";
-import { FloatingPanelStack } from "@/ui-kit/floating-panel-stack";
-import type { PanelConfig } from "@/ui-kit/floating-panel-stack/data-page/floating-panel-stack";
 import { useAgGridTheme } from "@/hooks";
 import {
-  FacetBooleanCell,
   FacetLinkedSourcesCell,
-  FacetSelectCell,
-  FacetSwatchCell,
+  FacetNameCell,
   FacetTreeActionsCell,
-  FacetTreeNameCell,
+  FacetValuesCell,
 } from "../components";
 import {
   useDeleteFacet,
   useDeleteFacetValue,
-  useFacetGridEditStore,
   useFacets,
-  useFacetTreeRows,
-  useSaveFacetGridEdits,
-  type FacetGridEditableField,
 } from "../hooks";
 import {
   apiFacetsToFacetGridRows,
   getMaxRootSortIndex,
   getNextValueSortIndex,
   isDiscreteFacetType,
-  mergeFacetGridRowsWithEdits,
-  normalizeSourceHandles,
   type FacetGridRow,
 } from "../mappers";
 import {
@@ -52,7 +40,6 @@ import {
   useEditFacetModal,
   useEditFacetOrderModal,
   useEditFacetValueModal,
-  useLinkSourceValuesModal,
 } from "../modals";
 import { filterSchema } from "./filter-schema";
 import { filterFacetGridRows } from "./page-config";
@@ -90,10 +77,6 @@ const useStyles = createStyles(({ token }) => ({
       },
     },
   },
-  errorPanel: {
-    width: 520,
-    maxWidth: "calc(100vw - 48px)",
-  },
 }));
 
 function shouldIgnoreRowClick(event: CellClickedEvent<FacetGridRow>): boolean {
@@ -109,34 +92,6 @@ function shouldIgnoreRowClick(event: CellClickedEvent<FacetGridRow>): boolean {
   );
 }
 
-function getOriginalValue(
-  originalRow: FacetGridRow | undefined,
-  field: FacetGridEditableField,
-) {
-  if (!originalRow) {
-    return null;
-  }
-
-  switch (field) {
-    case "facet.label":
-    case "value.label":
-      return originalRow.name;
-    case "facet.slug":
-    case "value.slug":
-      return originalRow.slug ?? null;
-    case "facet.uiType":
-      return originalRow.uiType ?? null;
-    case "facet.selectionMode":
-      return originalRow.selectionMode ?? null;
-    case "value.enabled":
-      return originalRow.enabled ?? null;
-    case "value.sourceHandles":
-      return originalRow.sourceHandles ?? [];
-    case "value.swatchId":
-      return originalRow.swatchId ?? null;
-  }
-}
-
 export default function FacetsPage() {
   const { styles } = useStyles();
   const agGridTheme = useAgGridTheme();
@@ -147,26 +102,6 @@ export default function FacetsPage() {
     schema: filterSchema,
   });
 
-  const {
-    fieldEdits,
-    rowErrors,
-    submitErrors,
-    status,
-    setFieldValue,
-    discardAll,
-  } = useFacetGridEditStore();
-  const hasUnsavedChanges = Object.keys(fieldEdits).length > 0;
-  const changesCount = Object.values(fieldEdits).reduce(
-    (count, rowEdits) => count + Object.keys(rowEdits ?? {}).length,
-    0,
-  );
-  const firstStoredError =
-    submitErrors[0] ?? Object.values(rowErrors).flat()[0] ?? null;
-  const rowErrorCount = Object.values(rowErrors).reduce(
-    (count, errors) => count + (errors?.length ?? 0),
-    0,
-  );
-
   const { facets, loading, error, refetch } = useFacets();
   const { deleteFacet } = useDeleteFacet();
   const { deleteFacetValue } = useDeleteFacetValue();
@@ -175,113 +110,26 @@ export default function FacetsPage() {
   const { push: openEditFacetOrderModal } = useEditFacetOrderModal();
   const { push: openCreateFacetValueModal } = useCreateFacetValueModal();
   const { push: openEditFacetValueModal } = useEditFacetValueModal();
-  const { push: openLinkSourceValuesModal } = useLinkSourceValuesModal();
 
   const baseRows = useMemo(() => apiFacetsToFacetGridRows(facets), [facets]);
-  const displayRows = useMemo(
-    () => mergeFacetGridRowsWithEdits(baseRows, fieldEdits),
-    [baseRows, fieldEdits],
-  );
   const filteredRows = useMemo(
-    () => filterFacetGridRows(displayRows, { searchValue, filters }),
-    [displayRows, filters, searchValue],
+    () => filterFacetGridRows(baseRows, { searchValue, filters }),
+    [baseRows, filters, searchValue],
   );
-
-  const {
-    allRows,
-    visibleRows,
-    expandedIds,
-    handleToggleExpand,
-    resetRowsFromServer: resetTreeRowsFromServer,
-    getRowClass,
-  } = useFacetTreeRows(filteredRows);
-
-  const resetFilteredRowsFromServer = useCallback(
-    (nextRows: FacetGridRow[]) => {
-      const nextFilteredRows = filterFacetGridRows(nextRows, {
-        searchValue,
-        filters,
-      });
-      resetTreeRowsFromServer(nextFilteredRows);
-    },
-    [filters, resetTreeRowsFromServer, searchValue],
+  const tableRows = useMemo(
+    () => filteredRows.filter((row) => row.type === "facet"),
+    [filteredRows],
   );
 
   const refetchAndReset = useCallback(async () => {
-    const freshFacets = await refetch();
-    const freshRows = apiFacetsToFacetGridRows(freshFacets);
-    resetFilteredRowsFromServer(freshRows);
-  }, [refetch, resetFilteredRowsFromServer]);
-
-  const { saveFacetGridEdits, discardFacetGridEdits } =
-    useSaveFacetGridEdits({
-      refetchFacets: refetch,
-      resetRowsFromServer: resetFilteredRowsFromServer,
-    });
-
-  useEffect(() => {
-    return () => {
-      discardAll();
-    };
-  }, [discardAll]);
+    await refetch();
+  }, [refetch]);
 
   const getRowId = useCallback(
     (params: GetRowIdParams<FacetGridRow>) => params.data.id,
     [],
   );
-
-  const findOriginalRow = useCallback(
-    (rowId: string) => baseRows.find((row) => row.id === rowId),
-    [baseRows],
-  );
-
-  const setRowFieldValue = useCallback(
-    (
-      row: FacetGridRow,
-      field: FacetGridEditableField,
-      currentValue: string | number | boolean | string[] | null,
-    ) => {
-      setFieldValue(
-        row.id,
-        field,
-        getOriginalValue(findOriginalRow(row.id), field),
-        currentValue,
-      );
-    },
-    [findOriginalRow, setFieldValue],
-  );
-
-  const handleCellEditRequest = useCallback(
-    (event: CellEditRequestEvent<FacetGridRow>) => {
-      const row = event.data;
-      if (!row || !["name", "slug"].includes(String(event.colDef.field))) {
-        return;
-      }
-
-      const nextValue = String(event.newValue ?? "").trim();
-      if (!nextValue) {
-        message.error(
-          event.colDef.field === "name"
-            ? "Label is required."
-            : "Slug is required.",
-        );
-        return;
-      }
-
-      setRowFieldValue(
-        row,
-        row.type === "facet"
-          ? event.colDef.field === "name"
-            ? "facet.label"
-            : "facet.slug"
-          : event.colDef.field === "name"
-            ? "value.label"
-            : "value.slug",
-        nextValue,
-      );
-    },
-    [message, setRowFieldValue],
-  );
+  const getRowClass = useCallback(() => "row-group", []);
 
   const openCreateValueForFacet = useCallback(
     (row: FacetGridRow) => {
@@ -303,28 +151,6 @@ export default function FacetsPage() {
       });
     },
     [baseRows, message, openCreateFacetValueModal, refetchAndReset],
-  );
-
-  const handleOpenLinkSourceValues = useCallback(
-    (row: FacetGridRow) => {
-      if (row.type !== "value" || !row.apiId) {
-        return;
-      }
-
-      openLinkSourceValuesModal({
-        valueId: row.apiId,
-        valueLabel: row.name,
-        sourceHandles: row.sourceHandles ?? [],
-        onSave: (sourceHandles: string[]) => {
-          setRowFieldValue(
-            row,
-            "value.sourceHandles",
-            normalizeSourceHandles(sourceHandles),
-          );
-        },
-      });
-    },
-    [openLinkSourceValuesModal, setRowFieldValue],
   );
 
   const handleRowEdit = useCallback(
@@ -398,11 +224,6 @@ export default function FacetsPage() {
         return;
       }
 
-      if (hasUnsavedChanges) {
-        message.warning("Save or discard changes before deleting.");
-        return;
-      }
-
       modal.confirm({
         title: `Delete ${row.type === "facet" ? "facet" : "facet value"}?`,
         content: row.name,
@@ -432,7 +253,6 @@ export default function FacetsPage() {
     [
       deleteFacet,
       deleteFacetValue,
-      hasUnsavedChanges,
       message,
       modal,
       refetchAndReset,
@@ -449,69 +269,33 @@ export default function FacetsPage() {
     [handleRowEdit],
   );
 
-  const handleDiscard = useCallback(() => {
-    discardFacetGridEdits(
-      filterFacetGridRows(baseRows, {
-        searchValue,
-        filters,
-      }),
-    );
-  }, [baseRows, discardFacetGridEdits, filters, searchValue]);
-
   const columnDefs = useMemo<ColDef<FacetGridRow>[]>(
     () => [
       {
         field: "name",
-        headerName: "Facet / Value",
+        headerName: "Facet",
         flex: 2,
         minWidth: 320,
-        editable: true,
-        cellRenderer: FacetTreeNameCell,
+        cellRenderer: FacetNameCell,
+      },
+      {
+        headerName: "Display type",
+        minWidth: 150,
+        valueGetter: ({ data }) => data?.uiType ?? "",
+      },
+      {
+        headerName: "Selection mode",
+        minWidth: 150,
+        valueGetter: ({ data }) => data?.selectionMode ?? "",
+      },
+      {
+        headerName: "Values",
+        minWidth: 240,
+        flex: 2,
+        cellRenderer: FacetValuesCell,
         cellRendererParams: {
-          expandedIds,
-          onToggleExpand: handleToggleExpand,
-          allRows,
-        },
-      },
-      {
-        headerName: "Source",
-        minWidth: 120,
-        valueGetter: ({ data }) =>
-          data?.type === "facet" ? data.facetType : "value",
-      },
-      {
-        field: "slug",
-        headerName: "Slug",
-        minWidth: 180,
-        flex: 1,
-        editable: true,
-      },
-      {
-        headerName: "UI / Status",
-        minWidth: 230,
-        cellRenderer: (params: ICellRendererParams<FacetGridRow>) => {
-          if (params.data?.type === "facet") {
-            return (
-              <FacetSelectCell
-                {...params}
-                onUiTypeChange={(row, value) => {
-                  setRowFieldValue(row, "facet.uiType", value);
-                }}
-                onSelectionModeChange={(row, value) => {
-                  setRowFieldValue(row, "facet.selectionMode", value);
-                }}
-              />
-            );
-          }
-
-          return (
-            <FacetBooleanCell
-              {...params}
-              onEnabledChange={(row, value) =>
-                setRowFieldValue(row, "value.enabled", value)
-              }
-            />
-          );
+          allRows: baseRows,
+          onEditValue: handleRowEdit,
         },
       },
       {
@@ -519,14 +303,6 @@ export default function FacetsPage() {
         minWidth: 170,
         flex: 1,
         cellRenderer: FacetLinkedSourcesCell,
-        cellRendererParams: {
-          onLinkSourceValues: handleOpenLinkSourceValues,
-        },
-      },
-      {
-        headerName: "Swatch",
-        minWidth: 140,
-        cellRenderer: FacetSwatchCell,
       },
       {
         headerName: "",
@@ -534,14 +310,10 @@ export default function FacetsPage() {
         pinned: "right",
         cellRenderer: FacetTreeActionsCell,
         cellRendererParams: {
-          hasUnsavedChanges,
           onEdit: handleRowEdit,
           onCreateValue: openCreateValueForFacet,
-          onLinkSourceValues: handleOpenLinkSourceValues,
           onDuplicate: handleDuplicate,
           onDelete: handleDelete,
-          onBlockedDelete: () =>
-            message.warning("Save or discard changes before deleting."),
         },
         sortable: false,
         filter: false,
@@ -549,17 +321,11 @@ export default function FacetsPage() {
       },
     ],
     [
-      allRows,
-      expandedIds,
+      baseRows,
       handleDelete,
       handleDuplicate,
-      handleOpenLinkSourceValues,
       handleRowEdit,
-      handleToggleExpand,
-      hasUnsavedChanges,
-      message,
       openCreateValueForFacet,
-      setRowFieldValue,
     ],
   );
 
@@ -572,50 +338,6 @@ export default function FacetsPage() {
     }),
     [],
   );
-
-  const panels = useMemo<PanelConfig[]>(() => {
-    const result: PanelConfig[] = [];
-
-    if (firstStoredError && hasUnsavedChanges) {
-      result.push({
-        type: "custom",
-        id: "facet-submit-errors",
-        render: () => (
-          <Alert
-            className={styles.errorPanel}
-            type="error"
-            showIcon
-            message={firstStoredError.message}
-            description={
-              rowErrorCount > 0 ? `${rowErrorCount} row error(s)` : undefined
-            }
-          />
-        ),
-      });
-    }
-
-    if (hasUnsavedChanges) {
-      result.push({
-        type: "editing",
-        changesCount,
-        hasChanges: true,
-        saving: status === "saving",
-        onSave: saveFacetGridEdits,
-        onCancel: handleDiscard,
-      });
-    }
-
-    return result;
-  }, [
-    changesCount,
-    firstStoredError,
-    handleDiscard,
-    hasUnsavedChanges,
-    rowErrorCount,
-    saveFacetGridEdits,
-    status,
-    styles.errorPanel,
-  ]);
 
   const filterWidgetProps = useMemo(
     () => ({
@@ -642,7 +364,6 @@ export default function FacetsPage() {
               openEditFacetOrderModal({
                 rows: baseRows,
                 refetchFacets: refetch,
-                resetRowsFromServer: resetFilteredRowsFromServer,
               })
             }
           >
@@ -689,7 +410,7 @@ export default function FacetsPage() {
           <AgGridReact<FacetGridRow>
             ref={gridRef}
             theme={agGridTheme}
-            rowData={visibleRows}
+            rowData={tableRows}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
             getRowId={getRowId}
@@ -697,18 +418,14 @@ export default function FacetsPage() {
             rowHeight={56}
             loading={loading}
             suppressMovableColumns
-            readOnlyEdit
-            onCellEditRequest={handleCellEditRequest}
+            suppressCellFocus
             onCellClicked={handleCellClicked}
-            stopEditingWhenCellsLoseFocus
           />
         </div>
-        {!loading && visibleRows.length === 0 ? (
+        {!loading && tableRows.length === 0 ? (
           <Typography.Text type="secondary">No facets found</Typography.Text>
         ) : null}
       </div>
-
-      <FloatingPanelStack panels={panels} />
     </DataLayout>
   );
 }

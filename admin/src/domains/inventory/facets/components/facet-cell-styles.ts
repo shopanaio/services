@@ -61,6 +61,27 @@ export const useFacetCellStyles = createStyles(({ token }) => ({
     gap: 6,
     minWidth: 0,
   },
+  valuesCell: {
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+    minWidth: 0,
+    overflow: "hidden",
+  },
+  valueTag: {
+    maxWidth: 120,
+    marginInlineEnd: 0,
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+    overflow: "hidden",
+    "& .ant-typography": {
+      maxWidth: "100%",
+    },
+  },
+  disabledValueText: {
+    color: token.colorTextDisabled,
+  },
   controlsCell: {
     display: "flex",
     alignItems: "center",

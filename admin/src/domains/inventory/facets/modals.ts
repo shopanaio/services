@@ -41,7 +41,6 @@ export interface IEditFacetModalPayload extends IModalStackPayload {
 export interface IEditFacetOrderModalPayload extends IModalStackPayload {
   rows: FacetGridRow[];
   refetchFacets: () => Promise<FacetGridFields[]>;
-  resetRowsFromServer: (rows: FacetGridRow[]) => void;
 }
 
 export interface ICreateFacetValueModalPayload extends IModalStackPayload {

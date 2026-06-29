@@ -107,7 +107,6 @@ export function EditFacetOrderModal() {
 
   const { saveFacetOrder } = useSaveFacetOrder({
     refetchFacets: typedPayload.refetchFacets,
-    resetRowsFromServer: typedPayload.resetRowsFromServer,
     onSaved: pop,
   });
 
@@ -145,12 +144,6 @@ export function EditFacetOrderModal() {
           onToggleExpand: handleToggleExpand,
           allRows,
         },
-      },
-      {
-        headerName: "Source",
-        minWidth: 120,
-        valueGetter: ({ data }) =>
-          data?.type === "facet" ? data.facetType : "value",
       },
     ],
     [allRows, expandedIds, handleToggleExpand],

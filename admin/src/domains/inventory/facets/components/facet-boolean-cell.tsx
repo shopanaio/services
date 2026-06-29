@@ -1,4 +1,4 @@
-import { Switch, Tag } from "antd";
+import { Switch } from "antd";
 import type { ICellRendererParams } from "ag-grid-community";
 import type { FacetGridRow } from "../mappers";
 import { useFacetCellStyles } from "./facet-cell-styles";
@@ -23,9 +23,6 @@ export function FacetBooleanCell(params: FacetBooleanCellParams) {
         onClick={(_, event) => event.stopPropagation()}
         onChange={(checked) => params.onEnabledChange(row, checked)}
       />
-      <Tag color={row.enabled ? "success" : "default"}>
-        {row.enabled ? "enabled" : "disabled"}
-      </Tag>
     </div>
   );
 }

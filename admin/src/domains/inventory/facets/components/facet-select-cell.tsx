@@ -20,7 +20,7 @@ export interface FacetSelectCellParams
   ) => void;
 }
 
-export function FacetSelectCell(params: FacetSelectCellParams) {
+export function FacetDisplayTypeCell(params: FacetSelectCellParams) {
   const { styles } = useFacetCellStyles();
   const row = params.data;
   if (!row || row.type !== "facet" || !row.facetType) {
@@ -28,8 +28,6 @@ export function FacetSelectCell(params: FacetSelectCellParams) {
   }
 
   const allowedUiTypes = getAllowedFacetUiTypes(row.facetType);
-  const selectionDisabled =
-    row.uiType === FacetUiType.Range || row.uiType === FacetUiType.Boolean;
 
   return (
     <div className={styles.controlsCell} data-stop-row-click>
@@ -53,6 +51,22 @@ export function FacetSelectCell(params: FacetSelectCellParams) {
           }
         }}
       />
+    </div>
+  );
+}
+
+export function FacetSelectionModeCell(params: FacetSelectCellParams) {
+  const { styles } = useFacetCellStyles();
+  const row = params.data;
+  if (!row || row.type !== "facet" || !row.facetType) {
+    return null;
+  }
+
+  const selectionDisabled =
+    row.uiType === FacetUiType.Range || row.uiType === FacetUiType.Boolean;
+
+  return (
+    <div className={styles.controlsCell} data-stop-row-click>
       <Select
         size="small"
         value={row.selectionMode}

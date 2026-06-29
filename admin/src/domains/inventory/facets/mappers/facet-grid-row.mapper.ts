@@ -5,13 +5,9 @@ import type {
   FacetGridFields,
   FacetValueGridFields,
 } from "../graphql/operation-types";
-import type {
-  FacetGridEditableField,
-  FacetGridEditStore,
-  FacetGridRowId,
-} from "../hooks/use-facet-grid-edit-store";
 
 export type FacetGridRowType = "facet" | "value";
+export type FacetGridRowId = `${FacetGridRowType}:${string}`;
 
 export interface FacetGridRow extends ITreeTableRow {
   id: FacetGridRowId;
@@ -115,67 +111,6 @@ export function apiFacetsToFacetGridRows(
   return [...facets]
     .sort((left, right) => left.sortIndex - right.sortIndex)
     .flatMap(getFacetRows);
-}
-
-function getCurrentValue(
-  edits: Partial<Record<FacetGridEditableField, { currentValue: unknown }>>,
-  field: FacetGridEditableField,
-) {
-  return edits[field]?.currentValue;
-}
-
-export function mergeFacetGridRowsWithEdits(
-  rows: FacetGridRow[],
-  fieldEdits: FacetGridEditStore["fieldEdits"],
-): FacetGridRow[] {
-  return rows.map((row) => {
-    const edits = fieldEdits[row.id];
-    if (!edits) {
-      return row;
-    }
-
-    if (row.type === "facet") {
-      return {
-        ...row,
-        name:
-          (getCurrentValue(edits, "facet.label") as string | undefined) ??
-          row.name,
-        slug:
-          (getCurrentValue(edits, "facet.slug") as string | undefined) ??
-          row.slug,
-        uiType:
-          (getCurrentValue(edits, "facet.uiType") as
-            | FacetGridRow["uiType"]
-            | undefined) ?? row.uiType,
-        selectionMode:
-          (getCurrentValue(edits, "facet.selectionMode") as
-            | FacetGridRow["selectionMode"]
-            | undefined) ?? row.selectionMode,
-      };
-    }
-
-    const nextSourceHandles =
-      (getCurrentValue(edits, "value.sourceHandles") as string[] | undefined) ??
-      row.sourceHandles;
-
-    return {
-      ...row,
-      name:
-        (getCurrentValue(edits, "value.label") as string | undefined) ??
-        row.name,
-      slug:
-        (getCurrentValue(edits, "value.slug") as string | undefined) ??
-        row.slug,
-      enabled:
-        (getCurrentValue(edits, "value.enabled") as boolean | undefined) ??
-        row.enabled,
-      sourceHandles: nextSourceHandles,
-      linkedSourceHandlesCount: nextSourceHandles?.length ?? 0,
-      swatchId:
-        (getCurrentValue(edits, "value.swatchId") as string | null | undefined) ??
-        row.swatchId,
-    };
-  });
 }
 
 export function getMaxRootSortIndex(rows: FacetGridRow[]): number {

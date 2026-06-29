@@ -7,8 +7,6 @@ export * from "./use-delete-facet";
 export * from "./use-create-facet-value";
 export * from "./use-update-facet-value";
 export * from "./use-delete-facet-value";
-export * from "./use-save-facet-grid-edits";
 export * from "./use-save-facet-order";
-export * from "./use-facet-grid-edit-store";
 export * from "./use-facet-tree-rows";
 export * from "./use-facet-order-tree-rows";

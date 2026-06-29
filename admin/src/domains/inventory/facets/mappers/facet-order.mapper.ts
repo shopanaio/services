@@ -2,8 +2,10 @@ import type {
   ApiFacetUpdateInput,
   ApiFacetValueUpdateInput,
 } from "@/graphql/types";
-import type { FacetGridRowId } from "../hooks/use-facet-grid-edit-store";
-import { getApiIdFromFacetGridRowId } from "./facet-grid-row.mapper";
+import {
+  getApiIdFromFacetGridRowId,
+  type FacetGridRowId,
+} from "./facet-grid-row.mapper";
 
 export type FacetOrderRowId = FacetGridRowId;
 
