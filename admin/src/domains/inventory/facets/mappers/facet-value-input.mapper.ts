@@ -28,6 +28,25 @@ export function normalizeSourceHandles(sourceHandles: string[]): string[] {
   return result;
 }
 
+export function getDuplicateSourceHandles(sourceHandles: string[]): string[] {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+
+  for (const rawHandle of sourceHandles) {
+    const handle = rawHandle.trim();
+    if (!handle) {
+      continue;
+    }
+    if (seen.has(handle)) {
+      duplicates.add(handle);
+      continue;
+    }
+    seen.add(handle);
+  }
+
+  return [...duplicates];
+}
+
 export function normalizeFacetValueSlug(value: string): string {
   return slugify(value.trim());
 }

@@ -13,6 +13,7 @@ import {
 } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
+  getDuplicateSourceHandles,
   mapFacetUserErrorsToFormErrors,
   mapFacetValueFormToCreateInput,
   normalizeSourceHandles,
@@ -83,6 +84,14 @@ export function CreateFacetValueModal() {
 
   const onSubmit = useCallback(
     async (values: CreateFacetValueFormValues) => {
+      const duplicateHandles = getDuplicateSourceHandles(values.sourceHandles);
+      if (duplicateHandles.length > 0) {
+        setError("sourceHandles", {
+          message: `Duplicate source handles: ${duplicateHandles.join(", ")}`,
+        });
+        return;
+      }
+
       const sourceHandles = normalizeSourceHandles(values.sourceHandles);
       if (sourceHandles.length === 0) {
         setError("sourceHandles", {

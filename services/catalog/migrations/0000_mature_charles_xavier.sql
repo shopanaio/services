@@ -1,4 +1,4 @@
-CREATE SCHEMA "catalog";
+CREATE SCHEMA IF NOT EXISTS "catalog";
 --> statement-breakpoint
 CREATE TYPE "catalog"."product_kind" AS ENUM('BASE', 'BUNDLE');--> statement-breakpoint
 CREATE TYPE "catalog"."currency" AS ENUM('UAH', 'USD', 'EUR');--> statement-breakpoint

@@ -4,44 +4,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RowDragEndEvent, RowDragEnterEvent } from "ag-grid-community";
 import type { FacetGridRow } from "../mappers";
 import type { FacetOrderEdit } from "../mappers/facet-order.mapper";
+import {
+  buildFacetVisibleRows,
+  getExpandedFacetIds,
+  getFacetRowClass,
+} from "./facet-flat-tree";
 
 interface UseFacetOrderTreeRowsOptions {
   initialRows: FacetGridRow[];
   onFacetOrderEdit: (rowId: string, edit: FacetOrderEdit) => void;
   onInvalidMove: (message: string) => void;
   valueDragMode?: "disabled";
-}
-
-function getExpandedFacetIds(rows: FacetGridRow[]): Set<string> {
-  return new Set(
-    rows.filter((row) => row.type === "facet").map((row) => row.id),
-  );
-}
-
-function buildVisibleRows(
-  rows: FacetGridRow[],
-  expandedIds: Set<string>,
-): FacetGridRow[] {
-  const result: FacetGridRow[] = [];
-  const facets = rows
-    .filter((row) => row.type === "facet" && row.parentId === null)
-    .sort((left, right) => left.sortIndex - right.sortIndex);
-
-  for (const facet of facets) {
-    result.push(facet);
-
-    if (!expandedIds.has(facet.id)) {
-      continue;
-    }
-
-    result.push(
-      ...rows
-        .filter((row) => row.parentId === facet.id)
-        .sort((left, right) => left.sortIndex - right.sortIndex),
-    );
-  }
-
-  return result;
 }
 
 export function useFacetOrderTreeRows({
@@ -64,7 +37,7 @@ export function useFacetOrderTreeRows({
   }, [initialRows]);
 
   const visibleRows = useMemo(
-    () => buildVisibleRows(allRows, expandedIds),
+    () => buildFacetVisibleRows(allRows, expandedIds),
     [allRows, expandedIds],
   );
 
@@ -177,12 +150,7 @@ export function useFacetOrderTreeRows({
     setExpandedIds(getExpandedFacetIds(nextRows));
   }, []);
 
-  const getRowClass = useCallback((params: { data: FacetGridRow | undefined }) => {
-    if (!params.data) {
-      return "";
-    }
-    return params.data.type === "facet" ? "row-group" : "row-child";
-  }, []);
+  const getRowClass = useCallback(getFacetRowClass, []);
 
   return {
     allRows,

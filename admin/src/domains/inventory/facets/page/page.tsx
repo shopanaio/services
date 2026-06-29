@@ -254,19 +254,29 @@ export default function FacetsPage() {
   const handleCellEditRequest = useCallback(
     (event: CellEditRequestEvent<FacetGridRow>) => {
       const row = event.data;
-      if (!row || event.colDef.field !== "name") {
+      if (!row || !["name", "slug"].includes(String(event.colDef.field))) {
         return;
       }
 
       const nextValue = String(event.newValue ?? "").trim();
       if (!nextValue) {
-        message.error("Label is required.");
+        message.error(
+          event.colDef.field === "name"
+            ? "Label is required."
+            : "Slug is required.",
+        );
         return;
       }
 
       setRowFieldValue(
         row,
-        row.type === "facet" ? "facet.label" : "value.label",
+        row.type === "facet"
+          ? event.colDef.field === "name"
+            ? "facet.label"
+            : "facet.slug"
+          : event.colDef.field === "name"
+            ? "value.label"
+            : "value.slug",
         nextValue,
       );
     },
@@ -468,6 +478,13 @@ export default function FacetsPage() {
         minWidth: 120,
         valueGetter: ({ data }) =>
           data?.type === "facet" ? data.facetType : "value",
+      },
+      {
+        field: "slug",
+        headerName: "Slug",
+        minWidth: 180,
+        flex: 1,
+        editable: true,
       },
       {
         headerName: "UI / Status",

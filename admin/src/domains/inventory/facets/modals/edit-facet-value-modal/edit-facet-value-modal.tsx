@@ -24,6 +24,7 @@ import {
 } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
+  getDuplicateSourceHandles,
   mapFacetUserErrorsToFormErrors,
   mapFacetValueFormToUpdateInput,
   normalizeSourceHandles,
@@ -111,6 +112,14 @@ export function EditFacetValueModal() {
   const onSubmit = useCallback(
     async (values: EditFacetValueFormValues) => {
       if (!facetValue) {
+        return;
+      }
+
+      const duplicateHandles = getDuplicateSourceHandles(values.sourceHandles);
+      if (duplicateHandles.length > 0) {
+        setError("sourceHandles", {
+          message: `Duplicate source handles: ${duplicateHandles.join(", ")}`,
+        });
         return;
       }
 

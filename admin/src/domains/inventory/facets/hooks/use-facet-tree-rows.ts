@@ -2,36 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FacetGridRow } from "../mappers";
-
-function getExpandedFacetIds(rows: FacetGridRow[]): Set<string> {
-  return new Set(
-    rows.filter((row) => row.type === "facet").map((row) => row.id),
-  );
-}
-
-function buildVisibleRows(
-  rows: FacetGridRow[],
-  expandedIds: Set<string>,
-): FacetGridRow[] {
-  const result: FacetGridRow[] = [];
-  const rootRows = rows
-    .filter((row) => row.parentId === null)
-    .sort((left, right) => left.sortIndex - right.sortIndex);
-
-  for (const row of rootRows) {
-    result.push(row);
-
-    if (expandedIds.has(row.id)) {
-      result.push(
-        ...rows
-          .filter((candidate) => candidate.parentId === row.id)
-          .sort((left, right) => left.sortIndex - right.sortIndex),
-      );
-    }
-  }
-
-  return result;
-}
+import {
+  buildFacetVisibleRows,
+  getExpandedFacetIds,
+  getFacetRowClass,
+} from "./facet-flat-tree";
 
 export function useFacetTreeRows(initialRows: FacetGridRow[]) {
   const [allRows, setAllRows] = useState<FacetGridRow[]>(initialRows);
@@ -59,7 +34,7 @@ export function useFacetTreeRows(initialRows: FacetGridRow[]) {
   }, [initialRows]);
 
   const visibleRows = useMemo(
-    () => buildVisibleRows(allRows, expandedIds),
+    () => buildFacetVisibleRows(allRows, expandedIds),
     [allRows, expandedIds],
   );
 
@@ -92,12 +67,7 @@ export function useFacetTreeRows(initialRows: FacetGridRow[]) {
     setExpandedIds(getExpandedFacetIds(nextRows));
   }, []);
 
-  const getRowClass = useCallback((params: { data: FacetGridRow | undefined }) => {
-    if (!params.data) {
-      return "";
-    }
-    return params.data.type === "facet" ? "row-group" : "row-child";
-  }, []);
+  const getRowClass = useCallback(getFacetRowClass, []);
 
   return {
     allRows,

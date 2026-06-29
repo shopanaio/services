@@ -11,7 +11,10 @@ import {
   useModalStackContext,
 } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { normalizeSourceHandles } from "../../mappers";
+import {
+  getDuplicateSourceHandles,
+  normalizeSourceHandles,
+} from "../../mappers";
 import type { ILinkSourceValuesModalPayload } from "../../modals";
 import {
   linkSourceValuesSchema,
@@ -42,6 +45,14 @@ export function LinkSourceValuesModal() {
 
   const onSubmit = useCallback(
     async (values: LinkSourceValuesFormValues) => {
+      const duplicateHandles = getDuplicateSourceHandles(values.sourceHandles);
+      if (duplicateHandles.length > 0) {
+        setError("sourceHandles", {
+          message: `Duplicate source handles: ${duplicateHandles.join(", ")}`,
+        });
+        return;
+      }
+
       const handles = normalizeSourceHandles(values.sourceHandles);
       if (handles.length === 0) {
         setError("sourceHandles", {
