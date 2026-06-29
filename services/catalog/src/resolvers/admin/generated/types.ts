@@ -1056,6 +1056,10 @@ export type CatalogMutation = {
   facetGroupDelete: FacetGroupDeletePayload;
   /** Update an existing facet group */
   facetGroupUpdate: FacetGroupUpdatePayload;
+  /** Move a facet before or after another facet. */
+  facetMove: FacetMovePayload;
+  /** Rebalance facet lexo ranks. */
+  facetRebalance: FacetRebalancePayload;
   /** Create a new facet swatch */
   facetSwatchCreate: FacetSwatchCreatePayload;
   /** Delete a facet swatch */
@@ -1253,6 +1257,16 @@ export type CatalogMutationFacetGroupDeleteArgs = {
 
 export type CatalogMutationFacetGroupUpdateArgs = {
   input: FacetGroupUpdateInput;
+};
+
+
+export type CatalogMutationFacetMoveArgs = {
+  input: FacetMoveInput;
+};
+
+
+export type CatalogMutationFacetRebalanceArgs = {
+  input: FacetRebalanceInput;
 };
 
 
@@ -2521,9 +2535,9 @@ export type Facet = Node & {
   group: Maybe<FacetGroup>;
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
+  lexoRank: Scalars['String']['output'];
   selectionMode: FacetSelectionMode;
   slug: Scalars['String']['output'];
-  sortIndex: Scalars['Int']['output'];
   sourceHandles: Array<Scalars['String']['output']>;
   uiType: FacetUiType;
   values: Array<FacetValue>;
@@ -2535,7 +2549,6 @@ export type FacetCreateInput = {
   label: Scalars['String']['input'];
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug: Scalars['String']['input'];
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
   uiType?: InputMaybe<FacetUiType>;
 };
 
@@ -2595,6 +2608,28 @@ export type FacetGroupUpdateInput = {
 export type FacetGroupUpdatePayload = {
   __typename?: 'FacetGroupUpdatePayload';
   facetGroup: Maybe<FacetGroup>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type FacetMoveInput = {
+  afterFacetId?: InputMaybe<Scalars['ID']['input']>;
+  beforeFacetId?: InputMaybe<Scalars['ID']['input']>;
+  id: Scalars['ID']['input'];
+};
+
+export type FacetMovePayload = {
+  __typename?: 'FacetMovePayload';
+  facet: Maybe<Facet>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type FacetRebalanceInput = {
+  confirm?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type FacetRebalancePayload = {
+  __typename?: 'FacetRebalancePayload';
+  facets: Array<Facet>;
   userErrors: Array<GenericUserError>;
 };
 
@@ -2674,7 +2709,6 @@ export type FacetUpdateInput = {
   label?: InputMaybe<Scalars['String']['input']>;
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug?: InputMaybe<Scalars['String']['input']>;
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
   uiType?: InputMaybe<FacetUiType>;
 };
 
@@ -5974,6 +6008,10 @@ export type ResolversTypes = ResolversObject<{
   FacetGroupDeletePayload: ResolverTypeWrapper<FacetGroupDeletePayload>;
   FacetGroupUpdateInput: FacetGroupUpdateInput;
   FacetGroupUpdatePayload: ResolverTypeWrapper<FacetGroupUpdatePayload>;
+  FacetMoveInput: FacetMoveInput;
+  FacetMovePayload: ResolverTypeWrapper<FacetMovePayload>;
+  FacetRebalanceInput: FacetRebalanceInput;
+  FacetRebalancePayload: ResolverTypeWrapper<FacetRebalancePayload>;
   FacetSelectionMode: FacetSelectionMode;
   FacetSwatch: ResolverTypeWrapper<FacetSwatch>;
   FacetSwatchCreateInput: FacetSwatchCreateInput;
@@ -6341,6 +6379,10 @@ export type ResolversParentTypes = ResolversObject<{
   FacetGroupDeletePayload: FacetGroupDeletePayload;
   FacetGroupUpdateInput: FacetGroupUpdateInput;
   FacetGroupUpdatePayload: FacetGroupUpdatePayload;
+  FacetMoveInput: FacetMoveInput;
+  FacetMovePayload: FacetMovePayload;
+  FacetRebalanceInput: FacetRebalanceInput;
+  FacetRebalancePayload: FacetRebalancePayload;
   FacetSwatch: FacetSwatch;
   FacetSwatchCreateInput: FacetSwatchCreateInput;
   FacetSwatchCreatePayload: FacetSwatchCreatePayload;
@@ -6913,6 +6955,8 @@ export type CatalogMutationResolvers<ContextType = ServiceContext, ParentType ex
   facetGroupCreate?: Resolver<ResolversTypes['FacetGroupCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetGroupCreateArgs, 'input'>>;
   facetGroupDelete?: Resolver<ResolversTypes['FacetGroupDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetGroupDeleteArgs, 'input'>>;
   facetGroupUpdate?: Resolver<ResolversTypes['FacetGroupUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetGroupUpdateArgs, 'input'>>;
+  facetMove?: Resolver<ResolversTypes['FacetMovePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetMoveArgs, 'input'>>;
+  facetRebalance?: Resolver<ResolversTypes['FacetRebalancePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetRebalanceArgs, 'input'>>;
   facetSwatchCreate?: Resolver<ResolversTypes['FacetSwatchCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetSwatchCreateArgs, 'input'>>;
   facetSwatchDelete?: Resolver<ResolversTypes['FacetSwatchDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetSwatchDeleteArgs, 'input'>>;
   facetSwatchUpdate?: Resolver<ResolversTypes['FacetSwatchUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetSwatchUpdateArgs, 'input'>>;
@@ -7175,9 +7219,9 @@ export type FacetResolvers<ContextType = ServiceContext, ParentType extends Reso
   group?: Resolver<Maybe<ResolversTypes['FacetGroup']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  lexoRank?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   selectionMode?: Resolver<ResolversTypes['FacetSelectionMode'], ParentType, ContextType>;
   slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   sourceHandles?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   uiType?: Resolver<ResolversTypes['FacetUIType'], ParentType, ContextType>;
   values?: Resolver<Array<ResolversTypes['FacetValue']>, ParentType, ContextType>;
@@ -7220,6 +7264,18 @@ export type FacetGroupDeletePayloadResolvers<ContextType = ServiceContext, Paren
 
 export type FacetGroupUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetGroupUpdatePayload'] = ResolversParentTypes['FacetGroupUpdatePayload']> = ResolversObject<{
   facetGroup?: Resolver<Maybe<ResolversTypes['FacetGroup']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetMovePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetMovePayload'] = ResolversParentTypes['FacetMovePayload']> = ResolversObject<{
+  facet?: Resolver<Maybe<ResolversTypes['Facet']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetRebalancePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetRebalancePayload'] = ResolversParentTypes['FacetRebalancePayload']> = ResolversObject<{
+  facets?: Resolver<Array<ResolversTypes['Facet']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -8110,6 +8166,8 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   FacetGroupCreatePayload?: FacetGroupCreatePayloadResolvers<ContextType>;
   FacetGroupDeletePayload?: FacetGroupDeletePayloadResolvers<ContextType>;
   FacetGroupUpdatePayload?: FacetGroupUpdatePayloadResolvers<ContextType>;
+  FacetMovePayload?: FacetMovePayloadResolvers<ContextType>;
+  FacetRebalancePayload?: FacetRebalancePayloadResolvers<ContextType>;
   FacetSwatch?: FacetSwatchResolvers<ContextType>;
   FacetSwatchCreatePayload?: FacetSwatchCreatePayloadResolvers<ContextType>;
   FacetSwatchDeletePayload?: FacetSwatchDeletePayloadResolvers<ContextType>;

@@ -124,6 +124,8 @@ import {
   FacetCreateScript,
   FacetUpdateScript,
   FacetDeleteScript,
+  FacetMoveScript,
+  FacetRebalanceScript,
   FacetValueCreateScript,
   FacetValueUpdateScript,
   FacetValueDeleteScript,
@@ -1892,7 +1894,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       uiType?: "CHECKBOX" | "RADIO" | "DROPDOWN" | "RANGE" | "BOOLEAN" | null;
       selectionMode?: "SINGLE" | "MULTI" | null;
       groupId?: string | null;
-      sortIndex?: number | null;
     };
   }) {
     const groupId = args.input.groupId
@@ -1905,7 +1906,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       uiType: args.input.uiType?.toLowerCase(),
       selectionMode: args.input.selectionMode?.toLowerCase(),
       groupId,
-      sortIndex: args.input.sortIndex ?? undefined,
     });
 
     return {
@@ -1922,7 +1922,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       uiType?: "CHECKBOX" | "RADIO" | "DROPDOWN" | "RANGE" | "BOOLEAN" | null;
       selectionMode?: "SINGLE" | "MULTI" | null;
       groupId?: string | null;
-      sortIndex?: number | null;
     };
   }) {
     const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.Facet);
@@ -1944,7 +1943,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       uiType: args.input.uiType?.toLowerCase(),
       selectionMode: args.input.selectionMode?.toLowerCase(),
       groupId,
-      sortIndex: args.input.sortIndex ?? undefined,
     });
 
     return {
@@ -1967,6 +1965,62 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     return {
       deletedFacetId: result.deletedFacetId ? args.input.id : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async facetMove(args: {
+    input: {
+      id: string;
+      afterFacetId?: string | null;
+      beforeFacetId?: string | null;
+    };
+  }) {
+    const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.Facet);
+    if (!id) {
+      return {
+        facet: null,
+        userErrors: [{ message: "Invalid facet ID", field: ["input", "id"], code: "INVALID_ID" }],
+      };
+    }
+
+    const afterFacetId = args.input.afterFacetId
+      ? safeDecodeGlobalId(args.input.afterFacetId, GlobalIdEntity.Facet)
+      : undefined;
+    if (args.input.afterFacetId && !afterFacetId) {
+      return {
+        facet: null,
+        userErrors: [{ message: "Invalid after facet ID", field: ["input", "afterFacetId"], code: "INVALID_ID" }],
+      };
+    }
+
+    const beforeFacetId = args.input.beforeFacetId
+      ? safeDecodeGlobalId(args.input.beforeFacetId, GlobalIdEntity.Facet)
+      : undefined;
+    if (args.input.beforeFacetId && !beforeFacetId) {
+      return {
+        facet: null,
+        userErrors: [{ message: "Invalid before facet ID", field: ["input", "beforeFacetId"], code: "INVALID_ID" }],
+      };
+    }
+
+    const result = await this.$ctx.kernel.runScript(FacetMoveScript, {
+      id,
+      afterFacetId,
+      beforeFacetId,
+    });
+
+    return {
+      facet: result.facet ? new FacetResolver(result.facet.id, this.$ctx) : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async facetRebalance(_args: { input: { confirm?: boolean | null } }) {
+    const result = await this.$ctx.kernel.runScript(FacetRebalanceScript, {});
+
+    return {
+      facets: result.facets.map((facet) => new FacetResolver(facet.id, this.$ctx)),
       userErrors: result.userErrors,
     };
   }

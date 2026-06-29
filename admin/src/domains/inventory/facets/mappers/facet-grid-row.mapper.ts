@@ -21,6 +21,7 @@ export interface FacetGridRow extends ITreeTableRow {
   facetType?: FacetGridFields["facetType"];
   uiType?: FacetGridFields["uiType"];
   selectionMode?: FacetGridFields["selectionMode"];
+  lexoRank?: string;
   valuesCount?: number;
   enabledValuesCount?: number;
   linkedSourceHandlesCount?: number;
@@ -50,7 +51,7 @@ export function isDiscreteFacetType(type: FacetType | undefined): boolean {
   );
 }
 
-function getFacetRows(facet: FacetGridFields): FacetGridRow[] {
+function getFacetRows(facet: FacetGridFields, sortIndex: number): FacetGridRow[] {
   const facetRowId = toFacetRowId(facet.id);
   const shouldRenderValues = isDiscreteFacetType(facet.facetType);
   const sortedValues = shouldRenderValues
@@ -67,7 +68,8 @@ function getFacetRows(facet: FacetGridFields): FacetGridRow[] {
     type: "facet",
     parentId: null,
     level: 0,
-    sortIndex: facet.sortIndex,
+    sortIndex,
+    lexoRank: facet.lexoRank,
     name: facet.label,
     slug: facet.slug,
     facetType: facet.facetType,
@@ -109,8 +111,11 @@ export function apiFacetsToFacetGridRows(
   facets: FacetGridFields[],
 ): FacetGridRow[] {
   return [...facets]
-    .sort((left, right) => left.sortIndex - right.sortIndex)
-    .flatMap(getFacetRows);
+    .sort((left, right) => {
+      const rank = left.lexoRank.localeCompare(right.lexoRank);
+      return rank === 0 ? left.id.localeCompare(right.id) : rank;
+    })
+    .flatMap((facet, index) => getFacetRows(facet, index));
 }
 
 export function getMaxRootSortIndex(rows: FacetGridRow[]): number {

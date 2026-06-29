@@ -48,7 +48,6 @@ test.describe('Facet API', () => {
           uiType: 'DROPDOWN',
           selectionMode: 'SINGLE',
           groupId,
-          sortIndex: 5,
         },
       },
     });
@@ -62,7 +61,7 @@ test.describe('Facet API', () => {
     expect(result.facet?.label).toBe('Color');
     expect(result.facet?.uiType).toBe('DROPDOWN');
     expect(result.facet?.selectionMode).toBe('SINGLE');
-    expect(result.facet?.sortIndex).toBe(5);
+    expect(result.facet?.lexoRank).toBeTruthy();
     expect(result.facet?.group?.id).toBe(groupId);
   });
 
@@ -313,7 +312,6 @@ test.describe('Facet API', () => {
           uiType: 'DROPDOWN',
           selectionMode: 'SINGLE',
           groupId,
-          sortIndex: 10,
         },
       },
     });
@@ -326,7 +324,7 @@ test.describe('Facet API', () => {
     expect(result.facet?.uiType).toBe('DROPDOWN');
     expect(result.facet?.selectionMode).toBe('SINGLE');
     expect(result.facet?.group?.id).toBe(groupId);
-    expect(result.facet?.sortIndex).toBe(10);
+    expect(result.facet?.lexoRank).toBeTruthy();
   });
 
   // ═══════════════════════════════════════

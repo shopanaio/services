@@ -50,6 +50,13 @@
       "when": 1782676374294,
       "tag": "0006_chemical_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782771886056,
+      "tag": "0007_amused_stick",
+      "breakpoints": true
     }
   ]
 }

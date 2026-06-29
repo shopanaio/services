@@ -44,7 +44,7 @@ export function normalizeFacetSlug(value: string): string {
 
 export function mapFacetFormToCreateInput(
   values: FacetFormInput,
-  sortIndex?: number,
+  _sortIndex?: number,
 ): ApiFacetCreateInput {
   return {
     label: values.label.trim(),
@@ -53,7 +53,6 @@ export function mapFacetFormToCreateInput(
     uiType: values.uiType,
     selectionMode: FacetSelectionMode.Multi,
     groupId: null,
-    sortIndex,
   };
 }
 

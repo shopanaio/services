@@ -120,14 +120,14 @@ export function EditFacetOrderModal() {
     setSubmitError(null);
     setRowErrors({});
 
-    const result = await saveFacetOrder(orderEdits);
+    const result = await saveFacetOrder(orderEdits, allRows);
     setSaving(false);
 
     if (!result.ok) {
       setRowErrors(result.rowErrors);
       setSubmitError(result.submitErrors[0]?.message ?? null);
     }
-  }, [orderEdits, saveFacetOrder]);
+  }, [allRows, orderEdits, saveFacetOrder]);
 
   const columnDefs = useMemo<ColDef<FacetGridRow>[]>(
     () => [

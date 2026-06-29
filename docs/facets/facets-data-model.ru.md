@@ -60,7 +60,7 @@ DB таблицы:
 - `ui_type` - UI-контрол: `checkbox`, `radio`, `dropdown`, `range`, `boolean`;
 - `selection_mode` - `single` или `multi`;
 - `group_id` - nullable ссылка на группу;
-- `sort_index` - порядок фильтра;
+- `lexo_rank` - порядок фильтра;
 - `slug` - стабильный slug фильтра;
 - translated `label`.
 

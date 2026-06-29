@@ -36,7 +36,7 @@ type Facet implements Node {
   label: String!
   uiType: FacetUIType!
   selectionMode: FacetSelectionMode!
-  sortIndex: Int!
+  lexoRank: String!
   group: FacetGroup
   values: [FacetValue!]!
 }
@@ -83,7 +83,6 @@ input FacetCreateInput {
   selectionMode: FacetSelectionMode
   groupId: ID
   label: String!
-  sortIndex: Int
 }
 
 input FacetUpdateInput {
@@ -93,11 +92,20 @@ input FacetUpdateInput {
   selectionMode: FacetSelectionMode
   groupId: ID
   label: String
-  sortIndex: Int
 }
 
 input FacetDeleteInput {
   id: ID!
+}
+
+input FacetMoveInput {
+  id: ID!
+  afterFacetId: ID
+  beforeFacetId: ID
+}
+
+input FacetRebalanceInput {
+  confirm: Boolean = true
 }
 
 input FacetValueCreateInput {
@@ -172,6 +180,16 @@ type FacetUpdatePayload {
 
 type FacetDeletePayload {
   deletedFacetId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type FacetMovePayload {
+  facet: Facet
+  userErrors: [GenericUserError!]!
+}
+
+type FacetRebalancePayload {
+  facets: [Facet!]!
   userErrors: [GenericUserError!]!
 }
 

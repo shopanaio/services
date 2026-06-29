@@ -5,11 +5,12 @@ import { App } from "antd";
 import type { ApiGenericUserError } from "@/graphql/types";
 import type { FacetGridFields } from "../graphql/operation-types";
 import { mapFacetOrderEditsToInputs } from "../mappers";
+import type { FacetGridRow } from "../mappers";
 import type {
   FacetOrderEdit,
   FacetOrderRowId,
 } from "../mappers/facet-order.mapper";
-import { useUpdateFacet } from "./use-update-facet";
+import { useMoveFacet } from "./use-move-facet";
 import { useUpdateFacetValue } from "./use-update-facet-value";
 
 interface UseSaveFacetOrderOptions {
@@ -36,12 +37,13 @@ export function useSaveFacetOrder({
   onSaved,
 }: UseSaveFacetOrderOptions) {
   const { message } = App.useApp();
-  const { updateFacet } = useUpdateFacet();
+  const { moveFacet } = useMoveFacet();
   const { updateFacetValue } = useUpdateFacetValue();
 
   const saveFacetOrder = useCallback(
     async (
       orderEdits: Partial<Record<FacetOrderRowId, FacetOrderEdit>>,
+      finalRows: FacetGridRow[],
     ): Promise<SaveFacetOrderResult> => {
       if (Object.keys(orderEdits).length === 0) {
         message.info("Facet order is unchanged.");
@@ -49,11 +51,11 @@ export function useSaveFacetOrder({
       }
 
       try {
-        const { facetInputs, facetValueInputs } =
-          mapFacetOrderEditsToInputs(orderEdits);
+        const { facetMoveInputs, facetValueInputs } =
+          mapFacetOrderEditsToInputs(orderEdits, finalRows);
 
-        for (const { rowId, input } of facetInputs) {
-          const result = await updateFacet(input);
+        for (const { rowId, input } of facetMoveInputs) {
+          const result = await moveFacet(input);
           if (result.userErrors.length > 0) {
             message.error(result.userErrors[0].message);
             return {
@@ -86,7 +88,7 @@ export function useSaveFacetOrder({
         return { ok: false, rowErrors: {}, submitErrors: [submitError] };
       }
     },
-    [message, onSaved, refetchFacets, updateFacet, updateFacetValue],
+    [message, moveFacet, onSaved, refetchFacets, updateFacetValue],
   );
 
   return { saveFacetOrder };

@@ -2,6 +2,10 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
 import {
+  LexoRankRepository,
+  type LexoRankMoveResult,
+} from "../LexoRankRepository.js";
+import {
   facet,
   facetTranslation,
   facetValue,
@@ -20,6 +24,16 @@ export interface ResolvedFacetFilterValue {
 }
 
 export class FacetRepository extends BaseRepository {
+  private get facetRankRepository(): LexoRankRepository<Facet> {
+    return new LexoRankRepository<Facet>({
+      findOrderedItems: () => this.findAll(),
+      findItem: ({ itemId }) => this.findById(itemId),
+      updateRank: ({ itemId, lexoRank }) => this.updateFacetRank(itemId, lexoRank),
+      getItemId: (item) => item.id,
+      getLexoRank: (item) => item.lexoRank,
+    });
+  }
+
   private get locale(): string {
     return this.ctx.locale ?? this.ctx.store.defaultLocale;
   }
@@ -47,7 +61,7 @@ export class FacetRepository extends BaseRepository {
       .select()
       .from(facet)
       .where(eq(facet.projectId, this.storeId))
-      .orderBy(asc(facet.sortIndex), asc(facet.id));
+      .orderBy(asc(facet.lexoRank), asc(facet.id));
   }
 
   async findByGroupIds(groupIds: readonly string[]): Promise<Facet[]> {
@@ -58,7 +72,7 @@ export class FacetRepository extends BaseRepository {
       .where(
         and(eq(facet.projectId, this.storeId), inArray(facet.groupId, [...groupIds]))
       )
-      .orderBy(asc(facet.sortIndex), asc(facet.id));
+      .orderBy(asc(facet.lexoRank), asc(facet.id));
   }
 
   async create(data: {
@@ -68,10 +82,11 @@ export class FacetRepository extends BaseRepository {
     uiType?: string;
     selectionMode?: string;
     groupId?: string | null;
-    sortIndex?: number;
+    lexoRank?: string;
   }): Promise<Facet> {
     const id = randomUUID();
     const now = new Date().toISOString();
+    const lexoRank = data.lexoRank ?? (await this.getNextFacetRank());
 
     const insert: NewFacet = {
       id,
@@ -81,7 +96,7 @@ export class FacetRepository extends BaseRepository {
       slug: data.slug,
       uiType: data.uiType ?? "checkbox",
       selectionMode: data.selectionMode ?? "multi",
-      sortIndex: data.sortIndex ?? 0,
+      lexoRank,
       createdAt: now,
       updatedAt: now,
     };
@@ -105,7 +120,7 @@ export class FacetRepository extends BaseRepository {
       uiType?: string;
       selectionMode?: string;
       groupId?: string | null;
-      sortIndex?: number;
+      lexoRank?: string;
     }
   ): Promise<Facet | null> {
     const updates: Partial<NewFacet> = {
@@ -116,7 +131,7 @@ export class FacetRepository extends BaseRepository {
     if (data.uiType !== undefined) updates.uiType = data.uiType;
     if (data.selectionMode !== undefined) updates.selectionMode = data.selectionMode;
     if (data.groupId !== undefined) updates.groupId = data.groupId;
-    if (data.sortIndex !== undefined) updates.sortIndex = data.sortIndex;
+    if (data.lexoRank !== undefined) updates.lexoRank = data.lexoRank;
 
     const rows = await this.connection
       .update(facet)
@@ -140,6 +155,32 @@ export class FacetRepository extends BaseRepository {
     }
 
     return rows[0] ?? null;
+  }
+
+  async updateFacetRank(id: string, lexoRank: string): Promise<Facet | null> {
+    const rows = await this.connection
+      .update(facet)
+      .set({ lexoRank, updatedAt: new Date().toISOString() })
+      .where(and(eq(facet.projectId, this.storeId), eq(facet.id, id)))
+      .returning();
+
+    return rows[0] ?? null;
+  }
+
+  async moveFacetRank(
+    id: string,
+    afterFacetId?: string | null,
+    beforeFacetId?: string | null
+  ): Promise<LexoRankMoveResult<Facet>> {
+    return this.facetRankRepository.move({
+      itemId: id,
+      afterItemId: afterFacetId,
+      beforeItemId: beforeFacetId,
+    });
+  }
+
+  async rebalanceFacetRanks(): Promise<void> {
+    await this.facetRankRepository.rebalance();
   }
 
   async delete(id: string): Promise<boolean> {
@@ -228,5 +269,9 @@ export class FacetRepository extends BaseRepository {
     }
 
     return resolved;
+  }
+
+  private async getNextFacetRank(): Promise<string> {
+    return this.facetRankRepository.getNextRank();
   }
 }

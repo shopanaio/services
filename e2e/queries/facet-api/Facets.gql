@@ -7,7 +7,7 @@ query Facets {
       label
       uiType
       selectionMode
-      sortIndex
+      lexoRank
       sourceHandles
       group {
         id

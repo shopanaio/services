@@ -631,6 +631,16 @@ type CatalogMutation {
   facetDelete(input: FacetDeleteInput!): FacetDeletePayload!
 
   """
+  Move a facet before or after another facet.
+  """
+  facetMove(input: FacetMoveInput!): FacetMovePayload!
+
+  """
+  Rebalance facet lexo ranks.
+  """
+  facetRebalance(input: FacetRebalanceInput!): FacetRebalancePayload!
+
+  """
   Create a new facet value
   """
   facetValueCreate(input: FacetValueCreateInput!): FacetValueCreatePayload!

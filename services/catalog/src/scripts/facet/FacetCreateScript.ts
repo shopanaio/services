@@ -56,7 +56,7 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
       uiType: params.uiType,
       selectionMode: params.selectionMode,
       groupId: params.groupId ?? undefined,
-      sortIndex: params.sortIndex,
+      lexoRank: params.lexoRank,
     });
 
     return { facet, userErrors: [] };

@@ -8,7 +8,7 @@ mutation FacetUpdate($input: FacetUpdateInput!) {
         label
         uiType
         selectionMode
-        sortIndex
+        lexoRank
         sourceHandles
         group {
           id

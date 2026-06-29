@@ -1,13 +1,34 @@
 import { and, asc, count, eq, inArray } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
+  LexoRankRepository,
+  type LexoRankMoveResult,
+} from "../LexoRankRepository.js";
+import {
   collectionItem,
   type CollectionItem,
   type NewCollectionItem,
 } from "../models/index.js";
-import { initialRank, nextRank, rebalanceRanks } from "../../scripts/shared/rank.js";
+import { nextRank } from "../../scripts/shared/rank.js";
 
 export class CollectionItemRepository extends BaseRepository {
+  private get collectionItemRankRepository(): LexoRankRepository<CollectionItem> {
+    return new LexoRankRepository<CollectionItem>({
+      findOrderedItems: (collectionId) =>
+        collectionId ? this.findByCollectionId(collectionId) : Promise.resolve([]),
+      findItem: ({ scopeId: collectionId, itemId: productId }) =>
+        collectionId
+          ? this.findByCollectionAndProduct(collectionId, productId)
+          : Promise.resolve(null),
+      updateRank: ({ scopeId: collectionId, itemId: productId, lexoRank }) =>
+        collectionId
+          ? this.updateRank(collectionId, productId, lexoRank)
+          : Promise.resolve(null),
+      getItemId: (item) => item.productId,
+      getLexoRank: (item) => item.lexoRank,
+    });
+  }
+
   async findByCollectionId(collectionId: string): Promise<CollectionItem[]> {
     return this.connection
       .select()
@@ -108,29 +129,24 @@ export class CollectionItemRepository extends BaseRepository {
   }
 
   async rebalance(collectionId: string): Promise<void> {
-    const items = await this.findByCollectionId(collectionId);
-    const ranks = rebalanceRanks(items.length);
-    for (let i = 0; i < items.length; i++) {
-      await this.updateRank(collectionId, items[i].productId, ranks[i]);
-    }
+    await this.collectionItemRankRepository.rebalance(collectionId);
+  }
+
+  async moveProductRank(
+    collectionId: string,
+    productId: string,
+    afterProductId?: string | null,
+    beforeProductId?: string | null
+  ): Promise<LexoRankMoveResult<CollectionItem>> {
+    return this.collectionItemRankRepository.move({
+      scopeId: collectionId,
+      itemId: productId,
+      afterItemId: afterProductId,
+      beforeItemId: beforeProductId,
+    });
   }
 
   private async getNextRank(collectionId: string): Promise<string> {
-    const rows = await this.connection
-      .select({ lexoRank: collectionItem.lexoRank })
-      .from(collectionItem)
-      .where(
-        and(
-          eq(collectionItem.projectId, this.storeId),
-          eq(collectionItem.collectionId, collectionId)
-        )
-      )
-      .orderBy(asc(collectionItem.lexoRank));
-
-    if (rows.length === 0) {
-      return initialRank();
-    }
-
-    return nextRank(rows[rows.length - 1].lexoRank);
+    return this.collectionItemRankRepository.getNextRank(collectionId);
   }
 }

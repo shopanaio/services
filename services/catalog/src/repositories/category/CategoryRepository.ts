@@ -10,6 +10,10 @@ import {
 } from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
 import {
+  LexoRankRepository,
+  type LexoRankMoveResult,
+} from "../LexoRankRepository.js";
+import {
   category,
   categoryListView,
   categoryMedia,
@@ -26,11 +30,6 @@ import {
   type ProductCategory,
   type NewProductCategory,
 } from "../models/index.js";
-import {
-  initialRank,
-  nextRank,
-  rebalanceRanks,
-} from "../../scripts/shared/rank.js";
 import type { NormalizedCategoryHierarchyScope } from "./CategoryHierarchyScope.js";
 import type { NormalizedCategoryProductsScope } from "./CategoryProductsScope.js";
 import {
@@ -190,6 +189,23 @@ export interface CategoryListingConnectionResult {
 }
 
 export class CategoryRepository extends BaseRepository {
+  private get productCategoryRankRepository(): LexoRankRepository<ProductCategory> {
+    return new LexoRankRepository<ProductCategory>({
+      findOrderedItems: (categoryId) =>
+        categoryId ? this.getOrderedCategoryProducts(categoryId) : Promise.resolve([]),
+      findItem: ({ scopeId: categoryId, itemId: productId }) =>
+        categoryId
+          ? this.getProductCategory(categoryId, productId)
+          : Promise.resolve(null),
+      updateRank: ({ scopeId: categoryId, itemId: productId, lexoRank }) =>
+        categoryId
+          ? this.updateProductCategoryRank(categoryId, productId, lexoRank)
+          : Promise.resolve(null),
+      getItemId: (item) => item.productId,
+      getLexoRank: (item) => item.lexoRank,
+    });
+  }
+
   private get locale(): string {
     return this.ctx.locale ?? this.ctx.store.defaultLocale;
   }
@@ -1258,17 +1274,22 @@ export class CategoryRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async rebalanceCategoryProductRanks(categoryId: string): Promise<void> {
-    const items = await this.getOrderedCategoryProducts(categoryId);
-    const ranks = rebalanceRanks(items.length);
+  async moveProductCategoryRank(
+    categoryId: string,
+    productId: string,
+    afterProductId?: string | null,
+    beforeProductId?: string | null,
+  ): Promise<LexoRankMoveResult<ProductCategory>> {
+    return this.productCategoryRankRepository.move({
+      scopeId: categoryId,
+      itemId: productId,
+      afterItemId: afterProductId,
+      beforeItemId: beforeProductId,
+    });
+  }
 
-    for (let i = 0; i < items.length; i++) {
-      await this.updateProductCategoryRank(
-        categoryId,
-        items[i].productId,
-        ranks[i],
-      );
-    }
+  async rebalanceCategoryProductRanks(categoryId: string): Promise<void> {
+    await this.productCategoryRankRepository.rebalance(categoryId);
   }
 
   async updateSortPreferences(
@@ -1353,22 +1374,6 @@ export class CategoryRepository extends BaseRepository {
   private async getNextCategoryProductRank(
     categoryId: string,
   ): Promise<string> {
-    const rows = await this.connection
-      .select({ lexoRank: productCategory.lexoRank })
-      .from(productCategory)
-      .where(
-        and(
-          eq(productCategory.projectId, this.storeId),
-          eq(productCategory.categoryId, categoryId),
-        ),
-      )
-      .orderBy(desc(productCategory.lexoRank))
-      .limit(1);
-
-    if (rows.length === 0) {
-      return initialRank();
-    }
-
-    return nextRank(rows[0].lexoRank);
+    return this.productCategoryRankRepository.getNextRank(categoryId);
   }
 }

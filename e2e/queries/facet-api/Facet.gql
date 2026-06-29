@@ -7,7 +7,7 @@ query Facet($id: ID!) {
       label
       uiType
       selectionMode
-      sortIndex
+      lexoRank
       sourceHandles
       group {
         id

@@ -1367,6 +1367,12 @@ type CatalogMutation {
   """Delete a facet"""
   facetDelete(input: FacetDeleteInput!): FacetDeletePayload!
 
+  """Move a facet before or after another facet."""
+  facetMove(input: FacetMoveInput!): FacetMovePayload!
+
+  """Rebalance facet lexo ranks."""
+  facetRebalance(input: FacetRebalanceInput!): FacetRebalancePayload!
+
   """Create a new facet value"""
   facetValueCreate(input: FacetValueCreateInput!): FacetValueCreatePayload!
 
@@ -1632,6 +1638,9 @@ type Bundle implements Node & Listing {
 
   """SEO and Open Graph metadata."""
   seo: ProductSeo
+
+  """Current bundle price range in the selected currency."""
+  priceRange: ProductPriceRange
 
   """High-level bundle type."""
   type: BundleType
@@ -2297,7 +2306,7 @@ type Facet implements Node {
   label: String!
   uiType: FacetUIType!
   selectionMode: FacetSelectionMode!
-  sortIndex: Int!
+  lexoRank: String!
   group: FacetGroup
   values: [FacetValue!]!
 }
@@ -2349,6 +2358,16 @@ type FacetUpdatePayload {
 
 type FacetDeletePayload {
   deletedFacetId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type FacetMovePayload {
+  facet: Facet
+  userErrors: [GenericUserError!]!
+}
+
+type FacetRebalancePayload {
+  facets: [Facet!]!
   userErrors: [GenericUserError!]!
 }
 
@@ -2575,6 +2594,17 @@ type ProductInventoryWidget {
   skuStatus: InventorySkuStatus!
   backorder: InventoryBackorder!
   alertThreshold: InventoryAlertThreshold!
+}
+
+type ProductPriceRange {
+  """Minimum product price amount in minor units."""
+  minPriceAmount: BigInt!
+
+  """Maximum product price amount in minor units."""
+  maxPriceAmount: BigInt!
+
+  """Currency code used for the returned price amounts."""
+  currency: CurrencyCode!
 }
 
 """A connection to a mixed list of catalog listing items."""
@@ -3025,6 +3055,9 @@ type Product implements Node & Listing {
 
   """SEO and Open Graph metadata."""
   seo: ProductSeo
+
+  """Current product price range in the selected currency."""
+  priceRange: ProductPriceRange
 }
 
 """A connection to a list of Product items."""
@@ -3611,6 +3644,9 @@ interface Listing implements Node {
 
   """Media registered on this listing item."""
   media: [ProductMediaItem!]!
+
+  """Current product price range in the selected currency."""
+  priceRange: ProductPriceRange
 }
 
 interface BundlePriceRule implements Node {
@@ -3659,6 +3695,12 @@ enum ListingOrderField {
   """Sort by currency"""
   currency
 
+  """Sort by minAmountMinor"""
+  minAmountMinor
+
+  """Sort by maxAmountMinor"""
+  maxAmountMinor
+
   """Sort by minPriceMinor"""
   minPriceMinor
 
@@ -3704,6 +3746,12 @@ enum ProductOrderField {
   """Sort by currency"""
   currency
 
+  """Sort by minAmountMinor"""
+  minAmountMinor
+
+  """Sort by maxAmountMinor"""
+  maxAmountMinor
+
   """Sort by minPriceMinor"""
   minPriceMinor
 
@@ -3718,6 +3766,60 @@ enum ProductOrderField {
 
   """Sort by brandName"""
   brandName
+}
+
+"""Fields available for sorting Bundle"""
+enum BundleOrderField {
+  """Sort by id"""
+  id
+
+  """Sort by vendorId"""
+  vendorId
+
+  """Sort by handle"""
+  handle
+
+  """Sort by publishedAt"""
+  publishedAt
+
+  """Sort by createdAt"""
+  createdAt
+
+  """Sort by updatedAt"""
+  updatedAt
+
+  """Sort by locale"""
+  locale
+
+  """Sort by name"""
+  name
+
+  """Sort by currency"""
+  currency
+
+  """Sort by minAmountMinor"""
+  minAmountMinor
+
+  """Sort by maxAmountMinor"""
+  maxAmountMinor
+
+  """Sort by minPriceMinor"""
+  minPriceMinor
+
+  """Sort by maxPriceMinor"""
+  maxPriceMinor
+
+  """Sort by primaryCategoryId"""
+  primaryCategoryId
+
+  """Sort by primaryCategoryName"""
+  primaryCategoryName
+
+  """Sort by brandName"""
+  brandName
+
+  """Sort by bundleType"""
+  bundleType
 }
 
 """Fields available for sorting Vendor"""
@@ -3992,23 +4094,6 @@ enum BundleDependencyActionType {
 enum ProductKind {
   BASE
   BUNDLE
-}
-
-enum BundleOrderField {
-  id
-  vendorId
-  handle
-  publishedAt
-  createdAt
-  updatedAt
-  locale
-  name
-  currency
-  minPriceMinor
-  maxPriceMinor
-  primaryCategoryId
-  primaryCategoryName
-  brandName
 }
 
 enum ProductSortBy {
@@ -4334,6 +4419,12 @@ input ListingWhereInput {
   """Filter by currency"""
   currency: StringFilter
 
+  """Filter by minAmountMinor"""
+  minAmountMinor: IntFilter
+
+  """Filter by maxAmountMinor"""
+  maxAmountMinor: IntFilter
+
   """Filter by minPriceMinor"""
   minPriceMinor: IntFilter
 
@@ -4397,6 +4488,12 @@ input ProductWhereInput {
   """Filter by currency"""
   currency: StringFilter
 
+  """Filter by minAmountMinor"""
+  minAmountMinor: IntFilter
+
+  """Filter by maxAmountMinor"""
+  maxAmountMinor: IntFilter
+
   """Filter by minPriceMinor"""
   minPriceMinor: IntFilter
 
@@ -4417,6 +4514,78 @@ input ProductWhereInput {
 input ProductOrderByInput {
   """Field to order by"""
   field: ProductOrderField!
+
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+"""Filter conditions for Bundle"""
+input BundleWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [BundleWhereInput!]
+
+  """Logical OR of multiple conditions"""
+  _or: [BundleWhereInput!]
+
+  """Negate the condition"""
+  _not: BundleWhereInput
+
+  """Filter by id"""
+  id: IDFilter
+
+  """Filter by vendorId"""
+  vendorId: IDFilter
+
+  """Filter by handle"""
+  handle: StringFilter
+
+  """Filter by publishedAt"""
+  publishedAt: DateTimeFilter
+
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+
+  """Filter by locale"""
+  locale: StringFilter
+
+  """Filter by name"""
+  name: StringFilter
+
+  """Filter by currency"""
+  currency: StringFilter
+
+  """Filter by minAmountMinor"""
+  minAmountMinor: IntFilter
+
+  """Filter by maxAmountMinor"""
+  maxAmountMinor: IntFilter
+
+  """Filter by minPriceMinor"""
+  minPriceMinor: IntFilter
+
+  """Filter by maxPriceMinor"""
+  maxPriceMinor: IntFilter
+
+  """Filter by primaryCategoryId"""
+  primaryCategoryId: IDFilter
+
+  """Filter by primaryCategoryName"""
+  primaryCategoryName: StringFilter
+
+  """Filter by brandName"""
+  brandName: StringFilter
+
+  """Filter by bundleType"""
+  bundleType: StringFilter
+}
+
+"""Ordering configuration for Bundle"""
+input BundleOrderByInput {
+  """Field to order by"""
+  field: BundleOrderField!
 
   """Sort direction"""
   direction: SortDirection!
@@ -4787,31 +4956,6 @@ input ProductBulkUpdateItem {
 
 input BundleBundlesMetaInput {
   categoriesScope: ProductCategoriesScopeInput
-}
-
-input BundleWhereInput {
-  _and: [BundleWhereInput!]
-  _or: [BundleWhereInput!]
-  _not: BundleWhereInput
-  id: IDFilter
-  vendorId: IDFilter
-  handle: StringFilter
-  publishedAt: DateTimeFilter
-  createdAt: DateTimeFilter
-  updatedAt: DateTimeFilter
-  locale: StringFilter
-  name: StringFilter
-  currency: StringFilter
-  minPriceMinor: IntFilter
-  maxPriceMinor: IntFilter
-  primaryCategoryId: IDFilter
-  primaryCategoryName: StringFilter
-  brandName: StringFilter
-}
-
-input BundleOrderByInput {
-  field: BundleOrderField!
-  direction: SortDirection!
 }
 
 input BundleCreateInput {
@@ -5395,7 +5539,6 @@ input FacetCreateInput {
   selectionMode: FacetSelectionMode
   groupId: ID
   label: String!
-  sortIndex: Int
 }
 
 input FacetUpdateInput {
@@ -5405,11 +5548,20 @@ input FacetUpdateInput {
   selectionMode: FacetSelectionMode
   groupId: ID
   label: String
-  sortIndex: Int
 }
 
 input FacetDeleteInput {
   id: ID!
+}
+
+input FacetMoveInput {
+  id: ID!
+  afterFacetId: ID
+  beforeFacetId: ID
+}
+
+input FacetRebalanceInput {
+  confirm: Boolean = true
 }
 
 input FacetValueCreateInput {

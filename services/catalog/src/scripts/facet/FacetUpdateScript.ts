@@ -52,7 +52,7 @@ export class FacetUpdateScript extends BaseScript<FacetUpdateParams, FacetResult
       uiType: params.uiType,
       selectionMode: params.selectionMode,
       groupId: params.groupId,
-      sortIndex: params.sortIndex,
+      lexoRank: params.lexoRank,
     });
 
     return { facet: facet ?? undefined, userErrors: [] };

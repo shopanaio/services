@@ -28,7 +28,7 @@ export interface FacetCreateParams {
   uiType?: string;
   selectionMode?: string;
   groupId?: string | null;
-  sortIndex?: number;
+  lexoRank?: string;
 }
 
 export interface FacetUpdateParams {
@@ -38,12 +38,20 @@ export interface FacetUpdateParams {
   uiType?: string;
   selectionMode?: string;
   groupId?: string | null;
-  sortIndex?: number;
+  lexoRank?: string;
 }
 
 export interface FacetDeleteParams {
   id: string;
 }
+
+export interface FacetMoveParams {
+  id: string;
+  afterFacetId?: string | null;
+  beforeFacetId?: string | null;
+}
+
+export interface FacetRebalanceParams {}
 
 export interface FacetValueCreateParams {
   facetId: string;
@@ -126,6 +134,11 @@ export interface FacetResult {
 
 export interface FacetDeleteResult {
   deletedFacetId?: string;
+  userErrors: UserError[];
+}
+
+export interface FacetRebalanceResult {
+  facets: Facet[];
   userErrors: UserError[];
 }
 

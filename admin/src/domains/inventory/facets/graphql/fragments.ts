@@ -38,7 +38,7 @@ export const FACET_GRID_FRAGMENT = gql`
     facetType
     uiType
     selectionMode
-    sortIndex
+    lexoRank
     sourceHandles
     values {
       ...FacetValueGridFields

@@ -54,6 +54,23 @@ export const FACET_DELETE_MUTATION = gql`
   ${USER_ERROR_FRAGMENT}
 `;
 
+export const FACET_MOVE_MUTATION = gql`
+  mutation FacetMove($input: FacetMoveInput!) {
+    catalogMutation {
+      facetMove(input: $input) {
+        facet {
+          ...FacetGridFields
+        }
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${FACET_GRID_FRAGMENT}
+  ${USER_ERROR_FRAGMENT}
+`;
+
 export const FACET_VALUE_CREATE_MUTATION = gql`
   mutation FacetValueCreate($input: FacetValueCreateInput!) {
     catalogMutation {

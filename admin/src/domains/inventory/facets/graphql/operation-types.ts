@@ -4,6 +4,8 @@ import type {
   ApiFacetCreatePayload,
   ApiFacetDeleteInput,
   ApiFacetDeletePayload,
+  ApiFacetMoveInput,
+  ApiFacetMovePayload,
   ApiFacetSwatch,
   ApiFacetSwatchCreateInput,
   ApiFacetSwatchCreatePayload,
@@ -44,7 +46,7 @@ export type FacetGridFields = Pick<
   | "facetType"
   | "uiType"
   | "selectionMode"
-  | "sortIndex"
+  | "lexoRank"
   | "sourceHandles"
 > & {
   values: FacetValueGridFields[];
@@ -112,6 +114,18 @@ export interface FacetDeleteMutationData {
 
 export interface FacetDeleteMutationVariables {
   input: ApiFacetDeleteInput;
+}
+
+export interface FacetMoveMutationData {
+  catalogMutation: {
+    facetMove: Omit<ApiFacetMovePayload, "facet"> & {
+      facet: FacetGridFields | null;
+    };
+  };
+}
+
+export interface FacetMoveMutationVariables {
+  input: ApiFacetMoveInput;
 }
 
 export interface FacetValueCreateMutationData {

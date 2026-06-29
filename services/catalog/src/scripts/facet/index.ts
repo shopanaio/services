@@ -5,6 +5,8 @@ export * from "./FacetGroupDeleteScript.js";
 export * from "./FacetCreateScript.js";
 export * from "./FacetUpdateScript.js";
 export * from "./FacetDeleteScript.js";
+export * from "./FacetMoveScript.js";
+export * from "./FacetRebalanceScript.js";
 export * from "./FacetValueCreateScript.js";
 export * from "./FacetValueUpdateScript.js";
 export * from "./FacetValueDeleteScript.js";

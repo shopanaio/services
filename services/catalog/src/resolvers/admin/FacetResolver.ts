@@ -49,8 +49,8 @@ export class FacetResolver extends CatalogType<string, Facet> {
     return ((await this.$get("selectionMode")) ?? "multi").toUpperCase();
   }
 
-  async sortIndex() {
-    return (await this.$get("sortIndex")) ?? 0;
+  async lexoRank() {
+    return (await this.$get("lexoRank")) ?? "";
   }
 
   async group() {

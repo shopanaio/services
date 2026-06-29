@@ -3,6 +3,7 @@ export * from "./use-facet";
 export * from "./use-facet-value";
 export * from "./use-create-facet";
 export * from "./use-update-facet";
+export * from "./use-move-facet";
 export * from "./use-delete-facet";
 export * from "./use-create-facet-value";
 export * from "./use-update-facet-value";

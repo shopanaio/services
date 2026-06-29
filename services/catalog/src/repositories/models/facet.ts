@@ -65,7 +65,7 @@ export const facet = catalogSchema.table(
     selectionMode: varchar("selection_mode", { length: 16 })
       .notNull()
       .default("multi"),
-    sortIndex: integer("sort_index").notNull().default(0),
+    lexoRank: varchar("lexo_rank", { length: 64 }).notNull(),
     slug: varchar("slug", { length: 255 }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
@@ -74,7 +74,10 @@ export const facet = catalogSchema.table(
       .notNull()
       .defaultNow(),
   },
-  (table) => [unique("facet_project_id_slug_uniq").on(table.projectId, table.slug)]
+  (table) => [
+    unique("facet_project_id_slug_uniq").on(table.projectId, table.slug),
+    index("idx_facet_rank").on(table.projectId, table.lexoRank),
+  ]
 );
 
 export const facetTranslation = catalogSchema.table(

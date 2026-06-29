@@ -1280,6 +1280,10 @@ export type ApiCatalogMutation = {
   facetGroupDelete: ApiFacetGroupDeletePayload;
   /** Update an existing facet group */
   facetGroupUpdate: ApiFacetGroupUpdatePayload;
+  /** Move a facet before or after another facet. */
+  facetMove: ApiFacetMovePayload;
+  /** Rebalance facet lexo ranks. */
+  facetRebalance: ApiFacetRebalancePayload;
   /** Create a new facet swatch */
   facetSwatchCreate: ApiFacetSwatchCreatePayload;
   /** Delete a facet swatch */
@@ -1477,6 +1481,16 @@ export type ApiCatalogMutationFacetGroupDeleteArgs = {
 
 export type ApiCatalogMutationFacetGroupUpdateArgs = {
   input: ApiFacetGroupUpdateInput;
+};
+
+
+export type ApiCatalogMutationFacetMoveArgs = {
+  input: ApiFacetMoveInput;
+};
+
+
+export type ApiCatalogMutationFacetRebalanceArgs = {
+  input: ApiFacetRebalanceInput;
 };
 
 
@@ -3232,9 +3246,9 @@ export type ApiFacet = ApiNode & {
   group?: Maybe<ApiFacetGroup>;
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
+  lexoRank: Scalars['String']['output'];
   selectionMode: FacetSelectionMode;
   slug: Scalars['String']['output'];
-  sortIndex: Scalars['Int']['output'];
   sourceHandles: Array<Scalars['String']['output']>;
   uiType: FacetUiType;
   values: Array<ApiFacetValue>;
@@ -3246,7 +3260,6 @@ export type ApiFacetCreateInput = {
   label: Scalars['String']['input'];
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug: Scalars['String']['input'];
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
   uiType?: InputMaybe<FacetUiType>;
 };
 
@@ -3306,6 +3319,28 @@ export type ApiFacetGroupUpdateInput = {
 export type ApiFacetGroupUpdatePayload = {
   __typename?: 'FacetGroupUpdatePayload';
   facetGroup?: Maybe<ApiFacetGroup>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacetMoveInput = {
+  afterFacetId?: InputMaybe<Scalars['ID']['input']>;
+  beforeFacetId?: InputMaybe<Scalars['ID']['input']>;
+  id: Scalars['ID']['input'];
+};
+
+export type ApiFacetMovePayload = {
+  __typename?: 'FacetMovePayload';
+  facet?: Maybe<ApiFacet>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacetRebalanceInput = {
+  confirm?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type ApiFacetRebalancePayload = {
+  __typename?: 'FacetRebalancePayload';
+  facets: Array<ApiFacet>;
   userErrors: Array<ApiGenericUserError>;
 };
 
@@ -3382,7 +3417,6 @@ export type ApiFacetUpdateInput = {
   label?: InputMaybe<Scalars['String']['input']>;
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug?: InputMaybe<Scalars['String']['input']>;
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
   uiType?: InputMaybe<FacetUiType>;
 };
 
