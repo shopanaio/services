@@ -38,8 +38,10 @@ options или другим полям. Текстовый поиск возвр
 3. Сохранить разделение: BM25 индекс ищет название, listing index фильтрует и
    считает фасеты.
 4. Поддержать multi-tenant и locale-aware поиск: `project_id` + `locale`.
-5. Возвращать стабильный relevance sort: `bm25_score DESC, product_id ASC`.
-6. Обеспечить полный rebuild индекса из `catalog.product_translation`.
+5. Возвращать стабильный relevance sort в общем listing contract:
+   `in_stock DESC, relevance_score DESC, product_id ASC`.
+6. Обеспечить полный и project-scoped rebuild индекса из
+   `catalog.product_translation`.
 
 ## Не цели
 
@@ -86,8 +88,8 @@ Deployment rules:
 
 - `catalog.product_title_bm25_search_index`
 
-Одна строка на product + locale. Валюта не входит в search index: цена и
-доступность остаются в listing index.
+Одна строка на project + product + locale. Валюта не входит в search index:
+цена и доступность остаются в listing index.
 
 ```sql
 CREATE TABLE catalog.product_title_bm25_search_index (
@@ -108,7 +110,7 @@ CREATE TABLE catalog.product_title_bm25_search_index (
   indexed_at             timestamptz NOT NULL DEFAULT now(),
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (product_id, locale),
+  PRIMARY KEY (project_id, product_id, locale),
   UNIQUE (search_id)
 );
 ```
@@ -116,8 +118,8 @@ CREATE TABLE catalog.product_title_bm25_search_index (
 Column semantics:
 
 - `search_id` is the BM25 key field. It must be globally unique and stable for
-  `(product_id, locale)`. Use deterministic UUID or preserve the generated value
-  on upsert.
+  `(project_id, product_id, locale)`. Use deterministic UUID or preserve the
+  generated value on upsert.
 - `status` mirrors product visibility. Soft-deleted products are deleted from the
   index.
 - `title` comes only from `catalog.product_translation.name` for the same
@@ -160,8 +162,12 @@ Notes:
 - `title` is the only searchable text field.
 - `project_id`, `locale`, `status`, `kind` are included so tenant, locale and
   visibility filters stay inside the BM25 query.
-- If `pg_search` does not accept `uuid` as key field in the selected version,
-  replace `search_id uuid` with `search_key text` and keep it unique.
+- Before implementation, verify that the selected `pg_search` version accepts
+  `uuid`, `varchar` and `timestamptz` fields in `USING bm25`. If `uuid` is not
+  accepted as key field, replace `search_id uuid` with `search_key text` and
+  keep it unique. If non-text fields are not accepted for indexed filters, keep
+  only supported fields in BM25 index and apply unsupported filters in the SQL
+  wrapper before joining listing index.
 
 ## Tokenizers и языки
 
@@ -193,9 +199,13 @@ Normalizer:
 4. cap query length, for example 128 chars;
 5. parameterize query; never interpolate raw user input into SQL.
 
-### 2. BM25 candidate CTE
+### 2. BM25 candidate relation
 
-For relevance sort:
+For relevance sort and exact facet/total semantics, the search relation must
+represent all title matches for the normalized query inside project + locale +
+visibility. It is part of the SQL pipeline, not a TypeScript in-memory list.
+
+Baseline exact shape:
 
 ```sql
 WITH search_candidates AS (
@@ -207,16 +217,26 @@ WITH search_candidates AS (
     AND ptsi.locale = :locale
     AND ptsi.status = 'published'
     AND ptsi.title ||| :query
-  ORDER BY pdb.score(ptsi.search_id) DESC, ptsi.product_id ASC
-  LIMIT :candidateLimit
 )
 ```
 
-Default `candidateLimit`:
+Do not apply a hard top-K `LIMIT` to this relation when it feeds `base_all`,
+facet counts or `totalCount`. A limited candidate relation changes storefront
+semantics: counts would describe only top-K title matches, not the full title
+query result.
 
-- start with `max(first + offset + 500, 1000)`;
-- cap at a project-level setting, for example `5000`;
-- measure recall with real catalog data before lowering.
+Optional page preselection optimization:
+
+- A separate `page_candidates` CTE may use top-K/top-N only after exact
+  `totalCount` and facet aggregation semantics are preserved.
+- If the implementation deliberately chooses capped search semantics for large
+  catalogs, the cap must become part of the API contract and observability; do
+  not silently mix capped candidates with exact listing counts.
+- Initial implementation should prefer exact semantics, then use
+  `EXPLAIN ANALYZE` to decide whether a page-only top-K optimization is needed.
+
+For relevance ordering of page rows, sort after the listing pipeline applies
+scope, visibility, structured filters and availability bucket.
 
 ### 3. Join with listing pipeline
 
@@ -228,7 +248,7 @@ base_all AS (
   SELECT
     pli.*,
     sp.manual_rank,
-    sc.bm25_score
+    sc.bm25_score AS relevance_score
   FROM scope_products sp
   JOIN catalog.product_listing_index pli
     ON pli.product_id = sp.product_id
@@ -252,25 +272,37 @@ Important:
 - Variant-level filters still use `variant_listing_index` and must remain one
   grouped predicate over the same variant row.
 
-### 4. Sort rules
+### 4. Sort and cursor rules
 
 If `query` is present and client sort is `relevance` or omitted:
 
 ```sql
-ORDER BY bm25_score DESC, product_id ASC
+ORDER BY in_stock DESC, relevance_score DESC, product_id ASC
 ```
 
 If client explicitly selects business sort (`price`, `newest`, `name`, `manual`):
 
 - keep the BM25 candidate set as a filter;
 - sort by the selected listing sort;
-- use `bm25_score DESC` only as optional tie-breaker before `product_id ASC`.
+- use `relevance_score DESC` only as optional tie-breaker before
+  `product_id ASC`.
 
 Example:
 
 ```sql
-ORDER BY min_price_minor ASC NULLS LAST, bm25_score DESC, product_id ASC
+ORDER BY in_stock DESC, min_price_minor ASC NULLS LAST, relevance_score DESC, product_id ASC
 ```
+
+Cursor pagination:
+
+- Relevance cursor includes `in_stock`, `relevance_score` and `product_id`.
+- Business-sort cursors include the selected listing sort keys, optional
+  `relevance_score` tie-breaker and `product_id`.
+- Cursor filter hash includes normalized `query`, `project_id`, `locale`,
+  `currency`, listing scope, structured filters and selected sort. A cursor from
+  one query/scope/filter set must not be reused for another result set.
+- Do not use offset to derive search depth. Pagination stays keyset/cursor based
+  as in the listing index plan.
 
 ## Fuzzy fallback
 
@@ -301,6 +333,12 @@ fuzzy_candidates AS (
 )
 ```
 
+If fuzzy candidates feed `base_all`, the same exact-vs-capped rule applies as
+for primary candidates: do not silently use a fuzzy top-K relation for
+`totalCount` or facet counts. `fuzzyCandidateLimit` is acceptable only for a
+page-only optimization after exact semantics are preserved, or for an explicit
+capped-search API contract.
+
 Avoid `fuzzy(2)` by default for short queries and non-Latin text until measured.
 
 ## Write operations and sync lifecycle
@@ -319,20 +357,24 @@ Add scripts:
 `SyncProductTitleBm25SearchIndexScript`:
 
 1. Load product by `product_id` with `project_id` from context.
-2. If product is deleted/missing, delete all locale rows for product.
+2. If product is deleted/missing, delete all locale rows for product in the same
+   `project_id`.
 3. Load enabled project locales.
 4. Load `catalog.product_translation.name` per enabled locale.
 5. Upsert one row per product/locale with only `title` as searchable text.
-6. Preserve `search_id` for existing `(product_id, locale)` rows.
+6. Preserve `search_id` for existing `(project_id, product_id, locale)` rows.
 7. Delete rows for locales no longer enabled.
 
 `RebuildProductTitleBm25SearchIndexScript`:
 
-1. Truncate `catalog.product_title_bm25_search_index`.
-2. Process products in batches.
-3. Sync title search index for every active and draft product.
-4. Log product count, locale count, skipped rows and duration.
-5. Run `VACUUM ANALYZE catalog.product_title_bm25_search_index` after large
+1. Supports full rebuild and project-scoped rebuild modes.
+2. Full rebuild truncates `catalog.product_title_bm25_search_index`.
+3. Project-scoped rebuild deletes rows by `project_id`, then rebuilds only that
+   project. This mode is used for enabled locale changes.
+4. Process products in batches.
+5. Sync title search index for every active and draft product in scope.
+6. Log project count, product count, locale count, skipped rows and duration.
+7. Run `VACUUM ANALYZE catalog.product_title_bm25_search_index` after large
    rebuild if operationally acceptable.
 
 ## Event coverage
@@ -408,21 +450,28 @@ Rules:
 9. Add storefront GraphQL `query` and `RELEVANCE` sort handling.
 10. Add observability: query text hash, candidate count, result count, duration,
     fuzzy fallback flag.
-11. Run full rebuild.
+11. Run project-scoped rebuild for locale changes and full rebuild for initial
+    rollout.
 12. Compare `EXPLAIN ANALYZE` for relevance and explicit business sort flows.
 
 ## Acceptance criteria
 
-- Full rebuild recreates all product/locale title search rows from
+- Full rebuild recreates all project/product/locale title search rows from
   `catalog.product_translation.name`.
+- Project-scoped rebuild deletes and recreates only rows for the selected
+  `project_id`.
 - Search query with `query` uses BM25 candidate CTE over `title` only.
 - No description, SEO, handle, vendor, tag, feature, option or category text is
   stored in the BM25 search table.
 - Query results are tenant-isolated by `project_id` and locale-isolated by
   `locale`.
-- Relevance sort is deterministic: `bm25_score DESC, product_id ASC`.
+- Relevance sort is deterministic and availability-first:
+  `in_stock DESC, relevance_score DESC, product_id ASC`.
 - Explicit business sorts still work after title search narrows candidates.
-- Facet counts reflect title query + scope + active filters.
+- Cursor pagination for relevance includes `in_stock`, `relevance_score`,
+  `product_id` and a hash of query/scope/filters/currency/locale/sort.
+- Facet counts and `totalCount` reflect the full title query + scope + active
+  filters, not an unannounced top-K subset.
 - Facet isolation does not remove the title query.
 - Variant-level filters remain variant-correct through `variant_listing_index`.
 - Product price/stock/currency/facet changes do not trigger title BM25 resync.

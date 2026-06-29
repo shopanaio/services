@@ -45,9 +45,12 @@ structured filtering, facets, counts, pagination и sort. Backend sync/rebuild
 - Фильтровать по configured tag facet values.
 - Фильтровать по configured feature facet values.
 - Фильтровать по `vendor_id` как явный storefront filter.
-- Фильтровать rule collections по `category_handles`, `tag_handles`,
-  `feature_value_handles`, product kind, dates and visibility fields where
-  supported by rule compiler.
+- Фильтровать rule collections по `category_handles`, configured tag/feature
+  facet values, product kind, dates and visibility fields where supported by
+  rule compiler. Tag/feature rule predicates на storefront read path должны
+  компилироваться в resolved `facet_id` / `facet_value_id` predicates поверх
+  `product_listing_facet_token`, а не в runtime checks по `tag_handles` /
+  `feature_value_handles`.
 - Поддерживать OR внутри одного product-level `facet_id`.
 - Поддерживать AND между разными product-level `facet_id`.
 - Игнорировать invalid или unconfigured facet values, которые не резолвятся в
@@ -290,9 +293,11 @@ CREATE INDEX idx_product_listing_category_handles_gin
 ```
 
 `tag_handles` and `feature_value_handles` are kept as source read-model fields
-for rebuild/debug and rule compilation, but storefront facet filtering/counts
-must use `product_listing_facet_token`. Do not add product tag/feature GIN
-indexes for storefront reads unless rule-collection plans prove they are needed.
+for rebuild/debug and source-handle based backoffice diagnostics. Storefront
+facet filtering/counts and rule-collection tag/feature predicates must use
+`product_listing_facet_token`. Do not add product tag/feature GIN indexes for
+storefront reads unless a future rule field cannot be represented through
+configured facets and `EXPLAIN ANALYZE` proves the source-array path is needed.
 
 ### `catalog.variant_listing_index`
 
@@ -612,7 +617,10 @@ WITH scope_products AS (
   WHERE pli.project_id = :projectId
     AND pli.currency = :currency
     AND pli.status = 'published'
-    -- compiled collection product-level rules
+    -- compiled collection product-level rules:
+    --   category rules can use category_handles / category scope joins
+    --   tag/feature rules must use product_listing_facet_token EXISTS predicates
+    --   scalar rules can use product_listing_index columns
     -- variant-level rules are applied through EXISTS over variant_listing_index
 )
 ```
@@ -851,7 +859,8 @@ matched_variant_prices AS (
     AND vli.currency = :currency
     AND vli.has_price = true
     AND vli.in_stock = true
-    -- same active variant predicates as listing filter
+    -- same active variant predicates as listing filter, anchored to this
+    -- vli.variant_id through variant_listing_facet_token EXISTS predicates
   GROUP BY vli.product_id
 )
 ORDER BY fp.in_stock DESC, mvp.sort_price_minor ASC NULLS LAST, fp.product_id ASC
@@ -924,13 +933,22 @@ can use direct `COUNT(*)`.
 
 ### Option facet counts
 
-Option counts are variant-correct and count products, not variants.
+Option counts are variant-correct and count products, not variants. The query
+builder must generate isolation per option `facet_id`; there is no single
+generic `option_variant_tokens` CTE that can correctly isolate all option facets
+at once.
+
+For each option facet being returned, generate a branch that omits only that
+facet's active predicate and keeps all other active option predicates anchored
+to the same `vli.variant_id`. The branches can be combined with `UNION ALL` or
+an equivalent LATERAL shape.
 
 ```sql
-option_variant_tokens AS (
+WITH option_variant_tokens AS (
+  -- Branch generated for :colorFacetId. It returns color values while omitting
+  -- only the active color predicate.
   SELECT
     vli.product_id,
-    vli.variant_id,
     vlt.facet_id,
     vlt.facet_value_id
   FROM catalog.variant_listing_index vli
@@ -939,15 +957,59 @@ option_variant_tokens AS (
     ON vlt.project_id = :projectId
    AND vlt.currency = :currency
    AND vlt.variant_id = vli.variant_id
-   AND vlt.facet_id = ANY(:optionFacetIds::uuid[])
+   AND vlt.facet_id = :colorFacetId
   WHERE vli.project_id = :projectId
     AND vli.currency = :currency
     AND vli.in_stock = true
     -- active product-level filters stay applied
     AND b.passes_f_tag_sale
     AND b.passes_f_feature_material
-    -- active option filters except current option facet are injected as
-    -- EXISTS predicates anchored to the same vli.variant_id
+    -- color predicate is omitted for color counts
+    -- every other active option predicate stays anchored to vli.variant_id
+    AND EXISTS (
+      SELECT 1
+      FROM catalog.variant_listing_facet_token size_filter
+      WHERE size_filter.project_id = :projectId
+        AND size_filter.currency = :currency
+        AND size_filter.variant_id = vli.variant_id
+        AND size_filter.facet_id = :sizeFacetId
+        AND size_filter.facet_value_id = ANY(:sizeFacetValueIds::uuid[])
+    )
+    -- active price filter stays applied and also uses in-stock variants
+    -- active in_stock toggle is applied through b.in_stock
+
+  UNION ALL
+
+  -- Branch generated for :sizeFacetId. It returns size values while omitting
+  -- only the active size predicate.
+  SELECT
+    vli.product_id,
+    vlt.facet_id,
+    vlt.facet_value_id
+  FROM catalog.variant_listing_index vli
+  JOIN base b ON b.product_id = vli.product_id
+  JOIN catalog.variant_listing_facet_token vlt
+    ON vlt.project_id = :projectId
+   AND vlt.currency = :currency
+   AND vlt.variant_id = vli.variant_id
+   AND vlt.facet_id = :sizeFacetId
+  WHERE vli.project_id = :projectId
+    AND vli.currency = :currency
+    AND vli.in_stock = true
+    -- active product-level filters stay applied
+    AND b.passes_f_tag_sale
+    AND b.passes_f_feature_material
+    -- size predicate is omitted for size counts
+    -- every other active option predicate stays anchored to vli.variant_id
+    AND EXISTS (
+      SELECT 1
+      FROM catalog.variant_listing_facet_token color_filter
+      WHERE color_filter.project_id = :projectId
+        AND color_filter.currency = :currency
+        AND color_filter.variant_id = vli.variant_id
+        AND color_filter.facet_id = :colorFacetId
+        AND color_filter.facet_value_id = ANY(:colorFacetValueIds::uuid[])
+    )
     -- active price filter stays applied and also uses in-stock variants
     -- active in_stock toggle is applied through b.in_stock
 ),
@@ -972,7 +1034,9 @@ other option predicates, product-level predicates, price predicates and
 availability toggle. Option counts are computed only from in-stock variants.
 The omitted-predicate logic must be generated per option `facet_id`; grouping by
 `facet_type = option` would incorrectly make different option facets isolate
-each other.
+each other. A shared precomputed product-level pass set is not sufficient for
+option counts, because it can lose the same-variant relationship between active
+option predicates.
 
 The `option_product_values` CTE is the explicit deduplication step that turns
 variant-level matches into product-level facet values before counting. This
@@ -990,6 +1054,12 @@ product-level filters, option filters and availability toggle. The range is
 calculated only from in-stock variants, so out-of-stock variants never expand or
 shrink the storefront price slider.
 
+When option filters are active, price range must apply those option predicates
+to the same `vli.variant_id` row whose `price_minor` participates in `MIN` /
+`MAX`. It must not reuse a product-level variant pass set, because that would
+allow one variant to satisfy options while another variant contributes the
+price.
+
 ```sql
 SELECT
   MIN(vli.price_minor) AS min_price_minor,
@@ -1001,7 +1071,7 @@ WHERE vli.project_id = :projectId
   AND vli.has_price = true
   AND vli.in_stock = true
   -- product-level filters applied
-  -- option filters applied
+  -- option filters applied as EXISTS predicates anchored to vli.variant_id
   -- in_stock availability toggle applied through base/product aggregate
   -- price filter omitted
 ```
@@ -1011,6 +1081,8 @@ WHERE vli.project_id = :projectId
 `IN_STOCK` is a virtual facet. It excludes the active availability toggle but
 keeps product-level filters, option filters and price filter. Price filter
 predicates and option predicates still evaluate only in-stock variants.
+If option and price filters are both active, they must be evaluated against the
+same `vli.variant_id` row before grouping to products.
 
 ```sql
 in_stock_products AS (
@@ -1021,8 +1093,8 @@ in_stock_products AS (
     AND vli.currency = :currency
     AND vli.in_stock = true
     -- product-level filters applied
-    -- option filters applied
-    -- price filter applied
+    -- option filters applied as EXISTS predicates anchored to vli.variant_id
+    -- price filter applied to the same vli row
     -- in_stock availability toggle omitted
   GROUP BY vli.product_id
 )
@@ -1161,13 +1233,25 @@ Facet source mapping changes require token refresh:
 - Product-level storefront facet filters and counts use
   `product_listing_facet_token`, not runtime `unnest(tag_handles)` or
   `unnest(feature_value_handles)`.
+- Rule collection tag/feature predicates compile to
+  `product_listing_facet_token` predicates. `tag_handles` and
+  `feature_value_handles` are not indexed or scanned on the storefront read
+  path for configured tag/feature rules.
 - Variant-level filters use one grouped in-stock predicate over
   `variant_listing_index`.
 - Option storefront filters and counts use `variant_listing_facet_token`, while
   keeping all active option predicates anchored to the same `variant_id`.
+- Option facet count isolation is generated per option `facet_id` through
+  separate branches such as `UNION ALL` or LATERAL. It must not use one shared
+  `facet_type = option` isolation branch or a product-level variant pass set for
+  all option facets.
 - Price sort uses product aggregate only when there are no active variant-level filters; otherwise it uses matched variant prices.
 - Option filter, option counts, price filter, price range, price sort and
   variant-level collection rules use only in-stock variants.
+- Price range, matched variant price sort and in-stock virtual count never use a
+  product-level variant pass as a substitute for same-variant matching. When
+  option and price predicates are active, both are applied to the same
+  `variant_listing_index.variant_id` before grouping back to products.
 - All storefront sorts place in-stock products before out-of-stock products.
 - Facet counts are computed over full scope, not current page items.
 - Facet counts isolate by `facet_id`.
