@@ -21,7 +21,11 @@ import {
 import { useCreateFacet } from "../../hooks";
 import type { ICreateFacetModalPayload } from "../../modals";
 import { FacetUiTypeSelector } from "../components/facet-ui-type-selector";
-import { createFacetSchema, type CreateFacetFormValues } from "./schema";
+import {
+  createFacetSchema,
+  type CreateFacetFormInput,
+  type CreateFacetFormValues,
+} from "./schema";
 import { FacetType } from "@/graphql/types";
 
 const useStyles = createStyles(({ token }) => ({
@@ -64,7 +68,7 @@ export function CreateFacetModal() {
   const typedPayload = payload as ICreateFacetModalPayload;
   const { createFacet, loading } = useCreateFacet();
 
-  const methods = useForm<CreateFacetFormValues>({
+  const methods = useForm<CreateFacetFormInput, unknown, CreateFacetFormValues>({
     resolver: zodResolver(createFacetSchema),
     defaultValues: {
       ...DEFAULT_VALUES,

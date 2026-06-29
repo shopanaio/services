@@ -1,16 +1,9 @@
 import { createModalStackHook } from "@/layouts/modals";
 import type { IModalStackPayload } from "@/layouts/modals/types";
 import type { FacetType, FacetUiType } from "@/graphql/types";
-import type { FacetGridFields } from "./graphql/operation-types";
-import type {
-  FacetGridRow,
-  FacetOrderEdit,
-  FacetOrderRowId,
-} from "./mappers";
 
 export const FACET_CREATE_MODAL_TYPE = "facet-create";
 export const FACET_EDIT_MODAL_TYPE = "facet-edit";
-export const FACET_ORDER_EDIT_MODAL_TYPE = "facet-order-edit";
 export const FACET_VALUE_CREATE_MODAL_TYPE = "facet-value-create";
 export const FACET_VALUE_LINK_SOURCES_MODAL_TYPE = "facet-value-link-sources";
 export const FACET_VALUES_MERGE_MODAL_TYPE = "facet-values-merge";
@@ -30,11 +23,6 @@ export interface ICreateFacetModalPayload extends IModalStackPayload {
 export interface IEditFacetModalPayload extends IModalStackPayload {
   facetId: string;
   onSaved?: () => Promise<unknown> | unknown;
-}
-
-export interface IEditFacetOrderModalPayload extends IModalStackPayload {
-  rows: FacetGridRow[];
-  refetchFacets: () => Promise<FacetGridFields[]>;
 }
 
 export interface ICreateFacetValueModalPayload extends IModalStackPayload {
@@ -71,7 +59,6 @@ declare module "@/layouts/modals" {
   interface ModalStackPayloads {
     [FACET_CREATE_MODAL_TYPE]: ICreateFacetModalPayload;
     [FACET_EDIT_MODAL_TYPE]: IEditFacetModalPayload;
-    [FACET_ORDER_EDIT_MODAL_TYPE]: IEditFacetOrderModalPayload;
     [FACET_VALUE_CREATE_MODAL_TYPE]: ICreateFacetValueModalPayload;
     [FACET_VALUE_LINK_SOURCES_MODAL_TYPE]: ILinkSourceValuesModalPayload;
     [FACET_VALUES_MERGE_MODAL_TYPE]: IFacetValuesMergeModalPayload;
@@ -82,14 +69,9 @@ declare module "@/layouts/modals" {
 export const useCreateFacetModal =
   createModalStackHook(FACET_CREATE_MODAL_TYPE);
 export const useEditFacetModal = createModalStackHook(FACET_EDIT_MODAL_TYPE);
-export const useEditFacetOrderModal = createModalStackHook(
-  FACET_ORDER_EDIT_MODAL_TYPE,
-);
 export const useCreateFacetValueModal = createModalStackHook(
   FACET_VALUE_CREATE_MODAL_TYPE,
 );
 export const useLinkSourceValuesModal = createModalStackHook(
   FACET_VALUE_LINK_SOURCES_MODAL_TYPE,
 );
-
-export type { FacetOrderEdit, FacetOrderRowId };

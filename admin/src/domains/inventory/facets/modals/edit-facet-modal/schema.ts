@@ -11,4 +11,5 @@ export const editFacetSchema = z.object({
   uiType: z.enum(facetUiTypeValues),
 });
 
-export type EditFacetFormValues = z.infer<typeof editFacetSchema>;
+export type EditFacetFormInput = z.input<typeof editFacetSchema>;
+export type EditFacetFormValues = z.output<typeof editFacetSchema>;

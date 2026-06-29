@@ -13,6 +13,9 @@ export const createFacetValueSchema = z.object({
   swatchId: z.string().nullable().optional(),
 });
 
-export type CreateFacetValueFormValues = z.infer<
+export type CreateFacetValueFormInput = z.input<
+  typeof createFacetValueSchema
+>;
+export type CreateFacetValueFormValues = z.output<
   typeof createFacetValueSchema
 >;

@@ -22,6 +22,7 @@ import { useCreateFacetValue } from "../../hooks";
 import type { ICreateFacetValueModalPayload } from "../../modals";
 import {
   createFacetValueSchema,
+  type CreateFacetValueFormInput,
   type CreateFacetValueFormValues,
 } from "./schema";
 
@@ -63,7 +64,11 @@ export function CreateFacetValueModal() {
   const typedPayload = payload as ICreateFacetValueModalPayload;
   const { createFacetValue, loading } = useCreateFacetValue();
 
-  const methods = useForm<CreateFacetValueFormValues>({
+  const methods = useForm<
+    CreateFacetValueFormInput,
+    unknown,
+    CreateFacetValueFormValues
+  >({
     resolver: zodResolver(createFacetValueSchema),
     defaultValues: {
       ...DEFAULT_VALUES,

@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, App, Button, Flex, Tag, Typography } from "antd";
-import { PlusOutlined, RetweetOutlined } from "@ant-design/icons";
+import { PlusOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { AgGridReact } from "ag-grid-react";
 import {
@@ -13,6 +13,8 @@ import {
   GridStateModule,
   ICellRendererParams,
   ModuleRegistry,
+  RowDragEndEvent,
+  RowDragModule,
 } from "ag-grid-community";
 import { DataLayout } from "@/layouts/data";
 import { FilterWidget, useFilters } from "@/layouts/filters";
@@ -27,6 +29,7 @@ import {
   useDeleteFacet,
   useDeleteFacetValue,
   useFacets,
+  useMoveFacet,
 } from "../hooks";
 import {
   apiFacetsToFacetGridRows,
@@ -39,12 +42,15 @@ import {
   useCreateFacetModal,
   useCreateFacetValueModal,
   useEditFacetModal,
-  useEditFacetOrderModal,
 } from "../modals";
 import { filterSchema } from "./filter-schema";
 import { filterFacetGridRows } from "./page-config";
 
-ModuleRegistry.registerModules([AllCommunityModule, GridStateModule]);
+ModuleRegistry.registerModules([
+  AllCommunityModule,
+  GridStateModule,
+  RowDragModule,
+]);
 
 const useStyles = createStyles(({ token }) => ({
   gridContainer: {
@@ -98,8 +104,15 @@ function shouldIgnoreRowClick(event: CellClickedEvent<FacetGridRow>): boolean {
 
   return Boolean(
     target.closest(
-      "[data-stop-row-click],button,.ant-select,.ant-switch,.ant-dropdown",
+      "[data-stop-row-click],button,.ant-select,.ant-switch,.ant-dropdown,.ag-drag-handle",
     ),
+  );
+}
+
+function areRowIdsSame(left: FacetGridRow[], right: FacetGridRow[]): boolean {
+  return (
+    left.length === right.length &&
+    left.every((row, index) => row.id === right[index]?.id)
   );
 }
 
@@ -127,10 +140,13 @@ export default function FacetsPage() {
   const { facets, loading, error, refetch } = useFacets();
   const { deleteFacet } = useDeleteFacet();
   const { deleteFacetValue } = useDeleteFacetValue();
+  const { moveFacet } = useMoveFacet();
   const { push: openCreateFacetModal } = useCreateFacetModal();
   const { push: openEditFacetModal } = useEditFacetModal();
-  const { push: openEditFacetOrderModal } = useEditFacetOrderModal();
   const { push: openCreateFacetValueModal } = useCreateFacetValueModal();
+  const [optimisticRows, setOptimisticRows] = useState<FacetGridRow[] | null>(
+    null,
+  );
 
   const baseRows = useMemo(() => apiFacetsToFacetGridRows(facets), [facets]);
   const filteredRows = useMemo(
@@ -141,6 +157,11 @@ export default function FacetsPage() {
     () => filteredRows.filter((row) => row.type === "facet"),
     [filteredRows],
   );
+  const displayRows = optimisticRows ?? tableRows;
+
+  useEffect(() => {
+    setOptimisticRows(null);
+  }, [tableRows]);
 
   const refetchAndReset = useCallback(async () => {
     await refetch();
@@ -284,6 +305,50 @@ export default function FacetsPage() {
     [handleRowEdit],
   );
 
+  const handleRowDragEnd = useCallback(
+    async (event: RowDragEndEvent<FacetGridRow>) => {
+      const movedRow = event.node.data;
+      if (!movedRow?.apiId) {
+        return;
+      }
+
+      const orderedRows: FacetGridRow[] = [];
+      event.api.forEachNodeAfterFilterAndSort((node) => {
+        if (node.data) {
+          orderedRows.push(node.data);
+        }
+      });
+
+      if (orderedRows.length === 0 || areRowIdsSame(orderedRows, displayRows)) {
+        return;
+      }
+
+      const movedIndex = orderedRows.findIndex((row) => row.id === movedRow.id);
+      if (movedIndex === -1) {
+        return;
+      }
+
+      setOptimisticRows(orderedRows);
+
+      const result = await moveFacet({
+        id: movedRow.apiId,
+        afterFacetId: orderedRows[movedIndex - 1]?.apiId ?? null,
+        beforeFacetId: orderedRows[movedIndex + 1]?.apiId ?? null,
+      });
+
+      if (result.userErrors.length > 0) {
+        message.error(result.userErrors[0].message);
+        setOptimisticRows(null);
+        return;
+      }
+
+      await refetchAndReset();
+      message.success("Facet order updated.");
+      setOptimisticRows(null);
+    },
+    [displayRows, message, moveFacet, refetchAndReset],
+  );
+
   const columnDefs = useMemo<ColDef<FacetGridRow>[]>(
     () => [
       {
@@ -291,6 +356,7 @@ export default function FacetsPage() {
         headerName: "Facet",
         flex: 2,
         minWidth: 320,
+        rowDrag: ({ data }) => Boolean(data?.apiId),
         cellRenderer: FacetNameCell,
       },
       {
@@ -387,17 +453,6 @@ export default function FacetsPage() {
       actions={
         <>
           <Button
-            icon={<RetweetOutlined />}
-            onClick={() =>
-              openEditFacetOrderModal({
-                rows: baseRows,
-                refetchFacets: refetch,
-              })
-            }
-          >
-            Edit order
-          </Button>
-          <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={() =>
@@ -438,7 +493,7 @@ export default function FacetsPage() {
           <AgGridReact<FacetGridRow>
             ref={gridRef}
             theme={agGridTheme}
-            rowData={tableRows}
+            rowData={displayRows}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
             getRowId={getRowId}
@@ -447,10 +502,13 @@ export default function FacetsPage() {
             loading={loading}
             suppressMovableColumns
             suppressCellFocus
+            rowDragManaged
+            animateRows
             onCellClicked={handleCellClicked}
+            onRowDragEnd={handleRowDragEnd}
           />
         </div>
-        {!loading && tableRows.length === 0 ? (
+        {!loading && displayRows.length === 0 ? (
           <Typography.Text type="secondary">No facets found</Typography.Text>
         ) : null}
       </div>

@@ -402,14 +402,6 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       ),
     },
     {
-      type: 'facet-order-edit',
-      component: dynamic(() =>
-        import('@/domains/inventory/facets/modals/edit-facet-order-modal').then(
-          (m) => m.EditFacetOrderModal
-        )
-      ),
-    },
-    {
       type: 'facet-value-create',
       component: dynamic(() =>
         import('@/domains/inventory/facets/modals/create-facet-value-modal').then(

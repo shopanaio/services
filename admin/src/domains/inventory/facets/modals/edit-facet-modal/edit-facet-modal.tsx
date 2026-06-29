@@ -46,7 +46,11 @@ import type {
   OptionEditorSwatch,
   OptionEditorValue,
 } from "../../../products/modals/edit-options-modal/types";
-import { editFacetSchema, type EditFacetFormValues } from "./schema";
+import {
+  editFacetSchema,
+  type EditFacetFormInput,
+  type EditFacetFormValues,
+} from "./schema";
 import { FacetUiTypeSelector } from "../components/facet-ui-type-selector";
 import { FacetValuesList } from "./components/facet-values-list";
 import {
@@ -212,7 +216,7 @@ export function EditFacetModal() {
   const [editorValues, setEditorValues] = useState<OptionEditorValue[]>([]);
   const [deletedValueIds, setDeletedValueIds] = useState<string[]>([]);
 
-  const methods = useForm<EditFacetFormValues>({
+  const methods = useForm<EditFacetFormInput, unknown, EditFacetFormValues>({
     resolver: zodResolver(editFacetSchema),
     defaultValues: EMPTY_VALUES,
   });
