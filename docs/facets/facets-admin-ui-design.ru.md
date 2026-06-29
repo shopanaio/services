@@ -20,15 +20,21 @@ panel.
 
 ## Навигация
 
-Раздел: `Inventory`.
+Раздел: `Store`.
 
 Пункт меню: `Facets`.
 
 URL:
 
 ```text
-/:orgName/:storeName/inventory/facets
+/:orgName/:storeName/facets
 ```
+
+Причина: текущие catalog configuration pages (`Products`, `Categories`, `Tags`,
+`Bundles`) зарегистрированы в sidebar domain `store` и используют URL без
+`/inventory`. Domain `inventory` сейчас отвечает за stock/warehouse pages и
+динамический warehouse sidebar. Facets настраивают storefront/catalog filters,
+а не warehouse stock, поэтому Phase 1 должен следовать `store` pattern.
 
 Модуль:
 
@@ -50,6 +56,7 @@ admin/src/domains/inventory/facets/
   modals/
     create-facet-modal/
     edit-facet-modal/
+    create-facet-value-modal/
     edit-facet-value-modal/
     link-source-values-modal/
     merge-facet-values-modal/
@@ -65,9 +72,19 @@ admin/src/domains/inventory/facets/
 folders. They are listed in the target structure, but must not be required for
 the Phase 1 delivery.
 
+`modals.ts` owns modal type constants, payload interfaces, module augmentation
+for `ModalStackPayloads`, and typed hooks created with `createModalStackHook`.
+Every Phase 1 modal must also be registered in the global modal registry file:
+
+```text
+admin/src/domains/modals.tsx
+```
+
+This follows existing `tag-*`, `category-*` and `product-*` modal registration.
+
 ## Основная страница
 
-Страница строится как остальные inventory list pages:
+Страница строится как существующие admin data/list pages:
 
 - `DataLayout` с `title="Facets"`;
 - в header одна primary action кнопка `Create`;
@@ -79,6 +96,22 @@ the Phase 1 delivery.
 facets и values: reorder требует полный набор строк. Если позже facets станет
 слишком много, нужно добавлять dedicated server-side reorder API, а не
 пагинировать текущий drag table.
+
+Facets page не использует `useInventoryRelayListPage`: `catalogQuery.facets`
+не принимает `where`, `orderBy` или pagination variables. `filter-schema.ts` и
+`page-config.ts` для этой страницы описывают client-side search/filter state
+для `FilterWidget` и grid state только. Фильтрация применяется к уже загруженным
+`FacetGridRow[]` перед вычислением `visibleRows`.
+
+Search/filter behavior:
+
+- search matches facet `label`/`slug` and value `label`/`slug`;
+- source filter matches `facetType`;
+- UI type filter matches `uiType`;
+- has values filter distinguishes computed facets from discrete facets;
+- when search/filter hides child rows, parent facet stays visible if either the
+  facet itself or at least one child matches;
+- Reset clears only facets page search/filter state, not pending edits.
 
 ### Wireframe
 
@@ -274,6 +307,7 @@ Use facets as the hook "group" rows internally:
 ```text
 useFacetTreeRows({
   initialRows,
+  dndDisabled,
   onReorderEdit: setReorderValue,
   onInvalidMove: showWarning,
   valueDragMode: "disabled",
@@ -320,6 +354,11 @@ Facet-specific constraints in `useFacetTreeRows()`:
   `Facet`.
 - Phase 1 disables value row dragging completely. Only `Facet` rows get a drag
   handle and only facet `sortIndex` changes are persisted.
+- In Phase 1 the first column `rowDrag` callback returns `true` only for
+  `row.type === "facet"` and `dndDisabled === false`. Value rows never expose a
+  drag handle.
+- If AG Grid still emits a drag event while `dndDisabled` is true, the hook
+  restores the previous rows and calls `onInvalidMove`.
 - When value DnD is enabled, it is same-facet only: dragging a `FacetValue` can
   only change its `sortIndex` among sibling values of the same `Facet`.
 - If the visual order produced by `useTreeTableDragDrop` would place a
@@ -344,6 +383,27 @@ Extra page rule:
 - DnD is enabled only when search/filter/sort is cleared. Reordering a filtered
   subset would persist incorrect `sortIndex`. If user starts drag with active
   filters, show warning and block drag: `Clear filters before reordering facets`.
+
+`dndDisabled` is true when any of these are active:
+
+- search text is non-empty;
+- any facets page filter has a value;
+- any AG Grid column sort is active;
+- grid edit store status is `saving`.
+
+Column sort is display-only for facets. If the user sorts while there are
+pending edits, restore the previous column state and show:
+`Save or discard changes before sorting facets`.
+
+`useFacetTreeRows()` must also expose:
+
+```ts
+resetRowsFromServer(nextRows: FacetGridRow[]): void
+```
+
+The page calls it after discard, after successful refetch, and when the route
+store changes. The hook must not keep stale rows when `initialRows` changes
+because Apollo returned fresh facet data.
 
 ## Inline editing
 
@@ -626,6 +686,17 @@ Header `Create` opens create facet modal.
 
 No group selector. Created facet is appended to root facet rows by `sortIndex`.
 
+Implementation pattern:
+
+- use fullscreen `ModalLayout` with `ModalHeader`;
+- use `react-hook-form` with `zodResolver`;
+- use `Paper`/`PaperHeader` sections like existing inventory forms;
+- auto-generate slug from label until the user edits slug manually;
+- form mapper converts values to `ApiFacetCreateInput`;
+- error mapper converts `ApiGenericUserError.field` to form fields;
+- on success refetches `FACET_GRID_QUERY`, resets rows from server data and
+  closes the modal.
+
 After create:
 
 - `TAG`, `FEATURE`, `OPTION`: append facet row and optionally open value create
@@ -666,6 +737,9 @@ PRICE returns price range. IN_STOCK returns availability count.
 ```
 
 No create value action for computed facets.
+
+The `Values` section in Phase 1 is a compact summary and action entry point, not
+a second nested table. Main value management remains in the grid.
 
 ## FacetValue rows and linked source values
 
@@ -714,6 +788,46 @@ Value row click opens edit modal.
 In Phase 1, the swatch section is display-only. Creating or editing swatches
 from the value modal is Phase 2.
 
+### Create value modal
+
+Facet row action `Create value` opens `create-facet-value-modal` for
+`TAG`, `FEATURE` and `OPTION` facets only.
+
+```text
+┌────────────────────────────────────────────────────────────────────────────┐
+│ ← Create value: Color                                             [Create] │
+├────────────────────────────────────────────────────────────────────────────┤
+│        ┌────────────────────────────────────────────────────────────┐      │
+│        │ Identity                                                   │      │
+│        │ Label *                    Slug *                          │      │
+│        │ [Red                     ] [red                          ] │      │
+│        │ Enabled                                                    │      │
+│        │ [x]                                                        │      │
+│        └────────────────────────────────────────────────────────────┘      │
+│        ┌────────────────────────────────────────────────────────────┐      │
+│        │ Linked source values *                                    │      │
+│        │ [ red ]                                                    │      │
+│        │ [+ Add handle]                                             │      │
+│        └────────────────────────────────────────────────────────────┘      │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+Create value rules:
+
+- payload contains `facetId`, `facetLabel`, `facetType`, and optional
+  `nextSortIndex`;
+- `facetId` is the GraphQL global id from `ApiFacet.id`;
+- form mapper converts values to `ApiFacetValueCreateInput`;
+- `sourceHandles` are trimmed, empty handles are removed, and local duplicates
+  are collapsed before submit;
+- if no handle remains, block submit with a local form error;
+- on success refetches `FACET_GRID_QUERY`, resets rows from server data and
+  expands the parent facet.
+
+`edit-facet-value-modal` uses the same form sections and mapper family, but maps
+to `ApiFacetValueUpdateInput` and does not send `facetId` because the current
+API does not allow moving a value between facets.
+
 ### Link source values modal: Phase 1
 
 Phase 1 edits manual handle strings only. It does not query real tag handles,
@@ -736,8 +850,15 @@ Behavior:
 - local duplicate handles inside the edited value are collapsed or rejected;
 - save writes `FacetValue.sourceHandles`;
 - empty linked handles is invalid for `TAG`, `FEATURE`, `OPTION`;
-- duplicate/ambiguous handles across values are reported by backend
-  `userErrors`.
+- duplicate/ambiguous handles across values should be shown from backend
+  `userErrors` when the API returns field-level errors;
+- if the backend only returns a generic/unmapped error for a DB uniqueness
+  constraint, keep the edit, show it in `submitErrors`, and do not clear the row.
+
+Phase 1 must not silently assume duplicate source-handle errors are always
+field-mapped. A later backend improvement can map known DB constraint names to
+`field: ["sourceHandles"]`; the UI error mapper must already handle both mapped
+and unmapped cases.
 
 ### Link source values modal: Phase 2
 
@@ -855,10 +976,25 @@ Facet value:
 - `label` required;
 - `slug` required and valid slug;
 - `sourceHandles` required and non-empty;
-- duplicate/ambiguous source handle errors come from backend `userErrors`;
+- local duplicate `sourceHandles` inside one edited value are normalized before
+  submit;
+- cross-value duplicate/ambiguous `sourceHandles` are backend-owned. The UI maps
+  backend `userErrors` to `value.sourceHandles` when field information is
+  present, otherwise it shows the error as a submit-level error and keeps local
+  edits;
 - `swatchId` nullable;
 - `enabled` defaults to true;
 - value rows cannot be root rows.
+
+Form validation:
+
+- create/edit facet and value modals use `react-hook-form` + `zodResolver`;
+- schemas live next to the modal (`schema.ts`);
+- form types live next to the modal or in a mapper-owned type file, not in
+  GraphQL operation files;
+- form mappers create `ApiFacetCreateInput`, `ApiFacetUpdateInput`,
+  `ApiFacetValueCreateInput` and `ApiFacetValueUpdateInput`;
+- API output objects remain generated API types from `@/graphql/types`.
 
 ## GraphQL integration
 
@@ -900,6 +1036,34 @@ admin/src/domains/inventory/facets/hooks/
   index.ts
 ```
 
+Phase 1 modal files:
+
+```text
+admin/src/domains/inventory/facets/modals/
+  create-facet-modal/
+    create-facet-modal.tsx
+    schema.ts
+    types.ts
+  edit-facet-modal/
+    edit-facet-modal.tsx
+    schema.ts
+    types.ts
+  create-facet-value-modal/
+    create-facet-value-modal.tsx
+    schema.ts
+    types.ts
+  edit-facet-value-modal/
+    edit-facet-value-modal.tsx
+    schema.ts
+    types.ts
+  link-source-values-modal/
+    link-source-values-modal.tsx
+    schema.ts
+    types.ts
+```
+
+Every modal folder exports its component through `index.ts`.
+
 Phase 2 adds swatch mutation hooks:
 
 ```text
@@ -919,12 +1083,11 @@ admin/src/domains/inventory/facets/mappers/
   facet-grid-edit.mapper.ts
   facet-input.mapper.ts
   facet-value-input.mapper.ts
-  facet-swatch-input.mapper.ts
   facet-errors.mapper.ts
   index.ts
 ```
 
-`facet-swatch-input.mapper.ts` is Phase 2. It is not needed for the Phase 1
+Phase 2 adds `facet-swatch-input.mapper.ts`. It is not needed for the Phase 1
 read-only swatch preview.
 
 `facet-grid-row.mapper.ts` converts generated API objects to UI-local
@@ -936,10 +1099,37 @@ mutation inputs:
 
 - facet row edits -> `ApiFacetUpdateInput`;
 - value row edits -> `ApiFacetValueUpdateInput`;
-- create/edit modal forms -> create/update inputs.
+
+`facet-input.mapper.ts` converts create/edit facet modal forms to
+`ApiFacetCreateInput`/`ApiFacetUpdateInput`.
+
+`facet-value-input.mapper.ts` converts create/edit value and link-source modal
+forms to `ApiFacetValueCreateInput`/`ApiFacetValueUpdateInput`.
 
 In Phase 2, swatch modal forms map to `ApiFacetSwatchCreateInput` or
 `ApiFacetSwatchUpdateInput`.
+
+### Modal registration
+
+`admin/src/domains/inventory/facets/modals.ts` defines:
+
+- `FACET_CREATE_MODAL_TYPE`;
+- `FACET_EDIT_MODAL_TYPE`;
+- `FACET_VALUE_CREATE_MODAL_TYPE`;
+- `FACET_VALUE_EDIT_MODAL_TYPE`;
+- `FACET_VALUE_LINK_SOURCES_MODAL_TYPE`;
+- Phase 2 constants for merge and swatch modals.
+
+It also augments `ModalStackPayloads` and exports typed hooks:
+
+- `useCreateFacetModal`;
+- `useEditFacetModal`;
+- `useCreateFacetValueModal`;
+- `useEditFacetValueModal`;
+- `useLinkSourceValuesModal`.
+
+`admin/src/domains/modals.tsx` must register dynamic imports for every Phase 1
+modal type before the page can open them.
 
 ### Fragments
 
@@ -1254,7 +1444,9 @@ If the field path is missing or cannot be mapped, place the error in
 
 Phase 1:
 
+- `store` sidebar registration and route `/:orgName/:storeName/facets`;
 - main `Facet -> FacetValue` AG Grid;
+- client-side search/filter state for `FilterWidget`;
 - `useFacetTreeRows` with shared flat-tree mechanics and facet-specific DnD
   constraints;
 - no group rows or group UI;
@@ -1265,7 +1457,9 @@ Phase 1:
 - `useSaveFacetGridEdits` sequential save integration;
 - create facet modal;
 - edit facet modal;
+- create facet value modal;
 - value row editing modal;
+- global modal registry entries in `admin/src/domains/modals.tsx`;
 - actions column with Delete;
 - linked source handles modal with manual handle editing.
 
