@@ -32,8 +32,8 @@ structured filtering, facets, counts, pagination и sort. Backend sync/rebuild
 ### Scope и visibility
 
 - Применить `project_id` isolation ко всем storefront queries.
-- Применить request currency для price filter, price range и price sort, если
-  storefront contract разрешает multi-currency выдачу.
+- Listing storefront работает в project default currency. Price filter, price
+  range, display price и price sort используют default currency проекта.
 - Применить locale для locale-dependent sort и последующей hydration карточек.
 - Показывать только published products; soft-deleted products не должны
   присутствовать в index.
@@ -60,8 +60,8 @@ structured filtering, facets, counts, pagination и sort. Backend sync/rebuild
 
 - Фильтровать по option facets так, чтобы все active option predicates
   применялись к одному и тому же in-stock variant row.
-- Фильтровать по price range через `has_price = true` и `price_minor` в request
-  currency только среди variants в наличии.
+- Фильтровать по price range через `has_price = true` и `price_minor` в default
+  currency проекта только среди variants в наличии.
 - Фильтровать по `in_stock` как availability toggle на product aggregate; сами
   variant-level filters уже ограничены in-stock variant rows.
 - Комбинировать active `OPTION` и `PRICE` predicates в одном in-stock variant
@@ -176,24 +176,28 @@ DROP TABLE IF EXISTS catalog.product_search_index;
 Создаются новые таблицы с именами, которые отражают назначение:
 
 - `catalog.product_listing_index`
+- `catalog.product_listing_price_index`
 - `catalog.variant_listing_index`
+- `catalog.variant_listing_price_index`
 - `catalog.product_listing_facet_token`
 - `catalog.variant_listing_facet_token`
 
-Все listing read-model таблицы становятся currency-aware. Это убирает
-special-case для price range/sort и позволяет строить listing в request
-currency. Если проект сейчас имеет одну валюту, будет одна строка на
-product/variant и один currency-sliced набор facet tokens.
+Основные listing read-model таблицы и token tables являются currency-neutral.
+Storefront listing использует default currency проекта, но price fields
+вынесены в отдельные per-currency таблицы. Это сохраняет возможность хранить
+prices по включенным валютам без дублирования product metadata, variant
+metadata и facet tokens на каждую валюту.
 
 ### `catalog.product_listing_index`
 
-Одна строка на product + currency. Таблица содержит product-level predicates и агрегаты по active variants в этой валюте.
+Одна строка на product. Таблица содержит product-level predicates и
+currency-neutral агрегаты по active variants. Price aggregates вынесены в
+`product_listing_price_index`.
 
 ```sql
 CREATE TABLE catalog.product_listing_index (
   project_id             uuid NOT NULL,
   product_id             uuid NOT NULL,
-  currency               varchar(3) NOT NULL,
 
   kind                   catalog.product_kind NOT NULL,
   vendor_id              uuid,
@@ -210,13 +214,11 @@ CREATE TABLE catalog.product_listing_index (
 
   in_stock               boolean NOT NULL DEFAULT false,
   total_stock            int NOT NULL DEFAULT 0,
-  min_price_minor        bigint,
-  max_price_minor        bigint,
 
   indexed_at             timestamptz NOT NULL DEFAULT now(),
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, product_id, currency),
+  PRIMARY KEY (project_id, product_id),
   CONSTRAINT fk_product_listing_product
     FOREIGN KEY (project_id, product_id)
     REFERENCES catalog.product(project_id, id)
@@ -232,22 +234,17 @@ Column semantics:
 - Soft-deleted products should have all index rows deleted, not kept with `status = 'deleted'`.
 - `feature_value_handles` uses composite source handles: `feature_slug:value_slug`.
 - `category_handles` is used for navigation scope and collection rules, not storefront facet aggregation.
-- `min_price_minor` / `max_price_minor` are storefront filter/sort aggregates
-  from active in-stock variant rows in the same currency where
-  `has_price = true`. Out-of-stock variant prices do not affect listing price
-  filters, price ranges or price sort.
-- `in_stock` and `total_stock` are aggregates from active variants. They are duplicated per currency intentionally to keep listing query centered on one primary table.
+- `in_stock` and `total_stock` are currency-neutral aggregates from active variants.
 
 Indexes:
 
 ```sql
-CREATE INDEX idx_product_listing_project_currency_product
-  ON catalog.product_listing_index (project_id, currency, product_id);
+CREATE INDEX idx_product_listing_project_product
+  ON catalog.product_listing_index (project_id, product_id);
 
 CREATE INDEX idx_product_listing_visible_newest
   ON catalog.product_listing_index (
     project_id,
-    currency,
     in_stock DESC,
     published_at DESC NULLS LAST,
     product_created_at DESC,
@@ -258,39 +255,18 @@ CREATE INDEX idx_product_listing_visible_newest
 CREATE INDEX idx_product_listing_visible_created
   ON catalog.product_listing_index (
     project_id,
-    currency,
     in_stock DESC,
     product_created_at DESC,
     product_id
   )
   WHERE status = 'published';
 
-CREATE INDEX idx_product_listing_visible_price_asc
-  ON catalog.product_listing_index (
-    project_id,
-    currency,
-    in_stock DESC,
-    min_price_minor ASC,
-    product_id
-  )
-  WHERE status = 'published' AND min_price_minor IS NOT NULL;
-
-CREATE INDEX idx_product_listing_visible_price_desc
-  ON catalog.product_listing_index (
-    project_id,
-    currency,
-    in_stock DESC,
-    max_price_minor DESC,
-    product_id
-  )
-  WHERE status = 'published' AND max_price_minor IS NOT NULL;
-
 CREATE INDEX idx_product_listing_vendor
-  ON catalog.product_listing_index (project_id, currency, vendor_id)
+  ON catalog.product_listing_index (project_id, vendor_id)
   WHERE vendor_id IS NOT NULL;
 
 CREATE INDEX idx_product_listing_in_stock
-  ON catalog.product_listing_index (project_id, currency, in_stock);
+  ON catalog.product_listing_index (project_id, in_stock);
 
 CREATE INDEX idx_product_listing_category_handles_gin
   ON catalog.product_listing_index USING GIN (category_handles);
@@ -303,33 +279,98 @@ facet filtering/counts and rule-collection tag/feature predicates must use
 storefront reads unless a future rule field cannot be represented through
 configured facets and `EXPLAIN ANALYZE` proves the source-array path is needed.
 
+### `catalog.product_listing_price_index`
+
+Одна строка на product + currency. Таблица содержит только storefront price
+aggregates, чтобы не дублировать весь `product_listing_index` на каждую валюту.
+В текущем storefront contract queries используют project default currency.
+
+```sql
+CREATE TABLE catalog.product_listing_price_index (
+  project_id             uuid NOT NULL,
+  product_id             uuid NOT NULL,
+  currency               varchar(3) NOT NULL,
+
+  min_price_minor        bigint,
+  max_price_minor        bigint,
+  has_price              boolean NOT NULL DEFAULT false,
+
+  indexed_at             timestamptz NOT NULL DEFAULT now(),
+  updated_at             timestamptz NOT NULL DEFAULT now(),
+
+  PRIMARY KEY (project_id, product_id, currency),
+  CONSTRAINT fk_product_listing_price_product
+    FOREIGN KEY (project_id, product_id)
+    REFERENCES catalog.product(project_id, id)
+    ON DELETE CASCADE
+);
+```
+
+Column semantics:
+
+- `min_price_minor` / `max_price_minor` are storefront filter/sort aggregates
+  from active in-stock variant rows in the same currency where
+  `has_price = true`. Out-of-stock variant prices do not affect listing price
+  filters, price ranges or price sort.
+- `has_price = true` when at least one active in-stock variant has price in this
+  currency.
+- Rows are written for enabled project currencies, but storefront listing reads
+  the project default currency row.
+
+Indexes:
+
+```sql
+CREATE INDEX idx_product_listing_price_visible_asc
+  ON catalog.product_listing_price_index (
+    project_id,
+    currency,
+    min_price_minor ASC,
+    product_id
+  )
+  WHERE has_price = true;
+
+CREATE INDEX idx_product_listing_price_visible_desc
+  ON catalog.product_listing_price_index (
+    project_id,
+    currency,
+    max_price_minor DESC,
+    product_id
+  )
+  WHERE has_price = true;
+```
+
+These indexes intentionally cover only products that have at least one
+in-stock priced variant in the currency. Price sort queries must still preserve
+the complete storefront ordering for products without price:
+`in_stock DESC`, requested price key with `NULLS LAST`, then `product_id ASC`.
+The query plan may use the partial price index for the priced subset, but it
+must not drop or incorrectly interleave unpriced products. Validate the chosen
+shape with `EXPLAIN ANALYZE` on production-like data before release.
+
 ### `catalog.variant_listing_index`
 
-Одна строка на variant + currency. Таблица содержит variant-level predicates
-для корректного option/price filtering и availability-aware storefront
-matching.
+Одна строка на variant. Таблица содержит currency-neutral variant-level
+predicates для корректного option filtering и availability-aware storefront
+matching. Variant prices вынесены в `variant_listing_price_index`.
 
 ```sql
 CREATE TABLE catalog.variant_listing_index (
   project_id             uuid NOT NULL,
   product_id             uuid NOT NULL,
   variant_id             uuid NOT NULL,
-  currency               varchar(3) NOT NULL,
 
   kind                   catalog.product_kind NOT NULL,
   variant_created_at     timestamptz NOT NULL,
   variant_updated_at     timestamptz NOT NULL,
 
   option_value_handles   text[] NOT NULL DEFAULT '{}'::text[],
-  price_minor            bigint,
-  has_price              boolean NOT NULL DEFAULT false,
   in_stock               boolean NOT NULL DEFAULT false,
   total_stock            int NOT NULL DEFAULT 0,
 
   indexed_at             timestamptz NOT NULL DEFAULT now(),
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, variant_id, currency),
+  PRIMARY KEY (project_id, variant_id),
   CONSTRAINT fk_variant_listing_product
     FOREIGN KEY (project_id, product_id)
     REFERENCES catalog.product(project_id, id)
@@ -344,62 +385,103 @@ CREATE TABLE catalog.variant_listing_index (
 Column semantics:
 
 - `option_value_handles` uses composite source handles: `option_slug:value_slug`.
-- Rows are written for active variants and enabled project currencies.
-- If a variant has no price in a currency, keep the row with `has_price = false`
-  and `price_minor = NULL`. Price filters exclude it; option filters can still
-  evaluate it when the row is in stock.
+- Rows are written for active variants.
 - Storefront variant matching uses only rows where `in_stock = true`.
   Out-of-stock variants do not satisfy option filters, price filters, option
   counts, matched variant price sort or variant-level collection rules.
-- Deleted variants should have all currency rows deleted.
+- Deleted variants should have their listing and price rows deleted.
 
 Indexes:
 
 ```sql
-CREATE INDEX idx_variant_listing_project_currency_product
-  ON catalog.variant_listing_index (project_id, currency, product_id);
+CREATE INDEX idx_variant_listing_project_product
+  ON catalog.variant_listing_index (project_id, product_id);
 
-CREATE INDEX idx_variant_listing_project_currency_variant
-  ON catalog.variant_listing_index (project_id, currency, variant_id);
-
-CREATE INDEX idx_variant_listing_product_price
-  ON catalog.variant_listing_index (
-    project_id,
-    currency,
-    product_id,
-    price_minor
-  )
-  WHERE has_price = true AND in_stock = true;
-
-CREATE INDEX idx_variant_listing_price
-  ON catalog.variant_listing_index (project_id, currency, price_minor)
-  WHERE has_price = true AND in_stock = true;
+CREATE INDEX idx_variant_listing_project_variant
+  ON catalog.variant_listing_index (project_id, variant_id);
 
 CREATE INDEX idx_variant_listing_in_stock
-  ON catalog.variant_listing_index (project_id, currency, in_stock);
+  ON catalog.variant_listing_index (project_id, in_stock);
 ```
 
 `option_value_handles` is kept as a source read-model field for rebuild/debug
 and rule compilation. Storefront option filtering/counts must use
 `variant_listing_facet_token`, not runtime `unnest(option_value_handles)`.
 
+### `catalog.variant_listing_price_index`
+
+Одна строка на variant + currency. Таблица содержит только price fields,
+которые нужны для price filter, price range и matched variant price sort.
+
+```sql
+CREATE TABLE catalog.variant_listing_price_index (
+  project_id             uuid NOT NULL,
+  product_id             uuid NOT NULL,
+  variant_id             uuid NOT NULL,
+  currency               varchar(3) NOT NULL,
+
+  price_minor            bigint,
+  has_price              boolean NOT NULL DEFAULT false,
+
+  indexed_at             timestamptz NOT NULL DEFAULT now(),
+  updated_at             timestamptz NOT NULL DEFAULT now(),
+
+  PRIMARY KEY (project_id, variant_id, currency),
+  CONSTRAINT fk_variant_listing_price_product
+    FOREIGN KEY (project_id, product_id)
+    REFERENCES catalog.product(project_id, id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_variant_listing_price_variant
+    FOREIGN KEY (project_id, product_id, variant_id)
+    REFERENCES catalog.variant(project_id, product_id, id)
+    ON DELETE CASCADE
+);
+```
+
+Column semantics:
+
+- If a variant has no price in a currency, keep the row with
+  `has_price = false` and `price_minor = NULL`. Price filters exclude it;
+  option filters can still evaluate the variant through `variant_listing_index`
+  when the variant is in stock.
+- Price predicates always join this table to the same `variant_id` row from
+  `variant_listing_index`, preserving same-variant matching for active
+  `OPTION` and `PRICE` predicates.
+- Storefront listing reads the project default currency row.
+
+Indexes:
+
+```sql
+CREATE INDEX idx_variant_listing_price_product
+  ON catalog.variant_listing_price_index (
+    project_id,
+    currency,
+    product_id,
+    price_minor
+  )
+  WHERE has_price = true;
+
+CREATE INDEX idx_variant_listing_price_value
+  ON catalog.variant_listing_price_index (project_id, currency, price_minor)
+  WHERE has_price = true;
+```
+
 ### `catalog.product_listing_facet_token`
 
-One row per product + currency + resolved storefront facet value. This table is
+One row per product + resolved storefront facet value. This table is
 the normalized inverted index for product-level storefront facets (`tag` and
 `feature`). It stores resolved storefront ids, not raw source handles.
 
 ```sql
 CREATE TABLE catalog.product_listing_facet_token (
   project_id             uuid NOT NULL,
-  currency               varchar(3) NOT NULL,
   product_id             uuid NOT NULL,
   facet_id               uuid NOT NULL,
   facet_value_id         uuid NOT NULL,
   facet_type             varchar(16) NOT NULL, -- 'tag' | 'feature'
   indexed_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, currency, product_id, facet_id, facet_value_id),
+  PRIMARY KEY (project_id, product_id, facet_id, facet_value_id),
   CONSTRAINT fk_product_listing_facet_token_product
     FOREIGN KEY (project_id, product_id)
     REFERENCES catalog.product(project_id, id)
@@ -423,7 +505,6 @@ Indexes:
 CREATE INDEX idx_product_listing_facet_token_count
   ON catalog.product_listing_facet_token (
     project_id,
-    currency,
     facet_id,
     facet_value_id,
     product_id
@@ -432,7 +513,6 @@ CREATE INDEX idx_product_listing_facet_token_count
 CREATE INDEX idx_product_listing_facet_token_product
   ON catalog.product_listing_facet_token (
     project_id,
-    currency,
     product_id,
     facet_id,
     facet_value_id
@@ -444,7 +524,7 @@ same product resolve to the same `facet_value_id`, counts still see one token.
 
 ### `catalog.variant_listing_facet_token`
 
-One row per variant + currency + resolved storefront option value. This table is
+One row per variant + resolved storefront option value. This table is
 the normalized inverted index for variant-level option facets. It intentionally
 keeps `variant_id`, because option and price predicates must match on the same
 in-stock variant row.
@@ -452,14 +532,13 @@ in-stock variant row.
 ```sql
 CREATE TABLE catalog.variant_listing_facet_token (
   project_id             uuid NOT NULL,
-  currency               varchar(3) NOT NULL,
   product_id             uuid NOT NULL,
   variant_id             uuid NOT NULL,
   facet_id               uuid NOT NULL,
   facet_value_id         uuid NOT NULL,
   indexed_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, currency, variant_id, facet_id, facet_value_id),
+  PRIMARY KEY (project_id, variant_id, facet_id, facet_value_id),
   CONSTRAINT fk_variant_listing_facet_token_product
     FOREIGN KEY (project_id, product_id)
     REFERENCES catalog.product(project_id, id)
@@ -485,7 +564,6 @@ Indexes:
 CREATE INDEX idx_variant_listing_facet_token_count
   ON catalog.variant_listing_facet_token (
     project_id,
-    currency,
     facet_id,
     facet_value_id,
     product_id,
@@ -495,7 +573,6 @@ CREATE INDEX idx_variant_listing_facet_token_count
 CREATE INDEX idx_variant_listing_facet_token_variant
   ON catalog.variant_listing_facet_token (
     project_id,
-    currency,
     variant_id,
     facet_id,
     facet_value_id
@@ -504,18 +581,15 @@ CREATE INDEX idx_variant_listing_facet_token_variant
 CREATE INDEX idx_variant_listing_facet_token_product
   ON catalog.variant_listing_facet_token (
     project_id,
-    currency,
     product_id,
     facet_id,
     facet_value_id
   );
 ```
 
-Token tables are currency-aware even when the underlying tag/feature/option
-mapping is currency-independent. This keeps storefront queries on the same
-`project_id + currency` partition as `product_listing_index` and
-`variant_listing_index`, and avoids special-case joins in multi-currency
-listings.
+Token tables are currency-neutral because tag/feature/option mappings do not
+depend on currency. Price-specific storefront operations join the separate
+price index tables by project default currency.
 
 ### External constraints and indexes required for listing operations
 
@@ -569,7 +643,7 @@ of creating duplicates.
 - `tag` -> `product_listing_facet_token`
 - `feature` -> `product_listing_facet_token`
 - `option` -> `variant_listing_facet_token`
-- `price` -> `variant_listing_index.price_minor`
+- `price` -> `variant_listing_price_index.price_minor`
 - `in_stock` -> `variant_listing_index.in_stock`
 
 `category` не добавлять в `facet_type` для storefront PLP. Для rules и scope используется `category_handles`.
@@ -621,7 +695,8 @@ Availability filter:
   другом.
 - Option filters, price filters, option counts and matched variant sort all
   require `vli.in_stock = true`.
-- Price filters additionally use `has_price = true` и `price_minor`.
+- Price filters additionally use `variant_listing_price_index.has_price = true`
+  and `variant_listing_price_index.price_minor` in project default currency.
 - `price` и `in_stock` являются virtual facets: у них нет `facet_value_source_handle`.
 
 ## Listing query flow
@@ -632,7 +707,7 @@ Availability filter:
 
 Input normalizer:
 
-1. Определяет `project_id`, `currency`, `locale`.
+1. Определяет `project_id`, project default `currency`, `locale`.
 2. Определяет listing scope: category, manual collection или rule collection.
 3. Batch-resolve generic storefront tokens через `facet` + `facet_value`.
 4. Группирует resolved filters по `facet_id`.
@@ -679,7 +754,6 @@ WITH scope_products AS (
     NULL::numeric AS relevance_score
   FROM catalog.product_listing_index pli
   WHERE pli.project_id = :projectId
-    AND pli.currency = :currency
     AND pli.status = 'published'
     -- compiled collection product-level rules:
     --   category rules can use category_handles / category scope joins
@@ -696,7 +770,6 @@ WITH scope_products AS (
   SELECT pli.product_id, NULL::text AS manual_rank, NULL::numeric AS relevance_score
   FROM catalog.product_listing_index pli
   WHERE pli.project_id = :projectId
-    AND pli.currency = :currency
     AND pli.status = 'published'
 )
 ```
@@ -725,6 +798,16 @@ reused candidate sets, use a temp table with indexes on `product_id` and, when
 needed, `relevance_score`. For relevance sort, cursor values include
 `in_stock`, `relevance_score` and `product_id`.
 
+When text search is backed by the BM25 plan, the `search_candidates` relation
+that feeds `base_all`, `totalCount` and facet aggregation must represent all
+title matches for the normalized query inside project + locale + visibility.
+Do not pass only top-K/top-N search hits into this relation: capped candidates
+would make totals and facet counts describe the cap, not the full search result.
+If a page preselection/top-K optimization is added later, it must be a separate
+relation used only after exact `totalCount` and facet aggregation semantics are
+preserved. See `docs/listing/listing-bm25-pg-search-index-plan.ru.md` for the
+normative BM25 candidate relation contract.
+
 ### 3. Base product set
 
 `base_all` is the stable universe for facets. It includes scope and visibility, but does not apply user facet filters.
@@ -739,7 +822,6 @@ base_all AS (
   JOIN catalog.product_listing_index pli
     ON pli.product_id = sp.product_id
    AND pli.project_id = :projectId
-   AND pli.currency = :currency
   WHERE pli.status = 'published'
 )
 ```
@@ -756,7 +838,6 @@ base AS (
       SELECT 1
       FROM catalog.product_listing_facet_token plt
       WHERE plt.project_id = :projectId
-        AND plt.currency = :currency
         AND plt.product_id = b.product_id
         AND plt.facet_id = :tagFacetId
         AND plt.facet_value_id = ANY(:tagFacetValueIds::uuid[])
@@ -765,7 +846,6 @@ base AS (
       SELECT 1
       FROM catalog.product_listing_facet_token plt
       WHERE plt.project_id = :projectId
-        AND plt.currency = :currency
         AND plt.product_id = b.product_id
         AND plt.facet_id = :featureFacetId
         AND plt.facet_value_id = ANY(:featureFacetValueIds::uuid[])
@@ -797,7 +877,6 @@ variant_pass_products AS (
   FROM catalog.variant_listing_index vli
   JOIN base_all b ON b.product_id = vli.product_id
   WHERE vli.project_id = :projectId
-    AND vli.currency = :currency
     -- storefront variant matching uses only in-stock variants
     AND vli.in_stock = true
     -- one token predicate per active OPTION facet id; all predicates are
@@ -806,7 +885,6 @@ variant_pass_products AS (
       SELECT 1
       FROM catalog.variant_listing_facet_token vlt
       WHERE vlt.project_id = :projectId
-        AND vlt.currency = :currency
         AND vlt.variant_id = vli.variant_id
         AND vlt.facet_id = :colorFacetId
         AND vlt.facet_value_id = ANY(:colorFacetValueIds::uuid[])
@@ -815,14 +893,24 @@ variant_pass_products AS (
       SELECT 1
       FROM catalog.variant_listing_facet_token vlt
       WHERE vlt.project_id = :projectId
-        AND vlt.currency = :currency
         AND vlt.variant_id = vli.variant_id
         AND vlt.facet_id = :sizeFacetId
         AND vlt.facet_value_id = ANY(:sizeFacetValueIds::uuid[])
     )
     -- price filter
-    AND (:priceMin IS NULL OR (vli.has_price = true AND vli.price_minor >= :priceMin))
-    AND (:priceMax IS NULL OR (vli.has_price = true AND vli.price_minor <= :priceMax))
+    AND (
+      (:priceMin IS NULL AND :priceMax IS NULL)
+      OR EXISTS (
+        SELECT 1
+        FROM catalog.variant_listing_price_index vlpi
+        WHERE vlpi.project_id = :projectId
+          AND vlpi.currency = :currency
+          AND vlpi.variant_id = vli.variant_id
+          AND vlpi.has_price = true
+          AND (:priceMin IS NULL OR vlpi.price_minor >= :priceMin)
+          AND (:priceMax IS NULL OR vlpi.price_minor <= :priceMax)
+      )
+    )
 )
 ```
 
@@ -906,7 +994,11 @@ When there are no active variant-level filters, use product aggregates. These
 aggregates are computed only from in-stock variants:
 
 ```sql
-ORDER BY in_stock DESC, min_price_minor ASC NULLS LAST, product_id ASC
+LEFT JOIN catalog.product_listing_price_index plpi
+  ON plpi.project_id = fp.project_id
+ AND plpi.product_id = fp.product_id
+ AND plpi.currency = :currency
+ORDER BY fp.in_stock DESC, plpi.min_price_minor ASC NULLS LAST, fp.product_id ASC
 ```
 
 When `OPTION`, `price` or `in_stock` filters are active, compute price from
@@ -916,12 +1008,15 @@ matching in-stock variants:
 matched_variant_prices AS (
   SELECT
     vli.product_id,
-    MIN(vli.price_minor) AS sort_price_minor
+    MIN(vlpi.price_minor) AS sort_price_minor
   FROM catalog.variant_listing_index vli
+  JOIN catalog.variant_listing_price_index vlpi
+    ON vlpi.project_id = :projectId
+   AND vlpi.currency = :currency
+   AND vlpi.variant_id = vli.variant_id
   JOIN filtered_products fp ON fp.product_id = vli.product_id
   WHERE vli.project_id = :projectId
-    AND vli.currency = :currency
-    AND vli.has_price = true
+    AND vlpi.has_price = true
     AND vli.in_stock = true
     -- same active variant predicates as listing filter, anchored to this
     -- vli.variant_id through variant_listing_facet_token EXISTS predicates
@@ -930,10 +1025,10 @@ matched_variant_prices AS (
 ORDER BY fp.in_stock DESC, mvp.sort_price_minor ASC NULLS LAST, fp.product_id ASC
 ```
 
-For `price_desc`, use `MAX(vli.price_minor)` over matching in-stock variants or
-`max_price_minor DESC` depending on product requirements. Default
-recommendation: `price_asc` uses lowest matching in-stock variant price;
-`price_desc` uses highest matching in-stock variant price.
+For `price_desc`, use `MAX(vlpi.price_minor)` over matching in-stock variants
+or `plpi.max_price_minor DESC` when no active variant-level filters exist.
+Default recommendation: `price_asc` uses lowest matching in-stock variant
+price; `price_desc` uses highest matching in-stock variant price.
 
 ## Facet aggregation
 
@@ -962,7 +1057,6 @@ product_tokens AS (
   FROM base b
   JOIN catalog.product_listing_facet_token plt
     ON plt.project_id = :projectId
-   AND plt.currency = :currency
    AND plt.product_id = b.product_id
    AND plt.facet_id = ANY(:productFacetIds::uuid[])
 )
@@ -1019,11 +1113,9 @@ WITH option_variant_tokens AS (
   JOIN base b ON b.product_id = vli.product_id
   JOIN catalog.variant_listing_facet_token vlt
     ON vlt.project_id = :projectId
-   AND vlt.currency = :currency
    AND vlt.variant_id = vli.variant_id
    AND vlt.facet_id = :colorFacetId
   WHERE vli.project_id = :projectId
-    AND vli.currency = :currency
     AND vli.in_stock = true
     -- active product-level filters stay applied
     AND b.passes_f_tag_sale
@@ -1034,7 +1126,6 @@ WITH option_variant_tokens AS (
       SELECT 1
       FROM catalog.variant_listing_facet_token size_filter
       WHERE size_filter.project_id = :projectId
-        AND size_filter.currency = :currency
         AND size_filter.variant_id = vli.variant_id
         AND size_filter.facet_id = :sizeFacetId
         AND size_filter.facet_value_id = ANY(:sizeFacetValueIds::uuid[])
@@ -1054,11 +1145,9 @@ WITH option_variant_tokens AS (
   JOIN base b ON b.product_id = vli.product_id
   JOIN catalog.variant_listing_facet_token vlt
     ON vlt.project_id = :projectId
-   AND vlt.currency = :currency
    AND vlt.variant_id = vli.variant_id
    AND vlt.facet_id = :sizeFacetId
   WHERE vli.project_id = :projectId
-    AND vli.currency = :currency
     AND vli.in_stock = true
     -- active product-level filters stay applied
     AND b.passes_f_tag_sale
@@ -1069,7 +1158,6 @@ WITH option_variant_tokens AS (
       SELECT 1
       FROM catalog.variant_listing_facet_token color_filter
       WHERE color_filter.project_id = :projectId
-        AND color_filter.currency = :currency
         AND color_filter.variant_id = vli.variant_id
         AND color_filter.facet_id = :colorFacetId
         AND color_filter.facet_value_id = ANY(:colorFacetValueIds::uuid[])
@@ -1119,20 +1207,23 @@ calculated only from in-stock variants, so out-of-stock variants never expand or
 shrink the storefront price slider.
 
 When option filters are active, price range must apply those option predicates
-to the same `vli.variant_id` row whose `price_minor` participates in `MIN` /
+to the same `vli.variant_id` row whose `vlpi.price_minor` participates in `MIN` /
 `MAX`. It must not reuse a product-level variant pass set, because that would
 allow one variant to satisfy options while another variant contributes the
 price.
 
 ```sql
 SELECT
-  MIN(vli.price_minor) AS min_price_minor,
-  MAX(vli.price_minor) AS max_price_minor
+  MIN(vlpi.price_minor) AS min_price_minor,
+  MAX(vlpi.price_minor) AS max_price_minor
 FROM catalog.variant_listing_index vli
+JOIN catalog.variant_listing_price_index vlpi
+  ON vlpi.project_id = :projectId
+ AND vlpi.currency = :currency
+ AND vlpi.variant_id = vli.variant_id
 JOIN base b ON b.product_id = vli.product_id
 WHERE vli.project_id = :projectId
-  AND vli.currency = :currency
-  AND vli.has_price = true
+  AND vlpi.has_price = true
   AND vli.in_stock = true
   -- product-level filters applied
   -- option filters applied as EXISTS predicates anchored to vli.variant_id
@@ -1154,7 +1245,6 @@ in_stock_products AS (
   FROM catalog.variant_listing_index vli
   JOIN base b ON b.product_id = vli.product_id
   WHERE vli.project_id = :projectId
-    AND vli.currency = :currency
     AND vli.in_stock = true
     -- product-level filters applied
     -- option filters applied as EXISTS predicates anchored to vli.variant_id
@@ -1186,6 +1276,8 @@ Replace current repositories:
 
 Add listing token and query repositories:
 
+- `ProductListingPriceIndexRepository`
+- `VariantListingPriceIndexRepository`
 - `ProductListingFacetTokenRepository`
 - `VariantListingFacetTokenRepository`
 - `ListingQueryRepository`
@@ -1211,10 +1303,11 @@ Replace scripts:
 4. Load project enabled currencies.
 5. Load current price per variant/currency.
 6. Load inventory offers per variant.
-7. Upsert one `variant_listing_index` row per active variant/currency.
-8. Replace `variant_listing_facet_token` rows for affected variants/currencies.
-9. Delete rows for removed/deleted variants.
-10. Trigger product aggregate refresh for affected products/currencies.
+7. Upsert one `variant_listing_index` row per active variant.
+8. Upsert one `variant_listing_price_index` row per active variant/currency.
+9. Replace currency-neutral `variant_listing_facet_token` rows for affected variants.
+10. Delete listing, price and token rows for removed/deleted variants.
+11. Trigger product aggregate refresh for affected products/currencies.
 
 `SyncProductListingIndexScript`:
 
@@ -1224,25 +1317,28 @@ Replace scripts:
 3. Load categories, tags, features and build arrays.
 4. Resolve tag and feature source handles through `facet_value_source_handle`
    into `facet_id` / `facet_value_id` tokens.
-5. Load variant aggregates from `variant_listing_index` grouped by currency.
-   Price aggregates use only rows with `has_price = true` and
-   `in_stock = true`; stock aggregates still use all active variants.
-6. Upsert one `product_listing_index` row per product/currency.
-7. Replace `product_listing_facet_token` rows for affected products/currencies.
-8. If no currency rows exist yet, create rows for enabled project currencies with empty aggregates.
+5. Load currency-neutral stock aggregates from `variant_listing_index`.
+6. Load price aggregates from `variant_listing_price_index` grouped by currency.
+   Price aggregates use only price rows with `has_price = true` whose variant is
+   active and `in_stock = true`; stock aggregates still use all active variants.
+7. Upsert one `product_listing_index` row per product.
+8. Upsert one `product_listing_price_index` row per product/currency.
+9. Replace currency-neutral `product_listing_facet_token` rows for affected products.
+10. If no price rows exist yet, create `product_listing_price_index` rows for
+    enabled project currencies with empty price aggregates.
 
 Token generation должен писать только canonical resolved ids из существующих
 строк `facet_value_source_handle`.
 
 `RebuildListingIndexScript`:
 
-1. Truncate product, variant and facet token listing tables.
+1. Truncate product, variant, price and facet token listing tables.
 2. Process products in batches.
 3. Sync variant index before product aggregates.
 4. Sync product index aggregates second.
 5. Write variant tokens before product aggregates when variant ids are known.
 6. Write product tokens after product source handles are loaded.
-7. Log total products, variants, currencies, tokens and skipped rows.
+7. Log total products, variants, price rows, currencies, tokens and skipped rows.
 
 ### Event coverage
 
@@ -1259,9 +1355,12 @@ Events that must refresh listing index:
 - Variant created/updated/deleted.
 - Variant option links changed.
 - Option slug/value slug changed: refresh affected variants.
-- Variant price changed: refresh affected variant/currency and product aggregate.
-- Inventory/stock changed: refresh affected variant stock and product aggregate.
-- Project enabled currencies changed: rebuild listing index for project.
+- Variant price changed: refresh affected `variant_listing_price_index` row and
+  product price aggregate for the same currency.
+- Inventory/stock changed: refresh affected variant stock, product stock
+  aggregate and product price aggregates because only in-stock variants
+  contribute to storefront prices.
+- Project enabled currencies changed: rebuild price index tables for project.
 
 Facet source mapping changes require token refresh:
 
@@ -1277,10 +1376,11 @@ Facet source mapping changes require token refresh:
 ## Implementation order
 
 1. Add Drizzle models for `product_listing_index`,
-   `variant_listing_index`, `product_listing_facet_token` and
+   `product_listing_price_index`, `variant_listing_index`,
+   `variant_listing_price_index`, `product_listing_facet_token` and
    `variant_listing_facet_token`.
 2. Generate migration that drops old search index tables and creates new listing
-   index/token tables.
+   index, price and token tables.
 3. Replace repository classes and register them in `Repository`.
 4. Replace sync/delete/rebuild scripts.
 5. Update catalog event handlers to call listing index scripts.
@@ -1334,12 +1434,14 @@ Facet source mapping changes require token refresh:
   `variant(project_id, product_id, id)`, and facet token rows reference
   project-scoped `facet` / `facet_value` keys. The database must reject
   cross-project product, variant, facet or facet value combinations.
-- Facet token primary keys include `project_id`, `currency` and the resolved
-  `facet_id` / `facet_value_id`.
-- Product price descending sort uses `max_price_minor` when no active
+- Facet token primary keys include `project_id` and the resolved `facet_id` /
+  `facet_value_id`; they do not include `currency`.
+- Product price descending sort uses `product_listing_price_index.max_price_minor` when no active
   variant-level filters exist.
-- Full rebuild can recreate product, variant and token listing tables from
-  source tables plus `facet_value_source_handle`.
+- Product price sort preserves unpriced products with `NULLS LAST` even though
+  product price sort indexes are partial on `has_price = true`.
+- Full rebuild can recreate product, variant, price and token listing tables
+  from source tables plus `facet_value_source_handle`.
 - `EXPLAIN ANALYZE` on production-like data confirms acceptable plans for:
   visible sort queries, variant predicate grouping, product facet counts,
   option facet counts, price range and matched variant price sort.
@@ -1362,6 +1464,7 @@ If token-table deduplication/grouping becomes the next bottleneck, consider
 narrower follow-up optimizations only with `EXPLAIN ANALYZE` evidence:
 
 - partial indexes per high-cardinality facet group;
-- tenant/currency partitioning for token tables;
+- tenant partitioning for token tables;
+- tenant/currency partitioning for price tables;
 - precomputed approximate counts only for unfiltered global/category scopes,
   never as a replacement for isolated filtered counts.
