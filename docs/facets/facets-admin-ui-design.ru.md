@@ -61,6 +61,10 @@ admin/src/domains/inventory/facets/
   mappers/
 ```
 
+`merge-facet-values-modal/` and `edit-facet-swatch-modal/` are Phase 2 module
+folders. They are listed in the target structure, but must not be required for
+the Phase 1 delivery.
+
 ## Основная страница
 
 Страница строится как остальные inventory list pages:
@@ -194,7 +198,7 @@ tables. This must stay the same flat AG Grid pattern as attributes grid.
 | `Source` | `facetType` | `value` | no |
 | `UI / Status` | `uiType` + `selectionMode` | `enabled` | facet UI/status, value enabled |
 | `Linked sources` | `Automatic` or `N values` | chips/count for `sourceHandles` | opens link modal |
-| `Swatch` | empty or count summary | swatch preview | opens swatch picker/modal |
+| `Swatch` | empty or count summary | swatch preview | Phase 1: read-only; Phase 2: opens swatch picker/modal |
 | `Order` | `sortIndex` | `sortIndex` | facet order, value order |
 | `Actions` | menu | menu | no |
 
@@ -369,7 +373,7 @@ persistence:
 - `Save` sends all pending changes;
 - `Discard` clears local edits.
 
-DnD is the exception: `useTreeTableDragDrop` still updates `allRows` locally so
+DnD is the exception: `useFacetTreeRows()` still updates `allRows` locally so
 the user immediately sees moved rows. Every valid DnD update also writes a
 `reorderEdit` into zustand. Discard resets `allRows` from latest server rows and
 clears `reorderEdits`.
@@ -387,7 +391,7 @@ catalogQuery.facets response
   + pending field edits from zustand
   + pending reorder edits from zustand
   -> FacetGridRow[]
-  -> useTreeTableDragDrop visibleRows
+  -> useFacetTreeRows visibleRows
 ```
 
 Store file:
@@ -403,7 +407,7 @@ Responsibilities:
 - keep row-level API validation errors;
 - keep submit-level API errors;
 - keep page editing status;
-- keep selected value row ids for merge actions;
+- keep selected value row ids for Phase 2 merge actions;
 - expose selectors for bottom save panel and cell renderers;
 - reset itself when user discards, save succeeds, or page unmounts.
 
@@ -519,12 +523,13 @@ Page component responsibilities:
 5. render `visibleRows` in AG Grid;
 6. render bottom `FloatingPanelStack` when `hasChanges()` is true.
 
-`useFacetTreeRows()` is a thin wrapper around `useTreeTableDragDrop`:
+`useFacetTreeRows()` is the facet-specific flat-tree hook:
 
 - owns `allRows`, `visibleRows`, `expandedIds`, and expand/collapse handlers;
 - receives merged rows from server + zustand drafts;
 - calls `setReorderValue` after every valid DnD change;
 - exposes `resetRowsFromServer()` for Discard and successful refetch;
+- reuses shared flat-tree mechanics from `useTreeTableDragDrop`;
 - keeps value DnD disabled in Phase 1.
 
 Discard flow:
@@ -587,7 +592,7 @@ GraphQL inputs, and calls the generated mutation hooks sequentially.
 | value slug | text editor -> `value.slug` |
 | value enabled | boolean renderer/editor -> `value.enabled` |
 | linked sources | opens link source values modal -> `value.sourceHandles` |
-| swatch | opens swatch picker/modal -> `value.swatchId` |
+| swatch | Phase 1 read-only preview; Phase 2 opens swatch picker/modal -> `value.swatchId` |
 
 ## Row click
 
@@ -700,13 +705,44 @@ Value row click opens edit modal.
 │        │ red, dark-red, wine-red, burgundy                         │      │
 │        └────────────────────────────────────────────────────────────┘      │
 │        ┌────────────────────────────────────────────────────────────┐      │
-│        │ Swatch                                      [Edit swatch] │      │
+│        │ Swatch                                                    │      │
 │        │ ● #D92D20                                                  │      │
 │        └────────────────────────────────────────────────────────────┘      │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Link source values modal
+In Phase 1, the swatch section is display-only. Creating or editing swatches
+from the value modal is Phase 2.
+
+### Link source values modal: Phase 1
+
+Phase 1 edits manual handle strings only. It does not query real tag handles,
+feature slugs or option value slugs.
+
+```text
+┌────────────────────────────────────────────────────────────────────────────┐
+│ ← Link source values: Red                                         [Save]  │
+├────────────────────────────────────────────────────────────────────────────┤
+│ Source handles                                                            │
+│ [ red ] [ dark-red ] [ wine-red ] [ burgundy ]                            │
+│ [+ Add handle]                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+Behavior:
+
+- user manually adds/removes handle strings;
+- trim whitespace and drop empty strings before save;
+- local duplicate handles inside the edited value are collapsed or rejected;
+- save writes `FacetValue.sourceHandles`;
+- empty linked handles is invalid for `TAG`, `FEATURE`, `OPTION`;
+- duplicate/ambiguous handles across values are reported by backend
+  `userErrors`.
+
+### Link source values modal: Phase 2
+
+Phase 2 replaces or enhances the manual editor with a source picker backed by
+real source entity queries.
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────────┐
@@ -726,15 +762,17 @@ Value row click opens edit modal.
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Behavior:
+Phase 2 behavior:
 
-- left list is built from real source entities when available;
+- left list is built from real source entities;
 - manual handle entry remains available because backend stores strings;
 - already linked handles are disabled and show the public value that owns them;
-- save writes `FacetValue.sourceHandles`;
-- empty linked handles is invalid for `TAG`, `FEATURE`, `OPTION`.
+- candidate lists are searched independently from the facet grid query.
 
 ### Merge selected values
+
+Merge is Phase 2. Phase 1 can keep row selection for future use, but must not
+show a merge action until the merge flow is implemented.
 
 Selecting several child value rows under the same facet enables:
 
@@ -761,7 +799,8 @@ separate destructive action and is not part of merge.
 ## Swatches
 
 Swatches are managed from value rows/modals, not as first-class rows in the main
-grid.
+grid. Phase 1 displays existing swatches from GraphQL data but does not create
+or edit them. Swatch create/edit UI and swatch mutation hooks are Phase 2.
 
 Create/edit swatch:
 
@@ -842,7 +881,7 @@ admin/src/domains/inventory/facets/graphql/
   index.ts
 ```
 
-Hook files:
+Phase 1 hook files:
 
 ```text
 admin/src/domains/inventory/facets/hooks/
@@ -855,14 +894,22 @@ admin/src/domains/inventory/facets/hooks/
   use-create-facet-value.ts
   use-update-facet-value.ts
   use-delete-facet-value.ts
-  use-create-facet-swatch.ts
-  use-update-facet-swatch.ts
-  use-delete-facet-swatch.ts
   use-save-facet-grid-edits.ts
   use-facet-grid-edit-store.ts
   use-facet-tree-rows.ts
   index.ts
 ```
+
+Phase 2 adds swatch mutation hooks:
+
+```text
+use-create-facet-swatch.ts
+use-update-facet-swatch.ts
+use-delete-facet-swatch.ts
+```
+
+Phase 1 still reads `FacetValue.swatch` through grid/detail fragments for
+display.
 
 Mapper files:
 
@@ -877,6 +924,9 @@ admin/src/domains/inventory/facets/mappers/
   index.ts
 ```
 
+`facet-swatch-input.mapper.ts` is Phase 2. It is not needed for the Phase 1
+read-only swatch preview.
+
 `facet-grid-row.mapper.ts` converts generated API objects to UI-local
 `FacetGridRow[]`. This is allowed because `FacetGridRow` is editor state, not an
 API-output view model for component props.
@@ -886,9 +936,10 @@ mutation inputs:
 
 - facet row edits -> `ApiFacetUpdateInput`;
 - value row edits -> `ApiFacetValueUpdateInput`;
-- swatch modal form -> `ApiFacetSwatchCreateInput` or
-  `ApiFacetSwatchUpdateInput`;
 - create/edit modal forms -> create/update inputs.
+
+In Phase 2, swatch modal forms map to `ApiFacetSwatchCreateInput` or
+`ApiFacetSwatchUpdateInput`.
 
 ### Fragments
 
@@ -1074,7 +1125,7 @@ mutation FacetValueDelete($input: FacetValueDeleteInput!) {
 }
 ```
 
-Swatch mutations:
+Swatch mutations are Phase 2:
 
 - `FACET_SWATCH_CREATE_MUTATION`;
 - `FACET_SWATCH_UPDATE_MUTATION`;
@@ -1125,6 +1176,9 @@ Public method names may be domain-specific:
 - `createFacetValue(input)`;
 - `updateFacetValue(input)`;
 - `deleteFacetValue(input)`;
+
+Phase 2 adds:
+
 - `createFacetSwatch(input)`;
 - `updateFacetSwatch(input)`;
 - `deleteFacetSwatch(input)`.
@@ -1172,8 +1226,8 @@ First implementation uses refetch, not manual `cache.modify`:
 - after update facet modal save -> refetch `FACET_GRID_QUERY`;
 - after delete facet -> refetch `FACET_GRID_QUERY`;
 - after create/update/delete facet value -> refetch `FACET_GRID_QUERY`;
-- after swatch create/update/delete -> refetch `FACET_GRID_QUERY` if any visible
-  value can display the swatch;
+- Phase 2: after swatch create/update/delete -> refetch `FACET_GRID_QUERY` if
+  any visible value can display the swatch;
 - after grid batch save -> refetch `FACET_GRID_QUERY`.
 
 Rationale: facets are unpaginated, ordering-sensitive, and nested. Manual cache
@@ -1191,7 +1245,7 @@ updates can be added later only after the page behavior stabilizes.
 | `selectionMode` | `facet.selectionMode` |
 | `sortIndex` | reorder edit or `Order` cell |
 | `sourceHandles` | link source values modal / `value.sourceHandles` |
-| `swatchId` | swatch cell / swatch modal |
+| `swatchId` | Phase 2 swatch cell / swatch modal |
 
 If the field path is missing or cannot be mapped, place the error in
 `submitErrors`.
@@ -1201,11 +1255,13 @@ If the field path is missing or cannot be mapped, place the error in
 Phase 1:
 
 - main `Facet -> FacetValue` AG Grid;
-- `useTreeTableDragDrop` reuse with `groupType: "facet"`;
+- `useFacetTreeRows` with shared flat-tree mechanics and facet-specific DnD
+  constraints;
 - no group rows or group UI;
 - zustand page/edit store with bottom `FloatingPanelStack` save/discard;
-- GraphQL fragments, queries, mutations, hooks and mappers for facets, values
-  and swatches;
+- GraphQL fragments, queries, mutations, hooks and mappers for facets and
+  values;
+- read-only swatch display from `FacetValue.swatch` in query fragments;
 - `useSaveFacetGridEdits` sequential save integration;
 - create facet modal;
 - edit facet modal;
@@ -1217,7 +1273,8 @@ Phase 2:
 
 - source picker backed by real tag/feature/option queries;
 - merge selected values flow;
-- swatch create/edit from value modal;
+- swatch create/edit from value modal, swatch mutation hooks and
+  `facet-swatch-input.mapper.ts`;
 - value DnD inside same facet.
 
 Phase 3:
