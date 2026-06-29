@@ -236,16 +236,43 @@ delete is disabled and shows message: save or discard changes first.
 
 ## DnD behavior
 
-Reuse `useTreeTableDragDrop` from `admin/src/hooks/use-tree-table-drag-drop.ts`.
-Do not implement a second drag model.
+Do not implement a second drag model from scratch. Facets need a dedicated
+facet-tree hook that reuses the same flat tree mechanics as
+`useTreeTableDragDrop`, but adds facet-specific DnD constraints and server row
+resync behavior.
 
-Use facets as the hook "group" rows:
+Hook file:
 
 ```text
-useTreeTableDragDrop<FacetGridRow>({
+admin/src/domains/inventory/facets/hooks/use-facet-tree-rows.ts
+```
+
+The hook owns the facet page row tree:
+
+- `allRows`;
+- `visibleRows`;
+- `expandedIds`;
+- expand/collapse handlers;
+- AG Grid row drag handlers;
+- row reset from latest server rows after discard/refetch;
+- facet-only reorder in Phase 1;
+- optional same-facet value reorder in Phase 2.
+
+It must reuse the common algorithmic parts from
+`useTreeTableDragDrop`: flat `allRows`, derived `visibleRows`, manual expansion,
+sorting by `sortIndex`, row class calculation, collapse-on-parent-drag and
+restore expansion after drag. If this creates duplication, extract the shared
+flat-tree helpers from `useTreeTableDragDrop` instead of forking the logic
+silently.
+
+Use facets as the hook "group" rows internally:
+
+```text
+useFacetTreeRows({
   initialRows,
-  groupType: "facet",
-  onRowsChange: markTreeDirty,
+  onReorderEdit: setReorderValue,
+  onInvalidMove: showWarning,
+  valueDragMode: "disabled",
 })
 ```
 
@@ -266,7 +293,7 @@ ModuleRegistry.registerModules([AllCommunityModule, RowDragModule, GridStateModu
 />
 ```
 
-Exact mechanics inherited from `edit-attributes-modal`:
+Shared mechanics inherited from `edit-attributes-modal`:
 
 - `onRowDragEnter` stores `expandedBeforeDragRef`;
 - if dragged row has `type === groupType`, all parent rows collapse by
@@ -278,15 +305,17 @@ Exact mechanics inherited from `edit-attributes-modal`:
 - it walks rows top-to-bottom and keeps `currentGroupId`;
 - when the row is a facet, it becomes a root row and receives next root
   `sortIndex`;
-- when the row is a value and `currentGroupId` exists, it becomes a child of
-  that facet and receives next child `sortIndex`;
+- when value DnD is enabled and the row is a value, the candidate visual order
+  is validated before local rows are committed;
 - after row updates, previous expanded state is restored;
-- `onRowsChange` marks the tree dirty.
+- valid reorder writes a `reorderEdit` to zustand.
 
-Facet-specific constraints around the reused hook:
+Facet-specific constraints in `useFacetTreeRows()`:
 
 - `FacetValue` is never a root row. It must always stay under its owning
   `Facet`.
+- Phase 1 disables value row dragging completely. Only `Facet` rows get a drag
+  handle and only facet `sortIndex` changes are persisted.
 - When value DnD is enabled, it is same-facet only: dragging a `FacetValue` can
   only change its `sortIndex` among sibling values of the same `Facet`.
 - If the visual order produced by `useTreeTableDragDrop` would place a
@@ -299,6 +328,12 @@ Facet-specific constraints around the reused hook:
   `facetValueUpdate`.
 - Facet DnD updates `Facet.sortIndex`.
 - Value DnD inside same facet updates `FacetValue.sortIndex`.
+
+The generic `useTreeTableDragDrop` configuration is not enough for these rules:
+it only accepts `initialRows`, `groupType`, `onRowsChange` and
+`initiallyExpandAll`, and it currently allows child rows to become root rows or
+move under another parent. Facets therefore must not call it directly from the
+page without facet-specific guarding.
 
 Extra page rule:
 
@@ -342,9 +377,47 @@ clears `reorderEdits`.
 Do not use `onCellValueChanged` as the only source of pending field edits,
 because page-level save/discard needs original/current values like inventory.
 
+### Zustand page state
+
+Zustand store is page-local draft state, not an API cache. Server data remains
+owned by Apollo query hooks. The page derives grid rows from:
+
+```text
+catalogQuery.facets response
+  + pending field edits from zustand
+  + pending reorder edits from zustand
+  -> FacetGridRow[]
+  -> useTreeTableDragDrop visibleRows
+```
+
+Store file:
+
+```text
+admin/src/domains/inventory/facets/hooks/use-facet-grid-edit-store.ts
+```
+
+Responsibilities:
+
+- keep unsaved field edits;
+- keep unsaved reorder edits;
+- keep row-level API validation errors;
+- keep submit-level API errors;
+- keep page editing status;
+- keep selected value row ids for merge actions;
+- expose selectors for bottom save panel and cell renderers;
+- reset itself when user discards, save succeeds, or page unmounts.
+
+The store must not keep `ApiFacet[]` or replace Apollo cache. API objects are
+read directly from GraphQL hooks, then merged with drafts at the display
+boundary.
+
 ### Store shape
 
 ```ts
+type FacetGridRowKind = "facet" | "value";
+
+type FacetGridRowId = `facet:${string}` | `value:${string}`;
+
 type FacetGridEditableField =
   | "facet.label"
   | "facet.slug"
@@ -362,16 +435,51 @@ interface FacetGridFieldEdit {
 }
 
 interface FacetGridReorderEdit {
+  rowKind: FacetGridRowKind;
   parentId: string | null;
+  originalParentId: string | null;
+  originalSortIndex: number;
   sortIndex: number;
 }
 
 interface FacetGridEditStore {
-  fieldEdits: Record<string, Record<FacetGridEditableField, FacetGridFieldEdit>>;
-  reorderEdits: Record<string, FacetGridReorderEdit>;
-  rowErrors: Record<string, ApiGenericUserError[]>;
+  fieldEdits: Partial<
+    Record<FacetGridRowId, Partial<Record<FacetGridEditableField, FacetGridFieldEdit>>>
+  >;
+  reorderEdits: Partial<Record<FacetGridRowId, FacetGridReorderEdit>>;
+  selectedRowIds: FacetGridRowId[];
+  rowErrors: Partial<Record<FacetGridRowId, ApiGenericUserError[]>>;
   submitErrors: ApiGenericUserError[];
   status: "idle" | "saving";
+
+  setFieldValue: (
+    rowId: FacetGridRowId,
+    field: FacetGridEditableField,
+    originalValue: FacetGridFieldEdit["originalValue"],
+    currentValue: FacetGridFieldEdit["currentValue"],
+  ) => void;
+  setReorderValue: (rowId: FacetGridRowId, edit: FacetGridReorderEdit) => void;
+  setSelectedRowIds: (rowIds: FacetGridRowId[]) => void;
+  discardRow: (rowId: FacetGridRowId) => void;
+  discardAll: () => void;
+  startSaving: () => void;
+  finishSaving: () => void;
+  onSubmitAccepted: () => void;
+  setRowErrors: (rowId: FacetGridRowId, errors: ApiGenericUserError[]) => void;
+  clearRowErrors: (rowId: FacetGridRowId) => void;
+  setSubmitErrors: (errors: ApiGenericUserError[]) => void;
+  clearSubmitErrors: () => void;
+  hasChanges: () => boolean;
+  getChangesCount: () => number;
+  getFieldEdit: (
+    rowId: FacetGridRowId,
+    field: FacetGridEditableField,
+  ) => FacetGridFieldEdit | undefined;
+  getRowEdits: (
+    rowId: FacetGridRowId,
+  ) => Partial<Record<FacetGridEditableField, FacetGridFieldEdit>> | undefined;
+  getAllFieldEdits: () => FacetGridEditStore["fieldEdits"];
+  getAllReorderEdits: () => FacetGridEditStore["reorderEdits"];
 }
 ```
 
@@ -379,6 +487,63 @@ interface FacetGridEditStore {
 
 - facet: `facet:${apiId}`;
 - value: `value:${apiId}`.
+
+`discardRow(rowId)` removes accepted field/reorder edits and row errors for one
+row. It is used by `useSaveFacetGridEdits()` after a row mutation succeeds.
+
+`setFieldValue` follows the inventory edit store behavior:
+
+- if `currentValue` equals `originalValue`, remove that field edit;
+- if a row has no more field edits and no reorder edit, remove the row entry;
+- clear `rowErrors[rowId]` and `submitErrors` when the user changes that row
+  again;
+- arrays such as `sourceHandles` compare by normalized content, not by reference.
+
+`setReorderValue` follows the same cleanup rule:
+
+- if `parentId` and `sortIndex` match the original values, remove the reorder
+  edit;
+- otherwise store the latest pending order for that row;
+- for Phase 1, only `rowKind: "facet"` reorder edits are produced;
+- for Phase 2, `rowKind: "value"` is allowed only inside the original parent
+  facet.
+
+### Page state flow
+
+Page component responsibilities:
+
+1. call `useFacets()` to load server facets;
+2. map server facets to base `FacetGridRow[]`;
+3. merge base rows with `fieldEdits` and `reorderEdits`;
+4. pass merged rows into `useFacetTreeRows()`;
+5. render `visibleRows` in AG Grid;
+6. render bottom `FloatingPanelStack` when `hasChanges()` is true.
+
+`useFacetTreeRows()` is a thin wrapper around `useTreeTableDragDrop`:
+
+- owns `allRows`, `visibleRows`, `expandedIds`, and expand/collapse handlers;
+- receives merged rows from server + zustand drafts;
+- calls `setReorderValue` after every valid DnD change;
+- exposes `resetRowsFromServer()` for Discard and successful refetch;
+- keeps value DnD disabled in Phase 1.
+
+Discard flow:
+
+1. call `discardAll()` in zustand;
+2. call `resetRowsFromServer()` with the latest server rows;
+3. keep current filters/search state unchanged;
+4. clear selected rows.
+
+Successful save flow:
+
+1. call `onSubmitAccepted()` in zustand;
+2. refetch `FACET_GRID_QUERY`;
+3. rebuild rows from fresh server data;
+4. clear selected rows;
+5. show success message.
+
+When the page unmounts or route store changes, call `discardAll()` so draft
+edits from one store cannot leak into another store.
 
 ### Save flow
 
@@ -392,11 +557,22 @@ Save maps local state to backend mutations:
 For first implementation, sequential mutations are acceptable because API has
 no bulk reorder mutation. If a mutation fails:
 
-- keep local edits;
+- keep failed local edits;
+- remove edits that were already accepted by the API only after their mutation
+  succeeds;
 - attach errors to row if possible;
 - show first error in custom floating panel above editing panel or as
   `App.message.error`;
-- do not clear store.
+- do not clear the entire store unless every mutation succeeds.
+
+The save handler lives in a hook:
+
+```text
+admin/src/domains/inventory/facets/hooks/use-save-facet-grid-edits.ts
+```
+
+It reads `fieldEdits` and `reorderEdits`, groups them by row kind, maps them to
+GraphQL inputs, and calls the generated mutation hooks sequentially.
 
 ### Cell editing by column
 
@@ -655,38 +831,147 @@ Follow `knowledge/vault/patterns/admin-graphql-layer.md`:
 - no API-output view models for server data;
 - UI-local row models are allowed for the tree grid and editor state.
 
-Initial query should load facets with nested values:
+GraphQL files:
+
+```text
+admin/src/domains/inventory/facets/graphql/
+  fragments.ts
+  queries.ts
+  mutations.ts
+  operation-types.ts
+  index.ts
+```
+
+Hook files:
+
+```text
+admin/src/domains/inventory/facets/hooks/
+  use-facets.ts
+  use-facet.ts
+  use-facet-value.ts
+  use-create-facet.ts
+  use-update-facet.ts
+  use-delete-facet.ts
+  use-create-facet-value.ts
+  use-update-facet-value.ts
+  use-delete-facet-value.ts
+  use-create-facet-swatch.ts
+  use-update-facet-swatch.ts
+  use-delete-facet-swatch.ts
+  use-save-facet-grid-edits.ts
+  use-facet-grid-edit-store.ts
+  use-facet-tree-rows.ts
+  index.ts
+```
+
+Mapper files:
+
+```text
+admin/src/domains/inventory/facets/mappers/
+  facet-grid-row.mapper.ts
+  facet-grid-edit.mapper.ts
+  facet-input.mapper.ts
+  facet-value-input.mapper.ts
+  facet-swatch-input.mapper.ts
+  facet-errors.mapper.ts
+  index.ts
+```
+
+`facet-grid-row.mapper.ts` converts generated API objects to UI-local
+`FacetGridRow[]`. This is allowed because `FacetGridRow` is editor state, not an
+API-output view model for component props.
+
+`facet-grid-edit.mapper.ts` converts zustand `fieldEdits` and `reorderEdits` to
+mutation inputs:
+
+- facet row edits -> `ApiFacetUpdateInput`;
+- value row edits -> `ApiFacetValueUpdateInput`;
+- swatch modal form -> `ApiFacetSwatchCreateInput` or
+  `ApiFacetSwatchUpdateInput`;
+- create/edit modal forms -> create/update inputs.
+
+### Fragments
+
+`fragments.ts`:
+
+```graphql
+fragment FacetSwatchFields on FacetSwatch {
+  id
+  swatchType
+  colorOne
+  colorTwo
+  file {
+    id
+    url
+    altText
+    originalName
+  }
+  metadata
+}
+
+fragment FacetValueGridFields on FacetValue {
+  id
+  label
+  slug
+  sortIndex
+  enabled
+  sourceHandles
+  swatch {
+    ...FacetSwatchFields
+  }
+}
+
+fragment FacetGridFields on Facet {
+  id
+  label
+  slug
+  facetType
+  uiType
+  selectionMode
+  sortIndex
+  sourceHandles
+  values {
+    ...FacetValueGridFields
+  }
+}
+```
+
+Use existing shared `UserErrorFields` fragment if available in the admin
+GraphQL shared fragments.
+
+### Queries
+
+Initial query should load facets with nested values. It has no pagination
+variables because the reorder table needs the full ordered set:
 
 ```graphql
 query FacetGrid {
   catalogQuery {
     facets {
-      id
-      label
-      slug
-      facetType
-      uiType
-      selectionMode
-      sortIndex
-      values {
+      ...FacetGridFields
+    }
+  }
+}
+```
+
+Additional detail queries:
+
+```graphql
+query FacetDetails($id: ID!) {
+  catalogQuery {
+    facet(id: $id) {
+      ...FacetGridFields
+    }
+  }
+}
+
+query FacetValueDetails($id: ID!) {
+  catalogQuery {
+    facetValue(id: $id) {
+      ...FacetValueGridFields
+      facet {
         id
-        label
-        slug
-        sortIndex
-        enabled
-        sourceHandles
-        swatch {
-          id
-          swatchType
-          colorOne
-          colorTwo
-          file {
-            id
-            url
-            altText
-            originalName
-          }
-        }
+        facetType
       }
     }
   }
@@ -695,6 +980,222 @@ query FacetGrid {
 
 No `facetGroups` query is required for this UI.
 
+Phase 1 linked source modal does not require source candidate queries. It edits
+manual handle strings and saves them to `FacetValue.sourceHandles`.
+
+Phase 2 adds source candidate queries for real tag handles, feature slugs and
+option value slugs. Those queries must stay separate from the facet grid query,
+because candidate lists can be searched independently inside the link modal.
+
+### Mutations
+
+`mutations.ts` defines one operation per API mutation. Every mutation requests
+`userErrors`.
+
+```graphql
+mutation FacetCreate($input: FacetCreateInput!) {
+  catalogMutation {
+    facetCreate(input: $input) {
+      facet {
+        ...FacetGridFields
+      }
+      userErrors {
+        ...UserErrorFields
+      }
+    }
+  }
+}
+
+mutation FacetUpdate($input: FacetUpdateInput!) {
+  catalogMutation {
+    facetUpdate(input: $input) {
+      facet {
+        ...FacetGridFields
+      }
+      userErrors {
+        ...UserErrorFields
+      }
+    }
+  }
+}
+
+mutation FacetDelete($input: FacetDeleteInput!) {
+  catalogMutation {
+    facetDelete(input: $input) {
+      deletedFacetId
+      userErrors {
+        ...UserErrorFields
+      }
+    }
+  }
+}
+
+mutation FacetValueCreate($input: FacetValueCreateInput!) {
+  catalogMutation {
+    facetValueCreate(input: $input) {
+      facetValue {
+        ...FacetValueGridFields
+        facet {
+          id
+        }
+      }
+      userErrors {
+        ...UserErrorFields
+      }
+    }
+  }
+}
+
+mutation FacetValueUpdate($input: FacetValueUpdateInput!) {
+  catalogMutation {
+    facetValueUpdate(input: $input) {
+      facetValue {
+        ...FacetValueGridFields
+        facet {
+          id
+        }
+      }
+      userErrors {
+        ...UserErrorFields
+      }
+    }
+  }
+}
+
+mutation FacetValueDelete($input: FacetValueDeleteInput!) {
+  catalogMutation {
+    facetValueDelete(input: $input) {
+      deletedFacetValueId
+      userErrors {
+        ...UserErrorFields
+      }
+    }
+  }
+}
+```
+
+Swatch mutations:
+
+- `FACET_SWATCH_CREATE_MUTATION`;
+- `FACET_SWATCH_UPDATE_MUTATION`;
+- `FACET_SWATCH_DELETE_MUTATION`.
+
+They request `facetSwatch { ...FacetSwatchFields }` or
+`deletedFacetSwatchId`, plus `userErrors`.
+
+### Hook contracts
+
+`useFacets()`:
+
+```ts
+interface UseFacetsReturn {
+  facets: ApiFacet[];
+  loading: boolean;
+  error: Error | null;
+  refetch: () => Promise<unknown>;
+}
+```
+
+Implementation details:
+
+- owns `useQuery(FACET_GRID_QUERY)`;
+- unwraps `data.catalogQuery.facets`;
+- returns an empty array while data is missing;
+- should use `fetchPolicy: "cache-and-network"` for responsive page reloads.
+
+Mutation hooks follow the admin GraphQL pattern:
+
+```ts
+interface UseFacetMutationReturn<TInput, TResult> {
+  mutate: (input: TInput) => Promise<{
+    data: TResult | null;
+    userErrors: ApiGenericUserError[];
+  }>;
+  loading: boolean;
+  error: Error | null;
+  reset: () => void;
+}
+```
+
+Public method names may be domain-specific:
+
+- `createFacet(input)`;
+- `updateFacet(input)`;
+- `deleteFacet(input)`;
+- `createFacetValue(input)`;
+- `updateFacetValue(input)`;
+- `deleteFacetValue(input)`;
+- `createFacetSwatch(input)`;
+- `updateFacetSwatch(input)`;
+- `deleteFacetSwatch(input)`.
+
+Hooks unwrap `catalogMutation.*` and never expose raw GraphQL operation nesting
+to page components.
+
+### Save hook integration
+
+`useSaveFacetGridEdits()` receives:
+
+```ts
+interface UseSaveFacetGridEditsOptions {
+  refetchFacets: () => Promise<unknown>;
+  resetRowsFromServer: () => void;
+}
+```
+
+Save algorithm:
+
+1. read `fieldEdits` and `reorderEdits` from
+   `useFacetGridEditStore.getState()`;
+2. build one `ApiFacetUpdateInput` per edited facet row;
+3. build one `ApiFacetValueUpdateInput` per edited value row;
+4. merge field and reorder updates for the same row into one mutation input;
+5. call `startSaving()`;
+6. run mutations sequentially: facets first, then facet values;
+7. after each successful mutation, remove that row edit from the store;
+8. if a mutation returns `userErrors`, map them to `rowErrors[rowId]` when the
+   row id is known, otherwise to `submitErrors`;
+9. stop on first failing mutation for Phase 1;
+10. if all mutations succeed, call `onSubmitAccepted()`, refetch facets, reset
+    rows from fresh server data, and show success message;
+11. always call `finishSaving()` in `finally`.
+
+Sequential save is acceptable for Phase 1. Do not add a fake bulk operation in
+the frontend. If ordering becomes slow, add a backend bulk/reorder mutation in a
+later phase.
+
+### Cache and refetch strategy
+
+First implementation uses refetch, not manual `cache.modify`:
+
+- after create facet -> refetch `FACET_GRID_QUERY`;
+- after update facet modal save -> refetch `FACET_GRID_QUERY`;
+- after delete facet -> refetch `FACET_GRID_QUERY`;
+- after create/update/delete facet value -> refetch `FACET_GRID_QUERY`;
+- after swatch create/update/delete -> refetch `FACET_GRID_QUERY` if any visible
+  value can display the swatch;
+- after grid batch save -> refetch `FACET_GRID_QUERY`.
+
+Rationale: facets are unpaginated, ordering-sensitive, and nested. Manual cache
+updates can be added later only after the page behavior stabilizes.
+
+### Error mapping
+
+`facet-errors.mapper.ts` maps `ApiGenericUserError.field` to UI targets:
+
+| API field | UI target |
+| --- | --- |
+| `label` | `facet.label` or `value.label` |
+| `slug` | `facet.slug` or `value.slug` |
+| `uiType` | `facet.uiType` |
+| `selectionMode` | `facet.selectionMode` |
+| `sortIndex` | reorder edit or `Order` cell |
+| `sourceHandles` | link source values modal / `value.sourceHandles` |
+| `swatchId` | swatch cell / swatch modal |
+
+If the field path is missing or cannot be mapped, place the error in
+`submitErrors`.
+
 ## Implementation phases
 
 Phase 1:
@@ -702,12 +1203,15 @@ Phase 1:
 - main `Facet -> FacetValue` AG Grid;
 - `useTreeTableDragDrop` reuse with `groupType: "facet"`;
 - no group rows or group UI;
-- inline editing store with bottom `FloatingPanelStack` save/discard;
+- zustand page/edit store with bottom `FloatingPanelStack` save/discard;
+- GraphQL fragments, queries, mutations, hooks and mappers for facets, values
+  and swatches;
+- `useSaveFacetGridEdits` sequential save integration;
 - create facet modal;
 - edit facet modal;
 - value row editing modal;
 - actions column with Delete;
-- linked source handles modal.
+- linked source handles modal with manual handle editing.
 
 Phase 2:
 
