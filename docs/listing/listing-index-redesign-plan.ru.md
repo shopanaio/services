@@ -51,7 +51,7 @@ structured filtering, facets, counts, pagination и sort. Backend sync/rebuild
 - Поддерживать OR внутри одного product-level `facet_id`.
 - Поддерживать AND между разными product-level `facet_id`.
 - Игнорировать invalid или unconfigured facet values, которые не резолвятся в
-  enabled `facet_value` + `facet_value_source_handle`.
+  `facet_value` + `facet_value_source_handle`.
 
 ### Variant-level filtering
 
@@ -70,23 +70,25 @@ structured filtering, facets, counts, pagination и sort. Backend sync/rebuild
 - Поддерживать OR внутри одного option `facet_id` и AND между разными option
   `facet_id`.
 
-### Facet resolution и value visibility
+### Facet resolution
 
 - Batch-resolve storefront tokens `facetSlug:valueSlug` через `facet`,
   `facet_value` и `facet_value_source_handle`.
-- Возвращать на storefront только configured facets и enabled `facet_value`
-  rows.
+- Возвращать на storefront только configured facets и `facet_value` rows,
+  у которых есть source mapping.
 - Не возвращать raw tag/feature/option source handles наружу.
 - Поддерживать merged values: один `facet_value` может мапиться на несколько
   source handles.
-- Не показывать values без enabled `facet_value` и без source mapping.
+- Не показывать values без source mapping.
 
 ### Facet aggregation
 
 - Считать facet counts по full listing scope, а не по текущей странице товаров.
 - Считать product-level facet counts для tag и feature.
 - Считать option facet counts variant-correct только по in-stock variants и
-  возвращать `COUNT(DISTINCT product_id)`, а не count variants.
+  считать products, а не variants. Дедупликация должна происходить отдельным
+  CTE/subquery по `(product_id, facet_id, facet_value_id)`, после чего внешний
+  aggregation использует `COUNT(*)`.
 - Поддерживать facet isolation: count для value считается со всеми активными
   filters, кроме filter своего `facet_id`.
 - Делать isolation именно по `facet_id`, не по `facet_type`, чтобы два feature
@@ -512,14 +514,13 @@ of creating duplicates.
   но не возвращать эти handles в listing query.
 - Sync/rebuild token generation использует `facet_value_source_handle` как
   canonical mapping layer и пишет уже resolved `facet_id` / `facet_value_id`.
-- Storefront resolve/aggregation ignores disabled `facet` / `facet_value` rows
-  and values without `facet_value_source_handle`.
-- Token generation stores mappings for existing `facet_value_source_handle`
-  rows even if the facet/value is currently disabled; visibility is filtered on
-  read so enable/disable does not require token rebuild.
+- Storefront resolve/aggregation игнорирует values без
+  `facet_value_source_handle`.
+- Token generation сохраняет mappings для существующих строк
+  `facet_value_source_handle`.
 - Если один `facet_value` имеет несколько source handles, token generation
-  дедуплицирует их по primary key, а counts группируются по `facet_value_id` и
-  используют `COUNT(DISTINCT product_id)`.
+  дедуплицирует их по primary key, а counts группируются по `facet_value_id`
+  после явной дедупликации `(product_id, facet_id, facet_value_id)`.
 - Facet isolation всегда делается по `facet_id`, не по `facet_type`.
 
 ## Filter semantics
@@ -645,9 +646,12 @@ scope_products AS (
 )
 ```
 
-Search candidate input must be passed as a SQL relation (`VALUES`, temp table or
-unnested typed arrays), not loaded and filtered in TypeScript. For relevance
-sort, cursor values include `in_stock`, `relevance_score` and `product_id`.
+Search candidate input must be passed as a SQL relation, not loaded and
+filtered in TypeScript. `VALUES` is acceptable for hundreds or a few thousand
+ids. For larger candidate sets, prefer unnested typed arrays. For large or
+reused candidate sets, use a temp table with indexes on `product_id` and, when
+needed, `relevance_score`. For relevance sort, cursor values include
+`in_stock`, `relevance_score` and `product_id`.
 
 ### 3. Base product set
 
@@ -700,6 +704,16 @@ base AS (
 
 If a facet id has no selected values, do not generate a boolean or empty
 `ANY('{}')` predicate for it.
+
+This boolean-`EXISTS` shape is the simple default and is easiest to combine with
+facet isolation. On large global scopes or when many active facets are present,
+it can become too expensive because every row in `base_all` evaluates several
+semi-joins. The query builder must be able to switch to a candidate-first shape:
+build the filtered product set through semi-joins or `INTERSECT` over the most
+selective `product_listing_facet_token` predicates, then join that candidate set
+back to `base_all` for sorting, totals and facet aggregation. Keep the default
+shape until `EXPLAIN ANALYZE` shows the candidate-first plan is better for the
+target data distribution.
 
 ### 5. Variant pass set
 
@@ -852,12 +866,13 @@ recommendation: `price_asc` uses lowest matching in-stock variant price;
 
 Facet aggregation uses `base_all`, not only current page items.
 
-Aggregation must be limited to storefront-configured facets that are enabled for
-the current project/listing context. Do not aggregate every token that has ever
-been generated. The aggregation repository should first resolve enabled facet
-ids and visible values, then count only matching `facet_id` / `facet_value_id`
-tokens. This keeps counts aligned with storefront visibility without runtime
-`unnest`, source-handle mapping or full-page in-memory filtering.
+Aggregation должен быть ограничен storefront-configured facets для текущего
+project/listing context. Нельзя агрегировать каждый token, который когда-либо
+был сгенерирован. Aggregation repository сначала должен resolve configured
+`facet_id` и values, у которых есть source mappings, а затем считать только
+matching `facet_id` / `facet_value_id` tokens. Это сохраняет counts
+согласованными со storefront configuration без runtime `unnest`,
+source-handle mapping или full-page in-memory filtering.
 
 ### Product-level discrete facets
 
@@ -876,14 +891,7 @@ product_tokens AS (
     ON plt.project_id = :projectId
    AND plt.currency = :currency
    AND plt.product_id = b.product_id
-   AND plt.facet_id = ANY(:enabledProductFacetIds::uuid[])
-  JOIN catalog.facet_value fv
-    ON fv.id = plt.facet_value_id
-   AND fv.facet_id = plt.facet_id
-   AND fv.enabled = true
-  JOIN catalog.facet f
-    ON f.id = plt.facet_id
-   AND f.enabled = true
+   AND plt.facet_id = ANY(:productFacetIds::uuid[])
 )
 ```
 
@@ -893,7 +901,7 @@ Counts use `FILTER` with all active filters except the current row's `facet_id`:
 SELECT
   pt.facet_id,
   pt.facet_value_id,
-  COUNT(DISTINCT pt.product_id)
+  COUNT(*)
     FILTER (
       WHERE
         -- product-level isolation
@@ -910,12 +918,16 @@ JOIN base b ON b.product_id = pt.product_id
 GROUP BY pt.facet_id, pt.facet_value_id;
 ```
 
+`product_listing_facet_token` has one row per
+`(product_id, facet_id, facet_value_id)` by primary key, so product-level counts
+can use direct `COUNT(*)`.
+
 ### Option facet counts
 
 Option counts are variant-correct and count products, not variants.
 
 ```sql
-option_tokens AS (
+option_variant_tokens AS (
   SELECT
     vli.product_id,
     vli.variant_id,
@@ -927,14 +939,7 @@ option_tokens AS (
     ON vlt.project_id = :projectId
    AND vlt.currency = :currency
    AND vlt.variant_id = vli.variant_id
-   AND vlt.facet_id = ANY(:enabledOptionFacetIds::uuid[])
-  JOIN catalog.facet_value fv
-    ON fv.id = vlt.facet_value_id
-   AND fv.facet_id = vlt.facet_id
-   AND fv.enabled = true
-  JOIN catalog.facet f
-    ON f.id = vlt.facet_id
-   AND f.enabled = true
+   AND vlt.facet_id = ANY(:optionFacetIds::uuid[])
   WHERE vli.project_id = :projectId
     AND vli.currency = :currency
     AND vli.in_stock = true
@@ -945,12 +950,20 @@ option_tokens AS (
     -- EXISTS predicates anchored to the same vli.variant_id
     -- active price filter stays applied and also uses in-stock variants
     -- active in_stock toggle is applied through b.in_stock
+),
+option_product_values AS (
+  SELECT
+    product_id,
+    facet_id,
+    facet_value_id
+  FROM option_variant_tokens
+  GROUP BY product_id, facet_id, facet_value_id
 )
 SELECT
   facet_id,
   facet_value_id,
-  COUNT(DISTINCT product_id) AS count
-FROM option_tokens
+  COUNT(*) AS count
+FROM option_product_values
 GROUP BY facet_id, facet_value_id;
 ```
 
@@ -960,6 +973,15 @@ availability toggle. Option counts are computed only from in-stock variants.
 The omitted-predicate logic must be generated per option `facet_id`; grouping by
 `facet_type = option` would incorrectly make different option facets isolate
 each other.
+
+The `option_product_values` CTE is the explicit deduplication step that turns
+variant-level matches into product-level facet values before counting. This
+grouping plus facet isolation is expected to be one of the most expensive
+storefront aggregation paths. It is acceptable for the first implementation
+because it preserves correct PLP semantics, but it must be validated with
+`EXPLAIN ANALYZE` on production-like catalogs before release. If it does not fit
+the latency budget, optimize the query shape or indexes before weakening product
+deduplication or isolation semantics.
 
 ### Price range
 
@@ -991,16 +1013,21 @@ keeps product-level filters, option filters and price filter. Price filter
 predicates and option predicates still evaluate only in-stock variants.
 
 ```sql
-SELECT COUNT(DISTINCT vli.product_id) AS in_stock_count
-FROM catalog.variant_listing_index vli
-JOIN base b ON b.product_id = vli.product_id
-WHERE vli.project_id = :projectId
-  AND vli.currency = :currency
-  AND vli.in_stock = true
-  -- product-level filters applied
-  -- option filters applied
-  -- price filter applied
-  -- in_stock availability toggle omitted
+in_stock_products AS (
+  SELECT vli.product_id
+  FROM catalog.variant_listing_index vli
+  JOIN base b ON b.product_id = vli.product_id
+  WHERE vli.project_id = :projectId
+    AND vli.currency = :currency
+    AND vli.in_stock = true
+    -- product-level filters applied
+    -- option filters applied
+    -- price filter applied
+    -- in_stock availability toggle omitted
+  GROUP BY vli.product_id
+)
+SELECT COUNT(*) AS in_stock_count
+FROM in_stock_products;
 ```
 
 ### Total count
@@ -1068,10 +1095,8 @@ Replace scripts:
 7. Replace `product_listing_facet_token` rows for affected products/currencies.
 8. If no currency rows exist yet, create rows for enabled project currencies with empty aggregates.
 
-Token generation should write only canonical resolved ids from existing
-`facet_value_source_handle` rows. It must not depend on current enabled/disabled
-visibility; read queries join/filter visible enabled facets and values because
-facet visibility can change without product source handles changing.
+Token generation должен писать только canonical resolved ids из существующих
+строк `facet_value_source_handle`.
 
 `RebuildListingIndexScript`:
 
@@ -1101,10 +1126,6 @@ Events that must refresh listing index:
 - Variant price changed: refresh affected variant/currency and product aggregate.
 - Inventory/stock changed: refresh affected variant stock and product aggregate.
 - Project enabled currencies changed: rebuild listing index for project.
-
-Facet visibility changes (`facet.enabled`, `facet_value.enabled`) do not require
-listing token rebuild if read queries filter visible facets/values. They only
-change which stored tokens are returned.
 
 Facet source mapping changes require token refresh:
 
@@ -1150,7 +1171,8 @@ Facet source mapping changes require token refresh:
 - All storefront sorts place in-stock products before out-of-stock products.
 - Facet counts are computed over full scope, not current page items.
 - Facet counts isolate by `facet_id`.
-- Option counts use `COUNT(DISTINCT product_id)`.
+- Option counts deduplicate to `(product_id, facet_id, facet_value_id)` before
+  final `COUNT(*)`; they do not count variants.
 - Merged `facet_value_source_handle` values do not double-count products.
 - Invalid/unconfigured facet values are ignored.
 - Listing queries do not load all candidate products/variants into memory.
@@ -1168,6 +1190,9 @@ Facet source mapping changes require token refresh:
 - `EXPLAIN ANALYZE` on production-like data confirms acceptable plans for:
   visible sort queries, variant predicate grouping, product facet counts,
   option facet counts, price range and matched variant price sort.
+- `EXPLAIN ANALYZE` specifically covers the expensive paths:
+  option product-value deduplication with facet isolation, product token counts
+  on global scope, and active-facet filtering on a large global catalog scope.
 
 ## Deferred optimization
 
@@ -1180,8 +1205,8 @@ data:
 - price range and matched variant price sort with active option filters;
 - category/manual collection scope joins before token aggregation.
 
-If `COUNT(DISTINCT product_id)` over token tables becomes the next bottleneck,
-consider narrower follow-up optimizations only with `EXPLAIN ANALYZE` evidence:
+If token-table deduplication/grouping becomes the next bottleneck, consider
+narrower follow-up optimizations only with `EXPLAIN ANALYZE` evidence:
 
 - partial indexes per high-cardinality facet group;
 - tenant/currency partitioning for token tables;
