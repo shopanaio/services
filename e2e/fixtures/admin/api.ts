@@ -5,7 +5,9 @@ import type { APIRequestContext } from '@playwright/test';
 import { CategoryFixture } from './category';
 import { CollectionFixture } from './collection';
 import { FileFixture } from './file';
+import { ProductFixture } from './product';
 import { ProjectFixture } from './project';
+import { TagFixture } from './tag';
 import { UserFixture } from './user';
 
 class AdminGqlRequest extends BaseGqlRequest<ApiQuery, ApiMutation> {
@@ -22,7 +24,9 @@ export class AdminApiFixture extends AdminGqlRequest {
   public readonly category: CategoryFixture;
   public readonly collection: CollectionFixture;
   public readonly file: FileFixture;
+  public readonly product: ProductFixture;
   public readonly project: ProjectFixture;
+  public readonly tag: TagFixture;
   public readonly user: UserFixture;
 
   constructor({
@@ -36,7 +40,9 @@ export class AdminApiFixture extends AdminGqlRequest {
     this.category = new CategoryFixture(this);
     this.collection = new CollectionFixture(this);
     this.file = new FileFixture(request, session, this);
+    this.product = new ProductFixture(this);
     this.project = new ProjectFixture(this);
+    this.tag = new TagFixture(this);
     this.user = new UserFixture(this);
   }
 }

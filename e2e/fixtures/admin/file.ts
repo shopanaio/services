@@ -132,6 +132,11 @@ export class FileFixture {
     return this.mapFileResult(file);
   }
 
+  async createFromFile(filePath: string): Promise<string> {
+    const result = await this.uploadFile(filePath);
+    return result.id;
+  }
+
   /**
    * Upload a file from a remote URL.
    * The server will download the file and store it in S3.

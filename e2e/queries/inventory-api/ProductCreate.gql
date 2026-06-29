@@ -5,6 +5,7 @@ mutation ProductCreate($input: ProductCreateInput!) {
         id
         title
         handle
+        revision
         isPublished
         description {
           html
