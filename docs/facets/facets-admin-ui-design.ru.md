@@ -10,13 +10,14 @@ inventory pages, `edit-attributes-modal` и inventory inline editing.
 - `Facet` - parent row.
 - `FacetValue` - child row.
 - `FacetGroup` в этой странице не участвует: группы не показываются, не
-  редактируются и не влияют на DnD.
+  редактируются и не влияют на редактирование порядка.
 - Если backend поле `groupId` остается в `Facet`, UI не отправляет его при
   обычном редактировании. На create можно оставлять `groupId: null`.
 
-Tree/DnD поведение должно повторять `edit-attributes-modal`, но persistence
-pending edits должен повторять inventory page: zustand state и нижняя save
-panel.
+Tree rendering должно повторять `edit-attributes-modal`, но основная страница
+не поддерживает DnD. Редактирование порядка вынесено в отдельную order modal с
+такой же flat `Facet -> FacetValue` таблицей и drag handles. Field edit
+persistence должен повторять inventory page: zustand state и нижняя save panel.
 
 ## Навигация
 
@@ -56,6 +57,7 @@ admin/src/domains/inventory/facets/
   modals/
     create-facet-modal/
     edit-facet-modal/
+    edit-facet-order-modal/
     create-facet-value-modal/
     edit-facet-value-modal/
     link-source-values-modal/
@@ -65,6 +67,9 @@ admin/src/domains/inventory/facets/
   hooks/
     use-facet-grid-edit-store.ts
     use-facet-tree-rows.ts
+    use-facet-order-tree-rows.ts
+    use-save-facet-grid-edits.ts
+    use-save-facet-order.ts
   mappers/
 ```
 
@@ -87,15 +92,15 @@ This follows existing `tag-*`, `category-*` and `product-*` modal registration.
 Страница строится как существующие admin data/list pages:
 
 - `DataLayout` с `title="Facets"`;
-- в header одна primary action кнопка `Create`;
+- в header secondary action `Edit order` и primary action `Create`;
 - сверху `DataLayout.Toolbar` с `FilterWidget`: search + filters;
 - внутри `AgGridReact`;
 - снизу `FloatingPanelStack` с editing panel, когда есть pending changes.
 
 `CursorPagination` для основной таблицы не нужен, если backend отдает все
-facets и values: reorder требует полный набор строк. Если позже facets станет
-слишком много, нужно добавлять dedicated server-side reorder API, а не
-пагинировать текущий drag table.
+facets и values: order modal требует полный набор строк. Если позже facets
+станет слишком много, нужно добавлять dedicated server-side reorder API, а не
+пагинировать текущую таблицу порядка.
 
 Facets page не использует `useInventoryRelayListPage`: `catalogQuery.facets`
 не принимает `where`, `orderBy` или pagination variables. `filter-schema.ts` и
@@ -117,7 +122,7 @@ Search/filter behavior:
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ Facets                                                            [+ Create] │
+│ Facets                                               [Edit order] [+ Create] │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ [Search facets and values...] [Source v] [UI type v] [Has values v] [Reset] │
 ├──────────────────────────────────────────────────────────────────────────────┤
@@ -127,12 +132,12 @@ Search/filter behavior:
 │ │ ▸ [facet] Price               PRICE     RANGE     Automatic       ⋯     │ │
 │ │ ▸ [facet] Availability        IN_STOCK  BOOLEAN   Automatic       ⋯     │ │
 │ │ ▾ [facet] Color               OPTION    CHECKBOX  12 values       ⋯     │ │
-│ │   ⋮⋮ Red                      value     enabled   4 linked        ⋯     │ │
-│ │   ⋮⋮ Blue                     value     enabled   2 linked        ⋯     │ │
-│ │   ⋮⋮ Burgundy                 value     disabled  1 linked        ⋯     │ │
+│ │     Red                       value     enabled   4 linked        ⋯     │ │
+│ │     Blue                      value     enabled   2 linked        ⋯     │ │
+│ │     Burgundy                  value     disabled  1 linked        ⋯     │ │
 │ │ ▾ [facet] Brand               TAG       DROPDOWN  24 values       ⋯     │ │
-│ │   ⋮⋮ Nike                     value     enabled   nike            ⋯     │ │
-│ │   ⋮⋮ Adidas                   value     enabled   adidas          ⋯     │ │
+│ │     Nike                      value     enabled   nike            ⋯     │ │
+│ │     Adidas                    value     enabled   adidas          ⋯     │ │
 │ │ ▸ [facet] Material            FEATURE   CHECKBOX  5 values        ⋯     │ │
 │ └──────────────────────────────────────────────────────────────────────────┘ │
 │                                                                              │
@@ -232,7 +237,7 @@ tables. This must stay the same flat AG Grid pattern as attributes grid.
 | `UI / Status` | `uiType` + `selectionMode` | `enabled` | facet UI/status, value enabled |
 | `Linked sources` | `Automatic` or `N values` | chips/count for `sourceHandles` | opens link modal |
 | `Swatch` | empty or count summary | swatch preview | Phase 1: read-only; Phase 2: opens swatch picker/modal |
-| `Order` | `sortIndex` | `sortIndex` | facet order, value order |
+| `Order` | `sortIndex` | `sortIndex` | no; edit in order modal |
 | `Actions` | menu | menu | no |
 
 Actions is always the rightmost column.
@@ -246,7 +251,7 @@ Reuse the visual pattern from
 - expand/collapse icon for facet rows with values;
 - facet icon for parent rows;
 - value/tag icon for child rows;
-- row drag handle on the same first column;
+- no row drag handle on the main page;
 - facet rows use `row-group`;
 - value rows use `row-child`.
 
@@ -271,53 +276,87 @@ Value row menu:
 `Delete` is destructive and opens confirmation. If there are unsaved grid edits,
 delete is disabled and shows message: save or discard changes first.
 
-## DnD behavior
+## Order editing modal
 
-Do not implement a second drag model from scratch. Facets need a dedicated
-facet-tree hook that reuses the same flat tree mechanics as
-`useTreeTableDragDrop`, but adds facet-specific DnD constraints and server row
-resync behavior.
+The main facets page does not enable DnD. It shows `Order` as read-only data and
+opens a dedicated `edit-facet-order-modal` from the header `Edit order` action.
+This avoids persisting wrong `sortIndex` values while the main table is
+searched, filtered or sorted.
+
+The order modal uses the same flat `Facet -> FacetValue` AG Grid shape as the
+main page, but only the modal table has row drag handles.
+
+```text
+┌────────────────────────────────────────────────────────────────────────────┐
+│ ← Edit facet order                                                 [Save] │
+├────────────────────────────────────────────────────────────────────────────┤
+│ ┌────────────────────────────────────────────────────────────────────────┐ │
+│ │ Facet / Value                          Source      Order              │ │
+│ ├────────────────────────────────────────────────────────────────────────┤ │
+│ │ ⋮⋮ [facet] Price                       PRICE       0                  │ │
+│ │ ⋮⋮ [facet] Availability                IN_STOCK    1                  │ │
+│ │ ⋮⋮ [facet] Color                       OPTION      2                  │ │
+│ │   Red                                  value       0                  │ │
+│ │   Blue                                 value       1                  │ │
+│ │ ⋮⋮ [facet] Brand                       TAG         3                  │ │
+│ │   Nike                                 value       0                  │ │
+│ └────────────────────────────────────────────────────────────────────────┘ │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+Phase 1 order modal scope:
+
+- reorder facet parent rows only;
+- value rows are visible for context but do not expose drag handles;
+- value rows keep their current `sortIndex`;
+- `PRICE` and `IN_STOCK` are reordered like any other facet row;
+- save maps changed facet order to `facetUpdate({ id, sortIndex })`;
+- cancel closes the modal without touching page pending edits.
+
+Phase 2 can enable same-facet value reorder inside this same modal.
+
+Do not implement a second drag model from scratch. The order modal needs a
+dedicated hook that reuses the flat tree mechanics from `useTreeTableDragDrop`,
+but adds facet-specific reorder constraints and server row resync behavior.
 
 Hook file:
 
 ```text
-admin/src/domains/inventory/facets/hooks/use-facet-tree-rows.ts
+admin/src/domains/inventory/facets/hooks/use-facet-order-tree-rows.ts
 ```
 
-The hook owns the facet page row tree:
+The order hook owns modal-local state only:
 
 - `allRows`;
 - `visibleRows`;
 - `expandedIds`;
 - expand/collapse handlers;
 - AG Grid row drag handlers;
-- row reset from latest server rows after discard/refetch;
+- reset from latest server rows when the modal opens or after successful save;
 - facet-only reorder in Phase 1;
 - optional same-facet value reorder in Phase 2.
 
-It must reuse the common algorithmic parts from
-`useTreeTableDragDrop`: flat `allRows`, derived `visibleRows`, manual expansion,
-sorting by `sortIndex`, row class calculation, collapse-on-parent-drag and
-restore expansion after drag. If this creates duplication, extract the shared
-flat-tree helpers from `useTreeTableDragDrop` instead of forking the logic
-silently.
+It must reuse the common algorithmic parts from `useTreeTableDragDrop`: flat
+`allRows`, derived `visibleRows`, manual expansion, sorting by `sortIndex`, row
+class calculation, collapse-on-parent-drag and restore expansion after drag. If
+this creates duplication, extract shared flat-tree helpers from
+`useTreeTableDragDrop` instead of forking the logic silently.
 
 Use facets as the hook "group" rows internally:
 
 ```text
-useFacetTreeRows({
+useFacetOrderTreeRows({
   initialRows,
-  dndDisabled,
-  onReorderEdit: setReorderValue,
+  onFacetOrderEdit: setFacetOrderEdit,
   onInvalidMove: showWarning,
   valueDragMode: "disabled",
 })
 ```
 
-Required grid setup:
+Required modal grid setup:
 
 ```text
-ModuleRegistry.registerModules([AllCommunityModule, RowDragModule, GridStateModule])
+ModuleRegistry.registerModules([AllCommunityModule, RowDragModule])
 
 <AgGridReact<FacetGridRow>
   rowData={visibleRows}
@@ -331,79 +370,40 @@ ModuleRegistry.registerModules([AllCommunityModule, RowDragModule, GridStateModu
 />
 ```
 
-Shared mechanics inherited from `edit-attributes-modal`:
-
-- `onRowDragEnter` stores `expandedBeforeDragRef`;
-- if dragged row has `type === groupType`, all parent rows collapse by
-  `setExpandedIds(new Set())`;
-- for facets this means dragging a `Facet` collapses all facets;
-- dragging a `FacetValue` does not collapse all facets;
-- `onRowDragEnd` reads current grid visual order through
-  `event.api.forEachNodeAfterFilterAndSort`;
-- it walks rows top-to-bottom and keeps `currentGroupId`;
-- when the row is a facet, it becomes a root row and receives next root
-  `sortIndex`;
-- when value DnD is enabled and the row is a value, the candidate visual order
-  is validated before local rows are committed;
-- after row updates, previous expanded state is restored;
-- valid reorder writes a `reorderEdit` to zustand.
-
-Facet-specific constraints in `useFacetTreeRows()`:
+Facet-specific constraints in `useFacetOrderTreeRows()`:
 
 - `FacetValue` is never a root row. It must always stay under its owning
   `Facet`.
 - Phase 1 disables value row dragging completely. Only `Facet` rows get a drag
   handle and only facet `sortIndex` changes are persisted.
-- In Phase 1 the first column `rowDrag` callback returns `true` only for
-  `row.type === "facet"` and `dndDisabled === false`. Value rows never expose a
-  drag handle.
-- If AG Grid still emits a drag event while `dndDisabled` is true, the hook
-  restores the previous rows and calls `onInvalidMove`.
-- When value DnD is enabled, it is same-facet only: dragging a `FacetValue` can
-  only change its `sortIndex` among sibling values of the same `Facet`.
-- If the visual order produced by `useTreeTableDragDrop` would place a
-  `FacetValue` outside its original `Facet` subtree, before any `Facet`, or under
-  another `Facet`, revert the move to the previous row state and show a warning:
-  `Facet values can only be reordered inside their facet`.
-- `FacetValue` cannot be dropped under `PRICE` or `IN_STOCK`.
-- Moving values across facets is not supported by this UI. It would require a
-  later explicit flow because current API input does not expose `facetId` on
-  `facetValueUpdate`.
-- Facet DnD updates `Facet.sortIndex`.
-- Value DnD inside same facet updates `FacetValue.sortIndex`.
+- The first column `rowDrag` callback returns `true` only for
+  `row.type === "facet"`.
+- When a `Facet` drag starts, collapse all facets and restore previous expansion
+  after drag ends.
+- `onRowDragEnd` reads current modal grid visual order through
+  `event.api.forEachNodeAfterFilterAndSort`.
+- It walks rows top-to-bottom and assigns the next root `sortIndex` only to
+  facet rows.
+- Valid reorder writes a modal-local facet order edit.
+- If AG Grid produces an invalid candidate order, restore the previous rows and
+  show `Facet values can only be reordered inside their facet`.
 
-The generic `useTreeTableDragDrop` configuration is not enough for these rules:
-it only accepts `initialRows`, `groupType`, `onRowsChange` and
-`initiallyExpandAll`, and it currently allows child rows to become root rows or
-move under another parent. Facets therefore must not call it directly from the
-page without facet-specific guarding.
+The generic `useTreeTableDragDrop` configuration is not enough for Phase 2 value
+rules: it currently allows child rows to become root rows or move under another
+parent. The order modal therefore must not call it directly without
+facet-specific guarding.
 
-Extra page rule:
+`useFacetTreeRows()` remains a non-DnD page hook. It owns visible tree state for
+the main page only:
 
-- DnD is enabled only when search/filter/sort is cleared. Reordering a filtered
-  subset would persist incorrect `sortIndex`. If user starts drag with active
-  filters, show warning and block drag: `Clear filters before reordering facets`.
+- `allRows`;
+- `visibleRows`;
+- `expandedIds`;
+- expand/collapse handlers;
+- row reset from latest server rows after discard/refetch.
 
-`dndDisabled` is true when any of these are active:
-
-- search text is non-empty;
-- any facets page filter has a value;
-- any AG Grid column sort is active;
-- grid edit store status is `saving`.
-
-Column sort is display-only for facets. If the user sorts while there are
-pending edits, restore the previous column state and show:
-`Save or discard changes before sorting facets`.
-
-`useFacetTreeRows()` must also expose:
-
-```ts
-resetRowsFromServer(nextRows: FacetGridRow[]): void
-```
-
-The page calls it after discard, after successful refetch, and when the route
-store changes. The hook must not keep stale rows when `initialRows` changes
-because Apollo returned fresh facet data.
+It must not expose row drag handlers and the main page must not pass
+`rowDragManaged`, `onRowDragEnter` or `onRowDragEnd` to `AgGridReact`.
 
 ## Inline editing
 
@@ -422,21 +422,21 @@ There are two existing patterns and both matter:
    - display data is server data merged with pending edits;
    - `FloatingPanelStack` shows Save/Discard.
 
-For facets use attributes grid for tree/DnD and inventory page for pending
-persistence:
+For facets use attributes grid for flat tree rendering and inventory page for
+pending field persistence:
 
 - grid uses `readOnlyEdit`;
 - cell edits are captured in `onCellEditRequest`;
 - pending changes live in zustand;
 - server rows are merged with pending edits for display;
 - bottom `FloatingPanelStack` editing panel appears when edits exist;
-- `Save` sends all pending changes;
-- `Discard` clears local edits.
+- `Save` sends all pending field changes;
+- `Discard` clears local field edits.
 
-DnD is the exception: `useFacetTreeRows()` still updates `allRows` locally so
-the user immediately sees moved rows. Every valid DnD update also writes a
-`reorderEdit` into zustand. Discard resets `allRows` from latest server rows and
-clears `reorderEdits`.
+Order editing is separate from page inline editing. The main page never updates
+row order locally through DnD. `Edit order` opens the order modal, and the modal
+owns its own local order draft until the modal save succeeds or the modal is
+closed.
 
 Do not use `onCellValueChanged` as the only source of pending field edits,
 because page-level save/discard needs original/current values like inventory.
@@ -449,7 +449,6 @@ owned by Apollo query hooks. The page derives grid rows from:
 ```text
 catalogQuery.facets response
   + pending field edits from zustand
-  + pending reorder edits from zustand
   -> FacetGridRow[]
   -> useFacetTreeRows visibleRows
 ```
@@ -463,7 +462,6 @@ admin/src/domains/inventory/facets/hooks/use-facet-grid-edit-store.ts
 Responsibilities:
 
 - keep unsaved field edits;
-- keep unsaved reorder edits;
 - keep row-level API validation errors;
 - keep submit-level API errors;
 - keep page editing status;
@@ -478,8 +476,6 @@ boundary.
 ### Store shape
 
 ```ts
-type FacetGridRowKind = "facet" | "value";
-
 type FacetGridRowId = `facet:${string}` | `value:${string}`;
 
 type FacetGridEditableField =
@@ -498,19 +494,10 @@ interface FacetGridFieldEdit {
   currentValue: string | number | boolean | string[] | null;
 }
 
-interface FacetGridReorderEdit {
-  rowKind: FacetGridRowKind;
-  parentId: string | null;
-  originalParentId: string | null;
-  originalSortIndex: number;
-  sortIndex: number;
-}
-
 interface FacetGridEditStore {
   fieldEdits: Partial<
     Record<FacetGridRowId, Partial<Record<FacetGridEditableField, FacetGridFieldEdit>>>
   >;
-  reorderEdits: Partial<Record<FacetGridRowId, FacetGridReorderEdit>>;
   selectedRowIds: FacetGridRowId[];
   rowErrors: Partial<Record<FacetGridRowId, ApiGenericUserError[]>>;
   submitErrors: ApiGenericUserError[];
@@ -522,7 +509,6 @@ interface FacetGridEditStore {
     originalValue: FacetGridFieldEdit["originalValue"],
     currentValue: FacetGridFieldEdit["currentValue"],
   ) => void;
-  setReorderValue: (rowId: FacetGridRowId, edit: FacetGridReorderEdit) => void;
   setSelectedRowIds: (rowIds: FacetGridRowId[]) => void;
   discardRow: (rowId: FacetGridRowId) => void;
   discardAll: () => void;
@@ -543,7 +529,6 @@ interface FacetGridEditStore {
     rowId: FacetGridRowId,
   ) => Partial<Record<FacetGridEditableField, FacetGridFieldEdit>> | undefined;
   getAllFieldEdits: () => FacetGridEditStore["fieldEdits"];
-  getAllReorderEdits: () => FacetGridEditStore["reorderEdits"];
 }
 ```
 
@@ -552,25 +537,16 @@ interface FacetGridEditStore {
 - facet: `facet:${apiId}`;
 - value: `value:${apiId}`.
 
-`discardRow(rowId)` removes accepted field/reorder edits and row errors for one
-row. It is used by `useSaveFacetGridEdits()` after a row mutation succeeds.
+`discardRow(rowId)` removes accepted field edits and row errors for one row. It
+is used by `useSaveFacetGridEdits()` after a row mutation succeeds.
 
 `setFieldValue` follows the inventory edit store behavior:
 
 - if `currentValue` equals `originalValue`, remove that field edit;
-- if a row has no more field edits and no reorder edit, remove the row entry;
+- if a row has no more field edits, remove the row entry;
 - clear `rowErrors[rowId]` and `submitErrors` when the user changes that row
   again;
 - arrays such as `sourceHandles` compare by normalized content, not by reference.
-
-`setReorderValue` follows the same cleanup rule:
-
-- if `parentId` and `sortIndex` match the original values, remove the reorder
-  edit;
-- otherwise store the latest pending order for that row;
-- for Phase 1, only `rowKind: "facet"` reorder edits are produced;
-- for Phase 2, `rowKind: "value"` is allowed only inside the original parent
-  facet.
 
 ### Page state flow
 
@@ -578,7 +554,7 @@ Page component responsibilities:
 
 1. call `useFacets()` to load server facets;
 2. map server facets to base `FacetGridRow[]`;
-3. merge base rows with `fieldEdits` and `reorderEdits`;
+3. merge base rows with `fieldEdits`;
 4. pass merged rows into `useFacetTreeRows()`;
 5. render `visibleRows` in AG Grid;
 6. render bottom `FloatingPanelStack` when `hasChanges()` is true.
@@ -587,10 +563,37 @@ Page component responsibilities:
 
 - owns `allRows`, `visibleRows`, `expandedIds`, and expand/collapse handlers;
 - receives merged rows from server + zustand drafts;
-- calls `setReorderValue` after every valid DnD change;
-- exposes `resetRowsFromServer()` for Discard and successful refetch;
+- exposes `resetRowsFromServer(nextRows)` for Discard and successful refetch;
 - reuses shared flat-tree mechanics from `useTreeTableDragDrop`;
-- keeps value DnD disabled in Phase 1.
+- does not expose any DnD handlers.
+
+### Order modal state
+
+Order modal draft state is local to `edit-facet-order-modal`, not part of the
+page edit store.
+
+```ts
+type FacetOrderRowId = `facet:${string}` | `value:${string}`;
+
+interface FacetOrderEdit {
+  rowKind: "facet" | "value";
+  parentId: string | null;
+  originalParentId: string | null;
+  originalSortIndex: number;
+  sortIndex: number;
+}
+```
+
+Phase 1 produces only `rowKind: "facet"` edits. Phase 2 can produce
+`rowKind: "value"` edits, but only when `parentId` equals `originalParentId`.
+
+Modal cleanup rules:
+
+- if `sortIndex` and `parentId` match the original values, remove the order edit;
+- otherwise keep the latest pending order for that row;
+- cancel closes the modal and drops local order edits;
+- successful save refetches `FACET_GRID_QUERY`, resets page rows from the fresh
+  server data and then closes the modal.
 
 Discard flow:
 
@@ -610,17 +613,14 @@ Successful save flow:
 When the page unmounts or route store changes, call `discardAll()` so draft
 edits from one store cannot leak into another store.
 
-### Save flow
+### Page save flow
 
-Save maps local state to backend mutations:
+Main page save maps zustand field edits to backend mutations:
 
 1. facet field edits -> `facetUpdate`;
-2. value field edits -> `facetValueUpdate`;
-3. facet reorder -> `facetUpdate({ id, sortIndex })`;
-4. value reorder inside same facet -> `facetValueUpdate({ id, sortIndex })`.
+2. value field edits -> `facetValueUpdate`.
 
-For first implementation, sequential mutations are acceptable because API has
-no bulk reorder mutation. If a mutation fails:
+If a mutation fails:
 
 - keep failed local edits;
 - remove edits that were already accepted by the API only after their mutation
@@ -636,8 +636,35 @@ The save handler lives in a hook:
 admin/src/domains/inventory/facets/hooks/use-save-facet-grid-edits.ts
 ```
 
-It reads `fieldEdits` and `reorderEdits`, groups them by row kind, maps them to
-GraphQL inputs, and calls the generated mutation hooks sequentially.
+It reads `fieldEdits`, groups them by row kind, maps them to GraphQL inputs,
+and calls the generated mutation hooks sequentially.
+
+### Order modal save flow
+
+Order modal save maps local order edits to backend mutations:
+
+1. Phase 1 facet order edits -> `facetUpdate({ id, sortIndex })`;
+2. Phase 2 same-facet value order edits ->
+   `facetValueUpdate({ id, sortIndex })`.
+
+For first implementation, sequential mutations are acceptable because API has
+no bulk reorder mutation. If a mutation fails:
+
+- keep the modal open;
+- keep failed local order edits;
+- attach mapped errors to the modal row if possible;
+- show first unmapped error in the modal error area or as `App.message.error`;
+- do not refetch or close the modal unless every order mutation succeeds.
+
+The save handler lives in a separate hook:
+
+```text
+admin/src/domains/inventory/facets/hooks/use-save-facet-order.ts
+```
+
+It receives modal-local order edits, maps them through `facet-order.mapper.ts`,
+calls generated mutation hooks sequentially, then refetches facets and resets
+the main page rows from fresh server data on success.
 
 ### Cell editing by column
 
@@ -647,7 +674,8 @@ GraphQL inputs, and calls the generated mutation hooks sequentially.
 | facet slug | text editor -> `facet.slug` |
 | facet UI | select editor constrained by `facetType` |
 | facet selection | select editor constrained by `uiType` |
-| facet order | numeric editor -> `facet.sortIndex` |
+| facet order | read-only on main page; edit through order modal |
+| value order | read-only on main page; Phase 2 edits through order modal |
 | value label | text editor -> `value.label` |
 | value slug | text editor -> `value.slug` |
 | value enabled | boolean renderer/editor -> `value.enabled` |
@@ -718,7 +746,7 @@ Facet row click opens fullscreen `ModalLayout` for advanced facet editing.
 │ │ Source             OPTION                                            │   │
 │ │ UI type            [CHECKBOX]                                        │   │
 │ │ Selection mode     [MULTI]                                           │   │
-│ │ Order              [4]                                               │   │
+│ │ Order              4                                                 │   │
 │ └──────────────────────────────────────────────────────────────────────┘   │
 │ ┌──────────────────────────────────────────────────────────────────────┐   │
 │ │ Values                                                [+ Create]     │   │
@@ -1031,8 +1059,10 @@ admin/src/domains/inventory/facets/hooks/
   use-update-facet-value.ts
   use-delete-facet-value.ts
   use-save-facet-grid-edits.ts
+  use-save-facet-order.ts
   use-facet-grid-edit-store.ts
   use-facet-tree-rows.ts
+  use-facet-order-tree-rows.ts
   index.ts
 ```
 
@@ -1046,6 +1076,10 @@ admin/src/domains/inventory/facets/modals/
     types.ts
   edit-facet-modal/
     edit-facet-modal.tsx
+    schema.ts
+    types.ts
+  edit-facet-order-modal/
+    edit-facet-order-modal.tsx
     schema.ts
     types.ts
   create-facet-value-modal/
@@ -1081,6 +1115,7 @@ Mapper files:
 admin/src/domains/inventory/facets/mappers/
   facet-grid-row.mapper.ts
   facet-grid-edit.mapper.ts
+  facet-order.mapper.ts
   facet-input.mapper.ts
   facet-value-input.mapper.ts
   facet-errors.mapper.ts
@@ -1094,11 +1129,15 @@ read-only swatch preview.
 `FacetGridRow[]`. This is allowed because `FacetGridRow` is editor state, not an
 API-output view model for component props.
 
-`facet-grid-edit.mapper.ts` converts zustand `fieldEdits` and `reorderEdits` to
-mutation inputs:
+`facet-grid-edit.mapper.ts` converts zustand `fieldEdits` to mutation inputs:
 
 - facet row edits -> `ApiFacetUpdateInput`;
 - value row edits -> `ApiFacetValueUpdateInput`;
+
+`facet-order.mapper.ts` converts modal-local order edits to mutation inputs:
+
+- Phase 1 facet order edits -> `ApiFacetUpdateInput`;
+- Phase 2 value order edits -> `ApiFacetValueUpdateInput`.
 
 `facet-input.mapper.ts` converts create/edit facet modal forms to
 `ApiFacetCreateInput`/`ApiFacetUpdateInput`.
@@ -1115,6 +1154,7 @@ In Phase 2, swatch modal forms map to `ApiFacetSwatchCreateInput` or
 
 - `FACET_CREATE_MODAL_TYPE`;
 - `FACET_EDIT_MODAL_TYPE`;
+- `FACET_ORDER_EDIT_MODAL_TYPE`;
 - `FACET_VALUE_CREATE_MODAL_TYPE`;
 - `FACET_VALUE_EDIT_MODAL_TYPE`;
 - `FACET_VALUE_LINK_SOURCES_MODAL_TYPE`;
@@ -1124,6 +1164,7 @@ It also augments `ModalStackPayloads` and exports typed hooks:
 
 - `useCreateFacetModal`;
 - `useEditFacetModal`;
+- `useEditFacetOrderModal`;
 - `useCreateFacetValueModal`;
 - `useEditFacetValueModal`;
 - `useLinkSourceValuesModal`.
@@ -1183,7 +1224,7 @@ GraphQL shared fragments.
 ### Queries
 
 Initial query should load facets with nested values. It has no pagination
-variables because the reorder table needs the full ordered set:
+variables because the page tree and order modal need the full ordered set:
 
 ```graphql
 query FacetGrid {
@@ -1383,26 +1424,44 @@ to page components.
 ```ts
 interface UseSaveFacetGridEditsOptions {
   refetchFacets: () => Promise<unknown>;
-  resetRowsFromServer: () => void;
+  resetRowsFromServer: (nextRows: FacetGridRow[]) => void;
 }
 ```
 
 Save algorithm:
 
-1. read `fieldEdits` and `reorderEdits` from
-   `useFacetGridEditStore.getState()`;
+1. read `fieldEdits` from `useFacetGridEditStore.getState()`;
 2. build one `ApiFacetUpdateInput` per edited facet row;
 3. build one `ApiFacetValueUpdateInput` per edited value row;
-4. merge field and reorder updates for the same row into one mutation input;
-5. call `startSaving()`;
-6. run mutations sequentially: facets first, then facet values;
-7. after each successful mutation, remove that row edit from the store;
-8. if a mutation returns `userErrors`, map them to `rowErrors[rowId]` when the
+4. call `startSaving()`;
+5. run mutations sequentially: facets first, then facet values;
+6. after each successful mutation, remove that row edit from the store;
+7. if a mutation returns `userErrors`, map them to `rowErrors[rowId]` when the
    row id is known, otherwise to `submitErrors`;
-9. stop on first failing mutation for Phase 1;
-10. if all mutations succeed, call `onSubmitAccepted()`, refetch facets, reset
+8. stop on first failing mutation for Phase 1;
+9. if all mutations succeed, call `onSubmitAccepted()`, refetch facets, reset
     rows from fresh server data, and show success message;
-11. always call `finishSaving()` in `finally`.
+10. always call `finishSaving()` in `finally`.
+
+`useSaveFacetOrder()` receives:
+
+```ts
+interface UseSaveFacetOrderOptions {
+  refetchFacets: () => Promise<unknown>;
+  resetRowsFromServer: (nextRows: FacetGridRow[]) => void;
+  onSaved: () => void;
+}
+```
+
+Order save algorithm:
+
+1. read modal-local order edits;
+2. build one `ApiFacetUpdateInput` per edited facet row in Phase 1;
+3. build one `ApiFacetValueUpdateInput` per edited value row in Phase 2;
+4. run mutations sequentially;
+5. keep the modal open and show row/submit errors on first failing mutation;
+6. if all mutations succeed, refetch facets, reset rows from fresh server data,
+   clear modal-local order edits, call `onSaved()`, and show success message.
 
 Sequential save is acceptable for Phase 1. Do not add a fake bulk operation in
 the frontend. If ordering becomes slow, add a backend bulk/reorder mutation in a
@@ -1416,6 +1475,7 @@ First implementation uses refetch, not manual `cache.modify`:
 - after update facet modal save -> refetch `FACET_GRID_QUERY`;
 - after delete facet -> refetch `FACET_GRID_QUERY`;
 - after create/update/delete facet value -> refetch `FACET_GRID_QUERY`;
+- after order modal save -> refetch `FACET_GRID_QUERY`;
 - Phase 2: after swatch create/update/delete -> refetch `FACET_GRID_QUERY` if
   any visible value can display the swatch;
 - after grid batch save -> refetch `FACET_GRID_QUERY`.
@@ -1433,7 +1493,7 @@ updates can be added later only after the page behavior stabilizes.
 | `slug` | `facet.slug` or `value.slug` |
 | `uiType` | `facet.uiType` |
 | `selectionMode` | `facet.selectionMode` |
-| `sortIndex` | reorder edit or `Order` cell |
+| `sortIndex` | order modal row |
 | `sourceHandles` | link source values modal / `value.sourceHandles` |
 | `swatchId` | Phase 2 swatch cell / swatch modal |
 
@@ -1447,14 +1507,17 @@ Phase 1:
 - `store` sidebar registration and route `/:orgName/:storeName/facets`;
 - main `Facet -> FacetValue` AG Grid;
 - client-side search/filter state for `FilterWidget`;
-- `useFacetTreeRows` with shared flat-tree mechanics and facet-specific DnD
-  constraints;
+- `useFacetTreeRows` with shared flat-tree mechanics and no DnD on the main
+  page;
+- `edit-facet-order-modal` with the same flat tree table and facet-row DnD;
+- `useFacetOrderTreeRows` with facet-specific reorder constraints;
 - no group rows or group UI;
 - zustand page/edit store with bottom `FloatingPanelStack` save/discard;
 - GraphQL fragments, queries, mutations, hooks and mappers for facets and
   values;
 - read-only swatch display from `FacetValue.swatch` in query fragments;
 - `useSaveFacetGridEdits` sequential save integration;
+- `useSaveFacetOrder` sequential save integration for the order modal;
 - create facet modal;
 - edit facet modal;
 - create facet value modal;
@@ -1469,7 +1532,7 @@ Phase 2:
 - merge selected values flow;
 - swatch create/edit from value modal, swatch mutation hooks and
   `facet-swatch-input.mapper.ts`;
-- value DnD inside same facet.
+- value DnD inside the order modal and only within the same facet.
 
 Phase 3:
 
