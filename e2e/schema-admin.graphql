@@ -2284,7 +2284,6 @@ type FacetGroup implements Node {
   id: ID!
   name: String!
   sortIndex: Int!
-  collapsed: Boolean!
   facets: [Facet!]!
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -2300,10 +2299,6 @@ type Facet implements Node {
   selectionMode: FacetSelectionMode!
   sortIndex: Int!
   group: FacetGroup
-  minValues: Int!
-  maxValuesVisible: Int!
-  valueSort: FacetValueSort!
-  indexable: Boolean!
   values: [FacetValue!]!
 }
 
@@ -4064,12 +4059,6 @@ enum FacetSelectionMode {
   MULTI
 }
 
-enum FacetValueSort {
-  COUNT
-  ALPHA
-  CUSTOM
-}
-
 """Type of visual swatch for option values."""
 enum SwatchType {
   COLOR
@@ -5386,14 +5375,12 @@ input CollectionUpdateRulesInput {
 
 input FacetGroupCreateInput {
   name: String!
-  collapsed: Boolean
   sortIndex: Int
 }
 
 input FacetGroupUpdateInput {
   id: ID!
   name: String
-  collapsed: Boolean
   sortIndex: Int
 }
 
@@ -5419,10 +5406,6 @@ input FacetUpdateInput {
   groupId: ID
   label: String
   sortIndex: Int
-  minValues: Int
-  maxValuesVisible: Int
-  valueSort: FacetValueSort
-  indexable: Boolean
 }
 
 input FacetDeleteInput {

@@ -8,14 +8,12 @@ import type {
 
 export interface FacetGroupCreateParams {
   name: string;
-  collapsed?: boolean;
   sortIndex?: number;
 }
 
 export interface FacetGroupUpdateParams {
   id: string;
   name?: string;
-  collapsed?: boolean;
   sortIndex?: number;
 }
 
@@ -41,10 +39,6 @@ export interface FacetUpdateParams {
   selectionMode?: string;
   groupId?: string | null;
   sortIndex?: number;
-  minValues?: number;
-  maxValuesVisible?: number;
-  valueSort?: string;
-  indexable?: boolean;
 }
 
 export interface FacetDeleteParams {

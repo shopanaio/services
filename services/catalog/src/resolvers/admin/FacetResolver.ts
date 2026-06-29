@@ -59,22 +59,6 @@ export class FacetResolver extends CatalogType<string, Facet> {
     return this.resolvers.facetGroup(groupId);
   }
 
-  async minValues() {
-    return (await this.$get("minValues")) ?? 1;
-  }
-
-  async maxValuesVisible() {
-    return (await this.$get("maxValuesVisible")) ?? 10;
-  }
-
-  async valueSort() {
-    return ((await this.$get("valueSort")) ?? "count").toUpperCase();
-  }
-
-  async indexable() {
-    return (await this.$get("indexable")) ?? false;
-  }
-
   async values() {
     const ids = await this.$ctx.loaders.facetValueIds.load(this.$props);
     return Promise.all(ids.map((id) => this.resolvers.facetValue(id)));

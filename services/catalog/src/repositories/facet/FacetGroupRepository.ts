@@ -33,7 +33,6 @@ export class FacetGroupRepository extends BaseRepository {
 
   async create(data: {
     name: string;
-    collapsed?: boolean;
     sortIndex?: number;
   }): Promise<FacetGroup> {
     const id = randomUUID();
@@ -42,7 +41,6 @@ export class FacetGroupRepository extends BaseRepository {
       id,
       projectId: this.storeId,
       sortIndex: data.sortIndex ?? 0,
-      collapsed: data.collapsed ?? false,
       createdAt: now,
       updatedAt: now,
     };
@@ -63,14 +61,12 @@ export class FacetGroupRepository extends BaseRepository {
     id: string,
     data: {
       name?: string;
-      collapsed?: boolean;
       sortIndex?: number;
     }
   ): Promise<FacetGroup | null> {
     const updates: Partial<NewFacetGroup> = {
       updatedAt: new Date().toISOString(),
     };
-    if (data.collapsed !== undefined) updates.collapsed = data.collapsed;
     if (data.sortIndex !== undefined) updates.sortIndex = data.sortIndex;
 
     const rows = await this.connection

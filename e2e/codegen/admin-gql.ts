@@ -410,6 +410,8 @@ export type ApiBundle = ApiListing & ApiNode & {
   media: Array<ApiProductMediaItem>;
   /** The options available for this bundle. */
   options: Array<ApiProductOption>;
+  /** Current bundle price range in the selected currency. */
+  priceRange?: Maybe<ApiProductPriceRange>;
   /** The primary category assigned to this bundle. */
   primaryCategory?: Maybe<ApiCategory>;
   /** The date and time when the bundle was published, or null if unpublished. */
@@ -1003,25 +1005,49 @@ export type BundleLogicOperator =
   | 'AND'
   | 'OR';
 
+/** Ordering configuration for Bundle */
 export type ApiBundleOrderByInput = {
+  /** Sort direction */
   direction: SortDirection;
+  /** Field to order by */
   field: BundleOrderField;
 };
 
+/** Fields available for sorting Bundle */
 export type BundleOrderField =
+  /** Sort by brandName */
   | 'brandName'
+  /** Sort by bundleType */
+  | 'bundleType'
+  /** Sort by createdAt */
   | 'createdAt'
+  /** Sort by currency */
   | 'currency'
+  /** Sort by handle */
   | 'handle'
+  /** Sort by id */
   | 'id'
+  /** Sort by locale */
   | 'locale'
+  /** Sort by maxAmountMinor */
+  | 'maxAmountMinor'
+  /** Sort by maxPriceMinor */
   | 'maxPriceMinor'
+  /** Sort by minAmountMinor */
+  | 'minAmountMinor'
+  /** Sort by minPriceMinor */
   | 'minPriceMinor'
+  /** Sort by name */
   | 'name'
+  /** Sort by primaryCategoryId */
   | 'primaryCategoryId'
+  /** Sort by primaryCategoryName */
   | 'primaryCategoryName'
+  /** Sort by publishedAt */
   | 'publishedAt'
+  /** Sort by updatedAt */
   | 'updatedAt'
+  /** Sort by vendorId */
   | 'vendorId';
 
 export type ApiBundlePriceRule = {
@@ -1158,23 +1184,47 @@ export type ApiBundleUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** Filter conditions for Bundle */
 export type ApiBundleWhereInput = {
+  /** Logical AND of multiple conditions */
   _and?: InputMaybe<Array<ApiBundleWhereInput>>;
+  /** Negate the condition */
   _not?: InputMaybe<ApiBundleWhereInput>;
+  /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiBundleWhereInput>>;
+  /** Filter by brandName */
   brandName?: InputMaybe<ApiStringFilter>;
+  /** Filter by bundleType */
+  bundleType?: InputMaybe<ApiStringFilter>;
+  /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by currency */
   currency?: InputMaybe<ApiStringFilter>;
+  /** Filter by handle */
   handle?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by locale */
   locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by maxAmountMinor */
+  maxAmountMinor?: InputMaybe<ApiIntFilter>;
+  /** Filter by maxPriceMinor */
   maxPriceMinor?: InputMaybe<ApiIntFilter>;
+  /** Filter by minAmountMinor */
+  minAmountMinor?: InputMaybe<ApiIntFilter>;
+  /** Filter by minPriceMinor */
   minPriceMinor?: InputMaybe<ApiIntFilter>;
+  /** Filter by name */
   name?: InputMaybe<ApiStringFilter>;
+  /** Filter by primaryCategoryId */
   primaryCategoryId?: InputMaybe<ApiIdFilter>;
+  /** Filter by primaryCategoryName */
   primaryCategoryName?: InputMaybe<ApiStringFilter>;
+  /** Filter by publishedAt */
   publishedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by vendorId */
   vendorId?: InputMaybe<ApiIdFilter>;
 };
 
@@ -3181,16 +3231,12 @@ export type ApiFacet = ApiNode & {
   facetType: FacetType;
   group?: Maybe<ApiFacetGroup>;
   id: Scalars['ID']['output'];
-  indexable: Scalars['Boolean']['output'];
   label: Scalars['String']['output'];
-  maxValuesVisible: Scalars['Int']['output'];
-  minValues: Scalars['Int']['output'];
   selectionMode: FacetSelectionMode;
   slug: Scalars['String']['output'];
   sortIndex: Scalars['Int']['output'];
   sourceHandles: Array<Scalars['String']['output']>;
   uiType: FacetUiType;
-  valueSort: FacetValueSort;
   values: Array<ApiFacetValue>;
 };
 
@@ -3222,7 +3268,6 @@ export type ApiFacetDeletePayload = {
 
 export type ApiFacetGroup = ApiNode & {
   __typename?: 'FacetGroup';
-  collapsed: Scalars['Boolean']['output'];
   createdAt: Scalars['DateTime']['output'];
   facets: Array<ApiFacet>;
   id: Scalars['ID']['output'];
@@ -3232,7 +3277,6 @@ export type ApiFacetGroup = ApiNode & {
 };
 
 export type ApiFacetGroupCreateInput = {
-  collapsed?: InputMaybe<Scalars['Boolean']['input']>;
   name: Scalars['String']['input'];
   sortIndex?: InputMaybe<Scalars['Int']['input']>;
 };
@@ -3254,7 +3298,6 @@ export type ApiFacetGroupDeletePayload = {
 };
 
 export type ApiFacetGroupUpdateInput = {
-  collapsed?: InputMaybe<Scalars['Boolean']['input']>;
   id: Scalars['ID']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
   sortIndex?: InputMaybe<Scalars['Int']['input']>;
@@ -3336,15 +3379,11 @@ export type FacetUiType =
 export type ApiFacetUpdateInput = {
   groupId?: InputMaybe<Scalars['ID']['input']>;
   id: Scalars['ID']['input'];
-  indexable?: InputMaybe<Scalars['Boolean']['input']>;
   label?: InputMaybe<Scalars['String']['input']>;
-  maxValuesVisible?: InputMaybe<Scalars['Int']['input']>;
-  minValues?: InputMaybe<Scalars['Int']['input']>;
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug?: InputMaybe<Scalars['String']['input']>;
   sortIndex?: InputMaybe<Scalars['Int']['input']>;
   uiType?: InputMaybe<FacetUiType>;
-  valueSort?: InputMaybe<FacetValueSort>;
 };
 
 export type ApiFacetUpdatePayload = {
@@ -3390,11 +3429,6 @@ export type ApiFacetValueDeletePayload = {
   deletedFacetValueId?: Maybe<Scalars['ID']['output']>;
   userErrors: Array<ApiGenericUserError>;
 };
-
-export type FacetValueSort =
-  | 'ALPHA'
-  | 'COUNT'
-  | 'CUSTOM';
 
 export type ApiFacetValueUpdateInput = {
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
@@ -4193,6 +4227,8 @@ export type ApiListing = {
   kind: ProductKind;
   /** Media registered on this listing item. */
   media: Array<ApiProductMediaItem>;
+  /** Current product price range in the selected currency. */
+  priceRange?: Maybe<ApiProductPriceRange>;
   /** Localized title. */
   title: Scalars['String']['output'];
 };
@@ -4241,8 +4277,12 @@ export type ListingOrderField =
   | 'kind'
   /** Sort by locale */
   | 'locale'
+  /** Sort by maxAmountMinor */
+  | 'maxAmountMinor'
   /** Sort by maxPriceMinor */
   | 'maxPriceMinor'
+  /** Sort by minAmountMinor */
+  | 'minAmountMinor'
   /** Sort by minPriceMinor */
   | 'minPriceMinor'
   /** Sort by name */
@@ -4280,8 +4320,12 @@ export type ApiListingWhereInput = {
   kind?: InputMaybe<ApiStringFilter>;
   /** Filter by locale */
   locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by maxAmountMinor */
+  maxAmountMinor?: InputMaybe<ApiIntFilter>;
   /** Filter by maxPriceMinor */
   maxPriceMinor?: InputMaybe<ApiIntFilter>;
+  /** Filter by minAmountMinor */
+  minAmountMinor?: InputMaybe<ApiIntFilter>;
   /** Filter by minPriceMinor */
   minPriceMinor?: InputMaybe<ApiIntFilter>;
   /** Filter by name */
@@ -5423,6 +5467,8 @@ export type ApiProduct = ApiListing & ApiNode & {
   media: Array<ApiProductMediaItem>;
   /** The options available for this product. */
   options: Array<ApiProductOption>;
+  /** Current product price range in the selected currency. */
+  priceRange?: Maybe<ApiProductPriceRange>;
   /** The primary category assigned to this product. */
   primaryCategory?: Maybe<ApiCategory>;
   /** The date and time when the product was published, or null if unpublished. */
@@ -6118,8 +6164,12 @@ export type ProductOrderField =
   | 'id'
   /** Sort by locale */
   | 'locale'
+  /** Sort by maxAmountMinor */
+  | 'maxAmountMinor'
   /** Sort by maxPriceMinor */
   | 'maxPriceMinor'
+  /** Sort by minAmountMinor */
+  | 'minAmountMinor'
   /** Sort by minPriceMinor */
   | 'minPriceMinor'
   /** Sort by name */
@@ -6134,6 +6184,16 @@ export type ProductOrderField =
   | 'updatedAt'
   /** Sort by vendorId */
   | 'vendorId';
+
+export type ApiProductPriceRange = {
+  __typename?: 'ProductPriceRange';
+  /** Currency code used for the returned price amounts. */
+  currency: CurrencyCode;
+  /** Maximum product price amount in minor units. */
+  maxPriceAmount: Scalars['BigInt']['output'];
+  /** Minimum product price amount in minor units. */
+  minPriceAmount: Scalars['BigInt']['output'];
+};
 
 export type ApiProductProductsMetaInput = {
   categoriesScope?: InputMaybe<ApiProductCategoriesScopeInput>;
@@ -6264,8 +6324,12 @@ export type ApiProductWhereInput = {
   id?: InputMaybe<ApiIdFilter>;
   /** Filter by locale */
   locale?: InputMaybe<ApiStringFilter>;
+  /** Filter by maxAmountMinor */
+  maxAmountMinor?: InputMaybe<ApiIntFilter>;
   /** Filter by maxPriceMinor */
   maxPriceMinor?: InputMaybe<ApiIntFilter>;
+  /** Filter by minAmountMinor */
+  minAmountMinor?: InputMaybe<ApiIntFilter>;
   /** Filter by minPriceMinor */
   minPriceMinor?: InputMaybe<ApiIntFilter>;
   /** Filter by name */

@@ -4,7 +4,6 @@ query FacetGroups {
       id
       name
       sortIndex
-      collapsed
       facets {
         id
         slug

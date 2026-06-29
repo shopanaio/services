@@ -314,10 +314,6 @@ test.describe('Facet API', () => {
           selectionMode: 'SINGLE',
           groupId,
           sortIndex: 10,
-          minValues: 2,
-          maxValuesVisible: 8,
-          valueSort: 'ALPHA',
-          indexable: false,
         },
       },
     });
@@ -331,10 +327,6 @@ test.describe('Facet API', () => {
     expect(result.facet?.selectionMode).toBe('SINGLE');
     expect(result.facet?.group?.id).toBe(groupId);
     expect(result.facet?.sortIndex).toBe(10);
-    expect(result.facet?.minValues).toBe(2);
-    expect(result.facet?.maxValuesVisible).toBe(8);
-    expect(result.facet?.valueSort).toBe('ALPHA');
-    expect(result.facet?.indexable).toBe(false);
   });
 
   // ═══════════════════════════════════════
@@ -568,55 +560,4 @@ test.describe('Facet API', () => {
     expect(data.catalogQuery.facet).toBeNull();
   });
 
-  test('should create facet with valueSort CUSTOM', async ({ api }) => {
-    const { data: createData } = await api.admin.mutation('facet-api/FacetCreate', {
-      variables: {
-        input: {
-          facetType: 'TAG',
-          slug: 'custom-sort-facet',
-          label: 'Custom Sort Facet',
-        },
-      },
-    });
-
-    const facetId = createData.catalogMutation.facetCreate.facet?.id;
-
-    // Update to use CUSTOM sort
-    const { data } = await api.admin.mutation('facet-api/FacetUpdate', {
-      variables: {
-        input: {
-          id: facetId,
-          valueSort: 'CUSTOM',
-        },
-      },
-    });
-
-    expect(data.catalogMutation.facetUpdate.facet?.valueSort).toBe('CUSTOM');
-  });
-
-  test('should create facet with valueSort COUNT', async ({ api }) => {
-    const { data: createData } = await api.admin.mutation('facet-api/FacetCreate', {
-      variables: {
-        input: {
-          facetType: 'TAG',
-          slug: 'count-sort-facet',
-          label: 'Count Sort Facet',
-        },
-      },
-    });
-
-    const facetId = createData.catalogMutation.facetCreate.facet?.id;
-
-    // Update to use COUNT sort
-    const { data } = await api.admin.mutation('facet-api/FacetUpdate', {
-      variables: {
-        input: {
-          id: facetId,
-          valueSort: 'COUNT',
-        },
-      },
-    });
-
-    expect(data.catalogMutation.facetUpdate.facet?.valueSort).toBe('COUNT');
-  });
 });

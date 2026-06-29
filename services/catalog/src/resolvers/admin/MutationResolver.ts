@@ -1822,11 +1822,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   }
 
   async facetGroupCreate(args: {
-    input: { name: string; collapsed?: boolean | null; sortIndex?: number | null };
+    input: { name: string; sortIndex?: number | null };
   }) {
     const result = await this.$ctx.kernel.runScript(FacetGroupCreateScript, {
       name: args.input.name,
-      collapsed: args.input.collapsed ?? undefined,
       sortIndex: args.input.sortIndex ?? undefined,
     });
 
@@ -1842,7 +1841,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     input: {
       id: string;
       name?: string | null;
-      collapsed?: boolean | null;
       sortIndex?: number | null;
     };
   }) {
@@ -1856,7 +1854,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const result = await this.$ctx.kernel.runScript(FacetGroupUpdateScript, {
       id,
       name: args.input.name ?? undefined,
-      collapsed: args.input.collapsed ?? undefined,
       sortIndex: args.input.sortIndex ?? undefined,
     });
 
@@ -1926,10 +1923,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       selectionMode?: "SINGLE" | "MULTI" | null;
       groupId?: string | null;
       sortIndex?: number | null;
-      minValues?: number | null;
-      maxValuesVisible?: number | null;
-      valueSort?: "COUNT" | "ALPHA" | "CUSTOM" | null;
-      indexable?: boolean | null;
     };
   }) {
     const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.Facet);
@@ -1952,10 +1945,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       selectionMode: args.input.selectionMode?.toLowerCase(),
       groupId,
       sortIndex: args.input.sortIndex ?? undefined,
-      minValues: args.input.minValues ?? undefined,
-      maxValuesVisible: args.input.maxValuesVisible ?? undefined,
-      valueSort: args.input.valueSort?.toLowerCase(),
-      indexable: args.input.indexable ?? undefined,
     });
 
     return {

@@ -16,7 +16,6 @@ export class FacetGroupUpdateScript extends BaseScript<
 
     const facetGroup = await this.repository.facetGroup.update(params.id, {
       name: params.name,
-      collapsed: params.collapsed,
       sortIndex: params.sortIndex,
     });
 

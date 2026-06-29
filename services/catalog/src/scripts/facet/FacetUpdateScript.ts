@@ -53,10 +53,6 @@ export class FacetUpdateScript extends BaseScript<FacetUpdateParams, FacetResult
       selectionMode: params.selectionMode,
       groupId: params.groupId,
       sortIndex: params.sortIndex,
-      minValues: params.minValues,
-      maxValuesVisible: params.maxValuesVisible,
-      valueSort: params.valueSort,
-      indexable: params.indexable,
     });
 
     return { facet: facet ?? undefined, userErrors: [] };

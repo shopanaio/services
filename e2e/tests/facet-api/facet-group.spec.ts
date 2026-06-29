@@ -24,7 +24,6 @@ test.describe('FacetGroup API', () => {
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetGroup).toBeTruthy();
     expect(result.facetGroup?.name).toBe('Test Group');
-    expect(result.facetGroup?.collapsed).toBe(false);
     expect(result.facetGroup?.sortIndex).toBe(0);
   });
 
@@ -33,7 +32,6 @@ test.describe('FacetGroup API', () => {
       variables: {
         input: {
           name: 'Full Group',
-          collapsed: true,
           sortIndex: 5,
         },
       },
@@ -44,7 +42,6 @@ test.describe('FacetGroup API', () => {
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetGroup).toBeTruthy();
     expect(result.facetGroup?.name).toBe('Full Group');
-    expect(result.facetGroup?.collapsed).toBe(true);
     expect(result.facetGroup?.sortIndex).toBe(5);
   });
 
@@ -80,11 +77,11 @@ test.describe('FacetGroup API', () => {
     expect(result.facetGroup?.name).toBe('Updated Name');
   });
 
-  test('should update facet group collapsed and sortIndex', async ({ api }) => {
+  test('should update facet group sortIndex', async ({ api }) => {
     // Create a group first
     const { data: createData } = await api.admin.mutation('facet-api/FacetGroupCreate', {
       variables: {
-        input: { name: 'Test Group', collapsed: false, sortIndex: 0 },
+        input: { name: 'Test Group', sortIndex: 0 },
       },
     });
 
@@ -96,7 +93,6 @@ test.describe('FacetGroup API', () => {
       variables: {
         input: {
           id: groupId,
-          collapsed: true,
           sortIndex: 10,
         },
       },
@@ -106,7 +102,6 @@ test.describe('FacetGroup API', () => {
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetGroup).toBeTruthy();
-    expect(result.facetGroup?.collapsed).toBe(true);
     expect(result.facetGroup?.sortIndex).toBe(10);
   });
 
@@ -172,7 +167,7 @@ test.describe('FacetGroup API', () => {
     // Create a group
     const { data: createData } = await api.admin.mutation('facet-api/FacetGroupCreate', {
       variables: {
-        input: { name: 'Query Test Group', collapsed: true, sortIndex: 3 },
+        input: { name: 'Query Test Group', sortIndex: 3 },
       },
     });
 
@@ -187,7 +182,6 @@ test.describe('FacetGroup API', () => {
     expect(data.catalogQuery.facetGroup).toBeTruthy();
     expect(data.catalogQuery.facetGroup?.id).toBe(groupId);
     expect(data.catalogQuery.facetGroup?.name).toBe('Query Test Group');
-    expect(data.catalogQuery.facetGroup?.collapsed).toBe(true);
     expect(data.catalogQuery.facetGroup?.sortIndex).toBe(3);
   });
 

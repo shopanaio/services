@@ -5,7 +5,6 @@ mutation FacetGroupUpdate($input: FacetGroupUpdateInput!) {
         id
         name
         sortIndex
-        collapsed
         createdAt
         updatedAt
       }

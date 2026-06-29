@@ -38,7 +38,6 @@ DB таблицы:
 - `id`;
 - `project_id`;
 - `sort_index`;
-- `collapsed`;
 - `created_at`;
 - `updated_at`;
 - translated `name`.
@@ -62,11 +61,7 @@ DB таблицы:
 - `selection_mode` - `single` или `multi`;
 - `group_id` - nullable ссылка на группу;
 - `sort_index` - порядок фильтра;
-- `min_values` - минимальное количество релевантных значений, чтобы показывать facet;
-- `max_values_visible` - лимит видимых значений, `0` означает без лимита;
-- `value_sort` - сортировка значений: `count`, `alpha`, `custom`;
 - `slug` - стабильный slug фильтра;
-- `indexable` - флаг для будущей SEO/indexable-логики;
 - translated `label`.
 
 Ограничения:
@@ -196,8 +191,7 @@ Enums:
 
 - `FacetType`: `PRICE`, `TAG`, `FEATURE`, `OPTION`, `IN_STOCK`;
 - `FacetUIType`: `CHECKBOX`, `RADIO`, `DROPDOWN`, `RANGE`, `BOOLEAN`;
-- `FacetSelectionMode`: `SINGLE`, `MULTI`;
-- `FacetValueSort`: `COUNT`, `ALPHA`, `CUSTOM`.
+- `FacetSelectionMode`: `SINGLE`, `MULTI`.
 
 Queries:
 
@@ -360,9 +354,9 @@ GraphQL `WhereInput` (`ProductWhereInput`, `ListingWhereInput`,
 
 Практичный UI можно строить вокруг четырех областей:
 
-- groups: порядок, название, collapsed;
+- groups: порядок, название;
 - facets: тип, slug, label, UI type, selection mode, group, sort index,
-  visibility rules;
+  visibility;
 - values: slug, label, source handles, swatch, sort index, enabled;
 - swatches: color/gradient/image assets.
 

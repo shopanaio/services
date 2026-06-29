@@ -2520,16 +2520,12 @@ export type Facet = Node & {
   facetType: FacetType;
   group: Maybe<FacetGroup>;
   id: Scalars['ID']['output'];
-  indexable: Scalars['Boolean']['output'];
   label: Scalars['String']['output'];
-  maxValuesVisible: Scalars['Int']['output'];
-  minValues: Scalars['Int']['output'];
   selectionMode: FacetSelectionMode;
   slug: Scalars['String']['output'];
   sortIndex: Scalars['Int']['output'];
   sourceHandles: Array<Scalars['String']['output']>;
   uiType: FacetUiType;
-  valueSort: FacetValueSort;
   values: Array<FacetValue>;
 };
 
@@ -2561,7 +2557,6 @@ export type FacetDeletePayload = {
 
 export type FacetGroup = Node & {
   __typename?: 'FacetGroup';
-  collapsed: Scalars['Boolean']['output'];
   createdAt: Scalars['DateTime']['output'];
   facets: Array<Facet>;
   id: Scalars['ID']['output'];
@@ -2571,7 +2566,6 @@ export type FacetGroup = Node & {
 };
 
 export type FacetGroupCreateInput = {
-  collapsed?: InputMaybe<Scalars['Boolean']['input']>;
   name: Scalars['String']['input'];
   sortIndex?: InputMaybe<Scalars['Int']['input']>;
 };
@@ -2593,7 +2587,6 @@ export type FacetGroupDeletePayload = {
 };
 
 export type FacetGroupUpdateInput = {
-  collapsed?: InputMaybe<Scalars['Boolean']['input']>;
   id: Scalars['ID']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
   sortIndex?: InputMaybe<Scalars['Int']['input']>;
@@ -2678,15 +2671,11 @@ export enum FacetUiType {
 export type FacetUpdateInput = {
   groupId?: InputMaybe<Scalars['ID']['input']>;
   id: Scalars['ID']['input'];
-  indexable?: InputMaybe<Scalars['Boolean']['input']>;
   label?: InputMaybe<Scalars['String']['input']>;
-  maxValuesVisible?: InputMaybe<Scalars['Int']['input']>;
-  minValues?: InputMaybe<Scalars['Int']['input']>;
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug?: InputMaybe<Scalars['String']['input']>;
   sortIndex?: InputMaybe<Scalars['Int']['input']>;
   uiType?: InputMaybe<FacetUiType>;
-  valueSort?: InputMaybe<FacetValueSort>;
 };
 
 export type FacetUpdatePayload = {
@@ -2732,12 +2721,6 @@ export type FacetValueDeletePayload = {
   deletedFacetValueId: Maybe<Scalars['ID']['output']>;
   userErrors: Array<GenericUserError>;
 };
-
-export enum FacetValueSort {
-  Alpha = 'ALPHA',
-  Count = 'COUNT',
-  Custom = 'CUSTOM'
-}
 
 export type FacetValueUpdateInput = {
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
@@ -6008,7 +5991,6 @@ export type ResolversTypes = ResolversObject<{
   FacetValueCreatePayload: ResolverTypeWrapper<FacetValueCreatePayload>;
   FacetValueDeleteInput: FacetValueDeleteInput;
   FacetValueDeletePayload: ResolverTypeWrapper<FacetValueDeletePayload>;
-  FacetValueSort: FacetValueSort;
   FacetValueUpdateInput: FacetValueUpdateInput;
   FacetValueUpdatePayload: ResolverTypeWrapper<FacetValueUpdatePayload>;
   File: ResolverTypeWrapper<File>;
@@ -7192,16 +7174,12 @@ export type FacetResolvers<ContextType = ServiceContext, ParentType extends Reso
   facetType?: Resolver<ResolversTypes['FacetType'], ParentType, ContextType>;
   group?: Resolver<Maybe<ResolversTypes['FacetGroup']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  indexable?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  maxValuesVisible?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  minValues?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   selectionMode?: Resolver<ResolversTypes['FacetSelectionMode'], ParentType, ContextType>;
   slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   sourceHandles?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   uiType?: Resolver<ResolversTypes['FacetUIType'], ParentType, ContextType>;
-  valueSort?: Resolver<ResolversTypes['FacetValueSort'], ParentType, ContextType>;
   values?: Resolver<Array<ResolversTypes['FacetValue']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -7219,7 +7197,6 @@ export type FacetDeletePayloadResolvers<ContextType = ServiceContext, ParentType
 }>;
 
 export type FacetGroupResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetGroup'] = ResolversParentTypes['FacetGroup']> = ResolversObject<{
-  collapsed?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   facets?: Resolver<Array<ResolversTypes['Facet']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;

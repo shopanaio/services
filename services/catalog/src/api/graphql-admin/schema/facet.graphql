@@ -23,16 +23,9 @@ type FacetGroup implements Node {
   id: ID!
   name: String!
   sortIndex: Int!
-  collapsed: Boolean!
   facets: [Facet!]!
   createdAt: DateTime!
   updatedAt: DateTime!
-}
-
-enum FacetValueSort {
-  COUNT
-  ALPHA
-  CUSTOM
 }
 
 type Facet implements Node {
@@ -45,10 +38,6 @@ type Facet implements Node {
   selectionMode: FacetSelectionMode!
   sortIndex: Int!
   group: FacetGroup
-  minValues: Int!
-  maxValuesVisible: Int!
-  valueSort: FacetValueSort!
-  indexable: Boolean!
   values: [FacetValue!]!
 }
 
@@ -74,14 +63,12 @@ type FacetSwatch implements Node {
 
 input FacetGroupCreateInput {
   name: String!
-  collapsed: Boolean
   sortIndex: Int
 }
 
 input FacetGroupUpdateInput {
   id: ID!
   name: String
-  collapsed: Boolean
   sortIndex: Int
 }
 
@@ -107,10 +94,6 @@ input FacetUpdateInput {
   groupId: ID
   label: String
   sortIndex: Int
-  minValues: Int
-  maxValuesVisible: Int
-  valueSort: FacetValueSort
-  indexable: Boolean
 }
 
 input FacetDeleteInput {

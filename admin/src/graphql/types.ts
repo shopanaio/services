@@ -3256,16 +3256,12 @@ export type ApiFacet = ApiNode & {
   facetType: FacetType;
   group?: Maybe<ApiFacetGroup>;
   id: Scalars['ID']['output'];
-  indexable: Scalars['Boolean']['output'];
   label: Scalars['String']['output'];
-  maxValuesVisible: Scalars['Int']['output'];
-  minValues: Scalars['Int']['output'];
   selectionMode: FacetSelectionMode;
   slug: Scalars['String']['output'];
   sortIndex: Scalars['Int']['output'];
   sourceHandles: Array<Scalars['String']['output']>;
   uiType: FacetUiType;
-  valueSort: FacetValueSort;
   values: Array<ApiFacetValue>;
 };
 
@@ -3297,7 +3293,6 @@ export type ApiFacetDeletePayload = {
 
 export type ApiFacetGroup = ApiNode & {
   __typename?: 'FacetGroup';
-  collapsed: Scalars['Boolean']['output'];
   createdAt: Scalars['DateTime']['output'];
   facets: Array<ApiFacet>;
   id: Scalars['ID']['output'];
@@ -3307,7 +3302,6 @@ export type ApiFacetGroup = ApiNode & {
 };
 
 export type ApiFacetGroupCreateInput = {
-  collapsed?: InputMaybe<Scalars['Boolean']['input']>;
   name: Scalars['String']['input'];
   sortIndex?: InputMaybe<Scalars['Int']['input']>;
 };
@@ -3329,7 +3323,6 @@ export type ApiFacetGroupDeletePayload = {
 };
 
 export type ApiFacetGroupUpdateInput = {
-  collapsed?: InputMaybe<Scalars['Boolean']['input']>;
   id: Scalars['ID']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
   sortIndex?: InputMaybe<Scalars['Int']['input']>;
@@ -3414,15 +3407,11 @@ export enum FacetUiType {
 export type ApiFacetUpdateInput = {
   groupId?: InputMaybe<Scalars['ID']['input']>;
   id: Scalars['ID']['input'];
-  indexable?: InputMaybe<Scalars['Boolean']['input']>;
   label?: InputMaybe<Scalars['String']['input']>;
-  maxValuesVisible?: InputMaybe<Scalars['Int']['input']>;
-  minValues?: InputMaybe<Scalars['Int']['input']>;
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug?: InputMaybe<Scalars['String']['input']>;
   sortIndex?: InputMaybe<Scalars['Int']['input']>;
   uiType?: InputMaybe<FacetUiType>;
-  valueSort?: InputMaybe<FacetValueSort>;
 };
 
 export type ApiFacetUpdatePayload = {
@@ -3468,12 +3457,6 @@ export type ApiFacetValueDeletePayload = {
   deletedFacetValueId?: Maybe<Scalars['ID']['output']>;
   userErrors: Array<ApiGenericUserError>;
 };
-
-export enum FacetValueSort {
-  Alpha = 'ALPHA',
-  Count = 'COUNT',
-  Custom = 'CUSTOM'
-}
 
 export type ApiFacetValueUpdateInput = {
   enabled?: InputMaybe<Scalars['Boolean']['input']>;

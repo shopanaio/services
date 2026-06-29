@@ -1028,6 +1028,10 @@ type Bundle implements Node & Listing @join__type(graph: CATALOG_ADMIN, key: "id
   """
   seo: ProductSeo
   """
+  Current bundle price range in the selected currency.
+  """
+  priceRange: ProductPriceRange
+  """
   High-level bundle type.
   """
   type: BundleType
@@ -1876,7 +1880,6 @@ type FacetGroup implements Node @join__type(graph: CATALOG_ADMIN)  @join__implem
   id: ID!
   name: String!
   sortIndex: Int!
-  collapsed: Boolean!
   facets: [Facet!]!
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -1892,10 +1895,6 @@ type Facet implements Node @join__type(graph: CATALOG_ADMIN)  @join__implements(
   selectionMode: FacetSelectionMode!
   sortIndex: Int!
   group: FacetGroup
-  minValues: Int!
-  maxValuesVisible: Int!
-  valueSort: FacetValueSort!
-  indexable: Boolean!
   values: [FacetValue!]!
 }
 
@@ -2231,6 +2230,21 @@ type ProductInventoryWidget @join__type(graph: CATALOG_ADMIN)  {
   skuStatus: InventorySkuStatus!
   backorder: InventoryBackorder!
   alertThreshold: InventoryAlertThreshold!
+}
+
+type ProductPriceRange @join__type(graph: CATALOG_ADMIN)  {
+  """
+  Minimum product price amount in minor units.
+  """
+  minPriceAmount: BigInt!
+  """
+  Maximum product price amount in minor units.
+  """
+  maxPriceAmount: BigInt!
+  """
+  Currency code used for the returned price amounts.
+  """
+  currency: CurrencyCode!
 }
 
 """
@@ -2876,6 +2890,10 @@ type Product implements Node & Listing @join__type(graph: CATALOG_ADMIN, key: "i
   SEO and Open Graph metadata.
   """
   seo: ProductSeo
+  """
+  Current product price range in the selected currency.
+  """
+  priceRange: ProductPriceRange
 }
 
 """
@@ -5267,6 +5285,10 @@ interface Listing implements Node @join__type(graph: CATALOG_ADMIN)  @join__impl
   Media registered on this listing item.
   """
   media: [ProductMediaItem!]!
+  """
+  Current product price range in the selected currency.
+  """
+  priceRange: ProductPriceRange
 }
 
 interface BundlePriceRule implements Node @join__type(graph: CATALOG_ADMIN)  @join__implements(graph: CATALOG_ADMIN, interface: "Node")  {
@@ -6590,6 +6612,14 @@ enum ListingOrderField @join__type(graph: CATALOG_ADMIN)  {
   """
   currency @join__enumValue(graph: CATALOG_ADMIN) 
   """
+  Sort by minAmountMinor
+  """
+  minAmountMinor @join__enumValue(graph: CATALOG_ADMIN) 
+  """
+  Sort by maxAmountMinor
+  """
+  maxAmountMinor @join__enumValue(graph: CATALOG_ADMIN) 
+  """
   Sort by minPriceMinor
   """
   minPriceMinor @join__enumValue(graph: CATALOG_ADMIN) 
@@ -6652,6 +6682,14 @@ enum ProductOrderField @join__type(graph: CATALOG_ADMIN)  {
   """
   currency @join__enumValue(graph: CATALOG_ADMIN) 
   """
+  Sort by minAmountMinor
+  """
+  minAmountMinor @join__enumValue(graph: CATALOG_ADMIN) 
+  """
+  Sort by maxAmountMinor
+  """
+  maxAmountMinor @join__enumValue(graph: CATALOG_ADMIN) 
+  """
   Sort by minPriceMinor
   """
   minPriceMinor @join__enumValue(graph: CATALOG_ADMIN) 
@@ -6713,6 +6751,14 @@ enum BundleOrderField @join__type(graph: CATALOG_ADMIN)  {
   Sort by currency
   """
   currency @join__enumValue(graph: CATALOG_ADMIN) 
+  """
+  Sort by minAmountMinor
+  """
+  minAmountMinor @join__enumValue(graph: CATALOG_ADMIN) 
+  """
+  Sort by maxAmountMinor
+  """
+  maxAmountMinor @join__enumValue(graph: CATALOG_ADMIN) 
   """
   Sort by minPriceMinor
   """
@@ -7119,12 +7165,6 @@ enum FacetUIType @join__type(graph: CATALOG_ADMIN)  {
 enum FacetSelectionMode @join__type(graph: CATALOG_ADMIN)  {
   SINGLE @join__enumValue(graph: CATALOG_ADMIN) 
   MULTI @join__enumValue(graph: CATALOG_ADMIN) 
-}
-
-enum FacetValueSort @join__type(graph: CATALOG_ADMIN)  {
-  COUNT @join__enumValue(graph: CATALOG_ADMIN) 
-  ALPHA @join__enumValue(graph: CATALOG_ADMIN) 
-  CUSTOM @join__enumValue(graph: CATALOG_ADMIN) 
 }
 
 """
@@ -8476,6 +8516,14 @@ input ListingWhereInput @join__type(graph: CATALOG_ADMIN)  {
   """
   currency: StringFilter
   """
+  Filter by minAmountMinor
+  """
+  minAmountMinor: IntFilter
+  """
+  Filter by maxAmountMinor
+  """
+  maxAmountMinor: IntFilter
+  """
   Filter by minPriceMinor
   """
   minPriceMinor: IntFilter
@@ -8564,6 +8612,14 @@ input ProductWhereInput @join__type(graph: CATALOG_ADMIN)  {
   """
   currency: StringFilter
   """
+  Filter by minAmountMinor
+  """
+  minAmountMinor: IntFilter
+  """
+  Filter by maxAmountMinor
+  """
+  maxAmountMinor: IntFilter
+  """
   Filter by minPriceMinor
   """
   minPriceMinor: IntFilter
@@ -8651,6 +8707,14 @@ input BundleWhereInput @join__type(graph: CATALOG_ADMIN)  {
   Filter by currency
   """
   currency: StringFilter
+  """
+  Filter by minAmountMinor
+  """
+  minAmountMinor: IntFilter
+  """
+  Filter by maxAmountMinor
+  """
+  maxAmountMinor: IntFilter
   """
   Filter by minPriceMinor
   """
@@ -9900,14 +9964,12 @@ input CollectionUpdateRulesInput @join__type(graph: CATALOG_ADMIN)  {
 
 input FacetGroupCreateInput @join__type(graph: CATALOG_ADMIN)  {
   name: String!
-  collapsed: Boolean
   sortIndex: Int
 }
 
 input FacetGroupUpdateInput @join__type(graph: CATALOG_ADMIN)  {
   id: ID!
   name: String
-  collapsed: Boolean
   sortIndex: Int
 }
 
@@ -9933,10 +9995,6 @@ input FacetUpdateInput @join__type(graph: CATALOG_ADMIN)  {
   groupId: ID
   label: String
   sortIndex: Int
-  minValues: Int
-  maxValuesVisible: Int
-  valueSort: FacetValueSort
-  indexable: Boolean
 }
 
 input FacetDeleteInput @join__type(graph: CATALOG_ADMIN)  {

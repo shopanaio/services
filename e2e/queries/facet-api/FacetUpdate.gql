@@ -9,10 +9,6 @@ mutation FacetUpdate($input: FacetUpdateInput!) {
         uiType
         selectionMode
         sortIndex
-        minValues
-        maxValuesVisible
-        valueSort
-        indexable
         sourceHandles
         group {
           id

@@ -367,39 +367,6 @@ export async function buildListingFacets(
     return count;
   };
 
-  const countDiscreteValueInBase = (
-    facetType: "tag" | "feature" | "option",
-    valueSourceHandles: string[]
-  ): number => {
-    if (valueSourceHandles.length === 0) return 0;
-
-    let count = 0;
-    for (const product of params.baseProducts) {
-      if (facetType === "tag") {
-        if (intersects(product.tagHandles, valueSourceHandles)) count += 1;
-        continue;
-      }
-      if (facetType === "feature") {
-        if (intersects(product.featureSlugs, valueSourceHandles)) count += 1;
-        continue;
-      }
-
-      const variants = params.variantsByProduct.get(product.productId) ?? [];
-      if (
-        variants.some((variant) =>
-          variantPasses(variant, {
-            requireValueHandles: valueSourceHandles,
-            ignoreAllSelections: true,
-          })
-        )
-      ) {
-        count += 1;
-      }
-    }
-
-    return count;
-  };
-
   const countFacetTotal = (
     facetType: "tag" | "feature" | "option",
     facetId: string,
@@ -537,13 +504,7 @@ export async function buildListingFacets(
       const valuesWithCounts = values.map((value) => ({
         ...value,
         count: countDiscreteValue(facetType, facet.id, value.sourceHandles),
-        baseCount: countDiscreteValueInBase(facetType, value.sourceHandles),
       }));
-
-      const baseVisibleValues = valuesWithCounts.filter((value) => value.baseCount > 0);
-      if (baseVisibleValues.length < facet.minValues) {
-        continue;
-      }
 
       const valuePayload = valuesWithCounts.map((value) => ({
         slug: value.slug,
@@ -553,26 +514,10 @@ export async function buildListingFacets(
         swatchId: value.swatchId,
       }));
 
-      if (facet.valueSort === "alpha") {
-        valuePayload.sort((left, right) =>
-          (left.label ?? left.slug).localeCompare(right.label ?? right.slug)
-        );
-      } else if (facet.valueSort === "count") {
-        valuePayload.sort((left, right) => {
-          if (left.count !== right.count) return right.count - left.count;
-          return (left.label ?? left.slug).localeCompare(right.label ?? right.slug);
-        });
-      } else {
-        valuePayload.sort((left, right) => {
-          if (left.sortIndex !== right.sortIndex) return left.sortIndex - right.sortIndex;
-          return left.slug.localeCompare(right.slug);
-        });
-      }
-
-      const visibleValues =
-        facet.maxValuesVisible > 0
-          ? valuePayload.slice(0, facet.maxValuesVisible)
-          : valuePayload;
+      valuePayload.sort((left, right) => {
+        if (left.sortIndex !== right.sortIndex) return left.sortIndex - right.sortIndex;
+        return left.slug.localeCompare(right.slug);
+      });
 
       const allSourceHandles = Array.from(
         new Set(values.flatMap((value) => value.sourceHandles))
@@ -585,7 +530,7 @@ export async function buildListingFacets(
         label,
         uiType,
         selectionMode,
-        values: visibleValues.map((value) => ({
+        values: valuePayload.map((value) => ({
           slug: value.slug,
           label: value.label,
           count: value.count,

@@ -3960,39 +3960,11 @@
           "notNull": true,
           "default": 0
         },
-        "min_values": {
-          "name": "min_values",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 1
-        },
-        "max_values_visible": {
-          "name": "max_values_visible",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 10
-        },
-        "value_sort": {
-          "name": "value_sort",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'count'"
-        },
         "slug": {
           "name": "slug",
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true
-        },
-        "indexable": {
-          "name": "indexable",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         },
         "created_at": {
           "name": "created_at",
@@ -4063,13 +4035,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": 0
-        },
-        "collapsed": {
-          "name": "collapsed",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         },
         "created_at": {
           "name": "created_at",

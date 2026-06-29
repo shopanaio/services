@@ -129,10 +129,6 @@ interface FacetGridRow extends ITreeTableRow {
   facetType?: FacetType;
   uiType?: FacetUiType;
   selectionMode?: FacetSelectionMode;
-  minValues?: number;
-  maxValuesVisible?: number;
-  valueSort?: FacetValueSort;
-  indexable?: boolean;
   valuesCount?: number;
   enabledValuesCount?: number;
   linkedSourceHandlesCount?: number;
@@ -199,8 +195,7 @@ tables. This must stay the same flat AG Grid pattern as attributes grid.
 | `UI / Status` | `uiType` + `selectionMode` | `enabled` | facet UI/status, value enabled |
 | `Linked sources` | `Automatic` or `N values` | chips/count for `sourceHandles` | opens link modal |
 | `Swatch` | empty or count summary | swatch preview | opens swatch picker/modal |
-| `Visibility` | min/max/value sort | `sortIndex` | facet visibility, value order |
-| `SEO` | `indexable` | empty | facet indexable |
+| `Order` | `sortIndex` | `sortIndex` | facet order, value order |
 | `Actions` | menu | menu | no |
 
 Actions is always the rightmost column.
@@ -290,16 +285,18 @@ Exact mechanics inherited from `edit-attributes-modal`:
 
 Facet-specific constraints around the reused hook:
 
-- `FacetValue` cannot be root. If the hook would place a value before any facet,
-  revert that move or attach it back to its previous facet.
+- `FacetValue` is never a root row. It must always stay under its owning
+  `Facet`.
+- When value DnD is enabled, it is same-facet only: dragging a `FacetValue` can
+  only change its `sortIndex` among sibling values of the same `Facet`.
+- If the visual order produced by `useTreeTableDragDrop` would place a
+  `FacetValue` outside its original `Facet` subtree, before any `Facet`, or under
+  another `Facet`, revert the move to the previous row state and show a warning:
+  `Facet values can only be reordered inside their facet`.
 - `FacetValue` cannot be dropped under `PRICE` or `IN_STOCK`.
-- Moving values across facets is allowed only between compatible discrete facet
-  types when the user confirms it. Default behavior should keep values inside
-  their current facet.
-- Moving a value across facets persists as delete/create or as
-  `facetValueUpdate({ id, facetId })` only if backend supports changing
-  `facetId`. Current API input does not expose `facetId` on update, so Phase 1
-  should restrict value DnD to the same facet.
+- Moving values across facets is not supported by this UI. It would require a
+  later explicit flow because current API input does not expose `facetId` on
+  `facetValueUpdate`.
 - Facet DnD updates `Facet.sortIndex`.
 - Value DnD inside same facet updates `FacetValue.sortIndex`.
 
@@ -353,10 +350,6 @@ type FacetGridEditableField =
   | "facet.slug"
   | "facet.uiType"
   | "facet.selectionMode"
-  | "facet.minValues"
-  | "facet.maxValuesVisible"
-  | "facet.valueSort"
-  | "facet.indexable"
   | "value.label"
   | "value.slug"
   | "value.enabled"
@@ -413,8 +406,7 @@ no bulk reorder mutation. If a mutation fails:
 | facet slug | text editor -> `facet.slug` |
 | facet UI | select editor constrained by `facetType` |
 | facet selection | select editor constrained by `uiType` |
-| facet visibility | compact custom cell, opens edit modal or inline numeric editors |
-| facet SEO | boolean renderer/editor -> `facet.indexable` |
+| facet order | numeric editor -> `facet.sortIndex` |
 | value label | text editor -> `value.label` |
 | value slug | text editor -> `value.slug` |
 | value enabled | boolean renderer/editor -> `value.enabled` |
@@ -467,14 +459,15 @@ Facet row click opens fullscreen `ModalLayout` for advanced facet editing.
 ┌────────────────────────────────────────────────────────────────────────────┐
 │ ← Color                                                           [Save]  │
 ├────────────────────────────────────────────────────────────────────────────┤
-│ ┌──────────────────────────────────────┐ ┌─────────────────────────────┐   │
-│ │ General                              │ │ Visibility                  │   │
-│ │ Label              [Color]           │ │ Min values        [1]       │   │
-│ │ Slug               [color]           │ │ Max visible       [8]       │   │
-│ │ Source             OPTION            │ │ Value sort        [CUSTOM]  │   │
-│ │ UI type            [CHECKBOX]        │ │ Indexable         [x]       │   │
-│ │ Selection mode     [MULTI]           │ │                             │   │
-│ └──────────────────────────────────────┘ └─────────────────────────────┘   │
+│ ┌──────────────────────────────────────────────────────────────────────┐   │
+│ │ General                                                              │   │
+│ │ Label              [Color]                                           │   │
+│ │ Slug               [color]                                           │   │
+│ │ Source             OPTION                                            │   │
+│ │ UI type            [CHECKBOX]                                        │   │
+│ │ Selection mode     [MULTI]                                           │   │
+│ │ Order              [4]                                               │   │
+│ └──────────────────────────────────────────────────────────────────────┘   │
 │ ┌──────────────────────────────────────────────────────────────────────┐   │
 │ │ Values                                                [+ Create]     │   │
 │ │ 12 public values, 31 linked source handles                           │   │
@@ -576,13 +569,18 @@ Selecting several child value rows under the same facet enables:
 Flow:
 
 1. user selects values `Red`, `Dark red`, `Wine red`;
-2. modal asks target public label/slug;
-3. source handles from all selected values are combined;
-4. old values are deleted or disabled after confirmation;
-5. resulting value owns all source handles.
+2. modal asks target public label/slug or lets the user choose an existing
+   target value under the same facet;
+3. source handles from all selected values are linked to the target value;
+4. source handles are not deleted from old values by merge itself;
+5. old values are not deleted by merge. They may be disabled only as an explicit
+   user choice after confirmation;
+6. unmerge remains possible because original values and source handles stay
+   available for later relinking.
 
 This is the explicit UX for connecting several public values into one public
-storefront option without manually copying handles.
+storefront option without manually copying handles. Physical delete is a
+separate destructive action and is not part of merge.
 
 ## Swatches
 
@@ -620,19 +618,21 @@ Facet:
 - `facetType` required on create and immutable after create;
 - `uiType` must be valid for `facetType`;
 - `groupId` is not exposed in UI;
-- `minValues >= 0`;
-- `maxValuesVisible >= 0`, `0` means no limit;
 - `sortIndex >= 0`.
 
 Allowed UI types:
 
 | Facet type | UI types |
 | --- | --- |
-| `PRICE` | `RANGE`, `CHECKBOX`, `RADIO`, `DROPDOWN` |
+| `PRICE` | `RANGE` |
 | `TAG` | `CHECKBOX`, `RADIO`, `DROPDOWN` |
 | `FEATURE` | `CHECKBOX`, `RADIO`, `DROPDOWN` |
 | `OPTION` | `CHECKBOX`, `RADIO`, `DROPDOWN` |
-| `IN_STOCK` | `BOOLEAN`, `CHECKBOX`, `RADIO`, `DROPDOWN` |
+| `IN_STOCK` | `BOOLEAN` |
+
+Even if GraphQL enum values technically allow other combinations, Admin UI must
+hide invalid combinations and only send domain-valid pairs. `PRICE` is a
+computed range facet, and `IN_STOCK` is a computed availability boolean.
 
 Facet value:
 
@@ -668,10 +668,6 @@ query FacetGrid {
       uiType
       selectionMode
       sortIndex
-      minValues
-      maxValuesVisible
-      valueSort
-      indexable
       values {
         id
         label
@@ -727,4 +723,3 @@ Phase 3:
 - storefront listing preview with counts when API exposes configured listing
   facets;
 - translations UI for labels;
-- SEO/indexable rules editor when backend contract exists.

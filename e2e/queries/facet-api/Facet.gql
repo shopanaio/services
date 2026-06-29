@@ -8,10 +8,6 @@ query Facet($id: ID!) {
       uiType
       selectionMode
       sortIndex
-      minValues
-      maxValuesVisible
-      valueSort
-      indexable
       sourceHandles
       group {
         id

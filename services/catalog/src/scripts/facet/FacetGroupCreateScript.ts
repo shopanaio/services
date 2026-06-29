@@ -17,7 +17,6 @@ export class FacetGroupCreateScript extends BaseScript<
 
     const facetGroup = await this.repository.facetGroup.create({
       name: params.name.trim(),
-      collapsed: params.collapsed ?? undefined,
       sortIndex: params.sortIndex ?? undefined,
     });
 

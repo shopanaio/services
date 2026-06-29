@@ -29,10 +29,6 @@ export class FacetGroupResolver extends CatalogType<string, FacetGroup> {
     return (await this.$get("sortIndex")) ?? 0;
   }
 
-  async collapsed() {
-    return (await this.$get("collapsed")) ?? false;
-  }
-
   async createdAt() {
     return this.$get("createdAt");
   }

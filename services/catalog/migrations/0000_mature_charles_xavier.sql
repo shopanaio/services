@@ -341,11 +341,7 @@ CREATE TABLE "catalog"."facet" (
 	"ui_type" varchar(16) DEFAULT 'checkbox' NOT NULL,
 	"selection_mode" varchar(16) DEFAULT 'multi' NOT NULL,
 	"sort_index" integer DEFAULT 0 NOT NULL,
-	"min_values" integer DEFAULT 1 NOT NULL,
-	"max_values_visible" integer DEFAULT 10 NOT NULL,
-	"value_sort" varchar(16) DEFAULT 'count' NOT NULL,
 	"slug" varchar(255) NOT NULL,
-	"indexable" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "facet_project_id_slug_uniq" UNIQUE("project_id","slug")
@@ -355,7 +351,6 @@ CREATE TABLE "catalog"."facet_group" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"project_id" uuid NOT NULL,
 	"sort_index" integer DEFAULT 0 NOT NULL,
-	"collapsed" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "facet_group_project_id_sort_index_uniq" UNIQUE("project_id","sort_index")

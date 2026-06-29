@@ -18,7 +18,6 @@ export const facetGroup = catalogSchema.table(
     id: uuid("id").primaryKey(),
     projectId: uuid("project_id").notNull(),
     sortIndex: integer("sort_index").notNull().default(0),
-    collapsed: boolean("collapsed").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -67,11 +66,7 @@ export const facet = catalogSchema.table(
       .notNull()
       .default("multi"),
     sortIndex: integer("sort_index").notNull().default(0),
-    minValues: integer("min_values").notNull().default(1),
-    maxValuesVisible: integer("max_values_visible").notNull().default(10),
-    valueSort: varchar("value_sort", { length: 16 }).notNull().default("count"),
     slug: varchar("slug", { length: 255 }).notNull(),
-    indexable: boolean("indexable").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),

@@ -69,10 +69,6 @@ export class FacetRepository extends BaseRepository {
     selectionMode?: string;
     groupId?: string | null;
     sortIndex?: number;
-    minValues?: number;
-    maxValuesVisible?: number;
-    valueSort?: string;
-    indexable?: boolean;
   }): Promise<Facet> {
     const id = randomUUID();
     const now = new Date().toISOString();
@@ -86,10 +82,6 @@ export class FacetRepository extends BaseRepository {
       uiType: data.uiType ?? "checkbox",
       selectionMode: data.selectionMode ?? "multi",
       sortIndex: data.sortIndex ?? 0,
-      minValues: data.minValues ?? 1,
-      maxValuesVisible: data.maxValuesVisible ?? 10,
-      valueSort: data.valueSort ?? "count",
-      indexable: data.indexable ?? false,
       createdAt: now,
       updatedAt: now,
     };
@@ -114,10 +106,6 @@ export class FacetRepository extends BaseRepository {
       selectionMode?: string;
       groupId?: string | null;
       sortIndex?: number;
-      minValues?: number;
-      maxValuesVisible?: number;
-      valueSort?: string;
-      indexable?: boolean;
     }
   ): Promise<Facet | null> {
     const updates: Partial<NewFacet> = {
@@ -129,11 +117,6 @@ export class FacetRepository extends BaseRepository {
     if (data.selectionMode !== undefined) updates.selectionMode = data.selectionMode;
     if (data.groupId !== undefined) updates.groupId = data.groupId;
     if (data.sortIndex !== undefined) updates.sortIndex = data.sortIndex;
-    if (data.minValues !== undefined) updates.minValues = data.minValues;
-    if (data.maxValuesVisible !== undefined)
-      updates.maxValuesVisible = data.maxValuesVisible;
-    if (data.valueSort !== undefined) updates.valueSort = data.valueSort;
-    if (data.indexable !== undefined) updates.indexable = data.indexable;
 
     const rows = await this.connection
       .update(facet)
