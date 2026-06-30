@@ -564,25 +564,6 @@ export function EditFacetModal() {
                       className={styles.labelInput}
                       status={fieldError ? "error" : undefined}
                       addonBefore={<FacetSourceAddon value={facet.facetType} />}
-                      suffix={
-                        <Flex
-                          gap={4}
-                          align="center"
-                          onPointerDown={(event) => event.stopPropagation()}
-                        >
-                          <Controller
-                            name="uiType"
-                            control={control}
-                            render={({ field: uiTypeField }) => (
-                              <FacetUiTypeSelector
-                                value={uiTypeField.value}
-                                options={uiTypeOptions}
-                                onChange={uiTypeField.onChange}
-                              />
-                            )}
-                          />
-                        </Flex>
-                      }
                     />
                     {fieldError && (
                       <div className={styles.error}>{fieldError.message}</div>
@@ -598,8 +579,19 @@ export function EditFacetModal() {
           <PaperHeader
             title="Values"
             actions={
-              discrete ? (
-                <Flex gap={8} align="center">
+              <Flex gap={8} align="center">
+                <Controller
+                  name="uiType"
+                  control={control}
+                  render={({ field: uiTypeField }) => (
+                    <FacetUiTypeSelector
+                      value={uiTypeField.value}
+                      options={uiTypeOptions}
+                      onChange={uiTypeField.onChange}
+                    />
+                  )}
+                />
+                {discrete ? (
                   <Button
                     size="small"
                     type="text"
@@ -607,8 +599,8 @@ export function EditFacetModal() {
                     aria-label="Create value"
                     onClick={handleAddValue}
                   />
-                </Flex>
-              ) : null
+                ) : null}
+              </Flex>
             }
           />
           {discrete ? (
