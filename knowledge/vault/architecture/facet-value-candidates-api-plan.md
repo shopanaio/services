@@ -129,6 +129,9 @@ enum FacetValueCandidateOrderField {
 (`handle`, `label`), а не `HANDLE`/`LABEL`.
 `sourceHandle` не должен попадать в public generated where/order для этого API.
 Фильтрация по source идет через отдельный аргумент `sourceHandles` и repository-level condition.
+В `services/catalog/scripts/generate-filters.ts` для `FacetValueCandidate`
+обязательно указать `excludeFields: ["projectId", "locale", "sourceHandle"]`
+и для `generateWhereInputType`, и для `generateOrderByInputType`.
 
 Добавить query в `CatalogQuery`:
 
@@ -153,7 +156,7 @@ facetValueCandidates(
 - допустимые значения `facetType` для этого API: `TAG`, `OPTION`, `FEATURE`; `PRICE` и `IN_STOCK` не поддерживаются.
 - `sourceHandles` нужен после выбора source/sources и является входным фильтром запроса.
 - `facetId` нужен, когда source можно взять из существующего facet и/или нужно проверить существующие facet values.
-- `excludeExisting` скрывает candidates, для которых уже есть root/source value в указанном facet.
+- `excludeExisting` скрывает candidates, для которых в указанном facet уже есть source `facet_value` с таким же `handle`.
 - `where.handle` используется для поиска по persisted source value handle. Для `OPTION`/`FEATURE` это составной handle вида `source:value`.
 - `where.label` используется для поиска по отображаемому имени.
 - `sourceHandle` не возвращается в `FacetValueCandidate` и не нужен в generic `where`, потому что source уже задается отдельным аргументом `sourceHandles`, а публичный `handle` уже содержит source-компонент для сохранения в `facet_value.handle`.
@@ -293,21 +296,6 @@ INNER JOIN "catalog"."product_feature_value_translation" pfvt
  AND pfvt.locale = pft.locale
 WHERE pf.is_group = false
 GROUP BY pf.project_id, pfvt.locale, pf.slug, pfv.slug;
-
-CREATE INDEX IF NOT EXISTS "idx_tag_translation_project_locale_tag"
-  ON "catalog"."tag_translation" ("project_id", "locale", "tag_id");
-
-CREATE INDEX IF NOT EXISTS "idx_product_option_value_project_option_slug"
-  ON "catalog"."product_option_value" ("project_id", "option_id", "slug");
-
-CREATE INDEX IF NOT EXISTS "idx_product_option_value_translation_project_locale_value"
-  ON "catalog"."product_option_value_translation" ("project_id", "locale", "option_value_id");
-
-CREATE INDEX IF NOT EXISTS "idx_product_feature_value_project_feature_slug"
-  ON "catalog"."product_feature_value" ("project_id", "feature_id", "slug");
-
-CREATE INDEX IF NOT EXISTS "idx_product_feature_value_translation_project_locale_value"
-  ON "catalog"."product_feature_value_translation" ("project_id", "locale", "feature_value_id");
 ```
 
 Старые migration файлы не изменять. `0504_facets__source_candidate_view.sql` остается без изменений, потому новый API читает отдельную view и не меняет contract `facetSourceCandidates`.
@@ -378,15 +366,50 @@ async getFacetValueCandidates(
 Если генератор filters строится по колонкам view, нужно настроить generation так, чтобы
 `sourceHandle` не появился в public `FacetValueCandidateWhereInput` и
 `FacetValueCandidateOrderField`.
+Ожидаемая настройка генерации:
+
+```ts
+const facetValueCandidateWhere = generateWhereInputType(
+  facetValueCandidateRelayQuery,
+  "FacetValueCandidate",
+  {
+    includeDescriptions: true,
+    fieldTypes: facetValueCandidateFieldTypes,
+    excludeFields: ["projectId", "locale", "sourceHandle"],
+  }
+);
+
+const facetValueCandidateOrderBy = generateOrderByInputType(
+  facetValueCandidateRelayQuery,
+  "FacetValueCandidate",
+  {
+    includeDescriptions: true,
+    fieldTypes: facetValueCandidateFieldTypes,
+    excludeFields: ["projectId", "locale", "sourceHandle"],
+  }
+);
+```
 
 Если передан `facetId`:
 
 1. декодировать Global ID в resolver;
 2. проверить, что facet существует в текущем project;
 3. если `sourceHandles` не переданы, взять их из `facet_source`;
-4. если `excludeExisting = true`, исключить candidates, для которых в `facet_value` уже есть root/source value с таким `handle`.
+4. если `excludeExisting = true`, исключить candidates, для которых в `facet_value` уже есть source value с таким `handle`:
+
+   ```sql
+   NOT EXISTS (
+     SELECT 1
+     FROM "catalog"."facet_value" fv
+     WHERE fv.project_id = candidate.project_id
+       AND fv.facet_id = :facetId
+       AND fv.kind = 'source'
+       AND fv.handle = candidate.handle
+   )
+   ```
 
 Для `excludeExisting` лучше не зашивать anti-join в основной view, потому что базовый candidate не должен зависеть от конкретного facet. Это repository-level условие поверх `facetId`.
+Условие не должно проверять `parent_id IS NULL`: source value может быть уже прикреплен к display value, но candidate все равно должен считаться занятым.
 
 ## Resolver слой
 
@@ -513,11 +536,9 @@ query ExistingFacetValueCandidates(
    - либо `facetValueCreate` расширяется и принимает `sourceCandidates`;
    - либо `facetCreate` расширяется и может сразу создать selected display/source values.
 
-3. Что считать duplicate для `excludeExisting`.
+3. Source values creation flow.
 
-   Для root display values duplicate очевиден по `facetId + handle`.
-   Для source values duplicate тоже по `facetId + handle`; для `OPTION`/`FEATURE` candidate handle уже составной (`source:value`).
-   Если один display value объединяет несколько source values, candidate может быть "занят", даже если display handle другой. Для точного исключения нужно проверять source children, а не только root handle.
+   Если отдельный сценарий создания source values будет добавлен позже, он должен использовать тот же identity contract, что и `excludeExisting`: duplicate source value определяется по `facetId + kind = 'source' + handle`. Для `OPTION`/`FEATURE` candidate handle уже составной (`source:value`).
 
 ## Порядок реализации
 
