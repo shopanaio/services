@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
 import {
@@ -11,7 +11,6 @@ import {
   facetSourceTranslation,
   facetTranslation,
   facetValue,
-  facetValueSourceHandle,
   type Facet,
   type NewFacet,
   type FacetTranslation,
@@ -19,10 +18,10 @@ import {
 
 export interface ResolvedFacetFilterValue {
   facetSlug: string;
-  valueSlug: string;
+  valueHandle: string;
   facetId: string;
   facetType: string;
-  sourceHandles: string[];
+  resolvedSourceHandles: string[];
 }
 
 export interface FacetSourceInput {
@@ -304,8 +303,7 @@ export class FacetRepository extends BaseRepository {
   async resolveFacetFilterValues(
     rawFilters: readonly string[]
   ): Promise<ResolvedFacetFilterValue[]> {
-    const resolved: ResolvedFacetFilterValue[] = [];
-
+    const tokens: Array<{ facetSlug: string; valueHandle: string }> = [];
     for (const raw of rawFilters) {
       const separator = raw.indexOf(":");
       if (separator <= 0 || separator === raw.length - 1) {
@@ -313,47 +311,100 @@ export class FacetRepository extends BaseRepository {
       }
 
       const facetSlug = raw.slice(0, separator);
-      const valueSlug = raw.slice(separator + 1);
-      const rows = await this.connection
-        .select({
-          facetId: facet.id,
-          facetType: facet.facetType,
-          sourceHandle: facetValueSourceHandle.sourceHandle,
-        })
-        .from(facet)
-        .innerJoin(
-          facetValue,
-          and(eq(facetValue.facetId, facet.id), eq(facetValue.projectId, facet.projectId))
-        )
-        .innerJoin(
-          facetValueSourceHandle,
-          and(
-            eq(facetValueSourceHandle.facetValueId, facetValue.id),
-            eq(facetValueSourceHandle.facetId, facet.id),
-            eq(facetValueSourceHandle.projectId, facet.projectId),
-            eq(facetValueSourceHandle.facetType, facet.facetType)
-          )
-        )
-        .where(
-          and(
-            eq(facet.projectId, this.storeId),
-            eq(facet.slug, facetSlug),
-            eq(facetValue.slug, valueSlug),
-            eq(facetValue.enabled, true)
-          )
-        );
+      const valueHandle = raw.slice(separator + 1);
+      tokens.push({ facetSlug, valueHandle });
+    }
 
-      if (rows.length === 0) continue;
+    if (tokens.length === 0) {
+      return [];
+    }
 
-      resolved.push({
-        facetSlug,
-        valueSlug,
-        facetId: rows[0].facetId,
-        facetType: rows[0].facetType,
-        sourceHandles: Array.from(new Set(rows.map((row) => row.sourceHandle))).sort(),
+    const facetSlugs = [...new Set(tokens.map((token) => token.facetSlug))];
+    const valueHandles = [...new Set(tokens.map((token) => token.valueHandle))];
+
+    const visibleRows = await this.connection
+      .select({
+        facetSlug: facet.slug,
+        valueId: facetValue.id,
+        valueHandle: facetValue.handle,
+        valueKind: facetValue.kind,
+        facetId: facet.id,
+        facetType: facet.facetType,
+      })
+      .from(facet)
+      .innerJoin(
+        facetValue,
+        and(eq(facetValue.facetId, facet.id), eq(facetValue.projectId, facet.projectId))
+      )
+      .where(
+        and(
+          eq(facet.projectId, this.storeId),
+          inArray(facet.slug, facetSlugs),
+          inArray(facetValue.handle, valueHandles),
+          isNull(facetValue.parentId),
+          eq(facetValue.enabled, true)
+        )
+      );
+
+    const displayValueIds = visibleRows
+      .filter((row) => row.valueKind === "display")
+      .map((row) => row.valueId);
+
+    const childRows =
+      displayValueIds.length > 0
+        ? await this.connection
+            .select({
+              parentId: facetValue.parentId,
+              handle: facetValue.handle,
+            })
+            .from(facetValue)
+            .where(
+              and(
+                eq(facetValue.projectId, this.storeId),
+                inArray(facetValue.parentId, displayValueIds),
+                eq(facetValue.kind, "source"),
+                eq(facetValue.enabled, true)
+              )
+            )
+            .orderBy(asc(facetValue.handle))
+        : [];
+
+    const resolvedSourceHandlesByDisplayId = new Map<string, Set<string>>();
+    for (const child of childRows) {
+      if (!child.parentId) continue;
+      const handles =
+        resolvedSourceHandlesByDisplayId.get(child.parentId) ?? new Set<string>();
+      handles.add(child.handle);
+      resolvedSourceHandlesByDisplayId.set(child.parentId, handles);
+    }
+
+    const resolvedByToken = new Map<string, ResolvedFacetFilterValue>();
+    for (const row of visibleRows) {
+      const resolvedSourceHandles =
+        row.valueKind === "source"
+          ? [row.valueHandle]
+          : [...(resolvedSourceHandlesByDisplayId.get(row.valueId) ?? [])].sort();
+
+      if (resolvedSourceHandles.length === 0) {
+        continue;
+      }
+
+      resolvedByToken.set(`${row.facetSlug}\0${row.valueHandle}`, {
+        facetSlug: row.facetSlug,
+        valueHandle: row.valueHandle,
+        facetId: row.facetId,
+        facetType: row.facetType,
+        resolvedSourceHandles,
       });
     }
 
+    const resolved: ResolvedFacetFilterValue[] = [];
+    for (const token of tokens) {
+      const item = resolvedByToken.get(`${token.facetSlug}\0${token.valueHandle}`);
+      if (item) {
+        resolved.push(item);
+      }
+    }
     return resolved;
   }
 

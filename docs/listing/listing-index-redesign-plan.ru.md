@@ -54,7 +54,7 @@ structured filtering, facets, counts, pagination и sort. Backend sync/rebuild
 - Поддерживать OR внутри одного product-level `facet_id`.
 - Поддерживать AND между разными product-level `facet_id`.
 - Игнорировать invalid или unconfigured facet values, которые не резолвятся в
-  `facet_value` + `facet_value_source_handle`.
+  visible `facet_value` + enabled source values через parent model.
 
 ### Variant-level filtering
 
@@ -75,10 +75,10 @@ structured filtering, facets, counts, pagination и sort. Backend sync/rebuild
 
 ### Facet resolution
 
-- Batch-resolve storefront tokens `facetSlug:valueSlug` через `facet`,
-  `facet_value` и `facet_value_source_handle`.
-- Возвращать на storefront только configured facets и `facet_value` rows,
-  у которых есть source mapping.
+- Batch-resolve storefront tokens `facetSlug:valueHandle` через `facet` и
+  visible `facet_value`.
+- Возвращать на storefront только configured facets и visible `facet_value`
+  rows, которые резолвятся хотя бы в один enabled source value.
 - Не возвращать raw tag/feature/option source handles наружу.
 - Поддерживать merged values: один `facet_value` может мапиться на несколько
   source handles.
@@ -151,7 +151,7 @@ structured filtering, facets, counts, pagination и sort. Backend sync/rebuild
 5. Вынести storefront facet tokens в отдельные read-model таблицы, чтобы
    runtime listing queries работали с готовыми `facet_id` / `facet_value_id`,
    а не разворачивали source-handle arrays и не мапили их через
-   `facet_value_source_handle` на каждом request.
+   `facet_value` parent model на каждом request.
 
 ## Не цели
 
@@ -636,7 +636,7 @@ of creating duplicates.
 
 ## Facet tables
 
-`facet`, `facet_value`, `facet_value_source_handle` остаются canonical configuration layer.
+`facet` и `facet_value` source/display parent model остаются canonical configuration layer.
 
 Допустимые `facet_type`:
 
@@ -650,17 +650,18 @@ of creating duplicates.
 
 Требования к операциям:
 
-- Resolve `facetSlug:valueSlug` должен быть batch query, а не N запросов в цикле.
+- Resolve `facetSlug:valueHandle` должен быть batch query, а не N запросов в цикле.
 - Storefront filter resolve возвращает `facet_id`, `facet_type` и
   `facet_value_id`; source handles не нужны на read path. Resolve должен
-  проверять, что для value существует хотя бы один `facet_value_source_handle`,
-  но не возвращать эти handles в listing query.
-- Sync/rebuild token generation использует `facet_value_source_handle` как
-  canonical mapping layer и пишет уже resolved `facet_id` / `facet_value_id`.
+  проверять, что root source или display value резолвится хотя бы в один
+  enabled source child, но не возвращать эти handles в listing query.
+- Sync/rebuild token generation использует `facet_value.kind/source parent`
+  model как canonical mapping layer и пишет уже resolved `facet_id` /
+  `facet_value_id`.
 - Storefront resolve/aggregation игнорирует values без
-  `facet_value_source_handle`.
-- Token generation сохраняет mappings для существующих строк
-  `facet_value_source_handle`.
+  enabled source values.
+- Token generation сохраняет mappings для existing source rows и их display
+  parents.
 - Если один `facet_value` имеет несколько source handles, token generation
   дедуплицирует их по primary key, а counts группируются по `facet_value_id`
   после явной дедупликации `(product_id, facet_id, facet_value_id)`.
@@ -697,7 +698,7 @@ Availability filter:
   require `vli.in_stock = true`.
 - Price filters additionally use `variant_listing_price_index.has_price = true`
   and `variant_listing_price_index.price_minor` in project default currency.
-- `price` и `in_stock` являются virtual facets: у них нет `facet_value_source_handle`.
+- `price` и `in_stock` являются virtual facets: у них нет `facet_value` rows.
 
 ## Listing query flow
 
@@ -1298,7 +1299,7 @@ Replace scripts:
 
 1. Load active variants for product or requested variant ids.
 2. Load option links and build `option_value_handles`.
-3. Resolve option source handles through `facet_value_source_handle` into
+3. Resolve option source handles through `facet_value` parent model into
    `facet_id` / `facet_value_id` tokens.
 4. Load project enabled currencies.
 5. Load current price per variant/currency.
@@ -1315,7 +1316,7 @@ Replace scripts:
 2. If product is deleted or missing, delete product, variant and facet token
    listing rows.
 3. Load categories, tags, features and build arrays.
-4. Resolve tag and feature source handles through `facet_value_source_handle`
+4. Resolve tag and feature source handles through `facet_value` parent model
    into `facet_id` / `facet_value_id` tokens.
 5. Load currency-neutral stock aggregates from `variant_listing_index`.
 6. Load price aggregates from `variant_listing_price_index` grouped by currency.
@@ -1327,8 +1328,8 @@ Replace scripts:
 10. If no price rows exist yet, create `product_listing_price_index` rows for
     enabled project currencies with empty price aggregates.
 
-Token generation должен писать только canonical resolved ids из существующих
-строк `facet_value_source_handle`.
+Token generation должен писать только canonical resolved ids из existing
+`facet_value` source/display relationships.
 
 `RebuildListingIndexScript`:
 
@@ -1362,12 +1363,13 @@ Events that must refresh listing index:
   contribute to storefront prices.
 - Project enabled currencies changed: rebuild price index tables for project.
 
-Facet source mapping changes require token refresh:
+Facet source/display mapping changes require token refresh:
 
-- New/removed `facet_value_source_handle` for `tag` or `feature`: refresh
-  product facet tokens for products that contain the affected source handles.
-- New/removed `facet_value_source_handle` for `option`: refresh variant facet
-  tokens for variants that contain the affected source handles.
+- New/removed source `facet_value` or changed `parent_id` for `tag` or
+  `feature`: refresh product facet tokens for products that contain the affected
+  source handles.
+- New/removed source `facet_value` or changed `parent_id` for `option`: refresh
+  variant facet tokens for variants that contain the affected source handles.
 - Facet value merge/split through source mappings: refresh affected tokens so
   deduplication happens against the new `facet_value_id`.
 - If affected products/variants cannot be resolved cheaply, rebuild listing
@@ -1421,7 +1423,7 @@ Facet source mapping changes require token refresh:
 - Facet counts isolate by `facet_id`.
 - Option counts deduplicate to `(product_id, facet_id, facet_value_id)` before
   final `COUNT(*)`; they do not count variants.
-- Merged `facet_value_source_handle` values do not double-count products.
+- Merged source `facet_value` children do not double-count products.
 - Invalid/unconfigured facet values are ignored.
 - Listing queries do not load all candidate products/variants into memory.
 - Global catalog and search result listings use the same SQL listing pipeline as
@@ -1441,7 +1443,7 @@ Facet source mapping changes require token refresh:
 - Product price sort preserves unpriced products with `NULLS LAST` even though
   product price sort indexes are partial on `has_price = true`.
 - Full rebuild can recreate product, variant, price and token listing tables
-  from source tables plus `facet_value_source_handle`.
+  from source tables plus `facet_value` source/display relationships.
 - `EXPLAIN ANALYZE` on production-like data confirms acceptable plans for:
   visible sort queries, variant predicate grouping, product facet counts,
   option facet counts, price range and matched variant price sort.

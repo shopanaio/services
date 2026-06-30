@@ -1,4 +1,6 @@
 import {
+  type AnyPgColumn,
+  check,
   uuid,
   varchar,
   text,
@@ -8,8 +10,10 @@ import {
   timestamp,
   index,
   primaryKey,
+  uniqueIndex,
   unique,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { catalogSchema } from "./schema";
 
 export const facet = catalogSchema.table(
@@ -127,7 +131,12 @@ export const facetValue = catalogSchema.table(
     facetId: uuid("facet_id")
       .notNull()
       .references(() => facet.id, { onDelete: "cascade" }),
-    slug: varchar("slug", { length: 255 }).notNull(),
+    parentId: uuid("parent_id").references(
+      (): AnyPgColumn => facetValue.id,
+      { onDelete: "no action" }
+    ),
+    kind: varchar("kind", { length: 16 }).notNull(),
+    handle: text("handle").notNull(),
     swatchId: uuid("swatch_id").references(() => facetSwatch.id, {
       onDelete: "set null",
     }),
@@ -140,50 +149,27 @@ export const facetValue = catalogSchema.table(
       .notNull()
       .defaultNow(),
   },
-  (table) => [unique("facet_value_facet_id_slug_uniq").on(table.facetId, table.slug)]
-);
-
-export const facetValueSourceHandle = catalogSchema.table(
-  "facet_value_source_handle",
-  {
-    id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
-    facetId: uuid("facet_id")
-      .notNull()
-      .references(() => facet.id, { onDelete: "cascade" }),
-    facetValueId: uuid("facet_value_id")
-      .notNull()
-      .references(() => facetValue.id, { onDelete: "cascade" }),
-    facetType: varchar("facet_type", { length: 32 }).notNull(),
-    sourceHandle: text("source_handle").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
-      .notNull()
-      .defaultNow(),
-  },
   (table) => [
-    unique("facet_value_source_handle_project_facet_source_uniq").on(
-      table.projectId,
-      table.facetId,
-      table.sourceHandle
+    check("facet_value_kind_check", sql`${table.kind} IN ('source', 'display')`),
+    check(
+      "facet_value_display_root_check",
+      sql`${table.kind} <> 'display' OR ${table.parentId} IS NULL`
     ),
-    unique("facet_value_source_handle_project_type_source_uniq").on(
-      table.projectId,
-      table.facetType,
-      table.sourceHandle
-    ),
-    unique("facet_value_source_handle_value_source_uniq").on(
-      table.facetValueId,
-      table.sourceHandle
-    ),
-    index("idx_facet_value_source_handle_project_value").on(
-      table.projectId,
-      table.facetValueId
-    ),
-    index("idx_facet_value_source_handle_project_type_source").on(
-      table.projectId,
-      table.facetType,
-      table.sourceHandle
-    ),
+    uniqueIndex("facet_value_source_project_facet_handle_uniq")
+      .on(table.projectId, table.facetId, table.handle)
+      .where(sql`kind = 'source'`),
+    uniqueIndex("facet_value_root_project_facet_handle_uniq")
+      .on(table.projectId, table.facetId, table.handle)
+      .where(sql`parent_id IS NULL`),
+    index("idx_facet_value_project_facet_visible_order")
+      .on(table.projectId, table.facetId, table.sortIndex, table.id)
+      .where(sql`parent_id IS NULL`),
+    index("idx_facet_value_project_parent")
+      .on(table.projectId, table.parentId)
+      .where(sql`parent_id IS NOT NULL`),
+    index("idx_facet_value_project_facet_source_handle")
+      .on(table.projectId, table.facetId, table.handle)
+      .where(sql`kind = 'source'`),
   ]
 );
 
@@ -216,9 +202,8 @@ export type FacetSourceTranslation = typeof facetSourceTranslation.$inferSelect;
 export type NewFacetSourceTranslation = typeof facetSourceTranslation.$inferInsert;
 export type FacetSwatch = typeof facetSwatch.$inferSelect;
 export type NewFacetSwatch = typeof facetSwatch.$inferInsert;
+export type FacetValueKind = "source" | "display";
 export type FacetValue = typeof facetValue.$inferSelect;
 export type NewFacetValue = typeof facetValue.$inferInsert;
-export type FacetValueSourceHandle = typeof facetValueSourceHandle.$inferSelect;
-export type NewFacetValueSourceHandle = typeof facetValueSourceHandle.$inferInsert;
 export type FacetValueTranslation = typeof facetValueTranslation.$inferSelect;
 export type NewFacetValueTranslation = typeof facetValueTranslation.$inferInsert;

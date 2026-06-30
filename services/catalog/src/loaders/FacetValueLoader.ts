@@ -2,14 +2,13 @@ import DataLoader from "dataloader";
 import type {
   FacetValue,
   FacetValueTranslation,
-  FacetValueSourceHandle,
 } from "../repositories/models/index.js";
 import type { Repository } from "../repositories/Repository.js";
 
 export class FacetValueLoader {
   public readonly facetValue: DataLoader<string, FacetValue | null>;
   public readonly facetValueTranslation: DataLoader<string, FacetValueTranslation | null>;
-  public readonly facetValueSourceHandles: DataLoader<string, FacetValueSourceHandle[]>;
+  public readonly facetValueSourceChildren: DataLoader<string, FacetValue[]>;
 
   constructor(repository: Repository) {
     this.facetValue = new DataLoader<string, FacetValue | null>(async (valueIds) => {
@@ -27,16 +26,15 @@ export class FacetValueLoader {
       );
     });
 
-    this.facetValueSourceHandles = new DataLoader<
-      string,
-      FacetValueSourceHandle[]
-    >(async (valueIds) => {
-      const results = await repository.facetValue.getSourceHandlesByValueIds(
-        valueIds
-      );
-      return valueIds.map((id) =>
-        results.filter((item) => item.facetValueId === id)
-      );
-    });
+    this.facetValueSourceChildren = new DataLoader<string, FacetValue[]>(
+      async (valueIds) => {
+        const results = await repository.facetValue.getSourceChildrenByParentIds(
+          valueIds
+        );
+        return valueIds.map((id) =>
+          results.filter((item) => item.parentId === id)
+        );
+      }
+    );
   }
 }

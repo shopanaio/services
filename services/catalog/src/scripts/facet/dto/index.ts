@@ -4,13 +4,11 @@ import type {
   FacetValue,
   FacetSwatch,
 } from "../../../repositories/models/index.js";
-import type { FacetSourceInput } from "../../../repositories/facet/FacetRepository.js";
 
 export interface FacetCreateParams {
   facetType: string;
   slug: string;
   label: string;
-  sources?: FacetSourceInput[];
   uiType?: string;
   selectionMode?: string;
   lexoRank?: string;
@@ -20,7 +18,6 @@ export interface FacetUpdateParams {
   id: string;
   slug?: string;
   label?: string;
-  sources?: FacetSourceInput[];
   uiType?: string;
   selectionMode?: string;
   lexoRank?: string;
@@ -38,11 +35,14 @@ export interface FacetMoveParams {
 
 export interface FacetRebalanceParams {}
 
+export type FacetValueKind = "source" | "display";
+
 export interface FacetValueCreateParams {
   facetId: string;
-  slug: string;
+  kind: FacetValueKind;
+  handle: string;
   label: string;
-  sourceHandles?: string[];
+  sourceValueIds?: string[];
   swatchId?: string | null;
   sortIndex?: number;
   enabled?: boolean;
@@ -50,9 +50,8 @@ export interface FacetValueCreateParams {
 
 export interface FacetValueUpdateParams {
   id: string;
-  slug?: string;
+  handle?: string;
   label?: string;
-  sourceHandles?: string[];
   swatchId?: string | null;
   sortIndex?: number;
   enabled?: boolean;
@@ -89,10 +88,10 @@ export interface ResolveFacetsParams {
 
 export interface ResolvedFacetFilter {
   facetSlug: string;
-  valueSlug: string;
+  valueHandle: string;
   facetId: string;
   facetType: string;
-  sourceHandles: string[];
+  resolvedSourceHandles: string[];
 }
 
 export interface ResolveFacetsResult {
@@ -119,6 +118,33 @@ export interface FacetRebalanceResult {
 
 export interface FacetValueResult {
   facetValue?: FacetValue;
+  userErrors: UserError[];
+}
+
+export interface FacetValueMergeParams {
+  facetId: string;
+  targetDisplayValueId?: string;
+  targetHandle?: string;
+  targetLabel?: string;
+  sourceValueIds: string[];
+}
+
+export type FacetValueEmptyDisplayAction = "disable" | "delete" | "keep";
+
+export interface FacetValueUnmergeParams {
+  sourceValueIds: string[];
+  emptyDisplayAction?: FacetValueEmptyDisplayAction;
+}
+
+export interface FacetValueMergeResult {
+  facetValue?: FacetValue;
+  sourceValues: FacetValue[];
+  userErrors: UserError[];
+}
+
+export interface FacetValueUnmergeResult {
+  sourceValues: FacetValue[];
+  affectedDisplayValues: FacetValue[];
   userErrors: UserError[];
 }
 

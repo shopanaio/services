@@ -81,7 +81,7 @@ export class Loader {
   public readonly facetValueIds;
   public readonly facetValue;
   public readonly facetValueTranslation;
-  public readonly facetValueSourceHandles;
+  public readonly facetValueSourceChildren;
   public readonly facetSwatch;
 
   // Collections
@@ -191,7 +191,7 @@ export class Loader {
     this.facetValueIds = facetLoader.facetValueIds;
     this.facetValue = facetValueLoader.facetValue;
     this.facetValueTranslation = facetValueLoader.facetValueTranslation;
-    this.facetValueSourceHandles = facetValueLoader.facetValueSourceHandles;
+    this.facetValueSourceChildren = facetValueLoader.facetValueSourceChildren;
     this.facetSwatch = facetSwatchLoader.facetSwatch;
 
     // Collections

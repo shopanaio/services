@@ -1,16 +1,32 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
 import {
-  facet,
   facetValue,
   facetValueTranslation,
-  facetValueSourceHandle,
   type FacetValue,
-  type NewFacetValue,
+  type FacetValueKind,
   type FacetValueTranslation,
-  type FacetValueSourceHandle,
+  type NewFacetValue,
 } from "../models/index.js";
+
+export interface FacetValueCreateData {
+  facetId: string;
+  kind: FacetValueKind;
+  handle: string;
+  label: string;
+  swatchId?: string | null;
+  sortIndex?: number;
+  enabled?: boolean;
+}
+
+export interface FacetValueUpdateData {
+  handle?: string;
+  label?: string;
+  swatchId?: string | null;
+  sortIndex?: number;
+  enabled?: boolean;
+}
 
 export class FacetValueRepository extends BaseRepository {
   private get locale(): string {
@@ -27,6 +43,39 @@ export class FacetValueRepository extends BaseRepository {
   }
 
   async findByFacetId(facetId: string): Promise<FacetValue[]> {
+    return this.findVisibleByFacetId(facetId);
+  }
+
+  async findVisibleByFacetId(facetId: string): Promise<FacetValue[]> {
+    return this.connection
+      .select()
+      .from(facetValue)
+      .where(
+        and(
+          eq(facetValue.projectId, this.storeId),
+          eq(facetValue.facetId, facetId),
+          isNull(facetValue.parentId)
+        )
+      )
+      .orderBy(asc(facetValue.sortIndex), asc(facetValue.id));
+  }
+
+  async findVisibleByFacetIds(facetIds: readonly string[]): Promise<FacetValue[]> {
+    if (facetIds.length === 0) return [];
+    return this.connection
+      .select()
+      .from(facetValue)
+      .where(
+        and(
+          eq(facetValue.projectId, this.storeId),
+          inArray(facetValue.facetId, [...facetIds]),
+          isNull(facetValue.parentId)
+        )
+      )
+      .orderBy(asc(facetValue.sortIndex), asc(facetValue.id));
+  }
+
+  async findAllByFacetId(facetId: string): Promise<FacetValue[]> {
     return this.connection
       .select()
       .from(facetValue)
@@ -34,22 +83,54 @@ export class FacetValueRepository extends BaseRepository {
       .orderBy(asc(facetValue.sortIndex), asc(facetValue.id));
   }
 
-  async create(data: {
-    facetId: string;
-    slug: string;
-    label: string;
-    sourceHandles?: string[];
-    swatchId?: string | null;
-    sortIndex?: number;
-    enabled?: boolean;
-  }): Promise<FacetValue> {
+  async findRootByFacetIdAndHandle(
+    facetId: string,
+    handle: string
+  ): Promise<FacetValue | null> {
+    const rows = await this.connection
+      .select()
+      .from(facetValue)
+      .where(
+        and(
+          eq(facetValue.projectId, this.storeId),
+          eq(facetValue.facetId, facetId),
+          eq(facetValue.handle, handle),
+          isNull(facetValue.parentId)
+        )
+      )
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  async getRootValuesByFacetIdAndHandles(
+    facetId: string,
+    handles: readonly string[]
+  ): Promise<FacetValue[]> {
+    const uniqueHandles = [...new Set(handles)];
+    if (uniqueHandles.length === 0) return [];
+    return this.connection
+      .select()
+      .from(facetValue)
+      .where(
+        and(
+          eq(facetValue.projectId, this.storeId),
+          eq(facetValue.facetId, facetId),
+          inArray(facetValue.handle, uniqueHandles),
+          isNull(facetValue.parentId)
+        )
+      );
+  }
+
+  async createValue(data: FacetValueCreateData): Promise<FacetValue> {
     const id = randomUUID();
     const now = new Date().toISOString();
     const insert: NewFacetValue = {
       id,
       projectId: this.storeId,
       facetId: data.facetId,
-      slug: data.slug,
+      parentId: null,
+      kind: data.kind,
+      handle: data.handle,
       swatchId: data.swatchId ?? null,
       sortIndex: data.sortIndex ?? 0,
       enabled: data.enabled ?? true,
@@ -66,28 +147,17 @@ export class FacetValueRepository extends BaseRepository {
       label: data.label,
     });
 
-    if (data.sourceHandles && data.sourceHandles.length > 0) {
-      await this.replaceSourceHandles(id, data.sourceHandles);
-    }
-
     return rows[0];
   }
 
-  async update(
+  async updateValue(
     id: string,
-    data: {
-      slug?: string;
-      label?: string;
-      sourceHandles?: string[];
-      swatchId?: string | null;
-      sortIndex?: number;
-      enabled?: boolean;
-    }
+    data: FacetValueUpdateData
   ): Promise<FacetValue | null> {
     const updates: Partial<NewFacetValue> = {
       updatedAt: new Date().toISOString(),
     };
-    if (data.slug !== undefined) updates.slug = data.slug;
+    if (data.handle !== undefined) updates.handle = data.handle;
     if (data.swatchId !== undefined) updates.swatchId = data.swatchId;
     if (data.sortIndex !== undefined) updates.sortIndex = data.sortIndex;
     if (data.enabled !== undefined) updates.enabled = data.enabled;
@@ -111,10 +181,6 @@ export class FacetValueRepository extends BaseRepository {
           target: [facetValueTranslation.facetValueId, facetValueTranslation.locale],
           set: { label: data.label },
         });
-    }
-
-    if (data.sourceHandles !== undefined) {
-      await this.replaceSourceHandles(id, data.sourceHandles);
     }
 
     return rows[0] ?? null;
@@ -152,64 +218,103 @@ export class FacetValueRepository extends BaseRepository {
       );
   }
 
-  async getSourceHandlesByValueIds(
-    valueIds: readonly string[]
-  ): Promise<FacetValueSourceHandle[]> {
-    if (valueIds.length === 0) return [];
+  async getSourceChildrenByParentIds(
+    parentIds: readonly string[]
+  ): Promise<FacetValue[]> {
+    const uniqueParentIds = [...new Set(parentIds)];
+    if (uniqueParentIds.length === 0) return [];
     return this.connection
       .select()
-      .from(facetValueSourceHandle)
+      .from(facetValue)
       .where(
         and(
-          eq(facetValueSourceHandle.projectId, this.storeId),
-          inArray(facetValueSourceHandle.facetValueId, [...valueIds])
+          eq(facetValue.projectId, this.storeId),
+          inArray(facetValue.parentId, uniqueParentIds),
+          eq(facetValue.kind, "source")
+        )
+      )
+      .orderBy(asc(facetValue.handle), asc(facetValue.id));
+  }
+
+  async getVisibleValueSourceHandles(
+    valueIds: readonly string[]
+  ): Promise<Map<string, string[]>> {
+    const result = new Map<string, string[]>();
+    const values = await this.getByIds(valueIds);
+
+    for (const id of valueIds) {
+      result.set(id, []);
+    }
+
+    const displayIds: string[] = [];
+    for (const value of values) {
+      if (!value.enabled) {
+        continue;
+      }
+
+      if (value.kind === "source") {
+        result.set(value.id, [value.handle]);
+      } else if (value.kind === "display") {
+        displayIds.push(value.id);
+      }
+    }
+
+    const children = await this.getSourceChildrenByParentIds(displayIds);
+    const childHandlesByParentId = new Map<string, Set<string>>();
+    for (const child of children) {
+      if (!child.parentId || !child.enabled) {
+        continue;
+      }
+      const handles = childHandlesByParentId.get(child.parentId) ?? new Set<string>();
+      handles.add(child.handle);
+      childHandlesByParentId.set(child.parentId, handles);
+    }
+
+    for (const displayId of displayIds) {
+      result.set(displayId, [...(childHandlesByParentId.get(displayId) ?? [])].sort());
+    }
+
+    return result;
+  }
+
+  async attachSourcesToDisplay(
+    displayValueId: string,
+    sourceValueIds: string[]
+  ): Promise<void> {
+    const uniqueSourceValueIds = [...new Set(sourceValueIds)];
+    if (uniqueSourceValueIds.length === 0) return;
+
+    await this.connection
+      .update(facetValue)
+      .set({
+        parentId: displayValueId,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        and(
+          eq(facetValue.projectId, this.storeId),
+          inArray(facetValue.id, uniqueSourceValueIds),
+          eq(facetValue.kind, "source")
         )
       );
   }
 
-  async replaceSourceHandles(
-    facetValueId: string,
-    sourceHandles: string[]
-  ): Promise<void> {
-    const facetValueRow = await this.findById(facetValueId);
-    if (!facetValueRow) {
-      return;
-    }
-
-    const facetRows = await this.connection
-      .select({ id: facet.id, facetType: facet.facetType })
-      .from(facet)
-      .where(and(eq(facet.projectId, this.storeId), eq(facet.id, facetValueRow.facetId)))
-      .limit(1);
-
-    if (!facetRows[0]) {
-      return;
-    }
+  async detachSources(sourceValueIds: string[]): Promise<void> {
+    const uniqueSourceValueIds = [...new Set(sourceValueIds)];
+    if (uniqueSourceValueIds.length === 0) return;
 
     await this.connection
-      .delete(facetValueSourceHandle)
+      .update(facetValue)
+      .set({
+        parentId: null,
+        updatedAt: new Date().toISOString(),
+      })
       .where(
         and(
-          eq(facetValueSourceHandle.projectId, this.storeId),
-          eq(facetValueSourceHandle.facetValueId, facetValueId)
+          eq(facetValue.projectId, this.storeId),
+          inArray(facetValue.id, uniqueSourceValueIds),
+          eq(facetValue.kind, "source")
         )
       );
-
-    if (sourceHandles.length === 0) {
-      return;
-    }
-
-    const uniqueSourceHandles = Array.from(new Set(sourceHandles));
-
-    await this.connection.insert(facetValueSourceHandle).values(
-      uniqueSourceHandles.map((sourceHandle) => ({
-        id: randomUUID(),
-        projectId: this.storeId,
-        facetId: facetRows[0].id,
-        facetValueId,
-        facetType: facetRows[0].facetType,
-        sourceHandle,
-      }))
-    );
   }
 }

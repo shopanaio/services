@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BooleanFilter, BulkUpdateCancelReason, BulkUpdateItemStatus, BulkUpdateJobStatus, BulkUpdateOpType, BundleBundlesMetaInput, BundleConditionCategory, BundleConditionGroupSyncItemInput, BundleConditionOperator, BundleConditionSubject, BundleConditionSyncItemInput, BundleConfigurationCreateInput, BundleConfigurationDeleteInput, BundleConfigurationUpdateInput, BundleCreateInput, BundleDependencyActionSyncItemInput, BundleDependencyActionType, BundleDependencyRuleSyncItemInput, BundleDependencyRulesSyncInput, BundleDependencyTargetType, BundleDisplayStyle, BundleGroupSyncItemInput, BundleGroupsSyncInput, BundleItemOptionSelectionSyncItemInput, BundleItemOptionValueSelectionStatus, BundleItemOptionValueSelectionSyncItemInput, BundleItemSyncItemInput, BundleItemType, BundleLogicOperator, BundleOrderByInput, BundleOrderField, BundlePriceRuleAmountInput, BundlePriceRuleInput, BundlePriceRulePercentInput, BundlePriceType, BundlePricingTemplateSyncItemInput, BundlePricingTemplatesSyncInput, BundleType, BundleUpdateInput, BundleWhereInput, CategoryCategoriesMetaInput, CategoryContentInput, CategoryCreateInput, CategoryDeleteInput, CategoryHierarchyInput, CategoryHierarchyScopeDirection, CategoryHierarchyScopeInput, CategoryHierarchyScopeMode, CategoryMediaInput, CategoryMoveInput, CategoryOrderByInput, CategoryOrderField, CategoryProductsScopeInput, CategoryRebalanceInput, CategorySortInput, CategoryStatus, CategoryUpdateInput, CategoryWhereInput, CollectionAddProductsInput, CollectionCreateInput, CollectionDeleteInput, CollectionMediaInput, CollectionMoveProductInput, CollectionRemoveProductsInput, CollectionRuleInput, CollectionType, CollectionUpdateInput, CollectionUpdateRulesInput, CurrencyCode, DateTimeFilter, DimensionUnit, DimensionsInput, FacetCreateInput, FacetDeleteInput, FacetMoveInput, FacetRebalanceInput, FacetSelectionMode, FacetSourceInput, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, InventoryItemCostInput, InventoryItemInput, InventoryItemInventoryItemsMetaInput, InventoryItemOrderByInput, InventoryItemOrderField, InventoryItemStockInput, InventoryItemUpdateInput, InventoryItemWarehouseScopeInput, InventoryItemWarehouseScopeMode, InventoryItemWhereInput, ListingOrderByInput, ListingOrderField, ListingWhereInput, LocaleCode, OperationType, OptionDisplayType, PricingWidgetInput, ProductBulkUpdateInput, ProductBulkUpdateItem, ProductCategoriesScopeInput, ProductCategoryOperationAction, ProductCategoryOperationInput, ProductContentInput, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductDeleteInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductKind, ProductMediaInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionSyncItemInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueSyncInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductOptionsSyncInput, ProductOrderByInput, ProductOrderField, ProductProductsMetaInput, ProductSeoInput, ProductSortBy, ProductSortInput, ProductStatus, ProductStatusAction, ProductTagOperationAction, ProductTagOperationInput, ProductUpdateInput, ProductUpdateStatusInput, ProductWhereInput, RichTextInput, SelectedOptionInput, SeoInput, SortDirection, StringFilter, SwatchType, TagCreateInput, TagDeleteInput, TagOrderByInput, TagOrderField, TagUpdateInput, TagWhereInput, ThresholdMethod, VariantCreateInput, VariantDeleteInput, VariantDimensionsOpInput, VariantInput, VariantInventoryOpInput, VariantMediaOpInput, VariantOperationAction, VariantOperationInput, VariantOptionLinkInput, VariantOptionsOpInput, VariantOrderByInput, VariantOrderField, VariantPricingOpInput, VariantUpdateMediaInput, VariantUpdateOptionsInput, VariantUpdatePricingInput, VariantWhereInput, VendorCreateInput, VendorOrderByInput, VendorOrderField, VendorWhereInput, WarehouseAssignableVariantOrderByInput, WarehouseAssignableVariantOrderField, WarehouseAssignableVariantWhereInput, WarehouseConnectionInput, WarehouseCreateInput, WarehouseDeleteInput, WarehouseOrderByInput, WarehouseOrderField, WarehouseStockConnectionInput, WarehouseStockCreateInput, WarehouseStockCreateItemInput, WarehouseStockDeleteInput, WarehouseStockDeleteItemInput, WarehouseStockOrderByInput, WarehouseStockOrderField, WarehouseStockWhereInput, WarehouseUpdateInput, WarehouseWhereInput, WeightInput, WeightUnit } from './types.js'
+import { BooleanFilter, BulkUpdateCancelReason, BulkUpdateItemStatus, BulkUpdateJobStatus, BulkUpdateOpType, BundleBundlesMetaInput, BundleConditionCategory, BundleConditionGroupSyncItemInput, BundleConditionOperator, BundleConditionSubject, BundleConditionSyncItemInput, BundleConfigurationCreateInput, BundleConfigurationDeleteInput, BundleConfigurationUpdateInput, BundleCreateInput, BundleDependencyActionSyncItemInput, BundleDependencyActionType, BundleDependencyRuleSyncItemInput, BundleDependencyRulesSyncInput, BundleDependencyTargetType, BundleDisplayStyle, BundleGroupSyncItemInput, BundleGroupsSyncInput, BundleItemOptionSelectionSyncItemInput, BundleItemOptionValueSelectionStatus, BundleItemOptionValueSelectionSyncItemInput, BundleItemSyncItemInput, BundleItemType, BundleLogicOperator, BundleOrderByInput, BundleOrderField, BundlePriceRuleAmountInput, BundlePriceRuleInput, BundlePriceRulePercentInput, BundlePriceType, BundlePricingTemplateSyncItemInput, BundlePricingTemplatesSyncInput, BundleType, BundleUpdateInput, BundleWhereInput, CategoryCategoriesMetaInput, CategoryContentInput, CategoryCreateInput, CategoryDeleteInput, CategoryHierarchyInput, CategoryHierarchyScopeDirection, CategoryHierarchyScopeInput, CategoryHierarchyScopeMode, CategoryMediaInput, CategoryMoveInput, CategoryOrderByInput, CategoryOrderField, CategoryProductsScopeInput, CategoryRebalanceInput, CategorySortInput, CategoryStatus, CategoryUpdateInput, CategoryWhereInput, CollectionAddProductsInput, CollectionCreateInput, CollectionDeleteInput, CollectionMediaInput, CollectionMoveProductInput, CollectionRemoveProductsInput, CollectionRuleInput, CollectionType, CollectionUpdateInput, CollectionUpdateRulesInput, CurrencyCode, DateTimeFilter, DimensionUnit, DimensionsInput, FacetCreateInput, FacetDeleteInput, FacetMoveInput, FacetRebalanceInput, FacetSelectionMode, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueEmptyDisplayAction, FacetValueKind, FacetValueMergeInput, FacetValueUnmergeInput, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, InventoryItemCostInput, InventoryItemInput, InventoryItemInventoryItemsMetaInput, InventoryItemOrderByInput, InventoryItemOrderField, InventoryItemStockInput, InventoryItemUpdateInput, InventoryItemWarehouseScopeInput, InventoryItemWarehouseScopeMode, InventoryItemWhereInput, ListingOrderByInput, ListingOrderField, ListingWhereInput, LocaleCode, OperationType, OptionDisplayType, PricingWidgetInput, ProductBulkUpdateInput, ProductBulkUpdateItem, ProductCategoriesScopeInput, ProductCategoryOperationAction, ProductCategoryOperationInput, ProductContentInput, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductDeleteInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductKind, ProductMediaInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionSyncItemInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueSyncInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductOptionsSyncInput, ProductOrderByInput, ProductOrderField, ProductProductsMetaInput, ProductSeoInput, ProductSortBy, ProductSortInput, ProductStatus, ProductStatusAction, ProductTagOperationAction, ProductTagOperationInput, ProductUpdateInput, ProductUpdateStatusInput, ProductWhereInput, RichTextInput, SelectedOptionInput, SeoInput, SortDirection, StringFilter, SwatchType, TagCreateInput, TagDeleteInput, TagOrderByInput, TagOrderField, TagUpdateInput, TagWhereInput, ThresholdMethod, VariantCreateInput, VariantDeleteInput, VariantDimensionsOpInput, VariantInput, VariantInventoryOpInput, VariantMediaOpInput, VariantOperationAction, VariantOperationInput, VariantOptionLinkInput, VariantOptionsOpInput, VariantOrderByInput, VariantOrderField, VariantPricingOpInput, VariantUpdateMediaInput, VariantUpdateOptionsInput, VariantUpdatePricingInput, VariantWhereInput, VendorCreateInput, VendorOrderByInput, VendorOrderField, VendorWhereInput, WarehouseAssignableVariantOrderByInput, WarehouseAssignableVariantOrderField, WarehouseAssignableVariantWhereInput, WarehouseConnectionInput, WarehouseCreateInput, WarehouseDeleteInput, WarehouseOrderByInput, WarehouseOrderField, WarehouseStockConnectionInput, WarehouseStockCreateInput, WarehouseStockCreateItemInput, WarehouseStockDeleteInput, WarehouseStockDeleteItemInput, WarehouseStockOrderByInput, WarehouseStockOrderField, WarehouseStockWhereInput, WarehouseUpdateInput, WarehouseWhereInput, WeightInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -62,6 +62,10 @@ export const FacetSelectionModeSchema = z.nativeEnum(FacetSelectionMode);
 export const FacetTypeSchema = z.nativeEnum(FacetType);
 
 export const FacetUiTypeSchema = z.nativeEnum(FacetUiType);
+
+export const FacetValueEmptyDisplayActionSchema = z.nativeEnum(FacetValueEmptyDisplayAction);
+
+export const FacetValueKindSchema = z.nativeEnum(FacetValueKind);
 
 export const InventoryItemOrderFieldSchema = z.nativeEnum(InventoryItemOrderField);
 
@@ -605,7 +609,6 @@ export function FacetCreateInputSchema(): z.ZodObject<Properties<FacetCreateInpu
     label: z.string(),
     selectionMode: FacetSelectionModeSchema.nullish(),
     slug: z.string(),
-    sources: z.array(z.lazy(() => FacetSourceInputSchema())).nullish(),
     uiType: FacetUiTypeSchema.nullish()
   })
 }
@@ -627,13 +630,6 @@ export function FacetMoveInputSchema(): z.ZodObject<Properties<FacetMoveInput>> 
 export function FacetRebalanceInputSchema(): z.ZodObject<Properties<FacetRebalanceInput>> {
   return z.object({
     confirm: z.boolean().default(true).nullish()
-  })
-}
-
-export function FacetSourceInputSchema(): z.ZodObject<Properties<FacetSourceInput>> {
-  return z.object({
-    handle: z.string(),
-    name: z.string()
   })
 }
 
@@ -670,7 +666,6 @@ export function FacetUpdateInputSchema(): z.ZodObject<Properties<FacetUpdateInpu
     label: z.string().nullish(),
     selectionMode: FacetSelectionModeSchema.nullish(),
     slug: z.string().nullish(),
-    sources: z.array(z.lazy(() => FacetSourceInputSchema())).nullish(),
     uiType: FacetUiTypeSchema.nullish()
   })
 }
@@ -679,10 +674,11 @@ export function FacetValueCreateInputSchema(): z.ZodObject<Properties<FacetValue
   return z.object({
     enabled: z.boolean().nullish(),
     facetId: z.string(),
+    handle: z.string(),
+    kind: FacetValueKindSchema.default(FacetValueKind.Display).nullish(),
     label: z.string(),
-    slug: z.string(),
     sortIndex: z.number().nullish(),
-    sourceHandles: z.array(z.string()).nullish(),
+    sourceValueIds: z.array(z.string()).nullish(),
     swatchId: z.string().nullish()
   })
 }
@@ -693,14 +689,30 @@ export function FacetValueDeleteInputSchema(): z.ZodObject<Properties<FacetValue
   })
 }
 
+export function FacetValueMergeInputSchema(): z.ZodObject<Properties<FacetValueMergeInput>> {
+  return z.object({
+    facetId: z.string(),
+    sourceValueIds: z.array(z.string()),
+    targetDisplayValueId: z.string().nullish(),
+    targetHandle: z.string().nullish(),
+    targetLabel: z.string().nullish()
+  })
+}
+
+export function FacetValueUnmergeInputSchema(): z.ZodObject<Properties<FacetValueUnmergeInput>> {
+  return z.object({
+    emptyDisplayAction: FacetValueEmptyDisplayActionSchema.default(FacetValueEmptyDisplayAction.Disable).nullish(),
+    sourceValueIds: z.array(z.string())
+  })
+}
+
 export function FacetValueUpdateInputSchema(): z.ZodObject<Properties<FacetValueUpdateInput>> {
   return z.object({
     enabled: z.boolean().nullish(),
+    handle: z.string().nullish(),
     id: z.string(),
     label: z.string().nullish(),
-    slug: z.string().nullish(),
     sortIndex: z.number().nullish(),
-    sourceHandles: z.array(z.string()).nullish(),
     swatchId: z.string().nullish()
   })
 }

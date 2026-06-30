@@ -28,6 +28,30 @@ function safeDecodeGlobalId(
   }
 }
 
+function safeDecodeGlobalIds(
+  globalIds: readonly string[],
+  expectedType: GlobalIdType,
+  field: string[]
+): { ids: string[]; userErrors: UserError[] } {
+  const ids: string[] = [];
+  const userErrors: UserError[] = [];
+
+  for (const [index, globalId] of globalIds.entries()) {
+    const id = safeDecodeGlobalId(globalId, expectedType);
+    if (!id) {
+      userErrors.push({
+        message: "Invalid ID",
+        field: [...field, String(index)],
+        code: "INVALID_ID",
+      });
+      continue;
+    }
+    ids.push(id);
+  }
+
+  return { ids, userErrors };
+}
+
 interface WarehouseStockMutationItemInput {
   variantId: string;
   warehouseId: string;
@@ -125,6 +149,8 @@ import {
   FacetValueCreateScript,
   FacetValueUpdateScript,
   FacetValueDeleteScript,
+  FacetValueMergeScript,
+  FacetValueUnmergeScript,
   FacetSwatchCreateScript,
   FacetSwatchUpdateScript,
   FacetSwatchDeleteScript,
@@ -1824,7 +1850,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       facetType: "PRICE" | "TAG" | "FEATURE" | "OPTION" | "IN_STOCK";
       slug: string;
       label: string;
-      sources?: Array<{ handle: string; name: string }> | null;
       uiType?: "CHECKBOX" | "RADIO" | "DROPDOWN" | "RANGE" | "BOOLEAN" | null;
       selectionMode?: "SINGLE" | "MULTI" | null;
     };
@@ -1833,7 +1858,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       facetType: args.input.facetType.toLowerCase(),
       slug: args.input.slug,
       label: args.input.label,
-      sources: args.input.sources ?? undefined,
       uiType: args.input.uiType?.toLowerCase(),
       selectionMode: args.input.selectionMode?.toLowerCase(),
     });
@@ -1849,7 +1873,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       id: string;
       slug?: string | null;
       label?: string | null;
-      sources?: Array<{ handle: string; name: string }> | null;
       uiType?: "CHECKBOX" | "RADIO" | "DROPDOWN" | "RANGE" | "BOOLEAN" | null;
       selectionMode?: "SINGLE" | "MULTI" | null;
     };
@@ -1865,7 +1888,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       id,
       slug: args.input.slug ?? undefined,
       label: args.input.label ?? undefined,
-      sources: args.input.sources ?? undefined,
       uiType: args.input.uiType?.toLowerCase(),
       selectionMode: args.input.selectionMode?.toLowerCase(),
     });
@@ -1953,9 +1975,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   async facetValueCreate(args: {
     input: {
       facetId: string;
-      slug: string;
+      kind?: "SOURCE" | "DISPLAY" | null;
+      handle: string;
       label: string;
-      sourceHandles?: string[] | null;
+      sourceValueIds?: string[] | null;
       swatchId?: string | null;
       sortIndex?: number | null;
       enabled?: boolean | null;
@@ -1971,11 +1994,28 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const swatchId = args.input.swatchId
       ? safeDecodeGlobalId(args.input.swatchId, GlobalIdEntity.FacetSwatch)
       : undefined;
+    if (args.input.swatchId && !swatchId) {
+      return {
+        facetValue: null,
+        userErrors: [{ message: "Invalid swatch ID", field: ["input", "swatchId"], code: "INVALID_ID" }],
+      };
+    }
+
+    const decodedSourceValues = safeDecodeGlobalIds(
+      args.input.sourceValueIds ?? [],
+      GlobalIdEntity.FacetValue,
+      ["input", "sourceValueIds"]
+    );
+    if (decodedSourceValues.userErrors.length > 0) {
+      return { facetValue: null, userErrors: decodedSourceValues.userErrors };
+    }
+
     const result = await this.$ctx.kernel.runScript(FacetValueCreateScript, {
       facetId,
-      slug: args.input.slug,
+      kind: (args.input.kind ?? "DISPLAY").toLowerCase() as "source" | "display",
+      handle: args.input.handle,
       label: args.input.label,
-      sourceHandles: args.input.sourceHandles ?? undefined,
+      sourceValueIds: decodedSourceValues.ids,
       swatchId,
       sortIndex: args.input.sortIndex ?? undefined,
       enabled: args.input.enabled ?? undefined,
@@ -1992,9 +2032,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   async facetValueUpdate(args: {
     input: {
       id: string;
-      slug?: string | null;
+      handle?: string | null;
       label?: string | null;
-      sourceHandles?: string[] | null;
       swatchId?: string | null;
       sortIndex?: number | null;
       enabled?: boolean | null;
@@ -2012,11 +2051,16 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       : args.input.swatchId === null
         ? null
         : undefined;
+    if (args.input.swatchId && !swatchId) {
+      return {
+        facetValue: null,
+        userErrors: [{ message: "Invalid swatch ID", field: ["input", "swatchId"], code: "INVALID_ID" }],
+      };
+    }
     const result = await this.$ctx.kernel.runScript(FacetValueUpdateScript, {
       id,
-      slug: args.input.slug ?? undefined,
+      handle: args.input.handle ?? undefined,
       label: args.input.label ?? undefined,
-      sourceHandles: args.input.sourceHandles ?? undefined,
       swatchId,
       sortIndex: args.input.sortIndex ?? undefined,
       enabled: args.input.enabled ?? undefined,
@@ -2026,6 +2070,103 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       facetValue: result.facetValue
         ? new FacetValueResolver(result.facetValue.id, this.$ctx)
         : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async facetValueMerge(args: {
+    input: {
+      facetId: string;
+      targetDisplayValueId?: string | null;
+      targetHandle?: string | null;
+      targetLabel?: string | null;
+      sourceValueIds: string[];
+    };
+  }) {
+    const facetId = safeDecodeGlobalId(args.input.facetId, GlobalIdEntity.Facet);
+    if (!facetId) {
+      return {
+        facetValue: null,
+        sourceValues: [],
+        userErrors: [{ message: "Invalid facet ID", field: ["input", "facetId"], code: "INVALID_ID" }],
+      };
+    }
+
+    const targetDisplayValueId = args.input.targetDisplayValueId
+      ? safeDecodeGlobalId(args.input.targetDisplayValueId, GlobalIdEntity.FacetValue)
+      : undefined;
+    if (args.input.targetDisplayValueId && !targetDisplayValueId) {
+      return {
+        facetValue: null,
+        sourceValues: [],
+        userErrors: [{ message: "Invalid target display value ID", field: ["input", "targetDisplayValueId"], code: "INVALID_ID" }],
+      };
+    }
+
+    const decodedSourceValues = safeDecodeGlobalIds(
+      args.input.sourceValueIds,
+      GlobalIdEntity.FacetValue,
+      ["input", "sourceValueIds"]
+    );
+    if (decodedSourceValues.userErrors.length > 0) {
+      return {
+        facetValue: null,
+        sourceValues: [],
+        userErrors: decodedSourceValues.userErrors,
+      };
+    }
+
+    const result = await this.$ctx.kernel.runScript(FacetValueMergeScript, {
+      facetId,
+      targetDisplayValueId: targetDisplayValueId ?? undefined,
+      targetHandle: args.input.targetHandle ?? undefined,
+      targetLabel: args.input.targetLabel ?? undefined,
+      sourceValueIds: decodedSourceValues.ids,
+    });
+
+    return {
+      facetValue: result.facetValue
+        ? new FacetValueResolver(result.facetValue.id, this.$ctx)
+        : null,
+      sourceValues: result.sourceValues.map(
+        (value) => new FacetValueResolver(value.id, this.$ctx)
+      ),
+      userErrors: result.userErrors,
+    };
+  }
+
+  async facetValueUnmerge(args: {
+    input: {
+      sourceValueIds: string[];
+      emptyDisplayAction?: "DISABLE" | "DELETE" | "KEEP" | null;
+    };
+  }) {
+    const decodedSourceValues = safeDecodeGlobalIds(
+      args.input.sourceValueIds,
+      GlobalIdEntity.FacetValue,
+      ["input", "sourceValueIds"]
+    );
+    if (decodedSourceValues.userErrors.length > 0) {
+      return {
+        sourceValues: [],
+        affectedDisplayValues: [],
+        userErrors: decodedSourceValues.userErrors,
+      };
+    }
+
+    const result = await this.$ctx.kernel.runScript(FacetValueUnmergeScript, {
+      sourceValueIds: decodedSourceValues.ids,
+      emptyDisplayAction: args.input.emptyDisplayAction
+        ?.toLowerCase() as "disable" | "delete" | "keep" | undefined,
+    });
+
+    return {
+      sourceValues: result.sourceValues.map(
+        (value) => new FacetValueResolver(value.id, this.$ctx)
+      ),
+      affectedDisplayValues: result.affectedDisplayValues.map(
+        (value) => new FacetValueResolver(value.id, this.$ctx)
+      ),
       userErrors: result.userErrors,
     };
   }

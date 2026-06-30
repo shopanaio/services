@@ -24,8 +24,18 @@ export class FacetValueResolver extends CatalogType<string, FacetValue> {
     return this.resolvers.facet(facetId);
   }
 
-  async slug() {
-    return (await this.$get("slug")) ?? "";
+  async parent() {
+    const parentId = await this.$get("parentId");
+    if (!parentId) return null;
+    return this.resolvers.facetValue(parentId);
+  }
+
+  async kind() {
+    return ((await this.$get("kind")) ?? "source").toUpperCase();
+  }
+
+  async handle() {
+    return (await this.$get("handle")) ?? "";
   }
 
   async label() {
@@ -35,9 +45,13 @@ export class FacetValueResolver extends CatalogType<string, FacetValue> {
     return translation?.label ?? "";
   }
 
-  async sourceHandles() {
-    const handles = await this.$ctx.loaders.facetValueSourceHandles.load(this.$props);
-    return handles.map((item) => item.sourceHandle).sort();
+  async sourceValues() {
+    const kind = await this.$get("kind");
+    if (kind !== "display") return [];
+    const children = await this.$ctx.loaders.facetValueSourceChildren.load(
+      this.$props
+    );
+    return children.map((child) => this.resolvers.facetValue(child.id));
   }
 
   async swatch() {

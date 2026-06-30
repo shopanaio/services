@@ -19,10 +19,20 @@ enum FacetSelectionMode {
   MULTI
 }
 
+enum FacetValueKind {
+  SOURCE
+  DISPLAY
+}
+
+enum FacetValueEmptyDisplayAction {
+  DISABLE
+  DELETE
+  KEEP
+}
+
 type Facet implements Node {
   id: ID!
   facetType: FacetType!
-  sources: [FacetSource!]!
   slug: String!
   label: String!
   uiType: FacetUIType!
@@ -31,17 +41,14 @@ type Facet implements Node {
   values: [FacetValue!]!
 }
 
-type FacetSource {
-  handle: String!
-  name: String!
-}
-
 type FacetValue implements Node {
   id: ID!
   facet: Facet!
-  slug: String!
+  parent: FacetValue
+  kind: FacetValueKind!
+  handle: String!
   label: String!
-  sourceHandles: [String!]!
+  sourceValues: [FacetValue!]!
   swatch: FacetSwatch
   sortIndex: Int!
   enabled: Boolean!
@@ -59,7 +66,6 @@ type FacetSwatch implements Node {
 input FacetCreateInput {
   facetType: FacetType!
   slug: String!
-  sources: [FacetSourceInput!]
   uiType: FacetUIType
   selectionMode: FacetSelectionMode
   label: String!
@@ -68,15 +74,9 @@ input FacetCreateInput {
 input FacetUpdateInput {
   id: ID!
   slug: String
-  sources: [FacetSourceInput!]
   uiType: FacetUIType
   selectionMode: FacetSelectionMode
   label: String
-}
-
-input FacetSourceInput {
-  handle: String!
-  name: String!
 }
 
 input FacetDeleteInput {
@@ -95,9 +95,10 @@ input FacetRebalanceInput {
 
 input FacetValueCreateInput {
   facetId: ID!
-  slug: String!
+  kind: FacetValueKind = DISPLAY
+  handle: String!
   label: String!
-  sourceHandles: [String!]
+  sourceValueIds: [ID!]
   swatchId: ID
   sortIndex: Int
   enabled: Boolean
@@ -105,12 +106,24 @@ input FacetValueCreateInput {
 
 input FacetValueUpdateInput {
   id: ID!
-  slug: String
+  handle: String
   label: String
-  sourceHandles: [String!]
   swatchId: ID
   sortIndex: Int
   enabled: Boolean
+}
+
+input FacetValueMergeInput {
+  facetId: ID!
+  targetDisplayValueId: ID
+  targetHandle: String
+  targetLabel: String
+  sourceValueIds: [ID!]!
+}
+
+input FacetValueUnmergeInput {
+  sourceValueIds: [ID!]!
+  emptyDisplayAction: FacetValueEmptyDisplayAction = DISABLE
 }
 
 input FacetValueDeleteInput {
@@ -170,6 +183,18 @@ type FacetValueCreatePayload {
 
 type FacetValueUpdatePayload {
   facetValue: FacetValue
+  userErrors: [GenericUserError!]!
+}
+
+type FacetValueMergePayload {
+  facetValue: FacetValue
+  sourceValues: [FacetValue!]!
+  userErrors: [GenericUserError!]!
+}
+
+type FacetValueUnmergePayload {
+  sourceValues: [FacetValue!]!
+  affectedDisplayValues: [FacetValue!]!
   userErrors: [GenericUserError!]!
 }
 

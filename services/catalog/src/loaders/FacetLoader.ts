@@ -1,6 +1,7 @@
 import DataLoader from "dataloader";
 import type {
   Facet,
+  FacetValue,
   FacetTranslation,
 } from "../repositories/models/index.js";
 import type { FacetSourceWithName } from "../repositories/facet/FacetRepository.js";
@@ -35,10 +36,16 @@ export class FacetLoader {
     );
 
     this.facetValueIds = new DataLoader<string, string[]>(async (facetIds) => {
-      const allValues = await Promise.all(
-        facetIds.map((facetId) => repository.facetValue.findByFacetId(facetId))
+      const allValues = await repository.facetValue.findVisibleByFacetIds(facetIds);
+      const valuesByFacetId = new Map<string, FacetValue[]>();
+      for (const value of allValues) {
+        const values = valuesByFacetId.get(value.facetId) ?? [];
+        values.push(value);
+        valuesByFacetId.set(value.facetId, values);
+      }
+      return facetIds.map((facetId) =>
+        (valuesByFacetId.get(facetId) ?? []).map((value) => value.id)
       );
-      return allValues.map((values) => values.map((value) => value.id));
     });
   }
 }

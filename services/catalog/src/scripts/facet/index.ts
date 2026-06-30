@@ -7,6 +7,8 @@ export * from "./FacetRebalanceScript.js";
 export * from "./FacetValueCreateScript.js";
 export * from "./FacetValueUpdateScript.js";
 export * from "./FacetValueDeleteScript.js";
+export * from "./FacetValueMergeScript.js";
+export * from "./FacetValueUnmergeScript.js";
 export * from "./FacetSwatchCreateScript.js";
 export * from "./FacetSwatchUpdateScript.js";
 export * from "./FacetSwatchDeleteScript.js";

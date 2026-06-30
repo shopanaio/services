@@ -410,7 +410,7 @@ CREATE TABLE catalog.product_listing_facet_token (
 | `project_id` | Project boundary and first column in all lookup/count paths. |
 | `product_id` | Product that owns this resolved facet token. |
 | `facet_id` | Storefront configured facet id. Isolation/count logic работает по `facet_id`, не по `facet_type`. |
-| `facet_value_id` | Storefront configured facet value id after resolving source handles through `facet_value_source_handle`. |
+| `facet_value_id` | Storefront configured visible facet value id after resolving raw source handles through the `facet_value.kind/source parent` model. |
 | `facet_type` | Denormalized type guard: only `tag` or `feature`. Useful for diagnostics and validation, not for isolation grouping. |
 | `indexed_at` | Время генерации token rows for product. |
 

@@ -58,7 +58,7 @@ facetSlug:valueHandle
 
 `FacetValue` описывает значение дискретного facet. В целевой модели одна таблица
 `catalog.facet_value` хранит и реальные source values, и публичные display values.
-Отдельной таблицы `facet_value_source_handle` больше нет.
+Отдельной source-handle mapping table больше нет.
 
 DB таблицы:
 
@@ -280,7 +280,7 @@ WHERE child.project_id = :projectId
 ORDER BY child.handle;
 ```
 
-Внутренний runtime result может использовать термин `sourceHandles`, но это
+Внутренний runtime result может использовать термин `resolvedSourceHandles`, но это
 derived value, а не отдельная DB table и не Admin API contract.
 
 ## Merge и unmerge
@@ -379,8 +379,8 @@ type FacetValue implements Node {
 - для `DISPLAY` - child source values;
 - для `SOURCE` - пустой список.
 
-Admin API не экспонирует `FacetValue.sourceHandles`. Строковые handles source
-values доступны как `FacetValue.handle` у source rows.
+Admin API не экспонирует строковое поле source handles на `FacetValue`.
+Строковые handles source values доступны как `FacetValue.handle` у source rows.
 
 Queries:
 

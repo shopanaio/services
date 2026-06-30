@@ -16,11 +16,11 @@ export class ResolveFacetsScript extends BaseScript<
 
     for (const item of resolved) {
       if (item.facetType === "tag") {
-        item.sourceHandles.forEach((value) => tagHandles.add(value));
+        item.resolvedSourceHandles.forEach((value) => tagHandles.add(value));
       } else if (item.facetType === "feature") {
-        item.sourceHandles.forEach((value) => featureSlugs.add(value));
+        item.resolvedSourceHandles.forEach((value) => featureSlugs.add(value));
       } else if (item.facetType === "option") {
-        item.sourceHandles.forEach((value) => optionSlugs.add(value));
+        item.resolvedSourceHandles.forEach((value) => optionSlugs.add(value));
       }
     }
 

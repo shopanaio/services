@@ -626,6 +626,18 @@ type CatalogMutation {
   facetValueUpdate(input: FacetValueUpdateInput!): FacetValueUpdatePayload!
 
   """
+  Attach source facet values to an existing or newly-created display value.
+  This is the only mutation that merges source values into a display value.
+  """
+  facetValueMerge(input: FacetValueMergeInput!): FacetValueMergePayload!
+
+  """
+  Detach source facet values from their display value and make them root values.
+  This is the only mutation that unmerges source values.
+  """
+  facetValueUnmerge(input: FacetValueUnmergeInput!): FacetValueUnmergePayload!
+
+  """
   Delete a facet value
   """
   facetValueDelete(input: FacetValueDeleteInput!): FacetValueDeletePayload!
