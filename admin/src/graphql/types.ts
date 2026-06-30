@@ -3285,6 +3285,7 @@ export type ApiFacetCreateInput = {
   label: Scalars['String']['input'];
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug: Scalars['String']['input'];
+  sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
   uiType?: InputMaybe<FacetUiType>;
 };
 
@@ -3445,6 +3446,7 @@ export type ApiFacetUpdateInput = {
   label?: InputMaybe<Scalars['String']['input']>;
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug?: InputMaybe<Scalars['String']['input']>;
+  sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
   uiType?: InputMaybe<FacetUiType>;
 };
 

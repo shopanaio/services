@@ -81,6 +81,7 @@ export class Loader {
   public readonly facetIdsByGroup;
   public readonly facet;
   public readonly facetTranslation;
+  public readonly facetSourceHandles;
   public readonly facetValueIds;
   public readonly facetValue;
   public readonly facetValueTranslation;
@@ -194,6 +195,7 @@ export class Loader {
     this.facetIdsByGroup = facetGroupLoader.facetIdsByGroup;
     this.facet = facetLoader.facet;
     this.facetTranslation = facetLoader.facetTranslation;
+    this.facetSourceHandles = facetLoader.facetSourceHandles;
     this.facetValueIds = facetLoader.facetValueIds;
     this.facetValue = facetValueLoader.facetValue;
     this.facetValueTranslation = facetValueLoader.facetValueTranslation;

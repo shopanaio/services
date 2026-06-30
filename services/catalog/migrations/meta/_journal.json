@@ -57,6 +57,13 @@
       "when": 1782771886056,
       "tag": "0007_amused_stick",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1782816310147,
+      "tag": "0008_broad_pestilence",
+      "breakpoints": true
     }
   ]
 }

@@ -96,6 +96,43 @@ export const facetTranslation = catalogSchema.table(
   ]
 );
 
+export const facetSourceHandle = catalogSchema.table(
+  "facet_source_handle",
+  {
+    id: uuid("id").primaryKey(),
+    projectId: uuid("project_id").notNull(),
+    facetId: uuid("facet_id")
+      .notNull()
+      .references(() => facet.id, { onDelete: "cascade" }),
+    facetType: varchar("facet_type", { length: 32 }).notNull(),
+    sourceHandle: text("source_handle").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("facet_source_handle_project_facet_source_uniq").on(
+      table.projectId,
+      table.facetId,
+      table.sourceHandle
+    ),
+    unique("facet_source_handle_project_type_source_uniq").on(
+      table.projectId,
+      table.facetType,
+      table.sourceHandle
+    ),
+    index("idx_facet_source_handle_project_facet").on(
+      table.projectId,
+      table.facetId
+    ),
+    index("idx_facet_source_handle_project_type_source").on(
+      table.projectId,
+      table.facetType,
+      table.sourceHandle
+    ),
+  ]
+);
+
 export const facetSwatch = catalogSchema.table("facet_swatch", {
   id: uuid("id").primaryKey(),
   projectId: uuid("project_id").notNull(),
@@ -201,6 +238,8 @@ export type Facet = typeof facet.$inferSelect;
 export type NewFacet = typeof facet.$inferInsert;
 export type FacetTranslation = typeof facetTranslation.$inferSelect;
 export type NewFacetTranslation = typeof facetTranslation.$inferInsert;
+export type FacetSourceHandle = typeof facetSourceHandle.$inferSelect;
+export type NewFacetSourceHandle = typeof facetSourceHandle.$inferInsert;
 export type FacetSwatch = typeof facetSwatch.$inferSelect;
 export type NewFacetSwatch = typeof facetSwatch.$inferInsert;
 export type FacetValue = typeof facetValue.$inferSelect;

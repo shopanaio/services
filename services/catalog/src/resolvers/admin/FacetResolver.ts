@@ -23,13 +23,8 @@ export class FacetResolver extends CatalogType<string, Facet> {
   }
 
   async sourceHandles() {
-    const valueIds = await this.$ctx.loaders.facetValueIds.load(this.$props);
-    const sourceRows = await Promise.all(
-      valueIds.map((valueId) => this.$ctx.loaders.facetValueSourceHandles.load(valueId))
-    );
-    return Array.from(
-      new Set(sourceRows.flat().map((row) => row.sourceHandle))
-    ).sort();
+    const sourceRows = await this.$ctx.loaders.facetSourceHandles.load(this.$props);
+    return Array.from(new Set(sourceRows.map((row) => row.sourceHandle))).sort();
   }
 
   async slug() {

@@ -49,6 +49,7 @@ export class FacetUpdateScript extends BaseScript<FacetUpdateParams, FacetResult
     const facet = await this.repository.facet.update(params.id, {
       slug: params.slug,
       label: params.label,
+      sourceHandles: params.sourceHandles,
       uiType: params.uiType,
       selectionMode: params.selectionMode,
       groupId: params.groupId,

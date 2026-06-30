@@ -7,10 +7,12 @@ import {
 } from "../LexoRankRepository.js";
 import {
   facet,
+  facetSourceHandle,
   facetTranslation,
   facetValue,
   facetValueSourceHandle,
   type Facet,
+  type FacetSourceHandle,
   type NewFacet,
   type FacetTranslation,
 } from "../models/index.js";
@@ -83,6 +85,7 @@ export class FacetRepository extends BaseRepository {
     selectionMode?: string;
     groupId?: string | null;
     lexoRank?: string;
+    sourceHandles?: string[];
   }): Promise<Facet> {
     const id = randomUUID();
     const now = new Date().toISOString();
@@ -109,6 +112,10 @@ export class FacetRepository extends BaseRepository {
       label: data.label,
     });
 
+    if (data.sourceHandles && data.sourceHandles.length > 0) {
+      await this.replaceSourceHandles(id, data.sourceHandles);
+    }
+
     return rows[0];
   }
 
@@ -121,6 +128,7 @@ export class FacetRepository extends BaseRepository {
       selectionMode?: string;
       groupId?: string | null;
       lexoRank?: string;
+      sourceHandles?: string[];
     }
   ): Promise<Facet | null> {
     const updates: Partial<NewFacet> = {
@@ -152,6 +160,10 @@ export class FacetRepository extends BaseRepository {
           target: [facetTranslation.facetId, facetTranslation.locale],
           set: { label: data.label },
         });
+    }
+
+    if (data.sourceHandles !== undefined) {
+      await this.replaceSourceHandles(id, data.sourceHandles);
     }
 
     return rows[0] ?? null;
@@ -213,6 +225,56 @@ export class FacetRepository extends BaseRepository {
           inArray(facetTranslation.facetId, [...facetIds])
         )
       );
+  }
+
+  async getSourceHandlesByFacetIds(
+    facetIds: readonly string[]
+  ): Promise<FacetSourceHandle[]> {
+    if (facetIds.length === 0) return [];
+    return this.connection
+      .select()
+      .from(facetSourceHandle)
+      .where(
+        and(
+          eq(facetSourceHandle.projectId, this.storeId),
+          inArray(facetSourceHandle.facetId, [...facetIds])
+        )
+      );
+  }
+
+  async replaceSourceHandles(
+    facetId: string,
+    sourceHandles: string[]
+  ): Promise<void> {
+    const facetRow = await this.findById(facetId);
+    if (!facetRow) {
+      return;
+    }
+
+    await this.connection
+      .delete(facetSourceHandle)
+      .where(
+        and(
+          eq(facetSourceHandle.projectId, this.storeId),
+          eq(facetSourceHandle.facetId, facetId)
+        )
+      );
+
+    if (sourceHandles.length === 0) {
+      return;
+    }
+
+    const uniqueSourceHandles = Array.from(new Set(sourceHandles));
+
+    await this.connection.insert(facetSourceHandle).values(
+      uniqueSourceHandles.map((sourceHandle) => ({
+        id: randomUUID(),
+        projectId: this.storeId,
+        facetId,
+        facetType: facetRow.facetType,
+        sourceHandle,
+      }))
+    );
   }
 
   async resolveFacetFilterValues(

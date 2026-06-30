@@ -25,6 +25,7 @@ export interface FacetCreateParams {
   facetType: string;
   slug: string;
   label: string;
+  sourceHandles?: string[];
   uiType?: string;
   selectionMode?: string;
   groupId?: string | null;
@@ -35,6 +36,7 @@ export interface FacetUpdateParams {
   id: string;
   slug?: string;
   label?: string;
+  sourceHandles?: string[];
   uiType?: string;
   selectionMode?: string;
   groupId?: string | null;

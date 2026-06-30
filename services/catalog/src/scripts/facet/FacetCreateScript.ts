@@ -53,6 +53,7 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
       facetType: params.facetType,
       slug: params.slug,
       label: params.label,
+      sourceHandles: params.sourceHandles,
       uiType: params.uiType,
       selectionMode: params.selectionMode,
       groupId: params.groupId ?? undefined,

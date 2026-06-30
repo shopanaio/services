@@ -79,6 +79,7 @@ input FacetGroupDeleteInput {
 input FacetCreateInput {
   facetType: FacetType!
   slug: String!
+  sourceHandles: [String!]
   uiType: FacetUIType
   selectionMode: FacetSelectionMode
   groupId: ID
@@ -88,6 +89,7 @@ input FacetCreateInput {
 input FacetUpdateInput {
   id: ID!
   slug: String
+  sourceHandles: [String!]
   uiType: FacetUIType
   selectionMode: FacetSelectionMode
   groupId: ID

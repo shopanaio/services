@@ -606,6 +606,7 @@ export function FacetCreateInputSchema(): z.ZodObject<Properties<FacetCreateInpu
     label: z.string(),
     selectionMode: FacetSelectionModeSchema.nullish(),
     slug: z.string(),
+    sourceHandles: z.array(z.string()).nullish(),
     uiType: FacetUiTypeSchema.nullish()
   })
 }
@@ -685,6 +686,7 @@ export function FacetUpdateInputSchema(): z.ZodObject<Properties<FacetUpdateInpu
     label: z.string().nullish(),
     selectionMode: FacetSelectionModeSchema.nullish(),
     slug: z.string().nullish(),
+    sourceHandles: z.array(z.string()).nullish(),
     uiType: FacetUiTypeSchema.nullish()
   })
 }

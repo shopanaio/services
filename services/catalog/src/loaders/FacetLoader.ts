@@ -1,6 +1,7 @@
 import DataLoader from "dataloader";
 import type {
   Facet,
+  FacetSourceHandle,
   FacetTranslation,
 } from "../repositories/models/index.js";
 import type { Repository } from "../repositories/Repository.js";
@@ -8,6 +9,7 @@ import type { Repository } from "../repositories/Repository.js";
 export class FacetLoader {
   public readonly facet: DataLoader<string, Facet | null>;
   public readonly facetTranslation: DataLoader<string, FacetTranslation | null>;
+  public readonly facetSourceHandles: DataLoader<string, FacetSourceHandle[]>;
   public readonly facetValueIds: DataLoader<string, string[]>;
 
   constructor(repository: Repository) {
@@ -22,6 +24,13 @@ export class FacetLoader {
         return facetIds.map(
           (id) => results.find((item) => item.facetId === id) ?? null
         );
+      }
+    );
+
+    this.facetSourceHandles = new DataLoader<string, FacetSourceHandle[]>(
+      async (facetIds) => {
+        const results = await repository.facet.getSourceHandlesByFacetIds(facetIds);
+        return facetIds.map((id) => results.filter((item) => item.facetId === id));
       }
     );
 
