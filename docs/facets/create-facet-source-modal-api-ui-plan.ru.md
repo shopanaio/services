@@ -1,12 +1,11 @@
-# План: API и UI модалки выбора source для Create Facet
+# План: API выбора source для Create Facet
 
 ## Контекст
 
-В `CreateFacetModal` source сейчас выбирается как простой список типов:
-`PRICE`, `TAG`, `OPTION`, `FEATURE`, `IN_STOCK`. Целевое поведение должно быть
-ближе к Shopify-style modal: пользователь кликает на source в поле label,
-открывается модалка `Select source` со строкой поиска и таблицей доступных
-источников.
+Create facet flow должен выбирать source не как абстрактный тип, а как
+конкретный доступный source из backend read model. API должен возвращать только
+те source, которые еще не используются в `catalog.facet_source`, и create
+mutation должна сохранять выбранный source в `facet_source`.
 
 Доступные source:
 
@@ -19,25 +18,22 @@
 | Nice | Product feature | `FEATURE` | `nice` |
 
 Важно: source, которые уже используются в `catalog.facet_source`, не должны
-возвращаться API и не должны отображаться в UI.
+возвращаться API.
 
 ## Цели
 
-1. Добавить Admin API для списка доступных facet sources с легкой
-   cursor-pagination, фильтрацией по `facetType` и клиентским поиском по
-   отображаемому названию.
+1. Добавить Catalog GraphQL API для списка доступных facet sources с легкой
+   cursor-pagination и фильтрацией по `facetType`.
 2. Подготовить Postgres/Drizzle `facet_source_candidate_view`, который
    нормализует standard, tag, option и feature sources в один read model.
 3. Исключать уже использованные sources через `NOT EXISTS` во view.
-4. Заменить dropdown выбора source в `CreateFacetModal` на отдельную модалку
-   выбора source.
-5. При выборе source автоматически заполнять `facetType`, `label`, `slug` и
-   `sources` для создания facet.
+4. Расширить create facet mutation так, чтобы она принимала выбранный source и
+   сохраняла `facet_source` / `facet_source_translation`.
 
 ## Не цели
 
 - Не менять модель `facet_value` и merge/unmerge values.
-- Не добавлять selection нескольких sources в create modal. Выбор source один.
+- Не добавлять selection нескольких sources. Выбор source один.
 - Не запускать `test` или `tsc`; для проверки новой версии кода использовать
   build по правилам проекта.
 - Не редактировать changeset вручную.
@@ -84,10 +80,8 @@ Canonical casing для facet type в этой задаче — `UPPERCASE`.
 
 - `facet_source_candidate_view.facet_type` возвращает только GraphQL enum values:
   `PRICE`, `IN_STOCK`, `TAG`, `OPTION`, `FEATURE`;
-- Admin API `FacetSourceCandidate.facetType` и input `FacetCreateInput.facetType`
+- GraphQL API `FacetSourceCandidate.facetType` и input `FacetCreateInput.facetType`
   работают в `UPPERCASE`;
-- Admin UI form state хранит `FacetType` из generated GraphQL enum, то есть
-  `UPPERCASE`;
 - create validation сравнивает selected candidate с GraphQL input в
   `UPPERCASE`, до любой legacy-нормализации;
 - `FacetCreateScript` должен принимать/валидировать `UPPERCASE` facetType и
@@ -136,13 +130,13 @@ export const facetSourceCandidateView =
   }).as(...);
 ```
 
-View должен быть normalization + availability read model для create modal. Он:
+View должен быть normalization + availability read model для create flow. Он:
 
 - нормализует standard, tag, option и feature candidates;
 - исключает already-used sources через `NOT EXISTS`;
 - не применяет pagination;
 - не применяет final `ASC`/`DESC` sort;
-- не зависит от UI search.
+- не зависит от presentation-layer search.
 
 `NOT EXISTS` остается в SQL view, чтобы `@shopana/drizzle-query` работал уже с
 available rows и не требовал отдельного raw SQL wrapper в repository.
@@ -160,9 +154,9 @@ Read model кандидата:
 | `sourceSortBucket` | integer | stable source group order |
 | `sortName` | text/null | backend name sort key; `null` for fixed/system sources |
 
-Backend не должен отдавать UI-тексты для fixed/system sources. Для `PRICE`,
-`IN_STOCK` и `TAG` поле `name` должно быть `null`; Admin UI локализует `Name`
-и `Type` по стабильной паре `facetType + handle`.
+Backend не должен отдавать display-тексты для fixed/system sources. Для `PRICE`,
+`IN_STOCK` и `TAG` поле `name` должно быть `null`; внешний consumer может
+локализовать `Name` и `Type` по стабильной паре `facetType + handle`.
 
 `name` для `OPTION` и `FEATURE` нельзя строить из `slug`. Название должно
 приходить из locale-aware translation tables:
@@ -328,10 +322,154 @@ CREATE INDEX idx_product_feature_translation_project_locale_feature
 Exclusion уже покрыт текущим индексом/unique constraint на
 `catalog.facet_source(project_id, facet_type, handle)`.
 
-Не использовать materialized view на первом этапе. Он добавит refresh/invalidate
-сложность без явной пользы для admin modal. Возвращаться к materialized view
-только после `EXPLAIN ANALYZE` на реальных seed-данных, если query стабильно
-медленнее целевого порога.
+### Catalog migrations
+
+Catalog migrations для этой задачи пишутся вручную PostgreSQL SQL и исполняются
+через текущий `node-pg-migrate` runner. Не использовать Drizzle migrator,
+Drizzle Kit generation или generated migration для catalog.
+
+Файлы, которые должны измениться в рамках DB/model части:
+
+```text
+services/catalog/src/repositories/models/facetSourceCandidateView.ts
+services/catalog/src/repositories/models/index.ts
+services/catalog/docs/catalog-migrations-domain-inventory.md
+services/catalog/migrations/domains/0500_facets/0504_facets__source_candidate_view.sql
+```
+
+`facetSourceCandidateView.ts` добавляет Drizzle view model для runtime query
+contract. `repositories/models/index.ts` экспортирует новую модель рядом с
+`facet`. `catalog-migrations-domain-inventory.md` нужно обновить вручную, чтобы
+inventory отражал новый view и новые индексы. SQL migration добавляется новым
+файлом в существующий facets-domain folder.
+
+Migration file:
+
+```text
+services/catalog/migrations/domains/0500_facets/0504_facets__source_candidate_view.sql
+```
+
+Порядок обновления migration-файлов:
+
+1. Не запускать Drizzle migration generation для catalog.
+2. Создать новый SQL-файл:
+   `services/catalog/migrations/domains/0500_facets/0504_facets__source_candidate_view.sql`.
+3. Не изменять существующие migration files:
+   - `services/catalog/migrations/domains/0500_facets/0500_facets__tables.sql`;
+   - `services/catalog/migrations/domains/0500_facets/0501_facets__values.sql`;
+   - `services/catalog/migrations/domains/0500_facets/0502_facets__sources.sql`;
+   - `services/catalog/migrations/domains/0500_facets/0503_facets__relations.sql`.
+4. В новом SQL-файле писать только `-- Up Migration`; down migration не добавлять,
+   потому что project migrations сейчас forward-only и destructive rollback
+   запрещен.
+5. Добавить SQL statements в порядке ниже.
+6. После SQL-файла вручную обновить
+   `services/catalog/docs/catalog-migrations-domain-inventory.md`.
+
+Точный порядок SQL внутри
+`0504_facets__source_candidate_view.sql`:
+
+1. Optional casing backfill, только если в этой работе принят `UPPERCASE`
+   storage boundary:
+
+   ```sql
+   UPDATE "catalog"."facet"
+   SET "facet_type" = UPPER("facet_type")
+   WHERE "facet_type" <> UPPER("facet_type");
+
+   UPDATE "catalog"."facet_source"
+   SET "facet_type" = UPPER("facet_type")
+   WHERE "facet_type" <> UPPER("facet_type");
+   ```
+
+   Этот блок должен идти до `CREATE VIEW`, чтобы view сразу сравнивал
+   `facet_source.facet_type` с candidate `facet_type` без `LOWER()`/`UPPER()`.
+
+2. Создать plain view:
+
+   ```sql
+   CREATE VIEW "catalog"."facet_source_candidate_view" AS
+   -- use the CTE/query shape from the Candidate view section above
+   ;
+   ```
+
+   View name is new. Do not use `CREATE OR REPLACE VIEW`, because there is no
+   existing view to replace and this plan forbids replace-by-drop/rename flows.
+
+3. Add supporting indexes with `IF NOT EXISTS`:
+
+   ```sql
+   CREATE INDEX IF NOT EXISTS "idx_product_option_project_slug"
+     ON "catalog"."product_option" ("project_id", "slug");
+
+   CREATE INDEX IF NOT EXISTS "idx_product_option_translation_project_locale_option"
+     ON "catalog"."product_option_translation" ("project_id", "locale", "option_id");
+
+   CREATE INDEX IF NOT EXISTS "idx_product_feature_project_group_slug"
+     ON "catalog"."product_feature" ("project_id", "is_group", "slug");
+
+   CREATE INDEX IF NOT EXISTS "idx_product_feature_translation_project_locale_feature"
+     ON "catalog"."product_feature_translation" ("project_id", "locale", "feature_id");
+   ```
+
+Inventory update в
+`services/catalog/docs/catalog-migrations-domain-inventory.md`:
+
+1. Найти строку facets inventory, где сейчас перечислены
+   `facet`, `facet_translation`, `facet_swatch`, `facet_value`,
+   `facet_value_translation`, `facet_source`, `facet_source_translation`,
+   `facet_value_source_handle`.
+2. Добавить в список объектов `facet_source_candidate_view`.
+3. В колонке migrations оставить domain pattern `0500_facets/*.sql` или явно
+   добавить, что source candidate view находится в
+   `0500_facets/0504_facets__source_candidate_view.sql`.
+4. В колонке notes/constraints указать:
+   - plain view `catalog.facet_source_candidate_view`;
+   - candidate columns: `id`, `project_id`, `locale`, `facet_type`, `handle`,
+     `name`, `source_sort_bucket`, `sort_name`;
+   - support indexes:
+     `idx_product_option_project_slug`,
+     `idx_product_option_translation_project_locale_option`,
+     `idx_product_feature_project_group_slug`,
+     `idx_product_feature_translation_project_locale_feature`;
+   - exclusion uses existing
+     `facet_source_project_type_handle_uniq(project_id, facet_type, handle)`.
+
+Manual migration review checklist:
+
+- new SQL file lives only under `services/catalog/migrations/domains/0500_facets/`;
+- no existing migration file is edited;
+- no changeset file is edited;
+- no `DROP` appears in the migration;
+- no `RENAME` appears in the migration;
+- no materialized view is introduced;
+- all new indexes use `CREATE INDEX IF NOT EXISTS`;
+- `facet_source_candidate_view` is exported from Drizzle models and documented in
+  `catalog-migrations-domain-inventory.md`;
+- if uppercase backfill is included, all lowercase-sensitive facet consumers are
+  updated in code in the same implementation branch.
+
+Запрещенные операции в этой migration:
+
+- `DROP TABLE`;
+- `DROP VIEW`;
+- `DROP MATERIALIZED VIEW`;
+- `DROP INDEX`;
+- `DROP COLUMN`;
+- `ALTER TABLE ... RENAME`;
+- `ALTER INDEX ... RENAME`;
+- `ALTER VIEW ... RENAME`;
+- любые rename-команды.
+
+Если существующий объект нужно заменить, нельзя делать `DROP`/`RENAME`.
+Разрешены только изменение существующих полей через `ALTER TABLE ... ALTER
+COLUMN ...`, создание новых таблиц/view/indexes и data backfill через `UPDATE`.
+Для этой задачи expected path - новый view и новые индексы, без изменения
+существующих column definitions.
+
+Если migration нужно сделать идемпотентнее для локального dev окружения,
+использовать `CREATE INDEX IF NOT EXISTS`. Для `CREATE VIEW` имя новое, поэтому
+`DROP VIEW` не нужен и не разрешен.
 
 ## Repository API
 
@@ -395,7 +533,7 @@ const [result, totalCount] = await Promise.all([
 
 `sortName` равен DB translation `name` и используется только для dynamic rows.
 Fixed/system rows имеют `sortName = null`; их порядок задает `sourceSortBucket`,
-потому что backend не знает frontend translation catalog.
+потому что backend не знает external translation catalog.
 
 ### Repository method
 
@@ -437,8 +575,8 @@ const maxLimit = 100;
 project_id + facet_type + handle
 ```
 
-Фильтрация уже использованных sources должна оставаться в view SQL, а не в UI и
-не в отдельном `usedSourceIds` select. Это сохраняет чистую интеграцию
+Фильтрация уже использованных sources должна оставаться в view SQL, а не в
+отдельном `usedSourceIds` select. Это сохраняет чистую интеграцию
 repository с `createRelayQuery`.
 
 Правила exclusion:
@@ -457,25 +595,7 @@ repository с `createRelayQuery`.
 read model и может отвечать за filtering, sorting, cursor pagination и
 `totalCount` без raw SQL wrapper.
 
-### Search
-
-Поиск в модалке работает по отображаемому названию source. Для dynamic
-`OPTION`/`FEATURE` это backend поле `name`, полученное из translation tables.
-Для fixed/system sources это frontend i18n label по `facetType + handle`.
-
-Backend не должен делать search по `name` на первом этапе, потому что:
-
-- fixed/system rows имеют `name = null`;
-- backend не знает frontend translation catalog;
-- список candidates для modal ограничен `maxLimit = 100`;
-- клиентский поиск по display label проще и не ломает fixed sources.
-
-Hook загружает available candidates и фильтрует на клиенте:
-
-```ts
-const displayName =
-  source.name ?? getSystemSourceName(source.facetType, source.handle);
-```
+### Query parameters
 
 Backend разрешает только легкие параметры:
 
@@ -526,7 +646,7 @@ facetSourceCandidates(
 
 `FacetSourceCandidate` не должен реализовывать `Node`: это computed candidate,
 а не persisted entity с lookup через `node(id:)`. `id` остается стабильным
-candidate id для cursor/UI selection.
+candidate id для cursor и API selection.
 
 ## Resolvers
 
@@ -569,8 +689,7 @@ facetSourceCandidates(args: FacetSourceCandidateConnectionInput) {
 - `MutationResolver.facetCreate()` mapping из GraphQL input в script params;
 - `FacetCreateParams` DTO;
 - `FacetCreateScript` validation и передача `sources` в
-  `repository.facet.create()`;
-- admin `mapFacetFormToCreateInput()` и form state create modal.
+  `repository.facet.create()`.
 
 ```graphql
 input FacetCreateSourceInput {
@@ -588,7 +707,7 @@ input FacetCreateInput {
 }
 ```
 
-Для create modal отправлять один source:
+Create API должен принимать один source:
 
 ```json
 {
@@ -630,16 +749,15 @@ Create flow должен быть транзакционным. `FacetCreateScri
 5. вернуть созданный facet.
 
 Эти шаги должны выполняться в одной transaction boundary script/kernel flow.
-Нельзя полагаться на UI как на защиту от устаревшего выбора source: UI только
-выбирает candidate и отправляет payload, а backend повторно проверяет candidate
-перед insert. Если source стал занят между открытием модалки и submit,
-validation должна вернуть userError на `sources`/`source`; если гонка случилась
-после validation, unique constraint `facet_source_project_type_handle_uniq`
-остается последней защитой и должен быть преобразован в userError, а не в
-необработанную internal error.
+Нельзя полагаться на API consumer как на защиту от устаревшего выбора source:
+backend повторно проверяет candidate перед insert. Если source стал занят между
+чтением candidates и submit, validation должна вернуть userError на
+`sources`/`source`; если гонка случилась после validation, unique constraint
+`facet_source_project_type_handle_uniq` остается последней защитой и должен
+быть преобразован в userError, а не в необработанную internal error.
 
 Repository уже выполняет insert sources и сохраняет translation name, но не
-должен становиться владельцем UI/API-specific validation. Проверки выбранного
+должен становиться владельцем API-specific validation. Проверки выбранного
 candidate должны жить в create script / resolver boundary до вызова
 `repository.facet.create()`. Нормализация casing здесь не должна переводить
 `facetType` в lowercase: resolver передает GraphQL enum как `UPPERCASE`, script
@@ -648,196 +766,44 @@ candidate должны жить в create script / resolver boundary до выз
 Unique constraint в `facet_source` остается последней защитой от race condition,
 но не заменяет transactional validation в `FacetCreateScript`.
 
-## Admin UI
-
-### GraphQL операции
-
-В `admin/src/domains/inventory/facets/graphql/queries.ts` добавить:
-
-```graphql
-query FacetSourceCandidates(
-  $first: Int
-  $after: String
-  $facetType: FacetType
-  $sortDirection: SortDirection
-) {
-  catalogQuery {
-    facetSourceCandidates(
-      first: $first
-      after: $after
-      facetType: $facetType
-      sortDirection: $sortDirection
-    ) {
-      edges {
-        cursor
-        node {
-          id
-          locale
-          facetType
-          handle
-          name
-        }
-      }
-      pageInfo { hasNextPage endCursor }
-      totalCount
-    }
-  }
-}
-```
-
-Добавить hook:
-
-```text
-admin/src/domains/inventory/facets/hooks/use-facet-source-candidates.ts
-```
-
-Hook принимает:
-
-- `search`;
-- pagination cursor;
-- optional `facetType`;
-- optional `sortDirection`;
-
-Возвращает generated API shapes напрямую, по правилу
-`knowledge/vault/patterns/admin-graphql-layer.md`.
-
-`search` применяется в hook/client по display label:
-
-```ts
-const displayName =
-  source.name ?? getSystemSourceName(source.facetType, source.handle);
-```
-
-Backend search не используется, чтобы не терять fixed/system sources с
-`name = null`.
-
-### Модалка выбора source
-
-Добавить:
-
-```text
-admin/src/domains/inventory/facets/modals/select-facet-source-modal/
-  select-facet-source-modal.tsx
-  index.ts
-```
-
-Зарегистрировать в `admin/src/domains/modals.tsx` новый modal type:
-
-```ts
-type: "facet-source-select"
-```
-
-Payload:
-
-```ts
-interface ISelectFacetSourceModalPayload {
-  selectedId?: string;
-  onSelect: (source: FacetSourceCandidateFields) => void;
-}
-```
-
-UI:
-
-- header title: `Select source`;
-- close icon;
-- search input с placeholder `Search filter sources`;
-- таблица с колонками `Name` и `Type`;
-- колонка `Name` отображает `source.name ?? getSystemSourceName(source.facetType, source.handle)`;
-- колонка `Type` отображает frontend i18n label по `source.facetType`;
-- row click выбирает source и закрывает modal;
-- footer только `Cancel`;
-- empty state: `No sources available`;
-- loading state внутри таблицы;
-- infinite scroll или `Load more`, если `hasNextPage`.
-
-Для desktop ширина около `920px`, для mobile full width с безопасными отступами.
-
-### Интеграция в CreateFacetModal
-
-Заменить `FacetSourceSelector` dropdown на button/addon, который открывает
-`facet-source-select`.
-
-Form state расширить:
-
-```ts
-  source: {
-  id: string;
-    facetType: FacetType;
-    handle: string;
-    name: string | null;
-  }
-```
-
-При выборе source:
-
-1. `setValue("source", source)`;
-2. `setValue("facetType", source.facetType)`;
-3. вычислить `displayName = source.name ?? getSystemSourceName(source.facetType, source.handle)`;
-4. `setValue("label", displayName)`, если пользователь еще не редактировал label;
-5. `setValue("slug", slugify(displayName))`, если slug auto-managed;
-6. пересчитать default `uiType` через `getDefaultFacetUiType(source.facetType)`.
-
-Валидация `createFacetSchema`:
-
-- source обязателен;
-- `facetType` должен совпадать с `source.facetType`;
-- для `OPTION`/`FEATURE` handle не пустой;
-- для `PRICE`/`IN_STOCK`/`TAG` handle должен быть фиксированным canonical handle.
-
-`mapFacetFormToCreateInput` должен отправлять:
-
-```ts
-const displayName =
-  values.source.name ??
-  getSystemSourceName(values.source.facetType, values.source.handle);
-
-sources: [
-  {
-    handle: values.source.handle,
-    name: displayName,
-  },
-]
-```
-
-### UX детали
-
-- Если API вернул пустой список, create modal не должен показывать устаревшие
-  hardcoded options.
-- Если source был доступен при открытии, но стал использован до submit, backend
-  вернет userError на `source`; UI показывает ошибку под source button и toast.
-- Search debounce: 250-300 ms.
-- Поиск ищет по display label на клиенте.
-
 ## Порядок реализации
 
 1. Добавить `facetSourceCandidateView` в catalog models и экспорт из
    `repositories/models/index.ts`.
-2. Добавить migration для `catalog.facet_source_candidate_view` и индексы для
+2. Добавить handwritten catalog migration
+   `services/catalog/migrations/domains/0500_facets/0504_facets__source_candidate_view.sql`
+   для `catalog.facet_source_candidate_view` и индексов
    `product_option`, `product_option_translation`,
-   `product_feature`, `product_feature_translation` через generated migration
-   npm/CLI; не писать migration вручную.
-3. Добавить repository method в `FacetRepository`, который читает из view через
+   `product_feature`, `product_feature_translation`. Не использовать generated
+   migration / Drizzle migrator. Не использовать `DROP` и `RENAME`; migration
+   должна быть additive/replace-in-place по правилам раздела
+   `Catalog migrations`.
+3. Обновить model-derived inventory:
+   `services/catalog/docs/catalog-migrations-domain-inventory.md`, добавив новый
+   view и новые индексы из migration.
+4. Добавить repository method в `FacetRepository`, который читает из view через
    `facetSourceCandidateRelayQuery` и применяет `projectId`, `locale`, sort,
    pagination и `count`.
-4. Реализовать cursor encode/decode и `limit + 1` pagination в repository.
-5. Расширить GraphQL schema для `FacetSourceCandidateConnection`.
-6. Добавить resolver и подключить query в `QueryResolver`.
-7. Расширить `FacetCreateInput.sources`, generated zod/types, resolver mapping,
-   `FacetCreateParams`, validation create script и admin
-   `mapFacetFormToCreateInput`; repository create уже принимает `sources`.
+5. Реализовать cursor encode/decode и `limit + 1` pagination в repository.
+6. Расширить GraphQL schema для `FacetSourceCandidateConnection`.
+7. Добавить resolver и подключить query в `QueryResolver`.
+8. Расширить `FacetCreateInput.sources`, generated zod/types, resolver mapping,
+   `FacetCreateParams` и validation create script; repository create уже
+   принимает `sources`.
    В этом же шаге зафиксировать `UPPERCASE` boundary: убрать
    `.toLowerCase()` для `facetType` в `MutationResolver.facetCreate()`,
    перевести `FacetCreateScript` allow-list / `UI_BY_TYPE` на `UPPERCASE` и
    сохранять `facet.facet_type` / `facet_source.facet_type` в `UPPERCASE`.
-8. Сделать create flow транзакционным на уровне `FacetCreateScript`: validation
+9. Если persisted `facet_type` переводится в `UPPERCASE`, сделать это тем же
+   handwritten SQL migration через `UPDATE`, без изменения имен колонок,
+   constraints или indexes. Также обновить все lowercase-sensitive consumers
+   `facet_type` в scripts/repositories/builders до единого casing boundary.
+10. Сделать create flow транзакционным на уровне `FacetCreateScript`: validation
    selected candidate, create facet и insert `sources` через
    `repository.facet.create()` должны происходить в одной transaction boundary;
    duplicate source race от unique constraint маппить в userError.
-9. Запустить backend codegen через shopana-cli.
-10. Добавить admin GraphQL query, hook и generated types через admin codegen.
-11. Реализовать `SelectFacetSourceModal` и зарегистрировать modal type.
-12. Переделать `CreateFacetModal` на выбор source через modal.
-13. Запустить build для затронутых частей, если нужна проверка новой версии.
+11. Запустить backend codegen через shopana-cli.
+12. Запустить build для затронутых частей, если нужна проверка новой версии.
 
 ## Проверочные сценарии
 
@@ -850,17 +816,15 @@ sources: [
 5. Уже есть facet source `OPTION/color`: все product options со slug `color`
    агрегируются в один source и больше не возвращаются.
 6. Уже есть facet source `FEATURE/nice`: feature source `Nice` не возвращается.
-7. Client search `colo` возвращает `Color`, но не возвращает использованный
-   `Color`.
-8. Backend ordering стабилен и не ломает cursor pagination.
-9. Submit create facet с source, который стал занятым после открытия modal,
+7. Backend ordering стабилен и не ломает cursor pagination.
+8. Submit create facet с source, который стал занятым после чтения candidates,
    возвращает `userErrors` без создания duplicate facet.
 
 ## Открытые решения
 
 1. Нужно ли на втором этапе добавлять backend search для очень больших списков
-   option/feature. Первый этап сознательно использует client search для
-   корректной работы fixed/system labels.
+   option/feature. Первый этап сознательно не добавляет search parameter,
+   потому что fixed/system rows имеют `name = null`.
 2. Какой latency threshold считать поводом для materialized/indexed projection.
    Предложение: возвращаться к этому только если `EXPLAIN ANALYZE` на реальных
    данных показывает стабильные запросы медленнее 100-200 ms.
