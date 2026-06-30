@@ -402,14 +402,6 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       ),
     },
     {
-      type: 'facet-value-create',
-      component: dynamic(() =>
-        import('@/domains/inventory/facets/modals/create-facet-value-modal').then(
-          (m) => m.CreateFacetValueModal
-        )
-      ),
-    },
-    {
       type: 'facet-value-link-sources',
       component: dynamic(() =>
         import('@/domains/inventory/facets/modals/link-source-values-modal').then(

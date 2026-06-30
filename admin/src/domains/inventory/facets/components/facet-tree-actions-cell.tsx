@@ -4,20 +4,17 @@ import {
   EditOutlined,
   LinkOutlined,
   MoreOutlined,
-  PlusOutlined,
 } from "@ant-design/icons";
 import { Button, Dropdown } from "antd";
 import type { ICellRendererParams } from "ag-grid-community";
 import type { MenuProps } from "antd";
 import type { FacetGridRow } from "../mappers";
-import { isDiscreteFacetType } from "../mappers";
 import { useFacetCellStyles } from "./facet-cell-styles";
 
 export interface FacetTreeActionsCellParams
   extends ICellRendererParams<FacetGridRow> {
   hasUnsavedChanges?: boolean;
   onEdit: (row: FacetGridRow) => void;
-  onCreateValue: (row: FacetGridRow) => void;
   onLinkSourceValues?: (row: FacetGridRow) => void;
   onDuplicate: (row: FacetGridRow) => void;
   onDelete: (row: FacetGridRow) => void;
@@ -40,14 +37,6 @@ export function FacetTreeActionsCell(params: FacetTreeActionsCellParams) {
     },
   ];
 
-  if (row.type === "facet" && isDiscreteFacetType(row.facetType)) {
-    items.push({
-      key: "create-value",
-      label: "Create value",
-      icon: <PlusOutlined />,
-    });
-  }
-
   if (row.type === "value") {
     items.push({
       key: "link-source-values",
@@ -56,12 +45,15 @@ export function FacetTreeActionsCell(params: FacetTreeActionsCellParams) {
     });
   }
 
-  items.push(
-    {
+  if (row.type === "facet") {
+    items.push({
       key: "duplicate",
       label: "Duplicate",
       icon: <CopyOutlined />,
-    },
+    });
+  }
+
+  items.push(
     {
       key: "delete",
       label: deleteDisabled ? "Save or discard changes first" : "Delete",
@@ -80,9 +72,6 @@ export function FacetTreeActionsCell(params: FacetTreeActionsCellParams) {
           onClick: ({ key }) => {
             if (key === "edit") {
               params.onEdit(row);
-            }
-            if (key === "create-value") {
-              params.onCreateValue(row);
             }
             if (key === "link-source-values") {
               params.onLinkSourceValues?.(row);

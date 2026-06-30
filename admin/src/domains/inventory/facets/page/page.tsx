@@ -34,13 +34,10 @@ import {
 import {
   apiFacetsToFacetGridRows,
   getMaxRootSortIndex,
-  getNextValueSortIndex,
-  isDiscreteFacetType,
   type FacetGridRow,
 } from "../mappers";
 import {
   useCreateFacetModal,
-  useCreateFacetValueModal,
   useEditFacetModal,
 } from "../modals";
 import { filterSchema } from "./filter-schema";
@@ -143,7 +140,6 @@ export default function FacetsPage() {
   const { moveFacet } = useMoveFacet();
   const { push: openCreateFacetModal } = useCreateFacetModal();
   const { push: openEditFacetModal } = useEditFacetModal();
-  const { push: openCreateFacetValueModal } = useCreateFacetValueModal();
   const [optimisticRows, setOptimisticRows] = useState<FacetGridRow[] | null>(
     null,
   );
@@ -173,28 +169,6 @@ export default function FacetsPage() {
   );
   const getRowClass = useCallback(() => "row-group", []);
 
-  const openCreateValueForFacet = useCallback(
-    (row: FacetGridRow) => {
-      if (row.type !== "facet" || !row.apiId || !row.facetType) {
-        return;
-      }
-
-      if (!isDiscreteFacetType(row.facetType)) {
-        message.warning("Computed facets do not have manual values.");
-        return;
-      }
-
-      openCreateFacetValueModal({
-        facetId: row.apiId,
-        facetLabel: row.name,
-        facetType: row.facetType,
-        nextSortIndex: getNextValueSortIndex(baseRows, row.id),
-        onSaved: refetchAndReset,
-      });
-    },
-    [baseRows, message, openCreateFacetValueModal, refetchAndReset],
-  );
-
   const handleRowEdit = useCallback(
     (row: FacetGridRow) => {
       if (!row.apiId) {
@@ -209,49 +183,22 @@ export default function FacetsPage() {
 
   const handleDuplicate = useCallback(
     (row: FacetGridRow) => {
-      if (row.type === "facet") {
-        if (!row.facetType || !row.uiType) {
-          return;
-        }
-
-        openCreateFacetModal({
-          nextSortIndex: getMaxRootSortIndex(baseRows) + 1,
-          initialValues: {
-            label: `${row.name} copy`,
-            slug: `${row.slug ?? row.name}-copy`,
-            facetType: row.facetType,
-            uiType: row.uiType,
-          },
-          onSaved: refetchAndReset,
-        });
+      if (row.type !== "facet" || !row.facetType || !row.uiType) {
         return;
       }
 
-      if (!row.parentId) {
-        return;
-      }
-
-      const parent = baseRows.find((candidate) => candidate.id === row.parentId);
-      if (!parent?.apiId || !parent.facetType) {
-        return;
-      }
-
-      openCreateFacetValueModal({
-        facetId: parent.apiId,
-        facetLabel: parent.name,
-        facetType: parent.facetType,
-        nextSortIndex: getNextValueSortIndex(baseRows, parent.id),
+      openCreateFacetModal({
+        nextSortIndex: getMaxRootSortIndex(baseRows) + 1,
         initialValues: {
           label: `${row.name} copy`,
           slug: `${row.slug ?? row.name}-copy`,
-          enabled: row.enabled ?? true,
-          sourceHandles: row.sourceHandles ?? [],
-          swatchId: row.swatchId ?? null,
+          facetType: row.facetType,
+          uiType: row.uiType,
         },
         onSaved: refetchAndReset,
       });
     },
-    [baseRows, openCreateFacetModal, openCreateFacetValueModal, refetchAndReset],
+    [baseRows, openCreateFacetModal, refetchAndReset],
   );
 
   const handleDelete = useCallback(
@@ -404,7 +351,6 @@ export default function FacetsPage() {
         cellRenderer: FacetTreeActionsCell,
         cellRendererParams: {
           onEdit: handleRowEdit,
-          onCreateValue: openCreateValueForFacet,
           onDuplicate: handleDuplicate,
           onDelete: handleDelete,
         },
@@ -418,7 +364,6 @@ export default function FacetsPage() {
       handleDelete,
       handleDuplicate,
       handleRowEdit,
-      openCreateValueForFacet,
       styles.metaTag,
     ],
   );
