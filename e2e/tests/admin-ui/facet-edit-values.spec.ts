@@ -124,8 +124,25 @@ async function selectFacetValueRow(page: Page, handle: string) {
   await row.click();
 }
 
-async function createValueGroup(page: Page, input: { handles: string[]; label: string }) {
-  for (const handle of input.handles) {
+async function removeValueFromGroupModal(page: Page, handle: string) {
+  await page.getByTestId(`facet-value-group-remove-value-${handle}`).click();
+  await expect(page.getByTestId(`facet-value-group-value-row-${handle}`)).toBeHidden();
+}
+
+async function addValueInGroupModal(page: Page, label: string, handle: string) {
+  await page.getByTestId('facet-value-group-add-value-button').click();
+  const autocomplete = page.getByTestId('facet-value-group-source-autocomplete');
+  await autocomplete.locator('input').fill(label);
+  await page
+    .locator('.ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option')
+    .filter({ hasText: label })
+    .first()
+    .click();
+  await expect(page.getByTestId(`facet-value-group-value-row-${handle}`)).toBeVisible();
+}
+
+async function openCreateValueGroupModal(page: Page, handles: string[]) {
+  for (const handle of handles) {
     await selectFacetValueRow(page, handle);
   }
 
@@ -134,7 +151,19 @@ async function createValueGroup(page: Page, input: { handles: string[]; label: s
 
   const modal = page.getByTestId('facet-value-group-modal');
   await expect(modal).toBeVisible();
-  await modal.getByTestId('facet-value-group-name-input').fill(input.label);
+  return modal;
+}
+
+async function openEditValueGroupModal(page: Page, groupHandle: string) {
+  await page.getByTestId(`facet-values-row-actions-${groupHandle}`).click();
+  await page.getByTestId(`facet-values-action-edit-${groupHandle}`).click();
+
+  const modal = page.getByTestId('facet-value-group-modal');
+  await expect(modal).toBeVisible();
+  return modal;
+}
+
+async function submitValueGroupModal(page: Page, modal: Locator) {
   await page.getByTestId('submit-facet-value-group-form-button').click();
   await expect(modal).toBeHidden({ timeout: 20_000 });
 }
@@ -182,10 +211,12 @@ test.describe('Admin facet values edit UI', () => {
     await expect(page.getByTestId('facet-values-row-size:l')).toBeVisible();
     await expect(page.getByTestId('facet-values-row-size:xl')).toBeVisible();
 
-    await createValueGroup(page, {
-      handles: ['size:s', 'size:m'],
-      label: 'Compact',
-    });
+    const createGroupModal = await openCreateValueGroupModal(page, ['size:s', 'size:m']);
+    await createGroupModal.getByTestId('facet-value-group-name-input').fill('Compact');
+    await removeValueFromGroupModal(page, 'size:m');
+    await addValueInGroupModal(page, 'Medium', 'size:m');
+    await submitValueGroupModal(page, createGroupModal);
+
     await expect(page.getByTestId('facet-values-row-compact')).toBeVisible();
     await expect(page.getByTestId('facet-values-grouped-cell-compact')).toContainText(
       'Small',
@@ -194,15 +225,31 @@ test.describe('Admin facet values edit UI', () => {
       'Medium',
     );
 
-    await ungroupValueGroup(page, 'compact');
+    const editGroupModal = await openEditValueGroupModal(page, 'compact');
+    await removeValueFromGroupModal(page, 'size:s');
+    await addValueInGroupModal(page, 'Large', 'size:l');
+    await submitValueGroupModal(page, editGroupModal);
+
+    await expect(page.getByTestId('facet-values-grouped-cell-compact')).toContainText(
+      'Medium',
+    );
+    await expect(page.getByTestId('facet-values-grouped-cell-compact')).toContainText(
+      'Large',
+    );
     await expect(page.getByTestId('facet-values-grouped-cell-compact')).not.toContainText(
       'Small',
     );
+
+    await ungroupValueGroup(page, 'compact');
     await expect(page.getByTestId('facet-values-grouped-cell-compact')).not.toContainText(
       'Medium',
     );
+    await expect(page.getByTestId('facet-values-grouped-cell-compact')).not.toContainText(
+      'Large',
+    );
     await expect(page.getByTestId('facet-values-row-size:s')).toBeVisible();
     await expect(page.getByTestId('facet-values-row-size:m')).toBeVisible();
+    await expect(page.getByTestId('facet-values-row-size:l')).toBeVisible();
 
     await deleteFacetValue(page, 'size:xl');
     await expect(page.getByTestId('facet-values-row-size:xl')).toBeHidden({

@@ -19,6 +19,10 @@ compatibility views не требуются: после миграции listing
 - Storefront listing читает цену в default currency проекта.
 - Soft-deleted products/variants не хранятся в listing index: строки должны
   удаляться каскадом или sync/rebuild script.
+- Дочерние таблицы внутри listing read model ссылаются на parent listing rows
+  (`product_listing_index` / `variant_listing_index`), а не напрямую только на
+  canonical tables. Это не дает price/token rows пережить partial sync/rebuild
+  удаление parent row из read model.
 - Storefront facets работают через resolved `facet_id` и `facet_value_id`, а не
   через raw source handles.
 - `price` и `in_stock` являются virtual facets и не имеют строк в token tables.
@@ -168,7 +172,7 @@ CREATE TABLE catalog.product_listing_price_index (
   PRIMARY KEY (project_id, product_id, currency),
   CONSTRAINT fk_product_listing_price_product
     FOREIGN KEY (project_id, product_id)
-    REFERENCES catalog.product(project_id, id)
+    REFERENCES catalog.product_listing_index(project_id, product_id)
     ON DELETE CASCADE
 );
 ```
@@ -191,7 +195,7 @@ CREATE TABLE catalog.product_listing_price_index (
 | Ограничение | Комментарий |
 | --- | --- |
 | `PRIMARY KEY (project_id, product_id, currency)` | Гарантирует одну aggregate price row на product/currency. |
-| `fk_product_listing_price_product` | Удаляет price aggregate вместе с canonical product. |
+| `fk_product_listing_price_product` | Привязывает price aggregate к parent row в `product_listing_index` и удаляет его при partial sync/rebuild удалении product из read model. |
 
 ### Индексы
 
@@ -244,9 +248,11 @@ CREATE TABLE catalog.variant_listing_index (
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
   PRIMARY KEY (project_id, variant_id),
+  CONSTRAINT variant_listing_project_product_variant_unique
+    UNIQUE (project_id, product_id, variant_id),
   CONSTRAINT fk_variant_listing_product
     FOREIGN KEY (project_id, product_id)
-    REFERENCES catalog.product(project_id, id)
+    REFERENCES catalog.product_listing_index(project_id, product_id)
     ON DELETE CASCADE,
   CONSTRAINT fk_variant_listing_variant
     FOREIGN KEY (project_id, product_id, variant_id)
@@ -276,7 +282,8 @@ CREATE TABLE catalog.variant_listing_index (
 | Ограничение | Комментарий |
 | --- | --- |
 | `PRIMARY KEY (project_id, variant_id)` | Гарантирует одну listing row на variant внутри project. |
-| `fk_variant_listing_product` | Удаляет variant index rows при удалении parent product. |
+| `variant_listing_project_product_variant_unique` | Дает FK target для child variant listing tables с сохранением проверки принадлежности `variant_id` к `product_id`. |
+| `fk_variant_listing_product` | Привязывает variant listing row к parent `product_listing_index` и удаляет variant index rows при удалении product из read model. |
 | `fk_variant_listing_variant` | Не допускает orphan variant rows и удаляет index row при удалении canonical variant. |
 
 ### Индексы
@@ -317,13 +324,9 @@ CREATE TABLE catalog.variant_listing_price_index (
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
   PRIMARY KEY (project_id, variant_id, currency),
-  CONSTRAINT fk_variant_listing_price_product
-    FOREIGN KEY (project_id, product_id)
-    REFERENCES catalog.product(project_id, id)
-    ON DELETE CASCADE,
   CONSTRAINT fk_variant_listing_price_variant
     FOREIGN KEY (project_id, product_id, variant_id)
-    REFERENCES catalog.variant(project_id, product_id, id)
+    REFERENCES catalog.variant_listing_index(project_id, product_id, variant_id)
     ON DELETE CASCADE
 );
 ```
@@ -346,8 +349,7 @@ CREATE TABLE catalog.variant_listing_price_index (
 | Ограничение | Комментарий |
 | --- | --- |
 | `PRIMARY KEY (project_id, variant_id, currency)` | Гарантирует одну variant price row на currency. |
-| `fk_variant_listing_price_product` | Каскадно удаляет price rows вместе с product. |
-| `fk_variant_listing_price_variant` | Каскадно удаляет price rows вместе с variant и проверяет принадлежность variant product. |
+| `fk_variant_listing_price_variant` | Привязывает price row к parent `variant_listing_index`, каскадно удаляет price rows при partial sync/rebuild удалении variant из read model и проверяет принадлежность variant product. |
 
 ### Индексы
 
@@ -388,7 +390,7 @@ CREATE TABLE catalog.product_listing_facet_token (
   PRIMARY KEY (project_id, product_id, facet_id, facet_value_id),
   CONSTRAINT fk_product_listing_facet_token_product
     FOREIGN KEY (project_id, product_id)
-    REFERENCES catalog.product(project_id, id)
+    REFERENCES catalog.product_listing_index(project_id, product_id)
     ON DELETE CASCADE,
   CONSTRAINT fk_product_listing_facet_token_facet
     FOREIGN KEY (project_id, facet_id)
@@ -419,7 +421,7 @@ CREATE TABLE catalog.product_listing_facet_token (
 | Ограничение | Комментарий |
 | --- | --- |
 | `PRIMARY KEY (project_id, product_id, facet_id, facet_value_id)` | Deduplicates merged values: multiple source handles on one product resolving to the same `facet_value_id` count once. |
-| `fk_product_listing_facet_token_product` | Удаляет product tokens вместе с product. |
+| `fk_product_listing_facet_token_product` | Привязывает product tokens к parent `product_listing_index` и удаляет tokens при partial sync/rebuild удалении product из read model. |
 | `fk_product_listing_facet_token_facet` | Удаляет tokens when configured facet is removed. |
 | `fk_product_listing_facet_token_value` | Удаляет tokens when configured facet value is removed and enforces value ownership by facet. |
 | `chk_product_listing_facet_token_type` | Prevents option/virtual facet tokens from entering product-level table. |
@@ -465,13 +467,9 @@ CREATE TABLE catalog.variant_listing_facet_token (
   indexed_at             timestamptz NOT NULL DEFAULT now(),
 
   PRIMARY KEY (project_id, variant_id, facet_id, facet_value_id),
-  CONSTRAINT fk_variant_listing_facet_token_product
-    FOREIGN KEY (project_id, product_id)
-    REFERENCES catalog.product(project_id, id)
-    ON DELETE CASCADE,
   CONSTRAINT fk_variant_listing_facet_token_variant
     FOREIGN KEY (project_id, product_id, variant_id)
-    REFERENCES catalog.variant(project_id, product_id, id)
+    REFERENCES catalog.variant_listing_index(project_id, product_id, variant_id)
     ON DELETE CASCADE,
   CONSTRAINT fk_variant_listing_facet_token_facet
     FOREIGN KEY (project_id, facet_id)
@@ -500,8 +498,7 @@ CREATE TABLE catalog.variant_listing_facet_token (
 | Ограничение | Комментарий |
 | --- | --- |
 | `PRIMARY KEY (project_id, variant_id, facet_id, facet_value_id)` | Deduplicates repeated source mappings on the same variant while preserving same-variant matching. |
-| `fk_variant_listing_facet_token_product` | Удаляет option tokens вместе с product. |
-| `fk_variant_listing_facet_token_variant` | Удаляет option tokens вместе с variant and validates product ownership. |
+| `fk_variant_listing_facet_token_variant` | Привязывает option tokens к parent `variant_listing_index`, удаляет tokens при partial sync/rebuild удалении variant из read model и проверяет принадлежность variant product. |
 | `fk_variant_listing_facet_token_facet` | Удаляет tokens when configured option facet is removed. |
 | `fk_variant_listing_facet_token_value` | Удаляет tokens when configured option value is removed and enforces value ownership by facet. |
 
