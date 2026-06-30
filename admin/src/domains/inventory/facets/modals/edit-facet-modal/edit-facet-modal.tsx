@@ -8,6 +8,7 @@ import {
   Alert,
   App,
   Button,
+  Dropdown,
   Flex,
   Input,
   Skeleton,
@@ -20,6 +21,7 @@ import {
   LuPackageCheck,
   LuSlidersHorizontal,
   LuSparkles,
+  LuSwatchBook,
   LuTag,
 } from "react-icons/lu";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
@@ -281,6 +283,7 @@ export function EditFacetModal() {
   const [savingValueOrder, setSavingValueOrder] = useState(false);
   const [editorValues, setEditorValues] = useState<OptionEditorValue[]>([]);
   const [deletedValueIds, setDeletedValueIds] = useState<string[]>([]);
+  const [swatchesEnabled, setSwatchesEnabled] = useState(false);
 
   const methods = useForm<EditFacetFormInput, unknown, EditFacetFormValues>({
     resolver: zodResolver(editFacetSchema),
@@ -312,6 +315,7 @@ export function EditFacetModal() {
 
     setEditorValues(facetValuesToEditorValues(facet.values));
     setDeletedValueIds([]);
+    setSwatchesEnabled(facet.values.some((value) => Boolean(value.swatch)));
   }, [facet]);
 
   const uiTypeOptions = useMemo(
@@ -384,15 +388,17 @@ export function EditFacetModal() {
           const original = value.apiId
             ? facet.values.find((candidate) => candidate.id === value.apiId)
             : null;
-          let swatchId = original?.swatch?.id ?? null;
+          const originalSwatchId = original?.swatch?.id ?? null;
+          let swatchId = originalSwatchId;
+          const swatch = swatchesEnabled ? value.swatch ?? DEFAULT_SWATCH : null;
 
-          if (value.swatch) {
+          if (swatch) {
             const swatchResult = swatchId
               ? await updateFacetSwatch(
-                  editorSwatchToUpdateInput(swatchId, value.swatch),
+                  editorSwatchToUpdateInput(swatchId, swatch),
                 )
               : await createFacetSwatch(
-                  editorSwatchToCreateInput(value.swatch),
+                  editorSwatchToCreateInput(swatch),
                 );
 
             if (swatchResult.userErrors.length > 0) {
@@ -401,6 +407,8 @@ export function EditFacetModal() {
             }
 
             swatchId = swatchResult.facetSwatch?.id ?? swatchId;
+          } else {
+            swatchId = null;
           }
 
           if (!value.apiId) {
@@ -410,7 +418,7 @@ export function EditFacetModal() {
               slug: slugify(trimmedName),
               enabled: true,
               sourceHandles: [],
-              swatchId,
+              ...(swatchId ? { swatchId } : {}),
               sortIndex,
             });
 
@@ -426,7 +434,7 @@ export function EditFacetModal() {
           const slug = slugify(trimmedName);
           const sortIndexChanged = original?.sortIndex !== sortIndex;
           const slugChanged = original?.slug !== slug;
-          const swatchChanged = original?.swatch?.id !== swatchId;
+          const swatchChanged = originalSwatchId !== swatchId;
 
           if (
             !labelChanged &&
@@ -468,6 +476,7 @@ export function EditFacetModal() {
       message,
       pop,
       setError,
+      swatchesEnabled,
       typedPayload,
       updateFacet,
       updateFacetSwatch,
@@ -592,8 +601,35 @@ export function EditFacetModal() {
                   )}
                 />
                 {discrete ? (
+                  <Dropdown
+                    menu={{
+                      selectable: true,
+                      selectedKeys: [swatchesEnabled ? "on" : "off"],
+                      items: [
+                        {
+                          key: "on",
+                          label: "On",
+                          onClick: () => setSwatchesEnabled(true),
+                        },
+                        {
+                          key: "off",
+                          label: "Off",
+                          onClick: () => setSwatchesEnabled(false),
+                        },
+                      ],
+                    }}
+                    trigger={["click"]}
+                  >
+                    <Button type="text" aria-label="Value swatches">
+                      <Flex gap={4} align="center">
+                        <LuSwatchBook />
+                        <span>{swatchesEnabled ? "On" : "Off"}</span>
+                      </Flex>
+                    </Button>
+                  </Dropdown>
+                ) : null}
+                {discrete ? (
                   <Button
-                    size="small"
                     type="text"
                     icon={<PlusOutlined />}
                     aria-label="Create value"
@@ -607,6 +643,7 @@ export function EditFacetModal() {
             <Flex vertical gap={8}>
               <FacetValuesList
                 values={editorValues}
+                swatchesEnabled={swatchesEnabled}
                 onReorder={(values) =>
                   setEditorValues(normalizeValueSortIndexes(values))
                 }

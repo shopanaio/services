@@ -71,7 +71,7 @@ export function FacetUiTypeSelector({
 
   return (
     <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
-      <Button size="small" type="text">
+      <Button type="text">
         <Flex gap={4} align="center">
           {current?.icon}
           <span>{current?.label}</span>

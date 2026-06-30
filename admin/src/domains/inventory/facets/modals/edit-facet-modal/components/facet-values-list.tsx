@@ -29,6 +29,7 @@ import { SortableValue } from "../../../../products/modals/edit-options-modal/co
 
 interface FacetValuesListProps {
   values: OptionEditorValue[];
+  swatchesEnabled: boolean;
   onReorder: (values: OptionEditorValue[]) => void;
   onUpdateValueName: (valueIndex: number, name: string) => void;
   onUpdateValueSwatch: (
@@ -40,6 +41,7 @@ interface FacetValuesListProps {
 
 export function FacetValuesList({
   values,
+  swatchesEnabled,
   onReorder,
   onUpdateValueName,
   onUpdateValueSwatch,
@@ -94,7 +96,11 @@ export function FacetValuesList({
             <SortableValue
               key={value.id}
               value={value}
-              groupDisplayType={OptionDisplayType.Swatch}
+              groupDisplayType={
+                swatchesEnabled
+                  ? OptionDisplayType.Swatch
+                  : OptionDisplayType.Buttons
+              }
               isDeleteDisabled={values.length <= 1}
               onNameChange={(name) => onUpdateValueName(valueIndex, name)}
               onSwatchChange={(swatch) =>
