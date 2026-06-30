@@ -27,8 +27,8 @@
 6. Поддержать custom display values и merge/unmerge через `parent_id`.
 7. Не создавать и не удалять source rows при merge/unmerge. Merge/unmerge должен
    менять только `parent_id` у source rows.
-8. Перевести backend, GraphQL Admin API, admin UI, listing/facet counts и docs
-   на новую модель.
+8. Перевести backend, GraphQL Admin API, listing/facet counts и docs на новую
+   модель.
 
 ## Не цели
 
@@ -643,7 +643,7 @@ export interface FacetValueUpdateParams {
 Правила create:
 
 - `kind = 'source'` создается только sync script или explicit admin source-value
-  operation. Обычный create value из UI должен создавать `display`, если
+  operation. Обычный create value flow должен создавать `display`, если
   переданы `sourceValueIds`, или source только в "create source value" flow.
 - `kind = 'display'` требует `sourceValueIds.length > 0`, если value сразу
   включен и должен быть usable.
@@ -672,7 +672,7 @@ export interface FacetValueUpdateParams {
 Почему не делать все через generic update:
 
 - merge/unmerge имеют отдельные validation rules;
-- UI может показывать отдельные actions;
+- merge/unmerge имеют отдельные actions;
 - проще считать affected source handles для listing freshness.
 
 DTO:
@@ -703,8 +703,8 @@ Unmerge behavior:
 
 - source values получают `parent_id = NULL`;
 - если old display остается без children, либо disable, либо delete display
-  по явному параметру. Рекомендуемый default: disable display и показать warning
-  в UI.
+  по явному параметру. Рекомендуемый default: disable display и вернуть warning
+  в mutation payload.
 
 ## Изменения GraphQL Admin API
 
@@ -725,9 +725,9 @@ FacetValueCreateInput.sourceHandles
 FacetValueUpdateInput.sourceHandles
 ```
 
-Если нужна временная backward compatibility для admin UI, можно оставить
+Если нужна временная backward compatibility для Admin API clients, можно оставить
 `sourceHandles` как deprecated computed field на один refactor step, но
-финальное состояние должно убрать это поле из UI contract.
+финальное состояние должно убрать это поле из API contract.
 
 ### Добавить
 
@@ -757,7 +757,7 @@ type FacetValue implements Node {
 - empty array или `[self]`?
 
 Решение: вернуть empty array и добавить отдельное computed поле
-`resolvedSourceValues` не нужно. UI может понять по `kind`.
+`resolvedSourceValues` не нужно. Клиент может понять по `kind`.
 
 Для display value:
 
@@ -920,161 +920,14 @@ sourceHandles -> resolvedSourceHandles
 
 - hidden source rows не должны попадать в `values` payload;
 - display без enabled children не должен попадать в storefront facets или должен
-  иметь count `0` и быть отфильтрован, если UI скрывает empty values;
+  иметь count `0`, если product decision требует показывать empty values;
 - source children должны быть deduplicated, чтобы merged values не double-count.
-
-## Изменения Admin UI
-
-Основной каталог:
-
-- `admin/src/domains/inventory/facets/`.
-
-### GraphQL fragments/types
-
-Файлы:
-
-- `admin/src/domains/inventory/facets/graphql/fragments.ts`;
-- `admin/src/domains/inventory/facets/graphql/operation-types.ts`;
-- `admin/src/graphql/types.ts` после codegen;
-- `admin/schema.graphql` после schema export/compose.
-
-Изменить fragment:
-
-```graphql
-fragment FacetValueGridFields on FacetValue {
-  id
-  kind
-  label
-  handle
-  sortIndex
-  enabled
-  sourceValues {
-    id
-    kind
-    handle
-    label
-    enabled
-  }
-  swatch {
-    ...FacetSwatchFields
-  }
-}
-```
-
-Удалить:
-
-- `slug`;
-- `sourceHandles`;
-- `Facet.sourceHandles`;
-- `Facet.sources`.
-
-### Row model
-
-Файл:
-
-- `admin/src/domains/inventory/facets/mappers/facet-grid-row.mapper.ts`.
-
-Изменить:
-
-```ts
-interface FacetGridRow {
-  handle?: string;
-  kind?: FacetValueKind;
-  sourceValueIds?: string[];
-  sourceValuesCount?: number;
-}
-```
-
-Удалить:
-
-- `slug` для value rows;
-- `sourceHandles`;
-- `linkedSourceHandlesCount`.
-
-Facet row summary:
-
-- было: "Linked sources";
-- станет: "Source values" / "Grouped values";
-- считать по visible values и their source children.
-
-### Модалки
-
-Удалить/заменить:
-
-- `link-source-values-modal` с ручным tags input source handles.
-
-Добавить:
-
-- `select-source-values-modal` или `merge-facet-values-modal`;
-- source value picker по existing `FacetValue kind=SOURCE`;
-- action "Merge into display value";
-- action "Unmerge";
-- action "Edit display value";
-
-Payload больше не должен принимать raw strings:
-
-```ts
-interface MergeFacetValuesModalPayload {
-  facetId: string;
-  selectedSourceValueIds: string[];
-  targetDisplayValueId?: string;
-}
-```
-
-### Create/edit facet modal
-
-Файлы:
-
-- `admin/src/domains/inventory/facets/modals/create-facet-modal/*`;
-- `admin/src/domains/inventory/facets/modals/edit-facet-modal/*`.
-
-Удалить управление `sources` из create/edit facet, потому что source groups
-больше не отдельная сущность facet-level.
-
-Не надо сохранять `Facet.sources` в API.
-
-### Create/edit facet value modal
-
-Файлы:
-
-- `admin/src/domains/inventory/facets/modals/edit-facet-modal/components/facet-values-list.tsx`;
-- `admin/src/domains/inventory/facets/mappers/facet-value-input.mapper.ts`;
-- hooks `use-create-facet-value`, `use-update-facet-value`.
-
-Изменить поля:
-
-- `slug` -> `handle`;
-- `sourceHandles` -> `sourceValueIds`;
-- label/handle/swatch/sort/enabled редактируются на visible value.
-
-Для source value:
-
-- label и handle являются исходными данными, обычно read-only;
-- admin может only unmerge/disable source value, если это допустимо product
-  decision.
-
-Для display value:
-
-- handle/label editable;
-- source values editable через picker.
-
-### Error mapping
-
-Файл:
-
-- `admin/src/domains/inventory/facets/mappers/facet-errors.mapper.ts`.
-
-Переименовать fields:
-
-- `slug` -> `handle`;
-- `sourceHandles` -> `sourceValueIds`.
 
 ## Изменения docs
 
 Обновить после implementation:
 
 - `docs/facets/facets-data-model.ru.md`;
-- `docs/facets/facets-admin-ui-design.ru.md`;
 - `docs/listing/listing-index-db-schema.ru.md`;
 - `docs/listing/listing-index-sync-freshness.ru.md`;
 - `docs/listing/listing-storefront-operations-explained.ru.md`;
@@ -1085,7 +938,6 @@ interface MergeFacetValuesModalPayload {
 - `facet_value_source_handle` -> `facet_value.kind/source parent model`;
 - `sourceHandles` API field -> `sourceValues` / `sourceValueIds`;
 - `FacetValue.slug` -> `FacetValue.handle`;
-- "linked sources" UI -> "source values" или "grouped source values".
 
 ## Генерация и build
 
@@ -1176,24 +1028,7 @@ Acceptance:
 - `facetSlug:sourceHandle` фильтрует по самому source handle, если source root;
 - hidden children не появляются в storefront values.
 
-### Phase 6. Admin UI
-
-1. Обновить fragments/operation types.
-2. Обновить row mapper.
-3. Удалить ручное редактирование `sourceHandles`.
-4. Добавить source value picker/merge/unmerge flows.
-5. Обновить create/edit value modals.
-6. Обновить labels columns/actions.
-
-Acceptance:
-
-- grid показывает только visible values;
-- source child values доступны через expand/details/picker, но не как отдельные
-  root values, если у них есть parent;
-- merge/unmerge не требует ручного ввода handles;
-- custom label создается через display value.
-
-### Phase 7. Cleanup
+### Phase 6. Cleanup
 
 1. Удалить старые imports/types.
 2. Удалить docs mentions old model.
@@ -1366,34 +1201,13 @@ Backend:
 - `services/catalog/src/resolvers/admin/QueryResolver.ts`
 - `services/catalog/src/api/graphql-admin/schema/facet.graphql`
 
-Admin:
-
-- `admin/src/domains/inventory/facets/graphql/fragments.ts`
-- `admin/src/domains/inventory/facets/graphql/mutations.ts`
-- `admin/src/domains/inventory/facets/graphql/queries.ts`
-- `admin/src/domains/inventory/facets/graphql/operation-types.ts`
-- `admin/src/domains/inventory/facets/hooks/*`
-- `admin/src/domains/inventory/facets/mappers/facet-value-input.mapper.ts`
-- `admin/src/domains/inventory/facets/mappers/facet-errors.mapper.ts`
-- `admin/src/domains/inventory/facets/mappers/facet-grid-row.mapper.ts`
-- `admin/src/domains/inventory/facets/components/facet-linked-sources-cell.tsx`
-- `admin/src/domains/inventory/facets/modals.ts`
-- `admin/src/domains/inventory/facets/modals/create-facet-modal/*`
-- `admin/src/domains/inventory/facets/modals/edit-facet-modal/*`
-- `admin/src/domains/inventory/facets/modals/link-source-values-modal/*`
-- `admin/src/domains/inventory/facets/page/page.tsx`
-- `admin/src/domains/modals.tsx`
-
 Generated/schema:
 
 - `services/catalog/src/resolvers/admin/generated/schemas.ts`
-- `admin/schema.graphql`
-- `admin/src/graphql/types.ts`
 
 Docs:
 
 - `docs/facets/facets-data-model.ru.md`
-- `docs/facets/facets-admin-ui-design.ru.md`
 - `docs/listing/listing-index-db-schema.ru.md`
 - `docs/listing/listing-index-sync-freshness.ru.md`
 - `docs/listing/listing-storefront-operations-explained.ru.md`
