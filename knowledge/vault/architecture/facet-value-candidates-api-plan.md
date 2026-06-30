@@ -222,6 +222,110 @@ Branches для `PRICE` и `IN_STOCK` не добавлять, потому чт
 - group by `project_id`, `locale`, `product_feature.slug`, `product_feature_value.slug`;
 - `id = 'FEATURE:' || handle`.
 
+## Migration SQL
+
+Добавить новый migration файл:
+
+`services/catalog/migrations/domains/0500_facets/0505_facets__value_candidate_view.sql`
+
+Точный SQL:
+
+```sql
+-- Up Migration
+
+CREATE VIEW "catalog"."facet_value_candidate_view" AS
+SELECT
+  'TAG:' || t.handle AS id,
+  t.project_id,
+  tt.locale,
+  'TAG'::text AS facet_type,
+  'tags'::text AS source_handle,
+  t.handle::text AS handle,
+  tt.name::text AS label
+FROM "catalog"."tag" t
+INNER JOIN "catalog"."tag_translation" tt
+  ON tt.project_id = t.project_id
+ AND tt.tag_id = t.id
+
+UNION ALL
+
+SELECT
+  'OPTION:' || po.slug || ':' || pov.slug AS id,
+  po.project_id,
+  povt.locale,
+  'OPTION'::text AS facet_type,
+  po.slug::text AS source_handle,
+  (po.slug || ':' || pov.slug)::text AS handle,
+  MIN(povt.name)::text AS label
+FROM "catalog"."product_option" po
+INNER JOIN "catalog"."product_option_translation" pot
+  ON pot.project_id = po.project_id
+ AND pot.option_id = po.id
+INNER JOIN "catalog"."product_option_value" pov
+  ON pov.project_id = po.project_id
+ AND pov.option_id = po.id
+INNER JOIN "catalog"."product_option_value_translation" povt
+  ON povt.project_id = pov.project_id
+ AND povt.option_value_id = pov.id
+ AND povt.locale = pot.locale
+GROUP BY po.project_id, povt.locale, po.slug, pov.slug
+
+UNION ALL
+
+SELECT
+  'FEATURE:' || pf.slug || ':' || pfv.slug AS id,
+  pf.project_id,
+  pfvt.locale,
+  'FEATURE'::text AS facet_type,
+  pf.slug::text AS source_handle,
+  (pf.slug || ':' || pfv.slug)::text AS handle,
+  MIN(pfvt.name)::text AS label
+FROM "catalog"."product_feature" pf
+INNER JOIN "catalog"."product_feature_translation" pft
+  ON pft.project_id = pf.project_id
+ AND pft.feature_id = pf.id
+INNER JOIN "catalog"."product_feature_value" pfv
+  ON pfv.project_id = pf.project_id
+ AND pfv.feature_id = pf.id
+INNER JOIN "catalog"."product_feature_value_translation" pfvt
+  ON pfvt.project_id = pfv.project_id
+ AND pfvt.feature_value_id = pfv.id
+ AND pfvt.locale = pft.locale
+WHERE pf.is_group = false
+GROUP BY pf.project_id, pfvt.locale, pf.slug, pfv.slug;
+
+CREATE INDEX IF NOT EXISTS "idx_tag_translation_project_locale_tag"
+  ON "catalog"."tag_translation" ("project_id", "locale", "tag_id");
+
+CREATE INDEX IF NOT EXISTS "idx_product_option_value_project_option_slug"
+  ON "catalog"."product_option_value" ("project_id", "option_id", "slug");
+
+CREATE INDEX IF NOT EXISTS "idx_product_option_value_translation_project_locale_value"
+  ON "catalog"."product_option_value_translation" ("project_id", "locale", "option_value_id");
+
+CREATE INDEX IF NOT EXISTS "idx_product_feature_value_project_feature_slug"
+  ON "catalog"."product_feature_value" ("project_id", "feature_id", "slug");
+
+CREATE INDEX IF NOT EXISTS "idx_product_feature_value_translation_project_locale_value"
+  ON "catalog"."product_feature_value_translation" ("project_id", "locale", "feature_value_id");
+```
+
+Старые migration файлы не изменять. `0504_facets__source_candidate_view.sql` остается без изменений, потому новый API читает отдельную view и не меняет contract `facetSourceCandidates`.
+
+Существующие не-migration файлы, которые будут изменены при реализации:
+
+- `services/catalog/src/repositories/models/index.ts` — добавить export `facetValueCandidateView`.
+- `services/catalog/src/api/graphql-admin/schema/facet.graphql` — добавить публичные object/connection types.
+- `services/catalog/src/api/graphql-admin/schema/base.graphql` — обновится через существующий schema/codegen flow, если этот файл является агрегированным generated snapshot в текущем процессе.
+- `services/catalog/scripts/generate-filters.ts` — добавить генерацию `FacetValueCandidateWhereInput` и `FacetValueCandidateOrderByInput`; исключить `projectId`, `locale`, `sourceHandle` из public filters/order.
+- `services/catalog/src/api/graphql-admin/schema/__generated__/filters.graphql` — generated output после `generate:filters`.
+- `services/catalog/src/resolvers/admin/generated/types.ts` и `services/catalog/src/resolvers/admin/generated/schemas.ts` — generated output после GraphQL codegen.
+- `services/catalog/src/repositories/facet/FacetRepository.ts` — добавить relay query и repository method.
+- `services/catalog/src/resolvers/admin/FacetValueCandidateResolver.ts` — новый resolver для node.
+- `services/catalog/src/resolvers/admin/FacetValueCandidateConnectionResolver.ts` — новый resolver для connection.
+- `services/catalog/src/resolvers/admin/QueryResolver.ts` — подключить `facetValueCandidates`.
+- `services/catalog/src/resolvers/admin/index.ts` — export новых resolvers, если текущий barrel используется для admin resolvers.
+
 ## Repository API
 
 Добавить в `FacetRepository` или отдельный `FacetValueCandidateRepository`.
@@ -417,20 +521,22 @@ query ExistingFacetValueCandidates(
 
 ## Порядок реализации
 
-1. Добавить `facetValueCandidateView` в models и export из `repositories/models/index.ts`.
+1. Добавить migration `services/catalog/migrations/domains/0500_facets/0505_facets__value_candidate_view.sql` с SQL из раздела `Migration SQL`.
 
-2. Добавить GraphQL object/connection types и query в `facet.graphql`.
+2. Добавить `facetValueCandidateView` в models и export из `repositories/models/index.ts`.
 
-3. Добавить/обновить drizzle-query config для генерации `FacetValueCandidateWhereInput`, `FacetValueCandidateOrderField` и `FacetValueCandidateOrderByInput` в `schema/__generated__/filters.graphql`.
+3. Добавить GraphQL object/connection types и query в `facet.graphql`.
 
-4. Сгенерировать GraphQL filters, resolver types и schemas через существующий project codegen flow.
+4. Добавить/обновить drizzle-query config для генерации `FacetValueCandidateWhereInput`, `FacetValueCandidateOrderField` и `FacetValueCandidateOrderByInput` в `schema/__generated__/filters.graphql`.
 
-5. Добавить relay query и repository method.
+5. Сгенерировать GraphQL filters, resolver types и schemas через существующий project codegen flow.
 
-6. Добавить `FacetValueCandidateResolver` и `FacetValueCandidateConnectionResolver`.
+6. Добавить relay query и repository method.
 
-7. Подключить `facetValueCandidates` в `CatalogQueryResolver`.
+7. Добавить `FacetValueCandidateResolver` и `FacetValueCandidateConnectionResolver`.
 
-8. После реализации запускать build, но не запускать test/tsc отдельно по правилам проекта.
+8. Подключить `facetValueCandidates` в `CatalogQueryResolver`.
+
+9. После реализации запускать build, но не запускать test/tsc отдельно по правилам проекта.
 
 Frontend/Admin UI шаги намеренно не включены в этот порядок реализации.
