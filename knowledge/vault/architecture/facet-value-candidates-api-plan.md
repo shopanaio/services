@@ -62,6 +62,8 @@
 
 ## Non-goals
 
+Admin UI не входит в этот план. План описывает только backend/API часть в `services/catalog`.
+
 Этот API не должен создавать facet values.
 
 Текущий `FacetValueCreateInput` для display value принимает `sourceValueIds`, то есть для связывания display value с source values сами source `facet_value` записи должны уже существовать. Candidates API только показывает потенциальные исходные значения из catalog data. Создание/синхронизацию source `facet_value` записей нужно проектировать отдельным шагом.
@@ -406,3 +408,5 @@ query ExistingFacetValueCandidates(
 6. Подключить `facetValueCandidates` в `CatalogQueryResolver`.
 
 7. После реализации запускать build, но не запускать test/tsc отдельно по правилам проекта.
+
+Frontend/Admin UI шаги намеренно не включены в этот порядок реализации.
