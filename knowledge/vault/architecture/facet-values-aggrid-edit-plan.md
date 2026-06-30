@@ -228,9 +228,9 @@ Paper: Values
 Submit:
 
 - create mode вызывает `facetValueMerge`;
-- `targetValueId` - display value, который станет группой;
-- `sourceValueIds` - выбранные source values;
-- если пользователь вводит новое имя группы, сначала создается новый display value через `facetValueCreate`, затем вызывается `facetValueMerge`;
+- `sourceValueIds` - выбранные source values; `facetValueMerge` принимает только values с `kind: SOURCE`;
+- если создается новая группа, UI вызывает `facetValueMerge` с `targetHandle`, `targetLabel` и `sourceValueIds`; backend сам создает target display value;
+- если values добавляются в существующую группу, UI вызывает `facetValueMerge` с `targetDisplayValueId` и `sourceValueIds`;
 - после успешного merge edit facet modal делает refetch facet details и обновляет grid.
 
 Edit submit:
@@ -258,13 +258,15 @@ Autocomplete data source:
 - option label: `label`;
 - secondary text: `handle` или `sourceHandle`, если нужно различать похожие values.
 
-Важно: если в выбранных rows все значения являются display values, для merge нужно определить, какие rows можно использовать как source values. Если backend требует source values, UI должен:
+Важно: backend contract уже требует `sourceValueIds`, и `FacetValueMergeScript` валидирует, что каждый переданный value имеет `kind: SOURCE`. Поэтому UI не должен пытаться merge-ить любые selected rows.
 
-- либо разрешать группировку только root/source rows;
-- либо сначала создавать/получать source values для выбранных candidates;
-- либо использовать уже существующий contract `FacetValueMergeInput` без преобразований и показывать validation error как есть.
+Финальные правила:
 
-Финальное правило нужно уточнить по backend contract перед реализацией.
+- `Add to group` активен только для selection, где все merge inputs можно свести к source value ids;
+- `SOURCE` rows передаются в `sourceValueIds` напрямую;
+- `DISPLAY` rows не передаются как source values; если product decision разрешит использовать display row как target группы, он передается только как `targetDisplayValueId`;
+- `DISPLAY` rows с grouped values можно ungroup/delete по отдельным правилам, но не использовать как source inputs для merge;
+- если selection содержит неподдерживаемую комбинацию rows, action disabled и UI показывает короткую подсказку.
 
 ### Value candidates modal
 
@@ -298,7 +300,7 @@ ModalLayout: Add values
 
 - использует такую же AGGrid таблицу, как create facet modal;
 - `meta.facetId` передается в `facetValueCandidates`, чтобы backend исключал уже добавленные values;
-- отмеченные candidates на submit создаются как facet values;
+- отмеченные candidates на submit создаются как facet values с `kind: SOURCE`;
 - после сохранения вызывается refetch открытой edit facet modal;
 - modal закрывается только после успешного создания всех selected values.
 
@@ -483,9 +485,9 @@ Submit flow:
 
 1. validate group name;
 2. decide target display value:
-   - existing selected row if product decision says group is created from one selected row;
-   - or newly created display value via `facetValueCreate`;
-3. call `facetValueMerge`;
+   - existing display row only as `targetDisplayValueId`;
+   - new group through `targetHandle`/`targetLabel` on `facetValueMerge`;
+3. call `facetValueMerge` with source rows only;
 4. in edit mode, call `facetValueUpdate` for label changes and `facetValueUnmerge` for removed values;
 5. call `onSaved`;
 6. close modal.
@@ -527,12 +529,12 @@ Submit flow:
    - `facetId`;
    - `label: candidate.label`;
    - `handle: candidate.handle`;
-   - `kind: SOURCE` или default kind по backend contract;
+   - `kind: SOURCE`;
    - `sortIndex` после текущего max sort index;
 3. после успешного создания всех values вызывается `onSaved`;
 4. edit facet modal refetch получает новые values.
 
-Нужно проверить backend contract `FacetValueCreateInput.kind`: для source candidates likely нужно создавать source values, а не display values. Если API создает только display values по default, modal должна явно передавать нужный `kind`.
+Важно: `FacetValueCreateInput.kind` имеет backend default `DISPLAY`, поэтому candidates modal всегда должна явно передавать `kind: SOURCE`.
 
 ### 8. Обновить modal registry
 
@@ -562,17 +564,23 @@ Submit flow:
 - сохранить текущую логику save для label/uiType/swatch/order;
 - при удалении/rename оставить существующие mutations, пока backend contract не требует отдельного массового update.
 
+State boundary:
+
+- `EditFacetModal` продолжает держать draft changes для facet label/uiType/swatch/order до нажатия `Save`;
+- group modal, candidates modal, row `Ungroup`, bulk `Ungroup` и bulk/row delete выполняют mutations сразу;
+- перед immediate mutation нужно либо заблокировать action при dirty draft state, либо показать confirmation, что несохраненные draft changes могут быть потеряны после refetch;
+- после immediate mutation `onSaved` refetch-ит facet details и пересобирает `editorValues`;
+- refetch не должен молча стирать несохраненные изменения label/uiType/swatch/order без явного UX-решения.
+
 ## Вопросы к backend contract
 
 Перед реализацией нужно подтвердить:
 
-1. `FacetValueMergeInput` принимает какие ids: source value ids, display value ids или оба типа?
-2. Может ли `facetValueCreate` создавать source values из candidates напрямую через `kind: SOURCE`?
-3. Должны ли candidates modal создавать source values, display values или сразу display values с linked source values?
-4. Нужно ли добавлять `FacetValueUnmerge` UI в grouped values column?
-5. Нужно ли показывать disabled values в table или скрывать их по умолчанию?
-6. Что делать при delete display group: запрещать до ungroup или автоматически ungroup + delete?
-7. Как трактовать `Add to group`, если selected rows содержат `kind: DISPLAY` без grouped values?
+1. Нужно ли добавлять `FacetValueUnmerge` UI в grouped values column?
+2. Нужно ли показывать disabled values в table или скрывать их по умолчанию?
+3. Что делать при delete display group: запрещать до ungroup или автоматически ungroup + delete?
+4. Можно ли использовать selected `DISPLAY` row как target группы в bulk `Add to group`, или target всегда выбирается/создается в group modal?
+5. Какой UX использовать при immediate mutations, если в `EditFacetModal` есть несохраненные draft changes?
 
 ## План работ
 
@@ -581,7 +589,16 @@ Submit flow:
    - добавить режим `facetId`;
    - сохранить совместимость create modal.
 
-2. Добавить `FacetValuesGrid`:
+2. Расширить GraphQL operation layer:
+   - fragment `FacetValueGridFields.kind`;
+   - fragment `FacetValueGridFields.sourceValues { id label handle }`;
+   - `FACET_VALUE_MERGE_MUTATION`;
+   - `FACET_VALUE_UNMERGE_MUTATION`;
+   - `useMergeFacetValues`;
+   - `useUnmergeFacetValues`;
+   - operation types.
+
+3. Добавить `FacetValuesGrid`:
    - AGGrid layout;
    - row drag;
    - checkbox selection;
@@ -589,15 +606,7 @@ Submit flow:
    - grouped values renderer;
    - row action dropdown renderer;
    - bulk action panel.
-
-3. Расширить GraphQL operation layer:
-   - fragment `FacetValueGridFields.kind`;
-   - fragment `FacetValueGridFields.sourceValues`;
-   - `FACET_VALUE_MERGE_MUTATION`;
-   - `FACET_VALUE_UNMERGE_MUTATION`;
-   - `useMergeFacetValues`;
-   - `useUnmergeFacetValues`;
-   - operation types.
+   - `Add to group` enabled только для source-compatible selection.
 
 4. Добавить create/edit group modal:
    - form schema;
@@ -612,7 +621,7 @@ Submit flow:
 5. Добавить value candidates modal:
    - reusable candidates grid;
    - selected candidates state;
-   - create selected values flow;
+   - create selected values flow with explicit `kind: SOURCE`;
    - refetch callback.
 
 6. Интегрировать в `EditFacetModal`:
@@ -629,7 +638,8 @@ Submit flow:
 ## Риски
 
 - AGGrid row drag и external sort конфликтуют: manual drag нужно блокировать, когда активна сортировка не `Manually`.
-- Merge semantics могут отличаться от UX: если backend принимает только source values, нельзя слепо merge-ить любые selected display rows.
+- Merge принимает только source values: нельзя слепо merge-ить selected display rows.
 - `sourceValues { handle }` недостаточно для хорошей grouped values column; нужен `label`.
 - Bulk create candidates может частично завершиться: нужен последовательный submit с остановкой на первом `userErrors` или backend batch mutation.
 - Если selected rows отфильтрованы search, selection не должна теряться, пока modal открыта.
+- Immediate mutations из дочерних modal/actions могут стереть draft changes родительской `EditFacetModal` после refetch; нужен явный dirty-state UX.

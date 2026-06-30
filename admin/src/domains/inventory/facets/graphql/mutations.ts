@@ -125,6 +125,49 @@ export const FACET_VALUE_DELETE_MUTATION = gql`
   ${USER_ERROR_FRAGMENT}
 `;
 
+export const FACET_VALUE_MERGE_MUTATION = gql`
+  mutation FacetValueMerge($input: FacetValueMergeInput!) {
+    catalogMutation {
+      facetValueMerge(input: $input) {
+        facetValue {
+          ...FacetValueGridFields
+          facet {
+            id
+          }
+        }
+        sourceValues {
+          ...FacetValueGridFields
+        }
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${FACET_VALUE_GRID_FRAGMENT}
+  ${USER_ERROR_FRAGMENT}
+`;
+
+export const FACET_VALUE_UNMERGE_MUTATION = gql`
+  mutation FacetValueUnmerge($input: FacetValueUnmergeInput!) {
+    catalogMutation {
+      facetValueUnmerge(input: $input) {
+        sourceValues {
+          ...FacetValueGridFields
+        }
+        affectedDisplayValues {
+          ...FacetValueGridFields
+        }
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${FACET_VALUE_GRID_FRAGMENT}
+  ${USER_ERROR_FRAGMENT}
+`;
+
 export const FACET_SWATCH_CREATE_MUTATION = gql`
   mutation FacetSwatchCreate($input: FacetSwatchCreateInput!) {
     catalogMutation {

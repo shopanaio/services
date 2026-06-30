@@ -1,11 +1,14 @@
 import { createModalStackHook } from "@/layouts/modals";
 import type { IModalStackPayload } from "@/layouts/modals/types";
 import type { FacetType, FacetUiType } from "@/graphql/types";
+import type { FacetValueEditorRow } from "./modals/edit-facet-modal/types";
 
 export const FACET_CREATE_MODAL_TYPE = "facet-create";
 export const FACET_EDIT_MODAL_TYPE = "facet-edit";
 export const FACET_VALUE_LINK_SOURCES_MODAL_TYPE = "facet-value-link-sources";
 export const FACET_VALUES_MERGE_MODAL_TYPE = "facet-values-merge";
+export const FACET_VALUE_GROUP_MODAL_TYPE = "facet-value-group";
+export const FACET_VALUE_CANDIDATES_MODAL_TYPE = "facet-value-candidates";
 export const FACET_SWATCH_EDIT_MODAL_TYPE = "facet-swatch-edit";
 
 export interface ICreateFacetModalPayload extends IModalStackPayload {
@@ -39,6 +42,25 @@ export interface IFacetValuesMergeModalPayload extends IModalStackPayload {
   selectedRowIds: string[];
 }
 
+export interface IFacetValueGroupModalPayload extends IModalStackPayload {
+  groupMode: "create" | "edit" | "add-to-existing";
+  facetId: string;
+  selectedValues: FacetValueEditorRow[];
+  availableValues: FacetValueEditorRow[];
+  groupValueId?: string;
+  initialGroupLabel?: string;
+  initialGroupedValues?: FacetValueEditorRow[];
+  onSaved?: () => Promise<unknown> | unknown;
+}
+
+export interface IFacetValueCandidatesModalPayload extends IModalStackPayload {
+  facetId: string;
+  facetType: FacetType;
+  sourceHandles?: string[];
+  nextSortIndex?: number;
+  onSaved?: () => Promise<unknown> | unknown;
+}
+
 export interface IFacetSwatchEditModalPayload extends IModalStackPayload {
   valueId: string;
 }
@@ -49,6 +71,8 @@ declare module "@/layouts/modals" {
     [FACET_EDIT_MODAL_TYPE]: IEditFacetModalPayload;
     [FACET_VALUE_LINK_SOURCES_MODAL_TYPE]: ILinkSourceValuesModalPayload;
     [FACET_VALUES_MERGE_MODAL_TYPE]: IFacetValuesMergeModalPayload;
+    [FACET_VALUE_GROUP_MODAL_TYPE]: IFacetValueGroupModalPayload;
+    [FACET_VALUE_CANDIDATES_MODAL_TYPE]: IFacetValueCandidatesModalPayload;
     [FACET_SWATCH_EDIT_MODAL_TYPE]: IFacetSwatchEditModalPayload;
   }
 }
@@ -58,4 +82,10 @@ export const useCreateFacetModal =
 export const useEditFacetModal = createModalStackHook(FACET_EDIT_MODAL_TYPE);
 export const useLinkSourceValuesModal = createModalStackHook(
   FACET_VALUE_LINK_SOURCES_MODAL_TYPE,
+);
+export const useFacetValueGroupModal = createModalStackHook(
+  FACET_VALUE_GROUP_MODAL_TYPE,
+);
+export const useFacetValueCandidatesModal = createModalStackHook(
+  FACET_VALUE_CANDIDATES_MODAL_TYPE,
 );

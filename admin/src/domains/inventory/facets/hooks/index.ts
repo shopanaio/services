@@ -10,5 +10,7 @@ export * from "./use-delete-facet";
 export * from "./use-create-facet-value";
 export * from "./use-update-facet-value";
 export * from "./use-delete-facet-value";
+export * from "./use-merge-facet-values";
+export * from "./use-unmerge-facet-values";
 export * from "./use-upsert-facet-swatch";
 export * from "./use-facet-tree-rows";

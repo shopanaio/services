@@ -41,29 +41,33 @@ import {
   useCreateFacetValue,
   useDeleteFacetValue,
   useFacet,
+  useUnmergeFacetValues,
   useUpsertFacetSwatch,
   useUpdateFacet,
   useUpdateFacetValue,
 } from "../../hooks";
-import { type IEditFacetModalPayload } from "../../modals";
+import {
+  type IEditFacetModalPayload,
+  useFacetValueCandidatesModal,
+  useFacetValueGroupModal,
+} from "../../modals";
 import type {
   FacetSwatchFields,
   FacetValueGridFields,
 } from "../../graphql/operation-types";
-import { createTemporaryOptionValueId } from "../../../products/mappers";
 import { DEFAULT_SWATCH } from "../../../products/modals/edit-options-modal/edit-options-modal.constants";
-import type {
-  OptionEditorSwatch,
-  OptionEditorValue,
-} from "../../../products/modals/edit-options-modal/types";
+import type { OptionEditorSwatch } from "../../../products/modals/edit-options-modal/types";
 import {
   editFacetSchema,
   type EditFacetFormInput,
   type EditFacetFormValues,
 } from "./schema";
 import { FacetUiTypeSelector } from "../components/facet-ui-type-selector";
-import { FacetValuesList } from "./components/facet-values-list";
+import { FacetValuesGrid } from "./components/facet-values-grid";
+import type { FacetValueEditorRow } from "./types";
 import {
+  FacetValueEmptyDisplayAction,
+  FacetValueKind,
   FacetType,
   FacetUiType,
   SwatchType,
@@ -198,23 +202,31 @@ function facetSwatchToEditorSwatch(
 
 function facetValuesToEditorValues(
   values: FacetValueGridFields[],
-): OptionEditorValue[] {
+): FacetValueEditorRow[] {
   return [...values]
     .sort((first, second) => first.sortIndex - second.sortIndex)
     .map((value, index) => ({
       id: value.id,
       apiId: value.id,
       apiSwatchId: value.swatch?.id,
-      name: value.label,
-      slug: value.handle,
+      kind: value.kind,
+      label: value.label,
+      handle: value.handle,
       sortIndex: index,
+      enabled: value.enabled,
+      parent: value.parent,
+      sourceValues: value.sourceValues.map((sourceValue) => ({
+        id: sourceValue.id,
+        label: sourceValue.label,
+        handle: sourceValue.handle,
+      })),
       swatch: facetSwatchToEditorSwatch(value.swatch),
     }));
 }
 
 function normalizeValueSortIndexes(
-  values: OptionEditorValue[],
-): OptionEditorValue[] {
+  values: FacetValueEditorRow[],
+): FacetValueEditorRow[] {
   return values.map((value, sortIndex) => ({
     ...value,
     sortIndex,
@@ -263,16 +275,18 @@ function editorSwatchToUpdateInput(
 
 export function EditFacetModal() {
   const { styles } = useStyles();
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IEditFacetModalPayload;
   const {
     facet,
     loading: loadingFacet,
     error,
+    refetch,
   } = useFacet(typedPayload.facetId);
   const { updateFacet, loading: saving } = useUpdateFacet();
   const { updateFacetValue } = useUpdateFacetValue();
+  const { unmergeFacetValues, loading: unmergingValues } = useUnmergeFacetValues();
   const {
     createFacetSwatch,
     updateFacetSwatch,
@@ -280,16 +294,25 @@ export function EditFacetModal() {
   } = useUpsertFacetSwatch();
   const { createFacetValue, loading: creatingValue } = useCreateFacetValue();
   const { deleteFacetValue, loading: deletingValue } = useDeleteFacetValue();
+  const { push: openValueGroupModal } = useFacetValueGroupModal();
+  const { push: openValueCandidatesModal } = useFacetValueCandidatesModal();
   const [savingValueOrder, setSavingValueOrder] = useState(false);
-  const [editorValues, setEditorValues] = useState<OptionEditorValue[]>([]);
-  const [deletedValueIds, setDeletedValueIds] = useState<string[]>([]);
+  const [editorValues, setEditorValues] = useState<FacetValueEditorRow[]>([]);
   const [swatchesEnabled, setSwatchesEnabled] = useState(false);
 
   const methods = useForm<EditFacetFormInput, unknown, EditFacetFormValues>({
     resolver: zodResolver(editFacetSchema),
     defaultValues: EMPTY_VALUES,
   });
-  const { control, handleSubmit, reset, setError, setValue, watch } = methods;
+  const {
+    control,
+    formState: { isDirty },
+    handleSubmit,
+    reset,
+    setError,
+    setValue,
+    watch,
+  } = methods;
   const label = watch("label");
 
   useEffect(() => {
@@ -314,7 +337,6 @@ export function EditFacetModal() {
     }
 
     setEditorValues(facetValuesToEditorValues(facet.values));
-    setDeletedValueIds([]);
     setSwatchesEnabled(facet.values.some((value) => Boolean(value.swatch)));
   }, [facet]);
 
@@ -324,20 +346,106 @@ export function EditFacetModal() {
     [facet],
   );
 
-  const handleAddValue = useCallback(() => {
-    setEditorValues((current) =>
-      normalizeValueSortIndexes([
-        ...current,
-        {
-          id: createTemporaryOptionValueId(),
-          name: "",
-          slug: "",
-          sortIndex: current.length,
-          swatch: { ...DEFAULT_SWATCH },
+  const hasDraftValueChanges = useMemo(() => {
+    if (!facet) return false;
+    const originalIds = [...facet.values]
+      .sort((first, second) => first.sortIndex - second.sortIndex)
+      .map((value) => value.id);
+    const currentIds = [...editorValues]
+      .sort((first, second) => first.sortIndex - second.sortIndex)
+      .map((value) => value.id);
+
+    if (originalIds.length !== currentIds.length) return true;
+    return originalIds.some((id, index) => id !== currentIds[index]);
+  }, [editorValues, facet]);
+
+  const ensureNoDraftChanges = useCallback(() => {
+    if (!isDirty && !hasDraftValueChanges) {
+      return true;
+    }
+    message.warning("Save or close current changes before changing values.");
+    return false;
+  }, [hasDraftValueChanges, isDirty, message]);
+
+  const handleOpenValueCandidates = useCallback(() => {
+    if (!facet) return;
+    if (!ensureNoDraftChanges()) return;
+    openValueCandidatesModal({
+      facetId: facet.id,
+      facetType: facet.facetType,
+      nextSortIndex: editorValues.length,
+      onSaved: async () => {
+        await refetch();
+        await typedPayload.onSaved?.();
+      },
+    });
+  }, [
+    editorValues.length,
+    ensureNoDraftChanges,
+    facet,
+    openValueCandidatesModal,
+    refetch,
+    typedPayload,
+  ]);
+
+  const toInitialGroupedRows = useCallback(
+    (value: FacetValueEditorRow): FacetValueEditorRow[] =>
+      value.sourceValues.map((sourceValue, index) => {
+        const existing = editorValues.find((row) => row.id === sourceValue.id);
+        return (
+          existing ?? {
+            id: sourceValue.id,
+            apiId: sourceValue.id,
+            kind: FacetValueKind.Source,
+            label: sourceValue.label,
+            handle: sourceValue.handle,
+            sortIndex: index,
+            enabled: true,
+            parent: {
+              id: value.id,
+              label: value.label,
+              handle: value.handle,
+            },
+            sourceValues: [],
+            swatch: null,
+          }
+        );
+      }),
+    [editorValues],
+  );
+
+  const openGroupModal = useCallback(
+    (
+      mode: "create" | "edit" | "add-to-existing",
+      selectedValues: FacetValueEditorRow[],
+      groupValue?: FacetValueEditorRow,
+    ) => {
+      if (!facet) return;
+      if (!ensureNoDraftChanges()) return;
+      openValueGroupModal({
+        groupMode: mode,
+        facetId: facet.id,
+        selectedValues,
+        availableValues: editorValues,
+        groupValueId: groupValue?.id,
+        initialGroupLabel: groupValue?.label,
+        initialGroupedValues: groupValue ? toInitialGroupedRows(groupValue) : undefined,
+        onSaved: async () => {
+          await refetch();
+          await typedPayload.onSaved?.();
         },
-      ]),
-    );
-  }, []);
+      });
+    },
+    [
+      editorValues,
+      ensureNoDraftChanges,
+      facet,
+      openValueGroupModal,
+      refetch,
+      toInitialGroupedRows,
+      typedPayload,
+    ],
+  );
 
   const onSubmit = useCallback(
     async (values: EditFacetFormValues) => {
@@ -369,17 +477,8 @@ export function EditFacetModal() {
 
       try {
         setSavingValueOrder(true);
-        for (const valueId of deletedValueIds) {
-          const deleteResult = await deleteFacetValue({ id: valueId });
-
-          if (deleteResult.userErrors.length > 0) {
-            message.error(deleteResult.userErrors[0].message);
-            return;
-          }
-        }
-
         for (const [sortIndex, value] of editorValues.entries()) {
-          const trimmedName = value.name.trim();
+          const trimmedName = value.label.trim();
           if (!trimmedName) {
             message.error("Value name is required.");
             return;
@@ -469,8 +568,6 @@ export function EditFacetModal() {
       facet,
       createFacetValue,
       createFacetSwatch,
-      deletedValueIds,
-      deleteFacetValue,
       editorValues,
       message,
       pop,
@@ -483,22 +580,86 @@ export function EditFacetModal() {
     ],
   );
 
-  const handleDeleteValue = useCallback(
-    (valueIndex: number) => {
-      const value = editorValues[valueIndex];
-      if (value?.apiId) {
-        setDeletedValueIds((current) =>
-          current.includes(value.apiId!) ? current : [...current, value.apiId!],
-        );
+  const collectUngroupSourceIds = useCallback((rows: FacetValueEditorRow[]) => {
+    const ids = new Set<string>();
+    for (const row of rows) {
+      if (row.kind === FacetValueKind.Display) {
+        row.sourceValues.forEach((sourceValue) => ids.add(sourceValue.id));
+      }
+      if (row.kind === FacetValueKind.Source && row.parent?.id) {
+        ids.add(row.id);
+      }
+    }
+    return [...ids];
+  }, []);
+
+  const handleUngroupValues = useCallback(
+    async (rows: FacetValueEditorRow[]) => {
+      const sourceValueIds = collectUngroupSourceIds(rows);
+      if (!ensureNoDraftChanges()) return;
+      if (sourceValueIds.length === 0) {
+        message.info("No grouped values to ungroup.");
+        return;
       }
 
-      setEditorValues((current) =>
-        normalizeValueSortIndexes(
-          current.filter((_, index) => index !== valueIndex),
-        ),
-      );
+      const result = await unmergeFacetValues({
+        sourceValueIds,
+        emptyDisplayAction: FacetValueEmptyDisplayAction.Disable,
+      });
+      if (result.userErrors.length > 0) {
+        message.error(result.userErrors[0].message);
+        return;
+      }
+
+      await refetch();
+      await typedPayload.onSaved?.();
+      message.success("Values ungrouped.");
     },
-    [editorValues],
+    [
+      collectUngroupSourceIds,
+      ensureNoDraftChanges,
+      message,
+      refetch,
+      typedPayload,
+      unmergeFacetValues,
+    ],
+  );
+
+  const handleDeleteValues = useCallback(
+    (rows: FacetValueEditorRow[]) => {
+      if (!ensureNoDraftChanges()) return;
+      const groupedDisplay = rows.find(
+        (row) => row.kind === FacetValueKind.Display && row.sourceValues.length > 0,
+      );
+      if (groupedDisplay) {
+        message.warning("Ungroup display values before deleting them.");
+        return;
+      }
+
+      modal.confirm({
+        title: rows.length === 1 ? "Delete value?" : "Delete values?",
+        content:
+          rows.length === 1
+            ? `Delete ${rows[0].label}?`
+            : `Delete ${rows.length} selected values?`,
+        okText: "Delete",
+        okButtonProps: { danger: true },
+        async onOk() {
+          for (const row of rows) {
+            if (!row.apiId) continue;
+            const result = await deleteFacetValue({ id: row.apiId });
+            if (result.userErrors.length > 0) {
+              message.error(result.userErrors[0].message);
+              return Promise.reject(new Error(result.userErrors[0].message));
+            }
+          }
+          await refetch();
+          await typedPayload.onSaved?.();
+          message.success(rows.length === 1 ? "Value deleted." : "Values deleted.");
+        },
+      });
+    },
+    [deleteFacetValue, ensureNoDraftChanges, message, modal, refetch, typedPayload],
   );
 
   if (loadingFacet && !facet) {
@@ -551,7 +712,8 @@ export function EditFacetModal() {
                 savingValueOrder ||
                 savingSwatch ||
                 creatingValue ||
-                deletingValue,
+                deletingValue ||
+                unmergingValues,
               onClick: handleSubmit(onSubmit),
             }}
           />
@@ -631,8 +793,8 @@ export function EditFacetModal() {
                   <Button
                     type="text"
                     icon={<PlusOutlined />}
-                    aria-label="Create value"
-                    onClick={handleAddValue}
+                    aria-label="Add values"
+                    onClick={handleOpenValueCandidates}
                   />
                 ) : null}
               </Flex>
@@ -640,29 +802,15 @@ export function EditFacetModal() {
           />
           {discrete ? (
             <Flex vertical gap={8}>
-              <FacetValuesList
+              <FacetValuesGrid
                 values={editorValues}
-                swatchesEnabled={swatchesEnabled}
                 onReorder={(values) =>
                   setEditorValues(normalizeValueSortIndexes(values))
                 }
-                onUpdateValueName={(valueIndex, name) =>
-                  setEditorValues((current) =>
-                    current.map((value, index) =>
-                      index === valueIndex
-                        ? { ...value, name, slug: slugify(name) }
-                        : value,
-                    ),
-                  )
-                }
-                onUpdateValueSwatch={(valueIndex, swatch) =>
-                  setEditorValues((current) =>
-                    current.map((value, index) =>
-                      index === valueIndex ? { ...value, swatch } : value,
-                    ),
-                  )
-                }
-                onDeleteValue={handleDeleteValue}
+                onAddToGroup={(values) => openGroupModal("create", values)}
+                onEditGroup={(value) => openGroupModal("edit", [], value)}
+                onUngroup={handleUngroupValues}
+                onDelete={handleDeleteValues}
               />
             </Flex>
           ) : (

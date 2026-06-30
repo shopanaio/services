@@ -382,6 +382,22 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    {
+      type: 'facet-value-group',
+      component: dynamic(() =>
+        import('@/domains/inventory/facets/modals/facet-value-group-modal').then(
+          (m) => m.FacetValueGroupModal
+        )
+      ),
+    },
+    {
+      type: 'facet-value-candidates',
+      component: dynamic(() =>
+        import('@/domains/inventory/facets/modals/value-candidates-modal').then(
+          (m) => m.ValueCandidatesModal
+        )
+      ),
+    },
     // ========================================
     // Facet modals
     // ========================================

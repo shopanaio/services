@@ -20,9 +20,17 @@ export const FACET_VALUE_GRID_FRAGMENT = gql`
     id
     label
     handle
+    kind
     sortIndex
     enabled
+    parent {
+      id
+      label
+      handle
+    }
     sourceValues {
+      id
+      label
       handle
     }
     swatch {
