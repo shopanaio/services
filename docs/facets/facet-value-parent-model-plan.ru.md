@@ -419,7 +419,7 @@ export type FacetValueKind = "source" | "display";
 
 5. Убедиться, что timestamps остаются `mode: "string"`.
 
-## Миграция данных
+## Структурная DB migration
 
 ### Общий порядок SQL migration
 
@@ -432,67 +432,7 @@ ALTER TABLE catalog.facet_value ADD COLUMN parent_id uuid;
 ALTER TABLE catalog.facet_value RENAME COLUMN slug TO handle;
 ```
 
-2. Заполнить старые rows как display values:
-
-```sql
-UPDATE catalog.facet_value fv
-SET facet_type = f.facet_type,
-    kind = 'display'
-FROM catalog.facet f
-WHERE f.id = fv.facet_id;
-```
-
-3. Создать source rows из `facet_value_source_handle`:
-
-```sql
-INSERT INTO catalog.facet_value (
-  id,
-  project_id,
-  facet_id,
-  facet_type,
-  parent_id,
-  kind,
-  handle,
-  swatch_id,
-  sort_index,
-  enabled,
-  created_at,
-  updated_at
-)
-SELECT
-  gen_random_uuid(),
-  fvsh.project_id,
-  fvsh.facet_id,
-  fvsh.facet_type,
-  fvsh.facet_value_id,
-  'source',
-  fvsh.source_handle,
-  NULL,
-  0,
-  true,
-  now(),
-  now()
-FROM catalog.facet_value_source_handle fvsh;
-```
-
-4. Заполнить translations для source rows.
-
-Порядок получения label:
-
-- для `tag`: найти tag по `tag.handle`, взять текущий display name/tag name;
-- для `feature`: split `feature_slug:value_slug`, найти feature value
-  translation;
-- для `option`: split `option_slug:value_slug`, найти option value translation;
-- fallback: `handle`.
-
-Если миграция SQL становится слишком сложной из-за разных source таблиц, сделать
-двухэтапно:
-
-- SQL migration создает rows и fallback translations через `handle`;
-- отдельный catalog maintenance script после deploy обновляет source labels из
-  canonical tag/feature/option data.
-
-5. Сделать новые колонки NOT NULL:
+2. Сделать новые колонки NOT NULL:
 
 ```sql
 ALTER TABLE catalog.facet_value ALTER COLUMN facet_type SET NOT NULL;
@@ -500,7 +440,7 @@ ALTER TABLE catalog.facet_value ALTER COLUMN kind SET NOT NULL;
 ALTER TABLE catalog.facet_value ALTER COLUMN handle SET NOT NULL;
 ```
 
-6. Добавить FK:
+3. Добавить FK:
 
 ```sql
 ALTER TABLE catalog.facet_value
@@ -510,38 +450,15 @@ ALTER TABLE catalog.facet_value
   ON DELETE NO ACTION;
 ```
 
-7. Добавить новые indexes/constraints.
-8. Удалить старые constraints/indexes на `slug`.
-9. Удалить старые таблицы:
+4. Добавить новые indexes/constraints.
+5. Удалить старые constraints/indexes на `slug`.
+6. Удалить старые таблицы:
 
 ```sql
 DROP TABLE catalog.facet_value_source_handle;
 DROP TABLE catalog.facet_source_translation;
 DROP TABLE catalog.facet_source;
 ```
-
-### Поведение migration для existing values
-
-Чтобы сохранить storefront contract без анализа custom labels:
-
-- все существующие `facet_value` становятся `kind = 'display'`;
-- все существующие `facet_value_source_handle` становятся hidden source children
-  с `parent_id = old_facet_value.id`;
-- old `facet_value.handle` остается публичным handle value.
-
-Это не минимальная модель, но она гарантирует, что старый публичный
-`facet.slug:facet_value.slug` продолжит работать как
-`facet.slug:facet_value.handle`.
-
-После миграции можно добавить cleanup script:
-
-- если display value имеет ровно одного source child;
-- display handle совпадает с source handle;
-- display label совпадает с source label;
-- display не имеет swatch/custom order/custom settings;
-- тогда можно удалить display и сделать source child root.
-
-Cleanup script не должен быть частью обязательной миграции.
 
 ## Изменения backend: repositories
 
@@ -655,32 +572,6 @@ async updateSourceValue(id: string, data: SourceValueUpdateData): Promise<FacetV
 - нельзя создать `facet_value` для `price` и `in_stock`;
 - `handle` должен быть нормализован, но для source handles разрешить `:`.
 
-### Source value sync service/repository
-
-Нужен новый слой, который создает и обновляет `kind = 'source'` rows из
-canonical tag/feature/option данных.
-
-Варианты размещения:
-
-- `services/catalog/src/scripts/facet/FacetSourceValuesSyncScript.ts`;
-- helper в `services/catalog/src/scripts/shared/facets.ts`;
-- отдельный repository method в `FacetValueRepository`.
-
-Ответственность:
-
-- для `TAG` facet создать source values из tag handles;
-- для `FEATURE` facet создать source values из feature value handles;
-- для `OPTION` facet создать source values из option value handles;
-- обновлять source translations при изменении canonical name;
-- при удалении canonical source value либо disable source row, либо hard-delete
-  source row, если нет parent/display зависимости.
-
-Рекомендуемое поведение для удаления source:
-
-- сначала `enabled = false`;
-- hard-delete делать отдельным maintenance cleanup, потому что source row может
-  быть child display value и участвовать в audit/history.
-
 ## Изменения backend: scripts
 
 ### Facet create/update
@@ -766,9 +657,8 @@ export interface FacetValueUpdateParams {
 Правила update:
 
 - update display `sourceValueIds` делает attach/detach через `parent_id`;
-- update source не должен менять `handle` вручную, если source синхронизируется
-  из canonical data. Изменение source handle должно идти через source sync после
-  rename canonical source;
+- update source не должен менять `handle` через generic display-value update.
+  Изменение source handle должно быть отдельной explicit source-value operation;
 - если display loses all children, mutation должна вернуть userError или
   автоматически disable display.
 
@@ -1141,13 +1031,6 @@ interface MergeFacetValuesModalPayload {
 Удалить управление `sources` из create/edit facet, потому что source groups
 больше не отдельная сущность facet-level.
 
-Если UI все еще должен выбирать, какие option/feature источники входят в facet,
-это должно стать отдельным flow:
-
-1. create facet;
-2. sync/add source values from selected canonical option/feature/tag sources;
-3. display source values in facet values list.
-
 Не надо сохранять `Facet.sources` в API.
 
 ### Create/edit facet value modal
@@ -1229,17 +1112,15 @@ interface MergeFacetValuesModalPayload {
 2. Сгенерировать migration.
 3. Вручную доработать migration, если Drizzle не сможет корректно выразить:
    - rename `slug -> handle`;
-   - source row backfill;
    - partial unique indexes;
    - table drops.
-4. Проверить migration diff на отсутствие потери публичных handles.
+4. Проверить migration diff.
 
 Acceptance:
 
 - models не экспортируют старые source tables;
-- migration создает source rows из old mapping;
-- old public values становятся display values;
-- old source handles становятся source children.
+- migration обновляет структуру `facet_value`;
+- migration удаляет старые source tables.
 
 ### Phase 2. Repository layer
 
@@ -1260,7 +1141,6 @@ Acceptance:
 2. Переписать create/update facet value.
 3. Добавить merge/unmerge scripts.
 4. Убрать facet-level sources из create/update facet.
-5. Добавить source values sync script или repository method.
 
 Acceptance:
 
@@ -1371,12 +1251,6 @@ root, unique constraint на `parent_id IS NULL` должен сохранить
 Рекомендуемое решение: не возвращать enabled display value без enabled source
 children в storefront facets и считать его invalid при resolution.
 
-### Риск: source value rename
-
-Если canonical option/tag/feature handle изменился, source row `handle` должен
-измениться через source sync. Это изменение должно считаться listing freshness
-event, потому что product/variant search index тоже меняет raw handles.
-
 ### Риск: удаление display parent
 
 `ON DELETE SET NULL` на `parent_id` запрещен, потому что обычное удаление
@@ -1396,18 +1270,6 @@ children должен fail fast на DB/application уровне, пока mutat
 userError. Для custom display delete нужно выполнять unmerge children in same
 transaction, then delete display, но только после успешной проверки uniqueness
 для будущих root source values.
-
-### Риск: source rows для нового facet
-
-После удаления `facet_source` новый facet не имеет отдельного списка source
-groups. Поэтому нужен явный source-values sync/add flow. Без него create facet
-создаст пустой filter.
-
-Рекомендуемое решение:
-
-- create facet создает только facet;
-- затем admin выбирает source catalog entity/entities;
-- backend создает `kind='source'` values for selected source values.
 
 ## Минимальный end-to-end сценарий после реализации
 
