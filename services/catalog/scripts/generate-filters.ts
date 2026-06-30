@@ -15,7 +15,10 @@ import { vendorRelayQuery } from "../src/repositories/vendor/VendorRepository.js
 import { variantRelayQuery } from "../src/repositories/variant/VariantRepository.js";
 import { warehouseRelayQuery } from "../src/repositories/warehouse/WarehouseRepository.js";
 import { stockRelayQuery } from "../src/repositories/stock/StockRepository.js";
-import { facetSourceCandidateRelayQuery } from "../src/repositories/facet/FacetRepository.js";
+import {
+  facetSourceCandidateRelayQuery,
+  facetValueCandidateFilterRelayQuery,
+} from "../src/repositories/facet/FacetRepository.js";
 
 function generateConnectionInputType(name: string): string {
   return `"""Relay-style pagination input for ${name}"""
@@ -236,6 +239,34 @@ const facetSourceCandidateOrderBy = generateOrderByInputType(
   }
 );
 
+const facetValueCandidateFieldTypes: Record<string, GraphQLFieldType> = {
+  id: "ID",
+  facetType: "String",
+  sourceHandle: "String",
+  handle: "String",
+  label: "String",
+};
+
+const facetValueCandidateWhere = generateWhereInputType(
+  facetValueCandidateFilterRelayQuery,
+  "FacetValueCandidate",
+  {
+    includeDescriptions: true,
+    fieldTypes: facetValueCandidateFieldTypes,
+    excludeFields: ["projectId", "locale", "facetType", "sourceHandle"],
+  }
+);
+
+const facetValueCandidateOrderBy = generateOrderByInputType(
+  facetValueCandidateFilterRelayQuery,
+  "FacetValueCandidate",
+  {
+    includeDescriptions: true,
+    fieldTypes: facetValueCandidateFieldTypes,
+    excludeFields: ["projectId", "locale", "facetType", "sourceHandle"],
+  }
+);
+
 const content = `# Auto-generated GraphQL filter types for Catalog service.
 # Do not edit manually. Run: yarn generate:filters
 
@@ -302,6 +333,12 @@ ${variantOrderBy}
 ${facetSourceCandidateWhere}
 
 ${facetSourceCandidateOrderBy}
+
+# ---- FacetValueCandidate ----
+
+${facetValueCandidateWhere}
+
+${facetValueCandidateOrderBy}
 `;
 
 writeFileSync("src/api/graphql-admin/schema/__generated__/filters.graphql", content);

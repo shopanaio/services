@@ -664,3 +664,39 @@ input FacetSourceCandidateOrderByInput {
   """Sort direction"""
   direction: SortDirection!
 }
+
+# ---- FacetValueCandidate ----
+
+"""Filter conditions for FacetValueCandidate"""
+input FacetValueCandidateWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [FacetValueCandidateWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [FacetValueCandidateWhereInput!]
+  """Negate the condition"""
+  _not: FacetValueCandidateWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by handle"""
+  handle: StringFilter
+  """Filter by label"""
+  label: StringFilter
+}
+
+"""Fields available for sorting FacetValueCandidate"""
+enum FacetValueCandidateOrderField {
+  """Sort by id"""
+  id
+  """Sort by handle"""
+  handle
+  """Sort by label"""
+  label
+}
+
+"""Ordering configuration for FacetValueCandidate"""
+input FacetValueCandidateOrderByInput {
+  """Field to order by"""
+  field: FacetValueCandidateOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}

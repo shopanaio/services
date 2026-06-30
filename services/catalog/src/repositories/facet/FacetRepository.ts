@@ -6,6 +6,7 @@ import {
   type InferRelayInput,
   type PageInfo,
 } from "@shopana/drizzle-query";
+import { GraphQLError } from "graphql";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   LexoRankRepository,
@@ -13,13 +14,19 @@ import {
 } from "../LexoRankRepository.js";
 import {
   facet,
+  facetFeatureValueCandidateView,
+  facetOptionValueCandidateView,
   facetSource,
   facetSourceCandidateView,
   facetSourceTranslation,
+  facetTagValueCandidateView,
   facetTranslation,
   facetValue,
   type Facet,
+  type FacetFeatureValueCandidateView,
+  type FacetOptionValueCandidateView,
   type FacetSourceCandidateView,
+  type FacetTagValueCandidateView,
   type NewFacet,
   type FacetTranslation,
 } from "../models/index.js";
@@ -59,6 +66,108 @@ export interface FacetSourceCandidateConnectionResult {
   edges: Array<{ cursor: string; node: FacetSourceCandidateView }>;
   pageInfo: PageInfo;
   totalCount: number;
+}
+
+const FACET_VALUE_CANDIDATE_TYPES = new Set(["TAG", "OPTION", "FEATURE"]);
+
+export type FacetValueCandidateType = "TAG" | "OPTION" | "FEATURE";
+export type FacetValueCandidateView =
+  | FacetTagValueCandidateView
+  | FacetOptionValueCandidateView
+  | FacetFeatureValueCandidateView;
+
+const createFacetValueCandidateRelayQuery = (
+  view:
+    | typeof facetTagValueCandidateView
+    | typeof facetOptionValueCandidateView
+    | typeof facetFeatureValueCandidateView
+) =>
+  createRelayQuery(
+    createQuery(view)
+      .include([
+        "id",
+        "projectId",
+        "locale",
+        "facetType",
+        "sourceHandle",
+        "handle",
+        "label",
+      ])
+      .maxLimit(100)
+      .defaultLimit(30),
+    { name: "facetValueCandidate", tieBreaker: "id" }
+  );
+
+export const facetTagValueCandidateRelayQuery =
+  createFacetValueCandidateRelayQuery(facetTagValueCandidateView);
+
+export const facetOptionValueCandidateRelayQuery =
+  createFacetValueCandidateRelayQuery(facetOptionValueCandidateView);
+
+export const facetFeatureValueCandidateRelayQuery =
+  createFacetValueCandidateRelayQuery(facetFeatureValueCandidateView);
+
+export const facetValueCandidateFilterRelayQuery =
+  facetTagValueCandidateRelayQuery;
+
+export const facetValueCandidateRelayQueries = {
+  TAG: facetTagValueCandidateRelayQuery,
+  OPTION: facetOptionValueCandidateRelayQuery,
+  FEATURE: facetFeatureValueCandidateRelayQuery,
+} as const;
+
+export type FacetValueCandidateRelayInput = InferRelayInput<
+  typeof facetTagValueCandidateRelayQuery
+>;
+
+export type FacetValueCandidateArgs = FacetValueCandidateRelayInput & {
+  meta: {
+    candidateType: FacetValueCandidateType;
+    sourceHandles?: string[];
+    facetId?: string;
+  };
+};
+
+export interface FacetValueCandidateConnectionResult {
+  edges: Array<{ cursor: string; node: FacetValueCandidateView }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
+
+function emptyFacetValueCandidateConnection(): FacetValueCandidateConnectionResult {
+  return {
+    edges: [],
+    pageInfo: {
+      hasNextPage: false,
+      hasPreviousPage: false,
+      startCursor: null,
+      endCursor: null,
+    },
+    totalCount: 0,
+  };
+}
+
+function throwBadUserInput(message: string): never {
+  throw new GraphQLError(message, {
+    extensions: { code: "BAD_USER_INPUT" },
+  });
+}
+
+function normalizeSourceHandles(sourceHandles?: readonly string[]): string[] {
+  if (!sourceHandles) return [];
+  return [
+    ...new Set(
+      sourceHandles
+        .map((handle) => handle.trim())
+        .filter((handle) => handle.length > 0)
+    ),
+  ];
+}
+
+function isFacetValueCandidateType(
+  value: string
+): value is FacetValueCandidateType {
+  return FACET_VALUE_CANDIDATE_TYPES.has(value);
 }
 
 export class FacetRepository extends BaseRepository {
@@ -308,6 +417,117 @@ export class FacetRepository extends BaseRepository {
       edges: result.edges.map((edge) => ({
         cursor: edge.cursor,
         node: edge.node,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
+  }
+
+  async getFacetValueCandidates(
+    args: FacetValueCandidateArgs
+  ): Promise<FacetValueCandidateConnectionResult> {
+    const candidateType = args.meta.candidateType;
+    if (!isFacetValueCandidateType(candidateType)) {
+      throwBadUserInput("Invalid candidateType");
+    }
+
+    const { where, orderBy, meta, ...paginationArgs } = args;
+    const existingSourceValueHandles: string[] = [];
+    let sourceHandles: string[];
+
+    if (meta.facetId) {
+      const facetRow = await this.findById(meta.facetId);
+      if (!facetRow) {
+        throwBadUserInput("Facet not found");
+      }
+
+      if (facetRow.facetType !== candidateType) {
+        throwBadUserInput("Facet type does not match candidateType");
+      }
+
+      const sourceRows = await this.connection
+        .select({ handle: facetSource.handle })
+        .from(facetSource)
+        .where(
+          and(
+            eq(facetSource.projectId, this.storeId),
+            eq(facetSource.facetId, meta.facetId)
+          )
+        );
+
+      sourceHandles = normalizeSourceHandles(
+        sourceRows.map((source) => source.handle)
+      );
+
+      if (meta.sourceHandles !== undefined) {
+        const requestedHandles = new Set(normalizeSourceHandles(meta.sourceHandles));
+        sourceHandles = sourceHandles.filter((handle) =>
+          requestedHandles.has(handle)
+        );
+      }
+
+      if (sourceHandles.length === 0) {
+        return emptyFacetValueCandidateConnection();
+      }
+
+      const existingValueRows = await this.connection
+        .select({ handle: facetValue.handle })
+        .from(facetValue)
+        .where(
+          and(
+            eq(facetValue.projectId, this.storeId),
+            eq(facetValue.facetId, meta.facetId),
+            eq(facetValue.kind, "source")
+          )
+        );
+
+      existingSourceValueHandles.push(
+        ...normalizeSourceHandles(existingValueRows.map((value) => value.handle))
+      );
+    } else {
+      sourceHandles = normalizeSourceHandles(meta.sourceHandles);
+      if (sourceHandles.length === 0) {
+        throwBadUserInput("sourceHandles are required");
+      }
+    }
+
+    const mergedWhere: FacetValueCandidateRelayInput["where"] = {
+      _and: [
+        { projectId: { _eq: this.storeId } },
+        { locale: { _eq: this.locale } },
+        { facetType: { _eq: candidateType } },
+        { sourceHandle: { _in: sourceHandles } },
+        ...(existingSourceValueHandles.length
+          ? [{ handle: { _notIn: existingSourceValueHandles } }]
+          : []),
+        ...(where ? [where] : []),
+      ],
+    };
+
+    const executeInput: FacetValueCandidateRelayInput = {
+      ...paginationArgs,
+      where: mergedWhere,
+      orderBy: orderBy ?? [
+        { field: "label", direction: "asc" },
+        { field: "id", direction: "asc" },
+      ],
+    };
+
+    const relayQuery = facetValueCandidateRelayQueries[
+      candidateType
+    ] as typeof facetTagValueCandidateRelayQuery;
+
+    const [result, totalCount] = await Promise.all([
+      relayQuery.execute(this.connection, executeInput),
+      relayQuery.count(this.connection, {
+        where: mergedWhere,
+      }),
+    ]);
+
+    return {
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        node: edge.node as FacetValueCandidateView,
       })),
       pageInfo: result.pageInfo,
       totalCount,

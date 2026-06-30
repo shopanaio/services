@@ -1435,12 +1435,16 @@ export type CatalogQuery = {
   collections: CollectionConnection;
   /** Get a facet by ID */
   facet: Maybe<Facet>;
+  /** Get available facet source candidates for create flow */
+  facetSourceCandidates: FacetSourceCandidateConnection;
   /** Get a facet swatch by ID */
   facetSwatch: Maybe<FacetSwatch>;
   /** Get all facet swatches */
   facetSwatches: Array<FacetSwatch>;
   /** Get a facet value by ID */
   facetValue: Maybe<FacetValue>;
+  /** Get available facet source value candidates for create and edit flows */
+  facetValueCandidates: FacetValueCandidateConnection;
   /** Get all facet values for a specific facet */
   facetValues: Array<FacetValue>;
   /** Get all facets */
@@ -1535,6 +1539,16 @@ export type CatalogQueryFacetArgs = {
 };
 
 
+export type CatalogQueryFacetSourceCandidatesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<FacetSourceCandidateOrderByInput>>;
+  where?: InputMaybe<FacetSourceCandidateWhereInput>;
+};
+
+
 export type CatalogQueryFacetSwatchArgs = {
   id: Scalars['ID']['input'];
 };
@@ -1542,6 +1556,17 @@ export type CatalogQueryFacetSwatchArgs = {
 
 export type CatalogQueryFacetValueArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type CatalogQueryFacetValueCandidatesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta: FacetValueCandidatesMetaInput;
+  orderBy?: InputMaybe<Array<FacetValueCandidateOrderByInput>>;
+  where?: InputMaybe<FacetValueCandidateWhereInput>;
 };
 
 
@@ -2536,6 +2561,7 @@ export type FacetCreateInput = {
   label: Scalars['String']['input'];
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug: Scalars['String']['input'];
+  sources?: InputMaybe<Array<FacetCreateSourceInput>>;
   uiType?: InputMaybe<FacetUiType>;
 };
 
@@ -2543,6 +2569,11 @@ export type FacetCreatePayload = {
   __typename?: 'FacetCreatePayload';
   facet: Maybe<Facet>;
   userErrors: Array<GenericUserError>;
+};
+
+export type FacetCreateSourceInput = {
+  handle: Scalars['String']['input'];
+  name: Scalars['String']['input'];
 };
 
 export type FacetDeleteInput = {
@@ -2581,6 +2612,74 @@ export enum FacetSelectionMode {
   Multi = 'MULTI',
   Single = 'SINGLE'
 }
+
+export type FacetSourceCandidate = {
+  __typename?: 'FacetSourceCandidate';
+  facetType: FacetType;
+  handle: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  locale: Scalars['String']['output'];
+  name: Maybe<Scalars['String']['output']>;
+};
+
+export type FacetSourceCandidateConnection = {
+  __typename?: 'FacetSourceCandidateConnection';
+  edges: Array<FacetSourceCandidateEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type FacetSourceCandidateEdge = {
+  __typename?: 'FacetSourceCandidateEdge';
+  cursor: Scalars['String']['output'];
+  node: FacetSourceCandidate;
+};
+
+/** Ordering configuration for FacetSourceCandidate */
+export type FacetSourceCandidateOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: FacetSourceCandidateOrderField;
+};
+
+/** Fields available for sorting FacetSourceCandidate */
+export enum FacetSourceCandidateOrderField {
+  /** Sort by facetType */
+  FacetType = 'facetType',
+  /** Sort by handle */
+  Handle = 'handle',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by name */
+  Name = 'name',
+  /** Sort by sortName */
+  SortName = 'sortName',
+  /** Sort by sourceSortBucket */
+  SourceSortBucket = 'sourceSortBucket'
+}
+
+/** Filter conditions for FacetSourceCandidate */
+export type FacetSourceCandidateWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<FacetSourceCandidateWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<FacetSourceCandidateWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<FacetSourceCandidateWhereInput>>;
+  /** Filter by facetType */
+  facetType?: InputMaybe<StringFilter>;
+  /** Filter by handle */
+  handle?: InputMaybe<StringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<IdFilter>;
+  /** Filter by name */
+  name?: InputMaybe<StringFilter>;
+  /** Filter by sortName */
+  sortName?: InputMaybe<StringFilter>;
+  /** Filter by sourceSortBucket */
+  sourceSortBucket?: InputMaybe<IntFilter>;
+};
 
 export type FacetSwatch = Node & {
   __typename?: 'FacetSwatch';
@@ -2673,6 +2772,74 @@ export type FacetValue = Node & {
   sortIndex: Scalars['Int']['output'];
   sourceValues: Array<FacetValue>;
   swatch: Maybe<FacetSwatch>;
+};
+
+export type FacetValueCandidate = {
+  __typename?: 'FacetValueCandidate';
+  facetType: FacetType;
+  handle: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  label: Scalars['String']['output'];
+  sourceHandle: Scalars['String']['output'];
+};
+
+export type FacetValueCandidateConnection = {
+  __typename?: 'FacetValueCandidateConnection';
+  edges: Array<FacetValueCandidateEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type FacetValueCandidateEdge = {
+  __typename?: 'FacetValueCandidateEdge';
+  cursor: Scalars['String']['output'];
+  node: FacetValueCandidate;
+};
+
+/** Ordering configuration for FacetValueCandidate */
+export type FacetValueCandidateOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: FacetValueCandidateOrderField;
+};
+
+/** Fields available for sorting FacetValueCandidate */
+export enum FacetValueCandidateOrderField {
+  /** Sort by handle */
+  Handle = 'handle',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by label */
+  Label = 'label'
+}
+
+export enum FacetValueCandidateType {
+  Feature = 'FEATURE',
+  Option = 'OPTION',
+  Tag = 'TAG'
+}
+
+/** Filter conditions for FacetValueCandidate */
+export type FacetValueCandidateWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<FacetValueCandidateWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<FacetValueCandidateWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<FacetValueCandidateWhereInput>>;
+  /** Filter by handle */
+  handle?: InputMaybe<StringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<IdFilter>;
+  /** Filter by label */
+  label?: InputMaybe<StringFilter>;
+};
+
+export type FacetValueCandidatesMetaInput = {
+  candidateType: FacetValueCandidateType;
+  facetId?: InputMaybe<Scalars['ID']['input']>;
+  sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
 export type FacetValueCreateInput = {
@@ -5982,6 +6149,7 @@ export type ResolversTypes = ResolversObject<{
   Facet: ResolverTypeWrapper<Facet>;
   FacetCreateInput: FacetCreateInput;
   FacetCreatePayload: ResolverTypeWrapper<FacetCreatePayload>;
+  FacetCreateSourceInput: FacetCreateSourceInput;
   FacetDeleteInput: FacetDeleteInput;
   FacetDeletePayload: ResolverTypeWrapper<FacetDeletePayload>;
   FacetMoveInput: FacetMoveInput;
@@ -5989,6 +6157,12 @@ export type ResolversTypes = ResolversObject<{
   FacetRebalanceInput: FacetRebalanceInput;
   FacetRebalancePayload: ResolverTypeWrapper<FacetRebalancePayload>;
   FacetSelectionMode: FacetSelectionMode;
+  FacetSourceCandidate: ResolverTypeWrapper<FacetSourceCandidate>;
+  FacetSourceCandidateConnection: ResolverTypeWrapper<FacetSourceCandidateConnection>;
+  FacetSourceCandidateEdge: ResolverTypeWrapper<FacetSourceCandidateEdge>;
+  FacetSourceCandidateOrderByInput: FacetSourceCandidateOrderByInput;
+  FacetSourceCandidateOrderField: FacetSourceCandidateOrderField;
+  FacetSourceCandidateWhereInput: FacetSourceCandidateWhereInput;
   FacetSwatch: ResolverTypeWrapper<FacetSwatch>;
   FacetSwatchCreateInput: FacetSwatchCreateInput;
   FacetSwatchCreatePayload: ResolverTypeWrapper<FacetSwatchCreatePayload>;
@@ -6001,6 +6175,14 @@ export type ResolversTypes = ResolversObject<{
   FacetUpdateInput: FacetUpdateInput;
   FacetUpdatePayload: ResolverTypeWrapper<FacetUpdatePayload>;
   FacetValue: ResolverTypeWrapper<FacetValue>;
+  FacetValueCandidate: ResolverTypeWrapper<FacetValueCandidate>;
+  FacetValueCandidateConnection: ResolverTypeWrapper<FacetValueCandidateConnection>;
+  FacetValueCandidateEdge: ResolverTypeWrapper<FacetValueCandidateEdge>;
+  FacetValueCandidateOrderByInput: FacetValueCandidateOrderByInput;
+  FacetValueCandidateOrderField: FacetValueCandidateOrderField;
+  FacetValueCandidateType: FacetValueCandidateType;
+  FacetValueCandidateWhereInput: FacetValueCandidateWhereInput;
+  FacetValueCandidatesMetaInput: FacetValueCandidatesMetaInput;
   FacetValueCreateInput: FacetValueCreateInput;
   FacetValueCreatePayload: ResolverTypeWrapper<FacetValueCreatePayload>;
   FacetValueDeleteInput: FacetValueDeleteInput;
@@ -6352,12 +6534,18 @@ export type ResolversParentTypes = ResolversObject<{
   Facet: Facet;
   FacetCreateInput: FacetCreateInput;
   FacetCreatePayload: FacetCreatePayload;
+  FacetCreateSourceInput: FacetCreateSourceInput;
   FacetDeleteInput: FacetDeleteInput;
   FacetDeletePayload: FacetDeletePayload;
   FacetMoveInput: FacetMoveInput;
   FacetMovePayload: FacetMovePayload;
   FacetRebalanceInput: FacetRebalanceInput;
   FacetRebalancePayload: FacetRebalancePayload;
+  FacetSourceCandidate: FacetSourceCandidate;
+  FacetSourceCandidateConnection: FacetSourceCandidateConnection;
+  FacetSourceCandidateEdge: FacetSourceCandidateEdge;
+  FacetSourceCandidateOrderByInput: FacetSourceCandidateOrderByInput;
+  FacetSourceCandidateWhereInput: FacetSourceCandidateWhereInput;
   FacetSwatch: FacetSwatch;
   FacetSwatchCreateInput: FacetSwatchCreateInput;
   FacetSwatchCreatePayload: FacetSwatchCreatePayload;
@@ -6368,6 +6556,12 @@ export type ResolversParentTypes = ResolversObject<{
   FacetUpdateInput: FacetUpdateInput;
   FacetUpdatePayload: FacetUpdatePayload;
   FacetValue: FacetValue;
+  FacetValueCandidate: FacetValueCandidate;
+  FacetValueCandidateConnection: FacetValueCandidateConnection;
+  FacetValueCandidateEdge: FacetValueCandidateEdge;
+  FacetValueCandidateOrderByInput: FacetValueCandidateOrderByInput;
+  FacetValueCandidateWhereInput: FacetValueCandidateWhereInput;
+  FacetValueCandidatesMetaInput: FacetValueCandidatesMetaInput;
   FacetValueCreateInput: FacetValueCreateInput;
   FacetValueCreatePayload: FacetValueCreatePayload;
   FacetValueDeleteInput: FacetValueDeleteInput;
@@ -6977,9 +7171,11 @@ export type CatalogQueryResolvers<ContextType = ServiceContext, ParentType exten
   collectionRulesPreviewCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType, RequireFields<CatalogQueryCollectionRulesPreviewCountArgs, 'rules'>>;
   collections?: Resolver<ResolversTypes['CollectionConnection'], ParentType, ContextType, Partial<CatalogQueryCollectionsArgs>>;
   facet?: Resolver<Maybe<ResolversTypes['Facet']>, ParentType, ContextType, RequireFields<CatalogQueryFacetArgs, 'id'>>;
+  facetSourceCandidates?: Resolver<ResolversTypes['FacetSourceCandidateConnection'], ParentType, ContextType, Partial<CatalogQueryFacetSourceCandidatesArgs>>;
   facetSwatch?: Resolver<Maybe<ResolversTypes['FacetSwatch']>, ParentType, ContextType, RequireFields<CatalogQueryFacetSwatchArgs, 'id'>>;
   facetSwatches?: Resolver<Array<ResolversTypes['FacetSwatch']>, ParentType, ContextType>;
   facetValue?: Resolver<Maybe<ResolversTypes['FacetValue']>, ParentType, ContextType, RequireFields<CatalogQueryFacetValueArgs, 'id'>>;
+  facetValueCandidates?: Resolver<ResolversTypes['FacetValueCandidateConnection'], ParentType, ContextType, RequireFields<CatalogQueryFacetValueCandidatesArgs, 'meta'>>;
   facetValues?: Resolver<Array<ResolversTypes['FacetValue']>, ParentType, ContextType, RequireFields<CatalogQueryFacetValuesArgs, 'facetId'>>;
   facets?: Resolver<Array<ResolversTypes['Facet']>, ParentType, ContextType>;
   node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<CatalogQueryNodeArgs, 'id'>>;
@@ -7226,6 +7422,28 @@ export type FacetRebalancePayloadResolvers<ContextType = ServiceContext, ParentT
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type FacetSourceCandidateResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetSourceCandidate'] = ResolversParentTypes['FacetSourceCandidate']> = ResolversObject<{
+  facetType?: Resolver<ResolversTypes['FacetType'], ParentType, ContextType>;
+  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  locale?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetSourceCandidateConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetSourceCandidateConnection'] = ResolversParentTypes['FacetSourceCandidateConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['FacetSourceCandidateEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetSourceCandidateEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetSourceCandidateEdge'] = ResolversParentTypes['FacetSourceCandidateEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['FacetSourceCandidate'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type FacetSwatchResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetSwatch'] = ResolversParentTypes['FacetSwatch']> = ResolversObject<{
   colorOne?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   colorTwo?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -7271,6 +7489,28 @@ export type FacetValueResolvers<ContextType = ServiceContext, ParentType extends
   sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   sourceValues?: Resolver<Array<ResolversTypes['FacetValue']>, ParentType, ContextType>;
   swatch?: Resolver<Maybe<ResolversTypes['FacetSwatch']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetValueCandidateResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValueCandidate'] = ResolversParentTypes['FacetValueCandidate']> = ResolversObject<{
+  facetType?: Resolver<ResolversTypes['FacetType'], ParentType, ContextType>;
+  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  sourceHandle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetValueCandidateConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValueCandidateConnection'] = ResolversParentTypes['FacetValueCandidateConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['FacetValueCandidateEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetValueCandidateEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValueCandidateEdge'] = ResolversParentTypes['FacetValueCandidateEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['FacetValueCandidate'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -8126,12 +8366,18 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   FacetDeletePayload?: FacetDeletePayloadResolvers<ContextType>;
   FacetMovePayload?: FacetMovePayloadResolvers<ContextType>;
   FacetRebalancePayload?: FacetRebalancePayloadResolvers<ContextType>;
+  FacetSourceCandidate?: FacetSourceCandidateResolvers<ContextType>;
+  FacetSourceCandidateConnection?: FacetSourceCandidateConnectionResolvers<ContextType>;
+  FacetSourceCandidateEdge?: FacetSourceCandidateEdgeResolvers<ContextType>;
   FacetSwatch?: FacetSwatchResolvers<ContextType>;
   FacetSwatchCreatePayload?: FacetSwatchCreatePayloadResolvers<ContextType>;
   FacetSwatchDeletePayload?: FacetSwatchDeletePayloadResolvers<ContextType>;
   FacetSwatchUpdatePayload?: FacetSwatchUpdatePayloadResolvers<ContextType>;
   FacetUpdatePayload?: FacetUpdatePayloadResolvers<ContextType>;
   FacetValue?: FacetValueResolvers<ContextType>;
+  FacetValueCandidate?: FacetValueCandidateResolvers<ContextType>;
+  FacetValueCandidateConnection?: FacetValueCandidateConnectionResolvers<ContextType>;
+  FacetValueCandidateEdge?: FacetValueCandidateEdgeResolvers<ContextType>;
   FacetValueCreatePayload?: FacetValueCreatePayloadResolvers<ContextType>;
   FacetValueDeletePayload?: FacetValueDeletePayloadResolvers<ContextType>;
   FacetValueMergePayload?: FacetValueMergePayloadResolvers<ContextType>;

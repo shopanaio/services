@@ -208,6 +208,28 @@ type CatalogQuery {
   ): FacetSourceCandidateConnection!
 
   """
+  Get available facet source value candidates for create and edit flows
+  """
+  facetValueCandidates(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    """
+    Filter conditions
+    """
+    where: FacetValueCandidateWhereInput
+    """
+    Sort order
+    """
+    orderBy: [FacetValueCandidateOrderByInput!]
+    """
+    Candidate routing and source scope
+    """
+    meta: FacetValueCandidatesMetaInput!
+  ): FacetValueCandidateConnection!
+
+  """
   Get a facet value by ID
   """
   facetValue(id: ID!): FacetValue

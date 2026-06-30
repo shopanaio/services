@@ -34,6 +34,9 @@ export * from "./categoryListView";
 export * from "./tagListView";
 export * from "./variantWarehouseCandidateView";
 export * from "./facetSourceCandidateView";
+export * from "./facetTagValueCandidateView";
+export * from "./facetOptionValueCandidateView";
+export * from "./facetFeatureValueCandidateView";
 
 // SEO (search engine & social media metadata)
 export * from "./seo";

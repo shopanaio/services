@@ -60,6 +60,25 @@ type FacetSourceCandidateConnection {
   totalCount: Int!
 }
 
+type FacetValueCandidate {
+  id: ID!
+  facetType: FacetType!
+  sourceHandle: String!
+  handle: String!
+  label: String!
+}
+
+type FacetValueCandidateEdge {
+  cursor: String!
+  node: FacetValueCandidate!
+}
+
+type FacetValueCandidateConnection {
+  edges: [FacetValueCandidateEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
 type FacetValue implements Node {
   id: ID!
   facet: Facet!
@@ -85,6 +104,18 @@ type FacetSwatch implements Node {
 input FacetCreateSourceInput {
   handle: String!
   name: String!
+}
+
+enum FacetValueCandidateType {
+  TAG
+  OPTION
+  FEATURE
+}
+
+input FacetValueCandidatesMetaInput {
+  candidateType: FacetValueCandidateType!
+  sourceHandles: [String!]
+  facetId: ID
 }
 
 input FacetCreateInput {

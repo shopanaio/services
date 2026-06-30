@@ -44,6 +44,10 @@ import {
   FacetSourceCandidateConnectionResolver,
   type FacetSourceCandidateConnectionInput,
 } from "./FacetSourceCandidateConnectionResolver.js";
+import {
+  FacetValueCandidateConnectionResolver,
+  type FacetValueCandidateConnectionInput,
+} from "./FacetValueCandidateConnectionResolver.js";
 import { FacetValueResolver } from "./FacetValueResolver.js";
 import { FacetSwatchResolver } from "./FacetSwatchResolver.js";
 import {
@@ -104,6 +108,16 @@ type InventoryItemsArgs = Omit<
   "meta"
 > & {
   meta?: InventoryItemInventoryItemsMetaArgs | null;
+};
+
+type FacetValueCandidatesArgs = Omit<
+  FacetValueCandidateConnectionInput,
+  "meta"
+> & {
+  meta: Omit<FacetValueCandidateConnectionInput["meta"], "sourceHandles" | "facetId"> & {
+    sourceHandles?: string[] | null;
+    facetId?: string | null;
+  };
 };
 
 /**
@@ -347,6 +361,35 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
 
   facetSourceCandidates(args: FacetSourceCandidateConnectionInput) {
     return new FacetSourceCandidateConnectionResolver(args, this.$ctx);
+  }
+
+  facetValueCandidates(args: FacetValueCandidatesArgs) {
+    let facetId: string | undefined;
+
+    if (args.meta.facetId != null) {
+      const decodedFacetId = safeDecodeGlobalId(
+        args.meta.facetId,
+        GlobalIdEntity.Facet
+      );
+      if (!decodedFacetId) {
+        throw new GraphQLError("Invalid facetId", {
+          extensions: { code: "BAD_USER_INPUT" },
+        });
+      }
+      facetId = decodedFacetId;
+    }
+
+    return new FacetValueCandidateConnectionResolver(
+      {
+        ...args,
+        meta: {
+          candidateType: args.meta.candidateType,
+          sourceHandles: args.meta.sourceHandles ?? undefined,
+          facetId,
+        },
+      },
+      this.$ctx
+    );
   }
 
   async facetValue(args: { id: string }) {
