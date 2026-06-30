@@ -52,13 +52,13 @@
 Добавить read API `facetValueCandidates`, который:
 
 - работает как Relay connection;
-- построен на drizzle-query view;
+- построен на drizzle-query views;
 - поддерживает `first/after/last/before`;
 - поддерживает `where` input для поиска;
 - поддерживает `orderBy`;
-- фильтруется по raw полям view через `where`;
-- поддерживает create flow через `where.facetType + where.sourceHandle`;
-- поддерживает edit flow через `meta.facetsScope`;
+- фильтруется по выбранным source handles через `meta.sourceHandles`;
+- поддерживает create flow через `meta.candidateType + meta.sourceHandles`;
+- поддерживает edit flow через `meta.facetId`;
 - поддерживает только `TAG`, `OPTION` и `FEATURE`;
 - для edit flow всегда исключает уже добавленные/привязанные source values;
 - для `TAG` возвращает все существующие tags;
@@ -114,16 +114,12 @@ input FacetValueCandidateWhereInput {
   _or: [FacetValueCandidateWhereInput!]
   _not: FacetValueCandidateWhereInput
   id: IDFilter
-  facetType: StringFilter
-  sourceHandle: StringFilter
   handle: StringFilter
   label: StringFilter
 }
 
 enum FacetValueCandidateOrderField {
   id
-  facetType
-  sourceHandle
   handle
   label
 }
@@ -131,28 +127,41 @@ enum FacetValueCandidateOrderField {
 
 Важно: generated enum values должны быть в текущем стиле проекта
 (`handle`, `label`), а не `HANDLE`/`LABEL`.
-`sourceHandle` должен попадать в public generated where/order для этого API,
-потому create flow фильтрует raw candidates через `where.sourceHandle`.
 В `services/catalog/scripts/generate-filters.ts` для `FacetValueCandidate`
-обязательно указать `excludeFields: ["projectId", "locale"]`
+обязательно указать `excludeFields: ["projectId", "locale", "facetType", "sourceHandle"]`
 и для `generateWhereInputType`, и для `generateOrderByInputType`.
+`facetType` и `sourceHandle` остаются raw полями view и полями public object,
+но не должны попадать в public generated `where`/`orderBy`: routing выполняется
+через `meta.candidateType`, а source scope передается через `meta.sourceHandles`.
 
 Добавить meta input рядом с facet schema types:
 
 ```graphql
-input FacetValueCandidatesMetaInput {
-  facetsScope: FacetValueCandidatesFacetsScopeInput
+enum FacetValueCandidateType {
+  TAG
+  OPTION
+  FEATURE
 }
 
-input FacetValueCandidatesFacetsScopeInput {
-  referenceIds: [ID!]!
-  mode: CategoryHierarchyScopeMode!
+input FacetValueCandidatesMetaInput {
+  candidateType: FacetValueCandidateType!
+  sourceHandles: [String!]
+  facetId: ID
 }
 ```
 
-`facetsScope` повторяет scope-паттерн существующих list queries
-(`ProductCategoriesScopeInput`, `CategoryProductsScopeInput`): scope передается
-через `meta`, а generic `where` остается фильтром по полям списка.
+`candidateType` является routing-параметром: по нему repository выбирает concrete
+view (`TAG`, `OPTION` или `FEATURE`) до выполнения relay query. `PRICE` и
+`IN_STOCK` для этого API запрещены.
+
+`sourceHandles` является scope-параметром выбранных facet sources. Для raw create
+mode это обязательный непустой список source handles. Если передан `meta.facetId`,
+repository получает source handles из выбранного facet; если `meta.sourceHandles`
+тоже передан, он дополнительно сужает список пересечением с facet sources.
+
+`facetId` включает режим существующего facet: repository загружает facet,
+проверяет тип, берет его sources и всегда исключает candidates, для которых в
+этом facet уже есть source `facet_value` с таким же `handle`.
 
 Добавить query в `CatalogQuery`:
 
@@ -164,30 +173,32 @@ facetValueCandidates(
   before: String
   where: FacetValueCandidateWhereInput
   orderBy: [FacetValueCandidateOrderByInput!]
-  meta: FacetValueCandidatesMetaInput
+  meta: FacetValueCandidatesMetaInput!
 ): FacetValueCandidateConnection!
 ```
 
 Пояснения:
 
 - Top-level custom args для `facetType`, `sourceHandles`, `facetId` и `excludeExisting` не добавлять.
-- допустимые значения `facetType` для этого API: `TAG`, `OPTION`, `FEATURE`; `PRICE` и `IN_STOCK` не поддерживаются.
-- Create flow фильтрует raw candidates через `where.facetType + where.sourceHandle`.
-- Edit flow передает существующий facet через `meta.facetsScope`.
+- допустимые значения `meta.candidateType` для этого API: `TAG`, `OPTION`, `FEATURE`; `PRICE` и `IN_STOCK` не входят в enum.
+- Create flow выбирает concrete view через `meta.candidateType` и фильтрует raw candidates через `meta.sourceHandles`.
+- Edit flow передает существующий facet через `meta.facetId`.
 - `exclude existing` не является публичной опцией: для edit flow repository всегда скрывает candidates, для которых в выбранном facet уже есть source `facet_value` с таким же `handle`.
-- `where.facetType` используется как raw filter по типу candidate.
-- `where.sourceHandle` используется как raw filter по выбранному source.
+- `where.facetType` не генерируется и не поддерживается: тип кандидата задается только через `meta.candidateType`.
+- `where.sourceHandle` не генерируется и не поддерживается: выбранные source handles задаются только через `meta.sourceHandles` или выводятся из `meta.facetId`.
 - `where.handle` используется для поиска по persisted source value handle. Для `OPTION`/`FEATURE` это составной handle вида `source:value`.
 - `where.label` используется для поиска по отображаемому имени.
-- `meta.facetsScope` не попадает в generated where/order inputs, потому это context/scope списка, а не поле raw candidate view.
+- `meta.sourceHandles` и `meta.facetId` не попадают в generated where/order inputs, потому это context/scope списка, а не поля raw candidate search.
 
-## Drizzle view
+## Drizzle views
 
-Создать модель:
+Создать три отдельные view и три drizzle-модели:
 
-`services/catalog/src/repositories/models/facetValueCandidateView.ts`
+- `services/catalog/src/repositories/models/facetTagValueCandidateView.ts`
+- `services/catalog/src/repositories/models/facetOptionValueCandidateView.ts`
+- `services/catalog/src/repositories/models/facetFeatureValueCandidateView.ts`
 
-View должна иметь минимум такие колонки:
+Каждая view должна иметь одинаковый public shape:
 
 ```ts
 id: text("id").notNull(),
@@ -199,10 +210,18 @@ handle: text("handle").notNull(),
 label: text("label").notNull(),
 ```
 
-View содержит только branches для `TAG`, `OPTION` и `FEATURE`.
-Branches для `PRICE` и `IN_STOCK` не добавлять, потому что у них нет raw source values в catalog data.
-`source_handle` остается внутренней колонкой view для фильтрации по выбранному facet source.
+View создаются отдельно для `TAG`, `OPTION` и `FEATURE`.
+View для `PRICE` и `IN_STOCK` не добавлять, потому что у них нет raw source values в catalog data.
+`source_handle` остается внутренней колонкой views для фильтрации по выбранному facet source.
 Для `OPTION` и `FEATURE` колонка `handle` должна быть составным persisted handle в формате `sourceHandle:valueHandle`, чтобы candidate можно было без преобразования передать в создание source `facet_value`.
+
+Единую `facet_value_candidate_view` не создавать. Repository выбирает concrete view по `meta.candidateType`:
+
+- `TAG` -> `facet_tag_value_candidate_view`;
+- `OPTION` -> `facet_option_value_candidate_view`;
+- `FEATURE` -> `facet_feature_value_candidate_view`.
+
+Это сохраняет один публичный GraphQL API `facetValueCandidates`, но не смешивает разные candidate sources на уровне SQL view.
 
 ### TAG branch
 
@@ -249,14 +268,14 @@ Branches для `PRICE` и `IN_STOCK` не добавлять, потому чт
 
 Добавить новый migration файл:
 
-`services/catalog/migrations/domains/0500_facets/0505_facets__value_candidate_view.sql`
+`services/catalog/migrations/domains/0500_facets/0505_facets__value_candidate_views.sql`
 
 Точный SQL:
 
 ```sql
 -- Up Migration
 
-CREATE VIEW "catalog"."facet_value_candidate_view" AS
+CREATE VIEW "catalog"."facet_tag_value_candidate_view" AS
 SELECT
   'TAG:' || t.handle AS id,
   t.project_id,
@@ -268,10 +287,9 @@ SELECT
 FROM "catalog"."tag" t
 INNER JOIN "catalog"."tag_translation" tt
   ON tt.project_id = t.project_id
- AND tt.tag_id = t.id
+ AND tt.tag_id = t.id;
 
-UNION ALL
-
+CREATE VIEW "catalog"."facet_option_value_candidate_view" AS
 SELECT
   'OPTION:' || po.slug || ':' || pov.slug AS id,
   po.project_id,
@@ -291,10 +309,9 @@ INNER JOIN "catalog"."product_option_value_translation" povt
   ON povt.project_id = pov.project_id
  AND povt.option_value_id = pov.id
  AND povt.locale = pot.locale
-GROUP BY po.project_id, povt.locale, po.slug, pov.slug
+GROUP BY po.project_id, povt.locale, po.slug, pov.slug;
 
-UNION ALL
-
+CREATE VIEW "catalog"."facet_feature_value_candidate_view" AS
 SELECT
   'FEATURE:' || pf.slug || ':' || pfv.slug AS id,
   pf.project_id,
@@ -318,18 +335,18 @@ WHERE pf.is_group = false
 GROUP BY pf.project_id, pfvt.locale, pf.slug, pfv.slug;
 ```
 
-Старые migration файлы не изменять. `0504_facets__source_candidate_view.sql` остается без изменений, потому новый API читает отдельную view и не меняет contract `facetSourceCandidates`.
+Старые migration файлы не изменять. `0504_facets__source_candidate_view.sql` остается без изменений, потому новый API читает отдельные value candidate views и не меняет contract `facetSourceCandidates`.
 
 Существующие не-migration файлы, которые будут изменены при реализации:
 
-- `services/catalog/src/repositories/models/index.ts` — добавить export `facetValueCandidateView`.
-- `services/catalog/src/api/graphql-admin/schema/facet.graphql` — добавить публичные object/connection/meta/scope types.
+- `services/catalog/src/repositories/models/index.ts` — добавить export `facetTagValueCandidateView`, `facetOptionValueCandidateView`, `facetFeatureValueCandidateView`.
+- `services/catalog/src/api/graphql-admin/schema/facet.graphql` — добавить публичные object/connection/meta types.
 - `services/catalog/src/api/graphql-admin/schema/base.graphql` — обновится через существующий schema/codegen flow, если этот файл является агрегированным generated snapshot в текущем процессе.
-- `services/catalog/scripts/generate-filters.ts` — добавить генерацию `FacetValueCandidateWhereInput` и `FacetValueCandidateOrderByInput`; исключить `projectId`, `locale` из public filters/order.
+- `services/catalog/scripts/generate-filters.ts` — добавить генерацию `FacetValueCandidateWhereInput` и `FacetValueCandidateOrderByInput`; исключить `projectId`, `locale`, `facetType`, `sourceHandle` из public filters/order.
 - `services/catalog/src/api/graphql-admin/schema/__generated__/filters.graphql` — generated output после `generate:filters`.
 - `services/catalog/src/resolvers/admin/generated/types.ts` и `services/catalog/src/resolvers/admin/generated/schemas.ts` — generated output после GraphQL codegen.
-- `services/catalog/src/repositories/facet/FacetRepository.ts` — добавить relay query и repository method.
-- `services/catalog/src/resolvers/admin/filter-normalizers.ts` — добавить нормализацию `FacetValueCandidatesFacetsScopeInput`.
+- `services/catalog/src/repositories/facet/FacetRepository.ts` — добавить concrete relay queries по `TAG`/`OPTION`/`FEATURE` и repository method с dispatch по `meta.candidateType`.
+- `services/catalog/src/resolvers/admin/QueryResolver.ts` — декодировать `meta.facetId` через `GlobalIdEntity.Facet` перед передачей в repository.
 - `services/catalog/src/resolvers/admin/FacetValueCandidateResolver.ts` — новый resolver для node.
 - `services/catalog/src/resolvers/admin/FacetValueCandidateConnectionResolver.ts` — новый resolver для connection.
 - `services/catalog/src/resolvers/admin/QueryResolver.ts` — подключить `facetValueCandidates`.
@@ -342,8 +359,49 @@ GROUP BY pf.project_id, pfvt.locale, pf.slug, pfv.slug;
 Предпочтительно отдельный repository, если дальше появятся mutation сценарии синхронизации source values. Для минимального изменения можно начать в `FacetRepository`, рядом с `getAvailableFacetSourceCandidates`.
 
 ```ts
-export const facetValueCandidateRelayQuery = createRelayQuery(
-  createQuery(facetValueCandidateView)
+const createFacetValueCandidateRelayQuery = (
+  view:
+    | typeof facetTagValueCandidateView
+    | typeof facetOptionValueCandidateView
+    | typeof facetFeatureValueCandidateView
+) =>
+  createRelayQuery(
+    createQuery(view)
+      .include([
+        "id",
+        "projectId",
+        "locale",
+        "facetType",
+        "sourceHandle",
+        "handle",
+        "label",
+      ])
+      .maxLimit(100)
+      .defaultLimit(30),
+    { name: "facetValueCandidate", tieBreaker: "id" }
+  );
+
+export const facetTagValueCandidateRelayQuery =
+  createFacetValueCandidateRelayQuery(facetTagValueCandidateView);
+
+export const facetOptionValueCandidateRelayQuery =
+  createFacetValueCandidateRelayQuery(facetOptionValueCandidateView);
+
+export const facetFeatureValueCandidateRelayQuery =
+  createFacetValueCandidateRelayQuery(facetFeatureValueCandidateView);
+
+export const facetValueCandidateRelayQueries = {
+  TAG: facetTagValueCandidateRelayQuery,
+  OPTION: facetOptionValueCandidateRelayQuery,
+  FEATURE: facetFeatureValueCandidateRelayQuery,
+} as const;
+```
+
+Все три concrete relay queries должны иметь одинаковый include-list и одинаковый public field shape. Public GraphQL `FacetValueCandidateWhereInput` и `FacetValueCandidateOrderByInput` можно генерировать по одной из concrete queries, потому shape одинаковый:
+
+```ts
+const facetValueCandidateFilterRelayQuery = createRelayQuery(
+  createQuery(facetTagValueCandidateView)
     .include([
       "id",
       "projectId",
@@ -371,21 +429,15 @@ async getFacetValueCandidates(
 
 ```ts
 export type FacetValueCandidateRelayInput = InferRelayInput<
-  typeof facetValueCandidateRelayQuery
+  typeof facetTagValueCandidateRelayQuery
 >;
 
-export type NormalizedFacetValueCandidatesFacetsScope =
-  | { kind: "empty" }
-  | {
-      kind: "scope";
-      referenceIds: string[];
-      mode: "INCLUDE" | "EXCLUDE";
-    };
-
 export type FacetValueCandidateArgs = FacetValueCandidateRelayInput & {
-  meta?: {
-    facetsScope?: NormalizedFacetValueCandidatesFacetsScope;
-  } | null;
+  meta: {
+    candidateType: "TAG" | "OPTION" | "FEATURE";
+    sourceHandles?: string[];
+    facetId?: string;
+  };
 };
 ```
 
@@ -396,12 +448,16 @@ export type FacetValueCandidateArgs = FacetValueCandidateRelayInput & {
   _and: [
     { projectId: { _eq: this.storeId } },
     { locale: { _eq: this.locale } },
+    { facetType: { _eq: args.meta.candidateType } },
+    { sourceHandle: { _in: args.meta.sourceHandles } },
     ...(args.where ? [args.where] : []),
   ],
 }
 ```
 
-`sourceHandle` является raw полем view и public filter/order field, поэтому он должен быть включен в `facetValueCandidateRelayQuery.include(...)`.
+`facetType` и `sourceHandle` являются raw полями views и должны быть включены в
+`include(...)` каждого concrete relay query, чтобы repository мог добавлять
+системные фильтры. Они не должны попадать в generated public `where`/`orderBy`.
 Ожидаемая настройка генерации:
 
 ```ts
@@ -414,48 +470,61 @@ const facetValueCandidateFieldTypes: Record<string, GraphQLFieldType> = {
 };
 
 const facetValueCandidateWhere = generateWhereInputType(
-  facetValueCandidateRelayQuery,
+  facetValueCandidateFilterRelayQuery,
   "FacetValueCandidate",
   {
     includeDescriptions: true,
     fieldTypes: facetValueCandidateFieldTypes,
-    excludeFields: ["projectId", "locale"],
+    excludeFields: ["projectId", "locale", "facetType", "sourceHandle"],
   }
 );
 
 const facetValueCandidateOrderBy = generateOrderByInputType(
-  facetValueCandidateRelayQuery,
+  facetValueCandidateFilterRelayQuery,
   "FacetValueCandidate",
   {
     includeDescriptions: true,
     fieldTypes: facetValueCandidateFieldTypes,
-    excludeFields: ["projectId", "locale"],
+    excludeFields: ["projectId", "locale", "facetType", "sourceHandle"],
   }
 );
 ```
 
 ### Raw create mode
 
-Если `meta.facetsScope` не передан, repository только добавляет системные фильтры
-`projectId` и `locale`. Клиент обязан сузить raw candidates через `where`,
-обычно через `facetType` и `sourceHandle`.
+Если `meta.facetId` не передан, repository берет `meta.candidateType`,
+выбирает concrete relay query из `facetValueCandidateRelayQueries`, а затем
+добавляет системные фильтры `projectId`, `locale`, `facetType = meta.candidateType`
+и `sourceHandle IN meta.sourceHandles`.
+Клиент обязан передать выбранные facet sources через `meta.sourceHandles`.
+Generic `where` используется только для поиска по public candidate fields
+(`id`, `handle`, `label`), а не для routing/scope.
 
 Практическая repository validation:
 
-- raw create mode должен содержать достаточный filter scope, минимум `where.facetType` и `where.sourceHandle`;
-- `PRICE` и `IN_STOCK` должны возвращать validation error, потому для них нет raw source value candidates.
+- `meta.candidateType` обязателен и должен быть `TAG`, `OPTION` или `FEATURE`;
+- raw create mode должен содержать непустой `meta.sourceHandles`;
+- `where.facetType` и `where.sourceHandle` невозможны на уровне GraphQL schema, потому эти поля исключаются из generated filters;
+- `PRICE` и `IN_STOCK` не должны проходить GraphQL validation для `meta.candidateType`, потому для них нет raw source value candidates.
 
-### Facets scope edit mode
+### Existing facet mode
 
-Если передан `meta.facetsScope`:
+Если передан `meta.facetId`:
 
-1. resolver нормализует `referenceIds` через `decodeGlobalIdByType(id, GlobalIdEntity.Facet)`;
-2. пустой или невалидный scope превращается в `{ kind: "empty" }`;
-3. repository загружает facets в текущем project;
-4. для первой реализации поддерживается только `mode: INCLUDE` и один `referenceId`;
-5. repository берет sources выбранного facet из `facet_source`;
-6. repository берет existing source value handles из `facet_value`;
-7. raw candidates запрашиваются из view с дополнительными условиями:
+1. resolver декодирует `facetId` через `decodeGlobalIdByType(id, GlobalIdEntity.Facet)`;
+2. если `facetId` невалидный, resolver выбрасывает `GraphQLError` с
+   `extensions.code = "BAD_USER_INPUT"` и сообщением уровня `Invalid facetId`;
+3. repository загружает facet в текущем project;
+4. если facet не найден, repository выбрасывает `GraphQLError` с
+   `extensions.code = "BAD_USER_INPUT"` и сообщением уровня `Facet not found`;
+5. repository проверяет, что `meta.candidateType` совпадает с `facet.facetType`;
+6. repository берет sources выбранного facet из `facet_source`;
+7. repository берет existing source value handles из `facet_value`, фильтруя
+   только `kind = 'source'`;
+8. repository выбирает concrete relay query по `meta.candidateType`;
+9. если `meta.sourceHandles` передан, repository сужает facet source handles пересечением с `meta.sourceHandles`;
+10. если итоговый список source handles пустой, repository возвращает пустой connection;
+11. raw candidates запрашиваются из выбранной concrete view с дополнительными условиями:
 
    ```ts
    {
@@ -476,7 +545,7 @@ const facetValueCandidateOrderBy = generateOrderByInputType(
 
 ```sql
 SELECT *
-FROM "catalog"."facet_value_candidate_view"
+FROM "catalog"."facet_<tag|option|feature>_value_candidate_view"
 WHERE project_id = :projectId
   AND locale = :locale
   AND facet_type = :facetType
@@ -484,10 +553,21 @@ WHERE project_id = :projectId
   AND handle NOT IN (:existingSourceValueHandles)
 ```
 
-`exclude existing` не зашивать в view, потому raw candidate не должен зависеть
+`existingSourceValueHandles` должны загружаться из `catalog.facet_value` только
+для текущего `project_id`, `facet_id` и `kind = 'source'`. Display values не
+должны исключать raw candidates: candidate считается занятым только когда для
+этого facet уже существует source `facet_value` с тем же `handle`.
+
+`exclude existing` не зашивать в views, потому raw candidate не должен зависеть
 от конкретного facet. Это repository-level invariant для edit mode.
 Условие занятости не должно проверять `parent_id IS NULL`: source value может
 быть уже прикреплен к display value, но candidate все равно должен считаться занятым.
+
+Для этого connection API некорректный `meta.facetId`, отсутствующий facet и
+несовпадение `meta.candidateType` с `facet.facetType` являются ошибками input,
+а не пустым результатом. Пустой connection возвращается только для валидного
+facet/request scope, где после пересечения `facet_source` и `meta.sourceHandles`
+не осталось source handles или где raw candidates действительно отсутствуют.
 
 ## Resolver слой
 
@@ -535,6 +615,10 @@ query FacetValueCandidates(
     facetValueCandidates(
       first: 30
       after: $after
+      meta: {
+        candidateType: OPTION
+        sourceHandles: ["color"]
+      }
       where: $where
       orderBy: [{ field: label, direction: ASC }]
     ) {
@@ -562,15 +646,9 @@ query FacetValueCandidates(
 ```json
 {
   "where": {
-    "_and": [
-      { "facetType": { "_eq": "OPTION" } },
-      { "sourceHandle": { "_eq": "color" } },
-      {
-        "_or": [
-          { "handle": { "_containsi": "red" } },
-          { "label": { "_containsi": "red" } }
-        ]
-      }
+    "_or": [
+      { "handle": { "_containsi": "red" } },
+      { "label": { "_containsi": "red" } }
     ]
   }
 }
@@ -588,10 +666,8 @@ query ExistingFacetValueCandidates(
       first: 20
       where: $where
       meta: {
-        facetsScope: {
-          referenceIds: [$facetId]
-          mode: INCLUDE
-        }
+        candidateType: OPTION
+        facetId: $facetId
       }
       orderBy: [{ field: label, direction: ASC }]
     ) {
@@ -631,29 +707,25 @@ query ExistingFacetValueCandidates(
 
    Если отдельный сценарий создания source values будет добавлен позже, он должен использовать тот же identity contract, что и edit-mode exclusion: duplicate source value определяется по `facetId + kind = 'source' + handle`. Для `OPTION`/`FEATURE` candidate handle уже составной (`source:value`).
 
-4. Multiple facets в `facetsScope`.
-
-   Scope input поддерживает `referenceIds`, потому интерфейс совпадает с существующим scope pattern. Для первой реализации edit flow должен поддержать только `mode: INCLUDE` и ровно один facet id. Расширение на несколько facets нужно проектировать отдельно, потому candidate node не содержит facet context, а existing handles считаются facet-scoped.
-
 ## Порядок реализации
 
-1. Добавить migration `services/catalog/migrations/domains/0500_facets/0505_facets__value_candidate_view.sql` с SQL из раздела `Migration SQL`.
+1. Добавить migration `services/catalog/migrations/domains/0500_facets/0505_facets__value_candidate_views.sql` с SQL из раздела `Migration SQL`.
 
-2. Добавить `facetValueCandidateView` в models и export из `repositories/models/index.ts`.
+2. Добавить `facetTagValueCandidateView`, `facetOptionValueCandidateView`, `facetFeatureValueCandidateView` в models и export из `repositories/models/index.ts`.
 
-3. Добавить GraphQL object/connection/meta/scope types и query в `facet.graphql`.
+3. Добавить GraphQL object/connection/meta types и query в `facet.graphql`.
 
 4. Добавить/обновить drizzle-query config для генерации `FacetValueCandidateWhereInput`, `FacetValueCandidateOrderField` и `FacetValueCandidateOrderByInput` в `schema/__generated__/filters.graphql`.
 
 5. Сгенерировать GraphQL filters, resolver types и schemas через существующий project codegen flow.
 
-6. Добавить нормализацию `FacetValueCandidatesFacetsScopeInput` в `filter-normalizers.ts`.
+6. В `CatalogQueryResolver` декодировать `meta.facetId` через `GlobalIdEntity.Facet` и передавать decoded id в repository.
 
-7. Добавить relay query и repository method с raw create mode и facets scope edit mode.
+7. Добавить concrete relay queries по `TAG`/`OPTION`/`FEATURE` и repository method с raw create mode, existing facet mode и dispatch по `meta.candidateType`.
 
 8. Добавить `FacetValueCandidateResolver` и `FacetValueCandidateConnectionResolver`.
 
-9. Подключить `facetValueCandidates` в `CatalogQueryResolver` и передавать нормализованный `meta.facetsScope`.
+9. Подключить `facetValueCandidates` в `CatalogQueryResolver` и передавать decoded `meta.facetId`.
 
 10. После реализации запускать build, но не запускать test/tsc отдельно по правилам проекта.
 
