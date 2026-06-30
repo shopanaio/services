@@ -9,10 +9,9 @@ mutation FacetCreate($input: FacetCreateInput!) {
         uiType
         selectionMode
         lexoRank
-        sourceHandles
         values {
           id
-          slug
+          handle
           label
         }
       }

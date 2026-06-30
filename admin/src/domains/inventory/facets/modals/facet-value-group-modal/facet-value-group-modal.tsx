@@ -271,6 +271,7 @@ export function FacetValueGroupModal() {
                     autoFocus
                     placeholder="Small"
                     status={error ? "error" : undefined}
+                    data-testid="facet-value-group-name-input"
                   />
                   {error ? <div className={styles.error}>{error.message}</div> : null}
                 </>
@@ -286,13 +287,18 @@ export function FacetValueGroupModal() {
           <PaperHeader title="Values *" />
           <Flex vertical gap={4}>
             {draftValues.map((value) => (
-              <div key={value.id} className={styles.valueRow}>
+              <div
+                key={value.id}
+                className={styles.valueRow}
+                data-testid={`facet-value-group-value-row-${value.handle}`}
+              >
                 <span>{value.label}</span>
                 <Button
                   type="text"
                   size="small"
                   icon={<CloseOutlined />}
                   aria-label={`Remove ${value.label}`}
+                  data-testid={`facet-value-group-remove-value-${value.handle}`}
                   onClick={() => removeValue(value.id)}
                 />
               </div>
@@ -302,6 +308,7 @@ export function FacetValueGroupModal() {
                 autoFocus
                 options={options}
                 placeholder="Search source value..."
+                data-testid="facet-value-group-source-autocomplete"
                 filterOption={(input, option) => {
                   const value = typedPayload.availableValues.find(
                     (candidate) => candidate.id === option?.value,
@@ -318,6 +325,7 @@ export function FacetValueGroupModal() {
             <Button
               type="link"
               className={styles.addButton}
+              data-testid="facet-value-group-add-value-button"
               onClick={() => setAdding(true)}
             >
               + Add another value

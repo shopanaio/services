@@ -83,6 +83,10 @@ function groupedLabel(row: FacetValueEditorRow): string {
   return row.sourceValues.map((value) => value.label || value.handle).join(", ");
 }
 
+function valueTestId(handle: string): string {
+  return handle.replaceAll(" ", "-");
+}
+
 export function FacetValuesGrid({
   values,
   onReorder,
@@ -169,7 +173,11 @@ export function FacetValuesGrid({
         minWidth: 180,
         sort: sortMode === "labelAsc" ? "asc" : sortMode === "labelDesc" ? "desc" : null,
         cellRenderer: ({ data }: ICellRendererParams<FacetValueEditorRow>) =>
-          data ? <span>{data.label}</span> : null,
+          data ? (
+            <span data-testid={`facet-values-row-${valueTestId(data.handle)}`}>
+              {data.label}
+            </span>
+          ) : null,
       },
       {
         colId: "groupedValues",
@@ -182,10 +190,20 @@ export function FacetValuesGrid({
           const label = groupedLabel(data);
           return label ? (
             <Tooltip title={label}>
-              <span className={styles.groupedValues}>{label}</span>
+              <span
+                className={styles.groupedValues}
+                data-testid={`facet-values-grouped-cell-${valueTestId(data.handle)}`}
+              >
+                {label}
+              </span>
             </Tooltip>
           ) : (
-            <Typography.Text type="secondary">-</Typography.Text>
+            <Typography.Text
+              type="secondary"
+              data-testid={`facet-values-grouped-cell-${valueTestId(data.handle)}`}
+            >
+              -
+            </Typography.Text>
           );
         },
       },
@@ -205,12 +223,24 @@ export function FacetValuesGrid({
                     ? [
                         {
                           key: "edit",
-                          label: "Edit",
+                          label: (
+                            <span
+                              data-testid={`facet-values-action-edit-${valueTestId(data.handle)}`}
+                            >
+                              Edit
+                            </span>
+                          ),
                           onClick: () => onEditGroup(data),
                         },
                         {
                           key: "ungroup",
-                          label: "Ungroup",
+                          label: (
+                            <span
+                              data-testid={`facet-values-action-ungroup-${valueTestId(data.handle)}`}
+                            >
+                              Ungroup
+                            </span>
+                          ),
                           disabled: data.sourceValues.length === 0,
                           onClick: () => onUngroup([data]),
                         },
@@ -218,7 +248,13 @@ export function FacetValuesGrid({
                     : []),
                   {
                     key: "delete",
-                    label: "Delete",
+                    label: (
+                      <span
+                        data-testid={`facet-values-action-delete-${valueTestId(data.handle)}`}
+                      >
+                        Delete
+                      </span>
+                    ),
                     danger: true,
                     onClick: () => onDelete([data]),
                   },
@@ -229,6 +265,7 @@ export function FacetValuesGrid({
                 type="text"
                 icon={<LuEllipsis />}
                 aria-label={`Actions for ${data.label}`}
+                data-testid={`facet-values-row-actions-${valueTestId(data.handle)}`}
               />
             </Dropdown>
           );
@@ -288,11 +325,14 @@ export function FacetValuesGrid({
         placeholder="Search filter values"
         value={search}
         onChange={(event) => setSearch(event.target.value)}
+        data-testid="facet-values-search-input"
       />
 
       {selectedRows.length >= 2 ? (
-        <div className={styles.bulkPanel}>
-          <Typography.Text strong>{selectedRows.length} selected</Typography.Text>
+        <div className={styles.bulkPanel} data-testid="facet-values-bulk-panel">
+          <Typography.Text strong data-testid="facet-values-selection-count">
+            {selectedRows.length} selected
+          </Typography.Text>
           <Flex gap={8} wrap="wrap" justify="end">
             <Tooltip
               title={
@@ -304,17 +344,30 @@ export function FacetValuesGrid({
               <Button
                 disabled={!addToGroupEnabled}
                 onClick={() => onAddToGroup(selectedRows)}
+                data-testid="facet-values-add-to-group-button"
               >
                 Add to group
               </Button>
             </Tooltip>
-            <Button disabled={!ungroupEnabled} onClick={() => onUngroup(selectedRows)}>
+            <Button
+              disabled={!ungroupEnabled}
+              onClick={() => onUngroup(selectedRows)}
+              data-testid="facet-values-bulk-ungroup-button"
+            >
               Ungroup
             </Button>
-            <Button danger onClick={() => onDelete(selectedRows)}>
+            <Button
+              danger
+              onClick={() => onDelete(selectedRows)}
+              data-testid="facet-values-bulk-delete-button"
+            >
               Delete
             </Button>
-            <Button type="text" onClick={clearSelection}>
+            <Button
+              type="text"
+              onClick={clearSelection}
+              data-testid="facet-values-clear-selection-button"
+            >
               Clear
             </Button>
           </Flex>

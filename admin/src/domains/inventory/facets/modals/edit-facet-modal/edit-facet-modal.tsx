@@ -734,6 +734,7 @@ export function EditFacetModal() {
                       className={styles.labelInput}
                       status={fieldError ? "error" : undefined}
                       addonBefore={<FacetSourceAddon value={facet.facetType} />}
+                      data-testid="edit-facet-label-input"
                     />
                     {fieldError && (
                       <div className={styles.error}>{fieldError.message}</div>
@@ -794,6 +795,7 @@ export function EditFacetModal() {
                     type="text"
                     icon={<PlusOutlined />}
                     aria-label="Add values"
+                    data-testid="facet-values-add-button"
                     onClick={handleOpenValueCandidates}
                   />
                 ) : null}

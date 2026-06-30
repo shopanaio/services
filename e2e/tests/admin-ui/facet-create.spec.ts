@@ -305,19 +305,12 @@ async function expectFacetModalValues(
   const modal = page.getByTestId('edit-facet-modal');
   await expect(modal).toBeVisible();
   await expect(modal).toContainText(input.label);
-  await expect(modal.getByTestId('edit-facet-values-list')).toBeVisible();
+  const grid = modal.getByTestId('facet-values-grid');
+  await expect(grid).toBeVisible();
 
-  const inputs = modal.getByTestId('edit-options-value-name-input');
-  await expect(inputs).toHaveCount(input.valueLabels.length);
-  await expect
-    .poll(async () => {
-      const count = await inputs.count();
-      const values = await Promise.all(
-        Array.from({ length: count }, (_, index) => inputs.nth(index).inputValue()),
-      );
-      return values.sort();
-    })
-    .toEqual([...input.valueLabels].sort());
+  for (const label of input.valueLabels) {
+    await expect(gridRows(grid).filter({ hasText: label }).first()).toBeVisible();
+  }
 
   await modal.locator('button').first().click();
   await expect(modal).toBeHidden();
