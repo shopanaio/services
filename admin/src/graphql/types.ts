@@ -3243,7 +3243,7 @@ export type ApiFacet = ApiNode & {
   lexoRank: Scalars['String']['output'];
   selectionMode: FacetSelectionMode;
   slug: Scalars['String']['output'];
-  sourceHandles: Array<Scalars['String']['output']>;
+  sources: Array<ApiFacetSource>;
   uiType: FacetUiType;
   values: Array<ApiFacetValue>;
 };
@@ -3253,7 +3253,7 @@ export type ApiFacetCreateInput = {
   label: Scalars['String']['input'];
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug: Scalars['String']['input'];
-  sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
+  sources?: InputMaybe<Array<ApiFacetSourceInput>>;
   uiType?: InputMaybe<FacetUiType>;
 };
 
@@ -3299,6 +3299,17 @@ export enum FacetSelectionMode {
   Multi = 'MULTI',
   Single = 'SINGLE'
 }
+
+export type ApiFacetSource = {
+  __typename?: 'FacetSource';
+  handle: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+};
+
+export type ApiFacetSourceInput = {
+  handle: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+};
 
 export type ApiFacetSwatch = ApiNode & {
   __typename?: 'FacetSwatch';
@@ -3370,7 +3381,7 @@ export type ApiFacetUpdateInput = {
   label?: InputMaybe<Scalars['String']['input']>;
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug?: InputMaybe<Scalars['String']['input']>;
-  sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
+  sources?: InputMaybe<Array<ApiFacetSourceInput>>;
   uiType?: InputMaybe<FacetUiType>;
 };
 

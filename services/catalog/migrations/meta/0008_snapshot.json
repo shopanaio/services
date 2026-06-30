@@ -1,5 +1,5 @@
 {
-  "id": "0b0da19b-cfad-4688-9945-d32b3d820bc2",
+  "id": "3e84e034-2157-42bc-9f12-10252481a806",
   "prevId": "163bfeec-1dd8-4fa9-bfcc-1e821b7dbc16",
   "version": "7",
   "dialect": "postgresql",
@@ -4013,8 +4013,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "catalog.facet_source_handle": {
-      "name": "facet_source_handle",
+    "catalog.facet_source": {
+      "name": "facet_source",
       "schema": "catalog",
       "columns": {
         "id": {
@@ -4041,8 +4041,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "source_handle": {
-          "name": "source_handle",
+        "handle": {
+          "name": "handle",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -4056,8 +4056,8 @@
         }
       },
       "indexes": {
-        "idx_facet_source_handle_project_facet": {
-          "name": "idx_facet_source_handle_project_facet",
+        "idx_facet_source_project_facet": {
+          "name": "idx_facet_source_project_facet",
           "columns": [
             {
               "expression": "project_id",
@@ -4077,8 +4077,8 @@
           "method": "btree",
           "with": {}
         },
-        "idx_facet_source_handle_project_type_source": {
-          "name": "idx_facet_source_handle_project_type_source",
+        "idx_facet_source_project_type_handle": {
+          "name": "idx_facet_source_project_type_handle",
           "columns": [
             {
               "expression": "project_id",
@@ -4093,7 +4093,7 @@
               "nulls": "last"
             },
             {
-              "expression": "source_handle",
+              "expression": "handle",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -4106,9 +4106,9 @@
         }
       },
       "foreignKeys": {
-        "facet_source_handle_facet_id_facet_id_fk": {
-          "name": "facet_source_handle_facet_id_facet_id_fk",
-          "tableFrom": "facet_source_handle",
+        "facet_source_facet_id_facet_id_fk": {
+          "name": "facet_source_facet_id_facet_id_fk",
+          "tableFrom": "facet_source",
           "tableTo": "facet",
           "schemaTo": "catalog",
           "columnsFrom": [
@@ -4123,25 +4123,107 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "facet_source_handle_project_facet_source_uniq": {
-          "name": "facet_source_handle_project_facet_source_uniq",
+        "facet_source_project_facet_handle_uniq": {
+          "name": "facet_source_project_facet_handle_uniq",
           "nullsNotDistinct": false,
           "columns": [
             "project_id",
             "facet_id",
-            "source_handle"
+            "handle"
           ]
         },
-        "facet_source_handle_project_type_source_uniq": {
-          "name": "facet_source_handle_project_type_source_uniq",
+        "facet_source_project_type_handle_uniq": {
+          "name": "facet_source_project_type_handle_uniq",
           "nullsNotDistinct": false,
           "columns": [
             "project_id",
             "facet_type",
-            "source_handle"
+            "handle"
           ]
         }
       },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "catalog.facet_source_translation": {
+      "name": "facet_source_translation",
+      "schema": "catalog",
+      "columns": {
+        "facet_source_id": {
+          "name": "facet_source_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "locale": {
+          "name": "locale",
+          "type": "varchar(8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "idx_facet_source_translation_project_locale": {
+          "name": "idx_facet_source_translation_project_locale",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "locale",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "facet_source_translation_facet_source_id_facet_source_id_fk": {
+          "name": "facet_source_translation_facet_source_id_facet_source_id_fk",
+          "tableFrom": "facet_source_translation",
+          "tableTo": "facet_source",
+          "schemaTo": "catalog",
+          "columnsFrom": [
+            "facet_source_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "facet_source_translation_facet_source_id_locale_pk": {
+          "name": "facet_source_translation_facet_source_id_locale_pk",
+          "columns": [
+            "facet_source_id",
+            "locale"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

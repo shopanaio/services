@@ -22,9 +22,14 @@ export class FacetResolver extends CatalogType<string, Facet> {
     return ((await this.$get("facetType")) ?? "").toUpperCase();
   }
 
-  async sourceHandles() {
-    const sourceRows = await this.$ctx.loaders.facetSourceHandles.load(this.$props);
-    return Array.from(new Set(sourceRows.map((row) => row.sourceHandle))).sort();
+  async sources() {
+    const sources = await this.$ctx.loaders.facetSources.load(this.$props);
+    return sources
+      .map((source) => ({
+        handle: source.handle,
+        name: source.name ?? source.handle,
+      }))
+      .sort((left, right) => left.handle.localeCompare(right.handle));
   }
 
   async slug() {

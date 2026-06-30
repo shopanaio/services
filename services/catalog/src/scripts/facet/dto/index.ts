@@ -4,12 +4,13 @@ import type {
   FacetValue,
   FacetSwatch,
 } from "../../../repositories/models/index.js";
+import type { FacetSourceInput } from "../../../repositories/facet/FacetRepository.js";
 
 export interface FacetCreateParams {
   facetType: string;
   slug: string;
   label: string;
-  sourceHandles?: string[];
+  sources?: FacetSourceInput[];
   uiType?: string;
   selectionMode?: string;
   lexoRank?: string;
@@ -19,7 +20,7 @@ export interface FacetUpdateParams {
   id: string;
   slug?: string;
   label?: string;
-  sourceHandles?: string[];
+  sources?: FacetSourceInput[];
   uiType?: string;
   selectionMode?: string;
   lexoRank?: string;

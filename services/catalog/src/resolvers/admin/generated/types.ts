@@ -2507,7 +2507,7 @@ export type Facet = Node & {
   lexoRank: Scalars['String']['output'];
   selectionMode: FacetSelectionMode;
   slug: Scalars['String']['output'];
-  sourceHandles: Array<Scalars['String']['output']>;
+  sources: Array<FacetSource>;
   uiType: FacetUiType;
   values: Array<FacetValue>;
 };
@@ -2517,7 +2517,7 @@ export type FacetCreateInput = {
   label: Scalars['String']['input'];
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug: Scalars['String']['input'];
-  sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
+  sources?: InputMaybe<Array<FacetSourceInput>>;
   uiType?: InputMaybe<FacetUiType>;
 };
 
@@ -2563,6 +2563,17 @@ export enum FacetSelectionMode {
   Multi = 'MULTI',
   Single = 'SINGLE'
 }
+
+export type FacetSource = {
+  __typename?: 'FacetSource';
+  handle: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+};
+
+export type FacetSourceInput = {
+  handle: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+};
 
 export type FacetSwatch = Node & {
   __typename?: 'FacetSwatch';
@@ -2634,7 +2645,7 @@ export type FacetUpdateInput = {
   label?: InputMaybe<Scalars['String']['input']>;
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug?: InputMaybe<Scalars['String']['input']>;
-  sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
+  sources?: InputMaybe<Array<FacetSourceInput>>;
   uiType?: InputMaybe<FacetUiType>;
 };
 
@@ -5932,6 +5943,8 @@ export type ResolversTypes = ResolversObject<{
   FacetRebalanceInput: FacetRebalanceInput;
   FacetRebalancePayload: ResolverTypeWrapper<FacetRebalancePayload>;
   FacetSelectionMode: FacetSelectionMode;
+  FacetSource: ResolverTypeWrapper<FacetSource>;
+  FacetSourceInput: FacetSourceInput;
   FacetSwatch: ResolverTypeWrapper<FacetSwatch>;
   FacetSwatchCreateInput: FacetSwatchCreateInput;
   FacetSwatchCreatePayload: ResolverTypeWrapper<FacetSwatchCreatePayload>;
@@ -6295,6 +6308,8 @@ export type ResolversParentTypes = ResolversObject<{
   FacetMovePayload: FacetMovePayload;
   FacetRebalanceInput: FacetRebalanceInput;
   FacetRebalancePayload: FacetRebalancePayload;
+  FacetSource: FacetSource;
+  FacetSourceInput: FacetSourceInput;
   FacetSwatch: FacetSwatch;
   FacetSwatchCreateInput: FacetSwatchCreateInput;
   FacetSwatchCreatePayload: FacetSwatchCreatePayload;
@@ -7128,7 +7143,7 @@ export type FacetResolvers<ContextType = ServiceContext, ParentType extends Reso
   lexoRank?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   selectionMode?: Resolver<ResolversTypes['FacetSelectionMode'], ParentType, ContextType>;
   slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  sourceHandles?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  sources?: Resolver<Array<ResolversTypes['FacetSource']>, ParentType, ContextType>;
   uiType?: Resolver<ResolversTypes['FacetUIType'], ParentType, ContextType>;
   values?: Resolver<Array<ResolversTypes['FacetValue']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -7155,6 +7170,12 @@ export type FacetMovePayloadResolvers<ContextType = ServiceContext, ParentType e
 export type FacetRebalancePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetRebalancePayload'] = ResolversParentTypes['FacetRebalancePayload']> = ResolversObject<{
   facets?: Resolver<Array<ResolversTypes['Facet']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetSourceResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetSource'] = ResolversParentTypes['FacetSource']> = ResolversObject<{
+  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -8042,6 +8063,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   FacetDeletePayload?: FacetDeletePayloadResolvers<ContextType>;
   FacetMovePayload?: FacetMovePayloadResolvers<ContextType>;
   FacetRebalancePayload?: FacetRebalancePayloadResolvers<ContextType>;
+  FacetSource?: FacetSourceResolvers<ContextType>;
   FacetSwatch?: FacetSwatchResolvers<ContextType>;
   FacetSwatchCreatePayload?: FacetSwatchCreatePayloadResolvers<ContextType>;
   FacetSwatchDeletePayload?: FacetSwatchDeletePayloadResolvers<ContextType>;

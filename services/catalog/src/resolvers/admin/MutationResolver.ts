@@ -1824,7 +1824,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       facetType: "PRICE" | "TAG" | "FEATURE" | "OPTION" | "IN_STOCK";
       slug: string;
       label: string;
-      sourceHandles?: string[] | null;
+      sources?: Array<{ handle: string; name: string }> | null;
       uiType?: "CHECKBOX" | "RADIO" | "DROPDOWN" | "RANGE" | "BOOLEAN" | null;
       selectionMode?: "SINGLE" | "MULTI" | null;
     };
@@ -1833,7 +1833,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       facetType: args.input.facetType.toLowerCase(),
       slug: args.input.slug,
       label: args.input.label,
-      sourceHandles: args.input.sourceHandles ?? undefined,
+      sources: args.input.sources ?? undefined,
       uiType: args.input.uiType?.toLowerCase(),
       selectionMode: args.input.selectionMode?.toLowerCase(),
     });
@@ -1849,7 +1849,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       id: string;
       slug?: string | null;
       label?: string | null;
-      sourceHandles?: string[] | null;
+      sources?: Array<{ handle: string; name: string }> | null;
       uiType?: "CHECKBOX" | "RADIO" | "DROPDOWN" | "RANGE" | "BOOLEAN" | null;
       selectionMode?: "SINGLE" | "MULTI" | null;
     };
@@ -1865,7 +1865,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       id,
       slug: args.input.slug ?? undefined,
       label: args.input.label ?? undefined,
-      sourceHandles: args.input.sourceHandles ?? undefined,
+      sources: args.input.sources ?? undefined,
       uiType: args.input.uiType?.toLowerCase(),
       selectionMode: args.input.selectionMode?.toLowerCase(),
     });

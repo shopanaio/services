@@ -22,13 +22,18 @@ enum FacetSelectionMode {
 type Facet implements Node {
   id: ID!
   facetType: FacetType!
-  sourceHandles: [String!]!
+  sources: [FacetSource!]!
   slug: String!
   label: String!
   uiType: FacetUIType!
   selectionMode: FacetSelectionMode!
   lexoRank: String!
   values: [FacetValue!]!
+}
+
+type FacetSource {
+  handle: String!
+  name: String!
 }
 
 type FacetValue implements Node {
@@ -54,7 +59,7 @@ type FacetSwatch implements Node {
 input FacetCreateInput {
   facetType: FacetType!
   slug: String!
-  sourceHandles: [String!]
+  sources: [FacetSourceInput!]
   uiType: FacetUIType
   selectionMode: FacetSelectionMode
   label: String!
@@ -63,10 +68,15 @@ input FacetCreateInput {
 input FacetUpdateInput {
   id: ID!
   slug: String
-  sourceHandles: [String!]
+  sources: [FacetSourceInput!]
   uiType: FacetUIType
   selectionMode: FacetSelectionMode
   label: String
+}
+
+input FacetSourceInput {
+  handle: String!
+  name: String!
 }
 
 input FacetDeleteInput {

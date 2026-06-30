@@ -49,11 +49,40 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
       };
     }
 
+    if (
+      params.sources !== undefined &&
+      !["feature", "option"].includes(params.facetType)
+    ) {
+      return {
+        facet: undefined,
+        userErrors: [{
+          message: "Sources are only supported for FEATURE and OPTION facets",
+          field: ["sources"],
+          code: "INVALID",
+        }],
+      };
+    }
+
+    if (
+      params.sources?.some(
+        (source) => source.handle.trim() === "" || source.name.trim() === ""
+      )
+    ) {
+      return {
+        facet: undefined,
+        userErrors: [{
+          message: "Source handle and name are required",
+          field: ["sources"],
+          code: "REQUIRED",
+        }],
+      };
+    }
+
     const facet = await this.repository.facet.create({
       facetType: params.facetType,
       slug: params.slug,
       label: params.label,
-      sourceHandles: params.sourceHandles,
+      sources: params.sources,
       uiType: params.uiType,
       selectionMode: params.selectionMode,
       lexoRank: params.lexoRank,

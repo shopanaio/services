@@ -53,8 +53,8 @@ export const facetTranslation = catalogSchema.table(
   ]
 );
 
-export const facetSourceHandle = catalogSchema.table(
-  "facet_source_handle",
+export const facetSource = catalogSchema.table(
+  "facet_source",
   {
     id: uuid("id").primaryKey(),
     projectId: uuid("project_id").notNull(),
@@ -62,30 +62,49 @@ export const facetSourceHandle = catalogSchema.table(
       .notNull()
       .references(() => facet.id, { onDelete: "cascade" }),
     facetType: varchar("facet_type", { length: 32 }).notNull(),
-    sourceHandle: text("source_handle").notNull(),
+    handle: text("handle").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
   },
   (table) => [
-    unique("facet_source_handle_project_facet_source_uniq").on(
+    unique("facet_source_project_facet_handle_uniq").on(
       table.projectId,
       table.facetId,
-      table.sourceHandle
+      table.handle
     ),
-    unique("facet_source_handle_project_type_source_uniq").on(
+    unique("facet_source_project_type_handle_uniq").on(
       table.projectId,
       table.facetType,
-      table.sourceHandle
+      table.handle
     ),
-    index("idx_facet_source_handle_project_facet").on(
+    index("idx_facet_source_project_facet").on(
       table.projectId,
       table.facetId
     ),
-    index("idx_facet_source_handle_project_type_source").on(
+    index("idx_facet_source_project_type_handle").on(
       table.projectId,
       table.facetType,
-      table.sourceHandle
+      table.handle
+    ),
+  ]
+);
+
+export const facetSourceTranslation = catalogSchema.table(
+  "facet_source_translation",
+  {
+    facetSourceId: uuid("facet_source_id")
+      .notNull()
+      .references(() => facetSource.id, { onDelete: "cascade" }),
+    locale: varchar("locale", { length: 8 }).notNull(),
+    projectId: uuid("project_id").notNull(),
+    name: text("name").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.facetSourceId, table.locale] }),
+    index("idx_facet_source_translation_project_locale").on(
+      table.projectId,
+      table.locale
     ),
   ]
 );
@@ -191,8 +210,10 @@ export type Facet = typeof facet.$inferSelect;
 export type NewFacet = typeof facet.$inferInsert;
 export type FacetTranslation = typeof facetTranslation.$inferSelect;
 export type NewFacetTranslation = typeof facetTranslation.$inferInsert;
-export type FacetSourceHandle = typeof facetSourceHandle.$inferSelect;
-export type NewFacetSourceHandle = typeof facetSourceHandle.$inferInsert;
+export type FacetSource = typeof facetSource.$inferSelect;
+export type NewFacetSource = typeof facetSource.$inferInsert;
+export type FacetSourceTranslation = typeof facetSourceTranslation.$inferSelect;
+export type NewFacetSourceTranslation = typeof facetSourceTranslation.$inferInsert;
 export type FacetSwatch = typeof facetSwatch.$inferSelect;
 export type NewFacetSwatch = typeof facetSwatch.$inferInsert;
 export type FacetValue = typeof facetValue.$inferSelect;
