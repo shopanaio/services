@@ -4,8 +4,13 @@ export function normalizeFacetValueHandle(handle: string): string {
   return handle.trim();
 }
 
+function normalizeFacetType(facetType: string): string {
+  return facetType.toUpperCase();
+}
+
 export function isFacetWithValues(facetType: string): boolean {
-  return facetType !== "price" && facetType !== "in_stock";
+  const normalizedType = normalizeFacetType(facetType);
+  return normalizedType !== "PRICE" && normalizedType !== "IN_STOCK";
 }
 
 export function isValidDisplayHandle(handle: string): boolean {
@@ -16,11 +21,12 @@ export function isValidSourceHandle(
   facetType: string,
   handle: string
 ): boolean {
-  if (facetType === "tag") {
+  const normalizedType = normalizeFacetType(facetType);
+  if (normalizedType === "TAG") {
     return isValidSlug(handle);
   }
 
-  if (facetType !== "feature" && facetType !== "option") {
+  if (normalizedType !== "FEATURE" && normalizedType !== "OPTION") {
     return false;
   }
 

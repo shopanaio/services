@@ -41,6 +41,25 @@ type Facet implements Node {
   values: [FacetValue!]!
 }
 
+type FacetSourceCandidate {
+  id: ID!
+  locale: String!
+  facetType: FacetType!
+  handle: String!
+  name: String
+}
+
+type FacetSourceCandidateEdge {
+  cursor: String!
+  node: FacetSourceCandidate!
+}
+
+type FacetSourceCandidateConnection {
+  edges: [FacetSourceCandidateEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
 type FacetValue implements Node {
   id: ID!
   facet: Facet!
@@ -63,12 +82,18 @@ type FacetSwatch implements Node {
   metadata: JSON
 }
 
+input FacetCreateSourceInput {
+  handle: String!
+  name: String!
+}
+
 input FacetCreateInput {
   facetType: FacetType!
   slug: String!
   uiType: FacetUIType
   selectionMode: FacetSelectionMode
   label: String!
+  sources: [FacetCreateSourceInput!]
 }
 
 input FacetUpdateInput {

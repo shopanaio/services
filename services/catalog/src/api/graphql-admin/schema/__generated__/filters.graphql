@@ -616,3 +616,51 @@ input VariantOrderByInput {
   """Sort direction"""
   direction: SortDirection!
 }
+
+# ---- FacetSourceCandidate ----
+
+"""Filter conditions for FacetSourceCandidate"""
+input FacetSourceCandidateWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [FacetSourceCandidateWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [FacetSourceCandidateWhereInput!]
+  """Negate the condition"""
+  _not: FacetSourceCandidateWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by facetType"""
+  facetType: StringFilter
+  """Filter by handle"""
+  handle: StringFilter
+  """Filter by name"""
+  name: StringFilter
+  """Filter by sourceSortBucket"""
+  sourceSortBucket: IntFilter
+  """Filter by sortName"""
+  sortName: StringFilter
+}
+
+"""Fields available for sorting FacetSourceCandidate"""
+enum FacetSourceCandidateOrderField {
+  """Sort by id"""
+  id
+  """Sort by facetType"""
+  facetType
+  """Sort by handle"""
+  handle
+  """Sort by name"""
+  name
+  """Sort by sourceSortBucket"""
+  sourceSortBucket
+  """Sort by sortName"""
+  sortName
+}
+
+"""Ordering configuration for FacetSourceCandidate"""
+input FacetSourceCandidateOrderByInput {
+  """Field to order by"""
+  field: FacetSourceCandidateOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}

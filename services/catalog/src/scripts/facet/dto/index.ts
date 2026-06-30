@@ -5,6 +5,11 @@ import type {
   FacetSwatch,
 } from "../../../repositories/models/index.js";
 
+export interface FacetCreateSourceInput {
+  handle: string;
+  name: string;
+}
+
 export interface FacetCreateParams {
   facetType: string;
   slug: string;
@@ -12,6 +17,7 @@ export interface FacetCreateParams {
   uiType?: string;
   selectionMode?: string;
   lexoRank?: string;
+  sources?: FacetCreateSourceInput[];
 }
 
 export interface FacetUpdateParams {

@@ -1,5 +1,11 @@
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import {
+  createQuery,
+  createRelayQuery,
+  type InferRelayInput,
+  type PageInfo,
+} from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   LexoRankRepository,
@@ -8,10 +14,12 @@ import {
 import {
   facet,
   facetSource,
+  facetSourceCandidateView,
   facetSourceTranslation,
   facetTranslation,
   facetValue,
   type Facet,
+  type FacetSourceCandidateView,
   type NewFacet,
   type FacetTranslation,
 } from "../models/index.js";
@@ -33,6 +41,24 @@ export interface FacetSourceWithName {
   facetId: string;
   handle: string;
   name: string | null;
+}
+
+export const facetSourceCandidateRelayQuery = createRelayQuery(
+  createQuery(facetSourceCandidateView)
+    .include(["id", "projectId", "locale", "facetType", "handle"])
+    .maxLimit(100)
+    .defaultLimit(30),
+  { name: "facetSourceCandidate", tieBreaker: "id" }
+);
+
+export type FacetSourceCandidateRelayInput = InferRelayInput<
+  typeof facetSourceCandidateRelayQuery
+>;
+
+export interface FacetSourceCandidateConnectionResult {
+  edges: Array<{ cursor: string; node: FacetSourceCandidateView }>;
+  pageInfo: PageInfo;
+  totalCount: number;
 }
 
 export class FacetRepository extends BaseRepository {
@@ -247,6 +273,65 @@ export class FacetRepository extends BaseRepository {
           inArray(facetSource.facetId, [...facetIds])
         )
       );
+  }
+
+  async getAvailableFacetSourceCandidates(
+    args: FacetSourceCandidateRelayInput
+  ): Promise<FacetSourceCandidateConnectionResult> {
+    const { where, orderBy, ...paginationArgs } = args;
+    const mergedWhere: FacetSourceCandidateRelayInput["where"] = {
+      _and: [
+        { projectId: { _eq: this.storeId } },
+        { locale: { _eq: this.locale } },
+        ...(where ? [where] : []),
+      ],
+    };
+
+    const executeInput: FacetSourceCandidateRelayInput = {
+      ...paginationArgs,
+      where: mergedWhere,
+      orderBy: orderBy ?? [
+        { field: "sourceSortBucket", direction: "asc" },
+        { field: "sortName", direction: "asc", nulls: "last" },
+        { field: "id", direction: "asc" },
+      ],
+    };
+
+    const [result, totalCount] = await Promise.all([
+      facetSourceCandidateRelayQuery.execute(this.connection, executeInput),
+      facetSourceCandidateRelayQuery.count(this.connection, {
+        where: mergedWhere,
+      }),
+    ]);
+
+    return {
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        node: edge.node,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
+  }
+
+  async findAvailableFacetSourceCandidate(args: {
+    facetType: string;
+    handle: string;
+  }): Promise<FacetSourceCandidateView | null> {
+    const rows = await this.connection
+      .select()
+      .from(facetSourceCandidateView)
+      .where(
+        and(
+          eq(facetSourceCandidateView.projectId, this.storeId),
+          eq(facetSourceCandidateView.locale, this.locale),
+          eq(facetSourceCandidateView.facetType, args.facetType),
+          eq(facetSourceCandidateView.handle, args.handle)
+        )
+      )
+      .limit(1);
+
+    return rows[0] ?? null;
   }
 
   async replaceSources(

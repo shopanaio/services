@@ -1852,14 +1852,22 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       label: string;
       uiType?: "CHECKBOX" | "RADIO" | "DROPDOWN" | "RANGE" | "BOOLEAN" | null;
       selectionMode?: "SINGLE" | "MULTI" | null;
+      sources?: Array<{
+        handle: string;
+        name: string;
+      }> | null;
     };
   }) {
     const result = await this.$ctx.kernel.runScript(FacetCreateScript, {
-      facetType: args.input.facetType.toLowerCase(),
+      facetType: args.input.facetType,
       slug: args.input.slug,
       label: args.input.label,
       uiType: args.input.uiType?.toLowerCase(),
       selectionMode: args.input.selectionMode?.toLowerCase(),
+      sources: args.input.sources?.map((source) => ({
+        handle: source.handle,
+        name: source.name,
+      })),
     });
 
     return {

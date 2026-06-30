@@ -40,6 +40,10 @@ import {
 import { TagResolver } from "./TagResolver.js";
 import { CollectionResolver } from "./CollectionResolver.js";
 import { FacetResolver } from "./FacetResolver.js";
+import {
+  FacetSourceCandidateConnectionResolver,
+  type FacetSourceCandidateConnectionInput,
+} from "./FacetSourceCandidateConnectionResolver.js";
 import { FacetValueResolver } from "./FacetValueResolver.js";
 import { FacetSwatchResolver } from "./FacetSwatchResolver.js";
 import {
@@ -339,6 +343,10 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
   async facets() {
     const facets = await this.$ctx.kernel.repository.facet.findAll();
     return facets.map((item) => new FacetResolver(item.id, this.$ctx));
+  }
+
+  facetSourceCandidates(args: FacetSourceCandidateConnectionInput) {
+    return new FacetSourceCandidateConnectionResolver(args, this.$ctx);
   }
 
   async facetValue(args: { id: string }) {
