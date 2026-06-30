@@ -480,38 +480,15 @@ export interface ResolvedFacetFilterValue {
 Поле `sourceHandles` здесь можно оставить как runtime-derived термин, потому что
 это не DB table и не Admin API для редактирования.
 
-Новый query для resolution:
+Resolution contract:
 
-```ts
-import { and, eq, isNull } from "drizzle-orm";
-
-const rows = await this.connection
-  .select({
-    facetId: facet.id,
-    facetType: facet.facetType,
-    valueId: facetValue.id,
-    valueKind: facetValue.kind,
-    valueHandle: facetValue.handle,
-  })
-  .from(facet)
-  .innerJoin(
-    facetValue,
-    and(
-      eq(facetValue.facetId, facet.id),
-      eq(facetValue.projectId, facet.projectId),
-      isNull(facetValue.parentId),
-      eq(facetValue.handle, valueHandle),
-      eq(facetValue.enabled, true)
-    )
-  )
-  .where(and(eq(facet.projectId, this.storeId), eq(facet.slug, facetSlug)));
-```
-
-Затем:
-
-- если `kind = 'source'`, вернуть `[value.handle]`;
-- если `kind = 'display'`, загрузить children через
-  `facetValue.getEnabledSourceChildrenByParentIds`.
+- parse all `rawFilters` as `facetSlug:valueHandle` tokens;
+- resolve visible values through `facet.slug` + root `facet_value.handle`;
+- do not execute DB queries inside a loop over raw filters;
+- if visible value `kind = 'source'`, return `[value.handle]`;
+- if visible value `kind = 'display'`, load enabled source children in batch by
+  parent ids and return child handles;
+- invalid tokens and values without enabled source handles are ignored.
 
 ### `FacetValueRepository`
 
@@ -1168,6 +1145,8 @@ Acceptance:
 - `Facet.values` может получить only visible values;
 - display value разворачивается в children source handles;
 - source value без parent разворачивается в свой handle.
+- `resolveFacetFilterValues` не делает DB query внутри цикла по raw filters;
+  display children грузятся batch by parent ids.
 
 ### Phase 3. Scripts и business validation
 
