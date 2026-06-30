@@ -184,12 +184,6 @@ CREATE UNIQUE INDEX facet_value_root_project_facet_handle_uniq
   ON catalog.facet_value (project_id, facet_id, handle)
   WHERE parent_id IS NULL;
 
--- hidden child handle уникален среди hidden values одного facet;
--- root display и hidden source child могут иметь одинаковый handle
-CREATE UNIQUE INDEX facet_value_child_project_facet_handle_uniq
-  ON catalog.facet_value (project_id, facet_id, handle)
-  WHERE parent_id IS NOT NULL;
-
 -- быстрый вывод visible values
 CREATE INDEX idx_facet_value_project_facet_visible_order
   ON catalog.facet_value (project_id, facet_id, sort_index, id)
@@ -488,7 +482,6 @@ CONSTRAINT "facet_value_facet_id_slug_uniq" UNIQUE ("facet_id", "slug")
   -> удалить и заменить target indexes/constraints:
      - facet_value_source_project_facet_handle_uniq
      - facet_value_root_project_facet_handle_uniq
-     - facet_value_child_project_facet_handle_uniq
      - idx_facet_value_project_facet_visible_order
      - idx_facet_value_project_parent
      - idx_facet_value_project_facet_source_handle
@@ -1302,8 +1295,7 @@ display: handle=nike, parent_id=NULL
 Нужны visibility-scoped constraints:
 
 - source rows: unique `(project_id, facet_id, handle) WHERE kind = 'source'`;
-- root/visible rows: unique `(project_id, facet_id, handle) WHERE parent_id IS NULL`;
-- hidden child rows: unique `(project_id, facet_id, handle) WHERE parent_id IS NOT NULL`.
+- root/visible rows: unique `(project_id, facet_id, handle) WHERE parent_id IS NULL`.
 
 Так display `handle=nike` и source `handle=nike` могут сосуществовать только как
 root display + hidden source child. Если такой source child попытаться unmerge в
