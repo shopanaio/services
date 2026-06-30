@@ -4,9 +4,6 @@
   "description": "Catalog microservice - products, variants, categories, tags, options, features",
   "type": "module",
   "main": "dist/index.js",
-  "scripts": {
-    "db:generate": "drizzle-kit generate"
-  },
   "exports": {
     ".": {
       "import": "./dist/catalog.module.js",
@@ -47,7 +44,6 @@
     "@graphql-codegen/typescript-resolvers": "^4.0.9",
     "@shopana/build-tools": "0.0.1",
     "@types/node": "^20.14.14",
-    "drizzle-kit": "^0.31.7",
     "graphql-codegen-typescript-validation-schema": "^0.18.1",
     "tsx": "^4.16.2",
     "typescript": "^5.5.4"

@@ -611,7 +611,8 @@ Source values управляются отдельными value-level опера
 Переименовать:
 
 - `slug` -> `handle`;
-- `sourceHandles` -> `sourceValueIds` для display values.
+- `sourceHandles` -> `sourceValueIds` для create display value и dedicated
+  merge/unmerge operations.
 
 Новые DTO:
 
@@ -633,7 +634,6 @@ export interface FacetValueUpdateParams {
   id: string;
   handle?: string;
   label?: string;
-  sourceValueIds?: string[];
   swatchId?: string | null;
   sortIndex?: number;
   enabled?: boolean;
@@ -656,11 +656,14 @@ export interface FacetValueUpdateParams {
 
 Правила update:
 
-- update display `sourceValueIds` делает attach/detach через `parent_id`;
+- generic update не принимает `sourceValueIds` и не меняет `parent_id` у
+  source rows;
+- attach/detach source rows к display value делается только через
+  `FacetValueMergeScript` / `FacetValueUnmergeScript`;
 - update source не должен менять `handle` через generic display-value update.
   Изменение source handle должно быть отдельной explicit source-value operation;
-- если display loses all children, mutation должна вернуть userError или
-  автоматически disable display.
+- если display loses all children после unmerge, dedicated mutation должна
+  вернуть userError или автоматически disable display.
 
 ### Merge/unmerge scripts
 
@@ -688,29 +691,90 @@ export interface FacetValueMergeParams {
 
 export interface FacetValueUnmergeParams {
   sourceValueIds: string[];
+  emptyDisplayAction?: "disable" | "delete" | "keep";
+}
+
+export interface FacetValueMergeResult {
+  facetValue?: FacetValue;
+  sourceValues: FacetValue[];
+  userErrors: UserError[];
+}
+
+export interface FacetValueUnmergeResult {
+  sourceValues: FacetValue[];
+  affectedDisplayValues: FacetValue[];
+  userErrors: UserError[];
 }
 ```
 
-Merge behavior:
+Merge contract:
 
+- mutation принимает `facetId`, `sourceValueIds` и один из target modes:
+  `targetDisplayValueId` для merge в существующий display value или
+  `targetHandle + targetLabel` для создания нового display value;
+- `targetDisplayValueId` и `targetHandle/targetLabel` не должны использоваться
+  одновременно;
 - если `targetDisplayValueId` передан, attach source values к нему;
-- если не передан, создать display value с `targetHandle/targetLabel`;
+- если `targetDisplayValueId` не передан, создать display value с
+  `targetHandle/targetLabel`;
 - source values должны быть `kind = 'source'`;
 - source values должны принадлежать тому же facet;
-- target должен быть `kind = 'display'`.
+- target должен быть `kind = 'display'`;
+- source values могут быть root или уже hidden children другого display value;
+- merge переводит каждый source value в `parent_id = targetDisplayValueId`;
+- merge не создает и не удаляет source rows;
+- результат возвращает target display value в `facetValue` и измененные source
+  rows в `sourceValues`.
 
-Unmerge behavior:
+Merge userErrors:
 
+- `INVALID_FACET_ID` для невалидного `facetId`;
+- `INVALID_SOURCE_VALUE_ID` для невалидного id в `sourceValueIds`;
+- `SOURCE_VALUES_REQUIRED`, если `sourceValueIds` пустой;
+- `TARGET_REQUIRED`, если не передан ни `targetDisplayValueId`, ни
+  `targetHandle/targetLabel`;
+- `TARGET_AMBIGUOUS`, если одновременно переданы `targetDisplayValueId` и
+  `targetHandle/targetLabel`;
+- `TARGET_NOT_DISPLAY`, если target row не `kind = 'display'`;
+- `SOURCE_NOT_SOURCE`, если source row не `kind = 'source'`;
+- `FACET_MISMATCH`, если target/source rows не принадлежат `facetId`;
+- `HANDLE_ALREADY_EXISTS`, если новый display handle конфликтует с root value.
+
+Unmerge contract:
+
+- mutation принимает `sourceValueIds` и опциональный `emptyDisplayAction`;
+- все `sourceValueIds` должны указывать на rows `kind = 'source'`;
 - source values получают `parent_id = NULL`;
-- если old display остается без children, либо disable, либо delete display
-  по явному параметру. Рекомендуемый default: disable display и вернуть warning
-  в mutation payload.
+- перед detach нужно проверить, что root value с таким же `handle` не существует
+  в том же facet, кроме самой unmerged source row;
+- если root handle конфликтует, mutation возвращает userError и не делает
+  частичный detach;
+- если old display остается без children, применяется `emptyDisplayAction`;
+- default `emptyDisplayAction = "disable"`;
+- `disable` ставит old display `enabled = false`;
+- `delete` удаляет old display, только если у него не осталось children;
+- `keep` оставляет old display без children, но такой display не должен быть
+  usable storefront filter value;
+- unmerge не создает и не удаляет source rows;
+- результат возвращает detached source rows в `sourceValues` и затронутые old
+  display rows в `affectedDisplayValues`.
+
+Unmerge userErrors:
+
+- `INVALID_SOURCE_VALUE_ID` для невалидного id в `sourceValueIds`;
+- `SOURCE_VALUES_REQUIRED`, если `sourceValueIds` пустой;
+- `SOURCE_NOT_SOURCE`, если source row не `kind = 'source'`;
+- `SOURCE_NOT_MERGED`, если source row уже root и detach не нужен;
+- `ROOT_HANDLE_CONFLICT`, если unmerge сделает неоднозначный root handle;
+- `EMPTY_DISPLAY_ACTION_INVALID`, если передан неизвестный action.
 
 ## Изменения GraphQL Admin API
 
 Файл:
 
 - `services/catalog/src/api/graphql-admin/schema/facet.graphql`.
+- `services/catalog/src/api/graphql-admin/schema/base.graphql` для полей
+  `CatalogMutation`.
 
 ### Удалить
 
@@ -735,6 +799,12 @@ FacetValueUpdateInput.sourceHandles
 enum FacetValueKind {
   SOURCE
   DISPLAY
+}
+
+enum FacetValueEmptyDisplayAction {
+  DISABLE
+  DELETE
+  KEEP
 }
 
 type FacetValue implements Node {
@@ -781,7 +851,6 @@ input FacetValueUpdateInput {
   id: ID!
   handle: String
   label: String
-  sourceValueIds: [ID!]
   swatchId: ID
   sortIndex: Int
   enabled: Boolean
@@ -797,22 +866,85 @@ input FacetValueMergeInput {
 
 input FacetValueUnmergeInput {
   sourceValueIds: [ID!]!
+  emptyDisplayAction: FacetValueEmptyDisplayAction = DISABLE
 }
 ```
+
+`FacetValueMergeInput` contract:
+
+- `facetId` - facet scope для target и source values;
+- `sourceValueIds` - source rows, которые нужно attach к display value;
+- `targetDisplayValueId` - существующий display value target;
+- `targetHandle` / `targetLabel` - данные для нового display value, если
+  `targetDisplayValueId` не передан;
+- нужно передать ровно один target mode:
+  - existing target: `targetDisplayValueId`;
+  - new target: `targetHandle` + `targetLabel`.
+
+`FacetValueUnmergeInput` contract:
+
+- `sourceValueIds` - source rows, которые нужно detach в root values;
+- `emptyDisplayAction` - что делать с display values, которые после detach
+  остались без source children:
+  - `DISABLE` default: оставить row и выставить `enabled = false`;
+  - `DELETE`: удалить пустой display row;
+  - `KEEP`: оставить пустой display row; storefront/listing не должны считать
+    его usable enabled filter value.
 
 Payloads:
 
 ```graphql
 type FacetValueMergePayload {
   facetValue: FacetValue
+  sourceValues: [FacetValue!]!
   userErrors: [GenericUserError!]!
 }
 
 type FacetValueUnmergePayload {
   sourceValues: [FacetValue!]!
+  affectedDisplayValues: [FacetValue!]!
   userErrors: [GenericUserError!]!
 }
 ```
+
+`FacetValueMergePayload`:
+
+- `facetValue` - target display value, существующий или созданный mutation;
+- `sourceValues` - source rows, у которых изменился `parent_id`;
+- `userErrors` - business validation errors; если массив не пустой, mutation не
+  должна делать частичный merge.
+
+`FacetValueUnmergePayload`:
+
+- `sourceValues` - detached source rows;
+- `affectedDisplayValues` - old display rows, которые были disabled/kept или
+  остаются после detach; для `DELETE` удаленные rows сюда не возвращаются;
+- `userErrors` - business validation errors; если массив не пустой, mutation не
+  должна делать частичный unmerge.
+
+### Mutations
+
+Добавить отдельные mutation fields в `CatalogMutation`:
+
+```graphql
+type CatalogMutation {
+  """
+  Attach source facet values to an existing or newly-created display value.
+  This is the only mutation that merges source values into a display value.
+  """
+  facetValueMerge(input: FacetValueMergeInput!): FacetValueMergePayload!
+
+  """
+  Detach source facet values from their display value and make them root values.
+  This is the only mutation that unmerges source values.
+  """
+  facetValueUnmerge(input: FacetValueUnmergeInput!): FacetValueUnmergePayload!
+}
+```
+
+`facetValueUpdate` не должен принимать `sourceValueIds` и не должен менять
+`parent_id`. Все изменения связей source/display values проходят только через
+`facetValueMerge` и `facetValueUnmerge`.
 
 ### Resolvers
 
@@ -832,7 +964,53 @@ type FacetValueUnmergePayload {
 - добавить `FacetValue.parent()`;
 - добавить `FacetValue.sourceValues()`;
 - удалить `FacetValue.sourceHandles()`;
-- mutation resolvers декодируют `sourceValueIds` как `GlobalIdEntity.FacetValue`.
+- create/merge/unmerge mutation resolvers декодируют `sourceValueIds` как
+  `GlobalIdEntity.FacetValue`; update mutation не принимает `sourceValueIds`.
+
+`facetValueMerge` resolver contract:
+
+1. Decode `input.facetId` как `GlobalIdEntity.Facet`.
+2. Decode `input.targetDisplayValueId`, если передан, как
+   `GlobalIdEntity.FacetValue`.
+3. Decode каждый id из `input.sourceValueIds` как `GlobalIdEntity.FacetValue`.
+4. При invalid global id вернуть payload:
+
+```ts
+{
+  facetValue: null,
+  sourceValues: [],
+  userErrors: [{ field: ["input", "..."], code: "INVALID_ID", message: "..." }]
+}
+```
+
+5. Вызвать `FacetValueMergeScript` с decoded ids.
+6. Вернуть:
+   - `facetValue: FacetValueResolver | null`;
+   - `sourceValues: FacetValueResolver[]`;
+   - `userErrors`.
+
+`facetValueUnmerge` resolver contract:
+
+1. Decode каждый id из `input.sourceValueIds` как `GlobalIdEntity.FacetValue`.
+2. Map `emptyDisplayAction` enum:
+   - `DISABLE` -> `"disable"`;
+   - `DELETE` -> `"delete"`;
+   - `KEEP` -> `"keep"`.
+3. При invalid global id вернуть payload:
+
+```ts
+{
+  sourceValues: [],
+  affectedDisplayValues: [],
+  userErrors: [{ field: ["input", "sourceValueIds"], code: "INVALID_ID", message: "..." }]
+}
+```
+
+4. Вызвать `FacetValueUnmergeScript` с decoded ids.
+5. Вернуть:
+   - `sourceValues: FacetValueResolver[]`;
+   - `affectedDisplayValues: FacetValueResolver[]`;
+   - `userErrors`.
 
 ## Изменения DataLoader
 
@@ -1013,6 +1191,17 @@ Acceptance:
 - `FacetValue.slug` удален;
 - `FacetValue.sourceHandles` удален или deprecated только на промежуточном шаге;
 - `Facet.sources` удален;
+- `CatalogMutation.facetValueMerge` добавлен;
+- `CatalogMutation.facetValueUnmerge` добавлен;
+- `FacetValueUpdateInput.sourceValueIds` отсутствует;
+- `FacetValueMergeInput` поддерживает existing target через
+  `targetDisplayValueId` и new target через `targetHandle/targetLabel`;
+- `FacetValueUnmergeInput.emptyDisplayAction` добавлен с default `DISABLE`;
+- merge payload возвращает `facetValue`, `sourceValues`, `userErrors`;
+- unmerge payload возвращает `sourceValues`, `affectedDisplayValues`,
+  `userErrors`;
+- merge/unmerge resolvers декодируют ids и вызывают dedicated scripts, а не
+  `FacetValueUpdateScript`;
 - `Facet.values` возвращает only visible values.
 
 ### Phase 5. Listing/facet runtime

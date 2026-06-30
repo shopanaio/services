@@ -2,12 +2,14 @@
 
 ## Goal
 
-Reorganize catalog SQL migrations from Drizzle-generated chronological files into a domain/entity-oriented structure that is readable and maintainable while keeping `node-pg-migrate` as the catalog migration runner.
+Replace catalog's Drizzle-generated chronological SQL history with a domain/entity-oriented canonical baseline that is readable and maintainable while keeping `node-pg-migrate` as the catalog migration runner.
+
+The new structured migrations must create the correct final schema directly. They must not replay historical churn from the old Drizzle files, such as creating and dropping the same view, renaming a field through intermediate names, dropping and recreating indexes, or carrying obsolete columns that only existed during generation history.
 
 The refactor should preserve two runtime paths:
 
-- a fresh database can build the full catalog schema from the new structured files;
-- an existing database that already ran the old Drizzle-generated files does not rerun DDL and only migrates tracking state.
+- a fresh database can build the full final catalog schema from the new structured baseline files;
+- an existing database that already ran the full old Drizzle-generated history does not rerun DDL and only migrates tracking state.
 
 ## Current State
 
@@ -22,13 +24,16 @@ services/catalog/migrations/
   0004_rainy_jack_power.sql
   0005_sloppy_zombie.sql
   0006_chemical_hulk.sql
+  0007_amused_stick.sql
+  0008_aspiring_talkback.sql
   meta/
 ```
 
 Problems:
 
 - `0000_mature_charles_xavier.sql` contains most catalog entities in one large file.
-- Later files mix product, category, bundle, pricing, and view changes.
+- Later files mix product, category, bundle, pricing, facets, inventory, and view changes.
+- Some later files describe historical churn rather than the desired baseline schema: view replacements, column renames, dropped columns, and replacement indexes.
 - `migrations/meta` is Drizzle Kit state, not useful for hand-written SQL migration ownership.
 - `node-pg-migrate` tracks migrations by file basename in `catalog.pgmigrations`, so moving or splitting already-applied files requires an explicit compatibility strategy.
 
@@ -43,7 +48,9 @@ Problems:
 
 ## Target Layout
 
-Use domain folders for navigation, but keep globally unique numeric file prefixes because `node-pg-migrate` tracks by basename.
+Use domain folders for navigation and ownership. Numeric prefixes are only an execution-order mechanism for `node-pg-migrate`; they are not domain names.
+
+Keep globally unique numeric file prefixes because `node-pg-migrate` tracks by file basename in `catalog.pgmigrations`. If two domain folders contain the same basename, tracking becomes ambiguous. The domain/entity name after the prefix is the human-readable ownership marker.
 
 ```text
 services/catalog/migrations/
@@ -99,6 +106,28 @@ services/catalog/migrations/
 
 Domain folders are for ownership. Numeric prefixes still define execution order.
 
+## Entity and Domain File Distribution
+
+The split must be entity-oriented inside each domain folder, not only numeric buckets. Use the following target ownership map when creating the real files:
+
+| Domain folder | Entity-owned files | Owned objects |
+| --- | --- | --- |
+| `0000_foundation/` | `0000_foundation__schema.sql`, `0001_foundation__types.sql`, optional `0002_foundation__extensions.sql` | `catalog` schema, enum types, global helper database objects, required extensions |
+| `0100_product/` | `0100_product__tables.sql`, `0101_product__translations.sql`, `0102_product__media.sql`, `0103_product__seo.sql`, `0104_product__variant_tables.sql`, `0105_product__search_index.sql`, `0106_product__constraints.sql` | `product`, `product_translation`, product SEO/media tables, `variant`, variant media/option links owned by product shape, product and variant search indexes |
+| `0200_category/` | `0200_category__tables.sql`, `0201_category__translations.sql`, `0202_category__seo_media.sql`, `0203_category__product_relations.sql`, `0204_category__tag_relations.sql`, `0205_category__views.sql` | `category`, category translations, category SEO/media, `product_category`, category tags, category list view |
+| `0300_options/` | `0300_options__tables.sql`, `0301_options__values.sql`, `0302_options__swatches.sql`, `0303_options__variant_relations.sql` | `product_option`, option translations, option values, option value translations, swatches, variant option value relations |
+| `0400_features/` | `0400_features__groups.sql`, `0401_features__features.sql`, `0402_features__values.sql`, `0403_features__product_relations.sql` | feature groups, product features, feature values, translations, product-feature relations |
+| `0500_facets/` | `0500_facets__tables.sql`, `0501_facets__values.sql`, `0502_facets__translations.sql`, `0503_facets__sources.sql`, `0504_facets__relations.sql` | facets, facet groups, facet values, translations, source handles/sources, facet relations |
+| `0600_inventory/` | `0600_inventory__warehouses.sql`, `0601_inventory__items.sql`, `0602_inventory__stock.sql`, `0603_inventory__reservations.sql`, `0604_inventory__supply.sql`, `0605_inventory__views.sql` | warehouses, inventory items, stock, stock changes, reservations, inbound supply, inventory list views |
+| `0700_pricing/` | `0700_pricing__item_pricing.sql`, `0701_pricing__cost_history.sql`, `0702_pricing__views.sql` | item pricing, variant cost history, current price/cost views, product price range view |
+| `0800_bundles/` | `0800_bundles__tables.sql`, `0801_bundles__configuration.sql`, `0802_bundles__items.sql`, `0803_bundles__pricing.sql`, `0804_bundles__dependencies.sql`, `0805_bundles__views.sql` | bundle root tables, configurations, groups, items, option selections, bundle price rules/templates, bundle list view |
+| `0900_collections/` | `0900_collections__tables.sql`, `0901_collections__items.sql`, `0902_collections__rules.sql`, `0903_collections__translations.sql`, `0904_collections__seo_media.sql` | collections, collection items, collection rules, translations, SEO/media |
+| `1000_bulk_edit/` | `1000_bulk_edit__jobs.sql`, `1001_bulk_edit__items.sql`, `1002_bulk_edit__fences.sql` | bulk edit jobs, items, operation fences, statuses, cancel reasons |
+| `1100_dependencies/` | `1100_dependencies__rules.sql`, `1101_dependencies__conditions.sql`, `1102_dependencies__actions.sql` | dependency rules, condition groups, conditions, dependency actions |
+| `9000_read_models/` | `9000_read_models__listing.sql`, `9001_read_models__product.sql`, `9002_read_models__category.sql`, `9003_read_models__inventory.sql` | cross-domain read models only when no single domain clearly owns the view |
+
+The exact file list may change after inventory, but every final file must answer two questions from its path alone: which domain owns it, and which entity/read model it changes.
+
 ## Domain Ownership Rules
 
 - Foundation owns schema creation, enums, global helper types, and extension setup.
@@ -140,7 +169,7 @@ Keep `singleTransaction: false` so a future migration can opt into PostgreSQL op
 
 ## Applied-State Compatibility
 
-Renaming or splitting applied migrations creates new basenames. `node-pg-migrate` would treat those as pending unless we mark them as already applied.
+Replacing old Drizzle-generated history with a new canonical baseline creates new basenames. `node-pg-migrate` would treat those as pending unless we mark them as already applied for databases that have already completed the old catalog migration history.
 
 Add a compatibility preflight before `runner(...)`:
 
@@ -150,70 +179,80 @@ Add a compatibility preflight before `runner(...)`:
    - `catalog.pgmigrations`;
    - `drizzle.__drizzle_migrations_catalog`;
    - `drizzle.__drizzle_migrations`.
-4. For every old migration name that is already applied, insert the mapped new migration names into `catalog.pgmigrations` if missing.
-5. Run `node-pg-migrate`.
+4. If all required old catalog migration names are already applied, insert every new canonical baseline basename into `catalog.pgmigrations` if missing.
+5. If only part of the old catalog migration history is applied, fail with a clear error. Partial old-history databases are not a supported cutover target for this refactor; recreate the disposable database or finish the old history first.
+6. Run `node-pg-migrate`.
 
 Suggested alias file:
 
 ```json
 {
-  "0000_mature_charles_xavier": [
+  "oldHistoryCompleteWhenApplied": [
+    "0000_mature_charles_xavier",
+    "0001_bored_red_skull",
+    "0002_uppercase_bundle_display_style",
+    "0003_absurd_cerise",
+    "0004_rainy_jack_power",
+    "0005_sloppy_zombie",
+    "0006_chemical_hulk",
+    "0007_amused_stick",
+    "0008_aspiring_talkback"
+  ],
+  "canonicalBaselineAppliedNames": [
     "0000_foundation__schema",
     "0001_foundation__types",
     "0100_product__tables",
-    "0200_category__tables"
-  ],
-  "0001_bored_red_skull": [
-    "0602_inventory__views",
-    "9000_read_models__product_listing"
+    "0200_category__tables",
+    "9000_read_models__listing"
   ]
 }
 ```
 
-The actual mapping must be produced after splitting each old SQL file. Do not guess this mapping manually without reviewing the statements.
+The actual `canonicalBaselineAppliedNames` list must contain every new baseline SQL basename. It is not a statement-level mapping from old files to new files.
 
 Fresh databases do not have old applied names, so no aliases are inserted and the new structured SQL files run normally.
 
-Existing databases have old applied names, so the equivalent new structured files are marked applied and not rerun.
+Existing fully migrated databases have the complete old history, so every new canonical baseline file is marked applied and not rerun.
 
 ## Refactor Phases
 
-### Phase 1: Inventory Current SQL
+### Phase 1: Inventory Final Schema
 
-Create a migration inventory table from existing files:
+Create a final-schema inventory from Drizzle models and the effective end state of existing migration files:
 
 ```text
-old file -> statement number -> object type -> object name -> owning domain
+object type -> object name -> owning domain -> target canonical file
 ```
 
-Classify statements by object:
+Classify final objects by owner:
 
 - `CREATE SCHEMA`, `CREATE TYPE`, extensions -> foundation;
 - `CREATE TABLE` -> entity owner;
-- `ALTER TABLE ... ADD CONSTRAINT` -> table owner unless it is a join table;
-- `CREATE INDEX` -> indexed table owner;
-- `CREATE VIEW` / `DROP VIEW` -> read model owner;
-- data backfills -> owner of the written table.
+- constraints -> table owner unless it is a join table;
+- indexes -> indexed table owner;
+- final view definitions -> read model owner;
 
-Keep the inventory document or generated report in `services/catalog/docs/` until the migration split is reviewed.
+The inventory must describe the target final schema only. Do not keep objects that were created only to be dropped or renamed by later historical migrations.
 
-### Phase 2: Split SQL Into Structured Files
+Keep the inventory document or generated report in `services/catalog/docs/` until the baseline is reviewed.
+
+### Phase 2: Create Structured Baseline SQL
 
 Move old root migration files to `migrations/legacy-drizzle/` for audit history.
 
-Create new files under `migrations/domains/**`.
+Create new canonical baseline files under `migrations/domains/**`.
 
 Rules:
 
-- preserve the SQL semantics exactly;
-- preserve dependency order across files;
+- create the final schema directly from scratch;
+- do not replay historical `CREATE` -> `DROP`, rename, replacement-index, or replacement-view sequences;
+- keep only the final desired table, column, constraint, index, type, and view definitions;
 - do not combine unrelated entities just because they appeared in the same old generated file;
 - keep FK constraints after both referenced tables exist;
 - keep views after all source tables and prerequisite views exist;
-- keep `DROP VIEW` / `CREATE VIEW` pairs together when they represent one read-model replacement;
-- avoid editing SQL style unless required to make the split valid.
+- write canonical SQL that is easy to review, not generated churn copied verbatim.
 
-For the large initial migration, split in dependency layers:
+Build the baseline in dependency layers:
 
 1. schema and enum types;
 2. base tables by entity domain;
@@ -225,16 +264,17 @@ For the large initial migration, split in dependency layers:
 
 Create `migrations/_applied-aliases.json`.
 
-For each old file:
+The alias file is a cutover marker, not a split-history map:
 
-- list every new migration basename that contains statements from that old file;
-- keep aliases in execution order;
-- include view replacement files and small one-off files, not only the initial schema split.
+- list every old migration basename required to consider the old catalog history complete;
+- list every new canonical baseline basename that should be marked applied when the old history is complete;
+- keep new baseline aliases in execution order.
 
 Acceptance:
 
-- every new structured file is mapped from exactly one old migration when it contains historical SQL;
-- future migrations are not listed in aliases;
+- every canonical baseline SQL file is listed exactly once in `canonicalBaselineAppliedNames`;
+- every old root migration file through the cutover point is listed in `oldHistoryCompleteWhenApplied`;
+- future migrations after the baseline are not listed in aliases;
 - alias basenames match actual file basenames without `.sql`.
 
 ### Phase 4: Update Catalog Runner
@@ -287,10 +327,10 @@ Existing fully migrated database:
 
 Partially migrated database:
 
-- prepare a database with only old migrations through a chosen cutoff;
+- prepare a database with only part of the old history applied;
 - run new catalog runner;
-- verify aliases are inserted only for applied old files;
-- verify remaining structured files continue from the correct point.
+- verify the runner fails with a clear unsupported-partial-history error;
+- recreate the disposable database or finish the old history before applying the refactor.
 
 ## Verification Commands
 
@@ -315,6 +355,7 @@ Normalize volatile dump lines before diffing, such as ownership and comments, if
 
 - Catalog runner no longer depends on Drizzle migration metadata for normal operation.
 - Catalog migrations are under `migrations/domains/**` and grouped by entity/domain.
+- Fresh catalog migrations create the final schema directly and do not replay historical create/drop/rename churn.
 - `legacy-drizzle/**` is retained for audit but excluded from execution.
 - `catalog.pgmigrations` remains the only node-pg-migrate tracking table for catalog.
 - Existing migrated environments do not rerun historical DDL after the refactor.
@@ -329,4 +370,4 @@ After all environments have run the transition:
 - remove fallback reads from old Drizzle tracking tables if no longer needed;
 - decide whether to keep `legacy-drizzle/**` permanently or move it to docs/archive;
 - update knowledge base docs for catalog migration conventions;
-- remove catalog `drizzle.config.ts` only if Drizzle Kit generation is formally retired for catalog.
+- keep catalog without `db:generate`, `drizzle-kit`, and `drizzle.config.ts`; Drizzle is runtime-only for catalog.
