@@ -1,6 +1,6 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { ApiReviewQueryFindManyArgs } from '@codegen/admin-gql';
+import type { ApiReviewQueryFindManyArgs } from '@codegen/admin-gql';
 
 // e2e test: find many reviews
 

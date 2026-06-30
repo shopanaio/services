@@ -1,5 +1,10 @@
 import type { ColDef } from "ag-grid-community";
-import type { IFilterSchema, IFilterValue } from "@/layouts/filters";
+import type { IFilterSchema, IFilterValue } from "@/layouts/filters/core/types";
+import type {
+  FilterTransformer,
+  OrderByInput,
+  SortFieldMapping,
+} from "@/hooks";
 
 /**
  * Base interface for pickable entities
@@ -20,8 +25,10 @@ export interface IEntityPickerPagination {
   pageSize: number;
   hasNext: boolean;
   hasPrev: boolean;
-  rangeStart: number;
-  rangeEnd: number;
+  rangeStart?: number;
+  rangeEnd?: number;
+  startCursor?: string | null;
+  endCursor?: string | null;
 }
 
 /**
@@ -32,15 +39,31 @@ export interface IEntityPickerDataResult<T extends IPickableEntity> {
   isLoading: boolean;
   error: Error | null;
   pagination: IEntityPickerPagination;
-  onNext: () => void;
-  onPrev: () => void;
-  onPageSizeChange: (size: number) => void;
+  onNext?: () => void;
+  onPrev?: () => void;
+  onPageSizeChange?: (size: number) => void;
+}
+
+export interface IEntityPickerPageConfig<
+  TWhereInput extends object = object,
+  TOrderField extends string = string,
+> {
+  storageKey?: string;
+  sortFieldMapping?: SortFieldMapping<TOrderField>;
+  buildSearchCondition?: (search: string) => Partial<TWhereInput>;
+  filterTransformers?: Record<string, FilterTransformer<TWhereInput>>;
+  defaultPageSize?: number;
+  pageSizeOptions?: number[];
 }
 
 /**
  * Configuration for a specific entity type
  */
-export interface IEntityPickerConfig<T extends IPickableEntity> {
+export interface IEntityPickerConfig<
+  T extends IPickableEntity,
+  TWhereInput extends object = object,
+  TOrderField extends string = string,
+> {
   /** Unique entity type identifier */
   entityType: string;
   /** Display name for the entity (singular) */
@@ -49,16 +72,30 @@ export interface IEntityPickerConfig<T extends IPickableEntity> {
   entityNamePlural: string;
   /** Filter schema for the entity */
   filterSchema: IFilterSchema[];
+  /** Whether the search input should be shown */
+  searchEnabled?: boolean;
   /** Column definitions for AG Grid */
   columns: ColDef<T>[];
+  /** Optional shared page config for server-backed search/filter/sort/pagination */
+  pageConfig?: IEntityPickerPageConfig<TWhereInput, TOrderField>;
   /** Data provider hook */
   useData: (options: {
     filters: IFilterValue[];
     search: string;
     pageSize: number;
+    first?: number;
+    after?: string | null;
+    last?: number;
+    before?: string | null;
+    where?: object | null;
+    orderBy?: OrderByInput<string>[] | null;
+    excludeIds: string[];
+    queryMeta?: unknown;
   }) => IEntityPickerDataResult<T>;
   /** Get unique row ID */
   getRowId: (entity: T) => string;
+  /** Whether a row cannot be selected */
+  isRowDisabled?: (entity: T) => boolean;
 }
 
 /**
@@ -70,6 +107,7 @@ export interface IEntityPickerContentProps<T extends IPickableEntity> {
   initialSelection: string[];
   excludeIds: string[];
   maxSelection?: number;
+  queryMeta?: unknown;
   onSelectionChange: (selectedIds: string[], selectedEntities: T[]) => void;
 }
 
@@ -82,7 +120,8 @@ export interface IEntityPickerPayload<T extends IPickableEntity = IPickableEntit
   initialSelection?: string[];
   excludeIds?: string[];
   maxSelection?: number;
-  onConfirm: (entities: T[]) => void;
+  queryMeta?: unknown;
+  onConfirm: (entities: T[], ids: string[]) => void;
 }
 
 /**

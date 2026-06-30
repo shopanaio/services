@@ -3,17 +3,19 @@
  */
 
 import type { IProduct } from "./types";
-import type { ITag } from "@/domains/inventory/products/modals";
-import type { IAttributeRow } from "@/domains/inventory/products/modals/edit-attributes-modal/types";
-import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/promos/bundles/types";
-import type { BundleType } from "@/mocks/products/bundles-list";
-import type { IReviewsData } from "@/domains/inventory/products/components/product-details-card";
-import { EntityStatus, WeightUnit, DimensionUnit, type ICategory, type ITag as IProductTag } from "./types";
+import type { IAttributeRow } from "./attributes";
+import type {
+  IBundleConfiguration,
+  IBundleGroup,
+  PricingRuleTemplate,
+} from "@/domains/inventory/bundles/types";
+import type { IReviewsData } from "@/domains/inventory/products/components/product-details-card/types";
+import { EntityStatus, WeightUnit, DimensionUnit, type ITag as IProductTag } from "./types";
 import { mockCategories } from "./categories";
 import { mockTags } from "./tags";
 import { createMockData as createAttributesMockData } from "./attributes";
 import { productDetailsMockData } from "./product-details";
-import type { ApiFile, ApiDescription, FileProvider } from "@/graphql/types";
+import { BundleType, type ApiCategory, type ApiFile, type ApiRichText, type ApiTag, type FileProvider } from "@/graphql/types";
 
 const generateId = (): string => Math.random().toString(36).substring(2, 11);
 
@@ -46,12 +48,12 @@ const createApiFile = (name: string, index: number = 0): ApiFile => ({
   },
 });
 
-const createApiDescription = (
+const createApiRichText = (
   json: Record<string, unknown>,
   text: string,
   html: string,
-): ApiDescription => ({
-  __typename: "Description",
+): ApiRichText => ({
+  __typename: "RichText",
   json,
   text,
   html,
@@ -101,7 +103,7 @@ const bundleDescriptionJson = {
   ],
 };
 
-const bundleDescriptionApi = createApiDescription(
+const bundleDescriptionApi = createApiRichText(
   bundleDescriptionJson as Record<string, unknown>,
   "Everything you need to start your photography journey. This bundle includes a professional-grade camera body, two versatile lenses, and essential accessories. What's Included: Camera Body with 24.2MP sensor, 18-55mm Kit Lens, 55-200mm Telephoto Lens, Camera bag, 32GB SD card, Cleaning kit. Save 25% compared to buying items individually.",
   '<p>Everything you need to start your photography journey. This bundle includes a professional-grade camera body, two versatile lenses, and essential accessories — all at a special bundle price.</p><h3>What\'s Included</h3><ul><li>Camera Body with 24.2MP sensor</li><li>18-55mm Kit Lens</li><li>55-200mm Telephoto Lens</li><li>Camera bag with padded dividers</li><li>32GB SD card</li><li>Cleaning kit</li></ul><p>Save 25% compared to buying items individually. Perfect gift for aspiring photographers.</p>',
@@ -145,10 +147,10 @@ export const mockBundleProduct: IProduct = {
   variantId: null,
   variants: [],
   embedVariant: null,
-  categories: [mockCategories[0]],
+  categories: [mockCategories[0] as unknown as IProduct["categories"][number]],
   primaryCategory: {
     id: mockCategories[0].id,
-    title: mockCategories[0].title,
+    title: mockCategories[0].name,
   },
   tags: [mockTags[0], mockTags[1]] as unknown as IProductTag[],
   attributes: [],
@@ -161,24 +163,42 @@ export const mockBundleProduct: IProduct = {
 export interface IBundleDetailsMockData {
   bundleType: BundleType | null;
   categories: {
-    primary: ICategory | null;
-    list: ICategory[];
+    primary: ApiCategory | null;
+    list: ApiCategory[];
   };
-  tags: ITag[];
+  tags: ApiTag[];
   attributes: IAttributeRow[];
   reviews: IReviewsData;
-  bundleItems: IBundleGroup[];
+  configurations: IBundleConfiguration[];
   pricingTemplates: PricingRuleTemplate[];
-  dependencyRules: IDependencyRule[];
 }
 
 export const bundleDetailsMockData: IBundleDetailsMockData = {
-  bundleType: "MIX_AND_MATCH",
+  bundleType: BundleType.MixAndMatch,
   categories: {
     primary: mockCategories[0],
     list: mockCategories.slice(1, 3),
   },
-  tags: mockTags.slice(0, 3) as ITag[],
+  tags: mockTags.slice(0, 3).map((tag) => ({
+    __typename: "Tag",
+    id: tag.id,
+    name: tag.title,
+    handle: tag.slug,
+    productsCount: 0,
+    products: {
+      __typename: "ProductConnection",
+      edges: [],
+      pageInfo: {
+        __typename: "PageInfo",
+        hasNextPage: false,
+        hasPreviousPage: false,
+        startCursor: null,
+        endCursor: null,
+      },
+      totalCount: 0,
+    },
+    createdAt: new Date().toISOString(),
+  })),
   attributes: createAttributesMockData(),
   reviews: {
     rating: 4.5,
@@ -191,7 +211,25 @@ export const bundleDetailsMockData: IBundleDetailsMockData = {
       { stars: 1, count: 1, percent: 2 },
     ],
   },
-  bundleItems: productDetailsMockData.bundleItems,
+  configurations: [
+    {
+      id: "bundle-config-1",
+      title: "Configuration 1",
+      bundleItems: productDetailsMockData.bundleItems,
+      dependencyRules: productDetailsMockData.dependencyRules,
+    },
+    {
+      id: "bundle-config-2",
+      title: "Configuration 2",
+      bundleItems: productDetailsMockData.bundleItems,
+      dependencyRules: productDetailsMockData.dependencyRules,
+    },
+    {
+      id: "bundle-config-3",
+      title: "Configuration 3",
+      bundleItems: productDetailsMockData.bundleItems,
+      dependencyRules: productDetailsMockData.dependencyRules,
+    },
+  ],
   pricingTemplates: productDetailsMockData.pricingTemplates,
-  dependencyRules: productDetailsMockData.dependencyRules,
 };

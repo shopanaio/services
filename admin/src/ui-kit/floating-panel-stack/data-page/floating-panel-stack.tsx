@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { createStyles, createGlobalStyle } from "antd-style";
-import type { ActionConfig } from "../core";
+import type { ActionConfig } from "../core/types";
 import { DEFAULT_STACK_CONFIG } from "../core";
 import { SelectionPanel } from "../presets/selection-panel";
 import { EditingPanel } from "../presets/editing-panel";

@@ -16,6 +16,7 @@ import { createProductSchema } from "./schema";
 import { GeneralSection } from "./general-section";
 import { MediaSection } from "./media-section";
 import { VariantsSection } from "./variants-section";
+import { mapProductUserErrorsToFormErrors } from "../../mappers";
 
 const useStyles = createStyles(() => ({
   container: {
@@ -61,21 +62,10 @@ export const CreateProductModal = () => {
       });
 
       if (userErrors.length > 0) {
-        // Map API errors to form errors
-        userErrors.forEach((error) => {
-          if (error.field && error.field.length > 0) {
-            const fieldName = error.field[error.field.length - 1];
-            if (
-              fieldName === "title" ||
-              fieldName === "handle" ||
-              fieldName === "description"
-            ) {
-              setError(fieldName, { message: error.message });
-            }
-          }
+        mapProductUserErrorsToFormErrors(userErrors).forEach((error) => {
+          setError(error.field, { message: error.message });
         });
 
-        // Show first error as notification
         message.error(userErrors[0].message);
         return;
       }

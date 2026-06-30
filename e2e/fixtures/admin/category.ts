@@ -1,10 +1,5 @@
-import { BaseGqlRequest } from '@fixtures/api/gqlRequest';
-import {
-  ApiCategoryCreateInput,
-  ApiCategoryUpdateInput,
-  ProductSortBy,
-  SortDirection,
-} from '@codegen/admin-gql';
+import type { BaseGqlRequest } from '@fixtures/api/gqlRequest';
+import type { ApiCategoryCreateInput, ApiCategoryUpdateInput, ProductSortBy, SortDirection } from '@codegen/admin-gql';
 import _ from 'lodash';
 
 export interface CategoryData {
@@ -26,7 +21,11 @@ export interface CategoryData {
 }
 
 export class CategoryFixture {
-  constructor(private gql: BaseGqlRequest<unknown, unknown>) {}
+  private gql: BaseGqlRequest<unknown, unknown>;
+
+  constructor(gql: BaseGqlRequest<unknown, unknown>) {
+    this.gql = gql;
+  }
 
   create = async (input: Partial<ApiCategoryCreateInput> = {}): Promise<CategoryData> => {
     const uniqueId = crypto.randomUUID().slice(0, 8);
@@ -59,7 +58,7 @@ export class CategoryFixture {
 
   update = async (id: string, input: Partial<ApiCategoryUpdateInput>): Promise<CategoryData> => {
     const { data } = await this.gql.mutation('category-api/CategoryUpdate', {
-      variables: { input: { id, ...input } },
+      variables: { categoryId: id, operations: input },
     });
 
     const result = (
@@ -86,19 +85,27 @@ export class CategoryFixture {
     defaultSortDirection: SortDirection
   ): Promise<CategoryData> => {
     const { data } = await this.gql.mutation('category-api/CategoryUpdateSort', {
-      variables: { input: { id, defaultSort, defaultSortDirection } },
+      variables: {
+        categoryId: id,
+        operations: {
+          sort: {
+            defaultSort,
+            defaultSortDirection,
+          },
+        },
+      },
     });
 
     const result = (
       data as {
         catalogMutation: {
-          categoryUpdateSort: {
+          categoryUpdate: {
             category: CategoryData | null;
             userErrors: { code: string; message: string; field: string[] }[];
           };
         };
       }
-    ).catalogMutation.categoryUpdateSort;
+    ).catalogMutation.categoryUpdate;
 
     if (result.userErrors.length > 0 || !result.category) {
       throw new Error(`Failed to update category sort: ${JSON.stringify(result.userErrors)}`);
@@ -114,31 +121,34 @@ export class CategoryFixture {
   ): Promise<CategoryData> => {
     const { data } = await this.gql.mutation('category-api/CategoryMoveProduct', {
       variables: {
-        input: {
-          categoryId,
-          productId,
-          afterProductId: options.afterProductId,
-          beforeProductId: options.beforeProductId,
-        },
+        categoryId,
+        productId,
+        afterProductId: options.afterProductId,
+        beforeProductId: options.beforeProductId,
       },
     });
 
     const result = (
       data as {
         catalogMutation: {
-          categoryMoveProduct: {
-            category: CategoryData | null;
+          productUpdate: {
+            product: { id: string } | null;
             userErrors: { code: string; message: string; field: string[] }[];
           };
         };
       }
-    ).catalogMutation.categoryMoveProduct;
+    ).catalogMutation.productUpdate;
 
-    if (result.userErrors.length > 0 || !result.category) {
+    if (result.userErrors.length > 0 || !result.product) {
       throw new Error(`Failed to move product: ${JSON.stringify(result.userErrors)}`);
     }
 
-    return result.category;
+    const category = await this.findOne(categoryId);
+    if (!category) {
+      throw new Error(`Failed to load category after moving product: ${categoryId}`);
+    }
+
+    return category;
   };
 
   rebalance = async (categoryId: string): Promise<CategoryData> => {

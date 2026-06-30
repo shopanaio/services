@@ -1,14 +1,6 @@
 import type { Product, Variant } from "../../../repositories/models/index.js";
 import type { UserError } from "../../../kernel/BaseScript.js";
-
-/**
- * Input for product description (text, HTML, JSON)
- */
-export interface DescriptionInput {
-  readonly text: string;
-  readonly html: string;
-  readonly json: Record<string, unknown>;
-}
+export type { RichTextInput } from "../../shared/richText.js";
 
 /**
  * Product with embedded variants

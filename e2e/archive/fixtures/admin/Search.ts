@@ -1,5 +1,5 @@
-import { TenantApiFixture } from '@fixtures/admin/api';
-import { GraphQLFileName } from '@queries/filenames';
+import type { TenantApiFixture } from '@fixtures/admin/api';
+import type { GraphQLFileName } from '@queries/filenames';
 
 export class Search {
   constructor(private api: TenantApiFixture) {}

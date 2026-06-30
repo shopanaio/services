@@ -5,15 +5,20 @@ import {
   createRelayQuery,
   field,
   type PageInfo,
+  type InferExecuteOptions,
   type InferRelayInput,
 } from "@shopana/drizzle-query";
-import type { TransactionManager } from "@shopana/shared-kernel";
-import { getContext, type ServiceContext } from "../../context/index.js";
-import type { Database } from "../../infrastructure/db/database";
+import { BaseRepository } from "../BaseRepository.js";
+import {
+  LexoRankRepository,
+  type LexoRankMoveResult,
+} from "../LexoRankRepository.js";
 import {
   category,
+  categoryListView,
   categoryMedia,
   categoryTranslation,
+  listingListView,
   productCategory,
   product,
   productTranslation,
@@ -25,15 +30,46 @@ import {
   type ProductCategory,
   type NewProductCategory,
 } from "../models/index.js";
+import type { NormalizedCategoryHierarchyScope } from "./CategoryHierarchyScope.js";
+import type { NormalizedCategoryProductsScope } from "./CategoryProductsScope.js";
 import {
-  initialRank,
-  nextRank,
-  rebalanceRanks,
-} from "../../scripts/shared/rank.js";
+  decodeCategoryGlobalId,
+  decodeProductGlobalId,
+  decodeVendorGlobalId,
+} from "../global-id-where-mappers.js";
 
-// ---- Relay Query for Category Products ----
+const categoryQuery = createQuery(category).maxLimit(100).defaultLimit(20);
+
+export const categoryRelayQuery = createRelayQuery(
+  createQuery(categoryListView)
+    .include(["id"])
+    .mapWhereFields({
+      id: decodeCategoryGlobalId,
+      parentId: decodeCategoryGlobalId,
+    })
+    .maxLimit(100)
+    .defaultLimit(20),
+  { name: "category", tieBreaker: "id" },
+);
+
+export type CategoryQueryInput = InferExecuteOptions<typeof categoryQuery>;
+export type CategoryRelayInput = InferRelayInput<typeof categoryRelayQuery>;
+export type CategoryConnectionMetaInput = {
+  hierarchyScope?: NormalizedCategoryHierarchyScope;
+  productsScope?: NormalizedCategoryProductsScope;
+};
+export type CategoryConnectionInput = CategoryRelayInput & {
+  meta?: CategoryConnectionMetaInput;
+};
+
+const EMPTY_CATEGORY_WHERE: CategoryRelayInput["where"] = {
+  id: { _in: ["00000000-0000-0000-0000-000000000000"] },
+};
+
+// ---- Relay Query for Category Products/Listings ----
 
 const productCategoryQuery = createQuery(productCategory, {
+  projectId: field(productCategory.projectId),
   categoryId: field(productCategory.categoryId),
   productId: field(productCategory.productId),
   lexoRank: field(productCategory.lexoRank),
@@ -41,7 +77,7 @@ const productCategoryQuery = createQuery(productCategory, {
 
 const productTranslationQuery = createQuery(productTranslation, {
   productId: field(productTranslation.productId),
-  title: field(productTranslation.title),
+  name: field(productTranslation.name),
 });
 
 const priceRangeQuery = createQuery(productPriceRange, {
@@ -71,22 +107,62 @@ const categoryProductsQuery = createQuery(product, {
   ),
 });
 
+const categoryListingQuery = createQuery(listingListView, {
+  id: field(listingListView.id),
+  kind: field(listingListView.kind),
+  vendorId: field(listingListView.vendorId),
+  handle: field(listingListView.handle),
+  publishedAt: field(listingListView.publishedAt),
+  createdAt: field(listingListView.createdAt),
+  updatedAt: field(listingListView.updatedAt),
+  deletedAt: field(listingListView.deletedAt),
+  revision: field(listingListView.revision),
+  projectId: field(listingListView.projectId),
+  locale: field(listingListView.locale),
+  name: field(listingListView.name),
+  currency: field(listingListView.currency),
+  minAmountMinor: field(listingListView.minAmountMinor),
+  maxAmountMinor: field(listingListView.maxAmountMinor),
+  minPriceMinor: field(listingListView.minPriceMinor),
+  maxPriceMinor: field(listingListView.maxPriceMinor),
+  primaryCategoryId: field(listingListView.primaryCategoryId),
+  primaryCategoryName: field(listingListView.primaryCategoryName),
+  brandName: field(listingListView.brandName),
+  category: field(listingListView.id).innerJoin(
+    productCategoryQuery,
+    productCategory.productId,
+  ),
+});
+
 export const categoryProductsRelayQuery = createRelayQuery(
-  categoryProductsQuery.include(["id"]).maxLimit(100).defaultLimit(20),
+  categoryProductsQuery
+    .mapWhereField("id", decodeProductGlobalId)
+    .include(["id"])
+    .maxLimit(100)
+    .defaultLimit(20),
   { name: "categoryProduct", tieBreaker: "id" },
+);
+
+export const categoryListingRelayQuery = createRelayQuery(
+  categoryListingQuery
+    .mapWhereFields({
+      id: decodeProductGlobalId,
+      vendorId: decodeVendorGlobalId,
+      primaryCategoryId: decodeCategoryGlobalId,
+    })
+    .include(["id", "kind"])
+    .maxLimit(100)
+    .defaultLimit(20),
+  { name: "categoryListing", tieBreaker: "id" },
 );
 
 export type CategoryProductsRelayInput = InferRelayInput<
   typeof categoryProductsRelayQuery
 >;
-
-export interface CategoryRelayInput {
-  first?: number;
-  after?: string;
-  last?: number;
-  before?: string;
-  parentId?: string | null;
-}
+export type CategoryListingRelayInput = InferRelayInput<
+  typeof categoryListingRelayQuery
+>;
+type CategoryListingOrderBy = NonNullable<CategoryListingRelayInput["orderBy"]>;
 
 export interface CategoryConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
@@ -100,26 +176,42 @@ export interface CategoryProductsConnectionResult {
   totalCount: number;
 }
 
-export class CategoryRepository {
-  constructor(
-    private readonly db: Database,
-    private readonly txManager: TransactionManager<Database>,
-  ) {}
+export type CategoryListingKind = "BASE" | "BUNDLE";
 
-  private get connection(): Database {
-    return this.txManager.getConnection() as Database;
-  }
+export interface CategoryListingConnectionResult {
+  edges: Array<{
+    cursor: string;
+    nodeId: string;
+    kind: CategoryListingKind;
+  }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
 
-  private get ctx(): ServiceContext {
-    return getContext();
-  }
-
-  private get storeId(): string {
-    return this.ctx.store.id;
+export class CategoryRepository extends BaseRepository {
+  private get productCategoryRankRepository(): LexoRankRepository<ProductCategory> {
+    return new LexoRankRepository<ProductCategory>({
+      findOrderedItems: (categoryId) =>
+        categoryId ? this.getOrderedCategoryProducts(categoryId) : Promise.resolve([]),
+      findItem: ({ scopeId: categoryId, itemId: productId }) =>
+        categoryId
+          ? this.getProductCategory(categoryId, productId)
+          : Promise.resolve(null),
+      updateRank: ({ scopeId: categoryId, itemId: productId, lexoRank }) =>
+        categoryId
+          ? this.updateProductCategoryRank(categoryId, productId, lexoRank)
+          : Promise.resolve(null),
+      getItemId: (item) => item.productId,
+      getLexoRank: (item) => item.lexoRank,
+    });
   }
 
   private get locale(): string {
-    return this.ctx.locale ?? "uk";
+    return this.ctx.locale ?? this.ctx.store.defaultLocale;
+  }
+
+  private get currency(): string {
+    return this.ctx.currency ?? "UAH";
   }
 
   // ============ CRUD ============
@@ -164,6 +256,26 @@ export class CategoryRepository {
         and(
           eq(category.projectId, this.storeId),
           eq(category.handle, handle),
+          isNull(category.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
+  async findByHandleExcludingId(
+    handle: string,
+    id: string,
+  ): Promise<Category | null> {
+    const result = await this.connection
+      .select()
+      .from(category)
+      .where(
+        and(
+          eq(category.projectId, this.storeId),
+          eq(category.handle, handle),
+          sql`${category.id} <> ${id}`,
           isNull(category.deletedAt),
         ),
       )
@@ -279,7 +391,7 @@ export class CategoryRepository {
     if (result[0]) {
       const oldPath = cat.path;
       await this.connection.execute(
-        sql`UPDATE inventory.category
+        sql`UPDATE catalog.category
             SET path = ${newPath} || substr(path, ${oldPath.length + 1}),
                 depth = depth + ${newDepth - cat.depth},
                 updated_at = now()
@@ -386,50 +498,125 @@ export class CategoryRepository {
   }
 
   async getConnection(
-    args: CategoryRelayInput,
+    args: CategoryConnectionInput,
   ): Promise<CategoryConnectionResult> {
-    const first = args.first ?? 20;
-    const limit = first + 1; // Fetch one extra to check for next page
+    const { where, orderBy, meta, ...paginationArgs } = args;
+    const scopeWhere = await this.buildHierarchyScopeWhere(
+      meta?.hierarchyScope,
+    );
+    const productsScopeWhere = await this.buildProductsScopeWhere(
+      meta?.productsScope,
+    );
 
-    const categories = await this.connection
-      .select()
-      .from(category)
-      .where(
-        and(
-          eq(category.projectId, this.storeId),
-          isNull(category.deletedAt),
-          args.parentId !== undefined
-            ? args.parentId === null
-              ? isNull(category.parentId)
-              : eq(category.parentId, args.parentId)
-            : undefined,
-        ),
-      )
-      .orderBy(desc(category.createdAt), desc(category.id))
-      .limit(limit);
+    const mergedWhere: CategoryRelayInput["where"] = {
+      _and: [
+        { projectId: { _eq: this.storeId } },
+        { deletedAt: { _is: null } },
+        { locale: { _eq: this.locale } },
+        ...(where ? [where] : []),
+        ...(scopeWhere ? [scopeWhere] : []),
+        ...(productsScopeWhere ? [productsScopeWhere] : []),
+      ],
+    };
 
-    const hasNextPage = categories.length > first;
-    const resultCategories = hasNextPage
-      ? categories.slice(0, first)
-      : categories;
+    const executeInput: CategoryRelayInput = {
+      ...paginationArgs,
+      where: mergedWhere,
+      orderBy: orderBy ?? [
+        { field: "createdAt", direction: "desc" },
+        { field: "id", direction: "desc" },
+      ],
+    };
 
-    const edges = resultCategories.map((cat) => ({
-      cursor: Buffer.from(cat.id).toString("base64"),
-      nodeId: cat.id,
-    }));
-
-    const totalCount = await this.count();
+    const [result, totalCount] = await Promise.all([
+      categoryRelayQuery.execute(this.connection, executeInput),
+      categoryRelayQuery.count(this.connection, { where: mergedWhere }),
+    ]);
 
     return {
-      edges,
-      pageInfo: {
-        hasNextPage,
-        hasPreviousPage: false,
-        startCursor: edges[0]?.cursor ?? null,
-        endCursor: edges[edges.length - 1]?.cursor ?? null,
-      },
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        nodeId: edge.node.id,
+      })),
+      pageInfo: result.pageInfo,
       totalCount,
     };
+  }
+
+  private async buildHierarchyScopeWhere(
+    scope: NormalizedCategoryHierarchyScope | undefined,
+  ): Promise<CategoryRelayInput["where"] | undefined> {
+    if (!scope) {
+      return undefined;
+    }
+
+    if (scope.kind === "empty") {
+      return EMPTY_CATEGORY_WHERE;
+    }
+
+    const reference = await this.findById(scope.referenceId);
+    if (!reference) {
+      return EMPTY_CATEGORY_WHERE;
+    }
+
+    if (scope.direction === "DESCENDANTS") {
+      const descendantsWhere: CategoryRelayInput["where"] = {
+        path: { _startsWith: `${reference.path}.` },
+      };
+      const includeWhere: CategoryRelayInput["where"] = scope.includeReference
+        ? {
+            _or: [
+              { id: { _eq: reference.id } },
+              descendantsWhere,
+            ],
+          }
+        : descendantsWhere;
+
+      return scope.mode === "EXCLUDE" ? { _not: includeWhere } : includeWhere;
+    }
+
+    const ancestorIds = reference.path
+      .split(".")
+      .filter((id) => scope.includeReference || id !== reference.id);
+
+    if (ancestorIds.length === 0) {
+      return scope.mode === "EXCLUDE" ? undefined : EMPTY_CATEGORY_WHERE;
+    }
+
+    return scope.mode === "EXCLUDE"
+      ? { id: { _notIn: ancestorIds } }
+      : { id: { _in: ancestorIds } };
+  }
+
+  private async buildProductsScopeWhere(
+    scope: NormalizedCategoryProductsScope | undefined,
+  ): Promise<CategoryRelayInput["where"] | undefined> {
+    if (!scope) {
+      return undefined;
+    }
+
+    if (scope.kind === "empty") {
+      return EMPTY_CATEGORY_WHERE;
+    }
+
+    const rows = await this.connection
+      .select({ categoryId: productCategory.categoryId })
+      .from(productCategory)
+      .where(
+        and(
+          eq(productCategory.projectId, this.storeId),
+          inArray(productCategory.productId, scope.referenceIds),
+        ),
+      );
+
+    const categoryIds = [...new Set(rows.map((row) => row.categoryId))];
+    if (categoryIds.length === 0) {
+      return scope.mode === "EXCLUDE" ? undefined : EMPTY_CATEGORY_WHERE;
+    }
+
+    return scope.mode === "EXCLUDE"
+      ? { id: { _notIn: categoryIds } }
+      : { id: { _in: categoryIds } };
   }
 
   async getOne(id: string): Promise<Category | null> {
@@ -546,25 +733,90 @@ export class CategoryRepository {
       );
   }
 
-  async countProductsByCategoryIds(
-    categoryIds: readonly string[],
-  ): Promise<Map<string, number>> {
-    if (categoryIds.length === 0) return new Map();
-    const results = await this.connection
-      .select({
-        categoryId: productCategory.categoryId,
-        count: count(),
-      })
+  async getProductCategoryLinks(productId: string): Promise<ProductCategory[]> {
+    return this.getProductCategoryLinksByProductIds([productId]);
+  }
+
+  async getProductCategoryLinksByProductIds(
+    productIds: readonly string[],
+  ): Promise<ProductCategory[]> {
+    if (productIds.length === 0) return [];
+    return this.connection
+      .select()
       .from(productCategory)
       .where(
         and(
           eq(productCategory.projectId, this.storeId),
-          inArray(productCategory.categoryId, [...categoryIds]),
+          inArray(productCategory.productId, [...productIds]),
+        ),
+      )
+      .orderBy(
+        desc(productCategory.isPrimary),
+        asc(productCategory.lexoRank),
+        asc(productCategory.categoryId),
+      );
+  }
+
+  async countProductsByCategoryIds(
+    categoryIds: readonly string[],
+  ): Promise<Map<string, number>> {
+    if (categoryIds.length === 0) return new Map();
+    const rows = await this.connection
+      .select({
+        categoryId: category.id,
+        count: category.productsCount,
+      })
+      .from(category)
+      .where(
+        and(
+          eq(category.projectId, this.storeId),
+          inArray(category.id, [...categoryIds]),
+          isNull(category.deletedAt),
+        ),
+      );
+
+    return new Map(rows.map((row) => [row.categoryId, row.count]));
+  }
+
+  async refreshProductsCountByCategoryIds(
+    categoryIds: readonly string[],
+  ): Promise<void> {
+    const uniqueCategoryIds = [...new Set(categoryIds)];
+    if (uniqueCategoryIds.length === 0) return;
+
+    const rows = await this.connection
+      .select({
+        categoryId: productCategory.categoryId,
+        count: count(productCategory.productId),
+      })
+      .from(productCategory)
+      .innerJoin(product, eq(product.id, productCategory.productId))
+      .where(
+        and(
+          eq(productCategory.projectId, this.storeId),
+          eq(product.projectId, this.storeId),
+          inArray(productCategory.categoryId, uniqueCategoryIds),
+          isNull(product.deletedAt),
         ),
       )
       .groupBy(productCategory.categoryId);
 
-    return new Map(results.map((r) => [r.categoryId, r.count]));
+    const countByCategoryId = new Map(
+      rows.map((row) => [row.categoryId, row.count]),
+    );
+
+    for (const categoryId of uniqueCategoryIds) {
+      await this.connection
+        .update(category)
+        .set({ productsCount: countByCategoryId.get(categoryId) ?? 0 })
+        .where(
+          and(
+            eq(category.projectId, this.storeId),
+            eq(category.id, categoryId),
+            isNull(category.deletedAt),
+          ),
+        );
+    }
   }
 
   async addProductToCategory(
@@ -592,6 +844,53 @@ export class CategoryRepository {
       .returning();
 
     return result[0];
+  }
+
+  async setProductPrimaryCategory(
+    productId: string,
+    categoryId: string,
+  ): Promise<ProductCategory | null> {
+    return this.connection.transaction(async (tx) => {
+      const existing = await tx
+        .select()
+        .from(productCategory)
+        .where(
+          and(
+            eq(productCategory.projectId, this.storeId),
+            eq(productCategory.productId, productId),
+            eq(productCategory.categoryId, categoryId),
+          ),
+        )
+        .limit(1);
+
+      if (!existing[0]) {
+        return null;
+      }
+
+      await tx
+        .update(productCategory)
+        .set({ isPrimary: false })
+        .where(
+          and(
+            eq(productCategory.projectId, this.storeId),
+            eq(productCategory.productId, productId),
+          ),
+        );
+
+      const updated = await tx
+        .update(productCategory)
+        .set({ isPrimary: true })
+        .where(
+          and(
+            eq(productCategory.projectId, this.storeId),
+            eq(productCategory.productId, productId),
+            eq(productCategory.categoryId, categoryId),
+          ),
+        )
+        .returning();
+
+      return updated[0] ?? null;
+    });
   }
 
   async getProductCategory(
@@ -667,7 +966,7 @@ export class CategoryRepository {
         // Map field names to actual database fields
         switch (o.field?.toUpperCase()) {
           case "NAME":
-            return { field: "translation.title" as const, direction };
+            return { field: "translation.name" as const, direction };
           case "NEWEST":
             return { field: "createdAt" as const, direction };
           case "PRICE":
@@ -716,7 +1015,7 @@ export class CategoryRepository {
 
     const [result, totalCount] = await Promise.all([
       categoryProductsRelayQuery.execute(this.connection, executeInput),
-      this.countProductsInCategory(categoryId),
+      categoryProductsRelayQuery.count(this.connection, { where: mergedWhere }),
     ]);
 
     return {
@@ -727,6 +1026,216 @@ export class CategoryRepository {
       pageInfo: result.pageInfo,
       totalCount,
     };
+  }
+
+  async getCategoryListingConnection(
+    categoryId: string,
+    args: Omit<CategoryListingRelayInput, "where" | "orderBy"> & {
+      orderBy?: Array<{ field: string; direction?: string }>;
+      where?: CategoryListingRelayInput["where"];
+    },
+  ): Promise<CategoryListingConnectionResult> {
+    const {
+      first,
+      after,
+      last,
+      before,
+      orderBy: inputOrderBy,
+      where: userWhere,
+    } = args;
+
+    const baseConditions: Array<Record<string, unknown>> = [
+      { projectId: { _eq: this.storeId } },
+      { deletedAt: { _is: null } },
+      { locale: { _eq: this.locale } },
+      {
+        _or: [
+          { currency: { _eq: this.currency } },
+          { currency: { _is: null } },
+        ],
+      },
+      { category: { projectId: { _eq: this.storeId } } },
+      { category: { categoryId: { _eq: categoryId } } },
+    ];
+
+    const mergedWhere: CategoryListingRelayInput["where"] = userWhere
+      ? { _and: [...baseConditions, userWhere] }
+      : { _and: baseConditions };
+
+    const orderBy = this.buildCategoryListingOrderBy(inputOrderBy);
+    const selectFields = this.buildCategoryListingSelectFields(orderBy);
+
+    const executeInput: CategoryListingRelayInput = {
+      first,
+      after,
+      last,
+      before,
+      where: mergedWhere,
+      orderBy,
+      select: selectFields as CategoryListingRelayInput["select"],
+    };
+
+    const [result, totalCount] = await Promise.all([
+      categoryListingRelayQuery.execute(this.connection, executeInput),
+      categoryListingRelayQuery.count(this.connection, { where: mergedWhere }),
+    ]);
+
+    return {
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        nodeId: edge.node.id,
+        kind: edge.node.kind as CategoryListingKind,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
+  }
+
+  private buildCategoryListingOrderBy(
+    inputOrderBy?: Array<{ field: string; direction?: string }>,
+  ): CategoryListingOrderBy {
+    if (!inputOrderBy || inputOrderBy.length === 0) {
+      return [
+        { field: "category.lexoRank", direction: "asc" },
+        { field: "id", direction: "asc" },
+      ] as CategoryListingOrderBy;
+    }
+
+    const orderBy = inputOrderBy.map((order) => {
+      const direction = this.normalizeSortDirection(order.direction);
+      const field = order.field;
+      const normalizedField = field.toUpperCase();
+
+      switch (normalizedField) {
+        case "MANUAL":
+          return { field: "category.lexoRank", direction };
+        case "PRICE":
+          return {
+            field: direction === "asc" ? "minAmountMinor" : "maxAmountMinor",
+            direction,
+          };
+        case "NEWEST":
+          return { field: "createdAt", direction };
+        case "NAME":
+          return { field: "name", direction };
+        default:
+          return {
+            field: this.mapListingOrderField(field),
+            direction,
+          };
+      }
+    }) as CategoryListingOrderBy;
+
+    if (!orderBy.some((order) => order.field === "id")) {
+      orderBy.push({ field: "id", direction: "asc" } as never);
+    }
+
+    return orderBy;
+  }
+
+  private buildCategoryListingSelectFields(
+    orderBy: CategoryListingOrderBy,
+  ): string[] {
+    const selectFields = ["id", "kind"];
+    for (const order of orderBy) {
+      if (!selectFields.includes(order.field)) {
+        selectFields.push(order.field);
+      }
+    }
+    return selectFields;
+  }
+
+  private normalizeSortDirection(direction: string | undefined): "asc" | "desc" {
+    return direction?.toLowerCase() === "desc" ? "desc" : "asc";
+  }
+
+  private mapListingOrderField(field: string): string {
+    switch (field) {
+      case "id":
+      case "vendorId":
+      case "handle":
+      case "publishedAt":
+      case "createdAt":
+      case "updatedAt":
+      case "kind":
+      case "locale":
+      case "name":
+      case "currency":
+      case "minAmountMinor":
+      case "maxAmountMinor":
+      case "minPriceMinor":
+      case "maxPriceMinor":
+      case "primaryCategoryId":
+      case "primaryCategoryName":
+      case "brandName":
+        return field;
+      default:
+        return "category.lexoRank";
+    }
+  }
+
+  async getProductIdsByCategoryId(categoryId: string): Promise<string[]> {
+    const rows = await this.connection
+      .select({ productId: productCategory.productId })
+      .from(productCategory)
+      .where(
+        and(
+          eq(productCategory.projectId, this.storeId),
+          eq(productCategory.categoryId, categoryId),
+        ),
+      );
+
+    return rows.map((row) => row.productId);
+  }
+
+  async getProductIdsByCategoryIds(
+    categoryIds: readonly string[],
+  ): Promise<Map<string, string[]>> {
+    const result = new Map<string, string[]>();
+    for (const categoryId of categoryIds) {
+      result.set(categoryId, []);
+    }
+
+    if (categoryIds.length === 0) return result;
+
+    const rows = await this.connection
+      .select({
+        categoryId: productCategory.categoryId,
+        productId: productCategory.productId,
+      })
+      .from(productCategory)
+      .where(
+        and(
+          eq(productCategory.projectId, this.storeId),
+          inArray(productCategory.categoryId, [...categoryIds]),
+        ),
+      );
+
+    for (const row of rows) {
+      const productIds = result.get(row.categoryId) ?? [];
+      productIds.push(row.productId);
+      result.set(row.categoryId, productIds);
+    }
+
+    return result;
+  }
+
+  async removeProductFromCategory(
+    productId: string,
+    categoryId: string,
+  ): Promise<boolean> {
+    const rows = await this.connection
+      .delete(productCategory)
+      .where(
+        and(
+          eq(productCategory.projectId, this.storeId),
+          eq(productCategory.productId, productId),
+          eq(productCategory.categoryId, categoryId),
+        ),
+      )
+      .returning({ productId: productCategory.productId });
+
+    return rows.length > 0;
   }
 
   async countProductsInCategory(categoryId: string): Promise<number> {
@@ -765,17 +1274,22 @@ export class CategoryRepository {
     return rows[0] ?? null;
   }
 
-  async rebalanceCategoryProductRanks(categoryId: string): Promise<void> {
-    const items = await this.getOrderedCategoryProducts(categoryId);
-    const ranks = rebalanceRanks(items.length);
+  async moveProductCategoryRank(
+    categoryId: string,
+    productId: string,
+    afterProductId?: string | null,
+    beforeProductId?: string | null,
+  ): Promise<LexoRankMoveResult<ProductCategory>> {
+    return this.productCategoryRankRepository.move({
+      scopeId: categoryId,
+      itemId: productId,
+      afterItemId: afterProductId,
+      beforeItemId: beforeProductId,
+    });
+  }
 
-    for (let i = 0; i < items.length; i++) {
-      await this.updateProductCategoryRank(
-        categoryId,
-        items[i].productId,
-        ranks[i],
-      );
-    }
+  async rebalanceCategoryProductRanks(categoryId: string): Promise<void> {
+    await this.productCategoryRankRepository.rebalance(categoryId);
   }
 
   async updateSortPreferences(
@@ -796,6 +1310,9 @@ export class CategoryRepository {
     descriptionText?: string | null;
     descriptionHtml?: string | null;
     descriptionJson?: string | null;
+    excerptText?: string | null;
+    excerptHtml?: string | null;
+    excerptJson?: string | null;
   }): Promise<CategoryTranslation> {
     const result = await this.connection
       .insert(categoryTranslation)
@@ -807,6 +1324,9 @@ export class CategoryRepository {
         descriptionText: data.descriptionText ?? null,
         descriptionHtml: data.descriptionHtml ?? null,
         descriptionJson: data.descriptionJson ?? null,
+        excerptText: data.excerptText ?? null,
+        excerptHtml: data.excerptHtml ?? null,
+        excerptJson: data.excerptJson ?? null,
       })
       .onConflictDoUpdate({
         target: [categoryTranslation.categoryId, categoryTranslation.locale],
@@ -815,6 +1335,9 @@ export class CategoryRepository {
           descriptionText: data.descriptionText ?? null,
           descriptionHtml: data.descriptionHtml ?? null,
           descriptionJson: data.descriptionJson ?? null,
+          excerptText: data.excerptText ?? null,
+          excerptHtml: data.excerptHtml ?? null,
+          excerptJson: data.excerptJson ?? null,
         },
       })
       .returning();
@@ -851,22 +1374,6 @@ export class CategoryRepository {
   private async getNextCategoryProductRank(
     categoryId: string,
   ): Promise<string> {
-    const rows = await this.connection
-      .select({ lexoRank: productCategory.lexoRank })
-      .from(productCategory)
-      .where(
-        and(
-          eq(productCategory.projectId, this.storeId),
-          eq(productCategory.categoryId, categoryId),
-        ),
-      )
-      .orderBy(desc(productCategory.lexoRank))
-      .limit(1);
-
-    if (rows.length === 0) {
-      return initialRank();
-    }
-
-    return nextRank(rows[0].lexoRank);
+    return this.productCategoryRankRepository.getNextRank(categoryId);
   }
 }

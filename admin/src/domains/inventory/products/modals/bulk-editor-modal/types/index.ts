@@ -175,73 +175,9 @@ export const PRICING_COLUMNS: IBulkEditorColumn[] = [
     width: 130,
     type: "number",
   },
-  {
-    field: "costPrice",
-    headerName: "Cost",
-    category: "pricing",
-    defaultVisible: false,
-    editable: true,
-    width: 110,
-    type: "number",
-  },
 ];
 
-export const INVENTORY_COLUMNS: IBulkEditorColumn[] = [
-  {
-    field: "sku",
-    headerName: "SKU",
-    category: "inventory",
-    defaultVisible: true,
-    editable: true,
-    width: 120,
-    type: "text",
-  },
-  {
-    field: "barcode",
-    headerName: "Barcode",
-    category: "inventory",
-    defaultVisible: false,
-    editable: true,
-    width: 140,
-    type: "text",
-  },
-  {
-    field: "onHand",
-    headerName: "On hand",
-    category: "inventory",
-    defaultVisible: true,
-    editable: true,
-    width: 100,
-    type: "number",
-  },
-  {
-    field: "unavailable",
-    headerName: "Unavailable",
-    category: "inventory",
-    defaultVisible: true,
-    editable: true,
-    width: 110,
-    type: "number",
-  },
-  {
-    field: "reserved",
-    headerName: "Reserved",
-    category: "inventory",
-    defaultVisible: true,
-    editable: false, // managed by order system
-    width: 100,
-    type: "number",
-  },
-  {
-    field: "available",
-    headerName: "Available",
-    category: "inventory",
-    defaultVisible: true,
-    editable: false, // calculated
-    width: 100,
-    type: "number",
-  },
-];
+export const INVENTORY_COLUMNS: IBulkEditorColumn[] = [];
 
 export const ATTRIBUTES_COLUMNS: IBulkEditorColumn[] = [
   {
@@ -285,7 +221,6 @@ export const ATTRIBUTES_COLUMNS: IBulkEditorColumn[] = [
 export const ALL_COLUMNS = [
   ...PRODUCT_COLUMNS,
   ...PRICING_COLUMNS,
-  ...INVENTORY_COLUMNS,
   ...ATTRIBUTES_COLUMNS,
 ];
 
@@ -321,8 +256,7 @@ export function shouldShowDash(
 }
 
 // Format price for display
-export function formatPrice(value: number | null): string {
-  if (value === null) return "";
+export function formatPrice(value: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",

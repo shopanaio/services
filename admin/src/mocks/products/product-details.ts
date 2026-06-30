@@ -1,23 +1,42 @@
-import { mockCategories } from "./categories";
-import { mockTags } from "./tags";
-import { MOCK_OPTION_GROUPS } from "./options";
-import { mockBundlesList } from "./bundles-list";
-import { createMockData as createAttributesMockData } from "./attributes";
+import { mockBundles } from "./bundles-list";
 import type {
-  IProductDetailsMockData,
+  ProductDetailsSupplementalData,
   IVariantsTableData,
-} from "@/domains/inventory/products/components/product-details-card/types";
+  } from "@/domains/inventory/products/components/product-details-card/types";
 import {
-  type ProductInventoryWidget,
-  ThresholdType,
-} from "@/domains/inventory/products/components/product-details-card/inventory-widget.types";
-import { CurrencyCode, type ApiVariant, type ApiPageInfo } from "@/graphql/types";
-import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/promos/bundles/types";
-import { BundleItemType, BundlePriceType, DependencyActionType, DependencyTargetType } from "@/domains/promos/bundles/types";
-import { ConditionCategory, ConditionSubject, StateCheckOperator, LogicOperator, ComparisonOperator } from "@/domains/promos/bundles/dependency-rules";
+  BundleItemType,
+  BundlePriceType,
+  ThresholdMethod,
+  ApiPageInfo,
+  ApiProductInventoryWidget,
+  ApiVariant,
+  } from "@/graphql/types";
+import type { IBundleGroup,
+  PricingRuleTemplate,
+  IDependencyRule } from "@/domains/inventory/bundles/types";
+import {
+  DependencyActionType,
+  DependencyTargetType } from "@/domains/inventory/bundles/types";
+import { ConditionCategory,
+  ConditionSubject,
+  StateCheckOperator,
+  LogicOperator,
+  ComparisonOperator,
+} from "@/domains/inventory/bundles/dependency-rules";
+import {
+  createMockApiInventoryItem,
+  createMockApiInventoryItemCost,
+  createMockApiVariant,
+  createMockApiVariantDimensions,
+  createMockApiVariantPrice,
+  createMockApiVariantWeight,
+  createMockApiWarehouseStock,
+} from "./api-builders";
 
-const getMockInventoryWidget = (): ProductInventoryWidget => ({
+const getMockInventoryWidget = (): ApiProductInventoryWidget => ({
+  __typename: "ProductInventoryWidget",
   quantities: {
+    __typename: "InventoryQuantities",
     availableForSale: 1250,
     onHand: 1500,
     reserved: 250,
@@ -25,13 +44,20 @@ const getMockInventoryWidget = (): ProductInventoryWidget => ({
   },
   availableChange7d: -45,
   skuStatus: {
+    __typename: "InventorySkuStatus",
     total: 24,
-    lowStock: { count: 3, averageDays: 12 },
-    outOfStock: { count: 1, averageDays: 3 },
-    backorder: { count: 2, averageDays: 5 },
+    lowStock: { __typename: "SkuStatusMetric", count: 3, averageDays: 12 },
+    outOfStock: { __typename: "SkuStatusMetric", count: 1, averageDays: 3 },
+    backorder: { __typename: "SkuStatusMetric", count: 2, averageDays: 5 },
+  },
+  backorder: {
+    __typename: "InventoryBackorder",
+    quantity: 2,
+    etaAvgDays: 5,
   },
   alertThreshold: {
-    method: ThresholdType.SAFETY_STOCK,
+    __typename: "InventoryAlertThreshold",
+    method: ThresholdMethod.SafetyStock,
     minimumStock: 10,
   },
 });
@@ -59,31 +85,31 @@ const mockBundleGroups: IBundleGroup[] = [
     items: [
       {
         id: "item-1",
-        itemType: BundleItemType.PRODUCT,
+        itemType: BundleItemType.Product,
         sortIndex: 0,
         minQty: 1,
         maxQty: 3,
-        pricingRule: { priceType: BundlePriceType.BASE, priceValue: null },
+        pricingRule: { priceType: BundlePriceType.Base, priceValue: null },
         title: "Premium Case",
         featuredImage: null,
       },
       {
         id: "item-2",
-        itemType: BundleItemType.PRODUCT,
+        itemType: BundleItemType.Product,
         sortIndex: 1,
         minQty: null,
         maxQty: 2,
-        pricingRule: { priceType: BundlePriceType.DISCOUNT_PERCENT, priceValue: 10 },
+        pricingRule: { priceType: BundlePriceType.DiscountPercent, priceValue: 10 },
         title: "Pro Charger 65W",
         featuredImage: null,
       },
       {
         id: "item-3",
-        itemType: BundleItemType.PRODUCT,
+        itemType: BundleItemType.Product,
         sortIndex: 2,
         minQty: null,
         maxQty: null,
-        pricingRule: { priceType: BundlePriceType.FREE, priceValue: null },
+        pricingRule: { priceType: BundlePriceType.Free, priceValue: null },
         title: "Screen Protector",
         featuredImage: null,
       },
@@ -98,21 +124,21 @@ const mockBundleGroups: IBundleGroup[] = [
     items: [
       {
         id: "item-4",
-        itemType: BundleItemType.PRODUCT,
+        itemType: BundleItemType.Product,
         sortIndex: 0,
         minQty: null,
         maxQty: 1,
-        pricingRule: { priceType: BundlePriceType.FREE, priceValue: null },
+        pricingRule: { priceType: BundlePriceType.Free, priceValue: null },
         title: "1 Year Standard Warranty (included)",
         featuredImage: null,
       },
       {
         id: "item-5",
-        itemType: BundleItemType.PRODUCT,
+        itemType: BundleItemType.Product,
         sortIndex: 1,
         minQty: null,
         maxQty: 1,
-        pricingRule: { priceType: BundlePriceType.FIXED, priceValue: 12990 },
+        pricingRule: { priceType: BundlePriceType.Fixed, priceValue: 12990 },
         title: "2 Year Extended Warranty",
         featuredImage: null,
       },
@@ -125,19 +151,19 @@ const mockPricingTemplates: PricingRuleTemplate[] = [
   {
     id: "tpl-1",
     name: "Bundle Discount",
-    priceType: BundlePriceType.DISCOUNT_PERCENT,
+    priceType: BundlePriceType.DiscountPercent,
     priceValue: 15,
   },
   {
     id: "tpl-2",
     name: "Premium Fixed",
-    priceType: BundlePriceType.FIXED,
+    priceType: BundlePriceType.Fixed,
     priceValue: 2999,
   },
   {
     id: "tpl-3",
     name: "Free Accessory",
-    priceType: BundlePriceType.FREE,
+    priceType: BundlePriceType.Free,
     priceValue: null,
   },
 ];
@@ -247,7 +273,7 @@ const mockDependencyRules: IDependencyRule[] = [
         actionType: DependencyActionType.ADJUST_PRICE,
         targetType: DependencyTargetType.ITEM,
         targetId: "item-3",
-        priceType: BundlePriceType.DISCOUNT_PERCENT,
+        priceType: BundlePriceType.DiscountPercent,
         priceValue: 20,
       },
       {
@@ -302,7 +328,7 @@ const mockDependencyRules: IDependencyRule[] = [
         id: "act-4-1",
         actionType: DependencyActionType.ADJUST_PRICE,
         targetType: DependencyTargetType.BUNDLE,
-        priceType: BundlePriceType.DISCOUNT_PERCENT,
+        priceType: BundlePriceType.DiscountPercent,
         priceValue: 15,
       },
     ],
@@ -358,7 +384,7 @@ const mockDependencyRules: IDependencyRule[] = [
         actionType: DependencyActionType.ADJUST_PRICE,
         targetType: DependencyTargetType.ITEM,
         targetId: "item-5",
-        priceType: BundlePriceType.FREE,
+        priceType: BundlePriceType.Free,
         priceValue: null,
       },
     ],
@@ -434,14 +460,14 @@ const mockDependencyRules: IDependencyRule[] = [
         actionType: DependencyActionType.ADJUST_PRICE,
         targetType: DependencyTargetType.ITEM,
         targetId: "item-3",
-        priceType: BundlePriceType.FREE,
+        priceType: BundlePriceType.Free,
         priceValue: null,
       },
       {
         id: "act-7-2",
         actionType: DependencyActionType.ADJUST_PRICE,
         targetType: DependencyTargetType.BUNDLE,
-        priceType: BundlePriceType.DISCOUNT_FIXED,
+        priceType: BundlePriceType.DiscountFixed,
         priceValue: 5000,
       },
     ],
@@ -531,7 +557,7 @@ const mockDependencyRules: IDependencyRule[] = [
         actionType: DependencyActionType.ADJUST_PRICE,
         targetType: DependencyTargetType.ITEM,
         targetId: "item-5",
-        priceType: BundlePriceType.DISCOUNT_PERCENT,
+        priceType: BundlePriceType.DiscountPercent,
         priceValue: 50,
       },
       {
@@ -581,7 +607,7 @@ const mockDependencyRules: IDependencyRule[] = [
         id: "act-10-1",
         actionType: DependencyActionType.ADJUST_PRICE,
         targetType: DependencyTargetType.BUNDLE,
-        priceType: BundlePriceType.FIXED,
+        priceType: BundlePriceType.Fixed,
         priceValue: 9999,
       },
       {
@@ -594,20 +620,13 @@ const mockDependencyRules: IDependencyRule[] = [
   },
 ];
 
-export const productDetailsMockData: IProductDetailsMockData = {
-  categories: {
-    primary: mockCategories[0],
-    list: mockCategories.slice(1, 4),
-  },
-  tags: mockTags.slice(0, 5),
+export const productDetailsMockData: ProductDetailsSupplementalData = {
   reviews: defaultReviewsData,
-  attributes: createAttributesMockData(),
-  options: MOCK_OPTION_GROUPS,
   bundleItems: mockBundleGroups,
   pricingTemplates: mockPricingTemplates,
   dependencyRules: mockDependencyRules,
   inventory: getMockInventoryWidget(),
-  includedInBundles: mockBundlesList.slice(0, 4),
+  includedInBundles: mockBundles.slice(0, 4),
 };
 
 // ============================================================================
@@ -622,85 +641,51 @@ const createMockVariant = (index: number): ApiVariant => {
 
   const basePrice = 2990 + index * 100;
   const hasDiscount = index % 3 === 0;
+  const variantId = `variant-${index + 1}`;
+  const stock = index % 4 === 0 ? 0 : 10 + index * 2;
 
-  return {
-    __typename: "Variant",
-    id: `variant-${index + 1}`,
+  return createMockApiVariant({
+    id: variantId,
     title: `${colors[colorIndex]} / ${sizes[sizeIndex]}`,
-    sku: `SKU-${String(index + 1).padStart(4, "0")}`,
     handle: `variant-${colors[colorIndex].toLowerCase()}-${sizes[sizeIndex].toLowerCase()}`,
     isDefault: index === 0,
-    inStock: index % 4 !== 0,
-    createdAt: new Date(Date.now() - index * 86400000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    selectedOptions: [
-      { optionId: "option-size", optionValueId: `size-${sizes[sizeIndex].toLowerCase()}` },
-      { optionId: "option-color", optionValueId: `color-${colors[colorIndex].toLowerCase()}` },
-    ],
-    price: {
-      __typename: "VariantPrice",
+    selectedOptions: [],
+    price: createMockApiVariantPrice({
       id: `price-${index + 1}`,
       amountMinor: basePrice,
       compareAtMinor: hasDiscount ? basePrice + 1000 : null,
-      currency: CurrencyCode.Rub,
-      effectiveFrom: new Date().toISOString(),
-      isCurrent: true,
-      recordedAt: new Date().toISOString(),
-    },
-    cost: null,
-    costHistory: {
-      __typename: "VariantCostConnection",
-      edges: [],
-      pageInfo: {
-        __typename: "PageInfo",
-        hasNextPage: false,
-        hasPreviousPage: false,
-        startCursor: null,
-        endCursor: null,
-      },
-      totalCount: 0,
-    },
-    priceHistory: {
-      __typename: "VariantPriceConnection",
-      edges: [],
-      pageInfo: {
-        __typename: "PageInfo",
-        hasNextPage: false,
-        hasPreviousPage: false,
-        startCursor: null,
-        endCursor: null,
-      },
-      totalCount: 0,
-    },
-    weight: index % 2 === 0 ? { __typename: "VariantWeight", value: 250 + index * 10 } : null,
+    }),
+    weight:
+      index % 2 === 0
+        ? createMockApiVariantWeight({
+            value: 250 + index * 10,
+          })
+        : null,
     dimensions:
       index % 2 === 0
-        ? { __typename: "VariantDimensions", length: 200, width: 150, height: 50 }
+        ? createMockApiVariantDimensions({
+            length: 200,
+            width: 150,
+            height: 50,
+          })
         : null,
+    inventoryItem: createMockApiInventoryItem({
+      id: `inventory-${variantId}`,
+      variantId,
+      sku: `SKU-${String(index + 1).padStart(4, "0")}`,
+      totalAvailable: stock,
+      stock: [
+        createMockApiWarehouseStock({
+          id: `stock-${index + 1}`,
+          quantityOnHand: stock,
+        }),
+      ],
+      unitCost: createMockApiInventoryItemCost({
+        amountMinor: Math.round(basePrice * 0.6),
+      }),
+    }),
     media: [],
-    stock: [
-      {
-        __typename: "WarehouseStock",
-        id: `stock-${index + 1}`,
-        quantityOnHand: index % 4 === 0 ? 0 : 10 + index * 2,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        variant: {} as ApiVariant,
-        warehouse: {
-          __typename: "Warehouse",
-          id: "warehouse-1",
-          code: "WH-MAIN",
-          createdAt: new Date().toISOString(),
-          isDefault: true,
-          name: "Main Warehouse",
-          updatedAt: new Date().toISOString(),
-          variantsCount: 25,
-          stock: { __typename: "WarehouseStockConnection", edges: [], pageInfo: { __typename: "PageInfo", hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null }, totalCount: 0 },
-        },
-      },
-    ],
-    product: {} as ApiVariant["product"],
-  };
+  });
 };
 
 export const getMockVariantsTableData = (

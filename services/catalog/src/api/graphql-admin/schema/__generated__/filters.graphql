@@ -1,18 +1,702 @@
 # Auto-generated GraphQL filter types for Catalog service.
 # Do not edit manually. Run: yarn generate:filters
 
-"""Filter conditions for CategoryProduct"""
-input CategoryProductWhereInput {
+# ---- Listing ----
+
+"""Filter conditions for Listing"""
+input ListingWhereInput {
   """Logical AND of multiple conditions"""
-  _and: [CategoryProductWhereInput!]
+  _and: [ListingWhereInput!]
   """Logical OR of multiple conditions"""
-  _or: [CategoryProductWhereInput!]
+  _or: [ListingWhereInput!]
   """Negate the condition"""
-  _not: CategoryProductWhereInput
+  _not: ListingWhereInput
   """Filter by id"""
   id: IDFilter
+  """Filter by vendorId"""
+  vendorId: IDFilter
+  """Filter by handle"""
+  handle: StringFilter
+  """Filter by publishedAt"""
+  publishedAt: DateTimeFilter
   """Filter by createdAt"""
   createdAt: DateTimeFilter
-  """Filter by deletedAt"""
-  deletedAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+  """Filter by kind"""
+  kind: StringFilter
+  """Filter by locale"""
+  locale: StringFilter
+  """Filter by name"""
+  name: StringFilter
+  """Filter by currency"""
+  currency: StringFilter
+  """Filter by minAmountMinor"""
+  minAmountMinor: IntFilter
+  """Filter by maxAmountMinor"""
+  maxAmountMinor: IntFilter
+  """Filter by minPriceMinor"""
+  minPriceMinor: IntFilter
+  """Filter by maxPriceMinor"""
+  maxPriceMinor: IntFilter
+  """Filter by primaryCategoryId"""
+  primaryCategoryId: IDFilter
+  """Filter by primaryCategoryName"""
+  primaryCategoryName: StringFilter
+  """Filter by brandName"""
+  brandName: StringFilter
+}
+
+"""Fields available for sorting Listing"""
+enum ListingOrderField {
+  """Sort by id"""
+  id
+  """Sort by vendorId"""
+  vendorId
+  """Sort by handle"""
+  handle
+  """Sort by publishedAt"""
+  publishedAt
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+  """Sort by kind"""
+  kind
+  """Sort by locale"""
+  locale
+  """Sort by name"""
+  name
+  """Sort by currency"""
+  currency
+  """Sort by minAmountMinor"""
+  minAmountMinor
+  """Sort by maxAmountMinor"""
+  maxAmountMinor
+  """Sort by minPriceMinor"""
+  minPriceMinor
+  """Sort by maxPriceMinor"""
+  maxPriceMinor
+  """Sort by primaryCategoryId"""
+  primaryCategoryId
+  """Sort by primaryCategoryName"""
+  primaryCategoryName
+  """Sort by brandName"""
+  brandName
+}
+
+"""Ordering configuration for Listing"""
+input ListingOrderByInput {
+  """Field to order by"""
+  field: ListingOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- Product ----
+
+"""Filter conditions for Product"""
+input ProductWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [ProductWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [ProductWhereInput!]
+  """Negate the condition"""
+  _not: ProductWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by vendorId"""
+  vendorId: IDFilter
+  """Filter by handle"""
+  handle: StringFilter
+  """Filter by publishedAt"""
+  publishedAt: DateTimeFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+  """Filter by locale"""
+  locale: StringFilter
+  """Filter by name"""
+  name: StringFilter
+  """Filter by currency"""
+  currency: StringFilter
+  """Filter by minAmountMinor"""
+  minAmountMinor: IntFilter
+  """Filter by maxAmountMinor"""
+  maxAmountMinor: IntFilter
+  """Filter by minPriceMinor"""
+  minPriceMinor: IntFilter
+  """Filter by maxPriceMinor"""
+  maxPriceMinor: IntFilter
+  """Filter by primaryCategoryId"""
+  primaryCategoryId: IDFilter
+  """Filter by primaryCategoryName"""
+  primaryCategoryName: StringFilter
+  """Filter by brandName"""
+  brandName: StringFilter
+}
+
+"""Fields available for sorting Product"""
+enum ProductOrderField {
+  """Sort by id"""
+  id
+  """Sort by vendorId"""
+  vendorId
+  """Sort by handle"""
+  handle
+  """Sort by publishedAt"""
+  publishedAt
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+  """Sort by locale"""
+  locale
+  """Sort by name"""
+  name
+  """Sort by currency"""
+  currency
+  """Sort by minAmountMinor"""
+  minAmountMinor
+  """Sort by maxAmountMinor"""
+  maxAmountMinor
+  """Sort by minPriceMinor"""
+  minPriceMinor
+  """Sort by maxPriceMinor"""
+  maxPriceMinor
+  """Sort by primaryCategoryId"""
+  primaryCategoryId
+  """Sort by primaryCategoryName"""
+  primaryCategoryName
+  """Sort by brandName"""
+  brandName
+}
+
+"""Ordering configuration for Product"""
+input ProductOrderByInput {
+  """Field to order by"""
+  field: ProductOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- Bundle ----
+
+"""Filter conditions for Bundle"""
+input BundleWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [BundleWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [BundleWhereInput!]
+  """Negate the condition"""
+  _not: BundleWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by vendorId"""
+  vendorId: IDFilter
+  """Filter by handle"""
+  handle: StringFilter
+  """Filter by publishedAt"""
+  publishedAt: DateTimeFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+  """Filter by locale"""
+  locale: StringFilter
+  """Filter by name"""
+  name: StringFilter
+  """Filter by currency"""
+  currency: StringFilter
+  """Filter by minAmountMinor"""
+  minAmountMinor: IntFilter
+  """Filter by maxAmountMinor"""
+  maxAmountMinor: IntFilter
+  """Filter by minPriceMinor"""
+  minPriceMinor: IntFilter
+  """Filter by maxPriceMinor"""
+  maxPriceMinor: IntFilter
+  """Filter by primaryCategoryId"""
+  primaryCategoryId: IDFilter
+  """Filter by primaryCategoryName"""
+  primaryCategoryName: StringFilter
+  """Filter by brandName"""
+  brandName: StringFilter
+  """Filter by bundleType"""
+  bundleType: StringFilter
+}
+
+"""Fields available for sorting Bundle"""
+enum BundleOrderField {
+  """Sort by id"""
+  id
+  """Sort by vendorId"""
+  vendorId
+  """Sort by handle"""
+  handle
+  """Sort by publishedAt"""
+  publishedAt
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+  """Sort by locale"""
+  locale
+  """Sort by name"""
+  name
+  """Sort by currency"""
+  currency
+  """Sort by minAmountMinor"""
+  minAmountMinor
+  """Sort by maxAmountMinor"""
+  maxAmountMinor
+  """Sort by minPriceMinor"""
+  minPriceMinor
+  """Sort by maxPriceMinor"""
+  maxPriceMinor
+  """Sort by primaryCategoryId"""
+  primaryCategoryId
+  """Sort by primaryCategoryName"""
+  primaryCategoryName
+  """Sort by brandName"""
+  brandName
+  """Sort by bundleType"""
+  bundleType
+}
+
+"""Ordering configuration for Bundle"""
+input BundleOrderByInput {
+  """Field to order by"""
+  field: BundleOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- Vendor ----
+
+"""Filter conditions for Vendor"""
+input VendorWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [VendorWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [VendorWhereInput!]
+  """Negate the condition"""
+  _not: VendorWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by name"""
+  name: StringFilter
+}
+
+"""Fields available for sorting Vendor"""
+enum VendorOrderField {
+  """Sort by id"""
+  id
+  """Sort by name"""
+  name
+}
+
+"""Ordering configuration for Vendor"""
+input VendorOrderByInput {
+  """Field to order by"""
+  field: VendorOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- Category ----
+
+"""Filter conditions for Category"""
+input CategoryWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [CategoryWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [CategoryWhereInput!]
+  """Negate the condition"""
+  _not: CategoryWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by parentId"""
+  parentId: IDFilter
+  """Filter by path"""
+  path: StringFilter
+  """Filter by depth"""
+  depth: IntFilter
+  """Filter by handle"""
+  handle: StringFilter
+  """Filter by defaultSort"""
+  defaultSort: StringFilter
+  """Filter by defaultSortDirection"""
+  defaultSortDirection: StringFilter
+  """Filter by publishedAt"""
+  publishedAt: DateTimeFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+  """Filter by productsCount"""
+  productsCount: IntFilter
+  """Filter by locale"""
+  locale: StringFilter
+  """Filter by name"""
+  name: StringFilter
+}
+
+"""Fields available for sorting Category"""
+enum CategoryOrderField {
+  """Sort by id"""
+  id
+  """Sort by parentId"""
+  parentId
+  """Sort by path"""
+  path
+  """Sort by depth"""
+  depth
+  """Sort by handle"""
+  handle
+  """Sort by defaultSort"""
+  defaultSort
+  """Sort by defaultSortDirection"""
+  defaultSortDirection
+  """Sort by publishedAt"""
+  publishedAt
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+  """Sort by productsCount"""
+  productsCount
+  """Sort by locale"""
+  locale
+  """Sort by name"""
+  name
+}
+
+"""Ordering configuration for Category"""
+input CategoryOrderByInput {
+  """Field to order by"""
+  field: CategoryOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- Tag ----
+
+"""Filter conditions for Tag"""
+input TagWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [TagWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [TagWhereInput!]
+  """Negate the condition"""
+  _not: TagWhereInput
+  """Filter by projectId"""
+  projectId: IDFilter
+  """Filter by id"""
+  id: IDFilter
+  """Filter by handle"""
+  handle: StringFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by productsCount"""
+  productsCount: IntFilter
+  """Filter by locale"""
+  locale: StringFilter
+  """Filter by name"""
+  name: StringFilter
+}
+
+"""Fields available for sorting Tag"""
+enum TagOrderField {
+  """Sort by projectId"""
+  projectId
+  """Sort by id"""
+  id
+  """Sort by handle"""
+  handle
+  """Sort by createdAt"""
+  createdAt
+  """Sort by productsCount"""
+  productsCount
+  """Sort by locale"""
+  locale
+  """Sort by name"""
+  name
+}
+
+"""Ordering configuration for Tag"""
+input TagOrderByInput {
+  """Field to order by"""
+  field: TagOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- Warehouse ----
+
+"""Filter conditions for Warehouse"""
+input WarehouseWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [WarehouseWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [WarehouseWhereInput!]
+  """Negate the condition"""
+  _not: WarehouseWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by code"""
+  code: StringFilter
+  """Filter by name"""
+  name: StringFilter
+  """Filter by isDefault"""
+  isDefault: BooleanFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Fields available for sorting Warehouse"""
+enum WarehouseOrderField {
+  """Sort by id"""
+  id
+  """Sort by code"""
+  code
+  """Sort by name"""
+  name
+  """Sort by isDefault"""
+  isDefault
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+}
+
+"""Ordering configuration for Warehouse"""
+input WarehouseOrderByInput {
+  """Field to order by"""
+  field: WarehouseOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+"""Relay-style pagination input for Warehouse"""
+input WarehouseConnectionInput {
+  """Returns the first n items"""
+  first: Int
+  """Returns items after this cursor"""
+  after: String
+  """Returns the last n items"""
+  last: Int
+  """Returns items before this cursor"""
+  before: String
+  """Filter conditions"""
+  where: WarehouseWhereInput
+  """Sort order"""
+  orderBy: [WarehouseOrderByInput!]
+}
+
+# ---- WarehouseStock ----
+
+"""Filter conditions for WarehouseStock"""
+input WarehouseStockWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [WarehouseStockWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [WarehouseStockWhereInput!]
+  """Negate the condition"""
+  _not: WarehouseStockWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by warehouseId"""
+  warehouseId: IDFilter
+  """Filter by variantId"""
+  variantId: IDFilter
+  """Filter by quantityOnHand"""
+  quantityOnHand: IntFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+}
+
+"""Fields available for sorting WarehouseStock"""
+enum WarehouseStockOrderField {
+  """Sort by id"""
+  id
+  """Sort by warehouseId"""
+  warehouseId
+  """Sort by variantId"""
+  variantId
+  """Sort by quantityOnHand"""
+  quantityOnHand
+  """Sort by updatedAt"""
+  updatedAt
+  """Sort by createdAt"""
+  createdAt
+}
+
+"""Ordering configuration for WarehouseStock"""
+input WarehouseStockOrderByInput {
+  """Field to order by"""
+  field: WarehouseStockOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+"""Relay-style pagination input for WarehouseStock"""
+input WarehouseStockConnectionInput {
+  """Returns the first n items"""
+  first: Int
+  """Returns items after this cursor"""
+  after: String
+  """Returns the last n items"""
+  last: Int
+  """Returns items before this cursor"""
+  before: String
+  """Filter conditions"""
+  where: WarehouseStockWhereInput
+  """Sort order"""
+  orderBy: [WarehouseStockOrderByInput!]
+}
+
+# ---- Variant ----
+
+"""Filter conditions for Variant"""
+input VariantWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [VariantWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [VariantWhereInput!]
+  """Negate the condition"""
+  _not: VariantWhereInput
+  """Filter by productId"""
+  productId: IDFilter
+  """Filter by id"""
+  id: IDFilter
+  """Filter by isDefault"""
+  isDefault: BooleanFilter
+  """Filter by handle"""
+  handle: StringFilter
+  """Filter by externalSystem"""
+  externalSystem: StringFilter
+  """Filter by externalId"""
+  externalId: StringFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+}
+
+"""Fields available for sorting Variant"""
+enum VariantOrderField {
+  """Sort by productId"""
+  productId
+  """Sort by id"""
+  id
+  """Sort by isDefault"""
+  isDefault
+  """Sort by handle"""
+  handle
+  """Sort by externalSystem"""
+  externalSystem
+  """Sort by externalId"""
+  externalId
+  """Sort by updatedAt"""
+  updatedAt
+  """Sort by createdAt"""
+  createdAt
+}
+
+"""Ordering configuration for Variant"""
+input VariantOrderByInput {
+  """Field to order by"""
+  field: VariantOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- FacetSourceCandidate ----
+
+"""Filter conditions for FacetSourceCandidate"""
+input FacetSourceCandidateWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [FacetSourceCandidateWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [FacetSourceCandidateWhereInput!]
+  """Negate the condition"""
+  _not: FacetSourceCandidateWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by facetType"""
+  facetType: StringFilter
+  """Filter by handle"""
+  handle: StringFilter
+  """Filter by name"""
+  name: StringFilter
+  """Filter by sourceSortBucket"""
+  sourceSortBucket: IntFilter
+  """Filter by sortName"""
+  sortName: StringFilter
+}
+
+"""Fields available for sorting FacetSourceCandidate"""
+enum FacetSourceCandidateOrderField {
+  """Sort by id"""
+  id
+  """Sort by facetType"""
+  facetType
+  """Sort by handle"""
+  handle
+  """Sort by name"""
+  name
+  """Sort by sourceSortBucket"""
+  sourceSortBucket
+  """Sort by sortName"""
+  sortName
+}
+
+"""Ordering configuration for FacetSourceCandidate"""
+input FacetSourceCandidateOrderByInput {
+  """Field to order by"""
+  field: FacetSourceCandidateOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+# ---- FacetValueCandidate ----
+
+"""Filter conditions for FacetValueCandidate"""
+input FacetValueCandidateWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [FacetValueCandidateWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [FacetValueCandidateWhereInput!]
+  """Negate the condition"""
+  _not: FacetValueCandidateWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by handle"""
+  handle: StringFilter
+  """Filter by label"""
+  label: StringFilter
+}
+
+"""Fields available for sorting FacetValueCandidate"""
+enum FacetValueCandidateOrderField {
+  """Sort by id"""
+  id
+  """Sort by handle"""
+  handle
+  """Sort by label"""
+  label
+}
+
+"""Ordering configuration for FacetValueCandidate"""
+input FacetValueCandidateOrderByInput {
+  """Field to order by"""
+  field: FacetValueCandidateOrderField!
+  """Sort direction"""
+  direction: SortDirection!
 }

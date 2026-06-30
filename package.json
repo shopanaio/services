@@ -17,6 +17,8 @@
     "dev": "yarn shopana dev",
     "build": "yarn shopana build",
     "codegen": "yarn shopana codegen",
+    "e2e:codegen": "yarn shopana e2e codegen",
+    "e2e:test": "yarn shopana e2e test",
     "migrate": "yarn shopana migrate",
     "gateway": "yarn shopana gateway"
   },

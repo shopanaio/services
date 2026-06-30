@@ -51,6 +51,8 @@ export interface IKPITileProps {
   centered?: boolean;
   /** Custom className */
   className?: string;
+  /** Test id for integration tests */
+  dataTestId?: string;
 }
 
 // ============================================================================
@@ -235,6 +237,7 @@ export const KPITile = ({
   trendSuffix = "%",
   centered,
   className,
+  dataTestId,
 }: IKPITileProps) => {
   const { styles, cx } = useStyles();
 
@@ -267,6 +270,7 @@ export const KPITile = ({
         className
       )}
       onClick={onClick}
+      data-testid={dataTestId}
     >
       {/* Header row: label + info icon + badge */}
       <Flex

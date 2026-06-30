@@ -1,7 +1,8 @@
-import { generateUser, UserData } from '@utils/user';
-import { ApiStore } from '@codegen/admin-gql';
-import { StorefrontApiFixture } from '@fixtures/storefront/api';
-import { AdminApiFixture } from '@fixtures/admin/api';
+import type { UserData } from '@utils/user';
+import { generateUser } from '@utils/user';
+import type { ApiStore, ApiStoreCreateInput } from '@codegen/admin-gql';
+import type { StorefrontApiFixture } from '@fixtures/storefront/api';
+import type { AdminApiFixture } from '@fixtures/admin/api';
 
 export class SessionFixture {
   private api!: {
@@ -86,14 +87,13 @@ export class SessionFixture {
    * Creates a new store and stores it in session.
    * Requires organization to be set up first (via setupOrganization).
    */
-  setupProject = async ({ name, displayName }: { name?: string; displayName?: string } = {}) => {
+  setupProject = async (input: Partial<ApiStoreCreateInput> = {}) => {
     if (!this.organizationId) {
       await this.setupOrganization();
     }
     this.project = await this.api.admin.project.create({
       organizationId: this.organizationId as string,
-      name,
-      displayName,
+      ...input,
     });
   };
 
@@ -101,9 +101,9 @@ export class SessionFixture {
    * Convenience method that sets up user, organization, and store in one call.
    * Use this for tests that need a fully initialized environment.
    */
-  async setupUserAndStore({ name, displayName }: { name?: string; displayName?: string } = {}) {
+  async setupUserAndStore(input: Partial<ApiStoreCreateInput> = {}) {
     await this.setupUser();
-    await this.setupProject({ name, displayName });
+    await this.setupProject(input);
   }
 
   setApi(api: { admin: AdminApiFixture; client: StorefrontApiFixture }) {

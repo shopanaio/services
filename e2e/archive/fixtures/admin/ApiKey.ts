@@ -1,5 +1,5 @@
-import { ApiApiKey, ApiCreateApiKeyInput } from '@codegen/admin-gql';
-import { TenantApiFixture } from '@fixtures/admin/api';
+import type { ApiApiKey, ApiCreateApiKeyInput } from '@codegen/admin-gql';
+import type { TenantApiFixture } from '@fixtures/admin/api';
 
 export class ApiKey {
   constructor(private api: TenantApiFixture) {}

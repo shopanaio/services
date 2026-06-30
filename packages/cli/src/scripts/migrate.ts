@@ -16,7 +16,7 @@ const servicesDir = join(rootDir, "services");
 
 interface MigrationsConfig {
   path: string;
-  type: "drizzle" | "typeorm" | "prisma";
+  type: "drizzle" | "node-pg-migrate" | "typeorm" | "prisma";
 }
 
 interface BuildConfig {
@@ -28,7 +28,7 @@ interface BuildConfig {
 interface ServiceMigrationConfig {
   name: string;
   path: string;
-  type: "drizzle" | "typeorm" | "prisma";
+  type: "drizzle" | "node-pg-migrate" | "typeorm" | "prisma";
 }
 
 interface DatabaseConfig {
@@ -160,6 +160,27 @@ async function runDrizzleMigration(
   await sql.end();
 }
 
+async function runNodePgMigrateMigration(
+  connectionString: string,
+  migrationsFolder: string
+): Promise<void> {
+  const { runner } = await import("node-pg-migrate");
+  const cleanUrl = connectionString.replace(/[?&]schema=[^&]+/g, "");
+
+  await runner({
+    databaseUrl: cleanUrl,
+    dir: `${migrationsFolder}/domains/**/*.sql`,
+    useGlob: true,
+    direction: "up",
+    migrationsTable: "pgmigrations",
+    migrationsSchema: "catalog",
+    createMigrationsSchema: true,
+    singleTransaction: false,
+    checkOrder: true,
+    log: () => {},
+  });
+}
+
 async function migrateService(
   serviceName: string,
   config: ServiceMigrationConfig,
@@ -179,6 +200,11 @@ async function migrateService(
   try {
     if (config.type === "drizzle") {
       await runDrizzleMigration(databaseUrl, fullMigrationsPath, serviceName);
+    } else if (config.type === "node-pg-migrate") {
+      await runNodePgMigrateMigration(
+        databaseUrl,
+        fullMigrationsPath
+      );
     } else {
       return {
         service: serviceName,
@@ -210,10 +236,10 @@ function getDatabaseUrl(serviceName?: string): string {
     }
   }
 
-  // Try inventory config as default (most services use same DB)
-  const inventoryUrl = getServiceDatabaseUrl("inventory");
-  if (inventoryUrl) {
-    return inventoryUrl;
+  // Try catalog config as default (most services use same DB)
+  const catalogUrl = getServiceDatabaseUrl("catalog");
+  if (catalogUrl) {
+    return catalogUrl;
   }
 
   // Default local development URL

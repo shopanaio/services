@@ -374,7 +374,6 @@ The monitoring stack includes automatic collection of metrics from all Moleculer
    - **Apps Service - Logs Dashboard** - All logs, error logs, warning logs with statistics
    - **Checkout Service - Logs Dashboard** - All logs, error logs, warning logs with statistics
    - **Delivery Service - Logs Dashboard** - All logs, error logs, warning logs with statistics
-   - **Inventory Service - Logs Dashboard** - All logs, error logs, warning logs with statistics
    - **Orders Service - Logs Dashboard** - All logs, error logs, warning logs with statistics
    - **Payments Service - Logs Dashboard** - All logs, error logs, warning logs with statistics
    - **Platform Service - Logs Dashboard** - All logs, error logs, warning logs with statistics
@@ -390,7 +389,6 @@ The following Moleculer services expose metrics on their dedicated ports:
 | apps        | 3030         | /d/apps-service/apps-service-dashboard | /d/apps-service-logs/apps-service-logs-dashboard |
 | checkout    | 3031         | /d/checkout-service/checkout-service-dashboard | /d/checkout-service-logs/checkout-service-logs-dashboard |
 | delivery    | 3032         | /d/delivery-service/delivery-service-dashboard | /d/delivery-service-logs/delivery-service-logs-dashboard |
-| inventory   | 3033         | /d/inventory-service/inventory-service-dashboard | /d/inventory-service-logs/inventory-service-logs-dashboard |
 | orders      | 3034         | /d/orders-service/orders-service-dashboard | /d/orders-service-logs/orders-service-logs-dashboard |
 | payments    | 3035         | /d/payments-service/payments-service-dashboard | /d/payments-service-logs/payments-service-logs-dashboard |
 | platform    | 3036         | /d/platform-service/platform-service-dashboard | /d/platform-service-logs/platform-service-logs-dashboard |

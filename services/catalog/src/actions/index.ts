@@ -34,4 +34,5 @@ export class CatalogBrokerActions extends BrokerActions {
   async getOffers(params: GetOffersParams): Promise<GetOffersResult> {
     return this.kernel.runScript(GetOffersScript, params);
   }
+
 }

@@ -1,165 +1,237 @@
 "use client";
 
-import { useState } from "react";
-import { Typography, Flex, Button, Input, Dropdown, Image } from "antd";
+import { useMemo, useState } from "react";
+import { Alert, App, Button, Dropdown, Flex, Skeleton, Tag, Typography } from "antd";
 import {
+  MoreOutlined,
+  PictureOutlined,
   PlusOutlined,
+  ShoppingOutlined,
   SortAscendingOutlined,
-  LeftOutlined,
-  RightOutlined,
 } from "@ant-design/icons";
+import type { MenuProps } from "antd";
+import { EntityDetailsEmptyState } from "@/domains/inventory/components/entity-details-sections";
+import { RelayCursorPagination, useRelayCursorPagination } from "@/ui-kit/cursor-pagination";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { EntityStatus } from "@/mocks/products/types";
+import type { ApiListing, ApiListingOrderByInput } from "@/graphql/types";
+import { ListingOrderField, ProductSortBy, SortDirection } from "@/graphql/types";
+import { useCategoryProducts, useRemoveCategoryProduct } from "../../../hooks";
 import { useProductsStyles } from "../category-details-card.styles";
-import type { ICategoryProduct } from "../types";
+import { TableCoverImage } from "@/shared/components/table-cover-image";
 
-// ============================================================================
-// Helpers
-// ============================================================================
-
-const formatPrice = (price: number) =>
-  new Intl.NumberFormat("ru-RU", {
-    style: "currency",
-    currency: "RUB",
-  }).format(price / 100);
-
-const getStockConfig = (inStock: boolean) => {
-  if (inStock) {
-    return {
-      color: "var(--ant-color-success)",
-      icon: "\u25CF",
-      label: "In Stock",
-    };
-  }
-  return {
-    color: "var(--ant-color-error)",
-    icon: "\u2715",
-    label: "Out of Stock",
-  };
+const getProductImageUrl = (product: ApiListing): string | null => {
+  const firstMedia = [...product.media].sort((a, b) => a.sortIndex - b.sortIndex)[0];
+  return firstMedia?.file.url ?? null;
 };
 
-const getStatusLabel = (status: EntityStatus) => {
-  switch (status) {
-    case EntityStatus.PUBLISHED:
-      return "Active";
-    case EntityStatus.DRAFT:
-      return "Draft";
-    case EntityStatus.ARCHIVED:
-      return "Archived";
+const formatProductSort = (value: ProductSortBy): string => {
+  switch (value) {
+    case ProductSortBy.Manual:
+      return "Manual";
+    case ProductSortBy.Name:
+      return "Name";
+    case ProductSortBy.Newest:
+      return "Newest";
+    case ProductSortBy.Price:
+      return "Price";
     default:
-      return status;
+      return value;
   }
 };
 
-// ============================================================================
-// ProductRow
-// ============================================================================
+const formatSortDirection = (value: SortDirection): string =>
+  value === SortDirection.Desc ? "Descending" : "Ascending";
 
-interface IProductRowProps {
-  product: ICategoryProduct;
+interface ProductRowProps {
+  product: ApiListing;
+  isRemoving?: boolean;
+  onRemove?: (product: ApiListing) => void;
 }
 
-const ProductRow = ({ product }: IProductRowProps) => {
+const ProductRow = ({ product, isRemoving, onRemove }: ProductRowProps) => {
   const { styles } = useProductsStyles();
-  const stock = getStockConfig(product.inStock);
+  const imageUrl = getProductImageUrl(product);
+  const actionItems: MenuProps["items"] = [
+    {
+      key: "unassign",
+      label: (
+        <span data-testid={`category-products-unassign-menu-item-${product.handle}`}>Unassign</span>
+      ),
+      onClick: () => onRemove?.(product),
+    },
+  ];
 
   return (
-    <tr>
+    <tr data-testid={`category-products-row-${product.handle}`}>
       <td>
         <Flex align="flex-start" gap={8}>
-          {product.featured ? (
-            <Image
-              src={product.featured.url}
-              alt={product.title}
-              width={40}
-              height={40}
-              className={styles.productImage}
-              preview={false}
-            />
-          ) : (
-            <div className={styles.productImagePlaceholder} />
-          )}
+          <TableCoverImage
+            src={imageUrl}
+            alt={product.title}
+            fallbackIcon={<PictureOutlined />}
+            className={styles.productImage}
+          />
           <Flex vertical>
-            <Typography.Text strong className={styles.productTitle}>
+            <Typography.Text
+              strong
+              className={styles.productTitle}
+              data-testid={`category-products-title-cell-${product.handle}`}
+            >
               {product.title}
             </Typography.Text>
           </Flex>
         </Flex>
       </td>
       <td>
-        <Typography.Text className={styles.productSku}>
-          {product.sku || "\u2014"}
-        </Typography.Text>
+        <Tag
+          color={product.isPublished ? "green" : "gold"}
+          data-testid={`category-products-status-cell-${product.handle}`}
+        >
+          {product.isPublished ? "Published" : "Draft"}
+        </Tag>
       </td>
-      <td style={{ textAlign: "right" }}>
-        <Typography.Text>{formatPrice(product.price)}</Typography.Text>
-      </td>
-      <td>
-        <Flex align="center" gap={4}>
-          <span className={styles.stockIcon} style={{ color: stock.color }}>
-            {stock.icon}
-          </span>
-          <span className={styles.stockLabel} style={{ color: stock.color }}>
-            {stock.label}
-          </span>
-        </Flex>
+      <td style={{ textAlign: "right", width: 56 }}>
+        <Dropdown menu={{ items: actionItems }} trigger={["click"]} placement="bottomRight">
+          <Button
+            size="small"
+            type="text"
+            icon={<MoreOutlined />}
+            loading={isRemoving}
+            aria-label={`Actions for ${product.title}`}
+            data-testid={`category-products-actions-button-${product.handle}`}
+          />
+        </Dropdown>
       </td>
     </tr>
   );
 };
 
-// ============================================================================
-// ProductsSection
-// ============================================================================
-
-interface IProductsSectionProps {
-  products: ICategoryProduct[];
-  totalCount: number;
-  hasNextPage: boolean;
+interface ProductsSectionProps {
+  categoryId: string;
+  productsCount: number;
+  defaultSort: ProductSortBy;
+  defaultSortDirection: SortDirection;
   onAssignProducts?: () => void;
 }
 
 export const ProductsSection = ({
-  products,
-  totalCount,
-  hasNextPage,
+  categoryId,
+  productsCount,
+  defaultSort,
+  defaultSortDirection,
   onAssignProducts,
-}: IProductsSectionProps) => {
+}: ProductsSectionProps) => {
   const { styles } = useProductsStyles();
-  const [page, setPage] = useState(0);
+  const { message, modal } = App.useApp();
+  const [orderBy, setOrderBy] = useState<ApiListingOrderByInput[] | null>(null);
+  const [removingProductId, setRemovingProductId] = useState<string | null>(null);
+  const pagination = useRelayCursorPagination({
+    defaultPageSize: 10,
+    resetKey: JSON.stringify(orderBy),
+  });
+  const { products, totalCount, pageInfo, loading, error } = useCategoryProducts(categoryId, {
+    ...pagination.variables,
+    orderBy,
+  });
+  const { removeCategoryProduct } = useRemoveCategoryProduct();
+
+  const sortMenu = useMemo(
+    () => ({
+      items: [
+        {
+          key: "manual",
+          label: "Manual order",
+          onClick: () => setOrderBy(null),
+        },
+        {
+          key: "name-asc",
+          label: "Name A to Z",
+          onClick: () =>
+            setOrderBy([{ field: ListingOrderField.Name, direction: SortDirection.Asc }]),
+        },
+        {
+          key: "name-desc",
+          label: "Name Z to A",
+          onClick: () =>
+            setOrderBy([{ field: ListingOrderField.Name, direction: SortDirection.Desc }]),
+        },
+        {
+          key: "newest",
+          label: "Newest first",
+          onClick: () =>
+            setOrderBy([{ field: ListingOrderField.CreatedAt, direction: SortDirection.Desc }]),
+        },
+        {
+          key: "price-asc",
+          label: "Price low to high",
+          onClick: () =>
+            setOrderBy([{ field: ListingOrderField.MinPriceMinor, direction: SortDirection.Asc }]),
+        },
+        {
+          key: "price-desc",
+          label: "Price high to low",
+          onClick: () =>
+            setOrderBy([{ field: ListingOrderField.MinPriceMinor, direction: SortDirection.Desc }]),
+        },
+      ],
+    }),
+    [],
+  );
 
   const hasProducts = products.length > 0;
+  const defaultSortLabel = `${formatProductSort(defaultSort)} / ${formatSortDirection(
+    defaultSortDirection,
+  )}`;
 
-  const sortMenu = {
-    items: [
-      { key: "name-asc", label: "Name A \u2192 Z" },
-      { key: "name-desc", label: "Name Z \u2192 A" },
-      { type: "divider" as const },
-      { key: "price-asc", label: "Price: Low \u2192 High" },
-      { key: "price-desc", label: "Price: High \u2192 Low" },
-      { type: "divider" as const },
-      { key: "stock-asc", label: "Stock: Low \u2192 High" },
-      { key: "stock-desc", label: "Stock: High \u2192 Low" },
-    ],
-    onClick: ({ key }: { key: string }) => console.log("Sort by:", key),
+  const handleRemoveProduct = async (product: ApiListing) => {
+    setRemovingProductId(product.id);
+
+    try {
+      const result = await removeCategoryProduct({
+        categoryId,
+        productId: product.id,
+      });
+
+      if (result.userErrors.length > 0) {
+        message.error(result.userErrors[0].message);
+        return;
+      }
+
+      message.success("Product removed from category");
+    } finally {
+      setRemovingProductId(null);
+    }
+  };
+
+  const confirmRemoveProduct = (product: ApiListing) => {
+    modal.confirm({
+      title: "Unassign product from category?",
+      content: "The product will stay in the catalog.",
+      okText: "Unassign",
+      onOk: () => handleRemoveProduct(product),
+    });
   };
 
   return (
-    <Paper>
+    <Paper data-testid="category-products-section">
       <PaperHeader
-        title={`Products (${totalCount})`}
+        title={`Products (${productsCount})`}
+        extra={
+          <Typography.Text
+            type="secondary"
+            style={{ fontSize: 12 }}
+            data-testid="category-products-default-sort"
+          >
+            Default sort: {defaultSortLabel}
+          </Typography.Text>
+        }
         actions={
           <Flex gap={8} align="center">
-            <Input.Search
-              placeholder="Search..."
-              size="small"
-              style={{ width: 200 }}
-              onSearch={(value) => console.log("Search:", value)}
-            />
             <Dropdown menu={sortMenu} trigger={["click"]}>
               <Button
                 size="small"
                 icon={<SortAscendingOutlined />}
+                data-testid="category-products-sort-menu-button"
               />
             </Dropdown>
             <Button
@@ -167,6 +239,7 @@ export const ProductsSection = ({
               type="primary"
               icon={<PlusOutlined />}
               onClick={onAssignProducts}
+              data-testid="category-products-assign-button"
             >
               Assign
             </Button>
@@ -174,67 +247,52 @@ export const ProductsSection = ({
         }
       />
 
-      {hasProducts ? (
+      {error && <Alert type="error" message={error.message} showIcon />}
+
+      {loading && !hasProducts ? (
+        <Skeleton active paragraph={{ rows: 3 }} />
+      ) : hasProducts ? (
         <>
           <div style={{ overflowX: "auto" }}>
             <table className={styles.productsTable}>
               <thead>
                 <tr>
                   <th>Product</th>
-                  <th>SKU</th>
-                  <th style={{ textAlign: "right" }}>Price</th>
                   <th>Status</th>
+                  <th aria-label="Actions" />
                 </tr>
               </thead>
               <tbody>
                 {products.map((product) => (
-                  <ProductRow key={product.id} product={product} />
+                  <ProductRow
+                    key={product.id}
+                    product={product}
+                    isRemoving={removingProductId === product.id}
+                    onRemove={confirmRemoveProduct}
+                  />
                 ))}
               </tbody>
             </table>
           </div>
 
-          <Flex
-            justify="space-between"
-            align="center"
-            className={styles.pagination}
-          >
-            <Typography.Text
-              type="secondary"
-              className={styles.paginationCount}
-            >
-              {totalCount} products
-            </Typography.Text>
-            <Flex gap={4}>
-              <Button
-                size="small"
-                icon={<LeftOutlined />}
-                disabled={page === 0}
-                onClick={() => setPage((p) => p - 1)}
-              />
-              <Button
-                size="small"
-                icon={<RightOutlined />}
-                disabled={!hasNextPage}
-                onClick={() => setPage((p) => p + 1)}
-              />
-            </Flex>
-          </Flex>
+          <div className={styles.pagination}>
+            <RelayCursorPagination
+              name="category-products"
+              pagination={pagination}
+              pageInfo={pageInfo}
+              totalCount={totalCount}
+              loadedRowsCount={products.length}
+            />
+          </div>
         </>
       ) : (
-        <Flex gap={4} wrap="wrap" style={{ padding: "16px 0" }}>
-          <Button
-            size="small"
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={onAssignProducts}
-          >
-            Assign Products
-          </Button>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            No products assigned to this category yet
-          </Typography.Text>
-        </Flex>
+        <EntityDetailsEmptyState
+          icon={<ShoppingOutlined />}
+          state={{
+            title: "No products assigned",
+            description: "Assign products to make them appear in this category.",
+          }}
+        />
       )}
     </Paper>
   );

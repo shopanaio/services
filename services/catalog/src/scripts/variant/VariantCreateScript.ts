@@ -1,4 +1,8 @@
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
+import {
+  BaseScript,
+  Transactional,
+  type UserError,
+} from "../../kernel/BaseScript.js";
 import type { Variant } from "../../repositories/models/index.js";
 
 export interface SelectedOptionParam {
@@ -20,6 +24,7 @@ export interface VariantCreateResult {
 }
 
 export class VariantCreateScript extends BaseScript<VariantCreateParams, VariantCreateResult> {
+  @Transactional()
   protected async execute(params: VariantCreateParams): Promise<VariantCreateResult> {
     const { productId, options, sku, externalSystem, externalId } = params;
 

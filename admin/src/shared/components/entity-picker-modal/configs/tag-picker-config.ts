@@ -1,107 +1,108 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { createElement, useMemo } from "react";
 import type { ColDef } from "ag-grid-community";
-import { EntityCellRenderer, StatusCellRenderer } from "../cell-renderers";
+import { TagOutlined } from "@ant-design/icons";
+import { EntityCellRenderer } from "../cell-renderers";
 import { registerEntityPickerConfig } from ".";
 import type {
   IEntityPickerConfig,
   IEntityPickerDataResult,
   IPickableEntity,
 } from "../types";
+import { useTags } from "@/domains/inventory/tags/hooks";
 import {
-  FilterType,
-  enumOperators,
-  type IFilterValue,
-  type IFilterSchema,
-} from "@/layouts/filters";
-import { mockTagsList, type ITagListItem } from "../mocks/tags-list";
+  buildTagSearchCondition,
+  tagFilterTransformers,
+  tagSortFieldMapping,
+} from "@/domains/inventory/tags/page/page-config";
+import { filterSchema } from "@/domains/inventory/tags/page/filter-schema";
+import type {
+  ApiTag,
+  ApiTagOrderByInput,
+  ApiTagWhereInput,
+} from "@/graphql/types";
+import { TagOrderField } from "@/graphql/types";
 
 interface ITagPickerEntity extends IPickableEntity {
-  slug: string;
+  handle: string;
   productsCount: number;
-  color: string;
 }
 
-function transformTag(tag: ITagListItem): ITagPickerEntity {
+function transformTag(tag: ApiTag): ITagPickerEntity {
   return {
     id: tag.id,
     title: tag.name,
     image: null,
-    status: tag.status,
-    slug: tag.slug,
+    handle: tag.handle,
     productsCount: tag.productsCount,
-    color: tag.color,
   };
 }
 
-const tagFilterSchema: IFilterSchema[] = [
-  {
-    key: "status",
-    label: "Status",
-    description: "Filter by tag status",
-    type: FilterType.Enum,
-    operators: enumOperators,
-    payloadKey: "status",
-    options: [
-      { label: "Active", value: "active" },
-      { label: "Inactive", value: "inactive" },
-    ],
-  },
-];
-
 function useTagsPickerData(options: {
-  filters: IFilterValue[];
-  search: string;
   pageSize: number;
+  first?: number;
+  after?: string | null;
+  last?: number;
+  before?: string | null;
+  where?: object | null;
+  orderBy?: object[] | null;
+  excludeIds: string[];
 }): IEntityPickerDataResult<ITagPickerEntity> {
-  const { search, filters, pageSize } = options;
-  const [page, setPage] = useState(0);
+  const {
+    pageSize,
+    first,
+    after,
+    last,
+    before,
+    where: inputWhere,
+    orderBy,
+    excludeIds,
+  } = options;
+  const where = useMemo<ApiTagWhereInput | null>(
+    () => {
+      const conditions: ApiTagWhereInput[] = [];
 
-  const allData = useMemo(() => {
-    let result = mockTagsList.map(transformTag);
+      if (inputWhere) {
+        conditions.push(inputWhere as ApiTagWhereInput);
+      }
 
-    if (search) {
-      const searchLower = search.toLowerCase();
-      result = result.filter((t) =>
-        t.title.toLowerCase().includes(searchLower)
-      );
-    }
+      if (excludeIds.length > 0) {
+        conditions.push({ id: { _notIn: excludeIds } });
+      }
 
-    const statusFilter = filters.find((f) => f.schemaKey === "status");
-    if (statusFilter?.value) {
-      result = result.filter((t) => t.status === statusFilter.value);
-    }
+      if (conditions.length === 0) return null;
+      if (conditions.length === 1) return conditions[0];
 
-    return result;
-  }, [search, filters]);
-
-  const paginatedData = useMemo(() => {
-    const start = page * pageSize;
-    return allData.slice(start, start + pageSize);
-  }, [allData, page, pageSize]);
-
-  const total = allData.length;
-  const rangeStart = page * pageSize + 1;
-  const rangeEnd = Math.min((page + 1) * pageSize, total);
-  const hasNext = rangeEnd < total;
-  const hasPrev = page > 0;
+      return { _and: conditions };
+    },
+    [excludeIds, inputWhere],
+  );
+  const { tags, totalCount, pageInfo, loading, error } = useTags({
+    first,
+    after,
+    last,
+    before,
+    where,
+    orderBy: orderBy as ApiTagOrderByInput[] | null,
+  });
+  const data = useMemo(
+    () => tags.map(transformTag),
+    [tags],
+  );
 
   return {
-    data: paginatedData,
-    isLoading: false,
-    error: null,
+    data,
+    isLoading: loading,
+    error,
     pagination: {
-      total,
+      total: totalCount,
       pageSize,
-      hasNext,
-      hasPrev,
-      rangeStart: total > 0 ? rangeStart : 0,
-      rangeEnd,
+      hasNext: pageInfo?.hasNextPage ?? false,
+      hasPrev: pageInfo?.hasPreviousPage ?? false,
+      startCursor: pageInfo?.startCursor ?? null,
+      endCursor: pageInfo?.endCursor ?? null,
     },
-    onNext: () => setPage((p) => p + 1),
-    onPrev: () => setPage((p) => Math.max(0, p - 1)),
-    onPageSizeChange: () => setPage(0),
   };
 }
 
@@ -110,23 +111,39 @@ const tagPickerColumns: ColDef<ITagPickerEntity>[] = [
     headerName: "Tag",
     field: "title",
     cellRenderer: EntityCellRenderer,
+    cellRendererParams: { fallbackIcon: createElement(TagOutlined) },
     flex: 1,
     minWidth: 250,
   },
   {
-    headerName: "Status",
-    field: "status",
-    cellRenderer: StatusCellRenderer,
+    headerName: "Handle",
+    field: "handle",
+    minWidth: 160,
+  },
+  {
+    headerName: "Products",
+    field: "productsCount",
     minWidth: 120,
   },
 ];
 
-export const tagPickerConfig: IEntityPickerConfig<ITagPickerEntity> = {
+export const tagPickerConfig: IEntityPickerConfig<
+  ITagPickerEntity,
+  ApiTagWhereInput,
+  TagOrderField
+> = {
   entityType: "tag",
   entityName: "Tag",
   entityNamePlural: "Tags",
-  filterSchema: tagFilterSchema,
+  filterSchema,
   columns: tagPickerColumns,
+  pageConfig: {
+    storageKey: "tag-picker-grid-state",
+    sortFieldMapping: tagSortFieldMapping,
+    buildSearchCondition: buildTagSearchCondition,
+    filterTransformers: tagFilterTransformers,
+    defaultPageSize: 20,
+  },
   useData: useTagsPickerData,
   getRowId: (entity) => entity.id,
 };

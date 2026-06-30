@@ -109,6 +109,7 @@ export class OptionsSyncScript extends BaseScript<OptionSyncParams, OptionSyncRe
         const created = await this.repository.option.create(productId, {
           slug: opt.slug,
           displayType: opt.displayType,
+          sortIndex: opt.sortIndex,
         });
         id = created.id;
       }
@@ -123,6 +124,7 @@ export class OptionsSyncScript extends BaseScript<OptionSyncParams, OptionSyncRe
     await this.repository.option.update(item.id, {
       slug: item.input.slug,
       displayType: item.input.displayType,
+      sortIndex: item.input.sortIndex,
     });
 
     await this.repository.translation.upsertOptionTranslation({
@@ -137,7 +139,7 @@ export class OptionsSyncScript extends BaseScript<OptionSyncParams, OptionSyncRe
     const keepIds = values.flatMap((v) => (v.id ? [v.id] : []));
     await this.repository.option.deleteValuesExcept(optionId, keepIds);
 
-    const sorted = [...values].sort((a, b) => a.index - b.index);
+    const sorted = [...values].sort((a, b) => a.sortIndex - b.sortIndex);
 
     for (const value of sorted) {
       let valueId: string;
@@ -151,14 +153,14 @@ export class OptionsSyncScript extends BaseScript<OptionSyncParams, OptionSyncRe
       if (value.id) {
         await this.repository.option.updateValue(value.id, {
           slug: value.slug,
-          sortIndex: value.index,
+          sortIndex: value.sortIndex,
           swatchId: value.swatch === null ? null : swatchId,
         });
         valueId = value.id;
       } else {
         const created = await this.repository.option.createValue(optionId, {
           slug: value.slug,
-          sortIndex: value.index,
+          sortIndex: value.sortIndex,
           swatchId,
         });
         valueId = created.id;

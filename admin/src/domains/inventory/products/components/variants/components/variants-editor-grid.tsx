@@ -1,49 +1,33 @@
 "use client";
 
-import React, { useCallback, useMemo, useState, useEffect } from "react";
-import { App } from "antd";
+import React, { useCallback, useMemo, useEffect } from "react";
 import { EditorGrid } from "@/shared/components/editor-grid";
-import { validateFieldChange } from "@/shared/utils/inventory";
+import type { ICellSelection } from "@/shared/components/ag-grid-cell-selection";
 import { useVariantsEditorStore, useVariantsColumns } from "../hooks";
 import {
   SELECTABLE_COLUMNS,
-  type IVariantEditorRow,
-  type IOptionGroup,
-  type VariantColumnField,
 } from "../config";
+import { mapVariantEditorInputsToRows } from "../../../mappers/product-variant-editor.mapper";
+import type {
+  IVariantEditorInput,
+  IVariantEditorRow,
+  IOptionGroup,
+  VariantColumnField,
+} from "../config/types";
+import type { ApiFile, ApiProductOption, CurrencyCode } from "@/graphql/types";
+import {
+  useEditMediaModal,
+  type IEditMediaModalPayload,
+} from "../../../modals";
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export interface IVariantInput {
-  id: string;
-  title: string;
-  imageUrl?: string | null;
-  media?: string[] | null;
-  options?: Array<{ name: string; value: string }>;
-  // Inventory identification
-  sku?: string | null;
-  barcode?: string | null;
-  // Inventory quantities (same model as inventory table)
-  onHand?: number;
-  unavailable?: number;
-  reserved?: number;
-  // Pricing
-  price?: number;
-  compareAtPrice?: number | null;
-  costPrice?: number | null;
-  // Shipping
-  weight?: number | null;
-  weightUnit?: string;
-  length?: number | null;
-  width?: number | null;
-  height?: number | null;
-  dimensionUnit?: string;
-}
+export type IVariantInput = IVariantEditorInput;
 
 interface VariantsEditorGridProps {
-  variants: IVariantInput[];
+  variants: IVariantEditorInput[];
   onChange?: (rows: IVariantEditorRow[]) => void;
   /**
    * When provided, only these columns will be shown.
@@ -55,13 +39,40 @@ interface VariantsEditorGridProps {
    * Useful for restricted views like pricing modal.
    */
   ignoreUserSettings?: boolean;
+  /**
+   * When provided, only these visible columns can be edited.
+   * If undefined, column config decides editability.
+   */
+  editableColumns?: VariantColumnField[];
+  defaultCurrency?: CurrencyCode | null;
+  productOptions?: ApiProductOption[];
+  productMediaFiles?: ApiFile[];
+  allowDraftRows?: boolean;
+  allowDeleteRows?: boolean;
+  dataTestId?: string;
 }
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
-function extractOptionGroups(variants: IVariantInput[]): IOptionGroup[] {
+function extractOptionGroups(
+  variants: IVariantEditorInput[],
+  productOptions: ApiProductOption[] = [],
+): IOptionGroup[] {
+  const apiOptionGroups = [...productOptions]
+    .sort((left, right) => left.sortIndex - right.sortIndex)
+    .map((option) => ({
+      name: option.name,
+      values: [...option.values]
+        .sort((left, right) => left.sortIndex - right.sortIndex)
+        .map((value) => value.name),
+    }));
+
+  if (apiOptionGroups.length > 0) {
+    return apiOptionGroups;
+  }
+
   const groupMap = new Map<string, Set<string>>();
 
   for (const variant of variants) {
@@ -79,42 +90,6 @@ function extractOptionGroups(variants: IVariantInput[]): IOptionGroup[] {
   }));
 }
 
-function variantsToRows(variants: IVariantInput[]): IVariantEditorRow[] {
-  return variants.map((v) => {
-    const onHand = v.onHand ?? 0;
-    const unavailable = v.unavailable ?? 0;
-    const reserved = v.reserved ?? 0;
-    const available = onHand - unavailable - reserved;
-
-    return {
-      id: v.id,
-      title: v.title,
-      imageUrl: v.imageUrl ?? null,
-      media: v.media ?? null,
-      options: v.options || [],
-      // Inventory identification
-      sku: v.sku ?? null,
-      barcode: v.barcode ?? null,
-      // Inventory quantities
-      onHand,
-      unavailable,
-      reserved,
-      available,
-      // Pricing
-      price: v.price ?? 0,
-      compareAtPrice: v.compareAtPrice ?? null,
-      costPrice: v.costPrice ?? null,
-      // Shipping
-      weight: v.weight ?? null,
-      weightUnit: v.weightUnit ?? "G",
-      length: v.length ?? null,
-      width: v.width ?? null,
-      height: v.height ?? null,
-      dimensionUnit: v.dimensionUnit ?? "CM",
-    };
-  });
-}
-
 // ============================================================================
 // Component
 // ============================================================================
@@ -124,86 +99,264 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
   onChange,
   availableColumns,
   ignoreUserSettings = false,
+  editableColumns,
+  defaultCurrency,
+  productOptions = [],
+  productMediaFiles = [],
+  allowDraftRows = true,
+  allowDeleteRows = true,
+  dataTestId = "variants-editor-grid",
 }) => {
   // Extract option groups for column generation
   const optionGroups = useMemo(
-    () => extractOptionGroups(variants),
-    [variants]
+    () => extractOptionGroups(variants, productOptions),
+    [variants, productOptions]
   );
 
-  const { message } = App.useApp();
+  const { push: openEditMediaModal } = useEditMediaModal();
 
   // Transform variants to row data
   const initialRows = useMemo(
-    () => variantsToRows(variants),
+    () => mapVariantEditorInputsToRows(variants),
     [variants]
   );
 
+  const currency = defaultCurrency ?? null;
+
   // Store hooks
   const edits = useVariantsEditorStore((s) => s.edits);
+  const draftRows = useVariantsEditorStore((s) => s.draftRows);
+  const materializedRows = useVariantsEditorStore((s) => s.materializedRows);
+  const deletedExistingRows = useVariantsEditorStore(
+    (s) => s.deletedExistingRows,
+  );
+  const committedDeletedRowIds = useVariantsEditorStore(
+    (s) => s.committedDeletedRowIds,
+  );
+  const blankRow = useVariantsEditorStore((s) => s.blankRow);
+  const rowErrors = useVariantsEditorStore((s) => s.rowErrors);
   const setFieldValue = useVariantsEditorStore((s) => s.setFieldValue);
+  const deleteVariantRow = useVariantsEditorStore((s) => s.deleteVariantRow);
+  const getCurrentRows = useVariantsEditorStore((s) => s.getCurrentRows);
+
+  const rows = useMemo(() => {
+    const sessionRows = allowDraftRows && blankRow
+      ? [...materializedRows, ...draftRows, blankRow]
+      : [...materializedRows, ...draftRows];
+
+    return [...initialRows, ...sessionRows].map((row) => ({
+      ...row,
+      rowError: rowErrors[row.id] ?? null,
+    }));
+  }, [
+    allowDraftRows,
+    blankRow,
+    draftRows,
+    initialRows,
+    materializedRows,
+    rowErrors,
+  ]);
+  const selectableColumns = useMemo(() => {
+    if (!editableColumns) {
+      return SELECTABLE_COLUMNS;
+    }
+
+    const editableColumnSet = new Set<string>(editableColumns);
+
+    return SELECTABLE_COLUMNS.filter((field) => editableColumnSet.has(field));
+  }, [editableColumns]);
+  const isFieldEditable = useCallback(
+    (field: string) => {
+      if (!editableColumns) {
+        return SELECTABLE_COLUMNS.includes(field);
+      }
+
+      return editableColumns.includes(field as VariantColumnField);
+    },
+    [editableColumns],
+  );
+
+  // Compute display rows (with edits applied)
+  const displayRows = useMemo(() => {
+    const currentRows = getCurrentRows(initialRows);
+
+    return allowDraftRows
+      ? currentRows
+      : currentRows.filter((row) => row.kind !== "blank");
+  }, [
+    allowDraftRows,
+    blankRow,
+    draftRows,
+    edits,
+    deletedExistingRows,
+    committedDeletedRowIds,
+    getCurrentRows,
+    initialRows,
+    materializedRows,
+    rowErrors,
+  ]);
+
+  const openMediaEditor = useCallback(
+    (rowIds: string[]) => {
+      const uniqueRowIds = Array.from(new Set(rowIds));
+      const firstRow = displayRows.find((row) => row.id === uniqueRowIds[0]);
+
+      if (!firstRow || !isFieldEditable("media")) {
+        return;
+      }
+
+      const bulk = uniqueRowIds.length > 1;
+      const initialSelectedMedia = bulk ? [] : firstRow.media;
+      const initialSelectedIds = initialSelectedMedia.map((file) => file.id);
+      const initialSelectedIdSet = new Set(initialSelectedIds);
+      const gallery = [
+        ...initialSelectedMedia,
+        ...productMediaFiles.filter((file) => !initialSelectedIdSet.has(file.id)),
+      ];
+
+      openEditMediaModal({
+        title: bulk ? "Edit variants media" : "Edit variant media",
+        galleryTitle: "Variant Media",
+        featured: initialSelectedMedia[0] ?? null,
+        gallery,
+        selectionMode: true,
+        selectedFileIds: initialSelectedIds,
+        showUpload: false,
+        allowDelete: false,
+        allowSetFeatured: true,
+        hasFeatured: true,
+        onSave: (
+          media: Parameters<NonNullable<IEditMediaModalPayload["onSave"]>>[0],
+        ) => {
+          const selectedMedia = media.gallery;
+
+          for (const rowId of uniqueRowIds) {
+            const originalRow = rows.find((row) => row.id === rowId);
+
+            if (!originalRow) {
+              continue;
+            }
+
+            setFieldValue(rowId, "media", originalRow.media, selectedMedia);
+          }
+
+          return true;
+        },
+      });
+    },
+    [
+      displayRows,
+      isFieldEditable,
+      openEditMediaModal,
+      productMediaFiles,
+      rows,
+      setFieldValue,
+    ],
+  );
+
+  const handleOpenMediaEditor = useCallback(
+    (rowId: string, selectedRowIds?: string[]) => {
+      openMediaEditor(selectedRowIds?.length ? selectedRowIds : [rowId]);
+    },
+    [openMediaEditor],
+  );
+
+  const handleSelectionEnter = useCallback(
+    (cells: ICellSelection[]) => {
+      const mediaCells = cells.filter((cell) => cell.field === "media");
+
+      if (mediaCells.length === 0) {
+        return false;
+      }
+
+      openMediaEditor(mediaCells.map((cell) => cell.rowId));
+      return true;
+    },
+    [openMediaEditor],
+  );
+
+  const handleOptionValueChange = useCallback(
+    (rowId: string, optionId: string, optionValueId: string) => {
+      const row = displayRows.find((candidate) => candidate.id === rowId);
+      const originalRow = rows.find((candidate) => candidate.id === rowId);
+
+      if (!row || !originalRow) {
+        return;
+      }
+
+      setFieldValue(rowId, "selectedOptionValueIds", originalRow.selectedOptionValueIds, {
+        ...row.selectedOptionValueIds,
+        [optionId]: optionValueId,
+      });
+    },
+    [displayRows, rows, setFieldValue],
+  );
+
+  const handleDeleteRow = useCallback(
+    (rowId: string) => {
+      const row = displayRows.find((candidate) => candidate.id === rowId);
+
+      if (!row) {
+        return;
+      }
+
+      deleteVariantRow(row);
+    },
+    [deleteVariantRow, displayRows],
+  );
 
   // Columns - pass availableColumns and ignoreUserSettings
   const columns = useVariantsColumns({
     optionGroups,
+    productOptions,
+    currency,
     availableColumns,
+    editableColumns,
     ignoreUserSettings,
+    onEditMedia: isFieldEditable("media") ? handleOpenMediaEditor : undefined,
+    onOptionValueChange: handleOptionValueChange,
+    onDeleteRow: allowDeleteRows ? handleDeleteRow : undefined,
   });
 
-  // Local row state (original data)
-  const [rows] = useState<IVariantEditorRow[]>(initialRows);
-
-  // Compute display rows (with edits applied)
-  const displayRows = useMemo(() => {
-    return rows.map((row) => {
-      const rowEdits = edits[row.id];
-      if (!rowEdits) return row;
-
-      const updatedRow = { ...row };
-      for (const [field, edit] of Object.entries(rowEdits)) {
-        (updatedRow as Record<string, unknown>)[field] = edit.currentValue;
-      }
-
-      // Recalculate available if any inventory field was edited
-      if (rowEdits.onHand || rowEdits.unavailable) {
-        updatedRow.available =
-          updatedRow.onHand - updatedRow.unavailable - updatedRow.reserved;
-      }
-
-      return updatedRow;
-    });
-  }, [rows, edits]);
-
-  // Notify parent of changes
+  // Notify compatible external consumers of store-owned rows.
   useEffect(() => {
-    if (Object.keys(edits).length > 0) {
+    if (
+      Object.keys(edits).length > 0 ||
+      draftRows.length > 0 ||
+      materializedRows.length > 0 ||
+      deletedExistingRows.length > 0
+    ) {
       onChange?.(displayRows);
     }
-  }, [displayRows, edits, onChange]);
+  }, [
+    displayRows,
+    deletedExistingRows.length,
+    draftRows.length,
+    edits,
+    materializedRows.length,
+    onChange,
+  ]);
 
   // Handle field value change with validation
   const handleSetFieldValue = useCallback(
     (rowId: string, field: string, originalValue: unknown, newValue: unknown) => {
-      // Validate inventory fields using shared validator
-      if (field === "onHand" || field === "unavailable") {
-        const row = rows.find((r) => r.id === rowId);
-        if (row) {
-          const result = validateFieldChange(field, Number(newValue), {
-            onHand: row.onHand,
-            unavailable: row.unavailable,
-            reserved: row.reserved,
-            available: row.available,
-          });
-          if (!result.isValid) {
-            message.error(result.errors[0]?.message || "Invalid value");
-            return;
-          }
+      if (!isFieldEditable(field)) {
+        return;
+      }
+
+      if (field === "media") {
+        if (newValue === null) {
+          setFieldValue(rowId, field, originalValue, []);
+        } else if (Array.isArray(newValue)) {
+          setFieldValue(rowId, field, originalValue, newValue);
         }
+
+        return;
       }
 
       setFieldValue(rowId, field, originalValue, newValue);
     },
-    [setFieldValue, rows, message]
+    [isFieldEditable, setFieldValue]
   );
 
   return (
@@ -211,8 +364,10 @@ export const VariantsEditorGrid: React.FC<VariantsEditorGridProps> = ({
       rows={rows}
       displayRows={displayRows}
       columns={columns}
-      selectableColumns={SELECTABLE_COLUMNS}
+      selectableColumns={selectableColumns}
       onSetFieldValue={handleSetFieldValue}
+      onSelectionEnter={handleSelectionEnter}
+      dataTestId={dataTestId}
     />
   );
 };

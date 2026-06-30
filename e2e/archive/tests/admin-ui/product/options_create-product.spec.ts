@@ -1,7 +1,5 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { EntityStatus } from '@codegen/admin-gql';
-
 
 // DISABLED: This test relies on removed FeatureGroup API and complex UI interactions
 
@@ -27,10 +25,10 @@ test.describe('Product Options Create', () => {
             values: ['S', 'M', 'L'],
           },
         ],
-        status: EntityStatus.Draft,
+        status: 'DRAFT',
       });
 
-      
+
       expect(product.variants?.length).toBe(9);
       expect(product.title).toBe('T-Shirt');
     });

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Image, Typography, Flex, Tag } from "antd";
+import { Typography, Flex, Tag } from "antd";
+import { FileOutlined } from "@ant-design/icons";
 import type { ColDef } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { registerEntityPickerConfig } from ".";
@@ -10,10 +11,11 @@ import type {
   IEntityPickerDataResult,
   IPickableEntity,
 } from "../types";
-import type { IFilterValue } from "@/layouts/filters";
+import type { IFilterValue } from "@/layouts/filters/core/types";
 import { useFiles } from "@/domains/media/hooks";
 import type { ApiFile } from "@/graphql/types";
 import { FileProvider } from "@/graphql/types";
+import { TableCoverImage } from "@/shared/components/table-cover-image";
 
 /**
  * Media entity adapted for picker
@@ -58,33 +60,11 @@ const FileCellRenderer = (props: CustomCellRendererProps<IMediaPickerEntity>) =>
 
   return (
     <Flex align="center" gap="small">
-      {isImage ? (
-        <Image
-          src={data.url}
-          alt={data.originalName ?? "File"}
-          width={40}
-          height={40}
-          style={{ borderRadius: 4, objectFit: "cover" }}
-          preview={false}
-        />
-      ) : (
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 4,
-            backgroundColor: "#f0f0f0",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 10,
-            fontWeight: 500,
-            color: "#666",
-          }}
-        >
-          {data.ext?.toUpperCase() ?? "FILE"}
-        </div>
-      )}
+      <TableCoverImage
+        src={isImage ? data.url : null}
+        alt={data.originalName ?? "File"}
+        fallbackIcon={<FileOutlined />}
+      />
       <Typography.Text strong ellipsis style={{ maxWidth: 200 }}>
         {data.originalName ?? "Untitled"}
       </Typography.Text>

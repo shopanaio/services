@@ -189,6 +189,23 @@ migrations/
 └── 0002_add_features.sql
 ```
 
+### Catalog Migration Exception
+
+Catalog uses Drizzle models as the runtime schema/query contract, but catalog
+migrations are handwritten PostgreSQL SQL executed by `node-pg-migrate`.
+
+Catalog migration files live under:
+
+```text
+services/catalog/migrations/domains/**/*.sql
+```
+
+The catalog runner uses glob mode and keeps tracking in
+`catalog.pgmigrations`. Do not use the Drizzle migrator or Drizzle migration
+generation for catalog. When catalog models change, first update the model-derived
+inventory under `services/catalog/docs/`, then add a handwritten SQL migration in
+the owning domain folder with a globally unique basename.
+
 ## Applying Migrations
 
 Migrations run at service startup via `shopana migrate --service <name>`. Uses connection from [[configuration/bootstrap-config|config.yml]] database section.

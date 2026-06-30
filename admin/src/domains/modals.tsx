@@ -207,15 +207,6 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
-    // Edit Categories modal
-    {
-      type: 'product-edit-categories',
-      component: dynamic(() =>
-        import('@/domains/inventory/products/modals/edit-categories-modal').then(
-          (m) => m.EditCategoriesModal
-        )
-      ),
-    },
     // Edit Tags modal
     {
       type: 'product-edit-tags',
@@ -229,7 +220,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'bundle-item-variant-settings',
       component: dynamic(() =>
-        import('@/domains/promos/bundles/modals/variant-settings-modal').then(
+        import('@/domains/inventory/bundles/modals/variant-settings-modal').then(
           (m) => m.VariantSettingsModal
         )
       ),
@@ -238,7 +229,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'dependency-chart',
       component: dynamic(() =>
-        import('@/domains/promos/bundles/modals/dependency-chart-modal').then(
+        import('@/domains/inventory/bundles/modals/dependency-chart-modal').then(
           (m) => m.DependencyChartModal
         )
       ),
@@ -249,6 +240,54 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       component: dynamic(() =>
         import('@/domains/inventory/products/modals/bulk-editor-modal').then(
           (m) => m.BulkEditorModal
+        )
+      ),
+    },
+    // ========================================
+    // Warehouse modals
+    // ========================================
+    // Warehouse modal
+    {
+      type: 'warehouse',
+      component: dynamic(() =>
+        import('@/domains/inventory/warehouse/modals/warehouse-modal').then(
+          (m) => m.WarehouseModal
+        )
+      ),
+    },
+    // Create Warehouse modal
+    {
+      type: 'warehouse-create',
+      component: dynamic(() =>
+        import('@/domains/inventory/warehouse/modals/create-warehouse-modal').then(
+          (m) => m.CreateWarehouseModal
+        )
+      ),
+    },
+    // Edit warehouse identity modal
+    {
+      type: 'warehouse-edit-identity',
+      component: dynamic(() =>
+        import('@/domains/inventory/warehouse/modals/edit-identity-modal').then(
+          (m) => m.EditIdentityModal
+        )
+      ),
+    },
+    // Edit warehouse default modal
+    {
+      type: 'warehouse-edit-default',
+      component: dynamic(() =>
+        import('@/domains/inventory/warehouse/modals/edit-default-modal').then(
+          (m) => m.EditDefaultModal
+        )
+      ),
+    },
+    // Delete warehouse modal
+    {
+      type: 'warehouse-delete',
+      component: dynamic(() =>
+        import('@/domains/inventory/warehouse/modals/delete-warehouse-modal').then(
+          (m) => m.DeleteWarehouseModal
         )
       ),
     },
@@ -264,9 +303,142 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Create Category modal
+    {
+      type: 'category-create',
+      component: dynamic(() =>
+        import('@/domains/inventory/categories/modals/create-category-modal').then(
+          (m) => m.CreateCategoryModal
+        )
+      ),
+    },
+    {
+      type: 'category-edit-identity',
+      component: dynamic(() =>
+        import('@/domains/inventory/categories/modals/edit-category-identity-modal').then(
+          (m) => m.EditCategoryIdentityModal
+        )
+      ),
+    },
+    {
+      type: 'category-edit-content',
+      component: dynamic(() =>
+        import('@/domains/inventory/categories/modals/edit-category-content-modal').then(
+          (m) => m.EditCategoryContentModal
+        )
+      ),
+    },
+    {
+      type: 'category-edit-seo',
+      component: dynamic(() =>
+        import('@/domains/inventory/categories/modals/edit-category-seo-modal').then(
+          (m) => m.EditCategorySeoModal
+        )
+      ),
+    },
+    {
+      type: 'category-edit-media',
+      component: dynamic(() =>
+        import('@/domains/inventory/categories/modals/edit-category-media-modal').then(
+          (m) => m.EditCategoryMediaModal
+        )
+      ),
+    },
+    {
+      type: 'category-edit-sort',
+      component: dynamic(() =>
+        import('@/domains/inventory/categories/modals/edit-category-sort-modal').then(
+          (m) => m.EditCategorySortModal
+        )
+      ),
+    },
+    // ========================================
+    // Tag modals
+    // ========================================
+    // Tag modal
+    {
+      type: 'tag',
+      component: dynamic(() =>
+        import('@/domains/inventory/tags/modals/tag-modal').then(
+          (m) => m.TagModal
+        )
+      ),
+    },
+    // Create Tag modal
+    {
+      type: 'tag-create',
+      component: dynamic(() =>
+        import('@/domains/inventory/tags/modals/create-tag-modal').then(
+          (m) => m.CreateTagModal
+        )
+      ),
+    },
+    // Edit tag identity modal
+    {
+      type: 'tag-edit-identity',
+      component: dynamic(() =>
+        import('@/domains/inventory/tags/modals/edit-tag-identity-modal').then(
+          (m) => m.EditTagIdentityModal
+        )
+      ),
+    },
+    // ========================================
+    // Facet modals
+    // ========================================
+    {
+      type: 'facet-create',
+      component: dynamic(() =>
+        import('@/domains/inventory/facets/modals/create-facet-modal').then(
+          (m) => m.CreateFacetModal
+        )
+      ),
+    },
+    {
+      type: 'facet-edit',
+      component: dynamic(() =>
+        import('@/domains/inventory/facets/modals/edit-facet-modal').then(
+          (m) => m.EditFacetModal
+        )
+      ),
+    },
+    {
+      type: 'facet-value-link-sources',
+      component: dynamic(() =>
+        import('@/domains/inventory/facets/modals/link-source-values-modal').then(
+          (m) => m.LinkSourceValuesModal
+        )
+      ),
+    },
     // ========================================
     // Picker modals
     // ========================================
+    // Generic Entity Picker modal
+    {
+      type: 'entity-picker',
+      component: dynamic(() =>
+        import('@/shared/components/entity-picker-modal/entity-picker-modal').then(
+          (m) => m.EntityPickerModal
+        )
+      ),
+    },
+    // Product Picker modal
+    {
+      type: 'product-picker',
+      component: dynamic(() =>
+        import('@/shared/components/entity-picker-modal/product-picker-modal').then(
+          (m) => m.ProductPickerModal
+        )
+      ),
+    },
+    // Variant Picker modal
+    {
+      type: 'variant-picker',
+      component: dynamic(() =>
+        import('@/shared/components/entity-picker-modal/variant-picker-modal').then(
+          (m) => m.VariantPickerModal
+        )
+      ),
+    },
     // Category Picker modal
     {
       type: 'category-picker',
@@ -301,7 +473,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'bundle',
       component: dynamic(() =>
-        import('@/domains/promos/bundles/modals/bundle-modal').then(
+        import('@/domains/inventory/bundles/modals/bundle-modal').then(
           (m) => m.BundleModal
         )
       ),
@@ -310,8 +482,17 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'bundle-edit-groups',
       component: dynamic(() =>
-        import('@/domains/promos/bundles/modals/edit-groups-modal').then(
+        import('@/domains/inventory/bundles/modals/edit-groups-modal').then(
           (m) => m.EditGroupsModal
+        )
+      ),
+    },
+    // Bundle Edit Configuration modal
+    {
+      type: 'bundle-edit-configuration',
+      component: dynamic(() =>
+        import('@/domains/inventory/bundles/modals/edit-configuration-modal').then(
+          (m) => m.EditConfigurationModal
         )
       ),
     },
@@ -319,7 +500,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'bundle-edit-templates',
       component: dynamic(() =>
-        import('@/domains/promos/bundles/modals/edit-templates-modal').then(
+        import('@/domains/inventory/bundles/modals/edit-templates-modal').then(
           (m) => m.EditTemplatesModal
         )
       ),
@@ -328,7 +509,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'bundle-edit-settings',
       component: dynamic(() =>
-        import('@/domains/promos/bundles/modals/edit-settings-modal').then(
+        import('@/domains/inventory/bundles/modals/edit-settings-modal').then(
           (m) => m.EditSettingsModal
         )
       ),

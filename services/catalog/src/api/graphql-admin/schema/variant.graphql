@@ -3,11 +3,14 @@
 """
 A variant represents a specific version of a product, such as a size or color.
 Catalog Service owns this type.
-Inventory fields (sku, dimensions, weight, cost, stock) are added via federation extend in Inventory Service.
+Inventory fields (sku, dimensions, weight, cost, stock) are resolved by Catalog.
 """
 type Variant implements Node @key(fields: "id") {
   """The globally unique ID of the variant."""
   id: ID!
+
+  """Variant discriminator. Must match parent product kind."""
+  kind: ProductKind!
 
   """The product this variant belongs to."""
   product: Product!
@@ -53,17 +56,17 @@ type Variant implements Node @key(fields: "id") {
   """Media attached to this variant (images, videos)."""
   media: [VariantMediaItem!]!
 
-  # ═══════════════════════════════════════════════════════════
-  # The following fields have been REMOVED from Catalog (moved to Inventory):
-  # - sku: String
-  # - dimensions: VariantDimensions
-  # - weight: VariantWeight
-  # - cost: VariantCost
-  # - costHistory: VariantCostConnection!
-  # - stock: [WarehouseStock!]!
-  # - inStock: Boolean!
-  # These fields are added via federation extend in Inventory Service
-  # ═══════════════════════════════════════════════════════════
+  """Physical dimensions (stored in millimeters)."""
+  dimensions: VariantDimensions
+
+  """Physical weight (stored in grams)."""
+  weight: VariantWeight
+
+  """Inventory item associated with this variant."""
+  inventoryItem: InventoryItem
+
+  """Bundle configuration assigned to this variant. Null for BASE variants."""
+  bundleConfiguration: BundleConfiguration
 }
 
 """

@@ -7,13 +7,13 @@ import {
 } from "@ant-design/icons";
 import type { ICellRendererParams } from "ag-grid-community";
 import { useStyles } from "../edit-attributes-modal.styles";
-import type { IAttributeRow } from "../types";
+import type { AttributeEditorRow } from "../types";
 
 export interface INameCellRendererParams
-  extends ICellRendererParams<IAttributeRow> {
+  extends ICellRendererParams<AttributeEditorRow> {
   expandedIds: Set<string>;
   onToggleExpand: (id: string) => void;
-  allRows: IAttributeRow[];
+  allRows: AttributeEditorRow[];
 }
 
 export const NameCellRenderer = (params: INameCellRendererParams) => {

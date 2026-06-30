@@ -3,9 +3,9 @@ import type {
   Variant,
   VariantTranslation,
   ItemPricing,
-  VariantMedia,
   ProductOptionVariantLink,
 } from "../repositories/models/index.js";
+import type { VariantMediaWithFile } from "../repositories/media/MediaRepository.js";
 import type { Repository } from "../repositories/Repository.js";
 
 /**
@@ -20,7 +20,7 @@ export class VariantLoader {
   public readonly variantPricing: DataLoader<string, ItemPricing[]>;
   public readonly variantPriceById: DataLoader<string, ItemPricing | null>;
   public readonly variantPriceIds: DataLoader<string, string[]>;
-  public readonly variantMedia: DataLoader<string, VariantMedia[]>;
+  public readonly variantMedia: DataLoader<string, VariantMediaWithFile[]>;
   public readonly variantSelectedOptions: DataLoader<string, ProductOptionVariantLink[]>;
 
   constructor(repository: Repository) {
@@ -58,8 +58,8 @@ export class VariantLoader {
       );
     });
 
-    this.variantMedia = new DataLoader<string, VariantMedia[]>(async (variantIds) => {
-      const results = await repository.variant.getMediaByVariantIds(variantIds);
+    this.variantMedia = new DataLoader<string, VariantMediaWithFile[]>(async (variantIds) => {
+      const results = await repository.media.getVariantMediaByVariantIds(variantIds);
       return variantIds.map((id) =>
         results.filter((m) => m.variantId === id)
       );

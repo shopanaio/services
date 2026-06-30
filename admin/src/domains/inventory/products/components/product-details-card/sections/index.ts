@@ -3,7 +3,6 @@ export { CategoriesSection } from "./categories-section";
 export { TagsSection } from "./tags-section";
 export { ReviewsSection } from "./reviews-section";
 export { OptionsSection } from "./options-section";
-export { ShippingSection } from "./shipping-section";
 export { BundlesSection } from "./bundles-section";
 export { InventorySection } from "./inventory-section";
 export { VariantsTableSection } from "./variants-table-section";

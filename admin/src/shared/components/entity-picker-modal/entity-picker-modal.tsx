@@ -15,6 +15,7 @@ export function EntityPickerModal() {
     initialSelection = [],
     excludeIds = [],
     maxSelection,
+    queryMeta,
     onConfirm,
   } = typedPayload;
 
@@ -33,9 +34,9 @@ export function EntityPickerModal() {
   );
 
   const handleConfirm = useCallback(() => {
-    onConfirm(selectedEntities);
+    onConfirm(selectedEntities, selectedIds);
     forcePop();
-  }, [selectedEntities, onConfirm, forcePop]);
+  }, [selectedEntities, selectedIds, onConfirm, forcePop]);
 
   const handleCancel = useCallback(() => {
     forcePop();
@@ -84,6 +85,7 @@ export function EntityPickerModal() {
         initialSelection={initialSelection}
         excludeIds={excludeIds}
         maxSelection={maxSelection}
+        queryMeta={queryMeta}
         onSelectionChange={handleSelectionChange}
       />
     </ModalLayout>

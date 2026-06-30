@@ -14,7 +14,7 @@ import { productFeature, productFeatureValue } from "./features";
 // ─────────────────────────────────────────────────────────────────────────────
 // Product Translations
 // ─────────────────────────────────────────────────────────────────────────────
-// Main product content: title, description, SEO fields
+// Main product content: name, description, SEO fields
 // Each product can have translations in multiple locales (uk, en, ru, etc.)
 
 export const productTranslation = catalogSchema.table(
@@ -27,15 +27,17 @@ export const productTranslation = catalogSchema.table(
     locale: varchar("locale", { length: 8 }).notNull(),
 
     // Content fields
-    title: text("title").notNull(),
+    name: text("name").notNull(),
 
     // Description in multiple formats
     descriptionText: text("description_text"), // Plain text (for search, Typesense)
     descriptionHtml: text("description_html"), // Rendered HTML (for storefront)
     descriptionJson: jsonb("description_json"), // EditorJS blocks state
 
-    // Short summary
-    excerpt: text("excerpt"),
+    // Short summary in multiple formats
+    excerptText: text("excerpt_text"),
+    excerptHtml: text("excerpt_html"),
+    excerptJson: jsonb("excerpt_json"),
   },
   (table) => [
     primaryKey({ columns: [table.productId, table.locale] }),

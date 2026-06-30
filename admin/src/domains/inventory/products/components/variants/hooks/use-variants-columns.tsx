@@ -1,23 +1,30 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
+import { Dropdown } from "antd";
+import { DownOutlined } from "@ant-design/icons";
+import type { MenuProps } from "antd";
 import type { ColDef, ValueGetterParams, ValueSetterParams } from "ag-grid-community";
 import { useVariantsEditorStore } from "./use-variants-editor-store";
 import {
   VARIANT_COLUMNS,
   MEDIA_COLUMNS,
   createOptionColumns,
-  type IVariantEditorRow,
-  type IOptionGroup,
-  type VariantColumnField,
 } from "../config";
+import type {
+  IVariantEditorRow,
+  IOptionGroup,
+  VariantColumnField,
+} from "../config/types";
+import type { ApiProductOption, CurrencyCode } from "@/graphql/types";
+import { Dash } from "@/shared/components/editor-grid";
 import {
   ImageCellRenderer,
   TitleCellRenderer,
   TextCellRenderer,
   NumberCellRenderer,
   PriceCellRenderer,
-  ReservedCellRenderer,
-  AvailableCellRenderer,
+  ActionsCellRenderer,
 } from "../components/cell-renderers";
+import { formatCurrencySymbol } from "../../../utils/price-formatting";
 
 // ============================================================================
 // Types
@@ -25,33 +32,118 @@ import {
 
 export interface UseVariantsColumnsOptions {
   optionGroups: IOptionGroup[];
+  productOptions?: ApiProductOption[];
+  currency?: CurrencyCode | null;
   /**
    * When provided, only these columns will be available.
    * If undefined, all columns are available (with user visibility settings).
    */
   availableColumns?: VariantColumnField[];
   /**
+   * When provided, controls which available columns can be edited.
+   * If undefined, each column uses its own config editability.
+   */
+  editableColumns?: VariantColumnField[];
+  /**
    * When true, column visibility is controlled by availableColumns only,
    * ignoring user settings. Useful for restricted views.
    */
   ignoreUserSettings?: boolean;
+  onEditMedia?: (rowId: string, selectedRowIds?: string[]) => void;
+  onOptionValueChange?: (
+    rowId: string,
+    optionId: string,
+    optionValueId: string,
+  ) => void;
+  onDeleteRow?: (rowId: string) => void;
+}
+
+interface OptionDropdownCellProps {
+  row: IVariantEditorRow;
+  option: ApiProductOption;
+  onChange?: (rowId: string, optionId: string, optionValueId: string) => void;
+}
+
+function OptionDropdownCell({
+  row,
+  option,
+  onChange,
+}: OptionDropdownCellProps) {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const selectedValueId = row.selectedOptionValueIds[option.id];
+  const selectedValue = option.values.find((value) => value.id === selectedValueId);
+  const items: MenuProps["items"] = [...option.values]
+    .sort((left, right) => left.sortIndex - right.sortIndex)
+    .map((value) => ({
+      key: value.id,
+      label: value.name,
+    }));
+
+  return (
+    <Dropdown
+      menu={{
+        items,
+        onClick: ({ key }) => {
+          onChange?.(row.id, option.id, key);
+          setOpen(false);
+        },
+      }}
+      trigger={["contextMenu"]}
+      open={open}
+      onOpenChange={(visible) => {
+        if (!visible) setOpen(false);
+      }}
+      popupRender={(menu) => (
+        <div style={{ width: triggerRef.current?.offsetWidth }}>{menu}</div>
+      )}
+    >
+      <div
+        ref={triggerRef}
+        onDoubleClick={() => setOpen(true)}
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 11px",
+          gap: 8,
+        }}
+        data-testid={`variants-editor-cell-option-${option.id}-${row.id}`}
+      >
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {selectedValue?.name ?? <Dash />}
+        </span>
+        <DownOutlined style={{ fontSize: 10, color: "rgba(0, 0, 0, 0.25)" }} />
+      </div>
+    </Dropdown>
+  );
 }
 
 // ============================================================================
 // Price fields
 // ============================================================================
 
-const PRICE_FIELDS = new Set(["price", "compareAtPrice", "costPrice"]);
+const PRICE_FIELDS = new Set(["price", "compareAtPrice"]);
+
+function getColumnHeaderName(
+  headerName: string,
+  field: string,
+  currency: CurrencyCode | null | undefined,
+): string {
+  if (PRICE_FIELDS.has(field) && currency) {
+    return `${headerName} (${formatCurrencySymbol(currency)})`;
+  }
+
+  return headerName;
+}
 
 // ============================================================================
 // Get cell renderer based on column type and field
 // ============================================================================
 
-function getCellRenderer(type?: string, field?: string) {
-  // Special renderers for inventory fields
-  if (field === "reserved") return ReservedCellRenderer;
-  if (field === "available") return AvailableCellRenderer;
-
+function getCellRenderer(type?: string) {
   switch (type) {
     case "number":
       return NumberCellRenderer;
@@ -98,16 +190,12 @@ function getCellEditorParams(field: string) {
   switch (field) {
     case "price":
     case "compareAtPrice":
-    case "costPrice":
       return { min: 0, precision: 2 };
-    case "onHand":
-    case "unavailable":
-      return { min: 0, precision: 0 };
     case "weight":
     case "length":
     case "width":
     case "height":
-      return { min: 0, precision: 2 };
+      return { min: 1, precision: 0 };
     default:
       return undefined;
   }
@@ -136,10 +224,10 @@ function createValueGetter(field: string) {
 // Validation is done in handleSetFieldValue in VariantsEditorGrid
 // ============================================================================
 
-function createValueSetter(field: string) {
+function createValueSetter(field: string, editable: boolean) {
   return (params: ValueSetterParams<IVariantEditorRow>): boolean => {
     const { data, newValue } = params;
-    if (!data) return false;
+    if (!data || !editable) return false;
 
     const originalValue = (data as unknown as Record<string, unknown>)[field];
 
@@ -169,7 +257,17 @@ export function useVariantsColumns(
     ? { optionGroups: optionsOrOptionGroups }
     : optionsOrOptionGroups;
 
-  const { optionGroups, availableColumns, ignoreUserSettings = false } = normalizedOptions;
+  const {
+    optionGroups,
+    productOptions = [],
+    availableColumns,
+    editableColumns,
+    ignoreUserSettings = false,
+    currency,
+    onEditMedia,
+    onOptionValueChange,
+    onDeleteRow,
+  } = normalizedOptions;
 
   const columnVisibility = useVariantsEditorStore((s) => s.columnVisibility);
   const isOptionColumnVisible = useVariantsEditorStore(
@@ -203,28 +301,67 @@ export function useVariantsColumns(
 
       columns.push({
         field: col.field as keyof IVariantEditorRow,
-        headerName: col.headerName,
+        headerName: getColumnHeaderName(
+          col.headerName,
+          col.field,
+          currency,
+        ),
         width: col.width,
         minWidth: 80,
         cellRenderer: ImageCellRenderer,
+        cellRendererParams: {
+          onEditMedia,
+        },
       });
     }
 
     // Option columns (dynamic) - only show when not restricted or when user settings allow
     if (!ignoreUserSettings) {
+      const productOptionsByName = new Map(
+        productOptions.map((option) => [option.name, option]),
+      );
       const optionCols = createOptionColumns(optionGroups);
       for (const col of optionCols) {
         if (!isOptionColumnVisible(col.headerName)) continue;
 
         const optionName = col.headerName;
+        const productOption = productOptionsByName.get(optionName);
         columns.push({
           colId: col.field,
           headerName: col.headerName,
           width: col.width,
           minWidth: col.minWidth,
+          cellClass: productOption ? "variant-option-cell-dropdown" : undefined,
           valueGetter: (params) => {
-            const option = params.data?.options.find((o) => o.name === optionName);
-            return option?.value ?? "";
+            if (productOption) {
+              return params.data?.selectedOptionValueIds[productOption.id] ?? null;
+            }
+
+            const option = params.data?.options.find((item) => item.name === optionName);
+            return option?.value ?? null;
+          },
+          cellRenderer: (params: { data?: IVariantEditorRow; value?: unknown }) => {
+            if (!params.data) {
+              return null;
+            }
+
+            if (productOption) {
+              return (
+                <OptionDropdownCell
+                  row={params.data}
+                  option={productOption}
+                  onChange={onOptionValueChange}
+                />
+              );
+            }
+
+            return (
+              <span data-testid={`variants-editor-cell-option-${optionName}-${params.data.id}`}>
+                {params.value === null || params.value === undefined || params.value === ""
+                  ? <Dash />
+                  : String(params.value)}
+              </span>
+            );
           },
         });
       }
@@ -245,24 +382,70 @@ export function useVariantsColumns(
       // Use appropriate renderer based on field type
       const cellRenderer = PRICE_FIELDS.has(col.field)
         ? PriceCellRenderer
-        : getCellRenderer(col.type, col.field);
+        : getCellRenderer(col.type);
+      const isEditable =
+        col.editable &&
+        (!editableColumns ||
+          editableColumns.includes(col.field as VariantColumnField));
 
       columns.push({
         field: col.field as keyof IVariantEditorRow,
-        headerName: col.headerName,
+        headerName: getColumnHeaderName(
+          col.headerName,
+          col.field,
+          currency,
+        ),
+        colId: PRICE_FIELDS.has(col.field)
+          ? `${col.field}-${currency ?? "none"}`
+          : col.field,
         width: col.width,
         minWidth: col.minWidth,
         flex: col.flex,
         type: getColumnType(col.type),
-        editable: col.editable,
+        editable: isEditable,
         cellRenderer,
+        cellRendererParams: PRICE_FIELDS.has(col.field)
+          ? {
+              currency,
+            }
+          : undefined,
         cellEditor: getCellEditor(col.type),
         cellEditorParams: getCellEditorParams(col.field),
         valueGetter: createValueGetter(col.field),
-        valueSetter: createValueSetter(col.field),
+        valueSetter: createValueSetter(col.field, isEditable),
+      });
+    }
+
+    if (onDeleteRow) {
+      columns.push({
+        colId: "actions",
+        headerName: "",
+        pinned: "right",
+        width: 56,
+        minWidth: 56,
+        maxWidth: 56,
+        resizable: false,
+        sortable: false,
+        suppressNavigable: true,
+        cellRenderer: ActionsCellRenderer,
+        cellRendererParams: {
+          onDeleteRow,
+        },
       });
     }
 
     return columns;
-  }, [columnVisibility, optionGroups, isOptionColumnVisible, availableColumns, ignoreUserSettings]);
+  }, [
+    columnVisibility,
+    optionGroups,
+    productOptions,
+    isOptionColumnVisible,
+    availableColumns,
+    editableColumns,
+    ignoreUserSettings,
+    currency,
+    onEditMedia,
+    onOptionValueChange,
+    onDeleteRow,
+  ]);
 }

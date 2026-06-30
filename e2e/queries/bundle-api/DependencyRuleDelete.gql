@@ -1,7 +1,12 @@
-mutation DependencyRuleDelete($input: DeleteInput!) {
+mutation DependencyRuleDelete($input: BundleDependencyRulesSyncInput!) {
   catalogMutation {
-    dependencyRuleDelete(input: $input) {
-      deletedId
+    bundleDependencyRulesSync(input: $input) {
+      configuration {
+        id
+      }
+      dependencyRules {
+        id
+      }
       userErrors {
         message
         code

@@ -1,15 +1,24 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { ConfigProvider, Layout, Menu, MenuProps, Typography } from "antd";
 import { StoreMenu } from "@/layouts/app/components/store-menu/store-menu";
 import { SidebarLogo } from "@/layouts/app/components/sidebar/sidebar-logo";
 import { createStyles } from "antd-style";
-import { useSidebarItems, usePathParamsOptional, type SidebarItem } from "@/registry";
+import {
+  SidebarRuntimeProviders,
+  useSidebarItems,
+  usePathParams,
+  type SidebarItem,
+} from "@/registry";
 import { SubitemIcon } from "@/ui-kit/arrows/arrows";
 import { usePathname, useRouter } from "next/navigation";
 import { match } from "path-to-regexp";
 import { useSidebarStore } from "./sidebar-store";
+import {
+  mergeDynamicSidebarItems,
+  useDynamicSidebarStore,
+} from "./dynamic-sidebar-store";
 
 type AntMenuItem = NonNullable<MenuProps["items"]>[number];
 
@@ -24,12 +33,6 @@ function findMatchingItem(
   parentKey?: string
 ): MatchedItem | null {
   for (const item of items) {
-    if (item.path) {
-      const matcher = match(item.path, { decode: decodeURIComponent });
-      if (matcher(pathname)) {
-        return { key: item.key, parentKey };
-      }
-    }
     if (item.children) {
       const found = findMatchingItem(
         item.children,
@@ -38,6 +41,12 @@ function findMatchingItem(
       );
       if (found) {
         return found;
+      }
+    }
+    if (item.path) {
+      const matcher = match(item.path, { decode: decodeURIComponent });
+      if (matcher(pathname)) {
+        return { key: item.key, parentKey };
       }
     }
   }
@@ -146,17 +155,36 @@ const useStyles = createStyles(
 export const Sidebar = () => {
   const pathname = usePathname();
   const router = useRouter();
-  const sidebarItems = useSidebarItems();
-  const pathContext = usePathParamsOptional();
+  const staticSidebarItems = useSidebarItems();
+  const dynamicChildren = useDynamicSidebarStore(
+    (state) => state.childrenByParentKey,
+  );
+  const pathContext = usePathParams();
+  const sidebarItems = useMemo(
+    () => mergeDynamicSidebarItems(staticSidebarItems, dynamicChildren),
+    [dynamicChildren, staticSidebarItems],
+  );
   const menuItems = useMemo(() => buildMenuItems(sidebarItems), [sidebarItems]);
   const { collapsed, openKeys, setCollapsed, setOpenKeys } = useSidebarStore();
   const { styles } = useStyles({ collapsed });
 
+  const matchedItem = useMemo(
+    () => findMatchingItem(sidebarItems, pathname),
+    [sidebarItems, pathname],
+  );
+
   // Derive selectedKeys from pathname
   const selectedKeys = useMemo(() => {
-    const matched = findMatchingItem(sidebarItems, pathname);
-    return matched ? [matched.key] : [];
-  }, [sidebarItems, pathname]);
+    return matchedItem ? [matchedItem.key] : [];
+  }, [matchedItem]);
+
+  useEffect(() => {
+    if (!matchedItem?.parentKey || openKeys.includes(matchedItem.parentKey)) {
+      return;
+    }
+
+    setOpenKeys([...openKeys, matchedItem.parentKey]);
+  }, [matchedItem?.parentKey, openKeys, setOpenKeys]);
 
   const onOpenChange: MenuProps["onOpenChange"] = (keys) => {
     setOpenKeys(keys);
@@ -166,7 +194,7 @@ export const Sidebar = () => {
     const item = findItemByKey(sidebarItems, info.key);
     if (item?.path) {
       // Resolve path patterns with current params (e.g., /:orgName/:storeName/products -> /acme/main/products)
-      const resolvedPath = pathContext?.resolvePath(item.path) ?? item.path;
+      const resolvedPath = pathContext.resolvePath(item.path);
       router.push(resolvedPath);
     }
   };
@@ -194,6 +222,7 @@ export const Sidebar = () => {
         trigger={null}
         className={styles.siderFixed}
       >
+        <SidebarRuntimeProviders />
         <div className={styles.content}>
           <SidebarLogo isCollapsed={collapsed} />
           <StoreMenu isCollapsed={collapsed} />

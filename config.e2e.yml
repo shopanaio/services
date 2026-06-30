@@ -1,0 +1,101 @@
+# E2E runtime configuration.
+# Uses dedicated ports so Playwright can start services without colliding with
+# a developer's normal local environment.
+
+global:
+  environment: development
+  log_level: debug
+
+shared:
+  db:
+    default: &db_default
+      host: localhost
+      port: 15432
+      user: postgres
+      password: postgres
+      database: portal
+      schema: portal
+
+  s3:
+    default: &s3_default
+      endpoint: http://localhost:19000
+      access_key: minioadmin
+      secret_key: minioadmin
+      region: us-east-1
+      path_style: true
+
+gateway:
+  admin:
+    port: 14001
+  storefront:
+    port: 14000
+
+services:
+  apps:
+    ports:
+      admin_graphql: 11001
+      metrics: 13033
+    db:
+      <<: *db_default
+
+  checkout:
+    ports:
+      storefront_graphql: 11002
+      metrics: 13031
+    db:
+      <<: *db_default
+
+  catalog:
+    ports:
+      admin_graphql: 11011
+      metrics: 13038
+    db:
+      <<: *db_default
+      schema: null
+    s3:
+      <<: *s3_default
+      bucket: catalog
+
+  media:
+    ports:
+      admin_graphql: 11007
+      metrics: 13035
+    db:
+      <<: *db_default
+    s3:
+      <<: *s3_default
+      bucket: media
+
+  orders:
+    ports:
+      admin_graphql: 11004
+      storefront_graphql: 11003
+      metrics: 13032
+    db:
+      <<: *db_default
+
+  project:
+    ports:
+      admin_graphql: 11009
+      metrics: 13036
+    db:
+      <<: *db_default
+
+  iam:
+    ports:
+      admin_graphql: 11010
+      metrics: 13037
+    db:
+      <<: *db_default
+    super_admin_domains: "shopana.io"
+
+  delivery: {}
+
+  payments: {}
+
+  pricing: {}
+
+workflows:
+  database_url: postgresql://postgres:postgres@localhost:15432/portal
+  app_name: shopana-e2e
+  schema: dbos

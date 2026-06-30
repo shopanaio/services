@@ -6,7 +6,10 @@ import type {
   ProductCreateVariantInput,
 } from "./dto/index.js";
 import type { Variant } from "../../repositories/models/index.js";
-import type { VariantMediaEntry } from "./dto/index.js";
+import {
+  serializeRichTextJson,
+  toRichTextStorage,
+} from "../shared/richText.js";
 
 export class ProductCreateScript extends BaseScript<
   ProductCreateParams,
@@ -16,34 +19,67 @@ export class ProductCreateScript extends BaseScript<
   protected async execute(
     params: ProductCreateParams
   ): Promise<ProductCreateResult> {
-    const { title, handle, description, mediaFileIds, options, variants } =
-      params;
+    const {
+      title,
+      handle,
+      vendorId,
+      description,
+      excerpt,
+      mediaFileIds,
+      options,
+      variants,
+    } = params;
+
+    if (vendorId) {
+      const vendor = await this.repository.vendor.findById(vendorId);
+      if (!vendor) {
+        return {
+          product: undefined,
+          userErrors: [
+            {
+              message: "Vendor not found",
+              field: ["vendorId"],
+              code: "MISSING_VENDOR",
+            },
+          ],
+        };
+      }
+    }
 
     // 1. Create product with handle
-    const product = await this.repository.product.create({});
+    const product = await this.repository.product.create({ vendorId });
     await this.repository.product.update(product.id, { handle });
+    const excerptStorage = toRichTextStorage(excerpt);
 
-    // 2. Create product translation (title, description)
+    // 2. Create product translation (name, description)
     await this.repository.translation.upsertProductTranslation({
       projectId: this.getProjectId(),
       productId: product.id,
       locale: this.getLocale(),
-      title,
+      name: title,
       descriptionText: description?.text ?? null,
       descriptionHtml: description?.html ?? null,
-      descriptionJson: description?.json ?? null,
-      excerpt: null,
+      descriptionJson: serializeRichTextJson(description?.json),
+      excerptText: excerptStorage.text,
+      excerptHtml: excerptStorage.html,
+      excerptJson: excerptStorage.json,
     });
 
+    const productMedia = mediaFileIds
+      ? await this.repository.media.setProductMedia(product.id, mediaFileIds)
+      : [];
+    const productMediaFileIds = productMedia.map((media) => media.fileId);
+
     let createdVariants: Variant[] = [];
-    const variantMediaMap: VariantMediaEntry[] = [];
 
     // 3. Handle options and variants
     if (options && options.length > 0 && variants && variants.length > 0) {
+      const orderedOptions = this.normalizeOptionSortIndexes(options);
+
       // Create options and collect option values for variant linking
       const optionValuesBySlug = await this.createOptionsWithValues(
         product.id,
-        options
+        orderedOptions
       );
 
       // Create variants and collect media mapping
@@ -51,11 +87,9 @@ export class ProductCreateScript extends BaseScript<
         product.id,
         variants,
         optionValuesBySlug,
-        options,
-        mediaFileIds
+        orderedOptions
       );
-      createdVariants = result.variants;
-      variantMediaMap.push(...result.mediaMap);
+      createdVariants = result;
     } else {
       // No options - create default variant
       const defaultVariant = await this.repository.variant.create(product.id, {
@@ -63,18 +97,6 @@ export class ProductCreateScript extends BaseScript<
         handle: "",
       });
       createdVariants = [defaultVariant];
-
-      // Attach media to default variant and collect for back-ref sync
-      if (mediaFileIds && mediaFileIds.length > 0) {
-        await this.repository.media.setVariantMedia(
-          defaultVariant.id,
-          mediaFileIds
-        );
-        variantMediaMap.push({
-          variantId: defaultVariant.id,
-          fileIds: Array.from(new Set(mediaFileIds)),
-        });
-      }
     }
 
     // 4. Fetch updated product
@@ -94,13 +116,31 @@ export class ProductCreateScript extends BaseScript<
         ? { ...updatedProduct, _variants: createdVariants }
         : undefined,
       userErrors: [],
-      variantMediaMap: variantMediaMap.length > 0 ? variantMediaMap : undefined,
+      productMedia:
+        productMediaFileIds.length > 0
+          ? { productId: product.id, fileIds: productMediaFileIds }
+          : undefined,
     };
   }
 
   /**
    * Creates options and their values, returns a map of slug -> optionValue
    */
+  private normalizeOptionSortIndexes(
+    options: ProductCreateOptionInput[]
+  ): ProductCreateOptionInput[] {
+    return options
+      .map((option, inputIndex) => ({
+        ...option,
+        sortIndex: option.sortIndex ?? inputIndex,
+        values: option.values.map((value, valueIndex) => ({
+          ...value,
+          sortIndex: value.sortIndex ?? valueIndex,
+        })),
+      }))
+      .sort((left, right) => left.sortIndex - right.sortIndex);
+  }
+
   private async createOptionsWithValues(
     productId: string,
     options: ProductCreateOptionInput[]
@@ -115,6 +155,7 @@ export class ProductCreateScript extends BaseScript<
       const option = await this.repository.option.create(productId, {
         slug: optionInput.slug,
         displayType: optionInput.displayType ?? "DROPDOWN",
+        sortIndex: optionInput.sortIndex ?? 0,
       });
 
       // Create option translation
@@ -126,14 +167,16 @@ export class ProductCreateScript extends BaseScript<
       });
 
       // Create option values
-      for (let i = 0; i < optionInput.values.length; i++) {
-        const valueInput = optionInput.values[i];
+      const values = [...optionInput.values].sort(
+        (left, right) => (left.sortIndex ?? 0) - (right.sortIndex ?? 0)
+      );
+      for (const valueInput of values) {
 
         const optionValue = await this.repository.option.createValue(
           option.id,
           {
             slug: valueInput.slug,
-            sortIndex: i,
+            sortIndex: valueInput.sortIndex ?? 0,
           }
         );
 
@@ -164,11 +207,9 @@ export class ProductCreateScript extends BaseScript<
     productId: string,
     variants: ProductCreateVariantInput[],
     optionValuesBySlug: Map<string, { optionId: string; valueId: string }>,
-    options: ProductCreateOptionInput[],
-    mediaFileIds?: string[]
-  ): Promise<{ variants: Variant[]; mediaMap: VariantMediaEntry[] }> {
+    options: ProductCreateOptionInput[]
+  ): Promise<Variant[]> {
     const createdVariants: Variant[] = [];
-    const mediaMap: VariantMediaEntry[] = [];
 
     for (let i = 0; i < variants.length; i++) {
       const variantInput = variants[i];
@@ -199,19 +240,10 @@ export class ProductCreateScript extends BaseScript<
         }
       }
 
-      // Attach media to variant and collect for back-ref sync
-      if (mediaFileIds && mediaFileIds.length > 0) {
-        await this.repository.media.setVariantMedia(variant.id, mediaFileIds);
-        mediaMap.push({
-          variantId: variant.id,
-          fileIds: Array.from(new Set(mediaFileIds)),
-        });
-      }
-
       createdVariants.push(variant);
     }
 
-    return { variants: createdVariants, mediaMap };
+    return createdVariants;
   }
 
   protected handleError(_error: unknown): ProductCreateResult {

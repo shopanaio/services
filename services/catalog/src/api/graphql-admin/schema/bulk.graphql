@@ -20,7 +20,11 @@ enum BulkUpdateItemStatus {
 
 enum BulkUpdateOpType {
   PRODUCT_UPDATE
+  PRODUCT_CATEGORY_UPDATE
+  PRODUCT_TAG_UPDATE
+  VARIANT_CREATE
   VARIANT_UPDATE
+  VARIANT_DELETE
 }
 
 enum BulkUpdateCancelReason {
@@ -116,6 +120,17 @@ type ProductBulkUpdateJob {
     after: String
     statusFilter: [BulkUpdateItemStatus!]
   ): BulkUpdateItemConnection!
+}
+
+type ProductBulkUpdateJobConnection {
+  edges: [ProductBulkUpdateJobEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ProductBulkUpdateJobEdge {
+  cursor: String!
+  node: ProductBulkUpdateJob!
 }
 
 """

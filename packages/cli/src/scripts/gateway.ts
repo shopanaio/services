@@ -24,10 +24,11 @@ interface Config {
 
 function loadConfig(): Config {
   const rootDir = findRootDir();
-  const configPath = join(rootDir, "config.yml");
+  const configFile = process.env.CONFIG_FILE || "config.yml";
+  const configPath = join(rootDir, configFile);
 
   if (!existsSync(configPath)) {
-    throw new Error(`config.yml not found at ${configPath}`);
+    throw new Error(`${configFile} not found at ${configPath}`);
   }
 
   const content = readFileSync(configPath, "utf-8");

@@ -21,10 +21,11 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import { Paper } from "@/ui-kit/paper";
-import type { IEditTagsModalPayload, ITag } from "../../modals";
+import type { ApiTag } from "@/graphql/types";
+import type { IEditTagsModalPayload } from "../../modals";
 import { useStyles } from "./edit-tags-modal.styles";
 import type { IEditTagsModalProps } from "./types";
-import { mockTags } from "@/mocks/products/tags";
+import { mockApiTags } from "@/mocks/products/data";
 
 export type { IEditTagsModalProps };
 
@@ -34,7 +35,7 @@ export const EditTagsModal = () => {
 
   const {
     selectedTagIds: initialTagIds,
-    availableTags = mockTags,
+    availableTags = mockApiTags,
     onSave,
     onCreateTag,
   } = (payload as IEditTagsModalPayload) || {};
@@ -51,8 +52,8 @@ export const EditTagsModal = () => {
     const term = searchTerm.toLowerCase();
     return availableTags.filter(
       (tag) =>
-        tag.title.toLowerCase().includes(term) ||
-        tag.slug.toLowerCase().includes(term)
+        tag.name.toLowerCase().includes(term) ||
+        tag.handle.toLowerCase().includes(term)
     );
   }, [availableTags, searchTerm]);
 
@@ -67,7 +68,7 @@ export const EditTagsModal = () => {
     () =>
       selectedIds
         .map((id) => tagMap.get(id))
-        .filter((t): t is ITag => t !== undefined),
+        .filter((t): t is ApiTag => t !== undefined),
     [selectedIds, tagMap]
   );
 
@@ -104,7 +105,7 @@ export const EditTagsModal = () => {
       setSelectedIds((prev) => [...prev, newTag.id]);
       setSearchTerm("");
       markDirty();
-      message.success(`Tag "${newTag.title}" created`);
+      message.success(`Tag "${newTag.name}" created`);
     } catch {
       message.error("Failed to create tag");
     } finally {
@@ -118,7 +119,7 @@ export const EditTagsModal = () => {
     const term = searchTerm.toLowerCase();
     return !availableTags.some(
       (tag) =>
-        tag.title.toLowerCase() === term || tag.slug.toLowerCase() === term
+        tag.name.toLowerCase() === term || tag.handle.toLowerCase() === term
     );
   }, [searchTerm, availableTags]);
 
@@ -154,12 +155,11 @@ export const EditTagsModal = () => {
               {selectedTags.map((tag) => (
                 <Tag
                   key={tag.id}
-                  color={tag.color}
                   closable
                   onClose={() => handleRemoveTag(tag.id)}
                   className={styles.selectedTag}
                 >
-                  {tag.title}
+                  {tag.name}
                 </Tag>
               ))}
             </div>
@@ -230,19 +230,12 @@ export const EditTagsModal = () => {
                     onKeyDown={(e) => e.key === "Enter" && handleToggle(tag.id)}
                   >
                     <div className={styles.tagInfo}>
-                      {tag.color ? (
-                        <div
-                          className={styles.tagColorDot}
-                          style={{ background: tag.color }}
-                        />
-                      ) : (
-                        <TagOutlined className={styles.tagIcon} />
-                      )}
+                      <TagOutlined className={styles.tagIcon} />
                       <Typography.Text className={styles.tagLabel}>
-                        {tag.title}
+                        {tag.name}
                       </Typography.Text>
                       <Typography.Text className={styles.tagSlug}>
-                        #{tag.slug}
+                        #{tag.handle}
                       </Typography.Text>
                     </div>
                     <Checkbox

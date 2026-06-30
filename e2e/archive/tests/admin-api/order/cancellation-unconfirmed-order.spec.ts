@@ -1,5 +1,6 @@
 import { test } from '@fixtures/base.extend';
-import { ApiProduct, OrderStatusEnum, WeightUnit, DimensionUnit, ApiCustomer } from '@codegen/admin-gql';
+import type { ApiCustomer, ApiOrder, ApiProduct } from '@codegen/admin-gql';
+
 import { randomUUID } from 'node:crypto';
 import { expect } from 'playwright/test';
 import * as Yup from 'yup';
@@ -7,7 +8,7 @@ import * as Yup from 'yup';
 test.describe('Orders API', () => {
   let product: ApiProduct;
   let customer: ApiCustomer;
-  let order: import('@codegen/admin-gql').ApiOrder;
+  let order: ApiOrder;
 
   const createProductInput = (title: string, price: number, oldPrice: number) => ({
     description: null,
@@ -32,11 +33,11 @@ test.describe('Orders API', () => {
           title,
           variantSortIndex: 0,
           weight: 0,
-          weightUnit: WeightUnit.Gr,
+          weightUnit: 'g',
           width: 0,
           height: 0,
           length: 0,
-          dimensionUnit: DimensionUnit.Mm,
+          dimensionUnit: 'mm',
         },
       ],
     },
@@ -125,7 +126,7 @@ test.describe('Orders API', () => {
     await test.step('Confirm order', async () => {
       const statusActive = await api.admin.order.updateStatus({
         id: orderId,
-        status: OrderStatusEnum.Active,
+        status: 'ACTIVE',
         comment: 'Order status - active',
       });
       expect(statusActive).toBe(true);
@@ -136,7 +137,7 @@ test.describe('Orders API', () => {
     await test.step('Cancel order', async () => {
       const cancelled = await api.admin.order.updateStatus({
         id: orderId,
-        status: OrderStatusEnum.Cancelled,
+        status: 'CANCELLED',
         comment: 'Order status - Cancelled',
       });
       expect(cancelled).toBe(true);

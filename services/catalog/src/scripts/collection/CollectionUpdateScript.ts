@@ -1,5 +1,9 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { CollectionResult, CollectionUpdateParams } from "./dto/index.js";
+import {
+  serializeRichTextJsonText,
+  toRichTextStorage,
+} from "../shared/richText.js";
 
 const ALLOWED_SORTS = new Set(["manual", "price", "newest", "name"]);
 const HANDLE_REGEX = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
@@ -70,29 +74,44 @@ export class CollectionUpdateScript extends BaseScript<
 
     if (
       params.name !== undefined ||
-      params.description !== undefined
+      params.description !== undefined ||
+      params.excerpt !== undefined
     ) {
       const existingTranslations =
         await this.repository.collection.getTranslationsByCollectionIds([params.id]);
       const existingTranslation = existingTranslations[0];
+      const nextDescription =
+        params.description === undefined
+          ? {
+              text: existingTranslation?.descriptionText ?? null,
+              html: existingTranslation?.descriptionHtml ?? null,
+              json: existingTranslation?.descriptionJson ?? null,
+            }
+          : toRichTextStorage(params.description);
+      const nextExcerpt =
+        params.excerpt === undefined
+          ? {
+              text: existingTranslation?.excerptText ?? null,
+              html: existingTranslation?.excerptHtml ?? null,
+              json: existingTranslation?.excerptJson ?? null,
+            }
+          : toRichTextStorage(params.excerpt);
 
       await this.repository.collection.upsertTranslation({
         collectionId: params.id,
         name: params.name ?? existingTranslation?.name ?? "",
-        descriptionText:
-          params.description === null
-            ? null
-            : params.description?.text ?? existingTranslation?.descriptionText ?? null,
-        descriptionHtml:
-          params.description === null
-            ? null
-            : params.description?.html ?? existingTranslation?.descriptionHtml ?? null,
+        descriptionText: nextDescription.text,
+        descriptionHtml: nextDescription.html,
         descriptionJson:
-          params.description === null
-            ? null
-            : params.description?.json
-            ? JSON.stringify(params.description.json)
-            : existingTranslation?.descriptionJson ?? null,
+          params.description === undefined
+            ? (nextDescription.json as string | null)
+            : serializeRichTextJsonText(nextDescription.json as Record<string, unknown> | null),
+        excerptText: nextExcerpt.text,
+        excerptHtml: nextExcerpt.html,
+        excerptJson:
+          params.excerpt === undefined
+            ? (nextExcerpt.json as string | null)
+            : serializeRichTextJsonText(nextExcerpt.json as Record<string, unknown> | null),
       });
     }
 

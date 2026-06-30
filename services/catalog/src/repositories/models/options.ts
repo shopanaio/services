@@ -36,10 +36,16 @@ export const productOption = catalogSchema.table(
       .references(() => product.id, { onDelete: "cascade" }),
     slug: varchar("slug", { length: 255 }).notNull(),
     displayType: varchar("display_type", { length: 32 }).notNull(),
+    sortIndex: integer("sort_index").notNull().default(0),
   },
   (table) => [
     unique("product_option_product_id_slug_key").on(table.productId, table.slug),
     index("idx_product_option_product_id").on(table.productId),
+    index("idx_product_option_sort").on(
+      table.projectId,
+      table.productId,
+      table.sortIndex
+    ),
   ]
 );
 

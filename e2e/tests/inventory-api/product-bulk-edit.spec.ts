@@ -1,5 +1,6 @@
 import { test } from '@fixtures/base.extend';
 import type { ApiFixtures } from '@fixtures/api/api';
+import { encodeGlobalId, TypeName } from '@utils/globalid';
 import { expect } from '@playwright/test';
 
 type Api = ApiFixtures['api'];
@@ -65,6 +66,27 @@ async function createProduct(api: Api, title: string, handle?: string) {
     revision: product.revision as number,
     handle: productHandle,
   };
+}
+
+async function createTag(api: Api, handle?: string, name?: string) {
+  const tagHandle =
+    handle ?? `bulk-tag-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const { data } = await api.admin.mutation('inventory-api/TagCreate', {
+    variables: {
+      input: {
+        handle: tagHandle,
+        name: name ?? tagHandle,
+      },
+    },
+  });
+
+  const result = data.catalogMutation.tagCreate;
+  expect(result.userErrors).toHaveLength(0);
+  if (!result.tag) {
+    throw new Error('Failed to create tag');
+  }
+
+  return result.tag;
 }
 
 /**
@@ -203,7 +225,7 @@ interface BulkUpdateProduct {
 }
 
 interface BulkUpdateResult {
-  userErrors: { message: string; code: string }[];
+  userErrors: { message: string; code: string; field?: string[] | null }[];
   job: { id: string; status: string; progress: { total: number; pending: number } } | null;
 }
 
@@ -305,6 +327,121 @@ test.describe('Product Bulk Edit API', () => {
   });
 
   // ============================================
+  // JOB LISTING
+  // ============================================
+
+  test.describe('Job Listing', () => {
+    test('should list multiple bulk update jobs without job ids', async ({ api }) => {
+      const product1 = await createProduct(api, 'Bulk Job List Product 1');
+      const product2 = await createProduct(api, 'Bulk Job List Product 2');
+
+      const firstJob = await submitBulkUpdateAndWait(api, [
+        { productId: product1.productId, operations: { title: 'Bulk Job List Updated 1' } },
+      ]);
+      const secondJob = await submitBulkUpdateAndWait(api, [
+        { productId: product2.productId, operations: { title: 'Bulk Job List Updated 2' } },
+      ]);
+
+      const firstJobId = firstJob.result.job?.id;
+      const secondJobId = secondJob.result.job?.id;
+      expect(firstJobId).toBeTruthy();
+      expect(secondJobId).toBeTruthy();
+
+      const { data } = await api.admin.query('inventory-api/ProductBulkUpdateJobs', {
+        variables: {
+          first: 10,
+          statusFilter: ['QUEUED', 'RUNNING', 'COMPLETED'],
+        },
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const connection = (data as any).catalogQuery.productBulkUpdateJobs;
+      const jobIds = connection.edges.map((edge: { node: { id: string } }) => edge.node.id);
+
+      expect(jobIds).toContain(firstJobId);
+      expect(jobIds).toContain(secondJobId);
+      expect(connection.totalCount).toBeGreaterThanOrEqual(2);
+    });
+
+    test('should filter jobs by status', async ({ api }) => {
+      const product = await createProduct(api, 'Bulk Job Filter Product');
+      const { result } = await submitBulkUpdateAndWait(api, [
+        { productId: product.productId, operations: { title: 'Bulk Job Filter Updated' } },
+      ]);
+
+      const jobId = result.job?.id;
+      expect(jobId).toBeTruthy();
+
+      const { data } = await api.admin.query('inventory-api/ProductBulkUpdateJobs', {
+        variables: {
+          first: 10,
+          statusFilter: ['COMPLETED'],
+        },
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const connection = (data as any).catalogQuery.productBulkUpdateJobs;
+      const jobs = connection.edges.map((edge: { node: { id: string; status: string } }) => edge.node);
+
+      expect(jobs.map((job: { id: string }) => job.id)).toContain(jobId);
+      expect(jobs.every((job: { status: string }) => job.status === 'COMPLETED')).toBe(true);
+    });
+
+    test('should paginate bulk update jobs', async ({ api }) => {
+      const product1 = await createProduct(api, 'Bulk Job Page Product 1');
+      const product2 = await createProduct(api, 'Bulk Job Page Product 2');
+
+      await submitBulkUpdateAndWait(api, [
+        { productId: product1.productId, operations: { title: 'Bulk Job Page Updated 1' } },
+      ]);
+      await submitBulkUpdateAndWait(api, [
+        { productId: product2.productId, operations: { title: 'Bulk Job Page Updated 2' } },
+      ]);
+
+      const firstPage = await api.admin.query('inventory-api/ProductBulkUpdateJobs', {
+        variables: {
+          first: 1,
+          statusFilter: ['QUEUED', 'RUNNING', 'COMPLETED'],
+        },
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const firstConnection = (firstPage.data as any).catalogQuery.productBulkUpdateJobs;
+      expect(firstConnection.edges).toHaveLength(1);
+      expect(firstConnection.pageInfo.endCursor).toBeTruthy();
+
+      const secondPage = await api.admin.query('inventory-api/ProductBulkUpdateJobs', {
+        variables: {
+          first: 1,
+          after: firstConnection.pageInfo.endCursor,
+          statusFilter: ['QUEUED', 'RUNNING', 'COMPLETED'],
+        },
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const secondConnection = (secondPage.data as any).catalogQuery.productBulkUpdateJobs;
+      expect(secondConnection.edges).toHaveLength(1);
+      expect(secondConnection.edges[0].cursor).not.toBe(firstConnection.edges[0].cursor);
+      expect(secondConnection.edges[0].node.id).not.toBe(firstConnection.edges[0].node.id);
+    });
+
+    test('should reject non-GID job IDs in productBulkUpdateJob', async ({ api }) => {
+      const product = await createProduct(api, 'Bulk Job Invalid ID Product');
+      await submitBulkUpdateAndWait(api, [
+        { productId: product.productId, operations: { title: 'Bulk Job Invalid ID Updated' } },
+      ]);
+
+      const { errors } = await api.admin.query('inventory-api/ProductBulkUpdateJob', {
+        variables: { jobId: 'not-a-gid' },
+        throwOnError: false,
+      });
+
+      expect(errors).toBeTruthy();
+      expect(errors.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ============================================
   // VALIDATION ERRORS
   // ============================================
 
@@ -347,6 +484,33 @@ test.describe('Product Bulk Edit API', () => {
       const result = (data as any).catalogMutation.productBulkUpdate;
       expect(result.userErrors.length).toBeGreaterThan(0);
       expect(result.job).toBeNull();
+    });
+
+    test('should reject invalid tag ID in bulk product tag operation', async ({ api }) => {
+      const product = await createProduct(api, 'Bulk Invalid Tag Product');
+      const wrongTypeTagId = encodeGlobalId(TypeName.Category, crypto.randomUUID());
+
+      const { result } = await submitBulkUpdateAndWait(api, [
+        {
+          productId: product.productId,
+          operations: {
+            tags: [{ tagId: wrongTypeTagId, action: 'ADD' }],
+          },
+        },
+      ]);
+
+      expect(result.job).toBeNull();
+      expect(result.userErrors).toHaveLength(1);
+      expect(result.userErrors[0].code).toBe('INVALID_ID');
+      expect(result.userErrors[0].field).toEqual([
+        'input',
+        'products',
+        '0',
+        'operations',
+        'tags',
+        '0',
+        'tagId',
+      ]);
     });
   });
 
@@ -460,7 +624,13 @@ test.describe('Product Bulk Edit API', () => {
           productId: product1.productId,
           operations: {
             title: 'Updated Multi 1',
-            content: { excerpt: 'Excerpt 1' },
+            content: {
+              excerpt: {
+                text: 'Excerpt 1',
+                html: '<p>Excerpt 1</p>',
+                json: { blocks: [{ type: 'paragraph', data: { text: 'Excerpt 1' } }] },
+              },
+            },
             seo: { seoTitle: 'SEO 1' },
           },
         },
@@ -468,7 +638,13 @@ test.describe('Product Bulk Edit API', () => {
           productId: product2.productId,
           operations: {
             title: 'Updated Multi 2',
-            content: { excerpt: 'Excerpt 2' },
+            content: {
+              excerpt: {
+                text: 'Excerpt 2',
+                html: '<p>Excerpt 2</p>',
+                json: { blocks: [{ type: 'paragraph', data: { text: 'Excerpt 2' } }] },
+              },
+            },
             seo: { seoTitle: 'SEO 2' },
           },
         },
@@ -483,6 +659,118 @@ test.describe('Product Bulk Edit API', () => {
 
       expect(updatedProduct1.title).toBe('Updated Multi 1');
       expect(updatedProduct2.title).toBe('Updated Multi 2');
+      expect(updatedProduct1.excerpt.text).toBe('Excerpt 1');
+      expect(updatedProduct1.excerpt.html).toBe('<p>Excerpt 1</p>');
+      expect(updatedProduct1.excerpt.json.blocks[0].data.text).toBe('Excerpt 1');
+      expect(updatedProduct2.excerpt.text).toBe('Excerpt 2');
+      expect(updatedProduct2.excerpt.html).toBe('<p>Excerpt 2</p>');
+      expect(updatedProduct2.excerpt.json.blocks[0].data.text).toBe('Excerpt 2');
+    });
+  });
+
+  // ============================================
+  // SUCCESSFUL BULK UPDATES - PRODUCT TAGS
+  // ============================================
+
+  test.describe('Bulk Product Tag Updates', () => {
+    test('should add tags to multiple products in bulk', async ({ api }) => {
+      const product1 = await createProduct(api, 'Bulk Tagged Product 1');
+      const product2 = await createProduct(api, 'Bulk Tagged Product 2');
+      const tag1 = await createTag(api, undefined, 'Bulk Featured');
+      const tag2 = await createTag(api, undefined, 'Bulk Sale');
+
+      const { job } = await submitBulkUpdateAndWait(api, [
+        {
+          productId: product1.productId,
+          operations: {
+            tags: [{ tagId: tag1.id, action: 'ADD' }],
+          },
+        },
+        {
+          productId: product2.productId,
+          operations: {
+            tags: [
+              { tagId: tag1.id, action: 'ADD' },
+              { tagId: tag2.id, action: 'ADD' },
+            ],
+          },
+        },
+      ]);
+
+      expect(job).toBeTruthy();
+      expect(job?.status).toBe('COMPLETED');
+      expect(job?.progress.failed).toBe(0);
+      expect(job?.progress.succeeded).toBe(3);
+      expect(job?.items.map((item) => item.opType)).toEqual([
+        'PRODUCT_TAG_UPDATE',
+        'PRODUCT_TAG_UPDATE',
+        'PRODUCT_TAG_UPDATE',
+      ]);
+
+      const updatedProduct1 = await fetchProduct(api, product1.productId);
+      const updatedProduct2 = await fetchProduct(api, product2.productId);
+      const product1TagIds = updatedProduct1.tags.map((tag: { id: string }) => tag.id);
+      const product2TagIds = updatedProduct2.tags.map((tag: { id: string }) => tag.id);
+
+      expect(product1TagIds).toContain(tag1.id);
+      expect(product1TagIds).not.toContain(tag2.id);
+      expect(product2TagIds).toEqual(expect.arrayContaining([tag1.id, tag2.id]));
+    });
+
+    test('should remove tag from product in bulk', async ({ api }) => {
+      const product = await createProduct(api, 'Bulk Remove Tag Product');
+      const tag = await createTag(api);
+
+      const add = await submitBulkUpdateAndWait(api, [
+        {
+          productId: product.productId,
+          operations: {
+            tags: [{ tagId: tag.id, action: 'ADD' }],
+          },
+        },
+      ]);
+      expect(add.job?.progress.failed).toBe(0);
+
+      const remove = await submitBulkUpdateAndWait(api, [
+        {
+          productId: product.productId,
+          operations: {
+            tags: [{ tagId: tag.id, action: 'REMOVE' }],
+          },
+        },
+      ]);
+
+      expect(remove.job).toBeTruthy();
+      expect(remove.job?.status).toBe('COMPLETED');
+      expect(remove.job?.progress.succeeded).toBe(1);
+      expect(remove.job?.progress.failed).toBe(0);
+      expect(remove.job?.items[0].opType).toBe('PRODUCT_TAG_UPDATE');
+
+      const updatedProduct = await fetchProduct(api, product.productId);
+      const tagIds = updatedProduct.tags.map((item: { id: string }) => item.id);
+      expect(tagIds).not.toContain(tag.id);
+    });
+
+    test('should fail bulk item when removing tag that is not assigned', async ({ api }) => {
+      const product = await createProduct(api, 'Bulk Missing Tag Product');
+      const tag = await createTag(api);
+
+      const { job } = await submitBulkUpdateAndWait(api, [
+        {
+          productId: product.productId,
+          operations: {
+            tags: [{ tagId: tag.id, action: 'REMOVE' }],
+          },
+        },
+      ]);
+
+      expect(job).toBeTruthy();
+      expect(job?.status).toBe('COMPLETED');
+      expect(job?.progress.succeeded).toBe(0);
+      expect(job?.progress.failed).toBe(1);
+      expect(job?.items[0].opType).toBe('PRODUCT_TAG_UPDATE');
+      expect(job?.items[0].status).toBe('FAILED');
+      expect(job?.items[0].errors[0].code).toBe('NOT_FOUND');
     });
   });
 

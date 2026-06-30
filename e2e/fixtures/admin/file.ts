@@ -1,6 +1,6 @@
-import { BaseGqlRequest, GqlRequestSession } from '@fixtures/api/gqlRequest';
+import type { BaseGqlRequest, GqlRequestSession } from '@fixtures/api/gqlRequest';
 import { readQuery } from '@fixtures/api/types';
-import { APIRequestContext } from '@playwright/test';
+import type { APIRequestContext } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import FormData from 'form-data';
@@ -34,17 +34,23 @@ export interface CreateExternalInput {
 
 export class FileFixture {
   private readonly graphqlUrl: string;
+  private request: APIRequestContext;
+  private session: GqlRequestSession;
+  private gql: BaseGqlRequest<unknown, unknown>;
 
   constructor(
-    private request: APIRequestContext,
-    private session: GqlRequestSession,
-    private gql: BaseGqlRequest<unknown, unknown>,
+    request: APIRequestContext,
+    session: GqlRequestSession,
+    gql: BaseGqlRequest<unknown, unknown>,
   ) {
     const graphqlUrl = process.env.ADMIN_GRAPHQL_URL;
     if (!graphqlUrl) {
       throw new Error('ADMIN_GRAPHQL_URL environment variable is not set');
     }
     this.graphqlUrl = graphqlUrl;
+    this.request = request;
+    this.session = session;
+    this.gql = gql;
   }
 
   /**
@@ -124,6 +130,11 @@ export class FileFixture {
     }
 
     return this.mapFileResult(file);
+  }
+
+  async createFromFile(filePath: string): Promise<string> {
+    const result = await this.uploadFile(filePath);
+    return result.id;
   }
 
   /**

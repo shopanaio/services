@@ -1,1 +1,1 @@
-export { SettingsLayout, type ISettingsLayoutProps } from "./settings-layout";
+export { SettingsLayout } from "./settings-layout";

@@ -1,4 +1,4 @@
-import type { ProductWithVariants, ProductResultBase, DescriptionInput } from "./shared.js";
+import type { ProductWithVariants, ProductResultBase, RichTextInput } from "./shared.js";
 
 /**
  * Input for creating a product option value
@@ -6,6 +6,7 @@ import type { ProductWithVariants, ProductResultBase, DescriptionInput } from ".
 export interface ProductCreateOptionValueInput {
   readonly name: string;
   readonly slug: string;
+  readonly sortIndex?: number;
 }
 
 /**
@@ -15,6 +16,7 @@ export interface ProductCreateOptionInput {
   readonly name: string;
   readonly slug: string;
   readonly displayType?: string;
+  readonly sortIndex?: number;
   readonly values: ProductCreateOptionValueInput[];
 }
 
@@ -41,7 +43,11 @@ export interface InventoryItemCreateInput {
 export interface ProductCreateParams {
   readonly title: string;
   readonly handle: string;
-  readonly description?: DescriptionInput;
+  readonly description?: RichTextInput | null;
+  readonly excerpt?: RichTextInput | null;
+
+  /** Vendor ID to associate with the product */
+  readonly vendorId?: string;
 
   /** File IDs for product media (already uploaded) */
   readonly mediaFileIds?: string[];
@@ -65,13 +71,13 @@ export interface ProductCreateParams {
   readonly storeId: string;
 }
 
-export interface VariantMediaEntry {
-  variantId: string;
+export interface ProductMediaEntry {
+  productId: string;
   fileIds: string[];
 }
 
 export interface ProductCreateResult extends ProductResultBase {
   product?: ProductWithVariants;
-  /** Map of variant IDs to file IDs for back-ref syncing */
-  variantMediaMap?: VariantMediaEntry[];
+  /** Product media file IDs for back-reference syncing */
+  productMedia?: ProductMediaEntry;
 }

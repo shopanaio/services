@@ -1,0 +1,50 @@
+query VariantFindMany(
+  $first: Int
+  $after: String
+  $last: Int
+  $before: String
+  $where: VariantWhereInput
+  $orderBy: [VariantOrderByInput!]
+) {
+  catalogQuery {
+    variants(
+      first: $first
+      after: $after
+      last: $last
+      before: $before
+      where: $where
+      orderBy: $orderBy
+    ) {
+      edges {
+        node {
+          id
+          handle
+          isDefault
+          externalSystem
+          externalId
+          createdAt
+          updatedAt
+          deletedAt
+          title
+          price {
+            amountMinor
+            currency
+          }
+          inventoryItem {
+            id
+            sku
+            totalAvailable
+          }
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

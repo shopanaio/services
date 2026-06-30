@@ -8,16 +8,8 @@ mutation FacetUpdate($input: FacetUpdateInput!) {
         label
         uiType
         selectionMode
-        sortIndex
-        minValues
-        maxValuesVisible
-        valueSort
-        indexable
+        lexoRank
         sourceHandles
-        group {
-          id
-          name
-        }
         values {
           id
           slug

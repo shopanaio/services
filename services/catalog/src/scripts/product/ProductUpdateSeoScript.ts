@@ -4,11 +4,11 @@ import type { SeoChanges } from "../types/index.js";
 import { singleError } from "../types/index.js";
 
 /**
- * ProductUpdateSeoScript handles product SEO metadata: title and description.
+ * ProductUpdateSeoScript handles product SEO and Open Graph metadata.
  */
 export class ProductUpdateSeoScript extends BaseScript<ProductUpdateSeoParams, ProductUpdateSeoResult> {
   protected async execute(params: ProductUpdateSeoParams): Promise<ProductUpdateSeoResult> {
-    const { id, title, description } = params;
+    const { id, title, description, ogTitle, ogDescription, ogImageId } = params;
 
     // 1. Check if product exists
     const existingProduct = await this.repository.product.findById(id);
@@ -39,6 +39,24 @@ export class ProductUpdateSeoScript extends BaseScript<ProductUpdateSeoParams, P
       changes.description = newDescription;
     }
 
+    const newOgTitle = ogTitle ?? null;
+    const currentOgTitle = existingSeo?.ogTitle ?? null;
+    if (ogTitle !== undefined && newOgTitle !== currentOgTitle) {
+      changes.ogTitle = newOgTitle;
+    }
+
+    const newOgDescription = ogDescription ?? null;
+    const currentOgDescription = existingSeo?.ogDescription ?? null;
+    if (ogDescription !== undefined && newOgDescription !== currentOgDescription) {
+      changes.ogDescription = newOgDescription;
+    }
+
+    const newOgImageId = ogImageId ?? null;
+    const currentOgImageId = existingSeo?.ogImageId ?? null;
+    if (ogImageId !== undefined && newOgImageId !== currentOgImageId) {
+      changes.ogImageId = newOgImageId;
+    }
+
     // 3. Update if changes detected
     const hasChanges = Object.keys(changes).length > 0;
     if (hasChanges) {
@@ -48,9 +66,9 @@ export class ProductUpdateSeoScript extends BaseScript<ProductUpdateSeoParams, P
         locale,
         seoTitle: title !== undefined ? title : existingSeo?.seoTitle ?? null,
         seoDescription: description !== undefined ? description : existingSeo?.seoDescription ?? null,
-        ogTitle: existingSeo?.ogTitle ?? null,
-        ogDescription: existingSeo?.ogDescription ?? null,
-        ogImageId: existingSeo?.ogImageId ?? null,
+        ogTitle: ogTitle !== undefined ? ogTitle : existingSeo?.ogTitle ?? null,
+        ogDescription: ogDescription !== undefined ? ogDescription : existingSeo?.ogDescription ?? null,
+        ogImageId: ogImageId !== undefined ? ogImageId : existingSeo?.ogImageId ?? null,
       });
 
       await this.repository.product.touch(id);

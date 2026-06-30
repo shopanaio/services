@@ -1,26 +1,19 @@
 import type { UserError } from "../../../kernel/BaseScript.js";
 import type {
   Facet,
-  FacetGroup,
   FacetValue,
   FacetSwatch,
 } from "../../../repositories/models/index.js";
 
-export interface FacetGroupCreateParams {
+export interface FacetCreateSourceInput {
+  handle: string;
   name: string;
-  collapsed?: boolean;
-  sortIndex?: number;
 }
 
-export interface FacetGroupUpdateParams {
-  id: string;
-  name?: string;
-  collapsed?: boolean;
-  sortIndex?: number;
-}
-
-export interface FacetGroupDeleteParams {
-  id: string;
+export interface FacetCreateValueCandidateInput {
+  handle: string;
+  label: string;
+  sourceHandle: string;
 }
 
 export interface FacetCreateParams {
@@ -29,8 +22,9 @@ export interface FacetCreateParams {
   label: string;
   uiType?: string;
   selectionMode?: string;
-  groupId?: string | null;
-  sortIndex?: number;
+  lexoRank?: string;
+  sources?: FacetCreateSourceInput[];
+  valueCandidates?: FacetCreateValueCandidateInput[];
 }
 
 export interface FacetUpdateParams {
@@ -39,23 +33,29 @@ export interface FacetUpdateParams {
   label?: string;
   uiType?: string;
   selectionMode?: string;
-  groupId?: string | null;
-  sortIndex?: number;
-  minValues?: number;
-  maxValuesVisible?: number;
-  valueSort?: string;
-  indexable?: boolean;
+  lexoRank?: string;
 }
 
 export interface FacetDeleteParams {
   id: string;
 }
 
+export interface FacetMoveParams {
+  id: string;
+  afterFacetId?: string | null;
+  beforeFacetId?: string | null;
+}
+
+export interface FacetRebalanceParams {}
+
+export type FacetValueKind = "source" | "display";
+
 export interface FacetValueCreateParams {
   facetId: string;
-  slug: string;
+  kind: FacetValueKind;
+  handle: string;
   label: string;
-  sourceHandles?: string[];
+  sourceValueIds?: string[];
   swatchId?: string | null;
   sortIndex?: number;
   enabled?: boolean;
@@ -63,9 +63,8 @@ export interface FacetValueCreateParams {
 
 export interface FacetValueUpdateParams {
   id: string;
-  slug?: string;
+  handle?: string;
   label?: string;
-  sourceHandles?: string[];
   swatchId?: string | null;
   sortIndex?: number;
   enabled?: boolean;
@@ -102,10 +101,10 @@ export interface ResolveFacetsParams {
 
 export interface ResolvedFacetFilter {
   facetSlug: string;
-  valueSlug: string;
+  valueHandle: string;
   facetId: string;
   facetType: string;
-  sourceHandles: string[];
+  resolvedSourceHandles: string[];
 }
 
 export interface ResolveFacetsResult {
@@ -113,16 +112,6 @@ export interface ResolveFacetsResult {
   featureSlugs: string[];
   optionSlugs: string[];
   resolved: ResolvedFacetFilter[];
-}
-
-export interface FacetGroupResult {
-  facetGroup?: FacetGroup;
-  userErrors: UserError[];
-}
-
-export interface FacetGroupDeleteResult {
-  deletedFacetGroupId?: string;
-  userErrors: UserError[];
 }
 
 export interface FacetResult {
@@ -135,8 +124,40 @@ export interface FacetDeleteResult {
   userErrors: UserError[];
 }
 
+export interface FacetRebalanceResult {
+  facets: Facet[];
+  userErrors: UserError[];
+}
+
 export interface FacetValueResult {
   facetValue?: FacetValue;
+  userErrors: UserError[];
+}
+
+export interface FacetValueMergeParams {
+  facetId: string;
+  targetDisplayValueId?: string;
+  targetHandle?: string;
+  targetLabel?: string;
+  sourceValueIds: string[];
+}
+
+export type FacetValueEmptyDisplayAction = "disable" | "delete" | "keep";
+
+export interface FacetValueUnmergeParams {
+  sourceValueIds: string[];
+  emptyDisplayAction?: FacetValueEmptyDisplayAction;
+}
+
+export interface FacetValueMergeResult {
+  facetValue?: FacetValue;
+  sourceValues: FacetValue[];
+  userErrors: UserError[];
+}
+
+export interface FacetValueUnmergeResult {
+  sourceValues: FacetValue[];
+  affectedDisplayValues: FacetValue[];
   userErrors: UserError[];
 }
 

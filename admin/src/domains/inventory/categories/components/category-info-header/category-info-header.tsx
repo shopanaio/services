@@ -3,50 +3,79 @@
 import { useState } from "react";
 import {
   Button,
-  Tag,
-  Typography,
-  Dropdown,
-  Tooltip,
-  Popover,
-  Flex,
   Divider,
+  Dropdown,
+  Flex,
+  Popover,
+  Tag,
+  Tooltip,
+  Typography,
 } from "antd";
 import {
   CheckOutlined,
-  MoreOutlined,
-  LinkOutlined,
   EyeOutlined,
+  LinkOutlined,
+  MoreOutlined,
   ShareAltOutlined,
 } from "@ant-design/icons";
-import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
-import { EntityStatus } from "@/mocks/products/types";
+import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
-  UserPopoverContent,
   SharePopoverContent,
+  UserPopoverContent,
 } from "@/domains/inventory/products/components/product-info-header/components";
-import { getStatusConfig } from "@/domains/inventory/products/components/product-info-header/utils";
+import { KPITile } from "@/ui-kit/kpi-tile";
+import { PeriodSwitch } from "@/domains/inventory/products/components/period-switch";
+import {
+  formatCurrency,
+  formatNumber,
+  formatPercent,
+  getStatusConfig,
+} from "@/domains/inventory/products/components/product-info-header/utils";
+import { formatDetailDate } from "@/domains/inventory/utils/format-detail-date";
+import { PERIODS, type Period } from "@/domains/inventory/products/utils/periods";
+import type { ApiCategory } from "@/graphql/types";
+import { getCategoryRoutePath } from "../../utils/category-route-path";
 import { useHeaderStyles } from "./category-info-header.styles";
-import type { ICategoryDetail } from "../category-details-card/types";
 
-// ============================================================================
-// Types
-// ============================================================================
-
-interface ICategoryInfoHeaderProps {
-  category: ICategoryDetail;
+interface CategoryInfoHeaderProps {
+  category: ApiCategory;
+  onEditIdentity?: () => void;
+  onChangeStatus?: () => void;
+  onArchive?: () => void;
+  onEditSort?: () => void;
 }
 
-// ============================================================================
-// Main Component
-// ============================================================================
-
-export const CategoryInfoHeader = ({ category }: ICategoryInfoHeaderProps) => {
+export const CategoryInfoHeader = ({
+  category,
+  onEditIdentity,
+  onChangeStatus,
+  onArchive,
+  onEditSort,
+}: CategoryInfoHeaderProps) => {
   const { styles } = useHeaderStyles();
+  const [kpiPeriod, setKpiPeriod] = useState<Period>("7d");
+  const [compareEnabled, setCompareEnabled] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
 
-  const storefrontUrl = `${window.location.origin}/categories/${category.slug}`;
+  const categoryPath = getCategoryRoutePath(category);
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const storefrontUrl = `${origin}/categories/${categoryPath}`;
+  const statusConfig = getStatusConfig(
+    category.isPublished ? "published" : "draft",
+  );
+  const statusActionLabel = category.isPublished ? "Unpublish" : "Publish";
+  const kpi = {
+    views: 2847,
+    viewsTrend: 8,
+    orders: 156,
+    ordersTrend: -2,
+    conversion: 5.5,
+    conversionTrend: 0.4,
+    revenue: 48200,
+    revenueTrend: 12,
+  };
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -64,12 +93,6 @@ export const CategoryInfoHeader = ({ category }: ICategoryInfoHeaderProps) => {
     setTimeout(() => setShareCopied(false), 1500);
   };
 
-  const statusConfig = getStatusConfig(category.status);
-
-  const handleEditTitle = () => {
-    console.log("Edit category title:", category.title);
-  };
-
   const statusTitle = (
     <Flex align="center" gap={8}>
       <Tooltip title={statusConfig.hint}>
@@ -77,43 +100,39 @@ export const CategoryInfoHeader = ({ category }: ICategoryInfoHeaderProps) => {
           color={statusConfig.color}
           icon={statusConfig.icon}
           className={styles.statusTag}
+          data-testid="category-detail-status"
         >
           {statusConfig.label}
         </Tag>
       </Tooltip>
-      {category.status === EntityStatus.PUBLISHED && (
-        <Typography.Text type="secondary" className={styles.metaText}>
-          {category.updatedAt.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          })}
-          <span style={{ marginLeft: 4 }}>by</span>
-          <Popover
-            content={
-              <UserPopoverContent
-                firstName="Admin"
-                lastName="User"
-                email="admin@shopana.io"
-              />
-            }
-            placement="bottom"
-            arrow={false}
+      <Typography.Text type="secondary" className={styles.metaText}>
+        Updated {formatDetailDate(category.updatedAt)}
+        <span style={{ marginLeft: 4 }}>by</span>
+        <Popover
+          content={
+            <UserPopoverContent
+              firstName="Admin"
+              lastName="User"
+              email="admin@shopana.io"
+            />
+          }
+          placement="bottom"
+          arrow={false}
+        >
+          <Button
+            variant="text"
+            color="primary"
+            style={{
+              padding: 0,
+              height: "auto",
+              marginLeft: 4,
+              fontSize: "inherit",
+            }}
           >
-            <Button
-              variant="text"
-              color="primary"
-              style={{
-                padding: 0,
-                height: "auto",
-                marginLeft: 4,
-                fontSize: "inherit",
-              }}
-            >
-              Admin
-            </Button>
-          </Popover>
-        </Typography.Text>
-      )}
+            Admin
+          </Button>
+        </Popover>
+      </Typography.Text>
     </Flex>
   );
 
@@ -160,39 +179,62 @@ export const CategoryInfoHeader = ({ category }: ICategoryInfoHeaderProps) => {
       <Dropdown
         menu={{
           items: [
-            { key: "edit", label: "Edit title", onClick: handleEditTitle },
+            {
+              key: "identity",
+              label: <span data-testid="category-header-edit-identity-menu-item">Edit identity</span>,
+              onClick: onEditIdentity,
+            },
+            {
+              key: "status",
+              label: <span data-testid="category-header-status-menu-item">{statusActionLabel}</span>,
+              onClick: onChangeStatus,
+            },
+            {
+              key: "sort",
+              label: <span data-testid="category-header-edit-sort-menu-item">Edit product sort</span>,
+              onClick: onEditSort,
+            },
             { type: "divider" as const },
-            { key: "duplicate", label: "Duplicate" },
-            { key: "export", label: "Export" },
-            { type: "divider" as const },
-            { key: "archive", label: "Archive", danger: true },
+            {
+              key: "archive",
+              label: <span data-testid="category-header-archive-menu-item">Archive</span>,
+              danger: true,
+              onClick: onArchive,
+            },
           ],
         }}
         trigger={["click"]}
       >
-        <Button size="small" icon={<MoreOutlined />} />
+        <Button
+          size="small"
+          icon={<MoreOutlined />}
+          data-testid="category-header-actions-button"
+        />
       </Dropdown>
     </Flex>
   );
 
   return (
-    <Paper>
-      {/* TOP BAR */}
+    <Paper data-testid="category-header-section">
       <PaperHeader title={statusTitle} actions={topBarActions} />
 
-      {/* TITLE SECTION */}
       <Flex vertical gap={8}>
         <Typography.Title
           level={3}
-          ellipsis={{ rows: 2, tooltip: category.title }}
+          ellipsis={{ rows: 2, tooltip: category.name }}
           className={styles.categoryTitle}
           style={{ margin: 0 }}
+          data-testid="category-detail-title"
         >
-          {category.title || "Untitled Category"}
+          {category.name || "Untitled Category"}
         </Typography.Title>
 
-        <Flex align="center" gap={12}>
-          <CopyableChip label="/" value={category.slug} />
+        <Flex align="center" gap={12} wrap="wrap">
+          <CopyableChip
+            label="/"
+            value={categoryPath}
+            data-testid="category-detail-path"
+          />
           <CopyableChip
             label="ID"
             value={category.id}
@@ -202,18 +244,70 @@ export const CategoryInfoHeader = ({ category }: ICategoryInfoHeaderProps) => {
         </Flex>
       </Flex>
 
+      {category.description?.text && (
+        <>
+          <Divider className={styles.divider} />
+          <Typography.Paragraph
+            type="secondary"
+            ellipsis={{ rows: 2 }}
+            style={{ margin: 0 }}
+            data-testid="category-detail-description-summary"
+          >
+            {category.description.text}
+          </Typography.Paragraph>
+        </>
+      )}
+
       <Divider className={styles.divider} />
 
-      {/* DESCRIPTION */}
-      {category.description && (
-        <Typography.Paragraph
-          type="secondary"
-          ellipsis={{ rows: 2 }}
-          style={{ margin: 0 }}
-        >
-          {category.description}
-        </Typography.Paragraph>
-      )}
+      <div>
+        <div style={{ marginBottom: 12 }}>
+          <PeriodSwitch
+            periods={PERIODS}
+            value={kpiPeriod}
+            onChange={setKpiPeriod}
+            showCompare
+            compareEnabled={compareEnabled}
+            onCompareChange={setCompareEnabled}
+          />
+        </div>
+
+        <Flex gap={12}>
+          <KPITile
+            label="Views"
+            value={formatNumber(kpi.views)}
+            trend={compareEnabled ? kpi.viewsTrend : undefined}
+            tooltip="Total category page views"
+            className={styles.kpiTile}
+            dataTestId="category-kpi-views"
+          />
+          <KPITile
+            label="Orders"
+            value={formatNumber(kpi.orders)}
+            trend={compareEnabled ? kpi.ordersTrend : undefined}
+            tooltip="Orders containing products from this category"
+            className={styles.kpiTile}
+            dataTestId="category-kpi-orders"
+          />
+          <KPITile
+            label="Conversion"
+            value={formatPercent(kpi.conversion)}
+            trend={compareEnabled ? kpi.conversionTrend : undefined}
+            trendSuffix=" pp"
+            tooltip="Category page conversion rate"
+            className={styles.kpiTile}
+            dataTestId="category-kpi-conversion"
+          />
+          <KPITile
+            label="Revenue"
+            value={formatCurrency(kpi.revenue)}
+            trend={compareEnabled ? kpi.revenueTrend : undefined}
+            tooltip="Total revenue from this category"
+            className={styles.kpiTile}
+            dataTestId="category-kpi-revenue"
+          />
+        </Flex>
+      </div>
     </Paper>
   );
 };

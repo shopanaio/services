@@ -1,8 +1,13 @@
 "use client";
 
 import { useState, useMemo, useRef, useCallback } from "react";
-import { Image, Typography, Flex, Button, Tag } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { Alert, App, Typography, Flex, Button } from "antd";
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  PictureOutlined,
+} from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
 import { useModalStack } from "@/layouts/modals";
 import {
@@ -15,24 +20,40 @@ import {
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
-import { useFilters, FilterWidget } from "@/layouts/filters";
+import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
+import { FloatingPanelStack } from "@/ui-kit/floating-panel-stack";
+import type { ActionConfig } from "@/ui-kit/floating-panel-stack/core/types";
+import type { PanelConfig } from "@/ui-kit/floating-panel-stack/data-page/floating-panel-stack";
 import {
-  FloatingPanelStack,
-  type PanelConfig,
-  type ActionConfig,
-} from "@/ui-kit/floating-panel-stack";
-import {
-  useGridState,
-  useGridSort,
   useAgGridTheme,
   useAgGridRowSelection,
 } from "@/hooks";
+import { useInventoryRelayListPage } from "@/domains/inventory/hooks";
 import { filterSchema } from "./filter-schema";
-import { useProducts } from "../hooks";
-import type { IProductListItem } from "@/mocks/products/products-list";
+import {
+  buildProductSearchCondition,
+  buildProductsQueryVariables,
+  productFilterTransformers,
+  productSortFieldMapping,
+} from "./page-config";
+import { useDeleteProduct, useProducts } from "../hooks";
 import { useBulkEditorStore } from "../modals/bulk-editor-modal";
 import { useProductCreateModal } from "../modals";
+import type { ApiProduct, ApiProductWhereInput } from "@/graphql/types";
+import { ProductOrderField } from "@/graphql/types";
+import { useDefaultCurrency } from "@/domains/workspace";
+import {
+  getProductBrandName,
+  getProductMaxPriceAmount,
+  getProductMinPriceAmount,
+  getProductPrimaryCategoryName,
+  getProductTotalAvailable,
+  getProductThumbnailFile,
+} from "../utils/api-product-display";
+import { formatPrice } from "../utils/price-formatting";
+import { Dash } from "@/shared/components/editor-grid";
+import { TableCoverImage } from "@/shared/components/table-cover-image";
 
 ModuleRegistry.registerModules([
   AllCommunityModule,
@@ -42,58 +63,123 @@ ModuleRegistry.registerModules([
 
 // Cell Renderers
 const ProductCellRenderer = (
-  props: CustomCellRendererProps<IProductListItem>,
+  props: CustomCellRendererProps<ApiProduct>,
 ) => {
   const { data } = props;
   if (!data) return null;
+  const thumbnail = getProductThumbnailFile(data);
   return (
-    <Flex align="center" gap="small">
-      <Image
-        src={data.image}
-        alt={data.name}
-        width={40}
-        height={40}
-        style={{ borderRadius: 4, objectFit: "cover" }}
-        preview={false}
+    <Flex
+      align="center"
+      gap="small"
+      data-testid={`products-table-title-cell-${data.handle}`}
+    >
+      <TableCoverImage
+        src={thumbnail?.url ?? null}
+        alt={thumbnail?.altText ?? thumbnail?.originalName ?? data.title}
+        fallbackIcon={<PictureOutlined />}
       />
-      <Typography.Text strong>{data.name}</Typography.Text>
+      <Typography.Text strong>{data.title}</Typography.Text>
     </Flex>
   );
 };
 
-const StatusCellRenderer = (
-  props: CustomCellRendererProps<IProductListItem>,
+const TextCellRenderer = (
+  props: CustomCellRendererProps<ApiProduct, string | null> & {
+    testIdSuffix?: string;
+  },
 ) => {
-  const { value } = props;
-  const config: Record<string, { color: string; label: string }> = {
-    published: { color: "success", label: "Published" },
-    draft: { color: "default", label: "Draft" },
-  };
-  const { color, label } = config[value] || config.draft;
-  return <Tag color={color}>{label}</Tag>;
+  const { data, value, testIdSuffix } = props;
+
+  return (
+    <Typography.Text
+      data-testid={
+        data && testIdSuffix
+          ? `products-table-${testIdSuffix}-cell-${data.handle}`
+          : undefined
+      }
+    >
+      {value ?? <Dash />}
+    </Typography.Text>
+  );
 };
 
-const InventoryCellRenderer = (
-  props: CustomCellRendererProps<IProductListItem>,
+const PriceCellRenderer = (
+  props: CustomCellRendererProps<ApiProduct, number | null> & {
+    currency?: string | null;
+    testIdSuffix?: string;
+  },
 ) => {
-  const { value } = props;
-  if (value === 0) {
-    return <Typography.Text type="danger">0 in stock</Typography.Text>;
-  }
-  return <Typography.Text>{value} in stock</Typography.Text>;
+  const { data, value, currency, testIdSuffix } = props;
+  const displayCurrency = data?.priceRange?.currency ?? currency;
+
+  return (
+    <Typography.Text
+      data-testid={
+        data && testIdSuffix
+          ? `products-table-${testIdSuffix}-cell-${data.handle}`
+          : undefined
+      }
+    >
+      {value !== null && value !== undefined && displayCurrency
+        ? formatPrice(value, displayCurrency)
+        : <Dash />}
+    </Typography.Text>
+  );
+};
+
+const StockCellRenderer = (
+  props: CustomCellRendererProps<ApiProduct, number>,
+) => {
+  const { data, value } = props;
+
+  return (
+    <Typography.Text
+      data-testid={
+        data ? `products-table-inventory-cell-${data.handle}` : undefined
+      }
+    >
+      {value} in stock
+    </Typography.Text>
+  );
 };
 
 export default function ProductsPage() {
   const agGridTheme = useAgGridTheme();
-  const gridRef = useRef<AgGridReact<IProductListItem>>(null);
-  const [searchValue, setSearchValue] = useState("");
+  const { message } = App.useApp();
+  const gridRef = useRef<AgGridReact<ApiProduct>>(null);
   const [selectedCount, setSelectedCount] = useState(0);
-  const { widgetProps } = useFilters({ schema: filterSchema });
+  const defaultCurrency = useDefaultCurrency();
   const { push } = useModalStack();
-  const { data: products } = useProducts();
-  const { initialState, onStateUpdated } = useGridState({
+  const {
+    pageConfig,
+    items: products,
+    totalCount,
+    pageInfo,
+    loading,
+    error,
+    refetch,
+    handleNextPage,
+    handlePrevPage,
+  } = useInventoryRelayListPage<
+    ApiProduct,
+    ApiProductWhereInput,
+    ProductOrderField,
+    ReturnType<typeof buildProductsQueryVariables>,
+    ReturnType<typeof useProducts>
+  >({
+    gridRef,
     storageKey: "products-grid-state",
+    filterSchema,
+    sortFieldMapping: productSortFieldMapping,
+    defaultPageSize: 20,
+    buildSearchCondition: buildProductSearchCondition,
+    filterTransformers: productFilterTransformers,
+    buildQueryVariables: buildProductsQueryVariables,
+    useListQuery: useProducts,
+    getItems: (result) => result.products,
   });
+  const { deleteProduct, loading: deletingProducts } = useDeleteProduct();
 
   // Bulk editor store
   const setSelectedProducts = useBulkEditorStore((s) => s.setSelectedProducts);
@@ -101,23 +187,16 @@ export default function ProductsPage() {
   // Create product modal
   const { push: pushCreateModal } = useProductCreateModal();
 
-  const { onSortChanged } = useGridSort({
-    gridRef,
-    onSortChange: (model) => {
-      // TODO: Replace with actual API call
-      console.log("Sort changed:", model);
-    },
-  });
-
   // Row selection with checkbox isolation
   const { rowSelection, selectionColumnDef, onCellClicked } =
-    useAgGridRowSelection<IProductListItem>({
-      onRowAction: () => push("product", { level: 1 }),
+    useAgGridRowSelection<ApiProduct>({
+      onRowAction: (product) =>
+        push("product", { entityId: product.id, mode: "view" }),
     });
 
   // Handle selection changes
   const handleSelectionChanged = useCallback(
-    (event: SelectionChangedEvent<IProductListItem>) => {
+    (event: SelectionChangedEvent<ApiProduct>) => {
       const selectedRows = event.api.getSelectedRows();
       setSelectedCount(selectedRows.length);
     },
@@ -133,25 +212,35 @@ export default function ProductsPage() {
   // Open bulk editor with selected products
   const handleBulkEdit = useCallback(() => {
     const selectedRows = gridRef.current?.api.getSelectedRows() || [];
-    // Map product IDs to bulk editor format (prod-1, prod-2, etc.)
-    // For demo purposes, we use the first 12 products from bulk editor mock
-    const bulkEditorIds = selectedRows.map(
-      (_, index) => `prod-${(index % 12) + 1}`,
-    );
-    setSelectedProducts(bulkEditorIds);
-    push("bulk-editor", { productIds: bulkEditorIds });
+    const productIds = selectedRows.map((product) => product.id);
+    setSelectedProducts(productIds);
+    push("bulk-editor", { productIds });
   }, [setSelectedProducts, push]);
 
   // Delete selected products
-  const handleDeleteSelected = useCallback(() => {
+  const handleDeleteSelected = useCallback(async () => {
     const selectedRows = gridRef.current?.api.getSelectedRows() || [];
-    // TODO: Implement delete mutation
-    console.log(
-      "Delete products:",
-      selectedRows.map((r) => r.id),
+
+    if (selectedRows.length === 0) {
+      return;
+    }
+
+    const results = await Promise.all(
+      selectedRows.map((product) => deleteProduct({ id: product.id })),
+    );
+    const firstError = results.flatMap((result) => result.userErrors)[0];
+
+    if (firstError) {
+      message.error(firstError.message);
+      return;
+    }
+
+    message.success(
+      selectedRows.length === 1 ? "Product deleted" : "Products deleted",
     );
     deselectAll();
-  }, [deselectAll]);
+    await refetch();
+  }, [deleteProduct, deselectAll, message, refetch]);
 
   // Build selection actions
   const selectionActions = useMemo<ActionConfig[]>(
@@ -160,6 +249,8 @@ export default function ProductsPage() {
         key: "bulk-edit",
         label: "Bulk Edit",
         icon: <EditOutlined />,
+        disabled: true,
+        tooltip: "Bulk editor is still a mock-only flow",
         onClick: handleBulkEdit,
       },
       {
@@ -167,10 +258,11 @@ export default function ProductsPage() {
         label: "Delete",
         icon: <DeleteOutlined />,
         danger: true,
+        loading: deletingProducts,
         onClick: handleDeleteSelected,
       },
     ],
-    [handleBulkEdit, handleDeleteSelected],
+    [deletingProducts, handleBulkEdit, handleDeleteSelected],
   );
 
   // Build floating panels
@@ -190,46 +282,73 @@ export default function ProductsPage() {
     return result;
   }, [selectedCount, selectionActions, deselectAll]);
 
-  const columnDefs = useMemo<ColDef<IProductListItem>[]>(
+  const columnDefs = useMemo<ColDef<ApiProduct>[]>(
     () => [
       {
         headerName: "Product",
-        field: "name",
+        field: "title",
         cellRenderer: ProductCellRenderer,
+        flex: 2,
         minWidth: 300,
       },
       {
-        headerName: "Status",
-        field: "status",
-        cellRenderer: StatusCellRenderer,
-        minWidth: 120,
+        headerName: "Min price",
+        colId: "minPriceMinor",
+        valueGetter: ({ data }) =>
+          data ? getProductMinPriceAmount(data) : null,
+        cellRenderer: PriceCellRenderer,
+        cellRendererParams: {
+          currency: defaultCurrency,
+          testIdSuffix: "min-price",
+        },
+        minWidth: 130,
       },
       {
-        headerName: "Inventory",
-        field: "inventory",
-        cellRenderer: InventoryCellRenderer,
+        headerName: "Max price",
+        colId: "maxPriceMinor",
+        valueGetter: ({ data }) =>
+          data ? getProductMaxPriceAmount(data) : null,
+        cellRenderer: PriceCellRenderer,
+        cellRendererParams: {
+          currency: defaultCurrency,
+          testIdSuffix: "max-price",
+        },
+        minWidth: 130,
+      },
+      {
+        headerName: "Stock",
+        colId: "stock",
+        valueGetter: ({ data }) => (data ? getProductTotalAvailable(data) : 0),
+        cellRenderer: StockCellRenderer,
         minWidth: 120,
+        sortable: false,
       },
       {
         headerName: "Category",
-        field: "category",
-        minWidth: 120,
+        colId: "primaryCategoryName",
+        valueGetter: ({ data }) =>
+          data ? getProductPrimaryCategoryName(data) : null,
+        cellRenderer: TextCellRenderer,
+        cellRendererParams: { testIdSuffix: "category" },
+        minWidth: 180,
       },
       {
         headerName: "Brand",
-        field: "brand",
-        minWidth: 120,
+        colId: "brand",
+        valueGetter: ({ data }) => (data ? getProductBrandName(data) : null),
+        cellRenderer: TextCellRenderer,
+        cellRendererParams: { testIdSuffix: "brand" },
+        minWidth: 160,
         resizable: false,
       },
     ],
-    [],
+    [defaultCurrency],
   );
 
   const defaultColDef = useMemo<ColDef>(
     () => ({
       resizable: true,
       sortable: true,
-      // Disable client-side sorting - server handles it
       comparator: () => 0,
       cellStyle: { display: "flex", alignItems: "center" },
     }),
@@ -244,9 +363,13 @@ export default function ProductsPage() {
     <DataLayout
       name="products"
       title="Products"
-      count={products.length}
+      count={totalCount}
       actions={
-        <Button icon={<PlusOutlined />} onClick={handleCreate}>
+        <Button
+          data-testid="products-create-button"
+          icon={<PlusOutlined />}
+          onClick={handleCreate}
+        >
           Create
         </Button>
       }
@@ -254,11 +377,8 @@ export default function ProductsPage() {
       <DataLayout.Toolbar
         left={
           <FilterWidget
-            {...widgetProps}
-            searchProps={{
-              searchValue,
-              onChangeSearchValue: setSearchValue,
-            }}
+            {...pageConfig.filterWidgetProps}
+            searchPlaceholder="Search products..."
           />
         }
       />
@@ -271,11 +391,21 @@ export default function ProductsPage() {
           flexDirection: "column",
         }}
       >
-        <div style={{ flex: 1 }}>
-          <AgGridReact<IProductListItem>
+        {error && (
+          <Alert
+            type="error"
+            message={error.message}
+            showIcon
+            style={{ marginBottom: 12 }}
+          />
+        )}
+
+        <div style={{ flex: 1 }} data-testid="products-table">
+          <AgGridReact<ApiProduct>
             ref={gridRef}
             theme={agGridTheme}
             rowData={products}
+            loading={loading || deletingProducts}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
             getRowId={(params) => params.data.id}
@@ -286,23 +416,28 @@ export default function ProductsPage() {
             suppressMovableColumns
             onCellClicked={onCellClicked}
             onSelectionChanged={handleSelectionChanged}
+            onSortChanged={pageConfig.onSortChanged}
             rowStyle={{ cursor: "pointer" }}
-            initialState={initialState}
-            onStateUpdated={onStateUpdated}
-            onSortChanged={onSortChanged}
+            initialState={pageConfig.gridStateProps.initialState}
+            onStateUpdated={pageConfig.gridStateProps.onStateUpdated}
           />
         </div>
 
         <CursorPagination
-          total={50}
-          rangeStart={1}
-          rangeEnd={20}
-          pageSize={20}
-          hasNext={true}
-          hasPrev={false}
-          onNext={() => {}}
-          onPrev={() => {}}
-          onPageSizeChange={() => {}}
+          name="products"
+          total={totalCount}
+          rangeStart={pageConfig.getRangeStart(products.length)}
+          rangeEnd={Math.min(
+            pageConfig.getRangeEnd(products.length),
+            totalCount,
+          )}
+          pageSize={pageConfig.pageSize}
+          pageSizeOptions={pageConfig.pageSizeOptions}
+          hasNext={pageInfo?.hasNextPage ?? false}
+          hasPrev={pageInfo?.hasPreviousPage ?? false}
+          onNext={handleNextPage}
+          onPrev={handlePrevPage}
+          onPageSizeChange={pageConfig.setPageSize}
         />
       </div>
 

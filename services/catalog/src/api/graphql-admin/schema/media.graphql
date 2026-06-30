@@ -6,6 +6,21 @@ extend type File @key(fields: "id", resolvable: false) {
 }
 
 """
+Media registered on a product with sort order.
+"""
+type ProductMediaItem {
+  """
+  The file from the Media service.
+  """
+  file: File!
+
+  """
+  Sort order index (lower = first).
+  """
+  sortIndex: Int!
+}
+
+"""
 Media attached to a variant with sort order.
 """
 type VariantMediaItem {

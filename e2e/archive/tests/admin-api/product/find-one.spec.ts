@@ -1,5 +1,4 @@
 import { test } from '@fixtures/base.extend';
-import { EntityStatus } from '@codegen/admin-gql';
 
 test.describe('ProductFindOne', () => {
   test('single product', async ({ api }) => {
@@ -11,7 +10,7 @@ test.describe('ProductFindOne', () => {
       groups: [],
       requiresShipping: false,
       slug: null,
-      status: EntityStatus.Draft,
+      status: 'DRAFT',
       tags: [],
       title: 'Product',
       variants: {

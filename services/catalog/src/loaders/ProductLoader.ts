@@ -5,6 +5,9 @@ import type {
   ProductOption,
   ProductFeature,
   ProductSeo,
+  ProductMedia,
+  Bundle,
+  ProductPriceRange,
 } from "../repositories/models/index.js";
 import type { Repository } from "../repositories/Repository.js";
 
@@ -17,6 +20,9 @@ export class ProductLoader {
   public readonly productRootFeatureIds: DataLoader<string, string[]>;
   public readonly productOption: DataLoader<string, ProductOption | null>;
   public readonly productFeature: DataLoader<string, ProductFeature | null>;
+  public readonly productMedia: DataLoader<string, ProductMedia[]>;
+  public readonly bundleByProductId: DataLoader<string, Bundle | null>;
+  public readonly productPriceRange: DataLoader<string, ProductPriceRange | null>;
 
   constructor(repository: Repository) {
     this.product = new DataLoader<string, Product | null>(async (productIds) => {
@@ -68,5 +74,32 @@ export class ProductLoader {
       const results = await repository.product.getFeaturesByIds(featureIds);
       return featureIds.map((id) => results.find((f) => f.id === id) ?? null);
     });
+
+    this.productMedia = new DataLoader<string, ProductMedia[]>(async (productIds) => {
+      const results = await repository.media.getProductMediaByProductIds(productIds);
+      return productIds.map((id) =>
+        results.filter((media) => media.productId === id)
+      );
+    });
+
+    this.bundleByProductId = new DataLoader<string, Bundle | null>(
+      async (productIds) => {
+        const results = await repository.product.getBundlesByProductIds(productIds);
+        return productIds.map(
+          (id) => results.find((bundle) => bundle.productId === id) ?? null
+        );
+      }
+    );
+
+    this.productPriceRange = new DataLoader<string, ProductPriceRange | null>(
+      async (productIds) => {
+        const results = await repository.product.getPriceRangesByProductIds(
+          productIds
+        );
+        return productIds.map(
+          (id) => results.find((range) => range.productId === id) ?? null
+        );
+      }
+    );
   }
 }

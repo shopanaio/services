@@ -11,12 +11,15 @@ MCP Server for working with Shopana CLI. Provides tools for managing Shopana pla
 | `shopana_build` | Build packages and services |
 | `shopana_dev` | Start dev environment |
 | `shopana_codegen` | Generate TypeScript types from GraphQL |
+| `shopana_get_e2e_test_command` | Return the correct Playwright E2E test command and manual run instructions |
+| `shopana_e2e_codegen` | Generate E2E GraphQL TypeScript types |
 | `shopana_migrate` | Run database migrations |
 | `shopana_db_generate` | Generate migrations from schema |
 | `shopana_gateway` | Start GraphQL gateway |
 | `shopana_schema` | Manage GraphQL schemas |
 | `shopana_list_services` | List all services with their capabilities |
 | `shopana_project_info` | Full project and architecture information |
+| `shopana_admin` | Run Admin frontend codegen, build, and lint |
 
 ## Installation
 
@@ -90,7 +93,7 @@ Use shopana_build to build all packages
 ### Starting Development
 
 ```
-Start dev server for inventory service
+Start dev server for catalog service
 ```
 
 ### Generating Migrations
@@ -105,6 +108,14 @@ Generate migrations for checkout service after schema changes
 Show project information and available services
 ```
 
+### Working With Admin Frontend
+
+The Admin frontend lives in `admin/`.
+
+### Working With E2E
+
+Get the command for one Playwright spec at a time with `shopana_get_e2e_test_command`. Regenerate E2E GraphQL types with `shopana_e2e_codegen`.
+
 ### Troubleshooting
 
 ```
@@ -115,11 +126,11 @@ Help fix error "Cannot find module @shopana/shared-kernel"
 
 - `apps` - Application management
 - `bootstrap` - Service orchestrator
+- `catalog` - Products, stock, and warehouses
 - `checkout` - Cart and checkout flow
 - `delivery` - Delivery integration
+- `events` - Event persistence and dispatch
 - `iam` - Identity and access management
-- `inventory` - Products and stock
-- `listing` - Product listings
 - `media` - File storage
 - `orders` - Order processing
 - `payments` - Payment integration

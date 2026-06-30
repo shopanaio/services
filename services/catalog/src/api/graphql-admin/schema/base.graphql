@@ -22,6 +22,11 @@ extend type Query {
   Widget query namespace for dashboard widgets
   """
   widgetQuery: WidgetQuery! @shareable
+
+  """
+  Inventory query namespace for warehouse, stock, and inventory item operations
+  """
+  inventoryQuery: InventoryQuery!
 }
 
 extend type Mutation {
@@ -29,6 +34,11 @@ extend type Mutation {
   Catalog mutation namespace for product, variant, category, and collection operations
   """
   catalogMutation: CatalogMutation!
+
+  """
+  Inventory mutation namespace for warehouse, stock, and inventory item operations
+  """
+  inventoryMutation: InventoryMutation!
 }
 
 type CatalogQuery {
@@ -55,7 +65,33 @@ type CatalogQuery {
     after: String
     last: Int
     before: String
+    """
+    Filter conditions
+    """
+    where: ProductWhereInput
+    """
+    Sort order
+    """
+    orderBy: [ProductOrderByInput!]
+    """
+    Additional query metadata and scope filters
+    """
+    meta: ProductProductsMetaInput
   ): ProductConnection!
+
+  """Get a bundle by Product global ID. The product must have kind = BUNDLE."""
+  bundle(id: ID!): Bundle
+
+  """Get bundles with Relay-style pagination."""
+  bundles(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: BundleWhereInput
+    orderBy: [BundleOrderByInput!]
+    meta: BundleBundlesMetaInput
+  ): BundleConnection!
 
   """
   Get a variant by ID
@@ -70,12 +106,53 @@ type CatalogQuery {
     after: String
     last: Int
     before: String
+    """
+    Filter conditions
+    """
+    where: VariantWhereInput
+    """
+    Sort order
+    """
+    orderBy: [VariantOrderByInput!]
   ): VariantConnection!
+
+  """
+  Get a vendor by ID
+  """
+  vendor(id: ID!): Vendor
+
+  """
+  Get vendors with Relay-style pagination
+  """
+  vendors(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    """
+    Filter conditions
+    """
+    where: VendorWhereInput
+    """
+    Sort order
+    """
+    orderBy: [VendorOrderByInput!]
+  ): VendorConnection!
 
   """
   Get bulk update job by ID.
   """
   productBulkUpdateJob(jobId: ID!): ProductBulkUpdateJob
+
+  """
+  Get product bulk update jobs for the current store.
+  Defaults to active jobs when statusFilter is omitted.
+  """
+  productBulkUpdateJobs(
+    first: Int
+    after: String
+    statusFilter: [BulkUpdateJobStatus!]
+  ): ProductBulkUpdateJobConnection!
 
   """
   Get a category by ID
@@ -103,16 +180,6 @@ type CatalogQuery {
   collectionRulesPreviewCount(rules: [CollectionRuleInput!]!): Int!
 
   """
-  Get a facet group by ID
-  """
-  facetGroup(id: ID!): FacetGroup
-
-  """
-  Get all facet groups
-  """
-  facetGroups: [FacetGroup!]!
-
-  """
   Get a facet by ID
   """
   facet(id: ID!): Facet
@@ -121,6 +188,46 @@ type CatalogQuery {
   Get all facets
   """
   facets: [Facet!]!
+
+  """
+  Get available facet source candidates for create flow
+  """
+  facetSourceCandidates(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    """
+    Filter conditions
+    """
+    where: FacetSourceCandidateWhereInput
+    """
+    Sort order
+    """
+    orderBy: [FacetSourceCandidateOrderByInput!]
+  ): FacetSourceCandidateConnection!
+
+  """
+  Get available facet source value candidates for create and edit flows
+  """
+  facetValueCandidates(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    """
+    Filter conditions
+    """
+    where: FacetValueCandidateWhereInput
+    """
+    Sort order
+    """
+    orderBy: [FacetValueCandidateOrderByInput!]
+    """
+    Candidate routing and source scope
+    """
+    meta: FacetValueCandidatesMetaInput!
+  ): FacetValueCandidateConnection!
 
   """
   Get a facet value by ID
@@ -150,6 +257,9 @@ type CatalogQuery {
     after: String
     last: Int
     before: String
+    where: CategoryWhereInput
+    orderBy: [CategoryOrderByInput!]
+    meta: CategoryCategoriesMetaInput
   ): CategoryConnection!
 
   """
@@ -165,42 +275,16 @@ type CatalogQuery {
     after: String
     last: Int
     before: String
+    """
+    Filter conditions
+    """
+    where: TagWhereInput
+    """
+    Sort order
+    """
+    orderBy: [TagOrderByInput!]
   ): TagConnection!
 
-  """
-  Get a bundle group by ID
-  """
-  bundleGroup(id: ID!): BundleGroup
-
-  """
-  Get all bundle groups for a product
-  """
-  bundleGroups(productId: ID!): [BundleGroup!]!
-
-  """
-  Get a bundle item by ID
-  """
-  bundleItem(id: ID!): BundleItem
-
-  """
-  Get a bundle pricing template by ID
-  """
-  bundlePricingTemplate(id: ID!): BundlePricingTemplate
-
-  """
-  Get all pricing templates for a product
-  """
-  bundlePricingTemplates(productId: ID!): [BundlePricingTemplate!]!
-
-  """
-  Get a dependency rule by ID
-  """
-  dependencyRule(id: ID!): DependencyRule
-
-  """
-  Get all dependency rules for a product
-  """
-  dependencyRules(productId: ID!): [DependencyRule!]!
 }
 
 """
@@ -211,9 +295,157 @@ type WidgetQuery {
   Get pricing widget data for a variant.
   """
   pricing(input: PricingWidgetInput!): PricingWidgetPayload!
+
+  """
+  Get inventory widget data for a product.
+  Returns aggregated inventory metrics across all variants.
+  """
+  inventory(productId: ID!): ProductInventoryWidget
+}
+
+type InventoryQuery {
+  """
+  Get a node by its global ID
+  """
+  node(id: ID!): Node
+
+  """
+  Get multiple nodes by their global IDs
+  """
+  nodes(ids: [ID!]!): [Node]!
+
+  """
+  Get a warehouse by ID
+  """
+  warehouse(id: ID!): Warehouse
+
+  """
+  Get all warehouses
+  """
+  warehouses(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    """
+    Filter conditions
+    """
+    where: WarehouseWhereInput
+    """
+    Sort order
+    """
+    orderBy: [WarehouseOrderByInput!]
+  ): WarehouseConnection!
+
+  """
+  Get an inventory item by ID
+  """
+  inventoryItem(id: ID!): InventoryItem
+
+  """
+  Get an inventory item by variant ID
+  """
+  inventoryItemByVariant(variantId: ID!): InventoryItem
+
+  """
+  Get inventory items with Relay-style pagination
+  """
+  inventoryItems(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: InventoryItemWhereInput
+    orderBy: [InventoryItemOrderByInput!]
+    meta: InventoryItemInventoryItemsMetaInput
+  ): InventoryItemConnection!
+
+  """
+  Get variants that can still be assigned to the selected warehouse
+  """
+  warehouseAssignableVariants(
+    warehouseId: ID!
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: WarehouseAssignableVariantWhereInput
+    orderBy: [WarehouseAssignableVariantOrderByInput!]
+  ): VariantConnection!
+}
+
+input WarehouseAssignableVariantWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [WarehouseAssignableVariantWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [WarehouseAssignableVariantWhereInput!]
+  """Negate the condition"""
+  _not: WarehouseAssignableVariantWhereInput
+  """Filter by variant ID"""
+  id: IDFilter
+  """Filter by product ID"""
+  productId: IDFilter
+  """Filter by product name in the current locale"""
+  productName: StringFilter
+  """Filter by variant SKU"""
+  sku: StringFilter
+  """Filter by default variant flag"""
+  isDefault: BooleanFilter
+  """Filter by variant handle"""
+  handle: StringFilter
+  """Filter by external system"""
+  externalSystem: StringFilter
+  """Filter by external ID"""
+  externalId: StringFilter
+  """Filter by creation date"""
+  createdAt: DateTimeFilter
+  """Filter by update date"""
+  updatedAt: DateTimeFilter
+}
+
+enum WarehouseAssignableVariantOrderField {
+  productName
+  sku
+  id
+  productId
+  isDefault
+  handle
+  externalSystem
+  externalId
+  createdAt
+  updatedAt
+}
+
+input WarehouseAssignableVariantOrderByInput {
+  field: WarehouseAssignableVariantOrderField!
+  direction: SortDirection!
+}
+
+type InventoryMutation {
+  # InventoryItem mutations
+  """
+  Update inventory item: stock, SKU, and cost.
+  """
+  inventoryItemUpdate(input: InventoryItemUpdateInput!): InventoryItemUpdatePayload!
+
+  # Warehouse mutations
+  warehouseCreate(input: WarehouseCreateInput!): WarehouseCreatePayload!
+  warehouseUpdate(input: WarehouseUpdateInput!): WarehouseUpdatePayload!
+  warehouseDelete(input: WarehouseDeleteInput!): WarehouseDeletePayload!
+
+  # Stock mutations
+  warehouseStockCreate(input: WarehouseStockCreateInput!): WarehouseStockCreatePayload!
+  warehouseStockDelete(input: WarehouseStockDeleteInput!): WarehouseStockDeletePayload!
 }
 
 type CatalogMutation {
+  # Vendor mutations
+
+  """
+  Create a new vendor
+  """
+  vendorCreate(input: VendorCreateInput!): VendorCreatePayload!
+
   # Product mutations
 
   """
@@ -243,6 +475,37 @@ type CatalogMutation {
     """Product-level operations."""
     operations: ProductUpdateInput
   ): ProductUpdatePayload!
+
+  """Create a new bundle sellable item."""
+  bundleCreate(input: BundleCreateInput!): BundleCreatePayload!
+
+  """Unified bundle update with optimistic locking."""
+  bundleUpdate(
+    """The bundle ID to update."""
+    bundleId: ID!
+    """Expected revision for optimistic locking."""
+    expectedRevision: Int!
+    """Bundle-level operations."""
+    operations: BundleUpdateInput
+  ): BundleUpdatePayload!
+
+  """Create one bundle configuration."""
+  bundleConfigurationCreate(input: BundleConfigurationCreateInput!): BundleConfigurationPayload!
+
+  """Update configuration metadata."""
+  bundleConfigurationUpdate(input: BundleConfigurationUpdateInput!): BundleConfigurationPayload!
+
+  """Delete one bundle configuration with optimistic locking."""
+  bundleConfigurationDelete(input: BundleConfigurationDeleteInput!): BundleConfigurationDeletePayload!
+
+  """Sync all groups/items for one bundle configuration."""
+  bundleGroupsSync(input: BundleGroupsSyncInput!): BundleGroupsSyncPayload!
+
+  """Sync all reusable pricing templates for one bundle configuration."""
+  bundlePricingTemplatesSync(input: BundlePricingTemplatesSyncInput!): BundlePricingTemplatesSyncPayload!
+
+  """Sync all dependency rules for one bundle configuration."""
+  bundleDependencyRulesSync(input: BundleDependencyRulesSyncInput!): BundleDependencyRulesSyncPayload!
 
   # Variant mutations
 
@@ -344,9 +607,13 @@ type CatalogMutation {
   categoryCreate(input: CategoryCreateInput!): CategoryCreatePayload!
 
   """
-  Update an existing category
+  Unified category update with optimistic locking.
   """
-  categoryUpdate(input: CategoryUpdateInput!): CategoryUpdatePayload!
+  categoryUpdate(
+    categoryId: ID!
+    expectedRevision: Int
+    operations: CategoryUpdateInput
+  ): CategoryUpdatePayload!
 
   """
   Move a category to a new parent or position
@@ -354,44 +621,14 @@ type CatalogMutation {
   categoryMove(input: CategoryMoveInput!): CategoryMovePayload!
 
   """
-  Move a product within a category
-  """
-  categoryMoveProduct(input: CategoryMoveProductInput!): CategoryMoveProductPayload!
-
-  """
-  Add a product to a category
-  """
-  categoryAddProduct(input: CategoryAddProductInput!): CategoryAddProductPayload!
-
-  """
   Rebalance category tree positions
   """
   categoryRebalance(input: CategoryRebalanceInput!): CategoryRebalancePayload!
 
   """
-  Update category sort order
-  """
-  categoryUpdateSort(input: CategoryUpdateSortInput!): CategoryUpdateSortPayload!
-
-  """
   Delete a category
   """
   categoryDelete(input: CategoryDeleteInput!): CategoryDeletePayload!
-
-  """
-  Create a new facet group
-  """
-  facetGroupCreate(input: FacetGroupCreateInput!): FacetGroupCreatePayload!
-
-  """
-  Update an existing facet group
-  """
-  facetGroupUpdate(input: FacetGroupUpdateInput!): FacetGroupUpdatePayload!
-
-  """
-  Delete a facet group
-  """
-  facetGroupDelete(input: FacetGroupDeleteInput!): FacetGroupDeletePayload!
 
   """
   Create a new facet
@@ -409,6 +646,16 @@ type CatalogMutation {
   facetDelete(input: FacetDeleteInput!): FacetDeletePayload!
 
   """
+  Move a facet before or after another facet.
+  """
+  facetMove(input: FacetMoveInput!): FacetMovePayload!
+
+  """
+  Rebalance facet lexo ranks.
+  """
+  facetRebalance(input: FacetRebalanceInput!): FacetRebalancePayload!
+
+  """
   Create a new facet value
   """
   facetValueCreate(input: FacetValueCreateInput!): FacetValueCreatePayload!
@@ -417,6 +664,18 @@ type CatalogMutation {
   Update an existing facet value
   """
   facetValueUpdate(input: FacetValueUpdateInput!): FacetValueUpdatePayload!
+
+  """
+  Attach source facet values to an existing or newly-created display value.
+  This is the only mutation that merges source values into a display value.
+  """
+  facetValueMerge(input: FacetValueMergeInput!): FacetValueMergePayload!
+
+  """
+  Detach source facet values from their display value and make them root values.
+  This is the only mutation that unmerges source values.
+  """
+  facetValueUnmerge(input: FacetValueUnmergeInput!): FacetValueUnmergePayload!
 
   """
   Delete a facet value
@@ -497,122 +756,4 @@ type CatalogMutation {
   """
   productBulkUpdate(input: ProductBulkUpdateInput!): ProductBulkUpdatePayload!
 
-  # Bundle Group mutations
-
-  """
-  Create a new bundle group for a product
-  """
-  bundleGroupCreate(input: BundleGroupCreateInput!): BundleGroupPayload!
-
-  """
-  Update an existing bundle group
-  """
-  bundleGroupUpdate(input: BundleGroupUpdateInput!): BundleGroupPayload!
-
-  """
-  Delete a bundle group
-  """
-  bundleGroupDelete(input: DeleteInput!): DeletePayload!
-
-  # Bundle Item mutations
-
-  """
-  Create a new bundle item within a group
-  """
-  bundleItemCreate(input: BundleItemCreateInput!): BundleItemPayload!
-
-  """
-  Update an existing bundle item
-  """
-  bundleItemUpdate(input: BundleItemUpdateInput!): BundleItemPayload!
-
-  """
-  Delete a bundle item
-  """
-  bundleItemDelete(input: DeleteInput!): DeletePayload!
-
-  # Bundle Pricing Template mutations
-
-  """
-  Create a new bundle pricing template
-  """
-  bundlePricingTemplateCreate(input: BundlePricingTemplateCreateInput!): BundlePricingTemplatePayload!
-
-  """
-  Update an existing bundle pricing template
-  """
-  bundlePricingTemplateUpdate(input: BundlePricingTemplateUpdateInput!): BundlePricingTemplatePayload!
-
-  """
-  Delete a bundle pricing template
-  """
-  bundlePricingTemplateDelete(input: DeleteInput!): DeletePayload!
-
-  # Dependency Rule mutations
-
-  """
-  Create a new dependency rule for a product
-  """
-  dependencyRuleCreate(input: DependencyRuleCreateInput!): DependencyRulePayload!
-
-  """
-  Update an existing dependency rule
-  """
-  dependencyRuleUpdate(input: DependencyRuleUpdateInput!): DependencyRulePayload!
-
-  """
-  Delete a dependency rule
-  """
-  dependencyRuleDelete(input: DeleteInput!): DeletePayload!
-
-  # Condition Group mutations
-
-  """
-  Create a new condition group for a dependency rule
-  """
-  conditionGroupCreate(input: ConditionGroupCreateInput!): ConditionGroupPayload!
-
-  """
-  Update an existing condition group
-  """
-  conditionGroupUpdate(input: ConditionGroupUpdateInput!): ConditionGroupPayload!
-
-  """
-  Delete a condition group
-  """
-  conditionGroupDelete(input: DeleteInput!): DeletePayload!
-
-  # Condition mutations
-
-  """
-  Create a new condition within a condition group
-  """
-  conditionCreate(input: ConditionCreateInput!): ConditionPayload!
-
-  """
-  Update an existing condition
-  """
-  conditionUpdate(input: ConditionUpdateInput!): ConditionPayload!
-
-  """
-  Delete a condition
-  """
-  conditionDelete(input: DeleteInput!): DeletePayload!
-
-  # Dependency Action mutations
-
-  """
-  Create a new action for a dependency rule
-  """
-  dependencyActionCreate(input: DependencyActionCreateInput!): DependencyActionPayload!
-
-  """
-  Update an existing dependency action
-  """
-  dependencyActionUpdate(input: DependencyActionUpdateInput!): DependencyActionPayload!
-
-  """
-  Delete a dependency action
-  """
-  dependencyActionDelete(input: DeleteInput!): DeletePayload!
 }

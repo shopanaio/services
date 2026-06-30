@@ -1,24 +1,12 @@
 // Types
-export type {
-  IPickableEntity,
-  IEntityPickerConfig,
-  IEntityPickerPayload,
-  IEntityPickerPagination,
-  IEntityPickerDataResult,
-  IStatusConfig,
-  StatusMap,
-} from "./types";
 
 // Components
 export { EntityPickerModal } from "./entity-picker-modal";
 export { ProductPickerModal } from "./product-picker-modal";
-export type { IProductPickerPayload } from "./product-picker-modal";
+export { VariantPickerModal } from "./variant-picker-modal";
 export { CategoryPickerModal } from "./category-picker-modal";
-export type { ICategoryPickerPayload } from "./category-picker-modal";
 export { TagPickerModal } from "./tag-picker-modal";
-export type { ITagPickerPayload } from "./tag-picker-modal";
 export { MediaPickerModal } from "./media-picker-modal";
-export type { IMediaPickerPayload } from "./media-picker-modal";
 export { EntityPickerContent } from "./entity-picker-content";
 
 // Cell Renderers
@@ -28,6 +16,7 @@ export { EntityCellRenderer, StatusCellRenderer } from "./cell-renderers";
 export {
   useEntityPicker,
   useProductPicker,
+  useVariantPicker,
   useCategoryPicker,
   useTagPicker,
   useMediaPicker,
@@ -44,12 +33,17 @@ export {
 // Product config (auto-registers)
 export { productPickerConfig } from "./configs/product-picker-config";
 
+// Variant config (auto-registers)
+export { variantPickerConfig } from "./configs/variant-picker-config";
+
 // Category config (auto-registers)
 export { categoryPickerConfig } from "./configs/category-picker-config";
+
+// Vendor config (auto-registers)
+export { vendorPickerConfig } from "./configs/vendor-picker-config";
 
 // Tag config (auto-registers)
 export { tagPickerConfig } from "./configs/tag-picker-config";
 
 // Media config (auto-registers)
 export { mediaPickerConfig } from "./configs/media-picker-config";
-export type { IMediaPickerEntity } from "./configs/media-picker-config";

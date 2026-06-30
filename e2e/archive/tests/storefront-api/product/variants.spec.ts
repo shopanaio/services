@@ -1,14 +1,12 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { EntityStatus } from '@codegen/admin-gql';
+
 import { randomUUID } from 'crypto';
-import { ApiFixtures } from '@fixtures/api/api';
+import type { ApiFixtures } from '@fixtures/api/api';
 
 const prepareProduct = async (api: ApiFixtures['api']) => {
   await api.session.setupUserAndProject();
 
-  
-  
   const options = [
     {
       title: 'Size',
@@ -24,14 +22,13 @@ const prepareProduct = async (api: ApiFixtures['api']) => {
     },
   ];
 
-  
   const productHandle = `test-product-options-${randomUUID()}`;
 
   return {
     product: await api.admin.product.createWithOptions({
       title: 'Product With Options',
       slug: productHandle,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       options,
     }),
     options,
@@ -43,8 +40,6 @@ test.describe('product container variants', () => {
     const { product: adminProduct, options } = await prepareProduct(api);
     await api.session.setupApiKey();
 
-    
-    
     const variantSlug = adminProduct.variants[0].slug;
 
     const { data } = await api.client.query('client/ProductContainerVariants', {
@@ -81,7 +76,6 @@ test.describe('product container variants', () => {
     const totalVariants = options.reduce<number>((acc, g) => acc * g.values.length, 1);
     expect(variants.length).toBe(totalVariants);
 
-    
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const productOptions = (variant.product as any).options as any[];
     expect(productOptions.length).toBe(options.length);
@@ -93,12 +87,10 @@ test.describe('product container variants', () => {
       expect(apiValues.sort()).toEqual([...group.values].sort());
     });
 
-    
     const allValueSet = new Set(
       options.flatMap((g) => g.values.map((v) => `${g.title.toLowerCase()}.${v.toLowerCase()}`)),
     );
 
-    
     for (const variant of variants) {
       const parts = variant.title.split(' ');
       expect(parts.length).toBe(options.length);
@@ -106,7 +98,7 @@ test.describe('product container variants', () => {
       const selected = variant.selectedOptions;
       expect(Array.isArray(selected)).toBe(true);
       expect(selected.length).toBe(options.length);
-      
+
       selected.forEach((handle, idx) => {
         expect(allValueSet.has(handle)).toBe(true);
 
@@ -115,6 +107,6 @@ test.describe('product container variants', () => {
         expect(valueHandle).toBe(parts[idx].toLowerCase());
       });
     }
-    /* eslint-enable @typescript-eslint/no-unsafe-member-access */
+
   });
 });

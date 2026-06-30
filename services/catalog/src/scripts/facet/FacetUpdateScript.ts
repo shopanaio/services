@@ -3,12 +3,16 @@ import { isValidSlug } from "../shared/slug.js";
 import type { FacetResult, FacetUpdateParams } from "./dto/index.js";
 
 const UI_BY_TYPE: Record<string, string[]> = {
-  price: ["range", "checkbox", "radio", "dropdown"],
-  tag: ["checkbox", "radio", "dropdown"],
-  feature: ["checkbox", "radio", "dropdown"],
-  option: ["checkbox", "radio", "dropdown"],
-  in_stock: ["boolean", "checkbox", "radio", "dropdown"],
+  PRICE: ["range", "checkbox", "radio", "dropdown"],
+  TAG: ["checkbox", "radio", "dropdown"],
+  FEATURE: ["checkbox", "radio", "dropdown"],
+  OPTION: ["checkbox", "radio", "dropdown"],
+  IN_STOCK: ["boolean", "checkbox", "radio", "dropdown"],
 };
+
+function normalizeFacetType(facetType: string): string {
+  return facetType.toUpperCase();
+}
 
 export class FacetUpdateScript extends BaseScript<FacetUpdateParams, FacetResult> {
   protected async execute(params: FacetUpdateParams): Promise<FacetResult> {
@@ -39,7 +43,10 @@ export class FacetUpdateScript extends BaseScript<FacetUpdateParams, FacetResult
     }
 
     const effectiveUiType = params.uiType ?? existing.uiType;
-    if (effectiveUiType && !UI_BY_TYPE[existing.facetType]?.includes(effectiveUiType)) {
+    if (
+      effectiveUiType &&
+      !UI_BY_TYPE[normalizeFacetType(existing.facetType)]?.includes(effectiveUiType)
+    ) {
       return {
         facet: undefined,
         userErrors: [{ message: "Invalid uiType for facetType", field: ["uiType"], code: "INVALID" }],
@@ -51,12 +58,7 @@ export class FacetUpdateScript extends BaseScript<FacetUpdateParams, FacetResult
       label: params.label,
       uiType: params.uiType,
       selectionMode: params.selectionMode,
-      groupId: params.groupId,
-      sortIndex: params.sortIndex,
-      minValues: params.minValues,
-      maxValuesVisible: params.maxValuesVisible,
-      valueSort: params.valueSort,
-      indexable: params.indexable,
+      lexoRank: params.lexoRank,
     });
 
     return { facet: facet ?? undefined, userErrors: [] };

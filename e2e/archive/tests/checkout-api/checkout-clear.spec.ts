@@ -1,5 +1,5 @@
-import { EntityStatus } from '@codegen/admin-gql';
-import { CurrencyCode } from '@codegen/client-gql';
+
+
 import { test } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
 
@@ -16,7 +16,7 @@ test.describe('checkout-api: lines clear', () => {
     await test.step('create empty checkout', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
       checkoutId = data.checkoutMutation.checkoutCreate.id;
@@ -29,7 +29,7 @@ test.describe('checkout-api: lines clear', () => {
       await api.admin.product.create({
         input: {
           title: 'Clear Lines Product',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle,
           groups: [],
           requiresShipping: true,

@@ -15,7 +15,7 @@ import type {
   ProductCreateParams,
   ProductCreateResult,
   InventoryItemCreateInput,
-  VariantMediaEntry,
+  ProductMediaEntry,
 } from "../scripts/product/dto/index.js";
 import type { RunScriptContext } from "../kernel/types.js";
 
@@ -84,17 +84,19 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
       return result;
     }
 
-    await this.emitProductCreated(result.product, input);
-
     // Step 2: Create inventory items for all variants
     const variants = result.product._variants ?? [];
     if (variants.length > 0) {
       await this.createInventoryItems(variants.map((v) => v.id), input.inventoryItem, input.storeId);
     }
 
-    // Step 3: Sync back-refs for variant media (only after successful DB commit)
-    if (result.variantMediaMap && result.variantMediaMap.length > 0) {
-      await this.syncVariantBackRefs(result.variantMediaMap);
+    // Child workflows cannot be started from a DBOS step. Emit after inventory
+    // items exist so inventory list views can immediately join them.
+    await this.emitProductCreated(result.product, input);
+
+    // Step 3: Sync product media back-refs (only after successful DB commit)
+    if (result.productMedia) {
+      await this.syncProductBackRefs(result.productMedia);
     }
 
     return result;
@@ -105,7 +107,6 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
     return this.kernel.runScript(ProductCreateScript, input, ctx);
   }
 
-  @SagaStep()
   private async emitProductCreated(
     product: NonNullable<ProductCreateResult["product"]>,
     input: ProductCreateParams
@@ -180,32 +181,30 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
   }
 
   @SagaStep()
-  private async syncVariantBackRefs(variantMediaMap: VariantMediaEntry[]): Promise<void> {
-    for (const entry of variantMediaMap) {
-      try {
-        await this.broker.call<Media.SyncEntityFilesResult, Media.SyncEntityFilesParams>(
-          "media.syncEntityFiles",
-          {
-            entityRef: {
-              service: "inventory",
-              entityType: "variant",
-              entityId: entry.variantId,
-            },
-            fileIds: entry.fileIds,
+  private async syncProductBackRefs(entry: ProductMediaEntry): Promise<void> {
+    try {
+      await this.broker.call<Media.SyncEntityFilesResult, Media.SyncEntityFilesParams>(
+        "media.syncEntityFiles",
+        {
+          entityRef: {
+            service: "catalog",
+            entityType: "product",
+            entityId: entry.productId,
           },
-        );
+          fileIds: entry.fileIds,
+        },
+      );
 
-        this.logger.log(
-          { variantId: entry.variantId, fileCount: entry.fileIds.length },
-          "Synced variant media back-refs"
-        );
-      } catch (error) {
-        // Log but don't fail the saga - back-refs are best-effort
-        this.logger.warn(
-          { variantId: entry.variantId, error },
-          "Failed to sync variant media back-refs"
-        );
-      }
+      this.logger.log(
+        { productId: entry.productId, fileCount: entry.fileIds.length },
+        "Synced product media back-refs"
+      );
+    } catch (error) {
+      // Log but don't fail the saga - back-refs are best-effort
+      this.logger.warn(
+        { productId: entry.productId, error },
+        "Failed to sync product media back-refs"
+      );
     }
   }
 }

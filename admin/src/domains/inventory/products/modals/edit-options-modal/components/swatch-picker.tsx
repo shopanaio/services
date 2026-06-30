@@ -10,16 +10,14 @@ import {
   Tabs,
 } from "antd";
 import { CloseOutlined, PictureOutlined, UploadOutlined } from "@ant-design/icons";
-import { SwatchType, type ApiProductOptionSwatchInput, type ApiProductOptionSwatch } from "@/graphql/types";
+import { SwatchType } from "@/graphql/types";
 import { useStyles } from "../edit-options-modal.styles";
 import { SWATCH_MODE_OPTIONS, type SwatchModeType } from "../edit-options-modal.constants";
-
-// Swatch can be either input type (for editing) or output type (from API)
-type SwatchValue = ApiProductOptionSwatchInput | ApiProductOptionSwatch | null;
+import type { OptionEditorSwatch } from "../types";
 
 interface ISwatchPickerProps {
-  swatch: SwatchValue;
-  onChange: (swatch: ApiProductOptionSwatchInput) => void;
+  swatch: OptionEditorSwatch | null;
+  onChange: (swatch: OptionEditorSwatch) => void;
 }
 
 export const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
@@ -30,12 +28,16 @@ export const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
   if (!swatch) return null;
 
   const { swatchType, colorOne, colorTwo } = swatch;
-  // Handle both input type (fileId) and output type (file)
-  const fileId = "fileId" in swatch ? swatch.fileId : undefined;
-  const fileUrl = "file" in swatch && swatch.file ? swatch.file.url : fileId;
+  const fileId = swatch.fileId;
+  const fileUrl = swatch.fileUrl;
 
   const mode: SwatchModeType = swatchType === SwatchType.Image ? "image" : "color";
   const isDuotone = swatchType === SwatchType.Gradient;
+  const swatchModeOptions = SWATCH_MODE_OPTIONS.map((option) =>
+    option.value === "image" && !fileId
+      ? { ...option, disabled: true }
+      : option,
+  );
 
   const handleModeChange = (nextMode: SwatchModeType) => {
     if (nextMode === "color") {
@@ -49,7 +51,11 @@ export const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
         onChange({ swatchType: SwatchType.Color, colorOne: colorOne || "#1677ff" });
       }
     } else {
-      onChange({ swatchType: SwatchType.Image, fileId: fileId || "" });
+      onChange({
+        swatchType: SwatchType.Image,
+        fileId: fileId ?? null,
+        fileUrl: fileUrl ?? null,
+      });
     }
   };
 
@@ -71,17 +77,8 @@ export const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
     onChange({ swatchType, colorOne, colorTwo, [colorKey]: value });
   };
 
-  const handleImageUpload = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      // TODO: Upload file to server and get fileId
-      onChange({ swatchType: SwatchType.Image, fileId: e.target?.result as string });
-    };
-    reader.readAsDataURL(file);
-  };
-
   const handleImageRemove = () => {
-    onChange({ swatchType: SwatchType.Image, fileId: "" });
+    onChange({ swatchType: SwatchType.Color, colorOne: "#1677ff" });
   };
 
   const renderTrigger = () => {
@@ -211,9 +208,10 @@ export const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
       <div className={styles.swatchDropZone}>
         <Upload.Dragger
           accept="image/*"
+          disabled
           showUploadList={false}
           beforeUpload={(file) => {
-            handleImageUpload(file);
+            void file;
             return false;
           }}
         >
@@ -224,7 +222,7 @@ export const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
               type="secondary"
               className={styles.swatchDraggerTitle}
             >
-              Upload image
+              Image upload unavailable
             </Typography.Text>
           </Flex>
         </Upload.Dragger>
@@ -237,7 +235,7 @@ export const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
       <Segmented
         block
         size="small"
-        options={SWATCH_MODE_OPTIONS}
+        options={swatchModeOptions}
         value={mode}
         onChange={(val) => handleModeChange(val as SwatchModeType)}
       />
@@ -254,7 +252,9 @@ export const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
       placement="bottomLeft"
       arrow={false}
     >
-      {renderTrigger()}
+      <span data-testid="edit-options-swatch-trigger">
+        {renderTrigger()}
+      </span>
     </Popover>
   );
 };

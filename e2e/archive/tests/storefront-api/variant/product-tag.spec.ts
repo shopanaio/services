@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { ApiTag, EntityStatus, WeightUnit } from '@codegen/admin-gql';
-import { TagSort } from '@codegen/client-gql';
+import type { ApiTag } from '@codegen/admin-gql';
+
 import { randomUUID } from 'node:crypto';
 
-
+type TagSort = 'TITLE_ASC' | 'TITLE_DESC' | 'CREATED_AT_ASC' | 'CREATED_AT_DESC' | 'UPDATED_AT_ASC' | 'UPDATED_AT_DESC';
 
 test.describe('client product tag', () => {
   let tag = {} as ApiTag;
@@ -16,7 +16,7 @@ test.describe('client product tag', () => {
     groups: [],
     requiresShipping: false,
     slug: randomUUID(),
-    status: EntityStatus.Published,
+    status: 'PUBLISHED',
     tags: tagIds,
     title,
     variants: {
@@ -36,7 +36,7 @@ test.describe('client product tag', () => {
           title,
           variantSortIndex: 0,
           weight: 0,
-          weightUnit: WeightUnit.Gr,
+          weightUnit: 'g',
         },
       ],
     },
@@ -87,16 +87,16 @@ test.describe('client product tag', () => {
     const PAGE_SIZE = 2;
 
     const sorts: TagSort[] = [
-      TagSort.TitleAsc,
-      TagSort.TitleDesc,
-      TagSort.CreatedAtAsc,
-      TagSort.CreatedAtDesc,
-      TagSort.UpdatedAtAsc,
-      TagSort.UpdatedAtDesc,
+      'TITLE_ASC',
+      'TITLE_DESC',
+      'CREATED_AT_ASC',
+      'CREATED_AT_DESC',
+      'UPDATED_AT_ASC',
+      'UPDATED_AT_DESC',
     ];
 
     const expectedOrder = (titles: string[], sort: TagSort) =>
-      sort === TagSort.TitleDesc || sort === TagSort.CreatedAtDesc || sort === TagSort.UpdatedAtDesc
+      sort === 'TITLE_DESC' || sort === 'CREATED_AT_DESC' || sort === 'UPDATED_AT_DESC'
         ? [...titles].reverse()
         : [...titles];
 
@@ -168,16 +168,16 @@ test.describe('client product tag', () => {
     const PAGE_SIZE = 2;
 
     const sorts: TagSort[] = [
-      TagSort.TitleAsc,
-      TagSort.TitleDesc,
-      TagSort.CreatedAtAsc,
-      TagSort.CreatedAtDesc,
-      TagSort.UpdatedAtAsc,
-      TagSort.UpdatedAtDesc,
+      'TITLE_ASC',
+      'TITLE_DESC',
+      'CREATED_AT_ASC',
+      'CREATED_AT_DESC',
+      'UPDATED_AT_ASC',
+      'UPDATED_AT_DESC',
     ];
 
     const expectedOrder = (titles: string[], sort: TagSort) =>
-      sort === TagSort.TitleDesc || sort === TagSort.CreatedAtDesc || sort === TagSort.UpdatedAtDesc
+      sort === 'TITLE_DESC' || sort === 'CREATED_AT_DESC' || sort === 'UPDATED_AT_DESC'
         ? [...titles].reverse()
         : [...titles];
 

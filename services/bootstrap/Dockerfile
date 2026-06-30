@@ -33,9 +33,9 @@ COPY --chown=nodejs:nodejs config.yml ./config.yml
 
 # Copy all service sources that orchestrator depends on
 COPY --chown=nodejs:nodejs services/apps ./services/apps
+COPY --chown=nodejs:nodejs services/catalog ./services/catalog
 COPY --chown=nodejs:nodejs services/checkout ./services/checkout
 COPY --chown=nodejs:nodejs services/delivery ./services/delivery
-COPY --chown=nodejs:nodejs services/inventory ./services/inventory
 COPY --chown=nodejs:nodejs services/media ./services/media
 COPY --chown=nodejs:nodejs services/orders ./services/orders
 COPY --chown=nodejs:nodejs services/payments ./services/payments
@@ -45,9 +45,9 @@ USER nodejs
 
 # Build all services required by orchestrator
 RUN yarn workspace @shopana/apps-service build && \
+    yarn workspace @shopana/catalog-service build && \
     yarn workspace @shopana/checkout-service build && \
     yarn workspace @shopana/delivery-service build && \
-    yarn workspace @shopana/inventory-service build && \
     yarn workspace @shopana/media-service build && \
     yarn workspace @shopana/orders-service build && \
     yarn workspace @shopana/payments-service build && \
@@ -55,9 +55,9 @@ RUN yarn workspace @shopana/apps-service build && \
 
 # Verify all services were built
 RUN test -d "services/apps/dist" || (echo "ERROR: apps service build failed" && exit 1) && \
+    test -d "services/catalog/dist" || (echo "ERROR: catalog service build failed" && exit 1) && \
     test -d "services/checkout/dist" || (echo "ERROR: checkout service build failed" && exit 1) && \
     test -d "services/delivery/dist" || (echo "ERROR: delivery service build failed" && exit 1) && \
-    test -d "services/inventory/dist" || (echo "ERROR: inventory service build failed" && exit 1) && \
     test -d "services/media/dist" || (echo "ERROR: media service build failed" && exit 1) && \
     test -d "services/orders/dist" || (echo "ERROR: orders service build failed" && exit 1) && \
     test -d "services/payments/dist" || (echo "ERROR: payments service build failed" && exit 1) && \
@@ -81,12 +81,12 @@ COPY --chown=nodejs:nodejs services/orchestrator ./services/orchestrator
 # Copy built services from services-builder stage
 COPY --chown=nodejs:nodejs --from=services-builder /app/services/apps/dist ./services/apps/dist
 COPY --chown=nodejs:nodejs --from=services-builder /app/services/apps/package.json ./services/apps/package.json
+COPY --chown=nodejs:nodejs --from=services-builder /app/services/catalog/dist ./services/catalog/dist
+COPY --chown=nodejs:nodejs --from=services-builder /app/services/catalog/package.json ./services/catalog/package.json
 COPY --chown=nodejs:nodejs --from=services-builder /app/services/checkout/dist ./services/checkout/dist
 COPY --chown=nodejs:nodejs --from=services-builder /app/services/checkout/package.json ./services/checkout/package.json
 COPY --chown=nodejs:nodejs --from=services-builder /app/services/delivery/dist ./services/delivery/dist
 COPY --chown=nodejs:nodejs --from=services-builder /app/services/delivery/package.json ./services/delivery/package.json
-COPY --chown=nodejs:nodejs --from=services-builder /app/services/inventory/dist ./services/inventory/dist
-COPY --chown=nodejs:nodejs --from=services-builder /app/services/inventory/package.json ./services/inventory/package.json
 COPY --chown=nodejs:nodejs --from=services-builder /app/services/media/dist ./services/media/dist
 COPY --chown=nodejs:nodejs --from=services-builder /app/services/media/package.json ./services/media/package.json
 COPY --chown=nodejs:nodejs --from=services-builder /app/services/orders/dist ./services/orders/dist
@@ -137,9 +137,9 @@ COPY --chown=nodejs:nodejs --from=orchestrator-builder /app/services/orchestrato
 
 # Copy all built services from orchestrator-builder
 COPY --chown=nodejs:nodejs --from=orchestrator-builder /app/services/apps/dist ./services/apps/dist
+COPY --chown=nodejs:nodejs --from=orchestrator-builder /app/services/catalog/dist ./services/catalog/dist
 COPY --chown=nodejs:nodejs --from=orchestrator-builder /app/services/checkout/dist ./services/checkout/dist
 COPY --chown=nodejs:nodejs --from=orchestrator-builder /app/services/delivery/dist ./services/delivery/dist
-COPY --chown=nodejs:nodejs --from=orchestrator-builder /app/services/inventory/dist ./services/inventory/dist
 COPY --chown=nodejs:nodejs --from=orchestrator-builder /app/services/media/dist ./services/media/dist
 COPY --chown=nodejs:nodejs --from=orchestrator-builder /app/services/orders/dist ./services/orders/dist
 COPY --chown=nodejs:nodejs --from=orchestrator-builder /app/services/payments/dist ./services/payments/dist

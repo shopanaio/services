@@ -1,11 +1,25 @@
-mutation CategoryUpdate($input: CategoryUpdateInput!) {
+mutation CategoryUpdate(
+  $categoryId: ID!
+  $expectedRevision: Int
+  $operations: CategoryUpdateInput
+) {
   catalogMutation {
-    categoryUpdate(input: $input) {
+    categoryUpdate(
+      categoryId: $categoryId
+      expectedRevision: $expectedRevision
+      operations: $operations
+    ) {
       category {
         id
         handle
+        revision
         name
         description {
+          html
+          text
+          json
+        }
+        excerpt {
           html
           text
           json
@@ -29,6 +43,15 @@ mutation CategoryUpdate($input: CategoryUpdateInput!) {
             id
           }
           sortIndex
+        }
+      }
+      operationResults {
+        type
+        applied
+        errors {
+          message
+          code
+          field
         }
       }
       userErrors {

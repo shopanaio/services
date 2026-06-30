@@ -8,6 +8,7 @@ import {
   Popover,
   Flex,
   Divider,
+  App,
 } from "antd";
 import {
   CheckOutlined,
@@ -16,11 +17,13 @@ import {
   EyeOutlined,
   ShareAltOutlined,
 } from "@ant-design/icons";
+import { useModalStackContext } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { KPITile } from "@/ui-kit/kpi-tile";
 import { CopyableChip } from "@/ui-kit/copyable-chip";
-import { PeriodSwitch, PERIODS, type Period } from "../period-switch";
-import { EntityStatus } from "@/mocks/products/types";
+import { formatDetailDate } from "@/domains/inventory/utils/format-detail-date";
+import { PeriodSwitch } from "../period-switch";
+import { PERIODS, type Period } from "../../utils/periods";
 import { useProductEditTitleModal } from "../../modals";
 import { useHeaderStyles } from "./product-info-header.styles";
 import { UserPopoverContent, SharePopoverContent } from "./components";
@@ -31,19 +34,39 @@ import {
   formatPercent,
 } from "./utils";
 import type { IProductInfoHeaderProps, IKPIData } from "./types";
+import {
+  getProductPrimaryPriceAmount,
+  getProductSku,
+} from "../../utils/api-product-display";
+import { getProductStatus } from "../../utils/product-status";
+import { ProductStatusAction } from "@/graphql/types";
+import {
+  useDeleteProduct,
+  useUpdateProduct,
+  useUpdateProductStatus,
+} from "../../hooks";
 
 export const ProductInfoHeader = ({
   product,
   kpiData,
+  onProductRefresh,
 }: IProductInfoHeaderProps) => {
   const { styles } = useHeaderStyles();
+  const { message } = App.useApp();
+  const { forcePop } = useModalStackContext();
+  const { updateProduct } = useUpdateProduct();
+  const { updateProductStatus } = useUpdateProductStatus();
+  const { deleteProduct } = useDeleteProduct();
   const [kpiPeriod, setKpiPeriod] = useState<Period>("7d");
   const [compareEnabled, setCompareEnabled] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const { push: openEditTitleModal } = useProductEditTitleModal();
 
-  const storefrontUrl = `${window.location.origin}/products/${product.slug}`;
+  const handle = product.handle ?? product.id;
+  const storefrontUrl = `${window.location.origin}/products/${handle}`;
+  const sku = getProductSku(product);
+  const price = getProductPrimaryPriceAmount(product) ?? 0;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -61,17 +84,72 @@ export const ProductInfoHeader = ({
     setTimeout(() => setShareCopied(false), 1500);
   };
 
-  const statusConfig = getStatusConfig(product.status);
+  const productStatus = getProductStatus(product);
+  const statusConfig = getStatusConfig(productStatus);
+  const statusActionLabel = product.isPublished ? "Unpublish" : "Publish";
 
   const handleEditTitle = () => {
     openEditTitleModal({
       title: product.title,
-      handle: product.slug,
-      onSave: (values: { title: string; handle: string }) => {
-        console.log("Save title:", values);
-        // TODO: implement actual save logic
+      handle,
+      onSave: async (values: { title: string; handle: string }) => {
+        const result = await updateProduct({
+          productId: product.id,
+          expectedRevision: product.revision,
+          operations: {
+            title: values.title,
+            handle: values.handle,
+          },
+        });
+
+        if (result.errors.length > 0) {
+          message.error(result.errors[0].message);
+          return false;
+        }
+
+        message.success("Product title updated");
+        return true;
       },
     });
+  };
+
+  const handleChangeStatus = () => {
+    void (async () => {
+      const result = await updateProductStatus({
+        productId: product.id,
+        action: product.isPublished
+          ? ProductStatusAction.Unpublish
+          : ProductStatusAction.Publish,
+      });
+
+      if (result.userErrors.length > 0) {
+        message.error(result.userErrors[0].message);
+        return;
+      }
+
+      message.success(
+        product.isPublished ? "Product unpublished" : "Product published",
+      );
+      await onProductRefresh?.();
+    })();
+  };
+
+  const handleArchive = () => {
+    void (async () => {
+      const result = await deleteProduct({
+        id: product.id,
+        permanent: false,
+      });
+
+      if (result.userErrors.length > 0) {
+        message.error(result.userErrors[0].message);
+        return;
+      }
+
+      message.success("Product archived");
+      await onProductRefresh?.();
+      forcePop();
+    })();
   };
 
   const kpi: IKPIData = kpiData || {
@@ -81,7 +159,7 @@ export const ProductInfoHeader = ({
     ordersTrend: -2,
     conversion: 5.5,
     conversionTrend: 0.4,
-    revenue: product.price * 156,
+    revenue: price * 156,
     revenueTrend: 12,
   };
 
@@ -96,12 +174,9 @@ export const ProductInfoHeader = ({
           {statusConfig.label}
         </Tag>
       </Tooltip>
-      {product.status === EntityStatus.PUBLISHED && (
+      {product.updatedAt && (
         <Typography.Text type="secondary" className={styles.metaText}>
-          {product.updatedAt.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          })}
+          Updated {formatDetailDate(product.updatedAt)}
           <span style={{ marginLeft: 4 }}>by</span>
           <Popover
             content={
@@ -175,17 +250,38 @@ export const ProductInfoHeader = ({
       <Dropdown
         menu={{
           items: [
-            { key: "edit", label: "Edit title", onClick: handleEditTitle },
+            {
+              key: "edit",
+              label: <span data-testid="product-title-edit-menu-item">Edit title</span>,
+              onClick: handleEditTitle,
+            },
+            {
+              key: "status",
+              label: <span data-testid="product-title-status-menu-item">{statusActionLabel}</span>,
+              onClick: handleChangeStatus,
+            },
             { type: "divider" as const },
-            { key: "duplicate", label: "Duplicate product" },
-            { key: "export", label: "Export" },
+            {
+              key: "duplicate",
+              label: <span data-testid="product-title-duplicate-menu-item">Duplicate product</span>,
+            },
+            { key: "export", label: <span data-testid="product-title-export-menu-item">Export</span> },
             { type: "divider" as const },
-            { key: "archive", label: "Archive", danger: true },
+            {
+              key: "archive",
+              label: <span data-testid="product-title-archive-menu-item">Archive</span>,
+              danger: true,
+              onClick: handleArchive,
+            },
           ],
         }}
         trigger={["click"]}
       >
-        <Button size="small" icon={<MoreOutlined />} />
+        <Button
+          size="small"
+          icon={<MoreOutlined />}
+          data-testid="product-title-actions-button"
+        />
       </Dropdown>
     </Flex>
   );
@@ -202,19 +298,22 @@ export const ProductInfoHeader = ({
           ellipsis={{ rows: 2, tooltip: product.title }}
           className={styles.productTitle}
           style={{ margin: 0 }}
+          data-testid="product-detail-title"
         >
           {product.title || "Untitled Product"}
         </Typography.Title>
 
         <Flex align="center" gap={12}>
-          <CopyableChip label="/" value={product.slug} />
+          <div data-testid="product-detail-handle">
+            <CopyableChip label="/" value={handle} />
+          </div>
           <CopyableChip
             label="ID"
             value={product.id}
             displayValue={product.id.slice(0, 8)}
             mono
           />
-          {product.sku && <CopyableChip label="SKU" value={product.sku} mono />}
+          {sku && <CopyableChip label="SKU" value={sku} mono />}
         </Flex>
       </Flex>
 

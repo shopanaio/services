@@ -1,22 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Flex, Skeleton } from "antd";
+import { useEffect } from "react";
+import { Alert, Empty, Flex, Skeleton } from "antd";
 import { useModalStackContext, ModalLayout } from "@/layouts/modals";
-import {
-  CategoryDetailsCard,
-  mockCategory,
-  mockCategoryDetailsData,
-} from "../../components/category-details-card";
+import { CategoryDetailsCard } from "../../components/category-details-card";
+import { useCategory } from "../../hooks";
+import type { ICategoryModalPayload } from "../../modals";
 
 export const CategoryModal = () => {
-  const { pop, forcePop } = useModalStackContext();
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(timer);
-  }, []);
+  const { payload, pop, forcePop } = useModalStackContext();
+  const typedPayload = payload as ICategoryModalPayload;
+  const categoryId =
+    typeof typedPayload.entityId === "string" ? typedPayload.entityId : null;
+  const { category, loading, error, refetch } = useCategory(categoryId);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -29,7 +25,7 @@ export const CategoryModal = () => {
   }, [pop]);
 
   const renderContent = () => {
-    if (loading) {
+    if (loading && !category) {
       return (
         <Flex vertical gap={16} style={{ padding: 16 }}>
           <Skeleton active paragraph={{ rows: 4 }} />
@@ -37,13 +33,19 @@ export const CategoryModal = () => {
       );
     }
 
-    return (
-      <CategoryDetailsCard
-        category={mockCategory}
-        mockData={mockCategoryDetailsData}
-        onEditSection={(section) => console.log("Edit section:", section)}
-      />
-    );
+    if (error) {
+      return <Alert type="error" message={error.message} showIcon />;
+    }
+
+    if (!category) {
+      return (
+        <Flex align="center" justify="center" style={{ padding: 24 }}>
+          <Empty description="Category not found" />
+        </Flex>
+      );
+    }
+
+    return <CategoryDetailsCard category={category} onRefetch={refetch} />;
   };
 
   return (

@@ -3,6 +3,7 @@ import {
   USER_FRAGMENT,
   ORGANIZATION_FRAGMENT,
   ORGANIZATION_BASIC_FRAGMENT,
+  CURRENT_STORE_FRAGMENT,
   STORE_FRAGMENT,
   STORE_BASIC_FRAGMENT,
 } from "./fragments";
@@ -125,20 +126,20 @@ export const CURRENT_STORE_QUERY = gql`
   query CurrentStore {
     storeQuery {
       currentStore {
-        ...StoreFields
+        ...CurrentStoreFields
       }
     }
   }
-  ${STORE_FRAGMENT}
+  ${CURRENT_STORE_FRAGMENT}
 `;
 
 /**
  * Get a single store by ID with full details.
  */
 export const STORE_QUERY = gql`
-  query Store($id: ID!, $organizationId: ID!) {
+  query Store($organizationId: ID!) {
     storeQuery {
-      store(id: $id, organizationId: $organizationId) {
+      stores(organizationId: $organizationId) {
         ...StoreFields
       }
     }

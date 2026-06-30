@@ -1,5 +1,5 @@
 import { test } from '@fixtures/base.extend';
-import { ApiProjectQueryFindOneArgs } from '@codegen/admin-gql';
+import type { ApiProjectQueryFindOneArgs } from '@codegen/admin-gql';
 import { expect } from 'playwright/test';
 import * as Yup from 'yup';
 

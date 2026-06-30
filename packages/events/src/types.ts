@@ -76,6 +76,7 @@ export interface ProductDeletedEvent
     {
       productId: string;
       storeId: string;
+      categoryIds?: string[];
     }
   > {}
 
@@ -97,20 +98,35 @@ export interface ProductUpdatedPayload {
 export interface ProductFieldChanges {
   handle?: string;
   title?: string;
+  vendorId?: string | null;
   status?: "draft" | "published";
   content?: { description?: string | null; excerpt?: string | null };
   seo?: { title?: string | null; description?: string | null };
   media?: { fileIds: string[] };
+  categories?: ProductCategoryFieldChanges;
+  tags?: ProductTagFieldChanges;
+}
+
+export interface ProductCategoryFieldChanges {
+  changed: true;
+  reason: "assignment" | "categoryFields" | "rank";
+  categoryIds?: string[];
+}
+
+export interface ProductTagFieldChanges {
+  changed: true;
+  reason: "assignment";
+  tagIds?: string[];
 }
 
 export interface VariantFieldChanges {
+  lifecycle?: "created" | "updated" | "deleted";
   pricing?: { currency: string; amount: number; compareAt?: number | null };
   inventory?: {
     warehouseId: string;
     onHand: number;
     unavailable: number;
     sku?: string | null;
-    weight?: number | null;
     unitCostMinor?: number | null;
     costCurrency?: string | null;
   };
@@ -121,6 +137,16 @@ export interface VariantFieldChanges {
 
 export interface ProductUpdatedEvent
   extends DomainEvent<"productUpdated", ProductUpdatedPayload> {}
+
+export interface VariantDeletedEvent
+  extends DomainEvent<
+    "variantDeleted",
+    {
+      variantId: string;
+      productId: string;
+      storeId: string;
+    }
+  > {}
 
 export interface OrderCreatedEvent
   extends DomainEvent<
@@ -175,6 +201,7 @@ export type ShopanaEvent =
   | ProductCreatedEvent
   | ProductDeletedEvent
   | ProductUpdatedEvent
+  | VariantDeletedEvent
   | OrderCreatedEvent
   | OrderCompletedEvent
   | StoreCreatedEvent

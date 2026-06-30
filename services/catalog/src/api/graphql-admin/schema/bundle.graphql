@@ -1,434 +1,937 @@
-# ==============================
-# Bundle Enums
-# ==============================
+# ---- Bundle Types ----
 
-"""
-The type of item in a bundle group.
-"""
+enum BundleType {
+  FIXED
+  MULTIPACK
+  MIX_AND_MATCH
+  CUSTOM
+}
+
+enum BundleDisplayStyle {
+  ACCORDION
+  TABS
+  FLAT
+  WIZARD
+}
+
 enum BundleItemType {
-  "Item references an entire product (variant selection happens at checkout)"
   PRODUCT
-  "Item references a specific variant"
   VARIANT
 }
 
-"""
-The pricing strategy for bundle items.
-"""
+enum BundleItemOptionValueSelectionStatus {
+  SELECTED
+  DESELECTED
+  NEW
+  UNAVAILABLE
+}
+
 enum BundlePriceType {
-  "Use base product/variant price (no modification)"
   BASE
-  "Item is free when included in bundle"
-  FREE
-  "Fixed price (overrides base price)"
   FIXED
-  "Discount by percentage (0-100)"
-  PERCENT_OFF
-  "Discount by absolute amount (in cents)"
-  AMOUNT_OFF
+  DISCOUNT_PERCENT
+  DISCOUNT_FIXED
+  FREE
 }
 
-"""
-The subject of a dependency condition.
-"""
-enum ConditionSubject {
-  "Check if an item is selected"
-  ITEM_SELECTED
-  "Check item quantity"
-  ITEM_QTY
-  "Check group total quantity"
-  GROUP_TOTAL_QTY
+enum BundleLogicOperator {
+  AND
+  OR
 }
 
-"""
-The category of a dependency condition.
-"""
-enum ConditionCategory {
-  "State check (is selected, is not selected)"
+enum BundleConditionCategory {
   STATE_CHECK
-  "Numeric comparison (gte, eq, lte)"
   NUMERIC
 }
 
-"""
-The operator for state check conditions.
-"""
-enum StateCheckOperator {
-  IS_SELECTED
-  IS_NOT_SELECTED
+enum BundleConditionSubject {
+  ITEM_SELECTED
+  ITEM_QTY
+  GROUP_TOTAL_QTY
 }
 
-"""
-The operator for numeric conditions.
-"""
-enum NumericOperator {
+enum BundleConditionOperator {
+  IS_SELECTED
+  IS_NOT_SELECTED
   GTE
   EQ
   LTE
 }
 
-"""
-The target type for conditions and actions.
-"""
-enum DependencyTargetType {
-  "Target a specific bundle item"
+enum BundleDependencyTargetType {
   ITEM
-  "Target an entire bundle group"
   GROUP
-  "Target the entire bundle"
   BUNDLE
 }
 
-"""
-The type of action to perform when a dependency rule matches.
-"""
-enum DependencyActionType {
-  "Show the target"
+enum BundleDependencyActionType {
   SHOW
-  "Hide the target"
   HIDE
-  "Make the target required"
   SET_REQUIRED
-  "Adjust the price of the target"
   ADJUST_PRICE
 }
 
-"""
-Logic operator for combining conditions or condition groups.
-"""
-enum LogicOperator {
-  AND
-  OR
-}
-
-# ==============================
-# Bundle Types
-# ==============================
-
-"""
-A pricing template that can be reused across bundle items.
-"""
-type BundlePricingTemplate implements Node {
+type Bundle implements Node & Listing @key(fields: "id") {
+  """The Product global ID of the bundle sellable item."""
   id: ID!
-  productId: ID!
-  name: String!
-  priceType: BundlePriceType!
-  priceValue: Int
-  sortIndex: Int!
-}
 
-"""
-A group of items within a bundle (e.g., "Choose your processor", "Select accessories").
-"""
-type BundleGroup implements Node {
-  id: ID!
-  productId: ID!
-  title: String!
-  sortIndex: Int!
-  minSelection: Int
-  maxSelection: Int
-  items: [BundleItem!]!
+  """Product discriminator. Always BUNDLE for this type."""
+  kind: ProductKind!
+
+  """The URL-friendly handle for the bundle."""
+  handle: String!
+
+  """The date and time when the bundle was published, or null if unpublished."""
+  publishedAt: DateTime
+
+  """Whether the bundle is currently published."""
+  isPublished: Boolean!
+
+  """The date and time when the bundle was created."""
   createdAt: DateTime!
+
+  """The date and time when the bundle was last updated."""
+  updatedAt: DateTime!
+
+  """The date and time when the bundle was deleted (soft delete)."""
+  deletedAt: DateTime
+
+  """Optimistic locking revision number. Incremented on each update."""
+  revision: Int!
+
+  """The vendor associated with this bundle."""
+  vendor: Vendor
+
+  """The variants of this bundle."""
+  variants(first: Int, after: String, last: Int, before: String): VariantConnection!
+
+  """Media registered on this bundle."""
+  media: [ProductMediaItem!]!
+
+  """The options available for this bundle."""
+  options: [ProductOption!]!
+
+  """The features of this bundle."""
+  features: [ProductFeature!]!
+
+  """The total number of variants for this bundle."""
+  variantsCount: Int!
+
+  """The primary category assigned to this bundle."""
+  primaryCategory: Category
+
+  """Category assignments with relationship metadata."""
+  categoryAssignments: [ProductCategoryAssignment!]!
+
+  """The tags associated with this bundle."""
+  tags: [Tag!]!
+
+  """Bundle title."""
+  title: String!
+
+  """Bundle description."""
+  description: RichText
+
+  """Short excerpt."""
+  excerpt: RichText
+
+  """SEO and Open Graph metadata."""
+  seo: ProductSeo
+
+  """Current bundle price range in the selected currency."""
+  priceRange: ProductPriceRange
+
+  """High-level bundle type."""
+  type: BundleType
+
+  """Configurator display style."""
+  displayStyle: BundleDisplayStyle!
+
+  """All bundle configurations for this bundle."""
+  configurations: [BundleConfiguration!]!
+}
+
+"""A connection to a list of Bundle items."""
+type BundleConnection {
+  """A list of edges."""
+  edges: [BundleEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of bundles."""
+  totalCount: Int!
+}
+
+"""An edge in a Bundle connection."""
+type BundleEdge {
+  """The item at the end of the edge."""
+  node: Bundle!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+type BundleConfiguration implements Node @key(fields: "id") {
+  """The globally unique ID of the configuration."""
+  id: ID!
+
+  """The bundle root this configuration belongs to."""
+  bundle: Bundle!
+
+  """The Product global ID of the bundle this configuration belongs to."""
+  bundleId: ID!
+
+  """Configuration name."""
+  name: String!
+
+  """Variants that use this configuration."""
+  variants: [Variant!]!
+
+  """Groups in configurator order."""
+  groups: [BundleGroup!]!
+
+  """Reusable pricing templates."""
+  pricingTemplates: [BundlePricingTemplate!]!
+
+  """Dependency rules in priority order."""
+  dependencyRules: [BundleDependencyRule!]!
+
+  """The date and time when the configuration was created."""
+  createdAt: DateTime!
+
+  """The date and time when the configuration was last updated."""
   updatedAt: DateTime!
 }
 
-"""
-An individual item within a bundle group.
-"""
-type BundleItem implements Node {
+type BundleGroup implements Node @key(fields: "id") {
+  """The globally unique ID of the group."""
   id: ID!
-  groupId: ID!
-  itemType: BundleItemType!
+
+  """Sort order within the configuration."""
   sortIndex: Int!
 
-  "Reference to product (when itemType is PRODUCT)"
+  """Display title from current locale."""
+  title: String!
+
+  """Minimum selected items in this group. Null means no minimum."""
+  minSelection: Int
+
+  """Maximum selected items in this group. Null means no maximum."""
+  maxSelection: Int
+
+  """Items in group order."""
+  items: [BundleItem!]!
+
+  """The date and time when the group was created."""
+  createdAt: DateTime!
+
+  """The date and time when the group was last updated."""
+  updatedAt: DateTime!
+}
+
+type BundleItem implements Node @key(fields: "id") {
+  """The globally unique ID of the item."""
+  id: ID!
+
+  """The group this item belongs to."""
+  group: BundleGroup!
+
+  """The group ID."""
+  groupId: ID!
+
+  """Whether the item references a product or a concrete variant."""
+  itemType: BundleItemType!
+
+  """Sort order within the group."""
+  sortIndex: Int!
+
+  """Referenced product for PRODUCT items."""
+  refProduct: Product
+
+  """Referenced product ID for PRODUCT items."""
   refProductId: ID
-  "Reference to variant (when itemType is VARIANT)"
+
+  """Referenced variant for VARIANT items."""
+  refVariant: Variant
+
+  """Referenced variant ID for VARIANT items."""
   refVariantId: ID
 
-  "Custom title override for this bundle item"
-  title: String
-  "Custom featured image override"
-  featuredImageId: ID
-  "Excluded variant IDs when itemType is PRODUCT"
-  excludedVariantIds: [ID!]
+  """Featured image override."""
+  featuredImage: File
 
-  "Minimum quantity that can be selected"
-  minQty: Int!
-  "Maximum quantity that can be selected (null = unlimited)"
+  """Minimum selectable quantity."""
+  minQty: Int
+
+  """Maximum selectable quantity. Null means unlimited."""
   maxQty: Int
-  "Default quantity when item is added to cart"
-  defaultQty: Int!
 
-  "Inline pricing type"
-  priceType: BundlePriceType
-  "Inline pricing value (cents)"
-  priceValue: Int
-  "Reference to a pricing template"
-  pricingTemplateId: ID
-  "Resolved pricing template"
+  """Default quantity."""
+  defaultQty: Int
+
+  """Inline price rule. Null when pricingTemplate is used."""
+  priceRule: BundlePriceRule
+
+  """Reusable pricing template. Null when inline priceRule is used."""
   pricingTemplate: BundlePricingTemplate
 
-  "Whether item is visible in the bundle configurator"
+  """Allowed option/value selections for PRODUCT items."""
+  optionSelections: [BundleItemOptionSelection!]!
+
+  """Optional display title override from current locale."""
+  title: String
+
+  """Whether item is visible in the configurator."""
   visible: Boolean!
-  "Whether item is selected by default"
+
+  """Whether item is selected by default."""
   selected: Boolean!
 
+  """The date and time when the item was created."""
   createdAt: DateTime!
+
+  """The date and time when the item was last updated."""
   updatedAt: DateTime!
 }
 
-"""
-A dependency rule that controls bundle behavior based on conditions.
-"""
-type DependencyRule implements Node {
+type BundleItemOptionSelection implements Node @key(fields: "id") {
+  """The globally unique ID of the option selection."""
   id: ID!
-  productId: ID!
-  name: String!
-  enabled: Boolean!
-  priority: Int!
-  logicOperator: LogicOperator!
-  conditionGroups: [ConditionGroup!]!
-  actions: [DependencyAction!]!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-}
 
-"""
-A group of conditions within a dependency rule.
-"""
-type ConditionGroup implements Node {
-  id: ID!
-  ruleId: ID!
-  logicOperator: LogicOperator!
-  sortIndex: Int!
-  conditions: [Condition!]!
-}
+  """Referenced product option."""
+  option: ProductOption!
 
-"""
-A single condition within a condition group.
-"""
-type Condition implements Node {
-  id: ID!
-  groupId: ID!
-  category: ConditionCategory!
-  subject: ConditionSubject!
-  operator: String!
-  targetType: DependencyTargetType!
-  targetId: ID!
-  value: Int
+  """Referenced product option ID."""
+  optionId: ID!
+
+  """Parent option for dependent option trees."""
+  parentOption: ProductOption
+
+  """Parent option ID."""
+  parentOptionId: ID
+
+  """Allowed values for this option."""
+  values: [BundleItemOptionValueSelection!]!
+
+  """Sort order within item option selections."""
   sortIndex: Int!
 }
 
-"""
-An action to perform when a dependency rule's conditions are met.
-"""
-type DependencyAction implements Node {
+type BundleItemOptionValueSelection implements Node @key(fields: "id") {
+  """The globally unique ID of the option value selection."""
   id: ID!
-  ruleId: ID!
-  actionType: DependencyActionType!
-  targetType: DependencyTargetType!
-  targetId: ID
-  requiredValue: Boolean
-  priceType: BundlePriceType
-  priceValue: Int
-  stackable: Boolean!
+
+  """Referenced product option value. Null when the value is unavailable."""
+  optionValue: ProductOptionValue
+
+  """Referenced product option value ID."""
+  optionValueId: ID
+
+  """Stable value copy for displaying stale/unavailable values."""
+  value: String!
+
+  """Selection status."""
+  status: BundleItemOptionValueSelectionStatus!
+
+  """Sort order within option values."""
   sortIndex: Int!
 }
 
-# ==============================
-# Input Types
-# ==============================
-
-input BundleGroupCreateInput {
-  productId: ID!
-  title: String!
-  sortIndex: Int
-  minSelection: Int
-  maxSelection: Int
-}
-
-input BundleGroupUpdateInput {
+interface BundlePriceRule implements Node {
+  """The globally unique ID of the price rule."""
   id: ID!
-  title: String
-  sortIndex: Int
-  minSelection: Int
-  maxSelection: Int
-}
 
-input BundleItemCreateInput {
-  groupId: ID!
-  itemType: BundleItemType!
-  sortIndex: Int
-  refProductId: ID
-  refVariantId: ID
-  title: String
-  featuredImageId: ID
-  excludedVariantIds: [ID!]
-  minQty: Int
-  maxQty: Int
-  defaultQty: Int
-  priceType: BundlePriceType
-  priceValue: Int
-  pricingTemplateId: ID
-  visible: Boolean
-  selected: Boolean
-}
-
-input BundleItemUpdateInput {
-  id: ID!
-  title: String
-  featuredImageId: ID
-  excludedVariantIds: [ID!]
-  minQty: Int
-  maxQty: Int
-  defaultQty: Int
-  priceType: BundlePriceType
-  priceValue: Int
-  pricingTemplateId: ID
-  visible: Boolean
-  selected: Boolean
-  sortIndex: Int
-}
-
-input BundlePricingTemplateCreateInput {
-  productId: ID!
-  name: String!
+  """Pricing strategy."""
   priceType: BundlePriceType!
-  priceValue: Int
-  sortIndex: Int
 }
 
-input BundlePricingTemplateUpdateInput {
+type BundleBasePriceRule implements Node & BundlePriceRule @key(fields: "id") {
+  """The globally unique ID of the price rule."""
   id: ID!
-  name: String
-  priceType: BundlePriceType
-  priceValue: Int
-  sortIndex: Int
+
+  """Pricing strategy."""
+  priceType: BundlePriceType!
 }
 
-input DependencyRuleCreateInput {
-  productId: ID!
+type BundleFixedPriceRule implements Node & BundlePriceRule @key(fields: "id") {
+  """The globally unique ID of the price rule."""
+  id: ID!
+
+  """Pricing strategy."""
+  priceType: BundlePriceType!
+
+  """Money values for FIXED rules."""
+  amounts: [BundlePriceRuleAmount!]!
+}
+
+type BundleDiscountPercentPriceRule implements Node & BundlePriceRule @key(fields: "id") {
+  """The globally unique ID of the price rule."""
+  id: ID!
+
+  """Pricing strategy."""
+  priceType: BundlePriceType!
+
+  """Percent row for DISCOUNT_PERCENT rules."""
+  percent: BundlePriceRulePercent!
+}
+
+type BundleDiscountFixedPriceRule implements Node & BundlePriceRule @key(fields: "id") {
+  """The globally unique ID of the price rule."""
+  id: ID!
+
+  """Pricing strategy."""
+  priceType: BundlePriceType!
+
+  """Money values for DISCOUNT_FIXED rules."""
+  amounts: [BundlePriceRuleAmount!]!
+}
+
+type BundleFreePriceRule implements Node & BundlePriceRule @key(fields: "id") {
+  """The globally unique ID of the price rule."""
+  id: ID!
+
+  """Pricing strategy."""
+  priceType: BundlePriceType!
+}
+
+type BundlePriceRuleAmount {
+  """The currency code."""
+  currency: CurrencyCode!
+
+  """Amount in minor units."""
+  amountMinor: BigInt!
+}
+
+type BundlePriceRulePercent {
+  """Percent value, 0..100."""
+  value: Int!
+}
+
+type BundlePricingTemplate implements Node @key(fields: "id") {
+  """The globally unique ID of the pricing template."""
+  id: ID!
+
+  """Template name."""
   name: String!
-  enabled: Boolean
-  priority: Int
-  logicOperator: LogicOperator
+
+  """Reusable price rule."""
+  priceRule: BundlePriceRule!
+
+  """Sort order within configuration."""
+  sortIndex: Int!
 }
 
-input DependencyRuleUpdateInput {
+type BundleDependencyRule implements Node @key(fields: "id") {
+  """The globally unique ID of the dependency rule."""
   id: ID!
-  name: String
-  enabled: Boolean
-  priority: Int
-  logicOperator: LogicOperator
+
+  """Rule name."""
+  name: String!
+
+  """Whether the rule is enabled."""
+  enabled: Boolean!
+
+  """Rule priority. Lower values are evaluated first."""
+  priority: Int!
+
+  """How condition groups are combined."""
+  logicOperator: BundleLogicOperator!
+
+  """Condition groups."""
+  conditionGroups: [BundleConditionGroup!]!
+
+  """Actions applied when conditions match."""
+  actions: [BundleDependencyAction!]!
+
+  """The date and time when the rule was created."""
+  createdAt: DateTime!
+
+  """The date and time when the rule was last updated."""
+  updatedAt: DateTime!
 }
 
-input ConditionGroupCreateInput {
-  ruleId: ID!
-  logicOperator: LogicOperator
-  sortIndex: Int
-}
-
-input ConditionGroupUpdateInput {
+type BundleConditionGroup implements Node @key(fields: "id") {
+  """The globally unique ID of the condition group."""
   id: ID!
-  logicOperator: LogicOperator
-  sortIndex: Int
+
+  """How conditions are combined."""
+  logicOperator: BundleLogicOperator!
+
+  """Conditions in this group."""
+  conditions: [BundleCondition!]!
+
+  """Sort order within the rule."""
+  sortIndex: Int!
 }
 
-input ConditionCreateInput {
-  groupId: ID!
-  category: ConditionCategory!
-  subject: ConditionSubject!
-  operator: String!
-  targetType: DependencyTargetType!
+type BundleCondition implements Node @key(fields: "id") {
+  """The globally unique ID of the condition."""
+  id: ID!
+
+  """Condition category."""
+  category: BundleConditionCategory!
+
+  """Condition subject."""
+  subject: BundleConditionSubject!
+
+  """Condition operator."""
+  operator: BundleConditionOperator!
+
+  """Target type."""
+  targetType: BundleDependencyTargetType!
+
+  """Target ID. Points to an item, group, or the parent bundle product."""
   targetId: ID!
+
+  """Numeric value for numeric conditions."""
   value: Int
-  sortIndex: Int
+
+  """Sort order within the condition group."""
+  sortIndex: Int!
 }
 
-input ConditionUpdateInput {
+type BundleDependencyAction implements Node @key(fields: "id") {
+  """The globally unique ID of the action."""
   id: ID!
-  category: ConditionCategory
-  subject: ConditionSubject
-  operator: String
-  targetType: DependencyTargetType
+
+  """Action type."""
+  actionType: BundleDependencyActionType!
+
+  """Target type."""
+  targetType: BundleDependencyTargetType!
+
+  """Target ID. Null is allowed when targetType is BUNDLE."""
   targetId: ID
+
+  """Required value for SET_REQUIRED."""
+  requiredValue: Boolean
+
+  """Price rule for ADJUST_PRICE."""
+  priceRule: BundlePriceRule
+
+  """Whether this action can stack with other matching actions."""
+  stackable: Boolean!
+
+  """Sort order within the rule."""
+  sortIndex: Int!
+}
+
+# ---- Bundle Listing Inputs ----
+
+input BundleBundlesMetaInput {
+  categoriesScope: ProductCategoriesScopeInput
+}
+
+# ---- Bundle Mutation Payloads ----
+
+type BundleCreatePayload {
+  bundle: Bundle
+  userErrors: [GenericUserError!]!
+}
+
+type BundleUpdatePayload {
+  bundle: Bundle
+  userErrors: [GenericUserError!]!
+}
+
+type BundleConfigurationPayload {
+  configuration: BundleConfiguration
+  userErrors: [GenericUserError!]!
+}
+
+type BundleConfigurationDeletePayload {
+  deletedConfigurationId: ID
+  bundle: Bundle
+  userErrors: [GenericUserError!]!
+}
+
+type BundleGroupsSyncPayload {
+  configuration: BundleConfiguration
+  groups: [BundleGroup!]!
+  userErrors: [GenericUserError!]!
+}
+
+type BundlePricingTemplatesSyncPayload {
+  configuration: BundleConfiguration
+  pricingTemplates: [BundlePricingTemplate!]!
+  userErrors: [GenericUserError!]!
+}
+
+type BundleDependencyRulesSyncPayload {
+  configuration: BundleConfiguration
+  dependencyRules: [BundleDependencyRule!]!
+  userErrors: [GenericUserError!]!
+}
+
+# ---- Bundle Mutation Inputs ----
+
+input BundleCreateInput {
+  """Bundle title."""
+  title: String!
+
+  """URL-friendly handle for the bundle."""
+  handle: String!
+
+  """Vendor ID to associate with the bundle."""
+  vendorId: ID
+
+  """Bundle description."""
+  description: RichTextInput
+
+  """Short excerpt in multiple formats."""
+  excerpt: RichTextInput
+
+  """File IDs for bundle media (already uploaded via mediaMutation.fileUpload)."""
+  mediaFileIds: [ID!]
+
+  """Bundle options."""
+  options: [ProductCreateOptionInput!]
+
+  """Bundle variants to create."""
+  variants: [ProductCreateVariantInput!]
+
+  """Inventory tracking settings for the bundle."""
+  inventoryItem: InventoryItemInput
+
+  """High-level bundle type."""
+  type: BundleType
+
+  """Configurator display style."""
+  displayStyle: BundleDisplayStyle
+}
+
+input BundleUpdateInput {
+  """The URL-friendly handle for the bundle."""
+  handle: String
+
+  """Bundle title."""
+  title: String
+
+  """Vendor ID to associate with the bundle. Pass null to clear."""
+  vendorId: ID
+
+  """Bundle content (description, excerpt)."""
+  content: ProductContentInput
+
+  """SEO and Open Graph metadata."""
+  seo: ProductSeoInput
+
+  """Bundle status: DRAFT or PUBLISHED."""
+  status: ProductStatus
+
+  """Bundle media."""
+  media: ProductMediaInput
+
+  """Bundle category assignment operations."""
+  categories: [ProductCategoryOperationInput!]
+
+  """Bundle tag assignment operations."""
+  tags: [ProductTagOperationInput!]
+
+  """Variant create, update, and delete operations."""
+  variants: [VariantOperationInput!]
+
+  """High-level bundle type."""
+  type: BundleType
+
+  """Configurator display style."""
+  displayStyle: BundleDisplayStyle
+}
+
+input BundleConfigurationCreateInput {
+  """Product global ID of the bundle."""
+  bundleId: ID!
+
+  """Expected parent bundle product revision. Required for optimistic locking."""
+  expectedRevision: Int!
+
+  """Configuration name."""
+  name: String!
+}
+
+input BundleConfigurationUpdateInput {
+  id: ID!
+  expectedRevision: Int!
+  name: String
+}
+
+input BundleConfigurationDeleteInput {
+  id: ID!
+  expectedRevision: Int!
+}
+
+input BundleGroupsSyncInput {
+  configurationId: ID!
+  expectedRevision: Int!
+
+  """
+  Complete list of groups for this configuration.
+  Groups not present in this list are deleted.
+  """
+  groups: [BundleGroupSyncItemInput!]!
+}
+
+input BundleGroupSyncItemInput {
+  """
+  Existing group ID. Null creates a new group.
+  Existing groups in this configuration but missing from BundleGroupsSyncInput.groups are deleted.
+  """
+  id: ID
+
+  """Localized title for current locale."""
+  title: String!
+
+  minSelection: Int
+  maxSelection: Int
+
+  """Sort order within the configuration."""
+  sortIndex: Int!
+
+  """Complete list of items inside this group."""
+  items: [BundleItemSyncItemInput!]!
+}
+
+input BundleItemSyncItemInput {
+  """
+  Existing item ID. Null creates a new item.
+  Existing items in this group but missing from BundleGroupSyncItemInput.items are deleted.
+  """
+  id: ID
+
+  """Whether the item references a product or a concrete variant."""
+  itemType: BundleItemType!
+
+  """Referenced product ID for PRODUCT items."""
+  refProductId: ID
+
+  """Referenced variant ID for VARIANT items."""
+  refVariantId: ID
+
+  """Featured image override."""
+  featuredImageId: ID
+
+  """Minimum selectable quantity."""
+  minQty: Int
+
+  """Maximum selectable quantity."""
+  maxQty: Int
+
+  """Default quantity."""
+  defaultQty: Int
+
+  """Inline price rule. Cannot be used together with pricingTemplateId."""
+  priceRule: BundlePriceRuleInput
+
+  """Reusable pricing template ID. Cannot be used together with priceRule."""
+  pricingTemplateId: ID
+
+  """Allowed option/value selections for PRODUCT items."""
+  optionSelections: [BundleItemOptionSelectionSyncItemInput!]
+
+  """Optional localized title override for current locale."""
+  title: String
+
+  """Whether item is visible in the configurator."""
+  visible: Boolean!
+
+  """Whether item is selected by default."""
+  selected: Boolean!
+
+  """Sort order within the group."""
+  sortIndex: Int!
+}
+
+input BundleItemOptionSelectionSyncItemInput {
+  """Existing option selection ID. Null creates a new option selection."""
+  id: ID
+
+  """Referenced product option ID."""
+  optionId: ID!
+
+  """Parent option ID for dependent option trees."""
+  parentOptionId: ID
+
+  """Sort order within option selections."""
+  sortIndex: Int!
+
+  """Complete list of option value selections."""
+  values: [BundleItemOptionValueSelectionSyncItemInput!]!
+}
+
+input BundleItemOptionValueSelectionSyncItemInput {
+  """Existing value selection ID. Null creates a new value selection."""
+  id: ID
+
+  """Referenced product option value ID."""
+  optionValueId: ID
+
+  """Stable value copy for displaying stale/unavailable values."""
+  value: String!
+
+  """Selection status."""
+  status: BundleItemOptionValueSelectionStatus!
+
+  """Sort order within option values."""
+  sortIndex: Int!
+}
+
+input BundlePriceRuleInput {
+  """Existing price rule ID. Null creates a new price rule."""
+  id: ID
+
+  """Pricing strategy."""
+  priceType: BundlePriceType!
+
+  """Money values for FIXED and DISCOUNT_FIXED rules."""
+  amounts: [BundlePriceRuleAmountInput!]
+
+  """Percent value for DISCOUNT_PERCENT rules."""
+  percent: BundlePriceRulePercentInput
+}
+
+input BundlePriceRuleAmountInput {
+  """The currency code."""
+  currency: CurrencyCode!
+
+  """Amount in minor units."""
+  amountMinor: BigInt!
+}
+
+input BundlePriceRulePercentInput {
+  """Percent value, 0..100."""
+  value: Int!
+}
+
+input BundlePricingTemplatesSyncInput {
+  configurationId: ID!
+  expectedRevision: Int!
+
+  """
+  Complete list of pricing templates for this configuration.
+  Templates not present in this list are deleted.
+  """
+  pricingTemplates: [BundlePricingTemplateSyncItemInput!]!
+}
+
+input BundlePricingTemplateSyncItemInput {
+  """
+  Existing pricing template ID. Null creates a new template.
+  Existing templates in this configuration but missing from
+  BundlePricingTemplatesSyncInput.pricingTemplates are deleted.
+  """
+  id: ID
+
+  """Template name."""
+  name: String!
+
+  """Reusable price rule."""
+  priceRule: BundlePriceRuleInput!
+
+  """Sort order within configuration."""
+  sortIndex: Int!
+}
+
+input BundleDependencyRulesSyncInput {
+  configurationId: ID!
+  expectedRevision: Int!
+
+  """
+  Complete list of dependency rules for this configuration.
+  Rules not present in this list are deleted.
+  """
+  dependencyRules: [BundleDependencyRuleSyncItemInput!]!
+}
+
+input BundleDependencyRuleSyncItemInput {
+  """
+  Existing dependency rule ID. Null creates a new rule.
+  Existing rules in this configuration but missing from
+  BundleDependencyRulesSyncInput.dependencyRules are deleted.
+  """
+  id: ID
+
+  """Rule name."""
+  name: String!
+
+  """Whether the rule is enabled."""
+  enabled: Boolean!
+
+  """Rule priority."""
+  priority: Int!
+
+  """How condition groups are combined."""
+  logicOperator: BundleLogicOperator!
+
+  """Complete list of condition groups."""
+  conditionGroups: [BundleConditionGroupSyncItemInput!]!
+
+  """Complete list of actions."""
+  actions: [BundleDependencyActionSyncItemInput!]!
+}
+
+input BundleConditionGroupSyncItemInput {
+  """Existing condition group ID. Null creates a new group."""
+  id: ID
+
+  """How conditions are combined."""
+  logicOperator: BundleLogicOperator!
+
+  """Sort order within the rule."""
+  sortIndex: Int!
+
+  """Complete list of conditions."""
+  conditions: [BundleConditionSyncItemInput!]!
+}
+
+input BundleConditionSyncItemInput {
+  """Existing condition ID. Null creates a new condition."""
+  id: ID
+
+  """Condition category."""
+  category: BundleConditionCategory!
+
+  """Condition subject."""
+  subject: BundleConditionSubject!
+
+  """Condition operator."""
+  operator: BundleConditionOperator!
+
+  """Target type."""
+  targetType: BundleDependencyTargetType!
+
+  """Target ID. Points to an item, group, or the parent bundle product."""
+  targetId: ID!
+
+  """Numeric value for numeric conditions."""
   value: Int
-  sortIndex: Int
+
+  """Sort order within the condition group."""
+  sortIndex: Int!
 }
 
-input DependencyActionCreateInput {
-  ruleId: ID!
-  actionType: DependencyActionType!
-  targetType: DependencyTargetType!
+input BundleDependencyActionSyncItemInput {
+  """Existing action ID. Null creates a new action."""
+  id: ID
+
+  """Action type."""
+  actionType: BundleDependencyActionType!
+
+  """Target type."""
+  targetType: BundleDependencyTargetType!
+
+  """Target ID. Null is allowed when targetType is BUNDLE."""
   targetId: ID
+
+  """Required value for SET_REQUIRED."""
   requiredValue: Boolean
-  priceType: BundlePriceType
-  priceValue: Int
-  stackable: Boolean
-  sortIndex: Int
-}
 
-input DependencyActionUpdateInput {
-  id: ID!
-  actionType: DependencyActionType
-  targetType: DependencyTargetType
-  targetId: ID
-  requiredValue: Boolean
-  priceType: BundlePriceType
-  priceValue: Int
-  stackable: Boolean
-  sortIndex: Int
-}
+  """Price rule for ADJUST_PRICE."""
+  priceRule: BundlePriceRuleInput
 
-# ==============================
-# Payload Types
-# ==============================
+  """Whether this action can stack with other matching actions."""
+  stackable: Boolean!
 
-type BundleGroupPayload {
-  bundleGroup: BundleGroup
-  userErrors: [UserError!]!
-}
-
-type BundleItemPayload {
-  bundleItem: BundleItem
-  userErrors: [UserError!]!
-}
-
-type BundlePricingTemplatePayload {
-  bundlePricingTemplate: BundlePricingTemplate
-  userErrors: [UserError!]!
-}
-
-type DependencyRulePayload {
-  dependencyRule: DependencyRule
-  userErrors: [UserError!]!
-}
-
-type ConditionGroupPayload {
-  conditionGroup: ConditionGroup
-  userErrors: [UserError!]!
-}
-
-type ConditionPayload {
-  condition: Condition
-  userErrors: [UserError!]!
-}
-
-type DependencyActionPayload {
-  dependencyAction: DependencyAction
-  userErrors: [UserError!]!
-}
-
-type DeletePayload {
-  deletedId: ID
-  userErrors: [UserError!]!
-}
-
-# ==============================
-# Common Delete Input
-# ==============================
-
-input DeleteInput {
-  id: ID!
+  """Sort order within the rule."""
+  sortIndex: Int!
 }

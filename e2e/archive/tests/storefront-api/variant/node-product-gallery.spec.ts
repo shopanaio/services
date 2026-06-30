@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { test } from '@fixtures/base.extend';
-import { EntityStatus, WeightUnit } from '@codegen/admin-gql';
+
 import type { GraphQLFileName } from '@queries/filenames';
 import { randomUUID } from 'node:crypto';
 import { expect } from '@playwright/test';
@@ -29,7 +29,7 @@ async function createProductWithVariant(
     input: {
       title: 'Node Gallery Product',
       slug: handle,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       requiresShipping: false,
       groups: [],
       tags: [],
@@ -41,7 +41,7 @@ async function createProductWithVariant(
             stockStatus: 'IN_STOCK',
             inListing: true,
             weight: 0,
-            weightUnit: WeightUnit.Gr,
+            weightUnit: 'g',
             categories: [],
             variantSortIndex: 0,
             coverId: opts.coverId,
@@ -68,7 +68,7 @@ test.describe('node product gallery connection', () => {
 
     await api.session.setupApiKey();
 
-    
+
     const prodResp = await api.client.query('client/Product' as GraphQLFileName, {
       variables: { handle: variant.slug },
     });
@@ -92,7 +92,7 @@ test.describe('node product gallery connection', () => {
 
     await api.session.setupApiKey();
 
-    
+
     const prodResp = await api.client.query('client/Product', {
       variables: { handle: variant.slug },
     });

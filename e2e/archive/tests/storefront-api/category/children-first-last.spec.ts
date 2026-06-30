@@ -1,29 +1,32 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { EntityStatus, ListingSort, ListingType } from '@codegen/admin-gql';
-import { ApiQuery, CategorySort } from '@codegen/client-gql';
+
+import type { ApiQuery } from '@codegen/client-gql';
+
 import { randomUUID } from 'node:crypto';
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 import type { ApiFixtures } from '@fixtures/api/api';
 
+type CategorySort = 'TITLE_ASC' | 'TITLE_DESC' | 'CREATED_AT_ASC' | 'CREATED_AT_DESC' | 'UPDATED_AT_ASC' | 'UPDATED_AT_DESC';
+
 const PAGE_SIZE = 2;
 
 const sorts: CategorySort[] = [
-  CategorySort.TitleAsc,
-  CategorySort.TitleDesc,
-  CategorySort.CreatedAtAsc,
-  CategorySort.CreatedAtDesc,
-  CategorySort.UpdatedAtAsc,
-  CategorySort.UpdatedAtDesc,
+  'TITLE_ASC',
+  'TITLE_DESC',
+  'CREATED_AT_ASC',
+  'CREATED_AT_DESC',
+  'UPDATED_AT_ASC',
+  'UPDATED_AT_DESC',
 ];
 
 const commonChildTitles = Array.from({ length: 5 }).map((_, i) => `Child ${i}`);
 
 const getExpected = (titles: string[], sort: CategorySort) => {
   if (
-    sort === CategorySort.TitleDesc ||
-    sort === CategorySort.CreatedAtDesc ||
-    sort === CategorySort.UpdatedAtDesc
+    sort === 'TITLE_DESC' ||
+    sort === 'CREATED_AT_DESC' ||
+    sort === 'UPDATED_AT_DESC'
   )
     return [...titles].reverse();
   return [...titles];
@@ -37,11 +40,11 @@ async function createParents(api: ApiFixtures['api']) {
       input: {
         title: `Parent Cat ${i}`,
         slug,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         includeChildrenProducts: true,
-        listingOrderBy: ListingSort.CreatedAtAsc,
+        listingOrderBy: 'CREATED_AT_ASC',
         listingOrderByStatus: true,
-        listingType: ListingType.Manual,
+        listingType: 'MANUAL',
         excerpt: `Parent ${i} excerpt`,
         description: {
           json: JSON.stringify({
@@ -65,11 +68,11 @@ async function createParents(api: ApiFixtures['api']) {
         input: {
           title,
           slug: `child-${i}-${j}-${randomUUID()}`,
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           includeChildrenProducts: true,
-          listingOrderBy: ListingSort.CreatedAtAsc,
+          listingOrderBy: 'CREATED_AT_ASC',
           listingOrderByStatus: true,
-          listingType: ListingType.Manual,
+          listingType: 'MANUAL',
           excerpt: `Ex ${title}`,
           description: {
             json: JSON.stringify({

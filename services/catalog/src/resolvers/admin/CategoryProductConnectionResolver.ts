@@ -1,10 +1,9 @@
-import { ProductResolver } from "./ProductResolver.js";
 import {
   BaseConnectionResolver,
   type ConnectionData,
 } from "./connection/BaseConnectionResolver.js";
 
-export interface ProductOrderByInput {
+export interface ListingOrderByInput {
   field: "MANUAL" | "PRICE" | "NEWEST" | "NAME";
   direction?: "asc" | "desc";
 }
@@ -15,7 +14,7 @@ export interface CategoryProductConnectionInput {
   after?: string;
   last?: number;
   before?: string;
-  orderBy?: ProductOrderByInput[];
+  orderBy?: ListingOrderByInput[];
   where?: Record<string, unknown>;
 }
 
@@ -34,7 +33,7 @@ export class CategoryProductConnectionResolver extends BaseConnectionResolver<Ca
     return res;
   }
 
-  protected createNodeResolver(nodeId: string) {
-    return new ProductResolver(nodeId, this.$ctx);
+  protected async createNodeResolver(nodeId: string) {
+    return this.resolvers.product(nodeId);
   }
 }

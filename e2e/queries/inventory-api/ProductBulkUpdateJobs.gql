@@ -1,0 +1,38 @@
+query ProductBulkUpdateJobs(
+  $first: Int
+  $after: String
+  $statusFilter: [BulkUpdateJobStatus!]
+) {
+  catalogQuery {
+    productBulkUpdateJobs(first: $first, after: $after, statusFilter: $statusFilter) {
+      edges {
+        cursor
+        node {
+          id
+          status
+          createdAt
+          startedAt
+          finishedAt
+          totalProducts
+          progress {
+            total
+            done
+            succeeded
+            failed
+            cancelled
+            superseded
+            running
+            pending
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

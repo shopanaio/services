@@ -11,7 +11,7 @@ import { join, dirname, basename, relative } from "path";
 import { fileURLToPath } from "url";
 import { exec } from "child_process";
 import { promisify } from "util";
-import { addJsExtensionPlugin } from "@shopana/build-tools/esbuild";
+import { addJsExtensionPlugin, detectCircularImportsPlugin } from "@shopana/build-tools/esbuild";
 
 const execAsync = promisify(exec);
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -289,7 +289,7 @@ async function buildPackage(packageDir) {
     packages: "external", // Don't bundle node_modules dependencies
     sourcemap: true,
     minify: false,
-    plugins: [addJsExtensionPlugin],
+    plugins: [addJsExtensionPlugin, detectCircularImportsPlugin],
     entryNames: "[dir]/[name]",
   };
 

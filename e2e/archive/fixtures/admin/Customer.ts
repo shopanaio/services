@@ -1,9 +1,9 @@
 import { expect } from '@playwright/test';
-import { ApiCreateCustomerInput, ApiCustomer, ApiCustomersOutput, Maybe } from '@codegen/admin-gql';
+import type { ApiCreateCustomerInput, ApiCustomer, ApiCustomersOutput, Maybe } from '@codegen/admin-gql';
 import * as yup from 'yup';
-import { TenantApiFixture } from '@fixtures/admin/api';
+import type { TenantApiFixture } from '@fixtures/admin/api';
 import _ from 'lodash';
-import { DeepPartial } from 'types';
+import type { DeepPartial } from 'types';
 
 export class Customer {
   private api: TenantApiFixture;

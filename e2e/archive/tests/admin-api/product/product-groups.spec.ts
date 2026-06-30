@@ -1,23 +1,18 @@
 
 import { test } from '@fixtures/base.extend';
 import { randomUUID } from 'node:crypto';
-import {
-  ApiProduct,
-  DimensionUnit,
-  EntityStatus,
-  ProductGroupPriceType,
-  WeightUnit,
-} from '@codegen/admin-gql';
+import type { ApiProduct } from '@codegen/admin-gql';
+
 import { expect } from '@playwright/test';
 
 test.describe('Product-components API', () => {
   const shippingSettings = {
     weight: 0,
-    weightUnit: WeightUnit.Gr,
+    weightUnit: 'g',
     width: 0,
     height: 0,
     length: 0,
-    dimensionUnit: DimensionUnit.Mm,
+    dimensionUnit: 'mm',
   };
 
   test('Create components', async ({ api }) => {
@@ -36,7 +31,7 @@ test.describe('Product-components API', () => {
         input: {
           title: 'Test Box',
           slug: randomUUID(),
-          status: EntityStatus.Draft,
+          status: 'DRAFT',
           variants: {
             create: [
               {
@@ -59,7 +54,7 @@ test.describe('Product-components API', () => {
         input: {
           title: 'Test component 2',
           slug: randomUUID(),
-          status: EntityStatus.Draft,
+          status: 'DRAFT',
           variants: {
             create: [
               {
@@ -88,7 +83,7 @@ test.describe('Product-components API', () => {
             values: ['Large', 'Medium', 'Small'],
           },
         ],
-        status: EntityStatus.Draft,
+        status: 'DRAFT',
       });
 
       expect(componentProductWithVariants.variants?.length).toBe(3);
@@ -111,17 +106,17 @@ test.describe('Product-components API', () => {
                     {
                       variantId: componentProductWithVariants.variants[0].id,
                       sortIndex: 0,
-                      priceType: ProductGroupPriceType.Base,
+                      priceType: 'BASE',
                     },
                     {
                       variantId: componentProductWithVariants.variants[1].id,
                       sortIndex: 1,
-                      priceType: ProductGroupPriceType.Base,
+                      priceType: 'BASE',
                     },
                     {
                       variantId: componentProductWithVariants.variants[2].id,
                       sortIndex: 2,
-                      priceType: ProductGroupPriceType.Base,
+                      priceType: 'BASE',
                     },
                   ],
                   sortIndex: 0,
@@ -134,7 +129,7 @@ test.describe('Product-components API', () => {
                     {
                       variantId: simpleComponentProduct.variants[0].id,
                       sortIndex: 0,
-                      priceType: ProductGroupPriceType.Base,
+                      priceType: 'BASE',
                     },
                   ],
                   sortIndex: 1,

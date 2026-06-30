@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useCallback, useState } from "react";
-import { Image, Typography, Flex, Tag, Button, Popover } from "antd";
+import { Typography, Flex, Tag, Button, Popover } from "antd";
 import { AgGridReact } from "ag-grid-react";
 import {
   ColDef,
@@ -12,15 +12,17 @@ import {
   SelectionChangedEvent,
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
-import { CloudUploadOutlined, DeleteOutlined } from "@ant-design/icons";
+import {
+  CloudUploadOutlined,
+  DeleteOutlined,
+  FileOutlined,
+} from "@ant-design/icons";
 import { DataLayout } from "@/layouts/data";
 import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
-import {
-  FloatingPanelStack,
-  type PanelConfig,
-  type ActionConfig,
-} from "@/ui-kit/floating-panel-stack";
+import { FloatingPanelStack } from "@/ui-kit/floating-panel-stack";
+import type { ActionConfig } from "@/ui-kit/floating-panel-stack/core/types";
+import type { PanelConfig } from "@/ui-kit/floating-panel-stack/data-page/floating-panel-stack";
 import {
   usePageConfig,
   createStartsWithTransformer,
@@ -37,6 +39,8 @@ import type {
   ApiFileOrderByInput,
 } from "@/graphql/types";
 import { FileProvider } from "@/graphql/types";
+import { Dash } from "@/shared/components/editor-grid";
+import { TableCoverImage } from "@/shared/components/table-cover-image";
 
 ModuleRegistry.registerModules([
   AllCommunityModule,
@@ -56,6 +60,10 @@ const sortFieldMapping: Record<string, FileOrderField> = {
   createdAt: FileOrderField.CreatedAt,
 };
 
+const mediaFilterTransformers = {
+  mimeType: createStartsWithTransformer<ApiFileWhereInput>("mimeType"),
+};
+
 // ============================================
 // Cell Renderers
 // ============================================
@@ -68,33 +76,11 @@ const FileCellRenderer = (props: CustomCellRendererProps<ApiFile>) => {
 
   return (
     <Flex align="center" gap="small">
-      {isImage ? (
-        <Image
-          src={data.url}
-          alt={data.originalName ?? "File"}
-          width={40}
-          height={40}
-          style={{ borderRadius: 4, objectFit: "cover" }}
-          preview={false}
-        />
-      ) : (
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 4,
-            backgroundColor: "#f0f0f0",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 10,
-            fontWeight: 500,
-            color: "#666",
-          }}
-        >
-          {data.ext?.toUpperCase() ?? "FILE"}
-        </div>
-      )}
+      <TableCoverImage
+        src={isImage ? data.url : null}
+        alt={data.originalName ?? "File"}
+        fallbackIcon={<FileOutlined />}
+      />
       <Typography.Text strong ellipsis style={{ maxWidth: 200 }}>
         {data.originalName ?? "Untitled"}
       </Typography.Text>
@@ -118,7 +104,7 @@ const ProviderCellRenderer = (props: CustomCellRendererProps<ApiFile>) => {
 const SizeCellRenderer = (props: CustomCellRendererProps<ApiFile>) => {
   const { value } = props;
   if (!value || value === 0) {
-    return <Typography.Text type="secondary">-</Typography.Text>;
+    return <Dash />;
   }
 
   const formatBytes = (bytes: number): string => {
@@ -134,7 +120,7 @@ const SizeCellRenderer = (props: CustomCellRendererProps<ApiFile>) => {
 
 const DateCellRenderer = (props: CustomCellRendererProps<ApiFile>) => {
   const { value } = props;
-  if (!value) return <Typography.Text type="secondary">-</Typography.Text>;
+  if (!value) return <Dash />;
 
   const date = new Date(value);
   return (
@@ -167,7 +153,7 @@ const ReferencesCellRenderer = (props: CustomCellRendererProps<ApiFile>) => {
   const usage = data?.usage;
 
   if (!usage || usage.totalCount === 0) {
-    return <Typography.Text type="secondary">-</Typography.Text>;
+    return <Dash />;
   }
 
   const { byEntity, totalCount } = usage;
@@ -235,9 +221,7 @@ export default function MediaPage() {
     defaultSort: [{ colId: "createdAt", sort: "desc" }],
     defaultPageSize: 20,
     searchField: "originalName",
-    filterTransformers: {
-      mimeType: createStartsWithTransformer<ApiFileWhereInput>("mimeType"),
-    },
+    filterTransformers: mediaFilterTransformers,
   });
 
   const { files, totalCount, pageInfo, loading, refetch } = useFiles({

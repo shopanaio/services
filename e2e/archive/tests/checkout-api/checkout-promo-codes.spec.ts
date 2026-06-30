@@ -1,5 +1,6 @@
-import { EntityStatus } from '@codegen/admin-gql';
-import { ApiCheckoutLine, CurrencyCode } from '@codegen/client-gql';
+
+import type { ApiCheckoutLine } from '@codegen/client-gql';
+
 import { test } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
 
@@ -20,7 +21,7 @@ test.describe('checkout-api: promo codes management', () => {
       await api.admin.product.create({
         input: {
           title: 'Promo Test Product',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle,
           groups: [],
           requiresShipping: true,
@@ -48,7 +49,7 @@ test.describe('checkout-api: promo codes management', () => {
 
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -131,7 +132,7 @@ test.describe('checkout-api: promo codes management', () => {
       await api.admin.product.create({
         input: {
           title: 'Promo Test Product 1',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle1,
           groups: [],
           requiresShipping: true,
@@ -157,7 +158,7 @@ test.describe('checkout-api: promo codes management', () => {
       await api.admin.product.create({
         input: {
           title: 'Promo Test Product 2',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle2,
           groups: [],
           requiresShipping: true,
@@ -187,7 +188,7 @@ test.describe('checkout-api: promo codes management', () => {
 
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -255,7 +256,7 @@ test.describe('checkout-api: promo codes management', () => {
       await api.admin.product.create({
         input: {
           title: 'Promo Test Product for Quantity Update',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle,
           groups: [],
           requiresShipping: true,
@@ -282,7 +283,7 @@ test.describe('checkout-api: promo codes management', () => {
       purchasableId = variant.id;
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -386,7 +387,7 @@ test.describe('checkout-api: promo codes management', () => {
       await api.admin.product.create({
         input: {
           title: 'Promo Test Product 1 for Removal',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle1,
           groups: [],
           requiresShipping: true,
@@ -412,7 +413,7 @@ test.describe('checkout-api: promo codes management', () => {
       await api.admin.product.create({
         input: {
           title: 'Promo Test Product 2 for Removal',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle2,
           groups: [],
           requiresShipping: true,
@@ -442,7 +443,7 @@ test.describe('checkout-api: promo codes management', () => {
 
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -560,7 +561,7 @@ test.describe('checkout-api: promo codes management', () => {
         api.admin.product.create({
           input: {
             title: 'Product A',
-            status: EntityStatus.Published,
+            status: 'PUBLISHED',
             slug: handleA,
             groups: [],
             requiresShipping: true,
@@ -583,7 +584,7 @@ test.describe('checkout-api: promo codes management', () => {
         api.admin.product.create({
           input: {
             title: 'Product B',
-            status: EntityStatus.Published,
+            status: 'PUBLISHED',
             slug: handleB,
             groups: [],
             requiresShipping: true,
@@ -606,7 +607,7 @@ test.describe('checkout-api: promo codes management', () => {
         api.admin.product.create({
           input: {
             title: 'Product C',
-            status: EntityStatus.Published,
+            status: 'PUBLISHED',
             slug: handleC,
             groups: [],
             requiresShipping: true,
@@ -640,7 +641,7 @@ test.describe('checkout-api: promo codes management', () => {
 
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 

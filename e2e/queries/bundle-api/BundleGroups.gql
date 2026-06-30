@@ -1,41 +1,46 @@
 query BundleGroups($productId: ID!) {
   catalogQuery {
-    bundleGroups(productId: $productId) {
+    bundle(id: $productId) {
       id
-      productId
-      title
-      sortIndex
-      minSelection
-      maxSelection
-      items {
+      configurations {
         id
-        groupId
-        itemType
-        sortIndex
-        refProductId
-        refVariantId
-        title
-        featuredImageId
-        excludedVariantIds
-        minQty
-        maxQty
-        defaultQty
-        priceType
-        priceValue
-        pricingTemplateId
-        pricingTemplate {
+        groups {
           id
-          name
-          priceType
-          priceValue
+          title
+          sortIndex
+          minSelection
+          maxSelection
+          items {
+            id
+            groupId
+            itemType
+            sortIndex
+            refProductId
+            refVariantId
+            title
+            featuredImage {
+              id
+            }
+            minQty
+            maxQty
+            defaultQty
+            pricingTemplate {
+              id
+              name
+              priceRule {
+                id
+                priceType
+              }
+            }
+            visible
+            selected
+            createdAt
+            updatedAt
+          }
+          createdAt
+          updatedAt
         }
-        visible
-        selected
-        createdAt
-        updatedAt
       }
-      createdAt
-      updatedAt
     }
   }
 }

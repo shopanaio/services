@@ -1,14 +1,9 @@
-import { Country, Currency, generateUser, Locale, UserData, Timezone } from '@utils/user';
-import {
-  ApiProject,
-  ApiSession,
-  ApiUserMutationSignInArgs,
-  ApiUserMutationSignUpArgs,
-  ProjectStatus,
-} from '@codegen/admin-gql';
-import { LocaleCode } from '@codegen/client-gql';
-import { ClientApiFixture } from '@fixtures/client/api';
-import { TenantApiFixture } from '@fixtures/admin/api';
+import type { UserData } from '@utils/user';
+import { Country, Currency, generateUser, Locale, Timezone } from '@utils/user';
+import type { ApiProject, ApiSession, ApiUserMutationSignInArgs, ApiUserMutationSignUpArgs } from '@codegen/admin-gql';
+
+import type { ClientApiFixture } from '@fixtures/client/api';
+import type { TenantApiFixture } from '@fixtures/admin/api';
 
 export class SessionFixture {
   private api!: {
@@ -65,7 +60,7 @@ export class SessionFixture {
           password: this.tenant.data.password,
           firstName: this.tenant.data.firstName,
           lastName: this.tenant.data.lastName,
-          language: LocaleCode.En,
+          language: 'en',
           timezone: Timezone.EUROPE_KIEV,
         },
       },
@@ -105,7 +100,7 @@ export class SessionFixture {
           name: 'Session Store',
           currency: Currency.EUR,
           country: Country.UA,
-          status: ProjectStatus.Active,
+          status: 'ACTIVE',
           timezone: Timezone.EUROPE_KIEV,
           locales: [Locale.EN, Locale.RU],
         },

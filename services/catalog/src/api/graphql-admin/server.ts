@@ -25,6 +25,15 @@ export interface ServerConfig {
   port: number;
 }
 
+function getHeaderValue(
+  value: string | string[] | undefined
+): string | undefined {
+  const headerValue = Array.isArray(value) ? value[0] : value;
+  const trimmedValue = headerValue?.trim();
+
+  return trimmedValue ? trimmedValue : undefined;
+}
+
 /**
  * Create and start GraphQL-only server
  * Uses admin context middleware that sets async local storage context
@@ -70,18 +79,23 @@ export async function startServer(serverConfig: ServerConfig) {
     "scalars.graphql",
     // Service-specific schemas
     "base.graphql",
-    "bulk.graphql",
     "bundle.graphql",
+    "bulk.graphql",
     "category.graphql",
     "collection.graphql",
     "facet.graphql",
     "features.graphql",
+    "inventory-item.graphql",
+    "inventory-widget.graphql",
+    "listing.graphql",
     "media.graphql",
     "options.graphql",
+    "physical.graphql",
     "pricing.graphql",
     "product.graphql",
     "relay.graphql",
     "seo.graphql",
+    "stock.graphql",
     "tag.graphql",
     "variant.graphql",
     // Generated schemas
@@ -129,11 +143,16 @@ export async function startServer(serverConfig: ServerConfig) {
         // Create loaders per request for proper batching
         const loaders = new Loader(kernel!.repository);
 
-        // Read currency from header (default: UAH)
-        const currency = (request.headers["x-currency"] as string) ?? "UAH";
+        // Read currency from header, then store context.
+        const currency =
+          getHeaderValue(request.headers["x-currency"]) ??
+          request.store.defaultCurrency;
+        const requestId =
+          getHeaderValue(request.headers["x-idempotency-key"]) ??
+          (request.id as string);
 
         const ctx = new ServiceContext({
-          requestId: request.id as string,
+          requestId,
           kernel: kernel!,
           store: request.store,
           user: request.user,

@@ -1,5 +1,5 @@
-import { ApiCheckout, CurrencyCode } from '@codegen/client-gql';
-import { EntityStatus } from '@codegen/admin-gql';
+import type { ApiCheckout } from '@codegen/client-gql';
+
 import { test } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
 // idempotency param removed from API; duplicate check is by server-side request hash
@@ -11,7 +11,7 @@ test.describe('checkout-api: create checkout', () => {
 
     const input = {
       localeCode: 'en',
-      currencyCode: CurrencyCode.Usd,
+      currencyCode: 'USD',
       items: [],
     };
 
@@ -49,7 +49,7 @@ test.describe('checkout-api: create checkout', () => {
       await api.admin.product.create({
         input: {
           title: 'Checkout With Items Test Product',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle,
           groups: [],
           requiresShipping: true,
@@ -84,7 +84,7 @@ test.describe('checkout-api: create checkout', () => {
     await test.step('create checkout with items in create mutation', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [
           {
             purchasableId,
@@ -104,7 +104,7 @@ test.describe('checkout-api: create checkout', () => {
       // Create empty checkout
       const { data: createData } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 

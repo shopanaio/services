@@ -1,39 +1,39 @@
-import { WeightUnit, DimensionUnit } from "@/mocks/products/types";
+import { DimensionUnit, WeightUnit } from "@/graphql/types";
 
 export const weightUnitOptions = {
   [WeightUnit.G]: {
     key: WeightUnit.G,
     label: 'g',
   },
-  [WeightUnit.KG]: {
-    key: WeightUnit.KG,
+  [WeightUnit.Kg]: {
+    key: WeightUnit.Kg,
     label: 'kg',
   },
-  [WeightUnit.OZ]: {
-    key: WeightUnit.OZ,
+  [WeightUnit.Oz]: {
+    key: WeightUnit.Oz,
     label: 'oz',
   },
-  [WeightUnit.LB]: {
-    key: WeightUnit.LB,
+  [WeightUnit.Lb]: {
+    key: WeightUnit.Lb,
     label: 'lb',
   },
 };
 
 export const dimensionUnitOptions = {
-  [DimensionUnit.MM]: {
-    key: DimensionUnit.MM,
+  [DimensionUnit.Mm]: {
+    key: DimensionUnit.Mm,
     label: 'mm',
   },
-  [DimensionUnit.CM]: {
-    key: DimensionUnit.CM,
+  [DimensionUnit.Cm]: {
+    key: DimensionUnit.Cm,
     label: 'cm',
   },
   [DimensionUnit.M]: {
     key: DimensionUnit.M,
     label: 'm',
   },
-  [DimensionUnit.IN]: {
-    key: DimensionUnit.IN,
+  [DimensionUnit.In]: {
+    key: DimensionUnit.In,
     label: 'in',
   },
 };

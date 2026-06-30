@@ -10,51 +10,122 @@ input ProductSortInput {
   direction: SortDirection
 }
 
-"""Standard orderBy input for product queries."""
-input ProductOrderByInput {
-  field: ProductSortBy!
-  direction: SortDirection
+input ProductProductsMetaInput {
+  categoriesScope: ProductCategoriesScopeInput
+}
+
+input ProductCategoriesScopeInput {
+  referenceIds: [ID!]!
+  mode: CategoryHierarchyScopeMode!
 }
 
 # ---- Product Types ----
 
 """
-Product description in multiple formats.
+Rich text content in multiple formats.
 """
-type Description {
-  """Plain text description."""
+type RichText {
+  """Plain text content."""
   text: String!
 
-  """HTML description."""
+  """HTML content."""
   html: String!
 
-  """EditorJS JSON description."""
+  """EditorJS JSON content."""
   json: JSON!
 }
 
 """
-Input for product description (all fields required).
+Input for rich text content (all fields required).
 """
-input DescriptionInput {
-  """Plain text description."""
+input RichTextInput {
+  """Plain text content."""
   text: String!
 
-  """HTML description."""
+  """HTML content."""
   html: String!
 
-  """EditorJS JSON description."""
+  """EditorJS JSON content."""
   json: JSON!
+}
+
+type ProductCategoryAssignment {
+  category: Category!
+  isPrimary: Boolean!
+}
+
+enum ProductKind {
+  BASE
+  BUNDLE
+}
+
+"""
+A vendor represents the supplier or brand owner associated with a product.
+"""
+type Vendor implements Node @key(fields: "id") {
+  """The globally unique ID of the vendor."""
+  id: ID!
+
+  """The display name of the vendor."""
+  name: String!
+}
+
+"""
+A connection to a list of Vendor items.
+"""
+type VendorConnection {
+  """A list of edges."""
+  edges: [VendorEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of vendors."""
+  totalCount: Int!
+}
+
+"""
+An edge in a Vendor connection.
+"""
+type VendorEdge {
+  """The item at the end of the edge."""
+  node: Vendor!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+"""
+Input for creating a vendor.
+"""
+input VendorCreateInput {
+  """The display name of the vendor."""
+  name: String!
+}
+
+"""
+Payload for vendor creation.
+"""
+type VendorCreatePayload {
+  """The created vendor."""
+  vendor: Vendor
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
 }
 
 """
 A product represents an item that can be sold.
 """
-type Product implements Node @key(fields: "id") {
-  """The globally unique ID of the product."""
+type Product implements Node & Listing @key(fields: "id") {
+  """The Product global ID."""
   id: ID!
 
+  """Product discriminator."""
+  kind: ProductKind!
+
   """The URL-friendly handle for the product."""
-  handle: String
+  handle: String!
 
   """The date and time when the product was published, or null if unpublished."""
   publishedAt: DateTime
@@ -74,6 +145,9 @@ type Product implements Node @key(fields: "id") {
   """Optimistic locking revision number. Incremented on each update."""
   revision: Int!
 
+  """The vendor associated with this product."""
+  vendor: Vendor
+
   """The variants of this product."""
   variants(
     first: Int
@@ -81,6 +155,9 @@ type Product implements Node @key(fields: "id") {
     last: Int
     before: String
   ): VariantConnection!
+
+  """Media registered on this product."""
+  media: [ProductMediaItem!]!
 
   """The options available for this product."""
   options: [ProductOption!]!
@@ -91,8 +168,11 @@ type Product implements Node @key(fields: "id") {
   """The total number of variants for this product."""
   variantsCount: Int!
 
-  """The categories this product belongs to."""
-  categories: [Category!]!
+  """The primary category assigned to this product."""
+  primaryCategory: Category
+
+  """Category assignments with relationship metadata."""
+  categoryAssignments: [ProductCategoryAssignment!]!
 
   """The tags associated with this product."""
   tags: [Tag!]!
@@ -101,13 +181,16 @@ type Product implements Node @key(fields: "id") {
   title: String!
 
   """Product description."""
-  description: Description
+  description: RichText
 
   """Short excerpt."""
-  excerpt: String
+  excerpt: RichText
 
   """SEO and Open Graph metadata."""
   seo: ProductSeo
+
+  """Current product price range in the selected currency."""
+  priceRange: ProductPriceRange
 }
 
 """
@@ -158,6 +241,9 @@ input ProductCreateOptionValueInput {
 
   """URL-friendly slug for the value."""
   slug: String!
+
+  """Sort order within the option values list."""
+  sortIndex: Int
 }
 
 """
@@ -172,6 +258,9 @@ input ProductCreateOptionInput {
 
   """How to display the option (default: DROPDOWN)."""
   displayType: String
+
+  """Sort order within the product options list."""
+  sortIndex: Int
 
   """The values for this option."""
   values: [ProductCreateOptionValueInput!]!
@@ -209,8 +298,14 @@ input ProductCreateInput {
   """URL-friendly handle for the product."""
   handle: String!
 
+  """Vendor ID to associate with the product."""
+  vendorId: ID
+
   """Product description."""
-  description: DescriptionInput
+  description: RichTextInput
+
+  """Short excerpt in multiple formats."""
+  excerpt: RichTextInput
 
   """File IDs for product media (already uploaded via mediaMutation.fileUpload)."""
   mediaFileIds: [ID!]
@@ -288,10 +383,10 @@ Input for product content (description, excerpt).
 """
 input ProductContentInput {
   """Product description in multiple formats."""
-  description: DescriptionInput
+  description: RichTextInput
 
   """Short excerpt."""
-  excerpt: String
+  excerpt: RichTextInput
 }
 
 """
@@ -300,6 +395,46 @@ Input for product media.
 input ProductMediaInput {
   """File IDs for product media."""
   fileIds: [ID!]!
+}
+
+enum ProductCategoryOperationAction {
+  ADD
+  REMOVE
+  SET_PRIMARY
+  MOVE
+}
+
+enum ProductTagOperationAction {
+  ADD
+  REMOVE
+}
+
+"""
+Product category assignment operation for unified product updates.
+"""
+input ProductCategoryOperationInput {
+  """The category to update for the product."""
+  categoryId: ID!
+
+  """The assignment action to apply."""
+  action: ProductCategoryOperationAction!
+
+  """Move this product after another product in the category listing."""
+  afterProductId: ID
+
+  """Move this product before another product in the category listing."""
+  beforeProductId: ID
+}
+
+"""
+Product tag assignment operation for unified product updates.
+"""
+input ProductTagOperationInput {
+  """The tag to update for the product."""
+  tagId: ID!
+
+  """The assignment action to apply."""
+  action: ProductTagOperationAction!
 }
 
 """
@@ -311,6 +446,9 @@ input ProductUpdateInput {
 
   """Product title."""
   title: String
+
+  """Vendor ID to associate with the product. Pass null to clear."""
+  vendorId: ID
 
   """Product content (description, excerpt)."""
   content: ProductContentInput
@@ -324,8 +462,23 @@ input ProductUpdateInput {
   """Product media."""
   media: ProductMediaInput
 
-  """Variant updates."""
-  variants: [VariantUpdateInput!]
+  """Product category assignment operations."""
+  categories: [ProductCategoryOperationInput!]
+
+  """Product tag assignment operations."""
+  tags: [ProductTagOperationInput!]
+
+  """Variant create, update, and delete operations."""
+  variants: [VariantOperationInput!]
+}
+
+"""
+Variant operation action in the unified product update.
+"""
+enum VariantOperationAction {
+  CREATE
+  UPDATE
+  DELETE
 }
 
 """
@@ -357,9 +510,6 @@ input VariantInventoryOpInput {
 
   """SKU code."""
   sku: String
-
-  """Weight in grams."""
-  weight: Int
 
   """Unit cost in minor units (cents)."""
   unitCostMinor: BigInt
@@ -399,20 +549,29 @@ input VariantOptionsOpInput {
 }
 
 """
-Input for a single variant update.
+Input for a single variant operation.
 """
-input VariantUpdateInput {
-  """The variant ID."""
-  variantId: ID!
+input VariantOperationInput {
+  """The operation to apply."""
+  action: VariantOperationAction!
+
+  """The variant ID for update/delete operations."""
+  variantId: ID
+
+  """Per-request client correlation key for create operations."""
+  clientMutationId: String
 
   """Variant pricing."""
   pricing: VariantPricingOpInput
 
-  """Variant inventory (stock, SKU, weight, cost)."""
+  """Variant inventory item data (stock, SKU, cost)."""
   inventory: VariantInventoryOpInput
 
   """Variant dimensions."""
   dimensions: VariantDimensionsOpInput
+
+  """Variant weight in grams."""
+  weight: Int
 
   """Variant media."""
   media: VariantMediaOpInput
@@ -426,7 +585,12 @@ Type of operation in the unified update.
 """
 enum OperationType {
   PRODUCT_UPDATE
+  VARIANT_CREATE
   VARIANT_UPDATE
+  VARIANT_DELETE
+  PRODUCT_CATEGORY_UPDATE
+  PRODUCT_TAG_UPDATE
+  CATEGORY_UPDATE
 }
 
 """
@@ -438,6 +602,12 @@ type OperationResult {
 
   """Whether the operation was applied successfully."""
   applied: Boolean!
+
+  """Per-request client correlation key for create operations."""
+  clientMutationId: String
+
+  """Entity affected by this operation."""
+  entityId: ID
 
   """Errors that occurred during this operation."""
   errors: [GenericUserError!]!

@@ -9,13 +9,15 @@ import {
 import { EntityPickerContent } from "./entity-picker-content";
 import { categoryPickerConfig } from "./configs/category-picker-config";
 import type { IPickableEntity } from "./types";
+import type { ApiCategoryCategoriesMetaInput } from "@/graphql/types";
 
 export interface ICategoryPickerPayload {
   selectionMode?: "single" | "multi";
   initialSelection?: string[];
   excludeIds?: string[];
   maxSelection?: number;
-  onConfirm: (entities: IPickableEntity[]) => void;
+  queryMeta?: ApiCategoryCategoriesMetaInput;
+  onConfirm: (entities: IPickableEntity[], ids: string[]) => void;
 }
 
 export function CategoryPickerModal() {
@@ -26,6 +28,7 @@ export function CategoryPickerModal() {
     initialSelection = [],
     excludeIds = [],
     maxSelection,
+    queryMeta,
     onConfirm,
   } = typedPayload;
 
@@ -43,9 +46,9 @@ export function CategoryPickerModal() {
   );
 
   const handleConfirm = useCallback(() => {
-    onConfirm(selectedEntities);
+    onConfirm(selectedEntities, selectedIds);
     forcePop();
-  }, [selectedEntities, onConfirm, forcePop]);
+  }, [selectedEntities, selectedIds, onConfirm, forcePop]);
 
   const handleCancel = useCallback(() => {
     forcePop();
@@ -60,6 +63,7 @@ export function CategoryPickerModal() {
       bodyClassName="entity-picker-body"
       header={
         <ModalHeader
+          name="category-picker"
           title="Select Categories"
           onClose={handleCancel}
           submitButtonProps={{
@@ -76,6 +80,7 @@ export function CategoryPickerModal() {
         initialSelection={initialSelection}
         excludeIds={excludeIds}
         maxSelection={maxSelection}
+        queryMeta={queryMeta}
         onSelectionChange={handleSelectionChange}
       />
     </ModalLayout>

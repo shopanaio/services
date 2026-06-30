@@ -6,6 +6,7 @@ import { buildCommand } from "./commands/build.js";
 import { codegenCommand } from "./commands/codegen.js";
 import { dbGenerateCommand } from "./commands/db.js";
 import { devCommand } from "./commands/dev.js";
+import { e2eCodegenCommand, e2eTestCommand } from "./commands/e2e.js";
 import { gatewayCommand } from "./commands/gateway.js";
 import { migrateCommand } from "./commands/migrate.js";
 import {
@@ -25,7 +26,6 @@ program
   .option("-s, --service <services...>", "Build specific service(s)")
   .option("-p, --packages", "Build only packages")
   .option("--parallel", "Build services in parallel")
-  .option("--no-check", "Skip TypeScript type checking")
   .action(buildCommand);
 
 // Dev command
@@ -63,6 +63,27 @@ program
   .option("-a, --admin", "Start admin gateway only")
   .option("-s, --storefront", "Start storefront gateway only")
   .action(gatewayCommand);
+
+// E2E commands
+const e2e = program.command("e2e").description("Manage Playwright E2E workflow");
+
+e2e
+  .command("test [testPath]")
+  .description("Run Playwright E2E tests from the e2e directory")
+  .option("-g, --grep <grep>", "Only run tests matching this regular expression")
+  .option("--project <project>", "Run tests in a specific Playwright project")
+  .option("--headed", "Run tests in headed mode")
+  .option("--debug", "Run tests in debug mode with Playwright Inspector")
+  .option("--workers <workers>", "Number of parallel workers", Number.parseInt)
+  .option("--retries <retries>", "Number of retries for failed tests", Number.parseInt)
+  .option("--reporter <reporter>", "Playwright reporter to use")
+  .option("--update-snapshots", "Update snapshots with actual results")
+  .action(e2eTestCommand);
+
+e2e
+  .command("codegen")
+  .description("Generate E2E GraphQL TypeScript types")
+  .action(e2eCodegenCommand);
 
 // Schema commands
 const schema = program.command("schema").description("Manage GraphQL schemas");

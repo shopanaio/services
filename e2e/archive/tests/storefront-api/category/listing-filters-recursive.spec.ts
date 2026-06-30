@@ -1,16 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import {
-  EntityStatus,
-  ListingType,
-  ListingSort as AdminListingSort,
-  WeightUnit,
-  DimensionUnit,
-} from '@codegen/admin-gql';
+
 import type { ApiFixtures } from '@fixtures/api/api';
 import { randomUUID } from 'node:crypto';
+
+type EntityStatus = 'DRAFT' | 'PUBLISHED';
 
 // ---------------------------------------------------------------------------
 
@@ -42,11 +39,11 @@ async function prepareHierarchyWithFilters(api: ApiFixtures['api']): Promise<{
     input: {
       title: 'Root Facets',
       slug: rootSlug,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       includeChildrenProducts: true,
-      listingOrderBy: AdminListingSort.TitleAsc,
+      listingOrderBy: 'TITLE_ASC',
       listingOrderByStatus: false,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       excerpt: '',
       description: { json: '{}', text: '', html: '' },
       gallery: [],
@@ -61,11 +58,11 @@ async function prepareHierarchyWithFilters(api: ApiFixtures['api']): Promise<{
     input: {
       title: 'Child 1',
       slug: `child1-${randomUUID()}`,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       includeChildrenProducts: true,
-      listingOrderBy: AdminListingSort.TitleAsc,
+      listingOrderBy: 'TITLE_ASC',
       listingOrderByStatus: false,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       parentId: rootCategory.id,
       excerpt: '',
       description: { json: '{}', text: '', html: '' },
@@ -78,11 +75,11 @@ async function prepareHierarchyWithFilters(api: ApiFixtures['api']): Promise<{
     input: {
       title: 'Grandchild 1',
       slug: `grandchild1-${randomUUID()}`,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       includeChildrenProducts: true,
-      listingOrderBy: AdminListingSort.TitleAsc,
+      listingOrderBy: 'TITLE_ASC',
       listingOrderByStatus: false,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       parentId: child1.id,
       excerpt: '',
       description: { json: '{}', text: '', html: '' },
@@ -95,11 +92,11 @@ async function prepareHierarchyWithFilters(api: ApiFixtures['api']): Promise<{
     input: {
       title: 'Child 2',
       slug: `child2-${randomUUID()}`,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       includeChildrenProducts: true,
-      listingOrderBy: AdminListingSort.TitleAsc,
+      listingOrderBy: 'TITLE_ASC',
       listingOrderByStatus: false,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       parentId: rootCategory.id,
       excerpt: '',
       description: { json: '{}', text: '', html: '' },
@@ -108,16 +105,15 @@ async function prepareHierarchyWithFilters(api: ApiFixtures['api']): Promise<{
     },
   });
 
-  
   const draftChild = await api.admin.category.create({
     input: {
       title: 'Draft Child',
       slug: `draft-child-${randomUUID()}`,
-      status: EntityStatus.Draft,
+      status: 'DRAFT',
       includeChildrenProducts: true,
-      listingOrderBy: AdminListingSort.TitleAsc,
+      listingOrderBy: 'TITLE_ASC',
       listingOrderByStatus: false,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       parentId: rootCategory.id,
       excerpt: '',
       description: { json: '{}', text: '', html: '' },
@@ -154,37 +150,37 @@ async function prepareHierarchyWithFilters(api: ApiFixtures['api']): Promise<{
       price: 1000,
       tag: tagAlpha,
       categoryId: child1.id,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
     },
     {
       title: 'Banana',
       price: 2000,
       tag: tagBeta,
       categoryId: grandchild1.id,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
     },
     {
       title: 'Cucumber',
       price: 3000,
       tag: tagGamma,
       categoryId: child2.id,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
     },
-    
+
     {
       title: 'Drafty',
       price: 4000,
       tag: tagDelta,
       categoryId: child1.id,
-      status: EntityStatus.Draft,
+      status: 'DRAFT',
     },
-    
+
     {
       title: 'Hidden',
       price: 5000,
       tag: tagGamma,
       categoryId: draftChild.id,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
     },
   ];
 
@@ -219,8 +215,8 @@ async function prepareHierarchyWithFilters(api: ApiFixtures['api']): Promise<{
               title: seed.title,
               variantSortIndex: 0,
               weight: 0,
-              weightUnit: WeightUnit.Gr,
-              dimensionUnit: DimensionUnit.Cm,
+              weightUnit: 'g',
+              dimensionUnit: 'cm',
               height: 0,
               length: 0,
               width: 0,

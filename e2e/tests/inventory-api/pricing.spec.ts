@@ -1,5 +1,6 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
+import { encodeGlobalId } from '@utils/globalid';
 
 test.describe('Pricing & Cost API', () => {
   test.beforeEach(async ({ api }) => {
@@ -168,10 +169,15 @@ test.describe('Pricing & Cost API', () => {
     });
 
     test('should return error for invalid variant ID', async ({ api }) => {
+      const missingVariantId = encodeGlobalId(
+        'Variant',
+        '00000000-0000-0000-0000-000000000000',
+      );
+
       const { data } = await api.admin.mutation('inventory-api/VariantSetPricing', {
         variables: {
           input: {
-            variantId: '00000000-0000-0000-0000-000000000000',
+            variantId: missingVariantId,
             currency: 'UAH',
             amountMinor: '10000',
           },
@@ -256,11 +262,16 @@ test.describe('Pricing & Cost API', () => {
       expect(result.inventoryItem?.unitCost?.amountMinor).toBe(6000);
     });
 
-    test('should return error for invalid inventory item ID', async ({ api }) => {
+    test('should return error for non-existent global inventory item ID', async ({ api }) => {
+      const missingInventoryItemId = encodeGlobalId(
+        'InventoryItem',
+        '00000000-0000-0000-0000-000000000000',
+      );
+
       const { data } = await api.admin.mutation('inventory-api/VariantSetCost', {
         variables: {
           input: {
-            id: '00000000-0000-0000-0000-000000000000',
+            id: missingInventoryItemId,
             unitCost: {
               currency: 'UAH',
               amountMinor: '5000',

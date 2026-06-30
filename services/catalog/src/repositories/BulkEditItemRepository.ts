@@ -34,6 +34,63 @@ export interface BulkEditItemConnectionResult {
   totalCount: number;
 }
 
+export interface BulkEditJobProgressCounts {
+  total: number;
+  done: number;
+  succeeded: number;
+  failed: number;
+  cancelled: number;
+  superseded: number;
+  running: number;
+  pending: number;
+}
+
+export function emptyProgressCounts(): BulkEditJobProgressCounts {
+  return {
+    total: 0,
+    done: 0,
+    succeeded: 0,
+    failed: 0,
+    cancelled: 0,
+    superseded: 0,
+    running: 0,
+    pending: 0,
+  };
+}
+
+function applyStatusCount(
+  counts: BulkEditJobProgressCounts,
+  status: BulkEditItem["status"],
+  count: number,
+): void {
+  counts.total += count;
+
+  switch (status) {
+    case "SUCCEEDED":
+      counts.succeeded += count;
+      counts.done += count;
+      break;
+    case "FAILED":
+      counts.failed += count;
+      counts.done += count;
+      break;
+    case "CANCELLED":
+      counts.cancelled += count;
+      counts.done += count;
+      break;
+    case "SUPERSEDED":
+      counts.superseded += count;
+      counts.done += count;
+      break;
+    case "RUNNING":
+      counts.running += count;
+      break;
+    case "PENDING":
+      counts.pending += count;
+      break;
+  }
+}
+
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 
@@ -65,6 +122,20 @@ export class BulkEditItemRepository extends BaseRepository {
       );
 
     return item ?? null;
+  }
+
+  async getByIds(itemIds: readonly string[]): Promise<BulkEditItem[]> {
+    if (itemIds.length === 0) return [];
+
+    return this.connection
+      .select()
+      .from(bulkEditItem)
+      .where(
+        and(
+          eq(bulkEditItem.projectId, this.storeId),
+          inArray(bulkEditItem.id, [...itemIds]),
+        ),
+      );
   }
 
   async findByJobId(jobId: string): Promise<BulkEditItem[]> {
@@ -248,6 +319,36 @@ export class BulkEditItemRepository extends BaseRepository {
     return result;
   }
 
+  async countByStatusForJobs(
+    jobIds: readonly string[],
+  ): Promise<Map<string, BulkEditJobProgressCounts>> {
+    const result = new Map<string, BulkEditJobProgressCounts>();
+    if (jobIds.length === 0) return result;
+
+    const rows = await this.connection
+      .select({
+        jobId: bulkEditItem.jobId,
+        status: bulkEditItem.status,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(bulkEditItem)
+      .where(
+        and(
+          eq(bulkEditItem.projectId, this.storeId),
+          inArray(bulkEditItem.jobId, [...jobIds]),
+        ),
+      )
+      .groupBy(bulkEditItem.jobId, bulkEditItem.status);
+
+    for (const row of rows) {
+      const counts = result.get(row.jobId) ?? emptyProgressCounts();
+      applyStatusCount(counts, row.status, row.count);
+      result.set(row.jobId, counts);
+    }
+
+    return result;
+  }
+
   async countDistinctProducts(jobId: string): Promise<number> {
     const [row] = await this.connection
       .select({
@@ -262,6 +363,33 @@ export class BulkEditItemRepository extends BaseRepository {
       );
 
     return row?.count ?? 0;
+  }
+
+  async countDistinctProductsForJobs(
+    jobIds: readonly string[],
+  ): Promise<Map<string, number>> {
+    const result = new Map<string, number>();
+    if (jobIds.length === 0) return result;
+
+    const rows = await this.connection
+      .select({
+        jobId: bulkEditItem.jobId,
+        count: sql<number>`count(distinct ${bulkEditItem.productId})::int`,
+      })
+      .from(bulkEditItem)
+      .where(
+        and(
+          eq(bulkEditItem.projectId, this.storeId),
+          inArray(bulkEditItem.jobId, [...jobIds]),
+        ),
+      )
+      .groupBy(bulkEditItem.jobId);
+
+    for (const row of rows) {
+      result.set(row.jobId, row.count);
+    }
+
+    return result;
   }
 
   async getConnection(

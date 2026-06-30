@@ -320,7 +320,8 @@ type CategorySection =
 **Empty state** (per tab):
 
 ```
-  ⚠ No description added  [Add now]    ← WarningOutlined + Text secondary 12px + Button type="link"
+  ⚠ No description added
+    Add a detailed description...       ← Icon + title + secondary text
 ```
 
 **Rendered content styles:**
@@ -387,7 +388,7 @@ type CategorySection =
    ┌────────────────────────────────────────────────┐
    │                  📂                             │
    │  This is a leaf category with no subcategories  │
-   │            [+ Create Subcategory]               │  ← Button dashed
+   │  Create subcategories to organize nested items. │
    └────────────────────────────────────────────────┘
 ```
 
@@ -516,7 +517,8 @@ Stock: High → Low
 **Empty state:**
 
 ```
-  [+ Add Tag]  No products assigned     ← inline, как в TagsSection
+  No products assigned
+  Assign products to make them appear in this category.
 ```
 
 ---
@@ -557,7 +559,7 @@ Stock: High → Low
 **Empty state** (когда `tags.length === 0`):
 
 ```
-  [+ Add Tag]  No tags assigned    ← Tag dashed + Typography.Text secondary fontSize 12
+  [+ Add Tag]    ← Tag dashed
 ```
 
 ---
@@ -623,7 +625,7 @@ useCategoryModals(category)
   ├── editMedia         → useEditMediaModal().push({ productId, featured, gallery, onSave })
   ├── editSeo           → useEditSeoModal().push({ productId, productTitle, productSlug, seoTitle, seoDescription, onSave })
   ├── editTags          → useEditTagsModal().push({ productId, selectedTagIds, onSave })
-  ├── editHierarchy     → useEditCategoriesModal().push({ productId, categoryIds, primaryCategoryId, onSave })
+  ├── editHierarchy     → useCategoryPicker().openPicker({ selectedIds, onConfirm })
   ├── openProductPicker → product picker modal
   ├── addSubcategory    → create category modal (parentId pre-filled)
   ├── archiveCategory   → confirm modal (warning)
@@ -681,13 +683,13 @@ category-details-card.tsx
 
 ## Empty States
 
-| Section       | Message                                         | CTA                    |
+| Section       | Message                                         | Action placement       |
 | ------------- | ----------------------------------------------- | ---------------------- |
-| Subcategories | "This is a leaf category with no subcategories" | [+ Create Subcategory] |
-| Products      | "No products assigned to this category yet"     | [+ Assign Products]    |
+| Subcategories | "This is a leaf category with no subcategories" | Header/menu action     |
+| Products      | "No products assigned"                         | Header action          |
 | Media         | grid of `MediaFilePlaceholder` (no text)        | Upload cell            |
-| Tags          | "No tags assigned" (inline secondary text)      | [+ Add Tag]            |
-| SEO           | `WarningOutlined` + "2 issues" (in header)      | [Edit SEO]             |
+| Tags          | Empty state                                     | Inline add tag         |
+| SEO           | `WarningOutlined` + "2 issues" (in header)      | Header action          |
 
 ---
 

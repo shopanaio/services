@@ -2,9 +2,14 @@
 
 Modular e-commerce platform built with NestJS microservices and GraphQL Federation.
 
+Project is at 25% readiness. No stage/production data or users does exist.
+
 ## Knowledge Base
 
-@knowledge/CLAUDE.md
+@knowledge/AGENTS.md
+
+Project rules and architecture patterns are stored in the knowledge base vault under `@knowledge/vault/`.
+Before creating implementation plans or making code/documentation changes, review and align the work with the relevant documents from the knowledge base.
 
 ## Architecture
 
@@ -12,7 +17,6 @@ Modular e-commerce platform built with NestJS microservices and GraphQL Federati
 - **API:** GraphQL Federation (Apollo Server + Hive Gateway + Mesh Compose)
 - **Database:** PostgreSQL + Drizzle ORM + Knex (orders, checkout, delivery, pricing, apps)
 - **Workflows:** DBOS SDK
-- **Event Sourcing:** Emmett + Pongo + Dumbo (orders, checkout)
 - **Storage:** MinIO
 - **Cache:** Upstash Redis, cache-manager + Keyv
 - **Auth:** better-auth
@@ -27,12 +31,11 @@ Modular e-commerce platform built with NestJS microservices and GraphQL Federati
 | --------- | ------------------------------------------------------- |
 | apps      | Application management and configuration                |
 | bootstrap | Service orchestrator and entrypoint                     |
-| catalog   | Products, variants, categories, tags, options, features |
+| catalog   | Products, variants, categories, tags, options, features, stock, warehouses |
 | checkout  | Shopping cart, checkout flow, line items                |
 | delivery  | Shipping providers (Nova Poshta, Meest)                 |
 | events    | Event persistence and dispatch                          |
 | iam       | Identity and access management                          |
-| inventory | Stock levels and inventory management                   |
 | media     | File storage and media assets                           |
 | orders    | Order processing and fulfillment                        |
 | payments  | Payment providers integration                           |
@@ -41,8 +44,12 @@ Modular e-commerce platform built with NestJS microservices and GraphQL Federati
 
 ## Development
 
-Use `shopana-cli` MCP tools for all development tasks (dev, build, migrate, codegen, schema, test).
+Use `shopana-cli` MCP tools for all development tasks (dev, build, migrate, codegen, schema, test, e2e, playwright).
+
+## Admin Frontend
+
+The Admin frontend lives in `admin/`.
 
 ## Testing
 
-Playwright e2e tests. See @e2e/CLAUDE.md
+Playwright e2e tests. See @e2e/AGENTS.md

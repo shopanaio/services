@@ -9,7 +9,7 @@ const MigrateToolSchema = z.object({
   service: z
     .string()
     .optional()
-    .describe('Migrate specific service only. Available: apps, bootstrap, checkout, delivery, iam, inventory, listing, media, orders, payments, pricing, project, reviews, search'),
+    .describe('Migrate specific service only. Available: apps, bootstrap, catalog, checkout, delivery, events, iam, media, orders, payments, pricing, project, reviews, search'),
   workingDir: z
     .string()
     .optional()
@@ -24,9 +24,9 @@ This command applies pending database migrations to the PostgreSQL database.
 
 Examples:
 - Migrate all services: {}
-- Migrate specific service: { "service": "inventory" }
+- Migrate specific service: { "service": "catalog" }
 
-Available services: apps, bootstrap, checkout, delivery, iam, inventory, listing, media, orders, payments, pricing, project, reviews, search
+Available services: apps, bootstrap, catalog, checkout, delivery, events, iam, media, orders, payments, pricing, project, reviews, search
 
 Note: Make sure the database is running before executing migrations.`;
 

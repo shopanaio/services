@@ -1,4 +1,5 @@
-import { ApiCheckoutDeliveryGroup, CurrencyCode } from '@codegen/client-gql';
+import type { ApiCheckoutDeliveryGroup } from '@codegen/client-gql';
+
 import { test } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
 
@@ -16,7 +17,7 @@ test.describe('checkout-api: delivery method update', () => {
       api.session.setCustomerScope();
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -107,7 +108,7 @@ test.describe('checkout-api: delivery method update', () => {
       api.session.setCustomerScope();
       const { data: createData } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 

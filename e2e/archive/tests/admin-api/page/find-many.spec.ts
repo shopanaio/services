@@ -1,6 +1,7 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { ApiPageQueryFindManyArgs, EntityStatus } from '@codegen/admin-gql';
+import type { ApiPageQueryFindManyArgs } from '@codegen/admin-gql';
+
 import { randomUUID } from 'node:crypto';
 
 test.describe('PageFindMany API', () => {
@@ -11,17 +12,17 @@ test.describe('PageFindMany API', () => {
       {
         title: 'Page 1',
         slug: randomUUID(),
-        status: EntityStatus.Draft,
+        status: 'DRAFT',
       },
       {
         title: 'Page 2',
         slug: randomUUID(),
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
       },
       {
         title: 'Page 3',
         slug: randomUUID(),
-        status: EntityStatus.Archived,
+        status: 'ARCHIVED',
       },
     ];
 
@@ -150,7 +151,7 @@ test.describe('PageFindMany API', () => {
         variables: {
           input: {
             where: {
-              And: [{ title: { ILike: 'Page' } }, { status: { Eq: EntityStatus.Published } }],
+              And: [{ title: { ILike: 'Page' } }, { status: { Eq: 'PUBLISHED' } }],
             },
           },
         },
@@ -164,7 +165,7 @@ test.describe('PageFindMany API', () => {
         variables: {
           input: {
             where: {
-              Or: [{ title: { Eq: 'Page 1' } }, { status: { Eq: EntityStatus.Published } }],
+              Or: [{ title: { Eq: 'Page 1' } }, { status: { Eq: 'PUBLISHED' } }],
             },
           },
         },

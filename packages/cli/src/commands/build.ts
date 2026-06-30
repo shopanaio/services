@@ -15,7 +15,6 @@ interface BuildOptions {
   service?: string[];
   packages?: boolean;
   parallel?: boolean;
-  check?: boolean;
 }
 
 async function typeCheckService(serviceName: string, servicePath: string): Promise<{ name: string; success: boolean; errors?: string }> {
@@ -75,8 +74,8 @@ export async function buildCommand(options: BuildOptions) {
     servicesToProcess = options.service;
   }
 
-  // Type check first (unless --no-check or packages-only build)
-  if (options.check !== false && !options.packages) {
+  // Type check first for every service build.
+  if (!options.packages) {
     const passed = await typeCheck(rootDir, servicesToProcess);
     if (!passed) {
       process.exit(1);

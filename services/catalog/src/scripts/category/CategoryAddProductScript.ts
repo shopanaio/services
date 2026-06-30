@@ -33,18 +33,27 @@ export class CategoryAddProductScript extends BaseScript<
     const existing = await this.repository.category.getProductCategory(categoryId, productId);
     if (existing) {
       // Already exists, return success
-      return { category, userErrors: [] };
+      return { category, affectedProductIds: [], userErrors: [] };
     }
 
-    // Add product to category
-    await this.repository.category.addProductToCategory(productId, categoryId, false);
+    const existingLinks =
+      await this.repository.category.getProductCategoryLinks(productId);
+    const shouldSetPrimary = !existingLinks.some((link) => link.isPrimary);
 
-    return { category, userErrors: [] };
+    // Add the first category as primary so product list views can display it.
+    await this.repository.category.addProductToCategory(
+      productId,
+      categoryId,
+      shouldSetPrimary,
+    );
+
+    return { category, affectedProductIds: [productId], userErrors: [] };
   }
 
   protected handleError(_error: unknown): CategoryAddProductResult {
     return {
       category: undefined,
+      affectedProductIds: [],
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }

@@ -18,10 +18,32 @@ mutation ProductUpdate($productId: ID!, $expectedRevision: Int, $operations: Pro
           html
           json
         }
-        excerpt
+        excerpt {
+          text
+          html
+          json
+        }
         seo {
           seoTitle
           seoDescription
+          ogTitle
+          ogDescription
+          ogImage {
+            id
+            originalName
+            url
+          }
+        }
+        media {
+          file {
+            id
+          }
+          sortIndex
+        }
+        tags {
+          id
+          handle
+          name
         }
         variants(first: 20) {
           edges {
@@ -33,6 +55,14 @@ mutation ProductUpdate($productId: ID!, $expectedRevision: Int, $operations: Pro
                 currency
                 amountMinor
                 compareAtMinor
+              }
+              weight {
+                value
+              }
+              dimensions {
+                length
+                width
+                height
               }
               inventoryItem {
                 id
@@ -47,19 +77,9 @@ mutation ProductUpdate($productId: ID!, $expectedRevision: Int, $operations: Pro
                     code
                   }
                 }
-                weight {
-                  weightGrams
-                  displayUnit
-                }
                 unitCost {
                   currency
                   amountMinor
-                }
-                dimensions {
-                  lengthMm
-                  widthMm
-                  heightMm
-                  displayUnit
                 }
               }
               media {
@@ -79,10 +99,12 @@ mutation ProductUpdate($productId: ID!, $expectedRevision: Int, $operations: Pro
           id
           slug
           name
+          sortIndex
           values {
             id
             slug
             name
+            sortIndex
           }
         }
       }

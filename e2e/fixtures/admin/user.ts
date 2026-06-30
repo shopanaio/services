@@ -1,5 +1,6 @@
-import { BaseGqlRequest } from '@fixtures/api/gqlRequest';
-import { generateUser, UserData } from '@utils/user';
+import type { BaseGqlRequest } from '@fixtures/api/gqlRequest';
+import type { UserData } from '@utils/user';
+import { generateUser } from '@utils/user';
 
 export interface UserSession {
   data: UserData;
@@ -8,7 +9,11 @@ export interface UserSession {
 }
 
 export class UserFixture {
-  constructor(private gql: BaseGqlRequest<unknown, unknown>) {}
+  private gql: BaseGqlRequest<unknown, unknown>;
+
+  constructor(gql: BaseGqlRequest<unknown, unknown>) {
+    this.gql = gql;
+  }
 
   create = async (input?: Partial<{ email: string; password: string }>): Promise<UserSession> => {
     const userData = generateUser();

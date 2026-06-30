@@ -1,8 +1,8 @@
 import { readFileSync } from 'fs';
-import { GraphQLError } from 'graphql';
+import type { GraphQLError } from 'graphql';
 import path from 'path';
-import { Session } from '@fixtures/Session';
-import { GraphQLFileName } from '@queries/filenames';
+import type { Session } from '@fixtures/Session';
+import type { GraphQLFileName } from '@queries/filenames';
 
 export const readQuery = (filename: string) => {
   const query = path.join(process.cwd(), 'queries', `${filename}.gql`);

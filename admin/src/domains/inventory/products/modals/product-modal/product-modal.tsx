@@ -1,32 +1,80 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Flex, Skeleton } from "antd";
+import { useMemo, useState, useEffect } from "react";
+import { Alert, Flex, Skeleton } from "antd";
 import { useModalStackContext, ModalLayout } from "@/layouts/modals";
-import { ProductDetailsCard } from "../../components/product-details-card";
-import {
-  mockVariableProduct,
-  mockSimpleProduct,
-  productDetailsMockData,
-  getMockVariantsTableData,
-} from "@/mocks/products";
+import { ProductDetailsCard } from "../../components/product-details-card/product-details-card";
+import { productDetailsMockData } from "../../components/product-details-card/supplemental-data";
+import { useProduct } from "../../hooks";
+
+const VARIANTS_PAGE_SIZE = 10;
 
 export const ProductModal = () => {
   const { payload, pop, forcePop } = useModalStackContext();
-  const [loading, setLoading] = useState(true);
-  const [variantsPage, setVariantsPage] = useState(1);
+  const [variantsPageIndex, setVariantsPageIndex] = useState(0);
+  const [variantCursorHistory, setVariantCursorHistory] = useState<
+    Array<string | null>
+  >([null]);
+  const [paginationEntityId, setPaginationEntityId] = useState<string | null>(
+    null,
+  );
+  const entityId =
+    payload.entityId === undefined || payload.entityId === null
+      ? null
+      : String(payload.entityId);
 
-  const product = payload.simple ? mockSimpleProduct : mockVariableProduct;
-  const variantsTableData = getMockVariantsTableData(variantsPage, 10, 25);
+  const variantsAfter =
+    paginationEntityId === entityId
+      ? variantCursorHistory[variantsPageIndex] ?? null
+      : null;
+  const { product, loading, error, refetch } = useProduct({
+    id: entityId,
+    variantsFirst: VARIANTS_PAGE_SIZE,
+    variantsAfter,
+  });
+  const isVariantsPageLoading = loading && !!product;
 
   const handleVariantsPageChange = (direction: "next" | "prev") => {
-    setVariantsPage((prev) => (direction === "next" ? prev + 1 : prev - 1));
+    if (!product || isVariantsPageLoading) {
+      return;
+    }
+
+    if (direction === "next") {
+      const endCursor = product.variants.pageInfo.endCursor;
+
+      if (!endCursor) {
+        return;
+      }
+
+      setVariantCursorHistory((current) => {
+        const next = current.slice(0, variantsPageIndex + 1);
+        next[variantsPageIndex + 1] = endCursor;
+        return next;
+      });
+      setVariantsPageIndex((current) => current + 1);
+      return;
+    }
+
+    setVariantsPageIndex((current) => Math.max(0, current - 1));
   };
 
+  const variantsTableData = useMemo(() => {
+    if (!product) {
+      return undefined;
+    }
+
+    return {
+      variants: product.variants.edges.map((edge) => edge.node),
+      pageInfo: product.variants.pageInfo,
+      totalCount: product.variants.totalCount,
+    };
+  }, [product]);
+
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(timer);
-  }, []);
+    setPaginationEntityId(entityId);
+    setVariantsPageIndex(0);
+    setVariantCursorHistory([null]);
+  }, [entityId]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -39,7 +87,7 @@ export const ProductModal = () => {
   }, [pop]);
 
   const renderContent = () => {
-    if (loading) {
+    if (loading && !product) {
       return (
         <Flex vertical gap={16} style={{ padding: 16 }}>
           <Skeleton active paragraph={{ rows: 4 }} />
@@ -47,13 +95,30 @@ export const ProductModal = () => {
       );
     }
 
+    if (error && !product) {
+      return (
+        <Flex vertical gap={16} style={{ padding: 16 }}>
+          <Alert type="error" message={error.message} />
+        </Flex>
+      );
+    }
+
+    if (!product) {
+      return (
+        <Flex vertical gap={16} style={{ padding: 16 }}>
+          <Alert type="warning" message="Product not found" />
+        </Flex>
+      );
+    }
+
     return (
       <ProductDetailsCard
         product={product}
-        mockData={productDetailsMockData}
+        supplementalData={productDetailsMockData}
         variantsTableData={variantsTableData}
-        onEditSection={(section) => console.log("Edit section:", section)}
         onVariantsPageChange={handleVariantsPageChange}
+        isVariantsPageLoading={isVariantsPageLoading}
+        onProductRefresh={refetch}
       />
     );
   };

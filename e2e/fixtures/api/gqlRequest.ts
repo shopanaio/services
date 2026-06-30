@@ -1,7 +1,7 @@
-import { APIRequestContext } from '@playwright/test';
+import type { APIRequestContext } from '@playwright/test';
 import { readQuery } from './types';
-import { GraphQLError } from 'graphql';
-import { GraphQLFileName } from '@queries/filenames';
+import type { GraphQLError } from 'graphql';
+import type { GraphQLFileName } from '@queries/filenames';
 
 export interface GqlRequestSession {
   projectSlug: string;
@@ -13,11 +13,19 @@ export interface GqlRequestSession {
 }
 
 export class BaseGqlRequest<QueryType, MutationType> {
+  private request: APIRequestContext;
+  private graphqlUrl: string;
+  private session: GqlRequestSession;
+
   constructor(
-    private request: APIRequestContext,
-    private graphqlUrl: string,
-    private session: GqlRequestSession,
-  ) {}
+    request: APIRequestContext,
+    graphqlUrl: string,
+    session: GqlRequestSession,
+  ) {
+    this.request = request;
+    this.graphqlUrl = graphqlUrl;
+    this.session = session;
+  }
 
   private async makeRequest<R, A>(
     query: string,

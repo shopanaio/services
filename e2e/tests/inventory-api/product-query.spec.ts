@@ -74,6 +74,25 @@ test.describe('Product Query API', () => {
       expect(edge.node.createdAt).toBeTruthy();
       expect(edge.cursor).toBeTruthy();
     }
+
+    const { data: filteredData } = await api.admin.query('inventory-api/ProductFindMany', {
+      variables: {
+        first: 10,
+        where: {
+          handle: {
+            _in: ['pagination-product-1', 'pagination-product-3'],
+          },
+        },
+        orderBy: [{ field: 'name', direction: 'desc' }],
+      },
+    });
+
+    const filteredProducts = filteredData.catalogQuery.products;
+    expect(filteredProducts.totalCount).toBe(2);
+    expect(filteredProducts.edges.map((edge) => edge.node.handle)).toEqual([
+      'pagination-product-3',
+      'pagination-product-1',
+    ]);
   });
 
   test('should include variants in product query', async ({ api }) => {

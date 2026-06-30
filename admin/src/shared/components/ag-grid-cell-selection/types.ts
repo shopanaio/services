@@ -46,6 +46,11 @@ export interface ICellSelectionConfig {
    * Callback to increment a cell value by delta (for numeric cells)
    */
   incrementCellValue?: (rowId: string, field: string, delta: number) => void;
+
+  /**
+   * Callback fired when Enter is pressed with selected cells.
+   */
+  onSelectionEnter?: (cells: ICellSelection[]) => boolean | void;
 }
 
 /**

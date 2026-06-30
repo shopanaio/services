@@ -16,7 +16,6 @@
  * ```
  */
 
-import type { Table } from "drizzle-orm";
 import type { FluentQueryBuilder } from "./builder/fluent-query-builder.js";
 import type {
   RelayQueryBuilder,
@@ -25,7 +24,13 @@ import type {
   CursorQueryInput,
 } from "./builder/pagination-query-builder.js";
 import type { FluentFieldsDef, ToFieldsDef, ExecuteOptions } from "./builder/fluent-types.js";
-import type { NestedWhereInput, NestedPaths, OrderByItem, FieldsDef } from "./types.js";
+import type {
+  NestedWhereInput,
+  NestedPaths,
+  OrderByItem,
+  FieldsDef,
+  Selectable,
+} from "./types.js";
 
 // =============================================================================
 // FluentQueryBuilder type inference
@@ -240,7 +245,7 @@ export type InferCursorInput<Q> = Q extends CursorQueryBuilder<
  * });
  * ```
  */
-export function queryInput<Q extends FluentQueryBuilder<Table, FluentFieldsDef, FieldsDef, unknown>>(
+export function queryInput<Q extends FluentQueryBuilder<Selectable, FluentFieldsDef, FieldsDef, unknown>>(
   _query: Q,
   input: InferExecuteOptions<Q>
 ): InferExecuteOptions<Q> {
@@ -260,7 +265,7 @@ export function queryInput<Q extends FluentQueryBuilder<Table, FluentFieldsDef, 
  * });
  * ```
  */
-export function queryWhere<Q extends FluentQueryBuilder<Table, FluentFieldsDef, FieldsDef, unknown>>(
+export function queryWhere<Q extends FluentQueryBuilder<Selectable, FluentFieldsDef, FieldsDef, unknown>>(
   _query: Q,
   where: InferWhere<Q>
 ): InferWhere<Q> {
@@ -277,7 +282,7 @@ export function queryWhere<Q extends FluentQueryBuilder<Table, FluentFieldsDef, 
  * const order = queryOrder(warehouseQuery, ["createdAt:desc", "name:asc"]);
  * ```
  */
-export function queryOrder<Q extends FluentQueryBuilder<Table, FluentFieldsDef, FieldsDef, unknown>>(
+export function queryOrder<Q extends FluentQueryBuilder<Selectable, FluentFieldsDef, FieldsDef, unknown>>(
   _query: Q,
   order: InferOrder<Q>
 ): InferOrder<Q> {
@@ -299,7 +304,7 @@ export function queryOrder<Q extends FluentQueryBuilder<Table, FluentFieldsDef, 
  * ```
  */
 export function relayInput<
-  Q extends RelayQueryBuilder<Table, FluentFieldsDef, FieldsDef, unknown>,
+  Q extends RelayQueryBuilder<Selectable, FluentFieldsDef, FieldsDef, unknown>,
 >(
   _query: Q,
   input: InferRelayInput<Q>
@@ -322,7 +327,7 @@ export function relayInput<
  * ```
  */
 export function cursorInput<
-  Q extends CursorQueryBuilder<Table, FluentFieldsDef, FieldsDef, unknown>,
+  Q extends CursorQueryBuilder<Selectable, FluentFieldsDef, FieldsDef, unknown>,
 >(
   _query: Q,
   input: InferCursorInput<Q>

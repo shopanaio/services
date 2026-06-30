@@ -1,12 +1,19 @@
 query BundlePricingTemplates($productId: ID!) {
   catalogQuery {
-    bundlePricingTemplates(productId: $productId) {
+    bundle(id: $productId) {
       id
-      productId
-      name
-      priceType
-      priceValue
-      sortIndex
+      configurations {
+        id
+        pricingTemplates {
+          id
+          name
+          sortIndex
+          priceRule {
+            id
+            priceType
+          }
+        }
+      }
     }
   }
 }

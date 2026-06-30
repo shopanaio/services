@@ -1,0 +1,16 @@
+mutation TagCreate($input: TagCreateInput!) {
+  catalogMutation {
+    tagCreate(input: $input) {
+      tag {
+        id
+        handle
+        name
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

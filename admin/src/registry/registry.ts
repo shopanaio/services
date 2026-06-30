@@ -40,6 +40,11 @@ export interface SidebarItem {
 export type DomainLayoutComponent = ComponentType<{ children: ReactNode }>;
 
 /**
+ * Client component that can push runtime sidebar configuration.
+ */
+export type SidebarRuntimeComponent = ComponentType;
+
+/**
  * Sidebar configuration for a domain.
  */
 export interface DomainSidebarConfig {
@@ -57,6 +62,8 @@ export interface DomainConfig {
   layout: DomainLayoutComponent;
   /** Sidebar configuration. If not provided, domain is hidden from sidebar */
   sidebar?: DomainSidebarConfig;
+  /** Optional client component for dynamic sidebar contributions */
+  sidebarRuntime?: SidebarRuntimeComponent;
 }
 
 /**
@@ -153,6 +160,14 @@ export class ModuleRegistry {
     return this.domains.get(key);
   }
 
+  getSidebarRuntimeComponents(): SidebarRuntimeComponent[] {
+    return Array.from(this.domains.values())
+      .map((domain) => domain.sidebarRuntime)
+      .filter((component): component is SidebarRuntimeComponent =>
+        Boolean(component),
+      );
+  }
+
   list(): string[] {
     return this.pages.map((r) => r.path);
   }
@@ -186,6 +201,7 @@ export class ModuleRegistry {
               key: item.key,
               label: item.sidebar!.label,
               icon: item.sidebar!.icon,
+              order: item.sidebar!.order,
               path: item.path,
             }));
 
@@ -198,6 +214,7 @@ export class ModuleRegistry {
             key: mod.key,
             label: mod.sidebar!.label,
             icon: mod.sidebar!.icon,
+            order: mod.sidebar!.order,
             path: modulePath,
             children: moduleChildren.length > 0 ? moduleChildren : undefined,
           };

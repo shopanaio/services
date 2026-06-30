@@ -1,6 +1,11 @@
-query ProductFindMany($first: Int, $after: String) {
+query ProductFindMany(
+  $first: Int
+  $after: String
+  $where: ProductWhereInput
+  $orderBy: [ProductOrderByInput!]
+) {
   catalogQuery {
-    products(first: $first, after: $after) {
+    products(first: $first, after: $after, where: $where, orderBy: $orderBy) {
       edges {
         node {
           id
@@ -10,7 +15,41 @@ query ProductFindMany($first: Int, $after: String) {
           createdAt
           updatedAt
           title
+          description {
+            text
+            html
+            json
+          }
+          media {
+            file {
+              id
+              originalName
+            }
+            sortIndex
+          }
+          options {
+            id
+            name
+            slug
+            displayType
+            sortIndex
+            values {
+              id
+              name
+              slug
+              sortIndex
+            }
+          }
           variantsCount
+          variants(first: 10) {
+            edges {
+              node {
+                id
+                handle
+                isDefault
+              }
+            }
+          }
         }
         cursor
       }

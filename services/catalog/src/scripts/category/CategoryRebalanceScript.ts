@@ -19,14 +19,25 @@ export class CategoryRebalanceScript extends BaseScript<
       };
     }
 
+    const affectedProductIds = (
+      await this.repository.category.getOrderedCategoryProducts(
+        params.categoryId
+      )
+    ).map((item) => item.productId);
+
     await this.repository.category.rebalanceCategoryProductRanks(params.categoryId);
     const refreshed = await this.repository.category.findById(params.categoryId);
-    return { category: refreshed ?? undefined, userErrors: [] };
+    return {
+      category: refreshed ?? undefined,
+      affectedProductIds,
+      userErrors: [],
+    };
   }
 
   protected handleError(_error: unknown): CategoryRebalanceResult {
     return {
       category: undefined,
+      affectedProductIds: [],
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }

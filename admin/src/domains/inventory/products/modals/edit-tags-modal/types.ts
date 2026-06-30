@@ -1,9 +1,9 @@
-import type { ITag } from "../../modals";
+import type { ApiTag } from "@/graphql/types";
 
 export interface IEditTagsModalProps {
   productId?: string;
   selectedTagIds?: string[];
-  availableTags?: ITag[];
+  availableTags?: ApiTag[];
   onSave?: (data: { tagIds: string[] }) => void;
-  onCreateTag?: (title: string) => Promise<ITag>;
+  onCreateTag?: (name: string) => Promise<ApiTag>;
 }

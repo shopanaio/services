@@ -1,7 +1,7 @@
 import { Typography, Flex } from "antd";
 import { createStyles } from "antd-style";
-import type { ApiVariantPrice } from "../types";
-import { formatPrice } from "../utils";
+import type { ApiVariantPrice } from "@/graphql/types";
+import { formatPrice } from "../../../utils/price-formatting";
 
 const useStyles = createStyles(({ token }) => ({
   container: {
@@ -40,10 +40,15 @@ export const PriceStats = ({
 }: IPriceStatsProps) => {
   const { styles } = useStyles();
 
+  if (history.length === 0) {
+    return null;
+  }
+
   const prices = history.map((h) => Number(h.amountMinor));
   const min = Math.min(...prices);
   const max = Math.max(...prices);
   const avg = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
+  const currency = history[0]?.currency;
 
   return (
     <Flex
@@ -56,7 +61,7 @@ export const PriceStats = ({
           Min
         </Typography.Text>
         <Typography.Text className={styles.minValue}>
-          {formatPrice(min)}
+          {formatPrice(min, currency)}
         </Typography.Text>
       </Flex>
       <Flex vertical align="center">
@@ -64,7 +69,7 @@ export const PriceStats = ({
           Max
         </Typography.Text>
         <Typography.Text className={styles.maxValue}>
-          {formatPrice(max)}
+          {formatPrice(max, currency)}
         </Typography.Text>
       </Flex>
       <Flex vertical align="center">
@@ -72,7 +77,7 @@ export const PriceStats = ({
           Avg
         </Typography.Text>
         <Typography.Text className={styles.valueText}>
-          {formatPrice(avg)}
+          {formatPrice(avg, currency)}
         </Typography.Text>
       </Flex>
       {showChangesCount && (

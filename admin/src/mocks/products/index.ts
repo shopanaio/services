@@ -1,4 +1,3 @@
-export * from "./types";
 export * from "./data";
 export * from "./products-list";
 export * from "./categories";

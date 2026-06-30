@@ -1,5 +1,9 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { CategoryCreateParams, CategoryCreateResult } from "./dto/index.js";
+import {
+  serializeRichTextJsonText,
+  toRichTextStorage,
+} from "../shared/richText.js";
 
 export class CategoryCreateScript extends BaseScript<
   CategoryCreateParams,
@@ -9,7 +13,16 @@ export class CategoryCreateScript extends BaseScript<
   protected async execute(
     params: CategoryCreateParams
   ): Promise<CategoryCreateResult> {
-    const { handle, name, parentId, description, seo, mediaFileIds, publish } = params;
+    const {
+      handle,
+      name,
+      parentId,
+      description,
+      excerpt,
+      seo,
+      mediaFileIds,
+      publish,
+    } = params;
 
     // 1. Check if handle is unique
     const existing = await this.repository.category.findByHandle(handle);
@@ -17,7 +30,11 @@ export class CategoryCreateScript extends BaseScript<
       return {
         category: undefined,
         userErrors: [
-          { message: "Category handle already exists", field: ["handle"], code: "DUPLICATE" },
+          {
+            message: "Category handle already exists",
+            field: ["handle"],
+            code: "DUPLICATE_HANDLE",
+          },
         ],
       };
     }
@@ -27,11 +44,15 @@ export class CategoryCreateScript extends BaseScript<
       const parent = await this.repository.category.findById(parentId);
       if (!parent) {
         return {
-          category: undefined,
-          userErrors: [
-            { message: "Parent category not found", field: ["parentId"], code: "NOT_FOUND" },
-          ],
-        };
+        category: undefined,
+        userErrors: [
+            {
+              message: "Parent category not found",
+              field: ["parentId"],
+              code: "MISSING_CATEGORY",
+            },
+        ],
+      };
       }
     }
 
@@ -43,6 +64,7 @@ export class CategoryCreateScript extends BaseScript<
     });
 
     // 4. Create translation
+    const excerptStorage = toRichTextStorage(excerpt);
     await this.repository.category.upsertTranslation({
       projectId: this.getProjectId(),
       categoryId: category.id,
@@ -50,7 +72,10 @@ export class CategoryCreateScript extends BaseScript<
       name,
       descriptionText: description?.text ?? null,
       descriptionHtml: description?.html ?? null,
-      descriptionJson: description?.json ? JSON.stringify(description.json) : null,
+      descriptionJson: serializeRichTextJsonText(description?.json),
+      excerptText: excerptStorage.text,
+      excerptHtml: excerptStorage.html,
+      excerptJson: serializeRichTextJsonText(excerptStorage.json),
     });
 
     // 5. Set media if provided

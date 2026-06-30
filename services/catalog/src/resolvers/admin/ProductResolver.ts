@@ -3,16 +3,20 @@ import {
   encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
-import type { Description } from "./interfaces/index.js";
+import type {
+  ProductMediaItem,
+  ProductPriceRange,
+  RichText,
+} from "./interfaces/index.js";
 import type { Product } from "../../repositories/models/index.js";
 import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
 import { CatalogType } from "./CatalogType.js";
-import { CategoryResolver } from "./CategoryResolver.js";
 import { FeatureResolver } from "./FeatureResolver.js";
 import { OptionResolver } from "./OptionResolver.js";
 import { ProductSeoResolver } from "./ProductSeoResolver.js";
 import { TagResolver } from "./TagResolver.js";
-import { VariantConnectionResolver } from "./VariantConnectionResolver.js";
+import { VendorResolver } from "./VendorResolver.js";
+import { toRichText } from "./helpers/richText.js";
 
 /**
  * Product resolver - resolves Product domain interface.
@@ -30,6 +34,10 @@ export class ProductResolver extends CatalogType<string, Product> {
 
   id() {
     return encodeGlobalIdByType(this.$props, GlobalIdEntity.Product);
+  }
+
+  async kind() {
+    return this.$get("kind");
   }
 
   async handle() {
@@ -62,31 +70,38 @@ export class ProductResolver extends CatalogType<string, Product> {
     return this.$get("revision");
   }
 
+  async vendor(): Promise<VendorResolver | null> {
+    const vendorId = await this.$get("vendorId");
+    return vendorId ? new VendorResolver(vendorId, this.$ctx) : null;
+  }
+
   async title() {
     const translation = await this.$ctx.loaders.productTranslation.load(
       this.$props
     );
-    return translation?.title ?? "";
+    return translation?.name ?? "";
   }
 
-  async description(): Promise<Description | null> {
+  async description(): Promise<RichText | null> {
     const translation = await this.$ctx.loaders.productTranslation.load(
       this.$props
     );
-    if (!translation) return null;
-
-    return {
-      text: translation.descriptionText ?? "",
-      html: translation.descriptionHtml ?? "",
-      json: translation.descriptionJson ?? {},
-    };
+    return toRichText(translation && {
+      text: translation.descriptionText,
+      html: translation.descriptionHtml,
+      json: translation.descriptionJson,
+    });
   }
 
-  async excerpt() {
+  async excerpt(): Promise<RichText | null> {
     const translation = await this.$ctx.loaders.productTranslation.load(
       this.$props
     );
-    return translation?.excerpt ?? null;
+    return toRichText(translation && {
+      text: translation.excerptText,
+      html: translation.excerptHtml,
+      json: translation.excerptJson,
+    });
   }
 
   /**
@@ -98,18 +113,37 @@ export class ProductResolver extends CatalogType<string, Product> {
     return new ProductSeoResolver(seoData, this.$ctx);
   }
 
+  async priceRange(): Promise<ProductPriceRange | null> {
+    const range = await this.$ctx.loaders.productPriceRange.load(this.$props);
+    if (!range) return null;
+
+    return {
+      minPriceAmount: range.minAmountMinor,
+      maxPriceAmount: range.maxAmountMinor,
+      currency: range.currency as ProductPriceRange["currency"],
+    };
+  }
+
   /**
    * Returns variant connection for this product
    * @param args - Pagination arguments (first, last, after, before)
    */
-  variants(args: VariantRelayInput) {
-    return new VariantConnectionResolver(
-      {
-        ...args,
-        productId: this.$props,
+  async variants(args: VariantRelayInput) {
+    return this.resolvers.variantConnection({
+      ...args,
+      productId: this.$props,
+    });
+  }
+
+  async media(): Promise<ProductMediaItem[]> {
+    const mediaItems = await this.$ctx.loaders.productMedia.load(this.$props);
+    return mediaItems.map((media) => ({
+      file: {
+        __typename: "File" as const,
+        id: encodeGlobalIdByType(media.fileId, GlobalIdEntity.File),
       },
-      this.$ctx
-    );
+      sortIndex: media.sortIndex,
+    }));
   }
 
   /**
@@ -144,12 +178,30 @@ export class ProductResolver extends CatalogType<string, Product> {
     return variantIds.length;
   }
 
-  /**
-   * Returns categories for this product
-   */
-  async categories(): Promise<CategoryResolver[]> {
-    const ids = await this.$ctx.loaders.productCategoryIds.load(this.$props);
-    return ids.map((id) => new CategoryResolver(id, this.$ctx));
+  async primaryCategory() {
+    const links = await this.$ctx.loaders.productCategoryLinksByProductId.load(
+      this.$props
+    );
+    const primary = links.find((link) => link.isPrimary);
+    return primary ? this.resolvers.category(primary.categoryId) : null;
+  }
+
+  async categoryAssignments() {
+    const links = await this.$ctx.loaders.productCategoryLinksByProductId.load(
+      this.$props
+    );
+
+    return Promise.all([...links]
+      .sort((a, b) => {
+        if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
+        const rank = a.lexoRank.localeCompare(b.lexoRank);
+        if (rank !== 0) return rank;
+        return a.categoryId.localeCompare(b.categoryId);
+      })
+      .map(async (link) => ({
+        category: await this.resolvers.category(link.categoryId),
+        isPrimary: link.isPrimary,
+      })));
   }
 
   /**

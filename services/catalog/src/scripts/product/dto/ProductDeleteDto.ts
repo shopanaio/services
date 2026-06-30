@@ -7,4 +7,5 @@ export interface ProductDeleteParams {
 
 export interface ProductDeleteResult extends ProductResultBase {
   deletedProductId?: string;
+  categoryIds?: string[];
 }

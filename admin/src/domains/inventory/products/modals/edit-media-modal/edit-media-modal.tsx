@@ -13,19 +13,28 @@ import { useStyles } from "./edit-media-modal.styles";
 
 export const EditMediaModal = () => {
   const { styles } = useStyles();
-  const { payload, pop, setDirty } = useModalStackContext();
+  const { payload, pop, forcePop, setDirty } = useModalStackContext();
   const typedPayload = payload as IEditMediaModalPayload;
+  const [submitting, setSubmitting] = useState(false);
+  const selectionMode = typedPayload.selectionMode ?? false;
+  const hasFeatured = typedPayload.hasFeatured ?? !selectionMode;
+  const showUpload = typedPayload.showUpload ?? !selectionMode;
+  const allowDelete = typedPayload.allowDelete ?? !selectionMode;
+  const allowSetFeatured = typedPayload.allowSetFeatured ?? !selectionMode;
 
   const [gallery, setGallery] = useState<ApiFile[]>(() => {
     const items = [...typedPayload.gallery];
     if (
       typedPayload.featured &&
-      !items.find((i) => i.id === typedPayload.featured?.id)
+      !items.find((item) => item.id === typedPayload.featured?.id)
     ) {
       items.unshift(typedPayload.featured);
     }
     return items;
   });
+  const [selectedFileIds, setSelectedFileIds] = useState<string[]>(
+    () => typedPayload.selectedFileIds ?? [],
+  );
 
   const markDirty = useCallback(() => {
     setDirty(true);
@@ -49,11 +58,34 @@ export const EditMediaModal = () => {
     [markDirty]
   );
 
-  const handleSave = useCallback(() => {
-    const newFeatured = gallery[0] || null;
-    typedPayload.onSave?.({ featured: newFeatured, gallery });
-    pop();
-  }, [typedPayload, gallery, pop]);
+  const handleSelectedFileIdsChange = useCallback(
+    (ids: string[]) => {
+      setSelectedFileIds(ids);
+      markDirty();
+    },
+    [markDirty],
+  );
+
+  const handleSave = useCallback(async () => {
+    setSubmitting(true);
+
+    try {
+      const selectedFileIdSet = new Set(selectedFileIds);
+      const resultGallery = selectionMode
+        ? gallery.filter((file) => selectedFileIdSet.has(file.id))
+        : gallery;
+      const result = await typedPayload.onSave?.({
+        featured: resultGallery[0] ?? null,
+        gallery: resultGallery,
+      });
+
+      if (result !== false) {
+        forcePop();
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }, [typedPayload, gallery, forcePop, selectedFileIds, selectionMode]);
 
   return (
     <ModalLayout
@@ -61,11 +93,12 @@ export const EditMediaModal = () => {
       header={
         <ModalHeader
           name="edit-media"
-          title="Edit Media"
+          title={typedPayload.title ?? "Edit Media"}
           onClose={pop}
           submitButtonProps={{
             children: "Save",
             onClick: handleSave,
+            loading: submitting,
           }}
         />
       }
@@ -74,10 +107,16 @@ export const EditMediaModal = () => {
         <EntityMediaGallery
           value={gallery}
           onChange={handleChange}
-          title="Product Media"
-          showViewSwitcher
+          title={typedPayload.galleryTitle ?? "Product Media"}
+          viewMode="list"
+          showUpload={showUpload}
+          allowDelete={allowDelete}
+          allowSetFeatured={allowSetFeatured}
+          selectionMode={selectionMode}
+          selectedIds={selectedFileIds}
+          onSelectedIdsChange={handleSelectedFileIdsChange}
           accept="image/*,video/*"
-          hasFeatured
+          hasFeatured={hasFeatured}
           featuredLabel="Featured"
           emptyMessage="No media files yet"
         />

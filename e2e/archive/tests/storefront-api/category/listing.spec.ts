@@ -1,29 +1,25 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import {
-  EntityStatus,
-  ListingType,
-  ListingSort as AdminListingSort,
-  WeightUnit,
-  DimensionUnit,
-} from '@codegen/admin-gql';
-import { ListingSort } from '@codegen/client-gql';
+
 import type { ApiFixtures } from '@fixtures/api/api';
 import { createCursorPaginationTests } from '@utils/cursorPaginationBuilder';
 import { randomUUID } from 'node:crypto';
+
+type EntityStatus = 'DRAFT' | 'PUBLISHED';
+type ListingSort = 'CUSTOM' | 'CREATED_AT_ASC' | 'CREATED_AT_DESC' | 'PRICE_ASC' | 'PRICE_DESC' | 'TITLE_ASC' | 'TITLE_DESC' | 'MOST_RELEVANT';
 
 // ---------------------------------------------------------------------------
 // Test data preparation
 // ---------------------------------------------------------------------------
 
 export const listingSorts: ListingSort[] = [
-  ListingSort.CreatedAtAsc,
-  ListingSort.CreatedAtDesc,
-  ListingSort.PriceAsc,
-  ListingSort.PriceDesc,
-  ListingSort.TitleAsc,
-  ListingSort.TitleDesc,
-  ListingSort.MostRelevant,
+  'CREATED_AT_ASC',
+  'CREATED_AT_DESC',
+  'PRICE_ASC',
+  'PRICE_DESC',
+  'TITLE_ASC',
+  'TITLE_DESC',
+  'MOST_RELEVANT',
 ];
 
 async function prepareListing(api: ApiFixtures['api']) {
@@ -35,11 +31,11 @@ async function prepareListing(api: ApiFixtures['api']) {
     input: {
       title: 'Listing Test Category',
       slug: categorySlug,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       includeChildrenProducts: false,
-      listingOrderBy: AdminListingSort.CreatedAtAsc,
+      listingOrderBy: 'CREATED_AT_ASC',
       listingOrderByStatus: true,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       excerpt: 'Excerpt',
       description: {
         json: '{}',
@@ -63,7 +59,7 @@ async function prepareListing(api: ApiFixtures['api']) {
     const product = await api.admin.product.createWithOptions({
       title,
       slug: `product-${i}-${randomUUID()}`,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       price,
       requiresShipping: false,
       options: [
@@ -102,20 +98,20 @@ async function prepareListing(api: ApiFixtures['api']) {
 // ---------------------------------------------------------------------------
 
 const sortToFieldOrder = {
-  [ListingSort.CreatedAtAsc]: { field: 'created_at', order: 'ASC' },
-  [ListingSort.CreatedAtDesc]: { field: 'created_at', order: 'DESC' },
-  [ListingSort.PriceAsc]: { field: 'price', order: 'ASC' },
-  [ListingSort.PriceDesc]: { field: 'price', order: 'DESC' },
-  [ListingSort.TitleAsc]: { field: 'title', order: 'ASC' },
-  [ListingSort.TitleDesc]: { field: 'title', order: 'DESC' },
-  [ListingSort.MostRelevant]: { field: 'listing_sort_index', order: 'DESC' },
+  ['CREATED_AT_ASC']: { field: 'created_at', order: 'ASC' },
+  ['CREATED_AT_DESC']: { field: 'created_at', order: 'DESC' },
+  ['PRICE_ASC']: { field: 'price', order: 'ASC' },
+  ['PRICE_DESC']: { field: 'price', order: 'DESC' },
+  ['TITLE_ASC']: { field: 'title', order: 'ASC' },
+  ['TITLE_DESC']: { field: 'title', order: 'DESC' },
+  ['MOST_RELEVANT']: { field: 'listing_sort_index', order: 'DESC' },
 } as Record<ListingSort, { field: string; order: 'ASC' | 'DESC' }>;
 
 const getExpectedBySort = (titles: string[], sort: ListingSort) => {
   switch (sort) {
-    case ListingSort.CreatedAtDesc:
-    case ListingSort.PriceDesc:
-    case ListingSort.TitleDesc:
+    case 'CREATED_AT_DESC':
+    case 'PRICE_DESC':
+    case 'TITLE_DESC':
       return [...titles].reverse();
     default:
       return [...titles];
@@ -139,7 +135,7 @@ createCursorPaginationTests<ListingSort>({
     price: (node) => node.price.amount * 100,
     listingSortIndex: () => expect.any(String),
   },
-  checkArbitraryCursor: (sort) => sort !== ListingSort.MostRelevant,
+  checkArbitraryCursor: (sort) => sort !== 'MOST_RELEVANT',
 });
 
 // ---------------------------------------------------------------------------
@@ -151,7 +147,7 @@ test.describe('Client Category Listing API', () => {
     const { expectedTitles, baseVariables } = await prepareListing(api);
 
     const { data } = await api.client.query('client/CategoryListing', {
-      variables: { ...baseVariables, first: 20, sort: ListingSort.TitleAsc },
+      variables: { ...baseVariables, first: 20, sort: 'TITLE_ASC' },
     });
 
     expect(data.category).toBeDefined();
@@ -163,21 +159,19 @@ test.describe('Client Category Listing API', () => {
     });
   });
 
-  
   async function prepareListingAvailableFirst(api: ApiFixtures['api'], availableFirst: boolean) {
     await api.session.setupUserAndProject();
 
-    
     const categorySlug = `listing-category-available-${randomUUID()}`;
     const category = await api.admin.category.create({
       input: {
         title: 'Listing AvailableFirst Category',
         slug: categorySlug,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         includeChildrenProducts: false,
-        listingOrderBy: AdminListingSort.TitleAsc,
+        listingOrderBy: 'TITLE_ASC',
         listingOrderByStatus: availableFirst,
-        listingType: ListingType.Manual,
+        listingType: 'MANUAL',
         excerpt: 'Excerpt',
         description: {
           json: '{}',
@@ -189,7 +183,6 @@ test.describe('Client Category Listing API', () => {
       },
     });
 
-    
     type ProductSeed = { title: string; stockStatus: 'IN_STOCK' | 'OUT_OF_STOCK' };
     const products: ProductSeed[] = [
       { title: 'Alpha', stockStatus: 'OUT_OF_STOCK' },
@@ -208,7 +201,7 @@ test.describe('Client Category Listing API', () => {
             excerpt: '',
             requiresShipping: false,
             slug: `product-${randomUUID()}`,
-            status: EntityStatus.Published,
+            status: 'PUBLISHED',
             tags: [],
             groups: [],
             title,
@@ -229,8 +222,8 @@ test.describe('Client Category Listing API', () => {
                   title,
                   variantSortIndex: 0,
                   weight: 0,
-                  weightUnit: WeightUnit.Gr,
-                  dimensionUnit: DimensionUnit.Cm,
+                  weightUnit: 'g',
+                  dimensionUnit: 'cm',
                   height: 0,
                   length: 0,
                   width: 0,
@@ -253,10 +246,8 @@ test.describe('Client Category Listing API', () => {
       });
     }
 
-    
     const expectedTitleAsc = products.map((p) => p.title).sort((a, b) => a.localeCompare(b));
 
-    
     const expectedAvailableFirst = [
       ...products
         .filter((p) => p.stockStatus === 'IN_STOCK')
@@ -279,7 +270,7 @@ test.describe('Client Category Listing API', () => {
     const { baseVariables, expectedAvailableFirst } = await prepareListingAvailableFirst(api, true);
 
     const { data } = await api.client.query('client/CategoryListing', {
-      variables: { ...baseVariables, first: 20, sort: ListingSort.TitleAsc },
+      variables: { ...baseVariables, first: 20, sort: 'TITLE_ASC' },
     });
 
     const category = data.category as NonNullable<typeof data.category>;
@@ -294,7 +285,7 @@ test.describe('Client Category Listing API', () => {
     const { baseVariables, expectedTitleAsc } = await prepareListingAvailableFirst(api, false);
 
     const { data } = await api.client.query('client/CategoryListing', {
-      variables: { ...baseVariables, first: 20, sort: ListingSort.TitleAsc },
+      variables: { ...baseVariables, first: 20, sort: 'TITLE_ASC' },
     });
 
     const category = data.category as NonNullable<typeof data.category>;
@@ -321,11 +312,11 @@ test.describe('Client Category Listing API', () => {
       input: {
         title: 'Root',
         slug: rootSlug,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         includeChildrenProducts: true,
-        listingOrderBy: AdminListingSort.TitleAsc,
+        listingOrderBy: 'TITLE_ASC',
         listingOrderByStatus: true,
-        listingType: ListingType.Manual,
+        listingType: 'MANUAL',
         excerpt: 'Root',
         description: {
           json: '{}',
@@ -342,11 +333,11 @@ test.describe('Client Category Listing API', () => {
       input: {
         title: 'Child 1',
         slug: `child1-${randomUUID()}`,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         includeChildrenProducts: true,
-        listingOrderBy: AdminListingSort.TitleAsc,
+        listingOrderBy: 'TITLE_ASC',
         listingOrderByStatus: true,
-        listingType: ListingType.Manual,
+        listingType: 'MANUAL',
         parentId: rootCategory.id,
         excerpt: 'Child1',
         description: {
@@ -363,11 +354,11 @@ test.describe('Client Category Listing API', () => {
       input: {
         title: 'Grandchild 1',
         slug: `grand1-${randomUUID()}`,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         includeChildrenProducts: true,
-        listingOrderBy: AdminListingSort.TitleAsc,
+        listingOrderBy: 'TITLE_ASC',
         listingOrderByStatus: true,
-        listingType: ListingType.Manual,
+        listingType: 'MANUAL',
         parentId: child1.id,
         excerpt: 'Grand1',
         description: {
@@ -385,11 +376,11 @@ test.describe('Client Category Listing API', () => {
       input: {
         title: 'Child 2',
         slug: `child2-${randomUUID()}`,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         includeChildrenProducts: true,
-        listingOrderBy: AdminListingSort.TitleAsc,
+        listingOrderBy: 'TITLE_ASC',
         listingOrderByStatus: true,
-        listingType: ListingType.Manual,
+        listingType: 'MANUAL',
         parentId: rootCategory.id,
         excerpt: 'Child2',
         description: {
@@ -402,16 +393,15 @@ test.describe('Client Category Listing API', () => {
       },
     });
 
-    
     const draftChild = await api.admin.category.create({
       input: {
         title: 'Child Draft',
         slug: `child-draft-${randomUUID()}`,
-        status: EntityStatus.Draft,
+        status: 'DRAFT',
         includeChildrenProducts: true,
-        listingOrderBy: AdminListingSort.TitleAsc,
+        listingOrderBy: 'TITLE_ASC',
         listingOrderByStatus: true,
-        listingType: ListingType.Manual,
+        listingType: 'MANUAL',
         parentId: rootCategory.id,
         excerpt: 'Draft',
         description: {
@@ -437,37 +427,37 @@ test.describe('Client Category Listing API', () => {
         title: 'Apple',
         stockStatus: 'IN_STOCK',
         categoryId: child1.id,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
       },
       {
         title: 'Banana',
         stockStatus: 'OUT_OF_STOCK',
         categoryId: child1.id,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
       },
       {
         title: 'Cherry',
         stockStatus: 'IN_STOCK',
         categoryId: grandchild1.id,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
       },
       {
         title: 'Date',
         stockStatus: 'OUT_OF_STOCK',
         categoryId: child2.id,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
       },
       {
         title: 'Drafty',
         stockStatus: 'IN_STOCK',
         categoryId: grandchild1.id,
-        status: EntityStatus.Draft,
+        status: 'DRAFT',
       },
       {
         title: 'Excluded',
         stockStatus: 'IN_STOCK',
         categoryId: draftChild.id,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
       },
     ];
 
@@ -504,8 +494,8 @@ test.describe('Client Category Listing API', () => {
                 title,
                 variantSortIndex: 0,
                 weight: 0,
-                weightUnit: WeightUnit.Gr,
-                dimensionUnit: DimensionUnit.Cm,
+                weightUnit: 'g',
+                dimensionUnit: 'cm',
                 height: 0,
                 length: 0,
                 width: 0,
@@ -527,7 +517,7 @@ test.describe('Client Category Listing API', () => {
         },
       });
 
-      if (status === EntityStatus.Published && seed.categoryId !== draftChild.id) {
+      if (status === 'PUBLISHED' && seed.categoryId !== draftChild.id) {
         if (stockStatus === 'IN_STOCK') {
           publishedTitlesInStock.push(title);
         } else {
@@ -555,7 +545,7 @@ test.describe('Client Category Listing API', () => {
     const { rootHandle, expectedAvailableFirst } = await prepareHierarchyListing(api);
 
     const { data } = await api.client.query('client/CategoryListing', {
-      variables: { handle: rootHandle, first: 20, sort: ListingSort.TitleAsc },
+      variables: { handle: rootHandle, first: 20, sort: 'TITLE_ASC' },
     });
 
     const category = data.category as NonNullable<typeof data.category>;
@@ -578,11 +568,11 @@ test.describe('Client Category Listing API', () => {
       input: {
         title: 'InListing Test Category',
         slug,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         includeChildrenProducts: false,
-        listingOrderBy: AdminListingSort.TitleAsc,
+        listingOrderBy: 'TITLE_ASC',
         listingOrderByStatus: false,
-        listingType: ListingType.Manual,
+        listingType: 'MANUAL',
         excerpt: '',
         description: { json: '{}', text: '', html: '' },
         gallery: [],
@@ -606,8 +596,8 @@ test.describe('Client Category Listing API', () => {
       title,
       variantSortIndex: index,
       weight: 0,
-      weightUnit: WeightUnit.Gr,
-      dimensionUnit: DimensionUnit.Cm,
+      weightUnit: 'g',
+      dimensionUnit: 'cm',
       height: 0,
       length: 0,
       width: 0,
@@ -620,7 +610,7 @@ test.describe('Client Category Listing API', () => {
           excerpt: '',
           requiresShipping: false,
           slug: `prod-${randomUUID()}`,
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           tags: [],
           groups: [],
           title: 'Container',
@@ -650,7 +640,7 @@ test.describe('Client Category Listing API', () => {
     const expected = ['Visible A', 'Visible B'];
 
     const { data } = await api.client.query('client/CategoryListing', {
-      variables: { handle: slug, first: 10, sort: ListingSort.TitleAsc },
+      variables: { handle: slug, first: 10, sort: 'TITLE_ASC' },
     });
 
     const listing = (data.category as NonNullable<typeof data.category>).listing;

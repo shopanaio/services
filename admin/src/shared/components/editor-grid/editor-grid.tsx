@@ -93,7 +93,7 @@ const useStyles = createStyles(({ token }) => ({
     },
 
     // Pinned columns
-    ".ag-pinned-left-cols-container": {
+    ".ag-pinned-left-cols-container, .ag-pinned-right-cols-container": {
       backgroundColor: token.colorBgContainer,
     },
 
@@ -162,6 +162,13 @@ const useStyles = createStyles(({ token }) => ({
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
     },
+    ".ec-title__error": {
+      color: token.colorError,
+      fontSize: 12,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+    },
     ".ec-title--product": {
       fontWeight: 500,
     },
@@ -184,6 +191,15 @@ const useStyles = createStyles(({ token }) => ({
       background: token.colorBgContainerDisabled,
       flexShrink: 0,
     },
+    ".ec-media-cell": {
+      width: "100%",
+      height: "100%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "flex-start",
+      gap: 6,
+      minWidth: 0,
+    },
 
     // === Dash (empty/N/A cell) ===
     ".ec-dash": {
@@ -198,6 +214,10 @@ const useStyles = createStyles(({ token }) => ({
     // === Option Value (read-only) ===
     ".ec-option": {
       color: token.colorTextSecondary,
+    },
+
+    ".variant-option-cell-dropdown": {
+      padding: "0 !important",
     },
   },
 }));
@@ -226,6 +246,7 @@ interface EditorGridInnerProps<T extends IEditorRowBase> {
   onRowDragEnd?: (event: RowDragEndEvent<T>) => void;
   // Layout
   domLayout?: "normal" | "autoHeight" | "print";
+  dataTestId?: string;
 }
 
 function EditorGridInnerComponent<T extends IEditorRowBase>({
@@ -241,6 +262,7 @@ function EditorGridInnerComponent<T extends IEditorRowBase>({
   onRowDragEnter,
   onRowDragEnd,
   domLayout,
+  dataTestId,
 }: EditorGridInnerProps<T>) {
   const { styles } = useStyles();
   const agGridTheme = useAgGridTheme();
@@ -293,7 +315,7 @@ function EditorGridInnerComponent<T extends IEditorRowBase>({
   );
 
   return (
-    <div className={styles.gridWrapper}>
+    <div className={styles.gridWrapper} data-testid={dataTestId}>
       <AgGridReact<T>
         ref={gridRef}
         theme={agGridTheme}
@@ -339,10 +361,12 @@ export function EditorGrid<T extends IEditorRowBase>({
   headerHeight = 44,
   getRowClass,
   onSetFieldValue,
+  onSelectionEnter,
   rowDragManaged,
   onRowDragEnter,
   onRowDragEnd,
   domLayout,
+  dataTestId,
 }: IEditorGridProps<T>) {
   const gridRef = useRef<AgGridReact<T>>(null);
 
@@ -376,8 +400,9 @@ export function EditorGrid<T extends IEditorRowBase>({
           }
         }
       },
+      onSelectionEnter,
     }),
-    [displayRows, rows, selectableColumns, onSetFieldValue]
+    [displayRows, rows, selectableColumns, onSetFieldValue, onSelectionEnter]
   );
 
   return (
@@ -395,6 +420,7 @@ export function EditorGrid<T extends IEditorRowBase>({
         onRowDragEnter={onRowDragEnter}
         onRowDragEnd={onRowDragEnd}
         domLayout={domLayout}
+        dataTestId={dataTestId}
       />
     </CellSelectionProvider>
   );

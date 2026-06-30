@@ -25,6 +25,7 @@ export { useCurrentUser } from "./use-current-user";
 // ============================================
 export { useOrganizations } from "./use-organizations";
 export { useOrganization } from "./use-organization";
+export { useWorkspace } from "./use-workspace";
 export { useCreateOrganization } from "./use-create-organization";
 export { useUpdateOrganization } from "./use-update-organization";
 export { useDeleteOrganization } from "./use-delete-organization";
@@ -36,6 +37,7 @@ export { useTransferOwnership } from "./use-transfer-ownership";
 export { useStores } from "./use-stores";
 export { useStore } from "./use-store";
 export { useCurrentStore } from "./use-current-store";
+export { useDefaultCurrency } from "./use-default-currency";
 export { useCreateStore } from "./use-create-store";
 export { useUpdateStore } from "./use-update-store";
 export { useDeleteStore } from "./use-delete-store";

@@ -1,11 +1,6 @@
 import { test } from '@fixtures/base.extend';
-import {
-  ApiCategory,
-  ApiCategoryQueryFindOneArgs,
-  EntityStatus,
-  ListingSort,
-  ListingType,
-} from '@codegen/admin-gql';
+import type { ApiCategory, ApiCategoryQueryFindOneArgs } from '@codegen/admin-gql';
+
 import * as Yup from 'yup';
 import { randomUUID } from 'node:crypto';
 import { expect } from '@playwright/test';
@@ -16,13 +11,13 @@ test.describe('Categories API', () => {
   const categoryInput = {
     title: 'Category',
     slug: randomUUID(),
-    status: EntityStatus.Published,
+    status: 'PUBLISHED',
     excerpt: '',
     includeChildrenProducts: true,
     listingFilters: [],
-    listingOrderBy: ListingSort.CreatedAtAsc,
+    listingOrderBy: 'CREATED_AT_ASC',
     listingOrderByStatus: true,
-    listingType: ListingType.Manual,
+    listingType: 'MANUAL',
     gallery: [],
   };
 
@@ -98,10 +93,10 @@ test.describe('Categories API', () => {
     //await test.step('Upload image', async () => { });
 
     await test.step('Select listing order', async () => {
-      await updateCategoryListingOrder(ListingSort.CreatedAtDesc, categoryId);
+      await updateCategoryListingOrder('CREATED_AT_DESC', categoryId);
       expect(await api.admin.category.findOne(categoryId)).toMatchSchema(
         Yup.object({
-          listingOrderBy: Yup.string().equals([ListingSort.CreatedAtDesc]).required(),
+          listingOrderBy: Yup.string().equals(['CREATED_AT_DESC']).required(),
         }),
       );
     });
@@ -119,7 +114,7 @@ test.describe('Categories API', () => {
           status: Yup.string().equals([categoryInput.status]).required(),
           description: Yup.string().required(),
           excerpt: Yup.string().equals([categoryUpdateInput.excerpt]).required(),
-          listingOrderBy: Yup.string().equals([ListingSort.CreatedAtDesc]).required(),
+          listingOrderBy: Yup.string().equals(['CREATED_AT_DESC']).required(),
           includeChildrenProducts: Yup.boolean()
             .equals([categoryInput.includeChildrenProducts])
             .required(),

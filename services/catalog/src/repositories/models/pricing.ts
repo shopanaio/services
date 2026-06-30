@@ -95,3 +95,4 @@ export const productPriceRange = catalogSchema.view("product_price_range").as((q
 
 export type ItemPricing = typeof itemPricing.$inferSelect;
 export type NewItemPricing = typeof itemPricing.$inferInsert;
+export type ProductPriceRange = typeof productPriceRange.$inferSelect;

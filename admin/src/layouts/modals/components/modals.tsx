@@ -36,7 +36,7 @@ const NestedModalStack = ({ items, totalCount, level = 0 }: INestedModalStackPro
  * @example
  * ```tsx
  * // In app/layout.tsx or similar
- * import { ModalStack } from '@/layouts/modals';
+ * import { ModalStack } from "@/layouts/modals";
  *
  * export default function Layout({ children }) {
  *   return (

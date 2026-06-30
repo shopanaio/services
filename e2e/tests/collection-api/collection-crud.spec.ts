@@ -83,6 +83,13 @@ test.describe('Collection CRUD API', () => {
         text: 'A comprehensive collection',
         json: { blocks: [{ type: 'paragraph', data: { text: 'A comprehensive collection' } }] },
       },
+      excerpt: {
+        html: '<p>A concise collection excerpt</p>',
+        text: 'A concise collection excerpt',
+        json: {
+          blocks: [{ type: 'paragraph', data: { text: 'A concise collection excerpt' } }],
+        },
+      },
       defaultSort: 'PRICE',
       defaultSortDirection: 'asc',
       activeFrom,
@@ -102,6 +109,9 @@ test.describe('Collection CRUD API', () => {
     expect(result.collection.handle).toBe('complete-collection');
     expect(result.collection.description.html).toBe('<p>A comprehensive collection</p>');
     expect(result.collection.description.text).toBe('A comprehensive collection');
+    expect(result.collection.excerpt.html).toBe('<p>A concise collection excerpt</p>');
+    expect(result.collection.excerpt.text).toBe('A concise collection excerpt');
+    expect(result.collection.excerpt.json).toEqual(input.excerpt.json);
     expect(result.collection.defaultSort).toBe('PRICE');
     expect(result.collection.defaultSortDirection).toBe('asc');
     expect(result.collection.activeFrom).toBeTruthy();
@@ -270,10 +280,16 @@ test.describe('Collection CRUD API', () => {
     expect(result.collection.handle).toBe('updated-handle');
   });
 
-  test('should update collection description', async ({ api }) => {
+  test('should update collection description and excerpt', async ({ api }) => {
     const collection = await api.admin.collection.create({
       name: 'Test Collection',
     });
+
+    const excerpt = {
+      html: '<p>New collection excerpt</p>',
+      text: 'New collection excerpt',
+      json: { blocks: [{ type: 'paragraph', data: { text: 'New collection excerpt' } }] },
+    };
 
     const { data } = await api.admin.mutation('catalog-api/CollectionUpdate', {
       variables: {
@@ -284,6 +300,7 @@ test.describe('Collection CRUD API', () => {
             text: 'New description',
             json: { blocks: [] },
           },
+          excerpt,
         },
       },
     });
@@ -293,6 +310,17 @@ test.describe('Collection CRUD API', () => {
     expect(result.userErrors).toHaveLength(0);
     expect(result.collection.description.html).toBe('<p>New description</p>');
     expect(result.collection.description.text).toBe('New description');
+    expect(result.collection.excerpt.html).toBe(excerpt.html);
+    expect(result.collection.excerpt.text).toBe(excerpt.text);
+    expect(result.collection.excerpt.json).toEqual(excerpt.json);
+
+    const { data: queryData } = await api.admin.query('catalog-api/CollectionFindOne', {
+      variables: { id: collection.id },
+    });
+
+    expect(queryData.catalogQuery.collection.excerpt.html).toBe(excerpt.html);
+    expect(queryData.catalogQuery.collection.excerpt.text).toBe(excerpt.text);
+    expect(queryData.catalogQuery.collection.excerpt.json).toEqual(excerpt.json);
   });
 
   test('should update collection defaultSort', async ({ api }) => {

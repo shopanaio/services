@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
-import { ApiCreateProjectInput, ApiProject, ApiProjectQueryFindOneArgs } from '@codegen/admin-gql';
+import type { ApiCreateProjectInput, ApiProject, ApiProjectQueryFindOneArgs } from '@codegen/admin-gql';
 import { projectSchema } from 'schema/schema';
-import { TenantApiFixture } from '@fixtures/admin/api';
+import type { TenantApiFixture } from '@fixtures/admin/api';
 
 export class Projects {
   constructor(private api: TenantApiFixture) {}

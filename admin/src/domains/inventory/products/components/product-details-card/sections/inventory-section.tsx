@@ -4,62 +4,25 @@ import {
   Typography,
   Button,
   Tag,
-  Dropdown,
   Skeleton,
   Flex,
 } from "antd";
 import {
-  MoreOutlined,
   ClockCircleFilled,
   WarningOutlined,
   StopOutlined,
 } from "@ant-design/icons";
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { KPITile } from "@/ui-kit/kpi-tile";
 import { useInventoryStyles } from "../product-details-card.styles";
-import { useEditVariantsModal } from "../../../modals";
-import type { ProductInventoryWidget } from "../inventory-widget.types";
-import { ThresholdType } from "../inventory-widget.types";
-import type { IProduct } from "@/mocks/products/types";
-
+import { ThresholdMethod } from "@/graphql/types";
+import type { ApiProduct } from "@/graphql/types";
+import { useProductInventoryWidget } from "../../../hooks/use-product-inventory-widget";
 
 // ============================================================================
 // Sub-components
 // ============================================================================
-
-interface IInventoryActionsProps {
-  onAction: (action: string) => void;
-}
-
-const InventoryActions = ({ onAction }: IInventoryActionsProps) => {
-  const items = [{ key: "edit", label: "Edit inventory" }];
-
-  return (
-    <Dropdown
-      menu={{
-        items,
-        onClick: ({ key }) => onAction(key),
-      }}
-      trigger={["click"]}
-    >
-      <Button size="small" icon={<MoreOutlined />} />
-    </Dropdown>
-  );
-};
-
-interface IInventoryHeaderProps {
-  onAction: (action: string) => void;
-}
-
-const InventoryHeader = ({ onAction }: IInventoryHeaderProps) => {
-  return (
-    <PaperHeader
-      title="Inventory"
-      actions={<InventoryActions onAction={onAction} />}
-    />
-  );
-};
 
 const InventoryLoadingSkeleton = () => {
   const { styles } = useInventoryStyles();
@@ -118,106 +81,74 @@ const InventoryNoData = () => {
   );
 };
 
+const InventoryError = ({ message }: { message: string }) => {
+  const { styles } = useInventoryStyles();
+
+  return (
+    <Paper className={styles.inventoryCard}>
+      <Flex
+        vertical
+        align="center"
+        justify="center"
+        gap={8}
+        className={styles.noDataContainer}
+      >
+        <WarningOutlined className={styles.colorError} />
+        <Typography.Text type="secondary">
+          Inventory data could not be loaded
+        </Typography.Text>
+        <Typography.Text type="secondary">{message}</Typography.Text>
+      </Flex>
+    </Paper>
+  );
+};
+
+function formatSkuPercent(count: number, total: number): string {
+  if (total <= 0) {
+    return "0% of catalog";
+  }
+
+  return `${Math.round((count / total) * 100)}% of catalog`;
+}
+
 // ============================================================================
 // Main Component
 // ============================================================================
 
-type InventoryState = "loading" | "no_data" | "ready";
-
 interface IInventorySectionProps {
-  onEdit?: () => void;
-  product?: IProduct;
-  stats: ProductInventoryWidget;
+  product: ApiProduct;
 }
 
 export const InventorySection = ({
-  onEdit,
   product,
-  stats,
 }: IInventorySectionProps) => {
   const { styles } = useInventoryStyles();
-  const { push: pushEditVariantsModal } = useEditVariantsModal();
+  const {
+    data: stats,
+    isLoading,
+    error,
+  } = useProductInventoryWidget({ productId: product.id });
   const [activeKPI, setActiveKPI] = useState<string | undefined>();
-  const [inventoryState] = useState<InventoryState>("ready");
-
-  const handleAction = useCallback(
-    (action: string) => {
-      if (action === "edit" && product) {
-        pushEditVariantsModal({
-          initialTab: "inventory",
-          variants:
-            product.variants?.map((v) => ({
-              id: v.id,
-              title: v.title,
-              sku: v.sku,
-              stock: Math.floor(Math.random() * 100),
-              weight: v.weight,
-              weightUnit: v.weightUnit,
-              barcode: null,
-              options: v.options?.map((opt) => ({
-                title: opt.title,
-                group: {
-                  slug: opt.group.slug,
-                  title: opt.group.title,
-                },
-              })),
-            })) || [],
-          lowStockThreshold: 10,
-          availableColumns: [
-            "sku",
-            "barcode",
-            "onHand",
-            "unavailable",
-            "reserved",
-            "available",
-          ],
-          showColumnSettings: false,
-          onSave: (
-            updated: Array<{
-              id: string;
-              sku: string | null;
-              stock: number;
-              barcode: string | null;
-              price: number;
-              compareAtPrice: number | null;
-              costPrice: number | null;
-              weight: number | null;
-              weightUnit: string;
-              length: number | null;
-              width: number | null;
-              height: number | null;
-              dimensionUnit: string;
-            }>
-          ) => {
-            console.log("Saved inventory:", updated);
-          },
-        });
-      } else if (
-        action === "adjust" ||
-        action === "transfer" ||
-        action === "reserve"
-      ) {
-        onEdit?.();
-      }
-    },
-    [product, pushEditVariantsModal, onEdit]
-  );
 
   const handleKPIClick = (kpi: string) => {
     setActiveKPI(activeKPI === kpi ? undefined : kpi);
   };
 
-  if (inventoryState === "loading") {
+  if (isLoading && !stats) {
     return <InventoryLoadingSkeleton />;
   }
 
-  if (inventoryState === "no_data") {
+  if (error) {
+    return <InventoryError message={error.message} />;
+  }
+
+  if (!stats) {
     return <InventoryNoData />;
   }
 
   return (
-    <Paper className={styles.inventoryCard}>
-      <InventoryHeader onAction={handleAction} />
+    <Paper className={styles.inventoryCard} data-testid="inventory-widget">
+      <PaperHeader title="Inventory" />
 
       {/* Section A: Quantity */}
       <Typography.Text
@@ -246,6 +177,7 @@ export const InventorySection = ({
           }
           active={activeKPI === "available"}
           onClick={() => handleKPIClick("available")}
+          dataTestId="inventory-widget-kpi-available"
         />
         <KPITile
           label="On Hand"
@@ -254,6 +186,7 @@ export const InventorySection = ({
           variant="success"
           active={activeKPI === "onhand"}
           onClick={() => handleKPIClick("onhand")}
+          dataTestId="inventory-widget-kpi-on-hand"
         />
         <KPITile
           label="Reserved"
@@ -269,6 +202,7 @@ export const InventorySection = ({
           }
           active={activeKPI === "reserved"}
           onClick={() => handleKPIClick("reserved")}
+          dataTestId="inventory-widget-kpi-reserved"
         />
       </div>
 
@@ -284,15 +218,18 @@ export const InventorySection = ({
         <KPITile
           label="Low Stock"
           tooltip={`SKUs below ${
-            stats.alertThreshold.method === ThresholdType.SAFETY_STOCK
+            stats.alertThreshold.method === ThresholdMethod.SafetyStock
               ? "safety stock"
               : "reorder point"
           } threshold`}
           value={`${stats.skuStatus.lowStock.count} SKUs`}
           secondary={
-            stats.skuStatus.lowStock.averageDays !== null
+            stats.skuStatus.lowStock.averageDays != null
               ? `~${stats.skuStatus.lowStock.averageDays}d until stockout`
-              : `${Math.round((stats.skuStatus.lowStock.count / stats.skuStatus.total) * 100)}% of catalog`
+              : formatSkuPercent(
+                  stats.skuStatus.lowStock.count,
+                  stats.skuStatus.total,
+                )
           }
           variant={stats.skuStatus.lowStock.count > 0 ? "warning" : "default"}
           badge={
@@ -305,15 +242,19 @@ export const InventorySection = ({
           }
           active={activeKPI === "lowstock"}
           onClick={() => handleKPIClick("lowstock")}
+          dataTestId="inventory-widget-kpi-low-stock"
         />
         <KPITile
           label="Out of Stock"
           tooltip="SKUs with zero available units"
           value={`${stats.skuStatus.outOfStock.count} SKUs`}
           secondary={
-            stats.skuStatus.outOfStock.averageDays !== null
+            stats.skuStatus.outOfStock.averageDays != null
               ? `for ~${stats.skuStatus.outOfStock.averageDays}d`
-              : `${Math.round((stats.skuStatus.outOfStock.count / stats.skuStatus.total) * 100)}% of catalog`
+              : formatSkuPercent(
+                  stats.skuStatus.outOfStock.count,
+                  stats.skuStatus.total,
+                )
           }
           variant={stats.skuStatus.outOfStock.count > 0 ? "danger" : "default"}
           badge={
@@ -326,6 +267,7 @@ export const InventorySection = ({
           }
           active={activeKPI === "outofstock"}
           onClick={() => handleKPIClick("outofstock")}
+          dataTestId="inventory-widget-kpi-out-of-stock"
         />
         {stats.skuStatus.backorder.count > 0 && (
           <KPITile
@@ -333,7 +275,7 @@ export const InventorySection = ({
             tooltip="SKUs with incoming stock expected"
             value={`${stats.skuStatus.backorder.count} SKUs`}
             secondary={
-              stats.skuStatus.backorder.averageDays !== null
+              stats.skuStatus.backorder.averageDays != null
                 ? `ETA avg ${stats.skuStatus.backorder.averageDays}d`
                 : undefined
             }
@@ -346,6 +288,7 @@ export const InventorySection = ({
             }
             active={activeKPI === "backorder"}
             onClick={() => handleKPIClick("backorder")}
+            dataTestId="inventory-widget-kpi-backorder"
           />
         )}
       </div>

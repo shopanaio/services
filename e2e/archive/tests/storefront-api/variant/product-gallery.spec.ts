@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { test } from '@fixtures/base.extend';
-import { DimensionUnit, EntityStatus, WeightUnit } from '@codegen/admin-gql';
+
 import { randomUUID } from 'node:crypto';
 import { expect } from '@playwright/test';
 import type { ApiFixtures } from '@fixtures/api/api';
@@ -18,7 +18,6 @@ async function uploadMockFiles(api: ApiFixtures['api'], count: number): Promise<
   }
   return ids;
 }
-
 
 async function createProductWithVariants(
   api: ApiFixtures['api'],
@@ -54,11 +53,11 @@ async function createProductWithVariants(
       slug: `${randomUUID()}`,
       inListing: true,
       weight: 0,
-      weightUnit: WeightUnit.Gr,
+      weightUnit: 'g',
       width: 0,
       height: 0,
       length: 0,
-      dimensionUnit: DimensionUnit.Mm,
+      dimensionUnit: 'mm',
       categories: [],
       variantSortIndex: i,
       coverId,
@@ -70,7 +69,7 @@ async function createProductWithVariants(
     input: {
       title: 'Gallery Test Product',
       slug: handle,
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       requiresShipping: false,
       groups: [],
       tags: [],
@@ -91,7 +90,6 @@ test.describe('product gallery connection', () => {
   test('all variants inherit same cover & gallery from container', async ({ api }) => {
     await api.session.setupUserAndProject();
 
-
     const [coverId, ...galleryIds] = await uploadMockFiles(api, 4);
 
     const { product } = await createProductWithVariants(api, {
@@ -109,7 +107,6 @@ test.describe('product gallery connection', () => {
       });
       expect((prodData as any).product.cover?.id).toBe(coverId);
 
-
       const { data: galData } = await api.client.query('client/ProductGallery', {
         variables: { handle: variant.slug, first: 10 },
       });
@@ -122,7 +119,6 @@ test.describe('product gallery connection', () => {
     await api.session.setupUserAndProject();
     const { product } = await createProductWithVariants(api, { variantCount: 3 });
     await api.session.setupApiKey();
-
 
     const coverIds: string[] = [];
     const galleries: string[][] = [];
@@ -139,7 +135,6 @@ test.describe('product gallery connection', () => {
       galleries.push((galData as any).product.gallery.edges.map((e: any) => e.node.iid));
     }
 
-
     expect(new Set(coverIds).size).toBe(coverIds.length);
 
     expect(new Set(galleries.map((g) => g.join(','))).size).toBe(galleries.length);
@@ -147,7 +142,6 @@ test.describe('product gallery connection', () => {
 
   test('paginates single product gallery with cursors', async ({ api }) => {
     await api.session.setupUserAndProject();
-
 
     const [coverId, ...galleryIds] = await uploadMockFiles(api, 6); // 1 cover + 5 gallery
     const { product } = await createProductWithVariants(api, {

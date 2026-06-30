@@ -1,5 +1,5 @@
-import { ApiCheckoutPayment, CurrencyCode } from '@codegen/client-gql';
-import { EntityStatus } from '@codegen/admin-gql';
+import type { ApiCheckoutPayment } from '@codegen/client-gql';
+
 import { test } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
 
@@ -13,7 +13,7 @@ test.describe('checkout-api: payment method constraints', () => {
       api.session.setCustomerScope();
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -48,7 +48,7 @@ test.describe('checkout-api: payment method constraints', () => {
       await api.admin.product.create({
         input: {
           title: 'Payment Shipping Test Product',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle,
           groups: [],
           requiresShipping: true,
@@ -81,7 +81,7 @@ test.describe('checkout-api: payment method constraints', () => {
     await test.step('create checkout with shipping item', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [
           {
             purchasableId,
@@ -145,7 +145,7 @@ test.describe('checkout-api: payment method constraints', () => {
       api.session.setCustomerScope();
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -204,7 +204,7 @@ test.describe('checkout-api: payment method constraints', () => {
       api.session.setCustomerScope();
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 

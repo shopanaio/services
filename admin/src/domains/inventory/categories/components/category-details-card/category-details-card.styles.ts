@@ -80,63 +80,12 @@ export const useMediaStyles = createStyles(({ token }) => ({
 // Hierarchy Section Styles
 // ============================================================================
 
-export const useHierarchyStyles = createStyles(({ token }) => ({
+export const useHierarchyStyles = createStyles(() => ({
   sectionLabel: {
     fontSize: 10,
     textTransform: "uppercase",
     letterSpacing: "0.5px",
     display: "block",
-  },
-  subcategoryGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
-    gap: 12,
-  },
-  subcategoryCard: {
-    padding: 12,
-    border: `1px solid ${token.colorBorderSecondary}`,
-    borderRadius: token.borderRadiusLG,
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-    "&:hover": {
-      borderColor: token.colorPrimary,
-      boxShadow: token.boxShadowTertiary,
-    },
-  },
-  subcategoryTitle: {
-    fontSize: 13,
-  },
-  subcategoryMeta: {
-    fontSize: 12,
-  },
-  addSubcategoryCard: {
-    padding: 12,
-    border: `2px dashed ${token.colorBorder}`,
-    borderRadius: token.borderRadiusLG,
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-    display: "flex",
-    flexDirection: "column" as const,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 120,
-    "&:hover": {
-      borderColor: token.colorPrimary,
-      background: token.colorPrimaryBg,
-    },
-  },
-  emptyContainer: {
-    padding: "24px 16px",
-  },
-  emptyIcon: {
-    fontSize: 24,
-    color: token.colorTextQuaternary,
-  },
-  statusDot: {
-    display: "inline-block",
-    width: 6,
-    height: 6,
-    borderRadius: "50%",
   },
 }));
 
@@ -179,20 +128,8 @@ export const useProductsStyles = createStyles(({ token }) => ({
     objectFit: "cover",
     flexShrink: 0,
   },
-  productImagePlaceholder: {
-    width: 40,
-    height: 40,
-    background: token.colorBgContainerDisabled,
-    borderRadius: 4,
-    flexShrink: 0,
-  },
   productTitle: {
     fontSize: 13,
-  },
-  productSku: {
-    fontFamily: "ui-monospace, SFMono-Regular, monospace",
-    fontSize: 11,
-    color: token.colorTextSecondary,
   },
   stockIcon: {
     fontSize: 10,

@@ -1,4 +1,4 @@
-import { CodegenConfig } from '@graphql-codegen/cli';
+import type { CodegenConfig } from '@graphql-codegen/cli';
 
 const scalars = {
   ID: { input: 'string', output: 'string' },
@@ -30,6 +30,7 @@ const config: CodegenConfig = {
       config: {
         typesPrefix: 'Api',
         enumPrefix: false,
+        enumsAsTypes: true,
         scalars,
       },
     },
@@ -39,6 +40,7 @@ const config: CodegenConfig = {
       config: {
         typesPrefix: 'Api',
         enumPrefix: false,
+        enumsAsTypes: true,
         scalars,
       },
     },

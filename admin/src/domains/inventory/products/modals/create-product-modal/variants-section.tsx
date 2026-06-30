@@ -153,12 +153,16 @@ const OptionCard = ({
   };
 
   return (
-    <div className={styles.optionCard}>
+    <div
+      className={styles.optionCard}
+      data-testid={`create-product-option-card-${index}`}
+    >
       <div className={styles.optionRow}>
         <div className={styles.optionFields}>
           <div className={styles.optionFieldRow}>
             <div className={styles.optionFieldLabel}>Title</div>
             <Input
+              data-testid={`create-product-option-${index}-name-input`}
               placeholder="e.g. Color"
               value={option.name}
               onChange={(e) => onUpdateName(option.id, e.target.value)}
@@ -168,6 +172,7 @@ const OptionCard = ({
           <div className={styles.optionFieldRow}>
             <div className={styles.optionFieldLabel}>Values</div>
             <Select
+              data-testid={`create-product-option-${index}-values-select`}
               mode="tags"
               placeholder="Type and press Enter"
               tokenSeparators={[","]}
@@ -181,6 +186,7 @@ const OptionCard = ({
         </div>
 
         <Button
+          data-testid={`create-product-option-${index}-delete-button`}
           type="text"
           icon={<CloseOutlined />}
           className={styles.optionDelete}
@@ -348,6 +354,7 @@ export const VariantsSection = () => {
 
       <Flex gap={12} className={styles.switchRow}>
         <Switch
+          data-testid="create-product-has-variants-switch"
           className={styles.switch}
           checked={hasVariants}
           onChange={handleHasVariantsChange}
@@ -369,6 +376,7 @@ export const VariantsSection = () => {
           <div className={styles.optionsHeader}>
             <Typography.Text strong>Product options</Typography.Text>
             <Button
+              data-testid="create-product-add-option-button"
               size="small"
               icon={<PlusOutlined />}
               onClick={handleAddOption}
@@ -420,7 +428,10 @@ export const VariantsSection = () => {
                 />
               )}
 
-              <div className={styles.gridContainer}>
+              <div
+                className={styles.gridContainer}
+                data-testid="create-product-variants-grid"
+              >
                 <AgGridReact
                   ref={gridRef}
                   theme={agGridTheme}

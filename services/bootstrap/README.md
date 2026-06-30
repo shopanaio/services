@@ -14,13 +14,18 @@ Configuration is loaded from `config.yml` in the workspace root under the `boots
 bootstrap:
   services:
     - apps
+    - catalog
     - payments
-    - inventory
     - delivery
     - pricing
     - checkout
     - orders
     - media
+    - project
+    - iam
+    - events
+    - reviews
+    - search
 ```
 
 ### Environment Variables
@@ -44,13 +49,18 @@ NODE_ENV=development
 All services are loaded as NestJS modules:
 
 - `apps` - Apps management
+- `catalog` - Catalog and inventory management
 - `payments` - Payment processing
-- `inventory` - Inventory management
 - `pricing` - Pricing and promotions
 - `delivery` - Delivery and shipping
 - `checkout` - Checkout process
 - `orders` - Order management
 - `media` - Media management
+- `project` - Project settings
+- `iam` - Identity and access management
+- `events` - Event persistence and dispatch
+- `reviews` - Product reviews
+- `search` - Search functionality
 
 ## Usage
 

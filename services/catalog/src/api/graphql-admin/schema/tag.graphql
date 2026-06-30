@@ -16,14 +16,6 @@ type Tag implements Node @key(fields: "id") {
   """The display name of the tag."""
   name: String!
 
-  """Products with this tag, with pagination."""
-  products(
-    first: Int
-    after: String
-    last: Int
-    before: String
-  ): ProductConnection!
-
   """The total number of products with this tag."""
   productsCount: Int!
 }

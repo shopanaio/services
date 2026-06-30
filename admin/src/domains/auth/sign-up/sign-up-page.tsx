@@ -7,7 +7,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { App } from "antd";
 import { SignUpForm } from "./components/sign-up-form";
 import { useSignUp } from "../hooks";
-import { signUpSchema, type SignUpFormValues } from "../schemas";
+import { signUpSchema } from "../schemas";
+import type { SignUpFormValues } from "../schemas/sign-up.schema";
 import { mapGraphQLErrorsToForm } from "../utils";
 
 /**

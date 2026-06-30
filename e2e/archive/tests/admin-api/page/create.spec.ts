@@ -1,6 +1,6 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { EntityStatus } from '@codegen/admin-gql';
+
 import { randomUUID } from 'node:crypto';
 import * as yup from 'yup';
 
@@ -11,7 +11,7 @@ test.describe('PageCreate API', () => {
     const input = {
       title: 'Page Title',
       slug: randomUUID(),
-      status: EntityStatus.Draft,
+      status: 'DRAFT',
     };
 
     expect(await api.admin.page.create({ input })).toMatchSchema(

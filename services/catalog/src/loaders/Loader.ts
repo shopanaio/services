@@ -4,14 +4,17 @@ import { CategoryLoader } from "./CategoryLoader.js";
 import { FeatureLoader } from "./FeatureLoader.js";
 import { OptionLoader } from "./OptionLoader.js";
 import { ProductLoader } from "./ProductLoader.js";
+import { VendorLoader } from "./VendorLoader.js";
 import { TagLoader } from "./TagLoader.js";
 import { VariantLoader } from "./VariantLoader.js";
-import { FacetGroupLoader } from "./FacetGroupLoader.js";
 import { FacetLoader } from "./FacetLoader.js";
 import { FacetValueLoader } from "./FacetValueLoader.js";
 import { FacetSwatchLoader } from "./FacetSwatchLoader.js";
 import { CollectionLoader } from "./CollectionLoader.js";
-import { BundleLoader } from "./BundleLoader.js";
+import { BulkEditLoader } from "./BulkEditLoader.js";
+import { WarehouseLoader } from "./WarehouseLoader.js";
+import { InventoryItemLoader } from "./InventoryItemLoader.js";
+import { StockLoader } from "./StockLoader.js";
 
 export class Loader {
   // Product
@@ -23,6 +26,12 @@ export class Loader {
   public readonly productRootFeatureIds;
   public readonly productOption;
   public readonly productFeature;
+  public readonly productMedia;
+  public readonly bundleByProductId;
+  public readonly productPriceRange;
+
+  // Vendor
+  public readonly vendor;
 
   // Variant (without inventory fields - they live in Inventory Service)
   public readonly variant;
@@ -43,6 +52,7 @@ export class Loader {
   public readonly categoryAncestorIds;
   public readonly categoryProductsCount;
   public readonly productCategoryIds;
+  public readonly productCategoryLinksByProductId;
 
   // Tag
   public readonly tag;
@@ -65,15 +75,13 @@ export class Loader {
   public readonly featureChildIds;
 
   // Facets
-  public readonly facetGroup;
-  public readonly facetGroupTranslation;
-  public readonly facetIdsByGroup;
   public readonly facet;
   public readonly facetTranslation;
+  public readonly facetSources;
   public readonly facetValueIds;
   public readonly facetValue;
   public readonly facetValueTranslation;
-  public readonly facetValueSourceHandles;
+  public readonly facetValueSourceChildren;
   public readonly facetSwatch;
 
   // Collections
@@ -82,38 +90,41 @@ export class Loader {
   public readonly collectionSeo;
   public readonly collectionMedia;
 
-  // Bundles
-  public readonly bundleGroup;
-  public readonly bundleGroupsByProductId;
-  public readonly bundleItem;
-  public readonly bundleItemsByGroupId;
-  public readonly bundlePricingTemplate;
-  public readonly bundlePricingTemplatesByProductId;
-  public readonly dependencyRule;
-  public readonly dependencyRulesByProductId;
-  public readonly conditionGroup;
-  public readonly conditionGroupsByRuleId;
-  public readonly condition;
-  public readonly conditionsByGroupId;
-  public readonly dependencyAction;
-  public readonly dependencyActionsByRuleId;
+  // Bulk edit
+  public readonly bulkEditJob;
+  public readonly bulkEditItem;
+  public readonly bulkEditJobProgress;
+  public readonly bulkEditJobTotalProducts;
+
+  // Warehouse
+  public readonly warehouse;
+
+  // InventoryItem
+  public readonly inventoryItem;
+  public readonly inventoryItemByVariant;
+
+  // Stock
+  public readonly stockByVariant;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: DataLoader<any, any>;
 
   constructor(repository: Repository) {
     const productLoader = new ProductLoader(repository);
+    const vendorLoader = new VendorLoader(repository);
     const variantLoader = new VariantLoader(repository);
     const categoryLoader = new CategoryLoader(repository);
     const tagLoader = new TagLoader(repository);
     const optionLoader = new OptionLoader(repository);
     const featureLoader = new FeatureLoader(repository);
-    const facetGroupLoader = new FacetGroupLoader(repository);
     const facetLoader = new FacetLoader(repository);
     const facetValueLoader = new FacetValueLoader(repository);
     const facetSwatchLoader = new FacetSwatchLoader(repository);
     const collectionLoader = new CollectionLoader(repository);
-    const bundleLoader = new BundleLoader(repository);
+    const bulkEditLoader = new BulkEditLoader(repository);
+    const warehouseLoader = new WarehouseLoader(repository);
+    const inventoryItemLoader = new InventoryItemLoader(repository);
+    const stockLoader = new StockLoader(repository);
 
     // Product
     this.product = productLoader.product;
@@ -124,6 +135,12 @@ export class Loader {
     this.productRootFeatureIds = productLoader.productRootFeatureIds;
     this.productOption = productLoader.productOption;
     this.productFeature = productLoader.productFeature;
+    this.productMedia = productLoader.productMedia;
+    this.bundleByProductId = productLoader.bundleByProductId;
+    this.productPriceRange = productLoader.productPriceRange;
+
+    // Vendor
+    this.vendor = vendorLoader.vendor;
 
     // Variant (without inventory fields)
     this.variant = variantLoader.variant;
@@ -144,6 +161,8 @@ export class Loader {
     this.categoryAncestorIds = categoryLoader.categoryAncestorIds;
     this.categoryProductsCount = categoryLoader.categoryProductsCount;
     this.productCategoryIds = categoryLoader.productCategoryIds;
+    this.productCategoryLinksByProductId =
+      categoryLoader.productCategoryLinksByProductId;
 
     // Tag
     this.tag = tagLoader.tag;
@@ -166,15 +185,13 @@ export class Loader {
     this.featureChildIds = featureLoader.featureChildIds;
 
     // Facets
-    this.facetGroup = facetGroupLoader.facetGroup;
-    this.facetGroupTranslation = facetGroupLoader.facetGroupTranslation;
-    this.facetIdsByGroup = facetGroupLoader.facetIdsByGroup;
     this.facet = facetLoader.facet;
     this.facetTranslation = facetLoader.facetTranslation;
+    this.facetSources = facetLoader.facetSources;
     this.facetValueIds = facetLoader.facetValueIds;
     this.facetValue = facetValueLoader.facetValue;
     this.facetValueTranslation = facetValueLoader.facetValueTranslation;
-    this.facetValueSourceHandles = facetValueLoader.facetValueSourceHandles;
+    this.facetValueSourceChildren = facetValueLoader.facetValueSourceChildren;
     this.facetSwatch = facetSwatchLoader.facetSwatch;
 
     // Collections
@@ -183,20 +200,20 @@ export class Loader {
     this.collectionSeo = collectionLoader.collectionSeo;
     this.collectionMedia = collectionLoader.collectionMedia;
 
-    // Bundles
-    this.bundleGroup = bundleLoader.bundleGroup;
-    this.bundleGroupsByProductId = bundleLoader.bundleGroupsByProductId;
-    this.bundleItem = bundleLoader.bundleItem;
-    this.bundleItemsByGroupId = bundleLoader.bundleItemsByGroupId;
-    this.bundlePricingTemplate = bundleLoader.bundlePricingTemplate;
-    this.bundlePricingTemplatesByProductId = bundleLoader.bundlePricingTemplatesByProductId;
-    this.dependencyRule = bundleLoader.dependencyRule;
-    this.dependencyRulesByProductId = bundleLoader.dependencyRulesByProductId;
-    this.conditionGroup = bundleLoader.conditionGroup;
-    this.conditionGroupsByRuleId = bundleLoader.conditionGroupsByRuleId;
-    this.condition = bundleLoader.condition;
-    this.conditionsByGroupId = bundleLoader.conditionsByGroupId;
-    this.dependencyAction = bundleLoader.dependencyAction;
-    this.dependencyActionsByRuleId = bundleLoader.dependencyActionsByRuleId;
+    // Bulk edit
+    this.bulkEditJob = bulkEditLoader.bulkEditJob;
+    this.bulkEditItem = bulkEditLoader.bulkEditItem;
+    this.bulkEditJobProgress = bulkEditLoader.bulkEditJobProgress;
+    this.bulkEditJobTotalProducts = bulkEditLoader.bulkEditJobTotalProducts;
+
+    // Warehouse
+    this.warehouse = warehouseLoader.warehouse;
+
+    // InventoryItem
+    this.inventoryItem = inventoryItemLoader.inventoryItem;
+    this.inventoryItemByVariant = inventoryItemLoader.inventoryItemByVariant;
+
+    // Stock
+    this.stockByVariant = stockLoader.stockByVariant;
   }
 }

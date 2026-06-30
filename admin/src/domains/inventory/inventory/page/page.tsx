@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo, useRef, useCallback } from "react";
-import { Flex, Button, App } from "antd";
-import { DeleteOutlined } from "@ant-design/icons";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { Alert, App, Button } from "antd";
+import { DeleteOutlined, ImportOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { AgGridReact } from "ag-grid-react";
 import {
@@ -12,21 +12,49 @@ import {
   RowSelectionModule,
   GridStateModule,
   CellEditRequestEvent,
+  ICellRendererParams,
   SelectionChangedEvent,
+  SortChangedEvent,
 } from "ag-grid-community";
 import { DataLayout } from "@/layouts/data";
-import { useFilters, FilterWidget } from "@/layouts/filters";
+import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
-import {
-  FloatingPanelStack,
-  type PanelConfig,
-  type ActionConfig,
-} from "@/ui-kit/floating-panel-stack";
-import { useGridState, useAgGridTheme, useAgGridRowSelection } from "@/hooks";
+import { FloatingPanelStack } from "@/ui-kit/floating-panel-stack";
+import type { ActionConfig } from "@/ui-kit/floating-panel-stack/core/types";
+import type { PanelConfig } from "@/ui-kit/floating-panel-stack/data-page/floating-panel-stack";
+import type { ModulePageProps } from "@/registry";
+import { useWarehouses } from "@/domains/inventory/warehouse/hooks";
+import { useAgGridTheme, useAgGridRowSelection } from "@/hooks";
+import { useInventoryRelayListPage } from "@/domains/inventory/hooks";
+import type {
+  ApiInventoryItemWhereInput,
+  ApiWarehouseWhereInput,
+} from "@/graphql/types";
+import { InventoryItemOrderField } from "@/graphql/types";
 import { filterSchema } from "./filter-schema";
-import { useInventory, useInventoryEditStore } from "../hooks";
+import {
+  buildInventoryItemsQueryVariables,
+  buildInventorySearchCondition,
+  inventoryFilterTransformers,
+  inventorySortFieldMapping,
+} from "./page-config";
+import {
+  useInventoryEditStore,
+  type EditableField,
+  useCreateWarehouseStock,
+  useDeleteWarehouseStock,
+  useInventoryItems,
+  useSaveInventoryVariantEdits,
+  type UseInventoryItemsOptions,
+  type InventorySubmitError,
+} from "../hooks";
+import {
+  mapInventoryVariantEditsToProductBulkUpdateInput,
+  type InventoryVariantRow,
+} from "../mappers";
+import { useVariantPicker } from "@/shared/components/entity-picker-modal/hooks/use-entity-picker";
+import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";
 import { validateFieldChange } from "@/shared/utils/inventory";
-import type { IInventoryListItem } from "@/mocks/inventory/inventory-list";
 import {
   CalculatedAvailableCell,
   ProductCellRenderer,
@@ -34,6 +62,7 @@ import {
   OnHandCellRenderer,
   UnavailableCellRenderer,
 } from "../components";
+import { Dash } from "@/shared/components/editor-grid";
 
 ModuleRegistry.registerModules([
   AllCommunityModule,
@@ -54,6 +83,14 @@ const useStyles = createStyles(({ token }) => ({
         opacity: 1,
       },
     },
+    "& .ec-dash": {
+      display: "inline-block",
+      width: 24,
+      height: 4,
+      backgroundColor: token.colorBorder,
+      borderRadius: 2,
+      verticalAlign: "middle",
+    },
   },
   gridContainer: {
     height: "100%",
@@ -61,75 +98,409 @@ const useStyles = createStyles(({ token }) => ({
     display: "flex",
     flexDirection: "column",
   },
+  errorPanel: {
+    width: 520,
+    maxWidth: "calc(100vw - 48px)",
+  },
 }));
 
-export default function InventoryPage() {
+function toSubmitError(error: unknown): InventorySubmitError {
+  return {
+    message:
+      error instanceof Error
+        ? error.message
+        : "Failed to submit inventory changes.",
+    code: "INVENTORY_SUBMIT_FAILED",
+  };
+}
+
+function getFirstStoredError(
+  submitErrors: InventorySubmitError[],
+  rowErrors: Record<string, InventorySubmitError[]>,
+) {
+  return submitErrors[0] ?? Object.values(rowErrors).flat()[0] ?? null;
+}
+
+const SkuCellRenderer = ({
+  data,
+  value,
+}: ICellRendererParams<InventoryVariantRow>) => {
+  const { getFieldEdit } = useInventoryEditStore();
+
+  if (!data) return null;
+
+  const fieldEdit = getFieldEdit(data.id, "sku");
+
+  if (fieldEdit) {
+    const originalValue =
+      fieldEdit.originalValue == null ? (
+        <Dash />
+      ) : (
+        String(fieldEdit.originalValue)
+      );
+    const currentValue =
+      fieldEdit.currentValue == null ? (
+        <Dash />
+      ) : (
+        String(fieldEdit.currentValue)
+      );
+
+    return (
+      <span>
+        {originalValue} → {currentValue}
+      </span>
+    );
+  }
+
+  return value == null ? <Dash /> : <span>{String(value)}</span>;
+};
+
+interface InventoryImportVariantEntity extends IPickableEntity {
+  variantId: string;
+}
+
+function decodePathParam(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+export default function InventoryPage({ pathParams }: ModulePageProps) {
   const { styles } = useStyles();
   const agGridTheme = useAgGridTheme();
-  const gridRef = useRef<AgGridReact<IInventoryListItem>>(null);
-  const [searchValue, setSearchValue] = useState("");
-  const { widgetProps } = useFilters({ schema: filterSchema });
-  const { data: serverData, refetch } = useInventory();
-  const { initialState, onStateUpdated } = useGridState({
-    storageKey: "inventory-grid-state",
-  });
+  const gridRef = useRef<AgGridReact<InventoryVariantRow>>(null);
+  const restoringSortRef = useRef(false);
+  const warehouseId = decodePathParam(
+    typeof pathParams.warehouseId === "string" ? pathParams.warehouseId : null,
+  );
 
   const {
     discardAll,
     startSaving,
-    onSaveSuccess,
+    finishSaving,
+    onSubmitAccepted,
     setFieldValue,
+    setRowErrors,
+    clearRowErrors,
+    setSubmitErrors,
+    clearSubmitErrors,
     edits,
+    rowErrors,
+    submitErrors,
     status,
   } = useInventoryEditStore();
   const { message } = App.useApp();
+  const {
+    createWarehouseStock,
+    loading: creatingWarehouseStock,
+  } = useCreateWarehouseStock();
+  const {
+    deleteWarehouseStock,
+    loading: deletingWarehouseStock,
+  } = useDeleteWarehouseStock();
+
+  const hasUnsavedChanges = Object.keys(edits).length > 0;
+  const canNavigate = !hasUnsavedChanges && status !== "saving";
+  const titleWarehouseWhere = useMemo<ApiWarehouseWhereInput | null>(
+    () => (warehouseId ? { id: { _eq: warehouseId } } : null),
+    [warehouseId],
+  );
+  const { warehouses: titleWarehouses } = useWarehouses({
+    first: 1,
+    where: titleWarehouseWhere,
+    skip: !warehouseId,
+  });
+  const titleWarehouse = titleWarehouses[0] ?? null;
+  const pageTitle = warehouseId
+    ? titleWarehouse?.name || titleWarehouse?.code || "Inventory"
+    : "All Inventory";
+  const buildInventoryItemsVariables = useCallback(
+    (
+      pageConfig: Parameters<typeof buildInventoryItemsQueryVariables>[0],
+    ): UseInventoryItemsOptions => ({
+      ...buildInventoryItemsQueryVariables(pageConfig),
+      warehouseId,
+    }),
+    [warehouseId],
+  );
+
+  const {
+    pageConfig,
+    listResult,
+    items: serverData,
+    pageInfo,
+    totalCount,
+    loading,
+    error,
+    refetch,
+    handleNextPage,
+    handlePrevPage,
+  } = useInventoryRelayListPage<
+    InventoryVariantRow,
+    ApiInventoryItemWhereInput,
+    InventoryItemOrderField,
+    UseInventoryItemsOptions,
+    ReturnType<typeof useInventoryItems>
+  >({
+    gridRef,
+    storageKey: "inventory-grid-state",
+    filterSchema,
+    sortFieldMapping: inventorySortFieldMapping,
+    defaultPageSize: 20,
+    buildSearchCondition: buildInventorySearchCondition,
+    filterTransformers: inventoryFilterTransformers,
+    buildQueryVariables: buildInventoryItemsVariables,
+    useListQuery: useInventoryItems,
+    getItems: (result) => result.rows,
+  });
+  const { activeWarehouseId, canEdit } = listResult;
+  const { saveInventoryVariantEdits } = useSaveInventoryVariantEdits();
+
+  const handleImportVariants = useCallback(
+    async (entities: IPickableEntity[]) => {
+      if (creatingWarehouseStock) {
+        return;
+      }
+
+      if (!activeWarehouseId) {
+        message.error("Select a warehouse to import variants.");
+        return;
+      }
+
+      const variants = entities as InventoryImportVariantEntity[];
+      if (variants.length === 0) {
+        return;
+      }
+
+      try {
+        const result = await createWarehouseStock({
+          items: variants.map((variant) => ({
+            variantId: variant.variantId,
+            warehouseId: activeWarehouseId,
+          })),
+        });
+        const firstError = result.userErrors[0] ?? null;
+
+        if (firstError) {
+          message.error(firstError.message);
+          return;
+        }
+
+        const createdCount = result.warehouseStocks.length;
+        if (createdCount === 0) {
+          message.error("Variant import was not accepted.");
+          return;
+        }
+
+        message.success(
+          createdCount === 1
+            ? "Variant imported."
+            : `${createdCount} variants imported.`,
+        );
+        await refetch();
+      } catch (importError) {
+        message.error(toSubmitError(importError).message);
+      }
+    },
+    [
+      activeWarehouseId,
+      createWarehouseStock,
+      creatingWarehouseStock,
+      message,
+      refetch,
+    ],
+  );
+  const { openPicker: openVariantPicker } = useVariantPicker({
+    selectionMode: "multi",
+    queryMeta: { warehouseId: activeWarehouseId },
+    onConfirm: handleImportVariants,
+  });
+
+  const handleOpenImportPicker = useCallback(() => {
+    if (!activeWarehouseId) {
+      message.error("Select a warehouse to import variants.");
+      return;
+    }
+
+    openVariantPicker();
+  }, [activeWarehouseId, message, openVariantPicker]);
+
+  const handleSortChanged = useCallback(
+    (event: SortChangedEvent<InventoryVariantRow>) => {
+      if (restoringSortRef.current) {
+        restoringSortRef.current = false;
+        return;
+      }
+
+      if (!canNavigate) {
+        message.warning("Save or discard changes to sort inventory.");
+        restoringSortRef.current = true;
+        event.api.applyColumnState({
+          state: pageConfig.sortModel.map((sort, index) => ({
+            colId: sort.colId,
+            sort: sort.sort,
+            sortIndex: index,
+          })),
+          defaultState: { sort: null },
+        });
+        return;
+      }
+
+      pageConfig.onSortChanged(event);
+    },
+    [canNavigate, message, pageConfig],
+  );
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
+  useEffect(() => {
+    discardAll();
+    setSelectedIds([]);
+  }, [discardAll, warehouseId]);
+
   // Compute display data by merging server data with pending edits
   const displayData = useMemo(() => {
+    if (!canEdit) {
+      return serverData;
+    }
+
     return serverData.map((item) => {
       const itemEdits = edits[item.id];
       if (!itemEdits) return item;
 
-      const onHand = itemEdits.onHand?.currentValue ?? item.onHand;
-      const unavailable =
-        itemEdits.unavailable?.currentValue ?? item.unavailable;
+      const sku = itemEdits.sku?.currentValue ?? item.sku;
+      const onHand = Number(itemEdits.onHand?.currentValue ?? item.onHand);
+      const unavailable = Number(
+        itemEdits.unavailable?.currentValue ?? item.unavailable,
+      );
       const available = onHand - unavailable - item.reserved;
 
       return {
         ...item,
+        sku: sku == null ? null : String(sku),
         onHand,
         unavailable,
         available,
       };
     });
-  }, [serverData, edits]);
+  }, [canEdit, serverData, edits]);
 
   const handleDiscard = useCallback(() => {
     discardAll();
   }, [discardAll]);
 
+  const clearStoredErrors = useCallback(() => {
+    clearSubmitErrors();
+    Object.keys(rowErrors).forEach((rowId) => clearRowErrors(rowId));
+  }, [clearRowErrors, clearSubmitErrors, rowErrors]);
+
   const handleSave = useCallback(async () => {
     startSaving();
+    clearStoredErrors();
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    if (!activeWarehouseId) {
+      const readOnlyError = {
+        message: "Select a warehouse to edit inventory.",
+        code: "WAREHOUSE_SCOPE_REQUIRED",
+      };
 
-    // In a real app, send edits to API here
+      setSubmitErrors([readOnlyError]);
+      finishSaving();
+      message.error(readOnlyError.message);
+      return;
+    }
 
-    onSaveSuccess();
-    await refetch();
-  }, [startSaving, onSaveSuccess, refetch]);
+    const mapping = mapInventoryVariantEditsToProductBulkUpdateInput(
+      serverData,
+      edits,
+      activeWarehouseId,
+    );
+    const hasRowErrors = Object.keys(mapping.rowErrors).length > 0;
+    const hasSubmitErrors = mapping.submitErrors.length > 0;
+
+    for (const [rowId, errors] of Object.entries(mapping.rowErrors)) {
+      setRowErrors(rowId, errors);
+    }
+
+    if (hasRowErrors || hasSubmitErrors) {
+      setSubmitErrors(mapping.submitErrors);
+      finishSaving();
+
+      const firstError =
+        mapping.submitErrors[0] ??
+        Object.values(mapping.rowErrors).flat()[0] ??
+        null;
+      message.error(
+        firstError?.message ?? "Fix inventory errors before saving.",
+      );
+      return;
+    }
+
+    try {
+      const result = await saveInventoryVariantEdits(mapping.input);
+      const apiErrors = result.userErrors.map((userError) => ({
+        message: userError.message,
+        code: userError.code,
+        field: userError.field,
+      }));
+
+      if (!result.jobId && apiErrors.length > 0) {
+        setSubmitErrors(apiErrors);
+        finishSaving();
+        message.error(apiErrors[0].message);
+        return;
+      }
+
+      if (!result.jobId) {
+        setSubmitErrors([
+          {
+            message: "Inventory update was not accepted.",
+            code: "PRODUCT_BULK_UPDATE_NOT_ACCEPTED",
+          },
+        ]);
+        finishSaving();
+        message.error("Inventory update was not accepted.");
+        return;
+      }
+
+      onSubmitAccepted();
+      message.success(`Inventory update accepted. Job ${result.jobId}`);
+      await refetch();
+    } catch (submitError) {
+      const normalizedError = toSubmitError(submitError);
+      setSubmitErrors([normalizedError]);
+      finishSaving();
+      message.error(normalizedError.message);
+    }
+  }, [
+    clearStoredErrors,
+    activeWarehouseId,
+    edits,
+    finishSaving,
+    message,
+    onSubmitAccepted,
+    refetch,
+    saveInventoryVariantEdits,
+    serverData,
+    setRowErrors,
+    setSubmitErrors,
+    startSaving,
+  ]);
 
   // Handle selection changes
   const handleSelectionChanged = useCallback(
-    (event: SelectionChangedEvent<IInventoryListItem>) => {
+    (event: SelectionChangedEvent<InventoryVariantRow>) => {
       const selectedRows = event.api.getSelectedRows();
       setSelectedIds(selectedRows.map((row) => row.id));
     },
-    []
+    [],
   );
 
   // Deselect all rows
@@ -139,19 +510,114 @@ export default function InventoryPage() {
   }, []);
 
   // Delete selected items
-  const handleDeleteSelected = useCallback(() => {
-    // TODO: Implement delete mutation
-    console.log("Delete items:", selectedIds);
+  const handleDeleteSelected = useCallback(async () => {
+    if (deletingWarehouseStock || status === "saving") {
+      return;
+    }
+
+    if (hasUnsavedChanges) {
+      message.warning("Save or discard changes before deleting inventory.");
+      return;
+    }
+
+    if (!activeWarehouseId) {
+      message.error("Select a warehouse to delete inventory.");
+      return;
+    }
+
+    const selectedRows = selectedIds
+      .map((id) => serverData.find((item) => item.id === id) ?? null)
+      .filter((item): item is InventoryVariantRow => item !== null);
+
+    if (selectedRows.length === 0) {
+      return;
+    }
+
+    const nonEmptyRows = selectedRows.filter(
+      (row) => row.onHand !== 0 || row.reserved !== 0 || row.unavailable !== 0,
+    );
+
+    if (nonEmptyRows.length > 0) {
+      message.warning(
+        nonEmptyRows.length === 1
+          ? "Set stock quantities to 0 before deleting this inventory item."
+          : "Set stock quantities to 0 before deleting selected inventory items.",
+      );
+      return;
+    }
+
+    const result = await deleteWarehouseStock({
+      items: selectedRows.map((row) => ({
+        variantId: row.variantId,
+        warehouseId: row.warehouseId ?? activeWarehouseId,
+      })),
+    });
+    const firstError = result.userErrors[0] ?? null;
+
+    if (firstError) {
+      message.error(firstError.message);
+      return;
+    }
+
+    const deletedCount = result.deletedWarehouseStockIds.length;
+    if (deletedCount === 0) {
+      message.error("Inventory item was not deleted.");
+      return;
+    }
+
+    message.success(
+      deletedCount === 1
+        ? "Inventory item deleted."
+        : `${deletedCount} inventory items deleted.`,
+    );
     deselectAll();
-  }, [selectedIds, deselectAll]);
+    await refetch();
+  }, [
+    activeWarehouseId,
+    deleteWarehouseStock,
+    deletingWarehouseStock,
+    deselectAll,
+    hasUnsavedChanges,
+    message,
+    refetch,
+    selectedIds,
+    serverData,
+    status,
+  ]);
 
   const handleCellEditRequest = useCallback(
-    (event: CellEditRequestEvent<IInventoryListItem>) => {
+    (event: CellEditRequestEvent<InventoryVariantRow>) => {
       const { data, colDef, newValue } = event;
       if (!data) return;
 
-      const field = colDef.field as "onHand" | "unavailable";
+      if (data.readOnly || !canEdit) {
+        message.error(
+          data.readOnlyReason ?? "This inventory row is read-only.",
+        );
+        return;
+      }
+
+      const field = colDef.field as EditableField;
+      if (field === "sku") {
+        const serverItem = serverData.find((item) => item.id === data.id);
+        if (!serverItem) return;
+
+        const nextSku = String(newValue ?? "").trim() || null;
+        setFieldValue(data.id, "sku", serverItem.sku, nextSku);
+        return;
+      }
+
       if (field !== "onHand" && field !== "unavailable") return;
+
+      const parsedValue =
+        typeof newValue === "number"
+          ? newValue
+          : Number.parseInt(String(newValue), 10);
+
+      if (!Number.isInteger(parsedValue)) {
+        message.error("Inventory quantity must be an integer.");
+        return;
+      }
 
       // Find original server data
       const serverItem = serverData.find((item) => item.id === data.id);
@@ -159,13 +625,15 @@ export default function InventoryPage() {
 
       // Get current values (from edits or original server data)
       const currentEdits = edits[data.id];
-      const currentOnHand =
-        currentEdits?.onHand?.currentValue ?? serverItem.onHand;
-      const currentUnavailable =
-        currentEdits?.unavailable?.currentValue ?? serverItem.unavailable;
+      const currentOnHand = Number(
+        currentEdits?.onHand?.currentValue ?? serverItem.onHand,
+      );
+      const currentUnavailable = Number(
+        currentEdits?.unavailable?.currentValue ?? serverItem.unavailable,
+      );
 
       // Validate using shared validator
-      const result = validateFieldChange(field, Number(newValue), {
+      const result = validateFieldChange(field, parsedValue, {
         onHand: currentOnHand,
         unavailable: currentUnavailable,
         reserved: serverItem.reserved,
@@ -179,76 +647,81 @@ export default function InventoryPage() {
 
       // Store edit in Zustand (original value from server, new value from edit)
       const originalValue = serverItem[field];
-      setFieldValue(data.id, field, originalValue, Number(newValue));
+      setFieldValue(data.id, field, originalValue, parsedValue);
     },
-    [message, setFieldValue, edits, serverData]
+    [canEdit, message, setFieldValue, edits, serverData],
   );
 
   // Row selection with checkbox isolation
   const { rowSelection, selectionColumnDef, onCellClicked } =
-    useAgGridRowSelection<IInventoryListItem>();
+    useAgGridRowSelection<InventoryVariantRow>();
 
-  const columnDefs = useMemo<ColDef<IInventoryListItem>[]>(
+  const columnDefs = useMemo<ColDef<InventoryVariantRow>[]>(
     () => [
       {
         headerName: "Product",
-        field: "productName",
+        colId: "productTitle",
+        field: "productTitle",
         cellRenderer: ProductCellRenderer,
         flex: 2,
         minWidth: 300,
       },
       {
         headerName: "SKU",
+        colId: "sku",
         field: "sku",
         minWidth: 120,
+        cellRenderer: SkuCellRenderer,
+        editable: ({ data }) => canEdit && !data?.readOnly,
       },
       {
         headerName: "On hand",
+        colId: "onHand",
         field: "onHand",
         cellRenderer: OnHandCellRenderer,
         cellEditor: "agNumberCellEditor",
         cellEditorParams: { min: 0 },
-        editable: true,
+        editable: ({ data }) => canEdit && !data?.readOnly,
         minWidth: 120,
-        type: "rightAligned",
       },
       {
         headerName: "Unavailable",
+        colId: "unavailable",
         field: "unavailable",
         cellRenderer: UnavailableCellRenderer,
         cellEditor: "agNumberCellEditor",
         cellEditorParams: { min: 0 },
-        editable: true,
+        editable: ({ data }) => canEdit && !data?.readOnly,
         minWidth: 120,
-        type: "rightAligned",
       },
       {
         headerName: "Reserved",
+        colId: "reserved",
         field: "reserved",
         cellRenderer: ReservedCellRenderer,
         minWidth: 120,
-        type: "rightAligned",
       },
       {
         headerName: "Available",
+        colId: "available",
         field: "available",
         cellRenderer: CalculatedAvailableCell,
         minWidth: 120,
         flex: 1,
-        type: "rightAligned",
         resizable: false,
       },
     ],
-    []
+    [canEdit],
   );
 
   const defaultColDef = useMemo<ColDef>(
     () => ({
       resizable: true,
       sortable: true,
+      comparator: () => 0,
       cellStyle: { display: "flex", alignItems: "center" },
     }),
-    []
+    [],
   );
 
   // Build selection actions
@@ -259,22 +732,46 @@ export default function InventoryPage() {
         label: "Delete",
         icon: <DeleteOutlined />,
         danger: true,
+        loading: deletingWarehouseStock,
+        disabled: deletingWarehouseStock || status === "saving",
         onClick: handleDeleteSelected,
       },
     ],
-    [handleDeleteSelected]
+    [deletingWarehouseStock, handleDeleteSelected, status],
   );
 
   // Derive reactive values from edits
-  const hasUnsavedChanges = Object.keys(edits).length > 0;
   const changesCount = Object.values(edits).reduce(
     (count, fields) => count + Object.keys(fields || {}).length,
-    0
+    0,
   );
+  const rowErrorCount = Object.values(rowErrors).reduce(
+    (count, errors) => count + errors.length,
+    0,
+  );
+  const firstStoredError = getFirstStoredError(submitErrors, rowErrors);
 
   // Build floating panels
   const panels = useMemo<PanelConfig[]>(() => {
     const result: PanelConfig[] = [];
+
+    if (firstStoredError && hasUnsavedChanges) {
+      result.push({
+        type: "custom",
+        id: "inventory-submit-errors",
+        render: () => (
+          <Alert
+            className={styles.errorPanel}
+            type="error"
+            showIcon
+            message={firstStoredError.message}
+            description={
+              rowErrorCount > 0 ? `${rowErrorCount} row error(s)` : undefined
+            }
+          />
+        ),
+      });
+    }
 
     if (hasUnsavedChanges) {
       result.push({
@@ -287,7 +784,7 @@ export default function InventoryPage() {
       });
     }
 
-    if (selectedIds.length > 0) {
+    if (canEdit && selectedIds.length > 0) {
       // eslint-disable-next-line react-hooks/refs -- deselectAll is called on click, not during render
       result.push({
         type: "selection",
@@ -299,46 +796,63 @@ export default function InventoryPage() {
 
     return result;
   }, [
-    hasUnsavedChanges,
     changesCount,
-    status,
-    handleSave,
+    canEdit,
+    deselectAll,
+    firstStoredError,
     handleDiscard,
+    handleSave,
+    hasUnsavedChanges,
+    rowErrorCount,
     selectedIds.length,
     selectionActions,
-    deselectAll,
+    status,
+    styles.errorPanel,
   ]);
-
-  // Block pagination when editing
-  const canNavigate = !hasUnsavedChanges && status !== "saving";
 
   return (
     <DataLayout
       name="inventory"
-      title="Inventory"
-      count={displayData.length}
+      title={pageTitle}
+      count={totalCount}
       actions={
-        <Flex gap="small">
-          <Button>Export</Button>
-          <Button>Import</Button>
-        </Flex>
+        <Button
+          data-testid="inventory-import-button"
+          disabled={
+            !canEdit ||
+            !activeWarehouseId ||
+            creatingWarehouseStock ||
+            status === "saving"
+          }
+          icon={<ImportOutlined />}
+          loading={creatingWarehouseStock}
+          onClick={handleOpenImportPicker}
+        >
+          Import
+        </Button>
       }
     >
       <DataLayout.Toolbar
         left={
           <FilterWidget
-            {...widgetProps}
-            searchProps={{
-              searchValue,
-              onChangeSearchValue: setSearchValue,
-            }}
+            {...pageConfig.filterWidgetProps}
+            searchPlaceholder="Search inventory..."
           />
         }
       />
 
       <div className={styles.gridContainer}>
-        <div className={styles.gridWrapper}>
-          <AgGridReact<IInventoryListItem>
+        {error ? (
+          <Alert
+            type="error"
+            showIcon
+            message={error.message}
+            style={{ marginBottom: 8 }}
+          />
+        ) : null}
+
+        <div className={styles.gridWrapper} data-testid="inventory-table">
+          <AgGridReact<InventoryVariantRow>
             ref={gridRef}
             theme={agGridTheme}
             rowData={displayData}
@@ -346,29 +860,36 @@ export default function InventoryPage() {
             defaultColDef={defaultColDef}
             getRowId={(params) => params.data.id}
             rowHeight={56}
-            rowSelection={rowSelection}
-            selectionColumnDef={selectionColumnDef}
+            loading={loading}
+            rowSelection={canEdit ? rowSelection : undefined}
+            selectionColumnDef={canEdit ? selectionColumnDef : undefined}
             suppressMovableColumns
             readOnlyEdit
             onCellEditRequest={handleCellEditRequest}
-            onCellClicked={onCellClicked}
+            onCellClicked={canEdit ? onCellClicked : undefined}
             onSelectionChanged={handleSelectionChanged}
-            initialState={initialState}
-            onStateUpdated={onStateUpdated}
+            initialState={pageConfig.gridStateProps.initialState}
+            onStateUpdated={pageConfig.gridStateProps.onStateUpdated}
+            onSortChanged={handleSortChanged}
             stopEditingWhenCellsLoseFocus
           />
         </div>
 
         <CursorPagination
-          total={displayData.length}
-          rangeStart={1}
-          rangeEnd={Math.min(20, displayData.length)}
-          pageSize={20}
-          hasNext={displayData.length > 20}
-          hasPrev={false}
-          onNext={() => {}}
-          onPrev={() => {}}
-          onPageSizeChange={() => {}}
+          name="inventory"
+          total={totalCount}
+          rangeStart={pageConfig.getRangeStart(displayData.length)}
+          rangeEnd={Math.min(
+            pageConfig.getRangeEnd(displayData.length),
+            totalCount,
+          )}
+          pageSize={pageConfig.pageSize}
+          pageSizeOptions={pageConfig.pageSizeOptions}
+          hasNext={pageInfo?.hasNextPage ?? false}
+          hasPrev={pageInfo?.hasPreviousPage ?? false}
+          onNext={handleNextPage}
+          onPrev={handlePrevPage}
+          onPageSizeChange={pageConfig.setPageSize}
           disabled={!canNavigate}
           disabledReason="Save or discard changes to navigate"
         />

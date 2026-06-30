@@ -262,7 +262,7 @@ Each service must publish:
 
 ```json
 {
-  "service": "inventory",
+  "service": "catalog",
   "status": "done",
   "productId": "123",
   "timestamp": 1733145444123
@@ -273,7 +273,7 @@ Each service must publish:
 
 ```json
 {
-  "service": "inventory",
+  "service": "catalog",
   "status": "failed",
   "error": "SKU not found",
   "productId": "123",

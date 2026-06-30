@@ -49,14 +49,14 @@ export type VariantPriceHistory = TypeResult<typeof VariantPriceResolver>;
 // --- Product ---
 
 /**
- * Product description in multiple formats
+ * Rich text content in multiple formats
  */
-export interface Description {
-  /** Plain text description */
+export interface RichText {
+  /** Plain text content */
   text: string;
-  /** HTML description */
+  /** HTML content */
   html: string;
-  /** EditorJS JSON description */
+  /** EditorJS JSON content */
   json: unknown;
 }
 
@@ -85,6 +85,18 @@ export interface VariantPrice {
   recordedAt: string;
   /** Whether this is the current active price */
   isCurrent: boolean;
+}
+
+/**
+ * Product-level price range in the selected currency.
+ */
+export interface ProductPriceRange {
+  /** Minimum product price amount in minor units */
+  minPriceAmount: number;
+  /** Maximum product price amount in minor units */
+  maxPriceAmount: number;
+  /** The currency code */
+  currency: CurrencyCode;
 }
 
 /**
@@ -131,12 +143,27 @@ export interface VariantWeight {
 
 // --- Media ---
 
+interface FileReference {
+  __typename: "File";
+  id: string;
+}
+
+/**
+ * Media registered on a product with sort order
+ */
+export interface ProductMediaItem {
+  /** File reference from the Media service */
+  file: FileReference;
+  /** Sort order index (lower = first) */
+  sortIndex: number;
+}
+
 /**
  * Media attached to a variant with sort order
  */
 export interface VariantMediaItem {
-  /** UUID of the file from the Media service */
-  fileId: string;
+  /** File reference from the Media service */
+  file: FileReference;
   /** Sort order index (lower = first) */
   sortIndex: number;
 }

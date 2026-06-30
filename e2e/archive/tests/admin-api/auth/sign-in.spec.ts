@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import { ApiUserMutationSignInArgs } from '@codegen/admin-gql';
+import type { ApiUserMutationSignInArgs } from '@codegen/admin-gql';
 import { test } from '@fixtures/base.extend';
 
 const data = {

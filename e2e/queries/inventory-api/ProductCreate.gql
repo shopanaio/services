@@ -5,21 +5,35 @@ mutation ProductCreate($input: ProductCreateInput!) {
         id
         title
         handle
+        revision
         isPublished
         description {
           html
           text
           json
         }
+        excerpt {
+          html
+          text
+          json
+        }
+        media {
+          file {
+            id
+          }
+          sortIndex
+        }
         options {
           id
           name
           slug
           displayType
+          sortIndex
           values {
             id
             name
             slug
+            sortIndex
           }
         }
         variants(first: 10) {
@@ -28,10 +42,55 @@ mutation ProductCreate($input: ProductCreateInput!) {
               id
               isDefault
               handle
+              dimensions {
+                width
+                height
+                length
+              }
+              weight {
+                value
+              }
               inventoryItem {
                 id
+                variantId
                 sku
                 trackInventory
+                continueSellingWhenOutOfStock
+                stock {
+                  id
+                  quantityOnHand
+                  createdAt
+                  updatedAt
+                  warehouse {
+                    id
+                    code
+                    name
+                    isDefault
+                    createdAt
+                    updatedAt
+                    variantsCount
+                  }
+                  variant {
+                    id
+                    handle
+                    title
+                    isDefault
+                  }
+                }
+                totalAvailable
+                unitCost {
+                  currency
+                  amountMinor
+                  effectiveFrom
+                }
+                createdAt
+                updatedAt
+              }
+              media {
+                file {
+                  id
+                }
+                sortIndex
               }
             }
           }

@@ -1,436 +1,177 @@
-/**
- * Mock data for ProductInfoCardA component testing/development
- */
-
+import { OptionDisplayType } from "@/graphql/types";
+import type {
+  ApiCategory,
+  ApiProduct,
+  ApiProductOption,
+  ApiVariant,
+} from "@/graphql/types";
 import {
-  IProduct,
-  IProductVariant,
-  ICategory,
-  ITag,
-  IMediaFile,
-  IProductFeatureGroup,
-  IProductGroup,
-  ISwatch,
-  EntityStatus,
-  WeightUnit,
-  DimensionUnit,
-  FeatureStyleType,
-  FeatureSwatchType,
-  FileDriver,
-  ProductGroupPriceType,
-} from './types';
-import type { ApiFile, ApiDescription, FileProvider } from '@/graphql/types';
+  createMockApiCategory,
+  createMockApiRichText,
+  createMockApiFile,
+  createMockApiInventoryItem,
+  createMockApiInventoryItemCost,
+  createMockApiProduct,
+  createMockApiProductMediaItem,
+  createMockApiProductOption,
+  createMockApiProductOptionSwatch,
+  createMockApiProductOptionValue,
+  createMockApiTag,
+  createMockApiVariant,
+  createMockApiVariantDimensions,
+  createMockApiVariantMediaItem,
+  createMockApiVariantPrice,
+  createMockApiVariantWeight,
+  createMockApiWarehouseStock,
+} from "./api-builders";
 
-// ============================================================================
-// Helper Functions
-// ============================================================================
+const SIMPLE_PRODUCT_ID = "prod-simple-1";
+const VARIABLE_PRODUCT_ID = "prod-phone-1";
+const DRAFT_PRODUCT_ID = "prod-draft-1";
+const ARCHIVED_PRODUCT_ID = "prod-archived-1";
 
-const generateId = (): string => Math.random().toString(36).substring(2, 11);
+const createMedia = (seed: string, index: number) =>
+  createMockApiVariantMediaItem({
+    file: createMockApiFile({
+      id: `file-${seed}-${index}`,
+      name: `${seed}-${index}.jpg`,
+      seed: `${seed}-${index}`,
+      altText: seed.replace(/-/g, " "),
+    }),
+    sortIndex: index,
+  });
 
-const createMediaFile = (
-  name: string,
-  index: number = 0,
-): IMediaFile => ({
-  id: generateId(),
-  url: `https://picsum.photos/seed/${name}-${index}/800/800`,
-  name: `${name}-${index}.jpg`,
-  size: 1024 * 100,
-  ext: 'jpg',
-  driver: FileDriver.S3,
-  key: `products/${name}/${index}.jpg`,
-  createdAt: new Date().toISOString(),
+const createProductMedia = (seed: string, index: number) =>
+  createMockApiProductMediaItem({
+    file: createMockApiFile({
+      id: `file-product-${seed}-${index}`,
+      name: `${seed}-${index}.jpg`,
+      seed: `${seed}-${index}`,
+      altText: seed.replace(/-/g, " "),
+    }),
+    sortIndex: index,
+  });
+
+const createCategoryMedia = (seed: string, index: number) => ({
+  __typename: "CategoryMediaItem" as const,
+  file: createMockApiFile({
+    id: `file-${seed}-${index}`,
+    name: `${seed}-${index}.jpg`,
+    seed: `${seed}-${index}`,
+    altText: seed.replace(/-/g, " "),
+  }),
+  sortIndex: index,
 });
 
-/**
- * Create an ApiFile object for mock data
- */
-const createApiFile = (
-  name: string,
-  index: number = 0,
-): ApiFile => ({
-  __typename: 'File',
-  id: generateId(),
-  url: `https://picsum.photos/seed/${name}-${index}/800/800`,
-  originalName: `${name}-${index}.jpg`,
-  altText: null,
-  ext: 'jpg',
-  mimeType: 'image/jpeg',
-  sizeBytes: 1024 * 100,
-  provider: 'S3' as FileProvider,
-  isProcessed: true,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  deletedAt: null,
-  deletionState: 'ACTIVE',
-  dimensions: { __typename: 'MediaDimensions', width: 800, height: 800 },
-  durationMs: null,
-  externalData: null,
-  meta: null,
-  s3Data: null,
-  sourceUrl: null,
-  usage: { __typename: 'FileUsageSummary', totalCount: 0, byEntity: [], fileActive: true },
+const electronicsCategory = createMockApiCategory({
+  id: "cat-1",
+  name: "Electronics",
+  handle: "electronics",
+  media: [createCategoryMedia("electronics-category", 0)],
 });
 
-/**
- * Create an ApiDescription object
- */
-const createApiDescription = (
-  json: Record<string, unknown>,
-  text: string,
-  html: string,
-): ApiDescription => ({
-  __typename: 'Description',
-  json,
-  text,
-  html,
+const smartphonesCategory = createMockApiCategory({
+  id: "cat-2",
+  name: "Smartphones",
+  handle: "smartphones",
+  parent: electronicsCategory,
+  ancestors: [electronicsCategory],
+  media: [createCategoryMedia("smartphones-category", 0)],
 });
 
-const createSwatch = (
-  color1: string,
-  color2?: string,
-): ISwatch => ({
-  id: generateId(),
-  color1,
-  color2: color2 || null,
-  image: null,
-  type: color2 ? FeatureSwatchType.TWO_COLOR : FeatureSwatchType.COLOR,
+const iphoneCategory = createMockApiCategory({
+  id: "cat-1-1-1",
+  name: "iPhone",
+  handle: "iphone",
+  parent: smartphonesCategory,
+  ancestors: [electronicsCategory, smartphonesCategory],
 });
 
-// ============================================================================
-// Mock Categories
-// ============================================================================
+const samsungGalaxyCategory = createMockApiCategory({
+  id: "cat-1-1-2",
+  name: "Samsung Galaxy",
+  handle: "samsung-galaxy",
+  parent: smartphonesCategory,
+  ancestors: [electronicsCategory, smartphonesCategory],
+});
 
-const dataMockCategories: ICategory[] = [
-  {
-    id: 'cat-1',
-    title: 'Electronics',
-    slug: 'electronics',
-    description: 'Electronic devices and gadgets',
-    excerpt: 'Electronic devices',
-    seoTitle: 'Electronics | Shop',
-    seoDescription: 'Browse our electronics collection',
-    status: EntityStatus.PUBLISHED,
-    createdAt: new Date('2024-01-01'),
-    updatedAt: new Date('2024-06-01'),
-    featured: createMediaFile('electronics', 0),
-    gallery: [],
-  },
-  {
-    id: 'cat-2',
-    title: 'Smartphones',
-    slug: 'smartphones',
-    description: 'Mobile phones and accessories',
-    excerpt: 'Mobile phones',
-    seoTitle: 'Smartphones | Shop',
-    seoDescription: 'Browse our smartphone collection',
-    status: EntityStatus.PUBLISHED,
-    createdAt: new Date('2024-01-02'),
-    updatedAt: new Date('2024-06-02'),
-    featured: createMediaFile('smartphones', 0),
-    gallery: [],
-  },
-  {
-    id: 'cat-3',
-    title: 'Clothing',
-    slug: 'clothing',
-    description: 'Fashion and apparel',
-    excerpt: 'Fashion items',
-    seoTitle: 'Clothing | Shop',
-    seoDescription: 'Browse our clothing collection',
-    status: EntityStatus.PUBLISHED,
-    createdAt: new Date('2024-01-03'),
-    updatedAt: new Date('2024-06-03'),
-    featured: createMediaFile('clothing', 0),
-    gallery: [],
-  },
+const clothingCategory = createMockApiCategory({
+  id: "cat-3",
+  name: "Clothing",
+  handle: "clothing",
+  media: [createCategoryMedia("clothing-category", 0)],
+});
+
+export const mockApiCategories: ApiCategory[] = [
+  electronicsCategory,
+  smartphonesCategory,
+  iphoneCategory,
+  samsungGalaxyCategory,
+  clothingCategory,
 ];
 
-// ============================================================================
-// Mock Tags
-// ============================================================================
-
-const dataMockTags: ITag[] = [
-  { id: 'tag-1', title: 'New Arrival', slug: 'new-arrival', color: '#52c41a' },
-  { id: 'tag-2', title: 'Bestseller', slug: 'bestseller', color: '#1677ff' },
-  { id: 'tag-3', title: 'Sale', slug: 'sale', color: '#ff4d4f' },
-  { id: 'tag-4', title: 'Limited Edition', slug: 'limited-edition', color: '#722ed1' },
-  { id: 'tag-5', title: 'Eco-Friendly', slug: 'eco-friendly', color: '#13c2c2' },
+const detailProductCategories = [
+  electronicsCategory,
+  smartphonesCategory,
+  iphoneCategory,
+  samsungGalaxyCategory,
 ];
 
-// ============================================================================
-// Mock Feature Groups (Options)
-// ============================================================================
-
-const createColorOptionGroup = (): IProductFeatureGroup => ({
-  id: 'opt-color',
-  slug: 'color',
-  title: 'Color',
-  style: FeatureStyleType.COLOR,
-  isOption: true,
-  isActive: true,
-  isEditing: false,
-  features: [
-    {
-      id: 'feat-black',
-      slug: 'black',
-      title: 'Black',
-      style: FeatureStyleType.COLOR,
-      swatch: createSwatch('#000000'),
-      group: {} as IProductFeatureGroup,
-    },
-    {
-      id: 'feat-white',
-      slug: 'white',
-      title: 'White',
-      style: FeatureStyleType.COLOR,
-      swatch: createSwatch('#FFFFFF'),
-      group: {} as IProductFeatureGroup,
-    },
-    {
-      id: 'feat-blue',
-      slug: 'blue',
-      title: 'Blue',
-      style: FeatureStyleType.COLOR,
-      swatch: createSwatch('#1677ff'),
-      group: {} as IProductFeatureGroup,
-    },
-  ],
+const newArrivalTag = createMockApiTag({
+  id: "tag-1",
+  name: "New Arrival",
+  handle: "new-arrival",
 });
 
-const createSizeOptionGroup = (): IProductFeatureGroup => ({
-  id: 'opt-size',
-  slug: 'size',
-  title: 'Size',
-  style: FeatureStyleType.DEFAULT,
-  isOption: true,
-  isActive: true,
-  isEditing: false,
-  features: [
-    {
-      id: 'feat-s',
-      slug: 's',
-      title: 'S',
-      style: FeatureStyleType.DEFAULT,
-      swatch: null,
-      group: {} as IProductFeatureGroup,
-    },
-    {
-      id: 'feat-m',
-      slug: 'm',
-      title: 'M',
-      style: FeatureStyleType.DEFAULT,
-      swatch: null,
-      group: {} as IProductFeatureGroup,
-    },
-    {
-      id: 'feat-l',
-      slug: 'l',
-      title: 'L',
-      style: FeatureStyleType.DEFAULT,
-      swatch: null,
-      group: {} as IProductFeatureGroup,
-    },
-    {
-      id: 'feat-xl',
-      slug: 'xl',
-      title: 'XL',
-      style: FeatureStyleType.DEFAULT,
-      swatch: null,
-      group: {} as IProductFeatureGroup,
-    },
-  ],
+const bestsellerTag = createMockApiTag({
+  id: "tag-2",
+  name: "Best Seller",
+  handle: "best-seller",
 });
 
-const createStorageOptionGroup = (): IProductFeatureGroup => ({
-  id: 'opt-storage',
-  slug: 'storage',
-  title: 'Storage',
-  style: FeatureStyleType.DEFAULT,
-  isOption: true,
-  isActive: true,
-  isEditing: false,
-  features: [
-    {
-      id: 'feat-128gb',
-      slug: '128gb',
-      title: '128 GB',
-      style: FeatureStyleType.DEFAULT,
-      swatch: null,
-      group: {} as IProductFeatureGroup,
-    },
-    {
-      id: 'feat-256gb',
-      slug: '256gb',
-      title: '256 GB',
-      style: FeatureStyleType.DEFAULT,
-      swatch: null,
-      group: {} as IProductFeatureGroup,
-    },
-    {
-      id: 'feat-512gb',
-      slug: '512gb',
-      title: '512 GB',
-      style: FeatureStyleType.DEFAULT,
-      swatch: null,
-      group: {} as IProductFeatureGroup,
-    },
-  ],
+export const saleTag = createMockApiTag({
+  id: "tag-3",
+  name: "Sale",
+  handle: "sale",
 });
 
-// ============================================================================
-// Mock Attribute Groups
-// ============================================================================
-
-const createMaterialAttributeGroup = (): IProductFeatureGroup => ({
-  id: 'attr-material',
-  slug: 'material',
-  title: 'Material',
-  style: FeatureStyleType.DEFAULT,
-  isOption: false,
-  isActive: true,
-  isEditing: false,
-  features: [
-    {
-      id: 'feat-cotton',
-      slug: 'cotton',
-      title: '100% Cotton',
-      style: FeatureStyleType.DEFAULT,
-      swatch: null,
-      group: {} as IProductFeatureGroup,
-    },
-  ],
+const limitedEditionTag = createMockApiTag({
+  id: "tag-4",
+  name: "Limited Edition",
+  handle: "limited-edition",
 });
 
-const createBrandAttributeGroup = (): IProductFeatureGroup => ({
-  id: 'attr-brand',
-  slug: 'brand',
-  title: 'Brand',
-  style: FeatureStyleType.DEFAULT,
-  isOption: false,
-  isActive: true,
-  isEditing: false,
-  features: [
-    {
-      id: 'feat-apple',
-      slug: 'apple',
-      title: 'Apple',
-      style: FeatureStyleType.DEFAULT,
-      swatch: null,
-      group: {} as IProductFeatureGroup,
-    },
-  ],
+const trendingTag = createMockApiTag({
+  id: "tag-5",
+  name: "Trending",
+  handle: "trending",
 });
 
-// ============================================================================
-// Mock Product Variants (for variable products)
-// ============================================================================
-
-const createVariant = (
-  containerId: string,
-  options: { color: string; storage?: string; size?: string },
-  pricing: { price: number; oldPrice?: number; costPrice?: number },
-  index: number,
-): IProductVariant => {
-  const colorGroup = createColorOptionGroup();
-  const storageGroup = createStorageOptionGroup();
-  const sizeGroup = createSizeOptionGroup();
-
-  const variantOptions = [];
-  if (options.color) {
-    const colorFeature = colorGroup.features.find(f => f.slug === options.color);
-    if (colorFeature) {
-      variantOptions.push({
-        ...colorFeature,
-        group: colorGroup,
-      });
-    }
-  }
-  if (options.storage) {
-    const storageFeature = storageGroup.features.find(f => f.slug === options.storage);
-    if (storageFeature) {
-      variantOptions.push({
-        ...storageFeature,
-        group: storageGroup,
-      });
-    }
-  }
-  if (options.size) {
-    const sizeFeature = sizeGroup.features.find(f => f.slug === options.size);
-    if (sizeFeature) {
-      variantOptions.push({
-        ...sizeFeature,
-        group: sizeGroup,
-      });
-    }
-  }
-
-  const title = variantOptions.map(o => o.title).join(' / ');
-
-  return {
-    id: `var-${containerId}-${index}`,
-    containerId,
-    title,
-    slug: title.toLowerCase().replace(/ \/ /g, '-').replace(/ /g, '-'),
-    price: pricing.price,
-    oldPrice: pricing.oldPrice || 0,
-    costPrice: pricing.costPrice || Math.floor(pricing.price * 0.6),
-    sku: `SKU-${containerId.toUpperCase()}-${index}`,
-    featured: createMediaFile(`variant-${containerId}`, index),
-    gallery: [
-      createMediaFile(`variant-${containerId}`, index * 10),
-      createMediaFile(`variant-${containerId}`, index * 10 + 1),
-      createMediaFile(`variant-${containerId}`, index * 10 + 2),
-      createMediaFile(`variant-${containerId}`, index * 10 + 3),
-    ],
-    weight: 150,
-    weightUnit: WeightUnit.G,
-    length: 150,
-    width: 75,
-    height: 8,
-    dimensionUnit: DimensionUnit.MM,
-    stockStatus: index % 3 === 0 ? 'LOW_STOCK' : index % 5 === 0 ? 'OUT_OF_STOCK' : 'IN_STOCK',
-    status: EntityStatus.PUBLISHED,
-    createdAt: new Date('2024-06-01'),
-    updatedAt: new Date('2024-12-15'),
-    isVariant: true,
-    variantSortIndex: index,
-    inListing: true,
-    categories: [dataMockCategories[0], dataMockCategories[1]],
-    options: variantOptions,
-    container: null,
-  };
-};
-
-// ============================================================================
-// Mock Product Groups (Bundles/Components)
-// ============================================================================
-
-const createMockProductGroup = (
-  containerId: string,
-  title: string,
-  variants: IProductVariant[],
-): IProductGroup => ({
-  id: generateId(),
-  title,
-  isMultiple: true,
-  isRequired: false,
-  managedVariants: false,
-  sortIndex: 0,
-  items: variants.slice(0, 3).map((variant, idx) => ({
-    id: generateId(),
-    product: variant,
-    priceType: ProductGroupPriceType.FIXED,
-    priceAmountValue: 500000,
-    pricePercentageValue: null,
-  })),
+const ecoFriendlyTag = createMockApiTag({
+  id: "tag-6",
+  name: "Eco-Friendly",
+  handle: "eco-friendly",
 });
 
-// ============================================================================
-// Mock EditorJS Data
-// ============================================================================
+export const mockApiTags = [
+  newArrivalTag,
+  bestsellerTag,
+  saleTag,
+  limitedEditionTag,
+  trendingTag,
+  ecoFriendlyTag,
+];
+
+const detailProductTags = [
+  newArrivalTag,
+  bestsellerTag,
+  saleTag,
+  limitedEditionTag,
+  trendingTag,
+];
 
 const mockSimpleProductDescriptionJson = {
-  time: Date.now(),
+  time: 1718380800000,
   version: "2.29.0",
   blocks: [
     {
@@ -471,14 +212,8 @@ const mockSimpleProductDescriptionJson = {
   ],
 };
 
-const mockSimpleProductDescriptionApi = createApiDescription(
-  mockSimpleProductDescriptionJson as Record<string, unknown>,
-  'Premium quality cotton t-shirt with a modern fit. Perfect for everyday wear. Crafted from the finest organic cotton, this t-shirt offers exceptional comfort and durability. Features: 100% organic cotton, Pre-shrunk fabric, Reinforced seams, Machine washable. Available in multiple colors and sizes. Order now and experience the comfort of premium cotton.',
-  '<p>Premium quality cotton t-shirt with a modern fit. Perfect for everyday wear. Crafted from the finest organic cotton, this t-shirt offers exceptional comfort and durability.</p><h3>Features</h3><ul><li>100% organic cotton</li><li>Pre-shrunk fabric</li><li>Reinforced seams</li><li>Machine washable</li></ul><p>Available in multiple colors and sizes. Order now and experience the comfort of premium cotton.</p>',
-);
-
 const mockVariableProductDescriptionJson = {
-  time: Date.now(),
+  time: 1718380800000,
   version: "2.29.0",
   blocks: [
     {
@@ -520,169 +255,445 @@ const mockVariableProductDescriptionJson = {
   ],
 };
 
-const mockVariableProductDescriptionApi = createApiDescription(
-  mockVariableProductDescriptionJson as Record<string, unknown>,
-  'The most advanced smartphone ever. Featuring cutting-edge technology and premium titanium design that sets new standards in mobile innovation. Key Features: 6.7" Super Retina XDR display with ProMotion technology, A17 Pro chip with 6-core GPU for unprecedented performance, 48MP main camera system with advanced computational photography, All-day battery life with fast charging support, Premium titanium design - lightest Pro model ever. Available in Natural, Blue, White, and Black titanium finishes.',
-  '<p>The most advanced smartphone ever. Featuring cutting-edge technology and premium titanium design that sets new standards in mobile innovation.</p><h3>Key Features</h3><ul><li>6.7" Super Retina XDR display with ProMotion technology</li><li>A17 Pro chip with 6-core GPU for unprecedented performance</li><li>48MP main camera system with advanced computational photography</li><li>All-day battery life with fast charging support</li><li>Premium titanium design - lightest Pro model ever</li></ul><p>Available in Natural, Blue, White, and Black titanium finishes. Choose your storage capacity and get ready for the future of mobile technology.</p>',
-);
+const simpleProductDescription = createMockApiRichText({
+  json: mockSimpleProductDescriptionJson,
+  text: "Premium quality cotton t-shirt with a modern fit. Perfect for everyday wear. Crafted from the finest organic cotton, this t-shirt offers exceptional comfort and durability. Features: 100% organic cotton, Pre-shrunk fabric, Reinforced seams, Machine washable. Available in multiple colors and sizes. Order now and experience the comfort of premium cotton.",
+  html: "<p>Premium quality cotton t-shirt with a modern fit. Perfect for everyday wear. Crafted from the finest organic cotton, this t-shirt offers exceptional comfort and durability.</p><h3>Features</h3><ul><li>100% organic cotton</li><li>Pre-shrunk fabric</li><li>Reinforced seams</li><li>Machine washable</li></ul><p>Available in multiple colors and sizes. Order now and experience the comfort of premium cotton.</p>",
+});
 
-// ============================================================================
-// Mock Products
-// ============================================================================
+const variableProductDescription = createMockApiRichText({
+  json: mockVariableProductDescriptionJson,
+  text: 'The most advanced smartphone ever. Featuring cutting-edge technology and premium titanium design that sets new standards in mobile innovation. Key Features: 6.7" Super Retina XDR display with ProMotion technology, A17 Pro chip with 6-core GPU for unprecedented performance, 48MP main camera system with advanced computational photography, All-day battery life with fast charging support, Premium titanium design - lightest Pro model ever. Available in Natural, Blue, White, and Black titanium finishes.',
+  html: '<p>The most advanced smartphone ever. Featuring cutting-edge technology and premium titanium design that sets new standards in mobile innovation.</p><h3>Key Features</h3><ul><li>6.7" Super Retina XDR display with ProMotion technology</li><li>A17 Pro chip with 6-core GPU for unprecedented performance</li><li>48MP main camera system with advanced computational photography</li><li>All-day battery life with fast charging support</li><li>Premium titanium design - lightest Pro model ever</li></ul><p>Available in Natural, Blue, White, and Black titanium finishes. Choose your storage capacity and get ready for the future of mobile technology.</p>',
+});
 
-/**
- * Simple product without variants
- */
-export const mockSimpleProduct: IProduct = {
-  id: 'prod-simple-1',
-  title: 'Classic Cotton T-Shirt',
-  description: mockSimpleProductDescriptionApi,
-  excerpt: 'Premium quality cotton t-shirt with a modern fit. Perfect for everyday wear.',
-  slug: 'classic-cotton-t-shirt',
-  status: EntityStatus.PUBLISHED,
-  price: 299900, // 2999.00 RUB in kopecks
-  oldPrice: 399900,
-  costPrice: 150000,
-  sku: 'TSHIRT-001',
-  featured: createApiFile('tshirt', 0),
-  gallery: [
-    createApiFile('tshirt', 1),
-    createApiFile('tshirt', 2),
-    createApiFile('tshirt', 3),
-    createApiFile('tshirt', 4),
+const createExcerptDescription = (id: string, text: string) =>
+  createMockApiRichText({
+    json: {
+      time: 1718380800000,
+      version: "2.29.0",
+      blocks: [
+        {
+          id,
+          type: "paragraph",
+          data: { text },
+        },
+      ],
+    },
+    text,
+    html: `<p>${text}</p>`,
+  });
+
+const colorOption = createMockApiProductOption({
+  id: "opt-color",
+  name: "Color",
+  slug: "color",
+  displayType: OptionDisplayType.Swatch,
+  values: [
+    createMockApiProductOptionValue({
+      id: "feat-black",
+      name: "Black",
+      slug: "black",
+      swatch: createMockApiProductOptionSwatch({
+        id: "swatch-black",
+        colorOne: "#111111",
+      }),
+    }),
+    createMockApiProductOptionValue({
+      id: "feat-white",
+      name: "White",
+      slug: "white",
+      swatch: createMockApiProductOptionSwatch({
+        id: "swatch-white",
+        colorOne: "#ffffff",
+      }),
+    }),
+    createMockApiProductOptionValue({
+      id: "feat-blue",
+      name: "Blue",
+      slug: "blue",
+      swatch: createMockApiProductOptionSwatch({
+        id: "swatch-blue",
+        colorOne: "#1677ff",
+      }),
+    }),
   ],
-  weight: 200,
-  weightUnit: WeightUnit.G,
-  length: 70,
-  width: 50,
-  height: 2,
-  dimensionUnit: DimensionUnit.CM,
-  stockStatus: 'IN_STOCK',
-  requiresShipping: true,
-  seoTitle: 'Classic Cotton T-Shirt | Premium Quality',
-  seoDescription: 'Shop our premium quality classic cotton t-shirt. 100% organic cotton, modern fit, perfect for everyday wear.',
-  createdAt: new Date('2024-03-15'),
-  updatedAt: new Date('2024-12-20'),
-  isVariant: false,
-  isVariableProduct: false,
-  variantId: 'var-simple-1',
-  variants: [],
-  embedVariant: null,
-  categories: [dataMockCategories[2]],
-  primaryCategory: { id: dataMockCategories[2].id, title: dataMockCategories[2].title },
-  tags: [dataMockTags[0], dataMockTags[4]],
-  attributes: [createMaterialAttributeGroup()],
-  options: [],
-  groups: [],
-  container: null,
-  containerId: 'prod-simple-1',
+});
+
+const storageOption = createMockApiProductOption({
+  id: "opt-storage",
+  name: "Storage",
+  slug: "storage",
+  values: [
+    createMockApiProductOptionValue({
+      id: "feat-128gb",
+      name: "128 GB",
+      slug: "128gb",
+    }),
+    createMockApiProductOptionValue({
+      id: "feat-256gb",
+      name: "256 GB",
+      slug: "256gb",
+    }),
+    createMockApiProductOptionValue({
+      id: "feat-512gb",
+      name: "512 GB",
+      slug: "512gb",
+    }),
+  ],
+});
+
+export const mockVariableProductOptions: ApiProductOption[] = [
+  colorOption,
+  storageOption,
+];
+
+const createInventoryItem = (params: {
+  variantId: string;
+  sku: string;
+  stock: number;
+  costMinor: number;
+}) =>
+  createMockApiInventoryItem({
+    id: `inventory-${params.variantId}`,
+    variantId: params.variantId,
+    sku: params.sku,
+    totalAvailable: params.stock,
+    stock: [
+      createMockApiWarehouseStock({
+        id: `stock-${params.variantId}`,
+        quantityOnHand: params.stock,
+      }),
+    ],
+    unitCost: createMockApiInventoryItemCost({
+      amountMinor: params.costMinor,
+    }),
+  });
+
+const createSimpleVariant = (params: {
+  id: string;
+  title: string;
+  handle: string;
+  sku: string;
+  amountMinor: number;
+  compareAtMinor?: number | null;
+  costMinor?: number;
+  stock: number;
+  mediaSeed: string;
+  mediaCount?: number;
+}): ApiVariant =>
+  createMockApiVariant({
+    id: params.id,
+    title: params.title,
+    handle: params.handle,
+    isDefault: true,
+    price: createMockApiVariantPrice({
+      id: `price-${params.id}`,
+      amountMinor: params.amountMinor,
+      compareAtMinor: params.compareAtMinor ?? null,
+    }),
+    weight: createMockApiVariantWeight({ value: 200 }),
+    dimensions: createMockApiVariantDimensions({
+      length: 700,
+      width: 500,
+      height: 20,
+    }),
+    inventoryItem: createInventoryItem({
+      variantId: params.id,
+      sku: params.sku,
+      stock: params.stock,
+      costMinor: params.costMinor ?? Math.round(params.amountMinor * 0.6),
+    }),
+    media: Array.from({ length: params.mediaCount ?? 5 }, (_, index) =>
+      createMedia(params.mediaSeed, index),
+    ),
+  });
+
+const createPhoneVariant = (params: {
+  index: number;
+  colorId: string;
+  colorName: string;
+  storageId: string;
+  storageName: string;
+  priceMinor: number;
+  compareAtMinor?: number | null;
+  stock: number;
+}): ApiVariant => {
+  const id = `var-${VARIABLE_PRODUCT_ID}-${params.index}`;
+
+  return createMockApiVariant({
+    id,
+    title: `${params.colorName} / ${params.storageName}`,
+    handle: `${params.colorId.replace("feat-", "")}-${params.storageId.replace("feat-", "")}`,
+    isDefault: params.index === 0,
+    price: createMockApiVariantPrice({
+      id: `price-${id}`,
+      amountMinor: params.priceMinor,
+      compareAtMinor: params.compareAtMinor ?? null,
+    }),
+    weight: createMockApiVariantWeight({ value: 221 }),
+    dimensions: createMockApiVariantDimensions({
+      length: 159,
+      width: 76,
+      height: 8,
+    }),
+    inventoryItem: createInventoryItem({
+      variantId: id,
+      sku: `SKU-${VARIABLE_PRODUCT_ID.toUpperCase()}-${params.index}`,
+      stock: params.stock,
+      costMinor: Math.floor(params.priceMinor * 0.6),
+    }),
+    selectedOptions: [
+      {
+        __typename: "SelectedOption",
+        optionId: "opt-color",
+        optionValueId: params.colorId,
+      },
+      {
+        __typename: "SelectedOption",
+        optionId: "opt-storage",
+        optionValueId: params.storageId,
+      },
+    ],
+    media: [
+      createMedia(`variant-${VARIABLE_PRODUCT_ID}`, params.index),
+      ...Array.from({ length: 4 }, (_, index) =>
+        createMedia(`variant-${VARIABLE_PRODUCT_ID}`, params.index * 10 + index),
+      ),
+    ],
+  });
 };
 
-/**
- * Variable product with multiple variants (smartphone)
- */
-export const mockVariableProduct: IProduct = (() => {
-  const containerId = 'prod-phone-1';
-  const colorGroup = createColorOptionGroup();
-  const storageGroup = createStorageOptionGroup();
+export const mockSimpleProduct: ApiProduct = createMockApiProduct({
+  id: SIMPLE_PRODUCT_ID,
+  title: "Classic Cotton T-Shirt",
+  handle: "classic-cotton-t-shirt",
+  isPublished: true,
+  description: simpleProductDescription,
+  excerpt: createExcerptDescription(
+    "simple-excerpt-1",
+    "Premium quality cotton t-shirt with a modern fit. Perfect for everyday wear.",
+  ),
+  seo: {
+    __typename: "ProductSeo",
+    seoTitle: "Classic Cotton T-Shirt | Premium Quality",
+    seoDescription:
+      "Shop our premium quality classic cotton t-shirt. 100% organic cotton, modern fit, perfect for everyday wear.",
+    ogTitle: "Classic Cotton T-Shirt",
+    ogDescription: "Premium organic cotton t-shirt.",
+    ogImage: createMedia("tshirt-og", 0).file,
+  },
+  variants: [
+    createSimpleVariant({
+      id: "var-simple-1",
+      title: "Default",
+      handle: "classic-cotton-t-shirt-default",
+      sku: "TSHIRT-001",
+      amountMinor: 299900,
+      compareAtMinor: 399900,
+      costMinor: 150000,
+      stock: 84,
+      mediaSeed: "tshirt",
+    }),
+  ],
+  media: Array.from({ length: 5 }, (_, index) =>
+    createProductMedia("tshirt-product", index),
+  ),
+  options: [],
+  categories: detailProductCategories,
+  tags: detailProductTags,
+  createdAt: "2024-03-15T00:00:00.000Z",
+  updatedAt: "2024-12-20T00:00:00.000Z",
+  publishedAt: "2024-03-15T00:00:00.000Z",
+  revision: 3,
+});
 
-  const variants: IProductVariant[] = [
-    createVariant(containerId, { color: 'black', storage: '128gb' }, { price: 8999900, oldPrice: 9999900 }, 0),
-    createVariant(containerId, { color: 'black', storage: '256gb' }, { price: 9999900, oldPrice: 10999900 }, 1),
-    createVariant(containerId, { color: 'black', storage: '512gb' }, { price: 11999900 }, 2),
-    createVariant(containerId, { color: 'white', storage: '128gb' }, { price: 8999900, oldPrice: 9999900 }, 3),
-    createVariant(containerId, { color: 'white', storage: '256gb' }, { price: 9999900, oldPrice: 10999900 }, 4),
-    createVariant(containerId, { color: 'white', storage: '512gb' }, { price: 11999900 }, 5),
-    createVariant(containerId, { color: 'blue', storage: '128gb' }, { price: 9199900, oldPrice: 10199900 }, 6),
-    createVariant(containerId, { color: 'blue', storage: '256gb' }, { price: 10199900, oldPrice: 11199900 }, 7),
-    createVariant(containerId, { color: 'blue', storage: '512gb' }, { price: 12199900 }, 8),
-  ];
+export const mockVariableProduct: ApiProduct = createMockApiProduct({
+  id: VARIABLE_PRODUCT_ID,
+  title: "Smartphone Pro Max 15",
+  handle: "smartphone-pro-max-15",
+  isPublished: true,
+  description: variableProductDescription,
+  excerpt: createExcerptDescription(
+    "phone-excerpt-1",
+    "The most advanced smartphone ever with cutting-edge A17 Pro chip, 48MP camera system, and premium titanium design.",
+  ),
+  seo: {
+    __typename: "ProductSeo",
+    seoTitle: "Smartphone Pro Max 15 | Buy Now",
+    seoDescription:
+      "Shop Smartphone Pro Max 15. Available in multiple colors and storage options.",
+    ogTitle: "Smartphone Pro Max 15",
+    ogDescription: "A premium smartphone with pro performance.",
+    ogImage: createMedia("phone-og", 0).file,
+  },
+  variants: [
+    createPhoneVariant({
+      index: 0,
+      colorId: "feat-black",
+      colorName: "Black",
+      storageId: "feat-128gb",
+      storageName: "128 GB",
+      priceMinor: 8999900,
+      compareAtMinor: 9999900,
+      stock: 32,
+    }),
+    createPhoneVariant({
+      index: 1,
+      colorId: "feat-black",
+      colorName: "Black",
+      storageId: "feat-256gb",
+      storageName: "256 GB",
+      priceMinor: 9999900,
+      compareAtMinor: 10999900,
+      stock: 18,
+    }),
+    createPhoneVariant({
+      index: 2,
+      colorId: "feat-black",
+      colorName: "Black",
+      storageId: "feat-512gb",
+      storageName: "512 GB",
+      priceMinor: 11999900,
+      stock: 6,
+    }),
+    createPhoneVariant({
+      index: 3,
+      colorId: "feat-white",
+      colorName: "White",
+      storageId: "feat-128gb",
+      storageName: "128 GB",
+      priceMinor: 8999900,
+      compareAtMinor: 9999900,
+      stock: 24,
+    }),
+    createPhoneVariant({
+      index: 4,
+      colorId: "feat-white",
+      colorName: "White",
+      storageId: "feat-256gb",
+      storageName: "256 GB",
+      priceMinor: 9999900,
+      compareAtMinor: 10999900,
+      stock: 12,
+    }),
+    createPhoneVariant({
+      index: 5,
+      colorId: "feat-white",
+      colorName: "White",
+      storageId: "feat-512gb",
+      storageName: "512 GB",
+      priceMinor: 11999900,
+      stock: 0,
+    }),
+    createPhoneVariant({
+      index: 6,
+      colorId: "feat-blue",
+      colorName: "Blue",
+      storageId: "feat-128gb",
+      storageName: "128 GB",
+      priceMinor: 9199900,
+      compareAtMinor: 10199900,
+      stock: 16,
+    }),
+    createPhoneVariant({
+      index: 7,
+      colorId: "feat-blue",
+      colorName: "Blue",
+      storageId: "feat-256gb",
+      storageName: "256 GB",
+      priceMinor: 10199900,
+      compareAtMinor: 11199900,
+      stock: 9,
+    }),
+    createPhoneVariant({
+      index: 8,
+      colorId: "feat-blue",
+      colorName: "Blue",
+      storageId: "feat-512gb",
+      storageName: "512 GB",
+      priceMinor: 12199900,
+      stock: 3,
+    }),
+  ],
+  media: Array.from({ length: 8 }, (_, index) =>
+    createProductMedia(`${VARIABLE_PRODUCT_ID}-product`, index),
+  ),
+  options: mockVariableProductOptions,
+  categories: detailProductCategories,
+  tags: detailProductTags,
+  createdAt: "2024-09-12T00:00:00.000Z",
+  updatedAt: "2024-12-28T00:00:00.000Z",
+  publishedAt: "2024-09-12T00:00:00.000Z",
+  revision: 5,
+});
 
-  return {
-    id: containerId,
-    title: 'Smartphone Pro Max 15',
-    description: mockVariableProductDescriptionApi,
-    excerpt: 'The most advanced smartphone ever with cutting-edge A17 Pro chip, 48MP camera system, and premium titanium design.',
-    slug: 'smartphone-pro-max-15',
-    status: EntityStatus.PUBLISHED,
-    price: variants[0].price,
-    oldPrice: variants[0].oldPrice,
-    costPrice: Math.floor(variants[0].price * 0.65),
-    sku: null,
-    featured: createApiFile('phone', 0),
-    gallery: [
-      createApiFile('phone', 1),
-      createApiFile('phone', 2),
-      createApiFile('phone', 3),
-      createApiFile('phone', 4),
-      createApiFile('phone', 5),
-      createApiFile('phone', 6),
-      createApiFile('phone', 7),
-    ],
-    weight: 221,
-    weightUnit: WeightUnit.G,
-    length: 159,
-    width: 76,
-    height: 8,
-    dimensionUnit: DimensionUnit.MM,
-    stockStatus: 'IN_STOCK',
-    requiresShipping: true,
-    seoTitle: 'Smartphone Pro Max 15 | Buy Now',
-    seoDescription: 'Shop Smartphone Pro Max 15. Available in multiple colors and storage options.',
-    createdAt: new Date('2024-09-12'),
-    updatedAt: new Date('2024-12-28'),
-    isVariant: false,
-    isVariableProduct: true,
-    variantId: null,
-    variants,
-    embedVariant: null,
-    categories: [dataMockCategories[0], dataMockCategories[1]],
-    primaryCategory: { id: dataMockCategories[1].id, title: dataMockCategories[1].title },
-    tags: [dataMockTags[0], dataMockTags[1], dataMockTags[3]],
-    attributes: [createBrandAttributeGroup()],
-    options: [colorGroup, storageGroup],
-    groups: [createMockProductGroup(containerId, 'Accessories', variants)],
-    container: null,
-    containerId,
-  };
-})();
-
-/**
- * Draft product (not yet published)
- */
-export const mockDraftProduct: IProduct = {
-  ...mockSimpleProduct,
-  id: 'prod-draft-1',
-  title: 'New Product Draft',
-  slug: 'new-product-draft',
-  status: EntityStatus.DRAFT,
+export const mockDraftProduct: ApiProduct = createMockApiProduct({
+  id: DRAFT_PRODUCT_ID,
+  title: "New Product Draft",
+  handle: "new-product-draft",
+  isPublished: false,
   description: null,
   excerpt: null,
-  seoTitle: null,
-  seoDescription: null,
-  featured: null,
-  gallery: [],
-  tags: [],
-  containerId: 'prod-draft-1',
-  variantId: 'var-draft-1',
-};
+  seo: null,
+  variants: [
+    createSimpleVariant({
+      id: "var-draft-1",
+      title: "Default",
+      handle: "new-product-draft-default",
+      sku: "TSHIRT-001",
+      amountMinor: 299900,
+      compareAtMinor: 399900,
+      costMinor: 150000,
+      stock: 0,
+      mediaSeed: "draft-product",
+      mediaCount: 0,
+    }),
+  ],
+  media: [],
+  options: [],
+  categories: detailProductCategories,
+  tags: detailProductTags,
+  createdAt: "2024-03-15T00:00:00.000Z",
+  updatedAt: "2024-12-20T00:00:00.000Z",
+  publishedAt: null,
+});
 
-/**
- * Archived product
- */
-export const mockArchivedProduct: IProduct = {
+export const mockArchivedProduct: ApiProduct = createMockApiProduct({
   ...mockSimpleProduct,
-  id: 'prod-archived-1',
-  title: 'Discontinued Product',
-  slug: 'discontinued-product',
-  status: EntityStatus.ARCHIVED,
-  stockStatus: 'OUT_OF_STOCK',
-  containerId: 'prod-archived-1',
-  variantId: 'var-archived-1',
-};
+  id: ARCHIVED_PRODUCT_ID,
+  title: "Discontinued Product",
+  handle: "discontinued-product",
+  isPublished: false,
+  publishedAt: null,
+  deletedAt: "2024-11-01T12:00:00.000Z",
+  variants: [
+    createSimpleVariant({
+      id: "var-archived-1",
+      title: "Default",
+      handle: "discontinued-product-default",
+      sku: "TSHIRT-001",
+      amountMinor: 299900,
+      compareAtMinor: 399900,
+      costMinor: 150000,
+      stock: 0,
+      mediaSeed: "tshirt",
+    }),
+  ],
+  media: Array.from({ length: 3 }, (_, index) =>
+    createProductMedia("archived-product", index),
+  ),
+  options: [],
+});
 
-// ============================================================================
-// Export Default Product for Quick Testing
-// ============================================================================
+export const mockProductDetailsProducts: ApiProduct[] = [
+  mockVariableProduct,
+  mockSimpleProduct,
+  mockDraftProduct,
+];
+
+export const findMockProductById = (id?: string | null): ApiProduct =>
+  mockProductDetailsProducts.find((product) => product.id === id) ??
+  mockVariableProduct;
 
 export const mockProduct = mockVariableProduct;

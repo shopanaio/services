@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, CSSProperties } from "react";
+import { useCallback, useMemo, useState, CSSProperties } from "react";
 import {
   Button,
   Typography,
@@ -79,6 +79,11 @@ interface ISortableGridItemProps {
   onSetFeatured: (item: ApiFile) => void;
   onDelete: (id: string) => void;
   onPreview?: (item: ApiFile, index: number) => void;
+  allowDelete: boolean;
+  allowSetFeatured: boolean;
+  selectionMode: boolean;
+  selected: boolean;
+  onSelectedChange: (id: string, selected: boolean) => void;
 }
 
 const SortableGridItem = ({
@@ -88,6 +93,11 @@ const SortableGridItem = ({
   onSetFeatured,
   onDelete,
   onPreview,
+  allowDelete,
+  allowSetFeatured,
+  selectionMode,
+  selected,
+  onSelectedChange,
 }: ISortableGridItemProps) => {
   const { styles, cx } = useStyles();
   const {
@@ -150,52 +160,65 @@ const SortableGridItem = ({
   };
 
   const name = getFileName(item);
-
+  const actionItems = [
+    ...(onPreview
+      ? [
+          {
+            key: "preview",
+            label: "Preview",
+            icon: <EyeOutlined />,
+            "data-testid": `entity-media-preview-menu-item-${item.id}`,
+            onClick: () => onPreview(item, index),
+          },
+        ]
+      : []),
+    ...(allowSetFeatured && !isFeatured
+      ? [
+          {
+            key: "setFeatured",
+            label: "Set as featured",
+            icon: <StarOutlined />,
+            "data-testid": `entity-media-set-featured-menu-item-${item.id}`,
+            onClick: () => onSetFeatured(item),
+          },
+        ]
+      : []),
+    ...(allowDelete
+      ? [
+          { type: "divider" as const },
+          {
+            key: "delete",
+            label: "Delete",
+            icon: <DeleteOutlined />,
+            danger: true,
+            "data-testid": `entity-media-delete-menu-item-${item.id}`,
+            onClick: () => onDelete(item.id),
+          },
+        ]
+      : []),
+  ];
   return (
     <div
       ref={setNodeRef}
       style={style}
       {...listeners}
       {...attributes}
-      className={cx(styles.mediaItem, isDragging && styles.mediaItemDragging)}
+      className={cx(
+        styles.mediaItem,
+        selected && !selectionMode && styles.mediaItemSelected,
+        isDragging && styles.mediaItemDragging,
+      )}
+      data-testid={`entity-media-grid-item-${item.id}`}
     >
       {isFeatured && <FeaturedBadge />}
 
       <img src={item.url} alt={name} className={styles.mediaImage} />
 
-      <div className={cx(styles.mediaActions, "media-actions")}>
+      {actionItems.length > 0 && (
+        <div className={cx(styles.mediaActions, "media-actions")}>
         <Dropdown
           menu={{
-            items: [
-              ...(onPreview
-                ? [
-                    {
-                      key: "preview",
-                      label: "Preview",
-                      icon: <EyeOutlined />,
-                      onClick: () => onPreview(item, index),
-                    },
-                  ]
-                : []),
-              ...(isFeatured
-                ? []
-                : [
-                    {
-                      key: "setFeatured",
-                      label: "Set as featured",
-                      icon: <StarOutlined />,
-                      onClick: () => onSetFeatured(item),
-                    },
-                  ]),
-              { type: "divider" as const },
-              {
-                key: "delete",
-                label: "Delete",
-                icon: <DeleteOutlined />,
-                danger: true,
-                onClick: () => onDelete(item.id),
-              },
-            ],
+            items: actionItems,
           }}
           trigger={["click"]}
         >
@@ -203,10 +226,12 @@ const SortableGridItem = ({
             size="small"
             shape="circle"
             icon={<MoreOutlined />}
+            data-testid={`entity-media-actions-button-${item.id}`}
             onClick={(e) => e.stopPropagation()}
           />
         </Dropdown>
-      </div>
+        </div>
+      )}
 
       <div className={styles.fileInfo}>
         {name} - {formatFileSize(getFileSize(item))}
@@ -227,6 +252,13 @@ interface ISortableListItemProps {
   onSetFeatured: (item: ApiFile) => void;
   onDelete: (id: string) => void;
   onPreview?: (item: ApiFile, index: number) => void;
+  allowDelete: boolean;
+  allowSetFeatured: boolean;
+  selectionMode: boolean;
+  selected: boolean;
+  onSelectedChange: (id: string, selected: boolean) => void;
+  selectionAction?: "add" | "remove";
+  sortableDisabled?: boolean;
 }
 
 const SortableListItem = ({
@@ -237,6 +269,13 @@ const SortableListItem = ({
   onSetFeatured,
   onDelete,
   onPreview,
+  allowDelete,
+  allowSetFeatured,
+  selectionMode,
+  selected,
+  onSelectedChange,
+  selectionAction,
+  sortableDisabled = false,
 }: ISortableListItemProps) => {
   const { styles, cx } = useStyles();
   const {
@@ -246,7 +285,7 @@ const SortableListItem = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: item.id });
+  } = useSortable({ id: item.id, disabled: sortableDisabled });
 
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -255,6 +294,10 @@ const SortableListItem = ({
 
   const name = getFileName(item);
   const ext = getFileExt(item);
+  const showRemoveButton = selectionMode
+    ? selectionAction === "remove"
+    : allowDelete;
+  const showAddButton = selectionMode && selectionAction === "add";
 
   return (
     <div
@@ -262,13 +305,21 @@ const SortableListItem = ({
       style={style}
       {...listeners}
       {...attributes}
-      className={cx(styles.listItem, isDragging && styles.listItemDragging)}
+      className={cx(
+        styles.listItem,
+        selected && !selectionMode && styles.listItemSelected,
+        selectionMode && styles.listItemSelectionMode,
+        sortableDisabled && styles.listItemStatic,
+        isDragging && styles.listItemDragging,
+      )}
+      data-testid={`entity-media-list-item-${item.id}`}
     >
-      <div className={styles.dragHandle}>
-        <HolderOutlined />
+      <div className={styles.listItemMedia}>
+        <div className={styles.dragHandle}>
+          <HolderOutlined />
+        </div>
+        <img src={item.url} alt={name} className={styles.listItemImage} />
       </div>
-
-      <img src={item.url} alt={name} className={styles.listItemImage} />
 
       <div className={styles.listItemInfo}>
         <Typography.Text className={styles.listItemName}>
@@ -293,6 +344,7 @@ const SortableListItem = ({
               size="small"
               type="text"
               icon={<EyeOutlined />}
+              data-testid={`entity-media-preview-button-${item.id}`}
               onClick={(e) => {
                 e.stopPropagation();
                 onPreview(item, index);
@@ -301,12 +353,13 @@ const SortableListItem = ({
           </Tooltip>
         )}
 
-        {!isFeatured && (
+        {allowSetFeatured && !isFeatured && !showAddButton && (
           <Tooltip title="Set as featured">
             <Button
               size="small"
               type="text"
               icon={<StarOutlined />}
+              data-testid={`entity-media-set-featured-button-${item.id}`}
               onClick={(e) => {
                 e.stopPropagation();
                 onSetFeatured(item);
@@ -315,48 +368,41 @@ const SortableListItem = ({
           </Tooltip>
         )}
 
-        <Dropdown
-          menu={{
-            items: [
-              ...(onPreview
-                ? [
-                    {
-                      key: "preview",
-                      label: "Preview",
-                      icon: <EyeOutlined />,
-                      onClick: () => onPreview(item, index),
-                    },
-                  ]
-                : []),
-              ...(isFeatured
-                ? []
-                : [
-                    {
-                      key: "setFeatured",
-                      label: "Set as featured",
-                      icon: <StarOutlined />,
-                      onClick: () => onSetFeatured(item),
-                    },
-                  ]),
-              { type: "divider" as const },
-              {
-                key: "delete",
-                label: "Delete",
-                icon: <DeleteOutlined />,
-                danger: true,
-                onClick: () => onDelete(item.id),
-              },
-            ],
-          }}
-          trigger={["click"]}
-        >
-          <Button
-            size="small"
-            type="text"
-            icon={<MoreOutlined />}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </Dropdown>
+        {showRemoveButton && (
+          <Tooltip title={selectionMode ? "Remove" : "Delete"}>
+            <Button
+              size="small"
+              type="text"
+              icon={<DeleteOutlined />}
+              data-testid={`entity-media-delete-button-${item.id}`}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (selectionMode) {
+                  onSelectedChange(item.id, false);
+                } else {
+                  onDelete(item.id);
+                }
+              }}
+            />
+          </Tooltip>
+        )}
+
+        {showAddButton && (
+          <Tooltip title="Add">
+            <Button
+              size="small"
+              type="text"
+              icon={<PlusOutlined />}
+              data-testid={`entity-media-add-button-${item.id}`}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectedChange(item.id, true);
+              }}
+            />
+          </Tooltip>
+        )}
       </div>
     </div>
   );
@@ -389,10 +435,12 @@ const ListItemPreview = ({
         cursor: "grabbing",
       }}
     >
-      <div className={styles.dragHandle}>
-        <HolderOutlined />
+      <div className={styles.listItemMedia}>
+        <div className={styles.dragHandle}>
+          <HolderOutlined />
+        </div>
+        <img src={item.url} alt={name} className={styles.listItemImage} />
       </div>
-      <img src={item.url} alt={name} className={styles.listItemImage} />
       <div className={styles.listItemInfo}>
         <Typography.Text className={styles.listItemName}>
           {name}
@@ -423,6 +471,11 @@ export const EntityMediaGallery = ({
   onViewModeChange,
   showViewSwitcher = false,
   showUpload = true,
+  allowDelete = true,
+  allowSetFeatured = true,
+  selectionMode = false,
+  selectedIds = [],
+  onSelectedIdsChange,
   onPreview: externalOnPreview,
   accept = "image/*",
   emptyMessage = "No media files yet",
@@ -440,6 +493,15 @@ export const EntityMediaGallery = ({
 
   const viewMode = controlledViewMode ?? internalViewMode;
   const setViewMode = onViewModeChange ?? setInternalViewMode;
+  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const selectedItems = useMemo(
+    () => value.filter((item) => selectedIdSet.has(item.id)),
+    [selectedIdSet, value],
+  );
+  const unselectedItems = useMemo(
+    () => value.filter((item) => !selectedIdSet.has(item.id)),
+    [selectedIdSet, value],
+  );
 
   // Handle files selected from media picker
   const handleMediaPickerConfirm = useCallback((files: ApiFile[]) => {
@@ -513,6 +575,40 @@ export const EntityMediaGallery = ({
     [value, onChange]
   );
 
+  const handleSelectedChange = useCallback(
+    (id: string, selected: boolean) => {
+      if (!onSelectedIdsChange) {
+        return;
+      }
+
+      const nextIds = selected
+        ? Array.from(new Set([...selectedIds, id]))
+        : selectedIds.filter((selectedId) => selectedId !== id);
+      const nextSelectedIdSet = new Set(nextIds);
+      const targetItem = value.find((item) => item.id === id);
+      const nextSelectedItems = value.filter((item) =>
+        nextSelectedIdSet.has(item.id),
+      );
+      const nextUnselectedItems = value.filter((item) =>
+        !nextSelectedIdSet.has(item.id),
+      );
+
+      if (targetItem) {
+        onChange([
+          ...nextSelectedItems,
+          ...(selected
+            ? nextUnselectedItems
+            : [
+                targetItem,
+                ...nextUnselectedItems.filter((item) => item.id !== id),
+              ]),
+        ]);
+      }
+      onSelectedIdsChange(nextIds);
+    },
+    [onChange, onSelectedIdsChange, selectedIds, value],
+  );
+
   const handlePreview = useCallback(
     (item: ApiFile, index: number) => {
       if (externalOnPreview) {
@@ -528,7 +624,7 @@ export const EntityMediaGallery = ({
   const hasMedia = value.length > 0;
 
   const renderHeader = () => {
-    if (!showViewSwitcher || !hasMedia) return null;
+    if ((!showViewSwitcher && !showUpload) || !hasMedia) return null;
 
     return (
       <Flex justify="space-between" align="center" style={{ marginBottom: 12 }}>
@@ -541,18 +637,22 @@ export const EntityMediaGallery = ({
               Browse
             </Button>
           )}
-          <Space.Compact size="small">
-            <Button
-              type={viewMode === "grid" ? "primary" : "default"}
-              icon={<AppstoreOutlined />}
-              onClick={() => setViewMode("grid")}
-            />
-            <Button
-              type={viewMode === "list" ? "primary" : "default"}
-              icon={<UnorderedListOutlined />}
-              onClick={() => setViewMode("list")}
-            />
-          </Space.Compact>
+          {showViewSwitcher && (
+            <Space.Compact size="small">
+              <Button
+                type={viewMode === "grid" ? "primary" : "default"}
+                icon={<AppstoreOutlined />}
+                data-testid="entity-media-grid-view-button"
+                onClick={() => setViewMode("grid")}
+              />
+              <Button
+                type={viewMode === "list" ? "primary" : "default"}
+                icon={<UnorderedListOutlined />}
+                data-testid="entity-media-list-view-button"
+                onClick={() => setViewMode("list")}
+              />
+            </Space.Compact>
+          )}
         </Flex>
       </Flex>
     );
@@ -574,6 +674,7 @@ export const EntityMediaGallery = ({
         {!hasMedia && showUpload && (
           <div
             className={styles.emptyUploadArea}
+            data-testid="entity-media-empty-upload-area"
             onClick={handleOpenUploadModal}
             role="button"
             tabIndex={0}
@@ -626,6 +727,11 @@ export const EntityMediaGallery = ({
                     onSetFeatured={handleSetFeatured}
                     onDelete={handleDelete}
                     onPreview={handlePreview}
+                    allowDelete={allowDelete}
+                    allowSetFeatured={allowSetFeatured}
+                    selectionMode={selectionMode}
+                    selected={selectedIdSet.has(item.id)}
+                    onSelectedChange={handleSelectedChange}
                   />
                 ))}
               </SortableContext>
@@ -634,6 +740,7 @@ export const EntityMediaGallery = ({
                 <div className={styles.uploadCell}>
                   <div
                     className={styles.uploadArea}
+                    data-testid="entity-media-upload-area"
                     onClick={handleOpenUploadModal}
                     role="button"
                     tabIndex={0}
@@ -674,8 +781,94 @@ export const EntityMediaGallery = ({
           </>
         )}
 
+        {/* Selection list view */}
+        {hasMedia && viewMode === "list" && selectionMode && (
+          <div className={styles.listContainer}>
+            <div className={styles.listSection}>
+              <Typography.Text
+                type="secondary"
+                className={styles.listSectionTitle}
+              >
+                Active
+              </Typography.Text>
+              {selectedItems.length > 0 ? (
+                <SortableContext
+                  items={selectedItems.map((it) => it.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {selectedItems.map((item, idx) => (
+                    <SortableListItem
+                      key={item.id}
+                      item={item}
+                      index={idx}
+                      isFeatured={hasFeatured && idx === 0}
+                      featuredLabel={featuredLabel}
+                      onSetFeatured={handleSetFeatured}
+                      onDelete={handleDelete}
+                      onPreview={handlePreview}
+                      allowDelete
+                      allowSetFeatured={allowSetFeatured}
+                      selectionMode={selectionMode}
+                      selected
+                      onSelectedChange={handleSelectedChange}
+                      selectionAction="remove"
+                    />
+                  ))}
+                </SortableContext>
+              ) : (
+                <div className={styles.emptySelectionState}>
+                  <Typography.Text type="secondary">
+                    No active media selected
+                  </Typography.Text>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.listSection}>
+              <Typography.Text
+                type="secondary"
+                className={styles.listSectionTitle}
+              >
+                Available
+              </Typography.Text>
+              {unselectedItems.length > 0 ? (
+                <SortableContext
+                  items={unselectedItems.map((it) => it.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {unselectedItems.map((item, idx) => (
+                    <SortableListItem
+                      key={item.id}
+                      item={item}
+                      index={selectedItems.length + idx}
+                      isFeatured={false}
+                      featuredLabel={featuredLabel}
+                      onSetFeatured={handleSetFeatured}
+                      onDelete={handleDelete}
+                      onPreview={handlePreview}
+                      allowDelete={false}
+                      allowSetFeatured={false}
+                      selectionMode={selectionMode}
+                      selected={false}
+                      onSelectedChange={handleSelectedChange}
+                      selectionAction="add"
+                      sortableDisabled
+                    />
+                  ))}
+                </SortableContext>
+              ) : (
+                <div className={styles.emptySelectionState}>
+                  <Typography.Text type="secondary">
+                    All media selected
+                  </Typography.Text>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* List view */}
-        {hasMedia && viewMode === "list" && (
+        {hasMedia && viewMode === "list" && !selectionMode && (
           <div className={styles.listContainer}>
             <SortableContext
               items={value.map((it) => it.id)}
@@ -691,6 +884,11 @@ export const EntityMediaGallery = ({
                   onSetFeatured={handleSetFeatured}
                   onDelete={handleDelete}
                   onPreview={handlePreview}
+                  allowDelete={allowDelete}
+                  allowSetFeatured={allowSetFeatured}
+                  selectionMode={selectionMode}
+                  selected={selectedIdSet.has(item.id)}
+                  onSelectedChange={handleSelectedChange}
                 />
               ))}
             </SortableContext>

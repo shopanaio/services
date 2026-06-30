@@ -1,11 +1,7 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import {
-  ApiCategoryQueryFindManyArgs,
-  EntityStatus,
-  ListingSort,
-  ListingType,
-} from '@codegen/admin-gql';
+import type { ApiCategoryQueryFindManyArgs } from '@codegen/admin-gql';
+
 import { randomUUID } from 'node:crypto';
 
 test.describe('CategoryFindMany API', () => {
@@ -16,17 +12,17 @@ test.describe('CategoryFindMany API', () => {
       {
         title: 'Category 1',
         slug: randomUUID(),
-        status: EntityStatus.Draft,
+        status: 'DRAFT',
       },
       {
         title: 'Category 2',
         slug: randomUUID(),
-        status: EntityStatus.Draft,
+        status: 'DRAFT',
       },
       {
         title: 'Category 3',
         slug: randomUUID(),
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
       },
     ];
 
@@ -36,11 +32,11 @@ test.describe('CategoryFindMany API', () => {
           input: {
             ...input,
             listingOrderByStatus: true,
-            listingType: ListingType.Manual,
+            listingType: 'MANUAL',
             includeChildrenProducts: true,
             excerpt: '',
             listingFilters: [],
-            listingOrderBy: ListingSort.CreatedAtAsc,
+            listingOrderBy: 'CREATED_AT_ASC',
             gallery: [],
           },
         },
@@ -160,7 +156,7 @@ test.describe('CategoryFindMany API', () => {
           variables: {
             input: {
               where: {
-                And: [{ title: { ILike: 'Category' } }, { status: { Eq: EntityStatus.Published } }],
+                And: [{ title: { ILike: 'Category' } }, { status: { Eq: 'PUBLISHED' } }],
               },
             },
           },
@@ -177,7 +173,7 @@ test.describe('CategoryFindMany API', () => {
           variables: {
             input: {
               where: {
-                Or: [{ title: { Eq: 'Category 1' } }, { status: { Eq: EntityStatus.Published } }],
+                Or: [{ title: { Eq: 'Category 1' } }, { status: { Eq: 'PUBLISHED' } }],
               },
             },
           },

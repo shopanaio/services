@@ -1,7 +1,12 @@
-mutation BundlePricingTemplateDelete($input: DeleteInput!) {
+mutation BundlePricingTemplateDelete($input: BundlePricingTemplatesSyncInput!) {
   catalogMutation {
-    bundlePricingTemplateDelete(input: $input) {
-      deletedId
+    bundlePricingTemplatesSync(input: $input) {
+      configuration {
+        id
+      }
+      pricingTemplates {
+        id
+      }
       userErrors {
         message
         code

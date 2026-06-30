@@ -129,43 +129,6 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 30
-      },
-      "id": 4,
-      "options": {
-        "dedupStrategy": "none",
-        "enableLogDetails": true,
-        "prettifyLogMessage": false,
-        "showCommonLabels": false,
-        "showLabels": false,
-        "showTime": true,
-        "sortOrder": "Descending",
-        "wrapLogMessage": false
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "loki"
-          },
-          "editorMode": "code",
-          "expr": "{container_name=\"inventory-service\"} |~ \"(?i)error|ERROR|Error|fatal|FATAL|Fatal|panic|PANIC|Panic\"",
-          "queryType": "range",
-          "refId": "A"
-        }
-      ],
-      "title": "Inventory Service Errors",
-      "type": "logs"
-    },
-    {
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
         "y": 40
       },
       "id": 5,

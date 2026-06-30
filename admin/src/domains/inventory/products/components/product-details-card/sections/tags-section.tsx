@@ -1,49 +1,173 @@
 "use client";
 
-import { useState } from "react";
-import { Tag, Typography, Flex, Dropdown } from "antd";
-import { PlusOutlined, MoreOutlined } from "@ant-design/icons";
+import { useEffect, useState } from "react";
+import { App, Button, Tag, Flex, Dropdown } from "antd";
+import { PlusOutlined, MoreOutlined, TagsOutlined } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { useTagPicker } from "@/shared/components/entity-picker-modal";
-import type { IPickableEntity } from "@/shared/components/entity-picker-modal";
-import type { ITag } from "../../../modals";
+import type { IPickableEntity } from "@/shared/components/entity-picker-modal/types";
+import { EntityDetailsEmptyState } from "@/domains/inventory/components/entity-details-sections";
+import type { ApiTag, ApiProductUpdateInput } from "@/graphql/types";
+import { ProductTagOperationAction } from "@/graphql/types";
+import { useUpdateProduct } from "@/domains/inventory/products/hooks";
 
-interface ITagsSectionProps {
-  tags?: ITag[];
+interface TagItem {
+  id: string;
+  name: string;
+  handle?: string | null;
 }
 
-export const TagsSection = ({ tags: initialTags = [] }: ITagsSectionProps) => {
-  const [tags, setTags] = useState<ITag[]>(initialTags);
+interface ITagsSectionProps {
+  productId?: string;
+  productRevision?: number | null;
+  tags?: ApiTag[];
+  onProductRefresh?: () => Promise<unknown>;
+}
 
-  const deleteTag = (id: string) => {
-    setTags((prev) => prev.filter((tag) => tag.id !== id));
+const toTagItem = (tag: ApiTag): TagItem => ({
+  id: tag.id,
+  name: tag.name,
+  handle: tag.handle,
+});
+
+export const TagsSection = ({
+  productId,
+  productRevision,
+  tags: initialTags = [],
+  onProductRefresh,
+}: ITagsSectionProps) => {
+  const { message } = App.useApp();
+  const { updateProduct } = useUpdateProduct();
+  const [pendingTagId, setPendingTagId] = useState<string | null>(null);
+  const [tags, setTags] = useState<TagItem[]>(() => initialTags.map(toTagItem));
+  const initialTagsKey = initialTags.map((tag) => tag.id).join("|");
+
+  useEffect(() => {
+    setTags(initialTags.map(toTagItem));
+  }, [initialTagsKey]);
+
+  const refreshProduct = async () => {
+    try {
+      await onProductRefresh?.();
+    } catch {
+      message.warning("Tag changes saved, but product refresh failed");
+    }
+  };
+
+  const saveTagOperations = async (operations: ApiProductUpdateInput["tags"]) => {
+    if (!productId) {
+      message.error("Product id is missing");
+      return false;
+    }
+
+    const result = await updateProduct({
+      productId,
+      expectedRevision: productRevision,
+      operations: {
+        tags: operations,
+      },
+    });
+
+    if (result.errors.length > 0) {
+      message.error(result.errors[0].message);
+      return false;
+    }
+
+    return true;
+  };
+
+  const deleteTag = async (id: string) => {
+    setPendingTagId(id);
+    try {
+      const saved = await saveTagOperations([
+        {
+          tagId: id,
+          action: ProductTagOperationAction.Remove,
+        },
+      ]);
+
+      if (!saved) {
+        return;
+      }
+
+      setTags((prev) => prev.filter((tag) => tag.id !== id));
+      await refreshProduct();
+      message.success("Tag removed from product");
+    } finally {
+      setPendingTagId(null);
+    }
+  };
+
+  const addTags = async (entities: IPickableEntity[]) => {
+    const existingById = new Map(tags.map((tag) => [tag.id, tag]));
+    const newTags = entities
+      .filter((entity) => !existingById.has(entity.id))
+      .map((entity): TagItem => ({
+        id: entity.id,
+        name: entity.title,
+        handle:
+          "handle" in entity && typeof entity.handle === "string"
+            ? entity.handle
+            : null,
+      }));
+
+    if (newTags.length === 0) {
+      return;
+    }
+
+    setPendingTagId(newTags[0].id);
+    try {
+      const saved = await saveTagOperations(
+        newTags.map((tag) => ({
+          tagId: tag.id,
+          action: ProductTagOperationAction.Add,
+        })),
+      );
+
+      if (!saved) {
+        return;
+      }
+
+      setTags((prev) => [...prev, ...newTags]);
+      await refreshProduct();
+      message.success(
+        newTags.length === 1
+          ? "Tag added to product"
+          : "Tags added to product",
+      );
+    } finally {
+      setPendingTagId(null);
+    }
   };
 
   const { openPicker } = useTagPicker({
-    initialSelection: tags.map((tag) => tag.id),
+    excludeIds: tags.map((tag) => tag.id),
     onConfirm: (entities: IPickableEntity[]) => {
-      const existingById = new Map(tags.map((t) => [t.id, t]));
-      const newTags = entities.map((entity) => {
-        const existing = existingById.get(entity.id);
-        if (existing) {
-          return existing;
-        }
-        return {
-          id: entity.id,
-          title: entity.title,
-          slug: entity.id,
-          color: "var(--ant-color-primary)",
-        } satisfies ITag;
-      });
-      setTags(newTags);
+      void addTags(entities);
     },
   });
 
   const hasTags = tags.length > 0;
+  const isPending = pendingTagId !== null;
 
   return (
-    <Paper>
-      <PaperHeader title="Tags" />
+    <Paper data-testid="product-tags-section">
+      <PaperHeader
+        title="Tags"
+        actions={
+          !hasTags ? (
+            <Button
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={isPending ? undefined : openPicker}
+              data-testid="product-tags-add-button"
+              disabled={isPending}
+            >
+              Add Tag
+            </Button>
+          ) : undefined
+        }
+      />
       {hasTags ? (
         <Flex gap={4} wrap="wrap">
           {tags.map((tag) => (
@@ -54,15 +178,33 @@ export const TagsSection = ({ tags: initialTags = [] }: ITagsSectionProps) => {
                 items: [
                   {
                     key: "delete",
-                    label: "Delete tag",
+                    label: (
+                      <span
+                        data-testid={
+                          tag.handle
+                            ? `product-tags-delete-menu-item-${tag.handle}`
+                            : `product-tags-delete-menu-item-${tag.id}`
+                        }
+                      >
+                        Delete tag
+                      </span>
+                    ),
                     onClick: () => deleteTag(tag.id),
+                    disabled: isPending,
                   },
                 ],
               }}
             >
-              <Tag style={{ cursor: "pointer" }}>
+              <Tag
+                style={{ cursor: "pointer" }}
+                data-testid={
+                  tag.handle
+                    ? `product-tags-item-${tag.handle}`
+                    : `product-tags-item-${tag.id}`
+                }
+              >
                 <Flex align="center" gap={4}>
-                  {tag.title}
+                  {tag.name}
                   <MoreOutlined />
                 </Flex>
               </Tag>
@@ -70,9 +212,10 @@ export const TagsSection = ({ tags: initialTags = [] }: ITagsSectionProps) => {
           ))}
           <Tag
             variant="outlined"
-            onClick={openPicker}
+            onClick={isPending ? undefined : openPicker}
+            data-testid="product-tags-add-button"
             style={{
-              cursor: "pointer",
+              cursor: isPending ? "not-allowed" : "pointer",
               background: "transparent",
               borderStyle: "dashed",
             }}
@@ -84,25 +227,13 @@ export const TagsSection = ({ tags: initialTags = [] }: ITagsSectionProps) => {
           </Tag>
         </Flex>
       ) : (
-        <Flex gap={4} wrap="wrap">
-          <Tag
-            variant="outlined"
-            onClick={openPicker}
-            style={{
-              cursor: "pointer",
-              background: "transparent",
-              borderStyle: "dashed",
-            }}
-          >
-            <Flex align="center" gap={4}>
-              <PlusOutlined />
-              Add Tag
-            </Flex>
-          </Tag>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            No tags assigned
-          </Typography.Text>
-        </Flex>
+        <EntityDetailsEmptyState
+          icon={<TagsOutlined />}
+          state={{
+            title: "No tags added",
+            description: "Add tags to group products for filtering.",
+          }}
+        />
       )}
     </Paper>
   );

@@ -12,6 +12,8 @@ interface SelectableCellProps {
   disabled?: boolean;
   /** Additional class name */
   className?: string;
+  /** Stable selector for e2e tests */
+  testId?: string;
 }
 
 /**
@@ -35,6 +37,7 @@ export const SelectableCell: React.FC<SelectableCellProps> = ({
   children,
   disabled = false,
   className,
+  testId,
 }) => {
   const { handlers } = useCellSelectionContext();
   const store = useCellSelectionStore();
@@ -59,6 +62,7 @@ export const SelectableCell: React.FC<SelectableCellProps> = ({
 
   return (
     <div
+      data-testid={testId}
       data-selectable="true"
       data-selected={isSelected}
       className={className}

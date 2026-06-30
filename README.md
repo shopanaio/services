@@ -12,15 +12,18 @@ Shopana is a headless commerce backend providing a unified GraphQL API through f
 | ------------ | -------------------------------------------------- |
 | `apps`       | Application management and configuration           |
 | `bootstrap`  | Service orchestrator and entrypoint                |
+| `catalog`    | Products, variants, collections, stock, and warehouses |
 | `checkout`   | Shopping cart, checkout flow, and line items       |
 | `delivery`   | Shipping providers integration (Nova Poshta, Meest)|
-| `inventory`  | Products, variants, collections, and stock         |
+| `events`     | Event persistence and dispatch                     |
+| `iam`        | Identity and access management                     |
 | `media`      | File storage and media assets management           |
 | `orders`     | Order processing and fulfillment                   |
 | `payments`   | Payment providers integration                      |
 | `pricing`    | Price calculations and promotions                  |
 | `project`    | Project settings, locales, and currencies          |
-| `users`      | User accounts and authentication (Casdoor)         |
+| `reviews`    | Product reviews                                    |
+| `search`     | Search functionality                               |
 
 ### Packages
 
@@ -93,7 +96,7 @@ Start the development environment with hot-reload.
 
 ```bash
 yarn shopana dev                  # Start all services (orchestrator)
-yarn shopana dev -s inventory     # Start specific service only
+yarn shopana dev -s catalog       # Start specific service only
 ```
 
 **Options:**
@@ -125,7 +128,7 @@ Run Drizzle database migrations.
 
 ```bash
 yarn shopana migrate              # Migrate all services
-yarn shopana migrate -s inventory # Migrate specific service
+yarn shopana migrate -s catalog   # Migrate specific service
 ```
 
 **Options:**
@@ -177,8 +180,8 @@ services/
 ├── services/           # Microservices
 │   ├── apps/
 │   ├── bootstrap/
+│   ├── catalog/
 │   ├── checkout/
-│   ├── inventory/
 │   ├── orders/
 │   └── ...
 ├── federation/         # GraphQL federation config

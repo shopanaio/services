@@ -1,9 +1,5 @@
-import {
-  ApiCheckout,
-  ApiCheckoutDeliveryAddressesAddInput,
-  CurrencyCode,
-} from '@codegen/client-gql';
-import { CountryCode } from '@codegen/client-gql';
+import type { ApiCheckout, ApiCheckoutDeliveryAddressesAddInput } from '@codegen/client-gql';
+
 import { test } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
 
@@ -20,7 +16,7 @@ test.describe('checkout-api: delivery addresses management', () => {
     await test.step('create empty checkout', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -36,7 +32,7 @@ test.describe('checkout-api: delivery addresses management', () => {
             address1: '123 Main Street',
             address2: 'Apt 4B',
             city: 'New York',
-            countryCode: CountryCode.Us,
+            countryCode: 'US',
           },
         ],
       } satisfies ApiCheckoutDeliveryAddressesAddInput);
@@ -88,7 +84,7 @@ test.describe('checkout-api: delivery addresses management', () => {
               address1: '789 Updated Street',
               address2: 'Suite 10',
               city: 'Brooklyn',
-              countryCode: CountryCode.Us,
+              countryCode: 'US',
             },
           },
         ],

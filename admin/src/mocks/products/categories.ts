@@ -1,21 +1,14 @@
-import { EntityStatus, type ICategory } from "./types";
+import type { ApiCategory } from "@/graphql/types";
+import { createMockApiCategory } from "./api-builders";
 
-const createCategory = (id: string, title: string, slug: string): ICategory => ({
-  id,
-  title,
-  slug,
-  description: null,
-  excerpt: null,
-  seoTitle: null,
-  seoDescription: null,
-  status: EntityStatus.PUBLISHED,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  featured: null,
-  gallery: [],
-});
+const createCategory = (id: string, name: string, handle: string): ApiCategory =>
+  createMockApiCategory({
+    id,
+    name,
+    handle,
+  });
 
-export const mockCategories: ICategory[] = [
+export const mockCategories: ApiCategory[] = [
   // Electronics (Level 0)
   createCategory("cat-1", "Electronics", "electronics"),
   createCategory("cat-1-1", "Smartphones", "smartphones"),

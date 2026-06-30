@@ -17,6 +17,7 @@ export class CategoryLoader {
   public readonly categoryAncestorIds: DataLoader<string, string[]>;
   public readonly categoryProductsCount: DataLoader<string, number>;
   public readonly productCategoryIds: DataLoader<string, string[]>;
+  public readonly productCategoryLinksByProductId: DataLoader<string, ProductCategory[]>;
 
   constructor(repository: Repository) {
     this.category = new DataLoader<string, Category | null>(
@@ -98,5 +99,18 @@ export class CategoryLoader {
         );
       }
     );
+
+    this.productCategoryLinksByProductId = new DataLoader<
+      string,
+      ProductCategory[]
+    >(async (productIds) => {
+      const results =
+        await repository.category.getProductCategoryLinksByProductIds(
+          productIds
+        );
+      return productIds.map((id) =>
+        results.filter((pc) => pc.productId === id)
+      );
+    });
   }
 }

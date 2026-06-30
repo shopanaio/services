@@ -12,17 +12,21 @@ import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   itemPricing,
+  productOption,
   productOptionVariantLink,
   variant,
-  variantMedia,
+  variantWarehouseCandidateView,
   variantTranslation,
   type ItemPricing,
   type NewVariant,
   type ProductOptionVariantLink,
   type Variant,
-  type VariantMedia,
   type VariantTranslation,
 } from "../models/index.js";
+import {
+  decodeProductGlobalId,
+  decodeVariantGlobalId,
+} from "../global-id-where-mappers.js";
 
 const variantQuery = createQuery(variant).maxLimit(100).defaultLimit(20);
 
@@ -31,9 +35,25 @@ const variantPaginationQuery = createCursorQuery(
   { tieBreaker: "id" }
 );
 
-const variantRelayQuery = createRelayQuery(
+export const variantRelayQuery = createRelayQuery(
   createQuery(variant)
     .include(["id", "productId"])
+    .mapWhereFields({
+      id: decodeVariantGlobalId,
+      productId: decodeProductGlobalId,
+    })
+    .maxLimit(100)
+    .defaultLimit(20),
+  { name: "variant", tieBreaker: "id" }
+);
+
+export const warehouseAssignableVariantRelayQuery = createRelayQuery(
+  createQuery(variantWarehouseCandidateView)
+    .include(["id", "productId"])
+    .mapWhereFields({
+      id: decodeVariantGlobalId,
+      productId: decodeProductGlobalId,
+    })
     .maxLimit(100)
     .defaultLimit(20),
   { name: "variant", tieBreaker: "id" }
@@ -44,6 +64,9 @@ export type VariantCursorInput = InferCursorInput<
   typeof variantPaginationQuery
 >;
 export type VariantRelayInput = InferRelayInput<typeof variantRelayQuery>;
+export type WarehouseAssignableVariantRelayInput = InferRelayInput<
+  typeof warehouseAssignableVariantRelayQuery
+>;
 
 export interface VariantConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
@@ -53,7 +76,7 @@ export interface VariantConnectionResult {
 
 export class VariantRepository extends BaseRepository {
   private get locale(): string {
-    return this.ctx.locale ?? "uk";
+    return this.ctx.locale ?? this.ctx.store.defaultLocale;
   }
 
   // ============ CRUD ============
@@ -236,6 +259,43 @@ export class VariantRepository extends BaseRepository {
     return results[0] ?? null;
   }
 
+  async getConnection(
+    args: VariantRelayInput
+  ): Promise<VariantConnectionResult> {
+    const { where, orderBy, ...paginationArgs } = args;
+
+    const mergedWhere: VariantRelayInput["where"] = {
+      _and: [
+        { projectId: { _eq: this.storeId } },
+        { deletedAt: { _is: null } },
+        ...(where ? [where] : []),
+      ],
+    };
+
+    const executeInput: VariantRelayInput = {
+      ...paginationArgs,
+      where: mergedWhere,
+      orderBy: orderBy ?? [
+        { field: "createdAt", direction: "desc" },
+        { field: "id", direction: "desc" },
+      ],
+    };
+
+    const [result, totalCount] = await Promise.all([
+      variantRelayQuery.execute(this.connection, executeInput),
+      variantRelayQuery.count(this.connection, { where: mergedWhere }),
+    ]);
+
+    return {
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        nodeId: edge.node.id,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
+  }
+
   async getByProductId(
     productId: string,
     input?: Omit<VariantQueryInput, "where">
@@ -285,13 +345,16 @@ export class VariantRepository extends BaseRepository {
     const executeInput: VariantRelayInput = {
       ...paginationArgs,
       where: mergedWhere,
-      orderBy: orderBy ?? [{ field: "createdAt", direction: "desc" }],
+      orderBy: orderBy ?? [
+        { field: "createdAt", direction: "desc" },
+        { field: "id", direction: "desc" },
+      ],
     };
 
-    const result = await variantRelayQuery.execute(
-      this.connection,
-      executeInput
-    );
+    const [result, totalCount] = await Promise.all([
+      variantRelayQuery.execute(this.connection, executeInput),
+      variantRelayQuery.count(this.connection, { where: mergedWhere }),
+    ]);
 
     return {
       edges: result.edges.map((edge) => ({
@@ -299,7 +362,59 @@ export class VariantRepository extends BaseRepository {
         nodeId: edge.node.id,
       })),
       pageInfo: result.pageInfo,
-      totalCount: result.totalCount ?? 0,
+      totalCount,
+    };
+  }
+
+  async getWarehouseAssignableConnection(
+    warehouseId: string,
+    args: WarehouseAssignableVariantRelayInput
+  ): Promise<VariantConnectionResult> {
+    const { where, orderBy } = args;
+    const assignableWhere =
+      where as WarehouseAssignableVariantRelayInput["where"];
+
+    const mergedWhere: WarehouseAssignableVariantRelayInput["where"] = {
+      _and: [
+        { projectId: { _eq: this.storeId } },
+        { warehouseScopeId: { _eq: warehouseId } },
+        { locale: { _eq: this.locale } },
+        { deletedAt: { _is: null } },
+        { productDeletedAt: { _is: null } },
+        ...(assignableWhere ? [assignableWhere] : []),
+      ],
+    };
+
+    const executeInput: WarehouseAssignableVariantRelayInput = {
+      first: args.first,
+      after: args.after,
+      last: args.last,
+      before: args.before,
+      where: mergedWhere,
+      orderBy:
+        (orderBy as WarehouseAssignableVariantRelayInput["orderBy"]) ?? [
+          { field: "createdAt", direction: "desc" },
+          { field: "id", direction: "desc" },
+        ],
+    };
+
+    const [result, totalCount] = await Promise.all([
+      warehouseAssignableVariantRelayQuery.execute(
+        this.connection,
+        executeInput
+      ),
+      warehouseAssignableVariantRelayQuery.count(this.connection, {
+        where: mergedWhere,
+      }),
+    ]);
+
+    return {
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        nodeId: edge.node.id,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
     };
   }
 
@@ -389,32 +504,34 @@ export class VariantRepository extends BaseRepository {
       );
   }
 
-  async getMediaByVariantIds(
-    variantIds: readonly string[]
-  ): Promise<VariantMedia[]> {
-    return this.connection
-      .select()
-      .from(variantMedia)
-      .where(
-        and(
-          eq(variantMedia.projectId, this.storeId),
-          inArray(variantMedia.variantId, [...variantIds])
-        )
-      )
-      .orderBy(asc(variantMedia.sortIndex));
-  }
-
   async getSelectedOptionsByVariantIds(
     variantIds: readonly string[]
   ): Promise<ProductOptionVariantLink[]> {
     return this.connection
-      .select()
+      .select({
+        projectId: productOptionVariantLink.projectId,
+        variantId: productOptionVariantLink.variantId,
+        optionId: productOptionVariantLink.optionId,
+        optionValueId: productOptionVariantLink.optionValueId,
+      })
       .from(productOptionVariantLink)
+      .innerJoin(
+        productOption,
+        and(
+          eq(productOptionVariantLink.projectId, productOption.projectId),
+          eq(productOptionVariantLink.optionId, productOption.id)
+        )
+      )
       .where(
         and(
           eq(productOptionVariantLink.projectId, this.storeId),
           inArray(productOptionVariantLink.variantId, [...variantIds])
         )
+      )
+      .orderBy(
+        asc(productOptionVariantLink.variantId),
+        asc(productOption.sortIndex),
+        asc(productOption.id)
       );
   }
 

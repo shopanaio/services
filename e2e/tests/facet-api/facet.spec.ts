@@ -33,12 +33,6 @@ test.describe('Facet API', () => {
   });
 
   test('should create facet with all optional fields', async ({ api }) => {
-    // Create a group first
-    const { data: groupData } = await api.admin.mutation('facet-api/FacetGroupCreate', {
-      variables: { input: { name: 'Product Filters' } },
-    });
-    const groupId = groupData.catalogMutation.facetGroupCreate.facetGroup?.id;
-
     const { data } = await api.admin.mutation('facet-api/FacetCreate', {
       variables: {
         input: {
@@ -47,8 +41,6 @@ test.describe('Facet API', () => {
           label: 'Color',
           uiType: 'DROPDOWN',
           selectionMode: 'SINGLE',
-          groupId,
-          sortIndex: 5,
         },
       },
     });
@@ -62,8 +54,7 @@ test.describe('Facet API', () => {
     expect(result.facet?.label).toBe('Color');
     expect(result.facet?.uiType).toBe('DROPDOWN');
     expect(result.facet?.selectionMode).toBe('SINGLE');
-    expect(result.facet?.sortIndex).toBe(5);
-    expect(result.facet?.group?.id).toBe(groupId);
+    expect(result.facet?.lexoRank).toBeTruthy();
   });
 
   // ═══════════════════════════════════════
@@ -282,12 +273,6 @@ test.describe('Facet API', () => {
   });
 
   test('should update facet with all updateable fields', async ({ api }) => {
-    // Create a group for update
-    const { data: groupData } = await api.admin.mutation('facet-api/FacetGroupCreate', {
-      variables: { input: { name: 'New Group' } },
-    });
-    const groupId = groupData.catalogMutation.facetGroupCreate.facetGroup?.id;
-
     // Create a facet first
     const { data: createData } = await api.admin.mutation('facet-api/FacetCreate', {
       variables: {
@@ -312,12 +297,6 @@ test.describe('Facet API', () => {
           label: 'Updated',
           uiType: 'DROPDOWN',
           selectionMode: 'SINGLE',
-          groupId,
-          sortIndex: 10,
-          minValues: 2,
-          maxValuesVisible: 8,
-          valueSort: 'ALPHA',
-          indexable: false,
         },
       },
     });
@@ -329,12 +308,7 @@ test.describe('Facet API', () => {
     expect(result.facet?.label).toBe('Updated');
     expect(result.facet?.uiType).toBe('DROPDOWN');
     expect(result.facet?.selectionMode).toBe('SINGLE');
-    expect(result.facet?.group?.id).toBe(groupId);
-    expect(result.facet?.sortIndex).toBe(10);
-    expect(result.facet?.minValues).toBe(2);
-    expect(result.facet?.maxValuesVisible).toBe(8);
-    expect(result.facet?.valueSort).toBe('ALPHA');
-    expect(result.facet?.indexable).toBe(false);
+    expect(result.facet?.lexoRank).toBeTruthy();
   });
 
   // ═══════════════════════════════════════
@@ -568,55 +542,4 @@ test.describe('Facet API', () => {
     expect(data.catalogQuery.facet).toBeNull();
   });
 
-  test('should create facet with valueSort CUSTOM', async ({ api }) => {
-    const { data: createData } = await api.admin.mutation('facet-api/FacetCreate', {
-      variables: {
-        input: {
-          facetType: 'TAG',
-          slug: 'custom-sort-facet',
-          label: 'Custom Sort Facet',
-        },
-      },
-    });
-
-    const facetId = createData.catalogMutation.facetCreate.facet?.id;
-
-    // Update to use CUSTOM sort
-    const { data } = await api.admin.mutation('facet-api/FacetUpdate', {
-      variables: {
-        input: {
-          id: facetId,
-          valueSort: 'CUSTOM',
-        },
-      },
-    });
-
-    expect(data.catalogMutation.facetUpdate.facet?.valueSort).toBe('CUSTOM');
-  });
-
-  test('should create facet with valueSort COUNT', async ({ api }) => {
-    const { data: createData } = await api.admin.mutation('facet-api/FacetCreate', {
-      variables: {
-        input: {
-          facetType: 'TAG',
-          slug: 'count-sort-facet',
-          label: 'Count Sort Facet',
-        },
-      },
-    });
-
-    const facetId = createData.catalogMutation.facetCreate.facet?.id;
-
-    // Update to use COUNT sort
-    const { data } = await api.admin.mutation('facet-api/FacetUpdate', {
-      variables: {
-        input: {
-          id: facetId,
-          valueSort: 'COUNT',
-        },
-      },
-    });
-
-    expect(data.catalogMutation.facetUpdate.facet?.valueSort).toBe('COUNT');
-  });
 });

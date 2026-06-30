@@ -1,53 +1,70 @@
-import { useState, useEffect, useCallback } from "react";
-import { mockProductsList, type IProductListItem } from "@/mocks/products/products-list";
+"use client";
 
-interface UseProductsOptions {
-  /** Simulated delay in milliseconds */
-  delay?: number;
+import type {
+  ApiPageInfo,
+  ApiProduct,
+  ApiProductConnection,
+  ApiProductOrderByInput,
+  ApiProductProductsMetaInput,
+  ApiProductWhereInput,
+} from "@/graphql/types";
+import { useRelayConnectionQuery } from "@/graphql/hooks/use-relay-connection-query";
+import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
+import { PRODUCTS_QUERY } from "../graphql";
+import type {
+  ProductsQueryData,
+  ProductsQueryVariables,
+} from "../graphql/operation-types";
+
+export interface UseProductsOptions extends RelayCursorPaginationVariables {
+  where?: ApiProductWhereInput | null;
+  orderBy?: ApiProductOrderByInput[] | null;
+  meta?: ApiProductProductsMetaInput | null;
+  skip?: boolean;
 }
 
-interface UseProductsReturn {
-  data: IProductListItem[];
-  isLoading: boolean;
+export interface UseProductsReturn {
+  products: ApiProduct[];
+  connection: ApiProductConnection | null;
+  totalCount: number;
+  pageInfo: ApiPageInfo | null;
+  loading: boolean;
   error: Error | null;
-  refetch: () => Promise<void>;
+  refetch: () => Promise<unknown>;
 }
 
-/**
- * Hook that simulates an API call to fetch products
- */
 export function useProducts(options: UseProductsOptions = {}): UseProductsReturn {
-  const { delay = 500 } = options;
+  const {
+    first,
+    after = null,
+    last,
+    before = null,
+    where = null,
+    orderBy = null,
+    meta = null,
+    skip = false,
+  } = options;
 
-  const [data, setData] = useState<IProductListItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchProducts = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, delay));
-
-      // Simulate API response
-      setData(mockProductsList);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error("Failed to fetch products"));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [delay]);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+  const result = useRelayConnectionQuery<
+    ProductsQueryData,
+    ProductsQueryVariables,
+    ApiProduct,
+    ApiProductConnection
+  >({
+    query: PRODUCTS_QUERY,
+    variables: { first, after, last, before, where, orderBy, meta },
+    skip,
+    fetchPolicy: "cache-and-network",
+    getConnection: (data) => data?.catalogQuery.products,
+  });
 
   return {
-    data,
-    isLoading,
-    error,
-    refetch: fetchProducts,
+    products: result.nodes,
+    connection: result.connection,
+    totalCount: result.totalCount,
+    pageInfo: result.pageInfo,
+    loading: result.loading,
+    error: result.error,
+    refetch: result.refetch,
   };
 }

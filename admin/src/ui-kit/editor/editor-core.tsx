@@ -7,7 +7,7 @@ import Header from "@editorjs/header";
 import List from "@editorjs/list";
 import Delimiter from "@editorjs/delimiter";
 import { createStyles } from "antd-style";
-import { inter } from "@/fonts/inter";
+import { safiro } from "@/fonts/safiro";
 import { EditorGlobalStyles } from "./editor-global-styles";
 
 const useStyles = createStyles(({ token }) => ({
@@ -26,6 +26,7 @@ export interface EditorProps {
   readOnly?: boolean;
   minHeight?: number;
   autofocus?: boolean;
+  "data-testid"?: string;
 }
 
 const EditorCore = memo(function EditorCore({
@@ -35,20 +36,32 @@ const EditorCore = memo(function EditorCore({
   readOnly = false,
   minHeight = 100,
   autofocus = false,
+  "data-testid": dataTestId,
 }: EditorProps) {
   const { styles } = useStyles();
   const editorRef = useRef<EditorJS | null>(null);
+  const saveVersionRef = useRef(0);
   const holderId = useId().replace(/:/g, "-");
   const initializedRef = useRef(false);
 
-  const handleChange = useCallback(
-    async (api: API) => {
+  const syncChange = useCallback(
+    async (api?: API) => {
       if (!onChange) return;
-      const data = await api.saver.save();
+      const saver = api?.saver ?? editorRef.current?.saver;
+      if (!saver) return;
+
+      const saveVersion = ++saveVersionRef.current;
+      const data = await saver.save();
+      if (saveVersion !== saveVersionRef.current) return;
+
       onChange(data.blocks?.length ? data : null);
     },
     [onChange],
   );
+
+  const handleChange = useCallback((api: API) => {
+    void syncChange(api);
+  }, [syncChange]);
 
   useEffect(() => {
     if (initializedRef.current) return;
@@ -87,20 +100,32 @@ const EditorCore = memo(function EditorCore({
     });
 
     editorRef.current = editor;
+    let holder: HTMLElement | null = null;
+    const handleNativeChange = () => {
+      void syncChange();
+    };
+
+    void editor.isReady.then(() => {
+      holder = document.getElementById(holderId);
+      holder?.addEventListener("input", handleNativeChange);
+      holder?.addEventListener("blur", handleNativeChange, true);
+    });
 
     return () => {
+      holder?.removeEventListener("input", handleNativeChange);
+      holder?.removeEventListener("blur", handleNativeChange, true);
       if (editorRef.current?.destroy) {
         editorRef.current.destroy();
         editorRef.current = null;
       }
     };
-  }, [holderId]);
+  }, [holderId, handleChange, syncChange]);
 
   return (
     <>
       <EditorGlobalStyles />
-      <div className={styles.wrapper}>
-        <div id={holderId} className={inter.className} style={{ minHeight }} />
+      <div className={styles.wrapper} data-testid={dataTestId}>
+        <div id={holderId} className={safiro.className} style={{ minHeight }} />
       </div>
     </>
   );

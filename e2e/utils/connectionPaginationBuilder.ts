@@ -1,7 +1,7 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { ApiFixtures } from '@fixtures/api/api';
-import { GraphQLFileName } from '@queries/filenames';
+import type { ApiFixtures } from '@fixtures/api/api';
+import type { GraphQLFileName } from '@queries/filenames';
 
 /**
  * Decode Relay cursor (Base64URL) to object.
@@ -104,6 +104,9 @@ interface ConnectionPaginationTestParams<
 
   /** Extract raw ID from node for ID-based filtering (defaults to node.id, use for global ID -> raw UUID conversion) */
   getRawId?: (node: TNode) => string;
+
+  /** Non-matching filter for empty-result edge case (defaults to raw zero UUID id filter). */
+  emptyWhere?: Record<string, unknown>;
 }
 
 /**
@@ -130,6 +133,7 @@ export function createConnectionPaginationTests<
     pageSize = 2,
     apiClient = 'admin',
     skipCursorValidation = false,
+    emptyWhere = { id: { _eq: '00000000-0000-0000-0000-000000000000' } },
   } = params;
 
   const getApi = (api: ApiFixtures['api']) => (apiClient === 'admin' ? api.admin : api.client);
@@ -428,8 +432,8 @@ export function createConnectionPaginationTests<
 
       // Use a filter that matches nothing
       const emptyFilter = whereFilter
-        ? { _and: [whereFilter, { id: { _eq: '00000000-0000-0000-0000-000000000000' } }] }
-        : { id: { _eq: '00000000-0000-0000-0000-000000000000' } };
+        ? { _and: [whereFilter, emptyWhere] }
+        : emptyWhere;
 
       const { data } = await getApi(api).query(queryName, {
         variables: {

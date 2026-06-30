@@ -1,21 +1,11 @@
 import type { ReactNode } from "react";
-import type { ICategory } from "@/mocks/products/types";
-import type { ITag } from "../../modals";
-import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/promos/bundles/types";
-import type { IAttributeRow } from "../../modals/edit-attributes-modal/types";
-import type { ProductInventoryWidget } from "./inventory-widget.types";
-import type { IBundleListItem } from "@/mocks/products/bundles-list";
+import type { IBundleGroup, PricingRuleTemplate, IDependencyRule } from "@/domains/inventory/bundles/types";
 import type {
+  ApiBundle,
+  ApiProductInventoryWidget,
   ApiVariant,
-  ApiVariantConnection,
   ApiPageInfo,
-  ApiProductOption,
 } from "@/graphql/types";
-
-export type { ProductInventoryWidget, ThresholdType } from "./inventory-widget.types";
-
-// Re-export API types for table usage
-export type { ApiVariant, ApiVariantConnection, ApiPageInfo };
 
 // ============================================================================
 // Review Types
@@ -58,19 +48,12 @@ export interface IVariantsTableData {
 // Mock Data Types
 // ============================================================================
 
-export interface IProductDetailsMockData {
-  categories: {
-    primary: ICategory | null;
-    list: ICategory[];
-  };
-  tags: ITag[];
+export interface ProductDetailsSupplementalData {
   reviews: IReviewsData;
-  attributes: IAttributeRow[];
-  options: ApiProductOption[];
   bundleItems: IBundleGroup[];
   pricingTemplates: PricingRuleTemplate[];
   dependencyRules: IDependencyRule[];
-  inventory: ProductInventoryWidget;
+  inventory: ApiProductInventoryWidget;
   /** Bundles that include this product */
-  includedInBundles: IBundleListItem[];
+  includedInBundles: ApiBundle[];
 }

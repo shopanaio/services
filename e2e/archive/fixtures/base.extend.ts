@@ -1,4 +1,4 @@
- 
+
 import { StoresPage } from '@fixtures/pages/StoresPage';
 import { AccountPage } from '@fixtures/pages/AccountPage';
 import { SignUpPage } from '@fixtures/pages/SignUpPage';
@@ -15,7 +15,8 @@ import { OrdersPage } from './pages/OrdersPage';
 import { MenusPage } from './pages/MenusPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { FulfillmentPage } from './pages/FulfillmentPage';
-import { ApiFixtures, test as base } from '@fixtures/api/api';
+import type { ApiFixtures } from '@fixtures/api/api';
+import { test as base } from '@fixtures/api/api';
 
 interface Fixtures extends ApiFixtures {
   accountPage: AccountPage;

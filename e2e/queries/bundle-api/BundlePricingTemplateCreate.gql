@@ -1,13 +1,14 @@
-mutation BundlePricingTemplateCreate($input: BundlePricingTemplateCreateInput!) {
+mutation BundlePricingTemplateCreate($input: BundlePricingTemplatesSyncInput!) {
   catalogMutation {
-    bundlePricingTemplateCreate(input: $input) {
-      bundlePricingTemplate {
+    bundlePricingTemplatesSync(input: $input) {
+      pricingTemplates {
         id
-        productId
         name
-        priceType
-        priceValue
         sortIndex
+        priceRule {
+          id
+          priceType
+        }
       }
       userErrors {
         message

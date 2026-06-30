@@ -55,14 +55,16 @@ export abstract class BaseConnectionResolver<TArgs = unknown> extends CatalogTyp
    * Override to create the node resolver for a given node ID.
    * @param nodeId - The ID of the node to resolve
    */
-  protected abstract createNodeResolver(nodeId: string): unknown;
+  protected abstract createNodeResolver(nodeId: string): unknown | Promise<unknown>;
 
   async edges() {
     const edgesData = await this.$get("edges");
-    return (edgesData ?? []).map((edge) => ({
-      cursor: edge.cursor,
-      node: this.createNodeResolver(edge.nodeId),
-    }));
+    return Promise.all(
+      (edgesData ?? []).map(async (edge) => ({
+        cursor: edge.cursor,
+        node: await this.createNodeResolver(edge.nodeId),
+      }))
+    );
   }
 
   async pageInfo() {

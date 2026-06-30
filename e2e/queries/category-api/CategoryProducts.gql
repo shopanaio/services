@@ -2,72 +2,47 @@ query CategoryProducts(
   $categoryId: ID!
   $first: Int
   $after: String
-  $filters: ProductFiltersInput
-  $sort: ProductSortInput
+  $where: ListingWhereInput
+  $orderBy: [ListingOrderByInput!]
 ) {
   catalogQuery {
-    categoryProducts(
-      categoryId: $categoryId
-      first: $first
-      after: $after
-      filters: $filters
-      sort: $sort
-    ) {
-      edges {
-        node {
-          id
-          title
-          handle
-          isPublished
-          variants(first: 1) {
-            edges {
-              node {
-                id
-                price {
-                  amountMinor
-                  currency
-                }
-                inventoryItem {
-                  id
-                  totalAvailable
+    category(id: $categoryId) {
+      id
+      listing(first: $first, after: $after, where: $where, orderBy: $orderBy) {
+        edges {
+          node {
+            id
+            kind
+            title
+            handle
+            isPublished
+            ... on Product {
+              variants(first: 1) {
+                edges {
+                  node {
+                    id
+                    price {
+                      amountMinor
+                      currency
+                    }
+                    inventoryItem {
+                      id
+                      totalAvailable
+                    }
+                  }
                 }
               }
             }
           }
+          cursor
         }
-        cursor
-      }
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        startCursor
-        endCursor
-      }
-      totalCount
-      facets {
-        priceRange {
-          minMinor
-          maxMinor
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
         }
-        groups {
-          name
-          facets {
-            facetType
-            slug
-            label
-            uiType
-            selectionMode
-            totalCount
-            values {
-              slug
-              label
-              count
-              swatch {
-                id
-              }
-            }
-          }
-        }
+        totalCount
       }
     }
   }

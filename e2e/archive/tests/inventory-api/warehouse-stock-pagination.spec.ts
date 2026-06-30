@@ -1,11 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import type { ApiFixtures } from '@fixtures/api/api';
-import type {
-  ApiWarehouseStock,
-  ApiInventoryMutation,
-  ApiInventoryQuery,
-} from '@codegen/admin-gql-v2';
-import { createConnectionPaginationTests, type Connection } from '@utils/connectionPaginationBuilder';
+import type { ApiWarehouseStock, ApiInventoryMutation, ApiInventoryQuery } from '@codegen/admin-gql-v2';
+import type { Connection } from '@utils/connectionPaginationBuilder';
+import { createConnectionPaginationTests } from '@utils/connectionPaginationBuilder';
 
 // Helper to access inventory API data
 const inv = (data: unknown) =>

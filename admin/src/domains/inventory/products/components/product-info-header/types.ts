@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { IProduct } from "@/mocks/products/types";
+import type { ApiProduct } from "@/graphql/types";
 
 // ============================================================================
 // KPI Types
@@ -21,8 +21,9 @@ export interface IKPIData {
 // ============================================================================
 
 export interface IProductInfoHeaderProps {
-  product: IProduct;
+  product: ApiProduct;
   kpiData?: IKPIData;
+  onProductRefresh?: () => Promise<unknown>;
 }
 
 export interface IUserPopoverProps {

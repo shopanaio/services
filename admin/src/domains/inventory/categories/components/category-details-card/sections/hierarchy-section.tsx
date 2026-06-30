@@ -1,199 +1,218 @@
 "use client";
 
-import { Typography, Flex, Breadcrumb, Tag, Avatar, Button, Dropdown } from "antd";
+import {
+  Breadcrumb,
+  Button,
+  Dropdown,
+  Flex,
+  Tag,
+  Typography,
+} from "antd";
 import {
   FolderOutlined,
-  PlusOutlined,
   MoreOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { EditAction } from "@/domains/inventory/products/components/edit-action";
-import { EntityStatus } from "@/mocks/products/types";
+import type { ApiCategory } from "@/graphql/types";
 import { useHierarchyStyles } from "../category-details-card.styles";
-import type { ICategoryParent, ICategoryChild } from "../types";
 
-// ============================================================================
-// Status helpers
-// ============================================================================
-
-const getStatusColor = (status: EntityStatus) => {
-  switch (status) {
-    case EntityStatus.PUBLISHED:
-      return "var(--ant-color-success)";
-    case EntityStatus.DRAFT:
-      return "var(--ant-color-warning)";
-    case EntityStatus.ARCHIVED:
-      return "var(--ant-color-error)";
-    default:
-      return "var(--ant-color-text-tertiary)";
-  }
-};
-
-const getStatusLabel = (status: EntityStatus) => {
-  switch (status) {
-    case EntityStatus.PUBLISHED:
-      return "Active";
-    case EntityStatus.DRAFT:
-      return "Draft";
-    case EntityStatus.ARCHIVED:
-      return "Archived";
-    default:
-      return status;
-  }
-};
-
-// ============================================================================
-// SubcategoryCard
-// ============================================================================
-
-interface ISubcategoryCardProps {
-  child: ICategoryChild;
-  onClick?: () => void;
-}
-
-const SubcategoryCard = ({ child, onClick }: ISubcategoryCardProps) => {
-  const { styles } = useHierarchyStyles();
-  const statusColor = getStatusColor(child.status);
-
-  return (
-    <div className={styles.subcategoryCard} onClick={onClick}>
-      <Flex vertical align="center" gap={8}>
-        <Avatar
-          size={48}
-          src={child.featured?.url}
-          icon={<FolderOutlined />}
-          style={{ flexShrink: 0 }}
-        />
-        <Typography.Text strong ellipsis className={styles.subcategoryTitle}>
-          {child.title}
-        </Typography.Text>
-        <Typography.Text type="secondary" className={styles.subcategoryMeta}>
-          {child.productCount} products
-        </Typography.Text>
-        <Flex align="center" gap={4}>
-          <span
-            className={styles.statusDot}
-            style={{ background: statusColor }}
-          />
-          <Typography.Text
-            style={{ fontSize: 11, color: statusColor }}
-          >
-            {getStatusLabel(child.status)}
-          </Typography.Text>
-        </Flex>
-      </Flex>
-    </div>
-  );
-};
-
-// ============================================================================
-// HierarchySection
-// ============================================================================
-
-interface IHierarchySectionProps {
-  ancestors: ICategoryParent[];
-  children: ICategoryChild[];
-  categoryTitle: string;
-  onEdit?: () => void;
-  onAddSubcategory?: () => void;
+interface HierarchySectionProps {
+  category: ApiCategory;
+  onEditParent?: () => void;
+  onClearParent?: () => void;
+  onEditSubcategories?: () => void;
+  onRemoveSubcategory?: (subcategory: ApiCategory) => void;
 }
 
 export const HierarchySection = ({
-  ancestors,
-  children: subcategories,
-  categoryTitle,
-  onEdit,
-  onAddSubcategory,
-}: IHierarchySectionProps) => {
+  category,
+  onEditParent,
+  onClearParent,
+  onEditSubcategories,
+  onRemoveSubcategory,
+}: HierarchySectionProps) => {
   const { styles } = useHierarchyStyles();
+  const subcategories = category.children;
 
   const breadcrumbItems = [
     { title: "Home" },
-    ...ancestors.map((a) => ({ title: a.title })),
-    { title: <strong>{categoryTitle}</strong> },
+    ...category.ancestors.map((ancestor) => ({ title: ancestor.name })),
+    { title: <strong>{category.name}</strong> },
   ];
-
-  const parentCategory = ancestors.length > 0 ? ancestors[ancestors.length - 1] : null;
 
   const hasSubcategories = subcategories.length > 0;
 
   return (
-    <Paper>
+    <Paper data-testid="category-hierarchy-section">
       <PaperHeader
         title="Hierarchy"
-        actions={onEdit ? <EditAction onEdit={onEdit} label="Edit hierarchy" /> : undefined}
-      />
-
-      {/* Breadcrumb */}
-      <Breadcrumb items={breadcrumbItems} style={{ marginBottom: 12 }} />
-
-      {/* Parent Category */}
-      {parentCategory && (
-        <Flex align="center" gap={8} style={{ marginBottom: 16 }}>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            Parent:
-          </Typography.Text>
+        actions={
           <Dropdown
             trigger={["click"]}
             menu={{
               items: [
-                { key: "navigate", label: "Go to category" },
-                { key: "change", label: "Change parent" },
+                {
+                  key: "edit-parent",
+                  label: <span data-testid="category-hierarchy-edit-parent-menu-item">Edit parent</span>,
+                  disabled: !onEditParent,
+                },
+                {
+                  key: "edit-subcategories",
+                  label: (
+                    <span data-testid="category-hierarchy-add-subcategories-menu-item">
+                      Add subcategories
+                    </span>
+                  ),
+                  disabled: !onEditSubcategories,
+                },
               ],
+              onClick: ({ key }) => {
+                if (key === "edit-parent") {
+                  onEditParent?.();
+                  return;
+                }
+
+                if (key === "edit-subcategories") {
+                  onEditSubcategories?.();
+                }
+              },
             }}
           >
-            <Tag color="blue" style={{ cursor: "pointer" }}>
+            <Button
+              size="small"
+              icon={<MoreOutlined />}
+              data-testid="category-hierarchy-actions-button"
+            />
+          </Dropdown>
+        }
+      />
+
+      <Flex vertical gap={8} style={{ marginBottom: 16 }}>
+        <Typography.Text type="secondary" className={styles.sectionLabel}>
+          Breadcrumbs
+        </Typography.Text>
+        <Breadcrumb
+          items={breadcrumbItems}
+          data-testid="category-hierarchy-breadcrumb"
+        />
+      </Flex>
+
+      <Flex vertical gap={8} style={{ marginBottom: 16 }}>
+        <Typography.Text type="secondary" className={styles.sectionLabel}>
+          Parent
+        </Typography.Text>
+        <Flex
+          align="center"
+          gap={8}
+          data-testid="category-hierarchy-parent"
+        >
+          {category.parent ? (
+            <Dropdown
+              trigger={["click"]}
+              menu={{
+                items: [
+                  {
+                    key: "change",
+                    label: "Change parent",
+                    onClick: onEditParent,
+                  },
+                  {
+                    key: "clear",
+                    label: "Clear parent",
+                    onClick: onClearParent,
+                    disabled: !onClearParent,
+                  },
+                ],
+              }}
+            >
+              <Tag color="blue" style={{ cursor: "pointer" }}>
+                <Flex align="center" gap={4}>
+                  <FolderOutlined />
+                  {category.parent.name}
+                  <MoreOutlined />
+                </Flex>
+              </Tag>
+            </Dropdown>
+          ) : (
+            <Tag
+              variant="outlined"
+              onClick={onEditParent}
+              style={{
+                cursor: "pointer",
+                background: "transparent",
+                borderStyle: "dashed",
+              }}
+            >
               <Flex align="center" gap={4}>
-                <FolderOutlined />
-                {parentCategory.title}
-                <MoreOutlined />
+                <PlusOutlined />
+                Add Parent
               </Flex>
             </Tag>
-          </Dropdown>
+          )}
         </Flex>
-      )}
+      </Flex>
 
-      {/* Subcategories label */}
       <Typography.Text type="secondary" className={styles.sectionLabel}>
         Subcategories ({subcategories.length})
       </Typography.Text>
 
-      {/* Subcategories grid */}
       {hasSubcategories ? (
-        <div className={styles.subcategoryGrid} style={{ marginTop: 8 }}>
+        <Flex gap={4} wrap="wrap" style={{ marginTop: 8 }}>
           {subcategories.map((child) => (
-            <SubcategoryCard
+            <Dropdown
               key={child.id}
-              child={child}
-              onClick={() => console.log("Navigate to:", child.slug)}
-            />
+              trigger={["click"]}
+              menu={{
+                items: [
+                  {
+                    key: "delete",
+                    label: "Delete subcategory",
+                    onClick: () => onRemoveSubcategory?.(child),
+                    disabled: !onRemoveSubcategory,
+                  },
+                ],
+              }}
+            >
+              <Tag color="default" style={{ cursor: "pointer" }}>
+                <Flex align="center" gap={4}>
+                  {child.name}
+                  <MoreOutlined />
+                </Flex>
+              </Tag>
+            </Dropdown>
           ))}
-          <div className={styles.addSubcategoryCard} onClick={onAddSubcategory}>
-            <PlusOutlined style={{ fontSize: 16, marginBottom: 4 }} />
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              Add Subcategory
-            </Typography.Text>
-          </div>
-        </div>
-      ) : (
-        <Flex
-          vertical
-          align="center"
-          justify="center"
-          gap={8}
-          className={styles.emptyContainer}
-        >
-          <FolderOutlined className={styles.emptyIcon} />
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            This is a leaf category with no subcategories
-          </Typography.Text>
-          <Button
-            type="dashed"
-            icon={<PlusOutlined />}
-            onClick={onAddSubcategory}
+          <Tag
+            variant="outlined"
+            onClick={onEditSubcategories}
+            style={{
+              cursor: "pointer",
+              background: "transparent",
+              borderStyle: "dashed",
+            }}
           >
-            Create Subcategory
-          </Button>
+            <Flex align="center" gap={4}>
+              <PlusOutlined />
+              Add Subcategories
+            </Flex>
+          </Tag>
+        </Flex>
+      ) : (
+        <Flex gap={4} wrap="wrap" style={{ marginTop: 8 }}>
+          <Tag
+            variant="outlined"
+            onClick={onEditSubcategories}
+            style={{
+              cursor: "pointer",
+              background: "transparent",
+              borderStyle: "dashed",
+            }}
+          >
+            <Flex align="center" gap={4}>
+              <PlusOutlined />
+              Add Subcategories
+            </Flex>
+          </Tag>
         </Flex>
       )}
     </Paper>

@@ -1,0 +1,85 @@
+import { slugify } from "transliteration/dist/node/src/node/index.js";
+import type {
+  ApiFacetCreateInput,
+  ApiFacetUpdateInput,
+} from "@/graphql/types";
+import {
+  FacetSelectionMode,
+  FacetType,
+  FacetUiType,
+} from "@/graphql/types";
+
+export interface FacetFormInput {
+  label: string;
+  slug: string;
+  facetType: FacetType;
+  uiType: FacetUiType;
+  source?: {
+    handle: string;
+    name: string;
+  } | null;
+  selectedValueCandidates?: Array<{
+    handle: string;
+    label: string;
+    sourceHandle: string;
+  }>;
+}
+
+export function getAllowedFacetUiTypes(facetType: FacetType): FacetUiType[] {
+  if (facetType === FacetType.Price) {
+    return [FacetUiType.Range];
+  }
+  if (facetType === FacetType.InStock) {
+    return [FacetUiType.Boolean];
+  }
+  return [FacetUiType.Checkbox, FacetUiType.Radio, FacetUiType.Dropdown];
+}
+
+export function getDefaultFacetUiType(facetType: FacetType): FacetUiType {
+  return getAllowedFacetUiTypes(facetType)[0];
+}
+
+export function getDefaultFacetSelectionMode(
+  uiType: FacetUiType,
+): FacetSelectionMode {
+  return uiType === FacetUiType.Checkbox
+    ? FacetSelectionMode.Multi
+    : FacetSelectionMode.Single;
+}
+
+export function normalizeFacetSlug(value: string): string {
+  return slugify(value.trim());
+}
+
+export function mapFacetFormToCreateInput(
+  values: FacetFormInput,
+  _sortIndex?: number,
+): ApiFacetCreateInput {
+  return {
+    label: values.label.trim(),
+    slug: normalizeFacetSlug(values.slug),
+    facetType: values.facetType,
+    uiType: values.uiType,
+    selectionMode: getDefaultFacetSelectionMode(values.uiType),
+    sources: values.source
+      ? [{ handle: values.source.handle, name: values.source.name }]
+      : [],
+    valueCandidates: (values.selectedValueCandidates ?? []).map((candidate) => ({
+      handle: candidate.handle,
+      label: candidate.label,
+      sourceHandle: candidate.sourceHandle,
+    })),
+  };
+}
+
+export function mapFacetFormToUpdateInput(
+  id: string,
+  values: Omit<FacetFormInput, "facetType">,
+): ApiFacetUpdateInput {
+  return {
+    id,
+    label: values.label.trim(),
+    slug: normalizeFacetSlug(values.slug),
+    uiType: values.uiType,
+  };
+}

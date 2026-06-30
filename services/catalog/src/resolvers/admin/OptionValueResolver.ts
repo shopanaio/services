@@ -37,6 +37,10 @@ export class OptionValueResolver extends CatalogType<
     return (await this.$get("slug")) ?? "";
   }
 
+  async sortIndex() {
+    return (await this.$get("sortIndex")) ?? 0;
+  }
+
   async swatch(): Promise<{
     id: string;
     swatchType: string;

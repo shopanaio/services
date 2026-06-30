@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useModalStack } from "@/layouts/modals";
-import type { IPickableEntity, IEntityPickerPayload } from "../types";
+import type { IPickableEntity } from "../types";
 import type { ApiFile } from "@/graphql/types";
 
 interface IUseEntityPickerOptions<T extends IPickableEntity> {
@@ -11,7 +11,8 @@ interface IUseEntityPickerOptions<T extends IPickableEntity> {
   initialSelection?: string[];
   excludeIds?: string[];
   maxSelection?: number;
-  onConfirm: (entities: T[]) => void;
+  queryMeta?: unknown;
+  onConfirm: (entities: T[], ids: string[]) => void;
 }
 
 /**
@@ -39,6 +40,7 @@ export function useEntityPicker<T extends IPickableEntity>(
     initialSelection = [],
     excludeIds = [],
     maxSelection,
+    queryMeta,
     onConfirm,
   } = options;
 
@@ -49,6 +51,7 @@ export function useEntityPicker<T extends IPickableEntity>(
       initialSelection,
       excludeIds,
       maxSelection,
+      queryMeta,
       onConfirm,
     });
   }, [
@@ -58,6 +61,7 @@ export function useEntityPicker<T extends IPickableEntity>(
     initialSelection,
     excludeIds,
     maxSelection,
+    queryMeta,
     onConfirm,
   ]);
 
@@ -86,6 +90,7 @@ export function useProductPicker(
     initialSelection = [],
     excludeIds = [],
     maxSelection,
+    queryMeta,
     onConfirm,
   } = options;
 
@@ -95,6 +100,7 @@ export function useProductPicker(
       initialSelection,
       excludeIds,
       maxSelection,
+      queryMeta,
       onConfirm,
     });
   }, [
@@ -103,6 +109,42 @@ export function useProductPicker(
     initialSelection,
     excludeIds,
     maxSelection,
+    queryMeta,
+    onConfirm,
+  ]);
+
+  return { openPicker };
+}
+
+export function useVariantPicker(
+  options: Omit<IUseEntityPickerOptions<IPickableEntity>, "entityType">
+) {
+  const { push } = useModalStack();
+  const {
+    selectionMode = "multi",
+    initialSelection = [],
+    excludeIds = [],
+    maxSelection,
+    queryMeta,
+    onConfirm,
+  } = options;
+
+  const openPicker = useCallback(() => {
+    push("variant-picker", {
+      selectionMode,
+      initialSelection,
+      excludeIds,
+      maxSelection,
+      queryMeta,
+      onConfirm,
+    });
+  }, [
+    push,
+    selectionMode,
+    initialSelection,
+    excludeIds,
+    maxSelection,
+    queryMeta,
     onConfirm,
   ]);
 
@@ -118,6 +160,7 @@ export function useCategoryPicker(
     initialSelection = [],
     excludeIds = [],
     maxSelection,
+    queryMeta,
     onConfirm,
   } = options;
 
@@ -127,6 +170,7 @@ export function useCategoryPicker(
       initialSelection,
       excludeIds,
       maxSelection,
+      queryMeta,
       onConfirm,
     });
   }, [
@@ -135,6 +179,7 @@ export function useCategoryPicker(
     initialSelection,
     excludeIds,
     maxSelection,
+    queryMeta,
     onConfirm,
   ]);
 

@@ -1,0 +1,40 @@
+query InventoryItemByVariant($variantId: ID!) {
+  inventoryQuery {
+    inventoryItemByVariant(variantId: $variantId) {
+      id
+      variantId
+      sku
+      trackInventory
+      continueSellingWhenOutOfStock
+      totalAvailable
+      stock {
+        id
+        warehouseId
+        variantId
+        quantityOnHand
+        reservedQuantity
+        unavailableQuantity
+        availableForSale
+        warehouse {
+          id
+          code
+        }
+        variant {
+          id
+          dimensions {
+            width
+            height
+            length
+          }
+          weight {
+            value
+          }
+        }
+      }
+      unitCost {
+        currency
+        amountMinor
+      }
+    }
+  }
+}

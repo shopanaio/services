@@ -93,7 +93,7 @@ export const Columns = ({
         selectedKeys: value.filter((v) => v.active).map((v) => v.value),
         multiple: true,
       }}
-      dropdownRender={(menu) => (
+      popupRender={(menu) => (
         <div className={styles.paper} style={{ boxShadow: token.boxShadow }}>
           <Flex style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
             <Typography.Text data-testid="columns-title" strong className={styles.title}>

@@ -44,6 +44,12 @@ export const category = catalogSchema.table(
     // Publication
     publishedAt: timestamp("published_at", { withTimezone: true, mode: "string" }),
 
+    // Optimistic locking
+    revision: integer("revision").notNull().default(0),
+
+    // Denormalized product count for category listings
+    productsCount: integer("products_count").notNull().default(0),
+
     // Timestamps
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
@@ -117,6 +123,9 @@ export const categoryTranslation = catalogSchema.table(
     descriptionText: text("description_text"),
     descriptionHtml: text("description_html"),
     descriptionJson: text("description_json"), // EditorJS JSON
+    excerptText: text("excerpt_text"),
+    excerptHtml: text("excerpt_html"),
+    excerptJson: text("excerpt_json"),
   },
   (table) => [
     primaryKey({ columns: [table.categoryId, table.locale] }),
@@ -151,9 +160,9 @@ export const productCategory = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.productId, table.categoryId] }),
-    // Only one primary category per product
-    uniqueIndex("idx_product_category_primary")
-      .on(table.productId)
+    // Only one primary category per product within a project
+    uniqueIndex("product_category_one_primary_per_product_idx")
+      .on(table.projectId, table.productId)
       .where(sql`is_primary = true`),
     index("idx_product_category_product").on(table.productId),
     index("idx_product_category_category").on(table.categoryId),

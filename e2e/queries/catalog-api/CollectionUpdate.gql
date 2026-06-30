@@ -11,6 +11,11 @@ mutation CollectionUpdate($input: CollectionUpdateInput!) {
           text
           json
         }
+        excerpt {
+          html
+          text
+          json
+        }
         defaultSort
         defaultSortDirection
         activeFrom

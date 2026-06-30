@@ -1,5 +1,5 @@
 import { test } from '@fixtures/base.extend';
-import { ApiFixtures } from '@fixtures/api/api';
+import type { ApiFixtures } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
 import * as crypto from 'crypto';
 

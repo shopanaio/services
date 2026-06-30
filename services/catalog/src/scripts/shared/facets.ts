@@ -12,7 +12,7 @@ export interface ListingBaseProduct {
 export interface ListingFacetSelection {
   facetId: string;
   facetType: string;
-  sourceHandles: string[];
+  resolvedSourceHandles: string[];
 }
 
 export interface BuildListingFacetsParams {
@@ -28,22 +28,21 @@ export interface BuildListingFacetsParams {
 
 interface DiscreteFacetValueMeta {
   id: string;
-  slug: string;
+  handle: string;
   sortIndex: number;
   label: string | null;
-  sourceHandles: string[];
+  resolvedSourceHandles: string[];
   swatchId: string | null;
 }
 
 interface BuiltFacet {
-  groupId: string | null;
   facetType: string;
   slug: string;
   label: string;
   uiType: string;
   selectionMode: string;
   values: Array<{
-    slug: string;
+    handle: string;
     label: string | null;
     count: number;
     swatch: Record<string, unknown> | null;
@@ -53,11 +52,11 @@ interface BuiltFacet {
 
 interface ProductFacetSelection {
   facetType: "tag" | "feature";
-  sourceHandles: string[];
+  resolvedSourceHandles: string[];
 }
 
 interface VariantFacetSelection {
-  sourceHandles: string[];
+  resolvedSourceHandles: string[];
 }
 
 interface ProductPassOptions {
@@ -118,26 +117,20 @@ export async function buildListingFacets(
     facetTranslations.map((translation) => [translation.facetId, translation.label])
   );
 
-  const groupRows = await params.repository.facetGroup.findAll();
-  const groupTranslations = await params.repository.facetGroup.getTranslationsByGroupIds(
-    groupRows.map((group) => group.id)
-  );
-  const groupNameById = new Map(
-    groupTranslations.map((translation) => [translation.groupId, translation.name])
-  );
-
   const productSelections = new Map<string, ProductFacetSelection>();
   const optionSelections = new Map<string, VariantFacetSelection>();
   for (const [facetId, selection] of params.selectedFacetFiltersById.entries()) {
     const facetType = normalizeFacetType(selection.facetType);
-    if (!facetType || selection.sourceHandles.length === 0) continue;
+    if (!facetType || selection.resolvedSourceHandles.length === 0) continue;
     if (facetType === "tag" || facetType === "feature") {
       productSelections.set(facetId, {
         facetType,
-        sourceHandles: selection.sourceHandles,
+        resolvedSourceHandles: selection.resolvedSourceHandles,
       });
     } else if (facetType === "option") {
-      optionSelections.set(facetId, { sourceHandles: selection.sourceHandles });
+      optionSelections.set(facetId, {
+        resolvedSourceHandles: selection.resolvedSourceHandles,
+      });
     }
   }
 
@@ -149,14 +142,14 @@ export async function buildListingFacets(
   const discreteValuesByFacetId = new Map<string, DiscreteFacetValueMeta[]>();
   const allValueIds: string[] = [];
   for (const facet of discreteFacetRows) {
-    const values = (await params.repository.facetValue.findByFacetId(facet.id))
+    const values = (await params.repository.facetValue.findVisibleByFacetId(facet.id))
       .filter((value) => value.enabled)
       .map((value) => ({
         id: value.id,
-        slug: value.slug,
+        handle: value.handle,
         sortIndex: value.sortIndex,
         label: null as string | null,
-        sourceHandles: [] as string[],
+        resolvedSourceHandles: [] as string[],
         swatchId: value.swatchId,
       }));
     discreteValuesByFacetId.set(facet.id, values);
@@ -185,24 +178,23 @@ export async function buildListingFacets(
       valueLabelById.set(translation.facetValueId, translation.label);
     }
 
-    const sourceRows = await params.repository.facetValue.getSourceHandlesByValueIds(
-      allValueIds
-    );
-    const sourceHandlesByValueId = new Map<string, Set<string>>();
-    for (const row of sourceRows) {
-      const list = sourceHandlesByValueId.get(row.facetValueId) ?? new Set<string>();
-      list.add(row.sourceHandle);
-      sourceHandlesByValueId.set(row.facetValueId, list);
-    }
+    const resolvedSourceHandlesByValueId =
+      await params.repository.facetValue.getVisibleValueSourceHandles(allValueIds);
 
     for (const values of discreteValuesByFacetId.values()) {
       for (const value of values) {
         value.label = valueLabelById.get(value.id) ?? null;
-        value.sourceHandles = [
-          ...(sourceHandlesByValueId.get(value.id) ?? new Set<string>()),
-        ];
+        value.resolvedSourceHandles =
+          resolvedSourceHandlesByValueId.get(value.id) ?? [];
       }
     }
+  }
+
+  for (const [facetId, values] of discreteValuesByFacetId.entries()) {
+    discreteValuesByFacetId.set(
+      facetId,
+      values.filter((value) => value.resolvedSourceHandles.length > 0)
+    );
   }
 
   const passesProductSelections = (
@@ -219,8 +211,8 @@ export async function buildListingFacets(
       }
 
       if (selection.facetType === "tag") {
-        if (!intersects(product.tagHandles, selection.sourceHandles)) return false;
-      } else if (!intersects(product.featureSlugs, selection.sourceHandles)) {
+        if (!intersects(product.tagHandles, selection.resolvedSourceHandles)) return false;
+      } else if (!intersects(product.featureSlugs, selection.resolvedSourceHandles)) {
         return false;
       }
     }
@@ -239,7 +231,7 @@ export async function buildListingFacets(
 
     for (const [facetId, selection] of optionSelections.entries()) {
       if (options.ignoreFacetId && facetId === options.ignoreFacetId) continue;
-      if (selection.sourceHandles.length > 0) return true;
+      if (selection.resolvedSourceHandles.length > 0) return true;
     }
 
     if (!options.ignorePrice) {
@@ -268,7 +260,7 @@ export async function buildListingFacets(
         if (options.ignoreFacetId && facetId === options.ignoreFacetId) {
           continue;
         }
-        if (!intersects(variant.optionSlugs, selection.sourceHandles)) {
+        if (!intersects(variant.optionSlugs, selection.resolvedSourceHandles)) {
           return false;
         }
       }
@@ -360,39 +352,6 @@ export async function buildListingFacets(
         })
       );
       if (matches) {
-        count += 1;
-      }
-    }
-
-    return count;
-  };
-
-  const countDiscreteValueInBase = (
-    facetType: "tag" | "feature" | "option",
-    valueSourceHandles: string[]
-  ): number => {
-    if (valueSourceHandles.length === 0) return 0;
-
-    let count = 0;
-    for (const product of params.baseProducts) {
-      if (facetType === "tag") {
-        if (intersects(product.tagHandles, valueSourceHandles)) count += 1;
-        continue;
-      }
-      if (facetType === "feature") {
-        if (intersects(product.featureSlugs, valueSourceHandles)) count += 1;
-        continue;
-      }
-
-      const variants = params.variantsByProduct.get(product.productId) ?? [];
-      if (
-        variants.some((variant) =>
-          variantPasses(variant, {
-            requireValueHandles: valueSourceHandles,
-            ignoreAllSelections: true,
-          })
-        )
-      ) {
         count += 1;
       }
     }
@@ -536,57 +495,38 @@ export async function buildListingFacets(
       const values = discreteValuesByFacetId.get(facet.id) ?? [];
       const valuesWithCounts = values.map((value) => ({
         ...value,
-        count: countDiscreteValue(facetType, facet.id, value.sourceHandles),
-        baseCount: countDiscreteValueInBase(facetType, value.sourceHandles),
+        count: countDiscreteValue(
+          facetType,
+          facet.id,
+          value.resolvedSourceHandles
+        ),
       }));
 
-      const baseVisibleValues = valuesWithCounts.filter((value) => value.baseCount > 0);
-      if (baseVisibleValues.length < facet.minValues) {
-        continue;
-      }
-
       const valuePayload = valuesWithCounts.map((value) => ({
-        slug: value.slug,
+        handle: value.handle,
         label: value.label,
         count: value.count,
         sortIndex: value.sortIndex,
         swatchId: value.swatchId,
       }));
 
-      if (facet.valueSort === "alpha") {
-        valuePayload.sort((left, right) =>
-          (left.label ?? left.slug).localeCompare(right.label ?? right.slug)
-        );
-      } else if (facet.valueSort === "count") {
-        valuePayload.sort((left, right) => {
-          if (left.count !== right.count) return right.count - left.count;
-          return (left.label ?? left.slug).localeCompare(right.label ?? right.slug);
-        });
-      } else {
-        valuePayload.sort((left, right) => {
-          if (left.sortIndex !== right.sortIndex) return left.sortIndex - right.sortIndex;
-          return left.slug.localeCompare(right.slug);
-        });
-      }
-
-      const visibleValues =
-        facet.maxValuesVisible > 0
-          ? valuePayload.slice(0, facet.maxValuesVisible)
-          : valuePayload;
+      valuePayload.sort((left, right) => {
+        if (left.sortIndex !== right.sortIndex) return left.sortIndex - right.sortIndex;
+        return left.handle.localeCompare(right.handle);
+      });
 
       const allSourceHandles = Array.from(
-        new Set(values.flatMap((value) => value.sourceHandles))
+        new Set(values.flatMap((value) => value.resolvedSourceHandles))
       );
 
       builtFacets.push({
-        groupId: facet.groupId ?? null,
         facetType: mapFacetTypeEnum(facetType),
         slug: facet.slug,
         label,
         uiType,
         selectionMode,
-        values: visibleValues.map((value) => ({
-          slug: value.slug,
+        values: valuePayload.map((value) => ({
+          handle: value.handle,
           label: value.label,
           count: value.count,
           swatch: value.swatchId
@@ -627,7 +567,6 @@ export async function buildListingFacets(
       }
 
       builtFacets.push({
-        groupId: facet.groupId ?? null,
         facetType: mapFacetTypeEnum(facetType),
         slug: facet.slug,
         label,
@@ -645,7 +584,6 @@ export async function buildListingFacets(
     }
 
     builtFacets.push({
-      groupId: facet.groupId ?? null,
       facetType: mapFacetTypeEnum(facetType),
       slug: facet.slug,
       label,
@@ -656,40 +594,15 @@ export async function buildListingFacets(
     });
   }
 
-  const ungrouped: BuiltFacet[] = [];
-  const groupFacetMap = new Map<string, BuiltFacet[]>();
-
-  for (const facet of builtFacets) {
-    if (!facet.groupId) {
-      ungrouped.push(facet);
-      continue;
-    }
-    const items = groupFacetMap.get(facet.groupId) ?? [];
-    items.push(facet);
-    groupFacetMap.set(facet.groupId, items);
-  }
-
   const groups: Array<{
     name: string | null;
     facets: BuiltFacet[];
   }> = [];
 
-  for (const group of groupRows) {
-    const groupFacets = groupFacetMap.get(group.id) ?? [];
-    if (groupFacets.length === 0) {
-      continue;
-    }
-
-    groups.push({
-      name: groupNameById.get(group.id) ?? null,
-      facets: groupFacets,
-    });
-  }
-
-  if (ungrouped.length > 0) {
+  if (builtFacets.length > 0) {
     groups.push({
       name: null,
-      facets: ungrouped,
+      facets: builtFacets,
     });
   }
 

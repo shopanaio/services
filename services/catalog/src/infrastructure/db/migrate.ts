@@ -1,6 +1,4 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import { migrate } from "drizzle-orm/postgres-js/migrator";
-import postgres from "postgres";
+import { runner } from "node-pg-migrate";
 
 /**
  * Run database migrations for the inventory schema.
@@ -16,11 +14,16 @@ export async function runMigrations(
   // postgres.js doesn't support schema parameter in connection string
   const cleanUrl = connectionString.replace(/[?&]schema=[^&]+/g, "");
 
-  // Use a dedicated connection with max: 1 for migrations
-  const sql = postgres(cleanUrl, { max: 1 });
-  const db = drizzle(sql);
-
-  await migrate(db, { migrationsFolder });
-
-  await sql.end();
+  await runner({
+    databaseUrl: cleanUrl,
+    dir: `${migrationsFolder}/domains/**/*.sql`,
+    useGlob: true,
+    direction: "up",
+    migrationsTable: "pgmigrations",
+    migrationsSchema: "catalog",
+    createMigrationsSchema: true,
+    singleTransaction: false,
+    checkOrder: true,
+    log: () => {},
+  });
 }

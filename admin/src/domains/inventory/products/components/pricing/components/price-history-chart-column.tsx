@@ -1,21 +1,22 @@
 import { Typography, Flex } from "antd";
-import { PeriodSwitch, CHART_PERIODS } from "../../period-switch";
+import { PeriodSwitch } from "../../period-switch";
+import { CHART_PERIODS } from "../../../utils/periods";
 import { PriceChart } from "./price-chart";
 import { useStyles } from "../pricing-block.styles";
-import { ApiVariantPriceConnection } from "@/graphql/types";
+import type { ApiVariantPriceConnection, CurrencyCode } from "@/graphql/types";
 
 export interface IPriceHistoryChartColumnProps {
   history: ApiVariantPriceConnection;
   period: string;
   onPeriodChange: (period: string) => void;
-  formatPrice: (amount: number) => string;
+  currency?: CurrencyCode | null;
 }
 
 export const PriceHistoryChartColumn = ({
   history,
   period,
   onPeriodChange,
-  formatPrice,
+  currency,
 }: IPriceHistoryChartColumnProps) => {
   const { styles } = useStyles();
 
@@ -38,7 +39,7 @@ export const PriceHistoryChartColumn = ({
 
       <PriceChart
         history={history}
-        formatPrice={formatPrice}
+        currency={currency}
         height={100}
         gridLineCount={3}
       />

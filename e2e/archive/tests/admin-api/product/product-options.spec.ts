@@ -1,23 +1,19 @@
 
 import { test } from '@fixtures/base.extend';
 import { randomUUID } from 'node:crypto';
-import {
-  ApiProduct,
-  DimensionUnit,
-  EntityStatus,
-  WeightUnit,
-} from '@codegen/admin-gql';
+import type { ApiProduct } from '@codegen/admin-gql';
+
 import { expect } from '@playwright/test';
 import * as Yup from 'yup';
 
 test.describe('Validation of product options and variants handling', () => {
   const shippingSettings = {
     weight: 0,
-    weightUnit: WeightUnit.Gr,
+    weightUnit: 'g',
     width: 0,
     height: 0,
     length: 0,
-    dimensionUnit: DimensionUnit.Mm,
+    dimensionUnit: 'mm',
   };
 
   test('Comprehensive test', async ({ api }) => {
@@ -43,7 +39,7 @@ test.describe('Validation of product options and variants handling', () => {
           input: {
             title: productData.title,
             slug: randomUUID(),
-            status: EntityStatus.Draft,
+            status: 'DRAFT',
             variants: {
               create: [
                 {
@@ -75,7 +71,7 @@ test.describe('Validation of product options and variants handling', () => {
               values: ['Red', 'Green', 'Blue', 'Yellow', 'Black'],
             },
           ],
-          status: EntityStatus.Draft,
+          status: 'DRAFT',
         });
       });
 
@@ -105,7 +101,7 @@ test.describe('Validation of product options and variants handling', () => {
               values: ['M', 'L'],
             },
           ],
-          status: EntityStatus.Draft,
+          status: 'DRAFT',
         });
       });
 
@@ -190,7 +186,7 @@ test.describe('Validation of product options and variants handling', () => {
               values: ['Wool', 'Cotton'],
             },
           ],
-          status: EntityStatus.Draft,
+          status: 'DRAFT',
         });
 
         expect(productWithColorSizeAndMaterialOptions?.variants?.length).toBe(12);
@@ -211,7 +207,7 @@ test.describe('Validation of product options and variants handling', () => {
               values: ['Wool', 'Cotton'],
             },
           ],
-          status: EntityStatus.Draft,
+          status: 'DRAFT',
         });
 
         expect(productWithoutSize?.variants?.length).toBe(6);
@@ -239,7 +235,7 @@ test.describe('Validation of product options and variants handling', () => {
               values: ['Wool', 'Cotton'],
             },
           ],
-          status: EntityStatus.Draft,
+          status: 'DRAFT',
         });
 
         expect(productWithYellow?.variants?.length).toBe(8);
@@ -269,7 +265,7 @@ test.describe('Validation of product options and variants handling', () => {
               values: ['Wool', 'Cotton'],
             },
           ],
-          status: EntityStatus.Draft,
+          status: 'DRAFT',
           price: 100000,
         });
 

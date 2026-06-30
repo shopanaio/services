@@ -90,7 +90,7 @@ export const BulkEditorModal: React.FC = () => {
   const headerExtra = (
     <div className={styles.headerExtra}>
       <ColumnSettingsPopover />
-      <Divider type="vertical" style={{ height: 48, margin: 0 }} />
+      <Divider orientation="vertical" style={{ height: 48, margin: 0 }} />
     </div>
   );
 

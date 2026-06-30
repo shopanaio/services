@@ -1,11 +1,35 @@
-mutation VariantSetWeight($input: InventoryItemUpdateInput!) {
-  inventoryMutation {
-    inventoryItemUpdate(input: $input) {
-      inventoryItem {
+mutation VariantSetWeight(
+  $productId: ID!
+  $expectedRevision: Int
+  $variantId: ID!
+  $weight: Int!
+) {
+  catalogMutation {
+    productUpdate(
+      productId: $productId
+      expectedRevision: $expectedRevision
+      operations: {
+        variants: [
+          {
+            action: UPDATE
+            variantId: $variantId
+            weight: $weight
+          }
+        ]
+      }
+    ) {
+      product {
         id
-        weight {
-          weightGrams
-          displayUnit
+        revision
+        variants(first: 10) {
+          edges {
+            node {
+              id
+              weight {
+                value
+              }
+            }
+          }
         }
       }
       userErrors {

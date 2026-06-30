@@ -1,13 +1,14 @@
-import { APIRequestContext } from '@playwright/test';
-import { BaseGqlRequest, GqlRequestSession } from '@fixtures/api/gqlRequest';
+import type { APIRequestContext } from '@playwright/test';
+import type { GqlRequestSession } from '@fixtures/api/gqlRequest';
+import { BaseGqlRequest } from '@fixtures/api/gqlRequest';
 import { Cart } from '../client/Cart';
 import { Auth } from '../client/Auth';
 import { Product } from './Product';
-import { ApiQuery, ApiMutation } from '@codegen/client-gql';
+import type { ApiQuery, ApiMutation } from '@codegen/client-gql';
 import { Review } from './Review';
 import { Checkout } from './Checkout';
 import { Order } from './Order';
-import { CheckoutApiFixture } from '@fixtures/checkout/api';
+import type { CheckoutApiFixture } from '@fixtures/checkout/api';
 import { Variant } from './Variant';
 
 class ClientGqlRequest extends BaseGqlRequest<ApiQuery, ApiMutation> {

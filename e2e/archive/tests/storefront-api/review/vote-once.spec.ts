@@ -20,14 +20,14 @@ test.describe('StorefrontReviewVoteOnce', () => {
       message: 'Love it',
     });
 
-    
+
     const ok1 = await api.client.review.voteHelpful({ reviewId, helpful: true });
     expect(ok1).toBe(true);
 
     const afterFirst = await api.client.review.findOne(reviewId);
     expect(afterFirst?.helpfulYes).toBe(1);
 
-    
+
     const ok2 = await api.client.review.voteHelpful({ reviewId, helpful: false });
     expect(ok2).toBe(true);
 

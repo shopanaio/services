@@ -1,1 +1,1 @@
-export { ProductContentTabs } from './product-content-tabs';
+export { ProductContentTabs } from "./product-content-tabs";

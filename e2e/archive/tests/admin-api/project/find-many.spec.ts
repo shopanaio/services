@@ -1,5 +1,5 @@
 import { test } from '@fixtures/base.extend';
-import { ApiProject } from '@codegen/admin-gql';
+import type { ApiProject } from '@codegen/admin-gql';
 
 test.describe('ProjectFindMany', () => {
   test('List of projects', async ({   api }) => {

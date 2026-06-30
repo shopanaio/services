@@ -1,131 +1,243 @@
 import { useCallback } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
+import { OptionDisplayType } from "@/graphql/types";
 import {
-  OptionDisplayType,
-  type ApiProductOption,
-  type ApiProductOptionValue,
-  type ApiProductOptionSwatchInput,
-} from "@/graphql/types";
+  createTemporaryOptionId,
+  createTemporaryOptionValueId,
+} from "../../../mappers";
 import type { IEditOptionsFormValues } from "../edit-options-modal.schema";
 import { DEFAULT_SWATCH } from "../edit-options-modal.constants";
+import type {
+  OptionEditorGroup,
+  OptionEditorSwatch,
+  OptionEditorValue,
+} from "../types";
 
 interface UseEditOptionsFormProps {
   defaultValues?: IEditOptionsFormValues;
-  onSubmit?: (data: IEditOptionsFormValues) => void;
+  onChange?: () => void;
+}
+
+function moveArray<T>(items: T[], oldIndex: number, newIndex: number): T[] {
+  const next = [...items];
+  const [item] = next.splice(oldIndex, 1);
+
+  if (!item) {
+    return items;
+  }
+
+  next.splice(newIndex, 0, item);
+  return next;
+}
+
+function normalizeValueSortIndexes(
+  values: OptionEditorValue[],
+): OptionEditorValue[] {
+  return values.map((value, index) => ({
+    ...value,
+    sortIndex: index,
+  }));
+}
+
+function normalizeGroupSortIndexes(
+  groups: OptionEditorGroup[],
+): OptionEditorGroup[] {
+  return groups.map((group, index) => ({
+    ...group,
+    sortIndex: index,
+    values: normalizeValueSortIndexes(group.values),
+  }));
+}
+
+function createEmptyValue(input: {
+  sortIndex: number;
+  displayType: OptionDisplayType;
+}): OptionEditorValue {
+  return {
+    id: createTemporaryOptionValueId(),
+    name: "",
+    slug: "",
+    sortIndex: input.sortIndex,
+    swatch:
+      input.displayType === OptionDisplayType.Swatch
+        ? { ...DEFAULT_SWATCH }
+        : null,
+  };
 }
 
 export const useEditOptionsForm = ({
   defaultValues = { groups: [] },
-  onSubmit,
+  onChange,
 }: UseEditOptionsFormProps = {}) => {
-  const { control, handleSubmit, watch, setValue, getValues } =
+  const { control, watch, setValue, getValues } =
     useForm<IEditOptionsFormValues>({
-      defaultValues,
+      defaultValues: {
+        groups: normalizeGroupSortIndexes(defaultValues.groups),
+      },
     });
 
-  const { fields, remove, append, move } = useFieldArray({
+  const { fields, replace } = useFieldArray({
     control,
     name: "groups",
   });
 
-  const watchedGroups = watch("groups");
+  const watchedGroups = watch("groups") ?? [];
+
+  const notifyChange = useCallback(() => {
+    onChange?.();
+  }, [onChange]);
+
+  const replaceGroups = useCallback(
+    (groups: OptionEditorGroup[]) => {
+      replace(normalizeGroupSortIndexes(groups));
+      notifyChange();
+    },
+    [notifyChange, replace],
+  );
 
   const handleUpdateGroupName = useCallback(
     (groupIndex: number, name: string) => {
-      setValue(`groups.${groupIndex}.name`, name);
+      setValue(`groups.${groupIndex}.name`, name, { shouldDirty: true });
+      notifyChange();
     },
-    [setValue]
+    [notifyChange, setValue],
   );
 
   const handleUpdateGroupDisplayType = useCallback(
     (groupIndex: number, displayType: OptionDisplayType) => {
-      setValue(`groups.${groupIndex}.displayType`, displayType);
+      const group = getValues(`groups.${groupIndex}`);
+      const values = group.values.map((value) => ({
+        ...value,
+        swatch:
+          displayType === OptionDisplayType.Swatch
+            ? value.swatch ?? { ...DEFAULT_SWATCH }
+            : value.swatch,
+      }));
+
+      setValue(`groups.${groupIndex}`, {
+        ...group,
+        displayType,
+        values,
+      }, { shouldDirty: true });
+      notifyChange();
     },
-    [setValue]
+    [getValues, notifyChange, setValue],
   );
 
   const handleDeleteGroup = useCallback(
     (groupIndex: number) => {
-      remove(groupIndex);
+      replaceGroups(getValues("groups").filter((_, index) => index !== groupIndex));
     },
-    [remove]
+    [getValues, replaceGroups],
   );
 
   const handleUpdateValueName = useCallback(
     (groupIndex: number, valueIndex: number, name: string) => {
-      setValue(`groups.${groupIndex}.values.${valueIndex}.name`, name);
+      setValue(`groups.${groupIndex}.values.${valueIndex}.name`, name, {
+        shouldDirty: true,
+      });
+      notifyChange();
     },
-    [setValue]
+    [notifyChange, setValue],
   );
 
   const handleUpdateValueSwatch = useCallback(
-    (groupIndex: number, valueIndex: number, swatch: ApiProductOptionSwatchInput) => {
-      setValue(`groups.${groupIndex}.values.${valueIndex}.swatch`, swatch as ApiProductOption["values"][0]["swatch"]);
+    (
+      groupIndex: number,
+      valueIndex: number,
+      swatch: OptionEditorSwatch,
+    ) => {
+      setValue(
+        `groups.${groupIndex}.values.${valueIndex}.swatch`,
+        swatch,
+        { shouldDirty: true },
+      );
+      notifyChange();
     },
-    [setValue]
+    [notifyChange, setValue],
   );
 
   const handleDeleteValue = useCallback(
     (groupIndex: number, valueIndex: number) => {
-      const currentValues = getValues(`groups.${groupIndex}.values`);
-      const newValues = currentValues.filter((_, idx) => idx !== valueIndex);
-      setValue(`groups.${groupIndex}.values`, newValues);
+      const group = getValues(`groups.${groupIndex}`);
+
+      if (group.values.length <= 1) {
+        return;
+      }
+
+      const values = group.values.filter((_, index) => index !== valueIndex);
+
+      setValue(
+        `groups.${groupIndex}.values`,
+        normalizeValueSortIndexes(values),
+        { shouldDirty: true },
+      );
+      notifyChange();
     },
-    [setValue, getValues]
+    [getValues, notifyChange, setValue],
   );
 
   const handleAddValue = useCallback(
     (groupIndex: number) => {
-      const currentValues = getValues(`groups.${groupIndex}.values`);
-      const newValue: ApiProductOptionValue = {
-        __typename: "ProductOptionValue",
-        id: `val-${Date.now()}`,
-        name: "",
-        slug: "",
-        swatch: { ...DEFAULT_SWATCH, __typename: "ProductOptionSwatch", id: `swatch-${Date.now()}`, file: null, metadata: null },
-      };
-      setValue(`groups.${groupIndex}.values`, [...currentValues, newValue]);
+      const group = getValues(`groups.${groupIndex}`);
+      const currentValues = group.values;
+      const newValue = createEmptyValue({
+        sortIndex: currentValues.length,
+        displayType: group.displayType,
+      });
+
+      setValue(
+        `groups.${groupIndex}.values`,
+        normalizeValueSortIndexes([...currentValues, newValue]),
+        { shouldDirty: true },
+      );
+      notifyChange();
     },
-    [setValue, getValues]
+    [getValues, notifyChange, setValue],
   );
 
   const handleReorderValues = useCallback(
-    (groupIndex: number, values: ApiProductOptionValue[]) => {
-      setValue(`groups.${groupIndex}.values`, values);
+    (groupIndex: number, values: OptionEditorValue[]) => {
+      setValue(
+        `groups.${groupIndex}.values`,
+        normalizeValueSortIndexes(values),
+        { shouldDirty: true },
+      );
+      notifyChange();
     },
-    [setValue]
+    [notifyChange, setValue],
   );
 
   const handleAddGroup = useCallback(() => {
-    const newGroup: ApiProductOption = {
-      __typename: "ProductOption",
-      id: `opt-${Date.now()}`,
+    const currentGroups = getValues("groups");
+    const displayType = OptionDisplayType.Buttons;
+    const newGroup: OptionEditorGroup = {
+      id: createTemporaryOptionId(),
       name: "New Option",
-      slug: "new-option",
-      displayType: OptionDisplayType.Buttons,
-      values: [],
+      slug: "",
+      displayType,
+      sortIndex: currentGroups.length,
+      values: [
+        createEmptyValue({
+          sortIndex: 0,
+          displayType,
+        }),
+      ],
     };
-    append(newGroup);
-  }, [append]);
+
+    replaceGroups([...currentGroups, newGroup]);
+  }, [getValues, replaceGroups]);
 
   const handleMoveGroup = useCallback(
     (oldIndex: number, newIndex: number) => {
-      move(oldIndex, newIndex);
+      replaceGroups(moveArray(getValues("groups"), oldIndex, newIndex));
     },
-    [move]
-  );
-
-  const submitForm = useCallback(
-    (data: IEditOptionsFormValues) => {
-      onSubmit?.(data);
-    },
-    [onSubmit]
+    [getValues, replaceGroups],
   );
 
   return {
     fields,
     watchedGroups,
-    handleSubmit: handleSubmit(submitForm),
     handleUpdateGroupName,
     handleUpdateGroupDisplayType,
     handleDeleteGroup,

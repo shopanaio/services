@@ -1,15 +1,8 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
-import {
-  ApiCategory,
-  EntityStatus,
-  ListingSort as AdminListingSort,
-  ListingType as AdminListingType,
-  WeightUnit,
-  FilterType,
-  DimensionUnit,
-} from '@codegen/admin-gql';
+import type { ApiCategory } from '@codegen/admin-gql';
+
 import type { ApiFixtures } from '@fixtures/api/api';
 
 interface ListingResponse {
@@ -22,8 +15,6 @@ interface ListingResponse {
   };
 }
 
-
-
 test.describe.skip('Storefront Smart-collection by price', () => {
   const createProduct = async (api: ApiFixtures['api'], title: string, price: number) => {
     const product = await api.admin.product.create({
@@ -32,7 +23,7 @@ test.describe.skip('Storefront Smart-collection by price', () => {
         excerpt: '',
         requiresShipping: false,
         slug: randomUUID(),
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         tags: [],
         groups: [],
         title,
@@ -53,8 +44,8 @@ test.describe.skip('Storefront Smart-collection by price', () => {
               title,
               variantSortIndex: 0,
               weight: 0,
-              weightUnit: WeightUnit.Gr,
-              dimensionUnit: DimensionUnit.Cm,
+              weightUnit: 'g',
+              dimensionUnit: 'cm',
               height: 0,
               length: 0,
               width: 0,
@@ -68,25 +59,23 @@ test.describe.skip('Storefront Smart-collection by price', () => {
   };
 
   test('price filter reflected in storefront listing', async ({ api }) => {
-    
+
     await api.session.setupUserAndProject();
 
-    
     await createProduct(api, 'P1', 1000);
     await createProduct(api, 'P2', 2000);
     await createProduct(api, 'P3', 5000);
 
-    
     const slug = `smart-${randomUUID()}`;
     const category = (await api.admin.category.create({
       input: {
         title: 'Smart Price',
         slug,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         includeChildrenProducts: true,
-        listingOrderBy: AdminListingSort.CreatedAtAsc,
+        listingOrderBy: 'CREATED_AT_ASC',
         listingOrderByStatus: true,
-        listingType: AdminListingType.Auto,
+        listingType: 'AUTO',
         excerpt: '',
         description: { json: '{}', html: '', text: '' },
         gallery: [],
@@ -105,11 +94,9 @@ test.describe.skip('Storefront Smart-collection by price', () => {
       });
     };
 
-    
     let resp = await fetchListing();
     expect(resp.data.category?.listing.edges).toHaveLength(0);
 
-    
     await api.admin.mutation('admin/CategoryUpdate', {
       variables: {
         input: {
@@ -118,13 +105,13 @@ test.describe.skip('Storefront Smart-collection by price', () => {
             {
               operator: 'Between',
               path: '0.0',
-              type: FilterType.Price,
+              type: 'PRICE',
               value: '0',
             },
             {
               operator: 'Between',
               path: '0.1',
-              type: FilterType.Price,
+              type: 'PRICE',
               value: '3000',
             },
           ],
@@ -152,11 +139,11 @@ test.describe.skip('Storefront Smart-collection by price', () => {
       input: {
         title: 'Smart Eq',
         slug,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         includeChildrenProducts: true,
-        listingOrderBy: AdminListingSort.CreatedAtAsc,
+        listingOrderBy: 'CREATED_AT_ASC',
         listingOrderByStatus: true,
-        listingType: AdminListingType.Auto,
+        listingType: 'AUTO',
         excerpt: '',
         description: { json: '{}', html: '', text: '' },
         gallery: [],
@@ -164,7 +151,6 @@ test.describe.skip('Storefront Smart-collection by price', () => {
       },
     })) as ApiCategory;
 
-    
     await api.admin.mutation('admin/CategoryUpdate', {
       variables: {
         input: {
@@ -173,7 +159,7 @@ test.describe.skip('Storefront Smart-collection by price', () => {
             {
               operator: 'Eq',
               path: '0.0',
-              type: FilterType.Price,
+              type: 'PRICE',
               value: '2000',
             },
           ],
@@ -204,11 +190,11 @@ test.describe.skip('Storefront Smart-collection by price', () => {
       input: {
         title: 'Smart Lte',
         slug,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         includeChildrenProducts: true,
-        listingOrderBy: AdminListingSort.CreatedAtAsc,
+        listingOrderBy: 'CREATED_AT_ASC',
         listingOrderByStatus: true,
-        listingType: AdminListingType.Auto,
+        listingType: 'AUTO',
         excerpt: '',
         description: { json: '{}', html: '', text: '' },
         gallery: [],
@@ -224,7 +210,7 @@ test.describe.skip('Storefront Smart-collection by price', () => {
             {
               operator: 'Lte',
               path: '0.0',
-              type: FilterType.Price,
+              type: 'PRICE',
               value: '2000',
             },
           ],
@@ -256,11 +242,11 @@ test.describe.skip('Storefront Smart-collection by price', () => {
       input: {
         title: 'Smart Gte',
         slug,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         includeChildrenProducts: true,
-        listingOrderBy: AdminListingSort.CreatedAtAsc,
+        listingOrderBy: 'CREATED_AT_ASC',
         listingOrderByStatus: true,
-        listingType: AdminListingType.Auto,
+        listingType: 'AUTO',
         excerpt: '',
         description: { json: '{}', html: '', text: '' },
         gallery: [],
@@ -276,7 +262,7 @@ test.describe.skip('Storefront Smart-collection by price', () => {
             {
               operator: 'Gte',
               path: '0.0',
-              type: FilterType.Price,
+              type: 'PRICE',
               value: '2000',
             },
           ],

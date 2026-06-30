@@ -5,7 +5,7 @@ import { Button, Input, Typography, Checkbox, Flex } from "antd";
 import { LockOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import Link from "next/link";
-import type { SignInFormValues } from "../../schemas";
+import type { SignInFormValues } from "../../schemas/sign-in.schema";
 
 const useStyles = createStyles(({ token }) => ({
   card: {
@@ -94,6 +94,7 @@ export function SignInForm({ form, onSubmit, loading }: SignInFormProps) {
             render={({ field }) => (
               <Input
                 {...field}
+                data-testid="sign-in-email-input"
                 placeholder="email@example.com"
                 autoComplete="email"
                 size="large"
@@ -116,6 +117,7 @@ export function SignInForm({ form, onSubmit, loading }: SignInFormProps) {
             render={({ field }) => (
               <Input.Password
                 {...field}
+                data-testid="sign-in-password-input"
                 prefix={<LockOutlined />}
                 placeholder="Enter your password"
                 autoComplete="current-password"
@@ -152,6 +154,7 @@ export function SignInForm({ form, onSubmit, loading }: SignInFormProps) {
         </Flex>
 
         <Button
+          data-testid="sign-in-submit-button"
           type="primary"
           htmlType="submit"
           size="large"

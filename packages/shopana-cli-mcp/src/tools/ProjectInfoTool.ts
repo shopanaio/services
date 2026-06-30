@@ -41,11 +41,11 @@ Returns:
       services: {
         apps: 'Application management and configuration',
         bootstrap: 'Service orchestrator and entrypoint',
+        catalog: 'Products, variants, categories, tags, options, features, stock, and warehouses',
         checkout: 'Shopping cart, checkout flow, and line items',
         delivery: 'Shipping providers integration (Nova Poshta, Meest)',
+        events: 'Event persistence and dispatch',
         iam: 'Identity and access management',
-        inventory: 'Products, variants, collections, and stock',
-        listing: 'Product listings',
         media: 'File storage and media assets management',
         orders: 'Order processing and fulfillment',
         payments: 'Payment providers integration',
@@ -68,7 +68,32 @@ Returns:
           'db migrate': 'Run database migrations',
           'test': 'Run Playwright e2e tests'
         },
-        usage: 'yarn shopana <command> [options]'
+        usage: 'Backend/services only: yarn shopana <command> [options]. Admin frontend commands are npm scripts in admin/.'
+      },
+
+      admin: {
+        description: 'Next.js Admin frontend located in admin/. It is not part of the backend services list and is not managed by yarn shopana service commands.',
+        packagePath: 'admin/package.json',
+        framework: 'Next.js',
+        commands: {
+          codegen: 'cd admin && npm run codegen',
+          build: 'cd admin && npm run build',
+          lint: 'cd admin && npm run lint'
+        },
+        mcp: {
+          tool: 'shopana_admin',
+          note: 'This is an MCP helper action, not a yarn shopana CLI subcommand.',
+          examples: {
+            codegen: { action: 'codegen' },
+            build: { action: 'build' },
+            lint: { action: 'lint' }
+          }
+        },
+        notes: [
+          'Admin codegen reads infra/federation/supergraph-admin.graphql and writes admin/src/graphql/types.ts.',
+          'Admin build runs the Next.js production build.',
+          'Admin lint runs ESLint through the admin package script.'
+        ]
       },
 
       testing: {

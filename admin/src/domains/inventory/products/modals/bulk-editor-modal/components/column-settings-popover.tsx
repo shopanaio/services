@@ -6,7 +6,6 @@ import { useBulkEditorStore } from "../hooks/use-bulk-editor-store";
 import {
   PRODUCT_COLUMNS,
   PRICING_COLUMNS,
-  INVENTORY_COLUMNS,
   ATTRIBUTES_COLUMNS,
 } from "../types";
 
@@ -46,7 +45,6 @@ export const ColumnSettingsPopover: React.FC = () => {
   const sections = [
     { title: "General", columns: PRODUCT_COLUMNS },
     { title: "Pricing", columns: PRICING_COLUMNS },
-    { title: "Inventory", columns: INVENTORY_COLUMNS },
     { title: "Attributes", columns: ATTRIBUTES_COLUMNS },
   ];
 

@@ -1,23 +1,9 @@
 import { test } from '@fixtures/base.extend';
 import type { ApiFixtures } from '@fixtures/api/api';
+import { encodeGlobalId, TypeName } from '@utils/globalid';
 import { expect } from '@playwright/test';
 
 type Api = ApiFixtures['api'];
-
-/**
- * Helper to extract raw UUID from a Global ID (base64 encoded gid://shopana/{Type}/{UUID})
- */
-function extractUuidFromGlobalId(globalId: string): string {
-  try {
-    const decoded = Buffer.from(globalId, 'base64').toString('utf-8');
-    // Format: gid://shopana/{Type}/{UUID}
-    const parts = decoded.split('/');
-    return parts[parts.length - 1];
-  } catch {
-    // If not a valid base64/global ID, return as-is (might already be a UUID)
-    return globalId;
-  }
-}
 
 /**
  * Helper to create a product with default variant
@@ -48,6 +34,27 @@ async function createProduct(api: Api, title: string, handle?: string) {
     variantId: defaultVariant?.id as string,
     revision: product.revision as number,
   };
+}
+
+async function createTag(api: Api, handle?: string, name?: string) {
+  const tagHandle =
+    handle ?? `test-tag-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const { data } = await api.admin.mutation('inventory-api/TagCreate', {
+    variables: {
+      input: {
+        handle: tagHandle,
+        name: name ?? tagHandle,
+      },
+    },
+  });
+
+  const result = data.catalogMutation.tagCreate;
+  expect(result.userErrors).toHaveLength(0);
+  if (!result.tag) {
+    throw new Error('Failed to create tag');
+  }
+
+  return result.tag;
 }
 
 /**
@@ -195,7 +202,15 @@ test.describe('ProductUpdate API', () => {
                   ],
                 },
               },
-              excerpt: 'Short excerpt for the product',
+              excerpt: {
+                text: 'Short excerpt for the product',
+                html: '<p>Short <em>excerpt</em> for the product</p>',
+                json: {
+                  blocks: [
+                    { type: 'paragraph', data: { text: 'Short excerpt for the product' } },
+                  ],
+                },
+              },
             },
           },
         },
@@ -207,7 +222,11 @@ test.describe('ProductUpdate API', () => {
       expect(result.product.description).toBeTruthy();
       expect(result.product.description.text).toBe('This is the updated description');
       expect(result.product.description.html).toContain('<strong>updated</strong>');
-      expect(result.product.excerpt).toBe('Short excerpt for the product');
+      expect(result.product.excerpt.text).toBe('Short excerpt for the product');
+      expect(result.product.excerpt.html).toContain('<em>excerpt</em>');
+      expect(result.product.excerpt.json.blocks[0].data.text).toBe(
+        'Short excerpt for the product',
+      );
     });
 
     test('should update product SEO metadata', async ({ api }) => {
@@ -300,7 +319,11 @@ test.describe('ProductUpdate API', () => {
             title: 'Updated Multi-field Product',
             handle: newHandle,
             content: {
-              excerpt: 'New excerpt',
+              excerpt: {
+                text: 'New excerpt',
+                html: '<p>New excerpt</p>',
+                json: { blocks: [{ type: 'paragraph', data: { text: 'New excerpt' } }] },
+              },
             },
             seo: {
               seoTitle: 'Multi-field SEO Title',
@@ -314,8 +337,133 @@ test.describe('ProductUpdate API', () => {
       expect(result.userErrors).toHaveLength(0);
       expect(result.product.title).toBe('Updated Multi-field Product');
       expect(result.product.handle).toBe(newHandle);
-      expect(result.product.excerpt).toBe('New excerpt');
+      expect(result.product.excerpt.text).toBe('New excerpt');
+      expect(result.product.excerpt.html).toBe('<p>New excerpt</p>');
+      expect(result.product.excerpt.json.blocks[0].data.text).toBe('New excerpt');
       expect(result.product.seo.seoTitle).toBe('Multi-field SEO Title');
+    });
+  });
+
+  // ============================================
+  // SUCCESSFUL CASES - Product Tags
+  // ============================================
+
+  test.describe('Product Tag Updates', () => {
+    test('should add tag to product through productUpdate', async ({ api }) => {
+      const { productId, revision } = await createProduct(api, 'Tagged Product');
+      const tag = await createTag(api, undefined, 'Featured');
+
+      const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: revision,
+          operations: {
+            tags: [{ tagId: tag.id, action: 'ADD' }],
+          },
+        },
+      });
+
+      const result = data.catalogMutation.productUpdate;
+
+      expect(result.userErrors).toHaveLength(0);
+      expect(result.product.tags.map((item: { id: string }) => item.id)).toContain(tag.id);
+      expect(result.operationResults).toHaveLength(1);
+      expect(result.operationResults[0].type).toBe('PRODUCT_TAG_UPDATE');
+      expect(result.operationResults[0].applied).toBe(true);
+    });
+
+    test('should treat repeated tag add as successful idempotent operation', async ({ api }) => {
+      const { productId, revision } = await createProduct(api, 'Repeated Tag Product');
+      const tag = await createTag(api);
+
+      const first = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: revision,
+          operations: {
+            tags: [{ tagId: tag.id, action: 'ADD' }],
+          },
+        },
+      });
+
+      const firstResult = first.data.catalogMutation.productUpdate;
+      expect(firstResult.userErrors).toHaveLength(0);
+
+      const second = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: firstResult.product.revision,
+          operations: {
+            tags: [{ tagId: tag.id, action: 'ADD' }],
+          },
+        },
+      });
+
+      const secondResult = second.data.catalogMutation.productUpdate;
+      const assignedTagIds = secondResult.product.tags.map((item: { id: string }) => item.id);
+
+      expect(secondResult.userErrors).toHaveLength(0);
+      expect(secondResult.operationResults[0].type).toBe('PRODUCT_TAG_UPDATE');
+      expect(secondResult.operationResults[0].applied).toBe(true);
+      expect(assignedTagIds.filter((id: string) => id === tag.id)).toHaveLength(1);
+    });
+
+    test('should remove tag from product through productUpdate', async ({ api }) => {
+      const { productId, revision } = await createProduct(api, 'Remove Tag Product');
+      const tag = await createTag(api);
+
+      const add = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: revision,
+          operations: {
+            tags: [{ tagId: tag.id, action: 'ADD' }],
+          },
+        },
+      });
+      const addResult = add.data.catalogMutation.productUpdate;
+      expect(addResult.userErrors).toHaveLength(0);
+
+      const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: addResult.product.revision,
+          operations: {
+            tags: [{ tagId: tag.id, action: 'REMOVE' }],
+          },
+        },
+      });
+
+      const result = data.catalogMutation.productUpdate;
+
+      expect(result.userErrors).toHaveLength(0);
+      expect(result.product.tags.map((item: { id: string }) => item.id)).not.toContain(tag.id);
+      expect(result.operationResults[0].type).toBe('PRODUCT_TAG_UPDATE');
+      expect(result.operationResults[0].applied).toBe(true);
+    });
+
+    test('should fail removing tag that is not assigned to product', async ({ api }) => {
+      const { productId, revision } = await createProduct(api, 'Missing Tag Product');
+      const tag = await createTag(api);
+
+      const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: revision,
+          operations: {
+            tags: [{ tagId: tag.id, action: 'REMOVE' }],
+          },
+        },
+        throwOnError: false,
+      });
+
+      const result = data.catalogMutation.productUpdate;
+
+      expect(result.userErrors.length).toBeGreaterThan(0);
+      expect(result.userErrors[0].code).toBe('NOT_FOUND');
+      expect(result.operationResults[0].type).toBe('PRODUCT_TAG_UPDATE');
+      expect(result.operationResults[0].applied).toBe(false);
+      expect(result.product.tags).toHaveLength(0);
     });
   });
 
@@ -332,6 +480,7 @@ test.describe('ProductUpdate API', () => {
           productId,
           expectedRevision: revision,
           operations: {
+            media: { fileIds: [fileId1, fileId2] },
             variants: [
               {
                 variantId,
@@ -376,19 +525,20 @@ test.describe('ProductUpdate API', () => {
           productId,
           expectedRevision: revision,
           operations: {
+            media: { fileIds: [fileId1, fileId2] },
             variants: [
               {
                 variantId,
-                inventory: {
-                  warehouseId: warehouse.id,
-                  onHand: 100,
-                  unavailable: 5,
-                  sku: 'SKU-TEST-001',
-                  weight: 500, // 500 grams
-                  unitCostMinor: '5000', // 50.00 UAH cost
-                  costCurrency: 'UAH',
-                },
-              },
+	                inventory: {
+	                  warehouseId: warehouse.id,
+	                  onHand: 100,
+	                  unavailable: 5,
+	                  sku: 'SKU-TEST-001',
+	                  unitCostMinor: '5000', // 50.00 UAH cost
+	                  costCurrency: 'UAH',
+	                },
+	                weight: 500, // 500 grams
+	              },
             ],
           },
         },
@@ -401,8 +551,8 @@ test.describe('ProductUpdate API', () => {
       const updatedVariant = result.product.variants.edges[0].node;
       expect(updatedVariant.inventoryItem).toBeTruthy();
       expect(updatedVariant.inventoryItem.sku).toBe('SKU-TEST-001');
-      expect(updatedVariant.inventoryItem.weight).toBeTruthy();
-      expect(updatedVariant.inventoryItem.weight.weightGrams).toBe(500);
+      expect(updatedVariant.weight).toBeTruthy();
+      expect(updatedVariant.weight.value).toBe(500);
 
       // Stock is an array - find the stock record for our warehouse
       const stockRecord = updatedVariant.inventoryItem.stock.find(
@@ -427,6 +577,7 @@ test.describe('ProductUpdate API', () => {
           productId,
           expectedRevision: revision,
           operations: {
+            media: { fileIds: [fileId1, fileId2] },
             variants: [
               {
                 variantId,
@@ -447,10 +598,10 @@ test.describe('ProductUpdate API', () => {
 
       const updatedVariant = result.product.variants.edges[0].node;
       expect(updatedVariant.inventoryItem).toBeTruthy();
-      expect(updatedVariant.inventoryItem.dimensions).toBeTruthy();
-      expect(updatedVariant.inventoryItem.dimensions.widthMm).toBe(100);
-      expect(updatedVariant.inventoryItem.dimensions.heightMm).toBe(50);
-      expect(updatedVariant.inventoryItem.dimensions.lengthMm).toBe(200);
+      expect(updatedVariant.dimensions).toBeTruthy();
+      expect(updatedVariant.dimensions.width).toBe(100);
+      expect(updatedVariant.dimensions.height).toBe(50);
+      expect(updatedVariant.dimensions.length).toBe(200);
     });
 
     test('should update multiple variants at once', async ({ api }) => {
@@ -568,7 +719,7 @@ test.describe('ProductUpdate API', () => {
       expect(stockRecord).toBeTruthy();
       expect(stockRecord.quantityOnHand).toBe(75);
 
-      expect(variant.inventoryItem.dimensions.widthMm).toBe(150);
+      expect(variant.dimensions.width).toBe(150);
 
       // Check operation results (should have both product and variant ops)
       expect(result.operationResults).toHaveLength(2);
@@ -677,7 +828,10 @@ test.describe('ProductUpdate API', () => {
 
   test.describe('Edge Cases and Error Handling', () => {
     test('should return NOT_FOUND for non-existent product', async ({ api }) => {
-      const fakeProductId = '00000000-0000-0000-0000-000000000000';
+      const fakeProductId = encodeGlobalId(
+        TypeName.Product,
+        '00000000-0000-0000-0000-000000000000',
+      );
 
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
@@ -695,7 +849,10 @@ test.describe('ProductUpdate API', () => {
 
     test('should return error for non-existent variant', async ({ api }) => {
       const { productId, revision } = await createProduct(api, 'Fake Variant Product');
-      const fakeVariantId = '00000000-0000-0000-0000-000000000000';
+      const fakeVariantId = encodeGlobalId(
+        TypeName.Variant,
+        '00000000-0000-0000-0000-000000000000',
+      );
 
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
@@ -768,7 +925,10 @@ test.describe('ProductUpdate API', () => {
         api,
         'Partial Failure Product',
       );
-      const fakeVariantId = '00000000-0000-0000-0000-000000000000';
+      const fakeVariantId = encodeGlobalId(
+        TypeName.Variant,
+        '00000000-0000-0000-0000-000000000000',
+      );
 
       const warehouseCode = `WH-PARTIAL-${Date.now()}`;
       const warehouse = await createWarehouse(api, warehouseCode, 'Partial Failure Warehouse');
@@ -937,7 +1097,7 @@ test.describe('ProductUpdate API', () => {
       expect(third.catalogMutation.productUpdate.product.revision).toBe(revision + 3);
     });
 
-    test('should clear excerpt when set to empty string', async ({ api }) => {
+    test('should clear excerpt when set to null', async ({ api }) => {
       const { productId, revision } = await createProduct(api, 'Clear Excerpt Product');
 
       // First set excerpt
@@ -946,28 +1106,35 @@ test.describe('ProductUpdate API', () => {
           productId,
           expectedRevision: revision,
           operations: {
-            content: { excerpt: 'Initial excerpt' },
+            content: {
+              excerpt: {
+                text: 'Initial excerpt',
+                html: '<p>Initial excerpt</p>',
+                json: { blocks: [{ type: 'paragraph', data: { text: 'Initial excerpt' } }] },
+              },
+            },
           },
         },
       });
 
-      expect(setData.catalogMutation.productUpdate.product.excerpt).toBe('Initial excerpt');
+      expect(setData.catalogMutation.productUpdate.product.excerpt.text).toBe('Initial excerpt');
       const newRevision = setData.catalogMutation.productUpdate.product.revision;
 
-      // Then clear it by setting to empty string
+      // Then clear it by setting null explicitly
       const { data: clearData } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
           expectedRevision: newRevision,
           operations: {
-            content: { excerpt: '' },
+            content: { excerpt: null },
           },
         },
       });
 
       expect(clearData.catalogMutation.productUpdate.userErrors).toHaveLength(0);
-      // Excerpt should be empty or null
-      expect(clearData.catalogMutation.productUpdate.product.excerpt || '').toBe('');
+      expect(clearData.catalogMutation.productUpdate.product.excerpt.text).toBe('');
+      expect(clearData.catalogMutation.productUpdate.product.excerpt.html).toBe('');
+      expect(clearData.catalogMutation.productUpdate.product.excerpt.json).toEqual({});
     });
   });
 
@@ -1012,6 +1179,7 @@ test.describe('ProductUpdate API', () => {
           productId,
           expectedRevision: revision,
           operations: {
+            media: { fileIds: [fileId1, fileId2] },
             variants: [
               {
                 variantId,
@@ -1031,8 +1199,8 @@ test.describe('ProductUpdate API', () => {
       const updatedVariant = result.product.variants.edges[0].node;
       expect(updatedVariant.media).toHaveLength(2);
       const mediaFileIds = updatedVariant.media.map((m: { file: { id: string } }) => m.file.id);
-      expect(mediaFileIds).toContain(extractUuidFromGlobalId(fileId1));
-      expect(mediaFileIds).toContain(extractUuidFromGlobalId(fileId2));
+      expect(mediaFileIds).toContain(fileId1);
+      expect(mediaFileIds).toContain(fileId2);
 
       // Check operation result
       const variantOp = result.operationResults.find(
@@ -1053,6 +1221,7 @@ test.describe('ProductUpdate API', () => {
           productId,
           expectedRevision: revision,
           operations: {
+            media: { fileIds: [fileId] },
             variants: [{ variantId, media: { fileIds: [fileId] } }],
           },
         },
@@ -1094,6 +1263,7 @@ test.describe('ProductUpdate API', () => {
           productId,
           expectedRevision: revision,
           operations: {
+            media: { fileIds: [fileId] },
             variants: [{ variantId, media: { fileIds: [fileId] } }],
           },
         },
@@ -1130,6 +1300,7 @@ test.describe('ProductUpdate API', () => {
           productId,
           expectedRevision: revision,
           operations: {
+            media: { fileIds: [fileId1, fileId2] },
             variants: [{ variantId, media: { fileIds: [fileId1, fileId2] } }],
           },
         },
@@ -1157,8 +1328,8 @@ test.describe('ProductUpdate API', () => {
       const sorted = [...media].sort(
         (a: { sortIndex: number }, b: { sortIndex: number }) => a.sortIndex - b.sortIndex,
       );
-      expect(sorted[0].file.id).toBe(extractUuidFromGlobalId(fileId2));
-      expect(sorted[1].file.id).toBe(extractUuidFromGlobalId(fileId1));
+      expect(sorted[0].file.id).toBe(fileId2);
+      expect(sorted[1].file.id).toBe(fileId1);
     });
   });
 
@@ -1166,7 +1337,7 @@ test.describe('ProductUpdate API', () => {
   // PRODUCT-LEVEL MEDIA UPDATES
   // ============================================
 
-  test.describe.skip('Product-Level Media Updates', () => {
+  test.describe('Product-Level Media Updates', () => {
     /**
      * Helper to create a test file using external URL provider (no actual upload needed)
      */
@@ -1216,8 +1387,8 @@ test.describe('ProductUpdate API', () => {
       expect(result.product.media).toHaveLength(2);
 
       const mediaFileIds = result.product.media.map((m: { file: { id: string } }) => m.file.id);
-      expect(mediaFileIds).toContain(extractUuidFromGlobalId(fileId1));
-      expect(mediaFileIds).toContain(extractUuidFromGlobalId(fileId2));
+      expect(mediaFileIds).toContain(fileId1);
+      expect(mediaFileIds).toContain(fileId2);
 
       // Check operation result
       const productOp = result.operationResults.find(
@@ -1301,9 +1472,9 @@ test.describe('ProductUpdate API', () => {
       const sorted = [...media].sort(
         (a: { sortIndex: number }, b: { sortIndex: number }) => a.sortIndex - b.sortIndex,
       );
-      expect(sorted[0].file.id).toBe(extractUuidFromGlobalId(fileId3));
-      expect(sorted[1].file.id).toBe(extractUuidFromGlobalId(fileId1));
-      expect(sorted[2].file.id).toBe(extractUuidFromGlobalId(fileId2));
+      expect(sorted[0].file.id).toBe(fileId3);
+      expect(sorted[1].file.id).toBe(fileId1);
+      expect(sorted[2].file.id).toBe(fileId2);
     });
 
     test('should update product media and variant media simultaneously', async ({ api }) => {
@@ -1317,7 +1488,7 @@ test.describe('ProductUpdate API', () => {
           productId,
           expectedRevision: revision,
           operations: {
-            media: { fileIds: [productFileId] },
+            media: { fileIds: [productFileId, variantFileId] },
             variants: [
               {
                 variantId,
@@ -1333,13 +1504,16 @@ test.describe('ProductUpdate API', () => {
       expect(result.userErrors).toHaveLength(0);
 
       // Check product media
-      expect(result.product.media).toHaveLength(1);
-      expect(result.product.media[0].file.id).toBe(extractUuidFromGlobalId(productFileId));
+      expect(result.product.media).toHaveLength(2);
+      expect(result.product.media.map((item: { file: { id: string } }) => item.file.id)).toEqual([
+        productFileId,
+        variantFileId,
+      ]);
 
       // Check variant media
       const variant = result.product.variants.edges[0].node;
       expect(variant.media).toHaveLength(1);
-      expect(variant.media[0].file.id).toBe(extractUuidFromGlobalId(variantFileId));
+      expect(variant.media[0].file.id).toBe(variantFileId);
     });
 
     test('should handle idempotent product media update', async ({ api }) => {
@@ -2001,6 +2175,30 @@ test.describe('ProductUpdate API', () => {
   // ============================================
 
   test.describe('Input Validation', () => {
+    test('should reject invalid tag ID in product tag operation', async ({ api }) => {
+      const { productId, revision } = await createProduct(api, 'Invalid Tag ID Product');
+      const wrongTypeTagId = encodeGlobalId(TypeName.Category, crypto.randomUUID());
+
+      const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
+        variables: {
+          productId,
+          expectedRevision: revision,
+          operations: {
+            tags: [{ tagId: wrongTypeTagId, action: 'ADD' }],
+          },
+        },
+        throwOnError: false,
+      });
+
+      const result = data.catalogMutation.productUpdate;
+
+      expect(result.product).toBeNull();
+      expect(result.operationResults).toHaveLength(0);
+      expect(result.userErrors).toHaveLength(1);
+      expect(result.userErrors[0].code).toBe('INVALID_ID');
+      expect(result.userErrors[0].field).toEqual(['operations', 'tags', '0', 'tagId']);
+    });
+
     test('should reject duplicate product handle', async ({ api }) => {
       // Create first product with a specific handle
       const uniqueHandle = `unique-handle-${Date.now()}`;

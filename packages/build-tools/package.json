@@ -30,5 +30,8 @@
   },
   "peerDependencies": {
     "esbuild": "^0.24.2"
+  },
+  "dependencies": {
+    "dpdm": "^4.2.0"
   }
 }

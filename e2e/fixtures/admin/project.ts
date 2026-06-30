@@ -1,17 +1,22 @@
-import { ApiStoreCreateInput, CurrencyCode, LocaleCode } from '@codegen/admin-gql';
-import { BaseGqlRequest } from '@fixtures/api/gqlRequest';
+import type { ApiStoreCreateInput } from '@codegen/admin-gql';
+
+import type { BaseGqlRequest } from '@fixtures/api/gqlRequest';
 import _ from 'lodash';
 
 export class ProjectFixture {
-  constructor(private gql: BaseGqlRequest<unknown, unknown>) {}
+  private gql: BaseGqlRequest<unknown, unknown>;
+
+  constructor(gql: BaseGqlRequest<unknown, unknown>) {
+    this.gql = gql;
+  }
 
   create = async (input: Partial<ApiStoreCreateInput> & { organizationId: string }) => {
     const defaults: Omit<ApiStoreCreateInput, 'organizationId'> = {
       name: `test-project-${crypto.randomUUID().slice(0, 8)}`,
       displayName: 'Playwright Project',
-      locales: [LocaleCode.En],
-      currencies: [CurrencyCode.Usd],
-      defaultCurrency: CurrencyCode.Usd,
+      locales: ['en'],
+      currencies: ['USD'],
+      defaultCurrency: 'USD',
     };
 
     const { data } = await this.gql.mutation('project-api/ProjectCreate', {

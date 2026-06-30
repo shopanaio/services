@@ -2,10 +2,10 @@ import { Button, Dropdown } from "antd";
 import { PlusOutlined, DeleteOutlined, MoreOutlined } from "@ant-design/icons";
 import type { ICellRendererParams } from "ag-grid-community";
 import { useStyles } from "../edit-attributes-modal.styles";
-import type { IAttributeRow } from "../types";
+import type { AttributeEditorRow } from "../types";
 
 export interface IActionsCellRendererParams
-  extends ICellRendererParams<IAttributeRow> {
+  extends ICellRendererParams<AttributeEditorRow> {
   onDelete: (id: string) => void;
   onAdd: (parentId: string) => void;
 }
@@ -17,7 +17,7 @@ export const ActionsCellRenderer = (params: IActionsCellRendererParams) => {
 
   const menuItems: Array<{
     key: string;
-    label: string;
+    label: React.ReactNode;
     icon: React.ReactNode;
     danger?: boolean;
   }> = [];
@@ -25,14 +25,14 @@ export const ActionsCellRenderer = (params: IActionsCellRendererParams) => {
   if (data.type === "group") {
     menuItems.push({
       key: "add-attribute",
-      label: "Add Attribute",
+      label: <span data-testid="edit-attributes-add-attribute-menu-item">Add Attribute</span>,
       icon: <PlusOutlined />,
     });
   }
 
   menuItems.push({
     key: "delete",
-    label: "Delete",
+    label: <span data-testid="edit-attributes-delete-menu-item">Delete</span>,
     icon: <DeleteOutlined />,
     danger: true,
   });
@@ -52,7 +52,12 @@ export const ActionsCellRenderer = (params: IActionsCellRendererParams) => {
         }}
         trigger={["click"]}
       >
-        <Button size="small" type="text" icon={<MoreOutlined />} />
+        <Button
+          size="small"
+          type="text"
+          icon={<MoreOutlined />}
+          data-testid={`edit-attributes-row-actions-${data.id}`}
+        />
       </Dropdown>
     </div>
   );

@@ -3,14 +3,13 @@ import {
   encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
-import type { Description } from "./interfaces/index.js";
+import type { RichText } from "./interfaces/index.js";
 import type { Category } from "../../repositories/models/index.js";
 import { CatalogType } from "./CatalogType.js";
 import { SeoResolver } from "./SeoResolver.js";
-import {
-  CategoryProductConnectionResolver,
-  type CategoryProductConnectionInput,
-} from "./CategoryProductConnectionResolver.js";
+import { toRichText } from "./helpers/richText.js";
+import type { CategoryProductConnectionInput } from "./CategoryProductConnectionResolver.js";
+import type { CategoryListingConnectionInput } from "./CategoryListingConnectionResolver.js";
 
 /**
  * Category resolver - resolves Category domain interface.
@@ -56,6 +55,10 @@ export class CategoryResolver extends CatalogType<string, Category> {
     return this.$get("deletedAt");
   }
 
+  async revision() {
+    return this.$get("revision");
+  }
+
   async depth() {
     return this.$get("depth");
   }
@@ -87,17 +90,26 @@ export class CategoryResolver extends CatalogType<string, Category> {
   /**
    * Returns the translated description for this category
    */
-  async description(): Promise<Description | null> {
+  async description(): Promise<RichText | null> {
     const translation = await this.$ctx.loaders.categoryTranslation.load(
       this.$props
     );
-    if (!translation) return null;
+    return toRichText(translation && {
+      text: translation.descriptionText,
+      html: translation.descriptionHtml,
+      json: translation.descriptionJson,
+    });
+  }
 
-    return {
-      text: translation.descriptionText ?? "",
-      html: translation.descriptionHtml ?? "",
-      json: translation.descriptionJson ?? {},
-    };
+  async excerpt(): Promise<RichText | null> {
+    const translation = await this.$ctx.loaders.categoryTranslation.load(
+      this.$props
+    );
+    return toRichText(translation && {
+      text: translation.excerptText,
+      html: translation.excerptHtml,
+      json: translation.excerptJson,
+    });
   }
 
   /**
@@ -131,7 +143,10 @@ export class CategoryResolver extends CatalogType<string, Category> {
   async media() {
     const mediaItems = await this.$ctx.loaders.categoryMedia.load(this.$props);
     return mediaItems.map((m) => ({
-      file: { __typename: "File" as const, id: m.fileId },
+      file: {
+        __typename: "File" as const,
+        id: encodeGlobalIdByType(m.fileId, GlobalIdEntity.File),
+      },
       sortIndex: m.sortIndex,
     }));
   }
@@ -146,16 +161,26 @@ export class CategoryResolver extends CatalogType<string, Category> {
    * Returns the count of products in this category
    */
   async productsCount(): Promise<number> {
-    return this.$ctx.loaders.categoryProductsCount.load(this.$props);
+    return (await this.$get("productsCount")) ?? 0;
+  }
+
+  /**
+   * Returns paginated listing items in this category.
+   */
+  async listing(args: Omit<CategoryListingConnectionInput, "categoryId">) {
+    return this.resolvers.categoryListingConnection({
+      categoryId: this.$props,
+      ...args,
+    });
   }
 
   /**
    * Returns paginated products in this category
    */
-  products(args: Omit<CategoryProductConnectionInput, "categoryId">) {
-    return new CategoryProductConnectionResolver(
-      { categoryId: this.$props, ...args },
-      this.$ctx
-    );
+  async products(args: Omit<CategoryProductConnectionInput, "categoryId">) {
+    return this.resolvers.categoryProductConnection({
+      categoryId: this.$props,
+      ...args,
+    });
   }
 }

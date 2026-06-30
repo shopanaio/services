@@ -33,3 +33,12 @@ export * from './facet/index.js';
 
 // Collection scripts
 export * from './collection/index.js';
+
+// Inventory item scripts
+export * from './inventory-item/index.js';
+
+// Warehouse scripts
+export * from './warehouse/index.js';
+
+// Stock scripts
+export * from './stock/index.js';

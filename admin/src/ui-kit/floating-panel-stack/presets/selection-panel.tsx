@@ -4,7 +4,7 @@ import { Flex, Button, Typography, Tooltip } from "antd";
 import { CheckSquareOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { PanelBase } from "../components";
-import type { ActionConfig } from "../core";
+import type { ActionConfig } from "../core/types";
 
 // ============================================================================
 // Styles

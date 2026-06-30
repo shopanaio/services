@@ -1,14 +1,7 @@
 import { test } from '@fixtures/base.extend';
-import {
-  ApiProduct,
-  ApiQuery,
-  EntityStatus,
-  FulfillmentStatusEnum,
-  OrderStatusEnum,
-  WeightUnit,
-  DimensionUnit,
-} from '@codegen/admin-gql';
-import { GraphQLError } from 'graphql';
+import type { ApiProduct, ApiQuery } from '@codegen/admin-gql';
+
+import type { GraphQLError } from 'graphql';
 import { randomUUID } from 'node:crypto';
 import { expect } from 'playwright/test';
 import * as Yup from 'yup';
@@ -25,7 +18,7 @@ test.describe('Orders API', () => {
     groups: [],
     requiresShipping: false,
     slug: randomUUID(),
-    status: EntityStatus.Draft,
+    status: 'DRAFT',
     tags: [],
     title,
     variants: {
@@ -45,11 +38,11 @@ test.describe('Orders API', () => {
           title,
           variantSortIndex: 0,
           weight: 0,
-          weightUnit: WeightUnit.Gr,
+          weightUnit: 'g',
           width: 0,
           height: 0,
           length: 0,
-          dimensionUnit: DimensionUnit.Mm,
+          dimensionUnit: 'mm',
         },
       ],
     },
@@ -171,7 +164,7 @@ test.describe('Orders API', () => {
         variables: {
           input: {
             id: orderId,
-            status: OrderStatusEnum.Active,
+            status: 'ACTIVE',
             comment: 'Order status - active',
           },
         },
@@ -190,7 +183,7 @@ test.describe('Orders API', () => {
           variables: {
             input: {
               id: order.data.orderQuery.findOne?.fulfillments[0].id,
-              status: FulfillmentStatusEnum.Processing,
+              status: 'PROCESSING',
               comment: 'Fulfillment status - processing',
             },
           },
@@ -207,7 +200,7 @@ test.describe('Orders API', () => {
           variables: {
             input: {
               id: order.data.orderQuery.findOne?.fulfillments[0].id,
-              status: FulfillmentStatusEnum.Shipped,
+              status: 'SHIPPED',
               comment: 'Fulfillment status - shipped',
             },
           },
@@ -223,7 +216,7 @@ test.describe('Orders API', () => {
           variables: {
             input: {
               id: order.data.orderQuery.findOne?.fulfillments[0].id,
-              status: FulfillmentStatusEnum.Delivered,
+              status: 'DELIVERED',
               comment: 'Fulfillment status - delivered',
             },
           },
@@ -239,7 +232,7 @@ test.describe('Orders API', () => {
           variables: {
             input: {
               id: order.data.orderQuery.findOne?.fulfillments[0].id,
-              status: FulfillmentStatusEnum.Fulfilled,
+              status: 'FULFILLED',
               comment: 'Fulfillment status - fulfilled',
             },
           },
@@ -252,7 +245,7 @@ test.describe('Orders API', () => {
       order = await findOrder(orderId);
 
       expect(order?.data?.orderQuery?.findOne?.fulfillments[0].status).toBe(
-        FulfillmentStatusEnum.Fulfilled,
+        'FULFILLED',
       );
     });
   });

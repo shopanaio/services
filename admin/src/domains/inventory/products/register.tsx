@@ -1,6 +1,5 @@
 import { registerModule } from "@/registry";
 import dynamic from "next/dynamic";
-import { ShoppingOutlined } from "@ant-design/icons";
 
 registerModule({
   key: "products",

@@ -6,10 +6,9 @@ import { useVariantsEditorStore } from "../hooks";
 import {
   MEDIA_COLUMNS,
   PRICING_COLUMNS,
-  INVENTORY_COLUMNS,
   ATTRIBUTES_COLUMNS,
-  type IOptionGroup,
 } from "../config";
+import type { IOptionGroup } from "../config/types";
 
 const { Text } = Typography;
 
@@ -72,7 +71,6 @@ export const VariantsColumnSettings: React.FC<VariantsColumnSettingsProps> = ({
   const sections = [
     { title: "Options", columns: optionGroups, isOptions: true },
     { title: "Pricing", columns: PRICING_COLUMNS, isOptions: false },
-    { title: "Inventory", columns: INVENTORY_COLUMNS, isOptions: false },
     { title: "Attributes", columns: ATTRIBUTES_COLUMNS, isOptions: false },
   ];
 
@@ -145,7 +143,7 @@ export const VariantsColumnSettings: React.FC<VariantsColumnSettingsProps> = ({
       trigger="click"
       placement="bottomLeft"
     >
-      <Button size="small" icon={<SettingOutlined />}>
+      <Button size="small" icon={<SettingOutlined />} data-testid="variants-columns-button">
         Columns
       </Button>
     </Popover>

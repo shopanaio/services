@@ -6,6 +6,7 @@ import {
   InjectBroker,
   ServiceBroker,
 } from "@shopana/shared-kernel";
+import { DBOS } from "@dbos-inc/dbos-sdk";
 import { Kernel } from "../kernel/Kernel.js";
 import { classifyError, MissingMetadataError } from "../utils/classifyError.js";
 import { S3Client, S3_CLIENT } from "../infrastructure/S3Client.js";
@@ -158,15 +159,15 @@ export class FileHardDeleteWorkflow extends BrokerWorkflows {
     await this.s3Client.deleteObject({ bucket, key });
   }
 
-  @WorkflowStep({ retriesAllowed: false })
   private async startCleanupWorkflow(input: FileDeleteCleanupInput): Promise<void> {
     await this.broker.runWorkflow(
       "media.fileDeleteCleanup",
       input,
       {
         source: "workflow",
-        workflowId: FileHardDeleteWorkflow.workflowID(input.fileId),
+        workflowId: DBOS.workflowID!,
         stepId: "startCleanup",
+        callId: input.fileId,
       }
     );
   }

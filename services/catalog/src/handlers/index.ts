@@ -5,6 +5,7 @@ import {
   InjectBroker,
   ServiceBroker,
 } from "@shopana/shared-kernel";
+import type { ContextStore } from "@shopana/shared-context";
 import type {
   ProductCreatedEvent,
   ProductDeletedEvent,
@@ -14,11 +15,21 @@ import type {
 } from "@shopana/events";
 import { Kernel } from "../kernel/Kernel.js";
 import { FileHardDeletedScript } from "../scripts/media/FileHardDeletedScript.js";
+import { CategoryProductsCountRefreshScript } from "../scripts/category/index.js";
 import {
   DeleteProductIndexScript,
   SyncProductIndexScript,
   SyncVariantIndexScript,
 } from "../scripts/search-index/index.js";
+
+type GetStoreByIdResult = {
+  store: ContextStore | null;
+  userErrors: Array<{
+    code: string;
+    message: string;
+    field?: string[] | null;
+  }>;
+};
 
 @Injectable()
 export class CatalogEventHandlers extends EventHandlers {
@@ -30,6 +41,21 @@ export class CatalogEventHandlers extends EventHandlers {
     return Kernel.getInstance();
   }
 
+  private async getStoreContext(storeId: string): Promise<ContextStore> {
+    const result = await this.broker.call<
+      GetStoreByIdResult,
+      { id: string }
+    >("project.getStoreById", { id: storeId });
+
+    if (!result.store) {
+      const message =
+        result.userErrors[0]?.message ?? `Store with id "${storeId}" not found`;
+      throw new Error(message);
+    }
+
+    return result.store;
+  }
+
   @EventHandler("productCreated")
   async handleProductCreated(params: {
     event: ProductCreatedEvent;
@@ -39,11 +65,13 @@ export class CatalogEventHandlers extends EventHandlers {
       "Received productCreated event"
     );
     try {
+      const store = await this.getStoreContext(params.event.payload.storeId);
       const context = {
-        storeId: params.event.payload.storeId,
-        organizationId: params.event.context.tenantId,
+        storeId: store.id,
+        organizationId: store.organizationId,
         userId: params.event.context.userId,
-        locale: "uk",
+        locale: store.defaultLocale,
+        defaultLocale: store.defaultLocale,
       };
       await this.kernel.runScript(
         SyncProductIndexScript,
@@ -75,22 +103,29 @@ export class CatalogEventHandlers extends EventHandlers {
       "Received productDeleted event"
     );
     try {
+      const store = await this.getStoreContext(params.event.payload.storeId);
       await this.kernel.runScript(
         DeleteProductIndexScript,
         { productId: params.event.payload.productId },
         {
-          storeId: params.event.payload.storeId,
-          organizationId: params.event.context.tenantId,
+          storeId: store.id,
+          organizationId: store.organizationId,
           userId: params.event.context.userId,
-          locale: "uk",
+          locale: store.defaultLocale,
+          defaultLocale: store.defaultLocale,
         }
       );
+      await this.refreshCategoryProductCounts({
+        categoryIds: params.event.payload.categoryIds,
+        store,
+        userId: params.event.context.userId,
+      });
       return { success: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(
         { error: message, productId: params.event.payload.productId },
-        "Failed to delete search indexes for productDeleted"
+        "Failed to handle productDeleted event"
       );
       return { success: false, error: { message, retryable: true } };
     }
@@ -105,15 +140,26 @@ export class CatalogEventHandlers extends EventHandlers {
       "Received productUpdated event"
     );
     try {
+      const store = await this.getStoreContext(params.event.payload.storeId);
       const variantIds = params.event.payload.variants
         ? Object.keys(params.event.payload.variants)
         : undefined;
       const context = {
-        storeId: params.event.payload.storeId,
-        organizationId: params.event.context.tenantId,
+        storeId: store.id,
+        organizationId: store.organizationId,
         userId: params.event.context.userId,
-        locale: "uk",
+        locale: store.defaultLocale,
+        defaultLocale: store.defaultLocale,
       };
+      const categories = params.event.payload.product?.categories;
+
+      if (categories?.changed && categories.reason === "assignment") {
+        await this.refreshCategoryProductCounts({
+          categoryIds: categories.categoryIds,
+          store,
+          userId: context.userId,
+        });
+      }
 
       await this.kernel.runScript(
         SyncProductIndexScript,
@@ -139,6 +185,31 @@ export class CatalogEventHandlers extends EventHandlers {
     }
   }
 
+  private async refreshCategoryProductCounts(params: {
+    categoryIds: readonly string[] | undefined;
+    store: ContextStore;
+    userId?: string;
+  }): Promise<void> {
+    const categoryIds = [...new Set(params.categoryIds ?? [])];
+    if (categoryIds.length === 0) return;
+
+    const result = await this.kernel.runScript(
+      CategoryProductsCountRefreshScript,
+      { categoryIds },
+      {
+        storeId: params.store.id,
+        organizationId: params.store.organizationId,
+        userId: params.userId,
+        locale: params.store.defaultLocale,
+        defaultLocale: params.store.defaultLocale,
+      },
+    );
+
+    if (!result.success) {
+      throw new Error("Failed to refresh category product counts");
+    }
+  }
+
   @EventHandler("fileHardDeleted", { retry: { maxAttempts: 10 } })
   async handleFileHardDeleted(params: {
     event: FileHardDeletedEvent;
@@ -153,13 +224,16 @@ export class CatalogEventHandlers extends EventHandlers {
     try {
       const result = await this.kernel.runScript(FileHardDeletedScript, { fileId });
       this.logger.log(
-        { fileId, deletedCount: result.deletedCount },
-        "Cleaned up variant_media for hard-deleted file"
+        { fileId, deletedProductMediaCount: result.deletedProductMediaCount },
+        "Cleaned up product media registry for hard-deleted file"
       );
       return { success: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.error({ fileId, error: message }, "Failed to clean up variant_media");
+      this.logger.error(
+        { fileId, error: message },
+        "Failed to clean up product media registry"
+      );
       return { success: false, error: { message, retryable: true } };
     }
   }

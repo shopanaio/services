@@ -1,4 +1,4 @@
-import { Executor, load, loadMany } from "./executor.js";
+import type { Executor } from "./executor.js";
 import type { CacheStore } from "./decorators/Cache.js";
 import type { QueryArgs, TypeClass, TypeContext, TypeResult } from "./types.js";
 
@@ -45,6 +45,7 @@ export abstract class BaseType<TProps, TData = TProps, TContext = unknown> {
     if (this.executor) {
       return this.executor.load(instance, query) as Promise<TResult | null>;
     }
+    const { load } = await import("./executor.js");
     return load(instance, query) as Promise<TResult | null>;
   }
 
@@ -75,6 +76,7 @@ export abstract class BaseType<TProps, TData = TProps, TContext = unknown> {
         (TResult | null)[]
       >;
     }
+    const { loadMany } = await import("./executor.js");
     return loadMany(instances, query) as Promise<(TResult | null)[]>;
   }
 

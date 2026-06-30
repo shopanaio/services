@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, notInArray } from "drizzle-orm";
+import { and, asc, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
 import {
@@ -22,7 +22,7 @@ import {
 
 export class OptionRepository extends BaseRepository {
   private get locale(): string {
-    return this.ctx.locale ?? "uk";
+    return this.ctx.locale ?? this.ctx.store.defaultLocale;
   }
 
   // ============ Options CRUD ============
@@ -64,12 +64,13 @@ export class OptionRepository extends BaseRepository {
           eq(productOption.projectId, this.storeId),
           eq(productOption.productId, productId)
         )
-      );
+      )
+      .orderBy(asc(productOption.sortIndex), asc(productOption.id));
   }
 
   async create(
     productId: string,
-    data: { slug: string; displayType: string }
+    data: { slug: string; displayType: string; sortIndex?: number }
   ): Promise<ProductOption> {
     const id = randomUUID();
 
@@ -79,6 +80,7 @@ export class OptionRepository extends BaseRepository {
       productId,
       slug: data.slug,
       displayType: data.displayType,
+      sortIndex: data.sortIndex ?? 0,
     };
 
     const result = await this.connection
@@ -91,12 +93,13 @@ export class OptionRepository extends BaseRepository {
 
   async update(
     id: string,
-    data: { slug?: string; displayType?: string }
+    data: { slug?: string; displayType?: string; sortIndex?: number }
   ): Promise<ProductOption | null> {
     const updateData: Partial<NewProductOption> = {};
 
     if (data.slug !== undefined) updateData.slug = data.slug;
     if (data.displayType !== undefined) updateData.displayType = data.displayType;
+    if (data.sortIndex !== undefined) updateData.sortIndex = data.sortIndex;
 
     if (Object.keys(updateData).length === 0) {
       return this.findById(id);
@@ -122,6 +125,22 @@ export class OptionRepository extends BaseRepository {
       .returning({ id: productOption.id });
 
     return result.length > 0;
+  }
+
+  async getMaxSortIndex(productId: string): Promise<number> {
+    const result = await this.connection
+      .select({
+        maxIndex: sql<number>`COALESCE(MAX(${productOption.sortIndex}), -1)`,
+      })
+      .from(productOption)
+      .where(
+        and(
+          eq(productOption.projectId, this.storeId),
+          eq(productOption.productId, productId)
+        )
+      );
+
+    return result[0]?.maxIndex ?? -1;
   }
 
   // ============ Sync Methods ============
@@ -238,7 +257,7 @@ export class OptionRepository extends BaseRepository {
           eq(productOptionValue.optionId, optionId)
         )
       )
-      .orderBy(productOptionValue.sortIndex);
+      .orderBy(asc(productOptionValue.sortIndex), asc(productOptionValue.id));
   }
 
   async findValuesByOptionIds(
@@ -255,7 +274,11 @@ export class OptionRepository extends BaseRepository {
           inArray(productOptionValue.optionId, optionIds)
         )
       )
-      .orderBy(productOptionValue.sortIndex);
+      .orderBy(
+        asc(productOptionValue.optionId),
+        asc(productOptionValue.sortIndex),
+        asc(productOptionValue.id)
+      );
 
     const map = new Map<string, ProductOptionValue[]>();
     for (const value of results) {
@@ -451,7 +474,11 @@ export class OptionRepository extends BaseRepository {
           inArray(productOptionValue.optionId, [...optionIds])
         )
       )
-      .orderBy(asc(productOptionValue.sortIndex));
+      .orderBy(
+        asc(productOptionValue.optionId),
+        asc(productOptionValue.sortIndex),
+        asc(productOptionValue.id)
+      );
   }
 
   async getValuesByIds(valueIds: readonly string[]): Promise<ProductOptionValue[]> {

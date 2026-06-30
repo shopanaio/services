@@ -1,5 +1,4 @@
 import { test } from '@fixtures/base.extend';
-import { EntityStatus, WeightUnit } from '@codegen/admin-gql';
 
 test.describe('Translations UI', () => {
   test('Translations create', async ({
@@ -24,7 +23,7 @@ test.describe('Translations UI', () => {
               groups: [],
               requiresShipping: false,
               slug: null,
-              status: EntityStatus.Draft,
+              status: 'DRAFT',
               tags: [],
               title: 'Skirt',
               variants: {
@@ -44,7 +43,7 @@ test.describe('Translations UI', () => {
                     title: 'Product',
                     variantSortIndex: 0,
                     weight: 0,
-                    weightUnit: WeightUnit.Gr,
+                    weightUnit: 'g',
                   },
                 ],
               },

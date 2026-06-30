@@ -1,30 +1,44 @@
 import { create } from "zustand";
 
-export type EditableField = "onHand" | "unavailable";
+export type EditableField = "sku" | "onHand" | "unavailable";
+export type EditableValue = string | number | null;
 
-interface FieldEdit {
-  originalValue: number;
-  currentValue: number;
+export interface FieldEdit {
+  originalValue: EditableValue;
+  currentValue: EditableValue;
 }
 
-type ItemEdits = Partial<Record<EditableField, FieldEdit>>;
+export type ItemEdits = Partial<Record<EditableField, FieldEdit>>;
+
+export type InventorySubmitError = {
+  message: string;
+  code?: string | null;
+  field?: readonly string[] | null;
+};
 
 interface InventoryEditStore {
   // Current edits - source of truth for pending changes
   edits: Record<string, ItemEdits>;
+  rowErrors: Record<string, InventorySubmitError[]>;
+  submitErrors: InventorySubmitError[];
   status: "idle" | "saving";
 
   // Actions
   setFieldValue: (
     itemId: string,
     field: EditableField,
-    originalValue: number,
-    newValue: number
+    originalValue: EditableValue,
+    newValue: EditableValue
   ) => void;
   discardAll: () => void;
   discardItem: (itemId: string) => void;
   startSaving: () => void;
-  onSaveSuccess: () => void;
+  finishSaving: () => void;
+  onSubmitAccepted: () => void;
+  setRowErrors: (itemId: string, errors: InventorySubmitError[]) => void;
+  clearRowErrors: (itemId: string) => void;
+  setSubmitErrors: (errors: InventorySubmitError[]) => void;
+  clearSubmitErrors: () => void;
 
   // Selectors
   hasChanges: () => boolean;
@@ -36,6 +50,8 @@ interface InventoryEditStore {
 
 export const useInventoryEditStore = create<InventoryEditStore>((set, get) => ({
   edits: {},
+  rowErrors: {},
+  submitErrors: [],
   status: "idle",
 
   setFieldValue: (itemId, field, originalValue, newValue) => {
@@ -48,7 +64,13 @@ export const useInventoryEditStore = create<InventoryEditStore>((set, get) => ({
         // If no more edits for this item, remove the item entry
         if (Object.keys(itemEdits).length === 0) {
           const { [itemId]: _, ...rest } = state.edits;
-          return { edits: rest };
+          const { [itemId]: __, ...rowErrors } = state.rowErrors;
+
+          return {
+            edits: rest,
+            rowErrors,
+            submitErrors: [],
+          };
         }
 
         return {
@@ -56,30 +78,42 @@ export const useInventoryEditStore = create<InventoryEditStore>((set, get) => ({
             ...state.edits,
             [itemId]: itemEdits,
           },
+          rowErrors: Object.fromEntries(
+            Object.entries(state.rowErrors).filter(([id]) => id !== itemId),
+          ),
+          submitErrors: [],
         };
       });
       return;
     }
 
-    set((state) => ({
-      edits: {
-        ...state.edits,
-        [itemId]: {
-          ...state.edits[itemId],
-          [field]: { originalValue, currentValue: newValue },
+    set((state) => {
+      const { [itemId]: _, ...rowErrors } = state.rowErrors;
+
+      return {
+        edits: {
+          ...state.edits,
+          [itemId]: {
+            ...state.edits[itemId],
+            [field]: { originalValue, currentValue: newValue },
+          },
         },
-      },
-    }));
+        rowErrors,
+        submitErrors: [],
+      };
+    });
   },
 
   discardAll: () => {
-    set({ edits: {}, status: "idle" });
+    set({ edits: {}, rowErrors: {}, submitErrors: [], status: "idle" });
   },
 
   discardItem: (itemId) => {
     set((state) => {
       const { [itemId]: _, ...rest } = state.edits;
-      return { edits: rest };
+      const { [itemId]: __, ...rowErrors } = state.rowErrors;
+
+      return { edits: rest, rowErrors };
     });
   },
 
@@ -87,8 +121,45 @@ export const useInventoryEditStore = create<InventoryEditStore>((set, get) => ({
     set({ status: "saving" });
   },
 
-  onSaveSuccess: () => {
-    set({ edits: {}, status: "idle" });
+  finishSaving: () => {
+    set({ status: "idle" });
+  },
+
+  onSubmitAccepted: () => {
+    set({ edits: {}, rowErrors: {}, submitErrors: [], status: "idle" });
+  },
+
+  setRowErrors: (itemId, errors) => {
+    set((state) => {
+      if (errors.length === 0) {
+        const { [itemId]: _, ...rowErrors } = state.rowErrors;
+
+        return { rowErrors };
+      }
+
+      return {
+        rowErrors: {
+          ...state.rowErrors,
+          [itemId]: errors,
+        },
+      };
+    });
+  },
+
+  clearRowErrors: (itemId) => {
+    set((state) => {
+      const { [itemId]: _, ...rowErrors } = state.rowErrors;
+
+      return { rowErrors };
+    });
+  },
+
+  setSubmitErrors: (errors) => {
+    set({ submitErrors: errors });
+  },
+
+  clearSubmitErrors: () => {
+    set({ submitErrors: [] });
   },
 
   hasChanges: () => Object.keys(get().edits).length > 0,

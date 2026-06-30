@@ -1,9 +1,12 @@
-import { Image, Typography, Flex } from "antd";
+import { Typography, Flex } from "antd";
+import { PictureOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import type { CustomCellRendererProps } from "ag-grid-react";
-import type { IInventoryListItem } from "@/mocks/inventory/inventory-list";
 import { EditableNumberCell } from "./editable-number-cell";
 import { ReservedCell } from "@/shared/components/inventory-cells";
+import type { InventoryVariantRow } from "../mappers";
+import { getInventoryVariantCellTestId } from "./test-ids";
+import { TableCoverImage } from "@/shared/components/table-cover-image";
 
 const useStyles = createStyles(({ token }) => ({
   productImage: {
@@ -19,29 +22,39 @@ const useStyles = createStyles(({ token }) => ({
 }));
 
 export const ProductCellRenderer = (
-  props: CustomCellRendererProps<IInventoryListItem>
+  props: CustomCellRendererProps<InventoryVariantRow>
 ) => {
   const { styles } = useStyles();
   const { data } = props;
   if (!data) return null;
 
   return (
-    <Flex align="center" gap="small">
-      <Image
-        src={data.image}
-        alt={data.productName}
-        width={40}
-        height={40}
+    <Flex
+      align="center"
+      gap="small"
+      data-testid={getInventoryVariantCellTestId(data, "product")}
+    >
+      <TableCoverImage
+        src={data.imageUrl}
+        alt={data.productTitle}
+        fallbackIcon={<PictureOutlined />}
         className={styles.productImage}
-        preview={false}
       />
       <Flex vertical gap={0}>
-        <Typography.Text strong className={styles.productName}>
-          {data.productName}
+        <Typography.Text
+          strong
+          className={styles.productName}
+          data-testid={getInventoryVariantCellTestId(data, "product-title")}
+        >
+          {data.productTitle}
         </Typography.Text>
-        {data.variantName && (
-          <Typography.Text type="secondary" className={styles.variantName}>
-            {data.variantName}
+        {(data.variantTitle || data.variantHandle) && (
+          <Typography.Text
+            type="secondary"
+            className={styles.variantName}
+            data-testid={getInventoryVariantCellTestId(data, "variant-title")}
+          >
+            {data.variantTitle ?? data.variantHandle}
           </Typography.Text>
         )}
       </Flex>
@@ -50,16 +63,21 @@ export const ProductCellRenderer = (
 };
 
 export const ReservedCellRenderer = (
-  props: CustomCellRendererProps<IInventoryListItem>
+  props: CustomCellRendererProps<InventoryVariantRow>
 ) => {
-  const { value } = props;
-  return <ReservedCell value={value as number} />;
+  const { data, value } = props;
+  return (
+    <ReservedCell
+      value={value as number}
+      testId={data ? getInventoryVariantCellTestId(data, "reserved") : undefined}
+    />
+  );
 };
 
 export const OnHandCellRenderer = (
-  props: CustomCellRendererProps<IInventoryListItem>
+  props: CustomCellRendererProps<InventoryVariantRow>
 ) => <EditableNumberCell {...props} field="onHand" />;
 
 export const UnavailableCellRenderer = (
-  props: CustomCellRendererProps<IInventoryListItem>
+  props: CustomCellRendererProps<InventoryVariantRow>
 ) => <EditableNumberCell {...props} field="unavailable" />;

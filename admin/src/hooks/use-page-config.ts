@@ -1,14 +1,19 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect, RefObject } from "react";
+import {
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  RefObject,
+} from "react";
 import type { AgGridReact } from "ag-grid-react";
 import type { SortDirection as AgSortDirection } from "ag-grid-community";
 import {
   useFilters,
   FilterOperator,
-  type IFilterSchema,
-  type IFilterValue,
 } from "@/layouts/filters";
+import type { IFilterSchema, IFilterValue } from "@/layouts/filters/core/types";
 import { SortDirection } from "@/graphql/types";
 import { useGridState } from "./use-grid-state";
 import { useGridSort, type SortModel } from "./use-grid-sort";
@@ -37,17 +42,19 @@ export type SortFieldMapping<TField extends string = string> = Record<string, TF
  * Custom filter transformer for special cases
  * Return null to skip the filter, undefined to use default handling
  */
-export type FilterTransformer<TWhereInput> = (
+export type FilterTransformer<TWhereInput extends object> = (
   filter: IFilterValue,
   gqlOperator: string
 ) => Partial<TWhereInput> | null | undefined;
+
+const EMPTY_FILTER_TRANSFORMERS = {};
 
 /**
  * Configuration for usePageConfig hook
  */
 export interface UsePageConfigOptions<
   TData,
-  TWhereInput extends Record<string, unknown>,
+  TWhereInput extends object,
   TOrderField extends string,
 > {
   /** Grid ref for programmatic control */
@@ -95,7 +102,7 @@ export interface PaginationState {
  * Return type for usePageConfig hook
  */
 export interface UsePageConfigReturn<
-  TWhereInput extends Record<string, unknown>,
+  TWhereInput extends object,
   TOrderField extends string,
 > {
   // ---- State Values ----
@@ -253,7 +260,7 @@ function toGqlSortDirection(sort: AgSortDirection): SortDirection {
  */
 export function usePageConfig<
   TData,
-  TWhereInput extends Record<string, unknown>,
+  TWhereInput extends object,
   TOrderField extends string,
 >(
   options: UsePageConfigOptions<TData, TWhereInput, TOrderField>
@@ -267,7 +274,10 @@ export function usePageConfig<
     defaultPageSize = 20,
     pageSizeOptions = [10, 20, 50, 100],
     searchField,
-    filterTransformers = {},
+    filterTransformers = EMPTY_FILTER_TRANSFORMERS as Record<
+      string,
+      FilterTransformer<TWhereInput>
+    >,
     buildSearchCondition,
   } = options;
 
@@ -508,7 +518,7 @@ export function usePageConfig<
  * Create a transformer for enum fields that need startsWith matching
  * (e.g., mimeType where "image" should match "image/png", "image/jpeg", etc.)
  */
-export function createStartsWithTransformer<TWhereInput extends Record<string, unknown>>(
+export function createStartsWithTransformer<TWhereInput extends object>(
   fieldName: string
 ): FilterTransformer<TWhereInput> {
   return (filter) => {
@@ -531,3 +541,70 @@ export function createStartsWithTransformer<TWhereInput extends Record<string, u
   };
 }
 
+/**
+ * Create a transformer for relation filters that should map clean ID arrays to
+ * GraphQL _in conditions.
+ */
+export function createRelationInTransformer<TWhereInput extends object>(
+  fieldName: string
+): FilterTransformer<TWhereInput> {
+  return (filter, gqlOperator) => {
+    if (gqlOperator !== "_in") return null;
+
+    const values = Array.isArray(filter.value) ? filter.value : [filter.value];
+    const ids = values.filter(
+      (value): value is string => typeof value === "string" && value !== ""
+    );
+
+    if (ids.length === 0) return null;
+
+    return {
+      [fieldName]: { _in: ids },
+    } as Partial<TWhereInput>;
+  };
+}
+
+function getFirstNonEmptyFilterValue(value: unknown): unknown {
+  if (!Array.isArray(value)) {
+    return value;
+  }
+
+  return value.find((item) => !isEmptyFilterValue(item));
+}
+
+function toFiniteNumber(value: unknown): number | null {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
+const priceOperators = new Set(["_eq", "_gt", "_gte", "_lt", "_lte"]);
+
+/**
+ * Create a transformer for price filters. Filter controls store price input as
+ * an array, while API filters expect a scalar minor-unit integer.
+ */
+export function createMinorUnitPriceTransformer<TWhereInput extends object>(
+  fieldName: string
+): FilterTransformer<TWhereInput> {
+  return (filter, gqlOperator) => {
+    if (!priceOperators.has(gqlOperator)) return null;
+
+    const value = getFirstNonEmptyFilterValue(filter.value);
+    if (isEmptyFilterValue(value)) return null;
+
+    const amount = toFiniteNumber(value);
+    if (amount === null) return null;
+
+    return {
+      [fieldName]: { [gqlOperator]: Math.round(amount * 100) },
+    } as Partial<TWhereInput>;
+  };
+}

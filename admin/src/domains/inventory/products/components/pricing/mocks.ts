@@ -1,12 +1,20 @@
 import { CurrencyCode } from "@/graphql/types";
 import type {
   ApiVariant,
+  ApiVariantCost,
   ApiVariantConnection,
   ApiVariantPriceConnection,
-  PricingWidgetPayload,
+  ApiPricingWidgetPayload,
   ApiVariantPriceHistoryStatistics,
-} from "./types";
-import { getPeriodDays } from "../utils";
+} from "@/graphql/types";
+import { getPeriodDays } from "../../utils/periods";
+import {
+  createMockApiInventoryItem,
+  createMockApiInventoryItemCost,
+  createMockApiVariant,
+  createMockApiVariantPrice,
+  createMockApiWarehouseStock,
+} from "@/mocks/products/api-builders";
 
 // ============================================================================
 // Mock Data Generators
@@ -18,7 +26,7 @@ function generatePriceHistory(
   days: number,
   basePrice: number
 ): ApiVariantPriceConnection {
-  const edges = [];
+  const edges: ApiVariantPriceConnection["edges"] = [];
   const now = new Date();
 
   for (let i = days; i >= 0; i--) {
@@ -59,19 +67,12 @@ function generatePriceHistory(
 function generateVariant(index: number, productId: string): ApiVariant {
   const basePrice = 1999 + index * 500; // $19.99, $24.99, etc.
   const costPrice = Math.round(basePrice * 0.4); // 40% margin
+  const variantId = `variant-${productId}-${index}`;
 
-  return {
-    __typename: "Variant",
-    id: `variant-${productId}-${index}`,
+  return createMockApiVariant({
+    id: variantId,
     title: index === 0 ? "Default" : `Variant ${index + 1}`,
     handle: `variant-${index}`,
-    sku: `SKU-${productId.slice(-4)}-${index}`,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    deletedAt: null,
-    externalId: null,
-    externalSystem: null,
-    inStock: true,
     isDefault: index === 0,
     selectedOptions: [
       {
@@ -81,42 +82,49 @@ function generateVariant(index: number, productId: string): ApiVariant {
       },
     ],
     media: [],
-    stock: [],
-    dimensions: null,
-    weight: null,
     product: { id: productId } as ApiVariant["product"],
-    price: {
-      __typename: "VariantPrice",
+    price: createMockApiVariantPrice({
       id: `price-current-${index}`,
       amountMinor: basePrice,
       compareAtMinor: index % 2 === 0 ? basePrice + 500 : null,
       currency: CURRENCY,
-      effectiveFrom: new Date().toISOString(),
-      effectiveTo: null,
-      isCurrent: true,
-      recordedAt: new Date().toISOString(),
-    },
-    cost: {
-      __typename: "VariantCost",
-      id: `cost-current-${index}`,
-      unitCostMinor: costPrice,
-      currency: CURRENCY,
-      effectiveFrom: new Date().toISOString(),
-      effectiveTo: null,
-      isCurrent: true,
-      recordedAt: new Date().toISOString(),
-    },
+    }),
+    inventoryItem: createMockApiInventoryItem({
+      id: `inventory-${variantId}`,
+      variantId,
+      sku: `SKU-${productId.slice(-4)}-${index}`,
+      totalAvailable: 20 + index,
+      stock: [
+        createMockApiWarehouseStock({
+          id: `stock-${variantId}`,
+          quantityOnHand: 20 + index,
+        }),
+      ],
+      unitCost: createMockApiInventoryItemCost({
+        amountMinor: costPrice,
+        currency: CURRENCY,
+      }),
+    }),
     priceHistory: generatePriceHistory(90, basePrice),
-    costHistory: {
-      __typename: "VariantCostConnection",
-      edges: [],
-      pageInfo: {
-        __typename: "PageInfo",
-        hasNextPage: false,
-        hasPreviousPage: false,
-      },
-      totalCount: 0,
-    },
+  });
+}
+
+function getCurrentVariantCost(variant: ApiVariant): ApiVariantCost | null {
+  const unitCost = variant.inventoryItem?.unitCost;
+
+  if (!unitCost) {
+    return null;
+  }
+
+  return {
+    __typename: "VariantCost",
+    id: `cost-${variant.id}`,
+    unitCostMinor: unitCost.amountMinor,
+    currency: unitCost.currency as CurrencyCode,
+    effectiveFrom: unitCost.effectiveFrom,
+    effectiveTo: null,
+    isCurrent: true,
+    recordedAt: unitCost.effectiveFrom,
   };
 }
 
@@ -193,7 +201,7 @@ export interface FetchPricingWidgetParams {
 export async function fetchPricingWidget({
   variantId,
   period,
-}: FetchPricingWidgetParams): Promise<PricingWidgetPayload> {
+}: FetchPricingWidgetParams): Promise<ApiPricingWidgetPayload> {
   // Simulate network delay
   await new Promise((resolve) => setTimeout(resolve, 200));
 
@@ -227,6 +235,7 @@ export async function fetchPricingWidget({
   // Calculate statistics from filtered history
   const prices = filteredEdges.map((e) => e.node.amountMinor);
   const statistics: ApiVariantPriceHistoryStatistics = {
+    __typename: "VariantPriceHistoryStatistics",
     minPriceMinor: prices.length > 0 ? Math.min(...prices) : 0,
     maxPriceMinor: prices.length > 0 ? Math.max(...prices) : 0,
     avgPriceMinor:
@@ -237,8 +246,9 @@ export async function fetchPricingWidget({
   };
 
   return {
+    __typename: "PricingWidgetPayload",
     currentPrice: variant.price ?? null,
-    currentCostPrice: variant.cost ?? null,
+    currentCostPrice: getCurrentVariantCost(variant),
     history,
     statistics,
   };

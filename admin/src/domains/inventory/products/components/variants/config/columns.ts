@@ -9,7 +9,7 @@ export const MEDIA_COLUMNS: IVariantColumn[] = [
     field: "media",
     headerName: "Variant Media",
     defaultVisible: true,
-    editable: false,
+    editable: true,
     width: 120,
     minWidth: 80,
     type: "media",
@@ -31,66 +31,6 @@ export const PRICING_COLUMNS: IVariantColumn[] = [
     defaultVisible: false,
     editable: true,
     width: 130,
-    type: "number",
-  },
-  {
-    field: "costPrice",
-    headerName: "Cost",
-    defaultVisible: false,
-    editable: true,
-    width: 110,
-    type: "number",
-  },
-];
-
-export const INVENTORY_COLUMNS: IVariantColumn[] = [
-  {
-    field: "sku",
-    headerName: "SKU",
-    defaultVisible: true,
-    editable: true,
-    width: 150,
-    minWidth: 150,
-    type: "text",
-  },
-  {
-    field: "barcode",
-    headerName: "Barcode",
-    defaultVisible: false,
-    editable: true,
-    width: 140,
-    type: "text",
-  },
-  {
-    field: "onHand",
-    headerName: "On hand",
-    defaultVisible: true,
-    editable: true,
-    width: 100,
-    type: "number",
-  },
-  {
-    field: "unavailable",
-    headerName: "Unavailable",
-    defaultVisible: true,
-    editable: true,
-    width: 110,
-    type: "number",
-  },
-  {
-    field: "reserved",
-    headerName: "Reserved",
-    defaultVisible: true,
-    editable: false, // managed by order system
-    width: 100,
-    type: "number",
-  },
-  {
-    field: "available",
-    headerName: "Available",
-    defaultVisible: true,
-    editable: false, // calculated
-    width: 100,
     type: "number",
   },
 ];
@@ -133,7 +73,6 @@ export const ATTRIBUTES_COLUMNS: IVariantColumn[] = [
 // Combined for backwards compatibility
 export const VARIANT_COLUMNS: IVariantColumn[] = [
   ...PRICING_COLUMNS,
-  ...INVENTORY_COLUMNS,
   ...ATTRIBUTES_COLUMNS,
 ];
 
@@ -158,13 +97,9 @@ export function createOptionColumns(optionGroups: IOptionGroup[]): IVariantColum
 // ============================================================================
 
 export const SELECTABLE_COLUMNS = [
+  "media",
   "price",
   "compareAtPrice",
-  "costPrice",
-  "onHand",
-  "unavailable",
-  "sku",
-  "barcode",
   "weight",
   "length",
   "width",

@@ -17,6 +17,7 @@ export interface OptionSwatchInput {
 export interface OptionValueInput {
   readonly slug: string;
   readonly name: string;
+  readonly sortIndex?: number;
   readonly swatch?: OptionSwatchInput;
 }
 
@@ -27,6 +28,7 @@ export interface OptionValueUpdateInput {
   readonly id: string;
   readonly slug?: string;
   readonly name?: string;
+  readonly sortIndex?: number;
   readonly swatch?: OptionSwatchInput | null;
 }
 

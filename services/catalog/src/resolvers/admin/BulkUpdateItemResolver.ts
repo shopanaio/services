@@ -7,6 +7,8 @@ import { CatalogType } from "./CatalogType.js";
 
 const OP_TYPE_MAP: Record<string, string> = {
   productUpdate: "PRODUCT_UPDATE",
+  productCategoryUpdate: "PRODUCT_CATEGORY_UPDATE",
+  productTagUpdate: "PRODUCT_TAG_UPDATE",
   productSetStatus: "PRODUCT_SET_STATUS",
   variantSetSku: "VARIANT_SET_SKU",
   variantSetPricing: "VARIANT_SET_PRICING",
@@ -14,11 +16,14 @@ const OP_TYPE_MAP: Record<string, string> = {
   variantSetStock: "VARIANT_SET_STOCK",
   variantSetDimensions: "VARIANT_SET_DIMENSIONS",
   variantSetWeight: "VARIANT_SET_WEIGHT",
+  variantCreate: "VARIANT_CREATE",
+  variantUpdate: "VARIANT_UPDATE",
+  variantDelete: "VARIANT_DELETE",
 };
 
 export class BulkUpdateItemResolver extends CatalogType<string, BulkEditItem> {
   async $preload() {
-    const item = await this.$ctx.kernel.repository.bulkEditItem.findById(this.$props);
+    const item = await this.$ctx.loaders.bulkEditItem.load(this.$props);
     if (!item) {
       throw new Error(`BulkEditItem with ID ${this.$props} not found`);
     }

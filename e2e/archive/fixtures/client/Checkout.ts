@@ -1,26 +1,5 @@
-import {
-  ApiCheckoutCreateInput,
-  ApiCheckoutCustomerIdentityUpdateInput,
-  ApiCheckoutCustomerNoteUpdateInput,
-  ApiCheckoutDeliveryAddressesAddInput,
-  ApiCheckoutDeliveryAddressesRemoveInput,
-  ApiCheckoutDeliveryAddressesUpdateInput,
-  ApiCheckoutDeliveryMethodUpdateInput,
-  ApiCheckoutDeliveryRecipientsAddInput,
-  ApiCheckoutDeliveryRecipientsRemoveInput,
-  ApiCheckoutDeliveryRecipientsUpdateInput,
-  ApiCheckoutLinesAddInput,
-  ApiCheckoutLinesClearInput,
-  ApiCheckoutLinesDeleteInput,
-  ApiCheckoutLinesUpdateInput,
-  ApiCheckoutPaymentMethodUpdateInput,
-  ApiCheckoutPromoCodeAddInput,
-  ApiCheckoutPromoCodeRemoveInput,
-  ApiCheckoutTagCreateInput,
-  ApiCheckoutTagDeleteInput,
-  ApiCheckoutTagUpdateInput,
-} from '@codegen/client-gql';
-import { ClientApiFixture } from '@fixtures/client/api';
+import type { ApiCheckoutCreateInput, ApiCheckoutCustomerIdentityUpdateInput, ApiCheckoutCustomerNoteUpdateInput, ApiCheckoutDeliveryAddressesAddInput, ApiCheckoutDeliveryAddressesRemoveInput, ApiCheckoutDeliveryAddressesUpdateInput, ApiCheckoutDeliveryMethodUpdateInput, ApiCheckoutDeliveryRecipientsAddInput, ApiCheckoutDeliveryRecipientsRemoveInput, ApiCheckoutDeliveryRecipientsUpdateInput, ApiCheckoutLinesAddInput, ApiCheckoutLinesClearInput, ApiCheckoutLinesDeleteInput, ApiCheckoutLinesUpdateInput, ApiCheckoutPaymentMethodUpdateInput, ApiCheckoutPromoCodeAddInput, ApiCheckoutPromoCodeRemoveInput, ApiCheckoutTagCreateInput, ApiCheckoutTagDeleteInput, ApiCheckoutTagUpdateInput } from '@codegen/client-gql';
+import type { ClientApiFixture } from '@fixtures/client/api';
 
 export class Checkout {
   constructor(private client: ClientApiFixture) {}

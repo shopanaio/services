@@ -1,5 +1,5 @@
-import { ApiPage, ApiPageMutationCreateArgs, ApiPageQueryFindOneArgs } from '@codegen/admin-gql';
-import { TenantApiFixture } from '@fixtures/admin/api';
+import type { ApiPage, ApiPageMutationCreateArgs, ApiPageQueryFindOneArgs } from '@codegen/admin-gql';
+import type { TenantApiFixture } from '@fixtures/admin/api';
 
 export class Page {
   constructor(private api: TenantApiFixture) {}

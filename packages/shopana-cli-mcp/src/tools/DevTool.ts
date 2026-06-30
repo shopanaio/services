@@ -5,7 +5,7 @@ const DevToolSchema = z.object({
   service: z
     .string()
     .optional()
-    .describe('Specific service to run. If not provided, starts all services via orchestrator. Available: apps, bootstrap, checkout, delivery, iam, inventory, listing, media, orders, payments, pricing, project, reviews, search'),
+    .describe('Specific service to run. If not provided, starts all services via orchestrator. Available: apps, bootstrap, catalog, checkout, delivery, events, iam, media, orders, payments, pricing, project, reviews, search'),
   workingDir: z
     .string()
     .optional()
@@ -25,9 +25,9 @@ Features:
 
 Examples:
 - Start all services: {}
-- Start specific service: { "service": "inventory" }
+- Start specific service: { "service": "catalog" }
 
-Available services: apps, bootstrap, checkout, delivery, iam, inventory, listing, media, orders, payments, pricing, project, reviews, search
+Available services: apps, bootstrap, catalog, checkout, delivery, events, iam, media, orders, payments, pricing, project, reviews, search
 
 Note: This starts a long-running process. The server will continue running until stopped.`;
 

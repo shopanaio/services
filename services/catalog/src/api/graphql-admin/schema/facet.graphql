@@ -19,45 +19,74 @@ enum FacetSelectionMode {
   MULTI
 }
 
-type FacetGroup implements Node {
-  id: ID!
-  name: String!
-  sortIndex: Int!
-  collapsed: Boolean!
-  facets: [Facet!]!
-  createdAt: DateTime!
-  updatedAt: DateTime!
+enum FacetValueKind {
+  SOURCE
+  DISPLAY
 }
 
-enum FacetValueSort {
-  COUNT
-  ALPHA
-  CUSTOM
+enum FacetValueEmptyDisplayAction {
+  DISABLE
+  DELETE
+  KEEP
 }
 
 type Facet implements Node {
   id: ID!
   facetType: FacetType!
-  sourceHandles: [String!]!
   slug: String!
   label: String!
   uiType: FacetUIType!
   selectionMode: FacetSelectionMode!
-  sortIndex: Int!
-  group: FacetGroup
-  minValues: Int!
-  maxValuesVisible: Int!
-  valueSort: FacetValueSort!
-  indexable: Boolean!
+  lexoRank: String!
   values: [FacetValue!]!
+}
+
+type FacetSourceCandidate {
+  id: ID!
+  locale: String!
+  facetType: FacetType!
+  handle: String!
+  name: String
+}
+
+type FacetSourceCandidateEdge {
+  cursor: String!
+  node: FacetSourceCandidate!
+}
+
+type FacetSourceCandidateConnection {
+  edges: [FacetSourceCandidateEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type FacetValueCandidate {
+  id: ID!
+  facetType: FacetType!
+  sourceHandle: String!
+  handle: String!
+  label: String!
+}
+
+type FacetValueCandidateEdge {
+  cursor: String!
+  node: FacetValueCandidate!
+}
+
+type FacetValueCandidateConnection {
+  edges: [FacetValueCandidateEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 type FacetValue implements Node {
   id: ID!
   facet: Facet!
-  slug: String!
+  parent: FacetValue
+  kind: FacetValueKind!
+  handle: String!
   label: String!
-  sourceHandles: [String!]!
+  sourceValues: [FacetValue!]!
   swatch: FacetSwatch
   sortIndex: Int!
   enabled: Boolean!
@@ -72,21 +101,27 @@ type FacetSwatch implements Node {
   metadata: JSON
 }
 
-input FacetGroupCreateInput {
+input FacetCreateSourceInput {
+  handle: String!
   name: String!
-  collapsed: Boolean
-  sortIndex: Int
 }
 
-input FacetGroupUpdateInput {
-  id: ID!
-  name: String
-  collapsed: Boolean
-  sortIndex: Int
+input FacetCreateValueCandidateInput {
+  handle: String!
+  label: String!
+  sourceHandle: String!
 }
 
-input FacetGroupDeleteInput {
-  id: ID!
+enum FacetValueCandidateType {
+  TAG
+  OPTION
+  FEATURE
+}
+
+input FacetValueCandidatesMetaInput {
+  candidateType: FacetValueCandidateType!
+  sourceHandles: [String!]
+  facetId: ID
 }
 
 input FacetCreateInput {
@@ -94,9 +129,9 @@ input FacetCreateInput {
   slug: String!
   uiType: FacetUIType
   selectionMode: FacetSelectionMode
-  groupId: ID
   label: String!
-  sortIndex: Int
+  sources: [FacetCreateSourceInput!]
+  valueCandidates: [FacetCreateValueCandidateInput!]
 }
 
 input FacetUpdateInput {
@@ -104,24 +139,29 @@ input FacetUpdateInput {
   slug: String
   uiType: FacetUIType
   selectionMode: FacetSelectionMode
-  groupId: ID
   label: String
-  sortIndex: Int
-  minValues: Int
-  maxValuesVisible: Int
-  valueSort: FacetValueSort
-  indexable: Boolean
 }
 
 input FacetDeleteInput {
   id: ID!
 }
 
+input FacetMoveInput {
+  id: ID!
+  afterFacetId: ID
+  beforeFacetId: ID
+}
+
+input FacetRebalanceInput {
+  confirm: Boolean = true
+}
+
 input FacetValueCreateInput {
   facetId: ID!
-  slug: String!
+  kind: FacetValueKind = DISPLAY
+  handle: String!
   label: String!
-  sourceHandles: [String!]
+  sourceValueIds: [ID!]
   swatchId: ID
   sortIndex: Int
   enabled: Boolean
@@ -129,12 +169,24 @@ input FacetValueCreateInput {
 
 input FacetValueUpdateInput {
   id: ID!
-  slug: String
+  handle: String
   label: String
-  sourceHandles: [String!]
   swatchId: ID
   sortIndex: Int
   enabled: Boolean
+}
+
+input FacetValueMergeInput {
+  facetId: ID!
+  targetDisplayValueId: ID
+  targetHandle: String
+  targetLabel: String
+  sourceValueIds: [ID!]!
+}
+
+input FacetValueUnmergeInput {
+  sourceValueIds: [ID!]!
+  emptyDisplayAction: FacetValueEmptyDisplayAction = DISABLE
 }
 
 input FacetValueDeleteInput {
@@ -162,21 +214,6 @@ input FacetSwatchDeleteInput {
   id: ID!
 }
 
-type FacetGroupCreatePayload {
-  facetGroup: FacetGroup
-  userErrors: [GenericUserError!]!
-}
-
-type FacetGroupUpdatePayload {
-  facetGroup: FacetGroup
-  userErrors: [GenericUserError!]!
-}
-
-type FacetGroupDeletePayload {
-  deletedFacetGroupId: ID
-  userErrors: [GenericUserError!]!
-}
-
 type FacetCreatePayload {
   facet: Facet
   userErrors: [GenericUserError!]!
@@ -192,6 +229,16 @@ type FacetDeletePayload {
   userErrors: [GenericUserError!]!
 }
 
+type FacetMovePayload {
+  facet: Facet
+  userErrors: [GenericUserError!]!
+}
+
+type FacetRebalancePayload {
+  facets: [Facet!]!
+  userErrors: [GenericUserError!]!
+}
+
 type FacetValueCreatePayload {
   facetValue: FacetValue
   userErrors: [GenericUserError!]!
@@ -199,6 +246,18 @@ type FacetValueCreatePayload {
 
 type FacetValueUpdatePayload {
   facetValue: FacetValue
+  userErrors: [GenericUserError!]!
+}
+
+type FacetValueMergePayload {
+  facetValue: FacetValue
+  sourceValues: [FacetValue!]!
+  userErrors: [GenericUserError!]!
+}
+
+type FacetValueUnmergePayload {
+  sourceValues: [FacetValue!]!
+  affectedDisplayValues: [FacetValue!]!
   userErrors: [GenericUserError!]!
 }
 

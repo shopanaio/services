@@ -22,7 +22,7 @@ const useStyles = createStyles(() => ({
 }));
 
 export interface IScrollableDropdownProps
-  extends Omit<DropdownProps, "dropdownRender"> {
+  extends Omit<DropdownProps, "popupRender"> {
   hasNextPage: boolean;
   isLoadingMore: boolean;
   onLoadMore: () => void;
@@ -44,7 +44,7 @@ export const ScrollableDropdown = ({
     <Dropdown
       {...dropdownProps}
       menu={menu}
-      dropdownRender={(menuNode) => (
+      popupRender={(menuNode) => (
         <div className={styles.dropdownMenu}>
           <InfiniteScroll
             loadMore={onLoadMore}

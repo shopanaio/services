@@ -1,181 +1,240 @@
 /**
- * Mock data for Bundles list page
+ * Mock data for Bundles list page in generated API shape.
  */
 
-export type BundleType = "FIXED" | "MULTIPACK" | "MIX_AND_MATCH";
+import {
+  BundleDisplayStyle,
+  BundleType,
+  ProductKind,
+  type ApiBundle,
+  type ApiFile,
+  type ApiPageInfo,
+  type ApiProductMediaItem,
+} from "@/graphql/types";
+import { createMockApiFile } from "./api-builders";
 
-export interface IBundleListItem {
+const pageInfo: ApiPageInfo = {
+  __typename: "PageInfo",
+  hasNextPage: false,
+  hasPreviousPage: false,
+  startCursor: null,
+  endCursor: null,
+};
+
+const createBundleMedia = (seed: string): ApiProductMediaItem[] => [
+  {
+    __typename: "ProductMediaItem",
+    file: createMockApiFile({
+      id: `file-${seed}`,
+      name: `${seed}.jpg`,
+      seed,
+      width: 200,
+      height: 200,
+    }) as ApiFile,
+    sortIndex: 0,
+  },
+];
+
+const createMockBundle = (params: {
   id: string;
-  name: string;
-  image: string;
-  status: "published" | "draft";
-  bundleType: BundleType | null;
+  title: string;
+  imageSeed: string;
+  isPublished: boolean;
+  type: BundleType | null;
   createdAt: string;
-}
+}): ApiBundle => ({
+  __typename: "Bundle",
+  id: params.id,
+  title: params.title,
+  handle: params.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+  kind: ProductKind.Bundle,
+  isPublished: params.isPublished,
+  type: params.type,
+  createdAt: params.createdAt,
+  updatedAt: params.createdAt,
+  publishedAt: params.isPublished ? params.createdAt : null,
+  deletedAt: null,
+  description: null,
+  excerpt: null,
+  displayStyle: BundleDisplayStyle.Flat,
+  media: createBundleMedia(params.imageSeed),
+  categoryAssignments: [],
+  configurations: [],
+  features: [],
+  options: [],
+  primaryCategory: null,
+  revision: 1,
+  seo: null,
+  tags: [],
+  variants: {
+    __typename: "VariantConnection",
+    edges: [],
+    pageInfo,
+    totalCount: 0,
+  },
+  variantsCount: 0,
+  vendor: null,
+});
 
-export const mockBundlesList: IBundleListItem[] = [
-  // FIXED bundles
-  {
+export const mockBundles: ApiBundle[] = [
+  createMockBundle({
     id: "bnd-1",
-    name: "Camera Starter Kit",
-    image: "https://picsum.photos/seed/camera-kit/200",
-    status: "published",
-    bundleType: "FIXED",
+    title: "Camera Starter Kit",
+    imageSeed: "camera-kit",
+    isPublished: true,
+    type: BundleType.Fixed,
     createdAt: "2024-11-15T10:00:00Z",
-  },
-  {
+  }),
+  createMockBundle({
     id: "bnd-2",
-    name: "Home Office Essentials",
-    image: "https://picsum.photos/seed/office-kit/200",
-    status: "published",
-    bundleType: "FIXED",
+    title: "Home Office Essentials",
+    imageSeed: "office-kit",
+    isPublished: true,
+    type: BundleType.Fixed,
     createdAt: "2024-11-20T08:30:00Z",
-  },
-  {
+  }),
+  createMockBundle({
     id: "bnd-3",
-    name: "Gaming Setup Bundle",
-    image: "https://picsum.photos/seed/gaming-kit/200",
-    status: "published",
-    bundleType: "FIXED",
+    title: "Gaming Setup Bundle",
+    imageSeed: "gaming-kit",
+    isPublished: true,
+    type: BundleType.Fixed,
     createdAt: "2024-10-05T12:00:00Z",
-  },
-  {
+  }),
+  createMockBundle({
     id: "bnd-4",
-    name: "Fitness Tracker Kit",
-    image: "https://picsum.photos/seed/fitness-kit/200",
-    status: "draft",
-    bundleType: "FIXED",
+    title: "Fitness Tracker Kit",
+    imageSeed: "fitness-kit",
+    isPublished: false,
+    type: BundleType.Fixed,
     createdAt: "2024-12-10T16:00:00Z",
-  },
-  {
+  }),
+  createMockBundle({
     id: "bnd-5",
-    name: "Kitchen Appliance Set",
-    image: "https://picsum.photos/seed/kitchen-kit/200",
-    status: "published",
-    bundleType: "FIXED",
+    title: "Kitchen Appliance Set",
+    imageSeed: "kitchen-kit",
+    isPublished: true,
+    type: BundleType.Fixed,
     createdAt: "2024-09-28T09:15:00Z",
-  },
-  {
+  }),
+  createMockBundle({
     id: "bnd-6",
-    name: "Travel Essentials Pack",
-    image: "https://picsum.photos/seed/travel-kit/200",
-    status: "published",
-    bundleType: "FIXED",
+    title: "Travel Essentials Pack",
+    imageSeed: "travel-kit",
+    isPublished: true,
+    type: BundleType.Fixed,
     createdAt: "2024-11-01T14:30:00Z",
-  },
-  {
+  }),
+  createMockBundle({
     id: "bnd-7",
-    name: "Baby Care Starter Kit",
-    image: "https://picsum.photos/seed/baby-kit/200",
-    status: "draft",
-    bundleType: "FIXED",
+    title: "Baby Care Starter Kit",
+    imageSeed: "baby-kit",
+    isPublished: false,
+    type: BundleType.Fixed,
     createdAt: "2024-12-15T11:00:00Z",
-  },
-  // MULTIPACK bundles
-  {
+  }),
+  createMockBundle({
     id: "bnd-8",
-    name: "6-Pack Craft Beer",
-    image: "https://picsum.photos/seed/beer-pack/200",
-    status: "published",
-    bundleType: "MULTIPACK",
+    title: "6-Pack Craft Beer",
+    imageSeed: "beer-pack",
+    isPublished: true,
+    type: BundleType.Multipack,
     createdAt: "2024-12-01T09:00:00Z",
-  },
-  {
+  }),
+  createMockBundle({
     id: "bnd-9",
-    name: "12-Pack Energy Drinks",
-    image: "https://picsum.photos/seed/energy-pack/200",
-    status: "published",
-    bundleType: "MULTIPACK",
+    title: "12-Pack Energy Drinks",
+    imageSeed: "energy-pack",
+    isPublished: true,
+    type: BundleType.Multipack,
     createdAt: "2024-11-10T07:45:00Z",
-  },
-  {
+  }),
+  createMockBundle({
     id: "bnd-10",
-    name: "3-Pack T-Shirts",
-    image: "https://picsum.photos/seed/tshirt-pack/200",
-    status: "published",
-    bundleType: "MULTIPACK",
+    title: "3-Pack T-Shirts",
+    imageSeed: "tshirt-pack",
+    isPublished: true,
+    type: BundleType.Multipack,
     createdAt: "2024-10-15T13:00:00Z",
-  },
-  {
+  }),
+  createMockBundle({
     id: "bnd-11",
-    name: "5-Pack Socks",
-    image: "https://picsum.photos/seed/socks-pack/200",
-    status: "draft",
-    bundleType: "MULTIPACK",
+    title: "5-Pack Socks",
+    imageSeed: "socks-pack",
+    isPublished: false,
+    type: BundleType.Multipack,
     createdAt: "2024-12-05T10:30:00Z",
-  },
-  {
+  }),
+  createMockBundle({
     id: "bnd-12",
-    name: "4-Pack Protein Bars",
-    image: "https://picsum.photos/seed/protein-pack/200",
-    status: "published",
-    bundleType: "MULTIPACK",
+    title: "4-Pack Protein Bars",
+    imageSeed: "protein-pack",
+    isPublished: true,
+    type: BundleType.Multipack,
     createdAt: "2024-11-25T08:00:00Z",
-  },
-  {
+  }),
+  createMockBundle({
     id: "bnd-13",
-    name: "10-Pack Face Masks",
-    image: "https://picsum.photos/seed/masks-pack/200",
-    status: "published",
-    bundleType: "MULTIPACK",
+    title: "10-Pack Face Masks",
+    imageSeed: "masks-pack",
+    isPublished: true,
+    type: BundleType.Multipack,
     createdAt: "2024-10-30T15:00:00Z",
-  },
-  // MIX_AND_MATCH bundles
-  {
+  }),
+  createMockBundle({
     id: "bnd-14",
-    name: "Build Your Chocolate Box",
-    image: "https://picsum.photos/seed/choco-box/200",
-    status: "published",
-    bundleType: "MIX_AND_MATCH",
+    title: "Build Your Chocolate Box",
+    imageSeed: "choco-box",
+    isPublished: true,
+    type: BundleType.MixAndMatch,
     createdAt: "2024-10-20T14:00:00Z",
-  },
-  {
+  }),
+  createMockBundle({
     id: "bnd-15",
-    name: "Custom Gift Box",
-    image: "https://picsum.photos/seed/gift-box/200",
-    status: "published",
-    bundleType: "MIX_AND_MATCH",
+    title: "Custom Gift Box",
+    imageSeed: "gift-box",
+    isPublished: true,
+    type: BundleType.MixAndMatch,
     createdAt: "2024-09-05T11:30:00Z",
-  },
-  {
+  }),
+  createMockBundle({
     id: "bnd-16",
-    name: "Design Your Pizza",
-    image: "https://picsum.photos/seed/pizza-box/200",
-    status: "published",
-    bundleType: "MIX_AND_MATCH",
+    title: "Design Your Pizza",
+    imageSeed: "pizza-box",
+    isPublished: true,
+    type: BundleType.MixAndMatch,
     createdAt: "2024-11-18T17:00:00Z",
-  },
-  {
+  }),
+  createMockBundle({
     id: "bnd-17",
-    name: "Pick Your Smoothie",
-    image: "https://picsum.photos/seed/smoothie-mix/200",
-    status: "draft",
-    bundleType: "MIX_AND_MATCH",
+    title: "Pick Your Smoothie",
+    imageSeed: "smoothie-mix",
+    isPublished: false,
+    type: BundleType.MixAndMatch,
     createdAt: "2024-12-08T09:45:00Z",
-  },
-  {
+  }),
+  createMockBundle({
     id: "bnd-18",
-    name: "Custom Jewelry Set",
-    image: "https://picsum.photos/seed/jewelry-set/200",
-    status: "published",
-    bundleType: "MIX_AND_MATCH",
+    title: "Custom Jewelry Set",
+    imageSeed: "jewelry-set",
+    isPublished: true,
+    type: BundleType.MixAndMatch,
     createdAt: "2024-10-12T13:15:00Z",
-  },
-  // Custom bundles (null type)
-  {
+  }),
+  createMockBundle({
     id: "bnd-19",
-    name: "Holiday Special Pack",
-    image: "https://picsum.photos/seed/holiday-pack/200",
-    status: "published",
-    bundleType: null,
+    title: "Holiday Special Pack",
+    imageSeed: "holiday-pack",
+    isPublished: true,
+    type: BundleType.Custom,
     createdAt: "2024-11-30T10:00:00Z",
-  },
-  {
+  }),
+  createMockBundle({
     id: "bnd-20",
-    name: "Clearance Bundle",
-    image: "https://picsum.photos/seed/clearance/200",
-    status: "draft",
-    bundleType: null,
+    title: "Clearance Bundle",
+    imageSeed: "clearance",
+    isPublished: false,
+    type: BundleType.Custom,
     createdAt: "2024-12-12T14:00:00Z",
-  },
+  }),
 ];

@@ -15,12 +15,13 @@ export class ResolveFacetsScript extends BaseScript<
     const optionSlugs = new Set<string>();
 
     for (const item of resolved) {
-      if (item.facetType === "tag") {
-        item.sourceHandles.forEach((value) => tagHandles.add(value));
-      } else if (item.facetType === "feature") {
-        item.sourceHandles.forEach((value) => featureSlugs.add(value));
-      } else if (item.facetType === "option") {
-        item.sourceHandles.forEach((value) => optionSlugs.add(value));
+      const facetType = item.facetType.toUpperCase();
+      if (facetType === "TAG") {
+        item.resolvedSourceHandles.forEach((value) => tagHandles.add(value));
+      } else if (facetType === "FEATURE") {
+        item.resolvedSourceHandles.forEach((value) => featureSlugs.add(value));
+      } else if (facetType === "OPTION") {
+        item.resolvedSourceHandles.forEach((value) => optionSlugs.add(value));
       }
     }
 

@@ -18,9 +18,20 @@ export const ProductBulkUpdateInputSchema = () =>
     .refine(
       (input) => {
         const totalOps = input.products.reduce((sum, p) => {
-          const productOps = p.operations ? 1 : 0;
+          const hasProductFields = p.operations
+            ? p.operations.handle !== undefined ||
+              p.operations.title !== undefined ||
+              Object.prototype.hasOwnProperty.call(p.operations, "vendorId") ||
+              p.operations.content !== undefined ||
+              p.operations.seo !== undefined ||
+              p.operations.status !== undefined ||
+              p.operations.media !== undefined
+            : false;
+          const productOps = hasProductFields ? 1 : 0;
+          const categoryOps = p.operations?.categories?.length ?? 0;
+          const tagOps = p.operations?.tags?.length ?? 0;
           const variantOps = p.operations?.variants?.length ?? 0;
-          return sum + productOps + variantOps;
+          return sum + productOps + categoryOps + tagOps + variantOps;
         }, 0);
         return totalOps <= 500;
       },

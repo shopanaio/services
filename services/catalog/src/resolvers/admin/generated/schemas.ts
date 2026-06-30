@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BooleanFilter, BulkUpdateCancelReason, BulkUpdateItemStatus, BulkUpdateJobStatus, BulkUpdateOpType, BundleGroupCreateInput, BundleGroupUpdateInput, BundleItemCreateInput, BundleItemType, BundleItemUpdateInput, BundlePriceType, BundlePricingTemplateCreateInput, BundlePricingTemplateUpdateInput, CategoryAddProductInput, CategoryCreateInput, CategoryDeleteInput, CategoryMoveInput, CategoryMoveProductInput, CategoryProductWhereInput, CategoryRebalanceInput, CategoryUpdateInput, CategoryUpdateSortInput, CollectionAddProductsInput, CollectionCreateInput, CollectionDeleteInput, CollectionMediaInput, CollectionMoveProductInput, CollectionRemoveProductsInput, CollectionRuleInput, CollectionType, CollectionUpdateInput, CollectionUpdateRulesInput, ConditionCategory, ConditionCreateInput, ConditionGroupCreateInput, ConditionGroupUpdateInput, ConditionSubject, ConditionUpdateInput, CurrencyCode, DateTimeFilter, DeleteInput, DependencyActionCreateInput, DependencyActionType, DependencyActionUpdateInput, DependencyRuleCreateInput, DependencyRuleUpdateInput, DependencyTargetType, DescriptionInput, DimensionUnit, FacetCreateInput, FacetDeleteInput, FacetGroupCreateInput, FacetGroupDeleteInput, FacetGroupUpdateInput, FacetSelectionMode, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueSort, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, InventoryItemInput, LocaleCode, LogicOperator, NumericOperator, OperationType, OptionDisplayType, PricingWidgetInput, ProductBulkUpdateInput, ProductBulkUpdateItem, ProductContentInput, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductDeleteInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductMediaInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionSyncItemInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueSyncInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductOptionsSyncInput, ProductOrderByInput, ProductSeoInput, ProductSortBy, ProductSortInput, ProductStatus, ProductStatusAction, ProductUpdateInput, ProductUpdateStatusInput, SelectedOptionInput, SeoInput, SortDirection, StateCheckOperator, StringFilter, SwatchType, TagCreateInput, TagDeleteInput, TagUpdateInput, VariantCreateInput, VariantDeleteInput, VariantDimensionsOpInput, VariantInput, VariantInventoryOpInput, VariantMediaOpInput, VariantOptionLinkInput, VariantOptionsOpInput, VariantPricingOpInput, VariantUpdateInput, VariantUpdateMediaInput, VariantUpdateOptionsInput, VariantUpdatePricingInput, WeightUnit } from './types.js'
+import { BooleanFilter, BulkUpdateCancelReason, BulkUpdateItemStatus, BulkUpdateJobStatus, BulkUpdateOpType, BundleBundlesMetaInput, BundleConditionCategory, BundleConditionGroupSyncItemInput, BundleConditionOperator, BundleConditionSubject, BundleConditionSyncItemInput, BundleConfigurationCreateInput, BundleConfigurationDeleteInput, BundleConfigurationUpdateInput, BundleCreateInput, BundleDependencyActionSyncItemInput, BundleDependencyActionType, BundleDependencyRuleSyncItemInput, BundleDependencyRulesSyncInput, BundleDependencyTargetType, BundleDisplayStyle, BundleGroupSyncItemInput, BundleGroupsSyncInput, BundleItemOptionSelectionSyncItemInput, BundleItemOptionValueSelectionStatus, BundleItemOptionValueSelectionSyncItemInput, BundleItemSyncItemInput, BundleItemType, BundleLogicOperator, BundleOrderByInput, BundleOrderField, BundlePriceRuleAmountInput, BundlePriceRuleInput, BundlePriceRulePercentInput, BundlePriceType, BundlePricingTemplateSyncItemInput, BundlePricingTemplatesSyncInput, BundleType, BundleUpdateInput, BundleWhereInput, CategoryCategoriesMetaInput, CategoryContentInput, CategoryCreateInput, CategoryDeleteInput, CategoryHierarchyInput, CategoryHierarchyScopeDirection, CategoryHierarchyScopeInput, CategoryHierarchyScopeMode, CategoryMediaInput, CategoryMoveInput, CategoryOrderByInput, CategoryOrderField, CategoryProductsScopeInput, CategoryRebalanceInput, CategorySortInput, CategoryStatus, CategoryUpdateInput, CategoryWhereInput, CollectionAddProductsInput, CollectionCreateInput, CollectionDeleteInput, CollectionMediaInput, CollectionMoveProductInput, CollectionRemoveProductsInput, CollectionRuleInput, CollectionType, CollectionUpdateInput, CollectionUpdateRulesInput, CurrencyCode, DateTimeFilter, DimensionUnit, DimensionsInput, FacetCreateInput, FacetCreateSourceInput, FacetCreateValueCandidateInput, FacetDeleteInput, FacetMoveInput, FacetRebalanceInput, FacetSelectionMode, FacetSourceCandidateOrderByInput, FacetSourceCandidateOrderField, FacetSourceCandidateWhereInput, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCandidateOrderByInput, FacetValueCandidateOrderField, FacetValueCandidateType, FacetValueCandidateWhereInput, FacetValueCandidatesMetaInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueEmptyDisplayAction, FacetValueKind, FacetValueMergeInput, FacetValueUnmergeInput, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, InventoryItemCostInput, InventoryItemInput, InventoryItemInventoryItemsMetaInput, InventoryItemOrderByInput, InventoryItemOrderField, InventoryItemStockInput, InventoryItemUpdateInput, InventoryItemWarehouseScopeInput, InventoryItemWarehouseScopeMode, InventoryItemWhereInput, ListingOrderByInput, ListingOrderField, ListingWhereInput, LocaleCode, OperationType, OptionDisplayType, PricingWidgetInput, ProductBulkUpdateInput, ProductBulkUpdateItem, ProductCategoriesScopeInput, ProductCategoryOperationAction, ProductCategoryOperationInput, ProductContentInput, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductDeleteInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductKind, ProductMediaInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionSyncItemInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueSyncInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductOptionsSyncInput, ProductOrderByInput, ProductOrderField, ProductProductsMetaInput, ProductSeoInput, ProductSortBy, ProductSortInput, ProductStatus, ProductStatusAction, ProductTagOperationAction, ProductTagOperationInput, ProductUpdateInput, ProductUpdateStatusInput, ProductWhereInput, RichTextInput, SelectedOptionInput, SeoInput, SortDirection, StringFilter, SwatchType, TagCreateInput, TagDeleteInput, TagOrderByInput, TagOrderField, TagUpdateInput, TagWhereInput, ThresholdMethod, VariantCreateInput, VariantDeleteInput, VariantDimensionsOpInput, VariantInput, VariantInventoryOpInput, VariantMediaOpInput, VariantOperationAction, VariantOperationInput, VariantOptionLinkInput, VariantOptionsOpInput, VariantOrderByInput, VariantOrderField, VariantPricingOpInput, VariantUpdateMediaInput, VariantUpdateOptionsInput, VariantUpdatePricingInput, VariantWhereInput, VendorCreateInput, VendorOrderByInput, VendorOrderField, VendorWhereInput, WarehouseAssignableVariantOrderByInput, WarehouseAssignableVariantOrderField, WarehouseAssignableVariantWhereInput, WarehouseConnectionInput, WarehouseCreateInput, WarehouseDeleteInput, WarehouseOrderByInput, WarehouseOrderField, WarehouseStockConnectionInput, WarehouseStockCreateInput, WarehouseStockCreateItemInput, WarehouseStockDeleteInput, WarehouseStockDeleteItemInput, WarehouseStockOrderByInput, WarehouseStockOrderField, WarehouseStockWhereInput, WarehouseUpdateInput, WarehouseWhereInput, WeightInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -19,41 +19,77 @@ export const BulkUpdateJobStatusSchema = z.nativeEnum(BulkUpdateJobStatus);
 
 export const BulkUpdateOpTypeSchema = z.nativeEnum(BulkUpdateOpType);
 
+export const BundleConditionCategorySchema = z.nativeEnum(BundleConditionCategory);
+
+export const BundleConditionOperatorSchema = z.nativeEnum(BundleConditionOperator);
+
+export const BundleConditionSubjectSchema = z.nativeEnum(BundleConditionSubject);
+
+export const BundleDependencyActionTypeSchema = z.nativeEnum(BundleDependencyActionType);
+
+export const BundleDependencyTargetTypeSchema = z.nativeEnum(BundleDependencyTargetType);
+
+export const BundleDisplayStyleSchema = z.nativeEnum(BundleDisplayStyle);
+
+export const BundleItemOptionValueSelectionStatusSchema = z.nativeEnum(BundleItemOptionValueSelectionStatus);
+
 export const BundleItemTypeSchema = z.nativeEnum(BundleItemType);
+
+export const BundleLogicOperatorSchema = z.nativeEnum(BundleLogicOperator);
+
+export const BundleOrderFieldSchema = z.nativeEnum(BundleOrderField);
 
 export const BundlePriceTypeSchema = z.nativeEnum(BundlePriceType);
 
+export const BundleTypeSchema = z.nativeEnum(BundleType);
+
+export const CategoryHierarchyScopeDirectionSchema = z.nativeEnum(CategoryHierarchyScopeDirection);
+
+export const CategoryHierarchyScopeModeSchema = z.nativeEnum(CategoryHierarchyScopeMode);
+
+export const CategoryOrderFieldSchema = z.nativeEnum(CategoryOrderField);
+
+export const CategoryStatusSchema = z.nativeEnum(CategoryStatus);
+
 export const CollectionTypeSchema = z.nativeEnum(CollectionType);
 
-export const ConditionCategorySchema = z.nativeEnum(ConditionCategory);
-
-export const ConditionSubjectSchema = z.nativeEnum(ConditionSubject);
-
 export const CurrencyCodeSchema = z.nativeEnum(CurrencyCode);
-
-export const DependencyActionTypeSchema = z.nativeEnum(DependencyActionType);
-
-export const DependencyTargetTypeSchema = z.nativeEnum(DependencyTargetType);
 
 export const DimensionUnitSchema = z.nativeEnum(DimensionUnit);
 
 export const FacetSelectionModeSchema = z.nativeEnum(FacetSelectionMode);
 
+export const FacetSourceCandidateOrderFieldSchema = z.nativeEnum(FacetSourceCandidateOrderField);
+
 export const FacetTypeSchema = z.nativeEnum(FacetType);
 
 export const FacetUiTypeSchema = z.nativeEnum(FacetUiType);
 
-export const FacetValueSortSchema = z.nativeEnum(FacetValueSort);
+export const FacetValueCandidateOrderFieldSchema = z.nativeEnum(FacetValueCandidateOrderField);
+
+export const FacetValueCandidateTypeSchema = z.nativeEnum(FacetValueCandidateType);
+
+export const FacetValueEmptyDisplayActionSchema = z.nativeEnum(FacetValueEmptyDisplayAction);
+
+export const FacetValueKindSchema = z.nativeEnum(FacetValueKind);
+
+export const InventoryItemOrderFieldSchema = z.nativeEnum(InventoryItemOrderField);
+
+export const InventoryItemWarehouseScopeModeSchema = z.nativeEnum(InventoryItemWarehouseScopeMode);
+
+export const ListingOrderFieldSchema = z.nativeEnum(ListingOrderField);
 
 export const LocaleCodeSchema = z.nativeEnum(LocaleCode);
-
-export const LogicOperatorSchema = z.nativeEnum(LogicOperator);
-
-export const NumericOperatorSchema = z.nativeEnum(NumericOperator);
 
 export const OperationTypeSchema = z.nativeEnum(OperationType);
 
 export const OptionDisplayTypeSchema = z.nativeEnum(OptionDisplayType);
+
+export const ProductCategoryOperationActionSchema = z.nativeEnum(ProductCategoryOperationAction);
+
+export const ProductKindSchema = z.nativeEnum(ProductKind);
+
+export const ProductOrderFieldSchema = z.nativeEnum(ProductOrderField);
 
 export const ProductSortBySchema = z.nativeEnum(ProductSortBy);
 
@@ -61,11 +97,27 @@ export const ProductStatusSchema = z.nativeEnum(ProductStatus);
 
 export const ProductStatusActionSchema = z.nativeEnum(ProductStatusAction);
 
+export const ProductTagOperationActionSchema = z.nativeEnum(ProductTagOperationAction);
+
 export const SortDirectionSchema = z.nativeEnum(SortDirection);
 
-export const StateCheckOperatorSchema = z.nativeEnum(StateCheckOperator);
-
 export const SwatchTypeSchema = z.nativeEnum(SwatchType);
+
+export const TagOrderFieldSchema = z.nativeEnum(TagOrderField);
+
+export const ThresholdMethodSchema = z.nativeEnum(ThresholdMethod);
+
+export const VariantOperationActionSchema = z.nativeEnum(VariantOperationAction);
+
+export const VariantOrderFieldSchema = z.nativeEnum(VariantOrderField);
+
+export const VendorOrderFieldSchema = z.nativeEnum(VendorOrderField);
+
+export const WarehouseAssignableVariantOrderFieldSchema = z.nativeEnum(WarehouseAssignableVariantOrderField);
+
+export const WarehouseOrderFieldSchema = z.nativeEnum(WarehouseOrderField);
+
+export const WarehouseStockOrderFieldSchema = z.nativeEnum(WarehouseStockOrderField);
 
 export const WeightUnitSchema = z.nativeEnum(WeightUnit);
 
@@ -78,95 +130,271 @@ export function BooleanFilterSchema(): z.ZodObject<Properties<BooleanFilter>> {
   })
 }
 
-export function BundleGroupCreateInputSchema(): z.ZodObject<Properties<BundleGroupCreateInput>> {
+export function BundleBundlesMetaInputSchema(): z.ZodObject<Properties<BundleBundlesMetaInput>> {
   return z.object({
+    categoriesScope: z.lazy(() => ProductCategoriesScopeInputSchema().nullish())
+  })
+}
+
+export function BundleConditionGroupSyncItemInputSchema(): z.ZodObject<Properties<BundleConditionGroupSyncItemInput>> {
+  return z.object({
+    conditions: z.array(z.lazy(() => BundleConditionSyncItemInputSchema())),
+    id: z.string().nullish(),
+    logicOperator: BundleLogicOperatorSchema,
+    sortIndex: z.number()
+  })
+}
+
+export function BundleConditionSyncItemInputSchema(): z.ZodObject<Properties<BundleConditionSyncItemInput>> {
+  return z.object({
+    category: BundleConditionCategorySchema,
+    id: z.string().nullish(),
+    operator: BundleConditionOperatorSchema,
+    sortIndex: z.number(),
+    subject: BundleConditionSubjectSchema,
+    targetId: z.string(),
+    targetType: BundleDependencyTargetTypeSchema,
+    value: z.number().nullish()
+  })
+}
+
+export function BundleConfigurationCreateInputSchema(): z.ZodObject<Properties<BundleConfigurationCreateInput>> {
+  return z.object({
+    bundleId: z.string(),
+    expectedRevision: z.number(),
+    name: z.string()
+  })
+}
+
+export function BundleConfigurationDeleteInputSchema(): z.ZodObject<Properties<BundleConfigurationDeleteInput>> {
+  return z.object({
+    expectedRevision: z.number(),
+    id: z.string()
+  })
+}
+
+export function BundleConfigurationUpdateInputSchema(): z.ZodObject<Properties<BundleConfigurationUpdateInput>> {
+  return z.object({
+    expectedRevision: z.number(),
+    id: z.string(),
+    name: z.string().nullish()
+  })
+}
+
+export function BundleCreateInputSchema(): z.ZodObject<Properties<BundleCreateInput>> {
+  return z.object({
+    description: z.lazy(() => RichTextInputSchema().nullish()),
+    displayStyle: BundleDisplayStyleSchema.nullish(),
+    excerpt: z.lazy(() => RichTextInputSchema().nullish()),
+    handle: z.string(),
+    inventoryItem: z.lazy(() => InventoryItemInputSchema().nullish()),
+    mediaFileIds: z.array(z.string()).nullish(),
+    options: z.array(z.lazy(() => ProductCreateOptionInputSchema())).nullish(),
+    title: z.string(),
+    type: BundleTypeSchema.nullish(),
+    variants: z.array(z.lazy(() => ProductCreateVariantInputSchema())).nullish(),
+    vendorId: z.string().nullish()
+  })
+}
+
+export function BundleDependencyActionSyncItemInputSchema(): z.ZodObject<Properties<BundleDependencyActionSyncItemInput>> {
+  return z.object({
+    actionType: BundleDependencyActionTypeSchema,
+    id: z.string().nullish(),
+    priceRule: z.lazy(() => BundlePriceRuleInputSchema().nullish()),
+    requiredValue: z.boolean().nullish(),
+    sortIndex: z.number(),
+    stackable: z.boolean(),
+    targetId: z.string().nullish(),
+    targetType: BundleDependencyTargetTypeSchema
+  })
+}
+
+export function BundleDependencyRuleSyncItemInputSchema(): z.ZodObject<Properties<BundleDependencyRuleSyncItemInput>> {
+  return z.object({
+    actions: z.array(z.lazy(() => BundleDependencyActionSyncItemInputSchema())),
+    conditionGroups: z.array(z.lazy(() => BundleConditionGroupSyncItemInputSchema())),
+    enabled: z.boolean(),
+    id: z.string().nullish(),
+    logicOperator: BundleLogicOperatorSchema,
+    name: z.string(),
+    priority: z.number()
+  })
+}
+
+export function BundleDependencyRulesSyncInputSchema(): z.ZodObject<Properties<BundleDependencyRulesSyncInput>> {
+  return z.object({
+    configurationId: z.string(),
+    dependencyRules: z.array(z.lazy(() => BundleDependencyRuleSyncItemInputSchema())),
+    expectedRevision: z.number()
+  })
+}
+
+export function BundleGroupSyncItemInputSchema(): z.ZodObject<Properties<BundleGroupSyncItemInput>> {
+  return z.object({
+    id: z.string().nullish(),
+    items: z.array(z.lazy(() => BundleItemSyncItemInputSchema())),
     maxSelection: z.number().nullish(),
     minSelection: z.number().nullish(),
-    productId: z.string(),
-    sortIndex: z.number().nullish(),
+    sortIndex: z.number(),
     title: z.string()
   })
 }
 
-export function BundleGroupUpdateInputSchema(): z.ZodObject<Properties<BundleGroupUpdateInput>> {
+export function BundleGroupsSyncInputSchema(): z.ZodObject<Properties<BundleGroupsSyncInput>> {
   return z.object({
-    id: z.string(),
-    maxSelection: z.number().nullish(),
-    minSelection: z.number().nullish(),
-    sortIndex: z.number().nullish(),
-    title: z.string().nullish()
+    configurationId: z.string(),
+    expectedRevision: z.number(),
+    groups: z.array(z.lazy(() => BundleGroupSyncItemInputSchema()))
   })
 }
 
-export function BundleItemCreateInputSchema(): z.ZodObject<Properties<BundleItemCreateInput>> {
+export function BundleItemOptionSelectionSyncItemInputSchema(): z.ZodObject<Properties<BundleItemOptionSelectionSyncItemInput>> {
+  return z.object({
+    id: z.string().nullish(),
+    optionId: z.string(),
+    parentOptionId: z.string().nullish(),
+    sortIndex: z.number(),
+    values: z.array(z.lazy(() => BundleItemOptionValueSelectionSyncItemInputSchema()))
+  })
+}
+
+export function BundleItemOptionValueSelectionSyncItemInputSchema(): z.ZodObject<Properties<BundleItemOptionValueSelectionSyncItemInput>> {
+  return z.object({
+    id: z.string().nullish(),
+    optionValueId: z.string().nullish(),
+    sortIndex: z.number(),
+    status: BundleItemOptionValueSelectionStatusSchema,
+    value: z.string()
+  })
+}
+
+export function BundleItemSyncItemInputSchema(): z.ZodObject<Properties<BundleItemSyncItemInput>> {
   return z.object({
     defaultQty: z.number().nullish(),
-    excludedVariantIds: z.array(z.string()).nullish(),
     featuredImageId: z.string().nullish(),
-    groupId: z.string(),
+    id: z.string().nullish(),
     itemType: BundleItemTypeSchema,
     maxQty: z.number().nullish(),
     minQty: z.number().nullish(),
-    priceType: BundlePriceTypeSchema.nullish(),
-    priceValue: z.number().nullish(),
+    optionSelections: z.array(z.lazy(() => BundleItemOptionSelectionSyncItemInputSchema())).nullish(),
+    priceRule: z.lazy(() => BundlePriceRuleInputSchema().nullish()),
     pricingTemplateId: z.string().nullish(),
     refProductId: z.string().nullish(),
     refVariantId: z.string().nullish(),
-    selected: z.boolean().nullish(),
-    sortIndex: z.number().nullish(),
+    selected: z.boolean(),
+    sortIndex: z.number(),
     title: z.string().nullish(),
-    visible: z.boolean().nullish()
+    visible: z.boolean()
   })
 }
 
-export function BundleItemUpdateInputSchema(): z.ZodObject<Properties<BundleItemUpdateInput>> {
+export function BundleOrderByInputSchema(): z.ZodObject<Properties<BundleOrderByInput>> {
   return z.object({
-    defaultQty: z.number().nullish(),
-    excludedVariantIds: z.array(z.string()).nullish(),
-    featuredImageId: z.string().nullish(),
-    id: z.string(),
-    maxQty: z.number().nullish(),
-    minQty: z.number().nullish(),
-    priceType: BundlePriceTypeSchema.nullish(),
-    priceValue: z.number().nullish(),
-    pricingTemplateId: z.string().nullish(),
-    selected: z.boolean().nullish(),
-    sortIndex: z.number().nullish(),
-    title: z.string().nullish(),
-    visible: z.boolean().nullish()
+    direction: SortDirectionSchema,
+    field: BundleOrderFieldSchema
   })
 }
 
-export function BundlePricingTemplateCreateInputSchema(): z.ZodObject<Properties<BundlePricingTemplateCreateInput>> {
+export function BundlePriceRuleAmountInputSchema(): z.ZodObject<Properties<BundlePriceRuleAmountInput>> {
   return z.object({
+    amountMinor: z.string(),
+    currency: CurrencyCodeSchema
+  })
+}
+
+export function BundlePriceRuleInputSchema(): z.ZodObject<Properties<BundlePriceRuleInput>> {
+  return z.object({
+    amounts: z.array(z.lazy(() => BundlePriceRuleAmountInputSchema())).nullish(),
+    id: z.string().nullish(),
+    percent: z.lazy(() => BundlePriceRulePercentInputSchema().nullish()),
+    priceType: BundlePriceTypeSchema
+  })
+}
+
+export function BundlePriceRulePercentInputSchema(): z.ZodObject<Properties<BundlePriceRulePercentInput>> {
+  return z.object({
+    value: z.number()
+  })
+}
+
+export function BundlePricingTemplateSyncItemInputSchema(): z.ZodObject<Properties<BundlePricingTemplateSyncItemInput>> {
+  return z.object({
+    id: z.string().nullish(),
     name: z.string(),
-    priceType: BundlePriceTypeSchema,
-    priceValue: z.number().nullish(),
-    productId: z.string(),
-    sortIndex: z.number().nullish()
+    priceRule: z.lazy(() => BundlePriceRuleInputSchema()),
+    sortIndex: z.number()
   })
 }
 
-export function BundlePricingTemplateUpdateInputSchema(): z.ZodObject<Properties<BundlePricingTemplateUpdateInput>> {
+export function BundlePricingTemplatesSyncInputSchema(): z.ZodObject<Properties<BundlePricingTemplatesSyncInput>> {
   return z.object({
-    id: z.string(),
-    name: z.string().nullish(),
-    priceType: BundlePriceTypeSchema.nullish(),
-    priceValue: z.number().nullish(),
-    sortIndex: z.number().nullish()
+    configurationId: z.string(),
+    expectedRevision: z.number(),
+    pricingTemplates: z.array(z.lazy(() => BundlePricingTemplateSyncItemInputSchema()))
   })
 }
 
-export function CategoryAddProductInputSchema(): z.ZodObject<Properties<CategoryAddProductInput>> {
+export function BundleUpdateInputSchema(): z.ZodObject<Properties<BundleUpdateInput>> {
   return z.object({
-    categoryId: z.string(),
-    productId: z.string()
+    categories: z.array(z.lazy(() => ProductCategoryOperationInputSchema())).nullish(),
+    content: z.lazy(() => ProductContentInputSchema().nullish()),
+    displayStyle: BundleDisplayStyleSchema.nullish(),
+    handle: z.string().nullish(),
+    media: z.lazy(() => ProductMediaInputSchema().nullish()),
+    seo: z.lazy(() => ProductSeoInputSchema().nullish()),
+    status: ProductStatusSchema.nullish(),
+    tags: z.array(z.lazy(() => ProductTagOperationInputSchema())).nullish(),
+    title: z.string().nullish(),
+    type: BundleTypeSchema.nullish(),
+    variants: z.array(z.lazy(() => VariantOperationInputSchema())).nullish(),
+    vendorId: z.string().nullish()
+  })
+}
+
+export function BundleWhereInputSchema(): z.ZodObject<Properties<BundleWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => BundleWhereInputSchema())).nullish(),
+    _not: z.lazy(() => BundleWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => BundleWhereInputSchema())).nullish(),
+    brandName: z.lazy(() => StringFilterSchema().nullish()),
+    bundleType: z.lazy(() => StringFilterSchema().nullish()),
+    createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    currency: z.lazy(() => StringFilterSchema().nullish()),
+    handle: z.lazy(() => StringFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    locale: z.lazy(() => StringFilterSchema().nullish()),
+    maxAmountMinor: z.lazy(() => IntFilterSchema().nullish()),
+    maxPriceMinor: z.lazy(() => IntFilterSchema().nullish()),
+    minAmountMinor: z.lazy(() => IntFilterSchema().nullish()),
+    minPriceMinor: z.lazy(() => IntFilterSchema().nullish()),
+    name: z.lazy(() => StringFilterSchema().nullish()),
+    primaryCategoryId: z.lazy(() => IdFilterSchema().nullish()),
+    primaryCategoryName: z.lazy(() => StringFilterSchema().nullish()),
+    publishedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    vendorId: z.lazy(() => IdFilterSchema().nullish())
+  })
+}
+
+export function CategoryCategoriesMetaInputSchema(): z.ZodObject<Properties<CategoryCategoriesMetaInput>> {
+  return z.object({
+    hierarchyScope: z.lazy(() => CategoryHierarchyScopeInputSchema().nullish()),
+    productsScope: z.lazy(() => CategoryProductsScopeInputSchema().nullish())
+  })
+}
+
+export function CategoryContentInputSchema(): z.ZodObject<Properties<CategoryContentInput>> {
+  return z.object({
+    description: z.lazy(() => RichTextInputSchema().nullish()),
+    excerpt: z.lazy(() => RichTextInputSchema().nullish())
   })
 }
 
 export function CategoryCreateInputSchema(): z.ZodObject<Properties<CategoryCreateInput>> {
   return z.object({
-    description: z.lazy(() => DescriptionInputSchema().nullish()),
+    description: z.lazy(() => RichTextInputSchema().nullish()),
+    excerpt: z.lazy(() => RichTextInputSchema().nullish()),
     handle: z.string(),
     mediaFileIds: z.array(z.string()).nullish(),
     name: z.string(),
@@ -183,6 +411,27 @@ export function CategoryDeleteInputSchema(): z.ZodObject<Properties<CategoryDele
   })
 }
 
+export function CategoryHierarchyInputSchema(): z.ZodObject<Properties<CategoryHierarchyInput>> {
+  return z.object({
+    parentId: z.string().nullish()
+  })
+}
+
+export function CategoryHierarchyScopeInputSchema(): z.ZodObject<Properties<CategoryHierarchyScopeInput>> {
+  return z.object({
+    direction: CategoryHierarchyScopeDirectionSchema,
+    includeReference: z.boolean().default(false).nullish(),
+    mode: CategoryHierarchyScopeModeSchema,
+    referenceId: z.string()
+  })
+}
+
+export function CategoryMediaInputSchema(): z.ZodObject<Properties<CategoryMediaInput>> {
+  return z.object({
+    fileIds: z.array(z.string())
+  })
+}
+
 export function CategoryMoveInputSchema(): z.ZodObject<Properties<CategoryMoveInput>> {
   return z.object({
     id: z.string(),
@@ -190,23 +439,17 @@ export function CategoryMoveInputSchema(): z.ZodObject<Properties<CategoryMoveIn
   })
 }
 
-export function CategoryMoveProductInputSchema(): z.ZodObject<Properties<CategoryMoveProductInput>> {
+export function CategoryOrderByInputSchema(): z.ZodObject<Properties<CategoryOrderByInput>> {
   return z.object({
-    afterProductId: z.string().nullish(),
-    beforeProductId: z.string().nullish(),
-    categoryId: z.string(),
-    productId: z.string()
+    direction: SortDirectionSchema,
+    field: CategoryOrderFieldSchema
   })
 }
 
-export function CategoryProductWhereInputSchema(): z.ZodObject<Properties<CategoryProductWhereInput>> {
+export function CategoryProductsScopeInputSchema(): z.ZodObject<Properties<CategoryProductsScopeInput>> {
   return z.object({
-    _and: z.array(z.lazy(() => CategoryProductWhereInputSchema())).nullish(),
-    _not: z.lazy(() => CategoryProductWhereInputSchema().nullish()),
-    _or: z.array(z.lazy(() => CategoryProductWhereInputSchema())).nullish(),
-    createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
-    deletedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
-    id: z.lazy(() => IdFilterSchema().nullish())
+    mode: CategoryHierarchyScopeModeSchema,
+    referenceIds: z.array(z.string())
   })
 }
 
@@ -216,22 +459,44 @@ export function CategoryRebalanceInputSchema(): z.ZodObject<Properties<CategoryR
   })
 }
 
-export function CategoryUpdateInputSchema(): z.ZodObject<Properties<CategoryUpdateInput>> {
+export function CategorySortInputSchema(): z.ZodObject<Properties<CategorySortInput>> {
   return z.object({
-    description: z.lazy(() => DescriptionInputSchema().nullish()),
-    handle: z.string().nullish(),
-    id: z.string(),
-    mediaFileIds: z.array(z.string()).nullish(),
-    name: z.string().nullish(),
-    seo: z.lazy(() => SeoInputSchema().nullish())
+    defaultSort: ProductSortBySchema,
+    defaultSortDirection: SortDirectionSchema
   })
 }
 
-export function CategoryUpdateSortInputSchema(): z.ZodObject<Properties<CategoryUpdateSortInput>> {
+export function CategoryUpdateInputSchema(): z.ZodObject<Properties<CategoryUpdateInput>> {
   return z.object({
-    defaultSort: ProductSortBySchema,
-    defaultSortDirection: SortDirectionSchema,
-    id: z.string()
+    content: z.lazy(() => CategoryContentInputSchema().nullish()),
+    handle: z.string().nullish(),
+    hierarchy: z.lazy(() => CategoryHierarchyInputSchema().nullish()),
+    media: z.lazy(() => CategoryMediaInputSchema().nullish()),
+    name: z.string().nullish(),
+    seo: z.lazy(() => SeoInputSchema().nullish()),
+    sort: z.lazy(() => CategorySortInputSchema().nullish()),
+    status: CategoryStatusSchema.nullish()
+  })
+}
+
+export function CategoryWhereInputSchema(): z.ZodObject<Properties<CategoryWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => CategoryWhereInputSchema())).nullish(),
+    _not: z.lazy(() => CategoryWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => CategoryWhereInputSchema())).nullish(),
+    createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    defaultSort: z.lazy(() => StringFilterSchema().nullish()),
+    defaultSortDirection: z.lazy(() => StringFilterSchema().nullish()),
+    depth: z.lazy(() => IntFilterSchema().nullish()),
+    handle: z.lazy(() => StringFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    locale: z.lazy(() => StringFilterSchema().nullish()),
+    name: z.lazy(() => StringFilterSchema().nullish()),
+    parentId: z.lazy(() => IdFilterSchema().nullish()),
+    path: z.lazy(() => StringFilterSchema().nullish()),
+    productsCount: z.lazy(() => IntFilterSchema().nullish()),
+    publishedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish())
   })
 }
 
@@ -248,7 +513,8 @@ export function CollectionCreateInputSchema(): z.ZodObject<Properties<Collection
     activeTo: z.string().nullish(),
     defaultSort: ProductSortBySchema.nullish(),
     defaultSortDirection: SortDirectionSchema.nullish(),
-    description: z.lazy(() => DescriptionInputSchema().nullish()),
+    description: z.lazy(() => RichTextInputSchema().nullish()),
+    excerpt: z.lazy(() => RichTextInputSchema().nullish()),
     handle: z.string().nullish(),
     media: z.array(z.lazy(() => CollectionMediaInputSchema())).nullish(),
     name: z.string(),
@@ -301,7 +567,8 @@ export function CollectionUpdateInputSchema(): z.ZodObject<Properties<Collection
     activeTo: z.string().nullish(),
     defaultSort: ProductSortBySchema.nullish(),
     defaultSortDirection: SortDirectionSchema.nullish(),
-    description: z.lazy(() => DescriptionInputSchema().nullish()),
+    description: z.lazy(() => RichTextInputSchema().nullish()),
+    excerpt: z.lazy(() => RichTextInputSchema().nullish()),
     handle: z.string().nullish(),
     id: z.string(),
     media: z.array(z.lazy(() => CollectionMediaInputSchema())).nullish(),
@@ -315,48 +582,6 @@ export function CollectionUpdateRulesInputSchema(): z.ZodObject<Properties<Colle
   return z.object({
     collectionId: z.string(),
     rules: z.array(z.lazy(() => CollectionRuleInputSchema()))
-  })
-}
-
-export function ConditionCreateInputSchema(): z.ZodObject<Properties<ConditionCreateInput>> {
-  return z.object({
-    category: ConditionCategorySchema,
-    groupId: z.string(),
-    operator: z.string(),
-    sortIndex: z.number().nullish(),
-    subject: ConditionSubjectSchema,
-    targetId: z.string(),
-    targetType: DependencyTargetTypeSchema,
-    value: z.number().nullish()
-  })
-}
-
-export function ConditionGroupCreateInputSchema(): z.ZodObject<Properties<ConditionGroupCreateInput>> {
-  return z.object({
-    logicOperator: LogicOperatorSchema.nullish(),
-    ruleId: z.string(),
-    sortIndex: z.number().nullish()
-  })
-}
-
-export function ConditionGroupUpdateInputSchema(): z.ZodObject<Properties<ConditionGroupUpdateInput>> {
-  return z.object({
-    id: z.string(),
-    logicOperator: LogicOperatorSchema.nullish(),
-    sortIndex: z.number().nullish()
-  })
-}
-
-export function ConditionUpdateInputSchema(): z.ZodObject<Properties<ConditionUpdateInput>> {
-  return z.object({
-    category: ConditionCategorySchema.nullish(),
-    id: z.string(),
-    operator: z.string().nullish(),
-    sortIndex: z.number().nullish(),
-    subject: ConditionSubjectSchema.nullish(),
-    targetId: z.string().nullish(),
-    targetType: DependencyTargetTypeSchema.nullish(),
-    value: z.number().nullish()
   })
 }
 
@@ -376,77 +601,38 @@ export function DateTimeFilterSchema(): z.ZodObject<Properties<DateTimeFilter>> 
   })
 }
 
-export function DeleteInputSchema(): z.ZodObject<Properties<DeleteInput>> {
+export function DimensionsInputSchema(): z.ZodObject<Properties<DimensionsInput>> {
   return z.object({
-    id: z.string()
-  })
-}
-
-export function DependencyActionCreateInputSchema(): z.ZodObject<Properties<DependencyActionCreateInput>> {
-  return z.object({
-    actionType: DependencyActionTypeSchema,
-    priceType: BundlePriceTypeSchema.nullish(),
-    priceValue: z.number().nullish(),
-    requiredValue: z.boolean().nullish(),
-    ruleId: z.string(),
-    sortIndex: z.number().nullish(),
-    stackable: z.boolean().nullish(),
-    targetId: z.string().nullish(),
-    targetType: DependencyTargetTypeSchema
-  })
-}
-
-export function DependencyActionUpdateInputSchema(): z.ZodObject<Properties<DependencyActionUpdateInput>> {
-  return z.object({
-    actionType: DependencyActionTypeSchema.nullish(),
-    id: z.string(),
-    priceType: BundlePriceTypeSchema.nullish(),
-    priceValue: z.number().nullish(),
-    requiredValue: z.boolean().nullish(),
-    sortIndex: z.number().nullish(),
-    stackable: z.boolean().nullish(),
-    targetId: z.string().nullish(),
-    targetType: DependencyTargetTypeSchema.nullish()
-  })
-}
-
-export function DependencyRuleCreateInputSchema(): z.ZodObject<Properties<DependencyRuleCreateInput>> {
-  return z.object({
-    enabled: z.boolean().nullish(),
-    logicOperator: LogicOperatorSchema.nullish(),
-    name: z.string(),
-    priority: z.number().nullish(),
-    productId: z.string()
-  })
-}
-
-export function DependencyRuleUpdateInputSchema(): z.ZodObject<Properties<DependencyRuleUpdateInput>> {
-  return z.object({
-    enabled: z.boolean().nullish(),
-    id: z.string(),
-    logicOperator: LogicOperatorSchema.nullish(),
-    name: z.string().nullish(),
-    priority: z.number().nullish()
-  })
-}
-
-export function DescriptionInputSchema(): z.ZodObject<Properties<DescriptionInput>> {
-  return z.object({
-    html: z.string(),
-    json: z.record(z.unknown()),
-    text: z.string()
+    height: z.number(),
+    length: z.number(),
+    width: z.number()
   })
 }
 
 export function FacetCreateInputSchema(): z.ZodObject<Properties<FacetCreateInput>> {
   return z.object({
     facetType: FacetTypeSchema,
-    groupId: z.string().nullish(),
     label: z.string(),
     selectionMode: FacetSelectionModeSchema.nullish(),
     slug: z.string(),
-    sortIndex: z.number().nullish(),
-    uiType: FacetUiTypeSchema.nullish()
+    sources: z.array(z.lazy(() => FacetCreateSourceInputSchema())).nullish(),
+    uiType: FacetUiTypeSchema.nullish(),
+    valueCandidates: z.array(z.lazy(() => FacetCreateValueCandidateInputSchema())).nullish()
+  })
+}
+
+export function FacetCreateSourceInputSchema(): z.ZodObject<Properties<FacetCreateSourceInput>> {
+  return z.object({
+    handle: z.string(),
+    name: z.string()
+  })
+}
+
+export function FacetCreateValueCandidateInputSchema(): z.ZodObject<Properties<FacetCreateValueCandidateInput>> {
+  return z.object({
+    handle: z.string(),
+    label: z.string(),
+    sourceHandle: z.string()
   })
 }
 
@@ -456,26 +642,38 @@ export function FacetDeleteInputSchema(): z.ZodObject<Properties<FacetDeleteInpu
   })
 }
 
-export function FacetGroupCreateInputSchema(): z.ZodObject<Properties<FacetGroupCreateInput>> {
+export function FacetMoveInputSchema(): z.ZodObject<Properties<FacetMoveInput>> {
   return z.object({
-    collapsed: z.boolean().nullish(),
-    name: z.string(),
-    sortIndex: z.number().nullish()
-  })
-}
-
-export function FacetGroupDeleteInputSchema(): z.ZodObject<Properties<FacetGroupDeleteInput>> {
-  return z.object({
+    afterFacetId: z.string().nullish(),
+    beforeFacetId: z.string().nullish(),
     id: z.string()
   })
 }
 
-export function FacetGroupUpdateInputSchema(): z.ZodObject<Properties<FacetGroupUpdateInput>> {
+export function FacetRebalanceInputSchema(): z.ZodObject<Properties<FacetRebalanceInput>> {
   return z.object({
-    collapsed: z.boolean().nullish(),
-    id: z.string(),
-    name: z.string().nullish(),
-    sortIndex: z.number().nullish()
+    confirm: z.boolean().default(true).nullish()
+  })
+}
+
+export function FacetSourceCandidateOrderByInputSchema(): z.ZodObject<Properties<FacetSourceCandidateOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: FacetSourceCandidateOrderFieldSchema
+  })
+}
+
+export function FacetSourceCandidateWhereInputSchema(): z.ZodObject<Properties<FacetSourceCandidateWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => FacetSourceCandidateWhereInputSchema())).nullish(),
+    _not: z.lazy(() => FacetSourceCandidateWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => FacetSourceCandidateWhereInputSchema())).nullish(),
+    facetType: z.lazy(() => StringFilterSchema().nullish()),
+    handle: z.lazy(() => StringFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    name: z.lazy(() => StringFilterSchema().nullish()),
+    sortName: z.lazy(() => StringFilterSchema().nullish()),
+    sourceSortBucket: z.lazy(() => IntFilterSchema().nullish())
   })
 }
 
@@ -508,17 +706,37 @@ export function FacetSwatchUpdateInputSchema(): z.ZodObject<Properties<FacetSwat
 
 export function FacetUpdateInputSchema(): z.ZodObject<Properties<FacetUpdateInput>> {
   return z.object({
-    groupId: z.string().nullish(),
     id: z.string(),
-    indexable: z.boolean().nullish(),
     label: z.string().nullish(),
-    maxValuesVisible: z.number().nullish(),
-    minValues: z.number().nullish(),
     selectionMode: FacetSelectionModeSchema.nullish(),
     slug: z.string().nullish(),
-    sortIndex: z.number().nullish(),
-    uiType: FacetUiTypeSchema.nullish(),
-    valueSort: FacetValueSortSchema.nullish()
+    uiType: FacetUiTypeSchema.nullish()
+  })
+}
+
+export function FacetValueCandidateOrderByInputSchema(): z.ZodObject<Properties<FacetValueCandidateOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: FacetValueCandidateOrderFieldSchema
+  })
+}
+
+export function FacetValueCandidateWhereInputSchema(): z.ZodObject<Properties<FacetValueCandidateWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => FacetValueCandidateWhereInputSchema())).nullish(),
+    _not: z.lazy(() => FacetValueCandidateWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => FacetValueCandidateWhereInputSchema())).nullish(),
+    handle: z.lazy(() => StringFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    label: z.lazy(() => StringFilterSchema().nullish())
+  })
+}
+
+export function FacetValueCandidatesMetaInputSchema(): z.ZodObject<Properties<FacetValueCandidatesMetaInput>> {
+  return z.object({
+    candidateType: FacetValueCandidateTypeSchema,
+    facetId: z.string().nullish(),
+    sourceHandles: z.array(z.string()).nullish()
   })
 }
 
@@ -526,10 +744,11 @@ export function FacetValueCreateInputSchema(): z.ZodObject<Properties<FacetValue
   return z.object({
     enabled: z.boolean().nullish(),
     facetId: z.string(),
+    handle: z.string(),
+    kind: FacetValueKindSchema.default(FacetValueKind.Display).nullish(),
     label: z.string(),
-    slug: z.string(),
     sortIndex: z.number().nullish(),
-    sourceHandles: z.array(z.string()).nullish(),
+    sourceValueIds: z.array(z.string()).nullish(),
     swatchId: z.string().nullish()
   })
 }
@@ -540,14 +759,30 @@ export function FacetValueDeleteInputSchema(): z.ZodObject<Properties<FacetValue
   })
 }
 
+export function FacetValueMergeInputSchema(): z.ZodObject<Properties<FacetValueMergeInput>> {
+  return z.object({
+    facetId: z.string(),
+    sourceValueIds: z.array(z.string()),
+    targetDisplayValueId: z.string().nullish(),
+    targetHandle: z.string().nullish(),
+    targetLabel: z.string().nullish()
+  })
+}
+
+export function FacetValueUnmergeInputSchema(): z.ZodObject<Properties<FacetValueUnmergeInput>> {
+  return z.object({
+    emptyDisplayAction: FacetValueEmptyDisplayActionSchema.default(FacetValueEmptyDisplayAction.Disable).nullish(),
+    sourceValueIds: z.array(z.string())
+  })
+}
+
 export function FacetValueUpdateInputSchema(): z.ZodObject<Properties<FacetValueUpdateInput>> {
   return z.object({
     enabled: z.boolean().nullish(),
+    handle: z.string().nullish(),
     id: z.string(),
     label: z.string().nullish(),
-    slug: z.string().nullish(),
     sortIndex: z.number().nullish(),
-    sourceHandles: z.array(z.string()).nullish(),
     swatchId: z.string().nullish()
   })
 }
@@ -595,11 +830,107 @@ export function IntFilterSchema(): z.ZodObject<Properties<IntFilter>> {
   })
 }
 
+export function InventoryItemCostInputSchema(): z.ZodObject<Properties<InventoryItemCostInput>> {
+  return z.object({
+    amountMinor: z.string(),
+    currency: z.string()
+  })
+}
+
 export function InventoryItemInputSchema(): z.ZodObject<Properties<InventoryItemInput>> {
   return z.object({
     continueSellingWhenOutOfStock: z.boolean().nullish(),
     sku: z.string().nullish(),
     tracked: z.boolean()
+  })
+}
+
+export function InventoryItemInventoryItemsMetaInputSchema(): z.ZodObject<Properties<InventoryItemInventoryItemsMetaInput>> {
+  return z.object({
+    warehouseScope: z.lazy(() => InventoryItemWarehouseScopeInputSchema().nullish())
+  })
+}
+
+export function InventoryItemOrderByInputSchema(): z.ZodObject<Properties<InventoryItemOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: InventoryItemOrderFieldSchema
+  })
+}
+
+export function InventoryItemStockInputSchema(): z.ZodObject<Properties<InventoryItemStockInput>> {
+  return z.object({
+    onHand: z.number(),
+    unavailable: z.number().nullish(),
+    warehouseId: z.string()
+  })
+}
+
+export function InventoryItemUpdateInputSchema(): z.ZodObject<Properties<InventoryItemUpdateInput>> {
+  return z.object({
+    continueSellingWhenOutOfStock: z.boolean().nullish(),
+    id: z.string(),
+    sku: z.string().nullish(),
+    stock: z.lazy(() => InventoryItemStockInputSchema().nullish()),
+    trackInventory: z.boolean().nullish(),
+    unitCost: z.lazy(() => InventoryItemCostInputSchema().nullish())
+  })
+}
+
+export function InventoryItemWarehouseScopeInputSchema(): z.ZodObject<Properties<InventoryItemWarehouseScopeInput>> {
+  return z.object({
+    mode: InventoryItemWarehouseScopeModeSchema,
+    referenceIds: z.array(z.string())
+  })
+}
+
+export function InventoryItemWhereInputSchema(): z.ZodObject<Properties<InventoryItemWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => InventoryItemWhereInputSchema())).nullish(),
+    _not: z.lazy(() => InventoryItemWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => InventoryItemWhereInputSchema())).nullish(),
+    availableForSale: z.lazy(() => IntFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    productId: z.lazy(() => IdFilterSchema().nullish()),
+    productName: z.lazy(() => StringFilterSchema().nullish()),
+    quantityOnHand: z.lazy(() => IntFilterSchema().nullish()),
+    reservedQuantity: z.lazy(() => IntFilterSchema().nullish()),
+    sku: z.lazy(() => StringFilterSchema().nullish()),
+    trackInventory: z.lazy(() => BooleanFilterSchema().nullish()),
+    unavailableQuantity: z.lazy(() => IntFilterSchema().nullish()),
+    variantId: z.lazy(() => IdFilterSchema().nullish())
+  })
+}
+
+export function ListingOrderByInputSchema(): z.ZodObject<Properties<ListingOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: ListingOrderFieldSchema
+  })
+}
+
+export function ListingWhereInputSchema(): z.ZodObject<Properties<ListingWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => ListingWhereInputSchema())).nullish(),
+    _not: z.lazy(() => ListingWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => ListingWhereInputSchema())).nullish(),
+    brandName: z.lazy(() => StringFilterSchema().nullish()),
+    createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    currency: z.lazy(() => StringFilterSchema().nullish()),
+    handle: z.lazy(() => StringFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    kind: z.lazy(() => StringFilterSchema().nullish()),
+    locale: z.lazy(() => StringFilterSchema().nullish()),
+    maxAmountMinor: z.lazy(() => IntFilterSchema().nullish()),
+    maxPriceMinor: z.lazy(() => IntFilterSchema().nullish()),
+    minAmountMinor: z.lazy(() => IntFilterSchema().nullish()),
+    minPriceMinor: z.lazy(() => IntFilterSchema().nullish()),
+    name: z.lazy(() => StringFilterSchema().nullish()),
+    primaryCategoryId: z.lazy(() => IdFilterSchema().nullish()),
+    primaryCategoryName: z.lazy(() => StringFilterSchema().nullish()),
+    publishedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    vendorId: z.lazy(() => IdFilterSchema().nullish())
   })
 }
 
@@ -628,22 +959,40 @@ export function ProductBulkUpdateItemSchema(): z.ZodObject<Properties<ProductBul
   })
 }
 
+export function ProductCategoriesScopeInputSchema(): z.ZodObject<Properties<ProductCategoriesScopeInput>> {
+  return z.object({
+    mode: CategoryHierarchyScopeModeSchema,
+    referenceIds: z.array(z.string())
+  })
+}
+
+export function ProductCategoryOperationInputSchema(): z.ZodObject<Properties<ProductCategoryOperationInput>> {
+  return z.object({
+    action: ProductCategoryOperationActionSchema,
+    afterProductId: z.string().nullish(),
+    beforeProductId: z.string().nullish(),
+    categoryId: z.string()
+  })
+}
+
 export function ProductContentInputSchema(): z.ZodObject<Properties<ProductContentInput>> {
   return z.object({
-    description: z.lazy(() => DescriptionInputSchema().nullish()),
-    excerpt: z.string().nullish()
+    description: z.lazy(() => RichTextInputSchema().nullish()),
+    excerpt: z.lazy(() => RichTextInputSchema().nullish())
   })
 }
 
 export function ProductCreateInputSchema(): z.ZodObject<Properties<ProductCreateInput>> {
   return z.object({
-    description: z.lazy(() => DescriptionInputSchema().nullish()),
+    description: z.lazy(() => RichTextInputSchema().nullish()),
+    excerpt: z.lazy(() => RichTextInputSchema().nullish()),
     handle: z.string(),
     inventoryItem: z.lazy(() => InventoryItemInputSchema().nullish()),
     mediaFileIds: z.array(z.string()).nullish(),
     options: z.array(z.lazy(() => ProductCreateOptionInputSchema())).nullish(),
     title: z.string(),
-    variants: z.array(z.lazy(() => ProductCreateVariantInputSchema())).nullish()
+    variants: z.array(z.lazy(() => ProductCreateVariantInputSchema())).nullish(),
+    vendorId: z.string().nullish()
   })
 }
 
@@ -652,6 +1001,7 @@ export function ProductCreateOptionInputSchema(): z.ZodObject<Properties<Product
     displayType: z.string().nullish(),
     name: z.string(),
     slug: z.string(),
+    sortIndex: z.number().nullish(),
     values: z.array(z.lazy(() => ProductCreateOptionValueInputSchema()))
   })
 }
@@ -659,7 +1009,8 @@ export function ProductCreateOptionInputSchema(): z.ZodObject<Properties<Product
 export function ProductCreateOptionValueInputSchema(): z.ZodObject<Properties<ProductCreateOptionValueInput>> {
   return z.object({
     name: z.string(),
-    slug: z.string()
+    slug: z.string(),
+    sortIndex: z.number().nullish()
   })
 }
 
@@ -770,6 +1121,7 @@ export function ProductOptionCreateInputSchema(): z.ZodObject<Properties<Product
     name: z.string(),
     productId: z.string().nullish(),
     slug: z.string(),
+    sortIndex: z.number().nullish(),
     values: z.array(z.lazy(() => ProductOptionValueCreateInputSchema()))
   })
 }
@@ -794,9 +1146,9 @@ export function ProductOptionSyncItemInputSchema(): z.ZodObject<Properties<Produ
   return z.object({
     displayType: OptionDisplayTypeSchema,
     id: z.string().nullish(),
-    index: z.number(),
     name: z.string(),
     slug: z.string(),
+    sortIndex: z.number(),
     values: z.array(z.lazy(() => ProductOptionValueSyncInputSchema()))
   })
 }
@@ -807,6 +1159,7 @@ export function ProductOptionUpdateInputSchema(): z.ZodObject<Properties<Product
     id: z.string(),
     name: z.string().nullish(),
     slug: z.string().nullish(),
+    sortIndex: z.number().nullish(),
     values: z.lazy(() => ProductOptionValuesInputSchema().nullish())
   })
 }
@@ -815,6 +1168,7 @@ export function ProductOptionValueCreateInputSchema(): z.ZodObject<Properties<Pr
   return z.object({
     name: z.string(),
     slug: z.string(),
+    sortIndex: z.number().nullish(),
     swatch: z.lazy(() => ProductOptionSwatchInputSchema().nullish())
   })
 }
@@ -822,9 +1176,9 @@ export function ProductOptionValueCreateInputSchema(): z.ZodObject<Properties<Pr
 export function ProductOptionValueSyncInputSchema(): z.ZodObject<Properties<ProductOptionValueSyncInput>> {
   return z.object({
     id: z.string().nullish(),
-    index: z.number(),
     name: z.string(),
     slug: z.string(),
+    sortIndex: z.number(),
     swatch: z.lazy(() => ProductOptionSwatchInputSchema().nullish())
   })
 }
@@ -834,6 +1188,7 @@ export function ProductOptionValueUpdateInputSchema(): z.ZodObject<Properties<Pr
     id: z.string(),
     name: z.string().nullish(),
     slug: z.string().nullish(),
+    sortIndex: z.number().nullish(),
     swatch: z.lazy(() => ProductOptionSwatchInputSchema().nullish())
   })
 }
@@ -855,8 +1210,14 @@ export function ProductOptionsSyncInputSchema(): z.ZodObject<Properties<ProductO
 
 export function ProductOrderByInputSchema(): z.ZodObject<Properties<ProductOrderByInput>> {
   return z.object({
-    direction: SortDirectionSchema.nullish(),
-    field: ProductSortBySchema
+    direction: SortDirectionSchema,
+    field: ProductOrderFieldSchema
+  })
+}
+
+export function ProductProductsMetaInputSchema(): z.ZodObject<Properties<ProductProductsMetaInput>> {
+  return z.object({
+    categoriesScope: z.lazy(() => ProductCategoriesScopeInputSchema().nullish())
   })
 }
 
@@ -877,15 +1238,25 @@ export function ProductSortInputSchema(): z.ZodObject<Properties<ProductSortInpu
   })
 }
 
+export function ProductTagOperationInputSchema(): z.ZodObject<Properties<ProductTagOperationInput>> {
+  return z.object({
+    action: ProductTagOperationActionSchema,
+    tagId: z.string()
+  })
+}
+
 export function ProductUpdateInputSchema(): z.ZodObject<Properties<ProductUpdateInput>> {
   return z.object({
+    categories: z.array(z.lazy(() => ProductCategoryOperationInputSchema())).nullish(),
     content: z.lazy(() => ProductContentInputSchema().nullish()),
     handle: z.string().nullish(),
     media: z.lazy(() => ProductMediaInputSchema().nullish()),
     seo: z.lazy(() => ProductSeoInputSchema().nullish()),
     status: ProductStatusSchema.nullish(),
+    tags: z.array(z.lazy(() => ProductTagOperationInputSchema())).nullish(),
     title: z.string().nullish(),
-    variants: z.array(z.lazy(() => VariantUpdateInputSchema())).nullish()
+    variants: z.array(z.lazy(() => VariantOperationInputSchema())).nullish(),
+    vendorId: z.string().nullish()
   })
 }
 
@@ -893,6 +1264,38 @@ export function ProductUpdateStatusInputSchema(): z.ZodObject<Properties<Product
   return z.object({
     action: ProductStatusActionSchema,
     productId: z.string()
+  })
+}
+
+export function ProductWhereInputSchema(): z.ZodObject<Properties<ProductWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => ProductWhereInputSchema())).nullish(),
+    _not: z.lazy(() => ProductWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => ProductWhereInputSchema())).nullish(),
+    brandName: z.lazy(() => StringFilterSchema().nullish()),
+    createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    currency: z.lazy(() => StringFilterSchema().nullish()),
+    handle: z.lazy(() => StringFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    locale: z.lazy(() => StringFilterSchema().nullish()),
+    maxAmountMinor: z.lazy(() => IntFilterSchema().nullish()),
+    maxPriceMinor: z.lazy(() => IntFilterSchema().nullish()),
+    minAmountMinor: z.lazy(() => IntFilterSchema().nullish()),
+    minPriceMinor: z.lazy(() => IntFilterSchema().nullish()),
+    name: z.lazy(() => StringFilterSchema().nullish()),
+    primaryCategoryId: z.lazy(() => IdFilterSchema().nullish()),
+    primaryCategoryName: z.lazy(() => StringFilterSchema().nullish()),
+    publishedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    vendorId: z.lazy(() => IdFilterSchema().nullish())
+  })
+}
+
+export function RichTextInputSchema(): z.ZodObject<Properties<RichTextInput>> {
+  return z.object({
+    html: z.string(),
+    json: z.record(z.unknown()),
+    text: z.string()
   })
 }
 
@@ -945,11 +1348,33 @@ export function TagDeleteInputSchema(): z.ZodObject<Properties<TagDeleteInput>> 
   })
 }
 
+export function TagOrderByInputSchema(): z.ZodObject<Properties<TagOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: TagOrderFieldSchema
+  })
+}
+
 export function TagUpdateInputSchema(): z.ZodObject<Properties<TagUpdateInput>> {
   return z.object({
     handle: z.string().nullish(),
     id: z.string(),
     name: z.string().nullish()
+  })
+}
+
+export function TagWhereInputSchema(): z.ZodObject<Properties<TagWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => TagWhereInputSchema())).nullish(),
+    _not: z.lazy(() => TagWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => TagWhereInputSchema())).nullish(),
+    createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    handle: z.lazy(() => StringFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    locale: z.lazy(() => StringFilterSchema().nullish()),
+    name: z.lazy(() => StringFilterSchema().nullish()),
+    productsCount: z.lazy(() => IntFilterSchema().nullish()),
+    projectId: z.lazy(() => IdFilterSchema().nullish())
   })
 }
 
@@ -991,14 +1416,27 @@ export function VariantInventoryOpInputSchema(): z.ZodObject<Properties<VariantI
     sku: z.string().nullish(),
     unavailable: z.number().nullish(),
     unitCostMinor: z.string().nullish(),
-    warehouseId: z.string(),
-    weight: z.number().nullish()
+    warehouseId: z.string()
   })
 }
 
 export function VariantMediaOpInputSchema(): z.ZodObject<Properties<VariantMediaOpInput>> {
   return z.object({
     fileIds: z.array(z.string())
+  })
+}
+
+export function VariantOperationInputSchema(): z.ZodObject<Properties<VariantOperationInput>> {
+  return z.object({
+    action: VariantOperationActionSchema,
+    clientMutationId: z.string().nullish(),
+    dimensions: z.lazy(() => VariantDimensionsOpInputSchema().nullish()),
+    inventory: z.lazy(() => VariantInventoryOpInputSchema().nullish()),
+    media: z.lazy(() => VariantMediaOpInputSchema().nullish()),
+    options: z.lazy(() => VariantOptionsOpInputSchema().nullish()),
+    pricing: z.lazy(() => VariantPricingOpInputSchema().nullish()),
+    variantId: z.string().nullish(),
+    weight: z.number().nullish()
   })
 }
 
@@ -1015,22 +1453,18 @@ export function VariantOptionsOpInputSchema(): z.ZodObject<Properties<VariantOpt
   })
 }
 
+export function VariantOrderByInputSchema(): z.ZodObject<Properties<VariantOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: VariantOrderFieldSchema
+  })
+}
+
 export function VariantPricingOpInputSchema(): z.ZodObject<Properties<VariantPricingOpInput>> {
   return z.object({
     amountMinor: z.string(),
     compareAtMinor: z.string().nullish(),
     currency: CurrencyCodeSchema
-  })
-}
-
-export function VariantUpdateInputSchema(): z.ZodObject<Properties<VariantUpdateInput>> {
-  return z.object({
-    dimensions: z.lazy(() => VariantDimensionsOpInputSchema().nullish()),
-    inventory: z.lazy(() => VariantInventoryOpInputSchema().nullish()),
-    media: z.lazy(() => VariantMediaOpInputSchema().nullish()),
-    options: z.lazy(() => VariantOptionsOpInputSchema().nullish()),
-    pricing: z.lazy(() => VariantPricingOpInputSchema().nullish()),
-    variantId: z.string()
   })
 }
 
@@ -1054,5 +1488,188 @@ export function VariantUpdatePricingInputSchema(): z.ZodObject<Properties<Varian
     compareAtMinor: z.string().nullish(),
     currency: CurrencyCodeSchema,
     variantId: z.string()
+  })
+}
+
+export function VariantWhereInputSchema(): z.ZodObject<Properties<VariantWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => VariantWhereInputSchema())).nullish(),
+    _not: z.lazy(() => VariantWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => VariantWhereInputSchema())).nullish(),
+    createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    externalId: z.lazy(() => StringFilterSchema().nullish()),
+    externalSystem: z.lazy(() => StringFilterSchema().nullish()),
+    handle: z.lazy(() => StringFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    isDefault: z.lazy(() => BooleanFilterSchema().nullish()),
+    productId: z.lazy(() => IdFilterSchema().nullish()),
+    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish())
+  })
+}
+
+export function VendorCreateInputSchema(): z.ZodObject<Properties<VendorCreateInput>> {
+  return z.object({
+    name: z.string()
+  })
+}
+
+export function VendorOrderByInputSchema(): z.ZodObject<Properties<VendorOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: VendorOrderFieldSchema
+  })
+}
+
+export function VendorWhereInputSchema(): z.ZodObject<Properties<VendorWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => VendorWhereInputSchema())).nullish(),
+    _not: z.lazy(() => VendorWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => VendorWhereInputSchema())).nullish(),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    name: z.lazy(() => StringFilterSchema().nullish())
+  })
+}
+
+export function WarehouseAssignableVariantOrderByInputSchema(): z.ZodObject<Properties<WarehouseAssignableVariantOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: WarehouseAssignableVariantOrderFieldSchema
+  })
+}
+
+export function WarehouseAssignableVariantWhereInputSchema(): z.ZodObject<Properties<WarehouseAssignableVariantWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => WarehouseAssignableVariantWhereInputSchema())).nullish(),
+    _not: z.lazy(() => WarehouseAssignableVariantWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => WarehouseAssignableVariantWhereInputSchema())).nullish(),
+    createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    externalId: z.lazy(() => StringFilterSchema().nullish()),
+    externalSystem: z.lazy(() => StringFilterSchema().nullish()),
+    handle: z.lazy(() => StringFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    isDefault: z.lazy(() => BooleanFilterSchema().nullish()),
+    productId: z.lazy(() => IdFilterSchema().nullish()),
+    productName: z.lazy(() => StringFilterSchema().nullish()),
+    sku: z.lazy(() => StringFilterSchema().nullish()),
+    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish())
+  })
+}
+
+export function WarehouseConnectionInputSchema(): z.ZodObject<Properties<WarehouseConnectionInput>> {
+  return z.object({
+    after: z.string().nullish(),
+    before: z.string().nullish(),
+    first: z.number().nullish(),
+    last: z.number().nullish(),
+    orderBy: z.array(z.lazy(() => WarehouseOrderByInputSchema())).nullish(),
+    where: z.lazy(() => WarehouseWhereInputSchema().nullish())
+  })
+}
+
+export function WarehouseCreateInputSchema(): z.ZodObject<Properties<WarehouseCreateInput>> {
+  return z.object({
+    code: z.string(),
+    isDefault: z.boolean().nullish(),
+    name: z.string()
+  })
+}
+
+export function WarehouseDeleteInputSchema(): z.ZodObject<Properties<WarehouseDeleteInput>> {
+  return z.object({
+    id: z.string()
+  })
+}
+
+export function WarehouseOrderByInputSchema(): z.ZodObject<Properties<WarehouseOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: WarehouseOrderFieldSchema
+  })
+}
+
+export function WarehouseStockConnectionInputSchema(): z.ZodObject<Properties<WarehouseStockConnectionInput>> {
+  return z.object({
+    after: z.string().nullish(),
+    before: z.string().nullish(),
+    first: z.number().nullish(),
+    last: z.number().nullish(),
+    orderBy: z.array(z.lazy(() => WarehouseStockOrderByInputSchema())).nullish(),
+    where: z.lazy(() => WarehouseStockWhereInputSchema().nullish())
+  })
+}
+
+export function WarehouseStockCreateInputSchema(): z.ZodObject<Properties<WarehouseStockCreateInput>> {
+  return z.object({
+    items: z.array(z.lazy(() => WarehouseStockCreateItemInputSchema()))
+  })
+}
+
+export function WarehouseStockCreateItemInputSchema(): z.ZodObject<Properties<WarehouseStockCreateItemInput>> {
+  return z.object({
+    variantId: z.string(),
+    warehouseId: z.string()
+  })
+}
+
+export function WarehouseStockDeleteInputSchema(): z.ZodObject<Properties<WarehouseStockDeleteInput>> {
+  return z.object({
+    items: z.array(z.lazy(() => WarehouseStockDeleteItemInputSchema()))
+  })
+}
+
+export function WarehouseStockDeleteItemInputSchema(): z.ZodObject<Properties<WarehouseStockDeleteItemInput>> {
+  return z.object({
+    variantId: z.string(),
+    warehouseId: z.string()
+  })
+}
+
+export function WarehouseStockOrderByInputSchema(): z.ZodObject<Properties<WarehouseStockOrderByInput>> {
+  return z.object({
+    direction: SortDirectionSchema,
+    field: WarehouseStockOrderFieldSchema
+  })
+}
+
+export function WarehouseStockWhereInputSchema(): z.ZodObject<Properties<WarehouseStockWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => WarehouseStockWhereInputSchema())).nullish(),
+    _not: z.lazy(() => WarehouseStockWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => WarehouseStockWhereInputSchema())).nullish(),
+    createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    quantityOnHand: z.lazy(() => IntFilterSchema().nullish()),
+    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    variantId: z.lazy(() => IdFilterSchema().nullish()),
+    warehouseId: z.lazy(() => IdFilterSchema().nullish())
+  })
+}
+
+export function WarehouseUpdateInputSchema(): z.ZodObject<Properties<WarehouseUpdateInput>> {
+  return z.object({
+    code: z.string().nullish(),
+    id: z.string(),
+    isDefault: z.boolean().nullish(),
+    name: z.string().nullish()
+  })
+}
+
+export function WarehouseWhereInputSchema(): z.ZodObject<Properties<WarehouseWhereInput>> {
+  return z.object({
+    _and: z.array(z.lazy(() => WarehouseWhereInputSchema())).nullish(),
+    _not: z.lazy(() => WarehouseWhereInputSchema().nullish()),
+    _or: z.array(z.lazy(() => WarehouseWhereInputSchema())).nullish(),
+    code: z.lazy(() => StringFilterSchema().nullish()),
+    createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    id: z.lazy(() => IdFilterSchema().nullish()),
+    isDefault: z.lazy(() => BooleanFilterSchema().nullish()),
+    name: z.lazy(() => StringFilterSchema().nullish()),
+    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish())
+  })
+}
+
+export function WeightInputSchema(): z.ZodObject<Properties<WeightInput>> {
+  return z.object({
+    value: z.number()
   })
 }

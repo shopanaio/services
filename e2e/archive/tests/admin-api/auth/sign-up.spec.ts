@@ -1,7 +1,8 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { ApiUserMutationSignUpArgs } from '@codegen/admin-gql';
-import { generateUser, Locale, Timezone, UserData } from '@utils/user';
+import type { ApiUserMutationSignUpArgs } from '@codegen/admin-gql';
+import type { UserData } from '@utils/user';
+import { generateUser, Locale, Timezone } from '@utils/user';
 
 import * as Yup from 'yup';
 

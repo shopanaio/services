@@ -1,8 +1,6 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { ApiProductQueryFindManyArgs } from '@codegen/admin-gql';
-
-
+import type { ApiProductQueryFindManyArgs } from '@codegen/admin-gql';
 
 test.describe('ProductFindMany', () => {
   test('list of products', async ({ api }) => {
@@ -21,7 +19,6 @@ test.describe('ProductFindMany', () => {
         },
       });
 
-      
       await api.admin.product.update({
         input: {
           id: product.id,

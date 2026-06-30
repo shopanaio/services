@@ -6,7 +6,7 @@ import { generateUser } from '@utils/user';
 
 test.describe('StorefrontReviewForeignUpdateDelete', () => {
   test('cannot update or delete review of another customer', async ({ api }) => {
-    
+
     await api.session.setupUserAndProject();
     const {
       variants: [{ slug: handle }],
@@ -23,7 +23,7 @@ test.describe('StorefrontReviewForeignUpdateDelete', () => {
       message: 'My review',
     });
 
-    
+
     const userB = generateUser();
     const { data: signUpData } = await api.client.auth.passwordSignUp({
       email: userB.email,
@@ -35,7 +35,7 @@ test.describe('StorefrontReviewForeignUpdateDelete', () => {
     api.session.customer.data = userB;
     api.session.customer.accessToken = tokenB;
 
-    
+
     const { errors: updateErrors } = await api.client.mutation('client/ReviewUpdate', {
       throwOnError: false,
       variables: {
@@ -47,7 +47,7 @@ test.describe('StorefrontReviewForeignUpdateDelete', () => {
     });
     expect(updateErrors).toBeTruthy();
 
-    
+
     const { errors: deleteErrors } = await api.client.mutation('client/ReviewDelete', {
       throwOnError: false,
       variables: { id: review.id },

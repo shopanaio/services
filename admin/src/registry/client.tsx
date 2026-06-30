@@ -8,6 +8,8 @@ import { registerModalStackItem } from "@/layouts/modals/registry/modal-registry
 import { PathParamsProvider } from "./path-params-context";
 import { modulesContext } from "./modules-context";
 import type { ParamData } from "path-to-regexp";
+import { ModalStack } from "@/layouts/modals";
+import "@/layouts/filters/components/relation-control/register";
 
 // Initialize modules on client side (module-level, runs once)
 modulesContext.keys().forEach((key) => modulesContext(key));
@@ -20,6 +22,18 @@ const SidebarItemsContext = createContext<SidebarItem[]>([]);
 
 export function useSidebarItems(): SidebarItem[] {
   return useContext(SidebarItemsContext);
+}
+
+export function SidebarRuntimeProviders() {
+  const providers = moduleRegistry.getSidebarRuntimeComponents();
+
+  return (
+    <>
+      {providers.map((Provider, index) => (
+        <Provider key={index} />
+      ))}
+    </>
+  );
 }
 
 // ============================================================================
@@ -118,6 +132,7 @@ export function ClientLayoutResolver({
     <ModuleProvider sidebarItems={sidebarItems} getModalStackItems={getModalStackItems}>
       <PathParamsProvider pathParams={pathParams}>
         <DomainLayout>{children}</DomainLayout>
+        <ModalStack />
       </PathParamsProvider>
     </ModuleProvider>
   );

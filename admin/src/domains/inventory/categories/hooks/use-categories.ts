@@ -1,53 +1,82 @@
-import { useState, useEffect, useCallback } from "react";
-import {
-  mockCategoriesList,
-  type ICategoryListItem,
-} from "@/mocks/products/categories-list";
+"use client";
 
-interface UseCategoriesOptions {
-  delay?: number;
+import type {
+  ApiCategory,
+  ApiCategoryCategoriesMetaInput,
+  ApiCategoryConnection,
+  ApiCategoryOrderByInput,
+  ApiCategoryWhereInput,
+  ApiPageInfo,
+} from "@/graphql/types";
+import { useRelayConnectionQuery } from "@/graphql/hooks/use-relay-connection-query";
+import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
+import { CATEGORIES_QUERY } from "../graphql";
+import type {
+  CategoriesQueryData,
+  CategoriesQueryVariables,
+} from "../graphql/operation-types";
+
+export interface UseCategoriesOptions extends RelayCursorPaginationVariables {
+  where?: ApiCategoryWhereInput | null;
+  orderBy?: ApiCategoryOrderByInput[] | null;
+  meta?: ApiCategoryCategoriesMetaInput | null;
+  skip?: boolean;
+  fetchPolicy?: "cache-and-network" | "network-only";
 }
 
-interface UseCategoriesReturn {
-  data: ICategoryListItem[];
-  isLoading: boolean;
+export interface UseCategoriesReturn {
+  categories: ApiCategory[];
+  connection: ApiCategoryConnection | null;
+  totalCount: number;
+  pageInfo: ApiPageInfo | null;
+  loading: boolean;
   error: Error | null;
-  refetch: () => Promise<void>;
+  refetch: () => Promise<unknown>;
 }
 
 export function useCategories(
-  options: UseCategoriesOptions = {}
+  options: UseCategoriesOptions = {},
 ): UseCategoriesReturn {
-  const { delay = 500 } = options;
+  const {
+    first,
+    after = null,
+    last,
+    before = null,
+    where = null,
+    orderBy = null,
+    meta = null,
+    skip = false,
+    fetchPolicy = "cache-and-network",
+  } = options;
 
-  const [data, setData] = useState<ICategoryListItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchCategories = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      await new Promise((resolve) => setTimeout(resolve, delay));
-      setData(mockCategoriesList);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err : new Error("Failed to fetch categories")
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, [delay]);
-
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
+  const result = useRelayConnectionQuery<
+    CategoriesQueryData,
+    CategoriesQueryVariables,
+    ApiCategory,
+    ApiCategoryConnection
+  >({
+    query: CATEGORIES_QUERY,
+    variables: {
+      first,
+      after,
+      last,
+      before,
+      where,
+      orderBy,
+      meta,
+    },
+    skip,
+    fetchPolicy,
+    getConnection: (data) => data?.catalogQuery.categories,
+  });
 
   return {
-    data,
-    isLoading,
-    error,
-    refetch: fetchCategories,
+    categories: result.nodes,
+    connection: result.connection,
+    totalCount: result.totalCount,
+    pageInfo: result.pageInfo,
+    loading: result.loading,
+    error: result.error,
+    refetch: result.refetch,
   };
 }

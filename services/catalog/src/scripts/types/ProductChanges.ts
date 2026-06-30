@@ -22,18 +22,39 @@ export interface ProductChanges {
 export interface ProductFieldChanges {
   handle?: string;
   title?: string;
+  vendorId?: string | null;
   status?: "draft" | "published";
   content?: ContentChanges;
   seo?: SeoChanges;
   media?: MediaChanges;
+  categories?: ProductCategoryFieldChanges;
+  tags?: ProductTagFieldChanges;
+}
+
+export interface ProductCategoryFieldChanges {
+  changed: true;
+  reason: "assignment" | "categoryFields" | "rank";
+  categoryIds?: string[];
+}
+
+export interface ProductTagFieldChanges {
+  changed: true;
+  reason: "assignment";
+  tagIds?: string[];
+}
+
+export interface RichTextChange {
+  text: string | null;
+  html: string | null;
+  json: unknown | null;
 }
 
 /**
  * Product content changes (description, excerpt).
  */
 export interface ContentChanges {
-  description?: string | null;
-  excerpt?: string | null;
+  description?: RichTextChange | null;
+  excerpt?: RichTextChange | null;
 }
 
 /**
@@ -42,6 +63,9 @@ export interface ContentChanges {
 export interface SeoChanges {
   title?: string | null;
   description?: string | null;
+  ogTitle?: string | null;
+  ogDescription?: string | null;
+  ogImageId?: string | null;
 }
 
 /**
@@ -55,9 +79,10 @@ export interface MediaChanges {
  * Variant-level changes aggregation.
  */
 export interface VariantChanges {
+  lifecycle?: "created" | "updated" | "deleted";
   pricing?: PricingChanges;
   inventory?: InventoryChanges;
-  dimensions?: DimensionsChanges;
+  physical?: PhysicalChanges;
   media?: MediaChanges;
   options?: OptionLinkChanges[];
 }
@@ -79,7 +104,6 @@ export interface InventoryChanges {
   onHand: number;
   unavailable: number;
   sku?: string | null;
-  weight?: number | null;
   unitCostMinor?: number | null;
   costCurrency?: string | null;
 }
@@ -93,15 +117,6 @@ export interface PhysicalChanges {
   height?: number;
   length?: number;
   weight?: number;
-}
-
-/**
- * Dimensions-only changes for a variant.
- */
-export interface DimensionsChanges {
-  width: number;
-  height: number;
-  length: number;
 }
 
 /**
@@ -125,4 +140,5 @@ export interface StatusChanges {
 export interface ProductIdentityChanges {
   handle?: string;
   title?: string;
+  vendorId?: string | null;
 }

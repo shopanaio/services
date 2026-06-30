@@ -1,4 +1,4 @@
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import type { Database } from "../../infrastructure/db/database.js";
 import { getContext } from "../../context/index.js";
@@ -9,6 +9,7 @@ import {
   productOptionValueTranslation,
   productFeatureTranslation,
   productFeatureValueTranslation,
+  warehouseTranslation,
   productSeo,
   categorySeo,
   type ProductTranslation,
@@ -23,6 +24,8 @@ import {
   type NewProductFeatureTranslation,
   type ProductFeatureValueTranslation,
   type NewProductFeatureValueTranslation,
+  type WarehouseTranslation,
+  type NewWarehouseTranslation,
   type ProductSeo,
   type NewProductSeo,
   type CategorySeo,
@@ -43,7 +46,8 @@ export class TranslationRepository {
   }
 
   private get locale(): string {
-    return getContext().locale ?? "uk";
+    const context = getContext();
+    return context.locale ?? context.store.defaultLocale;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -77,11 +81,13 @@ export class TranslationRepository {
       .onConflictDoUpdate({
         target: [productTranslation.productId, productTranslation.locale],
         set: {
-          title: data.title,
+          name: data.name,
           descriptionText: data.descriptionText,
           descriptionHtml: data.descriptionHtml,
           descriptionJson: data.descriptionJson,
-          excerpt: data.excerpt,
+          excerptText: data.excerptText,
+          excerptHtml: data.excerptHtml,
+          excerptJson: data.excerptJson,
         },
       })
       .returning();
@@ -100,11 +106,13 @@ export class TranslationRepository {
       .onConflictDoUpdate({
         target: [productTranslation.productId, productTranslation.locale],
         set: {
-          title: productTranslation.title,
-          descriptionText: productTranslation.descriptionText,
-          descriptionHtml: productTranslation.descriptionHtml,
-          descriptionJson: productTranslation.descriptionJson,
-          excerpt: productTranslation.excerpt,
+          name: sql`excluded.name`,
+          descriptionText: sql`excluded.description_text`,
+          descriptionHtml: sql`excluded.description_html`,
+          descriptionJson: sql`excluded.description_json`,
+          excerptText: sql`excluded.excerpt_text`,
+          excerptHtml: sql`excluded.excerpt_html`,
+          excerptJson: sql`excluded.excerpt_json`,
         },
       })
       .returning();
@@ -204,6 +212,43 @@ export class TranslationRepository {
           productFeatureValueTranslation.featureValueId,
           productFeatureValueTranslation.locale,
         ],
+        set: { name: data.name },
+      })
+      .returning();
+
+    return result[0];
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Warehouse Translations
+  // ─────────────────────────────────────────────────────────────────────────
+
+  async getWarehouseTranslation(
+    warehouseId: string,
+    locale: string
+  ): Promise<WarehouseTranslation | undefined> {
+    const result = await this.connection
+      .select()
+      .from(warehouseTranslation)
+      .where(
+        and(
+          eq(warehouseTranslation.warehouseId, warehouseId),
+          eq(warehouseTranslation.locale, locale)
+        )
+      )
+      .limit(1);
+
+    return result[0];
+  }
+
+  async upsertWarehouseTranslation(
+    data: NewWarehouseTranslation
+  ): Promise<WarehouseTranslation> {
+    const result = await this.connection
+      .insert(warehouseTranslation)
+      .values(data)
+      .onConflictDoUpdate({
+        target: [warehouseTranslation.warehouseId, warehouseTranslation.locale],
         set: { name: data.name },
       })
       .returning();

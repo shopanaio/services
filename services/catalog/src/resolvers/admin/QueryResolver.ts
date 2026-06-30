@@ -4,8 +4,10 @@ import {
   type GlobalIdType,
 } from "@shopana/shared-graphql-guid";
 import { ApolloQuery } from "@shopana/type-resolver";
+import { GraphQLError } from "graphql";
 import { CatalogType } from "./CatalogType.js";
 import { ProductResolver } from "./ProductResolver.js";
+import { BundleResolver } from "./BundleResolver.js";
 
 /**
  * Safely decode a global ID, returning null if invalid
@@ -22,32 +24,101 @@ function safeDecodeGlobalId(
 }
 import {
   ProductConnectionResolver,
-  type ProductConnectionInput,
+  type ProductQueryProductsArgs,
 } from "./ProductConnectionResolver.js";
+import {
+  BundleConnectionResolver,
+  type BundleQueryBundlesArgs,
+} from "./BundleConnectionResolver.js";
 import { VariantResolver } from "./VariantResolver.js";
 import { CategoryResolver } from "./CategoryResolver.js";
+import { VendorResolver } from "./VendorResolver.js";
+import {
+  VendorConnectionResolver,
+  type VendorConnectionInput,
+} from "./VendorConnectionResolver.js";
 import { TagResolver } from "./TagResolver.js";
 import { CollectionResolver } from "./CollectionResolver.js";
-import { BundleGroupResolver } from "./BundleGroupResolver.js";
-import { BundleItemResolver } from "./BundleItemResolver.js";
-import { BundlePricingTemplateResolver } from "./BundlePricingTemplateResolver.js";
-import { DependencyRuleResolver } from "./DependencyRuleResolver.js";
-import { FacetGroupResolver } from "./FacetGroupResolver.js";
 import { FacetResolver } from "./FacetResolver.js";
+import {
+  FacetSourceCandidateConnectionResolver,
+  type FacetSourceCandidateConnectionInput,
+} from "./FacetSourceCandidateConnectionResolver.js";
+import {
+  FacetValueCandidateConnectionResolver,
+  type FacetValueCandidateConnectionInput,
+} from "./FacetValueCandidateConnectionResolver.js";
 import { FacetValueResolver } from "./FacetValueResolver.js";
 import { FacetSwatchResolver } from "./FacetSwatchResolver.js";
 import {
   CategoryConnectionResolver,
-  type CategoryConnectionInput,
+  type CategoryQueryCategoriesArgs,
 } from "./CategoryConnectionResolver.js";
 import {
   TagConnectionResolver,
   type TagConnectionInput,
 } from "./TagConnectionResolver.js";
+import {
+  VariantConnectionResolver,
+  type VariantConnectionInput,
+  WarehouseAssignableVariantConnectionResolver,
+  type WarehouseAssignableVariantConnectionInput,
+} from "./VariantConnectionResolver.js";
 import { ProductBulkUpdateJobResolver } from "./ProductBulkUpdateJobResolver.js";
-import { PricingWidgetResolver, type PricingWidgetInput } from "./PricingWidgetResolver.js";
-import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
+import {
+  ProductBulkUpdateJobConnectionResolver,
+  type ProductBulkUpdateJobConnectionInput,
+} from "./ProductBulkUpdateJobConnectionResolver.js";
+import {
+  PricingWidgetResolver,
+  type PricingWidgetInput,
+} from "./PricingWidgetResolver.js";
+import { InventoryWidgetResolver } from "./InventoryWidgetResolver.js";
+import { WarehouseResolver } from "./WarehouseResolver.js";
+import { InventoryItemResolver } from "./InventoryItemResolver.js";
+import { StockResolver } from "./StockResolver.js";
+import {
+  WarehouseConnectionResolver,
+  type WarehouseConnectionResolverInput,
+} from "./WarehouseConnectionResolver.js";
+import {
+  InventoryItemConnectionResolver,
+  type InventoryItemConnectionResolverInput,
+} from "./InventoryItemConnectionResolver.js";
+import type { NormalizedInventoryItemWarehouseScope } from "../../repositories/inventory-item/InventoryItemRepository.js";
+import {
+  normalizeCategoryHierarchyScopeInput,
+  normalizeCategoryProductsScopeInput,
+  normalizeProductCategoriesScopeInput,
+  normalizeWarehouseWhereInput,
+} from "./filter-normalizers.js";
 import { CollectionRulesPreviewCountScript } from "../../scripts/collection/CollectionRulesPreviewCountScript.js";
+
+type InventoryItemWarehouseScopeArgs = {
+  referenceIds?: string[] | null;
+  mode?: "INCLUDE" | "EXCLUDE" | null;
+};
+
+type InventoryItemInventoryItemsMetaArgs = {
+  warehouseScope?: InventoryItemWarehouseScopeArgs | null;
+};
+
+type InventoryItemsArgs = Omit<
+  InventoryItemConnectionResolverInput,
+  "meta"
+> & {
+  meta?: InventoryItemInventoryItemsMetaArgs | null;
+};
+
+type FacetValueCandidatesArgs = Omit<
+  FacetValueCandidateConnectionInput,
+  "meta"
+> & {
+  meta: Omit<FacetValueCandidateConnectionInput["meta"], "sourceHandles" | "facetId"> & {
+    sourceHandles?: string[] | null;
+    facetId?: string | null;
+  };
+};
 
 /**
  * Root Query resolver for Catalog Service.
@@ -69,16 +140,33 @@ export class QueryResolver extends CatalogType<Record<string, never>> {
   widgetQuery() {
     return new WidgetQueryResolver({}, this.$ctx);
   }
+
+  inventoryQuery() {
+    return new InventoryQueryResolver({}, this.$ctx);
+  }
 }
 
 /**
  * Widget query resolver for pricing.
  */
 export class WidgetQueryResolver extends CatalogType<Record<string, never>> {
+  inventory(args: { productId: string }) {
+    const productId = decodeGlobalIdByType(
+      args.productId,
+      GlobalIdEntity.Product
+    );
+    return new InventoryWidgetResolver(productId, this.$ctx);
+  }
+
   pricing(args: { input: PricingWidgetInput }) {
+    const variantId = decodeGlobalIdByType(
+      args.input.variantId,
+      GlobalIdEntity.Variant
+    );
+
     return new PricingWidgetResolver(
       {
-        variantId: args.input.variantId,
+        variantId,
         currency: args.input.currency as "UAH" | "USD" | "EUR",
         from: args.input.from,
         to: args.input.to,
@@ -101,15 +189,21 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
   /**
    * Get a node by ID (for Relay compatibility).
    */
-  node(args: { id: string }) {
-    return new ProductResolver(args.id, this.$ctx);
+  async node(args: { id: string }) {
+    const productId = safeDecodeGlobalId(args.id, GlobalIdEntity.Product);
+    if (!productId) return null;
+    const product = await this.$ctx.loaders.product.load(productId);
+    if (!product) return null;
+    return product.kind === "BUNDLE"
+      ? new BundleResolver(productId, this.$ctx)
+      : new ProductResolver(productId, this.$ctx);
   }
 
   /**
    * Get multiple nodes by IDs (for Relay compatibility).
    */
   nodes(args: { ids: string[] }) {
-    return args.ids.map((id) => new ProductResolver(id, this.$ctx));
+    return Promise.all(args.ids.map((id) => this.node({ id })));
   }
 
   // ---- Product Queries ----
@@ -119,18 +213,56 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    * Returns null if product doesn't exist.
    */
   async product(args: { id: string }) {
-    const product = await this.$ctx.loaders.product.load(args.id);
+    const productId =
+      safeDecodeGlobalId(args.id, GlobalIdEntity.Product) ?? args.id;
+    const product = await this.$ctx.loaders.product.load(productId);
     if (!product) {
       return null;
     }
-    return new ProductResolver(args.id, this.$ctx);
+    return new ProductResolver(productId, this.$ctx);
   }
 
   /**
    * Get a paginated list of products.
    */
-  products(args: ProductConnectionInput) {
-    return new ProductConnectionResolver(args, this.$ctx);
+  products(args: ProductQueryProductsArgs) {
+    return new ProductConnectionResolver(
+      {
+        ...args,
+        meta: {
+          categoriesScope: normalizeProductCategoriesScopeInput(
+            args.meta?.categoriesScope
+          ),
+        },
+      },
+      this.$ctx
+    );
+  }
+
+  // ---- Bundle Queries ----
+
+  async bundle(args: { id: string }) {
+    const productId =
+      safeDecodeGlobalId(args.id, GlobalIdEntity.Product) ?? args.id;
+    const product = await this.$ctx.loaders.product.load(productId);
+    if (!product || product.kind !== "BUNDLE") {
+      return null;
+    }
+    return new BundleResolver(productId, this.$ctx);
+  }
+
+  bundles(args: BundleQueryBundlesArgs) {
+    return new BundleConnectionResolver(
+      {
+        ...args,
+        meta: {
+          categoriesScope: normalizeProductCategoriesScopeInput(
+            args.meta?.categoriesScope
+          ),
+        },
+      },
+      this.$ctx
+    );
   }
 
   // ---- Variant Queries ----
@@ -138,46 +270,45 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
   /**
    * Get a single variant by ID.
    */
-  variant(args: { id: string }) {
-    return new VariantResolver(args.id, this.$ctx);
+  async variant(args: { id: string }) {
+    const variantId =
+      safeDecodeGlobalId(args.id, GlobalIdEntity.Variant) ?? args.id;
+    const variant = await this.$ctx.loaders.variant.load(variantId);
+    if (!variant) {
+      return null;
+    }
+    return new VariantResolver(variantId, this.$ctx);
   }
 
   /**
    * Get a paginated list of variants.
    */
-  async variants(args: VariantRelayInput) {
-    const services = this.$ctx.kernel.getServices();
-    const first = args.first ?? 10;
-
-    const variants = await services.repository.variant.getMany({
-      limit: first + 1,
-    });
-
-    const hasNextPage = variants.length > first;
-    const resultVariants = hasNextPage ? variants.slice(0, first) : variants;
-
-    const edges = resultVariants.map((variant) => ({
-      node: new VariantResolver(variant.id, this.$ctx),
-      cursor: Buffer.from(variant.id).toString("base64"),
-    }));
-
-    return {
-      edges,
-      pageInfo: {
-        hasNextPage,
-        hasPreviousPage: false,
-        startCursor: edges[0]?.cursor ?? null,
-        endCursor: edges[edges.length - 1]?.cursor ?? null,
-      },
-      totalCount: resultVariants.length,
-    };
+  variants(args: VariantConnectionInput) {
+    return new VariantConnectionResolver(args, this.$ctx);
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // Warehouse Queries REMOVED (moved to Inventory Service)
-  // - warehouse(id)
-  // - warehouses(...)
-  // ═══════════════════════════════════════════════════════════
+  // ---- Vendor Queries ----
+
+  /**
+   * Get a single vendor by ID.
+   * Returns null if vendor doesn't exist.
+   */
+  async vendor(args: { id: string }) {
+    const vendorId =
+      safeDecodeGlobalId(args.id, GlobalIdEntity.Vendor) ?? args.id;
+    const vendor = await this.$ctx.loaders.vendor.load(vendorId);
+    if (!vendor) {
+      return null;
+    }
+    return new VendorResolver(vendorId, this.$ctx);
+  }
+
+  /**
+   * Get a paginated list of vendors.
+   */
+  vendors(args: VendorConnectionInput) {
+    return new VendorConnectionResolver(args, this.$ctx);
+  }
 
   // ---- Category Queries ----
 
@@ -198,21 +329,21 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
   /**
    * Get a paginated list of categories.
    */
-  categories(args: CategoryConnectionInput) {
-    return new CategoryConnectionResolver(args, this.$ctx);
-  }
-
-  async facetGroup(args: { id: string }) {
-    const id = safeDecodeGlobalId(args.id, GlobalIdEntity.FacetGroup);
-    if (!id) return null;
-    const group = await this.$ctx.kernel.repository.facetGroup.findById(id);
-    if (!group) return null;
-    return new FacetGroupResolver(group.id, this.$ctx);
-  }
-
-  async facetGroups() {
-    const groups = await this.$ctx.kernel.repository.facetGroup.findAll();
-    return groups.map((group) => new FacetGroupResolver(group.id, this.$ctx));
+  categories(args: CategoryQueryCategoriesArgs) {
+    return new CategoryConnectionResolver(
+      {
+        ...args,
+        meta: {
+          hierarchyScope: normalizeCategoryHierarchyScopeInput(
+            args.meta?.hierarchyScope
+          ),
+          productsScope: normalizeCategoryProductsScopeInput(
+            args.meta?.productsScope
+          ),
+        },
+      },
+      this.$ctx
+    );
   }
 
   async facet(args: { id: string }) {
@@ -226,6 +357,39 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
   async facets() {
     const facets = await this.$ctx.kernel.repository.facet.findAll();
     return facets.map((item) => new FacetResolver(item.id, this.$ctx));
+  }
+
+  facetSourceCandidates(args: FacetSourceCandidateConnectionInput) {
+    return new FacetSourceCandidateConnectionResolver(args, this.$ctx);
+  }
+
+  facetValueCandidates(args: FacetValueCandidatesArgs) {
+    let facetId: string | undefined;
+
+    if (args.meta.facetId != null) {
+      const decodedFacetId = safeDecodeGlobalId(
+        args.meta.facetId,
+        GlobalIdEntity.Facet
+      );
+      if (!decodedFacetId) {
+        throw new GraphQLError("Invalid facetId", {
+          extensions: { code: "BAD_USER_INPUT" },
+        });
+      }
+      facetId = decodedFacetId;
+    }
+
+    return new FacetValueCandidateConnectionResolver(
+      {
+        ...args,
+        meta: {
+          candidateType: args.meta.candidateType,
+          sourceHandles: args.meta.sourceHandles ?? undefined,
+          facetId,
+        },
+      },
+      this.$ctx
+    );
   }
 
   async facetValue(args: { id: string }) {
@@ -290,11 +454,12 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    * Returns null if tag doesn't exist.
    */
   async tag(args: { id: string }) {
-    const t = await this.$ctx.loaders.tag.load(args.id);
+    const tagId = safeDecodeGlobalId(args.id, GlobalIdEntity.Tag) ?? args.id;
+    const t = await this.$ctx.loaders.tag.load(tagId);
     if (!t) {
       return null;
     }
-    return new TagResolver(args.id, this.$ctx);
+    return new TagResolver(tagId, this.$ctx);
   }
 
   /**
@@ -308,65 +473,187 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    * Get a bulk update job by ID.
    */
   async productBulkUpdateJob(args: { jobId: string }) {
-    const job = await this.$ctx.kernel.repository.bulkEditJob.findById(
-      args.jobId
+    const jobId = decodeGlobalIdByType(
+      args.jobId,
+      GlobalIdEntity.ProductBulkUpdateJob
     );
+
+    const job = await this.$ctx.kernel.repository.bulkEditJob.findById(jobId);
     if (!job) return null;
     return new ProductBulkUpdateJobResolver(job.id, this.$ctx);
   }
 
-  // ---- Bundle Queries ----
+  productBulkUpdateJobs(args: ProductBulkUpdateJobConnectionInput) {
+    return new ProductBulkUpdateJobConnectionResolver(args, this.$ctx);
+  }
+}
 
-  async bundleGroup(args: { id: string }) {
-    const id = safeDecodeGlobalId(args.id, GlobalIdEntity.BundleGroup);
-    if (!id) return null;
-    const group = await this.$ctx.kernel.repository.bundleGroup.findById(id);
-    if (!group) return null;
-    return new BundleGroupResolver(group.id, this.$ctx);
+export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
+  async node(args: { id: string }) {
+    try {
+      const warehouseId = decodeGlobalIdByType(
+        args.id,
+        GlobalIdEntity.Warehouse
+      );
+      const warehouse = await this.$ctx.loaders.warehouse.load(warehouseId);
+      if (warehouse) {
+        return new WarehouseResolver(warehouseId, this.$ctx);
+      }
+    } catch {
+      // Not a Warehouse ID
+    }
+
+    try {
+      const inventoryItemId = decodeGlobalIdByType(
+        args.id,
+        GlobalIdEntity.InventoryItem
+      );
+      const item = await this.$ctx.loaders.inventoryItem.load(inventoryItemId);
+      if (item) {
+        return new InventoryItemResolver(item.id, this.$ctx);
+      }
+    } catch {
+      // Not an InventoryItem ID
+    }
+
+    try {
+      const stockId = decodeGlobalIdByType(
+        args.id,
+        GlobalIdEntity.WarehouseStock
+      );
+      const stock = await this.$ctx.kernel.repository.stock.findById(stockId);
+      if (stock) {
+        return new StockResolver(stock.id, this.$ctx);
+      }
+    } catch {
+      // Not a WarehouseStock ID
+    }
+
+    return null;
   }
 
-  async bundleGroups(args: { productId: string }) {
-    const productId = safeDecodeGlobalId(args.productId, GlobalIdEntity.Product);
-    if (!productId) return [];
-    const groups = await this.$ctx.kernel.repository.bundleGroup.findByProductId(productId);
-    return groups.map((group) => new BundleGroupResolver(group.id, this.$ctx));
+  nodes(args: { ids: string[] }) {
+    return Promise.all(args.ids.map((id) => this.node({ id })));
   }
 
-  async bundleItem(args: { id: string }) {
-    const id = safeDecodeGlobalId(args.id, GlobalIdEntity.BundleItem);
-    if (!id) return null;
-    const item = await this.$ctx.kernel.repository.bundleItem.findById(id);
+  async warehouse(args: { id: string }) {
+    const warehouseId = decodeGlobalIdByType(args.id, GlobalIdEntity.Warehouse);
+    const warehouse = await this.$ctx.loaders.warehouse.load(warehouseId);
+    if (!warehouse) {
+      return null;
+    }
+    return new WarehouseResolver(warehouseId, this.$ctx);
+  }
+
+  warehouses(args: WarehouseConnectionResolverInput) {
+    return new WarehouseConnectionResolver(
+      {
+        ...args,
+        where: normalizeWarehouseWhereInput(args.where),
+      },
+      this.$ctx
+    );
+  }
+
+  async inventoryItem(args: { id: string }) {
+    const itemId = decodeGlobalIdByType(args.id, GlobalIdEntity.InventoryItem);
+    const item = await this.$ctx.loaders.inventoryItem.load(itemId);
     if (!item) return null;
-    return new BundleItemResolver(item.id, this.$ctx);
+    return new InventoryItemResolver(item.id, this.$ctx);
   }
 
-  async bundlePricingTemplate(args: { id: string }) {
-    const id = safeDecodeGlobalId(args.id, GlobalIdEntity.BundlePricingTemplate);
-    if (!id) return null;
-    const template = await this.$ctx.kernel.repository.bundlePricingTemplate.findById(id);
-    if (!template) return null;
-    return new BundlePricingTemplateResolver(template.id, this.$ctx);
+  async inventoryItemByVariant(args: { variantId: string }) {
+    const variantUuid = decodeGlobalIdByType(
+      args.variantId,
+      GlobalIdEntity.Variant
+    );
+    const item = await this.$ctx.loaders.inventoryItemByVariant.load(variantUuid);
+    if (!item) return null;
+    return new InventoryItemResolver(item.id, this.$ctx);
   }
 
-  async bundlePricingTemplates(args: { productId: string }) {
-    const productId = safeDecodeGlobalId(args.productId, GlobalIdEntity.Product);
-    if (!productId) return [];
-    const templates = await this.$ctx.kernel.repository.bundlePricingTemplate.findByProductId(productId);
-    return templates.map((template) => new BundlePricingTemplateResolver(template.id, this.$ctx));
+  async inventoryItems(args: InventoryItemsArgs) {
+    const warehouseScope = await this.normalizeInventoryItemWarehouseScopeInput(
+      args.meta?.warehouseScope
+    );
+
+    if (warehouseScope.kind === "invalid") {
+      throw new GraphQLError(warehouseScope.message, {
+        extensions: { code: warehouseScope.code },
+      });
+    }
+
+    return new InventoryItemConnectionResolver(
+      {
+        ...args,
+        meta: { warehouseScope },
+      } as InventoryItemConnectionResolverInput,
+      this.$ctx
+    );
   }
 
-  async dependencyRule(args: { id: string }) {
-    const id = safeDecodeGlobalId(args.id, GlobalIdEntity.DependencyRule);
-    if (!id) return null;
-    const rule = await this.$ctx.kernel.repository.dependencyRule.findById(id);
-    if (!rule) return null;
-    return new DependencyRuleResolver(rule.id, this.$ctx);
+  async warehouseAssignableVariants(
+    args: WarehouseAssignableVariantConnectionInput
+  ) {
+    const warehouseId = decodeGlobalIdByType(
+      args.warehouseId,
+      GlobalIdEntity.Warehouse
+    );
+    const warehouse = await this.$ctx.kernel.repository.warehouse.findById(
+      warehouseId
+    );
+
+    return new WarehouseAssignableVariantConnectionResolver(
+      {
+        ...args,
+        warehouseId,
+        empty: !warehouse,
+      },
+      this.$ctx
+    );
   }
 
-  async dependencyRules(args: { productId: string }) {
-    const productId = safeDecodeGlobalId(args.productId, GlobalIdEntity.Product);
-    if (!productId) return [];
-    const rules = await this.$ctx.kernel.repository.dependencyRule.findByProductId(productId);
-    return rules.map((rule) => new DependencyRuleResolver(rule.id, this.$ctx));
+  private async normalizeInventoryItemWarehouseScopeInput(
+    input: InventoryItemWarehouseScopeArgs | null | undefined
+  ): Promise<NormalizedInventoryItemWarehouseScope> {
+    if (!input) {
+      return { kind: "all" };
+    }
+
+    if (input.mode !== "INCLUDE") {
+      return {
+        kind: "invalid",
+        code: "UNSUPPORTED_INVENTORY_ITEM_WAREHOUSE_SCOPE",
+        message: "Only warehouseScope mode INCLUDE is supported for inventoryItems.",
+      };
+    }
+
+    const referenceIds = input.referenceIds ?? [];
+    if (referenceIds.length !== 1) {
+      return {
+        kind: "invalid",
+        code: "UNSUPPORTED_INVENTORY_ITEM_WAREHOUSE_SCOPE",
+        message: "inventoryItems supports exactly one warehouseScope referenceId.",
+      };
+    }
+
+    let warehouseId: string;
+    try {
+      warehouseId = decodeGlobalIdByType(
+        referenceIds[0]!,
+        GlobalIdEntity.Warehouse
+      );
+    } catch {
+      return { kind: "empty" };
+    }
+
+    const warehouse = await this.$ctx.kernel.repository.warehouse.findById(
+      warehouseId
+    );
+    if (!warehouse) {
+      return { kind: "empty" };
+    }
+
+    return { kind: "warehouse", warehouseId };
   }
 }

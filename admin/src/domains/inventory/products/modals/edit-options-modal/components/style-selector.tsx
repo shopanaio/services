@@ -15,7 +15,9 @@ export const DisplayTypeSelector = ({ value, onChange }: IDisplayTypeSelectorPro
     label: (
       <Flex gap={8} align="center">
         {option.icon}
-        <span>{option.label}</span>
+        <span data-testid={`edit-options-display-type-menu-item-${option.key}`}>
+          {option.label}
+        </span>
       </Flex>
     ),
     onClick: () => onChange(option.key),
@@ -23,7 +25,11 @@ export const DisplayTypeSelector = ({ value, onChange }: IDisplayTypeSelectorPro
 
   return (
     <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
-      <Button size="small" type="text">
+      <Button
+        size="small"
+        type="text"
+        data-testid="edit-options-display-type-trigger"
+      >
         <Flex gap={4} align="center">
           {current?.icon}
           <span>{current?.label}</span>

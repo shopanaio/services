@@ -1,8 +1,9 @@
 "use client";
 
-import { Typography, Button, Image, Dropdown, Flex } from "antd";
+import { Typography, Button, Dropdown, Flex } from "antd";
 import {
   MoreOutlined,
+  PictureOutlined,
   SortAscendingOutlined,
   LeftOutlined,
   RightOutlined,
@@ -10,7 +11,18 @@ import {
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EditAction } from "../../edit-action";
 import { useVariantsTableStyles } from "../product-details-card.styles";
-import type { ApiVariant, ApiPageInfo } from "../types";
+import type {
+  ApiVariant,
+  ApiPageInfo,
+  ApiProductOption,
+  CurrencyCode,
+} from "@/graphql/types";
+import { formatPrice } from "../../../utils/price-formatting";
+import {
+  getSelectedOptionLabels,
+  getVariantStockQuantity,
+} from "../../../utils/api-product-display";
+import { TableCoverImage } from "@/shared/components/table-cover-image";
 
 // ============================================================================
 // Stock Status Config
@@ -47,33 +59,11 @@ const stockStatusConfig: Record<
 // ============================================================================
 
 const getStockStatus = (variant: ApiVariant): string => {
-  const totalStock = variant.stock.reduce(
-    (acc, s) => acc + s.quantityOnHand,
-    0
-  );
+  const totalStock = getVariantStockQuantity(variant);
 
   if (totalStock === 0) return "OUT_OF_STOCK";
   if (totalStock < 10) return "LOW_STOCK";
   return "IN_STOCK";
-};
-
-const formatWeight = (weight: ApiVariant["weight"]): string => {
-  if (!weight) return "\u2014";
-  // Weight is in grams
-  if (weight.value >= 1000) {
-    return `${(weight.value / 1000).toFixed(1)} kg`;
-  }
-  return `${weight.value} g`;
-};
-
-const formatDimensions = (dimensions: ApiVariant["dimensions"]): string => {
-  if (!dimensions) return "\u2014";
-  // Dimensions are in mm
-  const { length, width, height } = dimensions;
-  if (length >= 10 || width >= 10 || height >= 10) {
-    return `${(length / 10).toFixed(0)} \u00d7 ${(width / 10).toFixed(0)} \u00d7 ${(height / 10).toFixed(0)} cm`;
-  }
-  return `${length} \u00d7 ${width} \u00d7 ${height} mm`;
 };
 
 // ============================================================================
@@ -82,17 +72,27 @@ const formatDimensions = (dimensions: ApiVariant["dimensions"]): string => {
 
 interface IVariantRowProps {
   variant: ApiVariant;
-  formatPrice: (price: number) => string;
+  productOptions: ApiProductOption[];
+  defaultCurrency: CurrencyCode | null;
   onAction: (action: string, variantId: string) => void;
 }
 
-const VariantRow = ({ variant, formatPrice, onAction }: IVariantRowProps) => {
+const VariantRow = ({
+  variant,
+  productOptions,
+  defaultCurrency,
+  onAction,
+}: IVariantRowProps) => {
   const { styles } = useVariantsTableStyles();
 
-  const price = variant.price?.amountMinor ?? 0;
+  const price = variant.price?.amountMinor ?? null;
   const compareAtPrice = variant.price?.compareAtMinor ?? null;
+  const formattedPrice =
+    price !== null && defaultCurrency
+      ? formatPrice(price, defaultCurrency)
+      : "\u2014";
   const discountPercent =
-    compareAtPrice && compareAtPrice > price
+    price !== null && compareAtPrice !== null && compareAtPrice > price
       ? Math.round((1 - Number(price) / Number(compareAtPrice)) * 100)
       : 0;
 
@@ -103,37 +103,33 @@ const VariantRow = ({ variant, formatPrice, onAction }: IVariantRowProps) => {
     label: "N/A",
   };
 
-  const imageUrl = variant.media?.[0]?.file?.url;
+  const imageUrl = [...variant.media].sort(
+    (left, right) => left.sortIndex - right.sortIndex,
+  )[0]?.file.url;
+  const inventoryItem = variant.inventoryItem;
+  const optionLabels = getSelectedOptionLabels(productOptions, variant);
 
   return (
-    <tr>
+    <tr data-testid={`product-variants-row-${variant.id}`}>
       {/* VARIANT */}
-      <td>
+      <td data-testid={`product-variants-cell-title-${variant.id}`}>
         <Flex align="flex-start" gap={8}>
-          {imageUrl ? (
-            <Image
-              src={imageUrl}
-              alt=""
-              width={40}
-              height={40}
-              className={styles.variantImage}
-              preview={false}
-            />
-          ) : (
-            <div className={styles.variantImagePlaceholder} />
-          )}
+          <TableCoverImage
+            src={imageUrl ?? null}
+            alt={variant.title ?? variant.handle}
+            fallbackIcon={<PictureOutlined />}
+            className={styles.variantImage}
+          />
           <Flex vertical>
             <Typography.Text strong className={styles.variantTitle}>
-              {variant.title || variant.sku || "\u2014"}
+              {variant.title ?? variant.handle}
             </Typography.Text>
-            {variant.selectedOptions && variant.selectedOptions.length > 0 && (
+            {optionLabels.length > 0 && (
               <Typography.Text
                 type="secondary"
                 className={styles.variantOptions}
               >
-                {variant.selectedOptions
-                  .map((o) => `${o.optionId}:${o.optionValueId}`)
-                  .join(" / ")}
+                {optionLabels.join(" / ")}
               </Typography.Text>
             )}
           </Flex>
@@ -141,18 +137,22 @@ const VariantRow = ({ variant, formatPrice, onAction }: IVariantRowProps) => {
       </td>
 
       {/* PRICING */}
-      <td>
+      <td data-testid={`product-variants-cell-pricing-${variant.id}`}>
         <Flex vertical gap={0}>
-          <Typography.Text>{formatPrice(Number(price))}</Typography.Text>
-          {compareAtPrice &&
+          <Typography.Text>
+            {formattedPrice}
+          </Typography.Text>
+          {compareAtPrice !== null &&
             compareAtPrice > 0 &&
+            price !== null &&
+            defaultCurrency &&
             compareAtPrice !== price && (
               <Flex align="center" gap={4}>
                 <Typography.Text
                   type="secondary"
                   className={styles.priceStrikethrough}
                 >
-                  {formatPrice(Number(compareAtPrice))}
+                  {formatPrice(compareAtPrice, defaultCurrency)}
                 </Typography.Text>
                 {discountPercent > 0 && (
                   <Typography.Text className={styles.discountPercent}>
@@ -165,10 +165,10 @@ const VariantRow = ({ variant, formatPrice, onAction }: IVariantRowProps) => {
       </td>
 
       {/* INVENTORY */}
-      <td>
+      <td data-testid={`product-variants-cell-inventory-${variant.id}`}>
         <Flex vertical>
           <Typography.Text className={styles.variantSku}>
-            {variant.sku || "\u2014"}
+            {inventoryItem?.sku ?? "\u2014"}
           </Typography.Text>
           <Flex align="center" gap={4}>
             <span
@@ -184,18 +184,6 @@ const VariantRow = ({ variant, formatPrice, onAction }: IVariantRowProps) => {
               {stockConfig.label}
             </Typography.Text>
           </Flex>
-        </Flex>
-      </td>
-
-      {/* ATTRIBUTES */}
-      <td>
-        <Flex vertical>
-          <Typography.Text style={{ fontSize: 12 }}>
-            {formatWeight(variant.weight)}
-          </Typography.Text>
-          <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-            {formatDimensions(variant.dimensions)}
-          </Typography.Text>
         </Flex>
       </td>
 
@@ -244,30 +232,32 @@ const sortMenuItems = [
 
 interface IVariantsTableSectionProps {
   variants: ApiVariant[];
+  productOptions: ApiProductOption[];
   pageInfo: ApiPageInfo;
   totalCount: number;
-  formatPrice: (price: number) => string;
-  onEdit: () => void;
+  defaultCurrency: CurrencyCode | null;
+  onEdit: () => void | Promise<void>;
   onSort?: (sortKey: string) => void;
   onVariantAction?: (action: string, variantId: string) => void;
   onPageChange?: (direction: "next" | "prev") => void;
+  isPageLoading?: boolean;
+  isEditLoading?: boolean;
 }
 
 export const VariantsTableSection = ({
   variants,
+  productOptions,
   pageInfo,
   totalCount,
-  formatPrice,
+  defaultCurrency,
   onEdit,
   onSort,
   onVariantAction,
   onPageChange,
+  isPageLoading = false,
+  isEditLoading = false,
 }: IVariantsTableSectionProps) => {
   const { styles } = useVariantsTableStyles();
-
-  if (!variants || variants.length === 0) {
-    return null;
-  }
 
   const handleSort = (key: string) => {
     onSort?.(key);
@@ -278,7 +268,7 @@ export const VariantsTableSection = ({
   };
 
   return (
-    <Paper>
+    <Paper data-testid="product-variants-section">
       <PaperHeader
         title="Variants"
         actions={
@@ -297,30 +287,48 @@ export const VariantsTableSection = ({
                 icon={<SortAscendingOutlined />}
               />
             </Dropdown>
-            <EditAction label="Edit variants" onEdit={onEdit} />
+            <EditAction
+              label="Edit variants"
+              onEdit={onEdit}
+              testId="product-variants-edit-action-button"
+              loading={isEditLoading}
+              disabled={isEditLoading}
+            />
           </Flex>
         }
       />
       <div style={{ overflowX: "auto", margin: "0 -12px", padding: "0 12px" }}>
-        <table className={styles.variantsTable}>
+        <table className={styles.variantsTable} data-testid="product-variants-table">
           <thead>
             <tr>
               <th>Variant</th>
               <th>Pricing</th>
               <th>Inventory</th>
-              <th>Attributes</th>
               <th style={{ width: 48 }} />
             </tr>
           </thead>
           <tbody>
-            {variants.map((variant) => (
-              <VariantRow
-                key={variant.id}
-                variant={variant}
-                formatPrice={formatPrice}
-                onAction={handleVariantAction}
-              />
-            ))}
+            {variants.length > 0 ? (
+              variants.map((variant) => (
+                <VariantRow
+                  key={variant.id}
+                  variant={variant}
+                  productOptions={productOptions}
+                  defaultCurrency={defaultCurrency}
+                  onAction={handleVariantAction}
+                />
+              ))
+            ) : (
+              <tr>
+                <td colSpan={4}>
+                  <Flex justify="center" style={{ padding: "24px 12px" }}>
+                    <Typography.Text type="secondary">
+                      No variants on this page
+                    </Typography.Text>
+                  </Flex>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -333,22 +341,28 @@ export const VariantsTableSection = ({
         <Typography.Text
           type="secondary"
           className={styles.variantsPaginationCount}
+          data-testid="product-variants-pagination-range"
         >
           {totalCount} variant{totalCount !== 1 ? "s" : ""}
+          {isPageLoading ? " - Loading" : ""}
         </Typography.Text>
         <Flex gap={4}>
           <Button
             size="small"
             type="text"
             icon={<LeftOutlined />}
-            disabled={!pageInfo.hasPreviousPage}
+            data-testid="product-variants-pagination-prev-button"
+            disabled={isPageLoading || !pageInfo.hasPreviousPage}
+            loading={isPageLoading}
             onClick={() => onPageChange?.("prev")}
           />
           <Button
             size="small"
             type="text"
             icon={<RightOutlined />}
-            disabled={!pageInfo.hasNextPage}
+            data-testid="product-variants-pagination-next-button"
+            disabled={isPageLoading || !pageInfo.hasNextPage}
+            loading={isPageLoading}
             onClick={() => onPageChange?.("next")}
           />
         </Flex>

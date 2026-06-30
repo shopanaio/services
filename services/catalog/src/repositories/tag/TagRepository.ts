@@ -1,4 +1,4 @@
-import { and, eq, inArray, count } from "drizzle-orm";
+import { and, eq, inArray, count, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import {
   createQuery,
@@ -10,6 +10,7 @@ import {
 import { BaseRepository } from "../BaseRepository.js";
 import {
   tag,
+  tagListView,
   tagTranslation,
   productTag,
   type Tag,
@@ -18,11 +19,18 @@ import {
   type ProductTag,
   type NewProductTag,
 } from "../models/index.js";
+import { decodeTagGlobalId } from "../global-id-where-mappers.js";
 
 const tagQuery = createQuery(tag).maxLimit(100).defaultLimit(20);
 
 export const tagRelayQuery = createRelayQuery(
-  createQuery(tag).include(["id"]).maxLimit(100).defaultLimit(20),
+  createQuery(tagListView)
+    .include(["id"])
+    .mapWhereFields({
+      id: decodeTagGlobalId,
+    })
+    .maxLimit(100)
+    .defaultLimit(20),
   { name: "tag", tieBreaker: "id" }
 );
 
@@ -37,7 +45,7 @@ export interface TagConnectionResult {
 
 export class TagRepository extends BaseRepository {
   private get locale(): string {
-    return this.ctx.locale ?? "uk";
+    return this.ctx.locale ?? this.ctx.store.defaultLocale;
   }
 
   // ============ CRUD ============
@@ -144,6 +152,7 @@ export class TagRepository extends BaseRepository {
     const mergedWhere: TagRelayInput["where"] = {
       _and: [
         { projectId: { _eq: this.storeId } },
+        { locale: { _eq: this.locale } },
         ...(where ? [where] : []),
       ],
     };
@@ -159,7 +168,7 @@ export class TagRepository extends BaseRepository {
 
     const [result, totalCount] = await Promise.all([
       tagRelayQuery.execute(this.connection, executeInput),
-      this.count(),
+      tagRelayQuery.count(this.connection, { where: mergedWhere }),
     ]);
 
     return {
@@ -231,6 +240,25 @@ export class TagRepository extends BaseRepository {
       );
   }
 
+  async getProductTag(
+    productId: string,
+    tagId: string
+  ): Promise<ProductTag | null> {
+    const result = await this.connection
+      .select()
+      .from(productTag)
+      .where(
+        and(
+          eq(productTag.projectId, this.storeId),
+          eq(productTag.productId, productId),
+          eq(productTag.tagId, tagId)
+        )
+      )
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
   async getTagProductLinks(tagIds: readonly string[]): Promise<ProductTag[]> {
     return this.connection
       .select()
@@ -246,22 +274,36 @@ export class TagRepository extends BaseRepository {
   async countProductsByTagIds(
     tagIds: readonly string[]
   ): Promise<Map<string, number>> {
-    const result = new Map<string, number>();
+    if (tagIds.length === 0) return new Map();
 
-    for (const tagId of tagIds) {
-      const countResult = await this.connection
-        .select({ count: count() })
-        .from(productTag)
-        .where(
-          and(
-            eq(productTag.projectId, this.storeId),
-            eq(productTag.tagId, tagId)
-          )
-        );
-      result.set(tagId, countResult[0]?.count ?? 0);
-    }
+    const rows = await this.connection
+      .select({
+        tagId: tag.id,
+        count: tag.productsCount,
+      })
+      .from(tag)
+      .where(
+        and(
+          eq(tag.projectId, this.storeId),
+          inArray(tag.id, [...tagIds])
+        )
+      );
 
-    return result;
+    return new Map(rows.map((row) => [row.tagId, row.count]));
+  }
+
+  async incrementProductsCount(tagId: string): Promise<void> {
+    await this.connection
+      .update(tag)
+      .set({ productsCount: sql`${tag.productsCount} + 1` })
+      .where(and(eq(tag.projectId, this.storeId), eq(tag.id, tagId)));
+  }
+
+  async decrementProductsCount(tagId: string): Promise<void> {
+    await this.connection
+      .update(tag)
+      .set({ productsCount: sql`greatest(${tag.productsCount} - 1, 0)` })
+      .where(and(eq(tag.projectId, this.storeId), eq(tag.id, tagId)));
   }
 
   async linkProductToTag(productId: string, tagId: string): Promise<ProductTag> {
@@ -277,7 +319,6 @@ export class TagRepository extends BaseRepository {
       .onConflictDoNothing()
       .returning();
 
-    // If conflict, return existing
     if (result.length === 0) {
       const existing = await this.connection
         .select()
@@ -292,6 +333,8 @@ export class TagRepository extends BaseRepository {
         .limit(1);
       return existing[0];
     }
+
+    await this.incrementProductsCount(tagId);
 
     return result[0];
   }
@@ -308,7 +351,12 @@ export class TagRepository extends BaseRepository {
       )
       .returning({ productId: productTag.productId });
 
-    return result.length > 0;
+    if (result.length === 0) {
+      return false;
+    }
+
+    await this.decrementProductsCount(tagId);
+    return true;
   }
 
   // ============ Translation ============

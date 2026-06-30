@@ -1,7 +1,7 @@
 import type { UserError } from "../../scripts/types/ScriptResult.js";
-import type { DescriptionInput } from "../../scripts/product/dto/shared.js";
+import type { RichTextInput } from "../../scripts/product/dto/shared.js";
 
-export type { DescriptionInput };
+export type { RichTextInput };
 
 /**
  * Input for ProductUpdateWorkflow.
@@ -27,9 +27,41 @@ export interface WorkflowContext {
 /**
  * Operation types - product or variant level updates.
  */
+export interface ProductUpdateOperationMeta {
+  fieldPrefix?: string[];
+}
+
 export type ProductUpdateOperation =
-  | { type: "productUpdate"; params: ProductUpdateParams }
-  | { type: "variantUpdate"; params: VariantUpdateParams };
+  | {
+      type: "productUpdate";
+      params: ProductUpdateParams;
+      meta?: ProductUpdateOperationMeta;
+    }
+  | {
+      type: "productCategoryUpdate";
+      params: ProductCategoryUpdateParams;
+      meta?: ProductUpdateOperationMeta;
+    }
+  | {
+      type: "productTagUpdate";
+      params: ProductTagUpdateParams;
+      meta?: ProductUpdateOperationMeta;
+    }
+  | {
+      type: "variantCreate";
+      params: VariantCreateParams;
+      meta?: ProductUpdateOperationMeta;
+    }
+  | {
+      type: "variantUpdate";
+      params: VariantUpdateParams;
+      meta?: ProductUpdateOperationMeta;
+    }
+  | {
+      type: "variantDelete";
+      params: VariantDeleteParams;
+      meta?: ProductUpdateOperationMeta;
+    };
 
 /**
  * Product-level update parameters.
@@ -39,6 +71,7 @@ export interface ProductUpdateParams {
   id: string;
   handle?: string;
   title?: string;
+  vendorId?: string | null;
   content?: ProductContentParams;
   seo?: ProductSeoParams;
   status?: "published" | "draft";
@@ -46,17 +79,53 @@ export interface ProductUpdateParams {
 }
 
 export interface ProductContentParams {
-  description?: DescriptionInput;
-  excerpt?: string;
+  description?: RichTextInput | null;
+  excerpt?: RichTextInput | null;
 }
 
 export interface ProductSeoParams {
   title?: string;
   description?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImageId?: string;
 }
 
 export interface ProductMediaParams {
   fileIds: string[];
+}
+
+export type ProductCategoryOperationAction =
+  | "add"
+  | "remove"
+  | "setPrimary"
+  | "move";
+
+export interface ProductCategoryUpdateParams {
+  productId: string;
+  categoryId: string;
+  action: ProductCategoryOperationAction;
+  afterProductId?: string | null;
+  beforeProductId?: string | null;
+}
+
+export type ProductTagOperationAction = "add" | "remove";
+
+export interface ProductTagUpdateParams {
+  productId: string;
+  tagId: string;
+  action: ProductTagOperationAction;
+}
+
+export interface VariantCreateParams {
+  productId: string;
+  clientMutationId: string;
+  options: VariantOptionsParams;
+  pricing?: VariantPricingParams;
+  inventory?: VariantInventoryParams;
+  dimensions?: VariantDimensionsParams;
+  weight?: number | null;
+  media?: VariantMediaParams;
 }
 
 /**
@@ -68,24 +137,28 @@ export interface VariantUpdateParams {
   pricing?: VariantPricingParams;
   inventory?: VariantInventoryParams;
   dimensions?: VariantDimensionsParams;
+  weight?: number | null;
   media?: VariantMediaParams;
   options?: VariantOptionsParams;
+}
+
+export interface VariantDeleteParams {
+  variantId: string;
 }
 
 export interface VariantPricingParams {
   currency: string;
   amountMinor: number;
-  compareAtMinor?: number;
+  compareAtMinor?: number | null;
 }
 
 export interface VariantInventoryParams {
   warehouseId: string;
   onHand: number;
   unavailable?: number;
-  sku?: string;
-  weight?: number;
-  unitCostMinor?: number;
-  costCurrency?: string;
+  sku?: string | null;
+  unitCostMinor?: number | null;
+  costCurrency?: string | null;
 }
 
 export interface VariantDimensionsParams {
@@ -123,7 +196,15 @@ export interface ProductUpdateWorkflowResult {
  * Result of a single operation within the workflow.
  */
 export interface OperationResult {
-  type: "productUpdate" | "variantUpdate";
+  type:
+    | "productUpdate"
+    | "productCategoryUpdate"
+    | "productTagUpdate"
+    | "variantCreate"
+    | "variantDelete"
+    | "variantUpdate";
   applied: boolean;
+  clientMutationId?: string;
+  entityId?: string;
   errors: UserError[];
 }

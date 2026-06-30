@@ -1,10 +1,10 @@
-import type { Table } from "drizzle-orm";
 import type {
   DrizzleExecutor,
   FieldsDef,
   NestedPaths,
   NestedWhereInput,
   OrderByItem,
+  Selectable,
 } from "../types.js";
 import type { SeekTransforms } from "../cursor/types.js";
 import { createRelayBuilder } from "../cursor/relay-builder.js";
@@ -119,7 +119,7 @@ export type RelayQuerySnapshot<InferredFields extends FieldsDef> = {
  * ```
  */
 export class RelayQueryBuilder<
-  T extends Table,
+  T extends Selectable,
   Fields extends FluentFieldsDef,
   InferredFields extends FieldsDef = ToFieldsDef<Fields>,
   Types = T["$inferSelect"]
@@ -198,6 +198,7 @@ export class RelayQueryBuilder<
     if (!where && snapshot.config.defaultWhere) {
       where = snapshot.config.defaultWhere;
     }
+    const mappedWhere = this.queryBuilder.mapWhereForExecution(where);
 
     // Merge order with default order from fluent builder
     let order = input.orderBy;
@@ -231,7 +232,7 @@ export class RelayQueryBuilder<
       after: input.after,
       last: input.last,
       before: input.before,
-      where: where as NestedWhereInput<FieldsDef>,
+      where: mappedWhere as NestedWhereInput<FieldsDef>,
       orderBy: order as never,
       select: select as never,
       filters: input.filters,
@@ -271,6 +272,7 @@ export class RelayQueryBuilder<
     if (!where && snapshot.config.defaultWhere) {
       where = snapshot.config.defaultWhere;
     }
+    const mappedWhere = this.queryBuilder.mapWhereForExecution(where);
 
     let order = input.orderBy;
     if (!order && snapshot.config.defaultOrder) {
@@ -302,7 +304,7 @@ export class RelayQueryBuilder<
       after: input.after,
       last: input.last,
       before: input.before,
-      where: where as NestedWhereInput<FieldsDef>,
+      where: mappedWhere as NestedWhereInput<FieldsDef>,
       orderBy: order as never,
       select: select as never,
       filters: input.filters,
@@ -403,7 +405,7 @@ export class RelayQueryBuilder<
  * ```
  */
 export function createRelayQuery<
-  T extends Table,
+  T extends Selectable,
   Fields extends FluentFieldsDef,
   InferredFields extends FieldsDef = ToFieldsDef<Fields>,
   Types = T["$inferSelect"]
@@ -493,7 +495,7 @@ export type CursorQuerySnapshot<InferredFields extends FieldsDef> = {
  * ```
  */
 export class CursorQueryBuilder<
-  T extends Table,
+  T extends Selectable,
   Fields extends FluentFieldsDef,
   InferredFields extends FieldsDef = ToFieldsDef<Fields>,
   Types = T["$inferSelect"]
@@ -572,6 +574,7 @@ export class CursorQueryBuilder<
     if (!where && snapshot.config.defaultWhere) {
       where = snapshot.config.defaultWhere;
     }
+    const mappedWhere = this.queryBuilder.mapWhereForExecution(where);
 
     let order = input.orderBy;
     if (!order && snapshot.config.defaultOrder) {
@@ -602,7 +605,7 @@ export class CursorQueryBuilder<
       limit: input.limit,
       direction: input.direction,
       cursor: input.cursor,
-      where: where as NestedWhereInput<FieldsDef>,
+      where: mappedWhere as NestedWhereInput<FieldsDef>,
       orderBy: order as never,
       select: select as never,
       filters: input.filters,
@@ -642,6 +645,7 @@ export class CursorQueryBuilder<
     if (!where && snapshot.config.defaultWhere) {
       where = snapshot.config.defaultWhere;
     }
+    const mappedWhere = this.queryBuilder.mapWhereForExecution(where);
 
     let order = input.orderBy;
     if (!order && snapshot.config.defaultOrder) {
@@ -672,7 +676,7 @@ export class CursorQueryBuilder<
       limit: input.limit,
       direction: input.direction,
       cursor: input.cursor,
-      where: where as NestedWhereInput<FieldsDef>,
+      where: mappedWhere as NestedWhereInput<FieldsDef>,
       orderBy: order as never,
       select: select as never,
       filters: input.filters,
@@ -778,7 +782,7 @@ export class CursorQueryBuilder<
  * ```
  */
 export function createCursorQuery<
-  T extends Table,
+  T extends Selectable,
   Fields extends FluentFieldsDef,
   InferredFields extends FieldsDef = ToFieldsDef<Fields>,
   Types = T["$inferSelect"]

@@ -222,6 +222,7 @@ export function MediaPickerModal() {
       bodyClassName="media-picker-body"
       header={
         <ModalHeader
+          name="media-picker"
           title="Select Files"
           onClose={handleCancel}
           submitButtonProps={{

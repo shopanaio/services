@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, count } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, count } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import {
   createQuery,
@@ -9,26 +9,94 @@ import {
 } from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
 import {
-  product,
+	  product,
+	  bundle,
+	  bundleListView,
+	  productPriceRange,
+	  productCategory,
+	  listingListView,
+	  productListView,
   productTranslation,
   productOption,
   productFeature,
   type Product,
+  type Bundle,
   type NewProduct,
   type ProductTranslation,
-  type ProductOption,
-  type ProductFeature,
-} from "../models/index.js";
+	  type ProductOption,
+	  type ProductFeature,
+	  type ProductPriceRange,
+	} from "../models/index.js";
+import {
+  decodeCategoryGlobalId,
+  decodeProductGlobalId,
+  decodeVendorGlobalId,
+} from "../global-id-where-mappers.js";
+import type { NormalizedProductCategoriesScope } from "./ProductCategoriesScope.js";
 
 const productQuery = createQuery(product).maxLimit(100).defaultLimit(20);
 
+export const listingRelayQuery = createRelayQuery(
+  createQuery(listingListView)
+    .include(["id"])
+    .mapWhereFields({
+      id: decodeProductGlobalId,
+      vendorId: decodeVendorGlobalId,
+      primaryCategoryId: decodeCategoryGlobalId,
+    })
+    .maxLimit(100)
+    .defaultLimit(20),
+  { name: "listing", tieBreaker: "id" }
+);
+
 export const productRelayQuery = createRelayQuery(
-  createQuery(product).include(["id"]).maxLimit(100).defaultLimit(20),
+  createQuery(productListView)
+    .include(["id"])
+    .mapWhereFields({
+      id: decodeProductGlobalId,
+      vendorId: decodeVendorGlobalId,
+      primaryCategoryId: decodeCategoryGlobalId,
+    })
+    .maxLimit(100)
+    .defaultLimit(20),
   { name: "product", tieBreaker: "id" }
 );
 
+export const bundleRelayQuery = createRelayQuery(
+  createQuery(bundleListView)
+    .include(["id"])
+    .mapWhereFields({
+      id: decodeProductGlobalId,
+      vendorId: decodeVendorGlobalId,
+      primaryCategoryId: decodeCategoryGlobalId,
+    })
+    .maxLimit(100)
+    .defaultLimit(20),
+  { name: "bundle", tieBreaker: "id" }
+);
+
 export type ProductQueryInput = InferExecuteOptions<typeof productQuery>;
+export type ListingRelayInput = InferRelayInput<typeof listingRelayQuery>;
 export type ProductRelayInput = InferRelayInput<typeof productRelayQuery>;
+export type BundleRelayInput = InferRelayInput<typeof bundleRelayQuery>;
+export type ProductConnectionMetaInput = {
+  categoriesScope?: NormalizedProductCategoriesScope;
+};
+export type ProductConnectionInput = ProductRelayInput & {
+  meta?: ProductConnectionMetaInput;
+};
+export type BundleConnectionMetaInput = {
+  categoriesScope?: NormalizedProductCategoriesScope;
+};
+export type BundleConnectionInput = BundleRelayInput & {
+  meta?: BundleConnectionMetaInput;
+};
+
+const EMPTY_PRODUCT_WHERE: ProductRelayInput["where"] = {
+  id: { _in: ["00000000-0000-0000-0000-000000000000"] },
+};
+
+type Currency = "UAH" | "USD" | "EUR";
 
 export interface ProductConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
@@ -38,7 +106,11 @@ export interface ProductConnectionResult {
 
 export class ProductRepository extends BaseRepository {
   private get locale(): string {
-    return this.ctx.locale ?? "uk";
+    return this.ctx.locale ?? this.ctx.store.defaultLocale;
+  }
+
+  private get currency(): Currency {
+    return (this.ctx.currency ?? "UAH") as Currency;
   }
 
   // ============ CRUD ============
@@ -75,13 +147,16 @@ export class ProductRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  async create(data: { publishedAt?: Date | string | null } = {}): Promise<Product> {
+  async create(
+    data: { vendorId?: string | null; publishedAt?: Date | string | null } = {}
+  ): Promise<Product> {
     const id = randomUUID();
     const now = new Date().toISOString();
 
     const newProduct: NewProduct = {
       projectId: this.storeId,
       id,
+      vendorId: data.vendorId ?? null,
       publishedAt: data.publishedAt instanceof Date ? data.publishedAt.toISOString() : data.publishedAt ?? null,
       createdAt: now,
       updatedAt: now,
@@ -110,13 +185,18 @@ export class ProductRepository extends BaseRepository {
 
   async update(
     id: string,
-    data: { handle?: string | null; publishedAt?: Date | string | null }
+    data: {
+      handle?: string | null;
+      vendorId?: string | null;
+      publishedAt?: Date | string | null;
+    }
   ): Promise<Product | null> {
     const updateData: Partial<NewProduct> = {
       updatedAt: new Date().toISOString(),
     };
 
     if (data.handle !== undefined) updateData.handle = data.handle;
+    if (data.vendorId !== undefined) updateData.vendorId = data.vendorId;
     if (data.publishedAt !== undefined) updateData.publishedAt = data.publishedAt instanceof Date ? data.publishedAt.toISOString() : data.publishedAt;
 
     const result = await this.connection
@@ -212,15 +292,26 @@ export class ProductRepository extends BaseRepository {
     return result[0]?.count ?? 0;
   }
 
-  async getConnection(args: ProductRelayInput): Promise<ProductConnectionResult> {
-    const { where, orderBy, ...paginationArgs } = args;
+  async getConnection(args: ProductConnectionInput): Promise<ProductConnectionResult> {
+    const { where, orderBy, meta, ...paginationArgs } = args;
+    const categoriesScopeWhere = await this.buildCategoriesScopeWhere(
+      meta?.categoriesScope
+    );
 
-    // Merge user-provided where with projectId and deletedAt filters
+    // Scope list view rows to current tenant, locale, and currency.
     const mergedWhere: ProductRelayInput["where"] = {
       _and: [
         { projectId: { _eq: this.storeId } },
         { deletedAt: { _is: null } },
+        { locale: { _eq: this.locale } },
+        {
+          _or: [
+            { currency: { _eq: this.currency } },
+            { currency: { _is: null } },
+          ],
+        },
         ...(where ? [where] : []),
+        ...(categoriesScopeWhere ? [categoriesScopeWhere] : []),
       ],
     };
 
@@ -235,7 +326,7 @@ export class ProductRepository extends BaseRepository {
 
     const [result, totalCount] = await Promise.all([
       productRelayQuery.execute(this.connection, executeInput),
-      this.count(),
+      productRelayQuery.count(this.connection, { where: mergedWhere }),
     ]);
 
     return {
@@ -246,6 +337,83 @@ export class ProductRepository extends BaseRepository {
       pageInfo: result.pageInfo,
       totalCount,
     };
+  }
+
+  async getBundleConnection(args: BundleConnectionInput): Promise<ProductConnectionResult> {
+    const { where, orderBy, meta, ...paginationArgs } = args;
+    const categoriesScopeWhere = await this.buildCategoriesScopeWhere(
+      meta?.categoriesScope
+    );
+
+    const mergedWhere: BundleRelayInput["where"] = {
+      _and: [
+        { projectId: { _eq: this.storeId } },
+        { deletedAt: { _is: null } },
+        { locale: { _eq: this.locale } },
+        {
+          _or: [
+            { currency: { _eq: this.currency } },
+            { currency: { _is: null } },
+          ],
+        },
+        ...(where ? [where] : []),
+        ...(categoriesScopeWhere ? [categoriesScopeWhere] : []),
+      ],
+    };
+
+    const executeInput: BundleRelayInput = {
+      ...paginationArgs,
+      where: mergedWhere,
+      orderBy: orderBy ?? [
+        { field: "createdAt", direction: "desc" },
+        { field: "id", direction: "desc" },
+      ],
+    };
+
+    const [result, totalCount] = await Promise.all([
+      bundleRelayQuery.execute(this.connection, executeInput),
+      bundleRelayQuery.count(this.connection, { where: mergedWhere }),
+    ]);
+
+    return {
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        nodeId: edge.node.id,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
+  }
+
+  private async buildCategoriesScopeWhere(
+    scope: NormalizedProductCategoriesScope | undefined,
+  ): Promise<ProductRelayInput["where"] | undefined> {
+    if (!scope) {
+      return undefined;
+    }
+
+    if (scope.kind === "empty") {
+      return EMPTY_PRODUCT_WHERE;
+    }
+
+    const rows = await this.connection
+      .select({ productId: productCategory.productId })
+      .from(productCategory)
+      .where(
+        and(
+          eq(productCategory.projectId, this.storeId),
+          inArray(productCategory.categoryId, scope.referenceIds)
+        )
+      );
+
+    const productIds = [...new Set(rows.map((row) => row.productId))];
+    if (productIds.length === 0) {
+      return scope.mode === "EXCLUDE" ? undefined : EMPTY_PRODUCT_WHERE;
+    }
+
+    return scope.mode === "EXCLUDE"
+      ? { id: { _notIn: productIds } }
+      : { id: { _in: productIds } };
   }
 
   async getMany(input?: ProductQueryInput): Promise<Product[]> {
@@ -291,6 +459,36 @@ export class ProductRepository extends BaseRepository {
       );
   }
 
+  async getBundlesByProductIds(productIds: readonly string[]): Promise<Bundle[]> {
+    if (productIds.length === 0) return [];
+    return this.connection
+      .select()
+      .from(bundle)
+      .where(
+        and(
+          eq(bundle.projectId, this.storeId),
+          inArray(bundle.productId, [...productIds])
+        )
+      );
+  }
+
+  async getPriceRangesByProductIds(
+    productIds: readonly string[],
+  ): Promise<ProductPriceRange[]> {
+    if (productIds.length === 0) return [];
+
+    return this.connection
+      .select()
+      .from(productPriceRange)
+      .where(
+        and(
+          eq(productPriceRange.projectId, this.storeId),
+          inArray(productPriceRange.productId, [...productIds]),
+          eq(productPriceRange.currency, this.currency)
+        )
+      );
+  }
+
   async getTranslationsByProductIds(
     productIds: readonly string[]
   ): Promise<ProductTranslation[]> {
@@ -317,6 +515,11 @@ export class ProductRepository extends BaseRepository {
           eq(productOption.projectId, this.storeId),
           inArray(productOption.productId, [...productIds])
         )
+      )
+      .orderBy(
+        asc(productOption.productId),
+        asc(productOption.sortIndex),
+        asc(productOption.id)
       );
   }
 

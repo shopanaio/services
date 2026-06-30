@@ -1,16 +1,22 @@
-/**
- * Mock data for Products list page
- */
-
-export interface IProductListItem {
-  id: string;
-  name: string;
-  status: "published" | "draft";
-  inventory: number;
-  category: string;
-  brand: string;
-  image: string;
-}
+import type { ApiProduct, ApiProductConnection } from "@/graphql/types";
+import {
+  createMockApiCategory,
+  createMockApiFile,
+  createMockApiInventoryItem,
+  createMockApiInventoryItemCost,
+  createMockApiProduct,
+  createMockApiProductConnection,
+  createMockApiProductFeature,
+  createMockApiProductFeatureValue,
+  createMockApiProductMediaItem,
+  createMockApiVariant,
+  createMockApiVariantDimensions,
+  createMockApiVariantMediaItem,
+  createMockApiVariantPrice,
+  createMockApiVariantWeight,
+  createMockApiWarehouseStock,
+  createMockPageInfo,
+} from "./api-builders";
 
 const productNames = [
   "iPhone 15 Pro Max",
@@ -66,15 +72,134 @@ const productNames = [
 ];
 
 export const categories = ["Phone", "Laptop", "Audio", "Gaming", "Accessory"];
-export const brands = ["Apple", "Samsung", "Sony", "Microsoft", "Logitech", "Dell", "Google", "Nintendo", "Bose", "Canon"];
-export const statuses: IProductListItem["status"][] = ["published", "draft"];
+export const brands = [
+  "Apple",
+  "Samsung",
+  "Sony",
+  "Microsoft",
+  "Logitech",
+  "Dell",
+  "Google",
+  "Nintendo",
+  "Bose",
+  "Canon",
+];
+export const statuses = ["published", "draft"] as const;
 
-export const mockProductsList: IProductListItem[] = Array.from({ length: 50 }, (_, i) => ({
-  id: String(i + 1),
-  name: productNames[i % productNames.length],
-  status: statuses[i % 5 === 0 ? 1 : 0],
-  inventory: Math.floor(Math.random() * 150),
-  category: categories[i % categories.length],
-  brand: brands[i % brands.length],
-  image: `https://picsum.photos/seed/${i + 1}/40/40`,
-}));
+const toHandle = (value: string): string =>
+  value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+const listCategories = categories.map((name, index) =>
+  createMockApiCategory({
+    id: `list-category-${index + 1}`,
+    name,
+    handle: toHandle(name),
+  }),
+);
+
+const createBrandFeature = (brand: string, index: number) =>
+  createMockApiProductFeature({
+    id: `list-brand-feature-${index + 1}`,
+    name: "Brand",
+    slug: "brand",
+    index: [0],
+    values: [
+      createMockApiProductFeatureValue({
+        id: `list-brand-${index + 1}`,
+        name: brand,
+        slug: toHandle(brand),
+      }),
+    ],
+  });
+
+const createListProduct = (_: unknown, index: number): ApiProduct => {
+  const id = String(index + 1);
+  const title = productNames[index % productNames.length];
+  const status = statuses[index % 5 === 0 ? 1 : 0];
+  const inventory = Math.floor(Math.random() * 150);
+  const category = listCategories[index % listCategories.length];
+  const brand = brands[index % brands.length];
+  const variantId = `variant-list-${id}`;
+  const featuredFile = createMockApiFile({
+    id: `file-list-${id}`,
+    name: `${id}.jpg`,
+    url: `https://picsum.photos/seed/${id}/40/40`,
+    width: 40,
+    height: 40,
+    altText: title,
+  });
+
+  const variant = createMockApiVariant({
+    id: variantId,
+    title: "Default",
+    handle: `${toHandle(title)}-default`,
+    isDefault: true,
+    price: createMockApiVariantPrice({
+      id: `price-${variantId}`,
+      amountMinor: 0,
+    }),
+    weight: createMockApiVariantWeight({ value: 0 }),
+    dimensions: createMockApiVariantDimensions({
+      length: 0,
+      width: 0,
+      height: 0,
+    }),
+    inventoryItem: createMockApiInventoryItem({
+      id: `inventory-${variantId}`,
+      variantId,
+      sku: null,
+      totalAvailable: inventory,
+      stock: [
+        createMockApiWarehouseStock({
+          id: `stock-${variantId}`,
+          quantityOnHand: inventory,
+        }),
+      ],
+      unitCost: createMockApiInventoryItemCost({
+        amountMinor: 0,
+      }),
+    }),
+    media: [
+      createMockApiVariantMediaItem({
+        file: featuredFile,
+      }),
+    ],
+  });
+
+  return createMockApiProduct({
+    id,
+    title,
+    handle: toHandle(title),
+    isPublished: status === "published",
+    publishedAt: status === "published" ? "2024-10-01T12:00:00.000Z" : null,
+    variants: [variant],
+    media: [
+      createMockApiProductMediaItem({
+        file: featuredFile,
+      }),
+    ],
+    options: [],
+    categories: [category],
+    tags: [],
+    features: [createBrandFeature(brand, index)],
+    createdAt: "2024-09-01T12:00:00.000Z",
+    updatedAt: "2024-12-01T12:00:00.000Z",
+  });
+};
+
+export const mockProductsList: ApiProduct[] = Array.from(
+  { length: 50 },
+  createListProduct,
+);
+
+export const mockProductsConnection: ApiProductConnection =
+  createMockApiProductConnection(
+    mockProductsList,
+    createMockPageInfo({
+      hasNextPage: false,
+      hasPreviousPage: false,
+      startCursor: "product-cursor-0",
+      endCursor: `product-cursor-${mockProductsList.length - 1}`,
+    }),
+    mockProductsList.length,
+  );

@@ -1,4 +1,4 @@
-import { EntityStatus, ListingSort, ListingType } from '@codegen/admin-gql';
+
 import { randomUUID } from 'node:crypto';
 import { expect } from '@playwright/test';
 import * as yup from 'yup';
@@ -12,21 +12,21 @@ test.describe('CategoryUpdate', () => {
       excerpt: '',
       includeChildrenProducts: false,
       listingFilters: [],
-      listingOrderBy: ListingSort.CreatedAtAsc,
+      listingOrderBy: 'CREATED_AT_ASC',
       listingOrderByStatus: true,
-      listingType: ListingType.Manual,
+      listingType: 'MANUAL',
       slug: randomUUID(),
-      status: EntityStatus.Draft,
+      status: 'DRAFT',
       title: 'Category',
       gallery: [],
     };
 
     const newInput = {
       title: 'Category title updated',
-      status: EntityStatus.Published,
+      status: 'PUBLISHED',
       slug: 'category-title-updated',
-      listingOrderBy: ListingSort.PriceAsc,
-      listingType: ListingType.Composite,
+      listingOrderBy: 'PRICE_ASC',
+      listingType: 'COMPOSITE',
     };
 
     const { id } = await api.admin.category.create({ input });

@@ -1,12 +1,19 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { createElement, useMemo } from "react";
 import type { ColDef } from "ag-grid-community";
+import { PictureOutlined } from "@ant-design/icons";
+import { useProducts } from "@/domains/inventory/products/hooks";
 import { filterSchema } from "@/domains/inventory/products/page/filter-schema";
 import {
-  mockProductsList,
-  type IProductListItem,
-} from "@/mocks/products/products-list";
+  buildProductSearchCondition,
+  productFilterTransformers,
+  productSortFieldMapping,
+} from "@/domains/inventory/products/page/page-config";
+import {
+  getProductThumbnailFile,
+} from "@/domains/inventory/products/utils/api-product-display";
+import { getProductStatus } from "@/domains/inventory/products/utils/product-status";
 import { EntityCellRenderer, StatusCellRenderer } from "../cell-renderers";
 import { registerEntityPickerConfig } from ".";
 import type {
@@ -14,97 +21,101 @@ import type {
   IEntityPickerDataResult,
   IPickableEntity,
 } from "../types";
-import type { IFilterValue } from "@/layouts/filters";
+import type {
+  ApiProduct,
+  ApiProductOrderByInput,
+  ApiProductProductsMetaInput,
+  ApiProductWhereInput,
+  ProductOrderField,
+} from "@/graphql/types";
 
-/**
- * Product entity adapted for picker
- */
-interface IProductPickerEntity extends IPickableEntity {
-  inventory: number;
-  category: string;
-  brand: string;
-}
+type ProductPickerEntity = IPickableEntity;
 
-/**
- * Transform product list item to picker entity
- */
-function transformProduct(product: IProductListItem): IProductPickerEntity {
+function transformProduct(product: ApiProduct): ProductPickerEntity {
+  const thumbnail = getProductThumbnailFile(product);
+
   return {
     id: product.id,
-    title: product.name,
-    image: product.image,
-    status: product.status,
-    inventory: product.inventory,
-    category: product.category,
-    brand: product.brand,
+    title: product.title,
+    image: thumbnail?.url ?? null,
+    status: getProductStatus(product),
   };
 }
 
-/**
- * Mock data hook for products picker
- * In real implementation, this would fetch from API
- */
 function useProductsPickerData(options: {
-  filters: IFilterValue[];
-  search: string;
   pageSize: number;
-}): IEntityPickerDataResult<IProductPickerEntity> {
-  const { search, pageSize } = options;
-  const [page, setPage] = useState(0);
+  first?: number;
+  after?: string | null;
+  last?: number;
+  before?: string | null;
+  where?: object | null;
+  orderBy?: object[] | null;
+  excludeIds: string[];
+  queryMeta?: unknown;
+}): IEntityPickerDataResult<ProductPickerEntity> {
+  const {
+    pageSize,
+    first,
+    after,
+    last,
+    before,
+    where,
+    orderBy,
+    excludeIds,
+    queryMeta,
+  } = options;
+  const productsWhere = useMemo<ApiProductWhereInput | null>(() => {
+    const conditions: ApiProductWhereInput[] = [];
 
-  // Transform and filter data
-  const allData = useMemo(() => {
-    let result = mockProductsList.map(transformProduct);
-
-    // Apply search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
-      result = result.filter((p) =>
-        p.title.toLowerCase().includes(searchLower)
-      );
+    if (where) {
+      conditions.push(where as ApiProductWhereInput);
     }
 
-    return result;
-  }, [search]);
+    if (excludeIds.length > 0) {
+      conditions.push({ id: { _notIn: excludeIds } });
+    }
 
-  // Paginate
-  const paginatedData = useMemo(() => {
-    const start = page * pageSize;
-    return allData.slice(start, start + pageSize);
-  }, [allData, page, pageSize]);
+    if (conditions.length === 0) return null;
+    if (conditions.length === 1) return conditions[0];
 
-  const total = allData.length;
-  const rangeStart = page * pageSize + 1;
-  const rangeEnd = Math.min((page + 1) * pageSize, total);
-  const hasNext = rangeEnd < total;
-  const hasPrev = page > 0;
+    return { _and: conditions };
+  }, [excludeIds, where]);
+  const { products, totalCount, pageInfo, loading, error } = useProducts({
+    first,
+    after,
+    last,
+    before,
+    where: productsWhere,
+    orderBy: orderBy as ApiProductOrderByInput[] | null,
+    meta: queryMeta as ApiProductProductsMetaInput | null | undefined,
+  });
+
+  const data = useMemo(
+    () => products.map(transformProduct),
+    [products],
+  );
 
   return {
-    data: paginatedData,
-    isLoading: false,
-    error: null,
+    data,
+    isLoading: loading,
+    error,
     pagination: {
-      total,
+      total: totalCount,
       pageSize,
-      hasNext,
-      hasPrev,
-      rangeStart: total > 0 ? rangeStart : 0,
-      rangeEnd,
+      hasNext: pageInfo?.hasNextPage ?? false,
+      hasPrev: pageInfo?.hasPreviousPage ?? false,
+      startCursor: pageInfo?.startCursor ?? null,
+      endCursor: pageInfo?.endCursor ?? null,
     },
-    onNext: () => setPage((p) => p + 1),
-    onPrev: () => setPage((p) => Math.max(0, p - 1)),
-    onPageSizeChange: () => setPage(0),
   };
 }
 
-/**
- * Column definitions for products picker
- */
-const productPickerColumns: ColDef<IProductPickerEntity>[] = [
+const productPickerColumns: ColDef<ProductPickerEntity>[] = [
   {
     headerName: "Product",
     field: "title",
     cellRenderer: EntityCellRenderer,
+    cellRendererParams: { fallbackIcon: createElement(PictureOutlined) },
     flex: 1,
     minWidth: 250,
   },
@@ -113,21 +124,29 @@ const productPickerColumns: ColDef<IProductPickerEntity>[] = [
     field: "status",
     cellRenderer: StatusCellRenderer,
     minWidth: 120,
+    sortable: false,
   },
 ];
 
-/**
- * Product picker configuration
- */
-export const productPickerConfig: IEntityPickerConfig<IProductPickerEntity> = {
+export const productPickerConfig: IEntityPickerConfig<
+  ProductPickerEntity,
+  ApiProductWhereInput,
+  ProductOrderField
+> = {
   entityType: "product",
   entityName: "Product",
   entityNamePlural: "Products",
-  filterSchema: filterSchema,
+  filterSchema,
   columns: productPickerColumns,
+  pageConfig: {
+    storageKey: "product-picker-grid-state",
+    sortFieldMapping: productSortFieldMapping,
+    buildSearchCondition: buildProductSearchCondition,
+    filterTransformers: productFilterTransformers,
+    defaultPageSize: 20,
+  },
   useData: useProductsPickerData,
   getRowId: (entity) => entity.id,
 };
 
-// Register the configuration
 registerEntityPickerConfig(productPickerConfig);

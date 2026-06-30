@@ -1,7 +1,12 @@
-mutation ConditionGroupDelete($input: DeleteInput!) {
+mutation ConditionGroupDelete($input: BundleDependencyRulesSyncInput!) {
   catalogMutation {
-    conditionGroupDelete(input: $input) {
-      deletedId
+    bundleDependencyRulesSync(input: $input) {
+      dependencyRules {
+        id
+        conditionGroups {
+          id
+        }
+      }
       userErrors {
         message
         code

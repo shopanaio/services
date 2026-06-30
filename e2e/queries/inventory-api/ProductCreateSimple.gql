@@ -9,15 +9,23 @@ mutation ProductCreateSimple($input: ProductCreateInput!) {
         publishedAt
         updatedAt
         revision
+        media {
+          file {
+            id
+          }
+          sortIndex
+        }
         options {
           id
           name
           slug
           displayType
+          sortIndex
           values {
             id
             name
             slug
+            sortIndex
           }
         }
         variants(first: 10) {
@@ -26,10 +34,58 @@ mutation ProductCreateSimple($input: ProductCreateInput!) {
               id
               isDefault
               handle
+              createdAt
+              updatedAt
+              deletedAt
+              dimensions {
+                width
+                height
+                length
+              }
+              weight {
+                value
+              }
               inventoryItem {
                 id
+                variantId
                 sku
                 trackInventory
+                continueSellingWhenOutOfStock
+                stock {
+                  id
+                  quantityOnHand
+                  createdAt
+                  updatedAt
+                  warehouse {
+                    id
+                    code
+                    name
+                    isDefault
+                    createdAt
+                    updatedAt
+                    variantsCount
+                  }
+                  variant {
+                    id
+                    handle
+                    title
+                    isDefault
+                  }
+                }
+                totalAvailable
+                unitCost {
+                  currency
+                  amountMinor
+                  effectiveFrom
+                }
+                createdAt
+                updatedAt
+              }
+              media {
+                file {
+                  id
+                }
+                sortIndex
               }
             }
           }

@@ -1,10 +1,10 @@
 // Types
 export type {
   ICellSelection,
-  ICellSelectionConfig,
   ICellSelectionApi,
-  ICellSelectionHandlers,
+  ICellSelectionConfig,
   ICellSelectionContext,
+  ICellSelectionHandlers,
 } from "./types";
 
 // Provider and hooks
@@ -25,5 +25,4 @@ export { useSelectionStyles, SELECTING_BODY_CLASS } from "./styles";
 // Store (for advanced usage)
 export {
   createCellSelectionStore,
-  type CellSelectionStore,
 } from "./use-cell-selection-store";

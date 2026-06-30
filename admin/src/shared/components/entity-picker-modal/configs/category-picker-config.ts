@@ -1,7 +1,15 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { createElement, useMemo } from "react";
 import type { ColDef } from "ag-grid-community";
+import { FolderOutlined } from "@ant-design/icons";
+import { useCategories } from "@/domains/inventory/categories/hooks";
+import { filterSchema } from "@/domains/inventory/categories/page/filter-schema";
+import {
+  buildCategorySearchCondition,
+  categoryFilterTransformers,
+  categorySortFieldMapping,
+} from "@/domains/inventory/categories/page/page-config";
 import { EntityCellRenderer, StatusCellRenderer } from "../cell-renderers";
 import { registerEntityPickerConfig } from ".";
 import type {
@@ -9,128 +17,149 @@ import type {
   IEntityPickerDataResult,
   IPickableEntity,
 } from "../types";
-import {
-  FilterType,
-  enumOperators,
-  type IFilterValue,
-  type IFilterSchema,
-} from "@/layouts/filters";
-import {
-  mockCategoriesList,
-  type ICategoryListItem,
-} from "../mocks/categories-list";
+import type {
+  ApiCategory,
+  ApiCategoryCategoriesMetaInput,
+  ApiCategoryOrderByInput,
+  ApiCategoryWhereInput,
+} from "@/graphql/types";
+import { CategoryOrderField } from "@/graphql/types";
 
-interface ICategoryPickerEntity extends IPickableEntity {
-  slug: string;
+interface CategoryPickerEntity extends IPickableEntity {
+  handle: string;
   productsCount: number;
 }
 
-function transformCategory(category: ICategoryListItem): ICategoryPickerEntity {
+function transformCategory(category: ApiCategory): CategoryPickerEntity {
   return {
     id: category.id,
     title: category.name,
-    image: category.image,
-    status: category.status,
-    slug: category.slug,
+    image: category.media[0]?.file.url ?? null,
+    status: category.isPublished ? "active" : "inactive",
+    handle: category.handle,
     productsCount: category.productsCount,
   };
 }
 
-const categoryFilterSchema: IFilterSchema[] = [
-  {
-    key: "status",
-    label: "Status",
-    description: "Filter by category status",
-    type: FilterType.Enum,
-    operators: enumOperators,
-    payloadKey: "status",
-    options: [
-      { label: "Active", value: "active" },
-      { label: "Inactive", value: "inactive" },
-    ],
-  },
-];
-
 function useCategoriesPickerData(options: {
-  filters: IFilterValue[];
-  search: string;
   pageSize: number;
-}): IEntityPickerDataResult<ICategoryPickerEntity> {
-  const { search, filters, pageSize } = options;
-  const [page, setPage] = useState(0);
+  first?: number;
+  after?: string | null;
+  last?: number;
+  before?: string | null;
+  where?: object | null;
+  orderBy?: object[] | null;
+  excludeIds: string[];
+  queryMeta?: unknown;
+}): IEntityPickerDataResult<CategoryPickerEntity> {
+  const {
+    pageSize,
+    first,
+    after,
+    last,
+    before,
+    where: inputWhere,
+    orderBy,
+    excludeIds,
+    queryMeta,
+  } = options;
+  const where = useMemo<ApiCategoryWhereInput | null>(
+    () => {
+      const conditions: ApiCategoryWhereInput[] = [];
 
-  const allData = useMemo(() => {
-    let result = mockCategoriesList.map(transformCategory);
+      if (inputWhere) {
+        conditions.push(inputWhere as ApiCategoryWhereInput);
+      }
 
-    if (search) {
-      const searchLower = search.toLowerCase();
-      result = result.filter((c) =>
-        c.title.toLowerCase().includes(searchLower)
-      );
-    }
+      if (excludeIds.length > 0) {
+        conditions.push({ id: { _notIn: excludeIds } });
+      }
 
-    const statusFilter = filters.find((f) => f.schemaKey === "status");
-    if (statusFilter?.value) {
-      result = result.filter((c) => c.status === statusFilter.value);
-    }
+      if (conditions.length === 0) return null;
+      if (conditions.length === 1) return conditions[0];
 
-    return result;
-  }, [search, filters]);
+      return { _and: conditions };
+    },
+    [excludeIds, inputWhere],
+  );
+  const { categories, totalCount, pageInfo, loading, error } = useCategories({
+    first,
+    after,
+    last,
+    before,
+    where,
+    orderBy: orderBy as ApiCategoryOrderByInput[] | null,
+    meta: queryMeta as ApiCategoryCategoriesMetaInput | null | undefined,
+    fetchPolicy: "network-only",
+  });
 
-  const paginatedData = useMemo(() => {
-    const start = page * pageSize;
-    return allData.slice(start, start + pageSize);
-  }, [allData, page, pageSize]);
-
-  const total = allData.length;
-  const rangeStart = page * pageSize + 1;
-  const rangeEnd = Math.min((page + 1) * pageSize, total);
-  const hasNext = rangeEnd < total;
-  const hasPrev = page > 0;
+  const data = useMemo(
+    () => categories.map(transformCategory),
+    [categories],
+  );
 
   return {
-    data: paginatedData,
-    isLoading: false,
-    error: null,
+    data,
+    isLoading: loading,
+    error,
     pagination: {
-      total,
+      total: totalCount,
       pageSize,
-      hasNext,
-      hasPrev,
-      rangeStart: total > 0 ? rangeStart : 0,
-      rangeEnd,
+      hasNext: pageInfo?.hasNextPage ?? false,
+      hasPrev: pageInfo?.hasPreviousPage ?? false,
+      startCursor: pageInfo?.startCursor ?? null,
+      endCursor: pageInfo?.endCursor ?? null,
     },
-    onNext: () => setPage((p) => p + 1),
-    onPrev: () => setPage((p) => Math.max(0, p - 1)),
-    onPageSizeChange: () => setPage(0),
   };
 }
 
-const categoryPickerColumns: ColDef<ICategoryPickerEntity>[] = [
+const categoryPickerColumns: ColDef<CategoryPickerEntity>[] = [
   {
     headerName: "Category",
     field: "title",
     cellRenderer: EntityCellRenderer,
+    cellRendererParams: { fallbackIcon: createElement(FolderOutlined) },
     flex: 1,
     minWidth: 250,
+  },
+  {
+    headerName: "Handle",
+    field: "handle",
+    minWidth: 160,
   },
   {
     headerName: "Status",
     field: "status",
     cellRenderer: StatusCellRenderer,
     minWidth: 120,
+    sortable: false,
+  },
+  {
+    headerName: "Products",
+    field: "productsCount",
+    minWidth: 120,
   },
 ];
 
-export const categoryPickerConfig: IEntityPickerConfig<ICategoryPickerEntity> =
-  {
-    entityType: "category",
-    entityName: "Category",
-    entityNamePlural: "Categories",
-    filterSchema: categoryFilterSchema,
-    columns: categoryPickerColumns,
-    useData: useCategoriesPickerData,
-    getRowId: (entity) => entity.id,
-  };
+export const categoryPickerConfig: IEntityPickerConfig<
+  CategoryPickerEntity,
+  ApiCategoryWhereInput,
+  CategoryOrderField
+> = {
+  entityType: "category",
+  entityName: "Category",
+  entityNamePlural: "Categories",
+  filterSchema,
+  columns: categoryPickerColumns,
+  pageConfig: {
+    storageKey: "category-picker-grid-state",
+    sortFieldMapping: categorySortFieldMapping,
+    buildSearchCondition: buildCategorySearchCondition,
+    filterTransformers: categoryFilterTransformers,
+    defaultPageSize: 20,
+  },
+  useData: useCategoriesPickerData,
+  getRowId: (entity) => entity.id,
+};
 
 registerEntityPickerConfig(categoryPickerConfig);

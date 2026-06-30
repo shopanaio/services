@@ -1,0 +1,56 @@
+# ---- Listing Types ----
+
+type ProductPriceRange {
+  """Minimum product price amount in minor units."""
+  minPriceAmount: BigInt!
+
+  """Maximum product price amount in minor units."""
+  maxPriceAmount: BigInt!
+
+  """Currency code used for the returned price amounts."""
+  currency: CurrencyCode!
+}
+
+interface Listing implements Node {
+  """The Product global ID of the catalog listing item."""
+  id: ID!
+
+  """Product discriminator."""
+  kind: ProductKind!
+
+  """Whether the listing item is currently published."""
+  isPublished: Boolean!
+
+  """The URL-friendly handle."""
+  handle: String!
+
+  """Localized title."""
+  title: String!
+
+  """Media registered on this listing item."""
+  media: [ProductMediaItem!]!
+
+  """Current product price range in the selected currency."""
+  priceRange: ProductPriceRange
+}
+
+"""A connection to a mixed list of catalog listing items."""
+type ListingConnection {
+  """A list of edges."""
+  edges: [ListingEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of catalog listing items."""
+  totalCount: Int!
+}
+
+"""An edge in a Listing connection."""
+type ListingEdge {
+  """The item at the end of the edge."""
+  node: Listing!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}

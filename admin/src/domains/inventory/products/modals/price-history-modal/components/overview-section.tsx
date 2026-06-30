@@ -2,22 +2,27 @@ import { Typography, Flex, Button } from "antd";
 import { DownOutlined } from "@ant-design/icons";
 import { Paper } from "@/ui-kit/paper";
 import { KPITile } from "@/ui-kit/kpi-tile";
-import { PeriodSwitch, PERIODS, type Period } from "../../../components/period-switch";
-import {
-  PriceChart,
-  PriceChangeIndicator,
-  ScrollableDropdown,
-} from "../../../components/pricing/components";
+import { PeriodSwitch } from "../../../components/period-switch";
+import { PERIODS, type Period } from "../../../utils/periods";
+import { PriceChangeIndicator } from "../../../components/pricing/components/price-change-indicator";
+import { PriceChart } from "../../../components/pricing/components/price-chart";
+import { ScrollableDropdown } from "../../../components/pricing/components/scrollable-dropdown";
 import type {
   ApiVariantConnection,
+  ApiVariantPrice,
   ApiVariantPriceConnection,
   ApiVariantPriceHistoryStatistics,
-} from "../../../components/pricing/types";
+  CurrencyCode,
+} from "@/graphql/types";
+import {
+  formatPrice,
+  useVariantPrice,
+} from "../../../utils/price-formatting";
 import { useStyles } from "../price-history-modal.styles";
 
 interface IOverviewSectionProps {
-  currentPrice: number;
-  compareAtPrice: number | null;
+  currentPrice: ApiVariantPrice | null;
+  currency?: CurrencyCode | null;
   history: ApiVariantPriceConnection;
   stats: ApiVariantPriceHistoryStatistics | null;
   variants: ApiVariantConnection;
@@ -27,12 +32,25 @@ interface IOverviewSectionProps {
   isLoadingVariants: boolean;
   period: Period;
   onPeriodChange: (period: Period) => void;
-  formatPrice: (amount: number) => string;
 }
+
+const VariantPriceLabel = ({
+  price,
+}: {
+  price: ApiVariantPrice | null | undefined;
+}) => {
+  const formattedPrice = useVariantPrice(price);
+
+  return (
+    <Typography.Text style={{ fontWeight: 600, marginLeft: 24 }}>
+      {formattedPrice}
+    </Typography.Text>
+  );
+};
 
 export const OverviewSection = ({
   currentPrice,
-  compareAtPrice,
+  currency,
   history,
   stats,
   variants,
@@ -42,31 +60,37 @@ export const OverviewSection = ({
   isLoadingVariants,
   period,
   onPeriodChange,
-  formatPrice,
 }: IOverviewSectionProps) => {
   const { styles } = useStyles();
+  const formattedCurrentPrice = useVariantPrice(currentPrice);
 
   const selectedVariant = variants.edges.find(
     (e) => e.node.id === selectedVariantId
   )?.node;
 
+  const currentPriceAmount = currentPrice?.amountMinor ?? 0;
+  const compareAtPrice = currentPrice?.compareAtMinor ?? null;
   const previousPrice =
     history.edges.length > 1 ? history.edges[1]?.node.amountMinor : null;
 
   const variantMenuItems = variants.edges.map((edge) => ({
     key: edge.node.id,
     label: (
-      <Flex justify="space-between" align="center" style={{ width: "100%" }}>
+      <Flex
+        justify="space-between"
+        align="center"
+        style={{ width: "100%" }}
+        data-testid={`price-history-variant-option-${edge.node.id}`}
+      >
         <span>{edge.node.title ?? "Untitled"}</span>
-        <Typography.Text style={{ fontWeight: 600, marginLeft: 24 }}>
-          {formatPrice(edge.node.price?.amountMinor ?? 0)}
-        </Typography.Text>
+        <VariantPriceLabel price={edge.node.price} />
       </Flex>
     ),
   }));
 
   return (
     <Paper className={styles.overviewPaper}>
+      <div data-testid="price-history-overview">
       {variants.edges.length > 1 && (
         <div style={{ marginBottom: 16 }}>
           <Typography.Text
@@ -91,7 +115,10 @@ export const OverviewSection = ({
             isLoadingMore={isLoadingVariants}
             onLoadMore={onLoadMoreVariants}
           >
-            <Button className={styles.variantSelect}>
+            <Button
+              className={styles.variantSelect}
+              data-testid="price-history-variant-select-button"
+            >
               <Flex align="center" gap={8}>
                 <span>{selectedVariant?.title || "Select variant"}</span>
                 <DownOutlined style={{ fontSize: 10 }} />
@@ -114,24 +141,30 @@ export const OverviewSection = ({
           Current Price
         </Typography.Text>
         <div className={styles.currentPriceRow}>
-          <Typography.Title level={2} className={styles.mainPrice}>
-            {formatPrice(currentPrice)}
+          <Typography.Title
+            level={2}
+            className={styles.mainPrice}
+            data-testid="price-history-current-price"
+          >
+            {formattedCurrentPrice}
           </Typography.Title>
-          {previousPrice && previousPrice !== currentPrice && (
+          {previousPrice && previousPrice !== currentPriceAmount && (
             <PriceChangeIndicator
-              currentPrice={currentPrice}
+              currentPrice={currentPriceAmount}
               previousPrice={previousPrice}
             />
           )}
-          {compareAtPrice && compareAtPrice > currentPrice && (
-            <Typography.Text
-              delete
-              type="secondary"
-              className={styles.compareAtPrice}
-            >
-              {formatPrice(compareAtPrice)}
-            </Typography.Text>
-          )}
+          {compareAtPrice &&
+            currentPrice &&
+            compareAtPrice > currentPriceAmount && (
+              <Typography.Text
+                delete
+                type="secondary"
+                className={styles.compareAtPrice}
+              >
+                {formatPrice(compareAtPrice, currentPrice.currency)}
+              </Typography.Text>
+            )}
         </div>
       </div>
 
@@ -152,7 +185,7 @@ export const OverviewSection = ({
         </Flex>
         <PriceChart
           history={history}
-          formatPrice={formatPrice}
+          currency={currency}
           height={180}
           showAxisLabels
           showDateLabels
@@ -163,7 +196,7 @@ export const OverviewSection = ({
       <div className={styles.kpiRow}>
         <KPITile
           label="Min"
-          value={stats?.minPriceMinor ? formatPrice(stats.minPriceMinor) : "—"}
+          value={stats ? formatPrice(stats.minPriceMinor, stats.currency) : "—"}
           tooltip="Minimum price in period"
           centered
           className={styles.kpiTile}
@@ -171,7 +204,7 @@ export const OverviewSection = ({
         />
         <KPITile
           label="Max"
-          value={stats?.maxPriceMinor ? formatPrice(stats.maxPriceMinor) : "—"}
+          value={stats ? formatPrice(stats.maxPriceMinor, stats.currency) : "—"}
           tooltip="Maximum price in period"
           centered
           className={styles.kpiTile}
@@ -179,18 +212,21 @@ export const OverviewSection = ({
         />
         <KPITile
           label="Average"
-          value={stats?.avgPriceMinor ? formatPrice(stats.avgPriceMinor) : "—"}
+          value={stats ? formatPrice(stats.avgPriceMinor, stats.currency) : "—"}
           tooltip="Average price over period"
           centered
           className={styles.kpiTile}
         />
-        <KPITile
-          label="Changes"
-          value={String(history.totalCount)}
-          tooltip="Total number of price changes"
-          centered
-          className={styles.kpiTile}
-        />
+        <div data-testid="price-history-changes-count">
+          <KPITile
+            label="Changes"
+            value={String(history.totalCount)}
+            tooltip="Total number of price changes"
+            centered
+            className={styles.kpiTile}
+          />
+        </div>
+      </div>
       </div>
     </Paper>
   );

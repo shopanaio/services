@@ -1,6 +1,6 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { ApiCustomerQueryFindManyArgs } from '@codegen/admin-gql';
+import type { ApiCustomerQueryFindManyArgs } from '@codegen/admin-gql';
 
 test.describe('Customers API', () => {
   test('ApiTest', async ({ api }) => {

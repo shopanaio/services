@@ -9,13 +9,15 @@ import {
 import { EntityPickerContent } from "./entity-picker-content";
 import { productPickerConfig } from "./configs/product-picker-config";
 import type { IPickableEntity } from "./types";
+import type { ApiProductProductsMetaInput } from "@/graphql/types";
 
 export interface IProductPickerPayload {
   selectionMode?: "single" | "multi";
   initialSelection?: string[];
   excludeIds?: string[];
   maxSelection?: number;
-  onConfirm: (entities: IPickableEntity[]) => void;
+  queryMeta?: ApiProductProductsMetaInput;
+  onConfirm: (entities: IPickableEntity[], ids: string[]) => void;
 }
 
 export function ProductPickerModal() {
@@ -26,6 +28,7 @@ export function ProductPickerModal() {
     initialSelection = [],
     excludeIds = [],
     maxSelection,
+    queryMeta,
     onConfirm,
   } = typedPayload;
 
@@ -43,9 +46,9 @@ export function ProductPickerModal() {
   );
 
   const handleConfirm = useCallback(() => {
-    onConfirm(selectedEntities);
+    onConfirm(selectedEntities, selectedIds);
     forcePop();
-  }, [selectedEntities, onConfirm, forcePop]);
+  }, [selectedEntities, selectedIds, onConfirm, forcePop]);
 
   const handleCancel = useCallback(() => {
     forcePop();
@@ -60,6 +63,7 @@ export function ProductPickerModal() {
       bodyClassName="entity-picker-body"
       header={
         <ModalHeader
+          name="product-picker"
           title="Select Products"
           onClose={handleCancel}
           submitButtonProps={{
@@ -76,6 +80,7 @@ export function ProductPickerModal() {
         initialSelection={initialSelection}
         excludeIds={excludeIds}
         maxSelection={maxSelection}
+        queryMeta={queryMeta}
         onSelectionChange={handleSelectionChange}
       />
     </ModalLayout>

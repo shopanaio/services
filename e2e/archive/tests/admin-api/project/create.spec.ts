@@ -1,6 +1,6 @@
 import { test } from '@fixtures/base.extend';
 import { Currency, Country, Locale, Timezone } from '@utils/user';
-import { ProjectStatus } from '@codegen/admin-gql';
+
 import { expect } from 'playwright/test';
 import * as Yup from 'yup';
 
@@ -15,7 +15,7 @@ test.describe('ProjectCreate', () => {
         name: 'Session Store',
         currency: Currency.EUR,
         country: Country.UA,
-        status: ProjectStatus.Active,
+        status: 'ACTIVE',
         timezone: Timezone.EUROPE_KIEV,
         locales: [Locale.EN],
       };

@@ -1,11 +1,12 @@
 import { test } from '@fixtures/base.extend';
-import { EntityStatus, ListingSort, ListingType } from '@codegen/admin-gql';
+
 import { expect } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
-import { CategorySort } from '@codegen/client-gql';
+
 import type { ApiFixtures } from '@fixtures/api/api';
 import { createCursorPaginationTests } from '@utils/cursorPaginationBuilder';
 
+type CategorySort = 'TITLE_ASC' | 'TITLE_DESC' | 'CREATED_AT_ASC' | 'CREATED_AT_DESC' | 'UPDATED_AT_ASC' | 'UPDATED_AT_DESC';
 
 async function prepareCategories(api: ApiFixtures['api']) {
   const expectedTitles: string[] = [];
@@ -13,18 +14,17 @@ async function prepareCategories(api: ApiFixtures['api']) {
 
   await api.session.setupUserAndProject();
 
-  
   for (let i = 0; i < 5; i++) {
     const title = `Category ${i}`;
     const result = await api.admin.category.create({
       input: {
         title,
         slug: `category-${i}-${randomUUID()}`,
-        status: EntityStatus.Published,
+        status: 'PUBLISHED',
         includeChildrenProducts: true,
-        listingOrderBy: ListingSort.CreatedAtAsc,
+        listingOrderBy: 'CREATED_AT_ASC',
         listingOrderByStatus: true,
-        listingType: ListingType.Manual,
+        listingType: 'MANUAL',
         excerpt: `Excerpt for category ${i}`,
         description: {
           json: JSON.stringify({
@@ -46,17 +46,16 @@ async function prepareCategories(api: ApiFixtures['api']) {
     categoryIds.push(result.id);
   }
 
-  
   for (let i = 0; i < 2; i++) {
     await api.admin.category.create({
       input: {
         title: `Draft Category ${i}`,
         slug: `draft-category-${i}-${randomUUID()}`,
-        status: EntityStatus.Draft,
+        status: 'DRAFT',
         includeChildrenProducts: true,
-        listingOrderBy: ListingSort.CreatedAtAsc,
+        listingOrderBy: 'CREATED_AT_ASC',
         listingOrderByStatus: true,
-        listingType: ListingType.Manual,
+        listingType: 'MANUAL',
         excerpt: `Draft excerpt for category ${i}`,
         description: {
           json: JSON.stringify({
@@ -81,28 +80,28 @@ async function prepareCategories(api: ApiFixtures['api']) {
 // --- Helpers ---------------------------------------------------------------
 
 const sortToFieldOrder: Record<CategorySort, { field: string; order: 'ASC' | 'DESC' }> = {
-  [CategorySort.TitleAsc]: { field: 'title', order: 'ASC' },
-  [CategorySort.TitleDesc]: { field: 'title', order: 'DESC' },
-  [CategorySort.CreatedAtAsc]: { field: 'created_at', order: 'ASC' },
-  [CategorySort.CreatedAtDesc]: { field: 'created_at', order: 'DESC' },
-  [CategorySort.UpdatedAtAsc]: { field: 'updated_at', order: 'ASC' },
-  [CategorySort.UpdatedAtDesc]: { field: 'updated_at', order: 'DESC' },
+  ['TITLE_ASC']: { field: 'title', order: 'ASC' },
+  ['TITLE_DESC']: { field: 'title', order: 'DESC' },
+  ['CREATED_AT_ASC']: { field: 'created_at', order: 'ASC' },
+  ['CREATED_AT_DESC']: { field: 'created_at', order: 'DESC' },
+  ['UPDATED_AT_ASC']: { field: 'updated_at', order: 'ASC' },
+  ['UPDATED_AT_DESC']: { field: 'updated_at', order: 'DESC' },
 };
 
 const sortsArray: CategorySort[] = [
-  CategorySort.TitleAsc,
-  CategorySort.TitleDesc,
-  CategorySort.CreatedAtAsc,
-  CategorySort.CreatedAtDesc,
-  CategorySort.UpdatedAtAsc,
-  CategorySort.UpdatedAtDesc,
+  'TITLE_ASC',
+  'TITLE_DESC',
+  'CREATED_AT_ASC',
+  'CREATED_AT_DESC',
+  'UPDATED_AT_ASC',
+  'UPDATED_AT_DESC',
 ];
 
 const getExpectedBySort = (titles: string[], sort: CategorySort) => {
   switch (sort) {
-    case CategorySort.TitleDesc:
-    case CategorySort.CreatedAtDesc:
-    case CategorySort.UpdatedAtDesc:
+    case 'TITLE_DESC':
+    case 'CREATED_AT_DESC':
+    case 'UPDATED_AT_DESC':
       return [...titles].reverse();
     default:
       return [...titles];
@@ -130,7 +129,7 @@ test.describe('Client Category API', () => {
     const { data } = await api.client.query('client/Categories', {
       variables: {
         first: 20,
-        sort: CategorySort.TitleAsc,
+        sort: 'TITLE_ASC',
       },
     });
 
@@ -146,7 +145,7 @@ test.describe('Client Category API', () => {
     const { data } = await api.client.query('client/Categories', {
       variables: {
         first: 20,
-        sort: CategorySort.TitleAsc,
+        sort: 'TITLE_ASC',
       },
     });
 
@@ -155,22 +154,20 @@ test.describe('Client Category API', () => {
     data.categories.edges.forEach((edge, index) => {
       const category = edge.node;
 
-      
       expect(category.id).toBeDefined();
       expect(category.iid).toBeDefined();
       expect(category.title).toBe(expectedTitles[index]);
       expect(category.handle).toMatch(/^category-\d+-[a-f0-9-]+$/);
       expect(category.description).toBeDefined();
       expect(category.excerpt).toBe(`Excerpt for category ${index}`);
-      expect(category.listingType).toBe(ListingType.Manual);
+      expect(category.listingType).toBe('MANUAL');
       // TODO: Fix
-      // expect(category.listingSort).toBe(ListingSort.CreatedAtAsc);
+      // expect(category.listingSort).toBe('CREATED_AT_ASC');
       expect(category.createdAt).toBeDefined();
       expect(category.updatedAt).toBeDefined();
       expect(category.seoTitle).toBe(`SEO Title for Category ${index}`);
       expect(category.seoDescription).toBe(`SEO Description for Category ${index}`);
 
-      
       expect(category.cover).toBeDefined();
     });
   });
@@ -179,14 +176,12 @@ test.describe('Client Category API', () => {
   test.skip('sorts categories correctly after update by updatedAt', async ({ api }) => {
     const { categoryIds } = await prepareCategories(api);
 
-    
     const { data: initialData } = await api.client.query('client/Categories', {
-      variables: { first: 20, sort: CategorySort.UpdatedAtDesc },
+      variables: { first: 20, sort: 'UPDATED_AT_DESC' },
     });
 
     const initialOrder = initialData.categories.edges.map((edge) => edge.node.title);
 
-    
     const firstCategoryId = categoryIds[0];
     await api.admin.category.update({
       input: {
@@ -207,25 +202,20 @@ test.describe('Client Category API', () => {
       },
     });
 
-    
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    
     const { data: updatedData } = await api.client.query('client/Categories', {
-      variables: { first: 20, sort: CategorySort.UpdatedAtDesc },
+      variables: { first: 20, sort: 'UPDATED_AT_DESC' },
     });
 
     const updatedOrder = updatedData.categories.edges.map((edge) => edge.node.title);
 
-    
     expect(updatedOrder[0]).toBe('Updated Category 0');
 
-    
     const otherCategories = updatedOrder.slice(1);
     const expectedOtherCategories = initialOrder.filter((title) => title !== 'Category 0');
     expect(otherCategories).toEqual(expectedOtherCategories);
 
-    
     const updatedCategory = updatedData.categories.edges[0].node;
     expect(updatedCategory.title).toBe('Updated Category 0');
     expect(updatedCategory.excerpt).toBe('Updated excerpt for category 0');
@@ -239,7 +229,7 @@ test.describe('Client Category API', () => {
 
     // CREATED_AT_ASC
     let { data } = await api.client.query('client/Categories', {
-      variables: { first: 20, sort: CategorySort.CreatedAtAsc },
+      variables: { first: 20, sort: 'CREATED_AT_ASC' },
     });
     data.categories.edges.forEach((edge, idx) => {
       expect(edge.node.title).toBe(expectedTitles[idx]);
@@ -247,7 +237,7 @@ test.describe('Client Category API', () => {
 
     // CREATED_AT_DESC
     ({ data } = await api.client.query('client/Categories', {
-      variables: { first: 20, sort: CategorySort.CreatedAtDesc },
+      variables: { first: 20, sort: 'CREATED_AT_DESC' },
     }));
     const reversed = [...expectedTitles].reverse();
     data.categories.edges.forEach((edge, idx) => {
@@ -256,7 +246,7 @@ test.describe('Client Category API', () => {
 
     // UPDATED_AT_ASC
     ({ data } = await api.client.query('client/Categories', {
-      variables: { first: 20, sort: CategorySort.UpdatedAtAsc },
+      variables: { first: 20, sort: 'UPDATED_AT_ASC' },
     }));
     data.categories.edges.forEach((edge, idx) => {
       expect(edge.node.title).toBe(expectedTitles[idx]);
@@ -264,7 +254,7 @@ test.describe('Client Category API', () => {
 
     // UPDATED_AT_DESC (+ update some items and check that they are sorted correctly)
     ({ data } = await api.client.query('client/Categories', {
-      variables: { first: 20, sort: CategorySort.UpdatedAtDesc },
+      variables: { first: 20, sort: 'UPDATED_AT_DESC' },
     }));
     data.categories.edges.forEach((edge, idx) => {
       expect(edge.node.title).toBe(reversed[idx]);

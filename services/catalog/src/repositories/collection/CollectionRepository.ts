@@ -17,7 +17,7 @@ import {
 
 export class CollectionRepository extends BaseRepository {
   private get locale(): string {
-    return this.ctx.locale ?? "uk";
+    return this.ctx.locale ?? this.ctx.store.defaultLocale;
   }
 
   async findById(id: string): Promise<Collection | null> {
@@ -152,6 +152,9 @@ export class CollectionRepository extends BaseRepository {
     descriptionText?: string | null;
     descriptionHtml?: string | null;
     descriptionJson?: string | null;
+    excerptText?: string | null;
+    excerptHtml?: string | null;
+    excerptJson?: string | null;
   }): Promise<CollectionTranslation> {
     const insert: NewCollectionTranslation = {
       collectionId: data.collectionId,
@@ -161,6 +164,9 @@ export class CollectionRepository extends BaseRepository {
       descriptionText: data.descriptionText ?? null,
       descriptionHtml: data.descriptionHtml ?? null,
       descriptionJson: data.descriptionJson ?? null,
+      excerptText: data.excerptText ?? null,
+      excerptHtml: data.excerptHtml ?? null,
+      excerptJson: data.excerptJson ?? null,
     };
 
     const rows = await this.connection
@@ -173,6 +179,9 @@ export class CollectionRepository extends BaseRepository {
           descriptionText: insert.descriptionText,
           descriptionHtml: insert.descriptionHtml,
           descriptionJson: insert.descriptionJson,
+          excerptText: insert.excerptText,
+          excerptHtml: insert.excerptHtml,
+          excerptJson: insert.excerptJson,
         },
       })
       .returning();

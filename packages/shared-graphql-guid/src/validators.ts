@@ -5,7 +5,7 @@ import {
   ValidationArguments,
   isUUID,
 } from "class-validator";
-import { GlobalIdEntity } from "./index.js";
+import { GlobalIdEntity } from "./core.js";
 import { decodeGlobalIdByType } from "./idCodec.js";
 
 /**

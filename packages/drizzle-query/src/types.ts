@@ -274,6 +274,14 @@ export type FieldsDef = {
 };
 
 /**
+ * Local leaf paths for a single query builder scope.
+ * Relation/container fields are intentionally excluded.
+ */
+export type LocalLeafPaths<Fields extends FieldsDef> = {
+  [K in keyof Fields & string]: Fields[K] extends true ? K : never;
+}[keyof Fields & string];
+
+/**
  * Marker type for ObjectSchema to enable recursive field inference.
  * Used internally by InferFieldsDef.
  */

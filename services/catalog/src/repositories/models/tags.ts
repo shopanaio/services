@@ -3,6 +3,7 @@ import {
   varchar,
   text,
   timestamp,
+  integer,
   index,
   uniqueIndex,
   primaryKey,
@@ -24,6 +25,9 @@ export const tag = catalogSchema.table(
 
     // Identifier (URL-safe slug)
     handle: varchar("handle", { length: 255 }).notNull(),
+
+    // Denormalized product count for tag listings
+    productsCount: integer("products_count").notNull().default(0),
 
     // Timestamps
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })

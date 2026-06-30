@@ -1,5 +1,6 @@
-import { EntityStatus } from '@codegen/admin-gql';
-import { ApiCheckout, ApiCheckoutTag, CurrencyCode } from '@codegen/client-gql';
+
+import type { ApiCheckout, ApiCheckoutTag } from '@codegen/client-gql';
+
 import { test } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
 
@@ -15,7 +16,7 @@ test.describe('checkout-api: tags', () => {
     await test.step('create checkout with two tags', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
         tags: [
           { slug: 'gift', unique: false },
@@ -65,7 +66,7 @@ test.describe('checkout-api: tags', () => {
     await test.step('create empty checkout', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -148,7 +149,7 @@ test.describe('checkout-api: tags', () => {
       const product1 = await api.admin.product.create({
         input: {
           title: 'Product 1 for Tags',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle1,
           groups: [],
           requiresShipping: true,
@@ -172,7 +173,7 @@ test.describe('checkout-api: tags', () => {
       const product2 = await api.admin.product.create({
         input: {
           title: 'Product 2 for Tags',
-          status: EntityStatus.Published,
+          status: 'PUBLISHED',
           slug: handle2,
           groups: [],
           requiresShipping: true,
@@ -203,7 +204,7 @@ test.describe('checkout-api: tags', () => {
     await test.step('create checkout with regular tag', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
         tags: [{ slug: 'bundle', unique: false }],
       });
@@ -260,7 +261,7 @@ test.describe('checkout-api: tags', () => {
         return await api.admin.product.create({
           input: {
             title: `Product ${sku}`,
-            status: EntityStatus.Published,
+            status: 'PUBLISHED',
             slug: handle,
             groups: [],
             requiresShipping: true,
@@ -298,7 +299,7 @@ test.describe('checkout-api: tags', () => {
     await test.step('create checkout with unique tag', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
         tags: [{ slug: 'main', unique: true }],
       });
@@ -376,7 +377,7 @@ test.describe('checkout-api: tags', () => {
     await test.step('create checkout', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -415,7 +416,7 @@ test.describe('checkout-api: tags', () => {
     await test.step('create checkout', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
       });
 
@@ -457,7 +458,7 @@ test.describe('checkout-api: tags', () => {
         return await api.admin.product.create({
           input: {
             title: `Product ${sku}`,
-            status: EntityStatus.Published,
+            status: 'PUBLISHED',
             slug: handle,
             groups: [],
             requiresShipping: true,
@@ -492,7 +493,7 @@ test.describe('checkout-api: tags', () => {
     await test.step('create checkout with non-unique tag', async () => {
       const { data } = await api.client.checkout.create({
         localeCode: 'en',
-        currencyCode: CurrencyCode.Usd,
+        currencyCode: 'USD',
         items: [],
         tags: [{ slug: 'shared', unique: false }],
       });

@@ -1,9 +1,7 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { ApiTagQueryFindManyArgs } from '@codegen/admin-gql';
+import type { ApiTagQueryFindManyArgs } from '@codegen/admin-gql';
 import { randomUUID } from 'node:crypto';
-
-
 
 const inputs = [
   {

@@ -25,6 +25,9 @@ type Category implements Node @key(fields: "id") {
   """The date and time when the category was deleted (soft delete)."""
   deletedAt: DateTime
 
+  """Optimistic locking revision number. Incremented on each update."""
+  revision: Int!
+
   """The depth of this category in the hierarchy (0 for root)."""
   depth: Int!
 
@@ -35,7 +38,10 @@ type Category implements Node @key(fields: "id") {
   name: String!
 
   """The category description."""
-  description: Description
+  description: RichText
+
+  """Short category excerpt."""
+  excerpt: RichText
 
   """Default product sort for this category PLP."""
   defaultSort: ProductSortBy!
@@ -58,15 +64,15 @@ type Category implements Node @key(fields: "id") {
   """Media files associated with this category."""
   media: [CategoryMediaItem!]!
 
-  """Products in this category with pagination."""
-  products(
+  """Catalog listing items assigned to this category, including products and bundles."""
+  listing(
     first: Int
     after: String
     last: Int
     before: String
-    orderBy: [ProductOrderByInput!]
-    where: CategoryProductWhereInput
-  ): CategoryProductConnection!
+    where: ListingWhereInput
+    orderBy: [ListingOrderByInput!]
+  ): ListingConnection!
 
   """The total number of products in this category."""
   productsCount: Int!
@@ -108,18 +114,34 @@ type CategoryEdge {
   cursor: String!
 }
 
-type CategoryProductConnection {
-  edges: [CategoryProductEdge!]!
-  pageInfo: PageInfo!
-  totalCount: Int!
-}
-
-type CategoryProductEdge {
-  node: Product!
-  cursor: String!
-}
-
 # ---- Category Inputs ----
+
+enum CategoryHierarchyScopeDirection {
+  ANCESTORS
+  DESCENDANTS
+}
+
+enum CategoryHierarchyScopeMode {
+  INCLUDE
+  EXCLUDE
+}
+
+input CategoryHierarchyScopeInput {
+  referenceId: ID!
+  direction: CategoryHierarchyScopeDirection!
+  includeReference: Boolean = false
+  mode: CategoryHierarchyScopeMode!
+}
+
+input CategoryCategoriesMetaInput {
+  hierarchyScope: CategoryHierarchyScopeInput
+  productsScope: CategoryProductsScopeInput
+}
+
+input CategoryProductsScopeInput {
+  referenceIds: [ID!]!
+  mode: CategoryHierarchyScopeMode!
+}
 
 """
 Input for creating a category.
@@ -135,7 +157,10 @@ input CategoryCreateInput {
   parentId: ID
 
   """Optional description."""
-  description: DescriptionInput
+  description: RichTextInput
+
+  """Optional short excerpt."""
+  excerpt: RichTextInput
 
   """SEO metadata."""
   seo: SeoInput
@@ -147,27 +172,64 @@ input CategoryCreateInput {
   publish: Boolean
 }
 
+input CategoryContentInput {
+  """The category description."""
+  description: RichTextInput
+
+  """The short category excerpt."""
+  excerpt: RichTextInput
+}
+
+input CategoryMediaInput {
+  """File IDs for category media."""
+  fileIds: [ID!]!
+}
+
+input CategoryHierarchyInput {
+  """The new parent category ID, or null for root."""
+  parentId: ID
+}
+
+input CategorySortInput {
+  """Default product sort for this category PLP."""
+  defaultSort: ProductSortBy!
+
+  """Default sort direction for this category PLP."""
+  defaultSortDirection: SortDirection!
+}
+
+enum CategoryStatus {
+  DRAFT
+  PUBLISHED
+}
+
 """
-Input for updating a category.
+Input for updating a category through section-based operations.
 """
 input CategoryUpdateInput {
-  """The ID of the category to update."""
-  id: ID!
-
   """The URL-friendly handle for the category."""
   handle: String
 
   """The display name of the category."""
   name: String
 
-  """The category description."""
-  description: DescriptionInput
+  """Translated content."""
+  content: CategoryContentInput
 
   """SEO metadata."""
   seo: SeoInput
 
-  """File IDs for category media (replaces existing)."""
-  mediaFileIds: [ID!]
+  """Category status."""
+  status: CategoryStatus
+
+  """Category media replacement."""
+  media: CategoryMediaInput
+
+  """Hierarchy move."""
+  hierarchy: CategoryHierarchyInput
+
+  """PLP sort preferences."""
+  sort: CategorySortInput
 }
 
 """
@@ -192,26 +254,8 @@ input CategoryDeleteInput {
   permanent: Boolean
 }
 
-input CategoryMoveProductInput {
-  categoryId: ID!
-  productId: ID!
-  afterProductId: ID
-  beforeProductId: ID
-}
-
-input CategoryAddProductInput {
-  categoryId: ID!
-  productId: ID!
-}
-
 input CategoryRebalanceInput {
   categoryId: ID!
-}
-
-input CategoryUpdateSortInput {
-  id: ID!
-  defaultSort: ProductSortBy!
-  defaultSortDirection: SortDirection!
 }
 
 # ---- Category Payloads ----
@@ -233,6 +277,9 @@ Payload for category update.
 type CategoryUpdatePayload {
   """The updated category."""
   category: Category
+
+  """Results of requested category update operations."""
+  operationResults: [OperationResult!]!
 
   """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!
@@ -260,22 +307,7 @@ type CategoryDeletePayload {
   userErrors: [GenericUserError!]!
 }
 
-type CategoryMoveProductPayload {
-  category: Category
-  userErrors: [GenericUserError!]!
-}
-
-type CategoryAddProductPayload {
-  category: Category
-  userErrors: [GenericUserError!]!
-}
-
 type CategoryRebalancePayload {
-  category: Category
-  userErrors: [GenericUserError!]!
-}
-
-type CategoryUpdateSortPayload {
   category: Category
   userErrors: [GenericUserError!]!
 }

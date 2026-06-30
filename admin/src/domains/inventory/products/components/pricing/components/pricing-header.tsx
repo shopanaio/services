@@ -1,32 +1,47 @@
 import { Typography, Button, Dropdown, Flex } from "antd";
 import { DownOutlined, MoreOutlined } from "@ant-design/icons";
-import { useProductPriceHistoryModal } from "../../../modals";
 import { PaperHeader } from "@/ui-kit/paper";
 import { ScrollableDropdown } from "./scrollable-dropdown";
 import { useStyles } from "../pricing-block.styles";
-import { ApiVariantConnection } from "@/graphql/types";
+import type { ApiVariantConnection, ApiVariantPrice } from "@/graphql/types";
+import { useVariantPrice } from "../../../utils/price-formatting";
 
 export interface IPricingHeaderProps {
-  productId: string;
   variants: ApiVariantConnection;
   selectedVariantId: string | null;
   onVariantSelect: (id: string) => void;
   onLoadMore: () => void;
   isLoadingMore: boolean;
-  formatPrice: (amount: number) => string;
+  onEditPrices?: () => void;
+  isEditPricesLoading?: boolean;
+  onViewHistory?: () => void;
 }
 
+const VariantPriceLabel = ({
+  price,
+}: {
+  price: ApiVariantPrice | null | undefined;
+}) => {
+  const formattedPrice = useVariantPrice(price);
+
+  return (
+    <Typography.Text style={{ fontWeight: 600, marginLeft: 24 }}>
+      {formattedPrice}
+    </Typography.Text>
+  );
+};
+
 export const PricingHeader = ({
-  productId,
   variants,
   selectedVariantId,
   onVariantSelect,
   onLoadMore,
   isLoadingMore,
-  formatPrice,
+  onEditPrices,
+  isEditPricesLoading = false,
+  onViewHistory,
 }: IPricingHeaderProps) => {
   const { styles } = useStyles();
-  const { push: pushPriceHistory } = useProductPriceHistoryModal();
 
   const selectedVariant = variants.edges.find(
     (e) => e.node.id === selectedVariantId
@@ -35,11 +50,14 @@ export const PricingHeader = ({
   const variantMenuItems = variants.edges.map((edge) => ({
     key: edge.node.id,
     label: (
-      <Flex justify="space-between" align="center" style={{ width: "100%" }}>
+      <Flex
+        justify="space-between"
+        align="center"
+        style={{ width: "100%" }}
+        data-testid={`pricing-widget-variant-option-${edge.node.id}`}
+      >
         <span>{edge.node.title ?? "Untitled"}</span>
-        <Typography.Text style={{ fontWeight: 600, marginLeft: 24 }}>
-          {formatPrice(edge.node.price?.amountMinor ?? 0)}
-        </Typography.Text>
+        <VariantPriceLabel price={edge.node.price} />
       </Flex>
     ),
   }));
@@ -62,6 +80,7 @@ export const PricingHeader = ({
           className={styles.headerSelect}
           variant="text"
           color="default"
+          data-testid="pricing-widget-variant-select-button"
         >
           <Flex align="center" gap={4}>
             <span>{selectedVariant?.title || "Select variant"}</span>
@@ -75,17 +94,31 @@ export const PricingHeader = ({
     <Dropdown
       menu={{
         items: [
-          { key: "edit", label: "Edit Prices" },
+          {
+            key: "edit",
+            label: (
+              <span data-testid="pricing-widget-edit-prices-menu-item">
+                Edit Prices
+              </span>
+            ),
+            disabled: !onEditPrices || isEditPricesLoading,
+            onClick: onEditPrices,
+          },
           {
             key: "history",
-            label: "View History",
-            onClick: () => pushPriceHistory({ productId }),
+            label: <span data-testid="pricing-widget-view-history-menu-item">View History</span>,
+            disabled: !onViewHistory,
+            onClick: onViewHistory,
           },
         ],
       }}
       trigger={["click"]}
     >
-      <Button size="small" icon={<MoreOutlined />} />
+      <Button
+        size="small"
+        icon={<MoreOutlined />}
+        data-testid="pricing-widget-actions-button"
+      />
     </Dropdown>
   );
 

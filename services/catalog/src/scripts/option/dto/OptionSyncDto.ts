@@ -3,7 +3,7 @@ import type { OptionResultBase, OptionSwatchInput } from "./shared.js";
 
 export interface OptionValueSyncInput {
   readonly id?: string;
-  readonly index: number;
+  readonly sortIndex: number;
   readonly slug: string;
   readonly name: string;
   readonly swatch?: OptionSwatchInput | null;
@@ -11,7 +11,7 @@ export interface OptionValueSyncInput {
 
 export interface OptionSyncItemInput {
   readonly id?: string;
-  readonly index: number;
+  readonly sortIndex: number;
   readonly slug: string;
   readonly name: string;
   readonly displayType: string;

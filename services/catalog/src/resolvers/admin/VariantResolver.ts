@@ -15,8 +15,8 @@ import { VariantPriceResolver } from "./VariantPriceResolver.js";
 
 /**
  * Variant resolver for Catalog Service.
- * Does NOT contain inventory fields (sku, dimensions, weight, cost, stock).
- * Those fields are resolved via federation extend in Inventory Service.
+ * Inventory-owned entity fields stay behind inventoryItem; physical measurements
+ * are exposed directly on the variant because they are keyed by variantId.
  */
 @SubgraphReference()
 export class VariantResolver extends CatalogType<string, Variant> {
@@ -34,6 +34,10 @@ export class VariantResolver extends CatalogType<string, Variant> {
 
   async productId() {
     return this.$get("productId");
+  }
+
+  async product() {
+    return this.resolvers.product(await this.$get("productId"));
   }
 
   async isDefault() {
@@ -121,28 +125,58 @@ export class VariantResolver extends CatalogType<string, Variant> {
     return links
       .filter((link) => link.optionValueId !== null)
       .map((link) => ({
-        optionId: link.optionId,
-        optionValueId: link.optionValueId!,
+        optionId: encodeGlobalIdByType(link.optionId, GlobalIdEntity.Option),
+        optionValueId: encodeGlobalIdByType(
+          link.optionValueId!,
+          GlobalIdEntity.OptionValue
+        ),
       }));
   }
 
-  async media(): Promise<Array<{ file: { __typename: "File"; id: string }; sortIndex: number }>> {
+  async media(): Promise<VariantMediaItem[]> {
     const mediaItems = await this.$ctx.loaders.variantMedia.load(this.$props);
-    return mediaItems.map((m) => ({
-      file: { __typename: "File" as const, id: m.fileId },
-      sortIndex: m.sortIndex,
+    return mediaItems.map((media) => ({
+      file: {
+        __typename: "File" as const,
+        id: encodeGlobalIdByType(media.fileId, GlobalIdEntity.File),
+      },
+      sortIndex: media.sortIndex,
     }));
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // REMOVED from Catalog (moved to Inventory):
-  // - sku()
-  // - dimensions()
-  // - weight()
-  // - cost()
-  // - costHistory()
-  // - stock()
-  // - inStock()
-  // These fields are resolved via federation extend
-  // ═══════════════════════════════════════════════════════════
+  async dimensions() {
+    const dims = await this.$ctx.kernel
+      .getServices()
+      .repository.physical.getDimensionsByVariantIds([this.$props]);
+
+    const current = dims[0];
+    if (!current) return null;
+
+    return {
+      width: current.wMm,
+      length: current.lMm,
+      height: current.hMm,
+    };
+  }
+
+  async weight() {
+    const weights = await this.$ctx.kernel
+      .getServices()
+      .repository.physical.getWeightsByVariantIds([this.$props]);
+
+    const current = weights[0];
+    if (!current) return null;
+
+    return {
+      value: current.weightGr,
+    };
+  }
+
+  async inventoryItem() {
+    const item = await this.$ctx.loaders.inventoryItemByVariant.load(
+      this.$props
+    );
+    if (!item) return null;
+    return this.resolvers.inventoryItem(item.id);
+  }
 }

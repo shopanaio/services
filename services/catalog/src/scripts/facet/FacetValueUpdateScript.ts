@@ -1,11 +1,17 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
-import { isValidSlug } from "../shared/slug.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
+import { isUniqueViolation } from "../../kernel/types.js";
 import type { FacetValueResult, FacetValueUpdateParams } from "./dto/index.js";
+import {
+  isFacetWithValues,
+  isValidDisplayHandle,
+  normalizeFacetValueHandle,
+} from "./facetValueValidation.js";
 
 export class FacetValueUpdateScript extends BaseScript<
   FacetValueUpdateParams,
   FacetValueResult
 > {
+  @Transactional()
   protected async execute(
     params: FacetValueUpdateParams
   ): Promise<FacetValueResult> {
@@ -25,7 +31,7 @@ export class FacetValueUpdateScript extends BaseScript<
       };
     }
 
-    if (facet.facetType === "price" || facet.facetType === "in_stock") {
+    if (!isFacetWithValues(facet.facetType)) {
       return {
         facetValue: undefined,
         userErrors: [
@@ -37,49 +43,93 @@ export class FacetValueUpdateScript extends BaseScript<
       };
     }
 
-    // Only validate sourceHandles if explicitly provided and empty
-    if (params.sourceHandles !== undefined && params.sourceHandles.length === 0) {
+    if (params.label !== undefined && params.label.trim() === "") {
       return {
         facetValue: undefined,
-        userErrors: [
-          {
-            message: "sourceHandles cannot be empty for TAG/FEATURE/OPTION facet values",
-            field: ["sourceHandles"],
-            code: "INVALID",
-          },
-        ],
+        userErrors: [{ message: "Label cannot be empty", field: ["label"], code: "REQUIRED" }],
       };
     }
 
-    if (params.slug !== undefined) {
-      if (!isValidSlug(params.slug)) {
+    const handle = params.handle === undefined
+      ? undefined
+      : normalizeFacetValueHandle(params.handle);
+
+    if (handle !== undefined) {
+      if (existing.kind === "source") {
         return {
           facetValue: undefined,
-          userErrors: [{ message: "Invalid value slug", field: ["slug"], code: "INVALID_SLUG" }],
+          userErrors: [
+            {
+              message: "Source value handle cannot be changed by generic update",
+              field: ["handle"],
+              code: "SOURCE_HANDLE_IMMUTABLE",
+            },
+          ],
         };
       }
 
-      const siblings = await this.repository.facetValue.findByFacetId(existing.facetId);
-      if (
-        siblings.some((value) => value.id !== params.id && value.slug === params.slug)
-      ) {
+      if (!isValidDisplayHandle(handle)) {
         return {
           facetValue: undefined,
-          userErrors: [{ message: "Facet value slug already exists", field: ["slug"], code: "DUPLICATE" }],
+          userErrors: [
+            { message: "Invalid display value handle", field: ["handle"], code: "INVALID_HANDLE" },
+          ],
+        };
+      }
+
+      const duplicate = await this.repository.facetValue.findRootByFacetIdAndHandle(
+        existing.facetId,
+        handle
+      );
+      if (duplicate && duplicate.id !== existing.id) {
+        return {
+          facetValue: undefined,
+          userErrors: [
+            { message: "Facet value handle already exists", field: ["handle"], code: "HANDLE_ALREADY_EXISTS" },
+          ],
         };
       }
     }
 
-    const facetValue = await this.repository.facetValue.update(params.id, {
-      slug: params.slug,
-      label: params.label,
-      sourceHandles: params.sourceHandles,
-      swatchId: params.swatchId,
-      sortIndex: params.sortIndex,
-      enabled: params.enabled,
-    });
+    if (existing.kind === "display" && params.enabled === true) {
+      const children = await this.repository.facetValue.getSourceChildrenByParentIds([
+        existing.id,
+      ]);
+      if (!children.some((child) => child.enabled)) {
+        return {
+          facetValue: undefined,
+          userErrors: [
+            {
+              message: "Enabled display values require at least one enabled source value",
+              field: ["enabled"],
+              code: "SOURCE_VALUES_REQUIRED",
+            },
+          ],
+        };
+      }
+    }
 
-    return { facetValue: facetValue ?? undefined, userErrors: [] };
+    try {
+      const facetValue = await this.repository.facetValue.updateValue(params.id, {
+        handle,
+        label: params.label,
+        swatchId: params.swatchId,
+        sortIndex: params.sortIndex,
+        enabled: params.enabled,
+      });
+
+      return { facetValue: facetValue ?? undefined, userErrors: [] };
+    } catch (error) {
+      if (isUniqueViolation(error, "facet_value_root_project_facet_handle_uniq")) {
+        return {
+          facetValue: undefined,
+          userErrors: [
+            { message: "Facet value handle already exists", field: ["handle"], code: "HANDLE_ALREADY_EXISTS" },
+          ],
+        };
+      }
+      throw error;
+    }
   }
 
   protected handleError(_error: unknown): FacetValueResult {

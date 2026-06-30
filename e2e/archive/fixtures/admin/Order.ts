@@ -1,20 +1,7 @@
-import {
-  ApiOrder,
-  ApiCreateOrderInput,
-  ApiCreateOrderItemInput,
-  ApiUpdateOrderCustomerInput,
-  ApiUpdateOrderStatusInput,
-  ApiUpdatePaymentStatusInput,
-  ApiUpdateFulfillmentStatusInput,
-  ApiUpdateAdminNoteInput,
-  ApiAddCommentInput,
-  ApiUpdateOrderTagsInput,
-  ApiUpdateOrderItemInput,
-  ApiSplitFulfillmentInput,
-} from '@codegen/admin-gql';
-import { TenantApiFixture } from '@fixtures/admin/api';
+import type { ApiOrder, ApiCreateOrderInput, ApiCreateOrderItemInput, ApiUpdateOrderCustomerInput, ApiUpdateOrderStatusInput, ApiUpdatePaymentStatusInput, ApiUpdateFulfillmentStatusInput, ApiUpdateAdminNoteInput, ApiAddCommentInput, ApiUpdateOrderTagsInput, ApiUpdateOrderItemInput, ApiSplitFulfillmentInput } from '@codegen/admin-gql';
+import type { TenantApiFixture } from '@fixtures/admin/api';
 import _ from 'lodash';
-import { DeepPartial } from 'types';
+import type { DeepPartial } from 'types';
 
 export class Order {
   constructor(private api: TenantApiFixture) {}
