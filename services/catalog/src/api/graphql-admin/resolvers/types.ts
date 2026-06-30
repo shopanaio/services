@@ -42,6 +42,13 @@ async function resolveProductBackedType(
  * Type resolvers for interfaces and scalars.
  */
 export const typeResolvers: Partial<Resolvers> = {
+  FacetValue: {
+    handle: (obj: unknown) => {
+      const record = obj as Record<string, unknown>;
+      return typeof record.handle === "string" ? record.handle : "";
+    },
+  },
+
   // Interface resolvers
   Node: {
     __resolveType: async (obj: unknown) => {
@@ -64,7 +71,7 @@ export const typeResolvers: Partial<Resolvers> = {
       if ("isGroup" in record) return "ProductFeature";
       if ("featureId" in record) return "ProductFeatureValue";
       if ("facetType" in record && "selectionMode" in record) return "Facet";
-      if ("enabled" in record && "facetId" in record && "slug" in record)
+      if ("enabled" in record && "facetId" in record && "handle" in record)
         return "FacetValue";
       if ("swatchType" in record && "colorOne" in record && !("displayType" in record))
         return "FacetSwatch";

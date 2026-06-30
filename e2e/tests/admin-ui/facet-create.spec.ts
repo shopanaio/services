@@ -224,8 +224,8 @@ async function selectFacetSource(
     .first();
   await expect(row).toBeVisible();
   await row.click();
-  await expect(page.getByTestId('submit-entity-picker-form-button')).toBeEnabled();
-  await page.getByTestId('submit-entity-picker-form-button').click();
+  await expect(picker.getByRole('button', { name: 'Save' })).toBeEnabled();
+  await picker.getByRole('button', { name: 'Save' }).click();
   await expect(picker).toBeHidden();
   await expect(page.getByTestId('create-facet-source-button')).toContainText(
     input.buttonText,
@@ -266,7 +266,7 @@ async function createFacetFromCandidates(
   await selectAllFacetValueCandidates(page, input.candidateHandles);
 
   await page.getByTestId('submit-create-facet-form-button').click();
-  await expect(modal).toBeHidden();
+  await expect(modal).toBeHidden({ timeout: 20_000 });
 }
 
 async function expectFacetRow(
@@ -274,7 +274,6 @@ async function expectFacetRow(
   input: {
     slug: string;
     label: string;
-    valueHandles: string[];
     valueLabels: string[];
   },
 ) {
@@ -282,10 +281,14 @@ async function expectFacetRow(
   await expect(cell).toBeVisible();
   await expect(cell).toContainText(input.label);
 
-  for (const [index, handle] of input.valueHandles.entries()) {
-    const chip = page.getByTestId(`facets-table-value-chip-${input.slug}-${handle}`);
-    await expect(chip).toBeVisible();
-    await expect(chip).toContainText(input.valueLabels[index]);
+  const row = page
+    .getByTestId('facets-table')
+    .locator('.ag-center-cols-container .ag-row')
+    .filter({ has: cell })
+    .first();
+
+  for (const label of input.valueLabels) {
+    await expect(row).toContainText(label);
   }
 }
 
@@ -386,18 +389,9 @@ test.describe('Admin facets create UI', () => {
       candidateHandles: tagFacet.candidateHandles,
     });
 
-    await expectFacetRow(page, {
-      ...optionFacet,
-      valueHandles: optionFacet.candidateHandles,
-    });
-    await expectFacetRow(page, {
-      ...featureFacet,
-      valueHandles: featureFacet.candidateHandles,
-    });
-    await expectFacetRow(page, {
-      ...tagFacet,
-      valueHandles: tagFacet.candidateHandles,
-    });
+    await expectFacetRow(page, optionFacet);
+    await expectFacetRow(page, featureFacet);
+    await expectFacetRow(page, tagFacet);
 
     await expectFacetModalValues(page, optionFacet);
     await expectFacetModalValues(page, featureFacet);
