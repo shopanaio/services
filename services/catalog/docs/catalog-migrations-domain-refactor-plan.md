@@ -132,7 +132,55 @@ The exact file list may change after inventory, but every final file must answer
 
 This section is the target content contract for the new baseline. Each listed file must contain the final object definitions directly: `CREATE SCHEMA`, `CREATE TYPE`, `CREATE TABLE`, `ALTER TABLE ... ADD CONSTRAINT`, `CREATE INDEX`, and final `CREATE VIEW` statements as applicable. Do not include historical `DROP`, rename, intermediate view replacement, obsolete `facet.sort_index`, or old default churn.
 
-Column lists below are the final catalog schema shape that the SQL must create. Primary keys, foreign keys, and indexes listed for the same file must be created in that file unless explicitly assigned to a later constraints file.
+The object lists below define ownership and expected objects, but they are not sufficient by themselves to write the final SQL. Before creating the baseline SQL, Phase 1 must expand them into a complete final-schema inventory. Every table, column, constraint, index, enum, sequence, extension, and view must have enough detail in that inventory to recreate the final schema without reading the old Drizzle history.
+
+For every table column, the inventory must include:
+
+- exact PostgreSQL type, including enum schema, precision, scale, array type, and JSON type where applicable;
+- `NOT NULL` vs nullable;
+- default expression, including `now()`, identity/sequence defaults, boolean defaults, numeric defaults, enum defaults, JSON defaults, and string literal defaults;
+- generated/identity/sequence behavior if present;
+- collation or special storage options if present;
+- whether the column is final, newly canonicalized, or intentionally omitted because it only existed in historical churn.
+
+For every primary key, unique constraint, foreign key, and check constraint, the inventory must include:
+
+- exact constraint name;
+- ordered column list or check expression;
+- referenced schema/table/columns for foreign keys;
+- `ON DELETE`, `ON UPDATE`, `MATCH`, `DEFERRABLE`, and `INITIALLY` options;
+- whether the constraint is inline in the table file or attached in a later constraints file because of dependency order.
+
+For every index, the inventory must include:
+
+- exact index name;
+- uniqueness;
+- access method, such as `btree` or `gin`;
+- ordered key columns and expressions;
+- sort order, null ordering, operator class, included columns, and predicate for partial indexes;
+- target owner file.
+
+For every view, the inventory must include:
+
+- exact final `CREATE VIEW` SQL;
+- ordered output column names and aliases;
+- source tables/views and dependency order;
+- whether the view is domain-owned or cross-domain under `9000_read_models`.
+
+For every enum and extension, the inventory must include:
+
+- exact schema-qualified object name;
+- ordered enum values;
+- extension name, target schema, and whether `CREATE EXTENSION IF NOT EXISTS` is required.
+
+The inventory must be derived from both sources:
+
+- current Drizzle model files under `services/catalog/src/repositories/models/**`, which are the runtime query contract;
+- the effective end state of `services/catalog/migrations/*.sql`, after applying all creates, alters, drops, renames, view replacements, and index replacements.
+
+If these sources disagree, resolve the discrepancy before writing canonical SQL and record the decision in the inventory. The canonical SQL must match the accepted final inventory, not a partial column-only list.
+
+Primary keys, foreign keys, and indexes listed for the same file must be created in that file unless explicitly assigned to a later constraints file.
 
 ### `0000_foundation/0000_foundation__schema.sql`
 
@@ -504,10 +552,10 @@ Existing fully migrated databases have the complete old history, so every new ca
 
 ### Phase 1: Inventory Final Schema
 
-Create a final-schema inventory from Drizzle models and the effective end state of existing migration files:
+Create a complete final-schema inventory from Drizzle models and the effective end state of existing migration files:
 
 ```text
-object type -> object name -> owning domain -> target canonical file
+object type -> object name -> owning domain -> target canonical file -> complete final DDL attributes
 ```
 
 Classify final objects by owner:
@@ -520,6 +568,18 @@ Classify final objects by owner:
 
 The inventory must describe the target final schema only. Do not keep objects that were created only to be dropped or renamed by later historical migrations.
 
+The inventory is complete only when it records all final DDL attributes needed to recreate the schema:
+
+- table columns with PostgreSQL type, nullability, defaults, identity/sequence behavior, enum schema, array/json details, and intentionally omitted historical columns;
+- primary keys, unique constraints, foreign keys, check constraints, and exclusion constraints with exact names, ordered columns/expressions, referenced objects, `ON DELETE`/`ON UPDATE`, and deferrability options;
+- indexes with exact names, uniqueness, method, ordered columns/expressions, operator classes, included columns, partial predicates, sort order, and null ordering;
+- views with exact final SQL, output aliases, and dependency order;
+- enum types with ordered values;
+- extensions, helper functions, sequences, and other schema-level objects if present;
+- object owner file and the reason for placing cross-domain views under `9000_read_models`.
+
+Do not start Phase 2 until every object listed in the old effective schema and every runtime Drizzle model object is either assigned to a canonical file or explicitly recorded as historical churn that must not appear in the baseline.
+
 Keep the inventory document or generated report in `services/catalog/docs/` until the baseline is reviewed.
 
 ### Phase 2: Create Structured Baseline SQL
@@ -531,6 +591,7 @@ Create new canonical baseline files under `migrations/domains/**`.
 Rules:
 
 - create the final schema directly from scratch;
+- use the complete final-schema inventory as the SQL contract, including types, nullability, defaults, constraints, index predicates, and final view definitions;
 - do not replay historical `CREATE` -> `DROP`, rename, replacement-index, or replacement-view sequences;
 - keep only the final desired table, column, constraint, index, type, and view definitions;
 - do not combine unrelated entities just because they appeared in the same old generated file;
@@ -601,7 +662,7 @@ Fresh database:
 - run catalog migrations from the structured files;
 - verify `catalog.pgmigrations` contains only new structured basenames;
 - verify `catalog` schema objects exist;
-- compare schema-only dump against the current Drizzle-generated baseline.
+- compare schema-only dump against the current Drizzle-generated baseline, including table columns, types, nullability, defaults, enum values, constraints, indexes, partial predicates, and view definitions.
 
 Existing fully migrated database:
 
@@ -609,7 +670,8 @@ Existing fully migrated database:
 - run new catalog runner;
 - verify no historical DDL is rerun;
 - verify `catalog.pgmigrations` now contains structured basenames from aliases;
-- verify no duplicate objects or failed `CREATE` statements.
+- verify no duplicate objects or failed `CREATE` statements;
+- verify the resulting schema still matches the complete final-schema inventory.
 
 Partially migrated database:
 
@@ -642,6 +704,8 @@ Normalize volatile dump lines before diffing, such as ownership and comments, if
 - Catalog runner no longer depends on Drizzle migration metadata for normal operation.
 - Catalog migrations are under `migrations/domains/**` and grouped by entity/domain.
 - Fresh catalog migrations create the final schema directly and do not replay historical create/drop/rename churn.
+- The final-schema inventory is complete enough to recreate the schema without consulting old Drizzle migration history.
+- Fresh catalog schema matches the accepted final inventory for column types, nullability, defaults, enum values, constraints, indexes, partial predicates, and views.
 - `legacy-drizzle/**` is retained for audit but excluded from execution.
 - `catalog.pgmigrations` remains the only node-pg-migrate tracking table for catalog.
 - Existing migrated environments do not rerun historical DDL after the refactor.
