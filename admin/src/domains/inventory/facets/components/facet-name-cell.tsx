@@ -12,7 +12,12 @@ export function FacetNameCell(params: ICellRendererParams<FacetGridRow>) {
   }
 
   return (
-    <div className={styles.nameCell}>
+    <div
+      className={styles.nameCell}
+      data-testid={
+        row.slug ? `facets-table-name-cell-${row.slug}` : undefined
+      }
+    >
       <FilterOutlined className={styles.facetIcon} />
       <span className={styles.nameText}>
         <Typography.Text ellipsis strong>

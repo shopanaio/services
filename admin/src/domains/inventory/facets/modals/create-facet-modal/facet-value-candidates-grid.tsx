@@ -5,6 +5,7 @@ import { AgGridReact } from "ag-grid-react";
 import type {
   ColDef,
   GetRowIdParams,
+  ICellRendererParams,
   RowSelectionOptions,
   SelectionChangedEvent,
   SortChangedEvent,
@@ -182,6 +183,14 @@ export function FacetValueCandidatesGrid({
         flex: 1,
         minWidth: 180,
         sort: "asc",
+        cellRenderer: ({
+          data,
+        }: ICellRendererParams<FacetValueCandidateFields>) =>
+          data ? (
+            <span data-testid={`facet-value-candidate-cell-${data.handle}`}>
+              {data.label}
+            </span>
+          ) : null,
       },
       {
         field: "sourceHandle",
@@ -280,6 +289,7 @@ export function FacetValueCandidatesGrid({
           placeholder="Search filter values"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
+          data-testid="facet-value-candidates-search-input"
         />
         <Typography.Text type="secondary">
           {value.length} selected
@@ -299,7 +309,7 @@ export function FacetValueCandidatesGrid({
         />
       ) : null}
 
-      <div className={styles.grid}>
+      <div className={styles.grid} data-testid="facet-value-candidates-grid">
         <AgGridReact<FacetValueCandidateFields>
           ref={gridRef}
           theme={agGridTheme}

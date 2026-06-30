@@ -91,7 +91,7 @@ export function FacetValuesList({
         items={values.map((value) => value.id)}
         strategy={verticalListSortingStrategy}
       >
-        <div className={styles.valuesContainer}>
+        <div className={styles.valuesContainer} data-testid="edit-facet-values-list">
           {values.map((value, valueIndex) => (
             <SortableValue
               key={value.id}

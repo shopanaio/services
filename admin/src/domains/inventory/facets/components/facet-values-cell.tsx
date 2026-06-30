@@ -39,6 +39,7 @@ export function FacetValuesCell(params: FacetValuesCellParams) {
           key={value.id}
           bordered={false}
           className={styles.valueTag}
+          data-testid={`facets-table-value-chip-${row.slug}-${value.slug}`}
           onClick={(event) => {
             event.stopPropagation();
             params.onEditValue(value);

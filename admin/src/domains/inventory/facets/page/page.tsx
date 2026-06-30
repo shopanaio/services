@@ -400,6 +400,7 @@ export default function FacetsPage() {
           <Button
             type="primary"
             icon={<PlusOutlined />}
+            data-testid="facets-create-button"
             onClick={() =>
               openCreateFacetModal({
                 nextSortIndex: getMaxRootSortIndex(baseRows) + 1,

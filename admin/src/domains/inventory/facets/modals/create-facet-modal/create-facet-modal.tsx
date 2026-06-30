@@ -99,6 +99,7 @@ function FacetSourceSelector({
       danger={hasError}
       className={styles.sourceSelectorButton}
       onClick={onClick}
+      data-testid="create-facet-source-button"
     >
       <Flex gap={4} align="center" className={styles.sourceSelectorContent}>
         <span>{label}</span>
@@ -265,6 +266,7 @@ export function CreateFacetModal() {
                       className={styles.labelInput}
                       placeholder="Color"
                       status={error ? "error" : undefined}
+                      data-testid="create-facet-label-input"
                       addonBefore={
                         <Flex
                           align="center"
