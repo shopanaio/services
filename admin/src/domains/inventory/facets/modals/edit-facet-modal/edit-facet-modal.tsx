@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -14,6 +15,13 @@ import {
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
+import {
+  LuDollarSign,
+  LuPackageCheck,
+  LuSlidersHorizontal,
+  LuSparkles,
+  LuTag,
+} from "react-icons/lu";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
 import {
   ModalHeader,
@@ -54,6 +62,7 @@ import {
 import { FacetUiTypeSelector } from "../components/facet-ui-type-selector";
 import { FacetValuesList } from "./components/facet-values-list";
 import {
+  FacetType,
   FacetUiType,
   SwatchType,
   type ApiFacetSwatchCreateInput,
@@ -81,7 +90,64 @@ const useStyles = createStyles(({ token }) => ({
     color: token.colorError,
     marginTop: 4,
   },
+  labelInput: {
+    ".ant-input-group-addon": {
+      paddingInline: 2,
+    },
+  },
+  sourceAddon: {
+    width: 28,
+    paddingInline: 4,
+    justifyContent: "center",
+  },
 }));
+
+const FACET_SOURCE_OPTIONS: {
+  key: FacetType;
+  label: string;
+  icon: ReactNode;
+}[] = [
+  {
+    key: FacetType.Price,
+    label: "Price",
+    icon: <LuDollarSign />,
+  },
+  {
+    key: FacetType.Tag,
+    label: "Tag",
+    icon: <LuTag />,
+  },
+  {
+    key: FacetType.Option,
+    label: "Option",
+    icon: <LuSlidersHorizontal />,
+  },
+  {
+    key: FacetType.Feature,
+    label: "Feature",
+    icon: <LuSparkles />,
+  },
+  {
+    key: FacetType.InStock,
+    label: "Stock",
+    icon: <LuPackageCheck />,
+  },
+];
+
+interface FacetSourceAddonProps {
+  value: FacetType;
+}
+
+function FacetSourceAddon({ value }: FacetSourceAddonProps) {
+  const { styles } = useStyles();
+  const current = FACET_SOURCE_OPTIONS.find((option) => option.key === value);
+
+  return (
+    <Flex gap={4} align="center" className={styles.sourceAddon}>
+      {current?.icon}
+    </Flex>
+  );
+}
 
 const EMPTY_VALUES: EditFacetFormValues = {
   label: "",
@@ -495,7 +561,9 @@ export function EditFacetModal() {
                   <>
                     <Input
                       {...field}
+                      className={styles.labelInput}
                       status={fieldError ? "error" : undefined}
+                      addonBefore={<FacetSourceAddon value={facet.facetType} />}
                       suffix={
                         <Flex
                           gap={4}

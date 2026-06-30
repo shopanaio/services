@@ -116,12 +116,8 @@ function FacetSourceSelector({ value, onChange }: FacetSourceSelectorProps) {
   const current = FACET_SOURCE_OPTIONS.find((option) => option.key === value);
   const menuItems = FACET_SOURCE_OPTIONS.map((option) => ({
     key: option.key,
-    label: (
-      <Flex gap={8} align="center">
-        {option.icon}
-        <span>{option.label}</span>
-      </Flex>
-    ),
+    icon: option.icon,
+    label: option.label,
     onClick: () => onChange(option.key),
   }));
 
