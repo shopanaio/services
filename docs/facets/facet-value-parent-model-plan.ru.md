@@ -181,16 +181,23 @@ catalog.facet_value (
 Обязательные:
 
 ```sql
--- один source handle может принадлежать только одному facet одного типа
+-- source handle уникален среди source rows одного facet type;
+-- source и display rows могут иметь одинаковый handle
 CREATE UNIQUE INDEX facet_value_source_project_type_handle_uniq
   ON catalog.facet_value (project_id, facet_type, handle)
   WHERE kind = 'source';
 
--- visible handle должен быть уникальным внутри facet
--- display handle может совпадать с hidden source child handle
-CREATE UNIQUE INDEX facet_value_visible_project_facet_handle_uniq
+-- public/root handle уникален среди visible values одного facet;
+-- это сохраняет однозначность storefront token facetSlug:valueHandle
+CREATE UNIQUE INDEX facet_value_root_project_facet_handle_uniq
   ON catalog.facet_value (project_id, facet_id, handle)
   WHERE parent_id IS NULL;
+
+-- hidden child handle уникален среди hidden values одного facet;
+-- root display и hidden source child могут иметь одинаковый handle
+CREATE UNIQUE INDEX facet_value_child_project_facet_handle_uniq
+  ON catalog.facet_value (project_id, facet_id, handle)
+  WHERE parent_id IS NOT NULL;
 
 -- быстрый вывод visible values
 CREATE INDEX idx_facet_value_project_facet_visible_order
@@ -271,7 +278,7 @@ facetSlug:valueHandle
 Алгоритм:
 
 1. Найти facet по `project_id + facet.slug`.
-2. Найти visible value:
+2. Найти visible value по публичному handle:
 
 ```sql
 SELECT fv.*
@@ -283,6 +290,11 @@ WHERE fv.project_id = :projectId
   AND fv.enabled = true
 LIMIT 1;
 ```
+
+Важно: `source` и `display` rows могут иметь одинаковый `handle` только если
+одна из строк hidden (`parent_id IS NOT NULL`). Среди visible values
+`handle` уникален, поэтому storefront token `facetSlug:valueHandle` остается
+однозначным.
 
 3. Если value не найден, filter value invalid и игнорируется.
 4. Если `fv.kind = 'source'`, source handles:
@@ -341,6 +353,12 @@ WHERE id = ANY(:sourceValueIds)
 ### Unmerge source value
 
 Unmerge делает source value снова visible:
+
+Перед `parent_id = NULL` нужно проверить, что в этом facet нет другого root
+value с тем же `handle`. Если есть root display/root source с таким handle,
+mutation должна вернуть userError или требовать сначала изменить/delete
+конфликтующий display value. DB unique
+`facet_value_root_project_facet_handle_uniq` должен дублировать эту защиту.
 
 ```sql
 UPDATE catalog.facet_value
@@ -1326,9 +1344,19 @@ source:  handle=nike, parent_id=<display nike>
 display: handle=nike, parent_id=NULL
 ```
 
-Поэтому нельзя делать global unique `(project_id, facet_id, handle)` на все rows.
-Нужен partial unique только для visible rows и отдельный partial unique для
-source rows.
+Поэтому нельзя делать global unique `(project_id, facet_id, handle)` на все rows
+и нельзя разрешать два visible values с одинаковым `handle`.
+
+Нужны visibility-scoped constraints:
+
+- source rows: unique `(project_id, facet_type, handle) WHERE kind = 'source'`;
+- root/visible rows: unique `(project_id, facet_id, handle) WHERE parent_id IS NULL`;
+- hidden child rows: unique `(project_id, facet_id, handle) WHERE parent_id IS NOT NULL`.
+
+Так display `handle=nike` и source `handle=nike` могут сосуществовать только как
+root display + hidden source child. Если такой source child попытаться unmerge в
+root, unique constraint на `parent_id IS NULL` должен сохранить инвариант и
+заставить mutation вернуть userError или сначала изменить/delete display value.
 
 ### Риск: display value без children
 
