@@ -76,6 +76,40 @@ Dynamic sources:
 `Color` должен появляться один раз, даже если option `color` есть у многих
 продуктов.
 
+### Enum casing boundary
+
+Canonical casing для facet type в этой задаче — `UPPERCASE`.
+
+Это значит:
+
+- `facet_source_candidate_view.facet_type` возвращает только GraphQL enum values:
+  `PRICE`, `IN_STOCK`, `TAG`, `OPTION`, `FEATURE`;
+- Admin API `FacetSourceCandidate.facetType` и input `FacetCreateInput.facetType`
+  работают в `UPPERCASE`;
+- Admin UI form state хранит `FacetType` из generated GraphQL enum, то есть
+  `UPPERCASE`;
+- create validation сравнивает selected candidate с GraphQL input в
+  `UPPERCASE`, до любой legacy-нормализации;
+- `FacetCreateScript` должен принимать/валидировать `UPPERCASE` facetType и
+  передавать `UPPERCASE` в `repository.facet.create()`;
+- `MutationResolver.facetCreate()` больше не должен делать `.toLowerCase()` для
+  `facetType`; lowercasing допустим только для legacy `uiType` /
+  `selectionMode`, если storage для этих полей остается lowercase.
+
+Текущий код resolver/script использует lowercase boundary:
+`MutationResolver.facetCreate()` вызывает `args.input.facetType.toLowerCase()`,
+а `FacetCreateScript` валидирует `price`, `tag`, `feature`, `option`,
+`in_stock`. Это нужно изменить вместе с добавлением `sources`, иначе
+`facet_source_candidate_view` с `UPPERCASE` values не сможет корректно
+сравниваться с create input.
+
+Для persisted `catalog.facet.facet_type` и `catalog.facet_source.facet_type`
+целевое значение тоже `UPPERCASE`. Так `NOT EXISTS` во view может сравнивать
+`fs.facet_type = c.facet_type` без `LOWER()`/`UPPER()` wrapper и использовать
+индекс `facet_source_project_type_handle_uniq(project_id, facet_type, handle)`.
+Если в dev/seed данных уже есть lowercase facet types, migration или seed
+refresh должен привести их к `UPPERCASE` в рамках этой работы.
+
 ## DB/API read model
 
 ### Candidate view
@@ -523,6 +557,21 @@ facetSourceCandidates(args: FacetSourceCandidateConnectionInput) {
 Сейчас `FacetCreateInput` принимает только `facetType`, `slug`, `uiType`,
 `selectionMode`, `label`. Чтобы сохранить выбранный source, добавить:
 
+Текущее состояние важно не трактовать как отсутствие поддержки sources во всех
+слоях. `FacetRepository.create()` уже принимает `sources?: FacetSourceInput[]`
+и умеет вставлять `facet_source`/`facet_source_translation` через
+`replaceSources()`. Поэтому эта часть работы не должна переписывать repository
+создания facet с нуля. Нужно протянуть `sources` через внешние слои, которые
+сейчас его не передают:
+
+- GraphQL schema `FacetCreateInput`;
+- generated GraphQL zod/types после codegen;
+- `MutationResolver.facetCreate()` mapping из GraphQL input в script params;
+- `FacetCreateParams` DTO;
+- `FacetCreateScript` validation и передача `sources` в
+  `repository.facet.create()`;
+- admin `mapFacetFormToCreateInput()` и form state create modal.
+
 ```graphql
 input FacetCreateSourceInput {
   handle: String!
@@ -567,10 +616,37 @@ Backend validation в create script/repository:
 - selected source существует в `facet_source_candidate_view` для текущих
   `projectId` и `locale`;
 - selected source еще не используется в `facet_source`;
-- `facetType` input совпадает с candidate `facetType`;
+- `facetType` input совпадает с candidate `facetType` в `UPPERCASE`;
 - `sources[0].handle` совпадает с candidate `handle`.
 
-Unique constraint в `facet_source` остается последней защитой от race condition.
+Create flow должен быть транзакционным. `FacetCreateScript` является владельцем
+атомарного сценария:
+
+1. провалидировать input и выбранный source candidate;
+2. создать `facet`;
+3. вставить `facet_translation`;
+4. вставить `facet_source` и `facet_source_translation` через уже существующую
+   поддержку `sources` в `FacetRepository.create()`;
+5. вернуть созданный facet.
+
+Эти шаги должны выполняться в одной transaction boundary script/kernel flow.
+Нельзя полагаться на UI как на защиту от устаревшего выбора source: UI только
+выбирает candidate и отправляет payload, а backend повторно проверяет candidate
+перед insert. Если source стал занят между открытием модалки и submit,
+validation должна вернуть userError на `sources`/`source`; если гонка случилась
+после validation, unique constraint `facet_source_project_type_handle_uniq`
+остается последней защитой и должен быть преобразован в userError, а не в
+необработанную internal error.
+
+Repository уже выполняет insert sources и сохраняет translation name, но не
+должен становиться владельцем UI/API-specific validation. Проверки выбранного
+candidate должны жить в create script / resolver boundary до вызова
+`repository.facet.create()`. Нормализация casing здесь не должна переводить
+`facetType` в lowercase: resolver передает GraphQL enum как `UPPERCASE`, script
+валидирует `UPPERCASE`, repository сохраняет `UPPERCASE`.
+
+Unique constraint в `facet_source` остается последней защитой от race condition,
+но не заменяет transactional validation в `FacetCreateScript`.
 
 ## Admin UI
 
@@ -746,12 +822,22 @@ sources: [
 4. Реализовать cursor encode/decode и `limit + 1` pagination в repository.
 5. Расширить GraphQL schema для `FacetSourceCandidateConnection`.
 6. Добавить resolver и подключить query в `QueryResolver`.
-7. Расширить `FacetCreateInput.sources` и validation create script/resolver.
-8. Запустить backend codegen через shopana-cli.
-9. Добавить admin GraphQL query, hook и generated types через admin codegen.
-10. Реализовать `SelectFacetSourceModal` и зарегистрировать modal type.
-11. Переделать `CreateFacetModal` на выбор source через modal.
-12. Запустить build для затронутых частей, если нужна проверка новой версии.
+7. Расширить `FacetCreateInput.sources`, generated zod/types, resolver mapping,
+   `FacetCreateParams`, validation create script и admin
+   `mapFacetFormToCreateInput`; repository create уже принимает `sources`.
+   В этом же шаге зафиксировать `UPPERCASE` boundary: убрать
+   `.toLowerCase()` для `facetType` в `MutationResolver.facetCreate()`,
+   перевести `FacetCreateScript` allow-list / `UI_BY_TYPE` на `UPPERCASE` и
+   сохранять `facet.facet_type` / `facet_source.facet_type` в `UPPERCASE`.
+8. Сделать create flow транзакционным на уровне `FacetCreateScript`: validation
+   selected candidate, create facet и insert `sources` через
+   `repository.facet.create()` должны происходить в одной transaction boundary;
+   duplicate source race от unique constraint маппить в userError.
+9. Запустить backend codegen через shopana-cli.
+10. Добавить admin GraphQL query, hook и generated types через admin codegen.
+11. Реализовать `SelectFacetSourceModal` и зарегистрировать modal type.
+12. Переделать `CreateFacetModal` на выбор source через modal.
+13. Запустить build для затронутых частей, если нужна проверка новой версии.
 
 ## Проверочные сценарии
 
