@@ -26,7 +26,6 @@ export { InventoryItemResolver } from "./InventoryItemResolver.js";
 export { CategoryResolver } from "./CategoryResolver.js";
 export { TagResolver } from "./TagResolver.js";
 export { CollectionResolver } from "./CollectionResolver.js";
-export { FacetGroupResolver } from "./FacetGroupResolver.js";
 export { FacetResolver } from "./FacetResolver.js";
 export { FacetValueResolver } from "./FacetValueResolver.js";
 export { FacetSwatchResolver } from "./FacetSwatchResolver.js";

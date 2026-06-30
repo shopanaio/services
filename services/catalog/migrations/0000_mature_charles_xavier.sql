@@ -336,7 +336,6 @@ CREATE TABLE "catalog"."variant_search_index" (
 CREATE TABLE "catalog"."facet" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"project_id" uuid NOT NULL,
-	"group_id" uuid,
 	"facet_type" varchar(32) NOT NULL,
 	"ui_type" varchar(16) DEFAULT 'checkbox' NOT NULL,
 	"selection_mode" varchar(16) DEFAULT 'multi' NOT NULL,
@@ -345,23 +344,6 @@ CREATE TABLE "catalog"."facet" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "facet_project_id_slug_uniq" UNIQUE("project_id","slug")
-);
---> statement-breakpoint
-CREATE TABLE "catalog"."facet_group" (
-	"id" uuid PRIMARY KEY NOT NULL,
-	"project_id" uuid NOT NULL,
-	"sort_index" integer DEFAULT 0 NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "facet_group_project_id_sort_index_uniq" UNIQUE("project_id","sort_index")
-);
---> statement-breakpoint
-CREATE TABLE "catalog"."facet_group_translation" (
-	"group_id" uuid NOT NULL,
-	"locale" varchar(8) NOT NULL,
-	"project_id" uuid NOT NULL,
-	"name" text NOT NULL,
-	CONSTRAINT "facet_group_translation_group_id_locale_pk" PRIMARY KEY("group_id","locale")
 );
 --> statement-breakpoint
 CREATE TABLE "catalog"."facet_swatch" (
@@ -923,8 +905,6 @@ ALTER TABLE "catalog"."product_seo" ADD CONSTRAINT "product_seo_product_id_produ
 ALTER TABLE "catalog"."product_search_index" ADD CONSTRAINT "product_search_index_product_id_product_id_fk" FOREIGN KEY ("product_id") REFERENCES "catalog"."product"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."variant_search_index" ADD CONSTRAINT "variant_search_index_variant_id_variant_id_fk" FOREIGN KEY ("variant_id") REFERENCES "catalog"."variant"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."variant_search_index" ADD CONSTRAINT "variant_search_index_product_id_product_id_fk" FOREIGN KEY ("product_id") REFERENCES "catalog"."product"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "catalog"."facet" ADD CONSTRAINT "facet_group_id_facet_group_id_fk" FOREIGN KEY ("group_id") REFERENCES "catalog"."facet_group"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "catalog"."facet_group_translation" ADD CONSTRAINT "facet_group_translation_group_id_facet_group_id_fk" FOREIGN KEY ("group_id") REFERENCES "catalog"."facet_group"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."facet_translation" ADD CONSTRAINT "facet_translation_facet_id_facet_id_fk" FOREIGN KEY ("facet_id") REFERENCES "catalog"."facet"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."facet_value" ADD CONSTRAINT "facet_value_facet_id_facet_id_fk" FOREIGN KEY ("facet_id") REFERENCES "catalog"."facet"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "catalog"."facet_value" ADD CONSTRAINT "facet_value_swatch_id_facet_swatch_id_fk" FOREIGN KEY ("swatch_id") REFERENCES "catalog"."facet_swatch"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
@@ -1050,7 +1030,6 @@ CREATE INDEX "idx_variant_search_index_project_product" ON "catalog"."variant_se
 CREATE INDEX "idx_variant_search_index_project_in_stock" ON "catalog"."variant_search_index" USING btree ("project_id","in_stock");--> statement-breakpoint
 CREATE INDEX "idx_variant_search_index_project_price" ON "catalog"."variant_search_index" USING btree ("project_id","price_currency","price_minor");--> statement-breakpoint
 CREATE INDEX "idx_variant_search_index_option_slugs_gin" ON "catalog"."variant_search_index" USING gin ("option_slugs");--> statement-breakpoint
-CREATE INDEX "idx_facet_group_translation_project_locale" ON "catalog"."facet_group_translation" USING btree ("project_id","locale");--> statement-breakpoint
 CREATE INDEX "idx_facet_translation_project_locale" ON "catalog"."facet_translation" USING btree ("project_id","locale");--> statement-breakpoint
 CREATE INDEX "idx_facet_value_source_handle_project_value" ON "catalog"."facet_value_source_handle" USING btree ("project_id","facet_value_id");--> statement-breakpoint
 CREATE INDEX "idx_facet_value_source_handle_project_type_source" ON "catalog"."facet_value_source_handle" USING btree ("project_id","facet_type","source_handle");--> statement-breakpoint

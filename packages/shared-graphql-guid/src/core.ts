@@ -110,7 +110,6 @@ export enum GlobalIdEntity {
   Category = "Category",
   Tag = "Tag",
   Collection = "Collection",
-  FacetGroup = "FacetGroup",
   Facet = "Facet",
   FacetValue = "FacetValue",
   FacetSwatch = "FacetSwatch",

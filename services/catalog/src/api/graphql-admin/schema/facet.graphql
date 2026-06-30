@@ -19,15 +19,6 @@ enum FacetSelectionMode {
   MULTI
 }
 
-type FacetGroup implements Node {
-  id: ID!
-  name: String!
-  sortIndex: Int!
-  facets: [Facet!]!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-}
-
 type Facet implements Node {
   id: ID!
   facetType: FacetType!
@@ -37,7 +28,6 @@ type Facet implements Node {
   uiType: FacetUIType!
   selectionMode: FacetSelectionMode!
   lexoRank: String!
-  group: FacetGroup
   values: [FacetValue!]!
 }
 
@@ -61,28 +51,12 @@ type FacetSwatch implements Node {
   metadata: JSON
 }
 
-input FacetGroupCreateInput {
-  name: String!
-  sortIndex: Int
-}
-
-input FacetGroupUpdateInput {
-  id: ID!
-  name: String
-  sortIndex: Int
-}
-
-input FacetGroupDeleteInput {
-  id: ID!
-}
-
 input FacetCreateInput {
   facetType: FacetType!
   slug: String!
   sourceHandles: [String!]
   uiType: FacetUIType
   selectionMode: FacetSelectionMode
-  groupId: ID
   label: String!
 }
 
@@ -92,7 +66,6 @@ input FacetUpdateInput {
   sourceHandles: [String!]
   uiType: FacetUIType
   selectionMode: FacetSelectionMode
-  groupId: ID
   label: String
 }
 
@@ -153,21 +126,6 @@ input FacetSwatchUpdateInput {
 
 input FacetSwatchDeleteInput {
   id: ID!
-}
-
-type FacetGroupCreatePayload {
-  facetGroup: FacetGroup
-  userErrors: [GenericUserError!]!
-}
-
-type FacetGroupUpdatePayload {
-  facetGroup: FacetGroup
-  userErrors: [GenericUserError!]!
-}
-
-type FacetGroupDeletePayload {
-  deletedFacetGroupId: ID
-  userErrors: [GenericUserError!]!
 }
 
 type FacetCreatePayload {

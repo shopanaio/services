@@ -52,7 +52,6 @@ export function mapFacetFormToCreateInput(
     facetType: values.facetType,
     uiType: values.uiType,
     selectionMode: FacetSelectionMode.Multi,
-    groupId: null,
   };
 }
 

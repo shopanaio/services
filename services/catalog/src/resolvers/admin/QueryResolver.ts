@@ -39,7 +39,6 @@ import {
 } from "./VendorConnectionResolver.js";
 import { TagResolver } from "./TagResolver.js";
 import { CollectionResolver } from "./CollectionResolver.js";
-import { FacetGroupResolver } from "./FacetGroupResolver.js";
 import { FacetResolver } from "./FacetResolver.js";
 import { FacetValueResolver } from "./FacetValueResolver.js";
 import { FacetSwatchResolver } from "./FacetSwatchResolver.js";
@@ -327,19 +326,6 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
       },
       this.$ctx
     );
-  }
-
-  async facetGroup(args: { id: string }) {
-    const id = safeDecodeGlobalId(args.id, GlobalIdEntity.FacetGroup);
-    if (!id) return null;
-    const group = await this.$ctx.kernel.repository.facetGroup.findById(id);
-    if (!group) return null;
-    return new FacetGroupResolver(group.id, this.$ctx);
-  }
-
-  async facetGroups() {
-    const groups = await this.$ctx.kernel.repository.facetGroup.findAll();
-    return groups.map((group) => new FacetGroupResolver(group.id, this.$ctx));
   }
 
   async facet(args: { id: string }) {

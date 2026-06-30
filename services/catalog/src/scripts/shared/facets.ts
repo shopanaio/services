@@ -36,7 +36,6 @@ interface DiscreteFacetValueMeta {
 }
 
 interface BuiltFacet {
-  groupId: string | null;
   facetType: string;
   slug: string;
   label: string;
@@ -116,14 +115,6 @@ export async function buildListingFacets(
   const facetTranslations = await params.repository.facet.getTranslationsByFacetIds(facetIds);
   const facetLabelById = new Map(
     facetTranslations.map((translation) => [translation.facetId, translation.label])
-  );
-
-  const groupRows = await params.repository.facetGroup.findAll();
-  const groupTranslations = await params.repository.facetGroup.getTranslationsByGroupIds(
-    groupRows.map((group) => group.id)
-  );
-  const groupNameById = new Map(
-    groupTranslations.map((translation) => [translation.groupId, translation.name])
   );
 
   const productSelections = new Map<string, ProductFacetSelection>();
@@ -524,7 +515,6 @@ export async function buildListingFacets(
       );
 
       builtFacets.push({
-        groupId: facet.groupId ?? null,
         facetType: mapFacetTypeEnum(facetType),
         slug: facet.slug,
         label,
@@ -572,7 +562,6 @@ export async function buildListingFacets(
       }
 
       builtFacets.push({
-        groupId: facet.groupId ?? null,
         facetType: mapFacetTypeEnum(facetType),
         slug: facet.slug,
         label,
@@ -590,7 +579,6 @@ export async function buildListingFacets(
     }
 
     builtFacets.push({
-      groupId: facet.groupId ?? null,
       facetType: mapFacetTypeEnum(facetType),
       slug: facet.slug,
       label,
@@ -601,40 +589,15 @@ export async function buildListingFacets(
     });
   }
 
-  const ungrouped: BuiltFacet[] = [];
-  const groupFacetMap = new Map<string, BuiltFacet[]>();
-
-  for (const facet of builtFacets) {
-    if (!facet.groupId) {
-      ungrouped.push(facet);
-      continue;
-    }
-    const items = groupFacetMap.get(facet.groupId) ?? [];
-    items.push(facet);
-    groupFacetMap.set(facet.groupId, items);
-  }
-
   const groups: Array<{
     name: string | null;
     facets: BuiltFacet[];
   }> = [];
 
-  for (const group of groupRows) {
-    const groupFacets = groupFacetMap.get(group.id) ?? [];
-    if (groupFacets.length === 0) {
-      continue;
-    }
-
-    groups.push({
-      name: groupNameById.get(group.id) ?? null,
-      facets: groupFacets,
-    });
-  }
-
-  if (ungrouped.length > 0) {
+  if (builtFacets.length > 0) {
     groups.push({
       name: null,
-      facets: ungrouped,
+      facets: builtFacets,
     });
   }
 

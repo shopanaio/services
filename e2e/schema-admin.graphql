@@ -1124,12 +1124,6 @@ type CatalogQuery {
   """Preview count of products matching collection rules"""
   collectionRulesPreviewCount(rules: [CollectionRuleInput!]!): Int!
 
-  """Get a facet group by ID"""
-  facetGroup(id: ID!): FacetGroup
-
-  """Get all facet groups"""
-  facetGroups: [FacetGroup!]!
-
   """Get a facet by ID"""
   facet(id: ID!): Facet
 
@@ -1348,15 +1342,6 @@ type CatalogMutation {
 
   """Delete a category"""
   categoryDelete(input: CategoryDeleteInput!): CategoryDeletePayload!
-
-  """Create a new facet group"""
-  facetGroupCreate(input: FacetGroupCreateInput!): FacetGroupCreatePayload!
-
-  """Update an existing facet group"""
-  facetGroupUpdate(input: FacetGroupUpdateInput!): FacetGroupUpdatePayload!
-
-  """Delete a facet group"""
-  facetGroupDelete(input: FacetGroupDeleteInput!): FacetGroupDeletePayload!
 
   """Create a new facet"""
   facetCreate(input: FacetCreateInput!): FacetCreatePayload!
@@ -2289,15 +2274,6 @@ type CollectionUpdateRulesPayload {
   userErrors: [GenericUserError!]!
 }
 
-type FacetGroup implements Node {
-  id: ID!
-  name: String!
-  sortIndex: Int!
-  facets: [Facet!]!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-}
-
 type Facet implements Node {
   id: ID!
   facetType: FacetType!
@@ -2307,7 +2283,6 @@ type Facet implements Node {
   uiType: FacetUIType!
   selectionMode: FacetSelectionMode!
   lexoRank: String!
-  group: FacetGroup
   values: [FacetValue!]!
 }
 
@@ -2329,21 +2304,6 @@ type FacetSwatch implements Node {
   colorTwo: String
   file: File
   metadata: JSON
-}
-
-type FacetGroupCreatePayload {
-  facetGroup: FacetGroup
-  userErrors: [GenericUserError!]!
-}
-
-type FacetGroupUpdatePayload {
-  facetGroup: FacetGroup
-  userErrors: [GenericUserError!]!
-}
-
-type FacetGroupDeletePayload {
-  deletedFacetGroupId: ID
-  userErrors: [GenericUserError!]!
 }
 
 type FacetCreatePayload {
@@ -5517,36 +5477,21 @@ input CollectionUpdateRulesInput {
   rules: [CollectionRuleInput!]!
 }
 
-input FacetGroupCreateInput {
-  name: String!
-  sortIndex: Int
-}
-
-input FacetGroupUpdateInput {
-  id: ID!
-  name: String
-  sortIndex: Int
-}
-
-input FacetGroupDeleteInput {
-  id: ID!
-}
-
 input FacetCreateInput {
   facetType: FacetType!
   slug: String!
+  sourceHandles: [String!]
   uiType: FacetUIType
   selectionMode: FacetSelectionMode
-  groupId: ID
   label: String!
 }
 
 input FacetUpdateInput {
   id: ID!
   slug: String
+  sourceHandles: [String!]
   uiType: FacetUIType
   selectionMode: FacetSelectionMode
-  groupId: ID
   label: String
 }
 

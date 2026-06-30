@@ -52,7 +52,6 @@ export class FacetUpdateScript extends BaseScript<FacetUpdateParams, FacetResult
       sourceHandles: params.sourceHandles,
       uiType: params.uiType,
       selectionMode: params.selectionMode,
-      groupId: params.groupId,
       lexoRank: params.lexoRank,
     });
 

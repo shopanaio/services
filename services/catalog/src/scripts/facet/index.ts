@@ -1,7 +1,4 @@
 export * from "./dto/index.js";
-export * from "./FacetGroupCreateScript.js";
-export * from "./FacetGroupUpdateScript.js";
-export * from "./FacetGroupDeleteScript.js";
 export * from "./FacetCreateScript.js";
 export * from "./FacetUpdateScript.js";
 export * from "./FacetDeleteScript.js";

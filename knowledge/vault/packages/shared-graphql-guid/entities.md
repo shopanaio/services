@@ -66,7 +66,6 @@ decodeGlobalIdByType(globalId, GlobalIdEntity.Product);
 | `Category` | "Category" |
 | `Tag` | "Tag" |
 | `Collection` | "Collection" |
-| `FacetGroup` | "FacetGroup" |
 | `Facet` | "Facet" |
 | `FacetValue` | "FacetValue" |
 | `FacetSwatch` | "FacetSwatch" |

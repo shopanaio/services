@@ -106,11 +106,6 @@ export class ResolverRegistry {
     return new FacetResolver(id, this.ctx);
   }
 
-  async facetGroup(id: string) {
-    const { FacetGroupResolver } = await import("./FacetGroupResolver.js");
-    return new FacetGroupResolver(id, this.ctx);
-  }
-
   async facetValue(id: string) {
     const { FacetValueResolver } = await import("./FacetValueResolver.js");
     return new FacetValueResolver(id, this.ctx);

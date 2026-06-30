@@ -3927,12 +3927,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "group_id": {
-          "name": "group_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "facet_type": {
           "name": "facet_type",
           "type": "varchar(32)",
@@ -4003,22 +3997,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "facet_group_id_facet_group_id_fk": {
-          "name": "facet_group_id_facet_group_id_fk",
-          "tableFrom": "facet",
-          "tableTo": "facet_group",
-          "schemaTo": "catalog",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "facet_project_id_slug_uniq": {
@@ -4030,143 +4009,6 @@
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "catalog.facet_group": {
-      "name": "facet_group",
-      "schema": "catalog",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sort_index": {
-          "name": "sort_index",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "facet_group_project_id_sort_index_uniq": {
-          "name": "facet_group_project_id_sort_index_uniq",
-          "nullsNotDistinct": false,
-          "columns": [
-            "project_id",
-            "sort_index"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "catalog.facet_group_translation": {
-      "name": "facet_group_translation",
-      "schema": "catalog",
-      "columns": {
-        "group_id": {
-          "name": "group_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "locale": {
-          "name": "locale",
-          "type": "varchar(8)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "idx_facet_group_translation_project_locale": {
-          "name": "idx_facet_group_translation_project_locale",
-          "columns": [
-            {
-              "expression": "project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "locale",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "facet_group_translation_group_id_facet_group_id_fk": {
-          "name": "facet_group_translation_group_id_facet_group_id_fk",
-          "tableFrom": "facet_group_translation",
-          "tableTo": "facet_group",
-          "schemaTo": "catalog",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "facet_group_translation_group_id_locale_pk": {
-          "name": "facet_group_translation_group_id_locale_pk",
-          "columns": [
-            "group_id",
-            "locale"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

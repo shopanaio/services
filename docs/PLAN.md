@@ -286,41 +286,14 @@ Raw option/feature/tag values из products никогда не возвраща
 - `IN_STOCK` - boolean facet: не использует `facet_value` или `facet_value_source_handle`.
 - Любая попытка `FacetValueCreate/Update` для `PRICE` или `IN_STOCK` должна падать на validation в scripts.
 
-Setup задается per-project: один плоский список facet groups и facets на проект.
+Setup задается per-project: один плоский список facets на проект.
 
 ### 3.2 Схема базы данных
-
-```sql
-catalog.facet_group (
-  id                uuid PRIMARY KEY,
-  project_id        uuid NOT NULL,
-  sort_index        int NOT NULL DEFAULT 0,
-  collapsed         boolean NOT NULL DEFAULT false,  -- render collapsed by default
-  created_at        timestamptz NOT NULL DEFAULT now(),
-  updated_at        timestamptz NOT NULL DEFAULT now(),
-  
-  UNIQUE(project_id, sort_index) DEFERRABLE INITIALLY DEFERRED
-)
-
-catalog.facet_group_translation (
-  group_id          uuid NOT NULL,
-  locale            varchar(8) NOT NULL,
-  project_id        uuid NOT NULL,
-  name              text NOT NULL,
-  PRIMARY KEY (group_id, locale),
-  FOREIGN KEY (group_id)
-    REFERENCES catalog.facet_group(id)
-    ON DELETE CASCADE
-)
-CREATE INDEX idx_facet_group_translation_project_locale
-  ON catalog.facet_group_translation (project_id, locale);
-```
 
 ```sql
 catalog.facet (
   id                uuid PRIMARY KEY,
   project_id        uuid NOT NULL,
-  group_id          uuid,
   
   -- What product attribute this maps to
   facet_type        varchar(32) NOT NULL,  -- 'price', 'tag', 'feature', 'option', 'in_stock'
@@ -363,9 +336,6 @@ catalog.facet (
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now(),
   
-  FOREIGN KEY (group_id)
-    REFERENCES catalog.facet_group(id)
-    ON DELETE SET NULL,
   UNIQUE(project_id, slug)
 )
 
@@ -912,7 +882,7 @@ FROM base
 
 Aggregated data собирается с учетом project `facet` setup:
 - Какие facets включать, только определенные в `facet`.
-- Порядок и группировка через `facet_group`.
+- Порядок через `facet.lexo_rank`.
 - UI type и selection mode.
 - Facet inclusion решается по base set без user filters: скрывать facet только если в base set меньше distinct configured values с `count > 0`, чем `min_values`.
 - Value lists для `TAG`/`FEATURE`/`OPTION` выводятся из enabled `facet_value` rows и остаются стабильными; values с `count = 0` остаются в списке, обычно disabled.
@@ -933,8 +903,8 @@ src/repositories/models/
   searchIndex.ts                        # product_search_index
   variantSearchIndex.ts                 # variant_search_index
   collection.ts                         # collection, collection_item, collection_rule, collection_translation, collection_media
-  facet.ts                              # facet_group, facet_group_translation, facet, facet_translation,
-                                        # facet_swatch, facet_value, facet_value_source_handle, facet_value_translation
+  facet.ts                              # facet, facet_translation, facet_swatch,
+                                        # facet_value, facet_value_source_handle, facet_value_translation
 
 src/repositories/
   listing/SearchIndexRepository.ts      # product_search_index CRUD + TAG/FEATURE facet queries
@@ -942,7 +912,6 @@ src/repositories/
   collection/CollectionRepository.ts    # collection CRUD
   collection/CollectionItemRepository.ts # manual items: add/remove/reorder
   collection/CollectionRuleRepository.ts # rules CRUD
-  facet/FacetGroupRepository.ts         # facet_group CRUD
   facet/FacetRepository.ts              # facet CRUD
   facet/FacetValueRepository.ts         # facet_value CRUD + translations
   facet/FacetSwatchRepository.ts        # facet_swatch CRUD
@@ -972,9 +941,6 @@ src/scripts/
     CategoryUpdateSortScript.ts          # update default_sort + default_sort_direction
 
   facet/
-    FacetGroupCreateScript.ts
-    FacetGroupUpdateScript.ts
-    FacetGroupDeleteScript.ts
     FacetCreateScript.ts
     FacetUpdateScript.ts
     FacetDeleteScript.ts
@@ -990,7 +956,6 @@ src/resolvers/admin/
   CollectionResolver.ts
   CollectionQueryResolver.ts
   CollectionMutationResolver.ts
-  FacetGroupResolver.ts
   FacetResolver.ts
   FacetValueResolver.ts
   FacetSwatchResolver.ts
@@ -999,7 +964,6 @@ src/resolvers/admin/
 
 src/loaders/
   CollectionLoader.ts
-  FacetGroupLoader.ts
   FacetLoader.ts
   FacetValueLoader.ts
   FacetSwatchLoader.ts
@@ -1182,16 +1146,6 @@ input CollectionRuleInput { field: String!, operator: String!, value: JSON! }
 ### 7.3 Facets в `facet.graphql`
 
 ```graphql
-type FacetGroup implements Node {
-  id: ID!
-  name: String!
-  sortIndex: Int!
-  collapsed: Boolean!
-  facets: [Facet!]!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-}
-
 type Facet implements Node {
   id: ID!
   facetType: FacetType!
@@ -1202,7 +1156,6 @@ type Facet implements Node {
   uiType: FacetUIType!
   selectionMode: FacetSelectionMode!
   sortIndex: Int!
-  group: FacetGroup
   minValues: Int!
   maxValuesVisible: Int!
   valueSort: FacetValueSort!
@@ -1242,12 +1195,8 @@ type FacetSwatch implements Node {
 }
 
 # Inputs:
-input FacetGroupCreateInput { name: String!, collapsed: Boolean, sortIndex: Int }
-input FacetGroupUpdateInput { id: ID!, name: String, collapsed: Boolean, sortIndex: Int }
-input FacetGroupDeleteInput { id: ID! }
-
-input FacetCreateInput { facetType: FacetType!, slug: String!, uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String!, sortIndex: Int }
-input FacetUpdateInput { id: ID!, slug: String, uiType: FacetUIType, selectionMode: FacetSelectionMode, groupId: ID, label: String, sortIndex: Int, minValues: Int, maxValuesVisible: Int, valueSort: FacetValueSort, indexable: Boolean }
+input FacetCreateInput { facetType: FacetType!, slug: String!, uiType: FacetUIType, selectionMode: FacetSelectionMode, label: String!, sortIndex: Int }
+input FacetUpdateInput { id: ID!, slug: String, uiType: FacetUIType, selectionMode: FacetSelectionMode, label: String, sortIndex: Int, minValues: Int, maxValuesVisible: Int, valueSort: FacetValueSort, indexable: Boolean }
 input FacetDeleteInput { id: ID! }
 
 # `sourceHandles` is required for TAG/FEATURE/OPTION and forbidden for PRICE/IN_STOCK.
@@ -1395,9 +1344,6 @@ collections(first: Int, after: String, last: Int, before: String): CollectionCon
 """Preview: evaluate rules and return matching product count without creating a collection."""
 collectionRulesPreviewCount(rules: [CollectionRuleInput!]!): Int!
 
-facetGroup(id: ID!): FacetGroup
-facetGroups: [FacetGroup!]!
-
 facet(id: ID!): Facet
 facets: [Facet!]!
 
@@ -1415,10 +1361,6 @@ collectionAddProducts(input: CollectionAddProductsInput!): CollectionAddProducts
 collectionRemoveProducts(input: CollectionRemoveProductsInput!): CollectionRemoveProductsPayload!
 collectionMoveProduct(input: CollectionMoveProductInput!): CollectionMoveProductPayload!
 collectionUpdateRules(input: CollectionUpdateRulesInput!): CollectionUpdateRulesPayload!
-
-facetGroupCreate(input: FacetGroupCreateInput!): FacetGroupCreatePayload!
-facetGroupUpdate(input: FacetGroupUpdateInput!): FacetGroupUpdatePayload!
-facetGroupDelete(input: FacetGroupDeleteInput!): FacetGroupDeletePayload!
 
 facetCreate(input: FacetCreateInput!): FacetCreatePayload!
 facetUpdate(input: FacetUpdateInput!): FacetUpdatePayload!
@@ -1648,8 +1590,8 @@ Required atomic rollout slice:
 
 1. **Drizzle models:** `facet.ts`
 2. **Сгенерировать migration**
-3. **Facet repositories:** FacetGroupRepository, FacetRepository, FacetValueRepository, FacetSwatchRepository
-4. **Facet scripts:** FacetGroup CRUD, Facet CRUD, FacetValue CRUD, FacetSwatch CRUD, ResolveFacetsScript
+3. **Facet repositories:** FacetRepository, FacetValueRepository, FacetSwatchRepository
+4. **Facet scripts:** Facet CRUD, FacetValue CRUD, FacetSwatch CRUD, ResolveFacetsScript
 5. **Listing integration, требуется до public `filters.facets`:** переключить listing facet resolution/counting на configured `facet`/`facet_value` mappings, включая `facetSlug:valueSlug -> source_handle[]` resolution
 6. **GraphQL:** facet.graphql (FacetValue + FacetSwatch), add to CatalogQuery/CatalogMutation
 7. **Resolvers & loaders**

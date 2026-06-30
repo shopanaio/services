@@ -48,12 +48,6 @@ export class FacetResolver extends CatalogType<string, Facet> {
     return (await this.$get("lexoRank")) ?? "";
   }
 
-  async group() {
-    const groupId = await this.$get("groupId");
-    if (!groupId) return null;
-    return this.resolvers.facetGroup(groupId);
-  }
-
   async values() {
     const ids = await this.$ctx.loaders.facetValueIds.load(this.$props);
     return Promise.all(ids.map((id) => this.resolvers.facetValue(id)));

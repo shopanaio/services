@@ -9,10 +9,6 @@ query Facets {
       selectionMode
       lexoRank
       sourceHandles
-      group {
-        id
-        name
-      }
       values {
         id
         slug

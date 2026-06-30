@@ -33,12 +33,6 @@ test.describe('Facet API', () => {
   });
 
   test('should create facet with all optional fields', async ({ api }) => {
-    // Create a group first
-    const { data: groupData } = await api.admin.mutation('facet-api/FacetGroupCreate', {
-      variables: { input: { name: 'Product Filters' } },
-    });
-    const groupId = groupData.catalogMutation.facetGroupCreate.facetGroup?.id;
-
     const { data } = await api.admin.mutation('facet-api/FacetCreate', {
       variables: {
         input: {
@@ -47,7 +41,6 @@ test.describe('Facet API', () => {
           label: 'Color',
           uiType: 'DROPDOWN',
           selectionMode: 'SINGLE',
-          groupId,
         },
       },
     });
@@ -62,7 +55,6 @@ test.describe('Facet API', () => {
     expect(result.facet?.uiType).toBe('DROPDOWN');
     expect(result.facet?.selectionMode).toBe('SINGLE');
     expect(result.facet?.lexoRank).toBeTruthy();
-    expect(result.facet?.group?.id).toBe(groupId);
   });
 
   // ═══════════════════════════════════════
@@ -281,12 +273,6 @@ test.describe('Facet API', () => {
   });
 
   test('should update facet with all updateable fields', async ({ api }) => {
-    // Create a group for update
-    const { data: groupData } = await api.admin.mutation('facet-api/FacetGroupCreate', {
-      variables: { input: { name: 'New Group' } },
-    });
-    const groupId = groupData.catalogMutation.facetGroupCreate.facetGroup?.id;
-
     // Create a facet first
     const { data: createData } = await api.admin.mutation('facet-api/FacetCreate', {
       variables: {
@@ -311,7 +297,6 @@ test.describe('Facet API', () => {
           label: 'Updated',
           uiType: 'DROPDOWN',
           selectionMode: 'SINGLE',
-          groupId,
         },
       },
     });
@@ -323,7 +308,6 @@ test.describe('Facet API', () => {
     expect(result.facet?.label).toBe('Updated');
     expect(result.facet?.uiType).toBe('DROPDOWN');
     expect(result.facet?.selectionMode).toBe('SINGLE');
-    expect(result.facet?.group?.id).toBe(groupId);
     expect(result.facet?.lexoRank).toBeTruthy();
   });
 

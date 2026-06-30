@@ -53,7 +53,6 @@ import { FeatureResolver } from "./FeatureResolver.js";
 import { CategoryResolver } from "./CategoryResolver.js";
 import { TagResolver } from "./TagResolver.js";
 import { CollectionResolver } from "./CollectionResolver.js";
-import { FacetGroupResolver } from "./FacetGroupResolver.js";
 import { FacetResolver } from "./FacetResolver.js";
 import { FacetValueResolver } from "./FacetValueResolver.js";
 import { FacetSwatchResolver } from "./FacetSwatchResolver.js";
@@ -118,9 +117,6 @@ import {
   FeaturesSyncScript,
 } from "../../scripts/feature/index.js";
 import {
-  FacetGroupCreateScript,
-  FacetGroupUpdateScript,
-  FacetGroupDeleteScript,
   FacetCreateScript,
   FacetUpdateScript,
   FacetDeleteScript,
@@ -1823,69 +1819,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     };
   }
 
-  async facetGroupCreate(args: {
-    input: { name: string; sortIndex?: number | null };
-  }) {
-    const result = await this.$ctx.kernel.runScript(FacetGroupCreateScript, {
-      name: args.input.name,
-      sortIndex: args.input.sortIndex ?? undefined,
-    });
-
-    return {
-      facetGroup: result.facetGroup
-        ? new FacetGroupResolver(result.facetGroup.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  async facetGroupUpdate(args: {
-    input: {
-      id: string;
-      name?: string | null;
-      sortIndex?: number | null;
-    };
-  }) {
-    const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.FacetGroup);
-    if (!id) {
-      return {
-        facetGroup: null,
-        userErrors: [{ message: "Invalid facet group ID", field: ["input", "id"], code: "INVALID_ID" }],
-      };
-    }
-    const result = await this.$ctx.kernel.runScript(FacetGroupUpdateScript, {
-      id,
-      name: args.input.name ?? undefined,
-      sortIndex: args.input.sortIndex ?? undefined,
-    });
-
-    return {
-      facetGroup: result.facetGroup
-        ? new FacetGroupResolver(result.facetGroup.id, this.$ctx)
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  async facetGroupDelete(args: { input: { id: string } }) {
-    const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.FacetGroup);
-    if (!id) {
-      return {
-        deletedFacetGroupId: null,
-        userErrors: [{ message: "Invalid facet group ID", field: ["input", "id"], code: "INVALID_ID" }],
-      };
-    }
-    const result = await this.$ctx.kernel.runScript(FacetGroupDeleteScript, {
-      id,
-    });
-    return {
-      deletedFacetGroupId: result.deletedFacetGroupId
-        ? args.input.id
-        : null,
-      userErrors: result.userErrors,
-    };
-  }
-
   async facetCreate(args: {
     input: {
       facetType: "PRICE" | "TAG" | "FEATURE" | "OPTION" | "IN_STOCK";
@@ -1894,12 +1827,8 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       sourceHandles?: string[] | null;
       uiType?: "CHECKBOX" | "RADIO" | "DROPDOWN" | "RANGE" | "BOOLEAN" | null;
       selectionMode?: "SINGLE" | "MULTI" | null;
-      groupId?: string | null;
     };
   }) {
-    const groupId = args.input.groupId
-      ? safeDecodeGlobalId(args.input.groupId, GlobalIdEntity.FacetGroup)
-      : undefined;
     const result = await this.$ctx.kernel.runScript(FacetCreateScript, {
       facetType: args.input.facetType.toLowerCase(),
       slug: args.input.slug,
@@ -1907,7 +1836,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       sourceHandles: args.input.sourceHandles ?? undefined,
       uiType: args.input.uiType?.toLowerCase(),
       selectionMode: args.input.selectionMode?.toLowerCase(),
-      groupId,
     });
 
     return {
@@ -1924,7 +1852,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       sourceHandles?: string[] | null;
       uiType?: "CHECKBOX" | "RADIO" | "DROPDOWN" | "RANGE" | "BOOLEAN" | null;
       selectionMode?: "SINGLE" | "MULTI" | null;
-      groupId?: string | null;
     };
   }) {
     const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.Facet);
@@ -1934,11 +1861,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         userErrors: [{ message: "Invalid facet ID", field: ["input", "id"], code: "INVALID_ID" }],
       };
     }
-    const groupId = args.input.groupId
-      ? safeDecodeGlobalId(args.input.groupId, GlobalIdEntity.FacetGroup)
-      : args.input.groupId === null
-        ? null
-        : undefined;
     const result = await this.$ctx.kernel.runScript(FacetUpdateScript, {
       id,
       slug: args.input.slug ?? undefined,
@@ -1946,7 +1868,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       sourceHandles: args.input.sourceHandles ?? undefined,
       uiType: args.input.uiType?.toLowerCase(),
       selectionMode: args.input.selectionMode?.toLowerCase(),
-      groupId,
     });
 
     return {

@@ -9,10 +9,6 @@ inventory pages, `edit-attributes-modal` и inventory inline editing.
 
 - `Facet` - parent row.
 - `FacetValue` - child row.
-- `FacetGroup` в этой странице не участвует: группы не показываются, не
-  редактируются и не влияют на редактирование порядка.
-- Если backend поле `groupId` остается в `Facet`, UI не отправляет его при
-  обычном редактировании. На create можно оставлять `groupId: null`.
 
 Tree rendering должно повторять `edit-attributes-modal`, но основная страница
 не поддерживает DnD. Редактирование порядка вынесено в отдельную order modal с
@@ -191,7 +187,6 @@ Mapping:
   `apiId = value.id`, `level = 1`;
 - `PRICE` and `IN_STOCK` facets never receive value child rows;
 - `TAG`, `FEATURE`, `OPTION` facets receive child rows from `facet.values`;
-- `FacetGroup` is ignored by this row model.
 
 ## Attributes grid mechanics to reuse
 
@@ -981,7 +976,6 @@ Facet:
 - `slug` required and valid slug;
 - `facetType` required on create and immutable after create;
 - `uiType` must be valid for `facetType`;
-- `groupId` is not exposed in UI;
 - `sortIndex >= 0`.
 
 Allowed UI types:
@@ -1259,8 +1253,6 @@ query FacetValueDetails($id: ID!) {
   }
 }
 ```
-
-No `facetGroups` query is required for this UI.
 
 Phase 1 linked source modal does not require source candidate queries. It edits
 manual handle strings and saves them to `FacetValue.sourceHandles`.

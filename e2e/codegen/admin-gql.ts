@@ -1274,12 +1274,6 @@ export type ApiCatalogMutation = {
   facetCreate: ApiFacetCreatePayload;
   /** Delete a facet */
   facetDelete: ApiFacetDeletePayload;
-  /** Create a new facet group */
-  facetGroupCreate: ApiFacetGroupCreatePayload;
-  /** Delete a facet group */
-  facetGroupDelete: ApiFacetGroupDeletePayload;
-  /** Update an existing facet group */
-  facetGroupUpdate: ApiFacetGroupUpdatePayload;
   /** Move a facet before or after another facet. */
   facetMove: ApiFacetMovePayload;
   /** Rebalance facet lexo ranks. */
@@ -1469,21 +1463,6 @@ export type ApiCatalogMutationFacetDeleteArgs = {
 };
 
 
-export type ApiCatalogMutationFacetGroupCreateArgs = {
-  input: ApiFacetGroupCreateInput;
-};
-
-
-export type ApiCatalogMutationFacetGroupDeleteArgs = {
-  input: ApiFacetGroupDeleteInput;
-};
-
-
-export type ApiCatalogMutationFacetGroupUpdateArgs = {
-  input: ApiFacetGroupUpdateInput;
-};
-
-
 export type ApiCatalogMutationFacetMoveArgs = {
   input: ApiFacetMoveInput;
 };
@@ -1660,10 +1639,6 @@ export type ApiCatalogQuery = {
   collections: ApiCollectionConnection;
   /** Get a facet by ID */
   facet?: Maybe<ApiFacet>;
-  /** Get a facet group by ID */
-  facetGroup?: Maybe<ApiFacetGroup>;
-  /** Get all facet groups */
-  facetGroups: Array<ApiFacetGroup>;
   /** Get a facet swatch by ID */
   facetSwatch?: Maybe<ApiFacetSwatch>;
   /** Get all facet swatches */
@@ -1760,11 +1735,6 @@ export type ApiCatalogQueryCollectionsArgs = {
 
 
 export type ApiCatalogQueryFacetArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiCatalogQueryFacetGroupArgs = {
   id: Scalars['ID']['input'];
 };
 
@@ -3243,7 +3213,6 @@ export type ApiExternalMediaData = {
 export type ApiFacet = ApiNode & {
   __typename?: 'Facet';
   facetType: FacetType;
-  group?: Maybe<ApiFacetGroup>;
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
   lexoRank: Scalars['String']['output'];
@@ -3256,10 +3225,10 @@ export type ApiFacet = ApiNode & {
 
 export type ApiFacetCreateInput = {
   facetType: FacetType;
-  groupId?: InputMaybe<Scalars['ID']['input']>;
   label: Scalars['String']['input'];
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug: Scalars['String']['input'];
+  sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
   uiType?: InputMaybe<FacetUiType>;
 };
 
@@ -3276,49 +3245,6 @@ export type ApiFacetDeleteInput = {
 export type ApiFacetDeletePayload = {
   __typename?: 'FacetDeletePayload';
   deletedFacetId?: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-export type ApiFacetGroup = ApiNode & {
-  __typename?: 'FacetGroup';
-  createdAt: Scalars['DateTime']['output'];
-  facets: Array<ApiFacet>;
-  id: Scalars['ID']['output'];
-  name: Scalars['String']['output'];
-  sortIndex: Scalars['Int']['output'];
-  updatedAt: Scalars['DateTime']['output'];
-};
-
-export type ApiFacetGroupCreateInput = {
-  name: Scalars['String']['input'];
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
-};
-
-export type ApiFacetGroupCreatePayload = {
-  __typename?: 'FacetGroupCreatePayload';
-  facetGroup?: Maybe<ApiFacetGroup>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-export type ApiFacetGroupDeleteInput = {
-  id: Scalars['ID']['input'];
-};
-
-export type ApiFacetGroupDeletePayload = {
-  __typename?: 'FacetGroupDeletePayload';
-  deletedFacetGroupId?: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-export type ApiFacetGroupUpdateInput = {
-  id: Scalars['ID']['input'];
-  name?: InputMaybe<Scalars['String']['input']>;
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
-};
-
-export type ApiFacetGroupUpdatePayload = {
-  __typename?: 'FacetGroupUpdatePayload';
-  facetGroup?: Maybe<ApiFacetGroup>;
   userErrors: Array<ApiGenericUserError>;
 };
 
@@ -3412,11 +3338,11 @@ export type FacetUiType =
   | 'RANGE';
 
 export type ApiFacetUpdateInput = {
-  groupId?: InputMaybe<Scalars['ID']['input']>;
   id: Scalars['ID']['input'];
   label?: InputMaybe<Scalars['String']['input']>;
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug?: InputMaybe<Scalars['String']['input']>;
+  sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
   uiType?: InputMaybe<FacetUiType>;
 };
 

@@ -1,25 +1,9 @@
 import type { UserError } from "../../../kernel/BaseScript.js";
 import type {
   Facet,
-  FacetGroup,
   FacetValue,
   FacetSwatch,
 } from "../../../repositories/models/index.js";
-
-export interface FacetGroupCreateParams {
-  name: string;
-  sortIndex?: number;
-}
-
-export interface FacetGroupUpdateParams {
-  id: string;
-  name?: string;
-  sortIndex?: number;
-}
-
-export interface FacetGroupDeleteParams {
-  id: string;
-}
 
 export interface FacetCreateParams {
   facetType: string;
@@ -28,7 +12,6 @@ export interface FacetCreateParams {
   sourceHandles?: string[];
   uiType?: string;
   selectionMode?: string;
-  groupId?: string | null;
   lexoRank?: string;
 }
 
@@ -39,7 +22,6 @@ export interface FacetUpdateParams {
   sourceHandles?: string[];
   uiType?: string;
   selectionMode?: string;
-  groupId?: string | null;
   lexoRank?: string;
 }
 
@@ -117,16 +99,6 @@ export interface ResolveFacetsResult {
   featureSlugs: string[];
   optionSlugs: string[];
   resolved: ResolvedFacetFilter[];
-}
-
-export interface FacetGroupResult {
-  facetGroup?: FacetGroup;
-  userErrors: UserError[];
-}
-
-export interface FacetGroupDeleteResult {
-  deletedFacetGroupId?: string;
-  userErrors: UserError[];
 }
 
 export interface FacetResult {

@@ -12,54 +12,11 @@ import {
 } from "drizzle-orm/pg-core";
 import { catalogSchema } from "./schema";
 
-export const facetGroup = catalogSchema.table(
-  "facet_group",
-  {
-    id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
-    sortIndex: integer("sort_index").notNull().default(0),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => [
-    unique("facet_group_project_id_sort_index_uniq").on(
-      table.projectId,
-      table.sortIndex
-    ),
-  ]
-);
-
-export const facetGroupTranslation = catalogSchema.table(
-  "facet_group_translation",
-  {
-    groupId: uuid("group_id")
-      .notNull()
-      .references(() => facetGroup.id, { onDelete: "cascade" }),
-    locale: varchar("locale", { length: 8 }).notNull(),
-    projectId: uuid("project_id").notNull(),
-    name: text("name").notNull(),
-  },
-  (table) => [
-    primaryKey({ columns: [table.groupId, table.locale] }),
-    index("idx_facet_group_translation_project_locale").on(
-      table.projectId,
-      table.locale
-    ),
-  ]
-);
-
 export const facet = catalogSchema.table(
   "facet",
   {
     id: uuid("id").primaryKey(),
     projectId: uuid("project_id").notNull(),
-    groupId: uuid("group_id").references(() => facetGroup.id, {
-      onDelete: "set null",
-    }),
     facetType: varchar("facet_type", { length: 32 }).notNull(),
     uiType: varchar("ui_type", { length: 16 }).notNull().default("checkbox"),
     selectionMode: varchar("selection_mode", { length: 16 })
@@ -230,10 +187,6 @@ export const facetValueTranslation = catalogSchema.table(
   ]
 );
 
-export type FacetGroup = typeof facetGroup.$inferSelect;
-export type NewFacetGroup = typeof facetGroup.$inferInsert;
-export type FacetGroupTranslation = typeof facetGroupTranslation.$inferSelect;
-export type NewFacetGroupTranslation = typeof facetGroupTranslation.$inferInsert;
 export type Facet = typeof facet.$inferSelect;
 export type NewFacet = typeof facet.$inferInsert;
 export type FacetTranslation = typeof facetTranslation.$inferSelect;

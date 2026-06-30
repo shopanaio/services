@@ -340,14 +340,6 @@ type CatalogQuery @join__type(graph: CATALOG_ADMIN)  {
   """
   collectionRulesPreviewCount(rules: [CollectionRuleInput!]!) : Int!
   """
-  Get a facet group by ID
-  """
-  facetGroup(id: ID!) : FacetGroup
-  """
-  Get all facet groups
-  """
-  facetGroups: [FacetGroup!]!
-  """
   Get a facet by ID
   """
   facet(id: ID!) : Facet
@@ -652,18 +644,6 @@ type CatalogMutation @join__type(graph: CATALOG_ADMIN)  {
   """
   categoryDelete(input: CategoryDeleteInput!) : CategoryDeletePayload!
   """
-  Create a new facet group
-  """
-  facetGroupCreate(input: FacetGroupCreateInput!) : FacetGroupCreatePayload!
-  """
-  Update an existing facet group
-  """
-  facetGroupUpdate(input: FacetGroupUpdateInput!) : FacetGroupUpdatePayload!
-  """
-  Delete a facet group
-  """
-  facetGroupDelete(input: FacetGroupDeleteInput!) : FacetGroupDeletePayload!
-  """
   Create a new facet
   """
   facetCreate(input: FacetCreateInput!) : FacetCreatePayload!
@@ -675,6 +655,14 @@ type CatalogMutation @join__type(graph: CATALOG_ADMIN)  {
   Delete a facet
   """
   facetDelete(input: FacetDeleteInput!) : FacetDeletePayload!
+  """
+  Move a facet before or after another facet.
+  """
+  facetMove(input: FacetMoveInput!) : FacetMovePayload!
+  """
+  Rebalance facet lexo ranks.
+  """
+  facetRebalance(input: FacetRebalanceInput!) : FacetRebalancePayload!
   """
   Create a new facet value
   """
@@ -1876,15 +1864,6 @@ type CollectionUpdateRulesPayload @join__type(graph: CATALOG_ADMIN)  {
   userErrors: [GenericUserError!]!
 }
 
-type FacetGroup implements Node @join__type(graph: CATALOG_ADMIN)  @join__implements(graph: CATALOG_ADMIN, interface: "Node")  {
-  id: ID!
-  name: String!
-  sortIndex: Int!
-  facets: [Facet!]!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-}
-
 type Facet implements Node @join__type(graph: CATALOG_ADMIN)  @join__implements(graph: CATALOG_ADMIN, interface: "Node")  {
   id: ID!
   facetType: FacetType!
@@ -1893,8 +1872,7 @@ type Facet implements Node @join__type(graph: CATALOG_ADMIN)  @join__implements(
   label: String!
   uiType: FacetUIType!
   selectionMode: FacetSelectionMode!
-  sortIndex: Int!
-  group: FacetGroup
+  lexoRank: String!
   values: [FacetValue!]!
 }
 
@@ -1918,21 +1896,6 @@ type FacetSwatch implements Node @join__type(graph: CATALOG_ADMIN)  @join__imple
   metadata: JSON
 }
 
-type FacetGroupCreatePayload @join__type(graph: CATALOG_ADMIN)  {
-  facetGroup: FacetGroup
-  userErrors: [GenericUserError!]!
-}
-
-type FacetGroupUpdatePayload @join__type(graph: CATALOG_ADMIN)  {
-  facetGroup: FacetGroup
-  userErrors: [GenericUserError!]!
-}
-
-type FacetGroupDeletePayload @join__type(graph: CATALOG_ADMIN)  {
-  deletedFacetGroupId: ID
-  userErrors: [GenericUserError!]!
-}
-
 type FacetCreatePayload @join__type(graph: CATALOG_ADMIN)  {
   facet: Facet
   userErrors: [GenericUserError!]!
@@ -1945,6 +1908,16 @@ type FacetUpdatePayload @join__type(graph: CATALOG_ADMIN)  {
 
 type FacetDeletePayload @join__type(graph: CATALOG_ADMIN)  {
   deletedFacetId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type FacetMovePayload @join__type(graph: CATALOG_ADMIN)  {
+  facet: Facet
+  userErrors: [GenericUserError!]!
+}
+
+type FacetRebalancePayload @join__type(graph: CATALOG_ADMIN)  {
+  facets: [Facet!]!
   userErrors: [GenericUserError!]!
 }
 
@@ -9962,43 +9935,36 @@ input CollectionUpdateRulesInput @join__type(graph: CATALOG_ADMIN)  {
   rules: [CollectionRuleInput!]!
 }
 
-input FacetGroupCreateInput @join__type(graph: CATALOG_ADMIN)  {
-  name: String!
-  sortIndex: Int
-}
-
-input FacetGroupUpdateInput @join__type(graph: CATALOG_ADMIN)  {
-  id: ID!
-  name: String
-  sortIndex: Int
-}
-
-input FacetGroupDeleteInput @join__type(graph: CATALOG_ADMIN)  {
-  id: ID!
-}
-
 input FacetCreateInput @join__type(graph: CATALOG_ADMIN)  {
   facetType: FacetType!
   slug: String!
+  sourceHandles: [String!]
   uiType: FacetUIType
   selectionMode: FacetSelectionMode
-  groupId: ID
   label: String!
-  sortIndex: Int
 }
 
 input FacetUpdateInput @join__type(graph: CATALOG_ADMIN)  {
   id: ID!
   slug: String
+  sourceHandles: [String!]
   uiType: FacetUIType
   selectionMode: FacetSelectionMode
-  groupId: ID
   label: String
-  sortIndex: Int
 }
 
 input FacetDeleteInput @join__type(graph: CATALOG_ADMIN)  {
   id: ID!
+}
+
+input FacetMoveInput @join__type(graph: CATALOG_ADMIN)  {
+  id: ID!
+  afterFacetId: ID
+  beforeFacetId: ID
+}
+
+input FacetRebalanceInput @join__type(graph: CATALOG_ADMIN)  {
+  confirm: Boolean = true
 }
 
 input FacetValueCreateInput @join__type(graph: CATALOG_ADMIN)  {

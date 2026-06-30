@@ -13,37 +13,15 @@ Facet описывает один фильтр каталожного листи
 - как он должен отображаться (`CHECKBOX`, `RADIO`, `DROPDOWN`, `RANGE`, `BOOLEAN`);
 - как пользователь выбирает значения (`SINGLE`, `MULTI`);
 - какие значения доступны для дискретных фильтров;
-- как сортировать и ограничивать видимые значения;
-- в какую группу UI он попадает.
+- как сортировать и ограничивать видимые значения.
 
 Модель спроектирована так, чтобы настройки фильтров хранились в Catalog DB, а
 реальные значения фильтра могли ссылаться на существующие источники каталога:
 tag handles, feature slugs и option value slugs. Благодаря этому storefront/listing
-слой не должен знать, как в админке названы группы и labels, но может получить
-готовую структуру фильтров с counts.
+слой не должен знать, как в админке названы labels, но может получить готовую
+структуру фильтров с counts.
 
 ## Основные сущности
-
-### FacetGroup
-
-`FacetGroup` группирует несколько facets для UI.
-
-DB таблицы:
-
-- `catalog.facet_group`;
-- `catalog.facet_group_translation`.
-
-Ключевые поля:
-
-- `id`;
-- `project_id`;
-- `sort_index`;
-- `created_at`;
-- `updated_at`;
-- translated `name`.
-
-Группа не определяет логику фильтрации. Она отвечает только за организацию
-фильтров в интерфейсе.
 
 ### Facet
 
@@ -59,7 +37,6 @@ DB таблицы:
 - `facet_type` - источник фильтрации: `price`, `tag`, `feature`, `option`, `in_stock`;
 - `ui_type` - UI-контрол: `checkbox`, `radio`, `dropdown`, `range`, `boolean`;
 - `selection_mode` - `single` или `multi`;
-- `group_id` - nullable ссылка на группу;
 - `lexo_rank` - порядок фильтра;
 - `slug` - стабильный slug фильтра;
 - translated `label`.
@@ -182,7 +159,6 @@ Swatch подключается к `FacetValue` через `facet_value.swatch_i
 
 Типы:
 
-- `FacetGroup`;
 - `Facet`;
 - `FacetValue`;
 - `FacetSwatch`.
@@ -197,9 +173,6 @@ Queries:
 
 ```graphql
 catalogQuery {
-  facetGroup(id: ID!): FacetGroup
-  facetGroups: [FacetGroup!]!
-
   facet(id: ID!): Facet
   facets: [Facet!]!
 
@@ -215,10 +188,6 @@ Mutations:
 
 ```graphql
 catalogMutation {
-  facetGroupCreate(input: FacetGroupCreateInput!): FacetGroupCreatePayload!
-  facetGroupUpdate(input: FacetGroupUpdateInput!): FacetGroupUpdatePayload!
-  facetGroupDelete(input: FacetGroupDeleteInput!): FacetGroupDeletePayload!
-
   facetCreate(input: FacetCreateInput!): FacetCreatePayload!
   facetUpdate(input: FacetUpdateInput!): FacetUpdatePayload!
   facetDelete(input: FacetDeleteInput!): FacetDeletePayload!
@@ -240,7 +209,6 @@ catalogMutation {
 
 Create/update логика находится в scripts:
 
-- `services/catalog/src/scripts/facet/FacetGroupCreateScript.ts`;
 - `services/catalog/src/scripts/facet/FacetCreateScript.ts`;
 - `services/catalog/src/scripts/facet/FacetUpdateScript.ts`;
 - `services/catalog/src/scripts/facet/FacetValueCreateScript.ts`;
@@ -322,8 +290,8 @@ GraphQL `WhereInput` (`ProductWhereInput`, `ListingWhereInput`,
 2. Catalog facets - DB-backed настройки фильтров листинга/витрины.
 
 Их не стоит смешивать. Если нужно сделать страницу настроек facets в админке,
-она должна работать с `catalogQuery.facets/facetGroups/facetValues/facetSwatches`
-и `catalogMutation.facet*`, а не с `FilterWidget` schemas для таблиц.
+она должна работать с `catalogQuery.facets/facetValues/facetSwatches` и
+`catalogMutation.facet*`, а не с `FilterWidget` schemas для таблиц.
 
 ## Текущее состояние интеграции
 
@@ -338,8 +306,8 @@ GraphQL `WhereInput` (`ProductWhereInput`, `ListingWhereInput`,
 
 На admin frontend:
 
-- generated GraphQL types уже содержат `ApiFacet`, `ApiFacetGroup`,
-  `ApiFacetValue`, `ApiFacetSwatch` и соответствующие input/payload types;
+- generated GraphQL types уже содержат `ApiFacet`, `ApiFacetValue`,
+  `ApiFacetSwatch` и соответствующие input/payload types;
 - отдельного feature module/page/hooks для управления facets сейчас нет.
 
 На listing API:

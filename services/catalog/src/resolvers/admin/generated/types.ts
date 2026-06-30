@@ -1050,12 +1050,6 @@ export type CatalogMutation = {
   facetCreate: FacetCreatePayload;
   /** Delete a facet */
   facetDelete: FacetDeletePayload;
-  /** Create a new facet group */
-  facetGroupCreate: FacetGroupCreatePayload;
-  /** Delete a facet group */
-  facetGroupDelete: FacetGroupDeletePayload;
-  /** Update an existing facet group */
-  facetGroupUpdate: FacetGroupUpdatePayload;
   /** Move a facet before or after another facet. */
   facetMove: FacetMovePayload;
   /** Rebalance facet lexo ranks. */
@@ -1245,21 +1239,6 @@ export type CatalogMutationFacetDeleteArgs = {
 };
 
 
-export type CatalogMutationFacetGroupCreateArgs = {
-  input: FacetGroupCreateInput;
-};
-
-
-export type CatalogMutationFacetGroupDeleteArgs = {
-  input: FacetGroupDeleteInput;
-};
-
-
-export type CatalogMutationFacetGroupUpdateArgs = {
-  input: FacetGroupUpdateInput;
-};
-
-
 export type CatalogMutationFacetMoveArgs = {
   input: FacetMoveInput;
 };
@@ -1436,10 +1415,6 @@ export type CatalogQuery = {
   collections: CollectionConnection;
   /** Get a facet by ID */
   facet: Maybe<Facet>;
-  /** Get a facet group by ID */
-  facetGroup: Maybe<FacetGroup>;
-  /** Get all facet groups */
-  facetGroups: Array<FacetGroup>;
   /** Get a facet swatch by ID */
   facetSwatch: Maybe<FacetSwatch>;
   /** Get all facet swatches */
@@ -1536,11 +1511,6 @@ export type CatalogQueryCollectionsArgs = {
 
 
 export type CatalogQueryFacetArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type CatalogQueryFacetGroupArgs = {
   id: Scalars['ID']['input'];
 };
 
@@ -2532,7 +2502,6 @@ export type DimensionsInput = {
 export type Facet = Node & {
   __typename?: 'Facet';
   facetType: FacetType;
-  group: Maybe<FacetGroup>;
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
   lexoRank: Scalars['String']['output'];
@@ -2545,7 +2514,6 @@ export type Facet = Node & {
 
 export type FacetCreateInput = {
   facetType: FacetType;
-  groupId?: InputMaybe<Scalars['ID']['input']>;
   label: Scalars['String']['input'];
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug: Scalars['String']['input'];
@@ -2566,49 +2534,6 @@ export type FacetDeleteInput = {
 export type FacetDeletePayload = {
   __typename?: 'FacetDeletePayload';
   deletedFacetId: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type FacetGroup = Node & {
-  __typename?: 'FacetGroup';
-  createdAt: Scalars['DateTime']['output'];
-  facets: Array<Facet>;
-  id: Scalars['ID']['output'];
-  name: Scalars['String']['output'];
-  sortIndex: Scalars['Int']['output'];
-  updatedAt: Scalars['DateTime']['output'];
-};
-
-export type FacetGroupCreateInput = {
-  name: Scalars['String']['input'];
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
-};
-
-export type FacetGroupCreatePayload = {
-  __typename?: 'FacetGroupCreatePayload';
-  facetGroup: Maybe<FacetGroup>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type FacetGroupDeleteInput = {
-  id: Scalars['ID']['input'];
-};
-
-export type FacetGroupDeletePayload = {
-  __typename?: 'FacetGroupDeletePayload';
-  deletedFacetGroupId: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type FacetGroupUpdateInput = {
-  id: Scalars['ID']['input'];
-  name?: InputMaybe<Scalars['String']['input']>;
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
-};
-
-export type FacetGroupUpdatePayload = {
-  __typename?: 'FacetGroupUpdatePayload';
-  facetGroup: Maybe<FacetGroup>;
   userErrors: Array<GenericUserError>;
 };
 
@@ -2705,7 +2630,6 @@ export enum FacetUiType {
 }
 
 export type FacetUpdateInput = {
-  groupId?: InputMaybe<Scalars['ID']['input']>;
   id: Scalars['ID']['input'];
   label?: InputMaybe<Scalars['String']['input']>;
   selectionMode?: InputMaybe<FacetSelectionMode>;
@@ -5855,7 +5779,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
   BundlePriceRule: ( BundleBasePriceRule ) | ( BundleDiscountFixedPriceRule ) | ( BundleDiscountPercentPriceRule ) | ( BundleFixedPriceRule ) | ( BundleFreePriceRule );
   Listing: ( Omit<Bundle, 'categoryAssignments' | 'configurations' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, configurations: Array<_RefType['BundleConfiguration']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, primaryCategory?: Maybe<_RefType['Category']>, variants: _RefType['VariantConnection'] } ) | ( Omit<Product, 'categoryAssignments' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, primaryCategory?: Maybe<_RefType['Category']>, variants: _RefType['VariantConnection'] } );
-  Node: ( Omit<Bundle, 'categoryAssignments' | 'configurations' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, configurations: Array<_RefType['BundleConfiguration']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, primaryCategory?: Maybe<_RefType['Category']>, variants: _RefType['VariantConnection'] } ) | ( BundleBasePriceRule ) | ( BundleCondition ) | ( BundleConditionGroup ) | ( Omit<BundleConfiguration, 'bundle' | 'dependencyRules' | 'groups' | 'pricingTemplates' | 'variants'> & { bundle: _RefType['Bundle'], dependencyRules: Array<_RefType['BundleDependencyRule']>, groups: Array<_RefType['BundleGroup']>, pricingTemplates: Array<_RefType['BundlePricingTemplate']>, variants: Array<_RefType['Variant']> } ) | ( Omit<BundleDependencyAction, 'priceRule'> & { priceRule?: Maybe<_RefType['BundlePriceRule']> } ) | ( Omit<BundleDependencyRule, 'actions'> & { actions: Array<_RefType['BundleDependencyAction']> } ) | ( BundleDiscountFixedPriceRule ) | ( BundleDiscountPercentPriceRule ) | ( BundleFixedPriceRule ) | ( BundleFreePriceRule ) | ( Omit<BundleGroup, 'items'> & { items: Array<_RefType['BundleItem']> } ) | ( Omit<BundleItem, 'group' | 'priceRule' | 'pricingTemplate' | 'refProduct' | 'refVariant'> & { group: _RefType['BundleGroup'], priceRule?: Maybe<_RefType['BundlePriceRule']>, pricingTemplate?: Maybe<_RefType['BundlePricingTemplate']>, refProduct?: Maybe<_RefType['Product']>, refVariant?: Maybe<_RefType['Variant']> } ) | ( BundleItemOptionSelection ) | ( BundleItemOptionValueSelection ) | ( Omit<BundlePricingTemplate, 'priceRule'> & { priceRule: _RefType['BundlePriceRule'] } ) | ( Omit<Category, 'ancestors' | 'children' | 'description' | 'excerpt' | 'listing' | 'parent'> & { ancestors: Array<_RefType['Category']>, children: Array<_RefType['Category']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, listing: _RefType['ListingConnection'], parent?: Maybe<_RefType['Category']> } ) | ( Omit<Collection, 'description' | 'excerpt' | 'products'> & { description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, products: _RefType['CollectionProductConnection'] } ) | ( Facet ) | ( FacetGroup ) | ( FacetSwatch ) | ( FacetValue ) | ( Omit<InventoryItem, 'stock' | 'variant'> & { stock: Array<_RefType['WarehouseStock']>, variant: _RefType['Variant'] } ) | ( Omit<Product, 'categoryAssignments' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, primaryCategory?: Maybe<_RefType['Category']>, variants: _RefType['VariantConnection'] } ) | ( ProductFeature ) | ( ProductFeatureValue ) | ( ProductOption ) | ( ProductOptionSwatch ) | ( ProductOptionValue ) | ( Tag ) | ( Omit<Variant, 'bundleConfiguration' | 'inventoryItem' | 'product'> & { bundleConfiguration?: Maybe<_RefType['BundleConfiguration']>, inventoryItem?: Maybe<_RefType['InventoryItem']>, product: _RefType['Product'] } ) | ( VariantCost ) | ( VariantPrice ) | ( Vendor ) | ( Omit<Warehouse, 'stock'> & { stock: _RefType['WarehouseStockConnection'] } ) | ( Omit<WarehouseStock, 'variant' | 'warehouse'> & { variant: _RefType['Variant'], warehouse: _RefType['Warehouse'] } );
+  Node: ( Omit<Bundle, 'categoryAssignments' | 'configurations' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, configurations: Array<_RefType['BundleConfiguration']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, primaryCategory?: Maybe<_RefType['Category']>, variants: _RefType['VariantConnection'] } ) | ( BundleBasePriceRule ) | ( BundleCondition ) | ( BundleConditionGroup ) | ( Omit<BundleConfiguration, 'bundle' | 'dependencyRules' | 'groups' | 'pricingTemplates' | 'variants'> & { bundle: _RefType['Bundle'], dependencyRules: Array<_RefType['BundleDependencyRule']>, groups: Array<_RefType['BundleGroup']>, pricingTemplates: Array<_RefType['BundlePricingTemplate']>, variants: Array<_RefType['Variant']> } ) | ( Omit<BundleDependencyAction, 'priceRule'> & { priceRule?: Maybe<_RefType['BundlePriceRule']> } ) | ( Omit<BundleDependencyRule, 'actions'> & { actions: Array<_RefType['BundleDependencyAction']> } ) | ( BundleDiscountFixedPriceRule ) | ( BundleDiscountPercentPriceRule ) | ( BundleFixedPriceRule ) | ( BundleFreePriceRule ) | ( Omit<BundleGroup, 'items'> & { items: Array<_RefType['BundleItem']> } ) | ( Omit<BundleItem, 'group' | 'priceRule' | 'pricingTemplate' | 'refProduct' | 'refVariant'> & { group: _RefType['BundleGroup'], priceRule?: Maybe<_RefType['BundlePriceRule']>, pricingTemplate?: Maybe<_RefType['BundlePricingTemplate']>, refProduct?: Maybe<_RefType['Product']>, refVariant?: Maybe<_RefType['Variant']> } ) | ( BundleItemOptionSelection ) | ( BundleItemOptionValueSelection ) | ( Omit<BundlePricingTemplate, 'priceRule'> & { priceRule: _RefType['BundlePriceRule'] } ) | ( Omit<Category, 'ancestors' | 'children' | 'description' | 'excerpt' | 'listing' | 'parent'> & { ancestors: Array<_RefType['Category']>, children: Array<_RefType['Category']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, listing: _RefType['ListingConnection'], parent?: Maybe<_RefType['Category']> } ) | ( Omit<Collection, 'description' | 'excerpt' | 'products'> & { description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, products: _RefType['CollectionProductConnection'] } ) | ( Facet ) | ( FacetSwatch ) | ( FacetValue ) | ( Omit<InventoryItem, 'stock' | 'variant'> & { stock: Array<_RefType['WarehouseStock']>, variant: _RefType['Variant'] } ) | ( Omit<Product, 'categoryAssignments' | 'description' | 'excerpt' | 'primaryCategory' | 'variants'> & { categoryAssignments: Array<_RefType['ProductCategoryAssignment']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, primaryCategory?: Maybe<_RefType['Category']>, variants: _RefType['VariantConnection'] } ) | ( ProductFeature ) | ( ProductFeatureValue ) | ( ProductOption ) | ( ProductOptionSwatch ) | ( ProductOptionValue ) | ( Tag ) | ( Omit<Variant, 'bundleConfiguration' | 'inventoryItem' | 'product'> & { bundleConfiguration?: Maybe<_RefType['BundleConfiguration']>, inventoryItem?: Maybe<_RefType['InventoryItem']>, product: _RefType['Product'] } ) | ( VariantCost ) | ( VariantPrice ) | ( Vendor ) | ( Omit<Warehouse, 'stock'> & { stock: _RefType['WarehouseStockConnection'] } ) | ( Omit<WarehouseStock, 'variant' | 'warehouse'> & { variant: _RefType['Variant'], warehouse: _RefType['Warehouse'] } );
   UserError: ( BulkUpdateUserError ) | ( GenericUserError );
 }>;
 
@@ -6003,13 +5927,6 @@ export type ResolversTypes = ResolversObject<{
   FacetCreatePayload: ResolverTypeWrapper<FacetCreatePayload>;
   FacetDeleteInput: FacetDeleteInput;
   FacetDeletePayload: ResolverTypeWrapper<FacetDeletePayload>;
-  FacetGroup: ResolverTypeWrapper<FacetGroup>;
-  FacetGroupCreateInput: FacetGroupCreateInput;
-  FacetGroupCreatePayload: ResolverTypeWrapper<FacetGroupCreatePayload>;
-  FacetGroupDeleteInput: FacetGroupDeleteInput;
-  FacetGroupDeletePayload: ResolverTypeWrapper<FacetGroupDeletePayload>;
-  FacetGroupUpdateInput: FacetGroupUpdateInput;
-  FacetGroupUpdatePayload: ResolverTypeWrapper<FacetGroupUpdatePayload>;
   FacetMoveInput: FacetMoveInput;
   FacetMovePayload: ResolverTypeWrapper<FacetMovePayload>;
   FacetRebalanceInput: FacetRebalanceInput;
@@ -6374,13 +6291,6 @@ export type ResolversParentTypes = ResolversObject<{
   FacetCreatePayload: FacetCreatePayload;
   FacetDeleteInput: FacetDeleteInput;
   FacetDeletePayload: FacetDeletePayload;
-  FacetGroup: FacetGroup;
-  FacetGroupCreateInput: FacetGroupCreateInput;
-  FacetGroupCreatePayload: FacetGroupCreatePayload;
-  FacetGroupDeleteInput: FacetGroupDeleteInput;
-  FacetGroupDeletePayload: FacetGroupDeletePayload;
-  FacetGroupUpdateInput: FacetGroupUpdateInput;
-  FacetGroupUpdatePayload: FacetGroupUpdatePayload;
   FacetMoveInput: FacetMoveInput;
   FacetMovePayload: FacetMovePayload;
   FacetRebalanceInput: FacetRebalanceInput;
@@ -6954,9 +6864,6 @@ export type CatalogMutationResolvers<ContextType = ServiceContext, ParentType ex
   collectionUpdateRules?: Resolver<ResolversTypes['CollectionUpdateRulesPayload'], ParentType, ContextType, RequireFields<CatalogMutationCollectionUpdateRulesArgs, 'input'>>;
   facetCreate?: Resolver<ResolversTypes['FacetCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetCreateArgs, 'input'>>;
   facetDelete?: Resolver<ResolversTypes['FacetDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetDeleteArgs, 'input'>>;
-  facetGroupCreate?: Resolver<ResolversTypes['FacetGroupCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetGroupCreateArgs, 'input'>>;
-  facetGroupDelete?: Resolver<ResolversTypes['FacetGroupDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetGroupDeleteArgs, 'input'>>;
-  facetGroupUpdate?: Resolver<ResolversTypes['FacetGroupUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetGroupUpdateArgs, 'input'>>;
   facetMove?: Resolver<ResolversTypes['FacetMovePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetMoveArgs, 'input'>>;
   facetRebalance?: Resolver<ResolversTypes['FacetRebalancePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetRebalanceArgs, 'input'>>;
   facetSwatchCreate?: Resolver<ResolversTypes['FacetSwatchCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetSwatchCreateArgs, 'input'>>;
@@ -7001,8 +6908,6 @@ export type CatalogQueryResolvers<ContextType = ServiceContext, ParentType exten
   collectionRulesPreviewCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType, RequireFields<CatalogQueryCollectionRulesPreviewCountArgs, 'rules'>>;
   collections?: Resolver<ResolversTypes['CollectionConnection'], ParentType, ContextType, Partial<CatalogQueryCollectionsArgs>>;
   facet?: Resolver<Maybe<ResolversTypes['Facet']>, ParentType, ContextType, RequireFields<CatalogQueryFacetArgs, 'id'>>;
-  facetGroup?: Resolver<Maybe<ResolversTypes['FacetGroup']>, ParentType, ContextType, RequireFields<CatalogQueryFacetGroupArgs, 'id'>>;
-  facetGroups?: Resolver<Array<ResolversTypes['FacetGroup']>, ParentType, ContextType>;
   facetSwatch?: Resolver<Maybe<ResolversTypes['FacetSwatch']>, ParentType, ContextType, RequireFields<CatalogQueryFacetSwatchArgs, 'id'>>;
   facetSwatches?: Resolver<Array<ResolversTypes['FacetSwatch']>, ParentType, ContextType>;
   facetValue?: Resolver<Maybe<ResolversTypes['FacetValue']>, ParentType, ContextType, RequireFields<CatalogQueryFacetValueArgs, 'id'>>;
@@ -7218,7 +7123,6 @@ export interface EmailScalarConfig extends GraphQLScalarTypeConfig<ResolversType
 
 export type FacetResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Facet'] = ResolversParentTypes['Facet']> = ResolversObject<{
   facetType?: Resolver<ResolversTypes['FacetType'], ParentType, ContextType>;
-  group?: Resolver<Maybe<ResolversTypes['FacetGroup']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   lexoRank?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -7238,34 +7142,6 @@ export type FacetCreatePayloadResolvers<ContextType = ServiceContext, ParentType
 
 export type FacetDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetDeletePayload'] = ResolversParentTypes['FacetDeletePayload']> = ResolversObject<{
   deletedFacetId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetGroupResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetGroup'] = ResolversParentTypes['FacetGroup']> = ResolversObject<{
-  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  facets?: Resolver<Array<ResolversTypes['Facet']>, ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetGroupCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetGroupCreatePayload'] = ResolversParentTypes['FacetGroupCreatePayload']> = ResolversObject<{
-  facetGroup?: Resolver<Maybe<ResolversTypes['FacetGroup']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetGroupDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetGroupDeletePayload'] = ResolversParentTypes['FacetGroupDeletePayload']> = ResolversObject<{
-  deletedFacetGroupId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetGroupUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetGroupUpdatePayload'] = ResolversParentTypes['FacetGroupUpdatePayload']> = ResolversObject<{
-  facetGroup?: Resolver<Maybe<ResolversTypes['FacetGroup']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -7485,7 +7361,7 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Bundle' | 'BundleBasePriceRule' | 'BundleCondition' | 'BundleConditionGroup' | 'BundleConfiguration' | 'BundleDependencyAction' | 'BundleDependencyRule' | 'BundleDiscountFixedPriceRule' | 'BundleDiscountPercentPriceRule' | 'BundleFixedPriceRule' | 'BundleFreePriceRule' | 'BundleGroup' | 'BundleItem' | 'BundleItemOptionSelection' | 'BundleItemOptionValueSelection' | 'BundlePricingTemplate' | 'Category' | 'Collection' | 'Facet' | 'FacetGroup' | 'FacetSwatch' | 'FacetValue' | 'InventoryItem' | 'Product' | 'ProductFeature' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionSwatch' | 'ProductOptionValue' | 'Tag' | 'Variant' | 'VariantCost' | 'VariantPrice' | 'Vendor' | 'Warehouse' | 'WarehouseStock', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'Bundle' | 'BundleBasePriceRule' | 'BundleCondition' | 'BundleConditionGroup' | 'BundleConfiguration' | 'BundleDependencyAction' | 'BundleDependencyRule' | 'BundleDiscountFixedPriceRule' | 'BundleDiscountPercentPriceRule' | 'BundleFixedPriceRule' | 'BundleFreePriceRule' | 'BundleGroup' | 'BundleItem' | 'BundleItemOptionSelection' | 'BundleItemOptionValueSelection' | 'BundlePricingTemplate' | 'Category' | 'Collection' | 'Facet' | 'FacetSwatch' | 'FacetValue' | 'InventoryItem' | 'Product' | 'ProductFeature' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionSwatch' | 'ProductOptionValue' | 'Tag' | 'Variant' | 'VariantCost' | 'VariantPrice' | 'Vendor' | 'Warehouse' | 'WarehouseStock', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -8164,10 +8040,6 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   Facet?: FacetResolvers<ContextType>;
   FacetCreatePayload?: FacetCreatePayloadResolvers<ContextType>;
   FacetDeletePayload?: FacetDeletePayloadResolvers<ContextType>;
-  FacetGroup?: FacetGroupResolvers<ContextType>;
-  FacetGroupCreatePayload?: FacetGroupCreatePayloadResolvers<ContextType>;
-  FacetGroupDeletePayload?: FacetGroupDeletePayloadResolvers<ContextType>;
-  FacetGroupUpdatePayload?: FacetGroupUpdatePayloadResolvers<ContextType>;
   FacetMovePayload?: FacetMovePayloadResolvers<ContextType>;
   FacetRebalancePayload?: FacetRebalancePayloadResolvers<ContextType>;
   FacetSwatch?: FacetSwatchResolvers<ContextType>;

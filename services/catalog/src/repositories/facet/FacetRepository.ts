@@ -66,24 +66,12 @@ export class FacetRepository extends BaseRepository {
       .orderBy(asc(facet.lexoRank), asc(facet.id));
   }
 
-  async findByGroupIds(groupIds: readonly string[]): Promise<Facet[]> {
-    if (groupIds.length === 0) return [];
-    return this.connection
-      .select()
-      .from(facet)
-      .where(
-        and(eq(facet.projectId, this.storeId), inArray(facet.groupId, [...groupIds]))
-      )
-      .orderBy(asc(facet.lexoRank), asc(facet.id));
-  }
-
   async create(data: {
     facetType: string;
     slug: string;
     label: string;
     uiType?: string;
     selectionMode?: string;
-    groupId?: string | null;
     lexoRank?: string;
     sourceHandles?: string[];
   }): Promise<Facet> {
@@ -94,7 +82,6 @@ export class FacetRepository extends BaseRepository {
     const insert: NewFacet = {
       id,
       projectId: this.storeId,
-      groupId: data.groupId ?? null,
       facetType: data.facetType,
       slug: data.slug,
       uiType: data.uiType ?? "checkbox",
@@ -126,7 +113,6 @@ export class FacetRepository extends BaseRepository {
       label?: string;
       uiType?: string;
       selectionMode?: string;
-      groupId?: string | null;
       lexoRank?: string;
       sourceHandles?: string[];
     }
@@ -138,7 +124,6 @@ export class FacetRepository extends BaseRepository {
     if (data.slug !== undefined) updates.slug = data.slug;
     if (data.uiType !== undefined) updates.uiType = data.uiType;
     if (data.selectionMode !== undefined) updates.selectionMode = data.selectionMode;
-    if (data.groupId !== undefined) updates.groupId = data.groupId;
     if (data.lexoRank !== undefined) updates.lexoRank = data.lexoRank;
 
     const rows = await this.connection

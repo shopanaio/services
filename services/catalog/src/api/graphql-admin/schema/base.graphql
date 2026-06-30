@@ -180,16 +180,6 @@ type CatalogQuery {
   collectionRulesPreviewCount(rules: [CollectionRuleInput!]!): Int!
 
   """
-  Get a facet group by ID
-  """
-  facetGroup(id: ID!): FacetGroup
-
-  """
-  Get all facet groups
-  """
-  facetGroups: [FacetGroup!]!
-
-  """
   Get a facet by ID
   """
   facet(id: ID!): Facet
@@ -599,21 +589,6 @@ type CatalogMutation {
   Delete a category
   """
   categoryDelete(input: CategoryDeleteInput!): CategoryDeletePayload!
-
-  """
-  Create a new facet group
-  """
-  facetGroupCreate(input: FacetGroupCreateInput!): FacetGroupCreatePayload!
-
-  """
-  Update an existing facet group
-  """
-  facetGroupUpdate(input: FacetGroupUpdateInput!): FacetGroupUpdatePayload!
-
-  """
-  Delete a facet group
-  """
-  facetGroupDelete(input: FacetGroupDeleteInput!): FacetGroupDeletePayload!
 
   """
   Create a new facet

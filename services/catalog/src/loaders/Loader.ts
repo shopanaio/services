@@ -7,7 +7,6 @@ import { ProductLoader } from "./ProductLoader.js";
 import { VendorLoader } from "./VendorLoader.js";
 import { TagLoader } from "./TagLoader.js";
 import { VariantLoader } from "./VariantLoader.js";
-import { FacetGroupLoader } from "./FacetGroupLoader.js";
 import { FacetLoader } from "./FacetLoader.js";
 import { FacetValueLoader } from "./FacetValueLoader.js";
 import { FacetSwatchLoader } from "./FacetSwatchLoader.js";
@@ -76,9 +75,6 @@ export class Loader {
   public readonly featureChildIds;
 
   // Facets
-  public readonly facetGroup;
-  public readonly facetGroupTranslation;
-  public readonly facetIdsByGroup;
   public readonly facet;
   public readonly facetTranslation;
   public readonly facetSourceHandles;
@@ -121,7 +117,6 @@ export class Loader {
     const tagLoader = new TagLoader(repository);
     const optionLoader = new OptionLoader(repository);
     const featureLoader = new FeatureLoader(repository);
-    const facetGroupLoader = new FacetGroupLoader(repository);
     const facetLoader = new FacetLoader(repository);
     const facetValueLoader = new FacetValueLoader(repository);
     const facetSwatchLoader = new FacetSwatchLoader(repository);
@@ -190,9 +185,6 @@ export class Loader {
     this.featureChildIds = featureLoader.featureChildIds;
 
     // Facets
-    this.facetGroup = facetGroupLoader.facetGroup;
-    this.facetGroupTranslation = facetGroupLoader.facetGroupTranslation;
-    this.facetIdsByGroup = facetGroupLoader.facetIdsByGroup;
     this.facet = facetLoader.facet;
     this.facetTranslation = facetLoader.facetTranslation;
     this.facetSourceHandles = facetLoader.facetSourceHandles;

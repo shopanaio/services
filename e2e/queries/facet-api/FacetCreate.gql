@@ -10,10 +10,6 @@ mutation FacetCreate($input: FacetCreateInput!) {
         selectionMode
         lexoRank
         sourceHandles
-        group {
-          id
-          name
-        }
         values {
           id
           slug

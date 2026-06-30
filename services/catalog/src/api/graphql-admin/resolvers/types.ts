@@ -20,7 +20,6 @@ import { VendorResolver } from "../../../resolvers/admin/VendorResolver.js";
 import { InventoryItemResolver } from "../../../resolvers/admin/InventoryItemResolver.js";
 import { WarehouseResolver } from "../../../resolvers/admin/WarehouseResolver.js";
 import { StockResolver } from "../../../resolvers/admin/StockResolver.js";
-import { FacetGroupResolver } from "../../../resolvers/admin/FacetGroupResolver.js";
 
 async function resolveProductBackedType(
   obj: unknown,
@@ -52,7 +51,6 @@ export const typeResolvers: Partial<Resolvers> = {
       if (obj instanceof StockResolver) return "WarehouseStock";
       if (obj instanceof WarehouseResolver) return "Warehouse";
       if (obj instanceof InventoryItemResolver) return "InventoryItem";
-      if (obj instanceof FacetGroupResolver) return "FacetGroup";
       if ("quantityOnHand" in record) return "WarehouseStock";
       if ("code" in record && "isDefault" in record) return "Warehouse";
       if ("variantId" in record && "trackInventory" in record)
@@ -65,14 +63,6 @@ export const typeResolvers: Partial<Resolvers> = {
       if ("unitCostMinor" in record) return "VariantCost";
       if ("isGroup" in record) return "ProductFeature";
       if ("featureId" in record) return "ProductFeatureValue";
-      if (
-        "sortIndex" in record &&
-        "createdAt" in record &&
-        "updatedAt" in record &&
-        !("slug" in record) &&
-        !("path" in record)
-      )
-        return "FacetGroup";
       if ("facetType" in record && "selectionMode" in record) return "Facet";
       if ("enabled" in record && "facetId" in record && "slug" in record)
         return "FacetValue";
