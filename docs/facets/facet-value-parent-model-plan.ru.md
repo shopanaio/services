@@ -172,7 +172,7 @@ catalog.facet_value (
 Обязательные:
 
 ```sql
--- source handle уникален среди source rows одного facet;
+-- source handle уникален среди source rows одного facet_id;
 -- source и display rows могут иметь одинаковый handle
 CREATE UNIQUE INDEX facet_value_source_project_facet_handle_uniq
   ON catalog.facet_value (project_id, facet_id, handle)
@@ -205,6 +205,12 @@ CREATE INDEX idx_facet_value_project_facet_source_handle
   ON catalog.facet_value (project_id, facet_id, handle)
   WHERE kind = 'source';
 ```
+
+Важно: source uniqueness в новой модели задается только в рамках конкретного
+`facet_id`. Legacy global uniqueness из `facet_value_source_handle` не
+переносится. Один raw source handle может участвовать в разных facets, если у
+них разные `facet_id`; runtime resolution все равно начинается с `facet.slug`,
+поэтому storefront token `facetSlug:valueHandle` остается однозначным.
 
 Рекомендуемые checks:
 
