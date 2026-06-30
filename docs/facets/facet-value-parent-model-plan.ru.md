@@ -160,7 +160,7 @@ catalog.facet_value (
   facet_id       uuid NOT NULL REFERENCES catalog.facet(id) ON DELETE CASCADE,
   facet_type     varchar(32) NOT NULL,
 
-  parent_id      uuid NULL REFERENCES catalog.facet_value(id) ON DELETE SET NULL,
+  parent_id      uuid NULL REFERENCES catalog.facet_value(id) ON DELETE NO ACTION,
   kind           varchar(16) NOT NULL, -- 'source' | 'display'
   handle         text NOT NULL,
 
@@ -378,8 +378,10 @@ source:  kind=source,  handle=nike, label=Nike, parent_id=<display id>
 display: kind=display, handle=nike, label=Nike official, parent_id=NULL
 ```
 
-Если custom display удаляется, source child получает `parent_id = NULL` и снова
-выводится как обычное source value.
+Custom display нельзя удалять как обычную parent row, пока у него есть source
+children. Нужно вызвать explicit unmerge/detach flow: source child получает
+`parent_id = NULL` только через mutation, которая проверяет конфликт root
+`handle`, после чего display можно удалить или disable.
 
 ## Изменения backend: DB и модели
 
@@ -505,7 +507,7 @@ ALTER TABLE catalog.facet_value
   ADD CONSTRAINT facet_value_parent_id_facet_value_id_fk
   FOREIGN KEY (parent_id)
   REFERENCES catalog.facet_value(id)
-  ON DELETE SET NULL;
+  ON DELETE NO ACTION;
 ```
 
 7. Добавить новые indexes/constraints.
@@ -1377,15 +1379,23 @@ event, потому что product/variant search index тоже меняет ra
 
 ### Риск: удаление display parent
 
-`ON DELETE SET NULL` на `parent_id` делает children visible. Это удобно для
-unmerge-by-delete, но mutation delete display должна явно решить:
+`ON DELETE SET NULL` на `parent_id` запрещен, потому что обычное удаление
+display parent неожиданно сделает hidden source children visible и обойдет
+business validation unmerge.
 
-- разрешать ли delete display с children;
-- автоматически unmerge children;
-- или требовать сначала unmerge.
+FK для `parent_id` должен быть `ON DELETE NO ACTION`. Delete display with
+children должен fail fast на DB/application уровне, пока mutation явно не
+выберет один из сценариев:
 
-Рекомендуемое поведение: delete display with children = unmerge children in same
-transaction, then delete display.
+- сначала explicit unmerge children с проверкой root `handle` conflicts;
+- detach children в другой display value;
+- disable display и оставить children attached;
+- hard-delete display только если children отсутствуют.
+
+Рекомендуемое поведение: delete display with children без явного режима =
+userError. Для custom display delete нужно выполнять unmerge children in same
+transaction, then delete display, но только после успешной проверки uniqueness
+для будущих root source values.
 
 ### Риск: source rows для нового facet
 
