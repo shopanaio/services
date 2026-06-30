@@ -93,6 +93,11 @@ Files to copy to dist during build:
 | Migrations | Database migrations for runtime execution |
 | Shared references | Common GraphQL types (scalars, directives) |
 
+Catalog migrations are nested under `services/catalog/migrations/domains/**`.
+The catalog build asset pattern must preserve nested SQL files under
+`dist/migrations/domains/**` because the catalog `node-pg-migrate` runner uses a
+recursive glob over that path.
+
 ## Why Needed
 
 - Defines what constitutes a complete service build

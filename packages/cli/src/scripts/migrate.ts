@@ -169,7 +169,8 @@ async function runNodePgMigrateMigration(
 
   await runner({
     databaseUrl: cleanUrl,
-    dir: migrationsFolder,
+    dir: `${migrationsFolder}/domains/**/*.sql`,
+    useGlob: true,
     direction: "up",
     migrationsTable: "pgmigrations",
     migrationsSchema: "catalog",
