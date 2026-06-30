@@ -206,7 +206,7 @@ function facetValuesToEditorValues(
       apiId: value.id,
       apiSwatchId: value.swatch?.id,
       name: value.label,
-      slug: value.slug,
+      slug: value.handle,
       sortIndex: index,
       swatch: facetSwatchToEditorSwatch(value.swatch),
     }));
@@ -432,7 +432,7 @@ export function EditFacetModal() {
           const labelChanged = original?.label !== trimmedName;
           const slug = slugify(trimmedName);
           const sortIndexChanged = original?.sortIndex !== sortIndex;
-          const slugChanged = original?.slug !== slug;
+          const slugChanged = original?.handle !== slug;
           const swatchChanged = originalSwatchId !== swatchId;
 
           if (

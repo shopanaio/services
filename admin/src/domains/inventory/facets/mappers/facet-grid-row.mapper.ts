@@ -104,7 +104,7 @@ function mapFacetValueToRow(
     level: 1,
     sortIndex: value.sortIndex,
     name: value.label,
-    slug: value.slug,
+    slug: value.handle,
     enabled: value.enabled,
     sourceHandles,
     linkedSourceHandlesCount: sourceHandles.length,

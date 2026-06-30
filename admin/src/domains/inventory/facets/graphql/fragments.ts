@@ -19,7 +19,7 @@ export const FACET_VALUE_GRID_FRAGMENT = gql`
   fragment FacetValueGridFields on FacetValue {
     id
     label
-    slug: handle
+    handle
     sortIndex
     enabled
     sourceValues {

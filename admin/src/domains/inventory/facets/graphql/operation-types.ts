@@ -42,9 +42,8 @@ export type FacetSwatchFields = Pick<
 
 export type FacetValueGridFields = Pick<
   ApiFacetValue,
-  "id" | "label" | "sortIndex" | "enabled"
+  "id" | "label" | "handle" | "sortIndex" | "enabled"
 > & {
-  slug: string;
   sourceValues: Array<Pick<ApiFacetValue, "handle">>;
   swatch: FacetSwatchFields | null;
 };
