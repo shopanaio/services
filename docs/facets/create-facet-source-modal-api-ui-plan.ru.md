@@ -261,6 +261,53 @@ FROM catalog.facet_source
 WHERE project_id = :storeId
 ```
 
+### Exclude used sources
+
+Доступный source определяется как candidate из `facet_source_candidate_view`,
+для которого еще нет строки в `catalog.facet_source` с тем же:
+
+```text
+project_id + facet_type + handle
+```
+
+Фильтрация уже использованных sources должна быть обязательной частью
+`getAvailableFacetSourceCandidates`, а не ответственностью UI.
+
+Предпочтительный SQL shape:
+
+```sql
+SELECT c.*
+FROM catalog.facet_source_candidate_view c
+WHERE c.project_id = :storeId
+  AND c.locale = :locale
+  AND NOT EXISTS (
+    SELECT 1
+    FROM catalog.facet_source fs
+    WHERE fs.project_id = c.project_id
+      AND fs.facet_type = c.facet_type
+      AND fs.handle = c.handle
+  )
+```
+
+В `@shopana/drizzle-query` это можно реализовать двумя способами:
+
+1. Через предварительный select `usedSourceIds` и `_not id _in`, где
+   `id = facet_type || ':' || handle`.
+2. Через repository-level Drizzle query/condition с `notExists`, если текущий
+   query builder удобнее расширить SQL condition.
+
+Правила exclusion:
+
+- если есть `facet_source(project_id, 'PRICE', 'price')`, `Price` не
+  возвращается;
+- если есть `facet_source(project_id, 'IN_STOCK', 'availability')`,
+  `Availability` не возвращается;
+- если есть `facet_source(project_id, 'TAG', 'tags')`, `Tags` не возвращается;
+- если есть `facet_source(project_id, 'OPTION', 'color')`, option source
+  `color` не возвращается;
+- если есть `facet_source(project_id, 'FEATURE', 'nice')`, feature source
+  `nice` не возвращается.
+
 Причина делать exclusion в repository, а не внутри candidate view: view остается
 переиспользуемым read model всех кандидатов, а "available" является
 use-case фильтром create modal.
