@@ -59,9 +59,8 @@ export function mapFacetValueFormToCreateInput(
   return {
     facetId,
     label: values.label.trim(),
-    slug: normalizeFacetValueSlug(values.slug),
+    handle: normalizeFacetValueSlug(values.slug),
     enabled: values.enabled,
-    sourceHandles: normalizeSourceHandles(values.sourceHandles),
     swatchId: values.swatchId ?? null,
     sortIndex,
   };
@@ -74,19 +73,17 @@ export function mapFacetValueFormToUpdateInput(
   return {
     id,
     label: values.label.trim(),
-    slug: normalizeFacetValueSlug(values.slug),
+    handle: normalizeFacetValueSlug(values.slug),
     enabled: values.enabled,
-    sourceHandles: normalizeSourceHandles(values.sourceHandles),
     swatchId: values.swatchId ?? null,
   };
 }
 
 export function mapSourceHandlesToFacetValueUpdateInput(
   id: string,
-  sourceHandles: string[],
+  _sourceHandles: string[],
 ): ApiFacetValueUpdateInput {
   return {
     id,
-    sourceHandles: normalizeSourceHandles(sourceHandles),
   };
 }

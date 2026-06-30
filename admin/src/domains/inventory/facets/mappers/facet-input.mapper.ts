@@ -14,6 +14,10 @@ export interface FacetFormInput {
   slug: string;
   facetType: FacetType;
   uiType: FacetUiType;
+  source?: {
+    handle: string;
+    name: string;
+  } | null;
 }
 
 export function getAllowedFacetUiTypes(facetType: FacetType): FacetUiType[] {
@@ -51,7 +55,10 @@ export function mapFacetFormToCreateInput(
     slug: normalizeFacetSlug(values.slug),
     facetType: values.facetType,
     uiType: values.uiType,
-    selectionMode: FacetSelectionMode.Multi,
+    selectionMode: getDefaultFacetSelectionMode(values.uiType),
+    sources: values.source
+      ? [{ handle: values.source.handle, name: values.source.name }]
+      : [],
   };
 }
 

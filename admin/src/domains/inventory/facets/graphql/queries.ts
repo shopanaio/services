@@ -38,3 +38,42 @@ export const FACET_VALUE_DETAILS_QUERY = gql`
   }
   ${FACET_VALUE_GRID_FRAGMENT}
 `;
+
+export const FACET_SOURCE_CANDIDATES_QUERY = gql`
+  query FacetSourceCandidates(
+    $first: Int
+    $after: String
+    $last: Int
+    $before: String
+    $where: FacetSourceCandidateWhereInput
+    $orderBy: [FacetSourceCandidateOrderByInput!]
+  ) {
+    catalogQuery {
+      facetSourceCandidates(
+        first: $first
+        after: $after
+        last: $last
+        before: $before
+        where: $where
+        orderBy: $orderBy
+      ) {
+        edges {
+          cursor
+          node {
+            id
+            facetType
+            handle
+            name
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+    }
+  }
+`;

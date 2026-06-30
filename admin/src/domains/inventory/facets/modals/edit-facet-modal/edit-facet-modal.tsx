@@ -415,9 +415,8 @@ export function EditFacetModal() {
             const createResult = await createFacetValue({
               facetId: facet.id,
               label: trimmedName,
-              slug: slugify(trimmedName),
+              handle: slugify(trimmedName),
               enabled: true,
-              sourceHandles: [],
               ...(swatchId ? { swatchId } : {}),
               sortIndex,
             });
@@ -448,7 +447,7 @@ export function EditFacetModal() {
           const orderResult = await updateFacetValue({
             id: value.apiId,
             ...(labelChanged ? { label: trimmedName } : {}),
-            ...(slugChanged ? { slug } : {}),
+            ...(slugChanged ? { handle: slug } : {}),
             sortIndex,
             ...(swatchChanged ? { swatchId } : {}),
           });

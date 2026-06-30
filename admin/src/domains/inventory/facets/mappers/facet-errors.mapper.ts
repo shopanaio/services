@@ -11,6 +11,8 @@ const FIELD_ALIASES: Record<string, string> = {
   uiType: "uiType",
   selectionMode: "selectionMode",
   facetType: "facetType",
+  sources: "source",
+  source: "source",
   sourceHandles: "sourceHandles",
   enabled: "enabled",
   swatchId: "swatchId",

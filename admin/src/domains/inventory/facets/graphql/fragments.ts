@@ -19,10 +19,12 @@ export const FACET_VALUE_GRID_FRAGMENT = gql`
   fragment FacetValueGridFields on FacetValue {
     id
     label
-    slug
+    slug: handle
     sortIndex
     enabled
-    sourceHandles
+    sourceValues {
+      handle
+    }
     swatch {
       ...FacetSwatchFields
     }
@@ -39,7 +41,6 @@ export const FACET_GRID_FRAGMENT = gql`
     uiType
     selectionMode
     lexoRank
-    sourceHandles
     values {
       ...FacetValueGridFields
     }

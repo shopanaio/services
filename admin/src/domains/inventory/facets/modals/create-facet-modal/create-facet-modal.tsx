@@ -1,18 +1,10 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
-import type { ReactNode } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { App, Button, Dropdown, Flex, Input } from "antd";
+import { App, Button, Flex, Input } from "antd";
 import { createStyles } from "antd-style";
-import {
-  LuDollarSign,
-  LuPackageCheck,
-  LuSlidersHorizontal,
-  LuSparkles,
-  LuTag,
-} from "react-icons/lu";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
 import {
   ModalHeader,
@@ -28,12 +20,16 @@ import {
 } from "../../mappers";
 import { useCreateFacet } from "../../hooks";
 import type { ICreateFacetModalPayload } from "../../modals";
+import { FacetUiTypeSelector } from "../components/facet-ui-type-selector";
 import {
   createFacetSchema,
   type CreateFacetFormInput,
   type CreateFacetFormValues,
 } from "./schema";
 import { FacetType } from "@/graphql/types";
+import { useEntityPicker } from "@/shared/components/entity-picker-modal";
+import "../../pickers/facet-source-picker-config";
+import type { FacetSourcePickerEntity } from "../../pickers/facet-source-picker-config";
 
 const useStyles = createStyles(({ token }) => ({
   fieldGroup: {
@@ -65,87 +61,57 @@ const useStyles = createStyles(({ token }) => ({
     },
   },
   sourceSelectorButton: {
-    width: 96,
+    maxWidth: 160,
+    minWidth: 96,
     paddingInline: 4,
   },
   sourceSelectorContent: {
     justifyContent: "center",
     width: "100%",
+    minWidth: 0,
+    span: {
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+    },
   },
 }));
 
-const FACET_SOURCE_OPTIONS: {
-  key: FacetType;
-  label: string;
-  icon: ReactNode;
-}[] = [
-  {
-    key: FacetType.Price,
-    label: "Price",
-    icon: <LuDollarSign />,
-  },
-  {
-    key: FacetType.Tag,
-    label: "Tag",
-    icon: <LuTag />,
-  },
-  {
-    key: FacetType.Option,
-    label: "Option",
-    icon: <LuSlidersHorizontal />,
-  },
-  {
-    key: FacetType.Feature,
-    label: "Feature",
-    icon: <LuSparkles />,
-  },
-  {
-    key: FacetType.InStock,
-    label: "Stock",
-    icon: <LuPackageCheck />,
-  },
-];
-
 interface FacetSourceSelectorProps {
-  value: FacetType;
-  onChange: (facetType: FacetType) => void;
+  value: CreateFacetFormInput["source"];
+  hasError?: boolean;
+  onClick: () => void;
 }
 
-function FacetSourceSelector({ value, onChange }: FacetSourceSelectorProps) {
+function FacetSourceSelector({
+  value,
+  hasError = false,
+  onClick,
+}: FacetSourceSelectorProps) {
   const { styles } = useStyles();
-  const current = FACET_SOURCE_OPTIONS.find((option) => option.key === value);
-  const menuItems = FACET_SOURCE_OPTIONS.map((option) => ({
-    key: option.key,
-    icon: option.icon,
-    label: option.label,
-    onClick: () => onChange(option.key),
-  }));
+  const label = value?.name || "Source";
 
   return (
-    <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
-      <Button
-        size="small"
-        type="text"
-        className={styles.sourceSelectorButton}
-      >
-        <Flex
-          gap={4}
-          align="center"
-          className={styles.sourceSelectorContent}
-        >
-          {current?.icon}
-          <span>{current?.label}</span>
-        </Flex>
-      </Button>
-    </Dropdown>
+    <Button
+      size="small"
+      type="text"
+      danger={hasError}
+      className={styles.sourceSelectorButton}
+      onClick={onClick}
+    >
+      <Flex gap={4} align="center" className={styles.sourceSelectorContent}>
+        <span>{label}</span>
+      </Flex>
+    </Button>
   );
 }
 
-const DEFAULT_VALUES: CreateFacetFormValues = {
+const DEFAULT_VALUES: CreateFacetFormInput = {
   label: "",
   slug: "",
   facetType: FacetType.Option,
   uiType: getDefaultFacetUiType(FacetType.Option),
+  source: null,
 };
 
 export function CreateFacetModal() {
@@ -166,18 +132,60 @@ export function CreateFacetModal() {
   const label = watch("label");
   const facetType = watch("facetType");
   const uiType = watch("uiType");
+  const uiTypeOptions = useMemo(
+    () => getAllowedFacetUiTypes(facetType),
+    [facetType],
+  );
+
+  const { openPicker } = useEntityPicker<FacetSourcePickerEntity>({
+    entityType: "facet-source",
+    selectionMode: "single",
+    initialSelection: [],
+    queryMeta: {
+      allowedFacetTypes: [
+        FacetType.Price,
+        FacetType.Tag,
+        FacetType.Option,
+        FacetType.Feature,
+        FacetType.InStock,
+      ],
+    },
+    onConfirm: ([selectedSource]) => {
+      if (!selectedSource) return;
+
+      setValue("facetType", selectedSource.facetType, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+      setValue(
+        "source",
+        {
+          handle: selectedSource.handle,
+          name: selectedSource.name,
+        },
+        { shouldValidate: true, shouldDirty: true },
+      );
+
+      const allowed = getAllowedFacetUiTypes(selectedSource.facetType);
+      if (!allowed.includes(uiType)) {
+        setValue("uiType", getDefaultFacetUiType(selectedSource.facetType), {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
+      }
+    },
+  });
 
   useEffect(() => {
     setValue("slug", slugify(label), { shouldValidate: Boolean(label) });
   }, [label, setValue]);
 
   useEffect(() => {
-    const allowed = getAllowedFacetUiTypes(facetType);
-    if (!allowed.includes(uiType)) {
+    if (!uiTypeOptions.includes(uiType)) {
       const nextUiType = getDefaultFacetUiType(facetType);
       setValue("uiType", nextUiType, { shouldValidate: true });
     }
-  }, [facetType, setValue, uiType]);
+  }, [facetType, setValue, uiType, uiTypeOptions]);
 
   const onSubmit = useCallback(
     async (values: CreateFacetFormValues) => {
@@ -199,8 +207,8 @@ export function CreateFacetModal() {
           if (error.field === "uiType") {
             setError("uiType", { message: error.message });
           }
-          if (error.field === "facetType") {
-            setError("facetType", { message: error.message });
+          if (error.field === "facetType" || error.field === "source") {
+            setError("source", { message: error.message });
           }
         });
         message.error(result.userErrors[0].message);
@@ -253,12 +261,16 @@ export function CreateFacetModal() {
                           onPointerDown={(event) => event.stopPropagation()}
                         >
                           <Controller
-                            name="facetType"
+                            name="source"
                             control={control}
-                            render={({ field: facetTypeField }) => (
+                            render={({
+                              field: sourceField,
+                              fieldState: { error: sourceError },
+                            }) => (
                               <FacetSourceSelector
-                                value={facetTypeField.value}
-                                onChange={facetTypeField.onChange}
+                                value={sourceField.value}
+                                hasError={Boolean(sourceError)}
+                                onClick={openPicker}
                               />
                             )}
                           />
@@ -269,10 +281,39 @@ export function CreateFacetModal() {
                   </>
                 )}
               />
+              <Controller
+                name="source"
+                control={control}
+                render={({ fieldState: { error } }) =>
+                  error ? (
+                    <div className={styles.error}>{error.message}</div>
+                  ) : (
+                    <></>
+                  )
+                }
+              />
             </div>
           </div>
         </Paper>
 
+        <Paper>
+          <PaperHeader
+            title="UI type"
+            actions={
+              <Controller
+                name="uiType"
+                control={control}
+                render={({ field: uiTypeField }) => (
+                  <FacetUiTypeSelector
+                    value={uiTypeField.value}
+                    options={uiTypeOptions}
+                    onChange={uiTypeField.onChange}
+                  />
+                )}
+              />
+            }
+          />
+        </Paper>
       </ModalLayout>
     </FormProvider>
   );

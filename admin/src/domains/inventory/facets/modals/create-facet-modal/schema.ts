@@ -11,6 +11,12 @@ export const createFacetSchema = z.object({
   slug: z.string().trim().optional().default(""),
   facetType: z.enum(facetTypeValues),
   uiType: z.enum(facetUiTypeValues),
+  source: z.object({
+    handle: z.string().trim().min(1),
+    name: z.string().trim().min(1),
+  }).nullable().refine((value) => value !== null, {
+    message: "Source is required",
+  }),
 });
 
 export type CreateFacetFormInput = z.input<typeof createFacetSchema>;

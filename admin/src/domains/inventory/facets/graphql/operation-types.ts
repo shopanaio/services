@@ -6,6 +6,10 @@ import type {
   ApiFacetDeletePayload,
   ApiFacetMoveInput,
   ApiFacetMovePayload,
+  ApiFacetSourceCandidate,
+  ApiFacetSourceCandidateConnection,
+  ApiFacetSourceCandidateOrderByInput,
+  ApiFacetSourceCandidateWhereInput,
   ApiFacetSwatch,
   ApiFacetSwatchCreateInput,
   ApiFacetSwatchCreatePayload,
@@ -33,8 +37,10 @@ export type FacetSwatchFields = Pick<
 
 export type FacetValueGridFields = Pick<
   ApiFacetValue,
-  "id" | "label" | "slug" | "sortIndex" | "enabled" | "sourceHandles"
+  "id" | "label" | "sortIndex" | "enabled"
 > & {
+  slug: string;
+  sourceValues: Array<Pick<ApiFacetValue, "handle">>;
   swatch: FacetSwatchFields | null;
 };
 
@@ -47,7 +53,6 @@ export type FacetGridFields = Pick<
   | "uiType"
   | "selectionMode"
   | "lexoRank"
-  | "sourceHandles"
 > & {
   values: FacetValueGridFields[];
 };
@@ -80,6 +85,36 @@ export interface FacetValueDetailsQueryData {
 
 export interface FacetValueDetailsQueryVariables {
   id: string;
+}
+
+export type FacetSourceCandidateFields = Pick<
+  ApiFacetSourceCandidate,
+  "id" | "facetType" | "handle" | "name"
+>;
+
+export type FacetSourceCandidateConnectionFields = Pick<
+  ApiFacetSourceCandidateConnection,
+  "pageInfo" | "totalCount"
+> & {
+  edges: Array<{
+    cursor: string;
+    node: FacetSourceCandidateFields;
+  }>;
+};
+
+export interface FacetSourceCandidatesQueryData {
+  catalogQuery: {
+    facetSourceCandidates: FacetSourceCandidateConnectionFields;
+  };
+}
+
+export interface FacetSourceCandidatesQueryVariables {
+  first?: number | null;
+  after?: string | null;
+  last?: number | null;
+  before?: string | null;
+  where?: ApiFacetSourceCandidateWhereInput | null;
+  orderBy?: ApiFacetSourceCandidateOrderByInput[] | null;
 }
 
 export interface FacetCreateMutationData {

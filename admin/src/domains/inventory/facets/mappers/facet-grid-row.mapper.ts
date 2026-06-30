@@ -58,8 +58,8 @@ function getFacetRows(facet: FacetGridFields, sortIndex: number): FacetGridRow[]
     ? [...facet.values].sort((left, right) => left.sortIndex - right.sortIndex)
     : [];
   const linkedSourceHandlesCount = sortedValues.reduce(
-    (count, value) => count + value.sourceHandles.length,
-    facet.sourceHandles.length,
+    (count, value) => count + getFacetValueSourceHandles(value).length,
+    0,
   );
 
   const facetRow: FacetGridRow = {
@@ -86,10 +86,16 @@ function getFacetRows(facet: FacetGridFields, sortIndex: number): FacetGridRow[]
   ];
 }
 
+function getFacetValueSourceHandles(value: FacetValueGridFields): string[] {
+  return value.sourceValues.map((sourceValue) => sourceValue.handle);
+}
+
 function mapFacetValueToRow(
   value: FacetValueGridFields,
   parentId: FacetGridRowId,
 ): FacetGridRow {
+  const sourceHandles = getFacetValueSourceHandles(value);
+
   return {
     id: toFacetValueRowId(value.id),
     apiId: value.id,
@@ -100,8 +106,8 @@ function mapFacetValueToRow(
     name: value.label,
     slug: value.slug,
     enabled: value.enabled,
-    sourceHandles: [...value.sourceHandles],
-    linkedSourceHandlesCount: value.sourceHandles.length,
+    sourceHandles,
+    linkedSourceHandlesCount: sourceHandles.length,
     swatchId: value.swatch?.id ?? null,
     swatch: value.swatch as ApiFacetSwatch | null,
   };

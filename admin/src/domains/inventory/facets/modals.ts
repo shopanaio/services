@@ -15,6 +15,10 @@ export interface ICreateFacetModalPayload extends IModalStackPayload {
     slug: string;
     facetType: FacetType;
     uiType: FacetUiType;
+    source: {
+      handle: string;
+      name: string;
+    } | null;
   }>;
   onSaved?: () => Promise<unknown> | unknown;
 }
