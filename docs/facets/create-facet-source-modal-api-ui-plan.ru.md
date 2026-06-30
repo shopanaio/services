@@ -97,13 +97,6 @@ Canonical casing для facet type в этой задаче — `UPPERCASE`.
 `facet_source_candidate_view` с `UPPERCASE` values не сможет корректно
 сравниваться с create input.
 
-Для persisted `catalog.facet.facet_type` и `catalog.facet_source.facet_type`
-целевое значение тоже `UPPERCASE`. Так `NOT EXISTS` во view может сравнивать
-`fs.facet_type = c.facet_type` без `LOWER()`/`UPPER()` wrapper и использовать
-индекс `facet_source_project_type_handle_uniq(project_id, facet_type, handle)`.
-Если в dev/seed данных уже есть lowercase facet types, migration или seed
-refresh должен привести их к `UPPERCASE` в рамках этой работы.
-
 ## DB/API read model
 
 ### Candidate view
@@ -369,23 +362,7 @@ services/catalog/migrations/domains/0500_facets/0504_facets__source_candidate_vi
 Точный порядок SQL внутри
 `0504_facets__source_candidate_view.sql`:
 
-1. Optional casing backfill, только если в этой работе принят `UPPERCASE`
-   storage boundary:
-
-   ```sql
-   UPDATE "catalog"."facet"
-   SET "facet_type" = UPPER("facet_type")
-   WHERE "facet_type" <> UPPER("facet_type");
-
-   UPDATE "catalog"."facet_source"
-   SET "facet_type" = UPPER("facet_type")
-   WHERE "facet_type" <> UPPER("facet_type");
-   ```
-
-   Этот блок должен идти до `CREATE VIEW`, чтобы view сразу сравнивал
-   `facet_source.facet_type` с candidate `facet_type` без `LOWER()`/`UPPER()`.
-
-2. Создать plain view:
+1. Создать plain view:
 
    ```sql
    CREATE VIEW "catalog"."facet_source_candidate_view" AS
@@ -396,7 +373,7 @@ services/catalog/migrations/domains/0500_facets/0504_facets__source_candidate_vi
    View name is new. Do not use `CREATE OR REPLACE VIEW`, because there is no
    existing view to replace and this plan forbids replace-by-drop/rename flows.
 
-3. Add supporting indexes with `IF NOT EXISTS`:
+2. Add supporting indexes with `IF NOT EXISTS`:
 
    ```sql
    CREATE INDEX IF NOT EXISTS "idx_product_option_project_slug"
@@ -445,9 +422,7 @@ Manual migration review checklist:
 - no materialized view is introduced;
 - all new indexes use `CREATE INDEX IF NOT EXISTS`;
 - `facet_source_candidate_view` is exported from Drizzle models and documented in
-  `catalog-migrations-domain-inventory.md`;
-- if uppercase backfill is included, all lowercase-sensitive facet consumers are
-  updated in code in the same implementation branch.
+  `catalog-migrations-domain-inventory.md`.
 
 Запрещенные операции в этой migration:
 
@@ -463,7 +438,7 @@ Manual migration review checklist:
 
 Если существующий объект нужно заменить, нельзя делать `DROP`/`RENAME`.
 Разрешены только изменение существующих полей через `ALTER TABLE ... ALTER
-COLUMN ...`, создание новых таблиц/view/indexes и data backfill через `UPDATE`.
+COLUMN ...` и создание новых таблиц/view/indexes.
 Для этой задачи expected path - новый view и новые индексы, без изменения
 существующих column definitions.
 
@@ -794,16 +769,12 @@ Unique constraint в `facet_source` остается последней защи
    `.toLowerCase()` для `facetType` в `MutationResolver.facetCreate()`,
    перевести `FacetCreateScript` allow-list / `UI_BY_TYPE` на `UPPERCASE` и
    сохранять `facet.facet_type` / `facet_source.facet_type` в `UPPERCASE`.
-9. Если persisted `facet_type` переводится в `UPPERCASE`, сделать это тем же
-   handwritten SQL migration через `UPDATE`, без изменения имен колонок,
-   constraints или indexes. Также обновить все lowercase-sensitive consumers
-   `facet_type` в scripts/repositories/builders до единого casing boundary.
-10. Сделать create flow транзакционным на уровне `FacetCreateScript`: validation
+9. Сделать create flow транзакционным на уровне `FacetCreateScript`: validation
    selected candidate, create facet и insert `sources` через
    `repository.facet.create()` должны происходить в одной transaction boundary;
    duplicate source race от unique constraint маппить в userError.
-11. Запустить backend codegen через shopana-cli.
-12. Запустить build для затронутых частей, если нужна проверка новой версии.
+10. Запустить backend codegen через shopana-cli.
+11. Запустить build для затронутых частей, если нужна проверка новой версии.
 
 ## Проверочные сценарии
 
