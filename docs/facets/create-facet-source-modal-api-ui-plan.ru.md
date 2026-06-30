@@ -28,7 +28,7 @@
    отображаемому названию.
 2. Подготовить Postgres/Drizzle `facet_source_candidate_view`, который
    нормализует standard, tag, option и feature sources в один read model.
-3. Исключать уже использованные sources на уровне repository query.
+3. Исключать уже использованные sources через `NOT EXISTS` во view.
 4. Заменить dropdown выбора source в `CreateFacetModal` на отдельную модалку
    выбора source.
 5. При выборе source автоматически заполнять `facetType`, `label`, `slug` и
@@ -102,14 +102,16 @@ export const facetSourceCandidateView =
   }).as(...);
 ```
 
-View должен быть только normalization read model. Он не должен:
+View должен быть normalization + availability read model для create modal. Он:
 
-- исключать already-used sources;
-- применять pagination;
-- применять final `ASC`/`DESC` sort;
-- зависеть от UI search.
+- нормализует standard, tag, option и feature candidates;
+- исключает already-used sources через `NOT EXISTS`;
+- не применяет pagination;
+- не применяет final `ASC`/`DESC` sort;
+- не зависит от UI search.
 
-Эти use-case фильтры остаются в repository query поверх view.
+`NOT EXISTS` остается в SQL view, чтобы `@shopana/drizzle-query` работал уже с
+available rows и не требовал отдельного raw SQL wrapper в repository.
 
 Read model кандидата:
 
@@ -233,7 +235,14 @@ SELECT
   c.name,
   c.source_sort_bucket,
   c.name AS sort_name
-FROM candidates c;
+FROM candidates c
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM catalog.facet_source fs
+  WHERE fs.project_id = c.project_id
+    AND fs.facet_type = c.facet_type
+    AND fs.handle = c.handle
+);
 ```
 
 `GROUP BY project_id, locale, slug` нужен только для дедупликации product-level
@@ -241,15 +250,14 @@ option/feature rows в один source на конкретную локаль. `
 стабильное canonical name, если один и тот же slug встретился с разными
 переводами в рамках одной локали. Это не сортировка списка.
 
-Сортировка списка должна быть только в repository query поверх view. Для направления
-`ASC`/`DESC` repository должен использовать whitelist из двух SQL variants или
-query-builder branch, а не подставлять raw direction из GraphQL input:
+Сортировка списка должна быть только в repository query поверх view. Направление
+передается в `drizzle-query` через `orderBy`, без raw SQL interpolation:
 
 ```sql
--- ASC
+-- asc
 ORDER BY c.source_sort_bucket ASC, c.sort_name ASC NULLS LAST, c.id ASC
 
--- DESC
+-- desc
 ORDER BY c.source_sort_bucket ASC, c.sort_name DESC NULLS LAST, c.id ASC
 ```
 
@@ -293,35 +301,62 @@ Exclusion уже покрыт текущим индексом/unique constraint 
 
 ## Repository API
 
-### Query strategy
+### Drizzle Query integration
 
-Repository читает из `facet_source_candidate_view`, но не обязан использовать
-`createRelayQuery`. Для этого use case проще явно собрать SQL поверх view:
-`projectId/locale`, `NOT EXISTS`, `ORDER BY`, cursor predicate и `LIMIT + 1`.
-
-Repository сам отвечает за:
-
-- чтение candidates из `facetSourceCandidateView`;
-- exclusion уже использованных sources;
-- фильтр по `facetType`, если передан;
-- стабильную сортировку по `name` `ASC`/`DESC`;
-- cursor encode/decode по sort fields;
-- `pageInfo.hasNextPage` через `limit + 1`.
-
-Cursor должен быть opaque string, но payload может быть простым:
+Repository должен использовать `@shopana/drizzle-query` поверх
+`facetSourceCandidateView`:
 
 ```ts
-type FacetSourceCandidateCursor = {
-  sourceSortBucket: number;
-  sortName: string | null;
-  id: string;
-};
+export const facetSourceCandidateRelayQuery = createRelayQuery(
+  createQuery(facetSourceCandidateView)
+    .include(["id", "projectId", "locale", "facetType", "handle"])
+    .maxLimit(100)
+    .defaultLimit(30),
+  { name: "facetSourceCandidate", tieBreaker: "id" }
+);
+
+export type FacetSourceCandidateRelayInput =
+  InferRelayInput<typeof facetSourceCandidateRelayQuery>;
 ```
 
-Порядок должен быть стабильным:
+View уже возвращает только available rows благодаря `NOT EXISTS`, поэтому
+repository не делает отдельный raw SQL anti-join и не делает предварительный
+`usedSourceIds` select.
 
-```text
-source sort bucket, sortName ASC/DESC, id
+Repository merge поверх Relay input:
+
+- обязательные `projectId = this.storeId` и `locale = this.locale`;
+- optional `facetType`;
+- stable `orderBy`;
+- `execute()` и `count()` через один и тот же merged `where`.
+
+Пример:
+
+```ts
+const mergedWhere: FacetSourceCandidateRelayInput["where"] = {
+  _and: [
+    { projectId: { _eq: this.storeId } },
+    { locale: { _eq: this.locale } },
+    ...(args.facetType ? [{ facetType: { _eq: args.facetType } }] : []),
+  ],
+};
+
+const direction = args.sortDirection ?? "asc";
+const executeInput: FacetSourceCandidateRelayInput = {
+  first: args.first,
+  after: args.after,
+  where: mergedWhere,
+  orderBy: [
+    { field: "sourceSortBucket", direction: "asc" },
+    { field: "sortName", direction },
+    { field: "id", direction: "asc" },
+  ],
+};
+
+const [result, totalCount] = await Promise.all([
+  facetSourceCandidateRelayQuery.execute(this.connection, executeInput),
+  facetSourceCandidateRelayQuery.count(this.connection, { where: mergedWhere }),
+]);
 ```
 
 `sortName` равен DB translation `name` и используется только для dynamic rows.
@@ -338,15 +373,18 @@ async getAvailableFacetSourceCandidates(
 ): Promise<FacetSourceCandidateConnectionResult>
 ```
 
-Input:
+Input type должен быть derived от `InferRelayInput`:
 
 ```ts
-interface FacetSourceCandidateRelayInput {
+type FacetSourceCandidatesArgs = Omit<
+  FacetSourceCandidateRelayInput,
+  "where" | "orderBy"
+> & {
   first?: number | null;
   after?: string | null;
   facetType?: string | null;
-  sortDirection?: "ASC" | "DESC" | null;
-}
+  sortDirection?: "asc" | "desc" | null;
+};
 ```
 
 Default/max limits:
@@ -358,38 +396,16 @@ const maxLimit = 100;
 
 ### Exclude used sources
 
-Доступный source определяется как row из `facet_source_candidate_view`, для
-которого еще нет строки в `catalog.facet_source` с тем же:
+Доступный source определяется как row из `facet_source_candidate_view`, где уже
+применен `NOT EXISTS` к `catalog.facet_source` по тому же:
 
 ```text
 project_id + facet_type + handle
 ```
 
-Фильтрация уже использованных sources должна быть обязательной частью SQL в
-`getAvailableFacetSourceCandidates`, а не ответственностью UI.
-
-Предпочтительный SQL shape:
-
-```sql
-SELECT c.*
-FROM catalog.facet_source_candidate_view c
-WHERE c.project_id = :projectId
-  AND c.locale = :locale
-  AND (:facetType IS NULL OR c.facet_type = :facetType)
-  AND NOT EXISTS (
-    SELECT 1
-    FROM catalog.facet_source fs
-    WHERE fs.project_id = c.project_id
-      AND fs.facet_type = c.facet_type
-      AND fs.handle = c.handle
-  )
-ORDER BY c.source_sort_bucket ASC, c.sort_name ASC NULLS LAST, c.id ASC
-LIMIT :limitPlusOne;
-```
-
-Не использовать предварительный `usedSourceIds` select. `NOT EXISTS` в одном SQL
-лучше: он не делает лишний round trip и использует индекс
-`idx_facet_source_project_type_handle`.
+Фильтрация уже использованных sources должна оставаться в view SQL, а не в UI и
+не в отдельном `usedSourceIds` select. Это сохраняет чистую интеграцию
+repository с `createRelayQuery`.
 
 Правила exclusion:
 
@@ -403,8 +419,9 @@ LIMIT :limitPlusOne;
 - если есть `facet_source(project_id, 'FEATURE', 'nice')`, feature source
   `nice` не возвращается.
 
-Причина делать exclusion прямо в repository query: "available" является
-use-case фильтром create modal, а не общей read model.
+Причина держать exclusion внутри view: `drizzle-query` получает уже available
+read model и может отвечать за filtering, sorting, cursor pagination и
+`totalCount` без raw SQL wrapper.
 
 ### Search
 
@@ -469,7 +486,7 @@ facetSourceCandidates(
   first: Int
   after: String
   facetType: FacetType
-  sortDirection: SortDirection = ASC
+  sortDirection: SortDirection = asc
 ): FacetSourceCandidateConnection!
 ```
 
@@ -723,8 +740,9 @@ sources: [
    `product_option`, `product_option_translation`,
    `product_feature`, `product_feature_translation` через generated migration
    npm/CLI; не писать migration вручную.
-3. Добавить repository method в `FacetRepository`, который читает из view,
-   применяет `projectId`, `locale`, `NOT EXISTS`, sort и `LIMIT + 1`.
+3. Добавить repository method в `FacetRepository`, который читает из view через
+   `facetSourceCandidateRelayQuery` и применяет `projectId`, `locale`, sort,
+   pagination и `count`.
 4. Реализовать cursor encode/decode и `limit + 1` pagination в repository.
 5. Расширить GraphQL schema для `FacetSourceCandidateConnection`.
 6. Добавить resolver и подключить query в `QueryResolver`.
