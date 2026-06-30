@@ -1,10 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect } from "react";
+import type { ReactNode } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { App, Flex, Input, Select } from "antd";
+import { App, Button, Dropdown, Flex, Input } from "antd";
 import { createStyles } from "antd-style";
+import {
+  LuDollarSign,
+  LuPackageCheck,
+  LuSlidersHorizontal,
+  LuSparkles,
+  LuTag,
+} from "react-icons/lu";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
 import {
   ModalHeader,
@@ -20,7 +28,6 @@ import {
 } from "../../mappers";
 import { useCreateFacet } from "../../hooks";
 import type { ICreateFacetModalPayload } from "../../modals";
-import { FacetUiTypeSelector } from "../components/facet-ui-type-selector";
 import {
   createFacetSchema,
   type CreateFacetFormInput,
@@ -52,7 +59,91 @@ const useStyles = createStyles(({ token }) => ({
     color: token.colorError,
     marginTop: 4,
   },
+  labelInput: {
+    ".ant-input-group-addon": {
+      paddingInline: 2,
+    },
+  },
+  sourceSelectorButton: {
+    width: 96,
+    paddingInline: 4,
+  },
+  sourceSelectorContent: {
+    justifyContent: "center",
+    width: "100%",
+  },
 }));
+
+const FACET_SOURCE_OPTIONS: {
+  key: FacetType;
+  label: string;
+  icon: ReactNode;
+}[] = [
+  {
+    key: FacetType.Price,
+    label: "Price",
+    icon: <LuDollarSign />,
+  },
+  {
+    key: FacetType.Tag,
+    label: "Tag",
+    icon: <LuTag />,
+  },
+  {
+    key: FacetType.Option,
+    label: "Option",
+    icon: <LuSlidersHorizontal />,
+  },
+  {
+    key: FacetType.Feature,
+    label: "Feature",
+    icon: <LuSparkles />,
+  },
+  {
+    key: FacetType.InStock,
+    label: "Stock",
+    icon: <LuPackageCheck />,
+  },
+];
+
+interface FacetSourceSelectorProps {
+  value: FacetType;
+  onChange: (facetType: FacetType) => void;
+}
+
+function FacetSourceSelector({ value, onChange }: FacetSourceSelectorProps) {
+  const { styles } = useStyles();
+  const current = FACET_SOURCE_OPTIONS.find((option) => option.key === value);
+  const menuItems = FACET_SOURCE_OPTIONS.map((option) => ({
+    key: option.key,
+    label: (
+      <Flex gap={8} align="center">
+        {option.icon}
+        <span>{option.label}</span>
+      </Flex>
+    ),
+    onClick: () => onChange(option.key),
+  }));
+
+  return (
+    <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
+      <Button
+        size="small"
+        type="text"
+        className={styles.sourceSelectorButton}
+      >
+        <Flex
+          gap={4}
+          align="center"
+          className={styles.sourceSelectorContent}
+        >
+          {current?.icon}
+          <span>{current?.label}</span>
+        </Flex>
+      </Button>
+    </Dropdown>
+  );
+}
 
 const DEFAULT_VALUES: CreateFacetFormValues = {
   label: "",
@@ -91,11 +182,6 @@ export function CreateFacetModal() {
       setValue("uiType", nextUiType, { shouldValidate: true });
     }
   }, [facetType, setValue, uiType]);
-
-  const uiTypeOptions = useMemo(
-    () => getAllowedFacetUiTypes(facetType),
-    [facetType],
-  );
 
   const onSubmit = useCallback(
     async (values: CreateFacetFormValues) => {
@@ -162,50 +248,26 @@ export function CreateFacetModal() {
                     <Input
                       {...field}
                       autoFocus
+                      className={styles.labelInput}
                       placeholder="Color"
                       status={error ? "error" : undefined}
-                      suffix={
+                      addonBefore={
                         <Flex
-                          gap={4}
                           align="center"
                           onPointerDown={(event) => event.stopPropagation()}
                         >
                           <Controller
-                            name="uiType"
+                            name="facetType"
                             control={control}
-                            render={({ field: uiTypeField }) => (
-                              <FacetUiTypeSelector
-                                value={uiTypeField.value}
-                                options={uiTypeOptions}
-                                onChange={uiTypeField.onChange}
+                            render={({ field: facetTypeField }) => (
+                              <FacetSourceSelector
+                                value={facetTypeField.value}
+                                onChange={facetTypeField.onChange}
                               />
                             )}
                           />
                         </Flex>
                       }
-                    />
-                    {error && <div className={styles.error}>{error.message}</div>}
-                  </>
-                )}
-              />
-            </div>
-          </div>
-          <div className={styles.fieldGroup}>
-            <div className={styles.field}>
-              <div className={styles.label}>Source</div>
-              <Controller
-                name="facetType"
-                control={control}
-                render={({ field, fieldState: { error } }) => (
-                  <>
-                    <Select
-                      {...field}
-                      style={{ width: "100%" }}
-                      options={Object.values(FacetType).map((value) => ({
-                        value,
-                        label: value,
-                      }))}
-                      status={error ? "error" : undefined}
                     />
                     {error && <div className={styles.error}>{error.message}</div>}
                   </>
