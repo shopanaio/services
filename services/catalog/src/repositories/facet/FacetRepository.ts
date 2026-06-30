@@ -22,12 +22,15 @@ import {
   facetTagValueCandidateView,
   facetTranslation,
   facetValue,
+  facetValueTranslation,
   type Facet,
+  type FacetValue,
   type FacetFeatureValueCandidateView,
   type FacetOptionValueCandidateView,
   type FacetSourceCandidateView,
   type FacetTagValueCandidateView,
   type NewFacet,
+  type NewFacetValue,
   type FacetTranslation,
 } from "../models/index.js";
 
@@ -532,6 +535,86 @@ export class FacetRepository extends BaseRepository {
       pageInfo: result.pageInfo,
       totalCount,
     };
+  }
+
+  async findFacetValueCandidatesByHandles(args: {
+    candidateType: FacetValueCandidateType;
+    sourceHandles: string[];
+    handles: string[];
+  }): Promise<FacetValueCandidateView[]> {
+    const candidateType = args.candidateType;
+    if (!isFacetValueCandidateType(candidateType)) {
+      throwBadUserInput("Invalid candidateType");
+    }
+
+    const sourceHandles = normalizeSourceHandles(args.sourceHandles);
+    const handles = normalizeSourceHandles(args.handles);
+    if (sourceHandles.length === 0 || handles.length === 0) {
+      return [];
+    }
+
+    const view = {
+      TAG: facetTagValueCandidateView,
+      OPTION: facetOptionValueCandidateView,
+      FEATURE: facetFeatureValueCandidateView,
+    }[candidateType] as typeof facetTagValueCandidateView;
+
+    const rows = await this.connection
+      .select()
+      .from(view)
+      .where(
+        and(
+          eq(view.projectId, this.storeId),
+          eq(view.locale, this.locale),
+          eq(view.facetType, candidateType),
+          inArray(view.sourceHandle, sourceHandles),
+          inArray(view.handle, handles)
+        )
+      );
+
+    return rows as FacetValueCandidateView[];
+  }
+
+  async createSourceFacetValues(args: {
+    facetId: string;
+    values: Array<{
+      handle: string;
+      label: string;
+      sortIndex: number;
+      enabled: boolean;
+    }>;
+  }): Promise<FacetValue[]> {
+    if (args.values.length === 0) {
+      return [];
+    }
+
+    const now = new Date().toISOString();
+    const inserts: NewFacetValue[] = args.values.map((value) => ({
+      id: randomUUID(),
+      projectId: this.storeId,
+      facetId: args.facetId,
+      parentId: null,
+      kind: "source",
+      handle: value.handle,
+      swatchId: null,
+      sortIndex: value.sortIndex,
+      enabled: value.enabled,
+      createdAt: now,
+      updatedAt: now,
+    }));
+
+    const rows = await this.connection.insert(facetValue).values(inserts).returning();
+
+    await this.connection.insert(facetValueTranslation).values(
+      rows.map((row, index) => ({
+        facetValueId: row.id,
+        locale: this.locale,
+        projectId: this.storeId,
+        label: args.values[index]?.label ?? row.handle,
+      }))
+    );
+
+    return rows;
   }
 
   async findAvailableFacetSourceCandidate(args: {

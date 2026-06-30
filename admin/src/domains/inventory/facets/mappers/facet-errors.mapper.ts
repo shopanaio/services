@@ -14,6 +14,7 @@ const FIELD_ALIASES: Record<string, string> = {
   sources: "source",
   source: "source",
   sourceHandles: "sourceHandles",
+  valueCandidates: "valueCandidates",
   enabled: "enabled",
   swatchId: "swatchId",
 };

@@ -2563,6 +2563,7 @@ export type FacetCreateInput = {
   slug: Scalars['String']['input'];
   sources?: InputMaybe<Array<FacetCreateSourceInput>>;
   uiType?: InputMaybe<FacetUiType>;
+  valueCandidates?: InputMaybe<Array<FacetCreateValueCandidateInput>>;
 };
 
 export type FacetCreatePayload = {
@@ -2574,6 +2575,12 @@ export type FacetCreatePayload = {
 export type FacetCreateSourceInput = {
   handle: Scalars['String']['input'];
   name: Scalars['String']['input'];
+};
+
+export type FacetCreateValueCandidateInput = {
+  handle: Scalars['String']['input'];
+  label: Scalars['String']['input'];
+  sourceHandle: Scalars['String']['input'];
 };
 
 export type FacetDeleteInput = {
@@ -6150,6 +6157,7 @@ export type ResolversTypes = ResolversObject<{
   FacetCreateInput: FacetCreateInput;
   FacetCreatePayload: ResolverTypeWrapper<FacetCreatePayload>;
   FacetCreateSourceInput: FacetCreateSourceInput;
+  FacetCreateValueCandidateInput: FacetCreateValueCandidateInput;
   FacetDeleteInput: FacetDeleteInput;
   FacetDeletePayload: ResolverTypeWrapper<FacetDeletePayload>;
   FacetMoveInput: FacetMoveInput;
@@ -6535,6 +6543,7 @@ export type ResolversParentTypes = ResolversObject<{
   FacetCreateInput: FacetCreateInput;
   FacetCreatePayload: FacetCreatePayload;
   FacetCreateSourceInput: FacetCreateSourceInput;
+  FacetCreateValueCandidateInput: FacetCreateValueCandidateInput;
   FacetDeleteInput: FacetDeleteInput;
   FacetDeletePayload: FacetDeletePayload;
   FacetMoveInput: FacetMoveInput;

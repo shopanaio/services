@@ -77,3 +77,45 @@ export const FACET_SOURCE_CANDIDATES_QUERY = gql`
     }
   }
 `;
+
+export const FACET_VALUE_CANDIDATES_QUERY = gql`
+  query FacetValueCandidates(
+    $first: Int
+    $after: String
+    $last: Int
+    $before: String
+    $where: FacetValueCandidateWhereInput
+    $orderBy: [FacetValueCandidateOrderByInput!]
+    $meta: FacetValueCandidatesMetaInput!
+  ) {
+    catalogQuery {
+      facetValueCandidates(
+        first: $first
+        after: $after
+        last: $last
+        before: $before
+        where: $where
+        orderBy: $orderBy
+        meta: $meta
+      ) {
+        edges {
+          cursor
+          node {
+            id
+            facetType
+            sourceHandle
+            handle
+            label
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+    }
+  }
+`;

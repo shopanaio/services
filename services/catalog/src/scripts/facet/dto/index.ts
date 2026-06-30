@@ -10,6 +10,12 @@ export interface FacetCreateSourceInput {
   name: string;
 }
 
+export interface FacetCreateValueCandidateInput {
+  handle: string;
+  label: string;
+  sourceHandle: string;
+}
+
 export interface FacetCreateParams {
   facetType: string;
   slug: string;
@@ -18,6 +24,7 @@ export interface FacetCreateParams {
   selectionMode?: string;
   lexoRank?: string;
   sources?: FacetCreateSourceInput[];
+  valueCandidates?: FacetCreateValueCandidateInput[];
 }
 
 export interface FacetUpdateParams {

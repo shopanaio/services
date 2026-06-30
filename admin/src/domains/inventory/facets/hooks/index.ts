@@ -1,6 +1,7 @@
 export * from "./use-facets";
 export * from "./use-facet";
 export * from "./use-facet-source-candidates";
+export * from "./use-facet-value-candidates";
 export * from "./use-facet-value";
 export * from "./use-create-facet";
 export * from "./use-update-facet";

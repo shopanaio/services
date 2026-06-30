@@ -30,6 +30,7 @@ import { FacetType } from "@/graphql/types";
 import { useEntityPicker } from "@/shared/components/entity-picker-modal";
 import "../../pickers/facet-source-picker-config";
 import type { FacetSourcePickerEntity } from "../../pickers/facet-source-picker-config";
+import { FacetValueCandidatesGrid } from "./facet-value-candidates-grid";
 
 const useStyles = createStyles(({ token }) => ({
   fieldGroup: {
@@ -112,6 +113,7 @@ const DEFAULT_VALUES: CreateFacetFormInput = {
   facetType: FacetType.Option,
   uiType: getDefaultFacetUiType(FacetType.Option),
   source: null,
+  selectedValueCandidates: [],
 };
 
 export function CreateFacetModal() {
@@ -132,6 +134,7 @@ export function CreateFacetModal() {
   const label = watch("label");
   const facetType = watch("facetType");
   const uiType = watch("uiType");
+  const source = watch("source");
   const uiTypeOptions = useMemo(
     () => getAllowedFacetUiTypes(facetType),
     [facetType],
@@ -165,6 +168,10 @@ export function CreateFacetModal() {
         },
         { shouldValidate: true, shouldDirty: true },
       );
+      setValue("selectedValueCandidates", [], {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
 
       const allowed = getAllowedFacetUiTypes(selectedSource.facetType);
       if (!allowed.includes(uiType)) {
@@ -209,6 +216,9 @@ export function CreateFacetModal() {
           }
           if (error.field === "facetType" || error.field === "source") {
             setError("source", { message: error.message });
+          }
+          if (error.field === "valueCandidates") {
+            setError("selectedValueCandidates", { message: error.message });
           }
         });
         message.error(result.userErrors[0].message);
@@ -312,6 +322,27 @@ export function CreateFacetModal() {
                 )}
               />
             }
+          />
+        </Paper>
+
+        <Paper>
+          <PaperHeader title="Values" />
+          <Controller
+            name="selectedValueCandidates"
+            control={control}
+            render={({ field, fieldState: { error } }) => (
+              <>
+                {error ? (
+                  <div className={styles.error}>{error.message}</div>
+                ) : null}
+                <FacetValueCandidatesGrid
+                  facetType={facetType}
+                  sourceHandle={source?.handle ?? null}
+                  value={field.value ?? []}
+                  onChange={field.onChange}
+                />
+              </>
+            )}
           />
         </Paper>
       </ModalLayout>

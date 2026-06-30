@@ -106,6 +106,12 @@ input FacetCreateSourceInput {
   name: String!
 }
 
+input FacetCreateValueCandidateInput {
+  handle: String!
+  label: String!
+  sourceHandle: String!
+}
+
 enum FacetValueCandidateType {
   TAG
   OPTION
@@ -125,6 +131,7 @@ input FacetCreateInput {
   selectionMode: FacetSelectionMode
   label: String!
   sources: [FacetCreateSourceInput!]
+  valueCandidates: [FacetCreateValueCandidateInput!]
 }
 
 input FacetUpdateInput {

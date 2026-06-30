@@ -3299,6 +3299,7 @@ export type ApiFacetCreateInput = {
   slug: Scalars['String']['input'];
   sources?: InputMaybe<Array<ApiFacetCreateSourceInput>>;
   uiType?: InputMaybe<FacetUiType>;
+  valueCandidates?: InputMaybe<Array<ApiFacetCreateValueCandidateInput>>;
 };
 
 export type ApiFacetCreatePayload = {
@@ -3310,6 +3311,12 @@ export type ApiFacetCreatePayload = {
 export type ApiFacetCreateSourceInput = {
   handle: Scalars['String']['input'];
   name: Scalars['String']['input'];
+};
+
+export type ApiFacetCreateValueCandidateInput = {
+  handle: Scalars['String']['input'];
+  label: Scalars['String']['input'];
+  sourceHandle: Scalars['String']['input'];
 };
 
 export type ApiFacetDeleteInput = {

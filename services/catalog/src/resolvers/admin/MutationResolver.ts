@@ -1856,6 +1856,11 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         handle: string;
         name: string;
       }> | null;
+      valueCandidates?: Array<{
+        handle: string;
+        label: string;
+        sourceHandle: string;
+      }> | null;
     };
   }) {
     const result = await this.$ctx.kernel.runScript(FacetCreateScript, {
@@ -1867,6 +1872,11 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       sources: args.input.sources?.map((source) => ({
         handle: source.handle,
         name: source.name,
+      })),
+      valueCandidates: args.input.valueCandidates?.map((candidate) => ({
+        handle: candidate.handle,
+        label: candidate.label,
+        sourceHandle: candidate.sourceHandle,
       })),
     });
 

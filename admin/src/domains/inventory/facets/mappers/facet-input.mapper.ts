@@ -18,6 +18,11 @@ export interface FacetFormInput {
     handle: string;
     name: string;
   } | null;
+  selectedValueCandidates?: Array<{
+    handle: string;
+    label: string;
+    sourceHandle: string;
+  }>;
 }
 
 export function getAllowedFacetUiTypes(facetType: FacetType): FacetUiType[] {
@@ -59,6 +64,11 @@ export function mapFacetFormToCreateInput(
     sources: values.source
       ? [{ handle: values.source.handle, name: values.source.name }]
       : [],
+    valueCandidates: (values.selectedValueCandidates ?? []).map((candidate) => ({
+      handle: candidate.handle,
+      label: candidate.label,
+      sourceHandle: candidate.sourceHandle,
+    })),
   };
 }
 

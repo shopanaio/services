@@ -1,7 +1,12 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import { isUniqueViolation } from "../../kernel/types.js";
+import type { FacetValueCandidateType } from "../../repositories/facet/FacetRepository.js";
 import { isValidSlug } from "../shared/slug.js";
-import type { FacetCreateParams, FacetResult } from "./dto/index.js";
+import type {
+  FacetCreateParams,
+  FacetCreateValueCandidateInput,
+  FacetResult,
+} from "./dto/index.js";
 
 const ALLOWED_TYPES = new Set(["PRICE", "TAG", "FEATURE", "OPTION", "IN_STOCK"]);
 const UI_BY_TYPE: Record<string, string[]> = {
@@ -11,6 +16,32 @@ const UI_BY_TYPE: Record<string, string[]> = {
   OPTION: ["checkbox", "radio", "dropdown"],
   IN_STOCK: ["boolean", "checkbox", "radio", "dropdown"],
 };
+const VALUE_CANDIDATE_TYPES = new Set(["TAG", "OPTION", "FEATURE"]);
+
+function normalizeValueCandidates(
+  candidates?: FacetCreateValueCandidateInput[]
+): FacetCreateValueCandidateInput[] {
+  const values = candidates ?? [];
+  const byHandle = new Map<string, FacetCreateValueCandidateInput>();
+
+  for (const candidate of values) {
+    const normalized = {
+      handle: candidate.handle.trim(),
+      label: candidate.label.trim(),
+      sourceHandle: candidate.sourceHandle.trim(),
+    };
+
+    if (!normalized.handle || !normalized.label || !normalized.sourceHandle) {
+      continue;
+    }
+
+    if (!byHandle.has(normalized.handle)) {
+      byHandle.set(normalized.handle, normalized);
+    }
+  }
+
+  return [...byHandle.values()];
+}
 
 export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult> {
   @Transactional()
@@ -141,6 +172,64 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
       };
     }
 
+    const valueCandidates = normalizeValueCandidates(params.valueCandidates);
+    if (valueCandidates.length > 0) {
+      if (!VALUE_CANDIDATE_TYPES.has(params.facetType)) {
+        return {
+          facet: undefined,
+          userErrors: [
+            {
+              message: "Facet value candidates are not supported for this facet type",
+              field: ["valueCandidates"],
+              code: "INVALID",
+            },
+          ],
+        };
+      }
+
+      const selectedSourceHandles = new Set([selectedSource.handle]);
+      const invalidSourceCandidate = valueCandidates.find(
+        (candidate) => !selectedSourceHandles.has(candidate.sourceHandle)
+      );
+      if (invalidSourceCandidate) {
+        return {
+          facet: undefined,
+          userErrors: [
+            {
+              message: "Facet value candidate source does not match selected facet source",
+              field: ["valueCandidates"],
+              code: "INVALID",
+            },
+          ],
+        };
+      }
+
+      const availableCandidates =
+        await this.repository.facet.findFacetValueCandidatesByHandles({
+          candidateType: params.facetType as FacetValueCandidateType,
+          sourceHandles: [selectedSource.handle],
+          handles: valueCandidates.map((value) => value.handle),
+        });
+      const availableHandles = new Set(
+        availableCandidates.map((candidate) => candidate.handle)
+      );
+      const missingCandidate = valueCandidates.find(
+        (candidate) => !availableHandles.has(candidate.handle)
+      );
+      if (missingCandidate) {
+        return {
+          facet: undefined,
+          userErrors: [
+            {
+              message: "Selected facet value candidate is no longer available",
+              field: ["valueCandidates"],
+              code: "SOURCE_VALUE_NOT_AVAILABLE",
+            },
+          ],
+        };
+      }
+    }
+
     const facet = await this.repository.facet.create({
       facetType: params.facetType,
       slug: params.slug,
@@ -150,6 +239,18 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
       lexoRank: params.lexoRank,
       sources: [selectedSource],
     });
+
+    if (valueCandidates.length > 0) {
+      await this.repository.facet.createSourceFacetValues({
+        facetId: facet.id,
+        values: valueCandidates.map((candidate, index) => ({
+          handle: candidate.handle,
+          label: candidate.label,
+          sortIndex: index,
+          enabled: true,
+        })),
+      });
+    }
 
     return { facet, userErrors: [] };
   }

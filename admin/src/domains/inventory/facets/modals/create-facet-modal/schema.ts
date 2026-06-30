@@ -17,6 +17,12 @@ export const createFacetSchema = z.object({
   }).nullable().refine((value) => value !== null, {
     message: "Source is required",
   }),
+  selectedValueCandidates: z.array(z.object({
+    id: z.string().trim().min(1),
+    handle: z.string().trim().min(1),
+    label: z.string().trim().min(1),
+    sourceHandle: z.string().trim().min(1),
+  })).default([]),
 });
 
 export type CreateFacetFormInput = z.input<typeof createFacetSchema>;

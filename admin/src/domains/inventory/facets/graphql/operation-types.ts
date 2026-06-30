@@ -18,6 +18,11 @@ import type {
   ApiFacetUpdateInput,
   ApiFacetUpdatePayload,
   ApiFacetValue,
+  ApiFacetValueCandidate,
+  ApiFacetValueCandidateConnection,
+  ApiFacetValueCandidateOrderByInput,
+  ApiFacetValueCandidateWhereInput,
+  ApiFacetValueCandidatesMetaInput,
   ApiFacetValueCreateInput,
   ApiFacetValueCreatePayload,
   ApiFacetValueDeleteInput,
@@ -115,6 +120,37 @@ export interface FacetSourceCandidatesQueryVariables {
   before?: string | null;
   where?: ApiFacetSourceCandidateWhereInput | null;
   orderBy?: ApiFacetSourceCandidateOrderByInput[] | null;
+}
+
+export type FacetValueCandidateFields = Pick<
+  ApiFacetValueCandidate,
+  "id" | "facetType" | "sourceHandle" | "handle" | "label"
+>;
+
+export type FacetValueCandidateConnectionFields = Pick<
+  ApiFacetValueCandidateConnection,
+  "pageInfo" | "totalCount"
+> & {
+  edges: Array<{
+    cursor: string;
+    node: FacetValueCandidateFields;
+  }>;
+};
+
+export interface FacetValueCandidatesQueryData {
+  catalogQuery: {
+    facetValueCandidates: FacetValueCandidateConnectionFields;
+  };
+}
+
+export interface FacetValueCandidatesQueryVariables {
+  first?: number | null;
+  after?: string | null;
+  last?: number | null;
+  before?: string | null;
+  where?: ApiFacetValueCandidateWhereInput | null;
+  orderBy?: ApiFacetValueCandidateOrderByInput[] | null;
+  meta: ApiFacetValueCandidatesMetaInput;
 }
 
 export interface FacetCreateMutationData {
