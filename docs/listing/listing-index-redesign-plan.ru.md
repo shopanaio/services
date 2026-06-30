@@ -1431,11 +1431,14 @@ Facet source/display mapping changes require token refresh:
 - Relevance sort is available only for search listings and uses score from the
   search candidate relation.
 - Product and variant listing index primary keys include `project_id`.
-- Listing read-model foreign keys include `project_id`: product rows reference
-  `product(project_id, id)`, variant rows reference
-  `variant(project_id, product_id, id)`, and facet token rows reference
-  project-scoped `facet` / `facet_value` keys. The database must reject
-  cross-project product, variant, facet or facet value combinations.
+- Listing read-model foreign keys include `project_id`: root product rows
+  reference `product(project_id, id)`, root variant rows reference
+  `variant(project_id, product_id, id)`, and child price/token rows reference
+  parent listing rows (`product_listing_index` / `variant_listing_index`) so
+  partial sync/rebuild deletion of a parent row cascades inside the read model.
+  Facet token rows also reference project-scoped `facet` / `facet_value` keys.
+  The database must reject cross-project product, variant, facet or facet value
+  combinations.
 - Facet token primary keys include `project_id` and the resolved `facet_id` /
   `facet_value_id`; they do not include `currency`.
 - Product price descending sort uses `product_listing_price_index.max_price_minor` when no active
