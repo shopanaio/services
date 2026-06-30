@@ -457,19 +457,19 @@ export type FacetValueKind = "source" | "display";
 
 5. Убедиться, что timestamps остаются `mode: "string"`.
 
-## Структурная DB migration
+## Структурные изменения в существующих DB migration files
 
-### Общий порядок SQL migration
+### Что обновить в существующих SQL files
 
-Так как новые migration files не добавляются, ниже описывает не отдельную
-incremental migration, а изменения, которые нужно внести в существующие
-handwritten migration files `0501_facets__values.sql` и
-`0503_facets__relations.sql`.
+Новые migration files не добавлять. Отдельную incremental migration не писать.
+Нужно обновить существующие handwritten SQL files, которые создают начальную
+структуру facets.
 
 В `0501_facets__values.sql` обновить `CREATE TABLE catalog.facet_value` сразу до
 целевого состояния:
 
-- заменить колонку `slug` на `handle text NOT NULL`;
+- переименовать колонку `"slug" varchar(255) NOT NULL` в
+  `"handle" text NOT NULL`;
 - добавить `parent_id uuid NULL`;
 - добавить `kind varchar(16) NOT NULL`;
 - добавить self-reference FK `parent_id -> catalog.facet_value(id) ON DELETE NO ACTION`;
@@ -478,6 +478,24 @@ handwritten migration files `0501_facets__values.sql` и
 - сохранить timestamp columns с `timestamptz` и Drizzle model types с
   `mode: "string"`.
 
+Конкретные rename/replace в `0501_facets__values.sql`:
+
+```text
+"slug" varchar(255) NOT NULL
+  -> "handle" text NOT NULL
+
+CONSTRAINT "facet_value_facet_id_slug_uniq" UNIQUE ("facet_id", "slug")
+  -> удалить и заменить target indexes/constraints:
+     - facet_value_source_project_facet_handle_uniq
+     - facet_value_root_project_facet_handle_uniq
+     - facet_value_child_project_facet_handle_uniq
+     - idx_facet_value_project_facet_visible_order
+     - idx_facet_value_project_parent
+     - idx_facet_value_project_facet_source_handle
+     - CHECK (kind IN ('source', 'display'))
+     - CHECK (kind <> 'display' OR parent_id IS NULL)
+```
+
 В `0503_facets__relations.sql` удалить создание
 `catalog.facet_value_source_handle` целиком:
 
@@ -485,40 +503,8 @@ handwritten migration files `0501_facets__values.sql` и
 - unique constraints для source handles;
 - indexes `idx_facet_value_source_handle_*`.
 
-Если все же понадобится incremental SQL порядок для локальной базы, он такой:
-
-1. Добавить новые колонки nullable:
-
-```sql
-ALTER TABLE catalog.facet_value ADD COLUMN kind varchar(16);
-ALTER TABLE catalog.facet_value ADD COLUMN parent_id uuid;
-ALTER TABLE catalog.facet_value RENAME COLUMN slug TO handle;
-```
-
-2. Сделать новые колонки NOT NULL:
-
-```sql
-ALTER TABLE catalog.facet_value ALTER COLUMN kind SET NOT NULL;
-ALTER TABLE catalog.facet_value ALTER COLUMN handle SET NOT NULL;
-```
-
-3. Добавить FK:
-
-```sql
-ALTER TABLE catalog.facet_value
-  ADD CONSTRAINT facet_value_parent_id_facet_value_id_fk
-  FOREIGN KEY (parent_id)
-  REFERENCES catalog.facet_value(id)
-  ON DELETE NO ACTION;
-```
-
-4. Добавить новые indexes/constraints.
-5. Удалить старые constraints/indexes на `slug`.
-6. Удалить старую source-handle table:
-
-```sql
-DROP TABLE catalog.facet_value_source_handle;
-```
+В `0503_facets__relations.sql` ничего не переименовывать. Этот файл должен
+перестать создавать source-handle table полностью.
 
 ## Изменения backend: repositories
 
