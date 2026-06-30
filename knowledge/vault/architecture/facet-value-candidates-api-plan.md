@@ -2,9 +2,8 @@
 
 ## Контекст
 
-В админке уже есть экран Facets и модалка создания facet:
+В catalog service уже есть backend API для выбора source для facet:
 
-- `admin/src/domains/inventory/facets/modals/create-facet-modal/create-facet-modal.tsx`
 - `services/catalog/src/api/graphql-admin/schema/facet.graphql`
 - `services/catalog/src/repositories/models/facetSourceCandidateView.ts`
 - `services/catalog/src/resolvers/admin/FacetSourceCandidateConnectionResolver.ts`
@@ -16,7 +15,7 @@
 - `FEATURE` группируется по `product_feature.slug`;
 - `PRICE` и `IN_STOCK` имеют фиксированные source.
 
-Новый API нужен для следующего шага: после выбора source/sources в create/edit modal показать список доступных source values с пагинацией, сортировкой и поиском.
+Новый API нужен для следующего шага: после выбора source/sources получить список доступных source values с пагинацией, сортировкой и поиском.
 
 ## Важные ограничения текущей модели
 
@@ -40,10 +39,10 @@
 
 7. `FacetCreateScript` сейчас требует ровно один source:
    `sources.length !== 1` возвращает ошибку.
-   Если UI действительно должен поддерживать `source/sources`, сначала нужно изменить этот contract и валидацию.
+   Если API должен поддерживать несколько sources, сначала нужно изменить этот contract и валидацию.
 
 8. `FacetUpdateInput` сейчас не содержит `sources`, хотя `FacetRepository.update()` уже умеет принимать `sources`.
-   Для edit modal может понадобиться отдельное расширение API обновления sources.
+   Для сценария обновления facet sources может понадобиться отдельное расширение API.
 
 ## Цель
 
@@ -52,11 +51,11 @@
 - работает как Relay connection;
 - построен на drizzle-query view;
 - поддерживает `first/after/last/before`;
-- поддерживает `where` input для поиска/autocomplete;
+- поддерживает `where` input для поиска;
 - поддерживает `orderBy`;
 - фильтруется по `facetType`;
 - фильтруется по выбранным `sourceHandles`;
-- для edit modal может фильтроваться по `facetId` и исключать уже добавленные/привязанные значения;
+- может фильтроваться по `facetId` и исключать уже добавленные/привязанные значения;
 - для `TAG` возвращает все существующие tags;
 - для `OPTION` возвращает агрегированные option values по `option.slug + optionValue.slug`;
 - для `FEATURE` возвращает агрегированные feature values по `feature.slug + featureValue.slug`.
@@ -134,10 +133,10 @@ facetValueCandidates(
 Пояснения:
 
 - `facetType` обязателен, потому что семантика candidate зависит от типа.
-- `sourceHandles` нужен create modal после выбора source/sources.
-- `facetId` нужен edit modal, когда source можно взять из существующего facet и/или нужно проверить существующие facet values.
+- `sourceHandles` нужен после выбора source/sources.
+- `facetId` нужен, когда source можно взять из существующего facet и/или нужно проверить существующие facet values.
 - `excludeExisting` скрывает candidates, для которых уже есть root/source value в указанном facet.
-- `where.handle` используется для autocomplete по value handle.
+- `where.handle` используется для поиска по value handle.
 - `where.label` используется для поиска по отображаемому имени.
 - `where.sourceHandle` оставляем явно, чтобы не смешивать фильтр source и фильтр value.
 
@@ -290,7 +289,7 @@ label() {
 
 ## Query примеры
 
-### Create modal: пользователь выбрал source `color`
+### Выбран source `color`
 
 ```graphql
 query FacetValueCandidates(
@@ -338,10 +337,10 @@ query FacetValueCandidates(
 }
 ```
 
-### Edit modal: autocomplete доступных source values
+### Получить доступные source values для существующего facet
 
 ```graphql
-query FacetValueAutocomplete(
+query ExistingFacetValueCandidates(
   $facetId: ID!
   $where: FacetValueCandidateWhereInput
 ) {
@@ -367,36 +366,11 @@ query FacetValueAutocomplete(
 }
 ```
 
-## Admin frontend integration
-
-1. В `admin/src/domains/inventory/facets/graphql/queries.ts` добавить `FACET_VALUE_CANDIDATES_QUERY`.
-
-2. В `operation-types.ts` добавить типы через generated API types, без re-export generated schema types.
-
-3. Добавить hook:
-
-   `admin/src/domains/inventory/facets/hooks/use-facet-value-candidates.ts`
-
-4. В create modal:
-
-   - после выбора `facetType + sourceHandles` показывать таблицу candidates;
-   - таблица должна использовать Relay pagination state;
-   - поиск должен мапиться в `where._or` по `handle` и `label`;
-   - сортировка должна мапиться в `orderBy`;
-   - для `TAG` не требовать дополнительный source picker, использовать `sourceHandles: ["tags"]`.
-
-5. В edit facet modal:
-
-   - использовать тот же hook;
-   - передавать `facetId`;
-   - включать `excludeExisting: true` для autocomplete добавления;
-   - autocomplete должен искать по `handle` и `label`, а не только по handle.
-
 ## Открытые решения
 
 1. Поддержка нескольких sources.
 
-   Текущий backend запрещает больше одного source при создании facet. Если UI должен выбрать несколько sources, нужно:
+   Текущий backend запрещает больше одного source при создании facet. Если API должен поддерживать несколько sources, нужно:
 
    - изменить `FacetCreateScript`;
    - добавить `sources` в `FacetUpdateInput`;
@@ -415,7 +389,7 @@ query FacetValueAutocomplete(
 
    Для root display values duplicate очевиден по `facetId + handle`.
    Для source values duplicate тоже по `facetId + handle`.
-   Если один display value объединяет несколько source values, candidate может быть "занят", даже если display handle другой. Для точного autocomplete нужно проверять source children, а не только root handle.
+   Если один display value объединяет несколько source values, candidate может быть "занят", даже если display handle другой. Для точного исключения нужно проверять source children, а не только root handle.
 
 ## Порядок реализации
 
@@ -431,10 +405,4 @@ query FacetValueAutocomplete(
 
 6. Подключить `facetValueCandidates` в `CatalogQueryResolver`.
 
-7. Добавить admin GraphQL query/hook.
-
-8. Интегрировать create modal table.
-
-9. Интегрировать edit modal autocomplete.
-
-10. После реализации запускать build, но не запускать test/tsc отдельно по правилам проекта.
+7. После реализации запускать build, но не запускать test/tsc отдельно по правилам проекта.
