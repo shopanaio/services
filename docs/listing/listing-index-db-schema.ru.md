@@ -29,6 +29,47 @@ compatibility views не требуются: после миграции listing
 - Counts считаются по product cardinality. Variant-level facets сначала
   дедуплицируются до `(product_id, facet_id, facet_value_id)`.
 
+## Миграции в `services/catalog/migrations/domains`
+
+Catalog migrations are handwritten PostgreSQL SQL executed by the catalog
+`node-pg-migrate` runner. Do not use Drizzle migration generation for these
+listing changes.
+
+Place listing read-model migrations in the existing read-model domain folder:
+
+```text
+services/catalog/migrations/domains/9000_read_models/
+```
+
+Planned files:
+
+- `9003_read_models__listing_index_redesign.sql`:
+  - drop legacy `catalog.product_search_index` and
+    `catalog.variant_search_index`;
+  - create `product_listing_index`, `product_listing_price_index`,
+    `variant_listing_index`, `variant_listing_price_index`,
+    `product_listing_facet_token` and `variant_listing_facet_token`;
+  - add ordinary indexes from this document;
+  - add missing project-scoped unique constraints on canonical `product`,
+    `variant`, `facet` and `facet_value` only when equivalent constraints do not
+    already exist.
+- `9004_read_models__product_title_bm25_search.sql`:
+  - create `catalog.product_title_bm25_search_index`;
+  - create ordinary indexes and the ParadeDB BM25 index;
+  - run `CREATE EXTENSION IF NOT EXISTS pg_search`, while keeping
+    `shared_preload_libraries = 'pg_search'` as infrastructure configuration
+    outside SQL migrations.
+
+If either basename is already taken when implementation starts, use the next
+available `900x_read_models__...sql` basename and update these documents in the
+same change. Keep basenames globally unique across all
+`services/catalog/migrations/domains/**/*.sql` files.
+
+Do not edit existing historical domain migration files for this redesign unless
+the implementation explicitly chooses a full catalog cutover and updates the
+plan first. The intended path for this work is additive handwritten SQL in
+`9000_read_models`.
+
 ## Удаляемые таблицы
 
 ```sql

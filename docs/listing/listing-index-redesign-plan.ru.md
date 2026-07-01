@@ -1375,8 +1375,10 @@ Facet source/display mapping changes require token refresh:
    `product_listing_price_index`, `variant_listing_index`,
    `variant_listing_price_index`, `product_listing_facet_token` and
    `variant_listing_facet_token`.
-2. Generate migration that drops old search index tables and creates new listing
-   index, price and token tables.
+2. Add handwritten catalog migration
+   `services/catalog/migrations/domains/9000_read_models/9003_read_models__listing_index_redesign.sql`
+   that drops old search index tables and creates new listing index, price and
+   token tables. Do not use Drizzle migration generation for catalog.
 3. Replace repository classes and register them in `Repository`.
 4. Replace sync/delete/rebuild scripts.
 5. Update catalog event handlers to call listing index scripts.
