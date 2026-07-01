@@ -1,47 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useMemo } from "react";
 import { Button, Dropdown, Flex } from "antd";
-import {
-  CheckCircleOutlined,
-  CheckSquareOutlined,
-  MenuOutlined,
-  SlidersOutlined,
-  UnorderedListOutlined,
-} from "@ant-design/icons";
 import { FacetUiType } from "@/graphql/types";
-
-const FACET_UI_TYPE_OPTIONS: {
-  key: FacetUiType;
-  label: string;
-  icon: ReactNode;
-}[] = [
-  {
-    key: FacetUiType.Checkbox,
-    label: "Checkbox",
-    icon: <CheckSquareOutlined />,
-  },
-  {
-    key: FacetUiType.Radio,
-    label: "Radio",
-    icon: <CheckCircleOutlined />,
-  },
-  {
-    key: FacetUiType.Dropdown,
-    label: "Dropdown",
-    icon: <MenuOutlined />,
-  },
-  {
-    key: FacetUiType.Range,
-    label: "Range",
-    icon: <SlidersOutlined />,
-  },
-  {
-    key: FacetUiType.Boolean,
-    label: "Boolean",
-    icon: <UnorderedListOutlined />,
-  },
-];
+import { getFacetUiTypeOptions } from "../../mappers";
 
 interface FacetUiTypeSelectorProps {
   value: FacetUiType;
@@ -56,11 +18,12 @@ export function FacetUiTypeSelector({
   onChange,
   disabled = false,
 }: FacetUiTypeSelectorProps) {
-  const current = FACET_UI_TYPE_OPTIONS.find((option) => option.key === value);
-  const allowedOptions = new Set(options);
-  const menuItems = FACET_UI_TYPE_OPTIONS.filter((option) =>
-    allowedOptions.has(option.key),
-  ).map((option) => ({
+  const facetUiTypeOptions = useMemo(
+    () => getFacetUiTypeOptions(options),
+    [options],
+  );
+  const current = getFacetUiTypeOptions([value])[0];
+  const menuItems = facetUiTypeOptions.map((option) => ({
     key: option.key,
     label: (
       <Flex gap={8} align="center">

@@ -19,7 +19,7 @@ import {
 import { useFacetSourceCandidatesPageQuery } from "../hooks";
 import {
   getFacetSourceHandleLabel,
-  getFacetTypeLabel,
+  getFacetSourceTypeLabel,
 } from "../mappers";
 import type {
   FacetSourceCandidateFields,
@@ -75,7 +75,7 @@ function transformFacetSourceCandidate(
     facetType: candidate.facetType,
     handle: candidate.handle,
     name,
-    typeLabel: getFacetTypeLabel(candidate.facetType),
+    typeLabel: getFacetSourceTypeLabel(candidate.facetType),
   };
 }
 
@@ -163,7 +163,7 @@ const filterSchema: IFilterSchema[] = [
     operators: [FilterOperator.In],
     payloadKey: "facetType",
     options: Object.values(FacetType).map((value) => ({
-      label: getFacetTypeLabel(value),
+      label: getFacetSourceTypeLabel(value),
       value,
     })),
   },
