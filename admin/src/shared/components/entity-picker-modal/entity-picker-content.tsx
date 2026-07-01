@@ -11,6 +11,7 @@ import {
   type RowStyle,
 } from "ag-grid-community";
 import { createStyles } from "antd-style";
+import { Skeleton } from "antd";
 import { FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/cursor-pagination";
 import type { IEntityPickerContentProps, IPickableEntity } from "./types";
@@ -43,6 +44,13 @@ const useStyles = createStyles(({ token }) => ({
     flex: 1,
     minHeight: 400,
     width: "100%",
+  },
+  gridSkeleton: {
+    flex: 1,
+    minHeight: 400,
+    width: "100%",
+    padding: token.padding,
+    boxSizing: "border-box",
   },
   pagination: {
     flexShrink: 0,
@@ -131,6 +139,7 @@ export function EntityPickerContent<T extends IPickableEntity>({
     if (!excludeIds.length) return data;
     return data.filter((item) => !excludeIds.includes(config.getRowId(item)));
   }, [data, excludeIds, config]);
+  const showInitialLoadingSkeleton = isLoading && filteredData.length === 0;
 
   const emitSelectionChange = useCallback(
     (selectedIds: string[]) => {
@@ -312,55 +321,63 @@ export function EntityPickerContent<T extends IPickableEntity>({
         </div>
       )}
 
-      {/* AG Grid */}
-      <div
-        className={styles.gridContainer}
-        data-testid={`${config.entityType}-picker-grid`}
-      >
-        <AgGridReact<T>
-          ref={gridRef}
-          theme={agGridTheme}
-          rowData={filteredData}
-          columnDefs={config.columns}
-          getRowId={(params) => config.getRowId(params.data)}
-          rowHeight={52}
-          headerHeight={40}
-          rowSelection={{
-            mode: selectionMode === "single" ? "singleRow" : "multiRow",
-            checkboxes: true,
-            headerCheckbox: selectionMode === "multi",
-            enableClickSelection: true,
-            enableSelectionWithoutKeys: true,
-            isRowSelectable: (node) =>
-              node.data ? !config.isRowDisabled?.(node.data) : false,
-          }}
-          selectionColumnDef={{
-            cellStyle: { display: "flex", alignItems: "center" },
-          }}
-          suppressCellFocus
-          suppressMovableColumns
-          onSelectionChanged={handleSelectionChanged}
-          onGridReady={handleGridReady}
-          onSortChanged={pageConfig.onSortChanged}
-          isRowSelectable={(node) =>
-            node.data ? !config.isRowDisabled?.(node.data) : false
-          }
-          getRowStyle={(params): RowStyle =>
-            params.data && config.isRowDisabled?.(params.data)
-              ? { cursor: "not-allowed", opacity: 0.58 }
-              : { cursor: "pointer" }
-          }
-          loading={isLoading}
-          initialState={pageConfig.gridStateProps.initialState}
-          onStateUpdated={pageConfig.gridStateProps.onStateUpdated}
-          defaultColDef={{
-            resizable: false,
-            sortable: Boolean(config.pageConfig?.sortFieldMapping),
-            comparator: () => 0,
-            cellStyle: { display: "flex", alignItems: "center" },
-          }}
-        />
-      </div>
+      {showInitialLoadingSkeleton ? (
+        <div
+          className={styles.gridSkeleton}
+          data-testid={`${config.entityType}-picker-loading`}
+        >
+          <Skeleton active paragraph={{ rows: 6 }} />
+        </div>
+      ) : (
+        <div
+          className={styles.gridContainer}
+          data-testid={`${config.entityType}-picker-grid`}
+        >
+          <AgGridReact<T>
+            ref={gridRef}
+            theme={agGridTheme}
+            rowData={filteredData}
+            columnDefs={config.columns}
+            getRowId={(params) => config.getRowId(params.data)}
+            rowHeight={52}
+            headerHeight={40}
+            rowSelection={{
+              mode: selectionMode === "single" ? "singleRow" : "multiRow",
+              checkboxes: true,
+              headerCheckbox: selectionMode === "multi",
+              enableClickSelection: true,
+              enableSelectionWithoutKeys: true,
+              isRowSelectable: (node) =>
+                node.data ? !config.isRowDisabled?.(node.data) : false,
+            }}
+            selectionColumnDef={{
+              cellStyle: { display: "flex", alignItems: "center" },
+            }}
+            suppressCellFocus
+            suppressMovableColumns
+            onSelectionChanged={handleSelectionChanged}
+            onGridReady={handleGridReady}
+            onSortChanged={pageConfig.onSortChanged}
+            isRowSelectable={(node) =>
+              node.data ? !config.isRowDisabled?.(node.data) : false
+            }
+            getRowStyle={(params): RowStyle =>
+              params.data && config.isRowDisabled?.(params.data)
+                ? { cursor: "not-allowed", opacity: 0.58 }
+                : { cursor: "pointer" }
+            }
+            loading={isLoading}
+            initialState={pageConfig.gridStateProps.initialState}
+            onStateUpdated={pageConfig.gridStateProps.onStateUpdated}
+            defaultColDef={{
+              resizable: false,
+              sortable: Boolean(config.pageConfig?.sortFieldMapping),
+              comparator: () => 0,
+              cellStyle: { display: "flex", alignItems: "center" },
+            }}
+          />
+        </div>
+      )}
 
       {/* Pagination */}
       <div className={styles.pagination}>

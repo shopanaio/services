@@ -308,13 +308,9 @@ async function expectFacetModalValues(
     .first();
 
   await row.locator('button[data-testid^="facets-row-actions-"]').click();
-  await page
-    .locator('.ant-dropdown-menu-item')
-    .filter({ hasText: 'Edit' })
-    .first()
-    .click();
+  await page.getByTestId(`facets-row-action-edit-${input.slug}`).click();
 
-  const modal = page.getByTestId('edit-facet-modal');
+  const modal = page.getByTestId('edit-facet-modal').filter({ visible: true }).first();
   await expect(modal).toBeVisible();
   await expect(modal).toContainText(input.label);
   const grid = modal.getByTestId('facet-values-grid');

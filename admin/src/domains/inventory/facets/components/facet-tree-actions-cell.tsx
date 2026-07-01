@@ -29,11 +29,13 @@ export function FacetTreeActionsCell(params: FacetTreeActionsCellParams) {
   }
 
   const deleteDisabled = params.hasUnsavedChanges ?? false;
+  const rowTestId = row.slug ?? row.id;
   const items: MenuProps["items"] = [
     {
       key: "edit",
       label: "Edit",
       icon: <EditOutlined />,
+      "data-testid": `facets-row-action-edit-${rowTestId}`,
     },
   ];
 

@@ -103,13 +103,9 @@ async function openFacetEditModal(page: Page, slug: string) {
     .first();
 
   await row.locator('button[data-testid^="facets-row-actions-"]').click();
-  await page
-    .locator('.ant-dropdown-menu-item')
-    .filter({ hasText: 'Edit' })
-    .first()
-    .click();
+  await page.getByTestId(`facets-row-action-edit-${slug}`).click();
 
-  const modal = page.getByTestId('edit-facet-modal');
+  const modal = page.getByTestId('edit-facet-modal').filter({ visible: true }).first();
   await expect(modal).toBeVisible();
   await expect(modal.getByTestId('facet-values-grid')).toBeVisible();
   return modal;
