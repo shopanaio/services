@@ -2,10 +2,31 @@ import { Injectable } from "@nestjs/common";
 import {
   Action,
   BrokerActions,
+  DBOS,
   InjectBroker,
   ServiceBroker,
+  type IdempotencyContext,
 } from "@shopana/shared-kernel";
+import type {
+  EventDispatchInput,
+  EventDispatchResult,
+} from "@shopana/events";
 import { Kernel } from "../kernel/Kernel.js";
+
+type EventDispatchActionParams = EventDispatchInput & {
+  waitForResult?: boolean;
+};
+
+type EventDispatchActionResult =
+  | {
+      workflowId: string;
+      status: "started";
+    }
+  | {
+      workflowId: string;
+      status: "completed";
+      result: EventDispatchResult;
+    };
 
 @Injectable()
 export class EventsBrokerActions extends BrokerActions {
@@ -19,6 +40,33 @@ export class EventsBrokerActions extends BrokerActions {
 
   private get repository() {
     return this.kernel.repository;
+  }
+
+  @Action("dispatch")
+  async dispatch(
+    params: EventDispatchActionParams,
+  ): Promise<EventDispatchActionResult> {
+    const input = toDispatchInput(params);
+    const started = await this.broker.startWorkflow<EventDispatchInput>(
+      "events.dispatch",
+      input,
+      buildDispatchIdempotency(input),
+    );
+
+    if (!params.waitForResult) {
+      return started;
+    }
+
+    const result = await this.broker
+      .getWorkflowRegistry()
+      .retrieve<EventDispatchResult>(started.workflowId)
+      .getResult();
+
+    return {
+      workflowId: started.workflowId,
+      status: "completed",
+      result,
+    };
   }
 
   @Action("cleanupDLQ")
@@ -46,4 +94,50 @@ export class EventsBrokerActions extends BrokerActions {
     );
     return { deleted };
   }
+}
+
+function toDispatchInput(params: EventDispatchActionParams): EventDispatchInput {
+  if (params.kind === "event") {
+    return {
+      kind: "event",
+      tenantId: params.tenantId,
+      eventId: params.eventId,
+    };
+  }
+
+  return {
+    kind: "batch",
+    tenantId: params.tenantId,
+    eventType: params.eventType,
+    batchKey: params.batchKey,
+    limit: params.limit,
+  };
+}
+
+function buildDispatchIdempotency(
+  input: EventDispatchInput,
+): IdempotencyContext {
+  const parentWorkflowId = DBOS.workflowID;
+  const callId =
+    input.kind === "event"
+      ? input.eventId
+      : `${input.batchKey}:${input.eventType ?? "*"}:${input.limit ?? "default"}`;
+
+  if (parentWorkflowId) {
+    return {
+      source: "workflow",
+      tenantId: input.tenantId,
+      workflowId: parentWorkflowId,
+      stepId: input.kind === "event" ? "dispatchEvent" : "dispatchBatch",
+      callId,
+    };
+  }
+
+  return {
+    source: "content",
+    tenantId: input.tenantId,
+    resourceId: input.kind === "event" ? input.eventId : input.batchKey,
+    operation: input.kind === "event" ? "dispatchEvent" : "dispatchBatch",
+    content: input,
+  };
 }
