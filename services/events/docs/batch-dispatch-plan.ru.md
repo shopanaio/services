@@ -233,16 +233,16 @@ interface EventDispatchPolicy {
 }
 ```
 
-Политики:
+Пример формы policy registry:
 
 ```ts
-productUpdated:
+highVolumeDomainEvent:
   maxBatchSize: 500
   groupBy: ["tenantId", "eventType", "batchKey"]
   handlerTimeoutMs: 30000
   handlerStepConfig: default
 
-fileHardDeleted:
+destructiveDomainEvent:
   maxBatchSize: 100
   groupBy: ["tenantId", "eventType"]
   handlerTimeoutMs: 30000
@@ -452,8 +452,8 @@ Scheduler не должен быть основным механизмом laten
 Все event handlers в новой системе должны принимать batch. Immediate event тоже доставляется как batch из одного event.
 
 ```ts
-@BatchEventHandler("productUpdated")
-async handleProductUpdatedBatch(params: {
+@BatchEventHandler("eventType")
+async handleEventBatch(params: {
   events: DomainEvent[];
   batch: {
     batchId: string;
@@ -481,23 +481,23 @@ async handleProductUpdatedBatch(params: {
 
 ## Aggregation внутри handlers
 
-Dispatcher не должен выбрасывать события при coalescing. Для `productUpdated` payload сейчас partial delta, поэтому выбор "последнего события по productId" может потерять изменения.
+Dispatcher не должен выбрасывать события при coalescing. Если event payload является partial delta, выбор "последнего события по aggregateKey" может потерять изменения.
 
 Правило:
 
 ```text
 dispatcher groups events into batches
 handler receives all events in batch
-handler aggregates productIds / variantIds / categoryIds itself
+handler aggregates affected domain identifiers itself
 handler rereads current snapshot where needed
 ```
 
-Для `productUpdated`:
+Базовое правило для consumer-ов:
 
-- handler собирает unique `productId`;
-- handler собирает affected `variantIds`, если они есть в payload;
-- handler собирает affected `categoryIds` для refresh counts;
-- search index sync должен опираться на актуальное состояние продукта, а не только на последнюю delta.
+- группировать события по tenant/context boundary, если handler-у нужен единый execution context;
+- собирать unique affected identifiers из всех events;
+- перечитывать актуальный snapshot там, где side effect не может опираться только на partial delta;
+- не терять события внутри batch-а ради оптимизации.
 
 ## Bulk update integration
 
@@ -823,7 +823,7 @@ lock fields cleared
 
 ### Риск: aggregation потеряет важную delta-информацию
 
-Dispatcher не должен выбрасывать события. Для `productUpdated` batch handler должен агрегировать все events и перечитывать актуальный snapshot там, где это нужно.
+Dispatcher не должен выбрасывать события. Batch handler должен получать все events и сам решать, какие identifiers агрегировать и где перечитывать актуальный snapshot.
 
 ### Риск: fire-and-forget dispatch потеряет observability
 
@@ -840,7 +840,7 @@ Scheduler не должен автоматически dispatch-ить deferred 
 - Для bulk update: `deferred` + explicit `events.dispatchBatch` после finalize.
 - `dispatchAfter` и `batchWindowMs` не делать.
 - Retry handler-ов делать через DBOS step settings.
-- Dispatcher не coalesce-ит `productUpdated`; aggregation делает batch handler.
+- Dispatcher не coalesce-ит events внутри batch-а; aggregation делает batch handler.
 - Per-handler state не хранить в events schema.
 - Repair scheduler добавить сразу, иначе будет риск потерять dispatch после persist.
 
@@ -887,7 +887,6 @@ Catalog bulk integration:
 - `services/catalog/src/workflows/ProductUpdateWorkflow.ts`
 - `services/catalog/src/workflows/ProductBulkEditWorkflow.ts`
 - `services/catalog/src/workflows/dto/ProductUpdateWorkflowDto.ts`
-- `services/catalog/src/handlers/index.ts`
 
 ## Открытые вопросы
 
