@@ -17,7 +17,6 @@ import { FacetType, FacetUiType } from "@/graphql/types";
 
 interface FacetTypeUiMapping {
   label?: string;
-  sourceHandle?: string;
   sourceTypeLabel: string;
   icon: ReactNode;
 }
@@ -34,19 +33,16 @@ export const FACET_UI_MAPPINGS: {
   facetTypes: {
     [FacetType.Price]: {
       label: "Price",
-      sourceHandle: "price",
       sourceTypeLabel: "Standard",
       icon: <LuDollarSign />,
     },
     [FacetType.InStock]: {
       label: "Availability",
-      sourceHandle: "availability",
       sourceTypeLabel: "Standard",
       icon: <LuPackageCheck />,
     },
     [FacetType.Tag]: {
       label: "Product Tags",
-      sourceHandle: "tags",
       sourceTypeLabel: "Standard",
       icon: <LuTag />,
     },
@@ -95,10 +91,8 @@ export function getFacetSourceHandleLabel(
   facetType: FacetType,
   handle: string,
 ): string | null {
-  const mapping = FACET_UI_MAPPINGS.facetTypes[facetType];
-  if (!mapping.label) return null;
-
-  return mapping.sourceHandle === handle ? mapping.label : null;
+  void handle;
+  return FACET_UI_MAPPINGS.facetTypes[facetType].label ?? null;
 }
 
 export function getFacetUiTypeOptions(
