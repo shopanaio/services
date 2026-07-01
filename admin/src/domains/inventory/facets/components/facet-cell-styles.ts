@@ -14,6 +14,14 @@ export const useFacetCellStyles = createStyles(({ token }) => ({
     flexDirection: "column",
     lineHeight: 1.25,
   },
+  sourceIcon: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    color: token.colorTextSecondary,
+    fontSize: 14,
+  },
   expandIcon: {
     cursor: "pointer",
     fontSize: 10,

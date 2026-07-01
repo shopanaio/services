@@ -1,6 +1,6 @@
 import { Typography } from "antd";
 import type { ICellRendererParams } from "ag-grid-community";
-import type { FacetGridRow } from "../mappers";
+import { getFacetTypeIcon, type FacetGridRow } from "../mappers";
 import { useFacetCellStyles } from "./facet-cell-styles";
 
 export function FacetNameCell(params: ICellRendererParams<FacetGridRow>) {
@@ -17,6 +17,9 @@ export function FacetNameCell(params: ICellRendererParams<FacetGridRow>) {
         row.slug ? `facets-table-name-cell-${row.slug}` : undefined
       }
     >
+      {row.facetType ? (
+        <span className={styles.sourceIcon}>{getFacetTypeIcon(row.facetType)}</span>
+      ) : null}
       <span className={styles.nameText}>
         <Typography.Text ellipsis strong>
           {row.name}
