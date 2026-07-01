@@ -308,9 +308,6 @@ export function FacetValueCandidatesGrid({
           onChange={(event) => setSearch(event.target.value)}
           data-testid="facet-value-candidates-search-input"
         />
-        <Typography.Text type="secondary">
-          {value.length} selected
-        </Typography.Text>
       </div>
 
       {error ? (

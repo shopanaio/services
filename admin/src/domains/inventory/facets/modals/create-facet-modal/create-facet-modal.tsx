@@ -5,6 +5,8 @@ import { Controller, FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { App, Button, Flex, Input } from "antd";
 import { createStyles } from "antd-style";
+import { PlusOutlined } from "@ant-design/icons";
+import { LuSwatchBook } from "react-icons/lu";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
 import {
   ModalHeader,
@@ -15,6 +17,7 @@ import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
   getAllowedFacetUiTypes,
   getDefaultFacetUiType,
+  isDiscreteFacetType,
   mapFacetFormToCreateInput,
   mapFacetUserErrorsToFormErrors,
 } from "../../mappers";
@@ -136,6 +139,7 @@ export function CreateFacetModal() {
   const facetType = watch("facetType");
   const uiType = watch("uiType");
   const source = watch("source");
+  const discrete = isDiscreteFacetType(facetType);
   const uiTypeOptions = useMemo(
     () => getAllowedFacetUiTypes(facetType),
     [facetType],
@@ -308,45 +312,59 @@ export function CreateFacetModal() {
           </div>
         </Paper>
 
-        <Paper>
-          <PaperHeader
-            title="UI type"
-            actions={
-              <Controller
-                name="uiType"
-                control={control}
-                render={({ field: uiTypeField }) => (
-                  <FacetUiTypeSelector
-                    value={uiTypeField.value}
-                    options={uiTypeOptions}
-                    onChange={uiTypeField.onChange}
+        {discrete ? (
+          <Paper>
+            <PaperHeader
+              title="Values"
+              actions={
+                <Flex gap={8} align="center">
+                  <Controller
+                    name="uiType"
+                    control={control}
+                    render={({ field: uiTypeField }) => (
+                      <FacetUiTypeSelector
+                        value={uiTypeField.value}
+                        options={uiTypeOptions}
+                        onChange={uiTypeField.onChange}
+                        disabled
+                      />
+                    )}
                   />
-                )}
-              />
-            }
-          />
-        </Paper>
-
-        <Paper>
-          <PaperHeader title="Values" />
-          <Controller
-            name="selectedValueCandidates"
-            control={control}
-            render={({ field, fieldState: { error } }) => (
-              <>
-                {error ? (
-                  <div className={styles.error}>{error.message}</div>
-                ) : null}
-                <FacetValueCandidatesGrid
-                  facetType={facetType}
-                  sourceHandle={source?.handle ?? null}
-                  value={field.value ?? []}
-                  onChange={field.onChange}
-                />
-              </>
-            )}
-          />
-        </Paper>
+                  <Button type="text" aria-label="Value swatches" disabled>
+                    <Flex gap={4} align="center">
+                      <LuSwatchBook />
+                      <span>Off</span>
+                    </Flex>
+                  </Button>
+                  <Button
+                    type="text"
+                    icon={<PlusOutlined />}
+                    aria-label="Add values"
+                    data-testid="facet-values-add-button"
+                    disabled
+                  />
+                </Flex>
+              }
+            />
+            <Controller
+              name="selectedValueCandidates"
+              control={control}
+              render={({ field, fieldState: { error } }) => (
+                <>
+                  {error ? (
+                    <div className={styles.error}>{error.message}</div>
+                  ) : null}
+                  <FacetValueCandidatesGrid
+                    facetType={facetType}
+                    sourceHandle={source?.handle ?? null}
+                    value={field.value ?? []}
+                    onChange={field.onChange}
+                  />
+                </>
+              )}
+            />
+          </Paper>
+        ) : null}
       </ModalLayout>
     </FormProvider>
   );

@@ -746,23 +746,23 @@ export function EditFacetModal() {
           </div>
         </Paper>
 
-        <Paper>
-          <PaperHeader
-            title="Values"
-            actions={
-              <Flex gap={8} align="center">
-                <Controller
-                  name="uiType"
-                  control={control}
-                  render={({ field: uiTypeField }) => (
-                    <FacetUiTypeSelector
-                      value={uiTypeField.value}
-                      options={uiTypeOptions}
-                      onChange={uiTypeField.onChange}
-                    />
-                  )}
-                />
-                {discrete ? (
+        {discrete ? (
+          <Paper>
+            <PaperHeader
+              title="Values"
+              actions={
+                <Flex gap={8} align="center">
+                  <Controller
+                    name="uiType"
+                    control={control}
+                    render={({ field: uiTypeField }) => (
+                      <FacetUiTypeSelector
+                        value={uiTypeField.value}
+                        options={uiTypeOptions}
+                        onChange={uiTypeField.onChange}
+                      />
+                    )}
+                  />
                   <Dropdown
                     menu={{
                       selectable: true,
@@ -789,8 +789,6 @@ export function EditFacetModal() {
                       </Flex>
                     </Button>
                   </Dropdown>
-                ) : null}
-                {discrete ? (
                   <Button
                     type="text"
                     icon={<PlusOutlined />}
@@ -798,11 +796,9 @@ export function EditFacetModal() {
                     data-testid="facet-values-add-button"
                     onClick={handleOpenValueCandidates}
                   />
-                ) : null}
-              </Flex>
-            }
-          />
-          {discrete ? (
+                </Flex>
+              }
+            />
             <Flex vertical gap={8}>
               <FacetValuesGrid
                 values={editorValues}
@@ -815,15 +811,8 @@ export function EditFacetModal() {
                 onDelete={handleDeleteValues}
               />
             </Flex>
-          ) : (
-            <Typography.Text type="secondary">
-              Values are calculated automatically. {facet.facetType} returns{" "}
-              {facet.facetType === "PRICE"
-                ? "price range."
-                : "availability count."}
-            </Typography.Text>
-          )}
-        </Paper>
+          </Paper>
+        ) : null}
       </ModalLayout>
     </FormProvider>
   );

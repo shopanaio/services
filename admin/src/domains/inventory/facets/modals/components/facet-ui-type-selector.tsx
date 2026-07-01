@@ -47,12 +47,14 @@ interface FacetUiTypeSelectorProps {
   value: FacetUiType;
   options: FacetUiType[];
   onChange: (uiType: FacetUiType) => void;
+  disabled?: boolean;
 }
 
 export function FacetUiTypeSelector({
   value,
   options,
   onChange,
+  disabled = false,
 }: FacetUiTypeSelectorProps) {
   const current = FACET_UI_TYPE_OPTIONS.find((option) => option.key === value);
   const allowedOptions = new Set(options);
@@ -70,8 +72,8 @@ export function FacetUiTypeSelector({
   }));
 
   return (
-    <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
-      <Button type="text">
+    <Dropdown menu={{ items: menuItems }} trigger={["click"]} disabled={disabled}>
+      <Button type="text" disabled={disabled}>
         <Flex gap={4} align="center">
           {current?.icon}
           <span>{current?.label}</span>
