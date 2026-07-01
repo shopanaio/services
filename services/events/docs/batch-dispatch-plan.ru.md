@@ -22,7 +22,9 @@
 обычный producer workflow
   -> events.emit(dispatch.mode = immediate)
       -> insert domain_events(status = pending, payload = jsonb)
-      -> start events.dispatchEvent(eventId)
+      -> broker.runWorkflow("events.dispatchEvent", eventId)
+          -> durable-start internal events.dispatchEventDelivery(eventId)
+          -> return DispatchStartResult without waiting for handlers
 
 bulk producer workflow
   -> events.emit(dispatch.mode = deferred, batchKey = bulkJobId)
@@ -31,9 +33,17 @@ bulk producer workflow
       -> insert domain_events(status = pending, payload = jsonb)
   -> finalize job
   -> durable step:
-       events.dispatchBatch(batchKey = bulkJobId)
+       broker.runWorkflow("events.dispatchBatch", batchKey = bulkJobId)
+         -> durable-start internal events.dispatchBatchDelivery(batchKey)
+         -> return DispatchStartResult without waiting for handlers
 
 events.dispatchEvent / events.dispatchBatch
+  -> public starter workflows
+  -> keep ServiceBroker.runWorkflow contract unchanged
+  -> return after durable-starting internal delivery workflow
+
+events.dispatchEventDelivery / events.dispatchBatchDelivery
+  -> internal delivery workflows
   -> claim pending events
   -> resolve handlers
   -> call batch handlers through DBOS steps with retry settings
@@ -48,8 +58,9 @@ repair scheduler
 Главное разделение ответственности:
 
 - `events.emit` отвечает за durable запись события и выбор delivery mode.
-- `events.dispatchEvent` отвечает за immediate delivery одного обычного события.
-- `events.dispatchBatch` отвечает за explicit batch delivery по `batchKey`.
+- `events.dispatchEvent` и `events.dispatchBatch` являются публичными starter workflows: они durable-стартуют internal delivery workflow и быстро возвращают `DispatchStartResult`.
+- `events.dispatchEventDelivery` отвечает за immediate delivery одного обычного события в отдельном internal delivery workflow.
+- `events.dispatchBatchDelivery` отвечает за explicit batch delivery по `batchKey` в отдельном internal delivery workflow.
 - Producer workflow сам задает batch boundary, когда бизнес-процесс знает момент завершения batch-а.
 - Retry handler-ов принадлежит DBOS step settings, а не `dispatch_after`/polling retry.
 
@@ -190,7 +201,7 @@ interface EmitParams<TType extends string = string, TPayload = unknown> {
 Правила:
 
 - default `dispatch.mode = "immediate"`;
-- `immediate` persist-ит event и запускает `events.dispatchEvent(eventId)`;
+- `immediate` persist-ит event и запускает public starter `events.dispatchEvent(eventId)`, который быстро возвращает `DispatchStartResult`;
 - `deferred` persist-ит event с `batchKey` и не запускает dispatch;
 - `batchKey` обязателен для `deferred`;
 - `aggregateKey` задается producer-ом или вычисляется как `${subject.type}:${subject.id}`;
@@ -206,7 +217,7 @@ dispatch: {
 }
 ```
 
-После завершения bulk workflow он запускает `events.dispatchBatch` для `batchKey` как durable step.
+После завершения bulk workflow он вызывает public starter `events.dispatchBatch` для `batchKey` как durable step и не ждет delivery handlers.
 
 ## Dispatch policy registry
 
@@ -274,22 +285,25 @@ events.emit
   -> resolve dispatch mode
   -> persist event with status pending
   -> if mode=immediate:
-       start events.dispatchEvent(eventId)
+       broker.runWorkflow("events.dispatchEvent", eventId)
+         -> events.dispatchEvent starts internal delivery workflow
+         -> events.dispatchEvent returns DispatchStartResult
   -> if mode=deferred:
        do not dispatch now
-  -> return eventId/status/dispatchMode
+  -> return eventId/status/dispatchMode/dispatchWorkflowId
 ```
 
 Важно:
 
 - не вызывать handlers напрямую в `events.emit`;
+- immediate dispatch стартовать через public starter `events.dispatchEvent`: `events.emit` не должен ждать выполнения handlers;
 - insert должен быть idempotent через deterministic `eventId`;
 - при replay workflow повторный insert не должен менять уже `dispatching`/`dispatched` event;
 - при повторном emit для того же deterministic `eventId` return должен быть стабильным.
 
 ### events.dispatchEvent
 
-Для обычных событий.
+Public starter workflow для обычных событий. Он сохраняет текущий контракт `ServiceBroker.runWorkflow`: caller ждет результат самого `events.dispatchEvent`, но этот результат является только `DispatchStartResult`, а не результатом handler delivery.
 
 Input:
 
@@ -304,6 +318,27 @@ Flow:
 
 ```text
 events.dispatchEvent
+  -> durable-start events.dispatchEventDelivery(eventId)
+  -> return DispatchStartResult
+```
+
+### events.dispatchEventDelivery
+
+Internal delivery workflow для одного обычного события. Не вызывается producer workflow напрямую.
+
+Input:
+
+```ts
+interface DispatchEventDeliveryInput {
+  tenantId: string;
+  eventId: string;
+}
+```
+
+Flow:
+
+```text
+events.dispatchEventDelivery
   -> claim one pending event by eventId
   -> dispatch as a batch with one event
   -> mark event with final status
@@ -311,7 +346,7 @@ events.dispatchEvent
 
 ### events.dispatchBatch
 
-Для explicit batch boundaries, например bulk update.
+Public starter workflow для explicit batch boundaries, например bulk update. Producer вызывает именно этот workflow через `broker.runWorkflow`, получает `DispatchStartResult` и не ждет выполнения handlers.
 
 Input:
 
@@ -328,6 +363,29 @@ Flow:
 
 ```text
 events.dispatchBatch
+  -> durable-start events.dispatchBatchDelivery(tenantId, eventType, batchKey, limit)
+  -> return DispatchStartResult
+```
+
+### events.dispatchBatchDelivery
+
+Internal delivery workflow для explicit batch-а. Не вызывается producer workflow напрямую.
+
+Input:
+
+```ts
+interface DispatchBatchDeliveryInput {
+  tenantId: string;
+  eventType?: string;
+  batchKey: string;
+  limit?: number;
+}
+```
+
+Flow:
+
+```text
+events.dispatchBatchDelivery
   -> claim pending deferred events by tenantId/batchKey/eventType
   -> group claimed events by policy
   -> for each group:
@@ -384,6 +442,7 @@ every 5 minutes:
 every minute:
   find old pending immediate events
   -> start events.dispatchEvent(eventId) with deterministic repair id
+     -> events.dispatchEvent durable-starts events.dispatchEventDelivery
 ```
 
 Scheduler не должен быть основным механизмом latency. Он нужен как страховка после падения между persist и dispatch или после зависшего `dispatching` состояния.
@@ -452,7 +511,9 @@ catalog.productBulkEdit
           -> events.emit(productUpdated, mode=deferred, batchKey=bulkJobId)
   -> finalize job
   -> durable step:
-       events.dispatchBatch(batchKey=bulkJobId)
+       broker.runWorkflow("events.dispatchBatch", batchKey=bulkJobId)
+         -> events.dispatchBatch durable-starts events.dispatchBatchDelivery
+         -> returns DispatchStartResult
 ```
 
 Изменения в catalog:
@@ -460,7 +521,7 @@ catalog.productBulkEdit
 - расширить `ProductUpdateWorkflowInput` event dispatch context;
 - при bulk передавать `batchKey`, `aggregateKey`, `dispatch.mode = "deferred"`;
 - для product update вне bulk использовать default `dispatch.mode = "immediate"`;
-- после финализации bulk job вызвать `events.dispatchBatch`.
+- после финализации bulk job вызвать public starter `events.dispatchBatch` и сохранить `dispatchWorkflowId`.
 
 Пример emit из bulk:
 
@@ -492,7 +553,7 @@ await this.broker.runWorkflow(
 Пример dispatch after finalize:
 
 ```ts
-await this.broker.runWorkflow(
+const dispatch = await this.broker.runWorkflow(
   "events.dispatchBatch",
   {
     tenantId: context.organizationId,
@@ -506,6 +567,8 @@ await this.broker.runWorkflow(
     callId: jobId,
   },
 );
+
+await this.stepStoreBulkDispatchWorkflowId(jobId, dispatch.workflowId);
 ```
 
 ## Idempotency
@@ -521,9 +584,39 @@ dispatchWorkflowId = parentWorkflowId + eventType + emitKeyHash
 
 Для deferred mode это по-прежнему работает.
 
+### fire-and-forget через broker.runWorkflow
+
+`ServiceBroker.runWorkflow` не менять и новый broker API не добавлять.
+
+Fire-and-forget в этом плане означает не "не ждать DBOS workflow result", а "не ждать delivery handlers".
+Caller по-прежнему вызывает `broker.runWorkflow`, но вызываемый workflow должен вернуть короткий результат после durable enqueue/start dispatch, не после выполнения handlers.
+Для этого публичные `events.dispatchEvent` и `events.dispatchBatch` являются starter workflows, а фактическая доставка выполняется в internal workflows `events.dispatchEventDelivery` и `events.dispatchBatchDelivery`.
+
+```ts
+interface DispatchStartResult {
+  workflowId: string;
+  status: "started" | "already_started";
+}
+```
+
+Правило для `events.emit`:
+
+- `broker.runWorkflow("events.emit", ...)` ждет результат `events.emit`;
+- `events.emit` persist-ит event и для `immediate` вызывает `broker.runWorkflow("events.dispatchEvent", ...)`;
+- `events.dispatchEvent` durable-start-ит `events.dispatchEventDelivery` и быстро возвращает `DispatchStartResult`;
+- `events.emit` возвращает `eventId`, `dispatchMode`, optional `dispatchWorkflowId`;
+- `events.emit` не выполняет handlers и не ждет delivery completion.
+
+Правило для bulk finalize:
+
+- producer вызывает `broker.runWorkflow("events.dispatchBatch", ...)`;
+- `events.dispatchBatch` durable-start-ит `events.dispatchBatchDelivery` и возвращает `DispatchStartResult`;
+- bulk workflow сохраняет `dispatchWorkflowId` у job;
+- bulk workflow не ждет выполнения batch handlers.
+
 ### dispatch workflow idempotency
 
-Dispatcher workflows запускаются через существующий `ServiceBroker.runWorkflow`.
+Dispatcher workflows вызываются через `ServiceBroker.runWorkflow`.
 Явный DBOS workflow id строкой не передается: `ServiceBroker` передает `workflow` name и `IdempotencyContext` в `WorkflowRegistry.start`, а `@shopana/dbos` строит фактический workflow id по текущему формату:
 
 ```text
@@ -533,7 +626,7 @@ workflow:{sha256(v1:workflow:tenantId:workflowId:stepId:callId:workflowName)}
 Для immediate dispatch `events.emit` должен запускать `events.dispatchEvent` с idempotency context:
 
 ```ts
-await this.broker.runWorkflow(
+const dispatch = await this.broker.runWorkflow<DispatchStartResult>(
   "events.dispatchEvent",
   { tenantId, eventId },
   {
@@ -559,7 +652,7 @@ tenantId = tenantId
 Для explicit bulk dispatch producer workflow запускает `events.dispatchBatch` с idempotency context:
 
 ```ts
-await this.broker.runWorkflow(
+const dispatch = await this.broker.runWorkflow<DispatchStartResult>(
   "events.dispatchBatch",
   { tenantId, eventType, batchKey },
   {
@@ -584,7 +677,7 @@ tenantId = tenantId
 
 Повторный start должен быть безопасным:
 
-- при повторном `runWorkflow` с тем же `IdempotencyContext` DBOS не создаст новый workflow и вернет сохраненный результат;
+- при повторном `runWorkflow` с тем же `IdempotencyContext` DBOS не создаст новый workflow и вернет сохраненный `DispatchStartResult`;
 - если события уже `dispatched`, claim query вернет пустой набор;
 - для repair scheduler использовать `source: "content"` idempotency context, например `resourceId = eventId`, `operation = "repairDispatchEvent"`, `content = { tenantId, eventId }`, `tenantId = tenantId`.
 
@@ -683,21 +776,22 @@ lock fields cleared
 ### Фаза 3. Разделить emit и dispatch
 
 - Удалить прямой вызов handlers из `events.emit`.
-- Изменить `events.emit`: persist pending event + запуск dispatch workflow только для `immediate`.
-- Добавить `events.dispatchEvent`.
-- Добавить `events.dispatchBatch`.
-- Dispatcher вызывает только batch handlers.
+- Изменить `events.emit`: persist pending event + fire-and-forget delivery semantics через `broker.runWorkflow` только для `immediate`.
+- Добавить public starter `events.dispatchEvent`.
+- Добавить public starter `events.dispatchBatch`.
+- Добавить internal delivery workflows `events.dispatchEventDelivery` и `events.dispatchBatchDelivery`.
+- Internal delivery workflows вызывают только batch handlers.
 
-Результат: обычные события доставляются сразу через dispatcher, batch-события ждут explicit `dispatchBatch`.
+Результат: обычные события сразу стартуют internal delivery workflow через dispatcher starter, batch-события ждут explicit `dispatchBatch`.
 
 ### Фаза 4. Bulk update boundary
 
 - Расширить `ProductUpdateWorkflowInput` dispatch context.
 - В bulk передавать `dispatch.mode = "deferred"`, `batchKey = bulk:${jobId}`.
-- После finalize запускать `events.dispatchBatch` как durable step.
+- После finalize вызывать `events.dispatchBatch` как durable starter step и сохранять `dispatchWorkflowId` у job.
 - Для product updates вне bulk использовать default `immediate`.
 
-Результат: bulk update обновляет все продукты, затем одним dispatch workflow отправляет batch.
+Результат: bulk update обновляет все продукты, затем через `events.dispatchBatch` стартует отдельный internal delivery workflow и не ждет delivery handlers.
 
 ### Фаза 5. Repair scheduler
 
@@ -731,9 +825,9 @@ lock fields cleared
 
 Dispatcher не должен выбрасывать события. Для `productUpdated` batch handler должен агрегировать все events и перечитывать актуальный snapshot там, где это нужно.
 
-### Риск: bulk producer workflow ждет dispatch
+### Риск: fire-and-forget dispatch потеряет observability
 
-Bulk explicit dispatch запускается как durable step после finalize. Bulk workflow ждет результат dispatch.
+Bulk explicit dispatch запускается fire-and-forget после finalize. Producer workflow не ждет результат delivery, поэтому должен сохранить `dispatchWorkflowId` в job/debug metadata и полагаться на `domain_events`/DLQ/admin observability для статуса доставки.
 
 ### Риск: scheduler запустит dispatch одновременно с explicit bulk dispatch
 
@@ -755,16 +849,18 @@ Scheduler не должен автоматически dispatch-ить deferred 
 Минимальные acceptance criteria:
 
 - `events.emit` создает `domain_events` со статусом `pending` и payload.
-- `events.emit` с default/immediate запускает `events.dispatchEvent`.
+- `events.emit` с default/immediate вызывает `events.dispatchEvent`, получает `DispatchStartResult` и не ждет handlers.
 - `events.emit` с `dispatch.mode = "deferred"` не запускает dispatch.
-- `events.dispatchEvent` доставляет один event batch handler-у как batch из одного event.
-- `events.dispatchBatch` доставляет pending deferred events по `batchKey` одним или несколькими batch handler calls.
+- `events.dispatchEvent` durable-start-ит `events.dispatchEventDelivery` и быстро возвращает `DispatchStartResult`.
+- `events.dispatchBatch` durable-start-ит `events.dispatchBatchDelivery` и быстро возвращает `DispatchStartResult`.
+- `events.dispatchEventDelivery` доставляет один event batch handler-у как batch из одного event.
+- `events.dispatchBatchDelivery` доставляет pending deferred events по `batchKey` одним или несколькими batch handler calls.
 - Если batch handler не зарегистрирован, dispatch для этого event type завершается ошибкой конфигурации.
 - Повторный запуск dispatch workflow не дублирует уже `dispatched` events.
 - Retryable failure повторяется через DBOS retry settings.
 - Exhausted DBOS retry пишет DLQ.
 - Bulk update может создать несколько `productUpdated` с одним `batchKey`.
-- После bulk finalize запускается `events.dispatchBatch` как durable step.
+- После bulk finalize вызывается `events.dispatchBatch` как durable starter step, bulk workflow не ждет handlers.
 - Scheduler возвращает зависшие `dispatching` events в `pending` только после проверки DBOS workflow status.
 - Scheduler подбирает старые pending immediate events, если immediate dispatch не стартовал.
 
@@ -795,9 +891,8 @@ Catalog bulk integration:
 
 ## Открытые вопросы
 
-- Должен ли `events.emit` возвращать только `eventId` или еще `dispatchWorkflowId` при immediate dispatch?
+- Должен ли `events.emit` возвращать `dispatchWorkflowId` всегда или только при `dispatch.mode = "immediate"`?
 - Нужен ли публичный GraphQL/admin API для просмотра pending/failed events?
 - Нужно ли хранить full payload forever или достаточно retention 90 дней?
 - Нужна ли строгая ordering guarantee внутри одного `aggregateKey`?
-- Должен ли bulk mutation ждать `dispatchBatch` или только запускать его в фоне?
 - Нужен ли compatibility adapter для legacy `@EventHandler` на время миграции?
