@@ -57,8 +57,8 @@ export const product = catalogSchema.table(
     index("idx_product_revision").on(table.id, table.revision),
     foreignKey({
       name: "product_vendor_fk",
-      columns: [table.projectId, table.vendorId],
-      foreignColumns: [vendor.projectId, vendor.id],
+      columns: [table.vendorId],
+      foreignColumns: [vendor.id],
     }),
   ]
 );

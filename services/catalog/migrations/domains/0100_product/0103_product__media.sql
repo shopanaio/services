@@ -15,8 +15,8 @@ CREATE TABLE "catalog"."product_media" (
   CONSTRAINT "product_media_project_id_id_unique"
     UNIQUE ("project_id", "id"),
   CONSTRAINT "product_media_product_fk"
-    FOREIGN KEY ("project_id", "product_id")
-    REFERENCES "catalog"."product" ("project_id", "id")
+    FOREIGN KEY ("product_id")
+    REFERENCES "catalog"."product" ("id")
     ON DELETE CASCADE
 );
 
@@ -39,14 +39,14 @@ CREATE TABLE "catalog"."variant_media" (
   "product_media_id" uuid NOT NULL,
   "sort_index" integer NOT NULL DEFAULT 0,
   CONSTRAINT "variant_media_pkey"
-    PRIMARY KEY ("project_id", "variant_id", "product_media_id"),
+    PRIMARY KEY ("variant_id", "product_media_id"),
   CONSTRAINT "variant_media_product_media_fk"
-    FOREIGN KEY ("project_id", "product_id", "product_media_id")
-    REFERENCES "catalog"."product_media" ("project_id", "product_id", "id")
+    FOREIGN KEY ("product_media_id")
+    REFERENCES "catalog"."product_media" ("id")
     ON DELETE CASCADE,
   CONSTRAINT "variant_media_variant_fk"
-    FOREIGN KEY ("project_id", "product_id", "variant_id")
-    REFERENCES "catalog"."variant" ("project_id", "product_id", "id")
+    FOREIGN KEY ("variant_id")
+    REFERENCES "catalog"."variant" ("id")
     ON DELETE CASCADE
 );
 

@@ -19,8 +19,8 @@ CREATE TABLE "catalog"."warehouse_stock" (
   CONSTRAINT "warehouse_stock_project_id_warehouse_id_variant_id_key"
     UNIQUE ("project_id", "warehouse_id", "variant_id"),
   CONSTRAINT "warehouse_stock_warehouse_fk"
-    FOREIGN KEY ("project_id", "warehouse_id")
-    REFERENCES "catalog"."warehouses" ("project_id", "id")
+    FOREIGN KEY ("warehouse_id")
+    REFERENCES "catalog"."warehouses" ("id")
     ON DELETE CASCADE
 );
 

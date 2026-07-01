@@ -75,11 +75,10 @@ export const warehouseStock = catalogSchema.table(
     ),
     // Index
     index("idx_warehouse_stock_variant").on(table.projectId, table.variantId),
-    // Composite foreign key to warehouse with cross-project reference protection
     foreignKey({
       name: "warehouse_stock_warehouse_fk",
-      columns: [table.projectId, table.warehouseId],
-      foreignColumns: [warehouses.projectId, warehouses.id],
+      columns: [table.warehouseId],
+      foreignColumns: [warehouses.id],
     }).onDelete("cascade"),
   ]
 );

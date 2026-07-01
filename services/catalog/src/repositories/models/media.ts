@@ -53,8 +53,8 @@ export const productMedia = catalogSchema.table(
     ),
     foreignKey({
       name: "product_media_product_fk",
-      columns: [table.projectId, table.productId],
-      foreignColumns: [product.projectId, product.id],
+      columns: [table.productId],
+      foreignColumns: [product.id],
     }).onDelete("cascade"),
   ]
 );
@@ -76,7 +76,7 @@ export const variantMedia = catalogSchema.table(
   },
   (table) => [
     primaryKey({
-      columns: [table.projectId, table.variantId, table.productMediaId],
+      columns: [table.variantId, table.productMediaId],
     }),
     index("idx_variant_media_project").on(table.projectId),
     index("idx_variant_media_product").on(table.projectId, table.productId),
@@ -92,17 +92,13 @@ export const variantMedia = catalogSchema.table(
     ),
     foreignKey({
       name: "variant_media_product_media_fk",
-      columns: [table.projectId, table.productId, table.productMediaId],
-      foreignColumns: [
-        productMedia.projectId,
-        productMedia.productId,
-        productMedia.id,
-      ],
+      columns: [table.productMediaId],
+      foreignColumns: [productMedia.id],
     }).onDelete("cascade"),
     foreignKey({
       name: "variant_media_variant_fk",
-      columns: [table.projectId, table.productId, table.variantId],
-      foreignColumns: [variant.projectId, variant.productId, variant.id],
+      columns: [table.variantId],
+      foreignColumns: [variant.id],
     }).onDelete("cascade"),
   ]
 );

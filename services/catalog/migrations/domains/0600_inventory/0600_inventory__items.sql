@@ -57,5 +57,5 @@ CREATE TABLE "catalog"."product_inventory_settings" (
   "backorder_max_qty" integer,
   "created_at" timestamp with time zone DEFAULT now(),
   "updated_at" timestamp with time zone DEFAULT now(),
-  CONSTRAINT "product_inventory_settings_pkey" PRIMARY KEY ("project_id", "product_id")
+  CONSTRAINT "product_inventory_settings_pkey" PRIMARY KEY ("product_id")
 );

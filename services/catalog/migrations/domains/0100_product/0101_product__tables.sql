@@ -16,8 +16,8 @@ CREATE TABLE "catalog"."product" (
     CHECK ("published_at" IS NULL OR "handle" IS NOT NULL),
   CONSTRAINT "product_project_id_id_unique" UNIQUE ("project_id", "id"),
   CONSTRAINT "product_vendor_fk"
-    FOREIGN KEY ("project_id", "vendor_id")
-    REFERENCES "catalog"."vendor" ("project_id", "id")
+    FOREIGN KEY ("vendor_id")
+    REFERENCES "catalog"."vendor" ("id")
 );
 
 CREATE UNIQUE INDEX "product_project_id_handle_key"

@@ -4,7 +4,6 @@ import {
   integer,
   boolean,
   timestamp,
-  primaryKey,
 } from "drizzle-orm/pg-core";
 import { catalogSchema } from "./schema";
 
@@ -19,7 +18,7 @@ export const productInventorySettings = catalogSchema.table(
   "product_inventory_settings",
   {
     projectId: uuid("project_id").notNull(),
-    productId: uuid("product_id").notNull(), // References Catalog.product
+    productId: uuid("product_id").primaryKey(), // References Catalog.product
     alertThresholdMethod: varchar("alert_threshold_method", { length: 20 })
       .notNull()
       .default("SAFETY_STOCK"),
@@ -29,10 +28,7 @@ export const productInventorySettings = catalogSchema.table(
     backorderMaxQty: integer("backorder_max_qty"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).defaultNow(),
-  },
-  (table) => [
-    primaryKey({ columns: [table.projectId, table.productId] }),
-  ]
+  }
 );
 
 export type ProductInventorySettings =
