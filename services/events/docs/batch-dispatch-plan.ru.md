@@ -521,24 +521,72 @@ dispatchWorkflowId = parentWorkflowId + eventType + emitKeyHash
 
 Для deferred mode это по-прежнему работает.
 
-### dispatch workflow id
+### dispatch workflow idempotency
 
-Для immediate dispatch:
+Dispatcher workflows запускаются через существующий `ServiceBroker.runWorkflow`.
+Явный DBOS workflow id строкой не передается: `ServiceBroker` передает `workflow` name и `IdempotencyContext` в `WorkflowRegistry.start`, а `@shopana/dbos` строит фактический workflow id по текущему формату:
 
 ```text
-events:dispatchEvent:{tenantId}:{eventId}
+workflow:{sha256(v1:workflow:tenantId:workflowId:stepId:callId:workflowName)}
 ```
 
-Для explicit bulk dispatch:
+Для immediate dispatch `events.emit` должен запускать `events.dispatchEvent` с idempotency context:
+
+```ts
+await this.broker.runWorkflow(
+  "events.dispatchEvent",
+  { tenantId, eventId },
+  {
+    source: "workflow",
+    workflowId: DBOS.workflowID!,
+    stepId: "dispatchEvent",
+    callId: eventId,
+    tenantId,
+  },
+);
+```
+
+Logical idempotency key для immediate dispatch:
 
 ```text
-events:dispatchBatch:{tenantId}:{eventType}:{batchKey}
+workflowName = events.dispatchEvent
+parent workflowId = current events.emit DBOS.workflowID
+stepId = dispatchEvent
+callId = eventId
+tenantId = tenantId
+```
+
+Для explicit bulk dispatch producer workflow запускает `events.dispatchBatch` с idempotency context:
+
+```ts
+await this.broker.runWorkflow(
+  "events.dispatchBatch",
+  { tenantId, eventType, batchKey },
+  {
+    source: "workflow",
+    workflowId: DBOS.workflowID!,
+    stepId: "dispatchBatch",
+    callId: `${eventType ?? "all"}:${batchKey}`,
+    tenantId,
+  },
+);
+```
+
+Logical idempotency key для explicit batch dispatch:
+
+```text
+workflowName = events.dispatchBatch
+parent workflowId = producer workflow DBOS.workflowID
+stepId = dispatchBatch
+callId = eventType + ":" + batchKey
+tenantId = tenantId
 ```
 
 Повторный start должен быть безопасным:
 
-- при повторном start для того же workflow id DBOS вернет тот же handle;
-- если события уже `dispatched`, claim query вернет пустой набор.
+- при повторном `runWorkflow` с тем же `IdempotencyContext` DBOS не создаст новый workflow и вернет сохраненный результат;
+- если события уже `dispatched`, claim query вернет пустой набор;
+- для repair scheduler использовать `source: "content"` idempotency context, например `resourceId = eventId`, `operation = "repairDispatchEvent"`, `content = { tenantId, eventId }`, `tenantId = tenantId`.
 
 ### DBOS step names
 
