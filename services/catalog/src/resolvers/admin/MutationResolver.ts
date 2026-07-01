@@ -2156,7 +2156,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   async facetValueUnmerge(args: {
     input: {
       sourceValueIds: string[];
-      emptyDisplayAction?: "DISABLE" | "DELETE" | "KEEP" | null;
     };
   }) {
     const decodedSourceValues = safeDecodeGlobalIds(
@@ -2174,8 +2173,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     const result = await this.$ctx.kernel.runScript(FacetValueUnmergeScript, {
       sourceValueIds: decodedSourceValues.ids,
-      emptyDisplayAction: args.input.emptyDisplayAction
-        ?.toLowerCase() as "disable" | "delete" | "keep" | undefined,
     });
 
     return {

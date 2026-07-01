@@ -13,7 +13,7 @@ import {
   useModalStackContext,
 } from "@/layouts/modals";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import { FacetValueEmptyDisplayAction, FacetValueKind } from "@/graphql/types";
+import { FacetValueKind } from "@/graphql/types";
 import {
   useMergeFacetValues,
   useUnmergeFacetValues,
@@ -182,7 +182,6 @@ export function FacetValueGroupModal() {
       if (removedIds.length > 0) {
         const result = await unmergeFacetValues({
           sourceValueIds: removedIds,
-          emptyDisplayAction: FacetValueEmptyDisplayAction.Disable,
         });
         if (result.userErrors.length > 0) {
           message.error(result.userErrors[0].message);

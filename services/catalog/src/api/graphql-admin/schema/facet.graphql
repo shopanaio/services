@@ -24,12 +24,6 @@ enum FacetValueKind {
   DISPLAY
 }
 
-enum FacetValueEmptyDisplayAction {
-  DISABLE
-  DELETE
-  KEEP
-}
-
 type Facet implements Node {
   id: ID!
   facetType: FacetType!
@@ -192,7 +186,6 @@ input FacetValueMergeInput {
 
 input FacetValueUnmergeInput {
   sourceValueIds: [ID!]!
-  emptyDisplayAction: FacetValueEmptyDisplayAction = DISABLE
 }
 
 input FacetValueDeleteInput {

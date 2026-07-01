@@ -2883,12 +2883,6 @@ export type FacetValueDeletePayload = {
   userErrors: Array<GenericUserError>;
 };
 
-export enum FacetValueEmptyDisplayAction {
-  Delete = 'DELETE',
-  Disable = 'DISABLE',
-  Keep = 'KEEP'
-}
-
 export enum FacetValueKind {
   Display = 'DISPLAY',
   Source = 'SOURCE'
@@ -2910,7 +2904,6 @@ export type FacetValueMergePayload = {
 };
 
 export type FacetValueUnmergeInput = {
-  emptyDisplayAction?: InputMaybe<FacetValueEmptyDisplayAction>;
   sourceValueIds: Array<Scalars['ID']['input']>;
 };
 
@@ -6203,7 +6196,6 @@ export type ResolversTypes = ResolversObject<{
   FacetValueCreatePayload: ResolverTypeWrapper<FacetValueCreatePayload>;
   FacetValueDeleteInput: FacetValueDeleteInput;
   FacetValueDeletePayload: ResolverTypeWrapper<FacetValueDeletePayload>;
-  FacetValueEmptyDisplayAction: FacetValueEmptyDisplayAction;
   FacetValueKind: FacetValueKind;
   FacetValueMergeInput: FacetValueMergeInput;
   FacetValueMergePayload: ResolverTypeWrapper<FacetValueMergePayload>;

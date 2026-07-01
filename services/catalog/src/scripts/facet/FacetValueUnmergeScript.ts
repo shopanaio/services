@@ -5,12 +5,9 @@ import {
 } from "../../kernel/BaseScript.js";
 import type { FacetValue } from "../../repositories/models/index.js";
 import type {
-  FacetValueEmptyDisplayAction,
   FacetValueUnmergeParams,
   FacetValueUnmergeResult,
 } from "./dto/index.js";
-
-const EMPTY_DISPLAY_ACTIONS = new Set(["disable", "delete", "keep"]);
 
 export class FacetValueUnmergeScript extends BaseScript<
   FacetValueUnmergeParams,
@@ -30,21 +27,6 @@ export class FacetValueUnmergeScript extends BaseScript<
             message: "sourceValueIds are required",
             field: ["sourceValueIds"],
             code: "SOURCE_VALUES_REQUIRED",
-          },
-        ],
-      };
-    }
-
-    const action = params.emptyDisplayAction ?? "disable";
-    if (!EMPTY_DISPLAY_ACTIONS.has(action)) {
-      return {
-        sourceValues: [],
-        affectedDisplayValues: [],
-        userErrors: [
-          {
-            message: "Invalid empty display action",
-            field: ["emptyDisplayAction"],
-            code: "EMPTY_DISPLAY_ACTION_INVALID",
           },
         ],
       };
@@ -73,7 +55,7 @@ export class FacetValueUnmergeScript extends BaseScript<
 
     const [detachedSourceValues, affectedDisplayValues] = await Promise.all([
       this.repository.facetValue.getByIds(sourceValueIds),
-      this.applyEmptyDisplayAction(oldDisplayIds, action),
+      this.deleteEmptyDisplayValues(oldDisplayIds),
     ]);
 
     return {
@@ -159,9 +141,8 @@ export class FacetValueUnmergeScript extends BaseScript<
     return errors;
   }
 
-  private async applyEmptyDisplayAction(
-    displayValueIds: readonly string[],
-    action: FacetValueEmptyDisplayAction
+  private async deleteEmptyDisplayValues(
+    displayValueIds: readonly string[]
   ): Promise<FacetValue[]> {
     if (displayValueIds.length === 0) {
       return [];
@@ -188,22 +169,7 @@ export class FacetValueUnmergeScript extends BaseScript<
         continue;
       }
 
-      if (action === "delete") {
-        await this.repository.facetValue.delete(displayValue.id);
-        continue;
-      }
-
-      if (action === "disable") {
-        const updated = await this.repository.facetValue.updateValue(displayValue.id, {
-          enabled: false,
-        });
-        if (updated) {
-          affectedDisplayValues.push(updated);
-        }
-        continue;
-      }
-
-      affectedDisplayValues.push(displayValue);
+      await this.repository.facetValue.delete(displayValue.id);
     }
 
     return affectedDisplayValues;

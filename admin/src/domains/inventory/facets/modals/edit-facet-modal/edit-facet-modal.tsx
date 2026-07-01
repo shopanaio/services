@@ -62,7 +62,6 @@ import { FacetUiTypeSelector } from "../components/facet-ui-type-selector";
 import { FacetValuesGrid } from "./components/facet-values-grid";
 import type { FacetValueEditorRow } from "./types";
 import {
-  FacetValueEmptyDisplayAction,
   FacetValueKind,
   FacetType,
   FacetUiType,
@@ -610,7 +609,6 @@ export function EditFacetModal() {
 
       const result = await unmergeFacetValues({
         sourceValueIds,
-        emptyDisplayAction: FacetValueEmptyDisplayAction.Disable,
       });
       if (result.userErrors.length > 0) {
         message.error(result.userErrors[0].message);

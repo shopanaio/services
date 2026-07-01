@@ -142,11 +142,8 @@ export interface FacetValueMergeParams {
   sourceValueIds: string[];
 }
 
-export type FacetValueEmptyDisplayAction = "disable" | "delete" | "keep";
-
 export interface FacetValueUnmergeParams {
   sourceValueIds: string[];
-  emptyDisplayAction?: FacetValueEmptyDisplayAction;
 }
 
 export interface FacetValueMergeResult {

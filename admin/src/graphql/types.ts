@@ -3619,12 +3619,6 @@ export type ApiFacetValueDeletePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-export enum FacetValueEmptyDisplayAction {
-  Delete = 'DELETE',
-  Disable = 'DISABLE',
-  Keep = 'KEEP'
-}
-
 export enum FacetValueKind {
   Display = 'DISPLAY',
   Source = 'SOURCE'
@@ -3646,7 +3640,6 @@ export type ApiFacetValueMergePayload = {
 };
 
 export type ApiFacetValueUnmergeInput = {
-  emptyDisplayAction?: InputMaybe<FacetValueEmptyDisplayAction>;
   sourceValueIds: Array<Scalars['ID']['input']>;
 };
 
