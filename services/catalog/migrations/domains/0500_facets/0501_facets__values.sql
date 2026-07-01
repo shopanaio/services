@@ -21,6 +21,9 @@ CREATE TABLE "catalog"."facet_value" (
   "swatch_id" uuid,
   "sort_index" integer NOT NULL DEFAULT 0,
   "enabled" boolean NOT NULL DEFAULT true,
+  "reference_status" "catalog"."reference_status" NOT NULL DEFAULT 'VALID',
+  "reference_status_changed_at" timestamp with time zone,
+  "reference_checked_at" timestamp with time zone,
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
   "updated_at" timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT "facet_value_pkey" PRIMARY KEY ("id"),
@@ -39,7 +42,9 @@ CREATE TABLE "catalog"."facet_value" (
   CONSTRAINT "facet_value_kind_check"
     CHECK ("kind" IN ('source', 'display')),
   CONSTRAINT "facet_value_display_root_check"
-    CHECK ("kind" <> 'display' OR "parent_id" IS NULL)
+    CHECK ("kind" <> 'display' OR "parent_id" IS NULL),
+  CONSTRAINT "facet_value_display_reference_status_check"
+    CHECK ("kind" <> 'display' OR "reference_status" = 'VALID')
 );
 
 CREATE UNIQUE INDEX "facet_value_source_project_facet_handle_uniq"

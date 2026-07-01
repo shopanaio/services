@@ -16,6 +16,11 @@ import {
 import { sql } from "drizzle-orm";
 import { catalogSchema } from "./schema";
 
+export const referenceStatusEnum = catalogSchema.enum("reference_status", [
+  "VALID",
+  "STALE",
+]);
+
 export const facet = catalogSchema.table(
   "facet",
   {
@@ -67,6 +72,17 @@ export const facetSource = catalogSchema.table(
       .references(() => facet.id, { onDelete: "cascade" }),
     facetType: varchar("facet_type", { length: 32 }).notNull(),
     handle: text("handle").notNull(),
+    referenceStatus: referenceStatusEnum("reference_status")
+      .notNull()
+      .default("VALID"),
+    referenceStatusChangedAt: timestamp("reference_status_changed_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    referenceCheckedAt: timestamp("reference_checked_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -142,6 +158,17 @@ export const facetValue = catalogSchema.table(
     }),
     sortIndex: integer("sort_index").notNull().default(0),
     enabled: boolean("enabled").notNull().default(true),
+    referenceStatus: referenceStatusEnum("reference_status")
+      .notNull()
+      .default("VALID"),
+    referenceStatusChangedAt: timestamp("reference_status_changed_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    referenceCheckedAt: timestamp("reference_checked_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -154,6 +181,10 @@ export const facetValue = catalogSchema.table(
     check(
       "facet_value_display_root_check",
       sql`${table.kind} <> 'display' OR ${table.parentId} IS NULL`
+    ),
+    check(
+      "facet_value_display_reference_status_check",
+      sql`${table.kind} <> 'display' OR ${table.referenceStatus} = 'VALID'`
     ),
     uniqueIndex("facet_value_source_project_facet_handle_uniq")
       .on(table.projectId, table.facetId, table.handle)

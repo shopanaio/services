@@ -6,6 +6,9 @@ CREATE TABLE "catalog"."facet_source" (
   "facet_id" uuid NOT NULL,
   "facet_type" varchar(32) NOT NULL,
   "handle" text NOT NULL,
+  "reference_status" "catalog"."reference_status" NOT NULL DEFAULT 'VALID',
+  "reference_status_changed_at" timestamp with time zone,
+  "reference_checked_at" timestamp with time zone,
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT "facet_source_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "facet_source_facet_id_fk"

@@ -11,6 +11,11 @@ CREATE TYPE "catalog"."currency" AS ENUM (
   'EUR'
 );
 
+CREATE TYPE "catalog"."reference_status" AS ENUM (
+  'VALID',
+  'STALE'
+);
+
 CREATE TYPE "catalog"."dimension_unit" AS ENUM (
   'mm',
   'cm',
