@@ -44,6 +44,11 @@ const useStyles = createStyles(({ token }) => ({
     display: "inline-flex",
     alignItems: "center",
   },
+  valueHeader: {
+    "& .ag-header-cell-label": {
+      paddingLeft: 32,
+    },
+  },
   bulkPanel: {
     display: "flex",
     alignItems: "center",
@@ -149,6 +154,7 @@ export function FacetValuesGrid({
       {
         field: "label",
         headerName: "Value",
+        headerClass: styles.valueHeader,
         flex: 1,
         minWidth: 180,
         rowDrag: true,
@@ -272,6 +278,7 @@ export function FacetValuesGrid({
       onUngroup,
       styles.groupedValues,
       styles.swatchCell,
+      styles.valueHeader,
       swatchesEnabled,
     ],
   );
