@@ -2,7 +2,7 @@
 
 ## Цель
 
-Перевести сервис `events` с текущей модели `emit -> persist -> immediate handler calls` на модель persistent outbox + batch dispatcher.
+Перевести сервис `events` на модель persistent outbox + batch dispatcher.
 
 Новая модель должна:
 
@@ -12,32 +12,6 @@
 - поддерживать batch aggregation для bulk операций;
 - сохранять idempotency и replay-безопасность DBOS workflows;
 - иметь repair scheduler для догонки зависших или неотправленных событий.
-
-## Текущее состояние
-
-Сейчас `events.emit` реализован как workflow `events.emit` в `EventDispatchWorkflow`.
-
-Текущий flow:
-
-```text
-producer workflow
-  -> broker.runWorkflow("events.emit", event)
-      -> persistEvent(domain_events)
-      -> find handlers by `${serviceName}.${eventType}`
-      -> call handlers immediately through broker.call(...)
-      -> update domain_events.status = completed
-```
-
-Таблица `domain_events` хранит dispatch metadata и `payloadHash`, но не хранит сам payload. Фактический payload сейчас живет в input DBOS workflow `events.emit`, то есть в system table DBOS, а не в доменной таблице `events`.
-
-Ограничения текущей модели:
-
-- handler delivery происходит синхронно внутри `events.emit`;
-- невозможно собрать несколько событий в один batch после завершения bulk workflow;
-- `domain_events` не является полноценной outbox-очередью;
-- нет независимого dispatcher-а, который может догонять pending events;
-- DLQ есть только как результат immediate dispatch failure;
-- replay/debug события затруднен, потому что payload не хранится в `events` domain table.
 
 ## Целевая архитектура
 
@@ -80,7 +54,7 @@ repair scheduler
 : Ключ группировки, задаваемый producer-ом или вычисляемый events service. Для bulk update это может быть `bulkJobId`.
 
 `aggregateKey`
-: Ключ сущности внутри batch-а. Например `product:<productId>`. Нужен для coalescing, когда в батче надо оставить последнее событие по сущности.
+: Ключ сущности внутри batch-а. Например `product:<productId>`. Нужен для coalescing, когда в батче надо выбрать последнее событие по сущности.
 
 `dispatchAfter`
 : Время, раньше которого событие не должно доставляться. Используется для batch window и retry delay.
@@ -89,7 +63,7 @@ repair scheduler
 
 ### domain_events
 
-Расширить текущую таблицу `domain_events`.
+Изменить таблицу `domain_events`.
 
 ```text
 domain_events
@@ -154,7 +128,7 @@ idx_domain_events_correlation
 
 Примечание по payload:
 
-- Для MVP хранить payload в `jsonb`.
+- В первой итерации хранить payload в `jsonb`.
 - Если payload станет большим, добавить `payload_ref` и выносить тело в MinIO, но не усложнять первую итерацию.
 
 ### event_dispatch_attempts
@@ -177,11 +151,11 @@ event_dispatch_attempts
   created_at timestamptz not null default now()
 ```
 
-Для batch handler можно писать одну запись на event-handler pair или одну summary-запись на batch. Для MVP достаточно summary в `domain_events.handler_results`; таблицу попыток можно добавить во второй фазе, если нужно не перегружать миграцию.
+Записывать одну попытку на пару event-handler. Summary по batch можно дополнительно хранить в `domain_events.handler_results`.
 
 ### dead_letter_queue
 
-Оставить текущую DLQ, но расширить смысл:
+Использовать DLQ как конечное хранилище недоставленных событий:
 
 - запись создается dispatcher-ом после исчерпания retry;
 - для batch handler failure можно писать DLQ на каждое eventId в batch-е;
@@ -249,7 +223,7 @@ interface EventDispatchPolicy {
 }
 ```
 
-MVP policies:
+Политики первой итерации:
 
 ```ts
 productUpdated:
@@ -294,7 +268,7 @@ events.emit
 - не вызывать handlers в `events.emit`;
 - insert должен быть idempotent через deterministic `eventId`;
 - при replay workflow повторный insert не должен менять уже dispatching/dispatched событие;
-- если событие уже существует, return должен быть стабильным.
+- при повторном emit для того же deterministic `eventId` return должен быть стабильным.
 
 ### events.dispatchDueEvents
 
@@ -366,7 +340,7 @@ Flow такой же, но фильтр по `batchKey`. Bulk workflow вызы�
 
 ### Repair scheduler
 
-Оставить Nest `CleanupScheduler`, но добавить новый scheduler или расширить текущий:
+Добавить scheduler для repair-задач:
 
 ```text
 every minute:
@@ -382,7 +356,7 @@ Scheduler не должен быть основным механизмом laten
 
 ## Handler contract
 
-Все event handlers в новой системе должны принимать batch. Single-event fallback не предусматривается.
+Все event handlers в новой системе должны принимать batch.
 
 ```ts
 @BatchEventHandler("productUpdated")
@@ -421,10 +395,10 @@ keep latest event by timestamp/createdAt
 merge payload only if merge strategy exists
 ```
 
-MVP:
+Первая итерация:
 
 - не пытаться deep-merge payload;
-- для `productUpdated` оставить последнее событие по `product:<id>`;
+- для `productUpdated` выбирать последнее событие по `product:<id>`;
 - если нужен полный итоговый snapshot, consumer должен перечитать product или отдельный aggregator должен собрать snapshot.
 
 Расширение:
@@ -437,15 +411,6 @@ interface Coalescer {
 ```
 
 ## Bulk update integration
-
-Текущий bulk flow:
-
-```text
-catalog.productBulkEdit
-  -> for each product group:
-       catalog.productUpdate
-          -> events.emit(productUpdated)
-```
 
 Новый flow:
 
@@ -463,7 +428,7 @@ catalog.productBulkEdit
 
 - расширить `ProductUpdateWorkflowInput` event dispatch context;
 - при bulk передавать `batchKey`;
-- в обычном product update ничего не менять на уровне caller-а: default `trigger=auto`;
+- для product update вне bulk использовать default `trigger=auto`;
 - после финализации bulk job вызвать `events.dispatchBatch`.
 
 Пример:
@@ -489,7 +454,7 @@ await this.broker.runWorkflow(
 
 ### eventId
 
-Оставить deterministic event id:
+Использовать deterministic event id:
 
 ```text
 eventId = hash(tenantId + dispatchWorkflowId)
@@ -514,7 +479,7 @@ events:dispatchBatch:{tenantId}:{eventType}:{batchKey}
 
 Повторный start должен быть безопасным:
 
-- если workflow уже был запущен, DBOS вернет existing handle;
+- при повторном start для того же workflow id DBOS вернет тот же handle;
 - если события уже dispatched, claim query вернет пустой набор.
 
 ### handler idempotency
@@ -538,7 +503,7 @@ Dispatcher вызывает handlers через DBOS steps.
 Retry policy:
 
 - retryable handler response -> retry DBOS step;
-- timeout -> non-retryable для текущей попытки, записать failure;
+- timeout -> non-retryable для активной попытки, записать failure;
 - non-retryable error -> не retry, сразу DLQ;
 - retry attempts exhausted -> DLQ.
 
@@ -569,7 +534,7 @@ lock fields cleared
 
 Если часть handlers успешна, а часть failed:
 
-- MVP: событие считается `failed`, успешные handler results сохраняются, failed handler уходит в DLQ.
+- В первой итерации событие считается `failed`, успешные handler results сохраняются, failed handler уходит в DLQ.
 - Следующая версия: хранить per-handler state, чтобы retry не вызывал уже успешные handlers повторно.
 
 ## Фазы внедрения
@@ -584,14 +549,14 @@ lock fields cleared
   - `markRetryScheduled`;
   - `markFailed`;
   - `releaseExpiredLocks`.
-- Сохранить текущий `addToDLQ`.
-- Не менять producer services.
+- Реализовать запись в DLQ через обновленный repository API.
+- Подготовить producer services к передаче `batchKey`, `aggregateKey`, `dispatch.trigger`.
 
 Результат: schema и repository API готовы для новой модели dispatch.
 
 ### Фаза 2. Разделить emit и dispatch
 
-- Удалить immediate delivery из `events.emit`.
+- Удалить прямой вызов handlers из `events.emit`.
 - Изменить `events.emit`: только persist pending event.
 - Добавить `events.dispatchDueEvents`.
 - Добавить auto trigger после persist.
@@ -603,7 +568,7 @@ lock fields cleared
 
 - Добавить `@BatchEventHandler`.
 - Добавить batch action registration.
-- Перевести существующие event consumers на batch handler contract.
+- Реализовать event consumers через batch handler contract.
 - Добавить event policies.
 
 Результат: все event consumers работают через batch contract.
@@ -613,7 +578,7 @@ lock fields cleared
 - Расширить `ProductUpdateWorkflowInput` dispatch context.
 - В bulk передавать `batchKey=bulk:${jobId}` и `trigger=none`.
 - После finalize запускать `events.dispatchBatch`.
-- Для обычных product updates оставить auto trigger.
+- Для product updates вне bulk использовать auto trigger.
 
 Результат: bulk update обновляет все продукты, затем одним dispatch workflow отправляет batch.
 
@@ -639,11 +604,11 @@ lock fields cleared
 
 ### Риск: payload в jsonb раздует таблицу
 
-MVP принимает этот риск. Добавить retention и индексы только на metadata. Если payload станет большим, вынести тело в object storage.
+Первая итерация принимает этот риск. Добавить retention и индексы только на metadata. Если payload станет большим, вынести тело в object storage.
 
 ### Риск: повторная доставка successful handler-ам
 
-MVP допускает at-least-once delivery. Handlers должны быть idempotent. Позже можно добавить per-handler state.
+Первая итерация допускает at-least-once delivery. Handlers должны быть idempotent. Позже можно добавить per-handler state.
 
 ### Риск: coalescing потеряет важную delta-информацию
 
@@ -651,16 +616,16 @@ MVP допускает at-least-once delivery. Handlers должны быть id
 
 ### Риск: producer workflow ждет dispatch
 
-Bulk explicit dispatch может запускаться как отдельный workflow и не блокировать result bulk mutation. Для текущего `broker.runWorkflow` можно добавить `startWorkflow` без `getResult`, если нужен fire-and-observe. В MVP можно дождаться dispatch, если latency приемлемая.
+Bulk explicit dispatch может запускаться как отдельный workflow и не блокировать result bulk mutation. Если нужен fire-and-observe, добавить broker API для `startWorkflow` без ожидания `getResult`. В первой итерации можно дождаться dispatch, если latency приемлемая.
 
 ### Риск: scheduler запустит dispatch одновременно с explicit bulk dispatch
 
 Claim query с `FOR UPDATE SKIP LOCKED` и lock fields должна сделать это безопасным. Повторный dispatch workflow должен просто не найти due events.
 
-## Решения для MVP
+## Решения первой итерации
 
 - Payload хранить в `domain_events.payload jsonb`.
-- Default dispatch mode сделать deferred.
+- Поведение dispatch по умолчанию: durable-запись в outbox и auto trigger.
 - Batch window для default events: 1 секунда.
 - Для `productUpdated`: 5 секунд и coalesce по `aggregateKey`.
 - Для bulk update: explicit `events.dispatchBatch` после finalize.
@@ -696,8 +661,8 @@ Events service:
 Shared packages:
 
 - `packages/events/src/types.ts`
-- `packages/shared-kernel/src/decorators/EventHandler.ts`
-- `packages/shared-kernel/src/broker/EventHandlers.ts`
+- `packages/shared-kernel/src/decorators/BatchEventHandler.ts`
+- `packages/shared-kernel/src/broker/BatchEventHandlers.ts`
 
 Catalog bulk integration:
 
