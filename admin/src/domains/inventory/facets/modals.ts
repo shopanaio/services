@@ -2,9 +2,11 @@ import { createModalStackHook } from "@/layouts/modals";
 import type { IModalStackPayload } from "@/layouts/modals/types";
 import type { FacetType, FacetUiType } from "@/graphql/types";
 import type { FacetValueEditorRow } from "./modals/edit-facet-modal/types";
+import type { FacetSourcePickerEntity } from "./pickers/facet-source-picker-config";
 
 export const FACET_CREATE_MODAL_TYPE = "facet-create";
 export const FACET_EDIT_MODAL_TYPE = "facet-edit";
+export const FACET_SOURCE_PICKER_MODAL_TYPE = "facet-source-picker";
 export const FACET_VALUE_LINK_SOURCES_MODAL_TYPE = "facet-value-link-sources";
 export const FACET_VALUES_MERGE_MODAL_TYPE = "facet-values-merge";
 export const FACET_VALUE_GROUP_MODAL_TYPE = "facet-value-group";
@@ -33,6 +35,16 @@ export interface ICreateFacetModalPayload extends IModalStackPayload {
 export interface IEditFacetModalPayload extends IModalStackPayload {
   facetId: string;
   onSaved?: () => Promise<unknown> | unknown;
+}
+
+export interface IFacetSourcePickerModalPayload extends IModalStackPayload {
+  selectionMode?: "single" | "multi";
+  initialSelection?: string[];
+  excludeIds?: string[];
+  maxSelection?: number;
+  queryMeta?: unknown;
+  initialFacetType?: FacetType;
+  onConfirm: (entities: FacetSourcePickerEntity[], ids: string[]) => void;
 }
 
 export interface ILinkSourceValuesModalPayload extends IModalStackPayload {
@@ -73,6 +85,7 @@ declare module "@/layouts/modals" {
   interface ModalStackPayloads {
     [FACET_CREATE_MODAL_TYPE]: ICreateFacetModalPayload;
     [FACET_EDIT_MODAL_TYPE]: IEditFacetModalPayload;
+    [FACET_SOURCE_PICKER_MODAL_TYPE]: IFacetSourcePickerModalPayload;
     [FACET_VALUE_LINK_SOURCES_MODAL_TYPE]: ILinkSourceValuesModalPayload;
     [FACET_VALUES_MERGE_MODAL_TYPE]: IFacetValuesMergeModalPayload;
     [FACET_VALUE_GROUP_MODAL_TYPE]: IFacetValueGroupModalPayload;
@@ -84,6 +97,9 @@ declare module "@/layouts/modals" {
 export const useCreateFacetModal =
   createModalStackHook(FACET_CREATE_MODAL_TYPE);
 export const useEditFacetModal = createModalStackHook(FACET_EDIT_MODAL_TYPE);
+export const useFacetSourcePickerModal = createModalStackHook(
+  FACET_SOURCE_PICKER_MODAL_TYPE,
+);
 export const useLinkSourceValuesModal = createModalStackHook(
   FACET_VALUE_LINK_SOURCES_MODAL_TYPE,
 );

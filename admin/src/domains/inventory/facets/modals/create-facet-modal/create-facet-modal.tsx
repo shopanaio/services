@@ -24,7 +24,10 @@ import {
   mapFacetUserErrorsToFormErrors,
 } from "../../mappers";
 import { useCreateFacet } from "../../hooks";
-import type { ICreateFacetModalPayload } from "../../modals";
+import {
+  useFacetSourcePickerModal,
+  type ICreateFacetModalPayload,
+} from "../../modals";
 import { FacetUiTypeSelector } from "../components/facet-ui-type-selector";
 import {
   createFacetSchema,
@@ -32,8 +35,6 @@ import {
   type CreateFacetFormValues,
 } from "./schema";
 import { FacetType } from "@/graphql/types";
-import { useEntityPicker } from "@/shared/components/entity-picker-modal";
-import "../../pickers/facet-source-picker-config";
 import type { FacetSourcePickerEntity } from "../../pickers/facet-source-picker-config";
 import { FacetValueCandidatesGrid } from "./facet-value-candidates-grid";
 
@@ -192,92 +193,112 @@ export function CreateFacetModal() {
     [facetType, sourceHandles],
   );
 
-  const { openPicker } = useEntityPicker<FacetSourcePickerEntity>({
-    entityType: "facet-source",
-    selectionMode: "multi",
-    initialSelection: initialSourceSelection,
-    queryMeta: {
-      allowedFacetTypes: [
-        FacetType.Price,
-        FacetType.Tag,
-        FacetType.Option,
-        FacetType.Feature,
-        FacetType.InStock,
-      ],
-    },
-    onConfirm: (selectedSourceEntities, selectedIds) => {
-      const selectedSourceById = new Map(
-        selectedSourceEntities.map((source) => [source.id, source]),
-      );
-      for (const source of sources ?? []) {
-        const id = `${facetType}:${source.handle}`;
-        if (!selectedIds.includes(id) || selectedSourceById.has(id)) continue;
-        selectedSourceById.set(id, {
-          id,
-          title: source.name,
-          facetType,
-          handle: source.handle,
-          name: source.name,
-          typeLabel: getFacetSourceTypeLabel(facetType),
-        });
-      }
-      const selectedSources = selectedIds
-        .map((id) => selectedSourceById.get(id))
-        .filter((source): source is FacetSourcePickerEntity => Boolean(source));
+  const { push: openFacetSourcePicker } = useFacetSourcePickerModal();
+  const openPicker = useCallback(() => {
+    openFacetSourcePicker({
+      selectionMode: "multi",
+      initialSelection: initialSourceSelection,
+      initialFacetType: sources?.length ? facetType : undefined,
+      queryMeta: {
+        allowedFacetTypes: [
+          FacetType.Price,
+          FacetType.Tag,
+          FacetType.Option,
+          FacetType.Feature,
+          FacetType.InStock,
+        ],
+      },
+      onConfirm: (
+        selectedSourceEntities: FacetSourcePickerEntity[],
+        selectedIds: string[],
+      ) => {
+        const selectedSourceById = new Map(
+          selectedSourceEntities.map((source) => [source.id, source]),
+        );
+        for (const source of sources ?? []) {
+          const id = `${facetType}:${source.handle}`;
+          if (!selectedIds.includes(id) || selectedSourceById.has(id)) continue;
+          selectedSourceById.set(id, {
+            id,
+            title: source.name,
+            facetType,
+            handle: source.handle,
+            name: source.name,
+            typeLabel: getFacetSourceTypeLabel(facetType),
+          });
+        }
+        const selectedSources = selectedIds
+          .map((id) => selectedSourceById.get(id))
+          .filter((source): source is FacetSourcePickerEntity =>
+            Boolean(source),
+          );
 
-      const firstSelectedSource = selectedSources[0];
-      if (!firstSelectedSource) return;
-      const selectedFacetType = firstSelectedSource.facetType;
-      const hasMixedFacetTypes = selectedSources.some(
-        (source) => source.facetType !== selectedFacetType,
-      );
+        const firstSelectedSource = selectedSources[0];
+        if (!firstSelectedSource) return;
+        const selectedFacetType = firstSelectedSource.facetType;
+        const hasMixedFacetTypes = selectedSources.some(
+          (source) => source.facetType !== selectedFacetType,
+        );
 
-      if (hasMixedFacetTypes) {
-        setError("sources", {
-          message: "Select sources from one facet type",
-        });
-        message.error("Select sources from one facet type.");
-        return;
-      }
+        if (hasMixedFacetTypes) {
+          setError("sources", {
+            message: "Select sources from one facet type",
+          });
+          message.error("Select sources from one facet type.");
+          return;
+        }
 
-      if (
-        selectedSources.length > 1 &&
-        !MULTI_SOURCE_FACET_TYPES.has(selectedFacetType)
-      ) {
-        setError("sources", {
-          message: "Only option and feature facets can use multiple sources",
-        });
-        message.error("Only option and feature facets can use multiple sources.");
-        return;
-      }
+        if (
+          selectedSources.length > 1 &&
+          !MULTI_SOURCE_FACET_TYPES.has(selectedFacetType)
+        ) {
+          setError("sources", {
+            message: "Only option and feature facets can use multiple sources",
+          });
+          message.error(
+            "Only option and feature facets can use multiple sources.",
+          );
+          return;
+        }
 
-      setValue("facetType", selectedFacetType, {
-        shouldValidate: true,
-        shouldDirty: true,
-      });
-      setValue(
-        "sources",
-        selectedSources.map((source) => ({
-          handle: source.handle,
-          name: source.name,
-        })),
-        { shouldValidate: true, shouldDirty: true },
-      );
-      clearErrors("sources");
-      setValue("selectedValueCandidates", [], {
-        shouldValidate: true,
-        shouldDirty: true,
-      });
-
-      const allowed = getAllowedFacetUiTypes(selectedFacetType);
-      if (!allowed.includes(uiType)) {
-        setValue("uiType", getDefaultFacetUiType(selectedFacetType), {
+        setValue("facetType", selectedFacetType, {
           shouldValidate: true,
           shouldDirty: true,
         });
-      }
-    },
-  });
+        setValue(
+          "sources",
+          selectedSources.map((source) => ({
+            handle: source.handle,
+            name: source.name,
+          })),
+          { shouldValidate: true, shouldDirty: true },
+        );
+        clearErrors("sources");
+        setValue("selectedValueCandidates", [], {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
+
+        const allowed = getAllowedFacetUiTypes(selectedFacetType);
+        if (!allowed.includes(uiType)) {
+          setValue("uiType", getDefaultFacetUiType(selectedFacetType), {
+            shouldValidate: true,
+            shouldDirty: true,
+          });
+        }
+      },
+    });
+  }, [
+    clearErrors,
+    facetType,
+    initialSourceSelection,
+    message,
+    openFacetSourcePicker,
+    setError,
+    setValue,
+    sources,
+    uiType,
+  ]);
 
   useEffect(() => {
     setValue("slug", slugify(label), { shouldValidate: Boolean(label) });

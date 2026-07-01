@@ -418,6 +418,14 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
       ),
     },
     {
+      type: 'facet-source-picker',
+      component: dynamic(() =>
+        import('@/domains/inventory/facets/modals/facet-source-picker-modal').then(
+          (m) => m.FacetSourcePickerModal
+        )
+      ),
+    },
+    {
       type: 'facet-value-link-sources',
       component: dynamic(() =>
         import('@/domains/inventory/facets/modals/link-source-values-modal').then(
