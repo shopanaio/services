@@ -10,16 +10,16 @@ export const FACET_SOURCE_HANDLE_LABELS: Partial<
     availability: "Availability",
   },
   [FacetType.Tag]: {
-    tags: "Tags",
+    tags: "Product Tags",
   },
 };
 
 export const FACET_TYPE_LABELS: Record<FacetType, string> = {
-  [FacetType.Price]: "Price",
-  [FacetType.InStock]: "Availability",
-  [FacetType.Tag]: "Tags",
-  [FacetType.Option]: "Options",
-  [FacetType.Feature]: "Features",
+  [FacetType.Price]: "Standard",
+  [FacetType.InStock]: "Standard",
+  [FacetType.Tag]: "Standard",
+  [FacetType.Option]: "Product Option",
+  [FacetType.Feature]: "Product Feature",
 };
 
 export function getFacetTypeLabel(facetType: FacetType): string {

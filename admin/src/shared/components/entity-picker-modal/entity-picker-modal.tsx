@@ -64,11 +64,11 @@ export function EntityPickerModal() {
 
   return (
     <ModalLayout
-      fullWidth
       name="entity-picker"
       bodyClassName="entity-picker-body"
       header={
         <ModalHeader
+          name="entity-picker"
           title={`Select ${config.entityNamePlural}`}
           onClose={handleCancel}
           submitButtonProps={{
