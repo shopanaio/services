@@ -1,43 +1,57 @@
-# План перехода Events на отложенный batch dispatch
+# План перехода Events на explicit batch dispatch
 
 ## Цель
 
-Перевести сервис `events` на модель persistent outbox + batch dispatcher.
+Перевести сервис `events` на модель persistent outbox + dispatcher с двумя режимами доставки:
+
+- обычные события dispatch-ятся сразу после durable записи;
+- batch-события dispatch-ятся явно в конце producer workflow как durable step.
 
 Новая модель должна:
 
 - сохранять каждое доменное событие как durable запись с payload;
-- не вызывать handlers сразу из `events.emit`;
-- запускать отдельный dispatch workflow, который забирает pending events батчами;
-- поддерживать batch aggregation для bulk операций;
-- сохранять idempotency и replay-безопасность DBOS workflows;
-- иметь repair scheduler для догонки зависших или неотправленных событий.
+- не вызывать handlers напрямую из `events.emit`;
+- сохранять replay-безопасность DBOS workflows;
+- использовать DBOS retry settings как основной механизм retry handler-ов;
+- поддерживать explicit batch boundary для bulk/import/job workflows;
+- иметь repair scheduler для догонки событий, зависших после падения процесса.
 
 ## Целевая архитектура
 
 ```text
-producer workflow
-  -> events.emit
+обычный producer workflow
+  -> events.emit(dispatch.mode = immediate)
       -> insert domain_events(status = pending, payload = jsonb)
-      -> optionally trigger dispatch workflow
+      -> start events.dispatchEvent(eventId)
 
-events.dispatchDueEvents
-  -> claim due pending events
-  -> group events by batch policy
+bulk producer workflow
+  -> events.emit(dispatch.mode = deferred, batchKey = bulkJobId)
+      -> insert domain_events(status = pending, payload = jsonb)
+  -> events.emit(dispatch.mode = deferred, batchKey = bulkJobId)
+      -> insert domain_events(status = pending, payload = jsonb)
+  -> finalize job
+  -> durable step:
+       events.dispatchBatch(batchKey = bulkJobId)
+
+events.dispatchEvent / events.dispatchBatch
+  -> claim pending events
   -> resolve handlers
-  -> call batch handlers
-  -> mark events dispatched / retry_scheduled / failed
-  -> write DLQ when retry policy is exhausted
+  -> call batch handlers through DBOS steps with retry settings
+  -> mark events dispatched / failed
+  -> write DLQ when DBOS retry is exhausted
 
 repair scheduler
-  -> periodically starts dispatchDueEvents for due pending/retry events
+  -> releases stale dispatching locks back to pending
+  -> optionally dispatches old pending immediate events
 ```
 
 Главное разделение ответственности:
 
-- `events.emit` отвечает только за durable запись события.
-- `events.dispatchDueEvents` отвечает за доставку.
-- producer workflows не должны знать, сколько handlers будет вызвано и как они батчатся.
+- `events.emit` отвечает за durable запись события и выбор delivery mode.
+- `events.dispatchEvent` отвечает за immediate delivery одного обычного события.
+- `events.dispatchBatch` отвечает за explicit batch delivery по `batchKey`.
+- Producer workflow сам задает batch boundary, когда бизнес-процесс знает момент завершения batch-а.
+- Retry handler-ов принадлежит DBOS step settings, а не `dispatch_after`/polling retry.
 
 ## Термины
 
@@ -45,19 +59,22 @@ repair scheduler
 : Одна доменная запись, например `productUpdated`.
 
 `outbox`
-: Набор событий в `domain_events` со статусами `pending`, `dispatching`, `retry_scheduled`.
+: Набор событий в `domain_events` со статусами `pending` или `dispatching`.
+
+`immediate dispatch`
+: Режим по умолчанию. Событие записывается в outbox и сразу запускается dispatch workflow для этого eventId.
+
+`deferred batch`
+: Режим для bulk/import/job workflows. События записываются с `batchKey`, но не dispatch-ятся до явного `events.dispatchBatch`.
 
 `batch`
 : Группа событий, доставляемая одному handler-у одним вызовом.
 
 `batchKey`
-: Ключ группировки, задаваемый producer-ом или вычисляемый events service. Для bulk update это может быть `bulkJobId`.
+: Ключ explicit batch-а, задаваемый producer workflow. Для bulk update это `bulk:${jobId}`.
 
 `aggregateKey`
-: Ключ сущности внутри batch-а. Например `product:<productId>`. Нужен для coalescing, когда в батче надо выбрать последнее событие по сущности.
-
-`dispatchAfter`
-: Время, раньше которого событие не должно доставляться. Используется для batch window и retry delay.
+: Ключ сущности внутри batch-а, например `product:<productId>`. Нужен handler-ам для aggregation/coalescing, но dispatcher первой итерации не должен терять события по этому ключу.
 
 ## Модель данных
 
@@ -88,10 +105,11 @@ domain_events
   payload jsonb not null
   payload_hash text not null
 
+  dispatch_mode text not null
+    -- immediate | deferred
   status text not null
-    -- pending | dispatching | dispatched | retry_scheduled | failed
+    -- pending | dispatching | dispatched | failed
 
-  dispatch_after timestamptz not null default now()
   batch_key text null
   aggregate_key text null
 
@@ -110,14 +128,14 @@ domain_events
 Индексы:
 
 ```text
-idx_domain_events_due
-  (status, dispatch_after, created_at)
+idx_domain_events_pending
+  (status, created_at)
 
 idx_domain_events_lock
   (locked_until)
 
 idx_domain_events_batch
-  (tenant_id, event_type, batch_key, dispatch_after)
+  (tenant_id, event_type, batch_key, created_at)
 
 idx_domain_events_subject_timeline
   (tenant_id, subject_type, subject_id, timestamp)
@@ -130,6 +148,7 @@ idx_domain_events_correlation
 
 - В первой итерации хранить payload в `jsonb`.
 - Если payload станет большим, добавить `payload_ref` и выносить тело в MinIO, но не усложнять первую итерацию.
+- Текущий status constraint `dispatching | completed` должен быть заменен на новые статусы.
 
 ### event_dispatch_attempts
 
@@ -151,21 +170,29 @@ event_dispatch_attempts
   created_at timestamptz not null default now()
 ```
 
-Записывать одну попытку на пару event-handler. Summary по batch можно дополнительно хранить в `domain_events.handler_results`.
+Записывать summary после завершения DBOS step для пары event-handler. Полный текущий per-handler state в первой итерации не вводить.
 
 ### dead_letter_queue
 
 Использовать DLQ как конечное хранилище недоставленных событий:
 
-- запись создается dispatcher-ом после исчерпания retry;
-- для batch handler failure можно писать DLQ на каждое eventId в batch-е;
-- `attempts` должен отражать фактическое число попыток доставки.
+- запись создается dispatcher-ом после исчерпания DBOS retry;
+- для batch handler failure писать DLQ на каждое eventId в batch-е;
+- `attempts` должен отражать фактическое число DBOS attempts по policy.
 
 ## Event emit API
 
-Текущий input `events.emit` расширить.
+Текущий input `events.emit` расширить явным dispatch mode.
 
 ```ts
+type EmitDispatchOptions =
+  | { mode?: "immediate" }
+  | {
+      mode: "deferred";
+      batchKey: string;
+      aggregateKey?: string;
+    };
+
 interface EmitParams<TType extends string = string, TPayload = unknown> {
   eventType: TType;
   payload: TPayload;
@@ -174,46 +201,40 @@ interface EmitParams<TType extends string = string, TPayload = unknown> {
   subject: { type: string; id: string };
   actor?: { type: "user" | "service" | "system"; id?: string };
   emitKey: string;
-
-  dispatch?: {
-    dispatchAfter?: string;
-    batchKey?: string;
-    aggregateKey?: string;
-    trigger?: "none" | "auto";
-  };
+  dispatch?: EmitDispatchOptions;
 }
 ```
 
 Правила:
 
-- default `trigger = "auto"`;
-- `batchKey` задается producer-ом, если producer знает бизнес-группу;
+- default `dispatch.mode = "immediate"`;
+- `immediate` persist-ит event и запускает `events.dispatchEvent(eventId)`;
+- `deferred` persist-ит event с `batchKey` и не запускает dispatch;
+- `batchKey` обязателен для `deferred`;
 - `aggregateKey` задается producer-ом или вычисляется как `${subject.type}:${subject.id}`;
-- `dispatchAfter` вычисляется по event policy, если не передан явно.
+- `dispatchAfter` и `batchWindowMs` не используются в первой итерации.
 
 Для bulk update:
 
 ```ts
 dispatch: {
+  mode: "deferred",
   batchKey: `bulk:${jobId}`,
   aggregateKey: `product:${productId}`,
-  trigger: "none"
 }
 ```
 
-После завершения bulk workflow он сам запускает dispatch для `batchKey`.
+После завершения bulk workflow он запускает `events.dispatchBatch` для `batchKey` как durable step.
 
-## Batch policy registry
+## Dispatch policy registry
 
 Добавить policy registry в `events`.
 
 ```ts
 interface EventDispatchPolicy {
   eventType: string;
-  batchWindowMs: number;
   maxBatchSize: number;
   groupBy: Array<"tenantId" | "eventType" | "batchKey" | "source">;
-  coalesceBy?: "aggregateKey" | "subject" | "none";
   retry: {
     maxAttempts: number;
     intervalSeconds: number;
@@ -227,22 +248,31 @@ interface EventDispatchPolicy {
 
 ```ts
 productUpdated:
-  batchWindowMs: 5000
   maxBatchSize: 500
   groupBy: ["tenantId", "eventType", "batchKey"]
-  coalesceBy: "aggregateKey"
+  retry:
+    maxAttempts: 5
+    intervalSeconds: 1
+    backoffRate: 2
+  handlerTimeoutMs: 30000
 
 fileHardDeleted:
-  batchWindowMs: 0
   maxBatchSize: 100
   groupBy: ["tenantId", "eventType"]
-  coalesceBy: "none"
+  retry:
+    maxAttempts: 10
+    intervalSeconds: 1
+    backoffRate: 2
+  handlerTimeoutMs: 30000
 
 default:
-  batchWindowMs: 1000
   maxBatchSize: 100
   groupBy: ["tenantId", "eventType"]
-  coalesceBy: "none"
+  retry:
+    maxAttempts: 3
+    intervalSeconds: 1
+    backoffRate: 2
+  handlerTimeoutMs: 30000
 ```
 
 Policy registry должен жить в коде, не в БД, пока нет runtime-конфигурации событий.
@@ -256,74 +286,47 @@ Policy registry должен жить в коде, не в БД, пока нет
 ```text
 events.emit
   -> build deterministic eventId
-  -> resolve policy
+  -> resolve dispatch mode
   -> persist event with status pending
-  -> if trigger=auto:
-       start events.dispatchDueEvents for computed dispatch bucket
-  -> return eventId/status
+  -> if mode=immediate:
+       start events.dispatchEvent(eventId)
+  -> if mode=deferred:
+       do not dispatch now
+  -> return eventId/status/dispatchMode
 ```
 
 Важно:
 
-- не вызывать handlers в `events.emit`;
+- не вызывать handlers напрямую в `events.emit`;
 - insert должен быть idempotent через deterministic `eventId`;
-- при replay workflow повторный insert не должен менять уже dispatching/dispatched событие;
+- при replay workflow повторный insert не должен менять уже `dispatching`/`dispatched` event;
 - при повторном emit для того же deterministic `eventId` return должен быть стабильным.
 
-### events.dispatchDueEvents
+### events.dispatchEvent
+
+Для обычных событий.
 
 Input:
 
 ```ts
-interface DispatchDueEventsInput {
-  tenantId?: string;
-  eventType?: string;
-  batchKey?: string;
-  limit?: number;
-  now?: string;
+interface DispatchEventInput {
+  tenantId: string;
+  eventId: string;
 }
 ```
 
 Flow:
 
 ```text
-events.dispatchDueEvents
-  -> claim due events
-  -> group claimed events by policy
-  -> for each group:
-       dispatch group to batch handlers
-  -> mark events with final status
+events.dispatchEvent
+  -> claim one pending event by eventId
+  -> dispatch as a batch with one event
+  -> mark event with final status
 ```
-
-Claim query должна использовать row locking:
-
-```sql
-SELECT event_id
-FROM domain_events
-WHERE status IN ('pending', 'retry_scheduled')
-  AND dispatch_after <= now()
-  AND (locked_until IS NULL OR locked_until < now())
-  AND optional filters...
-ORDER BY dispatch_after ASC, created_at ASC
-LIMIT :limit
-FOR UPDATE SKIP LOCKED
-```
-
-Затем:
-
-```text
-status = dispatching
-locked_by = dispatcher workflow id
-locked_until = now + lock ttl
-attempts = attempts + 1
-dispatch_started_at = now
-```
-
-Lock TTL нужен, чтобы repair scheduler мог подобрать события после падения процесса.
 
 ### events.dispatchBatch
 
-Для явных batch boundaries, например bulk update.
+Для explicit batch boundaries, например bulk update.
 
 Input:
 
@@ -336,27 +339,73 @@ interface DispatchBatchInput {
 }
 ```
 
-Flow такой же, но фильтр по `batchKey`. Bulk workflow вызывает этот workflow после `stepFinalizeJob(jobId)`.
+Flow:
+
+```text
+events.dispatchBatch
+  -> claim pending deferred events by tenantId/batchKey/eventType
+  -> group claimed events by policy
+  -> for each group:
+       dispatch group to batch handlers through DBOS steps
+  -> mark events with final status
+```
+
+Bulk workflow вызывает этот workflow после `stepFinalizeJob(jobId)`.
+
+### Claim query
+
+Claim должен быть атомарным: выбрать и перевести в `dispatching` в одной транзакции.
+
+```sql
+WITH claimed AS (
+  SELECT event_id
+  FROM domain_events
+  WHERE status = 'pending'
+    AND tenant_id = :tenantId
+    AND optional filters...
+  ORDER BY created_at ASC
+  LIMIT :limit
+  FOR UPDATE SKIP LOCKED
+)
+UPDATE domain_events
+SET
+  status = 'dispatching',
+  locked_by = :dispatcherWorkflowId,
+  locked_until = now() + :lockTtl,
+  attempts = attempts + 1,
+  dispatch_started_at = coalesce(dispatch_started_at, now()),
+  updated_at = now()
+WHERE event_id IN (SELECT event_id FROM claimed)
+RETURNING *;
+```
+
+Для `dispatchEvent` optional filters включают `event_id = :eventId`.
+Для `dispatchBatch` optional filters включают `batch_key = :batchKey`, `dispatch_mode = 'deferred'`, optional `event_type`.
+
+Lock TTL нужен, чтобы repair scheduler мог подобрать события после падения процесса.
 
 ### Repair scheduler
 
 Добавить scheduler для repair-задач:
 
 ```text
-every minute:
-  broker.runWorkflow("events.dispatchDueEvents", { limit: 1000 }, deterministic id)
-
 every 5 minutes:
   release stale dispatching locks:
     status=dispatching and locked_until < now()
-    -> status=retry_scheduled
+    -> status=pending
+       locked_by=null
+       locked_until=null
+
+every minute:
+  find old pending immediate events
+  -> start events.dispatchEvent(eventId) with deterministic repair id
 ```
 
-Scheduler не должен быть основным механизмом latency. Он нужен как страховка.
+Scheduler не должен быть основным механизмом latency. Он нужен как страховка после падения между persist и dispatch или после stale lock.
 
 ## Handler contract
 
-Все event handlers в новой системе должны принимать batch.
+Все event handlers в новой системе должны принимать batch. Immediate event тоже доставляется как batch из одного event.
 
 ```ts
 @BatchEventHandler("productUpdated")
@@ -379,34 +428,39 @@ async handleProductUpdatedBatch(params: {
 
 Базовая реализация может сделать проще:
 
+- добавить `BatchEventHandler` decorator;
 - добавить `BatchEventHandlers` base class;
 - регистрировать action `${serviceName}.${eventType}.batch`;
 - dispatcher вызывает только batch action.
 
-## Coalescing
+Порядок миграции важен: сначала добавить batch handlers и перевести consumers, потом отключать legacy single-event dispatch.
 
-Для событий типа `productUpdated` при bulk update часто нужно не отправлять несколько изменений одного продукта.
+## Aggregation внутри handlers
 
-Правило:
+Dispatcher первой итерации не должен выбрасывать события при coalescing. Для `productUpdated` payload сейчас partial delta, поэтому выбор "последнего события по productId" может потерять изменения.
+
+Правило первой итерации:
 
 ```text
-group events by aggregateKey
-keep latest event by timestamp/createdAt
-merge payload only if merge strategy exists
+dispatcher groups events into batches
+handler receives all events in batch
+handler aggregates productIds / variantIds / categoryIds itself
+handler rereads current snapshot where needed
 ```
 
-Первая итерация:
+Для `productUpdated`:
 
-- не пытаться deep-merge payload;
-- для `productUpdated` выбирать последнее событие по `product:<id>`;
-- если нужен полный итоговый snapshot, consumer должен перечитать product или отдельный aggregator должен собрать snapshot.
+- handler собирает unique `productId`;
+- handler собирает affected `variantIds`, если они есть в payload;
+- handler собирает affected `categoryIds` для refresh counts;
+- search index sync должен опираться на актуальное состояние продукта, а не только на последнюю delta.
 
-Расширение:
+Расширение на будущее:
 
 ```ts
-interface Coalescer {
+interface BatchAggregator {
   eventType: string;
-  coalesce(events: DomainEvent[]): DomainEvent[];
+  aggregate(events: DomainEvent[]): AggregatedHandlerInput;
 }
 ```
 
@@ -419,19 +473,47 @@ catalog.productBulkEdit
   -> create job
   -> for each product group:
        catalog.productUpdate
-          -> events.emit(productUpdated, batchKey=bulkJobId, trigger=none)
+          -> events.emit(productUpdated, mode=deferred, batchKey=bulkJobId)
   -> finalize job
-  -> events.dispatchBatch(batchKey=bulkJobId)
+  -> durable step:
+       events.dispatchBatch(batchKey=bulkJobId)
 ```
 
 Изменения в catalog:
 
 - расширить `ProductUpdateWorkflowInput` event dispatch context;
-- при bulk передавать `batchKey`;
-- для product update вне bulk использовать default `trigger=auto`;
+- при bulk передавать `batchKey`, `aggregateKey`, `dispatch.mode = "deferred"`;
+- для product update вне bulk использовать default `dispatch.mode = "immediate"`;
 - после финализации bulk job вызвать `events.dispatchBatch`.
 
-Пример:
+Пример emit из bulk:
+
+```ts
+await this.broker.runWorkflow(
+  "events.emit",
+  {
+    eventType: "productUpdated",
+    payload,
+    source: "catalog",
+    context,
+    subject: { type: "product", id: productId },
+    emitKey: `bulk:${jobId}:product:${productId}`,
+    dispatch: {
+      mode: "deferred",
+      batchKey: `bulk:${jobId}`,
+      aggregateKey: `product:${productId}`,
+    },
+  },
+  {
+    source: "workflow",
+    workflowId: DBOS.workflowID!,
+    stepId: "emitBulkProductUpdated",
+    callId: productId,
+  },
+);
+```
+
+Пример dispatch after finalize:
 
 ```ts
 await this.broker.runWorkflow(
@@ -465,10 +547,10 @@ dispatchWorkflowId = parentWorkflowId + eventType + emitKeyHash
 
 ### dispatch workflow id
 
-Для auto trigger:
+Для immediate dispatch:
 
 ```text
-events:dispatchDue:{tenantId}:{eventType}:{batchKeyOrNoBatch}:{windowBucket}
+events:dispatchEvent:{tenantId}:{eventId}
 ```
 
 Для explicit bulk dispatch:
@@ -480,9 +562,24 @@ events:dispatchBatch:{tenantId}:{eventType}:{batchKey}
 Повторный start должен быть безопасным:
 
 - при повторном start для того же workflow id DBOS вернет тот же handle;
-- если события уже dispatched, claim query вернет пустой набор.
+- если события уже `dispatched`, claim query вернет пустой набор.
 
-### handler idempotency
+### DBOS step names
+
+Handler call должен иметь стабильное имя step-а.
+
+```text
+handler:{batchId}:{handlerAction}
+```
+
+`batchId`:
+
+- для immediate: `event:{eventId}`;
+- для deferred: `batch:{tenantId}:{eventType}:{batchKey}:{claimedEventHash}`.
+
+`claimedEventHash` нужен, чтобы разные chunks одного большого batch-а имели разные durable step names.
+
+### Handler idempotency
 
 Dispatcher должен считать delivery at-least-once. Handlers обязаны быть idempotent.
 
@@ -498,29 +595,24 @@ Consumer может хранить processed batch/event ids у себя, есл
 
 ## Retry и DLQ
 
-Dispatcher вызывает handlers через DBOS steps.
+Dispatcher вызывает handlers через DBOS steps. Retry принадлежит DBOS settings.
 
 Retry policy:
 
-- retryable handler response -> retry DBOS step;
-- timeout -> non-retryable для активной попытки, записать failure;
-- non-retryable error -> не retry, сразу DLQ;
-- retry attempts exhausted -> DLQ.
+- retryable handler response -> dispatcher бросает retryable error внутри DBOS step;
+- DBOS повторяет step по `maxAttempts`, `intervalSeconds`, `backoffRate`;
+- timeout -> non-retryable для активного step-а, записать failure;
+- non-retryable handler response -> не retry, сразу DLQ;
+- DBOS retry exhausted -> DLQ.
 
-После failed retryable attempt:
-
-```text
-status = retry_scheduled
-dispatch_after = now + backoff(attempts)
-locked_by = null
-locked_until = null
-```
+Обычный retryable failure не переводит event в `retry_scheduled`: DBOS остается внутри того же durable step и повторяет его детерминированно.
 
 После final failure:
 
 ```text
 status = failed
 DLQ row per event-handler
+lock fields cleared
 ```
 
 После success всех handlers:
@@ -534,66 +626,68 @@ lock fields cleared
 
 Если часть handlers успешна, а часть failed:
 
-- В первой итерации событие считается `failed`, успешные handler results сохраняются, failed handler уходит в DLQ.
-- Следующая версия: хранить per-handler state, чтобы retry не вызывал уже успешные handlers повторно.
+- В первой итерации событие считается `failed`, successful handler results сохраняются, failed handler уходит в DLQ.
+- Следующая версия: хранить per-handler state, чтобы retry/replay не вызывал уже successful handlers повторно.
 
 ## Фазы внедрения
 
 ### Фаза 1. Подготовка схемы и repository API
 
-- Добавить payload/status/dispatch fields в `domain_events`.
+- Добавить payload/dispatch/status/lock fields в `domain_events`.
 - Добавить repository методы:
   - `persistPendingEvent`;
-  - `claimDueEvents`;
+  - `claimEvent`;
+  - `claimBatch`;
   - `markDispatched`;
-  - `markRetryScheduled`;
   - `markFailed`;
-  - `releaseExpiredLocks`.
+  - `releaseExpiredLocks`;
+  - `findStalePendingImmediateEvents`.
 - Реализовать запись в DLQ через обновленный repository API.
-- Подготовить producer services к передаче `batchKey`, `aggregateKey`, `dispatch.trigger`.
+- Подготовить producer services к передаче `dispatch.mode`, `batchKey`, `aggregateKey`.
 
 Результат: schema и repository API готовы для новой модели dispatch.
 
-### Фаза 2. Разделить emit и dispatch
-
-- Удалить прямой вызов handlers из `events.emit`.
-- Изменить `events.emit`: только persist pending event.
-- Добавить `events.dispatchDueEvents`.
-- Добавить auto trigger после persist.
-- Dispatcher должен вызывать только batch handlers.
-
-Результат: события доставляются только через dispatcher.
-
-### Фаза 3. Batch handlers
+### Фаза 2. Batch handler contract
 
 - Добавить `@BatchEventHandler`.
 - Добавить batch action registration.
-- Реализовать event consumers через batch handler contract.
-- Добавить event policies.
+- Перевести event consumers на batch handler contract.
+- Immediate events доставлять как batch из одного event.
+- Добавить event policies с DBOS retry settings.
 
-Результат: все event consumers работают через batch contract.
+Результат: consumers готовы принимать batch до отключения legacy single-event dispatch.
+
+### Фаза 3. Разделить emit и dispatch
+
+- Удалить прямой вызов handlers из `events.emit`.
+- Изменить `events.emit`: persist pending event + запуск dispatch workflow только для `immediate`.
+- Добавить `events.dispatchEvent`.
+- Добавить `events.dispatchBatch`.
+- Dispatcher вызывает только batch handlers.
+
+Результат: обычные события доставляются сразу через dispatcher, batch-события ждут explicit `dispatchBatch`.
 
 ### Фаза 4. Bulk update boundary
 
 - Расширить `ProductUpdateWorkflowInput` dispatch context.
-- В bulk передавать `batchKey=bulk:${jobId}` и `trigger=none`.
-- После finalize запускать `events.dispatchBatch`.
-- Для product updates вне bulk использовать auto trigger.
+- В bulk передавать `dispatch.mode = "deferred"`, `batchKey = bulk:${jobId}`.
+- После finalize запускать `events.dispatchBatch` как durable step.
+- Для product updates вне bulk использовать default `immediate`.
 
 Результат: bulk update обновляет все продукты, затем одним dispatch workflow отправляет batch.
 
 ### Фаза 5. Repair scheduler
 
-- Добавить scheduler раз в минуту для due pending/retry events.
 - Добавить stale lock recovery.
+- Добавить scheduler для старых pending immediate events.
 - Добавить метрики/logging.
 
-Результат: dispatch устойчив к падениям между persist и trigger.
+Результат: dispatch устойчив к падениям между persist и dispatch, а также к stale locks.
 
 ### Фаза 6. Cleanup и observability
 
 - Обновить cleanup old domain events с учетом статусов.
-- Не удалять `pending`, `dispatching`, `retry_scheduled`.
+- Не удалять `pending` и `dispatching`.
 - Добавить admin/debug queries позже, если понадобятся:
   - pending count by eventType;
   - failed count;
@@ -610,41 +704,46 @@ lock fields cleared
 
 Первая итерация допускает at-least-once delivery. Handlers должны быть idempotent. Позже можно добавить per-handler state.
 
-### Риск: coalescing потеряет важную delta-информацию
+### Риск: aggregation потеряет важную delta-информацию
 
-Не делать deep merge по умолчанию. Для `productUpdated` лучше либо отправлять последнее событие, либо отправлять summary и заставить consumers читать актуальный snapshot.
+Dispatcher не должен выбрасывать события. Для `productUpdated` batch handler должен агрегировать все events и перечитывать актуальный snapshot там, где это нужно.
 
-### Риск: producer workflow ждет dispatch
+### Риск: bulk producer workflow ждет dispatch
 
-Bulk explicit dispatch может запускаться как отдельный workflow и не блокировать result bulk mutation. Если нужен fire-and-observe, добавить broker API для `startWorkflow` без ожидания `getResult`. В первой итерации можно дождаться dispatch, если latency приемлемая.
+Bulk explicit dispatch запускается как durable step после finalize. В первой итерации можно дождаться результата dispatch, если latency приемлемая. Если нужен fire-and-observe, добавить broker API для start workflow без `getResult`.
 
 ### Риск: scheduler запустит dispatch одновременно с explicit bulk dispatch
 
-Claim query с `FOR UPDATE SKIP LOCKED` и lock fields должна сделать это безопасным. Повторный dispatch workflow должен просто не найти due events.
+Scheduler первой итерации не должен автоматически dispatch-ить deferred batch events. Он чинит stale locks и old pending immediate events. Explicit batch остается ответственностью producer workflow.
 
 ## Решения первой итерации
 
 - Payload хранить в `domain_events.payload jsonb`.
-- Поведение dispatch по умолчанию: durable-запись в outbox и auto trigger.
-- Batch window для default events: 1 секунда.
-- Для `productUpdated`: 5 секунд и coalesce по `aggregateKey`.
-- Для bulk update: explicit `events.dispatchBatch` после finalize.
+- Поведение dispatch по умолчанию: `immediate`.
+- Для bulk update: `deferred` + explicit `events.dispatchBatch` после finalize.
+- `dispatchAfter` и `batchWindowMs` не делать в первой итерации.
+- Retry handler-ов делать через DBOS step settings.
+- Dispatcher не coalesce-ит `productUpdated`; aggregation делает batch handler.
 - Per-handler state не делать в первой итерации.
-- Repair scheduler добавить сразу, иначе будет риск потерять dispatch trigger.
+- Repair scheduler добавить сразу, иначе будет риск потерять dispatch после persist.
 
 ## Проверка готовности
 
 Минимальные acceptance criteria:
 
 - `events.emit` создает `domain_events` со статусом `pending` и payload.
-- `events.dispatchDueEvents` доставляет due events batch handler-у одним вызовом.
+- `events.emit` с default/immediate запускает `events.dispatchEvent`.
+- `events.emit` с `dispatch.mode = "deferred"` не запускает dispatch.
+- `events.dispatchEvent` доставляет один event batch handler-у как batch из одного event.
+- `events.dispatchBatch` доставляет pending deferred events по `batchKey` одним или несколькими batch handler calls.
 - Если batch handler не зарегистрирован, dispatch для этого event type завершается ошибкой конфигурации.
 - Повторный запуск dispatch workflow не дублирует уже `dispatched` events.
-- Retryable failure переводит event в `retry_scheduled`.
-- Exhausted retry пишет DLQ.
+- Retryable failure повторяется через DBOS retry settings.
+- Exhausted DBOS retry пишет DLQ.
 - Bulk update может создать несколько `productUpdated` с одним `batchKey`.
-- После bulk finalize запускается `events.dispatchBatch` и доставляет batch.
-- Scheduler подбирает pending events, если auto trigger не сработал.
+- После bulk finalize запускается `events.dispatchBatch` как durable step.
+- Scheduler возвращает stale `dispatching` events в `pending`.
+- Scheduler подбирает старые pending immediate events, если immediate dispatch не стартовал.
 
 ## Файлы, которые likely придется менять
 
@@ -669,12 +768,13 @@ Catalog bulk integration:
 - `services/catalog/src/workflows/ProductUpdateWorkflow.ts`
 - `services/catalog/src/workflows/ProductBulkEditWorkflow.ts`
 - `services/catalog/src/workflows/dto/ProductUpdateWorkflowDto.ts`
+- `services/catalog/src/handlers/index.ts`
 
 ## Открытые вопросы
 
-- Должен ли `events.emit` возвращать только `eventId` или еще `dispatchWorkflowId` при auto trigger?
+- Должен ли `events.emit` возвращать только `eventId` или еще `dispatchWorkflowId` при immediate dispatch?
 - Нужен ли публичный GraphQL/admin API для просмотра pending/failed events?
 - Нужно ли хранить full payload forever или достаточно retention 90 дней?
-- Какие события должны быть coalesced, а какие обязаны доставляться каждое отдельно?
 - Нужна ли строгая ordering guarantee внутри одного `aggregateKey`?
 - Должен ли bulk mutation ждать `dispatchBatch` или только запускать его в фоне?
+- Нужен ли compatibility adapter для legacy `@EventHandler` на время миграции?
