@@ -442,6 +442,17 @@ export function EditFacetModal() {
     ],
   );
 
+  const handleUpdateValueSwatch = useCallback(
+    (valueId: string, swatch: OptionEditorSwatch) => {
+      setEditorValues((currentValues) =>
+        currentValues.map((value) =>
+          value.id === valueId ? { ...value, swatch } : value,
+        ),
+      );
+    },
+    [],
+  );
+
   const onSubmit = useCallback(
     async (values: EditFacetFormValues) => {
       if (!facet) {
@@ -802,9 +813,11 @@ export function EditFacetModal() {
             <Flex vertical gap={8}>
               <FacetValuesGrid
                 values={editorValues}
+                swatchesEnabled={swatchesEnabled}
                 onReorder={(values) =>
                   setEditorValues(normalizeValueSortIndexes(values))
                 }
+                onSwatchChange={handleUpdateValueSwatch}
                 onAddToGroup={(values) => openGroupModal("create", values)}
                 onEditGroup={(value) => openGroupModal("edit", [], value)}
                 onUngroup={handleUngroupValues}

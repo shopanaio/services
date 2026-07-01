@@ -17,11 +17,16 @@ import { LuEllipsis } from "react-icons/lu";
 import { FacetValueKind } from "@/graphql/types";
 import { useAgGridTheme } from "@/hooks";
 import { Dash } from "@/shared/components/editor-grid";
+import { DEFAULT_SWATCH } from "../../../../products/modals/edit-options-modal/edit-options-modal.constants";
+import { SwatchPicker } from "../../../../products/modals/edit-options-modal/components/swatch-picker";
+import type { OptionEditorSwatch } from "../../../../products/modals/edit-options-modal/types";
 import type { FacetValueEditorRow } from "../types";
 
 interface FacetValuesGridProps {
   values: FacetValueEditorRow[];
+  swatchesEnabled: boolean;
   onReorder: (values: FacetValueEditorRow[]) => void;
+  onSwatchChange: (valueId: string, swatch: OptionEditorSwatch) => void;
   onSelectionChange?: (values: FacetValueEditorRow[]) => void;
   onAddToGroup: (values: FacetValueEditorRow[]) => void;
   onEditGroup: (value: FacetValueEditorRow) => void;
@@ -34,6 +39,10 @@ const useStyles = createStyles(({ token }) => ({
     display: "flex",
     flexDirection: "column",
     gap: 8,
+  },
+  swatchCell: {
+    display: "inline-flex",
+    alignItems: "center",
   },
   bulkPanel: {
     display: "flex",
@@ -77,7 +86,9 @@ function valueTestId(handle: string): string {
 
 export function FacetValuesGrid({
   values,
+  swatchesEnabled,
   onReorder,
+  onSwatchChange,
   onSelectionChange,
   onAddToGroup,
   onEditGroup,
@@ -136,23 +147,32 @@ export function FacetValuesGrid({
   const columnDefs = useMemo<ColDef<FacetValueEditorRow>[]>(
     () => [
       {
-        colId: "drag",
-        headerName: "",
-        width: 40,
-        rowDrag: true,
-        sortable: false,
-      },
-      {
         field: "label",
         headerName: "Value",
         flex: 1,
         minWidth: 180,
+        rowDrag: true,
         sortable: false,
         cellRenderer: ({ data }: ICellRendererParams<FacetValueEditorRow>) =>
           data ? (
-            <span data-testid={`facet-values-row-${valueTestId(data.handle)}`}>
-              {data.label}
-            </span>
+            <Flex gap={8} align="center">
+              {swatchesEnabled ? (
+                <span
+                  className={styles.swatchCell}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => event.stopPropagation()}
+                  data-testid={`facet-values-swatch-cell-${valueTestId(data.handle)}`}
+                >
+                  <SwatchPicker
+                    swatch={data.swatch ?? DEFAULT_SWATCH}
+                    onChange={(swatch) => onSwatchChange(data.id, swatch)}
+                  />
+                </span>
+              ) : null}
+              <span data-testid={`facet-values-row-${valueTestId(data.handle)}`}>
+                {data.label}
+              </span>
+            </Flex>
           ) : null,
       },
       {
@@ -245,7 +265,15 @@ export function FacetValuesGrid({
         },
       },
     ],
-    [onDelete, onEditGroup, onUngroup, styles.groupedValues],
+    [
+      onDelete,
+      onEditGroup,
+      onSwatchChange,
+      onUngroup,
+      styles.groupedValues,
+      styles.swatchCell,
+      swatchesEnabled,
+    ],
   );
 
   const handleSelectionChanged = useCallback(
