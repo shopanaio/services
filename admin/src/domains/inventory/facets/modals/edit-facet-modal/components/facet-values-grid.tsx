@@ -197,7 +197,7 @@ export function FacetValuesGrid({
   );
 
   const clearSelection = useCallback(() => {
-    gridRef.current?.api.deselectAll();
+    gridRef.current?.api?.deselectAll();
     setSelectedRows([]);
     onSelectionChange?.([]);
   }, [onSelectionChange]);

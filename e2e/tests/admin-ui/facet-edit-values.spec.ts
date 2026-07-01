@@ -95,7 +95,20 @@ function gridRows(grid: Locator) {
 }
 
 async function openFacetEditModal(page: Page, slug: string) {
-  await page.getByTestId(`facets-table-name-cell-${slug}`).click();
+  const cell = page.getByTestId(`facets-table-name-cell-${slug}`);
+  const row = page
+    .getByTestId('facets-table')
+    .locator('.ag-center-cols-container .ag-row')
+    .filter({ has: cell })
+    .first();
+
+  await row.locator('button[data-testid^="facets-row-actions-"]').click();
+  await page
+    .locator('.ant-dropdown-menu-item')
+    .filter({ hasText: 'Edit' })
+    .first()
+    .click();
+
   const modal = page.getByTestId('edit-facet-modal');
   await expect(modal).toBeVisible();
   await expect(modal.getByTestId('facet-values-grid')).toBeVisible();

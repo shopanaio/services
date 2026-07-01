@@ -312,7 +312,7 @@ export default function FacetsPage() {
         valueGetter: ({ data }) => data?.uiType ?? "",
         cellRenderer: ({ value }: ICellRendererParams<FacetGridRow, string>) =>
           value ? (
-            <Tag bordered={false} className={styles.metaTag}>
+            <Tag variant="filled" className={styles.metaTag}>
               {formatFacetMetaValue(value)}
             </Tag>
           ) : null,
@@ -323,7 +323,7 @@ export default function FacetsPage() {
         valueGetter: ({ data }) => data?.selectionMode ?? "",
         cellRenderer: ({ value }: ICellRendererParams<FacetGridRow, string>) =>
           value ? (
-            <Tag bordered={false} className={styles.metaTag}>
+            <Tag variant="filled" className={styles.metaTag}>
               {formatFacetMetaValue(value)}
             </Tag>
           ) : null,

@@ -300,7 +300,19 @@ async function expectFacetModalValues(
     valueLabels: string[];
   },
 ) {
-  await page.getByTestId(`facets-table-name-cell-${input.slug}`).click();
+  const cell = page.getByTestId(`facets-table-name-cell-${input.slug}`);
+  const row = page
+    .getByTestId('facets-table')
+    .locator('.ag-center-cols-container .ag-row')
+    .filter({ has: cell })
+    .first();
+
+  await row.locator('button[data-testid^="facets-row-actions-"]').click();
+  await page
+    .locator('.ant-dropdown-menu-item')
+    .filter({ hasText: 'Edit' })
+    .first()
+    .click();
 
   const modal = page.getByTestId('edit-facet-modal');
   await expect(modal).toBeVisible();
@@ -377,8 +389,8 @@ test.describe('Admin facets create UI', () => {
     await createFacetFromCandidates(page, {
       label: tagFacet.label,
       sourceSearch: 'tags',
-      sourceRowText: 'tags',
-      sourceButtonText: 'tags',
+      sourceRowText: 'Product Tags',
+      sourceButtonText: 'Product Tags',
       candidateHandles: tagFacet.candidateHandles,
     });
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { GlobalStyle } from "@/ui-kit/theme/global-style";
-import { App, theme as antTheme } from "antd";
+import { App, ConfigProvider, theme as antTheme } from "antd";
 import { ThemeProvider } from "antd-style";
 import { AntdRegistry } from "@/ui-kit/theme/antd-registry";
 import { ThemeContextProvider, useThemeContext } from "./theme-context";
@@ -69,10 +69,12 @@ const ThemeInner = ({ children }: { children: React.ReactNode }) => {
         },
       }}
     >
-      <App>
-        <GlobalStyle />
-        {children}
-      </App>
+      <ConfigProvider warning={{ strict: false }}>
+        <App>
+          <GlobalStyle />
+          {children}
+        </App>
+      </ConfigProvider>
     </ThemeProvider>
   );
 };
