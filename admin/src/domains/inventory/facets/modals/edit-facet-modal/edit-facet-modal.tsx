@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -294,6 +294,7 @@ export function EditFacetModal() {
   const [editorValues, setEditorValues] = useState<FacetValueEditorRow[]>([]);
   const [selectionResetKey, setSelectionResetKey] = useState(0);
   const [swatchesEnabled, setSwatchesEnabled] = useState(false);
+  const submitInProgressRef = useRef(false);
 
   const methods = useForm<EditFacetFormInput, unknown, EditFacetFormValues>({
     resolver: zodResolver(editFacetSchema),
@@ -328,6 +329,9 @@ export function EditFacetModal() {
 
   useEffect(() => {
     if (!facet) {
+      return;
+    }
+    if (submitInProgressRef.current) {
       return;
     }
 
@@ -460,6 +464,8 @@ export function EditFacetModal() {
       if (!facet) {
         return;
       }
+
+      submitInProgressRef.current = true;
 
       const result = await updateFacet(
         mapFacetFormToUpdateInput(facet.id, {
