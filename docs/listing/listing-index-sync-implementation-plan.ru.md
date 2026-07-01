@@ -13,7 +13,7 @@
 model, как обновлять facet tokens и как обеспечить freshness repair.
 
 Обратная совместимость со старыми search index таблицами не нужна. После
-миграции listing index пересобирается rebuild script.
+cutover listing index пересобирается rebuild script.
 
 ## Инварианты реализации
 
@@ -58,251 +58,14 @@ new product flow он создает parent listing row с canonical product fie
 финальными `in_stock`, `total_stock` и price aggregates. Для existing products
 bootstrap обычно no-op.
 
-## Фаза 1. SQL migration
+## Предусловие
 
-Создать новую handwritten migration:
+Документ ниже описывает только код синхронизации read model. Целевая структура
+таблиц считается уже определенной в `docs/listing/listing-index-db-schema.ru.md`.
+Если схема еще не применена в окружении, sync код писать можно, но запуск
+rebuild/sync будет невозможен до появления соответствующих listing tables.
 
-```text
-services/catalog/migrations/domains/9000_read_models/9003_read_models__listing_index_redesign.sql
-```
-
-Если basename уже занят на момент реализации, взять следующий свободный
-`900x_read_models__...sql` и обновить ссылки в документах.
-
-Migration должна:
-
-1. Удалить legacy read model tables:
-
-```sql
-DROP TABLE IF EXISTS catalog.variant_search_index;
-DROP TABLE IF EXISTS catalog.product_search_index;
-```
-
-2. Добавить missing composite constraints только если их еще нет:
-
-```sql
-ALTER TABLE catalog.facet
-  ADD CONSTRAINT facet_project_id_id_unique
-  UNIQUE (project_id, id);
-
-ALTER TABLE catalog.facet_value
-  ADD CONSTRAINT facet_value_project_id_facet_id_id_unique
-  UNIQUE (project_id, facet_id, id);
-```
-
-`product_project_id_id_unique` и
-`variant_project_id_product_id_id_unique` уже есть в current Drizzle model, но
-SQL migration должна проверить фактические historical migrations перед
-добавлением дублей.
-
-3. Создать шесть таблиц из `listing-index-db-schema.ru.md`:
-
-- `catalog.product_listing_index`
-- `catalog.product_listing_price_index`
-- `catalog.variant_listing_index`
-- `catalog.variant_listing_price_index`
-- `catalog.product_listing_facet_token`
-- `catalog.variant_listing_facet_token`
-
-Пример для token table:
-
-```sql
-CREATE TABLE catalog.product_listing_facet_token (
-  project_id uuid NOT NULL,
-  product_id uuid NOT NULL,
-  facet_id uuid NOT NULL,
-  facet_value_id uuid NOT NULL,
-  facet_type varchar(16) NOT NULL,
-  indexed_at timestamptz NOT NULL DEFAULT now(),
-
-  PRIMARY KEY (project_id, product_id, facet_id, facet_value_id),
-  CONSTRAINT fk_product_listing_facet_token_product
-    FOREIGN KEY (project_id, product_id)
-    REFERENCES catalog.product_listing_index(project_id, product_id)
-    ON DELETE CASCADE,
-  CONSTRAINT fk_product_listing_facet_token_facet
-    FOREIGN KEY (project_id, facet_id)
-    REFERENCES catalog.facet(project_id, id)
-    ON DELETE CASCADE,
-  CONSTRAINT fk_product_listing_facet_token_value
-    FOREIGN KEY (project_id, facet_id, facet_value_id)
-    REFERENCES catalog.facet_value(project_id, facet_id, id)
-    ON DELETE CASCADE,
-  CONSTRAINT chk_product_listing_facet_token_type
-    CHECK (facet_type IN ('tag', 'feature'))
-);
-```
-
-4. Добавить индексы из schema doc. Не создавать дубликат индекса, если PK или
-существующий индекс уже покрывает тот же access path.
-
-5. Добавить внешние listing-scope индексы, если их нет:
-
-```sql
-CREATE INDEX idx_product_category_listing_scope
-  ON catalog.product_category (project_id, category_id, lexo_rank, product_id);
-
-CREATE INDEX idx_collection_item_listing_scope
-  ON catalog.collection_item (project_id, collection_id, lexo_rank, product_id);
-
-CREATE INDEX idx_product_translation_listing_name
-  ON catalog.product_translation (project_id, locale, name, product_id);
-```
-
-## Фаза 2. Drizzle models
-
-Удалить из exports old models после миграции callers:
-
-- `services/catalog/src/repositories/models/searchIndex.ts`
-- `services/catalog/src/repositories/models/variantSearchIndex.ts`
-
-Добавить новые files:
-
-```text
-services/catalog/src/repositories/models/productListingIndex.ts
-services/catalog/src/repositories/models/productListingPriceIndex.ts
-services/catalog/src/repositories/models/variantListingIndex.ts
-services/catalog/src/repositories/models/variantListingPriceIndex.ts
-services/catalog/src/repositories/models/productListingFacetToken.ts
-services/catalog/src/repositories/models/variantListingFacetToken.ts
-```
-
-Обновить:
-
-```text
-services/catalog/src/repositories/models/index.ts
-```
-
-Пример `productListingIndex` model:
-
-```ts
-import {
-  boolean,
-  check,
-  foreignKey,
-  index,
-  integer,
-  primaryKey,
-  text,
-  timestamp,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
-import { catalogSchema } from "./schema";
-import { product, productKindEnum } from "./products";
-
-export const productListingIndex = catalogSchema.table(
-  "product_listing_index",
-  {
-    projectId: uuid("project_id").notNull(),
-    productId: uuid("product_id").notNull(),
-    kind: productKindEnum("kind").notNull(),
-    vendorId: uuid("vendor_id"),
-    handle: varchar("handle", { length: 255 }),
-    status: varchar("status", { length: 16 }).notNull(),
-    publishedAt: timestamp("published_at", {
-      withTimezone: true,
-      mode: "string",
-    }),
-    productCreatedAt: timestamp("product_created_at", {
-      withTimezone: true,
-      mode: "string",
-    }).notNull(),
-    productUpdatedAt: timestamp("product_updated_at", {
-      withTimezone: true,
-      mode: "string",
-    }).notNull(),
-    productRevision: integer("product_revision").notNull().default(0),
-    tagHandles: text("tag_handles").array().notNull().default(sql`'{}'::text[]`),
-    featureValueHandles: text("feature_value_handles")
-      .array()
-      .notNull()
-      .default(sql`'{}'::text[]`),
-    categoryHandles: text("category_handles")
-      .array()
-      .notNull()
-      .default(sql`'{}'::text[]`),
-    inStock: boolean("in_stock").notNull().default(false),
-    totalStock: integer("total_stock").notNull().default(0),
-    indexedAt: timestamp("indexed_at", {
-      withTimezone: true,
-      mode: "string",
-    }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", {
-      withTimezone: true,
-      mode: "string",
-    }).notNull().defaultNow(),
-  },
-  (table) => [
-    primaryKey({ columns: [table.projectId, table.productId] }),
-    foreignKey({
-      name: "fk_product_listing_product",
-      columns: [table.projectId, table.productId],
-      foreignColumns: [product.projectId, product.id],
-    }).onDelete("cascade"),
-    check("chk_product_listing_status", sql`${table.status} IN ('published', 'draft')`),
-    index("idx_product_listing_visible_newest")
-      .on(
-        table.projectId,
-        table.inStock,
-        table.publishedAt,
-        table.productCreatedAt,
-        table.productId,
-      )
-      .where(sql`status = 'published'`),
-    index("idx_product_listing_category_handles_gin").using(
-      "gin",
-      table.categoryHandles,
-    ),
-  ],
-);
-
-export type ProductListingIndex = typeof productListingIndex.$inferSelect;
-export type NewProductListingIndex = typeof productListingIndex.$inferInsert;
-```
-
-Пример `variantListingFacetToken` model:
-
-```ts
-export const variantListingFacetToken = catalogSchema.table(
-  "variant_listing_facet_token",
-  {
-    projectId: uuid("project_id").notNull(),
-    productId: uuid("product_id").notNull(),
-    variantId: uuid("variant_id").notNull(),
-    facetId: uuid("facet_id").notNull(),
-    facetValueId: uuid("facet_value_id").notNull(),
-    indexedAt: timestamp("indexed_at", {
-      withTimezone: true,
-      mode: "string",
-    }).notNull().defaultNow(),
-  },
-  (table) => [
-    primaryKey({
-      columns: [
-        table.projectId,
-        table.variantId,
-        table.facetId,
-        table.facetValueId,
-      ],
-    }),
-    index("idx_variant_listing_facet_token_count").on(
-      table.projectId,
-      table.facetId,
-      table.facetValueId,
-      table.productId,
-      table.variantId,
-    ),
-  ],
-);
-```
-
-Drizzle examples выше показывают shape. Во время реализации сверить все
-constraints/indexes с SQL schema doc, потому SQL migration является
-нормативной для БД.
-
-## Фаза 3. Repository registration
+## Фаза 1. Repository registration
 
 Заменить в:
 
@@ -340,7 +103,7 @@ const variantListingIndex = new VariantListingIndexRepository(db, txManager);
 const listingSource = new ListingSourceRepository(db, txManager);
 ```
 
-## Фаза 4. Listing repositories
+## Фаза 2. Listing repositories
 
 Создать папку:
 
@@ -556,8 +319,8 @@ async replaceForProduct(
 }
 ```
 
-При реализации проверить Drizzle syntax для `excluded.*`; если текущий проект
-предпочитает object values из `values`, использовать локальный pattern.
+При реализации сверить `excluded.*` с локальным repository pattern и не
+изобретать отдельный стиль upsert.
 
 ### VariantListingIndexRepository
 
@@ -751,7 +514,7 @@ findVariantsBySourceHandleChange(input: {
 Если affected set нельзя найти дешево, caller должен перейти к project token
 rebuild.
 
-## Фаза 5. Source и mapping repositories
+## Фаза 3. Source и mapping repositories
 
 ### ListingSourceRepository
 
@@ -893,7 +656,7 @@ async resolveProductFacetTokens(input: {
 }
 ```
 
-## Фаза 6. Pure builders
+## Фаза 4. Pure builders
 
 Создать:
 
@@ -961,7 +724,7 @@ Product builder должен:
 - получить `in_stock` и `total_stock` из stock aggregate;
 - создать price rows для всех enabled currencies.
 
-## Фаза 7. Sync scripts
+## Фаза 5. Sync scripts
 
 Создать папку:
 
@@ -1359,7 +1122,7 @@ services/catalog/src/scripts/listing/RepairListingIndexFreshnessScript.ts
 5. Token mismatches -> `RefreshListingFacetTokensScript`.
 6. Если targeted repair невозможен -> `RebuildListingIndexScript`.
 
-## Фаза 8. Freshness repository
+## Фаза 6. Freshness repository
 
 Файл:
 
@@ -1447,7 +1210,7 @@ Token mismatch audit должен сравнивать expected resolved token s
 facet sources и actual token table. Для больших проектов audit может работать
 limit-ами и возвращать `canRepairTargeted = false`, если diff слишком большой.
 
-## Фаза 9. DBOS workflows
+## Фаза 7. DBOS workflows
 
 Catalog workflows сейчас используют `BrokerWorkflows`. Добавить:
 
@@ -1553,7 +1316,7 @@ Workflow idempotency keys должны строиться из content:
 тонкий wrapper action рядом с существующими workflow entrypoints. Event handler
 может временно вызывать `kernel.runScript`, но durable path должен быть workflow.
 
-## Фаза 10. Event handlers и invalidation
+## Фаза 8. Event handlers и invalidation
 
 Обновить:
 
@@ -1629,7 +1392,7 @@ async handleStockLevelChanged(params: { event: StockLevelChangedEvent }) {
 variant -> project через catalog repository или расширить event contract. Без
 project context listing sync запускать нельзя.
 
-## Фаза 11. Обновление product/variant/facet scripts
+## Фаза 9. Обновление product/variant/facet scripts
 
 Помимо event handlers, direct mutation scripts должны запускать listing sync,
 если изменение происходит внутри catalog service и событие не гарантирует
@@ -1664,7 +1427,7 @@ await this.executeScript(RefreshListingFacetTokensScript, {
 });
 ```
 
-## Фаза 12. Удаление legacy search-index pipeline
+## Фаза 10. Удаление legacy search-index pipeline
 
 После переноса callers удалить:
 
@@ -1672,15 +1435,12 @@ await this.executeScript(RefreshListingFacetTokensScript, {
 services/catalog/src/repositories/listing/SearchIndexRepository.ts
 services/catalog/src/repositories/listing/VariantSearchIndexRepository.ts
 services/catalog/src/scripts/search-index/
-services/catalog/src/repositories/models/searchIndex.ts
-services/catalog/src/repositories/models/variantSearchIndex.ts
 ```
 
 И убрать exports из:
 
 ```text
 services/catalog/src/scripts/index.ts
-services/catalog/src/repositories/models/index.ts
 ```
 
 Перед удалением найти все ссылки:
@@ -1691,7 +1451,7 @@ rg "searchIndex|variantSearchIndex|SyncProductIndexScript|SyncVariantIndexScript
 
 Все найденные references должны быть заменены на listing naming.
 
-## Фаза 13. Storefront read path follow-up
+## Фаза 11. Storefront read path follow-up
 
 Этот sync plan подготавливает read model. Storefront listing repositories должны
 быть обновлены отдельно или в следующем PR:
@@ -1712,21 +1472,19 @@ facet query не должен читать `tag_handles`, `feature_value_handles
 
 ## Рекомендуемый порядок PR/коммитов
 
-1. SQL migration + Drizzle models.
-2. Repository registration + listing repositories.
-3. Source/mapping repositories + builders.
-4. Sync scripts + rebuild/delete/repair scripts.
-5. Workflows + event handlers.
-6. Remove legacy search-index scripts/repositories/models.
-7. Storefront query/facet aggregation repositories.
+1. Repository registration + listing repositories.
+2. Source/mapping repositories + builders.
+3. Sync scripts + rebuild/delete/repair scripts.
+4. Workflows + event handlers.
+5. Remove legacy search-index scripts/repositories.
+6. Storefront query/facet aggregation repositories.
 
-Если нужен меньший blast radius, первые шесть пунктов можно сделать в одном
+Если нужен меньший blast radius, первые пять пунктов можно сделать в одном
 backend cutover PR, а storefront read path во втором PR. Dual-write не нужен,
-но временно нельзя выпускать storefront listing на новые tables до rebuild.
+но временно нельзя выпускать storefront listing до успешного rebuild.
 
 ## Acceptance checklist
 
-- [ ] SQL migration создает все listing tables, FKs, checks и indexes.
 - [ ] Старые `product_search_index` и `variant_search_index` больше не
       используются в TypeScript.
 - [ ] Все новые repositories используют `this.connection` и `this.storeId`.
