@@ -1,3 +1,4 @@
--- Drop the related column from domain_events
-DROP INDEX IF EXISTS idx_events_related;
-ALTER TABLE domain_events DROP COLUMN IF EXISTS related;
+-- No-op.
+--
+-- The events schema is defined in 0000_initial.sql. This migration is kept only
+-- to preserve the existing migration journal sequence.

@@ -9,34 +9,42 @@ CREATE TABLE IF NOT EXISTS domain_events (
   causation_id TEXT,
   emit_key TEXT NOT NULL,
   parent_workflow_id TEXT,
-  status TEXT NOT NULL DEFAULT 'dispatching',
+  payload JSONB NOT NULL,
+  payload_hash TEXT NOT NULL,
+  dispatch_mode TEXT NOT NULL DEFAULT 'immediate',
+  status TEXT NOT NULL DEFAULT 'pending',
+  batch_key TEXT,
+  aggregate_key TEXT,
+  dispatch_claims INTEGER NOT NULL DEFAULT 0,
+  locked_by TEXT,
   dispatch_started_at TIMESTAMPTZ,
   dispatch_completed_at TIMESTAMPTZ,
-  handler_results JSONB,
   subject_type TEXT NOT NULL,
   subject_id TEXT NOT NULL,
-  related JSONB NOT NULL DEFAULT '[]'::jsonb,
   actor_type TEXT NOT NULL DEFAULT 'service',
   actor_id TEXT,
-  payload_hash TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT domain_events_status_chk
-    CHECK (status IN ('dispatching', 'completed')),
+    CHECK (status IN ('pending', 'dispatching', 'dispatched', 'failed')),
+  CONSTRAINT domain_events_dispatch_mode_chk
+    CHECK (dispatch_mode IN ('immediate', 'deferred')),
+  CONSTRAINT domain_events_deferred_batch_key_chk
+    CHECK (dispatch_mode != 'deferred' OR batch_key IS NOT NULL),
   CONSTRAINT domain_events_actor_type_chk
     CHECK (actor_type IN ('user', 'service', 'system'))
 );
 
 CREATE INDEX idx_events_type ON domain_events(event_type);
 CREATE INDEX idx_events_correlation ON domain_events(correlation_id);
-CREATE INDEX idx_events_status ON domain_events(status) WHERE status != 'completed';
+CREATE INDEX idx_events_status ON domain_events(status) WHERE status IN ('pending', 'dispatching', 'failed');
 CREATE INDEX idx_events_parent_workflow ON domain_events(parent_workflow_id, event_type);
 
 CREATE INDEX idx_events_tenant_timestamp ON domain_events(tenant_id, timestamp DESC);
 CREATE INDEX idx_events_subject_timeline ON domain_events(tenant_id, subject_type, subject_id, timestamp DESC);
 CREATE INDEX idx_events_type_timestamp ON domain_events(tenant_id, event_type, timestamp DESC);
-
-CREATE INDEX idx_events_related ON domain_events USING GIN (related);
+CREATE INDEX idx_domain_events_pending ON domain_events(status, created_at);
+CREATE INDEX idx_domain_events_batch ON domain_events(tenant_id, event_type, batch_key, created_at);
 
 CREATE TABLE IF NOT EXISTS dead_letter_queue (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -49,6 +57,8 @@ CREATE TABLE IF NOT EXISTS dead_letter_queue (
   attempts INTEGER NOT NULL,
   tenant_id TEXT NOT NULL,
   correlation_id TEXT,
+  dbos_workflow_id TEXT,
+  dbos_step_name TEXT,
   status TEXT NOT NULL DEFAULT 'failed',
   failed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   expires_at TIMESTAMPTZ,
