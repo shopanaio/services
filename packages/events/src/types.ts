@@ -11,6 +11,14 @@ export interface DomainEvent<TType extends string = string, TPayload = unknown> 
   actor?: { type: "user" | "service" | "system"; id?: string };
 }
 
+export type EmitDispatchOptions =
+  | { mode?: "immediate" }
+  | {
+      mode: "deferred";
+      batchKey: string;
+      aggregateKey?: string;
+    };
+
 export interface EventContext {
   tenantId: string;
   userId?: string;
@@ -44,12 +52,32 @@ export interface HandlerInfo {
   };
 }
 
-export interface EventDispatchResult {
+export interface EventEmitResult {
   eventId: string;
   eventType: string;
-  status: "completed";
-  servicesNotified: number;
-  results: HandlerInvocationResult[];
+  status: "pending";
+  dispatchMode: "immediate" | "deferred";
+  dispatchWorkflowId?: string;
+}
+
+export type EventDispatchInput =
+  | {
+      kind: "event";
+      tenantId: string;
+      eventId: string;
+    }
+  | {
+      kind: "batch";
+      tenantId: string;
+      eventType?: string;
+      batchKey: string;
+      limit?: number;
+    };
+
+export interface EventDispatchResult {
+  claimed: number;
+  dispatched: number;
+  failed: number;
 }
 
 export interface HandlerInvocationResult {

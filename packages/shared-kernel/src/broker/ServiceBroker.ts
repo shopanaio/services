@@ -97,6 +97,30 @@ export class ServiceBroker implements OnModuleDestroy {
   }
 
   /**
+   * Start workflow and return as soon as DBOS has durably accepted it.
+   */
+  async startWorkflow<TParams = unknown>(
+    workflow: string,
+    params: TParams,
+    idempotencyCtx: IdempotencyContext,
+  ): Promise<{ workflowId: string; status: 'started' }> {
+    if (!this.workflowRegistry) {
+      throw new Error(
+        'WorkflowRegistry not available. Import WorkflowModule.forRoot() in your app module.'
+      );
+    }
+
+    const qualifiedWorkflow = this.assertFullyQualified(workflow);
+    const handle = await this.workflowRegistry.start<TParams, unknown>(
+      qualifiedWorkflow,
+      params,
+      idempotencyCtx,
+    );
+
+    return { workflowId: handle.workflowId, status: 'started' };
+  }
+
+  /**
    * Execute saga and wait for result.
    * Sagas are workflows with automatic compensation on failure.
    */

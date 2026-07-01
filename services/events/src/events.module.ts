@@ -4,7 +4,10 @@ import { BrokerModule } from "@shopana/shared-kernel";
 import { EventsBrokerActions } from "./actions";
 import { CleanupScheduler } from "./CleanupScheduler.js";
 import { EventsNestService } from "./events.nest-service.js";
-import { EventDispatchWorkflow } from "./workflows/index.js";
+import {
+  EventEmitWorkflow,
+  EventDispatchWorkflow,
+} from "./workflows/index.js";
 
 @Module({
   imports: [
@@ -15,6 +18,7 @@ import { EventDispatchWorkflow } from "./workflows/index.js";
     EventsBrokerActions,
     CleanupScheduler,
     EventsNestService,
+    EventEmitWorkflow,
     EventDispatchWorkflow,
   ],
 })

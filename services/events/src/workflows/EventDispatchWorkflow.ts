@@ -11,34 +11,23 @@ import {
 } from "@shopana/shared-kernel";
 import type {
   DomainEvent,
-  EventContext,
+  EventDispatchInput,
   EventDispatchResult,
-  HandlerInfo,
   EventHandlerResponse,
+  HandlerInfo,
   HandlerInvocationResult,
-} from "@shopana/events";
-import {
-  makeDeterministicCorrelationId,
-  makeDispatchWorkflowId,
-  makeEventId,
 } from "@shopana/events";
 import { getConfig } from "@shopana/shared-service-config";
 import { Kernel } from "../kernel/Kernel.js";
+import type { DomainEventRecord } from "../repositories/models/domainEvents.js";
 
-const DEFAULT_HANDLER_TIMEOUT_MS = 30_000; // 30 seconds
-
-export interface EmitParams<TType extends string = string, TPayload = unknown> {
-  eventType: TType;
-  payload: TPayload;
-  source: string;
-  context: Omit<EventContext, "correlationId"> & { correlationId?: string };
-  subject: { type: string; id: string };
-  actor?: { type: "user" | "service" | "system"; id?: string };
-  emitKey: string;
-}
+const DEFAULT_HANDLER_TIMEOUT_MS = 30_000;
 
 @Injectable()
-export class EventDispatchWorkflow extends BrokerWorkflows {
+export class EventDispatchWorkflow extends BrokerWorkflows<
+  EventDispatchInput,
+  EventDispatchResult
+> {
   constructor(@InjectBroker("events") broker: ServiceBroker) {
     super(broker);
   }
@@ -51,72 +40,105 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
     return this.kernel.repository;
   }
 
-  @Workflow("emit")
-  async run(params: EmitParams): Promise<EventDispatchResult> {
-    const { event } = this.buildEvent(params);
-    const { timestamp } = await this.stepPersistEvent(event);
-    event.timestamp = timestamp;
+  @Workflow("dispatch")
+  async run(input: EventDispatchInput): Promise<EventDispatchResult> {
+    const records = await this.stepClaimEvents(input);
+    if (records.length === 0) {
+      return { claimed: 0, dispatched: 0, failed: 0 };
+    }
 
-    const handlers = await this.stepGetAvailableHandlers(event.eventType);
+    let dispatched = 0;
+    let failed = 0;
 
-    const results = await Promise.all(
-      handlers.map((handler) => this.tryInvokeHandler(event, handler)),
-    );
+    for (const record of records) {
+      const event = toDomainEvent(record);
+      const handlers = await this.getAvailableHandlers(
+        event.eventType,
+        event.eventId,
+      );
+      const results = await Promise.all(
+        handlers.map((handler) => this.tryInvokeHandler(event, handler)),
+      );
 
-    await this.stepUpdateEventStatus(event.eventId, results);
-
-    return {
-      eventId: event.eventId,
-      eventType: event.eventType,
-      status: "completed",
-      servicesNotified: handlers.length,
-      results,
-    };
-  }
-
-  @WorkflowStep()
-  private async stepPersistEvent(
-    event: DomainEvent,
-  ): Promise<{ timestamp: string }> {
-    return this.repository.persistEvent(event);
-  }
-
-  @WorkflowStep()
-  private async stepGetAvailableHandlers(
-    eventType: string,
-  ): Promise<HandlerInfo[]> {
-    const config = getConfig();
-    const serviceNames = Object.keys(config.services ?? {});
-    const handlers: HandlerInfo[] = [];
-
-    for (const serviceName of serviceNames) {
-      const action = `${serviceName}.${eventType}`;
-
-      if (this.broker.hasAction(action)) {
-        const metadata = this.broker.getActionMetadata(action);
-        const retryPolicy = metadata?.retryPolicy ?? {
-          maxAttempts: 3,
-          intervalSeconds: 1,
-          backoffRate: 2,
-        };
-
-        handlers.push({ serviceName, action, retryPolicy });
+      if (results.some((result) => result.status === "failed")) {
+        await this.markFailed(event.eventId);
+        failed++;
+      } else {
+        await this.markDispatched(event.eventId);
+        dispatched++;
       }
     }
 
-    return handlers;
+    return { claimed: records.length, dispatched, failed };
   }
 
-  /**
-   * Try to invoke a handler with retry logic.
-   * This uses DBOS.runStep directly for fine-grained retry control.
-   */
+  @WorkflowStep()
+  private async stepClaimEvents(
+    input: EventDispatchInput,
+  ): Promise<DomainEventRecord[]> {
+    const lockedBy = DBOS.workflowID ?? "events.dispatch";
+
+    if (input.kind === "event") {
+      return this.repository.claimEvent({
+        tenantId: input.tenantId,
+        eventId: input.eventId,
+        lockedBy,
+      });
+    }
+
+    return this.repository.claimBatch({
+      tenantId: input.tenantId,
+      eventType: input.eventType,
+      batchKey: input.batchKey,
+      limit: input.limit,
+      lockedBy,
+    });
+  }
+
+  private async getAvailableHandlers(
+    eventType: string,
+    eventId: string,
+  ): Promise<HandlerInfo[]> {
+    return DBOS.runStep(
+      async () => {
+        const config = getConfig();
+        const serviceNames = Object.keys(config.services ?? {});
+        const handlers: HandlerInfo[] = [];
+
+        for (const serviceName of serviceNames) {
+          const action = `${serviceName}.${eventType}`;
+
+          if (this.broker.hasAction(action)) {
+            const metadata = this.broker.getActionMetadata(action);
+            const retryPolicy = metadata?.retryPolicy ?? {
+              maxAttempts: 3,
+              intervalSeconds: 1,
+              backoffRate: 2,
+            };
+
+            handlers.push({ serviceName, action, retryPolicy });
+          }
+        }
+
+        return handlers;
+      },
+      {
+        name: `handlers:${eventId}:${eventType}`,
+        retriesAllowed: true,
+        maxAttempts: 3,
+        intervalSeconds: 1,
+        backoffRate: 2,
+      },
+    );
+  }
+
   private async tryInvokeHandler(
     event: DomainEvent,
     handler: HandlerInfo,
   ): Promise<HandlerInvocationResult> {
     const { serviceName, action, retryPolicy } = handler;
     const timeoutMs = retryPolicy.timeoutMs ?? DEFAULT_HANDLER_TIMEOUT_MS;
+    const stepName = `handler:${action}:${event.eventId}`;
 
     type StepResult =
       | { kind: "ok"; durationMs: number }
@@ -150,7 +172,6 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
               return { kind: "ok", durationMs };
             }
 
-            // Error case
             const error = resp.error;
             if (!error.retryable) {
               return {
@@ -164,7 +185,6 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
           } catch (error) {
             const durationMs = Date.now() - startTime;
 
-            // Timeout is non-retryable - send to DLQ immediately
             if (error instanceof StepTimeoutError) {
               return {
                 kind: "timeout",
@@ -177,7 +197,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
           }
         },
         {
-          name: `handler:${action}:${event.eventId}`,
+          name: stepName,
           retriesAllowed: true,
           maxAttempts: retryPolicy.maxAttempts,
           intervalSeconds: retryPolicy.intervalSeconds,
@@ -186,12 +206,13 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
       );
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      await this.stepSendToDLQ(
+      await this.sendToDLQ(
         event,
         handler,
         errorMsg,
         undefined,
         retryPolicy.maxAttempts,
+        stepName,
       );
       return {
         service: serviceName,
@@ -202,12 +223,13 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
     }
 
     if (stepResult.kind === "timeout") {
-      await this.stepSendToDLQ(
+      await this.sendToDLQ(
         event,
         handler,
         stepResult.error.message,
         stepResult.error.code,
-        1, // Only 1 attempt - timeout is non-retryable
+        1,
+        stepName,
       );
       return {
         service: serviceName,
@@ -218,12 +240,13 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
     }
 
     if (stepResult.kind === "nonRetryableFailure") {
-      await this.stepSendToDLQ(
+      await this.sendToDLQ(
         event,
         handler,
         stepResult.error.message,
         stepResult.error.code,
         1,
+        stepName,
       );
       return {
         service: serviceName,
@@ -240,78 +263,93 @@ export class EventDispatchWorkflow extends BrokerWorkflows {
     };
   }
 
-  @WorkflowStep()
-  private async stepSendToDLQ(
+  private async sendToDLQ(
     event: DomainEvent,
     handler: HandlerInfo,
     error: string,
     errorCode: string | undefined,
     attempts: number,
+    dbosStepName: string,
   ): Promise<void> {
-    await this.repository.addToDLQ({
-      eventId: event.eventId,
-      eventType: event.eventType,
-      tenantId: event.context.tenantId,
-      correlationId: event.context.correlationId,
-      handler: { service: handler.serviceName, action: handler.action },
-      error,
-      errorCode,
-      attempts,
-    });
-  }
-
-  @WorkflowStep()
-  private async stepUpdateEventStatus(
-    eventId: string,
-    results: HandlerInvocationResult[],
-  ): Promise<void> {
-    await this.repository.updateEventStatus(eventId, results);
-  }
-
-  private buildEvent(params: EmitParams): {
-    event: DomainEvent;
-    workflowId: string;
-  } {
-    if (!params.emitKey || params.emitKey.trim().length === 0) {
-      throw new Error("emitKey is required and must be non-empty");
-    }
-
-    const parentWorkflowId = DBOS.workflowID;
-    if (!parentWorkflowId) {
-      throw new Error("events.emit must be called from workflow code");
-    }
-
-    const workflowId = makeDispatchWorkflowId({
-      parentWorkflowId,
-      eventType: params.eventType,
-      emitKey: params.emitKey,
-    });
-
-    const eventId = makeEventId({
-      tenantId: params.context.tenantId,
-      dispatchWorkflowId: workflowId,
-    });
-
-    const correlationId =
-      params.context.correlationId ??
-      makeDeterministicCorrelationId(parentWorkflowId);
-
-    const event: DomainEvent = {
-      eventId,
-      eventType: params.eventType,
-      timestamp: "",
-      source: params.source,
-      payload: params.payload,
-      emitKey: params.emitKey,
-      parentWorkflowId,
-      context: {
-        ...params.context,
-        correlationId,
+    await DBOS.runStep(
+      async () => {
+        await this.repository.addToDLQ({
+          eventId: event.eventId,
+          eventType: event.eventType,
+          tenantId: event.context.tenantId,
+          correlationId: event.context.correlationId,
+          handler: { service: handler.serviceName, action: handler.action },
+          error,
+          errorCode,
+          attempts,
+          dbosWorkflowId: DBOS.workflowID ?? undefined,
+          dbosStepName,
+        });
       },
-      subject: params.subject,
-      actor: params.actor ?? { type: "service", id: params.source },
-    };
-
-    return { event, workflowId };
+      {
+        name: `dlq:${event.eventId}:${handler.action}`,
+        retriesAllowed: true,
+        maxAttempts: 3,
+        intervalSeconds: 1,
+        backoffRate: 2,
+      },
+    );
   }
+
+  private async markDispatched(eventId: string): Promise<void> {
+    await DBOS.runStep(
+      async () => {
+        await this.repository.markDispatched(eventId);
+      },
+      {
+        name: `markDispatched:${eventId}`,
+        retriesAllowed: true,
+        maxAttempts: 3,
+        intervalSeconds: 1,
+        backoffRate: 2,
+      },
+    );
+  }
+
+  private async markFailed(eventId: string): Promise<void> {
+    await DBOS.runStep(
+      async () => {
+        await this.repository.markFailed(eventId);
+      },
+      {
+        name: `markFailed:${eventId}`,
+        retriesAllowed: true,
+        maxAttempts: 3,
+        intervalSeconds: 1,
+        backoffRate: 2,
+      },
+    );
+  }
+}
+
+function toDomainEvent(record: DomainEventRecord): DomainEvent {
+  return {
+    eventId: record.eventId,
+    eventType: record.eventType,
+    timestamp: toISOString(record.timestamp),
+    source: record.source,
+    payload: record.payload,
+    emitKey: record.emitKey,
+    parentWorkflowId: record.parentWorkflowId ?? undefined,
+    context: {
+      tenantId: record.tenantId,
+      userId: record.userId ?? undefined,
+      correlationId: record.correlationId,
+      causationId: record.causationId ?? undefined,
+    },
+    subject: { type: record.subjectType, id: record.subjectId },
+    actor: {
+      type: record.actorType as "user" | "service" | "system",
+      id: record.actorId ?? undefined,
+    },
+  };
+}
+
+function toISOString(value: Date | string): string {
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
