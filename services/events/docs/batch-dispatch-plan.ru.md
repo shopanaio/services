@@ -113,13 +113,12 @@ domain_events
   batch_key text null
   aggregate_key text null
 
-  attempts integer not null default 0
+  dispatch_claims integer not null default 0
   locked_by text null
   locked_until timestamptz null
 
   dispatch_started_at timestamptz null
   dispatch_completed_at timestamptz null
-  handler_results jsonb null
 
   created_at timestamptz not null default now()
   updated_at timestamptz not null default now()
@@ -150,27 +149,13 @@ idx_domain_events_correlation
 - Если payload станет большим, добавить `payload_ref` и выносить тело в MinIO, но не усложнять первую итерацию.
 - Текущий status constraint `dispatching | completed` должен быть заменен на новые статусы.
 
-### event_dispatch_attempts
+### handler execution trace
 
-Добавить отдельную таблицу для истории попыток доставки. Это лучше, чем перезаписывать только `handlerResults`.
+Successful handler calls не сохранять в events schema. Для успешной доставки достаточно финального `domain_events.status = dispatched` и `dispatch_completed_at`.
 
-```text
-event_dispatch_attempts
-  id text primary key
-  event_id text not null references domain_events(event_id)
-  batch_id text not null
-  handler_service text not null
-  handler_action text not null
-  attempt integer not null
-  status text not null
-    -- success | failed
-  error text null
-  error_code text null
-  duration_ms integer not null
-  created_at timestamptz not null default now()
-```
+Failed handler calls писать в DLQ.
 
-Записывать summary после завершения DBOS step для пары event-handler. Полный текущий per-handler state в первой итерации не вводить.
+Фактические retry/attempt данные и successful step results не дублировать в events schema: они остаются в DBOS runtime tables и логах. Для failed delivery в DLQ хранить `dbos_workflow_id` и `dbos_step_name`, чтобы открыть DBOS trace.
 
 ### dead_letter_queue
 
@@ -178,7 +163,8 @@ event_dispatch_attempts
 
 - запись создается dispatcher-ом после исчерпания DBOS retry;
 - для batch handler failure писать DLQ на каждое eventId в batch-е;
-- `attempts` должен отражать фактическое число DBOS attempts по policy.
+- не дублировать DBOS retry attempts в DLQ; для диагностики хранить `dbos_workflow_id` и `dbos_step_name`;
+- `domain_events.dispatch_claims` отражает только число claim-ов dispatcher-ом и не является handler retry counter.
 
 ## Event emit API
 
@@ -235,12 +221,8 @@ interface EventDispatchPolicy {
   eventType: string;
   maxBatchSize: number;
   groupBy: Array<"tenantId" | "eventType" | "batchKey" | "source">;
-  retry: {
-    maxAttempts: number;
-    intervalSeconds: number;
-    backoffRate: number;
-  };
   handlerTimeoutMs: number;
+  handlerStepConfig: "default" | "longRunning" | "destructive";
 }
 ```
 
@@ -250,32 +232,39 @@ interface EventDispatchPolicy {
 productUpdated:
   maxBatchSize: 500
   groupBy: ["tenantId", "eventType", "batchKey"]
-  retry:
-    maxAttempts: 5
-    intervalSeconds: 1
-    backoffRate: 2
   handlerTimeoutMs: 30000
+  handlerStepConfig: default
 
 fileHardDeleted:
   maxBatchSize: 100
   groupBy: ["tenantId", "eventType"]
-  retry:
-    maxAttempts: 10
-    intervalSeconds: 1
-    backoffRate: 2
   handlerTimeoutMs: 30000
+  handlerStepConfig: destructive
 
 default:
   maxBatchSize: 100
   groupBy: ["tenantId", "eventType"]
-  retry:
-    maxAttempts: 3
-    intervalSeconds: 1
-    backoffRate: 2
   handlerTimeoutMs: 30000
+  handlerStepConfig: default
 ```
 
-Policy registry должен жить в коде, не в БД, пока нет runtime-конфигурации событий.
+Policy registry должен жить в коде, не в БД, пока нет runtime-конфигурации событий. Он не хранит retry policy как данные events service.
+
+Retry задается через DBOS step settings на handler call. `handlerStepConfig` выбирает один из code-defined наборов DBOS options, которые dispatcher передает в `DBOS.runStep`:
+
+```ts
+const handlerStepConfigs = {
+  default: {
+    retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
+  },
+  longRunning: {
+    retry: { maxAttempts: 5, intervalSeconds: 5, backoffRate: 2 },
+  },
+  destructive: {
+    retry: { maxAttempts: 10, intervalSeconds: 1, backoffRate: 2 },
+  },
+};
+```
 
 ## Dispatcher workflows
 
@@ -372,7 +361,7 @@ SET
   status = 'dispatching',
   locked_by = :dispatcherWorkflowId,
   locked_until = now() + :lockTtl,
-  attempts = attempts + 1,
+  dispatch_claims = dispatch_claims + 1,
   dispatch_started_at = coalesce(dispatch_started_at, now()),
   updated_at = now()
 WHERE event_id IN (SELECT event_id FROM claimed)
@@ -383,6 +372,8 @@ RETURNING *;
 Для `dispatchBatch` optional filters включают `batch_key = :batchKey`, `dispatch_mode = 'deferred'`, optional `event_type`.
 
 Lock TTL нужен, чтобы repair scheduler мог подобрать события после падения процесса.
+
+`dispatch_claims` нужен только для observability outbox-а и диагностики stale lock/repair сценариев. Он не должен использоваться как счетчик retry handler-ов, потому что retry происходит внутри DBOS step после claim-а.
 
 ### Repair scheduler
 
@@ -620,13 +611,12 @@ lock fields cleared
 ```text
 status = dispatched
 dispatch_completed_at = now
-handler_results = [...]
 lock fields cleared
 ```
 
 Если часть handlers успешна, а часть failed:
 
-- В первой итерации событие считается `failed`, successful handler results сохраняются, failed handler уходит в DLQ.
+- В первой итерации событие считается `failed`, failed handler уходит в DLQ.
 - Следующая версия: хранить per-handler state, чтобы retry/replay не вызывал уже successful handlers повторно.
 
 ## Фазы внедрения
