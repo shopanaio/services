@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import {
+  BatchEventHandler,
   EventHandler,
   EventHandlers,
   InjectBroker,
@@ -11,6 +12,7 @@ import type {
   ProductDeletedEvent,
   ProductUpdatedEvent,
   FileHardDeletedEvent,
+  EventBatchHandlerResponse,
   EventHandlerResponse,
 } from "@shopana/events";
 import { Kernel } from "../kernel/Kernel.js";
@@ -140,40 +142,7 @@ export class CatalogEventHandlers extends EventHandlers {
       "Received productUpdated event"
     );
     try {
-      const store = await this.getStoreContext(params.event.payload.storeId);
-      const variantIds = params.event.payload.variants
-        ? Object.keys(params.event.payload.variants)
-        : undefined;
-      const context = {
-        storeId: store.id,
-        organizationId: store.organizationId,
-        userId: params.event.context.userId,
-        locale: store.defaultLocale,
-        defaultLocale: store.defaultLocale,
-      };
-      const categories = params.event.payload.product?.categories;
-
-      if (categories?.changed && categories.reason === "assignment") {
-        await this.refreshCategoryProductCounts({
-          categoryIds: categories.categoryIds,
-          store,
-          userId: context.userId,
-        });
-      }
-
-      await this.kernel.runScript(
-        SyncProductIndexScript,
-        { productId: params.event.payload.productId },
-        context
-      );
-      await this.kernel.runScript(
-        SyncVariantIndexScript,
-        {
-          productId: params.event.payload.productId,
-          variantIds,
-        },
-        context
-      );
+      await this.syncProductUpdatedEvent(params.event);
       return { success: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -183,6 +152,154 @@ export class CatalogEventHandlers extends EventHandlers {
       );
       return { success: false, error: { message, retryable: true } };
     }
+  }
+
+  @BatchEventHandler("productUpdated", { retry: { maxAttempts: 5 } })
+  async handleProductUpdatedBatch(params: {
+    events: ProductUpdatedEvent[];
+    payloads: ProductUpdatedEvent["payload"][];
+  }): Promise<EventBatchHandlerResponse> {
+    this.logger.debug(
+      {
+        eventCount: params.events.length,
+        productIds: params.payloads.map((payload) => payload.productId),
+      },
+      "Received productUpdated event batch"
+    );
+
+    const result = await this.syncProductUpdatedEvents(params.events);
+
+    if (result.failedEventIds.length === 0) {
+      return { success: true };
+    }
+
+    return {
+      success: false,
+      error: {
+        message: result.errors.join("; ") || "Product updated batch failed",
+        retryable: true,
+      },
+      failedEventIds: result.failedEventIds,
+    };
+  }
+
+  private async syncProductUpdatedEvents(
+    events: readonly ProductUpdatedEvent[],
+  ): Promise<{ failedEventIds: string[]; errors: string[] }> {
+    const failedEventIds: string[] = [];
+    const errors: string[] = [];
+
+    for (const storeEvents of groupProductUpdatedEventsByStore(events).values()) {
+      const firstEvent = storeEvents[0];
+      if (!firstEvent) continue;
+
+      let store: ContextStore;
+
+      try {
+        store = await this.getStoreContext(firstEvent.payload.storeId);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        failedEventIds.push(...storeEvents.map((event) => event.eventId));
+        errors.push(message);
+        continue;
+      }
+
+      try {
+        await this.refreshProductUpdatedCategoryCounts(storeEvents, store);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        failedEventIds.push(...storeEvents.map((event) => event.eventId));
+        errors.push(message);
+        continue;
+      }
+
+      for (const event of storeEvents) {
+        try {
+          await this.syncProductUpdatedSearchIndexes(event, store);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          failedEventIds.push(event.eventId);
+          errors.push(message);
+        }
+      }
+    }
+
+    if (failedEventIds.length > 0) {
+      this.logger.error(
+        { failedEventIds, errors },
+        "Failed to sync search indexes for productUpdated batch"
+      );
+    }
+
+    return {
+      failedEventIds: [...new Set(failedEventIds)],
+      errors: [...new Set(errors)],
+    };
+  }
+
+  private async syncProductUpdatedEvent(event: ProductUpdatedEvent): Promise<void> {
+    const store = await this.getStoreContext(event.payload.storeId);
+    const categories = event.payload.product?.categories;
+
+    if (categories?.changed && categories.reason === "assignment") {
+      await this.refreshCategoryProductCounts({
+        categoryIds: categories.categoryIds,
+        store,
+        userId: event.context.userId,
+      });
+    }
+
+    await this.syncProductUpdatedSearchIndexes(event, store);
+  }
+
+  private async refreshProductUpdatedCategoryCounts(
+    events: readonly ProductUpdatedEvent[],
+    store: ContextStore,
+  ): Promise<void> {
+    const categoryIds = events.flatMap((event) => {
+      const categories = event.payload.product?.categories;
+      if (!categories?.changed || categories.reason !== "assignment") {
+        return [];
+      }
+
+      return categories.categoryIds ?? [];
+    });
+
+    await this.refreshCategoryProductCounts({
+      categoryIds,
+      store,
+      userId: events.find((event) => event.context.userId)?.context.userId,
+    });
+  }
+
+  private async syncProductUpdatedSearchIndexes(
+    event: ProductUpdatedEvent,
+    store: ContextStore,
+  ): Promise<void> {
+    const variantIds = event.payload.variants
+      ? Object.keys(event.payload.variants)
+      : undefined;
+    const context = {
+      storeId: store.id,
+      organizationId: store.organizationId,
+      userId: event.context.userId,
+      locale: store.defaultLocale,
+      defaultLocale: store.defaultLocale,
+    };
+
+    await this.kernel.runScript(
+      SyncProductIndexScript,
+      { productId: event.payload.productId },
+      context
+    );
+    await this.kernel.runScript(
+      SyncVariantIndexScript,
+      {
+        productId: event.payload.productId,
+        variantIds,
+      },
+      context
+    );
   }
 
   private async refreshCategoryProductCounts(params: {
@@ -237,4 +354,18 @@ export class CatalogEventHandlers extends EventHandlers {
       return { success: false, error: { message, retryable: true } };
     }
   }
+}
+
+function groupProductUpdatedEventsByStore(
+  events: readonly ProductUpdatedEvent[],
+): Map<string, ProductUpdatedEvent[]> {
+  const groups = new Map<string, ProductUpdatedEvent[]>();
+
+  for (const event of events) {
+    const group = groups.get(event.payload.storeId) ?? [];
+    group.push(event);
+    groups.set(event.payload.storeId, group);
+  }
+
+  return groups;
 }

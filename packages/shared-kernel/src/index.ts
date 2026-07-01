@@ -85,6 +85,8 @@ export {
   AuthorizationError,
   Action,
   ACTION_METADATA_KEY,
+  BatchEventHandler,
+  BATCH_EVENT_HANDLER_METADATA_KEY,
   EventHandler,
   EVENT_HANDLER_METADATA_KEY,
   type UserError,
@@ -93,6 +95,7 @@ export {
   type AuthorizeParams,
   type AuthorizeOptions,
   type ActionDecoratorMetadata,
+  type BatchEventHandlerMetadata,
   type EventHandlerMetadata,
 } from "./decorators";
 

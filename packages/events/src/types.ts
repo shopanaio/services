@@ -34,6 +34,14 @@ export type EventHandlerResponse<T = void> =
   | { success: true; data?: T }
   | { success: false; error: { message: string; code?: string; retryable: boolean } };
 
+export type EventBatchHandlerResponse<T = void> =
+  | { success: true; data?: T }
+  | {
+      success: false;
+      error: { message: string; code?: string; retryable: boolean };
+      failedEventIds?: string[];
+    };
+
 /**
  * @deprecated Use EventHandlerResponse with success/error pattern
  */
@@ -83,6 +91,15 @@ export interface EventDispatchResult {
 export interface HandlerInvocationResult {
   service: string;
   status: "success" | "failed";
+  error?: string;
+  durationMs: number;
+}
+
+export interface BatchHandlerInvocationResult {
+  service: string;
+  status: "success" | "failed";
+  eventIds: string[];
+  failedEventIds: string[];
   error?: string;
   durationMs: number;
 }

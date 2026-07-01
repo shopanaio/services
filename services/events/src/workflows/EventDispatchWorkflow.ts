@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 import {
   BrokerWorkflows,
@@ -10,7 +11,9 @@ import {
   DBOS,
 } from "@shopana/shared-kernel";
 import type {
+  BatchHandlerInvocationResult,
   DomainEvent,
+  EventBatchHandlerResponse,
   EventDispatchInput,
   EventDispatchResult,
   EventHandlerResponse,
@@ -22,6 +25,18 @@ import { Kernel } from "../kernel/Kernel.js";
 import type { DomainEventRecord } from "../repositories/models/domainEvents.js";
 
 const DEFAULT_HANDLER_TIMEOUT_MS = 30_000;
+const BATCH_EVENT_ACTION_SUFFIX = ":batch";
+
+type BatchHandlerAttemptResult =
+  | { kind: "ok"; durationMs: number; stepName: string }
+  | {
+      kind: "failure";
+      retryable: boolean;
+      error: { message: string; code?: string };
+      failedEventIds: string[];
+      durationMs: number;
+      stepName: string;
+    };
 
 @Injectable()
 export class EventDispatchWorkflow extends BrokerWorkflows<
@@ -47,6 +62,48 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
       return { claimed: 0, dispatched: 0, failed: 0 };
     }
 
+    if (input.kind === "batch") {
+      return this.dispatchBatchEvents(records);
+    }
+
+    return this.dispatchSingleEvents(records);
+  }
+
+  @WorkflowStep()
+  private async stepClaimEvents(
+    input: EventDispatchInput,
+  ): Promise<DomainEventRecord[]> {
+    const lockedBy = this.getDispatchWorkflowId();
+
+    if (input.kind === "event") {
+      return this.repository.claimEvent({
+        tenantId: input.tenantId,
+        eventId: input.eventId,
+        lockedBy,
+      });
+    }
+
+    return this.repository.claimBatch({
+      tenantId: input.tenantId,
+      eventType: input.eventType,
+      batchKey: input.batchKey,
+      limit: input.limit,
+      lockedBy,
+    });
+  }
+
+  private getDispatchWorkflowId(): string {
+    const workflowId = DBOS.workflowID;
+    if (!workflowId) {
+      throw new Error("events.dispatch must run inside a DBOS workflow context");
+    }
+
+    return workflowId;
+  }
+
+  private async dispatchSingleEvents(
+    records: DomainEventRecord[],
+  ): Promise<EventDispatchResult> {
     let dispatched = 0;
     let failed = 0;
 
@@ -72,27 +129,44 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
     return { claimed: records.length, dispatched, failed };
   }
 
-  @WorkflowStep()
-  private async stepClaimEvents(
-    input: EventDispatchInput,
-  ): Promise<DomainEventRecord[]> {
-    const lockedBy = DBOS.workflowID ?? "events.dispatch";
+  private async dispatchBatchEvents(
+    records: DomainEventRecord[],
+  ): Promise<EventDispatchResult> {
+    let dispatched = 0;
+    let failed = 0;
 
-    if (input.kind === "event") {
-      return this.repository.claimEvent({
-        tenantId: input.tenantId,
-        eventId: input.eventId,
-        lockedBy,
-      });
+    for (const eventRecords of groupRecordsByEventType(records).values()) {
+      const events = eventRecords.map(toDomainEvent);
+      const firstEvent = events[0];
+      if (!firstEvent) continue;
+
+      const eventIds = events.map((event) => event.eventId);
+      const batchHandlers = await this.getAvailableBatchHandlers(
+        firstEvent.eventType,
+        eventIds,
+      );
+
+      if (batchHandlers.length === 0) {
+        const result = await this.dispatchSingleEvents(eventRecords);
+        dispatched += result.dispatched;
+        failed += result.failed;
+        continue;
+      }
+
+      const results = await Promise.all(
+        batchHandlers.map((handler) => this.tryInvokeBatchHandler(events, handler)),
+      );
+      const failedEventIds = collectFailedEventIds(results);
+      const dispatchedEventIds = eventIds.filter((id) => !failedEventIds.has(id));
+
+      await this.markDispatchedBatch(dispatchedEventIds);
+      await this.markFailedBatch([...failedEventIds]);
+
+      dispatched += dispatchedEventIds.length;
+      failed += failedEventIds.size;
     }
 
-    return this.repository.claimBatch({
-      tenantId: input.tenantId,
-      eventType: input.eventType,
-      batchKey: input.batchKey,
-      limit: input.limit,
-      lockedBy,
-    });
+    return { claimed: records.length, dispatched, failed };
   }
 
   private async getAvailableHandlers(
@@ -124,6 +198,45 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
       },
       {
         name: `handlers:${eventId}:${eventType}`,
+        retriesAllowed: true,
+        maxAttempts: 3,
+        intervalSeconds: 1,
+        backoffRate: 2,
+      },
+    );
+  }
+
+  private async getAvailableBatchHandlers(
+    eventType: string,
+    eventIds: readonly string[],
+  ): Promise<HandlerInfo[]> {
+    const batchHash = hashValues(eventIds);
+
+    return DBOS.runStep(
+      async () => {
+        const config = getConfig();
+        const serviceNames = Object.keys(config.services ?? {});
+        const handlers: HandlerInfo[] = [];
+
+        for (const serviceName of serviceNames) {
+          const action = `${serviceName}.${eventType}${BATCH_EVENT_ACTION_SUFFIX}`;
+
+          if (this.broker.hasAction(action)) {
+            const metadata = this.broker.getActionMetadata(action);
+            const retryPolicy = metadata?.retryPolicy ?? {
+              maxAttempts: 3,
+              intervalSeconds: 1,
+              backoffRate: 2,
+            };
+
+            handlers.push({ serviceName, action, retryPolicy });
+          }
+        }
+
+        return handlers;
+      },
+      {
+        name: `batchHandlers:${eventType}:${batchHash}`,
         retriesAllowed: true,
         maxAttempts: 3,
         intervalSeconds: 1,
@@ -263,6 +376,149 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
     };
   }
 
+  private async tryInvokeBatchHandler(
+    events: DomainEvent[],
+    handler: HandlerInfo,
+  ): Promise<BatchHandlerInvocationResult> {
+    const { serviceName, retryPolicy } = handler;
+    const eventIds = events.map((event) => event.eventId);
+    let pendingEvents = events;
+    let durationMs = 0;
+    let attempt = 1;
+
+    while (pendingEvents.length > 0) {
+      const attemptResult = await this.invokeBatchHandlerAttempt(
+        pendingEvents,
+        handler,
+        attempt,
+      );
+      durationMs += attemptResult.durationMs;
+
+      if (attemptResult.kind === "ok") {
+        return {
+          service: serviceName,
+          status: "success",
+          eventIds,
+          failedEventIds: [],
+          durationMs,
+        };
+      }
+
+      const exhausted = attempt >= retryPolicy.maxAttempts;
+      if (!attemptResult.retryable || exhausted) {
+        await this.sendBatchToDLQ(
+          events,
+          handler,
+          attemptResult.error.message,
+          attemptResult.error.code,
+          attempt,
+          attemptResult.stepName,
+          attemptResult.failedEventIds,
+        );
+        return {
+          service: serviceName,
+          status: "failed",
+          eventIds,
+          failedEventIds: attemptResult.failedEventIds,
+          error: attemptResult.error.message,
+          durationMs,
+        };
+      }
+
+      await this.sleepBeforeBatchRetry(handler, attempt);
+      pendingEvents = selectEventsByIds(pendingEvents, attemptResult.failedEventIds);
+      attempt++;
+    }
+
+    return {
+      service: serviceName,
+      status: "success",
+      eventIds,
+      failedEventIds: [],
+      durationMs,
+    };
+  }
+
+  private async invokeBatchHandlerAttempt(
+    events: DomainEvent[],
+    handler: HandlerInfo,
+    attempt: number,
+  ): Promise<BatchHandlerAttemptResult> {
+    const { action, retryPolicy } = handler;
+    const eventIds = events.map((event) => event.eventId);
+    const timeoutMs = retryPolicy.timeoutMs ?? DEFAULT_HANDLER_TIMEOUT_MS;
+    const stepName = `batchHandler:${action}:${hashValues(eventIds)}:${attempt}`;
+
+    return DBOS.runStep<BatchHandlerAttemptResult>(
+      async () => {
+        const startTime = Date.now();
+
+        try {
+          const resp: EventBatchHandlerResponse = await withTimeout(
+            () =>
+              this.broker.call(action, {
+                events,
+                payloads: events.map((event) => event.payload),
+              }),
+            timeoutMs,
+            action,
+          );
+          const durationMs = Date.now() - startTime;
+
+          if (resp.success) {
+            return { kind: "ok", durationMs, stepName };
+          }
+
+          return {
+            kind: "failure",
+            retryable: resp.error.retryable,
+            error: { message: resp.error.message, code: resp.error.code },
+            failedEventIds: normalizeFailedEventIds(resp.failedEventIds, eventIds),
+            durationMs,
+            stepName,
+          };
+        } catch (error) {
+          const durationMs = Date.now() - startTime;
+
+          if (error instanceof StepTimeoutError) {
+            return {
+              kind: "failure",
+              retryable: false,
+              error: { message: error.message, code: "HANDLER_TIMEOUT" },
+              failedEventIds: eventIds,
+              durationMs,
+              stepName,
+            };
+          }
+
+          const message = error instanceof Error ? error.message : String(error);
+          return {
+            kind: "failure",
+            retryable: true,
+            error: { message },
+            failedEventIds: eventIds,
+            durationMs,
+            stepName,
+          };
+        }
+      },
+      {
+        name: stepName,
+        retriesAllowed: false,
+      },
+    );
+  }
+
+  private async sleepBeforeBatchRetry(
+    handler: HandlerInfo,
+    failedAttempt: number,
+  ): Promise<void> {
+    const delayMs = getRetryDelayMs(handler.retryPolicy, failedAttempt);
+    if (delayMs <= 0) return;
+
+    await DBOS.sleep(delayMs);
+  }
+
   private async sendToDLQ(
     event: DomainEvent,
     handler: HandlerInfo,
@@ -296,6 +552,48 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
     );
   }
 
+  private async sendBatchToDLQ(
+    events: DomainEvent[],
+    handler: HandlerInfo,
+    error: string,
+    errorCode: string | undefined,
+    attempts: number,
+    dbosStepName: string,
+    failedEventIds: readonly string[],
+  ): Promise<void> {
+    const failedEventIdSet = new Set(failedEventIds);
+    const failedEvents = events.filter((event) => failedEventIdSet.has(event.eventId));
+    if (failedEvents.length === 0) return;
+
+    await DBOS.runStep(
+      async () => {
+        await Promise.all(
+          failedEvents.map((event) =>
+            this.repository.addToDLQ({
+              eventId: event.eventId,
+              eventType: event.eventType,
+              tenantId: event.context.tenantId,
+              correlationId: event.context.correlationId,
+              handler: { service: handler.serviceName, action: handler.action },
+              error,
+              errorCode,
+              attempts,
+              dbosWorkflowId: DBOS.workflowID ?? undefined,
+              dbosStepName,
+            }),
+          ),
+        );
+      },
+      {
+        name: `dlqBatch:${handler.action}:${hashValues(failedEventIds)}`,
+        retriesAllowed: true,
+        maxAttempts: 3,
+        intervalSeconds: 1,
+        backoffRate: 2,
+      },
+    );
+  }
+
   private async markDispatched(eventId: string): Promise<void> {
     await DBOS.runStep(
       async () => {
@@ -303,6 +601,23 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
       },
       {
         name: `markDispatched:${eventId}`,
+        retriesAllowed: true,
+        maxAttempts: 3,
+        intervalSeconds: 1,
+        backoffRate: 2,
+      },
+    );
+  }
+
+  private async markDispatchedBatch(eventIds: readonly string[]): Promise<void> {
+    if (eventIds.length === 0) return;
+
+    await DBOS.runStep(
+      async () => {
+        await this.repository.markDispatchedMany(eventIds);
+      },
+      {
+        name: `markDispatchedBatch:${hashValues(eventIds)}`,
         retriesAllowed: true,
         maxAttempts: 3,
         intervalSeconds: 1,
@@ -325,6 +640,92 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
       },
     );
   }
+
+  private async markFailedBatch(eventIds: readonly string[]): Promise<void> {
+    if (eventIds.length === 0) return;
+
+    await DBOS.runStep(
+      async () => {
+        await this.repository.markFailedMany(eventIds);
+      },
+      {
+        name: `markFailedBatch:${hashValues(eventIds)}`,
+        retriesAllowed: true,
+        maxAttempts: 3,
+        intervalSeconds: 1,
+        backoffRate: 2,
+      },
+    );
+  }
+}
+
+function groupRecordsByEventType(
+  records: DomainEventRecord[],
+): Map<string, DomainEventRecord[]> {
+  const groups = new Map<string, DomainEventRecord[]>();
+
+  for (const record of records) {
+    const group = groups.get(record.eventType) ?? [];
+    group.push(record);
+    groups.set(record.eventType, group);
+  }
+
+  return groups;
+}
+
+function collectFailedEventIds(
+  results: readonly BatchHandlerInvocationResult[],
+): Set<string> {
+  const failedEventIds = new Set<string>();
+
+  for (const result of results) {
+    if (result.status !== "failed") continue;
+
+    for (const eventId of result.failedEventIds) {
+      failedEventIds.add(eventId);
+    }
+  }
+
+  return failedEventIds;
+}
+
+function normalizeFailedEventIds(
+  failedEventIds: readonly string[] | undefined,
+  allEventIds: readonly string[],
+): string[] {
+  if (!failedEventIds || failedEventIds.length === 0) {
+    return [...allEventIds];
+  }
+
+  const allEventIdSet = new Set(allEventIds);
+  const normalized = [...new Set(failedEventIds)].filter((eventId) =>
+    allEventIdSet.has(eventId),
+  );
+
+  return normalized.length > 0 ? normalized : [...allEventIds];
+}
+
+function selectEventsByIds(
+  events: readonly DomainEvent[],
+  eventIds: readonly string[],
+): DomainEvent[] {
+  const eventIdSet = new Set(eventIds);
+  return events.filter((event) => eventIdSet.has(event.eventId));
+}
+
+function getRetryDelayMs(
+  retryPolicy: HandlerInfo["retryPolicy"],
+  failedAttempt: number,
+): number {
+  return Math.round(
+    retryPolicy.intervalSeconds *
+      Math.pow(retryPolicy.backoffRate, failedAttempt - 1) *
+      1000,
+  );
+}
+
+function hashValues(values: readonly string[]): string {
+  return createHash("sha256").update(values.join("\0")).digest("hex").slice(0, 16);
 }
 
 function toDomainEvent(record: DomainEventRecord): DomainEvent {

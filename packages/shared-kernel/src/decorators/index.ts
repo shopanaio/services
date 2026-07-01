@@ -13,8 +13,11 @@ export {
   type ActionDecoratorMetadata,
 } from "./Action.js";
 export {
+  BatchEventHandler,
+  BATCH_EVENT_HANDLER_METADATA_KEY,
   EventHandler,
   EVENT_HANDLER_METADATA_KEY,
+  type BatchEventHandlerMetadata,
   type EventHandlerMetadata,
 } from "./EventHandler.js";
 

@@ -199,6 +199,20 @@ export class Repository {
       .where(eq(domainEvents.eventId, eventId));
   }
 
+  async markDispatchedMany(eventIds: readonly string[]): Promise<void> {
+    if (eventIds.length === 0) return;
+
+    await this.connection
+      .update(domainEvents)
+      .set({
+        status: "dispatched",
+        dispatchCompletedAt: new Date(),
+        lockedBy: null,
+        updatedAt: new Date(),
+      })
+      .where(inArray(domainEvents.eventId, [...eventIds]));
+  }
+
   async markFailed(eventId: string): Promise<void> {
     await this.connection
       .update(domainEvents)
@@ -209,6 +223,20 @@ export class Repository {
         updatedAt: new Date(),
       })
       .where(eq(domainEvents.eventId, eventId));
+  }
+
+  async markFailedMany(eventIds: readonly string[]): Promise<void> {
+    if (eventIds.length === 0) return;
+
+    await this.connection
+      .update(domainEvents)
+      .set({
+        status: "failed",
+        dispatchCompletedAt: new Date(),
+        lockedBy: null,
+        updatedAt: new Date(),
+      })
+      .where(inArray(domainEvents.eventId, [...eventIds]));
   }
 
   async addToDLQ(params: AddToDLQParams): Promise<void> {
