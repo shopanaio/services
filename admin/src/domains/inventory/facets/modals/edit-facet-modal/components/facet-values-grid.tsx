@@ -16,6 +16,7 @@ import { SearchOutlined } from "@ant-design/icons";
 import { LuEllipsis } from "react-icons/lu";
 import { FacetValueKind } from "@/graphql/types";
 import { useAgGridTheme } from "@/hooks";
+import { Dash } from "@/shared/components/editor-grid";
 import type { FacetValueEditorRow } from "../types";
 
 interface FacetValuesGridProps {
@@ -110,8 +111,8 @@ export function FacetValuesGrid({
       mode: "multiRow",
       checkboxes: true,
       headerCheckbox: true,
-      enableClickSelection: true,
-      enableSelectionWithoutKeys: true,
+      enableClickSelection: false,
+      enableSelectionWithoutKeys: false,
     }),
     [],
   );
@@ -173,12 +174,9 @@ export function FacetValuesGrid({
               </span>
             </Tooltip>
           ) : (
-            <Typography.Text
-              type="secondary"
-              data-testid={`facet-values-grouped-cell-${valueTestId(data.handle)}`}
-            >
-              -
-            </Typography.Text>
+            <span data-testid={`facet-values-grouped-cell-${valueTestId(data.handle)}`}>
+              <Dash />
+            </span>
           );
         },
       },
