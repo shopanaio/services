@@ -35,11 +35,6 @@ export const useFacetCellStyles = createStyles(({ token }) => ({
     display: "inline-block",
     flex: "0 0 auto",
   },
-  facetIcon: {
-    color: token.colorPrimary,
-    fontSize: 14,
-    flex: "0 0 auto",
-  },
   valueIcon: {
     color: token.colorSuccess,
     fontSize: 14,

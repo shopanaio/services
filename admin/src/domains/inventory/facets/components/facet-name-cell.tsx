@@ -1,4 +1,3 @@
-import { FilterOutlined } from "@ant-design/icons";
 import { Typography } from "antd";
 import type { ICellRendererParams } from "ag-grid-community";
 import type { FacetGridRow } from "../mappers";
@@ -18,16 +17,10 @@ export function FacetNameCell(params: ICellRendererParams<FacetGridRow>) {
         row.slug ? `facets-table-name-cell-${row.slug}` : undefined
       }
     >
-      <FilterOutlined className={styles.facetIcon} />
       <span className={styles.nameText}>
         <Typography.Text ellipsis strong>
           {row.name}
         </Typography.Text>
-        {row.slug ? (
-          <Typography.Text ellipsis className={styles.secondary}>
-            {row.slug}
-          </Typography.Text>
-        ) : null}
       </span>
     </div>
   );

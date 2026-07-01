@@ -1,5 +1,4 @@
 import { registerModule } from "@/registry";
-import { FilterOutlined } from "@ant-design/icons";
 import dynamic from "next/dynamic";
 
 registerModule({
@@ -7,7 +6,7 @@ registerModule({
   domain: "store",
   sidebar: {
     label: "Facets",
-    icon: <FilterOutlined />,
+    icon: null,
     order: 5,
   },
   items: [

@@ -1,8 +1,6 @@
 import {
   DownOutlined,
-  FilterOutlined,
   RightOutlined,
-  TagsOutlined,
 } from "@ant-design/icons";
 import { Typography } from "antd";
 import type { ICellRendererParams } from "ag-grid-community";
@@ -23,9 +21,9 @@ export function FacetTreeNameCell(params: FacetTreeNameCellParams) {
     return null;
   }
 
-  const hasChildren =
-    row.type === "facet" &&
-    params.allRows.some((candidate) => candidate.parentId === row.id);
+  const hasChildren = params.allRows.some(
+    (candidate) => candidate.parentId === row.id,
+  );
   const isExpanded = params.expandedIds.has(row.id);
   const indent = row.level * 24;
 
@@ -47,21 +45,10 @@ export function FacetTreeNameCell(params: FacetTreeNameCellParams) {
         <span className={styles.expandIconPlaceholder} />
       )}
 
-      {row.type === "facet" ? (
-        <FilterOutlined className={styles.facetIcon} />
-      ) : (
-        <TagsOutlined className={styles.valueIcon} />
-      )}
-
       <span className={styles.nameText}>
-        <Typography.Text ellipsis strong={row.type === "facet"}>
+        <Typography.Text ellipsis strong>
           {row.name}
         </Typography.Text>
-        {row.slug && (
-          <Typography.Text ellipsis className={styles.secondary}>
-            {row.slug}
-          </Typography.Text>
-        )}
       </span>
     </div>
   );
