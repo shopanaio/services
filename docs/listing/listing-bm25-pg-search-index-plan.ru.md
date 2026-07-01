@@ -88,8 +88,10 @@ Deployment rules:
 
 - `catalog.product_title_bm25_search_index`
 
-Одна строка на project + product + locale. Валюта не входит в search index:
-цена и доступность остаются в listing index.
+Одна строка на product + locale. `project_id` хранится как tenant scope column
+для фильтрации и индексов, но не входит в PK/FK, потому что `product_id`
+является глобальным идентификатором product row. Валюта не входит в search
+index: цена и доступность остаются в listing index.
 
 ```sql
 CREATE TABLE catalog.product_title_bm25_search_index (
@@ -110,11 +112,11 @@ CREATE TABLE catalog.product_title_bm25_search_index (
   indexed_at             timestamptz NOT NULL DEFAULT now(),
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, product_id, locale),
+  PRIMARY KEY (product_id, locale),
   UNIQUE (search_id),
   CONSTRAINT fk_product_title_bm25_product
-    FOREIGN KEY (project_id, product_id)
-    REFERENCES catalog.product(project_id, id)
+    FOREIGN KEY (product_id)
+    REFERENCES catalog.product(id)
     ON DELETE CASCADE
 );
 ```
@@ -122,8 +124,11 @@ CREATE TABLE catalog.product_title_bm25_search_index (
 Column semantics:
 
 - `search_id` is the BM25 key field. It must be globally unique and stable for
-  `(project_id, product_id, locale)`. Use deterministic UUID or preserve the
-  generated value on upsert.
+  `(product_id, locale)`. Use deterministic UUID or preserve the generated value
+  on upsert.
+- `project_id` mirrors `catalog.product.project_id` and is used for tenant
+  isolation in queries and ordinary/BM25 indexes. It is not part of the row
+  identity.
 - `status` mirrors product visibility. Soft-deleted products are deleted from the
   index.
 - `title` comes only from `catalog.product_translation.name` for the same
@@ -365,7 +370,7 @@ Add scripts:
 3. Load enabled project locales.
 4. Load `catalog.product_translation.name` per enabled locale.
 5. Upsert one row per product/locale with only `title` as searchable text.
-6. Preserve `search_id` for existing `(project_id, product_id, locale)` rows.
+6. Preserve `search_id` for existing `(product_id, locale)` rows.
 7. Delete rows for locales no longer enabled.
 
 `RebuildProductTitleBm25SearchIndexScript`:
