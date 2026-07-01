@@ -396,21 +396,18 @@ export default function FacetsPage() {
       title="Facets"
       count={baseRows.filter((row) => row.type === "facet").length}
       actions={
-        <>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            data-testid="facets-create-button"
-            onClick={() =>
-              openCreateFacetModal({
-                nextSortIndex: getMaxRootSortIndex(baseRows) + 1,
-                onSaved: refetchAndReset,
-              })
-            }
-          >
-            Create
-          </Button>
-        </>
+        <Button
+          icon={<PlusOutlined />}
+          data-testid="facets-create-button"
+          onClick={() =>
+            openCreateFacetModal({
+              nextSortIndex: getMaxRootSortIndex(baseRows) + 1,
+              onSaved: refetchAndReset,
+            })
+          }
+        >
+          Create
+        </Button>
       }
     >
       <DataLayout.Toolbar
