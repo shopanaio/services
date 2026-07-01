@@ -17,6 +17,7 @@ import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
   getAllowedFacetUiTypes,
   getDefaultFacetUiType,
+  getFacetSourceTypeLabel,
   isDiscreteFacetType,
   mapFacetFormToCreateInput,
   mapFacetUserErrorsToFormErrors,
@@ -59,18 +60,19 @@ const useStyles = createStyles(({ token }) => ({
     color: token.colorError,
     marginTop: 4,
   },
-  labelInput: {
-    ".ant-input-group-addon": {
-      paddingInline: 2,
-    },
+  stackedField: {
+    marginBottom: 16,
   },
   sourceSelectorButton: {
-    maxWidth: 160,
-    minWidth: 96,
-    paddingInline: 4,
+    width: "100%",
+    height: 46,
+    justifyContent: "flex-start",
+    paddingInline: 12,
+    borderColor: token.colorBorder,
+    color: token.colorText,
   },
   sourceSelectorContent: {
-    justifyContent: "center",
+    justifyContent: "flex-start",
     width: "100%",
     minWidth: 0,
     span: {
@@ -83,29 +85,33 @@ const useStyles = createStyles(({ token }) => ({
 
 interface FacetSourceSelectorProps {
   value: CreateFacetFormInput["source"];
+  facetType: FacetType;
   hasError?: boolean;
   onClick: () => void;
 }
 
 function FacetSourceSelector({
   value,
+  facetType,
   hasError = false,
   onClick,
 }: FacetSourceSelectorProps) {
   const { styles } = useStyles();
-  const label = value?.name || "Source";
+  const sourceTypeLabel = value ? getFacetSourceTypeLabel(facetType) : "Source";
+  const sourceLabel = value?.name ?? "Select source";
 
   return (
     <Button
-      size="small"
-      type="text"
+      type="default"
       danger={hasError}
       className={styles.sourceSelectorButton}
       onClick={onClick}
       data-testid="create-facet-source-button"
     >
       <Flex gap={4} align="center" className={styles.sourceSelectorContent}>
-        <span>{label}</span>
+        <span>
+          {sourceTypeLabel}: <strong>{sourceLabel}</strong>
+        </span>
       </Flex>
     </Button>
   );
@@ -256,6 +262,29 @@ export function CreateFacetModal() {
       >
         <Paper>
           <PaperHeader title="General" />
+          <div className={styles.stackedField}>
+            <div className={styles.label}>Source</div>
+            <Controller
+              name="source"
+              control={control}
+              render={({
+                field: sourceField,
+                fieldState: { error: sourceError },
+              }) => (
+                <>
+                  <FacetSourceSelector
+                    value={sourceField.value}
+                    facetType={facetType}
+                    hasError={Boolean(sourceError)}
+                    onClick={openPicker}
+                  />
+                  {sourceError ? (
+                    <div className={styles.error}>{sourceError.message}</div>
+                  ) : null}
+                </>
+              )}
+            />
+          </div>
           <div className={styles.fieldGroup}>
             <div className={styles.field}>
               <div className={styles.label}>Label</div>
@@ -267,46 +296,13 @@ export function CreateFacetModal() {
                     <Input
                       {...field}
                       autoFocus
-                      className={styles.labelInput}
                       placeholder="Color"
                       status={error ? "error" : undefined}
                       data-testid="create-facet-label-input"
-                      addonBefore={
-                        <Flex
-                          align="center"
-                          onPointerDown={(event) => event.stopPropagation()}
-                        >
-                          <Controller
-                            name="source"
-                            control={control}
-                            render={({
-                              field: sourceField,
-                              fieldState: { error: sourceError },
-                            }) => (
-                              <FacetSourceSelector
-                                value={sourceField.value}
-                                hasError={Boolean(sourceError)}
-                                onClick={openPicker}
-                              />
-                            )}
-                          />
-                        </Flex>
-                      }
                     />
                     {error && <div className={styles.error}>{error.message}</div>}
                   </>
                 )}
-              />
-              <Controller
-                name="source"
-                control={control}
-                render={({ fieldState: { error } }) =>
-                  error ? (
-                    <div className={styles.error}>{error.message}</div>
-                  ) : (
-                    <></>
-                  )
-                }
               />
             </div>
           </div>

@@ -25,7 +25,8 @@ import {
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
   getAllowedFacetUiTypes,
-  getFacetTypeIcon,
+  getFacetSourceHandleLabel,
+  getFacetSourceTypeLabel,
   isDiscreteFacetType,
   mapFacetFormToUpdateInput,
   mapFacetUserErrorsToFormErrors,
@@ -89,29 +90,36 @@ const useStyles = createStyles(({ token }) => ({
     color: token.colorError,
     marginTop: 4,
   },
-  labelInput: {
-    ".ant-input-group-addon": {
-      paddingInline: 2,
-    },
+  stackedField: {
+    marginBottom: 16,
   },
-  sourceAddon: {
-    width: 28,
-    paddingInline: 4,
-    justifyContent: "center",
+  sourceDisplay: {
+    display: "flex",
+    alignItems: "center",
+    minHeight: 46,
+    paddingInline: 12,
+    border: `1px solid ${token.colorBorder}`,
+    borderRadius: token.borderRadius,
+    color: token.colorText,
+    background: token.colorBgContainer,
   },
 }));
 
-interface FacetSourceAddonProps {
-  value: FacetType;
+interface FacetSourceDisplayProps {
+  facetType: FacetType;
 }
 
-function FacetSourceAddon({ value }: FacetSourceAddonProps) {
+function FacetSourceDisplay({ facetType }: FacetSourceDisplayProps) {
   const { styles } = useStyles();
+  const sourceTypeLabel = getFacetSourceTypeLabel(facetType);
+  const sourceLabel = getFacetSourceHandleLabel(facetType, "") ?? facetType;
 
   return (
-    <Flex gap={4} align="center" className={styles.sourceAddon}>
-      {getFacetTypeIcon(value)}
-    </Flex>
+    <div className={styles.sourceDisplay}>
+      <span>
+        {sourceTypeLabel}: <strong>{sourceLabel}</strong>
+      </span>
+    </div>
   );
 }
 
@@ -681,6 +689,10 @@ export function EditFacetModal() {
       >
         <Paper>
           <PaperHeader title="General" />
+          <div className={styles.stackedField}>
+            <div className={styles.label}>Source</div>
+            <FacetSourceDisplay facetType={facet.facetType} />
+          </div>
           <div className={styles.fieldGroup}>
             <div className={styles.field}>
               <div className={styles.label}>Label</div>
@@ -691,9 +703,7 @@ export function EditFacetModal() {
                   <>
                     <Input
                       {...field}
-                      className={styles.labelInput}
                       status={fieldError ? "error" : undefined}
-                      addonBefore={<FacetSourceAddon value={facet.facetType} />}
                       data-testid="edit-facet-label-input"
                     />
                     {fieldError && (
