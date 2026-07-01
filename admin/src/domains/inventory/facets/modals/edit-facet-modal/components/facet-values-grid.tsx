@@ -9,12 +9,11 @@ import type {
   RowDragEndEvent,
   RowSelectionOptions,
   SelectionChangedEvent,
-  SortChangedEvent,
 } from "ag-grid-community";
-import { Button, Dropdown, Flex, Input, Select, Space, Tooltip, Typography } from "antd";
+import { Button, Dropdown, Flex, Input, Space, Tooltip, Typography } from "antd";
 import { createStyles } from "antd-style";
 import { SearchOutlined } from "@ant-design/icons";
-import { LuEllipsis, LuGripVertical } from "react-icons/lu";
+import { LuEllipsis } from "react-icons/lu";
 import { FacetValueKind } from "@/graphql/types";
 import { useAgGridTheme } from "@/hooks";
 import type { FacetValueEditorRow } from "../types";
@@ -35,11 +34,6 @@ const useStyles = createStyles(({ token }) => ({
     flexDirection: "column",
     gap: 8,
   },
-  toolbar: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  },
   bulkPanel: {
     display: "flex",
     alignItems: "center",
@@ -52,13 +46,6 @@ const useStyles = createStyles(({ token }) => ({
   grid: {
     height: 360,
     minHeight: 360,
-  },
-  dragCell: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-    color: token.colorTextTertiary,
   },
   groupedValues: {
     overflow: "hidden",
@@ -100,7 +87,6 @@ export function FacetValuesGrid({
   const agGridTheme = useAgGridTheme();
   const gridRef = useRef<AgGridReact<FacetValueEditorRow>>(null);
   const [search, setSearch] = useState("");
-  const [sortMode, setSortMode] = useState<"manual" | "labelAsc" | "labelDesc">("manual");
   const [selectedRows, setSelectedRows] = useState<FacetValueEditorRow[]>([]);
 
   const filteredValues = useMemo(() => {
@@ -116,14 +102,8 @@ export function FacetValuesGrid({
         })
       : values;
 
-    if (sortMode === "labelAsc") {
-      return [...rows].sort((a, b) => a.label.localeCompare(b.label));
-    }
-    if (sortMode === "labelDesc") {
-      return [...rows].sort((a, b) => b.label.localeCompare(a.label));
-    }
     return [...rows].sort((a, b) => a.sortIndex - b.sortIndex);
-  }, [search, sortMode, values]);
+  }, [search, values]);
 
   const rowSelection = useMemo<RowSelectionOptions>(
     () => ({
@@ -156,22 +136,17 @@ export function FacetValuesGrid({
     () => [
       {
         colId: "drag",
-        headerName: "Drag",
-        width: 72,
-        rowDrag: () => sortMode === "manual",
+        headerName: "",
+        width: 40,
+        rowDrag: true,
         sortable: false,
-        cellRenderer: () => (
-          <div className={styles.dragCell}>
-            <LuGripVertical />
-          </div>
-        ),
       },
       {
         field: "label",
         headerName: "Value",
         flex: 1,
         minWidth: 180,
-        sort: sortMode === "labelAsc" ? "asc" : sortMode === "labelDesc" ? "desc" : null,
+        sortable: false,
         cellRenderer: ({ data }: ICellRendererParams<FacetValueEditorRow>) =>
           data ? (
             <span data-testid={`facet-values-row-${valueTestId(data.handle)}`}>
@@ -272,7 +247,7 @@ export function FacetValuesGrid({
         },
       },
     ],
-    [onDelete, onEditGroup, onUngroup, sortMode, styles.dragCell, styles.groupedValues],
+    [onDelete, onEditGroup, onUngroup, styles.groupedValues],
   );
 
   const handleSelectionChanged = useCallback(
@@ -284,20 +259,8 @@ export function FacetValuesGrid({
     [onSelectionChange],
   );
 
-  const handleSortChanged = useCallback(
-    (event: SortChangedEvent<FacetValueEditorRow>) => {
-      const labelColumn = event.api
-        .getColumnState()
-        .find((column) => column.colId === "label");
-      if (labelColumn?.sort === "asc") setSortMode("labelAsc");
-      if (labelColumn?.sort === "desc") setSortMode("labelDesc");
-    },
-    [],
-  );
-
   const handleDragEnd = useCallback(
     (event: RowDragEndEvent<FacetValueEditorRow>) => {
-      if (sortMode !== "manual") return;
       const nextVisibleRows: FacetValueEditorRow[] = [];
       event.api.forEachNodeAfterFilterAndSort((node) => {
         if (node.data) nextVisibleRows.push(node.data);
@@ -311,7 +274,7 @@ export function FacetValuesGrid({
         })),
       );
     },
-    [onReorder, sortMode, values],
+    [onReorder, values],
   );
 
   const addToGroupEnabled = canMergeSelection(selectedRows);
@@ -328,7 +291,7 @@ export function FacetValuesGrid({
         data-testid="facet-values-search-input"
       />
 
-      {selectedRows.length >= 2 ? (
+      {selectedRows.length > 0 ? (
         <div className={styles.bulkPanel} data-testid="facet-values-bulk-panel">
           <Typography.Text strong data-testid="facet-values-selection-count">
             {selectedRows.length} selected
@@ -374,24 +337,6 @@ export function FacetValuesGrid({
         </div>
       ) : null}
 
-      <div className={styles.toolbar}>
-        <Typography.Text type="secondary">Sort:</Typography.Text>
-        <Select
-          size="small"
-          value={sortMode}
-          style={{ width: 132 }}
-          options={[
-            { label: "Manually", value: "manual" },
-            { label: "Label A-Z", value: "labelAsc" },
-            { label: "Label Z-A", value: "labelDesc" },
-          ]}
-          onChange={(value) => setSortMode(value)}
-        />
-        <Button size="small" disabled={sortMode !== "manual"}>
-          Reorder for me
-        </Button>
-      </div>
-
       <div className={styles.grid} data-testid="facet-values-grid">
         <AgGridReact<FacetValueEditorRow>
           ref={gridRef}
@@ -402,7 +347,6 @@ export function FacetValuesGrid({
           rowHeight={44}
           headerHeight={38}
           rowDragManaged
-          suppressMoveWhenRowDragging={sortMode !== "manual"}
           rowSelection={rowSelection}
           selectionColumnDef={{
             cellStyle: { display: "flex", alignItems: "center" },
@@ -416,13 +360,12 @@ export function FacetValuesGrid({
             </Space>
           )}
           defaultColDef={{
-            sortable: true,
+            sortable: false,
             resizable: false,
             comparator: () => 0,
             cellStyle: { display: "flex", alignItems: "center" },
           }}
           onSelectionChanged={handleSelectionChanged}
-          onSortChanged={handleSortChanged}
           onRowDragEnd={handleDragEnd}
         />
       </div>
