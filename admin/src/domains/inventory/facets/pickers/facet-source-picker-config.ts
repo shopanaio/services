@@ -1,11 +1,9 @@
 "use client";
 
-import { createElement, useMemo } from "react";
+import { useMemo } from "react";
 import type { ColDef } from "ag-grid-community";
-import { DatabaseOutlined } from "@ant-design/icons";
 import { FilterOperator, FilterType } from "@/layouts/filters";
 import type { IFilterSchema } from "@/layouts/filters/core/types";
-import { EntityCellRenderer } from "@/shared/components/entity-picker-modal/cell-renderers";
 import { registerEntityPickerConfig } from "@/shared/components/entity-picker-modal/configs";
 import type {
   IEntityPickerConfig,
@@ -19,9 +17,14 @@ import {
   type ApiFacetSourceCandidateWhereInput,
 } from "@/graphql/types";
 import { useFacetSourceCandidatesPageQuery } from "../hooks";
+import {
+  getFacetSourceHandleLabel,
+  getFacetTypeLabel,
+} from "../mappers";
 import type {
   FacetSourceCandidateFields,
 } from "../graphql/operation-types";
+import { FacetSourceNameCell } from "./facet-source-name-cell";
 
 export interface FacetSourcePickerEntity extends IPickableEntity {
   facetType: FacetType;
@@ -33,14 +36,6 @@ export interface FacetSourcePickerEntity extends IPickableEntity {
 interface FacetSourcePickerQueryMeta {
   allowedFacetTypes?: FacetType[];
 }
-
-const FACET_SOURCE_TYPE_LABELS: Record<FacetType, string> = {
-  [FacetType.Price]: "Standard",
-  [FacetType.InStock]: "Standard",
-  [FacetType.Tag]: "Standard",
-  [FacetType.Option]: "Product option",
-  [FacetType.Feature]: "Product feature",
-};
 
 function buildFacetSourceSearchCondition(
   search: string,
@@ -69,7 +64,10 @@ function getFacetSourceTypeFilter(
 function transformFacetSourceCandidate(
   candidate: FacetSourceCandidateFields,
 ): FacetSourcePickerEntity {
-  const name = candidate.name?.trim() || candidate.handle;
+  const name =
+    candidate.name?.trim() ||
+    getFacetSourceHandleLabel(candidate.facetType, candidate.handle) ||
+    candidate.handle;
 
   return {
     id: candidate.id || `${candidate.facetType}:${candidate.handle}`,
@@ -77,7 +75,7 @@ function transformFacetSourceCandidate(
     facetType: candidate.facetType,
     handle: candidate.handle,
     name,
-    typeLabel: FACET_SOURCE_TYPE_LABELS[candidate.facetType],
+    typeLabel: getFacetTypeLabel(candidate.facetType),
   };
 }
 
@@ -165,7 +163,7 @@ const filterSchema: IFilterSchema[] = [
     operators: [FilterOperator.In],
     payloadKey: "facetType",
     options: Object.values(FacetType).map((value) => ({
-      label: FACET_SOURCE_TYPE_LABELS[value],
+      label: getFacetTypeLabel(value),
       value,
     })),
   },
@@ -175,11 +173,7 @@ const facetSourcePickerColumns: ColDef<FacetSourcePickerEntity>[] = [
   {
     headerName: "Name",
     field: "title",
-    cellRenderer: EntityCellRenderer,
-    cellRendererParams: {
-      fallbackIcon: createElement(DatabaseOutlined),
-      subtitleField: "handle",
-    },
+    cellRenderer: FacetSourceNameCell,
     flex: 1,
     minWidth: 260,
   },

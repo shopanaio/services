@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -16,14 +15,7 @@ import {
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
-import {
-  LuDollarSign,
-  LuPackageCheck,
-  LuSlidersHorizontal,
-  LuSparkles,
-  LuSwatchBook,
-  LuTag,
-} from "react-icons/lu";
+import { LuSwatchBook } from "react-icons/lu";
 import { slugify } from "transliteration/dist/node/src/node/index.js";
 import {
   ModalHeader,
@@ -33,6 +25,7 @@ import {
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import {
   getAllowedFacetUiTypes,
+  getFacetTypeIcon,
   isDiscreteFacetType,
   mapFacetFormToUpdateInput,
   mapFacetUserErrorsToFormErrors,
@@ -108,49 +101,16 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
-const FACET_SOURCE_OPTIONS: {
-  key: FacetType;
-  label: string;
-  icon: ReactNode;
-}[] = [
-  {
-    key: FacetType.Price,
-    label: "Price",
-    icon: <LuDollarSign />,
-  },
-  {
-    key: FacetType.Tag,
-    label: "Tag",
-    icon: <LuTag />,
-  },
-  {
-    key: FacetType.Option,
-    label: "Option",
-    icon: <LuSlidersHorizontal />,
-  },
-  {
-    key: FacetType.Feature,
-    label: "Feature",
-    icon: <LuSparkles />,
-  },
-  {
-    key: FacetType.InStock,
-    label: "Stock",
-    icon: <LuPackageCheck />,
-  },
-];
-
 interface FacetSourceAddonProps {
   value: FacetType;
 }
 
 function FacetSourceAddon({ value }: FacetSourceAddonProps) {
   const { styles } = useStyles();
-  const current = FACET_SOURCE_OPTIONS.find((option) => option.key === value);
 
   return (
     <Flex gap={4} align="center" className={styles.sourceAddon}>
-      {current?.icon}
+      {getFacetTypeIcon(value)}
     </Flex>
   );
 }

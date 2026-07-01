@@ -2,3 +2,5 @@ export * from "./facet-grid-row.mapper";
 export * from "./facet-input.mapper";
 export * from "./facet-value-input.mapper";
 export * from "./facet-errors.mapper";
+export * from "./facet-labels.mapper";
+export * from "./facet-icons.mapper";
