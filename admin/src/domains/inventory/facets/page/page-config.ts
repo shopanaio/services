@@ -20,16 +20,6 @@ function hasActiveValue(filter: IFilterValue): boolean {
   );
 }
 
-function getParentFacet(
-  row: FacetGridRow,
-  rowsById: Map<string, FacetGridRow>,
-): FacetGridRow {
-  if (row.type === "facet") {
-    return row;
-  }
-  return (row.parentId ? rowsById.get(row.parentId) : null) ?? row;
-}
-
 function rowMatchesSearch(row: FacetGridRow, searchValue: string): boolean {
   const search = normalized(searchValue);
   if (!search) {
@@ -37,17 +27,17 @@ function rowMatchesSearch(row: FacetGridRow, searchValue: string): boolean {
   }
 
   return (
-    normalized(row.name).includes(search) || normalized(row.slug).includes(search)
+    normalized(row.name).includes(search) ||
+    normalized(row.slug).includes(search) ||
+    row.values.some(
+      (value) =>
+        normalized(value.name).includes(search) ||
+        normalized(value.slug).includes(search),
+    )
   );
 }
 
-function rowMatchesFilters(
-  row: FacetGridRow,
-  rowsById: Map<string, FacetGridRow>,
-  filters: IFilterValue[],
-): boolean {
-  const parentFacet = getParentFacet(row, rowsById);
-
+function rowMatchesFilters(row: FacetGridRow, filters: IFilterValue[]): boolean {
   for (const filter of filters) {
     if (!hasActiveValue(filter)) {
       continue;
@@ -56,14 +46,14 @@ function rowMatchesFilters(
     const values = valuesFromFilter(filter);
 
     if (filter.payloadKey === "facetType") {
-      if (!values.includes(parentFacet.facetType)) {
+      if (!values.includes(row.facetType)) {
         return false;
       }
       continue;
     }
 
     if (filter.payloadKey === "uiType") {
-      if (!values.includes(parentFacet.uiType)) {
+      if (!values.includes(row.uiType)) {
         return false;
       }
       continue;
@@ -75,7 +65,7 @@ function rowMatchesFilters(
         typeof rawValue === "boolean"
           ? rawValue
           : String(rawValue).toLocaleLowerCase() === "true";
-      const hasValues = (parentFacet.valuesCount ?? 0) > 0;
+      const hasValues = (row.valuesCount ?? 0) > 0;
       if (hasValues !== expected) {
         return false;
       }
@@ -87,12 +77,11 @@ function rowMatchesFilters(
 
 function rowMatches(
   row: FacetGridRow,
-  rowsById: Map<string, FacetGridRow>,
   state: FacetPageFilterState,
 ): boolean {
   return (
     rowMatchesSearch(row, state.searchValue) &&
-    rowMatchesFilters(row, rowsById, state.filters)
+    rowMatchesFilters(row, state.filters)
   );
 }
 
@@ -100,28 +89,7 @@ export function filterFacetGridRows(
   rows: FacetGridRow[],
   state: FacetPageFilterState,
 ): FacetGridRow[] {
-  const rowsById = new Map(rows.map((row) => [row.id, row]));
-  const result: FacetGridRow[] = [];
-  const facets = rows
-    .filter((row) => row.type === "facet")
+  return rows
+    .filter((row) => rowMatches(row, state))
     .sort((left, right) => left.sortIndex - right.sortIndex);
-
-  for (const facet of facets) {
-    const children = rows
-      .filter((row) => row.parentId === facet.id)
-      .sort((left, right) => left.sortIndex - right.sortIndex);
-    const facetMatches = rowMatches(facet, rowsById, state);
-    const matchingChildren = children.filter((child) =>
-      rowMatches(child, rowsById, state),
-    );
-
-    if (!facetMatches && matchingChildren.length === 0) {
-      continue;
-    }
-
-    result.push(facet);
-    result.push(...(facetMatches ? children : matchingChildren));
-  }
-
-  return result;
 }

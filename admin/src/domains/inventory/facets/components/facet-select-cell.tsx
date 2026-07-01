@@ -23,7 +23,7 @@ export interface FacetSelectCellParams
 export function FacetDisplayTypeCell(params: FacetSelectCellParams) {
   const { styles } = useFacetCellStyles();
   const row = params.data;
-  if (!row || row.type !== "facet" || !row.facetType) {
+  if (!row || !row.facetType) {
     return null;
   }
 
@@ -58,7 +58,7 @@ export function FacetDisplayTypeCell(params: FacetSelectCellParams) {
 export function FacetSelectionModeCell(params: FacetSelectCellParams) {
   const { styles } = useFacetCellStyles();
   const row = params.data;
-  if (!row || row.type !== "facet" || !row.facetType) {
+  if (!row || !row.facetType) {
     return null;
   }
 

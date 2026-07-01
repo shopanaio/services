@@ -20,26 +20,17 @@ import { DataLayout } from "@/layouts/data";
 import { FilterWidget, useFilters } from "@/layouts/filters";
 import { useAgGridTheme } from "@/hooks";
 import {
-  FacetLinkedSourcesCell,
   FacetNameCell,
   FacetTreeActionsCell,
   FacetValuesCell,
 } from "../components";
-import {
-  useDeleteFacet,
-  useDeleteFacetValue,
-  useFacets,
-  useMoveFacet,
-} from "../hooks";
+import { useDeleteFacet, useFacets, useMoveFacet } from "../hooks";
 import {
   apiFacetsToFacetGridRows,
   getMaxRootSortIndex,
   type FacetGridRow,
 } from "../mappers";
-import {
-  useCreateFacetModal,
-  useEditFacetModal,
-} from "../modals";
+import { useCreateFacetModal, useEditFacetModal } from "../modals";
 import { filterSchema } from "./filter-schema";
 import { filterFacetGridRows } from "./page-config";
 
@@ -67,9 +58,6 @@ const useStyles = createStyles(({ token }) => ({
     "& .row-group": {
       fontWeight: 600,
     },
-    "& .row-child": {
-      background: `${token.colorBgContainer} !important`,
-    },
     "& .ag-header-cell-resize": {
       opacity: 0,
       transition: "opacity 0.2s",
@@ -94,6 +82,10 @@ const useStyles = createStyles(({ token }) => ({
 }));
 
 function shouldIgnoreRowClick(event: CellClickedEvent<FacetGridRow>): boolean {
+  if (event.column.getColId() === "actions") {
+    return true;
+  }
+
   const target = event.event?.target;
   if (!(target instanceof HTMLElement)) {
     return false;
@@ -101,7 +93,7 @@ function shouldIgnoreRowClick(event: CellClickedEvent<FacetGridRow>): boolean {
 
   return Boolean(
     target.closest(
-      "[data-stop-row-click],button,.ant-select,.ant-switch,.ant-dropdown,.ag-drag-handle",
+      "[data-stop-row-click],.facet-actions-stop-row-click,button,.ant-select,.ant-switch,.ant-dropdown,.ag-drag-handle",
     ),
   );
 }
@@ -136,7 +128,6 @@ export default function FacetsPage() {
 
   const { facets, loading, error, refetch } = useFacets();
   const { deleteFacet } = useDeleteFacet();
-  const { deleteFacetValue } = useDeleteFacetValue();
   const { moveFacet } = useMoveFacet();
   const { push: openCreateFacetModal } = useCreateFacetModal();
   const { push: openEditFacetModal } = useEditFacetModal();
@@ -149,15 +140,11 @@ export default function FacetsPage() {
     () => filterFacetGridRows(baseRows, { searchValue, filters }),
     [baseRows, filters, searchValue],
   );
-  const tableRows = useMemo(
-    () => filteredRows.filter((row) => row.type === "facet"),
-    [filteredRows],
-  );
-  const displayRows = optimisticRows ?? tableRows;
+  const displayRows = optimisticRows ?? filteredRows;
 
   useEffect(() => {
     setOptimisticRows(null);
-  }, [tableRows]);
+  }, [filteredRows]);
 
   const refetchAndReset = useCallback(async () => {
     await refetch();
@@ -174,16 +161,14 @@ export default function FacetsPage() {
       if (!row.apiId) {
         return;
       }
-      if (row.type === "facet") {
-        openEditFacetModal({ facetId: row.apiId, onSaved: refetchAndReset });
-      }
+      openEditFacetModal({ facetId: row.apiId, onSaved: refetchAndReset });
     },
     [openEditFacetModal, refetchAndReset],
   );
 
   const handleDuplicate = useCallback(
     (row: FacetGridRow) => {
-      if (row.type !== "facet" || !row.facetType || !row.uiType) {
+      if (!row.facetType || !row.uiType) {
         return;
       }
 
@@ -208,26 +193,17 @@ export default function FacetsPage() {
       }
 
       modal.confirm({
-        title: `Delete ${row.type === "facet" ? "facet" : "facet value"}?`,
+        title: "Delete facet?",
         content: row.name,
         okText: "Delete",
         okButtonProps: { danger: true },
         async onOk() {
-          if (row.type === "facet") {
-            const result = await deleteFacet({ id: row.apiId! });
-            if (result.userErrors.length > 0) {
-              message.error(result.userErrors[0].message);
-              return;
-            }
-            message.success("Facet deleted.");
-          } else {
-            const result = await deleteFacetValue({ id: row.apiId! });
-            if (result.userErrors.length > 0) {
-              message.error(result.userErrors[0].message);
-              return;
-            }
-            message.success("Facet value deleted.");
+          const result = await deleteFacet({ id: row.apiId! });
+          if (result.userErrors.length > 0) {
+            message.error(result.userErrors[0].message);
+            return;
           }
+          message.success("Facet deleted.");
 
           await refetchAndReset();
         },
@@ -235,7 +211,6 @@ export default function FacetsPage() {
     },
     [
       deleteFacet,
-      deleteFacetValue,
       message,
       modal,
       refetchAndReset,
@@ -333,21 +308,14 @@ export default function FacetsPage() {
         minWidth: 240,
         flex: 2,
         cellRenderer: FacetValuesCell,
-        cellRendererParams: {
-          allRows: baseRows,
-        },
       },
       {
-        headerName: "Linked sources",
-        minWidth: 170,
-        flex: 1,
-        cellRenderer: FacetLinkedSourcesCell,
-      },
-      {
+        colId: "actions",
         headerName: "",
-        width: 48,
-        minWidth: 48,
-        maxWidth: 48,
+        width: 56,
+        minWidth: 56,
+        maxWidth: 56,
+        cellClass: "facet-actions-stop-row-click",
         cellRenderer: FacetTreeActionsCell,
         cellRendererParams: {
           onEdit: handleRowEdit,
@@ -359,13 +327,7 @@ export default function FacetsPage() {
         resizable: false,
       },
     ],
-    [
-      baseRows,
-      handleDelete,
-      handleDuplicate,
-      handleRowEdit,
-      styles.metaTag,
-    ],
+    [handleDelete, handleDuplicate, handleRowEdit, styles.metaTag],
   );
 
   const defaultColDef = useMemo<ColDef>(
@@ -394,7 +356,7 @@ export default function FacetsPage() {
     <DataLayout
       name="facets"
       title="Facets"
-      count={baseRows.filter((row) => row.type === "facet").length}
+      count={baseRows.length}
       actions={
         <Button
           icon={<PlusOutlined />}

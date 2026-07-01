@@ -6,15 +6,10 @@ import { useFacetCellStyles } from "./facet-cell-styles";
 
 const MAX_VISIBLE_VALUES = 4;
 
-export interface FacetValuesCellParams extends ICellRendererParams<FacetGridRow> {
-  allRows: FacetGridRow[];
-  onEditValue: (row: FacetGridRow) => void;
-}
-
-export function FacetValuesCell(params: FacetValuesCellParams) {
+export function FacetValuesCell(params: ICellRendererParams<FacetGridRow>) {
   const { styles } = useFacetCellStyles();
   const row = params.data;
-  if (!row || row.type !== "facet") {
+  if (!row) {
     return null;
   }
 
@@ -22,9 +17,9 @@ export function FacetValuesCell(params: FacetValuesCellParams) {
     return <Typography.Text type="secondary">Automatic</Typography.Text>;
   }
 
-  const values = params.allRows
-    .filter((candidate) => candidate.parentId === row.id)
-    .sort((left, right) => left.sortIndex - right.sortIndex);
+  const values = [...row.values].sort(
+    (left, right) => left.sortIndex - right.sortIndex,
+  );
   const visibleValues = values.slice(0, MAX_VISIBLE_VALUES);
   const hiddenCount = values.length - visibleValues.length;
 
@@ -40,10 +35,6 @@ export function FacetValuesCell(params: FacetValuesCellParams) {
           bordered={false}
           className={styles.valueTag}
           data-testid={`facets-table-value-chip-${row.slug}-${value.slug}`}
-          onClick={(event) => {
-            event.stopPropagation();
-            params.onEditValue(value);
-          }}
         >
           <Typography.Text
             ellipsis

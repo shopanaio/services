@@ -46,9 +46,17 @@ export const useFacetCellStyles = createStyles(({ token }) => ({
   },
   actionsCell: {
     width: "100%",
+    height: "100%",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+  },
+  actionButton: {
+    width: 28,
+    height: 28,
+    minWidth: 28,
+    padding: 0,
+    flex: "0 0 auto",
   },
   linkedCell: {
     display: "flex",

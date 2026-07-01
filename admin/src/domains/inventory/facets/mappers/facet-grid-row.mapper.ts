@@ -1,4 +1,3 @@
-import type { ITreeTableRow } from "@/hooks/use-tree-table-drag-drop";
 import type { ApiFacetSwatch } from "@/graphql/types";
 import { FacetType } from "@/graphql/types";
 import type {
@@ -6,15 +5,24 @@ import type {
   FacetValueGridFields,
 } from "../graphql/operation-types";
 
-export type FacetGridRowType = "facet" | "value";
-export type FacetGridRowId = `${FacetGridRowType}:${string}`;
+export type FacetGridRowId = `facet:${string}`;
 
-export interface FacetGridRow extends ITreeTableRow {
+export interface FacetGridValue {
+  id: string;
+  apiId: string;
+  sortIndex: number;
+  name: string;
+  slug?: string;
+  enabled?: boolean;
+  sourceHandles: string[];
+  linkedSourceHandlesCount: number;
+  swatchId?: string | null;
+  swatch?: ApiFacetSwatch | null;
+}
+
+export interface FacetGridRow {
   id: FacetGridRowId;
-  apiId?: string;
-  type: FacetGridRowType;
-  parentId: FacetGridRowId | null;
-  level: 0 | 1;
+  apiId: string;
   sortIndex: number;
   name: string;
   slug?: string;
@@ -25,22 +33,11 @@ export interface FacetGridRow extends ITreeTableRow {
   valuesCount?: number;
   enabledValuesCount?: number;
   linkedSourceHandlesCount?: number;
-  enabled?: boolean;
-  sourceHandles?: string[];
-  swatchId?: string | null;
-  swatch?: ApiFacetSwatch | null;
+  values: FacetGridValue[];
 }
 
 export function toFacetRowId(apiId: string): FacetGridRowId {
   return `facet:${apiId}`;
-}
-
-export function toFacetValueRowId(apiId: string): FacetGridRowId {
-  return `value:${apiId}`;
-}
-
-export function getApiIdFromFacetGridRowId(rowId: FacetGridRowId): string {
-  return rowId.replace(/^(facet|value):/, "");
 }
 
 export function isDiscreteFacetType(type: FacetType | undefined): boolean {
@@ -51,23 +48,21 @@ export function isDiscreteFacetType(type: FacetType | undefined): boolean {
   );
 }
 
-function getFacetRows(facet: FacetGridFields, sortIndex: number): FacetGridRow[] {
+function getFacetRow(facet: FacetGridFields, sortIndex: number): FacetGridRow {
   const facetRowId = toFacetRowId(facet.id);
   const shouldRenderValues = isDiscreteFacetType(facet.facetType);
   const sortedValues = shouldRenderValues
     ? [...facet.values].sort((left, right) => left.sortIndex - right.sortIndex)
     : [];
+  const values = sortedValues.map(mapFacetValueToGridValue);
   const linkedSourceHandlesCount = sortedValues.reduce(
     (count, value) => count + getFacetValueSourceHandles(value).length,
     0,
   );
 
-  const facetRow: FacetGridRow = {
+  return {
     id: facetRowId,
     apiId: facet.id,
-    type: "facet",
-    parentId: null,
-    level: 0,
     sortIndex,
     lexoRank: facet.lexoRank,
     name: facet.label,
@@ -78,30 +73,22 @@ function getFacetRows(facet: FacetGridFields, sortIndex: number): FacetGridRow[]
     valuesCount: sortedValues.length,
     enabledValuesCount: sortedValues.filter((value) => value.enabled).length,
     linkedSourceHandlesCount,
+    values,
   };
-
-  return [
-    facetRow,
-    ...sortedValues.map((value) => mapFacetValueToRow(value, facetRowId)),
-  ];
 }
 
 function getFacetValueSourceHandles(value: FacetValueGridFields): string[] {
   return value.sourceValues.map((sourceValue) => sourceValue.handle);
 }
 
-function mapFacetValueToRow(
+function mapFacetValueToGridValue(
   value: FacetValueGridFields,
-  parentId: FacetGridRowId,
-): FacetGridRow {
+): FacetGridValue {
   const sourceHandles = getFacetValueSourceHandles(value);
 
   return {
-    id: toFacetValueRowId(value.id),
+    id: value.id,
     apiId: value.id,
-    type: "value",
-    parentId,
-    level: 1,
     sortIndex: value.sortIndex,
     name: value.label,
     slug: value.handle,
@@ -121,24 +108,9 @@ export function apiFacetsToFacetGridRows(
       const rank = left.lexoRank.localeCompare(right.lexoRank);
       return rank === 0 ? left.id.localeCompare(right.id) : rank;
     })
-    .flatMap((facet, index) => getFacetRows(facet, index));
+    .map((facet, index) => getFacetRow(facet, index));
 }
 
 export function getMaxRootSortIndex(rows: FacetGridRow[]): number {
-  return Math.max(
-    -1,
-    ...rows.filter((row) => row.parentId === null).map((row) => row.sortIndex),
-  );
-}
-
-export function getNextValueSortIndex(
-  rows: FacetGridRow[],
-  facetRowId: FacetGridRowId,
-): number {
-  return Math.max(
-    -1,
-    ...rows
-      .filter((row) => row.parentId === facetRowId)
-      .map((row) => row.sortIndex),
-  ) + 1;
+  return Math.max(-1, ...rows.map((row) => row.sortIndex));
 }

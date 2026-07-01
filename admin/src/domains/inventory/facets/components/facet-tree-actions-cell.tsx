@@ -2,7 +2,6 @@ import {
   CopyOutlined,
   DeleteOutlined,
   EditOutlined,
-  LinkOutlined,
   MoreOutlined,
 } from "@ant-design/icons";
 import { Button, Dropdown } from "antd";
@@ -15,7 +14,6 @@ export interface FacetTreeActionsCellParams
   extends ICellRendererParams<FacetGridRow> {
   hasUnsavedChanges?: boolean;
   onEdit: (row: FacetGridRow) => void;
-  onLinkSourceValues?: (row: FacetGridRow) => void;
   onDuplicate: (row: FacetGridRow) => void;
   onDelete: (row: FacetGridRow) => void;
   onBlockedDelete?: () => void;
@@ -39,21 +37,11 @@ export function FacetTreeActionsCell(params: FacetTreeActionsCellParams) {
     },
   ];
 
-  if (row.type === "value") {
-    items.push({
-      key: "link-source-values",
-      label: "Link source values",
-      icon: <LinkOutlined />,
-    });
-  }
-
-  if (row.type === "facet") {
-    items.push({
-      key: "duplicate",
-      label: "Duplicate",
-      icon: <CopyOutlined />,
-    });
-  }
+  items.push({
+    key: "duplicate",
+    label: "Duplicate",
+    icon: <CopyOutlined />,
+  });
 
   items.push(
     {
@@ -75,9 +63,6 @@ export function FacetTreeActionsCell(params: FacetTreeActionsCellParams) {
             if (key === "edit") {
               params.onEdit(row);
             }
-            if (key === "link-source-values") {
-              params.onLinkSourceValues?.(row);
-            }
             if (key === "duplicate") {
               params.onDuplicate(row);
             }
@@ -94,6 +79,7 @@ export function FacetTreeActionsCell(params: FacetTreeActionsCellParams) {
         <Button
           size="small"
           type="text"
+          className={styles.actionButton}
           icon={<MoreOutlined />}
           onClick={(event) => event.stopPropagation()}
           data-testid={`facets-row-actions-${row.id}`}
