@@ -172,6 +172,7 @@ const filterSchema: IFilterSchema[] = [
 const facetSourcePickerColumns: ColDef<FacetSourcePickerEntity>[] = [
   {
     headerName: "Name",
+    colId: "name",
     field: "title",
     cellRenderer: FacetSourceNameCell,
     flex: 1,
@@ -181,6 +182,7 @@ const facetSourcePickerColumns: ColDef<FacetSourcePickerEntity>[] = [
     headerName: "Type",
     field: "typeLabel",
     minWidth: 170,
+    sortable: false,
   },
 ];
 
