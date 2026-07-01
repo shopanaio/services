@@ -16,7 +16,7 @@ import {
 import { FacetType, FacetUiType } from "@/graphql/types";
 
 interface FacetTypeUiMapping {
-  label?: string;
+  label: string;
   sourceTypeLabel: string;
   icon: ReactNode;
 }

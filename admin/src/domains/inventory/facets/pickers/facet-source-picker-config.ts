@@ -2,7 +2,6 @@
 
 import { useMemo } from "react";
 import type { ColDef } from "ag-grid-community";
-import { FilterOperator, FilterType } from "@/layouts/filters";
 import type { IFilterSchema } from "@/layouts/filters/core/types";
 import { registerEntityPickerConfig } from "@/shared/components/entity-picker-modal/configs";
 import type {
@@ -21,6 +20,7 @@ import {
   getFacetSourceHandleLabel,
   getFacetSourceTypeLabel,
 } from "../mappers";
+import { facetTypeFilterSchema } from "../page/filter-schema";
 import type {
   FacetSourceCandidateFields,
 } from "../graphql/operation-types";
@@ -154,20 +154,7 @@ function useFacetSourcesPickerData(options: {
   };
 }
 
-const filterSchema: IFilterSchema[] = [
-  {
-    key: "facetType",
-    label: "Type",
-    description: "Filter by source type",
-    type: FilterType.Enum,
-    operators: [FilterOperator.In],
-    payloadKey: "facetType",
-    options: Object.values(FacetType).map((value) => ({
-      label: getFacetSourceTypeLabel(value),
-      value,
-    })),
-  },
-];
+const filterSchema: IFilterSchema[] = [facetTypeFilterSchema];
 
 const facetSourcePickerColumns: ColDef<FacetSourcePickerEntity>[] = [
   {
