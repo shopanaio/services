@@ -21,6 +21,8 @@ export const deadLetterQueue = pgTable(
     attempts: integer("attempts").notNull(),
     tenantId: text("tenant_id").notNull(),
     correlationId: text("correlation_id"),
+    dbosWorkflowId: text("dbos_workflow_id"),
+    dbosStepName: text("dbos_step_name"),
     status: text("status").notNull().default("failed"),
     failedAt: timestamp("failed_at", { withTimezone: true })
       .notNull()

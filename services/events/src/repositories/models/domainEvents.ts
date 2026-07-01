@@ -1,4 +1,11 @@
-import { jsonb, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  integer,
+  jsonb,
+  index,
+  pgTable,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
 
 export const domainEvents = pgTable(
   "domain_events",
@@ -13,15 +20,20 @@ export const domainEvents = pgTable(
     causationId: text("causation_id"),
     emitKey: text("emit_key").notNull(),
     parentWorkflowId: text("parent_workflow_id"),
-    status: text("status").notNull().default("dispatching"),
+    payload: jsonb("payload").notNull(),
+    payloadHash: text("payload_hash").notNull(),
+    dispatchMode: text("dispatch_mode").notNull().default("immediate"),
+    status: text("status").notNull().default("pending"),
+    batchKey: text("batch_key"),
+    aggregateKey: text("aggregate_key"),
+    dispatchClaims: integer("dispatch_claims").notNull().default(0),
+    lockedBy: text("locked_by"),
     dispatchStartedAt: timestamp("dispatch_started_at", { withTimezone: true }),
     dispatchCompletedAt: timestamp("dispatch_completed_at", { withTimezone: true }),
-    handlerResults: jsonb("handler_results"),
     subjectType: text("subject_type").notNull(),
     subjectId: text("subject_id").notNull(),
     actorType: text("actor_type").notNull().default("service"),
     actorId: text("actor_id"),
-    payloadHash: text("payload_hash"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -32,6 +44,7 @@ export const domainEvents = pgTable(
   (table) => [
     index("idx_events_type").on(table.eventType),
     index("idx_events_correlation").on(table.correlationId),
+    index("idx_events_status").on(table.status),
     index("idx_events_parent_workflow").on(
       table.parentWorkflowId,
       table.eventType
@@ -47,6 +60,13 @@ export const domainEvents = pgTable(
       table.tenantId,
       table.eventType,
       table.timestamp
+    ),
+    index("idx_domain_events_pending").on(table.status, table.createdAt),
+    index("idx_domain_events_batch").on(
+      table.tenantId,
+      table.eventType,
+      table.batchKey,
+      table.createdAt
     ),
   ]
 );

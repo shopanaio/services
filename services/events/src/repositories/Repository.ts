@@ -1,8 +1,11 @@
 import { and, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import { TransactionManager } from "@shopana/shared-kernel";
-import type { DomainEvent, HandlerInvocationResult } from "@shopana/events";
+import type { DomainEvent, EmitDispatchOptions } from "@shopana/events";
 import type { Database } from "../infrastructure/db/database.js";
-import { domainEvents } from "./models/domainEvents.js";
+import {
+  domainEvents,
+  type DomainEventRecord,
+} from "./models/domainEvents.js";
 import { deadLetterQueue } from "./models/deadLetterQueue.js";
 import { computePayloadHash } from "../utils/hash.js";
 
@@ -19,6 +22,26 @@ export interface AddToDLQParams {
   error: string;
   errorCode?: string;
   attempts: number;
+  dbosWorkflowId?: string;
+  dbosStepName?: string;
+}
+
+export type PersistDispatchOptions = Required<
+  Extract<EmitDispatchOptions, { mode: "deferred" }>
+> | { mode: "immediate" };
+
+export interface ClaimEventInput {
+  tenantId: string;
+  eventId: string;
+  lockedBy: string;
+}
+
+export interface ClaimBatchInput {
+  tenantId: string;
+  eventType?: string;
+  batchKey: string;
+  limit?: number;
+  lockedBy: string;
 }
 
 export class Repository {
@@ -41,8 +64,16 @@ export class Repository {
     // Connection pool managed by DatabaseModule.
   }
 
-  async persistEvent(event: DomainEvent): Promise<{ timestamp: string }> {
+  async persistPendingEvent(
+    event: DomainEvent,
+    dispatch: PersistDispatchOptions,
+  ): Promise<{ timestamp: string }> {
     const realTimestamp = new Date();
+    const payloadHash = computePayloadHash(event.payload);
+
+    if (!payloadHash) {
+      throw new Error("Event payload is required");
+    }
 
     await this.connection
       .insert(domainEvents)
@@ -57,29 +88,124 @@ export class Repository {
         causationId: event.context.causationId,
         emitKey: event.emitKey,
         parentWorkflowId: event.parentWorkflowId,
-        status: "dispatching",
-        dispatchStartedAt: realTimestamp,
+        payload: event.payload,
+        payloadHash,
+        dispatchMode: dispatch.mode,
+        status: "pending",
+        batchKey: dispatch.mode === "deferred" ? dispatch.batchKey : null,
+        aggregateKey:
+          dispatch.mode === "deferred" ? dispatch.aggregateKey : null,
         subjectType: event.subject.type,
         subjectId: event.subject.id,
         actorType: event.actor?.type ?? "service",
         actorId: event.actor?.id,
-        payloadHash: computePayloadHash(event.payload),
       })
       .onConflictDoNothing();
 
     return { timestamp: realTimestamp.toISOString() };
   }
 
-  async updateEventStatus(
-    eventId: string,
-    results: HandlerInvocationResult[]
-  ): Promise<void> {
+  async claimEvent(input: ClaimEventInput): Promise<DomainEventRecord[]> {
+    const claimed = this.connection.$with("claimed").as(
+      this.connection
+        .select({ eventId: domainEvents.eventId })
+        .from(domainEvents)
+        .where(
+          and(
+            eq(domainEvents.status, "pending"),
+            eq(domainEvents.tenantId, input.tenantId),
+            eq(domainEvents.eventId, input.eventId),
+          ),
+        )
+        .orderBy(domainEvents.createdAt)
+        .limit(1)
+        .for("update", { skipLocked: true }),
+    );
+
+    return this.connection
+      .with(claimed)
+      .update(domainEvents)
+      .set({
+        status: "dispatching",
+        lockedBy: input.lockedBy,
+        dispatchClaims: sql`${domainEvents.dispatchClaims} + 1`,
+        dispatchStartedAt: sql`COALESCE(${domainEvents.dispatchStartedAt}, NOW())`,
+        updatedAt: sql`NOW()`,
+      })
+      .where(
+        inArray(
+          domainEvents.eventId,
+          this.connection.select({ eventId: claimed.eventId }).from(claimed),
+        ),
+      )
+      .returning();
+  }
+
+  async claimBatch(input: ClaimBatchInput): Promise<DomainEventRecord[]> {
+    const limit = input.limit ?? 500;
+    const where = input.eventType
+      ? and(
+          eq(domainEvents.status, "pending"),
+          eq(domainEvents.dispatchMode, "deferred"),
+          eq(domainEvents.tenantId, input.tenantId),
+          eq(domainEvents.eventType, input.eventType),
+          eq(domainEvents.batchKey, input.batchKey),
+        )
+      : and(
+          eq(domainEvents.status, "pending"),
+          eq(domainEvents.dispatchMode, "deferred"),
+          eq(domainEvents.tenantId, input.tenantId),
+          eq(domainEvents.batchKey, input.batchKey),
+        );
+
+    const claimed = this.connection.$with("claimed").as(
+      this.connection
+        .select({ eventId: domainEvents.eventId })
+        .from(domainEvents)
+        .where(where)
+        .orderBy(domainEvents.createdAt)
+        .limit(limit)
+        .for("update", { skipLocked: true }),
+    );
+
+    return this.connection
+      .with(claimed)
+      .update(domainEvents)
+      .set({
+        status: "dispatching",
+        lockedBy: input.lockedBy,
+        dispatchClaims: sql`${domainEvents.dispatchClaims} + 1`,
+        dispatchStartedAt: sql`COALESCE(${domainEvents.dispatchStartedAt}, NOW())`,
+        updatedAt: sql`NOW()`,
+      })
+      .where(
+        inArray(
+          domainEvents.eventId,
+          this.connection.select({ eventId: claimed.eventId }).from(claimed),
+        ),
+      )
+      .returning();
+  }
+
+  async markDispatched(eventId: string): Promise<void> {
     await this.connection
       .update(domainEvents)
       .set({
-        status: "completed",
+        status: "dispatched",
         dispatchCompletedAt: new Date(),
-        handlerResults: results,
+        lockedBy: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(domainEvents.eventId, eventId));
+  }
+
+  async markFailed(eventId: string): Promise<void> {
+    await this.connection
+      .update(domainEvents)
+      .set({
+        status: "failed",
+        dispatchCompletedAt: new Date(),
+        lockedBy: null,
         updatedAt: new Date(),
       })
       .where(eq(domainEvents.eventId, eventId));
@@ -98,6 +224,8 @@ export class Repository {
         attempts: params.attempts,
         tenantId: params.tenantId,
         correlationId: params.correlationId,
+        dbosWorkflowId: params.dbosWorkflowId,
+        dbosStepName: params.dbosStepName,
         status: "failed",
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       })
@@ -112,6 +240,8 @@ export class Repository {
           errorCode: params.errorCode,
           attempts: params.attempts,
           failedAt: new Date(),
+          dbosWorkflowId: params.dbosWorkflowId,
+          dbosStepName: params.dbosStepName,
           status: "failed",
         },
       });
@@ -141,7 +271,12 @@ export class Repository {
     const oldEventIds = this.connection
       .select({ eventId: domainEvents.eventId })
       .from(domainEvents)
-      .where(lt(domainEvents.timestamp, cutoffDate))
+      .where(
+        and(
+          lt(domainEvents.timestamp, cutoffDate),
+          inArray(domainEvents.status, ["dispatched", "failed"]),
+        )
+      )
       .limit(batchSize);
 
     const deleted = await this.connection
