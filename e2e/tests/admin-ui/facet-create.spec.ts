@@ -215,7 +215,7 @@ async function selectFacetSource(
 ) {
   await page.getByTestId('create-facet-source-button').click();
 
-  const picker = page.getByTestId('entity-picker-modal');
+  const picker = page.getByTestId('facet-source-picker-modal');
   await expect(picker).toBeVisible();
   await picker.getByTestId('search-input').fill(input.search);
 
@@ -224,8 +224,8 @@ async function selectFacetSource(
     .first();
   await expect(row).toBeVisible();
   await row.click();
-  await expect(picker.getByRole('button', { name: 'Save' })).toBeEnabled();
-  await picker.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByTestId('submit-facet-source-picker-form-button')).toBeEnabled();
+  await page.getByTestId('submit-facet-source-picker-form-button').click();
   await expect(picker).toBeHidden();
   await expect(page.getByTestId('create-facet-source-button')).toContainText(
     input.buttonText,

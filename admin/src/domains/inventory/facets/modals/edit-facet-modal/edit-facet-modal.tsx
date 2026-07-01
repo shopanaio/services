@@ -292,6 +292,7 @@ export function EditFacetModal() {
   const { push: openValueCandidatesModal } = useFacetValueCandidatesModal();
   const [savingValueOrder, setSavingValueOrder] = useState(false);
   const [editorValues, setEditorValues] = useState<FacetValueEditorRow[]>([]);
+  const [selectionResetKey, setSelectionResetKey] = useState(0);
   const [swatchesEnabled, setSwatchesEnabled] = useState(false);
 
   const methods = useForm<EditFacetFormInput, unknown, EditFacetFormValues>({
@@ -426,6 +427,7 @@ export function EditFacetModal() {
         initialGroupedValues: groupValue ? toInitialGroupedRows(groupValue) : undefined,
         onSaved: async () => {
           await refetch();
+          setSelectionResetKey((current) => current + 1);
           await typedPayload.onSaved?.();
         },
       });
@@ -436,6 +438,7 @@ export function EditFacetModal() {
       facet,
       openValueGroupModal,
       refetch,
+      setSelectionResetKey,
       toInitialGroupedRows,
       typedPayload,
     ],
@@ -813,6 +816,7 @@ export function EditFacetModal() {
               <FacetValuesGrid
                 values={editorValues}
                 swatchesEnabled={swatchesEnabled}
+                selectionResetKey={selectionResetKey}
                 onReorder={(values) =>
                   setEditorValues(normalizeValueSortIndexes(values))
                 }

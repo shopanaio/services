@@ -25,6 +25,7 @@ import type { FacetValueEditorRow } from "../types";
 interface FacetValuesGridProps {
   values: FacetValueEditorRow[];
   swatchesEnabled: boolean;
+  selectionResetKey?: number;
   onReorder: (values: FacetValueEditorRow[]) => void;
   onSwatchChange: (valueId: string, swatch: OptionEditorSwatch) => void;
   onSelectionChange?: (values: FacetValueEditorRow[]) => void;
@@ -153,6 +154,7 @@ function FacetValueSwatchCell({
 export function FacetValuesGrid({
   values,
   swatchesEnabled,
+  selectionResetKey,
   onReorder,
   onSwatchChange,
   onSelectionChange,
@@ -199,6 +201,10 @@ export function FacetValuesGrid({
     setSelectedRows([]);
     onSelectionChange?.([]);
   }, [onSelectionChange]);
+
+  useEffect(() => {
+    clearSelection();
+  }, [clearSelection, selectionResetKey]);
 
   useEffect(() => {
     const selectedIds = new Set(selectedRows.map((row) => row.id));

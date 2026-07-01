@@ -156,9 +156,12 @@ export function FacetValueGroupModal() {
       const addedIds = draftValues
         .filter((value) => !initialIds.has(value.id))
         .map((value) => value.id);
-      const removedIds = initialValues
-        .filter((value) => !draftIds.has(value.id))
-        .map((value) => value.id);
+      const removedIds =
+        typedPayload.groupMode === "edit"
+          ? initialValues
+              .filter((value) => !draftIds.has(value.id))
+              .map((value) => value.id)
+          : [];
 
       if (typedPayload.groupMode === "edit" && !typedPayload.groupValueId) {
         message.error("Group value is missing.");
