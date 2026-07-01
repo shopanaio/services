@@ -89,6 +89,69 @@ function valueTestId(handle: string): string {
   return handle.replaceAll(" ", "-");
 }
 
+interface FacetValueSwatchCellProps {
+  valueId: string;
+  swatch: OptionEditorSwatch | null | undefined;
+  className: string;
+  testId: string;
+  onCommit: (valueId: string, swatch: OptionEditorSwatch) => void;
+}
+
+function getSwatchDraft(
+  swatch: OptionEditorSwatch | null | undefined,
+): OptionEditorSwatch {
+  return swatch ?? { ...DEFAULT_SWATCH };
+}
+
+function FacetValueSwatchCell({
+  valueId,
+  swatch,
+  className,
+  testId,
+  onCommit,
+}: FacetValueSwatchCellProps) {
+  const [open, setOpen] = useState(false);
+  const [draftSwatch, setDraftSwatch] = useState<OptionEditorSwatch>(
+    getSwatchDraft(swatch),
+  );
+
+  useEffect(() => {
+    if (!open) {
+      setDraftSwatch(getSwatchDraft(swatch));
+    }
+  }, [open, swatch]);
+
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (nextOpen) {
+        setDraftSwatch(getSwatchDraft(swatch));
+        setOpen(true);
+        return;
+      }
+
+      onCommit(valueId, draftSwatch);
+      setOpen(false);
+    },
+    [draftSwatch, onCommit, swatch, valueId],
+  );
+
+  return (
+    <span
+      className={className}
+      onPointerDown={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
+      data-testid={testId}
+    >
+      <SwatchPicker
+        swatch={draftSwatch}
+        onChange={setDraftSwatch}
+        open={open}
+        onOpenChange={handleOpenChange}
+      />
+    </span>
+  );
+}
+
 export function FacetValuesGrid({
   values,
   swatchesEnabled,
@@ -163,17 +226,13 @@ export function FacetValuesGrid({
           data ? (
             <Flex gap={8} align="center">
               {swatchesEnabled ? (
-                <span
+                <FacetValueSwatchCell
+                  valueId={data.id}
+                  swatch={data.swatch}
                   className={styles.swatchCell}
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onClick={(event) => event.stopPropagation()}
-                  data-testid={`facet-values-swatch-cell-${valueTestId(data.handle)}`}
-                >
-                  <SwatchPicker
-                    swatch={data.swatch ?? DEFAULT_SWATCH}
-                    onChange={(swatch) => onSwatchChange(data.id, swatch)}
-                  />
-                </span>
+                  testId={`facet-values-swatch-cell-${valueTestId(data.handle)}`}
+                  onCommit={onSwatchChange}
+                />
               ) : null}
               <span data-testid={`facet-values-row-${valueTestId(data.handle)}`}>
                 {data.label}

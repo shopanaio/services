@@ -18,15 +18,24 @@ import type { OptionEditorSwatch } from "../types";
 interface ISwatchPickerProps {
   swatch: OptionEditorSwatch | null;
   onChange: (swatch: OptionEditorSwatch) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
+export const SwatchPicker = ({
+  swatch,
+  onChange,
+  open,
+  onOpenChange,
+}: ISwatchPickerProps) => {
   const { styles } = useStyles();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [activeColorTab, setActiveColorTab] = useState<"1" | "2">("1");
 
   if (!swatch) return null;
 
+  const popoverOpen = open ?? internalOpen;
+  const setPopoverOpen = onOpenChange ?? setInternalOpen;
   const { swatchType, colorOne, colorTwo } = swatch;
   const fileId = swatch.fileId;
   const fileUrl = swatch.fileUrl;
@@ -247,8 +256,8 @@ export const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
     <Popover
       content={popoverContent}
       trigger="click"
-      open={open}
-      onOpenChange={setOpen}
+      open={popoverOpen}
+      onOpenChange={setPopoverOpen}
       placement="bottomLeft"
       arrow={false}
     >

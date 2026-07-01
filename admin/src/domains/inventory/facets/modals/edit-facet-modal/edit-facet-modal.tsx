@@ -534,9 +534,10 @@ export function EditFacetModal() {
           }
 
           const labelChanged = original?.label !== trimmedName;
+          const canUpdateHandle = value.kind !== FacetValueKind.Source;
           const slug = slugify(trimmedName);
           const sortIndexChanged = original?.sortIndex !== sortIndex;
-          const slugChanged = original?.handle !== slug;
+          const slugChanged = canUpdateHandle && original?.handle !== slug;
           const swatchChanged = originalSwatchId !== swatchId;
 
           if (
