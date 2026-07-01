@@ -14,6 +14,10 @@ export interface FacetFormInput {
   slug: string;
   facetType: FacetType;
   uiType: FacetUiType;
+  sources?: Array<{
+    handle: string;
+    name: string;
+  }>;
   source?: {
     handle: string;
     name: string;
@@ -55,15 +59,18 @@ export function mapFacetFormToCreateInput(
   values: FacetFormInput,
   _sortIndex?: number,
 ): ApiFacetCreateInput {
+  const sources = values.sources ?? (values.source ? [values.source] : []);
+
   return {
     label: values.label.trim(),
     slug: normalizeFacetSlug(values.slug),
     facetType: values.facetType,
     uiType: values.uiType,
     selectionMode: getDefaultFacetSelectionMode(values.uiType),
-    sources: values.source
-      ? [{ handle: values.source.handle, name: values.source.name }]
-      : [],
+    sources: sources.map((source) => ({
+      handle: source.handle,
+      name: source.name,
+    })),
     valueCandidates: (values.selectedValueCandidates ?? []).map((candidate) => ({
       handle: candidate.handle,
       label: candidate.label,

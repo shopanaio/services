@@ -95,8 +95,13 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
+const MULTI_SOURCE_FACET_TYPES = new Set<FacetType>([
+  FacetType.Option,
+  FacetType.Feature,
+]);
+
 interface FacetSourceSelectorProps {
-  value: CreateFacetFormInput["source"];
+  value: CreateFacetFormInput["sources"];
   facetType: FacetType;
   hasError?: boolean;
   onClick: () => void;
@@ -109,9 +114,13 @@ function FacetSourceSelector({
   onClick,
 }: FacetSourceSelectorProps) {
   const { styles } = useStyles();
-  const sourceTypeLabel = value ? getFacetSourceTypeLabel(facetType) : "Source";
-  const sourceLabel = value?.name ?? "Select source";
-  const icon = value ? getFacetTypeIcon(facetType) : null;
+  const sources = value ?? [];
+  const hasSources = sources.length > 0;
+  const sourceTypeLabel = hasSources ? getFacetSourceTypeLabel(facetType) : "Source";
+  const sourceLabel = hasSources
+    ? sources.map((source) => source.name).join(", ")
+    : "Select source";
+  const icon = hasSources ? getFacetTypeIcon(facetType) : null;
 
   return (
     <Button
@@ -139,7 +148,7 @@ const DEFAULT_VALUES: CreateFacetFormInput = {
   slug: "",
   facetType: FacetType.Option,
   uiType: getDefaultFacetUiType(FacetType.Option),
-  source: null,
+  sources: [],
   selectedValueCandidates: [],
 };
 
@@ -149,29 +158,44 @@ export function CreateFacetModal() {
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as ICreateFacetModalPayload;
   const { createFacet, loading } = useCreateFacet();
+  const initialSources =
+    typedPayload.initialValues?.sources ??
+    (typedPayload.initialValues?.source
+      ? [typedPayload.initialValues.source]
+      : undefined);
 
   const methods = useForm<CreateFacetFormInput, unknown, CreateFacetFormValues>({
     resolver: zodResolver(createFacetSchema),
     defaultValues: {
       ...DEFAULT_VALUES,
       ...typedPayload.initialValues,
+      ...(initialSources ? { sources: initialSources } : {}),
     },
   });
-  const { control, handleSubmit, setError, setValue, watch } = methods;
+  const { clearErrors, control, handleSubmit, setError, setValue, watch } =
+    methods;
   const label = watch("label");
   const facetType = watch("facetType");
   const uiType = watch("uiType");
-  const source = watch("source");
+  const sources = watch("sources");
   const discrete = isDiscreteFacetType(facetType);
   const uiTypeOptions = useMemo(
     () => getAllowedFacetUiTypes(facetType),
     [facetType],
   );
+  const sourceHandles = useMemo(
+    () => (sources ?? []).map((source) => source.handle),
+    [sources],
+  );
+  const initialSourceSelection = useMemo(
+    () => sourceHandles.map((handle) => `${facetType}:${handle}`),
+    [facetType, sourceHandles],
+  );
 
   const { openPicker } = useEntityPicker<FacetSourcePickerEntity>({
     entityType: "facet-source",
-    selectionMode: "single",
-    initialSelection: [],
+    selectionMode: "multi",
+    initialSelection: initialSourceSelection,
     queryMeta: {
       allowedFacetTypes: [
         FacetType.Price,
@@ -181,29 +205,73 @@ export function CreateFacetModal() {
         FacetType.InStock,
       ],
     },
-    onConfirm: ([selectedSource]) => {
-      if (!selectedSource) return;
+    onConfirm: (selectedSourceEntities, selectedIds) => {
+      const selectedSourceById = new Map(
+        selectedSourceEntities.map((source) => [source.id, source]),
+      );
+      for (const source of sources ?? []) {
+        const id = `${facetType}:${source.handle}`;
+        if (!selectedIds.includes(id) || selectedSourceById.has(id)) continue;
+        selectedSourceById.set(id, {
+          id,
+          title: source.name,
+          facetType,
+          handle: source.handle,
+          name: source.name,
+          typeLabel: getFacetSourceTypeLabel(facetType),
+        });
+      }
+      const selectedSources = selectedIds
+        .map((id) => selectedSourceById.get(id))
+        .filter((source): source is FacetSourcePickerEntity => Boolean(source));
 
-      setValue("facetType", selectedSource.facetType, {
+      const firstSelectedSource = selectedSources[0];
+      if (!firstSelectedSource) return;
+      const selectedFacetType = firstSelectedSource.facetType;
+      const hasMixedFacetTypes = selectedSources.some(
+        (source) => source.facetType !== selectedFacetType,
+      );
+
+      if (hasMixedFacetTypes) {
+        setError("sources", {
+          message: "Select sources from one facet type",
+        });
+        message.error("Select sources from one facet type.");
+        return;
+      }
+
+      if (
+        selectedSources.length > 1 &&
+        !MULTI_SOURCE_FACET_TYPES.has(selectedFacetType)
+      ) {
+        setError("sources", {
+          message: "Only option and feature facets can use multiple sources",
+        });
+        message.error("Only option and feature facets can use multiple sources.");
+        return;
+      }
+
+      setValue("facetType", selectedFacetType, {
         shouldValidate: true,
         shouldDirty: true,
       });
       setValue(
-        "source",
-        {
-          handle: selectedSource.handle,
-          name: selectedSource.name,
-        },
+        "sources",
+        selectedSources.map((source) => ({
+          handle: source.handle,
+          name: source.name,
+        })),
         { shouldValidate: true, shouldDirty: true },
       );
+      clearErrors("sources");
       setValue("selectedValueCandidates", [], {
         shouldValidate: true,
         shouldDirty: true,
       });
 
-      const allowed = getAllowedFacetUiTypes(selectedSource.facetType);
+      const allowed = getAllowedFacetUiTypes(selectedFacetType);
       if (!allowed.includes(uiType)) {
-        setValue("uiType", getDefaultFacetUiType(selectedSource.facetType), {
+        setValue("uiType", getDefaultFacetUiType(selectedFacetType), {
           shouldValidate: true,
           shouldDirty: true,
         });
@@ -242,8 +310,12 @@ export function CreateFacetModal() {
           if (error.field === "uiType") {
             setError("uiType", { message: error.message });
           }
-          if (error.field === "facetType" || error.field === "source") {
-            setError("source", { message: error.message });
+          if (
+            error.field === "facetType" ||
+            error.field === "source" ||
+            error.field === "sources"
+          ) {
+            setError("sources", { message: error.message });
           }
           if (error.field === "valueCandidates") {
             setError("selectedValueCandidates", { message: error.message });
@@ -282,21 +354,21 @@ export function CreateFacetModal() {
           <div className={styles.stackedField}>
             <div className={styles.label}>Source</div>
             <Controller
-              name="source"
+              name="sources"
               control={control}
               render={({
-                field: sourceField,
-                fieldState: { error: sourceError },
+                field: sourcesField,
+                fieldState: { error: sourcesError },
               }) => (
                 <>
                   <FacetSourceSelector
-                    value={sourceField.value}
+                    value={sourcesField.value}
                     facetType={facetType}
-                    hasError={Boolean(sourceError)}
+                    hasError={Boolean(sourcesError)}
                     onClick={openPicker}
                   />
-                  {sourceError ? (
-                    <div className={styles.error}>{sourceError.message}</div>
+                  {sourcesError ? (
+                    <div className={styles.error}>{sourcesError.message}</div>
                   ) : null}
                 </>
               )}
@@ -369,7 +441,7 @@ export function CreateFacetModal() {
                   ) : null}
                   <FacetValueCandidatesGrid
                     facetType={facetType}
-                    sourceHandle={source?.handle ?? null}
+                    sourceHandles={sourceHandles}
                     value={field.value ?? []}
                     onChange={field.onChange}
                   />

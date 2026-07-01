@@ -18,6 +18,10 @@ export interface ICreateFacetModalPayload extends IModalStackPayload {
     slug: string;
     facetType: FacetType;
     uiType: FacetUiType;
+    sources: Array<{
+      handle: string;
+      name: string;
+    }>;
     source: {
       handle: string;
       name: string;

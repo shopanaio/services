@@ -17,6 +17,7 @@ const UI_BY_TYPE: Record<string, string[]> = {
   IN_STOCK: ["boolean", "checkbox", "radio", "dropdown"],
 };
 const VALUE_CANDIDATE_TYPES = new Set(["TAG", "OPTION", "FEATURE"]);
+const MULTI_SOURCE_TYPES = new Set(["OPTION", "FEATURE"]);
 
 function normalizeValueCandidates(
   candidates?: FacetCreateValueCandidateInput[]
@@ -76,12 +77,12 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
     }
 
     const sources = params.sources ?? [];
-    if (sources.length !== 1) {
+    if (sources.length === 0) {
       return {
         facet: undefined,
         userErrors: [
           {
-            message: "Exactly one facet source is required",
+            message: "At least one facet source is required",
             field: ["sources"],
             code: "REQUIRED",
           },
@@ -89,44 +90,72 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
       };
     }
 
-    const selectedSource = {
-      handle: sources[0].handle.trim(),
-      name: sources[0].name.trim(),
-    };
+    const selectedSources = sources.map((source) => ({
+      handle: source.handle.trim(),
+      name: source.name.trim(),
+    }));
 
-    if (!selectedSource.handle) {
+    const sourceWithMissingHandleIndex = selectedSources.findIndex(
+      (source) => !source.handle
+    );
+    if (sourceWithMissingHandleIndex !== -1) {
       return {
         facet: undefined,
         userErrors: [
           {
             message: "Facet source handle is required",
-            field: ["sources", "0", "handle"],
+            field: ["sources", String(sourceWithMissingHandleIndex), "handle"],
             code: "REQUIRED",
           },
         ],
       };
     }
 
-    if (!selectedSource.name) {
+    const sourceWithMissingNameIndex = selectedSources.findIndex(
+      (source) => !source.name
+    );
+    if (sourceWithMissingNameIndex !== -1) {
       return {
         facet: undefined,
         userErrors: [
           {
             message: "Facet source name is required",
-            field: ["sources", "0", "name"],
+            field: ["sources", String(sourceWithMissingNameIndex), "name"],
             code: "REQUIRED",
           },
         ],
       };
     }
 
-    const candidate =
-      await this.repository.facet.findAvailableFacetSourceCandidate({
-        facetType: params.facetType,
-        handle: selectedSource.handle,
-      });
+    const selectedSourceMap = new Map(
+      selectedSources.map((source) => [source.handle, source])
+    );
+    const uniqueSelectedSources = [...selectedSourceMap.values()];
 
-    if (!candidate) {
+    if (uniqueSelectedSources.length > 1 && !MULTI_SOURCE_TYPES.has(params.facetType)) {
+      return {
+        facet: undefined,
+        userErrors: [
+          {
+            message: "Only option and feature facets can use multiple sources",
+            field: ["sources"],
+            code: "INVALID",
+          },
+        ],
+      };
+    }
+
+    const candidates = await Promise.all(
+      uniqueSelectedSources.map((source) =>
+        this.repository.facet.findAvailableFacetSourceCandidate({
+          facetType: params.facetType,
+          handle: source.handle,
+        })
+      )
+    );
+    const missingSourceIndex = candidates.findIndex((candidate) => !candidate);
+
+    if (missingSourceIndex !== -1) {
       return {
         facet: undefined,
         userErrors: [
@@ -139,7 +168,10 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
       };
     }
 
-    if (candidate.facetType !== params.facetType) {
+    const candidateWithDifferentTypeIndex = candidates.findIndex(
+      (candidate) => candidate?.facetType !== params.facetType
+    );
+    if (candidateWithDifferentTypeIndex !== -1) {
       return {
         facet: undefined,
         userErrors: [
@@ -152,18 +184,26 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
       };
     }
 
-    if (candidate.handle !== selectedSource.handle) {
+    const mismatchedSourceIndex = candidates.findIndex(
+      (candidate, index) =>
+        candidate?.handle !== uniqueSelectedSources[index]?.handle
+    );
+    if (mismatchedSourceIndex !== -1) {
       return {
         facet: undefined,
         userErrors: [
           {
             message: "Selected facet source handle does not match candidate",
-            field: ["sources", "0", "handle"],
+            field: ["sources", String(mismatchedSourceIndex), "handle"],
             code: "INVALID",
           },
         ],
       };
     }
+
+    const selectedSourceHandles = uniqueSelectedSources.map(
+      (source) => source.handle
+    );
 
     if (params.uiType && !UI_BY_TYPE[params.facetType]?.includes(params.uiType)) {
       return {
@@ -187,9 +227,9 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
         };
       }
 
-      const selectedSourceHandles = new Set([selectedSource.handle]);
+      const selectedSourceHandleSet = new Set(selectedSourceHandles);
       const invalidSourceCandidate = valueCandidates.find(
-        (candidate) => !selectedSourceHandles.has(candidate.sourceHandle)
+        (candidate) => !selectedSourceHandleSet.has(candidate.sourceHandle)
       );
       if (invalidSourceCandidate) {
         return {
@@ -207,7 +247,7 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
       const availableCandidates =
         await this.repository.facet.findFacetValueCandidatesByHandles({
           candidateType: params.facetType as FacetValueCandidateType,
-          sourceHandles: [selectedSource.handle],
+          sourceHandles: selectedSourceHandles,
           handles: valueCandidates.map((value) => value.handle),
         });
       const availableHandles = new Set(
@@ -237,7 +277,7 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
       uiType: params.uiType,
       selectionMode: params.selectionMode,
       lexoRank: params.lexoRank,
-      sources: [selectedSource],
+      sources: uniqueSelectedSources,
     });
 
     if (valueCandidates.length > 0) {

@@ -54,9 +54,7 @@ const useStyles = createStyles(({ token }) => ({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
-    padding: "8px 12px",
-    border: `1px solid ${token.colorBorderSecondary}`,
-    background: token.colorFillAlter,
+    minHeight: 32,
   },
   grid: {
     height: 360,
@@ -374,15 +372,6 @@ export function FacetValuesGrid({
 
   return (
     <div className={styles.root}>
-      <Input
-        allowClear
-        prefix={<SearchOutlined />}
-        placeholder="Search filter values"
-        value={search}
-        onChange={(event) => setSearch(event.target.value)}
-        data-testid="facet-values-search-input"
-      />
-
       {selectedRows.length > 0 ? (
         <div className={styles.bulkPanel} data-testid="facet-values-bulk-panel">
           <Typography.Text strong data-testid="facet-values-selection-count">
@@ -397,6 +386,7 @@ export function FacetValuesGrid({
               }
             >
               <Button
+                size="small"
                 disabled={!addToGroupEnabled}
                 onClick={() => onAddToGroup(selectedRows)}
                 data-testid="facet-values-add-to-group-button"
@@ -405,6 +395,7 @@ export function FacetValuesGrid({
               </Button>
             </Tooltip>
             <Button
+              size="small"
               disabled={!ungroupEnabled}
               onClick={() => onUngroup(selectedRows)}
               data-testid="facet-values-bulk-ungroup-button"
@@ -412,6 +403,7 @@ export function FacetValuesGrid({
               Ungroup
             </Button>
             <Button
+              size="small"
               danger
               onClick={() => onDelete(selectedRows)}
               data-testid="facet-values-bulk-delete-button"
@@ -419,6 +411,7 @@ export function FacetValuesGrid({
               Delete
             </Button>
             <Button
+              size="small"
               type="text"
               onClick={clearSelection}
               data-testid="facet-values-clear-selection-button"
@@ -427,7 +420,16 @@ export function FacetValuesGrid({
             </Button>
           </Flex>
         </div>
-      ) : null}
+      ) : (
+        <Input
+          allowClear
+          prefix={<SearchOutlined />}
+          placeholder="Search filter values"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          data-testid="facet-values-search-input"
+        />
+      )}
 
       <div className={styles.grid} data-testid="facet-values-grid">
         <AgGridReact<FacetValueEditorRow>
