@@ -145,18 +145,27 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
         firstEvent.eventType,
         eventIds,
       );
+      const individualHandlers = await this.getAvailableHandlers(
+        firstEvent.eventType,
+        hashValues(eventIds),
+      );
+      const individualOnlyHandlers = excludeBatchHandledServices(
+        individualHandlers,
+        batchHandlers,
+      );
 
-      if (batchHandlers.length === 0) {
-        const result = await this.dispatchSingleEvents(eventRecords);
-        dispatched += result.dispatched;
-        failed += result.failed;
-        continue;
-      }
-
-      const results = await Promise.all(
+      const batchResults = await Promise.all(
         batchHandlers.map((handler) => this.tryInvokeBatchHandler(events, handler)),
       );
-      const failedEventIds = collectFailedEventIds(results);
+      const failedEventIds = collectFailedEventIds(batchResults);
+      const individualFailedEventIds = await this.tryInvokeHandlersIndividually(
+        events,
+        individualOnlyHandlers,
+      );
+      for (const eventId of individualFailedEventIds) {
+        failedEventIds.add(eventId);
+      }
+
       const dispatchedEventIds = eventIds.filter((id) => !failedEventIds.has(id));
 
       await this.markDispatchedBatch(dispatchedEventIds);
@@ -167,6 +176,28 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
     }
 
     return { claimed: records.length, dispatched, failed };
+  }
+
+  private async tryInvokeHandlersIndividually(
+    events: DomainEvent[],
+    handlers: HandlerInfo[],
+  ): Promise<Set<string>> {
+    const failedEventIds = new Set<string>();
+    if (handlers.length === 0) {
+      return failedEventIds;
+    }
+
+    for (const event of events) {
+      const results = await Promise.all(
+        handlers.map((handler) => this.tryInvokeHandler(event, handler)),
+      );
+
+      if (results.some((result) => result.status === "failed")) {
+        failedEventIds.add(event.eventId);
+      }
+    }
+
+    return failedEventIds;
   }
 
   private async getAvailableHandlers(
@@ -687,6 +718,19 @@ function collectFailedEventIds(
   }
 
   return failedEventIds;
+}
+
+function excludeBatchHandledServices(
+  individualHandlers: readonly HandlerInfo[],
+  batchHandlers: readonly HandlerInfo[],
+): HandlerInfo[] {
+  const batchServiceNames = new Set(
+    batchHandlers.map((handler) => handler.serviceName),
+  );
+
+  return individualHandlers.filter(
+    (handler) => !batchServiceNames.has(handler.serviceName),
+  );
 }
 
 function normalizeFailedEventIds(
