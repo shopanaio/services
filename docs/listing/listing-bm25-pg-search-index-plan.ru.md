@@ -95,7 +95,7 @@ Deployment rules:
 CREATE TABLE catalog.product_title_bm25_search_index (
   search_id              uuid NOT NULL,
   project_id             uuid NOT NULL,
-  product_id             uuid NOT NULL REFERENCES catalog.product(id) ON DELETE CASCADE,
+  product_id             uuid NOT NULL,
   locale                 varchar(8) NOT NULL,
 
   kind                   catalog.product_kind NOT NULL,
@@ -111,7 +111,11 @@ CREATE TABLE catalog.product_title_bm25_search_index (
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
   PRIMARY KEY (project_id, product_id, locale),
-  UNIQUE (search_id)
+  UNIQUE (search_id),
+  CONSTRAINT fk_product_title_bm25_product
+    FOREIGN KEY (project_id, product_id)
+    REFERENCES catalog.product(project_id, id)
+    ON DELETE CASCADE
 );
 ```
 
@@ -253,7 +257,6 @@ base_all AS (
   JOIN catalog.product_listing_index pli
     ON pli.product_id = sp.product_id
    AND pli.project_id = :projectId
-   AND pli.currency = :currency
   JOIN search_candidates sc
     ON sc.product_id = pli.product_id
   WHERE pli.status = 'published'

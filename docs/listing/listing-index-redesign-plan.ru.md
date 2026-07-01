@@ -301,7 +301,7 @@ CREATE TABLE catalog.product_listing_price_index (
   PRIMARY KEY (project_id, product_id, currency),
   CONSTRAINT fk_product_listing_price_product
     FOREIGN KEY (project_id, product_id)
-    REFERENCES catalog.product(project_id, id)
+    REFERENCES catalog.product_listing_index(project_id, product_id)
     ON DELETE CASCADE
 );
 ```
@@ -371,9 +371,11 @@ CREATE TABLE catalog.variant_listing_index (
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
   PRIMARY KEY (project_id, variant_id),
+  CONSTRAINT variant_listing_project_product_variant_unique
+    UNIQUE (project_id, product_id, variant_id),
   CONSTRAINT fk_variant_listing_product
     FOREIGN KEY (project_id, product_id)
-    REFERENCES catalog.product(project_id, id)
+    REFERENCES catalog.product_listing_index(project_id, product_id)
     ON DELETE CASCADE,
   CONSTRAINT fk_variant_listing_variant
     FOREIGN KEY (project_id, product_id, variant_id)
@@ -427,13 +429,9 @@ CREATE TABLE catalog.variant_listing_price_index (
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
   PRIMARY KEY (project_id, variant_id, currency),
-  CONSTRAINT fk_variant_listing_price_product
-    FOREIGN KEY (project_id, product_id)
-    REFERENCES catalog.product(project_id, id)
-    ON DELETE CASCADE,
   CONSTRAINT fk_variant_listing_price_variant
     FOREIGN KEY (project_id, product_id, variant_id)
-    REFERENCES catalog.variant(project_id, product_id, id)
+    REFERENCES catalog.variant_listing_index(project_id, product_id, variant_id)
     ON DELETE CASCADE
 );
 ```
@@ -484,7 +482,7 @@ CREATE TABLE catalog.product_listing_facet_token (
   PRIMARY KEY (project_id, product_id, facet_id, facet_value_id),
   CONSTRAINT fk_product_listing_facet_token_product
     FOREIGN KEY (project_id, product_id)
-    REFERENCES catalog.product(project_id, id)
+    REFERENCES catalog.product_listing_index(project_id, product_id)
     ON DELETE CASCADE,
   CONSTRAINT fk_product_listing_facet_token_facet
     FOREIGN KEY (project_id, facet_id)
@@ -539,13 +537,9 @@ CREATE TABLE catalog.variant_listing_facet_token (
   indexed_at             timestamptz NOT NULL DEFAULT now(),
 
   PRIMARY KEY (project_id, variant_id, facet_id, facet_value_id),
-  CONSTRAINT fk_variant_listing_facet_token_product
-    FOREIGN KEY (project_id, product_id)
-    REFERENCES catalog.product(project_id, id)
-    ON DELETE CASCADE,
   CONSTRAINT fk_variant_listing_facet_token_variant
     FOREIGN KEY (project_id, product_id, variant_id)
-    REFERENCES catalog.variant(project_id, product_id, id)
+    REFERENCES catalog.variant_listing_index(project_id, product_id, variant_id)
     ON DELETE CASCADE,
   CONSTRAINT fk_variant_listing_facet_token_facet
     FOREIGN KEY (project_id, facet_id)
