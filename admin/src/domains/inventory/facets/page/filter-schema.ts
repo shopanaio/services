@@ -5,7 +5,7 @@ import { FACET_UI_MAPPINGS } from "../mappers";
 
 export const facetTypeFilterSchema: IFilterSchema = {
   key: "facetType",
-  label: "Source",
+  label: "Source Type",
   description: "Filter by facet source",
   type: FilterType.Enum,
   operators: [FilterOperator.In],
@@ -18,7 +18,7 @@ export const facetTypeFilterSchema: IFilterSchema = {
 
 const facetUiTypeFilterSchema: IFilterSchema = {
   key: "uiType",
-  label: "UI type",
+  label: "Display Type",
   description: "Filter by storefront control",
   type: FilterType.Enum,
   operators: [FilterOperator.In],
