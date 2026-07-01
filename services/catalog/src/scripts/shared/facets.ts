@@ -1,12 +1,19 @@
 import type { Repository } from "../../repositories/Repository.js";
-import type { VariantSearchIndex } from "../../repositories/models/index.js";
+
+export interface ListingVariantFacetRow {
+  productId: string;
+  priceCurrency: string | null;
+  priceMinor: number | null;
+  inStock: boolean;
+  optionSlugs: string[];
+}
 
 type FacetKind = "tag" | "feature" | "option" | "price" | "in_stock";
 
 export interface ListingBaseProduct {
   productId: string;
   tagHandles: string[];
-  featureSlugs: string[];
+  featureValueHandles: string[];
 }
 
 export interface ListingFacetSelection {
@@ -18,7 +25,7 @@ export interface ListingFacetSelection {
 export interface BuildListingFacetsParams {
   repository: Repository;
   baseProducts: ListingBaseProduct[];
-  variantsByProduct: Map<string, VariantSearchIndex[]>;
+  variantsByProduct: Map<string, ListingVariantFacetRow[]>;
   currency: string;
   selectedFacetFiltersById: Map<string, ListingFacetSelection>;
   priceMinMinor?: number;
@@ -212,7 +219,7 @@ export async function buildListingFacets(
 
       if (selection.facetType === "tag") {
         if (!intersects(product.tagHandles, selection.resolvedSourceHandles)) return false;
-      } else if (!intersects(product.featureSlugs, selection.resolvedSourceHandles)) {
+      } else if (!intersects(product.featureValueHandles, selection.resolvedSourceHandles)) {
         return false;
       }
     }
@@ -248,7 +255,7 @@ export async function buildListingFacets(
   };
 
   const variantPasses = (
-    variant: VariantSearchIndex,
+    variant: ListingVariantFacetRow,
     options: VariantPassOptions
   ): boolean => {
     if (variant.priceCurrency !== params.currency) {
@@ -340,7 +347,7 @@ export async function buildListingFacets(
       }
 
       if (facetType === "feature") {
-        if (intersects(product.featureSlugs, valueSourceHandles)) count += 1;
+        if (intersects(product.featureValueHandles, valueSourceHandles)) count += 1;
         continue;
       }
 
@@ -384,7 +391,7 @@ export async function buildListingFacets(
       }
 
       if (facetType === "feature") {
-        if (intersects(product.featureSlugs, allSourceHandles)) count += 1;
+        if (intersects(product.featureValueHandles, allSourceHandles)) count += 1;
         continue;
       }
 

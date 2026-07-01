@@ -13,8 +13,6 @@ import { MediaRepository } from "./media/MediaRepository.js";
 import { BulkEditJobRepository } from "./BulkEditJobRepository.js";
 import { BulkEditItemRepository } from "./BulkEditItemRepository.js";
 import { BulkFenceRepository } from "./BulkFenceRepository.js";
-import { SearchIndexRepository } from "./listing/SearchIndexRepository.js";
-import { VariantSearchIndexRepository } from "./listing/VariantSearchIndexRepository.js";
 import { FacetRepository } from "./facet/FacetRepository.js";
 import { FacetValueRepository } from "./facet/FacetValueRepository.js";
 import { FacetSwatchRepository } from "./facet/FacetSwatchRepository.js";
@@ -49,8 +47,6 @@ export class Repository {
   public readonly bulkEditJob: BulkEditJobRepository;
   public readonly bulkEditItem: BulkEditItemRepository;
   public readonly bulkFence: BulkFenceRepository;
-  public readonly searchIndex: SearchIndexRepository;
-  public readonly variantSearchIndex: VariantSearchIndexRepository;
   public readonly facet: FacetRepository;
   public readonly facetValue: FacetValueRepository;
   public readonly facetSwatch: FacetSwatchRepository;
@@ -87,8 +83,6 @@ export class Repository {
     bulkEditJob: BulkEditJobRepository,
     bulkEditItem: BulkEditItemRepository,
     bulkFence: BulkFenceRepository,
-    searchIndex: SearchIndexRepository,
-    variantSearchIndex: VariantSearchIndexRepository,
     facet: FacetRepository,
     facetValue: FacetValueRepository,
     facetSwatch: FacetSwatchRepository,
@@ -116,8 +110,6 @@ export class Repository {
     this.bulkEditJob = bulkEditJob;
     this.bulkEditItem = bulkEditItem;
     this.bulkFence = bulkFence;
-    this.searchIndex = searchIndex;
-    this.variantSearchIndex = variantSearchIndex;
     this.facet = facet;
     this.facetValue = facetValue;
     this.facetSwatch = facetSwatch;
@@ -156,8 +148,6 @@ export class Repository {
     const bulkEditJob = new BulkEditJobRepository(db, txManager);
     const bulkEditItem = new BulkEditItemRepository(db, txManager);
     const bulkFence = new BulkFenceRepository(db, txManager);
-    const searchIndex = new SearchIndexRepository(db, txManager);
-    const variantSearchIndex = new VariantSearchIndexRepository(db, txManager);
     const facet = new FacetRepository(db, txManager);
     const facetValue = new FacetValueRepository(db, txManager);
     const facetSwatch = new FacetSwatchRepository(db, txManager);
@@ -185,8 +175,6 @@ export class Repository {
       bulkEditJob,
       bulkEditItem,
       bulkFence,
-      searchIndex,
-      variantSearchIndex,
       facet,
       facetValue,
       facetSwatch,

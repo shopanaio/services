@@ -92,7 +92,6 @@ import {
   normalizeProductCategoriesScopeInput,
   normalizeWarehouseWhereInput,
 } from "./filter-normalizers.js";
-import { CollectionRulesPreviewCountScript } from "../../scripts/collection/CollectionRulesPreviewCountScript.js";
 
 type InventoryItemWarehouseScopeArgs = {
   referenceIds?: string[] | null;
@@ -437,15 +436,6 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
   }
 
   // TODO: Implement collections() with keyset pagination
-
-  async collectionRulesPreviewCount(args: {
-    rules: Array<{ field: string; operator: string; value: unknown }>;
-  }) {
-    const result = await this.$ctx.kernel.runScript(CollectionRulesPreviewCountScript, {
-      rules: args.rules,
-    });
-    return result.count;
-  }
 
   // ---- Tag Queries ----
 

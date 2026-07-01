@@ -147,6 +147,12 @@ export const collectionItem = catalogSchema.table(
   (table) => [
     primaryKey({ columns: [table.collectionId, table.productId] }),
     index("idx_collection_item_rank").on(table.collectionId, table.lexoRank),
+    index("idx_collection_item_listing_scope").on(
+      table.projectId,
+      table.collectionId,
+      table.lexoRank,
+      table.productId
+    ),
   ]
 );
 

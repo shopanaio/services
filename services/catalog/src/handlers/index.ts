@@ -18,11 +18,6 @@ import type {
 import { Kernel } from "../kernel/Kernel.js";
 import { FileHardDeletedScript } from "../scripts/media/FileHardDeletedScript.js";
 import { CategoryProductsCountRefreshScript } from "../scripts/category/index.js";
-import {
-  DeleteProductIndexScript,
-  SyncProductIndexScript,
-  SyncVariantIndexScript,
-} from "../scripts/search-index/index.js";
 
 type GetStoreByIdResult = {
   store: ContextStore | null;
@@ -67,30 +62,13 @@ export class CatalogEventHandlers extends EventHandlers {
       "Received productCreated event"
     );
     try {
-      const store = await this.getStoreContext(params.event.payload.storeId);
-      const context = {
-        storeId: store.id,
-        organizationId: store.organizationId,
-        userId: params.event.context.userId,
-        locale: store.defaultLocale,
-        defaultLocale: store.defaultLocale,
-      };
-      await this.kernel.runScript(
-        SyncProductIndexScript,
-        { productId: params.event.payload.productId },
-        context
-      );
-      await this.kernel.runScript(
-        SyncVariantIndexScript,
-        { productId: params.event.payload.productId },
-        context
-      );
+      await this.getStoreContext(params.event.payload.storeId);
       return { success: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(
         { error: message, productId: params.event.payload.productId },
-        "Failed to sync search indexes for productCreated"
+        "Failed to handle productCreated event"
       );
       return { success: false, error: { message, retryable: true } };
     }
@@ -106,17 +84,6 @@ export class CatalogEventHandlers extends EventHandlers {
     );
     try {
       const store = await this.getStoreContext(params.event.payload.storeId);
-      await this.kernel.runScript(
-        DeleteProductIndexScript,
-        { productId: params.event.payload.productId },
-        {
-          storeId: store.id,
-          organizationId: store.organizationId,
-          userId: params.event.context.userId,
-          locale: store.defaultLocale,
-          defaultLocale: store.defaultLocale,
-        }
-      );
       await this.refreshCategoryProductCounts({
         categoryIds: params.event.payload.categoryIds,
         store,
@@ -148,7 +115,7 @@ export class CatalogEventHandlers extends EventHandlers {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(
         { error: message, productId: params.event.payload.productId },
-        "Failed to sync search indexes for productUpdated"
+        "Failed to handle productUpdated event"
       );
       return { success: false, error: { message, retryable: true } };
     }
@@ -213,21 +180,12 @@ export class CatalogEventHandlers extends EventHandlers {
         continue;
       }
 
-      for (const event of storeEvents) {
-        try {
-          await this.syncProductUpdatedSearchIndexes(event, store);
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          failedEventIds.push(event.eventId);
-          errors.push(message);
-        }
-      }
     }
 
     if (failedEventIds.length > 0) {
       this.logger.error(
         { failedEventIds, errors },
-        "Failed to sync search indexes for productUpdated batch"
+        "Failed to handle productUpdated batch"
       );
     }
 
@@ -248,8 +206,6 @@ export class CatalogEventHandlers extends EventHandlers {
         userId: event.context.userId,
       });
     }
-
-    await this.syncProductUpdatedSearchIndexes(event, store);
   }
 
   private async refreshProductUpdatedCategoryCounts(
@@ -270,36 +226,6 @@ export class CatalogEventHandlers extends EventHandlers {
       store,
       userId: events.find((event) => event.context.userId)?.context.userId,
     });
-  }
-
-  private async syncProductUpdatedSearchIndexes(
-    event: ProductUpdatedEvent,
-    store: ContextStore,
-  ): Promise<void> {
-    const variantIds = event.payload.variants
-      ? Object.keys(event.payload.variants)
-      : undefined;
-    const context = {
-      storeId: store.id,
-      organizationId: store.organizationId,
-      userId: event.context.userId,
-      locale: store.defaultLocale,
-      defaultLocale: store.defaultLocale,
-    };
-
-    await this.kernel.runScript(
-      SyncProductIndexScript,
-      { productId: event.payload.productId },
-      context
-    );
-    await this.kernel.runScript(
-      SyncVariantIndexScript,
-      {
-        productId: event.payload.productId,
-        variantIds,
-      },
-      context
-    );
   }
 
   private async refreshCategoryProductCounts(params: {

@@ -46,6 +46,12 @@ export const productTranslation = catalogSchema.table(
       table.projectId,
       table.locale
     ),
+    index("idx_product_translation_listing_name").on(
+      table.projectId,
+      table.locale,
+      table.name,
+      table.productId
+    ),
   ]
 );
 

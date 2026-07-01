@@ -167,6 +167,12 @@ export const productCategory = catalogSchema.table(
     index("idx_product_category_product").on(table.productId),
     index("idx_product_category_category").on(table.categoryId),
     index("idx_product_category_rank").on(table.categoryId, table.lexoRank),
+    index("idx_product_category_listing_scope").on(
+      table.projectId,
+      table.categoryId,
+      table.lexoRank,
+      table.productId
+    ),
   ]
 );
 

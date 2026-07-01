@@ -12,8 +12,10 @@ compatibility views не требуются: после миграции listing
 
 ## Общие правила
 
-- Все таблицы scoped по `project_id`; каждый storefront/admin query должен
-  ограничиваться текущим проектом.
+- Все таблицы содержат `project_id`; каждый storefront/admin query должен
+  ограничиваться текущим проектом. `project_id` используется как query/index
+  prefix, но не входит в PK/FK read model: canonical `id` считаются глобально
+  уникальными внутри catalog schema.
 - Основные listing таблицы и token tables currency-neutral. Денежные поля
   вынесены в отдельные per-currency таблицы.
 - Storefront listing читает цену в default currency проекта.
@@ -50,9 +52,9 @@ Planned files:
     `variant_listing_index`, `variant_listing_price_index`,
     `product_listing_facet_token` and `variant_listing_facet_token`;
   - add ordinary indexes from this document;
-  - add missing project-scoped unique constraints on canonical `product`,
-    `variant`, `facet` and `facet_value` only when equivalent constraints do not
-    already exist.
+  - do not add extra unique constraints on canonical `product`,
+    `variant`, `facet` or `facet_value`; listing FKs reference canonical primary
+    keys by id.
 - `9004_read_models__product_title_bm25_search.sql`:
   - create `catalog.product_title_bm25_search_index`;
   - create ordinary indexes and the ParadeDB BM25 index;
@@ -107,10 +109,10 @@ CREATE TABLE catalog.product_listing_index (
   indexed_at             timestamptz NOT NULL DEFAULT now(),
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, product_id),
+  PRIMARY KEY (product_id),
   CONSTRAINT fk_product_listing_product
-    FOREIGN KEY (project_id, product_id)
-    REFERENCES catalog.product(project_id, id)
+    FOREIGN KEY (product_id)
+    REFERENCES catalog.product(id)
     ON DELETE CASCADE,
   CONSTRAINT chk_product_listing_status
     CHECK (status IN ('published', 'draft'))
@@ -121,8 +123,8 @@ CREATE TABLE catalog.product_listing_index (
 
 | Поле | Комментарий |
 | --- | --- |
-| `project_id` | Tenant/project boundary. Используется во всех PK/FK/index prefixes и во всех listing queries. |
-| `product_id` | Canonical product id из `catalog.product.id`. Вместе с `project_id` идентифицирует строку read model. |
+| `project_id` | Tenant/project boundary. Используется в index prefixes и во всех listing queries, но не входит в PK/FK. |
+| `product_id` | Canonical product id из `catalog.product.id`. Так как product id глобально уникален, он идентифицирует строку read model. |
 | `kind` | Тип товара из `catalog.product_kind`; нужен для rule collections и возможных storefront predicates по типу. |
 | `vendor_id` | Vendor product-level filter. Это явный фильтр, не generic facet. |
 | `handle` | Storefront handle published product. Используется для read model diagnostics и возможной hydration опоры, но не заменяет canonical product data. |
@@ -143,7 +145,7 @@ CREATE TABLE catalog.product_listing_index (
 
 | Ограничение | Комментарий |
 | --- | --- |
-| `PRIMARY KEY (project_id, product_id)` | Гарантирует одну listing строку на product внутри project и дает целевой ключ для joins. |
+| `PRIMARY KEY (product_id)` | Гарантирует одну listing строку на product и дает целевой ключ для joins. |
 | `fk_product_listing_product` | Защищает read model от orphan rows и удаляет index row при удалении canonical product. |
 | `chk_product_listing_status` | Фиксирует допустимые visibility states; deleted не допускается как status. |
 
@@ -185,7 +187,7 @@ CREATE INDEX idx_product_listing_category_handles_gin
 
 | Индекс | Комментарий |
 | --- | --- |
-| `idx_product_listing_project_product` | Явный lookup/join index по project + product. PK уже покрывает этот порядок, поэтому при реализации можно не создавать дубликат, если planner использует PK. |
+| `idx_product_listing_project_product` | Явный lookup/join index по project + product. Нужен отдельно, потому что PK построен по `product_id`. |
 | `idx_product_listing_visible_newest` | Покрывает default/newest storefront order: сначала in-stock, затем published date, затем created date и stable `product_id`. Partial predicate исключает drafts. |
 | `idx_product_listing_visible_created` | Покрывает `created` sort с тем же availability bucket и stable tie-breaker. |
 | `idx_product_listing_vendor` | Ускоряет explicit vendor filter. Partial predicate уменьшает размер, потому что products без vendor не участвуют в vendor lookup. |
@@ -210,10 +212,10 @@ CREATE TABLE catalog.product_listing_price_index (
   indexed_at             timestamptz NOT NULL DEFAULT now(),
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, product_id, currency),
+  PRIMARY KEY (product_id, currency),
   CONSTRAINT fk_product_listing_price_product
-    FOREIGN KEY (project_id, product_id)
-    REFERENCES catalog.product_listing_index(project_id, product_id)
+    FOREIGN KEY (product_id)
+    REFERENCES catalog.product_listing_index(product_id)
     ON DELETE CASCADE
 );
 ```
@@ -222,7 +224,7 @@ CREATE TABLE catalog.product_listing_price_index (
 
 | Поле | Комментарий |
 | --- | --- |
-| `project_id` | Project boundary and first key column for all joins. |
+| `project_id` | Project boundary for filtering and index prefixes. |
 | `product_id` | Product whose in-stock variant prices are aggregated. |
 | `currency` | ISO 4217 currency code. Storefront reads default currency row; rebuild can write all enabled project currencies. |
 | `min_price_minor` | Lowest price among active in-stock variants with price in this currency. Nullable when `has_price = false`. |
@@ -235,7 +237,7 @@ CREATE TABLE catalog.product_listing_price_index (
 
 | Ограничение | Комментарий |
 | --- | --- |
-| `PRIMARY KEY (project_id, product_id, currency)` | Гарантирует одну aggregate price row на product/currency. |
+| `PRIMARY KEY (product_id, currency)` | Гарантирует одну aggregate price row на product/currency. |
 | `fk_product_listing_price_product` | Привязывает price aggregate к parent row в `product_listing_index` и удаляет его при partial sync/rebuild удалении product из read model. |
 
 ### Индексы
@@ -288,16 +290,16 @@ CREATE TABLE catalog.variant_listing_index (
   indexed_at             timestamptz NOT NULL DEFAULT now(),
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, variant_id),
+  PRIMARY KEY (variant_id),
   CONSTRAINT variant_listing_project_product_variant_unique
-    UNIQUE (project_id, product_id, variant_id),
+    UNIQUE (product_id, variant_id),
   CONSTRAINT fk_variant_listing_product
-    FOREIGN KEY (project_id, product_id)
-    REFERENCES catalog.product_listing_index(project_id, product_id)
+    FOREIGN KEY (product_id)
+    REFERENCES catalog.product_listing_index(product_id)
     ON DELETE CASCADE,
   CONSTRAINT fk_variant_listing_variant
-    FOREIGN KEY (project_id, product_id, variant_id)
-    REFERENCES catalog.variant(project_id, product_id, id)
+    FOREIGN KEY (variant_id)
+    REFERENCES catalog.variant(id)
     ON DELETE CASCADE
 );
 ```
@@ -306,7 +308,7 @@ CREATE TABLE catalog.variant_listing_index (
 
 | Поле | Комментарий |
 | --- | --- |
-| `project_id` | Project boundary and join prefix. |
+| `project_id` | Project boundary for filtering and join index prefixes. |
 | `product_id` | Parent product id. Нужен для grouping variants back to products. |
 | `variant_id` | Canonical variant id. Anchor для same-variant OPTION + PRICE predicates. |
 | `kind` | Product/variant kind для rule predicates и consistency with parent product. |
@@ -322,8 +324,8 @@ CREATE TABLE catalog.variant_listing_index (
 
 | Ограничение | Комментарий |
 | --- | --- |
-| `PRIMARY KEY (project_id, variant_id)` | Гарантирует одну listing row на variant внутри project. |
-| `variant_listing_project_product_variant_unique` | Дает FK target для child variant listing tables с сохранением проверки принадлежности `variant_id` к `product_id`. |
+| `PRIMARY KEY (variant_id)` | Гарантирует одну listing row на variant. |
+| `variant_listing_project_product_variant_unique` | Дает уникальный ключ для product/variant pairing внутри read model. |
 | `fk_variant_listing_product` | Привязывает variant listing row к parent `product_listing_index` и удаляет variant index rows при удалении product из read model. |
 | `fk_variant_listing_variant` | Не допускает orphan variant rows и удаляет index row при удалении canonical variant. |
 
@@ -343,7 +345,7 @@ CREATE INDEX idx_variant_listing_in_stock
 | Индекс | Комментарий |
 | --- | --- |
 | `idx_variant_listing_project_product` | Быстрый переход от product candidate set к variants для variant filters, counts и aggregate refresh. |
-| `idx_variant_listing_project_variant` | Lookup by variant id. PK уже покрывает этот порядок, поэтому можно не создавать дубликат, если он не нужен planner. |
+| `idx_variant_listing_project_variant` | Lookup by project + variant id. Нужен отдельно, потому что PK построен по `variant_id`. |
 | `idx_variant_listing_in_stock` | Поддерживает common predicate `vli.in_stock = true` для option/price matching и virtual in-stock count. |
 
 ## `catalog.variant_listing_price_index`
@@ -364,10 +366,10 @@ CREATE TABLE catalog.variant_listing_price_index (
   indexed_at             timestamptz NOT NULL DEFAULT now(),
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, variant_id, currency),
+  PRIMARY KEY (variant_id, currency),
   CONSTRAINT fk_variant_listing_price_variant
-    FOREIGN KEY (project_id, product_id, variant_id)
-    REFERENCES catalog.variant_listing_index(project_id, product_id, variant_id)
+    FOREIGN KEY (variant_id)
+    REFERENCES catalog.variant_listing_index(variant_id)
     ON DELETE CASCADE
 );
 ```
@@ -376,7 +378,7 @@ CREATE TABLE catalog.variant_listing_price_index (
 
 | Поле | Комментарий |
 | --- | --- |
-| `project_id` | Project boundary and first join key. |
+| `project_id` | Project boundary for filtering and index prefixes. |
 | `product_id` | Parent product id, duplicated to support product grouping without extra join. |
 | `variant_id` | Variant whose price is stored. Must be joined to the same `variant_listing_index.variant_id` when OPTION and PRICE predicates are both active. |
 | `currency` | ISO 4217 currency code. Storefront listing uses project default currency. |
@@ -389,7 +391,7 @@ CREATE TABLE catalog.variant_listing_price_index (
 
 | Ограничение | Комментарий |
 | --- | --- |
-| `PRIMARY KEY (project_id, variant_id, currency)` | Гарантирует одну variant price row на currency. |
+| `PRIMARY KEY (variant_id, currency)` | Гарантирует одну variant price row на currency. |
 | `fk_variant_listing_price_variant` | Привязывает price row к parent `variant_listing_index`, каскадно удаляет price rows при partial sync/rebuild удалении variant из read model и проверяет принадлежность variant product. |
 
 ### Индексы
@@ -428,18 +430,18 @@ CREATE TABLE catalog.product_listing_facet_token (
   facet_type             varchar(16) NOT NULL,
   indexed_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, product_id, facet_id, facet_value_id),
+  PRIMARY KEY (product_id, facet_id, facet_value_id),
   CONSTRAINT fk_product_listing_facet_token_product
-    FOREIGN KEY (project_id, product_id)
-    REFERENCES catalog.product_listing_index(project_id, product_id)
+    FOREIGN KEY (product_id)
+    REFERENCES catalog.product_listing_index(product_id)
     ON DELETE CASCADE,
   CONSTRAINT fk_product_listing_facet_token_facet
-    FOREIGN KEY (project_id, facet_id)
-    REFERENCES catalog.facet(project_id, id)
+    FOREIGN KEY (facet_id)
+    REFERENCES catalog.facet(id)
     ON DELETE CASCADE,
   CONSTRAINT fk_product_listing_facet_token_value
-    FOREIGN KEY (project_id, facet_id, facet_value_id)
-    REFERENCES catalog.facet_value(project_id, facet_id, id)
+    FOREIGN KEY (facet_value_id)
+    REFERENCES catalog.facet_value(id)
     ON DELETE CASCADE,
   CONSTRAINT chk_product_listing_facet_token_type
     CHECK (facet_type IN ('tag', 'feature'))
@@ -450,7 +452,7 @@ CREATE TABLE catalog.product_listing_facet_token (
 
 | Поле | Комментарий |
 | --- | --- |
-| `project_id` | Project boundary and first column in all lookup/count paths. |
+| `project_id` | Project boundary and first column in lookup/count indexes. |
 | `product_id` | Product that owns this resolved facet token. |
 | `facet_id` | Storefront configured facet id. Isolation/count logic работает по `facet_id`, не по `facet_type`. |
 | `facet_value_id` | Storefront configured visible facet value id after resolving raw source handles through the `facet_value.kind/source parent` model. |
@@ -461,7 +463,7 @@ CREATE TABLE catalog.product_listing_facet_token (
 
 | Ограничение | Комментарий |
 | --- | --- |
-| `PRIMARY KEY (project_id, product_id, facet_id, facet_value_id)` | Deduplicates merged values: multiple source handles on one product resolving to the same `facet_value_id` count once. |
+| `PRIMARY KEY (product_id, facet_id, facet_value_id)` | Deduplicates merged values: multiple source handles on one product resolving to the same `facet_value_id` count once. |
 | `fk_product_listing_facet_token_product` | Привязывает product tokens к parent `product_listing_index` и удаляет tokens при partial sync/rebuild удалении product из read model. |
 | `fk_product_listing_facet_token_facet` | Удаляет tokens when configured facet is removed. |
 | `fk_product_listing_facet_token_value` | Удаляет tokens when configured facet value is removed and enforces value ownership by facet. |
@@ -490,7 +492,7 @@ CREATE INDEX idx_product_listing_facet_token_product
 | Индекс | Комментарий |
 | --- | --- |
 | `idx_product_listing_facet_token_count` | Основной access path для product-level facet counts and candidate-first filtering by selected facet values. |
-| `idx_product_listing_facet_token_product` | Быстрый lookup tokens by product during aggregation over scoped product set. PK уже имеет тот же порядок; при реализации можно опереться на PK вместо дубликата. |
+| `idx_product_listing_facet_token_product` | Быстрый lookup tokens by project + product during aggregation over scoped product set. Нужен отдельно, потому что PK начинается с `product_id`. |
 
 ## `catalog.variant_listing_facet_token`
 
@@ -507,18 +509,18 @@ CREATE TABLE catalog.variant_listing_facet_token (
   facet_value_id         uuid NOT NULL,
   indexed_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, variant_id, facet_id, facet_value_id),
+  PRIMARY KEY (variant_id, facet_id, facet_value_id),
   CONSTRAINT fk_variant_listing_facet_token_variant
-    FOREIGN KEY (project_id, product_id, variant_id)
-    REFERENCES catalog.variant_listing_index(project_id, product_id, variant_id)
+    FOREIGN KEY (variant_id)
+    REFERENCES catalog.variant_listing_index(variant_id)
     ON DELETE CASCADE,
   CONSTRAINT fk_variant_listing_facet_token_facet
-    FOREIGN KEY (project_id, facet_id)
-    REFERENCES catalog.facet(project_id, id)
+    FOREIGN KEY (facet_id)
+    REFERENCES catalog.facet(id)
     ON DELETE CASCADE,
   CONSTRAINT fk_variant_listing_facet_token_value
-    FOREIGN KEY (project_id, facet_id, facet_value_id)
-    REFERENCES catalog.facet_value(project_id, facet_id, id)
+    FOREIGN KEY (facet_value_id)
+    REFERENCES catalog.facet_value(id)
     ON DELETE CASCADE
 );
 ```
@@ -527,7 +529,7 @@ CREATE TABLE catalog.variant_listing_facet_token (
 
 | Поле | Комментарий |
 | --- | --- |
-| `project_id` | Project boundary and first lookup/count key. |
+| `project_id` | Project boundary and first lookup/count index column. |
 | `product_id` | Parent product for grouping option matches back to product cardinality. |
 | `variant_id` | Variant that owns the option value. Active option predicates must be anchored to this id. |
 | `facet_id` | Storefront configured option facet id. Isolation is per `facet_id`. |
@@ -538,7 +540,7 @@ CREATE TABLE catalog.variant_listing_facet_token (
 
 | Ограничение | Комментарий |
 | --- | --- |
-| `PRIMARY KEY (project_id, variant_id, facet_id, facet_value_id)` | Deduplicates repeated source mappings on the same variant while preserving same-variant matching. |
+| `PRIMARY KEY (variant_id, facet_id, facet_value_id)` | Deduplicates repeated source mappings on the same variant while preserving same-variant matching. |
 | `fk_variant_listing_facet_token_variant` | Привязывает option tokens к parent `variant_listing_index`, удаляет tokens при partial sync/rebuild удалении variant из read model и проверяет принадлежность variant product. |
 | `fk_variant_listing_facet_token_facet` | Удаляет tokens when configured option facet is removed. |
 | `fk_variant_listing_facet_token_value` | Удаляет tokens when configured option value is removed and enforces value ownership by facet. |
@@ -575,41 +577,23 @@ CREATE INDEX idx_variant_listing_facet_token_product
 | Индекс | Комментарий |
 | --- | --- |
 | `idx_variant_listing_facet_token_count` | Основной access path для option counts/filtering by option value; включает product/variant для дедупликации и same-variant joins. |
-| `idx_variant_listing_facet_token_variant` | Быстрый lookup option tokens for a specific variant while evaluating multiple active option predicates. PK уже покрывает тот же порядок. |
+| `idx_variant_listing_facet_token_variant` | Быстрый lookup option tokens by project + variant while evaluating multiple active option predicates. Нужен отдельно, потому что PK начинается с `variant_id`. |
 | `idx_variant_listing_facet_token_product` | Поддерживает aggregation over scoped product candidates and product-level grouping of variant option values. |
 
 ## Внешние ограничения canonical tables
 
-Composite foreign keys listing tables include `project_id`, поэтому canonical
-таблицы должны иметь matching unique keys. В текущих catalog models
-`product_project_id_id_unique` и `variant_project_id_product_id_id_unique` уже
-есть. Для facets нужно добавить или переиспользовать эквивалентные constraints,
-если они появятся раньше в миграциях.
+Listing read model не требует дополнительных canonical constraints. FK в
+listing tables ссылаются на существующие primary keys canonical tables:
 
 ```sql
-ALTER TABLE catalog.product
-  ADD CONSTRAINT product_project_id_id_unique
-  UNIQUE (project_id, id);
-
-ALTER TABLE catalog.variant
-  ADD CONSTRAINT variant_project_id_product_id_id_unique
-  UNIQUE (project_id, product_id, id);
-
-ALTER TABLE catalog.facet
-  ADD CONSTRAINT facet_project_id_id_unique
-  UNIQUE (project_id, id);
-
-ALTER TABLE catalog.facet_value
-  ADD CONSTRAINT facet_value_project_id_facet_id_id_unique
-  UNIQUE (project_id, facet_id, id);
+catalog.product(id)
+catalog.variant(id)
+catalog.facet(id)
+catalog.facet_value(id)
 ```
 
-| Ограничение | Комментарий |
-| --- | --- |
-| `product_project_id_id_unique` | Required target for product listing composite FKs. Already present in current model. |
-| `variant_project_id_product_id_id_unique` | Required target for variant listing composite FKs. Already present in current model. |
-| `facet_project_id_id_unique` | Required target for token table FK to `catalog.facet(project_id, id)`. |
-| `facet_value_project_id_facet_id_id_unique` | Required target for token table FK to `catalog.facet_value(project_id, facet_id, id)`. |
+`project_id` в listing tables остается обязательным query boundary и должен
+проверяться storefront/admin queries, но он не используется как FK target.
 
 ## Внешние индексы для listing queries
 
