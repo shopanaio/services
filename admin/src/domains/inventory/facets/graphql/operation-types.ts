@@ -6,6 +6,7 @@ import type {
   ApiFacetDeletePayload,
   ApiFacetMoveInput,
   ApiFacetMovePayload,
+  ApiFacetSource,
   ApiFacetSourceCandidate,
   ApiFacetSourceCandidateConnection,
   ApiFacetSourceCandidateOrderByInput,
@@ -63,6 +64,7 @@ export type FacetGridFields = Pick<
   | "selectionMode"
   | "lexoRank"
 > & {
+  sources: Array<Pick<ApiFacetSource, "handle" | "name">>;
   values: FacetValueGridFields[];
 };
 

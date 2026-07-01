@@ -3288,6 +3288,7 @@ export type ApiFacet = ApiNode & {
   lexoRank: Scalars['String']['output'];
   selectionMode: FacetSelectionMode;
   slug: Scalars['String']['output'];
+  sources: Array<ApiFacetSource>;
   uiType: FacetUiType;
   values: Array<ApiFacetValue>;
 };
@@ -3355,6 +3356,12 @@ export enum FacetSelectionMode {
   Multi = 'MULTI',
   Single = 'SINGLE'
 }
+
+export type ApiFacetSource = {
+  __typename?: 'FacetSource';
+  handle: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+};
 
 export type ApiFacetSourceCandidate = {
   __typename?: 'FacetSourceCandidate';

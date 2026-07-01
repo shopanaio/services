@@ -18,6 +18,7 @@ import {
   getAllowedFacetUiTypes,
   getDefaultFacetUiType,
   getFacetSourceTypeLabel,
+  getFacetTypeIcon,
   isDiscreteFacetType,
   mapFacetFormToCreateInput,
   mapFacetUserErrorsToFormErrors,
@@ -75,11 +76,22 @@ const useStyles = createStyles(({ token }) => ({
     justifyContent: "flex-start",
     width: "100%",
     minWidth: 0,
-    span: {
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap",
-    },
+  },
+  sourceLine: {
+    display: "flex",
+    alignItems: "center",
+    minWidth: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  sourceValue: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    marginLeft: 8,
+    minWidth: 0,
+    verticalAlign: "middle",
   },
 }));
 
@@ -99,6 +111,7 @@ function FacetSourceSelector({
   const { styles } = useStyles();
   const sourceTypeLabel = value ? getFacetSourceTypeLabel(facetType) : "Source";
   const sourceLabel = value?.name ?? "Select source";
+  const icon = value ? getFacetTypeIcon(facetType) : null;
 
   return (
     <Button
@@ -109,8 +122,12 @@ function FacetSourceSelector({
       data-testid="create-facet-source-button"
     >
       <Flex gap={4} align="center" className={styles.sourceSelectorContent}>
-        <span>
-          {sourceTypeLabel}: <strong>{sourceLabel}</strong>
+        <span className={styles.sourceLine}>
+          {sourceTypeLabel}:
+          <span className={styles.sourceValue}>
+            {icon}
+            <strong>{sourceLabel}</strong>
+          </span>
         </span>
       </Flex>
     </Button>

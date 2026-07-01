@@ -27,6 +27,7 @@ import {
   getAllowedFacetUiTypes,
   getFacetSourceHandleLabel,
   getFacetSourceTypeLabel,
+  getFacetTypeIcon,
   isDiscreteFacetType,
   mapFacetFormToUpdateInput,
   mapFacetUserErrorsToFormErrors,
@@ -48,6 +49,7 @@ import {
 import type {
   FacetSwatchFields,
   FacetValueGridFields,
+  FacetGridFields,
 } from "../../graphql/operation-types";
 import { DEFAULT_SWATCH } from "../../../products/modals/edit-options-modal/edit-options-modal.constants";
 import type { OptionEditorSwatch } from "../../../products/modals/edit-options-modal/types";
@@ -103,21 +105,46 @@ const useStyles = createStyles(({ token }) => ({
     color: token.colorText,
     background: token.colorBgContainer,
   },
+  sourceLine: {
+    display: "flex",
+    alignItems: "center",
+    minWidth: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  sourceValue: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    marginLeft: 8,
+    minWidth: 0,
+    verticalAlign: "middle",
+  },
 }));
 
 interface FacetSourceDisplayProps {
   facetType: FacetType;
+  sources: FacetGridFields["sources"];
 }
 
-function FacetSourceDisplay({ facetType }: FacetSourceDisplayProps) {
+function FacetSourceDisplay({ facetType, sources }: FacetSourceDisplayProps) {
   const { styles } = useStyles();
   const sourceTypeLabel = getFacetSourceTypeLabel(facetType);
-  const sourceLabel = getFacetSourceHandleLabel(facetType, "") ?? facetType;
+  const sourceLabel =
+    sources.length > 0
+      ? sources.map((source) => source.name || source.handle).join(", ")
+      : getFacetSourceHandleLabel(facetType, "") ?? facetType;
+  const icon = getFacetTypeIcon(facetType);
 
   return (
     <div className={styles.sourceDisplay}>
-      <span>
-        {sourceTypeLabel}: <strong>{sourceLabel}</strong>
+      <span className={styles.sourceLine}>
+        {sourceTypeLabel}:
+        <span className={styles.sourceValue}>
+          {icon}
+          <strong>{sourceLabel}</strong>
+        </span>
       </span>
     </div>
   );
@@ -691,7 +718,10 @@ export function EditFacetModal() {
           <PaperHeader title="General" />
           <div className={styles.stackedField}>
             <div className={styles.label}>Source</div>
-            <FacetSourceDisplay facetType={facet.facetType} />
+            <FacetSourceDisplay
+              facetType={facet.facetType}
+              sources={facet.sources}
+            />
           </div>
           <div className={styles.fieldGroup}>
             <div className={styles.field}>

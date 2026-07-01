@@ -2552,6 +2552,7 @@ export type Facet = Node & {
   lexoRank: Scalars['String']['output'];
   selectionMode: FacetSelectionMode;
   slug: Scalars['String']['output'];
+  sources: Array<FacetSource>;
   uiType: FacetUiType;
   values: Array<FacetValue>;
 };
@@ -2619,6 +2620,12 @@ export enum FacetSelectionMode {
   Multi = 'MULTI',
   Single = 'SINGLE'
 }
+
+export type FacetSource = {
+  __typename?: 'FacetSource';
+  handle: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+};
 
 export type FacetSourceCandidate = {
   __typename?: 'FacetSourceCandidate';
@@ -6165,6 +6172,7 @@ export type ResolversTypes = ResolversObject<{
   FacetRebalanceInput: FacetRebalanceInput;
   FacetRebalancePayload: ResolverTypeWrapper<FacetRebalancePayload>;
   FacetSelectionMode: FacetSelectionMode;
+  FacetSource: ResolverTypeWrapper<FacetSource>;
   FacetSourceCandidate: ResolverTypeWrapper<FacetSourceCandidate>;
   FacetSourceCandidateConnection: ResolverTypeWrapper<FacetSourceCandidateConnection>;
   FacetSourceCandidateEdge: ResolverTypeWrapper<FacetSourceCandidateEdge>;
@@ -6550,6 +6558,7 @@ export type ResolversParentTypes = ResolversObject<{
   FacetMovePayload: FacetMovePayload;
   FacetRebalanceInput: FacetRebalanceInput;
   FacetRebalancePayload: FacetRebalancePayload;
+  FacetSource: FacetSource;
   FacetSourceCandidate: FacetSourceCandidate;
   FacetSourceCandidateConnection: FacetSourceCandidateConnection;
   FacetSourceCandidateEdge: FacetSourceCandidateEdge;
@@ -7402,6 +7411,7 @@ export type FacetResolvers<ContextType = ServiceContext, ParentType extends Reso
   lexoRank?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   selectionMode?: Resolver<ResolversTypes['FacetSelectionMode'], ParentType, ContextType>;
   slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  sources?: Resolver<Array<ResolversTypes['FacetSource']>, ParentType, ContextType>;
   uiType?: Resolver<ResolversTypes['FacetUIType'], ParentType, ContextType>;
   values?: Resolver<Array<ResolversTypes['FacetValue']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -7428,6 +7438,12 @@ export type FacetMovePayloadResolvers<ContextType = ServiceContext, ParentType e
 export type FacetRebalancePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetRebalancePayload'] = ResolversParentTypes['FacetRebalancePayload']> = ResolversObject<{
   facets?: Resolver<Array<ResolversTypes['Facet']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type FacetSourceResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetSource'] = ResolversParentTypes['FacetSource']> = ResolversObject<{
+  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -8375,6 +8391,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   FacetDeletePayload?: FacetDeletePayloadResolvers<ContextType>;
   FacetMovePayload?: FacetMovePayloadResolvers<ContextType>;
   FacetRebalancePayload?: FacetRebalancePayloadResolvers<ContextType>;
+  FacetSource?: FacetSourceResolvers<ContextType>;
   FacetSourceCandidate?: FacetSourceCandidateResolvers<ContextType>;
   FacetSourceCandidateConnection?: FacetSourceCandidateConnectionResolvers<ContextType>;
   FacetSourceCandidateEdge?: FacetSourceCandidateEdgeResolvers<ContextType>;

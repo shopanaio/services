@@ -49,6 +49,10 @@ export const FACET_GRID_FRAGMENT = gql`
     uiType
     selectionMode
     lexoRank
+    sources {
+      handle
+      name
+    }
     values {
       ...FacetValueGridFields
     }
