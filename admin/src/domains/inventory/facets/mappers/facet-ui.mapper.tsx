@@ -47,10 +47,12 @@ export const FACET_UI_MAPPINGS: {
       icon: <LuTag />,
     },
     [FacetType.Option]: {
+      label: "Product Options",
       sourceTypeLabel: "Product Option",
       icon: <LuSlidersHorizontal />,
     },
     [FacetType.Feature]: {
+      label: "Product Features",
       sourceTypeLabel: "Product Feature",
       icon: <LuSparkles />,
     },
