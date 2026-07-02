@@ -17,7 +17,7 @@ facet counts, total count, cursor pagination и sort. Hydration карточек
 
 1. Request normalizer получает `project_id` из storefront context, default
    currency проекта, locale, scope, filters, sort и pagination input.
-2. Facet resolver batch-запросом переводит storefront tokens вида
+2. Facet resolver batch-запросом переводит storefront postings вида
    `facetSlug:valueHandle` в `facet_id`, `facet_type`, `facet_value_id`.
    Raw source handles на read path не возвращаются и не используются.
 3. Scope CTE строит начальный набор product ids: category, collection, global
@@ -25,9 +25,9 @@ facet counts, total count, cursor pagination и sort. Hydration карточек
 4. `base_all` присоединяет `catalog.product_listing_index` и применяет
    visibility: только текущий `project_id`, только `status = 'published'`.
 5. `base` добавляет boolean-поля для active product-level facets через
-   `EXISTS` по `product_listing_facet_token`.
+   `EXISTS` по catalog.listing_posting_bitmap product facet postings.
 6. Если есть option или price predicates, строится variant-level pass set через
-   `variant_listing_index`, `variant_listing_facet_token` и
+   `variant_listing_index`, catalog.listing_posting_bitmap variant facet postings и
    `variant_listing_price_index`. Все variant-level predicates якорятся к
    одному и тому же in-stock `variant_id`.
 7. `filtered_products` применяет все active filters без isolation и является
@@ -103,12 +103,12 @@ Product-level rules используют:
 
 - `product_listing_index` для scalar fields: `kind`, dates, visibility fields,
   `vendor_id`, `category_handles`;
-- `product_listing_facet_token` для configured tag/feature rules;
+- catalog.listing_posting_bitmap product facet postings для configured tag/feature rules;
 - resolved `facet_id` / `facet_value_id`, а не runtime checks по
   `tag_handles` или `feature_value_handles`.
 
 Variant-level rules используют `variant_listing_index` и
-`variant_listing_facet_token` так же, как storefront option filters: все option
+catalog.listing_posting_bitmap variant facet postings так же, как storefront option filters: все option
 и price conditions должны выполняться на одном in-stock variant row. Если
 variant не в наличии, он не может удовлетворить variant-level collection rule.
 
@@ -173,7 +173,7 @@ facets: тогда counts описывали бы cap, а не реальные 
 
 Visibility работает через `product_listing_index.status = 'published'`.
 Soft-deleted products не остаются в index со специальным статусом: их listing,
-price и token rows удаляются. Поэтому storefront read path не должен видеть
+price и posting rows удаляются. Поэтому storefront read path не должен видеть
 deleted products.
 
 Locale применяется там, где он реально влияет на результат: например, для
@@ -191,7 +191,7 @@ Product-level filters работают на уровне product и могут �
 любым token того же product.
 
 Tag и feature filters применяются только через
-`product_listing_facet_token`. Input token `facetSlug:valueHandle` сначала
+catalog.listing_posting_bitmap product facet postings. Input token `facetSlug:valueHandle` сначала
 resolve-ится в configured `facet_id` и `facet_value_id`; invalid,
 unconfigured или unmapped values игнорируются.
 
@@ -204,7 +204,7 @@ unconfigured или unmapped values игнорируются.
 - category используется как navigation scope или rule field, но не как
   storefront facet.
 
-Merged facet values не double-count-ятся: primary key token table хранит одну
+Merged facet values не double-count-ятся: primary key posting bitmap хранит одну
 строку `(project_id, product_id, facet_id, facet_value_id)`, даже если
 несколько source handles ведут к одному storefront `facet_value_id`.
 
@@ -239,9 +239,9 @@ aggregate `product_listing_index.in_stock`. Variant-level filters и так
 
 ## Facet resolution
 
-Facet resolution переводит публичные storefront tokens в внутренние ids.
+Facet resolution переводит публичные storefront postings в внутренние ids.
 
-Вход: tokens вида `facetSlug:valueHandle`.
+Вход: postings вида `facetSlug:valueHandle`.
 
 Выход read path:
 
@@ -257,7 +257,7 @@ Resolver batch-запросом читает `facet`, visible `facet_value` rows
 handles не возвращаются наружу.
 
 Если один `facet_value` мапится на несколько source handles, storefront все
-равно видит один value. Token generation заранее нормализует source handles в
+равно видит один value. Posting generation заранее нормализует source handles в
 resolved ids, а aggregation группирует по `facet_value_id`.
 
 ## Facet aggregation
@@ -265,7 +265,7 @@ resolved ids, а aggregation группирует по `facet_value_id`.
 Facet counts считаются по full listing scope, а не по текущей странице товаров.
 Это значит, что page size не влияет на counts.
 
-Product-level counts для tag и feature используют `product_listing_facet_token`
+Product-level counts для tag и feature используют catalog.listing_posting_bitmap product facet postings
 и считают products. Isolation применяется по `facet_id`: count для values
 фасета `material` считается со всеми active filters, кроме active filter самого
 `material`.
@@ -288,7 +288,7 @@ type.
 
 ## Price range virtual facet
 
-Price range не имеет token table и считается из
+Price range не имеет posting bitmap и считается из
 `variant_listing_price_index.price_minor`.
 
 Range считает `MIN(price_minor)` и `MAX(price_minor)` только по in-stock

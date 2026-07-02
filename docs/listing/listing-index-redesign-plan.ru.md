@@ -52,7 +52,7 @@ structured filtering, facets, counts, pagination и sort. Backend sync/rebuild
   facet values, product kind, dates and visibility fields where supported by
   rule compiler. Tag/feature rule predicates на storefront read path должны
   компилироваться в resolved `facet_id` / `facet_value_id` predicates поверх
-  `product_listing_facet_token`, а не в runtime checks по `tag_handles` /
+  `catalog.listing_posting_bitmap`, а не в runtime checks по `tag_handles` /
   `feature_value_handles`.
 - Поддерживать OR внутри одного product-level `facet_id`.
 - Поддерживать AND между разными product-level `facet_id`.
@@ -78,7 +78,7 @@ structured filtering, facets, counts, pagination и sort. Backend sync/rebuild
 
 ### Facet resolution
 
-- Batch-resolve storefront tokens `facetSlug:valueHandle` через `facet` и
+- Batch-resolve storefront postings `facetSlug:valueHandle` через `facet` и
   visible `facet_value`.
 - Возвращать на storefront только configured facets и visible `facet_value`
   rows, которые резолвятся хотя бы в один enabled source value.
@@ -151,8 +151,8 @@ structured filtering, facets, counts, pagination и sort. Backend sync/rebuild
    product aggregate.
 3. Считать facet counts в PostgreSQL, а не циклами в TypeScript.
 4. Поддержать facet isolation: count для значения считается со всеми активными фильтрами, кроме фильтра своего facet id.
-5. Вынести storefront facet tokens в отдельные read-model таблицы, чтобы
-   runtime listing queries работали с готовыми `facet_id` / `facet_value_id`,
+5. Строить storefront facet postings напрямую в roaring index, чтобы runtime
+   listing queries работали с готовыми `facet_id` / `facet_value_id` bitmaps,
    а не разворачивали source-handle arrays и не мапили их через
    `facet_value` parent model на каждом request.
 
@@ -163,7 +163,7 @@ structured filtering, facets, counts, pagination и sort. Backend sync/rebuild
 - Не превращать category в storefront facet. Category остается navigation scope и rule field.
 - Не предагрегировать facet counts в отдельные счетчики. Counts остаются
   request-dependent из-за scope, active filters и facet isolation.
-- Не использовать token tables для virtual facets `price` и `in_stock`.
+- Не использовать roaring posting tables для virtual facets `price` и `in_stock`.
   Они считаются из price/stock полей listing index.
 
 ## Новая схема
@@ -174,14 +174,18 @@ structured filtering, facets, counts, pagination и sort. Backend sync/rebuild
 - `catalog.product_listing_price_index`
 - `catalog.variant_listing_index`
 - `catalog.variant_listing_price_index`
-- `catalog.product_listing_facet_token`
-- `catalog.variant_listing_facet_token`
+- `catalog.listing_posting_*` roaring/posting tables
 
-Основные listing read-model таблицы и token tables являются currency-neutral.
+Roaring/posting index создается сразу вместе с listing read model. Отдельные
+row-based product/variant facet posting tables не создаются: product
+tag/feature и variant option postings пишутся напрямую в
+`catalog.listing_posting_bitmap`.
+
+Основные listing read-model таблицы и roaring posting tables являются currency-neutral.
 Storefront listing использует default currency проекта, но price fields
 вынесены в отдельные per-currency таблицы. Это сохраняет возможность хранить
 prices по включенным валютам без дублирования product metadata, variant
-metadata и facet tokens на каждую валюту.
+metadata и facet postings на каждую валюту.
 
 ### `catalog.product_listing_index`
 
@@ -270,7 +274,7 @@ CREATE INDEX idx_product_listing_category_handles_gin
 `tag_handles` and `feature_value_handles` are kept as source read-model fields
 for rebuild/debug and source-handle based backoffice diagnostics. Storefront
 facet filtering/counts and rule-collection tag/feature predicates must use
-`product_listing_facet_token`. Do not add product tag/feature GIN indexes for
+catalog.listing_posting_bitmap product facet postings. Do not add product tag/feature GIN indexes for
 storefront reads unless a future rule field cannot be represented through
 configured facets and `EXPLAIN ANALYZE` proves the source-array path is needed.
 
@@ -403,7 +407,7 @@ CREATE INDEX idx_variant_listing_in_stock
 
 `option_value_handles` is kept as a source read-model field for rebuild/debug
 and rule compilation. Storefront option filtering/counts must use
-`variant_listing_facet_token`, not runtime `unnest(option_value_handles)`.
+catalog.listing_posting_bitmap variant facet postings, not runtime `unnest(option_value_handles)`.
 
 ### `catalog.variant_listing_price_index`
 
@@ -459,126 +463,13 @@ CREATE INDEX idx_variant_listing_price_value
   WHERE has_price = true;
 ```
 
-### `catalog.product_listing_facet_token`
+### Facet postings
 
-One row per product + resolved storefront facet value. This table is
-the normalized inverted index for product-level storefront facets (`tag` and
-`feature`). It stores resolved storefront ids, not raw source handles.
-
-```sql
-CREATE TABLE catalog.product_listing_facet_token (
-  project_id             uuid NOT NULL,
-  product_id             uuid NOT NULL,
-  facet_id               uuid NOT NULL,
-  facet_value_id         uuid NOT NULL,
-  facet_type             varchar(16) NOT NULL, -- 'tag' | 'feature'
-  indexed_at             timestamptz NOT NULL DEFAULT now(),
-
-  PRIMARY KEY (product_id, facet_id, facet_value_id),
-  CONSTRAINT fk_product_listing_facet_token_product
-    FOREIGN KEY (product_id)
-    REFERENCES catalog.product_listing_index(product_id)
-    ON DELETE CASCADE,
-  CONSTRAINT fk_product_listing_facet_token_facet
-    FOREIGN KEY (facet_id)
-    REFERENCES catalog.facet(id)
-    ON DELETE CASCADE,
-  CONSTRAINT fk_product_listing_facet_token_value
-    FOREIGN KEY (facet_value_id)
-    REFERENCES catalog.facet_value(id)
-    ON DELETE CASCADE,
-  CONSTRAINT chk_product_listing_facet_token_type
-    CHECK (facet_type IN ('tag', 'feature'))
-);
-```
-
-Indexes:
-
-```sql
-CREATE INDEX idx_product_listing_facet_token_count
-  ON catalog.product_listing_facet_token (
-    project_id,
-    facet_id,
-    facet_value_id,
-    product_id
-  );
-
-CREATE INDEX idx_product_listing_facet_token_product
-  ON catalog.product_listing_facet_token (
-    project_id,
-    product_id,
-    facet_id,
-    facet_value_id
-  );
-```
-
-The primary key deduplicates merged mappings: if several source handles on the
-same product resolve to the same `facet_value_id`, counts still see one token.
-
-### `catalog.variant_listing_facet_token`
-
-One row per variant + resolved storefront option value. This table is
-the normalized inverted index for variant-level option facets. It intentionally
-keeps `variant_id`, because option and price predicates must match on the same
-in-stock variant row.
-
-```sql
-CREATE TABLE catalog.variant_listing_facet_token (
-  project_id             uuid NOT NULL,
-  product_id             uuid NOT NULL,
-  variant_id             uuid NOT NULL,
-  facet_id               uuid NOT NULL,
-  facet_value_id         uuid NOT NULL,
-  indexed_at             timestamptz NOT NULL DEFAULT now(),
-
-  PRIMARY KEY (variant_id, facet_id, facet_value_id),
-  CONSTRAINT fk_variant_listing_facet_token_variant
-    FOREIGN KEY (variant_id)
-    REFERENCES catalog.variant_listing_index(variant_id)
-    ON DELETE CASCADE,
-  CONSTRAINT fk_variant_listing_facet_token_facet
-    FOREIGN KEY (facet_id)
-    REFERENCES catalog.facet(id)
-    ON DELETE CASCADE,
-  CONSTRAINT fk_variant_listing_facet_token_value
-    FOREIGN KEY (facet_value_id)
-    REFERENCES catalog.facet_value(id)
-    ON DELETE CASCADE
-);
-```
-
-Indexes:
-
-```sql
-CREATE INDEX idx_variant_listing_facet_token_count
-  ON catalog.variant_listing_facet_token (
-    project_id,
-    facet_id,
-    facet_value_id,
-    product_id,
-    variant_id
-  );
-
-CREATE INDEX idx_variant_listing_facet_token_variant
-  ON catalog.variant_listing_facet_token (
-    project_id,
-    variant_id,
-    facet_id,
-    facet_value_id
-  );
-
-CREATE INDEX idx_variant_listing_facet_token_product
-  ON catalog.variant_listing_facet_token (
-    project_id,
-    product_id,
-    facet_id,
-    facet_value_id
-  );
-```
-
-Token tables are currency-neutral because tag/feature/option mappings do not
-depend on currency. Price-specific storefront operations join the separate
-price index tables by project default currency.
+Row-based facet posting tables are not part of the target schema. Product
+tag/feature facets and variant option facets are written directly into the
+roaring posting index (`catalog.listing_posting_bitmap`) during the same
+listing build. This avoids duplicating the inverted index as both row postings and
+compressed bitmaps.
 
 ### External indexes required for listing operations
 
@@ -605,9 +496,9 @@ of creating duplicates.
 
 Допустимые `facet_type`:
 
-- `tag` -> `product_listing_facet_token`
-- `feature` -> `product_listing_facet_token`
-- `option` -> `variant_listing_facet_token`
+- `tag` -> catalog.listing_posting_bitmap product facet postings
+- `feature` -> catalog.listing_posting_bitmap product facet postings
+- `option` -> catalog.listing_posting_bitmap variant facet postings
 - `price` -> `variant_listing_price_index.price_minor`
 - `in_stock` -> `variant_listing_index.in_stock`
 
@@ -625,7 +516,7 @@ of creating duplicates.
   `facet_value_id`.
 - Storefront resolve/aggregation игнорирует values без
   enabled source values.
-- Token generation сохраняет mappings для existing source rows и их display
+- Posting generation сохраняет mappings для existing source rows и их display
   parents.
 - Если один `facet_value` имеет несколько source handles, token generation
   дедуплицирует их по primary key, а counts группируются по `facet_value_id`
@@ -675,7 +566,7 @@ Input normalizer:
 
 1. Определяет `project_id`, project default `currency`, `locale`.
 2. Определяет listing scope: category, manual collection или rule collection.
-3. Batch-resolve generic storefront tokens через `facet` + `facet_value`.
+3. Batch-resolve generic storefront postings через `facet` + `facet_value`.
 4. Группирует resolved filters по `facet_id`.
 5. Отдельно нормализует явные filters: `price`, `in_stock`, `vendor_id`.
 6. Собирает sort descriptor.
@@ -723,7 +614,7 @@ WITH scope_products AS (
     AND pli.status = 'published'
     -- compiled collection product-level rules:
     --   category rules can use category_handles / category scope joins
-    --   tag/feature rules must use product_listing_facet_token EXISTS predicates
+    --   tag/feature rules must use catalog.listing_posting_bitmap product facet postings EXISTS predicates
     --   scalar rules can use product_listing_index columns
     -- variant-level rules are applied through EXISTS over variant_listing_index
 )
@@ -802,7 +693,7 @@ base AS (
     b.*,
     EXISTS (
       SELECT 1
-      FROM catalog.product_listing_facet_token plt
+      FROM catalog.listing_posting_bitmap plt
       WHERE plt.project_id = :projectId
         AND plt.product_id = b.product_id
         AND plt.facet_id = :tagFacetId
@@ -810,7 +701,7 @@ base AS (
     ) AS passes_f_tag_sale,
     EXISTS (
       SELECT 1
-      FROM catalog.product_listing_facet_token plt
+      FROM catalog.listing_posting_bitmap plt
       WHERE plt.project_id = :projectId
         AND plt.product_id = b.product_id
         AND plt.facet_id = :featureFacetId
@@ -828,7 +719,7 @@ facet isolation. On large global scopes or when many active facets are present,
 it can become too expensive because every row in `base_all` evaluates several
 semi-joins. The query builder must be able to switch to a candidate-first shape:
 build the filtered product set through semi-joins or `INTERSECT` over the most
-selective `product_listing_facet_token` predicates, then join that candidate set
+selective catalog.listing_posting_bitmap product facet postings predicates, then join that candidate set
 back to `base_all` for sorting, totals and facet aggregation. Keep the default
 shape until `EXPLAIN ANALYZE` shows the candidate-first plan is better for the
 target data distribution.
@@ -849,7 +740,7 @@ variant_pass_products AS (
     -- anchored to the same vli.variant_id
     AND EXISTS (
       SELECT 1
-      FROM catalog.variant_listing_facet_token vlt
+      FROM catalog.listing_posting_bitmap vlt
       WHERE vlt.project_id = :projectId
         AND vlt.variant_id = vli.variant_id
         AND vlt.facet_id = :colorFacetId
@@ -857,7 +748,7 @@ variant_pass_products AS (
     )
     AND EXISTS (
       SELECT 1
-      FROM catalog.variant_listing_facet_token vlt
+      FROM catalog.listing_posting_bitmap vlt
       WHERE vlt.project_id = :projectId
         AND vlt.variant_id = vli.variant_id
         AND vlt.facet_id = :sizeFacetId
@@ -985,7 +876,7 @@ matched_variant_prices AS (
     AND vlpi.has_price = true
     AND vli.in_stock = true
     -- same active variant predicates as listing filter, anchored to this
-    -- vli.variant_id through variant_listing_facet_token EXISTS predicates
+    -- vli.variant_id through catalog.listing_posting_bitmap variant facet postings EXISTS predicates
   GROUP BY vli.product_id
 )
 ORDER BY fp.in_stock DESC, mvp.sort_price_minor ASC NULLS LAST, fp.product_id ASC
@@ -1004,24 +895,24 @@ Aggregation должен быть ограничен storefront-configured facet
 project/listing context. Нельзя агрегировать каждый token, который когда-либо
 был сгенерирован. Aggregation repository сначала должен resolve configured
 `facet_id` и values, у которых есть source mappings, а затем считать только
-matching `facet_id` / `facet_value_id` tokens. Это сохраняет counts
+matching `facet_id` / `facet_value_id` postings. Это сохраняет counts
 согласованными со storefront configuration без runtime `unnest`,
 source-handle mapping или full-page in-memory filtering.
 
 ### Product-level discrete facets
 
-Product-level counts join `base` to precomputed tokens and aggregate by
+Product-level counts join `base` to precomputed postings and aggregate by
 `facet_value_id`. The query still runs over the full listing scope, not the
 current page.
 
 ```sql
-product_tokens AS (
+product_postings AS (
   SELECT
     b.product_id,
     plt.facet_id,
     plt.facet_value_id
   FROM base b
-  JOIN catalog.product_listing_facet_token plt
+  JOIN catalog.listing_posting_bitmap plt
     ON plt.project_id = :projectId
    AND plt.product_id = b.product_id
    AND plt.facet_id = ANY(:productFacetIds::uuid[])
@@ -1046,12 +937,12 @@ SELECT
         -- variant pass
         AND (:variantFiltersActive = false OR b.product_id IN (SELECT product_id FROM variant_pass_products))
     ) AS count
-FROM product_tokens pt
+FROM product_postings pt
 JOIN base b ON b.product_id = pt.product_id
 GROUP BY pt.facet_id, pt.facet_value_id;
 ```
 
-`product_listing_facet_token` has one row per
+catalog.listing_posting_bitmap product facet postings has one row per
 `(product_id, facet_id, facet_value_id)` by primary key, so product-level counts
 can use direct `COUNT(*)`.
 
@@ -1059,7 +950,7 @@ can use direct `COUNT(*)`.
 
 Option counts are variant-correct and count products, not variants. The query
 builder must generate isolation per option `facet_id`; there is no single
-generic `option_variant_tokens` CTE that can correctly isolate all option facets
+generic `option_variant_postings` CTE that can correctly isolate all option facets
 at once.
 
 For each option facet being returned, generate a branch that omits only that
@@ -1068,7 +959,7 @@ to the same `vli.variant_id`. The branches can be combined with `UNION ALL` or
 an equivalent LATERAL shape.
 
 ```sql
-WITH option_variant_tokens AS (
+WITH option_variant_postings AS (
   -- Branch generated for :colorFacetId. It returns color values while omitting
   -- only the active color predicate.
   SELECT
@@ -1077,7 +968,7 @@ WITH option_variant_tokens AS (
     vlt.facet_value_id
   FROM catalog.variant_listing_index vli
   JOIN base b ON b.product_id = vli.product_id
-  JOIN catalog.variant_listing_facet_token vlt
+  JOIN catalog.listing_posting_bitmap vlt
     ON vlt.project_id = :projectId
    AND vlt.variant_id = vli.variant_id
    AND vlt.facet_id = :colorFacetId
@@ -1090,7 +981,7 @@ WITH option_variant_tokens AS (
     -- every other active option predicate stays anchored to vli.variant_id
     AND EXISTS (
       SELECT 1
-      FROM catalog.variant_listing_facet_token size_filter
+      FROM catalog.listing_posting_bitmap size_filter
       WHERE size_filter.project_id = :projectId
         AND size_filter.variant_id = vli.variant_id
         AND size_filter.facet_id = :sizeFacetId
@@ -1109,7 +1000,7 @@ WITH option_variant_tokens AS (
     vlt.facet_value_id
   FROM catalog.variant_listing_index vli
   JOIN base b ON b.product_id = vli.product_id
-  JOIN catalog.variant_listing_facet_token vlt
+  JOIN catalog.listing_posting_bitmap vlt
     ON vlt.project_id = :projectId
    AND vlt.variant_id = vli.variant_id
    AND vlt.facet_id = :sizeFacetId
@@ -1122,7 +1013,7 @@ WITH option_variant_tokens AS (
     -- every other active option predicate stays anchored to vli.variant_id
     AND EXISTS (
       SELECT 1
-      FROM catalog.variant_listing_facet_token color_filter
+      FROM catalog.listing_posting_bitmap color_filter
       WHERE color_filter.project_id = :projectId
         AND color_filter.variant_id = vli.variant_id
         AND color_filter.facet_id = :colorFacetId
@@ -1136,7 +1027,7 @@ option_product_values AS (
     product_id,
     facet_id,
     facet_value_id
-  FROM option_variant_tokens
+  FROM option_variant_postings
   GROUP BY product_id, facet_id, facet_value_id
 )
 SELECT
@@ -1244,8 +1135,8 @@ Add listing token and query repositories:
 
 - `ProductListingPriceIndexRepository`
 - `VariantListingPriceIndexRepository`
-- `ProductListingFacetTokenRepository`
-- `VariantListingFacetTokenRepository`
+- `ListingPostingIndexRepository`
+- `ListingPostingIndexRepository`
 - `ListingQueryRepository`
 - `FacetAggregationRepository`
 
@@ -1265,46 +1156,46 @@ Listing sync scripts:
 1. Load active variants for product or requested variant ids.
 2. Load option links and build `option_value_handles`.
 3. Resolve option source handles through `facet_value` parent model into
-   `facet_id` / `facet_value_id` tokens.
+   `facet_id` / `facet_value_id` postings.
 4. Load project enabled currencies.
 5. Load current price per variant/currency.
 6. Load inventory offers per variant.
 7. Upsert one `variant_listing_index` row per active variant.
 8. Upsert one `variant_listing_price_index` row per active variant/currency.
-9. Replace currency-neutral `variant_listing_facet_token` rows for affected variants.
-10. Delete listing, price and token rows for removed/deleted variants.
+9. Replace currency-neutral catalog.listing_posting_bitmap variant facet postings rows for affected variants.
+10. Delete listing, price and posting rows for removed/deleted variants.
 11. Trigger product aggregate refresh for affected products/currencies.
 
 `SyncProductListingIndexScript`:
 
 1. Load product.
-2. If product is deleted or missing, delete product, variant and facet token
+2. If product is deleted or missing, delete product, variant and facet posting
    listing rows.
 3. Load categories, tags, features and build arrays.
 4. Resolve tag and feature source handles through `facet_value` parent model
-   into `facet_id` / `facet_value_id` tokens.
+   into `facet_id` / `facet_value_id` postings.
 5. Load currency-neutral stock aggregates from `variant_listing_index`.
 6. Load price aggregates from `variant_listing_price_index` grouped by currency.
    Price aggregates use only price rows with `has_price = true` whose variant is
    active and `in_stock = true`; stock aggregates still use all active variants.
 7. Upsert one `product_listing_index` row per product.
 8. Upsert one `product_listing_price_index` row per product/currency.
-9. Replace currency-neutral `product_listing_facet_token` rows for affected products.
+9. Replace currency-neutral catalog.listing_posting_bitmap product facet postings rows for affected products.
 10. If no price rows exist yet, create `product_listing_price_index` rows for
     enabled project currencies with empty price aggregates.
 
-Token generation должен писать только canonical resolved ids из existing
+Posting generation должен писать только canonical resolved ids из existing
 `facet_value` source/display relationships.
 
 `RebuildListingIndexScript`:
 
-1. Truncate product, variant, price and facet token listing tables.
+1. Truncate product, variant, price and facet posting listing tables.
 2. Process products in batches.
 3. Sync variant index before product aggregates.
 4. Sync product index aggregates second.
-5. Write variant tokens before product aggregates when variant ids are known.
-6. Write product tokens after product source handles are loaded.
-7. Log total products, variants, price rows, currencies, tokens and skipped rows.
+5. Write variant postings before product aggregates when variant ids are known.
+6. Write product postings after product source handles are loaded.
+7. Log total products, variants, price rows, currencies, postings and skipped rows.
 
 ### Event coverage
 
@@ -1328,27 +1219,27 @@ Events that must refresh listing index:
   contribute to storefront prices.
 - Project enabled currencies changed: rebuild price index tables for project.
 
-Facet source/display mapping changes require token refresh:
+Facet source/display mapping changes require posting refresh:
 
 - New/removed source `facet_value` or changed `parent_id` for `tag` or
-  `feature`: refresh product facet tokens for products that contain the affected
+  `feature`: refresh product facet postings for products that contain the affected
   source handles.
 - New/removed source `facet_value` or changed `parent_id` for `option`: refresh
-  variant facet tokens for variants that contain the affected source handles.
-- Facet value merge/split through source mappings: refresh affected tokens so
+  variant facet postings for variants that contain the affected source handles.
+- Facet value merge/split through source mappings: refresh affected postings so
   deduplication happens against the new `facet_value_id`.
 - If affected products/variants cannot be resolved cheaply, rebuild listing
-  tokens for the project; this is acceptable before production data exists.
+  postings for the project; this is acceptable before production data exists.
 
 ## Implementation order
 
 1. Add Drizzle models for `product_listing_index`,
    `product_listing_price_index`, `variant_listing_index`,
-   `variant_listing_price_index`, `product_listing_facet_token` and
-   `variant_listing_facet_token`.
+   `variant_listing_price_index`, catalog.listing_posting_bitmap product facet postings and
+   catalog.listing_posting_bitmap variant facet postings.
 2. Add handwritten catalog migration
    `services/catalog/migrations/domains/9000_read_models/9003_read_models__listing_index_redesign.sql`
-   that creates listing index, price and token tables. Do not use Drizzle
+   that creates listing index, price and roaring posting tables. Do not use Drizzle
    migration generation for catalog.
 3. Replace repository classes and register them in `Repository`.
 4. Replace sync/delete/rebuild scripts.
@@ -1364,15 +1255,15 @@ Facet source/display mapping changes require token refresh:
 - Product visibility, vendor, availability aggregates and explicit product
   fields use `product_listing_index`.
 - Product-level storefront facet filters and counts use
-  `product_listing_facet_token`, not runtime `unnest(tag_handles)` or
+  catalog.listing_posting_bitmap product facet postings, not runtime `unnest(tag_handles)` or
   `unnest(feature_value_handles)`.
 - Rule collection tag/feature predicates compile to
-  `product_listing_facet_token` predicates. `tag_handles` and
+  catalog.listing_posting_bitmap product facet postings predicates. `tag_handles` and
   `feature_value_handles` are not indexed or scanned on the storefront read
   path for configured tag/feature rules.
 - Variant-level filters use one grouped in-stock predicate over
   `variant_listing_index`.
-- Option storefront filters and counts use `variant_listing_facet_token`, while
+- Option storefront filters and counts use catalog.listing_posting_bitmap variant facet postings, while
   keeping all active option predicates anchored to the same `variant_id`.
 - Option facet count isolation is generated per option `facet_id` through
   separate branches such as `UNION ALL` or LATERAL. It must not use one shared
@@ -1401,7 +1292,7 @@ Facet source/display mapping changes require token refresh:
   `project_id` remains a required column and leading index/query scope.
 - Listing read-model foreign keys do not include `project_id`: root product rows
   reference `product(id)`, root variant rows reference `variant(id)`, and child
-  price/token rows reference parent listing rows
+  price/posting rows reference parent listing rows
   (`product_listing_index` / `variant_listing_index`) so partial sync/rebuild
   deletion of a parent row cascades inside the read model.
 - Facet token primary keys include the resolved `facet_id` / `facet_value_id`;
@@ -1421,11 +1312,11 @@ Facet source/display mapping changes require token refresh:
 
 ## Deferred optimization
 
-Token tables remove runtime source-handle expansion and mapping, but they do not
+Posting bitmap tables remove runtime source-handle expansion and mapping, but they do not
 remove all future optimization work. Validate these plans with production-like
 data:
 
-- product facet token counts with facet isolation;
+- product facet posting counts with facet isolation;
 - variant option token counts with same-variant predicates;
 - price range and matched variant price sort with active option filters;
 - category/manual collection scope joins before token aggregation.
@@ -1434,7 +1325,7 @@ If token-table deduplication/grouping becomes the next bottleneck, consider
 narrower follow-up optimizations only with `EXPLAIN ANALYZE` evidence:
 
 - partial indexes per high-cardinality facet group;
-- tenant partitioning for token tables;
+- tenant partitioning for roaring posting tables;
 - tenant/currency partitioning for price tables;
 - precomputed approximate counts only for unfiltered global/category scopes,
   never as a replacement for isolated filtered counts.

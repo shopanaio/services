@@ -9,8 +9,8 @@
 - `catalog.product_listing_price_index`
 - `catalog.variant_listing_index`
 - `catalog.variant_listing_price_index`
-- `catalog.product_listing_facet_token`
-- `catalog.variant_listing_facet_token`
+- catalog.listing_posting_bitmap product facet postings
+- catalog.listing_posting_bitmap variant facet postings
 
 Нормативные требования к storefront semantics описаны в
 `docs/listing/listing-index-redesign-plan.ru.md`. Целевая схема БД описана в
@@ -31,7 +31,7 @@ features, options, prices, inventory, project currencies и facet configuration.
 2. **Идемпотентный rebuild.** Полный rebuild может пересоздать все listing
    таблицы из canonical tables и `facet_value.kind/source parent` mapping.
 3. **Freshness audit.** Диагностические запросы находят missing/stale rows,
-   orphan tokens и расхождения агрегатов, после чего запускается targeted
+   orphan postings и расхождения агрегатов, после чего запускается targeted
    resync или project rebuild.
 
 DB triggers для поддержки listing index не нужны. Логика синхронизации должна
@@ -58,8 +58,8 @@ currency handling и facet mapping были видимы в TypeScript-коде 
   `variant_listing_index`.
 
 Soft-deleted или hard-deleted product не должен оставаться в listing index.
-Удаление product должно удалять product row, product price rows, product tokens,
-variant rows, variant price rows и variant tokens. FK `ON DELETE CASCADE` может
+Удаление product должно удалять product row, product price rows, product postings,
+variant rows, variant price rows и variant postings. FK `ON DELETE CASCADE` может
 страховать hard delete, но sync script должен явно удалять read-model rows для
 soft delete.
 
@@ -100,21 +100,21 @@ storefront option/price predicates, counts и matched price sort.
 false` и `price_minor = NULL`. Option predicates могут по-прежнему матчить этот
 variant, но price predicates должны его исключать.
 
-### Facet tokens
+### Facet postings
 
-Token tables должны содержать только resolved storefront ids:
+Posting bitmap tables должны содержать только resolved storefront ids:
 `facet_id` и `facet_value_id`. Raw source handles не должны использоваться на
 storefront read path.
 
-`product_listing_facet_token` хранит tokens для tag/feature. Ключ
+catalog.listing_posting_bitmap product facet postings хранит postings для tag/feature. Ключ
 `(project_id, product_id, facet_id, facet_value_id)` дедуплицирует merged
 source mappings.
 
-`variant_listing_facet_token` хранит option tokens. Ключ
+catalog.listing_posting_bitmap variant facet postings хранит option postings. Ключ
 `(project_id, variant_id, facet_id, facet_value_id)` сохраняет same-variant
 semantics для option + price filters.
 
-Если source/display mapping в `facet_value.parent_id` изменился, tokens
+Если source/display mapping в `facet_value.parent_id` изменился, postings
 считаются stale даже если product/variant не менялся.
 
 ## Код, который нужно добавить или заменить
@@ -140,8 +140,8 @@ listing read model tables.
 - `productListingPriceIndex: ProductListingPriceIndexRepository`
 - `variantListingIndex: VariantListingIndexRepository`
 - `variantListingPriceIndex: VariantListingPriceIndexRepository`
-- `productListingFacetToken: ProductListingFacetTokenRepository`
-- `variantListingFacetToken: VariantListingFacetTokenRepository`
+- `listingPostingIndex: ListingPostingIndexRepository`
+- `listingPostingIndex: ListingPostingIndexRepository`
 - `listingQuery: ListingQueryRepository`
 - `facetAggregation: FacetAggregationRepository`
 - `listingFreshness: ListingFreshnessRepository`
@@ -263,22 +263,22 @@ interface ProductPriceAggregateRow {
 }
 ```
 
-### ProductListingFacetTokenRepository
+### ListingPostingIndexRepository
 
 Файл:
-`services/catalog/src/repositories/listing/ProductListingFacetTokenRepository.ts`.
+`services/catalog/src/repositories/listing/ListingPostingIndexRepository.ts`.
 
 Нужные методы:
 
-- `replaceForProduct(productId, tokens)`
+- `replaceForProduct(productId, postings)`
 - `replaceForProducts(rowsByProductId)`
 - `deleteByProductId(productId)`
 - `deleteByProductIds(productIds)`
 - `findProductsBySourceHandleChange(input)`
-- `getTokenCountsForAudit(params)`
+- `getPostingCountsForAudit(params)`
 
-`replaceForProduct` должен удалять все старые product tokens для product и
-вставлять deduplicated tokens. Это проще и надежнее, чем diff на token level:
+`replaceForProduct` должен удалять все старые product postings для product и
+вставлять deduplicated postings. Это проще и надежнее, чем diff на posting-expression level:
 source mappings могут merge/split values, а primary key уже защитит от
 дубликатов.
 
@@ -286,25 +286,25 @@ source mappings могут merge/split values, а primary key уже защит�
 source/display mapping в `facet_value`. Для tag/feature mapping он должен найти
 products, которые содержат affected source value handles в canonical
 assignments. Если дешево найти affected products нельзя, caller должен запускать
-project token rebuild.
+project posting rebuild.
 
-### VariantListingFacetTokenRepository
+### ListingPostingIndexRepository
 
 Файл:
-`services/catalog/src/repositories/listing/VariantListingFacetTokenRepository.ts`.
+`services/catalog/src/repositories/listing/ListingPostingIndexRepository.ts`.
 
 Нужные методы:
 
-- `replaceForVariant(variantId, tokens)`
+- `replaceForVariant(variantId, postings)`
 - `replaceForVariants(rowsByVariantId)`
 - `deleteByVariantId(variantId)`
 - `deleteByVariantIds(variantIds)`
 - `deleteByProductId(productId)`
 - `findVariantsBySourceHandleChange(input)`
-- `getTokenCountsForAudit(params)`
+- `getPostingCountsForAudit(params)`
 
 `replaceForVariant` должен сохранять `product_id`, потому что option counts и
-listing filters часто переходят от product candidate set к variant token set.
+listing filters часто переходят от product candidate set к variant posting set.
 
 ### ListingSourceRepository
 
@@ -351,8 +351,8 @@ kind, vendor, handle, timestamps and deleted state.
 
 Нужные методы:
 
-- `resolveProductFacetTokens(input)`
-- `resolveVariantFacetTokens(input)`
+- `resolveProductFacetPostings(input)`
+- `resolveVariantFacetPostings(input)`
 - `resolveFacetSourceMappings(handles, facetTypes)`
 - `getConfiguredFacetValueIds(params)`
 
@@ -471,7 +471,7 @@ interface SyncVariantListingIndexResult {
   deletedVariantIds: string[];
   affectedProductIds: string[];
   priceRowsWritten: number;
-  optionTokensWritten: number;
+  optionPostingsWritten: number;
 }
 ```
 
@@ -486,16 +486,16 @@ interface SyncVariantListingIndexResult {
 4. Для каждого variant собрать `variant_listing_index` row и price rows через
    `VariantListingRowBuilder`.
 5. Для deleted/missing variants удалить:
-   `variant_listing_facet_token`, `variant_listing_price_index`,
+   catalog.listing_posting_bitmap variant facet postings, `variant_listing_price_index`,
    `variant_listing_index`.
 6. Для active variants upsert:
    `variant_listing_index`, затем `variant_listing_price_index`.
 7. Batch-resolve option source handles через `ListingFacetMappingRepository`.
-8. Replace `variant_listing_facet_token` для affected variants.
+8. Replace catalog.listing_posting_bitmap variant facet postings для affected variants.
 9. Запустить `SyncProductListingIndexScript` для affected products, потому что
    product `in_stock`, `total_stock` и price aggregates зависят от variant rows.
 
-Порядок важен: сначала variant rows/price/tokens, затем product aggregate.
+Порядок важен: сначала variant rows/price/postings, затем product aggregate.
 Иначе product sync прочитает старое состояние variant index.
 
 ### SyncProductListingIndexScript
@@ -520,7 +520,7 @@ interface SyncProductListingIndexResult {
   syncedProductIds: string[];
   deletedProductIds: string[];
   priceRowsWritten: number;
-  productTokensWritten: number;
+  productPostingsWritten: number;
 }
 ```
 
@@ -532,7 +532,7 @@ interface SyncProductListingIndexResult {
 2. Загрузить product sources.
 3. Для missing/deleted products выполнить delete cascade на listing
    repositories:
-   product tokens, product prices, product row, variant tokens, variant prices,
+   product postings, product prices, product row, variant postings, variant prices,
    variant rows.
 4. Загрузить product facet sources: tags, features, categories.
 5. Загрузить stock aggregates из `variant_listing_index`.
@@ -544,9 +544,9 @@ interface SyncProductListingIndexResult {
 9. Replace `product_listing_price_index` rows для enabled currencies.
 10. Batch-resolve tag/feature source handles через
     `ListingFacetMappingRepository`.
-11. Replace `product_listing_facet_token`.
+11. Replace catalog.listing_posting_bitmap product facet postings.
 
-Product sync не должен читать option tokens и не должен пересчитывать variant
+Product sync не должен читать option postings и не должен пересчитывать variant
 rows, если изменение не затрагивает variants. Это сохраняет targeted refresh
 дешевым.
 
@@ -566,25 +566,25 @@ interface DeleteProductListingIndexParams {
 
 Алгоритм:
 
-1. Удалить `variant_listing_facet_token` по product.
+1. Удалить catalog.listing_posting_bitmap variant facet postings по product.
 2. Удалить `variant_listing_price_index` по product.
 3. Удалить `variant_listing_index` по product.
-4. Удалить `product_listing_facet_token` по product.
+4. Удалить catalog.listing_posting_bitmap product facet postings по product.
 5. Удалить `product_listing_price_index` по product.
 6. Удалить `product_listing_index` по product.
 
 Даже если FK cascade покрывает часть операций, explicit delete нужен для
 soft-delete и для понятных counters/logs.
 
-### RefreshListingFacetTokensScript
+### RefreshListingFacetPostingsScript
 
 Файл:
-`services/catalog/src/scripts/listing/RefreshListingFacetTokensScript.ts`.
+`services/catalog/src/scripts/listing/RefreshListingFacetPostingsScript.ts`.
 
 Параметры:
 
 ```ts
-interface RefreshListingFacetTokensParams {
+interface RefreshListingFacetPostingsParams {
   facetTypes: Array<"tag" | "feature" | "option">;
   sourceValueHandles?: string[];
   productIds?: string[];
@@ -594,25 +594,25 @@ interface RefreshListingFacetTokensParams {
 }
 ```
 
-Назначение: пересчитать tokens после изменения source/display mapping в
+Назначение: пересчитать postings после изменения source/display mapping в
 `facet_value`, merge/split facet values или изменения facet configuration.
 
 Алгоритм:
 
-1. Если переданы productIds для tag/feature, выполнить product token refresh
+1. Если переданы productIds для tag/feature, выполнить product posting refresh
    для этих products без пересчета variant rows.
-2. Если переданы variantIds для option, выполнить variant token refresh для
+2. Если переданы variantIds для option, выполнить variant posting refresh для
    этих variants без пересчета prices/stock.
 3. Если переданы only sourceValueHandles, попытаться найти affected products или
    variants через `findProductsBySourceHandleChange` /
    `findVariantsBySourceHandleChange`.
 4. Если affected set нельзя найти дешево и
-   `fallbackToProjectRebuild = true`, запустить rebuild token tables для
+   `fallbackToProjectRebuild = true`, запустить rebuild roaring posting tables для
    project.
-5. Replace affected token rows целиком.
+5. Replace affected posting rows целиком.
 
 Этот script не должен менять `product_listing_index` или price rows, потому что
-source mapping changes меняют только resolved storefront tokens.
+source mapping changes меняют только resolved storefront postings.
 
 ### RebuildListingIndexScript
 
@@ -634,14 +634,14 @@ interface RebuildListingIndexParams {
 
 1. Взять project advisory lock, чтобы два rebuild не шли параллельно.
 2. Если `truncate = true`, очистить listing tables в порядке:
-   variant tokens, product tokens, variant prices, product prices, variant
+   variant postings, product postings, variant prices, product prices, variant
    index, product index.
 3. Читать products batches через `ListingSourceRepository.getProductsForRebuild`.
 4. Для каждого batch сначала выполнить `SyncVariantListingIndexScript` с
    `productIds`.
 5. Затем выполнить `SyncProductListingIndexScript` с теми же `productIds`.
 6. Логировать counters: products, variants, currencies, price rows, product
-   tokens, variant tokens, deleted/skipped rows.
+   postings, variant postings, deleted/skipped rows.
 7. После rebuild запустить `ListingFreshnessRepository.auditProject`.
 
 Для частичного rebuild по `productIds` truncate не используется.
@@ -719,7 +719,7 @@ product title не требует listing sync, если title не входит
 - `catalog.rebuildListingIndex`
 - `catalog.syncListingIndexForProducts`
 - `catalog.syncListingIndexForVariants`
-- `catalog.refreshListingFacetTokens`
+- `catalog.refreshListingFacetPostings`
 
 Workflow IDs должны быть deterministic:
 
@@ -751,24 +751,24 @@ correct, потому что scripts всегда перечитывают canon
 
 | Изменение | Что пересчитать |
 | --- | --- |
-| Product created | Variant rows for product, product row, product prices, product tokens |
+| Product created | Variant rows for product, product row, product prices, product postings |
 | Product updated: kind/vendor/handle/revision/timestamps | Product row |
 | Product publish/unpublish | Product row, visibility-sensitive listing reads сразу увидят новый status |
 | Product deleted/soft-deleted | Delete all product and variant listing rows |
 | Category assignment changed | Product `category_handles`, product row |
 | Category handle changed | Product rows for products in category subtree/assignment |
-| Product tag assignment changed | Product `tag_handles`, product tokens |
-| Tag handle changed | Product rows/tokens for affected products |
-| Product feature value changed | Product `feature_value_handles`, product tokens |
-| Feature/value handle changed | Product rows/tokens for affected products |
-| Variant created/updated/deleted | Variant row, variant prices, option tokens, parent product stock/price aggregate |
-| Variant option link changed | Variant `option_value_handles`, variant option tokens |
-| Option/value handle changed | Variant rows/tokens for affected variants |
+| Product tag assignment changed | Product `tag_handles`, product postings |
+| Tag handle changed | Product rows/postings for affected products |
+| Product feature value changed | Product `feature_value_handles`, product postings |
+| Feature/value handle changed | Product rows/postings for affected products |
+| Variant created/updated/deleted | Variant row, variant prices, option postings, parent product stock/price aggregate |
+| Variant option link changed | Variant `option_value_handles`, variant option postings |
+| Option/value handle changed | Variant rows/postings for affected variants |
 | Variant current price changed | Variant price row for currency, parent product price aggregate |
 | Inventory stock changed | Variant stock row, parent product stock aggregate, parent product price aggregates |
 | Enabled currencies changed | Variant price rows and product price rows for project |
-| Facet source mapping changed | Product or variant tokens for affected source handles |
-| Facet value merge/split | Token refresh for affected mappings |
+| Facet source mapping changed | Product or variant postings for affected source handles |
+| Facet value merge/split | Posting refresh for affected mappings |
 
 ## Freshness audit code
 
@@ -788,8 +788,8 @@ correct, потому что scripts всегда перечитывают canon
 - `findMissingVariantPriceRows(limit)`
 - `findMissingProductPriceRows(limit)`
 - `findProductAggregateMismatches(limit)`
-- `findProductTokenMismatches(limit)`
-- `findVariantTokenMismatches(limit)`
+- `findProductPostingMismatches(limit)`
+- `findVariantPostingMismatches(limit)`
 - `findOrphanListingRows(limit)`
 - `auditProject(params)`
 
@@ -823,7 +823,7 @@ interface ListingFreshnessAuditResult {
 2. Для missing/stale/unexpected products выполнить targeted
    `SyncProductListingIndexScript` или delete.
 3. Для missing/stale variants выполнить `SyncVariantListingIndexScript`.
-4. Для token mismatches выполнить `RefreshListingFacetTokensScript`.
+4. Для token mismatches выполнить `RefreshListingFacetPostingsScript`.
 5. Если audit result слишком большой или `canRepairTargeted = false`, запустить
    `RebuildListingIndexScript`.
 
@@ -835,18 +835,18 @@ interface ListingFreshnessAuditResult {
 
 1. variant index rows;
 2. variant price rows;
-3. variant option tokens;
+3. variant option postings;
 4. product index row;
 5. product price aggregate rows;
-6. product facet tokens.
+6. product facet postings.
 
 Если product sync и variant sync пришли одновременно, оба scripts перечитывают
 canonical state. Поэтому более поздний script должен перезаписать stale
 aggregate. Product aggregate refresh всегда запускается после variant sync,
 чтобы stock/price изменения не оставляли product row stale.
 
-Все replace operations по tokens и price rows должны выполняться в transaction.
-Частичная запись, при которой old tokens удалены, а new tokens не вставлены, не
+Все replace operations по postings и price rows должны выполняться в transaction.
+Частичная запись, при которой old postings удалены, а new postings не вставлены, не
 должна коммититься.
 
 ## Наблюдаемость
@@ -857,7 +857,7 @@ aggregate. Product aggregate refresh всегда запускается пос�
 - `reason`;
 - affected product/variant ids count;
 - rows upserted/deleted по каждой listing table;
-- token rows count;
+- posting rows count;
 - enabled currencies count;
 - duration;
 - workflow id, если script запущен из DBOS workflow.
@@ -874,7 +874,7 @@ aggregate. Product aggregate refresh всегда запускается пос�
   идемпотентным.
 - Product aggregate rows считаются из variant listing tables, а не из
   устаревшего in-memory state.
-- Token generation использует только `facet_value.kind/source parent` mapping и
+- Posting generation использует только `facet_value.kind/source parent` mapping и
   пишет resolved `facet_id` / `facet_value_id`.
 - Replace token operations atomic и deduplicated primary key.
 - Full rebuild может полностью восстановить listing tables после truncate.

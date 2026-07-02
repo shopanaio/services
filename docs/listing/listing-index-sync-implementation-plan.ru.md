@@ -9,7 +9,7 @@
 - `docs/listing/listing-index-sync-freshness.ru.md`
 
 в пошаговый план изменений в коде catalog service. Фокус: как обновлять listing
-read model, facet tokens и freshness repair.
+read model, facet postings и freshness repair.
 
 После изменения структуры listing index пересобирается rebuild script.
 
@@ -25,10 +25,10 @@ read model, facet tokens и freshness repair.
 - Product aggregate price/stock считается из `variant_listing_index` и
   `variant_listing_price_index`, а не напрямую из canonical price/stock tables.
 - Storefront configured facets читают только resolved `facet_id` и
-  `facet_value_id` из token tables.
+  `facet_value_id` из roaring posting tables.
 - Raw handles в index rows нужны для rebuild/debug и не должны быть read path
   для configured storefront facets.
-- Replace operations по prices/tokens выполняются внутри transaction.
+- Replace operations по prices/postings выполняются внутри transaction.
 - При проверке реализации не запускать `test` и `tsc`. Если нужна проверка
   новой версии кода, запускать build через проектный workflow/shopana-cli.
 - Changeset руками не редактировать.
@@ -40,10 +40,10 @@ read model, facet tokens и freshness repair.
 1. bootstrap `product_listing_index` row, если parent row еще не существует;
 2. `variant_listing_index`
 3. `variant_listing_price_index`
-4. `variant_listing_facet_token`
+4. catalog.listing_posting_bitmap variant facet postings
 5. final `product_listing_index` upsert с актуальными aggregates;
 6. `product_listing_price_index`
-7. `product_listing_facet_token`
+7. catalog.listing_posting_bitmap product facet postings
 
 Причина: product sync читает variant read model для `in_stock`, `total_stock` и
 price aggregates. Если product обновить раньше variant rows, aggregates могут
@@ -85,8 +85,6 @@ productListingIndex: ProductListingIndexRepository;
 productListingPriceIndex: ProductListingPriceIndexRepository;
 variantListingIndex: VariantListingIndexRepository;
 variantListingPriceIndex: VariantListingPriceIndexRepository;
-productListingFacetToken: ProductListingFacetTokenRepository;
-variantListingFacetToken: VariantListingFacetTokenRepository;
 listingSource: ListingSourceRepository;
 listingFacetMapping: ListingFacetMappingRepository;
 listingFreshness: ListingFreshnessRepository;
@@ -109,7 +107,7 @@ const listingSource = new ListingSourceRepository(db, txManager);
 services/catalog/src/repositories/listing/
 ```
 
-и добавить repositories для price rows, facet tokens, source reads и freshness.
+и добавить repositories для price rows, facet postings, source reads и freshness.
 
 ### ProductListingIndexRepository
 
@@ -209,7 +207,7 @@ export class ProductListingIndexRepository extends BaseRepository {
 
 `ensureBootstrapRows` нужен только для FK parent row перед variant upsert. Он
 должен делать idempotent upsert canonical product fields с пустыми aggregates и
-не трогать product price/token rows.
+не трогать product price/posting rows.
 
 ```ts
 async ensureBootstrapRows(inputs: ProductListingBootstrapInput[]): Promise<number> {
@@ -455,31 +453,31 @@ async getPriceAggregatesByProductIds(
 Caller обязан дополнить отсутствующие currency rows как `{ hasPrice: false,
 minPriceMinor: null, maxPriceMinor: null }`.
 
-### Facet token repositories
+### Listing posting repository
 
 Файлы:
 
 ```text
-services/catalog/src/repositories/listing/ProductListingFacetTokenRepository.ts
-services/catalog/src/repositories/listing/VariantListingFacetTokenRepository.ts
+services/catalog/src/repositories/listing/ListingPostingIndexRepository.ts
+services/catalog/src/repositories/listing/ListingPostingIndexRepository.ts
 ```
 
-Replace должен удалять все старые tokens entity и вставлять новый deduplicated
+Replace должен удалять все старые postings entity и вставлять новый deduplicated
 set. Это проще и надежнее token-level diff, потому source mappings могут
 merge/split значения.
 
 ```ts
 async replaceForProduct(
   productId: string,
-  tokens: ProductListingFacetTokenInput[],
+  postings: ListingPostingFacetInput[],
 ): Promise<number> {
   await this.deleteByProductId(productId);
 
-  const unique = dedupeProductTokens(tokens);
+  const unique = dedupeProductFacetPostings(postings);
   if (unique.length === 0) return 0;
 
   await this.connection
-    .insert(productListingFacetToken)
+    .insert(listingPostingIndex)
     .values(
       unique.map((token) => ({
         projectId: this.storeId,
@@ -597,7 +595,7 @@ async getVariantSourcesByProductIds(
 services/catalog/src/repositories/listing/ListingFacetMappingRepository.ts
 ```
 
-Назначение: resolve raw source handles в storefront tokens через
+Назначение: resolve raw source handles в storefront postings через
 `facet_value.kind = 'source'` и `parent_id`.
 
 Правила resolve:
@@ -616,13 +614,13 @@ services/catalog/src/repositories/listing/ListingFacetMappingRepository.ts
 Пример resolve query shape:
 
 ```ts
-async resolveProductFacetTokens(input: {
+async resolveProductFacetPostings(input: {
   products: Array<{
     productId: string;
     tagHandles: string[];
     featureValueHandles: string[];
   }>;
-}): Promise<ProductFacetTokenResolved[]> {
+}): Promise<ProductFacetPostingResolved[]> {
   const handlesByType = collectUniqueHandles(input.products);
 
   const mappingRows = await this.resolveFacetSourceMappings(
@@ -634,12 +632,12 @@ async resolveProductFacetTokens(input: {
     mappingRows.map((row) => [`${row.facetType}\0${row.sourceHandle}`, row]),
   );
 
-  const tokens: ProductFacetTokenResolved[] = [];
+  const postings: ProductFacetPostingResolved[] = [];
   for (const product of input.products) {
     for (const handle of product.tagHandles) {
       const mapping = mappingByTypeAndHandle.get(`tag\0${handle}`);
       if (mapping) {
-        tokens.push({
+        postings.push({
           productId: product.productId,
           facetId: mapping.facetId,
           facetValueId: mapping.facetValueId,
@@ -649,7 +647,7 @@ async resolveProductFacetTokens(input: {
     }
   }
 
-  return dedupeResolvedProductTokens(tokens);
+  return dedupeResolvedProductFacetPostings(postings);
 }
 ```
 
@@ -776,7 +774,7 @@ export type ListingIndexSyncReason =
 services/catalog/src/scripts/listing/SyncVariantListingIndexScript.ts
 ```
 
-Скрипт должен быть transactional, потому variant rows, prices, tokens и parent
+Скрипт должен быть transactional, потому variant rows, prices, postings и parent
 aggregate refresh должны коммититься согласованно.
 
 ```ts
@@ -839,7 +837,7 @@ export class SyncVariantListingIndexScript extends BaseScript<
     const activeRows = built.flatMap((row) => row.variantRow ? [row.variantRow] : []);
     const deletedIds = collectDeletedVariantIds(normalized.variantIds, sources, built);
 
-    await this.repository.variantListingFacetToken.deleteByVariantIds(deletedIds);
+    await this.repository.listingPostingIndex.deleteByVariantIds(deletedIds);
     await this.repository.variantListingPriceIndex.deleteByVariantIds(deletedIds);
     await this.repository.variantListingIndex.deleteByVariantIds(deletedIds);
 
@@ -849,14 +847,14 @@ export class SyncVariantListingIndexScript extends BaseScript<
         groupVariantPriceRows(built),
       );
 
-    const tokens =
-      await this.repository.listingFacetMapping.resolveVariantFacetTokens({
+    const postings =
+      await this.repository.listingFacetMapping.resolveVariantFacetPostings({
         variants: collectVariantTokenSources(activeRows, built),
       });
 
-    const optionTokensWritten =
-      await this.repository.variantListingFacetToken.replaceForVariants(
-        groupVariantTokens(tokens),
+    const optionPostingsWritten =
+      await this.repository.listingPostingIndex.replaceForVariants(
+        groupVariantPostings(postings),
       );
 
     const affectedProductIds = collectAffectedProductIds(sources, activeRows);
@@ -871,7 +869,7 @@ export class SyncVariantListingIndexScript extends BaseScript<
       deletedVariantIds: deletedIds,
       affectedProductIds,
       priceRowsWritten,
-      optionTokensWritten,
+      optionPostingsWritten,
     };
   }
 }
@@ -965,14 +963,14 @@ export class SyncProductListingIndexScript extends BaseScript<
         groupProductPriceRows(built),
       );
 
-    const tokens =
-      await this.repository.listingFacetMapping.resolveProductFacetTokens({
+    const postings =
+      await this.repository.listingFacetMapping.resolveProductFacetPostings({
         products: collectProductTokenSources(built),
       });
 
-    const productTokensWritten =
-      await this.repository.productListingFacetToken.replaceForProducts(
-        groupProductTokens(tokens),
+    const productPostingsWritten =
+      await this.repository.listingPostingIndex.replaceForProducts(
+        groupProductPostings(postings),
       );
 
     return {
@@ -981,7 +979,7 @@ export class SyncProductListingIndexScript extends BaseScript<
       ),
       deletedProductIds: missingOrDeleted,
       priceRowsWritten,
-      productTokensWritten,
+      productPostingsWritten,
     };
   }
 }
@@ -1000,10 +998,10 @@ services/catalog/src/scripts/listing/DeleteProductListingIndexScript.ts
 ```ts
 @Transactional()
 protected async execute(params: DeleteProductListingIndexParams) {
-  await this.repository.variantListingFacetToken.deleteByProductId(params.productId);
+  await this.repository.listingPostingIndex.deleteByProductId(params.productId);
   await this.repository.variantListingPriceIndex.deleteByProductId(params.productId);
   await this.repository.variantListingIndex.deleteByProductId(params.productId);
-  await this.repository.productListingFacetToken.deleteByProductId(params.productId);
+  await this.repository.listingPostingIndex.deleteByProductId(params.productId);
   await this.repository.productListingPriceIndex.deleteByProductId(params.productId);
   await this.repository.productListingIndex.delete(params.productId);
 
@@ -1011,30 +1009,30 @@ protected async execute(params: DeleteProductListingIndexParams) {
 }
 ```
 
-### RefreshListingFacetTokensScript
+### RefreshListingFacetPostingsScript
 
 Файл:
 
 ```text
-services/catalog/src/scripts/listing/RefreshListingFacetTokensScript.ts
+services/catalog/src/scripts/listing/RefreshListingFacetPostingsScript.ts
 ```
 
 Этот script не меняет index rows и price rows. Он пересчитывает только token
 tables.
 
 ```ts
-export class RefreshListingFacetTokensScript extends BaseScript<
-  RefreshListingFacetTokensParams,
-  RefreshListingFacetTokensResult
+export class RefreshListingFacetPostingsScript extends BaseScript<
+  RefreshListingFacetPostingsParams,
+  RefreshListingFacetPostingsResult
 > {
   @Transactional()
-  protected async execute(params: RefreshListingFacetTokensParams) {
+  protected async execute(params: RefreshListingFacetPostingsParams) {
     const productIds = await this.resolveAffectedProductIds(params);
     const variantIds = await this.resolveAffectedVariantIds(params);
 
     if (productIds.length === 0 && variantIds.length === 0) {
       if (params.fallbackToProjectRebuild) {
-        return this.rebuildProjectTokens(params.reason);
+        return this.rebuildProjectPostings(params.reason);
       }
       return emptyFacetRefreshResult();
     }
@@ -1042,24 +1040,24 @@ export class RefreshListingFacetTokensScript extends BaseScript<
     if (productIds.length > 0) {
       const sources =
         await this.repository.listingSource.getProductFacetSources(productIds);
-      const tokens =
-        await this.repository.listingFacetMapping.resolveProductFacetTokens({
+      const postings =
+        await this.repository.listingFacetMapping.resolveProductFacetPostings({
           products: toProductTokenSources(sources),
         });
-      await this.repository.productListingFacetToken.replaceForProducts(
-        groupProductTokens(tokens),
+      await this.repository.listingPostingIndex.replaceForProducts(
+        groupProductPostings(postings),
       );
     }
 
     if (variantIds.length > 0) {
       const optionSources =
         await this.repository.listingSource.getVariantOptionSources(variantIds);
-      const tokens =
-        await this.repository.listingFacetMapping.resolveVariantFacetTokens({
+      const postings =
+        await this.repository.listingFacetMapping.resolveVariantFacetPostings({
           variants: toVariantTokenSources(optionSources),
         });
-      await this.repository.variantListingFacetToken.replaceForVariants(
-        groupVariantTokens(tokens),
+      await this.repository.listingPostingIndex.replaceForVariants(
+        groupVariantPostings(postings),
       );
     }
 
@@ -1116,7 +1114,7 @@ services/catalog/src/scripts/listing/RepairListingIndexFreshnessScript.ts
 2. Missing/stale products -> `SyncProductListingIndexScript`.
 3. Unexpected/deleted products -> `DeleteProductListingIndexScript`.
 4. Missing/stale variants -> `SyncVariantListingIndexScript`.
-5. Token mismatches -> `RefreshListingFacetTokensScript`.
+5. Posting mismatches -> `RefreshListingFacetPostingsScript`.
 6. Если targeted repair невозможен -> `RebuildListingIndexScript`.
 
 ## Фаза 6. Freshness repository
@@ -1203,8 +1201,8 @@ async findStaleProductRows(limit: number): Promise<string[]> {
 }
 ```
 
-Token mismatch audit должен сравнивать expected resolved token set из canonical
-facet sources и actual token table. Для больших проектов audit может работать
+Posting mismatch audit должен сравнивать expected resolved posting set из canonical
+facet sources и actual posting bitmap. Для больших проектов audit может работать
 limit-ами и возвращать `canRepairTargeted = false`, если diff слишком большой.
 
 ## Фаза 7. DBOS workflows
@@ -1226,7 +1224,7 @@ services/catalog/src/workflows/index.ts
 - `catalog.rebuildListingIndex`
 - `catalog.syncListingIndexForProducts`
 - `catalog.syncListingIndexForVariants`
-- `catalog.refreshListingFacetTokens`
+- `catalog.refreshListingFacetPostings`
 
 Текущий catalog pattern использует `BrokerWorkflows`, а decorated entrypoint
 обычно называется `run`. Поэтому безопасный вариант - отдельный workflow class
@@ -1235,7 +1233,7 @@ services/catalog/src/workflows/index.ts
 ```text
 services/catalog/src/workflows/ListingIndexProductSyncWorkflow.ts
 services/catalog/src/workflows/ListingIndexVariantSyncWorkflow.ts
-services/catalog/src/workflows/ListingIndexFacetTokenRefreshWorkflow.ts
+services/catalog/src/workflows/ListingIndexFacetPostingRefreshWorkflow.ts
 services/catalog/src/workflows/ListingIndexRebuildWorkflow.ts
 ```
 
@@ -1329,7 +1327,7 @@ import {
   DeleteProductListingIndexScript,
   SyncProductListingIndexScript,
   SyncVariantListingIndexScript,
-  RefreshListingFacetTokensScript,
+  RefreshListingFacetPostingsScript,
 } from "../scripts/listing/index.js";
 ```
 
@@ -1341,14 +1339,14 @@ import {
 | `productDeleted` | `DeleteProductListingIndexScript` |
 | product kind/vendor/handle/published/revision | product row refresh |
 | category assignment | product `category_handles` refresh |
-| tag assignment/handle | product row + product tokens |
-| feature value/handle | product row + product tokens |
-| variant create/update/delete | variant row/prices/tokens + parent product aggregate |
-| variant option changed | variant row + option tokens + parent aggregate |
+| tag assignment/handle | product row + product postings |
+| feature value/handle | product row + product postings |
+| variant create/update/delete | variant row/prices/postings + parent product aggregate |
+| variant option changed | variant row + option postings + parent aggregate |
 | variant price changed | variant price row + parent product price aggregate |
 | stock changed | variant stock row + parent stock/price aggregate |
 | enabled currencies changed | variant price rows + product price rows for project |
-| facet mapping changed | `RefreshListingFacetTokensScript` only |
+| facet mapping changed | `RefreshListingFacetPostingsScript` only |
 
 Пример `productCreated`:
 
@@ -1416,7 +1414,7 @@ project context listing sync запускать нельзя.
 Для facet value merge/unmerge/update:
 
 ```ts
-await this.executeScript(RefreshListingFacetTokensScript, {
+await this.executeScript(RefreshListingFacetPostingsScript, {
   facetTypes: [facet.facetType],
   sourceValueHandles: affectedSourceHandles,
   fallbackToProjectRebuild: true,
@@ -1443,8 +1441,8 @@ rg "productListingIndex|variantListingIndex|SyncProductListingIndexScript|SyncVa
   pagination.
 - `FacetAggregationRepository` считает product-level, option-level и virtual
   facets.
-- Tag/feature filters используют `product_listing_facet_token`.
-- Option filters используют `variant_listing_facet_token` + same-variant join к
+- Tag/feature filters используют catalog.listing_posting_bitmap product facet postings.
+- Option filters используют catalog.listing_posting_bitmap variant facet postings + same-variant join к
   `variant_listing_index`.
 - Price filters используют `variant_listing_price_index` только с
   `has_price = true` и `variant_listing_index.in_stock = true`.
@@ -1470,13 +1468,13 @@ backend cutover PR, а storefront read path во втором PR. Dual-write н�
 
 - [ ] Storefront configured facets больше не читают raw handle arrays.
 - [ ] Все новые repositories используют `this.connection` и `this.storeId`.
-- [ ] `SyncVariantListingIndexScript` пишет variant rows/prices/tokens до
+- [ ] `SyncVariantListingIndexScript` пишет variant rows/prices/postings до
       product aggregate refresh.
 - [ ] `SyncProductListingIndexScript` считает product price aggregates из
       variant listing tables.
-- [ ] Token generation пишет только resolved `facet_id` и `facet_value_id`.
-- [ ] Token replace operations atomic и deduplicated.
-- [ ] Facet mapping changes пересчитывают token tables без изменения price/stock
+- [ ] Posting generation пишет только resolved `facet_id` и `facet_value_id`.
+- [ ] Postings replace operations atomic и deduplicated.
+- [ ] Facet mapping changes пересчитывают roaring posting tables без изменения price/stock
       rows.
 - [ ] Rebuild может восстановить listing tables после truncate.
 - [ ] Freshness audit находит missing/stale/unexpected rows и запускает targeted

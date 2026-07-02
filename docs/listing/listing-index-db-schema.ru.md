@@ -15,18 +15,22 @@ dual-write и compatibility views не требуются: после измен
   ограничиваться текущим проектом. `project_id` используется как query/index
   prefix, но не входит в PK/FK read model: canonical `id` считаются глобально
   уникальными внутри catalog schema.
-- Основные listing таблицы и token tables currency-neutral. Денежные поля
+- Roaring/posting index создается сразу вместе с listing read model. Отдельные
+  row-based product/variant facet posting tables не создаются: product
+  tag/feature и variant option postings пишутся напрямую в
+  `catalog.listing_posting_bitmap`.
+- Основные listing таблицы и roaring posting tables currency-neutral. Денежные поля
   вынесены в отдельные per-currency таблицы.
 - Storefront listing читает цену в default currency проекта.
 - Soft-deleted products/variants не хранятся в listing index: строки должны
   удаляться каскадом или sync/rebuild script.
 - Дочерние таблицы внутри listing read model ссылаются на parent listing rows
   (`product_listing_index` / `variant_listing_index`), а не напрямую только на
-  canonical tables. Это не дает price/token rows пережить partial sync/rebuild
+  canonical tables. Это не дает price/posting rows пережить partial sync/rebuild
   удаление parent row из read model.
 - Storefront facets работают через resolved `facet_id` и `facet_value_id`, а не
   через raw source handles.
-- `price` и `in_stock` являются virtual facets и не имеют строк в token tables.
+- `price` и `in_stock` являются virtual facets и не имеют строк в roaring posting tables.
 - Counts считаются по product cardinality. Variant-level facets сначала
   дедуплицируются до `(product_id, facet_id, facet_value_id)`.
 
@@ -46,8 +50,8 @@ Planned files:
 
 - `9003_read_models__listing_index_redesign.sql`:
   - create `product_listing_index`, `product_listing_price_index`,
-    `variant_listing_index`, `variant_listing_price_index`,
-    `product_listing_facet_token` and `variant_listing_facet_token`;
+    `variant_listing_index`, `variant_listing_price_index` and the
+    `catalog.listing_posting_*` roaring/posting tables;
   - add ordinary indexes from this document;
   - do not add extra unique constraints on canonical `product`,
     `variant`, `facet` or `facet_value`; listing FKs reference canonical primary
@@ -124,7 +128,7 @@ CREATE TABLE catalog.product_listing_index (
 | `product_updated_at` | Canonical product update time для diagnostics/sync freshness checks. |
 | `product_revision` | Product revision на момент индексации; помогает skip/retry logic и отладке stale rows. |
 | `tag_handles` | Raw tag source handles для rebuild/debug/backoffice diagnostics. Storefront filtering/counts не должны читать это поле. |
-| `feature_value_handles` | Raw feature source handles в формате `feature_slug:value_slug` для rebuild/debug. Storefront использует `product_listing_facet_token`. |
+| `feature_value_handles` | Raw feature source handles в формате `feature_slug:value_slug` для rebuild/debug. Storefront использует `catalog.listing_posting_bitmap`. |
 | `category_handles` | Category navigation/rule scope handles. Category не является storefront facet. |
 | `in_stock` | Product-level availability aggregate: true, если есть sellable active in-stock variant. Всегда применяется перед пользовательской сортировкой. |
 | `total_stock` | Currency-neutral суммарный stock по active variants. Используется для diagnostics и возможных availability labels. |
@@ -182,7 +186,7 @@ CREATE INDEX idx_product_listing_category_handles_gin
 | `idx_product_listing_visible_created` | Покрывает `created` sort с тем же availability bucket и stable tie-breaker. |
 | `idx_product_listing_vendor` | Ускоряет explicit vendor filter. Partial predicate уменьшает размер, потому что products без vendor не участвуют в vendor lookup. |
 | `idx_product_listing_in_stock` | Поддерживает availability toggle и in-stock virtual facet count на product aggregate. |
-| `idx_product_listing_category_handles_gin` | Поддерживает category handle predicates для navigation scope/rule collections. Tag/feature GIN indexes намеренно не добавляются: storefront tag/feature path идет через token table. |
+| `idx_product_listing_category_handles_gin` | Поддерживает category handle predicates для navigation scope/rule collections. Tag/feature GIN indexes намеренно не добавляются: storefront tag/feature path идет через posting bitmap. |
 
 ## `catalog.product_listing_price_index`
 
@@ -304,7 +308,7 @@ CREATE TABLE catalog.variant_listing_index (
 | `kind` | Product/variant kind для rule predicates и consistency with parent product. |
 | `variant_created_at` | Canonical variant creation time for diagnostics/future sorts. |
 | `variant_updated_at` | Canonical variant update time for sync freshness checks. |
-| `option_value_handles` | Raw option handles в формате `option_slug:value_slug` для rebuild/debug. Storefront option path использует `variant_listing_facet_token`. |
+| `option_value_handles` | Raw option handles в формате `option_slug:value_slug` для rebuild/debug. Storefront option path использует `catalog.listing_posting_bitmap`. |
 | `in_stock` | Variant-level availability. Storefront option filters, price filters, option counts и matched price sort используют только `in_stock = true`. |
 | `total_stock` | Variant stock aggregate for diagnostics and possible labels. |
 | `indexed_at` | Время генерации variant listing row. |
@@ -433,169 +437,13 @@ CREATE INDEX idx_variant_listing_price_value_product_variant
 | `idx_variant_listing_price_product_variant` | Поддерживает product-candidate-first path для active option filters: join от scoped products к variant prices с сохранением `variant_id` для same-variant option predicates и matched price aggregation. |
 | `idx_variant_listing_price_value_product_variant` | Поддерживает price-range-first path, когда диапазон цены селективный: PostgreSQL может начать с `(project_id, currency, price_minor)` и сразу получить `product_id`/`variant_id` для дальнейшего same-variant matching. |
 
-## `catalog.product_listing_facet_token`
+## Facet postings
 
-Одна строка на product + resolved storefront facet value. Это normalized
-inverted index для product-level facets: `tag` и `feature`.
-
-```sql
-CREATE TABLE catalog.product_listing_facet_token (
-  project_id             uuid NOT NULL,
-  product_id             uuid NOT NULL,
-  facet_id               uuid NOT NULL,
-  facet_value_id         uuid NOT NULL,
-  facet_type             varchar(16) NOT NULL,
-  indexed_at             timestamptz NOT NULL DEFAULT now(),
-
-  PRIMARY KEY (product_id, facet_id, facet_value_id),
-  CONSTRAINT fk_product_listing_facet_token_product
-    FOREIGN KEY (product_id)
-    REFERENCES catalog.product_listing_index(product_id)
-    ON DELETE CASCADE,
-  CONSTRAINT fk_product_listing_facet_token_facet
-    FOREIGN KEY (facet_id)
-    REFERENCES catalog.facet(id)
-    ON DELETE CASCADE,
-  CONSTRAINT fk_product_listing_facet_token_value
-    FOREIGN KEY (facet_value_id)
-    REFERENCES catalog.facet_value(id)
-    ON DELETE CASCADE,
-  CONSTRAINT chk_product_listing_facet_token_type
-    CHECK (facet_type IN ('tag', 'feature'))
-);
-```
-
-### Поля
-
-| Поле | Комментарий |
-| --- | --- |
-| `project_id` | Project boundary and first column in lookup/count indexes. |
-| `product_id` | Product that owns this resolved facet token. |
-| `facet_id` | Storefront configured facet id. Isolation/count logic работает по `facet_id`, не по `facet_type`. |
-| `facet_value_id` | Storefront configured visible facet value id after resolving raw source handles through the `facet_value.kind/source parent` model. |
-| `facet_type` | Denormalized type guard: only `tag` or `feature`. Useful for diagnostics and validation, not for isolation grouping. |
-| `indexed_at` | Время генерации token rows for product. |
-
-### Ограничения
-
-| Ограничение | Комментарий |
-| --- | --- |
-| `PRIMARY KEY (product_id, facet_id, facet_value_id)` | Deduplicates merged values: multiple source handles on one product resolving to the same `facet_value_id` count once. |
-| `fk_product_listing_facet_token_product` | Привязывает product tokens к parent `product_listing_index` и удаляет tokens при partial sync/rebuild удалении product из read model. |
-| `fk_product_listing_facet_token_facet` | Удаляет tokens when configured facet is removed. |
-| `fk_product_listing_facet_token_value` | Удаляет tokens when configured facet value is removed and enforces value ownership by facet. |
-| `chk_product_listing_facet_token_type` | Prevents option/virtual facet tokens from entering product-level table. |
-
-### Индексы
-
-```sql
-CREATE INDEX idx_product_listing_facet_token_count
-  ON catalog.product_listing_facet_token (
-    project_id,
-    facet_id,
-    facet_value_id,
-    product_id
-  );
-
-CREATE INDEX idx_product_listing_facet_token_product
-  ON catalog.product_listing_facet_token (
-    project_id,
-    product_id,
-    facet_id,
-    facet_value_id
-  );
-```
-
-| Индекс | Комментарий |
-| --- | --- |
-| `idx_product_listing_facet_token_count` | Основной access path для product-level facet counts and candidate-first filtering by selected facet values. |
-| `idx_product_listing_facet_token_product` | Быстрый lookup tokens by project + product during aggregation over scoped product set. Нужен отдельно, потому что PK начинается с `product_id`. |
-
-## `catalog.variant_listing_facet_token`
-
-Одна строка на variant + resolved storefront option value. Это normalized
-inverted index для variant-level option facets. `variant_id` обязателен, чтобы
-OPTION и PRICE predicates применялись к одному и тому же in-stock variant row.
-
-```sql
-CREATE TABLE catalog.variant_listing_facet_token (
-  project_id             uuid NOT NULL,
-  product_id             uuid NOT NULL,
-  variant_id             uuid NOT NULL,
-  facet_id               uuid NOT NULL,
-  facet_value_id         uuid NOT NULL,
-  indexed_at             timestamptz NOT NULL DEFAULT now(),
-
-  PRIMARY KEY (variant_id, facet_id, facet_value_id),
-  CONSTRAINT fk_variant_listing_facet_token_variant
-    FOREIGN KEY (variant_id)
-    REFERENCES catalog.variant_listing_index(variant_id)
-    ON DELETE CASCADE,
-  CONSTRAINT fk_variant_listing_facet_token_facet
-    FOREIGN KEY (facet_id)
-    REFERENCES catalog.facet(id)
-    ON DELETE CASCADE,
-  CONSTRAINT fk_variant_listing_facet_token_value
-    FOREIGN KEY (facet_value_id)
-    REFERENCES catalog.facet_value(id)
-    ON DELETE CASCADE
-);
-```
-
-### Поля
-
-| Поле | Комментарий |
-| --- | --- |
-| `project_id` | Project boundary and first lookup/count index column. |
-| `product_id` | Parent product for grouping option matches back to product cardinality. |
-| `variant_id` | Variant that owns the option value. Active option predicates must be anchored to this id. |
-| `facet_id` | Storefront configured option facet id. Isolation is per `facet_id`. |
-| `facet_value_id` | Storefront configured option value id after source-handle resolution. |
-| `indexed_at` | Время генерации token rows for variant. |
-
-### Ограничения
-
-| Ограничение | Комментарий |
-| --- | --- |
-| `PRIMARY KEY (variant_id, facet_id, facet_value_id)` | Deduplicates repeated source mappings on the same variant while preserving same-variant matching. |
-| `fk_variant_listing_facet_token_variant` | Привязывает option tokens к parent `variant_listing_index`, удаляет tokens при partial sync/rebuild удалении variant из read model и проверяет принадлежность variant product. |
-| `fk_variant_listing_facet_token_facet` | Удаляет tokens when configured option facet is removed. |
-| `fk_variant_listing_facet_token_value` | Удаляет tokens when configured option value is removed and enforces value ownership by facet. |
-
-### Индексы
-
-```sql
-CREATE INDEX idx_variant_listing_facet_token_count
-  ON catalog.variant_listing_facet_token (
-    project_id,
-    facet_id,
-    facet_value_id,
-    product_id,
-    variant_id
-  );
-
-CREATE INDEX idx_variant_listing_facet_token_variant
-  ON catalog.variant_listing_facet_token (
-    project_id,
-    variant_id,
-    facet_id,
-    facet_value_id
-  );
-
-CREATE INDEX idx_variant_listing_facet_token_product
-  ON catalog.variant_listing_facet_token (
-    project_id,
-    product_id,
-    facet_id,
-    facet_value_id
-  );
-```
-
-| Индекс | Комментарий |
-| --- | --- |
-| `idx_variant_listing_facet_token_count` | Основной access path для option counts/filtering by option value; включает product/variant для дедупликации и same-variant joins. |
-| `idx_variant_listing_facet_token_variant` | Быстрый lookup option tokens by project + variant while evaluating multiple active option predicates. Нужен отдельно, потому что PK начинается с `variant_id`. |
-| `idx_variant_listing_facet_token_product` | Поддерживает aggregation over scoped product candidates and product-level grouping of variant option values. |
+Row-based facet posting tables are intentionally not part of this schema.
+Product tag/feature facets and variant option facets are written directly into
+the roaring posting index (`catalog.listing_posting_bitmap`) during listing
+build. The SQL listing read model keeps source/debug fields, while runtime
+filtering and counts use roaring bitmaps immediately.
 
 ## Внешние ограничения canonical tables
 
@@ -639,9 +487,9 @@ CREATE INDEX idx_product_translation_listing_name
 
 | `facet_type` | Storage/read path |
 | --- | --- |
-| `tag` | `product_listing_facet_token` |
-| `feature` | `product_listing_facet_token` |
-| `option` | `variant_listing_facet_token` |
+| `tag` | catalog.listing_posting_bitmap product facet postings |
+| `feature` | catalog.listing_posting_bitmap product facet postings |
+| `option` | catalog.listing_posting_bitmap variant facet postings |
 | `price` | Virtual facet over `variant_listing_price_index.price_minor` and product price aggregates |
 | `in_stock` | Virtual facet over `product_listing_index.in_stock` / `variant_listing_index.in_stock` |
 

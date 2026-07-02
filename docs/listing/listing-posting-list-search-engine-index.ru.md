@@ -5,15 +5,18 @@
 `docs/listing/listing-query-sql-examples.ru.md`.
 
 Цель - описать PostgreSQL-based listing engine поверх денормализованной read
-model, который хранит не строки token table, а физические inverted posting
-lists в `pg_roaringbitmap`. Это не замена canonical catalog tables и не
-предрасчет facet counts. Counts остаются результатом runtime set operations в
-PostgreSQL.
+model, который сразу строит физические inverted posting lists в
+`pg_roaringbitmap`. Это не замена canonical catalog tables и не предрасчет
+facet counts. Counts остаются результатом runtime set operations в PostgreSQL.
 
-## Проблема текущего SQL token index
+Roaring/posting index создается сразу как целевой storefront listing runtime.
+Отдельные row-based facet posting tables для product/variant facet values не
+создаются: builder пишет product tag/feature и variant option postings напрямую
+в `catalog.listing_posting_bitmap`.
 
-`product_listing_facet_token` и `variant_listing_facet_token` логически уже
-являются inverted index:
+## Проблема row-based inverted index
+
+Если хранить facet values как строки, они логически являются inverted index:
 
 ```text
 (facet_id, facet_value_id) -> product_id / variant_id
@@ -49,7 +52,8 @@ matches = category_mens_sneakers & brand_nike & size_42 & color_black
 
 ## Цели
 
-1. Хранить posting lists как `roaringbitmap` rows, а не как rows token table.
+1. Хранить posting lists как `roaringbitmap` rows сразу, без row-based facet
+   posting tables.
 2. Делать filtering, totalCount и facet counts через fast set intersections.
 3. Сохранить facet isolation: для counts конкретного `facet_id` исключать
    active filters этого же `facet_id`, но применять остальные filters.
@@ -89,7 +93,7 @@ canonical catalog tables
         |
         v
 PostgreSQL listing read model
-product_listing_index / variant_listing_index / token tables / price index
+product_listing_index / variant_listing_index / price index
         |
         v
 posting-list index builder
@@ -1313,7 +1317,7 @@ Canonical catalog events сначала обновляют PostgreSQL listing re
 ```text
 variant option changed
   -> SyncVariantListingIndexScript
-  -> variant row + option tokens + parent product aggregate
+  -> variant row + option postings + parent product aggregate
 ```
 
 После успешного commit событие добавляется в posting refresh queue:

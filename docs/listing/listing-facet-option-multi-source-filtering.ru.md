@@ -8,7 +8,7 @@
   options;
 - значения этих options могут быть сгруппированы через
   `facet_value.kind = 'display'`;
-- listing index хранит не raw option handles, а готовые tokens
+- listing index хранит не raw option handles, а готовые postings
   `(facet_id, facet_value_id)`;
 - фильтрация должна сохранять same-variant semantics.
 
@@ -106,7 +106,7 @@ Fit Size = M
 
 ## Что хранит token
 
-Option facet tokens лежат в `catalog.variant_listing_facet_token`.
+Option facet postings лежат в catalog.listing_posting_bitmap variant facet postings.
 
 Token хранит:
 
@@ -230,7 +230,7 @@ facet_id = facet_fit_size
 facet_value_id = display_m
 ```
 
-В `variant_listing_facet_token` записывается:
+В catalog.listing_posting_bitmap variant facet postings записывается:
 
 ```text
 project_id = project_1
@@ -286,7 +286,7 @@ id.
 
 Если source value disabled, отсутствует или больше не входит в configured
 `facet_source` этого facet, token для него не пишется. Изменение этих условий
-делает старые tokens stale и требует refresh.
+делает старые postings stale и требует refresh.
 
 ## Как storefront filter резолвится на read path
 
@@ -359,14 +359,14 @@ display group не имеет реальных catalog values и не должн
 фильтрах/counts. В реальной реализации resolve должен быть batch query, а не
 N запросов по values.
 
-После этого listing query работает только по token table. Запрос ниже является
+После этого listing query работает только по posting bitmap. Запрос ниже является
 фрагментом: он должен быть ограничен текущим listing scope (`base` /
 collection/search scope, published visibility, vendor/product-level filters):
 
 ```sql
 SELECT DISTINCT vlt.product_id
 FROM base b
-JOIN catalog.variant_listing_facet_token vlt
+JOIN catalog.listing_posting_bitmap vlt
   ON vlt.project_id = :projectId
  AND vlt.product_id = b.product_id
 JOIN catalog.variant_listing_index vli
@@ -423,12 +423,12 @@ FROM base b
 JOIN catalog.variant_listing_index vli
   ON vli.project_id = :projectId
  AND vli.product_id = b.product_id
-JOIN catalog.variant_listing_facet_token fit_size
+JOIN catalog.listing_posting_bitmap fit_size
   ON fit_size.project_id = vli.project_id
  AND fit_size.variant_id = vli.variant_id
  AND fit_size.facet_id = :fitSizeFacetId
  AND fit_size.facet_value_id = ANY(:fitSizeValueIds)
-JOIN catalog.variant_listing_facet_token color
+JOIN catalog.listing_posting_bitmap color
   ON color.project_id = vli.project_id
  AND color.variant_id = vli.variant_id
  AND color.facet_id = :colorFacetId
@@ -488,7 +488,7 @@ facet_id = facet_fit_size
 facet_value_id = display_m
 ```
 
-`variant_listing_facet_token` имеет primary key:
+catalog.listing_posting_bitmap variant facet postings имеет primary key:
 
 ```text
 (project_id, variant_id, facet_id, facet_value_id)
@@ -507,7 +507,7 @@ facet_value_id = display_m
 
 ## Counts для facet с несколькими option sources
 
-Option counts считаются по `variant_listing_facet_token`, но результат должен
+Option counts считаются по catalog.listing_posting_bitmap variant facet postings, но результат должен
 быть product cardinality, а не variant cardinality.
 
 Для facet `fit-size` count value `m` должен отвечать на вопрос:
@@ -532,7 +532,7 @@ fit-size = m?
 соответствующий `EXISTS` не генерируется.
 
 ```sql
-WITH option_variant_tokens AS (
+WITH option_variant_postings AS (
   SELECT
     vli.product_id,
     vlt.facet_id,
@@ -541,7 +541,7 @@ WITH option_variant_tokens AS (
   JOIN catalog.variant_listing_index vli
     ON vli.project_id = :projectId
    AND vli.product_id = b.product_id
-  JOIN catalog.variant_listing_facet_token vlt
+  JOIN catalog.listing_posting_bitmap vlt
     ON vlt.project_id = :projectId
    AND vlt.variant_id = vli.variant_id
    AND vlt.facet_id = :fitSizeFacetId
@@ -552,7 +552,7 @@ WITH option_variant_tokens AS (
     -- other active option predicates stay anchored to the same variant_id
     AND EXISTS (
       SELECT 1
-      FROM catalog.variant_listing_facet_token color_filter
+      FROM catalog.listing_posting_bitmap color_filter
       WHERE color_filter.project_id = :projectId
         AND color_filter.variant_id = vli.variant_id
         AND color_filter.facet_id = :colorFacetId
@@ -574,7 +574,7 @@ option_product_values AS (
     vlt.product_id,
     vlt.facet_id,
     vlt.facet_value_id
-  FROM option_variant_tokens vlt
+  FROM option_variant_postings vlt
   GROUP BY vlt.product_id, vlt.facet_id, vlt.facet_value_id
 )
 SELECT
@@ -591,7 +591,7 @@ option facets можно объединять через `UNION ALL`.
 
 `:fitSizeVisibleValueIds` должен приходить из configured visible values этого
 facet, которые резолвятся хотя бы в один enabled source value. Нельзя
-агрегировать все tokens, когда-либо сгенерированные для project.
+агрегировать все postings, когда-либо сгенерированные для project.
 
 `GROUP BY product_id, facet_id, facet_value_id` нужен, чтобы counts были по
 products и не double-count-или несколько variants или несколько source mappings.
@@ -626,7 +626,7 @@ Canonical product/variant мог не измениться, но listing token �
 - либо project token rebuild, если affected set нельзя дешево вычислить.
 
 Этот refresh не должен пересчитывать price rows или stock rows. Он меняет
-только token tables.
+только roaring posting tables.
 
 Такой же token refresh нужен не только при изменении grouping:
 
@@ -638,7 +638,7 @@ Canonical product/variant мог не измениться, но listing token �
 - affected variants/products нельзя дешево найти по source handles.
 
 Изменение display label, sort, swatch или public handle само по себе не требует
-переписывать tokens, потому что token хранит display/root `facet_value_id`.
+переписывать postings, потому что token хранит display/root `facet_value_id`.
 Но storefront resolve/aggregation должен читать актуальные visible values.
 
 ## Главный инвариант
@@ -663,7 +663,7 @@ catalog option source/value
   -> facet_source
   -> facet_value kind=source
   -> optional parent display group
-  -> variant_listing_facet_token(facet_id, facet_value_id)
+  -> catalog.listing_posting_bitmap variant facet postings(facet_id, facet_value_id)
 ```
 
 Благодаря этому storefront query не знает, из какой конкретной catalog option

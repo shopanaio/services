@@ -17,7 +17,7 @@
 - `base_scope` всегда оставляет только `pli.status = 'published'`;
 - каждая сортировка начинается с `in_stock DESC` и завершается
   `product_id ASC`;
-- product-level filters идут через `product_listing_facet_token`;
+- product-level filters идут через catalog.listing_posting_bitmap product facet postings;
 - option/price filters идут через один и тот же in-stock variant row;
 - список отображаемых facet filters ограничивается стабильным listing scope
   (`base_scope`/`base_all`) с visibility rules, но без применения
@@ -82,7 +82,7 @@ filtered_products AS (
   FROM base_scope bs
   WHERE EXISTS (
     SELECT 1
-    FROM catalog.product_listing_facet_token pft
+    FROM catalog.listing_posting_bitmap pft
     WHERE pft.project_id = :projectId
       AND pft.product_id = bs.product_id
       AND pft.facet_id = :tagFacetId
@@ -120,7 +120,7 @@ filtered_products AS (
   FROM base_scope bs
   WHERE EXISTS (
     SELECT 1
-    FROM catalog.product_listing_facet_token pft
+    FROM catalog.listing_posting_bitmap pft
     WHERE pft.project_id = :projectId
       AND pft.product_id = bs.product_id
       AND pft.facet_id = :brandFacetId
@@ -128,7 +128,7 @@ filtered_products AS (
   )
     AND EXISTS (
       SELECT 1
-      FROM catalog.product_listing_facet_token pft
+      FROM catalog.listing_posting_bitmap pft
       WHERE pft.project_id = :projectId
         AND pft.product_id = bs.product_id
         AND pft.facet_id = :materialFacetId
@@ -175,7 +175,7 @@ matching_variants AS (
     AND vli.in_stock = true
     AND EXISTS (
       SELECT 1
-      FROM catalog.variant_listing_facet_token color_filter
+      FROM catalog.listing_posting_bitmap color_filter
       WHERE color_filter.project_id = vli.project_id
         AND color_filter.variant_id = vli.variant_id
         AND color_filter.facet_id = :colorFacetId
@@ -183,7 +183,7 @@ matching_variants AS (
     )
     AND EXISTS (
       SELECT 1
-      FROM catalog.variant_listing_facet_token size_filter
+      FROM catalog.listing_posting_bitmap size_filter
       WHERE size_filter.project_id = vli.project_id
         AND size_filter.variant_id = vli.variant_id
         AND size_filter.facet_id = :sizeFacetId
@@ -235,7 +235,7 @@ filtered_products AS (
   FROM base_scope bs
   WHERE EXISTS (
     SELECT 1
-    FROM catalog.product_listing_facet_token pft
+    FROM catalog.listing_posting_bitmap pft
     WHERE pft.project_id = :projectId
       AND pft.product_id = bs.product_id
       AND pft.facet_id = :brandFacetId
@@ -282,7 +282,7 @@ matching_variants AS (
     AND vlpi.price_minor BETWEEN :minPriceMinor AND :maxPriceMinor
     AND EXISTS (
       SELECT 1
-      FROM catalog.variant_listing_facet_token color_filter
+      FROM catalog.listing_posting_bitmap color_filter
       WHERE color_filter.project_id = vli.project_id
         AND color_filter.variant_id = vli.variant_id
         AND color_filter.facet_id = :colorFacetId
@@ -290,7 +290,7 @@ matching_variants AS (
     )
     AND EXISTS (
       SELECT 1
-      FROM catalog.variant_listing_facet_token size_filter
+      FROM catalog.listing_posting_bitmap size_filter
       WHERE size_filter.project_id = vli.project_id
         AND size_filter.variant_id = vli.variant_id
         AND size_filter.facet_id = :sizeFacetId
@@ -335,7 +335,7 @@ product_filtered AS (
   FROM base_scope bs
   WHERE EXISTS (
     SELECT 1
-    FROM catalog.product_listing_facet_token pft
+    FROM catalog.listing_posting_bitmap pft
     WHERE pft.project_id = :projectId
       AND pft.product_id = bs.product_id
       AND pft.facet_id = :brandFacetId
@@ -348,7 +348,7 @@ variant_filtered AS (
   WHERE EXISTS (
     SELECT 1
     FROM catalog.variant_listing_index vli
-    JOIN catalog.variant_listing_facet_token vft
+    JOIN catalog.listing_posting_bitmap vft
       ON vft.project_id = vli.project_id
      AND vft.variant_id = vli.variant_id
     WHERE vli.project_id = :projectId
@@ -402,7 +402,7 @@ filtered_products AS (
   FROM base_scope bs
   WHERE EXISTS (
     SELECT 1
-    FROM catalog.product_listing_facet_token pft
+    FROM catalog.listing_posting_bitmap pft
     WHERE pft.project_id = :projectId
       AND pft.product_id = bs.product_id
       AND pft.facet_id = :seasonFacetId
@@ -410,7 +410,7 @@ filtered_products AS (
   )
     AND EXISTS (
       SELECT 1
-      FROM catalog.product_listing_facet_token pft
+      FROM catalog.listing_posting_bitmap pft
       WHERE pft.project_id = :projectId
         AND pft.product_id = bs.product_id
         AND pft.facet_id = :brandFacetId
@@ -460,7 +460,7 @@ filtered_products AS (
   FROM base_scope bs
   WHERE EXISTS (
     SELECT 1
-    FROM catalog.product_listing_facet_token pft
+    FROM catalog.listing_posting_bitmap pft
     WHERE pft.project_id = :projectId
       AND pft.product_id = bs.product_id
       AND pft.facet_id = :brandFacetId
@@ -469,7 +469,7 @@ filtered_products AS (
     AND EXISTS (
       SELECT 1
       FROM catalog.variant_listing_index vli
-      JOIN catalog.variant_listing_facet_token vft
+      JOIN catalog.listing_posting_bitmap vft
         ON vft.project_id = vli.project_id
        AND vft.variant_id = vli.variant_id
       WHERE vli.project_id = :projectId
@@ -512,7 +512,7 @@ product_filtered AS (
   FROM base_scope bs
   WHERE EXISTS (
     SELECT 1
-    FROM catalog.product_listing_facet_token pft
+    FROM catalog.listing_posting_bitmap pft
     WHERE pft.project_id = :projectId
       AND pft.product_id = bs.product_id
       AND pft.facet_id = :brandFacetId
@@ -537,7 +537,7 @@ matching_variants AS (
    AND vlpi.price_minor BETWEEN :minPriceMinor AND :maxPriceMinor
   WHERE EXISTS (
     SELECT 1
-    FROM catalog.variant_listing_facet_token color_filter
+    FROM catalog.listing_posting_bitmap color_filter
     WHERE color_filter.project_id = vli.project_id
       AND color_filter.variant_id = vli.variant_id
       AND color_filter.facet_id = :colorFacetId
@@ -545,7 +545,7 @@ matching_variants AS (
   )
     AND EXISTS (
       SELECT 1
-      FROM catalog.variant_listing_facet_token size_filter
+      FROM catalog.listing_posting_bitmap size_filter
       WHERE size_filter.project_id = vli.project_id
         AND size_filter.variant_id = vli.variant_id
         AND size_filter.facet_id = :sizeFacetId
@@ -600,7 +600,7 @@ brand_isolated_scope AS (
   FROM base_scope bs
   WHERE EXISTS (
     SELECT 1
-    FROM catalog.product_listing_facet_token pft
+    FROM catalog.listing_posting_bitmap pft
     WHERE pft.project_id = :projectId
       AND pft.product_id = bs.product_id
       AND pft.facet_id = :materialFacetId
@@ -612,7 +612,7 @@ material_isolated_scope AS (
   FROM base_scope bs
   WHERE EXISTS (
     SELECT 1
-    FROM catalog.product_listing_facet_token pft
+    FROM catalog.listing_posting_bitmap pft
     WHERE pft.project_id = :projectId
       AND pft.product_id = bs.product_id
       AND pft.facet_id = :brandFacetId
@@ -625,7 +625,7 @@ brand_counts AS (
     pft.facet_value_id,
     COUNT(*) AS product_count
   FROM brand_isolated_scope bis
-  JOIN catalog.product_listing_facet_token pft
+  JOIN catalog.listing_posting_bitmap pft
     ON pft.project_id = :projectId
    AND pft.product_id = bis.product_id
    AND pft.facet_id = :brandFacetId
@@ -637,7 +637,7 @@ material_counts AS (
     pft.facet_value_id,
     COUNT(*) AS product_count
   FROM material_isolated_scope mis
-  JOIN catalog.product_listing_facet_token pft
+  JOIN catalog.listing_posting_bitmap pft
     ON pft.project_id = :projectId
    AND pft.product_id = mis.product_id
    AND pft.facet_id = :materialFacetId
@@ -655,7 +655,7 @@ SELECT
 ```
 
 Option facet counts используют тот же принцип, но строятся от
-`variant_listing_index` + `variant_listing_facet_token`, применяют active
+`variant_listing_index` + catalog.listing_posting_bitmap variant facet postings, применяют active
 variant-level filters к одному `variant_id` и дедуплицируют до
 `(product_id, facet_id, facet_value_id)` перед `GROUP BY`.
 
@@ -667,7 +667,7 @@ counts с isolation. Counts считаются по полному filtered scop
 `facet_id`, но оставить остальные active filters.
 
 Пример ниже показывает product-level facet counts. Option counts должны идти
-от `variant_listing_index` + `variant_listing_facet_token`, дедуплицируясь до
+от `variant_listing_index` + catalog.listing_posting_bitmap variant facet postings, дедуплицируясь до
 `(product_id, facet_id, facet_value_id)`.
 
 ```sql
@@ -685,7 +685,7 @@ brand_isolated_scope AS (
   FROM base_scope bs
   WHERE EXISTS (
     SELECT 1
-    FROM catalog.product_listing_facet_token pft
+    FROM catalog.listing_posting_bitmap pft
     WHERE pft.project_id = :projectId
       AND pft.product_id = bs.product_id
       AND pft.facet_id = :materialFacetId
@@ -697,7 +697,7 @@ material_isolated_scope AS (
   FROM base_scope bs
   WHERE EXISTS (
     SELECT 1
-    FROM catalog.product_listing_facet_token pft
+    FROM catalog.listing_posting_bitmap pft
     WHERE pft.project_id = :projectId
       AND pft.product_id = bs.product_id
       AND pft.facet_id = :brandFacetId
@@ -709,7 +709,7 @@ filtered_products AS (
   FROM base_scope bs
   WHERE EXISTS (
     SELECT 1
-    FROM catalog.product_listing_facet_token pft
+    FROM catalog.listing_posting_bitmap pft
     WHERE pft.project_id = :projectId
       AND pft.product_id = bs.product_id
       AND pft.facet_id = :brandFacetId
@@ -717,7 +717,7 @@ filtered_products AS (
   )
     AND EXISTS (
       SELECT 1
-      FROM catalog.product_listing_facet_token pft
+      FROM catalog.listing_posting_bitmap pft
       WHERE pft.project_id = :projectId
         AND pft.product_id = bs.product_id
         AND pft.facet_id = :materialFacetId
@@ -743,7 +743,7 @@ brand_counts AS (
     pft.facet_value_id,
     COUNT(*) AS product_count
   FROM brand_isolated_scope bis
-  JOIN catalog.product_listing_facet_token pft
+  JOIN catalog.listing_posting_bitmap pft
     ON pft.project_id = :projectId
    AND pft.product_id = bis.product_id
    AND pft.facet_id = :brandFacetId
@@ -755,7 +755,7 @@ material_counts AS (
     pft.facet_value_id,
     COUNT(*) AS product_count
   FROM material_isolated_scope mis
-  JOIN catalog.product_listing_facet_token pft
+  JOIN catalog.listing_posting_bitmap pft
     ON pft.project_id = :projectId
    AND pft.product_id = mis.product_id
    AND pft.facet_id = :materialFacetId
@@ -799,7 +799,7 @@ product_filtered AS (
   FROM base_scope bs
   WHERE EXISTS (
     SELECT 1
-    FROM catalog.product_listing_facet_token pft
+    FROM catalog.listing_posting_bitmap pft
     WHERE pft.project_id = :projectId
       AND pft.product_id = bs.product_id
       AND pft.facet_id = :brandFacetId
@@ -824,7 +824,7 @@ matching_variants AS (
    AND vlpi.price_minor BETWEEN :minPriceMinor AND :maxPriceMinor
   WHERE EXISTS (
     SELECT 1
-    FROM catalog.variant_listing_facet_token color_filter
+    FROM catalog.listing_posting_bitmap color_filter
     WHERE color_filter.project_id = vli.project_id
       AND color_filter.variant_id = vli.variant_id
       AND color_filter.facet_id = :colorFacetId
@@ -832,7 +832,7 @@ matching_variants AS (
   )
     AND EXISTS (
       SELECT 1
-      FROM catalog.variant_listing_facet_token size_filter
+      FROM catalog.listing_posting_bitmap size_filter
       WHERE size_filter.project_id = vli.project_id
         AND size_filter.variant_id = vli.variant_id
         AND size_filter.facet_id = :sizeFacetId
@@ -878,12 +878,12 @@ color_isolated_variants AS (
    AND vlpi.currency = :currency
    AND vlpi.has_price = true
    AND vlpi.price_minor BETWEEN :minPriceMinor AND :maxPriceMinor
-  JOIN catalog.variant_listing_facet_token size_filter
+  JOIN catalog.listing_posting_bitmap size_filter
     ON size_filter.project_id = vli.project_id
    AND size_filter.variant_id = vli.variant_id
    AND size_filter.facet_id = :sizeFacetId
    AND size_filter.facet_value_id = ANY(:sizeValueIds)
-  JOIN catalog.variant_listing_facet_token vft
+  JOIN catalog.listing_posting_bitmap vft
     ON vft.project_id = vli.project_id
    AND vft.variant_id = vli.variant_id
    AND vft.facet_id = :colorFacetId
