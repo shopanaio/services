@@ -513,6 +513,15 @@ matched variant price collector из следующего раздела.
 сканирует `listing_posting_variant_price` в price order и дедуплицирует product
 без смены leading order на `product_id`.
 
+SQL ниже показывает correctness/reference shape: он выбирает lowest matching
+variant per product через anti-join и сохраняет итоговый order by price. Для
+runtime hot path, особенно когда у товаров много matching variants, preferred
+strategy - читать `listing_posting_variant_price` ordered chunks по нужному
+price index, проверять membership bitmaps, дедуплицировать `product_id` в
+application layer и продолжать overfetch, пока не набран `:firstPlusOne`.
+Anti-join shape допустим для узких фильтров, diagnostics и fallback, но не
+должен быть единственным planned implementation для high-duplication products.
+
 ```sql
 WITH base_scope AS (
   SELECT p.bitmap AS product_bitmap
@@ -616,10 +625,9 @@ FROM page_products pp;
 
 Для `price_desc` collector использует `idx_listing_posting_variant_price_desc`,
 выбирает highest matching variant per product и меняет order direction на
-`price_minor DESC`. Для высоко-дублирующихся products implementation может
-читать ordered price rows chunk-ами с overfetch и дедуплицировать application
-layer, пока не набран `:firstPlusOne`; это допустимый runtime optimization,
-если SQL anti-join хуже планируется.
+`price_minor DESC`. Chunked application dedupe остается preferred hot-path
+strategy для high-duplication products; SQL anti-join остается reference/fallback
+shape.
 
 ## 7. Name sort + product and option filters
 
@@ -1087,6 +1095,11 @@ SELECT
 - totalCount считается по product bitmap;
 - option counts требуют variant-level isolation и projection в product bitmap.
 
+`page_products` ниже повторяет correctness/reference anti-join shape из раздела
+6. Production collector может заменить этот CTE на ordered chunk scan +
+application dedupe, сохранив те же `variant_matches`, `product_matches`, order
+keys и cursor semantics.
+
 ```sql
 WITH base_scope AS (
   SELECT :baseScopeBitmap::roaringbitmap AS product_bitmap
@@ -1232,7 +1245,10 @@ those product filters.
 - Price range строится из `listing_posting_variant_price`; generic
   `field = 'price'` posting row не создается.
 - Если активны option или price predicates и sort идет по price, использовать
-  matched variant price collector.
+  matched variant price collector. Preferred hot path для high-duplication
+  products - ordered chunk scan по `listing_posting_variant_price` с application
+  dedupe; SQL anti-join использовать как correctness/reference или fallback
+  shape.
 - Для `newest`, `created`, `name`, `manual` и product aggregate price sort
   использовать `listing_posting_product_sort`.
 - Если client не запрашивает `totalCount`, page query не должен вызывать
