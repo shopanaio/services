@@ -12,6 +12,7 @@
 - `:currency` - default storefront currency проекта;
 - `:locale` - storefront locale;
 - `:first` - page size;
+- `:firstPlusOne` - `:first + 1` для cursor pagination без `totalCount`;
 - cursor pagination добавляется keyset predicates по тем же sort keys;
 - `base_scope` всегда оставляет только `pli.status = 'published'`;
 - каждая сортировка начинается с `in_stock DESC` и завершается
@@ -482,11 +483,182 @@ ORDER BY
 LIMIT :first;
 ```
 
-## 10. Full listing page: page ids + totalCount + isolated facet counts
+## 10. Cursor page ids без totalCount
 
-Самая тяжелая форма: один request возвращает страницу товаров, totalCount и
-facet counts с isolation. Counts считаются по полному filtered scope, не по
-странице. Для каждого facet count нужно исключить только фильтр своего
+Если client не запрашивает `totalCount`, page query должен возвращать только
+page ids и sort keys. Для `hasNextPage` читается `:firstPlusOne` rows; лишняя
+строка отбрасывается application layer. Это избавляет request от полного
+прохода по `filtered_products` ради `COUNT(*)`.
+
+Пример ниже сохраняет тяжелую same-variant семантику option + price filters и
+matched price sort, но не считает `totalCount`. Facet counts, если они нужны
+client, считаются отдельным SQL block/statement по тем же active filters и
+isolation rules.
+
+```sql
+WITH base_scope AS (
+  SELECT pli.product_id, pli.in_stock
+  FROM catalog.product_listing_index pli
+  WHERE pli.project_id = :projectId
+    AND pli.status = 'published'
+),
+product_filtered AS (
+  SELECT bs.*
+  FROM base_scope bs
+  WHERE EXISTS (
+    SELECT 1
+    FROM catalog.product_listing_facet_token pft
+    WHERE pft.project_id = :projectId
+      AND pft.product_id = bs.product_id
+      AND pft.facet_id = :brandFacetId
+      AND pft.facet_value_id = ANY(:brandValueIds)
+  )
+),
+matching_variants AS (
+  SELECT
+    vli.product_id,
+    vli.variant_id,
+    vlpi.price_minor
+  FROM product_filtered pf
+  JOIN catalog.variant_listing_index vli
+    ON vli.project_id = :projectId
+   AND vli.product_id = pf.product_id
+   AND vli.in_stock = true
+  JOIN catalog.variant_listing_price_index vlpi
+    ON vlpi.project_id = vli.project_id
+   AND vlpi.variant_id = vli.variant_id
+   AND vlpi.currency = :currency
+   AND vlpi.has_price = true
+   AND vlpi.price_minor BETWEEN :minPriceMinor AND :maxPriceMinor
+  WHERE EXISTS (
+    SELECT 1
+    FROM catalog.variant_listing_facet_token color_filter
+    WHERE color_filter.project_id = vli.project_id
+      AND color_filter.variant_id = vli.variant_id
+      AND color_filter.facet_id = :colorFacetId
+      AND color_filter.facet_value_id = ANY(:colorValueIds)
+  )
+    AND EXISTS (
+      SELECT 1
+      FROM catalog.variant_listing_facet_token size_filter
+      WHERE size_filter.project_id = vli.project_id
+        AND size_filter.variant_id = vli.variant_id
+        AND size_filter.facet_id = :sizeFacetId
+        AND size_filter.facet_value_id = ANY(:sizeValueIds)
+    )
+),
+page_candidates AS (
+  SELECT
+    pf.product_id,
+    pf.in_stock,
+    MIN(mv.price_minor) AS matched_min_price_minor
+  FROM product_filtered pf
+  JOIN matching_variants mv
+    ON mv.product_id = pf.product_id
+  GROUP BY pf.product_id, pf.in_stock
+)
+SELECT product_id, in_stock, matched_min_price_minor
+FROM page_candidates
+ORDER BY
+  in_stock DESC,
+  matched_min_price_minor ASC NULLS LAST,
+  product_id ASC
+LIMIT :firstPlusOne;
+```
+
+Backward pagination использует тот же cursor contract, но keyset predicate и
+sort direction инвертируются. Application layer затем возвращает rows в
+каноническом порядке sort.
+
+## 11. Facet counts отдельным query без totalCount
+
+Если client запрашивает facets, но не запрашивает `totalCount`, page query из
+предыдущего раздела должен выполняться отдельно от aggregation query. Facet
+counts все еще считаются по full filtered scope с isolation rules, но не
+блокируют shape page query и не требуют отдельного `COUNT(*)` по
+`filtered_products`.
+
+Пример ниже показывает product-level facet counts как отдельный SQL statement.
+Он не возвращает page ids и не считает `totalCount`.
+
+```sql
+WITH base_scope AS (
+  SELECT
+    pli.product_id,
+    pli.in_stock
+  FROM catalog.product_listing_index pli
+  WHERE pli.project_id = :projectId
+    AND pli.status = 'published'
+),
+brand_isolated_scope AS (
+  SELECT bs.*
+  FROM base_scope bs
+  WHERE EXISTS (
+    SELECT 1
+    FROM catalog.product_listing_facet_token pft
+    WHERE pft.project_id = :projectId
+      AND pft.product_id = bs.product_id
+      AND pft.facet_id = :materialFacetId
+      AND pft.facet_value_id = ANY(:materialValueIds)
+  )
+),
+material_isolated_scope AS (
+  SELECT bs.*
+  FROM base_scope bs
+  WHERE EXISTS (
+    SELECT 1
+    FROM catalog.product_listing_facet_token pft
+    WHERE pft.project_id = :projectId
+      AND pft.product_id = bs.product_id
+      AND pft.facet_id = :brandFacetId
+      AND pft.facet_value_id = ANY(:brandValueIds)
+  )
+),
+brand_counts AS (
+  SELECT
+    pft.facet_id,
+    pft.facet_value_id,
+    COUNT(*) AS product_count
+  FROM brand_isolated_scope bis
+  JOIN catalog.product_listing_facet_token pft
+    ON pft.project_id = :projectId
+   AND pft.product_id = bis.product_id
+   AND pft.facet_id = :brandFacetId
+  GROUP BY pft.facet_id, pft.facet_value_id
+),
+material_counts AS (
+  SELECT
+    pft.facet_id,
+    pft.facet_value_id,
+    COUNT(*) AS product_count
+  FROM material_isolated_scope mis
+  JOIN catalog.product_listing_facet_token pft
+    ON pft.project_id = :projectId
+   AND pft.product_id = mis.product_id
+   AND pft.facet_id = :materialFacetId
+  GROUP BY pft.facet_id, pft.facet_value_id
+)
+SELECT
+  (
+    SELECT jsonb_agg(to_jsonb(brand_counts.*))
+    FROM brand_counts
+  ) AS brand_counts,
+  (
+    SELECT jsonb_agg(to_jsonb(material_counts.*))
+    FROM material_counts
+  ) AS material_counts;
+```
+
+Option facet counts используют тот же принцип, но строятся от
+`variant_listing_index` + `variant_listing_facet_token`, применяют active
+variant-level filters к одному `variant_id` и дедуплицируют до
+`(product_id, facet_id, facet_value_id)` перед `GROUP BY`.
+
+## 12. Full listing page: page ids + totalCount + isolated facet counts
+
+Тяжелая форма: один request возвращает страницу товаров, totalCount и facet
+counts с isolation. Counts считаются по полному filtered scope, не по странице.
+Для каждого facet count нужно исключить только фильтр своего
 `facet_id`, но оставить остальные active filters.
 
 Пример ниже показывает product-level facet counts. Option counts должны идти
@@ -598,7 +770,7 @@ SELECT
 FROM page_products;
 ```
 
-## 11. Full listing page + option isolation + price range + matched price sort
+## 13. Full listing page + option isolation + price range + matched price sort
 
 Это самый тяжелый storefront shape в рамках listing index:
 
@@ -743,6 +915,13 @@ FROM page_products;
 - Для option facets всегда сохранять same-variant semantics через `variant_id`;
   при небольшом числе active option facets предпочитать отдельные `EXISTS`
   predicates вместо `OR` + `GROUP BY` + `HAVING COUNT(DISTINCT ...)`.
+- Если client не запрашивает `totalCount`, использовать cursor page query с
+  `LIMIT :firstPlusOne`; `hasNextPage` определяется по наличию лишней строки,
+  а полный `COUNT(*)` не выполняется. Facet counts при этом могут считаться
+  отдельным query, если они нужны response shape.
+- Если client запрашивает facet counts, считать их отдельным SQL statement от
+  page query. Это сохраняет full-scope isolation semantics, но не заставляет
+  page query ждать aggregation plan и не добавляет `totalCount`.
 - Для full PLP response разделять page query, total count и facet counts на CTE
   или отдельные SQL statements, если `EXPLAIN ANALYZE` покажет, что PostgreSQL
   хуже планирует большой monolithic CTE.
