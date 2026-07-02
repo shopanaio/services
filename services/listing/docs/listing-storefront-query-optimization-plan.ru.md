@@ -301,6 +301,15 @@ input AS (
     $11::jsonb AS stock_filter_json,
     $12::jsonb AS cursor_json
 ),
+cursor_values AS (
+  SELECT
+    i.cursor_json IS NOT NULL AND i.cursor_json <> '{}'::jsonb AS has_cursor,
+    COALESCE((i.cursor_json->>'inStock')::boolean, false) AS cursor_in_stock,
+    (i.cursor_json->>'publishedAt')::timestamptz AS cursor_published_at,
+    (i.cursor_json->>'productCreatedAt')::timestamptz AS cursor_product_created_at,
+    (i.cursor_json->>'productId')::uuid AS cursor_product_id
+  FROM input i
+),
 requested_facets AS (
   SELECT r.facet_slug, r.value_handle
   FROM input i
@@ -552,6 +561,7 @@ page_scan AS (
     s.text_value
   FROM listing.listing_posting_product_sort s
   JOIN input i ON true
+  CROSS JOIN cursor_values c
   CROSS JOIN matches m
   WHERE s.project_id = i.project_id
     AND s.sort_kind = i.sort_kind
@@ -560,7 +570,72 @@ page_scan AS (
       WHEN i.sort_kind IN ('price_asc', 'price_desc') THEN i.currency
       ELSE ''
     END
+    AND s.manual_scope_id = CASE
+      WHEN i.sort_kind = 'manual'
+       AND i.scope_kind IN ('category', 'manual_collection')
+      THEN i.scope_id
+      ELSE '00000000-0000-0000-0000-000000000000'::uuid
+    END
     AND m.bitmap @> s.product_doc_id
+    AND (
+      NOT c.has_cursor
+      OR COALESCE(s.bool_value, false) < c.cursor_in_stock
+      OR (
+        COALESCE(s.bool_value, false) = c.cursor_in_stock
+        AND (
+          (
+            c.cursor_published_at IS NULL
+            AND s.timestamptz_value IS NULL
+            AND (
+              (
+                c.cursor_product_created_at IS NULL
+                AND s.timestamptz_value_2 IS NULL
+                AND s.product_id > c.cursor_product_id
+              )
+              OR (
+                c.cursor_product_created_at IS NOT NULL
+                AND (
+                  s.timestamptz_value_2 < c.cursor_product_created_at
+                  OR s.timestamptz_value_2 IS NULL
+                  OR (
+                    s.timestamptz_value_2 = c.cursor_product_created_at
+                    AND s.product_id > c.cursor_product_id
+                  )
+                )
+              )
+            )
+          )
+          OR (
+            c.cursor_published_at IS NOT NULL
+            AND (
+              s.timestamptz_value < c.cursor_published_at
+              OR s.timestamptz_value IS NULL
+              OR (
+                s.timestamptz_value = c.cursor_published_at
+                AND (
+                  (
+                    c.cursor_product_created_at IS NULL
+                    AND s.timestamptz_value_2 IS NULL
+                    AND s.product_id > c.cursor_product_id
+                  )
+                  OR (
+                    c.cursor_product_created_at IS NOT NULL
+                    AND (
+                      s.timestamptz_value_2 < c.cursor_product_created_at
+                      OR s.timestamptz_value_2 IS NULL
+                      OR (
+                        s.timestamptz_value_2 = c.cursor_product_created_at
+                        AND s.product_id > c.cursor_product_id
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
   ORDER BY
     COALESCE(s.bool_value, false) DESC,
     s.timestamptz_value DESC NULLS LAST,
@@ -586,7 +661,11 @@ SELECT jsonb_build_object(
 Notes:
 
 - Для `manual`, `created`, `name`, `price_asc`, `price_desc` compiler должен
-  генерировать конкретный `ORDER BY`, а не универсальный CASE.
+  генерировать конкретный `ORDER BY` и matching keyset seek predicate, а не
+  универсальный CASE.
+- Для `manual` product-sort branch фильтр по `manual_scope_id` обязателен. Для
+  category scope это `category_id`, для manual collection scope это
+  `collection_id`, для остальных product-sort branches используется zero UUID.
 - Для matched variant price sort compiler должен заменить `page_scan` на branch
   по `listing_posting_variant_price`.
 - Для relevance sort compiler должен заменить `page_scan` на BM25 branch.
@@ -859,9 +938,28 @@ product_facet_counts AS (
         CROSS JOIN published_products
         CROSS JOIN projected_variant_products
         CROSS JOIN LATERAL (
-          SELECT rb_and_agg(pfg.bitmap) AS bitmap
-          FROM product_filter_groups pfg
-          WHERE pfg.facet_id <> pvb.facet_id
+          SELECT rb_and_agg(bitmap) AS bitmap
+          FROM (
+            SELECT pfg.bitmap
+            FROM product_filter_groups pfg
+            WHERE pfg.facet_id <> pvb.facet_id
+
+            UNION ALL
+
+            SELECT bitmap FROM vendor_filter_group
+            WHERE EXISTS (
+              SELECT 1
+              FROM input i
+              CROSS JOIN LATERAL jsonb_array_elements_text(i.vendor_ids_json)
+                v(vendor_id)
+            )
+
+            UNION ALL
+
+            SELECT bitmap
+            FROM active_stock_product_filter
+            WHERE bitmap IS NOT NULL
+          ) isolated_product_filter_parts
         ) isolated_product_filters
       )
       & pvb.value_bitmap
@@ -913,12 +1011,23 @@ option_facet_counts AS (
             SELECT
               CASE
                 WHEN isolated_option_filters.bitmap IS NOT NULL
+                 AND price_variant_filter.bitmap IS NOT NULL
                 THEN in_stock_variants.bitmap
                   & isolated_option_filters.bitmap
+                  & price_variant_filter.bitmap
+                  & ovb.value_bitmap
+                WHEN isolated_option_filters.bitmap IS NOT NULL
+                THEN in_stock_variants.bitmap
+                  & isolated_option_filters.bitmap
+                  & ovb.value_bitmap
+                WHEN price_variant_filter.bitmap IS NOT NULL
+                THEN in_stock_variants.bitmap
+                  & price_variant_filter.bitmap
                   & ovb.value_bitmap
                 ELSE in_stock_variants.bitmap & ovb.value_bitmap
               END AS bitmap
             FROM in_stock_variants
+            CROSS JOIN price_variant_filter
             CROSS JOIN LATERAL (
               SELECT rb_and_agg(ofg.bitmap) AS bitmap
               FROM option_filter_groups ofg
@@ -972,8 +1081,12 @@ Notes:
   `split_part(...)::uuid`. Query D должен получать тот же opaque `valueKey`,
   который Query C строит из typed metadata.
 - Product counts исключают active product group того же `facet_id`.
+- Product counts не должны исключать другие product-level filters: vendor group и
+  active stock-only product filter остаются в isolated product base.
 - Option counts исключают active option group того же `facet_id`, но сохраняют
   same-variant semantics до projection.
+- Option counts должны сохранять active price predicate в variant base. Иначе
+  counts при active price filter описывают не текущий filtered listing scope.
 - Query D возвращает только counts, не metadata.
 - Если facet counts branch завершился ошибкой, весь listing request падает:
   partial response запрещен.
