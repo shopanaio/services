@@ -128,7 +128,9 @@ CREATE TABLE catalog.listing_posting_index_version (
   published_at           timestamptz,
   source_listing_watermark timestamptz,
   metadata               jsonb NOT NULL DEFAULT '{}'::jsonb,
-  PRIMARY KEY (project_id, index_version)
+  PRIMARY KEY (project_id, index_version),
+  CONSTRAINT chk_listing_posting_index_version_status
+    CHECK (status IN ('building', 'published', 'retired'))
 );
 
 CREATE UNIQUE INDEX ux_listing_posting_one_published
@@ -150,7 +152,12 @@ CREATE TABLE catalog.listing_posting_product_doc (
   published_at           timestamptz,
   product_created_at     timestamptz NOT NULL,
   PRIMARY KEY (project_id, index_version, product_doc_id),
-  UNIQUE (project_id, index_version, product_id)
+  UNIQUE (project_id, index_version, product_id),
+  UNIQUE (project_id, index_version, product_doc_id, product_id),
+  CONSTRAINT fk_listing_posting_product_doc_version
+    FOREIGN KEY (project_id, index_version)
+    REFERENCES catalog.listing_posting_index_version(project_id, index_version)
+    ON DELETE CASCADE
 );
 
 CREATE TABLE catalog.listing_posting_variant_doc (
@@ -162,7 +169,27 @@ CREATE TABLE catalog.listing_posting_variant_doc (
   product_id             uuid NOT NULL,
   in_stock               boolean NOT NULL,
   PRIMARY KEY (project_id, index_version, variant_doc_id),
-  UNIQUE (project_id, index_version, variant_id)
+  UNIQUE (project_id, index_version, variant_id),
+  UNIQUE (
+    project_id,
+    index_version,
+    variant_doc_id,
+    product_doc_id,
+    product_id
+  ),
+  CONSTRAINT fk_listing_posting_variant_doc_version
+    FOREIGN KEY (project_id, index_version)
+    REFERENCES catalog.listing_posting_index_version(project_id, index_version)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_listing_posting_variant_doc_product
+    FOREIGN KEY (project_id, index_version, product_doc_id, product_id)
+    REFERENCES catalog.listing_posting_product_doc(
+      project_id,
+      index_version,
+      product_doc_id,
+      product_id
+    )
+    ON DELETE CASCADE
 );
 ```
 
@@ -179,6 +206,10 @@ CREATE TABLE catalog.listing_posting_bitmap (
   cardinality            bigint NOT NULL,
   metadata               jsonb NOT NULL DEFAULT '{}'::jsonb,
   PRIMARY KEY (project_id, index_version, entity_type, field, value_key),
+  CONSTRAINT fk_listing_posting_bitmap_version
+    FOREIGN KEY (project_id, index_version)
+    REFERENCES catalog.listing_posting_index_version(project_id, index_version)
+    ON DELETE CASCADE,
   CONSTRAINT chk_listing_posting_bitmap_entity_type
     CHECK (entity_type IN ('product', 'variant'))
 );
@@ -187,7 +218,7 @@ CREATE TABLE catalog.listing_posting_bitmap (
 `field` и `value_key` должны быть стабильными internal keys, например:
 
 ```text
-field=scope_category, value_key=men-sneakers
+field=scope_category, value_key=<category_id>
 field=scope_collection, value_key=<collection_id>
 field=vendor, value_key=<vendor_id>
 field=in_stock, value_key=true
@@ -195,6 +226,11 @@ field=facet, value_key=<facet_id>:<facet_value_id>
 field=variant_product, value_key=<product_doc_id>
 field=variant_price_bucket:UAH, value_key=<bucket>
 ```
+
+Use canonical ids or typed normalized values for `value_key` on the read path.
+Mutable storefront handles are acceptable only as source read-model/debug data.
+If a value key has multiple parts, encode it with a deterministic typed format
+that cannot collide with ids or delimiters.
 
 ### Sort values
 
@@ -206,6 +242,7 @@ CREATE TABLE catalog.listing_posting_product_sort (
   project_id             uuid NOT NULL,
   index_version          bigint NOT NULL,
   product_doc_id         int NOT NULL,
+  product_id             uuid NOT NULL,
   sort_kind              varchar(32) NOT NULL,
   locale                 varchar(16) NOT NULL DEFAULT '',
   currency               varchar(3) NOT NULL DEFAULT '',
@@ -224,7 +261,16 @@ CREATE TABLE catalog.listing_posting_product_sort (
     locale,
     currency,
     manual_scope_id
-  )
+  ),
+  CONSTRAINT fk_listing_posting_product_sort_doc
+    FOREIGN KEY (project_id, index_version, product_doc_id, product_id)
+    REFERENCES catalog.listing_posting_product_doc(
+      project_id,
+      index_version,
+      product_doc_id,
+      product_id
+    )
+    ON DELETE CASCADE
 );
 
 CREATE INDEX idx_listing_posting_product_sort_newest
@@ -234,8 +280,9 @@ CREATE INDEX idx_listing_posting_product_sort_newest
     sort_kind,
     bool_value DESC,
     timestamptz_value DESC NULLS LAST,
-    product_doc_id
-  );
+    product_id
+  )
+  INCLUDE (product_doc_id);
 
 CREATE INDEX idx_listing_posting_product_sort_value
   ON catalog.listing_posting_product_sort (
@@ -248,14 +295,28 @@ CREATE INDEX idx_listing_posting_product_sort_value
     numeric_value,
     text_value,
     bigint_value,
-    product_doc_id
-  );
+    product_id
+  )
+  INCLUDE (product_doc_id);
 ```
 
 Implementation can split this generic table into dedicated typed tables if SQL
 plans become simpler. Manual category/collection order is scope-specific, so it
 must use `manual_scope_id` and must not be modeled as one global product sort
 value.
+
+`product_id` is duplicated in sort rows so hot sort-first queries can keep the
+required stable `product_id ASC` tie-breaker inside the leading sort index.
+For every storefront product sort, `bool_value` stores the availability bucket
+(`in_stock`) and must be populated; rows with `bool_value IS NULL` are not valid
+for hot storefront page collectors.
+
+Hot sort-first collectors read `product_doc_id` for bitmap membership checks.
+Sort indexes used by those collectors must be covering indexes for the selected
+sort shape, either by making `product_doc_id` part of the key or by
+`INCLUDE (product_doc_id)`. If the generic multi-value index above produces poor
+plans, split it into dedicated per-sort indexes such as newest, created, name,
+manual, min price and max price.
 
 ### Price values
 
@@ -269,8 +330,25 @@ CREATE TABLE catalog.listing_posting_variant_price (
   currency               varchar(3) NOT NULL,
   variant_doc_id         int NOT NULL,
   product_doc_id         int NOT NULL,
+  product_id             uuid NOT NULL,
   price_minor            bigint NOT NULL,
-  PRIMARY KEY (project_id, index_version, currency, variant_doc_id)
+  PRIMARY KEY (project_id, index_version, currency, variant_doc_id),
+  CONSTRAINT fk_listing_posting_variant_price_doc
+    FOREIGN KEY (
+      project_id,
+      index_version,
+      variant_doc_id,
+      product_doc_id,
+      product_id
+    )
+    REFERENCES catalog.listing_posting_variant_doc(
+      project_id,
+      index_version,
+      variant_doc_id,
+      product_doc_id,
+      product_id
+    )
+    ON DELETE CASCADE
 );
 
 CREATE INDEX idx_listing_posting_variant_price_range
@@ -279,6 +357,7 @@ CREATE INDEX idx_listing_posting_variant_price_range
     index_version,
     currency,
     price_minor,
+    product_id,
     variant_doc_id,
     product_doc_id
   );
@@ -289,6 +368,7 @@ CREATE INDEX idx_listing_posting_variant_price_desc
     index_version,
     currency,
     price_minor DESC,
+    product_id,
     variant_doc_id,
     product_doc_id
   );
@@ -298,9 +378,10 @@ CREATE INDEX idx_listing_posting_variant_price_product_order
     project_id,
     index_version,
     currency,
-    product_doc_id,
+    product_id,
     price_minor,
-    variant_doc_id
+    variant_doc_id,
+    product_doc_id
   );
 ```
 
@@ -308,8 +389,8 @@ CREATE INDEX idx_listing_posting_variant_price_product_order
 
 Variant filters produce `variant_doc_id` bitmaps, while storefront results and
 facet counts are product-level. Projection `variant bitmap -> product bitmap`
-must have a fast path; blindly expanding every variant with `rb_iterate` is only
-acceptable for small cardinality bitmaps.
+must have a fast path; blindly expanding every variant with
+`listing_rb_iterate` is only acceptable for small cardinality bitmaps.
 
 The index stores fixed-size projection blocks:
 
@@ -324,29 +405,54 @@ CREATE TABLE catalog.listing_posting_variant_projection_block (
   product_bitmap         roaringbitmap NOT NULL,
   variant_count          int NOT NULL,
   product_count          int NOT NULL,
-  PRIMARY KEY (project_id, index_version, block_id)
+  PRIMARY KEY (project_id, index_version, block_id),
+  CONSTRAINT fk_listing_posting_variant_projection_block_version
+    FOREIGN KEY (project_id, index_version)
+    REFERENCES catalog.listing_posting_index_version(project_id, index_version)
+    ON DELETE CASCADE
 );
 ```
+
+Posting version tables do not reference canonical product/variant/facet tables
+directly. Their source of truth is the SQL listing read model at a concrete
+watermark. FK constraints stay inside one `(project_id, index_version)` and
+protect the published version from orphan dictionary, bitmap, sort, price and
+projection rows. If a later high-scale segment implementation removes some FKs
+for write throughput, it must replace them with an explicit build validator
+before publish.
 
 Recommended block size: 4096 or 8192 variant docs. Builder creates one row per
 contiguous `variant_doc_id` range. Query strategy:
 
 ```text
 if cardinality(variant_bitmap) <= small_threshold:
-  rb_iterate(variant_bitmap) -> join variant_doc -> rb_build_agg(product_doc_id)
+  listing_rb_iterate(variant_bitmap)
+    -> join variant_doc
+    -> listing_rb_build_agg(product_doc_id)
 
 else:
   for each projection block where variant_bitmap intersects block.variant_bitmap:
     block_match = variant_bitmap & block.variant_bitmap
-    if cardinality(block_match) is close to block.variant_count:
+    if cardinality(block_match) == block.variant_count:
       use block.product_bitmap
     else:
-      rb_iterate(block_match) -> join variant_doc -> rb_build_agg(product_doc_id)
+      listing_rb_iterate(block_match)
+        -> join variant_doc
+        -> listing_rb_build_agg(product_doc_id)
   OR all projected product bitmaps
 ```
 
+`block.product_bitmap` is exact only when `block_match` covers every variant in
+the block. A “near full” block must still use the partial path; otherwise a
+product whose only matching variant is outside `block_match` can become a false
+positive in `totalCount`, facet counts or page results. A broad block-level
+product bitmap may be used as a prefilter only if every emitted product is later
+validated against the exact `variant_doc_id -> product_doc_id` mapping before it
+affects externally visible results.
+
 This keeps sparse option filters cheap while avoiding full variant expansion for
-broad filters. Thresholds are planner parameters, not hard product semantics.
+broad filters where whole blocks match exactly. Thresholds are planner
+parameters, not hard product semantics.
 
 ## Tenant partitioning
 
@@ -411,7 +517,13 @@ CREATE TABLE catalog.listing_posting_bitmap (
   bitmap                 roaringbitmap NOT NULL,
   cardinality            bigint NOT NULL,
   metadata               jsonb NOT NULL DEFAULT '{}'::jsonb,
-  PRIMARY KEY (project_id, index_version, entity_type, field, value_key)
+  PRIMARY KEY (project_id, index_version, entity_type, field, value_key),
+  CONSTRAINT fk_listing_posting_bitmap_version
+    FOREIGN KEY (project_id, index_version)
+    REFERENCES catalog.listing_posting_index_version(project_id, index_version)
+    ON DELETE CASCADE,
+  CONSTRAINT chk_listing_posting_bitmap_entity_type
+    CHECK (entity_type IN ('product', 'variant'))
 ) PARTITION BY HASH (project_id);
 
 CREATE TABLE catalog.listing_posting_bitmap_p00
@@ -523,13 +635,13 @@ tag/feature merged facet values через resolved facet_value_id
 Category не является storefront facet, но является scope posting:
 
 ```text
-category=men-sneakers -> product_doc_ids
+category=<category_id> -> product_doc_ids
 ```
 
 Это позволяет начинать PLP с cheap base set:
 
 ```text
-base = project_published & category_men_sneakers
+base = project_published & category_<category_id>
 ```
 
 ## Variant postings
@@ -566,7 +678,7 @@ product_doc_id` с дедупликацией product ids.
 Рекомендуемая модель:
 
 - `listing_posting_variant_price` rows с `currency`, `variant_doc_id`,
-  `product_doc_id`, `price_minor`;
+  `product_doc_id`, `product_id`, `price_minor`;
 - B-tree index by `(project_id, index_version, currency, price_minor)`;
 - optional coarse price buckets для первичного ограничения.
 
@@ -582,8 +694,9 @@ Price sort:
 - без active variant filters использовать product-level sort value
   `product_min_price_minor`;
 - с active option/price filters использовать price-index-first path: scan
-  `listing_posting_variant_price` в order по `price_minor`, проверять
-  membership в `matching_variants` roaring bitmap и дедуплицировать products.
+  `listing_posting_variant_price` в order по `price_minor`, применять exact
+  price bounds в price table scan, проверять membership в option/availability
+  variant bitmap и дедуплицировать products.
 
 ## Sort values
 
@@ -613,31 +726,36 @@ diagnostics, потому что он теряет преимущество B-tr
 Sort-first query shape:
 
 ```sql
-SELECT pd.product_id
+SELECT s.product_id
 FROM catalog.listing_posting_product_sort s
-JOIN catalog.listing_posting_product_doc pd
-  ON pd.project_id = :projectId
- AND pd.index_version = :indexVersion
- AND pd.product_doc_id = s.product_doc_id
 WHERE s.project_id = :projectId
   AND s.index_version = :indexVersion
   AND s.sort_kind = :sortKind
-  AND rb_contains(:matchesBitmap::roaringbitmap, s.product_doc_id)
+  AND s.locale = :localeKey
+  AND s.currency = :currencyKey
+  AND s.manual_scope_id = :manualScopeId
+  AND s.bool_value IS NOT NULL
+  AND listing_rb_contains(:matchesBitmap::roaringbitmap, s.product_doc_id)
 ORDER BY
-  pd.in_stock DESC,
+  s.bool_value DESC,
   s.timestamptz_value DESC NULLS LAST,
-  pd.product_id ASC
+  s.product_id ASC
 LIMIT :firstPlusOne;
 ```
 
 Для cursor pagination cursor хранит sort key values, `product_id`,
-`index_version` и filter hash. Pagination использует keyset predicate поверх
-тех же sort columns, что и обычный SQL listing pipeline.
+`product_doc_id`, `index_version` и filter hash. Pagination использует keyset
+predicate поверх тех же sort columns, что и обычный SQL listing pipeline.
+For sort kinds that do not use locale, currency or manual scope, the query must
+pass the same default values that are stored in the sort table (`''`, `''` and
+the zero UUID). Query builders must always constrain these discriminator columns
+instead of relying only on `sort_kind`.
 
 ### Price sort with option filters
 
 Для `price_asc` / `price_desc` с active option filters сортировка должна идти
-от `listing_posting_variant_price`, а не от `rb_iterate(variant_matches)`.
+от `listing_posting_variant_price`, а не от
+`listing_rb_iterate(variant_matches)`.
 Иначе PostgreSQL сначала развернет весь variant bitmap, затем будет group/sort
 по matching variants, и price index не сможет дать ранний ordered scan.
 
@@ -648,7 +766,6 @@ variant_matches =
   variant_in_stock
   & option_color_black
   & option_size_42
-  & price_range?
 
 product_matches =
   category_scope
@@ -657,6 +774,10 @@ product_matches =
   & in_stock?
 ```
 
+Exact price predicates stay in the ordered `listing_posting_variant_price` scan.
+They are not hidden inside `variant_matches`, because the collector and the
+`NOT EXISTS` first-variant check must use the same exact price bounds.
+
 Then scan variants in price order:
 
 ```sql
@@ -664,6 +785,7 @@ WITH first_matching_variants AS (
   SELECT
     vp.variant_doc_id,
     vp.product_doc_id,
+    vp.product_id,
     vp.price_minor
   FROM catalog.listing_posting_variant_price vp
   WHERE vp.project_id = :projectId
@@ -671,11 +793,17 @@ WITH first_matching_variants AS (
     AND vp.currency = :currency
     AND (:minPriceMinor IS NULL OR vp.price_minor >= :minPriceMinor)
     AND (:maxPriceMinor IS NULL OR vp.price_minor <= :maxPriceMinor)
-    AND rb_contains(:variantMatchesBitmap::roaringbitmap, vp.variant_doc_id)
-    AND rb_contains(:productMatchesBitmap::roaringbitmap, vp.product_doc_id)
+    AND listing_rb_contains(
+      :variantMatchesBitmap::roaringbitmap,
+      vp.variant_doc_id
+    )
+    AND listing_rb_contains(
+      :productMatchesBitmap::roaringbitmap,
+      vp.product_doc_id
+    )
     AND (
       :afterPriceMinor IS NULL
-      OR (vp.price_minor, vp.product_doc_id) > (:afterPriceMinor, :afterProductDocId)
+      OR (vp.price_minor, vp.product_id) > (:afterPriceMinor, :afterProductId)
     )
     AND NOT EXISTS (
       SELECT 1
@@ -683,7 +811,9 @@ WITH first_matching_variants AS (
       WHERE earlier.project_id = vp.project_id
         AND earlier.index_version = vp.index_version
         AND earlier.currency = vp.currency
-        AND earlier.product_doc_id = vp.product_doc_id
+        AND earlier.product_id = vp.product_id
+        AND (:minPriceMinor IS NULL OR earlier.price_minor >= :minPriceMinor)
+        AND (:maxPriceMinor IS NULL OR earlier.price_minor <= :maxPriceMinor)
         AND (
           earlier.price_minor,
           earlier.variant_doc_id
@@ -691,21 +821,17 @@ WITH first_matching_variants AS (
           vp.price_minor,
           vp.variant_doc_id
         )
-        AND rb_contains(
+        AND listing_rb_contains(
           :variantMatchesBitmap::roaringbitmap,
           earlier.variant_doc_id
         )
     )
-  ORDER BY vp.price_minor ASC, vp.product_doc_id ASC, vp.variant_doc_id ASC
+  ORDER BY vp.price_minor ASC, vp.product_id ASC, vp.variant_doc_id ASC
   LIMIT :firstPlusOne
 )
-SELECT pd.product_id, fmv.price_minor AS sort_price_minor
+SELECT fmv.product_id, fmv.price_minor AS sort_price_minor
 FROM first_matching_variants fmv
-JOIN catalog.listing_posting_product_doc pd
-  ON pd.project_id = :projectId
- AND pd.index_version = :indexVersion
- AND pd.product_doc_id = fmv.product_doc_id
-ORDER BY fmv.price_minor ASC, pd.product_id ASC
+ORDER BY fmv.price_minor ASC, fmv.product_id ASC
 LIMIT :firstPlusOne;
 ```
 
@@ -713,15 +839,21 @@ LIMIT :firstPlusOne;
 для cursor correctness: product не должен повторно появиться на следующей
 странице через другую, более дорогую variant. Индекс
 `idx_listing_posting_variant_price_product_order` поддерживает lookup earlier
-variants for same product.
+variants for same product. Price range predicates must be repeated inside
+`NOT EXISTS`; otherwise a cheaper variant outside the requested range could
+incorrectly hide the first matching variant inside the range.
 
-Для `price_desc` используется тот же shape, но `ORDER BY vp.price_minor DESC`
-и inverted comparison в `NOT EXISTS`.
+Для `price_desc` используется тот же shape, но `ORDER BY vp.price_minor DESC`,
+desc index, инвертированный keyset predicate и инвертированное сравнение в
+`NOT EXISTS`.
 
 Запрещенный hot-path shape:
 
 ```text
-rb_iterate(variant_matches) -> join variant_price -> group by product -> order by min/max price
+listing_rb_iterate(variant_matches)
+  -> join variant_price
+  -> group by product
+  -> order by min/max price
 ```
 
 Он корректен, но должен оставаться fallback для очень селективных bitmaps,
@@ -749,7 +881,7 @@ Recommended strategy matrix:
 | Case | Strategy |
 | --- | --- |
 | Product filters only, no expensive sort | product bitmap operations + product sort-first |
-| Product filters + newest/created/name/manual | product sort table first + `rb_contains(product_matches)` |
+| Product filters + newest/created/name/manual | product sort table first + `listing_rb_contains(product_matches)` |
 | Option filters, no price sort | variant bitmap -> adaptive projection -> product bitmap |
 | Option filters + price sort | variant-price-index-first with first matching variant per product |
 | Price range only | variant price range scan or coarse price bucket + exact price table |
@@ -795,7 +927,7 @@ for row in product_sort_order:
 ```
 
 SQL implementation uses the sort table as the leading table and
-`rb_contains(:productMatchesBitmap, s.product_doc_id)` as filter.
+`listing_rb_contains(:productMatchesBitmap, s.product_doc_id)` as filter.
 
 ### Variant price collector
 
@@ -889,16 +1021,20 @@ FROM catalog.listing_posting_variant_price vp
 WHERE vp.project_id = :projectId
   AND vp.index_version = :indexVersion
   AND vp.currency = :currency
-  AND rb_contains(:variantScopeWithoutPriceBitmap::roaringbitmap, vp.variant_doc_id)
-  AND rb_contains(:productScopeBitmap::roaringbitmap, vp.product_doc_id)
-ORDER BY vp.price_minor ASC, vp.variant_doc_id ASC
+  AND listing_rb_contains(
+    :variantScopeWithoutPriceBitmap::roaringbitmap,
+    vp.variant_doc_id
+  )
+  AND listing_rb_contains(:productScopeBitmap::roaringbitmap, vp.product_doc_id)
+ORDER BY vp.price_minor ASC, vp.product_id ASC, vp.variant_doc_id ASC
 LIMIT 1;
 
 -- max price uses ORDER BY price_minor DESC and desc index
 ```
 
-Fallback for poor planner behavior is `rb_iterate(variant_scope) -> join price
--> MIN/MAX`, but it is not the preferred hot path.
+Fallback for poor planner behavior is
+`listing_rb_iterate(variant_scope) -> join price -> MIN/MAX`, but it is not the
+preferred hot path.
 
 ### In-stock virtual facet
 
@@ -1096,11 +1232,15 @@ JOIN catalog.listing_posting_product_doc pd
   ON pd.project_id = :projectId
  AND pd.index_version = :indexVersion
  AND pd.product_doc_id = sc.product_doc_id
-WHERE sc.product_doc_id IN (
-  SELECT rb_iterate(:matches_bitmap::roaringbitmap)
-)
+WHERE listing_rb_contains(:matchesBitmap::roaringbitmap, sc.product_doc_id)
 ORDER BY pd.in_stock DESC, sc.relevance_score DESC, pd.product_id ASC;
 ```
+
+For exact `totalCount` and facet counts, `search_candidates` must represent the
+full BM25 result set for the normalized query inside project, locale and
+visibility scope. Passing only top-K/top-N candidates is allowed only for a
+separate page preselection optimization after exact totals and facet semantics
+are preserved by the full candidate relation.
 
 ## Version lifecycle
 
@@ -1450,9 +1590,9 @@ building -> published -> retired
 
 Publish steps:
 
-1. Build PostgreSQL rows under temporary version.
-2. Validate doc counts, required postings and sort rows.
-3. Insert/update version row as `building`.
+1. Reserve `index_version = N + 1` and insert version row as `building`.
+2. Build PostgreSQL child rows under that `building` version.
+3. Validate doc counts, required postings, FK integrity and sort rows.
 4. In one transaction:
    - mark old published as retired;
    - mark new version as published with `published_at`.
@@ -1474,26 +1614,36 @@ Posting engine может быть eventually consistent относительн�
 
 ## PostgreSQL roaring operations
 
-Posting lists are stored as `roaringbitmap` values. Runtime query uses
-`pg_roaringbitmap` operators/functions:
+Posting lists are stored as `roaringbitmap` values. Runtime code must call
+project-owned compatibility wrappers, not raw `pg_roaringbitmap`
+operator/function names. The wrappers are created after verifying the exact
+extension version available in the target PostgreSQL provider.
 
 ```text
 -- OR inside one facet
-brand_set = brand_nike.bitmap | brand_adidas.bitmap
+brand_set = listing_rb_or(brand_nike.bitmap, brand_adidas.bitmap)
 
 -- AND between facets/scopes
-matches = category.bitmap & brand_set & in_stock.bitmap
+matches = listing_rb_and_many(category.bitmap, brand_set, in_stock.bitmap)
 
 -- exact count
-total_count = rb_cardinality(matches)
+total_count = listing_rb_cardinality(matches)
 
 -- product ids for hydration/page query
-SELECT rb_iterate(matches)
+SELECT listing_rb_iterate(matches)
 ```
 
 Builder creates bitmaps from doc ids:
 
 ```sql
+WITH built_product_facets AS (
+  SELECT
+    facet_id,
+    facet_value_id,
+    listing_rb_build_agg(product_doc_id) AS bitmap
+  FROM resolved_product_docs
+  GROUP BY facet_id, facet_value_id
+)
 INSERT INTO catalog.listing_posting_bitmap (
   project_id,
   index_version,
@@ -1509,32 +1659,37 @@ SELECT
   'product',
   'facet',
   facet_id::text || ':' || facet_value_id::text,
-  rb_build_agg(product_doc_id),
-  COUNT(*)
-FROM resolved_product_docs
-GROUP BY facet_id, facet_value_id;
+  bitmap,
+  listing_rb_cardinality(bitmap)
+FROM built_product_facets;
 ```
 
-The project must verify exact function names against the Neon-provided
-`pg_roaringbitmap` version before implementation, because Neon may expose an
-older extension version than upstream PGXN.
+`cardinality` metadata must match the actual compressed bitmap. Do not use raw
+`COUNT(*)` unless the builder has already proven that the input doc ids are
+deduplicated for that posting row; merged source mappings can otherwise inflate
+planner cardinality estimates.
+
+The implementation must verify exact function names against the Neon-provided
+`pg_roaringbitmap` version before writing migrations, because Neon may expose an
+older extension version than upstream PGXN. This verification is a release gate,
+not a runtime fallback.
 
 Required operation contract:
 
-| Capability | Expected use |
-| --- | --- |
-| build bitmap aggregate | build posting rows from doc ids |
-| bitmap AND | intersect scopes/facet groups |
-| bitmap OR | OR inside one facet |
-| bitmap difference | exclude deleted/retired docs if needed |
-| cardinality | `totalCount` and facet counts |
-| contains integer | sort-first membership check |
-| iterate bitmap | sparse fallback and diagnostics |
+| Capability | Internal wrapper | Expected use |
+| --- | --- | --- |
+| build bitmap aggregate | `listing_rb_build_agg(int)` | build posting rows from doc ids |
+| bitmap AND | `listing_rb_and(a, b)` / `listing_rb_and_many(...)` | intersect scopes/facet groups |
+| bitmap OR | `listing_rb_or(a, b)` or internal operator | OR inside one facet |
+| bitmap difference | `listing_rb_and_not(a, b)` | exclude deleted/retired docs if needed |
+| cardinality | `listing_rb_cardinality(bitmap)` | `totalCount` and facet counts |
+| contains integer | `listing_rb_contains(bitmap, doc_id)` | sort-first membership check |
+| iterate bitmap | `listing_rb_iterate(bitmap)` | sparse fallback and diagnostics |
 
-If Neon extension lacks a required function/operator, implementation must add a
-small compatibility SQL layer with stable internal names, for example
-`listing_rb_contains(bitmap, doc_id)`, instead of spreading extension-specific
-function names through repositories.
+If the extension lacks a required function/operator, implementation must either
+add the compatibility SQL layer with the stable names above or reject the
+posting-engine migration for that environment. Repositories and query builders
+must never spread provider-specific `rb_*` names directly.
 
 ## Benchmark gates
 
@@ -1562,9 +1717,10 @@ manual collection + manual sort
 ```
 
 Acceptance criteria must be expressed as latency and rows-read budgets before
-release. If `EXPLAIN ANALYZE` shows PostgreSQL doing broad `rb_iterate` +
-`GROUP BY` + `ORDER BY` on hot page paths, the query shape is rejected unless
-the measured cardinality is below the configured sparse threshold.
+release. If `EXPLAIN ANALYZE` shows PostgreSQL doing broad
+`listing_rb_iterate` + `GROUP BY` + `ORDER BY` on hot page paths, the query
+shape is rejected unless the measured cardinality is below the configured sparse
+threshold.
 
 ## Runtime API внутри catalog service
 
