@@ -340,6 +340,10 @@ CREATE INDEX idx_variant_listing_project_variant
 
 CREATE INDEX idx_variant_listing_in_stock
   ON catalog.variant_listing_index (project_id, in_stock);
+
+CREATE INDEX idx_variant_listing_in_stock_product_variant
+  ON catalog.variant_listing_index (project_id, product_id, variant_id)
+  WHERE in_stock = true;
 ```
 
 | Индекс | Комментарий |
@@ -347,6 +351,7 @@ CREATE INDEX idx_variant_listing_in_stock
 | `idx_variant_listing_project_product` | Быстрый переход от product candidate set к variants для variant filters, counts и aggregate refresh. |
 | `idx_variant_listing_project_variant` | Lookup by project + variant id. Нужен отдельно, потому что PK построен по `variant_id`. |
 | `idx_variant_listing_in_stock` | Поддерживает common predicate `vli.in_stock = true` для option/price matching и virtual in-stock count. |
+| `idx_variant_listing_in_stock_product_variant` | Основной lookup для storefront option/price paths, где query уже имеет product candidate set и должен быстро перейти к in-stock variants конкретного product. Partial index уменьшает размер при большом числе out-of-stock variants. |
 
 ## `catalog.variant_listing_price_index`
 
@@ -409,12 +414,34 @@ CREATE INDEX idx_variant_listing_price_product
 CREATE INDEX idx_variant_listing_price_value
   ON catalog.variant_listing_price_index (project_id, currency, price_minor)
   WHERE has_price = true;
+
+CREATE INDEX idx_variant_listing_price_product_variant
+  ON catalog.variant_listing_price_index (
+    project_id,
+    currency,
+    product_id,
+    variant_id,
+    price_minor
+  )
+  WHERE has_price = true;
+
+CREATE INDEX idx_variant_listing_price_value_product_variant
+  ON catalog.variant_listing_price_index (
+    project_id,
+    currency,
+    price_minor,
+    product_id,
+    variant_id
+  )
+  WHERE has_price = true;
 ```
 
 | Индекс | Комментарий |
 | --- | --- |
 | `idx_variant_listing_price_product` | Поддерживает matched variant price aggregation per product after candidate products are known. |
 | `idx_variant_listing_price_value` | Поддерживает price range/filter scans по project + currency + price. |
+| `idx_variant_listing_price_product_variant` | Поддерживает product-candidate-first path для active option filters: join от scoped products к variant prices с сохранением `variant_id` для same-variant option predicates и matched price aggregation. |
+| `idx_variant_listing_price_value_product_variant` | Поддерживает price-range-first path, когда диапазон цены селективный: PostgreSQL может начать с `(project_id, currency, price_minor)` и сразу получить `product_id`/`variant_id` для дальнейшего same-variant matching. |
 
 ## `catalog.product_listing_facet_token`
 

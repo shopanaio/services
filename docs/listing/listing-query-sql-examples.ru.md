@@ -18,7 +18,12 @@
 - каждая сортировка начинается с `in_stock DESC` и завершается
   `product_id ASC`;
 - product-level filters идут через `product_listing_facet_token`;
-- option/price filters идут через один и тот же in-stock variant row.
+- option/price filters идут через один и тот же in-stock variant row;
+- список отображаемых facet filters ограничивается стабильным listing scope
+  (`base_scope`/`base_all`) с visibility rules, но без применения
+  пользовательских facet filters: если facet value есть хотя бы у одного
+  продукта в scope, фильтр остается в response при выборе других фильтров; если
+  facet value нет во всем scope, фильтр не показывается.
 
 ## 1. Category scope + vendor filter + newest sort
 
