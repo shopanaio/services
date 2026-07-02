@@ -1,0 +1,153 @@
+import { ApolloServer } from "@apollo/server";
+import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
+import { buildSubgraphSchema } from "@apollo/subgraph";
+import fastifyApollo, {
+  fastifyApolloDrainPlugin,
+} from "@as-integrations/fastify";
+import fastify from "fastify";
+import { readFileSync } from "fs";
+import { gql } from "graphql-tag";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
+import {
+  getServiceConfig,
+  isDevelopment,
+} from "@shopana/shared-service-config";
+import { setContext, ServiceContext } from "../../context/index.js";
+import { Kernel } from "../../kernel/Kernel.js";
+import { Loader } from "../../loaders/Loader.js";
+import { buildAdminContextMiddleware } from "./contextMiddleware.js";
+import { resolvers } from "./resolvers/index.js";
+
+const { global } = getServiceConfig("listing");
+
+export interface ServerConfig {
+  port: number;
+}
+
+function getHeaderValue(
+  value: string | string[] | undefined
+): string | undefined {
+  const headerValue = Array.isArray(value) ? value[0] : value;
+  const trimmedValue = headerValue?.trim();
+
+  return trimmedValue ? trimmedValue : undefined;
+}
+
+export async function startServer(serverConfig: ServerConfig) {
+  let kernel: Kernel | null = null;
+
+  if (Kernel.isInitialized()) {
+    kernel = Kernel.getInstance();
+  } else {
+    console.warn("[Listing] Kernel not initialized");
+  }
+
+  const app = fastify({
+    disableRequestLogging: true,
+    logger: isDevelopment(global)
+      ? {
+          level: global.log_level ?? "info",
+          transport: {
+            target: "pino-pretty",
+            options: {
+              colorize: true,
+              translateTime: "SYS:HH:MM:ss.l",
+              ignore: "pid,hostname,reqId,responseTime",
+              messageFormat: "[Listing] {msg}",
+              levelFirst: true,
+            },
+          },
+        }
+      : { level: global.log_level ?? "info" },
+  });
+
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+  const schemaFiles = [
+    "shared-currency.graphql",
+    "shared-locale.graphql",
+    "shared-units.graphql",
+    "scalars.graphql",
+    "base.graphql",
+    "relay.graphql",
+  ];
+
+  const modules = schemaFiles.map((file) => ({
+    typeDefs: gql(readFileSync(join(__dirname, "schema", file), "utf-8")),
+    resolvers,
+  }));
+
+  const apollo = new ApolloServer<ServiceContext>({
+    introspection: true,
+    // @ts-expect-error Class-based type-resolver root resolvers are Apollo-compatible at runtime.
+    schema: buildSubgraphSchema(modules),
+    plugins: [
+      fastifyApolloDrainPlugin(app),
+      ApolloServerPluginInlineTraceDisabled(),
+    ],
+  });
+
+  await apollo.start();
+
+  await app.register(async (instance) => {
+    instance.addHook("preHandler", buildAdminContextMiddleware());
+
+    await instance.register(fastifyApollo(apollo), {
+      path: "/graphql",
+      context: async (request, _reply): Promise<ServiceContext> => {
+        const isIntrospection = request.headers["x-interpolation"] === "true";
+        if (isIntrospection) {
+          return new ServiceContext({
+            requestId: request.id as string,
+            kernel: kernel as Kernel,
+            loaders: null as any,
+          });
+        }
+
+        const loaders = new Loader(kernel!.repository);
+        const currency =
+          getHeaderValue(request.headers["x-currency"]) ??
+          request.store.defaultCurrency;
+        const requestId =
+          getHeaderValue(request.headers["x-idempotency-key"]) ??
+          (request.id as string);
+
+        const ctx = new ServiceContext({
+          requestId,
+          kernel: kernel!,
+          store: request.store,
+          user: request.user,
+          loaders,
+          currency,
+        });
+
+        setContext(ctx);
+
+        return ctx;
+      },
+    });
+  });
+
+  app.get("/", async (_request, reply) => {
+    return reply.send({
+      status: "ok",
+      service: "listing",
+      environment: global.environment,
+    });
+  });
+
+  app.get("/healthz", async (_request, reply) => {
+    return reply.send({
+      status: "ok",
+      service: "listing",
+    });
+  });
+
+  await app.listen({
+    port: serverConfig.port,
+    host: "0.0.0.0",
+  });
+
+  return app;
+}

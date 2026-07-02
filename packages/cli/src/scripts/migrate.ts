@@ -29,6 +29,8 @@ interface ServiceMigrationConfig {
   name: string;
   path: string;
   type: "drizzle" | "node-pg-migrate" | "typeorm" | "prisma";
+  migrationsSchema?: string;
+  migrationsTable?: string;
 }
 
 interface DatabaseConfig {
@@ -41,6 +43,7 @@ interface DatabaseConfig {
 }
 
 interface ServiceConfig {
+  db?: DatabaseConfig;
   database?: DatabaseConfig;
   [key: string]: unknown;
 }
@@ -48,6 +51,7 @@ interface ServiceConfig {
 interface ConfigStructure {
   global?: Record<string, unknown>;
   shared?: {
+    db?: { default: DatabaseConfig };
     database?: { default: DatabaseConfig };
   };
   services?: Record<string, ServiceConfig>;
@@ -120,14 +124,17 @@ function loadConfig(): ConfigStructure {
 function getServiceDatabaseUrl(serviceName: string): string | null {
   const config = loadConfig();
   const serviceConfig = config.services?.[serviceName];
+  const dbConfig = serviceConfig?.db ?? serviceConfig?.database;
 
-  if (serviceConfig?.database) {
-    return buildDatabaseUrl(serviceConfig.database);
+  if (dbConfig) {
+    return buildDatabaseUrl(dbConfig);
   }
 
   // Fallback to shared database config
-  if (config.shared?.database?.default) {
-    return buildDatabaseUrl(config.shared.database.default);
+  const sharedDbConfig =
+    config.shared?.db?.default ?? config.shared?.database?.default;
+  if (sharedDbConfig) {
+    return buildDatabaseUrl(sharedDbConfig);
   }
 
   return null;
@@ -162,7 +169,10 @@ async function runDrizzleMigration(
 
 async function runNodePgMigrateMigration(
   connectionString: string,
-  migrationsFolder: string
+  migrationsFolder: string,
+  serviceName: string,
+  migrationsSchema?: string,
+  migrationsTable?: string
 ): Promise<void> {
   const { runner } = await import("node-pg-migrate");
   const cleanUrl = connectionString.replace(/[?&]schema=[^&]+/g, "");
@@ -172,8 +182,8 @@ async function runNodePgMigrateMigration(
     dir: `${migrationsFolder}/domains/**/*.sql`,
     useGlob: true,
     direction: "up",
-    migrationsTable: "pgmigrations",
-    migrationsSchema: "catalog",
+    migrationsTable: migrationsTable ?? "pgmigrations",
+    migrationsSchema: migrationsSchema ?? serviceName,
     createMigrationsSchema: true,
     singleTransaction: false,
     checkOrder: true,
@@ -203,7 +213,10 @@ async function migrateService(
     } else if (config.type === "node-pg-migrate") {
       await runNodePgMigrateMigration(
         databaseUrl,
-        fullMigrationsPath
+        fullMigrationsPath,
+        serviceName,
+        config.migrationsSchema,
+        config.migrationsTable
       );
     } else {
       return {

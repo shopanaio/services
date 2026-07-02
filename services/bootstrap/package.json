@@ -14,6 +14,7 @@
     "@shopana/delivery-service": "0.0.1",
     "@shopana/events-service": "0.0.1",
     "@shopana/iam-service": "0.0.1",
+    "@shopana/listing-service": "0.0.1",
     "@shopana/media-service": "0.0.1",
     "@shopana/orders-service": "0.0.1",
     "@shopana/payments-service": "0.0.1",

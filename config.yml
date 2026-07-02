@@ -64,6 +64,14 @@ services:
       <<: *s3_default
       bucket: catalog
 
+  listing:
+    ports:
+      admin_graphql: 10012
+      metrics: 3039
+    db:
+      <<: *db_default
+      schema: null
+
   media:
     ports:
       admin_graphql: 10007

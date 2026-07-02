@@ -1,0 +1,36 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.7"
+    import: [
+      "@key"
+      "@requires"
+      "@provides"
+      "@external"
+      "@shareable"
+      "@override"
+      "@inaccessible"
+    ]
+  )
+
+extend type Query {
+  """Listing query namespace."""
+  listingQuery: ListingQuery!
+}
+
+extend type Mutation {
+  """Listing mutation namespace."""
+  listingMutation: ListingMutation!
+}
+
+type ListingQuery {
+  """Get a node by its global ID."""
+  node(id: ID!): Node
+
+  """Get multiple nodes by their global IDs."""
+  nodes(ids: [ID!]!): [Node]!
+}
+
+type ListingMutation {
+  """Placeholder field for the empty mutation namespace."""
+  _empty: Boolean!
+}

@@ -1,0 +1,46 @@
+{
+  "name": "@shopana/listing-service",
+  "version": "0.0.1",
+  "description": "Listing microservice - storefront listing and search platform",
+  "type": "module",
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/listing.module.js",
+      "source": "./src/listing.module.ts"
+    }
+  },
+  "dependencies": {
+    "@apollo/server": "^4.11.0",
+    "@apollo/subgraph": "^2.9.0",
+    "@as-integrations/fastify": "^2.1.1",
+    "@nestjs/common": "^10.0.0",
+    "@shopana/drizzle-query": "*",
+    "@shopana/shared-context": "*",
+    "@shopana/shared-kernel": "*",
+    "@shopana/shared-service-config": "*",
+    "@shopana/type-resolver": "*",
+    "cache-manager": "^7.2.7",
+    "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.45.1",
+    "fastify": "^4.28.1",
+    "graphql": "^16.9.0",
+    "graphql-tag": "^2.12.6",
+    "node-pg-migrate": "^8.0.4",
+    "pino": "^9.3.2",
+    "pino-pretty": "^11.2.2",
+    "postgres": "^3.4.7",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@shopana/build-tools": "0.0.1",
+    "@types/node": "^20.14.14",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -17,6 +17,7 @@ import { ProjectModule } from "@shopana/project-service";
 import { IamModule } from "@shopana/iam-service";
 import { EventsModule } from "@shopana/events-service";
 import { CatalogModule } from "@shopana/catalog-service";
+import { ListingModule } from "@shopana/listing-service";
 
 export interface BootstrapModuleOptions extends BrokerCoreModuleOptions {
   /** DBOS workflows configuration */
@@ -54,6 +55,7 @@ export class BootstrapModule {
       ProjectModule,
       IamModule,
       CatalogModule,
+      ListingModule,
     ];
 
     // Add WorkflowModule if workflows config is provided
