@@ -250,6 +250,7 @@ CREATE TABLE catalog.listing_posting_product_sort (
     DEFAULT '00000000-0000-0000-0000-000000000000'::uuid,
   bool_value             boolean,
   timestamptz_value      timestamptz,
+  timestamptz_value_2    timestamptz,
   bigint_value           bigint,
   text_value             text,
   numeric_value          numeric,
@@ -278,8 +279,12 @@ CREATE INDEX idx_listing_posting_product_sort_newest
     project_id,
     index_version,
     sort_kind,
+    locale,
+    currency,
+    manual_scope_id,
     bool_value DESC,
     timestamptz_value DESC NULLS LAST,
+    timestamptz_value_2 DESC NULLS LAST,
     product_id
   )
   INCLUDE (product_doc_id);
@@ -300,10 +305,12 @@ CREATE INDEX idx_listing_posting_product_sort_value
   INCLUDE (product_doc_id);
 ```
 
-Implementation can split this generic table into dedicated typed tables if SQL
-plans become simpler. Manual category/collection order is scope-specific, so it
-must use `manual_scope_id` and must not be modeled as one global product sort
-value.
+The generic table is acceptable for the first benchmark implementation, but hot
+storefront sorts must have dedicated typed tables or dedicated covering indexes
+once the supported sort set is finalized. At minimum benchmark newest, created,
+name, manual, min price and max price as separate sort shapes before release.
+Manual category/collection order is scope-specific, so it must use
+`manual_scope_id` and must not be modeled as one global product sort value.
 
 `product_id` is duplicated in sort rows so hot sort-first queries can keep the
 required stable `product_id ASC` tie-breaker inside the leading sort index.
@@ -314,9 +321,10 @@ for hot storefront page collectors.
 Hot sort-first collectors read `product_doc_id` for bitmap membership checks.
 Sort indexes used by those collectors must be covering indexes for the selected
 sort shape, either by making `product_doc_id` part of the key or by
-`INCLUDE (product_doc_id)`. If the generic multi-value index above produces poor
-plans, split it into dedicated per-sort indexes such as newest, created, name,
-manual, min price and max price.
+`INCLUDE (product_doc_id)`. A sort shape is not accepted for the hot path until
+its exact `WHERE`, keyset predicate and `ORDER BY` are backed by a matching
+covering index. The generic multi-value index is a fallback/prototype, not a
+release guarantee for all sorts.
 
 ### Price values
 
@@ -622,7 +630,7 @@ Product-level postings строятся по published product docs:
 
 ```text
 scope:global
-scope:category:<category_id or handle>
+scope:category:<category_id>
 scope:collection:<collection_id>
 kind:<kind>
 vendor:<vendor_id>
@@ -739,9 +747,17 @@ WHERE s.project_id = :projectId
 ORDER BY
   s.bool_value DESC,
   s.timestamptz_value DESC NULLS LAST,
+  s.timestamptz_value_2 DESC NULLS LAST,
   s.product_id ASC
 LIMIT :firstPlusOne;
 ```
+
+For `newest`, `timestamptz_value` is `published_at` and
+`timestamptz_value_2` is `product_created_at`. For `created`,
+`timestamptz_value` is `product_created_at` and `timestamptz_value_2` stays
+`NULL`. If a sort needs more than the generic slots can express cleanly, it must
+use a dedicated typed table or dedicated query shape rather than overloading
+unrelated columns.
 
 Для cursor pagination cursor хранит sort key values, `product_id`,
 `product_doc_id`, `index_version` и filter hash. Pagination использует keyset
@@ -829,7 +845,10 @@ WITH first_matching_variants AS (
   ORDER BY vp.price_minor ASC, vp.product_id ASC, vp.variant_doc_id ASC
   LIMIT :firstPlusOne
 )
-SELECT fmv.product_id, fmv.price_minor AS sort_price_minor
+SELECT
+  fmv.product_id,
+  fmv.product_doc_id,
+  fmv.price_minor AS sort_price_minor
 FROM first_matching_variants fmv
 ORDER BY fmv.price_minor ASC, fmv.product_id ASC
 LIMIT :firstPlusOne;
@@ -1072,22 +1091,24 @@ product_doc_id
 Product sort cursors use the exact SQL keyset predicate for the selected sort:
 
 ```text
-(in_stock, sort_value, product_id) after cursor
+(in_stock, sort_value_1, sort_value_2?, product_id) after cursor
 ```
 
 Variant price sort cursors use product-level sort keys:
 
 ```text
 price_minor
-product_doc_id
 product_id
+product_doc_id
 ```
 
 The price collector must only emit the first matching variant per product, so
-the cursor represents product order, not variant row order. If the query cannot
-prove first matching variant cheaply for a page, it must fall back to full
-aggregation for correctness rather than emitting duplicate or out-of-order
-products.
+the cursor represents product order, not variant row order. `product_doc_id` is
+carried for version-scoped validation and diagnostics, but it is not part of the
+price sort key unless the SQL `ORDER BY` and keyset predicate also include it. If
+the query cannot prove first matching variant cheaply for a page, it must fall
+back to full aggregation for correctness rather than emitting duplicate or
+out-of-order products.
 
 ## Query flow
 
@@ -1235,6 +1256,27 @@ JOIN catalog.listing_posting_product_doc pd
 WHERE listing_rb_contains(:matchesBitmap::roaringbitmap, sc.product_doc_id)
 ORDER BY pd.in_stock DESC, sc.relevance_score DESC, pd.product_id ASC;
 ```
+
+`VALUES` CTE is only acceptable for small candidate sets or page preselection.
+For exact `totalCount` and facet counts on broad search results, BM25 search
+must materialize the full candidate relation for the normalized query into a
+request-scoped structure before listing filters run:
+
+```text
+search_candidate(product_doc_id, relevance_score)
+  primary key product_doc_id
+  scoped by project_id, index_version, locale/search visibility context
+
+search_candidates_bitmap =
+  listing_rb_build_agg(search_candidate.product_doc_id)
+```
+
+The physical form can be a PostgreSQL temporary table, an unlogged
+request-scoped table keyed by request id, or another benchmarked relation that
+lets PostgreSQL join by `product_doc_id` and build the candidate bitmap without
+shipping all ids through application memory. The implementation must define
+cleanup, row-count limits and fallback behavior for this relation before
+enabling exact search facets on large catalogs.
 
 For exact `totalCount` and facet counts, `search_candidates` must represent the
 full BM25 result set for the normalized query inside project, locale and
