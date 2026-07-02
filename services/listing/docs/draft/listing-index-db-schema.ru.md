@@ -982,6 +982,10 @@ CREATE TABLE listing.product_title_bm25_search_index (
     PRIMARY KEY (product_id, locale),
   CONSTRAINT product_title_bm25_search_id_unique
     UNIQUE (search_id),
+  CONSTRAINT fk_product_title_bm25_product
+    FOREIGN KEY (product_id)
+    REFERENCES listing.product_listing_index(product_id)
+    ON DELETE CASCADE,
   CONSTRAINT chk_product_title_bm25_kind
     CHECK (kind IN ('BASE', 'BUNDLE')),
   CONSTRAINT chk_product_title_bm25_status
@@ -1044,7 +1048,7 @@ Fallback rules:
 | --- | --- |
 | `search_id` | Stable unique BM25 key field. |
 | `project_id` | Tenant boundary for search candidate queries. |
-| `product_id` | External canonical product id. No FK to upstream product schema is enforced. |
+| `product_id` | External canonical product id. FK points only to local `listing.product_listing_index(product_id)`, not to upstream product schema. |
 | `locale` | Localized title dimension. |
 | `kind`, `status`, `published_at` | Search-visible product predicates stored in the BM25 row. |
 | `product_created_at`, `product_updated_at`, `product_revision` | Sort/debug/freshness fields from product listing state. |
