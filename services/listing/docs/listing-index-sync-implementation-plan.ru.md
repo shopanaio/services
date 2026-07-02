@@ -239,6 +239,9 @@ Required methods:
 
 Rows are derived physical indexes. They must be rebuilt from listing rows,
 product price rows, translations and manual scope ranks.
+`collectProductPage` must route by `sort_kind` and sort direction to the
+matching physical index shape from `listing-index-db-schema.ru.md`; do not rely
+on one generic multi-value sort index.
 
 ### ListingPostingVariantPriceRepository
 

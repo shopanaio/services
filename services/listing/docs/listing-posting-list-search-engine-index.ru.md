@@ -270,16 +270,41 @@ CREATE INDEX idx_listing_posting_product_sort_newest
   )
   INCLUDE (product_doc_id);
 
-CREATE INDEX idx_listing_posting_product_sort_value
+CREATE INDEX idx_listing_posting_product_sort_text
   ON listing.listing_posting_product_sort (
     project_id,
     sort_kind,
     locale,
     currency,
     manual_scope_id,
-    numeric_value,
-    text_value,
-    bigint_value,
+    bool_value DESC,
+    text_value ASC NULLS LAST,
+    product_id
+  )
+  INCLUDE (product_doc_id);
+
+CREATE INDEX idx_listing_posting_product_sort_bigint_asc
+  ON listing.listing_posting_product_sort (
+    project_id,
+    sort_kind,
+    locale,
+    currency,
+    manual_scope_id,
+    bool_value DESC,
+    bigint_value ASC NULLS LAST,
+    product_id
+  )
+  INCLUDE (product_doc_id);
+
+CREATE INDEX idx_listing_posting_product_sort_bigint_desc
+  ON listing.listing_posting_product_sort (
+    project_id,
+    sort_kind,
+    locale,
+    currency,
+    manual_scope_id,
+    bool_value DESC,
+    bigint_value DESC NULLS LAST,
     product_id
   )
   INCLUDE (product_doc_id);
@@ -288,6 +313,19 @@ CREATE INDEX idx_listing_posting_product_sort_value
 Sort rows являются physical index, а не source data. Они строятся из
 `product_listing_index`, `product_listing_price_index`, translations,
 category/collection ranks и других canonical/read-model источников.
+
+Sort rows use sort-specific indexes. Do not use one generic multi-value index
+for all sort kinds: PostgreSQL can use an ordered index scan only when the index
+prefix matches the requested `ORDER BY` shape.
+
+Index routing:
+
+- `newest` / `created`: `idx_listing_posting_product_sort_newest`
+- `name` and text-based manual ranks: `idx_listing_posting_product_sort_text`
+- `price_asc` and other integer ascending sorts:
+  `idx_listing_posting_product_sort_bigint_asc`
+- `price_desc` and other integer descending sorts:
+  `idx_listing_posting_product_sort_bigint_desc`
 
 ## Variant price table
 
@@ -355,8 +393,10 @@ CREATE INDEX idx_listing_posting_variant_price_product_order
   );
 ```
 
-Rows exist only for priced variants. Storefront listing normally uses project
-default currency.
+Rows exist only for active variants that are both priced in the row currency and
+currently in stock. Storefront listing normally uses project default currency.
+Out-of-stock priced variants remain in `variant_listing_price_index`, but must
+not exist in `listing_posting_variant_price`.
 
 ## Variant projection blocks
 
@@ -615,7 +655,8 @@ Variant created:
 - allocate `variant_doc_id`;
 - insert `variant_listing_index`;
 - insert `variant_listing_price_index`;
-- insert `listing_posting_variant_price` if priced;
+- insert `listing_posting_variant_price` only if the variant is active, in stock
+  and priced in the currency;
 - add `variant_doc_id` to option posting rows and
   `field=variant_product,value_key=<product_doc_id>`.
 
@@ -644,8 +685,8 @@ Stock changed:
 - update `variant_listing_index.in_stock`;
 - update `product_listing_index.in_stock`;
 - update availability sort rows;
-- update affected variant price rows if price path only includes in-stock
-  variants.
+- insert/delete affected `listing_posting_variant_price` rows, because this
+  physical index contains only priced in-stock variants.
 
 Name/manual rank changed:
 
