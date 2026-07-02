@@ -1,0 +1,711 @@
+import { sql, type SQL } from "drizzle-orm";
+import { ReadOnly } from "@shopana/shared-kernel";
+import { BaseRepository } from "../BaseRepository.js";
+import {
+  catalogFacetRuntime,
+  catalogFacetValueRuntime,
+} from "../models/index.js";
+import type {
+  FacetRuntimeType,
+  ResolvedFacetFilterGroup,
+  ResolvedFacetValue,
+  RuleCollectionPredicate,
+  StorefrontFilterPlan,
+  StorefrontListingFilterInput,
+  StorefrontListingScope,
+} from "./types.js";
+import { StorefrontRepositoryValidationError } from "./types.js";
+import { assertNonNegativeSafeInteger } from "./sqlHelpers.js";
+
+interface FacetResolutionSqlRow extends Record<string, unknown> {
+  facetSlug: string;
+  requestedValueHandle: string;
+  facetId: string;
+  facetType: string;
+  facetValueId: string;
+  valueHandle: string;
+  valueKey: string;
+}
+
+interface FacetValueSqlRow extends Record<string, unknown> {
+  facetId: string;
+  facetSlug: string;
+  facetType: string;
+  facetValueId: string;
+  valueHandle: string;
+  valueKey: string;
+}
+
+export class StorefrontFacetResolutionRepository extends BaseRepository {
+  @ReadOnly()
+  async resolveFilterPlan(input: {
+    filters: StorefrontListingFilterInput[];
+  }): Promise<StorefrontFilterPlan> {
+    const plan: StorefrontFilterPlan = {
+      productFacetGroups: [],
+      optionFacetGroups: [],
+      vendorIds: [],
+    };
+
+    const facetFilters = input.filters.filter(
+      (filter): filter is Extract<StorefrontListingFilterInput, { kind: "facet" }> =>
+        filter.kind === "facet"
+    );
+
+    const resolvedFacetRows = await this.resolveFacetFilters(facetFilters);
+    const resolvedByRequest = new Map(
+      resolvedFacetRows.map((row) => [
+        `${row.facetSlug}:${row.requestedValueHandle}`,
+        row,
+      ])
+    );
+
+    for (const filter of input.filters) {
+      switch (filter.kind) {
+        case "facet":
+          this.addFacetFilterGroup(plan, filter, resolvedByRequest);
+          break;
+        case "vendor":
+          plan.vendorIds = this.mergeUnique(plan.vendorIds, filter.vendorIds);
+          break;
+        case "price":
+          plan.priceRange = this.mergePriceRange(plan.priceRange, filter);
+          break;
+        case "in_stock":
+          plan.inStock = this.mergeInStock(plan.inStock, filter.value);
+          break;
+      }
+    }
+
+    return plan;
+  }
+
+  @ReadOnly()
+  async getFacetValues(input: {
+    scope: StorefrontListingScope;
+    locale: string;
+    currency: string;
+    requestedFacetIds?: string[];
+  }): Promise<ResolvedFacetValue[]> {
+    const requestedFacetIds = this.mergeUnique([], input.requestedFacetIds ?? []);
+    const facetFilter =
+      requestedFacetIds.length > 0
+        ? sql`AND candidate_values.facet_id IN (${sql.join(
+            requestedFacetIds.map((facetId) => sql`${facetId}::uuid`),
+            sql`, `
+          )})`
+        : sql``;
+    const scopeProductBitmapSql = this.buildScopeProductBitmapSql(
+      input.scope,
+      input.currency
+    );
+
+    const rows = await this.connection.execute<FacetValueSqlRow>(sql`
+      WITH scope_products AS (
+        SELECT ${scopeProductBitmapSql} AS product_bitmap
+      ),
+      scope_variants AS (
+        SELECT ${coalesceScopeBitmapSql(sql`(
+          SELECT rb_build_agg(vli.variant_doc_id)
+          FROM listing.variant_listing_index vli
+          CROSS JOIN scope_products sp
+          WHERE vli.project_id = ${this.storeId}::uuid
+            AND vli.in_stock = true
+            AND sp.product_bitmap @> vli.product_doc_id
+        )`)} AS variant_bitmap
+      ),
+      candidate_values AS (
+        SELECT DISTINCT
+          split_part(p.value_key, ':', 1)::uuid AS facet_id,
+          split_part(p.value_key, ':', 2)::uuid AS facet_value_id
+        FROM listing.listing_posting_bitmap p
+        CROSS JOIN scope_products sp
+        WHERE p.project_id = ${this.storeId}::uuid
+          AND p.entity_type = 'product'
+          AND p.field = 'facet'
+          AND rb_cardinality(sp.product_bitmap & p.bitmap) > 0
+
+        UNION
+
+        SELECT DISTINCT
+          split_part(p.value_key, ':', 1)::uuid AS facet_id,
+          split_part(p.value_key, ':', 2)::uuid AS facet_value_id
+        FROM listing.listing_posting_bitmap p
+        CROSS JOIN scope_variants sv
+        WHERE p.project_id = ${this.storeId}::uuid
+          AND p.entity_type = 'variant'
+          AND p.field = 'facet'
+          AND rb_cardinality(sv.variant_bitmap & p.bitmap) > 0
+      )
+      SELECT
+        f.id::text AS "facetId",
+        f.slug AS "facetSlug",
+        f.facet_type AS "facetType",
+        fv.id::text AS "facetValueId",
+        fv.handle AS "valueHandle",
+        f.id::text || ':' || fv.id::text AS "valueKey"
+      FROM candidate_values
+      JOIN ${catalogFacetRuntime} f
+        ON f.project_id = ${this.storeId}::uuid
+       AND f.id = candidate_values.facet_id
+      JOIN ${catalogFacetValueRuntime} fv
+        ON fv.project_id = f.project_id
+       AND fv.facet_id = f.id
+       AND fv.id = candidate_values.facet_value_id
+      WHERE true
+        ${facetFilter}
+      ORDER BY f.lexo_rank ASC, f.id ASC, fv.id ASC
+    `);
+
+    return rows.map((row) => this.toResolvedFacetValue(row));
+  }
+
+  private buildScopeProductBitmapSql(
+    scope: StorefrontListingScope,
+    currency: string
+  ): SQL {
+    switch (scope.kind) {
+      case "category":
+        return this.productPostingScopeBitmapSql("category", scope.categoryId);
+      case "manual_collection":
+        return this.productPostingScopeBitmapSql("collection", scope.collectionId);
+      case "global":
+      case "search":
+        return this.publishedProductBitmapSql();
+      case "rule_collection":
+        return this.ruleCollectionScopeBitmapSql(scope.rules, currency);
+    }
+  }
+
+  private productPostingScopeBitmapSql(field: "category" | "collection", valueKey: string): SQL {
+    return sql`(
+      ${this.publishedProductBitmapSql()}
+      & ${coalesceScopeBitmapSql(sql`(
+        SELECT p.bitmap
+        FROM listing.listing_posting_bitmap p
+        WHERE p.project_id = ${this.storeId}::uuid
+          AND p.entity_type = 'product'
+          AND p.field = ${field}
+          AND p.value_key = ${valueKey}
+      )`)}
+    )`;
+  }
+
+  private ruleCollectionScopeBitmapSql(
+    rules: RuleCollectionPredicate[],
+    currency: string
+  ): SQL {
+    const productRuleBitmaps: SQL[] = [];
+    const variantRuleBitmaps: SQL[] = [];
+    let hasOptionRule = false;
+    let hasExplicitStockRule = false;
+
+    for (const rule of rules) {
+      switch (rule.kind) {
+        case "category":
+          productRuleBitmaps.push(
+            this.productPostingBitmapSql("category", rule.categoryId)
+          );
+          break;
+        case "collection":
+          productRuleBitmaps.push(
+            this.productPostingBitmapSql("collection", rule.collectionId)
+          );
+          break;
+        case "vendor":
+          productRuleBitmaps.push(
+            this.productPostingBitmapSql("vendor", rule.vendorId)
+          );
+          break;
+        case "product_facet":
+          productRuleBitmaps.push(
+            this.orPostingValuesBitmapSql("product", "facet", rule.valueKeys)
+          );
+          break;
+        case "option_facet":
+          hasOptionRule = true;
+          variantRuleBitmaps.push(
+            this.orPostingValuesBitmapSql("variant", "facet", rule.valueKeys)
+          );
+          break;
+        case "price":
+          variantRuleBitmaps.push(this.priceRuleVariantBitmapSql(rule, currency));
+          break;
+        case "in_stock":
+          hasExplicitStockRule = true;
+          variantRuleBitmaps.push(this.variantStockRuleBitmapSql(rule.value));
+          break;
+      }
+    }
+
+    const ruleScopeParts: SQL[] = [];
+    if (productRuleBitmaps.length > 0) {
+      ruleScopeParts.push(this.orBitmapsSql(productRuleBitmaps));
+    }
+
+    if (variantRuleBitmaps.length > 0) {
+      if (hasOptionRule && !hasExplicitStockRule) {
+        variantRuleBitmaps.push(this.variantStockRuleBitmapSql(true));
+      }
+      const variantRuleScope = this.andBitmapsSql(variantRuleBitmaps);
+      ruleScopeParts.push(this.projectVariantBitmapSql(variantRuleScope));
+    }
+
+    if (ruleScopeParts.length === 0) {
+      return this.publishedProductBitmapSql();
+    }
+
+    const ruleScope = this.orBitmapsSql(ruleScopeParts);
+    return sql`(${this.publishedProductBitmapSql()} & ${ruleScope})`;
+  }
+
+  private orBitmapsSql(bitmaps: readonly SQL[]): SQL {
+    if (bitmaps.length === 0) {
+      return emptyScopeBitmapSql();
+    }
+    return bitmaps
+      .slice(1)
+      .reduce((acc, bitmapSql) => sql`(${acc} | ${bitmapSql})`, bitmaps[0]);
+  }
+
+  private andBitmapsSql(bitmaps: readonly SQL[]): SQL {
+    if (bitmaps.length === 0) {
+      return emptyScopeBitmapSql();
+    }
+    return bitmaps
+      .slice(1)
+      .reduce((acc, bitmapSql) => sql`(${acc} & ${bitmapSql})`, bitmaps[0]);
+  }
+
+  private productPostingBitmapSql(
+    field: "category" | "collection" | "vendor" | "facet",
+    valueKey: string
+  ): SQL {
+    return coalesceScopeBitmapSql(sql`(
+      SELECT p.bitmap
+      FROM listing.listing_posting_bitmap p
+      WHERE p.project_id = ${this.storeId}::uuid
+        AND p.entity_type = 'product'
+        AND p.field = ${field}
+        AND p.value_key = ${valueKey}
+    )`);
+  }
+
+  private orPostingValuesBitmapSql(
+    entityType: "product" | "variant",
+    field: "facet",
+    valueKeys: readonly string[]
+  ): SQL {
+    const uniqueValueKeys = this.mergeUnique([], valueKeys);
+    if (uniqueValueKeys.length === 0) {
+      return emptyScopeBitmapSql();
+    }
+
+    return coalesceScopeBitmapSql(sql`(
+      SELECT rb_or_agg(p.bitmap)
+      FROM listing.listing_posting_bitmap p
+      WHERE p.project_id = ${this.storeId}::uuid
+        AND p.entity_type = ${entityType}
+        AND p.field = ${field}
+        AND p.value_key IN (${sql.join(
+          uniqueValueKeys.map((valueKey) => sql`${valueKey}`),
+          sql`, `
+        )})
+    )`);
+  }
+
+  private priceRuleVariantBitmapSql(
+    rule: Extract<RuleCollectionPredicate, { kind: "price" }>,
+    currency: string
+  ): SQL {
+    if (!currency.trim()) {
+      throw new StorefrontRepositoryValidationError("Currency is required");
+    }
+    if (rule.minPriceMinor === undefined && rule.maxPriceMinor === undefined) {
+      throw new StorefrontRepositoryValidationError(
+        "Rule collection price rule requires at least one bound",
+        ["scope", "rules"]
+      );
+    }
+    if (rule.minPriceMinor !== undefined) {
+      assertNonNegativeSafeInteger(rule.minPriceMinor, "minPriceMinor");
+    }
+    if (rule.maxPriceMinor !== undefined) {
+      assertNonNegativeSafeInteger(rule.maxPriceMinor, "maxPriceMinor");
+    }
+    if (
+      rule.minPriceMinor !== undefined &&
+      rule.maxPriceMinor !== undefined &&
+      rule.minPriceMinor > rule.maxPriceMinor
+    ) {
+      throw new StorefrontRepositoryValidationError(
+        "Rule collection price rule min bound must not exceed max bound",
+        ["scope", "rules"]
+      );
+    }
+
+    const minPredicate =
+      rule.minPriceMinor !== undefined
+        ? sql`AND vp.price_minor >= ${rule.minPriceMinor}`
+        : sql``;
+    const maxPredicate =
+      rule.maxPriceMinor !== undefined
+        ? sql`AND vp.price_minor <= ${rule.maxPriceMinor}`
+        : sql``;
+
+    return coalesceScopeBitmapSql(sql`(
+      SELECT rb_build_agg(vp.variant_doc_id)
+      FROM listing.listing_posting_variant_price vp
+      JOIN listing.variant_listing_index vli
+        ON vli.project_id = vp.project_id
+       AND vli.variant_doc_id = vp.variant_doc_id
+       AND vli.product_doc_id = vp.product_doc_id
+       AND vli.product_id = vp.product_id
+       AND vli.in_stock = true
+      WHERE vp.project_id = ${this.storeId}::uuid
+        AND vp.currency = ${currency}
+        ${minPredicate}
+        ${maxPredicate}
+    )`);
+  }
+
+  private variantStockRuleBitmapSql(inStock: boolean): SQL {
+    return coalesceScopeBitmapSql(sql`(
+      SELECT rb_build_agg(vli.variant_doc_id)
+      FROM listing.variant_listing_index vli
+      WHERE vli.project_id = ${this.storeId}::uuid
+        AND vli.in_stock = ${inStock}
+    )`);
+  }
+
+  private projectVariantBitmapSql(variantBitmapSql: SQL): SQL {
+    return coalesceScopeBitmapSql(sql`(
+      WITH matched_blocks AS (
+        SELECT
+          b.variant_doc_from,
+          b.variant_doc_to,
+          b.variant_bitmap,
+          b.product_bitmap,
+          b.variant_count,
+          (${variantBitmapSql} & b.variant_bitmap) AS block_match
+        FROM listing.listing_posting_variant_projection_block b
+        WHERE b.project_id = ${this.storeId}::uuid
+          AND rb_cardinality(${variantBitmapSql} & b.variant_bitmap) > 0
+      ),
+      full_block_products AS (
+        SELECT mb.product_bitmap
+        FROM matched_blocks mb
+        WHERE rb_cardinality(mb.block_match) = mb.variant_count
+      ),
+      partial_block_products AS (
+        SELECT rb_build_agg(vli.product_doc_id) AS product_bitmap
+        FROM matched_blocks mb
+        JOIN listing.variant_listing_index vli
+          ON vli.project_id = ${this.storeId}::uuid
+         AND vli.variant_doc_id >= mb.variant_doc_from
+         AND vli.variant_doc_id < mb.variant_doc_to
+        WHERE rb_cardinality(mb.block_match) < mb.variant_count
+          AND mb.block_match @> vli.variant_doc_id
+      ),
+      projected AS (
+        SELECT rb_or_agg(product_bitmap) AS product_bitmap
+        FROM (
+          SELECT product_bitmap FROM full_block_products
+          UNION ALL
+          SELECT product_bitmap FROM partial_block_products
+        ) x
+      )
+      SELECT product_bitmap
+      FROM projected
+    )`);
+  }
+
+  private publishedProductBitmapSql(): SQL {
+    return coalesceScopeBitmapSql(sql`(
+      SELECT rb_build_agg(pli.product_doc_id)
+      FROM listing.product_listing_index pli
+      WHERE pli.project_id = ${this.storeId}::uuid
+        AND pli.status = 'published'
+    )`);
+  }
+
+  private async resolveFacetFilters(
+    filters: readonly Extract<StorefrontListingFilterInput, { kind: "facet" }>[]
+  ): Promise<FacetResolutionSqlRow[]> {
+    const pairs = filters.flatMap((filter) => {
+      const slug = filter.facetSlug.trim();
+      return this.mergeUnique([], filter.valueHandles).map((valueHandle) => ({
+        facetSlug: slug,
+        valueHandle,
+      }));
+    });
+
+    if (pairs.length === 0) {
+      return [];
+    }
+
+    const valuesSql = sql.join(
+      pairs.map(
+        (pair) => sql`(${pair.facetSlug}, ${pair.valueHandle})`
+      ),
+      sql`, `
+    );
+
+    const rows = await this.connection.execute<FacetResolutionSqlRow>(sql`
+      WITH requested(facet_slug, value_handle) AS (
+        VALUES ${valuesSql}
+      ),
+      resolved AS (
+        SELECT
+          r.facet_slug AS "facetSlug",
+          r.value_handle AS "requestedValueHandle",
+          f.id::text AS "facetId",
+          f.facet_type AS "facetType",
+          COALESCE(parent_fv.id, fv.id)::text AS "facetValueId",
+          COALESCE(parent_fv.handle, fv.handle) AS "valueHandle",
+          f.id::text || ':' || COALESCE(parent_fv.id, fv.id)::text AS "valueKey",
+          fv.parent_id IS NULL AS is_root,
+          fv.kind = 'display' AS is_display
+        FROM requested r
+        JOIN ${catalogFacetRuntime} f
+          ON f.project_id = ${this.storeId}::uuid
+         AND f.slug = r.facet_slug
+        JOIN ${catalogFacetValueRuntime} fv
+          ON fv.project_id = f.project_id
+         AND fv.facet_id = f.id
+         AND fv.handle = r.value_handle
+        LEFT JOIN ${catalogFacetValueRuntime} parent_fv
+          ON parent_fv.project_id = fv.project_id
+         AND parent_fv.id = fv.parent_id
+      )
+      SELECT DISTINCT ON ("facetSlug", "requestedValueHandle")
+        "facetSlug",
+        "requestedValueHandle",
+        "facetId",
+        "facetType",
+        "facetValueId",
+        "valueHandle",
+        "valueKey"
+      FROM resolved
+      ORDER BY
+        "facetSlug",
+        "requestedValueHandle",
+        is_root DESC,
+        is_display DESC,
+        "facetValueId" ASC
+    `);
+
+    const rowKeys = new Set(
+      rows.map((row) => `${row.facetSlug}:${row.requestedValueHandle}`)
+    );
+    const missing = pairs.filter(
+      (pair) => !rowKeys.has(`${pair.facetSlug}:${pair.valueHandle}`)
+    );
+    if (missing.length > 0) {
+      throw new StorefrontRepositoryValidationError(
+        `Unknown storefront facet value: ${missing[0].facetSlug}:${missing[0].valueHandle}`,
+        ["filters"]
+      );
+    }
+
+    return rows;
+  }
+
+  private addFacetFilterGroup(
+    plan: StorefrontFilterPlan,
+    filter: Extract<StorefrontListingFilterInput, { kind: "facet" }>,
+    resolvedByRequest: ReadonlyMap<string, FacetResolutionSqlRow>
+  ): void {
+    const valueHandles = this.mergeUnique([], filter.valueHandles);
+    if (valueHandles.length === 0) {
+      return;
+    }
+
+    const rows = valueHandles.map((valueHandle) => {
+      const row = resolvedByRequest.get(`${filter.facetSlug}:${valueHandle}`);
+      if (!row) {
+        throw new StorefrontRepositoryValidationError(
+          `Unknown storefront facet value: ${filter.facetSlug}:${valueHandle}`,
+          ["filters"]
+        );
+      }
+      return row;
+    });
+
+    const first = rows[0];
+    const facetType = this.assertFacetRuntimeType(first.facetType);
+    const valueKeys = this.mergeUnique(
+      [],
+      rows.map((row) => row.valueKey)
+    );
+
+    if (facetType === "TAG" || facetType === "FEATURE") {
+      this.upsertGroup(plan.productFacetGroups, {
+        facetId: first.facetId,
+        facetType,
+        valueKeys,
+      });
+      return;
+    }
+
+    if (facetType === "OPTION") {
+      this.upsertGroup(plan.optionFacetGroups, {
+        facetId: first.facetId,
+        facetType,
+        valueKeys,
+      });
+      return;
+    }
+
+    if (facetType === "IN_STOCK") {
+      const next = this.parseInStockHandle(rows[0].valueHandle);
+      plan.inStock = this.mergeInStock(plan.inStock, next);
+      return;
+    }
+
+    throw new StorefrontRepositoryValidationError(
+      "PRICE facet filters must use price range input",
+      ["filters"]
+    );
+  }
+
+  private upsertGroup(
+    groups: ResolvedFacetFilterGroup[],
+    group: ResolvedFacetFilterGroup
+  ): void {
+    const existing = groups.find((item) => item.facetId === group.facetId);
+    if (!existing) {
+      groups.push(group);
+      return;
+    }
+    existing.valueKeys = this.mergeUnique(existing.valueKeys, group.valueKeys);
+  }
+
+  private mergePriceRange(
+    current: StorefrontFilterPlan["priceRange"],
+    next: Extract<StorefrontListingFilterInput, { kind: "price" }>
+  ): StorefrontFilterPlan["priceRange"] {
+    if (next.minPriceMinor === undefined && next.maxPriceMinor === undefined) {
+      throw new StorefrontRepositoryValidationError(
+        "Price filter requires at least one bound",
+        ["filters"]
+      );
+    }
+    if (next.minPriceMinor !== undefined) {
+      assertNonNegativeSafeInteger(next.minPriceMinor, "minPriceMinor");
+    }
+    if (next.maxPriceMinor !== undefined) {
+      assertNonNegativeSafeInteger(next.maxPriceMinor, "maxPriceMinor");
+    }
+    if (
+      next.minPriceMinor !== undefined &&
+      next.maxPriceMinor !== undefined &&
+      next.minPriceMinor > next.maxPriceMinor
+    ) {
+      throw new StorefrontRepositoryValidationError(
+        "Price filter min bound must not exceed max bound",
+        ["filters"]
+      );
+    }
+
+    const merged = {
+      minPriceMinor:
+        current?.minPriceMinor === undefined
+          ? next.minPriceMinor
+          : next.minPriceMinor === undefined
+            ? current.minPriceMinor
+            : Math.max(current.minPriceMinor, next.minPriceMinor),
+      maxPriceMinor:
+        current?.maxPriceMinor === undefined
+          ? next.maxPriceMinor
+          : next.maxPriceMinor === undefined
+            ? current.maxPriceMinor
+            : Math.min(current.maxPriceMinor, next.maxPriceMinor),
+    };
+
+    if (
+      merged.minPriceMinor !== undefined &&
+      merged.maxPriceMinor !== undefined &&
+      merged.minPriceMinor > merged.maxPriceMinor
+    ) {
+      throw new StorefrontRepositoryValidationError(
+        "Combined price filters produce an invalid range",
+        ["filters"]
+      );
+    }
+
+    return merged;
+  }
+
+  private mergeInStock(current: boolean | undefined, next: boolean): boolean {
+    if (current !== undefined && current !== next) {
+      throw new StorefrontRepositoryValidationError(
+        "Conflicting in-stock filters",
+        ["filters"]
+      );
+    }
+    return next;
+  }
+
+  private mergeUnique(current: readonly string[], next: readonly string[]): string[] {
+    return [
+      ...new Set([
+        ...current.map((value) => value.trim()).filter(Boolean),
+        ...next.map((value) => value.trim()).filter(Boolean),
+      ]),
+    ];
+  }
+
+  private parseInStockHandle(handle: string): boolean {
+    const normalized = handle.trim().toLowerCase();
+    if (["true", "1", "yes", "in_stock", "available"].includes(normalized)) {
+      return true;
+    }
+    if (["false", "0", "no", "out_of_stock", "unavailable"].includes(normalized)) {
+      return false;
+    }
+    throw new StorefrontRepositoryValidationError(
+      "IN_STOCK facet value must be boolean-like",
+      ["filters"]
+    );
+  }
+
+  private toResolvedFacetValue(row: FacetValueSqlRow): ResolvedFacetValue {
+    const facetType = this.assertFacetRuntimeType(row.facetType);
+    return {
+      facetId: row.facetId,
+      facetSlug: row.facetSlug,
+      facetType,
+      facetValueId: row.facetValueId,
+      valueHandle: row.valueHandle,
+      valueKey: row.valueKey,
+    };
+  }
+
+  private assertFacetRuntimeType(value: string): FacetRuntimeType {
+    if (
+      value === "TAG" ||
+      value === "FEATURE" ||
+      value === "OPTION" ||
+      value === "PRICE" ||
+      value === "IN_STOCK"
+    ) {
+      return value;
+    }
+    throw new StorefrontRepositoryValidationError(
+      `Unsupported facet type: ${value}`,
+      ["filters"]
+    );
+  }
+}
+
+function emptyScopeBitmapSql(): SQL {
+  return sql`(
+    SELECT rb_build_agg(empty_doc_id) - rb_build_agg(empty_doc_id)
+    FROM (VALUES (0)) AS empty_bitmap_seed(empty_doc_id)
+  )`;
+}
+
+function coalesceScopeBitmapSql(value: SQL): SQL {
+  return sql`COALESCE(${value}, ${emptyScopeBitmapSql()})`;
+}

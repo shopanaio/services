@@ -12,6 +12,16 @@ import {
   ListingPostingVariantProjectionBlockRepository,
   ProductTitleBm25SearchIndexRepository,
 } from "./listing/index.js";
+import {
+  StorefrontFacetAggregationRepository,
+  StorefrontFacetResolutionRepository,
+  StorefrontListingQueryRepository,
+  StorefrontPostingBitmapQueryRepository,
+  StorefrontProductSortCollectorRepository,
+  StorefrontProductTitleSearchQueryRepository,
+  StorefrontVariantPriceCollectorRepository,
+  StorefrontVariantProjectionQueryRepository,
+} from "./storefront/index.js";
 
 export interface RepositoryConfig {
   db: Database;
@@ -30,6 +40,14 @@ export class Repository {
   public readonly listingPostingVariantPrice: ListingPostingVariantPriceRepository;
   public readonly listingPostingVariantProjectionBlock: ListingPostingVariantProjectionBlockRepository;
   public readonly productTitleBm25SearchIndex: ProductTitleBm25SearchIndexRepository;
+  public readonly storefrontFacetResolution: StorefrontFacetResolutionRepository;
+  public readonly storefrontPostingBitmapQuery: StorefrontPostingBitmapQueryRepository;
+  public readonly storefrontVariantProjectionQuery: StorefrontVariantProjectionQueryRepository;
+  public readonly storefrontProductSortCollector: StorefrontProductSortCollectorRepository;
+  public readonly storefrontVariantPriceCollector: StorefrontVariantPriceCollectorRepository;
+  public readonly storefrontProductTitleSearchQuery: StorefrontProductTitleSearchQueryRepository;
+  public readonly storefrontFacetAggregation: StorefrontFacetAggregationRepository;
+  public readonly storefrontListingQuery: StorefrontListingQueryRepository;
   public readonly txManager: TransactionManager<Database>;
 
   public get db(): Database {
@@ -47,6 +65,14 @@ export class Repository {
     listingPostingVariantPrice: ListingPostingVariantPriceRepository,
     listingPostingVariantProjectionBlock: ListingPostingVariantProjectionBlockRepository,
     productTitleBm25SearchIndex: ProductTitleBm25SearchIndexRepository,
+    storefrontFacetResolution: StorefrontFacetResolutionRepository,
+    storefrontPostingBitmapQuery: StorefrontPostingBitmapQueryRepository,
+    storefrontVariantProjectionQuery: StorefrontVariantProjectionQueryRepository,
+    storefrontProductSortCollector: StorefrontProductSortCollectorRepository,
+    storefrontVariantPriceCollector: StorefrontVariantPriceCollectorRepository,
+    storefrontProductTitleSearchQuery: StorefrontProductTitleSearchQueryRepository,
+    storefrontFacetAggregation: StorefrontFacetAggregationRepository,
+    storefrontListingQuery: StorefrontListingQueryRepository,
     txManager: TransactionManager<Database>
   ) {
     this.listingDocIdAllocator = listingDocIdAllocator;
@@ -59,6 +85,14 @@ export class Repository {
     this.listingPostingVariantPrice = listingPostingVariantPrice;
     this.listingPostingVariantProjectionBlock = listingPostingVariantProjectionBlock;
     this.productTitleBm25SearchIndex = productTitleBm25SearchIndex;
+    this.storefrontFacetResolution = storefrontFacetResolution;
+    this.storefrontPostingBitmapQuery = storefrontPostingBitmapQuery;
+    this.storefrontVariantProjectionQuery = storefrontVariantProjectionQuery;
+    this.storefrontProductSortCollector = storefrontProductSortCollector;
+    this.storefrontVariantPriceCollector = storefrontVariantPriceCollector;
+    this.storefrontProductTitleSearchQuery = storefrontProductTitleSearchQuery;
+    this.storefrontFacetAggregation = storefrontFacetAggregation;
+    this.storefrontListingQuery = storefrontListingQuery;
     this.txManager = txManager;
   }
 
@@ -96,6 +130,35 @@ export class Repository {
       new ListingPostingVariantProjectionBlockRepository(db, txManager);
     const productTitleBm25SearchIndex =
       new ProductTitleBm25SearchIndexRepository(db, txManager);
+    const storefrontFacetResolution = new StorefrontFacetResolutionRepository(
+      db,
+      txManager
+    );
+    const storefrontPostingBitmapQuery =
+      new StorefrontPostingBitmapQueryRepository(db, txManager);
+    const storefrontVariantProjectionQuery =
+      new StorefrontVariantProjectionQueryRepository(db, txManager);
+    const storefrontProductSortCollector =
+      new StorefrontProductSortCollectorRepository(db, txManager);
+    const storefrontVariantPriceCollector =
+      new StorefrontVariantPriceCollectorRepository(db, txManager);
+    const storefrontProductTitleSearchQuery =
+      new StorefrontProductTitleSearchQueryRepository(db, txManager);
+    const storefrontFacetAggregation = new StorefrontFacetAggregationRepository(
+      db,
+      txManager
+    );
+    const storefrontListingQuery = new StorefrontListingQueryRepository(
+      db,
+      txManager,
+      storefrontFacetResolution,
+      storefrontPostingBitmapQuery,
+      storefrontVariantProjectionQuery,
+      storefrontProductSortCollector,
+      storefrontVariantPriceCollector,
+      storefrontProductTitleSearchQuery,
+      storefrontFacetAggregation
+    );
 
     return new Repository(
       listingDocIdAllocator,
@@ -108,6 +171,14 @@ export class Repository {
       listingPostingVariantPrice,
       listingPostingVariantProjectionBlock,
       productTitleBm25SearchIndex,
+      storefrontFacetResolution,
+      storefrontPostingBitmapQuery,
+      storefrontVariantProjectionQuery,
+      storefrontProductSortCollector,
+      storefrontVariantPriceCollector,
+      storefrontProductTitleSearchQuery,
+      storefrontFacetAggregation,
+      storefrontListingQuery,
       txManager
     );
   }
