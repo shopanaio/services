@@ -282,7 +282,71 @@ CREATE INDEX idx_listing_posting_variant_price_range
     variant_doc_id,
     product_doc_id
   );
+
+CREATE INDEX idx_listing_posting_variant_price_desc
+  ON catalog.listing_posting_variant_price (
+    project_id,
+    index_version,
+    currency,
+    price_minor DESC,
+    variant_doc_id,
+    product_doc_id
+  );
+
+CREATE INDEX idx_listing_posting_variant_price_product_order
+  ON catalog.listing_posting_variant_price (
+    project_id,
+    index_version,
+    currency,
+    product_doc_id,
+    price_minor,
+    variant_doc_id
+  );
 ```
+
+### Variant projection blocks
+
+Variant filters produce `variant_doc_id` bitmaps, while storefront results and
+facet counts are product-level. Projection `variant bitmap -> product bitmap`
+must have a fast path; blindly expanding every variant with `rb_iterate` is only
+acceptable for small cardinality bitmaps.
+
+The index stores fixed-size projection blocks:
+
+```sql
+CREATE TABLE catalog.listing_posting_variant_projection_block (
+  project_id             uuid NOT NULL,
+  index_version          bigint NOT NULL,
+  block_id               int NOT NULL,
+  variant_doc_from       int NOT NULL,
+  variant_doc_to         int NOT NULL,
+  variant_bitmap         roaringbitmap NOT NULL,
+  product_bitmap         roaringbitmap NOT NULL,
+  variant_count          int NOT NULL,
+  product_count          int NOT NULL,
+  PRIMARY KEY (project_id, index_version, block_id)
+);
+```
+
+Recommended block size: 4096 or 8192 variant docs. Builder creates one row per
+contiguous `variant_doc_id` range. Query strategy:
+
+```text
+if cardinality(variant_bitmap) <= small_threshold:
+  rb_iterate(variant_bitmap) -> join variant_doc -> rb_build_agg(product_doc_id)
+
+else:
+  for each projection block where variant_bitmap intersects block.variant_bitmap:
+    block_match = variant_bitmap & block.variant_bitmap
+    if cardinality(block_match) is close to block.variant_count:
+      use block.product_bitmap
+    else:
+      rb_iterate(block_match) -> join variant_doc -> rb_build_agg(product_doc_id)
+  OR all projected product bitmaps
+```
+
+This keeps sparse option filters cheap while avoiding full variant expansion for
+broad filters. Thresholds are planner parameters, not hard product semantics.
 
 ## Dense doc id dictionary
 
@@ -381,8 +445,9 @@ Price sort:
 
 - без active variant filters использовать product-level sort value
   `product_min_price_minor`;
-- с active option/price filters считать `matched_min_price_minor` по
-  `matching_variants` и product projection.
+- с active option/price filters использовать price-index-first path: scan
+  `listing_posting_variant_price` в order по `price_minor`, проверять
+  membership в `matching_variants` roaring bitmap и дедуплицировать products.
 
 ## Sort values
 
@@ -403,23 +468,25 @@ max_price_minor per currency
 rank_score / popularity_score optional
 ```
 
-Query shape:
+Preferred page retrieval shape is sort-first: PostgreSQL идет по sort index в
+нужном порядке, а roaring bitmap используется как fast membership check.
+Bitmap-iterate-first допустим только когда matches сильно селективны или для
+diagnostics, потому что он теряет преимущество B-tree order и может привести к
+дорогому `GROUP BY` / `ORDER BY`.
+
+Sort-first query shape:
 
 ```sql
-WITH matches AS (
-  SELECT rb_iterate(:matches_bitmap::roaringbitmap) AS product_doc_id
-)
 SELECT pd.product_id
-FROM matches m
+FROM catalog.listing_posting_product_sort s
 JOIN catalog.listing_posting_product_doc pd
   ON pd.project_id = :projectId
  AND pd.index_version = :indexVersion
- AND pd.product_doc_id = m.product_doc_id
-JOIN catalog.listing_posting_product_sort s
-  ON s.project_id = :projectId
- AND s.index_version = :indexVersion
- AND s.product_doc_id = m.product_doc_id
- AND s.sort_kind = :sortKind
+ AND pd.product_doc_id = s.product_doc_id
+WHERE s.project_id = :projectId
+  AND s.index_version = :indexVersion
+  AND s.sort_kind = :sortKind
+  AND rb_contains(:matchesBitmap::roaringbitmap, s.product_doc_id)
 ORDER BY
   pd.in_stock DESC,
   s.timestamptz_value DESC NULLS LAST,
@@ -430,6 +497,325 @@ LIMIT :firstPlusOne;
 Для cursor pagination cursor хранит sort key values, `product_id`,
 `index_version` и filter hash. Pagination использует keyset predicate поверх
 тех же sort columns, что и обычный SQL listing pipeline.
+
+### Price sort with option filters
+
+Для `price_asc` / `price_desc` с active option filters сортировка должна идти
+от `listing_posting_variant_price`, а не от `rb_iterate(variant_matches)`.
+Иначе PostgreSQL сначала развернет весь variant bitmap, затем будет group/sort
+по matching variants, и price index не сможет дать ранний ordered scan.
+
+Correct shape:
+
+```text
+variant_matches =
+  variant_in_stock
+  & option_color_black
+  & option_size_42
+  & price_range?
+
+product_matches =
+  category_scope
+  & product_facets
+  & vendor?
+  & in_stock?
+```
+
+Then scan variants in price order:
+
+```sql
+WITH first_matching_variants AS (
+  SELECT
+    vp.variant_doc_id,
+    vp.product_doc_id,
+    vp.price_minor
+  FROM catalog.listing_posting_variant_price vp
+  WHERE vp.project_id = :projectId
+    AND vp.index_version = :indexVersion
+    AND vp.currency = :currency
+    AND (:minPriceMinor IS NULL OR vp.price_minor >= :minPriceMinor)
+    AND (:maxPriceMinor IS NULL OR vp.price_minor <= :maxPriceMinor)
+    AND rb_contains(:variantMatchesBitmap::roaringbitmap, vp.variant_doc_id)
+    AND rb_contains(:productMatchesBitmap::roaringbitmap, vp.product_doc_id)
+    AND (
+      :afterPriceMinor IS NULL
+      OR (vp.price_minor, vp.product_doc_id) > (:afterPriceMinor, :afterProductDocId)
+    )
+    AND NOT EXISTS (
+      SELECT 1
+      FROM catalog.listing_posting_variant_price earlier
+      WHERE earlier.project_id = vp.project_id
+        AND earlier.index_version = vp.index_version
+        AND earlier.currency = vp.currency
+        AND earlier.product_doc_id = vp.product_doc_id
+        AND (
+          earlier.price_minor,
+          earlier.variant_doc_id
+        ) < (
+          vp.price_minor,
+          vp.variant_doc_id
+        )
+        AND rb_contains(
+          :variantMatchesBitmap::roaringbitmap,
+          earlier.variant_doc_id
+        )
+    )
+  ORDER BY vp.price_minor ASC, vp.product_doc_id ASC, vp.variant_doc_id ASC
+  LIMIT :firstPlusOne
+)
+SELECT pd.product_id, fmv.price_minor AS sort_price_minor
+FROM first_matching_variants fmv
+JOIN catalog.listing_posting_product_doc pd
+  ON pd.project_id = :projectId
+ AND pd.index_version = :indexVersion
+ AND pd.product_doc_id = fmv.product_doc_id
+ORDER BY fmv.price_minor ASC, pd.product_id ASC
+LIMIT :firstPlusOne;
+```
+
+`NOT EXISTS` делает строку `vp` first matching variant for product. Это важно
+для cursor correctness: product не должен повторно появиться на следующей
+странице через другую, более дорогую variant. Индекс
+`idx_listing_posting_variant_price_product_order` поддерживает lookup earlier
+variants for same product.
+
+Для `price_desc` используется тот же shape, но `ORDER BY vp.price_minor DESC`
+и inverted comparison в `NOT EXISTS`.
+
+Запрещенный hot-path shape:
+
+```text
+rb_iterate(variant_matches) -> join variant_price -> group by product -> order by min/max price
+```
+
+Он корректен, но должен оставаться fallback для очень селективных bitmaps,
+debugging или случаев, где planner показывает лучший runtime на реальных
+данных.
+
+## Execution planner
+
+Query engine должен строить маленький physical plan per request. Один
+универсальный SQL shape запрещен для hot storefront path, потому что разные
+sort/filter combinations требуют разных leading structures.
+
+Planner inputs:
+
+- cardinality metadata from `listing_posting_bitmap.cardinality`;
+- requested sort;
+- active product filters;
+- active option filters;
+- price range;
+- whether `totalCount` / facets / virtual facets requested;
+- page size and cursor.
+
+Recommended strategy matrix:
+
+| Case | Strategy |
+| --- | --- |
+| Product filters only, no expensive sort | product bitmap operations + product sort-first |
+| Product filters + newest/created/name/manual | product sort table first + `rb_contains(product_matches)` |
+| Option filters, no price sort | variant bitmap -> adaptive projection -> product bitmap |
+| Option filters + price sort | variant-price-index-first with first matching variant per product |
+| Price range only | variant price range scan or coarse price bucket + exact price table |
+| Facet counts requested | materialize request bitmaps once, reuse isolated scopes |
+| Small bitmap cardinality | bitmap-iterate-first allowed |
+| Wide bitmap cardinality + sorted page | sort-index-first required |
+
+Planner must choose intersection order by ascending cardinality for AND groups
+and build OR groups before applying cross-facet AND:
+
+```text
+brand_group = brand_nike | brand_adidas
+material_group = material_leather | material_mesh
+
+product_matches =
+  smallest(base_scope, brand_group, material_group, vendor, in_stock)
+  & ...
+```
+
+The planner stores chosen thresholds in configuration:
+
+```text
+small_variant_projection_threshold = 8192
+projection_block_size = 4096 or 8192
+wide_sort_first_threshold = 50000 product docs
+price_sort_full_aggregation_fallback_threshold = project-specific
+```
+
+Thresholds must be validated with production-like benchmark data before release.
+
+## Fast collectors
+
+### Product page collector
+
+For product-level sorts, page collector scans the relevant product sort index
+and checks membership in final product bitmap:
+
+```text
+for row in product_sort_order:
+  if product_matches.contains(row.product_doc_id):
+    emit row
+    stop after firstPlusOne
+```
+
+SQL implementation uses the sort table as the leading table and
+`rb_contains(:productMatchesBitmap, s.product_doc_id)` as filter.
+
+### Variant price collector
+
+For `price_asc` / `price_desc` with option filters, collector scans
+`listing_posting_variant_price` in price order:
+
+```text
+for variant_price row in price order:
+  if !variant_matches.contains(variant_doc_id): continue
+  if !product_matches.contains(product_doc_id): continue
+  if row is not first matching variant for product: continue
+  emit product
+  stop after firstPlusOne
+```
+
+This collector avoids full projection and full product aggregation on the hot
+page path.
+
+### Facet count collector
+
+Facet counts should not run one independent full query per value. Query engine
+builds reusable request bitmaps:
+
+```text
+base_product_scope
+product_filter_group_by_facet_id
+variant_filter_group_by_facet_id
+variant_product_projection_all_filters
+```
+
+Product facet count:
+
+```text
+isolated_product_scope(facet_id) =
+  base_product_scope
+  & all product filter groups except facet_id
+  & project_variants_to_products(all active variant filters)
+
+count(value) =
+  cardinality(isolated_product_scope(facet_id) & product_facet_value_bitmap)
+```
+
+Option facet count:
+
+```text
+isolated_variant_scope(facet_id) =
+  variant_in_stock
+  & all option filter groups except facet_id
+  & active price range bitmap?
+
+value_variants =
+  isolated_variant_scope(facet_id) & option_value_bitmap
+
+count(value) =
+  cardinality(
+    project_variants_to_products(value_variants)
+    & product_scope_with_product_filters
+  )
+```
+
+To avoid repeated broad projection, option count collector chooses per facet:
+
+```text
+if isolated_variant_scope is small:
+  for each value -> project value_variants
+else:
+  iterate candidate option value bitmaps by ascending cardinality
+  use projection blocks for broad value_variants
+```
+
+The collector may cache projected product bitmaps during one request by key:
+
+```text
+projection_cache_key =
+  index_version + hash(variant_bitmap bytes or normalized expression)
+```
+
+This cache is request-local only. It is not a persisted facet count cache and
+does not violate the “no precomputed counts” rule.
+
+### Price range virtual facet
+
+Price range virtual facet excludes active price predicate but keeps product
+filters, option filters and availability semantics. Fast path is two ordered
+index probes:
+
+```sql
+-- min price
+SELECT vp.price_minor
+FROM catalog.listing_posting_variant_price vp
+WHERE vp.project_id = :projectId
+  AND vp.index_version = :indexVersion
+  AND vp.currency = :currency
+  AND rb_contains(:variantScopeWithoutPriceBitmap::roaringbitmap, vp.variant_doc_id)
+  AND rb_contains(:productScopeBitmap::roaringbitmap, vp.product_doc_id)
+ORDER BY vp.price_minor ASC, vp.variant_doc_id ASC
+LIMIT 1;
+
+-- max price uses ORDER BY price_minor DESC and desc index
+```
+
+Fallback for poor planner behavior is `rb_iterate(variant_scope) -> join price
+-> MIN/MAX`, but it is not the preferred hot path.
+
+### In-stock virtual facet
+
+`in_stock` virtual facet excludes active availability toggle but keeps
+product-level filters, option filters and price filter. It is computed as:
+
+```text
+in_stock_variant_scope =
+  variant_in_stock
+  & active option filters
+  & active price range?
+
+in_stock_count =
+  cardinality(
+    project_variants_to_products(in_stock_variant_scope)
+    & product_scope_without_in_stock_toggle
+  )
+```
+
+Projection uses the same adaptive projection strategy as option filters.
+
+## Cursor contracts for sort-first paths
+
+All cursors include:
+
+```text
+index_version
+filter_hash
+sort_kind
+sort key values
+product_id
+product_doc_id
+```
+
+Product sort cursors use the exact SQL keyset predicate for the selected sort:
+
+```text
+(in_stock, sort_value, product_id) after cursor
+```
+
+Variant price sort cursors use product-level sort keys:
+
+```text
+price_minor
+product_doc_id
+product_id
+```
+
+The price collector must only emit the first matching variant per product, so
+the cursor represents product order, not variant row order. If the query cannot
+prove first matching variant cheaply for a page, it must fall back to full
+aggregation for correctness rather than emitting duplicate or out-of-order
+products.
 
 ## Query flow
 
@@ -680,6 +1066,53 @@ GROUP BY facet_id, facet_value_id;
 The project must verify exact function names against the Neon-provided
 `pg_roaringbitmap` version before implementation, because Neon may expose an
 older extension version than upstream PGXN.
+
+Required operation contract:
+
+| Capability | Expected use |
+| --- | --- |
+| build bitmap aggregate | build posting rows from doc ids |
+| bitmap AND | intersect scopes/facet groups |
+| bitmap OR | OR inside one facet |
+| bitmap difference | exclude deleted/retired docs if needed |
+| cardinality | `totalCount` and facet counts |
+| contains integer | sort-first membership check |
+| iterate bitmap | sparse fallback and diagnostics |
+
+If Neon extension lacks a required function/operator, implementation must add a
+small compatibility SQL layer with stable internal names, for example
+`listing_rb_contains(bitmap, doc_id)`, instead of spreading extension-specific
+function names through repositories.
+
+## Benchmark gates
+
+This design should not be implemented without benchmark fixtures that compare
+the current SQL listing pipeline and the PostgreSQL roaring pipeline.
+
+Minimum synthetic datasets:
+
+```text
+small: 10k products / 50k variants
+medium: 100k products / 500k variants
+large: 500k products / 2.5M variants
+```
+
+Minimum query shapes:
+
+```text
+category + no filters + page + totalCount
+category + product facets + 50-200 facet value counts
+category + option facets + option counts
+category + option facets + price_asc
+category + option facets + price range virtual facet
+search candidates + structured filters + relevance sort
+manual collection + manual sort
+```
+
+Acceptance criteria must be expressed as latency and rows-read budgets before
+release. If `EXPLAIN ANALYZE` shows PostgreSQL doing broad `rb_iterate` +
+`GROUP BY` + `ORDER BY` on hot page paths, the query shape is rejected unless
+the measured cardinality is below the configured sparse threshold.
 
 ## Runtime API внутри catalog service
 
