@@ -56,7 +56,7 @@ Planned files:
   - do not add extra unique constraints on canonical `product`,
     `variant`, `facet` or `facet_value`; listing FKs reference canonical primary
     keys by id.
-- `9004_read_models__product_title_bm25_search.sql`:
+- `9004_read_models__product_bm25_search.sql`:
   - create `catalog.product_title_bm25_search_index`;
   - create ordinary indexes and the ParadeDB BM25 index;
   - run `CREATE EXTENSION IF NOT EXISTS pg_search`, while keeping
@@ -437,13 +437,614 @@ CREATE INDEX idx_variant_listing_price_value_product_variant
 | `idx_variant_listing_price_product_variant` | Поддерживает product-candidate-first path для active option filters: join от scoped products к variant prices с сохранением `variant_id` для same-variant option predicates и matched price aggregation. |
 | `idx_variant_listing_price_value_product_variant` | Поддерживает price-range-first path, когда диапазон цены селективный: PostgreSQL может начать с `(project_id, currency, price_minor)` и сразу получить `product_id`/`variant_id` для дальнейшего same-variant matching. |
 
-## Facet postings
+## Roaring posting index
 
-Row-based facet posting tables are intentionally not part of this schema.
-Product tag/feature facets and variant option facets are written directly into
-the roaring posting index (`catalog.listing_posting_bitmap`) during listing
-build. The SQL listing read model keeps source/debug fields, while runtime
-filtering and counts use roaring bitmaps immediately.
+Roaring posting index является целевым runtime index для storefront listing.
+SQL read model (`product_listing_index`, `variant_listing_index` и price tables)
+остается source/debug слой для rebuild и freshness checks. Storefront filtering,
+totalCount и facet counts читают опубликованную posting version и выполняют set
+operations над `roaringbitmap`.
+
+Расширение создается в migration для posting index:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS roaringbitmap;
+```
+
+Runtime code не должен вызывать raw extension operators напрямую. Query builder
+использует project-owned wrapper names:
+
+| Capability | Wrapper |
+| --- | --- |
+| Build bitmap aggregate | `listing_rb_build_agg(int)` |
+| AND | `listing_rb_and(a, b)`, `listing_rb_and_many(...)` |
+| OR | `listing_rb_or(a, b)` |
+| Difference | `listing_rb_and_not(a, b)` |
+| Cardinality | `listing_rb_cardinality(bitmap)` |
+| Membership check | `listing_rb_contains(bitmap, doc_id)` |
+| Iteration | `listing_rb_iterate(bitmap)` |
+
+Exact SQL bodies для wrappers зависят от версии `pg_roaringbitmap` в target
+PostgreSQL provider и должны быть проверены перед миграцией.
+
+### `catalog.listing_posting_index_version`
+
+Одна строка на project + posting index version. Published version атомарно
+переключает storefront listing на новый snapshot.
+
+```sql
+CREATE TABLE catalog.listing_posting_index_version (
+  project_id               uuid NOT NULL,
+  index_version            bigint NOT NULL,
+  status                   varchar(16) NOT NULL,
+  product_doc_count        int NOT NULL,
+  variant_doc_count        int NOT NULL,
+  built_at                 timestamptz,
+  published_at             timestamptz,
+  source_listing_watermark timestamptz,
+  metadata                 jsonb NOT NULL DEFAULT '{}'::jsonb,
+
+  PRIMARY KEY (project_id, index_version),
+  CONSTRAINT chk_listing_posting_index_version_status
+    CHECK (status IN ('building', 'published', 'retired'))
+);
+
+CREATE UNIQUE INDEX ux_listing_posting_one_published
+  ON catalog.listing_posting_index_version (project_id)
+  WHERE status = 'published';
+```
+
+| Поле | Комментарий |
+| --- | --- |
+| `project_id` | Tenant boundary. Все doc ids и bitmaps принадлежат только этому project. |
+| `index_version` | Monotonic snapshot id внутри project. |
+| `status` | `building` rows не читаются storefront, `published` ровно один на project, `retired` ожидает cleanup. |
+| `product_doc_count` | Количество product docs в версии; используется для diagnostics/planner thresholds. |
+| `variant_doc_count` | Количество variant docs в версии. |
+| `built_at` | Время завершения build rows для версии. |
+| `published_at` | Время атомарной публикации. |
+| `source_listing_watermark` | Watermark SQL listing read model, по которому построен snapshot. |
+| `metadata` | Build parameters, extension version, thresholds и diagnostics. |
+
+### `catalog.listing_posting_product_doc`
+
+Dictionary между canonical product UUID и dense `product_doc_id` внутри
+`(project_id, index_version)`.
+
+```sql
+CREATE TABLE catalog.listing_posting_product_doc (
+  project_id             uuid NOT NULL,
+  index_version          bigint NOT NULL,
+  product_doc_id         int NOT NULL,
+  product_id             uuid NOT NULL,
+  in_stock               boolean NOT NULL,
+  published_at           timestamptz,
+  product_created_at     timestamptz NOT NULL,
+
+  PRIMARY KEY (project_id, index_version, product_doc_id),
+  UNIQUE (project_id, index_version, product_id),
+  UNIQUE (project_id, index_version, product_doc_id, product_id),
+  CONSTRAINT fk_listing_posting_product_doc_version
+    FOREIGN KEY (project_id, index_version)
+    REFERENCES catalog.listing_posting_index_version(project_id, index_version)
+    ON DELETE CASCADE
+);
+```
+
+| Поле | Комментарий |
+| --- | --- |
+| `product_doc_id` | Dense integer id для roaring product bitmaps. Не глобален и не переносится между projects/versions. |
+| `product_id` | Canonical product id для hydration после page collection. |
+| `in_stock` | Snapshot availability для sort/filter diagnostics и быстрых collectors. |
+| `published_at` | Snapshot publish date для sort/debug. |
+| `product_created_at` | Stable creation tie-break/debug value. |
+
+### `catalog.listing_posting_variant_doc`
+
+Dictionary между canonical variant UUID и dense `variant_doc_id` внутри версии,
+с привязкой к parent `product_doc_id`.
+
+```sql
+CREATE TABLE catalog.listing_posting_variant_doc (
+  project_id             uuid NOT NULL,
+  index_version          bigint NOT NULL,
+  variant_doc_id         int NOT NULL,
+  variant_id             uuid NOT NULL,
+  product_doc_id         int NOT NULL,
+  product_id             uuid NOT NULL,
+  in_stock               boolean NOT NULL,
+
+  PRIMARY KEY (project_id, index_version, variant_doc_id),
+  UNIQUE (project_id, index_version, variant_id),
+  UNIQUE (
+    project_id,
+    index_version,
+    variant_doc_id,
+    product_doc_id,
+    product_id
+  ),
+  CONSTRAINT fk_listing_posting_variant_doc_version
+    FOREIGN KEY (project_id, index_version)
+    REFERENCES catalog.listing_posting_index_version(project_id, index_version)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_listing_posting_variant_doc_product
+    FOREIGN KEY (project_id, index_version, product_doc_id, product_id)
+    REFERENCES catalog.listing_posting_product_doc(
+      project_id,
+      index_version,
+      product_doc_id,
+      product_id
+    )
+    ON DELETE CASCADE
+);
+```
+
+| Поле | Комментарий |
+| --- | --- |
+| `variant_doc_id` | Dense integer id для roaring variant bitmaps. |
+| `variant_id` | Canonical variant id для diagnostics/hydration paths. |
+| `product_doc_id` | Parent product doc id; нужен для projection variant bitmap -> product bitmap. |
+| `product_id` | Parent canonical product id, duplicated for stable joins and validation. |
+| `in_stock` | Variant availability snapshot. Option/price predicates используют only in-stock variants. |
+
+### `catalog.listing_posting_bitmap`
+
+Physical roaring posting row for one `entity_type + field + value_key`.
+Product tag/feature, option facets, category/collection scopes, vendor,
+availability and auxiliary posting sets live here.
+
+```sql
+CREATE TABLE catalog.listing_posting_bitmap (
+  project_id             uuid NOT NULL,
+  index_version          bigint NOT NULL,
+  entity_type            varchar(16) NOT NULL,
+  field                  varchar(64) NOT NULL,
+  value_key              text NOT NULL,
+  bitmap                 roaringbitmap NOT NULL,
+  cardinality            bigint NOT NULL,
+  metadata               jsonb NOT NULL DEFAULT '{}'::jsonb,
+
+  PRIMARY KEY (project_id, index_version, entity_type, field, value_key),
+  CONSTRAINT fk_listing_posting_bitmap_version
+    FOREIGN KEY (project_id, index_version)
+    REFERENCES catalog.listing_posting_index_version(project_id, index_version)
+    ON DELETE CASCADE,
+  CONSTRAINT chk_listing_posting_bitmap_entity_type
+    CHECK (entity_type IN ('product', 'variant'))
+);
+```
+
+| Поле | Комментарий |
+| --- | --- |
+| `entity_type` | `product` bitmap stores `product_doc_id`; `variant` bitmap stores `variant_doc_id`. |
+| `field` | Stable internal field name: `scope_category`, `scope_collection`, `vendor`, `in_stock`, `facet`, `variant_product`, etc. |
+| `value_key` | Stable typed value key. Use canonical ids or deterministic typed values, not mutable handles. |
+| `bitmap` | Compressed roaringbitmap posting list. |
+| `cardinality` | Must equal `listing_rb_cardinality(bitmap)`; used for planner choices and diagnostics. |
+| `metadata` | Optional builder diagnostics, bucket metadata, facet hints. |
+
+Recommended value keys:
+
+```text
+field=scope_category, value_key=<category_id>
+field=scope_collection, value_key=<collection_id>
+field=vendor, value_key=<vendor_id>
+field=in_stock, value_key=true
+field=facet, value_key=<facet_id>:<facet_value_id>
+field=variant_product, value_key=<product_doc_id>
+field=variant_price_bucket:UAH, value_key=<bucket>
+```
+
+### `catalog.listing_posting_product_sort`
+
+Generic sort value table for product page collectors. It is acceptable for
+diagnostics and first benchmarks; hot storefront sorts may later split into
+dedicated typed tables/indexes with the same doc-id contract.
+
+```sql
+CREATE TABLE catalog.listing_posting_product_sort (
+  project_id             uuid NOT NULL,
+  index_version          bigint NOT NULL,
+  product_doc_id         int NOT NULL,
+  product_id             uuid NOT NULL,
+  sort_kind              varchar(32) NOT NULL,
+  locale                 varchar(16) NOT NULL DEFAULT '',
+  currency               varchar(3) NOT NULL DEFAULT '',
+  manual_scope_id        uuid NOT NULL
+    DEFAULT '00000000-0000-0000-0000-000000000000'::uuid,
+  bool_value             boolean,
+  timestamptz_value      timestamptz,
+  timestamptz_value_2    timestamptz,
+  bigint_value           bigint,
+  text_value             text,
+  numeric_value          numeric,
+
+  PRIMARY KEY (
+    project_id,
+    index_version,
+    product_doc_id,
+    sort_kind,
+    locale,
+    currency,
+    manual_scope_id
+  ),
+  CONSTRAINT fk_listing_posting_product_sort_doc
+    FOREIGN KEY (project_id, index_version, product_doc_id, product_id)
+    REFERENCES catalog.listing_posting_product_doc(
+      project_id,
+      index_version,
+      product_doc_id,
+      product_id
+    )
+    ON DELETE CASCADE
+);
+
+CREATE INDEX idx_listing_posting_product_sort_newest
+  ON catalog.listing_posting_product_sort (
+    project_id,
+    index_version,
+    sort_kind,
+    locale,
+    currency,
+    manual_scope_id,
+    bool_value DESC,
+    timestamptz_value DESC NULLS LAST,
+    timestamptz_value_2 DESC NULLS LAST,
+    product_id
+  )
+  INCLUDE (product_doc_id);
+
+CREATE INDEX idx_listing_posting_product_sort_value
+  ON catalog.listing_posting_product_sort (
+    project_id,
+    index_version,
+    sort_kind,
+    locale,
+    currency,
+    manual_scope_id,
+    numeric_value,
+    text_value,
+    bigint_value,
+    product_id
+  )
+  INCLUDE (product_doc_id);
+```
+
+| Поле | Комментарий |
+| --- | --- |
+| `sort_kind` | `newest`, `created`, `name`, `manual`, `price_asc`, `price_desc`, etc. |
+| `locale` | Locale-specific sort dimension; empty string for locale-neutral sorts. |
+| `currency` | Currency-specific sort dimension; empty string for currency-neutral sorts. |
+| `manual_scope_id` | Category/collection scope id for manual order; zero UUID for global sorts. |
+| `bool_value` | Availability bucket. Hot storefront sorts must populate it as `in_stock`. |
+| `timestamptz_value`, `timestamptz_value_2` | Date sort values and stable fallback date. |
+| `bigint_value` | Minor-unit or integer sort value when needed. |
+| `text_value` | Locale text sort value, e.g. translated product name. |
+| `numeric_value` | Generic numeric sort value for diagnostics/benchmarking. |
+
+### `catalog.listing_posting_variant_price`
+
+Typed price rows for range filtering and matched variant price sort. Exact price
+values are not stored as one posting bitmap per price.
+
+```sql
+CREATE TABLE catalog.listing_posting_variant_price (
+  project_id             uuid NOT NULL,
+  index_version          bigint NOT NULL,
+  currency               varchar(3) NOT NULL,
+  variant_doc_id         int NOT NULL,
+  product_doc_id         int NOT NULL,
+  product_id             uuid NOT NULL,
+  price_minor            bigint NOT NULL,
+
+  PRIMARY KEY (project_id, index_version, currency, variant_doc_id),
+  CONSTRAINT fk_listing_posting_variant_price_doc
+    FOREIGN KEY (
+      project_id,
+      index_version,
+      variant_doc_id,
+      product_doc_id,
+      product_id
+    )
+    REFERENCES catalog.listing_posting_variant_doc(
+      project_id,
+      index_version,
+      variant_doc_id,
+      product_doc_id,
+      product_id
+    )
+    ON DELETE CASCADE
+);
+
+CREATE INDEX idx_listing_posting_variant_price_range
+  ON catalog.listing_posting_variant_price (
+    project_id,
+    index_version,
+    currency,
+    price_minor,
+    product_id,
+    variant_doc_id,
+    product_doc_id
+  );
+
+CREATE INDEX idx_listing_posting_variant_price_desc
+  ON catalog.listing_posting_variant_price (
+    project_id,
+    index_version,
+    currency,
+    price_minor DESC,
+    product_id,
+    variant_doc_id,
+    product_doc_id
+  );
+
+CREATE INDEX idx_listing_posting_variant_price_product_order
+  ON catalog.listing_posting_variant_price (
+    project_id,
+    index_version,
+    currency,
+    product_id,
+    price_minor,
+    variant_doc_id,
+    product_doc_id
+  );
+```
+
+| Поле | Комментарий |
+| --- | --- |
+| `currency` | ISO 4217 currency. Storefront listing обычно читает default currency проекта. |
+| `variant_doc_id` | Variant doc whose price participates in same-variant option+price matching. |
+| `product_doc_id` | Parent product doc for product-level deduplication and membership checks. |
+| `product_id` | Stable product tie-breaker and hydration key. |
+| `price_minor` | Price in minor units. Rows exist only for priced variants. |
+
+### `catalog.listing_posting_variant_projection_block`
+
+Projection helper for `variant_doc_id` bitmap -> `product_doc_id` bitmap. Broad
+option filters must not expand every variant through `listing_rb_iterate`.
+
+```sql
+CREATE TABLE catalog.listing_posting_variant_projection_block (
+  project_id             uuid NOT NULL,
+  index_version          bigint NOT NULL,
+  block_id               int NOT NULL,
+  variant_doc_from       int NOT NULL,
+  variant_doc_to         int NOT NULL,
+  variant_bitmap         roaringbitmap NOT NULL,
+  product_bitmap         roaringbitmap NOT NULL,
+  variant_count          int NOT NULL,
+  product_count          int NOT NULL,
+
+  PRIMARY KEY (project_id, index_version, block_id),
+  CONSTRAINT fk_listing_posting_variant_projection_block_version
+    FOREIGN KEY (project_id, index_version)
+    REFERENCES catalog.listing_posting_index_version(project_id, index_version)
+    ON DELETE CASCADE
+);
+```
+
+| Поле | Комментарий |
+| --- | --- |
+| `block_id` | Stable sequential block number inside version. |
+| `variant_doc_from`, `variant_doc_to` | Inclusive/exclusive dense doc id range for the block. |
+| `variant_bitmap` | Bitmap of variants in this block. |
+| `product_bitmap` | Product docs represented by all variants in this block. Exact only when the whole block matches. |
+| `variant_count` | Cardinality of `variant_bitmap`. |
+| `product_count` | Cardinality of `product_bitmap`. |
+
+Recommended block size is 4096 or 8192 variant docs. If
+`listing_rb_cardinality(block_match) = variant_count`, query can OR
+`product_bitmap` directly. Partial block matches must map exact variants through
+`listing_posting_variant_doc` and deduplicate product docs.
+
+## Segment storage tables
+
+The initial full-snapshot roaring schema above is enough for rebuild + atomic
+publish. For high-churn incremental refresh, the target storage model moves to
+append-only immutable segments to avoid rewriting large `roaringbitmap` rows in
+published snapshots.
+
+Segment tables are part of the index schema contract, but they should be added
+only with the segmented refresh implementation:
+
+```sql
+CREATE TABLE catalog.listing_posting_segment (
+  project_id             uuid NOT NULL,
+  segment_id             uuid NOT NULL,
+  segment_kind           varchar(16) NOT NULL,
+  status                 varchar(16) NOT NULL,
+  created_at             timestamptz NOT NULL DEFAULT now(),
+  compacted_at           timestamptz,
+  metadata               jsonb NOT NULL DEFAULT '{}'::jsonb,
+
+  PRIMARY KEY (project_id, segment_id),
+  CONSTRAINT chk_listing_posting_segment_kind
+    CHECK (segment_kind IN ('base', 'delta', 'compacted')),
+  CONSTRAINT chk_listing_posting_segment_status
+    CHECK (status IN ('building', 'active', 'retired'))
+);
+
+CREATE TABLE catalog.listing_posting_segment_manifest (
+  project_id             uuid NOT NULL,
+  index_version          bigint NOT NULL,
+  segment_id             uuid NOT NULL,
+  manifest_order         int NOT NULL,
+  include_delete_masks   boolean NOT NULL DEFAULT true,
+
+  PRIMARY KEY (project_id, index_version, segment_id),
+  UNIQUE (project_id, index_version, manifest_order),
+  CONSTRAINT fk_listing_posting_segment_manifest_version
+    FOREIGN KEY (project_id, index_version)
+    REFERENCES catalog.listing_posting_index_version(project_id, index_version)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_listing_posting_segment_manifest_segment
+    FOREIGN KEY (project_id, segment_id)
+    REFERENCES catalog.listing_posting_segment(project_id, segment_id)
+    ON DELETE CASCADE
+);
+
+CREATE TABLE catalog.listing_posting_segment_bitmap (
+  project_id             uuid NOT NULL,
+  segment_id             uuid NOT NULL,
+  entity_type            varchar(16) NOT NULL,
+  field                  varchar(64) NOT NULL,
+  value_key              text NOT NULL,
+  bitmap                 roaringbitmap NOT NULL,
+  cardinality            bigint NOT NULL,
+  metadata               jsonb NOT NULL DEFAULT '{}'::jsonb,
+
+  PRIMARY KEY (project_id, segment_id, entity_type, field, value_key),
+  CONSTRAINT fk_listing_posting_segment_bitmap_segment
+    FOREIGN KEY (project_id, segment_id)
+    REFERENCES catalog.listing_posting_segment(project_id, segment_id)
+    ON DELETE CASCADE,
+  CONSTRAINT chk_listing_posting_segment_bitmap_entity_type
+    CHECK (entity_type IN ('product', 'variant'))
+);
+
+CREATE TABLE catalog.listing_posting_segment_variant_price (
+  project_id             uuid NOT NULL,
+  segment_id             uuid NOT NULL,
+  currency               varchar(3) NOT NULL,
+  variant_doc_id         int NOT NULL,
+  product_doc_id         int NOT NULL,
+  product_id             uuid NOT NULL,
+  price_minor            bigint NOT NULL,
+
+  PRIMARY KEY (project_id, segment_id, currency, variant_doc_id),
+  CONSTRAINT fk_listing_posting_segment_variant_price_segment
+    FOREIGN KEY (project_id, segment_id)
+    REFERENCES catalog.listing_posting_segment(project_id, segment_id)
+    ON DELETE CASCADE
+);
+
+CREATE INDEX idx_listing_posting_segment_variant_price_range
+  ON catalog.listing_posting_segment_variant_price (
+    project_id,
+    segment_id,
+    currency,
+    price_minor,
+    product_id,
+    variant_doc_id,
+    product_doc_id
+  );
+
+CREATE TABLE catalog.listing_posting_segment_delete_mask (
+  project_id             uuid NOT NULL,
+  segment_id             uuid NOT NULL,
+  entity_type            varchar(16) NOT NULL,
+  reason                 varchar(32) NOT NULL,
+  bitmap                 roaringbitmap NOT NULL,
+  cardinality            bigint NOT NULL,
+  metadata               jsonb NOT NULL DEFAULT '{}'::jsonb,
+
+  PRIMARY KEY (project_id, segment_id, entity_type, reason),
+  CONSTRAINT fk_listing_posting_segment_delete_mask_segment
+    FOREIGN KEY (project_id, segment_id)
+    REFERENCES catalog.listing_posting_segment(project_id, segment_id)
+    ON DELETE CASCADE,
+  CONSTRAINT chk_listing_posting_segment_delete_mask_entity_type
+    CHECK (entity_type IN ('product', 'variant'))
+);
+
+CREATE TABLE catalog.listing_posting_segment_projection_block (
+  project_id             uuid NOT NULL,
+  segment_id             uuid NOT NULL,
+  block_id               int NOT NULL,
+  variant_doc_from       int NOT NULL,
+  variant_doc_to         int NOT NULL,
+  variant_bitmap         roaringbitmap NOT NULL,
+  product_bitmap         roaringbitmap NOT NULL,
+  variant_count          int NOT NULL,
+  product_count          int NOT NULL,
+
+  PRIMARY KEY (project_id, segment_id, block_id),
+  CONSTRAINT fk_listing_posting_segment_projection_block_segment
+    FOREIGN KEY (project_id, segment_id)
+    REFERENCES catalog.listing_posting_segment(project_id, segment_id)
+    ON DELETE CASCADE
+);
+```
+
+Runtime query resolves `listing_posting_segment_manifest` for the published
+version, ORs active segment postings for every requested field/value, then
+subtracts active delete masks. Compaction writes a new segment and retires old
+segments; cleanup drops retired segments after no published manifest references
+them.
+
+## BM25 title search index
+
+BM25 title search is a separate search candidate index. It narrows product
+candidates by localized title and then joins back to listing/posting candidate
+sets by `product_id` or `product_doc_id`.
+
+### `catalog.product_title_bm25_search_index`
+
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_search;
+
+CREATE TABLE catalog.product_title_bm25_search_index (
+  search_id              uuid NOT NULL,
+  project_id             uuid NOT NULL,
+  product_id             uuid NOT NULL,
+  locale                 varchar(8) NOT NULL,
+  kind                   catalog.product_kind NOT NULL,
+  status                 varchar(16) NOT NULL,
+  published_at           timestamptz,
+  product_created_at     timestamptz NOT NULL,
+  product_updated_at     timestamptz NOT NULL,
+  product_revision       int NOT NULL DEFAULT 0,
+  title                  text NOT NULL DEFAULT '',
+  indexed_at             timestamptz NOT NULL DEFAULT now(),
+  updated_at             timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT product_title_bm25_search_index_pkey
+    PRIMARY KEY (product_id, locale),
+  CONSTRAINT product_title_bm25_search_id_unique
+    UNIQUE (search_id),
+  CONSTRAINT fk_product_title_bm25_product
+    FOREIGN KEY (product_id)
+    REFERENCES catalog.product(id)
+    ON DELETE CASCADE
+);
+
+CREATE INDEX idx_product_title_bm25_project_locale_product
+  ON catalog.product_title_bm25_search_index (project_id, locale, product_id);
+
+CREATE INDEX idx_product_title_bm25_visible
+  ON catalog.product_title_bm25_search_index (
+    project_id,
+    locale,
+    published_at DESC,
+    product_id
+  )
+  WHERE status = 'published';
+
+CREATE INDEX idx_product_title_bm25_search
+  ON catalog.product_title_bm25_search_index
+  USING bm25 (
+    search_id,
+    project_id,
+    locale,
+    status,
+    kind,
+    product_id,
+    title,
+    published_at,
+    product_created_at
+  )
+  WITH (key_field = 'search_id');
+```
+
+| Поле | Комментарий |
+| --- | --- |
+| `search_id` | Stable unique BM25 key field. |
+| `project_id` | Tenant boundary for search candidate queries. |
+| `product_id` | Canonical product id and FK target. |
+| `locale` | Localized title dimension. |
+| `kind`, `status`, `published_at` | Search-visible product predicates stored in the BM25 row. |
+| `product_created_at`, `product_updated_at`, `product_revision` | Sort/debug/freshness fields from product snapshot. |
+| `title` | Localized title indexed by BM25. |
 
 ## Внешние ограничения canonical tables
 
