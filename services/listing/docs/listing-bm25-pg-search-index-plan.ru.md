@@ -2,7 +2,7 @@
 
 ## Контекст
 
-`docs/listing/listing-index-redesign-plan.ru.md` отделяет listing read model от
+`services/listing/docs/listing-index-redesign-plan.ru.md` отделяет listing read model от
 full-text search. `product_listing_index` и `variant_listing_index` отвечают за
 scope, filters, facets, counts, pagination и sort.
 
@@ -54,7 +54,7 @@ options или другим полям. Текстовый поиск возвр
 - Не внедрять Metarank или персонализацию.
 - Не делать cross-service global search.
 - Не смешивать этот индекс со structured listing read model:
-  `catalog.product_listing_index` / `catalog.variant_listing_index`.
+  `listing.product_listing_index` / `listing.variant_listing_index`.
 
 ## Расширение и окружение
 
@@ -76,9 +76,10 @@ Deployment rules:
 - В локальном docker/dev окружении добавить образ или init step с установленным
   `pg_search`.
 - В self-hosted/prod окружении extension должен быть установлен до миграций
-  catalog.
-- Миграция catalog может выполнять `CREATE EXTENSION IF NOT EXISTS pg_search`,
-  но не может сама поменять `shared_preload_libraries`.
+  listing service.
+- Миграция listing service может выполнять
+  `CREATE EXTENSION IF NOT EXISTS pg_search`, но не может сама поменять
+  `shared_preload_libraries`.
 - Если extension недоступен, storefront search должен явно падать при старте
   сервиса или миграции, а не молча переключаться на `ILIKE`.
 
@@ -86,7 +87,7 @@ Deployment rules:
 
 Создать отдельную таблицу:
 
-- `catalog.product_title_bm25_search_index`
+- `listing.product_title_bm25_search_index`
 
 Одна строка на product + locale. `project_id` хранится как tenant scope column
 для фильтрации и индексов, но не входит в PK/FK, потому что `product_id`
@@ -94,7 +95,7 @@ Deployment rules:
 index: цена и доступность остаются в listing index.
 
 ```sql
-CREATE TABLE catalog.product_title_bm25_search_index (
+CREATE TABLE listing.product_title_bm25_search_index (
   search_id              uuid NOT NULL,
   project_id             uuid NOT NULL,
   product_id             uuid NOT NULL,
@@ -140,10 +141,10 @@ Ordinary indexes:
 
 ```sql
 CREATE INDEX idx_product_title_bm25_project_locale_product
-  ON catalog.product_title_bm25_search_index (project_id, locale, product_id);
+  ON listing.product_title_bm25_search_index (project_id, locale, product_id);
 
 CREATE INDEX idx_product_title_bm25_visible
-  ON catalog.product_title_bm25_search_index (project_id, locale, published_at DESC, product_id)
+  ON listing.product_title_bm25_search_index (project_id, locale, published_at DESC, product_id)
   WHERE status = 'published';
 ```
 
@@ -151,7 +152,7 @@ BM25 index:
 
 ```sql
 CREATE INDEX idx_product_title_bm25_search
-  ON catalog.product_title_bm25_search_index
+  ON listing.product_title_bm25_search_index
   USING bm25 (
     search_id,
     project_id,
@@ -221,7 +222,7 @@ WITH search_candidates AS (
   SELECT
     ptsi.product_id,
     pdb.score(ptsi.search_id) AS bm25_score
-  FROM catalog.product_title_bm25_search_index ptsi
+  FROM listing.product_title_bm25_search_index ptsi
   WHERE ptsi.project_id = :projectId
     AND ptsi.locale = :locale
     AND ptsi.status = 'published'
@@ -259,7 +260,7 @@ base_all AS (
     sp.manual_rank,
     sc.bm25_score AS relevance_score
   FROM scope_products sp
-  JOIN catalog.product_listing_index pli
+  JOIN listing.product_listing_index pli
     ON pli.product_id = sp.product_id
    AND pli.project_id = :projectId
   JOIN search_candidates sc
@@ -331,7 +332,7 @@ fuzzy_candidates AS (
   SELECT
     ptsi.product_id,
     pdb.score(ptsi.search_id) * 0.75 AS bm25_score
-  FROM catalog.product_title_bm25_search_index ptsi
+  FROM listing.product_title_bm25_search_index ptsi
   WHERE ptsi.project_id = :projectId
     AND ptsi.locale = :locale
     AND ptsi.status = 'published'
@@ -376,13 +377,13 @@ Add scripts:
 `RebuildProductTitleBm25SearchIndexScript`:
 
 1. Supports full rebuild and project-scoped rebuild modes.
-2. Full rebuild truncates `catalog.product_title_bm25_search_index`.
+2. Full rebuild truncates `listing.product_title_bm25_search_index`.
 3. Project-scoped rebuild deletes rows by `project_id`, then rebuilds only that
    project. This mode is used for enabled locale changes.
 4. Process products in batches.
 5. Sync title search index for every active and draft product in scope.
 6. Log project count, product count, locale count, skipped rows and duration.
-7. Run `VACUUM ANALYZE catalog.product_title_bm25_search_index` after large
+7. Run `VACUUM ANALYZE listing.product_title_bm25_search_index` after large
    rebuild if operationally acceptable.
 
 ## Event coverage
@@ -414,10 +415,10 @@ Events that do not require title BM25 refresh:
 Storefront listing input should get an explicit text query field:
 
 ```graphql
-input CatalogListingInput {
+input ListingInput {
   query: String
-  sort: CatalogListingSort
-  filters: [CatalogListingFilterInput!]
+  sort: ListingSort
+  filters: [ListingFilterInput!]
   first: Int
   after: String
 }
@@ -426,7 +427,7 @@ input CatalogListingInput {
 Sort enum:
 
 ```graphql
-enum CatalogListingSortField {
+enum ListingSortField {
   RELEVANCE
   MANUAL
   NEWEST
@@ -447,10 +448,10 @@ Rules:
 
 1. Add infrastructure documentation/config for `pg_search` in local PostgreSQL.
 2. Add Drizzle model for `product_title_bm25_search_index`.
-3. Add handwritten catalog migration
-   `services/catalog/migrations/domains/9000_read_models/9004_read_models__product_title_bm25_search.sql`
+3. Add handwritten listing migration
+   `services/listing/migrations/domains/9000_read_models/9004_read_models__product_title_bm25_search.sql`
    with `CREATE EXTENSION IF NOT EXISTS pg_search`, table, ordinary indexes and
-   BM25 index. Do not use Drizzle migration generation for catalog; keep
+   BM25 index. Do not use Drizzle migration generation for listing; keep
    `shared_preload_libraries = 'pg_search'` in infrastructure config outside
    SQL migrations.
 4. Add `ProductTitleBm25SearchIndexRepository`.
@@ -496,4 +497,4 @@ Rules:
 - Synonyms for title queries only.
 - Search query logs and popular title suggestions.
 - Read replica dedicated to search if BM25 workload competes with transactional
-  catalog writes.
+  upstream catalog write workload.

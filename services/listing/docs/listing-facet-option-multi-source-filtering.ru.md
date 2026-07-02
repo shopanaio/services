@@ -15,9 +15,9 @@
 
 Канонические документы:
 
-- `docs/listing/listing-posting-list-search-engine-index.ru.md`
-- `docs/listing/listing-index-db-schema.ru.md`
-- `docs/listing/listing-storefront-operations-explained.ru.md`
+- `services/listing/docs/listing-posting-list-search-engine-index.ru.md`
+- `services/listing/docs/listing-index-db-schema.ru.md`
+- `services/listing/docs/listing-storefront-operations-explained.ru.md`
 
 ## Термины
 
@@ -123,7 +123,7 @@ cardinality = rb_cardinality(bitmap)
 - `variant_id`
 
 Canonical `variant_id -> variant_doc_id -> product_doc_id` связь живет в
-`catalog.variant_listing_index`.
+`listing.variant_listing_index`.
 
 Raw handles используются только transient во время sync/rebuild, чтобы resolve
 canonical option values into stable `facet_id` / `facet_value_id`. Storefront read
@@ -264,7 +264,7 @@ Listing query then reads bitmap row:
 
 ```sql
 SELECT p.bitmap
-FROM catalog.listing_posting_bitmap p
+FROM listing.listing_posting_bitmap p
 WHERE p.project_id = :projectId
   AND p.entity_type = 'variant'
   AND p.field = 'facet'

@@ -5,9 +5,9 @@
 Этот документ описывает верхнеуровневый redesign storefront listing. Каноническая
 модель runtime index зафиксирована в:
 
-- `docs/listing/listing-posting-list-search-engine-index.ru.md`
-- `docs/listing/listing-index-db-schema.ru.md`
-- `docs/listing/listing-query-sql-examples.ru.md`
+- `services/listing/docs/listing-posting-list-search-engine-index.ru.md`
+- `services/listing/docs/listing-index-db-schema.ru.md`
+- `services/listing/docs/listing-query-sql-examples.ru.md`
 
 Если этот документ расходится с posting engine document, каноном считается
 `listing-posting-list-search-engine-index.ru.md`.
@@ -43,15 +43,15 @@ metadata; карточки загружаются отдельным batch pipel
 1. Использовать PostgreSQL roaring posting index как целевой storefront runtime
    index.
 2. Хранить facet/scope/vendor predicates как compressed bitmap rows в
-   `catalog.listing_posting_bitmap`, а не как row-based token tables.
+   `listing.listing_posting_bitmap`, а не как row-based token tables.
 3. Делать filtering, `totalCount` и facet counts через bitmap set operations.
 4. Сохранить variant-correct semantics: `OPTION` и `PRICE` predicates должны
    совпадать на одном in-stock variant.
 5. Считать counts по product cardinality. Variant-level facets сначала
    проектируются в product docs и дедуплицируются.
 6. Поддержать deterministic sort через physical sort/price indexes:
-   `catalog.listing_posting_product_sort` и
-   `catalog.listing_posting_variant_price`.
+   `listing.listing_posting_product_sort` и
+   `listing.listing_posting_variant_price`.
 7. Поддерживать current-state incremental sync: изменение товара, варианта,
    цены, остатка, facet membership или scope membership обновляет только
    affected listing/posting rows.
@@ -71,29 +71,29 @@ metadata; карточки загружаются отдельным batch pipel
 
 SQL read model:
 
-- `catalog.listing_doc_id_allocator`
-- `catalog.product_listing_index`
-- `catalog.product_listing_price_index`
-- `catalog.variant_listing_index`
-- `catalog.variant_listing_price_index`
+- `listing.listing_doc_id_allocator`
+- `listing.product_listing_index`
+- `listing.product_listing_price_index`
+- `listing.variant_listing_index`
+- `listing.variant_listing_price_index`
 
 Runtime posting index:
 
-- `catalog.listing_posting_bitmap`
-- `catalog.listing_posting_product_sort`
-- `catalog.listing_posting_variant_price`
-- `catalog.listing_posting_variant_projection_block`
+- `listing.listing_posting_bitmap`
+- `listing.listing_posting_product_sort`
+- `listing.listing_posting_variant_price`
+- `listing.listing_posting_variant_projection_block`
 
 Title search index:
 
-- `catalog.product_title_bm25_search_index`
+- `listing.product_title_bm25_search_index`
 
 `product_doc_id` и `variant_doc_id` являются stable integer ids внутри project.
 Они выделяются один раз, живут в listing rows и не переиспользуются после
 удаления canonical entity. Это защищает roaring bitmaps от переиспользования
 старого doc id для другого товара или варианта.
 
-`catalog.listing_posting_bitmap` хранит одну bitmap row для одного
+`listing.listing_posting_bitmap` хранит одну bitmap row для одного
 `entity_type + field + value_key`:
 
 ```text
@@ -174,7 +174,7 @@ Combination rules:
     current page ids.
 
 Detailed SQL shapes are maintained in
-`docs/listing/listing-query-sql-examples.ru.md`.
+`services/listing/docs/listing-query-sql-examples.ru.md`.
 
 ## Sorting
 
@@ -196,10 +196,10 @@ Supported sorts:
   predicates are active.
 - `relevance`: BM25 candidate score for search listings.
 
-Product-level sorts scan `catalog.listing_posting_product_sort` and check
+Product-level sorts scan `listing.listing_posting_product_sort` and check
 `matches_bitmap @> product_doc_id`.
 
-Matched variant price sort scans `catalog.listing_posting_variant_price`,
+Matched variant price sort scans `listing.listing_posting_variant_price`,
 checks both `variant_matches_bitmap @> variant_doc_id` and
 `product_matches_bitmap @> product_doc_id`, then deduplicates by product with
 stable tie-breakers.
@@ -238,7 +238,7 @@ bitmaps once and reuse them for configured visible values.
 `price` is not stored as `listing_posting_bitmap(field='price')`.
 
 Price range and matched price sorting use
-`catalog.listing_posting_variant_price`, which contains only priced active
+`listing.listing_posting_variant_price`, which contains only priced active
 in-stock variants in a currency.
 
 `in_stock` is not stored as a default generic bitmap row.
@@ -304,8 +304,8 @@ Facet/source mapping changed:
 ## Implementation order
 
 1. Align Drizzle models with `listing-index-db-schema.ru.md`.
-2. Add handwritten catalog migration for listing read model and roaring posting
-   tables. Do not use Drizzle migration generation for catalog migrations.
+2. Add handwritten listing migration for listing read model and roaring posting
+   tables. Do not use Drizzle migration generation for listing migrations.
 3. Add repositories for listing rows, doc id allocation, bitmap rows, sort rows,
    variant price rows, projection blocks and freshness audit.
 4. Add source/mapping repositories that read canonical data and resolve raw

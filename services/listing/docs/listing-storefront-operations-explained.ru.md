@@ -5,9 +5,9 @@ posting index.
 
 Канонические документы:
 
-- `docs/listing/listing-posting-list-search-engine-index.ru.md`
-- `docs/listing/listing-index-db-schema.ru.md`
-- `docs/listing/listing-query-sql-examples.ru.md`
+- `services/listing/docs/listing-posting-list-search-engine-index.ru.md`
+- `services/listing/docs/listing-index-db-schema.ru.md`
+- `services/listing/docs/listing-query-sql-examples.ru.md`
 
 Listing index не является full-text search index. Он обслуживает Product Listing
 Page: product candidates, structured filtering, facet resolution, facet counts,
@@ -27,7 +27,7 @@ total count, cursor pagination и sort. Hydration карточек товара 
 3. Scope builder получает product bitmap: category, collection, global published
    products or BM25 search candidates.
 4. Product filter builder строит product bitmap из product facet/vendor/scope
-   rows в `catalog.listing_posting_bitmap`.
+   rows в `listing.listing_posting_bitmap`.
 5. Variant filter builder строит variant bitmap из option facet rows и typed
    price rows. Option и price predicates пересекаются на `variant_doc_id`.
 6. Variant matches проектируются в product bitmap через projection blocks.
@@ -64,7 +64,7 @@ published product bitmap из `product_listing_index`.
 Default manual category sort использует derived rows:
 
 ```text
-catalog.listing_posting_product_sort
+listing.listing_posting_product_sort
 sort_kind = manual
 manual_scope_id = <category_id>
 ```
@@ -116,7 +116,7 @@ scope.
 
 ```sql
 SELECT rb_build_agg(pli.product_doc_id) AS product_bitmap
-FROM catalog.product_listing_index pli
+FROM listing.product_listing_index pli
 WHERE pli.project_id = :projectId
   AND pli.status = 'published';
 ```
@@ -267,7 +267,7 @@ Returned facets должны быть limited to configured visible values. Не
 ## Price range virtual facet
 
 `price` не имеет generic posting bitmap. Price range строится из
-`catalog.listing_posting_variant_price`, где есть only priced active in-stock
+`listing.listing_posting_variant_price`, где есть only priced active in-stock
 variants in default currency.
 
 Range min/max считает prices после применения всех active filters кроме active

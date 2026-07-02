@@ -5,19 +5,19 @@
 Документ описывает, как поддерживать актуальность current-state listing read
 model и PostgreSQL roaring posting index:
 
-- `catalog.listing_doc_id_allocator`
-- `catalog.product_listing_index`
-- `catalog.product_listing_price_index`
-- `catalog.variant_listing_index`
-- `catalog.variant_listing_price_index`
-- `catalog.listing_posting_bitmap`
-- `catalog.listing_posting_product_sort`
-- `catalog.listing_posting_variant_price`
-- `catalog.listing_posting_variant_projection_block`
+- `listing.listing_doc_id_allocator`
+- `listing.product_listing_index`
+- `listing.product_listing_price_index`
+- `listing.variant_listing_index`
+- `listing.variant_listing_price_index`
+- `listing.listing_posting_bitmap`
+- `listing.listing_posting_product_sort`
+- `listing.listing_posting_variant_price`
+- `listing.listing_posting_variant_projection_block`
 
 Каноническая runtime model описана в
-`docs/listing/listing-posting-list-search-engine-index.ru.md`. Целевая schema
-описана в `docs/listing/listing-index-db-schema.ru.md`.
+`services/listing/docs/listing-posting-list-search-engine-index.ru.md`. Целевая schema
+описана в `services/listing/docs/listing-index-db-schema.ru.md`.
 
 ## Базовый принцип актуальности
 
@@ -41,7 +41,7 @@ scripts, workflows and event handlers.
 ### Doc id allocator
 
 Для каждого project, где есть listing rows, должна существовать row in
-`catalog.listing_doc_id_allocator`.
+`listing.listing_doc_id_allocator`.
 
 `next_product_doc_id` and `next_variant_doc_id` are monotonically increasing and
 positive. Allocation must happen under row-level lock on the allocator row.
@@ -111,7 +111,7 @@ If a variant has no current price in the currency, keep row with
 
 ### Posting bitmap rows
 
-`catalog.listing_posting_bitmap` stores physical bitmap rows keyed by:
+`listing.listing_posting_bitmap` stores physical bitmap rows keyed by:
 
 ```text
 project_id + entity_type + field + value_key
@@ -138,7 +138,7 @@ Runtime posting index must not store raw source handles.
 
 ### Product sort rows
 
-`catalog.listing_posting_product_sort` is a physical index for page collectors.
+`listing.listing_posting_product_sort` is a physical index for page collectors.
 Rows are derived from listing rows, product price rows, translations and
 category/collection manual ranks.
 
@@ -152,7 +152,7 @@ Expected properties:
 
 ### Runtime variant price rows
 
-`catalog.listing_posting_variant_price` is a physical typed price index for range
+`listing.listing_posting_variant_price` is a physical typed price index for range
 filtering and matched variant price sort.
 
 Rows exist only for variants that are:
@@ -166,7 +166,7 @@ updating `variant_listing_index.in_stock`.
 
 ### Projection blocks
 
-`catalog.listing_posting_variant_projection_block` maps broad variant bitmap
+`listing.listing_posting_variant_projection_block` maps broad variant bitmap
 matches into product bitmaps.
 
 Freshness audit must verify:
@@ -339,11 +339,11 @@ Partial rebuild by product ids must preserve existing doc ids.
 
 Durable DBOS workflows:
 
-- `catalog.rebuildListingIndex`
-- `catalog.syncListingIndexForProducts`
-- `catalog.syncListingIndexForVariants`
-- `catalog.refreshListingFacetPostings`
-- `catalog.repairListingIndexFreshness`
+- `listing.rebuildListingIndex`
+- `listing.syncListingIndexForProducts`
+- `listing.syncListingIndexForVariants`
+- `listing.refreshListingFacetPostings`
+- `listing.repairListingIndexFreshness`
 
 Workflow IDs should use content idempotency:
 
@@ -490,4 +490,3 @@ Unmapped source handles are debug/info counters, not errors:
 - Targeted sync rereads canonical state before writing and is idempotent.
 - Full rebuild can restore all listing/posting tables for a project.
 - Freshness audit can choose targeted repair or full rebuild.
-

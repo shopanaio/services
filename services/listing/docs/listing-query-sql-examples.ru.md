@@ -2,14 +2,14 @@
 
 Документ дополняет:
 
-- `docs/listing/listing-index-redesign-plan.ru.md`
-- `docs/listing/listing-index-db-schema.ru.md`
-- `docs/listing/listing-posting-list-search-engine-index.ru.md`
+- `services/listing/docs/listing-index-redesign-plan.ru.md`
+- `services/listing/docs/listing-index-db-schema.ru.md`
+- `services/listing/docs/listing-posting-list-search-engine-index.ru.md`
 
 Цель - зафиксировать типовые SQL shapes для storefront listing после перехода
 на PostgreSQL roaring posting index. Старый row-based подход с
 `listing_posting_bitmap.product_id`, `variant_id`, `facet_id` и
-`facet_value_id` больше не используется: `catalog.listing_posting_bitmap`
+`facet_value_id` больше не используется: `listing.listing_posting_bitmap`
 хранит compressed `roaringbitmap` rows keyed by
 `project_id + entity_type + field + value_key`.
 
@@ -29,7 +29,7 @@
 - storefront query всегда работает только внутри одного `project_id`;
 - raw source handles на read path не используются;
 - `price` и `in_stock` являются virtual facets и не представлены generic
-  rows в `catalog.listing_posting_bitmap`;
+  rows в `listing.listing_posting_bitmap`;
 - page collector возвращает `product_doc_id`, `product_id` и sort keys, а
   hydration карточек товара выполняется отдельным batch pipeline.
 - для краткости SQL snippets предполагают, что referenced posting rows
@@ -56,7 +56,7 @@ rb_iterate(bitmap roaringbitmap) -> setof int
 macro:
 
 - `project_variant_bitmap_to_products(variant_bitmap)` - generated projection
-  block из `catalog.listing_posting_variant_projection_block`, который
+  block из `listing.listing_posting_variant_projection_block`, который
   возвращает product bitmap. Для узких sets допустим fallback через
   `rb_iterate` + `variant_listing_index`, но broad option filters
   должны использовать projection blocks.
@@ -77,7 +77,7 @@ WITH matched_blocks AS (
     b.product_bitmap,
     b.variant_count,
     (:variantBitmap::roaringbitmap & b.variant_bitmap) AS block_match
-  FROM catalog.listing_posting_variant_projection_block b
+  FROM listing.listing_posting_variant_projection_block b
   WHERE b.project_id = :projectId
     AND rb_cardinality(:variantBitmap::roaringbitmap & b.variant_bitmap) > 0
 ),
@@ -89,7 +89,7 @@ full_block_products AS (
 partial_block_products AS (
   SELECT rb_build_agg(vli.product_doc_id) AS product_bitmap
   FROM matched_blocks mb
-  JOIN catalog.variant_listing_index vli
+  JOIN listing.variant_listing_index vli
     ON vli.project_id = :projectId
    AND vli.variant_doc_id >= mb.variant_doc_from
    AND vli.variant_doc_id < mb.variant_doc_to
@@ -114,7 +114,7 @@ Single product posting row:
 
 ```sql
 SELECT p.bitmap
-FROM catalog.listing_posting_bitmap p
+FROM listing.listing_posting_bitmap p
 WHERE p.project_id = :projectId
   AND p.entity_type = 'product'
   AND p.field = 'category'
@@ -125,7 +125,7 @@ Single variant posting row:
 
 ```sql
 SELECT p.bitmap
-FROM catalog.listing_posting_bitmap p
+FROM listing.listing_posting_bitmap p
 WHERE p.project_id = :projectId
   AND p.entity_type = 'variant'
   AND p.field = 'facet'
@@ -137,8 +137,8 @@ OR внутри одного facet, AND между разными facets:
 ```sql
 WITH brand_filter AS (
   SELECT (nike.bitmap | adidas.bitmap) AS product_bitmap
-  FROM catalog.listing_posting_bitmap nike
-  CROSS JOIN catalog.listing_posting_bitmap adidas
+  FROM listing.listing_posting_bitmap nike
+  CROSS JOIN listing.listing_posting_bitmap adidas
   WHERE nike.project_id = :projectId
     AND nike.entity_type = 'product'
     AND nike.field = 'facet'
@@ -150,7 +150,7 @@ WITH brand_filter AS (
 ),
 material_filter AS (
   SELECT p.bitmap AS product_bitmap
-  FROM catalog.listing_posting_bitmap p
+  FROM listing.listing_posting_bitmap p
   WHERE p.project_id = :projectId
     AND p.entity_type = 'product'
     AND p.field = 'facet'
@@ -167,7 +167,7 @@ pipeline поддерживает такой physical index. Если таког
 
 ```sql
 SELECT rb_build_agg(pli.product_doc_id) AS product_bitmap
-FROM catalog.product_listing_index pli
+FROM listing.product_listing_index pli
 WHERE pli.project_id = :projectId
   AND pli.status = 'published';
 ```
@@ -176,7 +176,7 @@ Price range строится из typed in-stock price index, а не из gener
 
 ```sql
 SELECT rb_build_agg(vp.variant_doc_id) AS variant_bitmap
-FROM catalog.listing_posting_variant_price vp
+FROM listing.listing_posting_variant_price vp
 WHERE vp.project_id = :projectId
   AND vp.currency = :currency
   AND vp.price_minor >= :minPriceMinor
@@ -189,7 +189,7 @@ from `variant_listing_index` unless a future controlled physical index is added:
 
 ```sql
 SELECT rb_build_agg(vli.variant_doc_id) AS variant_bitmap
-FROM catalog.variant_listing_index vli
+FROM listing.variant_listing_index vli
 WHERE vli.project_id = :projectId
   AND vli.in_stock = true;
 ```
@@ -203,7 +203,7 @@ membership через оператор `@>`.
 ```sql
 WITH category_scope AS (
   SELECT p.bitmap AS product_bitmap
-  FROM catalog.listing_posting_bitmap p
+  FROM listing.listing_posting_bitmap p
   WHERE p.project_id = :projectId
     AND p.entity_type = 'product'
     AND p.field = 'category'
@@ -211,7 +211,7 @@ WITH category_scope AS (
 ),
 vendor_filter AS (
   SELECT p.bitmap AS product_bitmap
-  FROM catalog.listing_posting_bitmap p
+  FROM listing.listing_posting_bitmap p
   WHERE p.project_id = :projectId
     AND p.entity_type = 'product'
     AND p.field = 'vendor'
@@ -230,7 +230,7 @@ SELECT
   s.timestamptz_value AS published_at,
   s.timestamptz_value_2 AS product_created_at
 FROM matches m
-JOIN catalog.listing_posting_product_sort s
+JOIN listing.listing_posting_product_sort s
   ON s.project_id = :projectId
  AND s.sort_kind = 'newest'
  AND s.locale = ''
@@ -252,13 +252,13 @@ visibility. Если sync хранит draft rows в scope bitmap, query обя�
 ## 2. Manual collection + product facet filter + manual sort
 
 Manual order хранится как derived sort rows в
-`catalog.listing_posting_product_sort`. Product facet filter работает bitmap
+`listing.listing_posting_product_sort`. Product facet filter работает bitmap
 операцией, а не `EXISTS` по row postings.
 
 ```sql
 WITH collection_scope AS (
   SELECT p.bitmap AS product_bitmap
-  FROM catalog.listing_posting_bitmap p
+  FROM listing.listing_posting_bitmap p
   WHERE p.project_id = :projectId
     AND p.entity_type = 'product'
     AND p.field = 'collection'
@@ -266,8 +266,8 @@ WITH collection_scope AS (
 ),
 tag_filter AS (
   SELECT (sale.bitmap | outlet.bitmap) AS product_bitmap
-  FROM catalog.listing_posting_bitmap sale
-  CROSS JOIN catalog.listing_posting_bitmap outlet
+  FROM listing.listing_posting_bitmap sale
+  CROSS JOIN listing.listing_posting_bitmap outlet
   WHERE sale.project_id = :projectId
     AND sale.entity_type = 'product'
     AND sale.field = 'facet'
@@ -289,7 +289,7 @@ SELECT
   s.bool_value AS in_stock,
   s.text_value AS manual_rank
 FROM matches m
-JOIN catalog.listing_posting_product_sort s
+JOIN listing.listing_posting_product_sort s
   ON s.project_id = :projectId
  AND s.sort_kind = 'manual'
  AND s.locale = ''
@@ -311,14 +311,14 @@ posting row нет, bitmap строится из `product_listing_index`.
 ```sql
 WITH global_scope AS (
   SELECT rb_build_agg(pli.product_doc_id) AS product_bitmap
-  FROM catalog.product_listing_index pli
+  FROM listing.product_listing_index pli
   WHERE pli.project_id = :projectId
     AND pli.status = 'published'
 ),
 brand_filter AS (
   SELECT (nike.bitmap | adidas.bitmap) AS product_bitmap
-  FROM catalog.listing_posting_bitmap nike
-  CROSS JOIN catalog.listing_posting_bitmap adidas
+  FROM listing.listing_posting_bitmap nike
+  CROSS JOIN listing.listing_posting_bitmap adidas
   WHERE nike.project_id = :projectId
     AND nike.entity_type = 'product'
     AND nike.field = 'facet'
@@ -330,7 +330,7 @@ brand_filter AS (
 ),
 material_filter AS (
   SELECT p.bitmap AS product_bitmap
-  FROM catalog.listing_posting_bitmap p
+  FROM listing.listing_posting_bitmap p
   WHERE p.project_id = :projectId
     AND p.entity_type = 'product'
     AND p.field = 'facet'
@@ -348,7 +348,7 @@ SELECT
   s.bool_value AS in_stock,
   s.timestamptz_value AS product_created_at
 FROM matches m
-JOIN catalog.listing_posting_product_sort s
+JOIN listing.listing_posting_product_sort s
   ON s.project_id = :projectId
  AND s.sort_kind = 'created'
  AND s.locale = ''
@@ -378,7 +378,7 @@ option facet строится на variant bitmaps, а AND между option fac
 ```sql
 WITH category_scope AS (
   SELECT p.bitmap AS product_bitmap
-  FROM catalog.listing_posting_bitmap p
+  FROM listing.listing_posting_bitmap p
   WHERE p.project_id = :projectId
     AND p.entity_type = 'product'
     AND p.field = 'category'
@@ -386,8 +386,8 @@ WITH category_scope AS (
 ),
 color_filter AS (
   SELECT (black.bitmap | white.bitmap) AS variant_bitmap
-  FROM catalog.listing_posting_bitmap black
-  CROSS JOIN catalog.listing_posting_bitmap white
+  FROM listing.listing_posting_bitmap black
+  CROSS JOIN listing.listing_posting_bitmap white
   WHERE black.project_id = :projectId
     AND black.entity_type = 'variant'
     AND black.field = 'facet'
@@ -399,7 +399,7 @@ color_filter AS (
 ),
 size_filter AS (
   SELECT p.bitmap AS variant_bitmap
-  FROM catalog.listing_posting_bitmap p
+  FROM listing.listing_posting_bitmap p
   WHERE p.project_id = :projectId
     AND p.entity_type = 'variant'
     AND p.field = 'facet'
@@ -407,7 +407,7 @@ size_filter AS (
 ),
 in_stock_variants AS (
   SELECT rb_build_agg(vli.variant_doc_id) AS variant_bitmap
-  FROM catalog.variant_listing_index vli
+  FROM listing.variant_listing_index vli
   WHERE vli.project_id = :projectId
     AND vli.in_stock = true
 ),
@@ -434,7 +434,7 @@ SELECT
   s.timestamptz_value AS published_at,
   s.timestamptz_value_2 AS product_created_at
 FROM matches m
-JOIN catalog.listing_posting_product_sort s
+JOIN listing.listing_posting_product_sort s
   ON s.project_id = :projectId
  AND s.sort_kind = 'newest'
  AND s.locale = ''
@@ -463,7 +463,7 @@ access path, а не source of truth; source/debug layer остается в
 ```sql
 WITH category_scope AS (
   SELECT p.bitmap AS product_bitmap
-  FROM catalog.listing_posting_bitmap p
+  FROM listing.listing_posting_bitmap p
   WHERE p.project_id = :projectId
     AND p.entity_type = 'product'
     AND p.field = 'category'
@@ -471,7 +471,7 @@ WITH category_scope AS (
 ),
 brand_filter AS (
   SELECT p.bitmap AS product_bitmap
-  FROM catalog.listing_posting_bitmap p
+  FROM listing.listing_posting_bitmap p
   WHERE p.project_id = :projectId
     AND p.entity_type = 'product'
     AND p.field = 'facet'
@@ -489,7 +489,7 @@ SELECT
   s.bool_value AS in_stock,
   s.bigint_value AS min_price_minor
 FROM matches m
-JOIN catalog.listing_posting_product_sort s
+JOIN listing.listing_posting_product_sort s
   ON s.project_id = :projectId
  AND s.sort_kind = 'price_asc'
  AND s.locale = ''
@@ -525,7 +525,7 @@ Anti-join shape допустим для узких фильтров, diagnostics
 ```sql
 WITH base_scope AS (
   SELECT p.bitmap AS product_bitmap
-  FROM catalog.listing_posting_bitmap p
+  FROM listing.listing_posting_bitmap p
   WHERE p.project_id = :projectId
     AND p.entity_type = 'product'
     AND p.field = 'category'
@@ -533,7 +533,7 @@ WITH base_scope AS (
 ),
 brand_filter AS (
   SELECT p.bitmap AS product_bitmap
-  FROM catalog.listing_posting_bitmap p
+  FROM listing.listing_posting_bitmap p
   WHERE p.project_id = :projectId
     AND p.entity_type = 'product'
     AND p.field = 'facet'
@@ -541,7 +541,7 @@ brand_filter AS (
 ),
 color_filter AS (
   SELECT p.bitmap AS variant_bitmap
-  FROM catalog.listing_posting_bitmap p
+  FROM listing.listing_posting_bitmap p
   WHERE p.project_id = :projectId
     AND p.entity_type = 'variant'
     AND p.field = 'facet'
@@ -549,7 +549,7 @@ color_filter AS (
 ),
 size_filter AS (
   SELECT p.bitmap AS variant_bitmap
-  FROM catalog.listing_posting_bitmap p
+  FROM listing.listing_posting_bitmap p
   WHERE p.project_id = :projectId
     AND p.entity_type = 'variant'
     AND p.field = 'facet'
@@ -557,7 +557,7 @@ size_filter AS (
 ),
 price_filter AS (
   SELECT rb_build_agg(vp.variant_doc_id) AS variant_bitmap
-  FROM catalog.listing_posting_variant_price vp
+  FROM listing.listing_posting_variant_price vp
   WHERE vp.project_id = :projectId
     AND vp.currency = :currency
     AND vp.price_minor >= :minPriceMinor
@@ -588,14 +588,14 @@ page_products AS (
     vp.price_minor
   FROM variant_matches vm
   CROSS JOIN product_matches pm
-  JOIN catalog.listing_posting_variant_price vp
+  JOIN listing.listing_posting_variant_price vp
     ON vp.project_id = :projectId
    AND vp.currency = :currency
   WHERE vm.variant_bitmap @> vp.variant_doc_id
     AND pm.product_bitmap @> vp.product_doc_id
     AND NOT EXISTS (
       SELECT 1
-      FROM catalog.listing_posting_variant_price earlier
+      FROM listing.listing_posting_variant_price earlier
       WHERE earlier.project_id = :projectId
         AND earlier.currency = :currency
         AND earlier.product_id = vp.product_id
@@ -638,13 +638,13 @@ path.
 ```sql
 WITH global_scope AS (
   SELECT rb_build_agg(pli.product_doc_id) AS product_bitmap
-  FROM catalog.product_listing_index pli
+  FROM listing.product_listing_index pli
   WHERE pli.project_id = :projectId
     AND pli.status = 'published'
 ),
 brand_filter AS (
   SELECT p.bitmap AS product_bitmap
-  FROM catalog.listing_posting_bitmap p
+  FROM listing.listing_posting_bitmap p
   WHERE p.project_id = :projectId
     AND p.entity_type = 'product'
     AND p.field = 'facet'
@@ -652,7 +652,7 @@ brand_filter AS (
 ),
 color_filter AS (
   SELECT p.bitmap AS variant_bitmap
-  FROM catalog.listing_posting_bitmap p
+  FROM listing.listing_posting_bitmap p
   WHERE p.project_id = :projectId
     AND p.entity_type = 'variant'
     AND p.field = 'facet'
@@ -660,7 +660,7 @@ color_filter AS (
 ),
 in_stock_variants AS (
   SELECT rb_build_agg(vli.variant_doc_id) AS variant_bitmap
-  FROM catalog.variant_listing_index vli
+  FROM listing.variant_listing_index vli
   WHERE vli.project_id = :projectId
     AND vli.in_stock = true
 ),
@@ -687,7 +687,7 @@ SELECT
   s.bool_value AS in_stock,
   s.text_value AS name_sort_value
 FROM matches m
-JOIN catalog.listing_posting_product_sort s
+JOIN listing.listing_posting_product_sort s
   ON s.project_id = :projectId
  AND s.sort_kind = 'name'
  AND s.locale = :locale
@@ -710,8 +710,8 @@ variant bitmaps before projection.
 ```sql
 WITH rule_scope AS (
   SELECT (category_a.bitmap | category_b.bitmap) AS product_bitmap
-  FROM catalog.listing_posting_bitmap category_a
-  CROSS JOIN catalog.listing_posting_bitmap category_b
+  FROM listing.listing_posting_bitmap category_a
+  CROSS JOIN listing.listing_posting_bitmap category_b
   WHERE category_a.project_id = :projectId
     AND category_a.entity_type = 'product'
     AND category_a.field = 'category'
@@ -723,7 +723,7 @@ WITH rule_scope AS (
 ),
 season_filter AS (
   SELECT p.bitmap AS product_bitmap
-  FROM catalog.listing_posting_bitmap p
+  FROM listing.listing_posting_bitmap p
   WHERE p.project_id = :projectId
     AND p.entity_type = 'product'
     AND p.field = 'facet'
@@ -731,7 +731,7 @@ season_filter AS (
 ),
 brand_filter AS (
   SELECT p.bitmap AS product_bitmap
-  FROM catalog.listing_posting_bitmap p
+  FROM listing.listing_posting_bitmap p
   WHERE p.project_id = :projectId
     AND p.entity_type = 'product'
     AND p.field = 'facet'
@@ -749,7 +749,7 @@ SELECT
   s.bool_value AS in_stock,
   s.bigint_value AS max_price_minor
 FROM matches m
-JOIN catalog.listing_posting_product_sort s
+JOIN listing.listing_posting_product_sort s
   ON s.project_id = :projectId
  AND s.sort_kind = 'price_desc'
  AND s.locale = ''
@@ -782,8 +782,8 @@ WITH search_candidates AS (
     pli.product_id,
     pli.in_stock,
     pdb.score(ptsi.search_id) AS relevance_score
-  FROM catalog.product_title_bm25_search_index ptsi
-  JOIN catalog.product_listing_index pli
+  FROM listing.product_title_bm25_search_index ptsi
+  JOIN listing.product_listing_index pli
     ON pli.project_id = ptsi.project_id
    AND pli.product_id = ptsi.product_id
   WHERE ptsi.project_id = :projectId
@@ -798,7 +798,7 @@ search_scope AS (
 ),
 brand_filter AS (
   SELECT p.bitmap AS product_bitmap
-  FROM catalog.listing_posting_bitmap p
+  FROM listing.listing_posting_bitmap p
   WHERE p.project_id = :projectId
     AND p.entity_type = 'product'
     AND p.field = 'facet'
@@ -806,7 +806,7 @@ brand_filter AS (
 ),
 color_filter AS (
   SELECT p.bitmap AS variant_bitmap
-  FROM catalog.listing_posting_bitmap p
+  FROM listing.listing_posting_bitmap p
   WHERE p.project_id = :projectId
     AND p.entity_type = 'variant'
     AND p.field = 'facet'
@@ -814,7 +814,7 @@ color_filter AS (
 ),
 in_stock_variants AS (
   SELECT rb_build_agg(vli.variant_doc_id) AS variant_bitmap
-  FROM catalog.variant_listing_index vli
+  FROM listing.variant_listing_index vli
   WHERE vli.project_id = :projectId
     AND vli.in_stock = true
 ),
@@ -871,7 +871,7 @@ SELECT
   s.timestamptz_value AS published_at,
   s.timestamptz_value_2 AS product_created_at
 FROM matches m
-JOIN catalog.listing_posting_product_sort s
+JOIN listing.listing_posting_product_sort s
   ON s.project_id = :projectId
  AND s.sort_kind = 'newest'
  AND s.locale = ''
@@ -958,7 +958,7 @@ brand_counts AS (
     ) AS product_count
   FROM brand_isolated
   JOIN brand_values bv ON true
-  JOIN catalog.listing_posting_bitmap p
+  JOIN listing.listing_posting_bitmap p
     ON p.project_id = :projectId
    AND p.entity_type = 'product'
    AND p.field = 'facet'
@@ -972,7 +972,7 @@ material_counts AS (
     ) AS product_count
   FROM material_isolated
   JOIN material_values mv ON true
-  JOIN catalog.listing_posting_bitmap p
+  JOIN listing.listing_posting_bitmap p
     ON p.project_id = :projectId
    AND p.entity_type = 'product'
    AND p.field = 'facet'
@@ -1017,7 +1017,7 @@ page_products AS (
     s.bool_value AS in_stock,
     s.timestamptz_value AS product_created_at
   FROM matches m
-  JOIN catalog.listing_posting_product_sort s
+  JOIN listing.listing_posting_product_sort s
     ON s.project_id = :projectId
    AND s.sort_kind = 'created'
    AND s.locale = ''
@@ -1053,7 +1053,7 @@ brand_counts AS (
       (brand_isolated.product_bitmap & p.bitmap)
     ) AS product_count
   FROM brand_isolated
-  JOIN catalog.listing_posting_bitmap p
+  JOIN listing.listing_posting_bitmap p
     ON p.project_id = :projectId
    AND p.entity_type = 'product'
    AND p.field = 'facet'
@@ -1066,7 +1066,7 @@ material_counts AS (
       (material_isolated.product_bitmap & p.bitmap)
     ) AS product_count
   FROM material_isolated
-  JOIN catalog.listing_posting_bitmap p
+  JOIN listing.listing_posting_bitmap p
     ON p.project_id = :projectId
    AND p.entity_type = 'product'
    AND p.field = 'facet'
@@ -1115,7 +1115,7 @@ size_filter AS (
 ),
 price_filter AS (
   SELECT rb_build_agg(vp.variant_doc_id) AS variant_bitmap
-  FROM catalog.listing_posting_variant_price vp
+  FROM listing.listing_posting_variant_price vp
   WHERE vp.project_id = :projectId
     AND vp.currency = :currency
     AND vp.price_minor >= :minPriceMinor
@@ -1151,14 +1151,14 @@ page_products AS (
     vp.price_minor
   FROM variant_matches vm
   CROSS JOIN product_matches pm
-  JOIN catalog.listing_posting_variant_price vp
+  JOIN listing.listing_posting_variant_price vp
     ON vp.project_id = :projectId
    AND vp.currency = :currency
   WHERE vm.variant_bitmap @> vp.variant_doc_id
     AND pm.product_bitmap @> vp.product_doc_id
     AND NOT EXISTS (
       SELECT 1
-      FROM catalog.listing_posting_variant_price earlier
+      FROM listing.listing_posting_variant_price earlier
       WHERE earlier.project_id = :projectId
         AND earlier.currency = :currency
         AND earlier.product_id = vp.product_id
@@ -1199,7 +1199,7 @@ color_counts AS (
     ) AS product_count
   FROM product_filter_base
   CROSS JOIN color_isolated_variants
-  JOIN catalog.listing_posting_bitmap p
+  JOIN listing.listing_posting_bitmap p
     ON p.project_id = :projectId
    AND p.entity_type = 'variant'
    AND p.field = 'facet'

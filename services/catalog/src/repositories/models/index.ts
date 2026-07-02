@@ -41,8 +41,6 @@ export * from "./facetFeatureValueCandidateView";
 // SEO (search engine & social media metadata)
 export * from "./seo";
 
-// Listing indexes
-export * from "./listingIndex";
 export * from "./productTitleBm25SearchIndex";
 
 // Facets

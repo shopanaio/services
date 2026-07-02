@@ -2,14 +2,14 @@
 
 ## Назначение
 
-Документ переводит canonical listing design в план изменений catalog service.
+Документ переводит canonical listing design в план изменений listing service.
 
 Исходные документы:
 
-- `docs/listing/listing-posting-list-search-engine-index.ru.md`
-- `docs/listing/listing-index-db-schema.ru.md`
-- `docs/listing/listing-index-sync-freshness.ru.md`
-- `docs/listing/listing-query-sql-examples.ru.md`
+- `services/listing/docs/listing-posting-list-search-engine-index.ru.md`
+- `services/listing/docs/listing-index-db-schema.ru.md`
+- `services/listing/docs/listing-index-sync-freshness.ru.md`
+- `services/listing/docs/listing-query-sql-examples.ru.md`
 
 Фокус: как обновлять SQL listing read model, roaring posting bitmap rows,
 physical sort/price indexes, projection blocks and freshness repair.
@@ -19,10 +19,11 @@ physical sort/price indexes, projection blocks and freshness repair.
 ## Инварианты реализации
 
 - Listing index is a derived current-state read model.
-- Source of truth remains canonical catalog tables.
+- Source of truth remains canonical catalog tables; listing service owns the
+  derived read model, posting index, sync scripts and workflows.
 - DB triggers are not used.
 - All repository methods use transaction-aware connection and project context.
-- All queries are scoped by current `project_id` / `this.storeId`.
+- All queries are scoped by current `project_id`.
 - Product aggregate price/stock is computed from `variant_listing_index` and
   `variant_listing_price_index`, not directly from canonical price/stock tables.
 - Runtime storefront facets read resolved `facet_id` / `facet_value_id` through
@@ -58,8 +59,8 @@ storefront page collectors rely on them.
 
 ## Фаза 1. Drizzle models and registration
 
-Align `services/catalog/src/repositories/models/listingIndex.ts` with
-`docs/listing/listing-index-db-schema.ru.md`.
+Align `services/listing/src/repositories/models/listingIndex.ts` with
+`services/listing/docs/listing-index-db-schema.ru.md`.
 
 Models must include:
 
@@ -76,7 +77,7 @@ Models must include:
 
 Do not recreate legacy raw-handle array columns or row-based facet token tables.
 
-Register repositories in `services/catalog/src/repositories/Repository.ts`:
+Register repositories in `services/listing/src/repositories/Repository.ts`:
 
 - `listingDocIdAllocator`
 - `productListingIndex`
@@ -334,7 +335,7 @@ Resolve rules:
 
 ## Фаза 6. Builders
 
-Create pure builders in `services/catalog/src/scripts/listing/`.
+Create pure builders in `services/listing/src/scripts/listing/`.
 
 Builders do not perform DB calls.
 
@@ -362,7 +363,7 @@ Builders must not include raw handle arrays in listing row outputs.
 
 ## Фаза 7. Sync scripts
 
-Create `services/catalog/src/scripts/listing/` and export scripts through a local
+Create `services/listing/src/scripts/listing/` and export scripts through a local
 barrel.
 
 ### SyncVariantListingIndexScript
@@ -536,11 +537,11 @@ interface ListingFreshnessAuditResult {
 
 Add workflow entrypoints:
 
-- `catalog.rebuildListingIndex`
-- `catalog.syncListingIndexForProducts`
-- `catalog.syncListingIndexForVariants`
-- `catalog.refreshListingFacetPostings`
-- `catalog.repairListingIndexFreshness`
+- `listing.rebuildListingIndex`
+- `listing.syncListingIndexForProducts`
+- `listing.syncListingIndexForVariants`
+- `listing.refreshListingFacetPostings`
+- `listing.repairListingIndexFreshness`
 
 Workflow steps:
 
@@ -563,7 +564,8 @@ next to existing workflow entrypoints.
 
 ## Фаза 10. Event handlers and invalidation
 
-Update catalog handlers to launch listing sync workflows/scripts.
+Add listing event handlers/subscribers that react to catalog domain events and
+launch listing sync workflows/scripts.
 
 Base map:
 
@@ -662,4 +664,3 @@ rebuild and freshness audit complete.
       and projection mismatches.
 - [ ] Verification uses build when needed; standalone `test` and `tsc` are not
       run.
-

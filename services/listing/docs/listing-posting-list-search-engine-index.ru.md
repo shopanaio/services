@@ -2,9 +2,9 @@
 
 Документ дополняет:
 
-- `docs/listing/listing-index-redesign-plan.ru.md`
-- `docs/listing/listing-index-db-schema.ru.md`
-- `docs/listing/listing-query-sql-examples.ru.md`
+- `services/listing/docs/listing-index-redesign-plan.ru.md`
+- `services/listing/docs/listing-index-db-schema.ru.md`
+- `services/listing/docs/listing-query-sql-examples.ru.md`
 
 Цель - описать PostgreSQL-based listing engine поверх денормализованной read
 model, который хранит физические inverted posting lists в `pg_roaringbitmap`.
@@ -81,7 +81,7 @@ matches = category_mens_sneakers & brand_nike & projected(size_42 & color_black)
 - `product_doc_id` - stable integer id товара внутри project.
 - `variant_doc_id` - stable integer id варианта внутри project.
 - `posting bitmap` - `roaringbitmap` set of doc ids for one field/value.
-- `posting row` - строка `catalog.listing_posting_bitmap` для одного
+- `posting row` - строка `listing.listing_posting_bitmap` для одного
   `entity_type + field + value_key`.
 - `projection` - перевод variant bitmap в product bitmap с дедупликацией
   parent product docs.
@@ -140,14 +140,14 @@ Runtime code использует `pg_roaringbitmap` напрямую. Query bui
 rows:
 
 ```text
-catalog.product_listing_index(project_id, product_doc_id, product_id)
-catalog.variant_listing_index(project_id, variant_doc_id, product_doc_id, product_id, variant_id)
+listing.product_listing_index(project_id, product_doc_id, product_id)
+listing.variant_listing_index(project_id, variant_doc_id, product_doc_id, product_id, variant_id)
 ```
 
-Allocation state хранится в `catalog.listing_doc_id_allocator`:
+Allocation state хранится в `listing.listing_doc_id_allocator`:
 
 ```sql
-CREATE TABLE catalog.listing_doc_id_allocator (
+CREATE TABLE listing.listing_doc_id_allocator (
   project_id              uuid NOT NULL,
   next_product_doc_id     int NOT NULL DEFAULT 1,
   next_variant_doc_id     int NOT NULL DEFAULT 1,
@@ -165,7 +165,7 @@ Sync code выделяет ids под row-level lock:
 
 ```sql
 SELECT next_product_doc_id
-FROM catalog.listing_doc_id_allocator
+FROM listing.listing_doc_id_allocator
 WHERE project_id = :projectId
 FOR UPDATE;
 ```
@@ -176,7 +176,7 @@ FOR UPDATE;
 ## Posting bitmap table
 
 ```sql
-CREATE TABLE catalog.listing_posting_bitmap (
+CREATE TABLE listing.listing_posting_bitmap (
   project_id             uuid NOT NULL,
   entity_type            varchar(16) NOT NULL,
   field                  varchar(64) NOT NULL,
@@ -218,7 +218,7 @@ Bitmap хорошо отвечает на вопрос “какие docs под
 Для page collection используются physical sort rows:
 
 ```sql
-CREATE TABLE catalog.listing_posting_product_sort (
+CREATE TABLE listing.listing_posting_product_sort (
   project_id             uuid NOT NULL,
   product_doc_id         int NOT NULL,
   product_id             uuid NOT NULL,
@@ -244,7 +244,7 @@ CREATE TABLE catalog.listing_posting_product_sort (
   ),
   CONSTRAINT fk_listing_posting_product_sort_doc
     FOREIGN KEY (project_id, product_doc_id, product_id)
-    REFERENCES catalog.product_listing_index(
+    REFERENCES listing.product_listing_index(
       project_id,
       product_doc_id,
       product_id
@@ -257,7 +257,7 @@ Main indexes:
 
 ```sql
 CREATE INDEX idx_listing_posting_product_sort_newest
-  ON catalog.listing_posting_product_sort (
+  ON listing.listing_posting_product_sort (
     project_id,
     sort_kind,
     locale,
@@ -271,7 +271,7 @@ CREATE INDEX idx_listing_posting_product_sort_newest
   INCLUDE (product_doc_id);
 
 CREATE INDEX idx_listing_posting_product_sort_value
-  ON catalog.listing_posting_product_sort (
+  ON listing.listing_posting_product_sort (
     project_id,
     sort_kind,
     locale,
@@ -295,7 +295,7 @@ Exact price values не хранятся как one posting bitmap per price. Д
 и matched variant price sort используется typed table:
 
 ```sql
-CREATE TABLE catalog.listing_posting_variant_price (
+CREATE TABLE listing.listing_posting_variant_price (
   project_id             uuid NOT NULL,
   currency               varchar(3) NOT NULL,
   variant_doc_id         int NOT NULL,
@@ -311,7 +311,7 @@ CREATE TABLE catalog.listing_posting_variant_price (
       product_doc_id,
       product_id
     )
-    REFERENCES catalog.variant_listing_index(
+    REFERENCES listing.variant_listing_index(
       project_id,
       variant_doc_id,
       product_doc_id,
@@ -325,7 +325,7 @@ Main indexes:
 
 ```sql
 CREATE INDEX idx_listing_posting_variant_price_range
-  ON catalog.listing_posting_variant_price (
+  ON listing.listing_posting_variant_price (
     project_id,
     currency,
     price_minor,
@@ -335,7 +335,7 @@ CREATE INDEX idx_listing_posting_variant_price_range
   );
 
 CREATE INDEX idx_listing_posting_variant_price_desc
-  ON catalog.listing_posting_variant_price (
+  ON listing.listing_posting_variant_price (
     project_id,
     currency,
     price_minor DESC,
@@ -345,7 +345,7 @@ CREATE INDEX idx_listing_posting_variant_price_desc
   );
 
 CREATE INDEX idx_listing_posting_variant_price_product_order
-  ON catalog.listing_posting_variant_price (
+  ON listing.listing_posting_variant_price (
     project_id,
     currency,
     product_id,
@@ -367,7 +367,7 @@ filters must not expand every matching variant through `rb_iterate`.
 Projection helper:
 
 ```sql
-CREATE TABLE catalog.listing_posting_variant_projection_block (
+CREATE TABLE listing.listing_posting_variant_projection_block (
   project_id             uuid NOT NULL,
   block_id               int NOT NULL,
   variant_doc_from       int NOT NULL,
@@ -471,7 +471,7 @@ currency and builds a variant bitmap:
 
 ```sql
 SELECT rb_build_agg(vp.variant_doc_id) AS price_variant_bitmap
-FROM catalog.listing_posting_variant_price vp
+FROM listing.listing_posting_variant_price vp
 WHERE vp.project_id = :projectId
   AND vp.currency = :currency
   AND vp.price_minor >= :minPriceMinor
@@ -508,7 +508,7 @@ and checks bitmap membership:
 
 ```sql
 SELECT s.product_doc_id, s.product_id
-FROM catalog.listing_posting_product_sort s
+FROM listing.listing_posting_product_sort s
 WHERE s.project_id = :projectId
   AND s.sort_kind = :sortKind
   AND s.locale = :locale
@@ -531,7 +531,7 @@ SELECT DISTINCT ON (vp.product_id)
   vp.product_doc_id,
   vp.product_id,
   vp.price_minor
-FROM catalog.listing_posting_variant_price vp
+FROM listing.listing_posting_variant_price vp
 WHERE vp.project_id = :projectId
   AND vp.currency = :currency
   AND :variantMatchesBitmap::roaringbitmap @> vp.variant_doc_id
@@ -588,8 +588,8 @@ If BM25 returns `product_id`, join to `product_listing_index` to get
 
 ```sql
 SELECT pli.product_doc_id
-FROM catalog.product_title_bm25_search_index s
-JOIN catalog.product_listing_index pli
+FROM listing.product_title_bm25_search_index s
+JOIN listing.product_listing_index pli
   ON pli.product_id = s.product_id
  AND pli.project_id = s.project_id
 WHERE s.project_id = :projectId

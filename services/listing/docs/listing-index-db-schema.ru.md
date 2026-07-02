@@ -3,9 +3,9 @@
 Документ фиксирует целевую PostgreSQL-схему read model для storefront listing:
 выдача товаров, structured filtering, facet counts, total count, pagination и
 sort. Нормативный источник runtime requirements:
-`docs/listing/listing-posting-list-search-engine-index.ru.md`.
+`services/listing/docs/listing-posting-list-search-engine-index.ru.md`.
 Верхнеуровневый redesign plan:
-`docs/listing/listing-index-redesign-plan.ru.md`.
+`services/listing/docs/listing-index-redesign-plan.ru.md`.
 
 Документ описывает текущую целевую read model и runtime posting index для
 incremental maintenance. Изменения товаров, вариантов, цен, остатков, facets и
@@ -29,7 +29,7 @@ scope membership должны обновлять только затронуты
 - Roaring/posting index создается сразу вместе с listing read model. Отдельные
   row-based product/variant facet posting tables не создаются: product
   tag/feature/category/vendor и variant option postings пишутся напрямую в
-  `catalog.listing_posting_bitmap`.
+  `listing.listing_posting_bitmap`.
 - Runtime posting index не хранит raw source-handle данные. Но он содержит
   physical indexes для hot path: product sort rows и variant price rows. Это
   controlled duplication ради ordered access path; source of truth остается в
@@ -47,10 +47,10 @@ scope membership должны обновлять только затронуты
 - Storefront facets работают через resolved `facet_id` и `facet_value_id`, а не
   через raw source handles.
 - `price` и `in_stock` являются virtual facets и не имеют строк в
-  `catalog.listing_posting_bitmap`. Price hot path использует typed
-  `catalog.listing_posting_variant_price`, а availability bucket хранится в
-  `catalog.listing_posting_product_sort` для сортировок.
-- `catalog.listing_posting_variant_price` хранит только priced active in-stock
+  `listing.listing_posting_bitmap`. Price hot path использует typed
+  `listing.listing_posting_variant_price`, а availability bucket хранится в
+  `listing.listing_posting_product_sort` для сортировок.
+- `listing.listing_posting_variant_price` хранит только priced active in-stock
   variants. Это делает price range и matched variant price sort same-variant и
   in-stock корректными без отдельного generic `in_stock` bitmap. При stock
   change sync обязан добавить или удалить affected variant price rows вместе с
@@ -82,16 +82,16 @@ scope membership должны обновлять только затронуты
   index prefix. Это не считается устранимым дублированием, потому что каждый
   storefront/admin query обязан явно ограничиваться проектом.
 
-## Миграции в `services/catalog/migrations/domains`
+## Миграции в `services/listing/migrations/domains`
 
-Catalog migrations are handwritten PostgreSQL SQL executed by the catalog
+Listing migrations are handwritten PostgreSQL SQL executed by the listing
 `node-pg-migrate` runner. Do not use Drizzle migration generation for these
 listing changes.
 
 Place listing read-model migrations in the existing read-model domain folder:
 
 ```text
-services/catalog/migrations/domains/9000_read_models/
+services/listing/migrations/domains/9000_read_models/
 ```
 
 Planned files:
@@ -99,7 +99,7 @@ Planned files:
 - `9003_read_models__listing_index_redesign.sql`:
   - create `product_listing_index`, `product_listing_price_index`,
     `variant_listing_index`, `variant_listing_price_index`,
-    `catalog.listing_doc_id_allocator` and the `catalog.listing_posting_*`
+    `listing.listing_doc_id_allocator` and the `listing.listing_posting_*`
     roaring/posting tables;
   - add ordinary indexes from this document;
   - do not create raw-handle array columns;
@@ -112,7 +112,7 @@ Planned files:
   - add composite unique/FK targets only inside listing read-model tables where
     needed to enforce repeated `project_id` consistency in child rows.
 - `9004_read_models__product_title_bm25_search.sql`:
-  - create `catalog.product_title_bm25_search_index`;
+  - create `listing.product_title_bm25_search_index`;
   - create ordinary indexes and the ParadeDB BM25 index;
   - run `CREATE EXTENSION IF NOT EXISTS pg_search`, while keeping
     `shared_preload_libraries = 'pg_search'` as infrastructure configuration
@@ -128,11 +128,10 @@ Planned files:
 If either basename is already taken when implementation starts, use the next
 available `900x_read_models__...sql` basename and update these documents in the
 same change. Keep basenames globally unique across all
-`services/catalog/migrations/domains/**/*.sql` files.
+`services/listing/migrations/domains/**/*.sql` files.
 
-Do not edit existing historical domain migration files for this redesign unless
-the implementation explicitly chooses a catalog cutover and updates the plan
-first. The intended path for this work is additive handwritten SQL in
+Do not edit existing historical domain migration files for this redesign. The
+intended path for this work is additive handwritten SQL in listing service
 `9000_read_models`.
 
 Before implementation, update the current Drizzle listing models to this target
@@ -140,14 +139,14 @@ schema. The existing model layer may still contain legacy raw handle arrays and
 row-based facet token tables; those are obsolete for this redesign and must not
 be recreated by the handwritten migration.
 
-## `catalog.listing_doc_id_allocator`
+## `listing.listing_doc_id_allocator`
 
 Одна строка на project. Таблица хранит monotonic counters для stable doc ids.
 Sync code выделяет ids под row-level lock (`SELECT ... FOR UPDATE`) и сразу
 инкрементирует counter. Удаленные ids не переиспользуются.
 
 ```sql
-CREATE TABLE catalog.listing_doc_id_allocator (
+CREATE TABLE listing.listing_doc_id_allocator (
   project_id              uuid NOT NULL,
   next_product_doc_id     int NOT NULL DEFAULT 1,
   next_variant_doc_id     int NOT NULL DEFAULT 1,
@@ -168,15 +167,15 @@ CREATE TABLE catalog.listing_doc_id_allocator (
 | `next_variant_doc_id` | Следующий variant doc id для этого project. |
 | `updated_at` | Время последнего allocation update. |
 
-## `catalog.product_listing_index`
+## `listing.product_listing_index`
 
 Одна строка на product. Таблица хранит visibility, product-level scalar
 predicates, availability-агрегаты и стабильные поля сортировки. Price aggregates
-вынесены в `catalog.product_listing_price_index`, а tag/feature/category scope
-postings пишутся только в `catalog.listing_posting_bitmap`.
+вынесены в `listing.product_listing_price_index`, а tag/feature/category scope
+postings пишутся только в `listing.listing_posting_bitmap`.
 
 ```sql
-CREATE TABLE catalog.product_listing_index (
+CREATE TABLE listing.product_listing_index (
   project_id             uuid NOT NULL,
   product_id             uuid NOT NULL,
   product_doc_id         int NOT NULL,
@@ -253,13 +252,13 @@ CREATE TABLE catalog.product_listing_index (
 
 ```sql
 CREATE INDEX idx_product_listing_project_product
-  ON catalog.product_listing_index (project_id, product_id);
+  ON listing.product_listing_index (project_id, product_id);
 
 CREATE INDEX idx_product_listing_project_doc
-  ON catalog.product_listing_index (project_id, product_doc_id);
+  ON listing.product_listing_index (project_id, product_doc_id);
 
 CREATE INDEX idx_product_listing_visible_newest
-  ON catalog.product_listing_index (
+  ON listing.product_listing_index (
     project_id,
     in_stock DESC,
     published_at DESC NULLS LAST,
@@ -269,7 +268,7 @@ CREATE INDEX idx_product_listing_visible_newest
   WHERE status = 'published';
 
 CREATE INDEX idx_product_listing_visible_created
-  ON catalog.product_listing_index (
+  ON listing.product_listing_index (
     project_id,
     in_stock DESC,
     product_created_at DESC,
@@ -278,11 +277,11 @@ CREATE INDEX idx_product_listing_visible_created
   WHERE status = 'published';
 
 CREATE INDEX idx_product_listing_vendor
-  ON catalog.product_listing_index (project_id, vendor_id)
+  ON listing.product_listing_index (project_id, vendor_id)
   WHERE vendor_id IS NOT NULL;
 
 CREATE INDEX idx_product_listing_in_stock
-  ON catalog.product_listing_index (project_id, in_stock);
+  ON listing.product_listing_index (project_id, in_stock);
 
 ```
 
@@ -295,13 +294,13 @@ CREATE INDEX idx_product_listing_in_stock
 | `idx_product_listing_vendor` | Ускоряет explicit vendor filter. Partial predicate уменьшает размер, потому что products без vendor не участвуют в vendor lookup. |
 | `idx_product_listing_in_stock` | Поддерживает availability toggle и in-stock virtual facet count на product aggregate. |
 
-## `catalog.product_listing_price_index`
+## `listing.product_listing_price_index`
 
 Одна строка на product + currency. Таблица хранит storefront price aggregates,
 рассчитанные только по active in-stock variants.
 
 ```sql
-CREATE TABLE catalog.product_listing_price_index (
+CREATE TABLE listing.product_listing_price_index (
   project_id             uuid NOT NULL,
   product_id             uuid NOT NULL,
   currency               varchar(3) NOT NULL,
@@ -316,11 +315,11 @@ CREATE TABLE catalog.product_listing_price_index (
   PRIMARY KEY (product_id, currency),
   CONSTRAINT fk_product_listing_price_product
     FOREIGN KEY (product_id)
-    REFERENCES catalog.product_listing_index(product_id)
+    REFERENCES listing.product_listing_index(product_id)
     ON DELETE CASCADE,
   CONSTRAINT fk_product_listing_price_project_product
     FOREIGN KEY (project_id, product_id)
-    REFERENCES catalog.product_listing_index(project_id, product_id)
+    REFERENCES listing.product_listing_index(project_id, product_id)
     ON DELETE CASCADE,
   CONSTRAINT chk_product_listing_price_state
     CHECK (
@@ -366,7 +365,7 @@ CREATE TABLE catalog.product_listing_price_index (
 
 ```sql
 CREATE INDEX idx_product_listing_price_visible_asc
-  ON catalog.product_listing_price_index (
+  ON listing.product_listing_price_index (
     project_id,
     currency,
     min_price_minor ASC,
@@ -375,7 +374,7 @@ CREATE INDEX idx_product_listing_price_visible_asc
   WHERE has_price = true;
 
 CREATE INDEX idx_product_listing_price_visible_desc
-  ON catalog.product_listing_price_index (
+  ON listing.product_listing_price_index (
     project_id,
     currency,
     max_price_minor DESC,
@@ -389,15 +388,15 @@ CREATE INDEX idx_product_listing_price_visible_desc
 | `idx_product_listing_price_visible_asc` | Поддерживает product-aggregate `price_asc` для priced products в конкретной currency. Query все равно должен сохранить unpriced products с `NULLS LAST`. |
 | `idx_product_listing_price_visible_desc` | Поддерживает product-aggregate `price_desc` по `max_price_minor`. Partial predicate исключает rows без цены. |
 
-## `catalog.variant_listing_index`
+## `listing.variant_listing_index`
 
 Одна строка на active variant. Таблица хранит только связь variant -> product и
 currency-neutral availability aggregates. Option facet membership не
 дублируется raw handles: sync сразу пишет resolved variant facet
-postings в `catalog.listing_posting_bitmap`.
+postings в `listing.listing_posting_bitmap`.
 
 ```sql
-CREATE TABLE catalog.variant_listing_index (
+CREATE TABLE listing.variant_listing_index (
   project_id             uuid NOT NULL,
   product_id             uuid NOT NULL,
   product_doc_id         int NOT NULL,
@@ -421,11 +420,11 @@ CREATE TABLE catalog.variant_listing_index (
     UNIQUE (project_id, variant_doc_id, product_doc_id, product_id),
   CONSTRAINT fk_variant_listing_product
     FOREIGN KEY (product_id)
-    REFERENCES catalog.product_listing_index(product_id)
+    REFERENCES listing.product_listing_index(product_id)
     ON DELETE CASCADE,
   CONSTRAINT fk_variant_listing_product_doc
     FOREIGN KEY (project_id, product_doc_id, product_id)
-    REFERENCES catalog.product_listing_index(
+    REFERENCES listing.product_listing_index(
       project_id,
       product_doc_id,
       product_id
@@ -478,19 +477,19 @@ CREATE TABLE catalog.variant_listing_index (
 
 ```sql
 CREATE INDEX idx_variant_listing_project_product
-  ON catalog.variant_listing_index (project_id, product_id);
+  ON listing.variant_listing_index (project_id, product_id);
 
 CREATE INDEX idx_variant_listing_project_variant
-  ON catalog.variant_listing_index (project_id, variant_id);
+  ON listing.variant_listing_index (project_id, variant_id);
 
 CREATE INDEX idx_variant_listing_project_doc
-  ON catalog.variant_listing_index (project_id, variant_doc_id);
+  ON listing.variant_listing_index (project_id, variant_doc_id);
 
 CREATE INDEX idx_variant_listing_in_stock
-  ON catalog.variant_listing_index (project_id, in_stock);
+  ON listing.variant_listing_index (project_id, in_stock);
 
 CREATE INDEX idx_variant_listing_in_stock_product_variant
-  ON catalog.variant_listing_index (
+  ON listing.variant_listing_index (
     project_id,
     product_doc_id,
     product_id,
@@ -508,13 +507,13 @@ CREATE INDEX idx_variant_listing_in_stock_product_variant
 | `idx_variant_listing_in_stock` | Поддерживает common predicate `vli.in_stock = true` для option/price matching и virtual in-stock count. |
 | `idx_variant_listing_in_stock_product_variant` | Основной lookup для storefront option/price paths, где query уже имеет product candidate set и должен быстро перейти к in-stock variants конкретного product. Partial index уменьшает размер при большом числе out-of-stock variants. |
 
-## `catalog.variant_listing_price_index`
+## `listing.variant_listing_price_index`
 
 Одна строка на variant + currency. Таблица хранит price fields для price filter,
 price range и matched variant price sort.
 
 ```sql
-CREATE TABLE catalog.variant_listing_price_index (
+CREATE TABLE listing.variant_listing_price_index (
   project_id             uuid NOT NULL,
   variant_id             uuid NOT NULL,
   currency               varchar(3) NOT NULL,
@@ -528,11 +527,11 @@ CREATE TABLE catalog.variant_listing_price_index (
   PRIMARY KEY (variant_id, currency),
   CONSTRAINT fk_variant_listing_price_variant
     FOREIGN KEY (variant_id)
-    REFERENCES catalog.variant_listing_index(variant_id)
+    REFERENCES listing.variant_listing_index(variant_id)
     ON DELETE CASCADE,
   CONSTRAINT fk_variant_listing_price_project_variant
     FOREIGN KEY (project_id, variant_id)
-    REFERENCES catalog.variant_listing_index(project_id, variant_id)
+    REFERENCES listing.variant_listing_index(project_id, variant_id)
     ON DELETE CASCADE,
   CONSTRAINT chk_variant_listing_price_state
     CHECK (
@@ -574,11 +573,11 @@ CREATE TABLE catalog.variant_listing_price_index (
 
 ```sql
 CREATE INDEX idx_variant_listing_price_value
-  ON catalog.variant_listing_price_index (project_id, currency, price_minor)
+  ON listing.variant_listing_price_index (project_id, currency, price_minor)
   WHERE has_price = true;
 
 CREATE INDEX idx_variant_listing_price_variant
-  ON catalog.variant_listing_price_index (
+  ON listing.variant_listing_price_index (
     project_id,
     currency,
     variant_id,
@@ -587,7 +586,7 @@ CREATE INDEX idx_variant_listing_price_variant
   WHERE has_price = true;
 
 CREATE INDEX idx_variant_listing_price_value_variant
-  ON catalog.variant_listing_price_index (
+  ON listing.variant_listing_price_index (
     project_id,
     currency,
     price_minor,
@@ -634,22 +633,22 @@ Runtime code использует `pg_roaringbitmap` напрямую. Query bui
 current-state listing rows:
 
 ```text
-catalog.product_listing_index(project_id, product_doc_id, product_id)
-catalog.variant_listing_index(project_id, variant_doc_id, product_doc_id, product_id, variant_id)
+listing.product_listing_index(project_id, product_doc_id, product_id)
+listing.variant_listing_index(project_id, variant_doc_id, product_doc_id, product_id, variant_id)
 ```
 
 `product_doc_id` / `variant_doc_id` выделяются allocator-ом при создании
 listing row. Удаленные ids не переиспользуются. Это позволяет incremental sync
 обновлять roaring bitmaps in-place без пересоздания всего posting index.
 
-### `catalog.listing_posting_bitmap`
+### `listing.listing_posting_bitmap`
 
 Physical roaring posting row for one `entity_type + field + value_key`.
 Product tag/feature, option facets, category/collection scopes, vendor and
 auxiliary posting sets live here.
 
 ```sql
-CREATE TABLE catalog.listing_posting_bitmap (
+CREATE TABLE listing.listing_posting_bitmap (
   project_id             uuid NOT NULL,
   entity_type            varchar(16) NOT NULL,
   field                  varchar(64) NOT NULL,
@@ -685,14 +684,14 @@ field=facet, value_key=<facet_id>:<facet_value_id>
 field=variant_product, value_key=<product_doc_id>
 ```
 
-### `catalog.listing_posting_product_sort`
+### `listing.listing_posting_product_sort`
 
 Derived product sort rows for hot storefront page collectors. Это physical index,
 а не canonical source data: rows строятся из SQL listing read model, translations
 и manual scope tables при incremental sync.
 
 ```sql
-CREATE TABLE catalog.listing_posting_product_sort (
+CREATE TABLE listing.listing_posting_product_sort (
   project_id             uuid NOT NULL,
   product_doc_id         int NOT NULL,
   product_id             uuid NOT NULL,
@@ -718,7 +717,7 @@ CREATE TABLE catalog.listing_posting_product_sort (
   ),
   CONSTRAINT fk_listing_posting_product_sort_doc
     FOREIGN KEY (project_id, product_doc_id, product_id)
-    REFERENCES catalog.product_listing_index(
+    REFERENCES listing.product_listing_index(
       project_id,
       product_doc_id,
       product_id
@@ -727,7 +726,7 @@ CREATE TABLE catalog.listing_posting_product_sort (
 );
 
 CREATE INDEX idx_listing_posting_product_sort_newest
-  ON catalog.listing_posting_product_sort (
+  ON listing.listing_posting_product_sort (
     project_id,
     sort_kind,
     locale,
@@ -741,7 +740,7 @@ CREATE INDEX idx_listing_posting_product_sort_newest
   INCLUDE (product_doc_id);
 
 CREATE INDEX idx_listing_posting_product_sort_text
-  ON catalog.listing_posting_product_sort (
+  ON listing.listing_posting_product_sort (
     project_id,
     sort_kind,
     locale,
@@ -754,7 +753,7 @@ CREATE INDEX idx_listing_posting_product_sort_text
   INCLUDE (product_doc_id);
 
 CREATE INDEX idx_listing_posting_product_sort_bigint_asc
-  ON catalog.listing_posting_product_sort (
+  ON listing.listing_posting_product_sort (
     project_id,
     sort_kind,
     locale,
@@ -767,7 +766,7 @@ CREATE INDEX idx_listing_posting_product_sort_bigint_asc
   INCLUDE (product_doc_id);
 
 CREATE INDEX idx_listing_posting_product_sort_bigint_desc
-  ON catalog.listing_posting_product_sort (
+  ON listing.listing_posting_product_sort (
     project_id,
     sort_kind,
     locale,
@@ -799,7 +798,7 @@ new `sort_kind` needs a different ordered value type or direction.
 | `text_value` | Locale text sort value, e.g. translated product name. |
 | `numeric_value` | Generic numeric value for benchmark/diagnostic sort shapes. |
 
-### `catalog.listing_posting_variant_price`
+### `listing.listing_posting_variant_price`
 
 Derived typed price rows for range filtering and matched variant price sort.
 Exact price values are not stored as one posting bitmap per price. Эта таблица
@@ -815,7 +814,7 @@ price sort. When stock changes, sync must insert/delete affected rows here so a
 price scan cannot return out-of-stock variants.
 
 ```sql
-CREATE TABLE catalog.listing_posting_variant_price (
+CREATE TABLE listing.listing_posting_variant_price (
   project_id             uuid NOT NULL,
   currency               varchar(3) NOT NULL,
   variant_doc_id         int NOT NULL,
@@ -831,7 +830,7 @@ CREATE TABLE catalog.listing_posting_variant_price (
       product_doc_id,
       product_id
     )
-    REFERENCES catalog.variant_listing_index(
+    REFERENCES listing.variant_listing_index(
       project_id,
       variant_doc_id,
       product_doc_id,
@@ -841,7 +840,7 @@ CREATE TABLE catalog.listing_posting_variant_price (
 );
 
 CREATE INDEX idx_listing_posting_variant_price_range
-  ON catalog.listing_posting_variant_price (
+  ON listing.listing_posting_variant_price (
     project_id,
     currency,
     price_minor,
@@ -851,7 +850,7 @@ CREATE INDEX idx_listing_posting_variant_price_range
   );
 
 CREATE INDEX idx_listing_posting_variant_price_desc
-  ON catalog.listing_posting_variant_price (
+  ON listing.listing_posting_variant_price (
     project_id,
     currency,
     price_minor DESC,
@@ -861,7 +860,7 @@ CREATE INDEX idx_listing_posting_variant_price_desc
   );
 
 CREATE INDEX idx_listing_posting_variant_price_product_order
-  ON catalog.listing_posting_variant_price (
+  ON listing.listing_posting_variant_price (
     project_id,
     currency,
     product_id,
@@ -879,13 +878,13 @@ CREATE INDEX idx_listing_posting_variant_price_product_order
 | `product_id` | Stable product tie-breaker and hydration key. |
 | `price_minor` | Price in minor units. Rows exist only for priced active in-stock variants. |
 
-### `catalog.listing_posting_variant_projection_block`
+### `listing.listing_posting_variant_projection_block`
 
 Projection helper for `variant_doc_id` bitmap -> `product_doc_id` bitmap. Broad
 option filters must not expand every variant through `rb_iterate`.
 
 ```sql
-CREATE TABLE catalog.listing_posting_variant_projection_block (
+CREATE TABLE listing.listing_posting_variant_projection_block (
   project_id             uuid NOT NULL,
   block_id               int NOT NULL,
   variant_doc_from       int NOT NULL,
@@ -905,7 +904,7 @@ CREATE TABLE catalog.listing_posting_variant_projection_block (
 );
 
 CREATE INDEX idx_listing_projection_block_range
-  ON catalog.listing_posting_variant_projection_block (
+  ON listing.listing_posting_variant_projection_block (
     project_id,
     variant_doc_from,
     variant_doc_to
@@ -967,12 +966,12 @@ BM25 title search is a separate search candidate index. It narrows product
 candidates by localized title and then joins back to listing/posting candidate
 sets by `product_id` or `product_doc_id`.
 
-### `catalog.product_title_bm25_search_index`
+### `listing.product_title_bm25_search_index`
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS pg_search;
 
-CREATE TABLE catalog.product_title_bm25_search_index (
+CREATE TABLE listing.product_title_bm25_search_index (
   search_id              uuid NOT NULL,
   project_id             uuid NOT NULL,
   product_id             uuid NOT NULL,
@@ -998,10 +997,10 @@ CREATE TABLE catalog.product_title_bm25_search_index (
 );
 
 CREATE INDEX idx_product_title_bm25_project_locale_product
-  ON catalog.product_title_bm25_search_index (project_id, locale, product_id);
+  ON listing.product_title_bm25_search_index (project_id, locale, product_id);
 
 CREATE INDEX idx_product_title_bm25_visible
-  ON catalog.product_title_bm25_search_index (
+  ON listing.product_title_bm25_search_index (
     project_id,
     locale,
     published_at DESC,
@@ -1010,7 +1009,7 @@ CREATE INDEX idx_product_title_bm25_visible
   WHERE status = 'published';
 
 CREATE INDEX idx_product_title_bm25_search
-  ON catalog.product_title_bm25_search_index
+  ON listing.product_title_bm25_search_index
   USING bm25 (
     search_id,
     project_id,
@@ -1084,7 +1083,7 @@ boundary не мог расходиться с parent row.
 Listing index не заменяет canonical scope и locale source indexes. Эти индексы
 нужны для sync/rebuild source reads, manual scope rank loading and SQL fallback
 paths. Storefront hot path for name/manual sort should use derived
-`catalog.listing_posting_product_sort` rows after cutover. Если existing
+`listing.listing_posting_product_sort` rows after cutover. Если existing
 migrations уже дают эквивалентный access path, дубликаты создавать не нужно.
 
 ```sql
@@ -1108,12 +1107,12 @@ CREATE INDEX idx_product_translation_listing_name
 
 | `facet_type` | Storage/read path |
 | --- | --- |
-| `tag` | catalog.listing_posting_bitmap product facet postings |
-| `feature` | catalog.listing_posting_bitmap product facet postings |
-| `option` | catalog.listing_posting_bitmap variant facet postings |
-| `price` | Virtual facet over runtime `catalog.listing_posting_variant_price` and product price aggregates; `variant_listing_price_index` remains source/debug price row |
+| `tag` | listing.listing_posting_bitmap product facet postings |
+| `feature` | listing.listing_posting_bitmap product facet postings |
+| `option` | listing.listing_posting_bitmap variant facet postings |
+| `price` | Virtual facet over runtime `listing.listing_posting_variant_price` and product price aggregates; `variant_listing_price_index` remains source/debug price row |
 | `in_stock` | Virtual facet over `product_listing_index.in_stock` / `variant_listing_index.in_stock` |
 
 `category` не добавляется в storefront facet types. Для navigation scope и
 collection rules используются canonical category scope tables и
-`catalog.listing_posting_bitmap` rows с `field = 'category'`.
+`listing.listing_posting_bitmap` rows с `field = 'category'`.
