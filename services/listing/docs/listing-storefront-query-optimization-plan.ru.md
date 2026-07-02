@@ -15,11 +15,18 @@
 - price range;
 - in-stock count.
 
+Это намеренное изменение runtime/API контракта storefront listing read path.
+Текущие optional aggregate flags (`includeTotalCount`, `includeFacets`,
+`includePriceRange`, `includeInStockCount`) больше не должны определять состав
+repository response для этого endpoint. Storefront PLP получает единый полный
+response всегда; экономия latency достигается параллельным выполнением
+обязательных branches и complexity validation, а не пропуском aggregates.
+
 Целевой runtime contract:
 
 ```text
 DB round-trip count: <= 5
-Query execution: parallel on separate read connections
+Query execution: parallel independent read statements
 Repository SLR: <= 100ms для каждого допустимого request
 Partial response: запрещен
 ```
@@ -40,7 +47,8 @@ Partial response: запрещен
 
 - переписать runtime SQL;
 - объединять текущий последовательный fan-out в независимые read statements;
-- запускать независимые read statements параллельно на разных pool connections;
+- запускать независимые read statements параллельно через существующий
+  `DatabaseClient`/Drizzle execution path;
 - использовать CTE, `VALUES`, `LATERAL`, JSON input, roaring bitmap operators,
   `EXPLAIN`, `statement_timeout` и complexity validation;
 - повторно строить base bitmap в разных параллельных queries, если это дает
@@ -63,12 +71,12 @@ latency. Для listing он может быть хуже, потому что:
 
 ```text
 5 специализированных query, запущенных параллельно.
-Wall-clock ~= max(A, B, C, D, E) + pool/network overhead.
+Wall-clock ~= max(A, B, C, D, E) + network/driver overhead.
 ```
 
 Для Neon или другого быстрого managed PostgreSQL round-trip может быть дешевым,
-но connection slots, CPU и memory всё равно конечны. Поэтому план фиксирует
-верхний предел:
+но CPU, memory и допустимая параллельность PostgreSQL всё равно конечны. Поэтому
+план фиксирует верхний предел:
 
 ```text
 max parallel listing branches per request: 5
@@ -106,6 +114,12 @@ runtime контракта.
 Для полной listing страницы это легко превращается в 15-25+ round-trip.
 Основная проблема: fan-out между Node.js и PostgreSQL плюс повторная сборка
 bitmap expressions в TypeScript.
+
+Текущий API также позволяет вызывающей стороне отключать отдельные aggregates
+через `includeTotalCount`, `includeFacets`, `includePriceRange` и
+`includeInStockCount`. В рамках этого плана такая вариативность считается
+устаревшей для storefront PLP: optimized path проектируется под always-full
+response и не должен иметь отдельные fast paths для неполного ответа.
 
 ## Целевое состояние
 
@@ -174,8 +188,8 @@ async getStorefrontListing(
 }
 ```
 
-Важно: параллельные reads должны идти на разные pool connections. Если выполнить
-их через один transaction connection, PostgreSQL обработает их последовательно.
+Важно: параллельные reads не должны выполняться внутри одного transaction-bound
+execution context.
 
 ### Consistency model
 
@@ -184,7 +198,7 @@ Default:
 ```text
 READ COMMITTED
 parallel read queries
-separate pool connections
+independent read statements
 ```
 
 Listing index обновляется асинхронно, поэтому response допускает eventual
@@ -862,9 +876,11 @@ Notes:
 
 ## Parallel execution requirements
 
-### Connections
+### Independent statements
 
-Параллелизм работает только если branches исполняются на разных connections.
+Параллелизм работает только если branches запускаются как независимые read
+statements, а не как последовательные statements внутри одного transaction-bound
+execution context.
 
 Нельзя:
 
@@ -885,11 +901,11 @@ COMMIT;
 ```ts
 const result = await runBoundedParallel(
   [
-    () => dbPool.runReadOnly((db) => pageQuery(db, request)),
-    () => dbPool.runReadOnly((db) => totalCountQuery(db, request)),
-    () => dbPool.runReadOnly((db) => facetsQuery(db, request)),
-    () => dbPool.runReadOnly((db) => facetCountsQuery(db, request)),
-    () => dbPool.runReadOnly((db) => virtualFacetsQuery(db, request)),
+    () => pageQuery(database, request),
+    () => totalCountQuery(database, request),
+    () => facetsQuery(database, request),
+    () => facetCountsQuery(database, request),
+    () => virtualFacetsQuery(database, request),
   ],
   { concurrency: 5 }
 );
@@ -911,18 +927,18 @@ Overall repository deadline: 100ms
 Если любой обязательный branch падает по timeout, весь listing request должен
 вернуть typed timeout error. Возвращать page без counts запрещено.
 
-### Pool limits
+### Concurrency limits
 
 Чтобы не перегрузить PostgreSQL:
 
 ```text
 max parallel listing DB queries per request: 5
 max concurrent listing requests per instance: config-driven
-pool reserve for non-listing traffic: required
+non-listing traffic capacity reserve: required
 ```
 
-Если pool saturated, listing должен fail fast или backpressure, а не создавать
-очередь, которая ломает SLR.
+Если лимит параллельных listing requests исчерпан, listing должен fail fast или
+backpressure, а не создавать очередь, которая ломает SLR.
 
 ## Complexity budget для 100ms
 
@@ -1055,7 +1071,7 @@ Acceptance:
 
 ### Фаза 8. Parallel orchestration
 
-Запустить все branches параллельно на отдельных read connections.
+Запустить все branches параллельно как независимые read statements.
 
 Acceptance:
 
@@ -1134,13 +1150,13 @@ Acceptance:
 - rows read per major CTE;
 - bitmap cardinalities;
 - temp files usage;
-- pool wait time.
+- driver wait time.
 
 Acceptance:
 
 ```text
 SQL round-trip count: <= 5
-Queries execute in parallel on separate read connections
+Queries execute as parallel independent read statements
 Repository duration p95: <= 100ms
 Query A page p95: <= 45ms
 Query B totalCount p95: <= 35ms
@@ -1156,8 +1172,8 @@ No materialized view/table/cache usage
 
 - Parallel branches повторно строят base bitmap. Это дополнительная CPU-работа,
   но она может быть дешевле, чем один сложный план с тяжелыми branches.
-- Параллельные queries увеличивают pressure на connection pool. Нужны лимиты и
-  backpressure.
+- Параллельные queries увеличивают нагрузку на PostgreSQL. Нужны лимиты и
+  backpressure на уровне listing requests.
 - READ COMMITTED допускает небольшую рассинхронизацию между page и counts при
   параллельном listing sync. Для storefront это принимается как default.
 - Facet counts остаются главным риском для 100ms. Complexity budget обязателен.
@@ -1168,7 +1184,7 @@ No materialized view/table/cache usage
 
 ```text
 Full listing response: <= 5 PostgreSQL queries
-Execution model: 5 parallel branches on separate read connections
+Execution model: 5 parallel independent read branches
 Required response fields: rows, hasNextPage, totalCount, facets, priceRange, inStockCount
 SLR: <= 100ms for every request accepted by complexity budget
 Cache/materialization/new PostgreSQL data: none
