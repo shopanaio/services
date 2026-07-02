@@ -1,4 +1,4 @@
-# План оптимизации storefront listing query через параллельные SQL-запросы
+# План оптимизации storefront listing query через 5 параллельных SQL-запросов
 
 ## Цель
 
@@ -10,6 +10,7 @@
 - ordered page rows для cursor pagination;
 - `hasNextPage`;
 - `totalCount`;
+- facets metadata без counts;
 - facet counts;
 - price range;
 - in-stock count.
@@ -17,7 +18,7 @@
 Целевой runtime contract:
 
 ```text
-DB round-trip count: bounded, обычно 4-8
+DB round-trip count: <= 5
 Query execution: parallel on separate read connections
 Repository SLR: <= 100ms для каждого допустимого request
 Partial response: запрещен
@@ -43,10 +44,7 @@ Partial response: запрещен
 - использовать CTE, `VALUES`, `LATERAL`, JSON input, roaring bitmap operators,
   `EXPLAIN`, `statement_timeout` и complexity validation;
 - повторно строить base bitmap в разных параллельных queries, если это дает
-  более простые и быстрые планы;
-- дробить тяжелые facet counts на несколько независимых branches, если
-  PostgreSQL/Neon быстрее выполняет несколько коротких reads, чем один тяжелый
-  aggregate statement.
+  более простые и быстрые планы.
 
 ## Почему не один mega-query
 
@@ -64,18 +62,16 @@ latency. Для listing он может быть хуже, потому что:
 Более практичная цель:
 
 ```text
-N специализированных query, запущенных параллельно с bounded concurrency.
-Wall-clock ~= max(branch durations) + pool/network overhead.
+5 специализированных query, запущенных параллельно.
+Wall-clock ~= max(A, B, C, D, E) + pool/network overhead.
 ```
 
-`N` не должен быть неограниченным. Для Neon или другого быстрого managed
-PostgreSQL round-trip может быть дешевым, но connection slots, CPU и memory всё
-равно конечны. Поэтому план использует не фиксированное `<= 3`, а
-config-driven fan-out:
+Для Neon или другого быстрого managed PostgreSQL round-trip может быть дешевым,
+но connection slots, CPU и memory всё равно конечны. Поэтому план фиксирует
+верхний предел:
 
 ```text
-default max parallel listing branches per request: 6
-hard max parallel listing branches per request: 10
+max parallel listing branches per request: 5
 ```
 
 ## Важное ограничение SLR
@@ -120,28 +116,26 @@ bitmap expressions в TypeScript.
 ```text
 Query A: page rows + hasNextPage
 Query B: totalCount
-Query C: product facet counts
-Query D: option facet counts
-Query E: priceRange
-Query F: inStockCount
+Query C: facets metadata без counts
+Query D: all facet counts
+Query E: priceRange + inStockCount
 ```
 
 Все queries получают один и тот же normalized input. Каждый query сам строит
 нужные scope/filter bitmaps внутри своего statement. Это повторяет часть
 CPU-работы, но дает более простые планы и позволяет выполнять ветки
-параллельно.
+параллельно. Facet metadata отделены от counts: metadata query остается легким и
+стабильным, а тяжелая bitmap aggregation изолирована в Query D.
 
-Если facet counts остаются самым медленным branch, Query C/D можно дробить ещё
-мельче:
+Facet counts в начальном дизайне считаются одним батчем:
 
 ```text
-Query C1..Cn: product facet counts by facet_id groups
-Query D1..Dn: option facet counts by facet_id groups
+Query D = product facet counts UNION ALL option facet counts
 ```
 
-Дробление должно быть bounded. Нельзя запускать отдельный SQL на каждое value,
-если values много; минимальная единица дробления - facet group или небольшой
-batch facet groups.
+Дробление counts на большее число запросов не входит в initial implementation.
+Если profiling покажет, что Query D стабильно ломает SLR, это должно быть
+отдельным решением с новым лимитом fan-out.
 
 ### Repository orchestration
 
@@ -156,25 +150,26 @@ async getStorefrontListing(
       [
         () => this.pageQuery.getPage(request),
         () => this.totalCountQuery.getTotalCount(request),
-        () => this.productFacetQuery.getCounts(request),
-        () => this.optionFacetQuery.getCounts(request),
-        () => this.priceRangeQuery.getPriceRange(request),
-        () => this.inStockCountQuery.getInStockCount(request),
+        () => this.facetsQuery.getFacets(request),
+        () => this.facetCountsQuery.getCounts(request),
+        () => this.virtualFacetsQuery.getVirtualFacets(request),
       ],
-      { concurrency: listingQueryConfig.maxParallelBranches }
+      { concurrency: 5 }
     )
   );
+
+  const facets = mergeFacetCounts({
+    facets: result.facets.facets,
+    countsByValueKey: result.facetCounts.countsByValueKey,
+  });
 
   return {
     rows: result.page.rows,
     hasNextPage: result.page.hasNextPage,
     totalCount: result.totalCount.value,
-    facets: [
-      ...result.productFacetCounts.facets,
-      ...result.optionFacetCounts.facets,
-    ],
-    priceRange: result.priceRange.value,
-    inStockCount: result.inStockCount.value,
+    facets,
+    priceRange: result.virtualFacets.priceRange,
+    inStockCount: result.virtualFacets.inStockCount,
   };
 }
 ```
@@ -437,7 +432,7 @@ page_scan AS (
     s.timestamptz_value_2 DESC NULLS LAST,
     s.product_id ASC
   LIMIT (SELECT first + 1 FROM input)
-),
+)
 SELECT jsonb_build_object(
   'rows',
     COALESCE((
@@ -483,23 +478,106 @@ SELECT jsonb_build_object(
 ) AS result;
 ```
 
-## Query C/D: facet counts
+## Query C: facets metadata без counts
+
+Назначение:
+
+- найти candidate facet values;
+- вернуть список facets и values без counts;
+- сохранить порядок facets/values;
+- вернуть `valueKey`, чтобы Query D можно было смерджить без дополнительной
+  логики резолва.
+
+Timeout budget: `35ms`.
+
+Этот branch должен быть легким: он читает metadata и candidate values, но не
+делает bitmap intersections для counts.
+
+Форма SQL:
+
+```sql
+WITH
+-- input/scope_products CTE такие же, как в Query A
+facet_values AS (
+  SELECT DISTINCT
+    f.id::text AS facet_id,
+    f.slug AS facet_slug,
+    f.facet_type,
+    f.lexo_rank AS facet_rank,
+    fv.id::text AS facet_value_id,
+    fv.handle AS value_handle,
+    fv.lexo_rank AS value_rank,
+    f.id::text || ':' || fv.id::text AS value_key
+  FROM input i
+  CROSS JOIN scope_products sp
+  JOIN listing.listing_posting_bitmap p
+    ON p.project_id = i.project_id
+   AND p.field = 'facet'
+   AND rb_cardinality(sp.bitmap & p.bitmap) > 0
+  JOIN listing.catalog_facet_runtime f
+    ON f.project_id = i.project_id
+   AND f.id = split_part(p.value_key, ':', 1)::uuid
+  JOIN listing.catalog_facet_value_runtime fv
+    ON fv.project_id = f.project_id
+   AND fv.facet_id = f.id
+   AND fv.id = split_part(p.value_key, ':', 2)::uuid
+),
+grouped_facets AS (
+  SELECT
+    fv.facet_id,
+    fv.facet_slug,
+    fv.facet_type,
+    fv.facet_rank,
+    jsonb_agg(
+      jsonb_build_object(
+        'facetValueId', fv.facet_value_id,
+        'valueHandle', fv.value_handle,
+        'valueKey', fv.value_key
+      )
+      ORDER BY fv.value_rank, fv.facet_value_id
+    ) AS values
+  FROM facet_values fv
+  GROUP BY fv.facet_id, fv.facet_slug, fv.facet_type, fv.facet_rank
+)
+SELECT jsonb_build_object(
+  'facets',
+    COALESCE(jsonb_agg(
+      jsonb_build_object(
+        'facetId', gf.facet_id,
+        'facetSlug', gf.facet_slug,
+        'facetType', gf.facet_type,
+        'values', gf.values
+      )
+      ORDER BY gf.facet_rank, gf.facet_id
+    ), '[]'::jsonb)
+) AS result
+FROM grouped_facets gf;
+```
+
+Notes:
+
+- Query C не считает counts.
+- Query C может использовать только scope, потому facets metadata описывают
+  доступные фильтры для listing scope.
+- Если нужно скрывать values с нулевым count после активных filters, это должен
+  делать merge step после Query D, а не metadata query.
+
+## Query D: all facet counts
 
 Назначение:
 
 - resolve public facet filters;
 - построить тот же base `matches`/filter groups;
-- найти candidate facet values;
-- посчитать product facet counts в Query C или C1..Cn;
-- посчитать option facet counts с same-variant semantics в Query D или D1..Dn;
-- вернуть `facets`.
+- найти candidate facet values или получить те же `valueKey` через shared SQL;
+- посчитать product facet counts;
+- посчитать option facet counts с same-variant semantics;
+- вернуть counts map по `valueKey`.
 
 Timeout budget: `80ms`.
 
 Facet counts являются самой тяжелой частью. Их нужно держать отдельно от page
-collector и total count, чтобы PostgreSQL строил план именно под aggregation.
-Если один facet-count query становится bottleneck, compiler должен дробить его
-на bounded batches.
+collector, total count и facets metadata, чтобы PostgreSQL строил план именно
+под aggregation.
 
 Форма SQL:
 
@@ -661,11 +739,9 @@ option_facet_counts AS (
   FROM option_facet_value_bitmaps ovb
 )
 SELECT jsonb_build_object(
-  'facets',
+  'countsByValueKey',
     COALESCE(jsonb_agg(
       jsonb_build_object(
-        'facetId', c.facet_id,
-        'facetType', c.facet_type,
         'valueKey', c.value_key,
         'count', c.count
       )
@@ -684,24 +760,20 @@ Notes:
 - Product counts исключают active product group того же `facet_id`.
 - Option counts исключают active option group того же `facet_id`, но сохраняют
   same-variant semantics до projection.
+- Query D возвращает только counts, не metadata.
 - Если facet counts не успели, весь listing request падает typed timeout error:
   partial response запрещен.
 
-## Query E/F: priceRange и inStockCount
+## Query E: priceRange и inStockCount
 
 Назначение:
 
 - построить тот же base filters;
-- посчитать price range в Query E;
-- посчитать in-stock count в Query F;
+- посчитать price range;
+- посчитать in-stock count;
 - вернуть virtual facets.
 
-Timeout budget:
-
-```text
-Query E priceRange: 45ms
-Query F inStockCount: 45ms
-```
+Timeout budget: `50ms`.
 
 Форма SQL:
 
@@ -774,11 +846,7 @@ in_stock_count AS (
   CROSS JOIN product_base pb
 )
 SELECT jsonb_build_object(
-  'priceRange', (SELECT value FROM price_range)
-) AS result;
-
--- Query F может использовать тот же shared prefix и вернуть:
-SELECT jsonb_build_object(
+  'priceRange', (SELECT value FROM price_range),
   'inStockCount', (SELECT value FROM in_stock_count)
 ) AS result;
 ```
@@ -789,10 +857,8 @@ Notes:
   filters.
 - `inStockCount` исключает active in-stock predicate, но сохраняет
   product/option/price filters.
-- Query E/F отделены от facet counts, потому virtual facets обычно дешевле и не
+- Query E отделен от facet counts, потому virtual facets обычно дешевле и не
   должны ждать тяжелую facet bucket aggregation внутри одного плана.
-- Query E и Query F можно объединить обратно, если profiling покажет, что один
-  branch быстрее двух коротких branches на конкретной Neon конфигурации.
 
 ## Parallel execution requirements
 
@@ -809,7 +875,6 @@ await queryB(tx);
 await queryC(tx);
 await queryD(tx);
 await queryE(tx);
-await queryF(tx);
 COMMIT;
 ```
 
@@ -822,12 +887,11 @@ const result = await runBoundedParallel(
   [
     () => dbPool.runReadOnly((db) => pageQuery(db, request)),
     () => dbPool.runReadOnly((db) => totalCountQuery(db, request)),
-    () => dbPool.runReadOnly((db) => productFacetCountsQuery(db, request)),
-    () => dbPool.runReadOnly((db) => optionFacetCountsQuery(db, request)),
-    () => dbPool.runReadOnly((db) => priceRangeQuery(db, request)),
-    () => dbPool.runReadOnly((db) => inStockCountQuery(db, request)),
+    () => dbPool.runReadOnly((db) => facetsQuery(db, request)),
+    () => dbPool.runReadOnly((db) => facetCountsQuery(db, request)),
+    () => dbPool.runReadOnly((db) => virtualFacetsQuery(db, request)),
   ],
-  { concurrency: listingQueryConfig.maxParallelBranches }
+  { concurrency: 5 }
 );
 ```
 
@@ -838,10 +902,9 @@ const result = await runBoundedParallel(
 ```text
 Query A page: 45ms
 Query B totalCount: 35ms
-Query C product facet counts: 80ms
-Query D option facet counts: 80ms
-Query E priceRange: 45ms
-Query F inStockCount: 45ms
+Query C facets metadata: 35ms
+Query D all facet counts: 80ms
+Query E virtual facets: 50ms
 Overall repository deadline: 100ms
 ```
 
@@ -853,8 +916,7 @@ Overall repository deadline: 100ms
 Чтобы не перегрузить PostgreSQL:
 
 ```text
-default max parallel listing DB queries per request: 6
-hard max parallel listing DB queries per request: 10
+max parallel listing DB queries per request: 5
 max concurrent listing requests per instance: config-driven
 pool reserve for non-listing traffic: required
 ```
@@ -925,6 +987,7 @@ services/listing/src/repositories/storefront/sql/
   compileVariantProjectionSql.ts
   compileMatchesSql.ts
   compilePageQuerySql.ts
+  compileFacetsQuerySql.ts
   compileFacetCountsQuerySql.ts
   compileVirtualFacetsQuerySql.ts
   resultMappers.ts
@@ -956,39 +1019,39 @@ Acceptance:
 - `totalCount` считается через `rb_cardinality(matches)`;
 - результат совпадает с текущим count semantics.
 
-### Фаза 5. Query C/D
+### Фаза 5. Query C
 
-Реализовать product и option facet counts.
+Реализовать facets metadata без counts.
 
 Acceptance:
 
-- Query C/D делают независимые SQL round-trip;
+- Query C делает 1 SQL round-trip;
+- возвращает facets и values с `valueKey`;
+- не считает counts;
+- порядок facets/values стабилен.
+
+### Фаза 6. Query D
+
+Реализовать all facet counts.
+
+Acceptance:
+
+- Query D делает 1 SQL round-trip;
 - product facet isolation корректна;
 - option facet same-variant semantics корректна;
+- возвращает counts map по `valueKey`;
 - counted values ограничены complexity budget.
 
-### Фаза 6. Query E/F
+### Фаза 7. Query E
 
 Реализовать price range и in-stock count.
 
 Acceptance:
 
-- Query E/F делают независимые SQL round-trip;
+- Query E делает 1 SQL round-trip;
 - active price predicate исключается из price range;
 - active in-stock predicate исключается из in-stock count;
 - остальные filters сохраняются.
-
-### Фаза 7. Bounded facet fan-out
-
-Добавить возможность дробить Query C/D на batches по facet groups.
-
-Acceptance:
-
-- product facet counts можно выполнять как C1..Cn;
-- option facet counts можно выполнять как D1..Dn;
-- fan-out ограничен `maxParallelBranches`;
-- batching выбирается по complexity и profiling, а не по одному SQL на каждое
-  value.
 
 ### Фаза 8. Parallel orchestration
 
@@ -996,9 +1059,10 @@ Acceptance:
 
 Acceptance:
 
-- full listing response делает bounded количество DB round-trip;
+- full listing response делает максимум 5 DB round-trip;
 - wall-clock примерно равен самому медленному branch;
 - partial response невозможен;
+- facets metadata и counts мержатся по `valueKey`;
 - per-branch timeout и overall deadline работают.
 
 ### Фаза 9. Search и rule collections
@@ -1013,9 +1077,9 @@ Acceptance:
 
 Acceptance:
 
-- search listing с relevance и всеми aggregates работает в bounded parallel
-  fan-out;
-- rule collection listing работает в bounded parallel fan-out.
+- search listing с relevance и всеми aggregates работает в модели максимум
+  5 parallel branches;
+- rule collection listing работает в модели максимум 5 parallel branches.
 
 ### Фаза 10. Hard SLR gate
 
@@ -1075,13 +1139,14 @@ Acceptance:
 Acceptance:
 
 ```text
-SQL round-trip count: bounded by maxParallelBranches and complexity budget
+SQL round-trip count: <= 5
 Queries execute in parallel on separate read connections
 Repository duration p95: <= 100ms
 Query A page p95: <= 45ms
 Query B totalCount p95: <= 35ms
-Facet count branch p95: <= 80ms
-Virtual facet branch p95: <= 45ms
+Query C facets metadata p95: <= 35ms
+Query D facet counts p95: <= 80ms
+Query E virtual facets p95: <= 50ms
 No partial response
 No temp file spill
 No materialized view/table/cache usage
@@ -1102,8 +1167,8 @@ No materialized view/table/cache usage
 ## Итоговая целевая метрика
 
 ```text
-Full listing response: bounded parallel PostgreSQL queries
-Execution model: bounded parallel fan-out
+Full listing response: <= 5 PostgreSQL queries
+Execution model: 5 parallel branches on separate read connections
 Required response fields: rows, hasNextPage, totalCount, facets, priceRange, inStockCount
 SLR: <= 100ms for every request accepted by complexity budget
 Cache/materialization/new PostgreSQL data: none
