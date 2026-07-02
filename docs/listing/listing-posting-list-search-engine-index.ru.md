@@ -306,10 +306,10 @@ CREATE INDEX idx_listing_posting_product_sort_value
   INCLUDE (product_doc_id);
 ```
 
-The generic table is acceptable for the first benchmark implementation, but hot
-storefront sorts must have dedicated typed tables or dedicated covering indexes
-once the supported sort set is finalized. At minimum benchmark newest, created,
-name, manual, min price and max price as separate sort shapes before release.
+The generic table is acceptable only for diagnostics and benchmark exploration.
+Hot storefront sorts must have dedicated typed tables or dedicated covering
+indexes. Newest, created, name, manual, min price and max price are required
+separate sort shapes and must be benchmarked before release.
 Manual category/collection order is scope-specific, so it must use
 `manual_scope_id` and must not be modeled as one global product sort value.
 
@@ -508,9 +508,9 @@ doc ids. The service context project/store id is part of every method contract.
 
 ### Physical partitioning
 
-Recommended first implementation: keep ordinary tables with leading
-`project_id, index_version` indexes until benchmarks show catalog scale needs
-physical partitions. This keeps migrations and local development simpler.
+Default physical model: keep ordinary tables with leading
+`project_id, index_version` indexes. Benchmarks and storage-health metrics decide
+when a deployment must enable physical partitions.
 
 When table size becomes large enough that vacuum, cleanup or index bloat are
 visible, split heavy tables into hash partitions by `project_id`:
@@ -1713,7 +1713,7 @@ must never spread provider-specific `rb_*` names directly.
 This design should not be implemented without benchmark fixtures that compare
 the SQL listing read-model baseline and the PostgreSQL roaring pipeline.
 
-Minimum synthetic datasets:
+Required synthetic datasets:
 
 ```text
 small: 10k products / 50k variants
@@ -1721,7 +1721,7 @@ medium: 100k products / 500k variants
 large: 500k products / 2.5M variants
 ```
 
-Minimum query shapes:
+Required query shapes:
 
 ```text
 category + no filters + page + totalCount
