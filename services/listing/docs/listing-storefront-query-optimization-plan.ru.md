@@ -82,8 +82,8 @@ latency. Для listing он может быть хуже, потому что:
 - facet counts могут доминировать CPU и memory, мешая page collector;
 - optional branches больше не optional: все aggregates обязательны, значит
   mega-query всегда тянет тяжелые ветки;
-- при timeout одного mega-query теряется весь response, без понимания какой
-  branch является bottleneck.
+- один mega-query хуже наблюдать и профилировать: сложнее понять, какой branch
+  является bottleneck.
 
 Более практичная цель:
 
@@ -177,17 +177,15 @@ async getStorefrontListing(
 ): Promise<StorefrontListingRepositoryResult> {
   const request = normalizeAndValidateListingInput(input);
 
-  const result = await runWithDeadline(100, () =>
-    runBoundedParallel(
-      [
-        () => this.pageQuery.getPage(request),
-        () => this.totalCountQuery.getTotalCount(request),
-        () => this.facetsQuery.getFacets(request),
-        () => this.facetCountsQuery.getCounts(request),
-        () => this.virtualFacetsQuery.getVirtualFacets(request),
-      ],
-      { concurrency: 5 }
-    )
+  const result = await runBoundedParallel(
+    [
+      () => this.pageQuery.getPage(request),
+      () => this.totalCountQuery.getTotalCount(request),
+      () => this.facetsQuery.getFacets(request),
+      () => this.facetCountsQuery.getCounts(request),
+      () => this.virtualFacetsQuery.getVirtualFacets(request),
+    ],
+    { concurrency: 5 }
   );
 
   const facets = mergeFacetCounts({
@@ -234,12 +232,17 @@ shared snapshot flow. Такой режим почти наверняка буд
 input
 requested_facets
 resolved_facets
+vendor_filter_group
 scope_products
+scope_variant_filters
 published_products
 product_filter_groups
 product_filters
 option_filter_groups
 in_stock_variants
+active_stock_product_filter
+active_stock_variant_filter
+price_variant_filter
 variant_filters
 projected_variant_products
 matches
@@ -254,6 +257,24 @@ matches
 а AND между группами собирать оператором, доступным в PostgreSQL roaring
 extension.
 
+Shared fragments обязаны сохранять текущую storefront filter semantics:
+
+- `vendor_filter_group` является product-level filter и должен входить в
+  `product_filters` вместе с product facet groups.
+- `price_variant_filter` строится из active price predicate по
+  `listing_posting_variant_price` и входит в `variant_filters`.
+- `active_stock_variant_filter` строится из active `in_stock` predicate, если
+  он задан, а при option/price variant path без explicit stock predicate должен
+  использовать текущий default `in_stock = true`.
+- `active_stock_product_filter` используется только для stock-only path, когда
+  нет option facet groups и active price predicate. Это сохраняет текущий
+  быстрый product-level stock filter.
+- `scope_variant_filters` покрывает rule collection variant predicates. Если
+  rule collection состоит только из variant-level rules, этот bitmap также
+  используется collector-ом для matched variant price semantics.
+- Search scope должен пересекать published/scope product bitmap с BM25 candidate
+  bitmap до `matches`; relevance collector использует тот же normalized query.
+
 ## Query A: page rows + hasNextPage
 
 Назначение:
@@ -263,8 +284,6 @@ extension.
 - выбрать collector branch;
 - вернуть page rows;
 - вернуть `hasNextPage`.
-
-Timeout budget: `45ms`.
 
 Форма SQL:
 
@@ -353,9 +372,53 @@ product_filter_groups AS (
   WHERE rf.facet_type IN ('TAG', 'FEATURE')
   GROUP BY rf.facet_id
 ),
+vendor_filter_group AS (
+  SELECT
+    '__vendor__'::text AS facet_id,
+    COALESCE(rb_or_agg(p.bitmap), rb_build_empty()) AS bitmap
+  FROM input i
+  CROSS JOIN LATERAL jsonb_array_elements_text(i.vendor_ids_json) v(vendor_id)
+  JOIN listing.listing_posting_bitmap p
+    ON p.project_id = i.project_id
+   AND p.entity_type = 'product'
+   AND p.field = 'vendor'
+   AND p.value_key = v.vendor_id
+),
+active_stock_product_filter AS (
+  SELECT
+    CASE
+      WHEN i.stock_filter_json ? 'value'
+       AND NOT EXISTS (
+         SELECT 1
+         FROM resolved_facets rf
+         WHERE rf.facet_type = 'OPTION'
+       )
+       AND i.price_filter_json = '{}'::jsonb
+      THEN COALESCE((
+        SELECT rb_build_agg(pli.product_doc_id)
+        FROM listing.product_listing_index pli
+        WHERE pli.project_id = i.project_id
+          AND pli.status = 'published'
+          AND pli.in_stock = (i.stock_filter_json->>'value')::boolean
+      ), rb_build_empty())
+      ELSE NULL
+    END AS bitmap
+  FROM input i
+),
 product_filters AS (
   SELECT rb_and_agg(bitmap) AS bitmap
-  FROM product_filter_groups
+  FROM (
+    SELECT bitmap FROM product_filter_groups
+    UNION ALL
+    SELECT bitmap FROM vendor_filter_group
+    WHERE EXISTS (
+      SELECT 1
+      FROM input i
+      CROSS JOIN LATERAL jsonb_array_elements_text(i.vendor_ids_json) v(vendor_id)
+    )
+    UNION ALL
+    SELECT bitmap FROM active_stock_product_filter WHERE bitmap IS NOT NULL
+  ) x
 ),
 option_filter_groups AS (
   SELECT
@@ -378,16 +441,59 @@ in_stock_variants AS (
   WHERE vli.project_id = i.project_id
     AND vli.in_stock = true
 ),
+active_stock_variant_filter AS (
+  SELECT
+    CASE
+      WHEN i.stock_filter_json ? 'value'
+      THEN COALESCE((
+        SELECT rb_build_agg(vli.variant_doc_id)
+        FROM listing.variant_listing_index vli
+        WHERE vli.project_id = i.project_id
+          AND vli.in_stock = (i.stock_filter_json->>'value')::boolean
+      ), rb_build_empty())
+      WHEN EXISTS (SELECT 1 FROM option_filter_groups)
+        OR i.price_filter_json <> '{}'::jsonb
+      THEN (SELECT bitmap FROM in_stock_variants)
+      ELSE NULL
+    END AS bitmap
+  FROM input i
+),
+price_variant_filter AS (
+  SELECT
+    CASE
+      WHEN i.price_filter_json <> '{}'::jsonb
+      THEN COALESCE((
+        SELECT rb_build_agg(vp.variant_doc_id)
+        FROM listing.listing_posting_variant_price vp
+        WHERE vp.project_id = i.project_id
+          AND vp.currency = i.currency
+          AND (
+            NOT (i.price_filter_json ? 'minPriceMinor')
+            OR vp.price_minor >= (i.price_filter_json->>'minPriceMinor')::bigint
+          )
+          AND (
+            NOT (i.price_filter_json ? 'maxPriceMinor')
+            OR vp.price_minor <= (i.price_filter_json->>'maxPriceMinor')::bigint
+          )
+      ), rb_build_empty())
+      ELSE NULL
+    END AS bitmap
+  FROM input i
+),
 variant_filters AS (
   SELECT
     CASE
       WHEN EXISTS (SELECT 1 FROM option_filter_groups)
+        OR (SELECT bitmap FROM price_variant_filter) IS NOT NULL
+        OR (SELECT bitmap FROM active_stock_variant_filter) IS NOT NULL
       THEN (
         SELECT rb_and_agg(bitmap)
         FROM (
           SELECT bitmap FROM option_filter_groups
           UNION ALL
-          SELECT bitmap FROM in_stock_variants
+          SELECT bitmap FROM price_variant_filter WHERE bitmap IS NOT NULL
+          UNION ALL
+          SELECT bitmap FROM active_stock_variant_filter WHERE bitmap IS NOT NULL
         ) x
       )
       ELSE NULL
@@ -487,6 +593,10 @@ Notes:
 - Для matched variant price sort compiler должен заменить `page_scan` на branch
   по `listing_posting_variant_price`.
 - Для relevance sort compiler должен заменить `page_scan` на BM25 branch.
+- Query A/B/D должны использовать один и тот же compiler для `vendor`, `price`,
+  stock-only, search scope и rule collection variant scope. Пример выше
+  показывает форму CTE, но production compiler обязан подставить также
+  `scope_variant_filters` и BM25 scope branch для соответствующих scopes.
 
 ## Query B: totalCount
 
@@ -494,8 +604,6 @@ Notes:
 
 - построить тот же `matches`;
 - вернуть `rb_cardinality(matches)`.
-
-Timeout budget: `35ms`.
 
 Форма SQL:
 
@@ -520,8 +628,6 @@ SELECT jsonb_build_object(
 - вернуть `valueKey`, чтобы Query D можно было смерджить без дополнительной
   логики резолва.
 
-Timeout budget: `35ms`.
-
 Этот branch должен быть легким: он читает metadata и candidate values, но не
 делает bitmap intersections для counts.
 
@@ -529,7 +635,45 @@ Timeout budget: `35ms`.
 
 ```sql
 WITH
--- input/scope_products CTE такие же, как в Query A
+-- input/scope_products/published_products CTE такие же, как в Query A
+-- scope_product_base должен учитывать published для category/manual scopes
+scope_product_base AS (
+  SELECT sp.bitmap & pp.bitmap AS bitmap
+  FROM scope_products sp
+  CROSS JOIN published_products pp
+),
+scope_variants AS (
+  SELECT COALESCE(rb_build_agg(vli.variant_doc_id), rb_build_empty()) AS bitmap
+  FROM listing.variant_listing_index vli
+  JOIN input i ON true
+  CROSS JOIN scope_product_base sp
+  WHERE vli.project_id = i.project_id
+    AND vli.in_stock = true
+    AND sp.bitmap @> vli.product_doc_id
+),
+candidate_values AS (
+  SELECT DISTINCT
+    p.value_key
+  FROM input i
+  CROSS JOIN scope_product_base sp
+  JOIN listing.listing_posting_bitmap p
+    ON p.project_id = i.project_id
+   AND p.entity_type = 'product'
+   AND p.field = 'facet'
+   AND rb_cardinality(sp.bitmap & p.bitmap) > 0
+
+  UNION
+
+  SELECT DISTINCT
+    p.value_key
+  FROM input i
+  CROSS JOIN scope_variants sv
+  JOIN listing.listing_posting_bitmap p
+    ON p.project_id = i.project_id
+   AND p.entity_type = 'variant'
+   AND p.field = 'facet'
+   AND rb_cardinality(sv.bitmap & p.bitmap) > 0
+),
 facet_values AS (
   SELECT DISTINCT
     f.id::text AS facet_id,
@@ -541,17 +685,13 @@ facet_values AS (
     fv.lexo_rank AS value_rank,
     f.id::text || ':' || fv.id::text AS value_key
   FROM input i
-  CROSS JOIN scope_products sp
+  JOIN candidate_values cv ON true
   JOIN listing.catalog_facet_runtime f
     ON f.project_id = i.project_id
   JOIN listing.catalog_facet_value_runtime fv
     ON fv.project_id = f.project_id
    AND fv.facet_id = f.id
-  JOIN listing.listing_posting_bitmap p
-    ON p.project_id = i.project_id
-   AND p.field = 'facet'
-   AND p.value_key = f.id::text || ':' || fv.id::text
-   AND rb_cardinality(sp.bitmap & p.bitmap) > 0
+   AND cv.value_key = f.id::text || ':' || fv.id::text
 ),
 grouped_facets AS (
   SELECT
@@ -590,6 +730,12 @@ Notes:
 - Query C не считает counts.
 - Query C может использовать только scope, потому facets metadata описывают
   доступные фильтры для listing scope.
+- Query C должен строить candidate values двумя typed путями: product postings
+  через `entity_type = 'product'` и option postings через
+  `entity_type = 'variant'`. Нельзя проверять option values через product doc id
+  bitmap.
+- Для category/manual scopes `scope_product_base` должен пересекать scope bitmap
+  с `published_products`, как текущий `productPostingScopeBitmapSql(...)`.
 - Query C не должен парсить `p.value_key` через `split_part(...)::uuid`.
   `valueKey` должен строиться compiler/helper-ом из typed metadata
   (`facet_id`, `facet_value_id`) и использоваться как opaque join key.
@@ -607,8 +753,6 @@ Notes:
 - посчитать option facet counts с same-variant semantics;
 - вернуть counts map по `valueKey`.
 
-Timeout budget: `80ms`.
-
 Facet counts являются самой тяжелой частью. Их нужно держать отдельно от page
 collector, total count и facets metadata, чтобы PostgreSQL строил план именно
 под aggregation.
@@ -618,8 +762,46 @@ collector, total count и facets metadata, чтобы PostgreSQL строил п
 ```sql
 WITH
 -- input/resolved_facets/scope/published/product_filter_groups/
--- option_filter_groups/in_stock_variants/variant_filters/
+-- vendor_filter_group/active_stock_product_filter/price_variant_filter/
+-- option_filter_groups/in_stock_variants/active_stock_variant_filter/variant_filters/
 -- projected_variant_products/matches CTE такие же, как в Query A
+scope_product_base AS (
+  SELECT sp.bitmap & pp.bitmap AS bitmap
+  FROM scope_products sp
+  CROSS JOIN published_products pp
+),
+scope_variants AS (
+  SELECT COALESCE(rb_build_agg(vli.variant_doc_id), rb_build_empty()) AS bitmap
+  FROM listing.variant_listing_index vli
+  JOIN input i ON true
+  CROSS JOIN scope_product_base sp
+  WHERE vli.project_id = i.project_id
+    AND vli.in_stock = true
+    AND sp.bitmap @> vli.product_doc_id
+),
+candidate_values AS (
+  SELECT DISTINCT
+    p.value_key
+  FROM input i
+  CROSS JOIN scope_product_base sp
+  JOIN listing.listing_posting_bitmap p
+    ON p.project_id = i.project_id
+   AND p.entity_type = 'product'
+   AND p.field = 'facet'
+   AND rb_cardinality(sp.bitmap & p.bitmap) > 0
+
+  UNION
+
+  SELECT DISTINCT
+    p.value_key
+  FROM input i
+  CROSS JOIN scope_variants sv
+  JOIN listing.listing_posting_bitmap p
+    ON p.project_id = i.project_id
+   AND p.entity_type = 'variant'
+   AND p.field = 'facet'
+   AND rb_cardinality(sv.bitmap & p.bitmap) > 0
+),
 facet_values AS (
   SELECT DISTINCT
     f.id::text AS facet_id,
@@ -627,17 +809,13 @@ facet_values AS (
     fv.id::text AS facet_value_id,
     f.id::text || ':' || fv.id::text AS value_key
   FROM input i
-  CROSS JOIN scope_products sp
+  JOIN candidate_values cv ON true
   JOIN listing.catalog_facet_runtime f
     ON f.project_id = i.project_id
   JOIN listing.catalog_facet_value_runtime fv
     ON fv.project_id = f.project_id
    AND fv.facet_id = f.id
-  JOIN listing.listing_posting_bitmap p
-    ON p.project_id = i.project_id
-   AND p.field = 'facet'
-   AND p.value_key = f.id::text || ':' || fv.id::text
-   AND rb_cardinality(sp.bitmap & p.bitmap) > 0
+   AND cv.value_key = f.id::text || ':' || fv.id::text
   ORDER BY f.id::text, fv.id::text
   LIMIT $counted_facet_value_limit::int
 ),
@@ -790,6 +968,10 @@ FROM (
 Notes:
 
 - `facet_values` должен быть ограничен complexity budget.
+- Query D должен использовать те же product/variant candidate rules, что Query C.
+  Product candidate values проверяются через `scope_product_base`, option
+  candidate values должны быть ограничены variant scope branch-ом compiler-а, а
+  не product bitmap intersection.
 - `facet_values` не должен парсить `p.value_key` через
   `split_part(...)::uuid`. Query D должен получать тот же opaque `valueKey`,
   который Query C строит из typed metadata.
@@ -797,7 +979,7 @@ Notes:
 - Option counts исключают active option group того же `facet_id`, но сохраняют
   same-variant semantics до projection.
 - Query D возвращает только counts, не metadata.
-- Если facet counts не успели, весь listing request падает typed timeout error:
+- Если facet counts branch завершился ошибкой, весь listing request падает:
   partial response запрещен.
 
 ## Query E: priceRange и inStockCount
@@ -808,8 +990,6 @@ Notes:
 - посчитать price range;
 - посчитать in-stock count;
 - вернуть virtual facets.
-
-Timeout budget: `50ms`.
 
 Форма SQL:
 
@@ -985,7 +1165,8 @@ await queryE(tx);
 COMMIT;
 ```
 
-Это будет последовательное исполнение на одной connection.
+Это будет последовательное исполнение внутри transaction-bound execution
+context.
 
 Нужно:
 
@@ -1001,36 +1182,6 @@ const result = await runBoundedParallel(
   { concurrency: 5 }
 );
 ```
-
-### Deadlines
-
-Каждый branch получает application-level budget:
-
-```text
-Query A page: 45ms
-Query B totalCount: 35ms
-Query C facets metadata: 35ms
-Query D all facet counts: 80ms
-Query E virtual facets: 50ms
-Overall repository deadline: 100ms
-```
-
-Если любой обязательный branch не укладывается в budget или общий deadline,
-весь listing request должен вернуть typed deadline error. Возвращать page без
-counts запрещено.
-
-### Concurrency limits
-
-Чтобы не перегрузить PostgreSQL:
-
-```text
-max parallel listing DB queries per request: 5
-max concurrent listing requests per instance: config-driven
-non-listing traffic capacity reserve: required
-```
-
-Если лимит параллельных listing requests исчерпан, listing должен fail fast или
-backpressure, а не создавать очередь, которая ломает SLR.
 
 ## Complexity budget для 100ms
 
@@ -1052,21 +1203,6 @@ backpressure, а не создавать очередь, которая лома
 
 Лимиты должны быть config-driven, но default должен быть строгим. Если продукту
 нужно поднять лимит, сначала требуется `EXPLAIN ANALYZE` на representative data.
-
-## Timeout и деградация
-
-Repository orchestration должен контролировать общий deadline ниже публичного
-SLR и уметь помечать branch, который не уложился в budget.
-
-Если любой branch не завершился в рамках budget:
-
-- вернуть typed transient listing error;
-- не делать fallback на sequential multi-query path;
-- логировать branch name, normalized query metadata и complexity без PII;
-- считать это SLR violation.
-
-Silent partial results запрещены: нельзя вернуть page без `totalCount`, facet
-counts, price range или in-stock count.
 
 ## Порядок внедрения
 
@@ -1213,7 +1349,6 @@ Acceptance:
 - wall-clock примерно равен самому медленному branch;
 - partial response невозможен;
 - facets metadata и counts мержатся по `valueKey`;
-- per-branch timeout и overall deadline работают;
 - orchestration включается только после parity для search, rule collections,
   relevance и matched variant price collector.
 
@@ -1222,9 +1357,7 @@ Acceptance:
 Включить:
 
 - complexity budget;
-- per-branch budget tracking;
-- overall repository deadline;
-- metrics for timeout and complexity rejection;
+- metrics for complexity rejection;
 - removal of sequential fan-out path after supported scope/collector parity.
 
 Acceptance:
@@ -1292,8 +1425,8 @@ No materialized view/table/cache usage
 
 - Parallel branches повторно строят base bitmap. Это дополнительная CPU-работа,
   но она может быть дешевле, чем один сложный план с тяжелыми branches.
-- Параллельные queries увеличивают нагрузку на PostgreSQL. Нужны лимиты и
-  backpressure на уровне listing requests.
+- Параллельные queries увеличивают нагрузку на PostgreSQL. Это нужно учитывать
+  в representative performance profiling.
 - READ COMMITTED допускает небольшую рассинхронизацию между page и counts при
   параллельном listing sync. Для storefront это принимается как default.
 - Facet counts остаются главным риском для 100ms. Complexity budget обязателен.
