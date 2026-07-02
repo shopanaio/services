@@ -84,7 +84,7 @@ matches = category_mens_sneakers & brand_nike & size_42 & color_black
 - `posting bitmap` - `roaringbitmap` set of doc ids for one field/value.
 - `doc dictionary` - mapping между canonical UUID и dense doc id.
 - `index version` - опубликованный набор PostgreSQL rows с dictionaries,
-  postings и sort values для проекта.
+  postings, sort values и typed price rows для проекта.
 
 ## Высокоуровневая архитектура
 
@@ -100,7 +100,7 @@ posting-list index builder
         |
         v
 PostgreSQL roaring posting index version
-dictionaries + roaring postings + sort values
+dictionaries + roaring postings + sort values + typed price rows
         |
         v
 storefront listing SQL query engine
@@ -153,9 +153,6 @@ CREATE TABLE catalog.listing_posting_product_doc (
   index_version          bigint NOT NULL,
   product_doc_id         int NOT NULL,
   product_id             uuid NOT NULL,
-  in_stock               boolean NOT NULL,
-  published_at           timestamptz,
-  product_created_at     timestamptz NOT NULL,
   PRIMARY KEY (project_id, index_version, product_doc_id),
   UNIQUE (project_id, index_version, product_id),
   UNIQUE (project_id, index_version, product_doc_id, product_id),
@@ -172,7 +169,6 @@ CREATE TABLE catalog.listing_posting_variant_doc (
   variant_id             uuid NOT NULL,
   product_doc_id         int NOT NULL,
   product_id             uuid NOT NULL,
-  in_stock               boolean NOT NULL,
   PRIMARY KEY (project_id, index_version, variant_doc_id),
   UNIQUE (project_id, index_version, variant_id),
   UNIQUE (
@@ -226,14 +222,13 @@ CREATE TABLE catalog.listing_posting_bitmap (
 field=scope_category, value_key=<category_id>
 field=scope_collection, value_key=<collection_id>
 field=vendor, value_key=<vendor_id>
-field=in_stock, value_key=true
 field=facet, value_key=<facet_id>:<facet_value_id>
 field=variant_product, value_key=<product_doc_id>
-field=variant_price_bucket:UAH, value_key=<bucket>
 ```
 
 Use canonical ids or typed normalized values for `value_key` on the read path.
-Mutable storefront handles are acceptable only as source read-model/debug data.
+Mutable storefront handles are acceptable only as transient rebuild input from
+canonical tables; they are not stored in the posting index.
 If a value key has multiple parts, encode it with a deterministic typed format
 that cannot collide with ids or delimiters.
 
@@ -639,10 +634,15 @@ scope:collection:<collection_id>
 kind:<kind>
 vendor:<vendor_id>
 status:published
-in_stock:true
 facet:<facet_id>:<facet_value_id>
 tag/feature merged facet values через resolved facet_value_id
 ```
+
+`in_stock` не хранится как `listing_posting_bitmap` row. Для сортировки
+availability bucket хранится в `listing_posting_product_sort.bool_value`; для
+virtual facet/filter query builder строит request bitmap из listing read model
+или использует benchmarked derived physical index, если это будет добавлено
+отдельным решением.
 
 Category не является storefront facet, но является scope posting:
 
@@ -661,17 +661,15 @@ base = project_published & category_<category_id>
 Variant-level postings строятся по active in-stock variants:
 
 ```text
-variant:in_stock:true
 variant:product:<product_doc_id>
 variant:facet:<facet_id>:<facet_value_id>
-variant:price_bucket:<currency>:<bucket>
 ```
 
 Для same-variant semantics option + price filters intersect в variant space:
 
 ```text
 matching_variants =
-  variant_in_stock
+  variant_availability_scope
   & variant_facet(color=black)
   & variant_facet(size=42)
   & variant_price_range(currency=UAH, min, max)
@@ -692,7 +690,8 @@ product_doc_id` с дедупликацией product ids.
 - `listing_posting_variant_price` rows с `currency`, `variant_doc_id`,
   `product_doc_id`, `product_id`, `price_minor`;
 - B-tree index by `(project_id, index_version, currency, price_minor)`;
-- optional coarse price buckets для первичного ограничения.
+- optional coarse price buckets только как отдельный benchmarked physical index,
+  not as default `listing_posting_bitmap` rows.
 
 Price filter:
 
@@ -1257,8 +1256,11 @@ JOIN catalog.listing_posting_product_doc pd
   ON pd.project_id = :projectId
  AND pd.index_version = :indexVersion
  AND pd.product_doc_id = sc.product_doc_id
+JOIN catalog.product_listing_index pli
+  ON pli.project_id = :projectId
+ AND pli.product_id = pd.product_id
 WHERE listing_rb_contains(:matchesBitmap::roaringbitmap, sc.product_doc_id)
-ORDER BY pd.in_stock DESC, sc.relevance_score DESC, pd.product_id ASC;
+ORDER BY pli.in_stock DESC, sc.relevance_score DESC, pd.product_id ASC;
 ```
 
 `VALUES` CTE is only acceptable for small candidate sets or page preselection.
