@@ -185,7 +185,7 @@ async getStorefrontListing(
       () => this.facetCountsQuery.getCounts(request),
       () => this.virtualFacetsQuery.getVirtualFacets(request),
     ],
-    { concurrency: 5 }
+    { concurrency: 5 },
   );
 
   const facets = mergeFacetCounts({
@@ -203,9 +203,6 @@ async getStorefrontListing(
   };
 }
 ```
-
-Важно: параллельные reads не должны выполняться внутри одного transaction-bound
-execution context.
 
 ### Consistency model
 
@@ -318,14 +315,14 @@ resolved_facets AS (
     f.id::text || ':' || COALESCE(parent_fv.id, fv.id)::text AS value_key
   FROM requested_facets r
   JOIN input i ON true
-  JOIN listing.catalog_facet_runtime f
+  JOIN catalog.facet f
     ON f.project_id = i.project_id
    AND f.slug = r.facet_slug
-  JOIN listing.catalog_facet_value_runtime fv
+  JOIN catalog.facet_value fv
     ON fv.project_id = f.project_id
    AND fv.facet_id = f.id
    AND fv.handle = r.value_handle
-  LEFT JOIN listing.catalog_facet_value_runtime parent_fv
+  LEFT JOIN catalog.facet_value parent_fv
     ON parent_fv.project_id = fv.project_id
    AND parent_fv.id = fv.parent_id
 ),
@@ -682,13 +679,12 @@ facet_values AS (
     f.lexo_rank AS facet_rank,
     fv.id::text AS facet_value_id,
     fv.handle AS value_handle,
-    fv.lexo_rank AS value_rank,
     f.id::text || ':' || fv.id::text AS value_key
   FROM input i
   JOIN candidate_values cv ON true
-  JOIN listing.catalog_facet_runtime f
+  JOIN catalog.facet f
     ON f.project_id = i.project_id
-  JOIN listing.catalog_facet_value_runtime fv
+  JOIN catalog.facet_value fv
     ON fv.project_id = f.project_id
    AND fv.facet_id = f.id
    AND cv.value_key = f.id::text || ':' || fv.id::text
@@ -705,7 +701,7 @@ grouped_facets AS (
         'valueHandle', fv.value_handle,
         'valueKey', fv.value_key
       )
-      ORDER BY fv.value_rank, fv.facet_value_id
+      ORDER BY fv.facet_value_id
     ) AS values
   FROM facet_values fv
   GROUP BY fv.facet_id, fv.facet_slug, fv.facet_type, fv.facet_rank
@@ -810,9 +806,9 @@ facet_values AS (
     f.id::text || ':' || fv.id::text AS value_key
   FROM input i
   JOIN candidate_values cv ON true
-  JOIN listing.catalog_facet_runtime f
+  JOIN catalog.facet f
     ON f.project_id = i.project_id
-  JOIN listing.catalog_facet_value_runtime fv
+  JOIN catalog.facet_value fv
     ON fv.project_id = f.project_id
    AND fv.facet_id = f.id
    AND cv.value_key = f.id::text || ':' || fv.id::text
@@ -1063,27 +1059,37 @@ variant_filters_without_stock AS (
   CROSS JOIN price_variant_filter pvf
 ),
 price_range AS (
-  SELECT jsonb_build_object(
-    'minPriceMinor', MIN(vp.price_minor),
-    'maxPriceMinor', MAX(vp.price_minor),
-    'currency', (SELECT currency FROM input)
-  ) AS value
-  FROM listing.listing_posting_variant_price vp
-  JOIN listing.variant_listing_index vli
-    ON vli.project_id = vp.project_id
-   AND vli.variant_doc_id = vp.variant_doc_id
-   AND vli.product_doc_id = vp.product_doc_id
-   AND vli.product_id = vp.product_id
-   AND vli.in_stock = true
-  JOIN input i ON true
-  CROSS JOIN product_base pb
-  WHERE vp.project_id = i.project_id
-    AND vp.currency = i.currency
-    AND pb.bitmap @> vp.product_doc_id
-    AND (
-      (SELECT bitmap FROM variant_filters_without_price) IS NULL
-      OR (SELECT bitmap FROM variant_filters_without_price) @> vp.variant_doc_id
-    )
+  SELECT
+    CASE
+      WHEN bounds.min_price_minor IS NULL OR bounds.max_price_minor IS NULL
+      THEN NULL
+      ELSE jsonb_build_object(
+        'minPriceMinor', bounds.min_price_minor,
+        'maxPriceMinor', bounds.max_price_minor,
+        'currency', (SELECT currency FROM input)
+      )
+    END AS value
+  FROM (
+    SELECT
+      MIN(vp.price_minor) AS min_price_minor,
+      MAX(vp.price_minor) AS max_price_minor
+    FROM listing.listing_posting_variant_price vp
+    JOIN listing.variant_listing_index vli
+      ON vli.project_id = vp.project_id
+     AND vli.variant_doc_id = vp.variant_doc_id
+     AND vli.product_doc_id = vp.product_doc_id
+     AND vli.product_id = vp.product_id
+     AND vli.in_stock = true
+    JOIN input i ON true
+    CROSS JOIN product_base pb
+    WHERE vp.project_id = i.project_id
+      AND vp.currency = i.currency
+      AND pb.bitmap @> vp.product_doc_id
+      AND (
+        (SELECT bitmap FROM variant_filters_without_price) IS NULL
+        OR (SELECT bitmap FROM variant_filters_without_price) @> vp.variant_doc_id
+      )
+  ) bounds
 ),
 in_stock_variant_matches AS (
   SELECT
