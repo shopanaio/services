@@ -218,10 +218,10 @@ CREATE TABLE catalog.product_listing_index (
   indexed_at             timestamptz NOT NULL DEFAULT now(),
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, product_id),
+  PRIMARY KEY (product_id),
   CONSTRAINT fk_product_listing_product
-    FOREIGN KEY (project_id, product_id)
-    REFERENCES catalog.product(project_id, id)
+    FOREIGN KEY (product_id)
+    REFERENCES catalog.product(id)
     ON DELETE CASCADE,
   CONSTRAINT chk_product_listing_status
     CHECK (status IN ('published', 'draft'))
@@ -298,10 +298,10 @@ CREATE TABLE catalog.product_listing_price_index (
   indexed_at             timestamptz NOT NULL DEFAULT now(),
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, product_id, currency),
+  PRIMARY KEY (product_id, currency),
   CONSTRAINT fk_product_listing_price_product
-    FOREIGN KEY (project_id, product_id)
-    REFERENCES catalog.product_listing_index(project_id, product_id)
+    FOREIGN KEY (product_id)
+    REFERENCES catalog.product_listing_index(product_id)
     ON DELETE CASCADE
 );
 ```
@@ -370,16 +370,16 @@ CREATE TABLE catalog.variant_listing_index (
   indexed_at             timestamptz NOT NULL DEFAULT now(),
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, variant_id),
+  PRIMARY KEY (variant_id),
   CONSTRAINT variant_listing_project_product_variant_unique
-    UNIQUE (project_id, product_id, variant_id),
+    UNIQUE (product_id, variant_id),
   CONSTRAINT fk_variant_listing_product
-    FOREIGN KEY (project_id, product_id)
-    REFERENCES catalog.product_listing_index(project_id, product_id)
+    FOREIGN KEY (product_id)
+    REFERENCES catalog.product_listing_index(product_id)
     ON DELETE CASCADE,
   CONSTRAINT fk_variant_listing_variant
-    FOREIGN KEY (project_id, product_id, variant_id)
-    REFERENCES catalog.variant(project_id, product_id, id)
+    FOREIGN KEY (variant_id)
+    REFERENCES catalog.variant(id)
     ON DELETE CASCADE
 );
 ```
@@ -428,10 +428,10 @@ CREATE TABLE catalog.variant_listing_price_index (
   indexed_at             timestamptz NOT NULL DEFAULT now(),
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, variant_id, currency),
+  PRIMARY KEY (variant_id, currency),
   CONSTRAINT fk_variant_listing_price_variant
-    FOREIGN KEY (project_id, product_id, variant_id)
-    REFERENCES catalog.variant_listing_index(project_id, product_id, variant_id)
+    FOREIGN KEY (variant_id)
+    REFERENCES catalog.variant_listing_index(variant_id)
     ON DELETE CASCADE
 );
 ```
@@ -479,18 +479,18 @@ CREATE TABLE catalog.product_listing_facet_token (
   facet_type             varchar(16) NOT NULL, -- 'tag' | 'feature'
   indexed_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, product_id, facet_id, facet_value_id),
+  PRIMARY KEY (product_id, facet_id, facet_value_id),
   CONSTRAINT fk_product_listing_facet_token_product
-    FOREIGN KEY (project_id, product_id)
-    REFERENCES catalog.product_listing_index(project_id, product_id)
+    FOREIGN KEY (product_id)
+    REFERENCES catalog.product_listing_index(product_id)
     ON DELETE CASCADE,
   CONSTRAINT fk_product_listing_facet_token_facet
-    FOREIGN KEY (project_id, facet_id)
-    REFERENCES catalog.facet(project_id, id)
+    FOREIGN KEY (facet_id)
+    REFERENCES catalog.facet(id)
     ON DELETE CASCADE,
   CONSTRAINT fk_product_listing_facet_token_value
-    FOREIGN KEY (project_id, facet_id, facet_value_id)
-    REFERENCES catalog.facet_value(project_id, facet_id, id)
+    FOREIGN KEY (facet_value_id)
+    REFERENCES catalog.facet_value(id)
     ON DELETE CASCADE,
   CONSTRAINT chk_product_listing_facet_token_type
     CHECK (facet_type IN ('tag', 'feature'))
@@ -536,18 +536,18 @@ CREATE TABLE catalog.variant_listing_facet_token (
   facet_value_id         uuid NOT NULL,
   indexed_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, variant_id, facet_id, facet_value_id),
+  PRIMARY KEY (variant_id, facet_id, facet_value_id),
   CONSTRAINT fk_variant_listing_facet_token_variant
-    FOREIGN KEY (project_id, product_id, variant_id)
-    REFERENCES catalog.variant_listing_index(project_id, product_id, variant_id)
+    FOREIGN KEY (variant_id)
+    REFERENCES catalog.variant_listing_index(variant_id)
     ON DELETE CASCADE,
   CONSTRAINT fk_variant_listing_facet_token_facet
-    FOREIGN KEY (project_id, facet_id)
-    REFERENCES catalog.facet(project_id, id)
+    FOREIGN KEY (facet_id)
+    REFERENCES catalog.facet(id)
     ON DELETE CASCADE,
   CONSTRAINT fk_variant_listing_facet_token_value
-    FOREIGN KEY (project_id, facet_id, facet_value_id)
-    REFERENCES catalog.facet_value(project_id, facet_id, id)
+    FOREIGN KEY (facet_value_id)
+    REFERENCES catalog.facet_value(id)
     ON DELETE CASCADE
 );
 ```
@@ -585,31 +585,7 @@ Token tables are currency-neutral because tag/feature/option mappings do not
 depend on currency. Price-specific storefront operations join the separate
 price index tables by project default currency.
 
-### External constraints and indexes required for listing operations
-
-The listing index uses composite foreign keys that include `project_id`, so the
-canonical tables must expose matching unique keys. Existing equivalent
-constraints should be reused instead of duplicated.
-
-```sql
--- Existing product/variant models already provide equivalent unique keys.
-ALTER TABLE catalog.product
-  ADD CONSTRAINT product_project_id_id_unique
-  UNIQUE (project_id, id);
-
-ALTER TABLE catalog.variant
-  ADD CONSTRAINT variant_project_id_product_id_id_unique
-  UNIQUE (project_id, product_id, id);
-
--- Add these if facet canonical tables do not already have equivalent keys.
-ALTER TABLE catalog.facet
-  ADD CONSTRAINT facet_project_id_id_unique
-  UNIQUE (project_id, id);
-
-ALTER TABLE catalog.facet_value
-  ADD CONSTRAINT facet_value_project_id_facet_id_id_unique
-  UNIQUE (project_id, facet_id, id);
-```
+### External indexes required for listing operations
 
 The listing index does not replace scope and locale sort indexes on canonical
 tables. These indexes are required for the planned query shapes:
@@ -1426,17 +1402,15 @@ Facet source/display mapping changes require token refresh:
   category and collection listings.
 - Relevance sort is available only for search listings and uses score from the
   search candidate relation.
-- Product and variant listing index primary keys include `project_id`.
-- Listing read-model foreign keys include `project_id`: root product rows
-  reference `product(project_id, id)`, root variant rows reference
-  `variant(project_id, product_id, id)`, and child price/token rows reference
-  parent listing rows (`product_listing_index` / `variant_listing_index`) so
-  partial sync/rebuild deletion of a parent row cascades inside the read model.
-  Facet token rows also reference project-scoped `facet` / `facet_value` keys.
-  The database must reject cross-project product, variant, facet or facet value
-  combinations.
-- Facet token primary keys include `project_id` and the resolved `facet_id` /
-  `facet_value_id`; they do not include `currency`.
+- Product and variant listing index primary keys do not include `project_id`;
+  `project_id` remains a required column and leading index/query scope.
+- Listing read-model foreign keys do not include `project_id`: root product rows
+  reference `product(id)`, root variant rows reference `variant(id)`, and child
+  price/token rows reference parent listing rows
+  (`product_listing_index` / `variant_listing_index`) so partial sync/rebuild
+  deletion of a parent row cascades inside the read model.
+- Facet token primary keys include the resolved `facet_id` / `facet_value_id`;
+  they do not include `project_id` or `currency`.
 - Product price descending sort uses `product_listing_price_index.max_price_minor` when no active
   variant-level filters exist.
 - Product price sort preserves unpriced products with `NULLS LAST` even though
