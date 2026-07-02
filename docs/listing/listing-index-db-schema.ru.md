@@ -45,6 +45,11 @@ scope membership должны обновлять только затронуты
   `catalog.listing_posting_bitmap`. Price hot path использует typed
   `catalog.listing_posting_variant_price`, а availability bucket хранится в
   `catalog.listing_posting_product_sort` для сортировок.
+- `catalog.listing_posting_variant_price` хранит только priced active in-stock
+  variants. Это делает price range и matched variant price sort same-variant и
+  in-stock корректными без отдельного generic `in_stock` bitmap. При stock
+  change sync обязан добавить или удалить affected variant price rows вместе с
+  обновлением `variant_listing_index.in_stock`.
 - Counts считаются по product cardinality. Variant-level facets сначала
   дедуплицируются до `(product_id, facet_id, facet_value_id)`.
 
@@ -99,7 +104,7 @@ Planned files:
     `facet`, `facet_value`, category or collection tables. Listing FKs reference
     existing product/variant primary keys by id; posting values use stable typed
     ids in `value_key`.
-- `9004_read_models__product_bm25_search.sql`:
+- `9004_read_models__product_title_bm25_search.sql`:
   - create `catalog.product_title_bm25_search_index`;
   - create ordinary indexes and the ParadeDB BM25 index;
   - run `CREATE EXTENSION IF NOT EXISTS pg_search`, while keeping
@@ -115,6 +120,11 @@ Do not edit existing historical domain migration files for this redesign unless
 the implementation explicitly chooses a catalog cutover and updates the plan
 first. The intended path for this work is additive handwritten SQL in
 `9000_read_models`.
+
+Before implementation, update the current Drizzle listing models to this target
+schema. The existing model layer may still contain legacy raw handle arrays and
+row-based facet token tables; those are obsolete for this redesign and must not
+be recreated by the handwritten migration.
 
 ## `catalog.listing_doc_id_allocator`
 
@@ -175,6 +185,8 @@ CREATE TABLE catalog.product_listing_index (
   PRIMARY KEY (product_id),
   CONSTRAINT product_listing_project_doc_unique
     UNIQUE (project_id, product_doc_id),
+  CONSTRAINT product_listing_project_product_unique
+    UNIQUE (project_id, product_id),
   CONSTRAINT product_listing_project_doc_product_unique
     UNIQUE (project_id, product_doc_id, product_id),
   CONSTRAINT fk_product_listing_product
@@ -182,7 +194,11 @@ CREATE TABLE catalog.product_listing_index (
     REFERENCES catalog.product(id)
     ON DELETE CASCADE,
   CONSTRAINT chk_product_listing_status
-    CHECK (status IN ('published', 'draft'))
+    CHECK (status IN ('published', 'draft')),
+  CONSTRAINT chk_product_listing_doc_positive
+    CHECK (product_doc_id > 0),
+  CONSTRAINT chk_product_listing_total_stock_nonnegative
+    CHECK (total_stock >= 0)
 );
 ```
 
@@ -212,9 +228,12 @@ CREATE TABLE catalog.product_listing_index (
 | --- | --- |
 | `PRIMARY KEY (product_id)` | Гарантирует одну listing строку на product и дает целевой ключ для joins. |
 | `product_listing_project_doc_unique` | Гарантирует уникальность stable product doc id внутри project. |
+| `product_listing_project_product_unique` | Дает composite FK target для child rows, чтобы `project_id` child row совпадал с parent listing row. |
 | `product_listing_project_doc_product_unique` | Дает composite target для posting sort rows и variant parent consistency checks. |
 | `fk_product_listing_product` | Защищает read model от orphan rows и удаляет index row при удалении canonical product. |
 | `chk_product_listing_status` | Фиксирует допустимые visibility states; deleted не допускается как status. |
+| `chk_product_listing_doc_positive` | Защищает roaring doc id domain от нулевых/отрицательных ids. |
+| `chk_product_listing_total_stock_nonnegative` | Фиксирует, что aggregate stock не может быть отрицательным. |
 
 ### Индексы
 
@@ -284,7 +303,26 @@ CREATE TABLE catalog.product_listing_price_index (
   CONSTRAINT fk_product_listing_price_product
     FOREIGN KEY (product_id)
     REFERENCES catalog.product_listing_index(product_id)
-    ON DELETE CASCADE
+    ON DELETE CASCADE,
+  CONSTRAINT fk_product_listing_price_project_product
+    FOREIGN KEY (project_id, product_id)
+    REFERENCES catalog.product_listing_index(project_id, product_id)
+    ON DELETE CASCADE,
+  CONSTRAINT chk_product_listing_price_state
+    CHECK (
+      (
+        has_price = false
+        AND min_price_minor IS NULL
+        AND max_price_minor IS NULL
+      )
+      OR (
+        has_price = true
+        AND min_price_minor IS NOT NULL
+        AND max_price_minor IS NOT NULL
+        AND min_price_minor >= 0
+        AND max_price_minor >= min_price_minor
+      )
+    )
 );
 ```
 
@@ -307,6 +345,8 @@ CREATE TABLE catalog.product_listing_price_index (
 | --- | --- |
 | `PRIMARY KEY (product_id, currency)` | Гарантирует одну aggregate price row на product/currency. |
 | `fk_product_listing_price_product` | Привязывает price aggregate к parent row в `product_listing_index` и удаляет его при partial sync удалении product из read model. |
+| `fk_product_listing_price_project_product` | Защищает повторяемый `project_id` child row: он должен совпадать с parent listing row. |
+| `chk_product_listing_price_state` | Запрещает inconsistent price rows: `has_price=false` хранит NULL price bounds, `has_price=true` требует non-negative min/max и `max >= min`. |
 
 ### Индексы
 
@@ -359,6 +399,8 @@ CREATE TABLE catalog.variant_listing_index (
   PRIMARY KEY (variant_id),
   CONSTRAINT variant_listing_project_product_variant_unique
     UNIQUE (product_id, variant_id),
+  CONSTRAINT variant_listing_project_variant_unique
+    UNIQUE (project_id, variant_id),
   CONSTRAINT variant_listing_project_doc_unique
     UNIQUE (project_id, variant_doc_id),
   CONSTRAINT variant_listing_project_doc_variant_unique
@@ -378,7 +420,13 @@ CREATE TABLE catalog.variant_listing_index (
   CONSTRAINT fk_variant_listing_variant
     FOREIGN KEY (variant_id)
     REFERENCES catalog.variant(id)
-    ON DELETE CASCADE
+    ON DELETE CASCADE,
+  CONSTRAINT chk_variant_listing_doc_positive
+    CHECK (variant_doc_id > 0),
+  CONSTRAINT chk_variant_listing_product_doc_positive
+    CHECK (product_doc_id > 0),
+  CONSTRAINT chk_variant_listing_total_stock_nonnegative
+    CHECK (total_stock >= 0)
 );
 ```
 
@@ -402,11 +450,15 @@ CREATE TABLE catalog.variant_listing_index (
 | --- | --- |
 | `PRIMARY KEY (variant_id)` | Гарантирует одну listing row на variant. |
 | `variant_listing_project_product_variant_unique` | Дает уникальный ключ для product/variant pairing внутри read model. |
+| `variant_listing_project_variant_unique` | Дает composite FK target для child rows, чтобы `project_id` child row совпадал с parent variant listing row. |
 | `variant_listing_project_doc_unique` | Гарантирует уникальность stable variant doc id внутри project. |
 | `variant_listing_project_doc_variant_unique` | Дает composite target для typed variant price rows и projection consistency checks. |
 | `fk_variant_listing_product` | Привязывает variant listing row к parent `product_listing_index` и удаляет variant index rows при удалении product из read model. |
 | `fk_variant_listing_product_doc` | Гарантирует, что `product_doc_id` действительно принадлежит parent product row. |
 | `fk_variant_listing_variant` | Не допускает orphan variant rows и удаляет index row при удалении canonical variant. |
+| `chk_variant_listing_doc_positive` | Защищает roaring variant doc id domain от нулевых/отрицательных ids. |
+| `chk_variant_listing_product_doc_positive` | Защищает parent product doc id copy от нулевых/отрицательных ids. |
+| `chk_variant_listing_total_stock_nonnegative` | Фиксирует, что aggregate stock не может быть отрицательным. |
 
 ### Индексы
 
@@ -463,7 +515,23 @@ CREATE TABLE catalog.variant_listing_price_index (
   CONSTRAINT fk_variant_listing_price_variant
     FOREIGN KEY (variant_id)
     REFERENCES catalog.variant_listing_index(variant_id)
-    ON DELETE CASCADE
+    ON DELETE CASCADE,
+  CONSTRAINT fk_variant_listing_price_project_variant
+    FOREIGN KEY (project_id, variant_id)
+    REFERENCES catalog.variant_listing_index(project_id, variant_id)
+    ON DELETE CASCADE,
+  CONSTRAINT chk_variant_listing_price_state
+    CHECK (
+      (
+        has_price = false
+        AND price_minor IS NULL
+      )
+      OR (
+        has_price = true
+        AND price_minor IS NOT NULL
+        AND price_minor >= 0
+      )
+    )
 );
 ```
 
@@ -485,6 +553,8 @@ CREATE TABLE catalog.variant_listing_price_index (
 | --- | --- |
 | `PRIMARY KEY (variant_id, currency)` | Гарантирует одну variant price row на currency. |
 | `fk_variant_listing_price_variant` | Привязывает price row к parent `variant_listing_index` и каскадно удаляет price rows при partial sync удалении variant из read model. Product grouping выполняется join к parent row, чтобы не хранить `product_id` в price row. |
+| `fk_variant_listing_price_project_variant` | Защищает повторяемый `project_id` child row: он должен совпадать с parent variant listing row. |
+| `chk_variant_listing_price_state` | Запрещает inconsistent price rows: `has_price=false` хранит NULL price, `has_price=true` требует non-negative `price_minor`. |
 
 ### Индексы
 
@@ -544,9 +614,6 @@ Runtime code не должен вызывать raw extension operators напр
 | Cardinality | `listing_rb_cardinality(bitmap)` |
 | Membership check | `listing_rb_contains(bitmap, doc_id)` |
 | Iteration | `listing_rb_iterate(bitmap)` |
-
-Exact SQL bodies для wrappers зависят от версии `pg_roaringbitmap` в target
-PostgreSQL provider и должны быть проверены перед миграцией.
 
 ### Stable doc ids
 
@@ -695,6 +762,13 @@ Exact price values are not stored as one posting bitmap per price. Эта таб
 ordered scan by price without expanding variant bitmaps and joining UUID rows for
 every page request.
 
+Rows exist only for variants that are both priced in `currency` and currently
+in stock. `variant_listing_price_index` remains the per-currency source/debug
+price row, including out-of-stock variants with price; this posting table is the
+runtime ordered access path for storefront price filters and matched variant
+price sort. When stock changes, sync must insert/delete affected rows here so a
+price scan cannot return out-of-stock variants.
+
 ```sql
 CREATE TABLE catalog.listing_posting_variant_price (
   project_id             uuid NOT NULL,
@@ -758,7 +832,7 @@ CREATE INDEX idx_listing_posting_variant_price_product_order
 | `variant_doc_id` | Variant doc whose price participates in same-variant option+price matching. |
 | `product_doc_id` | Parent product doc for product-level deduplication and membership checks. |
 | `product_id` | Stable product tie-breaker and hydration key. |
-| `price_minor` | Price in minor units. Rows exist only for priced variants. |
+| `price_minor` | Price in minor units. Rows exist only for priced active in-stock variants. |
 
 ### `catalog.listing_posting_variant_projection_block`
 
@@ -810,8 +884,14 @@ affected rows:
   FK exists.
 - Facet/scope/vendor changed: remove doc id from old posting rows and add it to
   new posting rows, updating `cardinality` and `updated_at`.
-- Price/stock/name/manual rank changed: update source listing rows and the
-  affected physical price/sort rows.
+- Price changed: update source listing price rows, product price aggregates,
+  affected `listing_posting_variant_price` rows for in-stock variants and price
+  sort rows.
+- Stock changed: update source listing availability rows, product aggregates,
+  availability sort rows and insert/delete affected `listing_posting_variant_price`
+  rows because that physical index contains only in-stock priced variants.
+- Name/manual rank changed: update source listing rows and the affected physical
+  sort rows.
 
 If high-churn incremental refresh later needs immutable segments or batched
 compaction, add that in a separate design/migration. Segment storage must

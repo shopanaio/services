@@ -135,9 +135,6 @@ Runtime code не должен вызывать raw extension operators напр
 | Membership check | `listing_rb_contains(bitmap, doc_id)` |
 | Iteration | `listing_rb_iterate(bitmap)` |
 
-Exact SQL bodies для wrappers зависят от версии `pg_roaringbitmap` в target
-PostgreSQL provider и должны быть проверены перед миграцией.
-
 ## Stable doc ids
 
 Отдельные posting dictionary tables не создаются. Stable ids живут в listing
@@ -741,9 +738,6 @@ listing_rb_cardinality(bitmap roaringbitmap) -> bigint
 listing_rb_contains(bitmap roaringbitmap, doc_id int) -> boolean
 listing_rb_iterate(bitmap roaringbitmap) -> setof int
 ```
-
-Before writing migrations, verify the exact `pg_roaringbitmap` function names
-available in the target PostgreSQL provider.
 
 ## Repository boundary
 
