@@ -348,6 +348,142 @@ else:
 This keeps sparse option filters cheap while avoiding full variant expansion for
 broad filters. Thresholds are planner parameters, not hard product semantics.
 
+## Tenant partitioning
+
+Tenant boundary for this index is `project_id` from the storefront context. In
+the broader platform this corresponds to the current store/project isolation
+boundary: every posting table row, query, rebuild and cleanup operation must be
+restricted by `project_id`.
+
+Doc ids are dense only inside `(project_id, index_version)`:
+
+```text
+project A, version 10:
+  product_doc_id 1 -> product A1
+
+project B, version 7:
+  product_doc_id 1 -> product B1
+```
+
+Doc ids from different projects are never comparable, even if the integer value
+is the same. Every bitmap is scoped by `(project_id, index_version)`, so
+cross-tenant bitmap operations are invalid by construction.
+
+### Logical partitioning
+
+All primary keys start with `(project_id, index_version, ...)` or include it as
+the leading lookup prefix. Storefront query shape must always resolve published
+version first:
+
+```sql
+SELECT index_version
+FROM catalog.listing_posting_index_version
+WHERE project_id = :projectId
+  AND status = 'published';
+```
+
+Then every posting query uses both values:
+
+```sql
+WHERE project_id = :projectId
+  AND index_version = :indexVersion
+```
+
+Repositories must not expose methods that accept only `index_version` or only
+doc ids. The service context project/store id is part of every method contract.
+
+### Physical partitioning
+
+Recommended first implementation: keep ordinary tables with leading
+`project_id, index_version` indexes until benchmarks show catalog scale needs
+physical partitions. This keeps migrations and local development simpler.
+
+When table size becomes large enough that vacuum, cleanup or index bloat are
+visible, split heavy tables into hash partitions by `project_id`:
+
+```sql
+CREATE TABLE catalog.listing_posting_bitmap (
+  project_id             uuid NOT NULL,
+  index_version          bigint NOT NULL,
+  entity_type            varchar(16) NOT NULL,
+  field                  varchar(64) NOT NULL,
+  value_key              text NOT NULL,
+  bitmap                 roaringbitmap NOT NULL,
+  cardinality            bigint NOT NULL,
+  metadata               jsonb NOT NULL DEFAULT '{}'::jsonb,
+  PRIMARY KEY (project_id, index_version, entity_type, field, value_key)
+) PARTITION BY HASH (project_id);
+
+CREATE TABLE catalog.listing_posting_bitmap_p00
+  PARTITION OF catalog.listing_posting_bitmap
+  FOR VALUES WITH (MODULUS 16, REMAINDER 0);
+```
+
+The same partitioning strategy applies to the heavy tables:
+
+```text
+listing_posting_product_doc
+listing_posting_variant_doc
+listing_posting_bitmap
+listing_posting_product_sort
+listing_posting_variant_price
+listing_posting_variant_projection_block
+```
+
+`listing_posting_index_version` can remain unpartitioned because it has only a
+small number of rows per project.
+
+Use hash partitioning by `project_id`, not by `index_version`, because:
+
+- queries are always tenant-scoped;
+- rebuild and cleanup are per project;
+- one project can have multiple versions during publish/retire grace period;
+- partition pruning works from the request context before touching large rows.
+
+### Large tenant isolation
+
+If one project becomes much larger than the rest, move it to dedicated
+partitions or a dedicated database before changing doc id semantics. The logical
+contract stays the same:
+
+```text
+(project_id, index_version) owns the doc id namespace
+published version is unique per project
+retired versions are cleaned per project
+```
+
+Do not mix several tenants into one bitmap to reduce row count. It would break
+tenant isolation and make every query depend on runtime masking.
+
+### Cleanup and retention
+
+Retired versions are deleted per project:
+
+```sql
+DELETE FROM catalog.listing_posting_bitmap
+WHERE project_id = :projectId
+  AND index_version = :retiredVersion;
+```
+
+The same delete applies to dictionaries, sort values, price rows and projection
+blocks. Physical hash partitioning keeps the delete scoped to a small subset of
+storage. Cleanup must run after a grace period so in-flight requests that
+already resolved the old `index_version` can finish.
+
+### Build isolation
+
+Only one posting build should run per project at a time. The builder should take
+a project-scoped advisory lock or equivalent DBOS workflow idempotency key:
+
+```text
+listing-posting-build:<project_id>
+```
+
+This prevents two rebuilds for the same tenant from racing, but still allows
+parallel rebuilds for different tenants. Publish transaction must be short: it
+only updates rows in `listing_posting_index_version`; all heavy bitmap, sort and
+dictionary writes happen before publish under `status = 'building'`.
+
 ## Dense doc id dictionary
 
 Posting lists должны хранить integer doc ids, не UUID. UUID слишком тяжелые для
@@ -985,6 +1121,322 @@ builds a complete replacement version for affected project:
 version. Если это станет дорого, можно добавить targeted rebuild для набора
 changed products, но publish contract остается тем же: storefront читает одну
 immutable published version.
+
+## High-scale incremental refresh
+
+Для проектов с 10+ млн variants full project rebuild на каждое изменение
+варианта не является допустимым hot path. Обновление posting index должно
+работать как микробатчевый refresh новой версии, построенной из опубликованной
+версии и набора changed products.
+
+Published version все равно immutable:
+
+```text
+N stays published and read-only
+N + 1 is built as replacement version
+publish swaps N -> N + 1 atomically
+```
+
+Нельзя обновлять `listing_posting_bitmap.bitmap` in-place в published version,
+потому что storefront requests уже могли прочитать `index_version = N`, cursor
+содержит `index_version`, а bitmap rows, dictionaries, price rows, sort rows и
+projection blocks должны быть согласованы между собой.
+
+### Change capture
+
+Canonical catalog events сначала обновляют PostgreSQL listing read model
+точечно:
+
+```text
+variant option changed
+  -> SyncVariantListingIndexScript
+  -> variant row + option tokens + parent product aggregate
+```
+
+После успешного commit событие добавляется в posting refresh queue:
+
+```text
+project_id
+reason = variant_option_changed
+variant_id
+product_id
+listing_updated_at / source watermark
+```
+
+Очередь coalesce-ит события по `(project_id, product_id)`, потому posting
+refresh перестраивает целые product groups: product doc, all product variants,
+variant price rows, option postings, product postings, sort values and affected
+projection blocks. Если у одного product изменились несколько variants, они
+должны попасть в один refresh item.
+
+### Microbatch workflow
+
+Posting refresh workflow runs per project under the same project-scoped lock as
+full rebuild:
+
+```text
+listing-posting-build:<project_id>
+```
+
+Workflow loop:
+
+1. Read current published version `N`.
+2. Pull queued changed products up to configured limits:
+   `max_changed_products`, `max_changed_variants`, `max_lag_seconds`.
+3. Read fresh rows for those products from SQL listing read model.
+4. Build delta manifest:
+   - changed product ids;
+   - changed variant ids;
+   - removed product/variant doc ids from version `N`;
+   - new or reused doc ids for version `N + 1`;
+   - affected product fields/value keys;
+   - affected variant fields/value keys;
+   - affected price currencies;
+   - affected projection block ids.
+5. Build replacement rows for `N + 1`.
+6. Validate `N + 1`.
+7. Atomically publish `N + 1`.
+
+The workflow may keep draining the queue while building, but it must close the
+batch at a concrete `source_listing_watermark`. Events after that watermark stay
+queued for the next version.
+
+### Segment manifests for high-update projects
+
+For projects with 10+ mln variants and frequent posting-affecting updates, the
+target storage model should avoid repeatedly deleting and inserting large
+PostgreSQL rows for every refresh. This applies to price, stock, publish state,
+category membership, product facets, option facets, facet mappings and deletion
+of facet values. PostgreSQL MVCC would keep old row versions until vacuum, so
+frequent rewrites of `roaringbitmap` rows, broad
+`listing_posting_variant_price` ranges or large facet posting rows would create
+table and index bloat.
+
+High-scale refresh should publish a new manifest of immutable segments:
+
+```text
+snapshot N:
+  segments = [base_001, delta_010, delta_011]
+  delete_masks = [mask_010, mask_011]
+
+snapshot N + 1:
+  segments = [base_001, delta_010, delta_011, delta_012]
+  delete_masks = [mask_010, mask_011, mask_012]
+```
+
+Publishing `N + 1` inserts small manifest rows and new delta segment rows. It
+does not duplicate `base_001` and does not update published segment rows.
+
+Segment tables are append-only while a segment is active:
+
+```text
+listing_posting_segment
+listing_posting_segment_manifest
+listing_posting_segment_bitmap
+listing_posting_segment_variant_price
+listing_posting_segment_delete_mask
+listing_posting_segment_projection_block
+```
+
+Recommended physical storage rules:
+
+- segment rows are inserted once and never updated in place;
+- hot updates create delta segment rows plus delete masks for stale product or
+  variant docs;
+- deleting or remapping a facet value creates tombstones/delete masks for the
+  old facet postings and new delta postings for replacement values, rather than
+  deleting rows from active segment tables;
+- cleanup drops whole retired segments or whole segment partitions after no
+  published manifest references them;
+- compaction writes a new compacted segment and then retires the old segment set;
+- avoid mass `DELETE` from large active tables; prefer partition detach/drop for
+  expired segments;
+- keep segment id or `(project_id, segment_id)` in the leading key so cleanup is
+  physically scoped.
+
+Runtime query resolves the published manifest first and treats its segments as
+one logical index:
+
+```text
+matches =
+  OR(active_segment_postings(field, value_key))
+  - OR(active_delete_masks)
+```
+
+Collectors combine active segment postings for every field they read:
+product facets, option facets, category scopes, availability, price buckets and
+price rows. They ignore docs hidden by delete masks. If the number of active
+delta segments grows past planner thresholds, background compaction must merge
+them before query fan-out becomes too expensive.
+
+Hot update examples:
+
+```text
+variant option changed:
+  old option doc is hidden by variant delete mask
+  new option posting is inserted into a delta segment
+
+product tag/feature changed:
+  old product facet doc is hidden by product delete mask
+  new product facet posting is inserted into a delta segment
+
+facet value deleted:
+  value_key is marked tombstoned for the manifest
+  queries ignore the tombstoned value_key
+  compaction removes its physical postings later
+
+facet value remapped:
+  old value_key is tombstoned or masked for affected docs
+  replacement value_key postings are inserted into a delta segment
+
+product unpublished/deleted:
+  product_doc_id and all child variant_doc_ids are hidden by delete masks
+  compaction removes their old postings later
+```
+
+Delete masks can be doc-level or value-key-level:
+
+```text
+doc delete mask:
+  field/value postings still exist physically,
+  but specific product_doc_id / variant_doc_id is hidden.
+
+value tombstone:
+  whole field/value_key is hidden for a manifest,
+  used for deleted facet values, removed mappings or invalidated handles.
+```
+
+This model is closer to Lucene/Elasticsearch: update is represented as
+`delete old doc + add new doc in a new segment`, and compaction later rewrites
+larger immutable segments. It trades a slightly more complex query planner for
+stable PostgreSQL storage behavior under frequent updates.
+
+### Copy-on-write version build
+
+Copy-on-write complete versions are acceptable as a simpler early
+implementation or for low-update projects. They are not the preferred hot path
+for projects with 10+ mln variants and frequent posting-affecting updates.
+
+For 10+ mln variants, `N + 1` should not recompute every posting from canonical
+tables. It should copy or derive unchanged rows from `N` and rebuild only rows
+affected by the delta manifest.
+
+Stable doc ids are preferred for unchanged docs:
+
+```text
+unchanged product_id keeps product_doc_id from N
+unchanged variant_id keeps variant_doc_id from N
+new product/variant gets appended doc id
+deleted product/variant doc id is absent from live postings in N + 1
+```
+
+Doc ids remain version-scoped, so this is an optimization, not an external
+contract. If keeping ids stable makes a batch too complex, builder may allocate
+new dense ids for `N + 1`, but that path is effectively a broader rebuild and
+must be selected deliberately by planner thresholds.
+
+For each affected posting row, builder computes:
+
+```text
+new_bitmap =
+  (old_bitmap - old_doc_ids_for_changed_products)
+  | new_doc_ids_for_changed_products_matching_this_value
+```
+
+This applies to product postings and variant postings. Affected rows include
+both removed values and added values. Example for option change
+`color:red -> color:black`:
+
+```text
+variant facet color:red   removes variant_doc_id
+variant facet color:black adds variant_doc_id
+parent product in_stock / facet / price sort rows may change from aggregates
+projection block for variant_doc_id is rebuilt
+```
+
+Rows not mentioned by the delta manifest can be referenced from `N + 1` without
+decoding the bitmap. For high-scale projects this should be implemented through
+segment manifests, not by physically duplicating all unchanged PostgreSQL rows.
+Physical duplication is only acceptable for benchmarked small/medium datasets or
+one-off rebuild workflows.
+
+### Affected row selection
+
+For `variant_option_changed`, affected data is:
+
+- `listing_posting_variant_doc` row for the changed variant;
+- `listing_posting_bitmap` rows for old and new option facet values;
+- `listing_posting_bitmap` rows for `variant_product:<product_doc_id>` if the
+  variant was created, deleted or moved between products;
+- `listing_posting_variant_price` only if option refresh also changed price
+  availability inputs;
+- `listing_posting_product_doc` and product-level stock/sort rows if parent
+  aggregate changed;
+- `listing_posting_product_sort` rows for min/max price, stock, newest/manual
+  only when the corresponding aggregate/source changed;
+- `listing_posting_variant_projection_block` for every block containing changed
+  variant doc ids.
+
+If a facet mapping, option handle, category handle, enabled currency or
+project-level setting changes, the affected row set may become too broad. In
+that case planner must escalate to product-scope, facet-scope or full project
+rebuild instead of creating millions of tiny bitmap patches.
+
+### Publish and freshness
+
+Storefront can tolerate eventually consistent posting data, but the refresh
+queue must expose SLO-oriented metrics:
+
+```text
+oldest_unpublished_listing_update_age_seconds
+queued_changed_products
+queued_changed_variants
+last_published_source_listing_watermark
+posting_refresh_versions_built_total
+posting_refresh_full_rebuild_fallback_total
+```
+
+Recommended SLO policy:
+
+- price and stock changes use small microbatches and short delay;
+- option changes may batch for a longer window because they mostly affect
+  filtering/facet availability;
+- publish/unpublish is priority and should not wait behind large option
+  refresh backlog;
+- if queue lag exceeds SLO, trigger broader rebuild or temporarily route strict
+  reads to SQL listing pipeline.
+
+Storage health metrics are release gates for high-update projects:
+
+```text
+active_segment_count
+active_delta_segment_count
+retired_segment_bytes_waiting_cleanup
+posting_table_dead_tuple_ratio
+price_table_dead_tuple_ratio
+autovacuum_lag_seconds
+compaction_queue_lag_seconds
+```
+
+If dead tuple ratio or retired bytes exceed configured thresholds, the system
+must throttle new refreshes, prioritize compaction/cleanup, or temporarily use
+SQL listing fallback for strict reads. A design that depends on frequent updates
+or deletes of large active PostgreSQL rows is rejected for the 10+ mln variant
+target.
+
+### Full rebuild fallback
+
+Targeted refresh is an optimization, not the only recovery path. The system must
+still support full project rebuild for:
+
+- corrupted or missing posting version;
+- pg_roaringbitmap compatibility changes;
+- dictionary compaction after many deletes;
+- broad mapping changes;
+- diagnostics mismatch between SQL listing read model and posting version.
+
+Full rebuild uses the same publish contract and replaces the current published
+version atomically.
 
 ## Atomic publish
 
