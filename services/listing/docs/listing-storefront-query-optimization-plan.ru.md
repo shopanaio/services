@@ -31,39 +31,23 @@ Repository SLR: <= 100ms для каждого допустимого request
 Partial response: запрещен
 ```
 
-## Runtime/API contract migration
+## Runtime/API breaking contract
 
 Этот план меняет поведение storefront listing read path: optimized repository
 path всегда вычисляет полный listing response и больше не использует
 `includeTotalCount`, `includeFacets`, `includePriceRange` и
 `includeInStockCount` как runtime переключатели для SQL branches.
 
-Это должно быть оформлено как явное изменение контракта, а не как побочный
-эффект оптимизации.
+Это public API breaking change. Storefront GraphQL/API schema и документация
+должны быть обновлены так, что PLP listing всегда возвращает `totalCount`,
+facets, `priceRange` и `inStockCount`. Optional aggregate flags удаляются из
+публичного контракта.
 
-До включения optimized path нужно выбрать один режим совместимости:
+Acceptance:
 
-1. **Public API breaking change.** Storefront GraphQL/API schema и
-   документация обновляются так, что PLP listing всегда возвращает
-   `totalCount`, facets, `priceRange` и `inStockCount`. Optional aggregate flags
-   удаляются или объявляются deprecated до удаления.
-2. **Repository-only contract change with API compatibility shim.** Repository
-   всегда возвращает полный result, но GraphQL/API слой продолжает принимать
-   legacy flags и скрывает не запрошенные поля на уровне response mapping. В этом
-   режиме flags больше не экономят SQL latency, но не ломают старых клиентов.
-
-Решение должно быть зафиксировано до реализации Query A-E. Нельзя одновременно
-считать flags устаревшими в repository и оставлять публичный контракт
-неописанным.
-
-Acceptance для contract migration:
-
-- выбран один из двух режимов совместимости;
-- storefront schema/API docs отражают выбранный режим;
-- callers не получают silent shape change;
-- telemetry временно логирует использование legacy aggregate flags, если они
-  остаются в публичном API;
-- removal/deprecation path описан отдельно от SQL optimization.
+- storefront schema/API docs отражают always-full response;
+- optional aggregate flags удалены из публичного API и repository input;
+- SQL implementation не зависит от optional aggregate flags.
 
 ## Жесткие ограничения
 
@@ -1077,7 +1061,7 @@ SLR и уметь помечать branch, который не уложился 
 Если любой branch не завершился в рамках budget:
 
 - вернуть typed transient listing error;
-- не делать fallback на старый multi-query path;
+- не делать fallback на sequential multi-query path;
 - логировать branch name, normalized query metadata и complexity без PII;
 - считать это SLR violation.
 
@@ -1086,20 +1070,14 @@ counts, price range или in-stock count.
 
 ## Порядок внедрения
 
-### Фаза 0. Contract migration decision
+### Фаза 0. Public contract update
 
-До SQL rewrite зафиксировать выбранный режим совместимости:
-
-- public API breaking change; или
-- repository-only contract change with API compatibility shim.
+До SQL rewrite зафиксировать public API breaking change.
 
 Acceptance:
 
-- выбранный режим отражен в storefront GraphQL/API schema и документации;
-- legacy aggregate flags имеют понятный статус: removed, deprecated или
-  compatibility-only;
-- callers не получают silent response shape change;
-- если flags остаются, добавлена telemetry по их использованию;
+- storefront GraphQL/API schema и документация описывают always-full response;
+- optional aggregate flags удалены из публичного API и repository input;
 - SQL implementation не зависит от optional aggregate flags.
 
 ### Фаза 1. Instrumentation
@@ -1213,8 +1191,7 @@ Acceptance:
 - matched variant price collector.
 
 Новый optimized path нельзя включать для всех storefront requests, пока он не
-покрывает все уже поддержанные scope/collector combinations. До этого
-допустимы только feature flag, shadow mode или allowlist для покрытых scenarios.
+покрывает все уже поддержанные scope/collector combinations.
 
 Acceptance:
 
@@ -1223,8 +1200,8 @@ Acceptance:
 - rule collection listing работает в модели максимум 5 parallel branches;
 - price filter + matched variant price sort работает в модели максимум
   5 parallel branches;
-- unsupported combinations не попадают в optimized path без явного feature flag;
-- old-vs-new comparison покрывает supported scopes и collectors до global enable.
+- unsupported combinations должны быть реализованы до включения optimized path;
+- repository fixtures покрывают supported scopes и collectors до global enable.
 
 ### Фаза 9. Parallel orchestration
 
@@ -1248,13 +1225,13 @@ Acceptance:
 - per-branch budget tracking;
 - overall repository deadline;
 - metrics for timeout and complexity rejection;
-- removal of old sequential fan-out path after supported scope/collector parity.
+- removal of sequential fan-out path after supported scope/collector parity.
 
 Acceptance:
 
 - любой допустимый request укладывается в `<= 100ms` на agreed dataset;
 - недопустимый request отклоняется до SQL;
-- нет fallback, который возвращает медленный или partial response.
+- нет alternate response path, который возвращает медленный или partial response.
 
 ## Проверка корректности
 
