@@ -39,8 +39,15 @@
 - все repositories наследуются от `BaseRepository`;
 - все queries используют `this.connection`, а не `this.db`;
 - tenant boundary берется из `this.storeId` как `projectId`;
-- low-level методы не принимают bare `doc_id` без `projectId`;
+- repository public methods do not accept `projectId` in input DTOs; follow the
+  catalog repository convention and add `eq(...projectId, this.storeId)` or bind
+  `${this.storeId}` inside every query;
+- low-level методы не query-ят bare `doc_id`; every doc-id predicate is paired
+  with `this.storeId` / `project_id`;
 - repository layer не читает raw source handles на storefront read path;
+- facet resolution читает canonical facet metadata через read-only Drizzle
+  runtime models для schema `catalog`, но только поля, нужные для
+  `facetSlug:valueHandle -> facet_id/facet_type/facet_value_id`;
 - tests/tsc для проверки этого плана не запускать;
 - changeset не редактировать.
 
@@ -52,15 +59,26 @@
 services/listing/src/repositories/storefront/
   types.ts
   StorefrontFacetResolutionRepository.ts
-  ListingPostingBitmapRepository.ts
-  ListingVariantProjectionRepository.ts
-  ListingProductSortCollectorRepository.ts
-  ListingVariantPriceCollectorRepository.ts
-  ProductTitleSearchQueryRepository.ts
-  FacetAggregationRepository.ts
-  ListingQueryRepository.ts
+  StorefrontPostingBitmapQueryRepository.ts
+  StorefrontVariantProjectionQueryRepository.ts
+  StorefrontProductSortCollectorRepository.ts
+  StorefrontVariantPriceCollectorRepository.ts
+  StorefrontProductTitleSearchQueryRepository.ts
+  StorefrontFacetAggregationRepository.ts
+  StorefrontListingQueryRepository.ts
   index.ts
 ```
+
+Добавить read-only runtime models for catalog canonical facets:
+
+```text
+services/listing/src/repositories/models/catalogFacetRuntime.ts
+```
+
+Модели должны описывать только поля, которые нужны storefront facet resolution:
+`project_id`, facet id/slug/type/visibility, facet value id/handle/kind/state
+and source-child enabled relation. Эти модели не являются ownership transfer для
+catalog данных и не используются для product/variant source read path.
 
 Обновить aggregator:
 
@@ -72,14 +90,32 @@ services/listing/src/repositories/Repository.ts
 
 ```ts
 public readonly storefrontFacetResolution: StorefrontFacetResolutionRepository;
-public readonly listingPostingBitmap: ListingPostingBitmapRepository;
-public readonly listingVariantProjection: ListingVariantProjectionRepository;
-public readonly listingProductSortCollector: ListingProductSortCollectorRepository;
-public readonly listingVariantPriceCollector: ListingVariantPriceCollectorRepository;
-public readonly productTitleSearchQuery: ProductTitleSearchQueryRepository;
-public readonly facetAggregation: FacetAggregationRepository;
-public readonly listingQuery: ListingQueryRepository;
+public readonly storefrontPostingBitmapQuery: StorefrontPostingBitmapQueryRepository;
+public readonly storefrontVariantProjectionQuery: StorefrontVariantProjectionQueryRepository;
+public readonly storefrontProductSortCollector: StorefrontProductSortCollectorRepository;
+public readonly storefrontVariantPriceCollector: StorefrontVariantPriceCollectorRepository;
+public readonly storefrontProductTitleSearchQuery: StorefrontProductTitleSearchQueryRepository;
+public readonly storefrontFacetAggregation: StorefrontFacetAggregationRepository;
+public readonly storefrontListingQuery: StorefrontListingQueryRepository;
 ```
+
+Naming rule:
+
+- existing repositories under `services/listing/src/repositories/listing/` stay
+  the runtime index maintenance layer for sync/rebuild writes and low-level row
+  access;
+- new repositories under `services/listing/src/repositories/storefront/` are
+  read-side query orchestration helpers only;
+- do not add storefront read-side properties with names already used by
+  `Repository` for the existing listing repositories.
+
+Tenant boundary rule:
+
+- same as catalog repositories, storefront repositories derive the current
+  project from `this.storeId`;
+- public repository methods do not expose optional `projectId` overrides;
+- SQL snippets may use `:projectId` as a local placeholder, but implementation
+  must bind it from `this.storeId`, not from caller input.
 
 ## Общие типы
 
@@ -228,16 +264,19 @@ title @@@ query
 Repository отвечает за перевод public storefront filter input в stable ids.
 Он не выполняет listing query.
 
+Источник данных для resolution - read-only SQL чтение canonical facet metadata
+из schema `catalog` через добавленные Drizzle runtime models с минимальным
+field set. Repository не вызывает catalog service/broker и не читает raw product
+or variant source handles.
+
 Публичные методы:
 
 ```ts
 async resolveFilterPlan(input: {
-  projectId?: string;
   filters: StorefrontListingFilterInput[];
 }): Promise<StorefrontFilterPlan>;
 
 async getVisibleFacetValues(input: {
-  projectId?: string;
   scope: StorefrontListingScope;
   locale: string;
   requestedFacetIds?: string[];
@@ -246,7 +285,7 @@ async getVisibleFacetValues(input: {
 
 Правила:
 
-- `projectId` по умолчанию `this.storeId`;
+- `projectId` берется только из `this.storeId`, как в catalog repositories;
 - input `facetSlug:valueHandle` резолвится в `facet_id`, `facet_type`,
   `facet_value_id`;
 - `value_key = <facet_id>:<facet_value_id>`;
@@ -261,9 +300,12 @@ Acceptance:
 
 - read path не читает `tag_handles`, `feature_value_handles`,
   `option_value_handles`;
+- read path не читает canonical product/variant source rows для resolution;
+- canonical catalog facet metadata читается только через минимальные read-only
+  runtime models;
 - returned values limited to configured visible storefront values.
 
-## ListingPostingBitmapRepository
+## StorefrontPostingBitmapQueryRepository
 
 Repository читает готовые bitmap rows и строит bitmap expressions для OR/AND
 groups.
@@ -272,14 +314,12 @@ groups.
 
 ```ts
 async getPostingBitmap(input: {
-  projectId?: string;
   entityType: "product" | "variant";
   field: ProductPostingField | VariantPostingField;
   valueKey: string;
 }): Promise<RoaringBitmapSqlValue | null>;
 
 async getPostingBitmaps(input: {
-  projectId?: string;
   entityType: "product" | "variant";
   field: ProductPostingField | VariantPostingField;
   valueKeys: readonly string[];
@@ -297,13 +337,9 @@ buildAndGroups(input: {
   emptyWhenNoGroups: boolean;
 }): BitmapExpr;
 
-async buildPublishedProductScope(input: {
-  projectId?: string;
-}): Promise<BitmapExpr>;
+async buildPublishedProductScope(): Promise<BitmapExpr>;
 
-async buildInStockVariantScope(input: {
-  projectId?: string;
-}): Promise<BitmapExpr>;
+async buildInStockVariantScope(): Promise<BitmapExpr>;
 ```
 
 Missing posting row semantics:
@@ -327,9 +363,9 @@ Acceptance:
 
 - no code assumes old columns `product_id`, `variant_id`, `facet_id`,
   `facet_value_id` on `listing_posting_bitmap`;
-- all methods filter by `project_id`.
+- all methods filter by `project_id = this.storeId`.
 
-## ListingVariantProjectionRepository
+## StorefrontVariantProjectionQueryRepository
 
 Repository проектирует `variant_doc_id` bitmap в `product_doc_id` bitmap через
 projection blocks.
@@ -338,13 +374,11 @@ projection blocks.
 
 ```ts
 async projectVariantBitmapToProducts(input: {
-  projectId?: string;
   variantBitmap: BitmapExpr;
   strategy?: "projection_blocks" | "narrow_iterate_fallback";
 }): Promise<BitmapExpr>;
 
 buildProjectionSql(input: {
-  projectId: string;
   variantBitmapSql: SQL;
 }): SQL;
 ```
@@ -365,7 +399,7 @@ Acceptance:
 - same-variant semantics сохраняется до projection;
 - product cardinality считается после projection and dedupe.
 
-## ListingProductSortCollectorRepository
+## StorefrontProductSortCollectorRepository
 
 Repository собирает page rows через
 `listing.listing_posting_product_sort`.
@@ -374,7 +408,6 @@ Repository собирает page rows через
 
 ```ts
 async collectProductSortPage(input: {
-  projectId?: string;
   matchesBitmap: BitmapExpr;
   sort: ProductSortCollectKind;
   locale: string;
@@ -433,7 +466,7 @@ Acceptance:
 - name sort + product and option filters покрывает example 7;
 - rule collection + product filters + price desc покрывает example 8.
 
-## ListingVariantPriceCollectorRepository
+## StorefrontVariantPriceCollectorRepository
 
 Repository покрывает price range bitmap and matched variant price sort.
 
@@ -441,14 +474,12 @@ Repository покрывает price range bitmap and matched variant price sort.
 
 ```ts
 async buildPriceRangeVariantBitmap(input: {
-  projectId?: string;
   currency: string;
   minPriceMinor?: number;
   maxPriceMinor?: number;
 }): Promise<BitmapExpr>;
 
 async collectMatchedVariantPricePage(input: {
-  projectId?: string;
   currency: string;
   variantMatchesBitmap: BitmapExpr;
   productMatchesBitmap: BitmapExpr;
@@ -488,7 +519,7 @@ Acceptance:
   example 13;
 - generic `field = 'price'` posting row is never used.
 
-## ProductTitleSearchQueryRepository
+## StorefrontProductTitleSearchQueryRepository
 
 Repository builds BM25 candidate relation for title search.
 
@@ -498,19 +529,16 @@ Repository builds BM25 candidate relation for title search.
 normalizeQuery(query: string | undefined | null): string | null;
 
 buildSearchCandidatesSql(input: {
-  projectId: string;
   locale: string;
   normalizedQuery: string;
 }): SQL;
 
 async buildSearchCandidateBitmap(input: {
-  projectId?: string;
   locale: string;
   normalizedQuery: string;
 }): Promise<BitmapExpr>;
 
 async collectRelevancePage(input: {
-  projectId?: string;
   locale: string;
   normalizedQuery: string;
   matchesBitmap: BitmapExpr;
@@ -545,7 +573,7 @@ Acceptance:
   selected product/price collector;
 - facet isolation never removes title query.
 
-## FacetAggregationRepository
+## StorefrontFacetAggregationRepository
 
 Repository computes `totalCount`, product facets, option facets, price range and
 in-stock virtual counts from full filtered scope, not from page rows.
@@ -554,19 +582,16 @@ in-stock virtual counts from full filtered scope, not from page rows.
 
 ```ts
 async countProducts(input: {
-  projectId?: string;
   matchesBitmap: BitmapExpr;
 }): Promise<number>;
 
 async countProductFacetValues(input: {
-  projectId?: string;
   productBaseBitmap: BitmapExpr;
   activeProductGroups: readonly ResolvedFacetFilterGroup[];
   visibleValues: readonly VisibleFacetValue[];
 }): Promise<FacetCountResult[]>;
 
 async countOptionFacetValues(input: {
-  projectId?: string;
   productBaseBitmap: BitmapExpr;
   activeOptionGroups: readonly ResolvedFacetFilterGroup[];
   priceVariantBitmap?: BitmapExpr | null;
@@ -575,7 +600,6 @@ async countOptionFacetValues(input: {
 }): Promise<FacetCountResult[]>;
 
 async getPriceRange(input: {
-  projectId?: string;
   productBaseBitmap: BitmapExpr;
   activeOptionGroups: readonly ResolvedFacetFilterGroup[];
   activeProductGroups: readonly ResolvedFacetFilterGroup[];
@@ -584,7 +608,6 @@ async getPriceRange(input: {
 }): Promise<PriceRangeResult | null>;
 
 async countInStock(input: {
-  projectId?: string;
   productBaseBitmap: BitmapExpr;
   activeProductGroups: readonly ResolvedFacetFilterGroup[];
   activeOptionGroups: readonly ResolvedFacetFilterGroup[];
@@ -638,7 +661,7 @@ Acceptance:
   example 12;
 - counts limited to configured visible values, not all posting rows.
 
-## ListingQueryRepository
+## StorefrontListingQueryRepository
 
 This is the orchestration repository used by storefront resolvers/scripts.
 
@@ -649,12 +672,12 @@ constructor(
   db: Database,
   txManager: TransactionManager<Database>,
   private readonly facets: StorefrontFacetResolutionRepository,
-  private readonly postings: ListingPostingBitmapRepository,
-  private readonly projection: ListingVariantProjectionRepository,
-  private readonly productCollector: ListingProductSortCollectorRepository,
-  private readonly variantPriceCollector: ListingVariantPriceCollectorRepository,
-  private readonly search: ProductTitleSearchQueryRepository,
-  private readonly aggregation: FacetAggregationRepository
+  private readonly postings: StorefrontPostingBitmapQueryRepository,
+  private readonly projection: StorefrontVariantProjectionQueryRepository,
+  private readonly productCollector: StorefrontProductSortCollectorRepository,
+  private readonly variantPriceCollector: StorefrontVariantPriceCollectorRepository,
+  private readonly search: StorefrontProductTitleSearchQueryRepository,
+  private readonly aggregation: StorefrontFacetAggregationRepository
 ) {
   super(db, txManager);
 }
@@ -851,7 +874,8 @@ Empty listing is not an error.
 
 ## Observability
 
-`ListingQueryRepository.getStorefrontListing` should log debug-level metadata:
+`StorefrontListingQueryRepository.getStorefrontListing` should log debug-level
+metadata:
 
 - `projectId`;
 - scope kind;
@@ -885,11 +909,11 @@ contracts in follow-up phases.
 
 ### Phase 2. Bitmap and projection primitives
 
-1. Implement `ListingPostingBitmapRepository`.
+1. Implement `StorefrontPostingBitmapQueryRepository`.
 2. Implement published product scope fallback.
 3. Implement in-stock variant scope fallback.
 4. Implement missing posting row semantics.
-5. Implement `ListingVariantProjectionRepository` with inline projection block
+5. Implement `StorefrontVariantProjectionQueryRepository` with inline projection block
    SQL.
 
 Done when repository methods can build product and variant bitmap expressions
@@ -925,7 +949,7 @@ Done when examples 11-13 are covered.
 2. Implement BM25 candidate CTE builder.
 3. Implement search candidate bitmap.
 4. Implement relevance collector.
-5. Integrate query presence into `ListingQueryRepository`.
+5. Integrate query presence into `StorefrontListingQueryRepository`.
 6. Validate relevance sort rules.
 
 Done when example 9 is covered and explicit business sorts still work with
@@ -933,7 +957,7 @@ search candidates as a filter.
 
 ### Phase 6. Storefront orchestration
 
-1. Implement `ListingQueryRepository.getStorefrontListing`.
+1. Implement `StorefrontListingQueryRepository.getStorefrontListing`.
 2. Wire all short-circuit paths.
 3. Wire collector selection.
 4. Wire aggregate collection based on requested fields.
