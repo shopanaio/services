@@ -449,7 +449,7 @@ Rules:
 1. Add infrastructure documentation/config for `pg_search` in local PostgreSQL.
 2. Add Drizzle model for `product_title_bm25_search_index`.
 3. Add handwritten listing migration
-   `services/listing/migrations/domains/9000_read_models/9004_read_models__product_title_bm25_search.sql`
+   `services/listing/migrations/domains/0100_listing_index/0101_listing_index__bm25_search.sql`
    with `CREATE EXTENSION IF NOT EXISTS pg_search`, table, ordinary indexes and
    BM25 index. Do not use Drizzle migration generation for listing; keep
    `shared_preload_libraries = 'pg_search'` in infrastructure config outside

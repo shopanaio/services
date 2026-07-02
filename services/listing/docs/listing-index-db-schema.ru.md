@@ -88,15 +88,15 @@ Listing migrations are handwritten PostgreSQL SQL executed by the listing
 `node-pg-migrate` runner. Do not use Drizzle migration generation for these
 listing changes.
 
-Place listing read-model migrations in the existing read-model domain folder:
+Place listing index migrations in a new listing service domain folder:
 
 ```text
-services/listing/migrations/domains/9000_read_models/
+services/listing/migrations/domains/0100_listing_index/
 ```
 
 Planned files:
 
-- `9003_read_models__listing_index_redesign.sql`:
+- `services/listing/migrations/domains/0100_listing_index/0100_listing_index__tables.sql`:
   - create `product_listing_index`, `product_listing_price_index`,
     `variant_listing_index`, `variant_listing_price_index`,
     `listing.listing_doc_id_allocator` and the `listing.listing_posting_*`
@@ -111,7 +111,7 @@ Planned files:
     ids in `value_key`;
   - add composite unique/FK targets only inside listing read-model tables where
     needed to enforce repeated `project_id` consistency in child rows.
-- `9004_read_models__product_title_bm25_search.sql`:
+- `services/listing/migrations/domains/0100_listing_index/0101_listing_index__bm25_search.sql`:
   - create `listing.product_title_bm25_search_index`;
   - create ordinary indexes and the ParadeDB BM25 index;
   - run `CREATE EXTENSION IF NOT EXISTS pg_search`, while keeping
@@ -126,13 +126,14 @@ Planned files:
     joining the listing index.
 
 If either basename is already taken when implementation starts, use the next
-available `900x_read_models__...sql` basename and update these documents in the
-same change. Keep basenames globally unique across all
+available `010x_listing_index__...sql` basename inside
+`services/listing/migrations/domains/0100_listing_index/` and update these
+documents in the same change. Keep basenames globally unique across all
 `services/listing/migrations/domains/**/*.sql` files.
 
 Do not edit existing historical domain migration files for this redesign. The
 intended path for this work is additive handwritten SQL in listing service
-`9000_read_models`.
+`services/listing/migrations/domains/0100_listing_index/`.
 
 Before implementation, update the current Drizzle listing models to this target
 schema. The existing model layer may still contain legacy raw handle arrays and
@@ -1032,7 +1033,8 @@ requires `key_field` to be unique, first in the indexed column list and
 untokenized if it is text. It does not explicitly guarantee every planned field
 shape used above, especially `uuid` as the key field and `timestamptz` fields.
 Implementation must verify the exact installed `pg_search` version before
-shipping `9004_read_models__product_title_bm25_search.sql`.
+shipping
+`services/listing/migrations/domains/0100_listing_index/0101_listing_index__bm25_search.sql`.
 
 Fallback rules:
 
