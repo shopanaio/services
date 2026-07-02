@@ -58,7 +58,7 @@ matches = category_mens_sneakers & brand_nike & size_42 & color_black
 5. Поддержать deterministic sort через PostgreSQL sort value tables.
 6. Поддержать rebuild + atomic publish новой версии индекса в PostgreSQL.
 7. Оставить PostgreSQL listing tables как source read model для rebuild и
-   fallback на ранней стадии.
+   diagnostics.
 
 ## Не цели
 
@@ -102,10 +102,11 @@ dictionaries + roaring postings + sort values
 storefront listing SQL query engine
 ```
 
-SQL listing read model остается источником для rebuild. Storefront read path
-может переключаться на roaring posting tables для category/global/search
-listing, а обычный SQL listing pipeline остается fallback и reference
-implementation.
+SQL listing read model остается источником для rebuild и diagnostics. Целевой
+storefront read path для category/global/search listing работает через roaring
+posting tables; row-based SQL listing pipeline используется как источник данных
+и контрольная база для проверки correctness, а не как runtime mode storefront
+listing.
 
 ## Хранилище индекса
 
@@ -323,8 +324,8 @@ Sort indexes used by those collectors must be covering indexes for the selected
 sort shape, either by making `product_doc_id` part of the key or by
 `INCLUDE (product_doc_id)`. A sort shape is not accepted for the hot path until
 its exact `WHERE`, keyset predicate and `ORDER BY` are backed by a matching
-covering index. The generic multi-value index is a fallback/prototype, not a
-release guarantee for all sorts.
+covering index. The generic multi-value index is only a development and
+diagnostic aid; production sort shapes require explicit covering indexes.
 
 ### Price values
 
@@ -425,9 +426,8 @@ Posting version tables do not reference canonical product/variant/facet tables
 directly. Their source of truth is the SQL listing read model at a concrete
 watermark. FK constraints stay inside one `(project_id, index_version)` and
 protect the published version from orphan dictionary, bitmap, sort, price and
-projection rows. If a later high-scale segment implementation removes some FKs
-for write throughput, it must replace them with an explicit build validator
-before publish.
+projection rows. If segment storage removes some FKs for write throughput, it
+must replace them with an explicit build validator before publish.
 
 Recommended block size: 4096 or 8192 variant docs. Builder creates one row per
 contiguous `variant_doc_id` range. Query strategy:
@@ -1284,34 +1284,15 @@ visibility scope. Passing only top-K/top-N candidates is allowed only for a
 separate page preselection optimization after exact totals and facet semantics
 are preserved by the full candidate relation.
 
-## Version lifecycle
+## Refresh lifecycle
 
-Posting index version is immutable after publish. Rebuild or incremental refresh
-builds a complete replacement version for affected project:
+Posting index version is immutable after publish. Любое обновление строит новый
+published snapshot для affected project из текущей published version и
+микробатча changed products. Storefront всегда читает одну immutable published
+version; published bitmap, dictionary, price, sort и projection rows не
+обновляются in-place.
 
-1. Builder reads current PostgreSQL listing read model.
-2. Builder creates `index_version = N + 1` with `status = 'building'`.
-3. Builder writes doc dictionaries, posting bitmaps and sort value rows for
-   `N + 1`.
-4. Builder validates doc counts, required bitmaps, cardinality metadata and sort
-   rows.
-5. Publish transaction marks old version as `retired` and new version as
-   `published`.
-6. Cleanup job deletes retired versions after grace period.
-
-На ранней стадии incremental sync может просто rebuild-ить весь project posting
-version. Если это станет дорого, можно добавить targeted rebuild для набора
-changed products, но publish contract остается тем же: storefront читает одну
-immutable published version.
-
-## High-scale incremental refresh
-
-Для проектов с 10+ млн variants full project rebuild на каждое изменение
-варианта не является допустимым hot path. Обновление posting index должно
-работать как микробатчевый refresh новой версии, построенной из опубликованной
-версии и набора changed products.
-
-Published version все равно immutable:
+Published version contract:
 
 ```text
 N stays published and read-only
@@ -1383,18 +1364,17 @@ The workflow may keep draining the queue while building, but it must close the
 batch at a concrete `source_listing_watermark`. Events after that watermark stay
 queued for the next version.
 
-### Segment manifests for high-update projects
+### Segment manifests
 
-For projects with 10+ mln variants and frequent posting-affecting updates, the
-target storage model should avoid repeatedly deleting and inserting large
-PostgreSQL rows for every refresh. This applies to price, stock, publish state,
+The target storage model avoids repeatedly deleting and inserting large
+PostgreSQL rows for refresh. This applies to price, stock, publish state,
 category membership, product facets, option facets, facet mappings and deletion
-of facet values. PostgreSQL MVCC would keep old row versions until vacuum, so
+of facet values. PostgreSQL MVCC keeps old row versions until vacuum, so
 frequent rewrites of `roaringbitmap` rows, broad
 `listing_posting_variant_price` ranges or large facet posting rows would create
 table and index bloat.
 
-High-scale refresh should publish a new manifest of immutable segments:
+Refresh publishes a new manifest of immutable segments:
 
 ```text
 snapshot N:
@@ -1493,14 +1473,10 @@ This model is closer to Lucene/Elasticsearch: update is represented as
 larger immutable segments. It trades a slightly more complex query planner for
 stable PostgreSQL storage behavior under frequent updates.
 
-### Copy-on-write version build
+### Delta version build
 
-Copy-on-write complete versions are acceptable as a simpler early
-implementation or for low-update projects. They are not the preferred hot path
-for projects with 10+ mln variants and frequent posting-affecting updates.
-
-For 10+ mln variants, `N + 1` should not recompute every posting from canonical
-tables. It should copy or derive unchanged rows from `N` and rebuild only rows
+`N + 1` does not recompute every posting from canonical tables. It derives
+unchanged rows from `N` through the segment manifest and rebuilds only rows
 affected by the delta manifest.
 
 Stable doc ids are preferred for unchanged docs:
@@ -1537,10 +1513,8 @@ projection block for variant_doc_id is rebuilt
 ```
 
 Rows not mentioned by the delta manifest can be referenced from `N + 1` without
-decoding the bitmap. For high-scale projects this should be implemented through
-segment manifests, not by physically duplicating all unchanged PostgreSQL rows.
-Physical duplication is only acceptable for benchmarked small/medium datasets or
-one-off rebuild workflows.
+decoding the bitmap. This is implemented through segment manifests, not by
+physically duplicating all unchanged PostgreSQL rows.
 
 ### Affected row selection
 
@@ -1575,7 +1549,7 @@ queued_changed_products
 queued_changed_variants
 last_published_source_listing_watermark
 posting_refresh_versions_built_total
-posting_refresh_full_rebuild_fallback_total
+posting_refresh_full_rebuild_recovery_total
 ```
 
 Recommended SLO policy:
@@ -1585,10 +1559,10 @@ Recommended SLO policy:
   filtering/facet availability;
 - publish/unpublish is priority and should not wait behind large option
   refresh backlog;
-- if queue lag exceeds SLO, trigger broader rebuild or temporarily route strict
-  reads to SQL listing pipeline.
+- if queue lag exceeds SLO, trigger broader rebuild or reject strict reads until
+  the posting version catches up to the required watermark.
 
-Storage health metrics are release gates for high-update projects:
+Storage health metrics are release gates:
 
 ```text
 active_segment_count
@@ -1601,15 +1575,14 @@ compaction_queue_lag_seconds
 ```
 
 If dead tuple ratio or retired bytes exceed configured thresholds, the system
-must throttle new refreshes, prioritize compaction/cleanup, or temporarily use
-SQL listing fallback for strict reads. A design that depends on frequent updates
-or deletes of large active PostgreSQL rows is rejected for the 10+ mln variant
-target.
+must throttle new refreshes, prioritize compaction/cleanup, or reject strict
+reads until storage health returns under thresholds. A design that depends on
+frequent updates or deletes of large active PostgreSQL rows is rejected.
 
-### Full rebuild fallback
+### Full rebuild recovery
 
-Targeted refresh is an optimization, not the only recovery path. The system must
-still support full project rebuild for:
+Microbatch refresh is the normal update path, but the system must support full
+project rebuild for:
 
 - corrupted or missing posting version;
 - pg_roaringbitmap compatibility changes;
@@ -1652,7 +1625,9 @@ Posting engine может быть eventually consistent относительн�
   version.
 
 Если нужна строгая transactional consistency для конкретной операции, endpoint
-может временно читать SQL listing pipeline.
+должен проверить `source_listing_watermark` published posting version и либо
+дождаться свежей версии, либо вернуть явную consistency error. Storefront
+listing не переключается на row-based SQL path как нормальный runtime mode.
 
 ## PostgreSQL roaring operations
 
@@ -1736,7 +1711,7 @@ must never spread provider-specific `rb_*` names directly.
 ## Benchmark gates
 
 This design should not be implemented without benchmark fixtures that compare
-the current SQL listing pipeline and the PostgreSQL roaring pipeline.
+the SQL listing read-model baseline and the PostgreSQL roaring pipeline.
 
 Minimum synthetic datasets:
 
@@ -1795,24 +1770,21 @@ interface ListingPostingResult {
 }
 ```
 
-## Когда использовать posting engine
+## Runtime ownership
 
-Use posting engine для:
+Posting engine is the storefront listing read path for:
 
-- больших category PLP;
-- category + facets + totalCount + facet counts;
-- option filters с same-variant semantics;
-- популярных storefront entry points с high QPS;
-- search candidate set + structured filters, если candidate ids можно быстро
-  превратить в product bitset.
+- category PLP;
+- manual and rule collection PLP;
+- global catalog listing;
+- search candidate set + structured filters;
+- totalCount, facet counts and virtual facets;
+- option filters with same-variant semantics;
+- deterministic cursor pagination and sort.
 
-Use SQL listing pipeline для:
-
-- early implementation;
-- admin diagnostics;
-- rare edge queries, пока engine не поддерживает нужный shape;
-- correctness comparison;
-- fallback при недоступной published posting version.
+SQL listing read model remains the source for rebuild, diagnostics and
+correctness comparison. It is not a separate storefront architecture mode and is
+not used as the normal runtime path when posting engine is enabled.
 
 ## Trade-offs
 
@@ -1833,18 +1805,14 @@ Use SQL listing pipeline для:
 - нужно держать SQL read model и posting version согласованными;
 - сложнее debug, чем обычный row-based SQL query + `EXPLAIN`.
 
-## Отношение к текущему плану
+## Итоговая архитектурная позиция
 
-Текущий SQL listing index остается правильным v1 и source read model:
-
-- он проще;
-- легче проверить correctness;
-- не требует отдельного posting index;
-- подходит для ранней стадии проекта.
-
-Posting-list engine является следующим performance layer. Его не нужно строить
-до тех пор, пока SQL `EXPLAIN ANALYZE` и реальные PLP нагрузки не покажут, что
-facet counts/totalCount стали bottleneck.
+Этот документ описывает одну целевую архитектуру storefront listing:
+PostgreSQL roaring posting index поверх SQL listing read model. SQL listing
+tables остаются canonical read model для построения posting snapshots,
+diagnostics и benchmark comparison. Storefront listing semantics определяются
+posting engine: filtering, totalCount, facet counts, virtual facets, sorting,
+pagination and search candidate integration.
 
 Важно: этот документ не отменяет requirement “не предагрегировать facet
 counts”. Posting lists не являются counts. Они являются physical inverted index,
