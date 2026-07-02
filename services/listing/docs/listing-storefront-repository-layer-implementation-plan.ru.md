@@ -117,6 +117,15 @@ Tenant boundary rule:
 - SQL snippets may use `:projectId` as a local placeholder, but implementation
   must bind it from `this.storeId`, not from caller input.
 
+Read-only repository rule:
+
+- every async read method in `services/listing/src/repositories/storefront/`
+  must be annotated with `@ReadOnly()` from `@shopana/shared-kernel`, matching
+  existing listing repositories;
+- pure synchronous SQL builder methods such as `buildOrGroup(...)`,
+  `buildProjectionSql(...)` and `normalizeQuery(...)` do not need `@ReadOnly()`;
+- storefront repositories must not perform writes.
+
 ## Общие типы
 
 Файл `storefront/types.ts` должен содержать только repository contracts and
@@ -161,6 +170,30 @@ export interface StorefrontListingInput {
   includePriceRange: boolean;
   includeInStockCount: boolean;
 }
+
+export type StorefrontListingFilterInput =
+  | {
+      kind: "facet";
+      facetSlug: string;
+      valueHandles: string[];
+    }
+  | {
+      kind: "vendor";
+      vendorIds: string[];
+    }
+  | {
+      kind: "price";
+      minPriceMinor?: number;
+      maxPriceMinor?: number;
+    }
+  | {
+      kind: "in_stock";
+      value: boolean;
+    };
+
+export interface StorefrontSortInput {
+  kind: StorefrontSortKind;
+}
 ```
 
 Scopes:
@@ -172,6 +205,15 @@ export type StorefrontListingScope =
   | { kind: "rule_collection"; collectionId: string; rules: RuleCollectionPredicate[] }
   | { kind: "global" }
   | { kind: "search" };
+
+export type RuleCollectionPredicate =
+  | { kind: "category"; categoryId: string }
+  | { kind: "collection"; collectionId: string }
+  | { kind: "vendor"; vendorId: string }
+  | { kind: "product_facet"; facetId: string; valueKeys: string[] }
+  | { kind: "option_facet"; facetId: string; valueKeys: string[] }
+  | { kind: "price"; minPriceMinor?: number; maxPriceMinor?: number }
+  | { kind: "in_stock"; value: boolean };
 ```
 
 Resolved filters:
@@ -190,6 +232,17 @@ export interface StorefrontFilterPlan {
   priceRange?: { minPriceMinor?: number; maxPriceMinor?: number };
   inStockOnly: boolean;
 }
+
+export interface VisibleFacetValue {
+  facetId: string;
+  facetSlug: string;
+  facetType: FacetRuntimeType;
+  facetValueId: string;
+  valueHandle: string;
+  valueKey: string;
+  label?: string | null;
+  sortIndex?: number | null;
+}
 ```
 
 Bitmap values:
@@ -201,6 +254,61 @@ export interface BitmapExpr {
   sql: SQL;
   empty: boolean;
   source: string;
+}
+```
+
+Cursor and collector DTO:
+
+```ts
+export interface DecodedListingCursor {
+  payload: ListingCursorPayload;
+  raw: string;
+}
+
+export interface ListingCursorPayload {
+  version: 1;
+  hash: string;
+  sort: StorefrontSortKind;
+  inStock: boolean;
+  productId: string;
+  publishedAt?: string | null;
+  productCreatedAt?: string | null;
+  textValue?: string | null;
+  bigintValue?: number | null;
+  priceMinor?: number | null;
+  variantDocId?: number | null;
+  relevanceScore?: number | null;
+}
+
+export type ListingCollectorKind =
+  | "product_sort"
+  | "matched_variant_price"
+  | "relevance";
+
+export interface SearchTieBreakerSql {
+  relevanceScoreSql: SQL;
+}
+
+export interface ListingPageCollectResult {
+  rows: ListingPageRow[];
+  hasNextPage: boolean;
+}
+
+export type ProductSortCollectKind =
+  | "manual"
+  | "newest"
+  | "created"
+  | "name"
+  | "price_asc"
+  | "price_desc";
+
+export interface ResolvedListingRequest {
+  input: StorefrontListingInput;
+  filterPlan: StorefrontFilterPlan;
+  normalizedQuery: string | null;
+  sort: StorefrontSortInput;
+  cursor: DecodedListingCursor | null;
+  filterHash: string;
 }
 ```
 
@@ -224,6 +332,26 @@ Result:
 export interface StorefrontListingRepositoryResult {
   rows: ListingPageRow[];
   hasNextPage: boolean;
+  totalCount?: number;
+  facets?: FacetCountResult[];
+  priceRange?: PriceRangeResult | null;
+  inStockCount?: number;
+}
+
+export interface FacetCountResult {
+  facetId: string;
+  facetType: FacetRuntimeType;
+  valueKey: string;
+  count: number;
+}
+
+export interface PriceRangeResult {
+  minPriceMinor: number;
+  maxPriceMinor: number;
+  currency: string;
+}
+
+export interface ListingAggregatesResult {
   totalCount?: number;
   facets?: FacetCountResult[];
   priceRange?: PriceRangeResult | null;
@@ -258,6 +386,32 @@ title @@@ query
 
 Не создавать project-owned SQL helper functions для projection. Macro
 `project_variant_bitmap_to_products(...)` должен inline-иться в generated SQL.
+
+Empty bitmap SQL contract:
+
+- `BitmapExpr.empty` is only a planning/short-circuit flag; it is not enough for
+  runtime SQL safety;
+- add a colocated helper `emptyRoaringBitmapSql(): SQL` that returns a
+  validated non-NULL empty `roaringbitmap` expression for the installed
+  `pg_roaringbitmap` extension;
+- add `coalesceBitmapSql(value: SQL): SQL`, which emits
+  `COALESCE(value, emptyRoaringBitmapSql())`;
+- every `rb_build_agg(...)`, `rb_or_agg(...)`, `rb_and_agg(...)` and projection
+  SQL result that can see zero rows must be wrapped through `coalesceBitmapSql`;
+- if a required group is known empty before SQL generation, short-circuit the
+  repository call and return an empty result instead of sending a query with a
+  NULL bitmap.
+
+Example shape:
+
+```ts
+const publishedBitmap = coalesceBitmapSql(sql`(
+  SELECT rb_build_agg(pli.product_doc_id)
+  FROM listing.product_listing_index pli
+  WHERE pli.project_id = ${this.storeId}
+    AND pli.status = 'published'
+)`);
+```
 
 ## StorefrontFacetResolutionRepository
 
@@ -358,6 +512,9 @@ SQL shapes:
   `product_listing_index where status = 'published'`;
 - in-stock variants fallback: `rb_build_agg(variant_doc_id)` from
   `variant_listing_index where in_stock = true`.
+- both fallback queries must wrap `rb_build_agg(...)` with
+  `coalesceBitmapSql(...)` so an empty project returns an empty bitmap, not
+  `NULL`.
 
 Acceptance:
 
@@ -390,6 +547,8 @@ Implementation:
 2. Для full block использовать `block.product_bitmap`.
 3. Для partial block join к `variant_listing_index` по doc range and membership.
 4. OR all product bitmaps через `rb_or_agg`.
+5. Wrap the final `rb_or_agg(...)` result with `coalesceBitmapSql(...)`; no
+   matched blocks must produce an empty product bitmap, not `NULL`.
 
 Fallback через `rb_iterate` разрешен только для узких sets and diagnostics.
 Hot path для broad option filters всегда использует projection blocks.
@@ -420,17 +579,7 @@ async collectProductSortPage(input: {
 }): Promise<ListingPageCollectResult>;
 ```
 
-Supported `ProductSortCollectKind`:
-
-```ts
-export type ProductSortCollectKind =
-  | "manual"
-  | "newest"
-  | "created"
-  | "name"
-  | "price_asc"
-  | "price_desc";
-```
+Supported `ProductSortCollectKind` is defined in `storefront/types.ts`.
 
 Sort routing:
 
@@ -494,13 +643,26 @@ async collectMatchedVariantPricePage(input: {
 Price filter:
 
 ```sql
-SELECT rb_build_agg(vp.variant_doc_id)
+SELECT COALESCE(rb_build_agg(vp.variant_doc_id), <emptyRoaringBitmapSql()>)
 FROM listing.listing_posting_variant_price vp
 WHERE vp.project_id = :projectId
   AND vp.currency = :currency
   AND vp.price_minor >= :minPriceMinor
   AND vp.price_minor <= :maxPriceMinor;
 ```
+
+`<emptyRoaringBitmapSql()>` here means the TypeScript SQL fragment returned by
+the helper, not a PostgreSQL function or caller-provided parameter.
+
+Runtime invariant:
+
+- `listing.listing_posting_variant_price` contains only priced active in-stock
+  variants;
+- stock or price sync must insert/delete rows so out-of-stock, inactive or
+  unpriced variants are absent from this table;
+- price-only filters may rely on this table for purchasable variant semantics
+  and do not add a second in-stock predicate unless the invariant is broken by a
+  future schema change.
 
 Matched price collector:
 
@@ -511,6 +673,20 @@ Matched price collector:
 - `price_asc` picks lowest matching variant per product;
 - `price_desc` picks highest matching variant per product;
 - cursor includes price, product_id, variant_doc_id and filter hash.
+
+Chunked application dedupe limits:
+
+- each chunk query must include keyset progress by
+  `(price_minor, product_id, variant_doc_id)` for ascending sort and the matching
+  descending tuple for `price_desc`;
+- use deterministic cursor tie-breakers: `priceMinor`, `productId`,
+  `variantDocId`, plus filter hash;
+- set a hard max scanned row budget per request, for example
+  `max(first * 50, 1000)` with a documented cap;
+- if the budget is exhausted before collecting `first + 1` unique products,
+  switch to the anti-join/reference SQL or return a controlled repository error;
+- never loop until enough unique products are found without a bounded progress
+  condition.
 
 Acceptance:
 
@@ -555,6 +731,13 @@ Rules:
 - empty query disables BM25 flow;
 - cap normalized query length, например 128 chars;
 - parameterize query, never interpolate raw user input;
+- candidate relation must join `product_title_bm25_search_index` to
+  `product_listing_index` by `project_id + product_id`;
+- candidate relation must select `product_doc_id`, `product_id`, `in_stock` and
+  `relevance_score`, and must apply storefront visibility through
+  `product_listing_index.status = 'published'`;
+- BM25 index status can be used as an extra guard, but `product_listing_index`
+  remains the source of product doc id and visibility for listing runtime;
 - candidate relation must represent all matches when used by `totalCount` or
   facets;
 - no silent top-K cap before counts;
@@ -571,6 +754,8 @@ Acceptance:
 - search candidates + structured filters + relevance sort покрывает example 9;
 - explicit business sorts with query keep BM25 as filter and collect page via
   selected product/price collector;
+- search candidate bitmap is built from `product_listing_index.product_doc_id`
+  after published visibility filtering;
 - facet isolation never removes title query.
 
 ## StorefrontFacetAggregationRepository
@@ -842,11 +1027,17 @@ Use parameterized `sql` fragments. Do not concatenate user input.
 Recommended internal building blocks:
 
 ```ts
+function emptyRoaringBitmapSql(): SQL;
+function coalesceBitmapSql(value: SQL): SQL;
 function andBitmapExpr(parts: BitmapExpr[]): BitmapExpr;
 function orBitmapExpr(parts: BitmapExpr[]): BitmapExpr;
 function emptyBitmapExpr(reason: string): BitmapExpr;
 function literalBitmapExpr(value: RoaringBitmapSqlValue, source: string): BitmapExpr;
 ```
+
+`andBitmapExpr(...)`, `orBitmapExpr(...)` and projection builders must return SQL
+that is safe to embed into membership checks and `rb_cardinality(...)`; no helper
+may expose a nullable bitmap SQL expression to callers.
 
 For loaded bitmap values, prefer binding as parameter:
 
@@ -899,10 +1090,13 @@ requested by observability path, because counting can be expensive.
 ### Phase 1. Contracts and aggregator wiring
 
 1. Add `storefront/types.ts`.
-2. Add repository files with constructors and method stubs.
-3. Export from `storefront/index.ts`.
-4. Instantiate all repositories in `Repository.create`.
-5. Keep all methods project-scoped through `this.storeId`.
+2. Add all DTO/types referenced by repository contracts in `storefront/types.ts`;
+   do not leave unresolved GraphQL-only type names.
+3. Add repository files with constructors and method stubs.
+4. Annotate async read methods with `@ReadOnly()`.
+5. Export from `storefront/index.ts`.
+6. Instantiate all repositories in `Repository.create`.
+7. Keep all methods project-scoped through `this.storeId`.
 
 Done when the service builds with empty implementations replaced by typed
 contracts in follow-up phases.
@@ -912,8 +1106,9 @@ contracts in follow-up phases.
 1. Implement `StorefrontPostingBitmapQueryRepository`.
 2. Implement published product scope fallback.
 3. Implement in-stock variant scope fallback.
-4. Implement missing posting row semantics.
-5. Implement `StorefrontVariantProjectionQueryRepository` with inline projection block
+4. Implement `emptyRoaringBitmapSql()` and `coalesceBitmapSql(...)`.
+5. Implement missing posting row semantics.
+6. Implement `StorefrontVariantProjectionQueryRepository` with inline projection block
    SQL.
 
 Done when repository methods can build product and variant bitmap expressions
@@ -926,7 +1121,8 @@ needed by examples 1, 3 and 4.
 2. Implement keyset cursor predicates with `NULLS LAST` support.
 3. Implement `first + 1` overfetch and `hasNextPage`.
 4. Implement price range bitmap.
-5. Implement matched variant price collector with chunked application dedupe.
+5. Implement matched variant price collector with bounded chunked application
+   dedupe and deterministic keyset progress.
 6. Keep anti-join SQL as reference/fallback method.
 
 Done when examples 1-8 and 10 are covered at repository level.
@@ -946,7 +1142,8 @@ Done when examples 11-13 are covered.
 ### Phase 5. BM25 integration
 
 1. Implement query normalization.
-2. Implement BM25 candidate CTE builder.
+2. Implement BM25 candidate CTE builder with join to `product_listing_index` for
+   `product_doc_id`, `in_stock` and published visibility.
 3. Implement search candidate bitmap.
 4. Implement relevance collector.
 5. Integrate query presence into `StorefrontListingQueryRepository`.
@@ -971,6 +1168,7 @@ collection, global, rule collection and search listings.
 
 - Every read query filters by `project_id`.
 - Every repository query uses `this.connection`.
+- Every async storefront read repository method is annotated with `@ReadOnly()`.
 - Storefront facet filters are resolved to `facet_id` and `facet_value_id`
   before runtime query.
 - Raw source handles are absent from listing read path.
@@ -980,8 +1178,13 @@ collection, global, rule collection and search listings.
 - `price` and `in_stock` remain virtual facets.
 - Missing posting rows are treated as empty bitmaps with correct OR-group
   semantics.
+- Empty bitmap SQL is non-null: `rb_build_agg`, `rb_or_agg`, `rb_and_agg` and
+  projection outputs use `coalesceBitmapSql(...)` or short-circuit before query.
 - Product sort collector uses `listing_posting_product_sort`.
 - Matched variant price collector uses `listing_posting_variant_price`.
+- `listing_posting_variant_price` contains only priced active in-stock variants.
+- Matched variant price chunked dedupe has keyset progress and a hard scan
+  budget.
 - Broad variant projection uses projection blocks.
 - `totalCount` uses `rb_cardinality(matches)` only when requested.
 - Facet counts use full filtered scope, not current page rows.
@@ -989,6 +1192,8 @@ collection, global, rule collection and search listings.
 - Option facet counts return product cardinality after projection.
 - Search candidate relation is not silently top-K capped when used by totals or
   facets.
+- Search candidate relation joins `product_listing_index` and filters published
+  products before building the candidate bitmap.
 - Relevance sort is availability-first and deterministic.
 - Cursor hash includes project, locale, currency, scope, query, filters and
   sort.
