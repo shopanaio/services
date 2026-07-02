@@ -114,7 +114,14 @@ Planned files:
   - create ordinary indexes and the ParadeDB BM25 index;
   - run `CREATE EXTENSION IF NOT EXISTS pg_search`, while keeping
     `shared_preload_libraries = 'pg_search'` as infrastructure configuration
-    outside SQL migrations.
+    outside SQL migrations;
+  - before finalizing the BM25 DDL, verify the selected `pg_search` version
+    accepts `uuid`, `varchar` and `timestamptz` fields in `USING bm25`.
+    If `uuid` is not accepted as `key_field`, replace `search_id uuid` with a
+    stable unique `search_key text`. If non-text filter/sort fields are not
+    accepted by the installed version, keep only supported fields in the BM25
+    index and apply unsupported predicates in the SQL candidate wrapper before
+    joining the listing index.
 
 If either basename is already taken when implementation starts, use the next
 available `900x_read_models__...sql` basename and update these documents in the
@@ -1016,6 +1023,29 @@ CREATE INDEX idx_product_title_bm25_search
   )
   WITH (key_field = 'search_id');
 ```
+
+Compatibility precondition:
+
+ParadeDB documentation for v0.24.1 says BM25 indexes support most PostgreSQL
+types, including text, JSON, numeric, timestamp, range, boolean and arrays, and
+requires `key_field` to be unique, first in the indexed column list and
+untokenized if it is text. It does not explicitly guarantee every planned field
+shape used above, especially `uuid` as the key field and `timestamptz` fields.
+Implementation must verify the exact installed `pg_search` version before
+shipping `9004_read_models__product_title_bm25_search.sql`.
+
+Fallback rules:
+
+- If `uuid` cannot be used as the BM25 key field, change `search_id uuid` to a
+  deterministic/stable unique `search_key text`, keep it first in `USING bm25`
+  and set `WITH (key_field = 'search_key')`.
+- If `uuid`, `varchar`, enum or `timestamptz` columns cannot be included in the
+  BM25 index for the selected version, index only the supported key/text fields
+  required for title search. Apply project, locale, status, kind and date
+  predicates in the SQL candidate relation before joining
+  `product_listing_index`.
+- Do not silently fall back to `ILIKE`; missing or incompatible `pg_search`
+  should fail migration/startup clearly.
 
 | Поле | Комментарий |
 | --- | --- |
