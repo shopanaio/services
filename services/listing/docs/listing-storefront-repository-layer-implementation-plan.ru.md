@@ -217,6 +217,15 @@ export type RuleCollectionPredicate =
   | { kind: "in_stock"; value: boolean };
 ```
 
+Search scope rule:
+
+- `{ kind: "search" }` requires a non-empty normalized `query`; otherwise return
+  a repository validation error;
+- for non-search scopes, empty normalized query disables BM25 flow and the query
+  behaves as a normal structured listing;
+- a non-empty `query` may be used with non-search scopes as an additional title
+  search candidate bitmap filter.
+
 Resolved filters:
 
 ```ts
@@ -360,6 +369,56 @@ export interface ListingAggregatesResult {
 }
 ```
 
+Raw SQL result DTO:
+
+```ts
+export interface BitmapSqlRow {
+  bitmap: RoaringBitmapSqlValue;
+}
+
+export interface CountSqlRow {
+  count: number;
+}
+
+export interface ProductSortPageSqlRow {
+  productDocId: number;
+  productId: string;
+  inStock: boolean;
+  boolValue: boolean | null;
+  timestamptzValue: string | null;
+  timestamptzValue2: string | null;
+  bigintValue: number | null;
+  textValue: string | null;
+}
+
+export interface VariantPricePageSqlRow {
+  productDocId: number;
+  productId: string;
+  inStock: boolean;
+  variantDocId: number;
+  priceMinor: number;
+}
+
+export interface SearchPageSqlRow {
+  productDocId: number;
+  productId: string;
+  inStock: boolean;
+  relevanceScore: number;
+}
+
+export interface FacetCountSqlRow {
+  facetId: string;
+  facetType: FacetRuntimeType;
+  valueKey: string;
+  count: number;
+}
+
+export interface PriceRangeSqlRow {
+  minPriceMinor: number | null;
+  maxPriceMinor: number | null;
+}
+```
+
 ## Raw SQL policy
 
 Drizzle models остаются schema/query contract, но roaring operations и BM25
@@ -368,6 +427,13 @@ Drizzle models остаются schema/query contract, но roaring operations �
 ```ts
 await this.connection.execute(sql`...`);
 ```
+
+Every raw SQL query must use an explicit row DTO, for example
+`this.connection.execute<ProductSortPageSqlRow>(...)`. Do not leave repository
+SQL results as `unknown` / `Record<string, unknown>`. If PostgreSQL returns
+`bigint` values such as `rb_cardinality(...)`, either cast them in SQL to a
+safe integer type for the expected range or parse the typed driver result before
+returning repository DTOs.
 
 Разрешенные direct PostgreSQL APIs:
 
@@ -671,12 +737,23 @@ SELECT COALESCE(rb_build_agg(vp.variant_doc_id), <emptyRoaringBitmapSql()>)
 FROM listing.listing_posting_variant_price vp
 WHERE vp.project_id = :projectId
   AND vp.currency = :currency
+  -- add only when minPriceMinor is present
   AND vp.price_minor >= :minPriceMinor
+  -- add only when maxPriceMinor is present
   AND vp.price_minor <= :maxPriceMinor;
 ```
 
 `<emptyRoaringBitmapSql()>` here means the TypeScript SQL fragment returned by
 the helper, not a PostgreSQL function or caller-provided parameter.
+
+Price range validation:
+
+- at least one of `minPriceMinor` or `maxPriceMinor` must be present for a price
+  filter; an empty price filter is a repository validation error;
+- provided bounds must be non-negative safe integers;
+- when both bounds are present, `minPriceMinor <= maxPriceMinor`;
+- missing lower or upper bound means the corresponding SQL predicate is omitted,
+  not bound as `NULL`.
 
 Runtime invariant:
 
@@ -752,7 +829,8 @@ Rules:
 
 - trim query;
 - collapse whitespace;
-- empty query disables BM25 flow;
+- empty query disables BM25 flow for non-search scopes;
+- empty query with `{ kind: "search" }` is a repository validation error;
 - cap normalized query length, например 128 chars;
 - parameterize query, never interpolate raw user input;
 - candidate relation must join `product_title_bm25_search_index` to
@@ -949,7 +1027,8 @@ private async collectAggregates(input: {
 Pipeline:
 
 1. Resolve `projectId = this.storeId`, locale, currency, scope, sort, cursor.
-2. Normalize search query and validate `RELEVANCE`.
+2. Normalize search query; validate that `{ kind: "search" }` has a non-empty
+   normalized query and that `RELEVANCE` is used only with a non-empty query.
 3. Resolve facet filters into `StorefrontFilterPlan`.
 4. Build scope product bitmap:
    - category posting row;
@@ -990,7 +1069,8 @@ Short-circuit rules:
 - empty required product OR group returns empty result without page collector;
 - empty required option OR group returns empty result without projection;
 - empty scope returns empty result;
-- empty BM25 query means normal listing, not search listing;
+- empty BM25 query means normal listing for non-search scopes;
+- empty BM25 query with `{ kind: "search" }` is a validation error;
 - missing value posting inside a non-empty OR group is ignored as empty value.
 
 ## Mapping to SQL examples
@@ -1086,6 +1166,7 @@ Repository errors:
 - invalid cursor hash;
 - unsupported sort/scope combination;
 - `RELEVANCE` without non-empty query;
+- `{ kind: "search" }` without non-empty query;
 - missing required locale/currency;
 - invalid price range.
 
@@ -1123,11 +1204,12 @@ requested by observability path, because counting can be expensive.
 1. Add `storefront/types.ts`.
 2. Add all DTO/types referenced by repository contracts in `storefront/types.ts`;
    do not leave unresolved GraphQL-only type names.
-3. Add repository files with constructors and method stubs.
-4. Annotate async read methods with `@ReadOnly()`.
-5. Export from `storefront/index.ts`.
-6. Instantiate all repositories in `Repository.create`.
-7. Keep all methods project-scoped through `this.storeId`.
+3. Add raw SQL row DTOs for every `this.connection.execute<T>(...)` shape.
+4. Add repository files with constructors and method stubs.
+5. Annotate async read methods with `@ReadOnly()`.
+6. Export from `storefront/index.ts`.
+7. Instantiate all repositories in `Repository.create`.
+8. Keep all methods project-scoped through `this.storeId`.
 
 Done when the service builds with empty implementations replaced by typed
 contracts in follow-up phases.
@@ -1136,7 +1218,7 @@ contracts in follow-up phases.
 
 1. Implement `StorefrontPostingBitmapQueryRepository`.
 2. Implement published product scope fallback.
-3. Implement in-stock variant scope fallback.
+3. Implement product and variant stock-state fallback builders.
 4. Implement `emptyRoaringBitmapSql()` and `coalesceBitmapSql(...)`.
 5. Implement missing posting row semantics.
 6. Implement `StorefrontVariantProjectionQueryRepository` with inline projection block
@@ -1199,6 +1281,8 @@ collection, global, rule collection and search listings.
 
 - Every read query filters by `project_id`.
 - Every repository query uses `this.connection`.
+- Every raw SQL `execute(...)` call uses an explicit row DTO and parses/casts
+  numeric values before returning repository DTOs.
 - Every async storefront read repository method is annotated with `@ReadOnly()`.
 - Storefront facet filters are resolved to `facet_id` and `facet_value_id`
   before runtime query.
@@ -1214,6 +1298,8 @@ collection, global, rule collection and search listings.
 - Product sort collector uses `listing_posting_product_sort`.
 - Matched variant price collector uses `listing_posting_variant_price`.
 - `listing_posting_variant_price` contains only priced active in-stock variants.
+- Price range predicates are generated only for present bounds; empty ranges and
+  invalid bounds are validation errors.
 - Matched variant price chunked dedupe has keyset progress and a hard scan
   budget.
 - Broad variant projection uses projection blocks.
@@ -1223,6 +1309,8 @@ collection, global, rule collection and search listings.
 - Option facet counts return product cardinality after projection.
 - Search candidate relation is not silently top-K capped when used by totals or
   facets.
+- `{ kind: "search" }` requires a non-empty normalized query; empty query only
+  disables BM25 flow for non-search scopes.
 - Search candidate relation joins `product_listing_index` and filters published
   products before building the candidate bitmap.
 - Relevance sort is availability-first and deterministic.
