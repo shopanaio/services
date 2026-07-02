@@ -47,7 +47,7 @@
 - repository layer не читает raw source handles на storefront read path;
 - facet resolution читает canonical facet metadata через read-only Drizzle
   runtime models для schema `catalog`, но только поля, нужные для
-  `facetSlug:valueHandle -> facet_id/facet_type/facet_value_id`;
+  unrestricted `facetSlug:valueHandle -> facet_id/facet_type/facet_value_id`;
 - tests/tsc для проверки этого плана не запускать;
 - changeset не редактировать.
 
@@ -76,9 +76,10 @@ services/listing/src/repositories/models/catalogFacetRuntime.ts
 ```
 
 Модели должны описывать только поля, которые нужны storefront facet resolution:
-`project_id`, facet id/slug/type/visibility, facet value id/handle/kind/state
-and source-child enabled relation. Эти модели не являются ownership transfer для
-catalog данных и не используются для product/variant source read path.
+`project_id`, facet id/slug/type, facet value id/handle/kind/parent relation and
+optional translation/sort fields for aggregate value labels. Эти модели не
+являются ownership transfer для catalog данных и не используются для
+product/variant source read path.
 
 Обновить aggregator:
 
@@ -150,11 +151,11 @@ export type ProductPostingField =
 export type VariantPostingField = "facet" | "variant_product";
 
 export type FacetRuntimeType =
-  | "tag"
-  | "feature"
-  | "option"
-  | "price"
-  | "in_stock";
+  | "TAG"
+  | "FEATURE"
+  | "OPTION"
+  | "PRICE"
+  | "IN_STOCK";
 
 export interface StorefrontListingInput {
   scope: StorefrontListingScope;
@@ -230,10 +231,10 @@ export interface StorefrontFilterPlan {
   optionFacetGroups: ResolvedFacetFilterGroup[];
   vendorIds: string[];
   priceRange?: { minPriceMinor?: number; maxPriceMinor?: number };
-  inStockOnly: boolean;
+  inStock?: boolean;
 }
 
-export interface VisibleFacetValue {
+export interface ResolvedFacetValue {
   facetId: string;
   facetSlug: string;
   facetType: FacetRuntimeType;
@@ -430,11 +431,11 @@ async resolveFilterPlan(input: {
   filters: StorefrontListingFilterInput[];
 }): Promise<StorefrontFilterPlan>;
 
-async getVisibleFacetValues(input: {
+async getFacetValues(input: {
   scope: StorefrontListingScope;
   locale: string;
   requestedFacetIds?: string[];
-}): Promise<VisibleFacetValue[]>;
+}): Promise<ResolvedFacetValue[]>;
 ```
 
 Правила:
@@ -443,12 +444,26 @@ async getVisibleFacetValues(input: {
 - input `facetSlug:valueHandle` резолвится в `facet_id`, `facet_type`,
   `facet_value_id`;
 - `value_key = <facet_id>:<facet_value_id>`;
-- `kind = display` должен иметь хотя бы один enabled source child;
-- `tag` и `feature` идут в `productFacetGroups`;
-- `option` идет в `optionFacetGroups`;
-- `price` и `in_stock` идут в virtual fields;
-- unknown, disabled or invisible values возвращаются как validation/user error
-  на уровне script/resolver, не как raw SQL error.
+- resolution is unrestricted: если facet/value существуют внутри текущего
+  `project_id`, repository резолвит их regardless of enabled/disabled,
+  visibility-like state or reference freshness;
+- `kind = source` with `parent_id IS NULL` resolves to its own `facet_value_id`;
+- `kind = display` resolves to the display value id itself; source children are
+  not required for filter resolution;
+- если caller передал handle source child where `parent_id IS NOT NULL`, метод
+  may resolve it to its parent display value id to preserve canonical
+  storefront grouping, but public storefront handles are expected to be root
+  values;
+- `facet_type` используется в том же canonical формате, что и catalog; repository
+  layer не вводит отдельный case mapping;
+- `TAG` и `FEATURE` идут в `productFacetGroups`;
+- `OPTION` идет в `optionFacetGroups`;
+- `PRICE` и `IN_STOCK` идут в virtual fields;
+- `inStock === undefined` means the `in_stock` filter is absent;
+  `inStock === true` and `inStock === false` are explicit user predicates and
+  must not be collapsed into the same state;
+- unknown facet/value возвращается как validation/user error на уровне
+  script/resolver, не как raw SQL error.
 
 Acceptance:
 
@@ -457,7 +472,8 @@ Acceptance:
 - read path не читает canonical product/variant source rows для resolution;
 - canonical catalog facet metadata читается только через минимальные read-only
   runtime models;
-- returned values limited to configured visible storefront values.
+- resolution does not filter out disabled, hidden-like, stale or display-without-
+  child values when the canonical catalog row exists.
 
 ## StorefrontPostingBitmapQueryRepository
 
@@ -493,7 +509,13 @@ buildAndGroups(input: {
 
 async buildPublishedProductScope(): Promise<BitmapExpr>;
 
-async buildInStockVariantScope(): Promise<BitmapExpr>;
+async buildProductStockScope(input: {
+  inStock: boolean;
+}): Promise<BitmapExpr>;
+
+async buildVariantStockScope(input: {
+  inStock: boolean;
+}): Promise<BitmapExpr>;
 ```
 
 Missing posting row semantics:
@@ -510,9 +532,11 @@ SQL shapes:
 - single variant row: `entity_type = 'variant'`, `field = 'facet'`;
 - global scope fallback: `rb_build_agg(product_doc_id)` from
   `product_listing_index where status = 'published'`;
-- in-stock variants fallback: `rb_build_agg(variant_doc_id)` from
-  `variant_listing_index where in_stock = true`.
-- both fallback queries must wrap `rb_build_agg(...)` with
+- product stock-state fallback: `rb_build_agg(product_doc_id)` from
+  `product_listing_index where status = 'published' and in_stock = :inStock`;
+- variant stock-state fallback: `rb_build_agg(variant_doc_id)` from
+  `variant_listing_index where in_stock = :inStock`.
+- fallback queries must wrap `rb_build_agg(...)` with
   `coalesceBitmapSql(...)` so an empty project returns an empty bitmap, not
   `NULL`.
 
@@ -773,7 +797,7 @@ async countProducts(input: {
 async countProductFacetValues(input: {
   productBaseBitmap: BitmapExpr;
   activeProductGroups: readonly ResolvedFacetFilterGroup[];
-  visibleValues: readonly VisibleFacetValue[];
+  facetValues: readonly ResolvedFacetValue[];
 }): Promise<FacetCountResult[]>;
 
 async countOptionFacetValues(input: {
@@ -781,7 +805,7 @@ async countOptionFacetValues(input: {
   activeOptionGroups: readonly ResolvedFacetFilterGroup[];
   priceVariantBitmap?: BitmapExpr | null;
   inStockVariantBitmap: BitmapExpr;
-  visibleValues: readonly VisibleFacetValue[];
+  facetValues: readonly ResolvedFacetValue[];
 }): Promise<FacetCountResult[]>;
 
 async getPriceRange(input: {
@@ -844,7 +868,8 @@ Acceptance:
 - product facet counts as separate query покрывает example 11;
 - full listing page with page ids + totalCount + isolated counts покрывает
   example 12;
-- counts limited to configured visible values, not all posting rows.
+- counts are limited to the facet values returned by facet resolution, not by
+  scanning all posting rows.
 
 ## StorefrontListingQueryRepository
 
@@ -939,8 +964,14 @@ Pipeline:
 6. Build variant-level filters:
    - option facet rows as OR внутри facet and AND между facets;
    - price range bitmap from `listing_posting_variant_price`;
-   - in-stock variant bitmap when any option predicate is active or price
-     predicate requires purchasable variant semantics.
+   - `inStock === true` applies an explicit in-stock predicate;
+   - `inStock === false` applies an explicit out-of-stock predicate and must not
+     be treated as filter absence;
+   - product-only paths may use `buildProductStockScope(...)`; variant paths use
+     `buildVariantStockScope(...)` before projection;
+   - price predicates use `listing_posting_variant_price`, which contains only
+     priced active in-stock variants, so `inStock === false` intersects with price
+     as an empty purchasable-variant result unless that table invariant changes.
 7. Project variant matches to product bitmap through projection blocks.
 8. Intersect scope, product filters and projected variant filters.
 9. Choose collector:
@@ -978,7 +1009,7 @@ Implementation must cover these repository flows:
 | 8. Rule collection + product filters + price desc | rule compiler output bitmaps + product filters + aggregate or matched price collector depending on variant predicates |
 | 9. Search + structured filters + relevance | BM25 candidate bitmap + structured filters + `collectRelevancePage` |
 | 10. Cursor page ids without totalCount | any collector with `first + 1`, no `rb_cardinality(matches)` |
-| 11. Product facet counts separate query | `countProductFacetValues` with facet isolation and visible value list |
+| 11. Product facet counts separate query | `countProductFacetValues` with facet isolation and resolved facet value list |
 | 12. Full page + total + isolated counts | page collector + `countProducts` + product/option facet counts, monolithic or split SQL |
 | 13. Full option isolation + price range + matched price | option isolation + price bitmap + projection + matched price collector + counts |
 
@@ -1134,7 +1165,7 @@ Done when examples 1-8 and 10 are covered at repository level.
 3. Implement option facet isolated counts through projection blocks.
 4. Implement price range virtual facet.
 5. Implement in-stock virtual facet.
-6. Ensure visible values are loaded from facet resolution repository, not by
+6. Ensure facet values are loaded from facet resolution repository, not by
    scanning all posting rows.
 
 Done when examples 11-13 are covered.
