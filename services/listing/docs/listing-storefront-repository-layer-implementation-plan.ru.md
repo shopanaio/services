@@ -1,0 +1,972 @@
+# План implementation-ready для repository layer storefront listing
+
+## Назначение
+
+Документ описывает реализацию read-side repository layer для storefront listing
+поверх runtime index:
+
+- `listing.listing_posting_bitmap`;
+- `listing.listing_posting_product_sort`;
+- `listing.listing_posting_variant_price`;
+- `listing.listing_posting_variant_projection_block`;
+- `listing.product_listing_index`;
+- `listing.variant_listing_index`;
+- `listing.product_title_bm25_search_index`.
+
+План покрывает все storefront query shapes из
+`services/listing/docs/draft/listing-query-sql-examples.ru.md` и должен быть
+использован после sync cutover, когда runtime posting rows уже актуальны.
+
+## Источники и ограничения
+
+Учтены документы:
+
+- `AGENTS.md`;
+- `knowledge/AGENTS.md`;
+- `knowledge/vault/patterns/repository.md`;
+- `knowledge/vault/architecture/multi-tenancy.md`;
+- `knowledge/vault/configuration/drizzle-config.md`;
+- `services/listing/docs/draft/listing-index-redesign-plan.ru.md`;
+- `services/listing/docs/draft/listing-index-db-schema.ru.md`;
+- `services/listing/docs/draft/listing-posting-list-search-engine-index.ru.md`;
+- `services/listing/docs/draft/listing-storefront-operations-explained.ru.md`;
+- `services/listing/docs/draft/listing-facet-option-multi-source-filtering.ru.md`;
+- `services/listing/docs/draft/listing-bm25-pg-search-index-plan.ru.md`;
+- `services/listing/docs/draft/listing-query-sql-examples.ru.md`.
+
+Проектные правила:
+
+- все repositories наследуются от `BaseRepository`;
+- все queries используют `this.connection`, а не `this.db`;
+- tenant boundary берется из `this.storeId` как `projectId`;
+- low-level методы не принимают bare `doc_id` без `projectId`;
+- repository layer не читает raw source handles на storefront read path;
+- tests/tsc для проверки этого плана не запускать;
+- changeset не редактировать.
+
+## Целевая структура файлов
+
+Добавить read repositories:
+
+```text
+services/listing/src/repositories/storefront/
+  types.ts
+  StorefrontFacetResolutionRepository.ts
+  ListingPostingBitmapRepository.ts
+  ListingVariantProjectionRepository.ts
+  ListingProductSortCollectorRepository.ts
+  ListingVariantPriceCollectorRepository.ts
+  ProductTitleSearchQueryRepository.ts
+  FacetAggregationRepository.ts
+  ListingQueryRepository.ts
+  index.ts
+```
+
+Обновить aggregator:
+
+```text
+services/listing/src/repositories/Repository.ts
+```
+
+Добавить свойства:
+
+```ts
+public readonly storefrontFacetResolution: StorefrontFacetResolutionRepository;
+public readonly listingPostingBitmap: ListingPostingBitmapRepository;
+public readonly listingVariantProjection: ListingVariantProjectionRepository;
+public readonly listingProductSortCollector: ListingProductSortCollectorRepository;
+public readonly listingVariantPriceCollector: ListingVariantPriceCollectorRepository;
+public readonly productTitleSearchQuery: ProductTitleSearchQueryRepository;
+public readonly facetAggregation: FacetAggregationRepository;
+public readonly listingQuery: ListingQueryRepository;
+```
+
+## Общие типы
+
+Файл `storefront/types.ts` должен содержать только repository contracts and
+read-model DTO. GraphQL types не импортировать в repository layer.
+
+```ts
+export type StorefrontSortKind =
+  | "manual"
+  | "newest"
+  | "created"
+  | "name"
+  | "price_asc"
+  | "price_desc"
+  | "relevance";
+
+export type ProductPostingField =
+  | "category"
+  | "collection"
+  | "vendor"
+  | "facet";
+
+export type VariantPostingField = "facet" | "variant_product";
+
+export type FacetRuntimeType =
+  | "tag"
+  | "feature"
+  | "option"
+  | "price"
+  | "in_stock";
+
+export interface StorefrontListingInput {
+  scope: StorefrontListingScope;
+  locale: string;
+  currency: string;
+  query?: string;
+  filters: StorefrontListingFilterInput[];
+  sort?: StorefrontSortInput;
+  first: number;
+  after?: string | null;
+  includeTotalCount: boolean;
+  includeFacets: boolean;
+  includePriceRange: boolean;
+  includeInStockCount: boolean;
+}
+```
+
+Scopes:
+
+```ts
+export type StorefrontListingScope =
+  | { kind: "category"; categoryId: string; manualSortScopeId?: string }
+  | { kind: "manual_collection"; collectionId: string }
+  | { kind: "rule_collection"; collectionId: string; rules: RuleCollectionPredicate[] }
+  | { kind: "global" }
+  | { kind: "search" };
+```
+
+Resolved filters:
+
+```ts
+export interface ResolvedFacetFilterGroup {
+  facetId: string;
+  facetType: FacetRuntimeType;
+  valueKeys: string[];
+}
+
+export interface StorefrontFilterPlan {
+  productFacetGroups: ResolvedFacetFilterGroup[];
+  optionFacetGroups: ResolvedFacetFilterGroup[];
+  vendorIds: string[];
+  priceRange?: { minPriceMinor?: number; maxPriceMinor?: number };
+  inStockOnly: boolean;
+}
+```
+
+Bitmap values:
+
+```ts
+export type RoaringBitmapSqlValue = string;
+
+export interface BitmapExpr {
+  sql: SQL;
+  empty: boolean;
+  source: string;
+}
+```
+
+Page rows:
+
+```ts
+export interface ListingPageRow {
+  productDocId: number;
+  productId: string;
+  inStock: boolean;
+  cursorValues: Record<string, string | number | boolean | null>;
+  matchedVariantDocId?: number;
+  matchedPriceMinor?: number;
+  relevanceScore?: number;
+}
+```
+
+Result:
+
+```ts
+export interface StorefrontListingRepositoryResult {
+  rows: ListingPageRow[];
+  hasNextPage: boolean;
+  totalCount?: number;
+  facets?: FacetCountResult[];
+  priceRange?: PriceRangeResult | null;
+  inStockCount?: number;
+}
+```
+
+## Raw SQL policy
+
+Drizzle models остаются schema/query contract, но roaring operations и BM25
+операторы должны выполняться через `sql` fragments:
+
+```ts
+await this.connection.execute(sql`...`);
+```
+
+Разрешенные direct PostgreSQL APIs:
+
+```text
+rb_build_agg(int)
+a & b
+a | b
+a - b
+rb_and_agg(bitmap)
+rb_or_agg(bitmap)
+rb_cardinality(bitmap)
+bitmap @> doc_id
+rb_iterate(bitmap)
+pdb.score(search_id)
+title @@@ query
+```
+
+Не создавать project-owned SQL helper functions для projection. Macro
+`project_variant_bitmap_to_products(...)` должен inline-иться в generated SQL.
+
+## StorefrontFacetResolutionRepository
+
+Repository отвечает за перевод public storefront filter input в stable ids.
+Он не выполняет listing query.
+
+Публичные методы:
+
+```ts
+async resolveFilterPlan(input: {
+  projectId?: string;
+  filters: StorefrontListingFilterInput[];
+}): Promise<StorefrontFilterPlan>;
+
+async getVisibleFacetValues(input: {
+  projectId?: string;
+  scope: StorefrontListingScope;
+  locale: string;
+  requestedFacetIds?: string[];
+}): Promise<VisibleFacetValue[]>;
+```
+
+Правила:
+
+- `projectId` по умолчанию `this.storeId`;
+- input `facetSlug:valueHandle` резолвится в `facet_id`, `facet_type`,
+  `facet_value_id`;
+- `value_key = <facet_id>:<facet_value_id>`;
+- `kind = display` должен иметь хотя бы один enabled source child;
+- `tag` и `feature` идут в `productFacetGroups`;
+- `option` идет в `optionFacetGroups`;
+- `price` и `in_stock` идут в virtual fields;
+- unknown, disabled or invisible values возвращаются как validation/user error
+  на уровне script/resolver, не как raw SQL error.
+
+Acceptance:
+
+- read path не читает `tag_handles`, `feature_value_handles`,
+  `option_value_handles`;
+- returned values limited to configured visible storefront values.
+
+## ListingPostingBitmapRepository
+
+Repository читает готовые bitmap rows и строит bitmap expressions для OR/AND
+groups.
+
+Публичные методы:
+
+```ts
+async getPostingBitmap(input: {
+  projectId?: string;
+  entityType: "product" | "variant";
+  field: ProductPostingField | VariantPostingField;
+  valueKey: string;
+}): Promise<RoaringBitmapSqlValue | null>;
+
+async getPostingBitmaps(input: {
+  projectId?: string;
+  entityType: "product" | "variant";
+  field: ProductPostingField | VariantPostingField;
+  valueKeys: readonly string[];
+}): Promise<Map<string, RoaringBitmapSqlValue>>;
+
+buildOrGroup(input: {
+  entityType: "product" | "variant";
+  field: ProductPostingField | VariantPostingField;
+  valueKeys: readonly string[];
+  loaded: Map<string, RoaringBitmapSqlValue>;
+}): BitmapExpr;
+
+buildAndGroups(input: {
+  groups: readonly BitmapExpr[];
+  emptyWhenNoGroups: boolean;
+}): BitmapExpr;
+
+async buildPublishedProductScope(input: {
+  projectId?: string;
+}): Promise<BitmapExpr>;
+
+async buildInStockVariantScope(input: {
+  projectId?: string;
+}): Promise<BitmapExpr>;
+```
+
+Missing posting row semantics:
+
+- missing row for one selected value means empty bitmap for that value;
+- OR group ignores missing values that have siblings;
+- required OR group becomes empty only when all selected values are missing or
+  empty;
+- empty required group short-circuits before page collector.
+
+SQL shapes:
+
+- single product row: `entity_type = 'product'`, `field = 'category'`;
+- single variant row: `entity_type = 'variant'`, `field = 'facet'`;
+- global scope fallback: `rb_build_agg(product_doc_id)` from
+  `product_listing_index where status = 'published'`;
+- in-stock variants fallback: `rb_build_agg(variant_doc_id)` from
+  `variant_listing_index where in_stock = true`.
+
+Acceptance:
+
+- no code assumes old columns `product_id`, `variant_id`, `facet_id`,
+  `facet_value_id` on `listing_posting_bitmap`;
+- all methods filter by `project_id`.
+
+## ListingVariantProjectionRepository
+
+Repository проектирует `variant_doc_id` bitmap в `product_doc_id` bitmap через
+projection blocks.
+
+Публичные методы:
+
+```ts
+async projectVariantBitmapToProducts(input: {
+  projectId?: string;
+  variantBitmap: BitmapExpr;
+  strategy?: "projection_blocks" | "narrow_iterate_fallback";
+}): Promise<BitmapExpr>;
+
+buildProjectionSql(input: {
+  projectId: string;
+  variantBitmapSql: SQL;
+}): SQL;
+```
+
+Implementation:
+
+1. Найти matched blocks:
+   `rb_cardinality(:variantBitmap & block.variant_bitmap) > 0`.
+2. Для full block использовать `block.product_bitmap`.
+3. Для partial block join к `variant_listing_index` по doc range and membership.
+4. OR all product bitmaps через `rb_or_agg`.
+
+Fallback через `rb_iterate` разрешен только для узких sets and diagnostics.
+Hot path для broad option filters всегда использует projection blocks.
+
+Acceptance:
+
+- same-variant semantics сохраняется до projection;
+- product cardinality считается после projection and dedupe.
+
+## ListingProductSortCollectorRepository
+
+Repository собирает page rows через
+`listing.listing_posting_product_sort`.
+
+Публичные методы:
+
+```ts
+async collectProductSortPage(input: {
+  projectId?: string;
+  matchesBitmap: BitmapExpr;
+  sort: ProductSortCollectKind;
+  locale: string;
+  currency: string;
+  manualScopeId?: string;
+  first: number;
+  after?: DecodedListingCursor | null;
+  includePlusOne: boolean;
+  searchTieBreaker?: SearchTieBreakerSql | null;
+}): Promise<ListingPageCollectResult>;
+```
+
+Supported `ProductSortCollectKind`:
+
+```ts
+export type ProductSortCollectKind =
+  | "manual"
+  | "newest"
+  | "created"
+  | "name"
+  | "price_asc"
+  | "price_desc";
+```
+
+Sort routing:
+
+- `manual`: `sort_kind = 'manual'`, `manual_scope_id = category/collection id`,
+  `ORDER BY bool_value DESC, text_value ASC NULLS LAST, product_id ASC`;
+- `newest`: `sort_kind = 'newest'`,
+  `ORDER BY bool_value DESC, timestamptz_value DESC NULLS LAST,
+  timestamptz_value_2 DESC NULLS LAST, product_id ASC`;
+- `created`: `sort_kind = 'created'`,
+  `ORDER BY bool_value DESC, timestamptz_value DESC, product_id ASC`;
+- `name`: `sort_kind = 'name'`, locale-specific,
+  `ORDER BY bool_value DESC, text_value ASC NULLS LAST, product_id ASC`;
+- product aggregate `price_asc`: `sort_kind = 'price_asc'`, currency-specific,
+  `ORDER BY bool_value DESC, bigint_value ASC NULLS LAST, product_id ASC`;
+- product aggregate `price_desc`: `sort_kind = 'price_desc'`, currency-specific,
+  `ORDER BY bool_value DESC, bigint_value DESC NULLS LAST, product_id ASC`.
+
+Cursor:
+
+- use keyset seek by the same ordered keys;
+- cursor includes filter hash;
+- nullable key seek must be `NULLS LAST` aware;
+- when `includeTotalCount = false`, query uses `first + 1` and does not call
+  `rb_cardinality`.
+
+Acceptance:
+
+- category + vendor + newest покрывает SQL example 1;
+- manual collection + product facet + manual sort покрывает example 2;
+- global + product facets + created sort покрывает example 3;
+- category + option filters + newest покрывает example 4 after projection;
+- product filters + aggregate price sort покрывает example 5;
+- name sort + product and option filters покрывает example 7;
+- rule collection + product filters + price desc покрывает example 8.
+
+## ListingVariantPriceCollectorRepository
+
+Repository покрывает price range bitmap and matched variant price sort.
+
+Публичные методы:
+
+```ts
+async buildPriceRangeVariantBitmap(input: {
+  projectId?: string;
+  currency: string;
+  minPriceMinor?: number;
+  maxPriceMinor?: number;
+}): Promise<BitmapExpr>;
+
+async collectMatchedVariantPricePage(input: {
+  projectId?: string;
+  currency: string;
+  variantMatchesBitmap: BitmapExpr;
+  productMatchesBitmap: BitmapExpr;
+  direction: "asc" | "desc";
+  first: number;
+  after?: DecodedListingCursor | null;
+  includePlusOne: boolean;
+  strategy?: "chunked_application_dedupe" | "anti_join_reference";
+}): Promise<ListingPageCollectResult>;
+```
+
+Price filter:
+
+```sql
+SELECT rb_build_agg(vp.variant_doc_id)
+FROM listing.listing_posting_variant_price vp
+WHERE vp.project_id = :projectId
+  AND vp.currency = :currency
+  AND vp.price_minor >= :minPriceMinor
+  AND vp.price_minor <= :maxPriceMinor;
+```
+
+Matched price collector:
+
+- preferred hot path: ordered chunk scan по
+  `listing_posting_variant_price`, membership check by both bitmaps,
+  application-level dedupe by `product_id`, continue overfetch until `first + 1`;
+- fallback/reference: anti-join shape from SQL examples 6 and 13;
+- `price_asc` picks lowest matching variant per product;
+- `price_desc` picks highest matching variant per product;
+- cursor includes price, product_id, variant_doc_id and filter hash.
+
+Acceptance:
+
+- option filters + price range + matched price asc покрывает example 6;
+- full listing + option isolation + price range + matched price sort покрывает
+  example 13;
+- generic `field = 'price'` posting row is never used.
+
+## ProductTitleSearchQueryRepository
+
+Repository builds BM25 candidate relation for title search.
+
+Публичные методы:
+
+```ts
+normalizeQuery(query: string | undefined | null): string | null;
+
+buildSearchCandidatesSql(input: {
+  projectId: string;
+  locale: string;
+  normalizedQuery: string;
+}): SQL;
+
+async buildSearchCandidateBitmap(input: {
+  projectId?: string;
+  locale: string;
+  normalizedQuery: string;
+}): Promise<BitmapExpr>;
+
+async collectRelevancePage(input: {
+  projectId?: string;
+  locale: string;
+  normalizedQuery: string;
+  matchesBitmap: BitmapExpr;
+  first: number;
+  after?: DecodedListingCursor | null;
+  includePlusOne: boolean;
+}): Promise<ListingPageCollectResult>;
+```
+
+Rules:
+
+- trim query;
+- collapse whitespace;
+- empty query disables BM25 flow;
+- cap normalized query length, например 128 chars;
+- parameterize query, never interpolate raw user input;
+- candidate relation must represent all matches when used by `totalCount` or
+  facets;
+- no silent top-K cap before counts;
+- `RELEVANCE` valid only when query is non-empty.
+
+Relevance order:
+
+```text
+in_stock DESC, relevance_score DESC NULLS LAST, product_id ASC
+```
+
+Acceptance:
+
+- search candidates + structured filters + relevance sort покрывает example 9;
+- explicit business sorts with query keep BM25 as filter and collect page via
+  selected product/price collector;
+- facet isolation never removes title query.
+
+## FacetAggregationRepository
+
+Repository computes `totalCount`, product facets, option facets, price range and
+in-stock virtual counts from full filtered scope, not from page rows.
+
+Публичные методы:
+
+```ts
+async countProducts(input: {
+  projectId?: string;
+  matchesBitmap: BitmapExpr;
+}): Promise<number>;
+
+async countProductFacetValues(input: {
+  projectId?: string;
+  productBaseBitmap: BitmapExpr;
+  activeProductGroups: readonly ResolvedFacetFilterGroup[];
+  visibleValues: readonly VisibleFacetValue[];
+}): Promise<FacetCountResult[]>;
+
+async countOptionFacetValues(input: {
+  projectId?: string;
+  productBaseBitmap: BitmapExpr;
+  activeOptionGroups: readonly ResolvedFacetFilterGroup[];
+  priceVariantBitmap?: BitmapExpr | null;
+  inStockVariantBitmap: BitmapExpr;
+  visibleValues: readonly VisibleFacetValue[];
+}): Promise<FacetCountResult[]>;
+
+async getPriceRange(input: {
+  projectId?: string;
+  productBaseBitmap: BitmapExpr;
+  activeOptionGroups: readonly ResolvedFacetFilterGroup[];
+  activeProductGroups: readonly ResolvedFacetFilterGroup[];
+  currency: string;
+  excludeActivePrice: boolean;
+}): Promise<PriceRangeResult | null>;
+
+async countInStock(input: {
+  projectId?: string;
+  productBaseBitmap: BitmapExpr;
+  activeProductGroups: readonly ResolvedFacetFilterGroup[];
+  activeOptionGroups: readonly ResolvedFacetFilterGroup[];
+  priceVariantBitmap?: BitmapExpr | null;
+}): Promise<number>;
+```
+
+Facet isolation:
+
+```text
+count_base_for_facet_X =
+  all active filters except filters from facet X
+```
+
+Product facet count:
+
+```text
+value_count = rb_cardinality(product_isolated_bitmap & product_value_bitmap)
+```
+
+Option facet count:
+
+```text
+variant_base =
+  active option filters except current facet
+  & active price bitmap if price filter exists
+  & in_stock_variant_bitmap
+
+value_variants = variant_base & option_value_bitmap
+value_products = project_variants_to_products(value_variants) & product_base
+value_count = rb_cardinality(value_products)
+```
+
+Price virtual facet:
+
+- range min/max excludes active price predicate;
+- product-level filters remain active;
+- option filters remain same-variant before product projection;
+- source table is `listing_posting_variant_price`.
+
+In-stock virtual facet:
+
+- excludes active `in_stock` toggle;
+- option and price filters keep same-variant semantics;
+- returns product cardinality after projection.
+
+Acceptance:
+
+- product facet counts as separate query покрывает example 11;
+- full listing page with page ids + totalCount + isolated counts покрывает
+  example 12;
+- counts limited to configured visible values, not all posting rows.
+
+## ListingQueryRepository
+
+This is the orchestration repository used by storefront resolvers/scripts.
+
+Constructor dependencies:
+
+```ts
+constructor(
+  db: Database,
+  txManager: TransactionManager<Database>,
+  private readonly facets: StorefrontFacetResolutionRepository,
+  private readonly postings: ListingPostingBitmapRepository,
+  private readonly projection: ListingVariantProjectionRepository,
+  private readonly productCollector: ListingProductSortCollectorRepository,
+  private readonly variantPriceCollector: ListingVariantPriceCollectorRepository,
+  private readonly search: ProductTitleSearchQueryRepository,
+  private readonly aggregation: FacetAggregationRepository
+) {
+  super(db, txManager);
+}
+```
+
+Публичный метод:
+
+```ts
+async getStorefrontListing(
+  input: StorefrontListingInput
+): Promise<StorefrontListingRepositoryResult>;
+```
+
+Внутренние методы:
+
+```ts
+private async normalizeAndResolve(input: StorefrontListingInput): Promise<ResolvedListingRequest>;
+
+private async buildScopeProductBitmap(input: ResolvedListingRequest): Promise<BitmapExpr>;
+
+private async buildRuleCollectionBitmap(input: ResolvedListingRequest): Promise<{
+  productBitmap: BitmapExpr;
+  variantBitmap?: BitmapExpr;
+}>;
+
+private async buildProductFiltersBitmap(plan: StorefrontFilterPlan): Promise<BitmapExpr>;
+
+private async buildVariantFiltersBitmap(plan: StorefrontFilterPlan): Promise<{
+  variantMatchesBitmap: BitmapExpr | null;
+  projectedProductBitmap: BitmapExpr | null;
+  priceVariantBitmap: BitmapExpr | null;
+  hasVariantLevelPredicate: boolean;
+}>;
+
+private async buildFinalProductMatches(input: {
+  scopeBitmap: BitmapExpr;
+  productFiltersBitmap: BitmapExpr;
+  projectedVariantBitmap?: BitmapExpr | null;
+}): Promise<BitmapExpr>;
+
+private selectCollector(input: ResolvedListingRequest): ListingCollectorKind;
+
+private async collectPage(input: {
+  request: ResolvedListingRequest;
+  matchesBitmap: BitmapExpr;
+  variantMatchesBitmap?: BitmapExpr | null;
+}): Promise<ListingPageCollectResult>;
+
+private async collectAggregates(input: {
+  request: ResolvedListingRequest;
+  scopeBitmap: BitmapExpr;
+  productFiltersBitmap: BitmapExpr;
+  variantMatchesBitmap?: BitmapExpr | null;
+  productMatchesBitmap: BitmapExpr;
+  priceVariantBitmap?: BitmapExpr | null;
+}): Promise<ListingAggregatesResult>;
+```
+
+Pipeline:
+
+1. Resolve `projectId = this.storeId`, locale, currency, scope, sort, cursor.
+2. Normalize search query and validate `RELEVANCE`.
+3. Resolve facet filters into `StorefrontFilterPlan`.
+4. Build scope product bitmap:
+   - category posting row;
+   - collection posting row;
+   - rule collection compiled bitmaps;
+   - global published fallback from `product_listing_index`;
+   - BM25 search candidate bitmap when query is present.
+5. Build product-level filters:
+   - product facet rows for tag/feature;
+   - vendor product rows;
+   - rule product predicates.
+6. Build variant-level filters:
+   - option facet rows as OR внутри facet and AND между facets;
+   - price range bitmap from `listing_posting_variant_price`;
+   - in-stock variant bitmap when any option predicate is active or price
+     predicate requires purchasable variant semantics.
+7. Project variant matches to product bitmap through projection blocks.
+8. Intersect scope, product filters and projected variant filters.
+9. Choose collector:
+   - `relevance` collector for non-empty query + relevance sort;
+   - product sort collector for manual/newest/created/name/product aggregate
+     price;
+   - matched variant price collector when price sort and option or price
+     predicate is active.
+10. If `includeTotalCount`, call `rb_cardinality(matches)`.
+11. If facets requested, compute isolated counts from full bitmaps.
+12. If `includePriceRange` or `includeInStockCount`, compute virtual facets.
+13. Return page rows, `hasNextPage`, optional aggregates.
+
+Short-circuit rules:
+
+- empty required product OR group returns empty result without page collector;
+- empty required option OR group returns empty result without projection;
+- empty scope returns empty result;
+- empty BM25 query means normal listing, not search listing;
+- missing value posting inside a non-empty OR group is ignored as empty value.
+
+## Mapping to SQL examples
+
+Implementation must cover these repository flows:
+
+| SQL example | Required repository flow |
+| --- | --- |
+| 1. Category + vendor + newest | `buildScopeProductBitmap(category)` + `buildProductFiltersBitmap(vendor)` + `collectProductSortPage(newest)` |
+| 2. Manual collection + product facet + manual | `collection` scope + product facet OR group + `manual_scope_id = collectionId` |
+| 3. Global + several product facets + created | global published scope fallback + product facet AND groups + created collector + optional `countProducts` |
+| 4. Category + option filters + newest | category scope + option variant groups + in-stock variants + projection blocks + newest collector |
+| 5. Product filters + aggregate price sort | product bitmaps only + product sort `price_asc`/`price_desc` |
+| 6. Option + price range + matched price asc | option groups + price variant bitmap + projection + `collectMatchedVariantPricePage(asc)` |
+| 7. Name sort + product and option filters | global scope + product filters + option projection + name collector with locale |
+| 8. Rule collection + product filters + price desc | rule compiler output bitmaps + product filters + aggregate or matched price collector depending on variant predicates |
+| 9. Search + structured filters + relevance | BM25 candidate bitmap + structured filters + `collectRelevancePage` |
+| 10. Cursor page ids without totalCount | any collector with `first + 1`, no `rb_cardinality(matches)` |
+| 11. Product facet counts separate query | `countProductFacetValues` with facet isolation and visible value list |
+| 12. Full page + total + isolated counts | page collector + `countProducts` + product/option facet counts, monolithic or split SQL |
+| 13. Full option isolation + price range + matched price | option isolation + price bitmap + projection + matched price collector + counts |
+
+## Cursor format
+
+Repository should encode/decode cursor in a small helper colocated with
+storefront repositories, not inside GraphQL resolver.
+
+Cursor payload:
+
+```ts
+interface ListingCursorPayload {
+  version: 1;
+  hash: string;
+  sort: StorefrontSortKind;
+  inStock: boolean;
+  productId: string;
+  publishedAt?: string | null;
+  productCreatedAt?: string | null;
+  textValue?: string | null;
+  bigintValue?: number | null;
+  priceMinor?: number | null;
+  variantDocId?: number | null;
+  relevanceScore?: number | null;
+}
+```
+
+Hash input:
+
+- projectId;
+- locale;
+- currency;
+- scope;
+- normalized query;
+- resolved filters;
+- sort;
+- manual scope id.
+
+Invalid hash means cursor validation error. Repository must not silently ignore
+cursor mismatch.
+
+## SQL generation details
+
+Use parameterized `sql` fragments. Do not concatenate user input.
+
+Recommended internal building blocks:
+
+```ts
+function andBitmapExpr(parts: BitmapExpr[]): BitmapExpr;
+function orBitmapExpr(parts: BitmapExpr[]): BitmapExpr;
+function emptyBitmapExpr(reason: string): BitmapExpr;
+function literalBitmapExpr(value: RoaringBitmapSqlValue, source: string): BitmapExpr;
+```
+
+For loaded bitmap values, prefer binding as parameter:
+
+```ts
+sql`${bitmapValue}::roaringbitmap`
+```
+
+For CTE-heavy queries, keep one repository method per query shape instead of one
+overly generic SQL string builder. Shared helpers may return CTE fragments.
+
+## Error handling
+
+Repository errors:
+
+- invalid cursor hash;
+- unsupported sort/scope combination;
+- `RELEVANCE` without non-empty query;
+- missing required locale/currency;
+- invalid price range.
+
+Repository should not translate these to GraphQL `userErrors`; resolver/script
+layer decides API error shape.
+
+Empty listing is not an error.
+
+## Observability
+
+`ListingQueryRepository.getStorefrontListing` should log debug-level metadata:
+
+- `projectId`;
+- scope kind;
+- normalized query hash, not raw query;
+- sort;
+- page size;
+- active product facet group count;
+- active option facet group count;
+- has price filter;
+- has in-stock filter;
+- collector kind;
+- requested total/facets/virtual facets;
+- short-circuit reason;
+- duration.
+
+BM25 repository should additionally log candidate count only when explicitly
+requested by observability path, because counting can be expensive.
+
+## Implementation phases
+
+### Phase 1. Contracts and aggregator wiring
+
+1. Add `storefront/types.ts`.
+2. Add repository files with constructors and method stubs.
+3. Export from `storefront/index.ts`.
+4. Instantiate all repositories in `Repository.create`.
+5. Keep all methods project-scoped through `this.storeId`.
+
+Done when the service builds with empty implementations replaced by typed
+contracts in follow-up phases.
+
+### Phase 2. Bitmap and projection primitives
+
+1. Implement `ListingPostingBitmapRepository`.
+2. Implement published product scope fallback.
+3. Implement in-stock variant scope fallback.
+4. Implement missing posting row semantics.
+5. Implement `ListingVariantProjectionRepository` with inline projection block
+   SQL.
+
+Done when repository methods can build product and variant bitmap expressions
+needed by examples 1, 3 and 4.
+
+### Phase 3. Page collectors
+
+1. Implement product sort collector for `manual`, `newest`, `created`, `name`,
+   `price_asc`, `price_desc`.
+2. Implement keyset cursor predicates with `NULLS LAST` support.
+3. Implement `first + 1` overfetch and `hasNextPage`.
+4. Implement price range bitmap.
+5. Implement matched variant price collector with chunked application dedupe.
+6. Keep anti-join SQL as reference/fallback method.
+
+Done when examples 1-8 and 10 are covered at repository level.
+
+### Phase 4. Facet aggregation
+
+1. Implement `countProducts`.
+2. Implement product facet isolated counts.
+3. Implement option facet isolated counts through projection blocks.
+4. Implement price range virtual facet.
+5. Implement in-stock virtual facet.
+6. Ensure visible values are loaded from facet resolution repository, not by
+   scanning all posting rows.
+
+Done when examples 11-13 are covered.
+
+### Phase 5. BM25 integration
+
+1. Implement query normalization.
+2. Implement BM25 candidate CTE builder.
+3. Implement search candidate bitmap.
+4. Implement relevance collector.
+5. Integrate query presence into `ListingQueryRepository`.
+6. Validate relevance sort rules.
+
+Done when example 9 is covered and explicit business sorts still work with
+search candidates as a filter.
+
+### Phase 6. Storefront orchestration
+
+1. Implement `ListingQueryRepository.getStorefrontListing`.
+2. Wire all short-circuit paths.
+3. Wire collector selection.
+4. Wire aggregate collection based on requested fields.
+5. Return stable page rows for hydration pipeline.
+6. Add cleanup TODOs for obsolete raw-handle/token paths after callers migrate.
+
+Done when storefront resolver can call one repository method for category,
+collection, global, rule collection and search listings.
+
+## Acceptance checklist
+
+- Every read query filters by `project_id`.
+- Every repository query uses `this.connection`.
+- Storefront facet filters are resolved to `facet_id` and `facet_value_id`
+  before runtime query.
+- Raw source handles are absent from listing read path.
+- Product-level filters operate on product doc bitmaps.
+- Option filters operate on variant doc bitmaps before projection.
+- Option + price predicates match the same in-stock variant.
+- `price` and `in_stock` remain virtual facets.
+- Missing posting rows are treated as empty bitmaps with correct OR-group
+  semantics.
+- Product sort collector uses `listing_posting_product_sort`.
+- Matched variant price collector uses `listing_posting_variant_price`.
+- Broad variant projection uses projection blocks.
+- `totalCount` uses `rb_cardinality(matches)` only when requested.
+- Facet counts use full filtered scope, not current page rows.
+- Facet counts isolate by `facet_id`.
+- Option facet counts return product cardinality after projection.
+- Search candidate relation is not silently top-K capped when used by totals or
+  facets.
+- Relevance sort is availability-first and deterministic.
+- Cursor hash includes project, locale, currency, scope, query, filters and
+  sort.
+- No code references obsolete `listing_posting_bitmap.product_id`,
+  `variant_id`, `facet_id` or `facet_value_id` columns.
