@@ -2,404 +2,176 @@
 
 ## Назначение
 
-Этот документ переводит требования из:
+Документ переводит canonical listing design в план изменений catalog service.
 
-- `docs/listing/listing-index-redesign-plan.ru.md`
+Исходные документы:
+
+- `docs/listing/listing-posting-list-search-engine-index.ru.md`
 - `docs/listing/listing-index-db-schema.ru.md`
 - `docs/listing/listing-index-sync-freshness.ru.md`
+- `docs/listing/listing-query-sql-examples.ru.md`
 
-в пошаговый план изменений в коде catalog service. Фокус: как обновлять listing
-read model, facet postings и freshness repair.
+Фокус: как обновлять SQL listing read model, roaring posting bitmap rows,
+physical sort/price indexes, projection blocks and freshness repair.
 
 После изменения структуры listing index пересобирается rebuild script.
 
 ## Инварианты реализации
 
-- Listing index является производной read model. Source of truth остается в
-  canonical catalog tables.
-- DB triggers не используются. Все правила sync должны быть видны в TypeScript:
-  repositories, builders, scripts, workflows и event handlers.
-- Все repository methods используют только `this.connection`, а не `this.db`,
-  чтобы не обходить transaction propagation.
-- Все queries должны быть scoped по `this.storeId` / `project_id`.
-- Product aggregate price/stock считается из `variant_listing_index` и
-  `variant_listing_price_index`, а не напрямую из canonical price/stock tables.
-- Storefront configured facets читают только resolved `facet_id` и
-  `facet_value_id` из roaring posting tables.
-- Raw handles в index rows нужны для rebuild/debug и не должны быть read path
-  для configured storefront facets.
-- Replace operations по prices/postings выполняются внутри transaction.
-- При проверке реализации не запускать `test` и `tsc`. Если нужна проверка
-  новой версии кода, запускать build через проектный workflow/shopana-cli.
-- Changeset руками не редактировать.
+- Listing index is a derived current-state read model.
+- Source of truth remains canonical catalog tables.
+- DB triggers are not used.
+- All repository methods use transaction-aware connection and project context.
+- All queries are scoped by current `project_id` / `this.storeId`.
+- Product aggregate price/stock is computed from `variant_listing_index` and
+  `variant_listing_price_index`, not directly from canonical price/stock tables.
+- Runtime storefront facets read resolved `facet_id` / `facet_value_id` through
+  `value_key = <facet_id>:<facet_value_id>`.
+- Raw source handles are transient sync inputs only; do not store them in listing
+  rows or runtime posting rows.
+- Posting rows are bitmap rows keyed by
+  `(project_id, entity_type, field, value_key)`.
+- Replace/update operations for listing rows and posting memberships run inside
+  transaction.
+- Do not run standalone `test` or `tsc` for verification. If code verification is
+  needed, use project build workflow/shopana-cli.
+- Do not edit changeset files manually.
 
 ## Целевая последовательность записи
 
-Для одного product порядок должен быть стабильным:
+For one product:
 
-1. bootstrap `product_listing_index` row, если parent row еще не существует;
-2. `variant_listing_index`
-3. `variant_listing_price_index`
-4. catalog.listing_posting_bitmap variant facet postings
-5. final `product_listing_index` upsert с актуальными aggregates;
-6. `product_listing_price_index`
-7. catalog.listing_posting_bitmap product facet postings
+1. ensure product doc id and parent `product_listing_index` row;
+2. upsert `variant_listing_index`;
+3. replace `variant_listing_price_index`;
+4. replace variant facet bitmap memberships;
+5. refresh `listing_posting_variant_price`;
+6. refresh touched projection blocks;
+7. upsert final `product_listing_index` aggregates;
+8. replace `product_listing_price_index`;
+9. replace product facet/scope/vendor bitmap memberships;
+10. refresh `listing_posting_product_sort`.
 
-Причина: product sync читает variant read model для `in_stock`, `total_stock` и
-price aggregates. Если product обновить раньше variant rows, aggregates могут
-на один sync остаться stale.
+Reason: product aggregate reads variant listing state. Variant rows and runtime
+price/projection physical indexes must be current before product aggregate and
+storefront page collectors rely on them.
 
-Bootstrap row нужен из-за FK
-`variant_listing_index(project_id, product_id) -> product_listing_index`. Для
-new product flow он создает parent listing row с canonical product fields и
-пустыми агрегатами. После записи variants product sync перезаписывает эту row
-финальными `in_stock`, `total_stock` и price aggregates. Для existing products
-bootstrap обычно no-op.
+## Фаза 1. Drizzle models and registration
 
-## Предусловие
+Align `services/catalog/src/repositories/models/listingIndex.ts` with
+`docs/listing/listing-index-db-schema.ru.md`.
 
-Документ ниже описывает только код синхронизации read model. Целевая структура
-таблиц считается уже определенной в `docs/listing/listing-index-db-schema.ru.md`.
-Если схема еще не применена в окружении, sync код писать можно, но запуск
-rebuild/sync будет невозможен до появления соответствующих listing tables.
+Models must include:
 
-## Фаза 1. Repository registration
+- `listingDocIdAllocator`
+- `productListingIndex`
+- `productListingPriceIndex`
+- `variantListingIndex`
+- `variantListingPriceIndex`
+- `listingPostingBitmap`
+- `listingPostingProductSort`
+- `listingPostingVariantPrice`
+- `listingPostingVariantProjectionBlock`
+- `productTitleBm25SearchIndex`, if BM25 work is included in the same cutover
 
-Заменить в:
+Do not recreate legacy raw-handle array columns or row-based facet token tables.
 
-```text
-services/catalog/src/repositories/Repository.ts
-```
+Register repositories in `services/catalog/src/repositories/Repository.ts`:
 
-текущие поля:
+- `listingDocIdAllocator`
+- `productListingIndex`
+- `productListingPriceIndex`
+- `variantListingIndex`
+- `variantListingPriceIndex`
+- `listingPostingBitmap`
+- `listingPostingProductSort`
+- `listingPostingVariantPrice`
+- `listingPostingVariantProjectionBlock`
+- `listingSource`
+- `listingFacetMapping`
+- `listingFreshness`
 
-```ts
-productListingIndex: ProductListingIndexRepository;
-variantListingIndex: VariantListingIndexRepository;
-```
+All repositories should extend the existing repository base pattern and use
+`this.connection`.
 
-на новые:
+## Фаза 2. Doc id allocation
 
-```ts
-productListingIndex: ProductListingIndexRepository;
-productListingPriceIndex: ProductListingPriceIndexRepository;
-variantListingIndex: VariantListingIndexRepository;
-variantListingPriceIndex: VariantListingPriceIndexRepository;
-listingSource: ListingSourceRepository;
-listingFacetMapping: ListingFacetMappingRepository;
-listingFreshness: ListingFreshnessRepository;
-```
+Create `ListingDocIdAllocatorRepository`.
 
-Регистрация должна остаться простой: все repositories получают один `db` и один
-`txManager`.
+Required methods:
 
-```ts
-const productListingIndex = new ProductListingIndexRepository(db, txManager);
-const variantListingIndex = new VariantListingIndexRepository(db, txManager);
-const listingSource = new ListingSourceRepository(db, txManager);
-```
+- `ensureAllocatorRow()`
+- `allocateProductDocIds(productIds)`
+- `allocateVariantDocIds(variantIds)`
+- `getExistingProductDocIds(productIds)`
+- `getExistingVariantDocIds(variantIds)`
 
-## Фаза 2. Listing repositories
+Allocation rules:
 
-Создать папку:
+- lock allocator row with `FOR UPDATE`;
+- preserve existing doc ids;
+- allocate only for new listing rows;
+- increment counters in the same transaction;
+- never reuse deleted ids.
 
-```text
-services/catalog/src/repositories/listing/
-```
+The allocator does not need separate dictionary tables. Stable ids live in
+`product_listing_index` and `variant_listing_index`.
 
-и добавить repositories для price rows, facet postings, source reads и freshness.
+## Фаза 3. Listing row repositories
 
 ### ProductListingIndexRepository
 
-Файл:
-
-```text
-services/catalog/src/repositories/listing/ProductListingIndexRepository.ts
-```
-
-Минимальные методы:
-
-```ts
-export interface ProductListingIndexUpsertInput {
-  productId: string;
-  kind: "BASE" | "BUNDLE";
-  vendorId: string | null;
-  handle: string | null;
-  status: "published" | "draft";
-  publishedAt: string | null;
-  productCreatedAt: string;
-  productUpdatedAt: string;
-  productRevision: number;
-  tagHandles: string[];
-  featureValueHandles: string[];
-  categoryHandles: string[];
-  inStock: boolean;
-  totalStock: number;
-  indexedAt?: string;
-}
-```
-
-Пример `upsert`:
-
-```ts
-export class ProductListingIndexRepository extends BaseRepository {
-  async upsert(input: ProductListingIndexUpsertInput) {
-    const now = new Date().toISOString();
-    const values: NewProductListingIndex = {
-      projectId: this.storeId,
-      productId: input.productId,
-      kind: input.kind,
-      vendorId: input.vendorId,
-      handle: input.handle,
-      status: input.status,
-      publishedAt: input.publishedAt,
-      productCreatedAt: input.productCreatedAt,
-      productUpdatedAt: input.productUpdatedAt,
-      productRevision: input.productRevision,
-      tagHandles: input.tagHandles,
-      featureValueHandles: input.featureValueHandles,
-      categoryHandles: input.categoryHandles,
-      inStock: input.inStock,
-      totalStock: input.totalStock,
-      indexedAt: input.indexedAt ?? now,
-      updatedAt: now,
-    };
-
-    const rows = await this.connection
-      .insert(productListingIndex)
-      .values(values)
-      .onConflictDoUpdate({
-        target: [productListingIndex.projectId, productListingIndex.productId],
-        set: {
-          kind: values.kind,
-          vendorId: values.vendorId,
-          handle: values.handle,
-          status: values.status,
-          publishedAt: values.publishedAt,
-          productCreatedAt: values.productCreatedAt,
-          productUpdatedAt: values.productUpdatedAt,
-          productRevision: values.productRevision,
-          tagHandles: values.tagHandles,
-          featureValueHandles: values.featureValueHandles,
-          categoryHandles: values.categoryHandles,
-          inStock: values.inStock,
-          totalStock: values.totalStock,
-          indexedAt: values.indexedAt,
-          updatedAt: values.updatedAt,
-        },
-      })
-      .returning();
-
-    return rows[0];
-  }
-}
-```
-
-Также добавить:
+Required methods:
 
 - `findByProductId(productId)`
 - `getByProductIds(productIds)`
+- `ensureBootstrapRows(rows)`
+- `upsert(row)`
+- `upsertMany(rows)`
 - `delete(productId)`
 - `deleteByProductIds(productIds)`
-- `deleteMissingProducts(productIds)`
-- `ensureBootstrapRows(inputs)`
 - `getStaleProducts(params)`
 
-`ensureBootstrapRows` нужен только для FK parent row перед variant upsert. Он
-должен делать idempotent upsert canonical product fields с пустыми aggregates и
-не трогать product price/posting rows.
-
-```ts
-async ensureBootstrapRows(inputs: ProductListingBootstrapInput[]): Promise<number> {
-  if (inputs.length === 0) return 0;
-
-  const now = new Date().toISOString();
-  await this.connection
-    .insert(productListingIndex)
-    .values(
-      inputs.map((input) => ({
-        projectId: this.storeId,
-        productId: input.productId,
-        kind: input.kind,
-        vendorId: input.vendorId,
-        handle: input.handle,
-        status: input.publishedAt ? "published" : "draft",
-        publishedAt: input.publishedAt,
-        productCreatedAt: input.productCreatedAt,
-        productUpdatedAt: input.productUpdatedAt,
-        productRevision: input.productRevision,
-        tagHandles: [],
-        featureValueHandles: [],
-        categoryHandles: [],
-        inStock: false,
-        totalStock: 0,
-        indexedAt: now,
-        updatedAt: now,
-      })),
-    )
-    .onConflictDoNothing({
-      target: [productListingIndex.projectId, productListingIndex.productId],
-    });
-
-  return inputs.length;
-}
-```
+`ensureBootstrapRows` creates parent rows for variant FK safety during product
+create flow. It must include allocated `product_doc_id` and safe empty
+aggregates. Final product sync overwrites the row later.
 
 ### ProductListingPriceIndexRepository
 
-Файл:
+Required methods:
 
-```text
-services/catalog/src/repositories/listing/ProductListingPriceIndexRepository.ts
-```
+- `replaceForProduct(productId, rows)`
+- `replaceForProducts(rowsByProductId)`
+- `deleteByProductId(productId)`
+- `deleteByProductIds(productIds)`
+- `getByProductIds(productIds, currencies?)`
+- `getStalePriceAggregates(params)`
 
-Главное правило: сохранять row для каждой enabled currency, даже если цены нет.
-
-Пример atomic replace:
-
-```ts
-async replaceForProduct(
-  productId: string,
-  rows: ProductListingPriceUpsertInput[],
-): Promise<number> {
-  const currencies = rows.map((row) => row.currency);
-
-  await this.connection
-    .delete(productListingPriceIndex)
-    .where(
-      and(
-        eq(productListingPriceIndex.projectId, this.storeId),
-        eq(productListingPriceIndex.productId, productId),
-        currencies.length > 0
-          ? notInArray(productListingPriceIndex.currency, currencies)
-          : sql`true`,
-      ),
-    );
-
-  if (rows.length === 0) {
-    return 0;
-  }
-
-  const now = new Date().toISOString();
-  await this.connection
-    .insert(productListingPriceIndex)
-    .values(
-      rows.map((row) => ({
-        projectId: this.storeId,
-        productId,
-        currency: row.currency,
-        minPriceMinor: row.minPriceMinor,
-        maxPriceMinor: row.maxPriceMinor,
-        hasPrice: row.hasPrice,
-        indexedAt: now,
-        updatedAt: now,
-      })),
-    )
-    .onConflictDoUpdate({
-      target: [
-        productListingPriceIndex.projectId,
-        productListingPriceIndex.productId,
-        productListingPriceIndex.currency,
-      ],
-      set: {
-        minPriceMinor: sql`excluded.min_price_minor`,
-        maxPriceMinor: sql`excluded.max_price_minor`,
-        hasPrice: sql`excluded.has_price`,
-        indexedAt: sql`excluded.indexed_at`,
-        updatedAt: sql`excluded.updated_at`,
-      },
-    });
-
-  return rows.length;
-}
-```
-
-При реализации сверить `excluded.*` с локальным repository pattern и не
-изобретать отдельный стиль upsert.
+Caller must preserve empty rows for enabled currencies with `has_price = false`
+and NULL price bounds.
 
 ### VariantListingIndexRepository
 
-Файл:
+Required methods:
 
-```text
-services/catalog/src/repositories/listing/VariantListingIndexRepository.ts
-```
+- `findByVariantId(variantId)`
+- `getByVariantIds(variantIds)`
+- `getByProductIds(productIds)`
+- `upsert(row)`
+- `upsertMany(rows)`
+- `delete(variantId)`
+- `deleteByVariantIds(variantIds)`
+- `deleteByProductId(productId)`
+- `getStockAggregatesByProductIds(productIds)`
+- `getActiveVariantIdsByProductIds(productIds)`
+- `getStaleVariants(params)`
 
-Добавить batch upsert, чтобы rebuild не делал тысячи round trips:
-
-```ts
-async upsertMany(inputs: VariantListingIndexUpsertInput[]): Promise<number> {
-  if (inputs.length === 0) return 0;
-
-  const now = new Date().toISOString();
-  await this.connection
-    .insert(variantListingIndex)
-    .values(
-      inputs.map((input) => ({
-        projectId: this.storeId,
-        productId: input.productId,
-        variantId: input.variantId,
-        kind: input.kind,
-        variantCreatedAt: input.variantCreatedAt,
-        variantUpdatedAt: input.variantUpdatedAt,
-        optionValueHandles: input.optionValueHandles,
-        inStock: input.inStock,
-        totalStock: input.totalStock,
-        indexedAt: input.indexedAt ?? now,
-        updatedAt: now,
-      })),
-    )
-    .onConflictDoUpdate({
-      target: [variantListingIndex.projectId, variantListingIndex.variantId],
-      set: {
-        productId: sql`excluded.product_id`,
-        kind: sql`excluded.kind`,
-        variantCreatedAt: sql`excluded.variant_created_at`,
-        variantUpdatedAt: sql`excluded.variant_updated_at`,
-        optionValueHandles: sql`excluded.option_value_handles`,
-        inStock: sql`excluded.in_stock`,
-        totalStock: sql`excluded.total_stock`,
-        indexedAt: sql`excluded.indexed_at`,
-        updatedAt: sql`excluded.updated_at`,
-      },
-    });
-
-  return inputs.length;
-}
-```
-
-Нужные aggregate methods:
-
-```ts
-async getStockAggregatesByProductIds(productIds: readonly string[]) {
-  if (productIds.length === 0) return [];
-
-  return this.connection
-    .select({
-      productId: variantListingIndex.productId,
-      totalStock: sql<number>`coalesce(sum(${variantListingIndex.totalStock}), 0)`,
-      inStock: sql<boolean>`bool_or(${variantListingIndex.inStock})`,
-    })
-    .from(variantListingIndex)
-    .where(
-      and(
-        eq(variantListingIndex.projectId, this.storeId),
-        inArray(variantListingIndex.productId, [...productIds]),
-      ),
-    )
-    .groupBy(variantListingIndex.productId);
-}
-```
+Rows include `product_doc_id` and `variant_doc_id`. They do not include raw
+option handles.
 
 ### VariantListingPriceIndexRepository
 
-Файл:
-
-```text
-services/catalog/src/repositories/listing/VariantListingPriceIndexRepository.ts
-```
-
-Нужные методы:
+Required methods:
 
 - `replaceForVariant(variantId, rows)`
 - `replaceForVariants(rowsByVariantId)`
@@ -409,119 +181,102 @@ services/catalog/src/repositories/listing/VariantListingPriceIndexRepository.ts
 - `getPriceAggregatesByProductIds(productIds, currencies)`
 - `getStaleVariantPrices(params)`
 
-Пример product aggregate query:
+`getPriceAggregatesByProductIds` groups only rows where parent variant listing
+row is in stock and price row has `has_price = true`.
+
+## Фаза 4. Posting and physical-index repositories
+
+### ListingPostingBitmapRepository
+
+Required methods:
+
+- `getPostingBitmap(input)`
+- `getPostingBitmaps(inputs)`
+- `upsertPostingBitmap(input)`
+- `replacePostingBitmap(input)`
+- `addDocIds(input)`
+- `removeDocIds(input)`
+- `replaceProductMemberships(input)`
+- `replaceVariantMemberships(input)`
+- `deleteProductMemberships(productDocId)`
+- `deleteVariantMemberships(variantDocId)`
+- `deleteByProject(projectId)`
+- `getBitmapCardinalityMismatches(params)`
+
+Inputs use:
 
 ```ts
-async getPriceAggregatesByProductIds(
-  productIds: readonly string[],
-  currencies: readonly string[],
-): Promise<ProductPriceAggregateRow[]> {
-  if (productIds.length === 0 || currencies.length === 0) return [];
+type PostingEntityType = "product" | "variant";
 
-  return this.connection
-    .select({
-      productId: variantListingIndex.productId,
-      currency: variantListingPriceIndex.currency,
-      minPriceMinor: sql<number | null>`min(${variantListingPriceIndex.priceMinor})`,
-      maxPriceMinor: sql<number | null>`max(${variantListingPriceIndex.priceMinor})`,
-      hasPrice: sql<boolean>`count(*) > 0`,
-    })
-    .from(variantListingPriceIndex)
-    .innerJoin(
-      variantListingIndex,
-      and(
-        eq(variantListingIndex.projectId, variantListingPriceIndex.projectId),
-        eq(variantListingIndex.variantId, variantListingPriceIndex.variantId),
-      ),
-    )
-    .where(
-      and(
-        eq(variantListingIndex.projectId, this.storeId),
-        inArray(variantListingIndex.productId, [...productIds]),
-        inArray(variantListingPriceIndex.currency, [...currencies]),
-        eq(variantListingIndex.inStock, true),
-        eq(variantListingPriceIndex.hasPrice, true),
-      ),
-    )
-    .groupBy(
-      variantListingIndex.productId,
-      variantListingPriceIndex.currency,
-    );
+interface PostingKey {
+  projectId: string;
+  entityType: PostingEntityType;
+  field: string;
+  valueKey: string;
 }
 ```
 
-Caller обязан дополнить отсутствующие currency rows как `{ hasPrice: false,
-minPriceMinor: null, maxPriceMinor: null }`.
+Implementation detail:
 
-### Listing posting repository
+- product membership writes add/remove `product_doc_id`;
+- variant membership writes add/remove `variant_doc_id`;
+- `cardinality` updates together with `bitmap`;
+- missing value posting row means empty bitmap on read path.
 
-Файлы:
+Do not expose methods that insert row-token records with `product_id`,
+`variant_id`, `facet_id`, `facet_value_id`.
 
-```text
-services/catalog/src/repositories/listing/ListingPostingIndexRepository.ts
-services/catalog/src/repositories/listing/ListingPostingIndexRepository.ts
-```
+### ListingPostingProductSortRepository
 
-Replace должен удалять все старые postings entity и вставлять новый deduplicated
-set. Это проще и надежнее token-level diff, потому source mappings могут
-merge/split значения.
+Required methods:
 
-```ts
-async replaceForProduct(
-  productId: string,
-  postings: ListingPostingFacetInput[],
-): Promise<number> {
-  await this.deleteByProductId(productId);
+- `replaceForProduct(productDocId, rows)`
+- `replaceForProducts(rowsByProductDocId)`
+- `deleteByProductDocId(productDocId)`
+- `deleteByProductDocIds(productDocIds)`
+- `deleteByProject(projectId)`
+- `collectProductPage(input)`
+- `findSortRowMismatches(params)`
 
-  const unique = dedupeProductFacetPostings(postings);
-  if (unique.length === 0) return 0;
+Rows are derived physical indexes. They must be rebuilt from listing rows,
+product price rows, translations and manual scope ranks.
 
-  await this.connection
-    .insert(listingPostingIndex)
-    .values(
-      unique.map((token) => ({
-        projectId: this.storeId,
-        productId,
-        facetId: token.facetId,
-        facetValueId: token.facetValueId,
-        facetType: token.facetType,
-      })),
-    )
-    .onConflictDoNothing();
+### ListingPostingVariantPriceRepository
 
-  return unique.length;
-}
-```
+Required methods:
 
-Нужны методы поиска affected ids после source handle change:
+- `replaceForVariant(variantDocId, rows)`
+- `replaceForVariants(rowsByVariantDocId)`
+- `deleteByVariantDocId(variantDocId)`
+- `deleteByVariantDocIds(variantDocIds)`
+- `deleteByProductDocId(productDocId)`
+- `deleteByProject(projectId)`
+- `collectMatchedPricePage(input)`
+- `findRuntimePriceMismatches(params)`
 
-```ts
-findProductsBySourceHandleChange(input: {
-  facetTypes: Array<"tag" | "feature">;
-  sourceValueHandles: string[];
-}): Promise<string[]>;
+Rows exist only for active in-stock variants with price in a currency.
 
-findVariantsBySourceHandleChange(input: {
-  sourceValueHandles: string[];
-}): Promise<Array<{ productId: string; variantId: string }>>;
-```
+### ListingPostingVariantProjectionBlockRepository
 
-Если affected set нельзя найти дешево, caller должен перейти к project token
-rebuild.
+Required methods:
 
-## Фаза 3. Source и mapping repositories
+- `refreshBlocksForVariantDocIds(variantDocIds)`
+- `refreshBlocksForProductDocIds(productDocIds)`
+- `rebuildProjectBlocks(projectId)`
+- `projectVariantBitmapToProductsSql(input)`
+- `findProjectionMismatches(params)`
+
+`projectVariantBitmapToProductsSql` may return SQL fragments/macro output used
+by query builder. Do not create a database helper function unless a separate
+schema decision approves it.
+
+## Фаза 5. Source and mapping repositories
 
 ### ListingSourceRepository
 
-Файл:
+Read-only repository for canonical batch reads.
 
-```text
-services/catalog/src/repositories/listing/ListingSourceRepository.ts
-```
-
-Назначение: batch-read canonical state без N+1 domain repository calls.
-
-Методы:
+Required methods:
 
 - `getProductSources(productIds)`
 - `getVariantSourcesByProductIds(productIds)`
@@ -532,603 +287,232 @@ services/catalog/src/repositories/listing/ListingSourceRepository.ts
 - `getVariantStockSources(variantIds)`
 - `getEnabledProjectCurrencies()`
 - `getDefaultCurrency()`
+- `getEnabledProjectLocales()`
 - `getProductsForRebuild(cursor, limit)`
 - `getVariantsForRebuild(productIds)`
+- `getManualScopeRanks(productIds)`
+- `getProductTranslations(productIds, locales)`
 
-Пример source DTO:
-
-```ts
-export interface ProductSource {
-  productId: string;
-  kind: "BASE" | "BUNDLE";
-  vendorId: string | null;
-  handle: string | null;
-  publishedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-  revision: number;
-  deletedAt: string | null;
-}
-
-export interface VariantSource {
-  productId: string;
-  variantId: string;
-  kind: "BASE" | "BUNDLE";
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
-}
-```
-
-Пример batch query:
-
-```ts
-async getVariantSourcesByProductIds(
-  productIds: readonly string[],
-): Promise<VariantSource[]> {
-  if (productIds.length === 0) return [];
-
-  return this.connection
-    .select({
-      productId: variant.productId,
-      variantId: variant.id,
-      kind: variant.kind,
-      createdAt: variant.createdAt,
-      updatedAt: variant.updatedAt,
-      deletedAt: variant.deletedAt,
-    })
-    .from(variant)
-    .where(
-      and(
-        eq(variant.projectId, this.storeId),
-        inArray(variant.productId, [...productIds]),
-      ),
-    );
-}
-```
+This repository may return raw handles as transient source input. Builders and
+mapping repository must convert them into ids before writing listing/posting
+tables.
 
 ### ListingFacetMappingRepository
 
-Файл:
+Resolves transient source handles through `facet_source` and `facet_value`
+source/display parent model.
 
-```text
-services/catalog/src/repositories/listing/ListingFacetMappingRepository.ts
-```
+Required methods:
 
-Назначение: resolve raw source handles в storefront postings через
-`facet_value.kind = 'source'` и `parent_id`.
+- `resolveProductFacetMemberships(input)`
+- `resolveVariantFacetMemberships(input)`
+- `resolveFacetSourceMappings(handles, facetTypes)`
+- `getConfiguredFacetValueIds(params)`
+- `findProductsBySourceHandleChange(input)`
+- `findVariantsBySourceHandleChange(input)`
 
-Правила resolve:
-
-- `tag` handle -> `facet_type = 'tag'`
-- `feature_slug:value_slug` -> `facet_type = 'feature'`
-- `option_slug:value_slug` -> `facet_type = 'option'`
-- unmapped handles игнорируются, error не нужен
-- display/root value должен быть enabled
-- source value должен быть enabled
-- если source value указывает на display parent, token пишет parent display
-  `facet_value_id`
-- если source value сам является root/source value, token пишет этот source
-  `facet_value_id`
-
-Пример resolve query shape:
+Output uses `valueKey`:
 
 ```ts
-async resolveProductFacetPostings(input: {
-  products: Array<{
-    productId: string;
-    tagHandles: string[];
-    featureValueHandles: string[];
-  }>;
-}): Promise<ProductFacetPostingResolved[]> {
-  const handlesByType = collectUniqueHandles(input.products);
-
-  const mappingRows = await this.resolveFacetSourceMappings(
-    handlesByType.handles,
-    ["tag", "feature"],
-  );
-
-  const mappingByTypeAndHandle = new Map(
-    mappingRows.map((row) => [`${row.facetType}\0${row.sourceHandle}`, row]),
-  );
-
-  const postings: ProductFacetPostingResolved[] = [];
-  for (const product of input.products) {
-    for (const handle of product.tagHandles) {
-      const mapping = mappingByTypeAndHandle.get(`tag\0${handle}`);
-      if (mapping) {
-        postings.push({
-          productId: product.productId,
-          facetId: mapping.facetId,
-          facetValueId: mapping.facetValueId,
-          facetType: "tag",
-        });
-      }
-    }
-  }
-
-  return dedupeResolvedProductFacetPostings(postings);
+interface ResolvedFacetMembership {
+  entityId: string;
+  entityDocId: number;
+  facetId: string;
+  facetValueId: string;
+  facetType: "tag" | "feature" | "option";
+  valueKey: string;
 }
 ```
 
-## Фаза 4. Pure builders
+Resolve rules:
 
-Создать:
+- unmapped handles are ignored;
+- source value must be enabled;
+- display parent must be enabled when used;
+- if source value has `parent_id`, membership uses parent display id;
+- otherwise membership uses root source value id.
 
-```text
-services/catalog/src/scripts/listing/ProductListingRowBuilder.ts
-services/catalog/src/scripts/listing/VariantListingRowBuilder.ts
-```
+## Фаза 6. Builders
 
-Builders не делают DB calls. Они только превращают already-loaded source data в
-rows для repositories.
+Create pure builders in `services/catalog/src/scripts/listing/`.
 
-Пример variant builder:
+Builders do not perform DB calls.
 
-```ts
-export function buildVariantListingRows(
-  input: VariantListingBuildInput,
-): VariantListingBuildOutput {
-  if (!input.variant || input.variant.deletedAt) {
-    return {
-      variantRow: null,
-      priceRows: [],
-      optionValueHandles: [],
-      shouldDelete: true,
-    };
-  }
+Required builders:
 
-  const priceByCurrency = new Map(
-    input.priceRows.map((row) => [row.currency, row]),
-  );
+- `ProductListingRowBuilder`
+- `VariantListingRowBuilder`
+- `ProductPriceRowsBuilder`
+- `VariantPriceRowsBuilder`
+- `PostingMembershipBuilder`
+- `ProductSortRowsBuilder`
+- `RuntimeVariantPriceRowsBuilder`
 
-  return {
-    shouldDelete: false,
-    optionValueHandles: input.optionSources.optionValueHandles,
-    variantRow: {
-      productId: input.variant.productId,
-      variantId: input.variant.variantId,
-      kind: input.variant.kind,
-      variantCreatedAt: input.variant.createdAt,
-      variantUpdatedAt: input.variant.updatedAt,
-      optionValueHandles: input.optionSources.optionValueHandles,
-      inStock: input.stockSource.totalStock > 0,
-      totalStock: input.stockSource.totalStock,
-      indexedAt: input.now,
-    },
-    priceRows: input.enabledCurrencies.map((currency) => {
-      const price = priceByCurrency.get(currency);
-      return {
-        productId: input.variant.productId,
-        variantId: input.variant.variantId,
-        currency,
-        priceMinor: price?.amountMinor ?? null,
-        hasPrice: price?.amountMinor != null,
-        indexedAt: input.now,
-      };
-    }),
-  };
-}
-```
+Builder outputs:
 
-Product builder должен:
+- product/variant listing rows;
+- price rows for all enabled currencies;
+- transient source handles for mapping;
+- product posting memberships;
+- variant posting memberships;
+- product sort rows for expected sort dimensions;
+- runtime variant price rows for priced in-stock variants.
 
-- вернуть `shouldDelete = true` для missing/deleted product;
-- заполнить `status = 'published' | 'draft'`;
-- сохранить raw `tag_handles`, `feature_value_handles`, `category_handles`;
-- получить `in_stock` и `total_stock` из stock aggregate;
-- создать price rows для всех enabled currencies.
+Builders must not include raw handle arrays in listing row outputs.
 
-## Фаза 5. Sync scripts
+## Фаза 7. Sync scripts
 
-Создать папку:
-
-```text
-services/catalog/src/scripts/listing/
-```
-
-и barrel:
-
-```text
-services/catalog/src/scripts/listing/index.ts
-```
-
-### Общий reason type
-
-Файл:
-
-```text
-services/catalog/src/scripts/listing/types.ts
-```
-
-```ts
-export type ListingIndexSyncReason =
-  | "product_created"
-  | "product_updated"
-  | "product_deleted"
-  | "product_visibility_changed"
-  | "product_category_changed"
-  | "category_handle_changed"
-  | "product_tag_changed"
-  | "tag_handle_changed"
-  | "product_feature_changed"
-  | "feature_handle_changed"
-  | "variant_created"
-  | "variant_updated"
-  | "variant_deleted"
-  | "variant_option_changed"
-  | "option_handle_changed"
-  | "variant_price_changed"
-  | "stock_changed"
-  | "project_currency_changed"
-  | "facet_mapping_changed"
-  | "manual_rebuild"
-  | "freshness_repair";
-```
+Create `services/catalog/src/scripts/listing/` and export scripts through a local
+barrel.
 
 ### SyncVariantListingIndexScript
 
-Файл:
-
-```text
-services/catalog/src/scripts/listing/SyncVariantListingIndexScript.ts
-```
-
-Скрипт должен быть transactional, потому variant rows, prices, postings и parent
-aggregate refresh должны коммититься согласованно.
+Input:
 
 ```ts
-export class SyncVariantListingIndexScript extends BaseScript<
-  SyncVariantListingIndexParams,
-  SyncVariantListingIndexResult
-> {
-  @Transactional()
-  protected async execute(
-    params: SyncVariantListingIndexParams,
-  ): Promise<SyncVariantListingIndexResult> {
-    const normalized = await this.normalizeInput(params);
-    if (normalized.variantIds.length === 0 && normalized.productIds.length === 0) {
-      return emptyVariantSyncResult();
-    }
-
-    const enabledCurrencies =
-      await this.repository.listingSource.getEnabledProjectCurrencies();
-
-    if (normalized.productIds.length > 0) {
-      const productSources =
-        await this.repository.listingSource.getProductSources(normalized.productIds);
-      await this.repository.productListingIndex.ensureBootstrapRows(
-        productSources
-          .filter((source) => !source.deletedAt)
-          .map(toProductListingBootstrapInput),
-      );
-    }
-
-    const sources = params.variantIds?.length
-      ? await this.repository.listingSource.getVariantSourcesByVariantIds(
-          normalized.variantIds,
-        )
-      : await this.repository.listingSource.getVariantSourcesByProductIds(
-          normalized.productIds,
-        );
-
-    const variantIds = sources.map((source) => source.variantId);
-    const [optionSources, prices, stockSources] = await Promise.all([
-      this.repository.listingSource.getVariantOptionSources(variantIds),
-      this.repository.listingSource.getCurrentVariantPrices(
-        variantIds,
-        enabledCurrencies,
-      ),
-      this.repository.listingSource.getVariantStockSources(variantIds),
-    ]);
-
-    const now = new Date().toISOString();
-    const built = sources.map((variant) =>
-      buildVariantListingRows({
-        variant,
-        optionSources: optionSources.get(variant.variantId) ?? emptyOptionSource(),
-        stockSource: stockSources.get(variant.variantId) ?? emptyStockSource(),
-        priceRows: prices.get(variant.variantId) ?? [],
-        enabledCurrencies,
-        now,
-      }),
-    );
-
-    const activeRows = built.flatMap((row) => row.variantRow ? [row.variantRow] : []);
-    const deletedIds = collectDeletedVariantIds(normalized.variantIds, sources, built);
-
-    await this.repository.listingPostingIndex.deleteByVariantIds(deletedIds);
-    await this.repository.variantListingPriceIndex.deleteByVariantIds(deletedIds);
-    await this.repository.variantListingIndex.deleteByVariantIds(deletedIds);
-
-    await this.repository.variantListingIndex.upsertMany(activeRows);
-    const priceRowsWritten =
-      await this.repository.variantListingPriceIndex.replaceForVariants(
-        groupVariantPriceRows(built),
-      );
-
-    const postings =
-      await this.repository.listingFacetMapping.resolveVariantFacetPostings({
-        variants: collectVariantTokenSources(activeRows, built),
-      });
-
-    const optionPostingsWritten =
-      await this.repository.listingPostingIndex.replaceForVariants(
-        groupVariantPostings(postings),
-      );
-
-    const affectedProductIds = collectAffectedProductIds(sources, activeRows);
-    await this.executeScript(SyncProductListingIndexScript, {
-      productIds: affectedProductIds,
-      reason: params.reason,
-      refreshVariantsFirst: false,
-    });
-
-    return {
-      syncedVariantIds: activeRows.map((row) => row.variantId),
-      deletedVariantIds: deletedIds,
-      affectedProductIds,
-      priceRowsWritten,
-      optionPostingsWritten,
-    };
-  }
+interface SyncVariantListingIndexParams {
+  productIds?: string[];
+  variantIds?: string[];
+  reason: ListingIndexSyncReason;
+  changedCurrencies?: string[];
 }
 ```
 
-Важная деталь: `ensureBootstrapRows` выполняется до variant upsert только для
-FK parent row. Полноценный `SyncProductListingIndexScript` все равно вызывается
-после записи variant rows. Для избежания циклов product script не должен
-вызывать variant refresh, если `refreshVariantsFirst = false`.
+Algorithm:
+
+1. Normalize input and load parent product ids.
+2. Load product sources for parents and ensure bootstrap product rows/doc ids.
+3. Load enabled currencies.
+4. Load variant sources, option sources, prices and stock.
+5. Allocate missing variant doc ids.
+6. Build active variant rows and price rows.
+7. Delete stale rows for missing/inactive variants:
+   - variant bitmap memberships;
+   - runtime variant price rows;
+   - variant price rows;
+   - variant listing rows.
+8. Upsert active variant rows.
+9. Replace variant price rows.
+10. Resolve option memberships and replace variant bitmap memberships.
+11. Refresh `variant_product` posting memberships.
+12. Replace runtime variant price rows.
+13. Refresh projection blocks for touched variant doc ids.
+14. Execute product sync for affected products with `refreshVariantsFirst = false`.
 
 ### SyncProductListingIndexScript
 
-Файл:
-
-```text
-services/catalog/src/scripts/listing/SyncProductListingIndexScript.ts
-```
+Input:
 
 ```ts
-export class SyncProductListingIndexScript extends BaseScript<
-  SyncProductListingIndexParams,
-  SyncProductListingIndexResult
-> {
-  @Transactional()
-  protected async execute(
-    params: SyncProductListingIndexParams,
-  ): Promise<SyncProductListingIndexResult> {
-    const productIds = [...new Set(params.productIds)];
-    if (productIds.length === 0) return emptyProductSyncResult();
-
-    if (params.refreshVariantsFirst) {
-      await this.executeScript(SyncVariantListingIndexScript, {
-        productIds,
-        reason: params.reason,
-      });
-    }
-
-    const productSources =
-      await this.repository.listingSource.getProductSources(productIds);
-    const missingOrDeleted = collectMissingOrDeletedProducts(
-      productIds,
-      productSources,
-    );
-
-    for (const productId of missingOrDeleted) {
-      await this.executeScript(DeleteProductListingIndexScript, {
-        productId,
-        reason: params.reason,
-      });
-    }
-
-    const activeProductIds = productSources
-      .filter((source) => !source.deletedAt)
-      .map((source) => source.productId);
-
-    const enabledCurrencies =
-      await this.repository.listingSource.getEnabledProjectCurrencies();
-
-    const [facetSources, stockAggregates, priceAggregates] = await Promise.all([
-      this.repository.listingSource.getProductFacetSources(activeProductIds),
-      this.repository.variantListingIndex.getStockAggregatesByProductIds(
-        activeProductIds,
-      ),
-      this.repository.variantListingPriceIndex.getPriceAggregatesByProductIds(
-        activeProductIds,
-        enabledCurrencies,
-      ),
-    ]);
-
-    const now = new Date().toISOString();
-    const built = productSources
-      .filter((source) => !source.deletedAt)
-      .map((product) =>
-        buildProductListingRows({
-          product,
-          facetSources: facetSources.get(product.productId) ?? emptyProductFacetSource(),
-          stockAggregate: stockAggregates.get(product.productId) ?? emptyStockAggregate(),
-          priceAggregates: priceAggregates.get(product.productId) ?? [],
-          enabledCurrencies,
-          now,
-        }),
-      );
-
-    for (const row of built) {
-      if (!row.productRow) continue;
-      await this.repository.productListingIndex.upsert(row.productRow);
-    }
-
-    const priceRowsWritten =
-      await this.repository.productListingPriceIndex.replaceForProducts(
-        groupProductPriceRows(built),
-      );
-
-    const postings =
-      await this.repository.listingFacetMapping.resolveProductFacetPostings({
-        products: collectProductTokenSources(built),
-      });
-
-    const productPostingsWritten =
-      await this.repository.listingPostingIndex.replaceForProducts(
-        groupProductPostings(postings),
-      );
-
-    return {
-      syncedProductIds: built.flatMap((row) =>
-        row.productRow ? [row.productRow.productId] : [],
-      ),
-      deletedProductIds: missingOrDeleted,
-      priceRowsWritten,
-      productPostingsWritten,
-    };
-  }
+interface SyncProductListingIndexParams {
+  productIds: string[];
+  reason: ListingIndexSyncReason;
+  refreshVariantsFirst?: boolean;
 }
 ```
+
+Algorithm:
+
+1. If `refreshVariantsFirst`, execute variant sync for products.
+2. Load product sources and detect missing/deleted products.
+3. Allocate missing product doc ids.
+4. For deleted products, execute delete script.
+5. Load product facet/source data, stock aggregates, price aggregates,
+   translations and manual ranks.
+6. Build product listing rows, product price rows, product bitmap memberships and
+   product sort rows.
+7. Upsert product listing rows.
+8. Replace product price rows.
+9. Resolve product tag/feature memberships.
+10. Replace product bitmap memberships: facet, vendor, category, collection.
+11. Replace product sort rows.
 
 ### DeleteProductListingIndexScript
 
-Файл:
+Algorithm:
 
-```text
-services/catalog/src/scripts/listing/DeleteProductListingIndexScript.ts
-```
-
-Удалять явно, даже если FK cascade покрывает часть операций:
-
-```ts
-@Transactional()
-protected async execute(params: DeleteProductListingIndexParams) {
-  await this.repository.listingPostingIndex.deleteByProductId(params.productId);
-  await this.repository.variantListingPriceIndex.deleteByProductId(params.productId);
-  await this.repository.variantListingIndex.deleteByProductId(params.productId);
-  await this.repository.listingPostingIndex.deleteByProductId(params.productId);
-  await this.repository.productListingPriceIndex.deleteByProductId(params.productId);
-  await this.repository.productListingIndex.delete(params.productId);
-
-  return { productId: params.productId, deleted: true };
-}
-```
+1. Load product and child variant doc ids.
+2. Remove child variant doc ids from variant bitmap rows.
+3. Delete runtime variant price rows.
+4. Delete variant price rows.
+5. Delete variant listing rows.
+6. Remove product doc id from product bitmap rows.
+7. Delete product sort rows.
+8. Delete product price rows.
+9. Delete product listing row.
+10. Do not modify allocator counters.
 
 ### RefreshListingFacetPostingsScript
 
-Файл:
+Purpose: recompute resolved facet bitmap memberships after facet source/display
+mapping changes.
 
-```text
-services/catalog/src/scripts/listing/RefreshListingFacetPostingsScript.ts
-```
+Algorithm:
 
-Этот script не меняет index rows и price rows. Он пересчитывает только token
-tables.
+1. Resolve affected products/variants from source handles when cheap.
+2. If affected set is unknown and fallback is allowed, rebuild project postings
+   for facet type.
+3. For product facets, load current product sources, resolve memberships and
+   replace product bitmap memberships.
+4. For option facets, load current variant option sources, resolve memberships
+   and replace variant bitmap memberships.
+5. Refresh cardinality and `updated_at` for touched bitmap rows.
 
-```ts
-export class RefreshListingFacetPostingsScript extends BaseScript<
-  RefreshListingFacetPostingsParams,
-  RefreshListingFacetPostingsResult
-> {
-  @Transactional()
-  protected async execute(params: RefreshListingFacetPostingsParams) {
-    const productIds = await this.resolveAffectedProductIds(params);
-    const variantIds = await this.resolveAffectedVariantIds(params);
-
-    if (productIds.length === 0 && variantIds.length === 0) {
-      if (params.fallbackToProjectRebuild) {
-        return this.rebuildProjectPostings(params.reason);
-      }
-      return emptyFacetRefreshResult();
-    }
-
-    if (productIds.length > 0) {
-      const sources =
-        await this.repository.listingSource.getProductFacetSources(productIds);
-      const postings =
-        await this.repository.listingFacetMapping.resolveProductFacetPostings({
-          products: toProductTokenSources(sources),
-        });
-      await this.repository.listingPostingIndex.replaceForProducts(
-        groupProductPostings(postings),
-      );
-    }
-
-    if (variantIds.length > 0) {
-      const optionSources =
-        await this.repository.listingSource.getVariantOptionSources(variantIds);
-      const postings =
-        await this.repository.listingFacetMapping.resolveVariantFacetPostings({
-          variants: toVariantTokenSources(optionSources),
-        });
-      await this.repository.listingPostingIndex.replaceForVariants(
-        groupVariantPostings(postings),
-      );
-    }
-
-    return {
-      refreshedProductIds: productIds,
-      refreshedVariantIds: variantIds,
-    };
-  }
-}
-```
+This script must not change price, stock, sort or projection rows unless a
+variant visibility/parent change is part of the same canonical event.
 
 ### RebuildListingIndexScript
 
-Файл:
+Algorithm:
 
-```text
-services/catalog/src/scripts/listing/RebuildListingIndexScript.ts
-```
+1. Acquire project advisory lock.
+2. Clear project listing/posting tables in dependency-safe order.
+3. Recreate allocator row.
+4. Process products in batches.
+5. For each batch, sync variants then products.
+6. Rebuild projection blocks.
+7. Run freshness audit.
 
-Алгоритм:
-
-1. Взять project advisory lock.
-2. Если `truncate = true`, очистить listing tables в порядке child -> parent.
-3. Читать product ids batches через `getProductsForRebuild`.
-4. На каждый batch сначала `SyncVariantListingIndexScript`.
-5. Затем `SyncProductListingIndexScript`.
-6. После rebuild вызвать `listingFreshness.auditProject`.
-
-Пример lock helper в repository:
-
-```ts
-async withProjectListingLock<T>(fn: () => Promise<T>): Promise<T> {
-  await this.connection.execute(
-    sql`select pg_advisory_xact_lock(hashtext(${`listing:${this.storeId}`}))`,
-  );
-  return fn();
-}
-```
-
-Если helper будет жить в отдельном repository, он все равно должен использовать
-`this.connection`.
+Partial rebuild by `productIds` must preserve existing doc ids and must not reset
+allocator.
 
 ### RepairListingIndexFreshnessScript
 
-Файл:
+Algorithm:
 
-```text
-services/catalog/src/scripts/listing/RepairListingIndexFreshnessScript.ts
-```
+1. Run `ListingFreshnessRepository.auditProject`.
+2. Target-sync missing/stale products.
+3. Target-sync missing/stale variants.
+4. Refresh affected bitmap memberships.
+5. Refresh affected sort/runtime price/projection rows.
+6. If targeted repair is unsafe or too large, run project rebuild.
 
-Алгоритм:
+## Фаза 8. Freshness repository
 
-1. `listingFreshness.auditProject`.
-2. Missing/stale products -> `SyncProductListingIndexScript`.
-3. Unexpected/deleted products -> `DeleteProductListingIndexScript`.
-4. Missing/stale variants -> `SyncVariantListingIndexScript`.
-5. Posting mismatches -> `RefreshListingFacetPostingsScript`.
-6. Если targeted repair невозможен -> `RebuildListingIndexScript`.
+Create `ListingFreshnessRepository`.
 
-## Фаза 6. Freshness repository
+Required methods:
 
-Файл:
+- `findMissingProductRows(limit)`
+- `findStaleProductRows(limit)`
+- `findUnexpectedProductRows(limit)`
+- `findMissingVariantRows(limit)`
+- `findStaleVariantRows(limit)`
+- `findUnexpectedVariantRows(limit)`
+- `findMissingVariantPriceRows(limit)`
+- `findMissingProductPriceRows(limit)`
+- `findProductAggregateMismatches(limit)`
+- `findPostingBitmapCardinalityMismatches(limit)`
+- `findPostingBitmapMembershipMismatches(limit)`
+- `findSortRowMismatches(limit)`
+- `findRuntimeVariantPriceMismatches(limit)`
+- `findProjectionBlockMismatches(limit)`
+- `auditProject(params)`
 
-```text
-services/catalog/src/repositories/listing/ListingFreshnessRepository.ts
-```
-
-Минимальный result:
+Minimum result:
 
 ```ts
-export interface ListingFreshnessAuditResult {
+interface ListingFreshnessAuditResult {
   missingProducts: string[];
   staleProducts: string[];
   unexpectedProducts: string[];
@@ -1136,351 +520,146 @@ export interface ListingFreshnessAuditResult {
   staleVariants: string[];
   unexpectedVariants: string[];
   aggregateMismatches: string[];
-  tokenMismatches: {
-    productIds: string[];
-    variantIds: string[];
-  };
+  postingBitmapMismatches: Array<{
+    entityType: "product" | "variant";
+    field: string;
+    valueKey: string;
+  }>;
+  sortRowMismatches: string[];
+  runtimeVariantPriceMismatches: string[];
+  projectionBlockMismatches: number[];
   canRepairTargeted: boolean;
 }
 ```
 
-Пример missing product rows:
+## Фаза 9. DBOS workflows
 
-```ts
-async findMissingProductRows(limit: number): Promise<string[]> {
-  const rows = await this.connection
-    .select({ productId: product.id })
-    .from(product)
-    .leftJoin(
-      productListingIndex,
-      and(
-        eq(productListingIndex.projectId, product.projectId),
-        eq(productListingIndex.productId, product.id),
-      ),
-    )
-    .where(
-      and(
-        eq(product.projectId, this.storeId),
-        isNull(product.deletedAt),
-        isNull(productListingIndex.productId),
-      ),
-    )
-    .limit(limit);
-
-  return rows.map((row) => row.productId);
-}
-```
-
-Пример stale product rows:
-
-```ts
-async findStaleProductRows(limit: number): Promise<string[]> {
-  const rows = await this.connection
-    .select({ productId: product.id })
-    .from(product)
-    .innerJoin(
-      productListingIndex,
-      and(
-        eq(productListingIndex.projectId, product.projectId),
-        eq(productListingIndex.productId, product.id),
-      ),
-    )
-    .where(
-      and(
-        eq(product.projectId, this.storeId),
-        isNull(product.deletedAt),
-        or(
-          gt(product.updatedAt, productListingIndex.productUpdatedAt),
-          ne(product.revision, productListingIndex.productRevision),
-        ),
-      ),
-    )
-    .limit(limit);
-
-  return rows.map((row) => row.productId);
-}
-```
-
-Posting mismatch audit должен сравнивать expected resolved posting set из canonical
-facet sources и actual posting bitmap. Для больших проектов audit может работать
-limit-ами и возвращать `canRepairTargeted = false`, если diff слишком большой.
-
-## Фаза 7. DBOS workflows
-
-Catalog workflows сейчас используют `BrokerWorkflows`. Добавить:
-
-```text
-services/catalog/src/workflows/ListingIndexWorkflow.ts
-```
-
-И зарегистрировать в:
-
-```text
-services/catalog/src/workflows/index.ts
-```
-
-Нужные workflow names:
+Add workflow entrypoints:
 
 - `catalog.rebuildListingIndex`
 - `catalog.syncListingIndexForProducts`
 - `catalog.syncListingIndexForVariants`
 - `catalog.refreshListingFacetPostings`
+- `catalog.repairListingIndexFreshness`
 
-Текущий catalog pattern использует `BrokerWorkflows`, а decorated entrypoint
-обычно называется `run`. Поэтому безопасный вариант - отдельный workflow class
-на каждый entrypoint:
+Workflow steps:
 
-```text
-services/catalog/src/workflows/ListingIndexProductSyncWorkflow.ts
-services/catalog/src/workflows/ListingIndexVariantSyncWorkflow.ts
-services/catalog/src/workflows/ListingIndexFacetPostingRefreshWorkflow.ts
-services/catalog/src/workflows/ListingIndexRebuildWorkflow.ts
-```
+1. acquire scoped advisory lock where useful;
+2. execute sync script;
+3. run affected freshness check;
+4. log counters.
 
-Пример skeleton:
-
-```ts
-import {
-  BrokerWorkflows,
-  InjectBroker,
-  ServiceBroker,
-  Workflow,
-  WorkflowStep,
-} from "@shopana/shared-kernel";
-import { Injectable } from "@nestjs/common";
-import { Kernel } from "../kernel/Kernel.js";
-import { SyncProductListingIndexScript } from "../scripts/listing/index.js";
-
-@Injectable()
-export class ListingIndexWorkflow extends BrokerWorkflows {
-  constructor(@InjectBroker("catalog") broker: ServiceBroker) {
-    super(broker);
-  }
-
-  private get kernel(): Kernel {
-    return Kernel.getInstance();
-  }
-
-  @Workflow("syncListingIndexForProducts", {
-    idempotencyStrategy: "content",
-  })
-  async run(input: SyncListingIndexForProductsWorkflowInput) {
-    const result = await this.stepSyncProducts(input);
-    await this.stepAuditAffectedProducts(input, result.syncedProductIds);
-    return result;
-  }
-
-  @WorkflowStep({ timeoutMs: 60_000 })
-  private async stepSyncProducts(input: SyncListingIndexForProductsWorkflowInput) {
-    return this.kernel.runScript(
-      SyncProductListingIndexScript,
-      {
-        productIds: input.productIds,
-        reason: input.reason,
-        refreshVariantsFirst: input.refreshVariantsFirst,
-      },
-      input.context,
-    );
-  }
-
-  @WorkflowStep({ timeoutMs: 30_000 })
-  private async stepAuditAffectedProducts(
-    input: SyncListingIndexForProductsWorkflowInput,
-    productIds: string[],
-  ) {
-    return this.kernel.repository.listingFreshness.auditProject({
-      productIds,
-      limit: input.auditLimit ?? 100,
-    });
-  }
-}
-```
-
-Workflow idempotency keys должны строиться из content:
-
-- product sync:
-  `listing:product:{projectId}:{productId}:{reason}:{sourceRevision}`
-- variant sync:
-  `listing:variant:{projectId}:{variantId}:{reason}:{sourceRevision}`
-- mapping refresh:
-  `listing:facet-mapping:{projectId}:{facetType}:{mappingRevision}`
-- rebuild:
-  `listing:rebuild:{projectId}:{requestedAtOrManualKey}`
-
-Если текущий `WorkflowRegistry` API требует запуск через broker action, добавить
-тонкий wrapper action рядом с существующими workflow entrypoints. Event handler
-может временно вызывать `kernel.runScript`, но durable path должен быть workflow.
-
-## Фаза 8. Event handlers и invalidation
-
-Обновить:
+Idempotency keys:
 
 ```text
-services/catalog/src/handlers/index.ts
-services/catalog/src/handlers/InventoryEventHandlers.ts
+listing:product:{projectId}:{productId}:{reason}:{sourceRevision}
+listing:variant:{projectId}:{variantId}:{reason}:{sourceRevision}
+listing:facet-mapping:{projectId}:{facetType}:{mappingRevision}
+listing:rebuild:{projectId}:{requestedAtOrManualKey}
 ```
 
-Заменить imports:
+If current workflow registry requires broker actions, add thin wrapper actions
+next to existing workflow entrypoints.
 
-```ts
-import {
-  DeleteProductListingIndexScript,
-  SyncProductListingIndexScript,
-  SyncVariantListingIndexScript,
-  RefreshListingFacetPostingsScript,
-} from "../scripts/listing/index.js";
-```
+## Фаза 10. Event handlers and invalidation
 
-Базовая карта:
+Update catalog handlers to launch listing sync workflows/scripts.
 
-| Изменение | Action |
+Base map:
+
+| Change | Action |
 | --- | --- |
-| `productCreated` | `SyncProductListingIndexScript` с `refreshVariantsFirst = true` |
-| `productDeleted` | `DeleteProductListingIndexScript` |
-| product kind/vendor/handle/published/revision | product row refresh |
-| category assignment | product `category_handles` refresh |
-| tag assignment/handle | product row + product postings |
-| feature value/handle | product row + product postings |
-| variant create/update/delete | variant row/prices/postings + parent product aggregate |
-| variant option changed | variant row + option postings + parent aggregate |
-| variant price changed | variant price row + parent product price aggregate |
-| stock changed | variant stock row + parent stock/price aggregate |
-| enabled currencies changed | variant price rows + product price rows for project |
-| facet mapping changed | `RefreshListingFacetPostingsScript` only |
+| product created | product sync with `refreshVariantsFirst = true` |
+| product deleted | delete listing index for product |
+| product kind/vendor/handle/published/revision | product sync |
+| category assignment/rank | product bitmap + sort refresh |
+| collection item/rank | product bitmap + sort refresh |
+| tag assignment/handle | product facet bitmap refresh |
+| feature value/handle | product facet bitmap refresh |
+| variant create/update/delete | variant sync + parent product sync |
+| variant option changed | variant facet bitmap refresh + parent product sync if needed |
+| variant price changed | variant price/runtime price + parent product price/sort |
+| stock changed | variant stock/runtime price + parent product aggregate/sort |
+| enabled currencies changed | variant price, product price, runtime price, price sort |
+| product translation name changed | product name sort rows; BM25 title index separately |
+| facet source/display mapping changed | refresh listing facet postings |
 
-Пример `productCreated`:
-
-```ts
-await this.kernel.runScript(
-  SyncProductListingIndexScript,
-  {
-    productIds: [params.event.payload.productId],
-    reason: "product_created",
-    refreshVariantsFirst: true,
-  },
-  context,
-);
-```
-
-Пример stock handler:
-
-```ts
-@EventHandler("stockLevelChanged")
-async handleStockLevelChanged(params: { event: StockLevelChangedEvent }) {
-  const store = await this.getStoreContext(params.event.payload.storeId);
-  const context = toScriptContext(store, params.event.context.userId);
-
-  await this.kernel.runScript(
-    SyncVariantListingIndexScript,
-    {
-      variantIds: [params.event.payload.variantId],
-      reason: "stock_changed",
-    },
-    context,
-  );
-
-  return { success: true };
-}
-```
-
-Если inventory event сейчас не содержит `storeId`, сначала добавить lookup
-variant -> project через catalog repository или расширить event contract. Без
-project context listing sync запускать нельзя.
-
-## Фаза 9. Обновление product/variant/facet scripts
-
-Помимо event handlers, direct mutation scripts должны запускать listing sync,
-если изменение происходит внутри catalog service и событие не гарантирует
-доставку до read model в рамках нужного lifecycle.
-
-Проверить и обновить:
-
-- `services/catalog/src/scripts/product/*`
-- `services/catalog/src/scripts/variant/*`
-- `services/catalog/src/scripts/tag/*`
-- `services/catalog/src/scripts/feature/*`
-- `services/catalog/src/scripts/option/*`
-- `services/catalog/src/scripts/facet/*`
-- `services/catalog/src/workflows/ProductUpdateWorkflow.ts`
-
-Практическое правило:
-
-- Mutation script меняет canonical data.
-- Event или workflow запускает sync.
-- Не делать двойной sync из script и handler для одного и того же committed
-  изменения, если событие уже reliable. Если сомневаемся, использовать
-  deterministic workflow idempotency key.
-
-Для facet value merge/unmerge/update:
-
-```ts
-await this.executeScript(RefreshListingFacetPostingsScript, {
-  facetTypes: [facet.facetType],
-  sourceValueHandles: affectedSourceHandles,
-  fallbackToProjectRebuild: true,
-  reason: "facet_mapping_changed",
-});
-```
-
-## Фаза 10. Cleanup после cutover
-
-После переноса callers проверить все ссылки:
-
-```text
-rg "productListingIndex|variantListingIndex|SyncProductListingIndexScript|SyncVariantListingIndexScript|product_listing_index|variant_listing_index" services/catalog
-```
-
-Все найденные references должны соответствовать текущему listing naming.
+If event payload lacks project context, handler must load it before launching
+sync. Listing sync must not run without project context.
 
 ## Фаза 11. Storefront read path follow-up
 
-Этот sync plan подготавливает read model. Storefront listing repositories должны
-быть обновлены отдельно или в следующем PR:
+After sync cutover, update storefront repositories:
 
-- `ListingQueryRepository` строит product candidates, filters, sort и
-  pagination.
-- `FacetAggregationRepository` считает product-level, option-level и virtual
-  facets.
-- Tag/feature filters используют catalog.listing_posting_bitmap product facet postings.
-- Option filters используют catalog.listing_posting_bitmap variant facet postings + same-variant join к
-  `variant_listing_index`.
-- Price filters используют `variant_listing_price_index` только с
-  `has_price = true` и `variant_listing_index.in_stock = true`.
+- `ListingQueryRepository` uses bitmap set operations and page collectors.
+- `FacetAggregationRepository` computes product/option/virtual facet counts from
+  bitmaps.
+- Product-level filters use product bitmap rows.
+- Option filters use variant bitmap rows and projection blocks.
+- Price filters use `listing_posting_variant_price`, not generic bitmap row.
+- Product-level sorts use `listing_posting_product_sort`.
+- Matched price sort uses `listing_posting_variant_price`.
 
-Минимальная проверка read path после sync cutover: ни один storefront configured
-facet query не должен читать `tag_handles`, `feature_value_handles` или
-`option_value_handles`.
+Minimum read path check:
+
+- no configured storefront facet query reads raw handles;
+- no query assumes `listing_posting_bitmap.product_id`, `variant_id`,
+  `facet_id` or `facet_value_id` columns;
+- missing posting row is treated as empty bitmap.
+
+## Cleanup после cutover
+
+Search and remove obsolete references:
+
+```text
+product_listing_facet
+variant_listing_facet
+facet token
+token table
+tag_handles
+feature_value_handles
+option_value_handles
+listing_posting_bitmap.product_id
+listing_posting_bitmap.variant_id
+listing_posting_bitmap.facet_id
+listing_posting_bitmap.facet_value_id
+```
+
+Raw handle names may remain only in canonical source repository code and local
+variables that are clearly transient sync input.
 
 ## Рекомендуемый порядок PR/коммитов
 
-1. Repository registration + listing repositories.
-2. Source/mapping repositories + builders.
-3. Sync scripts + rebuild/delete/repair scripts.
-4. Workflows + event handlers.
-5. Cleanup obsolete exports and unused scripts.
-6. Storefront query/facet aggregation repositories.
+1. Models and repositories for target schema.
+2. Source/mapping repositories and pure builders.
+3. Sync/delete/rebuild/repair scripts.
+4. Workflows and event handlers.
+5. Storefront query/facet aggregation repositories.
+6. BM25 title search integration, if included in the same milestone.
+7. Cleanup obsolete token/raw-handle code paths.
 
-Если нужен меньший blast radius, первые пять пунктов можно сделать в одном
-backend cutover PR, а storefront read path во втором PR. Dual-write не нужен,
-но временно нельзя выпускать storefront listing до успешного rebuild.
+Dual-write is not required. Storefront listing should not be enabled until
+rebuild and freshness audit complete.
 
 ## Acceptance checklist
 
-- [ ] Storefront configured facets больше не читают raw handle arrays.
-- [ ] Все новые repositories используют `this.connection` и `this.storeId`.
-- [ ] `SyncVariantListingIndexScript` пишет variant rows/prices/postings до
-      product aggregate refresh.
-- [ ] `SyncProductListingIndexScript` считает product price aggregates из
-      variant listing tables.
-- [ ] Posting generation пишет только resolved `facet_id` и `facet_value_id`.
-- [ ] Postings replace operations atomic и deduplicated.
-- [ ] Facet mapping changes пересчитывают roaring posting tables без изменения price/stock
-      rows.
-- [ ] Rebuild может восстановить listing tables после truncate.
-- [ ] Freshness audit находит missing/stale/unexpected rows и запускает targeted
-      repair или full rebuild.
-- [ ] Event handlers покрывают product, variant, price, stock, category, tag,
-      feature, option, currency и facet mapping changes.
-- [ ] Storefront read path для configured facets не использует raw handle arrays.
-- [ ] Проверка новой версии выполняется build-ом; `test` и `tsc` отдельно не
-      запускаются.
+- [ ] New models match `listing-index-db-schema.ru.md`.
+- [ ] Stable doc ids are allocated under lock and never reused.
+- [ ] Listing rows do not store raw handle arrays.
+- [ ] Posting repository writes bitmap rows keyed by
+      `entity_type + field + value_key`.
+- [ ] No row-based facet token tables are recreated.
+- [ ] Variant sync writes variant rows/prices/bitmaps/runtime price/projection
+      before parent product aggregate refresh.
+- [ ] Product sync writes product rows/prices/bitmaps/sort rows.
+- [ ] Facet mapping changes refresh bitmap memberships without touching stock or
+      price rows.
+- [ ] Runtime variant price rows contain only priced in-stock variants.
+- [ ] Projection blocks can be rebuilt and audited.
+- [ ] Storefront read path uses bitmap SQL shapes from
+      `listing-query-sql-examples.ru.md`.
+- [ ] Freshness audit can detect and repair listing, bitmap, sort, runtime price
+      and projection mismatches.
+- [ ] Verification uses build when needed; standalone `test` and `tsc` are not
+      run.
+

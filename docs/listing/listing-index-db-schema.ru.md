@@ -2,7 +2,9 @@
 
 Документ фиксирует целевую PostgreSQL-схему read model для storefront listing:
 выдача товаров, structured filtering, facet counts, total count, pagination и
-sort. Нормативный источник требований:
+sort. Нормативный источник runtime requirements:
+`docs/listing/listing-posting-list-search-engine-index.ru.md`.
+Верхнеуровневый redesign plan:
 `docs/listing/listing-index-redesign-plan.ru.md`.
 
 Документ описывает текущую целевую read model и runtime posting index для
@@ -1077,11 +1079,13 @@ rows можно было обновлять независимо от canonical 
 model используют composite parent FKs с `project_id`, чтобы повторяемый tenant
 boundary не мог расходиться с parent row.
 
-## Внешние индексы для listing queries
+## Внешние индексы для listing sync/fallback paths
 
-Listing index не заменяет canonical scope и locale sort indexes. Эти индексы
-нужны для planned query shapes. Если existing migrations уже дают
-эквивалентный access path, дубликаты создавать не нужно.
+Listing index не заменяет canonical scope и locale source indexes. Эти индексы
+нужны для sync/rebuild source reads, manual scope rank loading and SQL fallback
+paths. Storefront hot path for name/manual sort should use derived
+`catalog.listing_posting_product_sort` rows after cutover. Если existing
+migrations уже дают эквивалентный access path, дубликаты создавать не нужно.
 
 ```sql
 CREATE INDEX idx_product_category_listing_scope
@@ -1098,7 +1102,7 @@ CREATE INDEX idx_product_translation_listing_name
 | --- | --- |
 | `idx_product_category_listing_scope` | Поддерживает category PLP scope и manual category order by `lexo_rank`. Текущий `idx_product_category_rank(category_id, lexo_rank)` не включает `project_id` и `product_id`, поэтому не полностью покрывает planned query. |
 | `idx_collection_item_listing_scope` | Поддерживает manual collection PLP scope и order by `lexo_rank`. Текущий `idx_collection_item_rank(collection_id, lexo_rank)` не включает `project_id` и `product_id`. |
-| `idx_product_translation_listing_name` | Поддерживает locale-dependent name sort without scanning all translations. Текущий `idx_product_translation_project_locale(project_id, locale)` не покрывает `ORDER BY name, product_id`. |
+| `idx_product_translation_listing_name` | Поддерживает loading locale-dependent name values for derived product sort rows and SQL fallback path without scanning all translations. Текущий `idx_product_translation_project_locale(project_id, locale)` не покрывает `ORDER BY name, product_id`. |
 
 ## Facet type routing
 
@@ -1107,7 +1111,7 @@ CREATE INDEX idx_product_translation_listing_name
 | `tag` | catalog.listing_posting_bitmap product facet postings |
 | `feature` | catalog.listing_posting_bitmap product facet postings |
 | `option` | catalog.listing_posting_bitmap variant facet postings |
-| `price` | Virtual facet over `variant_listing_price_index.price_minor` and product price aggregates |
+| `price` | Virtual facet over runtime `catalog.listing_posting_variant_price` and product price aggregates; `variant_listing_price_index` remains source/debug price row |
 | `in_stock` | Virtual facet over `product_listing_index.in_stock` / `variant_listing_index.in_stock` |
 
 `category` не добавляется в storefront facet types. Для navigation scope и

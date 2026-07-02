@@ -1,383 +1,340 @@
-# Как будут работать storefront операции listing index
+# Как работают storefront операции listing index
 
-Документ объясняет storefront-операции из
-`listing-index-redesign-plan.ru.md`: какие входные данные принимает витрина,
-какие read-model таблицы участвуют, как применяются scope, visibility,
-filters, facets, counts, sort и pagination, и что возвращается наружу.
+Документ объясняет storefront read path после перехода на PostgreSQL roaring
+posting index.
 
-Listing index не является full-text search index. Он обслуживает Product
-Listing Page: выборку товаров, structured filtering, facet resolution,
-facet counts, total count, cursor pagination и sort. Hydration карточек товара
-выполняется отдельным batch pipeline после того, как listing query вернул
-упорядоченные `product_id` и listing aggregates.
+Канонические документы:
+
+- `docs/listing/listing-posting-list-search-engine-index.ru.md`
+- `docs/listing/listing-index-db-schema.ru.md`
+- `docs/listing/listing-query-sql-examples.ru.md`
+
+Listing index не является full-text search index. Он обслуживает Product Listing
+Page: product candidates, structured filtering, facet resolution, facet counts,
+total count, cursor pagination и sort. Hydration карточек товара выполняется
+отдельным batch pipeline после того, как listing query вернул ordered
+`product_id` / `product_doc_id` и listing aggregates.
 
 ## Общий storefront pipeline
 
-Любая storefront listing операция проходит один и тот же SQL-driven pipeline:
+Любая storefront listing операция проходит один bitmap-first pipeline:
 
-1. Request normalizer получает `project_id` из storefront context, default
-   currency проекта, locale, scope, filters, sort и pagination input.
-2. Facet resolver batch-запросом переводит storefront postings вида
+1. Request normalizer получает `project_id`, default currency, locale, scope,
+   filters, sort и pagination input.
+2. Facet resolver batch-запросом переводит public postings
    `facetSlug:valueHandle` в `facet_id`, `facet_type`, `facet_value_id`.
-   Raw source handles на read path не возвращаются и не используются.
-3. Scope CTE строит начальный набор product ids: category, collection, global
-   catalog или search candidate relation.
-4. `base_all` присоединяет `catalog.product_listing_index` и применяет
-   visibility: только текущий `project_id`, только `status = 'published'`.
-5. `base` добавляет boolean-поля для active product-level facets через
-   `EXISTS` по catalog.listing_posting_bitmap product facet postings.
-6. Если есть option или price predicates, строится variant-level pass set через
-   `variant_listing_index`, catalog.listing_posting_bitmap variant facet postings и
-   `variant_listing_price_index`. Все variant-level predicates якорятся к
-   одному и тому же in-stock `variant_id`.
-7. `filtered_products` применяет все active filters без isolation и является
-   источником `totalCount` и page query.
-8. Facet aggregation считается по full listing scope, не по текущей странице.
-   Для counts включается facet isolation: count значения считается со всеми
-   filters, кроме фильтра того же `facet_id`.
-9. Sort всегда начинается с `in_stock DESC`, затем идут requested sort keys,
-   затем stable tie-breaker `product_id ASC`.
-10. Cursor pagination применяет keyset seek по sort keys и `product_id`.
-    Cursor включает sort values, `product_id` и filter hash, чтобы cursor от
-    другого набора filters не применился к текущей выдаче.
+   Runtime query строит stable `value_key = <facet_id>:<facet_value_id>`.
+3. Scope builder получает product bitmap: category, collection, global published
+   products or BM25 search candidates.
+4. Product filter builder строит product bitmap из product facet/vendor/scope
+   rows в `catalog.listing_posting_bitmap`.
+5. Variant filter builder строит variant bitmap из option facet rows и typed
+   price rows. Option и price predicates пересекаются на `variant_doc_id`.
+6. Variant matches проектируются в product bitmap через projection blocks.
+7. `matches` получается пересечением scope, product filters и projected variant
+   filters.
+8. Page collector сканирует `listing_posting_product_sort` или
+   `listing_posting_variant_price` и проверяет bitmap membership.
+9. `totalCount` считается через `rb_cardinality(matches)`, когда запрошен.
+10. Facet aggregation считается по full listing scope, не по текущей странице.
+    Для counts применяется facet isolation по `facet_id`.
+11. Cursor pagination применяет keyset seek по sort values и stable tie-breakers.
+
+Raw tag/feature/option source handles на read path не используются и не
+возвращаются наружу.
 
 ## Category PLP
 
-Category PLP открывает страницу категории и возвращает товары, `totalCount`,
-facets, counts, `pageInfo` и sort options в category navigation scope.
+Category PLP возвращает товары, `totalCount`, facets, counts, `pageInfo` и sort
+options в category navigation scope.
 
-Scope строится из `catalog.product_category`:
+Category scope является product bitmap row:
 
-```sql
-scope_products AS (
-  SELECT product_id, lexo_rank AS manual_rank, NULL::numeric AS relevance_score
-  FROM catalog.product_category
-  WHERE project_id = :projectId
-    AND category_id = :categoryId
-)
+```text
+entity_type = product
+field = category
+value_key = <category_id>
 ```
 
-После этого category scope работает как обычный listing: join к
-`product_listing_index`, `status = 'published'`, active filters, facets,
-counts, sort и cursor pagination. Category не становится storefront facet:
-она только ограничивает начальную вселенную товаров и может использоваться как
-rule field в rule collections.
+Если sync хранит category bitmap только для published products, этот bitmap
+можно использовать напрямую. Если bitmap содержит drafts, query должен
+дополнительно intersect-ить published/global visibility bitmap или построить
+published product bitmap из `product_listing_index`.
 
-Manual sort для категории использует `manual_rank`:
+Default manual category sort использует derived rows:
 
-```sql
-ORDER BY in_stock DESC, manual_rank ASC NULLS LAST, product_id ASC
+```text
+catalog.listing_posting_product_sort
+sort_kind = manual
+manual_scope_id = <category_id>
 ```
 
-Если пользователь выбирает другой sort, category scope сохраняется, но порядок
-меняется на requested sort.
+Порядок всегда availability-first:
+
+```text
+in_stock DESC, manual_rank ASC NULLS LAST, product_id ASC
+```
+
+Если пользователь выбирает другой sort, category scope остается тем же, но page
+collector использует соответствующий `sort_kind`.
 
 ## Manual collection PLP
 
-Manual collection PLP открывает ручную подборку и сохраняет порядок
-`collection_item.lexo_rank`.
+Manual collection PLP сохраняет `collection_item.lexo_rank` через product bitmap
+scope and product sort rows:
 
-Scope строится из `catalog.collection_item`:
-
-```sql
-scope_products AS (
-  SELECT product_id, lexo_rank AS manual_rank, NULL::numeric AS relevance_score
-  FROM catalog.collection_item
-  WHERE project_id = :projectId
-    AND collection_id = :collectionId
-)
+```text
+scope: entity_type=product, field=collection, value_key=<collection_id>
+sort:  listing_posting_product_sort(sort_kind=manual, manual_scope_id=<collection_id>)
 ```
 
-Дальше применяются те же storefront правила: `project_id` isolation,
-published-only visibility, configured facets, product-level filters,
-variant-correct option/price filters, counts по full collection scope и
-cursor pagination. Default sort для ручной подборки сохраняет ручной порядок:
-`in_stock DESC`, затем `manual_rank`, затем `product_id ASC`.
+Все filters, facets, counts и pagination работают так же, как для category PLP.
 
 ## Rule collection PLP
 
-Rule collection PLP открывает динамическую подборку. Ее rules компилируются в
-product-level и variant-level predicates поверх listing read model.
+Rule collection rules компилируются в product-level и variant-level predicates.
 
 Product-level rules используют:
 
-- `product_listing_index` для scalar fields: `kind`, dates, visibility fields,
-  `vendor_id`, `category_handles`;
-- catalog.listing_posting_bitmap product facet postings для configured tag/feature rules;
-- resolved `facet_id` / `facet_value_id`, а не runtime checks по
-  `tag_handles` или `feature_value_handles`.
+- scalar fields in `product_listing_index`, если они есть в schema;
+- explicit product bitmap rows, например `vendor`, `category`, `collection`;
+- configured tag/feature facet bitmap rows with `field = 'facet'`.
 
-Variant-level rules используют `variant_listing_index` и
-catalog.listing_posting_bitmap variant facet postings так же, как storefront option filters: все option
-и price conditions должны выполняться на одном in-stock variant row. Если
-variant не в наличии, он не может удовлетворить variant-level collection rule.
+Variant-level rules используют variant bitmap rows. Все option/price conditions
+должны совпасть на одном in-stock `variant_doc_id` до projection в products.
 
-Rule collection не имеет `manual_rank`. Она использует collection default sort
-или fallback `newest`.
+Rule collection не имеет manual rank, если collection отдельно не задает
+ручной порядок. Default sort обычно `newest` или collection-configured sort.
 
 ## Global catalog listing
 
-Global catalog listing открывает общий каталог проекта без category или
-collection scope.
+Global catalog listing открывает общий каталог проекта без category/collection
+scope.
 
-Scope строится напрямую из `product_listing_index`:
+Если sync поддерживает published/global product bitmap row, query использует его.
+Иначе scope строится из `product_listing_index`:
 
 ```sql
-scope_products AS (
-  SELECT product_id, NULL::text AS manual_rank, NULL::numeric AS relevance_score
-  FROM catalog.product_listing_index
-  WHERE project_id = :projectId
-    AND status = 'published'
-)
+SELECT rb_build_agg(pli.product_doc_id) AS product_bitmap
+FROM catalog.product_listing_index pli
+WHERE pli.project_id = :projectId
+  AND pli.status = 'published';
 ```
 
-Это самый широкий storefront scope. Все filters, facets, counts, total,
-pagination и sorts работают так же, как в category/collection PLP. Поскольку
-scope большой, query builder должен уметь перейти от простого boolean-`EXISTS`
-shape к candidate-first shape, если `EXPLAIN ANALYZE` покажет, что так быстрее
-на production-like данных.
+Global scope может быть большим, поэтому query builder должен уметь short-circuit
+missing/empty required filter groups до page collector.
 
 ## Search results listing
 
-Search results listing применяет structured listing pipeline к candidate set
-текстового поиска.
+Search results listing применяет structured listing pipeline к BM25 title search
+candidate set.
 
-Текстовый search index возвращает SQL relation с `product_id` и
-`relevance_score`. Listing index не выполняет full-text search сам. Он только
-присоединяет search candidates к `product_listing_index` и применяет:
+BM25 search возвращает SQL relation с `product_id` или `product_doc_id` и
+`relevance_score` для одного project + locale + query. Listing engine
+переводит product ids в `product_doc_id`, строит search candidate bitmap и
+intersect-ит его с scope/filter bitmaps.
 
-- `project_id` isolation;
-- visibility;
-- structured filters;
-- facet resolution и counts;
-- total count;
-- business sort;
-- cursor pagination.
+Candidate relation должна представлять полный набор title matches, если от нее
+считаются `totalCount` и facets. Нельзя молча передавать только top-K hits:
+counts описывали бы cap, а не реальные результаты поиска.
 
-Для relevance sort используется score из candidate relation:
+Relevance sort:
 
-```sql
-ORDER BY in_stock DESC, relevance_score DESC NULLS LAST, product_id ASC
+```text
+in_stock DESC, relevance_score DESC NULLS LAST, product_id ASC
 ```
-
-Candidate relation должна представлять полный набор search matches для
-нормализованного запроса внутри проекта, locale и visibility. Нельзя передавать
-в listing только top-K hits, если от этой relation считаются `totalCount` и
-facets: тогда counts описывали бы cap, а не реальные результаты поиска.
 
 ## Scope и visibility
 
-Каждый storefront query всегда ограничен `project_id`. Это tenant boundary:
-все joins к product, variant, facet, facet value, price и token таблицам
-используют тот же `project_id`.
+Каждый storefront query всегда ограничен `project_id`. Stable doc ids уникальны
+только внутри project.
 
-Visibility работает через `product_listing_index.status = 'published'`.
-Soft-deleted products не остаются в index со специальным статусом: их listing,
-price и posting rows удаляются. Поэтому storefront read path не должен видеть
-deleted products.
+Visibility работает через `product_listing_index.status = 'published'` и/или
+published product scope bitmap. Soft-deleted products не остаются в listing
+index: listing rows, price rows, sort rows и bitmap memberships удаляются.
 
-Locale применяется там, где он реально влияет на результат: например, для
-name sort через `product_translation(project_id, locale, name, product_id)` и
-для последующей hydration карточек. Listing index сам не хранит translated
-title.
+Locale применяется для locale-dependent sort rows and hydration. Listing runtime
+index не хранит translated product title как source data; title search живет в
+отдельном BM25 index.
 
-Price filter, price range, display price и price sort используют project
-default currency. Price read-model таблицы per-currency, но storefront query
-выбирает строку с default currency проекта.
+Price filter, price range, display price и price sort используют project default
+currency unless API явно расширит contract.
 
 ## Product-level filtering
 
-Product-level filters работают на уровне product и могут быть удовлетворены
-любым token того же product.
+Product-level filters работают на `product_doc_id`.
 
-Tag и feature filters применяются только через
-catalog.listing_posting_bitmap product facet postings. Input token `facetSlug:valueHandle` сначала
-resolve-ится в configured `facet_id` и `facet_value_id`; invalid,
-unconfigured или unmapped values игнорируются.
+Tag и feature filters применяются через `listing_posting_bitmap` rows:
 
-Семантика:
+```text
+entity_type = product
+field = facet
+value_key = <facet_id>:<facet_value_id>
+```
 
-- OR внутри одного `facet_id`: value A или value B;
-- AND между разными `facet_id`: например, material=cotton и style=casual;
-- `vendor_id` является явным storefront filter и не превращается в generic
-  facet;
-- category используется как navigation scope или rule field, но не как
-  storefront facet.
+Semantics:
 
-Merged facet values не double-count-ятся: primary key posting bitmap хранит одну
-строку `(project_id, product_id, facet_id, facet_value_id)`, даже если
-несколько source handles ведут к одному storefront `facet_value_id`.
+- OR внутри одного `facet_id`;
+- AND между разными `facet_id`;
+- `vendor_id` является explicit storefront filter and can use
+  `field = vendor`;
+- category является scope/rule field, not generic storefront facet.
+
+Merged facet values не double-count-ятся, потому sync записывает one bitmap
+membership for resolved `facet_id + facet_value_id`. Если несколько source
+handles ведут к одному storefront value, они должны дать один doc membership.
 
 ## Variant-level filtering
 
-Variant-level filters работают только через in-stock variants. Это ключевая
-семантика для option и price filters.
+Variant-level filters работают на `variant_doc_id` and only for in-stock
+variants.
 
-Если активны `color:red`, `size:xl` и `price <= 1000`, query ищет один и тот
-же `variant_listing_index.variant_id`, который:
+Example input:
 
-- `in_stock = true`;
-- имеет option token `color:red`;
-- имеет option token `size:xl`;
-- имеет price row в default currency с `has_price = true` и подходящим
-  `price_minor`.
+```text
+color=red
+size=xl
+price <= 1000
+```
 
-Нельзя удовлетворять `color:red` одним variant, `size:xl` другим variant, а
-price третьим variant того же product. После нахождения подходящих variants
-результат группируется обратно до product ids.
+Correct semantics:
 
-Семантика option filters:
+```text
+variant_matches =
+  color_red_bitmap
+  & size_xl_bitmap
+  & price_range_bitmap
+  & in_stock_variant_bitmap
 
-- OR внутри одного option `facet_id`;
-- AND между разными option `facet_id`;
-- out-of-stock variants не участвуют в option filters, price filters,
-  matched variant sort, option counts и variant-level collection rules.
+product_matches = project_variants_to_products(variant_matches)
+```
 
-`in_stock` как storefront availability toggle применяется поверх product
-aggregate `product_listing_index.in_stock`. Variant-level filters и так
-ограничены in-stock variant rows.
+Нельзя удовлетворять `color=red` одним variant, `size=xl` другим variant, а price
+третьим variant того же product.
+
+Out-of-stock variants не участвуют в option filters, price filters, matched
+variant sort, option counts и variant-level collection rules.
 
 ## Facet resolution
 
-Facet resolution переводит публичные storefront postings в внутренние ids.
+Facet resolution переводит public storefront values в internal ids.
 
-Вход: postings вида `facetSlug:valueHandle`.
+Input:
 
-Выход read path:
+```text
+facetSlug:valueHandle
+```
 
-- `facet_id`;
-- `facet_type`;
-- `facet_value_id`.
+Output:
 
-Resolver batch-запросом читает `facet`, visible `facet_value` rows и
-разворачивает их в source handles: root `kind=source` использует собственный
-`handle`, а `kind=display` использует enabled source children через
-`parent_id`. Storefront получает только configured facets и values, которые
-резолвятся хотя бы в один enabled source handle. Raw tag, feature или option
-handles не возвращаются наружу.
+```text
+facet_id
+facet_type
+facet_value_id
+value_key = <facet_id>:<facet_value_id>
+```
 
-Если один `facet_value` мапится на несколько source handles, storefront все
-равно видит один value. Posting generation заранее нормализует source handles в
-resolved ids, а aggregation группирует по `facet_value_id`.
+Resolver читает `facet`, visible root `facet_value` rows and enabled source
+children through the source/display parent model. Storefront получает только
+configured facets and values that resolve to at least one enabled source value.
+
+Raw source handles используются только для sync/rebuild from canonical data.
 
 ## Facet aggregation
 
-Facet counts считаются по full listing scope, а не по текущей странице товаров.
-Это значит, что page size не влияет на counts.
+Facet counts считаются по full listing scope.
 
-Product-level counts для tag и feature используют catalog.listing_posting_bitmap product facet postings
-и считают products. Isolation применяется по `facet_id`: count для values
-фасета `material` считается со всеми active filters, кроме active filter самого
-`material`.
+Product-level counts:
 
-Option counts считаются variant-correct:
+```text
+value_count = cardinality(count_base_for_facet & product_value_bitmap)
+```
 
-1. Для каждого option `facet_id` строится отдельная ветка aggregation.
-2. Ветка возвращает values этого facet, но опускает только predicate этого же
-   `facet_id`.
-3. Все остальные option predicates остаются привязанными к тому же
-   `variant_id`.
-4. Учитываются только in-stock variants.
-5. Перед `COUNT(*)` выполняется deduplication до
-   `(product_id, facet_id, facet_value_id)`, потому что count должен считать
-   products, а не variants.
+Option counts:
 
-Isolation всегда делается по `facet_id`, не по `facet_type`. Иначе два feature
-facets или два option facets ошибочно изолировали бы друг друга как один общий
-type.
+```text
+variant_base = active variant filters except current option facet
+value_variants = variant_base & option_value_bitmap
+value_products = project_variants_to_products(value_variants) & product_base
+value_count = cardinality(value_products)
+```
+
+Isolation всегда делается по `facet_id`, не по `facet_type`.
+
+Returned facets должны быть limited to configured visible values. Нельзя
+агрегировать все historical posting rows for project.
 
 ## Price range virtual facet
 
-Price range не имеет posting bitmap и считается из
-`variant_listing_price_index.price_minor`.
+`price` не имеет generic posting bitmap. Price range строится из
+`catalog.listing_posting_variant_price`, где есть only priced active in-stock
+variants in default currency.
 
-Range считает `MIN(price_minor)` и `MAX(price_minor)` только по in-stock
-variants с `has_price = true` в default currency проекта. Active price
-predicate исключается, остальные filters остаются:
-
-- product-level filters;
-- vendor filter;
-- option filters;
-- availability toggle.
-
-Если active option filters есть, они применяются к тому же `variant_id`, чья
-цена участвует в `MIN` / `MAX`. Product-level pass set использовать нельзя,
-потому что он потеряет same-variant relationship.
+Range min/max считает prices после применения всех active filters кроме active
+price predicate. Если есть option filters, они остаются на том же
+`variant_doc_id`, чья цена участвует в range.
 
 ## In-stock virtual facet
 
-In-stock count считает products, у которых есть in-stock variant после
-применения всех filters, кроме самого active `in_stock` toggle.
+`in_stock` не имеет default generic posting row.
 
-Option и price filters сохраняют same-variant semantics: если оба активны,
-один и тот же in-stock variant должен удовлетворить option predicates и price
-predicate. Затем variants группируются в products и считается count.
+In-stock count считает products with available variants after all filters except
+active `in_stock` toggle. Option и price filters сохраняют same-variant
+semantics before grouping back to products.
 
 ## Total count
 
-`totalCount` считается по `filtered_products` со всеми active filters без
-isolation. Это число отвечает на вопрос: сколько товаров соответствует
-текущему scope и текущему набору filters.
+`totalCount` равен `rb_cardinality(matches)` after all active filters without
+facet isolation. Он не зависит от текущей page and does not require loading all
+products into application memory.
 
-`totalCount` не зависит от текущей страницы и не требует загрузки всех товаров
-в память: это SQL `COUNT(*)` поверх CTE/derived relation.
+Если client не запросил `totalCount`, page query should avoid unnecessary
+full-cardinality work when possible.
 
 ## Sorting
 
-Все storefront sorts deterministic и всегда начинаются с availability bucket:
-
-```sql
-ORDER BY in_stock DESC, ...
-```
-
-После requested sort keys всегда добавляется `product_id ASC` как stable
-tie-breaker.
+All storefront sorts are deterministic and availability-first.
 
 Supported sorts:
 
-- `manual`: category/manual collection order через `manual_rank ASC NULLS LAST`;
-- `newest`: `published_at DESC NULLS LAST`, затем `product_created_at DESC`;
-- `created`: `product_created_at DESC`;
-- `name`: locale-specific join к `product_translation`;
-- `price_asc`: lowest in-stock price;
-- `price_desc`: highest in-stock price;
-- `relevance`: только для search results, score из search candidate relation.
+- `manual`: derived product sort rows scoped by category/collection id;
+- `newest`: published date then product created date;
+- `created`: product created date;
+- `name`: derived locale-specific product sort rows;
+- `price_asc`: lowest in-stock product aggregate or lowest matched variant price;
+- `price_desc`: highest in-stock product aggregate or highest matched variant
+  price;
+- `relevance`: only for search results, score from BM25 candidate relation.
 
-Price sort выбирает источник цены по ситуации. Если variant-level filters нет,
-используются product aggregates из `product_listing_price_index`:
-`min_price_minor` для ascending и `max_price_minor` для descending. Если
-активны option, price или matched-variant requirements, sort price считается
-по matching in-stock variants, чтобы сортировка соответствовала тем variant,
-которые реально удовлетворили filters.
+Product-level sorts scan `listing_posting_product_sort`.
 
-Unpriced products не пропадают из выдачи из-за partial price indexes. Query
-должен сохранять полный ordering с `NULLS LAST`.
+Matched variant price sort scans `listing_posting_variant_price`, checks
+variant/product bitmap membership, picks one variant price per product, and then
+uses stable tie-breakers for cursor pagination.
+
+Unpriced products must not disappear from product aggregate price sort; use
+`NULLS LAST` semantics where product aggregate price is absent.
 
 ## Pagination и result shape
 
-Все storefront listings используют cursor pagination. Cursor opaque для
-клиента, но внутри содержит:
+All storefront listings use cursor pagination.
 
-- значения sort keys;
+Cursor contains:
+
+- sort values;
 - `product_id` tie-breaker;
-- filter hash.
-
-Filter hash нужен, чтобы cursor от старого набора filters не применился к
-новому набору filters. Если filters изменились, cursor считается invalid и
-query начинает страницу заново или возвращает metadata об invalidation в
-зависимости от API contract.
+- optional `variant_doc_id` tie-breaker for matched variant price sort;
+- filter hash including project, locale, currency, scope, filters, query and sort.
 
 Response shape:
 
-- `edges`: ordered product ids или hydrated карточки после batch hydration;
-- `pageInfo`: `startCursor`, `endCursor`, `hasNextPage`,
-  `hasPreviousPage`;
-- `totalCount`;
+- `edges`: ordered product ids or hydrated cards after batch hydration;
+- `pageInfo`;
+- `totalCount`, when requested;
 - facets with counts;
 - applied filters metadata;
-- listing aggregates, нужные для карточек и сортировки.
+- listing aggregates needed for card display and sorting.
 
-Listing query не загружает все candidate products в память. SQL возвращает
-только текущую страницу, counts и metadata. Hydration карточек выполняется
-после этого отдельным batch pipeline без N+1: title, handle, media, display
-price, badges, swatches и availability labels.
+Listing query returns current page, counts and metadata. It must not load all
+candidate products into application memory.
+

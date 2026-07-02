@@ -65,6 +65,49 @@ macro:
 projection block в generated query; не создавать helper function без отдельного
 schema decision.
 
+Условный inline shape для macro:
+
+```sql
+WITH matched_blocks AS (
+  SELECT
+    b.block_id,
+    b.variant_doc_from,
+    b.variant_doc_to,
+    b.variant_bitmap,
+    b.product_bitmap,
+    b.variant_count,
+    (:variantBitmap::roaringbitmap & b.variant_bitmap) AS block_match
+  FROM catalog.listing_posting_variant_projection_block b
+  WHERE b.project_id = :projectId
+    AND rb_cardinality(:variantBitmap::roaringbitmap & b.variant_bitmap) > 0
+),
+full_block_products AS (
+  SELECT mb.product_bitmap
+  FROM matched_blocks mb
+  WHERE rb_cardinality(mb.block_match) = mb.variant_count
+),
+partial_block_products AS (
+  SELECT rb_build_agg(vli.product_doc_id) AS product_bitmap
+  FROM matched_blocks mb
+  JOIN catalog.variant_listing_index vli
+    ON vli.project_id = :projectId
+   AND vli.variant_doc_id >= mb.variant_doc_from
+   AND vli.variant_doc_id < mb.variant_doc_to
+  WHERE rb_cardinality(mb.block_match) < mb.variant_count
+    AND mb.block_match @> vli.variant_doc_id
+),
+projected AS (
+  SELECT rb_or_agg(product_bitmap) AS product_bitmap
+  FROM (
+    SELECT product_bitmap FROM full_block_products
+    UNION ALL
+    SELECT product_bitmap FROM partial_block_products
+  ) x
+)
+SELECT product_bitmap
+FROM projected;
+```
+
 ## Bitmap building blocks
 
 Single product posting row:
@@ -467,7 +510,8 @@ matched variant price collector из следующего раздела.
 
 Это основной same-variant path: option bitmaps и price bitmap пересекаются на
 `variant_doc_id`, затем результат project-ится в product docs. Page collector
-сканирует `listing_posting_variant_price` в price order и дедуплицирует product.
+сканирует `listing_posting_variant_price` в price order и дедуплицирует product
+без смены leading order на `product_id`.
 
 ```sql
 WITH base_scope AS (
@@ -527,8 +571,8 @@ product_matches AS (
   CROSS JOIN brand_filter
   CROSS JOIN projected_variant_matches
 ),
-page_candidates AS (
-  SELECT DISTINCT ON (vp.product_id)
+page_products AS (
+  SELECT
     vp.product_doc_id,
     vp.product_id,
     vp.variant_doc_id,
@@ -540,35 +584,42 @@ page_candidates AS (
    AND vp.currency = :currency
   WHERE vm.variant_bitmap @> vp.variant_doc_id
     AND pm.product_bitmap @> vp.product_doc_id
+    AND NOT EXISTS (
+      SELECT 1
+      FROM catalog.listing_posting_variant_price earlier
+      WHERE earlier.project_id = :projectId
+        AND earlier.currency = :currency
+        AND earlier.product_id = vp.product_id
+        AND vm.variant_bitmap @> earlier.variant_doc_id
+        AND pm.product_bitmap @> earlier.product_doc_id
+        AND (
+          earlier.price_minor < vp.price_minor
+          OR (
+            earlier.price_minor = vp.price_minor
+            AND earlier.variant_doc_id < vp.variant_doc_id
+          )
+        )
+    )
   ORDER BY
-    vp.product_id,
     vp.price_minor ASC,
+    vp.product_id ASC,
     vp.variant_doc_id ASC
+  LIMIT :first
 )
 SELECT
-  pc.product_doc_id,
-  pc.product_id,
-  pc.variant_doc_id AS matched_variant_doc_id,
-  pc.price_minor AS matched_min_price_minor
-FROM page_candidates pc
-JOIN catalog.listing_posting_product_sort s
-  ON s.project_id = :projectId
- AND s.product_doc_id = pc.product_doc_id
- AND s.sort_kind = 'newest'
- AND s.locale = ''
- AND s.currency = ''
- AND s.manual_scope_id = :zeroManualScopeId
-ORDER BY
-  s.bool_value DESC,
-  pc.price_minor ASC,
-  pc.product_id ASC,
-  pc.variant_doc_id ASC
-LIMIT :first;
+  pp.product_doc_id,
+  pp.product_id,
+  pp.variant_doc_id AS matched_variant_doc_id,
+  pp.price_minor AS matched_min_price_minor
+FROM page_products pp;
 ```
 
 Для `price_desc` collector использует `idx_listing_posting_variant_price_desc`,
 выбирает highest matching variant per product и меняет order direction на
-`price_minor DESC`.
+`price_minor DESC`. Для высоко-дублирующихся products implementation может
+читать ordered price rows chunk-ами с overfetch и дедуплицировать application
+layer, пока не набран `:firstPlusOne`; это допустимый runtime optimization,
+если SQL anti-join хуже планируется.
 
 ## 7. Name sort + product and option filters
 
@@ -753,10 +804,22 @@ color_filter AS (
     AND p.field = 'facet'
     AND p.value_key = :colorBlackValueKey
 ),
-projected_color AS (
-  SELECT project_variant_bitmap_to_products(color_filter.variant_bitmap)
-    AS product_bitmap
+in_stock_variants AS (
+  SELECT rb_build_agg(vli.variant_doc_id) AS variant_bitmap
+  FROM catalog.variant_listing_index vli
+  WHERE vli.project_id = :projectId
+    AND vli.in_stock = true
+),
+variant_matches AS (
+  SELECT (color_filter.variant_bitmap & in_stock_variants.variant_bitmap)
+    AS variant_bitmap
   FROM color_filter
+  CROSS JOIN in_stock_variants
+),
+projected_color AS (
+  SELECT project_variant_bitmap_to_products(variant_matches.variant_bitmap)
+    AS product_bitmap
+  FROM variant_matches
 ),
 matches AS (
   SELECT (search_scope.product_bitmap & brand_filter.product_bitmap & projected_color.product_bitmap) AS product_bitmap
@@ -834,9 +897,10 @@ ORDER BY
 LIMIT :firstPlusOne;
 ```
 
-Для nullable timestamp sort keys production query builder должен генерировать
-NULLS LAST aware seek predicate. Пример выше показывает shape, но конкретный
-predicate должен быть покрыт cursor tests для `published_at IS NULL`.
+Важно: seek predicate выше намеренно показывает только общий shape. Его нельзя
+копировать в production для nullable sort keys. Production query builder должен
+генерировать NULLS LAST aware predicate для каждого nullable key и покрывать
+курсоры cases, где `published_at IS NULL` и/или fallback key is NULL.
 
 ## 11. Product facet counts as separate query
 
@@ -1066,8 +1130,8 @@ product_matches AS (
   FROM product_filter_base
   CROSS JOIN projected_variant_matches
 ),
-page_candidates AS (
-  SELECT DISTINCT ON (vp.product_id)
+page_products AS (
+  SELECT
     vp.product_doc_id,
     vp.product_id,
     vp.variant_doc_id,
@@ -1079,30 +1143,26 @@ page_candidates AS (
    AND vp.currency = :currency
   WHERE vm.variant_bitmap @> vp.variant_doc_id
     AND pm.product_bitmap @> vp.product_doc_id
+    AND NOT EXISTS (
+      SELECT 1
+      FROM catalog.listing_posting_variant_price earlier
+      WHERE earlier.project_id = :projectId
+        AND earlier.currency = :currency
+        AND earlier.product_id = vp.product_id
+        AND vm.variant_bitmap @> earlier.variant_doc_id
+        AND pm.product_bitmap @> earlier.product_doc_id
+        AND (
+          earlier.price_minor < vp.price_minor
+          OR (
+            earlier.price_minor = vp.price_minor
+            AND earlier.variant_doc_id < vp.variant_doc_id
+          )
+        )
+    )
   ORDER BY
-    vp.product_id,
     vp.price_minor ASC,
+    vp.product_id ASC,
     vp.variant_doc_id ASC
-),
-page_products AS (
-  SELECT
-    pc.product_doc_id,
-    pc.product_id,
-    pc.variant_doc_id AS matched_variant_doc_id,
-    pc.price_minor AS matched_min_price_minor
-  FROM page_candidates pc
-  JOIN catalog.listing_posting_product_sort s
-    ON s.project_id = :projectId
-   AND s.product_doc_id = pc.product_doc_id
-   AND s.sort_kind = 'newest'
-   AND s.locale = ''
-   AND s.currency = ''
-   AND s.manual_scope_id = :zeroManualScopeId
-  ORDER BY
-    s.bool_value DESC,
-    pc.price_minor ASC,
-    pc.product_id ASC,
-    pc.variant_doc_id ASC
   LIMIT :first
 ),
 total_count AS (
@@ -1133,7 +1193,18 @@ color_counts AS (
    AND p.value_key = ANY(:colorValueKeys)
 )
 SELECT
-  (SELECT jsonb_agg(to_jsonb(page_products.*)) FROM page_products)
+  (
+    SELECT jsonb_agg(
+      jsonb_build_object(
+        'product_doc_id', pp.product_doc_id,
+        'product_id', pp.product_id,
+        'matched_variant_doc_id', pp.variant_doc_id,
+        'matched_min_price_minor', pp.price_minor
+      )
+      ORDER BY pp.price_minor ASC, pp.product_id ASC, pp.variant_doc_id ASC
+    )
+    FROM page_products pp
+  )
     AS page_products,
   (SELECT total_count FROM total_count)
     AS total_count,
