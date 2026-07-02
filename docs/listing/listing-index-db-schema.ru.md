@@ -14,8 +14,11 @@ scope membership должны обновлять только затронуты
 - Все SQL read-model таблицы содержат `project_id`; каждый storefront/admin
   query должен ограничиваться текущим проектом. В таблицах, где строка
   идентифицируется canonical UUID (`product_id`, `variant_id`), `project_id`
-  используется как query/index prefix, но не входит в PK/FK: canonical `id`
-  считаются глобально уникальными внутри catalog schema.
+  используется как query/index prefix и не входит в root PK: canonical `id`
+  считаются глобально уникальными внутри catalog schema. Child read-model rows
+  дополнительно используют composite FK на parent listing rows
+  (`project_id`, canonical id/doc id), чтобы повторяемый `project_id` не мог
+  разойтись с parent row.
 - `product_doc_id` / `variant_doc_id` являются стабильными runtime ids
   внутри проекта и хранятся прямо в `product_listing_index` /
   `variant_listing_index`. Они не переиспользуются после удаления canonical
@@ -103,7 +106,9 @@ Planned files:
   - do not add extra unique constraints on canonical `product`, `variant`,
     `facet`, `facet_value`, category or collection tables. Listing FKs reference
     existing product/variant primary keys by id; posting values use stable typed
-    ids in `value_key`.
+    ids in `value_key`;
+  - add composite unique/FK targets only inside listing read-model tables where
+    needed to enforce repeated `project_id` consistency in child rows.
 - `9004_read_models__product_title_bm25_search.sql`:
   - create `catalog.product_title_bm25_search_index`;
   - create ordinary indexes and the ParadeDB BM25 index;
@@ -206,7 +211,7 @@ CREATE TABLE catalog.product_listing_index (
 
 | Поле | Комментарий |
 | --- | --- |
-| `project_id` | Tenant/project boundary. Используется в index prefixes и во всех listing queries, но не входит в PK/FK. |
+| `project_id` | Tenant/project boundary. Используется в index prefixes и во всех listing queries. Root identity остается `product_id`, а composite child FKs используют `project_id` только для consistency checks. |
 | `product_id` | Canonical product id из `catalog.product.id`. Так как product id глобально уникален, он идентифицирует строку read model. |
 | `product_doc_id` | Stable integer id товара внутри project для roaring product bitmaps. Выделяется один раз и не переиспользуется после удаления product. |
 | `kind` | Тип товара из `catalog.product_kind`; нужен для rule collections и возможных storefront predicates по типу. |
@@ -727,20 +732,52 @@ CREATE INDEX idx_listing_posting_product_sort_newest
   )
   INCLUDE (product_doc_id);
 
-CREATE INDEX idx_listing_posting_product_sort_value
+CREATE INDEX idx_listing_posting_product_sort_text
   ON catalog.listing_posting_product_sort (
     project_id,
     sort_kind,
     locale,
     currency,
     manual_scope_id,
-    numeric_value,
-    text_value,
-    bigint_value,
+    bool_value DESC,
+    text_value ASC NULLS LAST,
+    product_id
+  )
+  INCLUDE (product_doc_id);
+
+CREATE INDEX idx_listing_posting_product_sort_bigint_asc
+  ON catalog.listing_posting_product_sort (
+    project_id,
+    sort_kind,
+    locale,
+    currency,
+    manual_scope_id,
+    bool_value DESC,
+    bigint_value ASC NULLS LAST,
+    product_id
+  )
+  INCLUDE (product_doc_id);
+
+CREATE INDEX idx_listing_posting_product_sort_bigint_desc
+  ON catalog.listing_posting_product_sort (
+    project_id,
+    sort_kind,
+    locale,
+    currency,
+    manual_scope_id,
+    bool_value DESC,
+    bigint_value DESC NULLS LAST,
     product_id
   )
   INCLUDE (product_doc_id);
 ```
+
+Sort rows use sort-specific indexes because storefront ordering always starts
+with the availability bucket. `idx_listing_posting_product_sort_text` serves
+name/manual text ranks. `idx_listing_posting_product_sort_bigint_asc` and
+`idx_listing_posting_product_sort_bigint_desc` serve product aggregate price and
+other minor-unit integer sorts in both directions. Add a dedicated index when a
+new `sort_kind` needs a different ordered value type or direction.
 
 | Поле | Комментарий |
 | --- | --- |
@@ -850,8 +887,21 @@ CREATE TABLE catalog.listing_posting_variant_projection_block (
   variant_count          int NOT NULL,
   product_count          int NOT NULL,
 
-  PRIMARY KEY (project_id, block_id)
+  PRIMARY KEY (project_id, block_id),
+  CONSTRAINT chk_listing_projection_block_id_nonnegative
+    CHECK (block_id >= 0),
+  CONSTRAINT chk_listing_projection_block_range
+    CHECK (variant_doc_from >= 0 AND variant_doc_to > variant_doc_from),
+  CONSTRAINT chk_listing_projection_block_counts_nonnegative
+    CHECK (variant_count >= 0 AND product_count >= 0)
 );
+
+CREATE INDEX idx_listing_projection_block_range
+  ON catalog.listing_posting_variant_projection_block (
+    project_id,
+    variant_doc_from,
+    variant_doc_to
+  );
 ```
 
 | Поле | Комментарий |
@@ -867,6 +917,10 @@ Recommended block size is 4096 or 8192 variant docs. If
 `listing_rb_cardinality(block_match) = variant_count`, query can OR
 `product_bitmap` directly. Partial block matches must map exact variants through
 `variant_listing_index` and deduplicate product docs.
+
+The CHECK constraints only validate scalar shape. Freshness audit must verify
+that `variant_count = listing_rb_cardinality(variant_bitmap)` and
+`product_count = listing_rb_cardinality(product_bitmap)`.
 
 ## Incremental maintenance
 
@@ -989,7 +1043,10 @@ stable typed values без дополнительных FK constraints, чтоб
 rows можно было обновлять независимо от canonical configuration rows.
 
 `project_id` в listing tables остается обязательным query boundary и должен
-проверяться storefront/admin queries, но он не используется как FK target.
+проверяться storefront/admin queries. Root canonical FKs по-прежнему идут на
+`catalog.product(id)` / `catalog.variant(id)`, но child rows внутри listing read
+model используют composite parent FKs с `project_id`, чтобы повторяемый tenant
+boundary не мог расходиться с parent row.
 
 ## Внешние индексы для listing queries
 
