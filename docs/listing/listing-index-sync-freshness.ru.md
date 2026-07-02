@@ -121,36 +121,20 @@ semantics для option + price filters.
 
 ### Drizzle models
 
-Заменить старые модели:
+Listing read model definitions live in:
 
-- `services/catalog/src/repositories/models/searchIndex.ts`
-- `services/catalog/src/repositories/models/variantSearchIndex.ts`
-
-на новые модели:
-
-- `services/catalog/src/repositories/models/productListingIndex.ts`
-- `services/catalog/src/repositories/models/productListingPriceIndex.ts`
-- `services/catalog/src/repositories/models/variantListingIndex.ts`
-- `services/catalog/src/repositories/models/variantListingPriceIndex.ts`
-- `services/catalog/src/repositories/models/productListingFacetToken.ts`
-- `services/catalog/src/repositories/models/variantListingFacetToken.ts`
+- `services/catalog/src/repositories/models/listingIndex.ts`
 
 Модели должны совпадать с `listing-index-db-schema.ru.md`: composite primary
 keys, `project_id` в FK, check constraints для `status`/`facet_type`, partial
 indexes для price rows и GIN index только для `category_handles`.
 
-`services/catalog/src/repositories/models/index.ts` должен экспортировать новые
-модели и перестать экспортировать старые `productSearchIndex` /
-`variantSearchIndex` после миграции callers.
+`services/catalog/src/repositories/models/index.ts` должен экспортировать
+listing read model tables.
 
 ### Repository registration
 
-В `services/catalog/src/repositories/Repository.ts` заменить:
-
-- `searchIndex: SearchIndexRepository`
-- `variantSearchIndex: VariantSearchIndexRepository`
-
-на:
+В `services/catalog/src/repositories/Repository.ts` зарегистрировать:
 
 - `productListingIndex: ProductListingIndexRepository`
 - `productListingPriceIndex: ProductListingPriceIndexRepository`
@@ -896,7 +880,7 @@ aggregate. Product aggregate refresh всегда запускается пос�
 - Full rebuild может полностью восстановить listing tables после truncate.
 - Freshness audit находит missing/stale/unexpected rows и может запустить
   targeted repair.
-- Event handlers не используют старые `SearchIndexRepository` и
-  `VariantSearchIndexRepository`.
+- Event handlers используют listing repositories через текущий Repository
+  registry, без обхода transaction propagation.
 - Storefront read path не читает raw `tag_handles`, `feature_value_handles` или
   `option_value_handles` для configured facets.

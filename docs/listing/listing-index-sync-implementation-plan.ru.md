@@ -8,12 +8,10 @@
 - `docs/listing/listing-index-db-schema.ru.md`
 - `docs/listing/listing-index-sync-freshness.ru.md`
 
-в пошаговый план изменений в коде catalog service. Фокус: как заменить старый
-`product_search_index` / `variant_search_index` pipeline на новый listing read
-model, как обновлять facet tokens и как обеспечить freshness repair.
+в пошаговый план изменений в коде catalog service. Фокус: как обновлять listing
+read model, facet tokens и freshness repair.
 
-Обратная совместимость со старыми search index таблицами не нужна. После
-cutover listing index пересобирается rebuild script.
+После изменения структуры listing index пересобирается rebuild script.
 
 ## Инварианты реализации
 
@@ -73,11 +71,11 @@ rebuild/sync будет невозможен до появления соотв�
 services/catalog/src/repositories/Repository.ts
 ```
 
-старые поля:
+текущие поля:
 
 ```ts
-searchIndex: SearchIndexRepository;
-variantSearchIndex: VariantSearchIndexRepository;
+productListingIndex: ProductListingIndexRepository;
+variantListingIndex: VariantListingIndexRepository;
 ```
 
 на новые:
@@ -111,8 +109,7 @@ const listingSource = new ListingSourceRepository(db, txManager);
 services/catalog/src/repositories/listing/
 ```
 
-и заменить старые `SearchIndexRepository` / `VariantSearchIndexRepository`
-новыми repositories.
+и добавить repositories для price rows, facet tokens, source reads и freshness.
 
 ### ProductListingIndexRepository
 
@@ -1427,29 +1424,15 @@ await this.executeScript(RefreshListingFacetTokensScript, {
 });
 ```
 
-## Фаза 10. Удаление legacy search-index pipeline
+## Фаза 10. Cleanup после cutover
 
-После переноса callers удалить:
-
-```text
-services/catalog/src/repositories/listing/SearchIndexRepository.ts
-services/catalog/src/repositories/listing/VariantSearchIndexRepository.ts
-services/catalog/src/scripts/search-index/
-```
-
-И убрать exports из:
+После переноса callers проверить все ссылки:
 
 ```text
-services/catalog/src/scripts/index.ts
+rg "productListingIndex|variantListingIndex|SyncProductListingIndexScript|SyncVariantListingIndexScript|product_listing_index|variant_listing_index" services/catalog
 ```
 
-Перед удалением найти все ссылки:
-
-```text
-rg "searchIndex|variantSearchIndex|SyncProductIndexScript|SyncVariantIndexScript|product_search_index|variant_search_index" services/catalog
-```
-
-Все найденные references должны быть заменены на listing naming.
+Все найденные references должны соответствовать текущему listing naming.
 
 ## Фаза 11. Storefront read path follow-up
 
@@ -1476,7 +1459,7 @@ facet query не должен читать `tag_handles`, `feature_value_handles
 2. Source/mapping repositories + builders.
 3. Sync scripts + rebuild/delete/repair scripts.
 4. Workflows + event handlers.
-5. Remove legacy search-index scripts/repositories.
+5. Cleanup obsolete exports and unused scripts.
 6. Storefront query/facet aggregation repositories.
 
 Если нужен меньший blast radius, первые пять пунктов можно сделать в одном
@@ -1485,8 +1468,7 @@ backend cutover PR, а storefront read path во втором PR. Dual-write н�
 
 ## Acceptance checklist
 
-- [ ] Старые `product_search_index` и `variant_search_index` больше не
-      используются в TypeScript.
+- [ ] Storefront configured facets больше не читают raw handle arrays.
 - [ ] Все новые repositories используют `this.connection` и `this.storeId`.
 - [ ] `SyncVariantListingIndexScript` пишет variant rows/prices/tokens до
       product aggregate refresh.

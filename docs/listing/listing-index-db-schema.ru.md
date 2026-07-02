@@ -5,10 +5,9 @@
 sort. Нормативный источник требований:
 `docs/listing/listing-index-redesign-plan.ru.md`.
 
-`catalog.product_search_index` и `catalog.variant_search_index` считаются
-устаревшими и заменяются таблицами ниже. Обратная совместимость, dual-write и
-compatibility views не требуются: после миграции listing index пересобирается
-полным rebuild.
+Документ описывает текущую целевую read model. Обратная совместимость,
+dual-write и compatibility views не требуются: после изменения listing index
+пересобирается полным rebuild.
 
 ## Общие правила
 
@@ -46,8 +45,6 @@ services/catalog/migrations/domains/9000_read_models/
 Planned files:
 
 - `9003_read_models__listing_index_redesign.sql`:
-  - drop legacy `catalog.product_search_index` and
-    `catalog.variant_search_index`;
   - create `product_listing_index`, `product_listing_price_index`,
     `variant_listing_index`, `variant_listing_price_index`,
     `product_listing_facet_token` and `variant_listing_facet_token`;
@@ -71,13 +68,6 @@ Do not edit existing historical domain migration files for this redesign unless
 the implementation explicitly chooses a full catalog cutover and updates the
 plan first. The intended path for this work is additive handwritten SQL in
 `9000_read_models`.
-
-## Удаляемые таблицы
-
-```sql
-DROP TABLE IF EXISTS catalog.variant_search_index;
-DROP TABLE IF EXISTS catalog.product_search_index;
-```
 
 ## `catalog.product_listing_index`
 

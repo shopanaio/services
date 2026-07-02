@@ -53,8 +53,8 @@ options или другим полям. Текстовый поиск возвр
 - Не строить semantic/vector search.
 - Не внедрять Metarank или персонализацию.
 - Не делать cross-service global search.
-- Не смешивать этот индекс со старыми `catalog.product_search_index` /
-  `catalog.variant_search_index`.
+- Не смешивать этот индекс со structured listing read model:
+  `catalog.product_listing_index` / `catalog.variant_listing_index`.
 
 ## Расширение и окружение
 

@@ -2,9 +2,12 @@
 
 ## Контекст
 
-Текущие `catalog.product_search_index` и `catalog.variant_search_index` являются не full-text search index, а read model для listing/facets. Название и часть состава таблиц уже вводят путаницу: они обслуживают structured filtering, facet counts и sort, а не текстовый поиск.
+Listing read model обслуживает structured filtering, facet counts и sort, а не
+текстовый поиск.
 
-Обратная совместимость не требуется. Можно удалять старые таблицы, модели, репозитории и скрипты без dual-write, compatibility views и миграции старых данных. После изменения индексы пересобираются полным rebuild.
+Обратная совместимость не требуется. Можно менять таблицы, модели, репозитории
+и скрипты без dual-write, compatibility views и миграции старых данных. После
+изменения индексы пересобираются полным rebuild.
 
 ## Storefront операции, которые должен поддерживать listing index
 
@@ -156,7 +159,6 @@ structured filtering, facets, counts, pagination и sort. Backend sync/rebuild
 ## Не цели
 
 - Не строить full-text search. Название, description и SEO translations остаются вне listing index.
-- Не делать совместимость со старыми `product_search_index` / `variant_search_index`.
 - Не возвращать raw source values на storefront. Storefront видит только configured `facet_value`.
 - Не превращать category в storefront facet. Category остается navigation scope и rule field.
 - Не предагрегировать facet counts в отдельные счетчики. Counts остаются
@@ -166,14 +168,7 @@ structured filtering, facets, counts, pagination и sort. Backend sync/rebuild
 
 ## Новая схема
 
-Старые таблицы удаляются:
-
-```sql
-DROP TABLE IF EXISTS catalog.variant_search_index;
-DROP TABLE IF EXISTS catalog.product_search_index;
-```
-
-Создаются новые таблицы с именами, которые отражают назначение:
+Таблицы read model называются по назначению:
 
 - `catalog.product_listing_index`
 - `catalog.product_listing_price_index`
@@ -1240,10 +1235,10 @@ FROM filtered_products;
 
 ### Repositories
 
-Replace current repositories:
+Listing read model repositories:
 
-- `SearchIndexRepository` -> `ProductListingIndexRepository`
-- `VariantSearchIndexRepository` -> `VariantListingIndexRepository`
+- `ProductListingIndexRepository`
+- `VariantListingIndexRepository`
 
 Add listing token and query repositories:
 
@@ -1258,12 +1253,12 @@ Repository methods should use `BaseRepository.connection` and always include `pr
 
 ### Scripts
 
-Replace scripts:
+Listing sync scripts:
 
-- `SyncProductIndexScript` -> `SyncProductListingIndexScript`
-- `SyncVariantIndexScript` -> `SyncVariantListingIndexScript`
-- `DeleteProductIndexScript` -> `DeleteProductListingIndexScript`
-- `RebuildProductIndexScript` / `RebuildVariantIndexScript` -> `RebuildListingIndexScript`
+- `SyncProductListingIndexScript`
+- `SyncVariantListingIndexScript`
+- `DeleteProductListingIndexScript`
+- `RebuildListingIndexScript`
 
 `SyncVariantListingIndexScript`:
 
@@ -1353,8 +1348,8 @@ Facet source/display mapping changes require token refresh:
    `variant_listing_facet_token`.
 2. Add handwritten catalog migration
    `services/catalog/migrations/domains/9000_read_models/9003_read_models__listing_index_redesign.sql`
-   that drops old search index tables and creates new listing index, price and
-   token tables. Do not use Drizzle migration generation for catalog.
+   that creates listing index, price and token tables. Do not use Drizzle
+   migration generation for catalog.
 3. Replace repository classes and register them in `Repository`.
 4. Replace sync/delete/rebuild scripts.
 5. Update catalog event handlers to call listing index scripts.
@@ -1362,7 +1357,7 @@ Facet source/display mapping changes require token refresh:
 7. Replace in-memory `buildListingFacets` with SQL aggregation repository.
 8. Implement category listing query on `ListingQueryRepository`.
 9. Implement collection listing query on the same query foundation.
-10. Remove old `search-index` exports after callers are migrated.
+10. Cleanup obsolete exports after callers are migrated.
 
 ## Acceptance criteria
 
