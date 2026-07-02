@@ -271,6 +271,20 @@ Shared fragments обязаны сохранять текущую storefront fil
   используется collector-ом для matched variant price semantics.
 - Search scope должен пересекать published/scope product bitmap с BM25 candidate
   bitmap до `matches`; relevance collector использует тот же normalized query.
+- Query A/B/C/D/E должны использовать один и тот же compiled listing scope:
+  category/manual/global/search/rule collection scope, published visibility,
+  BM25 candidate bitmap и rule collection variant predicates не могут
+  расходиться между branches.
+- Для search scope candidate relation должна быть полной для normalized query.
+  Нельзя использовать top-K BM25 relation как scope для aggregates, иначе
+  `totalCount`, facets, `priceRange` и `inStockCount` описывают cap, а не полный
+  search result.
+- Для rule collection, состоящей только из variant-level rules, product scope
+  строится через projection этих variant predicates, а collector/virtual facets
+  сохраняют тот же variant scope до projection.
+- Facet resolution и facet metadata должны работать только с configured visible
+  root storefront values. Enabled source children могут резолвиться в root
+  display value, но наружу и в `valueKey` возвращается root value id.
 
 ## Query A: page rows + hasNextPage
 
@@ -334,6 +348,21 @@ resolved_facets AS (
   LEFT JOIN catalog.facet_value parent_fv
     ON parent_fv.project_id = fv.project_id
    AND parent_fv.id = fv.parent_id
+   AND parent_fv.kind = 'display'
+   AND parent_fv.parent_id IS NULL
+   AND parent_fv.enabled = true
+   AND parent_fv.reference_status = 'VALID'
+  WHERE (
+      fv.kind = 'display'
+      AND fv.parent_id IS NULL
+      AND fv.enabled = true
+      AND fv.reference_status = 'VALID'
+    )
+    OR (
+      fv.kind = 'source'
+      AND fv.enabled = true
+      AND parent_fv.id IS NOT NULL
+    )
 ),
 scope_products AS (
   SELECT COALESCE((
@@ -669,8 +698,8 @@ Notes:
 - Для matched variant price sort compiler должен заменить `page_scan` на branch
   по `listing_posting_variant_price`.
 - Для relevance sort compiler должен заменить `page_scan` на BM25 branch.
-- Query A/B/D должны использовать один и тот же compiler для `vendor`, `price`,
-  stock-only, search scope и rule collection variant scope. Пример выше
+- Query A/B/C/D/E должны использовать один и тот же compiler для `vendor`,
+  `price`, stock-only, search scope и rule collection variant scope. Пример выше
   показывает форму CTE, но production compiler обязан подставить также
   `scope_variant_filters` и BM25 scope branch для соответствующих scopes.
 
@@ -758,6 +787,7 @@ facet_values AS (
     f.lexo_rank AS facet_rank,
     fv.id::text AS facet_value_id,
     fv.handle AS value_handle,
+    fv.sort_index AS value_sort,
     f.id::text || ':' || fv.id::text AS value_key
   FROM input i
   JOIN candidate_values cv ON true
@@ -767,6 +797,10 @@ facet_values AS (
     ON fv.project_id = f.project_id
    AND fv.facet_id = f.id
    AND cv.value_key = f.id::text || ':' || fv.id::text
+   AND fv.kind = 'display'
+   AND fv.parent_id IS NULL
+   AND fv.enabled = true
+   AND fv.reference_status = 'VALID'
 ),
 grouped_facets AS (
   SELECT
@@ -780,7 +814,7 @@ grouped_facets AS (
         'valueHandle', fv.value_handle,
         'valueKey', fv.value_key
       )
-      ORDER BY fv.facet_value_id
+      ORDER BY fv.value_sort, fv.facet_value_id
     ) AS values
   FROM facet_values fv
   GROUP BY fv.facet_id, fv.facet_slug, fv.facet_type, fv.facet_rank
@@ -805,10 +839,17 @@ Notes:
 - Query C не считает counts.
 - Query C может использовать только scope, потому facets metadata описывают
   доступные фильтры для listing scope.
+- Для search scope это означает published/scope bitmap intersect BM25 candidate
+  bitmap. Для rule collection scope это означает product projection из
+  rule-level variant predicates, если они есть.
 - Query C должен строить candidate values двумя typed путями: product postings
   через `entity_type = 'product'` и option postings через
   `entity_type = 'variant'`. Нельзя проверять option values через product doc id
   bitmap.
+- Query C должен возвращать только configured visible root values
+  (`kind = 'display'`, `parent_id IS NULL`, `enabled = true`,
+  `reference_status = 'VALID'`) и сортировать values по storefront order
+  (`sort_index`, затем stable id), а не по UUID-only order.
 - Для category/manual scopes `scope_product_base` должен пересекать scope bitmap
   с `published_products`, как текущий `productPostingScopeBitmapSql(...)`.
 - Query C не должен парсить `p.value_key` через `split_part(...)::uuid`.
@@ -877,11 +918,12 @@ candidate_values AS (
    AND p.field = 'facet'
    AND rb_cardinality(sv.bitmap & p.bitmap) > 0
 ),
-facet_values AS (
+visible_facet_values AS (
   SELECT DISTINCT
     f.id::text AS facet_id,
     f.facet_type,
     fv.id::text AS facet_value_id,
+    fv.sort_index AS value_sort,
     f.id::text || ':' || fv.id::text AS value_key
   FROM input i
   JOIN candidate_values cv ON true
@@ -891,8 +933,29 @@ facet_values AS (
     ON fv.project_id = f.project_id
    AND fv.facet_id = f.id
    AND cv.value_key = f.id::text || ':' || fv.id::text
-  ORDER BY f.id::text, fv.id::text
+   AND fv.kind = 'display'
+   AND fv.parent_id IS NULL
+   AND fv.enabled = true
+   AND fv.reference_status = 'VALID'
+),
+product_facet_values AS (
+  SELECT *
+  FROM visible_facet_values
+  WHERE facet_type IN ('TAG', 'FEATURE')
+  ORDER BY facet_id, value_sort, facet_value_id
   LIMIT $counted_facet_value_limit::int
+),
+option_facet_values AS (
+  SELECT *
+  FROM visible_facet_values
+  WHERE facet_type = 'OPTION'
+  ORDER BY facet_id, value_sort, facet_value_id
+  LIMIT $counted_option_facet_value_limit::int
+),
+facet_values AS (
+  SELECT * FROM product_facet_values
+  UNION ALL
+  SELECT * FROM option_facet_values
 ),
 product_facet_value_bitmaps AS (
   SELECT
@@ -980,7 +1043,6 @@ option_facet_value_bitmaps AS (
    AND p.field = 'facet'
    AND p.value_key = fv.value_key
   WHERE fv.facet_type = 'OPTION'
-  LIMIT $counted_option_facet_value_limit::int
 ),
 option_facet_counts AS (
   SELECT
@@ -1072,14 +1134,24 @@ FROM (
 
 Notes:
 
-- `facet_values` должен быть ограничен complexity budget.
+- `product_facet_values` и `option_facet_values` должны быть ограничены
+  отдельными complexity budgets до bitmap aggregation. Общий mixed `LIMIT` перед
+  разделением по facet type запрещен, потому product values могут вытеснить
+  option values и сломать completeness counts для допустимого request.
 - Query D должен использовать те же product/variant candidate rules, что Query C.
   Product candidate values проверяются через `scope_product_base`, option
   candidate values должны быть ограничены variant scope branch-ом compiler-а, а
   не product bitmap intersection.
+- Для search scope candidate rules включают BM25 candidate bitmap; для rule
+  collection они включают projected product scope из rule-level variant
+  predicates.
 - `facet_values` не должен парсить `p.value_key` через
   `split_part(...)::uuid`. Query D должен получать тот же opaque `valueKey`,
   который Query C строит из typed metadata.
+- Query D должен считать только configured visible root values
+  (`kind = 'display'`, `parent_id IS NULL`, `enabled = true`,
+  `reference_status = 'VALID'`) и использовать тот же storefront value order,
+  что Query C, при применении deterministic budgets.
 - Product counts исключают active product group того же `facet_id`.
 - Product counts не должны исключать другие product-level filters: vendor group и
   active stock-only product filter остаются в isolated product base.
@@ -1121,6 +1193,7 @@ active option/price predicates могут потеряться при расче
 WITH
 -- input/resolved_facets/scope/published/product_filters/
 -- option_filter_groups/in_stock_variants CTE как в Query A
+-- scope CTE обязан включать search BM25 bitmap и rule collection variant scope
 -- product_filters здесь не включает active in-stock predicate
 -- price_variant_filter строится из active price predicate, NULL если его нет
 -- active_stock_variant_filter строится из active in-stock predicate, NULL если его нет
@@ -1261,6 +1334,9 @@ Notes:
 - `inStockCount` исключает active in-stock predicate, но сохраняет product,
   option и active price filters. Option/price predicates пересекаются с
   `in_stock_variants` до projection, чтобы сохранить same-variant semantics.
+- Для search scope `product_base` должен быть ограничен BM25 candidate bitmap.
+  Для rule collection scope `product_base` и isolated variant filters должны
+  сохранять rule-level variant predicates до projection.
 - Query E отделен от facet counts, потому virtual facets обычно дешевле и не
   должны ждать тяжелую facet bucket aggregation внутри одного плана.
 
@@ -1317,7 +1393,7 @@ const result = await runBoundedParallel(
 | vendor ids | 48 |
 | rule collection predicates | 24 |
 | search query length after normalize | 128 |
-| counted facet values per request | 120 |
+| counted product facet values per request | 120 |
 | counted option facet values per request | 60 |
 
 Лимиты должны быть config-driven, но default должен быть строгим. Если продукту
@@ -1402,7 +1478,9 @@ Acceptance:
 - Query C делает 1 SQL round-trip;
 - возвращает facets и values с `valueKey`;
 - не считает counts;
-- порядок facets/values стабилен;
+- возвращает только configured visible root values;
+- порядок facets/values соответствует storefront order;
+- search/rule collection scope совпадает с Query A/B/D/E;
 - `valueKey` строится из typed metadata через shared helper/compiler, без
   `split_part(...)::uuid` в SQL.
 
@@ -1416,7 +1494,9 @@ Acceptance:
 - product facet isolation корректна;
 - option facet same-variant semantics корректна;
 - возвращает counts map по `valueKey`;
-- counted values ограничены complexity budget;
+- product и option counted values ограничены отдельными complexity budgets;
+- counts считаются только для configured visible root values;
+- search/rule collection scope совпадает с Query A/B/C/E;
 - counts используют тот же opaque `valueKey`, что Query C, без ad hoc SQL
   parsing.
 
@@ -1433,6 +1513,8 @@ Acceptance:
 - `variant_filters_without_price` и `variant_filters_without_stock`
   компилируются отдельно;
 - `product_base` не включает active in-stock predicate;
+- search scope ограничивает virtual facets BM25 candidate bitmap;
+- rule collection variant predicates сохраняются в virtual facet bases;
 - остальные filters сохраняются.
 
 ### Фаза 8. Search, rule collections и collector parity

@@ -5,9 +5,9 @@ posting index.
 
 Канонические документы:
 
-- `services/listing/docs/listing-posting-list-search-engine-index.ru.md`
-- `services/listing/docs/listing-index-db-schema.ru.md`
-- `services/listing/docs/listing-query-sql-examples.ru.md`
+- `services/listing/docs/draft/listing-posting-list-search-engine-index.ru.md`
+- `services/listing/docs/draft/listing-index-db-schema.ru.md`
+- `services/listing/docs/draft/listing-query-sql-examples.ru.md`
 
 Listing index не является full-text search index. Он обслуживает Product Listing
 Page: product candidates, structured filtering, facet resolution, facet counts,
@@ -35,7 +35,7 @@ total count, cursor pagination и sort. Hydration карточек товара 
    filters.
 8. Page collector сканирует `listing_posting_product_sort` или
    `listing_posting_variant_price` и проверяет bitmap membership.
-9. `totalCount` считается через `rb_cardinality(matches)`, когда запрошен.
+9. `totalCount` считается через `rb_cardinality(matches)`.
 10. Facet aggregation считается по full listing scope, не по текущей странице.
     Для counts применяется facet isolation по `facet_id`.
 11. Cursor pagination применяет keyset seek по sort values и stable tie-breakers.
@@ -134,9 +134,10 @@ BM25 search возвращает SQL relation с `product_id` или `product_do
 переводит product ids в `product_doc_id`, строит search candidate bitmap и
 intersect-ит его с scope/filter bitmaps.
 
-Candidate relation должна представлять полный набор title matches, если от нее
-считаются `totalCount` и facets. Нельзя молча передавать только top-K hits:
-counts описывали бы cap, а не реальные результаты поиска.
+Candidate relation должна представлять полный набор title matches, потому от
+нее считаются `totalCount`, facets, price range и in-stock count. Нельзя молча
+передавать только top-K hits: counts описывали бы cap, а не реальные результаты
+поиска.
 
 Relevance sort:
 
@@ -288,8 +289,8 @@ semantics before grouping back to products.
 facet isolation. Он не зависит от текущей page and does not require loading all
 products into application memory.
 
-Если client не запросил `totalCount`, page query should avoid unnecessary
-full-cardinality work when possible.
+Storefront PLP всегда возвращает `totalCount`; optional aggregate flags не
+являются частью public storefront PLP contract.
 
 ## Sorting
 
@@ -330,11 +331,12 @@ Response shape:
 
 - `edges`: ordered product ids or hydrated cards after batch hydration;
 - `pageInfo`;
-- `totalCount`, when requested;
+- `totalCount`;
 - facets with counts;
+- `priceRange`;
+- `inStockCount`;
 - applied filters metadata;
 - listing aggregates needed for card display and sorting.
 
 Listing query returns current page, counts and metadata. It must not load all
 candidate products into application memory.
-
