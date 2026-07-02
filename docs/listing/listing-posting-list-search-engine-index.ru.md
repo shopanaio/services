@@ -122,18 +122,17 @@ roaring posting tables.
 CREATE EXTENSION IF NOT EXISTS roaringbitmap;
 ```
 
-Runtime code не должен вызывать raw extension operators напрямую. Query builder
-использует project-owned wrappers:
+Runtime code использует `pg_roaringbitmap` напрямую. Query builder использует extension API без промежуточных project-owned функций:
 
-| Capability | Wrapper |
+| Capability | Direct SQL |
 | --- | --- |
-| Build bitmap aggregate | `listing_rb_build_agg(int)` |
-| AND | `listing_rb_and(a, b)`, `listing_rb_and_many(...)` |
-| OR | `listing_rb_or(a, b)` |
-| Difference | `listing_rb_and_not(a, b)` |
-| Cardinality | `listing_rb_cardinality(bitmap)` |
-| Membership check | `listing_rb_contains(bitmap, doc_id)` |
-| Iteration | `listing_rb_iterate(bitmap)` |
+| Build bitmap aggregate | `rb_build_agg(int)` |
+| AND | `a & b`, `rb_and_agg(bitmap)` |
+| OR | `a \| b`, `rb_or_agg(bitmap)` |
+| Difference | `a - b` |
+| Cardinality | `rb_cardinality(bitmap)` |
+| Membership check | `bitmap @> doc_id` |
+| Iteration | `rb_iterate(bitmap)` |
 
 ## Stable doc ids
 
@@ -199,8 +198,8 @@ CREATE TABLE catalog.listing_posting_bitmap (
 Recommended value keys:
 
 ```text
-field=scope_category, value_key=<category_id>
-field=scope_collection, value_key=<collection_id>
+field=category, value_key=<category_id>
+field=collection, value_key=<collection_id>
 field=vendor, value_key=<vendor_id>
 field=facet, value_key=<facet_id>:<facet_value_id>
 field=variant_product, value_key=<product_doc_id>
@@ -210,7 +209,7 @@ Mutable storefront handles допустимы только как transient sync
 canonical catalog tables. В posting index сохраняются canonical ids или stable
 typed values.
 
-`cardinality` должен равняться `listing_rb_cardinality(bitmap)`. Sync code
+`cardinality` должен равняться `rb_cardinality(bitmap)`. Sync code
 обновляет его вместе с `bitmap`.
 
 ## Product sort table
@@ -363,7 +362,7 @@ default currency.
 
 Variant-level option filters produce `variant_doc_id` bitmaps. Listing response,
 totalCount and product-level facet counts need product docs. Broad option
-filters must not expand every matching variant through `listing_rb_iterate`.
+filters must not expand every matching variant through `rb_iterate`.
 
 Projection helper:
 
@@ -424,8 +423,8 @@ repository methods must accept `project_id` together with any `product_doc_id` o
 Product-level postings store `product_doc_id`:
 
 ```text
-field=scope_category
-field=scope_collection
+field=category
+field=collection
 field=vendor
 field=facet for tag/feature values
 ```
@@ -433,7 +432,7 @@ field=facet for tag/feature values
 Example:
 
 ```text
-base = scope_category:<category_id>
+base = category:<category_id>
 brand = facet:<brand_facet_id>:<nike_value_id>
 material = facet:<material_facet_id>:<leather_value_id>
 
@@ -471,7 +470,7 @@ Price range query scans `listing_posting_variant_price` in project default
 currency and builds a variant bitmap:
 
 ```sql
-SELECT listing_rb_build_agg(vp.variant_doc_id) AS price_variant_bitmap
+SELECT rb_build_agg(vp.variant_doc_id) AS price_variant_bitmap
 FROM catalog.listing_posting_variant_price vp
 WHERE vp.project_id = :projectId
   AND vp.currency = :currency
@@ -515,7 +514,7 @@ WHERE s.project_id = :projectId
   AND s.locale = :locale
   AND s.currency = :currency
   AND s.manual_scope_id = :manualScopeId
-  AND listing_rb_contains(:matchesBitmap::roaringbitmap, s.product_doc_id)
+  AND :matchesBitmap::roaringbitmap @> s.product_doc_id
 ORDER BY
   s.bool_value DESC,
   s.timestamptz_value DESC NULLS LAST,
@@ -535,8 +534,8 @@ SELECT DISTINCT ON (vp.product_id)
 FROM catalog.listing_posting_variant_price vp
 WHERE vp.project_id = :projectId
   AND vp.currency = :currency
-  AND listing_rb_contains(:variantMatchesBitmap::roaringbitmap, vp.variant_doc_id)
-  AND listing_rb_contains(:productMatchesBitmap::roaringbitmap, vp.product_doc_id)
+  AND :variantMatchesBitmap::roaringbitmap @> vp.variant_doc_id
+  AND :productMatchesBitmap::roaringbitmap @> vp.product_doc_id
 ORDER BY vp.product_id, vp.price_minor ASC, vp.variant_doc_id
 LIMIT :candidateLimit;
 ```
@@ -666,7 +665,7 @@ must be repaired from listing/canonical source rows.
 
 Recommended diagnostics:
 
-- `listing_posting_bitmap.cardinality` equals wrapper cardinality;
+- `listing_posting_bitmap.cardinality` equals `rb_cardinality(bitmap)`;
 - product/variant doc ids in bitmaps exist in listing rows unless entity was
   just deleted in the same transaction;
 - sort rows exist for published product docs and expected sort dimensions;
@@ -726,17 +725,18 @@ primary correctness model.
 
 ## PostgreSQL roaring operations
 
-Wrappers must hide extension-specific function/operator names. Example target
-API:
+Storefront SQL uses the extension function/operator names directly:
 
 ```sql
-listing_rb_build_agg(doc_id int) -> roaringbitmap
-listing_rb_and(a roaringbitmap, b roaringbitmap) -> roaringbitmap
-listing_rb_or(a roaringbitmap, b roaringbitmap) -> roaringbitmap
-listing_rb_and_not(a roaringbitmap, b roaringbitmap) -> roaringbitmap
-listing_rb_cardinality(bitmap roaringbitmap) -> bigint
-listing_rb_contains(bitmap roaringbitmap, doc_id int) -> boolean
-listing_rb_iterate(bitmap roaringbitmap) -> setof int
+rb_build_agg(doc_id int) -> roaringbitmap
+a & b -> roaringbitmap
+rb_and_agg(bitmap roaringbitmap) -> roaringbitmap
+a | b -> roaringbitmap
+rb_or_agg(bitmap roaringbitmap) -> roaringbitmap
+a - b -> roaringbitmap
+rb_cardinality(bitmap roaringbitmap) -> bigint
+bitmap @> doc_id -> boolean
+rb_iterate(bitmap roaringbitmap) -> setof int
 ```
 
 ## Repository boundary

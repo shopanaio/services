@@ -120,7 +120,7 @@ Planned files:
     If `uuid` is not accepted as `key_field`, replace `search_id uuid` with a
     stable unique `search_key text`. If non-text filter/sort fields are not
     accepted by the installed version, keep only supported fields in the BM25
-    index and apply unsupported predicates in the SQL candidate wrapper before
+    index and apply unsupported predicates in the SQL candidate query before
     joining the listing index.
 
 If either basename is already taken when implementation starts, use the next
@@ -614,18 +614,17 @@ operations над `roaringbitmap`.
 CREATE EXTENSION IF NOT EXISTS roaringbitmap;
 ```
 
-Runtime code не должен вызывать raw extension operators напрямую. Query builder
-использует project-owned wrapper names:
+Runtime code использует `pg_roaringbitmap` напрямую. Query builder использует extension API без промежуточных project-owned функций:
 
-| Capability | Wrapper |
+| Capability | Direct SQL |
 | --- | --- |
-| Build bitmap aggregate | `listing_rb_build_agg(int)` |
-| AND | `listing_rb_and(a, b)`, `listing_rb_and_many(...)` |
-| OR | `listing_rb_or(a, b)` |
-| Difference | `listing_rb_and_not(a, b)` |
-| Cardinality | `listing_rb_cardinality(bitmap)` |
-| Membership check | `listing_rb_contains(bitmap, doc_id)` |
-| Iteration | `listing_rb_iterate(bitmap)` |
+| Build bitmap aggregate | `rb_build_agg(int)` |
+| AND | `a & b`, `rb_and_agg(bitmap)` |
+| OR | `a \| b`, `rb_or_agg(bitmap)` |
+| Difference | `a - b` |
+| Cardinality | `rb_cardinality(bitmap)` |
+| Membership check | `bitmap @> doc_id` |
+| Iteration | `rb_iterate(bitmap)` |
 
 ### Stable doc ids
 
@@ -667,18 +666,18 @@ CREATE TABLE catalog.listing_posting_bitmap (
 | Поле | Комментарий |
 | --- | --- |
 | `entity_type` | `product` bitmap stores `product_doc_id`; `variant` bitmap stores `variant_doc_id`. |
-| `field` | Stable internal field name: `scope_category`, `scope_collection`, `vendor`, `facet`, `variant_product`, etc. |
+| `field` | Stable internal field name: `category`, `collection`, `vendor`, `facet`, `variant_product`, etc. |
 | `value_key` | Stable typed value key. Use canonical ids or deterministic typed values, not mutable handles. |
 | `bitmap` | Compressed roaringbitmap posting list. |
-| `cardinality` | Must equal `listing_rb_cardinality(bitmap)`; used for planner choices and diagnostics. |
+| `cardinality` | Must equal `rb_cardinality(bitmap)`; used for planner choices and diagnostics. |
 | `metadata` | Optional builder diagnostics, bucket metadata, facet hints. |
 | `updated_at` | Время последнего incremental обновления posting row. |
 
 Recommended value keys:
 
 ```text
-field=scope_category, value_key=<category_id>
-field=scope_collection, value_key=<collection_id>
+field=category, value_key=<category_id>
+field=collection, value_key=<collection_id>
 field=vendor, value_key=<vendor_id>
 field=facet, value_key=<facet_id>:<facet_value_id>
 field=variant_product, value_key=<product_doc_id>
@@ -881,7 +880,7 @@ CREATE INDEX idx_listing_posting_variant_price_product_order
 ### `catalog.listing_posting_variant_projection_block`
 
 Projection helper for `variant_doc_id` bitmap -> `product_doc_id` bitmap. Broad
-option filters must not expand every variant through `listing_rb_iterate`.
+option filters must not expand every variant through `rb_iterate`.
 
 ```sql
 CREATE TABLE catalog.listing_posting_variant_projection_block (
@@ -921,13 +920,13 @@ CREATE INDEX idx_listing_projection_block_range
 | `product_count` | Cardinality of `product_bitmap`. |
 
 Recommended block size is 4096 or 8192 variant docs. If
-`listing_rb_cardinality(block_match) = variant_count`, query can OR
+`rb_cardinality(block_match) = variant_count`, query can OR
 `product_bitmap` directly. Partial block matches must map exact variants through
 `variant_listing_index` and deduplicate product docs.
 
 The CHECK constraints only validate scalar shape. Freshness audit must verify
-that `variant_count = listing_rb_cardinality(variant_bitmap)` and
-`product_count = listing_rb_cardinality(product_bitmap)`.
+that `variant_count = rb_cardinality(variant_bitmap)` and
+`product_count = rb_cardinality(product_bitmap)`.
 
 ## Incremental maintenance
 
@@ -1113,4 +1112,4 @@ CREATE INDEX idx_product_translation_listing_name
 
 `category` не добавляется в storefront facet types. Для navigation scope и
 collection rules используются canonical category scope tables и
-`catalog.listing_posting_bitmap` rows с `field = 'scope_category'`.
+`catalog.listing_posting_bitmap` rows с `field = 'category'`.
