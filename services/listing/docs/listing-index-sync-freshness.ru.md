@@ -26,11 +26,10 @@ canonical catalog tables: product, variant, categories, collections, tags,
 features, options, prices, inventory, project currencies/locales and facet
 configuration.
 
-Freshness обеспечивается тремя слоями:
+Freshness обеспечивается двумя слоями:
 
 1. Incremental sync после доменных изменений.
-2. Idempotent rebuild from canonical source tables.
-3. Freshness audit, который находит missing/stale rows, bitmap mismatches,
+2. Freshness audit, который находит missing/stale rows, bitmap mismatches,
    orphan physical index rows and projection inconsistencies.
 
 DB triggers не используются. Sync logic lives in repositories, builders,
@@ -319,27 +318,10 @@ Algorithm:
 4. Replace affected memberships in bitmap rows.
 5. Update `cardinality` and `updated_at`.
 
-### RebuildListingIndexScript
-
-Full rebuild:
-
-1. Acquire project-level advisory lock.
-2. Clear listing/posting tables for project in dependency-safe order.
-3. Reset or create allocator row according to rebuild policy.
-4. Process products in batches.
-5. Sync variants, then products.
-6. Build/refresh all product sort rows.
-7. Build/refresh runtime variant price rows.
-8. Build/refresh projection blocks.
-9. Run freshness audit.
-
-Partial rebuild by product ids must preserve existing doc ids.
-
 ## Workflow и event handlers
 
 Durable DBOS workflows:
 
-- `listing.rebuildListingIndex`
 - `listing.syncListingIndexForProducts`
 - `listing.syncListingIndexForVariants`
 - `listing.refreshListingFacetPostings`
@@ -351,7 +333,6 @@ Workflow IDs should use content idempotency:
 listing:product:{projectId}:{productId}:{reason}:{sourceRevision}
 listing:variant:{projectId}:{variantId}:{reason}:{sourceRevision}
 listing:facet-mapping:{projectId}:{facetType}:{mappingRevision}
-listing:rebuild:{projectId}:{requestedAtOrManualKey}
 ```
 
 Event invalidation map:
@@ -423,8 +404,8 @@ Audit checks:
 3. Target-sync missing/stale variants.
 4. Refresh affected facet bitmap memberships.
 5. Refresh affected sort/runtime price/projection rows.
-6. If mismatch set is too large or `canRepairTargeted = false`, run project
-   rebuild.
+6. If mismatch set is too large or `canRepairTargeted = false`, return an
+   explicit non-targetable repair result for manual handling.
 
 ## Concurrency и порядок записи
 
@@ -488,5 +469,4 @@ Unmapped source handles are debug/info counters, not errors:
 - Projection blocks are refreshed for touched variant doc ranges.
 - Storefront read path never reads raw handle arrays for configured facets.
 - Targeted sync rereads canonical state before writing and is idempotent.
-- Full rebuild can restore all listing/posting tables for a project.
-- Freshness audit can choose targeted repair or full rebuild.
+- Freshness audit can identify whether targeted repair is possible.

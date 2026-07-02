@@ -40,8 +40,7 @@ options или другим полям. Текстовый поиск возвр
 4. Поддержать multi-tenant и locale-aware поиск: `project_id` + `locale`.
 5. Возвращать стабильный relevance sort в общем listing contract:
    `in_stock DESC, relevance_score DESC, product_id ASC`.
-6. Обеспечить полный и project-scoped rebuild индекса из
-   `catalog.product_translation`.
+6. Обеспечить project-scoped rebuild индекса из `catalog.product_translation`.
 
 ## Не цели
 
@@ -376,14 +375,13 @@ Add scripts:
 
 `RebuildProductTitleBm25SearchIndexScript`:
 
-1. Supports full rebuild and project-scoped rebuild modes.
-2. Full rebuild truncates `listing.product_title_bm25_search_index`.
-3. Project-scoped rebuild deletes rows by `project_id`, then rebuilds only that
+1. Supports project-scoped rebuild mode.
+2. Project-scoped rebuild deletes rows by `project_id`, then rebuilds only that
    project. This mode is used for enabled locale changes.
-4. Process products in batches.
-5. Sync title search index for every active and draft product in scope.
-6. Log project count, product count, locale count, skipped rows and duration.
-7. Run `VACUUM ANALYZE listing.product_title_bm25_search_index` after large
+3. Process products in batches.
+4. Sync title search index for every active and draft product in scope.
+5. Log project count, product count, locale count, skipped rows and duration.
+6. Run `VACUUM ANALYZE listing.product_title_bm25_search_index` after large
    rebuild if operationally acceptable.
 
 ## Event coverage
@@ -455,7 +453,7 @@ Rules:
    `shared_preload_libraries = 'pg_search'` in infrastructure config outside
    SQL migrations.
 4. Add `ProductTitleBm25SearchIndexRepository`.
-5. Add sync/delete/rebuild scripts.
+5. Add sync/delete/project-scoped rebuild scripts.
 6. Wire only product lifecycle, publish/unpublish, product translation name and
    project locale event handlers.
 7. Add `ProductTitleSearchQueryRepository` with raw SQL BM25 CTE methods.
@@ -463,14 +461,11 @@ Rules:
 9. Add storefront GraphQL `query` and `RELEVANCE` sort handling.
 10. Add observability: query text hash, candidate count, result count, duration,
     fuzzy fallback flag.
-11. Run project-scoped rebuild for locale changes and full rebuild for initial
-    rollout.
+11. Run project-scoped rebuild for locale changes and initial rollout.
 12. Compare `EXPLAIN ANALYZE` for relevance and explicit business sort flows.
 
 ## Acceptance criteria
 
-- Full rebuild recreates all project/product/locale title search rows from
-  `catalog.product_translation.name`.
 - Project-scoped rebuild deletes and recreates only rows for the selected
   `project_id`.
 - Search query with `query` uses BM25 candidate CTE over `title` only.

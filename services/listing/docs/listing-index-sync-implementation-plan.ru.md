@@ -14,8 +14,6 @@
 Фокус: как обновлять SQL listing read model, roaring posting bitmap rows,
 physical sort/price indexes, projection blocks and freshness repair.
 
-После изменения структуры listing index пересобирается rebuild script.
-
 ## Инварианты реализации
 
 - Listing index is a derived current-state read model.
@@ -462,21 +460,6 @@ Algorithm:
 This script must not change price, stock, sort or projection rows unless a
 variant visibility/parent change is part of the same canonical event.
 
-### RebuildListingIndexScript
-
-Algorithm:
-
-1. Acquire project advisory lock.
-2. Clear project listing/posting tables in dependency-safe order.
-3. Recreate allocator row.
-4. Process products in batches.
-5. For each batch, sync variants then products.
-6. Rebuild projection blocks.
-7. Run freshness audit.
-
-Partial rebuild by `productIds` must preserve existing doc ids and must not reset
-allocator.
-
 ### RepairListingIndexFreshnessScript
 
 Algorithm:
@@ -486,7 +469,8 @@ Algorithm:
 3. Target-sync missing/stale variants.
 4. Refresh affected bitmap memberships.
 5. Refresh affected sort/runtime price/projection rows.
-6. If targeted repair is unsafe or too large, run project rebuild.
+6. If targeted repair is unsafe or too large, return an explicit non-targetable
+   repair result for manual handling.
 
 ## Фаза 8. Freshness repository
 
@@ -537,7 +521,6 @@ interface ListingFreshnessAuditResult {
 
 Add workflow entrypoints:
 
-- `listing.rebuildListingIndex`
 - `listing.syncListingIndexForProducts`
 - `listing.syncListingIndexForVariants`
 - `listing.refreshListingFacetPostings`
@@ -556,7 +539,6 @@ Idempotency keys:
 listing:product:{projectId}:{productId}:{reason}:{sourceRevision}
 listing:variant:{projectId}:{variantId}:{reason}:{sourceRevision}
 listing:facet-mapping:{projectId}:{facetType}:{mappingRevision}
-listing:rebuild:{projectId}:{requestedAtOrManualKey}
 ```
 
 If current workflow registry requires broker actions, add thin wrapper actions
@@ -634,14 +616,14 @@ variables that are clearly transient sync input.
 
 1. Models and repositories for target schema.
 2. Source/mapping repositories and pure builders.
-3. Sync/delete/rebuild/repair scripts.
+3. Sync/delete/repair scripts.
 4. Workflows and event handlers.
 5. Storefront query/facet aggregation repositories.
 6. BM25 title search integration, if included in the same milestone.
 7. Cleanup obsolete token/raw-handle code paths.
 
 Dual-write is not required. Storefront listing should not be enabled until
-rebuild and freshness audit complete.
+freshness audit and targeted repair complete.
 
 ## Acceptance checklist
 

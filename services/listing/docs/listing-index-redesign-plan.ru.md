@@ -333,10 +333,7 @@ Facet/source mapping changed:
 - Variant option counts deduplicate products after projection.
 - Sort uses `listing_posting_product_sort` or matched
   `listing_posting_variant_price` collector.
-- Full rebuild can recreate listing rows, bitmap rows, sort rows, price rows and
-  projection blocks from canonical source tables.
 - Freshness audit can detect stale/missing listing rows, bitmap cardinality
   mismatches, orphan sort/price rows and projection block mismatches.
 - Verification for implementation uses project build when needed; do not run
   standalone `test` or `tsc`.
-
