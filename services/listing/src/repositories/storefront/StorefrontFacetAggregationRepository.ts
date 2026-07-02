@@ -12,6 +12,7 @@ import {
 import type {
   BitmapExpr,
   CountSqlRow,
+  FacetCountSqlRow,
   FacetCountResult,
   FacetRuntimeType,
   PriceRangeResult,
@@ -53,12 +54,10 @@ export class StorefrontFacetAggregationRepository extends BaseRepository {
       values.map((value) => value.valueKey)
     );
 
-    const counts: FacetCountResult[] = [];
-    for (const value of values) {
+    const countQueries = values.map((value) => {
       const valueBitmap = valueBitmaps.get(value.valueKey);
       if (!valueBitmap) {
-        counts.push(this.zeroCount(value));
-        continue;
+        return this.zeroCountSelect(value);
       }
 
       const isolated = this.buildIsolatedProductBitmap(
@@ -68,22 +67,21 @@ export class StorefrontFacetAggregationRepository extends BaseRepository {
         value.facetId
       );
       if (isolated.empty) {
-        counts.push(this.zeroCount(value));
-        continue;
+        return this.zeroCountSelect(value);
       }
 
-      const count = await this.countBitmap(
-        sql`(${isolated.sql} & ${literalBitmapExpr(valueBitmap, value.valueKey).sql})`
-      );
-      counts.push({
-        facetId: value.facetId,
-        facetType: value.facetType,
-        valueKey: value.valueKey,
-        count,
-      });
-    }
+      return sql`
+        SELECT
+          ${value.facetId}::text AS "facetId",
+          ${value.facetType}::text AS "facetType",
+          ${value.valueKey}::text AS "valueKey",
+          rb_cardinality(
+            ${isolated.sql} & ${literalBitmapExpr(valueBitmap, value.valueKey).sql}
+          )::int AS "count"
+      `;
+    });
 
-    return counts;
+    return this.executeFacetCountQueries(countQueries);
   }
 
   @ReadOnly()
@@ -113,12 +111,10 @@ export class StorefrontFacetAggregationRepository extends BaseRepository {
       values.map((value) => value.valueKey)
     );
 
-    const counts: FacetCountResult[] = [];
-    for (const value of values) {
+    const countQueries = values.map((value) => {
       const valueBitmap = valueBitmaps.get(value.valueKey);
       if (!valueBitmap) {
-        counts.push(this.zeroCount(value));
-        continue;
+        return this.zeroCountSelect(value);
       }
 
       const variantParts: BitmapExpr[] = [input.inStockVariantBitmap];
@@ -128,8 +124,7 @@ export class StorefrontFacetAggregationRepository extends BaseRepository {
         value.facetId
       );
       if (optionBase?.empty) {
-        counts.push(this.zeroCount(value));
-        continue;
+        return this.zeroCountSelect(value);
       }
       if (optionBase) {
         variantParts.push(optionBase);
@@ -141,19 +136,19 @@ export class StorefrontFacetAggregationRepository extends BaseRepository {
 
       const variantBitmap = andBitmapExpr(variantParts);
       const projected = this.projectVariantBitmapSql(variantBitmap.sql);
-      const count = await this.countBitmap(
-        sql`(${projected} & ${input.productBaseBitmap.sql})`
-      );
 
-      counts.push({
-        facetId: value.facetId,
-        facetType: value.facetType,
-        valueKey: value.valueKey,
-        count,
-      });
-    }
+      return sql`
+        SELECT
+          ${value.facetId}::text AS "facetId",
+          ${value.facetType}::text AS "facetType",
+          ${value.valueKey}::text AS "valueKey",
+          rb_cardinality(
+            ${projected} & ${input.productBaseBitmap.sql}
+          )::int AS "count"
+      `;
+    });
 
-    return counts;
+    return this.executeFacetCountQueries(countQueries);
   }
 
   @ReadOnly()
@@ -306,6 +301,35 @@ export class StorefrontFacetAggregationRepository extends BaseRepository {
       SELECT rb_cardinality(${bitmapSql})::int AS "count"
     `);
     return rows[0]?.count ?? 0;
+  }
+
+  private async executeFacetCountQueries(
+    queries: readonly SQL[]
+  ): Promise<FacetCountResult[]> {
+    if (queries.length === 0) {
+      return [];
+    }
+
+    const rows = await this.connection.execute<FacetCountSqlRow>(
+      sql`${sql.join(queries, sql` UNION ALL `)}`
+    );
+
+    return rows.map((row) => ({
+      facetId: row.facetId,
+      facetType: row.facetType,
+      valueKey: row.valueKey,
+      count: row.count,
+    }));
+  }
+
+  private zeroCountSelect(value: ResolvedFacetValue): SQL {
+    return sql`
+      SELECT
+        ${value.facetId}::text AS "facetId",
+        ${value.facetType}::text AS "facetType",
+        ${value.valueKey}::text AS "valueKey",
+        0::int AS "count"
+    `;
   }
 
   private async loadFacetGroupBitmaps(

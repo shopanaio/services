@@ -175,6 +175,7 @@ export interface ListingPageRow {
   productDocId: number;
   productId: string;
   inStock: boolean;
+  cursor?: string;
   cursorValues: Record<string, string | number | boolean | null>;
   matchedVariantDocId?: number;
   matchedPriceMinor?: number;

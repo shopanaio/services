@@ -5,6 +5,7 @@ import {
   assertCursorMatches,
   buildListingFilterHash,
   decodeListingCursor,
+  encodeListingCursor,
 } from "./cursor.js";
 import { andBitmapExpr, emptyBitmapExpr, orBitmapExpr } from "./sqlHelpers.js";
 import { StorefrontFacetAggregationRepository } from "./StorefrontFacetAggregationRepository.js";
@@ -20,6 +21,7 @@ import {
   StorefrontRepositoryValidationError,
   type BitmapExpr,
   type ListingAggregatesResult,
+  type ListingCursorPayload,
   type ListingCollectorKind,
   type ListingPageCollectResult,
   type ProductSortCollectKind,
@@ -116,14 +118,16 @@ export class StorefrontListingQueryRepository extends BaseRepository {
         variantMatchesBitmap,
       });
 
-      const aggregates = await this.collectAggregates({
-        request,
-        scopeBitmap: scope.productBitmap,
-        productFiltersBitmap,
-        variantMatchesBitmap,
-        productMatchesBitmap: matchesBitmap,
-        priceVariantBitmap,
-      });
+      const aggregates = this.needsAggregates(request)
+        ? await this.collectAggregates({
+            request,
+            scopeBitmap: scope.productBitmap,
+            productFiltersBitmap,
+            variantMatchesBitmap,
+            productMatchesBitmap: matchesBitmap,
+            priceVariantBitmap,
+          })
+        : {};
 
       return {
         rows: this.withCursorMetadata(page.rows, request),
@@ -672,6 +676,15 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     return result;
   }
 
+  private needsAggregates(request: ResolvedListingRequest): boolean {
+    return (
+      request.input.includeTotalCount ||
+      request.input.includeFacets ||
+      request.input.includePriceRange ||
+      request.input.includeInStockCount
+    );
+  }
+
   private async buildProductFiltersBitmapWithOptions(
     plan: StorefrontFilterPlan,
     options: { includeProductFacets: boolean; includeStock: boolean }
@@ -829,15 +842,23 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     rows: ListingPageCollectResult["rows"],
     request: ResolvedListingRequest
   ): ListingPageCollectResult["rows"] {
-    return rows.map((row) => ({
-      ...row,
-      cursorValues: {
+    return rows.map((row) => {
+      const payload = {
         ...row.cursorValues,
         version: 1,
         hash: request.filterHash,
         sort: request.sort.kind,
-      },
-    }));
+      } as ListingCursorPayload;
+
+      return {
+        ...row,
+        cursor: encodeListingCursor(payload),
+        cursorValues: payload as unknown as Record<
+          string,
+          string | number | boolean | null
+        >,
+      };
+    });
   }
 
   private emptyResult(
