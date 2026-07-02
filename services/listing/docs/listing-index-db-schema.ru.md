@@ -14,12 +14,11 @@ scope membership должны обновлять только затронуты
 ## Общие правила
 
 - Все SQL read-model таблицы содержат `project_id`; каждый storefront/admin
-  query должен ограничиваться текущим проектом. В таблицах, где строка
-  идентифицируется canonical UUID (`product_id`, `variant_id`), `project_id`
-  используется как query/index prefix и не входит в root PK: canonical `id`
-  считаются глобально уникальными внутри catalog schema. Child read-model rows
+  query должен ограничиваться текущим проектом. `product_id` и `variant_id`
+  являются external canonical ids из upstream product source, но listing schema
+  не создает FK или type dependency на upstream schema. Child read-model rows
   дополнительно используют composite FK на parent listing rows
-  (`project_id`, canonical id/doc id), чтобы повторяемый `project_id` не мог
+  (`project_id`, external id/doc id), чтобы повторяемый `project_id` не мог
   разойтись с parent row.
 - `product_doc_id` / `variant_doc_id` являются стабильными runtime ids
   внутри проекта и хранятся прямо в `product_listing_index` /
@@ -32,18 +31,18 @@ scope membership должны обновлять только затронуты
   `listing.listing_posting_bitmap`.
 - Runtime posting index не хранит raw source-handle данные. Но он содержит
   physical indexes для hot path: product sort rows и variant price rows. Это
-  controlled duplication ради ordered access path; source of truth остается в
-  SQL listing read model и canonical tables, а posting indexes поддерживаются
-  incremental sync операциями.
+  controlled duplication ради ordered access path; source of truth для
+  storefront read path остается в SQL listing read model, а posting indexes
+  поддерживаются incremental sync операциями.
 - Основные listing таблицы и roaring posting tables currency-neutral. Денежные поля
   вынесены в отдельные per-currency таблицы.
 - Storefront listing читает цену в default currency проекта.
 - Soft-deleted products/variants не хранятся в listing index: строки должны
   удаляться каскадом или incremental sync script.
-- Дочерние SQL таблицы внутри listing read model ссылаются на parent listing
-  rows (`product_listing_index` / `variant_listing_index`), а не напрямую
-  только на canonical tables. Это не дает price/sort rows пережить partial
-  sync удаление parent row из read model.
+- Дочерние SQL таблицы внутри listing read model ссылаются только на parent
+  listing rows (`product_listing_index` / `variant_listing_index`). Это не дает
+  price/sort rows пережить sync удаление parent row из read model и сохраняет
+  автономность `listing` schema.
 - Storefront facets работают через resolved `facet_id` и `facet_value_id`, а не
   через raw source handles.
 - `price` и `in_stock` являются virtual facets и не имеют строк в
@@ -71,13 +70,13 @@ scope membership должны обновлять только затронуты
   handles.
 - Sort/price posting tables являются physical indexes, а не source data. Они
   строятся из `product_listing_index`, `product_listing_price_index`,
-  `variant_listing_index`, `variant_listing_price_index`, translations и
-  category/collection ranks. При расхождении truth находится в source tables,
-  affected posting rows считаются stale и обновляются incremental sync.
-- Raw source handles используются только во время sync из canonical catalog
-  tables и сразу резолвятся в stable ids (`facet_id`, `facet_value_id`,
-  `category_id`, `collection_id`, `vendor_id`). После этого handles не нужны для
-  storefront read path и не сохраняются в listing index.
+  `variant_listing_index`, `variant_listing_price_index`, snapshot title data и
+  category/collection ranks. При расхождении affected posting rows считаются
+  stale и обновляются incremental sync.
+- Raw source handles используются только во время sync из upstream indexing
+  snapshot/command payload и сразу резолвятся в stable ids (`facet_id`,
+  `facet_value_id`, `category_id`, `collection_id`, `vendor_id`). После этого
+  handles не нужны для storefront read path и не сохраняются в listing index.
 - `project_id` намеренно повторяется во всех таблицах как tenant boundary и
   index prefix. Это не считается устранимым дублированием, потому что каждый
   storefront/admin query обязан явно ограничиваться проектом.
@@ -104,11 +103,10 @@ Planned files:
   - add ordinary indexes from this document;
   - do not create raw-handle array columns;
   - create posting sort/price tables only as incremental physical indexes for
-    runtime performance, not as canonical data;
-  - do not add extra unique constraints on canonical `product`, `variant`,
-    `facet`, `facet_value`, category or collection tables. Listing FKs reference
-    existing product/variant primary keys by id; posting values use stable typed
-    ids in `value_key`;
+    runtime performance, not as upstream-owned data;
+  - do not add constraints, indexes, types or FKs against upstream product
+    source schemas. Listing stores external ids as values and posting values use
+    stable typed ids in `value_key`;
   - add composite unique/FK targets only inside listing read-model tables where
     needed to enforce repeated `project_id` consistency in child rows.
 - `services/listing/migrations/domains/0100_listing_index/0101_listing_index__bm25_search.sql`:
@@ -181,7 +179,7 @@ CREATE TABLE listing.product_listing_index (
   product_id             uuid NOT NULL,
   product_doc_id         int NOT NULL,
 
-  kind                   catalog.product_kind NOT NULL,
+  kind                   varchar(16) NOT NULL,
   vendor_id              uuid,
   handle                 varchar(255),
   status                 varchar(16) NOT NULL,
@@ -203,10 +201,8 @@ CREATE TABLE listing.product_listing_index (
     UNIQUE (project_id, product_id),
   CONSTRAINT product_listing_project_doc_product_unique
     UNIQUE (project_id, product_doc_id, product_id),
-  CONSTRAINT fk_product_listing_product
-    FOREIGN KEY (product_id)
-    REFERENCES catalog.product(id)
-    ON DELETE CASCADE,
+  CONSTRAINT chk_product_listing_kind
+    CHECK (kind IN ('BASE', 'BUNDLE')),
   CONSTRAINT chk_product_listing_status
     CHECK (status IN ('published', 'draft')),
   CONSTRAINT chk_product_listing_doc_positive
@@ -221,9 +217,9 @@ CREATE TABLE listing.product_listing_index (
 | Поле | Комментарий |
 | --- | --- |
 | `project_id` | Tenant/project boundary. Используется в index prefixes и во всех listing queries. Root identity остается `product_id`, а composite child FKs используют `project_id` только для consistency checks. |
-| `product_id` | Canonical product id из `catalog.product.id`. Так как product id глобально уникален, он идентифицирует строку read model. |
+| `product_id` | External canonical product id from upstream product source. Listing stores it as an opaque id and does not enforce an FK to upstream schema. |
 | `product_doc_id` | Stable integer id товара внутри project для roaring product bitmaps. Выделяется один раз и не переиспользуется после удаления product. |
-| `kind` | Тип товара из `catalog.product_kind`; нужен для rule collections и возможных storefront predicates по типу. |
+| `kind` | Тип товара from indexing payload, currently `BASE` or `BUNDLE`; нужен для rule collections и возможных storefront predicates по типу. |
 | `vendor_id` | Vendor product-level filter. Это явный фильтр, не generic facet. |
 | `handle` | Storefront handle published product. Используется для read model diagnostics и возможной hydration опоры, но не заменяет canonical product data. |
 | `status` | Listing visibility state: `published` или `draft`. Published означает `published_at IS NOT NULL` и product не deleted. Deleted products должны удаляться из index. |
@@ -244,7 +240,7 @@ CREATE TABLE listing.product_listing_index (
 | `product_listing_project_doc_unique` | Гарантирует уникальность stable product doc id внутри project. |
 | `product_listing_project_product_unique` | Дает composite FK target для child rows, чтобы `project_id` child row совпадал с parent listing row. |
 | `product_listing_project_doc_product_unique` | Дает composite target для posting sort rows и variant parent consistency checks. |
-| `fk_product_listing_product` | Защищает read model от orphan rows и удаляет index row при удалении canonical product. |
+| `chk_product_listing_kind` | Фиксирует локально поддерживаемые значения product kind без зависимости от upstream enum type. |
 | `chk_product_listing_status` | Фиксирует допустимые visibility states; deleted не допускается как status. |
 | `chk_product_listing_doc_positive` | Защищает roaring doc id domain от нулевых/отрицательных ids. |
 | `chk_product_listing_total_stock_nonnegative` | Фиксирует, что aggregate stock не может быть отрицательным. |
@@ -431,10 +427,6 @@ CREATE TABLE listing.variant_listing_index (
       product_id
     )
     ON DELETE CASCADE,
-  CONSTRAINT fk_variant_listing_variant
-    FOREIGN KEY (variant_id)
-    REFERENCES catalog.variant(id)
-    ON DELETE CASCADE,
   CONSTRAINT chk_variant_listing_doc_positive
     CHECK (variant_doc_id > 0),
   CONSTRAINT chk_variant_listing_product_doc_positive
@@ -451,7 +443,7 @@ CREATE TABLE listing.variant_listing_index (
 | `project_id` | Project boundary for filtering and join index prefixes. |
 | `product_id` | Parent product id. Нужен для grouping variants back to products. |
 | `product_doc_id` | Stable parent product doc id. Нужен для projection variant bitmap -> product bitmap и для price/sort hot paths без UUID lookup. |
-| `variant_id` | Canonical variant id. Anchor для same-variant OPTION + PRICE predicates. |
+| `variant_id` | External canonical variant id. Anchor для same-variant OPTION + PRICE predicates. Listing stores it as an opaque id and does not enforce an FK to upstream schema. |
 | `variant_doc_id` | Stable integer id варианта внутри project для roaring variant bitmaps. Выделяется один раз и не переиспользуется после удаления variant. |
 | `in_stock` | Variant-level availability. Storefront option filters, price filters, option counts и matched price sort используют только `in_stock = true`. |
 | `total_stock` | Variant stock aggregate for diagnostics and possible labels. |
@@ -469,7 +461,6 @@ CREATE TABLE listing.variant_listing_index (
 | `variant_listing_project_doc_variant_unique` | Дает composite target для typed variant price rows и projection consistency checks. |
 | `fk_variant_listing_product` | Привязывает variant listing row к parent `product_listing_index` и удаляет variant index rows при удалении product из read model. |
 | `fk_variant_listing_product_doc` | Гарантирует, что `product_doc_id` действительно принадлежит parent product row. |
-| `fk_variant_listing_variant` | Не допускает orphan variant rows и удаляет index row при удалении canonical variant. |
 | `chk_variant_listing_doc_positive` | Защищает roaring variant doc id domain от нулевых/отрицательных ids. |
 | `chk_variant_listing_product_doc_positive` | Защищает parent product doc id copy от нулевых/отрицательных ids. |
 | `chk_variant_listing_total_stock_nonnegative` | Фиксирует, что aggregate stock не может быть отрицательным. |
@@ -688,8 +679,8 @@ field=variant_product, value_key=<product_doc_id>
 ### `listing.listing_posting_product_sort`
 
 Derived product sort rows for hot storefront page collectors. Это physical index,
-а не canonical source data: rows строятся из SQL listing read model, translations
-и manual scope tables при incremental sync.
+а не source data: rows строятся из SQL listing read model, snapshot title data
+и snapshot manual scope ranks при incremental sync.
 
 ```sql
 CREATE TABLE listing.listing_posting_product_sort (
@@ -977,7 +968,7 @@ CREATE TABLE listing.product_title_bm25_search_index (
   project_id             uuid NOT NULL,
   product_id             uuid NOT NULL,
   locale                 varchar(8) NOT NULL,
-  kind                   catalog.product_kind NOT NULL,
+  kind                   varchar(16) NOT NULL,
   status                 varchar(16) NOT NULL,
   published_at           timestamptz,
   product_created_at     timestamptz NOT NULL,
@@ -991,10 +982,10 @@ CREATE TABLE listing.product_title_bm25_search_index (
     PRIMARY KEY (product_id, locale),
   CONSTRAINT product_title_bm25_search_id_unique
     UNIQUE (search_id),
-  CONSTRAINT fk_product_title_bm25_product
-    FOREIGN KEY (product_id)
-    REFERENCES catalog.product(id)
-    ON DELETE CASCADE
+  CONSTRAINT chk_product_title_bm25_kind
+    CHECK (kind IN ('BASE', 'BUNDLE')),
+  CONSTRAINT chk_product_title_bm25_status
+    CHECK (status IN ('published', 'draft'))
 );
 
 CREATE INDEX idx_product_title_bm25_project_locale_product
@@ -1041,7 +1032,7 @@ Fallback rules:
 - If `uuid` cannot be used as the BM25 key field, change `search_id uuid` to a
   deterministic/stable unique `search_key text`, keep it first in `USING bm25`
   and set `WITH (key_field = 'search_key')`.
-- If `uuid`, `varchar`, enum or `timestamptz` columns cannot be included in the
+- If `uuid`, `varchar` or `timestamptz` columns cannot be included in the
   BM25 index for the selected version, index only the supported key/text fields
   required for title search. Apply project, locale, status, kind and date
   predicates in the SQL candidate relation before joining
@@ -1053,57 +1044,31 @@ Fallback rules:
 | --- | --- |
 | `search_id` | Stable unique BM25 key field. |
 | `project_id` | Tenant boundary for search candidate queries. |
-| `product_id` | Canonical product id and FK target. |
+| `product_id` | External canonical product id. No FK to upstream product schema is enforced. |
 | `locale` | Localized title dimension. |
 | `kind`, `status`, `published_at` | Search-visible product predicates stored in the BM25 row. |
 | `product_created_at`, `product_updated_at`, `product_revision` | Sort/debug/freshness fields from product listing state. |
 | `title` | Localized title indexed by BM25. |
 
-## Внешние ограничения canonical tables
+## Upstream schema independence
 
-Listing read model не требует дополнительных canonical constraints. FK в
-listing tables ссылаются на существующие primary keys canonical product/variant
-tables:
-
-```sql
-catalog.product(id)
-catalog.variant(id)
-```
+Listing schema intentionally has no FK, enum, index or migration dependency on
+upstream product source schemas. `product_id`, `variant_id`, `vendor_id`,
+category ids, collection ids, `facet_id` and `facet_value_id` are stored as
+external stable ids received through indexing snapshots/commands.
 
 Facet/category/vendor ids хранятся в `listing_posting_bitmap.value_key` как
 stable typed values без дополнительных FK constraints, чтобы affected posting
-rows можно было обновлять независимо от canonical configuration rows.
+rows можно было обновлять независимо от upstream configuration rows.
 
 `project_id` в listing tables остается обязательным query boundary и должен
-проверяться storefront/admin queries. Root canonical FKs по-прежнему идут на
-`catalog.product(id)` / `catalog.variant(id)`, но child rows внутри listing read
-model используют composite parent FKs с `project_id`, чтобы повторяемый tenant
-boundary не мог расходиться с parent row.
+проверяться storefront/admin queries. Child rows внутри listing read model
+используют composite parent FKs с `project_id`, чтобы повторяемый tenant
+boundary не мог расходиться с parent listing row.
 
-## Внешние индексы для listing sync/fallback paths
-
-Listing index не заменяет canonical scope и locale source indexes. Эти индексы
-нужны для sync/rebuild source reads, manual scope rank loading and SQL fallback
-paths. Storefront hot path for name/manual sort should use derived
-`listing.listing_posting_product_sort` rows after cutover. Если existing
-migrations уже дают эквивалентный access path, дубликаты создавать не нужно.
-
-```sql
-CREATE INDEX idx_product_category_listing_scope
-  ON catalog.product_category (project_id, category_id, lexo_rank, product_id);
-
-CREATE INDEX idx_collection_item_listing_scope
-  ON catalog.collection_item (project_id, collection_id, lexo_rank, product_id);
-
-CREATE INDEX idx_product_translation_listing_name
-  ON catalog.product_translation (project_id, locale, name, product_id);
-```
-
-| Индекс | Комментарий |
-| --- | --- |
-| `idx_product_category_listing_scope` | Поддерживает category PLP scope и manual category order by `lexo_rank`. Текущий `idx_product_category_rank(category_id, lexo_rank)` не включает `project_id` и `product_id`, поэтому не полностью покрывает planned query. |
-| `idx_collection_item_listing_scope` | Поддерживает manual collection PLP scope и order by `lexo_rank`. Текущий `idx_collection_item_rank(collection_id, lexo_rank)` не включает `project_id` и `product_id`. |
-| `idx_product_translation_listing_name` | Поддерживает loading locale-dependent name values for derived product sort rows and SQL fallback path without scanning all translations. Текущий `idx_product_translation_project_locale(project_id, locale)` не покрывает `ORDER BY name, product_id`. |
+Any upstream indexes required to produce listing snapshots belong to the
+upstream source service. Listing migrations must not create or modify objects
+outside the `listing` schema.
 
 ## Facet type routing
 
@@ -1116,5 +1081,5 @@ CREATE INDEX idx_product_translation_listing_name
 | `in_stock` | Virtual facet over `product_listing_index.in_stock` / `variant_listing_index.in_stock` |
 
 `category` не добавляется в storefront facet types. Для navigation scope и
-collection rules используются canonical category scope tables и
-`listing.listing_posting_bitmap` rows с `field = 'category'`.
+collection rules listing uses snapshot-provided category/collection memberships
+and `listing.listing_posting_bitmap` rows с `field = 'category'`.

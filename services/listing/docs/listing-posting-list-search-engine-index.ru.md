@@ -8,8 +8,8 @@
 
 Цель - описать PostgreSQL-based listing engine поверх денормализованной read
 model, который хранит физические inverted posting lists в `pg_roaringbitmap`.
-Это не замена canonical catalog tables и не предрасчет facet counts. Counts
-остаются результатом runtime set operations в PostgreSQL.
+Это не замена upstream product/source services и не предрасчет facet counts.
+Counts остаются результатом runtime set operations в PostgreSQL.
 
 Posting engine работает как current-state индекс с incremental maintenance.
 Изменение товара, варианта, цены, остатка, facet membership или scope membership
@@ -67,7 +67,7 @@ matches = category_mens_sneakers & brand_nike & projected(size_42 & color_black)
 
 - Не хранить готовые `facet_value -> count` для всех комбинаций фильтров.
 - Не делать full-text search по названию. BM25 title search описан отдельно.
-- Не заменять canonical catalog data.
+- Не заменять upstream product/source services.
 - Не обслуживать admin CRUD напрямую из posting index.
 - Не выносить posting index в отдельный сервис, custom binary format или
   MinIO/S3 artifact storage.
@@ -93,7 +93,7 @@ bitmap membership начинает означать другой товар ил
 ## Высокоуровневая архитектура
 
 ```text
-canonical catalog tables
+upstream indexing snapshots/commands
         |
         v
 PostgreSQL listing read model
@@ -206,8 +206,8 @@ field=variant_product, value_key=<product_doc_id>
 ```
 
 Mutable storefront handles допустимы только как transient sync input из
-canonical catalog tables. В posting index сохраняются canonical ids или stable
-typed values.
+upstream indexing snapshots/commands. В posting index сохраняются external ids
+или stable typed values.
 
 `cardinality` должен равняться `rb_cardinality(bitmap)`. Sync code
 обновляет его вместе с `bitmap`.
@@ -311,8 +311,8 @@ CREATE INDEX idx_listing_posting_product_sort_bigint_desc
 ```
 
 Sort rows являются physical index, а не source data. Они строятся из
-`product_listing_index`, `product_listing_price_index`, translations,
-category/collection ranks и других canonical/read-model источников.
+`product_listing_index`, `product_listing_price_index`, snapshot title data,
+category/collection ranks и других listing/read-model источников.
 
 Sort rows use sort-specific indexes. Do not use one generic multi-value index
 for all sort kinds: PostgreSQL can use an ordered index scan only when the index
@@ -700,9 +700,10 @@ Projection block maintenance:
 
 ## Consistency
 
-The listing read model is the source/debug layer. Posting rows are physical
-indexes. If diagnostics detect mismatch, affected posting rows are stale and
-must be repaired from listing/canonical source rows.
+The listing read model is the source/debug layer for storefront reads. Posting
+rows are physical indexes. If diagnostics detect mismatch, affected posting rows
+are stale and must be repaired from listing rows or a new upstream indexing
+snapshot/command.
 
 Recommended diagnostics:
 
@@ -757,7 +758,8 @@ semantics:
 
 - stable doc ids remain in listing rows;
 - raw source handles are not stored in runtime index;
-- source of truth remains canonical tables plus listing read model;
+- source of truth for storefront reads remains listing read model plus upstream
+  indexing snapshots/commands;
 - query result must be equivalent to current-state posting rows.
 
 Segment storage is an implementation detail for write amplification and

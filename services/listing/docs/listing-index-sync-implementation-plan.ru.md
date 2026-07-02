@@ -17,13 +17,13 @@ physical sort/price indexes, projection blocks and freshness repair.
 ## Инварианты реализации
 
 - Listing index is a derived current-state read model.
-- Source of truth remains canonical catalog tables; listing service owns the
-  derived read model, posting index, sync scripts and workflows.
+- Source of truth remains upstream product/source services. Listing service owns
+  the derived read model, posting index, sync scripts and workflows.
 - DB triggers are not used.
 - All repository methods use transaction-aware connection and project context.
 - All queries are scoped by current `project_id`.
 - Product aggregate price/stock is computed from `variant_listing_index` and
-  `variant_listing_price_index`, not directly from canonical price/stock tables.
+  `variant_listing_price_index`, not directly from upstream source payloads.
 - Runtime storefront facets read resolved `facet_id` / `facet_value_id` through
   `value_key = <facet_id>:<facet_value_id>`.
 - Raw source handles are transient sync inputs only; do not store them in listing
@@ -272,37 +272,35 @@ Required methods:
 by query builder. Do not create a database helper function unless a separate
 schema decision approves it.
 
-## Фаза 5. Source and mapping repositories
+## Фаза 5. Indexing snapshot and mapping repositories
 
-### ListingSourceRepository
+### ListingIndexingSnapshotRepository
 
-Read-only repository for canonical batch reads.
+Repository/adapter for revisioned indexing snapshot and command payloads. It
+normalizes upstream product-source events into listing-owned DTOs and does not
+read or write upstream schemas directly.
 
 Required methods:
 
-- `getProductSources(productIds)`
-- `getVariantSourcesByProductIds(productIds)`
-- `getVariantSourcesByVariantIds(variantIds)`
-- `getProductFacetSources(productIds)`
-- `getVariantOptionSources(variantIds)`
-- `getCurrentVariantPrices(variantIds, currencies)`
-- `getVariantStockSources(variantIds)`
-- `getEnabledProjectCurrencies()`
-- `getDefaultCurrency()`
-- `getEnabledProjectLocales()`
-- `getProductsForRebuild(cursor, limit)`
-- `getVariantsForRebuild(productIds)`
-- `getManualScopeRanks(productIds)`
-- `getProductTranslations(productIds, locales)`
+- `normalizeProductSnapshot(command)`
+- `normalizeVariantSnapshot(command)`
+- `normalizeProductDeleteCommand(command)`
+- `normalizeVariantDeleteCommand(command)`
+- `normalizeFacetMappingCommand(command)`
+- `getEnabledProjectCurrenciesFromSnapshot(command)`
+- `getDefaultCurrencyFromSnapshot(command)`
+- `getEnabledProjectLocalesFromSnapshot(command)`
+- `getManualScopeRanksFromSnapshot(command)`
+- `getProductTranslationsFromSnapshot(command)`
 
-This repository may return raw handles as transient source input. Builders and
+Snapshot payloads may contain raw handles as transient source input. Builders and
 mapping repository must convert them into ids before writing listing/posting
 tables.
 
 ### ListingFacetMappingRepository
 
-Resolves transient source handles through `facet_source` and `facet_value`
-source/display parent model.
+Resolves transient source handles through listing-owned facet mapping state
+received from upstream facet mapping snapshots.
 
 Required methods:
 
@@ -382,10 +380,12 @@ interface SyncVariantListingIndexParams {
 
 Algorithm:
 
-1. Normalize input and load parent product ids.
-2. Load product sources for parents and ensure bootstrap product rows/doc ids.
-3. Load enabled currencies.
-4. Load variant sources, option sources, prices and stock.
+1. Normalize indexing command and parent product ids.
+2. Read parent product snapshot data from the command and ensure bootstrap
+   product rows/doc ids.
+3. Read enabled currencies from the command/project snapshot.
+4. Read variant sources, option sources, prices and stock from normalized
+   snapshot data.
 5. Allocate missing variant doc ids.
 6. Build active variant rows and price rows.
 7. Delete stale rows for missing/inactive variants:
@@ -416,11 +416,11 @@ interface SyncProductListingIndexParams {
 Algorithm:
 
 1. If `refreshVariantsFirst`, execute variant sync for products.
-2. Load product sources and detect missing/deleted products.
+2. Normalize product snapshot data and detect missing/deleted products.
 3. Allocate missing product doc ids.
 4. For deleted products, execute delete script.
-5. Load product facet/source data, stock aggregates, price aggregates,
-   translations and manual ranks.
+5. Read product facet/source data, stock aggregates, price aggregates,
+   translations and manual ranks from normalized snapshot/listing state.
 6. Build product listing rows, product price rows, product bitmap memberships and
    product sort rows.
 7. Upsert product listing rows.
@@ -451,17 +451,17 @@ mapping changes.
 
 Algorithm:
 
-1. Resolve affected products/variants from source handles when cheap.
+1. Resolve affected products/variants from indexing command handles when cheap.
 2. If affected set is unknown and fallback is allowed, rebuild project postings
    for facet type.
-3. For product facets, load current product sources, resolve memberships and
-   replace product bitmap memberships.
-4. For option facets, load current variant option sources, resolve memberships
-   and replace variant bitmap memberships.
+3. For product facets, normalize current product snapshot memberships, resolve
+   them and replace product bitmap memberships.
+4. For option facets, normalize current variant option snapshot memberships,
+   resolve them and replace variant bitmap memberships.
 5. Refresh cardinality and `updated_at` for touched bitmap rows.
 
 This script must not change price, stock, sort or projection rows unless a
-variant visibility/parent change is part of the same canonical event.
+variant visibility/parent change is part of the same upstream indexing command.
 
 ### RepairListingIndexFreshnessScript
 
@@ -549,8 +549,8 @@ next to existing workflow entrypoints.
 
 ## Фаза 10. Event handlers and invalidation
 
-Add listing event handlers/subscribers that react to catalog domain events and
-launch listing sync workflows/scripts.
+Add listing event handlers/subscribers that react to upstream indexing
+commands/events and launch listing sync workflows/scripts.
 
 Base map:
 
@@ -612,13 +612,13 @@ listing_posting_bitmap.facet_id
 listing_posting_bitmap.facet_value_id
 ```
 
-Raw handle names may remain only in canonical source repository code and local
+Raw handle names may remain only in snapshot normalization code and local
 variables that are clearly transient sync input.
 
 ## Рекомендуемый порядок PR/коммитов
 
 1. Models and repositories for target schema.
-2. Source/mapping repositories and pure builders.
+2. Snapshot/mapping repositories and pure builders.
 3. Sync/delete/repair scripts.
 4. Workflows and event handlers.
 5. Storefront query/facet aggregation repositories.

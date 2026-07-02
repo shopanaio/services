@@ -40,7 +40,7 @@ options или другим полям. Текстовый поиск возвр
 4. Поддержать multi-tenant и locale-aware поиск: `project_id` + `locale`.
 5. Возвращать стабильный relevance sort в общем listing contract:
    `in_stock DESC, relevance_score DESC, product_id ASC`.
-6. Обеспечить project-scoped rebuild индекса из `catalog.product_translation`.
+6. Обеспечить project-scoped rebuild индекса из upstream title snapshots.
 
 ## Не цели
 
@@ -100,7 +100,7 @@ CREATE TABLE listing.product_title_bm25_search_index (
   product_id             uuid NOT NULL,
   locale                 varchar(8) NOT NULL,
 
-  kind                   catalog.product_kind NOT NULL,
+  kind                   varchar(16) NOT NULL,
   status                 varchar(16) NOT NULL, -- 'published' | 'draft'
   published_at           timestamptz,
   product_created_at     timestamptz NOT NULL,
@@ -114,10 +114,10 @@ CREATE TABLE listing.product_title_bm25_search_index (
 
   PRIMARY KEY (product_id, locale),
   UNIQUE (search_id),
-  CONSTRAINT fk_product_title_bm25_product
-    FOREIGN KEY (product_id)
-    REFERENCES catalog.product(id)
-    ON DELETE CASCADE
+  CONSTRAINT chk_product_title_bm25_kind
+    CHECK (kind IN ('BASE', 'BUNDLE')),
+  CONSTRAINT chk_product_title_bm25_status
+    CHECK (status IN ('published', 'draft'))
 );
 ```
 
@@ -126,13 +126,12 @@ Column semantics:
 - `search_id` is the BM25 key field. It must be globally unique and stable for
   `(product_id, locale)`. Use deterministic UUID or preserve the generated value
   on upsert.
-- `project_id` mirrors `catalog.product.project_id` and is used for tenant
-  isolation in queries and ordinary/BM25 indexes. It is not part of the row
-  identity.
+- `project_id` comes from indexing snapshot and is used for tenant isolation in
+  queries and ordinary/BM25 indexes. It is not part of the row identity.
 - `status` mirrors product visibility. Soft-deleted products are deleted from the
   index.
-- `title` comes only from `catalog.product_translation.name` for the same
-  `product_id`, `project_id` and `locale`.
+- `title` comes only from upstream title snapshot data for the same `product_id`,
+  `project_id` and `locale`.
 - Empty or missing title rows should be indexed as `title = ''` only if the
   locale is enabled for the project. They will not match normal text queries.
 
@@ -195,7 +194,7 @@ Storefront input:
 
 - `query`
 - `locale`
-- listing scope: category, collection или global catalog search
+- listing scope: category, collection или global project search
 - structured filters: facets, price, in_stock, vendor
 - sort
 - pagination
@@ -364,11 +363,11 @@ Add scripts:
 
 `SyncProductTitleBm25SearchIndexScript`:
 
-1. Load product by `product_id` with `project_id` from context.
+1. Normalize product title indexing snapshot by `product_id` and `project_id`.
 2. If product is deleted/missing, delete all locale rows for product in the same
    `project_id`.
-3. Load enabled project locales.
-4. Load `catalog.product_translation.name` per enabled locale.
+3. Read enabled project locales from the snapshot/project command.
+4. Read title values per enabled locale from snapshot data.
 5. Upsert one row per product/locale with only `title` as searchable text.
 6. Preserve `search_id` for existing `(product_id, locale)` rows.
 7. Delete rows for locales no longer enabled.
@@ -491,5 +490,5 @@ Rules:
 - Locale-specific tokenizer/stemmer for title.
 - Synonyms for title queries only.
 - Search query logs and popular title suggestions.
-- Read replica dedicated to search if BM25 workload competes with transactional
-  upstream catalog write workload.
+- Read replica dedicated to search if BM25 workload competes with upstream
+  source write workload.

@@ -12,9 +12,11 @@
 Если этот документ расходится с posting engine document, каноном считается
 `listing-posting-list-search-engine-index.ru.md`.
 
-Listing index является производной read model для storefront выдачи. Canonical
-catalog tables остаются source of truth для product, variant, categories, tags,
-features, options, prices, inventory, project settings и facet configuration.
+Listing index является производной read model для storefront выдачи. Upstream
+product/source services остаются source of truth для product, variant,
+categories, tags, features, options, prices, inventory, project settings и facet
+configuration. Listing получает эти данные через durable indexing
+snapshots/commands.
 
 Обратная совместимость не требуется. Проект на ранней стадии, поэтому можно
 менять таблицы, модели, repositories и scripts без dual-write и compatibility
@@ -30,7 +32,8 @@ Listing index должен обслуживать:
   `collection_item.lexo_rank` через derived sort rows.
 - Rule collection PLP: динамическая подборка, где rules компилируются в
   product-level и variant-level predicates.
-- Global catalog listing: общий каталог проекта без category/collection scope.
+- Global project listing: общий storefront scope проекта без category/collection
+  scope.
 - Search results listing: structured listing поверх BM25 title search candidate
   set.
 
@@ -65,7 +68,7 @@ metadata; карточки загружаются отдельным batch pipel
   runtime posting index.
 - Не делать generic posting rows для virtual facets `price` и `in_stock`.
 - Не публиковать immutable posting versions как основной correctness model.
-- Не переносить canonical catalog data в listing index.
+- Не переносить upstream source ownership в listing index.
 
 ## Целевая модель хранения
 
@@ -124,7 +127,7 @@ scope, collection rule field и product bitmap row with `field = 'category'`.
 Storefront filter resolve принимает public `facetSlug:valueHandle` и batch-query
 переводит его в resolved `facet_id` / `facet_value_id`. Runtime query получает
 только ids и строит `value_key = <facet_id>:<facet_value_id>`. Raw source handles
-используются только transient во время sync из canonical tables.
+используются только transient во время sync из indexing snapshots/commands.
 
 ## Filter semantics
 
@@ -297,7 +300,7 @@ Delete or soft-delete:
 
 Facet/source mapping changed:
 
-- recompute affected bitmap memberships from canonical source rows;
+- recompute affected bitmap memberships from indexing snapshot rows;
 - update cardinality and `updated_at`;
 - do not change price/stock rows unless the underlying product/variant changed.
 
@@ -308,11 +311,11 @@ Facet/source mapping changed:
    tables. Do not use Drizzle migration generation for listing migrations.
 3. Add repositories for listing rows, doc id allocation, bitmap rows, sort rows,
    variant price rows, projection blocks and freshness audit.
-4. Add source/mapping repositories that read canonical data and resolve raw
-   source handles into stable ids for sync only.
+4. Add snapshot/mapping repositories that normalize indexing commands and
+   resolve raw source handles into stable ids for sync only.
 5. Add pure builders for listing rows, bitmap membership sets, sort rows and
    price/projection physical indexes.
-6. Add sync/delete/rebuild/repair scripts.
+6. Add sync/delete/repair scripts.
 7. Wire event handlers and DBOS workflows.
 8. Implement storefront query and facet aggregation repositories using roaring
    bitmap SQL shapes.

@@ -22,9 +22,9 @@ model и PostgreSQL roaring posting index:
 ## Базовый принцип актуальности
 
 Listing index is a derived current-state read model. Source of truth remains in
-canonical catalog tables: product, variant, categories, collections, tags,
-features, options, prices, inventory, project currencies/locales and facet
-configuration.
+upstream product/source services. Listing receives durable indexing
+snapshots/commands with product, variant, scope, facet, price, stock, locale and
+currency data required to update the derived index.
 
 Freshness обеспечивается двумя слоями:
 
@@ -192,7 +192,7 @@ Required repository groups:
 - product sort repository;
 - runtime variant price repository;
 - projection block repository;
-- source repository for canonical reads;
+- indexing snapshot repository/adapter;
 - facet mapping repository for transient handle-to-id resolution;
 - freshness repository.
 
@@ -209,16 +209,16 @@ replaceMembershipForEntity(...)
 Implementation may choose efficient SQL shapes, but external semantics must stay
 bitmap-row based.
 
-## Source and mapping data
+## Indexing snapshot and mapping data
 
-`ListingSourceRepository` reads canonical data in batches. It may return raw
-source handles as transient sync input:
+Listing sync consumes upstream indexing snapshot/command payloads. Snapshot
+normalization may expose raw source handles as transient sync input:
 
 - product tag assignment handles;
 - feature source value handles;
-- category/collection ids or handles required to resolve canonical ids;
+- category/collection ids or handles required to resolve stable typed ids;
 - variant option source value handles;
-- price and stock source rows.
+- price and stock snapshot rows.
 
 These raw handles must not be persisted into listing read model or runtime
 posting index.
@@ -251,10 +251,11 @@ price rows, projection blocks and parent product aggregates.
 
 Algorithm:
 
-1. Normalize input (`productIds` or `variantIds`) and load parent products when
-   needed.
+1. Normalize indexing snapshot/command input (`productIds` or `variantIds`) and
+   require parent product snapshot data when needed.
 2. Ensure parent product listing rows and stable `product_doc_id` exist.
-3. Load variant sources, option sources, prices, stock and enabled currencies.
+3. Read variant sources, option sources, prices, stock and enabled currencies
+   from normalized snapshot data.
 4. Allocate `variant_doc_id` for new active variants under allocator lock.
 5. Upsert `variant_listing_index`.
 6. Replace `variant_listing_price_index` rows.
@@ -282,7 +283,8 @@ Algorithm:
 
 1. Optionally run variant sync first for product-created or variant-affecting
    changes.
-2. Load product sources and detect missing/deleted products.
+2. Normalize product snapshot data and detect missing/deleted products from the
+   indexing command.
 3. Allocate `product_doc_id` for new products under allocator lock.
 4. Load stock aggregates from `variant_listing_index`.
 5. Load price aggregates from `variant_listing_index` +
@@ -311,10 +313,10 @@ without changing price or stock rows.
 
 Algorithm:
 
-1. Identify affected products/variants from source handles when cheap.
+1. Identify affected products/variants from indexing command handles when cheap.
 2. If affected set cannot be found and fallback is allowed, rebuild posting
    bitmaps for the project/facet type.
-3. Resolve current source handles into current `value_key`s.
+3. Resolve current snapshot handles into current `value_key`s.
 4. Replace affected memberships in bitmap rows.
 5. Update `cardinality` and `updated_at`.
 
@@ -381,14 +383,15 @@ interface ListingFreshnessAuditResult {
 
 Audit checks:
 
-- missing product/variant listing rows for canonical active entities;
+- missing product/variant listing rows for active entities in indexing
+  snapshots/commands;
 - unexpected listing rows for deleted/inactive entities;
 - stale product/variant rows by updated_at/revision/source timestamps;
 - missing product/variant price rows for enabled currencies;
 - product price aggregate mismatches;
 - bitmap `cardinality` mismatches;
 - bitmap doc ids missing from listing rows;
-- stale product/variant facet memberships compared with canonical source +
+- stale product/variant facet memberships compared with indexing snapshot +
   mapping;
 - missing or orphan product sort rows;
 - runtime variant price rows for out-of-stock/unpriced variants;
@@ -468,5 +471,6 @@ Unmapped source handles are debug/info counters, not errors:
 - Runtime variant price rows exist only for priced in-stock variants.
 - Projection blocks are refreshed for touched variant doc ranges.
 - Storefront read path never reads raw handle arrays for configured facets.
-- Targeted sync rereads canonical state before writing and is idempotent.
+- Targeted sync uses revisioned indexing snapshot data before writing and is
+  idempotent.
 - Freshness audit can identify whether targeted repair is possible.
