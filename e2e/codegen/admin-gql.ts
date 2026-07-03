@@ -1290,6 +1290,16 @@ export type ApiCatalogMutation = {
   facetValueCreate: ApiFacetValueCreatePayload;
   /** Delete a facet value */
   facetValueDelete: ApiFacetValueDeletePayload;
+  /**
+   * Attach source facet values to an existing or newly-created display value.
+   * This is the only mutation that merges source values into a display value.
+   */
+  facetValueMerge: ApiFacetValueMergePayload;
+  /**
+   * Detach source facet values from their display value and make them root values.
+   * This is the only mutation that unmerges source values.
+   */
+  facetValueUnmerge: ApiFacetValueUnmergePayload;
   /** Update an existing facet value */
   facetValueUpdate: ApiFacetValueUpdatePayload;
   /**
@@ -1503,6 +1513,16 @@ export type ApiCatalogMutationFacetValueDeleteArgs = {
 };
 
 
+export type ApiCatalogMutationFacetValueMergeArgs = {
+  input: ApiFacetValueMergeInput;
+};
+
+
+export type ApiCatalogMutationFacetValueUnmergeArgs = {
+  input: ApiFacetValueUnmergeInput;
+};
+
+
 export type ApiCatalogMutationFacetValueUpdateArgs = {
   input: ApiFacetValueUpdateInput;
 };
@@ -1639,12 +1659,16 @@ export type ApiCatalogQuery = {
   collections: ApiCollectionConnection;
   /** Get a facet by ID */
   facet?: Maybe<ApiFacet>;
+  /** Get available facet source candidates for create flow */
+  facetSourceCandidates: ApiFacetSourceCandidateConnection;
   /** Get a facet swatch by ID */
   facetSwatch?: Maybe<ApiFacetSwatch>;
   /** Get all facet swatches */
   facetSwatches: Array<ApiFacetSwatch>;
   /** Get a facet value by ID */
   facetValue?: Maybe<ApiFacetValue>;
+  /** Get available facet source value candidates for create and edit flows */
+  facetValueCandidates: ApiFacetValueCandidateConnection;
   /** Get all facet values for a specific facet */
   facetValues: Array<ApiFacetValue>;
   /** Get all facets */
@@ -1739,6 +1763,16 @@ export type ApiCatalogQueryFacetArgs = {
 };
 
 
+export type ApiCatalogQueryFacetSourceCandidatesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiFacetSourceCandidateOrderByInput>>;
+  where?: InputMaybe<ApiFacetSourceCandidateWhereInput>;
+};
+
+
 export type ApiCatalogQueryFacetSwatchArgs = {
   id: Scalars['ID']['input'];
 };
@@ -1746,6 +1780,17 @@ export type ApiCatalogQueryFacetSwatchArgs = {
 
 export type ApiCatalogQueryFacetValueArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type ApiCatalogQueryFacetValueCandidatesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta: ApiFacetValueCandidatesMetaInput;
+  orderBy?: InputMaybe<Array<ApiFacetValueCandidateOrderByInput>>;
+  where?: InputMaybe<ApiFacetValueCandidateWhereInput>;
 };
 
 
@@ -1863,8 +1908,6 @@ export type ApiCategory = ApiNode & {
   id: Scalars['ID']['output'];
   /** Whether the category is currently published. */
   isPublished: Scalars['Boolean']['output'];
-  /** Catalog listing items assigned to this category, including products and bundles. */
-  listing: ApiListingConnection;
   /** Media files associated with this category. */
   media: Array<ApiCategoryMediaItem>;
   /** The display name of the category. */
@@ -1883,17 +1926,6 @@ export type ApiCategory = ApiNode & {
   seo?: Maybe<ApiSeo>;
   /** The date and time when the category was last updated. */
   updatedAt: Scalars['DateTime']['output'];
-};
-
-
-/** A category represents a hierarchical grouping of products. */
-export type ApiCategoryListingArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  orderBy?: InputMaybe<Array<ApiListingOrderByInput>>;
-  where?: InputMaybe<ApiListingWhereInput>;
 };
 
 export type ApiCategoryCategoriesMetaInput = {
@@ -3218,7 +3250,7 @@ export type ApiFacet = ApiNode & {
   lexoRank: Scalars['String']['output'];
   selectionMode: FacetSelectionMode;
   slug: Scalars['String']['output'];
-  sourceHandles: Array<Scalars['String']['output']>;
+  sources: Array<ApiFacetSource>;
   uiType: FacetUiType;
   values: Array<ApiFacetValue>;
 };
@@ -3228,14 +3260,26 @@ export type ApiFacetCreateInput = {
   label: Scalars['String']['input'];
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug: Scalars['String']['input'];
-  sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
+  sources?: InputMaybe<Array<ApiFacetCreateSourceInput>>;
   uiType?: InputMaybe<FacetUiType>;
+  valueCandidates?: InputMaybe<Array<ApiFacetCreateValueCandidateInput>>;
 };
 
 export type ApiFacetCreatePayload = {
   __typename?: 'FacetCreatePayload';
   facet?: Maybe<ApiFacet>;
   userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacetCreateSourceInput = {
+  handle: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+};
+
+export type ApiFacetCreateValueCandidateInput = {
+  handle: Scalars['String']['input'];
+  label: Scalars['String']['input'];
+  sourceHandle: Scalars['String']['input'];
 };
 
 export type ApiFacetDeleteInput = {
@@ -3274,11 +3318,85 @@ export type FacetSelectionMode =
   | 'MULTI'
   | 'SINGLE';
 
+export type ApiFacetSource = {
+  __typename?: 'FacetSource';
+  handle: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+};
+
+export type ApiFacetSourceCandidate = {
+  __typename?: 'FacetSourceCandidate';
+  facetType: FacetType;
+  handle: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  locale: Scalars['String']['output'];
+  name?: Maybe<Scalars['String']['output']>;
+};
+
+export type ApiFacetSourceCandidateConnection = {
+  __typename?: 'FacetSourceCandidateConnection';
+  edges: Array<ApiFacetSourceCandidateEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiFacetSourceCandidateEdge = {
+  __typename?: 'FacetSourceCandidateEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiFacetSourceCandidate;
+};
+
+/** Ordering configuration for FacetSourceCandidate */
+export type ApiFacetSourceCandidateOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: FacetSourceCandidateOrderField;
+};
+
+/** Fields available for sorting FacetSourceCandidate */
+export type FacetSourceCandidateOrderField =
+  /** Sort by facetType */
+  | 'facetType'
+  /** Sort by handle */
+  | 'handle'
+  /** Sort by id */
+  | 'id'
+  /** Sort by name */
+  | 'name'
+  /** Sort by sortName */
+  | 'sortName'
+  /** Sort by sourceSortBucket */
+  | 'sourceSortBucket';
+
+/** Filter conditions for FacetSourceCandidate */
+export type ApiFacetSourceCandidateWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiFacetSourceCandidateWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiFacetSourceCandidateWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiFacetSourceCandidateWhereInput>>;
+  /** Filter by facetType */
+  facetType?: InputMaybe<ApiStringFilter>;
+  /** Filter by handle */
+  handle?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by name */
+  name?: InputMaybe<ApiStringFilter>;
+  /** Filter by sortName */
+  sortName?: InputMaybe<ApiStringFilter>;
+  /** Filter by sourceSortBucket */
+  sourceSortBucket?: InputMaybe<ApiIntFilter>;
+};
+
 export type ApiFacetSwatch = ApiNode & {
   __typename?: 'FacetSwatch';
   colorOne?: Maybe<Scalars['String']['output']>;
   colorTwo?: Maybe<Scalars['String']['output']>;
   file?: Maybe<ApiFile>;
+  /** The FacetSwatch global ID owned by Catalog. */
   id: Scalars['ID']['output'];
   metadata?: Maybe<Scalars['JSON']['output']>;
   swatchType: SwatchType;
@@ -3342,7 +3460,6 @@ export type ApiFacetUpdateInput = {
   label?: InputMaybe<Scalars['String']['input']>;
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug?: InputMaybe<Scalars['String']['input']>;
-  sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
   uiType?: InputMaybe<FacetUiType>;
 };
 
@@ -3356,21 +3473,90 @@ export type ApiFacetValue = ApiNode & {
   __typename?: 'FacetValue';
   enabled: Scalars['Boolean']['output'];
   facet: ApiFacet;
+  handle: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  kind: FacetValueKind;
+  label: Scalars['String']['output'];
+  parent?: Maybe<ApiFacetValue>;
+  sortIndex: Scalars['Int']['output'];
+  sourceValues: Array<ApiFacetValue>;
+  swatch?: Maybe<ApiFacetSwatch>;
+};
+
+export type ApiFacetValueCandidate = {
+  __typename?: 'FacetValueCandidate';
+  facetType: FacetType;
+  handle: Scalars['String']['output'];
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
-  slug: Scalars['String']['output'];
-  sortIndex: Scalars['Int']['output'];
-  sourceHandles: Array<Scalars['String']['output']>;
-  swatch?: Maybe<ApiFacetSwatch>;
+  sourceHandle: Scalars['String']['output'];
+};
+
+export type ApiFacetValueCandidateConnection = {
+  __typename?: 'FacetValueCandidateConnection';
+  edges: Array<ApiFacetValueCandidateEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiFacetValueCandidateEdge = {
+  __typename?: 'FacetValueCandidateEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiFacetValueCandidate;
+};
+
+/** Ordering configuration for FacetValueCandidate */
+export type ApiFacetValueCandidateOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: FacetValueCandidateOrderField;
+};
+
+/** Fields available for sorting FacetValueCandidate */
+export type FacetValueCandidateOrderField =
+  /** Sort by handle */
+  | 'handle'
+  /** Sort by id */
+  | 'id'
+  /** Sort by label */
+  | 'label';
+
+export type FacetValueCandidateType =
+  | 'FEATURE'
+  | 'OPTION'
+  | 'TAG';
+
+/** Filter conditions for FacetValueCandidate */
+export type ApiFacetValueCandidateWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiFacetValueCandidateWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiFacetValueCandidateWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiFacetValueCandidateWhereInput>>;
+  /** Filter by handle */
+  handle?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by label */
+  label?: InputMaybe<ApiStringFilter>;
+};
+
+export type ApiFacetValueCandidatesMetaInput = {
+  candidateType: FacetValueCandidateType;
+  facetId?: InputMaybe<Scalars['ID']['input']>;
+  sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
 export type ApiFacetValueCreateInput = {
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
   facetId: Scalars['ID']['input'];
+  handle: Scalars['String']['input'];
+  kind?: InputMaybe<FacetValueKind>;
   label: Scalars['String']['input'];
-  slug: Scalars['String']['input'];
   sortIndex?: InputMaybe<Scalars['Int']['input']>;
-  sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
+  sourceValueIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   swatchId?: InputMaybe<Scalars['ID']['input']>;
 };
 
@@ -3390,13 +3576,42 @@ export type ApiFacetValueDeletePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+export type FacetValueKind =
+  | 'DISPLAY'
+  | 'SOURCE';
+
+export type ApiFacetValueMergeInput = {
+  facetId: Scalars['ID']['input'];
+  sourceValueIds: Array<Scalars['ID']['input']>;
+  targetDisplayValueId?: InputMaybe<Scalars['ID']['input']>;
+  targetHandle?: InputMaybe<Scalars['String']['input']>;
+  targetLabel?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiFacetValueMergePayload = {
+  __typename?: 'FacetValueMergePayload';
+  facetValue?: Maybe<ApiFacetValue>;
+  sourceValues: Array<ApiFacetValue>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiFacetValueUnmergeInput = {
+  sourceValueIds: Array<Scalars['ID']['input']>;
+};
+
+export type ApiFacetValueUnmergePayload = {
+  __typename?: 'FacetValueUnmergePayload';
+  affectedDisplayValues: Array<ApiFacetValue>;
+  sourceValues: Array<ApiFacetValue>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
 export type ApiFacetValueUpdateInput = {
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  handle?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['ID']['input'];
   label?: InputMaybe<Scalars['String']['input']>;
-  slug?: InputMaybe<Scalars['String']['input']>;
   sortIndex?: InputMaybe<Scalars['Int']['input']>;
-  sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
   swatchId?: InputMaybe<Scalars['ID']['input']>;
 };
 
@@ -4177,20 +4392,8 @@ export type ApiLabel = {
 };
 
 export type ApiListing = {
-  /** The URL-friendly handle. */
-  handle: Scalars['String']['output'];
-  /** The Product global ID of the catalog listing item. */
+  /** The global ID of the catalog listing item. */
   id: Scalars['ID']['output'];
-  /** Whether the listing item is currently published. */
-  isPublished: Scalars['Boolean']['output'];
-  /** Product discriminator. */
-  kind: ProductKind;
-  /** Media registered on this listing item. */
-  media: Array<ApiProductMediaItem>;
-  /** Current product price range in the selected currency. */
-  priceRange?: Maybe<ApiProductPriceRange>;
-  /** Localized title. */
-  title: Scalars['String']['output'];
 };
 
 /** A connection to a mixed list of catalog listing items. */
@@ -4198,9 +4401,11 @@ export type ApiListingConnection = {
   __typename?: 'ListingConnection';
   /** A list of edges. */
   edges: Array<ApiListingEdge>;
+  /** Ordered facet items available for the current listing result. */
+  facets: Array<ApiListingFacet>;
   /** Information to aid in pagination. */
   pageInfo: ApiPageInfo;
-  /** The total number of catalog listing items. */
+  /** The total number of matched sellable items. */
   totalCount: Scalars['Int']['output'];
 };
 
@@ -4213,93 +4418,156 @@ export type ApiListingEdge = {
   node: ApiListing;
 };
 
-/** Ordering configuration for Listing */
-export type ApiListingOrderByInput = {
-  /** Sort direction */
-  direction: SortDirection;
-  /** Field to order by */
-  field: ListingOrderField;
+export type ApiListingFacet = {
+  __typename?: 'ListingFacet';
+  /** Stable listing facet ID. */
+  id: Scalars['String']['output'];
+  /** Human-readable facet label. */
+  label: Scalars['String']['output'];
+  /** Facet presentation/selection type. */
+  type: ListingFacetType;
+  /** Catalog-compatible UI type. */
+  uiType: FacetUiType;
+  /** Ordered values for this facet in listing UI order. */
+  values: Array<ApiListingFacetValue>;
 };
 
-/** Fields available for sorting Listing */
-export type ListingOrderField =
-  /** Sort by brandName */
-  | 'brandName'
-  /** Sort by createdAt */
-  | 'createdAt'
-  /** Sort by currency */
-  | 'currency'
-  /** Sort by handle */
-  | 'handle'
-  /** Sort by id */
-  | 'id'
-  /** Sort by kind */
-  | 'kind'
-  /** Sort by locale */
-  | 'locale'
-  /** Sort by maxAmountMinor */
-  | 'maxAmountMinor'
-  /** Sort by maxPriceMinor */
-  | 'maxPriceMinor'
-  /** Sort by minAmountMinor */
-  | 'minAmountMinor'
-  /** Sort by minPriceMinor */
-  | 'minPriceMinor'
-  /** Sort by name */
-  | 'name'
-  /** Sort by primaryCategoryId */
-  | 'primaryCategoryId'
-  /** Sort by primaryCategoryName */
-  | 'primaryCategoryName'
-  /** Sort by publishedAt */
-  | 'publishedAt'
-  /** Sort by updatedAt */
-  | 'updatedAt'
-  /** Sort by vendorId */
-  | 'vendorId';
+export type ListingFacetType =
+  | 'BOOLEAN'
+  | 'LIST'
+  | 'PRICE_RANGE';
 
-/** Filter conditions for Listing */
-export type ApiListingWhereInput = {
-  /** Logical AND of multiple conditions */
-  _and?: InputMaybe<Array<ApiListingWhereInput>>;
-  /** Negate the condition */
-  _not?: InputMaybe<ApiListingWhereInput>;
-  /** Logical OR of multiple conditions */
-  _or?: InputMaybe<Array<ApiListingWhereInput>>;
-  /** Filter by brandName */
-  brandName?: InputMaybe<ApiStringFilter>;
-  /** Filter by createdAt */
-  createdAt?: InputMaybe<ApiDateTimeFilter>;
-  /** Filter by currency */
-  currency?: InputMaybe<ApiStringFilter>;
-  /** Filter by handle */
-  handle?: InputMaybe<ApiStringFilter>;
-  /** Filter by id */
-  id?: InputMaybe<ApiIdFilter>;
-  /** Filter by kind */
-  kind?: InputMaybe<ApiStringFilter>;
-  /** Filter by locale */
-  locale?: InputMaybe<ApiStringFilter>;
-  /** Filter by maxAmountMinor */
-  maxAmountMinor?: InputMaybe<ApiIntFilter>;
-  /** Filter by maxPriceMinor */
-  maxPriceMinor?: InputMaybe<ApiIntFilter>;
-  /** Filter by minAmountMinor */
-  minAmountMinor?: InputMaybe<ApiIntFilter>;
-  /** Filter by minPriceMinor */
-  minPriceMinor?: InputMaybe<ApiIntFilter>;
-  /** Filter by name */
-  name?: InputMaybe<ApiStringFilter>;
-  /** Filter by primaryCategoryId */
-  primaryCategoryId?: InputMaybe<ApiIdFilter>;
-  /** Filter by primaryCategoryName */
-  primaryCategoryName?: InputMaybe<ApiStringFilter>;
-  /** Filter by publishedAt */
-  publishedAt?: InputMaybe<ApiDateTimeFilter>;
-  /** Filter by updatedAt */
-  updatedAt?: InputMaybe<ApiDateTimeFilter>;
-  /** Filter by vendorId */
-  vendorId?: InputMaybe<ApiIdFilter>;
+export type ApiListingFacetValue = {
+  __typename?: 'ListingFacetValue';
+  /** Number of matched sellable items for this value. */
+  count: Scalars['Int']['output'];
+  /** Stable listing facet value ID. */
+  id: Scalars['String']['output'];
+  /**
+   * JSON object compatible with ListingProductFilter.
+   * This keeps product, vendor, price and availability facets on one contract.
+   */
+  input: Scalars['JSON']['output'];
+  /** Human-readable value label. */
+  label: Scalars['String']['output'];
+  /** Whether this value was selected in the current request. */
+  selected: Scalars['Boolean']['output'];
+  /** Catalog swatch metadata for facet values that have one. */
+  swatch?: Maybe<ApiFacetSwatch>;
+};
+
+export type ApiListingFacetValueFilter = {
+  /** Facet stable identifier. */
+  facet: Scalars['String']['input'];
+  /** Facet value stable identifier. */
+  value: Scalars['String']['input'];
+};
+
+export type ApiListingMutation = {
+  __typename?: 'ListingMutation';
+  /** Placeholder field for the empty mutation namespace. */
+  _empty: Scalars['Boolean']['output'];
+};
+
+export type ApiListingOrderByInput = {
+  /** Sort key for the listing request. */
+  by: ListingSortBy;
+  /** Sort direction. Ignored for MANUAL and RELEVANCE. */
+  direction?: InputMaybe<ListingSortDirection>;
+};
+
+export type ApiListingPriceRangeFilter = {
+  /** Maximum price amount in minor units. */
+  max?: InputMaybe<Scalars['BigInt']['input']>;
+  /** Minimum price amount in minor units. */
+  min?: InputMaybe<Scalars['BigInt']['input']>;
+};
+
+export type ApiListingProductFilter = {
+  /** Filter on if the listing item is available. */
+  available?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Filter by product price range. */
+  price?: InputMaybe<ApiListingPriceRangeFilter>;
+  /** Filter by product-level catalog facet value. */
+  productFacet?: InputMaybe<ApiListingFacetValueFilter>;
+  /** Filter by product vendor. */
+  productVendor?: InputMaybe<Scalars['String']['input']>;
+  /** Filter by product tag. */
+  tag?: InputMaybe<Scalars['String']['input']>;
+  /** Filter by variant-level catalog facet value. */
+  variantFacet?: InputMaybe<ApiListingFacetValueFilter>;
+  /** Filter by variant option. */
+  variantOption?: InputMaybe<ApiListingVariantOptionFilter>;
+};
+
+export type ApiListingQuery = {
+  __typename?: 'ListingQuery';
+  /**
+   * Get ordered listing structure for Admin.
+   *
+   * Listing service returns listing-owned order, pagination, counts, aggregates,
+   * and canonical entity references only. Entity details are resolved by owning
+   * subgraphs through federation.
+   */
+  listing: ApiListingConnection;
+  /** Get a node by its global ID. */
+  node?: Maybe<ApiNode>;
+  /** Get multiple nodes by their global IDs. */
+  nodes: Array<Maybe<ApiNode>>;
+};
+
+
+export type ApiListingQueryListingArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  currency?: InputMaybe<CurrencyCode>;
+  facets?: InputMaybe<Array<ApiListingProductFilter>>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  locale?: InputMaybe<LocaleCode>;
+  orderBy?: InputMaybe<ApiListingOrderByInput>;
+  query?: InputMaybe<Scalars['String']['input']>;
+  scope?: InputMaybe<ApiListingScopeInput>;
+};
+
+
+export type ApiListingQueryNodeArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiListingQueryNodesArgs = {
+  ids: Array<Scalars['ID']['input']>;
+};
+
+export type ApiListingScopeInput = {
+  /** Category global ID. Required when kind is CATEGORY. */
+  categoryId?: InputMaybe<Scalars['ID']['input']>;
+  /** Scope kind for the listing request. */
+  kind: ListingScopeKind;
+};
+
+export type ListingScopeKind =
+  | 'CATEGORY'
+  | 'SEARCH';
+
+export type ListingSortBy =
+  | 'CREATED'
+  | 'MANUAL'
+  | 'NAME'
+  | 'NEWEST'
+  | 'PRICE'
+  | 'RELEVANCE';
+
+export type ListingSortDirection =
+  | 'asc'
+  | 'desc';
+
+export type ApiListingVariantOptionFilter = {
+  /** Variant option name. */
+  name: Scalars['String']['input'];
+  /** Variant option value. */
+  value: Scalars['String']['input'];
 };
 
 /** Locale configuration for the project */
@@ -4878,6 +5146,8 @@ export type ApiMutation = {
   catalogMutation: ApiCatalogMutation;
   /** Inventory mutation namespace for warehouse, stock, and inventory item operations */
   inventoryMutation: ApiInventoryMutation;
+  /** Listing mutation namespace. */
+  listingMutation: ApiListingMutation;
   mediaMutation: ApiMediaMutation;
   orderMutation: ApiOrderMutation;
   /** Organization management mutations. */
@@ -6324,6 +6594,8 @@ export type ApiQuery = {
   catalogQuery: ApiCatalogQuery;
   /** Inventory query namespace for warehouse, stock, and inventory item operations */
   inventoryQuery: ApiInventoryQuery;
+  /** Listing query namespace. */
+  listingQuery: ApiListingQuery;
   mediaQuery: ApiMediaQuery;
   orderQuery: ApiOrderQuery;
   /** Organization queries namespace. */
@@ -8197,6 +8469,7 @@ export type Join__Graph =
   | 'APPS_ADMIN'
   | 'CATALOG_ADMIN'
   | 'IAM_ADMIN'
+  | 'LISTING_ADMIN'
   | 'MEDIA_ADMIN'
   | 'ORDERS_ADMIN'
   | 'PROJECT_ADMIN';
