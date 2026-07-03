@@ -5,6 +5,7 @@ import { compileCoreListingSql } from "./compileMatchesSql.js";
 
 export function compileFacetsQuerySql(request: ListingSqlRequest): SQL {
   return sql`
+    /* listing:facetsMetadata */
     WITH
     ${compileCoreListingSql(request)},
     scope_product_base AS (

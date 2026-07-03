@@ -177,6 +177,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
 
   private compileTotalCountQuerySql(request: ListingSqlRequest): SQL {
     return sql`
+      /* listing:totalCount */
       WITH
       ${compileCoreListingSql(request)},
       total_count AS (

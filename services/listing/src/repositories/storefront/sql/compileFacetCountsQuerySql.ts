@@ -36,6 +36,7 @@ function compileFacetCountsQuerySqlWithOptions(
     : compileCandidateOnlyOptionFacetCountsProducerSql();
 
   return sql`
+    /* listing:facetCounts */
     WITH
     ${compileCoreListingSql(request)},
     scope_product_base AS (

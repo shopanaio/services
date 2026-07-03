@@ -5,6 +5,7 @@ import { compileCoreListingSql } from "./compileMatchesSql.js";
 
 export function compileVirtualFacetsQuerySql(request: ListingSqlRequest) {
   return sql`
+    /* listing:virtualFacets */
     WITH
     ${compileCoreListingSql(request)},
     product_filters_without_stock AS (

@@ -8,6 +8,8 @@ const DEFAULT_DATABASE_URL = 'postgresql://postgres:postgres@localhost:15432/por
 const ZERO_UUID = '00000000-0000-0000-0000-000000000000';
 const DEFAULT_PRODUCTS = 10_000;
 const DEFAULT_PAGE_SIZE = 20;
+const PRICE_FILTER_MIN_MINOR = 20_000;
+const PRICE_FILTER_MAX_MINOR = 60_000;
 const CURRENCY = 'USD';
 const LOCALE = 'en';
 const E2E_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -47,6 +49,9 @@ function parseArgs(argv) {
     products: DEFAULT_PRODUCTS,
     pageSize: DEFAULT_PAGE_SIZE,
     maxMs: null,
+    projectId: null,
+    categoryId: null,
+    seedOnly: false,
     outDir: resolve(E2E_DIR, 'test-results/listing-perf'),
   };
 
@@ -63,6 +68,14 @@ function parseArgs(argv) {
     } else if (arg === '--max-ms' && next) {
       args.maxMs = Number.parseFloat(next);
       i += 1;
+    } else if (arg === '--project-id' && next) {
+      args.projectId = next;
+      i += 1;
+    } else if (arg === '--category-id' && next) {
+      args.categoryId = next;
+      i += 1;
+    } else if (arg === '--seed-only') {
+      args.seedOnly = true;
     } else if (arg === '--out-dir' && next) {
       args.outDir = resolve(process.cwd(), next);
       i += 1;
@@ -89,6 +102,7 @@ function printHelp() {
   console.log(`
 Usage:
   node scripts/listing-price-facet-perf.mjs [--products 10000] [--page-size 20] [--max-ms 100]
+  node scripts/listing-price-facet-perf.mjs --seed-only --project-id <uuid> --category-id <uuid>
 
 Environment:
   E2E_DATABASE_URL or DATABASE_URL, default ${DEFAULT_DATABASE_URL}
@@ -107,6 +121,67 @@ function optionValueForProduct(group, productIndex) {
 
 function optionSignatureKey(valueKeys) {
   return [...new Set(valueKeys)].sort().join('|');
+}
+
+function composeGlobalId(typeName, id) {
+  return Buffer.from(`gid://shopana/${typeName}/${id}`, 'utf8').toString('base64');
+}
+
+function buildExpectedSeedMeta(input) {
+  const selectedByFacet = new Map(input.facets.map((facet) => [facet.slug, new Set(facet.selected)]));
+  const assignments = input.productIds.map((productId, index) => {
+    const facetValues = Object.fromEntries(
+      input.facets.map((facet) => [facet.slug, optionValueForProduct(facet, index)]),
+    );
+
+    return {
+      productId,
+      productGlobalId: composeGlobalId('Product', productId),
+      productDocId: input.productDocIds[index],
+      priceMinor: input.prices[index],
+      facetValues,
+    };
+  });
+  const matchesAllFilters = (assignment) =>
+    assignment.priceMinor >= input.priceFilter.minMinor &&
+    assignment.priceMinor <= input.priceFilter.maxMinor &&
+    [...selectedByFacet.entries()].every(([facetSlug, selected]) => selected.has(assignment.facetValues[facetSlug]));
+  const matchingAssignments = assignments.filter(matchesAllFilters);
+  const sortedAssignments = [...matchingAssignments].sort(
+    (left, right) => left.priceMinor - right.priceMinor || left.productId.localeCompare(right.productId),
+  );
+  const selectedFacetCounts = Object.fromEntries(
+    input.facets.map((facet) => [
+      facet.slug,
+      Object.fromEntries(
+        facet.selected.map((valueHandle) => [
+          valueHandle,
+          assignments.filter((assignment) => {
+            if (assignment.facetValues[facet.slug] !== valueHandle) {
+              return false;
+            }
+            if (
+              assignment.priceMinor < input.priceFilter.minMinor ||
+              assignment.priceMinor > input.priceFilter.maxMinor
+            ) {
+              return false;
+            }
+
+            return input.facets
+              .filter((otherFacet) => otherFacet.slug !== facet.slug)
+              .every((otherFacet) => selectedByFacet.get(otherFacet.slug)?.has(assignment.facetValues[otherFacet.slug]));
+          }).length,
+        ]),
+      ),
+    ]),
+  );
+
+  return {
+    expectedTotalCount: matchingAssignments.length,
+    expectedPageProductIds: sortedAssignments.slice(0, input.pageSize).map((assignment) => assignment.productGlobalId),
+    expectedPageProductDocIds: sortedAssignments.slice(0, input.pageSize).map((assignment) => assignment.productDocId),
+    expectedSelectedFacetCounts: selectedFacetCounts,
+  };
 }
 
 function planMetric(plan, metric) {
@@ -137,8 +212,8 @@ async function main() {
     max: 1,
   });
 
-  const projectId = randomUUID();
-  const categoryId = randomUUID();
+  const projectId = args.projectId ?? randomUUID();
+  const categoryId = args.categoryId ?? randomUUID();
   const productIds = Array.from({ length: args.products }, () => randomUUID());
   const variantIds = Array.from({ length: args.products }, () => randomUUID());
   const productDocIds = Array.from({ length: args.products }, (_, index) => index + 1);
@@ -169,6 +244,17 @@ async function main() {
       return { facetId: facet.id, valueKey: `${facet.id}:${value.id}` };
     }),
   );
+  const expected = buildExpectedSeedMeta({
+    facets,
+    productIds,
+    productDocIds,
+    prices,
+    pageSize: args.pageSize,
+    priceFilter: {
+      minMinor: PRICE_FILTER_MIN_MINOR,
+      maxMinor: PRICE_FILTER_MAX_MINOR,
+    },
+  });
 
   await sql.begin(async (tx) => {
     await seedCatalogFacets(tx, projectId, facets);
@@ -198,18 +284,57 @@ async function main() {
   await sql`ANALYZE listing.listing_option_signature_value`;
   await sql`ANALYZE listing.listing_option_signature_product_membership`;
 
-  const pagePlan = await runPageExplain(sql, {
+  if (args.seedOnly) {
+    await writeText(
+      args.outDir,
+      'price-facet-10k-seed.json',
+      `${JSON.stringify(
+        {
+          projectId,
+          categoryId,
+          products: args.products,
+          pageSize: args.pageSize,
+          filters: OPTION_GROUPS.map(({ slug, selected }) => ({ slug, selected })),
+          priceFilter: {
+            minMinor: PRICE_FILTER_MIN_MINOR,
+            maxMinor: PRICE_FILTER_MAX_MINOR,
+          },
+          expected,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    console.log(`seeded project=${projectId} category=${categoryId} products=${args.products}`);
+    console.log(
+      `filters=${selectedFilterRows.length} values across ${facets.length} OR groups price=${PRICE_FILTER_MIN_MINOR}-${PRICE_FILTER_MAX_MINOR}`,
+    );
+    console.log(`seedMeta=${resolve(args.outDir, 'price-facet-10k-seed.json')}`);
+    await sql.end();
+    return;
+  }
+
+  const pageInput = {
     projectId,
     categoryId,
     pageSize: args.pageSize,
     selectedFilterRows,
-  });
-  const totalPlan = await runTotalExplain(sql, {
+  };
+  const totalInput = {
     projectId,
     categoryId,
     selectedFilterRows,
-  });
+  };
+  const pageSql = buildPageSelectSql(pageInput);
+  const totalSql = buildTotalSelectSql(totalInput);
 
+  const pageSelect = await measureQuery(() => runPageSelect(sql, pageSql));
+  const totalSelect = await measureQuery(() => runTotalSelect(sql, totalSql));
+  const pagePlan = await runPageExplain(sql, pageInput);
+  const totalPlan = await runTotalExplain(sql, totalInput);
+
+  await writeText(args.outDir, 'price-facet-10k-page.sql', pageSql);
+  await writeText(args.outDir, 'price-facet-10k-total.sql', totalSql);
   await writePlan(args.outDir, 'price-facet-10k-page.json', pagePlan);
   await writePlan(args.outDir, 'price-facet-10k-total.json', totalPlan);
 
@@ -219,16 +344,27 @@ async function main() {
 
   console.log(`seeded project=${projectId} category=${categoryId} products=${args.products}`);
   console.log(`filters=${selectedFilterRows.length} values across ${facets.length} OR groups`);
-  console.log(`page execution=${pageExecutionMs.toFixed(3)}ms planning=${planMetric(pagePlan, 'Planning Time').toFixed(3)}ms`);
-  console.log(`total execution=${totalExecutionMs.toFixed(3)}ms planning=${planMetric(totalPlan, 'Planning Time').toFixed(3)}ms`);
+  console.log(`page select rows=${pageSelect.result.length} clientElapsed=${pageSelect.elapsedMs.toFixed(3)}ms`);
+  console.log(`total select rows=${totalSelect.result.length} total=${totalSelect.result[0]?.total_count ?? totalSelect.result[0]?.totalCount ?? 'n/a'} clientElapsed=${totalSelect.elapsedMs.toFixed(3)}ms`);
+  console.log(`page explain execution=${pageExecutionMs.toFixed(3)}ms planning=${planMetric(pagePlan, 'Planning Time').toFixed(3)}ms`);
+  console.log(`total explain execution=${totalExecutionMs.toFixed(3)}ms planning=${planMetric(totalPlan, 'Planning Time').toFixed(3)}ms`);
   console.log(`page shared blocks hit=${pageBuffers.hit} read=${pageBuffers.read} dirtied=${pageBuffers.dirtied} written=${pageBuffers.written}`);
   console.log(`plans=${args.outDir}`);
 
   await sql.end();
 
-  if (args.maxMs !== null && pageExecutionMs > args.maxMs) {
-    throw new Error(`page execution ${pageExecutionMs.toFixed(3)}ms exceeded --max-ms ${args.maxMs}`);
+  if (args.maxMs !== null && pageSelect.elapsedMs > args.maxMs) {
+    throw new Error(`page select ${pageSelect.elapsedMs.toFixed(3)}ms exceeded --max-ms ${args.maxMs}`);
   }
+}
+
+async function measureQuery(callback) {
+  const startedAt = performance.now();
+  const result = await callback();
+  return {
+    result,
+    elapsedMs: performance.now() - startedAt,
+  };
 }
 
 async function seedCatalogFacets(sql, projectId, facets) {
@@ -665,6 +801,256 @@ async function seedOptionSignatures(sql, projectId, productValueKeys, productDoc
   }
 }
 
+function sqlLiteral(value) {
+  return `'${String(value).replaceAll("'", "''")}'`;
+}
+
+function uuidArraySql(values) {
+  return `ARRAY[${values.map((value) => `${sqlLiteral(value)}::uuid`).join(', ')}]`;
+}
+
+function textArraySql(values) {
+  return `ARRAY[${values.map(sqlLiteral).join(', ')}]::text[]`;
+}
+
+function selectedFilterArrays(input) {
+  return {
+    facetIds: uuidArraySql(input.selectedFilterRows.map((row) => row.facetId)),
+    valueKeys: textArraySql(input.selectedFilterRows.map((row) => row.valueKey)),
+  };
+}
+
+async function runPageSelect(sql, query) {
+  return sql.unsafe(query);
+}
+
+async function runTotalSelect(sql, query) {
+  return sql.unsafe(query);
+}
+
+function buildPageSelectSql(input) {
+  const { facetIds, valueKeys } = selectedFilterArrays(input);
+
+  return `
+    /* listing-price-facet-perf actual-page */
+    WITH
+    input AS (
+      SELECT
+        ${sqlLiteral(input.projectId)}::uuid AS project_id,
+        ${sqlLiteral(input.categoryId)}::text AS category_value_key,
+        ${sqlLiteral(CURRENCY)}::text AS currency,
+        ${input.pageSize}::int AS first
+    ),
+    selected_filter_values AS (
+      SELECT *
+      FROM unnest(${facetIds}, ${valueKeys}) AS rows(facet_id, value_key)
+    ),
+    option_filter_groups AS (
+      SELECT
+        sfv.facet_id::text AS facet_id,
+        COALESCE(rb_or_agg(p.bitmap) FILTER (WHERE p.bitmap IS NOT NULL), ${emptyBitmapSql}) AS bitmap
+      FROM selected_filter_values sfv
+      JOIN input i ON true
+      LEFT JOIN listing.listing_posting_bitmap p
+        ON p.project_id = i.project_id
+       AND p.entity_type = 'variant'
+       AND p.field = 'facet'
+       AND p.value_key = sfv.value_key
+      GROUP BY sfv.facet_id
+    ),
+    in_stock_variants AS (
+      SELECT COALESCE(rb_build_agg(vli.variant_doc_id), ${emptyBitmapSql}) AS bitmap
+      FROM listing.variant_listing_index vli
+      JOIN input i ON true
+      WHERE vli.project_id = i.project_id
+        AND vli.in_stock = true
+    ),
+    variant_filters AS (
+      SELECT rb_and_agg(bitmap) AS bitmap
+      FROM (
+        SELECT bitmap FROM option_filter_groups
+        UNION ALL
+        SELECT bitmap FROM in_stock_variants
+      ) x
+    ),
+    raw_scope_products AS (
+      SELECT COALESCE((
+        SELECT p.bitmap
+        FROM listing.listing_posting_bitmap p
+        JOIN input i ON true
+        WHERE p.project_id = i.project_id
+          AND p.entity_type = 'product'
+          AND p.field = 'category'
+          AND p.value_key = i.category_value_key
+      ), ${emptyBitmapSql}) AS bitmap
+    ),
+    published_products AS (
+      SELECT COALESCE(rb_build_agg(pli.product_doc_id), ${emptyBitmapSql}) AS bitmap
+      FROM listing.product_listing_index pli
+      JOIN input i ON true
+      WHERE pli.project_id = i.project_id
+        AND pli.status = 'published'
+    ),
+    projected_variant_products AS (
+      SELECT COALESCE((
+        WITH matched_blocks AS (
+          SELECT
+            b.variant_doc_from,
+            b.variant_doc_to,
+            b.variant_bitmap,
+            b.product_bitmap,
+            b.variant_count,
+            ((SELECT bitmap FROM variant_filters) & b.variant_bitmap) AS block_match
+          FROM listing.listing_posting_variant_projection_block b
+          JOIN input i ON true
+          WHERE b.project_id = i.project_id
+            AND rb_cardinality((SELECT bitmap FROM variant_filters) & b.variant_bitmap) > 0
+        ),
+        full_block_products AS (
+          SELECT mb.product_bitmap
+          FROM matched_blocks mb
+          WHERE rb_cardinality(mb.block_match) = mb.variant_count
+        ),
+        partial_block_products AS (
+          SELECT rb_build_agg(vli.product_doc_id) AS product_bitmap
+          FROM matched_blocks mb
+          JOIN input i ON true
+          JOIN listing.variant_listing_index vli
+            ON vli.project_id = i.project_id
+           AND vli.variant_doc_id >= mb.variant_doc_from
+           AND vli.variant_doc_id < mb.variant_doc_to
+          WHERE rb_cardinality(mb.block_match) < mb.variant_count
+            AND mb.block_match @> vli.variant_doc_id
+        ),
+        projected AS (
+          SELECT rb_or_agg(product_bitmap) AS product_bitmap
+          FROM (
+            SELECT product_bitmap FROM full_block_products
+            UNION ALL
+            SELECT product_bitmap FROM partial_block_products
+          ) x
+        )
+        SELECT product_bitmap
+        FROM projected
+      ), ${emptyBitmapSql}) AS bitmap
+    ),
+    matches AS (
+      SELECT rsp.bitmap & pp.bitmap & pvp.bitmap AS bitmap
+      FROM raw_scope_products rsp
+      CROSS JOIN published_products pp
+      CROSS JOIN projected_variant_products pvp
+    ),
+    variant_price_candidates AS (
+      SELECT
+        vp.product_doc_id,
+        vp.product_id,
+        vp.variant_doc_id,
+        vp.price_minor
+      FROM listing.variant_listing_price_index vp
+      JOIN listing.variant_listing_index vli
+        ON vli.project_id = vp.project_id
+       AND vli.variant_id = vp.variant_id
+       AND vli.in_stock = true
+      JOIN input i ON true
+      CROSS JOIN matches m
+      CROSS JOIN variant_filters vf
+      WHERE vp.project_id = i.project_id
+        AND vp.currency = i.currency
+        AND vp.has_price = true
+        AND vp.price_minor IS NOT NULL
+        AND vf.bitmap @> vp.variant_doc_id
+        AND m.bitmap @> vp.product_doc_id
+    ),
+    variant_price_chosen AS (
+      SELECT DISTINCT ON (vp.product_id)
+        vp.product_doc_id,
+        vp.product_id,
+        vp.variant_doc_id,
+        vp.price_minor
+      FROM variant_price_candidates vp
+      ORDER BY vp.product_id ASC, vp.price_minor ASC NULLS LAST, vp.variant_doc_id ASC
+    ),
+    variant_price_ordered AS (
+      SELECT
+        chosen.product_doc_id,
+        chosen.product_id,
+        chosen.variant_doc_id,
+        chosen.price_minor
+      FROM variant_price_chosen chosen
+      JOIN input i ON true
+      JOIN listing.product_listing_index pli
+        ON pli.project_id = i.project_id
+       AND pli.product_doc_id = chosen.product_doc_id
+       AND pli.product_id = chosen.product_id
+      ORDER BY pli.in_stock DESC, chosen.price_minor ASC NULLS LAST, chosen.product_id ASC
+      LIMIT (SELECT first + 1 FROM input)
+    )
+    SELECT *
+    FROM variant_price_ordered
+  `;
+}
+
+function buildTotalSelectSql(input) {
+  const { facetIds, valueKeys } = selectedFilterArrays(input);
+
+  return `
+    /* listing-price-facet-perf actual-total */
+    WITH
+    input AS (
+      SELECT
+        ${sqlLiteral(input.projectId)}::uuid AS project_id,
+        ${sqlLiteral(input.categoryId)}::text AS category_value_key
+    ),
+    selected_filter_values AS (
+      SELECT *
+      FROM unnest(${facetIds}, ${valueKeys}) AS rows(facet_id, value_key)
+    ),
+    option_filter_groups AS (
+      SELECT
+        sfv.facet_id::text AS facet_id,
+        COALESCE(rb_or_agg(p.bitmap) FILTER (WHERE p.bitmap IS NOT NULL), ${emptyBitmapSql}) AS bitmap
+      FROM selected_filter_values sfv
+      JOIN input i ON true
+      LEFT JOIN listing.listing_posting_bitmap p
+        ON p.project_id = i.project_id
+       AND p.entity_type = 'variant'
+       AND p.field = 'facet'
+       AND p.value_key = sfv.value_key
+      GROUP BY sfv.facet_id
+    ),
+    variant_filters AS (
+      SELECT rb_and_agg(bitmap) AS bitmap
+      FROM option_filter_groups
+    ),
+    scope_products AS (
+      SELECT COALESCE((
+        SELECT p.bitmap
+        FROM listing.listing_posting_bitmap p
+        JOIN input i ON true
+        WHERE p.project_id = i.project_id
+          AND p.entity_type = 'product'
+          AND p.field = 'category'
+          AND p.value_key = i.category_value_key
+      ), ${emptyBitmapSql}) AS bitmap
+    ),
+    published_products AS (
+      SELECT COALESCE(rb_build_agg(pli.product_doc_id), ${emptyBitmapSql}) AS bitmap
+      FROM listing.product_listing_index pli
+      JOIN input i ON true
+      WHERE pli.project_id = i.project_id
+        AND pli.status = 'published'
+    ),
+    matches AS (
+      SELECT sp.bitmap & pp.bitmap & vf.bitmap AS bitmap
+      FROM scope_products sp
+      CROSS JOIN published_products pp
+      CROSS JOIN variant_filters vf
+    )
+    SELECT rb_cardinality(bitmap)::int AS total_count
+    FROM matches
+  `;
+}
+
 async function runPageExplain(sql, input) {
   const facetIds = input.selectedFilterRows.map((row) => row.facetId);
   const valueKeys = input.selectedFilterRows.map((row) => row.valueKey);
@@ -895,9 +1281,13 @@ async function runTotalExplain(sql, input) {
 }
 
 async function writePlan(outDir, filename, plan) {
+  await writeText(outDir, filename, `${JSON.stringify(plan, null, 2)}\n`);
+}
+
+async function writeText(outDir, filename, content) {
   const outputPath = resolve(outDir, filename);
   await mkdir(dirname(outputPath), { recursive: true });
-  await writeFile(outputPath, `${JSON.stringify(plan, null, 2)}\n`);
+  await writeFile(outputPath, content);
 }
 
 try {

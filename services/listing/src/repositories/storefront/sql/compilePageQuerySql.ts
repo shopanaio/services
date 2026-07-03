@@ -26,6 +26,7 @@ export function compilePageQuerySql(request: ListingSqlRequest): SQL {
   const limitSql = sql`(SELECT first + 1 FROM input)`;
 
   return sql`
+    /* listing:page */
     WITH
     ${compileCoreListingSql(request)},
     has_variant_predicate AS (
