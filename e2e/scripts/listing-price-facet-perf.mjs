@@ -278,6 +278,7 @@ async function main() {
   await sql`ANALYZE listing.product_listing_index`;
   await sql`ANALYZE listing.variant_listing_index`;
   await sql`ANALYZE listing.variant_listing_price_index`;
+  await sql`ANALYZE listing.listing_posting_variant_price`;
   await sql`ANALYZE listing.listing_posting_bitmap`;
   await sql`ANALYZE listing.listing_posting_variant_projection_block`;
   await sql`ANALYZE listing.listing_option_signature`;
@@ -545,6 +546,29 @@ async function seedListingRows(sql, input) {
       ${input.signatureKeys}::text[],
       ${input.prices}::bigint[]
     ) AS rows(product_id, product_doc_id, variant_id, signature_key, price_minor)
+  `;
+
+  await sql`
+    INSERT INTO listing.listing_posting_variant_price (
+      project_id,
+      currency,
+      variant_doc_id,
+      product_doc_id,
+      product_id,
+      price_minor
+    )
+    SELECT
+      ${input.projectId}::uuid,
+      ${CURRENCY},
+      product_doc_id,
+      product_doc_id,
+      product_id,
+      price_minor
+    FROM unnest(
+      ${input.productIds}::uuid[],
+      ${input.productDocIds}::int[],
+      ${input.prices}::bigint[]
+    ) AS rows(product_id, product_doc_id, price_minor)
   `;
 
   await sql`
