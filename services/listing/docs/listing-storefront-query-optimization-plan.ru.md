@@ -20,14 +20,14 @@
 `includePriceRange`, `includeInStockCount`) больше не должны определять состав
 repository response для этого endpoint. Storefront PLP получает единый полный
 response всегда; экономия latency достигается параллельным выполнением
-обязательных branches и complexity validation, а не пропуском aggregates.
+обязательных branches, а не пропуском aggregates.
 
 Целевой runtime contract:
 
 ```text
 DB round-trip count: <= 5
 Query execution: parallel independent read statements
-Repository SLR: <= 100ms для каждого допустимого request
+Repository p95 target: <= 100ms на agreed representative dataset
 Partial response: запрещен
 ```
 
@@ -47,7 +47,10 @@ Acceptance:
 
 - storefront schema/API docs отражают always-full response;
 - optional aggregate flags удалены из публичного API и repository input;
-- SQL implementation не зависит от optional aggregate flags.
+- SQL implementation не зависит от optional aggregate flags;
+- если requested facet value не резолвится в storefront display value,
+  listing request падает с тем же domain error, что текущий resolver. Missing
+  value не может стать no-op filter ни в одном parallel branch.
 
 ## Жесткие ограничения
 
@@ -68,7 +71,7 @@ Acceptance:
 - запускать независимые read statements параллельно через существующий
   `DatabaseClient`/Drizzle execution path;
 - использовать CTE, `VALUES`, `LATERAL`, JSON input, roaring bitmap operators,
-  `EXPLAIN` и complexity validation;
+  `EXPLAIN`;
 - повторно строить base bitmap в разных параллельных queries, если это дает
   более простые и быстрые планы.
 
@@ -99,20 +102,6 @@ Wall-clock ~= max(A, B, C, D, E) + network/driver overhead.
 ```text
 max parallel listing branches per request: 5
 ```
-
-## Важное ограничение SLR
-
-`<= 100ms` нельзя честно гарантировать для неограниченной сложности без cache,
-новых данных или материализации. Поэтому SLR применяется только к допустимым
-requests после complexity validation.
-
-```text
-Допустимый request: выполняется <= 100ms.
-Недопустимый request: отклоняется до SQL.
-```
-
-Complexity guard не является cache или материализацией. Это часть публичного
-runtime контракта.
 
 ## Текущее состояние
 
@@ -229,6 +218,8 @@ shared snapshot flow. Такой режим почти наверняка буд
 input
 requested_facets
 resolved_facets
+search_candidate_products
+rule_collection_scope
 vendor_filter_group
 scope_products
 scope_variant_filters
@@ -249,23 +240,31 @@ matches
 в каждый statement как CTE.
 
 Для читаемости в примерах используются helper-имена вроде `rb_build_empty()` и
-`rb_and_agg(...)`. Production compiler должен подставлять реальные выражения из
-текущего `sqlHelpers.ts`, например empty bitmap через `emptyRoaringBitmapSql()`,
-а AND между группами собирать оператором, доступным в PostgreSQL roaring
-extension.
+`rb_and_agg(...)`, а именованные placeholders вроде
+`$...` обозначают bound parameters compiler-а.
+Это не literal PostgreSQL syntax. Production compiler должен подставлять реальные
+выражения из текущего `sqlHelpers.ts`, например empty bitmap через
+`emptyRoaringBitmapSql()`, а AND между группами собирать оператором, доступным в
+PostgreSQL roaring extension.
 
 Shared fragments обязаны сохранять текущую storefront filter semantics:
 
 - `vendor_filter_group` является product-level filter и должен входить в
   `product_filters` вместе с product facet groups.
 - `price_variant_filter` строится из active price predicate по
-  `listing_posting_variant_price` и входит в `variant_filters`.
+  `listing_posting_variant_price`, должен быть ограничен active in-stock
+  variants и входит в `variant_filters`.
 - `active_stock_variant_filter` строится из active `in_stock` predicate, если
-  он задан, а при option/price variant path без explicit stock predicate должен
-  использовать текущий default `in_stock = true`.
+  он задан и его value равен `true`. При option/price variant path без explicit
+  stock predicate он должен использовать текущий default `in_stock = true`.
+  Explicit `in_stock = false` не может строить out-of-stock variant bitmap для
+  option/price path: out-of-stock variants не участвуют в option filters, price
+  filters, matched variant price sort, option counts и variant-level collection
+  rules. Stock-only `false` обслуживается через `active_stock_product_filter`.
 - `active_stock_product_filter` используется только для stock-only path, когда
-  нет option facet groups и active price predicate. Это сохраняет текущий
-  быстрый product-level stock filter.
+  нет option facet groups, active price predicate и rule-level variant scope. Это
+  сохраняет текущий быстрый product-level stock filter, но не ломает same-variant
+  semantics rule collection.
 - `scope_variant_filters` покрывает rule collection variant predicates. Если
   rule collection состоит только из variant-level rules, этот bitmap также
   используется collector-ом для matched variant price semantics.
@@ -282,9 +281,28 @@ Shared fragments обязаны сохранять текущую storefront fil
 - Для rule collection, состоящей только из variant-level rules, product scope
   строится через projection этих variant predicates, а collector/virtual facets
   сохраняют тот же variant scope до projection.
-- Facet resolution и facet metadata должны работать только с configured visible
-  root storefront values. Enabled source children могут резолвиться в root
-  display value, но наружу и в `valueKey` возвращается root value id.
+- Facet resolution и facet metadata должны работать только с enabled root display
+  storefront values from real catalog schema (`facet_value.kind = 'display',
+  parent_id IS NULL, enabled = true, reference_status = 'VALID'`). Enabled source
+  children могут резолвиться в root display value через `parent_id`, но наружу и
+  в `valueKey` возвращается root value id.
+- Listing runtime Drizzle projection for `catalog.facet_value` must include the
+  columns used by storefront SQL (`sort_index`, `enabled`, `reference_status`) or
+  raw SQL compiler must reference them directly. Do not treat the current narrow
+  runtime model as the full DB schema.
+- Missing public facet value не должен silently drop-аться. Shared SQL fragment
+  обязан либо вернуть все requested pairs, либо явно сигнализировать repository
+  mapper-у domain error того же вида, что текущий resolver.
+- Valid resolved value без posting row не должен silently drop-аться. Required
+  filter group строится от normalized request groups, а не от найденных posting
+  rows: если в OR-группе не найден ни один bitmap, эта группа становится empty
+  bitmap и весь `matches` short-circuit-ится в empty result. Это относится к
+  product facets, option facets и vendor ids.
+- Facet resolution guard является branch-wide invariant. Допустимые реализации:
+  pre-SQL resolution/validation до запуска Query A/B/C/D/E либо identical guard в
+  каждом SQL branch. Запрещено поведение, при котором Query A возвращает
+  `facetResolutionError`, а Query B/D/E молча считают aggregates без missing
+  filter.
 
 ## Query A: page rows + hasNextPage
 
@@ -296,7 +314,10 @@ Shared fragments обязаны сохранять текущую storefront fil
 - вернуть page rows;
 - вернуть `hasNextPage`.
 
-Форма SQL:
+Форма SQL ниже показывает shared CTE и product-sort branch для `newest`.
+Production compiler не должен использовать этот `page_scan` как общий branch
+для всех sort kinds: каждый supported collector генерирует свой `ORDER BY`,
+cursor payload и keyset predicate.
 
 ```sql
 WITH
@@ -309,11 +330,12 @@ input AS (
     $5::uuid AS scope_id,
     $6::text AS sort_kind,
     $7::int AS first,
-    $8::jsonb AS facet_filters_json,
-    $9::jsonb AS vendor_ids_json,
-    $10::jsonb AS price_filter_json,
-    $11::jsonb AS stock_filter_json,
-    $12::jsonb AS cursor_json
+    COALESCE($8::jsonb, '[]'::jsonb) AS facet_filters_json,
+    COALESCE($9::jsonb, '[]'::jsonb) AS vendor_ids_json,
+    COALESCE($10::jsonb, '{}'::jsonb) AS price_filter_json,
+    COALESCE($11::jsonb, '{}'::jsonb) AS stock_filter_json,
+    COALESCE($12::jsonb, '{}'::jsonb) AS cursor_json,
+    NULLIF($13::text, '') AS normalized_search_query
 ),
 cursor_values AS (
   SELECT
@@ -325,13 +347,15 @@ cursor_values AS (
   FROM input i
 ),
 requested_facets AS (
-  SELECT r.facet_slug, r.value_handle
+  SELECT DISTINCT r.facet_slug, r.value_handle
   FROM input i
   CROSS JOIN LATERAL jsonb_to_recordset(i.facet_filters_json)
     AS r(facet_slug text, value_handle text)
 ),
 resolved_facets AS (
   SELECT DISTINCT
+    r.facet_slug AS requested_facet_slug,
+    r.value_handle AS requested_value_handle,
     f.id::text AS facet_id,
     f.facet_type,
     COALESCE(parent_fv.id, fv.id)::text AS facet_value_id,
@@ -364,27 +388,90 @@ resolved_facets AS (
       AND parent_fv.id IS NOT NULL
     )
 ),
+missing_requested_facets AS (
+  SELECT r.facet_slug, r.value_handle
+  FROM requested_facets r
+  LEFT JOIN resolved_facets rf
+    ON rf.requested_facet_slug = r.facet_slug
+   AND rf.requested_value_handle = r.value_handle
+  WHERE rf.value_key IS NULL
+),
+facet_resolution_guard AS (
+  SELECT
+    COUNT(*)::int AS missing_count,
+    MIN(facet_slug || ':' || value_handle) AS first_missing_value
+  FROM missing_requested_facets
+),
+search_candidate_products AS (
+  SELECT
+    CASE
+      WHEN i.scope_kind = 'search'
+      THEN COALESCE((
+        SELECT rb_build_agg(c.product_doc_id)
+        FROM (
+          -- Full BM25 candidate relation for normalized project + locale + query.
+          -- This relation must not be top-K capped before aggregates.
+          SELECT pli.product_doc_id
+          FROM listing.product_title_bm25_search_index ptsi
+          JOIN listing.product_listing_index pli
+            ON pli.project_id = ptsi.project_id
+           AND pli.product_id = ptsi.product_id
+          WHERE ptsi.project_id = i.project_id
+            AND ptsi.locale = i.locale
+            AND ptsi.status = 'published'
+            AND pli.status = 'published'
+            AND ptsi.title @@@ i.normalized_search_query
+        ) c
+      ), rb_build_empty())
+      ELSE NULL
+    END AS bitmap
+  FROM input i
+),
+rule_collection_scope AS (
+  -- For non-rule scopes this CTE returns one NULL row. For rule_collection the
+  -- production compiler must replace this CTE with exactly one row containing:
+  --   product_bitmap: product-level rule bitmap or projection of variant_bitmap
+  --   variant_bitmap: same-variant rule bitmap on variant_doc_id, or NULL
+  -- variant_bitmap must already be limited to in-stock variants.
+  -- Leaving NULL/empty bitmaps for an actual rule_collection is a compiler bug.
+  SELECT
+    NULL::roaringbitmap AS product_bitmap,
+    NULL::roaringbitmap AS variant_bitmap
+  FROM input i
+),
+scope_variant_filters AS (
+  SELECT variant_bitmap AS bitmap
+  FROM rule_collection_scope
+),
 scope_products AS (
-  SELECT COALESCE((
-    SELECT p.bitmap
-    FROM listing.listing_posting_bitmap p
-    JOIN input i ON true
-    WHERE p.project_id = i.project_id
-      AND p.entity_type = 'product'
-      AND p.field = CASE
-        WHEN i.scope_kind = 'category' THEN 'category'
-        WHEN i.scope_kind = 'manual_collection' THEN 'collection'
-        ELSE '__unsupported__'
-      END
-      AND p.value_key = i.scope_id::text
-  ), (
-    SELECT COALESCE(rb_build_agg(pli.product_doc_id), rb_build_empty())
-    FROM listing.product_listing_index pli
-    JOIN input i ON true
-    WHERE pli.project_id = i.project_id
-      AND pli.status = 'published'
-      AND i.scope_kind IN ('global', 'search')
-  ), rb_build_empty()) AS bitmap
+  SELECT
+    CASE
+      WHEN i.scope_kind IN ('category', 'manual_collection')
+      THEN COALESCE((
+        SELECT p.bitmap
+        FROM listing.listing_posting_bitmap p
+        WHERE p.project_id = i.project_id
+          AND p.entity_type = 'product'
+          AND p.field = CASE
+            WHEN i.scope_kind = 'category' THEN 'category'
+            ELSE 'collection'
+          END
+          AND p.value_key = i.scope_id::text
+      ), rb_build_empty())
+      WHEN i.scope_kind = 'global'
+      THEN COALESCE((
+        SELECT rb_build_agg(pli.product_doc_id)
+        FROM listing.product_listing_index pli
+        WHERE pli.project_id = i.project_id
+          AND pli.status = 'published'
+      ), rb_build_empty())
+      WHEN i.scope_kind = 'search'
+      THEN (SELECT bitmap FROM search_candidate_products)
+      WHEN i.scope_kind = 'rule_collection'
+      THEN (SELECT product_bitmap FROM rule_collection_scope)
+      ELSE rb_build_empty()
+    END AS bitmap
+  FROM input i
 ),
 published_products AS (
   SELECT COALESCE(rb_build_agg(pli.product_doc_id), rb_build_empty()) AS bitmap
@@ -396,10 +483,13 @@ published_products AS (
 product_filter_groups AS (
   SELECT
     rf.facet_id,
-    COALESCE(rb_or_agg(p.bitmap), rb_build_empty()) AS bitmap
+    COALESCE(
+      rb_or_agg(p.bitmap) FILTER (WHERE p.bitmap IS NOT NULL),
+      rb_build_empty()
+    ) AS bitmap
   FROM resolved_facets rf
   JOIN input i ON true
-  JOIN listing.listing_posting_bitmap p
+  LEFT JOIN listing.listing_posting_bitmap p
     ON p.project_id = i.project_id
    AND p.entity_type = 'product'
    AND p.field = 'facet'
@@ -410,10 +500,13 @@ product_filter_groups AS (
 vendor_filter_group AS (
   SELECT
     '__vendor__'::text AS facet_id,
-    COALESCE(rb_or_agg(p.bitmap), rb_build_empty()) AS bitmap
+    COALESCE(
+      rb_or_agg(p.bitmap) FILTER (WHERE p.bitmap IS NOT NULL),
+      rb_build_empty()
+    ) AS bitmap
   FROM input i
   CROSS JOIN LATERAL jsonb_array_elements_text(i.vendor_ids_json) v(vendor_id)
-  JOIN listing.listing_posting_bitmap p
+  LEFT JOIN listing.listing_posting_bitmap p
     ON p.project_id = i.project_id
    AND p.entity_type = 'product'
    AND p.field = 'vendor'
@@ -429,6 +522,7 @@ active_stock_product_filter AS (
          WHERE rf.facet_type = 'OPTION'
        )
        AND i.price_filter_json = '{}'::jsonb
+       AND (SELECT bitmap FROM scope_variant_filters) IS NULL
       THEN COALESCE((
         SELECT rb_build_agg(pli.product_doc_id)
         FROM listing.product_listing_index pli
@@ -458,10 +552,13 @@ product_filters AS (
 option_filter_groups AS (
   SELECT
     rf.facet_id,
-    COALESCE(rb_or_agg(p.bitmap), rb_build_empty()) AS bitmap
+    COALESCE(
+      rb_or_agg(p.bitmap) FILTER (WHERE p.bitmap IS NOT NULL),
+      rb_build_empty()
+    ) AS bitmap
   FROM resolved_facets rf
   JOIN input i ON true
-  JOIN listing.listing_posting_bitmap p
+  LEFT JOIN listing.listing_posting_bitmap p
     ON p.project_id = i.project_id
    AND p.entity_type = 'variant'
    AND p.field = 'facet'
@@ -479,13 +576,14 @@ in_stock_variants AS (
 active_stock_variant_filter AS (
   SELECT
     CASE
-      WHEN i.stock_filter_json ? 'value'
-      THEN COALESCE((
-        SELECT rb_build_agg(vli.variant_doc_id)
-        FROM listing.variant_listing_index vli
-        WHERE vli.project_id = i.project_id
-          AND vli.in_stock = (i.stock_filter_json->>'value')::boolean
-      ), rb_build_empty())
+      WHEN (i.stock_filter_json->>'value')::boolean = true
+      THEN (SELECT bitmap FROM in_stock_variants)
+      WHEN (i.stock_filter_json->>'value')::boolean = false
+       AND (
+         EXISTS (SELECT 1 FROM option_filter_groups)
+         OR i.price_filter_json <> '{}'::jsonb
+       )
+      THEN rb_build_empty()
       WHEN EXISTS (SELECT 1 FROM option_filter_groups)
         OR i.price_filter_json <> '{}'::jsonb
       THEN (SELECT bitmap FROM in_stock_variants)
@@ -500,6 +598,12 @@ price_variant_filter AS (
       THEN COALESCE((
         SELECT rb_build_agg(vp.variant_doc_id)
         FROM listing.listing_posting_variant_price vp
+        JOIN listing.variant_listing_index vli
+          ON vli.project_id = vp.project_id
+         AND vli.variant_doc_id = vp.variant_doc_id
+         AND vli.product_doc_id = vp.product_doc_id
+         AND vli.product_id = vp.product_id
+         AND vli.in_stock = true
         WHERE vp.project_id = i.project_id
           AND vp.currency = i.currency
           AND (
@@ -521,9 +625,12 @@ variant_filters AS (
       WHEN EXISTS (SELECT 1 FROM option_filter_groups)
         OR (SELECT bitmap FROM price_variant_filter) IS NOT NULL
         OR (SELECT bitmap FROM active_stock_variant_filter) IS NOT NULL
+        OR (SELECT bitmap FROM scope_variant_filters) IS NOT NULL
       THEN (
         SELECT rb_and_agg(bitmap)
         FROM (
+          SELECT bitmap FROM scope_variant_filters WHERE bitmap IS NOT NULL
+          UNION ALL
           SELECT bitmap FROM option_filter_groups
           UNION ALL
           SELECT bitmap FROM price_variant_filter WHERE bitmap IS NOT NULL
@@ -590,9 +697,11 @@ page_scan AS (
     s.text_value
   FROM listing.listing_posting_product_sort s
   JOIN input i ON true
+  CROSS JOIN facet_resolution_guard frg
   CROSS JOIN cursor_values c
   CROSS JOIN matches m
   WHERE s.project_id = i.project_id
+    AND frg.missing_count = 0
     AND s.sort_kind = i.sort_kind
     AND s.locale = CASE WHEN i.sort_kind = 'name' THEN i.locale ELSE '' END
     AND s.currency = CASE
@@ -673,6 +782,18 @@ page_scan AS (
   LIMIT (SELECT first + 1 FROM input)
 )
 SELECT jsonb_build_object(
+  'facetResolutionError',
+    (
+      SELECT CASE
+        WHEN missing_count > 0
+        THEN jsonb_build_object(
+          'code', 'UNKNOWN_FACET_VALUE',
+          'value', first_missing_value
+        )
+        ELSE NULL
+      END
+      FROM facet_resolution_guard
+    ),
   'rows',
     COALESCE((
       SELECT jsonb_agg(to_jsonb(row_data))
@@ -692,16 +813,27 @@ Notes:
 - Для `manual`, `created`, `name`, `price_asc`, `price_desc` compiler должен
   генерировать конкретный `ORDER BY` и matching keyset seek predicate, а не
   универсальный CASE.
+- Для product aggregate `price_asc` / `price_desc` collector не должен терять
+  unpriced products. Он обязан читать product sort rows с `bigint_value IS NULL`
+  и сохранять `NULLS LAST` semantics, если нет active option/price predicate,
+  требующего matched variant price collector.
 - Для `manual` product-sort branch фильтр по `manual_scope_id` обязателен. Для
   category scope это `category_id`, для manual collection scope это
   `collection_id`, для остальных product-sort branches используется zero UUID.
 - Для matched variant price sort compiler должен заменить `page_scan` на branch
   по `listing_posting_variant_price`.
 - Для relevance sort compiler должен заменить `page_scan` на BM25 branch.
+- `facetResolutionError` является internal field SQL result. Repository mapper
+  обязан бросить domain error до маппинга page rows, если это поле не `null`; в
+  public listing response это поле не возвращается.
 - Query A/B/C/D/E должны использовать один и тот же compiler для `vendor`,
   `price`, stock-only, search scope и rule collection variant scope. Пример выше
   показывает форму CTE, но production compiler обязан подставить также
   `scope_variant_filters` и BM25 scope branch для соответствующих scopes.
+- `rule_collection_scope` в примере является compiler insertion point.
+  Production SQL не имеет права оставить actual rule collection с `NULL` product
+  scope или empty scope по умолчанию: product-level rules, variant-level rules and
+  their projection must be compiled according to the rule collection input.
 
 ## Query B: totalCount
 
@@ -719,9 +851,27 @@ total_count AS (
   SELECT rb_cardinality((SELECT bitmap FROM matches))::int AS value
 )
 SELECT jsonb_build_object(
+  'facetResolutionError',
+    (
+      SELECT CASE
+        WHEN missing_count > 0
+        THEN jsonb_build_object(
+          'code', 'UNKNOWN_FACET_VALUE',
+          'value', first_missing_value
+        )
+        ELSE NULL
+      END
+      FROM facet_resolution_guard
+    ),
   'totalCount', (SELECT value FROM total_count)
 ) AS result;
 ```
+
+Notes:
+
+- Если implementation использует SQL-level facet resolution guard вместо
+  pre-SQL validation, Query B возвращает тот же internal `facetResolutionError`,
+  что Query A, и mapper бросает domain error до чтения `totalCount`.
 
 ## Query C: facets metadata без counts
 
@@ -752,9 +902,11 @@ scope_variants AS (
   FROM listing.variant_listing_index vli
   JOIN input i ON true
   CROSS JOIN scope_product_base sp
+  CROSS JOIN scope_variant_filters svf
   WHERE vli.project_id = i.project_id
     AND vli.in_stock = true
     AND sp.bitmap @> vli.product_doc_id
+    AND (svf.bitmap IS NULL OR svf.bitmap @> vli.variant_doc_id)
 ),
 candidate_values AS (
   SELECT DISTINCT
@@ -846,10 +998,10 @@ Notes:
   через `entity_type = 'product'` и option postings через
   `entity_type = 'variant'`. Нельзя проверять option values через product doc id
   bitmap.
-- Query C должен возвращать только configured visible root values
+- Query C должен возвращать только enabled root display values
   (`kind = 'display'`, `parent_id IS NULL`, `enabled = true`,
   `reference_status = 'VALID'`) и сортировать values по storefront order
-  (`sort_index`, затем stable id), а не по UUID-only order.
+  (`sort_index`, затем stable id).
 - Для category/manual scopes `scope_product_base` должен пересекать scope bitmap
   с `published_products`, как текущий `productPostingScopeBitmapSql(...)`.
 - Query C не должен парсить `p.value_key` через `split_part(...)::uuid`.
@@ -873,6 +1025,11 @@ Facet counts являются самой тяжелой частью. Их ну�
 collector, total count и facets metadata, чтобы PostgreSQL строил план именно
 под aggregation.
 
+Query D не имеет права silently truncate counts. Если количество configured
+visible candidate values большое, Query D всё равно должен вернуть полный
+counts map для всех values, которые входят в metadata. `LIMIT` в count SQL
+запрещен, потому это создает partial counts при full response contract.
+
 Форма SQL:
 
 ```sql
@@ -891,9 +1048,11 @@ scope_variants AS (
   FROM listing.variant_listing_index vli
   JOIN input i ON true
   CROSS JOIN scope_product_base sp
+  CROSS JOIN scope_variant_filters svf
   WHERE vli.project_id = i.project_id
     AND vli.in_stock = true
     AND sp.bitmap @> vli.product_doc_id
+    AND (svf.bitmap IS NULL OR svf.bitmap @> vli.variant_doc_id)
 ),
 candidate_values AS (
   SELECT DISTINCT
@@ -943,14 +1102,12 @@ product_facet_values AS (
   FROM visible_facet_values
   WHERE facet_type IN ('TAG', 'FEATURE')
   ORDER BY facet_id, value_sort, facet_value_id
-  LIMIT $counted_facet_value_limit::int
 ),
 option_facet_values AS (
   SELECT *
   FROM visible_facet_values
   WHERE facet_type = 'OPTION'
   ORDER BY facet_id, value_sort, facet_value_id
-  LIMIT $counted_option_facet_value_limit::int
 ),
 facet_values AS (
   SELECT * FROM product_facet_values
@@ -1070,31 +1227,38 @@ option_facet_counts AS (
               ), rb_build_empty())
             END AS product_bitmap
           FROM (
-            SELECT
-              CASE
-                WHEN isolated_option_filters.bitmap IS NOT NULL
-                 AND price_variant_filter.bitmap IS NOT NULL
-                THEN in_stock_variants.bitmap
-                  & isolated_option_filters.bitmap
-                  & price_variant_filter.bitmap
-                  & ovb.value_bitmap
-                WHEN isolated_option_filters.bitmap IS NOT NULL
-                THEN in_stock_variants.bitmap
-                  & isolated_option_filters.bitmap
-                  & ovb.value_bitmap
-                WHEN price_variant_filter.bitmap IS NOT NULL
-                THEN in_stock_variants.bitmap
-                  & price_variant_filter.bitmap
-                  & ovb.value_bitmap
-                ELSE in_stock_variants.bitmap & ovb.value_bitmap
-              END AS bitmap
+            SELECT rb_and_agg(option_variant_parts.bitmap) AS bitmap
             FROM in_stock_variants
+            CROSS JOIN LATERAL (
+              SELECT COALESCE(
+                (SELECT bitmap FROM active_stock_variant_filter),
+                in_stock_variants.bitmap
+              ) AS bitmap
+            ) option_count_stock_filter
             CROSS JOIN price_variant_filter
             CROSS JOIN LATERAL (
               SELECT rb_and_agg(ofg.bitmap) AS bitmap
               FROM option_filter_groups ofg
               WHERE ofg.facet_id <> ovb.facet_id
             ) isolated_option_filters
+            CROSS JOIN LATERAL (
+              SELECT bitmap
+              FROM (
+                SELECT option_count_stock_filter.bitmap
+                UNION ALL
+                SELECT scope_variant_filters.bitmap
+                FROM scope_variant_filters
+                WHERE scope_variant_filters.bitmap IS NOT NULL
+                UNION ALL
+                SELECT isolated_option_filters.bitmap
+                WHERE isolated_option_filters.bitmap IS NOT NULL
+                UNION ALL
+                SELECT price_variant_filter.bitmap
+                WHERE price_variant_filter.bitmap IS NOT NULL
+                UNION ALL
+                SELECT ovb.value_bitmap
+              ) option_variant_parts
+            ) option_variant_parts
           ) option_variant_bitmap
           JOIN input i ON true
           JOIN listing.listing_posting_variant_projection_block b
@@ -1134,10 +1298,12 @@ FROM (
 
 Notes:
 
-- `product_facet_values` и `option_facet_values` должны быть ограничены
-  отдельными complexity budgets до bitmap aggregation. Общий mixed `LIMIT` перед
-  разделением по facet type запрещен, потому product values могут вытеснить
-  option values и сломать completeness counts для допустимого request.
+- `product_facet_values` и `option_facet_values` не должны ограничиваться через
+  SQL `LIMIT`: counts обязаны быть complete для всех values, которые Query C
+  вернула в metadata.
+- Если implementation использует SQL-level facet resolution guard вместо
+  pre-SQL validation, Query D также возвращает internal `facetResolutionError` и
+  mapper бросает domain error до merge counts с metadata.
 - Query D должен использовать те же product/variant candidate rules, что Query C.
   Product candidate values проверяются через `scope_product_base`, option
   candidate values должны быть ограничены variant scope branch-ом compiler-а, а
@@ -1148,15 +1314,19 @@ Notes:
 - `facet_values` не должен парсить `p.value_key` через
   `split_part(...)::uuid`. Query D должен получать тот же opaque `valueKey`,
   который Query C строит из typed metadata.
-- Query D должен считать только configured visible root values
+- Query D должен считать только enabled root display values
   (`kind = 'display'`, `parent_id IS NULL`, `enabled = true`,
   `reference_status = 'VALID'`) и использовать тот же storefront value order,
-  что Query C, при применении deterministic budgets.
+  что Query C. Counts должны быть complete для всех values, которые Query C
+  вернет в metadata.
 - Product counts исключают active product group того же `facet_id`.
 - Product counts не должны исключать другие product-level filters: vendor group и
   active stock-only product filter остаются в isolated product base.
 - Option counts исключают active option group того же `facet_id`, но сохраняют
   same-variant semantics до projection.
+- Option counts сохраняют active stock predicate на variant base. Если active
+  `in_stock = false` пришел вместе с option/price path, stock bitmap является
+  empty bitmap, потому out-of-stock variants не могут давать option counts.
 - Option counts должны сохранять active price predicate в variant base. Иначе
   counts при active price filter описывают не текущий filtered listing scope.
 - Query D возвращает только counts, не metadata.
@@ -1180,55 +1350,88 @@ Notes:
 - `variant_filters_without_price` для `priceRange`;
 - `variant_filters_without_stock` для `inStockCount`.
 
-`variant_filters_without_price` должен включать active option facet groups и
-active stock predicate, но не должен включать active price predicate. Иначе
-`priceRange` станет диапазоном внутри уже выбранного price bucket вместо
-диапазона доступных цен для текущих product/option/stock filters.
+`variant_filters_without_price` должен включать rule-level variant scope, active
+option facet groups и active stock predicate, но не должен включать active price
+predicate. Для `priceRange` stock isolation отличается от Query A:
+`in_stock = true` означает in-stock variants, `in_stock = false` означает empty
+variant bitmap и приводит к `priceRange = null`, потому price index читает только
+in-stock priced variants. Иначе `priceRange` станет диапазоном внутри уже
+выбранного price bucket вместо диапазона доступных цен для текущих
+product/option/stock filters.
 
-`variant_filters_without_stock` должен включать active option facet groups и
-active price predicate, но не должен включать active stock predicate. Иначе
-active option/price predicates могут потеряться при расчете `inStockCount`.
+`variant_filters_without_stock` должен включать rule-level variant scope, active
+option facet groups и active price predicate, но не должен включать active stock
+predicate. Иначе active option/price predicates могут потеряться при расчете
+`inStockCount`.
 
 ```sql
 WITH
--- input/resolved_facets/scope/published/product_filters/
--- option_filter_groups/in_stock_variants CTE как в Query A
+-- input/resolved_facets/scope/published/product_filter_groups/
+-- vendor_filter_group/option_filter_groups/in_stock_variants CTE как в Query A
 -- scope CTE обязан включать search BM25 bitmap и rule collection variant scope
--- product_filters здесь не включает active in-stock predicate
+-- product_filters_without_stock здесь не включает active in-stock predicate
 -- price_variant_filter строится из active price predicate, NULL если его нет
--- active_stock_variant_filter строится из active in-stock predicate, NULL если его нет
+-- price_range_stock_filter строится отдельно от Query A stock CTE:
+--   true => in_stock_variants, false => empty bitmap, missing => NULL
+product_filters_without_stock AS (
+  SELECT rb_and_agg(bitmap) AS bitmap
+  FROM (
+    SELECT bitmap FROM product_filter_groups
+    UNION ALL
+    SELECT bitmap FROM vendor_filter_group
+    WHERE EXISTS (
+      SELECT 1
+      FROM input i
+      CROSS JOIN LATERAL jsonb_array_elements_text(i.vendor_ids_json) v(vendor_id)
+    )
+  ) x
+),
 product_base AS (
   SELECT
     CASE
-      WHEN product_filters.bitmap IS NOT NULL
-      THEN scope_products.bitmap & published_products.bitmap & product_filters.bitmap
+      WHEN product_filters_without_stock.bitmap IS NOT NULL
+      THEN scope_products.bitmap & published_products.bitmap & product_filters_without_stock.bitmap
       ELSE scope_products.bitmap & published_products.bitmap
     END AS bitmap
   FROM scope_products
   CROSS JOIN published_products
-  CROSS JOIN product_filters
+  CROSS JOIN product_filters_without_stock
 ),
 option_variant_filters AS (
+  SELECT rb_and_agg(bitmap) AS bitmap
+  FROM (
+    SELECT bitmap
+    FROM scope_variant_filters
+    WHERE bitmap IS NOT NULL
+    UNION ALL
+    SELECT bitmap
+    FROM option_filter_groups
+  ) option_variant_filter_parts
+),
+price_range_stock_filter AS (
   SELECT
     CASE
-      WHEN EXISTS (SELECT 1 FROM option_filter_groups)
-      THEN (SELECT rb_and_agg(bitmap) FROM option_filter_groups)
+      WHEN (i.stock_filter_json->>'value')::boolean = true
+      THEN (SELECT bitmap FROM in_stock_variants)
+      WHEN (i.stock_filter_json->>'value')::boolean = false
+      THEN rb_build_empty()
       ELSE NULL
     END AS bitmap
+  FROM input i
 ),
 variant_filters_without_price AS (
   SELECT
     CASE
-      WHEN ovf.bitmap IS NOT NULL AND asf.bitmap IS NOT NULL
-      THEN ovf.bitmap & asf.bitmap
+      WHEN ovf.bitmap IS NOT NULL AND prsf.bitmap IS NOT NULL
+      THEN ovf.bitmap & prsf.bitmap
       WHEN ovf.bitmap IS NOT NULL
       THEN ovf.bitmap
-      WHEN asf.bitmap IS NOT NULL
-      THEN asf.bitmap
+      WHEN prsf.bitmap IS NOT NULL
+      THEN prsf.bitmap
       ELSE NULL
     END AS bitmap
   FROM option_variant_filters ovf
-  CROSS JOIN active_stock_variant_filter asf
+  CROSS JOIN price_range_stock_filter prsf
 ),
 variant_filters_without_stock AS (
   SELECT
@@ -1325,9 +1528,11 @@ SELECT jsonb_build_object(
 
 Notes:
 
-- `product_base` не должен включать active in-stock predicate. Stock predicate
-  обрабатывается только через `active_stock_variant_filter` для `priceRange` и
-  полностью исключается из `inStockCount`.
+- `product_base` не должен включать active in-stock predicate. Он строится через
+  `product_filters_without_stock`, где остаются product facet/vendor filters, но
+  нет `active_stock_product_filter`. Stock predicate обрабатывается только через
+  `price_range_stock_filter` для `priceRange` и полностью исключается из
+  `inStockCount`.
 - `priceRange` исключает active price predicate, но сохраняет product, option и
   active stock filters. Если active stock filter равен `false`, price range
   возвращается как `null`, потому price index читает только in-stock variants.
@@ -1339,6 +1544,9 @@ Notes:
   сохранять rule-level variant predicates до projection.
 - Query E отделен от facet counts, потому virtual facets обычно дешевле и не
   должны ждать тяжелую facet bucket aggregation внутри одного плана.
+- Если implementation использует SQL-level facet resolution guard вместо
+  pre-SQL validation, Query E также возвращает internal `facetResolutionError` и
+  mapper бросает domain error до чтения `priceRange` / `inStockCount`.
 
 ## Parallel execution requirements
 
@@ -1378,27 +1586,6 @@ const result = await runBoundedParallel(
 );
 ```
 
-## Complexity budget для 100ms
-
-Добавить pre-SQL validation. Запросы за пределами бюджета отклоняются до БД.
-
-Начальные лимиты:
-
-| Параметр | Лимит |
-| --- | ---: |
-| `first` | 60 |
-| facet filter groups | 8 |
-| values per facet group | 24 |
-| total requested facet values | 96 |
-| vendor ids | 48 |
-| rule collection predicates | 24 |
-| search query length after normalize | 128 |
-| counted product facet values per request | 120 |
-| counted option facet values per request | 60 |
-
-Лимиты должны быть config-driven, но default должен быть строгим. Если продукту
-нужно поднять лимит, сначала требуется `EXPLAIN ANALYZE` на representative data.
-
 ## Порядок внедрения
 
 ### Фаза 0. Public contract update
@@ -1418,9 +1605,9 @@ Acceptance:
 - количество SQL round-trip на request;
 - duration каждого SQL statement;
 - total duration;
-- filter complexity;
+- filter shape stats;
 - selected collector;
-- aggregate complexity: counted facet values, option values, rule predicates.
+- aggregate workload: counted facet values, option values, rule predicates.
 
 Результат фазы: baseline p50/p95/p99 и список самых дорогих branches.
 
@@ -1447,7 +1634,12 @@ Acceptance:
 
 - shared fragments компилируются одинаково для всех branches;
 - facet resolution больше не является отдельным DB round-trip;
-- missing facet value дает тот же domain error.
+- missing facet value дает тот же domain error во всех branches или отклоняется
+  до запуска branches;
+- enabled root display/source-child facet value resolution одинаковый для active
+  filter resolution, Query C metadata и Query D counts, and uses real catalog
+  schema columns from migrations, including `sort_index`, `enabled` and
+  `reference_status`.
 
 ### Фаза 3. Query A
 
@@ -1456,7 +1648,13 @@ Acceptance:
 Acceptance:
 
 - Query A делает 1 SQL round-trip;
-- покрыты product sort collectors;
+- покрыты все product sort collectors (`manual`, `newest`, `created`, `name`,
+  `price_asc`, `price_desc`) отдельными order/seek templates;
+- matched variant price collector использует `variant_doc_id` tie-breaker и
+  same-variant bitmap;
+- product aggregate price collectors preserve unpriced products with
+  `NULLS LAST`;
+- relevance collector использует полный BM25 candidate scope;
 - cursor/hash validation сохраняется.
 
 ### Фаза 4. Query B
@@ -1478,7 +1676,7 @@ Acceptance:
 - Query C делает 1 SQL round-trip;
 - возвращает facets и values с `valueKey`;
 - не считает counts;
-- возвращает только configured visible root values;
+- возвращает только enabled root display values;
 - порядок facets/values соответствует storefront order;
 - search/rule collection scope совпадает с Query A/B/D/E;
 - `valueKey` строится из typed metadata через shared helper/compiler, без
@@ -1494,8 +1692,9 @@ Acceptance:
 - product facet isolation корректна;
 - option facet same-variant semantics корректна;
 - возвращает counts map по `valueKey`;
-- product и option counted values ограничены отдельными complexity budgets;
-- counts считаются только для configured visible root values;
+- product и option counts считаются без silent truncation;
+- counts считаются только для enabled root display values;
+- counts complete для всех values из Query C metadata;
 - search/rule collection scope совпадает с Query A/B/C/E;
 - counts используют тот же opaque `valueKey`, что Query C, без ad hoc SQL
   parsing.
@@ -1510,6 +1709,8 @@ Acceptance:
 - active price predicate исключается из price range;
 - price range сохраняет active option facet filters;
 - active in-stock predicate исключается из in-stock count;
+- active `in_stock = false` возвращает `priceRange = null`, но не исключается из
+  `inStockCount`;
 - `variant_filters_without_price` и `variant_filters_without_stock`
   компилируются отдельно;
 - `product_base` не включает active in-stock predicate;
@@ -1553,18 +1754,16 @@ Acceptance:
 - orchestration включается только после parity для search, rule collections,
   relevance и matched variant price collector.
 
-### Фаза 10. Hard SLR gate
+### Фаза 10. Performance gate
 
 Включить:
 
-- complexity budget;
-- metrics for complexity rejection;
+- performance metrics for each parallel branch;
 - removal of sequential fan-out path after supported scope/collector parity.
 
 Acceptance:
 
-- любой допустимый request укладывается в `<= 100ms` на agreed dataset;
-- недопустимый request отклоняется до SQL;
+- repository p95 укладывается в `<= 100ms` на agreed representative dataset;
 - нет alternate response path, который возвращает медленный или partial response.
 
 ## Проверка корректности
@@ -1630,7 +1829,8 @@ No materialized view/table/cache usage
   в representative performance profiling.
 - READ COMMITTED допускает небольшую рассинхронизацию между page и counts при
   параллельном listing sync. Для storefront это принимается как default.
-- Facet counts остаются главным риском для 100ms. Complexity budget обязателен.
+- Facet counts остаются главным риском для 100ms и требуют отдельного profiling
+  на representative data.
 - Без новых индексов, cache и материализации нельзя исправить все data-shape
   проблемы только SQL rewrite.
 
@@ -1640,6 +1840,6 @@ No materialized view/table/cache usage
 Full listing response: <= 5 PostgreSQL queries
 Execution model: 5 parallel independent read branches
 Required response fields: rows, hasNextPage, totalCount, facets, priceRange, inStockCount
-SLR: <= 100ms for every request accepted by complexity budget
+Repository duration p95: <= 100ms on agreed representative dataset
 Cache/materialization/new PostgreSQL data: none
 ```
