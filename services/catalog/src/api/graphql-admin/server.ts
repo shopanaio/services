@@ -87,7 +87,6 @@ export async function startServer(serverConfig: ServerConfig) {
     "features.graphql",
     "inventory-item.graphql",
     "inventory-widget.graphql",
-    "listing.graphql",
     "media.graphql",
     "options.graphql",
     "physical.graphql",

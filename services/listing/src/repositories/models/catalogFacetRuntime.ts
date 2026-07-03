@@ -12,6 +12,7 @@ export const catalogFacetRuntime = catalogSchema.table("facet", {
   id: uuid("id").primaryKey(),
   projectId: uuid("project_id").notNull(),
   facetType: varchar("facet_type", { length: 32 }).notNull(),
+  uiType: varchar("ui_type", { length: 16 }).notNull().default("checkbox"),
   lexoRank: varchar("lexo_rank", { length: 64 }).notNull(),
   slug: varchar("slug", { length: 255 }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }),
@@ -25,6 +26,7 @@ export const catalogFacetValueRuntime = catalogSchema.table("facet_value", {
   parentId: uuid("parent_id"),
   kind: varchar("kind", { length: 16 }).notNull(),
   handle: text("handle").notNull(),
+  swatchId: uuid("swatch_id"),
   sortIndex: integer("sort_index").notNull().default(0),
   enabled: boolean("enabled").notNull().default(true),
   referenceStatus: varchar("reference_status", { length: 32 })

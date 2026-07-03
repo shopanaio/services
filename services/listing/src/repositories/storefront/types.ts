@@ -204,14 +204,18 @@ export interface StorefrontListingRepositoryResult {
 export interface StorefrontListingFacetResult {
   facetId: string;
   facetSlug: string;
+  facetLabel: string | null;
   facetType: FacetRuntimeType;
+  uiType: string | null;
   values: StorefrontListingFacetValueResult[];
 }
 
 export interface StorefrontListingFacetValueResult {
   facetValueId: string;
   valueHandle: string;
+  valueLabel: string | null;
   valueKey: string;
+  swatchId: string | null;
   count: number;
 }
 

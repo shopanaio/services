@@ -1,0 +1,111 @@
+import type {
+  StorefrontListingInput,
+  StorefrontListingRepositoryResult,
+} from "../../repositories/storefront/types.js";
+import { ListingType } from "./ListingType.js";
+import {
+  type ListingFacet,
+  type ListingQueryArgs,
+} from "./ListingQueryTypes.js";
+import { mapListingFacets } from "./listingFacetMapper.js";
+import {
+  loadProductKindMap,
+  toListingNodeReference,
+} from "./listingReferences.js";
+import {
+  throwGraphqlListingError,
+  toStorefrontListingInput,
+} from "./listingInput.js";
+
+export class ListingConnectionResolver extends ListingType<
+  ListingQueryArgs,
+  StorefrontListingRepositoryResult
+> {
+  private repositoryInput: StorefrontListingInput | null = null;
+
+  async $preload() {
+    try {
+      return await this.$ctx.kernel
+        .getServices()
+        .repository.storefrontListingQuery.getStorefrontListing(
+          this.toRepositoryInput()
+        );
+    } catch (error) {
+      throwGraphqlListingError(error);
+    }
+  }
+
+  async edges() {
+    const rows = (await this.$get("rows")) ?? [];
+    const kinds = await loadProductKindMap(
+      this.$ctx.kernel.getServices().repository,
+      rows.map((row) => row.productId)
+    );
+
+    return rows.map((row) => ({
+      cursor: row.cursor ?? "",
+      node: toListingNodeReference(row.productId, kinds.get(row.productId)),
+    }));
+  }
+
+  async pageInfo() {
+    const rows = (await this.$get("rows")) ?? [];
+    const firstCursor = rows[0]?.cursor ?? null;
+    const lastCursor = rows[rows.length - 1]?.cursor ?? null;
+
+    return {
+      hasNextPage: (await this.$get("hasNextPage")) ?? false,
+      hasPreviousPage: false,
+      startCursor: firstCursor,
+      endCursor: lastCursor,
+    };
+  }
+
+  async totalCount() {
+    return (await this.$get("totalCount")) ?? 0;
+  }
+
+  async facets(): Promise<ListingFacet[]> {
+    const [rows, hasNextPage, totalCount, facets, priceRange, inStockCount] =
+      await Promise.all([
+        this.$get("rows"),
+        this.$get("hasNextPage"),
+        this.$get("totalCount"),
+        this.$get("facets"),
+        this.$get("priceRange"),
+        this.$get("inStockCount"),
+      ]);
+
+    try {
+      return mapListingFacets(
+        {
+          rows: rows ?? [],
+          hasNextPage: hasNextPage ?? false,
+          totalCount: totalCount ?? 0,
+          facets: facets ?? [],
+          priceRange: priceRange ?? null,
+          inStockCount: inStockCount ?? 0,
+        },
+        this.$props
+      );
+    } catch (error) {
+      throwGraphqlListingError(error);
+    }
+  }
+
+  private toRepositoryInput(): StorefrontListingInput {
+    if (this.repositoryInput) {
+      return this.repositoryInput;
+    }
+
+    try {
+      this.repositoryInput = toStorefrontListingInput(this.$props, {
+        locale: this.$ctx.locale || this.$ctx.store.defaultLocale,
+        currency: this.$ctx.currency || this.$ctx.store.defaultCurrency,
+      });
+      return this.repositoryInput;
+    } catch (error) {
+      throwGraphqlListingError(error);
+    }
+  }
+}

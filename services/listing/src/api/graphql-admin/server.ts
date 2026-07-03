@@ -70,6 +70,7 @@ export async function startServer(serverConfig: ServerConfig) {
     "shared-units.graphql",
     "scalars.graphql",
     "base.graphql",
+    "listing.graphql",
     "relay.graphql",
   ];
 

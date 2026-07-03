@@ -38,11 +38,15 @@ export interface TotalCountSqlRow extends FacetGuardSqlRow {
 export interface FacetMetadataSqlRow extends FacetGuardSqlRow {
   facetId: string | null;
   facetSlug: string | null;
+  facetLabel: string | null;
   facetType: string | null;
+  facetUiType: string | null;
   facetRank: string | null;
   facetValueId: string | null;
   valueHandle: string | null;
+  valueLabel: string | null;
   valueKey: string | null;
+  swatchId: string | null;
   valueSort: number | null;
 }
 
@@ -105,7 +109,9 @@ export function mapFacetMetadataRows(
       existing.values.push({
         facetValueId: row.facetValueId,
         valueHandle: row.valueHandle,
+        valueLabel: row.valueLabel,
         valueKey: row.valueKey,
+        swatchId: row.swatchId,
         count: 0,
       });
       continue;
@@ -114,12 +120,16 @@ export function mapFacetMetadataRows(
     facets.set(row.facetId, {
       facetId: row.facetId,
       facetSlug: row.facetSlug,
+      facetLabel: row.facetLabel,
       facetType,
+      uiType: row.facetUiType,
       values: [
         {
           facetValueId: row.facetValueId,
           valueHandle: row.valueHandle,
+          valueLabel: row.valueLabel,
           valueKey: row.valueKey,
+          swatchId: row.swatchId,
           count: 0,
         },
       ],
