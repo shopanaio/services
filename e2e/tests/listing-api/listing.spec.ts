@@ -1,10 +1,10 @@
 import { test } from '@fixtures/listing/base.extend';
 import { expect } from '@playwright/test';
-import type { ApiListingOrderByInput, ApiProduct } from '@codegen/admin-gql';
+import type { ApiListingFacet, ApiListingOrderByInput, ApiProduct } from '@codegen/admin-gql';
 
 test.describe('Listing API', () => {
   test('paginates category listing products without filters', async ({ api, listingCatalog }) => {
-    const { category, products } = listingCatalog;
+    const { category, products, facets } = listingCatalog;
     const listingScope = {
       kind: 'CATEGORY',
       categoryId: category.id,
@@ -24,6 +24,7 @@ test.describe('Listing API', () => {
     const firstPageProducts = products.slice(0, 10);
 
     expect(firstPage.totalCount).toBe(20);
+    expectCatalogFacets(firstPage.facets, facets);
     expect(firstPage.edges).toHaveLength(10);
     expect(firstPage.edges.every((edge) => Boolean(edge.cursor))).toBe(true);
     expect(firstPageNodes.map((node) => node.id)).toEqual(firstPageProducts.map((product) => product.id));
@@ -255,3 +256,20 @@ test.describe('Listing API', () => {
     expect(secondPage.pageInfo.endCursor).toBe(secondPage.edges[secondPage.edges.length - 1].cursor);
   });
 });
+
+function expectCatalogFacets(listingFacets: ApiListingFacet[], catalogFacets: { slug: string }[]) {
+  const catalogFacetSlugs = catalogFacets.map((facet) => facet.slug).sort();
+  const returnedCatalogFacets = listingFacets
+    .filter((facet) => catalogFacetSlugs.includes(facet.id))
+    .sort((left, right) => left.id.localeCompare(right.id));
+
+  expect(returnedCatalogFacets.map((facet) => facet.id)).toEqual(catalogFacetSlugs);
+  expect(returnedCatalogFacets).toHaveLength(20);
+  expect(
+    returnedCatalogFacets.filter((facet) => ['color', 'material', 'size', 'style'].includes(facet.id)),
+  ).toHaveLength(4);
+  expect(returnedCatalogFacets.find((facet) => facet.id === 'color')?.values).toHaveLength(5);
+  expect(returnedCatalogFacets.find((facet) => facet.id === 'size')?.values).toHaveLength(5);
+  expect(returnedCatalogFacets.every((facet) => facet.values.length > 0)).toBe(true);
+  expect(returnedCatalogFacets.every((facet) => facet.values.every((value) => value.count > 0))).toBe(true);
+}

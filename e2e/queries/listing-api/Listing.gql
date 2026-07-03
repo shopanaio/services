@@ -40,6 +40,16 @@ query Listing(
       }
       facets {
         id
+        label
+        type
+        uiType
+        values {
+          id
+          label
+          count
+          selected
+          input
+        }
       }
     }
   }

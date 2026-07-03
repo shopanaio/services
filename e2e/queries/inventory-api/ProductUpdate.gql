@@ -45,7 +45,7 @@ mutation ProductUpdate($productId: ID!, $expectedRevision: Int, $operations: Pro
           handle
           name
         }
-        variants(first: 20) {
+        variants(first: 200) {
           edges {
             node {
               id

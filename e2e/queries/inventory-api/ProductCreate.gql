@@ -36,7 +36,7 @@ mutation ProductCreate($input: ProductCreateInput!) {
             sortIndex
           }
         }
-        variants(first: 10) {
+        variants(first: 200) {
           edges {
             node {
               id
