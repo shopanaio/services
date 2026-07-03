@@ -1,0 +1,28 @@
+query Listing($first: Int!, $scope: ListingScopeInput!, $locale: LocaleCode, $currency: CurrencyCode) {
+  listingQuery {
+    listing(first: $first, scope: $scope, locale: $locale, currency: $currency) {
+      totalCount
+      edges {
+        cursor
+        node {
+          __typename
+          id
+          ... on Product {
+            title
+            handle
+            isPublished
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      facets {
+        id
+      }
+    }
+  }
+}
