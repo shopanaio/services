@@ -37,15 +37,18 @@ export class StorefrontVariantPriceCollectorRepository extends BaseRepository {
     return {
       sql: coalesceBitmapSql(sql`(
         SELECT rb_build_agg(vp.variant_doc_id)
-        FROM listing.listing_posting_variant_price vp
+        FROM listing.variant_listing_price_index vp
         JOIN listing.variant_listing_index vli
           ON vli.project_id = vp.project_id
-         AND vli.variant_doc_id = vp.variant_doc_id
-         AND vli.product_doc_id = vp.product_doc_id
-         AND vli.product_id = vp.product_id
+         AND vli.variant_id = vp.variant_id
          AND vli.in_stock = true
         WHERE vp.project_id = ${this.storeId}::uuid
           AND vp.currency = ${input.currency}
+          AND vp.has_price = true
+          AND vp.price_minor IS NOT NULL
+          AND vp.variant_doc_id IS NOT NULL
+          AND vp.product_doc_id IS NOT NULL
+          AND vp.product_id IS NOT NULL
           ${minPredicate}
           ${maxPredicate}
       )`),
@@ -139,12 +142,10 @@ export class StorefrontVariantPriceCollectorRepository extends BaseRepository {
         pli.in_stock AS "inStock",
         vp.variant_doc_id::int AS "variantDocId",
         vp.price_minor::double precision AS "priceMinor"
-      FROM listing.listing_posting_variant_price vp
+      FROM listing.variant_listing_price_index vp
       JOIN listing.variant_listing_index vli
         ON vli.project_id = vp.project_id
-       AND vli.variant_doc_id = vp.variant_doc_id
-       AND vli.product_doc_id = vp.product_doc_id
-       AND vli.product_id = vp.product_id
+       AND vli.variant_id = vp.variant_id
        AND vli.in_stock = true
       JOIN listing.product_listing_index pli
         ON pli.project_id = vp.project_id
@@ -152,6 +153,11 @@ export class StorefrontVariantPriceCollectorRepository extends BaseRepository {
        AND pli.product_id = vp.product_id
       WHERE vp.project_id = ${this.storeId}::uuid
         AND vp.currency = ${input.currency}
+        AND vp.has_price = true
+        AND vp.price_minor IS NOT NULL
+        AND vp.variant_doc_id IS NOT NULL
+        AND vp.product_doc_id IS NOT NULL
+        AND vp.product_id IS NOT NULL
         AND ${input.variantMatchesBitmap.sql} @> vp.variant_doc_id
         AND ${input.productMatchesBitmap.sql} @> vp.product_doc_id
         ${seek}
@@ -194,15 +200,18 @@ export class StorefrontVariantPriceCollectorRepository extends BaseRepository {
           vp.product_id,
           vp.variant_doc_id,
           vp.price_minor
-        FROM listing.listing_posting_variant_price vp
+        FROM listing.variant_listing_price_index vp
         JOIN listing.variant_listing_index vli
           ON vli.project_id = vp.project_id
-         AND vli.variant_doc_id = vp.variant_doc_id
-         AND vli.product_doc_id = vp.product_doc_id
-         AND vli.product_id = vp.product_id
+         AND vli.variant_id = vp.variant_id
          AND vli.in_stock = true
         WHERE vp.project_id = ${this.storeId}::uuid
           AND vp.currency = ${input.currency}
+          AND vp.has_price = true
+          AND vp.price_minor IS NOT NULL
+          AND vp.variant_doc_id IS NOT NULL
+          AND vp.product_doc_id IS NOT NULL
+          AND vp.product_id IS NOT NULL
           AND ${input.variantMatchesBitmap.sql} @> vp.variant_doc_id
           AND ${input.productMatchesBitmap.sql} @> vp.product_doc_id
       ),

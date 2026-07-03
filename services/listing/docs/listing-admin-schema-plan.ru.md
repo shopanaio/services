@@ -20,11 +20,11 @@
 | --- | --- | --- |
 | Порядок товаров, cursors, `totalCount` | listing | native fields |
 | Matched variants для variant-level фильтров/сортировки | listing | `Variant { id }` references |
-| Facet groups, порядок facet values, counts | listing | `Facet { id }`, `FacetValue { id }`, `count` |
+| Facet items, порядок facet values, counts | listing | `Facet { id }`, `FacetValue { id }`, `count` |
 | Product, Bundle, Variant details | catalog | federation references |
 | Facet labels, uiType, selectionMode, values metadata | catalog | federation references |
 | Category, Collection, Vendor, Tag, Option, Feature details | catalog | federation references when exposed |
-| Price range и in-stock count агрегаты | listing | native scalar objects |
+| Price range и in-stock boolean counts | listing | listing-owned payload внутри `Facet { id }` item |
 
 ## Важное условие для federation
 
@@ -68,9 +68,11 @@ Catalog admin SDL сейчас уже содержит `Listing`, `ListingConnec
   порядке listing engine;
 - `edges[].variants` возвращает ordered `Variant` references, если
   variant-level фильтр или сортировка сузили результат до конкретных вариантов;
-- `facets[]` возвращает ordered facet groups;
+- `facets[]` возвращает ordered facet items, включая `PRICE` и `IN_STOCK`;
 - `facets[].values[]` возвращает ordered facet value references и listing-owned
-  `count`;
+  `count` для value-based facets (`TAG`, `FEATURE`, `OPTION`);
+- `facets[].priceRange` возвращает listing-owned range для `PRICE` facet;
+- `facets[].boolean` возвращает listing-owned counts для `IN_STOCK` facet;
 - не возвращает `title`, `handle`, `label`, media, product price, variant price
   или другие canonical поля.
 
@@ -105,6 +107,7 @@ query AdminListing($scope: ListingScopeInput, $first: Int!) {
         facet {
           id
           label
+          facetType
         }
         values {
           value {
@@ -112,6 +115,18 @@ query AdminListing($scope: ListingScopeInput, $first: Int!) {
             label
           }
           count
+          selected
+        }
+        priceRange {
+          minPriceMinor
+          maxPriceMinor
+          selectedMinPriceMinor
+          selectedMaxPriceMinor
+          currency
+        }
+        boolean {
+          trueCount
+          falseCount
           selected
         }
       }
@@ -149,6 +164,8 @@ query AdminListing($scope: ListingScopeInput, $first: Int!) {
    - `matchedVariantIds[]` -> `[{ __typename: "Variant", id }]`;
    - `facetId` -> `{ __typename: "Facet", id }`;
    - `facetValueId` -> `{ __typename: "FacetValue", id }`;
+   - `PRICE` агрегаты -> `ListingFacetItem.priceRange`;
+   - `IN_STOCK` агрегаты -> `ListingFacetItem.boolean`;
    - все IDs кодировать через `encodeGlobalIdByType` с правильным
      `GlobalIdEntity`.
 
@@ -316,6 +333,9 @@ input ListingVendorFilterInput {
 }
 
 input ListingPriceFilterInput {
+  """Price Facet global ID."""
+  facetId: ID!
+
   """Minimum variant price amount in minor units."""
   minPriceMinor: BigInt
 
@@ -324,6 +344,9 @@ input ListingPriceFilterInput {
 }
 
 input ListingInStockFilterInput {
+  """In-stock Facet global ID."""
+  facetId: ID!
+
   """Whether the listing should be limited by stock availability."""
   value: Boolean!
 }
@@ -367,14 +390,8 @@ type ListingConnection {
   """The total number of matched sellable items."""
   totalCount: Int!
 
-  """Ordered facet groups available for the current listing result."""
-  facets: [ListingFacetGroup!]!
-
-  """Price range for currently matched variants in the requested currency."""
-  priceRange: ListingPriceRange
-
-  """Number of matched products with at least one in-stock variant."""
-  inStockCount: Int!
+  """Ordered facet items available for the current listing result."""
+  facets: [ListingFacetItem!]!
 }
 
 type ListingEdge {
@@ -392,12 +409,18 @@ type ListingEdge {
   cursor: String!
 }
 
-type ListingFacetGroup {
+type ListingFacetItem {
   """Facet reference owned by Catalog."""
   facet: Facet!
 
   """Ordered values for this facet in listing UI order."""
   values: [ListingFacetValue!]!
+
+  """Price range payload for PRICE facets."""
+  priceRange: ListingFacetPriceRange
+
+  """Boolean counts payload for IN_STOCK facets."""
+  boolean: ListingFacetBoolean
 }
 
 type ListingFacetValue {
@@ -411,7 +434,7 @@ type ListingFacetValue {
   selected: Boolean!
 }
 
-type ListingPriceRange {
+type ListingFacetPriceRange {
   """Minimum matched variant price amount in minor units."""
   minPriceMinor: BigInt!
 
@@ -420,6 +443,23 @@ type ListingPriceRange {
 
   """Currency code used for the returned price amounts."""
   currency: CurrencyCode!
+
+  """Selected minimum price amount in minor units."""
+  selectedMinPriceMinor: BigInt
+
+  """Selected maximum price amount in minor units."""
+  selectedMaxPriceMinor: BigInt
+}
+
+type ListingFacetBoolean {
+  """Number of matched sellable items for true."""
+  trueCount: Int!
+
+  """Number of matched sellable items for false."""
+  falseCount: Int!
+
+  """Selected boolean value in the current request."""
+  selected: Boolean
 }
 ```
 
@@ -430,5 +470,7 @@ type ListingPriceRange {
   supergraph selection после federation hydration.
 - Порядок `edges`, `edges.variants`, `facets` и `facets.values` полностью
   задается listing service.
+- `PRICE` и `IN_STOCK` возвращаются как `ListingFacetItem`, а не как top-level
+  поля `ListingConnection`.
 - `Facet` и `FacetValue` имеют `@key(fields: "id")` в catalog admin SDL.
 - Schema composition проходит после добавления listing SDL.

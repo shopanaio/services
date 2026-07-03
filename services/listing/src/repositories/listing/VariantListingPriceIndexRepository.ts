@@ -9,7 +9,9 @@ import {
 } from "../models/index.js";
 import {
   assertCurrency,
+  assertNonEmptyString,
   assertNonNegativeInteger,
+  assertPositiveDocId,
   assertUniqueBy,
   chunkArray,
   nowIso,
@@ -137,6 +139,10 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
         projectId: variantListingPriceIndex.projectId,
         variantId: variantListingPriceIndex.variantId,
         currency: variantListingPriceIndex.currency,
+        variantDocId: variantListingPriceIndex.variantDocId,
+        productDocId: variantListingPriceIndex.productDocId,
+        productId: variantListingPriceIndex.productId,
+        signatureKey: variantListingPriceIndex.signatureKey,
         priceMinor: variantListingPriceIndex.priceMinor,
         hasPrice: variantListingPriceIndex.hasPrice,
         indexedAt: variantListingPriceIndex.indexedAt,
@@ -198,6 +204,10 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
           ],
           setWhere: eq(variantListingPriceIndex.projectId, this.storeId),
           set: {
+            variantDocId: sql`excluded.variant_doc_id`,
+            productDocId: sql`excluded.product_doc_id`,
+            productId: sql`excluded.product_id`,
+            signatureKey: sql`excluded.signature_key`,
             priceMinor: sql`excluded.price_minor`,
             hasPrice: sql`excluded.has_price`,
             indexedAt: now,
@@ -437,6 +447,10 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
     now: string
   ): NewVariantListingPriceIndex {
     assertCurrency(row.currency);
+    const variantDocId = normalizeOptionalDocId(row.variantDocId, "variantDocId");
+    const productDocId = normalizeOptionalDocId(row.productDocId, "productDocId");
+    const productId = normalizeOptionalString(row.productId, "productId");
+    const signatureKey = normalizeOptionalString(row.signatureKey, "signatureKey");
 
     if (!row.hasPrice) {
       if (row.priceMinor != null) {
@@ -447,6 +461,10 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
         projectId: this.storeId,
         variantId: row.variantId,
         currency: row.currency,
+        variantDocId,
+        productDocId,
+        productId,
+        signatureKey,
         hasPrice: false,
         priceMinor: null,
         indexedAt: now,
@@ -464,10 +482,36 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
       projectId: this.storeId,
       variantId: row.variantId,
       currency: row.currency,
+      variantDocId,
+      productDocId,
+      productId,
+      signatureKey,
       hasPrice: true,
       priceMinor: row.priceMinor,
       indexedAt: now,
       updatedAt: now,
     };
   }
+}
+
+function normalizeOptionalDocId(
+  value: number | null | undefined,
+  label: string
+): number | null {
+  if (value == null) {
+    return null;
+  }
+  assertPositiveDocId(value, label);
+  return value;
+}
+
+function normalizeOptionalString(
+  value: string | null | undefined,
+  label: string
+): string | null {
+  if (value == null) {
+    return null;
+  }
+  assertNonEmptyString(value, label);
+  return value;
 }

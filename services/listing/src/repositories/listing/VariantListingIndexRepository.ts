@@ -7,6 +7,7 @@ import {
   type VariantListingIndex,
 } from "../models/index.js";
 import {
+  assertNonEmptyString,
   assertNonNegativeInteger,
   assertPositiveDocId,
   assertUniqueBy,
@@ -211,6 +212,7 @@ export class VariantListingIndexRepository extends BaseRepository {
           set: {
             productId: sql`excluded.product_id`,
             productDocId: sql`excluded.product_doc_id`,
+            signatureKey: sql`excluded.signature_key`,
             inStock: sql`excluded.in_stock`,
             totalStock: sql`excluded.total_stock`,
             indexedAt: now,
@@ -423,6 +425,7 @@ export class VariantListingIndexRepository extends BaseRepository {
     assertPositiveDocId(row.productDocId, "productDocId");
     assertPositiveDocId(row.variantDocId, "variantDocId");
     assertNonNegativeInteger(row.totalStock, "totalStock");
+    const signatureKey = normalizeOptionalSignatureKey(row.signatureKey);
 
     return {
       projectId: this.storeId,
@@ -430,6 +433,7 @@ export class VariantListingIndexRepository extends BaseRepository {
       productDocId: row.productDocId,
       variantId: row.variantId,
       variantDocId: row.variantDocId,
+      signatureKey,
       inStock: row.inStock,
       totalStock: row.totalStock,
       indexedAt: now,
@@ -450,6 +454,9 @@ export class VariantListingIndexRepository extends BaseRepository {
       updateData.productDocId = patch.productDocId;
     }
     if (patch.inStock !== undefined) updateData.inStock = patch.inStock;
+    if (patch.signatureKey !== undefined) {
+      updateData.signatureKey = normalizeOptionalSignatureKey(patch.signatureKey);
+    }
     if (patch.totalStock !== undefined) {
       assertNonNegativeInteger(patch.totalStock, "totalStock");
       updateData.totalStock = patch.totalStock;
@@ -457,4 +464,12 @@ export class VariantListingIndexRepository extends BaseRepository {
 
     return updateData;
   }
+}
+
+function normalizeOptionalSignatureKey(value: string | null | undefined): string | null {
+  if (value == null) {
+    return null;
+  }
+  assertNonEmptyString(value, "signatureKey");
+  return value;
 }

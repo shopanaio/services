@@ -56,6 +56,7 @@ export interface VariantListingIndexUpsertInput {
   productDocId: number;
   variantId: string;
   variantDocId: number;
+  signatureKey?: string | null;
   inStock: boolean;
   totalStock: number;
 }
@@ -67,6 +68,10 @@ export type VariantListingIndexPatchInput = Partial<
 export interface VariantListingPriceRowInput {
   variantId: string;
   currency: string;
+  variantDocId?: number | null;
+  productDocId?: number | null;
+  productId?: string | null;
+  signatureKey?: string | null;
   hasPrice: boolean;
   priceMinor?: number | null;
 }

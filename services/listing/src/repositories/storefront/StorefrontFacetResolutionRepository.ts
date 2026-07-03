@@ -355,15 +355,18 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
 
     return coalesceScopeBitmapSql(sql`(
       SELECT rb_build_agg(vp.variant_doc_id)
-      FROM listing.listing_posting_variant_price vp
+      FROM listing.variant_listing_price_index vp
       JOIN listing.variant_listing_index vli
         ON vli.project_id = vp.project_id
-       AND vli.variant_doc_id = vp.variant_doc_id
-       AND vli.product_doc_id = vp.product_doc_id
-       AND vli.product_id = vp.product_id
+       AND vli.variant_id = vp.variant_id
        AND vli.in_stock = true
       WHERE vp.project_id = ${this.storeId}::uuid
         AND vp.currency = ${currency}
+        AND vp.has_price = true
+        AND vp.price_minor IS NOT NULL
+        AND vp.variant_doc_id IS NOT NULL
+        AND vp.product_doc_id IS NOT NULL
+        AND vp.product_id IS NOT NULL
         ${minPredicate}
         ${maxPredicate}
     )`);

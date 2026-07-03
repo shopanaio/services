@@ -88,12 +88,10 @@ export function compilePageQuerySql(request: ListingSqlRequest): SQL {
         vp.product_id,
         vp.variant_doc_id,
         vp.price_minor
-      FROM listing.listing_posting_variant_price vp
+      FROM listing.variant_listing_price_index vp
       JOIN listing.variant_listing_index vli
         ON vli.project_id = vp.project_id
-       AND vli.variant_doc_id = vp.variant_doc_id
-       AND vli.product_doc_id = vp.product_doc_id
-       AND vli.product_id = vp.product_id
+       AND vli.variant_id = vp.variant_id
        AND vli.in_stock = true
       JOIN input i ON true
       CROSS JOIN facet_resolution_guard frg
@@ -104,6 +102,11 @@ export function compilePageQuerySql(request: ListingSqlRequest): SQL {
         AND cc.collector_kind = 'matched_variant_price'
         AND vp.project_id = i.project_id
         AND vp.currency = i.currency
+        AND vp.has_price = true
+        AND vp.price_minor IS NOT NULL
+        AND vp.variant_doc_id IS NOT NULL
+        AND vp.product_doc_id IS NOT NULL
+        AND vp.product_id IS NOT NULL
         AND vf.bitmap @> vp.variant_doc_id
         AND m.bitmap @> vp.product_doc_id
     ),
