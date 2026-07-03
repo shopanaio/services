@@ -444,12 +444,15 @@ export function compileFacetCountsQuerySql(request: ListingSqlRequest) {
 }
 ```
 
-Candidate path оставить, но отключать через strategy:
+Candidate path оставить, но отключать через strategy. Producer ownership должен
+быть per target facet: если `strategy.use_heavy_signature_path = true`, candidate
+path не должен возвращать строки для этого facet даже при `force_zero`.
 
 ```sql
 option_signature_base_state AS (
   SELECT
     ofv.value_key,
+    strategy.use_heavy_signature_path,
     COALESCE(sfs.has_value AND sfs.value = false, false) AS force_zero,
     NOT strategy.use_heavy_signature_path
       AND NOT COALESCE(sfs.has_value AND sfs.value = false, false)
@@ -462,6 +465,19 @@ option_signature_base_state AS (
     ON strategy.facet_id = ofv.facet_id
 )
 ```
+
+`option_signature_state` должен сохранить `use_heavy_signature_path`, а
+`option_signature_facet_counts` должен фильтровать candidate-owned rows:
+
+```sql
+WHERE NOT state.use_heavy_signature_path
+  AND (state.force_zero OR state.use_signature)
+```
+
+Это важно для `in_stock=false`: candidate path сейчас умеет отдавать zero rows
+через `force_zero`, а heavy final CTE тоже возвращает zero rows для heavy facets.
+Без producer ownership финальный `UNION ALL` даст duplicate `(facet_id,
+value_key)` rows.
 
 `compileOptionRequiredCombinationSetSql` нужно перевести с
 `request.request.filters.facetFilters` на
@@ -490,9 +506,24 @@ SELECT NULL::text AS facet_id, NULL::text AS value_key WHERE false
 ```
 
 Так как `visible_facet_values.facet_id` в текущем компиляторе объявлен как
-`f.id::text`, все generated `facet_id` rows в этом файле должны быть `text`,
-а не `uuid`. Если позже весь CTE pipeline будет переведен на uuid, менять нужно
-consistently во всех joins.
+`f.id::text`, generated `facet_id` rows в strategy/helper CTE должны оставаться
+`text`, чтобы join к `option_facet_values` не смешивал типы. При join к physical
+index tables, где `facet_id` хранится как `uuid`, нужно явно кастовать strategy
+target к `uuid`, а не кастовать indexed column к `text`:
+
+```sql
+sv.facet_id = base.target_facet_id::uuid
+```
+
+Не использовать:
+
+```sql
+sv.facet_id::text = base.target_facet_id
+```
+
+Иначе Postgres может не использовать индекс по `facet_id` эффективно. Если позже
+весь CTE pipeline будет переведен на uuid, менять нужно consistently во всех
+joins.
 
 `option_candidate_combination_set` после этого выбирает isolated combination
 set по `ofv.facet_id`, а не по `ofv.facet_slug`:
@@ -596,7 +627,7 @@ option_heavy_bucket_signatures AS (
   JOIN listing.listing_option_signature_value sv
     ON sv.project_id = i.project_id
    AND sv.signature_key = base.signature_key
-   AND sv.facet_id = base.target_facet_id
+   AND sv.facet_id = base.target_facet_id::uuid
   JOIN option_facet_values ofv
     ON ofv.facet_id = base.target_facet_id
    AND ofv.value_key = sv.value_key
@@ -612,6 +643,9 @@ Why this is correct:
   candidate combination generator.
 - `option_heavy_bucket_signatures` adds the candidate bucket value by expanding
   base signatures only through values of the current target facet.
+- `base.target_facet_id::uuid` keeps the join to
+  `listing_option_signature_value.facet_id` index-friendly while the surrounding
+  CTE pipeline still exposes `facet_id` as text.
 - `option_facet_values` limits returned buckets to visible configured display
   values.
 
@@ -881,6 +915,11 @@ Compare old candidate path and new heavy path on the same fixtures:
 
 10. active in_stock=false
    expected: option counts are zero
+
+10a. active in_stock=false + heavy target facet
+    expected: option counts are zero and final UNION ALL has no duplicate
+    `(facet_id, value_key)` rows because candidate/heavy producer ownership is
+    still exclusive
 
 11. merged/source display values
    expected: counts use resolved display value_key from option_facet_values

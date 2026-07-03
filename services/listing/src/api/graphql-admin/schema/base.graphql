@@ -28,6 +28,26 @@ type ListingQuery {
 
   """Get multiple nodes by their global IDs."""
   nodes(ids: [ID!]!): [Node]!
+
+  """
+  Get ordered listing structure for Admin.
+
+  Listing service returns listing-owned order, pagination, counts, aggregates,
+  and canonical entity references only. Entity details are resolved by owning
+  subgraphs through federation.
+  """
+  listing(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    scope: ListingScopeInput
+    query: String
+    locale: LocaleCode
+    currency: CurrencyCode
+    facets: [ListingProductFilter!]
+    orderBy: ListingOrderByInput
+  ): ListingConnection!
 }
 
 type ListingMutation {

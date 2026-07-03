@@ -7,7 +7,6 @@ import {
 import { categoryRelayQuery } from "../src/repositories/category/CategoryRepository.js";
 import {
   bundleRelayQuery,
-  listingRelayQuery,
   productRelayQuery,
 } from "../src/repositories/product/ProductRepository.js";
 import { tagRelayQuery } from "../src/repositories/tag/TagRepository.js";
@@ -55,23 +54,6 @@ const productListFieldTypes: Record<string, GraphQLFieldType> = {
   primaryCategoryId: "ID",
   primaryCategoryName: "String",
 };
-
-const listingListFieldTypes: Record<string, GraphQLFieldType> = {
-  ...productListFieldTypes,
-  kind: "String",
-};
-
-const listingWhere = generateWhereInputType(listingRelayQuery, "Listing", {
-  includeDescriptions: true,
-  fieldTypes: listingListFieldTypes,
-  excludeFields: ["projectId", "deletedAt", "revision"],
-});
-
-const listingOrderBy = generateOrderByInputType(listingRelayQuery, "Listing", {
-  includeDescriptions: true,
-  fieldTypes: listingListFieldTypes,
-  excludeFields: ["projectId", "deletedAt", "revision"],
-});
 
 const productWhere = generateWhereInputType(productRelayQuery, "Product", {
   includeDescriptions: true,
@@ -269,12 +251,6 @@ const facetValueCandidateOrderBy = generateOrderByInputType(
 
 const content = `# Auto-generated GraphQL filter types for Catalog service.
 # Do not edit manually. Run: yarn generate:filters
-
-# ---- Listing ----
-
-${listingWhere}
-
-${listingOrderBy}
 
 # ---- Product ----
 

@@ -92,7 +92,7 @@ type FacetValue implements Node {
   enabled: Boolean!
 }
 
-type FacetSwatch implements Node {
+type FacetSwatch implements Node @key(fields: "id") {
   id: ID!
   swatchType: SwatchType!
   colorOne: String
@@ -158,7 +158,7 @@ input FacetRebalanceInput {
 
 input FacetValueCreateInput {
   facetId: ID!
-  kind: FacetValueKind = DISPLAY
+  kind: FacetValueKind
   handle: String!
   label: String!
   sourceValueIds: [ID!]

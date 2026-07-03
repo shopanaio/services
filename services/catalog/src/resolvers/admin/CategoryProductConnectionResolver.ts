@@ -3,7 +3,7 @@ import {
   type ConnectionData,
 } from "./connection/BaseConnectionResolver.js";
 
-export interface ListingOrderByInput {
+export interface CategoryProductOrderByInput {
   field: "MANUAL" | "PRICE" | "NEWEST" | "NAME";
   direction?: "asc" | "desc";
 }
@@ -14,7 +14,7 @@ export interface CategoryProductConnectionInput {
   after?: string;
   last?: number;
   before?: string;
-  orderBy?: ListingOrderByInput[];
+  orderBy?: CategoryProductOrderByInput[];
   where?: Record<string, unknown>;
 }
 

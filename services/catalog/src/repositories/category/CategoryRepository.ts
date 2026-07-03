@@ -18,7 +18,6 @@ import {
   categoryListView,
   categoryMedia,
   categoryTranslation,
-  listingListView,
   productCategory,
   product,
   productTranslation,
@@ -35,7 +34,6 @@ import type { NormalizedCategoryProductsScope } from "./CategoryProductsScope.js
 import {
   decodeCategoryGlobalId,
   decodeProductGlobalId,
-  decodeVendorGlobalId,
 } from "../global-id-where-mappers.js";
 
 const categoryQuery = createQuery(category).maxLimit(100).defaultLimit(20);
@@ -107,33 +105,6 @@ const categoryProductsQuery = createQuery(product, {
   ),
 });
 
-const categoryListingQuery = createQuery(listingListView, {
-  id: field(listingListView.id),
-  kind: field(listingListView.kind),
-  vendorId: field(listingListView.vendorId),
-  handle: field(listingListView.handle),
-  publishedAt: field(listingListView.publishedAt),
-  createdAt: field(listingListView.createdAt),
-  updatedAt: field(listingListView.updatedAt),
-  deletedAt: field(listingListView.deletedAt),
-  revision: field(listingListView.revision),
-  projectId: field(listingListView.projectId),
-  locale: field(listingListView.locale),
-  name: field(listingListView.name),
-  currency: field(listingListView.currency),
-  minAmountMinor: field(listingListView.minAmountMinor),
-  maxAmountMinor: field(listingListView.maxAmountMinor),
-  minPriceMinor: field(listingListView.minPriceMinor),
-  maxPriceMinor: field(listingListView.maxPriceMinor),
-  primaryCategoryId: field(listingListView.primaryCategoryId),
-  primaryCategoryName: field(listingListView.primaryCategoryName),
-  brandName: field(listingListView.brandName),
-  category: field(listingListView.id).innerJoin(
-    productCategoryQuery,
-    productCategory.productId,
-  ),
-});
-
 export const categoryProductsRelayQuery = createRelayQuery(
   categoryProductsQuery
     .mapWhereField("id", decodeProductGlobalId)
@@ -143,26 +114,9 @@ export const categoryProductsRelayQuery = createRelayQuery(
   { name: "categoryProduct", tieBreaker: "id" },
 );
 
-export const categoryListingRelayQuery = createRelayQuery(
-  categoryListingQuery
-    .mapWhereFields({
-      id: decodeProductGlobalId,
-      vendorId: decodeVendorGlobalId,
-      primaryCategoryId: decodeCategoryGlobalId,
-    })
-    .include(["id", "kind"])
-    .maxLimit(100)
-    .defaultLimit(20),
-  { name: "categoryListing", tieBreaker: "id" },
-);
-
 export type CategoryProductsRelayInput = InferRelayInput<
   typeof categoryProductsRelayQuery
 >;
-export type CategoryListingRelayInput = InferRelayInput<
-  typeof categoryListingRelayQuery
->;
-type CategoryListingOrderBy = NonNullable<CategoryListingRelayInput["orderBy"]>;
 
 export interface CategoryConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
@@ -172,18 +126,6 @@ export interface CategoryConnectionResult {
 
 export interface CategoryProductsConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
-  pageInfo: PageInfo;
-  totalCount: number;
-}
-
-export type CategoryListingKind = "BASE" | "BUNDLE";
-
-export interface CategoryListingConnectionResult {
-  edges: Array<{
-    cursor: string;
-    nodeId: string;
-    kind: CategoryListingKind;
-  }>;
   pageInfo: PageInfo;
   totalCount: number;
 }
@@ -1028,151 +970,6 @@ export class CategoryRepository extends BaseRepository {
     };
   }
 
-  async getCategoryListingConnection(
-    categoryId: string,
-    args: Omit<CategoryListingRelayInput, "where" | "orderBy"> & {
-      orderBy?: Array<{ field: string; direction?: string }>;
-      where?: CategoryListingRelayInput["where"];
-    },
-  ): Promise<CategoryListingConnectionResult> {
-    const {
-      first,
-      after,
-      last,
-      before,
-      orderBy: inputOrderBy,
-      where: userWhere,
-    } = args;
-
-    const baseConditions: Array<Record<string, unknown>> = [
-      { projectId: { _eq: this.storeId } },
-      { deletedAt: { _is: null } },
-      { locale: { _eq: this.locale } },
-      {
-        _or: [
-          { currency: { _eq: this.currency } },
-          { currency: { _is: null } },
-        ],
-      },
-      { category: { projectId: { _eq: this.storeId } } },
-      { category: { categoryId: { _eq: categoryId } } },
-    ];
-
-    const mergedWhere: CategoryListingRelayInput["where"] = userWhere
-      ? { _and: [...baseConditions, userWhere] }
-      : { _and: baseConditions };
-
-    const orderBy = this.buildCategoryListingOrderBy(inputOrderBy);
-    const selectFields = this.buildCategoryListingSelectFields(orderBy);
-
-    const executeInput: CategoryListingRelayInput = {
-      first,
-      after,
-      last,
-      before,
-      where: mergedWhere,
-      orderBy,
-      select: selectFields as CategoryListingRelayInput["select"],
-    };
-
-    const [result, totalCount] = await Promise.all([
-      categoryListingRelayQuery.execute(this.connection, executeInput),
-      categoryListingRelayQuery.count(this.connection, { where: mergedWhere }),
-    ]);
-
-    return {
-      edges: result.edges.map((edge) => ({
-        cursor: edge.cursor,
-        nodeId: edge.node.id,
-        kind: edge.node.kind as CategoryListingKind,
-      })),
-      pageInfo: result.pageInfo,
-      totalCount,
-    };
-  }
-
-  private buildCategoryListingOrderBy(
-    inputOrderBy?: Array<{ field: string; direction?: string }>,
-  ): CategoryListingOrderBy {
-    if (!inputOrderBy || inputOrderBy.length === 0) {
-      return [
-        { field: "category.lexoRank", direction: "asc" },
-        { field: "id", direction: "asc" },
-      ] as CategoryListingOrderBy;
-    }
-
-    const orderBy = inputOrderBy.map((order) => {
-      const direction = this.normalizeSortDirection(order.direction);
-      const field = order.field;
-      const normalizedField = field.toUpperCase();
-
-      switch (normalizedField) {
-        case "MANUAL":
-          return { field: "category.lexoRank", direction };
-        case "PRICE":
-          return {
-            field: direction === "asc" ? "minAmountMinor" : "maxAmountMinor",
-            direction,
-          };
-        case "NEWEST":
-          return { field: "createdAt", direction };
-        case "NAME":
-          return { field: "name", direction };
-        default:
-          return {
-            field: this.mapListingOrderField(field),
-            direction,
-          };
-      }
-    }) as CategoryListingOrderBy;
-
-    if (!orderBy.some((order) => order.field === "id")) {
-      orderBy.push({ field: "id", direction: "asc" } as never);
-    }
-
-    return orderBy;
-  }
-
-  private buildCategoryListingSelectFields(
-    orderBy: CategoryListingOrderBy,
-  ): string[] {
-    const selectFields = ["id", "kind"];
-    for (const order of orderBy) {
-      if (!selectFields.includes(order.field)) {
-        selectFields.push(order.field);
-      }
-    }
-    return selectFields;
-  }
-
-  private normalizeSortDirection(direction: string | undefined): "asc" | "desc" {
-    return direction?.toLowerCase() === "desc" ? "desc" : "asc";
-  }
-
-  private mapListingOrderField(field: string): string {
-    switch (field) {
-      case "id":
-      case "vendorId":
-      case "handle":
-      case "publishedAt":
-      case "createdAt":
-      case "updatedAt":
-      case "kind":
-      case "locale":
-      case "name":
-      case "currency":
-      case "minAmountMinor":
-      case "maxAmountMinor":
-      case "minPriceMinor":
-      case "maxPriceMinor":
-      case "primaryCategoryId":
-      case "primaryCategoryName":
-      case "brandName":
-        return field;
-      default:
-        return "category.lexoRank";
-    }
-  }
 
   async getProductIdsByCategoryId(categoryId: string): Promise<string[]> {
     const rows = await this.connection

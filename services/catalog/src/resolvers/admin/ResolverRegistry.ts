@@ -1,5 +1,4 @@
 import type { ServiceContext } from "../../context/types.js";
-import type { CategoryListingConnectionInput } from "./CategoryListingConnectionResolver.js";
 import type { CategoryProductConnectionInput } from "./CategoryProductConnectionResolver.js";
 import type { BundleConnectionInput } from "./BundleConnectionResolver.js";
 import type { StockRelayInput } from "../../repositories/stock/StockRepository.js";
@@ -49,13 +48,6 @@ export class ResolverRegistry {
       "./CategoryProductConnectionResolver.js"
     );
     return new CategoryProductConnectionResolver(input, this.ctx);
-  }
-
-  async categoryListingConnection(input: CategoryListingConnectionInput) {
-    const { CategoryListingConnectionResolver } = await import(
-      "./CategoryListingConnectionResolver.js"
-    );
-    return new CategoryListingConnectionResolver(input, this.ctx);
   }
 
   async variant(id: string) {

@@ -9,7 +9,6 @@ import { CatalogType } from "./CatalogType.js";
 import { SeoResolver } from "./SeoResolver.js";
 import { toRichText } from "./helpers/richText.js";
 import type { CategoryProductConnectionInput } from "./CategoryProductConnectionResolver.js";
-import type { CategoryListingConnectionInput } from "./CategoryListingConnectionResolver.js";
 
 /**
  * Category resolver - resolves Category domain interface.
@@ -162,16 +161,6 @@ export class CategoryResolver extends CatalogType<string, Category> {
    */
   async productsCount(): Promise<number> {
     return (await this.$get("productsCount")) ?? 0;
-  }
-
-  /**
-   * Returns paginated listing items in this category.
-   */
-  async listing(args: Omit<CategoryListingConnectionInput, "categoryId">) {
-    return this.resolvers.categoryListingConnection({
-      categoryId: this.$props,
-      ...args,
-    });
   }
 
   /**

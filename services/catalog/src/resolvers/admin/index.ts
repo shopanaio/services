@@ -64,10 +64,6 @@ export {
   type CategoryConnectionInput,
 } from "./CategoryConnectionResolver.js";
 export {
-  CategoryListingConnectionResolver,
-  type CategoryListingConnectionInput,
-} from "./CategoryListingConnectionResolver.js";
-export {
   TagConnectionResolver,
   type TagConnectionInput,
 } from "./TagConnectionResolver.js";

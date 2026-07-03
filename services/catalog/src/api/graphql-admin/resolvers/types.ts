@@ -78,10 +78,6 @@ export const typeResolvers: Partial<Resolvers> = {
     },
   },
 
-  Listing: {
-    __resolveType: resolveProductBackedType,
-  },
-
   UserError: {
     __resolveType: () => "GenericUserError",
   },

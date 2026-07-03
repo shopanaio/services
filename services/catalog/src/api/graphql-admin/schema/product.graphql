@@ -21,6 +21,17 @@ input ProductCategoriesScopeInput {
 
 # ---- Product Types ----
 
+type ProductPriceRange {
+  """Minimum product price amount in minor units."""
+  minPriceAmount: BigInt!
+
+  """Maximum product price amount in minor units."""
+  maxPriceAmount: BigInt!
+
+  """Currency code used for the returned price amounts."""
+  currency: CurrencyCode!
+}
+
 """
 Rich text content in multiple formats.
 """
@@ -117,7 +128,7 @@ type VendorCreatePayload {
 """
 A product represents an item that can be sold.
 """
-type Product implements Node & Listing @key(fields: "id") {
+type Product implements Node @key(fields: "id") {
   """The Product global ID."""
   id: ID!
 

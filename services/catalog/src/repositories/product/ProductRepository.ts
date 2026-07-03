@@ -14,7 +14,6 @@ import {
 	  bundleListView,
 	  productPriceRange,
 	  productCategory,
-	  listingListView,
 	  productListView,
   productTranslation,
   productOption,
@@ -35,19 +34,6 @@ import {
 import type { NormalizedProductCategoriesScope } from "./ProductCategoriesScope.js";
 
 const productQuery = createQuery(product).maxLimit(100).defaultLimit(20);
-
-export const listingRelayQuery = createRelayQuery(
-  createQuery(listingListView)
-    .include(["id"])
-    .mapWhereFields({
-      id: decodeProductGlobalId,
-      vendorId: decodeVendorGlobalId,
-      primaryCategoryId: decodeCategoryGlobalId,
-    })
-    .maxLimit(100)
-    .defaultLimit(20),
-  { name: "listing", tieBreaker: "id" }
-);
 
 export const productRelayQuery = createRelayQuery(
   createQuery(productListView)
@@ -76,7 +62,6 @@ export const bundleRelayQuery = createRelayQuery(
 );
 
 export type ProductQueryInput = InferExecuteOptions<typeof productQuery>;
-export type ListingRelayInput = InferRelayInput<typeof listingRelayQuery>;
 export type ProductRelayInput = InferRelayInput<typeof productRelayQuery>;
 export type BundleRelayInput = InferRelayInput<typeof bundleRelayQuery>;
 export type ProductConnectionMetaInput = {
