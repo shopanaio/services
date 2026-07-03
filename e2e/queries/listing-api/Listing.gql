@@ -1,6 +1,22 @@
-query Listing($first: Int!, $scope: ListingScopeInput!, $locale: LocaleCode, $currency: CurrencyCode) {
+query Listing(
+  $first: Int!
+  $after: String
+  $scope: ListingScopeInput!
+  $query: String
+  $locale: LocaleCode
+  $currency: CurrencyCode
+  $orderBy: ListingOrderByInput
+) {
   listingQuery {
-    listing(first: $first, scope: $scope, locale: $locale, currency: $currency) {
+    listing(
+      first: $first
+      after: $after
+      scope: $scope
+      query: $query
+      locale: $locale
+      currency: $currency
+      orderBy: $orderBy
+    ) {
       totalCount
       edges {
         cursor
