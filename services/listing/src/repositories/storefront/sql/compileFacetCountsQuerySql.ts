@@ -25,8 +25,9 @@ function compileFacetCountsQuerySqlWithOptions(
   );
   const heavyStrategyEnabled =
     options.heavyStrategyEnabled || forcedTargetFacetIds.length > 0;
-  const optionRequiredCombinationSetSql =
-    compileOptionRequiredCombinationSetSql(request);
+  const simpleOptionFacetCounts = canUseSimpleOptionFacetCounts(request);
+  const optionActiveFilterValueRowsSql =
+    compileOptionActiveFilterValueRowsSql(request);
   const optionFacetCountStrategySql = heavyStrategyEnabled
     ? sql`${compileOptionFacetCountStrategySql({
         request,
@@ -34,11 +35,15 @@ function compileFacetCountsQuerySqlWithOptions(
         forceHeavyOptionFacetCountFacetIds: forcedTargetFacetIds,
       })},`
     : sql``;
-  const optionSignatureBaseStateSql =
-    compileOptionSignatureBaseStateSql(heavyStrategyEnabled);
-  const optionFacetCountsProducerSql = heavyStrategyEnabled
-    ? compileHeavyOptionFacetCountsProducerSql()
-    : compileCandidateOnlyOptionFacetCountsProducerSql();
+  const optionSignatureSql = simpleOptionFacetCounts
+    ? sql``
+    : sql`${compileOptionSignatureBaseStateSql(heavyStrategyEnabled)},
+    ${compileOptionSignatureMatchingSql()},`;
+  const optionFacetCountsProducerSql = simpleOptionFacetCounts
+    ? compileSimpleOptionFacetCountsProducerSql()
+    : heavyStrategyEnabled
+      ? compileHeavyOptionFacetCountsProducerSql()
+      : compileCandidateOnlyOptionFacetCountsProducerSql();
 
   return sql`
     /* listing:facetCounts */
@@ -194,96 +199,201 @@ function compileFacetCountsQuerySqlWithOptions(
       FROM scope_product_base
       CROSS JOIN product_filters
     ),
-    ${optionRequiredCombinationSetSql},
-    option_candidate_combination_set AS (
+    ${optionActiveFilterValueRowsSql},
+    ${optionSignatureSql}
+    ${optionFacetCountsProducerSql},
+    counts AS (
+      SELECT * FROM product_facet_counts
+      UNION ALL
+      SELECT * FROM option_facet_counts
+    )
+    SELECT
+      frg.error_code AS "facetErrorCode",
+      frg.error_value AS "facetErrorValue",
+      c.facet_id AS "facetId",
+      c.facet_type AS "facetType",
+      c.value_key AS "valueKey",
+      c.count::int AS "count"
+    FROM facet_resolution_guard frg
+    LEFT JOIN counts c
+      ON frg.error_code IS NULL
+  `;
+}
+
+function compileFacetCountsCoreSql(request: ListingSqlRequest): SQL {
+  return sql.join(
+    [
+      compileListingInputSql(request),
+      compileFacetResolutionSql(),
+      compileScopeSql(request),
+      compileFiltersSql(),
+    ],
+    sql`, `
+  );
+}
+
+function canUseSimpleOptionFacetCounts(request: ListingSqlRequest): boolean {
+  const plan = request.request.filterPlan;
+  return plan.optionFacetGroups.length === 0 && !plan.priceRange;
+}
+
+export function compileFacetCountsHeavyParityQuerySql(input: {
+  request: ListingSqlRequest;
+  targetFacetIds: readonly string[];
+}): SQL {
+  const targetFacetIds = normalizeFacetIds(input.targetFacetIds);
+  const targetRows = targetFacetIds.map((facetId) => sql`(${facetId}::text)`);
+  const candidateQuery = compileFacetCountsQuerySqlWithOptions({
+    ...input.request,
+    heavyOptionFacetCountsEnabled: false,
+  }, {
+    heavyStrategyEnabled: false,
+  });
+  const heavyQuery = compileFacetCountsQuerySqlWithOptions({
+    ...input.request,
+    heavyOptionFacetCountsEnabled: false,
+  }, {
+    heavyStrategyEnabled: true,
+    forceHeavyOptionFacetCountFacetIds: targetFacetIds,
+  });
+
+  return sql`
+    WITH parity_target_facets AS (
+      ${valuesOrEmpty(
+        targetRows,
+        "target_facet_values",
+        sql`facet_id`,
+        sql`SELECT NULL::text AS facet_id WHERE false`
+      )}
+    ),
+    candidate_counts AS (
+      SELECT
+        candidate."facetId"::text AS facet_id,
+        candidate."facetType"::text AS facet_type,
+        candidate."valueKey"::text AS value_key,
+        candidate."count"::int AS count
+      FROM (${candidateQuery}) candidate
+      JOIN parity_target_facets target
+        ON target.facet_id = candidate."facetId"
+      WHERE candidate."facetErrorCode" IS NULL
+        AND candidate."facetId" IS NOT NULL
+        AND candidate."valueKey" IS NOT NULL
+    ),
+    heavy_counts AS (
+      SELECT
+        heavy."facetId"::text AS facet_id,
+        heavy."facetType"::text AS facet_type,
+        heavy."valueKey"::text AS value_key,
+        heavy."count"::int AS count
+      FROM (${heavyQuery}) heavy
+      JOIN parity_target_facets target
+        ON target.facet_id = heavy."facetId"
+      WHERE heavy."facetErrorCode" IS NULL
+        AND heavy."facetId" IS NOT NULL
+        AND heavy."valueKey" IS NOT NULL
+    )
+    SELECT
+      COALESCE(candidate.facet_id, heavy.facet_id) AS "facetId",
+      COALESCE(candidate.facet_type, heavy.facet_type) AS "facetType",
+      COALESCE(candidate.value_key, heavy.value_key) AS "valueKey",
+      candidate.count AS "candidateCount",
+      heavy.count AS "heavyCount"
+    FROM candidate_counts candidate
+    FULL OUTER JOIN heavy_counts heavy
+      ON heavy.facet_id = candidate.facet_id
+     AND heavy.value_key = candidate.value_key
+    WHERE candidate.count IS DISTINCT FROM heavy.count
+    ORDER BY
+      COALESCE(candidate.facet_id, heavy.facet_id),
+      COALESCE(candidate.value_key, heavy.value_key)
+  `;
+}
+
+function compileOptionSignatureBaseStateSql(heavyStrategyEnabled: boolean): SQL {
+  if (!heavyStrategyEnabled) {
+    return sql`
+      option_signature_base_state AS (
+        SELECT
+          ofv.value_key,
+          false AS use_heavy_signature_path,
+          COALESCE(sfs.has_value AND sfs.value = false, false) AS force_zero,
+          NOT COALESCE(sfs.has_value AND sfs.value = false, false)
+            AS signature_lookup_enabled
+        FROM option_facet_values ofv
+        CROSS JOIN stock_filter_state sfs
+      )
+    `;
+  }
+
+  return sql`
+    option_signature_base_state AS (
       SELECT
         ofv.value_key,
-        COALESCE(facet_set.excluded_facet_id, default_set.excluded_facet_id)
-          AS excluded_facet_id
+        strategy.use_heavy_signature_path,
+        COALESCE(sfs.has_value AND sfs.value = false, false) AS force_zero,
+        NOT strategy.use_heavy_signature_path
+          AND NOT COALESCE(sfs.has_value AND sfs.value = false, false)
+          AS signature_lookup_enabled
       FROM option_facet_values ofv
-      JOIN option_required_combination_set default_set
-        ON default_set.excluded_facet_id IS NULL
-      LEFT JOIN option_required_combination_set facet_set
-        ON facet_set.excluded_facet_id = ofv.facet_id
-    ),
-    ${optionSignatureBaseStateSql},
-    option_required_set_arrays AS (
-      SELECT
-        required_sets.candidate_value_key,
-        row_number() OVER (
-          PARTITION BY required_sets.candidate_value_key
-          ORDER BY required_sets.value_keys
-        )::int AS required_set_ordinal,
-        required_sets.value_keys
-      FROM (
-        SELECT DISTINCT
-          ofv.value_key AS candidate_value_key,
-          ARRAY(
-            SELECT DISTINCT required_value.value_key
-            FROM (
-              SELECT ofv.value_key
+      CROSS JOIN stock_filter_state sfs
+      JOIN option_facet_count_strategy strategy
+        ON strategy.facet_id = ofv.facet_id
+    )
+  `;
+}
 
-              UNION ALL
-
-              SELECT combo.value_key
-              FROM option_active_filter_combination_values combo
-              WHERE combo.excluded_facet_id IS NOT DISTINCT FROM combination_set.excluded_facet_id
-                AND combo.combination_ordinal = ord.combination_ordinal
-                AND combo.facet_id <> ofv.facet_id
-            ) required_value(value_key)
-            ORDER BY required_value.value_key
-          )::text[] AS value_keys
-        FROM option_facet_values ofv
-        JOIN option_candidate_combination_set combination_set
-          ON combination_set.value_key = ofv.value_key
-        JOIN option_signature_base_state signature_state
-          ON signature_state.value_key = ofv.value_key
-         AND signature_state.signature_lookup_enabled = true
-        JOIN option_required_combination_ordinals ord
-          ON ord.excluded_facet_id IS NOT DISTINCT FROM combination_set.excluded_facet_id
-      ) required_sets
-    ),
-    option_required_set_values AS (
+function compileOptionSignatureMatchingSql(): SQL {
+  return sql`
+    option_candidate_signature_keys AS (
       SELECT
-        arrays.candidate_value_key,
-        arrays.required_set_ordinal,
-        required_value.value_key
-      FROM option_required_set_arrays arrays
-      CROSS JOIN LATERAL unnest(arrays.value_keys) AS required_value(value_key)
-    ),
-    option_required_set_value_counts AS (
-      SELECT
-        rsv.candidate_value_key,
-        rsv.required_set_ordinal,
-        COUNT(DISTINCT rsv.value_key)::int AS value_count
-      FROM option_required_set_values rsv
-      GROUP BY rsv.candidate_value_key, rsv.required_set_ordinal
-    ),
-    option_matching_signature_rows AS (
-      SELECT
-        rsv.candidate_value_key,
-        rsv.required_set_ordinal,
+        ofv.facet_id,
+        state.value_key AS candidate_value_key,
         sv.signature_key
-      FROM option_required_set_values rsv
+      FROM option_signature_base_state state
+      JOIN option_facet_values ofv
+        ON ofv.value_key = state.value_key
       JOIN input i ON true
-      JOIN option_required_set_value_counts rvc
-        ON rvc.candidate_value_key = rsv.candidate_value_key
-       AND rvc.required_set_ordinal = rsv.required_set_ordinal
       JOIN listing.listing_option_signature_value sv
         ON sv.project_id = i.project_id
-       AND sv.value_key = rsv.value_key
-      GROUP BY
-        rsv.candidate_value_key,
-        rsv.required_set_ordinal,
-        sv.signature_key,
-        rvc.value_count
-      HAVING COUNT(DISTINCT sv.value_key) = rvc.value_count
+       AND sv.value_key = state.value_key
+      WHERE state.signature_lookup_enabled
+    ),
+    option_required_facet_counts AS (
+      SELECT
+        candidate.candidate_value_key,
+        COUNT(DISTINCT active.facet_id)::int AS required_facet_count
+      FROM option_candidate_signature_keys candidate
+      LEFT JOIN option_active_filter_value_rows active
+        ON active.facet_id <> candidate.facet_id
+      GROUP BY candidate.candidate_value_key
+    ),
+    option_required_signature_matches AS (
+      SELECT
+        candidate.candidate_value_key,
+        candidate.signature_key,
+        COUNT(DISTINCT active.facet_id)::int AS matched_required_facet_count
+      FROM option_candidate_signature_keys candidate
+      JOIN input i ON true
+      JOIN option_active_filter_value_rows active
+        ON active.facet_id <> candidate.facet_id
+      JOIN listing.listing_option_signature_value sv
+        ON sv.project_id = i.project_id
+       AND sv.signature_key = candidate.signature_key
+       AND sv.value_key = active.value_key
+      GROUP BY candidate.candidate_value_key, candidate.signature_key
     ),
     option_matching_signature_keys AS (
       SELECT DISTINCT
-        candidate_value_key,
-        signature_key
-      FROM option_matching_signature_rows
+        candidate.candidate_value_key,
+        candidate.signature_key
+      FROM option_candidate_signature_keys candidate
+      JOIN option_required_facet_counts required
+        ON required.candidate_value_key = candidate.candidate_value_key
+      LEFT JOIN option_required_signature_matches matched
+        ON matched.candidate_value_key = candidate.candidate_value_key
+       AND matched.signature_key = candidate.signature_key
+      WHERE required.required_facet_count = 0
+        OR matched.matched_required_facet_count = required.required_facet_count
     ),
     option_signature_state AS (
       SELECT
@@ -371,143 +481,43 @@ function compileFacetCountsQuerySqlWithOptions(
         ON price_bitmaps.value_key = ofv.value_key
       WHERE NOT state.use_heavy_signature_path
         AND (state.force_zero OR state.use_signature)
-    ),
-    ${optionFacetCountsProducerSql},
-    counts AS (
-      SELECT * FROM product_facet_counts
-      UNION ALL
-      SELECT * FROM option_facet_counts
     )
-    SELECT
-      frg.error_code AS "facetErrorCode",
-      frg.error_value AS "facetErrorValue",
-      c.facet_id AS "facetId",
-      c.facet_type AS "facetType",
-      c.value_key AS "valueKey",
-      c.count::int AS "count"
-    FROM facet_resolution_guard frg
-    LEFT JOIN counts c
-      ON frg.error_code IS NULL
   `;
 }
 
-function compileFacetCountsCoreSql(request: ListingSqlRequest): SQL {
-  return sql.join(
-    [
-      compileListingInputSql(request),
-      compileFacetResolutionSql(),
-      compileScopeSql(request),
-      compileFiltersSql(),
-    ],
-    sql`, `
-  );
-}
-
-export function compileFacetCountsHeavyParityQuerySql(input: {
-  request: ListingSqlRequest;
-  targetFacetIds: readonly string[];
-}): SQL {
-  const targetFacetIds = normalizeFacetIds(input.targetFacetIds);
-  const targetRows = targetFacetIds.map((facetId) => sql`(${facetId}::text)`);
-  const candidateQuery = compileFacetCountsQuerySqlWithOptions({
-    ...input.request,
-    heavyOptionFacetCountsEnabled: false,
-  }, {
-    heavyStrategyEnabled: false,
-  });
-  const heavyQuery = compileFacetCountsQuerySqlWithOptions({
-    ...input.request,
-    heavyOptionFacetCountsEnabled: false,
-  }, {
-    heavyStrategyEnabled: true,
-    forceHeavyOptionFacetCountFacetIds: targetFacetIds,
-  });
-
+function compileSimpleOptionFacetCountsProducerSql(): SQL {
   return sql`
-    WITH parity_target_facets AS (
-      ${valuesOrEmpty(
-        targetRows,
-        "target_facet_values",
-        sql`facet_id`,
-        sql`SELECT NULL::text AS facet_id WHERE false`
-      )}
-    ),
-    candidate_counts AS (
+    option_facet_counts AS (
       SELECT
-        candidate."facetId"::text AS facet_id,
-        candidate."facetType"::text AS facet_type,
-        candidate."valueKey"::text AS value_key,
-        candidate."count"::int AS count
-      FROM (${candidateQuery}) candidate
-      JOIN parity_target_facets target
-        ON target.facet_id = candidate."facetId"
-      WHERE candidate."facetErrorCode" IS NULL
-        AND candidate."facetId" IS NOT NULL
-        AND candidate."valueKey" IS NOT NULL
-    ),
-    heavy_counts AS (
-      SELECT
-        heavy."facetId"::text AS facet_id,
-        heavy."facetType"::text AS facet_type,
-        heavy."valueKey"::text AS value_key,
-        heavy."count"::int AS count
-      FROM (${heavyQuery}) heavy
-      JOIN parity_target_facets target
-        ON target.facet_id = heavy."facetId"
-      WHERE heavy."facetErrorCode" IS NULL
-        AND heavy."facetId" IS NOT NULL
-        AND heavy."valueKey" IS NOT NULL
-    )
-    SELECT
-      COALESCE(candidate.facet_id, heavy.facet_id) AS "facetId",
-      COALESCE(candidate.facet_type, heavy.facet_type) AS "facetType",
-      COALESCE(candidate.value_key, heavy.value_key) AS "valueKey",
-      candidate.count AS "candidateCount",
-      heavy.count AS "heavyCount"
-    FROM candidate_counts candidate
-    FULL OUTER JOIN heavy_counts heavy
-      ON heavy.facet_id = candidate.facet_id
-     AND heavy.value_key = candidate.value_key
-    WHERE candidate.count IS DISTINCT FROM heavy.count
-    ORDER BY
-      COALESCE(candidate.facet_id, heavy.facet_id),
-      COALESCE(candidate.value_key, heavy.value_key)
-  `;
-}
-
-function compileOptionSignatureBaseStateSql(heavyStrategyEnabled: boolean): SQL {
-  if (!heavyStrategyEnabled) {
-    return sql`
-      option_signature_base_state AS (
-        SELECT
-          ofv.value_key,
-          false AS use_heavy_signature_path,
-          COALESCE(sfs.has_value AND sfs.value = false, false) AS force_zero,
-          NOT COALESCE(sfs.has_value AND sfs.value = false, false)
-            AS signature_lookup_enabled
-        FROM option_facet_values ofv
-        JOIN option_candidate_combination_set combination_set
-          ON combination_set.value_key = ofv.value_key
-        CROSS JOIN stock_filter_state sfs
-      )
-    `;
-  }
-
-  return sql`
-    option_signature_base_state AS (
-      SELECT
+        ofv.facet_id,
+        ofv.facet_type,
         ofv.value_key,
-        strategy.use_heavy_signature_path,
-        COALESCE(sfs.has_value AND sfs.value = false, false) AS force_zero,
-        NOT strategy.use_heavy_signature_path
-          AND NOT COALESCE(sfs.has_value AND sfs.value = false, false)
-          AS signature_lookup_enabled
+        CASE
+          WHEN COALESCE(sfs.has_value AND sfs.value = false, false) THEN 0
+          ELSE rb_cardinality(
+            COALESCE(
+              rb_or_agg(os.product_bitmap)
+                FILTER (WHERE os.product_bitmap IS NOT NULL),
+              ${emptyRoaringBitmapSql()}
+            )
+            & (SELECT bitmap FROM option_count_product_scope)
+          )::int
+        END AS count
       FROM option_facet_values ofv
-      JOIN option_candidate_combination_set combination_set
-        ON combination_set.value_key = ofv.value_key
+      JOIN input i ON true
       CROSS JOIN stock_filter_state sfs
-      JOIN option_facet_count_strategy strategy
-        ON strategy.facet_id = ofv.facet_id
+      LEFT JOIN listing.listing_option_signature_value sv
+        ON sv.project_id = i.project_id
+       AND sv.value_key = ofv.value_key
+      LEFT JOIN listing.listing_option_signature os
+        ON os.project_id = i.project_id
+       AND os.signature_key = sv.signature_key
+      GROUP BY
+        ofv.facet_id,
+        ofv.facet_type,
+        ofv.value_key,
+        sfs.has_value,
+        sfs.value
     )
   `;
 }
@@ -691,13 +701,6 @@ interface FacetCountStrategyOptions {
   forceHeavyOptionFacetCountFacetIds?: readonly string[];
 }
 
-interface RequiredCombinationSet {
-  excludedFacetId: string | null;
-  combinations: readonly RequiredCombination[];
-}
-
-type RequiredCombination = readonly RequiredCombinationValue[];
-
 interface RequiredCombinationValue {
   facetId: string;
   valueKey: string;
@@ -781,58 +784,14 @@ function compileOptionFacetCountStrategySql(input: {
   `;
 }
 
-function compileOptionRequiredCombinationSetSql(request: ListingSqlRequest): SQL {
-  const combinationSets = buildRequiredCombinationSets(request);
-  const combinationSetRows = combinationSets.map(
-    (combinationSet) => sql`(${combinationSet.excludedFacetId}::text)`
-  );
-  const ordinalRows = combinationSets.flatMap((combinationSet) =>
-    combinationSet.combinations.map(
-      (_combination, index) =>
-        sql`(${combinationSet.excludedFacetId}::text, ${index + 1}::int)`
-    )
-  );
-  const valueRows = combinationSets.flatMap((combinationSet) =>
-    combinationSet.combinations.flatMap((combination, combinationIndex) =>
-      combination.map(
-        (value) =>
-          sql`(${combinationSet.excludedFacetId}::text, ${
-            combinationIndex + 1
-          }::int, ${value.facetId}::text, ${value.valueKey}::text)`
-      )
-    )
-  );
+function compileOptionActiveFilterValueRowsSql(
+  request: ListingSqlRequest
+): SQL {
   const activeValueRows = buildActiveOptionFilterValues(request).map(
     (value) => sql`(${value.facetId}::text, ${value.valueKey}::text)`
   );
 
   return sql`
-    option_required_combination_set AS (
-      SELECT *
-      FROM (VALUES ${sql.join(combinationSetRows, sql`, `)})
-        AS combination_set(excluded_facet_id)
-    ),
-    option_required_combination_ordinals AS (
-      ${valuesOrEmpty(
-        ordinalRows,
-        "ordinal_values",
-        sql`excluded_facet_id, combination_ordinal`,
-        sql`SELECT NULL::text AS excluded_facet_id, NULL::int AS combination_ordinal WHERE false`
-      )}
-    ),
-    option_active_filter_combination_values AS (
-      ${valuesOrEmpty(
-        valueRows,
-        "combination_values",
-        sql`excluded_facet_id, combination_ordinal, facet_id, value_key`,
-        sql`SELECT
-          NULL::text AS excluded_facet_id,
-          NULL::int AS combination_ordinal,
-          NULL::text AS facet_id,
-          NULL::text AS value_key
-        WHERE false`
-      )}
-    ),
     option_active_filter_value_rows AS (
       ${valuesOrEmpty(
         activeValueRows,
@@ -858,25 +817,6 @@ function valuesOrEmpty(
   }
 
   return sql`SELECT * FROM (VALUES ${sql.join([...rows], sql`, `)}) AS ${sql.raw(alias)}(${columns})`;
-}
-
-function buildRequiredCombinationSets(
-  request: ListingSqlRequest
-): RequiredCombinationSet[] {
-  const groups = groupOptionFacetFilters(request);
-  const activeFacetIds = [...groups.keys()].sort();
-  const excludedFacetIds = [null, ...activeFacetIds];
-
-  return excludedFacetIds.map((excludedFacetId) => {
-    const combinationGroups = activeFacetIds
-      .filter((facetId) => facetId !== excludedFacetId)
-      .map((facetId) => groups.get(facetId) ?? []);
-
-    return {
-      excludedFacetId,
-      combinations: buildCombinations(combinationGroups),
-    };
-  });
 }
 
 function buildOptionFacetCombinationEstimate(
@@ -960,20 +900,4 @@ function groupOptionFacetFilters(
   }
 
   return groups;
-}
-
-function buildCombinations(
-  groups: readonly (readonly RequiredCombinationValue[])[]
-): RequiredCombination[] {
-  if (groups.length === 0) {
-    return [[]];
-  }
-
-  return groups.reduce<RequiredCombination[]>(
-    (combinations, group) =>
-      combinations.flatMap((combination) =>
-        group.map((value) => [...combination, value])
-      ),
-    [[]]
-  );
 }
