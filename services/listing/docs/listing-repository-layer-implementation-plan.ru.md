@@ -135,7 +135,6 @@ export type PostingEntityType = "product" | "variant";
 
 export type PostingField =
   | "category"
-  | "collection"
   | "vendor"
   | "facet"
   | "variant_product"
@@ -739,7 +738,6 @@ For full product facet refresh, omit prefixes and use `field = "facet"`.
 ### Required posting field usage
 
 - Product category scope: `entityType = "product"`, `field = "category"`.
-- Product collection scope: `entityType = "product"`, `field = "collection"`.
 - Product vendor: `entityType = "product"`, `field = "vendor"`.
 - Product tag/feature facets: `entityType = "product"`, `field = "facet"`,
   `valueKey = "<facet_id>:<facet_value_id>"`.

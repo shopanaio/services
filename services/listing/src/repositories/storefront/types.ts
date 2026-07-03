@@ -21,7 +21,6 @@ export type StorefrontSortKind =
 
 export type ProductPostingField =
   | "category"
-  | "collection"
   | "vendor"
   | "facet";
 
@@ -71,19 +70,7 @@ export interface StorefrontSortInput {
 
 export type StorefrontListingScope =
   | { kind: "category"; categoryId: string; manualSortScopeId?: string }
-  | { kind: "manual_collection"; collectionId: string }
-  | { kind: "rule_collection"; collectionId: string; rules: RuleCollectionPredicate[] }
-  | { kind: "global" }
   | { kind: "search" };
-
-export type RuleCollectionPredicate =
-  | { kind: "category"; categoryId: string }
-  | { kind: "collection"; collectionId: string }
-  | { kind: "vendor"; vendorId: string }
-  | { kind: "product_facet"; facetId: string; valueKeys: string[] }
-  | { kind: "option_facet"; facetId: string; valueKeys: string[] }
-  | { kind: "price"; minPriceMinor?: number; maxPriceMinor?: number }
-  | { kind: "in_stock"; value: boolean };
 
 export interface ResolvedFacetFilterGroup {
   facetId: string;

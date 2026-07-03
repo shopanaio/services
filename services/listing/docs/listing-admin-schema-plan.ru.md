@@ -247,11 +247,9 @@ query CategoryListing($categoryId: ID!, $first: Int!) {
 
 `ListingScopeInput`:
 
-- `GLOBAL`: `categoryId` и `collectionId` должны отсутствовать;
-- `SEARCH`: `categoryId` и `collectionId` должны отсутствовать, `query` должен
+- `SEARCH`: `categoryId` должен отсутствовать, `query` должен
   быть непустой строкой;
-- `CATEGORY`: `categoryId` обязателен, `collectionId` должен отсутствовать;
-- `COLLECTION`: `collectionId` обязателен, `categoryId` должен отсутствовать.
+- `CATEGORY`: `categoryId` обязателен.
 
 `ListingProductFilter`:
 
@@ -378,10 +376,8 @@ extend type ListingQuery {
 # ---- Listing Inputs ----
 
 enum ListingScopeKind {
-  GLOBAL
   SEARCH
   CATEGORY
-  COLLECTION
 }
 
 input ListingScopeInput {
@@ -390,9 +386,6 @@ input ListingScopeInput {
 
   """Category global ID. Required when kind is CATEGORY."""
   categoryId: ID
-
-  """Collection global ID. Required when kind is COLLECTION."""
-  collectionId: ID
 }
 
 input ListingProductFilter {

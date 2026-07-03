@@ -1,7 +1,7 @@
 export const DEFAULT_LISTING_PAGE_SIZE = 20;
 export const MAX_LISTING_PAGE_SIZE = 100;
 
-export type ListingScopeKind = "GLOBAL" | "SEARCH" | "CATEGORY" | "COLLECTION";
+export type ListingScopeKind = "SEARCH" | "CATEGORY";
 export type ListingSortBy =
   | "MANUAL"
   | "RELEVANCE"
@@ -14,7 +14,6 @@ export type ListingSortDirection = "asc" | "desc";
 export interface ListingScopeInput {
   kind: ListingScopeKind;
   categoryId?: string | null;
-  collectionId?: string | null;
 }
 
 export interface ListingPriceRangeFilter {

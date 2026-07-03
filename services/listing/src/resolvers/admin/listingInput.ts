@@ -193,16 +193,19 @@ function normalizeListingScope(
   scope: ListingScopeInput | null,
   query: string | null | undefined
 ): StorefrontListingScope {
-  const kind = scope?.kind ?? (query?.trim() ? "SEARCH" : "GLOBAL");
+  const kind = scope?.kind ?? (query?.trim() ? "SEARCH" : null);
   const categoryId = scope?.categoryId ?? null;
-  const collectionId = scope?.collectionId ?? null;
+
+  if (!kind) {
+    throw new ListingResolverInputError(
+      "Listing scope requires CATEGORY or a non-empty search query",
+      ["scope"]
+    );
+  }
 
   switch (kind) {
-    case "GLOBAL":
-      assertNoScopeIds(kind, categoryId, collectionId);
-      return { kind: "global" };
     case "SEARCH":
-      assertNoScopeIds(kind, categoryId, collectionId);
+      assertNoScopeIds(categoryId);
       if (!query?.trim()) {
         throw new ListingResolverInputError(
           "SEARCH listing scope requires a non-empty query",
@@ -217,39 +220,12 @@ function normalizeListingScope(
           ["scope", "categoryId"]
         );
       }
-      if (collectionId) {
-        throw new ListingResolverInputError(
-          "CATEGORY listing scope does not accept collectionId",
-          ["scope", "collectionId"]
-        );
-      }
       return {
         kind: "category",
         categoryId: decodeListingGlobalId(
           categoryId,
           GlobalIdEntity.Category,
           ["scope", "categoryId"]
-        ),
-      };
-    case "COLLECTION":
-      if (!collectionId) {
-        throw new ListingResolverInputError(
-          "COLLECTION listing scope requires collectionId",
-          ["scope", "collectionId"]
-        );
-      }
-      if (categoryId) {
-        throw new ListingResolverInputError(
-          "COLLECTION listing scope does not accept categoryId",
-          ["scope", "categoryId"]
-        );
-      }
-      return {
-        kind: "manual_collection",
-        collectionId: decodeListingGlobalId(
-          collectionId,
-          GlobalIdEntity.Collection,
-          ["scope", "collectionId"]
         ),
       };
   }
@@ -308,14 +284,10 @@ function normalizePageSize(args: ListingQueryArgs): number {
   return Math.min(value, MAX_LISTING_PAGE_SIZE);
 }
 
-function assertNoScopeIds(
-  kind: "GLOBAL" | "SEARCH",
-  categoryId: string | null,
-  collectionId: string | null
-): void {
-  if (categoryId || collectionId) {
+function assertNoScopeIds(categoryId: string | null): void {
+  if (categoryId) {
     throw new ListingResolverInputError(
-      `${kind} listing scope does not accept scope IDs`,
+      "SEARCH listing scope does not accept scope IDs",
       ["scope"]
     );
   }

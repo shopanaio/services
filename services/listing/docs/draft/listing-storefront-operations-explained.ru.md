@@ -24,8 +24,8 @@ total count, cursor pagination и sort. Hydration карточек товара 
 2. Facet resolver batch-запросом переводит public postings
    `facetSlug:valueHandle` в `facet_id`, `facet_type`, `facet_value_id`.
    Runtime query строит stable `value_key = <facet_id>:<facet_value_id>`.
-3. Scope builder получает product bitmap: category, collection, global published
-   products or BM25 search candidates.
+3. Scope builder получает product bitmap: category products or BM25 search
+   candidates.
 4. Product filter builder строит product bitmap из product facet/vendor/scope
    rows в `listing.listing_posting_bitmap`.
 5. Variant filter builder строит variant bitmap из option facet rows и typed
@@ -58,8 +58,8 @@ value_key = <category_id>
 
 Если sync хранит category bitmap только для published products, этот bitmap
 можно использовать напрямую. Если bitmap содержит drafts, query должен
-дополнительно intersect-ить published/global visibility bitmap или построить
-published product bitmap из `product_listing_index`.
+дополнительно intersect-ить published visibility bitmap или построить published
+product bitmap из `product_listing_index`.
 
 Default manual category sort использует derived rows:
 
@@ -77,52 +77,6 @@ in_stock DESC, manual_rank ASC NULLS LAST, product_id ASC
 
 Если пользователь выбирает другой sort, category scope остается тем же, но page
 collector использует соответствующий `sort_kind`.
-
-## Manual collection PLP
-
-Manual collection PLP сохраняет `collection_item.lexo_rank` через product bitmap
-scope and product sort rows:
-
-```text
-scope: entity_type=product, field=collection, value_key=<collection_id>
-sort:  listing_posting_product_sort(sort_kind=manual, manual_scope_id=<collection_id>)
-```
-
-Все filters, facets, counts и pagination работают так же, как для category PLP.
-
-## Rule collection PLP
-
-Rule collection rules компилируются в product-level и variant-level predicates.
-
-Product-level rules используют:
-
-- scalar fields in `product_listing_index`, если они есть в schema;
-- explicit product bitmap rows, например `vendor`, `category`, `collection`;
-- configured tag/feature facet bitmap rows with `field = 'facet'`.
-
-Variant-level rules используют variant bitmap rows. Все option/price conditions
-должны совпасть на одном in-stock `variant_doc_id` до projection в products.
-
-Rule collection не имеет manual rank, если collection отдельно не задает
-ручной порядок. Default sort обычно `newest` или collection-configured sort.
-
-## Global catalog listing
-
-Global catalog listing открывает общий каталог проекта без category/collection
-scope.
-
-Если sync поддерживает published/global product bitmap row, query использует его.
-Иначе scope строится из `product_listing_index`:
-
-```sql
-SELECT rb_build_agg(pli.product_doc_id) AS product_bitmap
-FROM listing.product_listing_index pli
-WHERE pli.project_id = :projectId
-  AND pli.status = 'published';
-```
-
-Global scope может быть большим, поэтому query builder должен уметь short-circuit
-missing/empty required filter groups до page collector.
 
 ## Search results listing
 
@@ -214,7 +168,7 @@ product_matches = project_variants_to_products(variant_matches)
 третьим variant того же product.
 
 Out-of-stock variants не участвуют в option filters, price filters, matched
-variant sort, option counts и variant-level collection rules.
+variant sort и option counts.
 
 ## Facet resolution
 
@@ -298,7 +252,7 @@ All storefront sorts are deterministic and availability-first.
 
 Supported sorts:
 
-- `manual`: derived product sort rows scoped by category/collection id;
+- `manual`: derived product sort rows scoped by category id;
 - `newest`: published date then product created date;
 - `created`: product created date;
 - `name`: derived locale-specific product sort rows;

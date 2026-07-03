@@ -46,7 +46,6 @@ import {
   type NormalizedStorefrontFacetFilter,
   type NormalizedStorefrontListingFilters,
   type ResolvedListingRequest,
-  type RuleCollectionPredicate,
   type StorefrontListingFilterInput,
   type StorefrontListingInput,
   type StorefrontListingRepositoryResult,
@@ -238,13 +237,11 @@ export class StorefrontListingQueryRepository extends BaseRepository {
       );
     }
 
-    const scope = this.normalizeScope(input.scope);
-    const manualScopeId = this.manualScopeIdFor(scope, sort);
+    const manualScopeId = this.manualScopeIdFor(input.scope, sort);
     const filters = this.normalizeFilters(input.filters);
     const normalizedFiltersInput = this.toFilterPlanInput(filters);
     const normalizedInput: StorefrontListingInput = {
       ...input,
-      scope,
       locale,
       currency,
       first,
@@ -255,7 +252,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
       projectId: this.storeId,
       locale,
       currency,
-      scope,
+      scope: input.scope,
       normalizedQuery,
       filters,
       sort,
@@ -316,36 +313,6 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     return normalized;
   }
 
-  private normalizeScope(scope: StorefrontListingScope): StorefrontListingScope {
-    if (scope.kind !== "rule_collection") {
-      return scope;
-    }
-
-    return {
-      ...scope,
-      rules: scope.rules.map((rule) => this.normalizeRule(rule)),
-    };
-  }
-
-  private normalizeRule(rule: RuleCollectionPredicate): RuleCollectionPredicate {
-    switch (rule.kind) {
-      case "product_facet":
-      case "option_facet":
-        return {
-          ...rule,
-          valueKeys: mergeUnique([], rule.valueKeys),
-        };
-      case "price":
-        this.assertPriceBounds(rule, ["scope", "rules"]);
-        return rule;
-      case "category":
-      case "collection":
-      case "vendor":
-      case "in_stock":
-        return rule;
-    }
-  }
-
   private resolveSort(
     sort: StorefrontSortInput | undefined,
     normalizedQuery: string | null
@@ -366,13 +333,9 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     switch (scope.kind) {
       case "category":
         return scope.manualSortScopeId ?? scope.categoryId;
-      case "manual_collection":
-      case "rule_collection":
-        return scope.collectionId;
-      case "global":
       case "search":
         throw new StorefrontRepositoryValidationError(
-          "Manual sort requires category or collection scope"
+          "Manual sort requires category scope"
         );
     }
   }

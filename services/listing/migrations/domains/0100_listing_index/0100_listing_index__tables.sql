@@ -387,7 +387,9 @@ CREATE TABLE listing.listing_posting_bitmap (
 
   PRIMARY KEY (project_id, entity_type, field, value_key),
   CONSTRAINT chk_listing_posting_bitmap_entity_type
-    CHECK (entity_type IN ('product', 'variant'))
+    CHECK (entity_type IN ('product', 'variant')),
+  CONSTRAINT chk_listing_posting_bitmap_no_collection_field
+    CHECK (field <> 'collection')
 );
 
 CREATE TABLE listing.listing_posting_product_sort (

@@ -9,7 +9,6 @@ import type {
   FacetRuntimeType,
   ResolvedFacetFilterGroup,
   ResolvedFacetValue,
-  RuleCollectionPredicate,
   StorefrontFilterPlan,
   StorefrontListingFilterInput,
   StorefrontListingScope,
@@ -95,10 +94,7 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
             sql`, `
           )})`
         : sql``;
-    const scopeProductBitmapSql = this.buildScopeProductBitmapSql(
-      input.scope,
-      input.currency
-    );
+    const scopeProductBitmapSql = this.buildScopeProductBitmapSql(input.scope);
 
     const rows = await this.connection.execute<FacetValueSqlRow>(sql`
       WITH scope_products AS (
@@ -160,24 +156,16 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
     return rows.map((row) => this.toResolvedFacetValue(row));
   }
 
-  private buildScopeProductBitmapSql(
-    scope: StorefrontListingScope,
-    currency: string
-  ): SQL {
+  private buildScopeProductBitmapSql(scope: StorefrontListingScope): SQL {
     switch (scope.kind) {
       case "category":
         return this.productPostingScopeBitmapSql("category", scope.categoryId);
-      case "manual_collection":
-        return this.productPostingScopeBitmapSql("collection", scope.collectionId);
-      case "global":
       case "search":
         return this.publishedProductBitmapSql();
-      case "rule_collection":
-        return this.ruleCollectionScopeBitmapSql(scope.rules, currency);
     }
   }
 
-  private productPostingScopeBitmapSql(field: "category" | "collection", valueKey: string): SQL {
+  private productPostingScopeBitmapSql(field: "category", valueKey: string): SQL {
     return sql`(
       ${this.publishedProductBitmapSql()}
       & ${coalesceScopeBitmapSql(sql`(
@@ -189,238 +177,6 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
           AND p.value_key = ${valueKey}
       )`)}
     )`;
-  }
-
-  private ruleCollectionScopeBitmapSql(
-    rules: RuleCollectionPredicate[],
-    currency: string
-  ): SQL {
-    const productRuleBitmaps: SQL[] = [];
-    const variantRuleBitmaps: SQL[] = [];
-    let hasOptionRule = false;
-    let hasExplicitStockRule = false;
-
-    for (const rule of rules) {
-      switch (rule.kind) {
-        case "category":
-          productRuleBitmaps.push(
-            this.productPostingBitmapSql("category", rule.categoryId)
-          );
-          break;
-        case "collection":
-          productRuleBitmaps.push(
-            this.productPostingBitmapSql("collection", rule.collectionId)
-          );
-          break;
-        case "vendor":
-          productRuleBitmaps.push(
-            this.productPostingBitmapSql("vendor", rule.vendorId)
-          );
-          break;
-        case "product_facet":
-          productRuleBitmaps.push(
-            this.orPostingValuesBitmapSql("product", "facet", rule.valueKeys)
-          );
-          break;
-        case "option_facet":
-          hasOptionRule = true;
-          variantRuleBitmaps.push(
-            this.orPostingValuesBitmapSql("variant", "facet", rule.valueKeys)
-          );
-          break;
-        case "price":
-          variantRuleBitmaps.push(this.priceRuleVariantBitmapSql(rule, currency));
-          break;
-        case "in_stock":
-          hasExplicitStockRule = true;
-          variantRuleBitmaps.push(this.variantStockRuleBitmapSql(rule.value));
-          break;
-      }
-    }
-
-    const ruleScopeParts: SQL[] = [];
-    if (productRuleBitmaps.length > 0) {
-      ruleScopeParts.push(this.orBitmapsSql(productRuleBitmaps));
-    }
-
-    if (variantRuleBitmaps.length > 0) {
-      if (hasOptionRule && !hasExplicitStockRule) {
-        variantRuleBitmaps.push(this.variantStockRuleBitmapSql(true));
-      }
-      const variantRuleScope = this.andBitmapsSql(variantRuleBitmaps);
-      ruleScopeParts.push(this.projectVariantBitmapSql(variantRuleScope));
-    }
-
-    if (ruleScopeParts.length === 0) {
-      return this.publishedProductBitmapSql();
-    }
-
-    const ruleScope = this.orBitmapsSql(ruleScopeParts);
-    return sql`(${this.publishedProductBitmapSql()} & ${ruleScope})`;
-  }
-
-  private orBitmapsSql(bitmaps: readonly SQL[]): SQL {
-    if (bitmaps.length === 0) {
-      return emptyScopeBitmapSql();
-    }
-    return bitmaps
-      .slice(1)
-      .reduce((acc, bitmapSql) => sql`(${acc} | ${bitmapSql})`, bitmaps[0]);
-  }
-
-  private andBitmapsSql(bitmaps: readonly SQL[]): SQL {
-    if (bitmaps.length === 0) {
-      return emptyScopeBitmapSql();
-    }
-    return bitmaps
-      .slice(1)
-      .reduce((acc, bitmapSql) => sql`(${acc} & ${bitmapSql})`, bitmaps[0]);
-  }
-
-  private productPostingBitmapSql(
-    field: "category" | "collection" | "vendor" | "facet",
-    valueKey: string
-  ): SQL {
-    return coalesceScopeBitmapSql(sql`(
-      SELECT p.bitmap
-      FROM listing.listing_posting_bitmap p
-      WHERE p.project_id = ${this.storeId}::uuid
-        AND p.entity_type = 'product'
-        AND p.field = ${field}
-        AND p.value_key = ${valueKey}
-    )`);
-  }
-
-  private orPostingValuesBitmapSql(
-    entityType: "product" | "variant",
-    field: "facet",
-    valueKeys: readonly string[]
-  ): SQL {
-    const uniqueValueKeys = this.mergeUnique([], valueKeys);
-    if (uniqueValueKeys.length === 0) {
-      return emptyScopeBitmapSql();
-    }
-
-    return coalesceScopeBitmapSql(sql`(
-      SELECT rb_or_agg(p.bitmap)
-      FROM listing.listing_posting_bitmap p
-      WHERE p.project_id = ${this.storeId}::uuid
-        AND p.entity_type = ${entityType}
-        AND p.field = ${field}
-        AND p.value_key IN (${sql.join(
-          uniqueValueKeys.map((valueKey) => sql`${valueKey}`),
-          sql`, `
-        )})
-    )`);
-  }
-
-  private priceRuleVariantBitmapSql(
-    rule: Extract<RuleCollectionPredicate, { kind: "price" }>,
-    currency: string
-  ): SQL {
-    if (!currency.trim()) {
-      throw new StorefrontRepositoryValidationError("Currency is required");
-    }
-    if (rule.minPriceMinor === undefined && rule.maxPriceMinor === undefined) {
-      throw new StorefrontRepositoryValidationError(
-        "Rule collection price rule requires at least one bound",
-        ["scope", "rules"]
-      );
-    }
-    if (rule.minPriceMinor !== undefined) {
-      assertNonNegativeSafeInteger(rule.minPriceMinor, "minPriceMinor");
-    }
-    if (rule.maxPriceMinor !== undefined) {
-      assertNonNegativeSafeInteger(rule.maxPriceMinor, "maxPriceMinor");
-    }
-    if (
-      rule.minPriceMinor !== undefined &&
-      rule.maxPriceMinor !== undefined &&
-      rule.minPriceMinor > rule.maxPriceMinor
-    ) {
-      throw new StorefrontRepositoryValidationError(
-        "Rule collection price rule min bound must not exceed max bound",
-        ["scope", "rules"]
-      );
-    }
-
-    const minPredicate =
-      rule.minPriceMinor !== undefined
-        ? sql`AND vp.price_minor >= ${rule.minPriceMinor}`
-        : sql``;
-    const maxPredicate =
-      rule.maxPriceMinor !== undefined
-        ? sql`AND vp.price_minor <= ${rule.maxPriceMinor}`
-        : sql``;
-
-    return coalesceScopeBitmapSql(sql`(
-      SELECT rb_build_agg(vp.variant_doc_id)
-      FROM listing.variant_listing_price_index vp
-      JOIN listing.variant_listing_index vli
-        ON vli.project_id = vp.project_id
-       AND vli.variant_id = vp.variant_id
-       AND vli.in_stock = true
-      WHERE vp.project_id = ${this.storeId}::uuid
-        AND vp.currency = ${currency}
-        AND vp.has_price = true
-        AND vp.price_minor IS NOT NULL
-        AND vp.variant_doc_id IS NOT NULL
-        AND vp.product_doc_id IS NOT NULL
-        AND vp.product_id IS NOT NULL
-        ${minPredicate}
-        ${maxPredicate}
-    )`);
-  }
-
-  private variantStockRuleBitmapSql(inStock: boolean): SQL {
-    return coalesceScopeBitmapSql(sql`(
-      SELECT rb_build_agg(vli.variant_doc_id)
-      FROM listing.variant_listing_index vli
-      WHERE vli.project_id = ${this.storeId}::uuid
-        AND vli.in_stock = ${inStock}
-    )`);
-  }
-
-  private projectVariantBitmapSql(variantBitmapSql: SQL): SQL {
-    return coalesceScopeBitmapSql(sql`(
-      WITH matched_blocks AS (
-        SELECT
-          b.variant_doc_from,
-          b.variant_doc_to,
-          b.variant_bitmap,
-          b.product_bitmap,
-          b.variant_count,
-          (${variantBitmapSql} & b.variant_bitmap) AS block_match
-        FROM listing.listing_posting_variant_projection_block b
-        WHERE b.project_id = ${this.storeId}::uuid
-          AND rb_cardinality(${variantBitmapSql} & b.variant_bitmap) > 0
-      ),
-      full_block_products AS (
-        SELECT mb.product_bitmap
-        FROM matched_blocks mb
-        WHERE rb_cardinality(mb.block_match) = mb.variant_count
-      ),
-      partial_block_products AS (
-        SELECT rb_build_agg(vli.product_doc_id) AS product_bitmap
-        FROM matched_blocks mb
-        JOIN listing.variant_listing_index vli
-          ON vli.project_id = ${this.storeId}::uuid
-         AND vli.variant_doc_id >= mb.variant_doc_from
-         AND vli.variant_doc_id < mb.variant_doc_to
-        WHERE rb_cardinality(mb.block_match) < mb.variant_count
-          AND mb.block_match @> vli.variant_doc_id
-      ),
-      projected AS (
-        SELECT rb_or_agg(product_bitmap) AS product_bitmap
-        FROM (
-          SELECT product_bitmap FROM full_block_products
-          UNION ALL
-          SELECT product_bitmap FROM partial_block_products
-        ) x
-      )
-      SELECT product_bitmap
-      FROM projected
-    )`);
   }
 
   private publishedProductBitmapSql(): SQL {

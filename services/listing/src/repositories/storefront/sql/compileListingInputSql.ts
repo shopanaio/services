@@ -90,10 +90,6 @@ function scopeIdFor(scope: StorefrontListingScope): string {
   switch (scope.kind) {
     case "category":
       return scope.categoryId;
-    case "manual_collection":
-    case "rule_collection":
-      return scope.collectionId;
-    case "global":
     case "search":
       return ZERO_UUID;
   }

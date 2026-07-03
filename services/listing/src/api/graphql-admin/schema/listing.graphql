@@ -18,10 +18,8 @@ extend type FacetSwatch @key(fields: "id", resolvable: false) {
 # ---- Listing Inputs ----
 
 enum ListingScopeKind {
-  GLOBAL
   SEARCH
   CATEGORY
-  COLLECTION
 }
 
 input ListingScopeInput {
@@ -30,9 +28,6 @@ input ListingScopeInput {
 
   """Category global ID. Required when kind is CATEGORY."""
   categoryId: ID
-
-  """Collection global ID. Required when kind is COLLECTION."""
-  collectionId: ID
 }
 
 input ListingProductFilter {

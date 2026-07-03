@@ -4,7 +4,6 @@ export type PostingEntityType = "product" | "variant";
 
 export type PostingField =
   | "category"
-  | "collection"
   | "vendor"
   | "facet"
   | "variant_product"
@@ -216,6 +215,9 @@ export function assertPostingEntityType(value: PostingEntityType): void {
 
 export function assertWritablePostingField(field: PostingField): void {
   assertNonEmptyString(field, "field");
+  if (field === "collection") {
+    throw new Error("collection posting bitmaps are not supported by listing");
+  }
   if (field === "price" || field === "in_stock") {
     throw new Error(`${field} is a virtual facet and must not be stored as a posting bitmap`);
   }

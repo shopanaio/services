@@ -152,7 +152,6 @@ export type StorefrontSortKind =
 
 export type ProductPostingField =
   | "category"
-  | "collection"
   | "vendor"
   | "facet";
 
@@ -206,19 +205,7 @@ Scopes:
 ```ts
 export type StorefrontListingScope =
   | { kind: "category"; categoryId: string; manualSortScopeId?: string }
-  | { kind: "manual_collection"; collectionId: string }
-  | { kind: "rule_collection"; collectionId: string; rules: RuleCollectionPredicate[] }
-  | { kind: "global" }
   | { kind: "search" };
-
-export type RuleCollectionPredicate =
-  | { kind: "category"; categoryId: string }
-  | { kind: "collection"; collectionId: string }
-  | { kind: "vendor"; vendorId: string }
-  | { kind: "product_facet"; facetId: string; valueKeys: string[] }
-  | { kind: "option_facet"; facetId: string; valueKeys: string[] }
-  | { kind: "price"; minPriceMinor?: number; maxPriceMinor?: number }
-  | { kind: "in_stock"; value: boolean };
 ```
 
 Search scope rule:
@@ -614,8 +601,6 @@ SQL shapes:
 
 - single product row: `entity_type = 'product'`, `field = 'category'`;
 - single variant row: `entity_type = 'variant'`, `field = 'facet'`;
-- global scope fallback: `rb_build_agg(product_doc_id)` from
-  `product_listing_index where status = 'published'`;
 - product stock-state fallback: `rb_build_agg(product_doc_id)` from
   `product_listing_index where status = 'published' and in_stock = :inStock`;
 - variant stock-state fallback: `rb_build_agg(variant_doc_id)` from
@@ -691,7 +676,7 @@ Supported `ProductSortCollectKind` is defined in `storefront/types.ts`.
 
 Sort routing:
 
-- `manual`: `sort_kind = 'manual'`, `manual_scope_id = category/collection id`,
+- `manual`: `sort_kind = 'manual'`, `manual_scope_id = category id`,
   `ORDER BY bool_value DESC, text_value ASC NULLS LAST, product_id ASC`;
 - `newest`: `sort_kind = 'newest'`,
   `ORDER BY bool_value DESC, timestamptz_value DESC NULLS LAST,
@@ -716,12 +701,9 @@ Cursor:
 Acceptance:
 
 - category + vendor + newest покрывает SQL example 1;
-- manual collection + product facet + manual sort покрывает example 2;
-- global + product facets + created sort покрывает example 3;
 - category + option filters + newest покрывает example 4 after projection;
 - product filters + aggregate price sort покрывает example 5;
 - name sort + product and option filters покрывает example 7;
-- rule collection + product filters + price desc покрывает example 8.
 
 ## StorefrontVariantPriceCollectorRepository
 
@@ -1050,14 +1032,11 @@ Pipeline:
 3. Resolve facet filters into `StorefrontFilterPlan`.
 4. Build scope product bitmap:
    - category posting row;
-   - collection posting row;
-   - rule collection compiled bitmaps;
-   - global published fallback from `product_listing_index`;
    - BM25 search candidate bitmap when query is present.
 5. Build product-level filters:
    - product facet rows for tag/feature;
    - vendor product rows;
-   - rule product predicates.
+   - product stock predicates.
 6. Build variant-level filters:
    - option facet rows as OR внутри facet and AND между facets;
    - price range bitmap from `listing_posting_variant_price`;
@@ -1098,13 +1077,9 @@ Implementation must cover these repository flows:
 | SQL example | Required repository flow |
 | --- | --- |
 | 1. Category + vendor + newest | `buildScopeProductBitmap(category)` + `buildProductFiltersBitmap(vendor)` + `collectProductSortPage(newest)` |
-| 2. Manual collection + product facet + manual | `collection` scope + product facet OR group + `manual_scope_id = collectionId` |
-| 3. Global + several product facets + created | global published scope fallback + product facet AND groups + created collector + optional `countProducts` |
 | 4. Category + option filters + newest | category scope + option variant groups + in-stock variants + projection blocks + newest collector |
 | 5. Product filters + aggregate price sort | product bitmaps only + product sort `price_asc`/`price_desc` |
 | 6. Option + price range + matched price asc | option groups + price variant bitmap + projection + `collectMatchedVariantPricePage(asc)` |
-| 7. Name sort + product and option filters | global scope + product filters + option projection + name collector with locale |
-| 8. Rule collection + product filters + price desc | rule compiler output bitmaps + product filters + aggregate or matched price collector depending on variant predicates |
 | 9. Search + structured filters + relevance | BM25 candidate bitmap + structured filters + `collectRelevancePage` |
 | 10. Cursor page ids without totalCount | any collector with `first + 1`, no `rb_cardinality(matches)` |
 | 11. Product facet counts separate query | `countProductFacetValues` with facet isolation and resolved facet value list |
@@ -1292,8 +1267,8 @@ search candidates as a filter.
 5. Return stable page rows for hydration pipeline.
 6. Add cleanup TODOs for obsolete raw-handle/token paths after callers migrate.
 
-Done when storefront resolver can call one repository method for category,
-collection, global, rule collection and search listings.
+Done when storefront resolver can call one repository method for category and
+search listings.
 
 ## Acceptance checklist
 

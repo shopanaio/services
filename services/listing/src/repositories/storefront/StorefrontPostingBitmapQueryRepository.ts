@@ -174,7 +174,7 @@ export class StorefrontPostingBitmapQueryRepository extends BaseRepository {
     field: ProductPostingField | VariantPostingField;
   }): void {
     if (input.entityType === "product") {
-      if (!["category", "collection", "vendor", "facet"].includes(input.field)) {
+      if (!["category", "vendor", "facet"].includes(input.field)) {
         throw new StorefrontRepositoryValidationError(
           `Unsupported product posting field: ${input.field}`
         );

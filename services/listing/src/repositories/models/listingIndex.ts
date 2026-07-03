@@ -505,6 +505,10 @@ export const listingPostingBitmap = listingSchema.table(
       "chk_listing_posting_bitmap_entity_type",
       sql`${table.entityType} IN ('product', 'variant')`
     ),
+    check(
+      "chk_listing_posting_bitmap_no_collection_field",
+      sql`${table.field} <> 'collection'`
+    ),
   ]
 );
 
