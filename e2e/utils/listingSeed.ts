@@ -6,6 +6,7 @@ const ZERO_UUID = '00000000-0000-0000-0000-000000000000';
 
 export interface ListingSeedProductInput {
   id: string;
+  variantId?: string | null;
   handle?: string | null;
   title?: string | null;
   publishedAt?: string | null;
@@ -49,6 +50,7 @@ export async function seedListingCategoryProducts({
         await seedListingProduct(tx, {
           projectUuid,
           productUuid: decodeGlobalId(product.id).id,
+          variantUuid: product.variantId ? decodeGlobalId(product.variantId).id : null,
           productDocId: product.productDocId,
           handle: product.handle,
           title: product.title,
@@ -68,6 +70,11 @@ export async function seedListingCategoryProducts({
       await seedCategoryPosting(tx, {
         projectUuid,
         categoryUuid,
+        productDocIds: seedProducts.map((product) => product.productDocId),
+      });
+
+      await seedVariantProjectionBlock(tx, {
+        projectUuid,
         productDocIds: seedProducts.map((product) => product.productDocId),
       });
     });
@@ -110,6 +117,7 @@ async function seedListingProduct(
   input: {
     projectUuid: string;
     productUuid: string;
+    variantUuid?: string | null;
     productDocId: number;
     handle?: string | null;
     title?: string | null;
@@ -229,6 +237,16 @@ async function seedListingProduct(
   });
 
   if (input.priceMinor !== undefined && input.priceMinor !== null) {
+    await seedVariantPrice(sql, {
+      projectUuid: input.projectUuid,
+      productUuid: input.productUuid,
+      productDocId: input.productDocId,
+      variantUuid: input.variantUuid ?? input.productUuid,
+      variantDocId: input.productDocId,
+      priceMinor: input.priceMinor,
+      currency: input.currency,
+    });
+
     await seedProductSort(sql, {
       projectUuid: input.projectUuid,
       productUuid: input.productUuid,
@@ -328,6 +346,93 @@ async function seedProductSort(
   `;
 }
 
+async function seedVariantPrice(
+  sql: postgres.TransactionSql,
+  input: {
+    projectUuid: string;
+    productUuid: string;
+    productDocId: number;
+    variantUuid: string;
+    variantDocId: number;
+    priceMinor: number;
+    currency: string;
+  },
+) {
+  await sql`
+    INSERT INTO listing.variant_listing_index (
+      project_id,
+      product_id,
+      product_doc_id,
+      variant_id,
+      variant_doc_id,
+      signature_key,
+      in_stock,
+      total_stock,
+      indexed_at,
+      updated_at
+    )
+    VALUES (
+      ${input.projectUuid}::uuid,
+      ${input.productUuid}::uuid,
+      ${input.productDocId},
+      ${input.variantUuid}::uuid,
+      ${input.variantDocId},
+      'default',
+      true,
+      1,
+      now(),
+      now()
+    )
+    ON CONFLICT (variant_id) DO UPDATE SET
+      project_id = EXCLUDED.project_id,
+      product_id = EXCLUDED.product_id,
+      product_doc_id = EXCLUDED.product_doc_id,
+      variant_doc_id = EXCLUDED.variant_doc_id,
+      signature_key = EXCLUDED.signature_key,
+      in_stock = EXCLUDED.in_stock,
+      total_stock = EXCLUDED.total_stock,
+      updated_at = now()
+  `;
+
+  await sql`
+    INSERT INTO listing.variant_listing_price_index (
+      project_id,
+      variant_id,
+      currency,
+      variant_doc_id,
+      product_doc_id,
+      product_id,
+      signature_key,
+      price_minor,
+      has_price,
+      indexed_at,
+      updated_at
+    )
+    VALUES (
+      ${input.projectUuid}::uuid,
+      ${input.variantUuid}::uuid,
+      ${input.currency},
+      ${input.variantDocId},
+      ${input.productDocId},
+      ${input.productUuid}::uuid,
+      'default',
+      ${input.priceMinor},
+      true,
+      now(),
+      now()
+    )
+    ON CONFLICT (variant_id, currency) DO UPDATE SET
+      project_id = EXCLUDED.project_id,
+      variant_doc_id = EXCLUDED.variant_doc_id,
+      product_doc_id = EXCLUDED.product_doc_id,
+      product_id = EXCLUDED.product_id,
+      signature_key = EXCLUDED.signature_key,
+      price_minor = EXCLUDED.price_minor,
+      has_price = EXCLUDED.has_price,
+      updated_at = now()
+  `;
+}
+
 async function seedProductSearchTitle(
   sql: postgres.TransactionSql,
   input: {
@@ -383,6 +488,58 @@ async function seedProductSearchTitle(
       product_revision = EXCLUDED.product_revision,
       title = EXCLUDED.title,
       updated_at = now()
+  `;
+}
+
+async function seedVariantProjectionBlock(
+  sql: postgres.TransactionSql,
+  input: {
+    projectUuid: string;
+    productDocIds: number[];
+  },
+) {
+  if (input.productDocIds.length === 0) {
+    return;
+  }
+
+  const variantDocFrom = Math.min(...input.productDocIds);
+  const variantDocTo = Math.max(...input.productDocIds) + 1;
+
+  await sql`
+    WITH docs AS (
+      SELECT unnest(${input.productDocIds}::int[]) AS doc_id
+    ),
+    bitmap AS (
+      SELECT rb_build_agg(doc_id) AS value
+      FROM docs
+    )
+    INSERT INTO listing.listing_posting_variant_projection_block (
+      project_id,
+      block_id,
+      variant_doc_from,
+      variant_doc_to,
+      variant_bitmap,
+      product_bitmap,
+      variant_count,
+      product_count
+    )
+    SELECT
+      ${input.projectUuid}::uuid,
+      0,
+      ${variantDocFrom},
+      ${variantDocTo},
+      value,
+      value,
+      rb_cardinality(value)::int,
+      rb_cardinality(value)::int
+    FROM bitmap
+    ON CONFLICT (project_id, block_id) DO UPDATE SET
+      variant_doc_from = EXCLUDED.variant_doc_from,
+      variant_doc_to = EXCLUDED.variant_doc_to,
+      variant_bitmap = EXCLUDED.variant_bitmap,
+      product_bitmap = EXCLUDED.product_bitmap,
+      variant_count = EXCLUDED.variant_count,
+      product_count = EXCLUDED.product_count
   `;
 }
 

@@ -61,6 +61,7 @@ export async function seedCategoryListingProducts(
     category,
     products: products.map((product, productIndex) => ({
       id: product.id,
+      variantId: product.variants.edges[0]?.node.id,
       handle: product.handle,
       title: product.title,
       publishedAt: new Date(now - productIndex * 1000).toISOString(),

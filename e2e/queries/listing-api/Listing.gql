@@ -5,6 +5,7 @@ query Listing(
   $query: String
   $locale: LocaleCode
   $currency: CurrencyCode
+  $facets: [ListingProductFilter!]
   $orderBy: ListingOrderByInput
 ) {
   listingQuery {
@@ -15,6 +16,7 @@ query Listing(
       query: $query
       locale: $locale
       currency: $currency
+      facets: $facets
       orderBy: $orderBy
     ) {
       totalCount

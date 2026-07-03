@@ -192,4 +192,66 @@ test.describe('Listing API', () => {
       );
     }
   });
+
+  test('filters category listing products by price range', async ({ api, listingCatalog }) => {
+    test.setTimeout(90_000);
+
+    const { category, expectedOrder } = listingCatalog;
+    const listingScope = {
+      kind: 'CATEGORY',
+      categoryId: category.id,
+    } as const;
+    const expectedProducts = expectedOrder.priceAsc.slice(5, 15);
+    const priceFilter = [{ price: { min: 600, max: 1500 } }];
+
+    const { data: firstPageData } = await api.admin.query('listing-api/Listing', {
+      variables: {
+        first: 5,
+        locale: 'en',
+        currency: 'USD',
+        scope: listingScope,
+        facets: priceFilter,
+        orderBy: { by: 'PRICE', direction: 'asc' },
+      },
+    });
+
+    const firstPage = firstPageData.listingQuery.listing;
+    const firstPageNodes = firstPage.edges.map((edge) => edge.node as ApiProduct);
+
+    expect(firstPage.totalCount).toBe(10);
+    expect(firstPage.edges).toHaveLength(5);
+    expect(firstPage.edges.every((edge) => Boolean(edge.cursor))).toBe(true);
+    expect(firstPageNodes.map((node) => node.id)).toEqual(expectedProducts.slice(0, 5).map((product) => product.id));
+    expect(firstPage.pageInfo.hasNextPage).toBe(true);
+    expect(firstPage.pageInfo.hasPreviousPage).toBe(false);
+    expect(firstPage.pageInfo.startCursor).toBe(firstPage.edges[0].cursor);
+    expect(firstPage.pageInfo.endCursor).toBe(firstPage.edges[firstPage.edges.length - 1].cursor);
+
+    const { data: secondPageData } = await api.admin.query('listing-api/Listing', {
+      variables: {
+        first: 5,
+        after: firstPage.pageInfo.endCursor,
+        locale: 'en',
+        currency: 'USD',
+        scope: listingScope,
+        facets: priceFilter,
+        orderBy: { by: 'PRICE', direction: 'asc' },
+      },
+    });
+
+    const secondPage = secondPageData.listingQuery.listing;
+    const secondPageNodes = secondPage.edges.map((edge) => edge.node as ApiProduct);
+
+    expect(secondPage.totalCount).toBe(10);
+    expect(secondPage.edges).toHaveLength(5);
+    expect(secondPage.edges.every((edge) => Boolean(edge.cursor))).toBe(true);
+    expect(secondPageNodes.map((node) => node.id)).toEqual(expectedProducts.slice(5, 10).map((product) => product.id));
+    expect([...firstPageNodes, ...secondPageNodes].map((node) => node.id)).toEqual(
+      expectedProducts.map((product) => product.id),
+    );
+    expect(secondPage.pageInfo.hasNextPage).toBe(false);
+    expect(secondPage.pageInfo.hasPreviousPage).toBe(false);
+    expect(secondPage.pageInfo.startCursor).toBe(secondPage.edges[0].cursor);
+    expect(secondPage.pageInfo.endCursor).toBe(secondPage.edges[secondPage.edges.length - 1].cursor);
+  });
 });
