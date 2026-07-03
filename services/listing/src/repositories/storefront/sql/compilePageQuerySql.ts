@@ -281,6 +281,10 @@ function buildProductSortSeekPredicate(
   }
 
   const payload = cursor.payload;
+  if (payload.sort !== sort) {
+    return sql``;
+  }
+
   const productSeek = sql`s.product_id > ${payload.productId}::uuid`;
   let downstream: SQL;
 
@@ -342,15 +346,16 @@ function buildVariantPriceSeek(
     return sql``;
   }
   const payload = cursor.payload;
+  if (payload.sort !== "price_asc" && payload.sort !== "price_desc") {
+    return sql``;
+  }
   if (
     payload.priceMinor === undefined ||
     payload.priceMinor === null ||
     payload.variantDocId === undefined ||
     payload.variantDocId === null
   ) {
-    throw new StorefrontRepositoryValidationError(
-      "Matched price cursor is missing price or variant tie-breaker"
-    );
+    return sql``;
   }
 
   const priceComparison =
@@ -378,6 +383,9 @@ function buildRelevanceSeek(cursor: DecodedListingCursor | null): SQL {
     return sql``;
   }
   const payload = cursor.payload;
+  if (payload.sort !== "relevance") {
+    return sql``;
+  }
   if (payload.relevanceScore === undefined || payload.relevanceScore === null) {
     throw new StorefrontRepositoryValidationError(
       "Relevance cursor is missing relevance score"

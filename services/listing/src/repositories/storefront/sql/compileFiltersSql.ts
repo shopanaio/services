@@ -97,16 +97,13 @@ export function compileFiltersSql(): SQL {
     active_stock_variant_filter AS (
       SELECT
         CASE
-          WHEN sfs.has_value AND sfs.value = true
-          THEN (SELECT bitmap FROM in_stock_variants)
           WHEN sfs.has_value
-           AND sfs.value = false
-           AND (
-             EXISTS (SELECT 1 FROM option_filter_groups)
-             OR i.price_filter_json <> '{}'::jsonb
-             OR (SELECT bitmap FROM scope_variant_filters) IS NOT NULL
-           )
-          THEN ${emptyRoaringBitmapSql()}
+          THEN COALESCE((
+            SELECT rb_build_agg(vli.variant_doc_id)
+            FROM listing.variant_listing_index vli
+            WHERE vli.project_id = i.project_id
+              AND vli.in_stock = sfs.value
+          ), ${emptyRoaringBitmapSql()})
           WHEN EXISTS (SELECT 1 FROM option_filter_groups)
             OR i.price_filter_json <> '{}'::jsonb
           THEN (SELECT bitmap FROM in_stock_variants)
