@@ -447,6 +447,44 @@ use_heavy_signature_path = false
 
 ## Integration points
 
+### Resolved filter plan source
+
+Перед переводом SQL helpers на `request.request.filterPlan.optionFacetGroups`
+нужно сделать `ResolvedListingRequest.filterPlan` настоящим resolved plan, а не
+debug-shaped snapshot.
+
+Текущий `StorefrontListingQueryRepository.normalize()` заполняет `filterPlan`
+через `toDebugFilterPlan(filters)`. Этот helper сохраняет только
+`vendorIds`/`priceRange`/`inStock`, но оставляет `productFacetGroups` и
+`optionFacetGroups` пустыми. Поэтому heavy OR implementation не должен просто
+начать читать `filterPlan.optionFacetGroups` из текущего listing path: это даст
+empty active option rows и сломает candidate combination generation.
+
+Перед изменением `compileOptionRequiredCombinationSetSql` нужно подключить
+реальный resolver:
+
+```ts
+const filterPlan = await this.facets.resolveFilterPlan({
+  filters: normalizedInput.filters,
+});
+```
+
+Практически это означает, что `normalize()` больше не может оставаться полностью
+sync, если resolved plan загружается из repository. Нужно либо:
+
+- сделать `normalize()` async и вызвать `this.facets.resolveFilterPlan(...)`
+  внутри него;
+- либо оставить `normalize()` sync для базовой normalization, но после него в
+  `getStorefrontListing()` загрузить resolved filter plan и собрать
+  `ResolvedListingRequest` с этим plan.
+
+После этого `toDebugFilterPlan` нужно удалить или переименовать так, чтобы он не
+выглядел как источник runtime semantics. Единственный source of truth для
+`filterPlan.optionFacetGroups` должен быть
+`StorefrontFacetResolutionRepository.resolveFilterPlan`, потому он резолвит
+`facetSlug`/`valueHandle` в `facetId`/`valueKey` и разделяет
+`TAG`/`FEATURE`/`OPTION`.
+
 В начале `compileFacetCountsQuerySql`:
 
 ```ts
@@ -883,21 +921,28 @@ Color OR group.
 
 ## Implementation steps
 
-1. Add `HEAVY_OPTION_FACET_CHECK_THRESHOLD`,
+1. Replace the current `toDebugFilterPlan(filters)` usage in
+   `StorefrontListingQueryRepository` with a real resolved
+   `StorefrontFilterPlan` from
+   `StorefrontFacetResolutionRepository.resolveFilterPlan(...)`. After this
+   step, `ResolvedListingRequest.filterPlan.optionFacetGroups` must contain
+   resolved `{ facetId, facetType: "OPTION", valueKeys }` groups for active
+   option filters.
+2. Add `HEAVY_OPTION_FACET_CHECK_THRESHOLD`,
    `buildOptionFacetCombinationEstimate`,
    `multiplyClamped` and `compileOptionFacetCountStrategySql` to
    `compileFacetCountsQuerySql.ts`.
-2. Add `heavyOptionFacetCountsEnabled?: boolean` to `RepositoryConfig`, normalize
+3. Add `heavyOptionFacetCountsEnabled?: boolean` to `RepositoryConfig`, normalize
    it in `Repository.create` with default `false`, pass it into
    `StorefrontListingQueryRepository` constructor, and include it in
    `toListingSqlRequest` / `ListingSqlRequest`.
-3. Convert option required-combination generation from slug/handle rows to
+4. Convert option required-combination generation from slug/handle rows to
    `filterPlan.optionFacetGroups` rows keyed by `facet_id` and `value_key`.
    Reuse the same generated source for `option_active_filter_value_rows`.
-4. Insert `${optionFacetCountStrategySql}` after `option_facet_values` exists.
-5. Update `option_signature_base_state` so candidate path runs per facet only
+5. Insert `${optionFacetCountStrategySql}` after `option_facet_values` exists.
+6. Update `option_signature_base_state` so candidate path runs per facet only
    when `NOT strategy.use_heavy_signature_path`.
-6. Add heavy CTEs:
+7. Add heavy CTEs:
    - `option_heavy_targets`;
    - `option_active_filter_values`;
    - `option_heavy_required_values`;
@@ -907,12 +952,12 @@ Color OR group.
    - `option_heavy_signature_product_bitmaps`;
    - `option_heavy_signature_price_product_bitmaps`;
    - `option_heavy_signature_facet_counts`.
-7. Change `option_facet_counts` to `UNION ALL` candidate and heavy counts.
-8. Add the facet/signature lookup index migration and Drizzle model entry.
-9. Add a fixture/parity verification mode that can force heavy strategy for a
+8. Change `option_facet_counts` to `UNION ALL` candidate and heavy counts.
+9. Add the facet/signature lookup index migration and Drizzle model entry.
+10. Add a fixture/parity verification mode that can force heavy strategy for a
    target facet and compare sorted `(facet_id, value_key, count)` rows against
    the candidate path.
-10. Keep existing result mapper unchanged. Output columns stay:
+11. Keep existing result mapper unchanged. Output columns stay:
    `facet_id`, `facet_type`, `value_key`, `count`.
 
 Implementation note: in the current file `facet_id` is `text` in
