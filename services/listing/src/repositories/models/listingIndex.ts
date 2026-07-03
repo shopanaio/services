@@ -195,6 +195,7 @@ export const variantListingIndex = listingSchema.table(
     productDocId: integer("product_doc_id").notNull(),
     variantId: uuid("variant_id").primaryKey(),
     variantDocId: integer("variant_doc_id").notNull(),
+    signatureKey: text("signature_key"),
     inStock: boolean("in_stock").notNull().default(false),
     totalStock: integer("total_stock").notNull().default(0),
     indexedAt: timestamp("indexed_at", { withTimezone: true, mode: "string" })
@@ -268,6 +269,14 @@ export const variantListingIndex = listingSchema.table(
         table.variantId
       )
       .where(sql`${table.inStock} = true`),
+    index("idx_variant_listing_signature")
+      .on(
+        table.projectId,
+        table.signatureKey,
+        table.variantDocId,
+        table.productDocId
+      )
+      .where(sql`${table.signatureKey} IS NOT NULL`),
   ]
 );
 
@@ -277,6 +286,10 @@ export const variantListingPriceIndex = listingSchema.table(
     projectId: uuid("project_id").notNull(),
     variantId: uuid("variant_id").notNull(),
     currency: varchar("currency", { length: 3 }).notNull(),
+    variantDocId: integer("variant_doc_id"),
+    productDocId: integer("product_doc_id"),
+    productId: uuid("product_id"),
+    signatureKey: text("signature_key"),
     priceMinor: bigint("price_minor", { mode: "number" }),
     hasPrice: boolean("has_price").notNull().default(false),
     indexedAt: timestamp("indexed_at", { withTimezone: true, mode: "string" })
@@ -309,6 +322,14 @@ export const variantListingPriceIndex = listingSchema.table(
         (${table.hasPrice} = true AND ${table.priceMinor} IS NOT NULL AND ${table.priceMinor} >= 0)
       )`
     ),
+    check(
+      "chk_variant_listing_price_variant_doc_positive",
+      sql`${table.variantDocId} IS NULL OR ${table.variantDocId} > 0`
+    ),
+    check(
+      "chk_variant_listing_price_product_doc_positive",
+      sql`${table.productDocId} IS NULL OR ${table.productDocId} > 0`
+    ),
     index("idx_variant_listing_price_value")
       .on(table.projectId, table.currency, table.priceMinor)
       .where(sql`${table.hasPrice} = true`),
@@ -318,6 +339,134 @@ export const variantListingPriceIndex = listingSchema.table(
     index("idx_variant_listing_price_value_variant")
       .on(table.projectId, table.currency, table.priceMinor, table.variantId)
       .where(sql`${table.hasPrice} = true`),
+    index("idx_variant_listing_price_signature_range")
+      .on(
+        table.projectId,
+        table.signatureKey,
+        table.currency,
+        table.priceMinor,
+        table.productDocId,
+        table.variantDocId
+      )
+      .where(sql`${table.hasPrice} = true AND ${table.signatureKey} IS NOT NULL`),
+  ]
+);
+
+export const listingOptionSignature = listingSchema.table(
+  "listing_option_signature",
+  {
+    optionSignatureId: uuid("option_signature_id").notNull(),
+    projectId: uuid("project_id").notNull(),
+    signatureKey: text("signature_key").notNull(),
+    optionValueCount: integer("option_value_count").notNull(),
+    productBitmap: roaringbitmap("product_bitmap").notNull(),
+    cardinality: bigint("cardinality", { mode: "number" }).notNull(),
+    metadata: jsonb("metadata")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      name: "listing_option_signature_pkey",
+      columns: [table.optionSignatureId],
+    }),
+    unique("listing_option_signature_project_signature_unique").on(
+      table.projectId,
+      table.signatureKey
+    ),
+    check(
+      "chk_listing_option_signature_key_nonempty",
+      sql`length(btrim(${table.signatureKey})) > 0`
+    ),
+    check(
+      "chk_listing_option_signature_value_count_positive",
+      sql`${table.optionValueCount} > 0`
+    ),
+    check(
+      "chk_listing_option_signature_cardinality_nonnegative",
+      sql`${table.cardinality} >= 0`
+    ),
+  ]
+);
+
+export const listingOptionSignatureValue = listingSchema.table(
+  "listing_option_signature_value",
+  {
+    optionSignatureId: uuid("option_signature_id").notNull(),
+    projectId: uuid("project_id").notNull(),
+    signatureKey: text("signature_key").notNull(),
+    facetId: uuid("facet_id").notNull(),
+    valueKey: text("value_key").notNull(),
+  },
+  (table) => [
+    primaryKey({
+      name: "listing_option_signature_value_pkey",
+      columns: [table.optionSignatureId, table.valueKey],
+    }),
+    foreignKey({
+      name: "fk_listing_option_signature_value_signature",
+      columns: [table.optionSignatureId],
+      foreignColumns: [listingOptionSignature.optionSignatureId],
+    }).onDelete("cascade"),
+    check(
+      "chk_listing_option_signature_value_signature_key_nonempty",
+      sql`length(btrim(${table.signatureKey})) > 0`
+    ),
+    check(
+      "chk_listing_option_signature_value_value_key_nonempty",
+      sql`length(btrim(${table.valueKey})) > 0`
+    ),
+    index("idx_listing_option_signature_value_lookup").on(
+      table.projectId,
+      table.valueKey,
+      table.signatureKey
+    ),
+  ]
+);
+
+export const listingOptionSignatureProductMembership = listingSchema.table(
+  "listing_option_signature_product_membership",
+  {
+    optionSignatureId: uuid("option_signature_id").notNull(),
+    projectId: uuid("project_id").notNull(),
+    signatureKey: text("signature_key").notNull(),
+    productDocId: integer("product_doc_id").notNull(),
+    variantCount: integer("variant_count").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      name: "listing_option_signature_product_membership_pkey",
+      columns: [table.optionSignatureId, table.productDocId],
+    }),
+    foreignKey({
+      name: "fk_listing_option_signature_membership_signature",
+      columns: [table.optionSignatureId],
+      foreignColumns: [listingOptionSignature.optionSignatureId],
+    }).onDelete("cascade"),
+    check(
+      "chk_listing_option_signature_membership_signature_key_nonempty",
+      sql`length(btrim(${table.signatureKey})) > 0`
+    ),
+    check(
+      "chk_listing_option_signature_membership_product_doc_positive",
+      sql`${table.productDocId} > 0`
+    ),
+    check(
+      "chk_listing_option_signature_membership_variant_count_positive",
+      sql`${table.variantCount} > 0`
+    ),
+    index("idx_listing_option_signature_membership_lookup").on(
+      table.projectId,
+      table.signatureKey,
+      table.productDocId
+    ),
   ]
 );
 
@@ -629,6 +778,21 @@ export type VariantListingPriceIndex =
   typeof variantListingPriceIndex.$inferSelect;
 export type NewVariantListingPriceIndex =
   typeof variantListingPriceIndex.$inferInsert;
+
+export type ListingOptionSignature =
+  typeof listingOptionSignature.$inferSelect;
+export type NewListingOptionSignature =
+  typeof listingOptionSignature.$inferInsert;
+
+export type ListingOptionSignatureValue =
+  typeof listingOptionSignatureValue.$inferSelect;
+export type NewListingOptionSignatureValue =
+  typeof listingOptionSignatureValue.$inferInsert;
+
+export type ListingOptionSignatureProductMembership =
+  typeof listingOptionSignatureProductMembership.$inferSelect;
+export type NewListingOptionSignatureProductMembership =
+  typeof listingOptionSignatureProductMembership.$inferInsert;
 
 export type ListingPostingBitmap = typeof listingPostingBitmap.$inferSelect;
 export type NewListingPostingBitmap = typeof listingPostingBitmap.$inferInsert;

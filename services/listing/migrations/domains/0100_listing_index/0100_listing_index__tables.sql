@@ -144,6 +144,7 @@ CREATE TABLE listing.variant_listing_index (
   product_doc_id         int NOT NULL,
   variant_id             uuid NOT NULL,
   variant_doc_id         int NOT NULL,
+  signature_key          text,
 
   in_stock               boolean NOT NULL DEFAULT false,
   total_stock            int NOT NULL DEFAULT 0,
@@ -202,10 +203,23 @@ CREATE INDEX idx_variant_listing_in_stock_product_variant
   )
   WHERE in_stock = true;
 
+CREATE INDEX idx_variant_listing_signature
+  ON listing.variant_listing_index (
+    project_id,
+    signature_key,
+    variant_doc_id,
+    product_doc_id
+  )
+  WHERE signature_key IS NOT NULL;
+
 CREATE TABLE listing.variant_listing_price_index (
   project_id             uuid NOT NULL,
   variant_id             uuid NOT NULL,
   currency               varchar(3) NOT NULL,
+  variant_doc_id         int,
+  product_doc_id         int,
+  product_id             uuid,
+  signature_key          text,
 
   price_minor            bigint,
   has_price              boolean NOT NULL DEFAULT false,
@@ -233,7 +247,11 @@ CREATE TABLE listing.variant_listing_price_index (
         AND price_minor IS NOT NULL
         AND price_minor >= 0
       )
-    )
+    ),
+  CONSTRAINT chk_variant_listing_price_variant_doc_positive
+    CHECK (variant_doc_id IS NULL OR variant_doc_id > 0),
+  CONSTRAINT chk_variant_listing_price_product_doc_positive
+    CHECK (product_doc_id IS NULL OR product_doc_id > 0)
 );
 
 CREATE INDEX idx_variant_listing_price_value
@@ -257,6 +275,95 @@ CREATE INDEX idx_variant_listing_price_value_variant
     variant_id
   )
   WHERE has_price = true;
+
+CREATE INDEX idx_variant_listing_price_signature_range
+  ON listing.variant_listing_price_index (
+    project_id,
+    signature_key,
+    currency,
+    price_minor,
+    product_doc_id,
+    variant_doc_id
+  )
+  WHERE has_price = true
+    AND signature_key IS NOT NULL;
+
+CREATE TABLE listing.listing_option_signature (
+  option_signature_id  uuid NOT NULL,
+  project_id           uuid NOT NULL,
+  signature_key        text NOT NULL,
+  option_value_count   int NOT NULL,
+  product_bitmap       roaringbitmap NOT NULL,
+  cardinality          bigint NOT NULL,
+  metadata             jsonb NOT NULL DEFAULT '{}'::jsonb,
+  updated_at           timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT listing_option_signature_pkey
+    PRIMARY KEY (option_signature_id),
+  CONSTRAINT listing_option_signature_project_signature_unique
+    UNIQUE (project_id, signature_key),
+  CONSTRAINT chk_listing_option_signature_key_nonempty
+    CHECK (length(btrim(signature_key)) > 0),
+  CONSTRAINT chk_listing_option_signature_value_count_positive
+    CHECK (option_value_count > 0),
+  CONSTRAINT chk_listing_option_signature_cardinality_nonnegative
+    CHECK (cardinality >= 0)
+);
+
+CREATE TABLE listing.listing_option_signature_value (
+  option_signature_id  uuid NOT NULL,
+  project_id           uuid NOT NULL,
+  signature_key        text NOT NULL,
+  facet_id             uuid NOT NULL,
+  value_key            text NOT NULL,
+
+  CONSTRAINT listing_option_signature_value_pkey
+    PRIMARY KEY (option_signature_id, value_key),
+  CONSTRAINT fk_listing_option_signature_value_signature
+    FOREIGN KEY (option_signature_id)
+    REFERENCES listing.listing_option_signature(option_signature_id)
+    ON DELETE CASCADE,
+  CONSTRAINT chk_listing_option_signature_value_signature_key_nonempty
+    CHECK (length(btrim(signature_key)) > 0),
+  CONSTRAINT chk_listing_option_signature_value_value_key_nonempty
+    CHECK (length(btrim(value_key)) > 0)
+);
+
+CREATE INDEX idx_listing_option_signature_value_lookup
+  ON listing.listing_option_signature_value (
+    project_id,
+    value_key,
+    signature_key
+  );
+
+CREATE TABLE listing.listing_option_signature_product_membership (
+  option_signature_id  uuid NOT NULL,
+  project_id           uuid NOT NULL,
+  signature_key        text NOT NULL,
+  product_doc_id       int NOT NULL,
+  variant_count        int NOT NULL,
+  updated_at           timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT listing_option_signature_product_membership_pkey
+    PRIMARY KEY (option_signature_id, product_doc_id),
+  CONSTRAINT fk_listing_option_signature_membership_signature
+    FOREIGN KEY (option_signature_id)
+    REFERENCES listing.listing_option_signature(option_signature_id)
+    ON DELETE CASCADE,
+  CONSTRAINT chk_listing_option_signature_membership_signature_key_nonempty
+    CHECK (length(btrim(signature_key)) > 0),
+  CONSTRAINT chk_listing_option_signature_membership_product_doc_positive
+    CHECK (product_doc_id > 0),
+  CONSTRAINT chk_listing_option_signature_membership_variant_count_positive
+    CHECK (variant_count > 0)
+);
+
+CREATE INDEX idx_listing_option_signature_membership_lookup
+  ON listing.listing_option_signature_product_membership (
+    project_id,
+    signature_key,
+    product_doc_id
+  );
 
 CREATE TABLE listing.listing_posting_bitmap (
   project_id             uuid NOT NULL,
