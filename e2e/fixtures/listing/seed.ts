@@ -189,7 +189,7 @@ async function createTagFacetGroups(api: ApiFixtures['api'], unique: string): Pr
   return [
     {
       facetType: 'TAG',
-      slug: 'tags',
+      slug: 'tag',
       label: 'Tags',
       sourceHandle: 'tags',
       sourceName: 'Tags',

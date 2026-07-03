@@ -1,8 +1,16 @@
 import { test } from '@fixtures/listing/base.extend';
 import { expect } from '@playwright/test';
-import type { ApiListingFacet, ApiListingOrderByInput, ApiProduct } from '@codegen/admin-gql';
+import type {
+  ApiListingFacet,
+  ApiListingFacetValue,
+  ApiListingOrderByInput,
+  ApiListingProductFilter,
+  ApiProduct,
+} from '@codegen/admin-gql';
 
 test.describe('Listing API', () => {
+  test.describe.configure({ timeout: 180_000 });
+
   test('paginates category listing products without filters', async ({ api, listingCatalog }) => {
     const { category, products, facets } = listingCatalog;
     const listingScope = {
@@ -194,6 +202,66 @@ test.describe('Listing API', () => {
     }
   });
 
+  test('returns category listing facets and applies facet filters', async ({ api, listingCatalog }) => {
+    test.setTimeout(120_000);
+
+    const { category, facets } = listingCatalog;
+    const listingScope = {
+      kind: 'CATEGORY',
+      categoryId: category.id,
+    } as const;
+
+    const { data: facetData } = await api.admin
+      .query('listing-api/Listing', {
+        variables: {
+          first: 10,
+          locale: 'en',
+          currency: 'USD',
+          scope: listingScope,
+        },
+      })
+      .catch((error) => {
+        throw new Error(`Facet listing query failed: ${JSON.stringify(error, null, 2)}`);
+      });
+
+    const listing = facetData.listingQuery.listing;
+    expect(listing.totalCount).toBe(20);
+    expectCatalogFacets(listing.facets, facets);
+
+    const filterCases = [
+      { name: 'option color facet', facetId: 'color' },
+      { name: 'feature facet', facetId: 'feature-01' },
+      { name: 'tag facet', facetId: 'tag' },
+    ];
+
+    for (const filterCase of filterCases) {
+      const value = facetValueWithCount(listing.facets, filterCase.facetId);
+
+      const { data: filteredData } = await api.admin
+        .query('listing-api/Listing', {
+          variables: {
+            first: 10,
+            locale: 'en',
+            currency: 'USD',
+            scope: listingScope,
+            facets: [value.input as ApiListingProductFilter],
+          },
+        })
+        .catch((error) => {
+          throw new Error(`${filterCase.name} listing query failed: ${JSON.stringify(error, null, 2)}`);
+        });
+
+      const filteredListing = filteredData.listingQuery.listing;
+      const filteredFacet = filteredListing.facets.find((facet) => facet.id === filterCase.facetId);
+      const selectedValue = filteredFacet?.values.find((candidate) => candidate.id === value.id);
+
+      expect(filteredListing.totalCount, filterCase.name).toBe(value.count);
+      expect(filteredListing.edges, filterCase.name).toHaveLength(Math.min(10, value.count));
+      expect(selectedValue?.selected, filterCase.name).toBe(true);
+      expect(selectedValue?.input, filterCase.name).toEqual(value.input);
+    }
+  });
+
   test('filters category listing products by price range', async ({ api, listingCatalog }) => {
     test.setTimeout(90_000);
 
@@ -272,4 +340,18 @@ function expectCatalogFacets(listingFacets: ApiListingFacet[], catalogFacets: { 
   expect(returnedCatalogFacets.find((facet) => facet.id === 'size')?.values).toHaveLength(5);
   expect(returnedCatalogFacets.every((facet) => facet.values.length > 0)).toBe(true);
   expect(returnedCatalogFacets.every((facet) => facet.values.every((value) => value.count > 0))).toBe(true);
+}
+
+function facetValueWithCount(facets: ApiListingFacet[], facetId: string): ApiListingFacetValue {
+  const facet = facets.find((candidate) => candidate.id === facetId);
+  expect(facet, facetId).toBeTruthy();
+
+  const value = facet?.values.find((candidate) => candidate.count > 0);
+  expect(value, facetId).toBeTruthy();
+
+  if (!value) {
+    throw new Error(`Missing facet value with count for ${facetId}`);
+  }
+
+  return value;
 }
