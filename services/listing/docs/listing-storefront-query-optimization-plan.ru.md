@@ -646,29 +646,15 @@ projected_variant_products AS (
     CASE
       WHEN (SELECT bitmap FROM variant_filters) IS NULL
       THEN NULL
-      ELSE COALESCE(rb_or_agg(projected.product_bitmap), rb_build_empty())
+      ELSE COALESCE((
+        SELECT rb_build_agg(vli.product_doc_id)
+        FROM listing.variant_listing_index vli
+        JOIN input i ON true
+        CROSS JOIN variant_filters vf
+        WHERE vli.project_id = i.project_id
+          AND vf.bitmap @> vli.variant_doc_id
+      ), rb_build_empty())
     END AS bitmap
-  FROM (
-    SELECT
-      CASE
-        WHEN rb_cardinality(vf.bitmap & b.variant_bitmap) = b.variant_count
-        THEN b.product_bitmap
-        ELSE COALESCE((
-          SELECT rb_build_agg(vli.product_doc_id)
-          FROM listing.variant_listing_index vli
-          WHERE vli.project_id = i.project_id
-            AND vli.variant_doc_id >= b.variant_doc_from
-            AND vli.variant_doc_id < b.variant_doc_to
-            AND (vf.bitmap & b.variant_bitmap) @> vli.variant_doc_id
-        ), rb_build_empty())
-      END AS product_bitmap
-    FROM input i
-    CROSS JOIN variant_filters vf
-    JOIN listing.listing_posting_variant_projection_block b
-      ON b.project_id = i.project_id
-     AND vf.bitmap IS NOT NULL
-     AND rb_cardinality(vf.bitmap & b.variant_bitmap) > 0
-  ) projected
 ),
 matches AS (
   SELECT
@@ -1208,63 +1194,45 @@ option_facet_counts AS (
     ovb.value_key,
     rb_cardinality(
       (
-        SELECT COALESCE(rb_or_agg(projected.product_bitmap), rb_build_empty())
+        SELECT COALESCE(rb_build_agg(vli.product_doc_id), rb_build_empty())
         FROM (
-          SELECT
-            CASE
-              WHEN rb_cardinality(option_variant_bitmap.bitmap & b.variant_bitmap)
-                   = b.variant_count
-              THEN b.product_bitmap
-              ELSE COALESCE((
-                SELECT rb_build_agg(vli.product_doc_id)
-                FROM listing.variant_listing_index vli
-                JOIN input i ON true
-                WHERE vli.project_id = i.project_id
-                  AND vli.variant_doc_id >= b.variant_doc_from
-                  AND vli.variant_doc_id < b.variant_doc_to
-                  AND (option_variant_bitmap.bitmap & b.variant_bitmap)
-                      @> vli.variant_doc_id
-              ), rb_build_empty())
-            END AS product_bitmap
-          FROM (
-            SELECT rb_and_agg(option_variant_parts.bitmap) AS bitmap
-            FROM in_stock_variants
-            CROSS JOIN LATERAL (
-              SELECT COALESCE(
-                (SELECT bitmap FROM active_stock_variant_filter),
-                in_stock_variants.bitmap
-              ) AS bitmap
-            ) option_count_stock_filter
-            CROSS JOIN price_variant_filter
-            CROSS JOIN LATERAL (
-              SELECT rb_and_agg(ofg.bitmap) AS bitmap
-              FROM option_filter_groups ofg
-              WHERE ofg.facet_id <> ovb.facet_id
-            ) isolated_option_filters
-            CROSS JOIN LATERAL (
-              SELECT bitmap
-              FROM (
-                SELECT option_count_stock_filter.bitmap
-                UNION ALL
-                SELECT scope_variant_filters.bitmap
-                FROM scope_variant_filters
-                WHERE scope_variant_filters.bitmap IS NOT NULL
-                UNION ALL
-                SELECT isolated_option_filters.bitmap
-                WHERE isolated_option_filters.bitmap IS NOT NULL
-                UNION ALL
-                SELECT price_variant_filter.bitmap
-                WHERE price_variant_filter.bitmap IS NOT NULL
-                UNION ALL
-                SELECT ovb.value_bitmap
-              ) option_variant_parts
+          SELECT rb_and_agg(option_variant_parts.bitmap) AS bitmap
+          FROM in_stock_variants
+          CROSS JOIN LATERAL (
+            SELECT COALESCE(
+              (SELECT bitmap FROM active_stock_variant_filter),
+              in_stock_variants.bitmap
+            ) AS bitmap
+          ) option_count_stock_filter
+          CROSS JOIN price_variant_filter
+          CROSS JOIN LATERAL (
+            SELECT rb_and_agg(ofg.bitmap) AS bitmap
+            FROM option_filter_groups ofg
+            WHERE ofg.facet_id <> ovb.facet_id
+          ) isolated_option_filters
+          CROSS JOIN LATERAL (
+            SELECT bitmap
+            FROM (
+              SELECT option_count_stock_filter.bitmap
+              UNION ALL
+              SELECT scope_variant_filters.bitmap
+              FROM scope_variant_filters
+              WHERE scope_variant_filters.bitmap IS NOT NULL
+              UNION ALL
+              SELECT isolated_option_filters.bitmap
+              WHERE isolated_option_filters.bitmap IS NOT NULL
+              UNION ALL
+              SELECT price_variant_filter.bitmap
+              WHERE price_variant_filter.bitmap IS NOT NULL
+              UNION ALL
+              SELECT ovb.value_bitmap
             ) option_variant_parts
-          ) option_variant_bitmap
-          JOIN input i ON true
-          JOIN listing.listing_posting_variant_projection_block b
-            ON b.project_id = i.project_id
-           AND rb_cardinality(option_variant_bitmap.bitmap & b.variant_bitmap) > 0
-        ) projected
+          ) option_variant_parts
+        ) option_variant_bitmap
+        JOIN input i ON true
+        JOIN listing.variant_listing_index vli
+          ON vli.project_id = i.project_id
+         AND option_variant_bitmap.bitmap @> vli.variant_doc_id
       )
       & (
         SELECT
@@ -1491,29 +1459,12 @@ in_stock_variant_matches AS (
   FROM in_stock_variants
 ),
 in_stock_products AS (
-  SELECT COALESCE(rb_or_agg(projected.product_bitmap), rb_build_empty()) AS bitmap
-  FROM (
-    SELECT
-      CASE
-        WHEN rb_cardinality(isvm.bitmap & b.variant_bitmap)
-             = b.variant_count
-        THEN b.product_bitmap
-        ELSE COALESCE((
-          SELECT rb_build_agg(vli.product_doc_id)
-          FROM listing.variant_listing_index vli
-          JOIN input i ON true
-          WHERE vli.project_id = i.project_id
-            AND vli.variant_doc_id >= b.variant_doc_from
-            AND vli.variant_doc_id < b.variant_doc_to
-            AND (isvm.bitmap & b.variant_bitmap) @> vli.variant_doc_id
-        ), rb_build_empty())
-      END AS product_bitmap
-    FROM in_stock_variant_matches isvm
-    JOIN input i ON true
-    JOIN listing.listing_posting_variant_projection_block b
-      ON b.project_id = i.project_id
-     AND rb_cardinality(isvm.bitmap & b.variant_bitmap) > 0
-  ) projected
+  SELECT COALESCE(rb_build_agg(vli.product_doc_id), rb_build_empty()) AS bitmap
+  FROM in_stock_variant_matches isvm
+  JOIN input i ON true
+  JOIN listing.variant_listing_index vli
+    ON vli.project_id = i.project_id
+   AND isvm.bitmap @> vli.variant_doc_id
 ),
 in_stock_count AS (
   SELECT rb_cardinality(isp.bitmap & pb.bitmap)::int AS value
