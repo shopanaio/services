@@ -415,33 +415,203 @@ listing:facetCounts
 listing:virtualFacets
 ```
 
-## Refactoring steps
+## Refactoring strategy
 
-### Step 1. Split page SQL fragments
+Нельзя чинить это как локальный SQL hack внутри `compilePageQuerySql`.
+Грамотный рефакторинг должен убрать саму причину: branch compilers сейчас
+получают не plan, а raw request, и поэтому переиспользуют слишком широкий
+`compileCoreListingSql(...)`.
 
-Introduce page-specific SQL compilers:
+Нужен промежуточный `ListingQueryPlan`, который один раз классифицирует request
+и явно описывает, какие logical bitmaps нужны каждой ветке.
 
-```text
-compilePageInputSql
-compilePageFacetResolutionSql
-compilePageProductBaseSql
-compilePageVariantMatchSql
+```ts
+interface ListingQueryPlan {
+  input: ListingInputPlan;
+  scope: ScopePlan;
+  productFilters: ProductFilterPlan;
+  variantFilters: VariantFilterPlan;
+  collectors: {
+    page: PageCollectorPlan;
+    totalCount: CountPlan;
+    facetsMetadata: FacetsMetadataPlan;
+    virtualFacets: VirtualFacetsPlan;
+    facetCounts: FacetCountsPlan;
+  };
+}
 ```
 
-Do not reuse `compileCoreListingSql(...)` blindly for page.
+Branch compiler must not decide dependencies by importing a shared CTE graph.
+It must receive a branch plan with a minimal dependency set.
+
+## Branch dependency contracts
+
+### Page branch
+
+Allowed dependencies:
+
+```text
+facet resolution guard
+scope product bitmap
+published product bitmap
+product filter bitmap
+variant match bitmap only for matched variant price
+ordered source table for selected collector
+```
+
+Forbidden dependencies:
+
+```text
+matches
+projected_variant_products
+facet candidate discovery
+facet count isolation
+virtual facet aggregation
+```
+
+### Total count branch
+
+Allowed dependencies:
+
+```text
+facet resolution guard
+full product matches
+variant->product projection when variant filters are active
+```
+
+Forbidden dependencies:
+
+```text
+page collector CTEs
+facet metadata discovery
+facet count isolation
+virtual facet aggregation
+```
+
+### Facets metadata branch
+
+Allowed dependencies:
+
+```text
+facet resolution guard
+scope product bitmap
+scope variant bitmap when rule/scope variant restrictions exist
+catalog facet metadata
+```
+
+Forbidden dependencies:
+
+```text
+active listing filters
+full matches
+projected_variant_products from active filters
+facet counts
+price range
+in-stock aggregation
+```
+
+Metadata should describe available storefront facets for the current scope.
+Counts decide what is non-zero under active filters. Metadata query should not
+scan active-filter matches.
+
+### Virtual facets branch
+
+Allowed dependencies:
+
+```text
+facet resolution guard
+product base without isolated virtual facet
+variant filters without isolated virtual facet
+typed price source
+projection blocks for variant->product where needed
+```
+
+Forbidden dependencies:
+
+```text
+page collector CTEs
+facet metadata discovery
+facet count candidate expansion
+```
+
+## Refactoring steps
+
+### Step 1. Introduce ListingQueryPlan
+
+Add a pure planner after request normalization:
+
+```text
+ResolvedListingRequest -> ListingQueryPlan
+```
+
+The planner should classify:
+
+- active product-level filters;
+- active option filters grouped by `facet_id`;
+- active price filter;
+- active stock filter;
+- whether variant-level predicates exist;
+- selected page collector;
+- which branches need variant->product projection.
 
 Acceptance:
 
-- page product sort path can use product base only;
-- matched variant price path can use product base + variant match;
-- aggregate branches still use full `matches`.
+- branch compilers no longer inspect raw GraphQL-ish filter structures;
+- collector choice is computed once;
+- branch dependency list is visible in one place.
 
-### Step 2. Add chunk fetch SQL
+### Step 2. Replace compileCoreListingSql with explicit fragments
+
+Keep low-level fragment builders, but remove `compileCoreListingSql(...)` from
+branch compilers.
+
+New fragments should be composable by need:
+
+```text
+compileInputSql(plan)
+compileFacetResolutionGuardSql(plan)
+compileScopeProductBitmapSql(plan)
+compilePublishedProductBitmapSql(plan)
+compileProductFilterBitmapSql(plan)
+compileOptionVariantFilterBitmapSql(plan)
+compilePriceVariantFilterBitmapSql(plan)
+compileInStockVariantBitmapSql(plan)
+compileVariantMatchBitmapSql(plan)
+compileVariantProjectionSql(...)
+compileFullProductMatchesSql(...)
+```
+
+Acceptance:
+
+- page compiler cannot accidentally include `fullProductMatches`;
+- metadata compiler cannot accidentally include active filters;
+- virtual facets can isolate price/stock without rebuilding unrelated branches.
+
+### Step 3. Refactor page branch to collector-specific compilers
+
+Split page execution into collector implementations:
+
+```text
+ProductSortPageCollector
+MatchedVariantPricePageCollector
+RelevancePageCollector
+```
+
+`compilePageQuerySql(...)` should stop being one SQL with all collectors unioned
+together. Only the selected collector should compile and execute.
+
+Acceptance:
+
+- `product_sort` page SQL contains no variant price CTEs;
+- `matched_variant_price` page SQL contains no product sort CTEs;
+- `relevance` page SQL contains no product/variant price collector CTEs.
+
+### Step 4. Implement matched variant price chunked collector
 
 Add compiler for one matched price chunk:
 
 ```text
-compileMatchedVariantPricePageChunkSql(request, progress, chunkSize)
+compileMatchedVariantPricePageChunkSql(plan, progress, chunkSize)
 ```
 
 It must read `listing.listing_posting_variant_price`, not
@@ -453,45 +623,73 @@ Acceptance:
 - `price_desc` uses `idx_listing_posting_variant_price_desc`;
 - active price filter is emitted as index range predicate;
 - option/price/in-stock same-variant semantics are preserved through
-  `variant_match @> variant_doc_id`.
+  `variant_match @> variant_doc_id`;
+- application collector stops at `first + 1` accepted products.
 
-### Step 3. Implement application collector
+### Step 5. Refactor totalCount independently
 
-Add repository method:
+`totalCount` should compile only:
 
 ```text
-collectMatchedVariantPricePage(request)
+fullProductMatches
+rb_cardinality(fullProductMatches)
 ```
 
-It loops over chunks, deduplicates products and returns page rows.
+It may still be heavy for broad variant filters, but it must not inherit page,
+metadata, virtual facet or count CTEs.
 
 Acceptance:
 
-- stops at `first + 1` accepted products;
-- has bounded max chunks / max scanned rows;
-- emits metrics;
-- returns stable sort payload for cursor mapper.
+- no page collector CTEs in total SQL;
+- no metadata candidate discovery in total SQL;
+- variant projection is included only when variant predicates exist.
 
-### Step 4. Route matched price page to chunked collector
+### Step 6. Refactor facetsMetadata independently
 
-In `compilePageQuerySql` orchestration, separate:
+Change metadata branch from active-filter discovery to scope metadata discovery.
+
+Preferred shape:
 
 ```text
-product_sort and relevance -> single SQL branch
-matched_variant_price -> chunked repository collector
+scope products -> product facet candidate values
+scope variants -> option facet candidate values
+catalog metadata join
 ```
 
-This may require page branch to no longer be a single SQL statement for matched
-price sort. The full listing request can still run five logical branches in
-parallel; the page branch internally may perform bounded chunk round-trips.
+Do not include active option/price filters, full matches or projected active
+variant products.
 
 Acceptance:
 
-- total logical branch count remains the same;
-- page branch round-trips are bounded and observable;
-- aggregate branches are unchanged.
+- metadata latency is stable for heavy active filters;
+- active selected filters do not make metadata branch seconds-long;
+- counts remain responsible for active-filter non-zero values.
 
-### Step 5. Cursor parity
+### Step 7. Refactor virtualFacets independently
+
+Virtual facets should use specialized isolated plans:
+
+```text
+priceRange:
+  product base without price isolation
+  option/stock variant filters without price
+  typed price source
+
+inStockCount:
+  product base without stock isolation
+  option/price variant filters without stock
+  projection blocks or signature product bitmaps
+```
+
+Acceptance:
+
+- no full `compileCoreListingSql`;
+- no page collector CTEs;
+- no facet metadata CTEs;
+- no scan of `variant_listing_index` for projection when projection blocks can
+  answer variant->product.
+
+### Step 8. Cursor parity
 
 Verify cursor encode/decode for:
 
