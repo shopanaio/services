@@ -2,86 +2,218 @@
 
 ## Цель
 
-Вынести admin listing read API в `services/listing` так, чтобы listing service
-отвечал только за порядок, pagination, counts и агрегаты листинга, а canonical
-данные сущностей продолжали резолвиться из owning subgraph.
+Вынести admin listing read API из `services/catalog` в `services/listing`.
+После миграции listing service становится владельцем listing read contract:
+
+- `Listing`
+- `ListingConnection`
+- `ListingEdge`
+- `listingQuery.listing`
+- listing-specific facets, sort, pagination и aggregate payloads
+
+Catalog остается владельцем canonical entity details:
+
+- `Product`
+- `Bundle`
+- `Facet`
+- `FacetValue`
+- `Category`
+- `Collection`
+- `Vendor`
+- `Tag`
+- `ProductOption`
+- `ProductOptionValue`
+- `ProductFeature`
+- `ProductFeatureValue`
 
 Главное правило контракта:
 
-- listing service возвращает entity references в форме `{ id }`;
-- `Product`, `Bundle`, `Variant`, `Facet`, `FacetValue` и другие canonical
-  сущности не получают дублирующие поля в listing schema;
-- UI может запросить поля canonical сущностей через composed supergraph, но
-  listing resolver строит только references и listing-owned scalars.
+- listing service возвращает entity references в форме `{ __typename, id }`;
+- canonical сущности не получают дублирующие поля в listing schema;
+- UI может запросить canonical поля через composed supergraph;
+- listing resolver строит только порядок, pagination, counts, агрегаты и
+  listing-owned scalars.
+
+## Что переносится из catalog
+
+Текущий catalog admin SDL содержит listing contract в
+`services/catalog/src/api/graphql-admin/schema/listing.graphql`:
+
+```graphql
+interface Listing implements Node {
+  """The Product global ID of the catalog listing item."""
+  id: ID!
+
+  """Product discriminator."""
+  kind: ProductKind!
+
+  """Whether the listing item is currently published."""
+  isPublished: Boolean!
+
+  """The URL-friendly handle."""
+  handle: String!
+
+  """Localized title."""
+  title: String!
+
+  """Media registered on this listing item."""
+  media: [ProductMediaItem!]!
+
+  """Current product price range in the selected currency."""
+  priceRange: ProductPriceRange
+}
+
+"""A connection to a mixed list of catalog listing items."""
+type ListingConnection {
+  """A list of edges."""
+  edges: [ListingEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of catalog listing items."""
+  totalCount: Int!
+}
+
+"""An edge in a Listing connection."""
+type ListingEdge {
+  """The item at the end of the edge."""
+  node: Listing!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+```
+
+Эти имена переносятся в listing service, но поля меняются под новую границу
+владения:
+
+- `Listing` в listing service содержит только `id`;
+- `Product` и `Bundle` подключаются к `Listing` через federation references;
+- `ListingConnection` расширяется listing-owned `facets`;
+- canonical поля старого `Listing` (`kind`, `isPublished`, `handle`, `title`,
+  `media`, `priceRange`) больше не находятся на `Listing`.
+
+`ProductPriceRange` не переносится в listing service. Этот тип используется
+canonical полями `Product.priceRange` и `Bundle.priceRange`, поэтому должен
+остаться в catalog SDL, но быть вынесен из удаляемого `listing.graphql` catalog
+в catalog-owned SDL файл.
+
+## Что удаляется из catalog
+
+Удалить из catalog admin SDL:
+
+- `interface Listing`;
+- `type ListingConnection`;
+- `type ListingEdge`;
+- `Category.listing(...)`;
+- `ListingWhereInput`;
+- `ListingOrderField`;
+- generated `ListingOrderByInput`.
+
+Из `Product` и `Bundle` убрать реализацию `Listing`:
+
+```graphql
+# было
+type Product implements Node & Listing @key(fields: "id") {
+  id: ID!
+}
+
+type Bundle implements Node & Listing @key(fields: "id") {
+  id: ID!
+}
+
+# должно быть
+type Product implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type Bundle implements Node @key(fields: "id") {
+  id: ID!
+}
+```
+
+Удалить catalog resolver/repository слой старого category listing:
+
+- `CategoryResolver.listing`;
+- `CategoryListingConnectionResolver`;
+- `ResolverRegistry.categoryListingConnection`;
+- `CategoryRepository.getCategoryListingConnection`;
+- category listing relay query/types, если после удаления они больше нигде не
+  используются.
+
+`Category.products(...)` и product-specific category APIs не относятся к этому
+переносу и остаются в catalog.
+
+## Federation prerequisite
+
+В listing response federation references нужны только для sellable item nodes:
+`Product` и `Bundle`. Оба типа уже объявлены в catalog admin SDL через
+`@key(fields: "id")`.
+
+Facet UI contract в listing service строится как единая Shopify-like форма
+`ListingFacet` / `ListingFacetValue`, поэтому `Facet` и `FacetValue` не нужно
+экспонировать как federation references для этого endpoint.
 
 ## Границы владения
 
 | Область | Владелец | В listing response |
 | --- | --- | --- |
+| `Listing`, `ListingConnection`, `ListingEdge` | listing | native types |
 | Порядок товаров, cursors, `totalCount` | listing | native fields |
-| Matched variants для variant-level фильтров/сортировки | listing | `Variant { id }` references |
-| Facet items, порядок facet values, counts | listing | `Facet { id }`, `FacetValue { id }`, `count` |
-| Product, Bundle, Variant details | catalog | federation references |
-| Facet labels, uiType, selectionMode, values metadata | catalog | federation references |
-| Category, Collection, Vendor, Tag, Option, Feature details | catalog | federation references when exposed |
-| Price range и in-stock boolean counts | listing | listing-owned payload внутри `Facet { id }` item |
+| Facet items, порядок facet values, counts | listing | `ListingFacet`, `ListingFacetValue`, `count`, `input` |
+| `Product`, `Bundle` details | catalog | federation references |
+| Catalog facet metadata | catalog | used by listing index/sync, not exposed as separate listing filter shape |
+| Category, Collection, Vendor, Tag, Option, Feature details | catalog | source data for listing facets/scopes |
+| Price, vendor и availability facets | listing | same `ListingFacet`/`ListingFacetValue` shape as other facets |
+| `Product.priceRange`, `Bundle.priceRange` | catalog | canonical product/bundle fields |
 
-## Важное условие для federation
+## Global ID mapping
 
-В текущем catalog admin SDL `Product`, `Bundle`, `Variant`, `Category`,
-`Collection`, `Vendor`, `Tag`, `ProductOption`, `ProductOptionValue`,
-`ProductFeature` и `ProductFeatureValue` уже объявлены как federation entities
-через `@key(fields: "id")`.
-
-Для финального listing schema нужно дополнительно сделать canonical entities:
-
-```graphql
-type Facet implements Node @key(fields: "id") {
-  id: ID!
-  # остальные поля остаются как сейчас
-}
-
-type FacetValue implements Node @key(fields: "id") {
-  id: ID!
-  # остальные поля остаются как сейчас
-}
-```
-
-Без `@key` на `Facet` и `FacetValue` listing subgraph не сможет безопасно
-возвращать facet references, а gateway не сможет догрузить canonical поля из
+Listing service должен декодировать входные scope global IDs и кодировать
+выходные product/bundle references теми же `GlobalIdEntity`, которые использует
 catalog.
 
-Catalog admin SDL сейчас уже содержит `Listing`, `ListingConnection` и
-`ListingEdge`. Финальное внедрение должно оставить один согласованный контракт:
-либо перенести эти listing-типы в listing service, либо вынести их в общий SDL,
-либо синхронизировать catalog/listing определения. Два расходящихся определения
-`ListingConnection` в composed admin schema недопустимы.
+| GraphQL type | GlobalIdEntity |
+| --- | --- |
+| `Product` | `Product` |
+| `Bundle` | `Product` |
+| `Category` | `Category` |
+| `Collection` | `Collection` |
+
+Важно: `Bundle` сейчас является sellable item в product domain. Если catalog
+использует для bundle id `GlobalIdEntity.Product`, listing service должен
+сохранять тот же формат global ID.
 
 ## Контракт admin listing query
 
-`listingQuery.listing` должен быть composition endpoint:
+`listingQuery.listing` становится единственным composition endpoint для admin
+listing read API:
 
-- принимает scope, text query, locale, currency, filters, sort и Relay
+- принимает scope, text query, locale, currency, facets, sort и Relay
   pagination arguments;
-- возвращает `ListingConnection`, как catalog service;
+- возвращает перенесенный `ListingConnection`;
 - `edges[].node` возвращает `Product` или `Bundle` reference в финальном
   порядке listing engine;
-- `edges[].variants` возвращает ordered `Variant` references, если
-  variant-level фильтр или сортировка сузили результат до конкретных вариантов;
-- `facets[]` возвращает ordered facet items, включая `PRICE` и `IN_STOCK`;
-- `facets[].values[]` возвращает ordered facet value references и listing-owned
-  `count` для value-based facets (`TAG`, `FEATURE`, `OPTION`);
-- `facets[].priceRange` возвращает listing-owned range для `PRICE` facet;
-- `facets[].boolean` возвращает listing-owned counts для `IN_STOCK` facet;
+- `facets[]` возвращает ordered facet items, включая product facets, vendor,
+  price и availability;
+- все facet types используют одинаковый `ListingFacet` /
+  `ListingFacetValue` contract;
+- клиент применяет facet selection, отправляя обратно `values[].input`, как в
+  Shopify-like filter contract;
 - не возвращает `title`, `handle`, `label`, media, product price, variant price
-  или другие canonical поля.
+  или другие canonical поля напрямую.
 
-Пример клиентского запроса через composed admin supergraph:
+`scope.kind = CATEGORY` заменяет старый `Category.listing(...)` из catalog.
+Клиент, которому нужен category listing, должен вызывать:
 
 ```graphql
-query AdminListing($scope: ListingScopeInput, $first: Int!) {
+query CategoryListing($categoryId: ID!, $first: Int!) {
   listingQuery {
-    listing(scope: $scope, first: $first) {
+    listing(
+      scope: { kind: CATEGORY, categoryId: $categoryId }
+      first: $first
+    ) {
       edges {
         cursor
         node {
@@ -93,97 +225,104 @@ query AdminListing($scope: ListingScopeInput, $first: Int!) {
             title
           }
         }
-        variants {
-          id
-          title
-        }
-      }
-      pageInfo {
-        hasNextPage
-        endCursor
       }
       totalCount
-      facets {
-        facet {
-          id
-          label
-          facetType
-        }
-        values {
-          value {
-            id
-            label
-          }
-          count
-          selected
-        }
-        priceRange {
-          minPriceMinor
-          maxPriceMinor
-          selectedMinPriceMinor
-          selectedMaxPriceMinor
-          currency
-        }
-        boolean {
-          trueCount
-          falseCount
-          selected
-        }
-      }
     }
   }
 }
 ```
 
-В этом запросе listing service возвращает только IDs, порядок и counts. Поля
-`title`, `label` и остальные canonical поля догружает catalog subgraph.
+## Валидация входа
+
+`ListingScopeInput`:
+
+- `GLOBAL`: `categoryId` и `collectionId` должны отсутствовать;
+- `SEARCH`: `categoryId` и `collectionId` должны отсутствовать, `query` должен
+  быть непустой строкой;
+- `CATEGORY`: `categoryId` обязателен, `collectionId` должен отсутствовать;
+- `COLLECTION`: `collectionId` обязателен, `categoryId` должен отсутствовать.
+
+`ListingFacetInput`:
+
+- `id` должен соответствовать одному из facet IDs, возвращенных в
+  `ListingFacet.id`;
+- `values` не должен быть пустым;
+- каждый item в `values` должен быть валидным opaque input, ранее возвращенным в
+  `ListingFacetValue.input`;
+- price range, vendor и availability selection валидируются тем же механизмом,
+  что и остальные facets;
+- cursor/hash должен учитывать выбранные facets как opaque selection payloads.
+
+Pagination:
+
+- нельзя одновременно передавать `first` и `last`;
+- нельзя одновременно передавать `after` и `before`;
+- page size должен иметь service-level default и max limit;
+- cursor должен декодироваться только listing service.
 
 ## План внедрения
 
 1. Обновить catalog admin SDL:
-   - добавить `@key(fields: "id")` на `Facet`;
-   - добавить `@key(fields: "id")` на `FacetValue`;
-   - не менять поля и resolver behavior этих типов.
+   - вынести `ProductPriceRange` из удаляемого listing SDL в catalog-owned SDL;
+   - удалить `interface Listing`;
+   - удалить `type ListingConnection`;
+   - удалить `type ListingEdge`;
+   - удалить `Category.listing(...)`;
+   - убрать `& Listing` из `Product` и `Bundle`.
 
-2. Добавить файл `services/listing/src/api/graphql-admin/schema/listing.graphql`:
-   - объявить reference stubs для canonical entities через
-     `extend type ... @key(fields: "id", resolvable: false)`;
+2. Удалить catalog implementation старого listing read API:
+   - `CategoryResolver.listing`;
+   - `CategoryListingConnectionResolver`;
+   - `ResolverRegistry.categoryListingConnection`;
+   - `CategoryRepository.getCategoryListingConnection`;
+   - category listing relay query/types, если не осталось usage.
+
+3. Убрать generated listing filter inputs из catalog:
+   - исключить listing view из генерации catalog filters;
+   - после генерации catalog filters убедиться, что в catalog больше нет
+     `ListingWhereInput`, `ListingOrderField`, `ListingOrderByInput`.
+
+4. Добавить файл
+   `services/listing/src/api/graphql-admin/schema/listing.graphql`:
+   - объявить `Product` и `Bundle` reference stubs через
+     `extend type ... implements Listing @key(fields: "id", resolvable: false)`;
+   - добавить перенесенные `Listing`, `ListingConnection`, `ListingEdge`;
    - добавить `extend type ListingQuery` с полем `listing`;
-   - добавить inputs, connection, edge и facet result types.
+   - добавить listing-owned inputs и facet result types.
 
-3. Реализовать resolver `ListingQueryResolver.listing`:
+5. Реализовать resolver `ListingQueryResolver.listing`:
    - декодировать входные global IDs через `decodeGlobalIdByType`;
-   - валидировать exactly-one semantics для `ListingFilterInput`;
-   - валидировать соответствие `ListingScopeInput.kind` и переданных IDs;
+   - валидировать `ListingScopeInput`;
+   - валидировать `ListingFacetInput`;
    - нормализовать вход под listing repository;
    - не ходить в catalog за деталями сущностей.
 
-4. Маппинг repository result в GraphQL:
+6. Маппинг repository result в GraphQL:
    - `productId + kind = BASE` -> `{ __typename: "Product", id }`;
    - `productId + kind = BUNDLE` -> `{ __typename: "Bundle", id }`;
-   - `matchedVariantIds[]` -> `[{ __typename: "Variant", id }]`;
-   - `facetId` -> `{ __typename: "Facet", id }`;
-   - `facetValueId` -> `{ __typename: "FacetValue", id }`;
-   - `PRICE` агрегаты -> `ListingFacetItem.priceRange`;
-   - `IN_STOCK` агрегаты -> `ListingFacetItem.boolean`;
-   - все IDs кодировать через `encodeGlobalIdByType` с правильным
-     `GlobalIdEntity`.
+   - facet metadata, value counts и selected state -> `ListingFacet`;
+   - price range, vendor и availability aggregates -> `ListingFacet` с тем же
+     `values[].input` contract;
+   - все IDs кодировать через `encodeGlobalIdByType` по таблице global ID
+     mapping выше.
 
-5. Сохранить `node`/`nodes` namespace behavior:
-   - если listing service не владеет Node entities, оставить их no-op или
-     реализовать только для будущих listing-owned entities;
-   - canonical product/facet node resolution остается в catalog.
+7. Сохранить `node`/`nodes` namespace behavior:
+   - listing service не владеет canonical Node entities;
+   - `listingQuery.node` и `listingQuery.nodes` могут остаться no-op до
+     появления listing-owned Node entities;
+   - canonical product/bundle node resolution остается в catalog.
 
-6. Проверить composition:
+8. Проверить composition:
    - после изменения SDL запустить schema build через shopana-cli;
    - не запускать `test` и `tsc` для этой задачи.
 
-## Финальный SDL
+## Финальный SDL listing service
 
-Ниже финальный вариант SDL для listing service admin schema. Он рассчитан на
-отдельный файл `services/listing/src/api/graphql-admin/schema/listing.graphql`.
-`LocaleCode` и `CurrencyCode` уже подключаются в listing service через
-`packages/shared-references/graphql/**/*.graphql`.
+Файл:
+`services/listing/src/api/graphql-admin/schema/listing.graphql`.
+
+`LocaleCode`, `CurrencyCode`, `PageInfo`, `Node` и scalars уже подключаются в
+listing service через shared GraphQL references.
 
 ```graphql
 # ---- Listing Canonical References ----
@@ -198,69 +337,14 @@ extend type Bundle implements Listing @key(fields: "id", resolvable: false) {
   id: ID! @external
 }
 
-extend type Variant @key(fields: "id", resolvable: false) {
-  """The Variant global ID owned by Catalog."""
-  id: ID! @external
-}
-
-extend type Facet @key(fields: "id", resolvable: false) {
-  """The Facet global ID owned by Catalog."""
-  id: ID! @external
-}
-
-extend type FacetValue @key(fields: "id", resolvable: false) {
-  """The FacetValue global ID owned by Catalog."""
-  id: ID! @external
-}
-
-extend type Category @key(fields: "id", resolvable: false) {
-  """The Category global ID owned by Catalog."""
-  id: ID! @external
-}
-
-extend type Collection @key(fields: "id", resolvable: false) {
-  """The Collection global ID owned by Catalog."""
-  id: ID! @external
-}
-
-extend type Vendor @key(fields: "id", resolvable: false) {
-  """The Vendor global ID owned by Catalog."""
-  id: ID! @external
-}
-
-extend type Tag @key(fields: "id", resolvable: false) {
-  """The Tag global ID owned by Catalog."""
-  id: ID! @external
-}
-
-extend type ProductOption @key(fields: "id", resolvable: false) {
-  """The ProductOption global ID owned by Catalog."""
-  id: ID! @external
-}
-
-extend type ProductOptionValue @key(fields: "id", resolvable: false) {
-  """The ProductOptionValue global ID owned by Catalog."""
-  id: ID! @external
-}
-
-extend type ProductFeature @key(fields: "id", resolvable: false) {
-  """The ProductFeature global ID owned by Catalog."""
-  id: ID! @external
-}
-
-extend type ProductFeatureValue @key(fields: "id", resolvable: false) {
-  """The ProductFeatureValue global ID owned by Catalog."""
-  id: ID! @external
-}
-
 # ---- Listing Query ----
 
 extend type ListingQuery {
   """
   Get ordered listing structure for Admin.
 
-  The Listing service returns listing-owned order, pagination, counts, and
-  canonical entity references only. Entity details are resolved by owning
+  Listing service returns listing-owned order, pagination, counts, aggregates,
+  and canonical entity references only. Entity details are resolved by owning
   subgraphs through federation.
   """
   listing(
@@ -272,7 +356,7 @@ extend type ListingQuery {
     query: String
     locale: LocaleCode
     currency: CurrencyCode
-    filters: [ListingFilterInput!]
+    facets: [ListingFacetInput!]
     orderBy: ListingOrderByInput
   ): ListingConnection!
 }
@@ -297,58 +381,12 @@ input ListingScopeInput {
   collectionId: ID
 }
 
-input ListingFilterInput {
-  """
-  Facet filter. Exactly one field of ListingFilterInput must be provided.
-  """
-  facet: ListingFacetFilterInput
+input ListingFacetInput {
+  """Facet ID returned by ListingFacet.id."""
+  id: String!
 
-  """
-  Vendor filter. Exactly one field of ListingFilterInput must be provided.
-  """
-  vendor: ListingVendorFilterInput
-
-  """
-  Price filter. Exactly one field of ListingFilterInput must be provided.
-  """
-  price: ListingPriceFilterInput
-
-  """
-  Stock filter. Exactly one field of ListingFilterInput must be provided.
-  """
-  inStock: ListingInStockFilterInput
-}
-
-input ListingFacetFilterInput {
-  """Facet global ID."""
-  facetId: ID!
-
-  """Selected FacetValue global IDs for this facet."""
-  valueIds: [ID!]!
-}
-
-input ListingVendorFilterInput {
-  """Selected Vendor global IDs."""
-  vendorIds: [ID!]!
-}
-
-input ListingPriceFilterInput {
-  """Price Facet global ID."""
-  facetId: ID!
-
-  """Minimum variant price amount in minor units."""
-  minPriceMinor: BigInt
-
-  """Maximum variant price amount in minor units."""
-  maxPriceMinor: BigInt
-}
-
-input ListingInStockFilterInput {
-  """In-stock Facet global ID."""
-  facetId: ID!
-
-  """Whether the listing should be limited by stock availability."""
-  value: Boolean!
+  """Opaque selected facet values returned by ListingFacetValue.input."""
+  values: [JSON!]!
 }
 
 enum ListingSortBy {
@@ -376,10 +414,11 @@ input ListingOrderByInput {
 # ---- Listing Result Types ----
 
 interface Listing implements Node {
-  """The Product global ID of the catalog listing item."""
+  """The global ID of the catalog listing item."""
   id: ID!
 }
 
+"""A connection to a mixed list of catalog listing items."""
 type ListingConnection {
   """A list of edges."""
   edges: [ListingEdge!]!
@@ -391,86 +430,74 @@ type ListingConnection {
   totalCount: Int!
 
   """Ordered facet items available for the current listing result."""
-  facets: [ListingFacetItem!]!
+  facets: [ListingFacet!]!
 }
 
+"""An edge in a Listing connection."""
 type ListingEdge {
   """The item at the end of the edge."""
   node: Listing!
-
-  """
-  Matched variant references in listing order.
-
-  Empty when the current request did not resolve variant-level matches.
-  """
-  variants: [Variant!]!
 
   """A cursor for use in pagination."""
   cursor: String!
 }
 
-type ListingFacetItem {
-  """Facet reference owned by Catalog."""
-  facet: Facet!
+enum ListingFacetType {
+  LIST
+  BOOLEAN
+  PRICE_RANGE
+}
+
+type ListingFacet {
+  """Stable listing facet ID."""
+  id: String!
+
+  """Human-readable facet label."""
+  label: String!
+
+  """Facet presentation/selection type."""
+  type: ListingFacetType!
 
   """Ordered values for this facet in listing UI order."""
   values: [ListingFacetValue!]!
-
-  """Price range payload for PRICE facets."""
-  priceRange: ListingFacetPriceRange
-
-  """Boolean counts payload for IN_STOCK facets."""
-  boolean: ListingFacetBoolean
 }
 
 type ListingFacetValue {
-  """FacetValue reference owned by Catalog."""
-  value: FacetValue!
+  """Stable listing facet value ID."""
+  id: String!
+
+  """Human-readable value label."""
+  label: String!
 
   """Number of matched sellable items for this value."""
   count: Int!
 
   """Whether this value was selected in the current request."""
   selected: Boolean!
-}
 
-type ListingFacetPriceRange {
-  """Minimum matched variant price amount in minor units."""
-  minPriceMinor: BigInt!
-
-  """Maximum matched variant price amount in minor units."""
-  maxPriceMinor: BigInt!
-
-  """Currency code used for the returned price amounts."""
-  currency: CurrencyCode!
-
-  """Selected minimum price amount in minor units."""
-  selectedMinPriceMinor: BigInt
-
-  """Selected maximum price amount in minor units."""
-  selectedMaxPriceMinor: BigInt
-}
-
-type ListingFacetBoolean {
-  """Number of matched sellable items for true."""
-  trueCount: Int!
-
-  """Number of matched sellable items for false."""
-  falseCount: Int!
-
-  """Selected boolean value in the current request."""
-  selected: Boolean
+  """
+  Opaque value to pass back through ListingFacetInput.values.
+  This keeps product, vendor, price and availability facets on one contract.
+  """
+  input: JSON!
 }
 ```
 
 ## Acceptance criteria
 
+- Catalog admin SDL больше не содержит `Listing`, `ListingConnection`,
+  `ListingEdge`, `Category.listing`, `ListingWhereInput`, `ListingOrderField`,
+  generated `ListingOrderByInput`.
+- `Product` и `Bundle` в catalog больше не реализуют `Listing`.
+- `ProductPriceRange` остается в catalog и продолжает использоваться
+  canonical полями `Product.priceRange` и `Bundle.priceRange`.
+- Listing service владеет `Listing`, `ListingConnection`, `ListingEdge`.
 - `listingQuery.listing` не возвращает canonical presentation fields напрямую.
-- Product/Bundle/Variant/Facet/FacetValue details доступны через composed
+- Product/Bundle details доступны через composed
   supergraph selection после federation hydration.
-- Порядок `edges`, `edges.variants`, `facets` и `facets.values` полностью
+- Порядок `edges`, `facets` и `facets.values` полностью
   задается listing service.
-- `PRICE` и `IN_STOCK` возвращаются как `ListingFacetItem`, а не как top-level
-  поля `ListingConnection`.
-- `Facet` и `FacetValue` имеют `@key(fields: "id")` в catalog admin SDL.
-- Schema composition проходит после добавления listing SDL.
+- Product facets, vendor, price и availability возвращаются как
+  `ListingFacet`, а не как разные GraphQL shapes.
+- Schema composition проходит после удаления catalog listing SDL и добавления
+  listing service SDL.
