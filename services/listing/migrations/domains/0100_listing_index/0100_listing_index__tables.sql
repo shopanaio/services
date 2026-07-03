@@ -338,6 +338,14 @@ CREATE INDEX idx_listing_option_signature_value_lookup
     signature_key
   );
 
+CREATE INDEX idx_listing_option_signature_value_facet_signature
+  ON listing.listing_option_signature_value (
+    project_id,
+    facet_id,
+    signature_key,
+    value_key
+  );
+
 CREATE TABLE listing.listing_option_signature_product_membership (
   option_signature_id  uuid NOT NULL,
   project_id           uuid NOT NULL,

@@ -24,11 +24,13 @@ export interface ListingSqlRequest {
   normalizedQuery: string | null;
   scope: StorefrontListingScope;
   request: ResolvedListingRequest;
+  heavyOptionFacetCountsEnabled: boolean;
 }
 
 export function toListingSqlRequest(input: {
   projectId: string;
   request: ResolvedListingRequest;
+  heavyOptionFacetCountsEnabled: boolean;
 }): ListingSqlRequest {
   const { request } = input;
 
@@ -58,6 +60,7 @@ export function toListingSqlRequest(input: {
     normalizedQuery: request.normalizedQuery,
     scope: request.input.scope,
     request,
+    heavyOptionFacetCountsEnabled: input.heavyOptionFacetCountsEnabled,
   };
 }
 

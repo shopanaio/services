@@ -47,7 +47,6 @@ import {
   type NormalizedStorefrontListingFilters,
   type ResolvedListingRequest,
   type RuleCollectionPredicate,
-  type StorefrontFilterPlan,
   type StorefrontListingFilterInput,
   type StorefrontListingInput,
   type StorefrontListingRepositoryResult,
@@ -70,7 +69,8 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     private readonly productCollector: StorefrontProductSortCollectorRepository,
     private readonly variantPriceCollector: StorefrontVariantPriceCollectorRepository,
     private readonly search: StorefrontProductTitleSearchQueryRepository,
-    private readonly aggregation: StorefrontFacetAggregationRepository
+    private readonly aggregation: StorefrontFacetAggregationRepository,
+    private readonly heavyOptionFacetCountsEnabled: boolean
   ) {
     super(db, txManager);
   }
@@ -85,10 +85,11 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     let pageRows: ParallelPageSqlRow[] = [];
 
     try {
-      request = this.normalize(input);
+      request = await this.normalize(input);
       const sqlRequest = toListingSqlRequest({
         projectId: this.storeId,
         request,
+        heavyOptionFacetCountsEnabled: this.heavyOptionFacetCountsEnabled,
       });
 
       const [
@@ -210,7 +211,9 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     }
   }
 
-  private normalize(input: StorefrontListingInput): ResolvedListingRequest {
+  private async normalize(
+    input: StorefrontListingInput
+  ): Promise<ResolvedListingRequest> {
     const locale = input.locale.trim();
     const currency = input.currency.trim();
     if (!locale) {
@@ -238,12 +241,14 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     const scope = this.normalizeScope(input.scope);
     const manualScopeId = this.manualScopeIdFor(scope, sort);
     const filters = this.normalizeFilters(input.filters);
+    const normalizedFiltersInput = this.toFilterPlanInput(filters);
     const normalizedInput: StorefrontListingInput = {
       ...input,
       scope,
       locale,
       currency,
       first,
+      filters: normalizedFiltersInput,
     };
     const cursor = input.after ? decodeListingCursor(input.after) : null;
     const filterHash = buildListingFilterHash({
@@ -258,11 +263,14 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     });
 
     assertCursorMatches(cursor, filterHash, sort.kind);
+    const filterPlan = await this.facets.resolveFilterPlan({
+      filters: normalizedFiltersInput,
+    });
 
     return {
       input: normalizedInput,
       filters,
-      filterPlan: this.toDebugFilterPlan(filters),
+      filterPlan,
       normalizedQuery,
       sort,
       cursor,
@@ -442,16 +450,38 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     return next;
   }
 
-  private toDebugFilterPlan(
+  private toFilterPlanInput(
     filters: NormalizedStorefrontListingFilters
-  ): StorefrontFilterPlan {
-    return {
-      productFacetGroups: [],
-      optionFacetGroups: [],
-      vendorIds: filters.vendorIds,
-      priceRange: filters.priceRange,
-      inStock: filters.inStock,
-    };
+  ): StorefrontListingFilterInput[] {
+    const facetValueHandlesBySlug = new Map<string, string[]>();
+    for (const filter of filters.facetFilters) {
+      const valueHandles = facetValueHandlesBySlug.get(filter.facetSlug) ?? [];
+      valueHandles.push(filter.valueHandle);
+      facetValueHandlesBySlug.set(filter.facetSlug, valueHandles);
+    }
+
+    const normalized: StorefrontListingFilterInput[] = [
+      ...[...facetValueHandlesBySlug.entries()].map(
+        ([facetSlug, valueHandles]) =>
+          ({
+            kind: "facet",
+            facetSlug,
+            valueHandles,
+          }) satisfies StorefrontListingFilterInput
+      ),
+    ];
+
+    if (filters.vendorIds.length > 0) {
+      normalized.push({ kind: "vendor", vendorIds: [...filters.vendorIds] });
+    }
+    if (filters.priceRange) {
+      normalized.push({ kind: "price", ...filters.priceRange });
+    }
+    if (filters.inStock !== undefined) {
+      normalized.push({ kind: "in_stock", value: filters.inStock });
+    }
+
+    return normalized;
   }
 
   private debugListingQuery(metadata: Record<string, unknown>): void {

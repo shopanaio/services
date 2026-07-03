@@ -429,6 +429,12 @@ export const listingOptionSignatureValue = listingSchema.table(
       table.valueKey,
       table.signatureKey
     ),
+    index("idx_listing_option_signature_value_facet_signature").on(
+      table.projectId,
+      table.facetId,
+      table.signatureKey,
+      table.valueKey
+    ),
   ]
 );
 

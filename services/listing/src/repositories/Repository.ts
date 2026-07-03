@@ -25,9 +25,12 @@ import {
 
 export interface RepositoryConfig {
   db: Database;
+  heavyOptionFacetCountsEnabled?: boolean;
 }
 
 export type { Database };
+
+const LISTING_HEAVY_OPTION_FACET_COUNTS_ENABLED_DEFAULT = false;
 
 export class Repository {
   public readonly listingDocIdAllocator: ListingDocIdAllocatorRepository;
@@ -98,6 +101,9 @@ export class Repository {
 
   static async create(config: RepositoryConfig): Promise<Repository> {
     const { db } = config;
+    const heavyOptionFacetCountsEnabled =
+      config.heavyOptionFacetCountsEnabled ??
+      LISTING_HEAVY_OPTION_FACET_COUNTS_ENABLED_DEFAULT;
     const txManager = new TransactionManager(db);
 
     const listingDocIdAllocator = new ListingDocIdAllocatorRepository(
@@ -157,7 +163,8 @@ export class Repository {
       storefrontProductSortCollector,
       storefrontVariantPriceCollector,
       storefrontProductTitleSearchQuery,
-      storefrontFacetAggregation
+      storefrontFacetAggregation,
+      heavyOptionFacetCountsEnabled
     );
 
     return new Repository(

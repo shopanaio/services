@@ -480,6 +480,21 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
         LEFT JOIN ${catalogFacetValueRuntime} parent_fv
           ON parent_fv.project_id = fv.project_id
          AND parent_fv.id = fv.parent_id
+         AND parent_fv.kind = 'display'
+         AND parent_fv.parent_id IS NULL
+         AND parent_fv.enabled = true
+         AND parent_fv.reference_status = 'VALID'
+        WHERE (
+            fv.kind = 'display'
+            AND fv.parent_id IS NULL
+            AND fv.enabled = true
+            AND fv.reference_status = 'VALID'
+          )
+          OR (
+            fv.kind = 'source'
+            AND fv.enabled = true
+            AND parent_fv.id IS NOT NULL
+          )
       )
       SELECT DISTINCT ON ("facetSlug", "requestedValueHandle")
         "facetSlug",
