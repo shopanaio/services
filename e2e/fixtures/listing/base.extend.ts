@@ -14,6 +14,6 @@ export const test = base.extend<ListingFixtures>({
       currencies: ['USD'],
     });
 
-    await use(await seedCategoryListingProducts(api, 20));
+    await use(await seedCategoryListingProducts(api, 30));
   },
 });

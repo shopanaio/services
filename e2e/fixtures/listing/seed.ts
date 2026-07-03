@@ -9,6 +9,7 @@ export interface ListingCatalogFixture {
   category: CategoryData;
   products: ApiProduct[];
   facets: ApiFacet[];
+  facetAssignments: ListingProductFacetAssignment[];
   expectedOrder: {
     manual: ApiProduct[];
     newest: ApiProduct[];
@@ -18,6 +19,17 @@ export interface ListingCatalogFixture {
     priceDesc: ApiProduct[];
   };
 }
+
+export interface ListingProductFacetAssignment {
+  productId: string;
+  inStock: boolean;
+  priceMinor: number;
+  options: Record<string, string>;
+  features: Record<string, string>;
+  tags: string[];
+}
+
+const DEFAULT_IN_STOCK_COUNT = 20;
 
 interface ListingFacetGroup {
   facetType: 'OPTION' | 'FEATURE' | 'TAG';
@@ -78,7 +90,8 @@ const listingFeatureGroups: ListingFacetGroup[] = Array.from({ length: 15 }, (_,
 
 export async function seedCategoryListingProducts(
   api: ApiFixtures['api'],
-  count = 20,
+  count = 30,
+  inStockCount = DEFAULT_IN_STOCK_COUNT,
 ): Promise<ListingCatalogFixture> {
   const now = Date.now();
   const unique = crypto.randomUUID().slice(0, 8);
@@ -118,6 +131,15 @@ export async function seedCategoryListingProducts(
 
   const facets = await createListingFacets(api, [...listingProductOptions, ...listingFeatureGroups, ...tagGroups]);
   const facetValueKeys = mapFacetValueKeys(facets);
+  const facetAssignments = products.map((product, productIndex) =>
+    productFacetAssignment({
+      productId: product.id,
+      productIndex,
+      tagGroups,
+      inStock: productIndex < inStockCount,
+      priceMinor: (count - productIndex) * 100,
+    }),
+  );
 
   await seedListingCategoryProducts({
     projectId: api.session.project.id,
@@ -132,6 +154,7 @@ export async function seedCategoryListingProducts(
       revision: product.revision,
       priceMinor: (count - productIndex) * 100,
       manualSortKey: String(productIndex).padStart(4, '0'),
+      inStock: productIndex < inStockCount,
       productFacetValueKeys: [
         ...selectedFeatureValues(productIndex).map((value) => requiredValueKey(facetValueKeys, value.handle)),
         ...selectedTags(tagGroups, productIndex).map((tag) => requiredValueKey(facetValueKeys, tag.handle)),
@@ -143,17 +166,22 @@ export async function seedCategoryListingProducts(
   });
 
   const reversedProducts = [...products].reverse();
+  const inStockProducts = products.slice(0, inStockCount);
+  const outOfStockProducts = products.slice(inStockCount);
+  const inStockReversedProducts = [...inStockProducts].reverse();
+  const outOfStockReversedProducts = [...outOfStockProducts].reverse();
 
   return {
     category,
     products,
     facets,
+    facetAssignments,
     expectedOrder: {
       manual: products,
       newest: products,
-      created: reversedProducts,
-      name: reversedProducts,
-      priceAsc: reversedProducts,
+      created: [...inStockReversedProducts, ...outOfStockReversedProducts],
+      name: [...inStockReversedProducts, ...outOfStockReversedProducts],
+      priceAsc: [...inStockReversedProducts, ...outOfStockReversedProducts],
       priceDesc: products,
     },
   };
@@ -333,6 +361,27 @@ function selectedVariantId(product: ApiProduct, selectedOptions: { handle: strin
     product.variants.edges.find((edge) => edge.node.handle === selectedVariantHandle)?.node.id ??
     product.variants.edges[0]?.node.id
   );
+}
+
+function productFacetAssignment(input: {
+  productId: string;
+  productIndex: number;
+  tagGroups: ListingFacetGroup[];
+  inStock: boolean;
+  priceMinor: number;
+}): ListingProductFacetAssignment {
+  return {
+    productId: input.productId,
+    inStock: input.inStock,
+    priceMinor: input.priceMinor,
+    options: Object.fromEntries(
+      selectedOptionValues(input.productIndex).map((value) => [value.group.slug, value.handle]),
+    ),
+    features: Object.fromEntries(
+      selectedFeatureValues(input.productIndex).map((value) => [value.group.slug, value.handle]),
+    ),
+    tags: selectedTags(input.tagGroups, input.productIndex).map((tag) => tag.handle),
+  };
 }
 
 function selectedTags(groups: ListingFacetGroup[], productIndex: number): ApiTag[] {

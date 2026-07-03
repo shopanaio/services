@@ -17,6 +17,7 @@ export interface ListingSeedProductInput {
   priceMinor?: number | null;
   manualSortKey?: string | null;
   searchTitle?: string | null;
+  inStock?: boolean;
   productFacetValueKeys?: string[];
   variantFacetValueKeys?: string[];
 }
@@ -64,6 +65,7 @@ export async function seedListingCategoryProducts({
           manualSortKey: product.manualSortKey,
           searchTitle: product.searchTitle,
           variantSignatureKey: optionSignatureKey(product.variantFacetValueKeys ?? []),
+          inStock: product.inStock ?? true,
           categoryUuid,
           locale,
           currency,
@@ -84,31 +86,37 @@ export async function seedListingCategoryProducts({
       await seedFacetPostings(tx, {
         projectUuid,
         entityType: 'product',
-        productFacetEntries: seedProducts.flatMap((product) =>
-          (product.productFacetValueKeys ?? []).map((valueKey) => ({
-            valueKey,
-            docId: product.productDocId,
-          })),
-        ),
+        productFacetEntries: seedProducts
+          .filter((product) => product.inStock ?? true)
+          .flatMap((product) =>
+            (product.productFacetValueKeys ?? []).map((valueKey) => ({
+              valueKey,
+              docId: product.productDocId,
+            })),
+          ),
       });
 
       await seedFacetPostings(tx, {
         projectUuid,
         entityType: 'variant',
-        productFacetEntries: seedProducts.flatMap((product) =>
-          (product.variantFacetValueKeys ?? []).map((valueKey) => ({
-            valueKey,
-            docId: product.productDocId,
-          })),
-        ),
+        productFacetEntries: seedProducts
+          .filter((product) => product.inStock ?? true)
+          .flatMap((product) =>
+            (product.variantFacetValueKeys ?? []).map((valueKey) => ({
+              valueKey,
+              docId: product.productDocId,
+            })),
+          ),
       });
 
       await seedOptionSignatures(tx, {
         projectUuid,
-        products: seedProducts.map((product) => ({
-          productDocId: product.productDocId,
-          valueKeys: product.variantFacetValueKeys ?? [],
-        })),
+        products: seedProducts
+          .filter((product) => product.inStock ?? true)
+          .map((product) => ({
+            productDocId: product.productDocId,
+            valueKeys: product.variantFacetValueKeys ?? [],
+          })),
       });
     });
   } finally {
@@ -162,6 +170,7 @@ async function seedListingProduct(
     manualSortKey?: string | null;
     searchTitle?: string | null;
     variantSignatureKey: string | null;
+    inStock: boolean;
     categoryUuid: string;
     locale: string;
     currency: string;
@@ -200,8 +209,8 @@ async function seedListingProduct(
       ${createdAt},
       ${updatedAt},
       ${input.revision ?? 0},
-      true,
-      1,
+      ${input.inStock},
+      ${input.inStock ? 1 : 0},
       now(),
       now()
     )
@@ -228,7 +237,7 @@ async function seedListingProduct(
     locale: '',
     currency: '',
     manualScopeId: ZERO_UUID,
-    boolValue: true,
+    boolValue: input.inStock,
     timestamptzValue: publishedAt,
     timestamptzValue2: createdAt,
     textValue: input.title ?? input.handle ?? input.productUuid,
@@ -242,7 +251,7 @@ async function seedListingProduct(
     locale: '',
     currency: '',
     manualScopeId: ZERO_UUID,
-    boolValue: true,
+    boolValue: input.inStock,
     timestamptzValue: createdAt,
   });
 
@@ -254,7 +263,7 @@ async function seedListingProduct(
     locale: input.locale,
     currency: '',
     manualScopeId: ZERO_UUID,
-    boolValue: true,
+    boolValue: input.inStock,
     textValue: input.title ?? input.handle ?? input.productUuid,
   });
 
@@ -266,7 +275,7 @@ async function seedListingProduct(
     locale: '',
     currency: '',
     manualScopeId: input.categoryUuid,
-    boolValue: true,
+    boolValue: input.inStock,
     textValue: input.manualSortKey ?? input.title ?? input.handle ?? input.productUuid,
   });
 
@@ -280,6 +289,7 @@ async function seedListingProduct(
       priceMinor: input.priceMinor,
       currency: input.currency,
       signatureKey: input.variantSignatureKey ?? 'default',
+      inStock: input.inStock,
     });
 
     await seedProductSort(sql, {
@@ -290,7 +300,7 @@ async function seedListingProduct(
       locale: '',
       currency: input.currency,
       manualScopeId: ZERO_UUID,
-      boolValue: true,
+      boolValue: input.inStock,
       bigintValue: input.priceMinor,
     });
     await seedProductSort(sql, {
@@ -301,7 +311,7 @@ async function seedListingProduct(
       locale: '',
       currency: input.currency,
       manualScopeId: ZERO_UUID,
-      boolValue: true,
+      boolValue: input.inStock,
       bigintValue: input.priceMinor,
     });
   }
@@ -392,6 +402,7 @@ async function seedVariantPrice(
     priceMinor: number;
     currency: string;
     signatureKey: string;
+    inStock: boolean;
   },
 ) {
   await sql`
@@ -414,8 +425,8 @@ async function seedVariantPrice(
       ${input.variantUuid}::uuid,
       ${input.variantDocId},
       ${input.signatureKey},
-      true,
-      1,
+      ${input.inStock},
+      ${input.inStock ? 1 : 0},
       now(),
       now()
     )
