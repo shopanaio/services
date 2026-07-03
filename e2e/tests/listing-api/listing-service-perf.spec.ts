@@ -10,13 +10,14 @@ const execFileAsync = promisify(execFile);
 
 const PRODUCT_COUNT = 10_000;
 const PAGE_SIZE = 20;
-const QUERY_RUNS = 5;
+const QUERY_RUNS = 1;
 const PRICE_FILTER = { min: 20_000, max: 60_000 } as const;
 const LISTING_PERF_RESULTS_DIR = resolve(process.cwd(), 'test-results/listing-perf');
 const SEED_META_PATH = resolve(LISTING_PERF_RESULTS_DIR, 'price-facet-10k-seed.json');
 const POSTGRES_RAW_LOG_PATH = resolve(LISTING_PERF_RESULTS_DIR, 'price-facet-10k-postgres.log');
 const POSTGRES_SQL_SUMMARY_PATH = resolve(LISTING_PERF_RESULTS_DIR, 'price-facet-10k-postgres-sql.txt');
 const POSTGRES_COMPARISON_PATH = resolve(LISTING_PERF_RESULTS_DIR, 'price-facet-10k-comparison.json');
+const POSTGRES_FULL_REPORT_PATH = resolve(LISTING_PERF_RESULTS_DIR, 'price-facet-10k-full-report.txt');
 const LISTING_SQL_BRANCHES = [
   'listing:page',
   'listing:totalCount',
@@ -180,6 +181,7 @@ test.describe('Listing service perf', () => {
 
       const postgresDurations = await readRecentPostgresDurations(postgresLogsSince);
       const branchTimingRuns = extractBranchTimingRuns(postgresDurations.summary);
+      const sqlTimingSummary = summarizeSqlTimings(postgresDurations.summary);
       for (const metric of runMetrics) {
         metric.branchTimings = Object.fromEntries(
           LISTING_SQL_BRANCHES.map((branch) => [branch, branchTimingRuns[branch]?.[metric.run - 1] ?? null]),
@@ -188,11 +190,21 @@ test.describe('Listing service perf', () => {
 
       const comparison = buildRunComparison(runMetrics);
       await writeFile(POSTGRES_COMPARISON_PATH, `${JSON.stringify(comparison, null, 2)}\n`);
+      await writeFile(
+        POSTGRES_FULL_REPORT_PATH,
+        buildFullReport({
+          comparison,
+          sqlTimingSummary,
+          postgresSummary: postgresDurations.summary,
+        }),
+      );
 
       console.log(formatRunComparison(comparison));
+      console.log(formatSqlTimingSummary(sqlTimingSummary));
       console.log(`postgres raw log: ${POSTGRES_RAW_LOG_PATH}`);
       console.log(`postgres sql timings: ${POSTGRES_SQL_SUMMARY_PATH}`);
       console.log(`comparison: ${POSTGRES_COMPARISON_PATH}`);
+      console.log(`full report: ${POSTGRES_FULL_REPORT_PATH}`);
     } finally {
       await setPostgresDurationLogging(false);
     }
@@ -296,15 +308,13 @@ function extractPostgresDurationEntries(log: string): string[] {
     }
 
     const entry = [line];
-    for (let offset = 1; offset <= 12 && index + offset < lines.length; offset++) {
+    for (let offset = 1; index + offset < lines.length; offset++) {
       const nextLine = lines[index + offset];
       if (nextLine.includes('duration:')) {
         break;
       }
 
-      if (nextLine.trim().length > 0) {
-        entry.push(nextLine);
-      }
+      entry.push(nextLine);
     }
 
     entries.push(entry.join('\n'));
@@ -338,6 +348,54 @@ function extractBranchTimingRuns(summary: string): Record<(typeof LISTING_SQL_BR
   }
 
   return timings;
+}
+
+interface SqlTimingSummaryEntry {
+  name: string;
+  count: number;
+  avgMs: number;
+  minMs: number;
+  maxMs: number;
+  runsMs: number[];
+}
+
+function summarizeSqlTimings(summary: string): SqlTimingSummaryEntry[] {
+  const timings = new Map<string, number[]>();
+
+  for (const entry of summary.split('\n\n---\n\n')) {
+    if (!entry.includes('execute')) {
+      continue;
+    }
+
+    const duration = entry.match(/duration: ([0-9.]+) ms\s+execute [^:]+:/);
+    const comment = entry.match(/\/\*\s*([^*]+?)\s*\*\//);
+    if (!duration || !comment) {
+      continue;
+    }
+
+    const name = comment[1].trim();
+    if (!name.startsWith('listing:')) {
+      continue;
+    }
+
+    const existing = timings.get(name) ?? [];
+    existing.push(Number(duration[1]));
+    timings.set(name, existing);
+  }
+
+  return [...timings.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([name, runsMs]) => {
+      const sum = runsMs.reduce((total, duration) => total + duration, 0);
+      return {
+        name,
+        count: runsMs.length,
+        avgMs: Number((sum / runsMs.length).toFixed(3)),
+        minMs: Number(Math.min(...runsMs).toFixed(3)),
+        maxMs: Number(Math.max(...runsMs).toFixed(3)),
+        runsMs: runsMs.map((duration) => Number(duration.toFixed(3))),
+      };
+    });
 }
 
 function buildRunComparison(runMetrics: ListingPerfRunMetric[]) {
@@ -394,4 +452,39 @@ function formatRunComparison(comparison: ReturnType<typeof buildRunComparison>):
   }
 
   return lines.join('\n');
+}
+
+function formatSqlTimingSummary(summary: SqlTimingSummaryEntry[]): string {
+  const lines = ['postgres listing SQL execute summary:'];
+
+  for (const entry of summary) {
+    lines.push(
+      `${entry.name}: count=${entry.count} avg=${entry.avgMs}ms min=${entry.minMs}ms max=${entry.maxMs}ms runs=${entry.runsMs.join(',')}`,
+    );
+  }
+
+  return lines.join('\n');
+}
+
+function buildFullReport(input: {
+  comparison: ReturnType<typeof buildRunComparison>;
+  sqlTimingSummary: SqlTimingSummaryEntry[];
+  postgresSummary: string;
+}) {
+  return [
+    '# Listing service price facet 10k perf report',
+    '',
+    '## Run comparison',
+    '',
+    JSON.stringify(input.comparison, null, 2),
+    '',
+    '## SQL execute summary',
+    '',
+    formatSqlTimingSummary(input.sqlTimingSummary),
+    '',
+    '## Full PostgreSQL duration SQL report',
+    '',
+    input.postgresSummary,
+    '',
+  ].join('\n');
 }
