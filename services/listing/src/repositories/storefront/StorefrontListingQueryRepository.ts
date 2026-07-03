@@ -17,7 +17,12 @@ import { StorefrontProductSortCollectorRepository } from "./StorefrontProductSor
 import { StorefrontProductTitleSearchQueryRepository } from "./StorefrontProductTitleSearchQueryRepository.js";
 import { StorefrontVariantPriceCollectorRepository } from "./StorefrontVariantPriceCollectorRepository.js";
 import { StorefrontVariantProjectionQueryRepository } from "./StorefrontVariantProjectionQueryRepository.js";
-import { compileFacetCountsQuerySql } from "./sql/compileFacetCountsQuerySql.js";
+import {
+  compileFacetCountsProfileQuerySql,
+  compileFacetCountsQuerySql,
+  facetCountsProfileTargetsForRequest,
+  type FacetCountsProfileTarget,
+} from "./sql/compileFacetCountsQuerySql.js";
 import { compileFacetsQuerySql } from "./sql/compileFacetsQuerySql.js";
 import {
   toListingSqlRequest,
@@ -57,6 +62,23 @@ interface BranchMetric {
   durationMs: number;
 }
 
+type FacetCountsProfileSqlRow = Record<string, unknown> & {
+  target: string;
+  rowCount: number | string | null;
+  distinctSignatureCount: number | string | null;
+  bitmapCardinality: number | string | null;
+  countSum: number | string | null;
+};
+
+interface FacetCountsProfileMetric {
+  target: FacetCountsProfileTarget;
+  durationMs: number;
+  rowCount: number | null;
+  distinctSignatureCount: number | null;
+  bitmapCardinality: number | null;
+  countSum: number | null;
+}
+
 export class StorefrontListingQueryRepository extends BaseRepository {
   constructor(
     db: Database,
@@ -81,6 +103,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     const branchMetrics: BranchMetric[] = [];
     let request: ResolvedListingRequest | null = null;
     let pageRows: ParallelPageSqlRow[] = [];
+    let sqlRoundTrips = 5;
 
     try {
       request = await this.normalize(input);
@@ -125,6 +148,8 @@ export class StorefrontListingQueryRepository extends BaseRepository {
       ]);
       pageRows = pageSqlRows;
 
+      sqlRoundTrips += await this.profileFacetCountsIfEnabled(sqlRequest);
+
       const page = mapPageRows({ rows: pageSqlRows, request });
       const totalCount = mapTotalCountRows(totalCountRows);
       const facets = mergeFacetCounts({
@@ -166,7 +191,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
           hasInStockFilter: request.filters.inStock !== undefined,
           selectedCollector:
             pageRows.find((row) => row.collectorKind)?.collectorKind ?? null,
-          sqlRoundTrips: 5,
+          sqlRoundTrips,
           branchMetrics,
           durationMs: Date.now() - startedAt,
         });
@@ -189,6 +214,54 @@ export class StorefrontListingQueryRepository extends BaseRepository {
         durationMs: Date.now() - startedAt,
       });
     }
+  }
+
+  private async profileFacetCountsIfEnabled(
+    request: ReturnType<typeof toListingSqlRequest>
+  ): Promise<number> {
+    if (!isFacetCountsProfilingEnabled()) {
+      return 0;
+    }
+
+    let roundTrips = 0;
+    try {
+      const metrics: FacetCountsProfileMetric[] = [];
+      for (const target of facetCountsProfileTargetsForRequest(request)) {
+        const startedAt = Date.now();
+        const rows = await this.connection.execute<FacetCountsProfileSqlRow>(
+          compileFacetCountsProfileQuerySql(request, target)
+        );
+        roundTrips += 1;
+        const row = (rows as unknown as FacetCountsProfileSqlRow[])[0];
+        metrics.push({
+          target,
+          durationMs: Date.now() - startedAt,
+          rowCount: numberOrNull(row?.rowCount),
+          distinctSignatureCount: numberOrNull(row?.distinctSignatureCount),
+          bitmapCardinality: numberOrNull(row?.bitmapCardinality),
+          countSum: numberOrNull(row?.countSum),
+        });
+      }
+
+      this.ctx.kernel.getServices().logger.warn(
+        {
+          projectId: request.projectId,
+          scopeKind: request.scopeKind,
+          sortKind: request.sortKind,
+          hasPriceFilter: request.priceFilterJson !== "{}",
+          optionFacetGroups: request.request.filterPlan.optionFacetGroups.length,
+          profile: metrics,
+        },
+        "Storefront listing facetCounts SQL profile"
+      );
+    } catch (error) {
+      this.ctx.kernel.getServices().logger.warn(
+        { error },
+        "Storefront listing facetCounts SQL profile failed"
+      );
+    }
+
+    return roundTrips;
   }
 
   private async normalize(
@@ -434,6 +507,20 @@ export class StorefrontListingQueryRepository extends BaseRepository {
       "Storefront listing query"
     );
   }
+}
+
+function isFacetCountsProfilingEnabled(): boolean {
+  const value = process.env.LISTING_FACET_COUNTS_PROFILE;
+  return value === "1" || value === "true";
+}
+
+function numberOrNull(value: number | string | null | undefined): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
 }
 
 function mergeFacetFilters(

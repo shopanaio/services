@@ -10,16 +10,83 @@ import { compileFiltersSql } from "./compileFiltersSql.js";
 
 const MAX_OPTION_FACET_CHECK_ESTIMATE = Number.MAX_SAFE_INTEGER;
 
+export const FACET_COUNTS_PROFILE_TARGETS = [
+  "candidate_values",
+  "visible_facet_values",
+  "option_facet_values",
+  "option_candidate_signature_keys",
+  "option_required_signature_matches",
+  "option_matching_signature_keys",
+  "option_price_signature_product_bitmaps",
+  "option_signature_price_product_bitmaps",
+  "option_signature_facet_counts",
+  "option_facet_counts",
+] as const;
+
+export const SIMPLE_FACET_COUNTS_PROFILE_TARGETS = [
+  "candidate_values",
+  "visible_facet_values",
+  "option_facet_values",
+  "option_facet_counts",
+] as const;
+
+export type FacetCountsProfileTarget =
+  | (typeof FACET_COUNTS_PROFILE_TARGETS)[number]
+  | (typeof SIMPLE_FACET_COUNTS_PROFILE_TARGETS)[number];
+
 export function compileFacetCountsQuerySql(request: ListingSqlRequest) {
   return compileFacetCountsQuerySqlWithOptions(request, {
     heavyStrategyEnabled: request.heavyOptionFacetCountsEnabled,
   });
 }
 
+export function facetCountsProfileTargetsForRequest(
+  request: ListingSqlRequest
+): readonly FacetCountsProfileTarget[] {
+  return canUseSimpleOptionFacetCounts(request)
+    ? SIMPLE_FACET_COUNTS_PROFILE_TARGETS
+    : FACET_COUNTS_PROFILE_TARGETS;
+}
+
+export function compileFacetCountsProfileQuerySql(
+  request: ListingSqlRequest,
+  target: FacetCountsProfileTarget
+): SQL {
+  return sql`
+    /* listing:facetCountsProfile:${sql.raw(target)} */
+    WITH
+    ${compileFacetCountsCtesSql(request, {
+      heavyStrategyEnabled: request.heavyOptionFacetCountsEnabled,
+    })}
+    ${compileFacetCountsProfileSelectSql(target)}
+  `;
+}
+
 function compileFacetCountsQuerySqlWithOptions(
   request: ListingSqlRequest,
   options: FacetCountStrategyOptions
 ) {
+  return sql`
+    /* listing:facetCounts */
+    WITH
+    ${compileFacetCountsCtesSql(request, options)}
+    SELECT
+      frg.error_code AS "facetErrorCode",
+      frg.error_value AS "facetErrorValue",
+      c.facet_id AS "facetId",
+      c.facet_type AS "facetType",
+      c.value_key AS "valueKey",
+      c.count::int AS "count"
+    FROM facet_resolution_guard frg
+    LEFT JOIN counts c
+      ON frg.error_code IS NULL
+  `;
+}
+
+function compileFacetCountsCtesSql(
+  request: ListingSqlRequest,
+  options: FacetCountStrategyOptions
+): SQL {
   const forcedTargetFacetIds = normalizeFacetIds(
     options.forceHeavyOptionFacetCountFacetIds ?? []
   );
@@ -46,8 +113,6 @@ function compileFacetCountsQuerySqlWithOptions(
       : compileCandidateOnlyOptionFacetCountsProducerSql();
 
   return sql`
-    /* listing:facetCounts */
-    WITH
     ${compileFacetCountsCoreSql(request)},
     scope_product_base AS (
       SELECT sp.bitmap & pp.bitmap AS bitmap
@@ -207,17 +272,114 @@ function compileFacetCountsQuerySqlWithOptions(
       UNION ALL
       SELECT * FROM option_facet_counts
     )
-    SELECT
-      frg.error_code AS "facetErrorCode",
-      frg.error_value AS "facetErrorValue",
-      c.facet_id AS "facetId",
-      c.facet_type AS "facetType",
-      c.value_key AS "valueKey",
-      c.count::int AS "count"
-    FROM facet_resolution_guard frg
-    LEFT JOIN counts c
-      ON frg.error_code IS NULL
   `;
+}
+
+function compileFacetCountsProfileSelectSql(
+  target: FacetCountsProfileTarget
+): SQL {
+  switch (target) {
+    case "candidate_values":
+      return sql`
+        SELECT
+          'candidate_values'::text AS "target",
+          COUNT(*)::int AS "rowCount",
+          NULL::int AS "distinctSignatureCount",
+          NULL::int AS "bitmapCardinality",
+          NULL::int AS "countSum"
+        FROM candidate_values
+      `;
+    case "visible_facet_values":
+      return sql`
+        SELECT
+          'visible_facet_values'::text AS "target",
+          COUNT(*)::int AS "rowCount",
+          NULL::int AS "distinctSignatureCount",
+          NULL::int AS "bitmapCardinality",
+          NULL::int AS "countSum"
+        FROM visible_facet_values
+      `;
+    case "option_facet_values":
+      return sql`
+        SELECT
+          'option_facet_values'::text AS "target",
+          COUNT(*)::int AS "rowCount",
+          NULL::int AS "distinctSignatureCount",
+          NULL::int AS "bitmapCardinality",
+          NULL::int AS "countSum"
+        FROM option_facet_values
+      `;
+    case "option_candidate_signature_keys":
+      return sql`
+        SELECT
+          'option_candidate_signature_keys'::text AS "target",
+          COUNT(*)::int AS "rowCount",
+          COUNT(DISTINCT signature_key)::int AS "distinctSignatureCount",
+          NULL::int AS "bitmapCardinality",
+          NULL::int AS "countSum"
+        FROM option_candidate_signature_keys
+      `;
+    case "option_required_signature_matches":
+      return sql`
+        SELECT
+          'option_required_signature_matches'::text AS "target",
+          COUNT(*)::int AS "rowCount",
+          COUNT(DISTINCT signature_key)::int AS "distinctSignatureCount",
+          NULL::int AS "bitmapCardinality",
+          NULL::int AS "countSum"
+        FROM option_required_signature_matches
+      `;
+    case "option_matching_signature_keys":
+      return sql`
+        SELECT
+          'option_matching_signature_keys'::text AS "target",
+          COUNT(*)::int AS "rowCount",
+          COUNT(DISTINCT signature_key)::int AS "distinctSignatureCount",
+          NULL::int AS "bitmapCardinality",
+          NULL::int AS "countSum"
+        FROM option_matching_signature_keys
+      `;
+    case "option_price_signature_product_bitmaps":
+      return sql`
+        SELECT
+          'option_price_signature_product_bitmaps'::text AS "target",
+          COUNT(*)::int AS "rowCount",
+          NULL::int AS "distinctSignatureCount",
+          COALESCE(SUM(rb_cardinality(product_bitmap)), 0)::int AS "bitmapCardinality",
+          NULL::int AS "countSum"
+        FROM option_price_signature_product_bitmaps
+      `;
+    case "option_signature_price_product_bitmaps":
+      return sql`
+        SELECT
+          'option_signature_price_product_bitmaps'::text AS "target",
+          COUNT(*)::int AS "rowCount",
+          NULL::int AS "distinctSignatureCount",
+          COALESCE(SUM(rb_cardinality(bitmap)), 0)::int AS "bitmapCardinality",
+          NULL::int AS "countSum"
+        FROM option_signature_price_product_bitmaps
+      `;
+    case "option_signature_facet_counts":
+      return sql`
+        SELECT
+          'option_signature_facet_counts'::text AS "target",
+          COUNT(*)::int AS "rowCount",
+          NULL::int AS "distinctSignatureCount",
+          NULL::int AS "bitmapCardinality",
+          COALESCE(SUM(count), 0)::int AS "countSum"
+        FROM option_signature_facet_counts
+      `;
+    case "option_facet_counts":
+      return sql`
+        SELECT
+          'option_facet_counts'::text AS "target",
+          COUNT(*)::int AS "rowCount",
+          NULL::int AS "distinctSignatureCount",
+          NULL::int AS "bitmapCardinality",
+          COALESCE(SUM(count), 0)::int AS "countSum"
+        FROM option_facet_counts
+      `;
+  }
 }
 
 function compileFacetCountsCoreSql(request: ListingSqlRequest): SQL {
@@ -411,7 +573,7 @@ function compileOptionSignatureMatchingSql(): SQL {
           ${emptyRoaringBitmapSql()}
         ) AS bitmap
       FROM option_signature_state state
-      JOIN input i ON true
+      JOIN input i ON i.price_filter_json = '{}'::jsonb
       LEFT JOIN option_matching_signature_keys ms
         ON ms.candidate_value_key = state.value_key
       LEFT JOIN listing.listing_option_signature os
@@ -420,21 +582,18 @@ function compileOptionSignatureMatchingSql(): SQL {
       WHERE state.use_signature
       GROUP BY state.value_key
     ),
-    option_signature_price_product_bitmaps AS (
+    option_price_signature_product_bitmaps AS MATERIALIZED (
       SELECT
-        state.value_key,
+        vp.signature_key,
         COALESCE(
-          rb_build_agg(vp.product_doc_id) FILTER (WHERE vp.product_doc_id IS NOT NULL),
+          rb_build_agg(vp.product_doc_id)
+            FILTER (WHERE vp.product_doc_id IS NOT NULL),
           ${emptyRoaringBitmapSql()}
-        ) AS bitmap
-      FROM option_signature_state state
-      JOIN input i
-        ON i.price_filter_json <> '{}'::jsonb
-      LEFT JOIN option_matching_signature_keys ms
-        ON ms.candidate_value_key = state.value_key
-      LEFT JOIN listing.variant_listing_price_index vp
+        ) AS product_bitmap
+      FROM input i
+      CROSS JOIN option_count_product_scope price_scope
+      JOIN listing.variant_listing_price_index vp
         ON vp.project_id = i.project_id
-       AND vp.signature_key = ms.signature_key
        AND vp.currency = i.currency
        AND vp.has_price = true
        AND vp.signature_key IS NOT NULL
@@ -442,6 +601,7 @@ function compileOptionSignatureMatchingSql(): SQL {
        AND vp.variant_doc_id IS NOT NULL
        AND vp.product_doc_id IS NOT NULL
        AND vp.product_id IS NOT NULL
+       AND price_scope.bitmap @> vp.product_doc_id
        AND (
          NOT (i.price_filter_json ? 'minPriceMinor')
          OR vp.price_minor >= (i.price_filter_json->>'minPriceMinor')::bigint
@@ -450,6 +610,24 @@ function compileOptionSignatureMatchingSql(): SQL {
          NOT (i.price_filter_json ? 'maxPriceMinor')
          OR vp.price_minor <= (i.price_filter_json->>'maxPriceMinor')::bigint
        )
+      WHERE i.price_filter_json <> '{}'::jsonb
+      GROUP BY vp.signature_key
+    ),
+    option_signature_price_product_bitmaps AS (
+      SELECT
+        state.value_key,
+        COALESCE(
+          rb_or_agg(price_signature.product_bitmap)
+            FILTER (WHERE price_signature.product_bitmap IS NOT NULL),
+          ${emptyRoaringBitmapSql()}
+        ) AS bitmap
+      FROM option_signature_state state
+      JOIN input i
+        ON i.price_filter_json <> '{}'::jsonb
+      LEFT JOIN option_matching_signature_keys ms
+        ON ms.candidate_value_key = state.value_key
+      LEFT JOIN option_price_signature_product_bitmaps price_signature
+        ON price_signature.signature_key = ms.signature_key
       WHERE state.use_signature
       GROUP BY state.value_key
     ),
@@ -605,7 +783,7 @@ function compileHeavyOptionFacetCountsProducerSql(): SQL {
           ${emptyRoaringBitmapSql()}
         ) AS bitmap
       FROM option_heavy_bucket_signatures bucket
-      JOIN input i ON true
+      JOIN input i ON i.price_filter_json = '{}'::jsonb
       JOIN listing.listing_option_signature os
         ON os.project_id = i.project_id
        AND os.signature_key = bucket.signature_key
@@ -616,31 +794,15 @@ function compileHeavyOptionFacetCountsProducerSql(): SQL {
         bucket.facet_id,
         bucket.value_key,
         COALESCE(
-          rb_build_agg(vp.product_doc_id)
-            FILTER (WHERE vp.product_doc_id IS NOT NULL),
+          rb_or_agg(price_signature.product_bitmap)
+            FILTER (WHERE price_signature.product_bitmap IS NOT NULL),
           ${emptyRoaringBitmapSql()}
         ) AS bitmap
       FROM option_heavy_bucket_signatures bucket
       JOIN input i
         ON i.price_filter_json <> '{}'::jsonb
-      LEFT JOIN listing.variant_listing_price_index vp
-        ON vp.project_id = i.project_id
-       AND vp.signature_key = bucket.signature_key
-       AND vp.currency = i.currency
-       AND vp.has_price = true
-       AND vp.signature_key IS NOT NULL
-       AND vp.price_minor IS NOT NULL
-       AND vp.variant_doc_id IS NOT NULL
-       AND vp.product_doc_id IS NOT NULL
-       AND vp.product_id IS NOT NULL
-       AND (
-         NOT (i.price_filter_json ? 'minPriceMinor')
-         OR vp.price_minor >= (i.price_filter_json->>'minPriceMinor')::bigint
-       )
-       AND (
-         NOT (i.price_filter_json ? 'maxPriceMinor')
-         OR vp.price_minor <= (i.price_filter_json->>'maxPriceMinor')::bigint
-       )
+      LEFT JOIN option_price_signature_product_bitmaps price_signature
+        ON price_signature.signature_key = bucket.signature_key
       GROUP BY bucket.facet_id, bucket.value_key
     ),
     option_heavy_signature_facet_counts AS (
