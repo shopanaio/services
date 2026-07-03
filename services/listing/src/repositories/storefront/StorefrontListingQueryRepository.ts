@@ -1,4 +1,4 @@
-import type { SQL } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 import { ReadOnly } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
 import {
@@ -68,6 +68,10 @@ type FacetCountsProfileSqlRow = Record<string, unknown> & {
   distinctSignatureCount: number | string | null;
   bitmapCardinality: number | string | null;
   countSum: number | string | null;
+};
+
+type ExplainAnalyzeSqlRow = Record<string, unknown> & {
+  "QUERY PLAN": string;
 };
 
 interface FacetCountsProfileMetric {
@@ -250,6 +254,22 @@ export class StorefrontListingQueryRepository extends BaseRepository {
         },
         "Storefront listing facetCounts SQL profile"
       );
+
+      const explainStartedAt = Date.now();
+      const explainAnalyzePlan = await this.explainAnalyzeFacetCounts(request);
+      roundTrips += 1;
+      this.ctx.kernel.getServices().logger.warn(
+        {
+          projectId: request.projectId,
+          scopeKind: request.scopeKind,
+          sortKind: request.sortKind,
+          hasPriceFilter: request.priceFilterJson !== "{}",
+          optionFacetGroups: request.request.filterPlan.optionFacetGroups.length,
+          durationMs: Date.now() - explainStartedAt,
+          plan: explainAnalyzePlan,
+        },
+        "Storefront listing facetCounts EXPLAIN ANALYZE"
+      );
     } catch (error) {
       this.ctx.kernel.getServices().logger.warn(
         { error },
@@ -258,6 +278,20 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     }
 
     return roundTrips;
+  }
+
+  private async explainAnalyzeFacetCounts(
+    request: ReturnType<typeof toListingSqlRequest>
+  ): Promise<string> {
+    const rows = await this.connection.execute<ExplainAnalyzeSqlRow>(sql`
+      EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
+      ${compileFacetCountsQuerySql(request)}
+    `);
+
+    return (rows as unknown as ExplainAnalyzeSqlRow[])
+      .map((row) => explainAnalyzePlanLine(row))
+      .filter(Boolean)
+      .join("\n");
   }
 
   private async normalize(
@@ -512,6 +546,19 @@ function numberOrNull(value: number | string | null | undefined): number | null 
 
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function explainAnalyzePlanLine(row: ExplainAnalyzeSqlRow): string {
+  const directValue = row["QUERY PLAN"];
+  if (typeof directValue === "string") {
+    return directValue;
+  }
+
+  const firstStringValue = Object.values(row).find(
+    (value): value is string => typeof value === "string"
+  );
+
+  return firstStringValue ?? "";
 }
 
 function mergeFacetFilters(
