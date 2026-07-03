@@ -1,4 +1,4 @@
-import { sql, type SQL } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import { ReadOnly } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
 import {
@@ -21,10 +21,9 @@ import { compileFacetCountsQuerySql } from "./sql/compileFacetCountsQuerySql.js"
 import { compileFacetsQuerySql } from "./sql/compileFacetsQuerySql.js";
 import {
   toListingSqlRequest,
-  type ListingSqlRequest,
 } from "./sql/compileListingInputSql.js";
-import { compileCoreListingSql } from "./sql/compileMatchesSql.js";
 import { compilePageQuerySql } from "./sql/compilePageQuerySql.js";
+import { compileTotalCountQuerySql } from "./sql/compileTotalCountQuerySql.js";
 import { compileVirtualFacetsQuerySql } from "./sql/compileVirtualFacetsQuerySql.js";
 import {
   mapFacetCountRows,
@@ -105,7 +104,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
         ),
         this.executeMeasured<TotalCountSqlRow>(
           "totalCount",
-          this.compileTotalCountQuerySql(sqlRequest),
+          compileTotalCountQuerySql(sqlRequest),
           branchMetrics
         ),
         this.executeMeasured<FacetMetadataSqlRow>(
@@ -173,25 +172,6 @@ export class StorefrontListingQueryRepository extends BaseRepository {
         });
       }
     }
-  }
-
-  private compileTotalCountQuerySql(request: ListingSqlRequest): SQL {
-    return sql`
-      /* listing:totalCount */
-      WITH
-      ${compileCoreListingSql(request)},
-      total_count AS (
-        SELECT rb_cardinality((SELECT bitmap FROM matches))::int AS value
-      )
-      SELECT
-        frg.error_code AS "facetErrorCode",
-        frg.error_value AS "facetErrorValue",
-        CASE
-          WHEN frg.error_code IS NULL THEN (SELECT value FROM total_count)
-          ELSE NULL
-        END AS "totalCount"
-      FROM facet_resolution_guard frg
-    `;
   }
 
   private async executeMeasured<TRow extends Record<string, unknown>>(

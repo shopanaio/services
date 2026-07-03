@@ -123,6 +123,33 @@ First vs last:
 
 The heaviest branch in the last run was `listing:facetCounts`.
 
+## After refactoring: `listing:page`
+
+Follow-up run after the page-query refactoring:
+
+```text
+Date: 2026-07-03
+Result: 1 passed (1.2m)
+```
+
+New `listing:page` SQL timings:
+
+| Run | Before refactoring | After refactoring | Delta | Improvement |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 3951.989 ms | 83.285 ms | -3868.704 ms | 97.9% |
+| 2 | 4509.626 ms | 101.319 ms | -4408.307 ms | 97.8% |
+| 3 | 3064.968 ms | 126.242 ms | -2938.726 ms | 95.9% |
+| 4 | 3761.895 ms | 185.153 ms | -3576.742 ms | 95.1% |
+| 5 | 2527.365 ms | 104.978 ms | -2422.387 ms | 95.8% |
+| Average | 3563.169 ms | 120.195 ms | -3442.973 ms | 96.6% |
+
+First vs last after refactoring:
+
+```text
+83.285ms -> 104.978ms
+delta=21.693ms
+```
+
 ## Artifacts
 
 Current generated artifacts from the last Playwright run:
