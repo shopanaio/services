@@ -1,4 +1,4 @@
-# Listing Price + Facet Performance Report
+# Listing price + facet performance report
 
 Date: 2026-07-03
 
@@ -23,7 +23,7 @@ Result:
 1 passed (1.2m)
 ```
 
-The test now seeds data once and then performs 5 identical GraphQL listing requests.
+The test seeds data once and then performs 5 identical GraphQL listing requests.
 
 ## Dataset
 
@@ -43,7 +43,7 @@ Selected option filters:
 | `size` | `m`, `l`, `xl` |
 | `style` | `classic`, `modern` |
 
-## Correctness Checks
+## Correctness checks
 
 Each of the 5 service calls verifies:
 
@@ -74,7 +74,7 @@ Expected selected facet counts:
 | `style` | `classic` | 216 |
 | `style` | `modern` | 216 |
 
-## Service Timings
+## Service timings
 
 The measured service time is the full Playwright HTTP POST to the admin GraphQL endpoint.
 
@@ -93,7 +93,7 @@ First vs last:
 delta=-1724.198ms
 ```
 
-## PostgreSQL Branch Timings
+## PostgreSQL branch timings
 
 Postgres `log_min_duration_statement = 0` was enabled during the 5 listing calls. SQL branches are labeled with comments:
 
@@ -132,7 +132,7 @@ Current generated artifacts from the last Playwright run:
 - `e2e/test-results/listing-perf/price-facet-10k-postgres.log`
 - `e2e/test-results/listing-perf/price-facet-10k-postgres-sql.txt`
 
-This report is stored outside `e2e/test-results` because Playwright can clean that directory on the next run.
+Do not store reports under `e2e/test-results`: Playwright can clean that directory on the next run.
 
 ## Notes
 
