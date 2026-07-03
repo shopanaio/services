@@ -234,6 +234,13 @@ Guard должен учитывать реальные visible bucket counts и�
 `option_facet_values`, потому TypeScript знает active selected values, но не
 знает runtime candidate buckets.
 
+Оценка `candidate_combination_checks` - это estimate стоимости текущего
+candidate path. Она не является точной стоимостью heavy path: heavy SQL ищет
+base signatures через индекс по selected `value_key`, затем делает bucket
+expansion по найденным signatures. Реальный выигрыш зависит от selectivity
+selected option values, количества matched signatures и индекса для
+`project_id + facet_id + signature_key`.
+
 ### TypeScript helper
 
 Добавить в `compileFacetCountsQuerySql.ts` рядом с
@@ -313,7 +320,7 @@ function compileOptionFacetCountStrategySql(
   const estimate = buildOptionFacetCombinationEstimate(request);
   const estimateRows = estimate.perActiveFacet.map(
     (row) =>
-      sql`(${row.facetId}::uuid, ${row.combinationCount}::numeric, ${row.requiredFacetCount}::int)`
+      sql`(${row.facetId}::text, ${row.combinationCount}::numeric, ${row.requiredFacetCount}::int)`
   );
 
   return sql`
@@ -323,7 +330,7 @@ function compileOptionFacetCountStrategySql(
         "estimate_values",
         sql`facet_id, combination_count, required_facet_count`,
         sql`SELECT
-          NULL::uuid AS facet_id,
+          NULL::text AS facet_id,
           NULL::numeric AS combination_count,
           NULL::int AS required_facet_count
         WHERE false`
@@ -463,6 +470,30 @@ resolved `excluded_facet_id`, `combination_ordinal` и `value_key`; slug/handle
 остаются только input-resolution detail в `resolved_facets`, но не internal key
 для option count combinations.
 
+Этот же helper должен сгенерировать плоский список active option values для
+heavy path:
+
+```sql
+option_active_filter_value_rows AS (
+  SELECT *
+  FROM (VALUES
+    -- (facet_id::text, value_key::text)
+  ) AS active_values(facet_id, value_key)
+)
+```
+
+Если active option filters отсутствуют, `option_active_filter_value_rows`
+должен быть empty SELECT с теми же колонками:
+
+```sql
+SELECT NULL::text AS facet_id, NULL::text AS value_key WHERE false
+```
+
+Так как `visible_facet_values.facet_id` в текущем компиляторе объявлен как
+`f.id::text`, все generated `facet_id` rows в этом файле должны быть `text`,
+а не `uuid`. Если позже весь CTE pipeline будет переведен на uuid, менять нужно
+consistently во всех joins.
+
 `option_candidate_combination_set` после этого выбирает isolated combination
 set по `ofv.facet_id`, а не по `ofv.facet_slug`:
 
@@ -476,7 +507,7 @@ option_candidate_combination_set AS (
   JOIN option_required_combination_set default_set
     ON default_set.excluded_facet_id IS NULL
   LEFT JOIN option_required_combination_set facet_set
-    ON facet_set.excluded_facet_id = ofv.facet_id::uuid
+    ON facet_set.excluded_facet_id = ofv.facet_id
 )
 ```
 
@@ -511,11 +542,11 @@ option_heavy_targets AS (
   WHERE strategy.use_heavy_signature_path
 ),
 option_active_filter_values AS (
-  SELECT DISTINCT
-    rf.facet_id,
-    rf.value_key
-  FROM resolved_facets rf
-  WHERE rf.facet_type = 'OPTION'
+  -- Generated from request.request.filterPlan.optionFacetGroups.
+  -- Uses resolved facet_id/value_key rows and does not join slug/handle
+  -- back through resolved_facets.
+  SELECT *
+  FROM option_active_filter_value_rows
 ),
 option_heavy_required_values AS (
   SELECT
@@ -576,6 +607,9 @@ Why this is correct:
 
 - `option_heavy_required_values` excludes current target facet.
 - `COUNT(DISTINCT required_facet_id)` implements OR within each required facet.
+- active filter values come from resolved `filterPlan.optionFacetGroups`, so
+  heavy path uses the same `facet_id`/`value_key` internal identity as the new
+  candidate combination generator.
 - `option_heavy_bucket_signatures` adds the candidate bucket value by expanding
   base signatures only through values of the current target facet.
 - `option_facet_values` limits returned buckets to visible configured display
@@ -788,6 +822,7 @@ Color OR group.
    from listing runtime config/env. Default must be `false`.
 3. Convert option required-combination generation from slug/handle rows to
    `filterPlan.optionFacetGroups` rows keyed by `facet_id` and `value_key`.
+   Reuse the same generated source for `option_active_filter_value_rows`.
 4. Insert `${optionFacetCountStrategySql}` after `option_facet_values` exists.
 5. Update `option_signature_base_state` so candidate path runs per facet only
    when `NOT strategy.use_heavy_signature_path`.
@@ -805,6 +840,10 @@ Color OR group.
 8. Add the facet/signature lookup index if query plan needs it.
 9. Keep existing result mapper unchanged. Output columns stay:
    `facet_id`, `facet_type`, `value_key`, `count`.
+
+Implementation note: in the current file `facet_id` is `text` in
+`visible_facet_values`, so all new generated helper rows and joins should use
+`text` too. Do not mix `uuid` and `text` in strategy/heavy CTEs.
 
 ## Verification matrix
 
