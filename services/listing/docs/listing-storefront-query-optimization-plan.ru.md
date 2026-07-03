@@ -166,15 +166,15 @@ async getStorefrontListing(
 ): Promise<StorefrontListingRepositoryResult> {
   const request = normalizeAndValidateListingInput(input);
 
-  const result = await runBoundedParallel(
+  const result = await Promise.all(
     [
+      // this.connection
       () => this.pageQuery.getPage(request),
       () => this.totalCountQuery.getTotalCount(request),
       () => this.facetsQuery.getFacets(request),
       () => this.facetCountsQuery.getCounts(request),
       () => this.virtualFacetsQuery.getVirtualFacets(request),
     ],
-    { concurrency: 5 },
   );
 
   const facets = mergeFacetCounts({
@@ -1525,7 +1525,7 @@ context.
 Нужно:
 
 ```ts
-const result = await runBoundedParallel(
+const result = await Promise.all(
   [
     () => pageQuery(database, request),
     () => totalCountQuery(database, request),
@@ -1533,7 +1533,6 @@ const result = await runBoundedParallel(
     () => facetCountsQuery(database, request),
     () => virtualFacetsQuery(database, request),
   ],
-  { concurrency: 5 }
 );
 ```
 
