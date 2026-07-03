@@ -286,10 +286,10 @@ export const variantListingPriceIndex = listingSchema.table(
     projectId: uuid("project_id").notNull(),
     variantId: uuid("variant_id").notNull(),
     currency: varchar("currency", { length: 3 }).notNull(),
-    variantDocId: integer("variant_doc_id"),
-    productDocId: integer("product_doc_id"),
-    productId: uuid("product_id"),
-    signatureKey: text("signature_key"),
+    variantDocId: integer("variant_doc_id").notNull(),
+    productDocId: integer("product_doc_id").notNull(),
+    productId: uuid("product_id").notNull(),
+    signatureKey: text("signature_key").notNull(),
     priceMinor: bigint("price_minor", { mode: "number" }),
     hasPrice: boolean("has_price").notNull().default(false),
     indexedAt: timestamp("indexed_at", { withTimezone: true, mode: "string" })
@@ -324,11 +324,15 @@ export const variantListingPriceIndex = listingSchema.table(
     ),
     check(
       "chk_variant_listing_price_variant_doc_positive",
-      sql`${table.variantDocId} IS NULL OR ${table.variantDocId} > 0`
+      sql`${table.variantDocId} > 0`
     ),
     check(
       "chk_variant_listing_price_product_doc_positive",
-      sql`${table.productDocId} IS NULL OR ${table.productDocId} > 0`
+      sql`${table.productDocId} > 0`
+    ),
+    check(
+      "chk_variant_listing_price_signature_key_nonempty",
+      sql`length(btrim(${table.signatureKey})) > 0`
     ),
     index("idx_variant_listing_price_value")
       .on(table.projectId, table.currency, table.priceMinor)

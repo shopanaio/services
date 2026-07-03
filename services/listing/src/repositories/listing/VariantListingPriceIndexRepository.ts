@@ -447,10 +447,10 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
     now: string
   ): NewVariantListingPriceIndex {
     assertCurrency(row.currency);
-    const variantDocId = normalizeOptionalDocId(row.variantDocId, "variantDocId");
-    const productDocId = normalizeOptionalDocId(row.productDocId, "productDocId");
-    const productId = normalizeOptionalString(row.productId, "productId");
-    const signatureKey = normalizeOptionalString(row.signatureKey, "signatureKey");
+    const variantDocId = normalizeDocId(row.variantDocId, "variantDocId");
+    const productDocId = normalizeDocId(row.productDocId, "productDocId");
+    const productId = normalizeString(row.productId, "productId");
+    const signatureKey = normalizeString(row.signatureKey, "signatureKey");
 
     if (!row.hasPrice) {
       if (row.priceMinor != null) {
@@ -494,24 +494,12 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
   }
 }
 
-function normalizeOptionalDocId(
-  value: number | null | undefined,
-  label: string
-): number | null {
-  if (value == null) {
-    return null;
-  }
+function normalizeDocId(value: number, label: string): number {
   assertPositiveDocId(value, label);
   return value;
 }
 
-function normalizeOptionalString(
-  value: string | null | undefined,
-  label: string
-): string | null {
-  if (value == null) {
-    return null;
-  }
+function normalizeString(value: string, label: string): string {
   assertNonEmptyString(value, label);
   return value;
 }

@@ -68,10 +68,10 @@ export type VariantListingIndexPatchInput = Partial<
 export interface VariantListingPriceRowInput {
   variantId: string;
   currency: string;
-  variantDocId?: number | null;
-  productDocId?: number | null;
-  productId?: string | null;
-  signatureKey?: string | null;
+  variantDocId: number;
+  productDocId: number;
+  productId: string;
+  signatureKey: string;
   hasPrice: boolean;
   priceMinor?: number | null;
 }

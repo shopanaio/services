@@ -216,10 +216,10 @@ CREATE TABLE listing.variant_listing_price_index (
   project_id             uuid NOT NULL,
   variant_id             uuid NOT NULL,
   currency               varchar(3) NOT NULL,
-  variant_doc_id         int,
-  product_doc_id         int,
-  product_id             uuid,
-  signature_key          text,
+  variant_doc_id         int NOT NULL,
+  product_doc_id         int NOT NULL,
+  product_id             uuid NOT NULL,
+  signature_key          text NOT NULL,
 
   price_minor            bigint,
   has_price              boolean NOT NULL DEFAULT false,
@@ -249,9 +249,11 @@ CREATE TABLE listing.variant_listing_price_index (
       )
     ),
   CONSTRAINT chk_variant_listing_price_variant_doc_positive
-    CHECK (variant_doc_id IS NULL OR variant_doc_id > 0),
+    CHECK (variant_doc_id > 0),
   CONSTRAINT chk_variant_listing_price_product_doc_positive
-    CHECK (product_doc_id IS NULL OR product_doc_id > 0)
+    CHECK (product_doc_id > 0),
+  CONSTRAINT chk_variant_listing_price_signature_key_nonempty
+    CHECK (length(btrim(signature_key)) > 0)
 );
 
 CREATE INDEX idx_variant_listing_price_value
