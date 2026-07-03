@@ -813,6 +813,30 @@ Acceptance:
 - price-filtered scenarios имеют отдельный metric для signature+price range scan и
   могут fallback-нуться только по guard/freshness/performance rule.
 
+### Фаза 5. Удаление legacy price bitmap таблицы
+
+После cutover-а price reads/writes на расширенный
+`listing.variant_listing_price_index` удалить legacy physical price index:
+
+```text
+DROP TABLE listing.listing_posting_variant_price;
+```
+
+Если в текущей схеме indexes/constraints для
+`listing.listing_posting_variant_price` не удаляются автоматически через
+`DROP TABLE`, migration должна явно удалить их перед `DROP TABLE`.
+
+Acceptance:
+
+- в коде не осталось read references на `listing_posting_variant_price`;
+- в sync/write path не осталось writes в `listing_posting_variant_price`;
+- нет audit/repair/job references на `listing_posting_variant_price`;
+- `variant_listing_price_index` покрывает все runtime price filter, price range
+  и matched variant price sort use cases;
+- handwritten migration удаляет `listing_posting_variant_price` и связанные с
+  ней indexes/constraints;
+- historical migrations не редактируются.
+
 ## Correctness fixtures
 
 Минимальные fixtures:
@@ -855,3 +879,88 @@ more storage, more sync complexity, materialized projection contract
 variant price relation with denormalized `signature_key`. Price остается typed
 numeric value queried through a B-tree range scan, not bitmap, а fallback нужен
 только как guard/freshness/performance escape hatch.
+
+## Строгий порядок выполнения плана
+
+Порядок ниже обязателен. Следующий шаг нельзя начинать, пока acceptance
+предыдущего шага не выполнен и не зафиксирован в документации/коде/миграциях
+соответствующего этапа.
+
+1. Зафиксировать decision record из Фазы 0:
+   - явно выбрать materialized signature product bitmap как approved path;
+   - подтвердить, что price не входит в signature bitmap;
+   - подтвердить, что no-new-data план остается отдельной альтернативой.
+2. Добавить новую handwritten migration data model из Фазы 1:
+   - создать `listing_option_signature`;
+   - создать `listing_option_signature_value`;
+   - создать `listing_option_signature_product_membership`;
+   - добавить `variant_listing_index.signature_key`;
+   - расширить `variant_listing_price_index` doc id columns и
+     `signature_key`;
+   - добавить все lookup/partial indexes и constraints.
+3. Реализовать canonical signature key contract:
+   - sorted unique root display option value keys;
+   - versioned hash input `v1`;
+   - `metadata.canonical_value_keys`;
+   - `metadata.signature_version`.
+4. Реализовать sync builder для одной full signature на один eligible variant:
+   - резолвить source children в root display values;
+   - исключать disabled/invalid/non-display values;
+   - исключать out-of-stock/non-storefront variants.
+5. Реализовать sync maintenance для refresh/update:
+   - читать previous `signature_key` из `variant_listing_index`;
+   - корректно decrement/increment-ить membership counter;
+   - обновлять `product_bitmap` и `cardinality`;
+   - обновлять reverse lookup rows;
+   - записывать `variant_listing_index.signature_key`;
+   - записывать doc ids и `signature_key` в active
+     `variant_listing_price_index` rows.
+6. Реализовать sync maintenance для delete/soft-delete/stock-to-out-of-stock:
+   - очищать `variant_listing_index.signature_key`;
+   - очищать `variant_listing_price_index.signature_key`;
+   - decrement-ить membership counter;
+   - удалять пустые signature rows и reverse lookup rows через cascade.
+7. Добавить freshness audit:
+   - проверить соответствие signature rows, reverse lookup rows, membership
+     table, bitmap cardinality, variant index и price index;
+   - запретить stale signature rows without membership.
+8. Реализовать Query D option-only branch:
+   - строить required sets с изоляцией current candidate facet;
+   - искать full signatures через reverse lookup;
+   - OR-ить `listing_option_signature.product_bitmap`;
+   - intersect-ить результат с product scope/product filters.
+9. Реализовать Query D option+price branch:
+   - использовать matching signature keys;
+   - читать `variant_listing_price_index.signature_key`;
+   - применять currency/price range на той же variant price row;
+   - собирать product bitmap из `product_doc_id`.
+10. Реализовать bounded DNF и fallback rules:
+    - limit на required set combinations;
+    - limit на matching signatures;
+    - fallback при stale freshness;
+    - fallback при measured regression guard.
+11. Добавить runtime metrics из Фазы 4:
+    - counts для signatures/required sets/matching signatures/OR bitmaps;
+    - price range row count;
+    - fallback reason;
+    - Query D duration.
+12. Добавить correctness fixtures и сверить signature path со strict
+    variant-level path на всех сценариях из раздела `Correctness fixtures`.
+13. Перевести runtime price reads с `listing_posting_variant_price` на
+    расширенный `variant_listing_price_index`.
+14. Остановить sync writes в `listing_posting_variant_price`.
+15. Удалить все оставшиеся non-runtime references на
+    `listing_posting_variant_price`:
+    - audit jobs;
+    - repair jobs;
+    - repository helpers;
+    - schema/query helpers;
+    - documentation references, которые называют таблицу active source.
+16. Добавить follow-up handwritten migration удаления legacy table:
+    - явно drop-нуть indexes/constraints
+      `listing_posting_variant_price`, если они не удаляются автоматически;
+    - выполнить `DROP TABLE listing.listing_posting_variant_price`;
+    - не редактировать historical migrations.
+17. После migration удаления повторно проверить, что
+    `variant_listing_price_index` остается единственным physical runtime price
+    index для listing storefront path.
