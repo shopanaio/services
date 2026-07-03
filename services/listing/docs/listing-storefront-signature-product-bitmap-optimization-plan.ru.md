@@ -429,13 +429,20 @@ Runtime shape для price-filtered option count:
 
 ```text
 required option values
--> matching signature keys
--> filter variant_listing_price_index by signature_key
--> apply currency/price range on same variant row
--> rb_build_agg(product_doc_id)
+-> matching signature keys via listing_option_signature_value
+-> scan variant_listing_price_index by project_id + signature_key
+-> apply currency/price range on the same variant price row
+-> rb_build_agg(product_doc_id) from matched priced variant rows
 -> intersect with product scope/product filters
 -> cardinality
 ```
+
+Это primary path для active price filter. Он намеренно не использует
+`listing_option_signature.product_bitmap`, потому что product bitmap не может
+доказать, что option predicates и price predicate совпали на одном variant.
+Same-variant correctness обеспечивает `variant_listing_price_index`: одна row
+несет вместе `signature_key`, `price_minor`, `variant_doc_id` и
+`product_doc_id`.
 
 Пример SQL shape:
 
