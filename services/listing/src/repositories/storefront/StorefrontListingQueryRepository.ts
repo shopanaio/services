@@ -219,10 +219,6 @@ export class StorefrontListingQueryRepository extends BaseRepository {
   private async profileFacetCountsIfEnabled(
     request: ReturnType<typeof toListingSqlRequest>
   ): Promise<number> {
-    if (!isFacetCountsProfilingEnabled()) {
-      return 0;
-    }
-
     let roundTrips = 0;
     try {
       const metrics: FacetCountsProfileMetric[] = [];
@@ -507,11 +503,6 @@ export class StorefrontListingQueryRepository extends BaseRepository {
       "Storefront listing query"
     );
   }
-}
-
-function isFacetCountsProfilingEnabled(): boolean {
-  const value = process.env.LISTING_FACET_COUNTS_PROFILE;
-  return value === "1" || value === "true";
 }
 
 function numberOrNull(value: number | string | null | undefined): number | null {
