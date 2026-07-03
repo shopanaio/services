@@ -478,6 +478,64 @@ async function seedVariantPrice(
       has_price = EXCLUDED.has_price,
       updated_at = now()
   `;
+
+  await sql`
+    INSERT INTO listing.listing_posting_variant_price (
+      project_id,
+      currency,
+      variant_doc_id,
+      product_doc_id,
+      product_id,
+      price_minor
+    )
+    VALUES (
+      ${input.projectUuid}::uuid,
+      ${input.currency},
+      ${input.variantDocId},
+      ${input.productDocId},
+      ${input.productUuid}::uuid,
+      ${input.priceMinor}
+    )
+    ON CONFLICT (project_id, currency, variant_doc_id) DO UPDATE SET
+      product_doc_id = EXCLUDED.product_doc_id,
+      product_id = EXCLUDED.product_id,
+      price_minor = EXCLUDED.price_minor
+  `;
+
+  await sql`
+    INSERT INTO listing.product_listing_price_index (
+      project_id,
+      product_id,
+      currency,
+      min_price_minor,
+      max_price_minor,
+      has_price,
+      indexed_at,
+      updated_at
+    )
+    VALUES (
+      ${input.projectUuid}::uuid,
+      ${input.productUuid}::uuid,
+      ${input.currency},
+      ${input.priceMinor},
+      ${input.priceMinor},
+      true,
+      now(),
+      now()
+    )
+    ON CONFLICT (product_id, currency) DO UPDATE SET
+      project_id = EXCLUDED.project_id,
+      min_price_minor = LEAST(
+        COALESCE(listing.product_listing_price_index.min_price_minor, EXCLUDED.min_price_minor),
+        EXCLUDED.min_price_minor
+      ),
+      max_price_minor = GREATEST(
+        COALESCE(listing.product_listing_price_index.max_price_minor, EXCLUDED.max_price_minor),
+        EXCLUDED.max_price_minor
+      ),
+      has_price = EXCLUDED.has_price,
+      updated_at = now()
+  `;
 }
 
 async function seedProductSearchTitle(

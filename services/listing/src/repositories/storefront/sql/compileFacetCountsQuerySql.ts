@@ -1,7 +1,12 @@
 import { sql, type SQL } from "drizzle-orm";
 import { emptyRoaringBitmapSql } from "../sqlHelpers.js";
-import type { ListingSqlRequest } from "./compileListingInputSql.js";
-import { compileCoreListingSql } from "./compileMatchesSql.js";
+import { compileFacetResolutionSql } from "./compileFacetResolutionSql.js";
+import {
+  compileListingInputSql,
+  type ListingSqlRequest,
+} from "./compileListingInputSql.js";
+import { compileScopeSql } from "./compileScopeSql.js";
+import { compileFiltersSql } from "./compileFiltersSql.js";
 
 const MAX_OPTION_FACET_CHECK_ESTIMATE = Number.MAX_SAFE_INTEGER;
 
@@ -38,7 +43,7 @@ function compileFacetCountsQuerySqlWithOptions(
   return sql`
     /* listing:facetCounts */
     WITH
-    ${compileCoreListingSql(request)},
+    ${compileFacetCountsCoreSql(request)},
     scope_product_base AS (
       SELECT sp.bitmap & pp.bitmap AS bitmap
       FROM scope_products sp
@@ -384,6 +389,18 @@ function compileFacetCountsQuerySqlWithOptions(
     LEFT JOIN counts c
       ON frg.error_code IS NULL
   `;
+}
+
+function compileFacetCountsCoreSql(request: ListingSqlRequest): SQL {
+  return sql.join(
+    [
+      compileListingInputSql(request),
+      compileFacetResolutionSql(),
+      compileScopeSql(request),
+      compileFiltersSql(),
+    ],
+    sql`, `
+  );
 }
 
 export function compileFacetCountsHeavyParityQuerySql(input: {
