@@ -132,6 +132,17 @@ request-time в materialized index.
 
 ## Новый индексный контракт
 
+Статус реализации data model: выполнено в
+`services/listing/migrations/domains/0100_listing_index/0100_listing_index__tables.sql`
+и `services/listing/src/repositories/models/listingIndex.ts`.
+
+Важно: фактическая миграция не использует `ALTER TABLE ... ADD COLUMN`. Колонки
+`signature_key`/doc ids добавлены прямо в базовый `CREATE TABLE`, потому listing
+schema на этом этапе еще формируется как целевая read model. Также по правилу
+проекта `project_id` не используется в новых PK/FK: новые signature tables
+используют stable `option_signature_id`, а tenant lookup сохранен через
+`UNIQUE (project_id, signature_key)` и lookup indexes.
+
 ### Таблица signature rows
 
 ```sql
@@ -723,29 +734,41 @@ Acceptance:
 
 ### Фаза 1. Data model
 
-Добавить handwritten listing migration:
+Статус: выполнено. Handwritten listing migration и Drizzle models приведены к
+этому data model contract.
+
+Фактическая реализация:
 
 ```text
 listing_option_signature
 listing_option_signature_value
 listing_option_signature_product_membership
-ALTER variant_listing_index ADD signature_key
-ALTER variant_listing_price_index ADD doc ids/signature_key
-DROP listing_posting_variant_price after read/write path migration
+variant_listing_index.signature_key в базовом CREATE TABLE
+variant_listing_price_index doc ids/signature_key в базовом CREATE TABLE
 ```
 
 Acceptance:
 
-- таблицы scoped by `project_id`;
-- есть lookup index `(project_id, value_key, signature_key)`;
-- есть partial B-tree index на `variant_listing_price_index`, optimized for
+- [x] таблицы scoped by `project_id`;
+- [x] есть lookup index `(project_id, value_key, signature_key)`;
+- [x] есть partial B-tree index на `variant_listing_price_index`, optimized for
   price range scans:
   `(project_id, signature_key, currency, price_minor, product_doc_id, variant_doc_id)`;
-- `listing_posting_variant_price` не остается parallel source для runtime price
+- [ ] `listing_posting_variant_price` не остается parallel source для runtime price
   reads/writes после cutover;
-- product bitmap cardinality хранится и доступна для external audit;
-- `signature_key` имеет versioned canonical hash input и audit metadata;
-- historical migrations не редактируются.
+- [x] product bitmap cardinality хранится и доступна для external audit;
+- [ ] `signature_key` имеет versioned canonical hash input и audit metadata;
+- [ ] historical migrations не редактируются.
+
+Примечания:
+
+- `DROP listing_posting_variant_price` остается Фазой 4 после read/write
+  cutover и не выполнен в data model шаге.
+- Canonical hash input и audit metadata являются write/sync contract и будут
+  выполнены в следующем этапе.
+- Историческая `0100` migration была отредактирована намеренно, потому план
+  запрещает incremental `ADD COLUMN`, а listing schema на текущей стадии
+  формируется как baseline read model.
 
 ### Фаза 2. Query D option counts replacement
 
@@ -868,13 +891,15 @@ numeric value queried through a B-tree range scan, not bitmap, а fallback ну�
    - подтвердить, что price не входит в signature bitmap;
    - подтвердить, что no-new-data план остается отдельной альтернативой.
 2. Добавить новую handwritten migration data model из Фазы 1:
-   - создать `listing_option_signature`;
-   - создать `listing_option_signature_value`;
-   - создать `listing_option_signature_product_membership`;
-   - добавить `variant_listing_index.signature_key`;
-   - расширить `variant_listing_price_index` doc id columns и
+   - [x] создать `listing_option_signature`;
+   - [x] создать `listing_option_signature_value`;
+   - [x] создать `listing_option_signature_product_membership`;
+   - [x] добавить `variant_listing_index.signature_key` в базовый
+     `CREATE TABLE`;
+   - [x] расширить `variant_listing_price_index` doc id columns и
      `signature_key`;
-   - добавить все lookup/partial indexes и constraints.
+   - [x] добавить все lookup/partial indexes и constraints;
+   - [x] синхронизировать Drizzle models.
 3. Реализовать canonical signature key contract:
    - sorted unique root display option value keys;
    - versioned hash input `v1`;
