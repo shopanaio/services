@@ -1,0 +1,47 @@
+import { sql, type SQL } from "drizzle-orm";
+import { coalesceBitmapSql } from "../sqlHelpers.js";
+
+export function compileVariantProjectionSql(input: {
+  projectIdSql: SQL;
+  variantBitmapSql: SQL;
+}): SQL {
+  return coalesceBitmapSql(sql`(
+    WITH matched_blocks AS (
+      SELECT
+        b.variant_doc_from,
+        b.variant_doc_to,
+        b.variant_bitmap,
+        b.product_bitmap,
+        b.variant_count,
+        (${input.variantBitmapSql} & b.variant_bitmap) AS block_match
+      FROM listing.listing_posting_variant_projection_block b
+      WHERE b.project_id = ${input.projectIdSql}
+        AND rb_cardinality(${input.variantBitmapSql} & b.variant_bitmap) > 0
+    ),
+    full_block_products AS (
+      SELECT mb.product_bitmap
+      FROM matched_blocks mb
+      WHERE rb_cardinality(mb.block_match) = mb.variant_count
+    ),
+    partial_block_products AS (
+      SELECT rb_build_agg(vli.product_doc_id) AS product_bitmap
+      FROM matched_blocks mb
+      JOIN listing.variant_listing_index vli
+        ON vli.project_id = ${input.projectIdSql}
+       AND vli.variant_doc_id >= mb.variant_doc_from
+       AND vli.variant_doc_id < mb.variant_doc_to
+      WHERE rb_cardinality(mb.block_match) < mb.variant_count
+        AND mb.block_match @> vli.variant_doc_id
+    ),
+    projected AS (
+      SELECT rb_or_agg(product_bitmap) AS product_bitmap
+      FROM (
+        SELECT product_bitmap FROM full_block_products
+        UNION ALL
+        SELECT product_bitmap FROM partial_block_products
+      ) x
+    )
+    SELECT product_bitmap
+    FROM projected
+  )`);
+}

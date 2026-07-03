@@ -1,5 +1,13 @@
 # План implementation-ready для repository layer storefront listing
 
+> Статус контракта: optional aggregate flags из этого исторического плана
+> superseded планом `listing-storefront-query-optimization-plan.ru.md`.
+> Актуальный storefront listing contract описан в
+> `storefront-listing-api-contract.ru.md`: repository всегда возвращает полный
+> response (`totalCount`, facets, `priceRange`, `inStockCount`) и не принимает
+> `includeTotalCount`, `includeFacets`, `includePriceRange`,
+> `includeInStockCount`.
+
 ## Назначение
 
 Документ описывает реализацию read-side repository layer для storefront listing
@@ -166,10 +174,6 @@ export interface StorefrontListingInput {
   sort?: StorefrontSortInput;
   first: number;
   after?: string | null;
-  includeTotalCount: boolean;
-  includeFacets: boolean;
-  includePriceRange: boolean;
-  includeInStockCount: boolean;
 }
 
 export type StorefrontListingFilterInput =
@@ -342,10 +346,24 @@ Result:
 export interface StorefrontListingRepositoryResult {
   rows: ListingPageRow[];
   hasNextPage: boolean;
-  totalCount?: number;
-  facets?: FacetCountResult[];
-  priceRange?: PriceRangeResult | null;
-  inStockCount?: number;
+  totalCount: number;
+  facets: StorefrontListingFacetResult[];
+  priceRange: PriceRangeResult | null;
+  inStockCount: number;
+}
+
+export interface StorefrontListingFacetResult {
+  facetId: string;
+  facetSlug: string;
+  facetType: FacetRuntimeType;
+  values: StorefrontListingFacetValueResult[];
+}
+
+export interface StorefrontListingFacetValueResult {
+  facetValueId: string;
+  valueHandle: string;
+  valueKey: string;
+  count: number;
 }
 
 export interface FacetCountResult {
@@ -362,10 +380,10 @@ export interface PriceRangeResult {
 }
 
 export interface ListingAggregatesResult {
-  totalCount?: number;
-  facets?: FacetCountResult[];
-  priceRange?: PriceRangeResult | null;
-  inStockCount?: number;
+  totalCount: number;
+  facets: StorefrontListingFacetResult[];
+  priceRange: PriceRangeResult | null;
+  inStockCount: number;
 }
 ```
 
@@ -692,8 +710,8 @@ Cursor:
 - use keyset seek by the same ordered keys;
 - cursor includes filter hash;
 - nullable key seek must be `NULLS LAST` aware;
-- when `includeTotalCount = false`, query uses `first + 1` and does not call
-  `rb_cardinality`.
+- page query always uses `first + 1`; `totalCount` is computed by the parallel
+  total-count branch, not by the page collector.
 
 Acceptance:
 
@@ -1059,10 +1077,10 @@ Pipeline:
      price;
    - matched variant price collector when price sort and option or price
      predicate is active.
-10. If `includeTotalCount`, call `rb_cardinality(matches)`.
-11. If facets requested, compute isolated counts from full bitmaps.
-12. If `includePriceRange` or `includeInStockCount`, compute virtual facets.
-13. Return page rows, `hasNextPage`, optional aggregates.
+10. Run total-count branch with `rb_cardinality(matches)`.
+11. Run facets metadata branch and isolated counts branch.
+12. Run virtual facets branch for `priceRange` and `inStockCount`.
+13. Return page rows, `hasNextPage` and all aggregates.
 
 Short-circuit rules:
 

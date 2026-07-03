@@ -153,6 +153,18 @@ CREATE TABLE listing.listing_option_signature (
 `value_key` list. Внешний код не должен парсить его для получения
 `facet_id/value_id`.
 
+Canonical hash input должен быть versioned и audit-friendly:
+
+```text
+signature_key = 'v1:' || sha256(join('\n', sorted_unique_value_keys))
+metadata.canonical_value_keys = sorted_unique_value_keys
+metadata.signature_version = 1
+```
+
+`metadata.canonical_value_keys` не является runtime source of truth для lookup,
+но нужен для audit/debug и для безопасной смены алгоритма ключа. Reverse lookup
+таблица ниже остается runtime index-ом для поиска signatures by contained values.
+
 `product_bitmap` содержит `product_doc_id` products, у которых есть хотя бы один
 storefront-eligible in-stock variant с этой exact full signature.
 
@@ -180,6 +192,58 @@ Reverse lookup нужен для partial matching:
 ```text
 найти full signatures, которые содержат все required value_key
 ```
+
+### Таблица variant membership
+
+`signature_key` должен быть сохранен на уровне variant membership. Это нужно для
+двух runtime операций:
+
+- strict price path: join existing `listing_posting_variant_price` с signature
+  membership, чтобы price predicate и option signature принадлежали одному
+  `variant_doc_id`;
+- sync delete/update: при изменении или удалении variant можно найти previous
+  signature и корректно decrement-нуть product membership.
+
+```sql
+CREATE TABLE listing.listing_option_variant_signature_membership (
+  project_id      uuid NOT NULL,
+  variant_doc_id  int NOT NULL,
+  product_doc_id  int NOT NULL,
+  product_id      uuid NOT NULL,
+  signature_key   text NOT NULL,
+  updated_at      timestamptz NOT NULL DEFAULT now(),
+
+  PRIMARY KEY (project_id, variant_doc_id),
+  FOREIGN KEY (project_id, signature_key)
+    REFERENCES listing.listing_option_signature(project_id, signature_key)
+    ON DELETE CASCADE,
+  FOREIGN KEY (
+    project_id,
+    variant_doc_id,
+    product_doc_id,
+    product_id
+  )
+    REFERENCES listing.variant_listing_index(
+      project_id,
+      variant_doc_id,
+      product_doc_id,
+      product_id
+    )
+    ON DELETE CASCADE
+);
+
+CREATE INDEX idx_listing_option_variant_signature_lookup
+  ON listing.listing_option_variant_signature_membership (
+    project_id,
+    signature_key,
+    variant_doc_id,
+    product_doc_id
+  );
+```
+
+Эта таблица не дублирует price. Она добавляет отсутствующую связь
+`variant_doc_id -> signature_key`, которую нельзя надежно восстановить из
+product bitmap.
 
 ## Почему не `listing_posting_bitmap`
 
@@ -358,27 +422,93 @@ Price не хранится в bitmap/signature.
 candidate option values и price predicate совпали на одном `variant_doc_id`.
 `signature -> product_bitmap` этого доказать не может.
 
-Допустимые варианты:
+Initial implementation не должен добавлять отдельную price bitmap/table. Вместо
+этого используется существующая `listing.listing_posting_variant_price` и новая
+таблица `listing_option_variant_signature_membership`, которая дает
+`variant_doc_id -> signature_key`.
 
-1. Fallback для option counts на существующий strict variant-level path:
-
-```text
-option bitmaps
-& price_variant relation/bitmap from listing_posting_variant_price
--> project variants to products
-```
-
-2. Дополнительный `signature -> variant_bitmap` index и price join/refinement:
+Runtime shape для price-filtered option count:
 
 ```text
-matching signatures
--> OR variant bitmaps
--> join/refine through listing_posting_variant_price
--> project to products
+required option values
+-> matching signature keys
+-> join matching signatures to listing_posting_variant_price by variant_doc_id
+-> apply currency/price range on same variant row
+-> rb_build_agg(product_doc_id)
+-> intersect with product scope/product filters
+-> cardinality
 ```
 
-Initial implementation должен выбрать fallback, потому он проще и не добавляет
-price materialization.
+Пример SQL shape:
+
+```sql
+WITH required_values(value_key) AS (
+  VALUES
+    (:color_red_value_key),
+    (:size_m_value_key)
+),
+matching_signatures AS (
+  SELECT sv.signature_key
+  FROM listing.listing_option_signature_value sv
+  JOIN required_values rv
+    ON rv.value_key = sv.value_key
+  WHERE sv.project_id = :projectId
+  GROUP BY sv.signature_key
+  HAVING COUNT(DISTINCT sv.value_key) = (SELECT COUNT(*) FROM required_values)
+),
+price_matching_products AS (
+  SELECT COALESCE(rb_build_agg(vp.product_doc_id), rb_build_empty()) AS bitmap
+  FROM matching_signatures ms
+  JOIN listing.listing_option_variant_signature_membership vsm
+    ON vsm.project_id = :projectId
+   AND vsm.signature_key = ms.signature_key
+  JOIN listing.listing_posting_variant_price vp
+    ON vp.project_id = vsm.project_id
+   AND vp.variant_doc_id = vsm.variant_doc_id
+   AND vp.product_doc_id = vsm.product_doc_id
+   AND vp.product_id = vsm.product_id
+  WHERE vp.currency = :currency
+    AND (:minPriceMinor IS NULL OR vp.price_minor >= :minPriceMinor)
+    AND (:maxPriceMinor IS NULL OR vp.price_minor <= :maxPriceMinor)
+)
+SELECT bitmap
+FROM price_matching_products;
+```
+
+Рекомендуемые индексы для этого path:
+
+```sql
+CREATE INDEX idx_listing_option_variant_signature_lookup
+  ON listing.listing_option_variant_signature_membership (
+    project_id,
+    signature_key,
+    variant_doc_id,
+    product_doc_id
+  );
+
+CREATE INDEX idx_listing_posting_variant_price_signature_join
+  ON listing.listing_posting_variant_price (
+    project_id,
+    currency,
+    price_minor,
+    variant_doc_id,
+    product_doc_id
+  );
+```
+
+Эта ветка не является fallback на generic strict option bitmap path. Она все еще
+использует signature lookup для option predicates, но price остается range index
+по variant rows.
+
+Fallback на strict variant-level path остается допустимым guard-ом, если:
+
+```text
+- required set DNF превышает configured limit;
+- matching signatures слишком много для configured limit;
+- signature index freshness invalid;
+- planner/metrics показывают, что signature+price join хуже strict path для
+  конкретного класса запросов.
+```
 
 ### Active stock filter
 
@@ -399,10 +529,13 @@ Query D может иметь два branch-а для option counts:
 ```text
 Branch D1: product facet counts через product/facet bitmap
 Branch D2: option facet counts через signature product bitmap, если:
-  - нет active price predicate;
   - required set DNF не превышает configured limit;
+  - matching signatures не превышают configured limit;
   - signature index freshness valid.
-Branch D3 fallback: strict variant-level option counts.
+Branch D2a: option-only counts через precomputed signature product_bitmap.
+Branch D2b: option+price counts через signature membership
+  JOIN listing_posting_variant_price.
+Branch D3 fallback: strict variant-level option counts для guard/freshness cases.
 ```
 
 Все branch-и остаются внутри одного Query D SQL statement, чтобы full listing
@@ -431,35 +564,54 @@ whose product_bitmap intersects scope_product_base
    - remove previous signature membership for this variant/product if any.
 4. Build sorted unique full signature value list.
 5. Compute `signature_key`.
-6. Add parent `product_doc_id` to
-   `listing_option_signature.product_bitmap`.
-7. Upsert signature value rows into `listing_option_signature_value`.
-8. Recompute `cardinality = rb_cardinality(product_bitmap)`.
+6. Load previous row from
+   `listing_option_variant_signature_membership` by
+   `(project_id, variant_doc_id)`.
+7. If previous `signature_key` exists and differs from new `signature_key`:
+   - decrement previous
+     `listing_option_signature_product_membership.variant_count`;
+   - if counter reaches zero, remove `product_doc_id` from previous
+     `listing_option_signature.product_bitmap`;
+   - delete previous variant membership row.
+8. Upsert `listing_option_signature` parent row for new `signature_key`.
+9. Upsert signature value rows into `listing_option_signature_value`.
+10. Upsert `listing_option_variant_signature_membership`:
+    `(project_id, variant_doc_id, product_doc_id, product_id, signature_key)`.
+11. Increment
+    `listing_option_signature_product_membership.variant_count` for
+    `(project_id, signature_key, product_doc_id)`.
+12. If product membership was newly created, add `product_doc_id` to
+    `listing_option_signature.product_bitmap`.
+13. Recompute `cardinality = rb_cardinality(product_bitmap)`.
 
 При удалении/soft-delete variant или stock change to out-of-stock:
 
 ```text
-remove product_doc_id from old signature bitmap
+load old signature_key from listing_option_variant_signature_membership
+delete variant membership row
+decrement product membership counter
+if counter reaches zero:
+  remove product_doc_id from old signature bitmap
+  delete product membership row
 delete signature row if bitmap becomes empty
 delete reverse lookup rows via cascade
 ```
 
 Если у одного product несколько in-stock variants с одинаковой signature,
-bitmap dedup скрывает duplicate membership. Но sync должен знать, можно ли
-удалять product_doc_id при удалении одного variant. Для этого нужен один из
-вариантов:
+bitmap dedup скрывает duplicate membership. Поэтому sync хранит два уровня
+membership:
 
 ```text
-Option A:
-  maintain normalized membership counter table
-  (project_id, signature_key, product_doc_id, variant_count)
+variant membership:
+  (project_id, variant_doc_id) -> signature_key
 
-Option B:
-  on variant refresh/delete recompute product membership for affected product
-  and affected signatures from variant_listing_index + option mappings
+product membership counter:
+  (project_id, signature_key, product_doc_id) -> variant_count
 ```
 
-Для incremental correctness предпочтительнее Option A.
+Variant membership отвечает на вопрос "какую старую signature нужно убрать при
+изменении variant". Product membership counter отвечает на вопрос "можно ли
+удалить product_doc_id из product_bitmap, если один variant исчез".
 
 ### Membership counter table
 
@@ -483,6 +635,25 @@ CREATE TABLE listing.listing_option_signature_product_membership (
 `product_bitmap` является physical index over this membership table. Membership
 table является source/debug layer для correct decrement при variant deletion.
 
+### Price maintenance
+
+Signature sync не дублирует price rows. Existing flow продолжает поддерживать
+`listing.listing_posting_variant_price`.
+
+Для price-filtered option counts требуется только, чтобы порядок записи в одной
+product/variant refresh transaction сохранял инвариант:
+
+```text
+variant_listing_index current
+listing_option_variant_signature_membership current
+listing_posting_variant_price current
+```
+
+Если variant теряет stock/storefront eligibility, его signature membership
+удаляется. Price rows могут удаляться своим текущим lifecycle-ом; runtime
+signature+price branch делает inner join, поэтому stale/missing price rows не
+создают false positives.
+
 ## Freshness audit
 
 Audit должен проверять:
@@ -491,7 +662,10 @@ Audit должен проверять:
   option value list;
 - `cardinality = rb_cardinality(product_bitmap)`;
 - membership table и product bitmap содержат одинаковые products;
+- variant membership rows соответствуют product membership counters;
 - signature membership соответствует in-stock storefront-eligible variants;
+- price-filtered signature branch join-ится только по тому же
+  `(project_id, variant_doc_id, product_doc_id, product_id)`;
 - disabled/invalid/source-only option values не попадают в signatures;
 - stale signature rows without membership удаляются;
 - product_doc_id/variant_doc_id всегда scoped by `project_id`.
@@ -514,6 +688,12 @@ Membership size:
 
 ```text
 signature_product_memberships <= in_stock_variant_count
+```
+
+Variant membership size:
+
+```text
+signature_variant_memberships <= in_stock_variant_count
 ```
 
 Это не combinatorial explosion всех возможных фильтров. Explosion появляется

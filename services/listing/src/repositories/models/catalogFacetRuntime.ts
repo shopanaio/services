@@ -1,4 +1,11 @@
-import { text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  integer,
+  text,
+  timestamp,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
 import { catalogSchema } from "./schema.js";
 
 export const catalogFacetRuntime = catalogSchema.table("facet", {
@@ -18,6 +25,11 @@ export const catalogFacetValueRuntime = catalogSchema.table("facet_value", {
   parentId: uuid("parent_id"),
   kind: varchar("kind", { length: 16 }).notNull(),
   handle: text("handle").notNull(),
+  sortIndex: integer("sort_index").notNull().default(0),
+  enabled: boolean("enabled").notNull().default(true),
+  referenceStatus: varchar("reference_status", { length: 32 })
+    .notNull()
+    .default("VALID"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }),
 });

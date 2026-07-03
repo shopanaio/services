@@ -43,10 +43,6 @@ export interface StorefrontListingInput {
   sort?: StorefrontSortInput;
   first: number;
   after?: string | null;
-  includeTotalCount: boolean;
-  includeFacets: boolean;
-  includePriceRange: boolean;
-  includeInStockCount: boolean;
 }
 
 export type StorefrontListingFilterInput =
@@ -101,6 +97,18 @@ export interface StorefrontFilterPlan {
   vendorIds: string[];
   priceRange?: { minPriceMinor?: number; maxPriceMinor?: number };
   inStock?: boolean;
+}
+
+export interface NormalizedStorefrontListingFilters {
+  facetFilters: NormalizedStorefrontFacetFilter[];
+  vendorIds: string[];
+  priceRange?: { minPriceMinor?: number; maxPriceMinor?: number };
+  inStock?: boolean;
+}
+
+export interface NormalizedStorefrontFacetFilter {
+  facetSlug: string;
+  valueHandle: string;
 }
 
 export interface ResolvedFacetValue {
@@ -164,11 +172,13 @@ export type ProductSortCollectKind =
 
 export interface ResolvedListingRequest {
   input: StorefrontListingInput;
+  filters: NormalizedStorefrontListingFilters;
   filterPlan: StorefrontFilterPlan;
   normalizedQuery: string | null;
   sort: StorefrontSortInput;
   cursor: DecodedListingCursor | null;
   filterHash: string;
+  manualScopeId: string | null;
 }
 
 export interface ListingPageRow {
@@ -185,10 +195,24 @@ export interface ListingPageRow {
 export interface StorefrontListingRepositoryResult {
   rows: ListingPageRow[];
   hasNextPage: boolean;
-  totalCount?: number;
-  facets?: FacetCountResult[];
-  priceRange?: PriceRangeResult | null;
-  inStockCount?: number;
+  totalCount: number;
+  facets: StorefrontListingFacetResult[];
+  priceRange: PriceRangeResult | null;
+  inStockCount: number;
+}
+
+export interface StorefrontListingFacetResult {
+  facetId: string;
+  facetSlug: string;
+  facetType: FacetRuntimeType;
+  values: StorefrontListingFacetValueResult[];
+}
+
+export interface StorefrontListingFacetValueResult {
+  facetValueId: string;
+  valueHandle: string;
+  valueKey: string;
+  count: number;
 }
 
 export interface FacetCountResult {

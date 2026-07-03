@@ -2,8 +2,8 @@ import { createHash } from "crypto";
 import {
   type DecodedListingCursor,
   type ListingCursorPayload,
+  type NormalizedStorefrontListingFilters,
   StorefrontRepositoryValidationError,
-  type StorefrontFilterPlan,
   type StorefrontListingScope,
   type StorefrontSortInput,
 } from "./types.js";
@@ -14,7 +14,7 @@ interface FilterHashInput {
   currency: string;
   scope: StorefrontListingScope;
   normalizedQuery: string | null;
-  filterPlan: StorefrontFilterPlan;
+  filters: NormalizedStorefrontListingFilters;
   sort: StorefrontSortInput;
   manualScopeId?: string | null;
 }

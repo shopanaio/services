@@ -311,7 +311,7 @@ export class StorefrontFacetAggregationRepository extends BaseRepository {
     }
 
     const rows = await this.connection.execute<FacetCountSqlRow>(
-      sql`${sql.join(queries, sql` UNION ALL `)}`
+      sql`${sql.join([...queries], sql` UNION ALL `)}`
     );
 
     return rows.map((row) => ({
