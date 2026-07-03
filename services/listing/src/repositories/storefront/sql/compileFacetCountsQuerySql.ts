@@ -3,7 +3,6 @@ import { emptyRoaringBitmapSql } from "../sqlHelpers.js";
 import type { ListingSqlRequest } from "./compileListingInputSql.js";
 import { compileCoreListingSql } from "./compileMatchesSql.js";
 
-const HEAVY_OPTION_FACET_CHECK_THRESHOLD = 1000;
 const MAX_OPTION_FACET_CHECK_ESTIMATE = Number.MAX_SAFE_INTEGER;
 
 export function compileFacetCountsQuerySql(request: ListingSqlRequest) {
@@ -26,6 +25,7 @@ function compileFacetCountsQuerySqlWithOptions(
   const optionFacetCountStrategySql = heavyStrategyEnabled
     ? sql`${compileOptionFacetCountStrategySql({
         request,
+        autoHeavyOptionFacetCountsEnabled: options.heavyStrategyEnabled,
         forceHeavyOptionFacetCountFacetIds: forcedTargetFacetIds,
       })},`
     : sql``;
@@ -661,7 +661,6 @@ function normalizeFacetIds(facetIds: readonly string[]): string[] {
 interface OptionFacetCombinationEstimate {
   defaultCombinationCount: number;
   defaultRequiredFacetCount: number;
-  hasOptionOr: boolean;
   perActiveFacet: readonly {
     facetId: string;
     combinationCount: number;
@@ -689,6 +688,7 @@ interface RequiredCombinationValue {
 function compileOptionFacetCountStrategySql(input: {
   request: ListingSqlRequest;
   forceHeavyOptionFacetCountFacetIds: readonly string[];
+  autoHeavyOptionFacetCountsEnabled: boolean;
 }): SQL {
   const { request } = input;
   const estimate = buildOptionFacetCombinationEstimate(request);
@@ -741,8 +741,7 @@ function compileOptionFacetCountStrategySql(input: {
         COALESCE(
           estimates.required_facet_count,
           ${estimate.defaultRequiredFacetCount}::int
-        ) AS required_facet_count,
-        ${estimate.hasOptionOr}::boolean AS has_option_or
+        ) AS required_facet_count
       FROM option_facet_bucket_counts bucket_counts
       LEFT JOIN option_facet_combination_estimates estimates
         ON estimates.facet_id = bucket_counts.facet_id
@@ -754,12 +753,8 @@ function compileOptionFacetCountStrategySql(input: {
         estimate.required_facet_count,
         estimate.required_facet_count > 0
           AND (
-            forced.facet_id IS NOT NULL
-            OR (
-              estimate.has_option_or
-              AND estimate.candidate_combination_checks
-                > ${HEAVY_OPTION_FACET_CHECK_THRESHOLD}::numeric
-            )
+            ${input.autoHeavyOptionFacetCountsEnabled}::boolean
+            OR forced.facet_id IS NOT NULL
           ) AS use_heavy_signature_path
       FROM option_candidate_check_estimate estimate
       LEFT JOIN forced_heavy_option_facet_targets forced
@@ -882,7 +877,6 @@ function buildOptionFacetCombinationEstimate(
   return {
     defaultCombinationCount,
     defaultRequiredFacetCount: groups.length,
-    hasOptionOr: groups.some((group) => group.selectedValueCount > 1),
     perActiveFacet: groups.map((group) => {
       const requiredGroups = groups.filter(
         (other) => other.facetId !== group.facetId
