@@ -38,6 +38,13 @@ color IN (...) AND size IN (...) AND material IN (...)
 
 Facet isolation всегда по `facet_id`, не по `facet_type` и не по slug.
 
+Текущий candidate path не полностью `facet_id`-native: TypeScript helper
+строит request-level комбинации через `facetSlug`/`valueHandle`, а SQL потом
+резолвит их в `resolved_facets` и дополнительно отсекает current facet через
+`rf.facet_id <> ofv.facet_id`. Planned state для этой оптимизации: option
+combination generation использует `request.request.filterPlan.optionFacetGroups`
+(`facetId`, `valueKeys`) и не использует slug/handle как internal key.
+
 ## Current path
 
 Текущий signature-based path строит required sets для каждого candidate value:
@@ -178,12 +185,15 @@ HAVING COUNT(DISTINCT required_facet_id) = required_facet_count
 
 ## Strategy guard
 
-Heavy path должен быть закрыт feature flag-ом и использоваться только для
-запросов, где:
+Heavy path должен быть закрыт feature flag-ом и выбираться per target
+`facet_id`, а не глобально для всего option-count запроса.
+
+Heavy path используется для конкретной target facet только если:
 
 - feature flag включен;
 - есть active option OR;
-- оценка candidate checks выше threshold.
+- оценка candidate checks для этой target facet выше threshold;
+- base requirement после facet isolation не пустой.
 
 Feature flag обязателен, потому новый path меняет физический SQL план для
 storefront runtime. Начальный rollout должен уметь быстро вернуть старый
@@ -235,10 +245,12 @@ const MAX_OPTION_FACET_CHECK_ESTIMATE = Number.MAX_SAFE_INTEGER;
 
 interface OptionFacetCombinationEstimate {
   defaultCombinationCount: number;
+  defaultRequiredFacetCount: number;
   hasOptionOr: boolean;
   perActiveFacet: readonly {
     facetId: string;
     combinationCount: number;
+    requiredFacetCount: number;
   }[];
 }
 
@@ -257,15 +269,21 @@ function buildOptionFacetCombinationEstimate(
 
   return {
     defaultCombinationCount,
+    defaultRequiredFacetCount: groups.length,
     hasOptionOr: groups.some((group) => group.selectedValueCount > 1),
-    perActiveFacet: groups.map((group) => ({
-      facetId: group.facetId,
-      combinationCount: multiplyClamped(
-        groups
-          .filter((other) => other.facetId !== group.facetId)
-          .map((other) => other.selectedValueCount)
-      ),
-    })),
+    perActiveFacet: groups.map((group) => {
+      const requiredGroups = groups.filter(
+        (other) => other.facetId !== group.facetId
+      );
+
+      return {
+        facetId: group.facetId,
+        combinationCount: multiplyClamped(
+          requiredGroups.map((other) => other.selectedValueCount)
+        ),
+        requiredFacetCount: requiredGroups.length,
+      };
+    }),
   };
 }
 
@@ -295,7 +313,7 @@ function compileOptionFacetCountStrategySql(
   const estimate = buildOptionFacetCombinationEstimate(request);
   const estimateRows = estimate.perActiveFacet.map(
     (row) =>
-      sql`(${row.facetId}::uuid, ${row.combinationCount}::numeric)`
+      sql`(${row.facetId}::uuid, ${row.combinationCount}::numeric, ${row.requiredFacetCount}::int)`
   );
 
   return sql`
@@ -303,10 +321,11 @@ function compileOptionFacetCountStrategySql(
       ${valuesOrEmpty(
         estimateRows,
         "estimate_values",
-        sql`facet_id, combination_count`,
+        sql`facet_id, combination_count, required_facet_count`,
         sql`SELECT
           NULL::uuid AS facet_id,
-          NULL::numeric AS combination_count
+          NULL::numeric AS combination_count,
+          NULL::int AS required_facet_count
         WHERE false`
       )}
     ),
@@ -319,16 +338,18 @@ function compileOptionFacetCountStrategySql(
     ),
     option_candidate_check_estimate AS (
       SELECT
+        bucket_counts.facet_id,
+        (
+          bucket_counts.bucket_count
+          * COALESCE(
+              estimates.combination_count,
+              ${estimate.defaultCombinationCount}::numeric
+            )
+        )::numeric AS candidate_combination_checks,
         COALESCE(
-          SUM(
-            bucket_counts.bucket_count
-            * COALESCE(
-                estimates.combination_count,
-                ${estimate.defaultCombinationCount}::numeric
-              )
-          ),
-          0::numeric
-        ) AS candidate_combination_checks,
+          estimates.required_facet_count,
+          ${estimate.defaultRequiredFacetCount}::int
+        ) AS required_facet_count,
         ${estimate.hasOptionOr}::boolean AS has_option_or
       FROM option_facet_bucket_counts bucket_counts
       LEFT JOIN option_facet_combination_estimates estimates
@@ -336,9 +357,12 @@ function compileOptionFacetCountStrategySql(
     ),
     option_facet_count_strategy AS (
       SELECT
+        facet_id,
         candidate_combination_checks,
+        required_facet_count,
         ${request.heavyOptionFacetCountsEnabled}::boolean
           AND has_option_or
+          AND required_facet_count > 0
           AND candidate_combination_checks
             > ${HEAVY_OPTION_FACET_CHECK_THRESHOLD}::numeric
           AS use_heavy_signature_path
@@ -365,10 +389,20 @@ size     = 30
 material = 10
 style    = 35
 
-candidate_combination_checks =
+total candidate_combination_checks =
   15 * 72 + 30 * 60 + 10 * 90 + 35 * 120 = 7 980
 
-use_heavy_signature_path = true
+per target facet:
+color    candidate_combination_checks = 15 * 72 = 1 080
+size     candidate_combination_checks = 30 * 60 = 1 800
+material candidate_combination_checks = 10 * 90 =   900
+style    candidate_combination_checks = 35 * 120 = 4 200
+
+use_heavy_signature_path:
+color    = true
+size     = true
+material = false
+style    = true
 ```
 
 Если feature flag выключен:
@@ -417,7 +451,32 @@ option_signature_base_state AS (
   JOIN option_candidate_combination_set combination_set
     ON combination_set.value_key = ofv.value_key
   CROSS JOIN stock_filter_state sfs
-  CROSS JOIN option_facet_count_strategy strategy
+  JOIN option_facet_count_strategy strategy
+    ON strategy.facet_id = ofv.facet_id
+)
+```
+
+`compileOptionRequiredCombinationSetSql` нужно перевести с
+`request.request.filters.facetFilters` на
+`request.request.filterPlan.optionFacetGroups`. Generated rows должны содержать
+resolved `excluded_facet_id`, `combination_ordinal` и `value_key`; slug/handle
+остаются только input-resolution detail в `resolved_facets`, но не internal key
+для option count combinations.
+
+`option_candidate_combination_set` после этого выбирает isolated combination
+set по `ofv.facet_id`, а не по `ofv.facet_slug`:
+
+```sql
+option_candidate_combination_set AS (
+  SELECT
+    ofv.value_key,
+    COALESCE(facet_set.excluded_facet_id, default_set.excluded_facet_id)
+      AS excluded_facet_id
+  FROM option_facet_values ofv
+  JOIN option_required_combination_set default_set
+    ON default_set.excluded_facet_id IS NULL
+  LEFT JOIN option_required_combination_set facet_set
+    ON facet_set.excluded_facet_id = ofv.facet_id::uuid
 )
 ```
 
@@ -447,9 +506,8 @@ option_facet_counts AS (
 ```sql
 option_heavy_targets AS (
   SELECT DISTINCT
-    ofv.facet_id AS target_facet_id
-  FROM option_facet_values ofv
-  CROSS JOIN option_facet_count_strategy strategy
+    strategy.facet_id AS target_facet_id
+  FROM option_facet_count_strategy strategy
   WHERE strategy.use_heavy_signature_path
 ),
 option_active_filter_values AS (
@@ -478,17 +536,6 @@ option_heavy_required_counts AS (
   GROUP BY target.target_facet_id
 ),
 option_heavy_base_signatures AS (
-  SELECT
-    counts.target_facet_id,
-    os.signature_key
-  FROM option_heavy_required_counts counts
-  JOIN input i ON true
-  JOIN listing.listing_option_signature os
-    ON os.project_id = i.project_id
-  WHERE counts.required_facet_count = 0
-
-  UNION ALL
-
   SELECT
     required.target_facet_id,
     sv.signature_key
@@ -624,7 +671,8 @@ option_heavy_signature_facet_counts AS (
   CROSS JOIN input i
   CROSS JOIN stock_filter_state sfs
   CROSS JOIN option_count_product_scope
-  CROSS JOIN option_facet_count_strategy strategy
+  JOIN option_facet_count_strategy strategy
+    ON strategy.facet_id = ofv.facet_id
   LEFT JOIN option_heavy_signature_product_bitmaps signature_bitmaps
     ON signature_bitmaps.value_key = ofv.value_key
   LEFT JOIN option_heavy_signature_price_product_bitmaps price_bitmaps
@@ -738,10 +786,12 @@ Color OR group.
    `compileFacetCountsQuerySql.ts`.
 2. Add `heavyOptionFacetCountsEnabled` to `ListingSqlRequest` and populate it
    from listing runtime config/env. Default must be `false`.
-3. Insert `${optionFacetCountStrategySql}` after `option_facet_values` exists.
-4. Update `option_signature_base_state` so candidate path runs only when
-   `NOT strategy.use_heavy_signature_path`.
-5. Add heavy CTEs:
+3. Convert option required-combination generation from slug/handle rows to
+   `filterPlan.optionFacetGroups` rows keyed by `facet_id` and `value_key`.
+4. Insert `${optionFacetCountStrategySql}` after `option_facet_values` exists.
+5. Update `option_signature_base_state` so candidate path runs per facet only
+   when `NOT strategy.use_heavy_signature_path`.
+6. Add heavy CTEs:
    - `option_heavy_targets`;
    - `option_active_filter_values`;
    - `option_heavy_required_values`;
@@ -751,9 +801,9 @@ Color OR group.
    - `option_heavy_signature_product_bitmaps`;
    - `option_heavy_signature_price_product_bitmaps`;
    - `option_heavy_signature_facet_counts`.
-6. Change `option_facet_counts` to `UNION ALL` candidate and heavy counts.
-7. Add the facet/signature lookup index if query plan needs it.
-8. Keep existing result mapper unchanged. Output columns stay:
+7. Change `option_facet_counts` to `UNION ALL` candidate and heavy counts.
+8. Add the facet/signature lookup index if query plan needs it.
+9. Keep existing result mapper unchanged. Output columns stay:
    `facet_id`, `facet_type`, `value_key`, `count`.
 
 ## Verification matrix
@@ -771,28 +821,41 @@ Compare old candidate path and new heavy path on the same fixtures:
    expected: strategy false
 
 4. feature flag enabled, one option facet, multiple selected values
-   expected: heavy may enable only if candidate estimate > threshold
+   expected: selected target facet stays candidate because required_facet_count = 0;
+   inactive option facets may use heavy only if their own estimate is above threshold
 
 5. feature flag enabled, multiple option facets with OR values
-   expected: heavy true when estimated checks > threshold
+   expected: heavy true only for facets whose own estimate is above threshold
 
-6. active product facets + active option facets
+6. mixed per-facet strategy
+   expected: cheap facets use candidate path, heavy facets use heavy path,
+   and final UNION ALL has no duplicate `(facet_id, value_key)` rows
+
+7. only target option facet has active OR, no other active option facets
+   expected: required_facet_count = 0 and strategy false for that facet
+
+8. active product facets + active option facets
    expected: product filters apply through option_count_product_scope
 
-7. active price filter + active option OR
+9. active price filter + active option OR
    expected: counts use variant_listing_price_index, not signature product_bitmap
 
-8. active in_stock=false
+10. active in_stock=false
    expected: option counts are zero
 
-9. merged/source display values
+11. merged/source display values
    expected: counts use resolved display value_key from option_facet_values
+   and isolation uses resolved facet_id, not requested slug
 
-10. target facet is also active
+12. target facet is also active
    expected: filters from target facet are isolated out before bucket expansion
 
-11. target facet is inactive
+13. target facet is inactive
     expected: base uses all active option groups
+
+14. old candidate path vs new heavy path parity
+    expected: for fixtures where heavy is forced on for a facet, sorted rows
+    by `(facet_id, value_key)` match candidate path counts exactly
 ```
 
 Не запускать `test` или `tsc` по проектному правилу. Для проверки новой версии
@@ -814,7 +877,9 @@ Rollback безопасный:
 ```sql
 option_facet_count_strategy AS (
   SELECT
+    facet_id,
     candidate_combination_checks,
+    required_facet_count,
     false AS use_heavy_signature_path
   FROM option_candidate_check_estimate
 )

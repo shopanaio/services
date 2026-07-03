@@ -155,6 +155,13 @@ Facet UI contract в listing service строится как единая Shopif
 `ListingFacet` / `ListingFacetValue`, поэтому `Facet` и `FacetValue` не нужно
 экспонировать как federation references для этого endpoint.
 
+При этом listing SDL должен использовать catalog-compatible presentation types:
+`FacetUIType` и `FacetSwatch`. Для composition нужно либо вынести эти типы в
+shared admin SDL, либо оставить `FacetSwatch` catalog entity с `@key` и
+расширить его в listing service как federation reference. Не вводить отдельные
+`ListingFacetPresentation`, `ListingFacetSwatch`, `image` поля, если они не
+существуют в catalog contract.
+
 ## Границы владения
 
 | Область | Владелец | В listing response |
@@ -199,8 +206,12 @@ listing read API:
   price и availability;
 - все facet types используют одинаковый `ListingFacet` /
   `ListingFacetValue` contract;
-- клиент применяет facet selection, отправляя обратно `values[].input`, как в
-  Shopify-like filter contract;
+- returned facets используют Shopify-like filter flow, но остаются совместимыми
+  с catalog presentation model: `id`, `label`, `type`, `uiType`, `values`;
+- returned facet values используют Shopify-like `input` flow и catalog swatches:
+  `id`, `label`, `count`, `input`, `swatch`;
+- клиент применяет facet selection, передавая `values[].input` в массив
+  `facets`, как в Shopify filter contract;
 - не возвращает `title`, `handle`, `label`, media, product price, variant price
   или другие canonical поля напрямую.
 
@@ -242,15 +253,18 @@ query CategoryListing($categoryId: ID!, $first: Int!) {
 - `CATEGORY`: `categoryId` обязателен, `collectionId` должен отсутствовать;
 - `COLLECTION`: `collectionId` обязателен, `categoryId` должен отсутствовать.
 
-`ListingFacetInput`:
+`ListingProductFilter`:
 
-- `id` должен соответствовать одному из facet IDs, возвращенных в
-  `ListingFacet.id`;
-- `values` не должен быть пустым;
-- каждый item в `values` должен быть валидным opaque input, ранее возвращенным в
-  `ListingFacetValue.input`;
-- price range, vendor и availability selection валидируются тем же механизмом,
-  что и остальные facets;
+- ровно одно поле должно быть задано;
+- `available` фильтрует availability;
+- `price` фильтрует price range;
+- `productVendor` фильтрует vendor;
+- `tag` фильтрует tags;
+- `variantOption` фильтрует option value;
+- `productFacet` фильтрует catalog product facet;
+- `variantFacet` фильтрует catalog variant/option facet;
+- `ListingFacetValue.input` должен возвращать JSON object, совместимый с
+  `ListingProductFilter`, чтобы клиент мог напрямую собрать следующий запрос;
 - cursor/hash должен учитывать выбранные facets как opaque selection payloads.
 
 Pagination:
@@ -293,7 +307,7 @@ Pagination:
 5. Реализовать resolver `ListingQueryResolver.listing`:
    - декодировать входные global IDs через `decodeGlobalIdByType`;
    - валидировать `ListingScopeInput`;
-   - валидировать `ListingFacetInput`;
+   - валидировать `ListingProductFilter`;
    - нормализовать вход под listing repository;
    - не ходить в catalog за деталями сущностей.
 
@@ -356,7 +370,7 @@ extend type ListingQuery {
     query: String
     locale: LocaleCode
     currency: CurrencyCode
-    facets: [ListingFacetInput!]
+    facets: [ListingProductFilter!]
     orderBy: ListingOrderByInput
   ): ListingConnection!
 }
@@ -381,12 +395,51 @@ input ListingScopeInput {
   collectionId: ID
 }
 
-input ListingFacetInput {
-  """Facet ID returned by ListingFacet.id."""
-  id: String!
+input ListingProductFilter {
+  """Filter on if the listing item is available."""
+  available: Boolean
 
-  """Opaque selected facet values returned by ListingFacetValue.input."""
-  values: [JSON!]!
+  """Filter by product price range."""
+  price: ListingPriceRangeFilter
+
+  """Filter by product vendor."""
+  productVendor: String
+
+  """Filter by product tag."""
+  tag: String
+
+  """Filter by variant option."""
+  variantOption: ListingVariantOptionFilter
+
+  """Filter by product-level catalog facet value."""
+  productFacet: ListingFacetValueFilter
+
+  """Filter by variant-level catalog facet value."""
+  variantFacet: ListingFacetValueFilter
+}
+
+input ListingPriceRangeFilter {
+  """Minimum price amount in minor units."""
+  min: BigInt
+
+  """Maximum price amount in minor units."""
+  max: BigInt
+}
+
+input ListingVariantOptionFilter {
+  """Variant option name."""
+  name: String!
+
+  """Variant option value."""
+  value: String!
+}
+
+input ListingFacetValueFilter {
+  """Facet stable identifier."""
+  facet: String!
+
+  """Facet value stable identifier."""
+  value: String!
 }
 
 enum ListingSortBy {
@@ -458,6 +511,9 @@ type ListingFacet {
   """Facet presentation/selection type."""
   type: ListingFacetType!
 
+  """Catalog-compatible UI type."""
+  uiType: FacetUIType!
+
   """Ordered values for this facet in listing UI order."""
   values: [ListingFacetValue!]!
 }
@@ -476,10 +532,13 @@ type ListingFacetValue {
   selected: Boolean!
 
   """
-  Opaque value to pass back through ListingFacetInput.values.
+  JSON object compatible with ListingProductFilter.
   This keeps product, vendor, price and availability facets on one contract.
   """
   input: JSON!
+
+  """Catalog swatch metadata for facet values that have one."""
+  swatch: FacetSwatch
 }
 ```
 
@@ -499,5 +558,9 @@ type ListingFacetValue {
   задается listing service.
 - Product facets, vendor, price и availability возвращаются как
   `ListingFacet`, а не как разные GraphQL shapes.
+- Returned `ListingFacet` содержит Shopify-like поля `id`, `label`, `type`,
+  `values` и catalog-compatible `uiType`.
+- Returned `ListingFacetValue` содержит Shopify-like поля `id`, `label`,
+  `count`, `input` и catalog-compatible `swatch`.
 - Schema composition проходит после удаления catalog listing SDL и добавления
   listing service SDL.
