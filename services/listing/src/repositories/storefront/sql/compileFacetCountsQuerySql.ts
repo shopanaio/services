@@ -3,12 +3,9 @@ import { emptyRoaringBitmapSql } from "../sqlHelpers.js";
 import type { ListingSqlRequest } from "./compileListingInputSql.js";
 import { compileCoreListingSql } from "./compileMatchesSql.js";
 
-const OPTION_REQUIRED_SET_DNF_LIMIT = 64;
-const OPTION_MATCHING_SIGNATURE_LIMIT = 4096;
-
 export function compileFacetCountsQuerySql(request: ListingSqlRequest) {
-  const optionRequiredCombinationSql =
-    compileOptionRequiredCombinationSql(request);
+  const optionRequiredCombinationSetSql =
+    compileOptionRequiredCombinationSetSql(request);
 
   return sql`
     WITH
@@ -162,33 +159,27 @@ export function compileFacetCountsQuerySql(request: ListingSqlRequest) {
       FROM scope_product_base
       CROSS JOIN product_filters
     ),
-    ${optionRequiredCombinationSql},
-    option_candidate_combination_guard AS (
+    ${optionRequiredCombinationSetSql},
+    option_candidate_combination_set AS (
       SELECT
         ofv.value_key,
-        COALESCE(facet_guard.excluded_facet_slug, default_guard.excluded_facet_slug)
-          AS excluded_facet_slug,
-        COALESCE(facet_guard.signature_lookup_enabled, default_guard.signature_lookup_enabled)
-          AS combination_lookup_enabled
+        COALESCE(facet_set.excluded_facet_slug, default_set.excluded_facet_slug)
+          AS excluded_facet_slug
       FROM option_facet_values ofv
-      JOIN option_required_combination_guard default_guard
-        ON default_guard.excluded_facet_slug IS NULL
-      LEFT JOIN option_required_combination_guard facet_guard
-        ON facet_guard.excluded_facet_slug = ofv.facet_slug
+      JOIN option_required_combination_set default_set
+        ON default_set.excluded_facet_slug IS NULL
+      LEFT JOIN option_required_combination_set facet_set
+        ON facet_set.excluded_facet_slug = ofv.facet_slug
     ),
-    option_signature_base_guard AS (
+    option_signature_base_state AS (
       SELECT
         ofv.value_key,
         COALESCE(sfs.has_value AND sfs.value = false, false) AS force_zero,
-        (
-          combination_guard.combination_lookup_enabled
-          AND NOT COALESCE(sfs.has_value AND sfs.value = false, false)
-          AND scope_variant_filters.bitmap IS NULL
-        ) AS signature_lookup_enabled
+        NOT COALESCE(sfs.has_value AND sfs.value = false, false)
+          AS signature_lookup_enabled
       FROM option_facet_values ofv
-      JOIN option_candidate_combination_guard combination_guard
-        ON combination_guard.value_key = ofv.value_key
-      CROSS JOIN scope_variant_filters
+      JOIN option_candidate_combination_set combination_set
+        ON combination_set.value_key = ofv.value_key
       CROSS JOIN stock_filter_state sfs
     ),
     option_required_set_arrays AS (
@@ -215,20 +206,20 @@ export function compileFacetCountsQuerySql(request: ListingSqlRequest) {
                 ON rf.requested_facet_slug = combo.facet_slug
                AND rf.requested_value_handle = combo.value_handle
                AND rf.facet_type = 'OPTION'
-              WHERE combo.excluded_facet_slug IS NOT DISTINCT FROM combination_guard.excluded_facet_slug
+              WHERE combo.excluded_facet_slug IS NOT DISTINCT FROM combination_set.excluded_facet_slug
                 AND combo.combination_ordinal = ord.combination_ordinal
                 AND rf.facet_id <> ofv.facet_id
             ) required_value(value_key)
             ORDER BY required_value.value_key
           )::text[] AS value_keys
         FROM option_facet_values ofv
-        JOIN option_candidate_combination_guard combination_guard
-          ON combination_guard.value_key = ofv.value_key
-        JOIN option_signature_base_guard signature_guard
-          ON signature_guard.value_key = ofv.value_key
-         AND signature_guard.signature_lookup_enabled = true
+        JOIN option_candidate_combination_set combination_set
+          ON combination_set.value_key = ofv.value_key
+        JOIN option_signature_base_state signature_state
+          ON signature_state.value_key = ofv.value_key
+         AND signature_state.signature_lookup_enabled = true
         JOIN option_required_combination_ordinals ord
-          ON ord.excluded_facet_slug IS NOT DISTINCT FROM combination_guard.excluded_facet_slug
+          ON ord.excluded_facet_slug IS NOT DISTINCT FROM combination_set.excluded_facet_slug
       ) required_sets
     ),
     option_required_set_values AS (
@@ -273,49 +264,42 @@ export function compileFacetCountsQuerySql(request: ListingSqlRequest) {
         signature_key
       FROM option_matching_signature_rows
     ),
-    option_signature_guard AS (
+    option_signature_state AS (
       SELECT
-        guard.value_key,
-        guard.force_zero,
-        guard.signature_lookup_enabled
-          AND NOT EXISTS (
-            SELECT 1
-            FROM option_matching_signature_keys ms
-            WHERE ms.candidate_value_key = guard.value_key
-            OFFSET ${OPTION_MATCHING_SIGNATURE_LIMIT}
-          )
-          AS use_signature
-      FROM option_signature_base_guard guard
+        state.value_key,
+        state.force_zero,
+        state.signature_lookup_enabled AS use_signature
+      FROM option_signature_base_state state
     ),
     option_signature_product_bitmaps AS (
       SELECT
-        guard.value_key,
+        state.value_key,
         COALESCE(
           rb_or_agg(os.product_bitmap) FILTER (WHERE os.product_bitmap IS NOT NULL),
           ${emptyRoaringBitmapSql()}
         ) AS bitmap
-      FROM option_signature_guard guard
+      FROM option_signature_state state
       JOIN input i ON true
       LEFT JOIN option_matching_signature_keys ms
-        ON ms.candidate_value_key = guard.value_key
+        ON ms.candidate_value_key = state.value_key
       LEFT JOIN listing.listing_option_signature os
         ON os.project_id = i.project_id
        AND os.signature_key = ms.signature_key
-      WHERE guard.use_signature
-      GROUP BY guard.value_key
+      WHERE state.use_signature
+      GROUP BY state.value_key
     ),
     option_signature_price_product_bitmaps AS (
       SELECT
-        guard.value_key,
+        state.value_key,
         COALESCE(
           rb_build_agg(vp.product_doc_id) FILTER (WHERE vp.product_doc_id IS NOT NULL),
           ${emptyRoaringBitmapSql()}
         ) AS bitmap
-      FROM option_signature_guard guard
+      FROM option_signature_state state
       JOIN input i
         ON i.price_filter_json <> '{}'::jsonb
       LEFT JOIN option_matching_signature_keys ms
-        ON ms.candidate_value_key = guard.value_key
+        ON ms.candidate_value_key = state.value_key
       LEFT JOIN listing.variant_listing_price_index vp
         ON vp.project_id = i.project_id
        AND vp.signature_key = ms.signature_key
@@ -334,8 +318,8 @@ export function compileFacetCountsQuerySql(request: ListingSqlRequest) {
          NOT (i.price_filter_json ? 'maxPriceMinor')
          OR vp.price_minor <= (i.price_filter_json->>'maxPriceMinor')::bigint
        )
-      WHERE guard.use_signature
-      GROUP BY guard.value_key
+      WHERE state.use_signature
+      GROUP BY state.value_key
     ),
     option_signature_facet_counts AS (
       SELECT
@@ -343,7 +327,7 @@ export function compileFacetCountsQuerySql(request: ListingSqlRequest) {
         ofv.facet_type,
         ofv.value_key,
         CASE
-          WHEN guard.force_zero THEN 0
+          WHEN state.force_zero THEN 0
           WHEN i.price_filter_json <> '{}'::jsonb
           THEN rb_cardinality(
             COALESCE(price_bitmaps.bitmap, ${emptyRoaringBitmapSql()})
@@ -355,15 +339,15 @@ export function compileFacetCountsQuerySql(request: ListingSqlRequest) {
           )::int
         END AS count
       FROM option_facet_values ofv
-      JOIN option_signature_guard guard
-        ON guard.value_key = ofv.value_key
+      JOIN option_signature_state state
+        ON state.value_key = ofv.value_key
       CROSS JOIN input i
       CROSS JOIN option_count_product_scope
       LEFT JOIN option_signature_product_bitmaps signature_bitmaps
         ON signature_bitmaps.value_key = ofv.value_key
       LEFT JOIN option_signature_price_product_bitmaps price_bitmaps
         ON price_bitmaps.value_key = ofv.value_key
-      WHERE guard.force_zero OR guard.use_signature
+      WHERE state.force_zero OR state.use_signature
     ),
     option_facet_counts AS (
       SELECT * FROM option_signature_facet_counts
@@ -386,9 +370,8 @@ export function compileFacetCountsQuerySql(request: ListingSqlRequest) {
   `;
 }
 
-interface RequiredCombinationGuard {
+interface RequiredCombinationSet {
   excludedFacetSlug: string | null;
-  enabled: boolean;
   combinations: readonly RequiredCombination[];
 }
 
@@ -399,37 +382,33 @@ interface RequiredCombinationValue {
   valueHandle: string;
 }
 
-function compileOptionRequiredCombinationSql(request: ListingSqlRequest): SQL {
-  const guards = buildRequiredCombinationGuards(request);
-  const guardRows = guards.map(
-    (guard) => sql`(${guard.excludedFacetSlug}::text, ${guard.enabled}::boolean)`
+function compileOptionRequiredCombinationSetSql(request: ListingSqlRequest): SQL {
+  const combinationSets = buildRequiredCombinationSets(request);
+  const combinationSetRows = combinationSets.map(
+    (combinationSet) => sql`(${combinationSet.excludedFacetSlug}::text)`
   );
-  const ordinalRows = guards.flatMap((guard) =>
-    guard.enabled
-      ? guard.combinations.map(
-          (_combination, index) =>
-            sql`(${guard.excludedFacetSlug}::text, ${index + 1}::int)`
-        )
-      : []
+  const ordinalRows = combinationSets.flatMap((combinationSet) =>
+    combinationSet.combinations.map(
+      (_combination, index) =>
+        sql`(${combinationSet.excludedFacetSlug}::text, ${index + 1}::int)`
+    )
   );
-  const valueRows = guards.flatMap((guard) =>
-    guard.enabled
-      ? guard.combinations.flatMap((combination, combinationIndex) =>
-          combination.map(
-            (value) =>
-              sql`(${guard.excludedFacetSlug}::text, ${
-                combinationIndex + 1
-              }::int, ${value.facetSlug}::text, ${value.valueHandle}::text)`
-          )
-        )
-      : []
+  const valueRows = combinationSets.flatMap((combinationSet) =>
+    combinationSet.combinations.flatMap((combination, combinationIndex) =>
+      combination.map(
+        (value) =>
+          sql`(${combinationSet.excludedFacetSlug}::text, ${
+            combinationIndex + 1
+          }::int, ${value.facetSlug}::text, ${value.valueHandle}::text)`
+      )
+    )
   );
 
   return sql`
-    option_required_combination_guard AS (
+    option_required_combination_set AS (
       SELECT *
-      FROM (VALUES ${sql.join(guardRows, sql`, `)})
-        AS guard(excluded_facet_slug, signature_lookup_enabled)
+      FROM (VALUES ${sql.join(combinationSetRows, sql`, `)})
+        AS combination_set(excluded_facet_slug)
     ),
     option_required_combination_ordinals AS (
       ${valuesOrEmpty(
@@ -468,9 +447,9 @@ function valuesOrEmpty(
   return sql`SELECT * FROM (VALUES ${sql.join([...rows], sql`, `)}) AS ${sql.raw(alias)}(${columns})`;
 }
 
-function buildRequiredCombinationGuards(
+function buildRequiredCombinationSets(
   request: ListingSqlRequest
-): RequiredCombinationGuard[] {
+): RequiredCombinationSet[] {
   const groups = groupFacetFilters(request);
   const activeFacetSlugs = [...groups.keys()].sort();
   const excludedFacetSlugs = [null, ...activeFacetSlugs];
@@ -479,19 +458,9 @@ function buildRequiredCombinationGuards(
     const combinationGroups = activeFacetSlugs
       .filter((facetSlug) => facetSlug !== excludedFacetSlug)
       .map((facetSlug) => groups.get(facetSlug) ?? []);
-    const combinationCount = countCombinations(combinationGroups);
-
-    if (combinationCount > OPTION_REQUIRED_SET_DNF_LIMIT) {
-      return {
-        excludedFacetSlug,
-        enabled: false,
-        combinations: [],
-      };
-    }
 
     return {
       excludedFacetSlug,
-      enabled: true,
       combinations: buildCombinations(combinationGroups),
     };
   });
@@ -512,23 +481,6 @@ function groupFacetFilters(
   }
 
   return groups;
-}
-
-function countCombinations(
-  groups: readonly (readonly RequiredCombinationValue[])[]
-): number {
-  if (groups.length === 0) {
-    return 1;
-  }
-
-  let count = 1;
-  for (const group of groups) {
-    count *= Math.max(group.length, 1);
-    if (count > OPTION_REQUIRED_SET_DNF_LIMIT) {
-      return count;
-    }
-  }
-  return count;
 }
 
 function buildCombinations(
