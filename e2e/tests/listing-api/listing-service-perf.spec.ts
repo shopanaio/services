@@ -10,11 +10,20 @@ const execFileAsync = promisify(execFile);
 
 const PRODUCT_COUNT = 10_000;
 const PAGE_SIZE = 20;
+const QUERY_RUNS = 5;
 const PRICE_FILTER = { min: 20_000, max: 60_000 } as const;
 const LISTING_PERF_RESULTS_DIR = resolve(process.cwd(), 'test-results/listing-perf');
 const SEED_META_PATH = resolve(LISTING_PERF_RESULTS_DIR, 'price-facet-10k-seed.json');
 const POSTGRES_RAW_LOG_PATH = resolve(LISTING_PERF_RESULTS_DIR, 'price-facet-10k-postgres.log');
 const POSTGRES_SQL_SUMMARY_PATH = resolve(LISTING_PERF_RESULTS_DIR, 'price-facet-10k-postgres-sql.txt');
+const POSTGRES_COMPARISON_PATH = resolve(LISTING_PERF_RESULTS_DIR, 'price-facet-10k-comparison.json');
+const LISTING_SQL_BRANCHES = [
+  'listing:page',
+  'listing:totalCount',
+  'listing:facetsMetadata',
+  'listing:facetCounts',
+  'listing:virtualFacets',
+] as const;
 
 const LISTING_PERF_QUERY = /* GraphQL */ `
   query ListingServicePerf(
@@ -120,54 +129,70 @@ test.describe('Listing service perf', () => {
       }
 
       const postgresLogsSince = new Date().toISOString();
-      const startedAt = performance.now();
-      const response = await request.post(graphqlUrl, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Store-Name': api.session.projectSlug,
-          'X-Organization-Id': api.session.organizationId ?? '',
-          'X-Currency': 'USD',
-          'X-Idempotency-Key': 'listing-service-perf-price-facets-10k',
-          Authorization: `Bearer ${api.session.accessToken}`,
-        },
-        data: {
-          operationName: 'ListingServicePerf',
-          query: LISTING_PERF_QUERY,
-          variables: {
-            first: PAGE_SIZE,
-            locale: 'en',
-            currency: 'USD',
-            scope: {
-              kind: 'CATEGORY',
-              categoryId,
-            },
-            facets: SELECTED_FACETS,
-            orderBy: {
-              by: 'PRICE',
-              direction: 'asc',
+      const runMetrics: ListingPerfRunMetric[] = [];
+
+      for (let run = 1; run <= QUERY_RUNS; run += 1) {
+        const startedAt = performance.now();
+        const response = await request.post(graphqlUrl, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Store-Name': api.session.projectSlug,
+            'X-Organization-Id': api.session.organizationId ?? '',
+            'X-Currency': 'USD',
+            'X-Idempotency-Key': 'listing-service-perf-price-facets-10k',
+            Authorization: `Bearer ${api.session.accessToken}`,
+          },
+          data: {
+            operationName: 'ListingServicePerf',
+            query: LISTING_PERF_QUERY,
+            variables: {
+              first: PAGE_SIZE,
+              locale: 'en',
+              currency: 'USD',
+              scope: {
+                kind: 'CATEGORY',
+                categoryId,
+              },
+              facets: SELECTED_FACETS,
+              orderBy: {
+                by: 'PRICE',
+                direction: 'asc',
+              },
             },
           },
-        },
-      });
-      const elapsedMs = performance.now() - startedAt;
-      const json = await response.json();
-      const postgresDurations = await readRecentPostgresDurations(postgresLogsSince);
+        });
+        const elapsedMs = performance.now() - startedAt;
+        const json = await response.json();
 
-      console.log(`listing service elapsed=${elapsedMs.toFixed(3)}ms`);
+        expect(response.ok()).toBe(true);
+        expect(json.errors ?? []).toEqual([]);
+        const listing = json.data.listingQuery.listing;
+        expect(listing.totalCount).toBe(seedMeta.expected.expectedTotalCount);
+        expect(listing.edges.map((edge: ListingPerfEdge) => edge.node.id)).toEqual(
+          seedMeta.expected.expectedPageProductIds,
+        );
+        expectSelectedFacetCounts(listing.facets, seedMeta.expected.expectedSelectedFacetCounts);
+        expect(json.data.listingQuery.listing.edges).toHaveLength(PAGE_SIZE);
+        expect(json.data.listingQuery.listing.pageInfo.hasNextPage).toBe(true);
+
+        runMetrics.push({ run, elapsedMs, branchTimings: {} });
+      }
+
+      const postgresDurations = await readRecentPostgresDurations(postgresLogsSince);
+      const branchTimingRuns = extractBranchTimingRuns(postgresDurations.summary);
+      for (const metric of runMetrics) {
+        metric.branchTimings = Object.fromEntries(
+          LISTING_SQL_BRANCHES.map((branch) => [branch, branchTimingRuns[branch]?.[metric.run - 1] ?? null]),
+        );
+      }
+
+      const comparison = buildRunComparison(runMetrics);
+      await writeFile(POSTGRES_COMPARISON_PATH, `${JSON.stringify(comparison, null, 2)}\n`);
+
+      console.log(formatRunComparison(comparison));
       console.log(`postgres raw log: ${POSTGRES_RAW_LOG_PATH}`);
       console.log(`postgres sql timings: ${POSTGRES_SQL_SUMMARY_PATH}`);
-      console.log(postgresDurations.summary);
-
-      expect(response.ok()).toBe(true);
-      expect(json.errors ?? []).toEqual([]);
-      const listing = json.data.listingQuery.listing;
-      expect(listing.totalCount).toBe(seedMeta.expected.expectedTotalCount);
-      expect(listing.edges.map((edge: ListingPerfEdge) => edge.node.id)).toEqual(
-        seedMeta.expected.expectedPageProductIds,
-      );
-      expectSelectedFacetCounts(listing.facets, seedMeta.expected.expectedSelectedFacetCounts);
-      expect(json.data.listingQuery.listing.edges).toHaveLength(PAGE_SIZE);
-      expect(json.data.listingQuery.listing.pageInfo.hasNextPage).toBe(true);
+      console.log(`comparison: ${POSTGRES_COMPARISON_PATH}`);
     } finally {
       await setPostgresDurationLogging(false);
     }
@@ -197,6 +222,12 @@ interface ListingPerfFacetValue {
 interface ListingPerfFacet {
   id: string;
   values: ListingPerfFacetValue[];
+}
+
+interface ListingPerfRunMetric {
+  run: number;
+  elapsedMs: number;
+  branchTimings: Partial<Record<(typeof LISTING_SQL_BRANCHES)[number], number | null>>;
 }
 
 function expectSelectedFacetCounts(
@@ -280,4 +311,87 @@ function extractPostgresDurationEntries(log: string): string[] {
   }
 
   return entries;
+}
+
+function extractBranchTimingRuns(summary: string): Record<(typeof LISTING_SQL_BRANCHES)[number], number[]> {
+  const timings = Object.fromEntries(LISTING_SQL_BRANCHES.map((branch) => [branch, []])) as Record<
+    (typeof LISTING_SQL_BRANCHES)[number],
+    number[]
+  >;
+
+  for (const entry of summary.split('\n\n---\n\n')) {
+    if (!entry.includes('execute <unnamed>:')) {
+      continue;
+    }
+
+    const duration = entry.match(/duration: ([0-9.]+) ms\s+execute <unnamed>:/);
+    if (!duration) {
+      continue;
+    }
+
+    for (const branch of LISTING_SQL_BRANCHES) {
+      if (entry.includes(`/* ${branch} */`)) {
+        timings[branch].push(Number(duration[1]));
+        break;
+      }
+    }
+  }
+
+  return timings;
+}
+
+function buildRunComparison(runMetrics: ListingPerfRunMetric[]) {
+  const first = runMetrics[0];
+  const last = runMetrics[runMetrics.length - 1];
+
+  return {
+    runs: runMetrics.map((metric) => ({
+      run: metric.run,
+      elapsedMs: Number(metric.elapsedMs.toFixed(3)),
+      branchTimingsMs: Object.fromEntries(
+        Object.entries(metric.branchTimings).map(([branch, timing]) => [
+          branch,
+          typeof timing === 'number' ? Number(timing.toFixed(3)) : null,
+        ]),
+      ),
+    })),
+    firstVsLast: {
+      elapsedMs: {
+        first: Number(first.elapsedMs.toFixed(3)),
+        last: Number(last.elapsedMs.toFixed(3)),
+        delta: Number((last.elapsedMs - first.elapsedMs).toFixed(3)),
+      },
+      branchTimingsMs: Object.fromEntries(
+        LISTING_SQL_BRANCHES.map((branch) => {
+          const firstTiming = first.branchTimings[branch];
+          const lastTiming = last.branchTimings[branch];
+          return [
+            branch,
+            {
+              first: typeof firstTiming === 'number' ? Number(firstTiming.toFixed(3)) : null,
+              last: typeof lastTiming === 'number' ? Number(lastTiming.toFixed(3)) : null,
+              delta:
+                typeof firstTiming === 'number' && typeof lastTiming === 'number'
+                  ? Number((lastTiming - firstTiming).toFixed(3))
+                  : null,
+            },
+          ];
+        }),
+      ),
+    },
+  };
+}
+
+function formatRunComparison(comparison: ReturnType<typeof buildRunComparison>): string {
+  const lines = [
+    `listing service elapsed runs=${comparison.runs.map((run) => `${run.run}:${run.elapsedMs}ms`).join(' ')}`,
+    `first-vs-last elapsed=${comparison.firstVsLast.elapsedMs.first}ms -> ${comparison.firstVsLast.elapsedMs.last}ms delta=${comparison.firstVsLast.elapsedMs.delta}ms`,
+    'first-vs-last postgres execute:',
+  ];
+
+  for (const [branch, timing] of Object.entries(comparison.firstVsLast.branchTimingsMs)) {
+    lines.push(`${branch}: ${timing.first}ms -> ${timing.last}ms delta=${timing.delta}ms`);
+  }
+
+  return lines.join('\n');
 }
