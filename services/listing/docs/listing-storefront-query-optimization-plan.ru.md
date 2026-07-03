@@ -255,12 +255,12 @@ Shared fragments обязаны сохранять текущую storefront fil
   `listing_posting_variant_price`, должен быть ограничен active in-stock
   variants и входит в `variant_filters`.
 - `active_stock_variant_filter` строится из active `in_stock` predicate, если
-  он задан и его value равен `true`. При option/price variant path без explicit
-  stock predicate он должен использовать текущий default `in_stock = true`.
-  Explicit `in_stock = false` не может строить out-of-stock variant bitmap для
-  option/price path: out-of-stock variants не участвуют в option filters, price
-  filters, matched variant price sort, option counts и variant-level collection
-  rules. Stock-only `false` обслуживается через `active_stock_product_filter`.
+  он задан: `true` дает in-stock variant bitmap, `false` дает out-of-stock
+  variant bitmap. При option/price variant path без explicit stock predicate он
+  должен использовать текущий default `in_stock = true`. Price predicates всё
+  равно читают `listing_posting_variant_price`, где есть только active in-stock
+  priced variants, поэтому `in_stock = false` + price path пересекается в empty
+  purchasable-variant result.
 - `active_stock_product_filter` используется только для stock-only path, когда
   нет option facet groups, active price predicate и rule-level variant scope. Это
   сохраняет текущий быстрый product-level stock filter, но не ломает same-variant
@@ -1293,8 +1293,10 @@ Notes:
 - Option counts исключают active option group того же `facet_id`, но сохраняют
   same-variant semantics до projection.
 - Option counts сохраняют active stock predicate на variant base. Если active
-  `in_stock = false` пришел вместе с option/price path, stock bitmap является
-  empty bitmap, потому out-of-stock variants не могут давать option counts.
+  `in_stock = false` пришел вместе с option path, counts считаются по
+  out-of-stock variant bitmap. Если одновременно active price predicate, price
+  bitmap содержит только in-stock priced variants, поэтому пересечение может
+  стать empty.
 - Option counts должны сохранять active price predicate в variant base. Иначе
   counts при active price filter описывают не текущий filtered listing scope.
 - Query D возвращает только counts, не metadata.
