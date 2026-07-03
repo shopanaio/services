@@ -150,6 +150,36 @@ First vs last after refactoring:
 delta=21.693ms
 ```
 
+## After refactoring: all listing SQL branches
+
+Follow-up run after refactoring all listing SQL branches:
+
+```text
+Date: 2026-07-04
+Result: 1 passed (1.4m)
+```
+
+Latest SQL timings:
+
+| Run | Service elapsed | `listing:page` | `listing:totalCount` | `listing:facetsMetadata` | `listing:facetCounts` | `listing:virtualFacets` |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 4337.376 ms | 72.785 ms | 22.703 ms | 18.825 ms | 3344.555 ms | 45.649 ms |
+| 2 | 3764.609 ms | 137.135 ms | 36.506 ms | 44.677 ms | 3218.745 ms | 56.604 ms |
+| 3 | 3514.796 ms | 78.400 ms | 23.568 ms | 26.215 ms | 3138.876 ms | 40.669 ms |
+| 4 | 4368.009 ms | 93.118 ms | 23.207 ms | 19.847 ms | 4082.101 ms | 52.972 ms |
+| 5 | 3733.448 ms | 79.041 ms | 14.572 ms | 9.024 ms | 3464.194 ms | 31.677 ms |
+
+First vs last after all-branch refactoring:
+
+| Metric | First | Last | Delta |
+| --- | ---: | ---: | ---: |
+| Service elapsed | 4337.376 ms | 3733.448 ms | -603.927 ms |
+| `listing:page` | 72.785 ms | 79.041 ms | 6.256 ms |
+| `listing:totalCount` | 22.703 ms | 14.572 ms | -8.131 ms |
+| `listing:facetsMetadata` | 18.825 ms | 9.024 ms | -9.801 ms |
+| `listing:facetCounts` | 3344.555 ms | 3464.194 ms | 119.639 ms |
+| `listing:virtualFacets` | 45.649 ms | 31.677 ms | -13.972 ms |
+
 ## Artifacts
 
 Current generated artifacts from the last Playwright run:
