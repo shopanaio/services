@@ -199,30 +199,55 @@ Feature flag обязателен, потому новый path меняет ф�
 storefront runtime. Начальный rollout должен уметь быстро вернуть старый
 candidate path без code rollback.
 
-Начальный flag:
+Начальный default:
 
 ```ts
 const LISTING_HEAVY_OPTION_FACET_COUNTS_ENABLED_DEFAULT = false;
 ```
 
-Рекомендуемое имя runtime config/env:
-
-```text
-LISTING_HEAVY_OPTION_FACET_COUNTS_ENABLED
-```
-
-SQL compiler не должен читать `process.env` напрямую. Значение flag нужно
-передавать в `ListingSqlRequest`, например:
+Flag подключается как поле repository config, а не через чтение env/config в SQL
+compiler:
 
 ```ts
+interface RepositoryConfig {
+  db: Database;
+  heavyOptionFacetCountsEnabled?: boolean;
+}
+```
+
+`Repository.create(config)` нормализует значение:
+
+```ts
+const heavyOptionFacetCountsEnabled =
+  config.heavyOptionFacetCountsEnabled ??
+  LISTING_HEAVY_OPTION_FACET_COUNTS_ENABLED_DEFAULT;
+```
+
+Значение передается в `StorefrontListingQueryRepository` через constructor
+dependency, затем в `toListingSqlRequest`, и только после этого попадает в SQL
+compiler:
+
+```ts
+class StorefrontListingQueryRepository extends BaseRepository {
+  constructor(
+    db: Database,
+    txManager: TransactionManager<Database>,
+    // ...
+    private readonly heavyOptionFacetCountsEnabled: boolean
+  ) {
+    super(db, txManager);
+  }
+}
+
 interface ListingSqlRequest {
   // ...
   heavyOptionFacetCountsEnabled: boolean;
 }
 ```
 
-Начальное значение в production-like окружениях должно быть `false`. Включение
-делать явно через config/env после проверки query plan и parity на fixtures.
+Начальное значение во всех call sites должно быть `false` через default.
+Включение делать явно при создании `Repository` после проверки query plan и
+parity на fixtures.
 
 Начальный threshold:
 
@@ -608,6 +633,7 @@ option_heavy_base_signatures AS (
    AND counts.required_facet_count > 0
   JOIN listing.listing_option_signature_value sv
     ON sv.project_id = i.project_id
+   AND sv.facet_id = required.required_facet_id::uuid
    AND sv.value_key = required.value_key
   GROUP BY
     required.target_facet_id,
@@ -638,6 +664,9 @@ Why this is correct:
 
 - `option_heavy_required_values` excludes current target facet.
 - `COUNT(DISTINCT required_facet_id)` implements OR within each required facet.
+- `sv.facet_id = required.required_facet_id::uuid` keeps the selected value
+  lookup tied to the resolved facet identity instead of relying only on
+  `value_key` encoding.
 - active filter values come from resolved `filterPlan.optionFacetGroups`, so
   heavy path uses the same `facet_id`/`value_key` internal identity as the new
   candidate combination generator.
@@ -654,6 +683,7 @@ Why this is correct:
 ```sql
 option_heavy_signature_product_bitmaps AS (
   SELECT
+    bucket.facet_id,
     bucket.value_key,
     COALESCE(
       rb_or_agg(os.product_bitmap) FILTER (WHERE os.product_bitmap IS NOT NULL),
@@ -664,7 +694,7 @@ option_heavy_signature_product_bitmaps AS (
   JOIN listing.listing_option_signature os
     ON os.project_id = i.project_id
    AND os.signature_key = bucket.signature_key
-  GROUP BY bucket.value_key
+  GROUP BY bucket.facet_id, bucket.value_key
 )
 ```
 
@@ -682,6 +712,7 @@ option_heavy_signature_product_bitmaps AS (
 ```sql
 option_heavy_signature_price_product_bitmaps AS (
   SELECT
+    bucket.facet_id,
     bucket.value_key,
     COALESCE(
       rb_build_agg(vp.product_doc_id)
@@ -708,7 +739,7 @@ option_heavy_signature_price_product_bitmaps AS (
      NOT (i.price_filter_json ? 'maxPriceMinor')
      OR vp.price_minor <= (i.price_filter_json->>'maxPriceMinor')::bigint
    )
-  GROUP BY bucket.value_key
+  GROUP BY bucket.facet_id, bucket.value_key
 )
 ```
 
@@ -742,9 +773,11 @@ option_heavy_signature_facet_counts AS (
   JOIN option_facet_count_strategy strategy
     ON strategy.facet_id = ofv.facet_id
   LEFT JOIN option_heavy_signature_product_bitmaps signature_bitmaps
-    ON signature_bitmaps.value_key = ofv.value_key
+    ON signature_bitmaps.facet_id = ofv.facet_id
+   AND signature_bitmaps.value_key = ofv.value_key
   LEFT JOIN option_heavy_signature_price_product_bitmaps price_bitmaps
-    ON price_bitmaps.value_key = ofv.value_key
+    ON price_bitmaps.facet_id = ofv.facet_id
+   AND price_bitmaps.value_key = ofv.value_key
   WHERE strategy.use_heavy_signature_path
 )
 ```
@@ -771,8 +804,10 @@ CREATE INDEX idx_listing_option_signature_value_lookup
 project_id + facet_id + signature_key -> value_key
 ```
 
-Добавить migration, если `EXPLAIN` показывает scan/hash на большой части
-`listing_option_signature_value`:
+Добавить migration вместе с heavy path. `EXPLAIN` использовать для проверки
+выбранного плана и порядка колонок, но не оставлять индекс условным: без него
+heavy bucket expansion может превратиться в scan/hash на большой части
+`listing_option_signature_value`.
 
 ```sql
 CREATE INDEX idx_listing_option_signature_value_facet_signature
@@ -852,8 +887,10 @@ Color OR group.
    `buildOptionFacetCombinationEstimate`,
    `multiplyClamped` and `compileOptionFacetCountStrategySql` to
    `compileFacetCountsQuerySql.ts`.
-2. Add `heavyOptionFacetCountsEnabled` to `ListingSqlRequest` and populate it
-   from listing runtime config/env. Default must be `false`.
+2. Add `heavyOptionFacetCountsEnabled?: boolean` to `RepositoryConfig`, normalize
+   it in `Repository.create` with default `false`, pass it into
+   `StorefrontListingQueryRepository` constructor, and include it in
+   `toListingSqlRequest` / `ListingSqlRequest`.
 3. Convert option required-combination generation from slug/handle rows to
    `filterPlan.optionFacetGroups` rows keyed by `facet_id` and `value_key`.
    Reuse the same generated source for `option_active_filter_value_rows`.
@@ -871,8 +908,11 @@ Color OR group.
    - `option_heavy_signature_price_product_bitmaps`;
    - `option_heavy_signature_facet_counts`.
 7. Change `option_facet_counts` to `UNION ALL` candidate and heavy counts.
-8. Add the facet/signature lookup index if query plan needs it.
-9. Keep existing result mapper unchanged. Output columns stay:
+8. Add the facet/signature lookup index migration and Drizzle model entry.
+9. Add a fixture/parity verification mode that can force heavy strategy for a
+   target facet and compare sorted `(facet_id, value_key, count)` rows against
+   the candidate path.
+10. Keep existing result mapper unchanged. Output columns stay:
    `facet_id`, `facet_type`, `value_key`, `count`.
 
 Implementation note: in the current file `facet_id` is `text` in
@@ -945,7 +985,8 @@ Compare old candidate path and new heavy path on the same fixtures:
 Rollback безопасный:
 
 ```text
-1. set LISTING_HEAVY_OPTION_FACET_COUNTS_ENABLED=false
+1. create `Repository` with `heavyOptionFacetCountsEnabled: false` or omit the
+   field so the default stays false
 2. candidate path becomes the only producer again
 3. heavy CTEs return no rows
 ```
