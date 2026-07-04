@@ -129,6 +129,13 @@ facetReferenceRefs?: FacetReferenceChange[];
 
 `ProductDeleteScript` должен собрать refs до hard delete. Для soft delete тоже лучше передавать refs из pre-delete snapshot, чтобы workflow не зависел от физического состояния rows после удаления.
 
+Refs для rename/update/delete должны собираться в script layer до side effects:
+
+- `OptionUpdateScript` / `FeatureUpdateScript` читают current option/feature/value rows перед update и формируют `before` refs до изменения slug/value slug;
+- `OptionDeleteScript` / `FeatureDeleteScript` и sync scripts формируют delete refs до удаления rows;
+- script result должен возвращать `facetReferenceRefs`, а resolver/workflow layer эмитит `productUpdated` только после successful commit;
+- запрещено восстанавливать old handles после mutation из нового состояния: для rename это теряет `before` side и делает точечный sync невозможным.
+
 ### 3. Display values остаются VALID, но effective state меняется
 
 `facet_value.kind = 'display'` нельзя переводить в `STALE`.
@@ -154,20 +161,18 @@ facetReferenceRefs?: FacetReferenceChange[];
 
 - `productCreated`;
 - `productUpdated`;
-- `productDeleted`;
-- `variantDeleted`.
+- `productDeleted`.
 
 `productUpdated` запускает sync только если есть хотя бы одно условие:
 
 - `payload.product?.tags?.changed`;
 - `payload.product?.options?.changed`;
 - `payload.product?.features?.changed`;
-- любой `payload.variants[*].lifecycle` в `created | deleted`;
 - любой `payload.variants[*].options`.
 
 `productCreated` и `productDeleted` запускают sync всегда.
 
-`variantDeleted` запускает sync, если нужно пересчитать effective facet selections. Для raw reference status он может дать no-op, потому что option/feature source values живут на product, а не на variant.
+`variantDeleted` не запускает `catalog.facetReferenceSync`: raw reference status для `OPTION`/`FEATURE` живет на product option/feature rows, а не на variant rows. Если deletion variant должен пересчитать listing effective selections, это остается в existing listing sync path или в отдельном downstream consumer `facetReferenceStateChanged`, но не в reference sync trigger.
 
 ### Batch events
 
@@ -207,7 +212,6 @@ export interface FacetReferenceSyncWorkflowInput {
     | "productCreated"
     | "productUpdated"
     | "productDeleted"
-    | "variantDeleted"
     | "eventBatch"
     | "manual";
   events: FacetReferenceSyncEventInput[];
@@ -531,7 +535,7 @@ Manual reconciliation:
 
 ### Phase 4. Event handlers
 
-1. Подключить trigger к `productCreated`, `productUpdated`, `productDeleted`, `variantDeleted`.
+1. Подключить trigger к `productCreated`, `productUpdated`, `productDeleted`.
 2. Подключить batch trigger к `.batch` handlers.
 3. Проверить DBOS child workflow behavior из event handler.
 4. Если нужно, вынести запуск в workflow-backed event handler adapter.
