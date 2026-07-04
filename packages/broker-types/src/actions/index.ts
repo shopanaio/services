@@ -24,6 +24,40 @@ export type {
   InventoryItemProjectionSnapshotVariant,
 } from "./catalog.js";
 
+// Listing service actions
+export * as Listing from "./listing.js";
+export type {
+  DeleteSellableItemParams,
+  DeleteSellableItemResult,
+  ListingAvailabilitySnapshot,
+  ListingCategoryScopeMembershipSnapshot,
+  ListingCollectionScopeMembershipSnapshot,
+  ListingContentSnapshot,
+  ListingFacetRef,
+  ListingFacetSelectionSnapshot,
+  ListingFacetValueRef,
+  ListingLocalizedContentSnapshot,
+  ListingPriceRangeSnapshot,
+  ListingScopeMembershipSnapshot,
+  ListingSellableItemEntityType,
+  ListingSellableItemRef,
+  ListingSellableItemSnapshot,
+  ListingUpdateActor,
+  ListingUpdateContractVersion,
+  ListingUpdateError,
+  ListingUpdateErrorCode,
+  ListingUpdateMeta,
+  ListingUpdateResult,
+  ListingUpdateSource,
+  ListingUpdateWarning,
+  ListingVariantPriceSnapshot,
+  ListingVariantSnapshot,
+  SyncSellableItemParams,
+  SyncSellableItemResult,
+  SyncSellableItemsParams,
+  SyncSellableItemsResult,
+} from "./listing.js";
+
 // Media service actions
 export * as Media from "./media.js";
 export type {
