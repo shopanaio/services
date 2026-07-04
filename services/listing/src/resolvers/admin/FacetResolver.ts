@@ -4,7 +4,6 @@ import {
 } from "@shopana/shared-graphql-guid";
 import { ListingType } from "./ListingType.js";
 import type { Facet } from "../../repositories/models/index.js";
-import { FacetValueResolver } from "./FacetValueResolver.js";
 
 export class FacetResolver extends ListingType<string, Facet> {
   async $preload() {
@@ -56,6 +55,6 @@ export class FacetResolver extends ListingType<string, Facet> {
 
   async values() {
     const ids = await this.$ctx.loaders.facetValueIds.load(this.$props);
-    return ids.map((id) => new FacetValueResolver(id, this.$ctx));
+    return Promise.all(ids.map((id) => this.resolvers.facetValue(id)));
   }
 }

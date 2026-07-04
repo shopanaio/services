@@ -20,9 +20,6 @@ import {
   FacetValueUnmergeScript,
   FacetValueUpdateScript,
 } from "../../scripts/facet/index.js";
-import { FacetResolver } from "./FacetResolver.js";
-import { FacetSwatchResolver } from "./FacetSwatchResolver.js";
-import { FacetValueResolver } from "./FacetValueResolver.js";
 import { ListingType } from "./ListingType.js";
 
 function safeDecodeGlobalId(
@@ -62,8 +59,8 @@ function safeDecodeGlobalIds(
 
 @ApolloMutation
 export class MutationResolver extends ListingType<Record<string, never>> {
-  listingMutation() {
-    return new ListingMutationResolver({}, this.$ctx);
+  async listingMutation() {
+    return this.resolvers.listingMutation();
   }
 }
 
@@ -104,7 +101,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     });
 
     return {
-      facet: result.facet ? new FacetResolver(result.facet.id, this.$ctx) : null,
+      facet: result.facet ? await this.resolvers.facet(result.facet.id) : null,
       userErrors: result.userErrors,
     };
   }
@@ -134,7 +131,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     });
 
     return {
-      facet: result.facet ? new FacetResolver(result.facet.id, this.$ctx) : null,
+      facet: result.facet ? await this.resolvers.facet(result.facet.id) : null,
       userErrors: result.userErrors,
     };
   }
@@ -196,7 +193,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     });
 
     return {
-      facet: result.facet ? new FacetResolver(result.facet.id, this.$ctx) : null,
+      facet: result.facet ? await this.resolvers.facet(result.facet.id) : null,
       userErrors: result.userErrors,
     };
   }
@@ -205,7 +202,9 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     const result = await this.$ctx.kernel.runScript(FacetRebalanceScript, {});
 
     return {
-      facets: result.facets.map((facet) => new FacetResolver(facet.id, this.$ctx)),
+      facets: await Promise.all(
+        result.facets.map((facet) => this.resolvers.facet(facet.id))
+      ),
       userErrors: result.userErrors,
     };
   }
@@ -261,7 +260,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
 
     return {
       facetValue: result.facetValue
-        ? new FacetValueResolver(result.facetValue.id, this.$ctx)
+        ? await this.resolvers.facetValue(result.facetValue.id)
         : null,
       userErrors: result.userErrors,
     };
@@ -306,7 +305,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
 
     return {
       facetValue: result.facetValue
-        ? new FacetValueResolver(result.facetValue.id, this.$ctx)
+        ? await this.resolvers.facetValue(result.facetValue.id)
         : null,
       userErrors: result.userErrors,
     };
@@ -364,10 +363,10 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
 
     return {
       facetValue: result.facetValue
-        ? new FacetValueResolver(result.facetValue.id, this.$ctx)
+        ? await this.resolvers.facetValue(result.facetValue.id)
         : null,
-      sourceValues: result.sourceValues.map(
-        (value) => new FacetValueResolver(value.id, this.$ctx)
+      sourceValues: await Promise.all(
+        result.sourceValues.map((value) => this.resolvers.facetValue(value.id))
       ),
       userErrors: result.userErrors,
     };
@@ -396,11 +395,13 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     });
 
     return {
-      sourceValues: result.sourceValues.map(
-        (value) => new FacetValueResolver(value.id, this.$ctx)
+      sourceValues: await Promise.all(
+        result.sourceValues.map((value) => this.resolvers.facetValue(value.id))
       ),
-      affectedDisplayValues: result.affectedDisplayValues.map(
-        (value) => new FacetValueResolver(value.id, this.$ctx)
+      affectedDisplayValues: await Promise.all(
+        result.affectedDisplayValues.map((value) =>
+          this.resolvers.facetValue(value.id)
+        )
       ),
       userErrors: result.userErrors,
     };
@@ -443,7 +444,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     });
     return {
       facetSwatch: result.facetSwatch
-        ? new FacetSwatchResolver(result.facetSwatch.id, this.$ctx)
+        ? await this.resolvers.facetSwatch(result.facetSwatch.id)
         : null,
       userErrors: result.userErrors,
     };
@@ -478,7 +479,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     });
     return {
       facetSwatch: result.facetSwatch
-        ? new FacetSwatchResolver(result.facetSwatch.id, this.$ctx)
+        ? await this.resolvers.facetSwatch(result.facetSwatch.id)
         : null,
       userErrors: result.userErrors,
     };

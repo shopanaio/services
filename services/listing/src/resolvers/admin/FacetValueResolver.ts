@@ -4,8 +4,6 @@ import {
 } from "@shopana/shared-graphql-guid";
 import { ListingType } from "./ListingType.js";
 import type { FacetValue } from "../../repositories/models/index.js";
-import { FacetResolver } from "./FacetResolver.js";
-import { FacetSwatchResolver } from "./FacetSwatchResolver.js";
 
 export class FacetValueResolver extends ListingType<string, FacetValue> {
   async $preload() {
@@ -22,13 +20,13 @@ export class FacetValueResolver extends ListingType<string, FacetValue> {
 
   async facet() {
     const facetId = await this.$get("facetId");
-    return new FacetResolver(facetId, this.$ctx);
+    return this.resolvers.facet(facetId);
   }
 
   async parent() {
     const parentId = await this.$get("parentId");
     if (!parentId) return null;
-    return new FacetValueResolver(parentId, this.$ctx);
+    return this.resolvers.facetValue(parentId);
   }
 
   async kind() {
@@ -52,13 +50,15 @@ export class FacetValueResolver extends ListingType<string, FacetValue> {
     const children = await this.$ctx.loaders.facetValueSourceChildren.load(
       this.$props
     );
-    return children.map((child) => new FacetValueResolver(child.id, this.$ctx));
+    return Promise.all(
+      children.map((child) => this.resolvers.facetValue(child.id))
+    );
   }
 
   async swatch() {
     const swatchId = await this.$get("swatchId");
     if (!swatchId) return null;
-    return new FacetSwatchResolver(swatchId, this.$ctx);
+    return this.resolvers.facetSwatch(swatchId);
   }
 
   async sortIndex() {

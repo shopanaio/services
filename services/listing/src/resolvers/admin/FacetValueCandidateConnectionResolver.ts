@@ -1,5 +1,4 @@
 import { ListingType } from "./ListingType.js";
-import { FacetValueCandidateResolver } from "./FacetValueCandidateResolver.js";
 import type {
   FacetValueCandidateArgs,
   FacetValueCandidateConnectionResult,
@@ -19,10 +18,12 @@ export class FacetValueCandidateConnectionResolver extends ListingType<
 
   async edges() {
     const edgesData = (await this.$get("edges")) ?? [];
-    return edgesData.map((edge) => ({
-      cursor: edge.cursor,
-      node: new FacetValueCandidateResolver(edge.node, this.$ctx),
-    }));
+    return Promise.all(
+      edgesData.map(async (edge) => ({
+        cursor: edge.cursor,
+        node: await this.resolvers.facetValueCandidate(edge.node),
+      }))
+    );
   }
 
   async pageInfo() {

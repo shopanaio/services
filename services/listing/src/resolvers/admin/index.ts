@@ -1,4 +1,5 @@
 export { ListingType, Cache } from "./ListingType.js";
+export { ResolverRegistry, getResolverRegistry } from "./ResolverRegistry.js";
 export { QueryResolver, ListingQueryResolver } from "./QueryResolver.js";
 export { ListingConnectionResolver } from "./ListingConnectionResolver.js";
 export { FacetResolver } from "./FacetResolver.js";

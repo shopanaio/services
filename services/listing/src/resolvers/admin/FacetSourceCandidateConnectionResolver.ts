@@ -1,5 +1,4 @@
 import { ListingType } from "./ListingType.js";
-import { FacetSourceCandidateResolver } from "./FacetSourceCandidateResolver.js";
 import type {
   FacetSourceCandidateConnectionResult,
   FacetSourceCandidateRelayInput,
@@ -20,10 +19,12 @@ export class FacetSourceCandidateConnectionResolver extends ListingType<
 
   async edges() {
     const edgesData = (await this.$get("edges")) ?? [];
-    return edgesData.map((edge) => ({
-      cursor: edge.cursor,
-      node: new FacetSourceCandidateResolver(edge.node, this.$ctx),
-    }));
+    return Promise.all(
+      edgesData.map(async (edge) => ({
+        cursor: edge.cursor,
+        node: await this.resolvers.facetSourceCandidate(edge.node),
+      }))
+    );
   }
 
   async pageInfo() {

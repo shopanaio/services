@@ -5,18 +5,8 @@ import {
 } from "@shopana/shared-graphql-guid";
 import { ApolloQuery } from "@shopana/type-resolver";
 import { GraphQLError } from "graphql";
-import {
-  FacetSourceCandidateConnectionResolver,
-  type FacetSourceCandidateConnectionInput,
-} from "./FacetSourceCandidateConnectionResolver.js";
-import { FacetResolver } from "./FacetResolver.js";
-import { FacetSwatchResolver } from "./FacetSwatchResolver.js";
-import {
-  FacetValueCandidateConnectionResolver,
-  type FacetValueCandidateConnectionInput,
-} from "./FacetValueCandidateConnectionResolver.js";
-import { FacetValueResolver } from "./FacetValueResolver.js";
-import { ListingConnectionResolver } from "./ListingConnectionResolver.js";
+import type { FacetSourceCandidateConnectionInput } from "./FacetSourceCandidateConnectionResolver.js";
+import type { FacetValueCandidateConnectionInput } from "./FacetValueCandidateConnectionResolver.js";
 import { ListingType } from "./ListingType.js";
 import type { ListingQueryArgs } from "./ListingQueryTypes.js";
 
@@ -43,8 +33,8 @@ type FacetValueCandidatesArgs = Omit<
 
 @ApolloQuery
 export class QueryResolver extends ListingType<Record<string, never>> {
-  listingQuery() {
-    return new ListingQueryResolver({}, this.$ctx);
+  async listingQuery() {
+    return this.resolvers.listingQuery();
   }
 }
 
@@ -57,8 +47,8 @@ export class ListingQueryResolver extends ListingType<Record<string, never>> {
     return args.ids.map(() => null);
   }
 
-  listing(args: ListingQueryArgs) {
-    return new ListingConnectionResolver(args, this.$ctx);
+  async listing(args: ListingQueryArgs) {
+    return this.resolvers.listingConnection(args);
   }
 
   async facet(args: { id: string }) {
@@ -66,19 +56,19 @@ export class ListingQueryResolver extends ListingType<Record<string, never>> {
     if (!id) return null;
     const item = await this.$ctx.kernel.repository.facet.findById(id);
     if (!item) return null;
-    return new FacetResolver(item.id, this.$ctx);
+    return this.resolvers.facet(item.id);
   }
 
   async facets() {
     const facets = await this.$ctx.kernel.repository.facet.findAll();
-    return facets.map((item) => new FacetResolver(item.id, this.$ctx));
+    return Promise.all(facets.map((item) => this.resolvers.facet(item.id)));
   }
 
-  facetSourceCandidates(args: FacetSourceCandidateConnectionInput) {
-    return new FacetSourceCandidateConnectionResolver(args, this.$ctx);
+  async facetSourceCandidates(args: FacetSourceCandidateConnectionInput) {
+    return this.resolvers.facetSourceCandidateConnection(args);
   }
 
-  facetValueCandidates(args: FacetValueCandidatesArgs) {
+  async facetValueCandidates(args: FacetValueCandidatesArgs) {
     let facetId: string | undefined;
 
     if (args.meta.facetId != null) {
@@ -94,7 +84,7 @@ export class ListingQueryResolver extends ListingType<Record<string, never>> {
       facetId = decodedFacetId;
     }
 
-    return new FacetValueCandidateConnectionResolver(
+    return this.resolvers.facetValueCandidateConnection(
       {
         ...args,
         meta: {
@@ -102,8 +92,7 @@ export class ListingQueryResolver extends ListingType<Record<string, never>> {
           sourceHandles: args.meta.sourceHandles ?? undefined,
           facetId,
         },
-      },
-      this.$ctx
+      }
     );
   }
 
@@ -112,7 +101,7 @@ export class ListingQueryResolver extends ListingType<Record<string, never>> {
     if (!id) return null;
     const item = await this.$ctx.kernel.repository.facetValue.findById(id);
     if (!item) return null;
-    return new FacetValueResolver(item.id, this.$ctx);
+    return this.resolvers.facetValue(item.id);
   }
 
   async facetValues(args: { facetId: string }) {
@@ -121,7 +110,7 @@ export class ListingQueryResolver extends ListingType<Record<string, never>> {
     const values = await this.$ctx.kernel.repository.facetValue.findByFacetId(
       facetId
     );
-    return values.map((item) => new FacetValueResolver(item.id, this.$ctx));
+    return Promise.all(values.map((item) => this.resolvers.facetValue(item.id)));
   }
 
   async facetSwatch(args: { id: string }) {
@@ -129,11 +118,11 @@ export class ListingQueryResolver extends ListingType<Record<string, never>> {
     if (!id) return null;
     const item = await this.$ctx.kernel.repository.facetSwatch.findById(id);
     if (!item) return null;
-    return new FacetSwatchResolver(item.id, this.$ctx);
+    return this.resolvers.facetSwatch(item.id);
   }
 
   async facetSwatches() {
     const items = await this.$ctx.kernel.repository.facetSwatch.findAll();
-    return items.map((item) => new FacetSwatchResolver(item.id, this.$ctx));
+    return Promise.all(items.map((item) => this.resolvers.facetSwatch(item.id)));
   }
 }
