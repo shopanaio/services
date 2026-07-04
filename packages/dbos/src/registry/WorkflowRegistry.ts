@@ -5,9 +5,22 @@
 
 import { Injectable, Logger } from "@nestjs/common";
 import { DBOS, ConfiguredInstance } from "@dbos-inc/dbos-sdk";
-import type { WorkflowHandle } from "../core/types.js";
+import type {
+  WorkflowDuplicationPolicy,
+  WorkflowHandle,
+  WorkflowQueueEnqueueOptions,
+  WorkflowStartOptions,
+} from "../core/types.js";
 import type { WorkflowDescriptor, WorkflowRegistrar } from "../workflow/BaseWorkflow.js";
 import { buildIdempotencyKey, type IdempotencyContext } from "../idempotency/index.js";
+
+interface DBOSStartWorkflowParams {
+  workflowID: string;
+  queueName?: string;
+  timeoutMS?: number;
+  enqueueOptions?: WorkflowQueueEnqueueOptions;
+  duplicationPolicy?: WorkflowDuplicationPolicy;
+}
 
 const isWorkflowDescriptor = (value: unknown): value is WorkflowDescriptor => {
   if (!value || typeof value !== "object") {
@@ -106,11 +119,13 @@ export class WorkflowRegistry implements WorkflowRegistrar {
     qualifiedName: string,
     params: TParams,
     idempotencyCtx: IdempotencyContext,
+    options?: WorkflowStartOptions,
   ): Promise<WorkflowHandle<TResult>> {
     const descriptor = this.getDescriptor(qualifiedName);
 
-    // Build deterministic workflow ID from idempotency context
-    const workflowID = buildIdempotencyKey(qualifiedName, idempotencyCtx);
+    const workflowID =
+      options?.workflowId ?? buildIdempotencyKey(qualifiedName, idempotencyCtx);
+    const startParams = mapWorkflowStartOptions(workflowID, options);
 
     // Cast to ConfiguredInstance with run method for DBOS.startWorkflow().
     // All BaseWorkflow/BaseSaga extend ConfiguredInstance and have a `run` method.
@@ -118,12 +133,12 @@ export class WorkflowRegistry implements WorkflowRegistrar {
       run: (params: TParams) => Promise<TResult>;
     };
 
-    const handle = await DBOS.startWorkflow(workflowInstance, { workflowID }).run(
+    const handle = await DBOS.startWorkflow(workflowInstance, startParams).run(
       params,
     );
 
     return {
-      workflowId: workflowID,
+      workflowId: handle.workflowID ?? workflowID,
       getResult: () => handle.getResult(),
       getStatus: () => handle.getStatus(),
     };
@@ -137,11 +152,13 @@ export class WorkflowRegistry implements WorkflowRegistrar {
     qualifiedName: string,
     params: TParams,
     idempotencyCtx: IdempotencyContext,
+    options?: WorkflowStartOptions,
   ): Promise<TResult> {
     const handle = await this.start<TParams, TResult>(
       qualifiedName,
       params,
       idempotencyCtx,
+      options,
     );
     return handle.getResult();
   }
@@ -158,4 +175,68 @@ export class WorkflowRegistry implements WorkflowRegistrar {
       getStatus: () => handle.getStatus(),
     };
   }
+}
+
+function mapWorkflowStartOptions(
+  workflowID: string,
+  options?: WorkflowStartOptions,
+): DBOSStartWorkflowParams {
+  const enqueueOptions = mapEnqueueOptions(options);
+
+  if (options?.duplicationPolicy === "return-existing") {
+    if (!options.queueName) {
+      throw new Error(
+        'Workflow duplicationPolicy "return-existing" requires queueName',
+      );
+    }
+
+    if (!enqueueOptions?.deduplicationID) {
+      throw new Error(
+        'Workflow duplicationPolicy "return-existing" requires enqueueOptions.deduplicationID',
+      );
+    }
+  }
+
+  if (enqueueOptions?.queuePartitionKey && enqueueOptions.deduplicationID) {
+    throw new Error(
+      "Workflow enqueueOptions.deduplicationID cannot be used with queuePartitionKey",
+    );
+  }
+
+  return {
+    workflowID,
+    ...(options?.queueName !== undefined && { queueName: options.queueName }),
+    ...(options?.timeoutMS !== undefined && { timeoutMS: options.timeoutMS }),
+    ...(options?.queueName !== undefined &&
+      enqueueOptions !== undefined && { enqueueOptions }),
+    ...(options?.duplicationPolicy !== undefined && {
+      duplicationPolicy: options.duplicationPolicy,
+    }),
+  };
+}
+
+function mapEnqueueOptions(
+  options?: WorkflowStartOptions,
+): WorkflowQueueEnqueueOptions | undefined {
+  const enqueueOptions = options?.enqueueOptions;
+  if (!enqueueOptions) {
+    return undefined;
+  }
+
+  const mapped: WorkflowQueueEnqueueOptions = {
+    ...(enqueueOptions.queuePartitionKey !== undefined && {
+      queuePartitionKey: enqueueOptions.queuePartitionKey,
+    }),
+    ...(enqueueOptions.deduplicationID !== undefined && {
+      deduplicationID: enqueueOptions.deduplicationID,
+    }),
+    ...(enqueueOptions.priority !== undefined && {
+      priority: enqueueOptions.priority,
+    }),
+    ...(enqueueOptions.delaySeconds !== undefined && {
+      delaySeconds: enqueueOptions.delaySeconds,
+    }),
+  };
+
+  return Object.keys(mapped).length > 0 ? mapped : undefined;
 }

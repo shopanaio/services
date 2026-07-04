@@ -14,7 +14,7 @@
     }
   },
   "dependencies": {
-    "@dbos-inc/dbos-sdk": "^2.0.0",
+    "@dbos-inc/dbos-sdk": "^4.23.6",
     "@nestjs/schedule": "^4.1.0",
     "@shopana/events": "*",
     "@shopana/shared-kernel": "*",

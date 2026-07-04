@@ -31,7 +31,7 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "@dbos-inc/dbos-sdk": "^4.7.9",
+    "@dbos-inc/dbos-sdk": "^4.23.6",
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
     "@shopana/dbos": "*",

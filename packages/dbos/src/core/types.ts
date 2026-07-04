@@ -104,9 +104,65 @@ export interface WorkflowHandle<TResult> {
 /**
  * Options for starting a workflow
  */
+export interface WorkflowQueueRateLimitOptions {
+  limitPerPeriod: number;
+  periodSec: number;
+}
+
+export type WorkflowQueueConflictResolution =
+  | "update_if_latest_version"
+  | "always_update"
+  | "never_update";
+
+export interface WorkflowQueueConfig {
+  name: string;
+  concurrency?: number;
+  workerConcurrency?: number;
+  rateLimit?: WorkflowQueueRateLimitOptions;
+  priorityEnabled?: boolean;
+  partitionQueue?: boolean;
+  minPollingIntervalMs?: number;
+  onConflict?: WorkflowQueueConflictResolution;
+}
+
+export interface WorkflowQueueEnqueueOptions {
+  queuePartitionKey?: string;
+  deduplicationID?: string;
+  priority?: number;
+  delaySeconds?: number;
+}
+
+export type WorkflowDuplicationPolicy = "reject" | "return-existing";
+
 export interface WorkflowStartOptions {
-  /** Custom workflow ID for idempotency */
+  /**
+   * Optional explicit workflow ID.
+   *
+   * If omitted, registry builds deterministic ID from IdempotencyContext.
+   * Existing callers should keep relying on IdempotencyContext.
+   */
   workflowId?: string;
+  /**
+   * DBOS queue name. When present, workflow is durably enqueued instead of
+   * started as a normal immediate workflow.
+   */
+  queueName?: string;
+  enqueueOptions?: WorkflowQueueEnqueueOptions;
+  /**
+   * DBOS queue duplicate workflow handling policy.
+   *
+   * "return-existing" requires queueName and enqueueOptions.deduplicationID.
+   * It is not compatible with partitioned queues because DBOS does not support
+   * deduplicationID together with queuePartitionKey.
+   */
+  duplicationPolicy?: WorkflowDuplicationPolicy;
+  /**
+   * DBOS workflow timeout in milliseconds.
+   *
+   * For queued workflows the timeout starts when the workflow is dequeued and
+   * begins execution, not when it is enqueued.
+   */
+  timeoutMS?: number;
 }
 
 // ============================================================================
@@ -215,4 +271,6 @@ export interface WorkflowModuleConfig {
   name?: string;
   /** PostgreSQL schema for DBOS system tables (default: "dbos") */
   schema?: string;
+  /** Persisted DBOS queues to register after launch */
+  queues?: WorkflowQueueConfig[];
 }

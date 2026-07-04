@@ -76,6 +76,29 @@ export class WorkflowModule implements OnModuleInit, OnModuleDestroy {
     console.log = () => {};
     try {
       await DBOS.launch();
+      for (const queue of this.config.queues ?? []) {
+        await DBOS.registerQueue(queue.name, {
+          ...(queue.concurrency !== undefined && {
+            concurrency: queue.concurrency,
+          }),
+          ...(queue.workerConcurrency !== undefined && {
+            workerConcurrency: queue.workerConcurrency,
+          }),
+          ...(queue.rateLimit !== undefined && { rateLimit: queue.rateLimit }),
+          ...(queue.priorityEnabled !== undefined && {
+            priorityEnabled: queue.priorityEnabled,
+          }),
+          ...(queue.partitionQueue !== undefined && {
+            partitionQueue: queue.partitionQueue,
+          }),
+          ...(queue.minPollingIntervalMs !== undefined && {
+            minPollingIntervalMs: queue.minPollingIntervalMs,
+          }),
+          ...(queue.onConflict !== undefined && {
+            onConflict: queue.onConflict,
+          }),
+        });
+      }
     } finally {
       console.log = originalLog;
     }

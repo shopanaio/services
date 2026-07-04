@@ -47,6 +47,11 @@ export {
 export type {
   WorkflowHandle,
   WorkflowStatusSimple,
+  WorkflowQueueRateLimitOptions,
+  WorkflowQueueConflictResolution,
+  WorkflowQueueConfig,
+  WorkflowQueueEnqueueOptions,
+  WorkflowDuplicationPolicy,
   WorkflowStartOptions,
   WorkflowModuleConfig,
   DBOSWorkflowHandle,

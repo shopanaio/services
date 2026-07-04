@@ -5,6 +5,7 @@ import {
   type WorkflowRegistry,
   type IdempotencyContext,
   type SagaResult,
+  type WorkflowStartOptions,
 } from '@shopana/dbos';
 
 export interface ServiceBrokerOptions {
@@ -80,6 +81,7 @@ export class ServiceBroker implements OnModuleDestroy {
     workflow: string,
     params: TParams,
     idempotencyCtx: IdempotencyContext,
+    options?: WorkflowStartOptions,
   ): Promise<TResult> {
     if (!this.workflowRegistry) {
       throw new Error(
@@ -92,6 +94,7 @@ export class ServiceBroker implements OnModuleDestroy {
       qualifiedWorkflow,
       params,
       idempotencyCtx,
+      options,
     );
     return handle.getResult();
   }
@@ -103,6 +106,7 @@ export class ServiceBroker implements OnModuleDestroy {
     workflow: string,
     params: TParams,
     idempotencyCtx: IdempotencyContext,
+    options?: WorkflowStartOptions,
   ): Promise<{ workflowId: string; status: 'started' }> {
     if (!this.workflowRegistry) {
       throw new Error(
@@ -115,6 +119,7 @@ export class ServiceBroker implements OnModuleDestroy {
       qualifiedWorkflow,
       params,
       idempotencyCtx,
+      options,
     );
 
     return { workflowId: handle.workflowId, status: 'started' };
