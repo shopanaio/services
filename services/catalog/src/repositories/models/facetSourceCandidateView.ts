@@ -30,9 +30,6 @@ export const facetSourceCandidateView = catalogSchema
       SELECT DISTINCT project_id, locale
       FROM catalog.product_feature_translation
 
-      UNION
-      SELECT DISTINCT project_id, locale
-      FROM catalog.facet_translation
     ),
     candidates AS (
       SELECT
@@ -103,13 +100,6 @@ export const facetSourceCandidateView = catalogSchema
       c.source_sort_bucket,
       c.name AS sort_name
     FROM candidates c
-    WHERE NOT EXISTS (
-      SELECT 1
-      FROM catalog.facet_source fs
-      WHERE fs.project_id = c.project_id
-        AND fs.facet_type = c.facet_type
-        AND fs.handle = c.handle
-    )
   `);
 
 export type FacetSourceCandidateView =

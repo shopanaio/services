@@ -26,9 +26,12 @@ import {
 import { FacetRepository } from "./facet/FacetRepository.js";
 import { FacetValueRepository } from "./facet/FacetValueRepository.js";
 import { FacetSwatchRepository } from "./facet/FacetSwatchRepository.js";
+import { CatalogFacetCandidateClient } from "./facet/CatalogFacetCandidateClient.js";
+import type { ServiceBroker } from "@shopana/shared-kernel";
 
 export interface RepositoryConfig {
   db: Database;
+  broker: ServiceBroker;
   heavyOptionFacetCountsEnabled?: boolean;
   facetCountsProfilingEnabled?: boolean;
 }
@@ -118,7 +121,7 @@ export class Repository {
   }
 
   static async create(config: RepositoryConfig): Promise<Repository> {
-    const { db } = config;
+    const { db, broker } = config;
     const heavyOptionFacetCountsEnabled =
       config.heavyOptionFacetCountsEnabled ??
       LISTING_HEAVY_OPTION_FACET_COUNTS_ENABLED_DEFAULT;
@@ -161,7 +164,8 @@ export class Repository {
       new ListingPostingVariantProjectionBlockRepository(db, txManager);
     const productTitleBm25SearchIndex =
       new ProductTitleBm25SearchIndexRepository(db, txManager);
-    const facet = new FacetRepository(db, txManager);
+    const facetCandidateClient = new CatalogFacetCandidateClient(broker);
+    const facet = new FacetRepository(db, txManager, facetCandidateClient);
     const facetValue = new FacetValueRepository(db, txManager);
     const facetSwatch = new FacetSwatchRepository(db, txManager);
     const storefrontFacetResolution = new StorefrontFacetResolutionRepository(

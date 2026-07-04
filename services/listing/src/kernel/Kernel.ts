@@ -52,6 +52,7 @@ export class Kernel extends BaseKernel<ListingKernelServices> {
     const db = createDatabase(dbClient);
     const repository = await Repository.create({
       db,
+      broker,
       heavyOptionFacetCountsEnabled: booleanEnv(
         "LISTING_HEAVY_OPTION_FACET_COUNTS_ENABLED"
       ),

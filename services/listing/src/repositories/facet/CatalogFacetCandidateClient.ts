@@ -1,0 +1,164 @@
+import type { PageInfo } from "@shopana/drizzle-query";
+import type { ServiceBroker } from "@shopana/shared-kernel";
+
+export interface FacetSourceCandidateView {
+  id: string;
+  projectId: string;
+  locale: string;
+  facetType: string;
+  handle: string;
+  name: string | null;
+  sourceSortBucket: number;
+  sortName: string | null;
+}
+
+export type FacetValueCandidateType = "TAG" | "OPTION" | "FEATURE";
+
+export interface FacetValueCandidateView {
+  id: string;
+  projectId: string;
+  locale: string;
+  facetType: FacetValueCandidateType;
+  sourceHandle: string;
+  handle: string;
+  label: string;
+}
+
+export interface CandidateRelayInput {
+  after?: string | null;
+  before?: string | null;
+  first?: number | null;
+  last?: number | null;
+  where?: unknown;
+  orderBy?: unknown;
+}
+
+export type FacetSourceCandidateRelayInput = CandidateRelayInput;
+export type FacetValueCandidateRelayInput = CandidateRelayInput;
+
+export interface FacetSourceCandidateConnectionResult {
+  edges: Array<{ cursor: string; node: FacetSourceCandidateView }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
+
+export interface FacetValueCandidateConnectionResult {
+  edges: Array<{ cursor: string; node: FacetValueCandidateView }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
+
+export interface FacetValueCandidateArgs extends FacetValueCandidateRelayInput {
+  meta: {
+    candidateType: FacetValueCandidateType;
+    sourceHandles?: string[];
+    facetId?: string;
+  };
+}
+
+export interface FacetSourceCandidateRef {
+  facetType: string;
+  handle: string;
+}
+
+export interface CatalogFacetCandidateClientContext {
+  projectId: string;
+  locale: string;
+}
+
+export class CatalogFacetCandidateClient {
+  constructor(private readonly broker: ServiceBroker) {}
+
+  getSourceCandidates(
+    context: CatalogFacetCandidateClientContext,
+    input: {
+      relay: FacetSourceCandidateRelayInput;
+      excludedSources?: FacetSourceCandidateRef[];
+    }
+  ): Promise<FacetSourceCandidateConnectionResult> {
+    return this.broker.call<
+      FacetSourceCandidateConnectionResult,
+      {
+        projectId: string;
+        locale: string;
+        excludedSources?: FacetSourceCandidateRef[];
+        input: FacetSourceCandidateRelayInput;
+      }
+    >("catalog.facetSourceCandidates", {
+      projectId: context.projectId,
+      locale: context.locale,
+      excludedSources: input.excludedSources,
+      input: input.relay,
+    });
+  }
+
+  getValueCandidates(
+    context: CatalogFacetCandidateClientContext,
+    input: {
+      candidateType: FacetValueCandidateType;
+      sourceHandles: string[];
+      existingSourceValueHandles?: string[];
+      relay: FacetValueCandidateRelayInput;
+    }
+  ): Promise<FacetValueCandidateConnectionResult> {
+    return this.broker.call<
+      FacetValueCandidateConnectionResult,
+      {
+        projectId: string;
+        locale: string;
+        candidateType: FacetValueCandidateType;
+        sourceHandles: string[];
+        existingSourceValueHandles?: string[];
+        input: FacetValueCandidateRelayInput;
+      }
+    >("catalog.facetValueCandidates", {
+      projectId: context.projectId,
+      locale: context.locale,
+      candidateType: input.candidateType,
+      sourceHandles: input.sourceHandles,
+      existingSourceValueHandles: input.existingSourceValueHandles,
+      input: input.relay,
+    });
+  }
+
+  getSourceCandidate(
+    context: CatalogFacetCandidateClientContext,
+    input: { facetType: string; handle: string }
+  ): Promise<FacetSourceCandidateView | null> {
+    return this.broker.call<
+      FacetSourceCandidateView | null,
+      { projectId: string; locale: string; facetType: string; handle: string }
+    >("catalog.getFacetSourceCandidate", {
+      projectId: context.projectId,
+      locale: context.locale,
+      facetType: input.facetType,
+      handle: input.handle,
+    });
+  }
+
+  getValueCandidatesByHandles(
+    context: CatalogFacetCandidateClientContext,
+    input: {
+      candidateType: FacetValueCandidateType;
+      sourceHandles: string[];
+      handles: string[];
+    }
+  ): Promise<FacetValueCandidateView[]> {
+    return this.broker.call<
+      FacetValueCandidateView[],
+      {
+        projectId: string;
+        locale: string;
+        candidateType: FacetValueCandidateType;
+        sourceHandles: string[];
+        handles: string[];
+      }
+    >("catalog.getFacetValueCandidatesByHandles", {
+      projectId: context.projectId,
+      locale: context.locale,
+      candidateType: input.candidateType,
+      sourceHandles: input.sourceHandles,
+      handles: input.handles,
+    });
+  }
+}

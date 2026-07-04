@@ -17,9 +17,6 @@ WITH project_locale_source AS (
   SELECT DISTINCT project_id, locale
   FROM "catalog"."product_feature_translation"
 
-  UNION
-  SELECT DISTINCT project_id, locale
-  FROM "catalog"."facet_translation"
 ),
 candidates AS (
   SELECT
@@ -90,13 +87,7 @@ SELECT
   c.source_sort_bucket,
   c.name AS sort_name
 FROM candidates c
-WHERE NOT EXISTS (
-  SELECT 1
-  FROM "catalog"."facet_source" fs
-  WHERE fs.project_id = c.project_id
-    AND fs.facet_type = c.facet_type
-    AND fs.handle = c.handle
-);
+;
 
 CREATE INDEX IF NOT EXISTS "idx_product_option_project_slug"
   ON "catalog"."product_option" ("project_id", "slug");

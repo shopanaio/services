@@ -1,38 +1,46 @@
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import {
-  createQuery,
-  createRelayQuery,
-  type InferRelayInput,
-  type PageInfo,
-} from "@shopana/drizzle-query";
+import type { TransactionManager } from "@shopana/shared-kernel";
 import { GraphQLError } from "graphql";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   LexoRankRepository,
   type LexoRankMoveResult,
 } from "../LexoRankRepository.js";
+import type { Database } from "../../infrastructure/db/database.js";
+import {
+  CatalogFacetCandidateClient,
+  type FacetSourceCandidateConnectionResult,
+  type FacetSourceCandidateRelayInput,
+  type FacetSourceCandidateView,
+  type FacetValueCandidateArgs,
+  type FacetValueCandidateConnectionResult,
+  type FacetValueCandidateType,
+  type FacetValueCandidateView,
+} from "./CatalogFacetCandidateClient.js";
 import {
   facet,
-  facetFeatureValueCandidateView,
-  facetOptionValueCandidateView,
   facetSource,
-  facetSourceCandidateView,
   facetSourceTranslation,
-  facetTagValueCandidateView,
   facetTranslation,
   facetValue,
   facetValueTranslation,
   type Facet,
   type FacetValue,
-  type FacetFeatureValueCandidateView,
-  type FacetOptionValueCandidateView,
-  type FacetSourceCandidateView,
-  type FacetTagValueCandidateView,
   type NewFacet,
   type NewFacetValue,
   type FacetTranslation,
 } from "../models/index.js";
+
+export type {
+  FacetSourceCandidateConnectionResult,
+  FacetSourceCandidateRelayInput,
+  FacetSourceCandidateView,
+  FacetValueCandidateArgs,
+  FacetValueCandidateConnectionResult,
+  FacetValueCandidateType,
+  FacetValueCandidateView,
+} from "./CatalogFacetCandidateClient.js";
 
 export interface ResolvedFacetFilterValue {
   facetSlug: string;
@@ -53,89 +61,7 @@ export interface FacetSourceWithName {
   name: string | null;
 }
 
-export const facetSourceCandidateRelayQuery = createRelayQuery(
-  createQuery(facetSourceCandidateView)
-    .include(["id", "projectId", "locale", "facetType", "handle"])
-    .maxLimit(100)
-    .defaultLimit(30),
-  { name: "facetSourceCandidate", tieBreaker: "id" }
-);
-
-export type FacetSourceCandidateRelayInput = InferRelayInput<
-  typeof facetSourceCandidateRelayQuery
->;
-
-export interface FacetSourceCandidateConnectionResult {
-  edges: Array<{ cursor: string; node: FacetSourceCandidateView }>;
-  pageInfo: PageInfo;
-  totalCount: number;
-}
-
 const FACET_VALUE_CANDIDATE_TYPES = new Set(["TAG", "OPTION", "FEATURE"]);
-
-export type FacetValueCandidateType = "TAG" | "OPTION" | "FEATURE";
-export type FacetValueCandidateView =
-  | FacetTagValueCandidateView
-  | FacetOptionValueCandidateView
-  | FacetFeatureValueCandidateView;
-
-const createFacetValueCandidateRelayQuery = (
-  view:
-    | typeof facetTagValueCandidateView
-    | typeof facetOptionValueCandidateView
-    | typeof facetFeatureValueCandidateView
-) =>
-  createRelayQuery(
-    createQuery(view)
-      .include([
-        "id",
-        "projectId",
-        "locale",
-        "facetType",
-        "sourceHandle",
-        "handle",
-        "label",
-      ])
-      .maxLimit(100)
-      .defaultLimit(30),
-    { name: "facetValueCandidate", tieBreaker: "id" }
-  );
-
-export const facetTagValueCandidateRelayQuery =
-  createFacetValueCandidateRelayQuery(facetTagValueCandidateView);
-
-export const facetOptionValueCandidateRelayQuery =
-  createFacetValueCandidateRelayQuery(facetOptionValueCandidateView);
-
-export const facetFeatureValueCandidateRelayQuery =
-  createFacetValueCandidateRelayQuery(facetFeatureValueCandidateView);
-
-export const facetValueCandidateFilterRelayQuery =
-  facetTagValueCandidateRelayQuery;
-
-export const facetValueCandidateRelayQueries = {
-  TAG: facetTagValueCandidateRelayQuery,
-  OPTION: facetOptionValueCandidateRelayQuery,
-  FEATURE: facetFeatureValueCandidateRelayQuery,
-} as const;
-
-export type FacetValueCandidateRelayInput = InferRelayInput<
-  typeof facetTagValueCandidateRelayQuery
->;
-
-export type FacetValueCandidateArgs = FacetValueCandidateRelayInput & {
-  meta: {
-    candidateType: FacetValueCandidateType;
-    sourceHandles?: string[];
-    facetId?: string;
-  };
-};
-
-export interface FacetValueCandidateConnectionResult {
-  edges: Array<{ cursor: string; node: FacetValueCandidateView }>;
-  pageInfo: PageInfo;
-  totalCount: number;
-}
 
 function emptyFacetValueCandidateConnection(): FacetValueCandidateConnectionResult {
   return {
@@ -174,6 +100,14 @@ function isFacetValueCandidateType(
 }
 
 export class FacetRepository extends BaseRepository {
+  constructor(
+    db: Database,
+    txManager: TransactionManager<Database>,
+    private readonly candidateClient: CatalogFacetCandidateClient
+  ) {
+    super(db, txManager);
+  }
+
   private get facetRankRepository(): LexoRankRepository<Facet> {
     return new LexoRankRepository<Facet>({
       findOrderedItems: () => this.findAll(),
@@ -390,40 +324,18 @@ export class FacetRepository extends BaseRepository {
   async getAvailableFacetSourceCandidates(
     args: FacetSourceCandidateRelayInput
   ): Promise<FacetSourceCandidateConnectionResult> {
-    const { where, orderBy, ...paginationArgs } = args;
-    const mergedWhere: FacetSourceCandidateRelayInput["where"] = {
-      _and: [
-        { projectId: { _eq: this.storeId } },
-        { locale: { _eq: this.locale } },
-        ...(where ? [where] : []),
-      ],
-    };
+    const usedSources = await this.connection
+      .select({ facetType: facetSource.facetType, handle: facetSource.handle })
+      .from(facetSource)
+      .where(eq(facetSource.projectId, this.storeId));
 
-    const executeInput: FacetSourceCandidateRelayInput = {
-      ...paginationArgs,
-      where: mergedWhere,
-      orderBy: orderBy ?? [
-        { field: "sourceSortBucket", direction: "asc" },
-        { field: "sortName", direction: "asc", nulls: "last" },
-        { field: "id", direction: "asc" },
-      ],
-    };
-
-    const [result, totalCount] = await Promise.all([
-      facetSourceCandidateRelayQuery.execute(this.connection, executeInput),
-      facetSourceCandidateRelayQuery.count(this.connection, {
-        where: mergedWhere,
-      }),
-    ]);
-
-    return {
-      edges: result.edges.map((edge) => ({
-        cursor: edge.cursor,
-        node: edge.node,
-      })),
-      pageInfo: result.pageInfo,
-      totalCount,
-    };
+    return this.candidateClient.getSourceCandidates(
+      { projectId: this.storeId, locale: this.locale },
+      {
+        relay: args,
+        excludedSources: usedSources,
+      }
+    );
   }
 
   async getFacetValueCandidates(
@@ -434,7 +346,7 @@ export class FacetRepository extends BaseRepository {
       throwBadUserInput("Invalid candidateType");
     }
 
-    const { where, orderBy, meta, ...paginationArgs } = args;
+    const { meta, ...paginationArgs } = args;
     const existingSourceValueHandles: string[] = [];
     let sourceHandles: string[];
 
@@ -494,47 +406,15 @@ export class FacetRepository extends BaseRepository {
       }
     }
 
-    const mergedWhere: FacetValueCandidateRelayInput["where"] = {
-      _and: [
-        { projectId: { _eq: this.storeId } },
-        { locale: { _eq: this.locale } },
-        { facetType: { _eq: candidateType } },
-        { sourceHandle: { _in: sourceHandles } },
-        ...(existingSourceValueHandles.length
-          ? [{ handle: { _notIn: existingSourceValueHandles } }]
-          : []),
-        ...(where ? [where] : []),
-      ],
-    };
-
-    const executeInput: FacetValueCandidateRelayInput = {
-      ...paginationArgs,
-      where: mergedWhere,
-      orderBy: orderBy ?? [
-        { field: "label", direction: "asc" },
-        { field: "id", direction: "asc" },
-      ],
-    };
-
-    const relayQuery = facetValueCandidateRelayQueries[
-      candidateType
-    ] as typeof facetTagValueCandidateRelayQuery;
-
-    const [result, totalCount] = await Promise.all([
-      relayQuery.execute(this.connection, executeInput),
-      relayQuery.count(this.connection, {
-        where: mergedWhere,
-      }),
-    ]);
-
-    return {
-      edges: result.edges.map((edge) => ({
-        cursor: edge.cursor,
-        node: edge.node as FacetValueCandidateView,
-      })),
-      pageInfo: result.pageInfo,
-      totalCount,
-    };
+    return this.candidateClient.getValueCandidates(
+      { projectId: this.storeId, locale: this.locale },
+      {
+        candidateType,
+        sourceHandles,
+        existingSourceValueHandles,
+        relay: paginationArgs,
+      }
+    );
   }
 
   async findFacetValueCandidatesByHandles(args: {
@@ -553,26 +433,10 @@ export class FacetRepository extends BaseRepository {
       return [];
     }
 
-    const view = {
-      TAG: facetTagValueCandidateView,
-      OPTION: facetOptionValueCandidateView,
-      FEATURE: facetFeatureValueCandidateView,
-    }[candidateType] as typeof facetTagValueCandidateView;
-
-    const rows = await this.connection
-      .select()
-      .from(view)
-      .where(
-        and(
-          eq(view.projectId, this.storeId),
-          eq(view.locale, this.locale),
-          eq(view.facetType, candidateType),
-          inArray(view.sourceHandle, sourceHandles),
-          inArray(view.handle, handles)
-        )
-      );
-
-    return rows as FacetValueCandidateView[];
+    return this.candidateClient.getValueCandidatesByHandles(
+      { projectId: this.storeId, locale: this.locale },
+      { candidateType, sourceHandles, handles }
+    );
   }
 
   async createSourceFacetValues(args: {
@@ -621,20 +485,26 @@ export class FacetRepository extends BaseRepository {
     facetType: string;
     handle: string;
   }): Promise<FacetSourceCandidateView | null> {
-    const rows = await this.connection
-      .select()
-      .from(facetSourceCandidateView)
+    const existingRows = await this.connection
+      .select({ id: facetSource.id })
+      .from(facetSource)
       .where(
         and(
-          eq(facetSourceCandidateView.projectId, this.storeId),
-          eq(facetSourceCandidateView.locale, this.locale),
-          eq(facetSourceCandidateView.facetType, args.facetType),
-          eq(facetSourceCandidateView.handle, args.handle)
+          eq(facetSource.projectId, this.storeId),
+          eq(facetSource.facetType, args.facetType),
+          eq(facetSource.handle, args.handle)
         )
       )
       .limit(1);
 
-    return rows[0] ?? null;
+    if (existingRows.length > 0) {
+      return null;
+    }
+
+    return this.candidateClient.getSourceCandidate(
+      { projectId: this.storeId, locale: this.locale },
+      args
+    );
   }
 
   async replaceSources(
