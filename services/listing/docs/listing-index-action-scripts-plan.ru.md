@@ -635,7 +635,36 @@ Responsibilities:
 
 ### `ListingIndexUpdateStateRepository`
 
-New table/repository is recommended.
+New table/repository is required for action processing.
+
+```sql
+CREATE TABLE listing.listing_index_update_state (
+  project_id uuid NOT NULL,
+  entity_type varchar(32) NOT NULL,
+  item_id uuid NOT NULL,
+  source_revision integer NOT NULL,
+  idempotency_key text NOT NULL,
+  operation_id text NOT NULL,
+  status varchar(32) NOT NULL,
+  processed_at timestamptz NOT NULL,
+  result_json jsonb NOT NULL,
+  PRIMARY KEY (project_id, entity_type, item_id),
+  UNIQUE (project_id, idempotency_key)
+);
+```
+
+Constraints:
+
+- `(project_id, entity_type, item_id)` is the canonical latest-state key used by
+  `lockByItem`.
+- `(project_id, idempotency_key)` guarantees stable retry handling inside a
+  project. If broker idempotency keys become globally unique, this may be
+  tightened to `UNIQUE (idempotency_key)`.
+- `source_revision >= 0`.
+- `status IN ('applied', 'noop', 'ignored_stale', 'accepted')`.
+- `result_json` stores the broker-level result returned for the applied action,
+  so a retry with the same idempotency key can return a stable response without
+  repeating physical index writes.
 
 ```ts
 interface ListingIndexUpdateStateKey {
@@ -678,6 +707,9 @@ Responsibilities:
 - Хранит последнюю примененную source revision item.
 - Позволяет безопасно различать `apply`, `noop` и `ignored_stale`.
 - `lockByItem` используется внутри item transaction для serial update по item.
+- Таблица и repository являются обязательным prereq для реализации
+  `syncSellableItem`, `syncSellableItems` и `deleteSellableItem`; без них
+  idempotency/revision semantics не считаются реализованными.
 - `resultJson` позволяет вернуть стабильный result при retry той же
   idempotency.
 
