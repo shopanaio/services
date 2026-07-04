@@ -18,14 +18,14 @@ DBOS workflow/step execution.
 ## Основные инварианты
 
 - Broker action handlers не пишут physical listing index tables напрямую.
-- Async action считается `accepted` только после успешного durable enqueue в
+- Broker action возвращает `accepted` только после успешного durable enqueue в
   DBOS queue.
 - DBOS `@Workflow` body не выполняет внешние эффекты. В нем разрешены только
   deterministic branching и вызов durable step.
 - Все database writes, repository calls, `Kernel.getInstance()`,
   `kernel.runScript(...)`, чтение config/defaults, `Date`, `now()`, UUID и
-  любые другие side effects находятся внутри `@WorkflowStep` или synchronous
-  script path.
+  любые другие side effects находятся внутри `@WorkflowStep` или controlled
+  internal script runner.
 - DBOS step может быть повторно выполнен после crash, если step result еще не
   persisted. Поэтому физические writes должны быть idempotent на database
   уровне.
@@ -306,19 +306,35 @@ class ListingBrokerActions extends BrokerActions {
 
 Responsibilities:
 
-- В synchronous mode single sync запускает `ListingSyncSellableItemScript`
-  напрямую через `kernel.runScript(...)`.
-- В async mode single sync ставит `ListingIndexActionWorkflow` в
+- `syncSellableItem` ставит item-scoped `ListingIndexActionWorkflow` в
   `listing_index_actions`.
-- В synchronous mode delete запускает `ListingDeleteSellableItemScript`.
-- В async mode delete ставит `ListingIndexActionWorkflow` в ту же queue.
-- В synchronous mode batch запускает `ListingSyncSellableItemsScript`.
-- В async mode batch fan-out-ит items в отдельные queued item workflows.
+- `deleteSellableItem` ставит item-scoped `ListingIndexActionWorkflow` в ту же
+  queue.
+- `syncSellableItems` fan-out-ит items в отдельные queued item workflows.
 - Handler не строит write model.
 - Handler не вызывает index repositories.
 - Handler не возвращает `accepted`, пока item workflow не accepted durably.
 
-### Async batch enqueue
+### Controlled internal execution
+
+Прямой `kernel.runScript(...)` разрешен только для controlled internal
+backfill/repair tools, а не как alternate execution path публичного broker
+action.
+
+Rules:
+
+- Internal runner обязан строить тот же `effectiveIdempotencyKey` и
+  `payloadHash`, что DBOS enqueue path.
+- Internal runner вызывает те же scripts:
+  `ListingSyncSellableItemScript`, `ListingDeleteSellableItemScript` или
+  `ListingSyncSellableItemsScript`.
+- Internal runner получает final result: `applied`, `noop` или
+  `ignored_stale`.
+- Internal runner не обходит `lockByItem`, receipt checks, revision checks или
+  transaction ownership.
+- Для high-volume event stream используется только DBOS queue path.
+
+### Batch enqueue
 
 Batch enqueue не должен быть одним большим queued workflow.
 
@@ -415,10 +431,10 @@ Constraints:
 - `result_json` stores the exact broker-level final result returned by scripts.
 - If a retry finds an existing receipt with the same
   `effective_idempotencyKey`, it returns `result_json` without physical writes.
-- If a synchronous call reuses the same effective key with a different
+- If an internal runner reuses the same effective key with a different
   `payloadHash`, repository returns an idempotency conflict as non-retryable
-  domain result. Async duplicate workflow starts may never reach script because
-  DBOS workflow identity can resolve to the first accepted workflow.
+  domain result. Duplicate workflow starts may never reach script because DBOS
+  workflow identity can resolve to the first accepted workflow.
 
 ## Idempotency and revision decision
 
@@ -652,7 +668,7 @@ type ListingIndexActionStatus =
   | "accepted";
 ```
 
-`accepted` is a handler-level async enqueue status. It is not persisted as final
+`accepted` is a handler-level enqueue status. It is not persisted as final
 status in `listing_index_item_state` or `listing_index_action_receipt`.
 
 ### Validation script
@@ -1022,20 +1038,21 @@ This block is sequencing contract, not implementation.
 - [ ] Queue partition key is item-scoped.
 - [ ] Action handlers use `ServiceBroker.startWorkflow(...)`, not direct
       `DBOS.startWorkflow(...)`.
-- [ ] Async handlers return `accepted` only after durable DBOS enqueue or
+- [ ] Action handlers return `accepted` only after durable DBOS enqueue or
       already accepted duplicate detection.
 - [ ] `enqueueOptions.deduplicationID` is not used with partitioned queue.
 - [ ] `duplicationPolicy: "return-existing"` is not used for
       `listing_index_actions`.
 - [ ] `@Workflow("indexAction")` body contains only deterministic routing.
-- [ ] All side effects are inside `@WorkflowStep` or synchronous script path.
+- [ ] All side effects are inside `@WorkflowStep` or controlled internal script
+      runner.
 - [ ] DBOS step has explicit timeout and retry policy.
 - [ ] Retryable infrastructure errors are classified as retryable.
 - [ ] Validation/idempotency/revision conflicts are non-retryable domain
       results.
 - [ ] DBOS step calls `Kernel.runScript(..., RunScriptContext)`.
 - [ ] Repositories run with `this.storeId = params.projectId`.
-- [ ] Batch async processing fans out items into item-partitioned workflows.
+- [ ] Batch enqueue processing fans out items into item-partitioned workflows.
 - [ ] Batch item effective idempotency key includes item identity.
 - [ ] `listing_index_item_state` stores latest item revision/state.
 - [ ] `listing_index_action_receipt` stores stable final result by effective
