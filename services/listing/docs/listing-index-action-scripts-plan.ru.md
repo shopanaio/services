@@ -551,9 +551,17 @@ Rules:
 - Enqueue может выполняться concurrently, но public result строится после
   completion всех enqueue attempts.
 - Если часть items accepted, а часть enqueue attempts failed, handler возвращает
-  `partial` с per-item union result: `{ kind: "result"; result:
-  ListingUpdateResult }` для accepted items и `{ kind: "error"; itemRef;
-  sourceRevision; error: ListingUpdateError }` для failed items.
+  `partial` согласно текущему public contract:
+  `SyncSellableItemsResult.results` остается `ListingUpdateResult[]` и содержит
+  только items, для которых durable enqueue завершился accepted или same-payload
+  already-accepted duplicate detection.
+- Failed enqueue attempts не добавляются в `results` как `{ kind: "error" }`,
+  потому что такой union отсутствует в `@shopana/broker-types`. Handler должен
+  логировать failed item refs с `ListingUpdateError` metadata и завершать batch
+  response со `status: "partial"`.
+- Если producer должен получать per-item errors в response body, это отдельное
+  breaking/non-breaking изменение публичного `SyncSellableItemsResult` contract и
+  `packages/broker-types`, а не часть этого implementation plan.
 - Retry batch после partial enqueue safe: уже accepted items распознаются по
   deterministic workflow identity и receipt metadata как same-payload already
   accepted.
