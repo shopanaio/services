@@ -95,3 +95,95 @@ export const CATEGORY_PRODUCTS_QUERY = gql`
   }
   ${CATEGORY_PRODUCT_LIST_ITEM_FRAGMENT}
 `;
+
+export const CATEGORY_LISTING_PREVIEW_QUERY = gql`
+  query CategoryListingPreview(
+    $categoryId: ID!
+    $first: Int
+    $after: String
+    $query: String
+    $locale: LocaleCode
+    $currency: CurrencyCode
+    $facets: [ListingProductFilter!]
+    $orderBy: ListingOrderByInput
+  ) {
+    listingQuery {
+      listing(
+        first: $first
+        after: $after
+        scope: { kind: CATEGORY, categoryId: $categoryId }
+        query: $query
+        locale: $locale
+        currency: $currency
+        facets: $facets
+        orderBy: $orderBy
+      ) {
+        edges {
+          cursor
+          node {
+            id
+            ... on Product {
+              title
+              handle
+              isPublished
+              media {
+                sortIndex
+                file {
+                  id
+                  url
+                  altText
+                }
+              }
+              priceRange {
+                minPriceAmount
+                maxPriceAmount
+                currency
+              }
+            }
+            ... on Bundle {
+              title
+              handle
+              isPublished
+              media {
+                sortIndex
+                file {
+                  id
+                  url
+                  altText
+                }
+              }
+              priceRange {
+                minPriceAmount
+                maxPriceAmount
+                currency
+              }
+            }
+          }
+        }
+        facets {
+          id
+          label
+          type
+          uiType
+          values {
+            id
+            label
+            count
+            selected
+            input
+            swatch {
+              id
+            }
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+    }
+  }
+`;

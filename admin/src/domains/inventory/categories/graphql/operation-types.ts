@@ -14,12 +14,26 @@ import type {
   ApiGenericUserError,
   ApiListingConnection,
   ApiListingOrderByInput,
-  ApiListingWhereInput,
   ApiOperationResult,
   ApiProduct,
   ApiProductCategoryOperationInput,
   ApiCategoryWhereInput,
+  ApiBundle,
+  ApiListingFacet,
+  ApiListingProductFilter,
+  ApiProductMediaItem,
+  ApiProductPriceRange,
+  ProductKind,
+  ProductOrderField,
+  SortDirection,
 } from "@/graphql/types";
+
+export interface CategoryProductsOrderByInput {
+  field: ProductOrderField;
+  direction?: SortDirection | null;
+}
+
+export type CategoryProductsWhereInput = Record<string, unknown>;
 
 export interface CategoriesQueryData {
   catalogQuery: Pick<ApiCatalogQuery, "categories"> & {
@@ -59,11 +73,28 @@ export interface CategoryDetailsQueryVariables {
 
 export interface CategoryProductsQueryData {
   catalogQuery: Pick<ApiCatalogQuery, "category"> & {
-    category: (Pick<ApiCategory, "id" | "listing"> & {
-      listing: ApiListingConnection;
+    category: (Pick<ApiCategory, "id"> & {
+      listing: Pick<ApiListingConnection, "pageInfo" | "totalCount"> & {
+        edges: Array<{
+          cursor: string;
+          node: CategoryProductListItem;
+        }>;
+      };
     }) | null;
   };
 }
+
+export type CategoryProductListItem = Pick<
+  ApiProduct,
+  "id" | "kind" | "isPublished" | "title" | "handle"
+> & {
+  kind: ProductKind;
+  media: Array<
+    Pick<ApiProductMediaItem, "sortIndex"> & {
+      file: Pick<ApiProductMediaItem["file"], "id" | "url" | "altText">;
+    }
+  >;
+};
 
 export interface CategoryProductsQueryVariables {
   id: string;
@@ -71,8 +102,57 @@ export interface CategoryProductsQueryVariables {
   after?: string | null;
   last?: number;
   before?: string | null;
-  where?: ApiListingWhereInput | null;
-  orderBy?: ApiListingOrderByInput[] | null;
+  where?: CategoryProductsWhereInput | null;
+  orderBy?: CategoryProductsOrderByInput[] | null;
+}
+
+export type CategoryListingPreviewItem =
+  | (Pick<ApiProduct, "id" | "title" | "handle" | "isPublished"> & {
+      __typename?: "Product";
+      media: Array<
+        Pick<ApiProductMediaItem, "sortIndex"> & {
+          file: Pick<ApiProductMediaItem["file"], "id" | "url" | "altText">;
+        }
+      >;
+      priceRange?: Pick<
+        ApiProductPriceRange,
+        "minPriceAmount" | "maxPriceAmount" | "currency"
+      > | null;
+    })
+  | (Pick<ApiBundle, "id" | "title" | "handle" | "isPublished"> & {
+      __typename?: "Bundle";
+      media: Array<
+        Pick<ApiProductMediaItem, "sortIndex"> & {
+          file: Pick<ApiProductMediaItem["file"], "id" | "url" | "altText">;
+        }
+      >;
+      priceRange?: Pick<
+        ApiProductPriceRange,
+        "minPriceAmount" | "maxPriceAmount" | "currency"
+      > | null;
+    });
+
+export interface CategoryListingPreviewQueryData {
+  listingQuery: {
+    listing: Pick<ApiListingConnection, "pageInfo" | "totalCount"> & {
+      edges: Array<{
+        cursor: string;
+        node: CategoryListingPreviewItem;
+      }>;
+      facets: ApiListingFacet[];
+    };
+  };
+}
+
+export interface CategoryListingPreviewQueryVariables {
+  categoryId: string;
+  first?: number;
+  after?: string | null;
+  query?: string | null;
+  locale?: string | null;
+  currency?: string | null;
+  facets?: ApiListingProductFilter[] | null;
+  orderBy?: ApiListingOrderByInput | null;
 }
 
 export interface CategoryUpdateMutationData {

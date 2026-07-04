@@ -53,6 +53,7 @@ export const CategoryDetailsCard = ({
         productsCount={category.productsCount}
         defaultSort={category.defaultSort}
         defaultSortDirection={category.defaultSortDirection}
+        onPreview={modals.previewListing}
         onAssignProducts={modals.assignProducts}
       />
 

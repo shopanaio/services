@@ -352,6 +352,14 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    {
+      type: 'category-listing-preview',
+      component: dynamic(() =>
+        import('@/domains/inventory/categories/modals/listing-preview-modal').then(
+          (m) => m.ListingPreviewModal
+        )
+      ),
+    },
     // ========================================
     // Tag modals
     // ========================================

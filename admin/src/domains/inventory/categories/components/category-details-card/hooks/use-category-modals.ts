@@ -27,6 +27,7 @@ import {
   useCategoryEditMediaModal,
   useCategoryEditSeoModal,
   useCategoryEditSortModal,
+  useCategoryListingPreviewModal,
 } from "../../../modals";
 
 export const useCategoryModals = (
@@ -40,6 +41,7 @@ export const useCategoryModals = (
   const { push: openEditSeoModal } = useCategoryEditSeoModal();
   const { push: openEditMediaModal } = useCategoryEditMediaModal();
   const { push: openEditSortModal } = useCategoryEditSortModal();
+  const { push: openListingPreviewModal } = useCategoryListingPreviewModal();
   const { updateCategory } = useUpdateCategory();
   const { deleteCategory } = useDeleteCategory();
   const { updateSubcategories } = useUpdateCategorySubcategories();
@@ -68,6 +70,10 @@ export const useCategoryModals = (
   const editSort = useCallback(() => {
     openEditSortModal({ category, onSaved: handleSaved });
   }, [category, handleSaved, openEditSortModal]);
+
+  const previewListing = useCallback(() => {
+    openListingPreviewModal({ category });
+  }, [category, openListingPreviewModal]);
 
   const changeStatus = useCallback(() => {
     void (async () => {
@@ -297,6 +303,7 @@ export const useCategoryModals = (
     editParent,
     clearParent,
     editSort,
+    previewListing,
     changeStatus,
     archive,
     editSubcategories,

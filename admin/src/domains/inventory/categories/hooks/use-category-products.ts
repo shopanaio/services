@@ -1,30 +1,31 @@
 "use client";
 
-import type {
-  ApiListing,
-  ApiListingConnection,
-  ApiListingOrderByInput,
-  ApiListingWhereInput,
-  ApiPageInfo,
-} from "@/graphql/types";
+import type { ApiPageInfo } from "@/graphql/types";
 import { useRelayConnectionQuery } from "@/graphql/hooks/use-relay-connection-query";
 import type { RelayCursorPaginationVariables } from "@/ui-kit/cursor-pagination";
 import { CATEGORY_PRODUCTS_QUERY } from "../graphql";
 import type {
+  CategoryProductsOrderByInput,
+  CategoryProductListItem,
   CategoryProductsQueryData,
   CategoryProductsQueryVariables,
+  CategoryProductsWhereInput,
 } from "../graphql/operation-types";
 
 export interface UseCategoryProductsOptions
   extends RelayCursorPaginationVariables {
-  where?: ApiListingWhereInput | null;
-  orderBy?: ApiListingOrderByInput[] | null;
+  where?: CategoryProductsWhereInput | null;
+  orderBy?: CategoryProductsOrderByInput[] | null;
   skip?: boolean;
 }
 
 export interface UseCategoryProductsReturn {
-  products: ApiListing[];
-  connection: ApiListingConnection | null;
+  products: CategoryProductListItem[];
+  connection: CategoryProductsQueryData["catalogQuery"]["category"] extends infer T
+    ? T extends { listing: infer TConnection }
+      ? TConnection
+      : null
+    : null;
   totalCount: number;
   pageInfo: ApiPageInfo | null;
   loading: boolean;
@@ -49,8 +50,8 @@ export function useCategoryProducts(
   const result = useRelayConnectionQuery<
     CategoryProductsQueryData,
     CategoryProductsQueryVariables,
-    ApiListing,
-    ApiListingConnection
+    CategoryProductListItem,
+    NonNullable<CategoryProductsQueryData["catalogQuery"]["category"]>["listing"]
   >({
     query: CATEGORY_PRODUCTS_QUERY,
     variables: {

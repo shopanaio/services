@@ -373,6 +373,7 @@ export const createMockApiVariantConnection = (
 export const createMockApiListingConnection = (): ApiListingConnection => ({
   __typename: "ListingConnection",
   edges: [],
+  facets: [],
   pageInfo: createMockPageInfo(),
   totalCount: 0,
 });
@@ -409,7 +410,6 @@ export const createMockApiCategory = (params: {
   children: params.children ?? [],
   ancestors: params.ancestors ?? [],
   productsCount: params.productsCount ?? 0,
-  listing: createMockApiListingConnection(),
   path: params.parent ? `${params.parent.path}/${params.handle}` : params.handle,
   depth: params.parent ? params.parent.depth + 1 : 0,
   defaultSort: ProductSortBy.Manual,

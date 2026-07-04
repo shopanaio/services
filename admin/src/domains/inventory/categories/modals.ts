@@ -20,6 +20,7 @@ export const CATEGORY_EDIT_CONTENT_MODAL_TYPE = 'category-edit-content';
 export const CATEGORY_EDIT_SEO_MODAL_TYPE = 'category-edit-seo';
 export const CATEGORY_EDIT_MEDIA_MODAL_TYPE = 'category-edit-media';
 export const CATEGORY_EDIT_SORT_MODAL_TYPE = 'category-edit-sort';
+export const CATEGORY_LISTING_PREVIEW_MODAL_TYPE = "category-listing-preview";
 
 // ============================================================================
 // Payload Interfaces
@@ -74,6 +75,10 @@ export interface ICategoryEditSortModalPayload
   ) => boolean | void | Promise<boolean | void>;
 }
 
+export interface ICategoryListingPreviewModalPayload extends IModalStackPayload {
+  category: ApiCategory;
+}
+
 // ============================================================================
 // Module Augmentation for Type Safety
 // ============================================================================
@@ -87,6 +92,7 @@ declare module '@/layouts/modals' {
     [CATEGORY_EDIT_SEO_MODAL_TYPE]: ICategoryEditSeoModalPayload;
     [CATEGORY_EDIT_MEDIA_MODAL_TYPE]: ICategoryEditMediaModalPayload;
     [CATEGORY_EDIT_SORT_MODAL_TYPE]: ICategoryEditSortModalPayload;
+    [CATEGORY_LISTING_PREVIEW_MODAL_TYPE]: ICategoryListingPreviewModalPayload;
   }
 }
 
@@ -112,4 +118,7 @@ export const useCategoryEditMediaModal = createModalStackHook(
 );
 export const useCategoryEditSortModal = createModalStackHook(
   CATEGORY_EDIT_SORT_MODAL_TYPE,
+);
+export const useCategoryListingPreviewModal = createModalStackHook(
+  CATEGORY_LISTING_PREVIEW_MODAL_TYPE,
 );

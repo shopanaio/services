@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Alert, App, Button, Dropdown, Flex, Skeleton, Tag, Typography } from "antd";
 import {
   MoreOutlined,
+  EyeOutlined,
   PictureOutlined,
   PlusOutlined,
   ShoppingOutlined,
@@ -13,13 +14,16 @@ import type { MenuProps } from "antd";
 import { EntityDetailsEmptyState } from "@/domains/inventory/components/entity-details-sections";
 import { RelayCursorPagination, useRelayCursorPagination } from "@/ui-kit/cursor-pagination";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
-import type { ApiListing, ApiListingOrderByInput } from "@/graphql/types";
-import { ListingOrderField, ProductSortBy, SortDirection } from "@/graphql/types";
+import { ProductOrderField, ProductSortBy, SortDirection } from "@/graphql/types";
 import { useCategoryProducts, useRemoveCategoryProduct } from "../../../hooks";
+import type {
+  CategoryProductListItem,
+  CategoryProductsOrderByInput,
+} from "../../../graphql/operation-types";
 import { useProductsStyles } from "../category-details-card.styles";
 import { TableCoverImage } from "@/shared/components/table-cover-image";
 
-const getProductImageUrl = (product: ApiListing): string | null => {
+const getProductImageUrl = (product: CategoryProductListItem): string | null => {
   const firstMedia = [...product.media].sort((a, b) => a.sortIndex - b.sortIndex)[0];
   return firstMedia?.file.url ?? null;
 };
@@ -43,9 +47,9 @@ const formatSortDirection = (value: SortDirection): string =>
   value === SortDirection.Desc ? "Descending" : "Ascending";
 
 interface ProductRowProps {
-  product: ApiListing;
+  product: CategoryProductListItem;
   isRemoving?: boolean;
-  onRemove?: (product: ApiListing) => void;
+  onRemove?: (product: CategoryProductListItem) => void;
 }
 
 const ProductRow = ({ product, isRemoving, onRemove }: ProductRowProps) => {
@@ -111,6 +115,7 @@ interface ProductsSectionProps {
   productsCount: number;
   defaultSort: ProductSortBy;
   defaultSortDirection: SortDirection;
+  onPreview?: () => void;
   onAssignProducts?: () => void;
 }
 
@@ -119,11 +124,12 @@ export const ProductsSection = ({
   productsCount,
   defaultSort,
   defaultSortDirection,
+  onPreview,
   onAssignProducts,
 }: ProductsSectionProps) => {
   const { styles } = useProductsStyles();
   const { message, modal } = App.useApp();
-  const [orderBy, setOrderBy] = useState<ApiListingOrderByInput[] | null>(null);
+  const [orderBy, setOrderBy] = useState<CategoryProductsOrderByInput[] | null>(null);
   const [removingProductId, setRemovingProductId] = useState<string | null>(null);
   const pagination = useRelayCursorPagination({
     defaultPageSize: 10,
@@ -147,31 +153,31 @@ export const ProductsSection = ({
           key: "name-asc",
           label: "Name A to Z",
           onClick: () =>
-            setOrderBy([{ field: ListingOrderField.Name, direction: SortDirection.Asc }]),
+            setOrderBy([{ field: ProductOrderField.Name, direction: SortDirection.Asc }]),
         },
         {
           key: "name-desc",
           label: "Name Z to A",
           onClick: () =>
-            setOrderBy([{ field: ListingOrderField.Name, direction: SortDirection.Desc }]),
+            setOrderBy([{ field: ProductOrderField.Name, direction: SortDirection.Desc }]),
         },
         {
           key: "newest",
           label: "Newest first",
           onClick: () =>
-            setOrderBy([{ field: ListingOrderField.CreatedAt, direction: SortDirection.Desc }]),
+            setOrderBy([{ field: ProductOrderField.CreatedAt, direction: SortDirection.Desc }]),
         },
         {
           key: "price-asc",
           label: "Price low to high",
           onClick: () =>
-            setOrderBy([{ field: ListingOrderField.MinPriceMinor, direction: SortDirection.Asc }]),
+            setOrderBy([{ field: ProductOrderField.MinPriceMinor, direction: SortDirection.Asc }]),
         },
         {
           key: "price-desc",
           label: "Price high to low",
           onClick: () =>
-            setOrderBy([{ field: ListingOrderField.MinPriceMinor, direction: SortDirection.Desc }]),
+            setOrderBy([{ field: ProductOrderField.MinPriceMinor, direction: SortDirection.Desc }]),
         },
       ],
     }),
@@ -183,7 +189,7 @@ export const ProductsSection = ({
     defaultSortDirection,
   )}`;
 
-  const handleRemoveProduct = async (product: ApiListing) => {
+  const handleRemoveProduct = async (product: CategoryProductListItem) => {
     setRemovingProductId(product.id);
 
     try {
@@ -203,7 +209,7 @@ export const ProductsSection = ({
     }
   };
 
-  const confirmRemoveProduct = (product: ApiListing) => {
+  const confirmRemoveProduct = (product: CategoryProductListItem) => {
     modal.confirm({
       title: "Unassign product from category?",
       content: "The product will stay in the catalog.",
@@ -227,6 +233,15 @@ export const ProductsSection = ({
         }
         actions={
           <Flex gap={8} align="center">
+            <Button
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={onPreview}
+              disabled={!categoryId}
+              data-testid="category-products-preview-button"
+            >
+              Preview
+            </Button>
             <Dropdown menu={sortMenu} trigger={["click"]}>
               <Button
                 size="small"

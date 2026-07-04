@@ -1,6 +1,7 @@
 export * from "./use-categories";
 export * from "./use-category";
 export * from "./use-category-products";
+export * from "./use-category-listing-preview";
 export * from "./use-create-category";
 export * from "./use-delete-category";
 export * from "./use-update-category";

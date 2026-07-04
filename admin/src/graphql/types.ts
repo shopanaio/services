@@ -1925,8 +1925,6 @@ export type ApiCategory = ApiNode & {
   id: Scalars['ID']['output'];
   /** Whether the category is currently published. */
   isPublished: Scalars['Boolean']['output'];
-  /** Catalog listing items assigned to this category, including products and bundles. */
-  listing: ApiListingConnection;
   /** Media files associated with this category. */
   media: Array<ApiCategoryMediaItem>;
   /** The display name of the category. */
@@ -1945,17 +1943,6 @@ export type ApiCategory = ApiNode & {
   seo?: Maybe<ApiSeo>;
   /** The date and time when the category was last updated. */
   updatedAt: Scalars['DateTime']['output'];
-};
-
-
-/** A category represents a hierarchical grouping of products. */
-export type ApiCategoryListingArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  orderBy?: InputMaybe<Array<ApiListingOrderByInput>>;
-  where?: InputMaybe<ApiListingWhereInput>;
 };
 
 export type ApiCategoryCategoriesMetaInput = {
@@ -3436,6 +3423,7 @@ export type ApiFacetSwatch = ApiNode & {
   colorOne?: Maybe<Scalars['String']['output']>;
   colorTwo?: Maybe<Scalars['String']['output']>;
   file?: Maybe<ApiFile>;
+  /** The FacetSwatch global ID owned by Catalog. */
   id: Scalars['ID']['output'];
   metadata?: Maybe<Scalars['JSON']['output']>;
   swatchType: SwatchType;
@@ -4440,20 +4428,8 @@ export type ApiLabel = {
 };
 
 export type ApiListing = {
-  /** The URL-friendly handle. */
-  handle: Scalars['String']['output'];
-  /** The Product global ID of the catalog listing item. */
+  /** The global ID of the catalog listing item. */
   id: Scalars['ID']['output'];
-  /** Whether the listing item is currently published. */
-  isPublished: Scalars['Boolean']['output'];
-  /** Product discriminator. */
-  kind: ProductKind;
-  /** Media registered on this listing item. */
-  media: Array<ApiProductMediaItem>;
-  /** Current product price range in the selected currency. */
-  priceRange?: Maybe<ApiProductPriceRange>;
-  /** Localized title. */
-  title: Scalars['String']['output'];
 };
 
 /** A connection to a mixed list of catalog listing items. */
@@ -4461,9 +4437,11 @@ export type ApiListingConnection = {
   __typename?: 'ListingConnection';
   /** A list of edges. */
   edges: Array<ApiListingEdge>;
+  /** Ordered facet items available for the current listing result. */
+  facets: Array<ApiListingFacet>;
   /** Information to aid in pagination. */
   pageInfo: ApiPageInfo;
-  /** The total number of catalog listing items. */
+  /** The total number of matched sellable items. */
   totalCount: Scalars['Int']['output'];
 };
 
@@ -4476,94 +4454,160 @@ export type ApiListingEdge = {
   node: ApiListing;
 };
 
-/** Ordering configuration for Listing */
-export type ApiListingOrderByInput = {
-  /** Sort direction */
-  direction: SortDirection;
-  /** Field to order by */
-  field: ListingOrderField;
+export type ApiListingFacet = {
+  __typename?: 'ListingFacet';
+  /** Stable listing facet ID. */
+  id: Scalars['String']['output'];
+  /** Human-readable facet label. */
+  label: Scalars['String']['output'];
+  /** Facet presentation/selection type. */
+  type: ListingFacetType;
+  /** Catalog-compatible UI type. */
+  uiType: FacetUiType;
+  /** Ordered values for this facet in listing UI order. */
+  values: Array<ApiListingFacetValue>;
 };
 
-/** Fields available for sorting Listing */
-export enum ListingOrderField {
-  /** Sort by brandName */
-  BrandName = 'brandName',
-  /** Sort by createdAt */
-  CreatedAt = 'createdAt',
-  /** Sort by currency */
-  Currency = 'currency',
-  /** Sort by handle */
-  Handle = 'handle',
-  /** Sort by id */
-  Id = 'id',
-  /** Sort by kind */
-  Kind = 'kind',
-  /** Sort by locale */
-  Locale = 'locale',
-  /** Sort by maxAmountMinor */
-  MaxAmountMinor = 'maxAmountMinor',
-  /** Sort by maxPriceMinor */
-  MaxPriceMinor = 'maxPriceMinor',
-  /** Sort by minAmountMinor */
-  MinAmountMinor = 'minAmountMinor',
-  /** Sort by minPriceMinor */
-  MinPriceMinor = 'minPriceMinor',
-  /** Sort by name */
-  Name = 'name',
-  /** Sort by primaryCategoryId */
-  PrimaryCategoryId = 'primaryCategoryId',
-  /** Sort by primaryCategoryName */
-  PrimaryCategoryName = 'primaryCategoryName',
-  /** Sort by publishedAt */
-  PublishedAt = 'publishedAt',
-  /** Sort by updatedAt */
-  UpdatedAt = 'updatedAt',
-  /** Sort by vendorId */
-  VendorId = 'vendorId'
+export enum ListingFacetType {
+  Boolean = 'BOOLEAN',
+  List = 'LIST',
+  PriceRange = 'PRICE_RANGE'
 }
 
-/** Filter conditions for Listing */
-export type ApiListingWhereInput = {
-  /** Logical AND of multiple conditions */
-  _and?: InputMaybe<Array<ApiListingWhereInput>>;
-  /** Negate the condition */
-  _not?: InputMaybe<ApiListingWhereInput>;
-  /** Logical OR of multiple conditions */
-  _or?: InputMaybe<Array<ApiListingWhereInput>>;
-  /** Filter by brandName */
-  brandName?: InputMaybe<ApiStringFilter>;
-  /** Filter by createdAt */
-  createdAt?: InputMaybe<ApiDateTimeFilter>;
-  /** Filter by currency */
-  currency?: InputMaybe<ApiStringFilter>;
-  /** Filter by handle */
-  handle?: InputMaybe<ApiStringFilter>;
-  /** Filter by id */
-  id?: InputMaybe<ApiIdFilter>;
-  /** Filter by kind */
-  kind?: InputMaybe<ApiStringFilter>;
-  /** Filter by locale */
-  locale?: InputMaybe<ApiStringFilter>;
-  /** Filter by maxAmountMinor */
-  maxAmountMinor?: InputMaybe<ApiIntFilter>;
-  /** Filter by maxPriceMinor */
-  maxPriceMinor?: InputMaybe<ApiIntFilter>;
-  /** Filter by minAmountMinor */
-  minAmountMinor?: InputMaybe<ApiIntFilter>;
-  /** Filter by minPriceMinor */
-  minPriceMinor?: InputMaybe<ApiIntFilter>;
-  /** Filter by name */
-  name?: InputMaybe<ApiStringFilter>;
-  /** Filter by primaryCategoryId */
-  primaryCategoryId?: InputMaybe<ApiIdFilter>;
-  /** Filter by primaryCategoryName */
-  primaryCategoryName?: InputMaybe<ApiStringFilter>;
-  /** Filter by publishedAt */
-  publishedAt?: InputMaybe<ApiDateTimeFilter>;
-  /** Filter by updatedAt */
-  updatedAt?: InputMaybe<ApiDateTimeFilter>;
-  /** Filter by vendorId */
-  vendorId?: InputMaybe<ApiIdFilter>;
+export type ApiListingFacetValue = {
+  __typename?: 'ListingFacetValue';
+  /** Number of matched sellable items for this value. */
+  count: Scalars['Int']['output'];
+  /** Stable listing facet value ID. */
+  id: Scalars['String']['output'];
+  /**
+   * JSON object compatible with ListingProductFilter.
+   * This keeps product, vendor, price and availability facets on one contract.
+   */
+  input: Scalars['JSON']['output'];
+  /** Human-readable value label. */
+  label: Scalars['String']['output'];
+  /** Whether this value was selected in the current request. */
+  selected: Scalars['Boolean']['output'];
+  /** Catalog swatch metadata for facet values that have one. */
+  swatch?: Maybe<ApiFacetSwatch>;
+};
+
+export type ApiListingFacetValueFilter = {
+  /** Facet stable identifier. */
+  facet: Scalars['String']['input'];
+  /** Facet value stable identifier. */
+  value: Scalars['String']['input'];
+};
+
+export type ApiListingMutation = {
+  __typename?: 'ListingMutation';
+  /** Placeholder field for the empty mutation namespace. */
+  _empty: Scalars['Boolean']['output'];
+};
+
+export type ApiListingOrderByInput = {
+  /** Sort key for the listing request. */
+  by: ListingSortBy;
+  /** Sort direction. Ignored for MANUAL and RELEVANCE. */
+  direction?: InputMaybe<ListingSortDirection>;
+};
+
+export type ApiListingPriceRangeFilter = {
+  /** Maximum price amount in minor units. */
+  max?: InputMaybe<Scalars['BigInt']['input']>;
+  /** Minimum price amount in minor units. */
+  min?: InputMaybe<Scalars['BigInt']['input']>;
+};
+
+export type ApiListingProductFilter = {
+  /** Filter on if the listing item is available. */
+  available?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Filter by product price range. */
+  price?: InputMaybe<ApiListingPriceRangeFilter>;
+  /** Filter by product-level catalog facet value. */
+  productFacet?: InputMaybe<ApiListingFacetValueFilter>;
+  /** Filter by product vendor. */
+  productVendor?: InputMaybe<Scalars['String']['input']>;
+  /** Filter by product tag. */
+  tag?: InputMaybe<Scalars['String']['input']>;
+  /** Filter by variant-level catalog facet value. */
+  variantFacet?: InputMaybe<ApiListingFacetValueFilter>;
+  /** Filter by variant option. */
+  variantOption?: InputMaybe<ApiListingVariantOptionFilter>;
+};
+
+export type ApiListingQuery = {
+  __typename?: 'ListingQuery';
+  /**
+   * Get ordered listing structure for Admin.
+   *
+   * Listing service returns listing-owned order, pagination, counts, aggregates,
+   * and canonical entity references only. Entity details are resolved by owning
+   * subgraphs through federation.
+   */
+  listing: ApiListingConnection;
+  /** Get a node by its global ID. */
+  node?: Maybe<ApiNode>;
+  /** Get multiple nodes by their global IDs. */
+  nodes: Array<Maybe<ApiNode>>;
+};
+
+
+export type ApiListingQueryListingArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  currency?: InputMaybe<CurrencyCode>;
+  facets?: InputMaybe<Array<ApiListingProductFilter>>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  locale?: InputMaybe<LocaleCode>;
+  orderBy?: InputMaybe<ApiListingOrderByInput>;
+  query?: InputMaybe<Scalars['String']['input']>;
+  scope?: InputMaybe<ApiListingScopeInput>;
+};
+
+
+export type ApiListingQueryNodeArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiListingQueryNodesArgs = {
+  ids: Array<Scalars['ID']['input']>;
+};
+
+export type ApiListingScopeInput = {
+  /** Category global ID. Required when kind is CATEGORY. */
+  categoryId?: InputMaybe<Scalars['ID']['input']>;
+  /** Scope kind for the listing request. */
+  kind: ListingScopeKind;
+};
+
+export enum ListingScopeKind {
+  Category = 'CATEGORY',
+  Search = 'SEARCH'
+}
+
+export enum ListingSortBy {
+  Created = 'CREATED',
+  Manual = 'MANUAL',
+  Name = 'NAME',
+  Newest = 'NEWEST',
+  Price = 'PRICE',
+  Relevance = 'RELEVANCE'
+}
+
+export enum ListingSortDirection {
+  Asc = 'asc',
+  Desc = 'desc'
+}
+
+export type ApiListingVariantOptionFilter = {
+  /** Variant option name. */
+  name: Scalars['String']['input'];
+  /** Variant option value. */
+  value: Scalars['String']['input'];
 };
 
 /** Locale configuration for the project */
@@ -5143,6 +5187,8 @@ export type ApiMutation = {
   catalogMutation: ApiCatalogMutation;
   /** Inventory mutation namespace for warehouse, stock, and inventory item operations */
   inventoryMutation: ApiInventoryMutation;
+  /** Listing mutation namespace. */
+  listingMutation: ApiListingMutation;
   mediaMutation: ApiMediaMutation;
   orderMutation: ApiOrderMutation;
   /** Organization management mutations. */
@@ -6602,6 +6648,8 @@ export type ApiQuery = {
   catalogQuery: ApiCatalogQuery;
   /** Inventory query namespace for warehouse, stock, and inventory item operations */
   inventoryQuery: ApiInventoryQuery;
+  /** Listing query namespace. */
+  listingQuery: ApiListingQuery;
   mediaQuery: ApiMediaQuery;
   orderQuery: ApiOrderQuery;
   /** Organization queries namespace. */
@@ -8487,6 +8535,7 @@ export enum Join__Graph {
   AppsAdmin = 'APPS_ADMIN',
   CatalogAdmin = 'CATALOG_ADMIN',
   IamAdmin = 'IAM_ADMIN',
+  ListingAdmin = 'LISTING_ADMIN',
   MediaAdmin = 'MEDIA_ADMIN',
   OrdersAdmin = 'ORDERS_ADMIN',
   ProjectAdmin = 'PROJECT_ADMIN'
