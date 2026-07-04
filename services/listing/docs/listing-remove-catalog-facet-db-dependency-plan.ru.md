@@ -338,6 +338,109 @@ facets {
 Так listing возвращает только entity reference keys, а catalog отдает IDs,
 labels, UI metadata и swatches.
 
+### Federation resolution flow
+
+Listing не должен иметь `Facet.id` или `FacetValue.id`. Он должен вернуть
+достаточный federation reference.
+
+Для facet:
+
+```ts
+{
+  __typename: "Facet",
+  slug: "color",
+}
+```
+
+Router передаст этот reference в catalog, если клиент запросил catalog-owned
+fields:
+
+```graphql
+facets {
+  facet {
+    id
+    label
+    uiType
+  }
+}
+```
+
+Catalog resolver:
+
+```ts
+Facet: {
+  __resolveReference(reference, ctx) {
+    return ctx.loaders.facetBySlug.load(reference.slug);
+  }
+}
+```
+
+Фактический catalog lookup:
+
+```sql
+SELECT *
+FROM catalog.facet
+WHERE project_id = :storeId
+  AND slug = :slug
+```
+
+Для facet value одного `handle` недостаточно, потому `FacetValue.handle`
+уникален только внутри facet. Listing должен вернуть пару:
+
+```ts
+{
+  __typename: "FacetValue",
+  facetHandle: "color",
+  handle: "black",
+}
+```
+
+Router передаст reference в catalog:
+
+```graphql
+values {
+  value {
+    id
+    label
+    swatch { id }
+  }
+}
+```
+
+Catalog resolver:
+
+```ts
+FacetValue: {
+  __resolveReference(reference, ctx) {
+    return ctx.loaders.facetValueByFacetHandleAndHandle.load({
+      facetHandle: reference.facetHandle,
+      handle: reference.handle,
+    });
+  }
+}
+```
+
+Фактический catalog lookup:
+
+```sql
+SELECT fv.*
+FROM catalog.facet f
+JOIN catalog.facet_value fv
+  ON fv.project_id = f.project_id
+ AND fv.facet_id = f.id
+WHERE f.project_id = :storeId
+  AND f.slug = :facetHandle
+  AND fv.handle = :handle
+  AND fv.parent_id IS NULL
+```
+
+Итоговое правило:
+
+- `Facet` reference key: `slug` или будущий `handle`;
+- `FacetValue` reference key: `facetHandle + handle`;
+- listing result не должен содержать только `valueHandle` без `facetHandle`,
+  потому такой reference нельзя однозначно дорезолвить в catalog.
+
 ## DB migration для handle-based option index
 
 ### `listing.listing_posting_bitmap`
