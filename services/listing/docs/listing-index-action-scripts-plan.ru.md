@@ -239,11 +239,25 @@ await this.broker.startWorkflow(
   `"return-existing"`, а `deduplicationID` несовместим с
   `queuePartitionKey`.
 - Если DBOS SDK возвращает duplicate workflow conflict для уже принятого
-  deterministic workflow id, action handler должен трактовать это как
-  already accepted. Это должно быть оформлено отдельным helper-ом поверх
-  `broker.startWorkflow(...)`, а не через `deduplicationID`.
+  deterministic workflow id, action handler не должен слепо трактовать это как
+  `already accepted`.
+- Duplicate workflow conflict обрабатывается отдельным helper-ом поверх
+  `broker.startWorkflow(...)`, а не через `deduplicationID`:
+  - helper строит тот же `effectiveIdempotencyKey` и `payloadHash`;
+  - после duplicate conflict helper читает
+    `listing_index_action_execution`/`listing_index_action_receipt` по
+    `(projectId, effectiveIdempotencyKey)`;
+  - если persisted `payloadHash`, `actionType`, `entityType`, `itemId` и
+    `sourceRevision` совпадают, conflict считается `already accepted`;
+  - если persisted row еще не виден из-за race с DBOS accept, helper может
+    retry bounded read с коротким backoff;
+  - если persisted payload metadata отличается, handler возвращает/кидает
+    non-retryable idempotency conflict согласно public action contract.
+- Duplicate workflow conflict с другим payload не должен маскироваться как
+  successful enqueue. DBOS workflow identity защищает scheduling, а payload
+  conflict detection остается database-level contract.
 - `accepted` возвращается только после durable DBOS accept/enqueue или после
-  распознавания already accepted duplicate workflow.
+  распознавания same-payload already accepted duplicate workflow.
 
 ### Workflow body
 
@@ -462,9 +476,10 @@ Step rules:
 - `buildSyncWriteModel` step:
   - использует только normalized action и persisted doc ids;
   - не читает mutable storefront state;
-  - сохраняет canonical `write_model_hash` и optional debug snapshot в
+  - сохраняет canonical versioned `write_model_json` и `write_model_hash` в
     execution row stage `write_model_built`;
-  - повтор step возвращает тот же write model или валидирует hash.
+  - повтор step возвращает persisted write model. Rebuild-and-compare может
+    использоваться только как diagnostic guard, но не как source of truth.
 - `commitSyncIndexAction` и `commitDeleteIndexAction`:
   - открывают одну item-level transaction для final physical writes;
   - первым write-side DB operation вызывают `lockByItem`;
@@ -479,8 +494,17 @@ Step rules:
 - Retryable infrastructure errors должны быть thrown как retryable errors или
   классифицироваться wrapper-ом как retryable.
 - Validation/project mismatch/domain conflicts возвращаются стабильным
-  non-retryable domain result или кидаются как fatal/non-retryable error,
-  согласно публичному action contract.
+  non-retryable domain result.
+- Domain conflicts, которые являются частью public action contract
+  (`IDEMPOTENCY_CONFLICT`, `REVISION_CONFLICT`, `VALIDATION_FAILED`,
+  `PROJECT_MISMATCH`), не должны превращаться в transient workflow retry.
+  Step должен durable-зафиксировать их в
+  `listing_index_action_execution.stage = 'failed_non_retryable'` с
+  `result_json` и вернуть stable result либо кинуть fatal только после того,
+  как stable result записан. Public enqueue path и controlled internal runner
+  должны видеть один и тот же результат.
+- Workflow error без stable domain result разрешен только для infrastructure
+  failures после исчерпания retry или data corruption states.
 - Step timeout считается non-retryable. Timeout должен быть достаточно большим
   для item transaction, но не использоваться как основной механизм отмены.
 
@@ -569,7 +593,8 @@ Rules:
   retryable broker error. Выбранное поведение должно быть единым для всех batch
   callers.
 - Retry batch после partial enqueue safe: уже accepted items распознаются по
-  deterministic workflow identity как already accepted.
+  deterministic workflow identity и execution/receipt metadata как
+  same-payload already accepted.
 
 ## Database idempotency model
 
@@ -630,7 +655,8 @@ CREATE TABLE listing.listing_index_action_execution (
   product_doc_id integer,
   variant_doc_ids_json jsonb,
   write_model_hash text,
-  debug_write_model_json jsonb,
+  write_model_json jsonb,
+  result_json jsonb,
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
   PRIMARY KEY (project_id, effective_idempotency_key)
@@ -659,6 +685,10 @@ Constraints:
   `doc_ids_reserved` onward for sync actions.
 - `write_model_hash` is required from `write_model_built` onward for sync
   actions.
+- `write_model_json` is required from `write_model_built` onward for sync
+  actions and stores the canonical versioned write model used by final commit.
+- `result_json` is required for `failed_non_retryable` and stores the stable
+  domain result returned by both DBOS and controlled internal execution paths.
 - Reusing the same `effective_idempotency_key` with different `payload_hash`,
   `action_type`, `entity_type`, `item_id` or `source_revision` is a
   non-retryable idempotency conflict.
@@ -667,6 +697,9 @@ Constraints:
 - `completed` means final receipt exists. If a retry observes `stage =
   'completed'` but no final receipt, it must treat this as data corruption and
   fail non-retryably, not reapply physical writes.
+- `failed_non_retryable` means no physical writes will be attempted for this
+  effective key. Re-running any step returns persisted `result_json` without
+  write amplification.
 
 ### `listing_index_action_receipt`
 
@@ -710,7 +743,9 @@ Constraints:
 - If an internal runner reuses the same effective key with a different
   `payloadHash`, repository returns an idempotency conflict as non-retryable
   domain result. Duplicate workflow starts may never reach script because DBOS
-  workflow identity can resolve to the first accepted workflow.
+  workflow identity can resolve to the first accepted workflow; action handler
+  duplicate handling therefore must inspect execution/receipt metadata before
+  returning `already accepted`.
 
 ## Idempotency and revision decision
 
@@ -797,6 +832,11 @@ Rules:
 - `buildSyncWriteModel` may skip item lock only if it uses no mutable database
   state; if it persists `write_model_hash`, it must lock item before updating
   execution row.
+- `buildSyncWriteModel` persists the canonical versioned `write_model_json`
+  together with `write_model_hash`. On retry after DBOS step result was not
+  persisted, the step returns the persisted write model instead of rebuilding
+  from changed code. Rebuild-and-compare is allowed only as a diagnostic check,
+  not as the source of truth for commit.
 - Decision is repeated under lock in final commit even if prepare already made
   an `apply` decision.
 - `noop` and `ignored_stale` do not execute physical index writes.
@@ -1018,10 +1058,12 @@ Responsibilities:
 - Принимает normalized action и persisted doc ids.
 - Конвертирует public snapshot в `ListingItemWriteModel`.
 - Считает canonical `write_model_hash`.
-- Сохраняет `write_model_hash` и optional debug snapshot в execution row,
-  переводит stage в `write_model_built`.
-- Если stage уже `write_model_built` или дальше, повторно строит model и
-  сравнивает hash; mismatch является non-retryable domain error.
+- Сохраняет canonical versioned `write_model_json` и `write_model_hash` в
+  execution row, переводит stage в `write_model_built`.
+- Если stage уже `write_model_built` или дальше, возвращает persisted
+  `write_model_json`. Повторное построение model и сравнение hash допустимо
+  только как debug/diagnostic guard; mismatch не должен блокировать retry
+  уже durable-зафиксированного write model.
 - Не выполняет physical index writes.
 
 ### `ListingCommitSyncIndexActionScript`
@@ -1211,7 +1253,8 @@ interface ListingIndexActionExecutionRow extends ListingIndexItemStateKey {
   productDocId?: number;
   variantDocIdsJson?: Record<string, number>;
   writeModelHash?: string;
-  debugWriteModelJson?: unknown;
+  writeModelJson?: unknown;
+  resultJson?: Listing.ListingUpdateResult;
   createdAt: string;
   updatedAt: string;
 }
@@ -1233,11 +1276,11 @@ class ListingIndexActionExecutionRepository extends BaseRepository {
     variantDocIdsJson: Record<string, number>;
   }): Promise<ListingIndexActionExecutionRow>;
 
-  saveWriteModelHash(input: {
+  saveWriteModel(input: {
     projectId: string;
     effectiveIdempotencyKey: string;
     writeModelHash: string;
-    debugWriteModelJson?: unknown;
+    writeModelJson: ListingItemWriteModel;
   }): Promise<ListingIndexActionExecutionRow>;
 
   markCommitting(input: {
@@ -1248,6 +1291,12 @@ class ListingIndexActionExecutionRepository extends BaseRepository {
   markCompleted(input: {
     projectId: string;
     effectiveIdempotencyKey: string;
+  }): Promise<ListingIndexActionExecutionRow>;
+
+  markFailedNonRetryable(input: {
+    projectId: string;
+    effectiveIdempotencyKey: string;
+    resultJson: Listing.ListingUpdateResult;
   }): Promise<ListingIndexActionExecutionRow>;
 }
 ```
@@ -1392,7 +1441,7 @@ DBOS `@WorkflowStep`; final physical writes happen only inside
       `buildListingIndexWorkflowIdempotencyContext(...)` and pass
       item-scoped `effectiveIdempotencyKey` as `contentHash`.
 - [ ] Action handlers return `accepted` only after durable DBOS enqueue or
-      already accepted duplicate detection.
+      same-payload already accepted duplicate detection.
 - [ ] `enqueueOptions.deduplicationID` is not used with partitioned queue.
 - [ ] `duplicationPolicy: "return-existing"` is not used for
       `listing_index_actions`.
