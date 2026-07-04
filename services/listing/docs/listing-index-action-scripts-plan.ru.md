@@ -122,17 +122,94 @@ const queuePartitionKey = [
 Action handlers используют только `broker.startWorkflow(...)`. Прямой вызов
 `DBOS.startWorkflow(...)` из listing action handlers запрещен.
 
+`IdempotencyContext` для index workflows строится только через общий helper,
+чтобы single и batch paths получали один и тот же deterministic DBOS
+`workflowID`:
+
 ```ts
+import { hashContent, type IdempotencyContext } from "@shopana/shared-kernel";
+
+type ListingIndexActionType = "syncSellableItem" | "deleteSellableItem";
+
+function buildListingIndexEffectiveIdempotencyKey(input: {
+  rawIdempotencyKey: string;
+  projectId: string;
+  entityType: Listing.ListingSellableItemEntityType;
+  itemId: string;
+  actionType: ListingIndexActionType;
+}): string {
+  return hashContent({
+    v: 1,
+    projectId: input.projectId,
+    entityType: input.entityType,
+    itemId: input.itemId,
+    actionType: input.actionType,
+    rawIdempotencyKey: input.rawIdempotencyKey,
+  });
+}
+
+function buildListingIndexWorkflowIdempotencyContext(input: {
+  projectId: string;
+  entityType: Listing.ListingSellableItemEntityType;
+  itemId: string;
+  actionType: ListingIndexActionType;
+  effectiveIdempotencyKey: string;
+}): IdempotencyContext {
+  return {
+    source: "content",
+    tenantId: input.projectId,
+    resourceId: `${input.entityType}:${input.itemId}`,
+    operation: `listing.${input.actionType}`,
+    contentHash: input.effectiveIdempotencyKey,
+  };
+}
+```
+
+Почему именно так:
+
+- `WorkflowRegistry.start()` вызывает
+  `buildIdempotencyKey(qualifiedWorkflow, idempotencyCtx)`;
+- для `source: "content"` DBOS workflow identity строится из
+  `tenantId`, `resourceId`, `operation`, `contentHash` и qualified workflow
+  name;
+- `tenantId = projectId` дает project-level isolation;
+- `resourceId = entityType:itemId` делает workflow identity item-scoped;
+- `operation = listing.${actionType}` разделяет sync и delete при одном
+  external idempotency key;
+- `contentHash` должен получать item-scoped `effectiveIdempotencyKey`, а не
+  raw `meta.idempotencyKey` и не `payloadHash`;
+- `content` не передается, потому что workflow identity должна зависеть от
+  acceptance idempotency key, а не от полного snapshot payload. Payload
+  conflict detection выполняется отдельно через `payloadHash` в database
+  receipt.
+
+```ts
+const effectiveIdempotencyKey =
+  buildListingIndexEffectiveIdempotencyKey({
+    rawIdempotencyKey: queuedAction.params.meta.idempotencyKey,
+    projectId,
+    entityType,
+    itemId,
+    actionType: queuedAction.type,
+  });
+
+const idempotencyCtx =
+  buildListingIndexWorkflowIdempotencyContext({
+    projectId,
+    entityType,
+    itemId,
+    actionType: queuedAction.type,
+    effectiveIdempotencyKey,
+  });
+
 await this.broker.startWorkflow(
   "listing.indexAction",
-  queuedAction,
   {
-    source: "content",
-    tenantId: projectId,
-    resourceId: `${entityType}:${itemId}`,
-    operation: `listing.${queuedAction.type}`,
-    contentHash: effectiveIdempotencyKey,
+    ...queuedAction,
+    effectiveIdempotencyKey,
+    payloadHash,
   },
+  idempotencyCtx,
   {
     queueName: "listing_index_actions",
     enqueueOptions: {
@@ -149,6 +226,9 @@ await this.broker.startWorkflow(
 - `operation` включает action type, чтобы sync и delete не конфликтовали при
   одинаковом idempotency key.
 - `contentHash` получает `effectiveIdempotencyKey`, а не raw batch key.
+- Текущая заготовка action handler, которая передает
+  `params.meta.idempotencyKey` напрямую в `contentHash`, должна быть заменена
+  на helper выше.
 - Explicit `options.workflowId` можно передать только если он строится тем же
   helper-ом из `projectId + entityType + itemId + actionType +
   effectiveIdempotencyKey`.
@@ -1038,6 +1118,9 @@ This block is sequencing contract, not implementation.
 - [ ] Queue partition key is item-scoped.
 - [ ] Action handlers use `ServiceBroker.startWorkflow(...)`, not direct
       `DBOS.startWorkflow(...)`.
+- [ ] Index workflows build `IdempotencyContext` through
+      `buildListingIndexWorkflowIdempotencyContext(...)` and pass
+      item-scoped `effectiveIdempotencyKey` as `contentHash`.
 - [ ] Action handlers return `accepted` only after durable DBOS enqueue or
       already accepted duplicate detection.
 - [ ] `enqueueOptions.deduplicationID` is not used with partitioned queue.
