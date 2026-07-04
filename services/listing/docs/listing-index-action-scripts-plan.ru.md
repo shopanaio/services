@@ -22,10 +22,16 @@ DBOS workflow/step execution.
   DBOS queue.
 - DBOS `@Workflow` body не выполняет внешние эффекты. В нем разрешены только
   deterministic branching и вызов durable step.
-- Все database writes, repository calls, `Kernel.getInstance()`,
+- Все repository calls, `Kernel.getInstance()`,
   `kernel.runScript(...)`, чтение config/defaults, `Date`, `now()`, UUID и
   любые другие side effects находятся внутри `@WorkflowStep` или controlled
   internal script runner.
+- Prepare DBOS steps не выполняют physical listing index writes. Они
+  валидируют, нормализуют и строят immutable write input.
+- Единственный DBOS write step вызывает один transactional script, который
+  внутри одной item-level transaction принимает final revision decision,
+  выделяет doc ids, выполняет physical writes, обновляет latest state и пишет
+  final receipt.
 - DBOS step может быть повторно выполнен после crash, если step result еще не
   persisted. Поэтому физические writes должны быть idempotent на database
   уровне.
@@ -266,9 +272,9 @@ await this.broker.startWorkflow(
 ### Workflow body
 
 `ListingIndexActionWorkflow` содержит только deterministic orchestration.
-Workflow body не применяет индекс одним большим script call. Он вызывает
-durable steps в фиксированном порядке и ветвится только по результатам уже
-persisted steps:
+Workflow body не пишет индекс. Он вызывает один или несколько prepare steps,
+затем ровно один transactional write step. Ветвление разрешено только по
+immutable input и persisted result предыдущих steps:
 
 ```ts
 type ListingIndexQueuedAction =
@@ -285,6 +291,16 @@ type ListingIndexQueuedAction =
       payloadHash: string;
     };
 
+type ListingPreparedWriteAction =
+  | {
+      action: ListingPreparedSyncAction;
+      syncWriteModel: ListingSyncWriteModel;
+    }
+  | {
+      action: ListingPreparedDeleteAction;
+      syncWriteModel?: undefined;
+    };
+
 class ListingIndexActionWorkflow extends BrokerWorkflows {
   @Workflow("indexAction")
   async run(
@@ -296,26 +312,17 @@ class ListingIndexActionWorkflow extends BrokerWorkflows {
       return prepared.result;
     }
 
-    const docIds =
-      action.type === "syncSellableItem"
-        ? await this.stepEnsureDocIds(prepared.action)
-        : undefined;
-
-    const writeModel =
+    const syncWriteModel =
       action.type === "syncSellableItem"
         ? await this.stepBuildSyncWriteModel({
             action: prepared.action,
-            docIds: docIds!,
           })
         : undefined;
 
-    return action.type === "syncSellableItem"
-      ? this.stepCommitSyncIndexAction({
-          action: prepared.action,
-          docIds: docIds!,
-          writeModel: writeModel!,
-        })
-      : this.stepCommitDeleteIndexAction(prepared.action);
+    return this.stepWriteIndexAction({
+      action: prepared.action,
+      syncWriteModel,
+    });
   }
 }
 ```
@@ -327,19 +334,20 @@ Workflow body rules:
 - Не вызывает `kernel.runScript(...)`.
 - Не читает config/database/cache/network.
 - Не создает timestamps, UUID или random values.
-- Не строит write model, если для этого нужны doc ids или database state.
+- Может строить deterministic write model только из normalized action и
+  persisted step inputs. Write model не содержит allocated doc ids.
 - Не содержит physical index mapping rules.
-- Не вызывает один универсальный `applyListingIndexAction` step, который внутри
-  делает validate/lock/allocate/map/write/delete/finalize.
+- Не вызывает repositories или scripts вне DBOS steps.
 - Может ветвиться только на основании:
   - immutable `action.type`;
   - persisted result предыдущего `@WorkflowStep`.
 
 ### Workflow steps для side effects
 
-Фактическая обработка action разбивается на durable steps. Каждый step должен
-быть safe для повторного выполнения, если process crash произошел после его
-database commit, но до DBOS step result persistence.
+Фактическая обработка action разбивается на prepare steps и один write step.
+Prepare steps не пишут physical index tables. Single write step должен быть
+safe для повторного выполнения, если process crash произошел после database
+commit, но до DBOS step result persistence.
 
 ```ts
 class ListingIndexActionWorkflow extends BrokerWorkflows {
@@ -366,27 +374,6 @@ class ListingIndexActionWorkflow extends BrokerWorkflows {
   }
 
   @WorkflowStep({
-    name: "ensureListingIndexDocIds",
-    timeoutMs: 30_000,
-    retry: {
-      maxAttempts: 5,
-      intervalSeconds: 1,
-      backoffRate: 2,
-    },
-  })
-  private async stepEnsureDocIds(
-    action: ListingPreparedSyncAction
-  ): Promise<ListingIndexDocIds> {
-    const kernel = Kernel.getInstance();
-
-    return kernel.runScript(
-      ListingEnsureIndexDocIdsScript,
-      action,
-      buildRunScriptContext(action),
-    );
-  }
-
-  @WorkflowStep({
     name: "buildListingSyncWriteModel",
     timeoutMs: 30_000,
     retry: {
@@ -397,8 +384,7 @@ class ListingIndexActionWorkflow extends BrokerWorkflows {
   })
   private async stepBuildSyncWriteModel(input: {
     action: ListingPreparedSyncAction;
-    docIds: ListingIndexDocIds;
-  }): Promise<ListingItemWriteModel> {
+  }): Promise<ListingSyncWriteModel> {
     const kernel = Kernel.getInstance();
 
     return kernel.runScript(
@@ -409,7 +395,7 @@ class ListingIndexActionWorkflow extends BrokerWorkflows {
   }
 
   @WorkflowStep({
-    name: "commitListingSyncIndexAction",
+    name: "writeListingIndexAction",
     timeoutMs: 120_000,
     retry: {
       maxAttempts: 5,
@@ -417,38 +403,15 @@ class ListingIndexActionWorkflow extends BrokerWorkflows {
       backoffRate: 2,
     },
   })
-  private async stepCommitSyncIndexAction(input: {
-    action: ListingPreparedSyncAction;
-    docIds: ListingIndexDocIds;
-    writeModel: ListingItemWriteModel;
-  }): Promise<Listing.ListingUpdateResult> {
+  private async stepWriteIndexAction(input: ListingPreparedWriteAction): Promise<
+    Listing.ListingUpdateResult
+  > {
     const kernel = Kernel.getInstance();
 
     return kernel.runScript(
-      ListingCommitSyncIndexActionScript,
+      ListingWriteIndexActionScript,
       input,
       buildRunScriptContext(input.action),
-    );
-  }
-
-  @WorkflowStep({
-    name: "commitListingDeleteIndexAction",
-    timeoutMs: 120_000,
-    retry: {
-      maxAttempts: 5,
-      intervalSeconds: 1,
-      backoffRate: 2,
-    },
-  })
-  private async stepCommitDeleteIndexAction(
-    action: ListingPreparedDeleteAction
-  ): Promise<Listing.ListingUpdateResult> {
-    const kernel = Kernel.getInstance();
-
-    return kernel.runScript(
-      ListingCommitDeleteIndexActionScript,
-      action,
-      buildRunScriptContext(action),
     );
   }
 }
@@ -460,33 +423,36 @@ Step rules:
 - Step result persisted DBOS-ом. На workflow replay completed step не должен
   повторно выполнять writes.
 - Если process crash произошел после database commit, но до DBOS step result
-  persistence, DBOS может повторно выполнить этот же step. Поэтому каждый
-  write-step обязан иметь database guard по `effectiveIdempotencyKey`, final
-  receipt и latest item state.
+  persistence, DBOS может повторно выполнить write step. Поэтому
+  `writeListingIndexAction` обязан иметь database guard по
+  `effectiveIdempotencyKey`, final receipt и latest item state.
 - `prepare` step:
   - валидирует public contract;
   - строит/проверяет `RunScriptContext`;
-  - под item lock проверяет final receipt и revision decision;
-  - если action уже final, возвращает `kind: "final"` с сохраненным result;
+  - может делать fast-path read existing final receipt только как optimization;
+  - если action уже final по safe fast-path, возвращает `kind: "final"` с
+    сохраненным result;
   - если нужно продолжать, возвращает нормализованный immutable action.
-- `ensureDocIds` step:
-  - используется только для sync;
-  - под item lock повторно проверяет final receipt;
-  - выделяет или возвращает уже выделенные `product_doc_id` и
-    `variant_doc_id`;
-  - повтор step возвращает сохраненные doc ids.
 - `buildSyncWriteModel` step:
-  - использует только normalized action и persisted doc ids;
-  - не читает mutable storefront state;
+  - используется только для sync;
+  - использует только normalized action;
+  - не читает database или mutable storefront state;
   - строит canonical versioned `write_model_json` и `write_model_hash`;
+  - write model содержит source ids, value keys, sort rows и price rows, но не
+    содержит allocated `product_doc_id` или `variant_doc_id`;
   - повтор step возвращает DBOS-persisted result, если step result уже сохранен.
-- `commitSyncIndexAction` и `commitDeleteIndexAction`:
-  - открывают одну item-level transaction для final physical writes;
+- `writeListingIndexAction`:
+  - является единственным write DBOS step для sync и delete;
+  - вызывает один transactional script;
+  - открывает одну item-level transaction для final physical writes;
   - первым write-side DB operation вызывают `lockByItem`;
   - повторно проверяют final receipt/current state/source revision;
   - для `noop`/`ignored_stale` вставляют final receipt без physical writes;
-  - для `apply` выполняют physical writes, upsert latest item state и final
-    receipt атомарно;
+  - для sync `apply` выделяет/читает doc ids, создает bootstrap product row,
+    применяет write model, удаляет stale variants, обновляет latest item state и
+    пишет final receipt атомарно;
+  - для delete `apply` читает current doc ids, удаляет dependent rows,
+    обновляет latest deleted state и пишет final receipt атомарно;
   - final receipt insert выполняется только после successful physical writes.
 - Retry policy включается явно. Default DBOS wrapper policy без `retry`
   означает no retry.
@@ -562,9 +528,9 @@ Rules:
 - Internal runner обязан строить тот же `effectiveIdempotencyKey` и
   `payloadHash`, что DBOS enqueue path.
 - Internal runner вызывает тот же step-oriented executor:
-  `ListingPrepareIndexActionScript`, `ListingEnsureIndexDocIdsScript`,
-  `ListingBuildSyncWriteModelScript`, `ListingCommitSyncIndexActionScript` или
-  `ListingCommitDeleteIndexActionScript`.
+  `ListingPrepareIndexActionScript`, optional
+  `ListingBuildSyncWriteModelScript`, затем один
+  `ListingWriteIndexActionScript`.
 - Internal runner получает final result: `applied`, `noop` или
   `ignored_stale`.
 - Internal runner не обходит `lockByItem`, receipt checks, revision checks или
@@ -678,9 +644,10 @@ Constraints:
 
 ## Idempotency and revision decision
 
-Decision is made under item lock in `prepare` and repeated under item lock in
-the final `commit` step. The final decision that allows physical writes is made
-inside the same transaction as those physical writes.
+Fast-path decision may be read during prepare, but authoritative decision is
+made under item lock in the single final write step. The final decision that
+allows physical writes is made inside the same transaction as those physical
+writes.
 
 Decision order:
 
@@ -732,7 +699,7 @@ Contract:
 - Все sync/delete/batch paths используют один `lockByItem`; ad-hoc locks в
   scripts запрещены.
 
-### Single item sync step transactions
+### Single item sync step sequence
 
 ```ts
 const prepared = await stepPrepareIndexAction(action);
@@ -741,38 +708,36 @@ if (prepared.kind === "final") {
   return prepared.result;
 }
 
-const docIds = await stepEnsureDocIds(prepared.action);
-const writeModel = await stepBuildSyncWriteModel({
+const syncWriteModel = await stepBuildSyncWriteModel({
   action: prepared.action,
-  docIds,
 });
 
-return stepCommitSyncIndexAction({
+return stepWriteIndexAction({
   action: prepared.action,
-  docIds,
-  writeModel,
+  syncWriteModel,
 });
 ```
 
 Rules:
 
-- `prepare`, `ensureDocIds` and `commit` each call `lockByItem` as the first
-  write-side DB operation for item.
-- `buildSyncWriteModel` may skip item lock only if it uses no mutable database
-  state.
+- `prepare` and `buildSyncWriteModel` do not perform physical index writes.
+- `buildSyncWriteModel` must not use mutable database state.
 - `buildSyncWriteModel` returns the canonical versioned `write_model_json`
   together with `write_model_hash`. On workflow replay after DBOS persisted the
   step result, DBOS returns the stored write model without re-executing the
   step.
-- Decision is repeated under lock in final commit even if prepare already made
-  an `apply` decision.
+- `writeListingIndexAction` calls `lockByItem` as the first write-side DB
+  operation for item.
+- Decision is made under lock in final write step even if prepare returned a
+  preliminary `apply` decision.
 - `noop` and `ignored_stale` do not execute physical index writes.
 - Physical writes and final state/receipt writes are atomic inside
-  `stepCommitSyncIndexAction`.
+  `stepWriteIndexAction`.
 - If any physical write fails, item state and receipt are rolled back.
-- `product_doc_id` and `variant_doc_id` allocation happens in
-  `stepEnsureDocIds`. Repeating this step returns existing ids from physical
-  index rows before allocating new ids.
+- `product_doc_id` and `variant_doc_id` allocation happens inside
+  `ListingWriteIndexActionScript` after `lockByItem` and final revision
+  decision. Repeating the write step returns existing ids from physical index
+  rows before allocating new ids.
 - Bootstrap product row is created before variant rows.
 - Projection blocks refresh happens after variant row/membership/runtime price
   writes and before commit.
@@ -788,11 +753,14 @@ if (prepared.kind === "final") {
   return prepared.result;
 }
 
-return stepCommitDeleteIndexAction(prepared.action);
+return stepWriteIndexAction({
+  action: prepared.action,
+});
 ```
 
 Delete final commit:
 
+- Runs inside `ListingWriteIndexActionScript`.
 - Opens one item-level transaction.
 - Calls `lockByItem` as the first write-side DB operation for item.
 - Rechecks final receipt/current state/source revision under lock.
@@ -952,53 +920,53 @@ Responsibilities:
 
 - Валидирует action params.
 - Проверяет project boundary.
-- Открывает короткую item-level transaction.
-- Под item lock проверяет final receipt, source revision и payload hash.
+- Не выполняет physical index writes.
+- Может выполнить fast-path read final receipt без transaction только как
+  optimization.
 - Для existing receipt возвращает `kind: "final"` с сохраненным result.
-- Для `ignored_stale`/`noop` вставляет final receipt и возвращает
-  `kind: "final"`.
-- Для `apply` возвращает normalized immutable action без physical write model.
+- Для потенциального `apply` возвращает normalized immutable action без
+  physical write model.
+- Не вставляет receipt для `ignored_stale`/`noop`; это делает single write
+  script под item lock.
 - Validation/domain conflicts возвращает как non-retryable domain result.
-
-### `ListingEnsureIndexDocIdsScript`
-
-Responsibilities:
-
-- Выполняется только для sync action.
-- Открывает короткую item-level transaction.
-- Под item lock повторно проверяет final receipt.
-- Если physical index rows уже содержат doc ids, возвращает существующие ids.
-- Выделяет или сохраняет `product_doc_id`.
-- Создает bootstrap product row для FK safety.
-- Выделяет или сохраняет `variant_doc_id` для variants snapshot.
-- Не строит physical write model.
 
 ### `ListingBuildSyncWriteModelScript`
 
 Responsibilities:
 
 - Выполняется только для sync action.
-- Принимает normalized action и persisted doc ids.
-- Конвертирует public snapshot в `ListingItemWriteModel`.
+- Принимает normalized action.
+- Конвертирует public snapshot в `ListingSyncWriteModel`.
 - Считает canonical `write_model_hash`.
 - Возвращает canonical versioned `write_model_json` и `write_model_hash`.
 - Если DBOS уже persisted step result, workflow replay получает persisted
   `write_model_json` без повторного выполнения step.
 - Не выполняет physical index writes.
+- Не выделяет doc ids и не создает bootstrap rows.
 
-### `ListingCommitSyncIndexActionScript`
+### `ListingWriteIndexActionScript`
 
 Responsibilities:
 
-- Выполняется только для sync action.
+- Выполняется для sync и delete как единственный transactional write script.
 - Открывает final item-level transaction.
 - Под item lock повторно проверяет final receipt, source revision и payload hash.
 - Для `noop`/`ignored_stale` inserts receipt and returns result.
-- Для `apply`:
+- Для sync `apply`:
+  - находит existing `product_doc_id` и `variant_doc_id` либо выделяет новые;
+  - создает bootstrap product row для FK safety;
   - применяет write model через `ListingApplyItemWriteModelScript`;
   - удаляет stale variants, отсутствующие в full snapshot;
   - обновляет `listing_index_item_state`;
   - inserts `listing_index_action_receipt`;
+- Для delete `apply`:
+  - находит current `product_doc_id` и `variant_doc_id`;
+  - удаляет dependent rows в delete ordering;
+  - refreshes affected projection blocks;
+  - обновляет `listing_index_item_state` как `deleted`;
+  - inserts `listing_index_action_receipt`;
+- Если item physical rows уже отсутствуют, но delete revision новый,
+  сохраняет latest deleted state и receipt.
 - Возвращает `applied`, `noop` или `ignored_stale`.
 - Если retry видит final receipt, возвращает `result_json` без physical writes.
 
@@ -1006,8 +974,10 @@ Responsibilities:
 
 Responsibilities:
 
-- Выполняет только physical index writes для уже построенной write model.
-- Выполняется внутри transaction parent script.
+- Выполняет только physical index writes для уже построенной write model и
+  allocated doc ids.
+- Выполняется внутри transaction parent script
+  `ListingWriteIndexActionScript`.
 - Не вызывает `txManager.run`, если parent transaction уже active.
 - Upsert variant listing rows.
 - Replace variant source/debug price rows.
@@ -1023,26 +993,6 @@ Responsibilities:
 - Не принимает public snapshot.
 - Не содержит mapping rules.
 
-### `ListingCommitDeleteIndexActionScript`
-
-Responsibilities:
-
-- Валидирует delete action params.
-- Проверяет project boundary.
-- Открывает final item-level transaction.
-- Под item lock проверяет receipt, source revision и payload hash.
-- Для `noop`/`ignored_stale` inserts receipt and returns result.
-- Для `apply`:
-  - находит current `product_doc_id` и `variant_doc_id`;
-  - удаляет dependent rows в delete ordering;
-  - refreshes affected projection blocks;
-  - обновляет `listing_index_item_state` как `deleted`;
-  - inserts `listing_index_action_receipt`;
-- Если item physical rows уже отсутствуют, но delete revision новый,
-  сохраняет latest deleted state и receipt.
-- Возвращает `applied`, `noop` или `ignored_stale`.
-- Если retry видит final receipt, возвращает `result_json` без physical writes.
-
 ### `ListingSyncSellableItemsScript`
 
 Responsibilities:
@@ -1052,7 +1002,7 @@ Responsibilities:
 - Делит items на chunks только если выбран `per_chunk` mode.
 - По умолчанию открывает отдельную transaction на каждый item.
 - Для каждого item вызывает тот же step-oriented executor, что DBOS workflow:
-  prepare, ensure doc ids, build write model, commit.
+  prepare, optional build write model, single transactional write.
 - В `per_item` mode ошибка одного item не откатывает остальные items.
 - В `per_chunk` mode ошибка item откатывает chunk, но не остальные chunks.
 - Возвращает `completed`, если все items получили final status
@@ -1253,23 +1203,19 @@ if (prepared.kind === "final") {
   return prepared.result;
 }
 
-const docIds = await stepEnsureDocIds(prepared.action);
-
-const writeModel = await stepBuildSyncWriteModel({
+const syncWriteModel = await stepBuildSyncWriteModel({
   action: prepared.action,
-  docIds,
 });
 
-return stepCommitSyncIndexAction({
+return stepWriteIndexAction({
   action: prepared.action,
-  docIds,
-  writeModel,
+  syncWriteModel,
 });
 ```
 
 This block is sequencing contract, not implementation. Each named call is a
-DBOS `@WorkflowStep`; final physical writes happen only inside
-`stepCommitSyncIndexAction`.
+DBOS `@WorkflowStep`; final physical writes happen only inside the single
+`stepWriteIndexAction`.
 
 ## Acceptance checklist
 
@@ -1291,8 +1237,12 @@ DBOS `@WorkflowStep`; final physical writes happen only inside
       orchestration over persisted step results.
 - [ ] All side effects are inside `@WorkflowStep` or controlled internal script
       runner.
-- [ ] Workflow does not use one universal `applyListingIndexAction` step for the
-      whole action lifecycle.
+- [ ] Workflow uses one or more prepare DBOS steps and exactly one
+      transactional write DBOS step.
+- [ ] Prepare DBOS steps do not allocate doc ids, create bootstrap rows, insert
+      final receipts or write physical index tables.
+- [ ] The single write step allocates doc ids, applies sync/delete writes,
+      updates latest state and inserts final receipt in one transaction.
 - [ ] Every DBOS step has explicit timeout and retry policy.
 - [ ] Retryable infrastructure errors are classified as retryable.
 - [ ] Validation/idempotency/revision conflicts are non-retryable domain
