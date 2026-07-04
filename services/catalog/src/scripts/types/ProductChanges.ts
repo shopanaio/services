@@ -2,8 +2,6 @@
  * Changes types for ProductUpdateWorkflow event payloads.
  * These represent partial snapshots of what was actually modified.
  */
-import type { FacetReferenceChange } from "@shopana/events";
-
 /**
  * Aggregated changes for a product update operation.
  */
@@ -30,8 +28,6 @@ export interface ProductFieldChanges {
   media?: MediaChanges;
   categories?: ProductCategoryFieldChanges;
   tags?: ProductTagFieldChanges;
-  options?: ProductFacetReferenceFieldChanges;
-  features?: ProductFacetReferenceFieldChanges;
 }
 
 export interface ProductCategoryFieldChanges {
@@ -44,11 +40,6 @@ export interface ProductTagFieldChanges {
   changed: true;
   reason: "assignment";
   tagIds?: string[];
-}
-
-export interface ProductFacetReferenceFieldChanges {
-  changed: true;
-  refs: FacetReferenceChange[];
 }
 
 export interface RichTextChange {

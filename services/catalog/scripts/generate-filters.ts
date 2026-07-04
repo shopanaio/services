@@ -16,8 +16,8 @@ import { warehouseRelayQuery } from "../src/repositories/warehouse/WarehouseRepo
 import { stockRelayQuery } from "../src/repositories/stock/StockRepository.js";
 import {
   facetSourceCandidateRelayQuery,
-  facetValueCandidateFilterRelayQuery,
-} from "../src/repositories/facet/FacetRepository.js";
+  facetTagValueCandidateRelayQuery,
+} from "../src/repositories/facet/FacetCandidateRepository.js";
 
 function generateConnectionInputType(name: string): string {
   return `"""Relay-style pagination input for ${name}"""
@@ -230,7 +230,7 @@ const facetValueCandidateFieldTypes: Record<string, GraphQLFieldType> = {
 };
 
 const facetValueCandidateWhere = generateWhereInputType(
-  facetValueCandidateFilterRelayQuery,
+  facetTagValueCandidateRelayQuery,
   "FacetValueCandidate",
   {
     includeDescriptions: true,
@@ -240,7 +240,7 @@ const facetValueCandidateWhere = generateWhereInputType(
 );
 
 const facetValueCandidateOrderBy = generateOrderByInputType(
-  facetValueCandidateFilterRelayQuery,
+  facetTagValueCandidateRelayQuery,
   "FacetValueCandidate",
   {
     includeDescriptions: true,

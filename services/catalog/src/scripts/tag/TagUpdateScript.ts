@@ -1,6 +1,5 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { TagUpdateParams, TagUpdateResult } from "./dto/index.js";
-import { buildTagReferenceChange } from "../shared/facetReferenceRefs.js";
 
 export class TagUpdateScript extends BaseScript<TagUpdateParams, TagUpdateResult> {
   @Transactional()
@@ -53,16 +52,6 @@ export class TagUpdateScript extends BaseScript<TagUpdateParams, TagUpdateResult
 
     return {
       tag: tag ?? undefined,
-      facetReferenceRefs:
-        handle && handle !== existing.handle
-          ? [
-              buildTagReferenceChange({
-                before: existing,
-                after: { handle },
-                reason: "sourceValueUpdated",
-              }),
-            ]
-          : [],
       userErrors: [],
     };
   }

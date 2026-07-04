@@ -1,6 +1,5 @@
 import type { Product, Variant } from "../../../repositories/models/index.js";
 import type { UserError } from "../../../kernel/BaseScript.js";
-import type { FacetReferenceChange } from "@shopana/events";
 export type { RichTextInput } from "../../shared/richText.js";
 
 /**
@@ -15,5 +14,4 @@ export interface ProductWithVariants extends Product {
  */
 export interface ProductResultBase {
   userErrors: UserError[];
-  facetReferenceRefs?: FacetReferenceChange[];
 }

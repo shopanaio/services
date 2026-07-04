@@ -1,6 +1,4 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
-import type { FacetReferenceChange } from "@shopana/events";
-import type { ProductOption } from "../../repositories/models/index.js";
 import type {
   OptionSyncParams,
   OptionSyncResult,
@@ -14,11 +12,6 @@ import {
   loadDbContext,
   validateDatabase,
 } from "./validation/index.js";
-import {
-  buildOptionSourceChange,
-  buildOptionValueChange,
-  uniqueFacetReferenceChanges,
-} from "../shared/facetReferenceRefs.js";
 
 interface ResolvedOption {
   readonly input: ValidatedOptionInput;
@@ -51,14 +44,6 @@ export class OptionsSyncScript extends BaseScript<OptionSyncParams, OptionSyncRe
     if (!(await this.repository.product.exists(productId))) {
       return this.error("Product not found", ["productId"], "NOT_FOUND");
     }
-    const beforeOptions = await this.repository.option.findByProductId(productId);
-    const beforeRefs = await this.buildSnapshotRefs(
-      beforeOptions,
-      "sourceDeleted",
-      "sourceValueDeleted",
-      "before"
-    );
-
     // ═══════════════════════════════════════════════════════════════════════
     // Layer 2: Semantic validation (sync, no DB)
     // ═══════════════════════════════════════════════════════════════════════
@@ -102,20 +87,9 @@ export class OptionsSyncScript extends BaseScript<OptionSyncParams, OptionSyncRe
       "Product options synced"
     );
 
-    const afterRefs = await this.buildSnapshotRefs(
-      syncedOptions,
-      "sourceCreated",
-      "sourceValueCreated",
-      "after"
-    );
-
     return {
       product: product ?? undefined,
       options: syncedOptions,
-      facetReferenceRefs: uniqueFacetReferenceChanges([
-        ...beforeRefs,
-        ...afterRefs,
-      ]),
       userErrors: [],
     };
   }
@@ -217,40 +191,6 @@ export class OptionsSyncScript extends BaseScript<OptionSyncParams, OptionSyncRe
 
   private error(message: string, field: string[], code: string): OptionSyncResult {
     return { product: undefined, options: [], userErrors: [{ message, field, code }] };
-  }
-
-  private async buildSnapshotRefs(
-    options: readonly ProductOption[],
-    sourceReason: FacetReferenceChange["reason"],
-    valueReason: FacetReferenceChange["reason"],
-    side: "before" | "after"
-  ): Promise<FacetReferenceChange[]> {
-    const refs: FacetReferenceChange[] = [];
-
-    for (const option of options) {
-      refs.push(
-        side === "before"
-          ? buildOptionSourceChange({ before: option, reason: sourceReason })
-          : buildOptionSourceChange({ after: option, reason: sourceReason })
-      );
-
-      const values = await this.repository.option.findValuesByOptionId(option.id);
-      for (const value of values) {
-        refs.push(
-          side === "before"
-            ? buildOptionValueChange({
-                before: { option, value },
-                reason: valueReason,
-              })
-            : buildOptionValueChange({
-                after: { option, value },
-                reason: valueReason,
-              })
-        );
-      }
-    }
-
-    return refs;
   }
 
   protected handleError(_error: unknown): OptionSyncResult {

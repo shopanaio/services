@@ -106,8 +106,6 @@ import type {
   ProductTagOperationAction,
   WorkflowContext,
 } from "../../workflows/dto/ProductUpdateWorkflowDto.js";
-import type { FacetReferenceChange } from "@shopana/events";
-import type { FacetReferenceSyncWorkflowInput } from "../../workflows/dto/FacetReferenceSyncWorkflowDto.js";
 import type { ProductCreateParams, ProductCreateResult } from "../../sagas/index.js";
 import { VendorCreateScript } from "../../scripts/vendor/index.js";
 import { InventoryItemUpdateScript } from "../../scripts/inventory-item/index.js";
@@ -661,7 +659,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     revision?: number;
     deletedAt?: string;
     entityType?: "product" | "bundle";
-    facetReferenceRefs?: readonly FacetReferenceChange[];
   }): Promise<void> {
     await this.$ctx.kernel.getServices().broker.runWorkflow(
       "events.emit",
@@ -674,7 +671,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           revision: args.revision,
           deletedAt: args.deletedAt,
           entityType: args.entityType,
-          facetReferenceRefs: args.facetReferenceRefs,
         },
         source: "catalog",
         context: {
@@ -691,95 +687,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         source: "workflow",
         workflowId: `productDelete:${this.$ctx.store.id}:${this.$ctx.requestId}:${args.productId}`,
         stepId: "emitProductDeleted",
-      }
-    );
-  }
-
-  private async emitProductFacetReferenceUpdated(args: {
-    productId?: string;
-    facetField: "options" | "features";
-    refs?: readonly FacetReferenceChange[];
-    sourceKey: string;
-  }): Promise<void> {
-    const refs = dedupeFacetReferenceChanges(args.refs ?? []);
-    if (!args.productId || refs.length === 0) return;
-
-    const product = await this.$ctx.kernel.repository.product.findById(
-      args.productId
-    );
-
-    await this.$ctx.kernel.getServices().broker.runWorkflow(
-      "events.emit",
-      {
-        eventType: "productUpdated",
-        payload: {
-          productId: args.productId,
-          storeId: this.$ctx.store.id,
-          revision: product?.revision ?? 0,
-          product: {
-            [args.facetField]: {
-              changed: true,
-              refs,
-            },
-          },
-        },
-        source: "catalog",
-        context: {
-          tenantId: this.$ctx.store.organizationId,
-          userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
-        },
-        subject: { type: "product", id: args.productId },
-        actor: this.$ctx.hasUser
-          ? { type: "user", id: this.$ctx.user.id }
-          : undefined,
-        emitKey: `product:${args.productId}:${args.facetField}:${args.sourceKey}`,
-      },
-      {
-        source: "workflow",
-        workflowId: `productFacetReference:${this.$ctx.store.id}:${this.$ctx.requestId}:${args.sourceKey}`,
-        stepId: "emitProductUpdated",
-      }
-    );
-  }
-
-  private async runFacetReferenceSyncForRefs(args: {
-    refs?: readonly FacetReferenceChange[];
-    operation: string;
-    resourceId: string;
-  }): Promise<void> {
-    const refs = dedupeFacetReferenceChanges(args.refs ?? []);
-    if (refs.length === 0) return;
-
-    const timestamp = new Date().toISOString();
-    const input: FacetReferenceSyncWorkflowInput = {
-      storeId: this.$ctx.store.id,
-      organizationId: this.$ctx.store.organizationId,
-      userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
-      trigger: "manual",
-      events: [
-        {
-          eventId: `${args.operation}:${this.$ctx.requestId}:${args.resourceId}`,
-          eventType: args.operation,
-          timestamp,
-          refs,
-          payload: { resourceId: args.resourceId },
-        },
-      ],
-    };
-
-    await this.$ctx.kernel.getServices().broker.runWorkflow(
-      "catalog.facetReferenceSync",
-      input,
-      {
-        source: "content",
-        tenantId: this.$ctx.store.organizationId,
-        resourceId: args.resourceId,
-        operation: "facetReferenceSyncManual",
-        content: {
-          operation: args.operation,
-          refs,
-          requestId: this.$ctx.requestId,
-        },
       }
     );
   }
@@ -971,7 +878,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         revision: result.revision,
         deletedAt: result.deletedAt,
         entityType: result.entityType,
-        facetReferenceRefs: result.facetReferenceRefs,
       });
     }
 
@@ -1386,15 +1292,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       })),
     });
 
-    if (result.userErrors.length === 0 && result.option) {
-      await this.emitProductFacetReferenceUpdated({
-        productId: result.option.productId,
-        facetField: "options",
-        refs: result.facetReferenceRefs,
-        sourceKey: `option:${result.option.id}:created`,
-      });
-    }
-
     return {
       option: result.option
         ? new OptionResolver(result.option.id, this.$ctx)
@@ -1455,15 +1352,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         : undefined,
     });
 
-    if (result.userErrors.length === 0 && result.option) {
-      await this.emitProductFacetReferenceUpdated({
-        productId: result.option.productId,
-        facetField: "options",
-        refs: result.facetReferenceRefs,
-        sourceKey: `option:${result.option.id}:updated`,
-      });
-    }
-
     return {
       option: result.option
         ? new OptionResolver(result.option.id, this.$ctx)
@@ -1482,15 +1370,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const result = await this.$ctx.kernel.runScript(OptionDeleteScript, {
       id: input.id,
     });
-
-    if (result.userErrors.length === 0 && result.deletedOptionId) {
-      await this.emitProductFacetReferenceUpdated({
-        productId: result.productId,
-        facetField: "options",
-        refs: result.facetReferenceRefs,
-        sourceKey: `option:${result.deletedOptionId}:deleted`,
-      });
-    }
 
     return {
       deletedOptionId: result.deletedOptionId ?? null,
@@ -1553,15 +1432,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       })),
     });
 
-    if (result.userErrors.length === 0 && result.product) {
-      await this.emitProductFacetReferenceUpdated({
-        productId: result.product.id,
-        facetField: "options",
-        refs: result.facetReferenceRefs,
-        sourceKey: `product:${result.product.id}:options:sync`,
-      });
-    }
-
     return {
       product: result.product
         ? new ProductResolver(result.product.id, this.$ctx)
@@ -1593,15 +1463,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         slug: v.slug,
       })),
     });
-
-    if (result.userErrors.length === 0 && result.feature) {
-      await this.emitProductFacetReferenceUpdated({
-        productId: result.feature.productId,
-        facetField: "features",
-        refs: result.facetReferenceRefs,
-        sourceKey: `feature:${result.feature.id}:created`,
-      });
-    }
 
     return {
       feature: result.feature
@@ -1638,15 +1499,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         : undefined,
     });
 
-    if (result.userErrors.length === 0 && result.feature) {
-      await this.emitProductFacetReferenceUpdated({
-        productId: result.feature.productId,
-        facetField: "features",
-        refs: result.facetReferenceRefs,
-        sourceKey: `feature:${result.feature.id}:updated`,
-      });
-    }
-
     return {
       feature: result.feature
         ? new FeatureResolver(result.feature.id, this.$ctx)
@@ -1665,15 +1517,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const result = await this.$ctx.kernel.runScript(FeatureDeleteScript, {
       id: input.id,
     });
-
-    if (result.userErrors.length === 0 && result.deletedFeatureId) {
-      await this.emitProductFacetReferenceUpdated({
-        productId: result.productId,
-        facetField: "features",
-        refs: result.facetReferenceRefs,
-        sourceKey: `feature:${result.deletedFeatureId}:deleted`,
-      });
-    }
 
     return {
       deletedFeatureId: result.deletedFeatureId ?? null,
@@ -1723,15 +1566,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         })),
       })),
     });
-
-    if (result.userErrors.length === 0 && result.product) {
-      await this.emitProductFacetReferenceUpdated({
-        productId: result.product.id,
-        facetField: "features",
-        refs: result.facetReferenceRefs,
-        sourceKey: `product:${result.product.id}:features:sync`,
-      });
-    }
 
     return {
       product: result.product
@@ -2327,14 +2161,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       name: input.name ?? undefined,
     });
 
-    if (result.userErrors.length === 0 && result.tag) {
-      await this.runFacetReferenceSyncForRefs({
-        refs: result.facetReferenceRefs,
-        operation: "tagCreate",
-        resourceId: result.tag.id,
-      });
-    }
-
     return {
       tag: result.tag
         ? new TagResolver(result.tag.id, this.$ctx)
@@ -2363,14 +2189,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       name: input.name ?? undefined,
     });
 
-    if (result.userErrors.length === 0 && result.tag) {
-      await this.runFacetReferenceSyncForRefs({
-        refs: result.facetReferenceRefs,
-        operation: "tagUpdate",
-        resourceId: result.tag.id,
-      });
-    }
-
     return {
       tag: result.tag
         ? new TagResolver(result.tag.id, this.$ctx)
@@ -2394,14 +2212,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const result = await this.$ctx.kernel.runScript(TagDeleteScript, {
       id,
     });
-
-    if (result.userErrors.length === 0 && result.deletedTagId) {
-      await this.runFacetReferenceSyncForRefs({
-        refs: result.facetReferenceRefs,
-        operation: "tagDelete",
-        resourceId: result.deletedTagId,
-      });
-    }
 
     return {
       deletedTagId: result.deletedTagId ?? null,
@@ -3204,18 +3014,4 @@ function hasProductUpdateFields(
     operations.status !== undefined ||
     operations.media !== undefined
   );
-}
-
-function dedupeFacetReferenceChanges(
-  refs: readonly FacetReferenceChange[]
-): FacetReferenceChange[] {
-  const seen = new Set<string>();
-  const result: FacetReferenceChange[] = [];
-  for (const ref of refs) {
-    const key = JSON.stringify(ref);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    result.push(ref);
-  }
-  return result;
 }

@@ -1,16 +1,7 @@
 import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
 import type { FeatureUpdateParams, FeatureUpdateResult, FeatureValuesInput } from "./dto/index.js";
 import { isValidSlug } from "../shared/slug.js";
-import type { FacetReferenceChange } from "@shopana/events";
-import type {
-  ProductFeature,
-  ProductFeatureValue,
-} from "../../repositories/models/index.js";
-import {
-  buildFeatureSourceChange,
-  buildFeatureValueChange,
-  uniqueFacetReferenceChanges,
-} from "../shared/facetReferenceRefs.js";
+import type { ProductFeature, ProductFeatureValue } from "../../repositories/models/index.js";
 
 export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, FeatureUpdateResult> {
   protected async execute(params: FeatureUpdateParams): Promise<FeatureUpdateResult> {
@@ -76,19 +67,16 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
     }
 
     // 3. Handle values updates
-    let valueFacetReferenceRefs: FacetReferenceChange[] = [];
     if (values) {
       const valueResult = await this.processValuesUpdate(
         existingFeature,
-        slug ?? existingFeature.slug,
         existingValues,
         values
       );
-      const { errors, facetReferenceRefs } = valueResult;
+      const { errors } = valueResult;
       if (errors.length > 0) {
         return { feature: undefined, userErrors: errors };
       }
-      valueFacetReferenceRefs = facetReferenceRefs;
     }
 
     // 4. Fetch updated feature
@@ -96,53 +84,20 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
 
     this.logger.info({ featureId: id }, "Feature updated");
 
-    const deletedValueIds = new Set(values?.delete ?? []);
-
     return {
       feature: feature ?? undefined,
-      facetReferenceRefs: existingFeature.isGroup
-        ? []
-        : uniqueFacetReferenceChanges([
-            ...(slug !== undefined && slug !== existingFeature.slug
-              ? [
-                  buildFeatureSourceChange({
-                    before: existingFeature,
-                    after: { slug },
-                    reason: "sourceUpdated",
-                  }),
-                  ...existingValues.flatMap((value) =>
-                    deletedValueIds.has(value.id)
-                      ? []
-                      : [
-                          buildFeatureValueChange({
-                            before: { feature: existingFeature, value },
-                            after: {
-                              feature: { slug },
-                              value: { slug: nextValueSlug(value, values) },
-                            },
-                            reason: "sourceValueUpdated",
-                          }),
-                        ]
-                  ),
-                ]
-              : []),
-            ...valueFacetReferenceRefs,
-          ]),
       userErrors: [],
     };
   }
 
   private async processValuesUpdate(
     feature: ProductFeature,
-    nextFeatureSlug: string,
     existingValues: ProductFeatureValue[],
     values: FeatureValuesInput
   ): Promise<{
     errors: UserError[];
-    facetReferenceRefs: FacetReferenceChange[];
   }> {
     const existingById = new Map(existingValues.map((value) => [value.id, value]));
-    const facetReferenceRefs: FacetReferenceChange[] = [];
 
     // Value slugs that remain occupied after delete step.
     const deletedIds = new Set(values.delete ?? []);
@@ -159,15 +114,8 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
         if (!existingValue) {
           return {
             errors: [{ message: "Feature value not found", field: ["values", "delete"], code: "NOT_FOUND" }],
-            facetReferenceRefs: [],
           };
         }
-        facetReferenceRefs.push(
-          buildFeatureValueChange({
-            before: { feature, value: existingValue },
-            reason: "sourceValueDeleted",
-          })
-        );
         await this.repository.feature.deleteValue(valueId);
       }
     }
@@ -180,7 +128,6 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
         if (!existingValue) {
           return {
             errors: [{ message: "Feature value not found", field: ["values", "update", String(i), "id"], code: "NOT_FOUND" }],
-            facetReferenceRefs: [],
           };
         }
 
@@ -194,7 +141,6 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
                   code: "INVALID_SLUG",
                 },
               ],
-              facetReferenceRefs: [],
             };
           }
           if (valueUpdate.slug !== existingValue.slug && occupiedSlugs.has(valueUpdate.slug)) {
@@ -206,7 +152,6 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
                   code: "DUPLICATE",
                 },
               ],
-              facetReferenceRefs: [],
             };
           }
         }
@@ -218,16 +163,6 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
         }
 
         if (valueUpdate.slug !== undefined && valueUpdate.slug !== existingValue.slug) {
-          facetReferenceRefs.push(
-            buildFeatureValueChange({
-              before: { feature, value: existingValue },
-              after: {
-                feature: { slug: nextFeatureSlug },
-                value: { slug: valueUpdate.slug },
-              },
-              reason: "sourceValueUpdated",
-            })
-          );
           occupiedSlugs.delete(existingValue.slug);
           occupiedSlugs.add(valueUpdate.slug);
         }
@@ -260,7 +195,6 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
                   code: "INVALID_SLUG",
                 },
               ],
-              facetReferenceRefs: [],
             };
         }
         if (occupiedSlugs.has(valueInput.slug)) {
@@ -272,7 +206,6 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
                 code: "DUPLICATE",
               },
             ],
-            facetReferenceRefs: [],
           };
         }
 
@@ -280,12 +213,6 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
           slug: valueInput.slug,
           index: index++,
         });
-        facetReferenceRefs.push(
-          buildFeatureValueChange({
-            after: { feature: { slug: nextFeatureSlug }, value: featureValue },
-            reason: "sourceValueCreated",
-          })
-        );
         occupiedSlugs.add(valueInput.slug);
 
         await this.repository.translation.upsertFeatureValueTranslation({
@@ -297,7 +224,7 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
       }
     }
 
-    return { errors: [], facetReferenceRefs };
+    return { errors: [] };
   }
 
   protected handleError(_error: unknown): FeatureUpdateResult {
@@ -306,12 +233,4 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }
-}
-
-function nextValueSlug(
-  value: ProductFeatureValue,
-  values?: FeatureValuesInput
-): string {
-  const update = values?.update?.find((item) => item.id === value.id);
-  return update?.slug ?? value.slug;
 }

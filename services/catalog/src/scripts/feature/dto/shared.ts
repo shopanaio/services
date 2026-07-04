@@ -1,5 +1,4 @@
 import type { UserError } from "../../../kernel/BaseScript.js";
-import type { FacetReferenceChange } from "@shopana/events";
 
 /**
  * Input for creating a feature value
@@ -32,5 +31,4 @@ export interface FeatureValuesInput {
  */
 export interface FeatureResultBase {
   userErrors: UserError[];
-  facetReferenceRefs?: FacetReferenceChange[];
 }

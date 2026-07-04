@@ -125,36 +125,8 @@ export interface ProductDeletedEvent
       revision?: number;
       deletedAt?: string;
       entityType?: "product" | "bundle";
-      facetReferenceRefs?: FacetReferenceChange[];
     }
   > {}
-
-export interface FacetSourceRef {
-  facetType: "TAG" | "OPTION" | "FEATURE";
-  sourceHandle: string;
-  valueHandle?: string;
-  facetValueHandle?: string;
-}
-
-export interface FacetReferenceChange {
-  before?: FacetSourceRef;
-  after?: FacetSourceRef;
-  reason:
-    | "productCreated"
-    | "productDeleted"
-    | "sourceCreated"
-    | "sourceUpdated"
-    | "sourceDeleted"
-    | "sourceValueCreated"
-    | "sourceValueUpdated"
-    | "sourceValueDeleted"
-    | "assignmentChanged";
-}
-
-export interface ProductFacetReferenceFieldChanges {
-  changed: true;
-  refs: FacetReferenceChange[];
-}
 
 /**
  * Payload for productUpdated event.
@@ -181,8 +153,6 @@ export interface ProductFieldChanges {
   media?: { fileIds: string[] };
   categories?: ProductCategoryFieldChanges;
   tags?: ProductTagFieldChanges;
-  options?: ProductFacetReferenceFieldChanges;
-  features?: ProductFacetReferenceFieldChanges;
 }
 
 export interface ProductCategoryFieldChanges {
@@ -256,42 +226,6 @@ export interface FacetDeletedEvent
       facetType: string;
       slug?: string;
     }
-  > {}
-
-export type ReferenceStatus = "VALID" | "STALE";
-
-export interface ReferenceStatusDelta {
-  facetId: string;
-  entityType: "facetSource" | "facetValue";
-  entityId: string;
-  handle: string;
-  previousStatus: ReferenceStatus;
-  nextStatus: ReferenceStatus;
-  displayParentId?: string;
-}
-
-export interface FacetReferenceStateChangedPayload {
-  storeId: string;
-  facetId: string;
-  reasons: Array<
-    | "referenceStateChanged"
-    | "sourceSelectionChanged"
-    | "sourceValueSelectionChanged"
-  >;
-  sourceChanges: ReferenceStatusDelta[];
-  valueChanges: ReferenceStatusDelta[];
-  changedFacetSourceIds: string[];
-  changedFacetValueIds: string[];
-  affectedDisplayValueIds: string[];
-  touchedSourceHandles: string[];
-  touchedSourceValueHandles: string[];
-  triggerEventIds: string[];
-}
-
-export interface FacetReferenceStateChangedEvent
-  extends DomainEvent<
-    "facetReferenceStateChanged",
-    FacetReferenceStateChangedPayload
   > {}
 
 export interface VariantDeletedEvent

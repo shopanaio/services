@@ -1,6 +1,4 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
-import type { FacetReferenceChange } from "@shopana/events";
-import type { ProductFeature } from "../../repositories/models/index.js";
 import type { FeatureSyncParams, FeatureSyncResult } from "./dto/index.js";
 import {
   FeatureSyncInputSchema,
@@ -12,11 +10,6 @@ import {
   indexToKey,
   getParentIndex,
 } from "./validation/index.js";
-import {
-  buildFeatureSourceChange,
-  buildFeatureValueChange,
-  uniqueFacetReferenceChanges,
-} from "../shared/facetReferenceRefs.js";
 
 interface ResolvedFeature {
   readonly index: number[];
@@ -51,14 +44,6 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
     if (!(await this.repository.product.exists(productId))) {
       return this.error("Product not found", ["productId"], "NOT_FOUND");
     }
-    const beforeFeatures = await this.repository.feature.findByProductId(productId);
-    const beforeRefs = await this.buildSnapshotRefs(
-      beforeFeatures,
-      "sourceDeleted",
-      "sourceValueDeleted",
-      "before"
-    );
-
     // ═══════════════════════════════════════════════════════════════════════
     // Layer 2: Semantic validation (sync, no DB)
     // ═══════════════════════════════════════════════════════════════════════
@@ -110,20 +95,9 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
       "Product features synced"
     );
 
-    const afterRefs = await this.buildSnapshotRefs(
-      syncedFeatures,
-      "sourceCreated",
-      "sourceValueCreated",
-      "after"
-    );
-
     return {
       product: product ?? undefined,
       features: syncedFeatures,
-      facetReferenceRefs: uniqueFacetReferenceChanges([
-        ...beforeRefs,
-        ...afterRefs,
-      ]),
       userErrors: [],
     };
   }
@@ -234,42 +208,6 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
 
   private error(message: string, field: string[], code: string): FeatureSyncResult {
     return { product: undefined, features: [], userErrors: [{ message, field, code }] };
-  }
-
-  private async buildSnapshotRefs(
-    features: readonly ProductFeature[],
-    sourceReason: FacetReferenceChange["reason"],
-    valueReason: FacetReferenceChange["reason"],
-    side: "before" | "after"
-  ): Promise<FacetReferenceChange[]> {
-    const refs: FacetReferenceChange[] = [];
-
-    for (const feature of features) {
-      if (feature.isGroup) continue;
-
-      refs.push(
-        side === "before"
-          ? buildFeatureSourceChange({ before: feature, reason: sourceReason })
-          : buildFeatureSourceChange({ after: feature, reason: sourceReason })
-      );
-
-      const values = await this.repository.feature.findValuesByFeatureId(feature.id);
-      for (const value of values) {
-        refs.push(
-          side === "before"
-            ? buildFeatureValueChange({
-                before: { feature, value },
-                reason: valueReason,
-              })
-            : buildFeatureValueChange({
-                after: { feature, value },
-                reason: valueReason,
-              })
-        );
-      }
-    }
-
-    return refs;
   }
 
   protected handleError(_error: unknown): FeatureSyncResult {

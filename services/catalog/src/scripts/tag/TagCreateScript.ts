@@ -1,6 +1,5 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { TagCreateParams, TagCreateResult } from "./dto/index.js";
-import { buildTagReferenceChange } from "../shared/facetReferenceRefs.js";
 
 export class TagCreateScript extends BaseScript<TagCreateParams, TagCreateResult> {
   @Transactional()
@@ -35,12 +34,6 @@ export class TagCreateScript extends BaseScript<TagCreateParams, TagCreateResult
 
     return {
       tag,
-      facetReferenceRefs: [
-        buildTagReferenceChange({
-          after: tag,
-          reason: "sourceValueCreated",
-        }),
-      ],
       userErrors: [],
     };
   }

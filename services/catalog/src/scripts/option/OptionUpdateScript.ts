@@ -3,16 +3,7 @@ import type { OptionUpdateParams, OptionUpdateResult, OptionValuesInput, OptionS
 import { buildVariantHandlesBatch } from "../variant/helpers/buildVariantHandle.js";
 import { eq, and, inArray } from "drizzle-orm";
 import { productOptionVariantLink, variant } from "../../repositories/models/index.js";
-import type { FacetReferenceChange } from "@shopana/events";
-import type {
-  ProductOption,
-  ProductOptionValue,
-} from "../../repositories/models/index.js";
-import {
-  buildOptionSourceChange,
-  buildOptionValueChange,
-  uniqueFacetReferenceChanges,
-} from "../shared/facetReferenceRefs.js";
+import type { ProductOption, ProductOptionValue } from "../../repositories/models/index.js";
 
 export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpdateResult> {
   protected async execute(params: OptionUpdateParams): Promise<OptionUpdateResult> {
@@ -67,19 +58,16 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
     }
 
     // 5. Handle values updates
-    let valueFacetReferenceRefs: FacetReferenceChange[] = [];
     if (values) {
       const valueResult = await this.processValuesUpdate(
         existingOption,
-        slug ?? existingOption.slug,
         existingValues,
         values
       );
-      const { errors, facetReferenceRefs } = valueResult;
+      const { errors } = valueResult;
       if (errors.length > 0) {
         return { option: undefined, userErrors: errors };
       }
-      valueFacetReferenceRefs = facetReferenceRefs;
     }
 
     // 6. Fetch updated option
@@ -87,52 +75,21 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
 
     this.logger.info({ optionId: id }, "Option updated");
 
-    const deletedValueIds = new Set(values?.delete ?? []);
-
     return {
       option: option ?? undefined,
-      facetReferenceRefs: uniqueFacetReferenceChanges([
-        ...(slug !== undefined && slug !== existingOption.slug
-          ? [
-              buildOptionSourceChange({
-                before: existingOption,
-                after: { slug },
-                reason: "sourceUpdated",
-              }),
-              ...existingValues.flatMap((value) =>
-                deletedValueIds.has(value.id)
-                  ? []
-                  : [
-                      buildOptionValueChange({
-                        before: { option: existingOption, value },
-                        after: {
-                          option: { slug },
-                          value: { slug: nextValueSlug(value, values) },
-                        },
-                        reason: "sourceValueUpdated",
-                      }),
-                    ]
-              ),
-            ]
-          : []),
-        ...valueFacetReferenceRefs,
-      ]),
       userErrors: [],
     };
   }
 
   private async processValuesUpdate(
     option: ProductOption,
-    nextOptionSlug: string,
     existingValues: ProductOptionValue[],
     values: OptionValuesInput
   ): Promise<{
     errors: UserError[];
-    facetReferenceRefs: FacetReferenceChange[];
   }> {
     // Track value IDs that had slug changes - we'll rebuild variant handles for these
     const changedValueIds: string[] = [];
-    const facetReferenceRefs: FacetReferenceChange[] = [];
     const existingById = new Map(existingValues.map((value) => [value.id, value]));
 
     // Delete values
@@ -142,15 +99,8 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
         if (!existingValue) {
           return {
             errors: [{ message: "Option value not found", field: ["values", "delete"], code: "NOT_FOUND" }],
-            facetReferenceRefs: [],
           };
         }
-        facetReferenceRefs.push(
-          buildOptionValueChange({
-            before: { option, value: existingValue },
-            reason: "sourceValueDeleted",
-          })
-        );
         await this.repository.option.deleteValue(valueId);
       }
     }
@@ -162,7 +112,6 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
         if (!existingValue) {
           return {
             errors: [{ message: "Option value not found", field: ["values", "update"], code: "NOT_FOUND" }],
-            facetReferenceRefs: [],
           };
         }
 
@@ -176,16 +125,6 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
           updateData.slug = valueUpdate.slug;
           // Track that this value's slug changed
           changedValueIds.push(valueUpdate.id);
-          facetReferenceRefs.push(
-            buildOptionValueChange({
-              before: { option, value: existingValue },
-              after: {
-                option: { slug: nextOptionSlug },
-                value: { slug: valueUpdate.slug },
-              },
-              reason: "sourceValueUpdated",
-            })
-          );
         }
         if (valueUpdate.sortIndex !== undefined) {
           updateData.sortIndex = valueUpdate.sortIndex;
@@ -235,12 +174,6 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
           sortIndex: resolvedSortIndex,
           swatchId,
         });
-        facetReferenceRefs.push(
-          buildOptionValueChange({
-            after: { option: { slug: nextOptionSlug }, value: optionValue },
-            reason: "sourceValueCreated",
-          })
-        );
 
         await this.repository.translation.upsertOptionValueTranslation({
           projectId: this.getProjectId(),
@@ -256,7 +189,7 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
       await this.rebuildAffectedVariantHandles(changedValueIds);
     }
 
-    return { errors: [], facetReferenceRefs };
+    return { errors: [] };
   }
 
   /**
@@ -325,12 +258,4 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }
-}
-
-function nextValueSlug(
-  value: ProductOptionValue,
-  values?: OptionValuesInput
-): string {
-  const update = values?.update?.find((item) => item.id === value.id);
-  return update?.slug ?? value.slug;
 }

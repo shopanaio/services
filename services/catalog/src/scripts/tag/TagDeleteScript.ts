@@ -1,6 +1,5 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { TagDeleteParams, TagDeleteResult } from "./dto/index.js";
-import { buildTagReferenceChange } from "../shared/facetReferenceRefs.js";
 
 export class TagDeleteScript extends BaseScript<TagDeleteParams, TagDeleteResult> {
   @Transactional()
@@ -32,12 +31,6 @@ export class TagDeleteScript extends BaseScript<TagDeleteParams, TagDeleteResult
 
     return {
       deletedTagId: id,
-      facetReferenceRefs: [
-        buildTagReferenceChange({
-          before: existing,
-          reason: "sourceValueDeleted",
-        }),
-      ],
       userErrors: [],
     };
   }

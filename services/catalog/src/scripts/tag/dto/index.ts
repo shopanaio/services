@@ -1,5 +1,4 @@
 import type { UserError } from "../../../kernel/BaseScript.js";
-import type { FacetReferenceChange } from "@shopana/events";
 import type { Tag } from "../../../repositories/models/index.js";
 
 // ============ Create ============
@@ -11,7 +10,6 @@ export interface TagCreateParams {
 
 export interface TagCreateResult {
   tag?: Tag;
-  facetReferenceRefs?: FacetReferenceChange[];
   userErrors: UserError[];
 }
 
@@ -25,7 +23,6 @@ export interface TagUpdateParams {
 
 export interface TagUpdateResult {
   tag?: Tag;
-  facetReferenceRefs?: FacetReferenceChange[];
   userErrors: UserError[];
 }
 
@@ -37,7 +34,6 @@ export interface TagDeleteParams {
 
 export interface TagDeleteResult {
   deletedTagId?: string;
-  facetReferenceRefs?: FacetReferenceChange[];
   userErrors: UserError[];
 }
 

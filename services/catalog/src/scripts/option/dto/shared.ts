@@ -1,5 +1,4 @@
 import type { UserError } from "../../../kernel/BaseScript.js";
-import type { FacetReferenceChange } from "@shopana/events";
 
 /**
  * Input for swatch (color/image) configuration
@@ -47,5 +46,4 @@ export interface OptionValuesInput {
  */
 export interface OptionResultBase {
   userErrors: UserError[];
-  facetReferenceRefs?: FacetReferenceChange[];
 }

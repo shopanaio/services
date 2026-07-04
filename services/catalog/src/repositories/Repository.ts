@@ -14,7 +14,6 @@ import { BulkEditJobRepository } from "./BulkEditJobRepository.js";
 import { BulkEditItemRepository } from "./BulkEditItemRepository.js";
 import { BulkFenceRepository } from "./BulkFenceRepository.js";
 import { FacetCandidateRepository } from "./facet/FacetCandidateRepository.js";
-import { FacetReferenceRepository } from "./facet/FacetReferenceRepository.js";
 import { CollectionRepository } from "./collection/CollectionRepository.js";
 import { CollectionItemRepository } from "./collection/CollectionItemRepository.js";
 import { CollectionRuleRepository } from "./collection/CollectionRuleRepository.js";
@@ -47,7 +46,6 @@ export class Repository {
   public readonly bulkEditItem: BulkEditItemRepository;
   public readonly bulkFence: BulkFenceRepository;
   public readonly facetCandidate: FacetCandidateRepository;
-  public readonly facetReference: FacetReferenceRepository;
   public readonly collection: CollectionRepository;
   public readonly collectionItem: CollectionItemRepository;
   public readonly collectionRule: CollectionRuleRepository;
@@ -82,7 +80,6 @@ export class Repository {
     bulkEditItem: BulkEditItemRepository,
     bulkFence: BulkFenceRepository,
     facetCandidate: FacetCandidateRepository,
-    facetReference: FacetReferenceRepository,
     collection: CollectionRepository,
     collectionItem: CollectionItemRepository,
     collectionRule: CollectionRuleRepository,
@@ -108,7 +105,6 @@ export class Repository {
     this.bulkEditItem = bulkEditItem;
     this.bulkFence = bulkFence;
     this.facetCandidate = facetCandidate;
-    this.facetReference = facetReference;
     this.collection = collection;
     this.collectionItem = collectionItem;
     this.collectionRule = collectionRule;
@@ -145,7 +141,6 @@ export class Repository {
     const bulkEditItem = new BulkEditItemRepository(db, txManager);
     const bulkFence = new BulkFenceRepository(db, txManager);
     const facetCandidate = new FacetCandidateRepository(db, txManager);
-    const facetReference = new FacetReferenceRepository(db, txManager);
     const collection = new CollectionRepository(db, txManager);
     const collectionItem = new CollectionItemRepository(db, txManager);
     const collectionRule = new CollectionRuleRepository(db, txManager);
@@ -171,7 +166,6 @@ export class Repository {
       bulkEditItem,
       bulkFence,
       facetCandidate,
-      facetReference,
       collection,
       collectionItem,
       collectionRule,
