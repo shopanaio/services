@@ -65,10 +65,15 @@ type ListingIndexItemKey = {
 
 - для single item action и для item внутри batch всегда строится одним helper-ом
   как stable hash от `meta.idempotencyKey + projectId + entityType + itemId +
-  actionType`;
+  actionType + sourceRevision`;
 - используется в DBOS workflow identity и в
   `listing_index_action_receipt`;
 - не должен строиться только из raw/batch-level `meta.idempotencyKey`.
+- включает `sourceRevision`, чтобы разные revisions одного item не
+  конкурировали за один DBOS workflow id даже при reused/batch-level
+  `meta.idempotencyKey`;
+- не включает полный snapshot/delete payload. Payload-level conflict detection
+  остается responsibility database receipt/latest-state checks.
 
 `payloadHash`:
 
@@ -142,6 +147,7 @@ function buildListingIndexEffectiveIdempotencyKey(input: {
   entityType: Listing.ListingSellableItemEntityType;
   itemId: string;
   actionType: ListingIndexActionType;
+  sourceRevision: number;
 }): string {
   return hashContent({
     v: 1,
@@ -149,6 +155,7 @@ function buildListingIndexEffectiveIdempotencyKey(input: {
     entityType: input.entityType,
     itemId: input.itemId,
     actionType: input.actionType,
+    sourceRevision: input.sourceRevision,
     rawIdempotencyKey: input.rawIdempotencyKey,
   });
 }
@@ -168,6 +175,14 @@ function buildListingIndexWorkflowIdempotencyContext(input: {
     contentHash: input.effectiveIdempotencyKey,
   };
 }
+
+function buildListingIndexWorkflowName(
+  actionType: ListingIndexActionType
+): "listing.syncSellableItemIndex" | "listing.deleteSellableItemIndex" {
+  return actionType === "syncSellableItem"
+    ? "listing.syncSellableItemIndex"
+    : "listing.deleteSellableItemIndex";
+}
 ```
 
 Почему именно так:
@@ -184,11 +199,16 @@ function buildListingIndexWorkflowIdempotencyContext(input: {
 - `contentHash` должен получать item-scoped `effectiveIdempotencyKey`, а не
   raw `meta.idempotencyKey` и не `payloadHash`;
 - `content` не передается, потому что workflow identity должна зависеть от
-  acceptance idempotency key, а не от полного snapshot payload. Payload
-  conflict detection выполняется отдельно через `payloadHash` в database
-  receipt.
+  acceptance idempotency key и `sourceRevision`, а не от полного snapshot
+  payload. Payload conflict detection выполняется отдельно через `payloadHash`
+  в database receipt/latest state.
 
 ```ts
+const sourceRevision =
+  queuedAction.type === "syncSellableItem"
+    ? queuedAction.params.item.sourceRevision
+    : queuedAction.params.sourceRevision;
+
 const effectiveIdempotencyKey =
   buildListingIndexEffectiveIdempotencyKey({
     rawIdempotencyKey: queuedAction.params.meta.idempotencyKey,
@@ -196,6 +216,7 @@ const effectiveIdempotencyKey =
     entityType,
     itemId,
     actionType: queuedAction.type,
+    sourceRevision,
   });
 
 const idempotencyCtx =
@@ -208,7 +229,7 @@ const idempotencyCtx =
   });
 
 await this.broker.startWorkflow(
-  "listing.indexAction",
+  buildListingIndexWorkflowName(queuedAction.type),
   {
     ...queuedAction,
     effectiveIdempotencyKey,
@@ -229,23 +250,27 @@ await this.broker.startWorkflow(
 
 - `accepted` возвращается только после успешного `broker.startWorkflow(...)`,
   либо после duplicate workflow conflict, который доказал, что deterministic
-  workflow уже durably accepted.
+  workflow для того же `projectId + entityType + itemId + actionType +
+  sourceRevision + effectiveIdempotencyKey` уже durably accepted.
 - Если process crash произошел после `broker.startWorkflow(...)`, но до
-  response, следующий same-payload retry может получить DBOS duplicate workflow
+  response, следующий same-revision retry может получить DBOS duplicate workflow
   conflict. В этом случае helper сверяет deterministic workflow identity и
   возвращает `accepted`.
 - Если DBOS enqueue завершился retryable infrastructure error до durable accept,
-  same-payload retry повторяет `broker.startWorkflow(...)`.
+  same-revision retry повторяет `broker.startWorkflow(...)`.
 - `resourceId` всегда item-scoped.
 - `operation` включает action type, чтобы sync и delete не конфликтовали при
   одинаковом idempotency key.
+- Workflow name зависит от action type:
+  - `syncSellableItem` запускает `listing.syncSellableItemIndex`;
+  - `deleteSellableItem` запускает `listing.deleteSellableItemIndex`.
 - `contentHash` получает `effectiveIdempotencyKey`, а не raw batch key.
 - Текущая заготовка action handler, которая передает
   `params.meta.idempotencyKey` напрямую в `contentHash`, должна быть заменена
   на helper выше.
 - Explicit `options.workflowId` можно передать только если он строится тем же
   helper-ом из `projectId + entityType + itemId + actionType +
-  effectiveIdempotencyKey`.
+  sourceRevision + effectiveIdempotencyKey`.
 - `enqueueOptions.queuePartitionKey` используется всегда.
 - `enqueueOptions.deduplicationID` не используется для этой queue.
 - `duplicationPolicy: "return-existing"` не используется для этой queue,
@@ -257,71 +282,95 @@ await this.broker.startWorkflow(
   `already accepted`.
 - Duplicate workflow conflict обрабатывается отдельным helper-ом поверх
   `broker.startWorkflow(...)`, а не через `deduplicationID`:
-  - helper строит тот же `effectiveIdempotencyKey` и `payloadHash`;
+  - helper строит тот же `effectiveIdempotencyKey` из raw idempotency key,
+    item identity, action type и `sourceRevision`;
+  - helper строит тот же `payloadHash` для receipt/final-state checks;
   - duplicate workflow conflict for the same deterministic workflow id is
-    treated as proof of durable DBOS accept;
+    treated as proof of durable DBOS accept for the same item revision;
   - если final receipt уже существует и его metadata отличается, handler
     возвращает/кидает non-retryable idempotency conflict согласно public action
     contract.
-- Duplicate workflow conflict с другим payload не должен маскироваться как
-  successful enqueue. DBOS workflow identity защищает scheduling, а payload
+- Duplicate workflow conflict не сравнивает полный payload. Если тот же
+  item/action/revision accepted с другим payload и final receipt еще не
+  существует, enqueue path может вернуть `accepted`; payload mismatch должен
+  быть выявлен final write decision под item lock через `payloadHash`.
+- DBOS workflow identity защищает scheduling по item revision, а payload
   conflict detection остается database-level contract.
 - Handler must not rely on final receipt for enqueue idempotency. Final receipt
   may appear much later, after worker execution.
 
-### Workflow body
+### Workflow bodies
 
-`ListingIndexActionWorkflow` содержит только deterministic orchestration.
-Workflow body не пишет индекс. Он вызывает один или несколько prepare steps,
-затем ровно один transactional write step. Ветвление разрешено только по
-immutable input и persisted result предыдущих steps:
+Listing service регистрирует два typed workflows и enqueue-ит оба в одну DBOS
+queue:
+
+- `listing.syncSellableItemIndex`;
+- `listing.deleteSellableItemIndex`.
+
+Оба workflow содержат только deterministic orchestration. Workflow body не
+пишет индекс. Он вызывает один или несколько prepare steps, затем ровно один
+transactional write step. В workflow body нет ветвления по `action.type`: sync
+и delete paths разделены на уровне workflow name и input types.
 
 ```ts
-type ListingIndexQueuedAction =
-  | {
-      type: "syncSellableItem";
-      params: Listing.SyncSellableItemParams;
-      effectiveIdempotencyKey: string;
-      payloadHash: string;
-    }
-  | {
-      type: "deleteSellableItem";
-      params: Listing.DeleteSellableItemParams;
-      effectiveIdempotencyKey: string;
-      payloadHash: string;
-    };
+type ListingIndexQueuedSyncAction = {
+  type: "syncSellableItem";
+  params: Listing.SyncSellableItemParams;
+  effectiveIdempotencyKey: string;
+  payloadHash: string;
+};
 
-type ListingPreparedWriteAction =
-  | {
-      action: ListingPreparedSyncAction;
-      syncWriteModel: ListingSyncWriteModel;
-    }
-  | {
-      action: ListingPreparedDeleteAction;
-      syncWriteModel?: undefined;
-    };
+type ListingIndexQueuedDeleteAction = {
+  type: "deleteSellableItem";
+  params: Listing.DeleteSellableItemParams;
+  effectiveIdempotencyKey: string;
+  payloadHash: string;
+};
 
-class ListingIndexActionWorkflow extends BrokerWorkflows {
-  @Workflow("indexAction")
+type ListingPreparedSyncWriteAction = {
+  action: ListingPreparedSyncAction;
+  syncWriteModel: ListingSyncWriteModel;
+};
+
+type ListingPreparedDeleteWriteAction = {
+  action: ListingPreparedDeleteAction;
+};
+
+class ListingSyncSellableItemIndexWorkflow extends ListingIndexWorkflowBase {
+  @Workflow("syncSellableItemIndex")
   async run(
-    action: ListingIndexQueuedAction
+    action: ListingIndexQueuedSyncAction
   ): Promise<Listing.ListingUpdateResult> {
-    const prepared = await this.stepPrepareIndexAction(action);
+    const prepared = await this.stepPrepareSyncIndexAction(action);
 
     if (prepared.kind === "final") {
       return prepared.result;
     }
 
-    const syncWriteModel =
-      action.type === "syncSellableItem"
-        ? await this.stepBuildSyncWriteModel({
-            action: prepared.action,
-          })
-        : undefined;
+    const syncWriteModel = await this.stepBuildSyncWriteModel({
+      action: prepared.action,
+    });
 
-    return this.stepWriteIndexAction({
+    return this.stepWriteSyncIndexAction({
       action: prepared.action,
       syncWriteModel,
+    });
+  }
+}
+
+class ListingDeleteSellableItemIndexWorkflow extends ListingIndexWorkflowBase {
+  @Workflow("deleteSellableItemIndex")
+  async run(
+    action: ListingIndexQueuedDeleteAction
+  ): Promise<Listing.ListingUpdateResult> {
+    const prepared = await this.stepPrepareDeleteIndexAction(action);
+
+    if (prepared.kind === "final") {
+      return prepared.result;
+    }
+
+    return this.stepWriteDeleteIndexAction({
+      action: prepared.action,
     });
   }
 }
@@ -339,20 +388,21 @@ Workflow body rules:
 - Не содержит physical index mapping rules.
 - Не вызывает repositories или scripts вне DBOS steps.
 - Может ветвиться только на основании:
-  - immutable `action.type`;
   - persisted result предыдущего `@WorkflowStep`.
+- Sync workflow всегда вызывает `buildSyncWriteModel`.
+- Delete workflow никогда не вызывает `buildSyncWriteModel`.
 
 ### Workflow steps для side effects
 
-Фактическая обработка action разбивается на prepare steps и один write step.
-Prepare steps не пишут physical index tables. Single write step должен быть
-safe для повторного выполнения, если process crash произошел после database
-commit, но до DBOS step result persistence.
+Фактическая обработка action в каждом workflow разбивается на prepare steps и
+ровно один write step. Prepare steps не пишут physical index tables. Write step
+должен быть safe для повторного выполнения, если process crash произошел после
+database commit, но до DBOS step result persistence.
 
 ```ts
-class ListingIndexActionWorkflow extends BrokerWorkflows {
+abstract class ListingIndexWorkflowBase extends BrokerWorkflows {
   @WorkflowStep({
-    name: "prepareListingIndexAction",
+    name: "prepareListingSyncIndexAction",
     timeoutMs: 30_000,
     retry: {
       maxAttempts: 5,
@@ -360,9 +410,31 @@ class ListingIndexActionWorkflow extends BrokerWorkflows {
       backoffRate: 2,
     },
   })
-  private async stepPrepareIndexAction(
-    action: ListingIndexQueuedAction
-  ): Promise<ListingIndexPreparedAction> {
+  protected async stepPrepareSyncIndexAction(
+    action: ListingIndexQueuedSyncAction
+  ): Promise<ListingIndexPreparedSyncAction> {
+    const kernel = Kernel.getInstance();
+    const scriptContext = buildRunScriptContext(action);
+
+    return kernel.runScript(
+      ListingPrepareIndexActionScript,
+      toRuntimeActionParams(action),
+      scriptContext,
+    );
+  }
+
+  @WorkflowStep({
+    name: "prepareListingDeleteIndexAction",
+    timeoutMs: 30_000,
+    retry: {
+      maxAttempts: 5,
+      intervalSeconds: 1,
+      backoffRate: 2,
+    },
+  })
+  protected async stepPrepareDeleteIndexAction(
+    action: ListingIndexQueuedDeleteAction
+  ): Promise<ListingIndexPreparedDeleteAction> {
     const kernel = Kernel.getInstance();
     const scriptContext = buildRunScriptContext(action);
 
@@ -382,7 +454,7 @@ class ListingIndexActionWorkflow extends BrokerWorkflows {
       backoffRate: 2,
     },
   })
-  private async stepBuildSyncWriteModel(input: {
+  protected async stepBuildSyncWriteModel(input: {
     action: ListingPreparedSyncAction;
   }): Promise<ListingSyncWriteModel> {
     const kernel = Kernel.getInstance();
@@ -395,7 +467,7 @@ class ListingIndexActionWorkflow extends BrokerWorkflows {
   }
 
   @WorkflowStep({
-    name: "writeListingIndexAction",
+    name: "writeListingSyncIndexAction",
     timeoutMs: 120_000,
     retry: {
       maxAttempts: 5,
@@ -403,9 +475,30 @@ class ListingIndexActionWorkflow extends BrokerWorkflows {
       backoffRate: 2,
     },
   })
-  private async stepWriteIndexAction(input: ListingPreparedWriteAction): Promise<
-    Listing.ListingUpdateResult
-  > {
+  protected async stepWriteSyncIndexAction(
+    input: ListingPreparedSyncWriteAction
+  ): Promise<Listing.ListingUpdateResult> {
+    const kernel = Kernel.getInstance();
+
+    return kernel.runScript(
+      ListingWriteIndexActionScript,
+      input,
+      buildRunScriptContext(input.action),
+    );
+  }
+
+  @WorkflowStep({
+    name: "writeListingDeleteIndexAction",
+    timeoutMs: 120_000,
+    retry: {
+      maxAttempts: 5,
+      intervalSeconds: 1,
+      backoffRate: 2,
+    },
+  })
+  protected async stepWriteDeleteIndexAction(
+    input: ListingPreparedDeleteWriteAction
+  ): Promise<Listing.ListingUpdateResult> {
     const kernel = Kernel.getInstance();
 
     return kernel.runScript(
@@ -424,8 +517,9 @@ Step rules:
   повторно выполнять writes.
 - Если process crash произошел после database commit, но до DBOS step result
   persistence, DBOS может повторно выполнить write step. Поэтому
-  `writeListingIndexAction` обязан иметь database guard по
-  `effectiveIdempotencyKey`, final receipt и latest item state.
+  `writeListingSyncIndexAction` и `writeListingDeleteIndexAction` обязаны иметь
+  database guard по `effectiveIdempotencyKey`, final receipt и latest item
+  state.
 - `prepare` step:
   - валидирует public contract;
   - строит/проверяет `RunScriptContext`;
@@ -441,9 +535,11 @@ Step rules:
   - write model содержит source ids, value keys, sort rows и price rows, но не
     содержит allocated `product_doc_id` или `variant_doc_id`;
   - повтор step возвращает DBOS-persisted result, если step result уже сохранен.
-- `writeListingIndexAction`:
-  - является единственным write DBOS step для sync и delete;
-  - вызывает один transactional script;
+- Write DBOS steps:
+  - реализуется двумя typed DBOS steps:
+    `writeListingSyncIndexAction` и `writeListingDeleteIndexAction`;
+  - каждый workflow вызывает ровно один write DBOS step;
+  - оба write steps вызывают один общий transactional script;
   - открывает одну item-level transaction для final physical writes;
   - первым write-side DB operation вызывают `lockByItem`;
   - повторно проверяют final receipt/current state/source revision;
@@ -508,10 +604,10 @@ class ListingBrokerActions extends BrokerActions {
 
 Responsibilities:
 
-- `syncSellableItem` ставит item-scoped `ListingIndexActionWorkflow` в
-  `listing_index_actions`.
-- `deleteSellableItem` ставит item-scoped `ListingIndexActionWorkflow` в ту же
-  queue.
+- `syncSellableItem` ставит item-scoped
+  `ListingSyncSellableItemIndexWorkflow` в `listing_index_actions`.
+- `deleteSellableItem` ставит item-scoped
+  `ListingDeleteSellableItemIndexWorkflow` в ту же queue.
 - `syncSellableItems` fan-out-ит items в отдельные queued item workflows.
 - Handler не строит write model.
 - Handler не вызывает index repositories.
@@ -553,7 +649,7 @@ Rules:
 - Если часть items accepted, а часть enqueue attempts failed, handler возвращает
   `partial` согласно текущему public contract:
   `SyncSellableItemsResult.results` остается `ListingUpdateResult[]` и содержит
-  только items, для которых durable enqueue завершился accepted или same-payload
+  только items, для которых durable enqueue завершился accepted или same-revision
   already-accepted duplicate detection.
 - Failed enqueue attempts не добавляются в `results` как `{ kind: "error" }`,
   потому что такой union отсутствует в `@shopana/broker-types`. Handler должен
@@ -563,8 +659,8 @@ Rules:
   breaking/non-breaking изменение публичного `SyncSellableItemsResult` contract и
   `packages/broker-types`, а не часть этого implementation plan.
 - Retry batch после partial enqueue safe: уже accepted items распознаются по
-  deterministic workflow identity и receipt metadata как same-payload already
-  accepted.
+  deterministic workflow identity как same-revision already accepted, а payload
+  metadata сверяется позже через receipt/final-state checks.
 
 ## Database idempotency model
 
@@ -710,7 +806,7 @@ Contract:
 ### Single item sync step sequence
 
 ```ts
-const prepared = await stepPrepareIndexAction(action);
+const prepared = await stepPrepareSyncIndexAction(action);
 
 if (prepared.kind === "final") {
   return prepared.result;
@@ -720,7 +816,7 @@ const syncWriteModel = await stepBuildSyncWriteModel({
   action: prepared.action,
 });
 
-return stepWriteIndexAction({
+return stepWriteSyncIndexAction({
   action: prepared.action,
   syncWriteModel,
 });
@@ -734,13 +830,13 @@ Rules:
   together with `write_model_hash`. On workflow replay after DBOS persisted the
   step result, DBOS returns the stored write model without re-executing the
   step.
-- `writeListingIndexAction` calls `lockByItem` as the first write-side DB
+- `writeListingSyncIndexAction` calls `lockByItem` as the first write-side DB
   operation for item.
 - Decision is made under lock in final write step even if prepare returned a
   preliminary `apply` decision.
 - `noop` and `ignored_stale` do not execute physical index writes.
 - Physical writes and final state/receipt writes are atomic inside
-  `stepWriteIndexAction`.
+  `stepWriteSyncIndexAction`.
 - If any physical write fails, item state and receipt are rolled back.
 - `product_doc_id` and `variant_doc_id` allocation happens inside
   `ListingWriteIndexActionScript` after `lockByItem` and final revision
@@ -755,13 +851,13 @@ Rules:
 ### Delete step transactions
 
 ```ts
-const prepared = await stepPrepareIndexAction(action);
+const prepared = await stepPrepareDeleteIndexAction(action);
 
 if (prepared.kind === "final") {
   return prepared.result;
 }
 
-return stepWriteIndexAction({
+return stepWriteDeleteIndexAction({
   action: prepared.action,
 });
 ```
@@ -1205,7 +1301,7 @@ facade method.
 ## Minimal sync sequence
 
 ```ts
-const prepared = await stepPrepareIndexAction(action);
+const prepared = await stepPrepareSyncIndexAction(action);
 
 if (prepared.kind === "final") {
   return prepared.result;
@@ -1215,7 +1311,7 @@ const syncWriteModel = await stepBuildSyncWriteModel({
   action: prepared.action,
 });
 
-return stepWriteIndexAction({
+return stepWriteSyncIndexAction({
   action: prepared.action,
   syncWriteModel,
 });
@@ -1223,7 +1319,7 @@ return stepWriteIndexAction({
 
 This block is sequencing contract, not implementation. Each named call is a
 DBOS `@WorkflowStep`; final physical writes happen only inside the single
-`stepWriteIndexAction`.
+`stepWriteSyncIndexAction`.
 
 ## Acceptance checklist
 
@@ -1237,20 +1333,21 @@ DBOS `@WorkflowStep`; final physical writes happen only inside the single
       `buildListingIndexWorkflowIdempotencyContext(...)` and pass
       item-scoped `effectiveIdempotencyKey` as `contentHash`.
 - [ ] Action handlers return `accepted` only after durable DBOS enqueue or
-      same-payload already accepted duplicate detection.
+      same-revision already accepted duplicate detection.
 - [ ] `enqueueOptions.deduplicationID` is not used with partitioned queue.
 - [ ] `duplicationPolicy: "return-existing"` is not used for
       `listing_index_actions`.
-- [ ] `@Workflow("indexAction")` body contains only deterministic
+- [ ] `@Workflow("syncSellableItemIndex")` and
+      `@Workflow("deleteSellableItemIndex")` bodies contain only deterministic
       orchestration over persisted step results.
 - [ ] All side effects are inside `@WorkflowStep` or controlled internal script
       runner.
-- [ ] Workflow uses one or more prepare DBOS steps and exactly one
+- [ ] Each index workflow uses one or more prepare DBOS steps and exactly one
       transactional write DBOS step.
 - [ ] Prepare DBOS steps do not allocate doc ids, create bootstrap rows, insert
       final receipts or write physical index tables.
-- [ ] The single write step allocates doc ids, applies sync/delete writes,
-      updates latest state and inserts final receipt in one transaction.
+- [ ] Typed write steps allocate/read doc ids as needed, apply sync/delete
+      writes, update latest state and insert final receipt in one transaction.
 - [ ] Every DBOS step has explicit timeout and retry policy.
 - [ ] Retryable infrastructure errors are classified as retryable.
 - [ ] Validation/idempotency/revision conflicts are non-retryable domain
