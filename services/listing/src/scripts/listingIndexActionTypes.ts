@@ -1,5 +1,15 @@
 import type { Listing } from "@shopana/broker-types";
 import type { ListingIndexActionType } from "../actions/listingIndexActionHelpers.js";
+import type {
+  ProductKind,
+  ProductListingIndexUpsertInput,
+  ProductListingPriceRowInput,
+  ProductSortRowInput,
+  ProductTitleBm25RowInput,
+  RuntimeVariantPriceRowInput,
+  VariantListingIndexUpsertInput,
+  VariantListingPriceRowInput,
+} from "../repositories/listing/listingRepositoryTypes.js";
 
 export type ListingIndexQueuedSyncAction = {
   type: "syncSellableItem";
@@ -65,8 +75,38 @@ export type ListingIndexItemKey = {
 export type ListingSyncWriteModel = {
   version: 1;
   actionType: Extract<ListingIndexActionType, "syncSellableItem">;
-  writeModelJson: Record<string, unknown>;
+  writeModelJson: ListingSyncWriteModelJson;
   writeModelHash: string;
+};
+
+export type ListingSyncWriteModelJson = {
+  product: Omit<ProductListingIndexUpsertInput, "productDocId">;
+  productKind: ProductKind;
+  productPrices: readonly ProductListingPriceRowInput[];
+  productSortRows: readonly Omit<ProductSortRowInput, "productDocId">[];
+  productTitleRows: readonly ProductTitleBm25RowInput[];
+  productPostingValueKeys: {
+    category: readonly string[];
+    vendor: readonly string[];
+    facet: readonly string[];
+  };
+  variants: readonly Omit<
+    VariantListingIndexUpsertInput,
+    "productDocId" | "variantDocId"
+  >[];
+  variantPricesByVariantId: Record<
+    string,
+    readonly Omit<
+      VariantListingPriceRowInput,
+      "variantDocId" | "productDocId"
+    >[]
+  >;
+  runtimePricesByVariantId: Record<
+    string,
+    readonly Omit<RuntimeVariantPriceRowInput, "variantDocId" | "productDocId">[]
+  >;
+  variantFacetValueKeysByVariantId: Record<string, readonly string[]>;
+  variantProductValueKeysByVariantId: Record<string, readonly string[]>;
 };
 
 export type ListingPreparedSyncWriteAction = {

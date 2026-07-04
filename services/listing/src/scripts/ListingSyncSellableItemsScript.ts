@@ -1,5 +1,16 @@
 import type { Listing } from "@shopana/broker-types";
+import {
+  buildListingIndexEffectiveIdempotencyKey,
+  buildListingIndexPayloadHash,
+} from "../actions/listingIndexActionHelpers.js";
 import { BaseScript } from "../kernel/BaseScript.js";
+import { ListingBuildSyncWriteModelScript } from "./ListingBuildSyncWriteModelScript.js";
+import { ListingPrepareIndexActionScript } from "./ListingPrepareIndexActionScript.js";
+import { ListingWriteIndexActionScript } from "./ListingWriteIndexActionScript.js";
+import type {
+  ListingIndexPreparedSyncAction,
+  ListingIndexQueuedSyncAction,
+} from "./listingIndexActionTypes.js";
 
 export interface ListingBatchTransactionStrategy {
   mode: "per_item" | "per_chunk";
@@ -18,17 +29,99 @@ export class ListingSyncSellableItemsScript extends BaseScript<
   protected async execute(
     input: ListingSyncSellableItemsScriptParams
   ): Promise<Listing.SyncSellableItemsResult> {
-    // Validate batch metadata and duplicate item refs.
-    // Build item-scoped effectiveIdempotencyKey and payloadHash for each item.
-    // Execute the same step-oriented runner as DBOS: prepare, optional build
-    // sync write model, then exactly one transactional write script.
-    // Default to per-item transactions; allow per-chunk only for controlled
-    // backfill/repair callers that accept chunk rollback behavior.
-    void input;
-    throw new Error("ListingSyncSellableItemsScript is not implemented yet");
+    assertNoDuplicateItems(input.params.items);
+    const results: Listing.ListingUpdateResult[] = [];
+
+    for (const item of input.params.items) {
+      try {
+        results.push(await this.syncOne(input.params, item));
+      } catch (error) {
+        this.logger.error(
+          {
+            error,
+            projectId: input.params.projectId,
+            entityType: item.entityType,
+            itemId: item.id,
+            operationId: input.params.meta.operationId,
+          },
+          "Controlled listing batch item sync failed"
+        );
+      }
+    }
+
+    return {
+      operationId: input.params.meta.operationId,
+      status:
+        results.length === input.params.items.length ? "completed" : "partial",
+      results,
+    };
   }
 
   protected handleError(error: unknown): never {
     throw error;
+  }
+
+  private async syncOne(
+    params: Listing.SyncSellableItemsParams,
+    item: Listing.ListingSellableItemSnapshot
+  ): Promise<Listing.ListingUpdateResult> {
+    const queued: ListingIndexQueuedSyncAction = {
+      type: "syncSellableItem",
+      params: {
+        meta: params.meta,
+        projectId: params.projectId,
+        item,
+      },
+      effectiveIdempotencyKey: buildListingIndexEffectiveIdempotencyKey({
+        rawIdempotencyKey: params.meta.idempotencyKey,
+        projectId: params.projectId,
+        entityType: item.entityType,
+        itemId: item.id,
+        actionType: "syncSellableItem",
+        sourceRevision: item.sourceRevision,
+      }),
+      payloadHash: buildListingIndexPayloadHash({
+        type: "syncSellableItem",
+        params: {
+          meta: params.meta,
+          projectId: params.projectId,
+          item,
+        },
+      }),
+    };
+
+    const prepared = (await this.executeScript(
+      ListingPrepareIndexActionScript,
+      queued
+    )) as ListingIndexPreparedSyncAction;
+
+    if (prepared.kind === "final") {
+      return prepared.result;
+    }
+
+    const syncWriteModel = await this.executeScript(
+      ListingBuildSyncWriteModelScript,
+      {
+        action: prepared.action,
+      }
+    );
+
+    return this.executeScript(ListingWriteIndexActionScript, {
+      action: prepared.action,
+      syncWriteModel,
+    });
+  }
+}
+
+function assertNoDuplicateItems(
+  items: readonly Listing.ListingSellableItemSnapshot[]
+): void {
+  const seen = new Set<string>();
+  for (const item of items) {
+    const key = `${item.entityType}:${item.id}`;
+    if (seen.has(key)) {
+      throw new Error(`Duplicate listing sync batch item: ${key}`);
+    }
+    seen.add(key);
   }
 }

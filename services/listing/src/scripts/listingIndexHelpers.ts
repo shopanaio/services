@@ -1,4 +1,9 @@
 import { BaseScript } from "../kernel/BaseScript.js";
+import type {
+  ProductSortRowInput,
+  ProductTitleBm25RowInput,
+  RuntimeVariantPriceRowInput,
+} from "../repositories/listing/listingRepositoryTypes.js";
 
 export class ListingCleanupStaleVariantsScript extends BaseScript<
   {
@@ -14,12 +19,30 @@ export class ListingCleanupStaleVariantsScript extends BaseScript<
     productId: string;
     keepVariantIds: readonly string[];
   }): Promise<{ deletedVariantIds: string[]; deletedVariantDocIds: number[] }> {
-    // Inside the parent item transaction, delete variants that exist in the
-    // index for the product but are absent from the incoming full snapshot.
-    // Remove variant memberships, variant prices, runtime price rows and
-    // variant_listing_index rows; return touched variant doc ids.
-    void input;
-    throw new Error("ListingCleanupStaleVariantsScript is not implemented yet");
+    const keep = new Set(input.keepVariantIds);
+    const stale = (
+      await this.repository.variantListingIndex.getByProductIds([input.productId])
+    ).filter((variant) => !keep.has(variant.variantId));
+
+    for (const variant of stale) {
+      await this.repository.listingPostingBitmap.deleteVariantMemberships(
+        variant.variantDocId
+      );
+    }
+    await this.repository.listingPostingVariantPrice.deleteByVariantDocIds(
+      stale.map((variant) => variant.variantDocId)
+    );
+    await this.repository.variantListingPriceIndex.deleteByVariantIds(
+      stale.map((variant) => variant.variantId)
+    );
+    await this.repository.variantListingIndex.deleteByVariantIds(
+      stale.map((variant) => variant.variantId)
+    );
+
+    return {
+      deletedVariantIds: stale.map((variant) => variant.variantId),
+      deletedVariantDocIds: stale.map((variant) => variant.variantDocId),
+    };
   }
 
   protected handleError(error: unknown): never {
@@ -30,19 +53,17 @@ export class ListingCleanupStaleVariantsScript extends BaseScript<
 export class ListingReplaceProductTitleSearchRowsScript extends BaseScript<
   {
     productId: string;
-    rows: readonly unknown[];
+    rows: readonly ProductTitleBm25RowInput[];
   },
   void
 > {
   protected async execute(input: {
     productId: string;
-    rows: readonly unknown[];
+    rows: readonly ProductTitleBm25RowInput[];
   }): Promise<void> {
-    // Replace localized BM25 title rows for a product inside the parent item
-    // transaction. Empty rows delete all BM25 title rows for that product.
-    void input;
-    throw new Error(
-      "ListingReplaceProductTitleSearchRowsScript is not implemented yet"
+    await this.repository.productTitleBm25SearchIndex.replaceForProduct(
+      input.productId,
+      input.rows
     );
   }
 
@@ -54,19 +75,17 @@ export class ListingReplaceProductTitleSearchRowsScript extends BaseScript<
 export class ListingReplaceRuntimeVariantPriceRowsScript extends BaseScript<
   {
     variantDocId: number;
-    rows: readonly unknown[];
+    rows: readonly RuntimeVariantPriceRowInput[];
   },
   void
 > {
   protected async execute(input: {
     variantDocId: number;
-    rows: readonly unknown[];
+    rows: readonly RuntimeVariantPriceRowInput[];
   }): Promise<void> {
-    // Replace runtime price rows for one variant inside the parent item
-    // transaction. Empty rows delete runtime prices for that variant doc id.
-    void input;
-    throw new Error(
-      "ListingReplaceRuntimeVariantPriceRowsScript is not implemented yet"
+    await this.repository.listingPostingVariantPrice.replaceForVariant(
+      input.variantDocId,
+      input.rows
     );
   }
 
@@ -78,18 +97,18 @@ export class ListingReplaceRuntimeVariantPriceRowsScript extends BaseScript<
 export class ListingReplaceProductSortRowsScript extends BaseScript<
   {
     productDocId: number;
-    rows: readonly unknown[];
+    rows: readonly ProductSortRowInput[];
   },
   void
 > {
   protected async execute(input: {
     productDocId: number;
-    rows: readonly unknown[];
+    rows: readonly ProductSortRowInput[];
   }): Promise<void> {
-    // Replace all physical sort rows for one product doc id inside the parent
-    // item transaction. Empty rows delete existing sort rows for the product.
-    void input;
-    throw new Error("ListingReplaceProductSortRowsScript is not implemented yet");
+    await this.repository.listingPostingProductSort.replaceForProduct(
+      input.productDocId,
+      input.rows
+    );
   }
 
   protected handleError(error: unknown): never {

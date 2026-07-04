@@ -1,4 +1,8 @@
-import { hashContent, type IdempotencyContext } from "@shopana/shared-kernel";
+import {
+  buildIdempotencyKey,
+  hashContent,
+  type IdempotencyContext,
+} from "@shopana/shared-kernel";
 import type { Listing } from "@shopana/broker-types";
 
 export const LISTING_INDEX_ACTIONS_QUEUE = "listing_index_actions" as const;
@@ -53,6 +57,13 @@ export function buildListingIndexWorkflowName(
   return actionType === "syncSellableItem"
     ? "listing.syncSellableItemIndex"
     : "listing.deleteSellableItemIndex";
+}
+
+export function buildListingIndexWorkflowId(input: {
+  workflowName: ListingIndexWorkflowName;
+  idempotencyCtx: IdempotencyContext;
+}): string {
+  return buildIdempotencyKey(input.workflowName, input.idempotencyCtx);
 }
 
 export function buildListingIndexQueuePartitionKey(input: {
@@ -113,15 +124,21 @@ export function buildAcceptedListingUpdateResult(input: {
   };
 }
 
-export function isDuplicateWorkflowStartError(error: unknown): boolean {
+export function isDuplicateWorkflowStartError(
+  error: unknown,
+  expectedWorkflowId: string
+): boolean {
   if (!(error instanceof Error)) {
     return false;
   }
 
   const text = `${error.name} ${error.message}`.toLowerCase();
-  return (
+  const mentionsWorkflow =
+    text.includes("workflow") || text.includes(expectedWorkflowId.toLowerCase());
+  const duplicateConflict =
     text.includes("duplicate") ||
     text.includes("already exists") ||
-    text.includes("workflow already")
-  );
+    text.includes("already started");
+
+  return mentionsWorkflow && duplicateConflict;
 }

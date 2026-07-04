@@ -12,6 +12,7 @@ import {
   buildListingIndexPayloadHash,
   buildListingIndexQueuePartitionKey,
   buildListingIndexWorkflowIdempotencyContext,
+  buildListingIndexWorkflowId,
   buildListingIndexWorkflowName,
   isDuplicateWorkflowStartError,
   LISTING_INDEX_ACTIONS_QUEUE,
@@ -149,10 +150,15 @@ export class ListingBrokerActions extends BrokerActions {
       actionType: input.type,
       effectiveIdempotencyKey,
     });
+    const workflowName = buildListingIndexWorkflowName(input.type);
+    const workflowId = buildListingIndexWorkflowId({
+      workflowName,
+      idempotencyCtx,
+    });
 
     try {
       await this.broker.startWorkflow(
-        buildListingIndexWorkflowName(input.type),
+        workflowName,
         {
           ...input,
           effectiveIdempotencyKey,
@@ -169,10 +175,11 @@ export class ListingBrokerActions extends BrokerActions {
             }),
           },
           timeoutMS: LISTING_INDEX_WORKFLOW_TIMEOUT_MS,
+          workflowId,
         }
       );
     } catch (error) {
-      if (isDuplicateWorkflowStartError(error)) {
+      if (isDuplicateWorkflowStartError(error, workflowId)) {
         return;
       }
 
