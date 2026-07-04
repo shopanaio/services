@@ -5,6 +5,7 @@ import {
   DatabaseModule,
   WorkflowModule,
   type DatabaseModuleOptions,
+  type WorkflowQueueConfig,
 } from "@shopana/shared-kernel";
 import { PaymentsModule } from "@shopana/payments-service";
 import { AppsModule } from "@shopana/apps-service";
@@ -24,6 +25,8 @@ export interface BootstrapModuleOptions extends BrokerCoreModuleOptions {
   workflows?: {
     databaseUrl: string;
     name?: string;
+    schema?: string;
+    queues?: WorkflowQueueConfig[];
   };
   /** Shared database pool configuration */
   database: DatabaseModuleOptions;
@@ -64,6 +67,8 @@ export class BootstrapModule {
         WorkflowModule.forRoot({
           databaseUrl: options.workflows.databaseUrl,
           name: options.workflows.name ?? "shopana",
+          schema: options.workflows.schema,
+          queues: options.workflows.queues,
         })
       );
     }

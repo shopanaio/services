@@ -34,6 +34,15 @@ async function bootstrap() {
     bootstrapOptions.workflows = {
       databaseUrl: workflowsDbUrl,
       name: config.workflows?.app_name ?? 'shopana',
+      schema: config.workflows?.schema,
+      queues: [
+        {
+          name: 'listing_index_actions',
+          partitionQueue: true,
+          concurrency: 1,
+          onConflict: 'update_if_latest_version',
+        },
+      ],
     };
   }
 
