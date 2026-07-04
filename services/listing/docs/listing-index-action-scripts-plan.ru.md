@@ -98,6 +98,8 @@ const partitionKey = [
 const workflowId = [
   "listing-index",
   params.projectId,
+  params.item.entityType,
+  params.item.id,
   params.meta.idempotencyKey,
 ].join(":");
 
@@ -126,9 +128,14 @@ await this.broker.startWorkflow(
 
 Правила:
 
-- `workflowID` должен быть deterministic из `projectId` и
-  `meta.idempotencyKey`; его можно передать через `options.workflowId` или
-  получить из deterministic `IdempotencyContext`.
+- `workflowID` должен быть deterministic из
+  `projectId + entityType + itemId + meta.idempotencyKey`; его можно передать
+  через `options.workflowId` или получить из deterministic
+  `IdempotencyContext`.
+- Для одиночного action и для item workflow внутри batch используется один и тот
+  же item-scoped workflow id shape. Нельзя строить workflow id только из
+  batch-level `meta.idempotencyKey`, потому что `syncSellableItems` передает
+  один общий `meta` для всех items.
 - Для partitioned queue используется `queuePartitionKey`, но не
   `deduplicationID`: актуальный `WorkflowRegistry` запрещает передавать
   `deduplicationID` вместе с `queuePartitionKey`.
@@ -141,7 +148,8 @@ await this.broker.startWorkflow(
   sequential queue для всех listing events.
 - Batch action в async mode не ставится как один большой workflow, если это
   приведет к serial bottleneck. Он fan-out-ит items в отдельные queued item
-  workflows с item partition keys и собирает accepted results.
+  workflows с item partition keys, item-scoped workflow ids и собирает accepted
+  results.
 
 ### Queue workflow
 
@@ -165,12 +173,28 @@ class ListingIndexActionWorkflow extends BrokerWorkflows {
 Responsibilities:
 
 - Выполняется только из DBOS queue `listing_index_actions`.
-- Делегирует `syncSellableItem` в `ListingSyncSellableItemScript`.
-- Делегирует `deleteSellableItem` в `ListingDeleteSellableItemScript`.
+- Получает singleton `Kernel` через `Kernel.getInstance()` и запускает scripts
+  через `kernel.runScript(ScriptClass, params, runScriptContext)`, а не через
+  прямой `new ScriptClass(...).run(...)`.
+- Для каждого action строит `RunScriptContext` из action params:
+  - `storeId = params.projectId`;
+  - `requestId = params.meta.source.requestId ?? params.meta.operationId`;
+  - `locale/defaultLocale` берутся из snapshot content for sync, а для delete
+    используются service defaults или отдельные delete params, если contract
+    будет расширен;
+  - `organizationId` и `userId` заполняются только если они доступны в source
+    metadata.
+- Делегирует `syncSellableItem` в `ListingSyncSellableItemScript` внутри этого
+  service context.
+- Делегирует `deleteSellableItem` в `ListingDeleteSellableItemScript` внутри
+  этого service context.
 - Возвращает final script result: `applied`, `noop` или `ignored_stale`.
 - Не содержит mapping rules и не пишет physical index напрямую.
 - Не заменяет item transaction и `lockByItem`; queue обеспечивает scheduling,
   а correctness остается в database transaction.
+- Не вызывает listing repositories вне `runScript` context: repository
+  `this.storeId` должен всегда совпадать с `params.projectId`, а project
+  mismatch должен завершаться domain validation result.
 
 ### Coalescing/latest-wins
 
@@ -246,6 +270,29 @@ interface WorkflowQueueStartOptions {
 - Repository methods используют `this.connection` и не открывают отдельные DB
   connections.
 
+### Item lock for missing state rows
+
+`listing_index_update_state` хранит latest applied state, но для первого action
+по item такой строки еще может не быть. Поэтому `lockByItem` не должен быть
+простым `SELECT ... FOR UPDATE`, который ничего не блокирует при отсутствии
+row.
+
+Contract для `lockByItem`:
+
+- Выполняется только внутри transaction.
+- Первым шагом берет transaction-scoped item lock по canonical key
+  `projectId + entityType + itemId`. Рекомендуемая реализация - PostgreSQL
+  advisory transaction lock (`pg_advisory_xact_lock`) от stable hash этого key.
+- После item lock читает existing `listing_index_update_state` row через
+  `SELECT ... FOR UPDATE`, если row уже существует.
+- Если state row отсутствует, возвращает `null`, но item уже serial locked до
+  конца transaction.
+- Не вставляет placeholder latest-state row ради блокировки. Новая state row
+  создается только финальным `upsertAppliedState` после successful physical
+  writes или после применимого delete/noop decision согласно result contract.
+- Все code paths для sync/delete/batch используют один и тот же `lockByItem`;
+  отдельные ad-hoc advisory locks в scripts не допускаются.
+
 ### Single item sync transaction
 
 `listing.syncSellableItem` должен иметь один atomic boundary для одного
@@ -267,6 +314,9 @@ await repository.txManager.run(async () => {
 Правила:
 
 - `lockByItem` выполняется первым write-side DB operation для item.
+- `lockByItem` должен брать сериализующую item lock даже когда
+  `listing_index_update_state` row еще отсутствует; отсутствие row не означает
+  отсутствие lock.
 - Решение `apply/noop/ignored_stale` принимается под item lock.
 - Если decision = `noop` или `ignored_stale`, transaction не выполняет
   physical index writes.
@@ -402,6 +452,9 @@ Responsibilities:
   `ListingSyncSellableItemsScript`.
 - В asynchronous mode `syncSellableItems` fan-out-ит items в отдельные DBOS
   queued workflows, а не ставит весь batch в одну serial item transaction.
+- В asynchronous mode `syncSellableItems` строит per-item workflow identity из
+  `projectId + entityType + itemId + meta.idempotencyKey`; общий batch
+  `meta.idempotencyKey` не используется как standalone workflow id.
 - В synchronous mode `deleteSellableItem` запускает
   `ListingDeleteSellableItemScript`.
 - В asynchronous mode `deleteSellableItem` ставит delete action в ту же DBOS
@@ -914,6 +967,12 @@ Responsibilities:
 - Хранит последнюю примененную source revision item.
 - Позволяет безопасно различать `apply`, `noop` и `ignored_stale`.
 - `lockByItem` используется внутри item transaction для serial update по item.
+- `lockByItem` обязан брать сериализующую lock по item key до чтения
+  latest-state row. Если latest-state row отсутствует, метод все равно
+  удерживает transaction-scoped lock и возвращает `null`.
+- `lockByItem` не создает placeholder state rows. Создание/обновление
+  `listing_index_update_state` выполняется только через финальный
+  `upsertAppliedState`.
 - Таблица и repository являются обязательным prereq для реализации
   `syncSellableItem`, `syncSellableItems` и `deleteSellableItem`; без них
   idempotency/revision semantics не считаются реализованными.
@@ -1050,8 +1109,13 @@ await repository.txManager.run(async () => {
 - [ ] Все synchronous action handlers делегируют работу scripts.
 - [ ] Queued `ListingIndexActionWorkflow` делегирует final apply в scripts и не
       пишет physical index напрямую.
+- [ ] Queued `ListingIndexActionWorkflow` запускает scripts через
+      `Kernel.runScript(..., RunScriptContext)`, чтобы repositories получали
+      `this.storeId = params.projectId`.
 - [ ] Batch async processing fan-out-ит items в item-partitioned queued
       workflows.
+- [ ] Batch item workflows используют deterministic item-scoped workflow id,
+      включающий `projectId`, `entityType`, `itemId` и `meta.idempotencyKey`.
 - [ ] High-volume processing имеет coalescing/latest-wins strategy или
       documented reason, почему каждая revision должна физически применяться.
 - [ ] DBOS workflow history retention/cleanup policy описана для completed
@@ -1059,6 +1123,8 @@ await repository.txManager.run(async () => {
 - [ ] Full snapshot sync удаляет stale variants.
 - [ ] Delete action удаляет product, variants, memberships, prices, sort rows и
       BM25 rows.
+- [ ] `lockByItem` сериализует item updates даже когда
+      `listing_index_update_state` row еще не существует.
 - [ ] `sourceRevision` защищает от stale updates.
 - [ ] `idempotencyKey` защищает от повторного применения retries.
 - [ ] Mapping rules живут в write model builder, а не в repositories.
