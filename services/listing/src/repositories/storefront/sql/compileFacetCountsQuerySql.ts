@@ -34,9 +34,21 @@ export type FacetCountsProfileTarget =
   | (typeof FACET_COUNTS_PROFILE_TARGETS)[number]
   | (typeof SIMPLE_FACET_COUNTS_PROFILE_TARGETS)[number];
 
-export function compileFacetCountsQuerySql(request: ListingSqlRequest) {
+export interface FacetCountsVisibleFacetValue {
+  facetId: string;
+  facetType: string;
+  valueKey: string;
+}
+
+export function compileFacetCountsQuerySql(
+  request: ListingSqlRequest,
+  options: {
+    visibleFacetValues?: readonly FacetCountsVisibleFacetValue[];
+  } = {}
+) {
   return compileFacetCountsQuerySqlWithOptions(request, {
     heavyStrategyEnabled: request.heavyOptionFacetCountsEnabled,
+    visibleFacetValues: options.visibleFacetValues,
   });
 }
 
@@ -50,13 +62,17 @@ export function facetCountsProfileTargetsForRequest(
 
 export function compileFacetCountsProfileQuerySql(
   request: ListingSqlRequest,
-  target: FacetCountsProfileTarget
+  target: FacetCountsProfileTarget,
+  options: {
+    visibleFacetValues?: readonly FacetCountsVisibleFacetValue[];
+  } = {}
 ): SQL {
   return sql`
     /* listing:facetCountsProfile:${sql.raw(target)} */
     WITH
     ${compileFacetCountsCtesSql(request, {
       heavyStrategyEnabled: request.heavyOptionFacetCountsEnabled,
+      visibleFacetValues: options.visibleFacetValues,
     })}
     ${compileFacetCountsProfileSelectSql(target)}
   `;
@@ -111,6 +127,9 @@ function compileFacetCountsCtesSql(
     : heavyStrategyEnabled
       ? compileHeavyOptionFacetCountsProducerSql()
       : compileCandidateOnlyOptionFacetCountsProducerSql();
+  const facetValueDiscoverySql = options.visibleFacetValues
+    ? compileProvidedFacetValueCtesSql(options.visibleFacetValues)
+    : compileDiscoveredFacetValueCtesSql();
 
   return sql`
     ${compileFacetCountsCoreSql(request)},
@@ -119,59 +138,7 @@ function compileFacetCountsCtesSql(
       FROM scope_products sp
       CROSS JOIN published_products pp
     ),
-    scope_variants AS (
-      SELECT COALESCE(rb_build_agg(vli.variant_doc_id), ${emptyRoaringBitmapSql()}) AS bitmap
-      FROM listing.variant_listing_index vli
-      JOIN input i ON true
-      CROSS JOIN scope_product_base sp
-      CROSS JOIN scope_variant_filters svf
-      WHERE vli.project_id = i.project_id
-        AND vli.in_stock = true
-        AND sp.bitmap @> vli.product_doc_id
-        AND (svf.bitmap IS NULL OR svf.bitmap @> vli.variant_doc_id)
-    ),
-    candidate_values AS (
-      SELECT DISTINCT p.value_key
-      FROM input i
-      CROSS JOIN scope_product_base sp
-      JOIN listing.listing_posting_bitmap p
-        ON p.project_id = i.project_id
-       AND p.entity_type = 'product'
-       AND p.field = 'facet'
-       AND rb_cardinality(sp.bitmap & p.bitmap) > 0
-
-      UNION
-
-      SELECT DISTINCT p.value_key
-      FROM input i
-      CROSS JOIN scope_variants sv
-      JOIN listing.listing_posting_bitmap p
-        ON p.project_id = i.project_id
-       AND p.entity_type = 'variant'
-       AND p.field = 'facet'
-       AND rb_cardinality(sv.bitmap & p.bitmap) > 0
-    ),
-    visible_facet_values AS (
-      SELECT DISTINCT
-        f.id::text AS facet_id,
-        f.slug AS facet_slug,
-        f.facet_type,
-        fv.id::text AS facet_value_id,
-        fv.sort_index AS value_sort,
-        f.id::text || ':' || fv.id::text AS value_key
-      FROM input i
-      JOIN catalog.facet f
-        ON f.project_id = i.project_id
-      JOIN catalog.facet_value fv
-        ON fv.project_id = f.project_id
-       AND fv.facet_id = f.id
-       AND fv.kind = 'display'
-       AND fv.parent_id IS NULL
-       AND fv.enabled = true
-       AND fv.reference_status = 'VALID'
-      JOIN candidate_values cv
-        ON cv.value_key = f.id::text || ':' || fv.id::text
-    ),
+    ${facetValueDiscoverySql}
     product_facet_values AS (
       SELECT *
       FROM visible_facet_values
@@ -272,6 +239,92 @@ function compileFacetCountsCtesSql(
       UNION ALL
       SELECT * FROM option_facet_counts
     )
+  `;
+}
+
+function compileProvidedFacetValueCtesSql(
+  values: readonly FacetCountsVisibleFacetValue[]
+): SQL {
+  const rows = values.map(
+    (value) =>
+      sql`(${value.facetId}::text, ${value.facetType}::text, ${value.valueKey}::text)`
+  );
+
+  return sql`
+    visible_facet_values AS (
+      ${valuesOrEmpty(
+        rows,
+        "visible_facet_value_input",
+        sql`facet_id, facet_type, value_key`,
+        sql`SELECT
+          NULL::text AS facet_id,
+          NULL::text AS facet_type,
+          NULL::text AS value_key
+        WHERE false`
+      )}
+    ),
+    candidate_values AS (
+      SELECT DISTINCT value_key
+      FROM visible_facet_values
+    ),
+  `;
+}
+
+function compileDiscoveredFacetValueCtesSql(): SQL {
+  return sql`
+    scope_variants AS (
+      SELECT COALESCE(rb_build_agg(vli.variant_doc_id), ${emptyRoaringBitmapSql()}) AS bitmap
+      FROM listing.variant_listing_index vli
+      JOIN input i ON true
+      CROSS JOIN scope_product_base sp
+      CROSS JOIN scope_variant_filters svf
+      WHERE vli.project_id = i.project_id
+        AND vli.in_stock = true
+        AND sp.bitmap @> vli.product_doc_id
+        AND (svf.bitmap IS NULL OR svf.bitmap @> vli.variant_doc_id)
+    ),
+    candidate_values AS (
+      SELECT DISTINCT p.value_key
+      FROM input i
+      CROSS JOIN scope_product_base sp
+      JOIN listing.listing_posting_bitmap p
+        ON p.project_id = i.project_id
+       AND p.entity_type = 'product'
+       AND p.field = 'facet'
+       AND rb_cardinality(sp.bitmap & p.bitmap) > 0
+
+      UNION
+
+      SELECT DISTINCT p.value_key
+      FROM input i
+      CROSS JOIN scope_variants sv
+      JOIN listing.listing_posting_bitmap p
+        ON p.project_id = i.project_id
+       AND p.entity_type = 'variant'
+       AND p.field = 'facet'
+       AND rb_cardinality(sv.bitmap & p.bitmap) > 0
+    ),
+    visible_facet_values AS (
+      SELECT DISTINCT
+        f.id::text AS facet_id,
+        f.slug AS facet_slug,
+        f.facet_type,
+        fv.id::text AS facet_value_id,
+        fv.sort_index AS value_sort,
+        f.id::text || ':' || fv.id::text AS value_key
+      FROM input i
+      JOIN catalog.facet f
+        ON f.project_id = i.project_id
+      JOIN catalog.facet_value fv
+        ON fv.project_id = f.project_id
+       AND fv.facet_id = f.id
+       AND fv.kind = 'display'
+       AND fv.parent_id IS NULL
+       AND fv.enabled = true
+       AND fv.reference_status = 'VALID'
+      JOIN candidate_values cv
+        ON cv.value_key = f.id::text || ':' || fv.id::text
+    ),
   `;
 }
 
@@ -861,6 +914,7 @@ interface OptionFacetCombinationEstimate {
 interface FacetCountStrategyOptions {
   heavyStrategyEnabled: boolean;
   forceHeavyOptionFacetCountFacetIds?: readonly string[];
+  visibleFacetValues?: readonly FacetCountsVisibleFacetValue[];
 }
 
 interface RequiredCombinationValue {

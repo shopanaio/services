@@ -26,11 +26,13 @@ import {
 export interface RepositoryConfig {
   db: Database;
   heavyOptionFacetCountsEnabled?: boolean;
+  facetCountsProfilingEnabled?: boolean;
 }
 
 export type { Database };
 
 const LISTING_HEAVY_OPTION_FACET_COUNTS_ENABLED_DEFAULT = false;
+const LISTING_FACET_COUNTS_PROFILING_ENABLED_DEFAULT = false;
 
 export class Repository {
   public readonly listingDocIdAllocator: ListingDocIdAllocatorRepository;
@@ -104,6 +106,9 @@ export class Repository {
     const heavyOptionFacetCountsEnabled =
       config.heavyOptionFacetCountsEnabled ??
       LISTING_HEAVY_OPTION_FACET_COUNTS_ENABLED_DEFAULT;
+    const facetCountsProfilingEnabled =
+      config.facetCountsProfilingEnabled ??
+      LISTING_FACET_COUNTS_PROFILING_ENABLED_DEFAULT;
     const txManager = new TransactionManager(db);
 
     const listingDocIdAllocator = new ListingDocIdAllocatorRepository(
@@ -164,7 +169,8 @@ export class Repository {
       storefrontVariantPriceCollector,
       storefrontProductTitleSearchQuery,
       storefrontFacetAggregation,
-      heavyOptionFacetCountsEnabled
+      heavyOptionFacetCountsEnabled,
+      facetCountsProfilingEnabled
     );
 
     return new Repository(

@@ -50,7 +50,15 @@ export class Kernel extends BaseKernel<ListingKernelServices> {
     }
 
     const db = createDatabase(dbClient);
-    const repository = await Repository.create({ db });
+    const repository = await Repository.create({
+      db,
+      heavyOptionFacetCountsEnabled: booleanEnv(
+        "LISTING_HEAVY_OPTION_FACET_COUNTS_ENABLED"
+      ),
+      facetCountsProfilingEnabled: booleanEnv(
+        "LISTING_FACET_COUNTS_PROFILE_ENABLED"
+      ),
+    });
     const cache = createCache({
       ttl: 5 * 60 * 1000,
     });
@@ -129,6 +137,15 @@ export class Kernel extends BaseKernel<ListingKernelServices> {
     }
     return defaultLocale;
   }
+}
+
+function booleanEnv(name: string): boolean | undefined {
+  const value = process.env[name];
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
 }
 
 export type {

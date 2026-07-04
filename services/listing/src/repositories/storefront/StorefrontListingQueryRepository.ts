@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import { sql, type SQL } from "drizzle-orm";
 import { ReadOnly } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
@@ -21,6 +24,7 @@ import {
   compileFacetCountsProfileQuerySql,
   compileFacetCountsQuerySql,
   facetCountsProfileTargetsForRequest,
+  type FacetCountsVisibleFacetValue,
   type FacetCountsProfileTarget,
 } from "./sql/compileFacetCountsQuerySql.js";
 import { compileFacetsQuerySql } from "./sql/compileFacetsQuerySql.js";
@@ -94,7 +98,8 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     private readonly variantPriceCollector: StorefrontVariantPriceCollectorRepository,
     private readonly search: StorefrontProductTitleSearchQueryRepository,
     private readonly aggregation: StorefrontFacetAggregationRepository,
-    private readonly heavyOptionFacetCountsEnabled: boolean
+    private readonly heavyOptionFacetCountsEnabled: boolean,
+    private readonly facetCountsProfilingEnabled: boolean
   ) {
     super(db, txManager);
   }
@@ -117,42 +122,50 @@ export class StorefrontListingQueryRepository extends BaseRepository {
         heavyOptionFacetCountsEnabled: this.heavyOptionFacetCountsEnabled,
       });
 
-      const [
-        pageSqlRows,
-        totalCountRows,
-        facetMetadataRows,
-        facetCountRows,
-        virtualFacetRows,
-      ] = await Promise.all([
-        this.executeMeasured<ParallelPageSqlRow>(
-          "page",
-          compilePageQuerySql(sqlRequest),
-          branchMetrics
-        ),
-        this.executeMeasured<TotalCountSqlRow>(
-          "totalCount",
-          compileTotalCountQuerySql(sqlRequest),
-          branchMetrics
-        ),
-        this.executeMeasured<FacetMetadataSqlRow>(
-          "facetsMetadata",
-          compileFacetsQuerySql(sqlRequest),
-          branchMetrics
-        ),
-        this.executeMeasured<FacetCountMapSqlRow>(
+      const pageSqlRowsPromise = this.executeMeasured<ParallelPageSqlRow>(
+        "page",
+        compilePageQuerySql(sqlRequest),
+        branchMetrics
+      );
+      const totalCountRowsPromise = this.executeMeasured<TotalCountSqlRow>(
+        "totalCount",
+        compileTotalCountQuerySql(sqlRequest),
+        branchMetrics
+      );
+      const facetMetadataRowsPromise = this.executeMeasured<FacetMetadataSqlRow>(
+        "facetsMetadata",
+        compileFacetsQuerySql(sqlRequest),
+        branchMetrics
+      );
+      const virtualFacetRowsPromise = this.executeMeasured<VirtualFacetsSqlRow>(
+        "virtualFacets",
+        compileVirtualFacetsQuerySql(sqlRequest),
+        branchMetrics
+      );
+
+      const facetMetadataRows = await facetMetadataRowsPromise;
+      const visibleFacetValues =
+        toFacetCountsVisibleFacetValues(facetMetadataRows);
+      const facetCountRowsPromise =
+        this.executeMeasuredWithLocalJitOff<FacetCountMapSqlRow>(
           "facetCounts",
-          compileFacetCountsQuerySql(sqlRequest),
+          compileFacetCountsQuerySql(sqlRequest, { visibleFacetValues }),
           branchMetrics
-        ),
-        this.executeMeasured<VirtualFacetsSqlRow>(
-          "virtualFacets",
-          compileVirtualFacetsQuerySql(sqlRequest),
-          branchMetrics
-        ),
-      ]);
+        );
+
+      const [pageSqlRows, totalCountRows, facetCountRows, virtualFacetRows] =
+        await Promise.all([
+          pageSqlRowsPromise,
+          totalCountRowsPromise,
+          facetCountRowsPromise,
+          virtualFacetRowsPromise,
+        ]);
       pageRows = pageSqlRows;
 
-      sqlRoundTrips += await this.profileFacetCountsIfEnabled(sqlRequest);
+      sqlRoundTrips += await this.profileFacetCountsIfEnabled(
+        sqlRequest,
+        visibleFacetValues
+      );
 
       const page = mapPageRows({ rows: pageSqlRows, request });
       const totalCount = mapTotalCountRows(totalCountRows);
@@ -220,16 +233,47 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     }
   }
 
+  private async executeMeasuredWithLocalJitOff<
+    TRow extends Record<string, unknown>,
+  >(branch: string, query: SQL, metrics: BranchMetric[]): Promise<TRow[]> {
+    const startedAt = Date.now();
+    try {
+      return await this.executeWithLocalJitOff<TRow>(query);
+    } finally {
+      metrics.push({
+        branch,
+        durationMs: Date.now() - startedAt,
+      });
+    }
+  }
+
+  private async executeWithLocalJitOff<TRow extends Record<string, unknown>>(
+    query: SQL
+  ): Promise<TRow[]> {
+    return await this.txManager.run(async () => {
+      await this.connection.execute(sql`SET LOCAL jit = off`);
+      const rows = await this.connection.execute<TRow>(query);
+      return rows as unknown as TRow[];
+    });
+  }
+
   private async profileFacetCountsIfEnabled(
-    request: ReturnType<typeof toListingSqlRequest>
+    request: ReturnType<typeof toListingSqlRequest>,
+    visibleFacetValues: readonly FacetCountsVisibleFacetValue[]
   ): Promise<number> {
+    if (!this.facetCountsProfilingEnabled) {
+      return 0;
+    }
+
     let roundTrips = 0;
     try {
       const metrics: FacetCountsProfileMetric[] = [];
       for (const target of facetCountsProfileTargetsForRequest(request)) {
         const startedAt = Date.now();
-        const rows = await this.connection.execute<FacetCountsProfileSqlRow>(
-          compileFacetCountsProfileQuerySql(request, target)
+        const rows = await this.executeWithLocalJitOff<FacetCountsProfileSqlRow>(
+          compileFacetCountsProfileQuerySql(request, target, {
+            visibleFacetValues,
+          })
         );
         roundTrips += 1;
         const row = (rows as unknown as FacetCountsProfileSqlRow[])[0];
@@ -256,8 +300,20 @@ export class StorefrontListingQueryRepository extends BaseRepository {
       );
 
       const explainStartedAt = Date.now();
-      const explainAnalyzePlan = await this.explainAnalyzeFacetCounts(request);
+      const explainAnalyzePlan = await this.explainAnalyzeFacetCounts(
+        request,
+        visibleFacetValues
+      );
       roundTrips += 1;
+      await writeE2eExplainAnalyzeReport({
+        projectId: request.projectId,
+        scopeKind: request.scopeKind,
+        sortKind: request.sortKind,
+        hasPriceFilter: request.priceFilterJson !== "{}",
+        optionFacetGroups: request.request.filterPlan.optionFacetGroups.length,
+        durationMs: Date.now() - explainStartedAt,
+        plan: explainAnalyzePlan,
+      });
       this.ctx.kernel.getServices().logger.warn(
         {
           projectId: request.projectId,
@@ -281,11 +337,12 @@ export class StorefrontListingQueryRepository extends BaseRepository {
   }
 
   private async explainAnalyzeFacetCounts(
-    request: ReturnType<typeof toListingSqlRequest>
+    request: ReturnType<typeof toListingSqlRequest>,
+    visibleFacetValues: readonly FacetCountsVisibleFacetValue[]
   ): Promise<string> {
-    const rows = await this.connection.execute<ExplainAnalyzeSqlRow>(sql`
+    const rows = await this.executeWithLocalJitOff<ExplainAnalyzeSqlRow>(sql`
       EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
-      ${compileFacetCountsQuerySql(request)}
+      ${compileFacetCountsQuerySql(request, { visibleFacetValues })}
     `);
 
     return (rows as unknown as ExplainAnalyzeSqlRow[])
@@ -548,6 +605,25 @@ function numberOrNull(value: number | string | null | undefined): number | null 
   return Number.isFinite(numberValue) ? numberValue : null;
 }
 
+function toFacetCountsVisibleFacetValues(
+  rows: readonly FacetMetadataSqlRow[]
+): FacetCountsVisibleFacetValue[] {
+  const values = new Map<string, FacetCountsVisibleFacetValue>();
+  for (const row of rows) {
+    if (!row.facetId || !row.facetType || !row.valueKey) {
+      continue;
+    }
+
+    values.set(row.valueKey, {
+      facetId: row.facetId,
+      facetType: row.facetType,
+      valueKey: row.valueKey,
+    });
+  }
+
+  return [...values.values()];
+}
+
 function explainAnalyzePlanLine(row: ExplainAnalyzeSqlRow): string {
   const directValue = row["QUERY PLAN"];
   if (typeof directValue === "string") {
@@ -559,6 +635,74 @@ function explainAnalyzePlanLine(row: ExplainAnalyzeSqlRow): string {
   );
 
   return firstStringValue ?? "";
+}
+
+async function writeE2eExplainAnalyzeReport(input: {
+  projectId: string;
+  scopeKind: string;
+  sortKind: string;
+  hasPriceFilter: boolean;
+  optionFacetGroups: number;
+  durationMs: number;
+  plan: string;
+}) {
+  const reportPath = e2eExplainAnalyzeReportPath();
+  if (!reportPath) {
+    return;
+  }
+
+  await mkdir(dirname(reportPath), { recursive: true });
+  await writeFile(
+    reportPath,
+    [
+      "# Storefront listing facetCounts EXPLAIN ANALYZE",
+      "",
+      JSON.stringify(
+        {
+          projectId: input.projectId,
+          scopeKind: input.scopeKind,
+          sortKind: input.sortKind,
+          hasPriceFilter: input.hasPriceFilter,
+          optionFacetGroups: input.optionFacetGroups,
+          durationMs: input.durationMs,
+        },
+        null,
+        2
+      ),
+      "",
+      "```",
+      input.plan,
+      "```",
+      "",
+    ].join("\n")
+  );
+}
+
+function e2eExplainAnalyzeReportPath(): string | null {
+  if (process.env.E2E_LISTING_PERF_EXPLAIN_ANALYZE_PATH) {
+    return resolve(process.env.E2E_LISTING_PERF_EXPLAIN_ANALYZE_PATH);
+  }
+
+  return resolve(
+    servicesRootDir(),
+    "e2e/test-results/listing-perf/price-facet-100k-explain-analyze.txt"
+  );
+}
+
+function servicesRootDir(): string {
+  let current = process.cwd();
+  while (dirname(current) !== current) {
+    if (
+      existsSync(resolve(current, "e2e")) &&
+      existsSync(resolve(current, "services"))
+    ) {
+      return current;
+    }
+
+    current = dirname(current);
+  }
+
+  return process.cwd();
 }
 
 function mergeFacetFilters(
