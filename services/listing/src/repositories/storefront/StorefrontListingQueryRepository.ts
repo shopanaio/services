@@ -685,7 +685,7 @@ function e2eExplainAnalyzeReportPath(): string | null {
 
   return resolve(
     servicesRootDir(),
-    "e2e/test-results/listing-perf/price-facet-100k-explain-analyze.txt"
+    "e2e/test-results/listing-perf/price-facet-10k-explain-analyze.txt"
   );
 }
 
