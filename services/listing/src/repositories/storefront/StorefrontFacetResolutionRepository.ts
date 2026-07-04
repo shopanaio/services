@@ -1,10 +1,7 @@
 import { sql, type SQL } from "drizzle-orm";
 import { ReadOnly } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  catalogFacetRuntime,
-  catalogFacetValueRuntime,
-} from "../models/index.js";
+import { facet, facetValue } from "../models/index.js";
 import type {
   FacetRuntimeType,
   ResolvedFacetFilterGroup,
@@ -141,10 +138,10 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
         fv.handle AS "valueHandle",
         f.id::text || ':' || fv.id::text AS "valueKey"
       FROM candidate_values
-      JOIN ${catalogFacetRuntime} f
+      JOIN ${facet} f
         ON f.project_id = ${this.storeId}::uuid
        AND f.id = candidate_values.facet_id
-      JOIN ${catalogFacetValueRuntime} fv
+      JOIN ${facetValue} fv
         ON fv.project_id = f.project_id
        AND fv.facet_id = f.id
        AND fv.id = candidate_values.facet_value_id
@@ -226,14 +223,14 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
           fv.parent_id IS NULL AS is_root,
           fv.kind = 'display' AS is_display
         FROM requested r
-        JOIN ${catalogFacetRuntime} f
+        JOIN ${facet} f
           ON f.project_id = ${this.storeId}::uuid
          AND f.slug = r.facet_slug
-        JOIN ${catalogFacetValueRuntime} fv
+        JOIN ${facetValue} fv
           ON fv.project_id = f.project_id
          AND fv.facet_id = f.id
          AND fv.handle = r.value_handle
-        LEFT JOIN ${catalogFacetValueRuntime} parent_fv
+        LEFT JOIN ${facetValue} parent_fv
           ON parent_fv.project_id = fv.project_id
          AND parent_fv.id = fv.parent_id
          AND parent_fv.kind = 'display'

@@ -14,14 +14,14 @@ import {
   unique,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { catalogSchema } from "./schema";
+import { listingSchema } from "./schema.js";
 
-export const referenceStatusEnum = catalogSchema.enum("reference_status", [
+export const referenceStatusEnum = listingSchema.enum("reference_status", [
   "VALID",
   "STALE",
 ]);
 
-export const facet = catalogSchema.table(
+export const facet = listingSchema.table(
   "facet",
   {
     id: uuid("id").primaryKey(),
@@ -46,7 +46,7 @@ export const facet = catalogSchema.table(
   ]
 );
 
-export const facetTranslation = catalogSchema.table(
+export const facetTranslation = listingSchema.table(
   "facet_translation",
   {
     facetId: uuid("facet_id")
@@ -62,7 +62,7 @@ export const facetTranslation = catalogSchema.table(
   ]
 );
 
-export const facetSource = catalogSchema.table(
+export const facetSource = listingSchema.table(
   "facet_source",
   {
     id: uuid("id").primaryKey(),
@@ -110,7 +110,7 @@ export const facetSource = catalogSchema.table(
   ]
 );
 
-export const facetSourceTranslation = catalogSchema.table(
+export const facetSourceTranslation = listingSchema.table(
   "facet_source_translation",
   {
     facetSourceId: uuid("facet_source_id")
@@ -129,7 +129,7 @@ export const facetSourceTranslation = catalogSchema.table(
   ]
 );
 
-export const facetSwatch = catalogSchema.table("facet_swatch", {
+export const facetSwatch = listingSchema.table("facet_swatch", {
   id: uuid("id").primaryKey(),
   projectId: uuid("project_id").notNull(),
   swatchType: varchar("swatch_type", { length: 32 }).notNull(),
@@ -139,7 +139,7 @@ export const facetSwatch = catalogSchema.table("facet_swatch", {
   metadata: jsonb("metadata"),
 });
 
-export const facetValue = catalogSchema.table(
+export const facetValue = listingSchema.table(
   "facet_value",
   {
     id: uuid("id").primaryKey(),
@@ -204,7 +204,7 @@ export const facetValue = catalogSchema.table(
   ]
 );
 
-export const facetValueTranslation = catalogSchema.table(
+export const facetValueTranslation = listingSchema.table(
   "facet_value_translation",
   {
     facetValueId: uuid("facet_value_id")

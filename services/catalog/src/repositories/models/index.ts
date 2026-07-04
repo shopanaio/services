@@ -43,9 +43,6 @@ export * from "./seo";
 
 export * from "./productTitleBm25SearchIndex";
 
-// Facets
-export * from "./facet";
-
 // Collections
 export * from "./collection";
 
