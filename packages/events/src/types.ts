@@ -186,6 +186,48 @@ export interface VariantFieldChanges {
 export interface ProductUpdatedEvent
   extends DomainEvent<"productUpdated", ProductUpdatedPayload> {}
 
+export interface FacetCreatedEvent
+  extends DomainEvent<
+    "facetCreated",
+    {
+      facetId: string;
+      storeId: string;
+      facetType: string;
+      slug: string;
+      label: string;
+      uiType: string;
+      selectionMode: string;
+      lexoRank: string;
+    }
+  > {}
+
+export interface FacetUpdatedPayload {
+  facetId: string;
+  storeId: string;
+  facetType: string;
+  facet: {
+    slug?: string;
+    label?: string;
+    uiType?: string;
+    selectionMode?: string;
+    lexoRank?: string;
+  };
+}
+
+export interface FacetUpdatedEvent
+  extends DomainEvent<"facetUpdated", FacetUpdatedPayload> {}
+
+export interface FacetDeletedEvent
+  extends DomainEvent<
+    "facetDeleted",
+    {
+      facetId: string;
+      storeId: string;
+      facetType: string;
+      slug?: string;
+    }
+  > {}
+
 export interface VariantDeletedEvent
   extends DomainEvent<
     "variantDeleted",
@@ -249,6 +291,9 @@ export type ShopanaEvent =
   | ProductCreatedEvent
   | ProductDeletedEvent
   | ProductUpdatedEvent
+  | FacetCreatedEvent
+  | FacetUpdatedEvent
+  | FacetDeletedEvent
   | VariantDeletedEvent
   | OrderCreatedEvent
   | OrderCompletedEvent

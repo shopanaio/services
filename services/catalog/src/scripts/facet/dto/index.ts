@@ -121,6 +121,7 @@ export interface FacetResult {
 
 export interface FacetDeleteResult {
   deletedFacetId?: string;
+  deletedFacet?: Facet;
   userErrors: UserError[];
 }
 

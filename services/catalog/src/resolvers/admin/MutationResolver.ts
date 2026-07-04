@@ -781,6 +781,126 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     );
   }
 
+  private async emitFacetCreated(args: {
+    facetId: string;
+    facetType: string;
+    slug: string;
+    label: string;
+    uiType: string;
+    selectionMode: string;
+    lexoRank: string;
+  }): Promise<void> {
+    await this.$ctx.kernel.getServices().broker.runWorkflow(
+      "events.emit",
+      {
+        eventType: "facetCreated",
+        payload: {
+          facetId: args.facetId,
+          storeId: this.$ctx.store.id,
+          facetType: args.facetType,
+          slug: args.slug,
+          label: args.label,
+          uiType: args.uiType,
+          selectionMode: args.selectionMode,
+          lexoRank: args.lexoRank,
+        },
+        source: "catalog",
+        context: {
+          tenantId: this.$ctx.store.organizationId,
+          userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
+        },
+        subject: { type: "facet", id: args.facetId },
+        actor: this.$ctx.hasUser
+          ? { type: "user", id: this.$ctx.user.id }
+          : undefined,
+        emitKey: `facet:${args.facetId}`,
+      },
+      {
+        source: "workflow",
+        workflowId: `facetCreate:${this.$ctx.store.id}:${this.$ctx.requestId}:${args.facetId}`,
+        stepId: "emitFacetCreated",
+      }
+    );
+  }
+
+  private async emitFacetUpdated(args: {
+    facetId: string;
+    facetType: string;
+    slug?: string;
+    label?: string;
+    uiType?: string;
+    selectionMode?: string;
+    lexoRank?: string;
+  }): Promise<void> {
+    await this.$ctx.kernel.getServices().broker.runWorkflow(
+      "events.emit",
+      {
+        eventType: "facetUpdated",
+        payload: {
+          facetId: args.facetId,
+          storeId: this.$ctx.store.id,
+          facetType: args.facetType,
+          facet: {
+            slug: args.slug,
+            label: args.label,
+            uiType: args.uiType,
+            selectionMode: args.selectionMode,
+            lexoRank: args.lexoRank,
+          },
+        },
+        source: "catalog",
+        context: {
+          tenantId: this.$ctx.store.organizationId,
+          userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
+        },
+        subject: { type: "facet", id: args.facetId },
+        actor: this.$ctx.hasUser
+          ? { type: "user", id: this.$ctx.user.id }
+          : undefined,
+        emitKey: `facet:${args.facetId}`,
+      },
+      {
+        source: "workflow",
+        workflowId: `facetUpdate:${this.$ctx.store.id}:${this.$ctx.requestId}:${args.facetId}`,
+        stepId: "emitFacetUpdated",
+      }
+    );
+  }
+
+  private async emitFacetDeleted(args: {
+    facetId: string;
+    facetType: string;
+    slug?: string;
+  }): Promise<void> {
+    await this.$ctx.kernel.getServices().broker.runWorkflow(
+      "events.emit",
+      {
+        eventType: "facetDeleted",
+        payload: {
+          facetId: args.facetId,
+          storeId: this.$ctx.store.id,
+          facetType: args.facetType,
+          slug: args.slug,
+        },
+        source: "catalog",
+        context: {
+          tenantId: this.$ctx.store.organizationId,
+          userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
+        },
+        subject: { type: "facet", id: args.facetId },
+        actor: this.$ctx.hasUser
+          ? { type: "user", id: this.$ctx.user.id }
+          : undefined,
+        emitKey: `facet:${args.facetId}:deleted`,
+      },
+      {
+        source: "workflow",
+        workflowId: `facetDelete:${this.$ctx.store.id}:${this.$ctx.requestId}:${args.facetId}`,
+        stepId: "emitFacetDeleted",
+      }
+    );
+  }
+
   // ---- Vendor Mutations ----
 
   /**
@@ -1889,6 +2009,18 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       })),
     });
 
+    if (result.facet && result.userErrors.length === 0) {
+      await this.emitFacetCreated({
+        facetId: result.facet.id,
+        facetType: result.facet.facetType,
+        slug: result.facet.slug,
+        label: args.input.label,
+        uiType: result.facet.uiType,
+        selectionMode: result.facet.selectionMode,
+        lexoRank: result.facet.lexoRank,
+      });
+    }
+
     return {
       facet: result.facet ? new FacetResolver(result.facet.id, this.$ctx) : null,
       userErrors: result.userErrors,
@@ -1919,6 +2051,17 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       selectionMode: args.input.selectionMode?.toLowerCase(),
     });
 
+    if (result.facet && result.userErrors.length === 0) {
+      await this.emitFacetUpdated({
+        facetId: result.facet.id,
+        facetType: result.facet.facetType,
+        slug: args.input.slug ?? undefined,
+        label: args.input.label ?? undefined,
+        uiType: args.input.uiType?.toLowerCase(),
+        selectionMode: args.input.selectionMode?.toLowerCase(),
+      });
+    }
+
     return {
       facet: result.facet ? new FacetResolver(result.facet.id, this.$ctx) : null,
       userErrors: result.userErrors,
@@ -1936,6 +2079,14 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const result = await this.$ctx.kernel.runScript(FacetDeleteScript, {
       id,
     });
+
+    if (result.deletedFacet && result.userErrors.length === 0) {
+      await this.emitFacetDeleted({
+        facetId: result.deletedFacet.id,
+        facetType: result.deletedFacet.facetType,
+        slug: result.deletedFacet.slug,
+      });
+    }
 
     return {
       deletedFacetId: result.deletedFacetId ? args.input.id : null,

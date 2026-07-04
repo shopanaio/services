@@ -1,4 +1,4 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import { isValidSlug } from "../shared/slug.js";
 import type { FacetResult, FacetUpdateParams } from "./dto/index.js";
 
@@ -15,6 +15,7 @@ function normalizeFacetType(facetType: string): string {
 }
 
 export class FacetUpdateScript extends BaseScript<FacetUpdateParams, FacetResult> {
+  @Transactional()
   protected async execute(params: FacetUpdateParams): Promise<FacetResult> {
     const existing = await this.repository.facet.findById(params.id);
     if (!existing) {
