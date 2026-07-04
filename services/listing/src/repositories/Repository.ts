@@ -1,6 +1,7 @@
 import { TransactionManager } from "@shopana/shared-kernel";
 import type { Database } from "../infrastructure/db/database.js";
 import {
+  ListingIndexItemStateRepository,
   ListingDocIdAllocatorRepository,
   ProductListingIndexRepository,
   ProductListingPriceIndexRepository,
@@ -35,6 +36,7 @@ const LISTING_HEAVY_OPTION_FACET_COUNTS_ENABLED_DEFAULT = false;
 const LISTING_FACET_COUNTS_PROFILING_ENABLED_DEFAULT = false;
 
 export class Repository {
+  public readonly listingIndexItemState: ListingIndexItemStateRepository;
   public readonly listingDocIdAllocator: ListingDocIdAllocatorRepository;
   public readonly productListingIndex: ProductListingIndexRepository;
   public readonly productListingPriceIndex: ProductListingPriceIndexRepository;
@@ -60,6 +62,7 @@ export class Repository {
   }
 
   private constructor(
+    listingIndexItemState: ListingIndexItemStateRepository,
     listingDocIdAllocator: ListingDocIdAllocatorRepository,
     productListingIndex: ProductListingIndexRepository,
     productListingPriceIndex: ProductListingPriceIndexRepository,
@@ -80,6 +83,7 @@ export class Repository {
     storefrontListingQuery: StorefrontListingQueryRepository,
     txManager: TransactionManager<Database>
   ) {
+    this.listingIndexItemState = listingIndexItemState;
     this.listingDocIdAllocator = listingDocIdAllocator;
     this.productListingIndex = productListingIndex;
     this.productListingPriceIndex = productListingPriceIndex;
@@ -111,6 +115,10 @@ export class Repository {
       LISTING_FACET_COUNTS_PROFILING_ENABLED_DEFAULT;
     const txManager = new TransactionManager(db);
 
+    const listingIndexItemState = new ListingIndexItemStateRepository(
+      db,
+      txManager
+    );
     const listingDocIdAllocator = new ListingDocIdAllocatorRepository(
       db,
       txManager
@@ -174,6 +182,7 @@ export class Repository {
     );
 
     return new Repository(
+      listingIndexItemState,
       listingDocIdAllocator,
       productListingIndex,
       productListingPriceIndex,
@@ -194,5 +203,11 @@ export class Repository {
       storefrontListingQuery,
       txManager
     );
+  }
+
+  runListingIndexItemTransaction<TResult>(
+    fn: () => Promise<TResult>
+  ): Promise<TResult> {
+    return this.txManager.run(fn);
   }
 }

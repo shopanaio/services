@@ -24,7 +24,7 @@ export type ScriptContext = BaseScriptContext;
 
 export interface RunScriptContext {
   storeId: string;
-  organizationId: string;
+  organizationId?: string;
   locale?: string;
   defaultLocale?: string;
   userId?: string;

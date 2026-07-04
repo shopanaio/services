@@ -41,6 +41,36 @@ export const listingDocIdAllocator = listingSchema.table(
   ]
 );
 
+export const listingIndexItemState = listingSchema.table(
+  "listing_index_item_state",
+  {
+    projectId: uuid("project_id").notNull(),
+    entityType: varchar("entity_type", { length: 32 }).notNull(),
+    itemId: uuid("item_id").notNull(),
+    sourceRevision: integer("source_revision").notNull(),
+    payloadHash: text("payload_hash").notNull(),
+    lifecycleStatus: varchar("lifecycle_status", { length: 32 }).notNull(),
+    lastEffectiveIdempotencyKey: text("last_effective_idempotency_key")
+      .notNull(),
+    lastOperationId: text("last_operation_id").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.projectId, table.entityType, table.itemId],
+    }),
+    check(
+      "chk_listing_index_item_state_source_revision",
+      sql`${table.sourceRevision} >= 0`
+    ),
+    check(
+      "chk_listing_index_item_state_lifecycle_status",
+      sql`${table.lifecycleStatus} IN ('indexed', 'deleted')`
+    ),
+  ]
+);
+
 export const productListingIndex = listingSchema.table(
   "product_listing_index",
   {
@@ -776,6 +806,10 @@ export const productTitleBm25SearchIndex = listingSchema.table(
 
 export type ListingDocIdAllocator = typeof listingDocIdAllocator.$inferSelect;
 export type NewListingDocIdAllocator = typeof listingDocIdAllocator.$inferInsert;
+
+export type ListingIndexItemState = typeof listingIndexItemState.$inferSelect;
+export type NewListingIndexItemState =
+  typeof listingIndexItemState.$inferInsert;
 
 export type ProductListingIndex = typeof productListingIndex.$inferSelect;
 export type NewProductListingIndex = typeof productListingIndex.$inferInsert;

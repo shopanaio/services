@@ -40,6 +40,10 @@ async function bootstrap() {
           name: 'listing_index_actions',
           partitionQueue: true,
           concurrency: 1,
+          workerConcurrency: parsePositiveInteger(
+            process.env.LISTING_INDEX_ACTIONS_WORKER_CONCURRENCY,
+            50,
+          ),
           onConflict: 'update_if_latest_version',
         },
       ],
@@ -69,3 +73,12 @@ bootstrap().catch((error) => {
   logger.error('Failed to start bootstrap:', error);
   process.exit(1);
 });
+
+function parsePositiveInteger(value: string | undefined, fallback: number): number {
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}

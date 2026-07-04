@@ -212,6 +212,24 @@ CREATE INDEX idx_variant_listing_signature
   )
   WHERE signature_key IS NOT NULL;
 
+CREATE TABLE listing.listing_index_item_state (
+  project_id                      uuid NOT NULL,
+  entity_type                     varchar(32) NOT NULL,
+  item_id                         uuid NOT NULL,
+  source_revision                 integer NOT NULL,
+  payload_hash                    text NOT NULL,
+  lifecycle_status                varchar(32) NOT NULL,
+  last_effective_idempotency_key  text NOT NULL,
+  last_operation_id               text NOT NULL,
+  updated_at                      timestamptz NOT NULL,
+
+  PRIMARY KEY (project_id, entity_type, item_id),
+  CONSTRAINT chk_listing_index_item_state_source_revision
+    CHECK (source_revision >= 0),
+  CONSTRAINT chk_listing_index_item_state_lifecycle_status
+    CHECK (lifecycle_status IN ('indexed', 'deleted'))
+);
+
 CREATE TABLE listing.variant_listing_price_index (
   project_id             uuid NOT NULL,
   variant_id             uuid NOT NULL,

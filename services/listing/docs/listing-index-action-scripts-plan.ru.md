@@ -30,8 +30,7 @@ DBOS workflow/step execution.
   валидируют, нормализуют и строят immutable write input.
 - Единственный DBOS write step вызывает один transactional script, который
   внутри одной item-level transaction принимает final revision decision,
-  выделяет doc ids, выполняет physical writes, обновляет latest state и пишет
-  final receipt.
+  выделяет doc ids, выполняет physical writes и обновляет latest state.
 - DBOS step может быть повторно выполнен после crash, если step result еще не
   persisted. Поэтому физические writes должны быть idempotent на database
   уровне.
@@ -39,11 +38,10 @@ DBOS workflow/step execution.
 - `sourceRevision` монотонен для ключа
   `projectId + entityType + itemId`.
 - Public `meta.idempotencyKey` не обязан быть уникальным между items batch.
-  Для database receipts и item workflows используется item-scoped
-  `effectiveIdempotencyKey`.
+  Для item workflows используется item-scoped `effectiveIdempotencyKey`.
 - Старая revision возвращает `ignored_stale` без изменения physical index.
-- Повтор того же effective idempotency key возвращает сохраненный result без
-  повторного write amplification.
+- Повтор same-revision work не должен приводить к повторному write
+  amplification; final guard выполняется через latest item state под item lock.
 - Все physical index writes выполняются внутри одной database transaction на
   item или на controlled batch chunk.
 - Repository layer остается source-agnostic: он принимает нормализованные doc
@@ -66,14 +64,13 @@ type ListingIndexItemKey = {
 - для single item action и для item внутри batch всегда строится одним helper-ом
   как stable hash от `meta.idempotencyKey + projectId + entityType + itemId +
   actionType + sourceRevision`;
-- используется в DBOS workflow identity и в
-  `listing_index_action_receipt`;
+- используется в DBOS workflow identity и latest-state diagnostics;
 - не должен строиться только из raw/batch-level `meta.idempotencyKey`.
 - включает `sourceRevision`, чтобы разные revisions одного item не
   конкурировали за один DBOS workflow id даже при reused/batch-level
   `meta.idempotencyKey`;
 - не включает полный snapshot/delete payload. Payload-level conflict detection
-  остается responsibility database receipt/latest-state checks.
+  остается responsibility latest-state checks.
 
 `payloadHash`:
 
@@ -201,7 +198,7 @@ function buildListingIndexWorkflowName(
 - `content` не передается, потому что workflow identity должна зависеть от
   acceptance idempotency key и `sourceRevision`, а не от полного snapshot
   payload. Payload conflict detection выполняется отдельно через `payloadHash`
-  в database receipt/latest state.
+  в database latest state.
 
 ```ts
 const sourceRevision =
@@ -284,20 +281,17 @@ await this.broker.startWorkflow(
   `broker.startWorkflow(...)`, а не через `deduplicationID`:
   - helper строит тот же `effectiveIdempotencyKey` из raw idempotency key,
     item identity, action type и `sourceRevision`;
-  - helper строит тот же `payloadHash` для receipt/final-state checks;
+  - helper строит тот же `payloadHash` для final-state checks;
   - duplicate workflow conflict for the same deterministic workflow id is
     treated as proof of durable DBOS accept for the same item revision;
-  - если final receipt уже существует и его metadata отличается, handler
-    возвращает/кидает non-retryable idempotency conflict согласно public action
-    contract.
 - Duplicate workflow conflict не сравнивает полный payload. Если тот же
-  item/action/revision accepted с другим payload и final receipt еще не
-  существует, enqueue path может вернуть `accepted`; payload mismatch должен
-  быть выявлен final write decision под item lock через `payloadHash`.
+  item/action/revision accepted с другим payload, enqueue path может вернуть
+  `accepted`; payload mismatch должен быть выявлен final write decision под
+  item lock через `payloadHash`.
 - DBOS workflow identity защищает scheduling по item revision, а payload
   conflict detection остается database-level contract.
-- Handler must not rely on final receipt for enqueue idempotency. Final receipt
-  may appear much later, after worker execution.
+- Handler must not rely on final state for enqueue idempotency. Final state may
+  appear much later, after worker execution.
 
 ### Workflow bodies
 
@@ -518,14 +512,10 @@ Step rules:
 - Если process crash произошел после database commit, но до DBOS step result
   persistence, DBOS может повторно выполнить write step. Поэтому
   `writeListingSyncIndexAction` и `writeListingDeleteIndexAction` обязаны иметь
-  database guard по `effectiveIdempotencyKey`, final receipt и latest item
-  state.
+  database guard по latest item state.
 - `prepare` step:
   - валидирует public contract;
   - строит/проверяет `RunScriptContext`;
-  - может делать fast-path read existing final receipt только как optimization;
-  - если action уже final по safe fast-path, возвращает `kind: "final"` с
-    сохраненным result;
   - если нужно продолжать, возвращает нормализованный immutable action.
 - `buildSyncWriteModel` step:
   - используется только для sync;
@@ -542,14 +532,13 @@ Step rules:
   - оба write steps вызывают один общий transactional script;
   - открывает одну item-level transaction для final physical writes;
   - первым write-side DB operation вызывают `lockByItem`;
-  - повторно проверяют final receipt/current state/source revision;
-  - для `noop`/`ignored_stale` вставляют final receipt без physical writes;
+  - повторно проверяют current state/source revision;
+  - для `noop`/`ignored_stale` возвращают final result без physical writes;
   - для sync `apply` выделяет/читает doc ids, создает bootstrap product row,
-    применяет write model, удаляет stale variants, обновляет latest item state и
-    пишет final receipt атомарно;
+    применяет write model, удаляет stale variants и обновляет latest item state
+    атомарно;
   - для delete `apply` читает current doc ids, удаляет dependent rows,
-    обновляет latest deleted state и пишет final receipt атомарно;
-  - final receipt insert выполняется только после successful physical writes.
+    обновляет latest deleted state атомарно.
 - Retry policy включается явно. Default DBOS wrapper policy без `retry`
   означает no retry.
 - Retryable infrastructure errors должны быть thrown как retryable errors или
@@ -559,7 +548,7 @@ Step rules:
 - Public broker contract сейчас допускает final `ListingUpdateResult` только со
   статусами `applied`, `noop`, `ignored_stale` и `accepted`. Поэтому
   `IDEMPOTENCY_CONFLICT` и `REVISION_CONFLICT` не возвращаются как
-  `ListingUpdateResult` и не пишутся в final receipt `result_json`.
+  `ListingUpdateResult`.
 - Internal conflict reasons:
   - `IDEMPOTENCY_CONFLICT`;
   - `REVISION_CONFLICT`.
@@ -574,9 +563,7 @@ Step rules:
     `"INTERNAL_ERROR"` согласно runtime classification.
 - Для public broker action такой error path должен reject/throw typed
   `ListingUpdateError` metadata, а не возвращать successful result object.
-- DBOS step для conflict/error path не выполняет physical writes и не вставляет
-  final action receipt. Receipt stores only successful final statuses:
-  `applied`, `noop`, `ignored_stale`.
+- DBOS step для conflict/error path не выполняет physical writes.
 - Controlled internal runner видит тот же mapped `ListingUpdateError`, что и
   public enqueue/action path.
 - Workflow error без mapped `ListingUpdateError` разрешен только для
@@ -647,7 +634,7 @@ Rules:
   `ListingWriteIndexActionScript`.
 - Internal runner получает final result: `applied`, `noop` или
   `ignored_stale`.
-- Internal runner не обходит `lockByItem`, receipt checks, revision checks или
+- Internal runner не обходит `lockByItem`, revision checks или
   transaction ownership.
 - Для high-volume event stream используется только DBOS queue path.
 
@@ -678,7 +665,7 @@ Rules:
   `packages/broker-types`, а не часть этого implementation plan.
 - Retry batch после partial enqueue safe: уже accepted items распознаются по
   deterministic workflow identity как same-revision already accepted, а payload
-  metadata сверяется позже через receipt/final-state checks.
+  metadata сверяется позже через final-state checks.
 
 ## Database idempotency model
 
@@ -686,10 +673,7 @@ DBOS workflow identity защищает durable scheduling. Database idempotency
 защищает enqueue payload conflict detection, physical side effects и stable
 final result.
 
-Для этого нужны две разные сущности:
-
-1. latest item state;
-2. final action receipt по `effectiveIdempotencyKey`.
+Для этого используется latest item state.
 
 ### `listing_index_item_state`
 
@@ -715,54 +699,8 @@ Constraints:
 - `source_revision >= 0`.
 - `lifecycle_status IN ('indexed', 'deleted')`.
 - `(project_id, entity_type, item_id)` is the canonical latest-state key.
-- Эта table не является idempotency receipt history.
 - Эта table обновляется только после successful apply/delete decision.
 - Stale/noop decisions не должны откатывать latest state назад.
-
-### `listing_index_action_receipt`
-
-Receipt хранит stable result для processed effective idempotency key:
-
-```sql
-CREATE TABLE listing.listing_index_action_receipt (
-  project_id uuid NOT NULL,
-  effective_idempotency_key text NOT NULL,
-  raw_idempotency_key text NOT NULL,
-  entity_type varchar(32) NOT NULL,
-  item_id uuid NOT NULL,
-  action_type varchar(32) NOT NULL,
-  source_revision integer NOT NULL,
-  payload_hash text NOT NULL,
-  operation_id text NOT NULL,
-  status varchar(32) NOT NULL,
-  processed_at timestamptz NOT NULL,
-  result_json jsonb NOT NULL,
-  PRIMARY KEY (project_id, effective_idempotency_key)
-);
-
-CREATE INDEX listing_index_action_receipt_item_idx
-  ON listing.listing_index_action_receipt (
-    project_id,
-    entity_type,
-    item_id,
-    source_revision
-  );
-```
-
-Constraints:
-
-- `status IN ('applied', 'noop', 'ignored_stale')`.
-- `effective_idempotency_key` is item-scoped.
-- Batch items with one raw `meta.idempotencyKey` produce different
-  `effective_idempotency_key` values.
-- `result_json` stores the exact broker-level final result returned by scripts.
-- If a retry finds an existing receipt with the same
-  `effective_idempotencyKey`, it returns `result_json` without physical writes.
-- If an internal runner reuses the same effective key with a different
-  `payloadHash`, repository returns an idempotency conflict as non-retryable
-  domain result. Duplicate workflow starts may never reach script because DBOS
-  workflow identity can resolve to the first accepted workflow; action handler
-  duplicate handling therefore must inspect receipt metadata when it exists.
 
 ## Idempotency and revision decision
 
@@ -774,28 +712,21 @@ writes.
 Decision order:
 
 1. `lockByItem(itemKey)`.
-2. Check `listing_index_action_receipt` by
-   `(projectId, effectiveIdempotencyKey)`.
-3. If receipt exists:
-   - if `payloadHash` matches, return `receipt.resultJson`;
-   - if `payloadHash` differs, return non-retryable idempotency conflict.
-4. Load latest `listing_index_item_state` under `SELECT ... FOR UPDATE` if row
+2. Load latest `listing_index_item_state` under `SELECT ... FOR UPDATE` if row
    exists.
-5. If no latest state exists, `apply`.
-6. If `incoming.sourceRevision < current.sourceRevision`, return
-   `ignored_stale` and insert receipt. Do not update item state.
-7. If `incoming.sourceRevision === current.sourceRevision`:
-   - if `incoming.payloadHash === current.payloadHash`, return `noop` and
-     insert receipt;
+3. If no latest state exists, `apply`.
+4. If `incoming.sourceRevision < current.sourceRevision`, return
+   `ignored_stale`. Do not update item state.
+5. If `incoming.sourceRevision === current.sourceRevision`:
+   - if `incoming.payloadHash === current.payloadHash`, return `noop`;
    - otherwise return non-retryable revision conflict.
-8. If `incoming.sourceRevision > current.sourceRevision`, apply sync/delete.
+6. If `incoming.sourceRevision > current.sourceRevision`, apply sync/delete.
 
 For `deleteSellableItem`:
 
 - A new delete revision is applied even if physical product rows are already
   absent.
 - Delete writes `lifecycle_status = 'deleted'` to latest state.
-- Repeated delete with the same effective idempotency key returns receipt.
 - Same revision delete with matching payload returns `noop`.
 - Older delete returns `ignored_stale`.
 
@@ -853,9 +784,9 @@ Rules:
 - Decision is made under lock in final write step even if prepare returned a
   preliminary `apply` decision.
 - `noop` and `ignored_stale` do not execute physical index writes.
-- Physical writes and final state/receipt writes are atomic inside
+- Physical writes and final state writes are atomic inside
   `stepWriteSyncIndexAction`.
-- If any physical write fails, item state and receipt are rolled back.
+- If any physical write fails, item state is rolled back.
 - `product_doc_id` and `variant_doc_id` allocation happens inside
   `ListingWriteIndexActionScript` after `lockByItem` and final revision
   decision. Repeating the write step returns existing ids from physical index
@@ -863,8 +794,6 @@ Rules:
 - Bootstrap product row is created before variant rows.
 - Projection blocks refresh happens after variant row/membership/runtime price
   writes and before commit.
-- Final receipt is inserted last or in the same final block as latest state,
-  after all physical writes have succeeded.
 
 ### Delete step transactions
 
@@ -885,11 +814,10 @@ Delete final commit:
 - Runs inside `ListingWriteIndexActionScript`.
 - Opens one item-level transaction.
 - Calls `lockByItem` as the first write-side DB operation for item.
-- Rechecks final receipt/current state/source revision under lock.
-- For `noop`/`ignored_stale`, inserts final receipt without physical deletes.
+- Rechecks current state/source revision under lock.
+- For `noop`/`ignored_stale`, returns final result without physical deletes.
 - For `apply`, loads current product/variant doc ids, deletes dependent rows,
-  refreshes affected projection blocks, upserts latest deleted state and inserts
-  final receipt.
+  refreshes affected projection blocks and upserts latest deleted state.
 
 Delete ordering:
 
@@ -903,7 +831,6 @@ Delete ordering:
 8. Product aggregate price rows.
 9. Product listing row.
 10. Latest item state update.
-11. Action receipt insert.
 
 ### Batch transaction strategy
 
@@ -943,8 +870,6 @@ Rules:
 
 - Pure validation and deterministic write model precomputation may run outside
   transaction only if they do not depend on database state.
-- Fast-path receipt read outside transaction is allowed only as optimization.
-  Final receipt/state decision must be repeated under `lockByItem`.
 - Storefront query repositories are not used inside write transaction.
 
 ### Lock ordering
@@ -956,15 +881,13 @@ Global write-side lock order:
 
 1. `listing_index_item_state` item advisory lock.
 2. Existing `listing_index_item_state` row with `SELECT ... FOR UPDATE`.
-3. `listing_index_action_receipt` check for effective key.
-4. `listing_doc_id_allocator` lock, only if new doc ids are needed.
-5. Existing product row/bootstrap row.
-6. Variant rows sorted by `variantId`.
-7. Posting bitmap rows sorted by `entityType`, `field`, `valueKey`.
-8. Runtime price rows sorted by `currency`, `variantDocId`.
-9. Product sort/search/price rows.
-10. Projection blocks sorted by `blockId`.
-11. Final `listing_index_action_receipt` insert.
+3. `listing_doc_id_allocator` lock, only if new doc ids are needed.
+4. Existing product row/bootstrap row.
+5. Variant rows sorted by `variantId`.
+6. Posting bitmap rows sorted by `entityType`, `field`, `valueKey`.
+7. Runtime price rows sorted by `currency`, `variantDocId`.
+8. Product sort/search/price rows.
+9. Projection blocks sorted by `blockId`.
 
 ## Scripts
 
@@ -984,7 +907,7 @@ type ListingIndexActionStatus =
 ```
 
 `accepted` is a handler-level enqueue status. It is not persisted as final
-status in `listing_index_item_state` or `listing_index_action_receipt`.
+status in `listing_index_item_state`.
 
 ### Validation script
 
@@ -1048,13 +971,8 @@ Responsibilities:
 - Валидирует action params.
 - Проверяет project boundary.
 - Не выполняет physical index writes.
-- Может выполнить fast-path read final receipt без transaction только как
-  optimization.
-- Для existing receipt возвращает `kind: "final"` с сохраненным result.
 - Для потенциального `apply` возвращает normalized immutable action без
   physical write model.
-- Не вставляет receipt для `ignored_stale`/`noop`; это делает single write
-  script под item lock.
 - Validation/domain conflicts возвращает как internal non-retryable issue,
   который action handler/controlled runner мапит в актуальный
   `ListingUpdateError` contract.
@@ -1079,25 +997,22 @@ Responsibilities:
 
 - Выполняется для sync и delete как единственный transactional write script.
 - Открывает final item-level transaction.
-- Под item lock повторно проверяет final receipt, source revision и payload hash.
-- Для `noop`/`ignored_stale` inserts receipt and returns result.
+- Под item lock повторно проверяет latest state, source revision и payload hash.
+- Для `noop`/`ignored_stale` returns result без physical writes.
 - Для sync `apply`:
   - находит existing `product_doc_id` и `variant_doc_id` либо выделяет новые;
   - создает bootstrap product row для FK safety;
   - применяет write model через `ListingApplyItemWriteModelScript`;
   - удаляет stale variants, отсутствующие в full snapshot;
   - обновляет `listing_index_item_state`;
-  - inserts `listing_index_action_receipt`;
 - Для delete `apply`:
   - находит current `product_doc_id` и `variant_doc_id`;
   - удаляет dependent rows в delete ordering;
   - refreshes affected projection blocks;
   - обновляет `listing_index_item_state` как `deleted`;
-  - inserts `listing_index_action_receipt`;
 - Если item physical rows уже отсутствуют, но delete revision новый,
-  сохраняет latest deleted state и receipt.
+  сохраняет latest deleted state.
 - Возвращает `applied`, `noop` или `ignored_stale`.
-- Если retry видит final receipt, возвращает `result_json` без physical writes.
 
 ### `ListingApplyItemWriteModelScript`
 
@@ -1226,36 +1141,6 @@ class ListingIndexItemStateRepository extends BaseRepository {
 }
 ```
 
-### `ListingIndexActionReceiptRepository`
-
-```ts
-interface ListingIndexActionReceiptRow extends ListingIndexItemStateKey {
-  effectiveIdempotencyKey: string;
-  rawIdempotencyKey: string;
-  actionType: "syncSellableItem" | "deleteSellableItem";
-  sourceRevision: number;
-  payloadHash: string;
-  operationId: string;
-  status: "applied" | "noop" | "ignored_stale";
-  processedAt: string;
-  resultJson: Listing.ListingUpdateResult;
-}
-
-class ListingIndexActionReceiptRepository extends BaseRepository {
-  findByEffectiveKey(input: {
-    projectId: string;
-    effectiveIdempotencyKey: string;
-  }): Promise<ListingIndexActionReceiptRow | null>;
-
-  insertResult(
-    row: ListingIndexActionReceiptRow
-  ): Promise<ListingIndexActionReceiptRow>;
-}
-```
-
-`insertResult` must fail on conflicting existing key unless existing row has
-same `payloadHash` and same `resultJson`.
-
 ### Existing write repository additions
 
 `VariantListingIndexRepository`:
@@ -1311,7 +1196,6 @@ Repository facade:
 ```ts
 class Repository {
   readonly listingIndexItemState: ListingIndexItemStateRepository;
-  readonly listingIndexActionReceipt: ListingIndexActionReceiptRepository;
 
   runListingIndexItemTransaction<TResult>(
     fn: () => Promise<TResult>
@@ -1369,10 +1253,10 @@ DBOS `@WorkflowStep`; final physical writes happen only inside the single
       runner.
 - [ ] Each index workflow uses one or more prepare DBOS steps and exactly one
       transactional write DBOS step.
-- [ ] Prepare DBOS steps do not allocate doc ids, create bootstrap rows, insert
-      final receipts or write physical index tables.
+- [ ] Prepare DBOS steps do not allocate doc ids, create bootstrap rows or
+      write physical index tables.
 - [ ] Typed write steps allocate/read doc ids as needed, apply sync/delete
-      writes, update latest state and insert final receipt in one transaction.
+      writes and update latest state in one transaction.
 - [ ] Every DBOS step has explicit timeout and retry policy.
 - [ ] Retryable infrastructure errors are classified as retryable.
 - [ ] Validation/idempotency/revision conflicts are non-retryable domain
@@ -1382,10 +1266,8 @@ DBOS `@WorkflowStep`; final physical writes happen only inside the single
 - [ ] Batch enqueue processing fans out items into item-partitioned workflows.
 - [ ] Batch item effective idempotency key includes item identity.
 - [ ] `listing_index_item_state` stores latest item revision/state.
-- [ ] `listing_index_action_receipt` stores stable final result by effective
-      idempotency key.
-- [ ] Retry after DB commit but before DBOS step persistence returns receipt
-      result or idempotent physical write result without write amplification.
+- [ ] Retry after DB commit but before DBOS step persistence returns
+      idempotent physical write result without write amplification.
 - [ ] `lockByItem` serializes item updates even when latest-state row does not
       exist.
 - [ ] Same revision with same payload returns `noop`.

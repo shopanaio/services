@@ -6,6 +6,17 @@ import {
   ServiceBroker,
 } from "@shopana/shared-kernel";
 import type { Listing } from "@shopana/broker-types";
+import {
+  buildAcceptedListingUpdateResult,
+  buildListingIndexEffectiveIdempotencyKey,
+  buildListingIndexPayloadHash,
+  buildListingIndexQueuePartitionKey,
+  buildListingIndexWorkflowIdempotencyContext,
+  buildListingIndexWorkflowName,
+  isDuplicateWorkflowStartError,
+  LISTING_INDEX_ACTIONS_QUEUE,
+  LISTING_INDEX_WORKFLOW_TIMEOUT_MS,
+} from "./listingIndexActionHelpers.js";
 
 type ListingIndexActionInput =
   | {
@@ -16,11 +27,6 @@ type ListingIndexActionInput =
       type: "deleteSellableItem";
       params: Listing.DeleteSellableItemParams;
     };
-
-const NOT_IMPLEMENTED_WARNING: Listing.ListingUpdateWarning = {
-  code: "LISTING_INDEX_UPDATE_NOT_IMPLEMENTED",
-  message: "Listing index update handler is registered but not implemented yet.",
-};
 
 @Injectable()
 export class ListingBrokerActions extends BrokerActions {
@@ -37,7 +43,7 @@ export class ListingBrokerActions extends BrokerActions {
       params,
     });
 
-    return this.acceptedResult({
+    return buildAcceptedListingUpdateResult({
       meta: params.meta,
       projectId: params.projectId,
       itemRef: params.item,
@@ -54,7 +60,7 @@ export class ListingBrokerActions extends BrokerActions {
       params,
     });
 
-    return this.acceptedResult({
+    return buildAcceptedListingUpdateResult({
       meta: params.meta,
       projectId: params.projectId,
       itemRef: params.itemRef,
@@ -66,50 +72,52 @@ export class ListingBrokerActions extends BrokerActions {
   async syncSellableItems(
     params: Listing.SyncSellableItemsParams
   ): Promise<Listing.SyncSellableItemsResult> {
-    await Promise.all(
-      params.items.map((item) =>
-        this.enqueueIndexAction({
+    this.assertNoDuplicateBatchItems(params.items);
+
+    const enqueueResults = await Promise.allSettled(
+      params.items.map(async (item) => {
+        await this.enqueueIndexAction({
           type: "syncSellableItem",
           params: {
             meta: params.meta,
             projectId: params.projectId,
             item,
           },
-        })
-      )
-    );
+        });
 
-    return {
-      operationId: params.meta.operationId,
-      status: "completed",
-      results: params.items.map((item) =>
-        this.acceptedResult({
+        return buildAcceptedListingUpdateResult({
           meta: params.meta,
           projectId: params.projectId,
           itemRef: item,
           sourceRevision: item.sourceRevision,
-        })
-      ),
-    };
-  }
+        });
+      })
+    );
 
-  private acceptedResult(params: {
-    meta: Listing.ListingUpdateMeta;
-    projectId: string;
-    itemRef: Listing.ListingSellableItemRef;
-    sourceRevision: number;
-  }): Listing.ListingUpdateResult {
+    const results: Listing.ListingUpdateResult[] = [];
+    for (const [index, result] of enqueueResults.entries()) {
+      if (result.status === "fulfilled") {
+        results.push(result.value);
+        continue;
+      }
+
+      const item = params.items[index];
+      this.logger.error(
+        {
+          error: result.reason,
+          projectId: params.projectId,
+          entityType: item?.entityType,
+          itemId: item?.id,
+          operationId: params.meta.operationId,
+        },
+        "Failed to enqueue listing index batch item"
+      );
+    }
+
     return {
       operationId: params.meta.operationId,
-      projectId: params.projectId,
-      itemRef: {
-        entityType: params.itemRef.entityType,
-        id: params.itemRef.id,
-      },
-      sourceRevision: params.sourceRevision,
-      status: "accepted",
-      processedAt: new Date().toISOString(),
-      warnings: [{ ...NOT_IMPLEMENTED_WARNING }],
+      status: results.length === params.items.length ? "completed" : "partial",
+      results,
     };
   }
 
@@ -121,27 +129,68 @@ export class ListingBrokerActions extends BrokerActions {
         ? input.params.item
         : input.params.itemRef;
     const params = input.params;
+    const sourceRevision =
+      input.type === "syncSellableItem"
+        ? input.params.item.sourceRevision
+        : input.params.sourceRevision;
+    const effectiveIdempotencyKey = buildListingIndexEffectiveIdempotencyKey({
+      rawIdempotencyKey: params.meta.idempotencyKey,
+      projectId: params.projectId,
+      entityType: itemRef.entityType,
+      itemId: itemRef.id,
+      actionType: input.type,
+      sourceRevision,
+    });
+    const payloadHash = buildListingIndexPayloadHash(input);
+    const idempotencyCtx = buildListingIndexWorkflowIdempotencyContext({
+      projectId: params.projectId,
+      entityType: itemRef.entityType,
+      itemId: itemRef.id,
+      actionType: input.type,
+      effectiveIdempotencyKey,
+    });
 
-    await this.broker.startWorkflow(
-      "listing.indexAction",
-      input,
-      {
-        source: "content",
-        tenantId: params.projectId,
-        resourceId: `${itemRef.entityType}:${itemRef.id}`,
-        operation: `listing.${input.type}`,
-        contentHash: params.meta.idempotencyKey,
-      },
-      {
-        queueName: "listing_index_actions",
-        enqueueOptions: {
-          queuePartitionKey: [
-            params.projectId,
-            itemRef.entityType,
-            itemRef.id,
-          ].join(":"),
+    try {
+      await this.broker.startWorkflow(
+        buildListingIndexWorkflowName(input.type),
+        {
+          ...input,
+          effectiveIdempotencyKey,
+          payloadHash,
         },
+        idempotencyCtx,
+        {
+          queueName: LISTING_INDEX_ACTIONS_QUEUE,
+          enqueueOptions: {
+            queuePartitionKey: buildListingIndexQueuePartitionKey({
+              projectId: params.projectId,
+              entityType: itemRef.entityType,
+              itemId: itemRef.id,
+            }),
+          },
+          timeoutMS: LISTING_INDEX_WORKFLOW_TIMEOUT_MS,
+        }
+      );
+    } catch (error) {
+      if (isDuplicateWorkflowStartError(error)) {
+        return;
       }
-    );
+
+      throw error;
+    }
+  }
+
+  private assertNoDuplicateBatchItems(
+    items: readonly Listing.ListingSellableItemSnapshot[]
+  ): void {
+    const seen = new Set<string>();
+
+    for (const item of items) {
+      const key = `${item.entityType}:${item.id}`;
+      if (seen.has(key)) {
+        throw new Error(`Duplicate listing sync batch item: ${key}`);
+      }
+      seen.add(key);
+    }
   }
 }

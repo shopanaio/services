@@ -1,4 +1,5 @@
 export * from "./listingRepositoryTypes.js";
+export * from "./ListingIndexItemStateRepository.js";
 export * from "./ListingDocIdAllocatorRepository.js";
 export * from "./ProductListingIndexRepository.js";
 export * from "./ProductListingPriceIndexRepository.js";
