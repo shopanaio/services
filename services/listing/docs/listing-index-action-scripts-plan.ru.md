@@ -15,7 +15,8 @@
 ## Общие правила
 
 - Broker action handlers не должны напрямую писать таблицы индекса.
-- Action handler создает и запускает соответствующий script.
+- Action handler в synchronous mode создает и запускает соответствующий script,
+  а в asynchronous mode durably ставит соответствующий workflow в DBOS queue.
 - Script работает в контексте `projectId` из action params и должен проверять,
   что он совпадает с текущим store context.
 - `syncSellableItem` получает полный snapshot. Partial patch semantics нет.
@@ -29,6 +30,170 @@
   на batch chunk.
 - Repository layer остается source-agnostic: он принимает уже нормализованные
   doc ids, value keys, sort rows и price rows.
+
+## Durable DBOS queue для action processing
+
+Listing index actions должны попадать в durable execution слой до применения
+физического индекса. `accepted` означает, что action durably принят DBOS queue
+или уже синхронно обработан, а не просто получен in-memory handler-ом.
+
+### Queue model
+
+Используется одна DBOS queue для listing index actions:
+
+```ts
+await DBOS.registerQueue("listing_index_actions", {
+  partitionQueue: true,
+  concurrency: 1,
+  workerConcurrency: 50,
+});
+```
+
+Правила:
+
+- Queue регистрируется после `DBOS.launch()` на startup listing service.
+- `partitionQueue: true` обязателен: physical queue одна, но work разделяется
+  по logical partitions.
+- `concurrency: 1` означает последовательное выполнение внутри одного
+  partition, а не глобально для всех listing events.
+- `workerConcurrency` ограничивает количество одновременно выполняемых listing
+  index workflows на один process. Значение является deployment/config
+  параметром, а не hard-coded business rule.
+- Partition key строится как
+  `projectId + ":" + entityType + ":" + itemId`.
+- Для миллиона products не создается миллион persistent queues. Partition key
+  живет в queued workflow rows DBOS system tables и не требует отдельного
+  удаления как самостоятельная сущность.
+- Основной риск роста database - количество workflow executions/history, а не
+  количество distinct partition keys. Нужна DBOS workflow history retention
+  policy для completed/failed index workflows.
+
+### Enqueue contract
+
+Action handler может работать в двух режимах:
+
+1. Synchronous mode для controlled calls/backfills: handler запускает script и
+   возвращает `applied`, `noop` или `ignored_stale`.
+2. Async mode для high-volume event stream: handler ставит workflow в DBOS
+   queue и возвращает `accepted` только после успешного durable enqueue.
+
+Async enqueue shape:
+
+```ts
+const partitionKey = [
+  params.projectId,
+  params.item.entityType,
+  params.item.id,
+].join(":");
+
+const workflowId = [
+  "listing-index",
+  params.projectId,
+  params.meta.idempotencyKey,
+].join(":");
+
+await DBOS.startWorkflow(ListingIndexActionWorkflow, {
+  workflowID: workflowId,
+  queueName: "listing_index_actions",
+  enqueueOptions: {
+    queuePartitionKey: partitionKey,
+    deduplicationID: params.meta.idempotencyKey,
+  },
+  duplicationPolicy: "return-existing",
+}).run({
+  type: "syncSellableItem",
+  params,
+});
+```
+
+Правила:
+
+- `workflowID` должен быть deterministic из `projectId` и
+  `meta.idempotencyKey`.
+- `deduplicationID` защищает только active queued/executing duplicate. Durable
+  idempotency результата остается в `listing_index_update_state`.
+- `duplicationPolicy: "return-existing"` предпочтителен для idempotent retries:
+  повторный enqueue того же action получает existing workflow handle вместо
+  transient duplicate failure.
+- `queuePartitionKey` всегда item-scoped. Не использовать одну global
+  sequential queue для всех listing events.
+- Batch action в async mode не ставится как один большой workflow, если это
+  приведет к serial bottleneck. Он fan-out-ит items в отдельные queued item
+  workflows с item partition keys и собирает accepted results.
+
+### Queue workflow
+
+```ts
+type ListingIndexQueuedAction =
+  | {
+      type: "syncSellableItem";
+      params: Listing.SyncSellableItemParams;
+    }
+  | {
+      type: "deleteSellableItem";
+      params: Listing.DeleteSellableItemParams;
+    };
+
+class ListingIndexActionWorkflow extends BrokerWorkflows {
+  @Workflow("indexAction")
+  run(action: ListingIndexQueuedAction): Promise<Listing.ListingUpdateResult>;
+}
+```
+
+Responsibilities:
+
+- Выполняется только из DBOS queue `listing_index_actions`.
+- Делегирует `syncSellableItem` в `ListingSyncSellableItemScript`.
+- Делегирует `deleteSellableItem` в `ListingDeleteSellableItemScript`.
+- Возвращает final script result: `applied`, `noop` или `ignored_stale`.
+- Не содержит mapping rules и не пишет physical index напрямую.
+- Не заменяет item transaction и `lockByItem`; queue обеспечивает scheduling,
+  а correctness остается в database transaction.
+
+### Coalescing/latest-wins
+
+DBOS partitioned queue гарантирует порядок выполнения внутри item partition, но
+не должна заставлять listing index физически применять каждую промежуточную
+revision при burst updates.
+
+Правила:
+
+- Full snapshot semantics позволяют latest-wins processing.
+- Если при обработке item workflow существует более свежий pending snapshot для
+  того же `projectId + entityType + itemId`, старая revision должна завершить
+  broker-level result как `ignored_stale` без physical writes. Если
+  listing-side inbox вводит internal status `superseded`, он не является
+  публичным `ListingIndexActionStatus`.
+- `sourceRevision` остается финальным guard: даже если очередь доставит старый
+  workflow позже, item transaction под `lockByItem` вернет `ignored_stale`.
+- Для high-volume streams рекомендуется иметь listing-side inbox/latest-state
+  row или coalescing repository, который хранит latest pending action per item.
+  DBOS queue запускает processing, а script забирает latest applicable snapshot.
+- Coalescing не должен удалять единственный durable copy action до того, как
+  более свежий snapshot durably сохранен.
+
+### DBOS wrapper requirements
+
+Текущий project-level `WorkflowRegistry.start()` должен поддерживать DBOS queue
+options, если enqueue выполняется через `broker.startWorkflow`, а не прямым
+`DBOS.startWorkflow`.
+
+```ts
+interface WorkflowQueueStartOptions {
+  queueName?: string;
+  enqueueOptions?: {
+    queuePartitionKey?: string;
+    deduplicationID?: string;
+    priority?: number;
+    delaySeconds?: number;
+  };
+  duplicationPolicy?: "reject" | "return-existing";
+  timeoutMS?: number;
+}
+```
+
+Registry должен прокидывать эти options в `DBOS.startWorkflow(...)` вместе с
+deterministic `workflowID`.
 
 ## Правила транзакционности
 
@@ -197,12 +362,23 @@ class ListingBrokerActions extends BrokerActions {
 
 Responsibilities:
 
-- `syncSellableItem` запускает `ListingSyncSellableItemScript`.
-- `syncSellableItems` запускает `ListingSyncSellableItemsScript`.
-- `deleteSellableItem` запускает `ListingDeleteSellableItemScript`.
+- В synchronous mode `syncSellableItem` запускает
+  `ListingSyncSellableItemScript`.
+- В asynchronous mode `syncSellableItem` ставит
+  `ListingIndexActionWorkflow` в DBOS queue `listing_index_actions` с item
+  partition key и возвращает `accepted` после durable enqueue.
+- В synchronous mode `syncSellableItems` запускает
+  `ListingSyncSellableItemsScript`.
+- В asynchronous mode `syncSellableItems` fan-out-ит items в отдельные DBOS
+  queued workflows, а не ставит весь batch в одну serial item transaction.
+- В synchronous mode `deleteSellableItem` запускает
+  `ListingDeleteSellableItemScript`.
+- В asynchronous mode `deleteSellableItem` ставит delete action в ту же DBOS
+  partitioned queue по item key.
 - Handler не строит write model и не вызывает index repositories напрямую.
 - Handler переводит thrown infrastructure errors в broker-level retryable
   errors только если script не вернул domain result.
+- Handler не возвращает `accepted`, пока DBOS enqueue не завершился успешно.
 
 ## Shared script DTOs
 
@@ -833,7 +1009,22 @@ await repository.txManager.run(async () => {
 
 - [ ] Broker actions больше не возвращают
       `LISTING_INDEX_UPDATE_NOT_IMPLEMENTED` для successful processing.
-- [ ] Все action handlers делегируют работу scripts.
+- [ ] DBOS queue `listing_index_actions` регистрируется как partitioned queue с
+      item-scoped partition key.
+- [ ] Project `WorkflowRegistry`/`ServiceBroker` поддерживает queue options для
+      `DBOS.startWorkflow`, либо listing action handlers используют
+      `DBOS.startWorkflow` напрямую с documented options.
+- [ ] Async action handlers возвращают `accepted` только после durable DBOS
+      enqueue.
+- [ ] Все synchronous action handlers делегируют работу scripts.
+- [ ] Queued `ListingIndexActionWorkflow` делегирует final apply в scripts и не
+      пишет physical index напрямую.
+- [ ] Batch async processing fan-out-ит items в item-partitioned queued
+      workflows.
+- [ ] High-volume processing имеет coalescing/latest-wins strategy или
+      documented reason, почему каждая revision должна физически применяться.
+- [ ] DBOS workflow history retention/cleanup policy описана для completed
+      listing index workflows.
 - [ ] Full snapshot sync удаляет stale variants.
 - [ ] Delete action удаляет product, variants, memberships, prices, sort rows и
       BM25 rows.
