@@ -327,9 +327,9 @@ function compileDiscoveredFacetValueCtesSql(): SQL {
         fv.sort_index AS value_sort,
         f.id::text || ':' || fv.id::text AS value_key
       FROM input i
-      JOIN catalog.facet f
+      JOIN listing.facet f
         ON f.project_id = i.project_id
-      JOIN catalog.facet_value fv
+      JOIN listing.facet_value fv
         ON fv.project_id = f.project_id
        AND fv.facet_id = f.id
        AND fv.kind = 'display'

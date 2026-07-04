@@ -33,14 +33,14 @@ export function compileFacetResolutionSql(): SQL {
         f.id::text || ':' || COALESCE(parent_fv.id, fv.id)::text AS value_key
       FROM requested_facets r
       JOIN input i ON true
-      JOIN catalog.facet f
+      JOIN listing.facet f
         ON f.project_id = i.project_id
        AND f.slug = r.facet_slug
-      JOIN catalog.facet_value fv
+      JOIN listing.facet_value fv
         ON fv.project_id = f.project_id
        AND fv.facet_id = f.id
        AND fv.handle = r.value_handle
-      LEFT JOIN catalog.facet_value parent_fv
+      LEFT JOIN listing.facet_value parent_fv
         ON parent_fv.project_id = fv.project_id
        AND parent_fv.id = fv.parent_id
        AND parent_fv.kind = 'display'

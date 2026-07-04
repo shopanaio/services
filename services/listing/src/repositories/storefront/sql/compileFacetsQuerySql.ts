@@ -48,20 +48,20 @@ export function compileFacetsQuerySql(request: ListingSqlRequest): SQL {
         fv.sort_index AS value_sort,
         f.id::text || ':' || fv.id::text AS value_key
       FROM input i
-      JOIN catalog.facet f
+      JOIN listing.facet f
         ON f.project_id = i.project_id
-      LEFT JOIN catalog.facet_translation ft
+      LEFT JOIN listing.facet_translation ft
         ON ft.project_id = f.project_id
        AND ft.facet_id = f.id
        AND ft.locale = i.locale
-      JOIN catalog.facet_value fv
+      JOIN listing.facet_value fv
         ON fv.project_id = f.project_id
        AND fv.facet_id = f.id
        AND fv.kind = 'display'
        AND fv.parent_id IS NULL
        AND fv.enabled = true
        AND fv.reference_status = 'VALID'
-      LEFT JOIN catalog.facet_value_translation fvt
+      LEFT JOIN listing.facet_value_translation fvt
         ON fvt.project_id = fv.project_id
        AND fvt.facet_value_id = fv.id
        AND fvt.locale = i.locale
