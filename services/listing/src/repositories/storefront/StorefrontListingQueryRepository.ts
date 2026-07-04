@@ -162,7 +162,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
         ]);
       pageRows = pageSqlRows;
 
-      sqlRoundTrips += await this.profileFacetCountsIfEnabled(
+      sqlRoundTrips += await this.profileListingSqlIfEnabled(
         sqlRequest,
         visibleFacetValues
       );
@@ -257,7 +257,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     });
   }
 
-  private async profileFacetCountsIfEnabled(
+  private async profileListingSqlIfEnabled(
     request: ReturnType<typeof toListingSqlRequest>,
     visibleFacetValues: readonly FacetCountsVisibleFacetValue[]
   ): Promise<number> {
@@ -299,8 +299,13 @@ export class StorefrontListingQueryRepository extends BaseRepository {
         "Storefront listing facetCounts SQL profile"
       );
 
-      const explainStartedAt = Date.now();
-      const explainAnalyzePlan = await this.explainAnalyzeFacetCounts(
+      const pageExplainStartedAt = Date.now();
+      const pageExplainAnalyzePlan = await this.explainAnalyzePage(request);
+      roundTrips += 1;
+      const pageExplainDurationMs = Date.now() - pageExplainStartedAt;
+
+      const facetCountsExplainStartedAt = Date.now();
+      const facetCountsExplainAnalyzePlan = await this.explainAnalyzeFacetCounts(
         request,
         visibleFacetValues
       );
@@ -311,8 +316,10 @@ export class StorefrontListingQueryRepository extends BaseRepository {
         sortKind: request.sortKind,
         hasPriceFilter: request.priceFilterJson !== "{}",
         optionFacetGroups: request.request.filterPlan.optionFacetGroups.length,
-        durationMs: Date.now() - explainStartedAt,
-        plan: explainAnalyzePlan,
+        pageDurationMs: pageExplainDurationMs,
+        pagePlan: pageExplainAnalyzePlan,
+        facetCountsDurationMs: Date.now() - facetCountsExplainStartedAt,
+        facetCountsPlan: facetCountsExplainAnalyzePlan,
       });
       this.ctx.kernel.getServices().logger.warn(
         {
@@ -321,10 +328,12 @@ export class StorefrontListingQueryRepository extends BaseRepository {
           sortKind: request.sortKind,
           hasPriceFilter: request.priceFilterJson !== "{}",
           optionFacetGroups: request.request.filterPlan.optionFacetGroups.length,
-          durationMs: Date.now() - explainStartedAt,
-          plan: explainAnalyzePlan,
+          pageDurationMs: pageExplainDurationMs,
+          pagePlan: pageExplainAnalyzePlan,
+          facetCountsDurationMs: Date.now() - facetCountsExplainStartedAt,
+          facetCountsPlan: facetCountsExplainAnalyzePlan,
         },
-        "Storefront listing facetCounts EXPLAIN ANALYZE"
+        "Storefront listing SQL EXPLAIN ANALYZE"
       );
     } catch (error) {
       this.ctx.kernel.getServices().logger.warn(
@@ -334,6 +343,20 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     }
 
     return roundTrips;
+  }
+
+  private async explainAnalyzePage(
+    request: ReturnType<typeof toListingSqlRequest>
+  ): Promise<string> {
+    const rows = await this.connection.execute<ExplainAnalyzeSqlRow>(sql`
+      EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
+      ${compilePageQuerySql(request)}
+    `);
+
+    return (rows as unknown as ExplainAnalyzeSqlRow[])
+      .map((row) => explainAnalyzePlanLine(row))
+      .filter(Boolean)
+      .join("\n");
   }
 
   private async explainAnalyzeFacetCounts(
@@ -643,8 +666,10 @@ async function writeE2eExplainAnalyzeReport(input: {
   sortKind: string;
   hasPriceFilter: boolean;
   optionFacetGroups: number;
-  durationMs: number;
-  plan: string;
+  pageDurationMs: number;
+  pagePlan: string;
+  facetCountsDurationMs: number;
+  facetCountsPlan: string;
 }) {
   const reportPath = e2eExplainAnalyzeReportPath();
   if (!reportPath) {
@@ -655,7 +680,7 @@ async function writeE2eExplainAnalyzeReport(input: {
   await writeFile(
     reportPath,
     [
-      "# Storefront listing facetCounts EXPLAIN ANALYZE",
+      "# Storefront listing SQL EXPLAIN ANALYZE",
       "",
       JSON.stringify(
         {
@@ -664,14 +689,23 @@ async function writeE2eExplainAnalyzeReport(input: {
           sortKind: input.sortKind,
           hasPriceFilter: input.hasPriceFilter,
           optionFacetGroups: input.optionFacetGroups,
-          durationMs: input.durationMs,
+          pageDurationMs: input.pageDurationMs,
+          facetCountsDurationMs: input.facetCountsDurationMs,
         },
         null,
         2
       ),
       "",
+      "## listing:page",
+      "",
       "```",
-      input.plan,
+      input.pagePlan,
+      "```",
+      "",
+      "## listing:facetCounts",
+      "",
+      "```",
+      input.facetCountsPlan,
       "```",
       "",
     ].join("\n")
