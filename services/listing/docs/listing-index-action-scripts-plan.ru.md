@@ -57,13 +57,12 @@ type ListingIndexItemKey = {
 
 `effectiveIdempotencyKey`:
 
-- для single item action: stable hash или raw value от
-  `meta.idempotencyKey`;
-- для item внутри batch: stable hash от
-  `meta.idempotencyKey + entityType + itemId`;
+- для single item action и для item внутри batch всегда строится одним helper-ом
+  как stable hash от `meta.idempotencyKey + projectId + entityType + itemId +
+  actionType`;
 - используется в DBOS workflow identity и в
   `listing_index_action_receipt`;
-- не должен строиться только из batch-level `meta.idempotencyKey`.
+- не должен строиться только из raw/batch-level `meta.idempotencyKey`.
 
 `payloadHash`:
 
@@ -202,7 +201,19 @@ const idempotencyCtx =
     effectiveIdempotencyKey,
   });
 
-await this.broker.startWorkflow(
+await this.listingIndexActionAcceptanceRepository.recordEnqueueIntent({
+  projectId,
+  effectiveIdempotencyKey,
+  rawIdempotencyKey: queuedAction.params.meta.idempotencyKey,
+  actionType: queuedAction.type,
+  entityType,
+  itemId,
+  sourceRevision,
+  payloadHash,
+  operationId: queuedAction.params.meta.operationId,
+});
+
+const handle = await this.broker.startWorkflow(
   "listing.indexAction",
   {
     ...queuedAction,
@@ -218,10 +229,38 @@ await this.broker.startWorkflow(
     timeoutMS: LISTING_INDEX_WORKFLOW_TIMEOUT_MS,
   },
 );
+
+await this.listingIndexActionAcceptanceRepository.markEnqueueAccepted({
+  projectId,
+  effectiveIdempotencyKey,
+  workflowId: handle.workflowId,
+});
 ```
 
 Правила:
 
+- Перед `broker.startWorkflow(...)` action handler durably записывает
+  `enqueue_pending` metadata в `listing_index_action_execution`. Это не
+  physical index write и не final receipt; row нужен только для conflict
+  detection между duplicate enqueue attempts.
+- `recordEnqueueIntent` должен быть idempotent:
+  - если row отсутствует, insert-ит metadata со stage `enqueue_pending`;
+  - если row уже существует с тем же `payloadHash`, `actionType`,
+    `entityType`, `itemId` и `sourceRevision`, возвращает existing metadata;
+  - если metadata отличается, возвращает/кидает non-retryable
+    `IDEMPOTENCY_CONFLICT` до DBOS enqueue.
+- `accepted` возвращается только после успешного `broker.startWorkflow(...)` и
+  durable `markEnqueueAccepted(...)`, либо после duplicate workflow conflict,
+  который доказал, что same-payload workflow уже durably accepted.
+- Если process crash произошел после `broker.startWorkflow(...)`, но до
+  `markEnqueueAccepted(...)`, следующий same-payload retry может получить DBOS
+  duplicate workflow conflict. В этом случае helper читает
+  `listing_index_action_execution`, проверяет matching metadata, переводит stage
+  из `enqueue_pending` в `enqueue_accepted` и возвращает `accepted`.
+- Если `recordEnqueueIntent` успел записать `enqueue_pending`, но DBOS enqueue
+  завершился retryable infrastructure error до durable accept, same-payload retry
+  повторяет `broker.startWorkflow(...)`. Different-payload retry все равно
+  получает `IDEMPOTENCY_CONFLICT`.
 - `resourceId` всегда item-scoped.
 - `operation` включает action type, чтобы sync и delete не конфликтовали при
   одинаковом idempotency key.
@@ -244,20 +283,24 @@ await this.broker.startWorkflow(
 - Duplicate workflow conflict обрабатывается отдельным helper-ом поверх
   `broker.startWorkflow(...)`, а не через `deduplicationID`:
   - helper строит тот же `effectiveIdempotencyKey` и `payloadHash`;
+  - helper first checks/records enqueue intent, so same effective key cannot be
+    accepted with a different payload while the first workflow is still only
+    queued;
   - после duplicate conflict helper читает
     `listing_index_action_execution`/`listing_index_action_receipt` по
     `(projectId, effectiveIdempotencyKey)`;
   - если persisted `payloadHash`, `actionType`, `entityType`, `itemId` и
     `sourceRevision` совпадают, conflict считается `already accepted`;
-  - если persisted row еще не виден из-за race с DBOS accept, helper может
-    retry bounded read с коротким backoff;
+  - если row в stage `enqueue_pending`, duplicate workflow conflict for the same
+    deterministic workflow id is treated as proof of durable DBOS accept and the
+    row is advanced to `enqueue_accepted`;
   - если persisted payload metadata отличается, handler возвращает/кидает
     non-retryable idempotency conflict согласно public action contract.
 - Duplicate workflow conflict с другим payload не должен маскироваться как
   successful enqueue. DBOS workflow identity защищает scheduling, а payload
   conflict detection остается database-level contract.
-- `accepted` возвращается только после durable DBOS accept/enqueue или после
-  распознавания same-payload already accepted duplicate workflow.
+- Handler must not rely on final receipt for enqueue idempotency. Final receipt
+  may appear much later, after worker execution.
 
 ### Workflow body
 
@@ -588,10 +631,10 @@ Rules:
   - item-scoped queue partition key.
 - Enqueue может выполняться concurrently, но public result строится после
   completion всех enqueue attempts.
-- Если часть items accepted, а часть enqueue attempts failed, result должен быть
-  `partial` с per-item accepted/error details, либо handler должен throw
-  retryable broker error. Выбранное поведение должно быть единым для всех batch
-  callers.
+- Если часть items accepted, а часть enqueue attempts failed, handler возвращает
+  `partial` с per-item union result: `{ kind: "result"; result:
+  ListingUpdateResult }` для accepted items и `{ kind: "error"; itemRef;
+  sourceRevision; error: ListingUpdateError }` для failed items.
 - Retry batch после partial enqueue safe: уже accepted items распознаются по
   deterministic workflow identity и execution/receipt metadata как
   same-payload already accepted.
@@ -599,12 +642,14 @@ Rules:
 ## Database idempotency model
 
 DBOS workflow identity защищает durable scheduling. Database idempotency
-защищает physical side effects и stable final result.
+защищает enqueue payload conflict detection, physical side effects и stable
+final result.
 
 Для этого нужны три разные сущности:
 
 1. latest item state;
-2. action execution journal по `effectiveIdempotencyKey`;
+2. action execution journal / enqueue acceptance metadata по
+   `effectiveIdempotencyKey`;
 3. final action receipt по `effectiveIdempotencyKey`.
 
 ### `listing_index_item_state`
@@ -637,8 +682,9 @@ Constraints:
 
 ### `listing_index_action_execution`
 
-Execution journal хранит durable progress между DBOS steps. Он не заменяет
-final receipt и не является публичным результатом action.
+Execution journal хранит durable enqueue acceptance metadata и progress между
+DBOS steps. Он не заменяет final receipt и не является публичным результатом
+action.
 
 ```sql
 CREATE TABLE listing.listing_index_action_execution (
@@ -651,6 +697,7 @@ CREATE TABLE listing.listing_index_action_execution (
   source_revision integer NOT NULL,
   payload_hash text NOT NULL,
   operation_id text NOT NULL,
+  workflow_id text,
   stage varchar(32) NOT NULL,
   product_doc_id integer,
   variant_doc_ids_json jsonb,
@@ -674,13 +721,21 @@ CREATE INDEX listing_index_action_execution_item_idx
 Constraints:
 
 - `stage IN (
+  'enqueue_pending',
+  'enqueue_accepted',
   'prepared',
   'doc_ids_reserved',
   'write_model_built',
   'committing',
   'completed',
   'failed_non_retryable'
-)`.
+  )`.
+- `enqueue_pending` means action handler recorded payload metadata but has not
+  yet durably proved DBOS accept.
+- `enqueue_accepted` means `broker.startWorkflow(...)` returned successfully or
+  a same-payload duplicate workflow conflict proved the deterministic workflow
+  already exists in DBOS.
+- `workflow_id` is required from `enqueue_accepted` onward.
 - `product_doc_id` and `variant_doc_ids_json` are required from
   `doc_ids_reserved` onward for sync actions.
 - `write_model_hash` is required from `write_model_built` onward for sync
