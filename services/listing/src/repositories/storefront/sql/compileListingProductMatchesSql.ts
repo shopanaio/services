@@ -95,15 +95,21 @@ export function compileOptionVariantPredicateSql(
   request: ListingSqlRequest,
   alias: SQL
 ): SQL {
-  const optionBitmap = compileFacetGroupsBitmapSql(
-    request,
-    "variant",
-    request.request.filterPlan.optionFacetGroups
-  );
+  const optionBitmap = compileOptionVariantBitmapSql(request);
 
   return optionBitmap
     ? sql`AND ${optionBitmap} @> ${alias}.variant_doc_id`
     : sql``;
+}
+
+export function compileOptionVariantBitmapSql(
+  request: ListingSqlRequest
+): SQL | null {
+  return compileFacetGroupsBitmapSql(
+    request,
+    "variant",
+    request.request.filterPlan.optionFacetGroups
+  );
 }
 
 export function hasVariantPredicate(request: ListingSqlRequest): boolean {

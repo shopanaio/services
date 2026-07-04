@@ -11,6 +11,7 @@ import {
 } from "./compileListingInputSql.js";
 import {
   compileInputCte,
+  compileOptionVariantBitmapSql,
   compileOptionVariantPredicateSql,
   compilePricePredicateSql,
   compileProductMatchesBitmapSql,
@@ -90,6 +91,9 @@ function compileMatchedVariantPricePageQuerySql(
   if (plan.inStock === false) {
     return compileEmptyPageQuerySql();
   }
+  if (plan.optionFacetGroups.length > 0) {
+    return compileOptionBitmapMatchedVariantPricePageQuerySql(request);
+  }
 
   const variantDirection = request.sortKind === "price_desc" ? "desc" : "asc";
   const variantSeek = buildVariantPriceSeek(
@@ -131,6 +135,105 @@ function compileMatchedVariantPricePageQuerySql(
         AND pb.bitmap @> vp.product_doc_id
         ${pricePredicate}
         ${optionPredicate}
+    ),
+    variant_price_chosen AS (
+      SELECT DISTINCT ON (vp.product_id)
+        vp.product_doc_id,
+        vp.product_id,
+        vp.variant_doc_id,
+        vp.price_minor
+      FROM variant_price_candidates vp
+      ORDER BY ${variantCandidateOrderBy(variantDirection)}
+    ),
+    variant_price_ordered AS (
+      SELECT
+        'matched_variant_price'::text AS collector_kind,
+        chosen.product_doc_id,
+        chosen.product_id,
+        pli.in_stock,
+        pli.in_stock AS bool_value,
+        NULL::timestamptz AS timestamptz_value,
+        NULL::timestamptz AS timestamptz_value_2,
+        NULL::bigint AS bigint_value,
+        NULL::text AS text_value,
+        chosen.variant_doc_id,
+        chosen.price_minor,
+        NULL::double precision AS relevance_score
+      FROM variant_price_chosen chosen
+      JOIN input i ON true
+      JOIN listing.product_listing_index pli
+        ON pli.project_id = i.project_id
+       AND pli.product_doc_id = chosen.product_doc_id
+       AND pli.product_id = chosen.product_id
+      WHERE true
+        ${variantSeek}
+      ORDER BY ${variantFinalOrderBy(variantDirection)}
+      LIMIT ${limitSql}
+    ),
+    variant_price_page_scan AS (
+      SELECT row_number() OVER ()::int AS page_ordinal, *
+      FROM variant_price_ordered
+    )
+    ${compilePageSelectSql(sql`variant_price_page_scan`)}
+  `;
+}
+
+function compileOptionBitmapMatchedVariantPricePageQuerySql(
+  request: ListingSqlRequest
+): SQL {
+  const optionBitmap = compileOptionVariantBitmapSql(request);
+  if (!optionBitmap) {
+    return compileMatchedVariantPricePageQuerySql(request);
+  }
+
+  const variantDirection = request.sortKind === "price_desc" ? "desc" : "asc";
+  const variantSeek = buildVariantPriceSeek(
+    variantDirection,
+    request.request.cursor
+  );
+  const limitSql = sql`(SELECT first + 1 FROM input)`;
+  const pricePredicate = compilePricePredicateSql(request, sql`vp`);
+
+  return sql`
+    /* listing:page */
+    WITH
+    ${compileInputCte(request)},
+    ${compileScopeProductCtes(request)},
+    product_base AS (
+      SELECT ${compileProductMatchesBitmapSql(request, {
+        includeProductStock: false,
+        includeVariantProjection: false,
+      })} AS bitmap
+    ),
+    option_variant_matches AS (
+      SELECT ${optionBitmap} AS bitmap
+    ),
+    option_variant_ids AS (
+      SELECT ov.variant_doc_id::int AS variant_doc_id
+      FROM option_variant_matches ovm
+      CROSS JOIN LATERAL rb_iterate(ovm.bitmap) AS ov(variant_doc_id)
+    ),
+    variant_price_candidates AS (
+      SELECT
+        vp.product_doc_id,
+        vp.product_id,
+        vp.variant_doc_id,
+        vp.price_minor
+      FROM option_variant_ids ov
+      JOIN input i ON true
+      JOIN listing.listing_posting_variant_price vp
+        ON vp.project_id = i.project_id
+       AND vp.currency = i.currency
+       AND vp.variant_doc_id = ov.variant_doc_id
+      JOIN listing.variant_listing_index vli
+        ON vli.project_id = vp.project_id
+       AND vli.variant_doc_id = vp.variant_doc_id
+       AND vli.product_doc_id = vp.product_doc_id
+       AND vli.product_id = vp.product_id
+       AND vli.in_stock = true
+      CROSS JOIN product_base pb
+      WHERE pb.bitmap @> vp.product_doc_id
+        ${pricePredicate}
     ),
     variant_price_chosen AS (
       SELECT DISTINCT ON (vp.product_id)
