@@ -10,11 +10,6 @@ extend type Bundle implements Node & Listing @key(fields: "id", resolvable: fals
   id: ID! @external
 }
 
-extend type FacetSwatch @key(fields: "id", resolvable: false) {
-  """The FacetSwatch global ID owned by Catalog."""
-  id: ID! @external
-}
-
 # ---- Listing Inputs ----
 
 enum ListingScopeKind {
@@ -46,10 +41,10 @@ input ListingProductFilter {
   """Filter by variant option."""
   variantOption: ListingVariantOptionFilter
 
-  """Filter by product-level catalog facet value."""
+  """Filter by product-level listing facet value."""
   productFacet: ListingFacetValueFilter
 
-  """Filter by variant-level catalog facet value."""
+  """Filter by variant-level listing facet value."""
   variantFacet: ListingFacetValueFilter
 }
 
@@ -136,14 +131,6 @@ enum ListingFacetType {
   PRICE_RANGE
 }
 
-enum FacetUIType {
-  CHECKBOX
-  RADIO
-  DROPDOWN
-  RANGE
-  BOOLEAN
-}
-
 type ListingFacet {
   """Stable listing facet ID."""
   id: String!
@@ -154,7 +141,7 @@ type ListingFacet {
   """Facet presentation/selection type."""
   type: ListingFacetType!
 
-  """Catalog-compatible UI type."""
+  """Facet UI type."""
   uiType: FacetUIType!
 
   """Ordered values for this facet in listing UI order."""
@@ -180,6 +167,6 @@ type ListingFacetValue {
   """
   input: JSON!
 
-  """Catalog swatch metadata for facet values that have one."""
+  """Swatch metadata for facet values that have one."""
   swatch: FacetSwatch
 }

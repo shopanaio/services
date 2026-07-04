@@ -1,0 +1,159 @@
+"""Filter operators for String fields."""
+input StringFilter {
+  """Equals."""
+  _eq: String
+  """Not equals."""
+  _neq: String
+  """In array."""
+  _in: [String!]
+  """Not in array."""
+  _notIn: [String!]
+  """Is null."""
+  _is: Boolean
+  """Is not null."""
+  _isNot: Boolean
+  """Contains substring (case-sensitive)."""
+  _contains: String
+  """Contains substring (case-insensitive)."""
+  _containsi: String
+  """Does not contain substring (case-sensitive)."""
+  _notContains: String
+  """Does not contain substring (case-insensitive)."""
+  _notContainsi: String
+  """Starts with (case-sensitive)."""
+  _startsWith: String
+  """Starts with (case-insensitive)."""
+  _startsWithi: String
+  """Ends with (case-sensitive)."""
+  _endsWith: String
+  """Ends with (case-insensitive)."""
+  _endsWithi: String
+}
+
+"""Filter operators for ID fields."""
+input IDFilter {
+  """Equals."""
+  _eq: ID
+  """Not equals."""
+  _neq: ID
+  """In array."""
+  _in: [ID!]
+  """Not in array."""
+  _notIn: [ID!]
+  """Is null."""
+  _is: Boolean
+  """Is not null."""
+  _isNot: Boolean
+}
+
+"""Filter operators for Int fields."""
+input IntFilter {
+  """Equals."""
+  _eq: Int
+  """Not equals."""
+  _neq: Int
+  """Greater than."""
+  _gt: Int
+  """Greater than or equal."""
+  _gte: Int
+  """Less than."""
+  _lt: Int
+  """Less than or equal."""
+  _lte: Int
+  """In array."""
+  _in: [Int!]
+  """Not in array."""
+  _notIn: [Int!]
+  """Is null."""
+  _is: Boolean
+  """Is not null."""
+  _isNot: Boolean
+  """Between range (inclusive)."""
+  _between: [Int!]
+}
+
+"""Sort direction."""
+enum SortDirection {
+  asc
+  desc
+}
+
+"""Filter conditions for FacetSourceCandidate."""
+input FacetSourceCandidateWhereInput {
+  """Logical AND of multiple conditions."""
+  _and: [FacetSourceCandidateWhereInput!]
+  """Logical OR of multiple conditions."""
+  _or: [FacetSourceCandidateWhereInput!]
+  """Negate the condition."""
+  _not: FacetSourceCandidateWhereInput
+  """Filter by id."""
+  id: IDFilter
+  """Filter by facetType."""
+  facetType: StringFilter
+  """Filter by handle."""
+  handle: StringFilter
+  """Filter by name."""
+  name: StringFilter
+  """Filter by sourceSortBucket."""
+  sourceSortBucket: IntFilter
+  """Filter by sortName."""
+  sortName: StringFilter
+}
+
+"""Fields available for sorting FacetSourceCandidate."""
+enum FacetSourceCandidateOrderField {
+  """Sort by id."""
+  id
+  """Sort by facetType."""
+  facetType
+  """Sort by handle."""
+  handle
+  """Sort by name."""
+  name
+  """Sort by sourceSortBucket."""
+  sourceSortBucket
+  """Sort by sortName."""
+  sortName
+}
+
+"""Ordering configuration for FacetSourceCandidate."""
+input FacetSourceCandidateOrderByInput {
+  """Field to order by."""
+  field: FacetSourceCandidateOrderField!
+  """Sort direction."""
+  direction: SortDirection!
+}
+
+"""Filter conditions for FacetValueCandidate."""
+input FacetValueCandidateWhereInput {
+  """Logical AND of multiple conditions."""
+  _and: [FacetValueCandidateWhereInput!]
+  """Logical OR of multiple conditions."""
+  _or: [FacetValueCandidateWhereInput!]
+  """Negate the condition."""
+  _not: FacetValueCandidateWhereInput
+  """Filter by id."""
+  id: IDFilter
+  """Filter by handle."""
+  handle: StringFilter
+  """Filter by label."""
+  label: StringFilter
+}
+
+"""Fields available for sorting FacetValueCandidate."""
+enum FacetValueCandidateOrderField {
+  """Sort by id."""
+  id
+  """Sort by handle."""
+  handle
+  """Sort by label."""
+  label
+}
+
+"""Ordering configuration for FacetValueCandidate."""
+input FacetValueCandidateOrderByInput {
+  """Field to order by."""
+  field: FacetValueCandidateOrderField!
+  """Sort direction."""
+  direction: SortDirection!
+}

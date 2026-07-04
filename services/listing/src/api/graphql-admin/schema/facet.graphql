@@ -24,6 +24,15 @@ enum FacetValueKind {
   DISPLAY
 }
 
+"""
+Type of visual swatch for facet values.
+"""
+enum SwatchType {
+  COLOR
+  GRADIENT
+  IMAGE
+}
+
 type Facet implements Node {
   id: ID!
   facetType: FacetType!
