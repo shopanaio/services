@@ -83,12 +83,20 @@ const SELECTED_OPTION_AND_PRICE_FACETS = [
   { price: PRICE_FILTER },
 ] as const;
 
+const PRICE_ONLY_FACETS = [{ price: PRICE_FILTER }] as const;
+
 const SCENARIOS = [
   {
     name: 'newest:no-filters',
     facets: undefined,
     orderBy: { by: 'NEWEST' },
     expected: 'category',
+  },
+  {
+    name: 'newest:price-only',
+    facets: PRICE_ONLY_FACETS,
+    orderBy: { by: 'NEWEST' },
+    expected: 'priceOnly',
   },
   {
     name: 'newest:filters:no-price',
@@ -107,6 +115,12 @@ const SCENARIOS = [
     facets: undefined,
     orderBy: { by: 'PRICE', direction: 'asc' },
     expected: 'category',
+  },
+  {
+    name: 'price-asc:price-only',
+    facets: PRICE_ONLY_FACETS,
+    orderBy: { by: 'PRICE', direction: 'asc' },
+    expected: 'priceOnly',
   },
   {
     name: 'price-asc:filters:no-price',
@@ -219,6 +233,8 @@ test.describe('Listing service matrix perf', () => {
             ? seedMeta.expected.optionOnly
             : scenario.expected === 'optionAndPrice'
               ? seedMeta.expected.optionAndPrice
+              : scenario.expected === 'priceOnly'
+                ? seedMeta.expected.priceOnly
               : null;
         const expectedTotal = expectedResult?.expectedTotalCount ?? scopedCategory.productCount;
 
@@ -226,8 +242,10 @@ test.describe('Listing service matrix perf', () => {
         expect(listing.edges, scenario.name).toHaveLength(PAGE_SIZE);
         expect(listing.pageInfo.hasNextPage, scenario.name).toBe(true);
 
-        if (expectedResult) {
-          expectSelectedFacetValues(listing.facets, expectedResult.expectedSelectedFacetCounts);
+        if (scenario.expected === 'optionOnly') {
+          expectSelectedFacetValues(listing.facets, seedMeta.expected.optionOnly.expectedSelectedFacetCounts);
+        } else if (scenario.expected === 'optionAndPrice') {
+          expectSelectedFacetValues(listing.facets, seedMeta.expected.optionAndPrice.expectedSelectedFacetCounts);
         } else {
           expectNoSelectedFacetValues(listing.facets);
         }
@@ -278,9 +296,14 @@ interface ListingMatrixSeedMeta {
     productCount: number;
   }>;
   expected: {
+    priceOnly: ListingMatrixExpectedTotal;
     optionOnly: ListingMatrixExpectedResult;
     optionAndPrice: ListingMatrixExpectedResult;
   };
+}
+
+interface ListingMatrixExpectedTotal {
+  expectedTotalCount: number;
 }
 
 interface ListingMatrixExpectedResult {

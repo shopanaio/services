@@ -298,6 +298,40 @@ function buildExpectedSeedMeta(input) {
   };
 }
 
+function buildExpectedPriceOnlySeedMeta(input) {
+  const cheapestMatchingByProduct = new Map();
+
+  for (const variant of input.variants) {
+    if (!input.scopedProductDocIds.has(variant.productDocId)) {
+      continue;
+    }
+    if (variant.priceMinor < input.priceFilter.minMinor || variant.priceMinor > input.priceFilter.maxMinor) {
+      continue;
+    }
+
+    const existing = cheapestMatchingByProduct.get(variant.productDocId);
+    if (
+      !existing ||
+      variant.priceMinor < existing.priceMinor ||
+      (variant.priceMinor === existing.priceMinor && variant.variantDocId < existing.variantDocId)
+    ) {
+      cheapestMatchingByProduct.set(variant.productDocId, variant);
+    }
+  }
+
+  const sortedAssignments = [...cheapestMatchingByProduct.values()].sort(
+    (left, right) => left.priceMinor - right.priceMinor || left.productId.localeCompare(right.productId),
+  );
+
+  return {
+    expectedTotalCount: sortedAssignments.length,
+    expectedPageProductIds: sortedAssignments
+      .slice(0, input.pageSize)
+      .map((assignment) => composeGlobalId('Product', assignment.productId)),
+    expectedPageProductDocIds: sortedAssignments.slice(0, input.pageSize).map((assignment) => assignment.productDocId),
+  };
+}
+
 function planMetric(plan, metric) {
   const root = Array.isArray(plan) ? plan[0] : plan;
   return Number(root?.[metric] ?? 0);
@@ -439,6 +473,15 @@ async function main() {
       maxMinor: PRICE_FILTER_MAX_MINOR,
     },
   });
+  const expectedPriceOnly = buildExpectedPriceOnlySeedMeta({
+    variants,
+    pageSize: args.pageSize,
+    scopedProductDocIds,
+    priceFilter: {
+      minMinor: PRICE_FILTER_MIN_MINOR,
+      maxMinor: PRICE_FILTER_MAX_MINOR,
+    },
+  });
 
   await sql.begin(async (tx) => {
     await seedCatalogProductsAndOptions(tx, {
@@ -521,6 +564,7 @@ async function main() {
           expected: {
             expectedTotalCount: expectedOptionAndPrice.expectedTotalCount,
             expectedSelectedFacetCounts: expectedOptionAndPrice.expectedSelectedFacetCounts,
+            priceOnly: expectedPriceOnly,
             optionOnly: expectedOptionOnly,
             optionAndPrice: expectedOptionAndPrice,
           },

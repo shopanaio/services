@@ -22,11 +22,10 @@ export function compileVirtualFacetsQuerySql(request: ListingSqlRequest): SQL {
       })} AS bitmap
     ),
     ${compileOptionVariantMatchesCte(request)}
+    ${compileOptionVariantPricesCte(request)}
     ${compileOptionMatchingSignatureKeysCte(request)}
     price_range_bounds AS (
-      SELECT
-        (${compilePriceBoundSql(request, "asc")}) AS min_price_minor,
-        (${compilePriceBoundSql(request, "desc")}) AS max_price_minor
+      ${compilePriceRangeBoundsSql(request)}
     ),
     price_range AS (
       SELECT
@@ -66,6 +65,45 @@ function compileOptionVariantMatchesCte(request: ListingSqlRequest): SQL {
   return sql`
     option_variant_matches AS MATERIALIZED (
       SELECT ${optionBitmap} AS bitmap
+    ),
+  `;
+}
+
+function compileOptionVariantPricesCte(request: ListingSqlRequest): SQL {
+  if (request.request.filterPlan.optionFacetGroups.length === 0) {
+    return sql``;
+  }
+
+  return sql`
+    option_variant_prices AS MATERIALIZED (
+      SELECT
+        vp.product_doc_id,
+        vp.product_id,
+        vp.variant_doc_id,
+        vp.price_minor
+      FROM input i
+      CROSS JOIN product_base pb
+      CROSS JOIN option_variant_matches ovm
+      CROSS JOIN LATERAL rb_iterate(ovm.bitmap) AS ov(variant_doc_id)
+      JOIN LATERAL (
+        SELECT
+          price.product_doc_id,
+          price.product_id,
+          price.variant_doc_id,
+          price.price_minor
+        FROM listing.listing_posting_variant_price price
+        WHERE price.project_id = i.project_id
+          AND price.currency = i.currency
+          AND price.variant_doc_id = ov.variant_doc_id
+        LIMIT 1
+      ) vp ON true
+      JOIN listing.variant_listing_index vli
+        ON vli.project_id = i.project_id
+       AND vli.variant_doc_id = vp.variant_doc_id
+       AND vli.product_doc_id = vp.product_doc_id
+       AND vli.product_id = vp.product_id
+       AND vli.in_stock = true
+      WHERE pb.bitmap @> vp.product_doc_id
     ),
   `;
 }
@@ -115,15 +153,23 @@ function compilePriceRangeStockPredicateSql(request: ListingSqlRequest): SQL {
   return request.request.filterPlan.inStock === false ? sql`AND false` : sql``;
 }
 
-function compilePriceBoundSql(
-  request: ListingSqlRequest,
-  direction: "asc" | "desc"
-): SQL {
-  if (request.request.filterPlan.optionFacetGroups.length === 0) {
-    return compileProductPriceBoundSql(request, direction);
+function compilePriceRangeBoundsSql(request: ListingSqlRequest): SQL {
+  if (request.request.filterPlan.optionFacetGroups.length > 0) {
+    return sql`
+      SELECT
+        MIN(ovp.price_minor)::bigint AS min_price_minor,
+        MAX(ovp.price_minor)::bigint AS max_price_minor
+      FROM option_variant_prices ovp
+      WHERE true
+        ${compilePriceRangeStockPredicateSql(request)}
+    `;
   }
 
-  return compileVariantPriceBoundSql(request, direction);
+  return sql`
+    SELECT
+      (${compileProductPriceBoundSql(request, "asc")}) AS min_price_minor,
+      (${compileProductPriceBoundSql(request, "desc")}) AS max_price_minor
+  `;
 }
 
 function compileProductPriceBoundSql(
@@ -155,38 +201,6 @@ function compileProductPriceBoundSql(
   `;
 }
 
-function compileVariantPriceBoundSql(
-  request: ListingSqlRequest,
-  direction: "asc" | "desc"
-): SQL {
-  const orderBy =
-    direction === "asc"
-      ? sql`vp.price_minor ASC, vp.product_id ASC, vp.variant_doc_id ASC, vp.product_doc_id ASC`
-      : sql`vp.price_minor DESC, vp.product_id ASC, vp.variant_doc_id ASC, vp.product_doc_id ASC`;
-
-  return sql`
-    SELECT vp.price_minor::bigint
-    FROM input i
-    CROSS JOIN product_base pb
-    CROSS JOIN option_variant_matches ovm
-    JOIN listing.listing_posting_variant_price vp
-      ON vp.project_id = i.project_id
-     AND vp.currency = i.currency
-    JOIN listing.variant_listing_index vli
-      ON vli.project_id = vp.project_id
-     AND vli.variant_doc_id = vp.variant_doc_id
-     AND vli.product_doc_id = vp.product_doc_id
-     AND vli.product_id = vp.product_id
-     AND vli.in_stock = true
-    WHERE true
-      AND ovm.bitmap @> vp.variant_doc_id
-      AND pb.bitmap @> vp.product_doc_id
-      ${compilePriceRangeStockPredicateSql(request)}
-    ORDER BY ${orderBy}
-    LIMIT 1
-  `;
-}
-
 function compileInStockProductsBitmapSql(request: ListingSqlRequest): SQL {
   const plan = request.request.filterPlan;
 
@@ -210,22 +224,10 @@ function compileOptionPricedInStockProductsBitmapSql(
 ): SQL {
   return sql`
     COALESCE((
-      SELECT rb_build_agg(vp.product_doc_id)
-      FROM input i
-      CROSS JOIN product_base pb
-      CROSS JOIN option_variant_matches ovm
-      JOIN listing.listing_posting_variant_price vp
-        ON vp.project_id = i.project_id
-       AND vp.currency = i.currency
-      JOIN listing.variant_listing_index vli
-        ON vli.project_id = vp.project_id
-       AND vli.variant_doc_id = vp.variant_doc_id
-       AND vli.product_doc_id = vp.product_doc_id
-       AND vli.product_id = vp.product_id
-       AND vli.in_stock = true
-      WHERE ovm.bitmap @> vp.variant_doc_id
-        AND pb.bitmap @> vp.product_doc_id
-        ${compilePricePredicateSql(request, sql`vp`)}
+      SELECT rb_build_agg(ovp.product_doc_id)
+      FROM option_variant_prices ovp
+      WHERE true
+        ${compilePricePredicateSql(request, sql`ovp`)}
     ), ${emptyRoaringBitmapSql()})
   `;
 }
