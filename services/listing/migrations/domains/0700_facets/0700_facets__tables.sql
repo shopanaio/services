@@ -1,6 +1,11 @@
 -- Up Migration
 
-CREATE TABLE "catalog"."facet" (
+CREATE TYPE "listing"."reference_status" AS ENUM (
+  'VALID',
+  'STALE'
+);
+
+CREATE TABLE "listing"."facet" (
   "id" uuid NOT NULL,
   "project_id" uuid NOT NULL,
   "facet_type" varchar(32) NOT NULL,
@@ -15,9 +20,9 @@ CREATE TABLE "catalog"."facet" (
 );
 
 CREATE INDEX "idx_facet_rank"
-  ON "catalog"."facet" ("project_id", "lexo_rank");
+  ON "listing"."facet" ("project_id", "lexo_rank");
 
-CREATE TABLE "catalog"."facet_translation" (
+CREATE TABLE "listing"."facet_translation" (
   "facet_id" uuid NOT NULL,
   "locale" varchar(8) NOT NULL,
   "project_id" uuid NOT NULL,
@@ -25,9 +30,9 @@ CREATE TABLE "catalog"."facet_translation" (
   CONSTRAINT "facet_translation_pkey" PRIMARY KEY ("facet_id", "locale"),
   CONSTRAINT "facet_translation_facet_id_fk"
     FOREIGN KEY ("facet_id")
-    REFERENCES "catalog"."facet" ("id")
+    REFERENCES "listing"."facet" ("id")
     ON DELETE CASCADE
 );
 
 CREATE INDEX "idx_facet_translation_project_locale"
-  ON "catalog"."facet_translation" ("project_id", "locale");
+  ON "listing"."facet_translation" ("project_id", "locale");
