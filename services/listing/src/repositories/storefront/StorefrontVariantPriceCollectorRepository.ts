@@ -4,7 +4,6 @@ import { BaseRepository } from "../BaseRepository.js";
 import {
   assertNonNegativeSafeInteger,
   coalesceBitmapSql,
-  emptyBitmapExpr,
   normalizePositivePageSize,
 } from "./sqlHelpers.js";
 import { StorefrontRepositoryValidationError } from "./types.js";

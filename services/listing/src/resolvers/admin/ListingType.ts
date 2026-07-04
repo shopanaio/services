@@ -1,6 +1,5 @@
 import {
   BaseType,
-  Cache,
   createAuthorizationMiddleware,
   createExecutor,
   type Authorizable,
@@ -9,7 +8,7 @@ import {
 import type { ServiceContext } from "../../context/types.js";
 import { AuthProvider } from "../../kernel/Authorizable.js";
 
-export { Cache };
+export { Cache } from "@shopana/type-resolver";
 
 export abstract class ListingType<TValue, TData = unknown>
   extends BaseType<TValue, TData, ServiceContext>

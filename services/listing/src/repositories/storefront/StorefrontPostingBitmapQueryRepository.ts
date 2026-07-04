@@ -1,10 +1,7 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { ReadOnly } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
-import {
-  listingPostingBitmap,
-  type ListingPostingBitmap,
-} from "../models/index.js";
+import { listingPostingBitmap } from "../models/index.js";
 import {
   coalesceBitmapSql,
   emptyBitmapExpr,

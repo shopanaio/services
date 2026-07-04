@@ -3,7 +3,6 @@ import { ReadOnly } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   coalesceBitmapSql,
-  emptyBitmapExpr,
   normalizePositivePageSize,
 } from "./sqlHelpers.js";
 import { StorefrontRepositoryValidationError } from "./types.js";
