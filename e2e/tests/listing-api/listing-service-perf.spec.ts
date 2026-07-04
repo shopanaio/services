@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { test } from '@fixtures/base.extend';
@@ -13,11 +13,13 @@ const PAGE_SIZE = 20;
 const QUERY_RUNS = 1;
 const PRICE_FILTER = { min: 20_000, max: 60_000 } as const;
 const LISTING_PERF_RESULTS_DIR = resolve(process.cwd(), 'test-results/listing-perf');
-const SEED_META_PATH = resolve(LISTING_PERF_RESULTS_DIR, 'price-facet-10k-seed.json');
-const POSTGRES_RAW_LOG_PATH = resolve(LISTING_PERF_RESULTS_DIR, 'price-facet-10k-postgres.log');
-const POSTGRES_SQL_SUMMARY_PATH = resolve(LISTING_PERF_RESULTS_DIR, 'price-facet-10k-postgres-sql.txt');
-const POSTGRES_COMPARISON_PATH = resolve(LISTING_PERF_RESULTS_DIR, 'price-facet-10k-comparison.json');
-const POSTGRES_FULL_REPORT_PATH = resolve(LISTING_PERF_RESULTS_DIR, 'price-facet-10k-full-report.txt');
+const LISTING_PERF_RESULT_PREFIX = 'price-facet-10k';
+const SEED_META_PATH = resolve(LISTING_PERF_RESULTS_DIR, `${LISTING_PERF_RESULT_PREFIX}-seed.json`);
+const POSTGRES_RAW_LOG_PATH = resolve(LISTING_PERF_RESULTS_DIR, `${LISTING_PERF_RESULT_PREFIX}-postgres.log`);
+const POSTGRES_SQL_SUMMARY_PATH = resolve(LISTING_PERF_RESULTS_DIR, `${LISTING_PERF_RESULT_PREFIX}-postgres-sql.txt`);
+const POSTGRES_COMPARISON_PATH = resolve(LISTING_PERF_RESULTS_DIR, `${LISTING_PERF_RESULT_PREFIX}-comparison.json`);
+const POSTGRES_FULL_REPORT_PATH = resolve(LISTING_PERF_RESULTS_DIR, `${LISTING_PERF_RESULT_PREFIX}-full-report.txt`);
+const EXPLAIN_ANALYZE_REPORT_PATH = resolve(LISTING_PERF_RESULTS_DIR, `${LISTING_PERF_RESULT_PREFIX}-explain-analyze.txt`);
 const LISTING_SQL_BRANCHES = [
   'listing:page',
   'listing:totalCount',
@@ -73,21 +75,27 @@ const LISTING_PERF_QUERY = /* GraphQL */ `
 const SELECTED_FACETS = [
   { variantFacet: { facet: 'color', value: 'red' } },
   { variantFacet: { facet: 'color', value: 'blue' } },
-  { variantFacet: { facet: 'color', value: 'green' } },
   { variantFacet: { facet: 'material', value: 'cotton' } },
-  { variantFacet: { facet: 'material', value: 'linen' } },
   { variantFacet: { facet: 'size', value: 'm' } },
   { variantFacet: { facet: 'size', value: 'l' } },
-  { variantFacet: { facet: 'size', value: 'xl' } },
   { variantFacet: { facet: 'style', value: 'classic' } },
-  { variantFacet: { facet: 'style', value: 'modern' } },
+  { variantFacet: { facet: 'brand', value: 'acme' } },
+  { variantFacet: { facet: 'brand', value: 'northline' } },
+  { variantFacet: { facet: 'brand', value: 'urbanist' } },
+  { variantFacet: { facet: 'fit', value: 'regular' } },
+  { variantFacet: { facet: 'fit', value: 'slim' } },
+  { variantFacet: { facet: 'season', value: 'spring' } },
+  { variantFacet: { facet: 'season', value: 'summer' } },
+  { variantFacet: { facet: 'season', value: 'autumn' } },
+  { variantFacet: { facet: 'pattern', value: 'solid' } },
+  { variantFacet: { facet: 'pattern', value: 'striped' } },
   { price: PRICE_FILTER },
 ] as const;
 
 test.describe('Listing service perf', () => {
-  test.describe.configure({ timeout: 240_000 });
+  test.describe.configure({ timeout: 900_000 });
 
-  test('calls listing service for price sort and price filter with 4 OR facet groups on 10k products', async ({
+  test('calls listing service for price sort and price filter with 8 OR facet groups on 10k products with 18 variants each', async ({
     api,
     request,
   }) => {
@@ -104,6 +112,7 @@ test.describe('Listing service perf', () => {
     const { stdout } = await execFileAsync(
       'node',
       [
+        '--max-old-space-size=12288',
         'scripts/listing-price-facet-perf.mjs',
         '--seed-only',
         '--products',
@@ -131,6 +140,7 @@ test.describe('Listing service perf', () => {
 
       const postgresLogsSince = new Date().toISOString();
       const runMetrics: ListingPerfRunMetric[] = [];
+      await removeIfExists(EXPLAIN_ANALYZE_REPORT_PATH);
 
       for (let run = 1; run <= QUERY_RUNS; run += 1) {
         const startedAt = performance.now();
@@ -180,6 +190,9 @@ test.describe('Listing service perf', () => {
       }
 
       const postgresDurations = await readRecentPostgresDurations(postgresLogsSince);
+      const explainAnalyzeReport =
+        (await readOptionalFile(EXPLAIN_ANALYZE_REPORT_PATH)) ??
+        'EXPLAIN ANALYZE disabled. Set LISTING_FACET_COUNTS_PROFILE_ENABLED=true to generate this report.';
       const branchTimingRuns = extractBranchTimingRuns(postgresDurations.summary);
       const sqlTimingSummary = summarizeSqlTimings(postgresDurations.summary);
       for (const metric of runMetrics) {
@@ -195,6 +208,7 @@ test.describe('Listing service perf', () => {
         buildFullReport({
           comparison,
           sqlTimingSummary,
+          explainAnalyzeReport,
           postgresSummary: postgresDurations.summary,
         }),
       );
@@ -203,6 +217,7 @@ test.describe('Listing service perf', () => {
       console.log(formatSqlTimingSummary(sqlTimingSummary));
       console.log(`postgres raw log: ${POSTGRES_RAW_LOG_PATH}`);
       console.log(`postgres sql timings: ${POSTGRES_SQL_SUMMARY_PATH}`);
+      console.log(`explain analyze: ${EXPLAIN_ANALYZE_REPORT_PATH}`);
       console.log(`comparison: ${POSTGRES_COMPARISON_PATH}`);
       console.log(`full report: ${POSTGRES_FULL_REPORT_PATH}`);
     } finally {
@@ -295,6 +310,16 @@ async function readRecentPostgresDurations(since: string): Promise<{ summary: st
   await writeFile(POSTGRES_SQL_SUMMARY_PATH, summary);
 
   return { summary };
+}
+
+async function removeIfExists(path: string) {
+  try {
+    await unlink(path);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error;
+    }
+  }
 }
 
 function extractPostgresDurationEntries(log: string): string[] {
@@ -466,9 +491,22 @@ function formatSqlTimingSummary(summary: SqlTimingSummaryEntry[]): string {
   return lines.join('\n');
 }
 
+async function readOptionalFile(path: string): Promise<string | null> {
+  try {
+    return await readFile(path, 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
 function buildFullReport(input: {
   comparison: ReturnType<typeof buildRunComparison>;
   sqlTimingSummary: SqlTimingSummaryEntry[];
+  explainAnalyzeReport: string;
   postgresSummary: string;
 }) {
   return [
@@ -481,6 +519,10 @@ function buildFullReport(input: {
     '## SQL execute summary',
     '',
     formatSqlTimingSummary(input.sqlTimingSummary),
+    '',
+    '## EXPLAIN ANALYZE',
+    '',
+    input.explainAnalyzeReport,
     '',
     '## Full PostgreSQL duration SQL report',
     '',

@@ -7,33 +7,91 @@ import postgres from 'postgres';
 const DEFAULT_DATABASE_URL = 'postgresql://postgres:postgres@localhost:15432/portal';
 const ZERO_UUID = '00000000-0000-0000-0000-000000000000';
 const DEFAULT_PRODUCTS = 10_000;
+const COMBINATION_OPTION_GROUP_COUNT = 4;
 const DEFAULT_PAGE_SIZE = 20;
 const PRICE_FILTER_MIN_MINOR = 20_000;
 const PRICE_FILTER_MAX_MINOR = 60_000;
 const CURRENCY = 'USD';
 const LOCALE = 'en';
 const E2E_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const RESULT_PREFIX = 'price-facet-10k';
+const VARIANT_INSERT_CHUNK_SIZE = 100_000;
+const CATALOG_INSERT_CHUNK_SIZE = 100_000;
+const VARIANT_OPTION_LINK_INSERT_CHUNK_SIZE = 10_000;
+const VARIANT_PROJECTION_BLOCK_SIZE = 3_600;
+
+function allExceptLast(values) {
+  return values.slice(0, -1);
+}
 
 const OPTION_GROUPS = [
   {
     slug: 'color',
-    values: ['black', 'white', 'red', 'blue', 'green', 'yellow'],
-    selected: ['red', 'blue', 'green'],
+    values: ['red', 'blue', 'green'],
+    selected: allExceptLast(['red', 'blue', 'green']),
   },
   {
     slug: 'material',
-    values: ['cotton', 'linen', 'wool', 'denim'],
-    selected: ['cotton', 'linen'],
+    values: ['cotton', 'linen'],
+    selected: allExceptLast(['cotton', 'linen']),
   },
   {
     slug: 'size',
-    values: ['xs', 's', 'm', 'l', 'xl', 'xxl'],
-    selected: ['m', 'l', 'xl'],
+    values: ['m', 'l', 'xl'],
+    selected: allExceptLast(['m', 'l', 'xl']),
   },
   {
     slug: 'style',
-    values: ['classic', 'modern', 'street', 'minimal', 'sport'],
-    selected: ['classic', 'modern'],
+    values: ['classic', 'modern'],
+    selected: allExceptLast(['classic', 'modern']),
+    valuesPerProduct: 1,
+  },
+  {
+    slug: 'brand',
+    values: ['acme', 'northline', 'urbanist', 'everfit'],
+    selected: allExceptLast(['acme', 'northline', 'urbanist', 'everfit']),
+  },
+  {
+    slug: 'fit',
+    values: ['regular', 'slim', 'relaxed'],
+    selected: allExceptLast(['regular', 'slim', 'relaxed']),
+  },
+  {
+    slug: 'season',
+    values: ['spring', 'summer', 'autumn', 'winter'],
+    selected: allExceptLast(['spring', 'summer', 'autumn', 'winter']),
+  },
+  {
+    slug: 'pattern',
+    values: ['solid', 'striped', 'checked'],
+    selected: allExceptLast(['solid', 'striped', 'checked']),
+  },
+];
+
+const CATEGORY_SPECS = [
+  {
+    slug: 'large-mixed-catalog',
+    includes: (docId) => docId % 5 !== 0,
+  },
+  {
+    slug: 'every-second-product',
+    includes: (docId) => docId % 2 === 0,
+  },
+  {
+    slug: 'every-third-product',
+    includes: (docId) => docId % 3 === 0,
+  },
+  {
+    slug: 'sale-rotation',
+    includes: (docId) => docId % 4 === 0,
+  },
+  {
+    slug: 'new-arrivals-rotation',
+    includes: (docId) => docId % 7 === 0,
+  },
+  {
+    slug: 'premium-rotation',
+    includes: (docId) => docId % 11 === 0,
   },
 ];
 
@@ -108,15 +166,44 @@ Environment:
   E2E_DATABASE_URL or DATABASE_URL, default ${DEFAULT_DATABASE_URL}
 
 What it measures:
-  Direct listing read-model SQL for category page price_asc sorting with 4 OPTION
-  facet OR groups selected at once. It writes EXPLAIN ANALYZE JSON plans to
+  Direct listing read-model SQL for category page price_asc sorting with multiple
+  overlapping categories, 8 OPTION facet groups, and all option combinations
+  across the first 4 OPTION groups. It writes EXPLAIN ANALYZE JSON plans to
   test-results/listing-perf/.
 `);
 }
 
-function optionValueForProduct(group, productIndex) {
-  const value = group.values[productIndex % group.values.length];
-  return typeof value === 'string' ? value : value.handle;
+function cartesianOptionCombinations(groups) {
+  return cartesianValueCombinations(groups.map((group) => group.values));
+}
+
+function cartesianValueCombinations(valueGroups) {
+  return valueGroups.reduce(
+    (combinations, group) =>
+      combinations.flatMap((combination) => group.map((value) => [...combination, value])),
+    [[]],
+  );
+}
+
+function productOptionValuePool(group, productIndex, groupIndex) {
+  if (typeof group.valuesPerProduct === 'number') {
+    const count = Math.min(group.values.length, group.valuesPerProduct);
+    return Array.from({ length: count }, (_, offset) => group.values[(productIndex + groupIndex + offset) % group.values.length]);
+  }
+
+  if (groupIndex < COMBINATION_OPTION_GROUP_COUNT) {
+    return group.values;
+  }
+
+  const maxCount = Math.min(group.values.length, 3);
+  const minCount = Math.min(maxCount, 2);
+  const count = minCount + ((productIndex + groupIndex) % (maxCount - minCount + 1));
+
+  return Array.from({ length: count }, (_, offset) => group.values[(productIndex + groupIndex + offset) % group.values.length]);
+}
+
+function productOptionValueKey(productIndex, groupIndex, valueHandle) {
+  return `${productIndex}:${groupIndex}:${valueHandle}`;
 }
 
 function optionSignatureKey(valueKeys) {
@@ -127,27 +214,48 @@ function composeGlobalId(typeName, id) {
   return Buffer.from(`gid://shopana/${typeName}/${id}`, 'utf8').toString('base64');
 }
 
+function chunks(items, size) {
+  const result = [];
+  for (let index = 0; index < items.length; index += size) {
+    result.push(items.slice(index, index + size));
+  }
+  return result;
+}
+
 function buildExpectedSeedMeta(input) {
   const selectedByFacet = new Map(input.facets.map((facet) => [facet.slug, new Set(facet.selected)]));
-  const assignments = input.productIds.map((productId, index) => {
-    const facetValues = Object.fromEntries(
-      input.facets.map((facet) => [facet.slug, optionValueForProduct(facet, index)]),
-    );
+  const assignments = input.variants.map((variant) => {
+    const facetValues = Object.fromEntries(input.facets.map((facet) => [facet.slug, variant.facetValues[facet.slug]]));
 
     return {
-      productId,
-      productGlobalId: composeGlobalId('Product', productId),
-      productDocId: input.productDocIds[index],
-      priceMinor: input.prices[index],
+      productId: variant.productId,
+      productGlobalId: composeGlobalId('Product', variant.productId),
+      productDocId: variant.productDocId,
+      variantDocId: variant.variantDocId,
+      inScope: input.scopedProductDocIds.has(variant.productDocId),
+      priceMinor: variant.priceMinor,
       facetValues,
     };
   });
+  const matchesPriceFilter = (assignment) =>
+    !input.priceFilter ||
+    (assignment.priceMinor >= input.priceFilter.minMinor && assignment.priceMinor <= input.priceFilter.maxMinor);
   const matchesAllFilters = (assignment) =>
-    assignment.priceMinor >= input.priceFilter.minMinor &&
-    assignment.priceMinor <= input.priceFilter.maxMinor &&
+    assignment.inScope &&
+    matchesPriceFilter(assignment) &&
     [...selectedByFacet.entries()].every(([facetSlug, selected]) => selected.has(assignment.facetValues[facetSlug]));
-  const matchingAssignments = assignments.filter(matchesAllFilters);
-  const sortedAssignments = [...matchingAssignments].sort(
+  const cheapestMatchingByProduct = new Map();
+  for (const assignment of assignments.filter(matchesAllFilters)) {
+    const existing = cheapestMatchingByProduct.get(assignment.productDocId);
+    if (
+      !existing ||
+      assignment.priceMinor < existing.priceMinor ||
+      (assignment.priceMinor === existing.priceMinor && assignment.variantDocId < existing.variantDocId)
+    ) {
+      cheapestMatchingByProduct.set(assignment.productDocId, assignment);
+    }
+  }
+  const sortedAssignments = [...cheapestMatchingByProduct.values()].sort(
     (left, right) => left.priceMinor - right.priceMinor || left.productId.localeCompare(right.productId),
   );
   const selectedFacetCounts = Object.fromEntries(
@@ -156,28 +264,34 @@ function buildExpectedSeedMeta(input) {
       Object.fromEntries(
         facet.selected.map((valueHandle) => [
           valueHandle,
-          assignments.filter((assignment) => {
-            if (assignment.facetValues[facet.slug] !== valueHandle) {
-              return false;
-            }
-            if (
-              assignment.priceMinor < input.priceFilter.minMinor ||
-              assignment.priceMinor > input.priceFilter.maxMinor
-            ) {
-              return false;
-            }
+          new Set(
+            assignments
+              .filter((assignment) => {
+                if (assignment.facetValues[facet.slug] !== valueHandle) {
+                  return false;
+                }
+                if (!assignment.inScope) {
+                  return false;
+                }
+                if (!matchesPriceFilter(assignment)) {
+                  return false;
+                }
 
-            return input.facets
-              .filter((otherFacet) => otherFacet.slug !== facet.slug)
-              .every((otherFacet) => selectedByFacet.get(otherFacet.slug)?.has(assignment.facetValues[otherFacet.slug]));
-          }).length,
+                return input.facets
+                  .filter((otherFacet) => otherFacet.slug !== facet.slug)
+                  .every((otherFacet) =>
+                    selectedByFacet.get(otherFacet.slug)?.has(assignment.facetValues[otherFacet.slug]),
+                  );
+              })
+              .map((assignment) => assignment.productDocId),
+          ).size,
         ]),
       ),
     ]),
   );
 
   return {
-    expectedTotalCount: matchingAssignments.length,
+    expectedTotalCount: sortedAssignments.length,
     expectedPageProductIds: sortedAssignments.slice(0, input.pageSize).map((assignment) => assignment.productGlobalId),
     expectedPageProductDocIds: sortedAssignments.slice(0, input.pageSize).map((assignment) => assignment.productDocId),
     expectedSelectedFacetCounts: selectedFacetCounts,
@@ -215,11 +329,15 @@ async function main() {
   const projectId = args.projectId ?? randomUUID();
   const categoryId = args.categoryId ?? randomUUID();
   const productIds = Array.from({ length: args.products }, () => randomUUID());
-  const variantIds = Array.from({ length: args.products }, () => randomUUID());
   const productDocIds = Array.from({ length: args.products }, (_, index) => index + 1);
-  const handles = productDocIds.map((docId) => `perf-product-${docId.toString().padStart(5, '0')}`);
-  const prices = productDocIds.map((docId) => 1_000 + ((docId * 37) % 90_000));
+  const handles = productDocIds.map((docId) => `perf-product-${docId.toString().padStart(6, '0')}`);
   const now = new Date().toISOString();
+  const categories = CATEGORY_SPECS.map((spec, index) => ({
+    id: index === 0 ? categoryId : randomUUID(),
+    slug: spec.slug,
+    productDocIds: productDocIds.filter(spec.includes),
+  }));
+  const scopedProductDocIds = new Set(categories[0].productDocIds);
 
   const facets = OPTION_GROUPS.map((group, groupIndex) => ({
     ...group,
@@ -229,27 +347,93 @@ async function main() {
       handle,
     })),
   }));
+  const productOptionValuePools = productDocIds.map((_, productIndex) =>
+    OPTION_GROUPS.map((group, groupIndex) => productOptionValuePool(group, productIndex, groupIndex)),
+  );
+  const productOptionIds = productDocIds.map(() => OPTION_GROUPS.map(() => randomUUID()));
+  const productOptionValueIds = new Map();
+  for (const [productIndex, pools] of productOptionValuePools.entries()) {
+    for (const [groupIndex, values] of pools.entries()) {
+      for (const valueHandle of values) {
+        productOptionValueIds.set(productOptionValueKey(productIndex, groupIndex, valueHandle), randomUUID());
+      }
+    }
+  }
+  const productVariantCounts = productOptionValuePools.map((pools) =>
+    pools
+      .slice(0, COMBINATION_OPTION_GROUP_COUNT)
+      .reduce((total, values) => total * values.length, 1),
+  );
+  let nextVariantDocId = 1;
+  const variants = productIds.flatMap((productId, productIndex) => {
+    const pools = productOptionValuePools[productIndex];
+    const combinations = cartesianValueCombinations(pools.slice(0, COMBINATION_OPTION_GROUP_COUNT));
 
-  const productValueKeys = productDocIds.map((docId, index) => {
+    return combinations.map((combination, variantOffset) => {
+      const variantDocId = nextVariantDocId++;
+      const productDocId = productDocIds[productIndex];
+      const facetValues = Object.fromEntries(
+        facets.map((facet, groupIndex) => [
+          facet.slug,
+          groupIndex < COMBINATION_OPTION_GROUP_COUNT
+            ? combination[groupIndex]
+            : pools[groupIndex][variantOffset % pools[groupIndex].length],
+        ]),
+      );
+
+      return {
+        productId,
+        productDocId,
+        variantId: randomUUID(),
+        variantDocId,
+        variantOffset,
+        priceMinor: 1_000 + ((variantDocId * 37 + variantOffset * 997 + productIndex * 13) % 90_000),
+        facetValues,
+        optionValueIds: facets.map((_, groupIndex) =>
+          productOptionValueIds.get(productOptionValueKey(productIndex, groupIndex, facetValues[OPTION_GROUPS[groupIndex].slug])),
+        ),
+      };
+    });
+  });
+  const productPrices = productDocIds.map(() => ({
+    minPriceMinor: Number.POSITIVE_INFINITY,
+    maxPriceMinor: 0,
+  }));
+  for (const variant of variants) {
+    const productPrice = productPrices[variant.productDocId - 1];
+    productPrice.minPriceMinor = Math.min(productPrice.minPriceMinor, variant.priceMinor);
+    productPrice.maxPriceMinor = Math.max(productPrice.maxPriceMinor, variant.priceMinor);
+  }
+  const variantValueKeys = variants.map((variant) => {
     return facets.map((facet) => {
-      const valueHandle = optionValueForProduct(facet, index);
+      const valueHandle = variant.facetValues[facet.slug];
       const value = facet.values.find((candidate) => candidate.handle === valueHandle);
       return `${facet.id}:${value.id}`;
     });
   });
-  const signatureKeys = productValueKeys.map(optionSignatureKey);
+  const signatureKeys = variantValueKeys.map(optionSignatureKey);
   const selectedFilterRows = facets.flatMap((facet) =>
     facet.selected.map((handle) => {
       const value = facet.values.find((candidate) => candidate.handle === handle);
       return { facetId: facet.id, valueKey: `${facet.id}:${value.id}` };
     }),
   );
-  const expected = buildExpectedSeedMeta({
+  const expectedOptionOnly = buildExpectedSeedMeta({
     facets,
     productIds,
     productDocIds,
-    prices,
+    variants,
     pageSize: args.pageSize,
+    scopedProductDocIds,
+    priceFilter: null,
+  });
+  const expectedOptionAndPrice = buildExpectedSeedMeta({
+    facets,
+    productIds,
+    productDocIds,
+    variants,
+    pageSize: args.pageSize,
+    scopedProductDocIds,
     priceFilter: {
       minMinor: PRICE_FILTER_MIN_MINOR,
       maxMinor: PRICE_FILTER_MAX_MINOR,
@@ -257,22 +441,35 @@ async function main() {
   });
 
   await sql.begin(async (tx) => {
+    await seedCatalogProductsAndOptions(tx, {
+      projectId,
+      categoryId,
+      productIds,
+      productDocIds,
+      handles,
+      variants,
+      categories,
+      productOptionValuePools,
+      productOptionIds,
+      productOptionValueIds,
+      now,
+    });
     await seedCatalogFacets(tx, projectId, facets);
     await seedListingRows(tx, {
       projectId,
       categoryId,
       productIds,
-      variantIds,
       productDocIds,
       handles,
-      prices,
+      variants,
+      productPrices,
       signatureKeys,
       now,
     });
-    await seedCategoryBitmap(tx, projectId, categoryId, productDocIds);
-    await seedVariantProjectionBlock(tx, projectId, productDocIds);
-    await seedOptionFacetBitmaps(tx, projectId, facets, productValueKeys, productDocIds);
-    await seedOptionSignatures(tx, projectId, productValueKeys, productDocIds);
+    await seedCategoryBitmaps(tx, projectId, categories);
+    await seedVariantProjectionBlock(tx, projectId, variants);
+    await seedOptionFacetBitmaps(tx, projectId, facets, variantValueKeys, variants);
+    await seedOptionSignatures(tx, projectId, variantValueKeys, variants);
   });
 
   await sql`ANALYZE listing.product_listing_index`;
@@ -288,11 +485,32 @@ async function main() {
   if (args.seedOnly) {
     await writeText(
       args.outDir,
-      'price-facet-10k-seed.json',
+      `${RESULT_PREFIX}-seed.json`,
       `${JSON.stringify(
         {
           projectId,
           categoryId,
+          variants: variants.length,
+          variantsPerProduct: {
+            min: Math.min(...productVariantCounts),
+            max: Math.max(...productVariantCounts),
+          },
+          optionDistribution: OPTION_GROUPS.map((group, groupIndex) => {
+            const counts = productOptionValuePools.map((pools) => pools[groupIndex].length);
+            return {
+              slug: group.slug,
+              combinationAxis: groupIndex < COMBINATION_OPTION_GROUP_COUNT,
+              valuesPerProduct: {
+                min: Math.min(...counts),
+                max: Math.max(...counts),
+              },
+            };
+          }),
+          categories: categories.map((category) => ({
+            id: category.id,
+            slug: category.slug,
+            productCount: category.productDocIds.length,
+          })),
           products: args.products,
           pageSize: args.pageSize,
           filters: OPTION_GROUPS.map(({ slug, selected }) => ({ slug, selected })),
@@ -300,7 +518,12 @@ async function main() {
             minMinor: PRICE_FILTER_MIN_MINOR,
             maxMinor: PRICE_FILTER_MAX_MINOR,
           },
-          expected,
+          expected: {
+            expectedTotalCount: expectedOptionAndPrice.expectedTotalCount,
+            expectedSelectedFacetCounts: expectedOptionAndPrice.expectedSelectedFacetCounts,
+            optionOnly: expectedOptionOnly,
+            optionAndPrice: expectedOptionAndPrice,
+          },
         },
         null,
         2,
@@ -308,9 +531,15 @@ async function main() {
     );
     console.log(`seeded project=${projectId} category=${categoryId} products=${args.products}`);
     console.log(
+      `variants=${variants.length} variantsPerProduct=${Math.min(...productVariantCounts)}-${Math.max(...productVariantCounts)}`,
+    );
+    console.log(
       `filters=${selectedFilterRows.length} values across ${facets.length} OR groups price=${PRICE_FILTER_MIN_MINOR}-${PRICE_FILTER_MAX_MINOR}`,
     );
-    console.log(`seedMeta=${resolve(args.outDir, 'price-facet-10k-seed.json')}`);
+    console.log(
+      `categories=${categories.map((category) => `${category.slug}:${category.productDocIds.length}`).join(' ')}`,
+    );
+    console.log(`seedMeta=${resolve(args.outDir, `${RESULT_PREFIX}-seed.json`)}`);
     await sql.end();
     return;
   }
@@ -334,17 +563,21 @@ async function main() {
   const pagePlan = await runPageExplain(sql, pageInput);
   const totalPlan = await runTotalExplain(sql, totalInput);
 
-  await writeText(args.outDir, 'price-facet-10k-page.sql', pageSql);
-  await writeText(args.outDir, 'price-facet-10k-total.sql', totalSql);
-  await writePlan(args.outDir, 'price-facet-10k-page.json', pagePlan);
-  await writePlan(args.outDir, 'price-facet-10k-total.json', totalPlan);
+  await writeText(args.outDir, `${RESULT_PREFIX}-page.sql`, pageSql);
+  await writeText(args.outDir, `${RESULT_PREFIX}-total.sql`, totalSql);
+  await writePlan(args.outDir, `${RESULT_PREFIX}-page.json`, pagePlan);
+  await writePlan(args.outDir, `${RESULT_PREFIX}-total.json`, totalPlan);
 
   const pageExecutionMs = planMetric(pagePlan, 'Execution Time');
   const totalExecutionMs = planMetric(totalPlan, 'Execution Time');
   const pageBuffers = collectBufferSummary(pagePlan[0].Plan);
 
   console.log(`seeded project=${projectId} category=${categoryId} products=${args.products}`);
+  console.log(
+    `variants=${variants.length} variantsPerProduct=${Math.min(...productVariantCounts)}-${Math.max(...productVariantCounts)}`,
+  );
   console.log(`filters=${selectedFilterRows.length} values across ${facets.length} OR groups`);
+  console.log(`categories=${categories.map((category) => `${category.slug}:${category.productDocIds.length}`).join(' ')}`);
   console.log(`page select rows=${pageSelect.result.length} clientElapsed=${pageSelect.elapsedMs.toFixed(3)}ms`);
   console.log(`total select rows=${totalSelect.result.length} total=${totalSelect.result[0]?.total_count ?? totalSelect.result[0]?.totalCount ?? 'n/a'} clientElapsed=${totalSelect.elapsedMs.toFixed(3)}ms`);
   console.log(`page explain execution=${pageExecutionMs.toFixed(3)}ms planning=${planMetric(pagePlan, 'Planning Time').toFixed(3)}ms`);
@@ -366,6 +599,343 @@ async function measureQuery(callback) {
     result,
     elapsedMs: performance.now() - startedAt,
   };
+}
+
+async function seedCatalogProductsAndOptions(sql, input) {
+  await seedCatalogProducts(sql, input);
+  await seedCatalogCategories(sql, input.projectId, input.categories, input.now);
+  await seedCatalogProductCategories(sql, input.projectId, input.productIds, input.categories);
+  await seedCatalogVariants(sql, input.projectId, input.variants, input.now);
+  await seedCatalogProductOptions(sql, input);
+  await seedCatalogVariantOptionLinks(sql, input);
+}
+
+async function seedCatalogProducts(sql, input) {
+  for (const productChunk of chunks(input.productIds.map((productId, index) => ({
+    productId,
+    handle: input.handles[index],
+    docId: input.productDocIds[index],
+  })), CATALOG_INSERT_CHUNK_SIZE)) {
+    await sql`
+      INSERT INTO catalog.product (
+        project_id,
+        id,
+        handle,
+        published_at,
+        created_at,
+        updated_at,
+        revision,
+        kind
+      )
+      SELECT
+        ${input.projectId}::uuid,
+        product_id,
+        handle,
+        ${input.now}::timestamptz,
+        ${input.now}::timestamptz,
+        ${input.now}::timestamptz,
+        1,
+        'BASE'
+      FROM unnest(
+        ${productChunk.map((row) => row.productId)}::uuid[],
+        ${productChunk.map((row) => row.handle)}::text[]
+      ) AS rows(product_id, handle)
+      ON CONFLICT (id) DO NOTHING
+    `;
+
+    await sql`
+      INSERT INTO catalog.product_translation (
+        project_id,
+        product_id,
+        locale,
+        name
+      )
+      SELECT
+        ${input.projectId}::uuid,
+        product_id,
+        ${LOCALE},
+        'Perf product ' || doc_id::text
+      FROM unnest(
+        ${productChunk.map((row) => row.productId)}::uuid[],
+        ${productChunk.map((row) => row.docId)}::int[]
+      ) AS rows(product_id, doc_id)
+      ON CONFLICT (product_id, locale) DO NOTHING
+    `;
+  }
+}
+
+async function seedCatalogCategories(sql, projectId, categories, now) {
+  await sql`
+    INSERT INTO catalog.category (
+      project_id,
+      id,
+      path,
+      depth,
+      handle,
+      default_sort,
+      default_sort_direction,
+      published_at,
+      revision,
+      products_count,
+      created_at,
+      updated_at
+    )
+    SELECT
+      ${projectId}::uuid,
+      category_id,
+      '/' || slug,
+      0,
+      slug,
+      'price',
+      'asc',
+      ${now}::timestamptz,
+      1,
+      product_count,
+      ${now}::timestamptz,
+      ${now}::timestamptz
+    FROM unnest(
+      ${categories.map((category) => category.id)}::uuid[],
+      ${categories.map((category) => category.slug)}::text[],
+      ${categories.map((category) => category.productDocIds.length)}::int[]
+    ) AS rows(category_id, slug, product_count)
+    ON CONFLICT (id) DO NOTHING
+  `;
+
+  await sql`
+    INSERT INTO catalog.category_translation (
+      project_id,
+      category_id,
+      locale,
+      name
+    )
+    SELECT
+      ${projectId}::uuid,
+      category_id,
+      ${LOCALE},
+      slug
+    FROM unnest(
+      ${categories.map((category) => category.id)}::uuid[],
+      ${categories.map((category) => category.slug)}::text[]
+    ) AS rows(category_id, slug)
+    ON CONFLICT (category_id, locale) DO NOTHING
+  `;
+}
+
+async function seedCatalogProductCategories(sql, projectId, productIds, categories) {
+  const productIdByDocId = new Map(productIds.map((productId, index) => [index + 1, productId]));
+
+  for (const category of categories) {
+    const isPrimary = category.slug === CATEGORY_SPECS[0].slug;
+    const rows = category.productDocIds.map((productDocId, index) => ({
+      productId: productIdByDocId.get(productDocId),
+      lexoRank: String(index + 1).padStart(12, '0'),
+    }));
+
+    for (const rowChunk of chunks(rows, CATALOG_INSERT_CHUNK_SIZE)) {
+      await sql`
+        INSERT INTO catalog.product_category (
+          project_id,
+          product_id,
+          category_id,
+          is_primary,
+          lexo_rank
+        )
+        SELECT
+          ${projectId}::uuid,
+          product_id,
+          ${category.id}::uuid,
+          ${isPrimary}::boolean,
+          lexo_rank
+        FROM unnest(
+          ${rowChunk.map((row) => row.productId)}::uuid[],
+          ${rowChunk.map((row) => row.lexoRank)}::text[]
+        ) AS rows(product_id, lexo_rank)
+        ON CONFLICT (product_id, category_id) DO NOTHING
+      `;
+    }
+  }
+}
+
+async function seedCatalogVariants(sql, projectId, variants, now) {
+  for (const variantChunk of chunks(variants, CATALOG_INSERT_CHUNK_SIZE)) {
+    await sql`
+      INSERT INTO catalog.variant (
+        project_id,
+        product_id,
+        kind,
+        id,
+        is_default,
+        handle,
+        sku,
+        created_at,
+        updated_at
+      )
+      SELECT
+        ${projectId}::uuid,
+        product_id,
+        'BASE',
+        variant_id,
+        variant_offset = 0,
+        'variant-' || variant_doc_id::text,
+        'PERF-' || variant_doc_id::text,
+        ${now}::timestamptz,
+        ${now}::timestamptz
+      FROM unnest(
+        ${variantChunk.map((variant) => variant.productId)}::uuid[],
+        ${variantChunk.map((variant) => variant.variantId)}::uuid[],
+        ${variantChunk.map((variant) => variant.variantDocId)}::int[],
+        ${variantChunk.map((variant) => variant.variantOffset)}::int[]
+      ) AS rows(product_id, variant_id, variant_doc_id, variant_offset)
+      ON CONFLICT (id) DO NOTHING
+    `;
+  }
+}
+
+async function seedCatalogProductOptions(sql, input) {
+  const optionRows = input.productIds.flatMap((productId, productIndex) =>
+    OPTION_GROUPS.map((group, groupIndex) => ({
+      optionId: input.productOptionIds[productIndex][groupIndex],
+      productId,
+      slug: group.slug,
+      sortIndex: groupIndex,
+    })),
+  );
+
+  for (const optionChunk of chunks(optionRows, CATALOG_INSERT_CHUNK_SIZE)) {
+    await sql`
+      INSERT INTO catalog.product_option (
+        id,
+        project_id,
+        product_id,
+        slug,
+        display_type,
+        sort_index
+      )
+      SELECT
+        option_id,
+        ${input.projectId}::uuid,
+        product_id,
+        slug,
+        'BUTTONS',
+        sort_index
+      FROM unnest(
+        ${optionChunk.map((row) => row.optionId)}::uuid[],
+        ${optionChunk.map((row) => row.productId)}::uuid[],
+        ${optionChunk.map((row) => row.slug)}::text[],
+        ${optionChunk.map((row) => row.sortIndex)}::int[]
+      ) AS rows(option_id, product_id, slug, sort_index)
+      ON CONFLICT (id) DO NOTHING
+    `;
+
+    await sql`
+      INSERT INTO catalog.product_option_translation (
+        project_id,
+        option_id,
+        locale,
+        name
+      )
+      SELECT
+        ${input.projectId}::uuid,
+        option_id,
+        ${LOCALE},
+        slug
+      FROM unnest(
+        ${optionChunk.map((row) => row.optionId)}::uuid[],
+        ${optionChunk.map((row) => row.slug)}::text[]
+      ) AS rows(option_id, slug)
+      ON CONFLICT (option_id, locale) DO NOTHING
+    `;
+  }
+
+  const valueRows = [];
+  for (const [productIndex, pools] of input.productOptionValuePools.entries()) {
+    for (const [groupIndex, values] of pools.entries()) {
+      for (const [sortIndex, valueHandle] of values.entries()) {
+        valueRows.push({
+          valueId: input.productOptionValueIds.get(productOptionValueKey(productIndex, groupIndex, valueHandle)),
+          optionId: input.productOptionIds[productIndex][groupIndex],
+          valueHandle,
+          sortIndex,
+        });
+      }
+    }
+  }
+
+  for (const valueChunk of chunks(valueRows, CATALOG_INSERT_CHUNK_SIZE)) {
+    await sql`
+      INSERT INTO catalog.product_option_value (
+        id,
+        project_id,
+        option_id,
+        slug,
+        sort_index
+      )
+      SELECT
+        value_id,
+        ${input.projectId}::uuid,
+        option_id,
+        value_handle,
+        sort_index
+      FROM unnest(
+        ${valueChunk.map((row) => row.valueId)}::uuid[],
+        ${valueChunk.map((row) => row.optionId)}::uuid[],
+        ${valueChunk.map((row) => row.valueHandle)}::text[],
+        ${valueChunk.map((row) => row.sortIndex)}::int[]
+      ) AS rows(value_id, option_id, value_handle, sort_index)
+      ON CONFLICT (id) DO NOTHING
+    `;
+
+    await sql`
+      INSERT INTO catalog.product_option_value_translation (
+        project_id,
+        option_value_id,
+        locale,
+        name
+      )
+      SELECT
+        ${input.projectId}::uuid,
+        value_id,
+        ${LOCALE},
+        value_handle
+      FROM unnest(
+        ${valueChunk.map((row) => row.valueId)}::uuid[],
+        ${valueChunk.map((row) => row.valueHandle)}::text[]
+      ) AS rows(value_id, value_handle)
+      ON CONFLICT (option_value_id, locale) DO NOTHING
+    `;
+  }
+}
+
+async function seedCatalogVariantOptionLinks(sql, input) {
+  for (const variantChunk of chunks(input.variants, VARIANT_OPTION_LINK_INSERT_CHUNK_SIZE)) {
+    const links = variantChunk.flatMap((variant) =>
+      OPTION_GROUPS.map((_, groupIndex) => ({
+        variantId: variant.variantId,
+        optionId: input.productOptionIds[variant.productDocId - 1][groupIndex],
+        optionValueId: variant.optionValueIds[groupIndex],
+      })),
+    );
+
+    await sql`
+      INSERT INTO catalog.product_option_variant_link (
+        project_id,
+        variant_id,
+        option_id,
+        option_value_id
+      )
+      SELECT
+        ${input.projectId}::uuid,
+        variant_id,
+        option_id,
+        option_value_id
+      FROM unnest(
+        ${links.map((row) => row.variantId)}::uuid[],
+        ${links.map((row) => row.optionId)}::uuid[],
+        ${links.map((row) => row.optionValueId)}::uuid[]
+      ) AS rows(variant_id, option_id, option_value_id)
+      ON CONFLICT (variant_id, option_id) DO NOTHING
+    `;
+  }
 }
 
 async function seedCatalogFacets(sql, projectId, facets) {
@@ -442,6 +1012,9 @@ async function seedCatalogFacets(sql, projectId, facets) {
 }
 
 async function seedListingRows(sql, input) {
+  const productMinPrices = input.productPrices.map((price) => price.minPriceMinor);
+  const productMaxPrices = input.productPrices.map((price) => price.maxPriceMinor);
+
   await sql`
     INSERT INTO listing.product_listing_index (
       project_id,
@@ -481,95 +1054,107 @@ async function seedListingRows(sql, input) {
     ) AS rows(product_id, product_doc_id, handle)
   `;
 
-  await sql`
-    INSERT INTO listing.variant_listing_index (
-      project_id,
-      product_id,
-      product_doc_id,
-      variant_id,
-      variant_doc_id,
-      signature_key,
-      in_stock,
-      total_stock,
-      indexed_at,
-      updated_at
-    )
-    SELECT
-      ${input.projectId}::uuid,
-      product_id,
-      product_doc_id,
-      variant_id,
-      product_doc_id,
-      signature_key,
-      true,
-      1,
-      now(),
-      now()
-    FROM unnest(
-      ${input.productIds}::uuid[],
-      ${input.productDocIds}::int[],
-      ${input.variantIds}::uuid[],
-      ${input.signatureKeys}::text[]
-    ) AS rows(product_id, product_doc_id, variant_id, signature_key)
-  `;
+  for (const variantChunk of chunks(input.variants, VARIANT_INSERT_CHUNK_SIZE)) {
+    const variantProductIds = variantChunk.map((variant) => variant.productId);
+    const variantProductDocIds = variantChunk.map((variant) => variant.productDocId);
+    const variantIds = variantChunk.map((variant) => variant.variantId);
+    const variantDocIds = variantChunk.map((variant) => variant.variantDocId);
+    const variantPrices = variantChunk.map((variant) => variant.priceMinor);
+    const signatureKeys = variantChunk.map((variant) => input.signatureKeys[variant.variantDocId - 1]);
 
-  await sql`
-    INSERT INTO listing.variant_listing_price_index (
-      project_id,
-      variant_id,
-      currency,
-      variant_doc_id,
-      product_doc_id,
-      product_id,
-      signature_key,
-      price_minor,
-      has_price,
-      indexed_at,
-      updated_at
-    )
-    SELECT
-      ${input.projectId}::uuid,
-      variant_id,
-      ${CURRENCY},
-      product_doc_id,
-      product_doc_id,
-      product_id,
-      signature_key,
-      price_minor,
-      true,
-      now(),
-      now()
-    FROM unnest(
-      ${input.productIds}::uuid[],
-      ${input.productDocIds}::int[],
-      ${input.variantIds}::uuid[],
-      ${input.signatureKeys}::text[],
-      ${input.prices}::bigint[]
-    ) AS rows(product_id, product_doc_id, variant_id, signature_key, price_minor)
-  `;
+    await sql`
+      INSERT INTO listing.variant_listing_index (
+        project_id,
+        product_id,
+        product_doc_id,
+        variant_id,
+        variant_doc_id,
+        signature_key,
+        in_stock,
+        total_stock,
+        indexed_at,
+        updated_at
+      )
+      SELECT
+        ${input.projectId}::uuid,
+        product_id,
+        product_doc_id,
+        variant_id,
+        variant_doc_id,
+        signature_key,
+        true,
+        1,
+        now(),
+        now()
+      FROM unnest(
+        ${variantProductIds}::uuid[],
+        ${variantProductDocIds}::int[],
+        ${variantIds}::uuid[],
+        ${variantDocIds}::int[],
+        ${signatureKeys}::text[]
+      ) AS rows(product_id, product_doc_id, variant_id, variant_doc_id, signature_key)
+    `;
 
-  await sql`
-    INSERT INTO listing.listing_posting_variant_price (
-      project_id,
-      currency,
-      variant_doc_id,
-      product_doc_id,
-      product_id,
-      price_minor
-    )
-    SELECT
-      ${input.projectId}::uuid,
-      ${CURRENCY},
-      product_doc_id,
-      product_doc_id,
-      product_id,
-      price_minor
-    FROM unnest(
-      ${input.productIds}::uuid[],
-      ${input.productDocIds}::int[],
-      ${input.prices}::bigint[]
-    ) AS rows(product_id, product_doc_id, price_minor)
-  `;
+    await sql`
+      INSERT INTO listing.variant_listing_price_index (
+        project_id,
+        variant_id,
+        currency,
+        variant_doc_id,
+        product_doc_id,
+        product_id,
+        signature_key,
+        price_minor,
+        has_price,
+        indexed_at,
+        updated_at
+      )
+      SELECT
+        ${input.projectId}::uuid,
+        variant_id,
+        ${CURRENCY},
+        variant_doc_id,
+        product_doc_id,
+        product_id,
+        signature_key,
+        price_minor,
+        true,
+        now(),
+        now()
+      FROM unnest(
+        ${variantProductIds}::uuid[],
+        ${variantProductDocIds}::int[],
+        ${variantIds}::uuid[],
+        ${variantDocIds}::int[],
+        ${signatureKeys}::text[],
+        ${variantPrices}::bigint[]
+      ) AS rows(product_id, product_doc_id, variant_id, variant_doc_id, signature_key, price_minor)
+    `;
+
+    await sql`
+      INSERT INTO listing.listing_posting_variant_price (
+        project_id,
+        currency,
+        variant_doc_id,
+        product_doc_id,
+        product_id,
+        price_minor
+      )
+      SELECT
+        ${input.projectId}::uuid,
+        ${CURRENCY},
+        variant_doc_id,
+        product_doc_id,
+        product_id,
+        price_minor
+      FROM unnest(
+        ${variantProductIds}::uuid[],
+        ${variantProductDocIds}::int[],
+        ${variantDocIds}::int[],
+        ${variantPrices}::bigint[]
+      ) AS rows(product_id, product_doc_id, variant_doc_id, price_minor)
+    `;
+  }
 
   await sql`
     INSERT INTO listing.product_listing_price_index (
@@ -586,15 +1171,16 @@ async function seedListingRows(sql, input) {
       ${input.projectId}::uuid,
       product_id,
       ${CURRENCY},
-      price_minor,
-      price_minor,
+      min_price_minor,
+      max_price_minor,
       true,
       now(),
       now()
     FROM unnest(
       ${input.productIds}::uuid[],
-      ${input.prices}::bigint[]
-    ) AS rows(product_id, price_minor)
+      ${productMinPrices}::bigint[],
+      ${productMaxPrices}::bigint[]
+    ) AS rows(product_id, min_price_minor, max_price_minor)
   `;
 
   await sql`
@@ -618,86 +1204,131 @@ async function seedListingRows(sql, input) {
       ${CURRENCY},
       ${ZERO_UUID}::uuid,
       true,
-      price_minor
+      min_price_minor
     FROM unnest(
       ${input.productIds}::uuid[],
       ${input.productDocIds}::int[],
-      ${input.prices}::bigint[]
-    ) AS rows(product_id, product_doc_id, price_minor)
+      ${productMinPrices}::bigint[]
+    ) AS rows(product_id, product_doc_id, min_price_minor)
   `;
-}
 
-async function seedCategoryBitmap(sql, projectId, categoryId, productDocIds) {
   await sql`
-    WITH docs AS (
-      SELECT unnest(${productDocIds}::int[]) AS doc_id
-    ),
-    bitmap AS (
-      SELECT rb_build_agg(doc_id) AS value
-      FROM docs
-    )
-    INSERT INTO listing.listing_posting_bitmap (
+    INSERT INTO listing.listing_posting_product_sort (
       project_id,
-      entity_type,
-      field,
-      value_key,
-      bitmap,
-      cardinality,
-      metadata,
-      updated_at
+      product_doc_id,
+      product_id,
+      sort_kind,
+      locale,
+      currency,
+      manual_scope_id,
+      bool_value,
+      timestamptz_value,
+      timestamptz_value_2
     )
     SELECT
-      ${projectId}::uuid,
-      'product',
-      'category',
-      ${categoryId},
-      value,
-      rb_cardinality(value),
-      '{}'::jsonb,
-      now()
-    FROM bitmap
+      ${input.projectId}::uuid,
+      product_doc_id,
+      product_id,
+      'newest',
+      '',
+      '',
+      ${ZERO_UUID}::uuid,
+      true,
+      ${input.now}::timestamptz - (product_doc_id || ' seconds')::interval,
+      ${input.now}::timestamptz - (product_doc_id || ' seconds')::interval
+    FROM unnest(
+      ${input.productIds}::uuid[],
+      ${input.productDocIds}::int[]
+    ) AS rows(product_id, product_doc_id)
   `;
 }
 
-async function seedVariantProjectionBlock(sql, projectId, productDocIds) {
-  await sql`
-    WITH docs AS (
-      SELECT unnest(${productDocIds}::int[]) AS doc_id
-    ),
-    bitmap AS (
-      SELECT rb_build_agg(doc_id) AS value
-      FROM docs
-    )
-    INSERT INTO listing.listing_posting_variant_projection_block (
-      project_id,
-      block_id,
-      variant_doc_from,
-      variant_doc_to,
-      variant_bitmap,
-      product_bitmap,
-      variant_count,
-      product_count
-    )
-    SELECT
-      ${projectId}::uuid,
-      0,
-      1,
-      ${productDocIds.length + 1},
-      value,
-      value,
-      rb_cardinality(value)::int,
-      rb_cardinality(value)::int
-    FROM bitmap
-  `;
+async function seedCategoryBitmaps(sql, projectId, categories) {
+  for (const category of categories) {
+    await sql`
+      WITH docs AS (
+        SELECT unnest(${category.productDocIds}::int[]) AS doc_id
+      ),
+      bitmap AS (
+        SELECT COALESCE(rb_build_agg(doc_id), ${sql.unsafe(emptyBitmapSql)}) AS value
+        FROM docs
+      )
+      INSERT INTO listing.listing_posting_bitmap (
+        project_id,
+        entity_type,
+        field,
+        value_key,
+        bitmap,
+        cardinality,
+        metadata,
+        updated_at
+      )
+      SELECT
+        ${projectId}::uuid,
+        'product',
+        'category',
+        ${category.id},
+        value,
+        rb_cardinality(value),
+        ${JSON.stringify({ slug: category.slug })}::jsonb,
+        now()
+      FROM bitmap
+    `;
+  }
 }
 
-async function seedOptionFacetBitmaps(sql, projectId, facets, productValueKeys, productDocIds) {
+async function seedVariantProjectionBlock(sql, projectId, variants) {
+  for (const [blockIndex, variantChunk] of chunks(variants, VARIANT_PROJECTION_BLOCK_SIZE).entries()) {
+    const variantDocIds = variantChunk.map((variant) => variant.variantDocId);
+    const productDocIds = [...new Set(variantChunk.map((variant) => variant.productDocId))];
+
+    await sql`
+      WITH variant_docs AS (
+        SELECT unnest(${variantDocIds}::int[]) AS doc_id
+      ),
+      product_docs AS (
+        SELECT unnest(${productDocIds}::int[]) AS doc_id
+      ),
+      variant_bitmap AS (
+        SELECT rb_build_agg(doc_id) AS value
+        FROM variant_docs
+      ),
+      product_bitmap AS (
+        SELECT rb_build_agg(doc_id) AS value
+        FROM product_docs
+      )
+      INSERT INTO listing.listing_posting_variant_projection_block (
+        project_id,
+        block_id,
+        variant_doc_from,
+        variant_doc_to,
+        variant_bitmap,
+        product_bitmap,
+        variant_count,
+        product_count
+      )
+      SELECT
+        ${projectId}::uuid,
+        ${blockIndex},
+        ${variantDocIds[0]},
+        ${variantDocIds[variantDocIds.length - 1] + 1},
+        variant_bitmap.value,
+        product_bitmap.value,
+        rb_cardinality(variant_bitmap.value)::int,
+        rb_cardinality(product_bitmap.value)::int
+      FROM variant_bitmap
+      CROSS JOIN product_bitmap
+    `;
+  }
+}
+
+async function seedOptionFacetBitmaps(sql, projectId, facets, variantValueKeys, variants) {
   const grouped = new Map();
 
-  for (const [productIndex, valueKeys] of productValueKeys.entries()) {
+  for (const [variantIndex, valueKeys] of variantValueKeys.entries()) {
     for (const valueKey of valueKeys) {
       const docIds = grouped.get(valueKey) ?? [];
-      docIds.push(productDocIds[productIndex]);
+      docIds.push(variants[variantIndex].variantDocId);
       grouped.set(valueKey, docIds);
     }
   }
@@ -740,23 +1371,28 @@ async function seedOptionFacetBitmaps(sql, projectId, facets, productValueKeys, 
   }
 }
 
-async function seedOptionSignatures(sql, projectId, productValueKeys, productDocIds) {
+async function seedOptionSignatures(sql, projectId, variantValueKeys, variants) {
   const groups = new Map();
 
-  for (const [productIndex, valueKeys] of productValueKeys.entries()) {
+  for (const [variantIndex, valueKeys] of variantValueKeys.entries()) {
     const signatureKey = optionSignatureKey(valueKeys);
-    const group = groups.get(signatureKey) ?? { valueKeys, productDocIds: [] };
-    group.productDocIds.push(productDocIds[productIndex]);
+    const group = groups.get(signatureKey) ?? { valueKeys, productVariantCounts: new Map() };
+    const variant = variants[variantIndex];
+    group.productVariantCounts.set(variant.productDocId, (group.productVariantCounts.get(variant.productDocId) ?? 0) + 1);
     groups.set(signatureKey, group);
   }
 
   for (const [signatureKey, group] of groups.entries()) {
     const optionSignatureId = randomUUID();
     const facetIds = group.valueKeys.map((valueKey) => valueKey.split(':')[0]);
+    const membershipProductDocIds = [...group.productVariantCounts.keys()];
+    const membershipVariantCounts = membershipProductDocIds.map((productDocId) =>
+      group.productVariantCounts.get(productDocId),
+    );
 
     await sql`
       WITH docs AS (
-        SELECT unnest(${group.productDocIds}::int[]) AS doc_id
+        SELECT unnest(${membershipProductDocIds}::int[]) AS doc_id
       ),
       bitmap AS (
         SELECT rb_build_agg(doc_id) AS value
@@ -818,9 +1454,12 @@ async function seedOptionSignatures(sql, projectId, productValueKeys, productDoc
         ${projectId}::uuid,
         ${signatureKey},
         product_doc_id,
-        1,
+        variant_count,
         now()
-      FROM unnest(${group.productDocIds}::int[]) AS rows(product_doc_id)
+      FROM unnest(
+        ${membershipProductDocIds}::int[],
+        ${membershipVariantCounts}::int[]
+      ) AS rows(product_doc_id, variant_count)
     `;
   }
 }
