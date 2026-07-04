@@ -1287,38 +1287,6 @@ export type ApiCatalogMutation = {
   collectionUpdate: ApiCollectionUpdatePayload;
   /** Update collection rules for automatic product inclusion */
   collectionUpdateRules: ApiCollectionUpdateRulesPayload;
-  /** Create a new facet */
-  facetCreate: ApiFacetCreatePayload;
-  /** Delete a facet */
-  facetDelete: ApiFacetDeletePayload;
-  /** Move a facet before or after another facet. */
-  facetMove: ApiFacetMovePayload;
-  /** Rebalance facet lexo ranks. */
-  facetRebalance: ApiFacetRebalancePayload;
-  /** Create a new facet swatch */
-  facetSwatchCreate: ApiFacetSwatchCreatePayload;
-  /** Delete a facet swatch */
-  facetSwatchDelete: ApiFacetSwatchDeletePayload;
-  /** Update an existing facet swatch */
-  facetSwatchUpdate: ApiFacetSwatchUpdatePayload;
-  /** Update an existing facet */
-  facetUpdate: ApiFacetUpdatePayload;
-  /** Create a new facet value */
-  facetValueCreate: ApiFacetValueCreatePayload;
-  /** Delete a facet value */
-  facetValueDelete: ApiFacetValueDeletePayload;
-  /**
-   * Attach source facet values to an existing or newly-created display value.
-   * This is the only mutation that merges source values into a display value.
-   */
-  facetValueMerge: ApiFacetValueMergePayload;
-  /**
-   * Detach source facet values from their display value and make them root values.
-   * This is the only mutation that unmerges source values.
-   */
-  facetValueUnmerge: ApiFacetValueUnmergePayload;
-  /** Update an existing facet value */
-  facetValueUpdate: ApiFacetValueUpdatePayload;
   /**
    * Start async bulk update.
    * Requires X-Idempotency-Key header.
@@ -1480,71 +1448,6 @@ export type ApiCatalogMutationCollectionUpdateRulesArgs = {
 };
 
 
-export type ApiCatalogMutationFacetCreateArgs = {
-  input: ApiFacetCreateInput;
-};
-
-
-export type ApiCatalogMutationFacetDeleteArgs = {
-  input: ApiFacetDeleteInput;
-};
-
-
-export type ApiCatalogMutationFacetMoveArgs = {
-  input: ApiFacetMoveInput;
-};
-
-
-export type ApiCatalogMutationFacetRebalanceArgs = {
-  input: ApiFacetRebalanceInput;
-};
-
-
-export type ApiCatalogMutationFacetSwatchCreateArgs = {
-  input: ApiFacetSwatchCreateInput;
-};
-
-
-export type ApiCatalogMutationFacetSwatchDeleteArgs = {
-  input: ApiFacetSwatchDeleteInput;
-};
-
-
-export type ApiCatalogMutationFacetSwatchUpdateArgs = {
-  input: ApiFacetSwatchUpdateInput;
-};
-
-
-export type ApiCatalogMutationFacetUpdateArgs = {
-  input: ApiFacetUpdateInput;
-};
-
-
-export type ApiCatalogMutationFacetValueCreateArgs = {
-  input: ApiFacetValueCreateInput;
-};
-
-
-export type ApiCatalogMutationFacetValueDeleteArgs = {
-  input: ApiFacetValueDeleteInput;
-};
-
-
-export type ApiCatalogMutationFacetValueMergeArgs = {
-  input: ApiFacetValueMergeInput;
-};
-
-
-export type ApiCatalogMutationFacetValueUnmergeArgs = {
-  input: ApiFacetValueUnmergeInput;
-};
-
-
-export type ApiCatalogMutationFacetValueUpdateArgs = {
-  input: ApiFacetValueUpdateInput;
-};
-
-
 export type ApiCatalogMutationProductBulkUpdateArgs = {
   input: ApiProductBulkUpdateInput;
 };
@@ -1674,22 +1577,6 @@ export type ApiCatalogQuery = {
   collectionRulesPreviewCount: Scalars['Int']['output'];
   /** Get collections with Relay-style pagination */
   collections: ApiCollectionConnection;
-  /** Get a facet by ID */
-  facet?: Maybe<ApiFacet>;
-  /** Get available facet source candidates for create flow */
-  facetSourceCandidates: ApiFacetSourceCandidateConnection;
-  /** Get a facet swatch by ID */
-  facetSwatch?: Maybe<ApiFacetSwatch>;
-  /** Get all facet swatches */
-  facetSwatches: Array<ApiFacetSwatch>;
-  /** Get a facet value by ID */
-  facetValue?: Maybe<ApiFacetValue>;
-  /** Get available facet source value candidates for create and edit flows */
-  facetValueCandidates: ApiFacetValueCandidateConnection;
-  /** Get all facet values for a specific facet */
-  facetValues: Array<ApiFacetValue>;
-  /** Get all facets */
-  facets: Array<ApiFacet>;
   /** Get a node by its global ID */
   node?: Maybe<ApiNode>;
   /** Get multiple nodes by their global IDs */
@@ -1772,47 +1659,6 @@ export type ApiCatalogQueryCollectionsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
-export type ApiCatalogQueryFacetArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiCatalogQueryFacetSourceCandidatesArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  orderBy?: InputMaybe<Array<ApiFacetSourceCandidateOrderByInput>>;
-  where?: InputMaybe<ApiFacetSourceCandidateWhereInput>;
-};
-
-
-export type ApiCatalogQueryFacetSwatchArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiCatalogQueryFacetValueArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiCatalogQueryFacetValueCandidatesArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  meta: ApiFacetValueCandidatesMetaInput;
-  orderBy?: InputMaybe<Array<ApiFacetValueCandidateOrderByInput>>;
-  where?: InputMaybe<ApiFacetValueCandidateWhereInput>;
-};
-
-
-export type ApiCatalogQueryFacetValuesArgs = {
-  facetId: Scalars['ID']['input'];
 };
 
 
@@ -3423,7 +3269,6 @@ export type ApiFacetSwatch = ApiNode & {
   colorOne?: Maybe<Scalars['String']['output']>;
   colorTwo?: Maybe<Scalars['String']['output']>;
   file?: Maybe<ApiFile>;
-  /** The FacetSwatch global ID owned by Catalog. */
   id: Scalars['ID']['output'];
   metadata?: Maybe<Scalars['JSON']['output']>;
   swatchType: SwatchType;
@@ -4462,7 +4307,7 @@ export type ApiListingFacet = {
   label: Scalars['String']['output'];
   /** Facet presentation/selection type. */
   type: ListingFacetType;
-  /** Catalog-compatible UI type. */
+  /** Facet UI type. */
   uiType: FacetUiType;
   /** Ordered values for this facet in listing UI order. */
   values: Array<ApiListingFacetValue>;
@@ -4489,7 +4334,7 @@ export type ApiListingFacetValue = {
   label: Scalars['String']['output'];
   /** Whether this value was selected in the current request. */
   selected: Scalars['Boolean']['output'];
-  /** Catalog swatch metadata for facet values that have one. */
+  /** Swatch metadata for facet values that have one. */
   swatch?: Maybe<ApiFacetSwatch>;
 };
 
@@ -4502,8 +4347,103 @@ export type ApiListingFacetValueFilter = {
 
 export type ApiListingMutation = {
   __typename?: 'ListingMutation';
-  /** Placeholder field for the empty mutation namespace. */
-  _empty: Scalars['Boolean']['output'];
+  /** Create a new facet. */
+  facetCreate: ApiFacetCreatePayload;
+  /** Delete a facet. */
+  facetDelete: ApiFacetDeletePayload;
+  /** Move a facet before or after another facet. */
+  facetMove: ApiFacetMovePayload;
+  /** Rebalance facet lexo ranks. */
+  facetRebalance: ApiFacetRebalancePayload;
+  /** Create a new facet swatch. */
+  facetSwatchCreate: ApiFacetSwatchCreatePayload;
+  /** Delete a facet swatch. */
+  facetSwatchDelete: ApiFacetSwatchDeletePayload;
+  /** Update an existing facet swatch. */
+  facetSwatchUpdate: ApiFacetSwatchUpdatePayload;
+  /** Update an existing facet. */
+  facetUpdate: ApiFacetUpdatePayload;
+  /** Create a new facet value. */
+  facetValueCreate: ApiFacetValueCreatePayload;
+  /** Delete a facet value. */
+  facetValueDelete: ApiFacetValueDeletePayload;
+  /**
+   * Attach source facet values to an existing or newly-created display value.
+   * This is the only mutation that merges source values into a display value.
+   */
+  facetValueMerge: ApiFacetValueMergePayload;
+  /**
+   * Detach source facet values from their display value and make them root values.
+   * This is the only mutation that unmerges source values.
+   */
+  facetValueUnmerge: ApiFacetValueUnmergePayload;
+  /** Update an existing facet value. */
+  facetValueUpdate: ApiFacetValueUpdatePayload;
+};
+
+
+export type ApiListingMutationFacetCreateArgs = {
+  input: ApiFacetCreateInput;
+};
+
+
+export type ApiListingMutationFacetDeleteArgs = {
+  input: ApiFacetDeleteInput;
+};
+
+
+export type ApiListingMutationFacetMoveArgs = {
+  input: ApiFacetMoveInput;
+};
+
+
+export type ApiListingMutationFacetRebalanceArgs = {
+  input: ApiFacetRebalanceInput;
+};
+
+
+export type ApiListingMutationFacetSwatchCreateArgs = {
+  input: ApiFacetSwatchCreateInput;
+};
+
+
+export type ApiListingMutationFacetSwatchDeleteArgs = {
+  input: ApiFacetSwatchDeleteInput;
+};
+
+
+export type ApiListingMutationFacetSwatchUpdateArgs = {
+  input: ApiFacetSwatchUpdateInput;
+};
+
+
+export type ApiListingMutationFacetUpdateArgs = {
+  input: ApiFacetUpdateInput;
+};
+
+
+export type ApiListingMutationFacetValueCreateArgs = {
+  input: ApiFacetValueCreateInput;
+};
+
+
+export type ApiListingMutationFacetValueDeleteArgs = {
+  input: ApiFacetValueDeleteInput;
+};
+
+
+export type ApiListingMutationFacetValueMergeArgs = {
+  input: ApiFacetValueMergeInput;
+};
+
+
+export type ApiListingMutationFacetValueUnmergeArgs = {
+  input: ApiFacetValueUnmergeInput;
+};
+
+
+export type ApiListingMutationFacetValueUpdateArgs = {
+  input: ApiFacetValueUpdateInput;
 };
 
 export type ApiListingOrderByInput = {
@@ -4525,13 +4465,13 @@ export type ApiListingProductFilter = {
   available?: InputMaybe<Scalars['Boolean']['input']>;
   /** Filter by product price range. */
   price?: InputMaybe<ApiListingPriceRangeFilter>;
-  /** Filter by product-level catalog facet value. */
+  /** Filter by product-level listing facet value. */
   productFacet?: InputMaybe<ApiListingFacetValueFilter>;
   /** Filter by product vendor. */
   productVendor?: InputMaybe<Scalars['String']['input']>;
   /** Filter by product tag. */
   tag?: InputMaybe<Scalars['String']['input']>;
-  /** Filter by variant-level catalog facet value. */
+  /** Filter by variant-level listing facet value. */
   variantFacet?: InputMaybe<ApiListingFacetValueFilter>;
   /** Filter by variant option. */
   variantOption?: InputMaybe<ApiListingVariantOptionFilter>;
@@ -4539,6 +4479,22 @@ export type ApiListingProductFilter = {
 
 export type ApiListingQuery = {
   __typename?: 'ListingQuery';
+  /** Get a facet by ID. */
+  facet?: Maybe<ApiFacet>;
+  /** Get available facet source candidates for create flow. */
+  facetSourceCandidates: ApiFacetSourceCandidateConnection;
+  /** Get a facet swatch by ID. */
+  facetSwatch?: Maybe<ApiFacetSwatch>;
+  /** Get all facet swatches. */
+  facetSwatches: Array<ApiFacetSwatch>;
+  /** Get a facet value by ID. */
+  facetValue?: Maybe<ApiFacetValue>;
+  /** Get available facet source value candidates for create and edit flows. */
+  facetValueCandidates: ApiFacetValueCandidateConnection;
+  /** Get all facet values for a specific facet. */
+  facetValues: Array<ApiFacetValue>;
+  /** Get all facets. */
+  facets: Array<ApiFacet>;
   /**
    * Get ordered listing structure for Admin.
    *
@@ -4551,6 +4507,47 @@ export type ApiListingQuery = {
   node?: Maybe<ApiNode>;
   /** Get multiple nodes by their global IDs. */
   nodes: Array<Maybe<ApiNode>>;
+};
+
+
+export type ApiListingQueryFacetArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiListingQueryFacetSourceCandidatesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiFacetSourceCandidateOrderByInput>>;
+  where?: InputMaybe<ApiFacetSourceCandidateWhereInput>;
+};
+
+
+export type ApiListingQueryFacetSwatchArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiListingQueryFacetValueArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiListingQueryFacetValueCandidatesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  meta: ApiFacetValueCandidatesMetaInput;
+  orderBy?: InputMaybe<Array<ApiFacetValueCandidateOrderByInput>>;
+  where?: InputMaybe<ApiFacetValueCandidateWhereInput>;
+};
+
+
+export type ApiListingQueryFacetValuesArgs = {
+  facetId: Scalars['ID']['input'];
 };
 
 
