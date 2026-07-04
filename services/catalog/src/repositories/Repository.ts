@@ -13,9 +13,6 @@ import { MediaRepository } from "./media/MediaRepository.js";
 import { BulkEditJobRepository } from "./BulkEditJobRepository.js";
 import { BulkEditItemRepository } from "./BulkEditItemRepository.js";
 import { BulkFenceRepository } from "./BulkFenceRepository.js";
-import { FacetRepository } from "./facet/FacetRepository.js";
-import { FacetValueRepository } from "./facet/FacetValueRepository.js";
-import { FacetSwatchRepository } from "./facet/FacetSwatchRepository.js";
 import { FacetReferenceRepository } from "./facet/FacetReferenceRepository.js";
 import { CollectionRepository } from "./collection/CollectionRepository.js";
 import { CollectionItemRepository } from "./collection/CollectionItemRepository.js";
@@ -48,9 +45,6 @@ export class Repository {
   public readonly bulkEditJob: BulkEditJobRepository;
   public readonly bulkEditItem: BulkEditItemRepository;
   public readonly bulkFence: BulkFenceRepository;
-  public readonly facet: FacetRepository;
-  public readonly facetValue: FacetValueRepository;
-  public readonly facetSwatch: FacetSwatchRepository;
   public readonly facetReference: FacetReferenceRepository;
   public readonly collection: CollectionRepository;
   public readonly collectionItem: CollectionItemRepository;
@@ -85,9 +79,6 @@ export class Repository {
     bulkEditJob: BulkEditJobRepository,
     bulkEditItem: BulkEditItemRepository,
     bulkFence: BulkFenceRepository,
-    facet: FacetRepository,
-    facetValue: FacetValueRepository,
-    facetSwatch: FacetSwatchRepository,
     facetReference: FacetReferenceRepository,
     collection: CollectionRepository,
     collectionItem: CollectionItemRepository,
@@ -113,9 +104,6 @@ export class Repository {
     this.bulkEditJob = bulkEditJob;
     this.bulkEditItem = bulkEditItem;
     this.bulkFence = bulkFence;
-    this.facet = facet;
-    this.facetValue = facetValue;
-    this.facetSwatch = facetSwatch;
     this.facetReference = facetReference;
     this.collection = collection;
     this.collectionItem = collectionItem;
@@ -152,9 +140,6 @@ export class Repository {
     const bulkEditJob = new BulkEditJobRepository(db, txManager);
     const bulkEditItem = new BulkEditItemRepository(db, txManager);
     const bulkFence = new BulkFenceRepository(db, txManager);
-    const facet = new FacetRepository(db, txManager);
-    const facetValue = new FacetValueRepository(db, txManager);
-    const facetSwatch = new FacetSwatchRepository(db, txManager);
     const facetReference = new FacetReferenceRepository(db, txManager);
     const collection = new CollectionRepository(db, txManager);
     const collectionItem = new CollectionItemRepository(db, txManager);
@@ -180,9 +165,6 @@ export class Repository {
       bulkEditJob,
       bulkEditItem,
       bulkFence,
-      facet,
-      facetValue,
-      facetSwatch,
       facetReference,
       collection,
       collectionItem,

@@ -23,6 +23,9 @@ import {
   StorefrontVariantPriceCollectorRepository,
   StorefrontVariantProjectionQueryRepository,
 } from "./storefront/index.js";
+import { FacetRepository } from "./facet/FacetRepository.js";
+import { FacetValueRepository } from "./facet/FacetValueRepository.js";
+import { FacetSwatchRepository } from "./facet/FacetSwatchRepository.js";
 
 export interface RepositoryConfig {
   db: Database;
@@ -47,6 +50,9 @@ export class Repository {
   public readonly listingPostingVariantPrice: ListingPostingVariantPriceRepository;
   public readonly listingPostingVariantProjectionBlock: ListingPostingVariantProjectionBlockRepository;
   public readonly productTitleBm25SearchIndex: ProductTitleBm25SearchIndexRepository;
+  public readonly facet: FacetRepository;
+  public readonly facetValue: FacetValueRepository;
+  public readonly facetSwatch: FacetSwatchRepository;
   public readonly storefrontFacetResolution: StorefrontFacetResolutionRepository;
   public readonly storefrontPostingBitmapQuery: StorefrontPostingBitmapQueryRepository;
   public readonly storefrontVariantProjectionQuery: StorefrontVariantProjectionQueryRepository;
@@ -73,6 +79,9 @@ export class Repository {
     listingPostingVariantPrice: ListingPostingVariantPriceRepository,
     listingPostingVariantProjectionBlock: ListingPostingVariantProjectionBlockRepository,
     productTitleBm25SearchIndex: ProductTitleBm25SearchIndexRepository,
+    facet: FacetRepository,
+    facetValue: FacetValueRepository,
+    facetSwatch: FacetSwatchRepository,
     storefrontFacetResolution: StorefrontFacetResolutionRepository,
     storefrontPostingBitmapQuery: StorefrontPostingBitmapQueryRepository,
     storefrontVariantProjectionQuery: StorefrontVariantProjectionQueryRepository,
@@ -94,6 +103,9 @@ export class Repository {
     this.listingPostingVariantPrice = listingPostingVariantPrice;
     this.listingPostingVariantProjectionBlock = listingPostingVariantProjectionBlock;
     this.productTitleBm25SearchIndex = productTitleBm25SearchIndex;
+    this.facet = facet;
+    this.facetValue = facetValue;
+    this.facetSwatch = facetSwatch;
     this.storefrontFacetResolution = storefrontFacetResolution;
     this.storefrontPostingBitmapQuery = storefrontPostingBitmapQuery;
     this.storefrontVariantProjectionQuery = storefrontVariantProjectionQuery;
@@ -149,6 +161,9 @@ export class Repository {
       new ListingPostingVariantProjectionBlockRepository(db, txManager);
     const productTitleBm25SearchIndex =
       new ProductTitleBm25SearchIndexRepository(db, txManager);
+    const facet = new FacetRepository(db, txManager);
+    const facetValue = new FacetValueRepository(db, txManager);
+    const facetSwatch = new FacetSwatchRepository(db, txManager);
     const storefrontFacetResolution = new StorefrontFacetResolutionRepository(
       db,
       txManager
@@ -193,6 +208,9 @@ export class Repository {
       listingPostingVariantPrice,
       listingPostingVariantProjectionBlock,
       productTitleBm25SearchIndex,
+      facet,
+      facetValue,
+      facetSwatch,
       storefrontFacetResolution,
       storefrontPostingBitmapQuery,
       storefrontVariantProjectionQuery,

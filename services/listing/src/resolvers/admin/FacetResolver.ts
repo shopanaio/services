@@ -2,10 +2,11 @@ import {
   encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
-import { CatalogType } from "./CatalogType.js";
+import { ListingType } from "./ListingType.js";
 import type { Facet } from "../../repositories/models/index.js";
+import { FacetValueResolver } from "./FacetValueResolver.js";
 
-export class FacetResolver extends CatalogType<string, Facet> {
+export class FacetResolver extends ListingType<string, Facet> {
   async $preload() {
     const facet = await this.$ctx.loaders.facet.load(this.$props);
     if (!facet) {
@@ -55,6 +56,6 @@ export class FacetResolver extends CatalogType<string, Facet> {
 
   async values() {
     const ids = await this.$ctx.loaders.facetValueIds.load(this.$props);
-    return Promise.all(ids.map((id) => this.resolvers.facetValue(id)));
+    return ids.map((id) => new FacetValueResolver(id, this.$ctx));
   }
 }

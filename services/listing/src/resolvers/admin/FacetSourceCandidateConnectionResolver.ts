@@ -1,4 +1,4 @@
-import { CatalogType } from "./CatalogType.js";
+import { ListingType } from "./ListingType.js";
 import { FacetSourceCandidateResolver } from "./FacetSourceCandidateResolver.js";
 import type {
   FacetSourceCandidateConnectionResult,
@@ -8,7 +8,7 @@ import type {
 export type FacetSourceCandidateConnectionInput =
   FacetSourceCandidateRelayInput;
 
-export class FacetSourceCandidateConnectionResolver extends CatalogType<
+export class FacetSourceCandidateConnectionResolver extends ListingType<
   FacetSourceCandidateConnectionInput,
   FacetSourceCandidateConnectionResult
 > {

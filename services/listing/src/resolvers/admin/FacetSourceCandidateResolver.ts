@@ -1,7 +1,7 @@
-import { CatalogType } from "./CatalogType.js";
+import { ListingType } from "./ListingType.js";
 import type { FacetSourceCandidateView } from "../../repositories/models/index.js";
 
-export class FacetSourceCandidateResolver extends CatalogType<
+export class FacetSourceCandidateResolver extends ListingType<
   FacetSourceCandidateView
 > {
   id() {

@@ -2,10 +2,10 @@ import {
   encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
-import { CatalogType } from "./CatalogType.js";
+import { ListingType } from "./ListingType.js";
 import type { FacetSwatch } from "../../repositories/models/index.js";
 
-export class FacetSwatchResolver extends CatalogType<string, FacetSwatch> {
+export class FacetSwatchResolver extends ListingType<string, FacetSwatch> {
   async $preload() {
     const swatch = await this.$ctx.loaders.facetSwatch.load(this.$props);
     if (!swatch) {

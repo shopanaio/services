@@ -93,13 +93,4 @@ export class ResolverRegistry {
     return new StockConnectionResolver(input, this.ctx);
   }
 
-  async facet(id: string) {
-    const { FacetResolver } = await import("./FacetResolver.js");
-    return new FacetResolver(id, this.ctx);
-  }
-
-  async facetValue(id: string) {
-    const { FacetValueResolver } = await import("./FacetValueResolver.js");
-    return new FacetValueResolver(id, this.ctx);
-  }
 }

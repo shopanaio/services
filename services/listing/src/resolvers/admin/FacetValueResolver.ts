@@ -2,11 +2,12 @@ import {
   encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
-import { CatalogType } from "./CatalogType.js";
+import { ListingType } from "./ListingType.js";
 import type { FacetValue } from "../../repositories/models/index.js";
+import { FacetResolver } from "./FacetResolver.js";
 import { FacetSwatchResolver } from "./FacetSwatchResolver.js";
 
-export class FacetValueResolver extends CatalogType<string, FacetValue> {
+export class FacetValueResolver extends ListingType<string, FacetValue> {
   async $preload() {
     const facetValue = await this.$ctx.loaders.facetValue.load(this.$props);
     if (!facetValue) {
@@ -21,13 +22,13 @@ export class FacetValueResolver extends CatalogType<string, FacetValue> {
 
   async facet() {
     const facetId = await this.$get("facetId");
-    return this.resolvers.facet(facetId);
+    return new FacetResolver(facetId, this.$ctx);
   }
 
   async parent() {
     const parentId = await this.$get("parentId");
     if (!parentId) return null;
-    return this.resolvers.facetValue(parentId);
+    return new FacetValueResolver(parentId, this.$ctx);
   }
 
   async kind() {
@@ -51,7 +52,7 @@ export class FacetValueResolver extends CatalogType<string, FacetValue> {
     const children = await this.$ctx.loaders.facetValueSourceChildren.load(
       this.$props
     );
-    return children.map((child) => this.resolvers.facetValue(child.id));
+    return children.map((child) => new FacetValueResolver(child.id, this.$ctx));
   }
 
   async swatch() {

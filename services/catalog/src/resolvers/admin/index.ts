@@ -26,11 +26,6 @@ export { InventoryItemResolver } from "./InventoryItemResolver.js";
 export { CategoryResolver } from "./CategoryResolver.js";
 export { TagResolver } from "./TagResolver.js";
 export { CollectionResolver } from "./CollectionResolver.js";
-export { FacetResolver } from "./FacetResolver.js";
-export { FacetSourceCandidateResolver } from "./FacetSourceCandidateResolver.js";
-export { FacetValueCandidateResolver } from "./FacetValueCandidateResolver.js";
-export { FacetValueResolver } from "./FacetValueResolver.js";
-export { FacetSwatchResolver } from "./FacetSwatchResolver.js";
 export { OptionResolver } from "./OptionResolver.js";
 export { FeatureResolver } from "./FeatureResolver.js";
 export { BulkUpdateItemResolver } from "./BulkUpdateItemResolver.js";
@@ -67,14 +62,6 @@ export {
   TagConnectionResolver,
   type TagConnectionInput,
 } from "./TagConnectionResolver.js";
-export {
-  FacetSourceCandidateConnectionResolver,
-  type FacetSourceCandidateConnectionInput,
-} from "./FacetSourceCandidateConnectionResolver.js";
-export {
-  FacetValueCandidateConnectionResolver,
-  type FacetValueCandidateConnectionInput,
-} from "./FacetValueCandidateConnectionResolver.js";
 export {
   ProductBulkUpdateJobConnectionResolver,
   type ProductBulkUpdateJobConnectionInput,

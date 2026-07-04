@@ -7,9 +7,6 @@ import { ProductLoader } from "./ProductLoader.js";
 import { VendorLoader } from "./VendorLoader.js";
 import { TagLoader } from "./TagLoader.js";
 import { VariantLoader } from "./VariantLoader.js";
-import { FacetLoader } from "./FacetLoader.js";
-import { FacetValueLoader } from "./FacetValueLoader.js";
-import { FacetSwatchLoader } from "./FacetSwatchLoader.js";
 import { CollectionLoader } from "./CollectionLoader.js";
 import { BulkEditLoader } from "./BulkEditLoader.js";
 import { WarehouseLoader } from "./WarehouseLoader.js";
@@ -74,16 +71,6 @@ export class Loader {
   public readonly featureValueTranslation;
   public readonly featureChildIds;
 
-  // Facets
-  public readonly facet;
-  public readonly facetTranslation;
-  public readonly facetSources;
-  public readonly facetValueIds;
-  public readonly facetValue;
-  public readonly facetValueTranslation;
-  public readonly facetValueSourceChildren;
-  public readonly facetSwatch;
-
   // Collections
   public readonly collection;
   public readonly collectionTranslation;
@@ -117,9 +104,6 @@ export class Loader {
     const tagLoader = new TagLoader(repository);
     const optionLoader = new OptionLoader(repository);
     const featureLoader = new FeatureLoader(repository);
-    const facetLoader = new FacetLoader(repository);
-    const facetValueLoader = new FacetValueLoader(repository);
-    const facetSwatchLoader = new FacetSwatchLoader(repository);
     const collectionLoader = new CollectionLoader(repository);
     const bulkEditLoader = new BulkEditLoader(repository);
     const warehouseLoader = new WarehouseLoader(repository);
@@ -183,16 +167,6 @@ export class Loader {
     this.featureValue = featureLoader.featureValue;
     this.featureValueTranslation = featureLoader.featureValueTranslation;
     this.featureChildIds = featureLoader.featureChildIds;
-
-    // Facets
-    this.facet = facetLoader.facet;
-    this.facetTranslation = facetLoader.facetTranslation;
-    this.facetSources = facetLoader.facetSources;
-    this.facetValueIds = facetLoader.facetValueIds;
-    this.facetValue = facetValueLoader.facetValue;
-    this.facetValueTranslation = facetValueLoader.facetValueTranslation;
-    this.facetValueSourceChildren = facetValueLoader.facetValueSourceChildren;
-    this.facetSwatch = facetSwatchLoader.facetSwatch;
 
     // Collections
     this.collection = collectionLoader.collection;
