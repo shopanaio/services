@@ -554,15 +554,33 @@ Step rules:
   означает no retry.
 - Retryable infrastructure errors должны быть thrown как retryable errors или
   классифицироваться wrapper-ом как retryable.
-- Validation/project mismatch/domain conflicts возвращаются стабильным
-  non-retryable domain result.
-- Domain conflicts, которые являются частью public action contract
-  (`IDEMPOTENCY_CONFLICT`, `REVISION_CONFLICT`, `VALIDATION_FAILED`,
-  `PROJECT_MISMATCH`), не должны превращаться в transient workflow retry.
-  Step должен вернуть stable result без physical writes. Public enqueue path и
-  controlled internal runner должны видеть один и тот же результат.
-- Workflow error без stable domain result разрешен только для infrastructure
-  failures после исчерпания retry или data corruption states.
+- Validation/project mismatch/domain conflicts не должны превращаться в
+  transient workflow retry.
+- Public broker contract сейчас допускает final `ListingUpdateResult` только со
+  статусами `applied`, `noop`, `ignored_stale` и `accepted`. Поэтому
+  `IDEMPOTENCY_CONFLICT` и `REVISION_CONFLICT` не возвращаются как
+  `ListingUpdateResult` и не пишутся в final receipt `result_json`.
+- Internal conflict reasons:
+  - `IDEMPOTENCY_CONFLICT`;
+  - `REVISION_CONFLICT`.
+- Public mapping для action handler/controlled runner:
+  - `UNSUPPORTED_CONTRACT_VERSION` -> `ListingUpdateError.code =
+    "UNSUPPORTED_CONTRACT_VERSION"`;
+  - `PROJECT_MISMATCH` -> `ListingUpdateError.code = "PROJECT_MISMATCH"`;
+  - `VALIDATION_FAILED`, `IDEMPOTENCY_CONFLICT`, `REVISION_CONFLICT` ->
+    `ListingUpdateError.code = "VALIDATION_FAILED"`;
+  - infrastructure failure после retry exhaustion ->
+    `ListingUpdateError.code = "TRANSIENT_UNAVAILABLE"` или
+    `"INTERNAL_ERROR"` согласно runtime classification.
+- Для public broker action такой error path должен reject/throw typed
+  `ListingUpdateError` metadata, а не возвращать successful result object.
+- DBOS step для conflict/error path не выполняет physical writes и не вставляет
+  final action receipt. Receipt stores only successful final statuses:
+  `applied`, `noop`, `ignored_stale`.
+- Controlled internal runner видит тот же mapped `ListingUpdateError`, что и
+  public enqueue/action path.
+- Workflow error без mapped `ListingUpdateError` разрешен только для
+  infrastructure failures после исчерпания retry или data corruption states.
 - Step timeout считается non-retryable. Timeout должен быть достаточно большим
   для item transaction, но не использоваться как основной механизм отмены.
 
@@ -971,7 +989,7 @@ status in `listing_index_item_state` or `listing_index_action_receipt`.
 ### Validation script
 
 ```ts
-interface ListingUpdateValidationIssue {
+interface ListingIndexValidationIssue {
   code:
     | "UNSUPPORTED_CONTRACT_VERSION"
     | "PROJECT_MISMATCH"
@@ -982,6 +1000,11 @@ interface ListingUpdateValidationIssue {
   message: string;
 }
 ```
+
+`ListingIndexValidationIssue` is internal script-level metadata. It is mapped
+to current public `ListingUpdateErrorCode` before crossing broker boundaries;
+`IDEMPOTENCY_CONFLICT` and `REVISION_CONFLICT` are exposed as
+`VALIDATION_FAILED` unless `@shopana/broker-types` is explicitly extended.
 
 Responsibilities:
 
@@ -1032,7 +1055,9 @@ Responsibilities:
   physical write model.
 - Не вставляет receipt для `ignored_stale`/`noop`; это делает single write
   script под item lock.
-- Validation/domain conflicts возвращает как non-retryable domain result.
+- Validation/domain conflicts возвращает как internal non-retryable issue,
+  который action handler/controlled runner мапит в актуальный
+  `ListingUpdateError` contract.
 
 ### `ListingBuildSyncWriteModelScript`
 
