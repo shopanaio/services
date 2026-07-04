@@ -36,6 +36,9 @@ export class ProductDeleteScript extends BaseScript<
       return {
         deletedProductId: undefined,
         categoryIds: [],
+        revision: undefined,
+        deletedAt: undefined,
+        entityType: undefined,
         userErrors: [
           { message: "Product not found", field: ["id"], code: "NOT_FOUND" },
         ],
@@ -48,14 +51,18 @@ export class ProductDeleteScript extends BaseScript<
       ...new Set(categoryLinks.map((link) => link.categoryId)),
     ];
 
+    const deletedAt = new Date().toISOString();
     const deleted = permanent
       ? await this.repository.product.hardDelete(id)
-      : await this.repository.product.softDelete(id);
+      : await this.repository.product.softDeleteWithRevision(id);
 
     if (!deleted) {
       return {
         deletedProductId: undefined,
         categoryIds,
+        revision: undefined,
+        deletedAt: undefined,
+        entityType: undefined,
         userErrors: [
           { message: "Failed to delete product", code: "DELETE_FAILED" },
         ],
@@ -64,13 +71,28 @@ export class ProductDeleteScript extends BaseScript<
 
     this.logger.info({ productId: id, permanent }, "Product deleted");
 
-    return { deletedProductId: id, categoryIds, userErrors: [] };
+    const revision =
+      typeof deleted === "boolean" ? existingProduct.revision + 1 : deleted.revision;
+    const effectiveDeletedAt =
+      typeof deleted === "boolean" ? deletedAt : deleted.deletedAt ?? deletedAt;
+
+    return {
+      deletedProductId: id,
+      categoryIds,
+      revision,
+      deletedAt: effectiveDeletedAt,
+      entityType: existingProduct.kind === "BUNDLE" ? "bundle" : "product",
+      userErrors: [],
+    };
   }
 
   protected handleError(_error: unknown): ProductDeleteResult {
     return {
       deletedProductId: undefined,
       categoryIds: [],
+      revision: undefined,
+      deletedAt: undefined,
+      entityType: undefined,
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }

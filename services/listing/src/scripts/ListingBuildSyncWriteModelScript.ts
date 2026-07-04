@@ -76,13 +76,15 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
       },
       variants: item.variants
         .map((variant) => {
-          const variantTotalStock = variant.availability.totalQuantity ?? 0;
+          const variantTotalStock = variant.availability.totalQuantity ?? null;
           return {
             productId: item.id,
             variantId: variant.id,
             signatureKey: buildVariantSignatureKey(variant),
-            inStock: variant.availability.availableForSale && variantTotalStock > 0,
-            totalStock: variantTotalStock,
+            inStock:
+              variant.availability.availableForSale &&
+              (variantTotalStock === null || variantTotalStock > 0),
+            totalStock: variantTotalStock ?? 0,
           };
         })
         .sort((left, right) => left.variantId.localeCompare(right.variantId)),
@@ -221,9 +223,13 @@ function buildProductSortRows(
 function facetValueKeys(
   facet: ListingPreparedSyncAction["params"]["item"]["productFacets"][number]
 ): string[] {
-  return facet.values.map((value) =>
-    [facet.facet.type, facet.facet.handle, value.handle].join(":")
-  );
+  return facet.values.map((value) => {
+    if (facet.facet.id && value.id) {
+      return [facet.facet.id, value.id].join(":");
+    }
+
+    return [facet.facet.type, facet.facet.handle, value.handle].join(":");
+  });
 }
 
 function buildVariantSignatureKey(

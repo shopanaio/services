@@ -89,7 +89,6 @@ export function buildListingIndexPayloadHash(input:
       actionType: input.type,
       projectId: input.params.projectId,
       item: input.params.item,
-      meta: input.params.meta,
     });
   }
 
@@ -101,7 +100,6 @@ export function buildListingIndexPayloadHash(input:
     sourceRevision: input.params.sourceRevision,
     deletedAt: input.params.deletedAt,
     reason: input.params.reason,
-    meta: input.params.meta,
   });
 }
 

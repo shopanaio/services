@@ -122,6 +122,9 @@ export interface ProductDeletedEvent
       productId: string;
       storeId: string;
       categoryIds?: string[];
+      revision?: number;
+      deletedAt?: string;
+      entityType?: "product" | "bundle";
     }
   > {}
 

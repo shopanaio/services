@@ -674,6 +674,9 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   private async emitProductDeleted(args: {
     productId: string;
     categoryIds: readonly string[] | undefined;
+    revision?: number;
+    deletedAt?: string;
+    entityType?: "product" | "bundle";
   }): Promise<void> {
     await this.$ctx.kernel.getServices().broker.runWorkflow(
       "events.emit",
@@ -683,6 +686,9 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           productId: args.productId,
           storeId: this.$ctx.store.id,
           categoryIds: [...new Set(args.categoryIds ?? [])],
+          revision: args.revision,
+          deletedAt: args.deletedAt,
+          entityType: args.entityType,
         },
         source: "catalog",
         context: {
@@ -887,6 +893,9 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       await this.emitProductDeleted({
         productId: result.deletedProductId,
         categoryIds: result.categoryIds,
+        revision: result.revision,
+        deletedAt: result.deletedAt,
+        entityType: result.entityType,
       });
     }
 
