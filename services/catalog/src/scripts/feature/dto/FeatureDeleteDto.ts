@@ -6,4 +6,5 @@ export interface FeatureDeleteParams {
 
 export interface FeatureDeleteResult extends FeatureResultBase {
   deletedFeatureId?: string;
+  productId?: string;
 }

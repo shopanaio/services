@@ -29,6 +29,10 @@ import {
   listingSourceRevisionFromEvent,
   listingSourceRevisionFromEvents,
 } from "../listing-sync/ListingSyncPublisher.js";
+import type {
+  FacetReferenceSyncEventInput,
+  FacetReferenceSyncWorkflowInput,
+} from "../workflows/dto/FacetReferenceSyncWorkflowDto.js";
 
 type GetStoreByIdResult = {
   store: ContextStore | null;
@@ -59,6 +63,11 @@ type ListingAwareProductDeletedEvent = ProductDeletedEvent & {
     entityType?: "product" | "bundle";
   };
 };
+
+type FacetReferenceProductEvent =
+  | ProductCreatedEvent
+  | ProductUpdatedEvent
+  | ListingAwareProductDeletedEvent;
 
 type BatchProcessingResult = {
   failedEventIds: string[];
@@ -111,6 +120,7 @@ export class CatalogEventHandlers extends EventHandlers {
         productId: params.event.payload.productId,
         missingProductIsFailure: true,
       });
+      await this.startFacetReferenceSyncForEvent(params.event, store);
       return { success: true };
     } catch (error) {
       return this.handleSingleError(
@@ -134,15 +144,15 @@ export class CatalogEventHandlers extends EventHandlers {
       "Received productCreated event batch"
     );
 
-    return this.toBatchResponse(
-      await this.syncProductEventBatch({
-        events: params.events,
-        productIdOf: (event) => event.payload.productId,
-        storeIdOf: (event) => event.payload.storeId,
-        missingProductIsFailure: true,
-      }),
-      "Product created batch failed"
-    );
+    const result = await this.syncProductEventBatch({
+      events: params.events,
+      productIdOf: (event) => event.payload.productId,
+      storeIdOf: (event) => event.payload.storeId,
+      missingProductIsFailure: true,
+    });
+    mergeBatchResult(result, await this.syncFacetReferenceEventBatch(params.events));
+
+    return this.toBatchResponse(result, "Product created batch failed");
   }
 
   @EventHandler("productDeleted", { retry: { maxAttempts: 5 } })
@@ -175,6 +185,12 @@ export class CatalogEventHandlers extends EventHandlers {
         errors.push(errorMessage(error));
       }
 
+      try {
+        await this.startFacetReferenceSyncForEvent(params.event, store);
+      } catch (error) {
+        errors.push(errorMessage(error));
+      }
+
       if (errors.length > 0) {
         throw new Error(unique(errors).join("; "));
       }
@@ -202,10 +218,10 @@ export class CatalogEventHandlers extends EventHandlers {
       "Received productDeleted event batch"
     );
 
-    return this.toBatchResponse(
-      await this.deleteProductEventBatch(params.events),
-      "Product deleted batch failed"
-    );
+    const result = await this.deleteProductEventBatch(params.events);
+    mergeBatchResult(result, await this.syncFacetReferenceEventBatch(params.events));
+
+    return this.toBatchResponse(result, "Product deleted batch failed");
   }
 
   @EventHandler("productUpdated", { retry: { maxAttempts: 5 } })
@@ -239,6 +255,12 @@ export class CatalogEventHandlers extends EventHandlers {
         errors.push(errorMessage(error));
       }
 
+      try {
+        await this.startFacetReferenceSyncForEvent(params.event, store);
+      } catch (error) {
+        errors.push(errorMessage(error));
+      }
+
       if (errors.length > 0) {
         throw new Error(unique(errors).join("; "));
       }
@@ -267,6 +289,7 @@ export class CatalogEventHandlers extends EventHandlers {
     );
 
     const result = await this.syncProductUpdatedEvents(params.events);
+    mergeBatchResult(result, await this.syncFacetReferenceEventBatch(params.events));
     return this.toBatchResponse(result, "Product updated batch failed");
   }
 
@@ -785,6 +808,82 @@ export class CatalogEventHandlers extends EventHandlers {
     }
   }
 
+  private async startFacetReferenceSyncForEvent(
+    event: FacetReferenceProductEvent,
+    store: ContextStore
+  ): Promise<void> {
+    if (!isFacetReferenceProductEventRelevant(event)) return;
+
+    const input: FacetReferenceSyncWorkflowInput = {
+      storeId: store.id,
+      organizationId: store.organizationId,
+      userId: event.context.userId,
+      trigger: event.eventType,
+      events: [toFacetReferenceSyncEventInput(event)],
+    };
+
+    await this.broker.runWorkflow("catalog.facetReferenceSync", input, {
+      source: "content",
+      tenantId: event.context.tenantId,
+      resourceId: event.eventId,
+      operation: "facetReferenceSyncEvent",
+      content: {
+        eventId: event.eventId,
+        eventType: event.eventType,
+        timestamp: event.timestamp,
+      },
+    });
+  }
+
+  private async syncFacetReferenceEventBatch(
+    events: readonly FacetReferenceProductEvent[]
+  ): Promise<BatchProcessingResult> {
+    const result: BatchProcessingResult = { failedEventIds: [], errors: [] };
+    const relevantEvents = events.filter(isFacetReferenceProductEventRelevant);
+    if (relevantEvents.length === 0) return result;
+
+    for (const storeEvents of groupEventsByStore(
+      relevantEvents,
+      (event) => event.payload.storeId
+    ).values()) {
+      const firstEvent = storeEvents[0];
+      if (!firstEvent) continue;
+
+      let store: ContextStore;
+      try {
+        store = await this.getStoreContext(firstEvent.payload.storeId);
+      } catch (error) {
+        markFailed(result, storeEvents, error);
+        continue;
+      }
+
+      try {
+        const eventInputs = storeEvents.map(toFacetReferenceSyncEventInput);
+        await this.broker.runWorkflow("catalog.facetReferenceSync", {
+          storeId: store.id,
+          organizationId: store.organizationId,
+          userId: storeEvents.find((event) => event.context.userId)?.context.userId,
+          trigger: "eventBatch",
+          events: eventInputs,
+        } satisfies FacetReferenceSyncWorkflowInput, {
+          source: "content",
+          tenantId: store.organizationId,
+          resourceId: store.id,
+          operation: "facetReferenceSyncBatch",
+          content: {
+            eventIds: eventInputs.map((event) => event.eventId).sort(),
+            eventTypes: unique(eventInputs.map((event) => event.eventType)).sort(),
+          },
+        });
+      } catch (error) {
+        markFailed(result, storeEvents, error);
+      }
+    }
+
+    this.logBatchFailures(result, "Failed to handle facet reference sync batch");
+    return dedupeBatchResult(result);
+  }
+
   @EventHandler("fileHardDeleted", { retry: { maxAttempts: 10 } })
   async handleFileHardDeleted(params: {
     event: FileHardDeletedEvent;
@@ -927,10 +1026,59 @@ function requireStockEventStoreId(event: StockLevelChangedEvent): string {
   return storeId;
 }
 
+function isFacetReferenceProductEventRelevant(
+  event: FacetReferenceProductEvent
+): boolean {
+  if (
+    event.eventType === "productCreated" ||
+    event.eventType === "productDeleted"
+  ) {
+    return true;
+  }
+
+  const payload = asRecord(event.payload);
+  const productPayload = asRecord(payload.product);
+  const tags = asRecord(productPayload.tags);
+  const options = asRecord(productPayload.options);
+  const features = asRecord(productPayload.features);
+  if (tags.changed === true || options.changed === true || features.changed === true) {
+    return true;
+  }
+
+  return Object.values(asRecord(payload.variants)).some((variantValue) => {
+    const variant = asRecord(variantValue);
+    return Array.isArray(variant.options) && variant.options.length > 0;
+  });
+}
+
+function toFacetReferenceSyncEventInput(
+  event: FacetReferenceProductEvent
+): FacetReferenceSyncEventInput {
+  return {
+    eventId: event.eventId,
+    eventType: event.eventType,
+    timestamp: event.timestamp,
+    productId: isString(event.payload.productId)
+      ? event.payload.productId
+      : undefined,
+    payload: event.payload,
+  };
+}
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
 function unique<T>(values: readonly T[]): T[] {
   return [...new Set(values)];
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === "string";
 }

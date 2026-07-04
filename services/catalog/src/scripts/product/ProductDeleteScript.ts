@@ -50,6 +50,12 @@ export class ProductDeleteScript extends BaseScript<
     const categoryIds = [
       ...new Set(categoryLinks.map((link) => link.categoryId)),
     ];
+    const facetReferenceRefs =
+      await this.repository.facetReference.hydrateProductSnapshotRefs(
+        this.getProjectId(),
+        id,
+        "productDeleted"
+      );
 
     const deletedAt = new Date().toISOString();
     const deleted = permanent
@@ -82,6 +88,7 @@ export class ProductDeleteScript extends BaseScript<
       revision,
       deletedAt: effectiveDeletedAt,
       entityType: existingProduct.kind === "BUNDLE" ? "bundle" : "product",
+      facetReferenceRefs,
       userErrors: [],
     };
   }

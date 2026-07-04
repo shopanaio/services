@@ -1,6 +1,11 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { FeatureCreateParams, FeatureCreateResult } from "./dto/index.js";
 import { isValidSlug } from "../shared/slug.js";
+import {
+  buildFeatureSourceChange,
+  buildFeatureValueChange,
+  uniqueFacetReferenceChanges,
+} from "../shared/facetReferenceRefs.js";
 
 export class FeatureCreateScript extends BaseScript<FeatureCreateParams, FeatureCreateResult> {
   protected async execute(params: FeatureCreateParams): Promise<FeatureCreateResult> {
@@ -104,7 +109,22 @@ export class FeatureCreateScript extends BaseScript<FeatureCreateParams, Feature
       "Feature created"
     );
 
-    return { feature, userErrors: [] };
+    return {
+      feature,
+      facetReferenceRefs: uniqueFacetReferenceChanges([
+        buildFeatureSourceChange({
+          after: feature,
+          reason: "sourceCreated",
+        }),
+        ...values.map((value) =>
+          buildFeatureValueChange({
+            after: { feature, value: { slug: value.slug } },
+            reason: "sourceValueCreated",
+          })
+        ),
+      ]),
+      userErrors: [],
+    };
   }
 
   protected handleError(_error: unknown): FeatureCreateResult {

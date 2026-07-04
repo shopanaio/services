@@ -1,5 +1,10 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { FeatureDeleteParams, FeatureDeleteResult } from "./dto/index.js";
+import {
+  buildFeatureSourceChange,
+  buildFeatureValueChange,
+  uniqueFacetReferenceChanges,
+} from "../shared/facetReferenceRefs.js";
 
 export class FeatureDeleteScript extends BaseScript<FeatureDeleteParams, FeatureDeleteResult> {
   protected async execute(params: FeatureDeleteParams): Promise<FeatureDeleteResult> {
@@ -13,6 +18,9 @@ export class FeatureDeleteScript extends BaseScript<FeatureDeleteParams, Feature
         userErrors: [{ message: "Feature not found", field: ["id"], code: "NOT_FOUND" }],
       };
     }
+    const existingValues = existingFeature.isGroup
+      ? []
+      : await this.repository.feature.findValuesByFeatureId(id);
 
     // 2. Delete feature (CASCADE will delete values and translations)
     const deleted = await this.repository.feature.delete(id);
@@ -25,7 +33,25 @@ export class FeatureDeleteScript extends BaseScript<FeatureDeleteParams, Feature
 
     this.logger.info({ featureId: id }, "Feature deleted");
 
-    return { deletedFeatureId: id, userErrors: [] };
+    return {
+      deletedFeatureId: id,
+      productId: existingFeature.productId,
+      facetReferenceRefs: existingFeature.isGroup
+        ? []
+        : uniqueFacetReferenceChanges([
+            buildFeatureSourceChange({
+              before: existingFeature,
+              reason: "sourceDeleted",
+            }),
+            ...existingValues.map((value) =>
+              buildFeatureValueChange({
+                before: { feature: existingFeature, value },
+                reason: "sourceValueDeleted",
+              })
+            ),
+          ]),
+      userErrors: [],
+    };
   }
 
   protected handleError(_error: unknown): FeatureDeleteResult {

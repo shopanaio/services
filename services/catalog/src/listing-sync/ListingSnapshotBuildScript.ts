@@ -669,6 +669,10 @@ export class ListingSnapshotBuildScript extends BaseScript<
     const result = new Map<string, EffectiveFacetValue>();
 
     for (const row of sourceRows) {
+      if (!row.enabled || row.referenceStatus !== "VALID") {
+        continue;
+      }
+
       const parent = row.parentId ? parentById.get(row.parentId) : null;
       const effective = parent ?? row;
       if (!effective.enabled || effective.referenceStatus !== "VALID") {

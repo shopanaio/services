@@ -6,4 +6,5 @@ export interface OptionDeleteParams {
 
 export interface OptionDeleteResult extends OptionResultBase {
   deletedOptionId?: string;
+  productId?: string;
 }

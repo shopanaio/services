@@ -16,6 +16,7 @@ import { BulkFenceRepository } from "./BulkFenceRepository.js";
 import { FacetRepository } from "./facet/FacetRepository.js";
 import { FacetValueRepository } from "./facet/FacetValueRepository.js";
 import { FacetSwatchRepository } from "./facet/FacetSwatchRepository.js";
+import { FacetReferenceRepository } from "./facet/FacetReferenceRepository.js";
 import { CollectionRepository } from "./collection/CollectionRepository.js";
 import { CollectionItemRepository } from "./collection/CollectionItemRepository.js";
 import { CollectionRuleRepository } from "./collection/CollectionRuleRepository.js";
@@ -50,6 +51,7 @@ export class Repository {
   public readonly facet: FacetRepository;
   public readonly facetValue: FacetValueRepository;
   public readonly facetSwatch: FacetSwatchRepository;
+  public readonly facetReference: FacetReferenceRepository;
   public readonly collection: CollectionRepository;
   public readonly collectionItem: CollectionItemRepository;
   public readonly collectionRule: CollectionRuleRepository;
@@ -86,6 +88,7 @@ export class Repository {
     facet: FacetRepository,
     facetValue: FacetValueRepository,
     facetSwatch: FacetSwatchRepository,
+    facetReference: FacetReferenceRepository,
     collection: CollectionRepository,
     collectionItem: CollectionItemRepository,
     collectionRule: CollectionRuleRepository,
@@ -113,6 +116,7 @@ export class Repository {
     this.facet = facet;
     this.facetValue = facetValue;
     this.facetSwatch = facetSwatch;
+    this.facetReference = facetReference;
     this.collection = collection;
     this.collectionItem = collectionItem;
     this.collectionRule = collectionRule;
@@ -151,6 +155,7 @@ export class Repository {
     const facet = new FacetRepository(db, txManager);
     const facetValue = new FacetValueRepository(db, txManager);
     const facetSwatch = new FacetSwatchRepository(db, txManager);
+    const facetReference = new FacetReferenceRepository(db, txManager);
     const collection = new CollectionRepository(db, txManager);
     const collectionItem = new CollectionItemRepository(db, txManager);
     const collectionRule = new CollectionRuleRepository(db, txManager);
@@ -178,6 +183,7 @@ export class Repository {
       facet,
       facetValue,
       facetSwatch,
+      facetReference,
       collection,
       collectionItem,
       collectionRule,

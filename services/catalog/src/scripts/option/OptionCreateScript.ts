@@ -1,5 +1,10 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { OptionCreateParams, OptionCreateResult, OptionSwatchInput } from "./dto/index.js";
+import {
+  buildOptionSourceChange,
+  buildOptionValueChange,
+  uniqueFacetReferenceChanges,
+} from "../shared/facetReferenceRefs.js";
 
 export class OptionCreateScript extends BaseScript<OptionCreateParams, OptionCreateResult> {
   protected async execute(params: OptionCreateParams): Promise<OptionCreateResult> {
@@ -72,7 +77,22 @@ export class OptionCreateScript extends BaseScript<OptionCreateParams, OptionCre
       "Option created"
     );
 
-    return { option, userErrors: [] };
+    return {
+      option,
+      facetReferenceRefs: uniqueFacetReferenceChanges([
+        buildOptionSourceChange({
+          after: option,
+          reason: "sourceCreated",
+        }),
+        ...values.map((value) =>
+          buildOptionValueChange({
+            after: { option, value: { slug: value.slug } },
+            reason: "sourceValueCreated",
+          })
+        ),
+      ]),
+      userErrors: [],
+    };
   }
 
   private async createSwatch(swatch: OptionSwatchInput): Promise<string> {
