@@ -131,6 +131,7 @@ Help fix error "Cannot find module @shopana/shared-kernel"
 - `delivery` - Delivery integration
 - `events` - Event persistence and dispatch
 - `iam` - Identity and access management
+- `listing` - Storefront listing and search platform
 - `media` - File storage
 - `orders` - Order processing
 - `payments` - Payment integration
