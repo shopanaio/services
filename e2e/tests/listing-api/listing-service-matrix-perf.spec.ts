@@ -8,7 +8,7 @@ import { composeGlobalId, decodeGlobalId } from '@utils/globalid';
 
 const execFileAsync = promisify(execFile);
 
-const PRODUCT_COUNT = 10_000;
+const PRODUCT_COUNT = 10_00;
 const PAGE_SIZE = 50;
 const PRICE_FILTER = { min: 20_000, max: 60_000 } as const;
 const LISTING_PERF_RESULTS_DIR = resolve(process.cwd(), 'test-results/listing-perf/matrix-10k');
@@ -179,7 +179,9 @@ test.describe('Listing service matrix perf', () => {
     console.log(stdout.trim());
 
     const seedMeta = JSON.parse(await readFile(SEED_META_PATH, 'utf8')) as ListingMatrixSeedMeta;
-    const scopedCategory = seedMeta.categories.find((category) => category.id === seedMeta.categoryId);
+    const scopedCategory = seedMeta.categories.find(
+      (category) => category.id === seedMeta.categoryId,
+    );
     if (!scopedCategory) {
       throw new Error(`Seed meta does not include scoped category ${seedMeta.categoryId}`);
     }
@@ -235,7 +237,7 @@ test.describe('Listing service matrix perf', () => {
               ? seedMeta.expected.optionAndPrice
               : scenario.expected === 'priceOnly'
                 ? seedMeta.expected.priceOnly
-              : null;
+                : null;
         const expectedTotal = expectedResult?.expectedTotalCount ?? scopedCategory.productCount;
 
         expect(listing.totalCount, scenario.name).toBe(expectedTotal);
@@ -243,9 +245,15 @@ test.describe('Listing service matrix perf', () => {
         expect(listing.pageInfo.hasNextPage, scenario.name).toBe(true);
 
         if (scenario.expected === 'optionOnly') {
-          expectSelectedFacetValues(listing.facets, seedMeta.expected.optionOnly.expectedSelectedFacetCounts);
+          expectSelectedFacetValues(
+            listing.facets,
+            seedMeta.expected.optionOnly.expectedSelectedFacetCounts,
+          );
         } else if (scenario.expected === 'optionAndPrice') {
-          expectSelectedFacetValues(listing.facets, seedMeta.expected.optionAndPrice.expectedSelectedFacetCounts);
+          expectSelectedFacetValues(
+            listing.facets,
+            seedMeta.expected.optionAndPrice.expectedSelectedFacetCounts,
+          );
         } else {
           expectNoSelectedFacetValues(listing.facets);
         }
@@ -384,7 +392,9 @@ async function setPostgresDurationLogging(enabled: boolean) {
     '-v',
     'ON_ERROR_STOP=1',
     '-c',
-    enabled ? 'ALTER SYSTEM SET log_min_duration_statement = 0' : 'ALTER SYSTEM RESET log_min_duration_statement',
+    enabled
+      ? 'ALTER SYSTEM SET log_min_duration_statement = 0'
+      : 'ALTER SYSTEM RESET log_min_duration_statement',
     '-c',
     'SELECT pg_reload_conf()',
   ]);
@@ -393,15 +403,13 @@ async function setPostgresDurationLogging(enabled: boolean) {
 async function readRecentPostgresDurations(since: string): Promise<{ summary: string }> {
   const { stdout } = await execFileAsync(
     'sh',
-    [
-      '-lc',
-      `docker logs --since '${since}' shopana-e2e-postgres 2>&1`,
-    ],
+    ['-lc', `docker logs --since '${since}' shopana-e2e-postgres 2>&1`],
     { maxBuffer: 1024 * 1024 * 32 },
   );
 
   const entries = extractPostgresDurationEntries(stdout);
-  const summary = entries.length > 0 ? entries.join('\n\n---\n\n') : 'No postgres duration statements found.';
+  const summary =
+    entries.length > 0 ? entries.join('\n\n---\n\n') : 'No postgres duration statements found.';
 
   await mkdir(LISTING_PERF_RESULTS_DIR, { recursive: true });
   await writeFile(POSTGRES_RAW_LOG_PATH, stdout);

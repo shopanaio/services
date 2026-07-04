@@ -1,5 +1,4 @@
 import { sql, type SQL } from "drizzle-orm";
-import { emptyRoaringBitmapSql } from "../sqlHelpers.js";
 import type { ListingSqlRequest } from "./compileListingInputSql.js";
 import {
   compileInputCte,
@@ -12,15 +11,6 @@ export function compileFacetsQuerySql(request: ListingSqlRequest): SQL {
     WITH
     ${compileInputCte(request)},
     ${compileScopeProductCtes(request)},
-    scope_variants AS (
-      SELECT COALESCE(rb_build_agg(vli.variant_doc_id), ${emptyRoaringBitmapSql()}) AS bitmap
-      FROM listing.variant_listing_index vli
-      JOIN input i ON true
-      CROSS JOIN scope_products sp
-      WHERE vli.project_id = i.project_id
-        AND vli.in_stock = true
-        AND sp.bitmap @> vli.product_doc_id
-    ),
     candidate_values AS (
       SELECT DISTINCT p.value_key
       FROM input i
@@ -33,14 +23,15 @@ export function compileFacetsQuerySql(request: ListingSqlRequest): SQL {
 
       UNION
 
-      SELECT DISTINCT p.value_key
+      SELECT DISTINCT sv.value_key
       FROM input i
-      CROSS JOIN scope_variants sv
-      JOIN listing.listing_posting_bitmap p
-        ON p.project_id = i.project_id
-       AND p.entity_type = 'variant'
-       AND p.field = 'facet'
-       AND rb_cardinality(sv.bitmap & p.bitmap) > 0
+      CROSS JOIN scope_products sp
+      JOIN listing.listing_option_signature os
+        ON os.project_id = i.project_id
+       AND rb_cardinality(sp.bitmap & os.product_bitmap) > 0
+      JOIN listing.listing_option_signature_value sv
+        ON sv.option_signature_id = os.option_signature_id
+       AND sv.project_id = os.project_id
     ),
     facet_values AS (
       SELECT

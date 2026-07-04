@@ -7,6 +7,7 @@ import {
 } from "./compileListingInputSql.js";
 import { compileScopeSql } from "./compileScopeSql.js";
 import { compileFiltersSql } from "./compileFiltersSql.js";
+import { compilePricePredicateSql } from "./compileListingProductMatchesSql.js";
 
 const MAX_OPTION_FACET_CHECK_ESTIMATE = Number.MAX_SAFE_INTEGER;
 
@@ -55,7 +56,11 @@ export function compileFacetCountsQuerySql(
 export function facetCountsProfileTargetsForRequest(
   request: ListingSqlRequest
 ): readonly FacetCountsProfileTarget[] {
-  return canUseSimpleOptionFacetCounts(request)
+  const useCompactProfileTargets =
+    canUseSimpleOptionFacetCounts(request) ||
+    canUsePriceOnlyOptionFacetCounts(request);
+
+  return useCompactProfileTargets
     ? SIMPLE_FACET_COUNTS_PROFILE_TARGETS
     : FACET_COUNTS_PROFILE_TARGETS;
 }
@@ -109,26 +114,33 @@ function compileFacetCountsCtesSql(
   const heavyStrategyEnabled =
     options.heavyStrategyEnabled || forcedTargetFacetIds.length > 0;
   const simpleOptionFacetCounts = canUseSimpleOptionFacetCounts(request);
+  const priceOnlyOptionFacetCounts = canUsePriceOnlyOptionFacetCounts(request);
   const optionActiveFilterValueRowsSql =
     compileOptionActiveFilterValueRowsSql(request);
-  const optionFacetCountStrategySql = heavyStrategyEnabled
-    ? sql`${compileOptionFacetCountStrategySql({
-        request,
-        autoHeavyOptionFacetCountsEnabled: options.heavyStrategyEnabled,
-        forceHeavyOptionFacetCountFacetIds: forcedTargetFacetIds,
-      })},`
-    : sql``;
-  const optionSignatureSql = simpleOptionFacetCounts
-    ? sql``
-    : sql`${compileOptionSignatureBaseStateSql(heavyStrategyEnabled)},
+  const optionFacetCountStrategySql =
+    heavyStrategyEnabled &&
+    !simpleOptionFacetCounts &&
+    !priceOnlyOptionFacetCounts
+      ? sql`${compileOptionFacetCountStrategySql({
+          request,
+          autoHeavyOptionFacetCountsEnabled: options.heavyStrategyEnabled,
+          forceHeavyOptionFacetCountFacetIds: forcedTargetFacetIds,
+        })},`
+      : sql``;
+  const optionSignatureSql =
+    simpleOptionFacetCounts || priceOnlyOptionFacetCounts
+      ? sql``
+      : sql`${compileOptionSignatureBaseStateSql(heavyStrategyEnabled)},
     ${compileOptionSignatureMatchingSql({
       optimizePriceSignatureLookup: !heavyStrategyEnabled,
     })},`;
   const optionFacetCountsProducerSql = simpleOptionFacetCounts
     ? compileSimpleOptionFacetCountsProducerSql()
-    : heavyStrategyEnabled
-      ? compileHeavyOptionFacetCountsProducerSql()
-      : compileCandidateOnlyOptionFacetCountsProducerSql();
+    : priceOnlyOptionFacetCounts
+      ? compilePriceOnlyOptionFacetCountsProducerSql(request)
+      : heavyStrategyEnabled
+        ? compileHeavyOptionFacetCountsProducerSql()
+        : compileCandidateOnlyOptionFacetCountsProducerSql();
   const facetValueDiscoverySql = options.visibleFacetValues
     ? compileProvidedFacetValueCtesSql(options.visibleFacetValues)
     : compileDiscoveredFacetValueCtesSql();
@@ -452,6 +464,11 @@ function compileFacetCountsCoreSql(request: ListingSqlRequest): SQL {
 function canUseSimpleOptionFacetCounts(request: ListingSqlRequest): boolean {
   const plan = request.request.filterPlan;
   return plan.optionFacetGroups.length === 0 && !plan.priceRange;
+}
+
+function canUsePriceOnlyOptionFacetCounts(request: ListingSqlRequest): boolean {
+  const plan = request.request.filterPlan;
+  return plan.optionFacetGroups.length === 0 && !!plan.priceRange;
 }
 
 export function compileFacetCountsHeavyParityQuerySql(input: {
@@ -799,6 +816,79 @@ function compileSimpleOptionFacetCountsProducerSql(): SQL {
         ofv.value_key,
         sfs.has_value,
         sfs.value
+    )
+  `;
+}
+
+function compilePriceOnlyOptionFacetCountsProducerSql(
+  request: ListingSqlRequest
+): SQL {
+  return sql`
+    option_price_only_signature_lookup_keys AS (
+      SELECT DISTINCT
+        sv.signature_key
+      FROM input i
+      JOIN option_facet_values ofv ON true
+      JOIN listing.listing_option_signature_value sv
+        ON sv.project_id = i.project_id
+       AND sv.value_key = ofv.value_key
+    ),
+    option_price_only_signature_product_bitmaps AS (
+      SELECT
+        lookup.signature_key,
+        COALESCE(price_products.product_bitmap, ${emptyRoaringBitmapSql()})
+          AS product_bitmap
+      FROM option_price_only_signature_lookup_keys lookup
+      CROSS JOIN option_count_product_scope price_scope
+      JOIN stock_filter_state sfs
+        ON NOT COALESCE(sfs.has_value AND sfs.value = false, false)
+      CROSS JOIN LATERAL (
+        SELECT rb_build_agg(vp.product_doc_id) AS product_bitmap
+        FROM listing.variant_listing_price_index vp
+        WHERE vp.project_id = ${request.projectId}::uuid
+          AND vp.signature_key = lookup.signature_key
+          AND vp.currency = ${request.currency}
+          AND vp.has_price = true
+          AND vp.price_minor IS NOT NULL
+          AND price_scope.bitmap @> vp.product_doc_id
+          ${compilePricePredicateSql(request, sql`vp`)}
+      ) price_products
+    ),
+    option_price_only_value_bitmaps AS (
+      SELECT
+        ofv.value_key,
+        COALESCE(
+          rb_or_agg(signature_products.product_bitmap)
+            FILTER (WHERE signature_products.product_bitmap IS NOT NULL),
+          ${emptyRoaringBitmapSql()}
+        ) AS product_bitmap
+      FROM input i
+      JOIN option_facet_values ofv ON true
+      LEFT JOIN listing.listing_option_signature_value sv
+        ON sv.project_id = i.project_id
+       AND sv.value_key = ofv.value_key
+      LEFT JOIN option_price_only_signature_product_bitmaps signature_products
+        ON signature_products.signature_key = sv.signature_key
+      GROUP BY ofv.value_key
+    ),
+    option_facet_counts AS (
+      SELECT
+        ofv.facet_id,
+        ofv.facet_type,
+        ofv.value_key,
+        CASE
+          WHEN COALESCE(sfs.has_value AND sfs.value = false, false) THEN 0
+          ELSE rb_cardinality(
+            COALESCE(
+              value_bitmaps.product_bitmap,
+              ${emptyRoaringBitmapSql()}
+            )
+          )::int
+        END AS count
+      FROM option_facet_values ofv
+      CROSS JOIN stock_filter_state sfs
+      LEFT JOIN option_price_only_value_bitmaps value_bitmaps
+        ON value_bitmaps.value_key = ofv.value_key
     )
   `;
 }

@@ -74,6 +74,7 @@ function compileOptionVariantPricesCte(request: ListingSqlRequest): SQL {
     return sql``;
   }
 
+  // listing_posting_variant_price stores only priced active in-stock variants.
   return sql`
     option_variant_prices AS MATERIALIZED (
       SELECT
@@ -97,12 +98,6 @@ function compileOptionVariantPricesCte(request: ListingSqlRequest): SQL {
           AND price.variant_doc_id = ov.variant_doc_id
         LIMIT 1
       ) vp ON true
-      JOIN listing.variant_listing_index vli
-        ON vli.project_id = i.project_id
-       AND vli.variant_doc_id = vp.variant_doc_id
-       AND vli.product_doc_id = vp.product_doc_id
-       AND vli.product_id = vp.product_id
-       AND vli.in_stock = true
       WHERE pb.bitmap @> vp.product_doc_id
     ),
   `;

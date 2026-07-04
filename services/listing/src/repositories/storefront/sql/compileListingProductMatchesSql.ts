@@ -279,6 +279,7 @@ function compilePricedVariantProductsBitmapSql(
     return emptyRoaringBitmapSql();
   }
 
+  // listing_posting_variant_price stores only priced active in-stock variants.
   if (optionBitmap) {
     return coalesceBitmapSql(sql`(
       WITH option_variant_matches AS MATERIALIZED (
@@ -289,12 +290,6 @@ function compilePricedVariantProductsBitmapSql(
       JOIN listing.listing_posting_variant_price vp
         ON vp.project_id = ${request.projectId}::uuid
        AND vp.currency = ${request.currency}
-      JOIN listing.variant_listing_index vli
-        ON vli.project_id = vp.project_id
-       AND vli.variant_doc_id = vp.variant_doc_id
-       AND vli.product_doc_id = vp.product_doc_id
-       AND vli.product_id = vp.product_id
-       AND vli.in_stock = true
       WHERE ovm.bitmap @> vp.variant_doc_id
         ${compilePricePredicateSql(request, sql`vp`)}
     )`);
@@ -303,12 +298,6 @@ function compilePricedVariantProductsBitmapSql(
   return coalesceBitmapSql(sql`(
     SELECT rb_build_agg(vp.product_doc_id)
     FROM listing.listing_posting_variant_price vp
-    JOIN listing.variant_listing_index vli
-      ON vli.project_id = vp.project_id
-     AND vli.variant_doc_id = vp.variant_doc_id
-     AND vli.product_doc_id = vp.product_doc_id
-     AND vli.product_id = vp.product_id
-     AND vli.in_stock = true
     WHERE vp.project_id = ${request.projectId}::uuid
       AND vp.currency = ${request.currency}
       ${compilePricePredicateSql(request, sql`vp`)}

@@ -104,6 +104,7 @@ function compileMatchedVariantPricePageQuerySql(
   const pricePredicate = compilePricePredicateSql(request, sql`vp`);
   const optionPredicate = compileOptionVariantPredicateSql(request, sql`vp`);
 
+  // listing_posting_variant_price stores only priced active in-stock variants.
   return sql`
     /* listing:page */
     WITH
@@ -122,12 +123,6 @@ function compileMatchedVariantPricePageQuerySql(
         vp.variant_doc_id,
         vp.price_minor
       FROM listing.listing_posting_variant_price vp
-      JOIN listing.variant_listing_index vli
-        ON vli.project_id = vp.project_id
-       AND vli.variant_doc_id = vp.variant_doc_id
-       AND vli.product_doc_id = vp.product_doc_id
-       AND vli.product_id = vp.product_id
-       AND vli.in_stock = true
       JOIN input i ON true
       CROSS JOIN product_base pb
       WHERE vp.project_id = i.project_id
@@ -225,12 +220,6 @@ function compileOptionBitmapMatchedVariantPricePageQuerySql(
         ON vp.project_id = i.project_id
        AND vp.currency = i.currency
        AND vp.variant_doc_id = ov.variant_doc_id
-      JOIN listing.variant_listing_index vli
-        ON vli.project_id = vp.project_id
-       AND vli.variant_doc_id = vp.variant_doc_id
-       AND vli.product_doc_id = vp.product_doc_id
-       AND vli.product_id = vp.product_id
-       AND vli.in_stock = true
       CROSS JOIN product_base pb
       WHERE pb.bitmap @> vp.product_doc_id
         ${pricePredicate}

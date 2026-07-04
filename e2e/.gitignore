@@ -69,3 +69,5 @@ storage/
 !.yarn/sdks
 !.yarn/versions
 .pnp.*
+
+listing-perf-history/
