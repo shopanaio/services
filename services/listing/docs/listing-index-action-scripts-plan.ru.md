@@ -247,7 +247,10 @@ await this.broker.startWorkflow(
 
 ### Workflow body
 
-`ListingIndexActionWorkflow` содержит только deterministic routing:
+`ListingIndexActionWorkflow` содержит только deterministic orchestration.
+Workflow body не применяет индекс одним большим script call. Он вызывает
+durable steps в фиксированном порядке и ветвится только по результатам уже
+persisted steps:
 
 ```ts
 type ListingIndexQueuedAction =
@@ -269,7 +272,32 @@ class ListingIndexActionWorkflow extends BrokerWorkflows {
   async run(
     action: ListingIndexQueuedAction
   ): Promise<Listing.ListingUpdateResult> {
-    return this.stepApplyIndexAction(action);
+    const prepared = await this.stepPrepareIndexAction(action);
+
+    if (prepared.kind === "final") {
+      return prepared.result;
+    }
+
+    const docIds =
+      action.type === "syncSellableItem"
+        ? await this.stepEnsureDocIds(prepared.action)
+        : undefined;
+
+    const writeModel =
+      action.type === "syncSellableItem"
+        ? await this.stepBuildSyncWriteModel({
+            action: prepared.action,
+            docIds: docIds!,
+          })
+        : undefined;
+
+    return action.type === "syncSellableItem"
+      ? this.stepCommitSyncIndexAction({
+          action: prepared.action,
+          docIds: docIds!,
+          writeModel: writeModel!,
+        })
+      : this.stepCommitDeleteIndexAction(prepared.action);
   }
 }
 ```
@@ -283,15 +311,87 @@ Workflow body rules:
 - Не создает timestamps, UUID или random values.
 - Не строит write model, если для этого нужны doc ids или database state.
 - Не содержит physical index mapping rules.
+- Не вызывает один универсальный `applyListingIndexAction` step, который внутри
+  делает validate/lock/allocate/map/write/delete/finalize.
+- Может ветвиться только на основании:
+  - immutable `action.type`;
+  - persisted result предыдущего `@WorkflowStep`.
 
-### Workflow step для side effects
+### Workflow steps для side effects
 
-Фактическая обработка action выполняется в одном durable step:
+Фактическая обработка action разбивается на durable steps. Каждый step должен
+быть safe для повторного выполнения, если process crash произошел после его
+database commit, но до DBOS step result persistence.
 
 ```ts
 class ListingIndexActionWorkflow extends BrokerWorkflows {
   @WorkflowStep({
-    name: "applyListingIndexAction",
+    name: "prepareListingIndexAction",
+    timeoutMs: 30_000,
+    retry: {
+      maxAttempts: 5,
+      intervalSeconds: 1,
+      backoffRate: 2,
+    },
+  })
+  private async stepPrepareIndexAction(
+    action: ListingIndexQueuedAction
+  ): Promise<ListingIndexPreparedAction> {
+    const kernel = Kernel.getInstance();
+    const scriptContext = buildRunScriptContext(action);
+
+    return kernel.runScript(
+      ListingPrepareIndexActionScript,
+      toRuntimeActionParams(action),
+      scriptContext,
+    );
+  }
+
+  @WorkflowStep({
+    name: "ensureListingIndexDocIds",
+    timeoutMs: 30_000,
+    retry: {
+      maxAttempts: 5,
+      intervalSeconds: 1,
+      backoffRate: 2,
+    },
+  })
+  private async stepEnsureDocIds(
+    action: ListingPreparedSyncAction
+  ): Promise<ListingIndexDocIds> {
+    const kernel = Kernel.getInstance();
+
+    return kernel.runScript(
+      ListingEnsureIndexDocIdsScript,
+      action,
+      buildRunScriptContext(action),
+    );
+  }
+
+  @WorkflowStep({
+    name: "buildListingSyncWriteModel",
+    timeoutMs: 30_000,
+    retry: {
+      maxAttempts: 3,
+      intervalSeconds: 1,
+      backoffRate: 2,
+    },
+  })
+  private async stepBuildSyncWriteModel(input: {
+    action: ListingPreparedSyncAction;
+    docIds: ListingIndexDocIds;
+  }): Promise<ListingItemWriteModel> {
+    const kernel = Kernel.getInstance();
+
+    return kernel.runScript(
+      ListingBuildSyncWriteModelScript,
+      input,
+      buildRunScriptContext(input.action),
+    );
+  }
+
+  @WorkflowStep({
+    name: "commitListingSyncIndexAction",
     timeoutMs: 120_000,
     retry: {
       maxAttempts: 5,
@@ -299,32 +399,38 @@ class ListingIndexActionWorkflow extends BrokerWorkflows {
       backoffRate: 2,
     },
   })
-  private async stepApplyIndexAction(
-    action: ListingIndexQueuedAction
-  ): Promise<Listing.ListingUpdateResult> {
+  private async stepCommitSyncIndexAction(input: {
+    action: ListingPreparedSyncAction;
+    docIds: ListingIndexDocIds;
+    writeModel: ListingItemWriteModel;
+  }): Promise<Listing.ListingUpdateResult> {
     const kernel = Kernel.getInstance();
-    const scriptContext = buildRunScriptContext(action);
-
-    if (action.type === "syncSellableItem") {
-      return kernel.runScript(
-        ListingSyncSellableItemScript,
-        {
-          ...action.params,
-          effectiveIdempotencyKey: action.effectiveIdempotencyKey,
-          payloadHash: action.payloadHash,
-        },
-        scriptContext,
-      );
-    }
 
     return kernel.runScript(
-      ListingDeleteSellableItemScript,
-      {
-        ...action.params,
-        effectiveIdempotencyKey: action.effectiveIdempotencyKey,
-        payloadHash: action.payloadHash,
-      },
-      scriptContext,
+      ListingCommitSyncIndexActionScript,
+      input,
+      buildRunScriptContext(input.action),
+    );
+  }
+
+  @WorkflowStep({
+    name: "commitListingDeleteIndexAction",
+    timeoutMs: 120_000,
+    retry: {
+      maxAttempts: 5,
+      intervalSeconds: 1,
+      backoffRate: 2,
+    },
+  })
+  private async stepCommitDeleteIndexAction(
+    action: ListingPreparedDeleteAction
+  ): Promise<Listing.ListingUpdateResult> {
+    const kernel = Kernel.getInstance();
+
+    return kernel.runScript(
+      ListingCommitDeleteIndexActionScript,
+      action,
+      buildRunScriptContext(action),
     );
   }
 }
@@ -332,12 +438,42 @@ class ListingIndexActionWorkflow extends BrokerWorkflows {
 
 Step rules:
 
-- Все side effects находятся здесь или ниже в scripts/repositories.
+- Все side effects находятся в steps или ниже в scripts/repositories.
 - Step result persisted DBOS-ом. На workflow replay completed step не должен
   повторно выполнять writes.
 - Если process crash произошел после database commit, но до DBOS step result
-  persistence, DBOS может повторно выполнить step. Database receipt обязан
-  вернуть сохраненный result без повторных physical writes.
+  persistence, DBOS может повторно выполнить этот же step. Поэтому каждый
+  write-step обязан иметь database guard по `effectiveIdempotencyKey` и
+  `stage`.
+- `prepare` step:
+  - валидирует public contract;
+  - строит/проверяет `RunScriptContext`;
+  - под item lock проверяет final receipt и revision decision;
+  - если action уже final, возвращает `kind: "final"` с сохраненным result;
+  - если нужно продолжать, upsert-ит execution row со stage `prepared` и
+    возвращает нормализованный immutable action.
+- `ensureDocIds` step:
+  - используется только для sync;
+  - под item lock повторно проверяет final receipt;
+  - выделяет или возвращает уже выделенные `product_doc_id` и
+    `variant_doc_id`;
+  - сохраняет doc ids в execution row stage `doc_ids_reserved`;
+  - повтор step возвращает сохраненные doc ids.
+- `buildSyncWriteModel` step:
+  - использует только normalized action и persisted doc ids;
+  - не читает mutable storefront state;
+  - сохраняет canonical `write_model_hash` и optional debug snapshot в
+    execution row stage `write_model_built`;
+  - повтор step возвращает тот же write model или валидирует hash.
+- `commitSyncIndexAction` и `commitDeleteIndexAction`:
+  - открывают одну item-level transaction для final physical writes;
+  - первым write-side DB operation вызывают `lockByItem`;
+  - повторно проверяют final receipt/current state/source revision;
+  - для `noop`/`ignored_stale` вставляют final receipt без physical writes;
+  - для `apply` выполняют physical writes, upsert latest item state и final
+    receipt атомарно;
+  - переводят execution row в `completed` только после successful final
+    receipt insert.
 - Retry policy включается явно. Default DBOS wrapper policy без `retry`
   означает no retry.
 - Retryable infrastructure errors должны быть thrown как retryable errors или
@@ -405,9 +541,10 @@ Rules:
 
 - Internal runner обязан строить тот же `effectiveIdempotencyKey` и
   `payloadHash`, что DBOS enqueue path.
-- Internal runner вызывает те же scripts:
-  `ListingSyncSellableItemScript`, `ListingDeleteSellableItemScript` или
-  `ListingSyncSellableItemsScript`.
+- Internal runner вызывает тот же step-oriented executor:
+  `ListingPrepareIndexActionScript`, `ListingEnsureIndexDocIdsScript`,
+  `ListingBuildSyncWriteModelScript`, `ListingCommitSyncIndexActionScript` или
+  `ListingCommitDeleteIndexActionScript`.
 - Internal runner получает final result: `applied`, `noop` или
   `ignored_stale`.
 - Internal runner не обходит `lockByItem`, receipt checks, revision checks или
@@ -439,10 +576,11 @@ Rules:
 DBOS workflow identity защищает durable scheduling. Database idempotency
 защищает physical side effects и stable final result.
 
-Для этого нужны две разные сущности:
+Для этого нужны три разные сущности:
 
 1. latest item state;
-2. action receipt по `effectiveIdempotencyKey`.
+2. action execution journal по `effectiveIdempotencyKey`;
+3. final action receipt по `effectiveIdempotencyKey`.
 
 ### `listing_index_item_state`
 
@@ -471,6 +609,64 @@ Constraints:
 - Эта table не является idempotency receipt history.
 - Эта table обновляется только после successful apply/delete decision.
 - Stale/noop decisions не должны откатывать latest state назад.
+
+### `listing_index_action_execution`
+
+Execution journal хранит durable progress между DBOS steps. Он не заменяет
+final receipt и не является публичным результатом action.
+
+```sql
+CREATE TABLE listing.listing_index_action_execution (
+  project_id uuid NOT NULL,
+  effective_idempotency_key text NOT NULL,
+  raw_idempotency_key text NOT NULL,
+  entity_type varchar(32) NOT NULL,
+  item_id uuid NOT NULL,
+  action_type varchar(32) NOT NULL,
+  source_revision integer NOT NULL,
+  payload_hash text NOT NULL,
+  operation_id text NOT NULL,
+  stage varchar(32) NOT NULL,
+  product_doc_id integer,
+  variant_doc_ids_json jsonb,
+  write_model_hash text,
+  debug_write_model_json jsonb,
+  created_at timestamptz NOT NULL,
+  updated_at timestamptz NOT NULL,
+  PRIMARY KEY (project_id, effective_idempotency_key)
+);
+
+CREATE INDEX listing_index_action_execution_item_idx
+  ON listing.listing_index_action_execution (
+    project_id,
+    entity_type,
+    item_id,
+    source_revision
+  );
+```
+
+Constraints:
+
+- `stage IN (
+  'prepared',
+  'doc_ids_reserved',
+  'write_model_built',
+  'committing',
+  'completed',
+  'failed_non_retryable'
+)`.
+- `product_doc_id` and `variant_doc_ids_json` are required from
+  `doc_ids_reserved` onward for sync actions.
+- `write_model_hash` is required from `write_model_built` onward for sync
+  actions.
+- Reusing the same `effective_idempotency_key` with different `payload_hash`,
+  `action_type`, `entity_type`, `item_id` or `source_revision` is a
+  non-retryable idempotency conflict.
+- Step code must advance stages monotonically. Re-running an earlier step after
+  a later stage exists returns the already persisted data for that later stage.
+- `completed` means final receipt exists. If a retry observes `stage =
+  'completed'` but no final receipt, it must treat this as data corruption and
+  fail non-retryably, not reapply physical writes.
 
 ### `listing_index_action_receipt`
 
@@ -518,7 +714,9 @@ Constraints:
 
 ## Idempotency and revision decision
 
-Decision is made under item lock inside the same transaction as physical writes.
+Decision is made under item lock in `prepare` and repeated under item lock in
+the final `commit` step. The final decision that allows physical writes is made
+inside the same transaction as those physical writes.
 
 Decision order:
 
@@ -570,92 +768,71 @@ Contract:
 - Все sync/delete/batch paths используют один `lockByItem`; ad-hoc locks в
   scripts запрещены.
 
-### Single item sync transaction
+### Single item sync step transactions
 
 ```ts
-await repository.txManager.run(async () => {
-  const currentState =
-    await repository.listingIndexItemState.lockByItem(itemKey);
+const prepared = await stepPrepareIndexAction(action);
 
-  const receipt =
-    await repository.listingIndexActionReceipt.findByEffectiveKey({
-      projectId,
-      effectiveIdempotencyKey,
-    });
+if (prepared.kind === "final") {
+  return prepared.result;
+}
 
-  const decision = decideSync({
-    currentState,
-    receipt,
-    sourceRevision,
-    payloadHash,
-  });
+const docIds = await stepEnsureDocIds(prepared.action);
+const writeModel = await stepBuildSyncWriteModel({
+  action: prepared.action,
+  docIds,
+});
 
-  if (decision.kind !== "apply") {
-    await repository.listingIndexActionReceipt.insertResult(decision.receipt);
-    return decision.result;
-  }
-
-  // allocate/preserve doc ids
-  // bootstrap product row for FK safety
-  // allocate/preserve variant doc ids
-  // build deterministic write model
-  // apply physical write model
-  // cleanup stale variants
-  // refresh projection blocks
-  // upsert latest item state
-  // insert action receipt with final result
+return stepCommitSyncIndexAction({
+  action: prepared.action,
+  docIds,
+  writeModel,
 });
 ```
 
 Rules:
 
-- `lockByItem` is first write-side DB operation for item.
-- Decision is repeated under lock even if fast-path read happened before
-  transaction.
+- `prepare`, `ensureDocIds` and `commit` each call `lockByItem` as the first
+  write-side DB operation for item.
+- `buildSyncWriteModel` may skip item lock only if it uses no mutable database
+  state; if it persists `write_model_hash`, it must lock item before updating
+  execution row.
+- Decision is repeated under lock in final commit even if prepare already made
+  an `apply` decision.
 - `noop` and `ignored_stale` do not execute physical index writes.
-- Physical writes and final state/receipt writes are atomic.
+- Physical writes and final state/receipt writes are atomic inside
+  `stepCommitSyncIndexAction`.
 - If any physical write fails, item state and receipt are rolled back.
-- `product_doc_id` and `variant_doc_id` allocation happens in the same
-  transaction as index rows.
+- `product_doc_id` and `variant_doc_id` allocation happens in
+  `stepEnsureDocIds` and is persisted in `listing_index_action_execution`.
+  Repeating this step returns the same ids.
 - Bootstrap product row is created before variant rows.
 - Projection blocks refresh happens after variant row/membership/runtime price
   writes and before commit.
 - Final receipt is inserted last or in the same final block as latest state,
   after all physical writes have succeeded.
 
-### Delete transaction
+### Delete step transactions
 
 ```ts
-await repository.txManager.run(async () => {
-  const currentState =
-    await repository.listingIndexItemState.lockByItem(itemKey);
+const prepared = await stepPrepareIndexAction(action);
 
-  const receipt =
-    await repository.listingIndexActionReceipt.findByEffectiveKey({
-      projectId,
-      effectiveIdempotencyKey,
-    });
+if (prepared.kind === "final") {
+  return prepared.result;
+}
 
-  const decision = decideDelete({
-    currentState,
-    receipt,
-    sourceRevision,
-    payloadHash,
-  });
-
-  if (decision.kind !== "apply") {
-    await repository.listingIndexActionReceipt.insertResult(decision.receipt);
-    return decision.result;
-  }
-
-  // load current product/variant doc ids
-  // delete dependent rows
-  // refresh affected projection blocks
-  // delete product row
-  // upsert latest item state as deleted
-  // insert action receipt with final result
-});
+return stepCommitDeleteIndexAction(prepared.action);
 ```
+
+Delete final commit:
+
+- Opens one item-level transaction.
+- Calls `lockByItem` as the first write-side DB operation for item.
+- Rechecks final receipt/current state/source revision under lock.
+- For `noop`/`ignored_stale`, inserts final receipt without physical deletes.
+- For `apply`, loads current product/variant doc ids, deletes dependent rows,
+  refreshes affected projection blocks, upserts latest deleted state, inserts
+  final receipt and marks execution `completed`.
 
 Delete ordering:
 
@@ -722,14 +899,16 @@ Global write-side lock order:
 
 1. `listing_index_item_state` item advisory lock.
 2. Existing `listing_index_item_state` row with `SELECT ... FOR UPDATE`.
-3. `listing_index_action_receipt` check/insert for effective key.
-4. `listing_doc_id_allocator` lock, only if new doc ids are needed.
-5. Existing product row/bootstrap row.
-6. Variant rows sorted by `variantId`.
-7. Posting bitmap rows sorted by `entityType`, `field`, `valueKey`.
-8. Runtime price rows sorted by `currency`, `variantDocId`.
-9. Product sort/search/price rows.
-10. Projection blocks sorted by `blockId`.
+3. `listing_index_action_receipt` check for effective key.
+4. `listing_index_action_execution` check/upsert for effective key.
+5. `listing_doc_id_allocator` lock, only if new doc ids are needed.
+6. Existing product row/bootstrap row.
+7. Variant rows sorted by `variantId`.
+8. Posting bitmap rows sorted by `entityType`, `field`, `valueKey`.
+9. Runtime price rows sorted by `currency`, `variantDocId`.
+10. Product sort/search/price rows.
+11. Projection blocks sorted by `blockId`.
+12. Final `listing_index_action_receipt` insert.
 
 ## Scripts
 
@@ -801,26 +980,67 @@ Responsibilities:
 - Не выполняет database reads/writes.
 - Не использует `Date`, UUID, random или process-local mutable state.
 
-### `ListingSyncSellableItemScript`
+### `ListingPrepareIndexActionScript`
 
 Responsibilities:
 
 - Валидирует action params.
 - Проверяет project boundary.
-- Открывает item-level transaction.
-- Под item lock проверяет receipt, source revision и payload hash.
+- Открывает короткую item-level transaction.
+- Под item lock проверяет final receipt, source revision и payload hash.
+- Для existing receipt возвращает `kind: "final"` с сохраненным result.
+- Для `ignored_stale`/`noop` вставляет final receipt и возвращает
+  `kind: "final"`.
+- Для `apply` upsert-ит `listing_index_action_execution` со stage `prepared`.
+- Возвращает normalized immutable action без physical write model.
+- Validation/domain conflicts возвращает как non-retryable domain result.
+
+### `ListingEnsureIndexDocIdsScript`
+
+Responsibilities:
+
+- Выполняется только для sync action.
+- Открывает короткую item-level transaction.
+- Под item lock повторно проверяет final receipt и execution row.
+- Если execution row уже содержит doc ids, возвращает сохраненные ids.
+- Выделяет или сохраняет `product_doc_id`.
+- Создает bootstrap product row для FK safety.
+- Выделяет или сохраняет `variant_doc_id` для variants snapshot.
+- Сохраняет ids в `listing_index_action_execution` и переводит stage в
+  `doc_ids_reserved`.
+- Не строит physical write model.
+
+### `ListingBuildSyncWriteModelScript`
+
+Responsibilities:
+
+- Выполняется только для sync action.
+- Принимает normalized action и persisted doc ids.
+- Конвертирует public snapshot в `ListingItemWriteModel`.
+- Считает canonical `write_model_hash`.
+- Сохраняет `write_model_hash` и optional debug snapshot в execution row,
+  переводит stage в `write_model_built`.
+- Если stage уже `write_model_built` или дальше, повторно строит model и
+  сравнивает hash; mismatch является non-retryable domain error.
+- Не выполняет physical index writes.
+
+### `ListingCommitSyncIndexActionScript`
+
+Responsibilities:
+
+- Выполняется только для sync action.
+- Открывает final item-level transaction.
+- Под item lock повторно проверяет final receipt, source revision и payload hash.
 - Для `noop`/`ignored_stale` inserts receipt and returns result.
 - Для `apply`:
-  - выделяет или сохраняет `product_doc_id`;
-  - создает bootstrap product row;
-  - выделяет или сохраняет `variant_doc_id` для variants snapshot;
-  - строит `ListingItemWriteModel`;
+  - проверяет execution row stage `write_model_built`;
   - применяет write model через `ListingApplyItemWriteModelScript`;
   - удаляет stale variants, отсутствующие в full snapshot;
   - обновляет `listing_index_item_state`;
-  - inserts `listing_index_action_receipt`.
+  - inserts `listing_index_action_receipt`;
+  - переводит execution row в `completed`.
 - Возвращает `applied`, `noop` или `ignored_stale`.
-- Validation/domain conflicts возвращает как non-retryable domain result.
+- Если retry видит final receipt, возвращает `result_json` без physical writes.
 
 ### `ListingApplyItemWriteModelScript`
 
@@ -843,24 +1063,27 @@ Responsibilities:
 - Не принимает public snapshot.
 - Не содержит mapping rules.
 
-### `ListingDeleteSellableItemScript`
+### `ListingCommitDeleteIndexActionScript`
 
 Responsibilities:
 
 - Валидирует delete action params.
 - Проверяет project boundary.
-- Открывает item-level transaction.
-- Под item lock проверяет receipt, source revision и payload hash.
+- Открывает final item-level transaction.
+- Под item lock проверяет receipt, execution row, source revision и payload hash.
 - Для `noop`/`ignored_stale` inserts receipt and returns result.
 - Для `apply`:
+  - upsert-ит execution row stage `committing`;
   - находит current `product_doc_id` и `variant_doc_id`;
   - удаляет dependent rows в delete ordering;
   - refreshes affected projection blocks;
   - обновляет `listing_index_item_state` как `deleted`;
-  - inserts `listing_index_action_receipt`.
+  - inserts `listing_index_action_receipt`;
+  - переводит execution row в `completed`.
 - Если item physical rows уже отсутствуют, но delete revision новый,
   сохраняет latest deleted state и receipt.
 - Возвращает `applied`, `noop` или `ignored_stale`.
+- Если retry видит final receipt, возвращает `result_json` без physical writes.
 
 ### `ListingSyncSellableItemsScript`
 
@@ -870,8 +1093,8 @@ Responsibilities:
 - Строит item-scoped `effectiveIdempotencyKey` для каждого item.
 - Делит items на chunks только если выбран `per_chunk` mode.
 - По умолчанию открывает отдельную transaction на каждый item.
-- Для каждого item вызывает shared single-item executor или
-  `ListingSyncSellableItemScript` без независимой nested transaction.
+- Для каждого item вызывает тот же step-oriented executor, что DBOS workflow:
+  prepare, ensure doc ids, build write model, commit.
 - В `per_item` mode ошибка одного item не откатывает остальные items.
 - В `per_chunk` mode ошибка item откатывает chunk, но не остальные chunks.
 - Возвращает `completed`, если все items получили final status
@@ -966,6 +1189,72 @@ class ListingIndexItemStateRepository extends BaseRepository {
 }
 ```
 
+### `ListingIndexActionExecutionRepository`
+
+```ts
+type ListingIndexActionExecutionStage =
+  | "prepared"
+  | "doc_ids_reserved"
+  | "write_model_built"
+  | "committing"
+  | "completed"
+  | "failed_non_retryable";
+
+interface ListingIndexActionExecutionRow extends ListingIndexItemStateKey {
+  effectiveIdempotencyKey: string;
+  rawIdempotencyKey: string;
+  actionType: "syncSellableItem" | "deleteSellableItem";
+  sourceRevision: number;
+  payloadHash: string;
+  operationId: string;
+  stage: ListingIndexActionExecutionStage;
+  productDocId?: number;
+  variantDocIdsJson?: Record<string, number>;
+  writeModelHash?: string;
+  debugWriteModelJson?: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
+class ListingIndexActionExecutionRepository extends BaseRepository {
+  findByEffectiveKey(input: {
+    projectId: string;
+    effectiveIdempotencyKey: string;
+  }): Promise<ListingIndexActionExecutionRow | null>;
+
+  upsertPrepared(
+    row: ListingIndexActionExecutionRow
+  ): Promise<ListingIndexActionExecutionRow>;
+
+  saveDocIds(input: {
+    projectId: string;
+    effectiveIdempotencyKey: string;
+    productDocId: number;
+    variantDocIdsJson: Record<string, number>;
+  }): Promise<ListingIndexActionExecutionRow>;
+
+  saveWriteModelHash(input: {
+    projectId: string;
+    effectiveIdempotencyKey: string;
+    writeModelHash: string;
+    debugWriteModelJson?: unknown;
+  }): Promise<ListingIndexActionExecutionRow>;
+
+  markCommitting(input: {
+    projectId: string;
+    effectiveIdempotencyKey: string;
+  }): Promise<ListingIndexActionExecutionRow>;
+
+  markCompleted(input: {
+    projectId: string;
+    effectiveIdempotencyKey: string;
+  }): Promise<ListingIndexActionExecutionRow>;
+}
+```
+
+Repository methods must validate monotonic stage transitions and return already
+persisted data when a repeated step asks to save the same stage again.
+
 ### `ListingIndexActionReceiptRepository`
 
 ```ts
@@ -1051,6 +1340,7 @@ Repository facade:
 ```ts
 class Repository {
   readonly listingIndexItemState: ListingIndexItemStateRepository;
+  readonly listingIndexActionExecution: ListingIndexActionExecutionRepository;
   readonly listingIndexActionReceipt: ListingIndexActionReceiptRepository;
 
   runListingIndexItemTransaction<TResult>(
@@ -1066,49 +1356,29 @@ facade method.
 ## Minimal sync sequence
 
 ```ts
-await repository.txManager.run(async () => {
-  const currentState =
-    await repository.listingIndexItemState.lockByItem(itemKey);
+const prepared = await stepPrepareIndexAction(action);
 
-  const existingReceipt =
-    await repository.listingIndexActionReceipt.findByEffectiveKey({
-      projectId,
-      effectiveIdempotencyKey,
-    });
+if (prepared.kind === "final") {
+  return prepared.result;
+}
 
-  const decision = decideSyncUpdate({
-    currentState,
-    existingReceipt,
-    sourceRevision,
-    payloadHash,
-  });
+const docIds = await stepEnsureDocIds(prepared.action);
 
-  if (decision.kind !== "apply") {
-    await repository.listingIndexActionReceipt.insertResult(decision.receipt);
-    return decision.result;
-  }
+const writeModel = await stepBuildSyncWriteModel({
+  action: prepared.action,
+  docIds,
+});
 
-  const productDocIds =
-    await repository.listingDocIdAllocator.allocateProductDocIds([item.id]);
-
-  await repository.productListingIndex.ensureBootstrapRows([...]);
-
-  const variantDocIds =
-    await repository.listingDocIdAllocator.allocateVariantDocIds(variantIds);
-
-  const writeModel = writeModelBuilder.buildSyncWriteModel({
-    item,
-    docIds,
-  });
-
-  await applyItemWriteModelScript.run({ context, writeModel });
-  await cleanupStaleVariantsScript.run(...);
-  await repository.listingIndexItemState.upsertLatestState(...);
-  await repository.listingIndexActionReceipt.insertResult(...);
+return stepCommitSyncIndexAction({
+  action: prepared.action,
+  docIds,
+  writeModel,
 });
 ```
 
-This block is sequencing contract, not implementation.
+This block is sequencing contract, not implementation. Each named call is a
+DBOS `@WorkflowStep`; final physical writes happen only inside
+`stepCommitSyncIndexAction`.
 
 ## Acceptance checklist
 
@@ -1126,10 +1396,13 @@ This block is sequencing contract, not implementation.
 - [ ] `enqueueOptions.deduplicationID` is not used with partitioned queue.
 - [ ] `duplicationPolicy: "return-existing"` is not used for
       `listing_index_actions`.
-- [ ] `@Workflow("indexAction")` body contains only deterministic routing.
+- [ ] `@Workflow("indexAction")` body contains only deterministic
+      orchestration over persisted step results.
 - [ ] All side effects are inside `@WorkflowStep` or controlled internal script
       runner.
-- [ ] DBOS step has explicit timeout and retry policy.
+- [ ] Workflow does not use one universal `applyListingIndexAction` step for the
+      whole action lifecycle.
+- [ ] Every DBOS step has explicit timeout and retry policy.
 - [ ] Retryable infrastructure errors are classified as retryable.
 - [ ] Validation/idempotency/revision conflicts are non-retryable domain
       results.
@@ -1138,10 +1411,12 @@ This block is sequencing contract, not implementation.
 - [ ] Batch enqueue processing fans out items into item-partitioned workflows.
 - [ ] Batch item effective idempotency key includes item identity.
 - [ ] `listing_index_item_state` stores latest item revision/state.
+- [ ] `listing_index_action_execution` stores monotonic step progress by
+      effective idempotency key.
 - [ ] `listing_index_action_receipt` stores stable final result by effective
       idempotency key.
 - [ ] Retry after DB commit but before DBOS step persistence returns receipt
-      result without physical writes.
+      result or execution-stage result without write amplification.
 - [ ] `lockByItem` serializes item updates even when latest-state row does not
       exist.
 - [ ] Same revision with same payload returns `noop`.
