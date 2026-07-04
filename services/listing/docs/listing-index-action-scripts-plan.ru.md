@@ -39,19 +39,28 @@ Listing index actions должны попадать в durable execution сло�
 
 ### Queue model
 
-Используется одна DBOS queue для listing index actions:
+Используется одна DBOS queue для listing index actions, зарегистрированная
+через `WorkflowModule.forRoot({ queues })` listing service:
 
 ```ts
-await DBOS.registerQueue("listing_index_actions", {
-  partitionQueue: true,
-  concurrency: 1,
-  workerConcurrency: 50,
+WorkflowModule.forRoot({
+  // ...
+  queues: [
+    {
+      name: "listing_index_actions",
+      partitionQueue: true,
+      concurrency: 1,
+      workerConcurrency: 50,
+      onConflict: "update_if_latest_version",
+    },
+  ],
 });
 ```
 
 Правила:
 
-- Queue регистрируется после `DBOS.launch()` на startup listing service.
+- Queue регистрируется DBOS wrapper-ом после `DBOS.launch()` на startup listing
+  service.
 - `partitionQueue: true` обязателен: physical queue одна, но work разделяется
   по logical partitions.
 - `concurrency: 1` означает последовательное выполнение внутри одного
@@ -92,29 +101,42 @@ const workflowId = [
   params.meta.idempotencyKey,
 ].join(":");
 
-await DBOS.startWorkflow(ListingIndexActionWorkflow, {
-  workflowID: workflowId,
-  queueName: "listing_index_actions",
-  enqueueOptions: {
-    queuePartitionKey: partitionKey,
-    deduplicationID: params.meta.idempotencyKey,
+await this.broker.startWorkflow(
+  "listing.indexAction",
+  {
+    type: "syncSellableItem",
+    params,
   },
-  duplicationPolicy: "return-existing",
-}).run({
-  type: "syncSellableItem",
-  params,
-});
+  {
+    source: "content",
+    tenantId: params.projectId,
+    resourceId: `${params.item.entityType}:${params.item.id}`,
+    operation: "listing.syncSellableItem",
+    contentHash: params.meta.idempotencyKey,
+  },
+  {
+    workflowId,
+    queueName: "listing_index_actions",
+    enqueueOptions: {
+      queuePartitionKey: partitionKey,
+    },
+  },
+);
 ```
 
 Правила:
 
 - `workflowID` должен быть deterministic из `projectId` и
-  `meta.idempotencyKey`.
-- `deduplicationID` защищает только active queued/executing duplicate. Durable
-  idempotency результата остается в `listing_index_update_state`.
-- `duplicationPolicy: "return-existing"` предпочтителен для idempotent retries:
-  повторный enqueue того же action получает existing workflow handle вместо
-  transient duplicate failure.
+  `meta.idempotencyKey`; его можно передать через `options.workflowId` или
+  получить из deterministic `IdempotencyContext`.
+- Для partitioned queue используется `queuePartitionKey`, но не
+  `deduplicationID`: актуальный `WorkflowRegistry` запрещает передавать
+  `deduplicationID` вместе с `queuePartitionKey`.
+- `duplicationPolicy: "return-existing"` не используется для этой partitioned
+  queue, потому что он требует `enqueueOptions.deduplicationID`, несовместимый
+  с `queuePartitionKey`.
+- Durable idempotency результата остается в `listing_index_update_state`; DBOS
+  workflow id защищает retries на уровне workflow identity.
 - `queuePartitionKey` всегда item-scoped. Не использовать одну global
   sequential queue для всех listing events.
 - Batch action в async mode не ставится как один большой workflow, если это
@@ -172,14 +194,15 @@ revision при burst updates.
 - Coalescing не должен удалять единственный durable copy action до того, как
   более свежий snapshot durably сохранен.
 
-### DBOS wrapper requirements
+### DBOS wrapper usage
 
-Текущий project-level `WorkflowRegistry.start()` должен поддерживать DBOS queue
-options, если enqueue выполняется через `broker.startWorkflow`, а не прямым
-`DBOS.startWorkflow`.
+Action handlers должны ставить queued workflows через `broker.startWorkflow`.
+Актуальный `ServiceBroker.startWorkflow()` прокидывает `WorkflowStartOptions` в
+`WorkflowRegistry.start()`, а registry маппит их в `DBOS.startWorkflow(...)`.
 
 ```ts
 interface WorkflowQueueStartOptions {
+  workflowId?: string;
   queueName?: string;
   enqueueOptions?: {
     queuePartitionKey?: string;
@@ -192,8 +215,16 @@ interface WorkflowQueueStartOptions {
 }
 ```
 
-Registry должен прокидывать эти options в `DBOS.startWorkflow(...)` вместе с
-deterministic `workflowID`.
+Правила:
+
+- Listing action handlers не вызывают `DBOS.startWorkflow(...)` напрямую.
+- Для `listing_index_actions` передаются `queueName` и
+  `enqueueOptions.queuePartitionKey`.
+- `enqueueOptions.deduplicationID` и `duplicationPolicy: "return-existing"`
+  допустимы только для non-partitioned queues.
+- `broker.startWorkflow(...)` возвращает `{ workflowId, status: "started" }`
+  после durable DBOS accept/enqueue; только после этого async action handler
+  может вернуть public `accepted`.
 
 ## Правила транзакционности
 
@@ -1011,9 +1042,9 @@ await repository.txManager.run(async () => {
       `LISTING_INDEX_UPDATE_NOT_IMPLEMENTED` для successful processing.
 - [ ] DBOS queue `listing_index_actions` регистрируется как partitioned queue с
       item-scoped partition key.
-- [ ] Project `WorkflowRegistry`/`ServiceBroker` поддерживает queue options для
-      `DBOS.startWorkflow`, либо listing action handlers используют
-      `DBOS.startWorkflow` напрямую с documented options.
+- [ ] Listing action handlers ставят queued workflows через
+      `ServiceBroker.startWorkflow(..., options)` без прямого
+      `DBOS.startWorkflow`.
 - [ ] Async action handlers возвращают `accepted` только после durable DBOS
       enqueue.
 - [ ] Все synchronous action handlers делегируют работу scripts.
