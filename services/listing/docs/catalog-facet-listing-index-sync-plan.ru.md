@@ -29,7 +29,8 @@ sort/search rows и derived tables.
 
 Система должна:
 
-- определять affected products до потери source mapping при delete/rename;
+- определять affected products до потери source mapping при delete и операциях,
+  меняющих effective value id;
 - строить актуальные full snapshots через существующий
   `ListingSnapshotBuildScript`;
 - отправлять snapshots через `ListingSyncPublisher.syncItems`;
@@ -70,11 +71,11 @@ full snapshot-ом**.
 | `facet.uiType` | Нет | UI presentation. |
 | `facet.selectionMode` | Нет | UI/query contract metadata, не membership. |
 | `facet.lexoRank` | Нет | Порядок facets читается из catalog/canonical API. |
-| `facet.slug` | Да | Меняется public facet handle в filter input/value keys. |
+| `facet.slug` | Нет | Slug является public alias. Canonical filter input резолвится в `facet.id`, а listing membership key строится по `facetId:valueId`. |
 | delete `facet` | Да | Нужно удалить old facet memberships из listing bitmaps. |
 | create `facet` с sources/values | Да для affected products | Появляется новый public filter. |
 | `facet_source.reference_status` | Да, если VALID/STale меняет membership | Source больше не должен/должен попадать в snapshot. |
-| `facet_value.handle` для display value | Да | Меняется public value handle. |
+| `facet_value.handle` для display value | Нет | Handle является public alias. Canonical filter input резолвится в `facet_value.id`, а listing membership key строится по id. |
 | `facet_value.enabled` | Да | Value появляется/исчезает из snapshot. |
 | `facet_value.reference_status` для source value | Да | Source value появляется/исчезает из snapshot. |
 | source value attach/detach к display value | Да | Меняется effective value id/handle. |
@@ -148,8 +149,8 @@ value в отдельный `FacetListingSourceRef` на каждый child sour
 value.
 
 `productIds` нужен для операций, где affected set уже известен точно. `sourceRefs`
-нужен для rename/delete/merge, где после mutation часть mapping может исчезнуть
-из catalog tables.
+нужен для delete/merge/unmerge/reference-state changes, где после mutation часть
+mapping может исчезнуть из catalog tables или effective value id изменится.
 
 ## Где запускать workflow
 
@@ -158,7 +159,7 @@ value.
 Facet mutation flow должен быть таким:
 
 1. До mutation собрать old impact refs и old affected product ids, если операция
-   может удалить или переименовать source mapping.
+   может удалить source mapping или изменить effective value id.
 2. Выполнить facet mutation в script/workflow.
 3. После successful commit собрать new impact refs и new affected product ids,
    если новое состояние тоже может добавлять memberships.
@@ -288,32 +289,34 @@ value.
 - если bitmap cardinality станет `0`, строка `listing_posting_bitmap` будет
   удалена.
 
-## Rename facet slug
+## Rename facet slug / facet value handle
 
-При изменении `facet.slug` old и new snapshots отличаются только public facet
-handle/value keys.
+Переименование `facet.slug` или display `facet_value.handle` не должно запускать
+listing sync.
 
-Порядок:
+Причина: storefront/admin filter input резолвит canonical public alias в
+`facet.id` / `facet_value.id` до обращения к listing. Listing write model для
+canonical facets использует membership key `facetId:valueId`, потому изменение
+slug/handle не меняет posting membership.
 
-1. До update сохранить old facet slug и affected source refs.
-2. Выполнить update.
-3. Найти affected products по old/new refs.
-4. Запустить full snapshot sync.
+Если в будущем появится path, который пишет facet snapshots без ids и
+использует fallback key `facet.type:facet.handle:value.handle`, этот path должен
+или быть запрещен для canonical catalog facets, или отдельно мигрироваться перед
+тем, как считать rename полностью non-impacting.
 
-`listing` удалит old `facetId:valueId`/fallback value keys из bitmap membership
-и добавит new keys.
-
-## Update facet value handle / enabled
+## Update facet value enabled
 
 Для display value:
 
-1. До update найти source children этого display value.
-2. По каждому child source value построить отдельный source ref
+1. Если меняется только `handle`, `label`, `swatchId` или `sortIndex`, workflow
+   не нужен.
+2. Если меняется `enabled`, до update найти source children этого display value.
+3. По каждому child source value построить отдельный source ref
    (`sourceHandle` из связанного `facet_source`, `sourceValueHandle` из
    immutable source `facet_value.handle`).
-3. Выполнить update.
-4. Повторно найти affected products по тем же refs.
-5. Запустить sync.
+4. Выполнить update.
+5. Повторно найти affected products по тем же refs.
+6. Запустить sync.
 
 Для source value:
 
@@ -325,7 +328,8 @@ handle/value keys.
 3. После update snapshot resolver сам выберет effective value: parent display
    или source value.
 
-Если изменился только `label`, `swatchId` или `sortIndex`, workflow не нужен.
+Если changed fields не влияют на `enabled`, `reference_status` или `parent_id`,
+workflow не нужен.
 
 ## Merge / unmerge
 
@@ -365,21 +369,25 @@ products можно не синкать.
 listingSourceRevisionFromEvent(event)
 ```
 
-Если workflow не эмитит отдельное domain event, нужен deterministic revision:
-
-```ts
-Date.parse(occurredAt) * 1000 + stable suffix from operationId
-```
-
 Требование: для одного product следующий facet sync должен иметь revision больше
 предыдущего listing action. Иначе `listing` вернет `ignored_stale`.
 
-Рекомендуется эмитить domain event `facetListingSyncRequested` или
-`facetReferenceStateChanged` и переиспользовать существующие helpers:
+Решение: facet listing sync должен опираться на domain event и переиспользовать
+существующие helpers:
 
 - `listingSourceRevisionFromEvent`;
 - `listingSourceRevisionFromEvents`;
 - `ListingSyncPublisher.buildBatchMeta`.
+
+Для facet mutation wrapper рекомендуется эмитить отдельный domain event
+`facetListingSyncRequested` с immutable payload affected refs/product ids. Для
+reference status changes можно использовать уже существующий
+`facetReferenceStateChanged`, потому что он содержит touched source handles,
+changed source/value ids и affected display value ids.
+
+Не использовать ad hoc revision из `Date.now()` внутри workflow step: replay или
+retry должен давать тот же source revision и тот же idempotency key для одного
+operation.
 
 ## Batch strategy
 
@@ -441,9 +449,10 @@ Workflow должен:
 
 Presentation-only updates должны пропускать workflow.
 
-### 4. Delete/rename pre-read
+### 4. Pre-read для destructive/effective-id changes
 
-Для delete/rename обязательно добавить pre-read до mutation:
+Для delete и операций, которые меняют effective value id, обязательно добавить
+pre-read до mutation:
 
 - old facet sources;
 - old source value handles;
@@ -476,18 +485,21 @@ Presentation-only updates должны пропускать workflow.
 
 - Удаление facet удаляет старые product/variant facet memberships из
   `listing_posting_bitmap` после sync affected products.
-- Rename `facet.slug` не оставляет старые filter value keys в bitmaps.
+- Rename `facet.slug` и display `facet_value.handle` не запускают listing sync
+  и не меняют listing bitmap memberships.
 - Merge display values обновляет counts/filter results для affected products.
 - Unmerge display values возвращает affected products на source value handles.
+- `facetReferenceStateChanged` с переходом `VALID <-> STALE` запускает listing
+  sync для affected products.
 - Presentation-only изменения не запускают listing sync.
 - Повтор одного и того же facet sync не создает конфликтов и не дублирует
   membership rows.
+- Новый facet listing sync получает `sourceRevision`, который не приводит к
+  `ignored_stale` для актуальных affected products.
 - Soft-deleted/missing products не ломают workflow.
 
 ## Открытые вопросы
 
-- Нужен ли отдельный domain event для facet listing sync или достаточно прямого
-  workflow wrapper после mutation?
 - Должен ли `facetReferenceStateChanged` сразу запускать listing sync или только
   публиковать событие для отдельного handler?
 - Нужен ли admin-visible статус фоновой переиндексации для массовых facet
