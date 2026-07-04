@@ -15,6 +15,12 @@ read path зависит от physical schema `catalog.facet`, `catalog.facet_va
 - возвращать catalog facet данные через supergraph entity references, а не через
   прямой join к catalog DB.
 
+Важное проектное ограничение: stage/prod данных и пользователей нет. Поэтому
+эта работа выполняется как breaking refactor, без compatibility layer,
+dual-write, dual-read и SQL backfill для сохранения старого listing index.
+После изменения схемы listing index пересобирается/засеивается заново уже в
+новом формате.
+
 Терминология:
 
 - `facetHandle` в этом документе означает публичный handle facet. В текущем
@@ -36,7 +42,8 @@ read path зависит от physical schema `catalog.facet`, `catalog.facet_va
 - объявляет `catalogSchema.table("facet_value")`;
 - экспортируется из `services/listing/src/repositories/models/index.ts`.
 
-Эти модели должны быть удалены после миграции read path.
+Эти модели должны быть удалены в рамках этой же работы, а не оставлены как
+fallback.
 
 ### Storefront facet resolution repository
 
@@ -250,8 +257,8 @@ type FacetValue implements Node @key(fields: "facetHandle handle") {
 }
 ```
 
-Если catalog slug -> handle cutover будет выполнен раньше, использовать
-`handle` вместо `slug`, но смысл ключа остается тем же.
+Если catalog в рамках этой же работы переименовывает `slug` в `handle`,
+использовать `handle` вместо `slug`, но смысл ключа остается тем же.
 
 Catalog resolver changes:
 
@@ -352,22 +359,17 @@ valueKeyPrefixes = ["color:", "size:", "tag:"]
 
 ### `listing.listing_option_signature_value`
 
-Заменить физическую зависимость от `facet_id`:
+Заменить физическую зависимость от `facet_id` breaking migration-ом. Так как
+данных сохранять не нужно, не добавлять временные nullable columns и не делать
+backfill. Финальная таблица должна хранить handle identity:
 
 ```sql
-ALTER TABLE listing.listing_option_signature_value
-  ADD COLUMN facet_handle text,
-  ADD COLUMN facet_value_handle text;
-```
-
-После backfill и cutover:
-
-```sql
-ALTER TABLE listing.listing_option_signature_value
-  ALTER COLUMN facet_handle SET NOT NULL,
-  ALTER COLUMN facet_value_handle SET NOT NULL;
-
 DROP INDEX listing.idx_listing_option_signature_value_facet_signature;
+
+ALTER TABLE listing.listing_option_signature_value
+  DROP COLUMN facet_id,
+  ADD COLUMN facet_handle text NOT NULL,
+  ADD COLUMN facet_value_handle text NOT NULL;
 
 CREATE INDEX idx_listing_option_signature_value_facet_handle_signature
   ON listing.listing_option_signature_value (
@@ -381,10 +383,8 @@ CREATE INDEX idx_listing_option_signature_value_facet_handle_signature
 Можно оставить `value_key` как denormalized composite key, но все places,
 которые сейчас читают или группируют `facet_id`, должны читать `facet_handle`.
 
-Backfill для существующих данных невозможен без catalog lookup, потому для
-текущего dev-stage проекта предпочтителен rebuild listing index из producer
-payload. Если нужен SQL backfill, его нужно запускать как one-time migration
-до удаления catalog access из application code.
+Старые rows формата `facet_id:facet_value_id` не переносить. После migration
+выполнить rebuild listing index из producer payload в новом формате.
 
 ## SQL/query changes
 
@@ -456,7 +456,7 @@ Ordering:
 
 - без catalog DB listing не может знать `facet.lexo_rank` и
   `facet_value.sort_index`;
-- MVP ordering может быть deterministic by `facetHandle ASC, valueHandle ASC`;
+- сразу использовать deterministic order by `facetHandle ASC, valueHandle ASC`;
 - если catalog order должен сохраняться, нужен event-fed listing projection
   with `facet_rank` and `value_sort`, но это должна быть listing-owned read
   model, не direct read из `catalog.facet*`.
@@ -495,6 +495,9 @@ sv.facet_handle = required.required_facet_handle
 
 Любой producer listing postings должен перестать отправлять
 `facet_id:facet_value_id`.
+
+Старый producer contract не поддерживать параллельно. Все fixtures, seed scripts
+и будущие sync producers переводятся на handle-based payload одним изменением.
 
 Новый payload:
 
@@ -589,6 +592,9 @@ E2E seed changes:
   - `catalog.facet_value`;
   - `catalogFacetRuntime`;
   - `catalogFacetValueRuntime`.
+- Нет compatibility path для старого `facet_id:facet_value_id`.
+- Нет SQL backfill, который читает `catalog.facet*` ради сохранения старого
+  listing index.
 - `listing` не импортирует Drizzle models из catalog schema.
 - Storefront listing filters не выполняют DB query для
   `facetHandle -> facet_id`.
@@ -608,17 +614,18 @@ E2E seed changes:
 
 Решения:
 
-1. MVP: deterministic order by `facetHandle`, `facetValueHandle`.
+1. Сразу deterministic order by `facetHandle`, `facetValueHandle`.
 2. Полный UX: добавить event-fed listing read model только для ordering:
    `facetHandle`, `valueHandle`, `facetRank`, `valueSort`.
    Эта projection не должна читать `catalog.facet*` на storefront query path.
 
 ### Rename `slug -> handle`
 
-Current code still exposes `Facet.slug`. Если catalog handle cutover будет
-делаться рядом с этой работой, сначала завершить cutover и затем использовать
-`handle` в federation keys. Если нет, в target schema оставить `slug`, но в
-listing domain names использовать `facetHandle` как internal neutral name.
+Current code still exposes `Facet.slug`. Если catalog в рамках этой же работы
+переименовывает `slug` в `handle`, использовать `handle` в federation keys.
+Если нет, в target schema оставить `slug`, но в listing domain names
+использовать `facetHandle` как internal neutral name. Compatibility alias для
+обоих имен в listing не нужен.
 
 ### Source child handles
 
