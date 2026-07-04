@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { appendFile, mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { sql, type SQL } from "drizzle-orm";
 import { ReadOnly } from "@shopana/shared-kernel";
@@ -85,6 +85,12 @@ interface FacetCountsProfileMetric {
   distinctSignatureCount: number | null;
   bitmapCardinality: number | null;
   countSum: number | null;
+}
+
+interface ExplainAnalyzeReportSection {
+  branch: string;
+  durationMs: number;
+  plan: string;
 }
 
 export class StorefrontListingQueryRepository extends BaseRepository {
@@ -299,27 +305,18 @@ export class StorefrontListingQueryRepository extends BaseRepository {
         "Storefront listing facetCounts SQL profile"
       );
 
-      const pageExplainStartedAt = Date.now();
-      const pageExplainAnalyzePlan = await this.explainAnalyzePage(request);
-      roundTrips += 1;
-      const pageExplainDurationMs = Date.now() - pageExplainStartedAt;
-
-      const facetCountsExplainStartedAt = Date.now();
-      const facetCountsExplainAnalyzePlan = await this.explainAnalyzeFacetCounts(
+      const explainSections = await this.explainAnalyzeListingBranches(
         request,
         visibleFacetValues
       );
-      roundTrips += 1;
+      roundTrips += explainSections.length;
       await writeE2eExplainAnalyzeReport({
         projectId: request.projectId,
         scopeKind: request.scopeKind,
         sortKind: request.sortKind,
         hasPriceFilter: request.priceFilterJson !== "{}",
         optionFacetGroups: request.request.filterPlan.optionFacetGroups.length,
-        pageDurationMs: pageExplainDurationMs,
-        pagePlan: pageExplainAnalyzePlan,
-        facetCountsDurationMs: Date.now() - facetCountsExplainStartedAt,
-        facetCountsPlan: facetCountsExplainAnalyzePlan,
+        sections: explainSections,
       });
       this.ctx.kernel.getServices().logger.warn(
         {
@@ -328,10 +325,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
           sortKind: request.sortKind,
           hasPriceFilter: request.priceFilterJson !== "{}",
           optionFacetGroups: request.request.filterPlan.optionFacetGroups.length,
-          pageDurationMs: pageExplainDurationMs,
-          pagePlan: pageExplainAnalyzePlan,
-          facetCountsDurationMs: Date.now() - facetCountsExplainStartedAt,
-          facetCountsPlan: facetCountsExplainAnalyzePlan,
+          explain: explainSections,
         },
         "Storefront listing SQL EXPLAIN ANALYZE"
       );
@@ -345,28 +339,65 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     return roundTrips;
   }
 
-  private async explainAnalyzePage(
-    request: ReturnType<typeof toListingSqlRequest>
-  ): Promise<string> {
-    const rows = await this.connection.execute<ExplainAnalyzeSqlRow>(sql`
-      EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
-      ${compilePageQuerySql(request)}
-    `);
-
-    return (rows as unknown as ExplainAnalyzeSqlRow[])
-      .map((row) => explainAnalyzePlanLine(row))
-      .filter(Boolean)
-      .join("\n");
-  }
-
-  private async explainAnalyzeFacetCounts(
+  private async explainAnalyzeListingBranches(
     request: ReturnType<typeof toListingSqlRequest>,
     visibleFacetValues: readonly FacetCountsVisibleFacetValue[]
+  ): Promise<ExplainAnalyzeReportSection[]> {
+    const sections: ExplainAnalyzeReportSection[] = [];
+    const branches: {
+      branch: string;
+      query: SQL;
+      jitOff?: boolean;
+    }[] = [
+      {
+        branch: "listing:page",
+        query: compilePageQuerySql(request),
+      },
+      {
+        branch: "listing:totalCount",
+        query: compileTotalCountQuerySql(request),
+      },
+      {
+        branch: "listing:facetsMetadata",
+        query: compileFacetsQuerySql(request),
+      },
+      {
+        branch: "listing:virtualFacets",
+        query: compileVirtualFacetsQuerySql(request),
+      },
+      {
+        branch: "listing:facetCounts",
+        query: compileFacetCountsQuerySql(request, { visibleFacetValues }),
+        jitOff: true,
+      },
+    ];
+
+    for (const branch of branches) {
+      const startedAt = Date.now();
+      const plan = await this.explainAnalyzeQuery(branch.query, {
+        jitOff: branch.jitOff ?? false,
+      });
+      sections.push({
+        branch: branch.branch,
+        durationMs: Date.now() - startedAt,
+        plan,
+      });
+    }
+
+    return sections;
+  }
+
+  private async explainAnalyzeQuery(
+    query: SQL,
+    options: { jitOff: boolean }
   ): Promise<string> {
-    const rows = await this.executeWithLocalJitOff<ExplainAnalyzeSqlRow>(sql`
+    const explainQuery = sql`
       EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
-      ${compileFacetCountsQuerySql(request, { visibleFacetValues })}
-    `);
+      ${query}
+    `;
+    const rows = options.jitOff
+      ? await this.executeWithLocalJitOff<ExplainAnalyzeSqlRow>(explainQuery)
+      : await this.connection.execute<ExplainAnalyzeSqlRow>(explainQuery);
 
     return (rows as unknown as ExplainAnalyzeSqlRow[])
       .map((row) => explainAnalyzePlanLine(row))
@@ -666,49 +697,50 @@ async function writeE2eExplainAnalyzeReport(input: {
   sortKind: string;
   hasPriceFilter: boolean;
   optionFacetGroups: number;
-  pageDurationMs: number;
-  pagePlan: string;
-  facetCountsDurationMs: number;
-  facetCountsPlan: string;
+  sections: readonly ExplainAnalyzeReportSection[];
 }) {
   const reportPath = e2eExplainAnalyzeReportPath();
   if (!reportPath) {
     return;
   }
 
+  const generatedAt = new Date().toISOString();
+  const metadata = {
+    generatedAt,
+    projectId: input.projectId,
+    scopeKind: input.scopeKind,
+    sortKind: input.sortKind,
+    hasPriceFilter: input.hasPriceFilter,
+    optionFacetGroups: input.optionFacetGroups,
+    durations: Object.fromEntries(
+      input.sections.map((section) => [section.branch, section.durationMs])
+    ),
+  };
+  const sectionLines = input.sections.flatMap((section) => [
+    `### ${section.branch}`,
+    "",
+    "```",
+    section.plan,
+    "```",
+    "",
+  ]);
+
   await mkdir(dirname(reportPath), { recursive: true });
-  await writeFile(
+  const includeHeader = !existsSync(reportPath);
+  await appendFile(
     reportPath,
     [
-      "# Storefront listing SQL EXPLAIN ANALYZE",
+      ...(includeHeader
+        ? ["# Storefront listing SQL EXPLAIN ANALYZE", ""]
+        : []),
+      `## Listing request ${generatedAt}`,
       "",
-      JSON.stringify(
-        {
-          projectId: input.projectId,
-          scopeKind: input.scopeKind,
-          sortKind: input.sortKind,
-          hasPriceFilter: input.hasPriceFilter,
-          optionFacetGroups: input.optionFacetGroups,
-          pageDurationMs: input.pageDurationMs,
-          facetCountsDurationMs: input.facetCountsDurationMs,
-        },
-        null,
-        2
-      ),
-      "",
-      "## listing:page",
-      "",
-      "```",
-      input.pagePlan,
+      "```json",
+      JSON.stringify(metadata, null, 2),
       "```",
       "",
-      "## listing:facetCounts",
-      "",
-      "```",
-      input.facetCountsPlan,
-      "```",
-      "",
-    ].join("\n")
+      ...sectionLines,
+    ].join("\n") + "\n"
   );
 }
 

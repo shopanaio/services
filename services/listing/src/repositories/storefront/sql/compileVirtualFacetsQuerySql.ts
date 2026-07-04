@@ -3,6 +3,7 @@ import { emptyRoaringBitmapSql } from "../sqlHelpers.js";
 import { ZERO_UUID, type ListingSqlRequest } from "./compileListingInputSql.js";
 import {
   compileInputCte,
+  compileOptionVariantBitmapSql,
   compilePricePredicateSql,
   compileProductMatchesBitmapSql,
   compileScopeProductCtes,
@@ -20,6 +21,7 @@ export function compileVirtualFacetsQuerySql(request: ListingSqlRequest): SQL {
         includeVariantProjection: false,
       })} AS bitmap
     ),
+    ${compileOptionVariantMatchesCte(request)}
     ${compileOptionMatchingSignatureKeysCte(request)}
     price_range_bounds AS (
       SELECT
@@ -55,11 +57,24 @@ export function compileVirtualFacetsQuerySql(request: ListingSqlRequest): SQL {
   `;
 }
 
+function compileOptionVariantMatchesCte(request: ListingSqlRequest): SQL {
+  const optionBitmap = compileOptionVariantBitmapSql(request);
+  if (!optionBitmap) {
+    return sql``;
+  }
+
+  return sql`
+    option_variant_matches AS MATERIALIZED (
+      SELECT ${optionBitmap} AS bitmap
+    ),
+  `;
+}
+
 function compileOptionMatchingSignatureKeysCte(
   request: ListingSqlRequest
 ): SQL {
   const groups = request.request.filterPlan.optionFacetGroups;
-  if (groups.length === 0) {
+  if (groups.length === 0 || request.request.filterPlan.priceRange) {
     return sql``;
   }
 
@@ -153,12 +168,10 @@ function compileVariantPriceBoundSql(
     SELECT vp.price_minor::bigint
     FROM input i
     CROSS JOIN product_base pb
-    JOIN option_matching_signature_keys ms ON true
-    JOIN listing.variant_listing_price_index vp
+    CROSS JOIN option_variant_matches ovm
+    JOIN listing.listing_posting_variant_price vp
       ON vp.project_id = i.project_id
-     AND vp.signature_key = ms.signature_key
      AND vp.currency = i.currency
-     AND vp.has_price = true
     JOIN listing.variant_listing_index vli
       ON vli.project_id = vp.project_id
      AND vli.variant_doc_id = vp.variant_doc_id
@@ -166,6 +179,7 @@ function compileVariantPriceBoundSql(
      AND vli.product_id = vp.product_id
      AND vli.in_stock = true
     WHERE true
+      AND ovm.bitmap @> vp.variant_doc_id
       AND pb.bitmap @> vp.product_doc_id
       ${compilePriceRangeStockPredicateSql(request)}
     ORDER BY ${orderBy}
@@ -199,19 +213,18 @@ function compileOptionPricedInStockProductsBitmapSql(
       SELECT rb_build_agg(vp.product_doc_id)
       FROM input i
       CROSS JOIN product_base pb
-      JOIN option_matching_signature_keys ms ON true
-      JOIN listing.variant_listing_price_index vp
+      CROSS JOIN option_variant_matches ovm
+      JOIN listing.listing_posting_variant_price vp
         ON vp.project_id = i.project_id
-       AND vp.signature_key = ms.signature_key
        AND vp.currency = i.currency
-       AND vp.has_price = true
       JOIN listing.variant_listing_index vli
         ON vli.project_id = vp.project_id
        AND vli.variant_doc_id = vp.variant_doc_id
        AND vli.product_doc_id = vp.product_doc_id
        AND vli.product_id = vp.product_id
        AND vli.in_stock = true
-      WHERE pb.bitmap @> vp.product_doc_id
+      WHERE ovm.bitmap @> vp.variant_doc_id
+        AND pb.bitmap @> vp.product_doc_id
         ${compilePricePredicateSql(request, sql`vp`)}
     ), ${emptyRoaringBitmapSql()})
   `;

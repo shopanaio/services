@@ -439,17 +439,21 @@ export class StorefrontFacetAggregationRepository extends BaseRepository {
 
   private projectVariantBitmapSql(variantBitmapSql: SQL): SQL {
     return coalesceBitmapSql(sql`(
-      WITH matched_blocks AS (
+      WITH variant_matches AS MATERIALIZED (
+        SELECT ${variantBitmapSql} AS bitmap
+      ),
+      matched_blocks AS (
         SELECT
           b.variant_doc_from,
           b.variant_doc_to,
           b.variant_bitmap,
           b.product_bitmap,
           b.variant_count,
-          (${variantBitmapSql} & b.variant_bitmap) AS block_match
-        FROM listing.listing_posting_variant_projection_block b
-        WHERE b.project_id = ${this.storeId}::uuid
-          AND rb_cardinality(${variantBitmapSql} & b.variant_bitmap) > 0
+          (vm.bitmap & b.variant_bitmap) AS block_match
+        FROM variant_matches vm
+        JOIN listing.listing_posting_variant_projection_block b
+          ON b.project_id = ${this.storeId}::uuid
+         AND rb_cardinality(vm.bitmap & b.variant_bitmap) > 0
       ),
       full_block_products AS (
         SELECT mb.product_bitmap
@@ -458,13 +462,15 @@ export class StorefrontFacetAggregationRepository extends BaseRepository {
       ),
       partial_block_products AS (
         SELECT rb_build_agg(vli.product_doc_id) AS product_bitmap
-        FROM matched_blocks mb
+        FROM (
+          SELECT block_match
+          FROM matched_blocks
+          WHERE rb_cardinality(block_match) < variant_count
+        ) mb
+        CROSS JOIN LATERAL rb_iterate(mb.block_match) AS matched(variant_doc_id)
         JOIN listing.variant_listing_index vli
           ON vli.project_id = ${this.storeId}::uuid
-         AND vli.variant_doc_id >= mb.variant_doc_from
-         AND vli.variant_doc_id < mb.variant_doc_to
-        WHERE rb_cardinality(mb.block_match) < mb.variant_count
-          AND mb.block_match @> vli.variant_doc_id
+         AND vli.variant_doc_id = matched.variant_doc_id
       ),
       projected AS (
         SELECT rb_or_agg(product_bitmap) AS product_bitmap

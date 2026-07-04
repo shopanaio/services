@@ -3,7 +3,6 @@ import { StorefrontRepositoryValidationError } from "../types.js";
 import type { ResolvedFacetFilterGroup } from "../types.js";
 import { coalesceBitmapSql, emptyRoaringBitmapSql } from "../sqlHelpers.js";
 import type { ListingSqlRequest } from "./compileListingInputSql.js";
-import { compileVariantProjectionSql } from "./compileVariantProjectionSql.js";
 
 export function compileInputCte(request: ListingSqlRequest): SQL {
   return sql`
@@ -189,43 +188,28 @@ function compilePublishedProductBitmapSql(request: ListingSqlRequest): SQL {
 function compileProjectedVariantProductsBitmapSql(
   request: ListingSqlRequest
 ): SQL | null {
-  const variantMatches = compileVariantMatchesBitmapSql(request);
-  if (!variantMatches) {
-    return null;
-  }
-
-  return compileVariantProjectionSql({
-    projectIdSql: sql`${request.projectId}::uuid`,
-    variantBitmapSql: variantMatches,
-  });
-}
-
-function compileVariantMatchesBitmapSql(request: ListingSqlRequest): SQL | null {
   if (!hasVariantPredicate(request)) {
     return null;
   }
 
   const plan = request.request.filterPlan;
-  const parts: SQL[] = [];
   const optionBitmap = compileFacetGroupsBitmapSql(
     request,
     "variant",
     plan.optionFacetGroups
   );
 
-  if (optionBitmap) {
-    parts.push(optionBitmap);
-  }
   if (plan.priceRange) {
-    parts.push(compilePriceVariantBitmapSql(request));
-  }
-  if (plan.inStock !== undefined) {
-    parts.push(compileVariantStockBitmapSql(request, plan.inStock));
-  } else if (optionBitmap && !plan.priceRange) {
-    parts.push(compileVariantStockBitmapSql(request, true));
+    return compilePricedVariantProductsBitmapSql(request, optionBitmap);
   }
 
-  return parts.length > 0 ? andBitmapSql(parts) : null;
+  return optionBitmap
+    ? compileOptionVariantProductsBitmapSql(
+        request,
+        optionBitmap,
+        plan.inStock ?? true
+      )
+    : null;
 }
 
 function compileFacetGroupsBitmapSql(
@@ -287,21 +271,37 @@ function compileProductStockBitmapSql(request: ListingSqlRequest): SQL {
   )`);
 }
 
-function compileVariantStockBitmapSql(
+function compilePricedVariantProductsBitmapSql(
   request: ListingSqlRequest,
-  inStock: boolean
+  optionBitmap: SQL | null
 ): SQL {
-  return coalesceBitmapSql(sql`(
-    SELECT rb_build_agg(vli.variant_doc_id)
-    FROM listing.variant_listing_index vli
-    WHERE vli.project_id = ${request.projectId}::uuid
-      AND vli.in_stock = ${inStock}
-  )`);
-}
+  if (request.request.filterPlan.inStock === false) {
+    return emptyRoaringBitmapSql();
+  }
 
-function compilePriceVariantBitmapSql(request: ListingSqlRequest): SQL {
+  if (optionBitmap) {
+    return coalesceBitmapSql(sql`(
+      WITH option_variant_matches AS MATERIALIZED (
+        SELECT ${optionBitmap} AS bitmap
+      )
+      SELECT rb_build_agg(vp.product_doc_id)
+      FROM option_variant_matches ovm
+      JOIN listing.listing_posting_variant_price vp
+        ON vp.project_id = ${request.projectId}::uuid
+       AND vp.currency = ${request.currency}
+      JOIN listing.variant_listing_index vli
+        ON vli.project_id = vp.project_id
+       AND vli.variant_doc_id = vp.variant_doc_id
+       AND vli.product_doc_id = vp.product_doc_id
+       AND vli.product_id = vp.product_id
+       AND vli.in_stock = true
+      WHERE ovm.bitmap @> vp.variant_doc_id
+        ${compilePricePredicateSql(request, sql`vp`)}
+    )`);
+  }
+
   return coalesceBitmapSql(sql`(
-    SELECT rb_build_agg(vp.variant_doc_id)
+    SELECT rb_build_agg(vp.product_doc_id)
     FROM listing.listing_posting_variant_price vp
     JOIN listing.variant_listing_index vli
       ON vli.project_id = vp.project_id
@@ -312,6 +312,25 @@ function compilePriceVariantBitmapSql(request: ListingSqlRequest): SQL {
     WHERE vp.project_id = ${request.projectId}::uuid
       AND vp.currency = ${request.currency}
       ${compilePricePredicateSql(request, sql`vp`)}
+  )`);
+}
+
+function compileOptionVariantProductsBitmapSql(
+  request: ListingSqlRequest,
+  optionBitmap: SQL,
+  inStock: boolean
+): SQL {
+  return coalesceBitmapSql(sql`(
+    WITH option_variant_matches AS MATERIALIZED (
+      SELECT ${optionBitmap} AS bitmap
+    )
+    SELECT rb_build_agg(vli.product_doc_id)
+    FROM option_variant_matches ovm
+    CROSS JOIN LATERAL rb_iterate(ovm.bitmap) AS ov(variant_doc_id)
+    JOIN listing.variant_listing_index vli
+      ON vli.project_id = ${request.projectId}::uuid
+     AND vli.variant_doc_id = ov.variant_doc_id
+     AND vli.in_stock = ${inStock}
   )`);
 }
 
