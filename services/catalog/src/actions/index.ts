@@ -28,8 +28,6 @@ import type {
 } from "../repositories/facet/FacetCandidateRepository.js";
 import type { FacetSourceCandidateView } from "../repositories/models/index.js";
 
-const PRODUCT_SNAPSHOT_BATCH_LIMIT = 100;
-
 type GetStoreByIdResult = {
   store: ContextStore | null;
   userErrors: Array<{
@@ -89,31 +87,11 @@ export class CatalogBrokerActions extends BrokerActions {
     }
 
     const productsSelection = params.selection.populate?.products;
-    const productIds = productsSelection?.args.productIds;
-
     if (!productsSelection) {
       return {
         ok: false,
         code: "INVALID_CATALOG_PRODUCT_READ_INPUT",
         message: "selection.populate.products is required",
-        retryable: false,
-      };
-    }
-
-    if (!Array.isArray(productIds) || productIds.length === 0) {
-      return {
-        ok: false,
-        code: "INVALID_CATALOG_PRODUCT_READ_INPUT",
-        message: "productIds must be a non-empty array",
-        retryable: false,
-      };
-    }
-
-    if (productIds.length > PRODUCT_SNAPSHOT_BATCH_LIMIT) {
-      return {
-        ok: false,
-        code: "INVALID_CATALOG_PRODUCT_READ_INPUT",
-        message: `productIds must contain at most ${PRODUCT_SNAPSHOT_BATCH_LIMIT} items`,
         retryable: false,
       };
     }

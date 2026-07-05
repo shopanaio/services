@@ -32,22 +32,44 @@ export interface CatalogQuerySelection {
 }
 
 export interface CatalogQueryPopulate {
-  products?: CatalogQueryProductsSelection;
+  products?: ProductConnectionSelection;
 }
 
-export interface CatalogQueryProductsSelection {
-  fields?: ProductSnapshotField[];
-  populate?: ProductSnapshotPopulate;
-  args: CatalogQueryProductsArgs;
+export interface ProductConnectionSelection {
+  args?: CatalogQueryProductsArgs;
+  fields?: ProductConnectionField[];
+  populate?: ProductConnectionPopulate;
   fieldName?: "products";
 }
 
-export interface CatalogQueryProductsArgs {
-  productIds: string[];
+export type ProductConnectionField = "totalCount";
+
+export interface ProductConnectionPopulate {
+  edges?: ProductEdgeSelection;
+  pageInfo?: PageInfoSelection;
 }
 
 export interface CatalogQueryResolved {
-  products?: ProductSnapshotResolved[];
+  products?: ProductConnectionResolved;
+}
+
+export type CatalogQueryProductsArgs = RelayConnectionArgs & {
+  where?: ProductWhereInput | null;
+  orderBy?: ProductOrderByInput[] | null;
+  meta?: ProductProductsMetaInput | null;
+};
+
+export interface ProductEdgeSelection {
+  fields?: ProductEdgeField[];
+  populate?: ProductEdgePopulate;
+  args?: never;
+  fieldName?: "edges";
+}
+
+export type ProductEdgeField = "cursor";
+
+export interface ProductEdgePopulate {
+  node?: ProductSnapshotSelection;
 }
 
 export interface ProductSnapshotSelection {
@@ -84,6 +106,108 @@ export type ProductSnapshotField =
   | "revision"
   | "variantsCount"
   | "title";
+
+export type SortDirection = "ASC" | "DESC";
+
+export type ProductOrderField =
+  | "brandName"
+  | "createdAt"
+  | "currency"
+  | "handle"
+  | "id"
+  | "locale"
+  | "maxAmountMinor"
+  | "maxPriceMinor"
+  | "minAmountMinor"
+  | "minPriceMinor"
+  | "name"
+  | "primaryCategoryId"
+  | "primaryCategoryName"
+  | "publishedAt"
+  | "updatedAt"
+  | "vendorId";
+
+export interface ProductOrderByInput {
+  field: ProductOrderField;
+  direction: SortDirection;
+}
+
+export interface ProductProductsMetaInput {
+  categoriesScope?: ProductCategoriesScopeInput | null;
+}
+
+export interface ProductCategoriesScopeInput {
+  referenceIds: string[];
+  mode: "INCLUDE" | "EXCLUDE";
+}
+
+export interface ProductWhereInput {
+  _and?: ProductWhereInput[] | null;
+  _not?: ProductWhereInput | null;
+  _or?: ProductWhereInput[] | null;
+  brandName?: StringFilter | null;
+  createdAt?: DateTimeFilter | null;
+  currency?: StringFilter | null;
+  handle?: StringFilter | null;
+  id?: IdFilter | null;
+  locale?: StringFilter | null;
+  maxAmountMinor?: IntFilter | null;
+  maxPriceMinor?: IntFilter | null;
+  minAmountMinor?: IntFilter | null;
+  minPriceMinor?: IntFilter | null;
+  name?: StringFilter | null;
+  primaryCategoryId?: IdFilter | null;
+  primaryCategoryName?: StringFilter | null;
+  publishedAt?: DateTimeFilter | null;
+  updatedAt?: DateTimeFilter | null;
+  vendorId?: IdFilter | null;
+}
+
+export interface IdFilter {
+  _eq?: string | null;
+  _neq?: string | null;
+  _in?: string[] | null;
+  _notIn?: string[] | null;
+  _is?: boolean | null;
+  _isNot?: boolean | null;
+}
+
+export interface StringFilter {
+  _eq?: string | null;
+  _neq?: string | null;
+  _like?: string | null;
+  _ilike?: string | null;
+  _in?: string[] | null;
+  _notIn?: string[] | null;
+  _is?: boolean | null;
+  _isNot?: boolean | null;
+}
+
+export interface IntFilter {
+  _eq?: number | null;
+  _neq?: number | null;
+  _gt?: number | null;
+  _gte?: number | null;
+  _lt?: number | null;
+  _lte?: number | null;
+  _in?: number[] | null;
+  _notIn?: number[] | null;
+  _is?: boolean | null;
+  _isNot?: boolean | null;
+}
+
+export interface DateTimeFilter {
+  _eq?: string | null;
+  _neq?: string | null;
+  _gt?: string | null;
+  _gte?: string | null;
+  _lt?: string | null;
+  _lte?: string | null;
+  _in?: string[] | null;
+  _notIn?: string[] | null;
+  _is?: boolean | null;
+  _isNot?: boolean | null;
+}
 
 export interface RelayConnectionArgs {
   first?: number;
@@ -518,6 +642,17 @@ export interface VariantConnectionResolved {
   edges?: VariantEdgeResolved[];
   pageInfo?: PageInfoResolved;
   totalCount?: number;
+}
+
+export interface ProductConnectionResolved {
+  edges?: ProductEdgeResolved[];
+  pageInfo?: PageInfoResolved;
+  totalCount?: number;
+}
+
+export interface ProductEdgeResolved {
+  node?: ProductSnapshotResolved;
+  cursor?: string;
 }
 
 export interface VariantEdgeResolved {

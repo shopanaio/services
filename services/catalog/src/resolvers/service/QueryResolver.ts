@@ -1,21 +1,22 @@
 import { ServiceType } from "./ServiceType.js";
-import { ProductSnapshotResolver } from "./ProductSnapshotResolver.js";
+import type { ProductQueryProductsArgs } from "../admin/ProductConnectionResolver.js";
+import { normalizeProductCategoriesScopeInput } from "../admin/filter-normalizers.js";
+import { ServiceProductConnectionResolver } from "./ProductConnectionResolver.js";
 
-export interface ServiceQueryProductsArgs {
-  productIds: string[];
-}
+export type ServiceQueryProductsArgs = ProductQueryProductsArgs;
 
 export class ServiceQueryResolver extends ServiceType<Record<string, never>> {
-  async products(args: ServiceQueryProductsArgs): Promise<ProductSnapshotResolver[]> {
-    const uniqueProductIds = [...new Set(args.productIds)];
-    const existingProducts =
-      await this.$ctx.kernel.repository.product.getByIds(uniqueProductIds);
-    const existingProductIds = new Set(
-      existingProducts.map((product) => product.id)
+  products(args: ServiceQueryProductsArgs) {
+    return new ServiceProductConnectionResolver(
+      {
+        ...args,
+        meta: {
+          categoriesScope: normalizeProductCategoriesScopeInput(
+            args.meta?.categoriesScope
+          ),
+        },
+      },
+      this.$ctx
     );
-
-    return uniqueProductIds
-      .filter((id) => existingProductIds.has(id))
-      .map((id) => new ProductSnapshotResolver(id, this.$ctx));
   }
 }
