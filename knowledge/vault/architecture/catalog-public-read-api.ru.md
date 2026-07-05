@@ -18,22 +18,31 @@ related:
 
 ## Назначение
 
-`Catalog Product Read API` - это межсервисный read API каталога для получения данных продукта по GraphQL-like модели: клиент явно запрашивает поля, а `catalog` возвращает только запрошенную форму данных.
+`Catalog Product Read API` - это межсервисный read API каталога для получения снимков продуктов через broker action с GraphQL-like selection semantics.
 
 API нужен сервисам, которым требуется читать catalog data, но нельзя:
 
 - читать таблицы `catalog` напрямую;
 - импортировать catalog repositories или доменные модели;
 - получать полную внутреннюю доменную модель продукта;
-- зависеть от admin GraphQL schema;
-- создавать узкий API под один внешний сценарий.
+- делать ad-hoc API под один внешний сценарий;
+- изобретать DTO shape, который расходится с admin GraphQL contract.
 
-Основной use case: межсервисное получение снимка продукта через стабильный broker action с явным selection contract.
+Основной use case: межсервисное получение product snapshot через стабильный broker action с явным selection contract.
+
+Ключевое правило формы данных:
+
+- snapshot продукта должен повторять `Product` shape из `admin/schema.graphql`;
+- имена полей snapshot должны совпадать с GraphQL field names;
+- nested objects должны повторять соответствующие GraphQL types (`ProductMediaItem`, `File`, `VariantConnection`, `ProductFeature`, `ProductPriceRange` и т.д.);
+- args в broker selection должны повторять query arguments из admin GraphQL schema;
+- broker contract не должен возвращать старую альтернативную форму вроде `productId`, `status`, `primaryImage`, `attributes`, `currencyCode`, `minAmountMinor`.
 
 Важное правило доступности:
 
 - если продукта нет в рамках `storeId`, он не возвращается в `products`;
-- если продукт существует, но не опубликован, он возвращается как обычный draft snapshot, аналогично admin-представлению в рамках этого контракта;
+- если продукт существует, но не опубликован, он возвращается как обычный admin-compatible snapshot;
+- состояние публикации выражается полями `publishedAt` и `isPublished`, а не отдельным broker-only `status`;
 - состояние публикации не создает специальный result-state.
 
 ## Владелец данных
@@ -45,9 +54,9 @@ API нужен сервисам, которым требуется читать 
 - categories;
 - tags;
 - options;
-- features/attributes;
-- product status;
-- media references, связанные с продуктом.
+- features;
+- product publication state;
+- media assignments, связанные с продуктом.
 
 Другие сервисы не владеют catalog domain data.
 
@@ -55,9 +64,9 @@ API нужен сервисам, которым требуется читать 
 
 API должен работать по смыслу как GraphQL resolver:
 
-- input содержит идентификаторы продуктов и selection;
+- input содержит `storeId`, набор product IDs и selection;
 - selection описывает, какие поля нужно вернуть;
-- `catalog` резолвит только запрошенные поля;
+- `catalog` резолвит только запрошенные fields и relations;
 - response содержит только запрошенные поля и обязательные wrapper/result поля;
 - вложенные поля возвращаются только если они явно запрошены в relation selection.
 
@@ -97,12 +106,12 @@ Action должна поддерживать bulk-запросы. Контрак
 
 ## Input Contract
 
+Root input содержит service boundary параметры и bulk lookup по admin-compatible product ID.
+
 ```ts
 export interface GetProductSnapshotsParams {
   storeId: string;
   productIds: string[];
-  locale?: string;
-  currencyCode?: string;
   selection: ProductSnapshotSelection;
 }
 ```
@@ -112,13 +121,30 @@ export interface GetProductSnapshotsParams {
 - `storeId` обязателен для multi-tenancy и изоляции данных.
 - `storeId` является tenant boundary для этого read API. `organizationId` не входит в контракт, потому что продуктовые данные каталога store-scoped, а broker action должна фильтровать чтение по `storeId`.
 - `productIds` всегда массив, даже если нужен один продукт.
-- `productIds` должен быть дедуплицирован при чтении. В result каждый `productId` должен встречаться не более одного раза.
-- `locale` опционален. Если не передан, `catalog` может использовать locale проекта по умолчанию.
-- `currencyCode` опционален. Он используется только для price fields, если они запрошены в selection.
+- `productIds` соответствует admin `CatalogQuery.product(id: ID!)` для bulk-запроса по ID. Это не search/list API и не замена `CatalogQuery.products(...)`.
+- `productIds` должен быть дедуплицирован при чтении. В result каждый `id` должен встречаться не более одного раза.
 - `selection` обязателен. Пустой selection является невалидным input.
 - Максимальный bulk batch должен быть зафиксирован реализацией. Рекомендуемый стартовый лимит: `100` product IDs.
 
-## Explicit Selection Types
+Если в будущем нужен broker list/read API, он должен повторять args `CatalogQuery.products`:
+
+```ts
+export interface CatalogProductsArgs {
+  first?: number;
+  after?: string;
+  last?: number;
+  before?: string;
+  where?: ProductWhereInput;
+  orderBy?: ProductOrderByInput[];
+  meta?: ProductProductsMetaInput;
+}
+```
+
+`getProductSnapshots` не принимает эти args, потому что его root lookup уже задан через `productIds`.
+
+Locale/currency не оформляются как broker `args`, пока они не являются GraphQL query arguments для `CatalogQuery.product`. Если реализации нужен request context для локализации или выбора валюты, этот context должен быть отдельным service-level параметром или выводиться из `storeId`, но не смешиваться с GraphQL-like `args`.
+
+## Selection Contract
 
 Selection contract должен повторять shape `QueryArgs` из `@shopana/type-resolver`, но быть product-specific и явно типизированным.
 
@@ -135,7 +161,7 @@ type QueryArgs<TArgs = unknown> = {
 };
 ```
 
-Broker shape должен быть тем же по структуре, но с concrete field unions, concrete populate keys и concrete args:
+Broker shape должен быть тем же по структуре, но с concrete field unions, concrete populate keys и concrete args. Имена fields и populate keys должны совпадать с `admin/schema.graphql`.
 
 ```ts
 export interface ProductSnapshotSelection {
@@ -146,48 +172,116 @@ export interface ProductSnapshotSelection {
 }
 
 export interface ProductSnapshotPopulate {
-  primaryImage?: MediaRefSelection;
+  vendor?: VendorSelection;
+  variants?: VariantConnectionSelection;
+  media?: ProductMediaItemSelection;
+  options?: ProductOptionSelection;
+  features?: ProductFeatureSelection;
+  primaryCategory?: CategorySelection;
+  categoryAssignments?: ProductCategoryAssignmentSelection;
+  tags?: TagSelection;
+  description?: RichTextSelection;
+  excerpt?: RichTextSelection;
+  seo?: ProductSeoSelection;
   priceRange?: ProductPriceRangeSelection;
-  categories?: CategoryRefSelection;
-  tags?: TagRefSelection;
-  variants?: VariantSnapshotSelection;
-  attributes?: ProductAttributeSelection;
 }
-
-export type ProductSnapshotRelationField =
-  | "primaryImage"
-  | "priceRange"
-  | "categories"
-  | "tags"
-  | "variants"
-  | "attributes";
 
 export type ProductSnapshotField =
-  | "productId"
-  | "revision"
-  | "status"
+  | "id"
+  | "kind"
   | "handle"
-  | "title"
-  | "description"
-  | "searchableText"
-  | "updatedAt";
+  | "publishedAt"
+  | "isPublished"
+  | "createdAt"
+  | "updatedAt"
+  | "deletedAt"
+  | "revision"
+  | "variantsCount"
+  | "title";
 ```
 
-Relation selection описывается отдельными explicit types:
+Root scalar fields повторяют scalar fields `type Product`. Object/list/connection fields задаются только через `populate`.
+
+## Relation Selection Types
+
+### Variants
+
+`Product.variants` должен повторять admin GraphQL field:
+
+```graphql
+variants(first: Int, after: String, last: Int, before: String): VariantConnection!
+```
 
 ```ts
-export interface MediaRefSelection {
-  fields?: MediaRefField[];
-  populate?: never;
-  args?: never;
-  fieldName?: "primaryImage";
+export interface VariantConnectionSelection {
+  args?: RelayConnectionArgs;
+  fields?: VariantConnectionField[];
+  populate?: VariantConnectionPopulate;
+  fieldName?: "variants";
 }
 
-export type MediaRefField =
-  | "fileId"
-  | "alt"
-  | "sortIndex";
+export interface RelayConnectionArgs {
+  first?: number;
+  after?: string;
+  last?: number;
+  before?: string;
+}
 
+export interface VariantConnectionPopulate {
+  edges?: VariantEdgeSelection;
+  pageInfo?: PageInfoSelection;
+}
+
+export type VariantConnectionField = "totalCount";
+
+export interface VariantEdgeSelection {
+  fields?: VariantEdgeField[];
+  populate?: VariantEdgePopulate;
+  args?: never;
+  fieldName?: "edges";
+}
+
+export type VariantEdgeField = "cursor";
+
+export interface VariantEdgePopulate {
+  node?: VariantSelection;
+}
+```
+
+```ts
+export interface VariantSelection {
+  fields?: VariantField[];
+  populate?: VariantPopulate;
+  args?: never;
+  fieldName?: "node";
+}
+
+export interface VariantPopulate {
+  product?: ProductSnapshotSelection;
+  price?: VariantPriceSelection;
+  priceHistory?: VariantPriceConnectionSelection;
+  selectedOptions?: SelectedOptionSelection;
+  media?: VariantMediaItemSelection;
+}
+
+export type VariantField =
+  | "id"
+  | "kind"
+  | "isDefault"
+  | "handle"
+  | "externalSystem"
+  | "externalId"
+  | "createdAt"
+  | "updatedAt"
+  | "deletedAt"
+  | "title";
+```
+
+Поля `dimensions`, `weight`, `inventoryItem`, `bundleConfiguration` можно добавить только если broker read contract явно расширяется соответствующими admin-compatible nested types. В первой версии product read API они не входят в contract, чтобы не раскрывать inventory/fulfillment internals через product snapshot.
+
+### Price
+
+```ts
 export interface ProductPriceRangeSelection {
   fields?: ProductPriceRangeField[];
   populate?: never;
@@ -196,70 +290,9 @@ export interface ProductPriceRangeSelection {
 }
 
 export type ProductPriceRangeField =
-  | "currencyCode"
-  | "minAmountMinor"
-  | "maxAmountMinor";
-
-export interface CategoryRefSelection {
-  fields?: CategoryRefField[];
-  populate?: CategoryRefPopulate;
-  args?: never;
-  fieldName?: "categories";
-}
-
-export interface CategoryRefPopulate {
-  path?: CategoryPathItemSelection;
-}
-
-export type CategoryRefField =
-  | "id"
-  | "handle"
-  | "title";
-
-export interface CategoryPathItemSelection {
-  fields?: CategoryPathItemField[];
-  populate?: never;
-  args?: never;
-  fieldName?: "path";
-}
-
-export type CategoryPathItemField =
-  | "id"
-  | "handle"
-  | "title";
-
-export interface TagRefSelection {
-  fields?: TagRefField[];
-  populate?: never;
-  args?: never;
-  fieldName?: "tags";
-}
-
-export type TagRefField =
-  | "id"
-  | "handle"
-  | "title";
-
-export interface VariantSnapshotSelection {
-  args?: VariantSnapshotSelectionArgs;
-  fields?: VariantSnapshotField[];
-  populate?: VariantSnapshotPopulate;
-  fieldName?: "variants";
-}
-
-export interface VariantSnapshotPopulate {
-  price?: VariantPriceSelection;
-  options?: VariantOptionValueSelection;
-}
-
-export interface VariantSnapshotSelectionArgs {
-  first?: number;
-}
-
-export type VariantSnapshotField =
-  | "variantId"
-  | "title"
-  | "sku";
+  | "minPriceAmount"
+  | "maxPriceAmount"
+  | "currency";
 
 export interface VariantPriceSelection {
   fields?: VariantPriceField[];
@@ -269,45 +302,378 @@ export interface VariantPriceSelection {
 }
 
 export type VariantPriceField =
-  | "currencyCode"
+  | "id"
+  | "currency"
   | "amountMinor"
-  | "compareAtMinor";
+  | "compareAtMinor"
+  | "effectiveFrom"
+  | "effectiveTo"
+  | "recordedAt"
+  | "isCurrent";
+```
 
-export interface VariantOptionValueSelection {
-  fields?: VariantOptionValueField[];
+`ProductPriceRange` повторяет admin fields `minPriceAmount`, `maxPriceAmount`, `currency`. Нельзя возвращать broker-only `minAmountMinor`, `maxAmountMinor`, `currencyCode`.
+
+### Variant Price History
+
+`Variant.priceHistory` должен повторять admin GraphQL field:
+
+```graphql
+priceHistory(first: Int, after: String, last: Int, before: String): VariantPriceConnection!
+```
+
+```ts
+export interface VariantPriceConnectionSelection {
+  args?: RelayConnectionArgs;
+  fields?: VariantPriceConnectionField[];
+  populate?: VariantPriceConnectionPopulate;
+  fieldName?: "priceHistory";
+}
+
+export type VariantPriceConnectionField = "totalCount";
+
+export interface VariantPriceConnectionPopulate {
+  edges?: VariantPriceEdgeSelection;
+  pageInfo?: PageInfoSelection;
+}
+
+export interface VariantPriceEdgeSelection {
+  fields?: VariantPriceEdgeField[];
+  populate?: VariantPriceEdgePopulate;
+  args?: never;
+  fieldName?: "edges";
+}
+
+export type VariantPriceEdgeField = "cursor";
+
+export interface VariantPriceEdgePopulate {
+  node?: VariantPriceSelection;
+}
+```
+
+### Media And File
+
+`Product.media` и `Variant.media` повторяют admin GraphQL types `ProductMediaItem` и `VariantMediaItem`.
+
+```ts
+export interface ProductMediaItemSelection {
+  fields?: ProductMediaItemField[];
+  populate?: ProductMediaItemPopulate;
+  args?: never;
+  fieldName?: "media";
+}
+
+export interface ProductMediaItemPopulate {
+  file?: FileSelection;
+}
+
+export type ProductMediaItemField = "sortIndex";
+
+export interface VariantMediaItemSelection {
+  fields?: VariantMediaItemField[];
+  populate?: VariantMediaItemPopulate;
+  args?: never;
+  fieldName?: "media";
+}
+
+export interface VariantMediaItemPopulate {
+  file?: FileSelection;
+}
+
+export type VariantMediaItemField = "sortIndex";
+```
+
+`File` повторяет admin federated `File` shape. Catalog может возвращать только те поля, которые доступны через broker read implementation. Если поле требует обращения в media service, resolver должен делать это явно или не включать поле в contract первой версии.
+
+```ts
+export interface FileSelection {
+  fields?: FileField[];
+  populate?: FilePopulate;
+  args?: never;
+  fieldName?: "file" | "ogImage";
+}
+
+export interface FilePopulate {
+  dimensions?: MediaDimensionsSelection;
+}
+
+export type FileField =
+  | "id"
+  | "provider"
+  | "url"
+  | "mimeType"
+  | "ext"
+  | "sizeBytes"
+  | "originalName"
+  | "durationMs"
+  | "altText"
+  | "sourceUrl"
+  | "isProcessed";
+
+export interface MediaDimensionsSelection {
+  fields?: MediaDimensionsField[];
   populate?: never;
+  args?: never;
+  fieldName?: "dimensions";
+}
+
+export type MediaDimensionsField = "width" | "height";
+```
+
+### Options
+
+```ts
+export interface ProductOptionSelection {
+  fields?: ProductOptionField[];
+  populate?: ProductOptionPopulate;
   args?: never;
   fieldName?: "options";
 }
 
-export type VariantOptionValueField =
-  | "name"
-  | "value";
-
-export interface ProductAttributeSelection {
-  fields?: ProductAttributeField[];
-  populate?: never;
-  args?: never;
-  fieldName?: "attributes";
+export interface ProductOptionPopulate {
+  values?: ProductOptionValueSelection;
 }
 
-export type ProductAttributeField =
-  | "code"
-  | "label"
-  | "value";
+export type ProductOptionField =
+  | "id"
+  | "slug"
+  | "name"
+  | "displayType"
+  | "sortIndex";
+
+export interface ProductOptionValueSelection {
+  fields?: ProductOptionValueField[];
+  populate?: ProductOptionValuePopulate;
+  args?: never;
+  fieldName?: "values";
+}
+
+export interface ProductOptionValuePopulate {
+  swatch?: ProductOptionSwatchSelection;
+}
+
+export type ProductOptionValueField =
+  | "id"
+  | "slug"
+  | "name"
+  | "sortIndex";
+
+export interface ProductOptionSwatchSelection {
+  fields?: ProductOptionSwatchField[];
+  populate?: ProductOptionSwatchPopulate;
+  args?: never;
+  fieldName?: "swatch";
+}
+
+export interface ProductOptionSwatchPopulate {
+  file?: FileSelection;
+}
+
+export type ProductOptionSwatchField =
+  | "id"
+  | "swatchType"
+  | "colorOne"
+  | "colorTwo"
+  | "metadata";
 ```
 
-Правила selection:
+### Selected Options
 
-- `fields` содержит только scalar fields текущего type.
-- relation field задается только через `populate`, например `populate.variants`, `populate.categories`, `populate.primaryImage`.
-- `args` имеет concrete type только у тех relation resolvers, где аргументы разрешены. Для root product selection и relations без аргументов используется `args?: never`.
-- `fieldName` повторяет shape `QueryArgs`, но ограничен concrete resolver field name. На root product selection используется `fieldName?: never`, потому что root query не является aliased populate entry.
-- relation без вложенных `fields` или nested selection считается невалидной.
-- unknown field должен приводить к `INVALID_CATALOG_PRODUCT_READ_INPUT`.
-- если поле не запрошено, resolver не должен его вычислять и response не должен его содержать.
-- если relation не запрошена, response не должен содержать ключ relation.
-- selection должен быть ограничен по глубине. Рекомендуемый стартовый лимит: `3`.
+```ts
+export interface SelectedOptionSelection {
+  fields?: SelectedOptionField[];
+  populate?: never;
+  args?: never;
+  fieldName?: "selectedOptions";
+}
+
+export type SelectedOptionField =
+  | "optionId"
+  | "optionValueId";
+```
+
+### Features
+
+`Product.features` повторяет admin GraphQL `ProductFeature`, а не старый broker-only `attributes`.
+
+```ts
+export interface ProductFeatureSelection {
+  fields?: ProductFeatureField[];
+  populate?: ProductFeaturePopulate;
+  args?: never;
+  fieldName?: "features" | "parent" | "children";
+}
+
+export interface ProductFeaturePopulate {
+  parent?: ProductFeatureSelection;
+  children?: ProductFeatureSelection;
+  values?: ProductFeatureValueSelection;
+}
+
+export type ProductFeatureField =
+  | "id"
+  | "slug"
+  | "index"
+  | "isGroup"
+  | "name";
+
+export interface ProductFeatureValueSelection {
+  fields?: ProductFeatureValueField[];
+  populate?: never;
+  args?: never;
+  fieldName?: "values";
+}
+
+export type ProductFeatureValueField =
+  | "id"
+  | "slug"
+  | "index"
+  | "name";
+```
+
+### Categories
+
+```ts
+export interface CategorySelection {
+  fields?: CategoryField[];
+  populate?: CategoryPopulate;
+  args?: never;
+  fieldName?: "primaryCategory" | "category" | "parent" | "children" | "ancestors";
+}
+
+export interface CategoryPopulate {
+  description?: RichTextSelection;
+  excerpt?: RichTextSelection;
+  seo?: SeoSelection;
+  parent?: CategorySelection;
+  children?: CategorySelection;
+  ancestors?: CategorySelection;
+}
+
+export type CategoryField =
+  | "id"
+  | "handle"
+  | "publishedAt"
+  | "isPublished"
+  | "createdAt"
+  | "updatedAt"
+  | "deletedAt"
+  | "revision"
+  | "depth"
+  | "path"
+  | "name"
+  | "defaultSort"
+  | "defaultSortDirection";
+
+export interface ProductCategoryAssignmentSelection {
+  fields?: ProductCategoryAssignmentField[];
+  populate?: ProductCategoryAssignmentPopulate;
+  args?: never;
+  fieldName?: "categoryAssignments";
+}
+
+export type ProductCategoryAssignmentField = "isPrimary";
+
+export interface ProductCategoryAssignmentPopulate {
+  category?: CategorySelection;
+}
+```
+
+### Tags, Vendor, Rich Text, SEO, Page Info
+
+```ts
+export interface TagSelection {
+  fields?: TagField[];
+  populate?: never;
+  args?: never;
+  fieldName?: "tags";
+}
+
+export type TagField =
+  | "id"
+  | "handle"
+  | "createdAt"
+  | "name"
+  | "productsCount";
+
+export interface VendorSelection {
+  fields?: VendorField[];
+  populate?: never;
+  args?: never;
+  fieldName?: "vendor";
+}
+
+export type VendorField = "id" | "name";
+
+export interface RichTextSelection {
+  fields?: RichTextField[];
+  populate?: never;
+  args?: never;
+  fieldName?: "description" | "excerpt";
+}
+
+export type RichTextField = "text" | "html" | "json";
+
+export interface ProductSeoSelection {
+  fields?: ProductSeoField[];
+  populate?: ProductSeoPopulate;
+  args?: never;
+  fieldName?: "seo";
+}
+
+export interface ProductSeoPopulate {
+  ogImage?: FileSelection;
+}
+
+export type ProductSeoField =
+  | "seoTitle"
+  | "seoDescription"
+  | "ogTitle"
+  | "ogDescription";
+
+export interface SeoSelection {
+  fields?: SeoField[];
+  populate?: SeoPopulate;
+  args?: never;
+  fieldName?: "seo";
+}
+
+export interface SeoPopulate {
+  ogImage?: FileSelection;
+}
+
+export type SeoField =
+  | "seoTitle"
+  | "seoDescription"
+  | "ogTitle"
+  | "ogDescription";
+
+export interface PageInfoSelection {
+  fields?: PageInfoField[];
+  populate?: never;
+  args?: never;
+  fieldName?: "pageInfo";
+}
+
+export type PageInfoField =
+  | "hasNextPage"
+  | "hasPreviousPage"
+  | "startCursor"
+  | "endCursor";
+```
+
+## Selection Rules
+
+- `fields` содержит только scalar/enum fields текущего type.
+- Object, list и connection fields задаются только через `populate`.
+- `args` имеет concrete type только у тех relation resolvers, где аргументы есть в admin GraphQL schema.
+- `Product.variants.args` и `Variant.priceHistory.args` повторяют Relay args `first`, `after`, `last`, `before`.
+- `fieldName` повторяет shape `QueryArgs`, но ограничен concrete resolver field name. На root product selection используется `fieldName?: never`.
+- Relation без вложенных `fields` или nested selection считается невалидной.
+- Unknown field должен приводить к `INVALID_CATALOG_PRODUCT_READ_INPUT`.
+- Если поле не запрошено, resolver не должен его вычислять и response не должен его содержать.
+- Если relation не запрошена, response не должен содержать ключ relation.
+- Selection должен быть ограничен по глубине. Рекомендуемый стартовый лимит: `5`, потому что admin-compatible shape содержит connections и edges.
 
 Эта форма повторяет execution model `@shopana/type-resolver`: executor читает scalar fields из `fields`, relation fields из `populate`, relation args из `args`, а real resolver method name из `fieldName`.
 
@@ -317,34 +683,50 @@ export type ProductAttributeField =
 const result = await broker.call("catalog.getProductSnapshots", {
   storeId: "store-id",
   productIds: ["product-1", "product-2"],
-  locale: "uk",
-  currencyCode: "UAH",
   selection: {
-    fields: ["productId", "revision", "status", "handle", "title"],
+    fields: ["id", "kind", "handle", "isPublished", "revision", "title"],
     populate: {
-      primaryImage: {
-        fields: ["fileId", "alt"],
+      media: {
+        fields: ["sortIndex"],
+        populate: {
+          file: {
+            fields: ["id", "url", "altText"],
+          },
+        },
       },
       priceRange: {
-        fields: ["currencyCode", "minAmountMinor", "maxAmountMinor"],
+        fields: ["currency", "minPriceAmount", "maxPriceAmount"],
       },
-      categories: {
-        fields: ["id", "handle", "title"],
+      categoryAssignments: {
+        fields: ["isPrimary"],
         populate: {
-          path: {
-            fields: ["id", "handle", "title"],
+          category: {
+            fields: ["id", "handle", "name"],
           },
         },
       },
       variants: {
         args: { first: 20 },
-        fields: ["variantId", "title", "sku"],
+        fields: ["totalCount"],
         populate: {
-          price: {
-            fields: ["currencyCode", "amountMinor"],
+          edges: {
+            fields: ["cursor"],
+            populate: {
+              node: {
+                fields: ["id", "kind", "handle", "title"],
+                populate: {
+                  price: {
+                    fields: ["currency", "amountMinor", "compareAtMinor"],
+                  },
+                  selectedOptions: {
+                    fields: ["optionId", "optionValueId"],
+                  },
+                },
+              },
+            },
           },
-          options: {
-            fields: ["name", "value"],
+          pageInfo: {
+            fields: ["hasNextPage", "endCursor"],
           },
         },
       },
@@ -374,93 +756,246 @@ export type ProductReadErrorCode =
   | "CATALOG_PRODUCT_READ_QUERY_FAILED";
 ```
 
-`products` содержит sparse objects: каждый объект включает только поля, запрошенные selection, плюс поля, которые были явно запрошены и доступны для данного состояния продукта.
+`products` содержит sparse objects: каждый объект включает только поля, запрошенные selection, плюс обязательные wrapper/result поля.
 
-Если продукт найден, он возвращается независимо от `status`. Неопубликованный продукт возвращается как draft snapshot с теми же правилами selection, что и опубликованный продукт.
+Если продукт найден, он возвращается независимо от publication state. Неопубликованный продукт возвращается как admin-compatible snapshot с теми же правилами selection, что и опубликованный продукт.
 
 ## Explicit Result Types
 
-Response types также должны быть объявлены явно. Так как shape зависит от selection, все fields в DTO optional, но runtime contract запрещает возвращать незапрошенные поля.
+Response types должны повторять admin GraphQL schema. Так как shape зависит от selection, все fields в DTO optional, но runtime contract запрещает возвращать незапрошенные поля.
 
 ```ts
 export interface ProductSnapshotResolved {
-  productId?: string;
-  revision?: number;
-  status?: ProductStatus;
-
+  id?: string;
+  kind?: ProductKind;
   handle?: string;
-  title?: string;
-  description?: string | null;
-  searchableText?: string;
+  publishedAt?: string | null;
+  isPublished?: boolean;
+  createdAt?: string;
   updatedAt?: string;
-
-  primaryImage?: MediaRefResolved | null;
+  deletedAt?: string | null;
+  revision?: number;
+  vendor?: VendorResolved | null;
+  variants?: VariantConnectionResolved;
+  media?: ProductMediaItemResolved[];
+  options?: ProductOptionResolved[];
+  features?: ProductFeatureResolved[];
+  variantsCount?: number;
+  primaryCategory?: CategoryResolved | null;
+  categoryAssignments?: ProductCategoryAssignmentResolved[];
+  tags?: TagResolved[];
+  title?: string;
+  description?: RichTextResolved | null;
+  excerpt?: RichTextResolved | null;
+  seo?: ProductSeoResolved | null;
   priceRange?: ProductPriceRangeResolved | null;
-  categories?: CategoryRefResolved[];
-  tags?: TagRefResolved[];
-  variants?: VariantSnapshotResolved[];
-  attributes?: ProductAttributeResolved[];
 }
 
-export type ProductStatus =
-  | "draft"
-  | "published"
-  | "archived";
-
-export interface MediaRefResolved {
-  fileId?: string;
-  alt?: string | null;
-  sortIndex?: number;
-}
+export type ProductKind = "BASE" | "BUNDLE";
 
 export interface ProductPriceRangeResolved {
-  currencyCode?: string;
-  minAmountMinor?: number | null;
-  maxAmountMinor?: number | null;
+  minPriceAmount?: string;
+  maxPriceAmount?: string;
+  currency?: string;
 }
 
-export interface CategoryRefResolved {
+export interface VariantConnectionResolved {
+  edges?: VariantEdgeResolved[];
+  pageInfo?: PageInfoResolved;
+  totalCount?: number;
+}
+
+export interface VariantEdgeResolved {
+  node?: VariantResolved;
+  cursor?: string;
+}
+
+export interface VariantResolved {
   id?: string;
+  kind?: ProductKind;
+  product?: ProductSnapshotResolved;
+  isDefault?: boolean;
   handle?: string;
-  title?: string;
-  path?: CategoryPathItemResolved[];
-}
-
-export interface CategoryPathItemResolved {
-  id?: string;
-  handle?: string;
-  title?: string;
-}
-
-export interface TagRefResolved {
-  id?: string;
-  handle?: string;
-  title?: string;
-}
-
-export interface VariantSnapshotResolved {
-  variantId?: string;
-  title?: string;
-  sku?: string | null;
+  externalSystem?: string | null;
+  externalId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  deletedAt?: string | null;
   price?: VariantPriceResolved | null;
-  options?: VariantOptionValueResolved[];
+  priceHistory?: VariantPriceConnectionResolved;
+  selectedOptions?: SelectedOptionResolved[];
+  title?: string | null;
+  media?: VariantMediaItemResolved[];
 }
 
 export interface VariantPriceResolved {
-  currencyCode?: string;
-  amountMinor?: number | null;
-  compareAtMinor?: number | null;
+  id?: string;
+  currency?: string;
+  amountMinor?: string;
+  compareAtMinor?: string | null;
+  effectiveFrom?: string;
+  effectiveTo?: string | null;
+  recordedAt?: string;
+  isCurrent?: boolean;
 }
 
-export interface VariantOptionValueResolved {
+export interface VariantPriceConnectionResolved {
+  edges?: VariantPriceEdgeResolved[];
+  pageInfo?: PageInfoResolved;
+  totalCount?: number;
+}
+
+export interface VariantPriceEdgeResolved {
+  node?: VariantPriceResolved;
+  cursor?: string;
+}
+
+export interface SelectedOptionResolved {
+  optionId?: string;
+  optionValueId?: string;
+}
+
+export interface ProductMediaItemResolved {
+  file?: FileResolved;
+  sortIndex?: number;
+}
+
+export interface VariantMediaItemResolved {
+  file?: FileResolved;
+  sortIndex?: number;
+}
+
+export interface FileResolved {
+  id?: string;
+  provider?: string;
+  url?: string;
+  mimeType?: string | null;
+  ext?: string | null;
+  sizeBytes?: string;
+  originalName?: string | null;
+  dimensions?: MediaDimensionsResolved | null;
+  durationMs?: number | null;
+  altText?: string | null;
+  sourceUrl?: string | null;
+  isProcessed?: boolean;
+}
+
+export interface MediaDimensionsResolved {
+  width?: number;
+  height?: number;
+}
+
+export interface ProductOptionResolved {
+  id?: string;
+  slug?: string;
   name?: string;
-  value?: string;
+  displayType?: string;
+  sortIndex?: number;
+  values?: ProductOptionValueResolved[];
 }
 
-export interface ProductAttributeResolved {
-  code?: string;
-  label?: string;
-  value?: string | number | boolean | string[];
+export interface ProductOptionValueResolved {
+  id?: string;
+  slug?: string;
+  name?: string;
+  sortIndex?: number;
+  swatch?: ProductOptionSwatchResolved | null;
+}
+
+export interface ProductOptionSwatchResolved {
+  id?: string;
+  swatchType?: string;
+  colorOne?: string | null;
+  colorTwo?: string | null;
+  file?: FileResolved | null;
+  metadata?: unknown;
+}
+
+export interface ProductFeatureResolved {
+  id?: string;
+  slug?: string;
+  index?: number[];
+  isGroup?: boolean;
+  name?: string;
+  parent?: ProductFeatureResolved | null;
+  children?: ProductFeatureResolved[];
+  values?: ProductFeatureValueResolved[];
+}
+
+export interface ProductFeatureValueResolved {
+  id?: string;
+  slug?: string;
+  index?: number;
+  name?: string;
+}
+
+export interface CategoryResolved {
+  id?: string;
+  handle?: string;
+  publishedAt?: string | null;
+  isPublished?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  deletedAt?: string | null;
+  revision?: number;
+  depth?: number;
+  path?: string;
+  name?: string;
+  description?: RichTextResolved | null;
+  excerpt?: RichTextResolved | null;
+  defaultSort?: string;
+  defaultSortDirection?: string;
+  seo?: SeoResolved | null;
+  parent?: CategoryResolved | null;
+  children?: CategoryResolved[];
+  ancestors?: CategoryResolved[];
+}
+
+export interface ProductCategoryAssignmentResolved {
+  category?: CategoryResolved;
+  isPrimary?: boolean;
+}
+
+export interface TagResolved {
+  id?: string;
+  handle?: string;
+  createdAt?: string;
+  name?: string;
+  productsCount?: number;
+}
+
+export interface VendorResolved {
+  id?: string;
+  name?: string;
+}
+
+export interface RichTextResolved {
+  text?: string;
+  html?: string;
+  json?: unknown;
+}
+
+export interface ProductSeoResolved {
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  ogTitle?: string | null;
+  ogDescription?: string | null;
+  ogImage?: FileResolved | null;
+}
+
+export interface SeoResolved {
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  ogTitle?: string | null;
+  ogDescription?: string | null;
+  ogImage?: FileResolved | null;
+}
+
+export interface PageInfoResolved {
+  hasNextPage?: boolean;
+  hasPreviousPage?: boolean;
+  startCursor?: string | null;
+  endCursor?: string | null;
 }
 ```
 
@@ -470,8 +1005,9 @@ export interface ProductAttributeResolved {
 - `products` может содержать меньше объектов, чем было запрошено в `productIds`.
 - Порядок `products` должен следовать порядку `productIds` для тех продуктов, которые попали в result.
 - `ProductSnapshotResolved` не должен содержать поля, которых нет в `selection`.
-- Если поле запрошено, но значение отсутствует по бизнес-смыслу, resolver может вернуть `null` только для nullable fields.
+- Если поле запрошено, но значение отсутствует по GraphQL schema/business-смыслу, resolver может вернуть `null` только для nullable fields.
 - Если поле запрошено, но не может быть надежно вычислено из-за ошибки чтения, action должен вернуть `ok: false`.
+- BigInt GraphQL fields (`minPriceAmount`, `maxPriceAmount`, `amountMinor`, `compareAtMinor`, `sizeBytes`) сериализуются как string в broker DTO.
 - Неопубликованный продукт не является ошибкой и не должен опускаться из result, если он найден в рамках `storeId`.
 
 ## Example Response
@@ -483,68 +1019,84 @@ export interface ProductAttributeResolved {
   ok: true,
   products: [
     {
-      productId: "product-1",
-      revision: 42,
-      status: "published",
+      id: "product-1",
+      kind: "BASE",
       handle: "iphone-15",
+      isPublished: true,
+      revision: 42,
       title: "iPhone 15",
-      primaryImage: {
-        fileId: "file-1",
-        alt: "iPhone 15"
-      },
-      priceRange: {
-        currencyCode: "UAH",
-        minAmountMinor: 3999900,
-        maxAmountMinor: 4599900
-      },
-      categories: [
+      media: [
         {
-          id: "category-1",
-          handle: "phones",
-          title: "Phones",
-          path: [
-            {
-              id: "category-root",
-              handle: "electronics",
-              title: "Electronics"
-            }
-          ]
+          sortIndex: 0,
+          file: {
+            id: "file-1",
+            url: "https://cdn.example.com/iphone-15.jpg",
+            altText: "iPhone 15"
+          }
         }
       ],
-      variants: [
+      priceRange: {
+        currency: "UAH",
+        minPriceAmount: "3999900",
+        maxPriceAmount: "4599900"
+      },
+      categoryAssignments: [
         {
-          variantId: "variant-1",
-          title: "128 GB / Black",
-          sku: "IPH15-128-BLK",
-          price: {
-            currencyCode: "UAH",
-            amountMinor: 3999900
-          },
-          options: [
-            {
-              name: "Storage",
-              value: "128 GB"
-            },
-            {
-              name: "Color",
-              value: "Black"
-            }
-          ]
+          isPrimary: true,
+          category: {
+            id: "category-1",
+            handle: "phones",
+            name: "Phones"
+          }
         }
-      ]
+      ],
+      variants: {
+        totalCount: 1,
+        edges: [
+          {
+            cursor: "variant-cursor-1",
+            node: {
+              id: "variant-1",
+              kind: "BASE",
+              handle: "iphone-15-128-black",
+              title: "128 GB / Black",
+              price: {
+                currency: "UAH",
+                amountMinor: "3999900",
+                compareAtMinor: null
+              },
+              selectedOptions: [
+                {
+                  optionId: "option-storage",
+                  optionValueId: "value-128gb"
+                },
+                {
+                  optionId: "option-color",
+                  optionValueId: "value-black"
+                }
+              ]
+            }
+          }
+        ],
+        pageInfo: {
+          hasNextPage: false,
+          endCursor: "variant-cursor-1"
+        }
+      }
     },
     {
-      productId: "product-2",
-      revision: 7,
-      status: "draft",
+      id: "product-2",
+      kind: "BASE",
       handle: "draft-phone",
+      isPublished: false,
+      revision: 7,
       title: "Draft Phone"
     }
   ]
 }
 ```
 
-В response нет `description`, `searchableText`, `tags` и `attributes`, потому что они не были запрошены.
+В response нет `description`, `tags`, `features`, `options`, `createdAt`, `updatedAt`, потому что они не были запрошены.
 
 `product-2` показывает, что draft product возвращается как обычный product snapshot, если он найден и его поля запрошены.
 
@@ -560,7 +1112,7 @@ export type ProductReadErrorCode =
 Правила ошибок:
 
 - `ok: false` означает, что action не смог корректно обработать весь request.
-- `INVALID_CATALOG_PRODUCT_READ_INPUT` используется для невалидного input: пустой `storeId`, пустой `productIds`, слишком большой bulk batch, пустой или невалидный `selection`, неизвестное field, слишком глубокий selection, невалидный `locale` или `currencyCode`.
+- `INVALID_CATALOG_PRODUCT_READ_INPUT` используется для невалидного input: пустой `storeId`, пустой `productIds`, слишком большой bulk batch, пустой или невалидный `selection`, неизвестное field, слишком глубокий selection, невалидные GraphQL-like `args` у nested fields.
 - `CATALOG_STORE_NOT_FOUND` используется, если `storeId` не найден или catalog не может безопасно построить store context.
 - `CATALOG_PRODUCT_READ_QUERY_FAILED` используется для неожиданных ошибок чтения или сборки response. `retryable` должен быть `true`, если повтор request может помочь.
 - Отсутствующий конкретный `productId` не является ошибкой всего action.
@@ -572,10 +1124,10 @@ export type ProductReadErrorCode =
 Правила успешного result:
 
 - `ok: true` может вернуть меньше `products`, чем было запрошено в `productIds`.
-- Если продукт существует в рамках `storeId`, он возвращается независимо от статуса публикации.
+- Если продукт существует в рамках `storeId`, он возвращается независимо от publication state.
 - Если `productId` не найден в рамках `storeId`, такой продукт опускается из `products`.
 - Порядок `products` должен следовать порядку `productIds` для тех продуктов, которые попали в result.
-- Дубликаты в `productIds` должны быть дедуплицированы при чтении. В result каждый `productId` должен встречаться не более одного раза.
+- Дубликаты в `productIds` должны быть дедуплицированы при чтении. В result каждый `id` должен встречаться не более одного раза.
 
 Правила partial failure:
 
@@ -590,7 +1142,7 @@ Broker contract не зависит от `@shopana/type-resolver`, но реал
 Рекомендуемый flow:
 
 1. Broker handler валидирует `GetProductSnapshotsParams`.
-2. Handler строит request-scoped `ServiceContext` для `storeId`, `locale`, `currencyCode`.
+2. Handler строит request-scoped `ServiceContext` для `storeId` и доступного request context.
 3. Handler валидирует `ProductSnapshotSelection` и передает его как structurally-compatible internal query.
 4. Handler вызывает resolver, например:
 
@@ -611,11 +1163,14 @@ services/catalog/src/resolvers/product-read/
   CatalogProductReadType.ts
   ProductSnapshotResolver.ts
   VariantSnapshotResolver.ts
-  CategoryRefResolver.ts
-  TagRefResolver.ts
+  ProductMediaItemResolver.ts
+  ProductFeatureResolver.ts
+  ProductOptionResolver.ts
 ```
 
-Нельзя использовать admin `ProductResolver` как broker resolver напрямую, потому что admin resolver может содержать поля и связи, которые не являются частью этого read contract.
+Нельзя использовать admin `ProductResolver` как broker resolver напрямую, потому что admin resolver может содержать authorization, UI-specific behavior и federation details, которые не являются частью broker read execution.
+
+При этом broker-facing resolver должен возвращать admin-compatible DTO shape, а не отдельную domain/broker naming model.
 
 ## Selection Compatibility
 
@@ -625,14 +1180,18 @@ services/catalog/src/resolvers/product-read/
 
 ```ts
 {
-  fields: ["productId", "revision", "status", "title"],
+  fields: ["id", "revision", "isPublished", "title"],
   populate: {
     variants: {
       args: { first: 20 },
-      fields: ["variantId", "title"],
+      fields: ["totalCount"],
       populate: {
-        options: {
-          fields: ["name", "value"]
+        edges: {
+          populate: {
+            node: {
+              fields: ["id", "title"]
+            }
+          }
         }
       }
     }
@@ -640,7 +1199,7 @@ services/catalog/src/resolvers/product-read/
 }
 ```
 
-Эта структура уже соответствует форме, которую executor ожидает на runtime.
+Эта структура соответствует форме, которую executor ожидает на runtime.
 
 Отличие от raw `QueryArgs` в том, что broker type ограничивает допустимые `fields`, `populate` keys и `args` для каждого resolver type.
 
@@ -648,66 +1207,50 @@ services/catalog/src/resolvers/product-read/
 
 ### Product Fields
 
-- `productId` - stable catalog product ID.
-- `revision` - монотонная revision состояния продукта.
-- `status` - состояние продукта в catalog workflow, например `"draft"`, `"published"` или `"archived"`.
+- `id` - admin GraphQL global product ID.
+- `kind` - product discriminator из `ProductKind`.
 - `handle` - product handle.
+- `publishedAt` - дата публикации или `null`.
+- `isPublished` - текущий publication state.
+- `createdAt`, `updatedAt`, `deletedAt` - admin-compatible timestamps.
+- `revision` - optimistic locking revision.
+- `variantsCount` - количество вариантов продукта.
 - `title` - локализованный title.
-- `description` - локализованное описание в форме, пригодной для межсервисного чтения.
-- `searchableText` - готовый текстовый материал из полей продукта.
-- `updatedAt` - время последнего изменения продукта.
+- `description`, `excerpt` - `RichText` в admin-compatible форме.
+- `seo` - `ProductSeo`.
+- `priceRange` - `ProductPriceRange` в выбранной currency.
 
-### Primary Image
+### Media
 
-`primaryImage` возвращает ссылку на media file. Это не media domain object и не admin file DTO.
+`media` возвращает массив `ProductMediaItem` с `file` и `sortIndex`. Primary image не является отдельным broker field: клиент выбирает первый элемент по `sortIndex`, если ему нужен primary media item.
 
 ### Price Fields
 
-`priceRange` и `variant.price` возвращают display prices для `currencyCode` из input или валюты проекта по умолчанию. Они не являются order-specific price snapshots и не должны использоваться checkout/orders для фиксации цены покупки.
+`priceRange` и `variant.price` возвращают display prices для валюты, определенной request context или валютой проекта по умолчанию. Они не являются order-specific price snapshots и не должны использоваться checkout/orders для фиксации цены покупки.
 
 ### Categories
 
-`categories` возвращает category refs. `path` содержит иерархию категории без дополнительных вызовов в `catalog`.
+`primaryCategory` и `categoryAssignments` повторяют admin GraphQL schema. Старое broker-only `categories.path` не входит в contract. Для иерархии используются admin fields `parent`, `children`, `ancestors`, если они явно добавлены в selection.
 
 ### Tags
 
-`tags` возвращает tag refs.
+`tags` возвращает admin-compatible `Tag`.
 
 ### Variants
 
-`variants` возвращает variant data, разрешенную этим контрактом. Inventory, stock reservation и internal fulfillment fields не входят в этот контракт.
+`variants` возвращает `VariantConnection`, а не массив вариантов. Args повторяют Relay pagination args из admin schema.
 
-### Attributes
+Inventory, stock reservation и internal fulfillment fields не входят в первую версию этого контракта.
 
-`attributes` возвращает product attributes. `code` должен быть стабильным machine-readable идентификатором. `label` - локализованный display label.
+### Features
 
-## Searchable Text
-
-`searchableText` - готовый текстовый материал из полей продукта:
-
-- title;
-- description;
-- category names;
-- tag names;
-- selected attributes;
-- option values.
-
-Это поле фиксирует правила `catalog` о том, какие поля продукта входят в готовый текстовый материал. Поле вычисляется только если оно запрошено.
-
-## Revision Handling
-
-`revision` возвращается только если он запрошен.
-
-Правила:
-
-- `revision` должен монотонно отражать изменение snapshot продукта;
-- draft, published и archived states используют одно и то же поле `revision`;
-- если `revision` запрошен, catalog не должен возвращать product object без `revision`.
+`features` возвращает `ProductFeature[]`. Старое поле `attributes` запрещено, потому что оно не повторяет admin GraphQL schema.
 
 ## Что не входит в Product Read API
 
 В `ProductSnapshotSelection` и `ProductSnapshotResolved` не должны входить:
 
+- broker-only aliases для admin полей (`productId`, `status`, `primaryImage`, `attributes`);
 - внутренние catalog aggregate fields;
 - cost price;
 - supplier/internal procurement data;
@@ -732,10 +1275,10 @@ GraphQL Federation используется для внешнего API и compo
 - проще контролировать стабильность DTO;
 - проще делать bulk-запросы;
 - проще валидировать input/output;
-- меньше coupling с клиентской GraphQL schema;
+- меньше coupling с transport/runtime GraphQL;
 - проще использовать из внутренних workflows и application services.
 
-При этом broker action может иметь GraphQL-like selection semantics и исполняться через Type Resolver.
+При этом broker action должен повторять admin GraphQL shape там, где он возвращает admin catalog data, и может исполняться через Type Resolver.
 
 ## Почему не универсальный fields selector
 
@@ -744,20 +1287,24 @@ GraphQL Federation используется для внешнего API и compo
 ```ts
 catalog.getProducts({
   ids,
-  fields: ["title", "categories", "variants.options"]
+  fields: ["title", "categoryAssignments.category.name", "variants.edges.node.price"]
 });
 ```
 
-Такой API быстро превращается во внутренний GraphQL поверх broker и начинает раскрывать структуру catalog domain.
+Такой API быстро превращается во внутренний GraphQL поверх broker и начинает раскрывать произвольную структуру catalog domain.
 
 Правильная форма - explicit product selection types:
 
 ```ts
 selection: {
-  fields: ["productId", "title"],
+  fields: ["id", "title"],
   populate: {
-    categories: {
-      fields: ["handle", "title"]
+    categoryAssignments: {
+      populate: {
+        category: {
+          fields: ["handle", "name"]
+        }
+      }
     }
   }
 }
@@ -850,4 +1397,4 @@ catalog.getProductSnapshots
 
 API имеет GraphQL-like semantics, но broker contract состоит из explicit DTO types в `@shopana/broker-types`.
 
-`@shopana/type-resolver` используется только внутри `catalog` для исполнения selection и не является частью межсервисного контракта.
+Snapshot продукта повторяет admin GraphQL `Product` shape, а args повторяют admin GraphQL query arguments. `@shopana/type-resolver` используется только внутри `catalog` для исполнения selection и не является частью межсервисного контракта.
