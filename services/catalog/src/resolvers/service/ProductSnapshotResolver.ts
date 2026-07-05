@@ -1,10 +1,6 @@
-import { createExecutor } from "@shopana/type-resolver";
-import type { ServiceContext } from "../../context/types.js";
-import { ProductResolver } from "../admin/ProductResolver.js";
+import { ServiceType } from "./ServiceType.js";
 
-export class ProductSnapshotResolver extends ProductResolver {
-  static override executor = createExecutor<ServiceContext>({});
-
+export class ProductSnapshotResolver extends ServiceType<string> {
   id() {
     return this.$props;
   }
