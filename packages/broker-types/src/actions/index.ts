@@ -15,14 +15,6 @@ export type {
 
 // Catalog service actions
 export * as Catalog from "./catalog.js";
-export type {
-  GetInventoryItemProjectionSnapshotParams,
-  GetInventoryItemProjectionSnapshotResult,
-  InventoryItemProjectionSnapshot,
-  InventoryItemProjectionSnapshotErrorCode,
-  InventoryItemProjectionSnapshotTranslation,
-  InventoryItemProjectionSnapshotVariant,
-} from "./catalog.js";
 
 // Listing service actions
 export * as Listing from "./listing.js";
