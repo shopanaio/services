@@ -145,7 +145,7 @@ export class CatalogBrokerActions extends BrokerActions {
       return await runWithContext(ctx, async () => {
         const root = await ServiceQueryResolver.load<
           typeof ServiceQueryResolver,
-          Catalog.CatalogQueryResolved
+          Catalog.CatalogQueryData
         >(
           {},
           params.selection as unknown as QueryArgs,
