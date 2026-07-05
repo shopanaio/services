@@ -15,6 +15,27 @@ export type {
 
 // Catalog service actions
 export * as Catalog from "./catalog.js";
+export type {
+  CatalogProductAvailabilitySnapshot,
+  CatalogProductCategorySnapshot,
+  CatalogProductContentSnapshot,
+  CatalogProductFeatureRef,
+  CatalogProductFeatureSelectionSnapshot,
+  CatalogProductFeatureValueRef,
+  CatalogProductKind,
+  CatalogProductLocalizedContentSnapshot,
+  CatalogProductOptionRef,
+  CatalogProductOptionValueRef,
+  CatalogProductSnapshot,
+  CatalogProductSnapshotVersion,
+  CatalogProductStatus,
+  CatalogProductTagSnapshot,
+  CatalogProductVariantOptionSelectionSnapshot,
+  CatalogProductVariantPriceSnapshot,
+  CatalogProductVariantPricingSnapshot,
+  CatalogProductVariantSnapshot,
+  CatalogRichTextSnapshot,
+} from "./catalog.js";
 
 // Listing service actions
 export * as Listing from "./listing.js";
