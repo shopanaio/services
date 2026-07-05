@@ -14,12 +14,14 @@ import type {
 export type ListingIndexQueuedSyncAction = {
   type: "syncSellableItem";
   params: Listing.SyncSellableItemHydrationParams;
+  organizationId: string;
   effectiveIdempotencyKey: string;
 };
 
 export type ListingIndexHydratedSyncAction = {
   type: "syncSellableItem";
   params: Listing.SyncSellableItemParams;
+  organizationId: string;
   effectiveIdempotencyKey: string;
   payloadHash: string;
 };
@@ -27,6 +29,7 @@ export type ListingIndexHydratedSyncAction = {
 export type ListingIndexQueuedDeleteAction = {
   type: "deleteSellableItem";
   params: Listing.DeleteSellableItemParams;
+  organizationId: string;
   effectiveIdempotencyKey: string;
   payloadHash: string;
 };

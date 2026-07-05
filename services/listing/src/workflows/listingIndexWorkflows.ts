@@ -275,6 +275,7 @@ export class ListingSyncSellableItemIndexWorkflow extends ListingIndexWorkflowBa
       action: {
         type: "syncSellableItem",
         params: syncParams,
+        organizationId: storeResult.store.organizationId,
         effectiveIdempotencyKey: action.effectiveIdempotencyKey,
         payloadHash: buildListingIndexPayloadHash({
           type: "syncSellableItem",
@@ -323,7 +324,7 @@ function buildRunScriptContext(
 
   return {
     storeId: params.storeId,
-    organizationId: params.storeId,
+    organizationId: action.organizationId,
     requestId: params.meta.source.requestId ?? params.meta.operationId,
     locale: content?.defaultLocale,
     defaultLocale: content?.defaultLocale ?? "uk",

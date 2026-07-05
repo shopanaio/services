@@ -133,6 +133,7 @@ export class ListingProductEventHandlers extends EventHandlers {
         sourceSequence,
         expectedRevision,
       },
+      organizationId: event.context.tenantId,
       effectiveIdempotencyKey: buildListingIndexEffectiveIdempotencyKey({
         rawIdempotencyKey: meta.idempotencyKey,
         storeId: event.payload.storeId,
@@ -184,6 +185,7 @@ export class ListingProductEventHandlers extends EventHandlers {
     const action: ListingIndexQueuedDeleteAction = {
       type: "deleteSellableItem",
       params,
+      organizationId: event.context.tenantId,
       effectiveIdempotencyKey: buildListingIndexEffectiveIdempotencyKey({
         rawIdempotencyKey: meta.idempotencyKey,
         storeId: event.payload.storeId,

@@ -119,7 +119,7 @@ export class Kernel extends BaseKernel<ListingKernelServices> {
         id: ctx.storeId,
         name: ctx.storeId,
         displayName: ctx.storeId,
-        organizationId: ctx.organizationId ?? ctx.storeId,
+        organizationId: ctx.organizationId,
         timezone: "UTC",
         email: null,
         defaultLocale: this.resolveDefaultLocale(ctx),
