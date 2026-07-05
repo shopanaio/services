@@ -662,15 +662,13 @@ export type PageInfoField =
   | "endCursor";
 ```
 
-## Selection Rules
+## Selection Contract Rules
 
 - `fields` содержит только scalar/enum fields текущего type.
 - Object, list и connection fields задаются только через `populate`.
 - `args` имеет concrete type только у тех relation resolvers, где аргументы есть в admin GraphQL schema.
 - `Product.variants.args` и `Variant.priceHistory.args` повторяют Relay args `first`, `after`, `last`, `before`.
 - `fieldName` повторяет shape `QueryArgs`, но ограничен concrete resolver field name. На root product selection используется `fieldName?: never`.
-- Relation без вложенных `fields` или nested selection считается невалидной.
-- Unknown field должен приводить к `INVALID_CATALOG_PRODUCT_READ_INPUT`.
 - Если поле не запрошено, resolver не должен его вычислять и response не должен его содержать.
 - Если relation не запрошена, response не должен содержать ключ relation.
 - Selection должен быть ограничен по глубине. Рекомендуемый стартовый лимит: `5`, потому что admin-compatible shape содержит connections и edges.
@@ -1112,7 +1110,7 @@ export type ProductReadErrorCode =
 Правила ошибок:
 
 - `ok: false` означает, что action не смог корректно обработать весь request.
-- `INVALID_CATALOG_PRODUCT_READ_INPUT` используется для невалидного input: пустой `storeId`, пустой `productIds`, слишком большой bulk batch, пустой или невалидный `selection`, неизвестное field, слишком глубокий selection, невалидные GraphQL-like `args` у nested fields.
+- `INVALID_CATALOG_PRODUCT_READ_INPUT` используется для невалидного input: пустой `storeId`, пустой `productIds`, слишком большой bulk batch или некорректные root service-level параметры.
 - `CATALOG_STORE_NOT_FOUND` используется, если `storeId` не найден или catalog не может безопасно построить store context.
 - `CATALOG_PRODUCT_READ_QUERY_FAILED` используется для неожиданных ошибок чтения или сборки response. `retryable` должен быть `true`, если повтор request может помочь.
 - Отсутствующий конкретный `productId` не является ошибкой всего action.
@@ -1143,8 +1141,8 @@ Broker contract не зависит от `@shopana/type-resolver`, но реал
 
 1. Broker handler валидирует `GetProductSnapshotsParams`.
 2. Handler строит request-scoped `ServiceContext` для `storeId` и доступного request context.
-3. Handler валидирует `ProductSnapshotSelection` и передает его как structurally-compatible internal query.
-4. Handler вызывает resolver, например:
+3. Handler передает `ProductSnapshotSelection` как structurally-compatible internal query.
+4. Handler вызывает product-read resolver, например:
 
 ```ts
 const products = await ProductSnapshotResolver.loadMany(
@@ -1156,19 +1154,47 @@ const products = await ProductSnapshotResolver.loadMany(
 
 5. Handler фильтрует отсутствующие products и возвращает `GetProductSnapshotsResult`.
 
-Важное правило: этот API должен использовать отдельные broker-facing resolvers, например:
+Важное правило: этот API должен использовать отдельный product-read resolver container/registry, который повторяет factory surface admin `ResolverRegistry`, но возвращает broker-facing read resolvers.
+
+Admin registry устроен как request-scoped container:
+
+- `services/catalog/src/resolvers/admin/ResolverRegistry.ts` хранит registry в `WeakMap<ServiceContext, ResolverRegistry>`;
+- `CatalogType.resolvers` вызывает `getResolverRegistry(this.$ctx)`;
+- relation methods вроде `ProductResolver.variants()`, `ProductResolver.primaryCategory()` и `VariantResolver.product()` создают вложенные resolvers через `this.resolvers.*`.
+
+Для broker read API нужен аналогичный container, например:
 
 ```txt
 services/catalog/src/resolvers/product-read/
-  CatalogProductReadType.ts
-  ProductSnapshotResolver.ts
-  VariantSnapshotResolver.ts
-  ProductMediaItemResolver.ts
-  ProductFeatureResolver.ts
-  ProductOptionResolver.ts
+  ProductReadResolverRegistry.ts
+  ProductReadType.ts
+  ProductReadProductResolver.ts
+  ProductReadVariantResolver.ts
+  ProductReadVariantConnectionResolver.ts
+  ProductReadCategoryResolver.ts
+  ProductReadFeatureResolver.ts
+  ProductReadOptionResolver.ts
 ```
 
-Нельзя использовать admin `ProductResolver` как broker resolver напрямую, потому что admin resolver может содержать authorization, UI-specific behavior и federation details, которые не являются частью broker read execution.
+`ProductReadType` должен быть базовым классом для read resolvers. Он может наследоваться от `CatalogType`, но его `resolvers` getter должен обращаться к `getProductReadResolverRegistry(this.$ctx)`, а не к admin registry.
+
+Read resolvers могут наследоваться от admin resolvers и переопределять только отличающиеся поля:
+
+```ts
+export class ProductReadProductResolver extends ProductResolver {
+  id() {
+    return this.$props;
+  }
+
+  protected override get resolvers() {
+    return getProductReadResolverRegistry(this.$ctx);
+  }
+}
+```
+
+Аналогично `ProductReadVariantResolver`, `ProductReadCategoryResolver`, `ProductReadVariantPriceResolver` переопределяют `id()` и relation methods, где нужно вернуть read resolver вместо admin resolver.
+
+Нельзя использовать admin `ResolverRegistry` для broker read execution, потому что вложенные relation methods вернут admin resolvers с admin global IDs и admin-only relation surface.
 
 При этом broker-facing resolver должен возвращать admin-compatible DTO shape, а не отдельную domain/broker naming model.
 
@@ -1374,7 +1400,7 @@ public readonly catalog: CatalogApiClient;
 Контракт должен развиваться additive-first:
 
 - можно добавлять новые optional fields в result DTO;
-- можно добавлять новые literal values в field unions только если клиенты валидируют selection через актуальные broker types;
+- можно добавлять новые literal values в field unions только если клиенты компилируются против актуальных broker types;
 - нельзя менять смысл существующих полей без новой версии;
 - нельзя переименовывать поля без миграционного периода;
 - breaking changes требуют новой action или versioned DTO.
