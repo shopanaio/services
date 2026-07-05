@@ -5,6 +5,7 @@ import {
   ServiceBroker,
   Action,
 } from "@shopana/shared-kernel";
+import type { Catalog } from "@shopana/broker-types";
 import { Kernel } from "../kernel/Kernel.js";
 import {
   GetOffersScript,
@@ -43,6 +44,18 @@ export class CatalogBrokerActions extends BrokerActions {
   @Action("getOffers")
   async getOffers(params: GetOffersParams): Promise<GetOffersResult> {
     return this.kernel.runScript(GetOffersScript, params);
+  }
+
+  @Action("getProductSnapshots")
+  async getProductSnapshots(
+    _params: Catalog.GetProductSnapshotsParams
+  ): Promise<Catalog.GetProductSnapshotsResult> {
+    return {
+      ok: false,
+      code: "CATALOG_PRODUCT_READ_QUERY_FAILED",
+      message: "catalog.getProductSnapshots resolver implementation is pending",
+      retryable: false,
+    };
   }
 
   @Action("facetSourceCandidates")
