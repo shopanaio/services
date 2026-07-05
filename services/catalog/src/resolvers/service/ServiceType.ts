@@ -24,4 +24,10 @@ export abstract class ServiceType<TValue, TData = unknown>
   protected getCache(): CacheStore {
     return {} as CacheStore;
   }
+
+  protected notImplemented(fieldName: string): never {
+    throw new Error(
+      `Catalog service resolver field is not implemented: ${fieldName}`
+    );
+  }
 }
