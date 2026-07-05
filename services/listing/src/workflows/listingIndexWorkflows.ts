@@ -14,6 +14,7 @@ import { ListingPrepareIndexActionScript } from "../scripts/ListingPrepareIndexA
 import { ListingWriteIndexActionScript } from "../scripts/ListingWriteIndexActionScript.js";
 import { mapCatalogProductToListingSnapshot } from "./catalogListingSnapshotMapper.js";
 import { buildListingIndexPayloadHash } from "./listingIndexWorkflowHelpers.js";
+import { ListingIndexActionScriptError } from "../scripts/listingIndexActionTypes.js";
 import type {
   ListingIndexHydratedSyncAction,
   ListingIndexPreparedDeleteAction,
@@ -258,6 +259,16 @@ export class ListingSyncSellableItemIndexWorkflow extends ListingIndexWorkflowBa
           ],
         },
       };
+    }
+
+    if (product.storeId !== action.params.storeId) {
+      throw new ListingIndexActionScriptError([
+        {
+          code: "PROJECT_MISMATCH",
+          field: ["storeId"],
+          message: "Catalog product storeId does not match listing sync storeId",
+        },
+      ]);
     }
 
     const syncParams: Listing.SyncSellableItemParams = {

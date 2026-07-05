@@ -115,7 +115,7 @@ function validateSyncAction(
   action: Extract<ListingIndexQueuedAction, { type: "syncSellableItem" }>,
   issues: ListingIndexValidationIssue[]
 ): void {
-  const { storeId, item } = action.params;
+  const { item } = action.params;
   if (item.id.length === 0) {
     issues.push({
       code: "VALIDATION_FAILED",
@@ -225,14 +225,6 @@ function validateSyncAction(
       "Duplicate product facet value handle",
       issues
     );
-  }
-
-  if (storeId !== action.params.storeId) {
-    issues.push({
-      code: "PROJECT_MISMATCH",
-      field: ["storeId"],
-      message: "Project mismatch",
-    });
   }
 }
 
