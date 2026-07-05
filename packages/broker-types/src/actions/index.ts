@@ -18,12 +18,10 @@ export * as Catalog from "./catalog.js";
 export type {
   CatalogProductAvailabilitySnapshot,
   CatalogProductCategorySnapshot,
-  CatalogProductFeatureRef,
   CatalogProductFeatureSelectionSnapshot,
   CatalogProductFeatureValueRef,
   CatalogProductKind,
   CatalogProductLocalizedContentSnapshot,
-  CatalogProductOptionRef,
   CatalogProductOptionValueRef,
   CatalogProductSnapshot,
   CatalogProductSnapshotVersion,
@@ -31,7 +29,6 @@ export type {
   CatalogProductTagSnapshot,
   CatalogProductVariantOptionSelectionSnapshot,
   CatalogProductVariantPriceSnapshot,
-  CatalogProductVariantPricingSnapshot,
   CatalogProductVariantSnapshot,
   CatalogRichTextSnapshot,
 } from "./catalog.js";

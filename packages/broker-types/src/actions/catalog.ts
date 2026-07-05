@@ -123,8 +123,6 @@ export interface ProductSnapshot {
   createdAt: string;
   /** Source: catalog.product.updated_at. */
   updatedAt: string;
-  /** Source: catalog.product.deleted_at. Usually null for hydrated snapshots. */
-  deletedAt: string | null;
   /** Source: catalog.product.handle. Nullable for drafts. */
   handle: string | null;
   /** Source: catalog.product.vendor_id. */
@@ -191,17 +189,12 @@ export interface CatalogProductTagSnapshot {
 }
 
 export interface CatalogProductFeatureSelectionSnapshot {
-  /** Source: catalog.product_feature. */
-  feature: CatalogProductFeatureRef;
-  /** Source: catalog.product_feature_value. */
-  values: CatalogProductFeatureValueRef[];
-}
-
-export interface CatalogProductFeatureRef {
   /** Source: catalog.product_feature.id. */
   id?: string;
   /** Source: catalog.product_feature.slug. */
   handle: string;
+  /** Source: catalog.product_feature_value. */
+  values: CatalogProductFeatureValueRef[];
 }
 
 export interface CatalogProductFeatureValueRef {
@@ -216,27 +209,18 @@ export interface CatalogProductVariantSnapshot {
   id: string;
   /** Source: catalog.variant.handle. */
   handle: string;
-  /** Source: catalog.variant.sku. */
-  sku?: string | null;
   /** Source: catalog.variant.is_default. */
   isDefault: boolean;
   /** Source: catalog.variant.created_at. */
   createdAt: string;
   /** Source: catalog.variant.updated_at. */
   updatedAt: string;
-  /** Source: catalog.variant.deleted_at. Usually null for hydrated snapshots. */
-  deletedAt: string | null;
   /** Source: computed from catalog.inventory_item and catalog.warehouse_stock. */
   availability: CatalogProductAvailabilitySnapshot;
   /** Source: catalog.variant_prices_current view. */
-  pricing: CatalogProductVariantPricingSnapshot;
+  prices: CatalogProductVariantPriceSnapshot[];
   /** Source: catalog.product_option_variant_link joined with option/value tables. */
   options: CatalogProductVariantOptionSelectionSnapshot[];
-}
-
-export interface CatalogProductVariantPricingSnapshot {
-  /** Source: catalog.variant_prices_current view. */
-  prices: CatalogProductVariantPriceSnapshot[];
 }
 
 export interface CatalogProductVariantPriceSnapshot {
@@ -247,17 +231,12 @@ export interface CatalogProductVariantPriceSnapshot {
 }
 
 export interface CatalogProductVariantOptionSelectionSnapshot {
-  /** Source: catalog.product_option. */
-  option: CatalogProductOptionRef;
-  /** Source: catalog.product_option_value. */
-  values: CatalogProductOptionValueRef[];
-}
-
-export interface CatalogProductOptionRef {
   /** Source: catalog.product_option.id. */
   id?: string;
   /** Source: catalog.product_option.slug. */
   handle: string;
+  /** Source: catalog.product_option_value. */
+  values: CatalogProductOptionValueRef[];
 }
 
 export interface CatalogProductOptionValueRef {
