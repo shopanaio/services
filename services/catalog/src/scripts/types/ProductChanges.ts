@@ -1,6 +1,7 @@
 /**
- * Changes types for ProductUpdateWorkflow event payloads.
- * These represent partial snapshots of what was actually modified.
+ * Internal change accumulator for product update workflows.
+ * These values are used to decide whether to emit an event, derive its reason,
+ * and run local side effects that need exact changed fields.
  */
 /**
  * Aggregated changes for a product update operation.

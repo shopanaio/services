@@ -86,6 +86,7 @@ import {
   CategoryCreateScript,
   CategoryDeleteScript,
   CategoryMoveScript,
+  CategoryProductsCountRefreshScript,
   CategoryRebalanceScript,
 } from "../../scripts/category/index.js";
 import type {
@@ -615,6 +616,17 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       products.map((product) => [product.id, product.revision])
     );
 
+    if (args.reason === "assignment" && args.categoryIds.length > 0) {
+      const result = await this.$ctx.kernel.runScript(
+        CategoryProductsCountRefreshScript,
+        { categoryIds: args.categoryIds },
+      );
+
+      if (!result.success) {
+        throw new Error("Failed to refresh category product counts");
+      }
+    }
+
     for (const productId of productIds) {
       await this.$ctx.kernel.getServices().broker.runWorkflow(
         "events.emit",
@@ -624,13 +636,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
             productId,
             storeId: this.$ctx.store.id,
             revision: revisionByProductId.get(productId) ?? 0,
-            product: {
-              categories: {
-                changed: true,
-                reason: args.reason,
-                categoryIds: args.categoryIds,
-              },
-            },
+            reasons: ["category"],
           },
           source: "catalog",
           context: {
@@ -707,9 +713,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           productId: args.productId,
           storeId: this.$ctx.store.id,
           revision: product?.revision ?? 0,
-          variants: {
-            [args.variantId]: {},
-          },
+          reasons: ["variant"],
         },
         source: "catalog",
         context: {

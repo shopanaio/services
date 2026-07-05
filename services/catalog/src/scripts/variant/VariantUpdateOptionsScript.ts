@@ -219,7 +219,7 @@ export class VariantUpdateOptionsScript extends BaseScript<
       }
     }
 
-    // Build changes for event payload
+    // Build changes for workflow side effects.
     const changes: OptionLinkChanges[] = links.map((l) => ({
       optionId: l.optionId,
       valueId: l.optionValueId,

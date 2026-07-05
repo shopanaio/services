@@ -7,6 +7,7 @@ import {
   ServiceBroker,
   DBOS,
 } from "@shopana/shared-kernel";
+import type { ProductUpdatedReason } from "@shopana/events";
 import { and, eq, sql } from "drizzle-orm";
 import { Kernel } from "../kernel/Kernel.js";
 import type { RunScriptContext } from "../kernel/types.js";
@@ -39,6 +40,7 @@ import { ProductUpdateMediaScript } from "../scripts/product/ProductUpdateMediaS
 import {
   CategoryAddProductScript,
   CategoryMoveProductScript,
+  CategoryProductsCountRefreshScript,
   CategoryRemoveProductScript,
   CategorySetProductPrimaryScript,
 } from "../scripts/category/index.js";
@@ -75,7 +77,7 @@ const SUPPORTED_CURRENCIES = new Set(["UAH", "USD", "EUR"]);
  * Handles atomic product updates with:
  * - Optimistic locking via revision field
  * - Partial failure support (each operation independent)
- * - Event emission with partial snapshot of changes
+ * - Event emission with update reasons
  * - Product category assignment operations for bulk and single updates
  *
  * Inventory entity operations are delegated to Inventory. Physical measurements
@@ -217,7 +219,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       }
     }
 
-    // 5. Emit event with partial snapshot + new revision
+    // 5. Emit event with reason + new revision
     const hasChanges =
       changes.product !== undefined || changes.variants !== undefined;
     if (hasChanges) {
@@ -852,6 +854,10 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
           categoryIds,
         },
       };
+
+      if (reason === "assignment") {
+        await this.stepRefreshCategoryProductCounts(categoryIds, ctx);
+      }
     }
 
     return {
@@ -1250,7 +1256,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   }
 
   /**
-   * Emit productUpdated event with partial snapshot.
+   * Notify media service about product media references collected during update.
    */
   private async workflowNotifyProductMediaBackRefs(
     input: ProductUpdateWorkflowInput,
@@ -1292,7 +1298,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   }
 
   /**
-   * Emit productUpdated event with partial snapshot.
+   * Emit productUpdated event with update reasons.
    */
   private async workflowEmitEvent(
     input: ProductUpdateWorkflowInput,
@@ -1307,8 +1313,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
           productId: input.productId,
           storeId: input.context.storeId,
           revision,
-          product: changes.product,
-          variants: changes.variants,
+          reasons: getProductUpdatedReasons(changes),
         },
         source: "catalog",
         context: {
@@ -1329,6 +1334,81 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       },
     );
   }
+
+  @WorkflowStep()
+  private async stepRefreshCategoryProductCounts(
+    categoryIds: readonly string[],
+    ctx: RunScriptContext,
+  ): Promise<void> {
+    const result = await this.kernel.runScript(
+      CategoryProductsCountRefreshScript,
+      { categoryIds },
+      ctx,
+    );
+
+    if (!result.success) {
+      throw new Error("Failed to refresh category product counts");
+    }
+  }
+}
+
+function getProductUpdatedReasons(changes: ProductChanges): ProductUpdatedReason[] {
+  const reasons = new Set<ProductUpdatedReason>();
+  const productChanges = changes.product;
+
+  if (productChanges) {
+    if (
+      productChanges.handle !== undefined ||
+      productChanges.title !== undefined ||
+      productChanges.vendorId !== undefined
+    ) {
+      reasons.add("identity");
+    }
+    if (productChanges.content !== undefined) reasons.add("content");
+    if (productChanges.seo !== undefined) reasons.add("seo");
+    if (productChanges.status !== undefined) reasons.add("status");
+    if (productChanges.media !== undefined) reasons.add("media");
+    if (productChanges.tags !== undefined) reasons.add("tag");
+    if (productChanges.categories !== undefined) reasons.add("category");
+  }
+
+  for (const variantChanges of Object.values(changes.variants ?? {})) {
+    if (variantChanges.lifecycle !== undefined) reasons.add("variant");
+    if (variantChanges.pricing !== undefined) reasons.add("pricing");
+    if (variantChanges.inventory !== undefined) reasons.add("inventory");
+    if (variantChanges.physical !== undefined) reasons.add("physical");
+    if (variantChanges.media !== undefined) reasons.add("media");
+    if (variantChanges.options !== undefined) reasons.add("options");
+  }
+
+  const sorted = sortProductUpdatedReasons(reasons);
+  if (sorted.length === 0) {
+    throw new Error("Product update event reasons could not be derived");
+  }
+
+  return sorted;
+}
+
+function sortProductUpdatedReasons(
+  reasons: ReadonlySet<ProductUpdatedReason>,
+): ProductUpdatedReason[] {
+  const order: ProductUpdatedReason[] = [
+    "identity",
+    "content",
+    "seo",
+    "status",
+    "media",
+    "category",
+    "tag",
+    "options",
+    "features",
+    "variant",
+    "pricing",
+    "inventory",
+    "physical",
+  ];
+
+  return order.filter((reason) => reasons.has(reason));
 }
 
 function isVariantOperation(

@@ -1,16 +1,16 @@
 import type { UserError } from "../../kernel/BaseScript.js";
 
 /**
- * Base script result type with changes tracking for event sourcing.
+ * Base script result type with changes tracking for workflow side effects.
  *
  * @template T - Result type (entity)
- * @template C - Changes type (partial snapshot for events)
+ * @template C - Changes type for local workflow decisions
  */
 export interface ScriptResult<T, C = never> {
   /** Operation result (entity or null on error) */
   result: T | null;
 
-  /** Changes for event payload (null if nothing changed) */
+  /** Changes observed by the script (null if nothing changed) */
   changes: C | null;
 
   /** Validation errors */

@@ -128,59 +128,31 @@ export interface ProductDeletedEvent
     }
   > {}
 
+export type ProductUpdatedReason =
+  | "identity"
+  | "content"
+  | "seo"
+  | "status"
+  | "media"
+  | "category"
+  | "tag"
+  | "options"
+  | "features"
+  | "variant"
+  | "pricing"
+  | "inventory"
+  | "physical";
+
 /**
  * Payload for productUpdated event.
- * Uses partial snapshot pattern - only contains fields that changed.
+ * Carries only update reasons; consumers should hydrate current state when needed.
  */
 export interface ProductUpdatedPayload {
   productId: string;
   storeId: string;
   /** New revision after update (for optimistic locking) */
   revision: number;
-  /** Product-level changes (only modified fields) */
-  product?: ProductFieldChanges;
-  /** Variant-level changes (only modified variants) */
-  variants?: Record<string, VariantFieldChanges>;
-}
-
-export interface ProductFieldChanges {
-  handle?: string;
-  title?: string;
-  vendorId?: string | null;
-  status?: "draft" | "published";
-  content?: { description?: string | null; excerpt?: string | null };
-  seo?: { title?: string | null; description?: string | null };
-  media?: { fileIds: string[] };
-  categories?: ProductCategoryFieldChanges;
-  tags?: ProductTagFieldChanges;
-}
-
-export interface ProductCategoryFieldChanges {
-  changed: true;
-  reason: "assignment" | "categoryFields" | "rank";
-  categoryIds?: string[];
-}
-
-export interface ProductTagFieldChanges {
-  changed: true;
-  reason: "assignment";
-  tagIds?: string[];
-}
-
-export interface VariantFieldChanges {
-  lifecycle?: "created" | "updated" | "deleted";
-  pricing?: { currency: string; amount: number; compareAt?: number | null };
-  inventory?: {
-    warehouseId: string;
-    onHand: number;
-    unavailable: number;
-    sku?: string | null;
-    unitCostMinor?: number | null;
-    costCurrency?: string | null;
-  };
-  physical?: { width?: number; height?: number; length?: number; weight?: number };
-  media?: { fileIds: string[] };
-  options?: Array<{ optionId: string; valueId: string }>;
+  reasons: ProductUpdatedReason[];
 }
 
 export interface ProductUpdatedEvent

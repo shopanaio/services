@@ -305,7 +305,7 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
             productId,
             storeId: input.context.storeId,
             revision: revisions.get(productId) ?? 0,
-            product: changes.product,
+            reasons: getProductUpdatedReasons(changes),
           },
           source: "catalog",
           context: {
@@ -348,6 +348,11 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
 
     return new Map(rows.map((row) => [row.id, row.revision]));
   }
+}
+
+function getProductUpdatedReasons(changes: CategoryChanges): ["category"] {
+  void changes;
+  return ["category"];
 }
 
 function hasRequestedSections(

@@ -167,11 +167,7 @@ export class CatalogEventHandlers extends EventHandlers {
     try {
       const store = await this.getStoreContext(params.event.payload.storeId);
 
-      try {
-        await this.refreshProductUpdatedCategoryCounts([params.event], store);
-      } catch (error) {
-        errors.push(errorMessage(error));
-      }
+      void store;
 
       if (errors.length > 0) {
         throw new Error(unique(errors).join("; "));
@@ -221,11 +217,7 @@ export class CatalogEventHandlers extends EventHandlers {
         continue;
       }
 
-      try {
-        await this.refreshProductUpdatedCategoryCounts(storeEvents, store);
-      } catch (error) {
-        markFailed(result, storeEvents, error);
-      }
+      void store;
     }
 
     this.logBatchFailures(result, "Failed to handle productUpdated batch");
@@ -262,26 +254,6 @@ export class CatalogEventHandlers extends EventHandlers {
 
     this.logBatchFailures(result, "Failed to handle productDeleted batch");
     return dedupeBatchResult(result);
-  }
-
-  private async refreshProductUpdatedCategoryCounts(
-    events: readonly ProductUpdatedEvent[],
-    store: ContextStore
-  ): Promise<void> {
-    const categoryIds = events.flatMap((event) => {
-      const categories = event.payload.product?.categories;
-      if (!categories?.changed || categories.reason !== "assignment") {
-        return [];
-      }
-
-      return categories.categoryIds ?? [];
-    });
-
-    await this.refreshCategoryProductCounts({
-      categoryIds,
-      store,
-      userId: events.find((event) => event.context.userId)?.context.userId,
-    });
   }
 
   private async refreshCategoryProductCounts(params: {
