@@ -148,11 +148,13 @@ export interface ProductSnapshot {
 export type CatalogProductSnapshot = ProductSnapshot;
 
 export interface CatalogProductContentSnapshot {
-  /** Source: catalog.product_translation grouped by locale. */
-  translations: Record<string, CatalogProductLocalizedContentSnapshot>;
+  /** Source: catalog.product_translation rows. */
+  translations: CatalogProductLocalizedContentSnapshot[];
 }
 
 export interface CatalogProductLocalizedContentSnapshot {
+  /** Source: catalog.product_translation.locale. */
+  locale: string;
   /** Source: catalog.product_translation.name. */
   title: string;
   /** Source: catalog.product_translation.excerpt_text/html/json. */
