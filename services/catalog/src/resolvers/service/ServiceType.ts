@@ -1,13 +1,10 @@
 import {
   BaseType,
   Cache,
-  createAuthorizationMiddleware,
   createExecutor,
-  type Authorizable,
   type CacheStore,
 } from "@shopana/type-resolver";
 import type { ServiceContext } from "../../context/types.js";
-import { AuthProvider } from "../../kernel/Authorizable.js";
 import {
   getServiceResolverRegistry,
   type ServiceResolverRegistry,
@@ -17,13 +14,8 @@ export { Cache };
 
 export abstract class ServiceType<TValue, TData = unknown>
   extends BaseType<TValue, TData, ServiceContext>
-  implements Authorizable
 {
-  readonly authProvider = new AuthProvider();
-
-  static executor = createExecutor<ServiceContext>({
-    middleware: [createAuthorizationMiddleware()],
-  });
+  static executor = createExecutor<ServiceContext>({});
 
   protected get resolvers(): ServiceResolverRegistry {
     return getServiceResolverRegistry(this.$ctx);

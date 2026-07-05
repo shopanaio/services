@@ -2,28 +2,53 @@
  * Catalog service broker action types
  */
 
-export interface GetProductSnapshotsParams {
+export interface CatalogQueryParams {
   storeId: string;
-  productIds: string[];
-  selection: ProductSnapshotSelection;
+  selection: CatalogQuerySelection;
 }
 
-export type GetProductSnapshotsResult =
+export type CatalogQueryResult =
   | {
       ok: true;
-      products: ProductSnapshotResolved[];
+      data: CatalogQueryResolved;
     }
   | {
       ok: false;
-      code: ProductReadErrorCode;
+      code: CatalogQueryErrorCode;
       message: string;
       retryable: boolean;
     };
 
-export type ProductReadErrorCode =
+export type CatalogQueryErrorCode =
   | "INVALID_CATALOG_PRODUCT_READ_INPUT"
   | "CATALOG_STORE_NOT_FOUND"
   | "CATALOG_PRODUCT_READ_QUERY_FAILED";
+
+export interface CatalogQuerySelection {
+  fields?: never;
+  populate?: CatalogQueryPopulate;
+  args?: never;
+  fieldName?: never;
+}
+
+export interface CatalogQueryPopulate {
+  products?: CatalogQueryProductsSelection;
+}
+
+export interface CatalogQueryProductsSelection {
+  fields?: ProductSnapshotField[];
+  populate?: ProductSnapshotPopulate;
+  args: CatalogQueryProductsArgs;
+  fieldName?: "products";
+}
+
+export interface CatalogQueryProductsArgs {
+  productIds: string[];
+}
+
+export interface CatalogQueryResolved {
+  products?: ProductSnapshotResolved[];
+}
 
 export interface ProductSnapshotSelection {
   fields?: ProductSnapshotField[];
