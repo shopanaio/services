@@ -42,13 +42,13 @@ export type ListingIndexFinalStatus =
 
 export type ListingPreparedSyncAction = ListingIndexHydratedSyncAction & {
   actionType: "syncSellableItem";
-  sourceRevision: number;
+  sourceSequence: number;
   itemKey: ListingIndexItemKey;
 };
 
 export type ListingPreparedDeleteAction = ListingIndexQueuedDeleteAction & {
   actionType: "deleteSellableItem";
-  sourceRevision: number;
+  sourceSequence: number;
   itemKey: ListingIndexItemKey;
 };
 

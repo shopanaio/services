@@ -109,6 +109,7 @@ export class ListingProductEventHandlers extends EventHandlers {
     event: ProductCreatedEvent | ProductUpdatedEvent,
     expectedRevision: number | undefined
   ): Promise<void> {
+    const sourceSequence = this.getEventSequence(event);
     const itemRef: Listing.ListingSellableItemRef = {
       entityType: "product",
       id: event.payload.productId,
@@ -129,6 +130,7 @@ export class ListingProductEventHandlers extends EventHandlers {
         meta,
         storeId: event.payload.storeId,
         itemRef,
+        sourceSequence,
         expectedRevision,
       },
       effectiveIdempotencyKey: buildListingIndexEffectiveIdempotencyKey({
@@ -137,20 +139,19 @@ export class ListingProductEventHandlers extends EventHandlers {
         entityType: itemRef.entityType,
         itemId: itemRef.id,
         actionType: "syncSellableItem",
-        sourceRevision: expectedRevision ?? 0,
+        sourceSequence,
       }),
     };
 
-    await this.startIndexWorkflow(action, "syncSellableItem", expectedRevision ?? 0);
+    await this.startIndexWorkflow(action, "syncSellableItem", sourceSequence);
   }
 
   private async enqueueDeleteWorkflow(event: ProductDeletedEvent): Promise<void> {
+    const sourceSequence = this.getEventSequence(event);
     const itemRef: Listing.ListingSellableItemRef = {
       entityType: event.payload.entityType ?? "product",
       id: event.payload.productId,
     };
-    const sourceRevision = event.payload.revision ?? 0;
-
     if (event.payload.revision === undefined) {
       this.logger.warn(
         {
@@ -176,7 +177,7 @@ export class ListingProductEventHandlers extends EventHandlers {
       meta,
       storeId: event.payload.storeId,
       itemRef,
-      sourceRevision,
+      sourceSequence,
       deletedAt: event.payload.deletedAt ?? event.timestamp,
       reason: "deleted",
     };
@@ -189,7 +190,7 @@ export class ListingProductEventHandlers extends EventHandlers {
         entityType: itemRef.entityType,
         itemId: itemRef.id,
         actionType: "deleteSellableItem",
-        sourceRevision,
+        sourceSequence,
       }),
       payloadHash: buildListingIndexPayloadHash({
         type: "deleteSellableItem",
@@ -197,13 +198,13 @@ export class ListingProductEventHandlers extends EventHandlers {
       }),
     };
 
-    await this.startIndexWorkflow(action, "deleteSellableItem", sourceRevision);
+    await this.startIndexWorkflow(action, "deleteSellableItem", sourceSequence);
   }
 
   private async startIndexWorkflow(
     action: ListingIndexQueuedSyncAction | ListingIndexQueuedDeleteAction,
     actionType: ListingIndexActionType,
-    sourceRevision: number
+    sourceSequence: number
   ): Promise<void> {
     const itemRef =
       action.type === "syncSellableItem"
@@ -252,7 +253,7 @@ export class ListingProductEventHandlers extends EventHandlers {
           workflowId,
           storeId: action.params.storeId,
           itemRef,
-          sourceRevision,
+          sourceSequence,
         },
         "Failed to start listing index workflow"
       );
@@ -292,6 +293,22 @@ export class ListingProductEventHandlers extends EventHandlers {
         workflowId: input.workflowId,
       },
     };
+  }
+
+  private getEventSequence(
+    event: ProductCreatedEvent | ProductUpdatedEvent | ProductDeletedEvent
+  ): number {
+    if (
+      Number.isInteger(event.eventSequence) &&
+      event.eventSequence !== undefined &&
+      event.eventSequence > 0
+    ) {
+      return event.eventSequence;
+    }
+
+    throw new Error(
+      `Domain event ${event.eventId} is missing a positive eventSequence`
+    );
   }
 
   private handleError(error: unknown, logMessage: string): EventHandlerResponse {

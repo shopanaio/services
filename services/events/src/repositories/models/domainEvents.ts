@@ -5,6 +5,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 export const domainEvents = pgTable(
@@ -12,6 +13,7 @@ export const domainEvents = pgTable(
   {
     eventId: text("event_id").primaryKey(),
     eventType: text("event_type").notNull(),
+    eventSequence: integer("event_sequence").notNull(),
     source: text("source").notNull(),
     timestamp: timestamp("timestamp", { withTimezone: true }).notNull(),
     tenantId: text("tenant_id").notNull(),
@@ -54,6 +56,7 @@ export const domainEvents = pgTable(
       table.tenantId,
       table.subjectType,
       table.subjectId,
+      table.eventSequence,
       table.timestamp
     ),
     index("idx_events_type_timestamp").on(
@@ -67,6 +70,12 @@ export const domainEvents = pgTable(
       table.eventType,
       table.batchKey,
       table.createdAt
+    ),
+    uniqueIndex("domain_events_subject_sequence_unique").on(
+      table.tenantId,
+      table.subjectType,
+      table.subjectId,
+      table.eventSequence
     ),
   ]
 );

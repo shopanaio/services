@@ -1,6 +1,11 @@
 export interface DomainEvent<TType extends string = string, TPayload = unknown> {
   eventId: string;
   eventType: TType;
+  /**
+   * Monotonic sequence within tenantId + subject.type + subject.id.
+   * Assigned by the events service when the event is persisted.
+   */
+  eventSequence?: number;
   timestamp: string;
   source: string;
   payload: TPayload;

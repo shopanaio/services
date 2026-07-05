@@ -246,7 +246,7 @@ export class ListingSyncSellableItemIndexWorkflow extends ListingIndexWorkflowBa
           operationId: action.params.meta.operationId,
           storeId: action.params.storeId,
           itemRef: action.params.itemRef,
-          sourceRevision: action.params.expectedRevision ?? 0,
+          sourceSequence: action.params.sourceSequence,
           status: "noop",
           processedAt: new Date().toISOString(),
           warnings: [
@@ -263,6 +263,7 @@ export class ListingSyncSellableItemIndexWorkflow extends ListingIndexWorkflowBa
     const syncParams: Listing.SyncSellableItemParams = {
       meta: action.params.meta,
       storeId: action.params.storeId,
+      sourceSequence: action.params.sourceSequence,
       item: mapCatalogProductToListingSnapshot({
         product,
         defaultLocale: storeResult.store.defaultLocale,

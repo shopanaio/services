@@ -56,7 +56,7 @@ full snapshot-ом**.
 
 - текущий listing write path реализован как replace by item snapshot;
 - stale/idempotency protection работает по `storeId + entityType + itemId +
-  sourceRevision`;
+  sourceSequence`;
 - merge/unmerge display values меняет effective value без изменения raw source
   assignment;
 - variant-level option facets должны обновлять parent product item;
@@ -494,7 +494,7 @@ pre-read до mutation:
 - Presentation-only изменения не запускают listing sync.
 - Повтор одного и того же facet sync не создает конфликтов и не дублирует
   membership rows.
-- Новый facet listing sync получает `sourceRevision`, который не приводит к
+- Новый facet listing sync получает `sourceSequence`, который не приводит к
   `ignored_stale` для актуальных affected products.
 - Soft-deleted/missing products не ломают workflow.
 

@@ -216,7 +216,7 @@ CREATE TABLE listing.listing_index_item_state (
   store_id                      uuid NOT NULL,
   entity_type                     varchar(32) NOT NULL,
   item_id                         uuid NOT NULL,
-  source_revision                 integer NOT NULL,
+  source_sequence                 integer NOT NULL,
   payload_hash                    text NOT NULL,
   lifecycle_status                varchar(32) NOT NULL,
   last_effective_idempotency_key  text NOT NULL,
@@ -224,8 +224,8 @@ CREATE TABLE listing.listing_index_item_state (
   updated_at                      timestamptz NOT NULL,
 
   PRIMARY KEY (store_id, entity_type, item_id),
-  CONSTRAINT chk_listing_index_item_state_source_revision
-    CHECK (source_revision >= 0),
+  CONSTRAINT chk_listing_index_item_state_source_sequence
+    CHECK (source_sequence > 0),
   CONSTRAINT chk_listing_index_item_state_lifecycle_status
     CHECK (lifecycle_status IN ('indexed', 'deleted'))
 );

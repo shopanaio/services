@@ -63,7 +63,7 @@ interface DeleteSellableItemParams {
   meta: ListingUpdateMeta;
   storeId: string;
   itemRef: ListingSellableItemRef;
-  sourceRevision: number;
+  sourceSequence: number;
   deletedAt: string;
   reason?: "deleted" | "merged" | "project_removed" | "manual";
 }
@@ -143,7 +143,7 @@ Snapshot всегда полный. Отсутствующее значение 
 
 ```ts
 interface ListingSellableItemSnapshot extends ListingSellableItemRef {
-  sourceRevision: number;
+  sourceSequence: number;
   sourceUpdatedAt: string;
   status: "draft" | "published" | "archived";
   publishedAt: string | null;
@@ -273,7 +273,7 @@ facet/value или membership item в facet value, `catalog` вызывает sy
 ```ts
 interface ListingVariantSnapshot {
   id: string;
-  sourceRevision?: number;
+  sourceSequence?: number;
   status: "active" | "inactive" | "archived";
   availability: ListingAvailabilitySnapshot;
   prices: ListingVariantPriceSnapshot[];
@@ -293,7 +293,7 @@ interface ListingUpdateResult {
   operationId: string;
   storeId: string;
   itemRef: ListingSellableItemRef;
-  sourceRevision: number;
+  sourceSequence: number;
   status: "applied" | "noop" | "ignored_stale" | "accepted";
   processedAt: string;
   warnings?: ListingUpdateWarning[];
@@ -318,7 +318,7 @@ Status semantics:
 ## Validation rules
 
 - `storeId` обязателен и всегда принадлежит source project/store.
-- `sourceRevision` должен монотонно расти для одного `storeId + entityType + id`.
+- `sourceSequence` должен монотонно расти для одного `storeId + entityType + id`.
 - `content.defaultLocale` обязателен.
 - `content.translations[defaultLocale].title` должен быть непустым для
   `published` item.
@@ -393,7 +393,7 @@ await broker.call("listing.syncSellableItem", {
   item: {
     entityType: "product",
     id: "prod_1",
-    sourceRevision: 42,
+    sourceSequence: 42,
     sourceUpdatedAt: "2026-07-04T12:00:00.000Z",
     status: "published",
     publishedAt: "2026-07-04T11:59:00.000Z",

@@ -32,7 +32,7 @@ export class ListingPrepareIndexActionScript extends BaseScript<
         action: {
           ...action,
           actionType: "syncSellableItem",
-          sourceRevision: action.params.item.sourceRevision,
+          sourceSequence: action.params.sourceSequence,
           itemKey,
         },
       };
@@ -49,7 +49,7 @@ export class ListingPrepareIndexActionScript extends BaseScript<
       action: {
         ...action,
         actionType: "deleteSellableItem",
-        sourceRevision: action.params.sourceRevision,
+        sourceSequence: action.params.sourceSequence,
         itemKey,
       },
     };
@@ -123,11 +123,21 @@ function validateSyncAction(
       message: "item.id is required",
     });
   }
-  if (!Number.isInteger(item.sourceRevision) || item.sourceRevision < 0) {
+  if (!Number.isInteger(item.productRevision) || item.productRevision < 0) {
     issues.push({
       code: "VALIDATION_FAILED",
-      field: ["item", "sourceRevision"],
-      message: "sourceRevision must be a non-negative integer",
+      field: ["item", "productRevision"],
+      message: "productRevision must be a non-negative integer",
+    });
+  }
+  if (
+    !Number.isInteger(action.params.sourceSequence) ||
+    action.params.sourceSequence <= 0
+  ) {
+    issues.push({
+      code: "VALIDATION_FAILED",
+      field: ["sourceSequence"],
+      message: "sourceSequence must be a positive integer",
     });
   }
   if (item.entityType !== "product" && item.entityType !== "bundle") {
@@ -238,13 +248,13 @@ function validateDeleteAction(
     });
   }
   if (
-    !Number.isInteger(action.params.sourceRevision) ||
-    action.params.sourceRevision < 0
+    !Number.isInteger(action.params.sourceSequence) ||
+    action.params.sourceSequence <= 0
   ) {
     issues.push({
       code: "VALIDATION_FAILED",
-      field: ["sourceRevision"],
-      message: "sourceRevision must be a non-negative integer",
+      field: ["sourceSequence"],
+      message: "sourceSequence must be a positive integer",
     });
   }
   if (Number.isNaN(Date.parse(action.params.deletedAt))) {

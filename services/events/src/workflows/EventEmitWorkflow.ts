@@ -50,7 +50,9 @@ export class EventEmitWorkflow extends BrokerWorkflows {
   async run(params: EmitParams): Promise<EventEmitResult> {
     const dispatch = normalizeDispatch(params);
     const { event } = this.buildEvent(params);
-    await this.stepPersistEvent(event, dispatch);
+    const persisted = await this.stepPersistEvent(event, dispatch);
+    event.eventSequence = persisted.eventSequence;
+    event.timestamp = persisted.timestamp;
 
     if (dispatch.mode === "deferred") {
       return {
@@ -90,7 +92,7 @@ export class EventEmitWorkflow extends BrokerWorkflows {
   private async stepPersistEvent(
     event: DomainEvent,
     dispatch: PersistDispatchOptions,
-  ): Promise<{ timestamp: string }> {
+  ): Promise<{ timestamp: string; eventSequence: number }> {
     return this.repository.persistPendingEvent(event, dispatch);
   }
 

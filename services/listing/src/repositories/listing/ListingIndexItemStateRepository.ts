@@ -64,7 +64,7 @@ export class ListingIndexItemStateRepository extends BaseRepository {
           listingIndexItemState.itemId,
         ],
         set: {
-          sourceRevision: row.sourceRevision,
+          sourceSequence: row.sourceSequence,
           payloadHash: row.payloadHash,
           lifecycleStatus: row.lifecycleStatus,
           lastEffectiveIdempotencyKey: row.lastEffectiveIdempotencyKey,

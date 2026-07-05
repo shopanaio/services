@@ -37,7 +37,7 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
         publishedAt: item.publishedAt,
         productCreatedAt: item.createdAt,
         productUpdatedAt: item.updatedAt,
-        productRevision: item.sourceRevision,
+        productRevision: item.productRevision,
         inStock,
         totalStock,
       },
@@ -62,7 +62,7 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
           publishedAt: item.publishedAt,
           productCreatedAt: item.createdAt,
           productUpdatedAt: item.updatedAt,
-          productRevision: item.sourceRevision,
+          productRevision: item.productRevision,
           title: translation.title,
         }))
         .sort((left, right) => left.locale.localeCompare(right.locale)),

@@ -28,21 +28,25 @@ export class ListingWriteIndexActionScript extends BaseScript<
         action.itemKey
       );
 
-      if (current && action.sourceRevision < current.sourceRevision) {
+      if (current && action.sourceSequence < current.sourceSequence) {
         return this.buildResult(action, "ignored_stale");
       }
 
-      if (current && action.sourceRevision === current.sourceRevision) {
-        if (action.payloadHash === current.payloadHash) {
+      if (current && action.sourceSequence === current.sourceSequence) {
+        if (
+          action.effectiveIdempotencyKey ===
+            current.lastEffectiveIdempotencyKey &&
+          action.payloadHash === current.payloadHash
+        ) {
           return this.buildResult(action, "noop");
         }
 
         throw new ListingIndexActionScriptError([
           {
             code: "REVISION_CONFLICT",
-            field: ["sourceRevision"],
+            field: ["sourceSequence"],
             message:
-              "Listing index action reused a sourceRevision with a different payload",
+              "Listing index action reused a sourceSequence with a different idempotency key or payload",
           },
         ]);
       }
@@ -277,7 +281,7 @@ export class ListingWriteIndexActionScript extends BaseScript<
   ): Promise<void> {
     await this.repository.listingIndexItemState.upsertLatestState({
       ...action.itemKey,
-      sourceRevision: action.sourceRevision,
+      sourceSequence: action.sourceSequence,
       payloadHash: action.payloadHash,
       lifecycleStatus,
       lastEffectiveIdempotencyKey: action.effectiveIdempotencyKey,
@@ -297,7 +301,7 @@ export class ListingWriteIndexActionScript extends BaseScript<
         entityType: action.itemKey.entityType,
         id: action.itemKey.itemId,
       },
-      sourceRevision: action.sourceRevision,
+      sourceSequence: action.sourceSequence,
       status,
       processedAt: new Date().toISOString(),
     };

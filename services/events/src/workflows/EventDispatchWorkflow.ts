@@ -776,6 +776,7 @@ function toDomainEvent(record: DomainEventRecord): DomainEvent {
   return {
     eventId: record.eventId,
     eventType: record.eventType,
+    eventSequence: record.eventSequence,
     timestamp: toISOString(record.timestamp),
     source: record.source,
     payload: record.payload,

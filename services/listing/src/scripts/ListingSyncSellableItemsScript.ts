@@ -70,6 +70,7 @@ export class ListingSyncSellableItemsScript extends BaseScript<
       params: {
         meta: params.meta,
         storeId: params.storeId,
+        sourceSequence: item.productRevision,
         item,
       },
       effectiveIdempotencyKey: buildListingIndexEffectiveIdempotencyKey({
@@ -78,13 +79,14 @@ export class ListingSyncSellableItemsScript extends BaseScript<
         entityType: item.entityType,
         itemId: item.id,
         actionType: "syncSellableItem",
-        sourceRevision: item.sourceRevision,
+        sourceSequence: item.productRevision,
       }),
       payloadHash: buildListingIndexPayloadHash({
         type: "syncSellableItem",
         params: {
           meta: params.meta,
           storeId: params.storeId,
+          sourceSequence: item.productRevision,
           item,
         },
       }),

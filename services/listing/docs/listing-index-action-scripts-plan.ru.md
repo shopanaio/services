@@ -35,7 +35,7 @@ DBOS workflow/step execution.
   persisted. Поэтому физические writes должны быть idempotent на database
   уровне.
 - `syncSellableItem` принимает полный snapshot. Partial patch semantics нет.
-- `sourceRevision` монотонен для ключа
+- `sourceSequence` монотонен для ключа
   `storeId + entityType + itemId`.
 - Public `meta.idempotencyKey` не обязан быть уникальным между items batch.
   Для item workflows используется item-scoped `effectiveIdempotencyKey`.
@@ -63,10 +63,10 @@ type ListingIndexItemKey = {
 
 - для single item action и для item внутри batch всегда строится одним helper-ом
   как stable hash от `meta.idempotencyKey + storeId + entityType + itemId +
-  actionType + sourceRevision`;
+  actionType + sourceSequence`;
 - используется в DBOS workflow identity и latest-state diagnostics;
 - не должен строиться только из raw/batch-level `meta.idempotencyKey`.
-- включает `sourceRevision`, чтобы разные revisions одного item не
+- включает `sourceSequence`, чтобы разные revisions одного item не
   конкурировали за один DBOS workflow id даже при reused/batch-level
   `meta.idempotencyKey`;
 - не включает полный snapshot/delete payload. Payload-level conflict detection
@@ -75,7 +75,7 @@ type ListingIndexItemKey = {
 `payloadHash`:
 
 - canonical hash публичного action payload, включая action type,
-  `storeId`, item identity, `sourceRevision` и snapshot/delete payload;
+  `storeId`, item identity, `sourceSequence` и snapshot/delete payload;
 - нужен для диагностики и conflict detection при повторном использовании
   idempotency key с другим payload.
 
@@ -144,7 +144,7 @@ function buildListingIndexEffectiveIdempotencyKey(input: {
   entityType: Listing.ListingSellableItemEntityType;
   itemId: string;
   actionType: ListingIndexActionType;
-  sourceRevision: number;
+  sourceSequence: number;
 }): string {
   return hashContent({
     v: 1,
@@ -152,7 +152,7 @@ function buildListingIndexEffectiveIdempotencyKey(input: {
     entityType: input.entityType,
     itemId: input.itemId,
     actionType: input.actionType,
-    sourceRevision: input.sourceRevision,
+    sourceSequence: input.sourceSequence,
     rawIdempotencyKey: input.rawIdempotencyKey,
   });
 }
@@ -196,15 +196,15 @@ function buildListingIndexWorkflowName(
 - `contentHash` должен получать item-scoped `effectiveIdempotencyKey`, а не
   raw `meta.idempotencyKey` и не `payloadHash`;
 - `content` не передается, потому что workflow identity должна зависеть от
-  acceptance idempotency key и `sourceRevision`, а не от полного snapshot
+  acceptance idempotency key и `sourceSequence`, а не от полного snapshot
   payload. Payload conflict detection выполняется отдельно через `payloadHash`
   в database latest state.
 
 ```ts
-const sourceRevision =
+const sourceSequence =
   queuedAction.type === "syncSellableItem"
-    ? queuedAction.params.item.sourceRevision
-    : queuedAction.params.sourceRevision;
+    ? queuedAction.params.item.sourceSequence
+    : queuedAction.params.sourceSequence;
 
 const effectiveIdempotencyKey =
   buildListingIndexEffectiveIdempotencyKey({
@@ -213,7 +213,7 @@ const effectiveIdempotencyKey =
     entityType,
     itemId,
     actionType: queuedAction.type,
-    sourceRevision,
+    sourceSequence,
   });
 
 const idempotencyCtx =
@@ -248,7 +248,7 @@ await this.broker.startWorkflow(
 - `accepted` возвращается только после успешного `broker.startWorkflow(...)`,
   либо после duplicate workflow conflict, который доказал, что deterministic
   workflow для того же `storeId + entityType + itemId + actionType +
-  sourceRevision + effectiveIdempotencyKey` уже durably accepted.
+  sourceSequence + effectiveIdempotencyKey` уже durably accepted.
 - Если process crash произошел после `broker.startWorkflow(...)`, но до
   response, следующий same-revision retry может получить DBOS duplicate workflow
   conflict. В этом случае helper сверяет deterministic workflow identity и
@@ -267,7 +267,7 @@ await this.broker.startWorkflow(
   на helper выше.
 - Explicit `options.workflowId` можно передать только если он строится тем же
   helper-ом из `storeId + entityType + itemId + actionType +
-  sourceRevision + effectiveIdempotencyKey`.
+  sourceSequence + effectiveIdempotencyKey`.
 - `enqueueOptions.queuePartitionKey` используется всегда.
 - `enqueueOptions.deduplicationID` не используется для этой queue.
 - `duplicationPolicy: "return-existing"` не используется для этой queue,
@@ -280,7 +280,7 @@ await this.broker.startWorkflow(
 - Duplicate workflow conflict обрабатывается отдельным helper-ом поверх
   `broker.startWorkflow(...)`, а не через `deduplicationID`:
   - helper строит тот же `effectiveIdempotencyKey` из raw idempotency key,
-    item identity, action type и `sourceRevision`;
+    item identity, action type и `sourceSequence`;
   - helper строит тот же `payloadHash` для final-state checks;
   - duplicate workflow conflict for the same deterministic workflow id is
     treated as proof of durable DBOS accept for the same item revision;
@@ -684,7 +684,7 @@ CREATE TABLE listing.listing_index_item_state (
   store_id uuid NOT NULL,
   entity_type varchar(32) NOT NULL,
   item_id uuid NOT NULL,
-  source_revision integer NOT NULL,
+  source_sequence integer NOT NULL,
   payload_hash text NOT NULL,
   lifecycle_status varchar(32) NOT NULL,
   last_effective_idempotency_key text NOT NULL,
@@ -696,7 +696,7 @@ CREATE TABLE listing.listing_index_item_state (
 
 Constraints:
 
-- `source_revision >= 0`.
+- `source_sequence >= 0`.
 - `lifecycle_status IN ('indexed', 'deleted')`.
 - `(store_id, entity_type, item_id)` is the canonical latest-state key.
 - Эта table обновляется только после successful apply/delete decision.
@@ -715,12 +715,12 @@ Decision order:
 2. Load latest `listing_index_item_state` under `SELECT ... FOR UPDATE` if row
    exists.
 3. If no latest state exists, `apply`.
-4. If `incoming.sourceRevision < current.sourceRevision`, return
+4. If `incoming.sourceSequence < current.sourceSequence`, return
    `ignored_stale`. Do not update item state.
-5. If `incoming.sourceRevision === current.sourceRevision`:
+5. If `incoming.sourceSequence === current.sourceSequence`:
    - if `incoming.payloadHash === current.payloadHash`, return `noop`;
    - otherwise return non-retryable revision conflict.
-6. If `incoming.sourceRevision > current.sourceRevision`, apply sync/delete.
+6. If `incoming.sourceSequence > current.sourceSequence`, apply sync/delete.
 
 For `deleteSellableItem`:
 
@@ -1089,7 +1089,7 @@ Responsibilities:
 ## Optional coalescing/latest-wins
 
 Базовая версия не требует coalescing: каждый queued workflow обрабатывает свой
-input snapshot, а `sourceRevision` guard под item lock пропускает stale work.
+input snapshot, а `sourceSequence` guard под item lock пропускает stale work.
 
 Если нужен latest-wins режим для high-volume streams, он должен вводиться через
 отдельный durable inbox/latest table.
@@ -1104,7 +1104,7 @@ Rules for coalescing:
   использовать effective idempotency key и payload hash latest row.
 - Internal `superseded` может существовать только как internal inbox status.
   Public action result остается `ignored_stale`, `noop` или `applied`.
-- `sourceRevision` под item lock остается final correctness guard.
+- `sourceSequence` под item lock остается final correctness guard.
 
 ## Repository API additions
 
@@ -1118,7 +1118,7 @@ interface ListingIndexItemStateKey {
 }
 
 interface ListingIndexItemStateRow extends ListingIndexItemStateKey {
-  sourceRevision: number;
+  sourceSequence: number;
   payloadHash: string;
   lifecycleStatus: "indexed" | "deleted";
   lastEffectiveIdempotencyKey: string;

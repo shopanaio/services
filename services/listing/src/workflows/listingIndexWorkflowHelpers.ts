@@ -22,7 +22,7 @@ export function buildListingIndexEffectiveIdempotencyKey(input: {
   entityType: Listing.ListingSellableItemEntityType;
   itemId: string;
   actionType: ListingIndexActionType;
-  sourceRevision: number;
+  sourceSequence: number;
 }): string {
   return hashContent({
     v: 1,
@@ -30,7 +30,7 @@ export function buildListingIndexEffectiveIdempotencyKey(input: {
     entityType: input.entityType,
     itemId: input.itemId,
     actionType: input.actionType,
-    sourceRevision: input.sourceRevision,
+    sourceSequence: input.sourceSequence,
     rawIdempotencyKey: input.rawIdempotencyKey,
   });
 }
@@ -88,6 +88,7 @@ export function buildListingIndexPayloadHash(input:
       v: 1,
       actionType: input.type,
       storeId: input.params.storeId,
+      sourceSequence: input.params.sourceSequence,
       item: input.params.item,
     });
   }
@@ -97,7 +98,7 @@ export function buildListingIndexPayloadHash(input:
     actionType: input.type,
     storeId: input.params.storeId,
     itemRef: input.params.itemRef,
-    sourceRevision: input.params.sourceRevision,
+    sourceSequence: input.params.sourceSequence,
     deletedAt: input.params.deletedAt,
     reason: input.params.reason,
   });
@@ -107,7 +108,7 @@ export function buildAcceptedListingUpdateResult(input: {
   meta: Listing.ListingUpdateMeta;
   storeId: string;
   itemRef: Listing.ListingSellableItemRef;
-  sourceRevision: number;
+  sourceSequence: number;
 }): Listing.ListingUpdateResult {
   return {
     operationId: input.meta.operationId,
@@ -116,7 +117,7 @@ export function buildAcceptedListingUpdateResult(input: {
       entityType: input.itemRef.entityType,
       id: input.itemRef.id,
     },
-    sourceRevision: input.sourceRevision,
+    sourceSequence: input.sourceSequence,
     status: "accepted",
     processedAt: new Date().toISOString(),
   };

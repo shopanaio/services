@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS domain_events (
   event_id TEXT PRIMARY KEY,
   event_type TEXT NOT NULL,
+  event_sequence INTEGER NOT NULL,
   source TEXT NOT NULL,
   timestamp TIMESTAMPTZ NOT NULL,
   tenant_id TEXT NOT NULL,
@@ -32,7 +33,11 @@ CREATE TABLE IF NOT EXISTS domain_events (
   CONSTRAINT domain_events_deferred_batch_key_chk
     CHECK (dispatch_mode != 'deferred' OR batch_key IS NOT NULL),
   CONSTRAINT domain_events_actor_type_chk
-    CHECK (actor_type IN ('user', 'service', 'system'))
+    CHECK (actor_type IN ('user', 'service', 'system')),
+  CONSTRAINT domain_events_event_sequence_chk
+    CHECK (event_sequence > 0),
+  CONSTRAINT domain_events_subject_sequence_unique
+    UNIQUE (tenant_id, subject_type, subject_id, event_sequence)
 );
 
 CREATE INDEX idx_events_type ON domain_events(event_type);
@@ -41,7 +46,7 @@ CREATE INDEX idx_events_status ON domain_events(status) WHERE status IN ('pendin
 CREATE INDEX idx_events_parent_workflow ON domain_events(parent_workflow_id, event_type);
 
 CREATE INDEX idx_events_tenant_timestamp ON domain_events(tenant_id, timestamp DESC);
-CREATE INDEX idx_events_subject_timeline ON domain_events(tenant_id, subject_type, subject_id, timestamp DESC);
+CREATE INDEX idx_events_subject_timeline ON domain_events(tenant_id, subject_type, subject_id, event_sequence DESC, timestamp DESC);
 CREATE INDEX idx_events_type_timestamp ON domain_events(tenant_id, event_type, timestamp DESC);
 CREATE INDEX idx_domain_events_pending ON domain_events(status, created_at);
 CREATE INDEX idx_domain_events_batch ON domain_events(tenant_id, event_type, batch_key, created_at);

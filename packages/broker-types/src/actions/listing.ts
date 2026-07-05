@@ -97,7 +97,7 @@ export interface ListingFacetValueRef {
 
 export interface ListingVariantSnapshot {
   id: string;
-  sourceRevision?: number;
+  productRevision?: number;
   status: "active" | "inactive" | "archived";
   availability: ListingAvailabilitySnapshot;
   prices: ListingVariantPriceSnapshot[];
@@ -105,7 +105,7 @@ export interface ListingVariantSnapshot {
 }
 
 export interface ListingSellableItemSnapshot extends ListingSellableItemRef {
-  sourceRevision: number;
+  productRevision: number;
   sourceUpdatedAt: string;
   status: "draft" | "published" | "archived";
   publishedAt: string | null;
@@ -123,6 +123,11 @@ export interface ListingSellableItemSnapshot extends ListingSellableItemRef {
 export interface SyncSellableItemParams {
   meta: ListingUpdateMeta;
   storeId: string;
+  /**
+   * Monotonic ordering token for this listing item update.
+   * For catalog-originated events this is domain_events.event_sequence.
+   */
+  sourceSequence: number;
   item: ListingSellableItemSnapshot;
 }
 
@@ -132,6 +137,7 @@ export interface SyncSellableItemHydrationParams {
   meta: ListingUpdateMeta;
   storeId: string;
   itemRef: ListingSellableItemRef;
+  sourceSequence: number;
   expectedRevision?: number;
 }
 
@@ -139,7 +145,7 @@ export interface DeleteSellableItemParams {
   meta: ListingUpdateMeta;
   storeId: string;
   itemRef: ListingSellableItemRef;
-  sourceRevision: number;
+  sourceSequence: number;
   deletedAt: string;
   reason?: "deleted" | "merged" | "project_removed" | "manual";
 }
@@ -162,7 +168,7 @@ export interface ListingUpdateResult {
   operationId: string;
   storeId: string;
   itemRef: ListingSellableItemRef;
-  sourceRevision: number;
+  sourceSequence: number;
   status: "applied" | "noop" | "ignored_stale" | "accepted";
   processedAt: string;
   warnings?: ListingUpdateWarning[];

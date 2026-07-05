@@ -1,5 +1,5 @@
 import { and, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
-import { TransactionManager } from "@shopana/shared-kernel";
+import { Transactional, TransactionManager } from "@shopana/shared-kernel";
 import type { DomainEvent, EmitDispatchOptions } from "@shopana/events";
 import type { Database } from "../infrastructure/db/database.js";
 import {
@@ -64,10 +64,11 @@ export class Repository {
     // Connection pool managed by DatabaseModule.
   }
 
+  @Transactional()
   async persistPendingEvent(
     event: DomainEvent,
     dispatch: PersistDispatchOptions,
-  ): Promise<{ timestamp: string }> {
+  ): Promise<{ timestamp: string; eventSequence: number }> {
     const realTimestamp = new Date();
     const payloadHash = computePayloadHash(event.payload);
 
@@ -75,34 +76,67 @@ export class Repository {
       throw new Error("Event payload is required");
     }
 
-    await this.connection
-      .insert(domainEvents)
-      .values({
-        eventId: event.eventId,
-        eventType: event.eventType,
-        source: event.source,
-        timestamp: realTimestamp,
-        tenantId: event.context.tenantId,
-        userId: event.context.userId,
-        correlationId: event.context.correlationId,
-        causationId: event.context.causationId,
-        emitKey: event.emitKey,
-        parentWorkflowId: event.parentWorkflowId,
-        payload: event.payload,
-        payloadHash,
-        dispatchMode: dispatch.mode,
-        status: "pending",
-        batchKey: dispatch.mode === "deferred" ? dispatch.batchKey : null,
-        aggregateKey:
-          dispatch.mode === "deferred" ? dispatch.aggregateKey : null,
-        subjectType: event.subject.type,
-        subjectId: event.subject.id,
-        actorType: event.actor?.type ?? "service",
-        actorId: event.actor?.id,
-      })
-      .onConflictDoNothing();
+    await this.connection.execute(
+      sql`SELECT pg_advisory_xact_lock(hashtextextended(${this.sequenceLockKey(event)}, 0))`
+    );
 
-    return { timestamp: realTimestamp.toISOString() };
+    const existing = await this.connection
+      .select({
+        timestamp: domainEvents.timestamp,
+        eventSequence: domainEvents.eventSequence,
+      })
+      .from(domainEvents)
+      .where(eq(domainEvents.eventId, event.eventId))
+      .limit(1);
+
+    if (existing[0]) {
+      return {
+        timestamp: toISOString(existing[0].timestamp),
+        eventSequence: existing[0].eventSequence,
+      };
+    }
+
+    const nextSequenceRows = await this.connection
+      .select({
+        eventSequence: sql<number>`COALESCE(MAX(${domainEvents.eventSequence}), 0) + 1`,
+      })
+      .from(domainEvents)
+      .where(
+        and(
+          eq(domainEvents.tenantId, event.context.tenantId),
+          eq(domainEvents.subjectType, event.subject.type),
+          eq(domainEvents.subjectId, event.subject.id),
+        ),
+      );
+
+    const eventSequence = Number(nextSequenceRows[0]?.eventSequence ?? 1);
+
+    await this.connection.insert(domainEvents).values({
+      eventId: event.eventId,
+      eventType: event.eventType,
+      eventSequence,
+      source: event.source,
+      timestamp: realTimestamp,
+      tenantId: event.context.tenantId,
+      userId: event.context.userId,
+      correlationId: event.context.correlationId,
+      causationId: event.context.causationId,
+      emitKey: event.emitKey,
+      parentWorkflowId: event.parentWorkflowId,
+      payload: event.payload,
+      payloadHash,
+      dispatchMode: dispatch.mode,
+      status: "pending",
+      batchKey: dispatch.mode === "deferred" ? dispatch.batchKey : null,
+      aggregateKey:
+        dispatch.mode === "deferred" ? dispatch.aggregateKey : null,
+      subjectType: event.subject.type,
+      subjectId: event.subject.id,
+      actorType: event.actor?.type ?? "service",
+      actorId: event.actor?.id,
+    });
+
+    return { timestamp: realTimestamp.toISOString(), eventSequence };
   }
 
   async claimEvent(input: ClaimEventInput): Promise<DomainEventRecord[]> {
@@ -314,4 +348,17 @@ export class Repository {
 
     return deleted.length;
   }
+
+  private sequenceLockKey(event: DomainEvent): string {
+    return [
+      "domain_events_sequence:v1",
+      event.context.tenantId,
+      event.subject.type,
+      event.subject.id,
+    ].join(":");
+  }
+}
+
+function toISOString(value: Date | string): string {
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
