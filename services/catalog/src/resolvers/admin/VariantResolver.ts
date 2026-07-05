@@ -1,6 +1,5 @@
 import { SubgraphReference } from "@shopana/type-resolver";
 import {
-  encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import type {
@@ -29,7 +28,7 @@ export class VariantResolver extends CatalogType<string, Variant> {
   }
 
   id() {
-    return encodeGlobalIdByType(this.$props, GlobalIdEntity.Variant);
+    return this.encodeId(this.$props, GlobalIdEntity.Variant);
   }
 
   async productId() {
@@ -125,8 +124,8 @@ export class VariantResolver extends CatalogType<string, Variant> {
     return links
       .filter((link) => link.optionValueId !== null)
       .map((link) => ({
-        optionId: encodeGlobalIdByType(link.optionId, GlobalIdEntity.Option),
-        optionValueId: encodeGlobalIdByType(
+        optionId: this.encodeId(link.optionId, GlobalIdEntity.Option),
+        optionValueId: this.encodeId(
           link.optionValueId!,
           GlobalIdEntity.OptionValue
         ),
@@ -138,7 +137,7 @@ export class VariantResolver extends CatalogType<string, Variant> {
     return mediaItems.map((media) => ({
       file: {
         __typename: "File" as const,
-        id: encodeGlobalIdByType(media.fileId, GlobalIdEntity.File),
+        id: this.encodeId(media.fileId, GlobalIdEntity.File),
       },
       sortIndex: media.sortIndex,
     }));

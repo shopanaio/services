@@ -1,5 +1,4 @@
 import {
-  encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import { CatalogType } from "./CatalogType.js";
@@ -37,7 +36,7 @@ export class SeoResolver extends CatalogType<SeoShape, SeoShape> {
     if (!this.$props.ogImageId) return null;
     return {
       __typename: "File" as const,
-      id: encodeGlobalIdByType(this.$props.ogImageId, GlobalIdEntity.File),
+      id: this.encodeId(this.$props.ogImageId, GlobalIdEntity.File),
     };
   }
 }

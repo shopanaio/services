@@ -1,5 +1,4 @@
 import {
-  encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import { SubgraphReference } from "@shopana/type-resolver";
@@ -25,7 +24,7 @@ export class WarehouseResolver extends CatalogType<string, Warehouse> {
   }
 
   id() {
-    return encodeGlobalIdByType(this.$props, GlobalIdEntity.Warehouse);
+    return this.encodeId(this.$props, GlobalIdEntity.Warehouse);
   }
 
   async code() {

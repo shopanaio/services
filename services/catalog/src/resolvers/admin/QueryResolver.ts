@@ -1,5 +1,4 @@
 import {
-  decodeGlobalIdByType,
   GlobalIdEntity,
   type GlobalIdType,
 } from "@shopana/shared-graphql-guid";
@@ -9,19 +8,6 @@ import { CatalogType } from "./CatalogType.js";
 import { ProductResolver } from "./ProductResolver.js";
 import { BundleResolver } from "./BundleResolver.js";
 
-/**
- * Safely decode a global ID, returning null if invalid
- */
-function safeDecodeGlobalId(
-  globalId: string,
-  expectedType: GlobalIdType
-): string | null {
-  try {
-    return decodeGlobalIdByType(globalId, expectedType);
-  } catch {
-    return null;
-  }
-}
 import {
   ProductConnectionResolver,
   type ProductQueryProductsArgs,
@@ -129,7 +115,7 @@ export class QueryResolver extends CatalogType<Record<string, never>> {
  */
 export class WidgetQueryResolver extends CatalogType<Record<string, never>> {
   inventory(args: { productId: string }) {
-    const productId = decodeGlobalIdByType(
+    const productId = this.decodeId(
       args.productId,
       GlobalIdEntity.Product
     );
@@ -137,7 +123,7 @@ export class WidgetQueryResolver extends CatalogType<Record<string, never>> {
   }
 
   pricing(args: { input: PricingWidgetInput }) {
-    const variantId = decodeGlobalIdByType(
+    const variantId = this.decodeId(
       args.input.variantId,
       GlobalIdEntity.Variant
     );
@@ -162,13 +148,24 @@ export class WidgetQueryResolver extends CatalogType<Record<string, never>> {
  * Does NOT contain inventory queries (warehouses, stock).
  */
 export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
+  private safeDecodeId(
+    globalId: string,
+    expectedType: GlobalIdType
+  ): string | null {
+    try {
+      return this.decodeId(globalId, expectedType);
+    } catch {
+      return null;
+    }
+  }
+
   // ---- Node Queries (Relay) ----
 
   /**
    * Get a node by ID (for Relay compatibility).
    */
   async node(args: { id: string }) {
-    const productId = safeDecodeGlobalId(args.id, GlobalIdEntity.Product);
+    const productId = this.safeDecodeId(args.id, GlobalIdEntity.Product);
     if (!productId) return null;
     const product = await this.$ctx.loaders.product.load(productId);
     if (!product) return null;
@@ -192,7 +189,7 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    */
   async product(args: { id: string }) {
     const productId =
-      safeDecodeGlobalId(args.id, GlobalIdEntity.Product) ?? args.id;
+      this.safeDecodeId(args.id, GlobalIdEntity.Product) ?? args.id;
     const product = await this.$ctx.loaders.product.load(productId);
     if (!product) {
       return null;
@@ -221,7 +218,7 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
 
   async bundle(args: { id: string }) {
     const productId =
-      safeDecodeGlobalId(args.id, GlobalIdEntity.Product) ?? args.id;
+      this.safeDecodeId(args.id, GlobalIdEntity.Product) ?? args.id;
     const product = await this.$ctx.loaders.product.load(productId);
     if (!product || product.kind !== "BUNDLE") {
       return null;
@@ -250,7 +247,7 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    */
   async variant(args: { id: string }) {
     const variantId =
-      safeDecodeGlobalId(args.id, GlobalIdEntity.Variant) ?? args.id;
+      this.safeDecodeId(args.id, GlobalIdEntity.Variant) ?? args.id;
     const variant = await this.$ctx.loaders.variant.load(variantId);
     if (!variant) {
       return null;
@@ -273,7 +270,7 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    */
   async vendor(args: { id: string }) {
     const vendorId =
-      safeDecodeGlobalId(args.id, GlobalIdEntity.Vendor) ?? args.id;
+      this.safeDecodeId(args.id, GlobalIdEntity.Vendor) ?? args.id;
     const vendor = await this.$ctx.loaders.vendor.load(vendorId);
     if (!vendor) {
       return null;
@@ -295,7 +292,7 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    * Returns null if category doesn't exist.
    */
   async category(args: { id: string }) {
-    const categoryId = safeDecodeGlobalId(args.id, GlobalIdEntity.Category);
+    const categoryId = this.safeDecodeId(args.id, GlobalIdEntity.Category);
     if (!categoryId) return null;
     const cat = await this.$ctx.loaders.category.load(categoryId);
     if (!cat) {
@@ -325,7 +322,7 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
   }
 
   async collection(args: { id: string }) {
-    const id = safeDecodeGlobalId(args.id, GlobalIdEntity.Collection);
+    const id = this.safeDecodeId(args.id, GlobalIdEntity.Collection);
     if (!id) return null;
     const item = await this.$ctx.kernel.repository.collection.findById(id);
     if (!item) return null;
@@ -347,7 +344,7 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    * Returns null if tag doesn't exist.
    */
   async tag(args: { id: string }) {
-    const tagId = safeDecodeGlobalId(args.id, GlobalIdEntity.Tag) ?? args.id;
+    const tagId = this.safeDecodeId(args.id, GlobalIdEntity.Tag) ?? args.id;
     const t = await this.$ctx.loaders.tag.load(tagId);
     if (!t) {
       return null;
@@ -366,7 +363,7 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    * Get a bulk update job by ID.
    */
   async productBulkUpdateJob(args: { jobId: string }) {
-    const jobId = decodeGlobalIdByType(
+    const jobId = this.decodeId(
       args.jobId,
       GlobalIdEntity.ProductBulkUpdateJob
     );
@@ -384,7 +381,7 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
 export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
   async node(args: { id: string }) {
     try {
-      const warehouseId = decodeGlobalIdByType(
+      const warehouseId = this.decodeId(
         args.id,
         GlobalIdEntity.Warehouse
       );
@@ -397,7 +394,7 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
     }
 
     try {
-      const inventoryItemId = decodeGlobalIdByType(
+      const inventoryItemId = this.decodeId(
         args.id,
         GlobalIdEntity.InventoryItem
       );
@@ -410,7 +407,7 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
     }
 
     try {
-      const stockId = decodeGlobalIdByType(
+      const stockId = this.decodeId(
         args.id,
         GlobalIdEntity.WarehouseStock
       );
@@ -430,7 +427,7 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
   }
 
   async warehouse(args: { id: string }) {
-    const warehouseId = decodeGlobalIdByType(args.id, GlobalIdEntity.Warehouse);
+    const warehouseId = this.decodeId(args.id, GlobalIdEntity.Warehouse);
     const warehouse = await this.$ctx.loaders.warehouse.load(warehouseId);
     if (!warehouse) {
       return null;
@@ -449,14 +446,14 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
   }
 
   async inventoryItem(args: { id: string }) {
-    const itemId = decodeGlobalIdByType(args.id, GlobalIdEntity.InventoryItem);
+    const itemId = this.decodeId(args.id, GlobalIdEntity.InventoryItem);
     const item = await this.$ctx.loaders.inventoryItem.load(itemId);
     if (!item) return null;
     return new InventoryItemResolver(item.id, this.$ctx);
   }
 
   async inventoryItemByVariant(args: { variantId: string }) {
-    const variantUuid = decodeGlobalIdByType(
+    const variantUuid = this.decodeId(
       args.variantId,
       GlobalIdEntity.Variant
     );
@@ -488,7 +485,7 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
   async warehouseAssignableVariants(
     args: WarehouseAssignableVariantConnectionInput
   ) {
-    const warehouseId = decodeGlobalIdByType(
+    const warehouseId = this.decodeId(
       args.warehouseId,
       GlobalIdEntity.Warehouse
     );
@@ -532,7 +529,7 @@ export class InventoryQueryResolver extends CatalogType<Record<string, never>> {
 
     let warehouseId: string;
     try {
-      warehouseId = decodeGlobalIdByType(
+      warehouseId = this.decodeId(
         referenceIds[0]!,
         GlobalIdEntity.Warehouse
       );

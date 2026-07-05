@@ -1,5 +1,4 @@
 import {
-  encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import type { WarehouseStock } from "../../repositories/models/index.js";
@@ -21,17 +20,17 @@ export class StockResolver extends CatalogType<string, WarehouseStock> {
   }
 
   id() {
-    return encodeGlobalIdByType(this.$props, GlobalIdEntity.WarehouseStock);
+    return this.encodeId(this.$props, GlobalIdEntity.WarehouseStock);
   }
 
   async warehouseId() {
     const warehouseId = await this.$get("warehouseId");
-    return encodeGlobalIdByType(warehouseId, GlobalIdEntity.Warehouse);
+    return this.encodeId(warehouseId, GlobalIdEntity.Warehouse);
   }
 
   async variantId() {
     const variantId = await this.$get("variantId");
-    return encodeGlobalIdByType(variantId, GlobalIdEntity.Variant);
+    return this.encodeId(variantId, GlobalIdEntity.Variant);
   }
 
   async warehouse() {
@@ -51,7 +50,7 @@ export class StockResolver extends CatalogType<string, WarehouseStock> {
     // Gateway will route to Catalog service to resolve the full Variant
     return {
       __typename: "Variant" as const,
-      id: encodeGlobalIdByType(variantId, GlobalIdEntity.Variant),
+      id: this.encodeId(variantId, GlobalIdEntity.Variant),
     };
   }
 

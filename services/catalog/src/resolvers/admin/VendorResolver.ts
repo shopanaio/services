@@ -1,6 +1,5 @@
 import { SubgraphReference } from "@shopana/type-resolver";
 import {
-  encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import type { Vendor } from "../../repositories/models/index.js";
@@ -17,7 +16,7 @@ export class VendorResolver extends CatalogType<string, Vendor> {
   }
 
   id() {
-    return encodeGlobalIdByType(this.$props, GlobalIdEntity.Vendor);
+    return this.encodeId(this.$props, GlobalIdEntity.Vendor);
   }
 
   async name() {

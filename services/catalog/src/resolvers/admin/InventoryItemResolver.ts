@@ -1,6 +1,5 @@
 import { SubgraphReference } from "@shopana/type-resolver";
 import {
-  encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import type { InventoryItem } from "../../repositories/models/index.js";
@@ -28,12 +27,12 @@ export class InventoryItemResolver extends CatalogType<string, InventoryItem> {
   }
 
   id() {
-    return encodeGlobalIdByType(this.$props, GlobalIdEntity.InventoryItem);
+    return this.encodeId(this.$props, GlobalIdEntity.InventoryItem);
   }
 
   async variantId() {
     const variantId = await this.$get("variantId");
-    return encodeGlobalIdByType(variantId, GlobalIdEntity.Variant);
+    return this.encodeId(variantId, GlobalIdEntity.Variant);
   }
 
   /**

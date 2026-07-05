@@ -6,6 +6,11 @@ import {
   type CacheStore,
   type Authorizable,
 } from "@shopana/type-resolver";
+import {
+  decodeGlobalIdByType,
+  encodeGlobalIdByType,
+  type GlobalIdType,
+} from "@shopana/shared-graphql-guid";
 import type { ServiceContext } from "../../context/types.js";
 import { AuthProvider } from "../../kernel/Authorizable.js";
 import {
@@ -61,5 +66,13 @@ export abstract class CatalogType<TValue, TData = unknown>
   protected getCache(): CacheStore {
     // TODO: Add cache to kernel services when needed
     return {} as CacheStore;
+  }
+
+  protected encodeId(id: string, type: GlobalIdType): string {
+    return encodeGlobalIdByType(id, type);
+  }
+
+  protected decodeId(globalId: string, expectedType: GlobalIdType): string {
+    return decodeGlobalIdByType(globalId, expectedType);
   }
 }

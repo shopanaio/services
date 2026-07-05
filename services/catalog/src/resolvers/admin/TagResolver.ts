@@ -1,6 +1,5 @@
 import { SubgraphReference } from "@shopana/type-resolver";
 import {
-  encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import type { Tag } from "../../repositories/models/index.js";
@@ -21,7 +20,7 @@ export class TagResolver extends CatalogType<string, Tag> {
   }
 
   id() {
-    return encodeGlobalIdByType(this.$props, GlobalIdEntity.Tag);
+    return this.encodeId(this.$props, GlobalIdEntity.Tag);
   }
 
   async handle() {

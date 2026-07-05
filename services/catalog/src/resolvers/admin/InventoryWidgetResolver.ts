@@ -1,5 +1,4 @@
 import {
-  decodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import { CatalogType } from "./CatalogType.js";
@@ -18,7 +17,7 @@ export class WidgetQueryResolver extends CatalogType<Record<string, never>> {
    * Returns aggregated inventory metrics across all variants.
    */
   inventory(args: { productId: string }) {
-    const productId = decodeGlobalIdByType(
+    const productId = this.decodeId(
       args.productId,
       GlobalIdEntity.Product,
     );

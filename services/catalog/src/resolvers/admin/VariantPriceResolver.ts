@@ -1,5 +1,4 @@
 import {
-  encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import type { ItemPricing } from "../../repositories/models/index.js";
@@ -23,7 +22,7 @@ export class VariantPriceResolver extends CatalogType<
   }
 
   id() {
-    return encodeGlobalIdByType(this.$props, GlobalIdEntity.VariantPrice);
+    return this.encodeId(this.$props, GlobalIdEntity.VariantPrice);
   }
 
   async currency(): Promise<CurrencyCode | null> {

@@ -1,5 +1,4 @@
 import {
-  encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import type { BulkEditJob } from "../../repositories/models/index.js";
@@ -17,7 +16,7 @@ export class ProductBulkUpdateJobResolver extends CatalogType<string, BulkEditJo
   }
 
   id() {
-    return encodeGlobalIdByType(this.$props, GlobalIdEntity.ProductBulkUpdateJob);
+    return this.encodeId(this.$props, GlobalIdEntity.ProductBulkUpdateJob);
   }
 
   async status() {

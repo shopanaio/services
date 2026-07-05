@@ -1,6 +1,5 @@
 import { SubgraphReference } from "@shopana/type-resolver";
 import {
-  encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import type { RichText } from "./interfaces/index.js";
@@ -25,7 +24,7 @@ export class CategoryResolver extends CatalogType<string, Category> {
   }
 
   id() {
-    return encodeGlobalIdByType(this.$props, GlobalIdEntity.Category);
+    return this.encodeId(this.$props, GlobalIdEntity.Category);
   }
 
   async handle() {
@@ -144,7 +143,7 @@ export class CategoryResolver extends CatalogType<string, Category> {
     return mediaItems.map((m) => ({
       file: {
         __typename: "File" as const,
-        id: encodeGlobalIdByType(m.fileId, GlobalIdEntity.File),
+        id: this.encodeId(m.fileId, GlobalIdEntity.File),
       },
       sortIndex: m.sortIndex,
     }));
