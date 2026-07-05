@@ -154,6 +154,7 @@ export type DeleteSellableItemResult = ListingUpdateResult;
 
 export interface SyncSellableItemsParams {
   meta: ListingUpdateMeta;
+  organizationId: string;
   storeId: string;
   items: ListingSellableItemSnapshot[];
 }

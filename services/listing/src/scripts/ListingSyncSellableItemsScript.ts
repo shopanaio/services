@@ -73,6 +73,7 @@ export class ListingSyncSellableItemsScript extends BaseScript<
         sourceSequence: item.productRevision,
         item,
       },
+      organizationId: params.organizationId,
       effectiveIdempotencyKey: buildListingIndexEffectiveIdempotencyKey({
         rawIdempotencyKey: params.meta.idempotencyKey,
         storeId: params.storeId,

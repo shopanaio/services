@@ -36,6 +36,7 @@ export function buildListingIndexEffectiveIdempotencyKey(input: {
 }
 
 export function buildListingIndexWorkflowIdempotencyContext(input: {
+  organizationId: string;
   storeId: string;
   entityType: Listing.ListingSellableItemEntityType;
   itemId: string;
@@ -44,7 +45,7 @@ export function buildListingIndexWorkflowIdempotencyContext(input: {
 }): IdempotencyContext {
   return {
     source: "content",
-    storeId: input.storeId,
+    organizationId: input.organizationId,
     resourceId: `${input.entityType}:${input.itemId}`,
     operation: `listing.${input.actionType}`,
     contentHash: input.effectiveIdempotencyKey,

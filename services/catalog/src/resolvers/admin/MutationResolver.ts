@@ -845,7 +845,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       sagaInput,
       {
         source: "content",
-        storeId: sagaInput.storeId,
+        organizationId: sagaInput.organizationId,
         resourceId: sagaInput.handle,
         operation: "productCreate",
         content: input,

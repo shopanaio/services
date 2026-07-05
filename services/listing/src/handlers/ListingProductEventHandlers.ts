@@ -133,7 +133,7 @@ export class ListingProductEventHandlers extends EventHandlers {
         sourceSequence,
         expectedRevision,
       },
-      organizationId: event.context.tenantId,
+      organizationId: event.context.organizationId,
       effectiveIdempotencyKey: buildListingIndexEffectiveIdempotencyKey({
         rawIdempotencyKey: meta.idempotencyKey,
         storeId: event.payload.storeId,
@@ -185,7 +185,7 @@ export class ListingProductEventHandlers extends EventHandlers {
     const action: ListingIndexQueuedDeleteAction = {
       type: "deleteSellableItem",
       params,
-      organizationId: event.context.tenantId,
+      organizationId: event.context.organizationId,
       effectiveIdempotencyKey: buildListingIndexEffectiveIdempotencyKey({
         rawIdempotencyKey: meta.idempotencyKey,
         storeId: event.payload.storeId,
@@ -213,6 +213,7 @@ export class ListingProductEventHandlers extends EventHandlers {
         ? action.params.itemRef
         : action.params.itemRef;
     const idempotencyCtx = buildListingIndexWorkflowIdempotencyContext({
+      organizationId: action.organizationId,
       storeId: action.params.storeId,
       entityType: itemRef.entityType,
       itemId: itemRef.id,
