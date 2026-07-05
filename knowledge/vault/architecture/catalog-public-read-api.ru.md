@@ -14,13 +14,13 @@ related:
   - patterns/federation
 ---
 
-# Catalog Public Read API
+# Catalog Product Read API
 
 ## Назначение
 
-`Catalog Public Read API` - это межсервисный read API каталога для получения публичных данных продукта по GraphQL-like модели: клиент явно запрашивает поля, а `catalog` возвращает только запрошенную форму данных.
+`Catalog Product Read API` - это межсервисный read API каталога для получения данных продукта по GraphQL-like модели: клиент явно запрашивает поля, а `catalog` возвращает только запрошенную форму данных.
 
-API нужен сервисам, которым требуется читать публичные catalog data, но нельзя:
+API нужен сервисам, которым требуется читать catalog data, но нельзя:
 
 - читать таблицы `catalog` напрямую;
 - импортировать catalog repositories или доменные модели;
@@ -28,7 +28,13 @@ API нужен сервисам, которым требуется читать 
 - зависеть от admin GraphQL schema;
 - создавать узкий API под один внешний сценарий.
 
-Основной use case: межсервисное получение публичного представления продукта через стабильный broker action с явным selection contract.
+Основной use case: межсервисное получение снимка продукта через стабильный broker action с явным selection contract.
+
+Важное правило доступности:
+
+- если продукта нет в рамках `storeId`, он не возвращается в `products`;
+- если продукт существует, но не опубликован, он возвращается как обычный draft snapshot, аналогично admin-представлению в рамках этого контракта;
+- состояние публикации не создает специальный result-state.
 
 ## Владелец данных
 
@@ -40,7 +46,7 @@ API нужен сервисам, которым требуется читать 
 - tags;
 - options;
 - features/attributes;
-- publish status;
+- product status;
 - media references, связанные с продуктом.
 
 Другие сервисы не владеют catalog domain data.
@@ -50,7 +56,7 @@ API нужен сервисам, которым требуется читать 
 API должен работать по смыслу как GraphQL resolver:
 
 - input содержит идентификаторы продуктов и selection;
-- selection описывает, какие публичные поля нужно вернуть;
+- selection описывает, какие поля нужно вернуть;
 - `catalog` резолвит только запрошенные поля;
 - response содержит только запрошенные поля и обязательные wrapper/result поля;
 - вложенные поля возвращаются только если они явно запрошены в relation selection.
@@ -69,12 +75,12 @@ catalog.getProductWithEverything
 ## Broker Action
 
 ```ts
-catalog.getProductPublicSnapshots
+catalog.getProductSnapshots
 ```
 
 Action должна поддерживать bulk-запросы. Контракт принимает массив `productIds`.
 
-Название сохраняет слово `Snapshots`, потому что результат является публичным снимком состояния продукта на момент чтения. При этом snapshot shape не фиксирован целиком: он определяется `selection`.
+Название сохраняет слово `Snapshots`, потому что результат является снимком состояния продукта на момент чтения. При этом snapshot shape не фиксирован целиком: он определяется `selection`.
 
 ## Broker Types
 
@@ -92,31 +98,31 @@ Action должна поддерживать bulk-запросы. Контрак
 ## Input Contract
 
 ```ts
-export interface GetProductPublicSnapshotsParams {
+export interface GetProductSnapshotsParams {
   storeId: string;
   productIds: string[];
   locale?: string;
   currencyCode?: string;
-  selection: ProductPublicSelection;
+  selection: ProductSnapshotSelection;
 }
 ```
 
 Правила:
 
 - `storeId` обязателен для multi-tenancy и изоляции данных.
-- `storeId` является tenant boundary для этого public read API. `organizationId` не входит в контракт, потому что продуктовые данные каталога store-scoped, а broker action должна фильтровать чтение по `storeId`.
+- `storeId` является tenant boundary для этого read API. `organizationId` не входит в контракт, потому что продуктовые данные каталога store-scoped, а broker action должна фильтровать чтение по `storeId`.
 - `productIds` всегда массив, даже если нужен один продукт.
 - `productIds` должен быть дедуплицирован при чтении. В result каждый `productId` должен встречаться не более одного раза.
 - `locale` опционален. Если не передан, `catalog` может использовать locale проекта по умолчанию.
-- `currencyCode` опционален. Он используется только для публичных price fields, если они запрошены в selection.
+- `currencyCode` опционален. Он используется только для price fields, если они запрошены в selection.
 - `selection` обязателен. Пустой selection является невалидным input.
 - Максимальный bulk batch должен быть зафиксирован реализацией. Рекомендуемый стартовый лимит: `100` product IDs.
 
 ## Explicit Selection Types
 
-Selection contract должен повторять shape `QueryArgs` из `@shopana/type-resolver`, но быть public-specific и явно типизированным.
+Selection contract должен повторять shape `QueryArgs` из `@shopana/type-resolver`, но быть product-specific и явно типизированным.
 
-Нельзя использовать универсальный `fields: string[]` без ограничений на публичные поля. Нельзя пропускать через broker внутренний `QueryArgs` из `@shopana/type-resolver`.
+Нельзя использовать универсальный `fields: string[]` без ограничений на разрешенные поля. Нельзя пропускать через broker внутренний `QueryArgs` из `@shopana/type-resolver`.
 
 Raw shape библиотеки:
 
@@ -129,26 +135,26 @@ type QueryArgs<TArgs = unknown> = {
 };
 ```
 
-Public broker shape должен быть тем же по структуре, но с concrete field unions, concrete populate keys и concrete args:
+Broker shape должен быть тем же по структуре, но с concrete field unions, concrete populate keys и concrete args:
 
 ```ts
-export interface ProductPublicSelection {
-  fields?: ProductPublicField[];
-  populate?: ProductPublicPopulate;
+export interface ProductSnapshotSelection {
+  fields?: ProductSnapshotField[];
+  populate?: ProductSnapshotPopulate;
   args?: never;
   fieldName?: never;
 }
 
-export interface ProductPublicPopulate {
-  primaryImage?: MediaPublicRefSelection;
+export interface ProductSnapshotPopulate {
+  primaryImage?: MediaRefSelection;
   priceRange?: ProductPriceRangeSelection;
-  categories?: CategoryPublicRefSelection;
-  tags?: TagPublicRefSelection;
-  variants?: VariantPublicSelection;
-  attributes?: ProductPublicAttributeSelection;
+  categories?: CategoryRefSelection;
+  tags?: TagRefSelection;
+  variants?: VariantSnapshotSelection;
+  attributes?: ProductAttributeSelection;
 }
 
-export type ProductPublicRelationField =
+export type ProductSnapshotRelationField =
   | "primaryImage"
   | "priceRange"
   | "categories"
@@ -156,7 +162,7 @@ export type ProductPublicRelationField =
   | "variants"
   | "attributes";
 
-export type ProductPublicField =
+export type ProductSnapshotField =
   | "productId"
   | "revision"
   | "status"
@@ -170,14 +176,14 @@ export type ProductPublicField =
 Relation selection описывается отдельными explicit types:
 
 ```ts
-export interface MediaPublicRefSelection {
-  fields?: MediaPublicRefField[];
+export interface MediaRefSelection {
+  fields?: MediaRefField[];
   populate?: never;
   args?: never;
   fieldName?: "primaryImage";
 }
 
-export type MediaPublicRefField =
+export type MediaRefField =
   | "fileId"
   | "alt"
   | "sortIndex";
@@ -194,18 +200,18 @@ export type ProductPriceRangeField =
   | "minAmountMinor"
   | "maxAmountMinor";
 
-export interface CategoryPublicRefSelection {
-  fields?: CategoryPublicRefField[];
-  populate?: CategoryPublicRefPopulate;
+export interface CategoryRefSelection {
+  fields?: CategoryRefField[];
+  populate?: CategoryRefPopulate;
   args?: never;
   fieldName?: "categories";
 }
 
-export interface CategoryPublicRefPopulate {
+export interface CategoryRefPopulate {
   path?: CategoryPathItemSelection;
 }
 
-export type CategoryPublicRefField =
+export type CategoryRefField =
   | "id"
   | "handle"
   | "title";
@@ -222,35 +228,35 @@ export type CategoryPathItemField =
   | "handle"
   | "title";
 
-export interface TagPublicRefSelection {
-  fields?: TagPublicRefField[];
+export interface TagRefSelection {
+  fields?: TagRefField[];
   populate?: never;
   args?: never;
   fieldName?: "tags";
 }
 
-export type TagPublicRefField =
+export type TagRefField =
   | "id"
   | "handle"
   | "title";
 
-export interface VariantPublicSelection {
-  args?: VariantPublicSelectionArgs;
-  fields?: VariantPublicField[];
-  populate?: VariantPublicPopulate;
+export interface VariantSnapshotSelection {
+  args?: VariantSnapshotSelectionArgs;
+  fields?: VariantSnapshotField[];
+  populate?: VariantSnapshotPopulate;
   fieldName?: "variants";
 }
 
-export interface VariantPublicPopulate {
+export interface VariantSnapshotPopulate {
   price?: VariantPriceSelection;
-  options?: VariantOptionPublicValueSelection;
+  options?: VariantOptionValueSelection;
 }
 
-export interface VariantPublicSelectionArgs {
+export interface VariantSnapshotSelectionArgs {
   first?: number;
 }
 
-export type VariantPublicField =
+export type VariantSnapshotField =
   | "variantId"
   | "title"
   | "sku";
@@ -267,25 +273,25 @@ export type VariantPriceField =
   | "amountMinor"
   | "compareAtMinor";
 
-export interface VariantOptionPublicValueSelection {
-  fields?: VariantOptionPublicValueField[];
+export interface VariantOptionValueSelection {
+  fields?: VariantOptionValueField[];
   populate?: never;
   args?: never;
   fieldName?: "options";
 }
 
-export type VariantOptionPublicValueField =
+export type VariantOptionValueField =
   | "name"
   | "value";
 
-export interface ProductPublicAttributeSelection {
-  fields?: ProductPublicAttributeField[];
+export interface ProductAttributeSelection {
+  fields?: ProductAttributeField[];
   populate?: never;
   args?: never;
   fieldName?: "attributes";
 }
 
-export type ProductPublicAttributeField =
+export type ProductAttributeField =
   | "code"
   | "label"
   | "value";
@@ -293,12 +299,12 @@ export type ProductPublicAttributeField =
 
 Правила selection:
 
-- `fields` содержит только scalar fields текущего public type.
+- `fields` содержит только scalar fields текущего type.
 - relation field задается только через `populate`, например `populate.variants`, `populate.categories`, `populate.primaryImage`.
 - `args` имеет concrete type только у тех relation resolvers, где аргументы разрешены. Для root product selection и relations без аргументов используется `args?: never`.
 - `fieldName` повторяет shape `QueryArgs`, но ограничен concrete resolver field name. На root product selection используется `fieldName?: never`, потому что root query не является aliased populate entry.
 - relation без вложенных `fields` или nested selection считается невалидной.
-- unknown field должен приводить к `INVALID_CATALOG_PUBLIC_READ_INPUT`.
+- unknown field должен приводить к `INVALID_CATALOG_PRODUCT_READ_INPUT`.
 - если поле не запрошено, resolver не должен его вычислять и response не должен его содержать.
 - если relation не запрошена, response не должен содержать ключ relation.
 - selection должен быть ограничен по глубине. Рекомендуемый стартовый лимит: `3`.
@@ -308,7 +314,7 @@ export type ProductPublicAttributeField =
 ## Example Request
 
 ```ts
-const result = await broker.call("catalog.getProductPublicSnapshots", {
+const result = await broker.call("catalog.getProductSnapshots", {
   storeId: "store-id",
   productIds: ["product-1", "product-2"],
   locale: "uk",
@@ -350,35 +356,37 @@ const result = await broker.call("catalog.getProductPublicSnapshots", {
 ## Result Contract
 
 ```ts
-export type GetProductPublicSnapshotsResult =
+export type GetProductSnapshotsResult =
   | {
       ok: true;
-      products: ProductPublicResolved[];
+      products: ProductSnapshotResolved[];
     }
   | {
       ok: false;
-      code: ProductPublicReadErrorCode;
+      code: ProductReadErrorCode;
       message: string;
       retryable: boolean;
     };
 
-export type ProductPublicReadErrorCode =
-  | "INVALID_CATALOG_PUBLIC_READ_INPUT"
+export type ProductReadErrorCode =
+  | "INVALID_CATALOG_PRODUCT_READ_INPUT"
   | "CATALOG_STORE_NOT_FOUND"
-  | "CATALOG_PUBLIC_READ_QUERY_FAILED";
+  | "CATALOG_PRODUCT_READ_QUERY_FAILED";
 ```
 
 `products` содержит sparse objects: каждый объект включает только поля, запрошенные selection, плюс поля, которые были явно запрошены и доступны для данного состояния продукта.
 
+Если продукт найден, он возвращается независимо от `status`. Неопубликованный продукт возвращается как draft snapshot с теми же правилами selection, что и опубликованный продукт.
+
 ## Explicit Result Types
 
-Response types также должны быть объявлены явно. Так как shape зависит от selection, все public fields в DTO optional, но runtime contract запрещает возвращать незапрошенные поля.
+Response types также должны быть объявлены явно. Так как shape зависит от selection, все fields в DTO optional, но runtime contract запрещает возвращать незапрошенные поля.
 
 ```ts
-export interface ProductPublicResolved {
+export interface ProductSnapshotResolved {
   productId?: string;
   revision?: number;
-  status?: ProductPublicStatus;
+  status?: ProductStatus;
 
   handle?: string;
   title?: string;
@@ -386,20 +394,20 @@ export interface ProductPublicResolved {
   searchableText?: string;
   updatedAt?: string;
 
-  primaryImage?: MediaPublicRefResolved | null;
+  primaryImage?: MediaRefResolved | null;
   priceRange?: ProductPriceRangeResolved | null;
-  categories?: CategoryPublicRefResolved[];
-  tags?: TagPublicRefResolved[];
-  variants?: VariantPublicResolved[];
-  attributes?: ProductPublicAttributeResolved[];
+  categories?: CategoryRefResolved[];
+  tags?: TagRefResolved[];
+  variants?: VariantSnapshotResolved[];
+  attributes?: ProductAttributeResolved[];
 }
 
-export type ProductPublicStatus =
+export type ProductStatus =
+  | "draft"
   | "published"
-  | "unpublished"
-  | "deleted";
+  | "archived";
 
-export interface MediaPublicRefResolved {
+export interface MediaRefResolved {
   fileId?: string;
   alt?: string | null;
   sortIndex?: number;
@@ -411,7 +419,7 @@ export interface ProductPriceRangeResolved {
   maxAmountMinor?: number | null;
 }
 
-export interface CategoryPublicRefResolved {
+export interface CategoryRefResolved {
   id?: string;
   handle?: string;
   title?: string;
@@ -424,18 +432,18 @@ export interface CategoryPathItemResolved {
   title?: string;
 }
 
-export interface TagPublicRefResolved {
+export interface TagRefResolved {
   id?: string;
   handle?: string;
   title?: string;
 }
 
-export interface VariantPublicResolved {
+export interface VariantSnapshotResolved {
   variantId?: string;
   title?: string;
   sku?: string | null;
   price?: VariantPriceResolved | null;
-  options?: VariantOptionPublicValueResolved[];
+  options?: VariantOptionValueResolved[];
 }
 
 export interface VariantPriceResolved {
@@ -444,12 +452,12 @@ export interface VariantPriceResolved {
   compareAtMinor?: number | null;
 }
 
-export interface VariantOptionPublicValueResolved {
+export interface VariantOptionValueResolved {
   name?: string;
   value?: string;
 }
 
-export interface ProductPublicAttributeResolved {
+export interface ProductAttributeResolved {
   code?: string;
   label?: string;
   value?: string | number | boolean | string[];
@@ -461,9 +469,10 @@ export interface ProductPublicAttributeResolved {
 - `ok: true` означает, что action корректно обработал весь request.
 - `products` может содержать меньше объектов, чем было запрошено в `productIds`.
 - Порядок `products` должен следовать порядку `productIds` для тех продуктов, которые попали в result.
-- `ProductPublicResolved` не должен содержать поля, которых нет в `selection`.
+- `ProductSnapshotResolved` не должен содержать поля, которых нет в `selection`.
 - Если поле запрошено, но значение отсутствует по бизнес-смыслу, resolver может вернуть `null` только для nullable fields.
 - Если поле запрошено, но не может быть надежно вычислено из-за ошибки чтения, action должен вернуть `ok: false`.
+- Неопубликованный продукт не является ошибкой и не должен опускаться из result, если он найден в рамках `storeId`.
 
 ## Example Response
 
@@ -523,6 +532,13 @@ export interface ProductPublicAttributeResolved {
           ]
         }
       ]
+    },
+    {
+      productId: "product-2",
+      revision: 7,
+      status: "draft",
+      handle: "draft-phone",
+      title: "Draft Phone"
     }
   ]
 }
@@ -530,61 +546,34 @@ export interface ProductPublicAttributeResolved {
 
 В response нет `description`, `searchableText`, `tags` и `attributes`, потому что они не были запрошены.
 
-## Tombstone
-
-Если продукт удален или больше не должен быть видим публично, `catalog` должен вернуть tombstone state.
-
-Tombstone также подчиняется selection:
-
-- если `status` не запрошен, `status` не возвращается;
-- если `revision` не запрошен, `revision` не возвращается;
-- display/search/relation fields для tombstone не возвращаются даже если запрошены;
-- для tombstone допустимы только `productId`, `revision`, `status`, `updatedAt`.
-
-Пример:
-
-```ts
-{
-  productId: "product-1",
-  revision: 43,
-  status: "unpublished"
-}
-```
-
-Правила tombstone:
-
-- `status: "deleted"` означает, что продукт удален или catalog больше не может считать его существующим публичным ресурсом.
-- `status: "unpublished"` означает, что продукт существует, но не должен быть видим публично.
-- `updatedAt` может быть возвращен только если он отражает момент удаления или изменения publication state, а не старое обновление публичных данных.
-- `revision` в tombstone должен быть последней известной revision, из-за которой продукт стал непубличным.
-- Если `productId` не найден в рамках `storeId` и catalog не может построить корректный tombstone с `revision`, такой продукт опускается из `products`.
+`product-2` показывает, что draft product возвращается как обычный product snapshot, если он найден и его поля запрошены.
 
 ## Errors
 
 ```ts
-export type ProductPublicReadErrorCode =
-  | "INVALID_CATALOG_PUBLIC_READ_INPUT"
+export type ProductReadErrorCode =
+  | "INVALID_CATALOG_PRODUCT_READ_INPUT"
   | "CATALOG_STORE_NOT_FOUND"
-  | "CATALOG_PUBLIC_READ_QUERY_FAILED";
+  | "CATALOG_PRODUCT_READ_QUERY_FAILED";
 ```
 
 Правила ошибок:
 
 - `ok: false` означает, что action не смог корректно обработать весь request.
-- `INVALID_CATALOG_PUBLIC_READ_INPUT` используется для невалидного input: пустой `storeId`, пустой `productIds`, слишком большой bulk batch, пустой или невалидный `selection`, неизвестное public field, слишком глубокий selection, невалидный `locale` или `currencyCode`.
+- `INVALID_CATALOG_PRODUCT_READ_INPUT` используется для невалидного input: пустой `storeId`, пустой `productIds`, слишком большой bulk batch, пустой или невалидный `selection`, неизвестное field, слишком глубокий selection, невалидный `locale` или `currencyCode`.
 - `CATALOG_STORE_NOT_FOUND` используется, если `storeId` не найден или catalog не может безопасно построить store context.
-- `CATALOG_PUBLIC_READ_QUERY_FAILED` используется для неожиданных ошибок чтения или сборки response. `retryable` должен быть `true`, если повтор request может помочь.
+- `CATALOG_PRODUCT_READ_QUERY_FAILED` используется для неожиданных ошибок чтения или сборки response. `retryable` должен быть `true`, если повтор request может помочь.
 - Отсутствующий конкретный `productId` не является ошибкой всего action.
 
 ## Bulk, Missing And Partial Results
 
-`getProductPublicSnapshots` должен различать ошибку всего запроса и неполный набор продуктов внутри успешного bulk result.
+`getProductSnapshots` должен различать ошибку всего запроса и неполный набор продуктов внутри успешного bulk result.
 
 Правила успешного result:
 
 - `ok: true` может вернуть меньше `products`, чем было запрошено в `productIds`.
-- Если продукт существует, но удален или больше не должен быть публичным, `catalog` возвращает tombstone согласно selection.
-- Если `productId` не найден в рамках `storeId` и catalog не может построить корректный tombstone с `revision`, такой продукт опускается из `products`.
+- Если продукт существует в рамках `storeId`, он возвращается независимо от статуса публикации.
+- Если `productId` не найден в рамках `storeId`, такой продукт опускается из `products`.
 - Порядок `products` должен следовать порядку `productIds` для тех продуктов, которые попали в result.
 - Дубликаты в `productIds` должны быть дедуплицированы при чтении. В result каждый `productId` должен встречаться не более одного раза.
 
@@ -600,37 +589,37 @@ Broker contract не зависит от `@shopana/type-resolver`, но реал
 
 Рекомендуемый flow:
 
-1. Broker handler валидирует `GetProductPublicSnapshotsParams`.
+1. Broker handler валидирует `GetProductSnapshotsParams`.
 2. Handler строит request-scoped `ServiceContext` для `storeId`, `locale`, `currencyCode`.
-3. Handler валидирует `ProductPublicSelection` и передает его как structurally-compatible internal query.
-4. Handler вызывает public resolver, например:
+3. Handler валидирует `ProductSnapshotSelection` и передает его как structurally-compatible internal query.
+4. Handler вызывает resolver, например:
 
 ```ts
-const products = await ProductPublicResolver.loadMany(
+const products = await ProductSnapshotResolver.loadMany(
   uniqueProductIds,
   input.selection,
   ctx
 );
 ```
 
-5. Handler фильтрует отсутствующие products и возвращает `GetProductPublicSnapshotsResult`.
+5. Handler фильтрует отсутствующие products и возвращает `GetProductSnapshotsResult`.
 
-Важное правило: этот API должен использовать отдельные public resolvers, например:
+Важное правило: этот API должен использовать отдельные broker-facing resolvers, например:
 
 ```txt
-services/catalog/src/resolvers/public/
-  CatalogPublicType.ts
-  ProductPublicResolver.ts
-  VariantPublicResolver.ts
-  CategoryPublicResolver.ts
-  TagPublicResolver.ts
+services/catalog/src/resolvers/product-read/
+  CatalogProductReadType.ts
+  ProductSnapshotResolver.ts
+  VariantSnapshotResolver.ts
+  CategoryRefResolver.ts
+  TagRefResolver.ts
 ```
 
-Нельзя использовать admin `ProductResolver` как публичный broker resolver, потому что admin resolver содержит поля и связи, которые не являются частью public read contract.
+Нельзя использовать admin `ProductResolver` как broker resolver напрямую, потому что admin resolver может содержать поля и связи, которые не являются частью этого read contract.
 
 ## Selection Compatibility
 
-`ProductPublicSelection` должен быть структурно совместим с internal `QueryArgs`, но не импортировать его тип.
+`ProductSnapshotSelection` должен быть структурно совместим с internal `QueryArgs`, но не импортировать его тип.
 
 Пример:
 
@@ -651,67 +640,50 @@ services/catalog/src/resolvers/public/
 }
 ```
 
-Эта структура уже соответствует форме, которую executor ожидает на runtime:
+Эта структура уже соответствует форме, которую executor ожидает на runtime.
 
-```ts
-{
-  fields: ["productId", "revision", "status", "title"],
-  populate: {
-    variants: {
-      args: { first: 20 },
-      fields: ["variantId", "title"],
-      populate: {
-        options: {
-          fields: ["name", "value"]
-        }
-      }
-    }
-  }
-}
-```
-
-Отличие от raw `QueryArgs` в том, что public broker type ограничивает допустимые `fields`, `populate` keys и `args` для каждого публичного resolver type.
+Отличие от raw `QueryArgs` в том, что broker type ограничивает допустимые `fields`, `populate` keys и `args` для каждого resolver type.
 
 ## Field Semantics
 
 ### Product Fields
 
 - `productId` - stable catalog product ID.
-- `revision` - монотонная revision публичного состояния продукта.
-- `status` - `"published"`, `"unpublished"` или `"deleted"`.
-- `handle` - публичный product handle.
+- `revision` - монотонная revision состояния продукта.
+- `status` - состояние продукта в catalog workflow, например `"draft"`, `"published"` или `"archived"`.
+- `handle` - product handle.
 - `title` - локализованный title.
-- `description` - локализованное публичное описание в plain/public-safe форме.
-- `searchableText` - готовый текстовый материал из публичных полей продукта.
-- `updatedAt` - время последнего изменения публичного состояния.
+- `description` - локализованное описание в форме, пригодной для межсервисного чтения.
+- `searchableText` - готовый текстовый материал из полей продукта.
+- `updatedAt` - время последнего изменения продукта.
 
 ### Primary Image
 
-`primaryImage` возвращает публичную ссылку на media file. Это не media domain object и не admin file DTO.
+`primaryImage` возвращает ссылку на media file. Это не media domain object и не admin file DTO.
 
 ### Price Fields
 
-`priceRange` и `variant.price` возвращают только публичные display prices для `currencyCode` из input или валюты проекта по умолчанию. Они не являются order-specific price snapshots и не должны использоваться checkout/orders для фиксации цены покупки.
+`priceRange` и `variant.price` возвращают display prices для `currencyCode` из input или валюты проекта по умолчанию. Они не являются order-specific price snapshots и не должны использоваться checkout/orders для фиксации цены покупки.
 
 ### Categories
 
-`categories` возвращает публичные category refs. `path` содержит публичную иерархию категории без дополнительных вызовов в `catalog`.
+`categories` возвращает category refs. `path` содержит иерархию категории без дополнительных вызовов в `catalog`.
 
 ### Tags
 
-`tags` возвращает только публичные tag refs.
+`tags` возвращает tag refs.
 
 ### Variants
 
-`variants` возвращает только публичные variant data. Inventory, stock reservation и internal fulfillment fields не входят в этот контракт.
+`variants` возвращает variant data, разрешенную этим контрактом. Inventory, stock reservation и internal fulfillment fields не входят в этот контракт.
 
 ### Attributes
 
-`attributes` возвращает публичные product attributes. `code` должен быть стабильным machine-readable идентификатором. `label` - локализованный display label.
+`attributes` возвращает product attributes. `code` должен быть стабильным machine-readable идентификатором. `label` - локализованный display label.
 
 ## Searchable Text
 
-`searchableText` - готовый текстовый материал из публичных полей продукта:
+`searchableText` - готовый текстовый материал из полей продукта:
 
 - title;
 - description;
@@ -720,25 +692,23 @@ services/catalog/src/resolvers/public/
 - selected attributes;
 - option values.
 
-Это поле фиксирует правила `catalog` о том, какие публичные поля продукта входят в готовый текстовый материал. Поле вычисляется только если оно запрошено.
+Это поле фиксирует правила `catalog` о том, какие поля продукта входят в готовый текстовый материал. Поле вычисляется только если оно запрошено.
 
 ## Revision Handling
 
-`revision` является публичным полем и возвращается только если оно запрошено.
+`revision` возвращается только если он запрошен.
 
 Правила:
 
-- `revision` должен монотонно отражать изменение публичного snapshot продукта;
-- tombstone revision должна быть revision того изменения, из-за которого продукт стал непубличным;
-- published state и tombstone state используют одно и то же поле `revision`;
+- `revision` должен монотонно отражать изменение snapshot продукта;
+- draft, published и archived states используют одно и то же поле `revision`;
 - если `revision` запрошен, catalog не должен возвращать product object без `revision`.
 
-## Что не входит в Public Read API
+## Что не входит в Product Read API
 
-В `ProductPublicSelection` и `ProductPublicResolved` не должны входить:
+В `ProductSnapshotSelection` и `ProductSnapshotResolved` не должны входить:
 
 - внутренние catalog aggregate fields;
-- unpublished draft data;
 - cost price;
 - supplier/internal procurement data;
 - inventory reservation state;
@@ -780,7 +750,7 @@ catalog.getProducts({
 
 Такой API быстро превращается во внутренний GraphQL поверх broker и начинает раскрывать структуру catalog domain.
 
-Правильная форма - explicit public selection types:
+Правильная форма - explicit product selection types:
 
 ```ts
 selection: {
@@ -793,19 +763,19 @@ selection: {
 }
 ```
 
-То есть selection есть, но он ограничен публичным contract type, а не произвольными строковыми paths.
+То есть selection есть, но он ограничен contract type, а не произвольными строковыми paths.
 
 ## Shared Service API Client
 
-Публичный клиент должен жить в `packages/shared-service-api/src/catalog`, по аналогии с существующими service API clients.
+Клиент должен жить в `packages/shared-service-api/src/catalog`, по аналогии с существующими service API clients.
 
 ```ts
 import type { Catalog } from "@shopana/broker-types";
 
 export interface CatalogApiClient {
-  getProductPublicSnapshots(
-    input: Catalog.GetProductPublicSnapshotsParams
-  ): Promise<Catalog.GetProductPublicSnapshotsResult>;
+  getProductSnapshots(
+    input: Catalog.GetProductSnapshotsParams
+  ): Promise<Catalog.GetProductSnapshotsResult>;
 }
 ```
 
@@ -818,13 +788,13 @@ import type { BrokerLike } from "../broker";
 export class CatalogClient implements CatalogApiClient {
   constructor(private readonly broker: BrokerLike) {}
 
-  async getProductPublicSnapshots(
-    input: Catalog.GetProductPublicSnapshotsParams
-  ): Promise<Catalog.GetProductPublicSnapshotsResult> {
+  async getProductSnapshots(
+    input: Catalog.GetProductSnapshotsParams
+  ): Promise<Catalog.GetProductSnapshotsResult> {
     return (await this.broker.call(
-      "catalog.getProductPublicSnapshots",
+      "catalog.getProductSnapshots",
       input
-    )) as Catalog.GetProductPublicSnapshotsResult;
+    )) as Catalog.GetProductSnapshotsResult;
   }
 }
 ```
@@ -857,7 +827,7 @@ public readonly catalog: CatalogApiClient;
 Контракт должен развиваться additive-first:
 
 - можно добавлять новые optional fields в result DTO;
-- можно добавлять новые literal values в public field unions только если клиенты валидируют selection через актуальные broker types;
+- можно добавлять новые literal values в field unions только если клиенты валидируют selection через актуальные broker types;
 - нельзя менять смысл существующих полей без новой версии;
 - нельзя переименовывать поля без миграционного периода;
 - breaking changes требуют новой action или versioned DTO.
@@ -865,17 +835,17 @@ public readonly catalog: CatalogApiClient;
 Если потребуется новая версия:
 
 ```ts
-catalog.getProductPublicSnapshotsV2
+catalog.getProductSnapshotsV2
 ```
 
 Предпочтение: новая action для явных breaking changes.
 
 ## Итоговое правило
 
-`catalog` должен предоставлять публичный read API продукта через стабильный broker action:
+`catalog` должен предоставлять read API продукта через стабильный broker action:
 
 ```ts
-catalog.getProductPublicSnapshots
+catalog.getProductSnapshots
 ```
 
 API имеет GraphQL-like semantics, но broker contract состоит из explicit DTO types в `@shopana/broker-types`.
