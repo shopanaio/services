@@ -67,7 +67,7 @@ export class EventEmitWorkflow extends BrokerWorkflows {
       "events.dispatch",
       {
         kind: "event",
-        tenantId: event.context.tenantId,
+        organizationId: event.context.organizationId,
         eventId: event.eventId,
       },
       {
@@ -75,7 +75,7 @@ export class EventEmitWorkflow extends BrokerWorkflows {
         workflowId: DBOS.workflowID!,
         stepId: "dispatchEvent",
         callId: event.eventId,
-        tenantId: event.context.tenantId,
+        organizationId: event.context.organizationId,
       },
     );
 
@@ -116,7 +116,7 @@ export class EventEmitWorkflow extends BrokerWorkflows {
     });
 
     const eventId = makeEventId({
-      tenantId: params.context.tenantId,
+      organizationId: params.context.organizationId,
       dispatchWorkflowId: workflowId,
     });
 

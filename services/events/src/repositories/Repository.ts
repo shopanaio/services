@@ -16,7 +16,7 @@ export interface RepositoryConfig {
 export interface AddToDLQParams {
   eventId: string;
   eventType: string;
-  tenantId: string;
+  organizationId: string;
   correlationId?: string;
   handler: { service: string; action: string };
   error: string;
@@ -31,13 +31,13 @@ export type PersistDispatchOptions = Required<
 > | { mode: "immediate" };
 
 export interface ClaimEventInput {
-  tenantId: string;
+  organizationId: string;
   eventId: string;
   lockedBy: string;
 }
 
 export interface ClaimBatchInput {
-  tenantId: string;
+  organizationId: string;
   eventType?: string;
   batchKey: string;
   limit?: number;
@@ -103,7 +103,7 @@ export class Repository {
       .from(domainEvents)
       .where(
         and(
-          eq(domainEvents.tenantId, event.context.tenantId),
+          eq(domainEvents.organizationId, event.context.organizationId),
           eq(domainEvents.subjectType, event.subject.type),
           eq(domainEvents.subjectId, event.subject.id),
         ),
@@ -117,7 +117,7 @@ export class Repository {
       eventSequence,
       source: event.source,
       timestamp: realTimestamp,
-      tenantId: event.context.tenantId,
+      organizationId: event.context.organizationId,
       userId: event.context.userId,
       correlationId: event.context.correlationId,
       causationId: event.context.causationId,
@@ -147,7 +147,7 @@ export class Repository {
         .where(
           and(
             eq(domainEvents.status, "pending"),
-            eq(domainEvents.tenantId, input.tenantId),
+            eq(domainEvents.organizationId, input.organizationId),
             eq(domainEvents.eventId, input.eventId),
           ),
         )
@@ -181,14 +181,14 @@ export class Repository {
       ? and(
           eq(domainEvents.status, "pending"),
           eq(domainEvents.dispatchMode, "deferred"),
-          eq(domainEvents.tenantId, input.tenantId),
+          eq(domainEvents.organizationId, input.organizationId),
           eq(domainEvents.eventType, input.eventType),
           eq(domainEvents.batchKey, input.batchKey),
         )
       : and(
           eq(domainEvents.status, "pending"),
           eq(domainEvents.dispatchMode, "deferred"),
-          eq(domainEvents.tenantId, input.tenantId),
+          eq(domainEvents.organizationId, input.organizationId),
           eq(domainEvents.batchKey, input.batchKey),
         );
 
@@ -284,7 +284,7 @@ export class Repository {
         error: params.error,
         errorCode: params.errorCode,
         attempts: params.attempts,
-        tenantId: params.tenantId,
+        organizationId: params.organizationId,
         correlationId: params.correlationId,
         dbosWorkflowId: params.dbosWorkflowId,
         dbosStepName: params.dbosStepName,
@@ -352,7 +352,7 @@ export class Repository {
   private sequenceLockKey(event: DomainEvent): string {
     return [
       "domain_events_sequence:v1",
-      event.context.tenantId,
+      event.context.organizationId,
       event.subject.type,
       event.subject.id,
     ].join(":");

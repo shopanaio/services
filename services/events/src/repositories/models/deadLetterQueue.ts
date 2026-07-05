@@ -19,7 +19,7 @@ export const deadLetterQueue = pgTable(
     error: text("error").notNull(),
     errorCode: text("error_code"),
     attempts: integer("attempts").notNull(),
-    tenantId: text("tenant_id").notNull(),
+    organizationId: text("organization_id").notNull(),
     correlationId: text("correlation_id"),
     dbosWorkflowId: text("dbos_workflow_id"),
     dbosStepName: text("dbos_step_name"),
@@ -37,7 +37,7 @@ export const deadLetterQueue = pgTable(
     ),
     index("idx_dlq_status").on(table.status),
     index("idx_dlq_event_type").on(table.eventType, table.status),
-    index("idx_dlq_tenant").on(table.tenantId, table.status),
+    index("idx_dlq_organization").on(table.organizationId, table.status),
   ]
 );
 

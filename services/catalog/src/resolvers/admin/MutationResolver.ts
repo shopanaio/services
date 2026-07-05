@@ -640,7 +640,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           },
           source: "catalog",
           context: {
-            tenantId: this.$ctx.store.organizationId,
+            organizationId: this.$ctx.store.organizationId,
             userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
           },
           subject: { type: "product", id: productId },
@@ -680,7 +680,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         },
         source: "catalog",
         context: {
-          tenantId: this.$ctx.store.organizationId,
+          organizationId: this.$ctx.store.organizationId,
           userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
         },
         subject: { type: "product", id: args.productId },
@@ -717,7 +717,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         },
         source: "catalog",
         context: {
-          tenantId: this.$ctx.store.organizationId,
+          organizationId: this.$ctx.store.organizationId,
           userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
         },
         subject: { type: "product", id: args.productId },
@@ -750,7 +750,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         },
         source: "catalog",
         context: {
-          tenantId: this.$ctx.store.organizationId,
+          organizationId: this.$ctx.store.organizationId,
           userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
         },
         subject: { type: "variant", id: args.variantId },
@@ -845,7 +845,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       sagaInput,
       {
         source: "content",
-        tenantId: sagaInput.storeId,
+        storeId: sagaInput.storeId,
         resourceId: sagaInput.handle,
         operation: "productCreate",
         content: input,

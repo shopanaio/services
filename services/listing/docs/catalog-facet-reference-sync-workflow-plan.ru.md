@@ -189,7 +189,7 @@ await broker.startWorkflow(
   },
   {
     source: "content",
-    tenantId: organizationId,
+    organizationId,
     resourceId: storeId,
     operation: "facetReferenceSyncBatch",
     content: {
@@ -394,7 +394,7 @@ dispatch: {
 ```ts
 await broker.call("events.dispatch", {
   kind: "batch",
-  tenantId: organizationId,
+  organizationId,
   batchKey,
 });
 ```
@@ -471,7 +471,7 @@ Single event:
 ```ts
 {
   source: "content",
-  tenantId: event.context.tenantId,
+  organizationId: event.context.organizationId,
   resourceId: event.eventId,
   operation: "facetReferenceSyncEvent",
   content: {
@@ -487,7 +487,7 @@ Batch:
 ```ts
 {
   source: "content",
-  tenantId: organizationId,
+  organizationId,
   resourceId: storeId,
   operation: "facetReferenceSyncBatch",
   content: {
@@ -502,7 +502,7 @@ Manual reconciliation:
 ```ts
 {
   source: "content",
-  tenantId: organizationId,
+  organizationId,
   resourceId: storeId,
   operation: "facetReferenceSyncManual",
   content: { refs, requestedAtBucket },

@@ -108,7 +108,7 @@ export class StoreDeleteSaga extends BrokerSaga<StoreDeleteInput, StoreDeleteOut
         },
         source: "project",
         context: {
-          tenantId: input.organizationId,
+          organizationId: input.organizationId,
           userId: input.userId,
         },
         subject: { type: "store", id: input.storeId },

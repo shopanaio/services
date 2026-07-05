@@ -1317,7 +1317,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
         },
         source: "catalog",
         context: {
-          tenantId: input.context.organizationId,
+          organizationId: input.context.organizationId,
           userId: input.context.userId,
         },
         subject: { type: "product", id: input.productId },

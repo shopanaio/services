@@ -54,7 +54,7 @@ export class FileDeleteCleanupWorkflow extends BrokerWorkflows {
         payload: { fileId },
         source: "media",
         context: {
-          tenantId: ownerId,
+          organizationId: ownerId,
         },
         subject: { type: "file", id: fileId },
         actor: { type: "service" },

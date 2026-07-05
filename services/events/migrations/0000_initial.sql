@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS domain_events (
   event_sequence INTEGER NOT NULL,
   source TEXT NOT NULL,
   timestamp TIMESTAMPTZ NOT NULL,
-  tenant_id TEXT NOT NULL,
+  organization_id TEXT NOT NULL,
   user_id TEXT,
   correlation_id TEXT NOT NULL,
   causation_id TEXT,
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS domain_events (
   CONSTRAINT domain_events_event_sequence_chk
     CHECK (event_sequence > 0),
   CONSTRAINT domain_events_subject_sequence_unique
-    UNIQUE (tenant_id, subject_type, subject_id, event_sequence)
+    UNIQUE (organization_id, subject_type, subject_id, event_sequence)
 );
 
 CREATE INDEX idx_events_type ON domain_events(event_type);
@@ -45,11 +45,11 @@ CREATE INDEX idx_events_correlation ON domain_events(correlation_id);
 CREATE INDEX idx_events_status ON domain_events(status) WHERE status IN ('pending', 'dispatching', 'failed');
 CREATE INDEX idx_events_parent_workflow ON domain_events(parent_workflow_id, event_type);
 
-CREATE INDEX idx_events_tenant_timestamp ON domain_events(tenant_id, timestamp DESC);
-CREATE INDEX idx_events_subject_timeline ON domain_events(tenant_id, subject_type, subject_id, event_sequence DESC, timestamp DESC);
-CREATE INDEX idx_events_type_timestamp ON domain_events(tenant_id, event_type, timestamp DESC);
+CREATE INDEX idx_events_organization_timestamp ON domain_events(organization_id, timestamp DESC);
+CREATE INDEX idx_events_subject_timeline ON domain_events(organization_id, subject_type, subject_id, event_sequence DESC, timestamp DESC);
+CREATE INDEX idx_events_type_timestamp ON domain_events(organization_id, event_type, timestamp DESC);
 CREATE INDEX idx_domain_events_pending ON domain_events(status, created_at);
-CREATE INDEX idx_domain_events_batch ON domain_events(tenant_id, event_type, batch_key, created_at);
+CREATE INDEX idx_domain_events_batch ON domain_events(organization_id, event_type, batch_key, created_at);
 
 CREATE TABLE IF NOT EXISTS dead_letter_queue (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS dead_letter_queue (
   error TEXT NOT NULL,
   error_code TEXT,
   attempts INTEGER NOT NULL,
-  tenant_id TEXT NOT NULL,
+  organization_id TEXT NOT NULL,
   correlation_id TEXT,
   dbos_workflow_id TEXT,
   dbos_step_name TEXT,
@@ -75,5 +75,5 @@ CREATE TABLE IF NOT EXISTS dead_letter_queue (
 
 CREATE INDEX idx_dlq_status ON dead_letter_queue(status);
 CREATE INDEX idx_dlq_event_type ON dead_letter_queue(event_type, status);
-CREATE INDEX idx_dlq_tenant ON dead_letter_queue(tenant_id, status);
+CREATE INDEX idx_dlq_organization ON dead_letter_queue(organization_id, status);
 CREATE INDEX idx_dlq_expires ON dead_letter_queue(expires_at) WHERE expires_at IS NOT NULL;

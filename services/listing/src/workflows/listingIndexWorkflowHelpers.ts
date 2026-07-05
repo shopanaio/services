@@ -44,7 +44,7 @@ export function buildListingIndexWorkflowIdempotencyContext(input: {
 }): IdempotencyContext {
   return {
     source: "content",
-    tenantId: input.storeId,
+    storeId: input.storeId,
     resourceId: `${input.entityType}:${input.itemId}`,
     operation: `listing.${input.actionType}`,
     contentHash: input.effectiveIdempotencyKey,

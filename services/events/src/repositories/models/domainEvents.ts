@@ -16,7 +16,7 @@ export const domainEvents = pgTable(
     eventSequence: integer("event_sequence").notNull(),
     source: text("source").notNull(),
     timestamp: timestamp("timestamp", { withTimezone: true }).notNull(),
-    tenantId: text("tenant_id").notNull(),
+    organizationId: text("organization_id").notNull(),
     userId: text("user_id"),
     correlationId: text("correlation_id").notNull(),
     causationId: text("causation_id"),
@@ -51,28 +51,28 @@ export const domainEvents = pgTable(
       table.parentWorkflowId,
       table.eventType
     ),
-    index("idx_events_tenant_timestamp").on(table.tenantId, table.timestamp),
+    index("idx_events_organization_timestamp").on(table.organizationId, table.timestamp),
     index("idx_events_subject_timeline").on(
-      table.tenantId,
+      table.organizationId,
       table.subjectType,
       table.subjectId,
       table.eventSequence,
       table.timestamp
     ),
     index("idx_events_type_timestamp").on(
-      table.tenantId,
+      table.organizationId,
       table.eventType,
       table.timestamp
     ),
     index("idx_domain_events_pending").on(table.status, table.createdAt),
     index("idx_domain_events_batch").on(
-      table.tenantId,
+      table.organizationId,
       table.eventType,
       table.batchKey,
       table.createdAt
     ),
     uniqueIndex("domain_events_subject_sequence_unique").on(
-      table.tenantId,
+      table.organizationId,
       table.subjectType,
       table.subjectId,
       table.eventSequence

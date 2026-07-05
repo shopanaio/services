@@ -166,7 +166,7 @@ function buildListingIndexWorkflowIdempotencyContext(input: {
 }): IdempotencyContext {
   return {
     source: "content",
-    tenantId: input.storeId,
+    storeId: input.storeId,
     resourceId: `${input.entityType}:${input.itemId}`,
     operation: `listing.${input.actionType}`,
     contentHash: input.effectiveIdempotencyKey,
@@ -187,9 +187,9 @@ function buildListingIndexWorkflowName(
 - `WorkflowRegistry.start()` вызывает
   `buildIdempotencyKey(qualifiedWorkflow, idempotencyCtx)`;
 - для `source: "content"` DBOS workflow identity строится из
-  `tenantId`, `resourceId`, `operation`, `contentHash` и qualified workflow
+  `storeId`, `resourceId`, `operation`, `contentHash` и qualified workflow
   name;
-- `tenantId = storeId` дает project-level isolation;
+- `storeId = storeId` дает project-level isolation;
 - `resourceId = entityType:itemId` делает workflow identity item-scoped;
 - `operation = listing.${actionType}` разделяет sync и delete при одном
   external idempotency key;

@@ -22,10 +22,10 @@ export function makeDispatchWorkflowId(params: {
 }
 
 export function makeEventId(params: {
-  tenantId: string;
+  organizationId: string;
   dispatchWorkflowId: string;
 }): string {
-  return sha256(`eventId:v1:${params.tenantId}:${params.dispatchWorkflowId}`).slice(0, 32);
+  return sha256(`eventId:v1:${params.organizationId}:${params.dispatchWorkflowId}`).slice(0, 32);
 }
 
 export function makeDeterministicCorrelationId(parentWorkflowId: string): string {

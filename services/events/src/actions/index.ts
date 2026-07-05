@@ -100,14 +100,14 @@ function toDispatchInput(params: EventDispatchActionParams): EventDispatchInput 
   if (params.kind === "event") {
     return {
       kind: "event",
-      tenantId: params.tenantId,
+      organizationId: params.organizationId,
       eventId: params.eventId,
     };
   }
 
   return {
     kind: "batch",
-    tenantId: params.tenantId,
+    organizationId: params.organizationId,
     eventType: params.eventType,
     batchKey: params.batchKey,
     limit: params.limit,
@@ -126,7 +126,7 @@ function buildDispatchIdempotency(
   if (parentWorkflowId) {
     return {
       source: "workflow",
-      tenantId: input.tenantId,
+      organizationId: input.organizationId,
       workflowId: parentWorkflowId,
       stepId: input.kind === "event" ? "dispatchEvent" : "dispatchBatch",
       callId,
@@ -135,7 +135,7 @@ function buildDispatchIdempotency(
 
   return {
     source: "content",
-    tenantId: input.tenantId,
+    organizationId: input.organizationId,
     resourceId: input.kind === "event" ? input.eventId : input.batchKey,
     operation: input.kind === "event" ? "dispatchEvent" : "dispatchBatch",
     content: input,

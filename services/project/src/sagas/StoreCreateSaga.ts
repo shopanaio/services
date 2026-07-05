@@ -185,7 +185,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
         },
         source: "project",
         context: {
-          tenantId: input.organizationId,
+          organizationId: input.organizationId,
           userId: input.userId,
         },
         subject: { type: "store", id },

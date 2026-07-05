@@ -77,14 +77,14 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
 
     if (input.kind === "event") {
       return this.repository.claimEvent({
-        tenantId: input.tenantId,
+        organizationId: input.organizationId,
         eventId: input.eventId,
         lockedBy,
       });
     }
 
     return this.repository.claimBatch({
-      tenantId: input.tenantId,
+      organizationId: input.organizationId,
       eventType: input.eventType,
       batchKey: input.batchKey,
       limit: input.limit,
@@ -563,7 +563,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
         await this.repository.addToDLQ({
           eventId: event.eventId,
           eventType: event.eventType,
-          tenantId: event.context.tenantId,
+          organizationId: event.context.organizationId,
           correlationId: event.context.correlationId,
           handler: { service: handler.serviceName, action: handler.action },
           error,
@@ -603,7 +603,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
             this.repository.addToDLQ({
               eventId: event.eventId,
               eventType: event.eventType,
-              tenantId: event.context.tenantId,
+              organizationId: event.context.organizationId,
               correlationId: event.context.correlationId,
               handler: { service: handler.serviceName, action: handler.action },
               error,
@@ -783,7 +783,7 @@ function toDomainEvent(record: DomainEventRecord): DomainEvent {
     emitKey: record.emitKey,
     parentWorkflowId: record.parentWorkflowId ?? undefined,
     context: {
-      tenantId: record.tenantId,
+      organizationId: record.organizationId,
       userId: record.userId ?? undefined,
       correlationId: record.correlationId,
       causationId: record.causationId ?? undefined,

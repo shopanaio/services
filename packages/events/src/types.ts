@@ -2,7 +2,7 @@ export interface DomainEvent<TType extends string = string, TPayload = unknown> 
   eventId: string;
   eventType: TType;
   /**
-   * Monotonic sequence within tenantId + subject.type + subject.id.
+   * Monotonic sequence within organizationId + subject.type + subject.id.
    * Assigned by the events service when the event is persisted.
    */
   eventSequence?: number;
@@ -25,7 +25,7 @@ export type EmitDispatchOptions =
     };
 
 export interface EventContext {
-  tenantId: string;
+  organizationId: string;
   userId?: string;
   correlationId: string;
   causationId?: string;
@@ -76,12 +76,12 @@ export interface EventEmitResult {
 export type EventDispatchInput =
   | {
       kind: "event";
-      tenantId: string;
+      organizationId: string;
       eventId: string;
     }
   | {
       kind: "batch";
-      tenantId: string;
+      organizationId: string;
       eventType?: string;
       batchKey: string;
       limit?: number;

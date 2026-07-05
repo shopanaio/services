@@ -309,7 +309,7 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
           },
           source: "catalog",
           context: {
-            tenantId: input.context.organizationId,
+            organizationId: input.context.organizationId,
             userId: input.context.userId,
           },
           subject: { type: "product", id: productId },
