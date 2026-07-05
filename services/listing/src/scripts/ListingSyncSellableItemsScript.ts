@@ -2,14 +2,14 @@ import type { Listing } from "@shopana/broker-types";
 import {
   buildListingIndexEffectiveIdempotencyKey,
   buildListingIndexPayloadHash,
-} from "../actions/listingIndexActionHelpers.js";
+} from "../workflows/listingIndexWorkflowHelpers.js";
 import { BaseScript } from "../kernel/BaseScript.js";
 import { ListingBuildSyncWriteModelScript } from "./ListingBuildSyncWriteModelScript.js";
 import { ListingPrepareIndexActionScript } from "./ListingPrepareIndexActionScript.js";
 import { ListingWriteIndexActionScript } from "./ListingWriteIndexActionScript.js";
 import type {
+  ListingIndexHydratedSyncAction,
   ListingIndexPreparedSyncAction,
-  ListingIndexQueuedSyncAction,
 } from "./listingIndexActionTypes.js";
 
 export interface ListingBatchTransactionStrategy {
@@ -65,7 +65,7 @@ export class ListingSyncSellableItemsScript extends BaseScript<
     params: Listing.SyncSellableItemsParams,
     item: Listing.ListingSellableItemSnapshot
   ): Promise<Listing.ListingUpdateResult> {
-    const queued: ListingIndexQueuedSyncAction = {
+    const queued: ListingIndexHydratedSyncAction = {
       type: "syncSellableItem",
       params: {
         meta: params.meta,

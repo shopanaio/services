@@ -128,6 +128,13 @@ export interface SyncSellableItemParams {
 
 export type SyncSellableItemResult = ListingUpdateResult;
 
+export interface SyncSellableItemHydrationParams {
+  meta: ListingUpdateMeta;
+  storeId: string;
+  itemRef: ListingSellableItemRef;
+  expectedRevision?: number;
+}
+
 export interface DeleteSellableItemParams {
   meta: ListingUpdateMeta;
   storeId: string;

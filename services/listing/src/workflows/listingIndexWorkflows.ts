@@ -6,13 +6,16 @@ import {
   Workflow,
   WorkflowStep,
 } from "@shopana/shared-kernel";
-import type { Listing } from "@shopana/broker-types";
+import type { Catalog, Listing } from "@shopana/broker-types";
 import { Kernel } from "../kernel/Kernel.js";
 import type { RunScriptContext } from "../kernel/types.js";
 import { ListingBuildSyncWriteModelScript } from "../scripts/ListingBuildSyncWriteModelScript.js";
 import { ListingPrepareIndexActionScript } from "../scripts/ListingPrepareIndexActionScript.js";
 import { ListingWriteIndexActionScript } from "../scripts/ListingWriteIndexActionScript.js";
+import { mapCatalogProductToListingSnapshot } from "./catalogListingSnapshotMapper.js";
+import { buildListingIndexPayloadHash } from "./listingIndexWorkflowHelpers.js";
 import type {
+  ListingIndexHydratedSyncAction,
   ListingIndexPreparedDeleteAction,
   ListingIndexPreparedSyncAction,
   ListingIndexQueuedDeleteAction,
@@ -23,6 +26,29 @@ import type {
   ListingPreparedSyncWriteAction,
   ListingSyncWriteModel,
 } from "../scripts/listingIndexActionTypes.js";
+
+type GetStoreByIdResult = {
+  store: {
+    id: string;
+    organizationId: string;
+    defaultLocale: string;
+  } | null;
+  userErrors: Array<{
+    code: string;
+    message: string;
+    field?: string[] | null;
+  }>;
+};
+
+type ListingCatalogHydrationResult =
+  | {
+      kind: "found";
+      action: ListingIndexHydratedSyncAction;
+    }
+  | {
+      kind: "missing";
+      result: Listing.ListingUpdateResult;
+    };
 
 abstract class ListingIndexWorkflowBase<
   TInput,
@@ -38,7 +64,7 @@ abstract class ListingIndexWorkflowBase<
     },
   })
   protected async stepPrepareSyncIndexAction(
-    action: ListingIndexQueuedSyncAction
+    action: ListingIndexHydratedSyncAction
   ): Promise<ListingIndexPreparedSyncAction> {
     const kernel = Kernel.getInstance();
 
@@ -147,7 +173,13 @@ export class ListingSyncSellableItemIndexWorkflow extends ListingIndexWorkflowBa
   async run(
     action: ListingIndexQueuedSyncAction
   ): Promise<Listing.ListingUpdateResult> {
-    const prepared = await this.stepPrepareSyncIndexAction(action);
+    const hydration = await this.stepFetchCatalogListingSnapshot(action);
+
+    if (hydration.kind === "missing") {
+      return hydration.result;
+    }
+
+    const prepared = await this.stepPrepareSyncIndexAction(hydration.action);
 
     if (prepared.kind === "final") {
       return prepared.result;
@@ -161,6 +193,94 @@ export class ListingSyncSellableItemIndexWorkflow extends ListingIndexWorkflowBa
       action: prepared.action,
       syncWriteModel,
     });
+  }
+
+  @WorkflowStep({
+    name: "fetchCatalogListingSnapshot",
+    timeoutMs: 60_000,
+    retry: {
+      maxAttempts: 5,
+      intervalSeconds: 1,
+      backoffRate: 2,
+    },
+  })
+  private async stepFetchCatalogListingSnapshot(
+    action: ListingIndexQueuedSyncAction
+  ): Promise<ListingCatalogHydrationResult> {
+    const [queryResult, storeResult] = await Promise.all([
+      this.broker.call<Catalog.CatalogQueryResult, Catalog.CatalogQueryParams>(
+        "catalog.query",
+        {
+          storeId: action.params.storeId,
+          selection: buildProductSnapshotSelection(action.params.itemRef.id),
+        }
+      ),
+      this.broker.call<GetStoreByIdResult, { id: string }>(
+        "project.getStoreById",
+        { id: action.params.storeId }
+      ),
+    ]);
+
+    if (!storeResult.store) {
+      const message =
+        storeResult.userErrors[0]?.message ??
+        `Store with id "${action.params.storeId}" not found`;
+      throw new Error(message);
+    }
+
+    if (!queryResult.ok) {
+      if (queryResult.retryable) {
+        throw new Error(queryResult.message);
+      }
+
+      throw new Error(
+        `Catalog product query failed: ${queryResult.code}: ${queryResult.message}`
+      );
+    }
+
+    const product = queryResult.data.products?.edges?.[0]?.node;
+    if (!product) {
+      return {
+        kind: "missing",
+        result: {
+          operationId: action.params.meta.operationId,
+          storeId: action.params.storeId,
+          itemRef: action.params.itemRef,
+          sourceRevision: action.params.expectedRevision ?? 0,
+          status: "noop",
+          processedAt: new Date().toISOString(),
+          warnings: [
+            {
+              code: "CATALOG_PRODUCT_NOT_FOUND",
+              field: ["itemRef", "id"],
+              message: "Catalog product snapshot was not found during listing sync",
+            },
+          ],
+        },
+      };
+    }
+
+    const syncParams: Listing.SyncSellableItemParams = {
+      meta: action.params.meta,
+      storeId: action.params.storeId,
+      item: mapCatalogProductToListingSnapshot({
+        product,
+        defaultLocale: storeResult.store.defaultLocale,
+      }),
+    };
+
+    return {
+      kind: "found",
+      action: {
+        type: "syncSellableItem",
+        params: syncParams,
+        effectiveIdempotencyKey: action.effectiveIdempotencyKey,
+        payloadHash: buildListingIndexPayloadHash({
+          type: "syncSellableItem",
+          params: syncParams,
+        }),
+      },
+    };
   }
 }
 
@@ -191,7 +311,7 @@ export class ListingDeleteSellableItemIndexWorkflow extends ListingIndexWorkflow
 
 function buildRunScriptContext(
   action:
-    | ListingIndexQueuedSyncAction
+    | ListingIndexHydratedSyncAction
     | ListingIndexQueuedDeleteAction
     | ListingPreparedSyncAction
     | ListingPreparedDeleteAction
@@ -206,5 +326,111 @@ function buildRunScriptContext(
     requestId: params.meta.source.requestId ?? params.meta.operationId,
     locale: content?.defaultLocale,
     defaultLocale: content?.defaultLocale ?? "uk",
+  };
+}
+
+function buildProductSnapshotSelection(productId: string): Catalog.CatalogQuerySelection {
+  return {
+    populate: {
+      products: {
+        fieldName: "products",
+        args: {
+          first: 1,
+          where: {
+            id: {
+              _eq: productId,
+            },
+          },
+        },
+        populate: {
+          edges: {
+            fieldName: "edges",
+            populate: {
+              node: {
+                fields: [
+                  "snapshotVersion",
+                  "id",
+                  "storeId",
+                  "revision",
+                  "kind",
+                  "status",
+                  "publishedAt",
+                  "createdAt",
+                  "updatedAt",
+                  "handle",
+                  "vendorId",
+                ],
+                populate: {
+                  content: {
+                    fieldName: "content",
+                    fields: ["locale", "title"],
+                    populate: {
+                      description: {
+                        fieldName: "description",
+                        fields: ["text"],
+                      },
+                    },
+                  },
+                  seo: {
+                    fieldName: "seo",
+                    fields: ["locale", "seoTitle", "seoDescription"],
+                  },
+                  availability: {
+                    fieldName: "availability",
+                    fields: ["availableForSale", "totalQuantity"],
+                  },
+                  primaryCategory: {
+                    fieldName: "primaryCategory",
+                    fields: ["id"],
+                  },
+                  categories: {
+                    fieldName: "categories",
+                    fields: ["id"],
+                  },
+                  tags: {
+                    fieldName: "tags",
+                    fields: ["id", "handle"],
+                  },
+                  features: {
+                    fieldName: "features",
+                    fields: ["id", "handle"],
+                    populate: {
+                      values: {
+                        fieldName: "values",
+                        fields: ["id", "handle"],
+                      },
+                    },
+                  },
+                  variants: {
+                    fieldName: "variants",
+                    fields: ["id", "handle", "isDefault", "createdAt", "updatedAt"],
+                    populate: {
+                      availability: {
+                        fieldName: "availability",
+                        fields: ["availableForSale", "totalQuantity"],
+                      },
+                      prices: {
+                        fieldName: "prices",
+                        fields: ["currencyCode", "amountMinor"],
+                      },
+                      options: {
+                        fieldName: "options",
+                        fields: ["id", "handle"],
+                        populate: {
+                          values: {
+                            fieldName: "values",
+                            fields: ["id", "handle"],
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   };
 }

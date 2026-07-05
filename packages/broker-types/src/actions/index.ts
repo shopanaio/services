@@ -93,6 +93,7 @@ export type {
   ListingUpdateWarning,
   ListingVariantPriceSnapshot,
   ListingVariantSnapshot,
+  SyncSellableItemHydrationParams,
   SyncSellableItemParams,
   SyncSellableItemResult,
   SyncSellableItemsParams,

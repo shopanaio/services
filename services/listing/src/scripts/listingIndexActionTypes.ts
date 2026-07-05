@@ -1,5 +1,5 @@
 import type { Listing } from "@shopana/broker-types";
-import type { ListingIndexActionType } from "../actions/listingIndexActionHelpers.js";
+import type { ListingIndexActionType } from "../workflows/listingIndexWorkflowHelpers.js";
 import type {
   ProductKind,
   ProductListingIndexUpsertInput,
@@ -12,6 +12,12 @@ import type {
 } from "../repositories/listing/listingRepositoryTypes.js";
 
 export type ListingIndexQueuedSyncAction = {
+  type: "syncSellableItem";
+  params: Listing.SyncSellableItemHydrationParams;
+  effectiveIdempotencyKey: string;
+};
+
+export type ListingIndexHydratedSyncAction = {
   type: "syncSellableItem";
   params: Listing.SyncSellableItemParams;
   effectiveIdempotencyKey: string;
@@ -26,7 +32,7 @@ export type ListingIndexQueuedDeleteAction = {
 };
 
 export type ListingIndexQueuedAction =
-  | ListingIndexQueuedSyncAction
+  | ListingIndexHydratedSyncAction
   | ListingIndexQueuedDeleteAction;
 
 export type ListingIndexFinalStatus =
@@ -34,7 +40,7 @@ export type ListingIndexFinalStatus =
   | "noop"
   | "ignored_stale";
 
-export type ListingPreparedSyncAction = ListingIndexQueuedSyncAction & {
+export type ListingPreparedSyncAction = ListingIndexHydratedSyncAction & {
   actionType: "syncSellableItem";
   sourceRevision: number;
   itemKey: ListingIndexItemKey;
