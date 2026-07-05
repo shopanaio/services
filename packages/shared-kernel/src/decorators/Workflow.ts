@@ -39,7 +39,7 @@ export interface WorkflowMetadata {
  * await broker.runWorkflow("project.storeCreate", input, {
  *   source: "client",
  *   clientKey: ctx.idempotencyKey,
- *   tenantId: ctx.organizationId,
+ *   organizationId: ctx.organizationId,
  *   apiKeyId: ctx.apiKeyId,
  * });
  */

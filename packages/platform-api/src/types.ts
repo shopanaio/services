@@ -266,7 +266,7 @@ export type CoreUser = {
   language: Scalars['String']['output'];
   lastName: Scalars['String']['output'];
   phoneNumber?: Maybe<Scalars['String']['output']>;
-  tenantId: Scalars['ID']['output'];
+  organizationId: Scalars['ID']['output'];
   timezone: Scalars['String']['output'];
   updatedAt: Scalars['Timestamp']['output'];
 };

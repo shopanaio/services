@@ -74,7 +74,7 @@ function mapGrpcContextToCore(grpcContext: any): Required<CoreContext> | null {
     tenant: grpcContext.tenant ? {
       __typename: "User",
       id: grpcContext.tenant.id || "",
-      tenantId: grpcContext.tenant.tenant_id || "",
+      organizationId: grpcContext.tenant.tenant_id || "",
       email: grpcContext.tenant.email || "",
       firstName: grpcContext.tenant.first_name || "",
       lastName: grpcContext.tenant.last_name || "",

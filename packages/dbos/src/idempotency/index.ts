@@ -22,7 +22,7 @@ export interface ClientIdempotencyContext {
   /** Client-provided idempotency key from HTTP header */
   clientKey: string;
   /** Tenant/organization ID for key isolation */
-  tenantId: string;
+  organizationId: string;
   /** API key ID used for the request */
   apiKeyId: string;
 }
@@ -34,7 +34,7 @@ export interface ClientIdempotencyContext {
 export interface WorkflowIdempotencyContext {
   source: "workflow";
   /** Tenant/organization ID for key isolation (optional) */
-  tenantId?: string;
+  organizationId?: string;
   /** Business ID of parent workflow */
   workflowId: string;
   /** Step name within workflow */
@@ -50,7 +50,7 @@ export interface WorkflowIdempotencyContext {
 export interface ContentIdempotencyContext {
   source: "content";
   /** Tenant/organization ID for key isolation (optional) */
-  tenantId?: string;
+  organizationId?: string;
   /** Resource identifier (e.g., SKU, productId) */
   resourceId: string;
   /** Operation name */
@@ -90,7 +90,7 @@ export function hashContent(payload: unknown): string {
  * Format: `{prefix}:{sha256_hash}`
  *
  * The hash input is versioned and includes all context fields for collision resistance.
- * When tenantId is provided, it's included at the beginning of the hash input for isolation.
+ * When organizationId is provided, it's included at the beginning of the hash input for isolation.
  */
 export function buildIdempotencyKey(
   workflowName: string,
@@ -100,24 +100,24 @@ export function buildIdempotencyKey(
     return createHash("sha256").update(input).digest("hex").slice(0, 32);
   };
 
-  const tenantPrefix = (tenantId: string | undefined) => tenantId ? `${tenantId}:` : "";
+  const tenantPrefix = (organizationId: string | undefined) => organizationId ? `${organizationId}:` : "";
 
   switch (ctx.source) {
     case "client": {
-      const input = `v1:client:${tenantPrefix(ctx.tenantId)}${ctx.apiKeyId}:${workflowName}:${ctx.clientKey}`;
+      const input = `v1:client:${tenantPrefix(ctx.organizationId)}${ctx.apiKeyId}:${workflowName}:${ctx.clientKey}`;
       return `client:${hash(input)}`;
     }
 
     case "workflow": {
       const callId = ctx.callId ?? "";
-      const input = `v1:workflow:${tenantPrefix(ctx.tenantId)}${ctx.workflowId}:${ctx.stepId}:${callId}:${workflowName}`;
+      const input = `v1:workflow:${tenantPrefix(ctx.organizationId)}${ctx.workflowId}:${ctx.stepId}:${callId}:${workflowName}`;
       return `workflow:${hash(input)}`;
     }
 
     case "content": {
       const contentHashValue = ctx.contentHash ?? (ctx.content !== undefined ? hashContent(ctx.content) : undefined);
       const contentSuffix = contentHashValue ? `:${contentHashValue}` : "";
-      const input = `v1:content:${tenantPrefix(ctx.tenantId)}${ctx.resourceId}:${ctx.operation}${contentSuffix}:${workflowName}`;
+      const input = `v1:content:${tenantPrefix(ctx.organizationId)}${ctx.resourceId}:${ctx.operation}${contentSuffix}:${workflowName}`;
       return `content:${hash(input)}`;
     }
   }
