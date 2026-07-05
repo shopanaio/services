@@ -18,7 +18,7 @@ export type ListingIndexWorkflowName =
 
 export function buildListingIndexEffectiveIdempotencyKey(input: {
   rawIdempotencyKey: string;
-  projectId: string;
+  storeId: string;
   entityType: Listing.ListingSellableItemEntityType;
   itemId: string;
   actionType: ListingIndexActionType;
@@ -26,7 +26,7 @@ export function buildListingIndexEffectiveIdempotencyKey(input: {
 }): string {
   return hashContent({
     v: 1,
-    projectId: input.projectId,
+    storeId: input.storeId,
     entityType: input.entityType,
     itemId: input.itemId,
     actionType: input.actionType,
@@ -36,7 +36,7 @@ export function buildListingIndexEffectiveIdempotencyKey(input: {
 }
 
 export function buildListingIndexWorkflowIdempotencyContext(input: {
-  projectId: string;
+  storeId: string;
   entityType: Listing.ListingSellableItemEntityType;
   itemId: string;
   actionType: ListingIndexActionType;
@@ -44,7 +44,7 @@ export function buildListingIndexWorkflowIdempotencyContext(input: {
 }): IdempotencyContext {
   return {
     source: "content",
-    tenantId: input.projectId,
+    tenantId: input.storeId,
     resourceId: `${input.entityType}:${input.itemId}`,
     operation: `listing.${input.actionType}`,
     contentHash: input.effectiveIdempotencyKey,
@@ -67,11 +67,11 @@ export function buildListingIndexWorkflowId(input: {
 }
 
 export function buildListingIndexQueuePartitionKey(input: {
-  projectId: string;
+  storeId: string;
   entityType: Listing.ListingSellableItemEntityType;
   itemId: string;
 }): string {
-  return [input.projectId, input.entityType, input.itemId].join(":");
+  return [input.storeId, input.entityType, input.itemId].join(":");
 }
 
 export function buildListingIndexPayloadHash(input:
@@ -87,7 +87,7 @@ export function buildListingIndexPayloadHash(input:
     return hashContent({
       v: 1,
       actionType: input.type,
-      projectId: input.params.projectId,
+      storeId: input.params.storeId,
       item: input.params.item,
     });
   }
@@ -95,7 +95,7 @@ export function buildListingIndexPayloadHash(input:
   return hashContent({
     v: 1,
     actionType: input.type,
-    projectId: input.params.projectId,
+    storeId: input.params.storeId,
     itemRef: input.params.itemRef,
     sourceRevision: input.params.sourceRevision,
     deletedAt: input.params.deletedAt,
@@ -105,13 +105,13 @@ export function buildListingIndexPayloadHash(input:
 
 export function buildAcceptedListingUpdateResult(input: {
   meta: Listing.ListingUpdateMeta;
-  projectId: string;
+  storeId: string;
   itemRef: Listing.ListingSellableItemRef;
   sourceRevision: number;
 }): Listing.ListingUpdateResult {
   return {
     operationId: input.meta.operationId,
-    projectId: input.projectId,
+    storeId: input.storeId,
     itemRef: {
       entityType: input.itemRef.entityType,
       id: input.itemRef.id,

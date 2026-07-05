@@ -20,7 +20,7 @@ export class ShippingClient implements ShippingApiClient {
 
   /** @inheritdoc */
   async getProjectMethods(input: {
-    projectId: string;
+    storeId: string;
     apiKey: string;
   }): Promise<ShippingMethod[]> {
     const data = (await this.broker.call(

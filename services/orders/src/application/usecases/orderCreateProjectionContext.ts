@@ -6,7 +6,7 @@ import {
 } from "@shopana/shared-async-context";
 
 export interface OrderCreateProjectionContact {
-  projectId: string;
+  storeId: string;
   orderId: string;
   firstName: string | null;
   lastName: string | null;
@@ -33,7 +33,7 @@ export interface OrderCreateProjectionDeliveryAddress {
 
 export interface OrderCreateProjectionRecipient {
   id: string;
-  projectId: string;
+  storeId: string;
   firstName: string | null;
   lastName: string | null;
   middleName: string | null;

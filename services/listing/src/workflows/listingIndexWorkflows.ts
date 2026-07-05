@@ -201,8 +201,8 @@ function buildRunScriptContext(
     action.type === "syncSellableItem" ? action.params.item.content : null;
 
   return {
-    storeId: params.projectId,
-    organizationId: params.projectId,
+    storeId: params.storeId,
+    organizationId: params.storeId,
     requestId: params.meta.source.requestId ?? params.meta.operationId,
     locale: content?.defaultLocale,
     defaultLocale: content?.defaultLocale ?? "uk",

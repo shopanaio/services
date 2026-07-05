@@ -123,7 +123,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     try {
       request = await this.normalize(input);
       const sqlRequest = toListingSqlRequest({
-        projectId: this.storeId,
+        storeId: this.storeId,
         request,
         heavyOptionFacetCountsEnabled: this.heavyOptionFacetCountsEnabled,
       });
@@ -192,11 +192,11 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     } finally {
       if (request) {
         this.debugListingQuery({
-          projectId: this.storeId,
+          storeId: this.storeId,
           scopeKind: request.input.scope.kind,
           normalizedQueryHash: request.normalizedQuery
             ? buildListingFilterHash({
-                projectId: this.storeId,
+                storeId: this.storeId,
                 locale: request.input.locale,
                 currency: request.input.currency,
                 scope: request.input.scope,
@@ -295,7 +295,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
 
       this.ctx.kernel.getServices().logger.warn(
         {
-          projectId: request.projectId,
+          storeId: request.storeId,
           scopeKind: request.scopeKind,
           sortKind: request.sortKind,
           hasPriceFilter: request.priceFilterJson !== "{}",
@@ -311,7 +311,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
       );
       roundTrips += explainSections.length;
       await writeE2eExplainAnalyzeReport({
-        projectId: request.projectId,
+        storeId: request.storeId,
         scopeKind: request.scopeKind,
         sortKind: request.sortKind,
         hasPriceFilter: request.priceFilterJson !== "{}",
@@ -320,7 +320,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
       });
       this.ctx.kernel.getServices().logger.warn(
         {
-          projectId: request.projectId,
+          storeId: request.storeId,
           scopeKind: request.scopeKind,
           sortKind: request.sortKind,
           hasPriceFilter: request.priceFilterJson !== "{}",
@@ -444,7 +444,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     };
     const cursor = input.after ? decodeListingCursor(input.after) : null;
     const filterHash = buildListingFilterHash({
-      projectId: this.storeId,
+      storeId: this.storeId,
       locale,
       currency,
       scope: input.scope,
@@ -692,7 +692,7 @@ function explainAnalyzePlanLine(row: ExplainAnalyzeSqlRow): string {
 }
 
 async function writeE2eExplainAnalyzeReport(input: {
-  projectId: string;
+  storeId: string;
   scopeKind: string;
   sortKind: string;
   hasPriceFilter: boolean;
@@ -707,7 +707,7 @@ async function writeE2eExplainAnalyzeReport(input: {
   const generatedAt = new Date().toISOString();
   const metadata = {
     generatedAt,
-    projectId: input.projectId,
+    storeId: input.storeId,
     scopeKind: input.scopeKind,
     sortKind: input.sortKind,
     hasPriceFilter: input.hasPriceFilter,

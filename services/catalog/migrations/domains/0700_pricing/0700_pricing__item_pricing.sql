@@ -1,7 +1,7 @@
 -- Up Migration
 
 CREATE TABLE "catalog"."item_pricing" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "id" uuid NOT NULL,
   "variant_id" uuid NOT NULL,
   "currency" "catalog"."currency" NOT NULL,
@@ -22,17 +22,17 @@ CREATE TABLE "catalog"."item_pricing" (
 );
 
 CREATE INDEX "idx_item_pricing_variant_currency_effective_from"
-  ON "catalog"."item_pricing" ("project_id", "variant_id", "currency", "effective_from");
+  ON "catalog"."item_pricing" ("store_id", "variant_id", "currency", "effective_from");
 
 CREATE INDEX "idx_item_pricing_variant_effective_from"
-  ON "catalog"."item_pricing" ("project_id", "variant_id", "effective_from");
+  ON "catalog"."item_pricing" ("store_id", "variant_id", "effective_from");
 
 CREATE INDEX "idx_item_pricing_recorded_at"
-  ON "catalog"."item_pricing" ("project_id", "recorded_at");
+  ON "catalog"."item_pricing" ("store_id", "recorded_at");
 
 CREATE INDEX "idx_item_pricing_effective_to"
-  ON "catalog"."item_pricing" ("project_id", "effective_to");
+  ON "catalog"."item_pricing" ("store_id", "effective_to");
 
 CREATE UNIQUE INDEX "idx_item_pricing_current_unique"
-  ON "catalog"."item_pricing" ("project_id", "variant_id", "currency")
+  ON "catalog"."item_pricing" ("store_id", "variant_id", "currency")
   WHERE "effective_to" IS NULL;

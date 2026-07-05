@@ -230,7 +230,7 @@ rows = []
 
 while rows.length < first + 1 and chunkCount < maxChunks:
   chunk = select next ordered variant price rows
-    where project_id = :projectId
+    where store_id = :storeId
       and currency = :currency
       and keyset > cursor/progress
       and price range predicate if active
@@ -277,7 +277,7 @@ SELECT
 FROM listing.listing_posting_variant_price vp
 CROSS JOIN product_base pb
 CROSS JOIN variant_match vm
-WHERE vp.project_id = (SELECT project_id FROM input)
+WHERE vp.store_id = (SELECT store_id FROM input)
   AND vp.currency = (SELECT currency FROM input)
   AND vm.bitmap @> vp.variant_doc_id
   AND pb.bitmap @> vp.product_doc_id

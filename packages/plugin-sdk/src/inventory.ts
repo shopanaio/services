@@ -114,7 +114,7 @@ export type GetOffersItemInput = Readonly<{
  */
 export type GetOffersInput = Readonly<{
   items: ReadonlyArray<GetOffersItemInput>;
-  projectId?: string;
+  storeId?: string;
   apiKey?: string;
   currency?: string;
   locale?: string;

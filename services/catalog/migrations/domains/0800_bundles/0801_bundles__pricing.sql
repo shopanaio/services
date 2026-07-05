@@ -2,7 +2,7 @@
 
 CREATE TABLE "catalog"."bundle_price_rule" (
   "id" uuid NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "configuration_id" uuid NOT NULL,
   "price_type" varchar(32) NOT NULL,
   CONSTRAINT "bundle_price_rule_pkey" PRIMARY KEY ("id"),
@@ -16,7 +16,7 @@ CREATE INDEX "idx_bundle_price_rule_configuration_id"
   ON "catalog"."bundle_price_rule" ("configuration_id");
 
 CREATE TABLE "catalog"."bundle_price_rule_amount" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "price_rule_id" uuid NOT NULL,
   "currency" "catalog"."currency" NOT NULL,
   "amount_minor" bigint NOT NULL,
@@ -28,11 +28,11 @@ CREATE TABLE "catalog"."bundle_price_rule_amount" (
   CONSTRAINT "bundle_price_rule_amount_minor_check" CHECK ("amount_minor" >= 0)
 );
 
-CREATE INDEX "idx_bundle_price_rule_amount_project_currency"
-  ON "catalog"."bundle_price_rule_amount" ("project_id", "currency");
+CREATE INDEX "idx_bundle_price_rule_amount_store_currency"
+  ON "catalog"."bundle_price_rule_amount" ("store_id", "currency");
 
 CREATE TABLE "catalog"."bundle_price_rule_percent" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "price_rule_id" uuid NOT NULL,
   "percent_value" integer NOT NULL,
   CONSTRAINT "bundle_price_rule_percent_pkey" PRIMARY KEY ("price_rule_id"),
@@ -44,12 +44,12 @@ CREATE TABLE "catalog"."bundle_price_rule_percent" (
     CHECK ("percent_value" >= 0 AND "percent_value" <= 100)
 );
 
-CREATE INDEX "idx_bundle_price_rule_percent_project_id"
-  ON "catalog"."bundle_price_rule_percent" ("project_id");
+CREATE INDEX "idx_bundle_price_rule_percent_store_id"
+  ON "catalog"."bundle_price_rule_percent" ("store_id");
 
 CREATE TABLE "catalog"."bundle_pricing_template" (
   "id" uuid NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "configuration_id" uuid NOT NULL,
   "name" varchar(255) NOT NULL,
   "price_rule_id" uuid NOT NULL,

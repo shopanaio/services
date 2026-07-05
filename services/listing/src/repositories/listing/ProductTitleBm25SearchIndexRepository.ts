@@ -27,7 +27,7 @@ export class ProductTitleBm25SearchIndexRepository extends BaseRepository {
       .from(productTitleBm25SearchIndex)
       .where(
         and(
-          eq(productTitleBm25SearchIndex.projectId, this.storeId),
+          eq(productTitleBm25SearchIndex.storeId, this.storeId),
           eq(productTitleBm25SearchIndex.productId, productId),
           eq(productTitleBm25SearchIndex.locale, locale)
         )
@@ -48,7 +48,7 @@ export class ProductTitleBm25SearchIndexRepository extends BaseRepository {
       .from(productTitleBm25SearchIndex)
       .where(
         and(
-          eq(productTitleBm25SearchIndex.projectId, this.storeId),
+          eq(productTitleBm25SearchIndex.storeId, this.storeId),
           eq(productTitleBm25SearchIndex.productId, productId),
           eq(productTitleBm25SearchIndex.locale, locale)
         )
@@ -67,7 +67,7 @@ export class ProductTitleBm25SearchIndexRepository extends BaseRepository {
       .from(productTitleBm25SearchIndex)
       .where(
         and(
-          eq(productTitleBm25SearchIndex.projectId, this.storeId),
+          eq(productTitleBm25SearchIndex.storeId, this.storeId),
           eq(productTitleBm25SearchIndex.productId, productId)
         )
       );
@@ -91,12 +91,12 @@ export class ProductTitleBm25SearchIndexRepository extends BaseRepository {
     const where =
       uniqueLocales.length > 0
         ? and(
-            eq(productTitleBm25SearchIndex.projectId, this.storeId),
+            eq(productTitleBm25SearchIndex.storeId, this.storeId),
             inArray(productTitleBm25SearchIndex.productId, uniqueProductIds),
             inArray(productTitleBm25SearchIndex.locale, uniqueLocales)
           )
         : and(
-            eq(productTitleBm25SearchIndex.projectId, this.storeId),
+            eq(productTitleBm25SearchIndex.storeId, this.storeId),
             inArray(productTitleBm25SearchIndex.productId, uniqueProductIds)
           );
 
@@ -113,7 +113,7 @@ export class ProductTitleBm25SearchIndexRepository extends BaseRepository {
       .from(productTitleBm25SearchIndex)
       .where(
         and(
-          eq(productTitleBm25SearchIndex.projectId, this.storeId),
+          eq(productTitleBm25SearchIndex.storeId, this.storeId),
           eq(productTitleBm25SearchIndex.productId, productId)
         )
       );
@@ -126,7 +126,7 @@ export class ProductTitleBm25SearchIndexRepository extends BaseRepository {
     const rows = await this.connection
       .select({ value: count() })
       .from(productTitleBm25SearchIndex)
-      .where(eq(productTitleBm25SearchIndex.projectId, this.storeId));
+      .where(eq(productTitleBm25SearchIndex.storeId, this.storeId));
 
     return rows[0]?.value ?? 0;
   }
@@ -164,7 +164,7 @@ export class ProductTitleBm25SearchIndexRepository extends BaseRepository {
             productTitleBm25SearchIndex.productId,
             productTitleBm25SearchIndex.locale,
           ],
-          setWhere: eq(productTitleBm25SearchIndex.projectId, this.storeId),
+          setWhere: eq(productTitleBm25SearchIndex.storeId, this.storeId),
           set: {
             kind: sql`excluded.kind`,
             status: sql`excluded.status`,
@@ -228,7 +228,7 @@ export class ProductTitleBm25SearchIndexRepository extends BaseRepository {
       .delete(productTitleBm25SearchIndex)
       .where(
         and(
-          eq(productTitleBm25SearchIndex.projectId, this.storeId),
+          eq(productTitleBm25SearchIndex.storeId, this.storeId),
           eq(productTitleBm25SearchIndex.productId, productId),
           eq(productTitleBm25SearchIndex.locale, locale)
         )
@@ -243,7 +243,7 @@ export class ProductTitleBm25SearchIndexRepository extends BaseRepository {
       .delete(productTitleBm25SearchIndex)
       .where(
         and(
-          eq(productTitleBm25SearchIndex.projectId, this.storeId),
+          eq(productTitleBm25SearchIndex.storeId, this.storeId),
           eq(productTitleBm25SearchIndex.productId, productId)
         )
       )
@@ -263,7 +263,7 @@ export class ProductTitleBm25SearchIndexRepository extends BaseRepository {
         .delete(productTitleBm25SearchIndex)
         .where(
           and(
-            eq(productTitleBm25SearchIndex.projectId, this.storeId),
+            eq(productTitleBm25SearchIndex.storeId, this.storeId),
             inArray(productTitleBm25SearchIndex.productId, chunk)
           )
         )
@@ -281,7 +281,7 @@ export class ProductTitleBm25SearchIndexRepository extends BaseRepository {
       .delete(productTitleBm25SearchIndex)
       .where(
         and(
-          eq(productTitleBm25SearchIndex.projectId, this.storeId),
+          eq(productTitleBm25SearchIndex.storeId, this.storeId),
           eq(productTitleBm25SearchIndex.locale, locale)
         )
       )
@@ -293,7 +293,7 @@ export class ProductTitleBm25SearchIndexRepository extends BaseRepository {
   async deleteAllForCurrentProject(): Promise<number> {
     const rows = await this.connection
       .delete(productTitleBm25SearchIndex)
-      .where(eq(productTitleBm25SearchIndex.projectId, this.storeId))
+      .where(eq(productTitleBm25SearchIndex.storeId, this.storeId))
       .returning({ productId: productTitleBm25SearchIndex.productId });
 
     return rows.length;
@@ -310,7 +310,7 @@ export class ProductTitleBm25SearchIndexRepository extends BaseRepository {
 
     return {
       searchId: uuidv7(),
-      projectId: this.storeId,
+      storeId: this.storeId,
       productId: row.productId,
       locale: row.locale,
       kind: row.kind,

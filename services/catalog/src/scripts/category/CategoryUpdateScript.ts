@@ -113,7 +113,7 @@ export class CategoryUpdateScript extends BaseScript<
           : toRichTextStorage(excerpt);
 
       await this.repository.category.upsertTranslation({
-        projectId: this.getProjectId(),
+        storeId: this.getProjectId(),
         categoryId: id,
         locale: this.getLocale(),
         name: name ?? existingTranslation?.name ?? "",
@@ -142,7 +142,7 @@ export class CategoryUpdateScript extends BaseScript<
         await this.repository.translation.deleteCategorySeo(id, this.getLocale());
       } else {
         await this.repository.translation.upsertCategorySeo({
-          projectId: this.getProjectId(),
+          storeId: this.getProjectId(),
           categoryId: id,
           locale: this.getLocale(),
           seoTitle: seo.seoTitle ?? null,

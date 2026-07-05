@@ -43,7 +43,7 @@ DB таблицы:
 
 Ограничения:
 
-- `facet.project_id + facet.slug` уникальны;
+- `facet.store_id + facet.slug` уникальны;
 - `PRICE` и `IN_STOCK` не требуют `FacetValue`;
 - `TAG`, `FEATURE`, `OPTION` используют `FacetValue`.
 
@@ -139,7 +139,7 @@ color:black
 ```sql
 catalog.facet_value (
   id             uuid PRIMARY KEY,
-  project_id     uuid NOT NULL,
+  store_id     uuid NOT NULL,
   facet_id       uuid NOT NULL REFERENCES catalog.facet(id) ON DELETE CASCADE,
 
   parent_id      uuid NULL REFERENCES catalog.facet_value(id) ON DELETE NO ACTION,
@@ -157,24 +157,24 @@ catalog.facet_value (
 Обязательные индексы и constraints:
 
 ```sql
-CREATE UNIQUE INDEX facet_value_source_project_facet_handle_uniq
-  ON catalog.facet_value (project_id, facet_id, handle)
+CREATE UNIQUE INDEX facet_value_source_store_facet_handle_uniq
+  ON catalog.facet_value (store_id, facet_id, handle)
   WHERE kind = 'source';
 
-CREATE UNIQUE INDEX facet_value_root_project_facet_handle_uniq
-  ON catalog.facet_value (project_id, facet_id, handle)
+CREATE UNIQUE INDEX facet_value_root_store_facet_handle_uniq
+  ON catalog.facet_value (store_id, facet_id, handle)
   WHERE parent_id IS NULL;
 
-CREATE INDEX idx_facet_value_project_facet_visible_order
-  ON catalog.facet_value (project_id, facet_id, sort_index, id)
+CREATE INDEX idx_facet_value_store_facet_visible_order
+  ON catalog.facet_value (store_id, facet_id, sort_index, id)
   WHERE parent_id IS NULL;
 
-CREATE INDEX idx_facet_value_project_parent
-  ON catalog.facet_value (project_id, parent_id)
+CREATE INDEX idx_facet_value_store_parent
+  ON catalog.facet_value (store_id, parent_id)
   WHERE parent_id IS NOT NULL;
 
-CREATE INDEX idx_facet_value_project_facet_source_handle
-  ON catalog.facet_value (project_id, facet_id, handle)
+CREATE INDEX idx_facet_value_store_facet_source_handle
+  ON catalog.facet_value (store_id, facet_id, handle)
   WHERE kind = 'source';
 
 CHECK (kind IN ('source', 'display'));
@@ -188,7 +188,7 @@ resolution всегда начинается с `facet.slug`, поэтому tok
 
 Application-level validation:
 
-- `parent_id` должен указывать на value того же `project_id` и `facet_id`;
+- `parent_id` должен указывать на value того же `store_id` и `facet_id`;
 - parent для source value должен быть `kind = 'display'`;
 - display value не может быть child другого value;
 - enabled display value должен иметь хотя бы один enabled source child перед
@@ -209,7 +209,7 @@ Application-level validation:
 catalog.facet_value_translation (
   facet_value_id uuid NOT NULL REFERENCES catalog.facet_value(id) ON DELETE CASCADE,
   locale         varchar(8) NOT NULL,
-  project_id     uuid NOT NULL,
+  store_id     uuid NOT NULL,
   label          text NOT NULL,
   PRIMARY KEY (facet_value_id, locale)
 )
@@ -245,7 +245,7 @@ facetSlug:valueHandle
 
 Алгоритм resolution:
 
-1. Найти facet по `project_id + facet.slug`.
+1. Найти facet по `store_id + facet.slug`.
 2. Найти visible value по `facet_id + handle + parent_id IS NULL + enabled`.
 3. Если value не найден, filter value invalid и игнорируется.
 4. Если `value.kind = source`, source handles равны `[value.handle]`.
@@ -259,7 +259,7 @@ Lookup visible value:
 ```sql
 SELECT fv.*
 FROM catalog.facet_value fv
-WHERE fv.project_id = :projectId
+WHERE fv.store_id = :storeId
   AND fv.facet_id = :facetId
   AND fv.handle = :valueHandle
   AND fv.parent_id IS NULL
@@ -272,7 +272,7 @@ Lookup source children:
 ```sql
 SELECT child.handle
 FROM catalog.facet_value child
-WHERE child.project_id = :projectId
+WHERE child.store_id = :storeId
   AND child.facet_id = :facetId
   AND child.parent_id = :displayValueId
   AND child.kind = 'source'
@@ -297,7 +297,7 @@ UPDATE catalog.facet_value
 SET parent_id = :displayValueId,
     updated_at = now()
 WHERE id = ANY(:sourceValueIds)
-  AND project_id = :projectId
+  AND store_id = :storeId
   AND facet_id = :facetId
   AND kind = 'source';
 ```
@@ -320,7 +320,7 @@ UPDATE catalog.facet_value
 SET parent_id = NULL,
     updated_at = now()
 WHERE id = :sourceValueId
-  AND project_id = :projectId
+  AND store_id = :storeId
   AND kind = 'source';
 ```
 

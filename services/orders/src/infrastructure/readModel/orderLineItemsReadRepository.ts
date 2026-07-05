@@ -25,7 +25,7 @@ export class OrderLineItemsReadRepositoryPort
       .table("order_items")
       .select(
         "id",
-        "project_id",
+        "store_id",
         "order_id",
         "quantity",
         "unit_id",

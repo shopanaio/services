@@ -115,7 +115,7 @@ Active read model продолжает отдавать старые стаби�
 ```sql
 CREATE TABLE catalog.variant_option_change_operation (
   id uuid PRIMARY KEY,
-  project_id uuid NOT NULL,
+  store_id uuid NOT NULL,
   product_id uuid NOT NULL,
   kind text NOT NULL,
   status text NOT NULL,

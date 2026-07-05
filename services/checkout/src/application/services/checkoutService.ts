@@ -46,14 +46,14 @@ export class CheckoutService {
   async getOffers(input: {
     apiKey: string;
     currency: string;
-    projectId: string;
+    storeId: string;
     items: GetOffersItem[];
   }): Promise<{
     offers: Map<string, InventoryOffer>;
   }> {
     const offersArray = await this.inventory.getOffers({
       ...input,
-      projectId: input.projectId,
+      storeId: input.storeId,
       apiKey: input.apiKey,
     });
 
@@ -68,7 +68,7 @@ export class CheckoutService {
   }
 
   async computeTotals(input: {
-    projectId: string;
+    storeId: string;
     checkoutLines: CheckoutLineItemState[];
     appliedDiscounts?: Discount[] | null;
     currency: string;

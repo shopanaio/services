@@ -24,7 +24,7 @@ Catalog уже движется к общей архитектуре для prod
 - `Category` частично догнала product API, но содержит одновременно новый workflow path и старый монолитный update script.
 - `Tag` заметно отстает: нет soft delete, `updatedAt`, `deletedAt`, `revision`, workflow update, Zod resolver annotations в mutations, а в schema есть `Tag.products`, который не реализован resolver-слоем.
 
-Главные риски: публичный API tags раскрывает tenant field `projectId`, relation counts обновляются разными способами, workflow/repository граница нарушена прямым DB access, а `MutationResolver.ts` стал God object для mapping, validation, event emission и orchestration.
+Главные риски: публичный API tags раскрывает tenant field `storeId`, relation counts обновляются разными способами, workflow/repository граница нарушена прямым DB access, а `MutationResolver.ts` стал God object для mapping, validation, event emission и orchestration.
 
 ## Находки
 
@@ -65,14 +65,14 @@ Schema объявляет:
 
 Рекомендация: добавить tag-scoped product connection через общий product list path (`ProductConnectionResolver` + `meta`/scope) или удалить поле из schema до реализации.
 
-### 3. Public filters для Tag раскрывают `projectId`
+### 3. Public filters для Tag раскрывают `storeId`
 
 **Серьезность: high.**
 
 Для Product и Category generator исключает internal fields:
 
-- Product excludes `projectId`, `deletedAt`, `revision` - `services/catalog/scripts/generate-filters.ts:32`;
-- Category excludes `projectId`, `deletedAt`, `revision` - `services/catalog/scripts/generate-filters.ts:77`.
+- Product excludes `storeId`, `deletedAt`, `revision` - `services/catalog/scripts/generate-filters.ts:32`;
+- Category excludes `storeId`, `deletedAt`, `revision` - `services/catalog/scripts/generate-filters.ts:77`.
 
 Для Tag exclusions отсутствуют:
 
@@ -80,12 +80,12 @@ Schema объявляет:
 
 В generated schema это уже попало в public API:
 
-- `TagWhereInput.projectId` - `services/catalog/src/api/graphql-admin/schema/__generated__/filters.graphql:195`;
-- `TagOrderField.projectId` - `services/catalog/src/api/graphql-admin/schema/__generated__/filters.graphql:218`.
+- `TagWhereInput.storeId` - `services/catalog/src/api/graphql-admin/schema/__generated__/filters.graphql:195`;
+- `TagOrderField.storeId` - `services/catalog/src/api/graphql-admin/schema/__generated__/filters.graphql:218`.
 
-Риск: tenant-owned поле становится частью публичного query contract. Даже если repository потом добавляет `projectId = storeId`, API surface подталкивает клиентов к tenant-aware фильтрации извне и ломает boundary rule из repository pattern.
+Риск: tenant-owned поле становится частью публичного query contract. Даже если repository потом добавляет `storeId = storeId`, API surface подталкивает клиентов к tenant-aware фильтрации извне и ломает boundary rule из repository pattern.
 
-Рекомендация: добавить `excludeFields: ["projectId"]` для tag filters/order. Если tag получит soft delete/revision, исключать и их по тому же правилу.
+Рекомендация: добавить `excludeFields: ["storeId"]` для tag filters/order. Если tag получит soft delete/revision, исключать и их по тому же правилу.
 
 ### 4. `MutationResolver.ts` стал God object
 
@@ -140,9 +140,9 @@ Category дополнительно содержит custom mapping `ListingOrde
 
 Repository pattern требует multi-tenant filtering через context/storeId. `BaseRepository.storeId` берет tenant из context - `services/catalog/src/repositories/BaseRepository.ts:34`.
 
-`CategoryUpdateWorkflow.stepAcquireRevision()` делает прямой DB update, но включает `projectId`, `id`, `deletedAt` - `services/catalog/src/workflows/CategoryUpdateWorkflow.ts:111`.
+`CategoryUpdateWorkflow.stepAcquireRevision()` делает прямой DB update, но включает `storeId`, `id`, `deletedAt` - `services/catalog/src/workflows/CategoryUpdateWorkflow.ts:111`.
 
-`ProductUpdateWorkflow.stepAcquireRevision()` тоже делает прямой DB update, но фильтрует только по `productId` и optional `revision`; `projectId` и `deletedAt` отсутствуют - `services/catalog/src/workflows/ProductUpdateWorkflow.ts:192`.
+`ProductUpdateWorkflow.stepAcquireRevision()` тоже делает прямой DB update, но фильтрует только по `productId` и optional `revision`; `storeId` и `deletedAt` отсутствуют - `services/catalog/src/workflows/ProductUpdateWorkflow.ts:192`.
 
 Риск: workflow-level CAS имеет другой security/consistency contract, чем repository methods. Даже если `product.id` глобально уникален, паттерн multi-tenancy нарушен и становится примером для будущих прямых DB операций.
 
@@ -225,7 +225,7 @@ Tag -> products обещает `ProductConnection`, но не реализова
 - category map - `services/catalog/scripts/generate-filters.ts:61`;
 - tag map - `services/catalog/scripts/generate-filters.ts:89`.
 
-Именно из-за ручной карты tag получил public `projectId`.
+Именно из-за ручной карты tag получил public `storeId`.
 
 Риск: query contract расходится с repository-owned fields и list view schema.
 
@@ -269,7 +269,7 @@ Generator и repository должны читать один источник пр
 ## Приоритетный план исправлений
 
 1. Закрыть high-risk API issues:
-   - убрать `projectId` из Tag filters/order;
+   - убрать `storeId` из Tag filters/order;
    - реализовать или удалить `Tag.products`;
    - включить `@ZodResolver` для tag mutations.
 

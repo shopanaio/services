@@ -48,7 +48,7 @@ export const stockChanges = catalogSchema.table(
     seq: bigint("seq", { mode: "number" })
       .notNull()
       .generatedAlwaysAsIdentity(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     variantId: uuid("variant_id").notNull(),
     warehouseId: uuid("warehouse_id")
       .notNull()
@@ -105,14 +105,14 @@ export const stockChanges = catalogSchema.table(
     ),
     uniqueIndex("stock_changes_seq_unique").on(table.seq),
     uniqueIndex("idx_stock_changes_idempotency").on(
-      table.projectId,
+      table.storeId,
       table.sourceSystem,
       table.sourceEventId,
       table.warehouseId,
       table.variantId
     ),
     index("idx_stock_changes_idempo_lookup").on(
-      table.projectId,
+      table.storeId,
       table.sourceSystem,
       table.sourceEventId
     ),
@@ -127,7 +127,7 @@ export const stockChanges = catalogSchema.table(
       table.createdAt,
       table.seq
     ),
-    index("idx_stock_changes_project_seq").on(table.projectId, table.seq),
+    index("idx_stock_changes_store_seq").on(table.storeId, table.seq),
     index("idx_stock_changes_type_seq").on(table.movementType, table.seq),
     index("idx_stock_changes_reason_seq").on(table.reason, table.seq),
   ]

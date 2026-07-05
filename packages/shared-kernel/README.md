@@ -43,7 +43,7 @@ const MyService: ServiceSchema = {
 import type { TransactionScript } from "@shopana/shared-kernel";
 
 export interface GetDataParams {
-  readonly projectId: string;
+  readonly storeId: string;
   readonly filter?: string;
 }
 
@@ -60,7 +60,7 @@ export const getData: TransactionScript<GetDataParams, GetDataResult> =
       const result = await broker.call("apps.execute", {
         domain: "mydomain",
         operation: "list",
-        params: { projectId: params.projectId },
+        params: { storeId: params.storeId },
       });
 
       return {

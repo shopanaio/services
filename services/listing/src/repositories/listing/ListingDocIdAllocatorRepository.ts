@@ -17,9 +17,9 @@ export class ListingDocIdAllocatorRepository extends BaseRepository {
   @ReadOnly()
   async exists(): Promise<boolean> {
     const rows = await this.connection
-      .select({ projectId: listingDocIdAllocator.projectId })
+      .select({ storeId: listingDocIdAllocator.storeId })
       .from(listingDocIdAllocator)
-      .where(eq(listingDocIdAllocator.projectId, this.storeId))
+      .where(eq(listingDocIdAllocator.storeId, this.storeId))
       .limit(1);
 
     return rows.length > 0;
@@ -30,7 +30,7 @@ export class ListingDocIdAllocatorRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(listingDocIdAllocator)
-      .where(eq(listingDocIdAllocator.projectId, this.storeId))
+      .where(eq(listingDocIdAllocator.storeId, this.storeId))
       .limit(1);
 
     return rows[0] ?? null;
@@ -41,12 +41,12 @@ export class ListingDocIdAllocatorRepository extends BaseRepository {
     const inserted = await this.connection
       .insert(listingDocIdAllocator)
       .values({
-        projectId: this.storeId,
+        storeId: this.storeId,
         nextProductDocId: 1,
         nextVariantDocId: 1,
         updatedAt: now,
       })
-      .onConflictDoNothing({ target: listingDocIdAllocator.projectId })
+      .onConflictDoNothing({ target: listingDocIdAllocator.storeId })
       .returning();
 
     if (inserted[0]) {
@@ -66,7 +66,7 @@ export class ListingDocIdAllocatorRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(listingDocIdAllocator)
-      .where(eq(listingDocIdAllocator.projectId, this.storeId))
+      .where(eq(listingDocIdAllocator.storeId, this.storeId))
       .limit(1)
       .for("update");
 
@@ -94,7 +94,7 @@ export class ListingDocIdAllocatorRepository extends BaseRepository {
       .from(productListingIndex)
       .where(
         and(
-          eq(productListingIndex.projectId, this.storeId),
+          eq(productListingIndex.storeId, this.storeId),
           inArray(productListingIndex.productId, uniqueProductIds)
         )
       );
@@ -119,7 +119,7 @@ export class ListingDocIdAllocatorRepository extends BaseRepository {
       .from(variantListingIndex)
       .where(
         and(
-          eq(variantListingIndex.projectId, this.storeId),
+          eq(variantListingIndex.storeId, this.storeId),
           inArray(variantListingIndex.variantId, uniqueVariantIds)
         )
       );
@@ -240,7 +240,7 @@ export class ListingDocIdAllocatorRepository extends BaseRepository {
     const rows = await this.connection
       .update(listingDocIdAllocator)
       .set(updateData)
-      .where(eq(listingDocIdAllocator.projectId, this.storeId))
+      .where(eq(listingDocIdAllocator.storeId, this.storeId))
       .returning();
 
     const row = rows[0];

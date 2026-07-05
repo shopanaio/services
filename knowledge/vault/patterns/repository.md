@@ -22,7 +22,7 @@ Repositories provide data access layer with automatic transaction and multi-tena
 | Base Class | `BaseRepository` |
 | Aggregator | `Repository` class |
 | Transactions | Via `TransactionManager` |
-| Multi-tenancy | Auto-filtered by `projectId` (storeId) |
+| Multi-tenancy | Auto-filtered by `storeId` (storeId) |
 
 ## BaseRepository
 
@@ -85,7 +85,7 @@ export class WarehouseRepository extends BaseRepository {
       .select({ id: warehouses.id })
       .from(warehouses)
       .where(and(
-        eq(warehouses.projectId, this.storeId),
+        eq(warehouses.storeId, this.storeId),
         eq(warehouses.id, id)
       ))
       .limit(1);
@@ -97,7 +97,7 @@ export class WarehouseRepository extends BaseRepository {
       .select()
       .from(warehouses)
       .where(and(
-        eq(warehouses.projectId, this.storeId),
+        eq(warehouses.storeId, this.storeId),
         eq(warehouses.id, id)
       ))
       .limit(1);
@@ -108,7 +108,7 @@ export class WarehouseRepository extends BaseRepository {
     const query = this.connection
       .select()
       .from(warehouses)
-      .where(eq(warehouses.projectId, this.storeId))
+      .where(eq(warehouses.storeId, this.storeId))
       .orderBy(warehouses.createdAt);
 
     if (limit) {
@@ -121,7 +121,7 @@ export class WarehouseRepository extends BaseRepository {
     const result = await this.connection
       .select({ count: count() })
       .from(warehouses)
-      .where(eq(warehouses.projectId, this.storeId));
+      .where(eq(warehouses.storeId, this.storeId));
     return result[0]?.count ?? 0;
   }
 
@@ -134,7 +134,7 @@ export class WarehouseRepository extends BaseRepository {
     const now = new Date().toISOString();
 
     const newWarehouse: NewWarehouse = {
-      projectId: this.storeId,
+      storeId: this.storeId,
       id,
       code: data.code,
       name: data.name,
@@ -167,7 +167,7 @@ export class WarehouseRepository extends BaseRepository {
       .update(warehouses)
       .set(updateData)
       .where(and(
-        eq(warehouses.projectId, this.storeId),
+        eq(warehouses.storeId, this.storeId),
         eq(warehouses.id, id)
       ))
       .returning();
@@ -179,7 +179,7 @@ export class WarehouseRepository extends BaseRepository {
     const result = await this.connection
       .delete(warehouses)
       .where(and(
-        eq(warehouses.projectId, this.storeId),
+        eq(warehouses.storeId, this.storeId),
         eq(warehouses.id, id)
       ))
       .returning({ id: warehouses.id });
@@ -194,7 +194,7 @@ export class WarehouseRepository extends BaseRepository {
       .select()
       .from(warehouses)
       .where(and(
-        eq(warehouses.projectId, this.storeId),
+        eq(warehouses.storeId, this.storeId),
         inArray(warehouses.id, [...warehouseIds])
       ));
   }
@@ -206,7 +206,7 @@ export class WarehouseRepository extends BaseRepository {
       .select()
       .from(warehouses)
       .where(and(
-        eq(warehouses.projectId, this.storeId),
+        eq(warehouses.storeId, this.storeId),
         eq(warehouses.code, code)
       ))
       .limit(1);
@@ -218,7 +218,7 @@ export class WarehouseRepository extends BaseRepository {
       .update(warehouses)
       .set({ isDefault: false, updatedAt: new Date().toISOString() })
       .where(and(
-        eq(warehouses.projectId, this.storeId),
+        eq(warehouses.storeId, this.storeId),
         eq(warehouses.isDefault, true)
       ));
   }
@@ -301,7 +301,7 @@ import { inventorySchema } from "./schema";
 export const warehouses = inventorySchema.table(
   "warehouses",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     id: uuid("id").primaryKey(),
     code: varchar("code", { length: 32 }).notNull(),
     name: text("name").notNull(),
@@ -314,8 +314,8 @@ export const warehouses = inventorySchema.table(
       .defaultNow(),
   },
   (table) => [
-    unique("warehouses_project_id_code_key").on(table.projectId, table.code),
-    unique("warehouses_project_id_id_unique").on(table.projectId, table.id),
+    unique("warehouses_store_id_code_key").on(table.storeId, table.code),
+    unique("warehouses_store_id_id_unique").on(table.storeId, table.id),
   ]
 );
 
@@ -348,7 +348,7 @@ export type WarehouseRelayInput = InferRelayInput<typeof warehouseRelayQuery>;
 async getConnection(args: WarehouseRelayInput): Promise<ConnectionResult> {
   const mergedWhere = {
     _and: [
-      { projectId: { _eq: this.storeId } },
+      { storeId: { _eq: this.storeId } },
       ...(args.where ? [args.where] : []),
     ],
   };
@@ -390,7 +390,7 @@ const result = await this.db.select()...
 ```typescript
 // Good: Multi-tenant safe
 .where(and(
-  eq(warehouses.projectId, this.storeId),
+  eq(warehouses.storeId, this.storeId),
   eq(warehouses.id, id)
 ))
 

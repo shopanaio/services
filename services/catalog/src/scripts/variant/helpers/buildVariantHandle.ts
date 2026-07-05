@@ -15,13 +15,13 @@ import {
  *
  * @param db - Database connection (may be transaction)
  * @param variantId - Variant ID to build handle for
- * @param projectId - Project ID for filtering
+ * @param storeId - Store ID for filtering
  * @returns Handle string, or empty string if no options linked
  */
 export async function buildVariantHandle(
   db: Database,
   variantId: string,
-  projectId: string
+  storeId: string
 ): Promise<string> {
   // Get all option-value links for this variant
   const links = await db
@@ -32,7 +32,7 @@ export async function buildVariantHandle(
     .from(productOptionVariantLink)
     .where(
       and(
-        eq(productOptionVariantLink.projectId, projectId),
+        eq(productOptionVariantLink.storeId, storeId),
         eq(productOptionVariantLink.variantId, variantId)
       )
     );
@@ -59,7 +59,7 @@ export async function buildVariantHandle(
     .from(productOptionValue)
     .where(
       and(
-        eq(productOptionValue.projectId, projectId),
+        eq(productOptionValue.storeId, storeId),
         inArray(productOptionValue.id, valueIds)
       )
     );
@@ -101,13 +101,13 @@ export function buildVariantHandleFromValues(
  *
  * @param db - Database connection (may be transaction)
  * @param variantIds - Variant IDs to build handles for
- * @param projectId - Project ID for filtering
+ * @param storeId - Store ID for filtering
  * @returns Map of variantId to handle
  */
 export async function buildVariantHandlesBatch(
   db: Database,
   variantIds: string[],
-  projectId: string
+  storeId: string
 ): Promise<Map<string, string>> {
   if (variantIds.length === 0) {
     return new Map();
@@ -123,7 +123,7 @@ export async function buildVariantHandlesBatch(
     .from(productOptionVariantLink)
     .where(
       and(
-        eq(productOptionVariantLink.projectId, projectId),
+        eq(productOptionVariantLink.storeId, storeId),
         inArray(productOptionVariantLink.variantId, variantIds)
       )
     );
@@ -144,7 +144,7 @@ export async function buildVariantHandlesBatch(
           .from(productOptionValue)
           .where(
             and(
-              eq(productOptionValue.projectId, projectId),
+              eq(productOptionValue.storeId, storeId),
               inArray(productOptionValue.id, allValueIds)
             )
           )

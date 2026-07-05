@@ -88,7 +88,7 @@
 
 CREATE TABLE product_search_index (
     -- Идентификаторы
-    project_id uuid NOT NULL,
+    store_id uuid NOT NULL,
     product_id uuid PRIMARY KEY,
 
     -- =========================================================
@@ -144,8 +144,8 @@ CREATE TABLE product_search_index (
 -- ИНДЕКСЫ
 -- =============================================================
 
--- Изоляция проекта (все запросы фильтруются по project_id)
-CREATE INDEX idx_psi_project ON product_search_index (project_id);
+-- Изоляция проекта (все запросы фильтруются по store_id)
+CREATE INDEX idx_psi_store ON product_search_index (store_id);
 
 -- GIN-индексы для containment/overlap-запросов по массивам
 CREATE INDEX idx_psi_tags ON product_search_index USING GIN (tag_ids);
@@ -154,18 +154,18 @@ CREATE INDEX idx_psi_options ON product_search_index USING GIN (option_slugs);
 CREATE INDEX idx_psi_categories ON product_search_index USING GIN (category_ids);
 
 -- Запросы по ценовому диапазону
-CREATE INDEX idx_psi_price_range ON product_search_index (project_id, min_price_minor, max_price_minor);
+CREATE INDEX idx_psi_price_range ON product_search_index (store_id, min_price_minor, max_price_minor);
 
 -- Фильтр наличия на складе (partial index для товаров в наличии)
-CREATE INDEX idx_psi_in_stock ON product_search_index (project_id, in_stock)
+CREATE INDEX idx_psi_in_stock ON product_search_index (store_id, in_stock)
     WHERE in_stock = true;
 
 -- Индексы сортировки
-CREATE INDEX idx_psi_popularity ON product_search_index (project_id, popularity_score DESC);
-CREATE INDEX idx_psi_published ON product_search_index (project_id, published_at DESC NULLS LAST);
-CREATE INDEX idx_psi_price_asc ON product_search_index (project_id, min_price_minor ASC);
-CREATE INDEX idx_psi_price_desc ON product_search_index (project_id, min_price_minor DESC);
-CREATE INDEX idx_psi_created ON product_search_index (project_id, created_at DESC);
+CREATE INDEX idx_psi_popularity ON product_search_index (store_id, popularity_score DESC);
+CREATE INDEX idx_psi_published ON product_search_index (store_id, published_at DESC NULLS LAST);
+CREATE INDEX idx_psi_price_asc ON product_search_index (store_id, min_price_minor ASC);
+CREATE INDEX idx_psi_price_desc ON product_search_index (store_id, min_price_minor DESC);
+CREATE INDEX idx_psi_created ON product_search_index (store_id, created_at DESC);
 ```
 
 ### Typesense: текстовая коллекция товаров
@@ -175,7 +175,7 @@ CREATE INDEX idx_psi_created ON product_search_index (project_id, created_at DES
   "name": "products",
   "fields": [
     {"name": "id", "type": "string"},
-    {"name": "project_id", "type": "string", "facet": false},
+    {"name": "store_id", "type": "string", "facet": false},
 
     {"name": "title_uk", "type": "string", "locale": "uk"},
     {"name": "title_en", "type": "string", "locale": "en", "optional": true},
@@ -235,7 +235,7 @@ t=51ms ──── Ответ отправлен клиенту
 │   │ FROM psi            │            │ q: "nike"           │        │
 │   │ WHERE               │            │ query_by: title_uk  │        │
 │   │   category @> [X]   │            │ filter_by:          │        │
-│   │   AND options @>    │            │   project_id: X     │        │
+│   │   AND options @>    │            │   store_id: X     │        │
 │   │     ['color:red']   │            │                     │        │
 │   │   AND in_stock      │            │                     │        │
 │   └─────────────────────┘            └─────────────────────┘        │
@@ -484,7 +484,7 @@ async function incrementalRecall(
     const tsResult = await typesense.collections('products').documents().search({
       q: req.query!,
       query_by: queryBy,
-      filter_by: `project_id:${req.projectId}`,
+      filter_by: `store_id:${req.storeId}`,
       page,
       per_page: perPage,
       prefix: false,
@@ -849,7 +849,7 @@ export function createResolvers(kernel: Kernel): Resolvers {
     Query: {
       searchProducts: async (_, { input }, ctx) => {
         const result = await listingService.search({
-          projectId: ctx.projectId,
+          storeId: ctx.storeId,
           locale: input.locale.toLowerCase(),
           query: input.query,
           userId: ctx.userId,
@@ -876,7 +876,7 @@ export function createResolvers(kernel: Kernel): Resolvers {
 
       category: async (_, { id, slug }, ctx) => {
         return kernel.db('category')
-          .where('project_id', ctx.projectId)
+          .where('store_id', ctx.storeId)
           .where(builder => {
             if (id) builder.where('id', id);
             if (slug) builder.where('slug', slug);
@@ -887,7 +887,7 @@ export function createResolvers(kernel: Kernel): Resolvers {
 
       categories: async (_, { parentId }, ctx) => {
         return kernel.db('category')
-          .where('project_id', ctx.projectId)
+          .where('store_id', ctx.storeId)
           .where('parent_id', parentId ?? null)
           .whereNull('deleted_at')
           .orderBy('sort_order');
@@ -911,7 +911,7 @@ export function createResolvers(kernel: Kernel): Resolvers {
 
       products: async (category, { filter, sort, pagination }, ctx) => {
         const result = await listingService.search({
-          projectId: ctx.projectId,
+          storeId: ctx.storeId,
           locale: ctx.locale,
           categoryIds: [category.id],
           tagIds: filter?.tagIds,
@@ -1072,7 +1072,7 @@ mutation CreateCategory($input: CreateCategoryInput!) {
 // types.ts
 
 export interface SearchRequest {
-  projectId: string;
+  storeId: string;
   locale: 'uk' | 'en' | 'ru';
 
   // Текстовый поиск
@@ -1304,7 +1304,7 @@ export class ListingService {
     // из PostgreSQL с правильным ORDER BY, используя matched IDs как фильтр
     let sortedIds = matchedIds;
     if (hasTextQuery && this.needsResort(req.sortBy)) {
-      sortedIds = await this.resortByField(req.projectId, matchedIds, req.sortBy!);
+      sortedIds = await this.resortByField(req.storeId, matchedIds, req.sortBy!);
     }
 
     // =========================================================
@@ -1314,7 +1314,7 @@ export class ListingService {
     const useMetarank = this.shouldUseMetarank(req.sortBy, hasTextQuery);
 
     const [facets, rankedIds] = await Promise.all([
-      this.getFacetCounts(req.projectId, matchedIds),
+      this.getFacetCounts(req.storeId, matchedIds),
       useMetarank
         ? this.rankWithMetarank(req, sortedIds, scores, limit)
         : sortedIds.slice(0, limit),
@@ -1336,7 +1336,7 @@ export class ListingService {
   ): Promise<{ productIds: string[] }> {
     let query = this.db('product_search_index')
       .select('product_id')
-      .where('project_id', req.projectId);
+      .where('store_id', req.storeId);
 
     // Фильтр категорий (ANY - overlap)
     if (req.categoryIds?.length) {
@@ -1415,7 +1415,7 @@ export class ListingService {
       .search({
         q: req.query!,
         query_by: queryBy,
-        filter_by: `project_id:${req.projectId}`,
+        filter_by: `store_id:${req.storeId}`,
         per_page: 10000,
         prefix: false,
         typo_tokens_threshold: 1,
@@ -1434,7 +1434,7 @@ export class ListingService {
   // ===========================================================
 
   private async getFacetCounts(
-    projectId: string,
+    storeId: string,
     productIds: string[]
   ): Promise<FacetResults> {
     if (productIds.length === 0) {
@@ -1444,35 +1444,35 @@ export class ListingService {
     // Выполнить все facet queries параллельно
     const [tags, features, options, categories, priceRanges] =
       await Promise.all([
-        this.countFacet(projectId, productIds, 'tag_ids'),
-        this.countFacet(projectId, productIds, 'feature_slugs'),
-        this.countFacet(projectId, productIds, 'option_slugs'),
-        this.countFacet(projectId, productIds, 'category_ids'),
-        this.countPriceRanges(projectId, productIds),
+        this.countFacet(storeId, productIds, 'tag_ids'),
+        this.countFacet(storeId, productIds, 'feature_slugs'),
+        this.countFacet(storeId, productIds, 'option_slugs'),
+        this.countFacet(storeId, productIds, 'category_ids'),
+        this.countPriceRanges(storeId, productIds),
       ]);
 
     return { tags, features, options, categories, priceRanges };
   }
 
   private async countFacet(
-    projectId: string,
+    storeId: string,
     productIds: string[],
     column: string
   ): Promise<{ value: string; count: number }[]> {
     const rows = await this.db.raw(`
       SELECT value, count(*)::int as count
       FROM product_search_index, unnest(${column}) AS value
-      WHERE project_id = ? AND product_id = ANY(?)
+      WHERE store_id = ? AND product_id = ANY(?)
       GROUP BY value
       ORDER BY count DESC
       LIMIT 100
-    `, [projectId, productIds]);
+    `, [storeId, productIds]);
 
     return rows.rows;
   }
 
   private async countPriceRanges(
-    projectId: string,
+    storeId: string,
     productIds: string[]
   ): Promise<{ min: number; max: number; count: number }[]> {
     const rows = await this.db.raw(`
@@ -1481,12 +1481,12 @@ export class ListingService {
         floor(min_price_minor / 100000) * 100000 + 99999 as range_max,
         count(*)::int as count
       FROM product_search_index
-      WHERE project_id = ?
+      WHERE store_id = ?
         AND product_id = ANY(?)
         AND min_price_minor IS NOT NULL
       GROUP BY range_min, range_max
       ORDER BY range_min
-    `, [projectId, productIds]);
+    `, [storeId, productIds]);
 
     return rows.rows.map((r: any) => ({
       min: r.range_min,
@@ -1586,7 +1586,7 @@ export class ListingService {
    * Используется, когда есть результаты пересечения, но нужна строгая сортировка.
    */
   private async resortByField(
-    projectId: string,
+    storeId: string,
     productIds: string[],
     sortBy: string
   ): Promise<string[]> {
@@ -1597,9 +1597,9 @@ export class ListingService {
     const result = await this.db.query(
       `SELECT product_id
        FROM product_search_index
-       WHERE project_id = $1 AND product_id = ANY($2)
+       WHERE store_id = $1 AND product_id = ANY($2)
        ORDER BY ${orderBy}`,
-      [projectId, productIds]
+      [storeId, productIds]
     );
 
     return result.rows.map((r) => r.product_id);
@@ -1643,7 +1643,7 @@ import { Kernel } from './kernel';
 
 interface ProductText {
   product_id: string;
-  project_id: string;
+  store_id: string;
   locale: string;
   title: string;
   description?: string;
@@ -1666,14 +1666,14 @@ export class SyncService {
   async syncProductIndex(productId: string): Promise<void> {
     await this.db.raw(`
       INSERT INTO product_search_index (
-        project_id, product_id,
+        store_id, product_id,
         min_price_minor, max_price_minor,
         in_stock, total_stock,
         tag_ids, feature_slugs, option_slugs, category_ids,
         popularity_score, published_at, updated_at
       )
       SELECT
-        p.project_id,
+        p.store_id,
         p.id,
 
         -- Цены из variants
@@ -1773,7 +1773,7 @@ export class SyncService {
       .join('product as p', 'p.id', 'pt.product_id')
       .select(
         'pt.product_id',
-        'p.project_id',
+        'p.store_id',
         'pt.locale',
         'pt.title',
         'pt.description',
@@ -1792,12 +1792,12 @@ export class SyncService {
       return;
     }
 
-    const projectId = texts[0].project_id;
+    const storeId = texts[0].store_id;
 
     // Собрать документ со всеми локалями
     const doc: Record<string, any> = {
       id: productId,
-      project_id: projectId,
+      store_id: storeId,
     };
 
     for (const t of texts) {
@@ -1843,13 +1843,13 @@ export class SyncService {
   // Batch-синхронизация (для initial load или recovery)
   // ===========================================================
 
-  async syncAllProducts(projectId: string, batchSize = 100): Promise<void> {
+  async syncAllProducts(storeId: string, batchSize = 100): Promise<void> {
     let offset = 0;
 
     while (true) {
       const rows = await this.db('product')
         .select('id')
-        .where('project_id', projectId)
+        .where('store_id', storeId)
         .whereNull('deleted_at')
         .orderBy('id')
         .limit(batchSize)
@@ -2015,7 +2015,7 @@ interface SyncProductJob {
 }
 
 interface SyncAllJob {
-  projectId: string;
+  storeId: string;
 }
 
 type SyncJobData = SyncProductJob | SyncAllJob;
@@ -2053,7 +2053,7 @@ export function startSyncWorker(kernel: Kernel): Worker<SyncJobData> {
           break;
 
         case 'sync-all':
-          await syncService.syncAllProducts((job.data as SyncAllJob).projectId);
+          await syncService.syncAllProducts((job.data as SyncAllJob).storeId);
           break;
       }
     },
@@ -2127,7 +2127,7 @@ await queue.addBulk([
 ]);
 
 // Запланированная задача (cron)
-await queue.add('sync-all', { projectId }, {
+await queue.add('sync-all', { storeId }, {
   repeat: { cron: '0 3 * * *' },  // Каждую ночь в 3:00
 });
 ```
@@ -2470,7 +2470,7 @@ try {
 
 1. **per_page: 10000** - получить достаточно кандидатов для пересечения
 2. **prefix: false** - точное совпадение слов для лучшей точности
-3. **filter_by project_id** - изоляция по tenant
+3. **filter_by store_id** - изоляция по tenant
 
 ### Пересечение
 

@@ -2,25 +2,25 @@
 
 CREATE VIEW "catalog"."facet_source_candidate_view" AS
 WITH project_locale_source AS (
-  SELECT DISTINCT project_id, locale
+  SELECT DISTINCT store_id, locale
   FROM "catalog"."product_translation"
 
   UNION
-  SELECT DISTINCT project_id, locale
+  SELECT DISTINCT store_id, locale
   FROM "catalog"."tag_translation"
 
   UNION
-  SELECT DISTINCT project_id, locale
+  SELECT DISTINCT store_id, locale
   FROM "catalog"."product_option_translation"
 
   UNION
-  SELECT DISTINCT project_id, locale
+  SELECT DISTINCT store_id, locale
   FROM "catalog"."product_feature_translation"
 
 ),
 candidates AS (
   SELECT
-    pls.project_id,
+    pls.store_id,
     pls.locale,
     'PRICE'::text AS facet_type,
     'price'::text AS handle,
@@ -30,7 +30,7 @@ candidates AS (
 
   UNION ALL
   SELECT
-    pls.project_id,
+    pls.store_id,
     pls.locale,
     'IN_STOCK'::text AS facet_type,
     'availability'::text AS handle,
@@ -40,7 +40,7 @@ candidates AS (
 
   UNION ALL
   SELECT
-    pls.project_id,
+    pls.store_id,
     pls.locale,
     'TAG'::text AS facet_type,
     'tags'::text AS handle,
@@ -50,7 +50,7 @@ candidates AS (
 
   UNION ALL
   SELECT
-    po.project_id,
+    po.store_id,
     pot.locale,
     'OPTION'::text AS facet_type,
     po.slug AS handle,
@@ -58,13 +58,13 @@ candidates AS (
     3 AS source_sort_bucket
   FROM "catalog"."product_option" po
   INNER JOIN "catalog"."product_option_translation" pot
-    ON pot.project_id = po.project_id
+    ON pot.store_id = po.store_id
    AND pot.option_id = po.id
-  GROUP BY po.project_id, pot.locale, po.slug
+  GROUP BY po.store_id, pot.locale, po.slug
 
   UNION ALL
   SELECT
-    pf.project_id,
+    pf.store_id,
     pft.locale,
     'FEATURE'::text AS facet_type,
     pf.slug AS handle,
@@ -72,14 +72,14 @@ candidates AS (
     4 AS source_sort_bucket
   FROM "catalog"."product_feature" pf
   INNER JOIN "catalog"."product_feature_translation" pft
-    ON pft.project_id = pf.project_id
+    ON pft.store_id = pf.store_id
    AND pft.feature_id = pf.id
   WHERE pf.is_group = false
-  GROUP BY pf.project_id, pft.locale, pf.slug
+  GROUP BY pf.store_id, pft.locale, pf.slug
 )
 SELECT
   c.facet_type || ':' || c.handle AS id,
-  c.project_id,
+  c.store_id,
   c.locale,
   c.facet_type,
   c.handle,
@@ -89,14 +89,14 @@ SELECT
 FROM candidates c
 ;
 
-CREATE INDEX IF NOT EXISTS "idx_product_option_project_slug"
-  ON "catalog"."product_option" ("project_id", "slug");
+CREATE INDEX IF NOT EXISTS "idx_product_option_store_slug"
+  ON "catalog"."product_option" ("store_id", "slug");
 
-CREATE INDEX IF NOT EXISTS "idx_product_option_translation_project_locale_option"
-  ON "catalog"."product_option_translation" ("project_id", "locale", "option_id");
+CREATE INDEX IF NOT EXISTS "idx_product_option_translation_store_locale_option"
+  ON "catalog"."product_option_translation" ("store_id", "locale", "option_id");
 
-CREATE INDEX IF NOT EXISTS "idx_product_feature_project_group_slug"
-  ON "catalog"."product_feature" ("project_id", "is_group", "slug");
+CREATE INDEX IF NOT EXISTS "idx_product_feature_store_group_slug"
+  ON "catalog"."product_feature" ("store_id", "is_group", "slug");
 
-CREATE INDEX IF NOT EXISTS "idx_product_feature_translation_project_locale_feature"
-  ON "catalog"."product_feature_translation" ("project_id", "locale", "feature_id");
+CREATE INDEX IF NOT EXISTS "idx_product_feature_translation_store_locale_feature"
+  ON "catalog"."product_feature_translation" ("store_id", "locale", "feature_id");

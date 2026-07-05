@@ -48,7 +48,7 @@ export class VariantUpdateOptionsScript extends BaseScript<
     }
 
     const productId = existingVariant.productId;
-    const projectId = this.getProjectId();
+    const storeId = this.getProjectId();
 
     // Handle empty links (clear all options)
     if (links.length === 0) {
@@ -168,7 +168,7 @@ export class VariantUpdateOptionsScript extends BaseScript<
     const newHandle = await buildVariantHandle(
       this.repository.db,
       variantId,
-      projectId
+      storeId
     );
 
     // Non-default variants must have a non-empty handle

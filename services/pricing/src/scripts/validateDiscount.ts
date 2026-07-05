@@ -6,7 +6,7 @@ import { getAllDiscounts } from "./getAllDiscounts.js";
 export interface ValidateDiscountParams {
   readonly code: string;
   readonly provider?: string;
-  readonly projectId: string;
+  readonly storeId: string;
   readonly checkoutId?: string;
   readonly requestId?: string;
   readonly userAgent?: string;
@@ -27,11 +27,11 @@ export const validateDiscount: TransactionScript<
   ValidateDiscountParams,
   ValidateDiscountResult
 > = async (params, services) => {
-  const { code, projectId, checkoutId } = params;
+  const { code, storeId, checkoutId } = params;
   const { logger } = services;
 
   try {
-    const { discounts } = await getAllDiscounts({ projectId }, services);
+    const { discounts } = await getAllDiscounts({ storeId }, services);
 
     // Search for the required discount by code among all available
     const normalizedCode = code.trim().toLowerCase();

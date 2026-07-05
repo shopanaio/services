@@ -2,7 +2,7 @@
 
 CREATE TABLE "catalog"."inbound_supply" (
   "id" uuid NOT NULL DEFAULT gen_random_uuid(),
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "variant_id" uuid NOT NULL,
   "warehouse_id" uuid NOT NULL,
   "source_type" varchar(30) NOT NULL,
@@ -20,8 +20,8 @@ CREATE TABLE "catalog"."inbound_supply" (
     ON DELETE CASCADE,
   CONSTRAINT "inbound_supply_qty_expected_check" CHECK ("qty_expected" > 0),
   CONSTRAINT "inbound_supply_qty_received_check" CHECK ("qty_received" >= 0),
-  CONSTRAINT "inbound_supply_project_source_variant_warehouse_key"
-    UNIQUE ("project_id", "source_type", "source_id", "variant_id", "warehouse_id")
+  CONSTRAINT "inbound_supply_store_source_variant_warehouse_key"
+    UNIQUE ("store_id", "source_type", "source_id", "variant_id", "warehouse_id")
 );
 
 CREATE INDEX "idx_inbound_supply_variant_date"

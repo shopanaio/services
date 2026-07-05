@@ -27,7 +27,7 @@ export interface ListingSeedCategoryInput {
 }
 
 export interface SeedListingCategoryProductsInput {
-  projectId: string;
+  storeId: string;
   category: ListingSeedCategoryInput;
   products: ListingSeedProductInput[];
   locale?: string;
@@ -35,7 +35,7 @@ export interface SeedListingCategoryProductsInput {
 }
 
 export async function seedListingCategoryProducts({
-  projectId,
+  storeId,
   category,
   products,
   locale = 'en',
@@ -45,7 +45,7 @@ export async function seedListingCategoryProducts({
 
   try {
     await sql.begin(async (tx) => {
-      const projectUuid = decodeGlobalId(projectId).id;
+      const projectUuid = decodeGlobalId(storeId).id;
       const categoryUuid = decodeGlobalId(category.id).id;
       const seedProducts = await assignProductDocIds(tx, projectUuid, products);
 
@@ -138,7 +138,7 @@ async function assignProductDocIds(
   const [{ maxDocId }] = await sql<{ maxDocId: number | null }[]>`
     SELECT COALESCE(MAX(product_doc_id), 0)::int AS "maxDocId"
     FROM listing.product_listing_index
-    WHERE project_id = ${projectUuid}::uuid
+    WHERE store_id = ${projectUuid}::uuid
   `;
   let nextDocId = (maxDocId ?? 0) + 1;
 
@@ -183,7 +183,7 @@ async function seedListingProduct(
 
   await sql`
     INSERT INTO listing.product_listing_index (
-      project_id,
+      store_id,
       product_id,
       product_doc_id,
       kind,
@@ -215,7 +215,7 @@ async function seedListingProduct(
       now()
     )
     ON CONFLICT (product_id) DO UPDATE SET
-      project_id = EXCLUDED.project_id,
+      store_id = EXCLUDED.store_id,
       product_doc_id = EXCLUDED.product_doc_id,
       kind = EXCLUDED.kind,
       handle = EXCLUDED.handle,
@@ -347,7 +347,7 @@ async function seedProductSort(
 ) {
   await sql`
     INSERT INTO listing.listing_posting_product_sort (
-      project_id,
+      store_id,
       product_doc_id,
       product_id,
       sort_kind,
@@ -375,7 +375,7 @@ async function seedProductSort(
       ${input.textValue ?? null}
     )
     ON CONFLICT (
-      project_id,
+      store_id,
       product_doc_id,
       sort_kind,
       locale,
@@ -407,7 +407,7 @@ async function seedVariantPrice(
 ) {
   await sql`
     INSERT INTO listing.variant_listing_index (
-      project_id,
+      store_id,
       product_id,
       product_doc_id,
       variant_id,
@@ -431,7 +431,7 @@ async function seedVariantPrice(
       now()
     )
     ON CONFLICT (variant_id) DO UPDATE SET
-      project_id = EXCLUDED.project_id,
+      store_id = EXCLUDED.store_id,
       product_id = EXCLUDED.product_id,
       product_doc_id = EXCLUDED.product_doc_id,
       variant_doc_id = EXCLUDED.variant_doc_id,
@@ -443,7 +443,7 @@ async function seedVariantPrice(
 
   await sql`
     INSERT INTO listing.variant_listing_price_index (
-      project_id,
+      store_id,
       variant_id,
       currency,
       variant_doc_id,
@@ -469,7 +469,7 @@ async function seedVariantPrice(
       now()
     )
     ON CONFLICT (variant_id, currency) DO UPDATE SET
-      project_id = EXCLUDED.project_id,
+      store_id = EXCLUDED.store_id,
       variant_doc_id = EXCLUDED.variant_doc_id,
       product_doc_id = EXCLUDED.product_doc_id,
       product_id = EXCLUDED.product_id,
@@ -481,7 +481,7 @@ async function seedVariantPrice(
 
   await sql`
     INSERT INTO listing.listing_posting_variant_price (
-      project_id,
+      store_id,
       currency,
       variant_doc_id,
       product_doc_id,
@@ -496,7 +496,7 @@ async function seedVariantPrice(
       ${input.productUuid}::uuid,
       ${input.priceMinor}
     )
-    ON CONFLICT (project_id, currency, variant_doc_id) DO UPDATE SET
+    ON CONFLICT (store_id, currency, variant_doc_id) DO UPDATE SET
       product_doc_id = EXCLUDED.product_doc_id,
       product_id = EXCLUDED.product_id,
       price_minor = EXCLUDED.price_minor
@@ -504,7 +504,7 @@ async function seedVariantPrice(
 
   await sql`
     INSERT INTO listing.product_listing_price_index (
-      project_id,
+      store_id,
       product_id,
       currency,
       min_price_minor,
@@ -524,7 +524,7 @@ async function seedVariantPrice(
       now()
     )
     ON CONFLICT (product_id, currency) DO UPDATE SET
-      project_id = EXCLUDED.project_id,
+      store_id = EXCLUDED.store_id,
       min_price_minor = LEAST(
         COALESCE(listing.product_listing_price_index.min_price_minor, EXCLUDED.min_price_minor),
         EXCLUDED.min_price_minor
@@ -554,7 +554,7 @@ async function seedProductSearchTitle(
   await sql`
     INSERT INTO listing.product_title_bm25_search_index (
       search_id,
-      project_id,
+      store_id,
       product_id,
       locale,
       kind,
@@ -584,7 +584,7 @@ async function seedProductSearchTitle(
     )
     ON CONFLICT (product_id, locale) DO UPDATE SET
       search_id = EXCLUDED.search_id,
-      project_id = EXCLUDED.project_id,
+      store_id = EXCLUDED.store_id,
       kind = EXCLUDED.kind,
       status = EXCLUDED.status,
       published_at = EXCLUDED.published_at,
@@ -618,8 +618,8 @@ async function seedVariantProjectionBlock(
       SELECT rb_build_agg(doc_id) AS value
       FROM docs
     )
-    INSERT INTO listing.listing_posting_variant_projection_block (
-      project_id,
+    INSERT INTO listing.listing_posting_variant_storeion_block (
+      store_id,
       block_id,
       variant_doc_from,
       variant_doc_to,
@@ -638,7 +638,7 @@ async function seedVariantProjectionBlock(
       rb_cardinality(value)::int,
       rb_cardinality(value)::int
     FROM bitmap
-    ON CONFLICT (project_id, block_id) DO UPDATE SET
+    ON CONFLICT (store_id, block_id) DO UPDATE SET
       variant_doc_from = EXCLUDED.variant_doc_from,
       variant_doc_to = EXCLUDED.variant_doc_to,
       variant_bitmap = EXCLUDED.variant_bitmap,
@@ -665,7 +665,7 @@ async function seedCategoryPosting(
       FROM docs
     )
     INSERT INTO listing.listing_posting_bitmap (
-      project_id,
+      store_id,
       entity_type,
       field,
       value_key,
@@ -684,7 +684,7 @@ async function seedCategoryPosting(
       '{}'::jsonb,
       now()
     FROM bitmap
-    ON CONFLICT (project_id, entity_type, field, value_key) DO UPDATE SET
+    ON CONFLICT (store_id, entity_type, field, value_key) DO UPDATE SET
       bitmap = EXCLUDED.bitmap,
       cardinality = EXCLUDED.cardinality,
       metadata = EXCLUDED.metadata,
@@ -712,7 +712,7 @@ async function seedFacetPostings(
         FROM docs
       )
       INSERT INTO listing.listing_posting_bitmap (
-        project_id,
+        store_id,
         entity_type,
         field,
         value_key,
@@ -731,7 +731,7 @@ async function seedFacetPostings(
         '{}'::jsonb,
         now()
       FROM bitmap
-      ON CONFLICT (project_id, entity_type, field, value_key) DO UPDATE SET
+      ON CONFLICT (store_id, entity_type, field, value_key) DO UPDATE SET
         bitmap = EXCLUDED.bitmap,
         cardinality = EXCLUDED.cardinality,
         metadata = EXCLUDED.metadata,
@@ -778,7 +778,7 @@ async function seedOptionSignatures(
       )
       INSERT INTO listing.listing_option_signature (
         option_signature_id,
-        project_id,
+        store_id,
         signature_key,
         option_value_count,
         product_bitmap,
@@ -796,7 +796,7 @@ async function seedOptionSignatures(
         '{}'::jsonb,
         now()
       FROM bitmap
-      ON CONFLICT (project_id, signature_key) DO UPDATE SET
+      ON CONFLICT (store_id, signature_key) DO UPDATE SET
         option_value_count = EXCLUDED.option_value_count,
         product_bitmap = EXCLUDED.product_bitmap,
         cardinality = EXCLUDED.cardinality,
@@ -807,7 +807,7 @@ async function seedOptionSignatures(
     const [{ storedOptionSignatureId }] = await sql<{ storedOptionSignatureId: string }[]>`
       SELECT option_signature_id::text AS "storedOptionSignatureId"
       FROM listing.listing_option_signature
-      WHERE project_id = ${input.projectUuid}::uuid
+      WHERE store_id = ${input.projectUuid}::uuid
         AND signature_key = ${signatureKey}
     `;
 
@@ -815,7 +815,7 @@ async function seedOptionSignatures(
       await sql`
         INSERT INTO listing.listing_option_signature_value (
           option_signature_id,
-          project_id,
+          store_id,
           signature_key,
           facet_id,
           value_key
@@ -828,7 +828,7 @@ async function seedOptionSignatures(
           ${valueKey}
         )
         ON CONFLICT (option_signature_id, value_key) DO UPDATE SET
-          project_id = EXCLUDED.project_id,
+          store_id = EXCLUDED.store_id,
           signature_key = EXCLUDED.signature_key,
           facet_id = EXCLUDED.facet_id
       `;
@@ -838,7 +838,7 @@ async function seedOptionSignatures(
       await sql`
         INSERT INTO listing.listing_option_signature_product_membership (
           option_signature_id,
-          project_id,
+          store_id,
           signature_key,
           product_doc_id,
           variant_count,
@@ -853,7 +853,7 @@ async function seedOptionSignatures(
           now()
         )
         ON CONFLICT (option_signature_id, product_doc_id) DO UPDATE SET
-          project_id = EXCLUDED.project_id,
+          store_id = EXCLUDED.store_id,
           signature_key = EXCLUDED.signature_key,
           variant_count = EXCLUDED.variant_count,
           updated_at = now()

@@ -13,12 +13,12 @@ scope membership должны обновлять только затронуты
 
 ## Общие правила
 
-- Все SQL read-model таблицы содержат `project_id`; каждый storefront/admin
+- Все SQL read-model таблицы содержат `store_id`; каждый storefront/admin
   query должен ограничиваться текущим проектом. `product_id` и `variant_id`
   являются external canonical ids из upstream product source, но listing schema
   не создает FK или type dependency на upstream schema. Child read-model rows
   дополнительно используют composite FK на parent listing rows
-  (`project_id`, external id/doc id), чтобы повторяемый `project_id` не мог
+  (`store_id`, external id/doc id), чтобы повторяемый `store_id` не мог
   разойтись с parent row.
 - `product_doc_id` / `variant_doc_id` являются стабильными runtime ids
   внутри проекта и хранятся прямо в `product_listing_index` /
@@ -77,7 +77,7 @@ scope membership должны обновлять только затронуты
   snapshot/command payload и сразу резолвятся в stable ids (`facet_id`,
   `facet_value_id`, `category_id`, `collection_id`, `vendor_id`). После этого
   handles не нужны для storefront read path и не сохраняются в listing index.
-- `project_id` намеренно повторяется во всех таблицах как tenant boundary и
+- `store_id` намеренно повторяется во всех таблицах как tenant boundary и
   index prefix. Это не считается устранимым дублированием, потому что каждый
   storefront/admin query обязан явно ограничиваться проектом.
 
@@ -108,7 +108,7 @@ Planned files:
     source schemas. Listing stores external ids as values and posting values use
     stable typed ids in `value_key`;
   - add composite unique/FK targets only inside listing read-model tables where
-    needed to enforce repeated `project_id` consistency in child rows.
+    needed to enforce repeated `store_id` consistency in child rows.
 - `services/listing/migrations/domains/0100_listing_index/0101_listing_index__bm25_search.sql`:
   - create `listing.product_title_bm25_search_index`;
   - create ordinary indexes and the ParadeDB BM25 index;
@@ -146,12 +146,12 @@ Sync code выделяет ids под row-level lock (`SELECT ... FOR UPDATE`) �
 
 ```sql
 CREATE TABLE listing.listing_doc_id_allocator (
-  project_id              uuid NOT NULL,
+  store_id              uuid NOT NULL,
   next_product_doc_id     int NOT NULL DEFAULT 1,
   next_variant_doc_id     int NOT NULL DEFAULT 1,
   updated_at              timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id),
+  PRIMARY KEY (store_id),
   CONSTRAINT chk_listing_doc_id_allocator_product_positive
     CHECK (next_product_doc_id > 0),
   CONSTRAINT chk_listing_doc_id_allocator_variant_positive
@@ -161,7 +161,7 @@ CREATE TABLE listing.listing_doc_id_allocator (
 
 | Поле | Комментарий |
 | --- | --- |
-| `project_id` | Tenant boundary для allocation state. |
+| `store_id` | Tenant boundary для allocation state. |
 | `next_product_doc_id` | Следующий product doc id для этого project. |
 | `next_variant_doc_id` | Следующий variant doc id для этого project. |
 | `updated_at` | Время последнего allocation update. |
@@ -175,7 +175,7 @@ postings пишутся только в `listing.listing_posting_bitmap`.
 
 ```sql
 CREATE TABLE listing.product_listing_index (
-  project_id             uuid NOT NULL,
+  store_id             uuid NOT NULL,
   product_id             uuid NOT NULL,
   product_doc_id         int NOT NULL,
 
@@ -195,12 +195,12 @@ CREATE TABLE listing.product_listing_index (
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
   PRIMARY KEY (product_id),
-  CONSTRAINT product_listing_project_doc_unique
-    UNIQUE (project_id, product_doc_id),
-  CONSTRAINT product_listing_project_product_unique
-    UNIQUE (project_id, product_id),
-  CONSTRAINT product_listing_project_doc_product_unique
-    UNIQUE (project_id, product_doc_id, product_id),
+  CONSTRAINT product_listing_store_doc_unique
+    UNIQUE (store_id, product_doc_id),
+  CONSTRAINT product_listing_store_product_unique
+    UNIQUE (store_id, product_id),
+  CONSTRAINT product_listing_store_doc_product_unique
+    UNIQUE (store_id, product_doc_id, product_id),
   CONSTRAINT chk_product_listing_kind
     CHECK (kind IN ('BASE', 'BUNDLE')),
   CONSTRAINT chk_product_listing_status
@@ -216,7 +216,7 @@ CREATE TABLE listing.product_listing_index (
 
 | Поле | Комментарий |
 | --- | --- |
-| `project_id` | Tenant/project boundary. Используется в index prefixes и во всех listing queries. Root identity остается `product_id`, а composite child FKs используют `project_id` только для consistency checks. |
+| `store_id` | Tenant/store boundary. Используется в index prefixes и во всех listing queries. Root identity остается `product_id`, а composite child FKs используют `store_id` только для consistency checks. |
 | `product_id` | External canonical product id from upstream product source. Listing stores it as an opaque id and does not enforce an FK to upstream schema. |
 | `product_doc_id` | Stable integer id товара внутри project для roaring product bitmaps. Выделяется один раз и не переиспользуется после удаления product. |
 | `kind` | Тип товара from indexing payload, currently `BASE` or `BUNDLE`; нужен для rule collections и возможных storefront predicates по типу. |
@@ -237,9 +237,9 @@ CREATE TABLE listing.product_listing_index (
 | Ограничение | Комментарий |
 | --- | --- |
 | `PRIMARY KEY (product_id)` | Гарантирует одну listing строку на product и дает целевой ключ для joins. |
-| `product_listing_project_doc_unique` | Гарантирует уникальность stable product doc id внутри project. |
-| `product_listing_project_product_unique` | Дает composite FK target для child rows, чтобы `project_id` child row совпадал с parent listing row. |
-| `product_listing_project_doc_product_unique` | Дает composite target для posting sort rows и variant parent consistency checks. |
+| `product_listing_store_doc_unique` | Гарантирует уникальность stable product doc id внутри project. |
+| `product_listing_store_product_unique` | Дает composite FK target для child rows, чтобы `store_id` child row совпадал с parent listing row. |
+| `product_listing_store_doc_product_unique` | Дает composite target для posting sort rows и variant parent consistency checks. |
 | `chk_product_listing_kind` | Фиксирует локально поддерживаемые значения product kind без зависимости от upstream enum type. |
 | `chk_product_listing_status` | Фиксирует допустимые visibility states; deleted не допускается как status. |
 | `chk_product_listing_doc_positive` | Защищает roaring doc id domain от нулевых/отрицательных ids. |
@@ -248,15 +248,15 @@ CREATE TABLE listing.product_listing_index (
 ### Индексы
 
 ```sql
-CREATE INDEX idx_product_listing_project_product
-  ON listing.product_listing_index (project_id, product_id);
+CREATE INDEX idx_product_listing_store_product
+  ON listing.product_listing_index (store_id, product_id);
 
-CREATE INDEX idx_product_listing_project_doc
-  ON listing.product_listing_index (project_id, product_doc_id);
+CREATE INDEX idx_product_listing_store_doc
+  ON listing.product_listing_index (store_id, product_doc_id);
 
 CREATE INDEX idx_product_listing_visible_newest
   ON listing.product_listing_index (
-    project_id,
+    store_id,
     in_stock DESC,
     published_at DESC NULLS LAST,
     product_created_at DESC,
@@ -266,7 +266,7 @@ CREATE INDEX idx_product_listing_visible_newest
 
 CREATE INDEX idx_product_listing_visible_created
   ON listing.product_listing_index (
-    project_id,
+    store_id,
     in_stock DESC,
     product_created_at DESC,
     product_id
@@ -274,18 +274,18 @@ CREATE INDEX idx_product_listing_visible_created
   WHERE status = 'published';
 
 CREATE INDEX idx_product_listing_vendor
-  ON listing.product_listing_index (project_id, vendor_id)
+  ON listing.product_listing_index (store_id, vendor_id)
   WHERE vendor_id IS NOT NULL;
 
 CREATE INDEX idx_product_listing_in_stock
-  ON listing.product_listing_index (project_id, in_stock);
+  ON listing.product_listing_index (store_id, in_stock);
 
 ```
 
 | Индекс | Комментарий |
 | --- | --- |
-| `idx_product_listing_project_product` | Явный lookup/join index по project + product. Нужен отдельно, потому что PK построен по `product_id`. |
-| `idx_product_listing_project_doc` | Lookup/hydration по stable product doc id из roaring bitmaps. |
+| `idx_product_listing_store_product` | Явный lookup/join index по project + product. Нужен отдельно, потому что PK построен по `product_id`. |
+| `idx_product_listing_store_doc` | Lookup/hydration по stable product doc id из roaring bitmaps. |
 | `idx_product_listing_visible_newest` | Покрывает default/newest storefront order: сначала in-stock, затем published date, затем created date и stable `product_id`. Partial predicate исключает drafts. |
 | `idx_product_listing_visible_created` | Покрывает `created` sort с тем же availability bucket и stable tie-breaker. |
 | `idx_product_listing_vendor` | Ускоряет explicit vendor filter. Partial predicate уменьшает размер, потому что products без vendor не участвуют в vendor lookup. |
@@ -298,7 +298,7 @@ CREATE INDEX idx_product_listing_in_stock
 
 ```sql
 CREATE TABLE listing.product_listing_price_index (
-  project_id             uuid NOT NULL,
+  store_id             uuid NOT NULL,
   product_id             uuid NOT NULL,
   currency               varchar(3) NOT NULL,
 
@@ -314,9 +314,9 @@ CREATE TABLE listing.product_listing_price_index (
     FOREIGN KEY (product_id)
     REFERENCES listing.product_listing_index(product_id)
     ON DELETE CASCADE,
-  CONSTRAINT fk_product_listing_price_project_product
-    FOREIGN KEY (project_id, product_id)
-    REFERENCES listing.product_listing_index(project_id, product_id)
+  CONSTRAINT fk_product_listing_price_store_product
+    FOREIGN KEY (store_id, product_id)
+    REFERENCES listing.product_listing_index(store_id, product_id)
     ON DELETE CASCADE,
   CONSTRAINT chk_product_listing_price_state
     CHECK (
@@ -340,7 +340,7 @@ CREATE TABLE listing.product_listing_price_index (
 
 | Поле | Комментарий |
 | --- | --- |
-| `project_id` | Project boundary for filtering and index prefixes. |
+| `store_id` | Project boundary for filtering and index prefixes. |
 | `product_id` | Product whose in-stock variant prices are aggregated. |
 | `currency` | ISO 4217 currency code. Storefront reads default currency row; sync can write all enabled project currencies. |
 | `min_price_minor` | Lowest price among active in-stock variants with price in this currency. Nullable when `has_price = false`. |
@@ -355,7 +355,7 @@ CREATE TABLE listing.product_listing_price_index (
 | --- | --- |
 | `PRIMARY KEY (product_id, currency)` | Гарантирует одну aggregate price row на product/currency. |
 | `fk_product_listing_price_product` | Привязывает price aggregate к parent row в `product_listing_index` и удаляет его при partial sync удалении product из read model. |
-| `fk_product_listing_price_project_product` | Защищает повторяемый `project_id` child row: он должен совпадать с parent listing row. |
+| `fk_product_listing_price_store_product` | Защищает повторяемый `store_id` child row: он должен совпадать с parent listing row. |
 | `chk_product_listing_price_state` | Запрещает inconsistent price rows: `has_price=false` хранит NULL price bounds, `has_price=true` требует non-negative min/max и `max >= min`. |
 
 ### Индексы
@@ -363,7 +363,7 @@ CREATE TABLE listing.product_listing_price_index (
 ```sql
 CREATE INDEX idx_product_listing_price_visible_asc
   ON listing.product_listing_price_index (
-    project_id,
+    store_id,
     currency,
     min_price_minor ASC,
     product_id
@@ -372,7 +372,7 @@ CREATE INDEX idx_product_listing_price_visible_asc
 
 CREATE INDEX idx_product_listing_price_visible_desc
   ON listing.product_listing_price_index (
-    project_id,
+    store_id,
     currency,
     max_price_minor DESC,
     product_id
@@ -394,7 +394,7 @@ postings в `listing.listing_posting_bitmap`.
 
 ```sql
 CREATE TABLE listing.variant_listing_index (
-  project_id             uuid NOT NULL,
+  store_id             uuid NOT NULL,
   product_id             uuid NOT NULL,
   product_doc_id         int NOT NULL,
   variant_id             uuid NOT NULL,
@@ -407,22 +407,22 @@ CREATE TABLE listing.variant_listing_index (
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
   PRIMARY KEY (variant_id),
-  CONSTRAINT variant_listing_project_product_variant_unique
+  CONSTRAINT variant_listing_store_product_variant_unique
     UNIQUE (product_id, variant_id),
-  CONSTRAINT variant_listing_project_variant_unique
-    UNIQUE (project_id, variant_id),
-  CONSTRAINT variant_listing_project_doc_unique
-    UNIQUE (project_id, variant_doc_id),
-  CONSTRAINT variant_listing_project_doc_variant_unique
-    UNIQUE (project_id, variant_doc_id, product_doc_id, product_id),
+  CONSTRAINT variant_listing_store_variant_unique
+    UNIQUE (store_id, variant_id),
+  CONSTRAINT variant_listing_store_doc_unique
+    UNIQUE (store_id, variant_doc_id),
+  CONSTRAINT variant_listing_store_doc_variant_unique
+    UNIQUE (store_id, variant_doc_id, product_doc_id, product_id),
   CONSTRAINT fk_variant_listing_product
     FOREIGN KEY (product_id)
     REFERENCES listing.product_listing_index(product_id)
     ON DELETE CASCADE,
   CONSTRAINT fk_variant_listing_product_doc
-    FOREIGN KEY (project_id, product_doc_id, product_id)
+    FOREIGN KEY (store_id, product_doc_id, product_id)
     REFERENCES listing.product_listing_index(
-      project_id,
+      store_id,
       product_doc_id,
       product_id
     )
@@ -440,7 +440,7 @@ CREATE TABLE listing.variant_listing_index (
 
 | Поле | Комментарий |
 | --- | --- |
-| `project_id` | Project boundary for filtering and join index prefixes. |
+| `store_id` | Project boundary for filtering and join index prefixes. |
 | `product_id` | Parent product id. Нужен для grouping variants back to products. |
 | `product_doc_id` | Stable parent product doc id. Нужен для projection variant bitmap -> product bitmap и для price/sort hot paths без UUID lookup. |
 | `variant_id` | External canonical variant id. Anchor для same-variant OPTION + PRICE predicates. Listing stores it as an opaque id and does not enforce an FK to upstream schema. |
@@ -455,10 +455,10 @@ CREATE TABLE listing.variant_listing_index (
 | Ограничение | Комментарий |
 | --- | --- |
 | `PRIMARY KEY (variant_id)` | Гарантирует одну listing row на variant. |
-| `variant_listing_project_product_variant_unique` | Дает уникальный ключ для product/variant pairing внутри read model. |
-| `variant_listing_project_variant_unique` | Дает composite FK target для child rows, чтобы `project_id` child row совпадал с parent variant listing row. |
-| `variant_listing_project_doc_unique` | Гарантирует уникальность stable variant doc id внутри project. |
-| `variant_listing_project_doc_variant_unique` | Дает composite target для typed variant price rows и projection consistency checks. |
+| `variant_listing_store_product_variant_unique` | Дает уникальный ключ для product/variant pairing внутри read model. |
+| `variant_listing_store_variant_unique` | Дает composite FK target для child rows, чтобы `store_id` child row совпадал с parent variant listing row. |
+| `variant_listing_store_doc_unique` | Гарантирует уникальность stable variant doc id внутри project. |
+| `variant_listing_store_doc_variant_unique` | Дает composite target для typed variant price rows и projection consistency checks. |
 | `fk_variant_listing_product` | Привязывает variant listing row к parent `product_listing_index` и удаляет variant index rows при удалении product из read model. |
 | `fk_variant_listing_product_doc` | Гарантирует, что `product_doc_id` действительно принадлежит parent product row. |
 | `chk_variant_listing_doc_positive` | Защищает roaring variant doc id domain от нулевых/отрицательных ids. |
@@ -468,21 +468,21 @@ CREATE TABLE listing.variant_listing_index (
 ### Индексы
 
 ```sql
-CREATE INDEX idx_variant_listing_project_product
-  ON listing.variant_listing_index (project_id, product_id);
+CREATE INDEX idx_variant_listing_store_product
+  ON listing.variant_listing_index (store_id, product_id);
 
-CREATE INDEX idx_variant_listing_project_variant
-  ON listing.variant_listing_index (project_id, variant_id);
+CREATE INDEX idx_variant_listing_store_variant
+  ON listing.variant_listing_index (store_id, variant_id);
 
-CREATE INDEX idx_variant_listing_project_doc
-  ON listing.variant_listing_index (project_id, variant_doc_id);
+CREATE INDEX idx_variant_listing_store_doc
+  ON listing.variant_listing_index (store_id, variant_doc_id);
 
 CREATE INDEX idx_variant_listing_in_stock
-  ON listing.variant_listing_index (project_id, in_stock);
+  ON listing.variant_listing_index (store_id, in_stock);
 
 CREATE INDEX idx_variant_listing_in_stock_product_variant
   ON listing.variant_listing_index (
-    project_id,
+    store_id,
     product_doc_id,
     product_id,
     variant_doc_id,
@@ -493,9 +493,9 @@ CREATE INDEX idx_variant_listing_in_stock_product_variant
 
 | Индекс | Комментарий |
 | --- | --- |
-| `idx_variant_listing_project_product` | Быстрый переход от product candidate set к variants для variant filters, counts и aggregate refresh. |
-| `idx_variant_listing_project_variant` | Lookup by project + variant id. Нужен отдельно, потому что PK построен по `variant_id`. |
-| `idx_variant_listing_project_doc` | Lookup/hydration по stable variant doc id из roaring bitmaps. |
+| `idx_variant_listing_store_product` | Быстрый переход от product candidate set к variants для variant filters, counts и aggregate refresh. |
+| `idx_variant_listing_store_variant` | Lookup by project + variant id. Нужен отдельно, потому что PK построен по `variant_id`. |
+| `idx_variant_listing_store_doc` | Lookup/hydration по stable variant doc id из roaring bitmaps. |
 | `idx_variant_listing_in_stock` | Поддерживает common predicate `vli.in_stock = true` для option/price matching и virtual in-stock count. |
 | `idx_variant_listing_in_stock_product_variant` | Основной lookup для storefront option/price paths, где query уже имеет product candidate set и должен быстро перейти к in-stock variants конкретного product. Partial index уменьшает размер при большом числе out-of-stock variants. |
 
@@ -506,7 +506,7 @@ price range и matched variant price sort.
 
 ```sql
 CREATE TABLE listing.variant_listing_price_index (
-  project_id             uuid NOT NULL,
+  store_id             uuid NOT NULL,
   variant_id             uuid NOT NULL,
   currency               varchar(3) NOT NULL,
 
@@ -521,9 +521,9 @@ CREATE TABLE listing.variant_listing_price_index (
     FOREIGN KEY (variant_id)
     REFERENCES listing.variant_listing_index(variant_id)
     ON DELETE CASCADE,
-  CONSTRAINT fk_variant_listing_price_project_variant
-    FOREIGN KEY (project_id, variant_id)
-    REFERENCES listing.variant_listing_index(project_id, variant_id)
+  CONSTRAINT fk_variant_listing_price_store_variant
+    FOREIGN KEY (store_id, variant_id)
+    REFERENCES listing.variant_listing_index(store_id, variant_id)
     ON DELETE CASCADE,
   CONSTRAINT chk_variant_listing_price_state
     CHECK (
@@ -544,7 +544,7 @@ CREATE TABLE listing.variant_listing_price_index (
 
 | Поле | Комментарий |
 | --- | --- |
-| `project_id` | Project boundary for filtering and index prefixes. |
+| `store_id` | Project boundary for filtering and index prefixes. |
 | `variant_id` | Variant whose price is stored. Must be joined to the same `variant_listing_index.variant_id` when OPTION and PRICE predicates are both active. |
 | `currency` | ISO 4217 currency code. Storefront listing uses project default currency. |
 | `price_minor` | Variant price in minor currency units. Nullable if no price exists in this currency. |
@@ -558,19 +558,19 @@ CREATE TABLE listing.variant_listing_price_index (
 | --- | --- |
 | `PRIMARY KEY (variant_id, currency)` | Гарантирует одну variant price row на currency. |
 | `fk_variant_listing_price_variant` | Привязывает price row к parent `variant_listing_index` и каскадно удаляет price rows при partial sync удалении variant из read model. Product grouping выполняется join к parent row, чтобы не хранить `product_id` в price row. |
-| `fk_variant_listing_price_project_variant` | Защищает повторяемый `project_id` child row: он должен совпадать с parent variant listing row. |
+| `fk_variant_listing_price_store_variant` | Защищает повторяемый `store_id` child row: он должен совпадать с parent variant listing row. |
 | `chk_variant_listing_price_state` | Запрещает inconsistent price rows: `has_price=false` хранит NULL price, `has_price=true` требует non-negative `price_minor`. |
 
 ### Индексы
 
 ```sql
 CREATE INDEX idx_variant_listing_price_value
-  ON listing.variant_listing_price_index (project_id, currency, price_minor)
+  ON listing.variant_listing_price_index (store_id, currency, price_minor)
   WHERE has_price = true;
 
 CREATE INDEX idx_variant_listing_price_variant
   ON listing.variant_listing_price_index (
-    project_id,
+    store_id,
     currency,
     variant_id,
     price_minor
@@ -579,7 +579,7 @@ CREATE INDEX idx_variant_listing_price_variant
 
 CREATE INDEX idx_variant_listing_price_value_variant
   ON listing.variant_listing_price_index (
-    project_id,
+    store_id,
     currency,
     price_minor,
     variant_id
@@ -591,7 +591,7 @@ CREATE INDEX idx_variant_listing_price_value_variant
 | --- | --- |
 | `idx_variant_listing_price_value` | Поддерживает price range/filter scans по project + currency + price. |
 | `idx_variant_listing_price_variant` | Поддерживает lookup priced variants after candidate variants are known; product grouping берется join к `variant_listing_index`, чтобы не хранить `product_id` второй раз. |
-| `idx_variant_listing_price_value_variant` | Поддерживает price-range-first path, когда диапазон цены селективный: PostgreSQL может начать с `(project_id, currency, price_minor)` и сразу получить `variant_id` для дальнейшего same-variant matching. |
+| `idx_variant_listing_price_value_variant` | Поддерживает price-range-first path, когда диапазон цены селективный: PostgreSQL может начать с `(store_id, currency, price_minor)` и сразу получить `variant_id` для дальнейшего same-variant matching. |
 
 ## Roaring posting index
 
@@ -625,8 +625,8 @@ Runtime code использует `pg_roaringbitmap` напрямую. Query bui
 current-state listing rows:
 
 ```text
-listing.product_listing_index(project_id, product_doc_id, product_id)
-listing.variant_listing_index(project_id, variant_doc_id, product_doc_id, product_id, variant_id)
+listing.product_listing_index(store_id, product_doc_id, product_id)
+listing.variant_listing_index(store_id, variant_doc_id, product_doc_id, product_id, variant_id)
 ```
 
 `product_doc_id` / `variant_doc_id` выделяются allocator-ом при создании
@@ -641,7 +641,7 @@ auxiliary posting sets live here.
 
 ```sql
 CREATE TABLE listing.listing_posting_bitmap (
-  project_id             uuid NOT NULL,
+  store_id             uuid NOT NULL,
   entity_type            varchar(16) NOT NULL,
   field                  varchar(64) NOT NULL,
   value_key              text NOT NULL,
@@ -650,7 +650,7 @@ CREATE TABLE listing.listing_posting_bitmap (
   metadata               jsonb NOT NULL DEFAULT '{}'::jsonb,
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, entity_type, field, value_key),
+  PRIMARY KEY (store_id, entity_type, field, value_key),
   CONSTRAINT chk_listing_posting_bitmap_entity_type
     CHECK (entity_type IN ('product', 'variant'))
 );
@@ -684,7 +684,7 @@ Derived product sort rows for hot storefront page collectors. Это physical in
 
 ```sql
 CREATE TABLE listing.listing_posting_product_sort (
-  project_id             uuid NOT NULL,
+  store_id             uuid NOT NULL,
   product_doc_id         int NOT NULL,
   product_id             uuid NOT NULL,
   sort_kind              varchar(32) NOT NULL,
@@ -700,7 +700,7 @@ CREATE TABLE listing.listing_posting_product_sort (
   numeric_value          numeric,
 
   PRIMARY KEY (
-    project_id,
+    store_id,
     product_doc_id,
     sort_kind,
     locale,
@@ -708,9 +708,9 @@ CREATE TABLE listing.listing_posting_product_sort (
     manual_scope_id
   ),
   CONSTRAINT fk_listing_posting_product_sort_doc
-    FOREIGN KEY (project_id, product_doc_id, product_id)
+    FOREIGN KEY (store_id, product_doc_id, product_id)
     REFERENCES listing.product_listing_index(
-      project_id,
+      store_id,
       product_doc_id,
       product_id
     )
@@ -719,7 +719,7 @@ CREATE TABLE listing.listing_posting_product_sort (
 
 CREATE INDEX idx_listing_posting_product_sort_newest
   ON listing.listing_posting_product_sort (
-    project_id,
+    store_id,
     sort_kind,
     locale,
     currency,
@@ -733,7 +733,7 @@ CREATE INDEX idx_listing_posting_product_sort_newest
 
 CREATE INDEX idx_listing_posting_product_sort_text
   ON listing.listing_posting_product_sort (
-    project_id,
+    store_id,
     sort_kind,
     locale,
     currency,
@@ -746,7 +746,7 @@ CREATE INDEX idx_listing_posting_product_sort_text
 
 CREATE INDEX idx_listing_posting_product_sort_bigint_asc
   ON listing.listing_posting_product_sort (
-    project_id,
+    store_id,
     sort_kind,
     locale,
     currency,
@@ -759,7 +759,7 @@ CREATE INDEX idx_listing_posting_product_sort_bigint_asc
 
 CREATE INDEX idx_listing_posting_product_sort_bigint_desc
   ON listing.listing_posting_product_sort (
-    project_id,
+    store_id,
     sort_kind,
     locale,
     currency,
@@ -807,23 +807,23 @@ price scan cannot return out-of-stock variants.
 
 ```sql
 CREATE TABLE listing.listing_posting_variant_price (
-  project_id             uuid NOT NULL,
+  store_id             uuid NOT NULL,
   currency               varchar(3) NOT NULL,
   variant_doc_id         int NOT NULL,
   product_doc_id         int NOT NULL,
   product_id             uuid NOT NULL,
   price_minor            bigint NOT NULL,
 
-  PRIMARY KEY (project_id, currency, variant_doc_id),
+  PRIMARY KEY (store_id, currency, variant_doc_id),
   CONSTRAINT fk_listing_posting_variant_price_doc
     FOREIGN KEY (
-      project_id,
+      store_id,
       variant_doc_id,
       product_doc_id,
       product_id
     )
     REFERENCES listing.variant_listing_index(
-      project_id,
+      store_id,
       variant_doc_id,
       product_doc_id,
       product_id
@@ -833,7 +833,7 @@ CREATE TABLE listing.listing_posting_variant_price (
 
 CREATE INDEX idx_listing_posting_variant_price_range
   ON listing.listing_posting_variant_price (
-    project_id,
+    store_id,
     currency,
     price_minor,
     product_id,
@@ -843,7 +843,7 @@ CREATE INDEX idx_listing_posting_variant_price_range
 
 CREATE INDEX idx_listing_posting_variant_price_desc
   ON listing.listing_posting_variant_price (
-    project_id,
+    store_id,
     currency,
     price_minor DESC,
     product_id,
@@ -853,7 +853,7 @@ CREATE INDEX idx_listing_posting_variant_price_desc
 
 CREATE INDEX idx_listing_posting_variant_price_product_order
   ON listing.listing_posting_variant_price (
-    project_id,
+    store_id,
     currency,
     product_id,
     price_minor,
@@ -870,14 +870,14 @@ CREATE INDEX idx_listing_posting_variant_price_product_order
 | `product_id` | Stable product tie-breaker and hydration key. |
 | `price_minor` | Price in minor units. Rows exist only for priced active in-stock variants. |
 
-### `listing.listing_posting_variant_projection_block`
+### `listing.listing_posting_variant_storeion_block`
 
 Projection helper for `variant_doc_id` bitmap -> `product_doc_id` bitmap. Broad
 option filters must not expand every variant through `rb_iterate`.
 
 ```sql
-CREATE TABLE listing.listing_posting_variant_projection_block (
-  project_id             uuid NOT NULL,
+CREATE TABLE listing.listing_posting_variant_storeion_block (
+  store_id             uuid NOT NULL,
   block_id               int NOT NULL,
   variant_doc_from       int NOT NULL,
   variant_doc_to         int NOT NULL,
@@ -886,18 +886,18 @@ CREATE TABLE listing.listing_posting_variant_projection_block (
   variant_count          int NOT NULL,
   product_count          int NOT NULL,
 
-  PRIMARY KEY (project_id, block_id),
-  CONSTRAINT chk_listing_projection_block_id_nonnegative
+  PRIMARY KEY (store_id, block_id),
+  CONSTRAINT chk_listing_storeion_block_id_nonnegative
     CHECK (block_id >= 0),
-  CONSTRAINT chk_listing_projection_block_range
+  CONSTRAINT chk_listing_storeion_block_range
     CHECK (variant_doc_from >= 0 AND variant_doc_to > variant_doc_from),
-  CONSTRAINT chk_listing_projection_block_counts_nonnegative
+  CONSTRAINT chk_listing_storeion_block_counts_nonnegative
     CHECK (variant_count >= 0 AND product_count >= 0)
 );
 
-CREATE INDEX idx_listing_projection_block_range
-  ON listing.listing_posting_variant_projection_block (
-    project_id,
+CREATE INDEX idx_listing_storeion_block_range
+  ON listing.listing_posting_variant_storeion_block (
+    store_id,
     variant_doc_from,
     variant_doc_to
   );
@@ -965,7 +965,7 @@ CREATE EXTENSION IF NOT EXISTS pg_search;
 
 CREATE TABLE listing.product_title_bm25_search_index (
   search_id              uuid NOT NULL,
-  project_id             uuid NOT NULL,
+  store_id             uuid NOT NULL,
   product_id             uuid NOT NULL,
   locale                 varchar(8) NOT NULL,
   kind                   varchar(16) NOT NULL,
@@ -992,12 +992,12 @@ CREATE TABLE listing.product_title_bm25_search_index (
     CHECK (status IN ('published', 'draft'))
 );
 
-CREATE INDEX idx_product_title_bm25_project_locale_product
-  ON listing.product_title_bm25_search_index (project_id, locale, product_id);
+CREATE INDEX idx_product_title_bm25_store_locale_product
+  ON listing.product_title_bm25_search_index (store_id, locale, product_id);
 
 CREATE INDEX idx_product_title_bm25_visible
   ON listing.product_title_bm25_search_index (
-    project_id,
+    store_id,
     locale,
     published_at DESC,
     product_id
@@ -1008,7 +1008,7 @@ CREATE INDEX idx_product_title_bm25_search
   ON listing.product_title_bm25_search_index
   USING bm25 (
     search_id,
-    project_id,
+    store_id,
     locale,
     status,
     kind,
@@ -1047,7 +1047,7 @@ Fallback rules:
 | Поле | Комментарий |
 | --- | --- |
 | `search_id` | Stable unique BM25 key field. |
-| `project_id` | Tenant boundary for search candidate queries. |
+| `store_id` | Tenant boundary for search candidate queries. |
 | `product_id` | External canonical product id. FK points only to local `listing.product_listing_index(product_id)`, not to upstream product schema. |
 | `locale` | Localized title dimension. |
 | `kind`, `status`, `published_at` | Search-visible product predicates stored in the BM25 row. |
@@ -1065,9 +1065,9 @@ Facet/category/vendor ids хранятся в `listing_posting_bitmap.value_key`
 stable typed values без дополнительных FK constraints, чтобы affected posting
 rows можно было обновлять независимо от upstream configuration rows.
 
-`project_id` в listing tables остается обязательным query boundary и должен
+`store_id` в listing tables остается обязательным query boundary и должен
 проверяться storefront/admin queries. Child rows внутри listing read model
-используют composite parent FKs с `project_id`, чтобы повторяемый tenant
+используют composite parent FKs с `store_id`, чтобы повторяемый tenant
 boundary не мог расходиться с parent listing row.
 
 Any upstream indexes required to produce listing snapshots belong to the

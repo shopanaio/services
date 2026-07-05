@@ -104,7 +104,7 @@ async getByIds(warehouseIds: readonly string[]): Promise<Warehouse[]> {
     .from(warehouses)
     .where(
       and(
-        eq(warehouses.projectId, this.storeId),
+        eq(warehouses.storeId, this.storeId),
         inArray(warehouses.id, [...warehouseIds])
       )
     );

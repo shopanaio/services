@@ -48,7 +48,7 @@ export class StorefrontProductSortCollectorRepository extends BaseRepository {
         s.bigint_value::double precision AS "bigintValue",
         s.text_value AS "textValue"
       FROM listing.listing_posting_product_sort s
-      WHERE s.project_id = ${this.storeId}::uuid
+      WHERE s.store_id = ${this.storeId}::uuid
         AND s.sort_kind = ${config.sortKind}
         AND s.locale = ${config.locale}
         AND s.currency = ${config.currency}

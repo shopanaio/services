@@ -17,7 +17,7 @@ import { catalogSchema } from "./schema";
 export const warehouses = catalogSchema.table(
   "warehouses",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     id: uuid("id").primaryKey(),
     code: varchar("code", { length: 32 }).notNull(),
     name: text("name").notNull(),
@@ -30,10 +30,10 @@ export const warehouses = catalogSchema.table(
       .defaultNow(),
   },
   (table) => [
-    unique("warehouses_project_id_code_key").on(table.projectId, table.code),
-    unique("warehouses_project_id_id_unique").on(table.projectId, table.id),
+    unique("warehouses_store_id_code_key").on(table.storeId, table.code),
+    unique("warehouses_store_id_id_unique").on(table.storeId, table.id),
     uniqueIndex("idx_warehouses_default_unique")
-      .on(table.projectId)
+      .on(table.storeId)
       .where(sql`is_default = true`),
   ]
 );
@@ -41,7 +41,7 @@ export const warehouses = catalogSchema.table(
 export const warehouseStock = catalogSchema.table(
   "warehouse_stock",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     id: uuid("id").primaryKey(),
     warehouseId: uuid("warehouse_id").notNull(),
     variantId: uuid("variant_id").notNull(),
@@ -68,13 +68,13 @@ export const warehouseStock = catalogSchema.table(
       sql`${table.unavailableQty} <= ${table.quantityOnHand}`
     ),
     // Unique constraint
-    unique("warehouse_stock_project_id_warehouse_id_variant_id_key").on(
-      table.projectId,
+    unique("warehouse_stock_store_id_warehouse_id_variant_id_key").on(
+      table.storeId,
       table.warehouseId,
       table.variantId
     ),
     // Index
-    index("idx_warehouse_stock_variant").on(table.projectId, table.variantId),
+    index("idx_warehouse_stock_variant").on(table.storeId, table.variantId),
     foreignKey({
       name: "warehouse_stock_warehouse_fk",
       columns: [table.warehouseId],

@@ -1,12 +1,12 @@
 CREATE EXTENSION IF NOT EXISTS roaringbitmap;
 
 CREATE TABLE listing.listing_doc_id_allocator (
-  project_id              uuid NOT NULL,
+  store_id              uuid NOT NULL,
   next_product_doc_id     int NOT NULL DEFAULT 1,
   next_variant_doc_id     int NOT NULL DEFAULT 1,
   updated_at              timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id),
+  PRIMARY KEY (store_id),
   CONSTRAINT chk_listing_doc_id_allocator_product_positive
     CHECK (next_product_doc_id > 0),
   CONSTRAINT chk_listing_doc_id_allocator_variant_positive
@@ -14,7 +14,7 @@ CREATE TABLE listing.listing_doc_id_allocator (
 );
 
 CREATE TABLE listing.product_listing_index (
-  project_id             uuid NOT NULL,
+  store_id             uuid NOT NULL,
   product_id             uuid NOT NULL,
   product_doc_id         int NOT NULL,
 
@@ -34,12 +34,12 @@ CREATE TABLE listing.product_listing_index (
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
   PRIMARY KEY (product_id),
-  CONSTRAINT product_listing_project_doc_unique
-    UNIQUE (project_id, product_doc_id),
-  CONSTRAINT product_listing_project_product_unique
-    UNIQUE (project_id, product_id),
-  CONSTRAINT product_listing_project_doc_product_unique
-    UNIQUE (project_id, product_doc_id, product_id),
+  CONSTRAINT product_listing_store_doc_unique
+    UNIQUE (store_id, product_doc_id),
+  CONSTRAINT product_listing_store_product_unique
+    UNIQUE (store_id, product_id),
+  CONSTRAINT product_listing_store_doc_product_unique
+    UNIQUE (store_id, product_doc_id, product_id),
   CONSTRAINT chk_product_listing_kind
     CHECK (kind IN ('BASE', 'BUNDLE')),
   CONSTRAINT chk_product_listing_status
@@ -50,15 +50,15 @@ CREATE TABLE listing.product_listing_index (
     CHECK (total_stock >= 0)
 );
 
-CREATE INDEX idx_product_listing_project_product
-  ON listing.product_listing_index (project_id, product_id);
+CREATE INDEX idx_product_listing_store_product
+  ON listing.product_listing_index (store_id, product_id);
 
-CREATE INDEX idx_product_listing_project_doc
-  ON listing.product_listing_index (project_id, product_doc_id);
+CREATE INDEX idx_product_listing_store_doc
+  ON listing.product_listing_index (store_id, product_doc_id);
 
 CREATE INDEX idx_product_listing_visible_newest
   ON listing.product_listing_index (
-    project_id,
+    store_id,
     in_stock DESC,
     published_at DESC NULLS LAST,
     product_created_at DESC,
@@ -68,7 +68,7 @@ CREATE INDEX idx_product_listing_visible_newest
 
 CREATE INDEX idx_product_listing_visible_created
   ON listing.product_listing_index (
-    project_id,
+    store_id,
     in_stock DESC,
     product_created_at DESC,
     product_id
@@ -76,14 +76,14 @@ CREATE INDEX idx_product_listing_visible_created
   WHERE status = 'published';
 
 CREATE INDEX idx_product_listing_vendor
-  ON listing.product_listing_index (project_id, vendor_id)
+  ON listing.product_listing_index (store_id, vendor_id)
   WHERE vendor_id IS NOT NULL;
 
 CREATE INDEX idx_product_listing_in_stock
-  ON listing.product_listing_index (project_id, in_stock);
+  ON listing.product_listing_index (store_id, in_stock);
 
 CREATE TABLE listing.product_listing_price_index (
-  project_id             uuid NOT NULL,
+  store_id             uuid NOT NULL,
   product_id             uuid NOT NULL,
   currency               varchar(3) NOT NULL,
 
@@ -99,9 +99,9 @@ CREATE TABLE listing.product_listing_price_index (
     FOREIGN KEY (product_id)
     REFERENCES listing.product_listing_index(product_id)
     ON DELETE CASCADE,
-  CONSTRAINT fk_product_listing_price_project_product
-    FOREIGN KEY (project_id, product_id)
-    REFERENCES listing.product_listing_index(project_id, product_id)
+  CONSTRAINT fk_product_listing_price_store_product
+    FOREIGN KEY (store_id, product_id)
+    REFERENCES listing.product_listing_index(store_id, product_id)
     ON DELETE CASCADE,
   CONSTRAINT chk_product_listing_price_state
     CHECK (
@@ -122,7 +122,7 @@ CREATE TABLE listing.product_listing_price_index (
 
 CREATE INDEX idx_product_listing_price_visible_asc
   ON listing.product_listing_price_index (
-    project_id,
+    store_id,
     currency,
     min_price_minor ASC,
     product_id
@@ -131,7 +131,7 @@ CREATE INDEX idx_product_listing_price_visible_asc
 
 CREATE INDEX idx_product_listing_price_visible_desc
   ON listing.product_listing_price_index (
-    project_id,
+    store_id,
     currency,
     max_price_minor DESC,
     product_id
@@ -139,7 +139,7 @@ CREATE INDEX idx_product_listing_price_visible_desc
   WHERE has_price = true;
 
 CREATE TABLE listing.variant_listing_index (
-  project_id             uuid NOT NULL,
+  store_id             uuid NOT NULL,
   product_id             uuid NOT NULL,
   product_doc_id         int NOT NULL,
   variant_id             uuid NOT NULL,
@@ -153,22 +153,22 @@ CREATE TABLE listing.variant_listing_index (
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
   PRIMARY KEY (variant_id),
-  CONSTRAINT variant_listing_project_product_variant_unique
+  CONSTRAINT variant_listing_store_product_variant_unique
     UNIQUE (product_id, variant_id),
-  CONSTRAINT variant_listing_project_variant_unique
-    UNIQUE (project_id, variant_id),
-  CONSTRAINT variant_listing_project_doc_unique
-    UNIQUE (project_id, variant_doc_id),
-  CONSTRAINT variant_listing_project_doc_variant_unique
-    UNIQUE (project_id, variant_doc_id, product_doc_id, product_id),
+  CONSTRAINT variant_listing_store_variant_unique
+    UNIQUE (store_id, variant_id),
+  CONSTRAINT variant_listing_store_doc_unique
+    UNIQUE (store_id, variant_doc_id),
+  CONSTRAINT variant_listing_store_doc_variant_unique
+    UNIQUE (store_id, variant_doc_id, product_doc_id, product_id),
   CONSTRAINT fk_variant_listing_product
     FOREIGN KEY (product_id)
     REFERENCES listing.product_listing_index(product_id)
     ON DELETE CASCADE,
   CONSTRAINT fk_variant_listing_product_doc
-    FOREIGN KEY (project_id, product_doc_id, product_id)
+    FOREIGN KEY (store_id, product_doc_id, product_id)
     REFERENCES listing.product_listing_index(
-      project_id,
+      store_id,
       product_doc_id,
       product_id
     )
@@ -181,21 +181,21 @@ CREATE TABLE listing.variant_listing_index (
     CHECK (total_stock >= 0)
 );
 
-CREATE INDEX idx_variant_listing_project_product
-  ON listing.variant_listing_index (project_id, product_id);
+CREATE INDEX idx_variant_listing_store_product
+  ON listing.variant_listing_index (store_id, product_id);
 
-CREATE INDEX idx_variant_listing_project_variant
-  ON listing.variant_listing_index (project_id, variant_id);
+CREATE INDEX idx_variant_listing_store_variant
+  ON listing.variant_listing_index (store_id, variant_id);
 
-CREATE INDEX idx_variant_listing_project_doc
-  ON listing.variant_listing_index (project_id, variant_doc_id);
+CREATE INDEX idx_variant_listing_store_doc
+  ON listing.variant_listing_index (store_id, variant_doc_id);
 
 CREATE INDEX idx_variant_listing_in_stock
-  ON listing.variant_listing_index (project_id, in_stock);
+  ON listing.variant_listing_index (store_id, in_stock);
 
 CREATE INDEX idx_variant_listing_in_stock_product_variant
   ON listing.variant_listing_index (
-    project_id,
+    store_id,
     product_doc_id,
     product_id,
     variant_doc_id,
@@ -205,7 +205,7 @@ CREATE INDEX idx_variant_listing_in_stock_product_variant
 
 CREATE INDEX idx_variant_listing_signature
   ON listing.variant_listing_index (
-    project_id,
+    store_id,
     signature_key,
     variant_doc_id,
     product_doc_id
@@ -213,7 +213,7 @@ CREATE INDEX idx_variant_listing_signature
   WHERE signature_key IS NOT NULL;
 
 CREATE TABLE listing.listing_index_item_state (
-  project_id                      uuid NOT NULL,
+  store_id                      uuid NOT NULL,
   entity_type                     varchar(32) NOT NULL,
   item_id                         uuid NOT NULL,
   source_revision                 integer NOT NULL,
@@ -223,7 +223,7 @@ CREATE TABLE listing.listing_index_item_state (
   last_operation_id               text NOT NULL,
   updated_at                      timestamptz NOT NULL,
 
-  PRIMARY KEY (project_id, entity_type, item_id),
+  PRIMARY KEY (store_id, entity_type, item_id),
   CONSTRAINT chk_listing_index_item_state_source_revision
     CHECK (source_revision >= 0),
   CONSTRAINT chk_listing_index_item_state_lifecycle_status
@@ -231,7 +231,7 @@ CREATE TABLE listing.listing_index_item_state (
 );
 
 CREATE TABLE listing.variant_listing_price_index (
-  project_id             uuid NOT NULL,
+  store_id             uuid NOT NULL,
   variant_id             uuid NOT NULL,
   currency               varchar(3) NOT NULL,
   variant_doc_id         int NOT NULL,
@@ -250,9 +250,9 @@ CREATE TABLE listing.variant_listing_price_index (
     FOREIGN KEY (variant_id)
     REFERENCES listing.variant_listing_index(variant_id)
     ON DELETE CASCADE,
-  CONSTRAINT fk_variant_listing_price_project_variant
-    FOREIGN KEY (project_id, variant_id)
-    REFERENCES listing.variant_listing_index(project_id, variant_id)
+  CONSTRAINT fk_variant_listing_price_store_variant
+    FOREIGN KEY (store_id, variant_id)
+    REFERENCES listing.variant_listing_index(store_id, variant_id)
     ON DELETE CASCADE,
   CONSTRAINT chk_variant_listing_price_state
     CHECK (
@@ -275,12 +275,12 @@ CREATE TABLE listing.variant_listing_price_index (
 );
 
 CREATE INDEX idx_variant_listing_price_value
-  ON listing.variant_listing_price_index (project_id, currency, price_minor)
+  ON listing.variant_listing_price_index (store_id, currency, price_minor)
   WHERE has_price = true;
 
 CREATE INDEX idx_variant_listing_price_variant
   ON listing.variant_listing_price_index (
-    project_id,
+    store_id,
     currency,
     variant_id,
     price_minor
@@ -289,7 +289,7 @@ CREATE INDEX idx_variant_listing_price_variant
 
 CREATE INDEX idx_variant_listing_price_value_variant
   ON listing.variant_listing_price_index (
-    project_id,
+    store_id,
     currency,
     price_minor,
     variant_id
@@ -298,7 +298,7 @@ CREATE INDEX idx_variant_listing_price_value_variant
 
 CREATE INDEX idx_variant_listing_price_signature_range
   ON listing.variant_listing_price_index (
-    project_id,
+    store_id,
     signature_key,
     currency,
     price_minor,
@@ -310,7 +310,7 @@ CREATE INDEX idx_variant_listing_price_signature_range
 
 CREATE TABLE listing.listing_option_signature (
   option_signature_id  uuid NOT NULL,
-  project_id           uuid NOT NULL,
+  store_id           uuid NOT NULL,
   signature_key        text NOT NULL,
   option_value_count   int NOT NULL,
   product_bitmap       roaringbitmap NOT NULL,
@@ -320,8 +320,8 @@ CREATE TABLE listing.listing_option_signature (
 
   CONSTRAINT listing_option_signature_pkey
     PRIMARY KEY (option_signature_id),
-  CONSTRAINT listing_option_signature_project_signature_unique
-    UNIQUE (project_id, signature_key),
+  CONSTRAINT listing_option_signature_store_signature_unique
+    UNIQUE (store_id, signature_key),
   CONSTRAINT chk_listing_option_signature_key_nonempty
     CHECK (length(btrim(signature_key)) > 0),
   CONSTRAINT chk_listing_option_signature_value_count_positive
@@ -332,7 +332,7 @@ CREATE TABLE listing.listing_option_signature (
 
 CREATE TABLE listing.listing_option_signature_value (
   option_signature_id  uuid NOT NULL,
-  project_id           uuid NOT NULL,
+  store_id           uuid NOT NULL,
   signature_key        text NOT NULL,
   facet_id             uuid NOT NULL,
   value_key            text NOT NULL,
@@ -351,14 +351,14 @@ CREATE TABLE listing.listing_option_signature_value (
 
 CREATE INDEX idx_listing_option_signature_value_lookup
   ON listing.listing_option_signature_value (
-    project_id,
+    store_id,
     value_key,
     signature_key
   );
 
 CREATE INDEX idx_listing_option_signature_value_facet_signature
   ON listing.listing_option_signature_value (
-    project_id,
+    store_id,
     facet_id,
     signature_key,
     value_key
@@ -366,7 +366,7 @@ CREATE INDEX idx_listing_option_signature_value_facet_signature
 
 CREATE TABLE listing.listing_option_signature_product_membership (
   option_signature_id  uuid NOT NULL,
-  project_id           uuid NOT NULL,
+  store_id           uuid NOT NULL,
   signature_key        text NOT NULL,
   product_doc_id       int NOT NULL,
   variant_count        int NOT NULL,
@@ -388,13 +388,13 @@ CREATE TABLE listing.listing_option_signature_product_membership (
 
 CREATE INDEX idx_listing_option_signature_membership_lookup
   ON listing.listing_option_signature_product_membership (
-    project_id,
+    store_id,
     signature_key,
     product_doc_id
   );
 
 CREATE TABLE listing.listing_posting_bitmap (
-  project_id             uuid NOT NULL,
+  store_id             uuid NOT NULL,
   entity_type            varchar(16) NOT NULL,
   field                  varchar(64) NOT NULL,
   value_key              text NOT NULL,
@@ -403,7 +403,7 @@ CREATE TABLE listing.listing_posting_bitmap (
   metadata               jsonb NOT NULL DEFAULT '{}'::jsonb,
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, entity_type, field, value_key),
+  PRIMARY KEY (store_id, entity_type, field, value_key),
   CONSTRAINT chk_listing_posting_bitmap_entity_type
     CHECK (entity_type IN ('product', 'variant')),
   CONSTRAINT chk_listing_posting_bitmap_no_collection_field
@@ -411,7 +411,7 @@ CREATE TABLE listing.listing_posting_bitmap (
 );
 
 CREATE TABLE listing.listing_posting_product_sort (
-  project_id             uuid NOT NULL,
+  store_id             uuid NOT NULL,
   product_doc_id         int NOT NULL,
   product_id             uuid NOT NULL,
   sort_kind              varchar(32) NOT NULL,
@@ -427,7 +427,7 @@ CREATE TABLE listing.listing_posting_product_sort (
   numeric_value          numeric,
 
   PRIMARY KEY (
-    project_id,
+    store_id,
     product_doc_id,
     sort_kind,
     locale,
@@ -435,9 +435,9 @@ CREATE TABLE listing.listing_posting_product_sort (
     manual_scope_id
   ),
   CONSTRAINT fk_listing_posting_product_sort_doc
-    FOREIGN KEY (project_id, product_doc_id, product_id)
+    FOREIGN KEY (store_id, product_doc_id, product_id)
     REFERENCES listing.product_listing_index(
-      project_id,
+      store_id,
       product_doc_id,
       product_id
     )
@@ -446,7 +446,7 @@ CREATE TABLE listing.listing_posting_product_sort (
 
 CREATE INDEX idx_listing_posting_product_sort_newest
   ON listing.listing_posting_product_sort (
-    project_id,
+    store_id,
     sort_kind,
     locale,
     currency,
@@ -460,7 +460,7 @@ CREATE INDEX idx_listing_posting_product_sort_newest
 
 CREATE INDEX idx_listing_posting_product_sort_text
   ON listing.listing_posting_product_sort (
-    project_id,
+    store_id,
     sort_kind,
     locale,
     currency,
@@ -473,7 +473,7 @@ CREATE INDEX idx_listing_posting_product_sort_text
 
 CREATE INDEX idx_listing_posting_product_sort_bigint_asc
   ON listing.listing_posting_product_sort (
-    project_id,
+    store_id,
     sort_kind,
     locale,
     currency,
@@ -486,7 +486,7 @@ CREATE INDEX idx_listing_posting_product_sort_bigint_asc
 
 CREATE INDEX idx_listing_posting_product_sort_bigint_desc
   ON listing.listing_posting_product_sort (
-    project_id,
+    store_id,
     sort_kind,
     locale,
     currency,
@@ -498,23 +498,23 @@ CREATE INDEX idx_listing_posting_product_sort_bigint_desc
   INCLUDE (product_doc_id);
 
 CREATE TABLE listing.listing_posting_variant_price (
-  project_id             uuid NOT NULL,
+  store_id             uuid NOT NULL,
   currency               varchar(3) NOT NULL,
   variant_doc_id         int NOT NULL,
   product_doc_id         int NOT NULL,
   product_id             uuid NOT NULL,
   price_minor            bigint NOT NULL,
 
-  PRIMARY KEY (project_id, currency, variant_doc_id),
+  PRIMARY KEY (store_id, currency, variant_doc_id),
   CONSTRAINT fk_listing_posting_variant_price_doc
     FOREIGN KEY (
-      project_id,
+      store_id,
       variant_doc_id,
       product_doc_id,
       product_id
     )
     REFERENCES listing.variant_listing_index(
-      project_id,
+      store_id,
       variant_doc_id,
       product_doc_id,
       product_id
@@ -524,7 +524,7 @@ CREATE TABLE listing.listing_posting_variant_price (
 
 CREATE INDEX idx_listing_posting_variant_price_range
   ON listing.listing_posting_variant_price (
-    project_id,
+    store_id,
     currency,
     price_minor,
     product_id,
@@ -534,7 +534,7 @@ CREATE INDEX idx_listing_posting_variant_price_range
 
 CREATE INDEX idx_listing_posting_variant_price_desc
   ON listing.listing_posting_variant_price (
-    project_id,
+    store_id,
     currency,
     price_minor DESC,
     product_id,
@@ -544,7 +544,7 @@ CREATE INDEX idx_listing_posting_variant_price_desc
 
 CREATE INDEX idx_listing_posting_variant_price_product_order
   ON listing.listing_posting_variant_price (
-    project_id,
+    store_id,
     currency,
     product_id,
     price_minor,
@@ -552,8 +552,8 @@ CREATE INDEX idx_listing_posting_variant_price_product_order
     product_doc_id
   );
 
-CREATE TABLE listing.listing_posting_variant_projection_block (
-  project_id             uuid NOT NULL,
+CREATE TABLE listing.listing_posting_variant_storeion_block (
+  store_id             uuid NOT NULL,
   block_id               int NOT NULL,
   variant_doc_from       int NOT NULL,
   variant_doc_to         int NOT NULL,
@@ -562,18 +562,18 @@ CREATE TABLE listing.listing_posting_variant_projection_block (
   variant_count          int NOT NULL,
   product_count          int NOT NULL,
 
-  PRIMARY KEY (project_id, block_id),
-  CONSTRAINT chk_listing_projection_block_id_nonnegative
+  PRIMARY KEY (store_id, block_id),
+  CONSTRAINT chk_listing_storeion_block_id_nonnegative
     CHECK (block_id >= 0),
-  CONSTRAINT chk_listing_projection_block_range
+  CONSTRAINT chk_listing_storeion_block_range
     CHECK (variant_doc_from >= 0 AND variant_doc_to > variant_doc_from),
-  CONSTRAINT chk_listing_projection_block_counts_nonnegative
+  CONSTRAINT chk_listing_storeion_block_counts_nonnegative
     CHECK (variant_count >= 0 AND product_count >= 0)
 );
 
-CREATE INDEX idx_listing_projection_block_range
-  ON listing.listing_posting_variant_projection_block (
-    project_id,
+CREATE INDEX idx_listing_storeion_block_range
+  ON listing.listing_posting_variant_storeion_block (
+    store_id,
     variant_doc_from,
     variant_doc_to
   );

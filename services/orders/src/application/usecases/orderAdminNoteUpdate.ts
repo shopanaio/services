@@ -45,7 +45,7 @@ export class UpdateOrderAdminNoteUseCase extends UseCase<
 
       this.logger.info({
         orderId,
-        projectId: context.store.id,
+        storeId: context.store.id,
         userId: context.user?.id,
         noteLength: note.length
       }, "Updated order admin note");

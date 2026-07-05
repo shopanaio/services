@@ -70,7 +70,7 @@ Categories уже существуют (`catalog.category`, `product_category`).
 catalog.category_seo (
   category_id       uuid NOT NULL,
   locale            varchar(8) NOT NULL,
-  project_id        uuid NOT NULL,
+  store_id        uuid NOT NULL,
   
   -- SEO fields (for search engines)
   seo_title         varchar(70),
@@ -86,7 +86,7 @@ catalog.category_seo (
     REFERENCES catalog.category(id)
     ON DELETE CASCADE
 )
-CREATE INDEX idx_category_seo_project_locale ON catalog.category_seo (project_id, locale);
+CREATE INDEX idx_category_seo_store_locale ON catalog.category_seo (store_id, locale);
 ```
 
 ---
@@ -107,7 +107,7 @@ CREATE INDEX idx_category_seo_project_locale ON catalog.category_seo (project_id
 ```sql
 catalog.collection (
   id                uuid PRIMARY KEY,
-  project_id        uuid NOT NULL,
+  store_id        uuid NOT NULL,
   handle            varchar(255),
   type              varchar(16) NOT NULL,  -- 'manual' | 'rule'
   
@@ -130,13 +130,13 @@ catalog.collection (
   updated_at        timestamptz NOT NULL DEFAULT now(),
   deleted_at        timestamptz,
   
-  UNIQUE(project_id, handle) WHERE deleted_at IS NULL AND handle IS NOT NULL,
+  UNIQUE(store_id, handle) WHERE deleted_at IS NULL AND handle IS NOT NULL,
   CHECK (type != 'rule' OR default_sort != 'manual')
 )
 
 -- Active scheduled collections lookup
 CREATE INDEX idx_collection_scheduling
-  ON catalog.collection (project_id, effective_from, effective_to)
+  ON catalog.collection (store_id, effective_from, effective_to)
   WHERE deleted_at IS NULL AND published_at IS NOT NULL;
 ```
 
@@ -144,7 +144,7 @@ CREATE INDEX idx_collection_scheduling
 catalog.collection_translation (
   collection_id     uuid NOT NULL,
   locale            varchar(8) NOT NULL,
-  project_id        uuid NOT NULL,
+  store_id        uuid NOT NULL,
   name              text NOT NULL,
   description_text  text,
   description_html  text,
@@ -154,15 +154,15 @@ catalog.collection_translation (
     REFERENCES catalog.collection(id)
     ON DELETE CASCADE
 )
-CREATE INDEX idx_collection_translation_project_locale
-  ON catalog.collection_translation (project_id, locale);
+CREATE INDEX idx_collection_translation_store_locale
+  ON catalog.collection_translation (store_id, locale);
 ```
 
 ```sql
 catalog.collection_seo (
   collection_id     uuid NOT NULL,
   locale            varchar(8) NOT NULL,
-  project_id        uuid NOT NULL,
+  store_id        uuid NOT NULL,
   
   -- SEO fields (for search engines)
   seo_title         varchar(70),
@@ -178,14 +178,14 @@ catalog.collection_seo (
     REFERENCES catalog.collection(id)
     ON DELETE CASCADE
 )
-CREATE INDEX idx_collection_seo_project_locale ON catalog.collection_seo (project_id, locale);
+CREATE INDEX idx_collection_seo_store_locale ON catalog.collection_seo (store_id, locale);
 ```
 
 ```sql
 catalog.collection_media (
   collection_id     uuid NOT NULL,
   file_id           uuid NOT NULL,
-  project_id        uuid NOT NULL,
+  store_id        uuid NOT NULL,
   sort_index        int NOT NULL DEFAULT 0,
   PRIMARY KEY (collection_id, file_id),
   FOREIGN KEY (collection_id)
@@ -199,7 +199,7 @@ catalog.collection_media (
 ```sql
 catalog.collection_item (
   collection_id     uuid NOT NULL,
-  project_id        uuid NOT NULL,
+  store_id        uuid NOT NULL,
   product_id        uuid NOT NULL REFERENCES catalog.product(id) ON DELETE CASCADE,
   lexo_rank         varchar(64) COLLATE "C" NOT NULL,
   created_at        timestamptz NOT NULL DEFAULT now(),
@@ -222,7 +222,7 @@ CREATE INDEX idx_collection_item_rank
 catalog.collection_rule (
   id                uuid PRIMARY KEY,
   collection_id     uuid NOT NULL,
-  project_id        uuid NOT NULL,
+  store_id        uuid NOT NULL,
   field             varchar(64) NOT NULL,   -- 'tag', 'price', 'option', 'feature', 'in_stock', 'category', 'created_at'
   operator          varchar(16) NOT NULL,   -- 'eq', 'gt', 'gte', 'lt', 'lte', 'in', 'all', 'contains', 'between'
   value             jsonb NOT NULL,          -- scalar or array depending on operator
@@ -293,7 +293,7 @@ Setup задается per-project: один плоский список facets 
 ```sql
 catalog.facet (
   id                uuid PRIMARY KEY,
-  project_id        uuid NOT NULL,
+  store_id        uuid NOT NULL,
   
   -- What product attribute this maps to
   facet_type        varchar(32) NOT NULL,  -- 'price', 'tag', 'feature', 'option', 'in_stock'
@@ -336,21 +336,21 @@ catalog.facet (
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now(),
   
-  UNIQUE(project_id, slug)
+  UNIQUE(store_id, slug)
 )
 
 catalog.facet_translation (
   facet_id          uuid NOT NULL,
   locale            varchar(8) NOT NULL,
-  project_id        uuid NOT NULL,
+  store_id        uuid NOT NULL,
   label             text NOT NULL,                       -- display label override (e.g., "Colour" instead of "color")
   PRIMARY KEY (facet_id, locale),
   FOREIGN KEY (facet_id)
     REFERENCES catalog.facet(id)
     ON DELETE CASCADE
 )
-CREATE INDEX idx_facet_translation_project_locale
-  ON catalog.facet_translation (project_id, locale);
+CREATE INDEX idx_facet_translation_store_locale
+  ON catalog.facet_translation (store_id, locale);
 ```
 
 `facet_source_handle` намеренно удален. `facet_value_source_handle` - единственная source mapping table в этом плане.
@@ -365,7 +365,7 @@ CREATE INDEX idx_facet_translation_project_locale
 -- Same structure as product_option_swatch (intentional duplication — separate domain, same shape)
 catalog.facet_swatch (
   id                uuid PRIMARY KEY,
-  project_id        uuid NOT NULL,
+  store_id        uuid NOT NULL,
   swatch_type       varchar(32) NOT NULL,  -- 'color' | 'gradient' | 'image'
   color_one         varchar(32),
   color_two         varchar(32),
@@ -375,7 +375,7 @@ catalog.facet_swatch (
 
 catalog.facet_value (
   id                uuid PRIMARY KEY,
-  project_id        uuid NOT NULL,
+  store_id        uuid NOT NULL,
   facet_id          uuid NOT NULL,
   slug              varchar(255) NOT NULL,           -- frontend-provided, unique per facet
   swatch_id         uuid REFERENCES catalog.facet_swatch(id) ON DELETE SET NULL,
@@ -392,7 +392,7 @@ catalog.facet_value (
 
 catalog.facet_value_source_handle (
   id                uuid PRIMARY KEY,
-  project_id        uuid NOT NULL,
+  store_id        uuid NOT NULL,
   facet_id          uuid NOT NULL,
   facet_value_id    uuid NOT NULL,
   facet_type        varchar(32) NOT NULL, -- denormalized from facet for uniqueness scope
@@ -405,35 +405,35 @@ catalog.facet_value_source_handle (
   FOREIGN KEY (facet_value_id)
     REFERENCES catalog.facet_value(id)
     ON DELETE CASCADE,
-  UNIQUE(project_id, facet_id, source_handle), -- one source handle -> one facet value inside facet
-  UNIQUE(project_id, facet_type, source_handle), -- one source handle -> one facet for this type
+  UNIQUE(store_id, facet_id, source_handle), -- one source handle -> one facet value inside facet
+  UNIQUE(store_id, facet_type, source_handle), -- one source handle -> one facet for this type
   UNIQUE(facet_value_id, source_handle)
 )
-CREATE INDEX idx_facet_value_source_handle_project_value
-  ON catalog.facet_value_source_handle (project_id, facet_value_id);
-CREATE INDEX idx_facet_value_source_handle_project_type_source
-  ON catalog.facet_value_source_handle (project_id, facet_type, source_handle);
+CREATE INDEX idx_facet_value_source_handle_store_value
+  ON catalog.facet_value_source_handle (store_id, facet_value_id);
+CREATE INDEX idx_facet_value_source_handle_store_type_source
+  ON catalog.facet_value_source_handle (store_id, facet_type, source_handle);
 
 catalog.facet_value_translation (
   facet_value_id    uuid NOT NULL,
   locale            varchar(8) NOT NULL,
-  project_id        uuid NOT NULL,
+  store_id        uuid NOT NULL,
   label             text NOT NULL,
   PRIMARY KEY (facet_value_id, locale),
   FOREIGN KEY (facet_value_id)
     REFERENCES catalog.facet_value(id)
     ON DELETE CASCADE
 )
-CREATE INDEX idx_facet_value_translation_project_locale
-  ON catalog.facet_value_translation (project_id, locale);
+CREATE INDEX idx_facet_value_translation_store_locale
+  ON catalog.facet_value_translation (store_id, locale);
 ```
 
 **Назначение:**
 - `facet_swatch` - визуальный swatch для значения фасета, аналог `product_option_swatch`.
 - `facet_value` - настроенное значение: порядок, enabled, swatch.
 - `facet_value_source_handle` - единственный source mapping (`source_handle -> facet_value`) с DB-level уникальностью:
-  - в пределах `project_id + facet_id`
-  - и в пределах `project_id + facet_type`, чтобы один source_handle не попадал в два фасета одного типа
+  - в пределах `store_id + facet_id`
+  - и в пределах `store_id + facet_type`, чтобы один source_handle не попадал в два фасета одного типа
 - `facet_value_translation` - display label для storefront без source fallback.
 
 **Резолюция label и swatch:**
@@ -456,7 +456,7 @@ Slugs живут на `facet.slug` и `facet_value.slug`, а не в translation
 
 - **Поддержка всех языков.** SQL `IMMUTABLE` functions не умеют корректно обрабатывать CJK, Arabic, Hindi, Thai, Georgian и т.д. Slug приходит с frontend, admin выбирает URL-friendly identifier.
 - **Locale-independent.** Slug принадлежит entity, а не translation. Один facet = один slug во всех locales.
-- **DB uniqueness явная.** `UNIQUE(project_id, slug)` на `facet`, `UNIQUE(facet_id, slug)` на `facet_value`, плюс constraints link-table для source handles.
+- **DB uniqueness явная.** `UNIQUE(store_id, slug)` на `facet`, `UNIQUE(facet_id, slug)` на `facet_value`, плюс constraints link-table для source handles.
 
 #### Источник slug
 
@@ -469,8 +469,8 @@ Slug передается frontend (admin UI) при create и update. Backend �
 SELECT f.id, f.slug, ft.label
 FROM facet f
 JOIN facet_translation ft ON ft.facet_id = f.id
-WHERE f.project_id = :projectId
-  AND ft.project_id = f.project_id
+WHERE f.store_id = :storeId
+  AND ft.store_id = f.store_id
   AND ft.locale = :locale;
 
 -- Facet value slugs
@@ -478,7 +478,7 @@ SELECT fv.id, fv.slug, fvt.label
 FROM facet_value fv
 JOIN facet_value_translation fvt ON fvt.facet_value_id = fv.id
 WHERE fv.facet_id = :facetId
-  AND fvt.project_id = fv.project_id
+  AND fvt.store_id = fv.store_id
   AND fvt.locale = :locale;
 ```
 
@@ -496,14 +496,14 @@ SELECT
 FROM facet f
 JOIN facet_value fv
   ON fv.facet_id = f.id
-  AND fv.project_id = f.project_id
+  AND fv.store_id = f.store_id
   AND fv.enabled = true
 JOIN facet_value_source_handle fvsh
   ON fvsh.facet_value_id = fv.id
   AND fvsh.facet_id = f.id
-  AND fvsh.project_id = f.project_id
+  AND fvsh.store_id = f.store_id
   AND fvsh.facet_type = f.facet_type
-WHERE f.project_id = :projectId
+WHERE f.store_id = :storeId
   AND f.slug = :facetSlug
   AND fv.slug = :valueSlug
 GROUP BY f.id, f.facet_type, fv.id;
@@ -513,7 +513,7 @@ GROUP BY f.id, f.facet_type, fv.id;
 
 `facet_type` определяет, какую index column query использует: `TAG` -> `product_search_index.tag_handles`, `FEATURE` -> `product_search_index.feature_slugs`, `OPTION` -> `variant_search_index.option_slugs`. Multi-select facets используют CNF: OR внутри одного facet, AND между facets. Single-select facets используют exact match.
 
-Lookup использует `UNIQUE(project_id, slug)` на `facet`, `UNIQUE(facet_id, slug)` на `facet_value` и indexed join к `facet_value_source_handle` (`project_id + facet_type + source_handle`). Results кешируются per request.
+Lookup использует `UNIQUE(store_id, slug)` на `facet`, `UNIQUE(facet_id, slug)` на `facet_value` и indexed join к `facet_value_source_handle` (`store_id + facet_type + source_handle`). Results кешируются per request.
 
 ---
 
@@ -525,7 +525,7 @@ Denormalized **product-level** таблица для быстрых queries. И�
 
 ```sql
 catalog.product_search_index (
-  project_id        uuid NOT NULL,
+  store_id        uuid NOT NULL,
   product_id        uuid PRIMARY KEY REFERENCES catalog.product(id) ON DELETE CASCADE,
   status            varchar(16) NOT NULL DEFAULT 'draft', -- derived: 'published' | 'draft'
   tag_handles       text[] DEFAULT '{}',   -- tag handles (project-wide unique), e.g., {'sale', 'new-arrival'}
@@ -539,8 +539,8 @@ catalog.product_search_index (
 Indexes: GIN на arrays, B-tree на status/created_at, плюс:
 
 ```sql
-CREATE INDEX idx_product_search_index_project_status
-  ON catalog.product_search_index (project_id, status);
+CREATE INDEX idx_product_search_index_store_status
+  ON catalog.product_search_index (store_id, status);
 ```
 
 ### Variant Search Index для OPTION и variant-bound filters
@@ -549,7 +549,7 @@ Denormalized **variant-level** таблица для корректной option
 
 ```sql
 catalog.variant_search_index (
-  project_id        uuid NOT NULL,
+  store_id        uuid NOT NULL,
   variant_id        uuid PRIMARY KEY REFERENCES catalog.variant(id) ON DELETE CASCADE,
   product_id        uuid NOT NULL REFERENCES catalog.product(id) ON DELETE CASCADE,
   price_currency    varchar(3) NOT NULL, -- Phase 1: store base currency only
@@ -565,14 +565,14 @@ catalog.variant_search_index (
 Indexes:
 
 ```sql
-CREATE INDEX idx_variant_search_index_project_product
-  ON catalog.variant_search_index (project_id, product_id);
+CREATE INDEX idx_variant_search_index_store_product
+  ON catalog.variant_search_index (store_id, product_id);
 
-CREATE INDEX idx_variant_search_index_project_in_stock
-  ON catalog.variant_search_index (project_id, in_stock);
+CREATE INDEX idx_variant_search_index_store_in_stock
+  ON catalog.variant_search_index (store_id, in_stock);
 
-CREATE INDEX idx_variant_search_index_project_price
-  ON catalog.variant_search_index (project_id, price_currency, price_minor);
+CREATE INDEX idx_variant_search_index_store_price
+  ON catalog.variant_search_index (store_id, price_currency, price_minor);
 
 CREATE INDEX idx_variant_search_index_option_slugs_gin
   ON catalog.variant_search_index USING GIN (option_slugs);
@@ -647,7 +647,7 @@ Sort `name` делает JOIN к `product_translation` по request locale. У `
 **Семантика variant filters для Category PLP:**
 - `TAG/FEATURE/STATUS` остаются product-level, на `product_search_index`.
 - `OPTION`, `price` и `in_stock` filters должны быть variant-correct:
-  - Применяются как `EXISTS (SELECT 1 FROM variant_search_index vsi WHERE vsi.project_id = psi.project_id AND vsi.product_id = psi.product_id AND [variant predicates])`.
+  - Применяются как `EXISTS (SELECT 1 FROM variant_search_index vsi WHERE vsi.store_id = psi.store_id AND vsi.product_id = psi.product_id AND [variant predicates])`.
   - Все активные variant predicates (`OPTION`, `price`, `in_stock`) должны быть внутри одного EXISTS.
 
 **Семантика price sort для Category PLP:**
@@ -673,8 +673,8 @@ QueryCollectionProductsScript:
        FROM collection_item ci
        JOIN product_search_index psi ON psi.product_id = ci.product_id
        WHERE ci.collection_id = :collectionId
-         AND ci.project_id = :projectId
-         AND psi.project_id = :projectId
+         AND ci.store_id = :storeId
+         AND psi.store_id = :storeId
          AND psi.status = 'published'
        ORDER BY ci.lexo_rank
        
@@ -734,7 +734,7 @@ WITH base_all AS (
     psi.feature_slugs
   FROM product_search_index psi
   JOIN product_category pc ON pc.product_id = psi.product_id
-  WHERE psi.project_id = :projectId
+  WHERE psi.store_id = :storeId
     AND pc.category_id = :categoryId
     AND psi.status = 'published'
 ),
@@ -744,7 +744,7 @@ passes_variant_products AS (
   SELECT DISTINCT vsi.product_id
   FROM variant_search_index vsi
   JOIN base_all b ON b.product_id = vsi.product_id
-  WHERE vsi.project_id = :projectId
+  WHERE vsi.store_id = :storeId
     -- OPTION CNF: OR within each option facet, AND between option facets
     AND (vsi.option_slugs && ARRAY['color:red','color:blue']::text[]) -- Color
     AND (vsi.option_slugs && ARRAY['size:42']::text[])                -- Size
@@ -802,7 +802,7 @@ mapped AS (
   FROM unnested u
   -- Canonical source mapping: source_handle -> facet_value -> facet
   JOIN facet_value_source_handle fvsh
-    ON fvsh.project_id = :projectId
+    ON fvsh.store_id = :storeId
     AND fvsh.facet_type = u.facet_type
     AND fvsh.source_handle = u.sv_slug
   JOIN facet_value fv
@@ -812,7 +812,7 @@ mapped AS (
   JOIN facet f
     ON f.id = fv.facet_id
     AND f.id = fvsh.facet_id
-    AND f.project_id = :projectId
+    AND f.store_id = :storeId
     AND f.facet_type = fvsh.facet_type
 ),
 counts AS (
@@ -1420,7 +1420,7 @@ Rules в `collection_rule` вычисляются в первую очередь
 
 SELECT psi.product_id
 FROM product_search_index psi
-WHERE psi.project_id = :projectId
+WHERE psi.store_id = :storeId
   AND psi.status = 'published'
 
   -- Product-level rules
@@ -1437,7 +1437,7 @@ WHERE psi.project_id = :projectId
     OR EXISTS (
       SELECT 1
       FROM variant_search_index vsi
-      WHERE vsi.project_id = psi.project_id
+      WHERE vsi.store_id = psi.store_id
         AND vsi.product_id = psi.product_id
         AND (:optionInIsEmpty OR vsi.option_slugs && :optionInValues::text[])
         AND vsi.price_currency = :priceCurrency
@@ -1527,8 +1527,8 @@ Required atomic rollout slice:
 
 У `product_option` и `product_option_value` уже есть columns `slug`. У `category` и `tag` уже есть columns `handle`. Slugs нужно добавить только для features.
 
-**Текущие columns `product_feature`:** `id`, `project_id`, `product_id`, `index` (int[]), `is_group`, `parent_id`. Slug отсутствует.
-**Текущие columns `product_feature_value`:** `id`, `project_id`, `feature_id`, `index` (int). Slug отсутствует.
+**Текущие columns `product_feature`:** `id`, `store_id`, `product_id`, `index` (int[]), `is_group`, `parent_id`. Slug отсутствует.
+**Текущие columns `product_feature_value`:** `id`, `store_id`, `feature_id`, `index` (int). Slug отсутствует.
 
 1. **Добавить column `slug` в `product_feature`:**
    ```sql

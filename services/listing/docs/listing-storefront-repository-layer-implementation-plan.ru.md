@@ -16,7 +16,7 @@
 - `listing.listing_posting_bitmap`;
 - `listing.listing_posting_product_sort`;
 - `listing.listing_posting_variant_price`;
-- `listing.listing_posting_variant_projection_block`;
+- `listing.listing_posting_variant_storeion_block`;
 - `listing.product_listing_index`;
 - `listing.variant_listing_index`;
 - `listing.product_title_bm25_search_index`.
@@ -46,12 +46,12 @@
 
 - все repositories наследуются от `BaseRepository`;
 - все queries используют `this.connection`, а не `this.db`;
-- tenant boundary берется из `this.storeId` как `projectId`;
-- repository public methods do not accept `projectId` in input DTOs; follow the
-  catalog repository convention and add `eq(...projectId, this.storeId)` or bind
+- tenant boundary берется из `this.storeId` как `storeId`;
+- repository public methods do not accept `storeId` in input DTOs; follow the
+  catalog repository convention and add `eq(...storeId, this.storeId)` or bind
   `${this.storeId}` inside every query;
 - low-level методы не query-ят bare `doc_id`; every doc-id predicate is paired
-  with `this.storeId` / `project_id`;
+  with `this.storeId` / `store_id`;
 - repository layer не читает raw source handles на storefront read path;
 - facet resolution читает canonical facet metadata через read-only Drizzle
   runtime models для schema `catalog`, но только поля, нужные для
@@ -84,7 +84,7 @@ services/listing/src/repositories/models/catalogFacetRuntime.ts
 ```
 
 Модели должны описывать только поля, которые нужны storefront facet resolution:
-`project_id`, facet id/slug/type, facet value id/handle/kind/parent relation and
+`store_id`, facet id/slug/type, facet value id/handle/kind/parent relation and
 optional translation/sort fields for aggregate value labels. Эти модели не
 являются ownership transfer для catalog данных и не используются для
 product/variant source read path.
@@ -122,8 +122,8 @@ Tenant boundary rule:
 
 - same as catalog repositories, storefront repositories derive the current
   project from `this.storeId`;
-- public repository methods do not expose optional `projectId` overrides;
-- SQL snippets may use `:projectId` as a local placeholder, but implementation
+- public repository methods do not expose optional `storeId` overrides;
+- SQL snippets may use `:storeId` as a local placeholder, but implementation
   must bind it from `this.storeId`, not from caller input.
 
 Read-only repository rule:
@@ -480,7 +480,7 @@ Example shape:
 const publishedBitmap = coalesceBitmapSql(sql`(
   SELECT rb_build_agg(pli.product_doc_id)
   FROM listing.product_listing_index pli
-  WHERE pli.project_id = ${this.storeId}
+  WHERE pli.store_id = ${this.storeId}
     AND pli.status = 'published'
 )`);
 ```
@@ -511,12 +511,12 @@ async getFacetValues(input: {
 
 Правила:
 
-- `projectId` берется только из `this.storeId`, как в catalog repositories;
+- `storeId` берется только из `this.storeId`, как в catalog repositories;
 - input `facetSlug:valueHandle` резолвится в `facet_id`, `facet_type`,
   `facet_value_id`;
 - `value_key = <facet_id>:<facet_value_id>`;
 - resolution is unrestricted: если facet/value существуют внутри текущего
-  `project_id`, repository резолвит их regardless of enabled/disabled,
+  `store_id`, repository резолвит их regardless of enabled/disabled,
   visibility-like state or reference freshness;
 - `kind = source` with `parent_id IS NULL` resolves to its own `facet_value_id`;
 - `kind = display` resolves to the display value id itself; source children are
@@ -613,7 +613,7 @@ Acceptance:
 
 - no code assumes old columns `product_id`, `variant_id`, `facet_id`,
   `facet_value_id` on `listing_posting_bitmap`;
-- all methods filter by `project_id = this.storeId`.
+- all methods filter by `store_id = this.storeId`.
 
 ## StorefrontVariantProjectionQueryRepository
 
@@ -735,7 +735,7 @@ Price filter:
 ```sql
 SELECT COALESCE(rb_build_agg(vp.variant_doc_id), <emptyRoaringBitmapSql()>)
 FROM listing.listing_posting_variant_price vp
-WHERE vp.project_id = :projectId
+WHERE vp.store_id = :storeId
   AND vp.currency = :currency
   -- add only when minPriceMinor is present
   AND vp.price_minor >= :minPriceMinor
@@ -834,7 +834,7 @@ Rules:
 - cap normalized query length, например 128 chars;
 - parameterize query, never interpolate raw user input;
 - candidate relation must join `product_title_bm25_search_index` to
-  `product_listing_index` by `project_id + product_id`;
+  `product_listing_index` by `store_id + product_id`;
 - candidate relation must select `product_doc_id`, `product_id`, `in_stock` and
   `relevance_score`, and must apply storefront visibility through
   `product_listing_index.status = 'published'`;
@@ -1026,7 +1026,7 @@ private async collectAggregates(input: {
 
 Pipeline:
 
-1. Resolve `projectId = this.storeId`, locale, currency, scope, sort, cursor.
+1. Resolve `storeId = this.storeId`, locale, currency, scope, sort, cursor.
 2. Normalize search query; validate that `{ kind: "search" }` has a non-empty
    normalized query and that `RELEVANCE` is used only with a non-empty query.
 3. Resolve facet filters into `StorefrontFilterPlan`.
@@ -1112,7 +1112,7 @@ interface ListingCursorPayload {
 
 Hash input:
 
-- projectId;
+- storeId;
 - locale;
 - currency;
 - scope;
@@ -1173,7 +1173,7 @@ Empty listing is not an error.
 `StorefrontListingQueryRepository.getStorefrontListing` should log debug-level
 metadata:
 
-- `projectId`;
+- `storeId`;
 - scope kind;
 - normalized query hash, not raw query;
 - sort;
@@ -1272,7 +1272,7 @@ search listings.
 
 ## Acceptance checklist
 
-- Every read query filters by `project_id`.
+- Every read query filters by `store_id`.
 - Every repository query uses `this.connection`.
 - Every raw SQL `execute(...)` call uses an explicit row DTO and parses/casts
   numeric values before returning repository DTOs.

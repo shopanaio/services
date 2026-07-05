@@ -292,7 +292,7 @@ export class ListingWriteIndexActionScript extends BaseScript<
   ): Listing.ListingUpdateResult {
     return {
       operationId: action.params.meta.operationId,
-      projectId: action.itemKey.projectId,
+      storeId: action.itemKey.storeId,
       itemRef: {
         entityType: action.itemKey.entityType,
         id: action.itemKey.itemId,

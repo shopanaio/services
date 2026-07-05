@@ -11,7 +11,7 @@ import { productKindEnum } from "./products";
 import { catalogSchema } from "./schema";
 
 const inventoryItemListViewColumns = {
-  projectId: uuid("project_id").notNull(),
+  storeId: uuid("store_id").notNull(),
   id: uuid("id").notNull(),
   variantId: uuid("variant_id").notNull(),
   productId: uuid("product_id").notNull(),
@@ -39,7 +39,7 @@ export const inventoryItemListAllStockView = catalogSchema
   .view("inventory_item_list_all_stock_view", inventoryItemListViewColumns)
   .as(sql`
     SELECT
-      item.project_id,
+      item.store_id,
       item.id,
       item.variant_id,
       product.id AS product_id,
@@ -66,25 +66,25 @@ export const inventoryItemListAllStockView = catalogSchema
       )::integer AS available_for_sale
     FROM catalog.inventory_item item
     JOIN catalog.variant variant
-      ON variant.project_id = item.project_id
+      ON variant.store_id = item.store_id
      AND variant.id = item.variant_id
     JOIN catalog.product product
-      ON product.project_id = item.project_id
+      ON product.store_id = item.store_id
      AND product.id = variant.product_id
     JOIN catalog.product_translation translation
-      ON translation.project_id = item.project_id
+      ON translation.store_id = item.store_id
      AND translation.product_id = product.id
     LEFT JOIN (
       SELECT
-        project_id,
+        store_id,
         variant_id,
         sum(quantity_on_hand)::integer AS quantity_on_hand,
         sum(reserved_qty)::integer AS reserved_quantity,
         sum(unavailable_qty)::integer AS unavailable_quantity
       FROM catalog.warehouse_stock
-      GROUP BY project_id, variant_id
+      GROUP BY store_id, variant_id
     ) stock
-      ON stock.project_id = item.project_id
+      ON stock.store_id = item.store_id
      AND stock.variant_id = item.variant_id
   `);
 
@@ -95,7 +95,7 @@ export const inventoryItemListWarehouseStockView = catalogSchema
   })
   .as(sql`
     SELECT
-      item.project_id,
+      item.store_id,
       item.id,
       item.variant_id,
       product.id AS product_id,
@@ -123,16 +123,16 @@ export const inventoryItemListWarehouseStockView = catalogSchema
       )::integer AS available_for_sale
     FROM catalog.inventory_item item
     JOIN catalog.variant variant
-      ON variant.project_id = item.project_id
+      ON variant.store_id = item.store_id
      AND variant.id = item.variant_id
     JOIN catalog.product product
-      ON product.project_id = item.project_id
+      ON product.store_id = item.store_id
      AND product.id = variant.product_id
     JOIN catalog.product_translation translation
-      ON translation.project_id = item.project_id
+      ON translation.store_id = item.store_id
      AND translation.product_id = product.id
     JOIN catalog.warehouse_stock stock
-      ON stock.project_id = item.project_id
+      ON stock.store_id = item.store_id
      AND stock.variant_id = item.variant_id
   `);
 

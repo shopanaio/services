@@ -67,7 +67,7 @@ export type ListingIndexPreparedDeleteAction =
     };
 
 export type ListingIndexItemKey = {
-  projectId: string;
+  storeId: string;
   entityType: Listing.ListingSellableItemEntityType;
   itemId: string;
 };

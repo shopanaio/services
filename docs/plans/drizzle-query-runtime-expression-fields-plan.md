@@ -47,12 +47,12 @@ coalesce(stock_scope.quantity_on_hand, 0)
 
 ```sql
 LEFT JOIN (
-  SELECT project_id, variant_id, SUM(quantity_on_hand) AS quantity_on_hand
+  SELECT store_id, variant_id, SUM(quantity_on_hand) AS quantity_on_hand
   FROM inventory.warehouse_stock
-  WHERE project_id = $1
-  GROUP BY project_id, variant_id
+  WHERE store_id = $1
+  GROUP BY store_id, variant_id
 ) stock_scope
-  ON stock_scope.project_id = inventory_item_list_view.project_id
+  ON stock_scope.store_id = inventory_item_list_view.store_id
  AND stock_scope.variant_id = inventory_item_list_view.variant_id
 ```
 
@@ -249,7 +249,7 @@ type RenderContext = {
 Examples:
 
 ```ts
-ctx.main("project_id")
+ctx.main("store_id")
 ctx.ref("stock_scope.quantity_on_hand")
 ctx.runtime("stock_scope", "reserved_qty")
 ```
@@ -789,7 +789,7 @@ function createInventoryItemStockRelayQuery(
       source: runtimeTable(warehouseStock),
       cardinality: "one",
       on: ({ main, runtime }) => sql`
-        ${runtime("stock_scope", "project_id")} = ${main("project_id")}
+        ${runtime("stock_scope", "store_id")} = ${main("store_id")}
         AND ${runtime("stock_scope", "variant_id")} = ${main("variant_id")}
         AND ${runtime("stock_scope", "warehouse_id")} = ${warehouseId}
       `,
@@ -810,21 +810,21 @@ All warehouses, multi-`INCLUDE`, and `EXCLUDE`:
       source: runtimeSql(sql`
         (
           SELECT
-            project_id,
+            store_id,
             variant_id,
             SUM(quantity_on_hand)::int AS quantity_on_hand,
             SUM(reserved_qty)::int AS reserved_qty,
             SUM(unavailable_qty)::int AS unavailable_qty,
             MAX(updated_at) AS updated_at
           FROM inventory.warehouse_stock
-          WHERE project_id = ${storeId}
+          WHERE store_id = ${storeId}
           -- optional warehouse_id IN / NOT IN predicate
-          GROUP BY project_id, variant_id
+          GROUP BY store_id, variant_id
         )
       `),
       cardinality: "one",
       on: ({ main, runtime }) => sql`
-        ${runtime("stock_scope", "project_id")} = ${main("project_id")}
+        ${runtime("stock_scope", "store_id")} = ${main("store_id")}
         AND ${runtime("stock_scope", "variant_id")} = ${main("variant_id")}
       `,
     },

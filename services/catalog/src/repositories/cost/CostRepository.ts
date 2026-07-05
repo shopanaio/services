@@ -20,7 +20,7 @@ export class CostRepository extends BaseRepository {
       .from(variantCostsCurrent)
       .where(
         and(
-          eq(variantCostsCurrent.projectId, this.storeId),
+          eq(variantCostsCurrent.storeId, this.storeId),
           eq(variantCostsCurrent.variantId, input.variantId),
           eq(variantCostsCurrent.currency, input.currency)
         )
@@ -40,7 +40,7 @@ export class CostRepository extends BaseRepository {
       .set({ effectiveTo: new Date().toISOString() })
       .where(
         and(
-          eq(productVariantCostHistory.projectId, this.storeId),
+          eq(productVariantCostHistory.storeId, this.storeId),
           eq(productVariantCostHistory.variantId, variantId),
           eq(productVariantCostHistory.currency, currency),
           isNull(productVariantCostHistory.effectiveTo)
@@ -63,7 +63,7 @@ export class CostRepository extends BaseRepository {
     const now = new Date().toISOString();
 
     const newCost: NewProductVariantCostHistory = {
-      projectId: this.storeId,
+      storeId: this.storeId,
       id,
       variantId,
       currency: data.currency,
@@ -111,7 +111,7 @@ export class CostRepository extends BaseRepository {
       .from(productVariantCostHistory)
       .where(
         and(
-          eq(productVariantCostHistory.projectId, this.storeId),
+          eq(productVariantCostHistory.storeId, this.storeId),
           inArray(productVariantCostHistory.variantId, [...variantIds]),
           isNull(productVariantCostHistory.effectiveTo)
         )

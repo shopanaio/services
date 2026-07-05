@@ -2,7 +2,7 @@
 
 CREATE VIEW "catalog"."listing_list_view" AS
 SELECT
-  product.project_id,
+  product.store_id,
   product.id,
   product.vendor_id,
   product.handle,
@@ -24,19 +24,19 @@ SELECT
   vendor.name AS brand_name
 FROM "catalog"."product" product
 INNER JOIN "catalog"."product_translation" product_translation
-  ON product_translation.project_id = product.project_id
+  ON product_translation.store_id = product.store_id
  AND product_translation.product_id = product.id
 LEFT JOIN "catalog"."product_price_range" product_price_range
-  ON product_price_range.project_id = product.project_id
+  ON product_price_range.store_id = product.store_id
  AND product_price_range.product_id = product.id
 LEFT JOIN "catalog"."product_category" product_category
-  ON product_category.project_id = product.project_id
+  ON product_category.store_id = product.store_id
  AND product_category.product_id = product.id
  AND product_category.is_primary = true
 LEFT JOIN "catalog"."category_translation" category_translation
-  ON category_translation.project_id = product.project_id
+  ON category_translation.store_id = product.store_id
  AND category_translation.category_id = product_category.category_id
  AND category_translation.locale = product_translation.locale
 LEFT JOIN "catalog"."vendor" vendor
-  ON vendor.project_id = product.project_id
+  ON vendor.store_id = product.store_id
  AND vendor.id = product.vendor_id;

@@ -4,7 +4,7 @@ import { knex } from "@src/infrastructure/db/knex";
 import { dumboPool } from "@src/infrastructure/db/dumbo";
 
 export type IdempotencyRecord = {
-  projectId: string;
+  storeId: string;
   idempotencyKey: string;
   requestHash: string;
   response: unknown;
@@ -20,7 +20,7 @@ export class IdempotencyRepository {
   }
 
   async get(
-    projectId: string,
+    storeId: string,
     idempotencyKey: string
   ): Promise<{ id: string } | null> {
     const q = knex
@@ -28,7 +28,7 @@ export class IdempotencyRepository {
       .table("idempotency")
       .select("response")
       .where({
-        project_id: projectId,
+        store_id: storeId,
         idempotency_key: idempotencyKey,
       })
       .andWhereRaw("expires_at > NOW()")
@@ -41,7 +41,7 @@ export class IdempotencyRepository {
   }
 
   async save(input: {
-    projectId: string;
+    storeId: string;
     idempotencyKey: string;
     requestHash: string;
     response: { id: string };
@@ -52,13 +52,13 @@ export class IdempotencyRepository {
       .withSchema("platform")
       .table("idempotency")
       .insert({
-        project_id: input.projectId,
+        store_id: input.storeId,
         idempotency_key: input.idempotencyKey,
         request_hash: input.requestHash,
         response: knex.raw(`?::jsonb`, [JSON.stringify(input.response)]),
         expires_at: knex.raw(`NOW() + (? || ' seconds')::interval`, [ttl]),
       })
-      .onConflict(["project_id", "idempotency_key"])
+      .onConflict(["store_id", "idempotency_key"])
       .ignore()
       .toString();
     await this.execute.command(rawSql(q));

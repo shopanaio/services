@@ -22,7 +22,7 @@ createGraphQLSchema({
     File: {
       query: fileRelayQuery,
       options: {
-        excludeFields: ["projectId", "deletedAt"],
+        excludeFields: ["storeId", "deletedAt"],
       },
     },
   },

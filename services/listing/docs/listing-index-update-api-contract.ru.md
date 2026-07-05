@@ -43,7 +43,7 @@ price, stock, category, vendor, tag, facet и searchable content changes.
 ```ts
 interface SyncSellableItemParams {
   meta: ListingUpdateMeta;
-  projectId: string;
+  storeId: string;
   item: ListingSellableItemSnapshot;
 }
 
@@ -61,7 +61,7 @@ read model listing service. Unpublish не обязан вызывать delete:
 ```ts
 interface DeleteSellableItemParams {
   meta: ListingUpdateMeta;
-  projectId: string;
+  storeId: string;
   itemRef: ListingSellableItemRef;
   sourceRevision: number;
   deletedAt: string;
@@ -82,7 +82,7 @@ items.
 ```ts
 interface SyncSellableItemsParams {
   meta: ListingUpdateMeta;
-  projectId: string;
+  storeId: string;
   items: ListingSellableItemSnapshot[];
 }
 
@@ -116,7 +116,7 @@ interface ListingUpdateSource {
 
 - `operationId` нужен для trace/log correlation.
 - `idempotencyKey` должен быть стабильным для одного и того же source update.
-  Рекомендуемый формат: `catalog:<projectId>:<entityType>:<entityId>:<revision>`.
+  Рекомендуемый формат: `catalog:<storeId>:<entityType>:<entityId>:<revision>`.
 - `occurredAt` всегда ISO 8601.
 - `contractVersion` меняется только при breaking change публичного DTO.
 
@@ -291,7 +291,7 @@ listing update API, если они не влияют на публичный li
 ```ts
 interface ListingUpdateResult {
   operationId: string;
-  projectId: string;
+  storeId: string;
   itemRef: ListingSellableItemRef;
   sourceRevision: number;
   status: "applied" | "noop" | "ignored_stale" | "accepted";
@@ -317,8 +317,8 @@ Status semantics:
 
 ## Validation rules
 
-- `projectId` обязателен и всегда принадлежит source project/store.
-- `sourceRevision` должен монотонно расти для одного `projectId + entityType + id`.
+- `storeId` обязателен и всегда принадлежит source project/store.
+- `sourceRevision` должен монотонно расти для одного `storeId + entityType + id`.
 - `content.defaultLocale` обязателен.
 - `content.translations[defaultLocale].title` должен быть непустым для
   `published` item.
@@ -389,7 +389,7 @@ await broker.call("listing.syncSellableItem", {
       workflowId: "product-update-prod_1-42",
     },
   },
-  projectId: "store_1",
+  storeId: "store_1",
   item: {
     entityType: "product",
     id: "prod_1",

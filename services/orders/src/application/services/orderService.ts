@@ -23,7 +23,7 @@ export class OrderService {
   async getOffers(input: {
     apiKey: string;
     currency: string;
-    projectId: string;
+    storeId: string;
     items: Array<{
       lineId: string;
       purchasableId: string;
@@ -34,7 +34,7 @@ export class OrderService {
   }> {
     const offers = await this.inventory.getOffers({
       ...input,
-      projectId: input.projectId,
+      storeId: input.storeId,
       apiKey: input.apiKey,
     });
     const map: Map<string, InventoryOffer> = new Map(
@@ -44,7 +44,7 @@ export class OrderService {
   }
 
   async computeTotals(input: {
-    projectId: string;
+    storeId: string;
     orderLines: OrderLineItemState[];
     appliedDiscounts?: Discount[] | null;
     currency: string;

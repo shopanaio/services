@@ -13,7 +13,7 @@ export type CheckoutSnapshot = Readonly<{
   /** Checkout aggregate identifier */
   checkoutId: string;
   /** Project (tenant) identifier */
-  projectId: string;
+  storeId: string;
 
   /** Pricing */
   currencyCode: string;

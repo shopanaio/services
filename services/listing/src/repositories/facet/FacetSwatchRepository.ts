@@ -12,7 +12,7 @@ export class FacetSwatchRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(facetSwatch)
-      .where(and(eq(facetSwatch.projectId, this.storeId), eq(facetSwatch.id, id)))
+      .where(and(eq(facetSwatch.storeId, this.storeId), eq(facetSwatch.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -21,7 +21,7 @@ export class FacetSwatchRepository extends BaseRepository {
     return this.connection
       .select()
       .from(facetSwatch)
-      .where(eq(facetSwatch.projectId, this.storeId))
+      .where(eq(facetSwatch.storeId, this.storeId))
       .orderBy(asc(facetSwatch.id));
   }
 
@@ -31,7 +31,7 @@ export class FacetSwatchRepository extends BaseRepository {
       .select()
       .from(facetSwatch)
       .where(
-        and(eq(facetSwatch.projectId, this.storeId), inArray(facetSwatch.id, [...ids]))
+        and(eq(facetSwatch.storeId, this.storeId), inArray(facetSwatch.id, [...ids]))
       );
   }
 
@@ -44,7 +44,7 @@ export class FacetSwatchRepository extends BaseRepository {
   }): Promise<FacetSwatch> {
     const insert: NewFacetSwatch = {
       id: randomUUID(),
-      projectId: this.storeId,
+      storeId: this.storeId,
       swatchType: data.swatchType,
       colorOne: data.colorOne ?? null,
       colorTwo: data.colorTwo ?? null,
@@ -76,7 +76,7 @@ export class FacetSwatchRepository extends BaseRepository {
     const rows = await this.connection
       .update(facetSwatch)
       .set(updates)
-      .where(and(eq(facetSwatch.projectId, this.storeId), eq(facetSwatch.id, id)))
+      .where(and(eq(facetSwatch.storeId, this.storeId), eq(facetSwatch.id, id)))
       .returning();
     return rows[0] ?? null;
   }
@@ -84,7 +84,7 @@ export class FacetSwatchRepository extends BaseRepository {
   async delete(id: string): Promise<boolean> {
     const rows = await this.connection
       .delete(facetSwatch)
-      .where(and(eq(facetSwatch.projectId, this.storeId), eq(facetSwatch.id, id)))
+      .where(and(eq(facetSwatch.storeId, this.storeId), eq(facetSwatch.id, id)))
       .returning({ id: facetSwatch.id });
     return rows.length > 0;
   }

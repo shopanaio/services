@@ -3,7 +3,7 @@ import type { TransactionScript } from "@src/kernel/types";
 // Parameters for app uninstallation
 export interface UninstallAppParams {
   readonly appCode: string;
-  readonly projectId: string;
+  readonly storeId: string;
 }
 
 // Execution result
@@ -19,7 +19,7 @@ export const uninstallAppScript: TransactionScript<
   UninstallAppParams,
   UninstallAppResult
 > = async (params, services) => {
-  const { appCode, projectId } = params;
+  const { appCode, storeId } = params;
   const { slotsRepository, logger } = services;
 
   try {
@@ -72,12 +72,12 @@ export const uninstallAppScript: TransactionScript<
 
     // 3. Slot removal from catalog
     // First find slot by domain and provider
-    const slots = await slotsRepository.findAllSlots(projectId, domain);
+    const slots = await slotsRepository.findAllSlots(storeId, domain);
     const slot = slots.find((s) => s.provider === provider);
 
     let wasRemoved = false;
     if (slot) {
-      wasRemoved = await slotsRepository.deleteSlot(slot.id, projectId);
+      wasRemoved = await slotsRepository.deleteSlot(slot.id, storeId);
     }
 
     return { success: wasRemoved };
@@ -86,7 +86,7 @@ export const uninstallAppScript: TransactionScript<
       {
         appCode,
         error,
-        projectId,
+        storeId,
       },
       "Failed to uninstall app"
     );

@@ -3,7 +3,7 @@ import type { TransactionScript } from "@src/kernel/types";
 // Parameters for app installation
 export interface InstallAppParams {
   readonly appCode: string;
-  readonly projectId: string;
+  readonly storeId: string;
 }
 
 // Execution result
@@ -20,7 +20,7 @@ export const installAppScript: TransactionScript<
   InstallAppParams,
   InstallAppResult
 > = async (params, services) => {
-  const { appCode, projectId } = params;
+  const { appCode, storeId } = params;
   const { slotsRepository, logger, pluginManager } = services;
   const provider = appCode.trim();
 
@@ -68,7 +68,7 @@ export const installAppScript: TransactionScript<
     }
 
     logger.info(
-      { provider, domains, projectId },
+      { provider, domains, storeId },
       `Installing plugin for ${domains.length} domain(s)`
     );
 
@@ -78,14 +78,14 @@ export const installAppScript: TransactionScript<
     for (const domain of domains) {
       await slotsRepository.upsertSlot({
         domain,
-        projectId,
+        storeId,
         provider,
         capabilities: [],
         data: {}, // Configuration shared via provider_configs table
       });
 
       logger.info(
-        { provider, domain, projectId },
+        { provider, domain, storeId },
         `Created/updated slot for domain '${domain}'`
       );
     }
@@ -96,7 +96,7 @@ export const installAppScript: TransactionScript<
       {
         appCode,
         error,
-        projectId,
+        storeId,
       },
       "Failed to install app"
     );

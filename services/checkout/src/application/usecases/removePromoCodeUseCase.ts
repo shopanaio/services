@@ -36,7 +36,7 @@ export class RemovePromoCodeUseCase extends UseCase<
 
     const checkoutLines = Object.values(state.linesRecord ?? {});
     const computed = await this.checkoutService.computeTotals({
-      projectId: context.store.id,
+      storeId: context.store.id,
       checkoutLines,
       appliedDiscounts: newAppliedDiscounts,
       currency: state.currencyCode,

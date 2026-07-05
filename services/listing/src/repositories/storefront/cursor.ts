@@ -9,7 +9,7 @@ import {
 } from "./types.js";
 
 interface FilterHashInput {
-  projectId: string;
+  storeId: string;
   locale: string;
   currency: string;
   scope: StorefrontListingScope;

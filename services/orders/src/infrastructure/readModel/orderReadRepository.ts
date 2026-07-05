@@ -30,7 +30,7 @@ export class OrderReadRepository implements OrderReadPort {
       .leftJoin("orders_pii_records as pii", "pii.order_id", "o.id")
       .select(
         "o.id",
-        "o.project_id",
+        "o.store_id",
         "o.api_key_id",
         "o.user_id",
         "o.sales_channel",
@@ -101,7 +101,7 @@ export class OrderReadRepository implements OrderReadPort {
       .table("order_recipients")
       .select(
         "id",
-        "project_id",
+        "store_id",
         "first_name",
         "last_name",
         "middle_name",
@@ -124,7 +124,7 @@ export class OrderReadRepository implements OrderReadPort {
       .table("order_applied_discounts")
       .select(
         "order_id",
-        "project_id",
+        "store_id",
         "code",
         "discount_type",
         "value",
@@ -140,7 +140,7 @@ export class OrderReadRepository implements OrderReadPort {
     return result.rows.map(
       (row): OrderPromoCode => ({
         orderId: row.order_id,
-        projectId: row.project_id,
+        storeId: row.store_id,
         code: row.code,
         discountType: row.discount_type,
         value: parseInt(row.value, 10), // Convert bigint string to number
@@ -157,7 +157,7 @@ export class OrderReadRepository implements OrderReadPort {
       .table("order_delivery_groups")
       .select(
         "id",
-        "project_id",
+        "store_id",
         "order_id",
         "address_id",
         "recipient_id",
@@ -175,7 +175,7 @@ export class OrderReadRepository implements OrderReadPort {
     return result.rows.map(
       (group): OrderDeliveryGroup => ({
         id: group.id,
-        projectId: group.project_id,
+        storeId: group.store_id,
         orderId: group.order_id,
         addressId: group.address_id,
         recipientId: group.recipient_id,
@@ -199,7 +199,7 @@ export class OrderReadRepository implements OrderReadPort {
       .select(
         "code",
         "provider",
-        "project_id",
+        "store_id",
         "delivery_group_id",
         "delivery_method_type",
         "payment_model",
@@ -219,7 +219,7 @@ export class OrderReadRepository implements OrderReadPort {
       .table("order_payment_methods")
       .select(
         "order_id",
-        "project_id",
+        "store_id",
         "code",
         "provider",
         "flow",
@@ -239,7 +239,7 @@ export class OrderReadRepository implements OrderReadPort {
     const q = knex
       .withSchema("platform")
       .table("order_selected_payment_methods")
-      .select("order_id", "project_id", "code", "provider")
+      .select("order_id", "store_id", "code", "provider")
       .where({ order_id: orderId })
       .toString();
 

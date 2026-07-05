@@ -10,7 +10,7 @@ import { vendor } from "./vendors";
 export const listingListView = catalogSchema.view("listing_list_view").as((qb) =>
   qb
     .select({
-      projectId: product.projectId,
+      storeId: product.storeId,
       id: product.id,
       vendorId: product.vendorId,
       handle: product.handle,
@@ -34,30 +34,30 @@ export const listingListView = catalogSchema.view("listing_list_view").as((qb) =
     .from(product)
     .innerJoin(
       productTranslation,
-      sql`${productTranslation.projectId} = ${product.projectId} AND ${productTranslation.productId} = ${product.id}`
+      sql`${productTranslation.storeId} = ${product.storeId} AND ${productTranslation.productId} = ${product.id}`
     )
     .leftJoin(
       productPriceRange,
-      sql`${productPriceRange.projectId} = ${product.projectId} AND ${productPriceRange.productId} = ${product.id}`
+      sql`${productPriceRange.storeId} = ${product.storeId} AND ${productPriceRange.productId} = ${product.id}`
     )
     .leftJoin(
       productCategory,
-      sql`${productCategory.projectId} = ${product.projectId} AND ${productCategory.productId} = ${product.id} AND ${productCategory.isPrimary} = true`
+      sql`${productCategory.storeId} = ${product.storeId} AND ${productCategory.productId} = ${product.id} AND ${productCategory.isPrimary} = true`
     )
     .leftJoin(
       categoryTranslation,
-      sql`${categoryTranslation.projectId} = ${product.projectId} AND ${categoryTranslation.categoryId} = ${productCategory.categoryId} AND ${categoryTranslation.locale} = ${productTranslation.locale}`
+      sql`${categoryTranslation.storeId} = ${product.storeId} AND ${categoryTranslation.categoryId} = ${productCategory.categoryId} AND ${categoryTranslation.locale} = ${productTranslation.locale}`
     )
     .leftJoin(
       vendor,
-      sql`${vendor.projectId} = ${product.projectId} AND ${vendor.id} = ${product.vendorId}`
+      sql`${vendor.storeId} = ${product.storeId} AND ${vendor.id} = ${product.vendorId}`
     )
 );
 
 export const productListView = catalogSchema.view("product_list_view").as((qb) =>
   qb
     .select({
-      projectId: product.projectId,
+      storeId: product.storeId,
       id: product.id,
       vendorId: product.vendorId,
       handle: product.handle,
@@ -81,23 +81,23 @@ export const productListView = catalogSchema.view("product_list_view").as((qb) =
     .from(product)
     .innerJoin(
       productTranslation,
-      sql`${productTranslation.projectId} = ${product.projectId} AND ${productTranslation.productId} = ${product.id}`
+      sql`${productTranslation.storeId} = ${product.storeId} AND ${productTranslation.productId} = ${product.id}`
     )
     .leftJoin(
       productPriceRange,
-      sql`${productPriceRange.projectId} = ${product.projectId} AND ${productPriceRange.productId} = ${product.id}`
+      sql`${productPriceRange.storeId} = ${product.storeId} AND ${productPriceRange.productId} = ${product.id}`
     )
     .leftJoin(
       productCategory,
-      sql`${productCategory.projectId} = ${product.projectId} AND ${productCategory.productId} = ${product.id} AND ${productCategory.isPrimary} = true`
+      sql`${productCategory.storeId} = ${product.storeId} AND ${productCategory.productId} = ${product.id} AND ${productCategory.isPrimary} = true`
     )
     .leftJoin(
       categoryTranslation,
-      sql`${categoryTranslation.projectId} = ${product.projectId} AND ${categoryTranslation.categoryId} = ${productCategory.categoryId} AND ${categoryTranslation.locale} = ${productTranslation.locale}`
+      sql`${categoryTranslation.storeId} = ${product.storeId} AND ${categoryTranslation.categoryId} = ${productCategory.categoryId} AND ${categoryTranslation.locale} = ${productTranslation.locale}`
     )
     .leftJoin(
       vendor,
-      sql`${vendor.projectId} = ${product.projectId} AND ${vendor.id} = ${product.vendorId}`
+      sql`${vendor.storeId} = ${product.storeId} AND ${vendor.id} = ${product.vendorId}`
     )
     .where(sql`${product.kind} = 'BASE'`)
 );
@@ -105,7 +105,7 @@ export const productListView = catalogSchema.view("product_list_view").as((qb) =
 export const bundleListView = catalogSchema.view("bundle_list_view").as((qb) =>
   qb
     .select({
-      projectId: product.projectId,
+      storeId: product.storeId,
       id: product.id,
       vendorId: product.vendorId,
       handle: product.handle,
@@ -130,27 +130,27 @@ export const bundleListView = catalogSchema.view("bundle_list_view").as((qb) =>
     .from(product)
     .innerJoin(
       productTranslation,
-      sql`${productTranslation.projectId} = ${product.projectId} AND ${productTranslation.productId} = ${product.id}`
+      sql`${productTranslation.storeId} = ${product.storeId} AND ${productTranslation.productId} = ${product.id}`
     )
     .leftJoin(
       productPriceRange,
-      sql`${productPriceRange.projectId} = ${product.projectId} AND ${productPriceRange.productId} = ${product.id}`
+      sql`${productPriceRange.storeId} = ${product.storeId} AND ${productPriceRange.productId} = ${product.id}`
     )
     .leftJoin(
       productCategory,
-      sql`${productCategory.projectId} = ${product.projectId} AND ${productCategory.productId} = ${product.id} AND ${productCategory.isPrimary} = true`
+      sql`${productCategory.storeId} = ${product.storeId} AND ${productCategory.productId} = ${product.id} AND ${productCategory.isPrimary} = true`
     )
     .leftJoin(
       categoryTranslation,
-      sql`${categoryTranslation.projectId} = ${product.projectId} AND ${categoryTranslation.categoryId} = ${productCategory.categoryId} AND ${categoryTranslation.locale} = ${productTranslation.locale}`
+      sql`${categoryTranslation.storeId} = ${product.storeId} AND ${categoryTranslation.categoryId} = ${productCategory.categoryId} AND ${categoryTranslation.locale} = ${productTranslation.locale}`
     )
     .leftJoin(
       vendor,
-      sql`${vendor.projectId} = ${product.projectId} AND ${vendor.id} = ${product.vendorId}`
+      sql`${vendor.storeId} = ${product.storeId} AND ${vendor.id} = ${product.vendorId}`
     )
     .leftJoin(
       bundle,
-      sql`${bundle.projectId} = ${product.projectId} AND ${bundle.productId} = ${product.id}`
+      sql`${bundle.storeId} = ${product.storeId} AND ${bundle.productId} = ${product.id}`
     )
     .where(sql`${product.kind} = 'BUNDLE'`)
 );

@@ -3,7 +3,7 @@ import { ShippingMethod } from "@shopana/plugin-sdk/shipping";
 import { shippingMethods } from "./shippingMethods";
 
 export interface CreateDeliveryGroupsParams {
-  projectId: string;
+  storeId: string;
   items: Array<{ ref: string; isPhysical: boolean; quantity?: number }>;
 }
 
@@ -26,7 +26,7 @@ export const createDeliveryGroups: TransactionScript<
 > = async (params, services) => {
   // Reuse the already prepared script for getting delivery methods
   const result = await shippingMethods(
-    { projectId: params.projectId },
+    { storeId: params.storeId },
     services
   );
 

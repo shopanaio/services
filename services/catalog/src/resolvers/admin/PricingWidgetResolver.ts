@@ -40,7 +40,7 @@ export class PricingWidgetResolver extends CatalogType<PricingWidgetInput> {
     try {
       const services = this.$ctx.kernel.getServices();
       const cost = await services.broker.call<VariantCost | null>("inventory.getVariantCost", {
-        projectId: this.$ctx.store.id,
+        storeId: this.$ctx.store.id,
         variantId: this.$props.variantId,
         currency: this.$props.currency,
       });

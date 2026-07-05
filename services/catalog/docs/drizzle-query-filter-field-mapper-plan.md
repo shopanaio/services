@@ -106,13 +106,13 @@ Mapper config scoped to query builder, где он объявлен. Он при
 ```ts
 type ProductMapperPaths = LocalLeafPaths<{
   id: true;
-  projectId: true;
+  storeId: true;
   variant: {
     id: true;
     productId: true;
   };
 }>;
-// "id" | "projectId"
+// "id" | "storeId"
 ```
 
 Relation fields получают mapper rules из joined query builder-а, которому принадлежат эти поля.

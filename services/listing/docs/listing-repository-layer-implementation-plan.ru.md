@@ -13,7 +13,7 @@
 - `listing.listing_posting_bitmap`
 - `listing.listing_posting_product_sort`
 - `listing.listing_posting_variant_price`
-- `listing.listing_posting_variant_projection_block`
+- `listing.listing_posting_variant_storeion_block`
 - `listing.product_title_bm25_search_index`
 
 Фокус документа: repository API, транзакционные границы, базовые CRUD методы,
@@ -43,7 +43,7 @@ Drizzle models and inferred types. `BaseRepository` уже дает:
 
 - `this.connection` через `TransactionManager`;
 - `this.ctx`;
-- `this.storeId` как текущий `project_id`.
+- `this.storeId` как текущий `store_id`.
 
 `services/listing/src/repositories/Repository.ts` пока содержит только
 `txManager` и `db`. План ниже добавляет concrete repositories and registers them
@@ -80,11 +80,11 @@ in the aggregator.
 
 1. Every repository extends `BaseRepository`.
 2. Every query uses `this.connection`, never `this.db`.
-3. Public repository methods derive `project_id` from `this.storeId`. They must
-   not accept user-provided `projectId`.
+3. Public repository methods derive `store_id` from `this.storeId`. They must
+   not accept user-provided `storeId`.
 4. Methods may accept doc ids, product ids or variant ids, but every SQL
-   statement must include `eq(table.projectId, this.storeId)` when the table has
-   `project_id`.
+   statement must include `eq(table.storeId, this.storeId)` when the table has
+   `store_id`.
 5. Write methods are transaction-safe and should be called inside script-level
    transactions. Methods that perform multi-step replace operations must either
    be decorated with `@Transactional()` or documented as requiring the caller's
@@ -438,7 +438,7 @@ class ProductListingIndexRepository extends BaseRepository {
 `variant_listing_index` references parent product listing rows. Bootstrap rows
 must be safe placeholders:
 
-- `projectId = this.storeId`;
+- `storeId = this.storeId`;
 - allocated `productDocId`;
 - `kind = "BASE"` unless snapshot provides the real value;
 - `status = "draft"`;
@@ -451,11 +451,11 @@ Final product sync overwrites the bootstrap row.
 ### Upsert rules
 
 - Conflict target follows the table key: `product_id`.
-- Insert sets `projectId`, `indexedAt` and `updatedAt`.
+- Insert sets `storeId`, `indexedAt` and `updatedAt`.
 - Update never changes `productDocId`.
 - Update sets product state, aggregate stock fields, `indexedAt` and
   `updatedAt`.
-- All `find/update/delete` predicates include `project_id = this.storeId`.
+- All `find/update/delete` predicates include `store_id = this.storeId`.
 
 ### Acceptance
 
@@ -553,7 +553,7 @@ class VariantListingIndexRepository extends BaseRepository {
 ### Upsert rules
 
 - Conflict target follows the table key: `variant_id`.
-- Insert sets `projectId`, `indexedAt`, `updatedAt`.
+- Insert sets `storeId`, `indexedAt`, `updatedAt`.
 - Update never changes `variantDocId`.
 - Update may change parent `productId` / `productDocId` only when the upstream
   variant parent changed and caller also refreshes projection blocks and
@@ -868,7 +868,7 @@ class ListingPostingVariantPriceRepository extends BaseRepository {
 
 ## `ListingPostingVariantProjectionBlockRepository`
 
-Table: `listing.listing_posting_variant_projection_block`.
+Table: `listing.listing_posting_variant_storeion_block`.
 
 Purpose: write projection helper blocks that map broad variant bitmap matches to
 product bitmaps.
@@ -968,7 +968,7 @@ class ProductTitleBm25SearchIndexRepository extends BaseRepository {
 
 ### Acceptance
 
-- Project-scoped delete affects only current `project_id`.
+- Project-scoped delete affects only current `store_id`.
 - Search query methods are not present in this repository.
 
 ## Cross-table delete flows
@@ -1077,7 +1077,7 @@ Scripts can log these counters together with workflow id and sync reason.
 - [ ] Every SQL statement uses `this.connection`.
 - [ ] Every table access is scoped by `this.storeId`.
 - [ ] Public write DTOs do not accept raw source handles.
-- [ ] Public write DTOs do not accept user-provided `projectId`.
+- [ ] Public write DTOs do not accept user-provided `storeId`.
 - [ ] Doc id allocator locks the allocator row and never reuses deleted ids.
 - [ ] Product and variant listing upserts preserve stable doc ids.
 - [ ] Product and variant price replace methods preserve empty currency rows

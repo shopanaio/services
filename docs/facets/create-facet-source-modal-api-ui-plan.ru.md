@@ -51,7 +51,7 @@ facet_type + handle
 Она уже закреплена unique constraint:
 
 ```text
-facet_source_project_type_handle_uniq(project_id, facet_type, handle)
+facet_source_store_type_handle_uniq(store_id, facet_type, handle)
 ```
 
 ### Canonical handles
@@ -67,7 +67,7 @@ Dynamic sources:
 - `OPTION`: `handle = product_option.slug`
 - `FEATURE`: `handle = product_feature.slug`
 
-Для `OPTION` и `FEATURE` строки должны агрегироваться по `project_id + slug`,
+Для `OPTION` и `FEATURE` строки должны агрегироваться по `store_id + slug`,
 потому что option/feature сейчас привязаны к конкретным продуктам. Один source
 `Color` должен появляться один раз, даже если option `color` есть у многих
 продуктов.
@@ -113,7 +113,7 @@ Drizzle export:
 export const facetSourceCandidateView =
   catalogSchema.view("facet_source_candidate_view", {
     id: text("id").notNull(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     locale: varchar("locale", { length: 8 }).notNull(),
     facetType: varchar("facet_type", { length: 32 }).notNull(),
     handle: text("handle").notNull(),
@@ -139,7 +139,7 @@ Read model кандидата:
 | Column | Type | Meaning |
 | --- | --- | --- |
 | `id` | text | stable candidate id: `facet_type || ':' || handle` |
-| `projectId` | uuid | tenant/store scope |
+| `storeId` | uuid | tenant/store scope |
 | `locale` | varchar/text | locale of translated `name` |
 | `facetType` | text/varchar | `PRICE`, `IN_STOCK`, `TAG`, `OPTION`, `FEATURE` |
 | `handle` | text | canonical source handle |
@@ -160,7 +160,7 @@ Backend не должен отдавать display-тексты для fixed/sys
 Repository обязан фильтровать view по текущему project и locale:
 
 ```ts
-const projectId = this.storeId;
+const storeId = this.storeId;
 const locale = this.locale;
 ```
 
@@ -169,28 +169,28 @@ const locale = this.locale;
 ```sql
 CREATE VIEW catalog.facet_source_candidate_view AS
 WITH project_locale_source AS (
-  SELECT DISTINCT project_id, locale
+  SELECT DISTINCT store_id, locale
   FROM catalog.product_translation
 
   UNION
-  SELECT DISTINCT project_id, locale
+  SELECT DISTINCT store_id, locale
   FROM catalog.tag_translation
 
   UNION
-  SELECT DISTINCT project_id, locale
+  SELECT DISTINCT store_id, locale
   FROM catalog.product_option_translation
 
   UNION
-  SELECT DISTINCT project_id, locale
+  SELECT DISTINCT store_id, locale
   FROM catalog.product_feature_translation
 
   UNION
-  SELECT DISTINCT project_id, locale
+  SELECT DISTINCT store_id, locale
   FROM catalog.facet_translation
 ),
 candidates AS (
   SELECT
-    pls.project_id,
+    pls.store_id,
     pls.locale,
     'PRICE'::text AS facet_type,
     'price'::text AS handle,
@@ -200,7 +200,7 @@ candidates AS (
 
   UNION ALL
   SELECT
-    pls.project_id,
+    pls.store_id,
     pls.locale,
     'IN_STOCK'::text AS facet_type,
     'availability'::text AS handle,
@@ -210,7 +210,7 @@ candidates AS (
 
   UNION ALL
   SELECT
-    pls.project_id,
+    pls.store_id,
     pls.locale,
     'TAG'::text AS facet_type,
     'tags'::text AS handle,
@@ -220,7 +220,7 @@ candidates AS (
 
   UNION ALL
   SELECT
-    po.project_id,
+    po.store_id,
     pot.locale,
     'OPTION'::text AS facet_type,
     po.slug AS handle,
@@ -228,13 +228,13 @@ candidates AS (
     3 AS source_sort_bucket
   FROM catalog.product_option po
   INNER JOIN catalog.product_option_translation pot
-    ON pot.project_id = po.project_id
+    ON pot.store_id = po.store_id
    AND pot.option_id = po.id
-  GROUP BY po.project_id, pot.locale, po.slug
+  GROUP BY po.store_id, pot.locale, po.slug
 
   UNION ALL
   SELECT
-    pf.project_id,
+    pf.store_id,
     pft.locale,
     'FEATURE'::text AS facet_type,
     pf.slug AS handle,
@@ -242,14 +242,14 @@ candidates AS (
     4 AS source_sort_bucket
   FROM catalog.product_feature pf
   INNER JOIN catalog.product_feature_translation pft
-    ON pft.project_id = pf.project_id
+    ON pft.store_id = pf.store_id
    AND pft.feature_id = pf.id
   WHERE pf.is_group = false
-  GROUP BY pf.project_id, pft.locale, pf.slug
+  GROUP BY pf.store_id, pft.locale, pf.slug
 )
 SELECT
   c.facet_type || ':' || c.handle AS id,
-  c.project_id,
+  c.store_id,
   c.locale,
   c.facet_type,
   c.handle,
@@ -260,13 +260,13 @@ FROM candidates c
 WHERE NOT EXISTS (
   SELECT 1
   FROM catalog.facet_source fs
-  WHERE fs.project_id = c.project_id
+  WHERE fs.store_id = c.store_id
     AND fs.facet_type = c.facet_type
     AND fs.handle = c.handle
 );
 ```
 
-`GROUP BY project_id, locale, slug` нужен только для дедупликации product-level
+`GROUP BY store_id, locale, slug` нужен только для дедупликации product-level
 option/feature rows в один source на конкретную локаль. `MIN(name)` выбирает
 стабильное canonical name, если один и тот же slug встретился с разными
 переводами в рамках одной локали. Это не сортировка списка.
@@ -284,7 +284,7 @@ ORDER BY c.source_sort_bucket ASC, c.sort_name DESC NULLS LAST, c.id ASC
 
 `source_sort_bucket` держит standard sources перед dynamic sources.
 
-`TAG` отображается для каждого `project_id + locale`, найденного в
+`TAG` отображается для каждого `store_id + locale`, найденного в
 `project_locale_source`, даже если в проекте еще нет тегов.
 
 Ограничение: если в catalog DB нет ни одной локализованной строки для проекта,
@@ -299,21 +299,21 @@ ORDER BY c.source_sort_bucket ASC, c.sort_name DESC NULLS LAST, c.id ASC
 участвуют в dynamic branches:
 
 ```sql
-CREATE INDEX idx_product_option_project_slug
-  ON catalog.product_option (project_id, slug);
+CREATE INDEX idx_product_option_store_slug
+  ON catalog.product_option (store_id, slug);
 
-CREATE INDEX idx_product_option_translation_project_locale_option
-  ON catalog.product_option_translation (project_id, locale, option_id);
+CREATE INDEX idx_product_option_translation_store_locale_option
+  ON catalog.product_option_translation (store_id, locale, option_id);
 
-CREATE INDEX idx_product_feature_project_group_slug
-  ON catalog.product_feature (project_id, is_group, slug);
+CREATE INDEX idx_product_feature_store_group_slug
+  ON catalog.product_feature (store_id, is_group, slug);
 
-CREATE INDEX idx_product_feature_translation_project_locale_feature
-  ON catalog.product_feature_translation (project_id, locale, feature_id);
+CREATE INDEX idx_product_feature_translation_store_locale_feature
+  ON catalog.product_feature_translation (store_id, locale, feature_id);
 ```
 
 Exclusion уже покрыт текущим индексом/unique constraint на
-`catalog.facet_source(project_id, facet_type, handle)`.
+`catalog.facet_source(store_id, facet_type, handle)`.
 
 ### Catalog migrations
 
@@ -376,17 +376,17 @@ services/catalog/migrations/domains/0500_facets/0504_facets__source_candidate_vi
 2. Add supporting indexes with `IF NOT EXISTS`:
 
    ```sql
-   CREATE INDEX IF NOT EXISTS "idx_product_option_project_slug"
-     ON "catalog"."product_option" ("project_id", "slug");
+   CREATE INDEX IF NOT EXISTS "idx_product_option_store_slug"
+     ON "catalog"."product_option" ("store_id", "slug");
 
-   CREATE INDEX IF NOT EXISTS "idx_product_option_translation_project_locale_option"
-     ON "catalog"."product_option_translation" ("project_id", "locale", "option_id");
+   CREATE INDEX IF NOT EXISTS "idx_product_option_translation_store_locale_option"
+     ON "catalog"."product_option_translation" ("store_id", "locale", "option_id");
 
-   CREATE INDEX IF NOT EXISTS "idx_product_feature_project_group_slug"
-     ON "catalog"."product_feature" ("project_id", "is_group", "slug");
+   CREATE INDEX IF NOT EXISTS "idx_product_feature_store_group_slug"
+     ON "catalog"."product_feature" ("store_id", "is_group", "slug");
 
-   CREATE INDEX IF NOT EXISTS "idx_product_feature_translation_project_locale_feature"
-     ON "catalog"."product_feature_translation" ("project_id", "locale", "feature_id");
+   CREATE INDEX IF NOT EXISTS "idx_product_feature_translation_store_locale_feature"
+     ON "catalog"."product_feature_translation" ("store_id", "locale", "feature_id");
    ```
 
 Inventory update в
@@ -402,15 +402,15 @@ Inventory update в
    `0500_facets/0504_facets__source_candidate_view.sql`.
 4. В колонке notes/constraints указать:
    - plain view `catalog.facet_source_candidate_view`;
-   - candidate columns: `id`, `project_id`, `locale`, `facet_type`, `handle`,
+   - candidate columns: `id`, `store_id`, `locale`, `facet_type`, `handle`,
      `name`, `source_sort_bucket`, `sort_name`;
    - support indexes:
-     `idx_product_option_project_slug`,
-     `idx_product_option_translation_project_locale_option`,
-     `idx_product_feature_project_group_slug`,
-     `idx_product_feature_translation_project_locale_feature`;
+     `idx_product_option_store_slug`,
+     `idx_product_option_translation_store_locale_option`,
+     `idx_product_feature_store_group_slug`,
+     `idx_product_feature_translation_store_locale_feature`;
    - exclusion uses existing
-     `facet_source_project_type_handle_uniq(project_id, facet_type, handle)`.
+     `facet_source_store_type_handle_uniq(store_id, facet_type, handle)`.
 
 Manual migration review checklist:
 
@@ -456,7 +456,7 @@ Repository должен использовать `@shopana/drizzle-query` пов
 ```ts
 export const facetSourceCandidateRelayQuery = createRelayQuery(
   createQuery(facetSourceCandidateView)
-    .include(["id", "projectId", "locale", "facetType", "handle"])
+    .include(["id", "storeId", "locale", "facetType", "handle"])
     .maxLimit(100)
     .defaultLimit(30),
   { name: "facetSourceCandidate", tieBreaker: "id" }
@@ -472,7 +472,7 @@ repository не делает отдельный raw SQL anti-join и не дел
 
 Repository merge поверх Relay input:
 
-- обязательные `projectId = this.storeId` и `locale = this.locale`;
+- обязательные `storeId = this.storeId` и `locale = this.locale`;
 - optional `facetType`;
 - stable `orderBy`;
 - `execute()` и `count()` через один и тот же merged `where`.
@@ -482,7 +482,7 @@ Repository merge поверх Relay input:
 ```ts
 const mergedWhere: FacetSourceCandidateRelayInput["where"] = {
   _and: [
-    { projectId: { _eq: this.storeId } },
+    { storeId: { _eq: this.storeId } },
     { locale: { _eq: this.locale } },
     ...(args.facetType ? [{ facetType: { _eq: args.facetType } }] : []),
   ],
@@ -547,7 +547,7 @@ const maxLimit = 100;
 применен `NOT EXISTS` к `catalog.facet_source` по тому же:
 
 ```text
-project_id + facet_type + handle
+store_id + facet_type + handle
 ```
 
 Фильтрация уже использованных sources должна оставаться в view SQL, а не в
@@ -556,14 +556,14 @@ repository с `createRelayQuery`.
 
 Правила exclusion:
 
-- если есть `facet_source(project_id, 'PRICE', 'price')`, `Price` не
+- если есть `facet_source(store_id, 'PRICE', 'price')`, `Price` не
   возвращается;
-- если есть `facet_source(project_id, 'IN_STOCK', 'availability')`,
+- если есть `facet_source(store_id, 'IN_STOCK', 'availability')`,
   `Availability` не возвращается;
-- если есть `facet_source(project_id, 'TAG', 'tags')`, `Tags` не возвращается;
-- если есть `facet_source(project_id, 'OPTION', 'color')`, option source
+- если есть `facet_source(store_id, 'TAG', 'tags')`, `Tags` не возвращается;
+- если есть `facet_source(store_id, 'OPTION', 'color')`, option source
   `color` не возвращается;
-- если есть `facet_source(project_id, 'FEATURE', 'nice')`, feature source
+- если есть `facet_source(store_id, 'FEATURE', 'nice')`, feature source
   `nice` не возвращается.
 
 Причина держать exclusion внутри view: `drizzle-query` получает уже available
@@ -708,7 +708,7 @@ Backend validation в create script/repository:
 
 - `sources.length === 1` для `PRICE`, `IN_STOCK`, `TAG`, `OPTION`, `FEATURE`;
 - selected source существует в `facet_source_candidate_view` для текущих
-  `projectId` и `locale`;
+  `storeId` и `locale`;
 - selected source еще не используется в `facet_source`;
 - `facetType` input совпадает с candidate `facetType` в `UPPERCASE`;
 - `sources[0].handle` совпадает с candidate `handle`.
@@ -728,7 +728,7 @@ Create flow должен быть транзакционным. `FacetCreateScri
 backend повторно проверяет candidate перед insert. Если source стал занят между
 чтением candidates и submit, validation должна вернуть userError на
 `sources`/`source`; если гонка случилась после validation, unique constraint
-`facet_source_project_type_handle_uniq` остается последней защитой и должен
+`facet_source_store_type_handle_uniq` остается последней защитой и должен
 быть преобразован в userError, а не в необработанную internal error.
 
 Repository уже выполняет insert sources и сохраняет translation name, но не
@@ -757,7 +757,7 @@ Unique constraint в `facet_source` остается последней защи
    `services/catalog/docs/catalog-migrations-domain-inventory.md`, добавив новый
    view и новые индексы из migration.
 4. Добавить repository method в `FacetRepository`, который читает из view через
-   `facetSourceCandidateRelayQuery` и применяет `projectId`, `locale`, sort,
+   `facetSourceCandidateRelayQuery` и применяет `storeId`, `locale`, sort,
    pagination и `count`.
 5. Реализовать cursor encode/decode и `limit + 1` pagination в repository.
 6. Расширить GraphQL schema для `FacetSourceCandidateConnection`.

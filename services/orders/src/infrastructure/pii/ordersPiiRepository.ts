@@ -4,7 +4,7 @@ import { knex } from "@src/infrastructure/db/knex";
 import { dumboPool } from "@src/infrastructure/db/dumbo";
 
 export type OrderContactPII = {
-  projectId: string;
+  storeId: string;
   orderId: string;
   firstName?: string | null;
   lastName?: string | null;
@@ -31,7 +31,7 @@ export type DeliveryAddressPII = {
 
 export type RecipientPII = {
   id: string;
-  projectId: string;
+  storeId: string;
   firstName?: string | null;
   lastName?: string | null;
   middleName?: string | null;
@@ -59,7 +59,7 @@ export class OrdersPiiRepository {
       .withSchema("platform")
       .table("orders_pii_records")
       .insert({
-        project_id: input.projectId,
+        store_id: input.storeId,
         order_id: input.orderId,
         first_name: input.firstName ?? null,
         last_name: input.lastName ?? null,
@@ -127,7 +127,7 @@ export class OrdersPiiRepository {
 
     const rows = recipients.map((r) => ({
       id: r.id,
-      project_id: r.projectId,
+      store_id: r.storeId,
       first_name: r.firstName ?? null,
       last_name: r.lastName ?? null,
       middle_name: r.middleName ?? null,

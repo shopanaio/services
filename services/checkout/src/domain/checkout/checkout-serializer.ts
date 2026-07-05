@@ -28,7 +28,7 @@ export class CheckoutSerializer {
       id,
       createdAt: state.createdAt.toISOString(),
       updatedAt: state.updatedAt.toISOString(),
-      projectId: state.projectId,
+      storeId: state.storeId,
       currencyCode: state.currencyCode,
       idempotencyKey: state.idempotencyKey,
       salesChannel: state.salesChannel,

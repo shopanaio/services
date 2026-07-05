@@ -34,7 +34,7 @@ export class CheckoutReadRepository implements CheckoutReadPort {
       )
       .select(
         "c.id",
-        "c.project_id",
+        "c.store_id",
         "c.api_key_id",
         "c.admin_id",
         "c.sales_channel",
@@ -115,7 +115,7 @@ export class CheckoutReadRepository implements CheckoutReadPort {
       .table("checkout_applied_discounts")
       .select(
         "checkout_id",
-        "project_id",
+        "store_id",
         "code",
         "discount_type",
         "value",
@@ -131,7 +131,7 @@ export class CheckoutReadRepository implements CheckoutReadPort {
     return result.rows.map(
       (row): CheckoutPromoCode => ({
         checkoutId: row.checkout_id,
-        projectId: row.project_id,
+        storeId: row.store_id,
         code: row.code,
         discountType: row.discount_type,
         value: parseInt(row.value, 10), // Convert bigint string to number
@@ -151,7 +151,7 @@ export class CheckoutReadRepository implements CheckoutReadPort {
       .leftJoin("checkout_recipients as cr", "cr.id", "dg.recipient_id")
       .select(
         "dg.id",
-        "dg.project_id",
+        "dg.store_id",
         "dg.checkout_id",
         "dg.selected_delivery_method_code",
         "dg.selected_delivery_method_provider",
@@ -181,7 +181,7 @@ export class CheckoutReadRepository implements CheckoutReadPort {
     return result.rows.map(
       (group): CheckoutDeliveryGroup => ({
         id: group.id,
-        projectId: group.project_id,
+        storeId: group.store_id,
         checkoutId: group.checkout_id,
         selectedDeliveryMethod: group.selected_delivery_method_code,
         selectedDeliveryMethodProvider: group.selected_delivery_method_provider,
@@ -210,7 +210,7 @@ export class CheckoutReadRepository implements CheckoutReadPort {
       .select(
         "dm.code",
         "dm.provider",
-        "dm.project_id",
+        "dm.store_id",
         "dm.delivery_group_id",
         "dm.delivery_method_type",
         "dm.payment_model",
@@ -275,7 +275,7 @@ export class CheckoutReadRepository implements CheckoutReadPort {
       .select(
         "id",
         "checkout_id",
-        "project_id",
+        "store_id",
         "slug",
         "is_unique",
         "created_at",

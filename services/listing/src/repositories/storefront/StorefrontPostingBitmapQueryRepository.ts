@@ -32,7 +32,7 @@ export class StorefrontPostingBitmapQueryRepository extends BaseRepository {
       .from(listingPostingBitmap)
       .where(
         and(
-          eq(listingPostingBitmap.projectId, this.storeId),
+          eq(listingPostingBitmap.storeId, this.storeId),
           eq(listingPostingBitmap.entityType, input.entityType),
           eq(listingPostingBitmap.field, input.field),
           eq(listingPostingBitmap.valueKey, input.valueKey)
@@ -63,7 +63,7 @@ export class StorefrontPostingBitmapQueryRepository extends BaseRepository {
       .from(listingPostingBitmap)
       .where(
         and(
-          eq(listingPostingBitmap.projectId, this.storeId),
+          eq(listingPostingBitmap.storeId, this.storeId),
           eq(listingPostingBitmap.entityType, input.entityType),
           eq(listingPostingBitmap.field, input.field),
           inArray(listingPostingBitmap.valueKey, valueKeys)
@@ -125,7 +125,7 @@ export class StorefrontPostingBitmapQueryRepository extends BaseRepository {
       sql: coalesceBitmapSql(sql`(
         SELECT rb_build_agg(pli.product_doc_id)
         FROM listing.product_listing_index pli
-        WHERE pli.project_id = ${this.storeId}::uuid
+        WHERE pli.store_id = ${this.storeId}::uuid
           AND pli.status = 'published'
       )`),
       empty: false,
@@ -141,7 +141,7 @@ export class StorefrontPostingBitmapQueryRepository extends BaseRepository {
       sql: coalesceBitmapSql(sql`(
         SELECT rb_build_agg(pli.product_doc_id)
         FROM listing.product_listing_index pli
-        WHERE pli.project_id = ${this.storeId}::uuid
+        WHERE pli.store_id = ${this.storeId}::uuid
           AND pli.status = 'published'
           AND pli.in_stock = ${input.inStock}
       )`),
@@ -158,7 +158,7 @@ export class StorefrontPostingBitmapQueryRepository extends BaseRepository {
       sql: coalesceBitmapSql(sql`(
         SELECT rb_build_agg(vli.variant_doc_id)
         FROM listing.variant_listing_index vli
-        WHERE vli.project_id = ${this.storeId}::uuid
+        WHERE vli.store_id = ${this.storeId}::uuid
           AND vli.in_stock = ${input.inStock}
       )`),
       empty: false,

@@ -131,7 +131,7 @@ export type CheckoutDto = Readonly<{
   id: string;
   createdAt: string;
   updatedAt: string;
-  projectId?: string;
+  storeId?: string;
   currencyCode?: string;
   idempotencyKey?: string;
   salesChannel?: string;

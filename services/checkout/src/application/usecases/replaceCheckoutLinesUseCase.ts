@@ -103,7 +103,7 @@ export class ReplaceCheckoutLinesUseCase extends UseCase<
     const { offers } = await this.checkoutService.getOffers({
       apiKey: ctx.apiKey,
       currency: state.currencyCode,
-      projectId: ctx.store.id,
+      storeId: ctx.store.id,
       items: mergedLines.map((l) => ({
         lineId: l.lineId,
         purchasableId: l.unit.id,
@@ -135,7 +135,7 @@ export class ReplaceCheckoutLinesUseCase extends UseCase<
     });
 
     const computed = await this.checkoutService.computeTotals({
-      projectId: context.store.id,
+      storeId: context.store.id,
       checkoutLines,
       appliedDiscounts: state.appliedDiscounts,
       currency: state.currencyCode,

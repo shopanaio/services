@@ -457,7 +457,7 @@ findFacetValueCandidatesByHandles(args: {
 
 Он должен переиспользовать те же concrete views, что и `getFacetValueCandidates`, и фильтровать:
 
-- `projectId`;
+- `storeId`;
 - `locale`;
 - `facetType`;
 - `sourceHandle in sourceHandles`;

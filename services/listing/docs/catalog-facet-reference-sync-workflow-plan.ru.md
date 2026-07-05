@@ -299,7 +299,7 @@ findExistingFeatureValueHandles(handles: string[]): Promise<Set<string>>;
 
 Проверки должны быть project-scoped:
 
-- `project_id = storeId`;
+- `store_id = storeId`;
 - для option/feature join active `product`;
 - для feature `is_group = false`.
 

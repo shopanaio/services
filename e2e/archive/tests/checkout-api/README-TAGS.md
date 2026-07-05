@@ -391,7 +391,7 @@ const purchasableId = variant.id;
 CREATE TABLE checkout_tags (
     id uuid PRIMARY KEY,
     checkout_id uuid NOT NULL REFERENCES checkouts (id) ON DELETE CASCADE,
-    project_id uuid NOT NULL REFERENCES projects (id),
+    store_id uuid NOT NULL REFERENCES projects (id),
     slug varchar(64) NOT NULL,
     is_unique boolean NOT NULL DEFAULT false,
     created_at timestamptz NOT NULL DEFAULT now(),

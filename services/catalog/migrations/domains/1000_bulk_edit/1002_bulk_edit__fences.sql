@@ -1,7 +1,7 @@
 -- Up Migration
 
 CREATE TABLE "catalog"."product_bulk_fence" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "product_id" uuid NOT NULL,
   "fence_token" text NOT NULL,
   "job_id" uuid NOT NULL,

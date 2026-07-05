@@ -50,7 +50,7 @@ export class EvaluateDiscountsParamsDto {
   readonly currency!: string;
 
   /** Project identifier (from header) */
-  readonly projectId!: string;
+  readonly storeId!: string;
 
   /** Cart items */
   readonly lines!: LineItemDto[];

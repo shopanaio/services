@@ -3,7 +3,7 @@
 ## Архитектура: 2 уровня
 
 ```
-Resolver → Root: ProductBulkEditWorkflow({ projectId, operations })
+Resolver → Root: ProductBulkEditWorkflow({ storeId, operations })
               ├── stepCreateJob → job + items + fences (в БД)
               └── Child (×N): OperationWorkflow({ itemId })
 ```
@@ -19,7 +19,7 @@ Root получает плоские операции от resolver'а и сам
 | Поле          | Тип                 | Описание                                        |
 | ------------- | ------------------- | ----------------------------------------------- |
 | `id`          | uuid, PK            |                                                 |
-| `project_id`  | text, not null      |                                                 |
+| `store_id`  | text, not null      |                                                 |
 | `status`      | enum, not null      | `QUEUED\|RUNNING\|COMPLETED\|CANCELLED` |
 | `created_at`  | timestamp, not null |                                                 |
 | `started_at`  | timestamp           |                                                 |
@@ -29,8 +29,8 @@ Root получает плоские операции от resolver'а и сам
 
 **Индексы:**
 
-- `(project_id, created_at DESC)`
-- `(project_id, status)`
+- `(store_id, created_at DESC)`
+- `(store_id, status)`
 
 ---
 
@@ -42,7 +42,7 @@ Root получает плоские операции от resolver'а и сам
 | ---------------------- | ---------------------- | ------------------------------------------------------------ |
 | `id`                   | uuid, PK               |                                                              |
 | `job_id`               | uuid, FK → jobs.id     |                                                              |
-| `project_id`           | text, not null         |                                                              |
+| `store_id`           | text, not null         |                                                              |
 | `product_id`           | text, not null         |                                                              |
 | `variant_id`           | text                   | nullable, для variant-операций                               |
 | `op_type`              | text, not null         | `productUpdate`, `productPublish`, `variantSetSku`, ...      |
@@ -61,7 +61,7 @@ Root получает плоские операции от resolver'а и сам
 **Ограничения/индексы:**
 
 - `UNIQUE (job_id, op_type, COALESCE(variant_id, product_id))` — предотвращает дубликаты операций
-- `(project_id, product_id, status)`
+- `(store_id, product_id, status)`
 - `(job_id, chunk_index, op_index)`
 
 **Пример:** 2 products, у первого 3 операции, у второго 2 → 5 items, 3 chunks.
@@ -92,7 +92,7 @@ Chunk 2: `[i5]` — одна операция
 
 ```typescript
 interface ProductBulkEditInput {
-  projectId: string;
+  storeId: string;
   operations: FlatOperation[];
 }
 
@@ -115,7 +115,7 @@ Root получает готовые плоские операции от resolv
 ### Поток выполнения
 
 ```
-1. stepCreateJob(projectId, operations)
+1. stepCreateJob(storeId, operations)
    └── создаёт job + items + fences + supersede → возвращает { jobId, chunks }
 
 2. stepTryMarkJobRunning(jobId)   ← guarded: QUEUED → RUNNING
@@ -163,10 +163,10 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows<
 
   @Workflow("productBulkEdit")
   async run(input: ProductBulkEditInput): Promise<ProductBulkEditResult> {
-    const { projectId, operations } = input;
+    const { storeId, operations } = input;
 
     // 1. Создание job внутри workflow — атомарно, идемпотентно
-    const { jobId, chunks } = await this.stepCreateJob(projectId, operations);
+    const { jobId, chunks } = await this.stepCreateJob(storeId, operations);
 
     // 2. Попытаться перевести QUEUED → RUNNING (guarded)
     const started = await this.stepTryMarkJobRunning(jobId);
@@ -249,13 +249,13 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows<
 
   @WorkflowStep()
   private async stepCreateJob(
-    projectId: string,
+    storeId: string,
     operations: FlatOperation[],
   ): Promise<{ jobId: string; chunks: BulkEditItemRow[][] }> {
     // Создание job + items + fences + supersede в одной транзакции
     const result = await this.kernel
       .getService(BulkEditService)
-      .createJobWithFences(projectId, operations);
+      .createJobWithFences(storeId, operations);
 
     return {
       jobId: result.jobId,
@@ -352,7 +352,7 @@ const operations = flattenBulkInput(input, variantToProduct);
 
 await broker.runWorkflow(
   "inventory.productBulkEdit",
-  { projectId: ctx.projectId, operations },
+  { storeId: ctx.storeId, operations },
   {
     source: "client",
     clientKey: ctx.idempotencyKey, // X-Idempotency-Key
@@ -517,13 +517,13 @@ RETURNING 1;
 
 | Поле          | Тип                 | Описание                  |
 | ------------- | ------------------- | ------------------------- |
-| `project_id`  | text, not null      |                           |
+| `store_id`  | text, not null      |                           |
 | `product_id`  | text, not null      |                           |
 | `fence_token` | text, not null      |                           |
 | `job_id`      | uuid, not null      | кто владеет текущим fence |
 | `updated_at`  | timestamp, not null |                           |
 
-**PK:** `(project_id, product_id)`
+**PK:** `(store_id, product_id)`
 
 ### Как работает
 
@@ -541,7 +541,7 @@ RETURNING 1;
          cancel_reason = 'SUPERSEDED',
          superseded_by_job_id = $newJobId,
          finished_at = COALESCE(finished_at, now())
-     WHERE project_id = $projectId
+     WHERE store_id = $storeId
        AND product_id = $productId
        AND status IN ('PENDING', 'RUNNING')
        AND job_id != $newJobId
@@ -1297,7 +1297,7 @@ function flattenBulkInput(
 ```typescript
 const result = await broker.runWorkflow(
   "inventory.productBulkEdit",
-  { projectId: ctx.projectId, operations },
+  { storeId: ctx.storeId, operations },
   {
     source: "client",
     clientKey: ctx.idempotencyKey,
@@ -1351,8 +1351,8 @@ const productStatusUpdateSchema = z.object({
 ## Дерево операций (полное)
 
 ```
-ProductBulkEditWorkflow({ projectId, operations })
-├── stepCreateJob(projectId, operations) → { jobId, chunks: BulkEditItemRow[][] }
+ProductBulkEditWorkflow({ storeId, operations })
+├── stepCreateJob(storeId, operations) → { jobId, chunks: BulkEditItemRow[][] }
 │   └── createJobWithFences: job + items + fences + supersede (одна транзакция)
 ├── stepTryMarkJobRunning(jobId) ← guarded: QUEUED → RUNNING
 │   └── 0 rows (CANCELLED) → stepFinalizeJob → return { jobId }

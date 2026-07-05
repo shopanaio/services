@@ -16,7 +16,7 @@ import { warehouses } from "./stock";
 export const warehouseTranslation = catalogSchema.table(
   "warehouse_translation",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     warehouseId: uuid("warehouse_id")
       .notNull()
       .references(() => warehouses.id, { onDelete: "cascade" }),
@@ -26,7 +26,7 @@ export const warehouseTranslation = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.warehouseId, table.locale] }),
-    index("idx_warehouse_translation_project").on(table.projectId),
+    index("idx_warehouse_translation_store").on(table.storeId),
   ]
 );
 

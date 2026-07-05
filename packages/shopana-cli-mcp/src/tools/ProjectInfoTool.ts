@@ -11,7 +11,7 @@ const ProjectInfoToolSchema = z.object({
 });
 
 class ProjectInfoTool extends MCPTool<typeof ProjectInfoToolSchema> {
-  name = 'shopana_project_info';
+  name = 'shopana_store_info';
   description = `Get comprehensive information about the Shopana project.
 
 Returns:

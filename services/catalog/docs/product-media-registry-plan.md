@@ -44,7 +44,7 @@ catalog.product_media
 Columns:
 
 - `id uuid primary key`
-- `project_id uuid not null`
+- `store_id uuid not null`
 - `product_id uuid not null`
 - `file_id uuid not null`
 - `sort_index integer not null default 0`
@@ -52,14 +52,14 @@ Columns:
 
 Indexes and constraints:
 
-- composite FK `(project_id, product_id) -> catalog.product(project_id, id) on delete cascade`
-- `unique(project_id, product_id, file_id)`
-- `unique(project_id, product_id, id)`
-- `unique(project_id, id)`
-- index on `project_id`
-- index on `(project_id, product_id)`
-- index on `(project_id, file_id)`
-- index on `(project_id, product_id, sort_index)`
+- composite FK `(store_id, product_id) -> catalog.product(store_id, id) on delete cascade`
+- `unique(store_id, product_id, file_id)`
+- `unique(store_id, product_id, id)`
+- `unique(store_id, id)`
+- index on `store_id`
+- index on `(store_id, product_id)`
+- index on `(store_id, file_id)`
+- index on `(store_id, product_id, sort_index)`
 
 `file_id` remains an external Media service reference, so it should not get a cross-service FK.
 
@@ -73,7 +73,7 @@ catalog.variant_media
 
 Target columns:
 
-- `project_id uuid not null`
+- `store_id uuid not null`
 - `product_id uuid not null`
 - `variant_id uuid not null`
 - `product_media_id uuid not null`
@@ -81,23 +81,23 @@ Target columns:
 
 Target constraints:
 
-- primary key `(project_id, variant_id, product_media_id)`
-- composite FK `(project_id, product_id, product_media_id) -> catalog.product_media(project_id, product_id, id) on delete cascade`
-- composite FK `(project_id, product_id, variant_id) -> catalog.variant(project_id, product_id, id) on delete cascade`
-- index on `project_id`
-- index on `(project_id, product_id)`
-- index on `(project_id, variant_id)`
-- index on `(project_id, product_media_id)`
-- index on `(project_id, variant_id, sort_index)`
+- primary key `(store_id, variant_id, product_media_id)`
+- composite FK `(store_id, product_id, product_media_id) -> catalog.product_media(store_id, product_id, id) on delete cascade`
+- composite FK `(store_id, product_id, variant_id) -> catalog.variant(store_id, product_id, id) on delete cascade`
+- index on `store_id`
+- index on `(store_id, product_id)`
+- index on `(store_id, variant_id)`
+- index on `(store_id, product_media_id)`
+- index on `(store_id, variant_id, sort_index)`
 
 The denormalized `product_id` is intentional. It lets PostgreSQL enforce that a variant can only reference `product_media` rows from the same product.
 
-The denormalized `project_id` must be part of the composite FKs. It prevents rows from claiming one project while referencing a product, variant, or product media row that belongs to another project.
+The denormalized `store_id` must be part of the composite FKs. It prevents rows from claiming one project while referencing a product, variant, or product media row that belongs to another project.
 
 Add supporting unique constraints or unique indexes on existing tables:
 
-- `catalog.product(project_id, id)` for the `product_media` product FK.
-- `catalog.variant(project_id, product_id, id)` for the `variant_media` variant FK.
+- `catalog.product(store_id, id)` for the `product_media` product FK.
+- `catalog.variant(store_id, product_id, id)` for the `variant_media` variant FK.
 
 ## Cutover Migration DDL Order
 
@@ -106,9 +106,9 @@ Because this is a single-commit cutover without data migration, the migration do
 Recommended DDL order:
 
 1. Drop the existing `catalog.variant_media` table or otherwise remove the old `variant_media.file_id` storage model.
-2. Add the supporting unique constraints or unique indexes on `catalog.product(project_id, id)` and `catalog.variant(project_id, product_id, id)`.
+2. Add the supporting unique constraints or unique indexes on `catalog.product(store_id, id)` and `catalog.variant(store_id, product_id, id)`.
 3. Create `catalog.product_media` with its target columns, indexes, unique constraints, and composite FK to `catalog.product`.
-4. Recreate `catalog.variant_media` with `project_id`, `product_id`, `variant_id`, `product_media_id`, and `sort_index`.
+4. Recreate `catalog.variant_media` with `store_id`, `product_id`, `variant_id`, `product_media_id`, and `sort_index`.
 5. Add the target `variant_media` primary key, indexes, product media FK, and variant FK.
 6. Do not backfill old `variant_media.file_id` rows. Existing media assignments are intentionally not preserved by this cutover.
 
@@ -146,7 +146,7 @@ Product deletion:
 File hard deletion event:
 
 1. Catalog assumes `fileHardDeleted.payload.fileId` is globally unique because Media service file IDs are external UUID references. If file IDs are not globally unique, the event contract must be extended with tenant scope before this cutover is implemented.
-2. Catalog deletes matching `catalog.product_media` rows by `file_id`. A `project_id` filter is not required only under the global file ID assumption above.
+2. Catalog deletes matching `catalog.product_media` rows by `file_id`. A `store_id` filter is not required only under the global file ID assumption above.
 3. Variant media rows are removed by FK cascade.
 4. Update `FileHardDeletedScript`, the file-hard-delete event handler, logs, and metrics to describe product media registry cleanup instead of `variant_media` cleanup.
 5. Report the deleted `product_media` row count. Report cascaded `variant_media` cleanup separately only if the implementation can measure it accurately.
@@ -514,10 +514,10 @@ Exit criteria:
 
 1. Update Drizzle models:
    - add `productMedia`;
-   - change `variantMedia` to `projectId`, `productId`, `variantId`, `productMediaId`, and `sortIndex`;
+   - change `variantMedia` to `storeId`, `productId`, `variantId`, `productMediaId`, and `sortIndex`;
    - remove old `variantMedia.fileId`;
-   - add supporting unique constraints on `product(project_id, id)` and `variant(project_id, product_id, id)`;
-   - define composite FKs with `project_id` and `product_id` so PostgreSQL enforces same-product variant media usage.
+   - add supporting unique constraints on `product(store_id, id)` and `variant(store_id, product_id, id)`;
+   - define composite FKs with `store_id` and `product_id` so PostgreSQL enforces same-product variant media usage.
 2. Generate the Catalog migration through the project migration flow.
 3. Inspect the generated migration manually:
    - old `variant_media` storage is dropped or recreated;

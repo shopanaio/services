@@ -5,7 +5,7 @@ import { Domain } from "@shopana/plugin-sdk";
 
 // Parameters for getting all shipping methods
 export interface GetShippingMethodsParams {
-  readonly projectId: string;
+  readonly storeId: string;
   readonly requestId?: string;
   readonly userAgent?: string;
 }
@@ -23,7 +23,7 @@ export const shippingMethods: TransactionScript<
   GetShippingMethodsParams,
   GetShippingMethodsResult
 > = async (params, services) => {
-  const { projectId } = params;
+  const { storeId } = params;
   const { broker, logger } = services;
 
   try {
@@ -31,14 +31,14 @@ export const shippingMethods: TransactionScript<
     const result = await broker.call("apps.execute", {
       domain: Domain.SHIPPING,
       operation: "list",
-      params: { projectId },
+      params: { storeId },
     }) as { data?: unknown; warnings?: Array<{ code: string; message: string }> };
 
     const methods = (result.data as ShippingMethod[]) || [];
     const warnings = result.warnings || [];
 
     if (methods.length === 0) {
-      logger.warn({ projectId }, "No shipping methods returned");
+      logger.warn({ storeId }, "No shipping methods returned");
     }
 
     // Return result with transformed codes

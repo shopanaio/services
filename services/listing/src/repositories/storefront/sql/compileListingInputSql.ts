@@ -8,7 +8,7 @@ import type {
 export const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 
 export interface ListingSqlRequest {
-  projectId: string;
+  storeId: string;
   locale: string;
   currency: string;
   scopeKind: StorefrontListingScope["kind"];
@@ -28,14 +28,14 @@ export interface ListingSqlRequest {
 }
 
 export function toListingSqlRequest(input: {
-  projectId: string;
+  storeId: string;
   request: ResolvedListingRequest;
   heavyOptionFacetCountsEnabled: boolean;
 }): ListingSqlRequest {
   const { request } = input;
 
   return {
-    projectId: input.projectId,
+    storeId: input.storeId,
     locale: request.input.locale,
     currency: request.input.currency,
     scopeKind: request.input.scope.kind,
@@ -68,7 +68,7 @@ export function compileListingInputSql(request: ListingSqlRequest): SQL {
   return sql`
     input AS (
       SELECT
-        ${request.projectId}::uuid AS project_id,
+        ${request.storeId}::uuid AS store_id,
         ${request.locale}::text AS locale,
         ${request.currency}::text AS currency,
         ${request.scopeKind}::text AS scope_kind,

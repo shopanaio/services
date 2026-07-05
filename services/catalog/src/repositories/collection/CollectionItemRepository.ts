@@ -35,7 +35,7 @@ export class CollectionItemRepository extends BaseRepository {
       .from(collectionItem)
       .where(
         and(
-          eq(collectionItem.projectId, this.storeId),
+          eq(collectionItem.storeId, this.storeId),
           eq(collectionItem.collectionId, collectionId)
         )
       )
@@ -48,7 +48,7 @@ export class CollectionItemRepository extends BaseRepository {
       .from(collectionItem)
       .where(
         and(
-          eq(collectionItem.projectId, this.storeId),
+          eq(collectionItem.storeId, this.storeId),
           eq(collectionItem.collectionId, collectionId)
         )
       );
@@ -64,7 +64,7 @@ export class CollectionItemRepository extends BaseRepository {
       .from(collectionItem)
       .where(
         and(
-          eq(collectionItem.projectId, this.storeId),
+          eq(collectionItem.storeId, this.storeId),
           eq(collectionItem.collectionId, collectionId),
           eq(collectionItem.productId, productId)
         )
@@ -83,7 +83,7 @@ export class CollectionItemRepository extends BaseRepository {
       rows.push({
         collectionId,
         productId,
-        projectId: this.storeId,
+        storeId: this.storeId,
         lexoRank: rank,
         createdAt: new Date().toISOString(),
       });
@@ -102,7 +102,7 @@ export class CollectionItemRepository extends BaseRepository {
       .delete(collectionItem)
       .where(
         and(
-          eq(collectionItem.projectId, this.storeId),
+          eq(collectionItem.storeId, this.storeId),
           eq(collectionItem.collectionId, collectionId),
           inArray(collectionItem.productId, productIds)
         )
@@ -119,7 +119,7 @@ export class CollectionItemRepository extends BaseRepository {
       .set({ lexoRank })
       .where(
         and(
-          eq(collectionItem.projectId, this.storeId),
+          eq(collectionItem.storeId, this.storeId),
           eq(collectionItem.collectionId, collectionId),
           eq(collectionItem.productId, productId)
         )

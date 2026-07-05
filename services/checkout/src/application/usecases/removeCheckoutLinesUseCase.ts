@@ -68,7 +68,7 @@ export class DeleteCheckoutLinesUseCase extends UseCase<
       const { offers } = await this.checkoutService.getOffers({
         apiKey: ctx.apiKey,
         currency: state.currencyCode,
-        projectId: ctx.store.id,
+        storeId: ctx.store.id,
         items: remainingLines.map((l) => ({
           lineId: l.lineId,
           purchasableId: l.unit.id,
@@ -100,7 +100,7 @@ export class DeleteCheckoutLinesUseCase extends UseCase<
       });
 
       computed = await this.checkoutService.computeTotals({
-        projectId: context.store.id,
+        storeId: context.store.id,
         checkoutLines,
         appliedDiscounts: state.appliedDiscounts,
         currency: state.currencyCode,

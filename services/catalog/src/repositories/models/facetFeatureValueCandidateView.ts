@@ -5,7 +5,7 @@ import { catalogSchema } from "./schema";
 export const facetFeatureValueCandidateView = catalogSchema
   .view("facet_feature_value_candidate_view", {
     id: text("id").notNull(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     locale: varchar("locale", { length: 8 }).notNull(),
     facetType: varchar("facet_type", { length: 32 }).notNull(),
     sourceHandle: text("source_handle").notNull(),
@@ -15,7 +15,7 @@ export const facetFeatureValueCandidateView = catalogSchema
   .as(sql`
     SELECT
       'FEATURE:' || pf.slug || ':' || pfv.slug AS id,
-      pf.project_id,
+      pf.store_id,
       pfvt.locale,
       'FEATURE'::text AS facet_type,
       pf.slug::text AS source_handle,
@@ -23,17 +23,17 @@ export const facetFeatureValueCandidateView = catalogSchema
       MIN(pfvt.name)::text AS label
     FROM catalog.product_feature pf
     INNER JOIN catalog.product_feature_translation pft
-      ON pft.project_id = pf.project_id
+      ON pft.store_id = pf.store_id
      AND pft.feature_id = pf.id
     INNER JOIN catalog.product_feature_value pfv
-      ON pfv.project_id = pf.project_id
+      ON pfv.store_id = pf.store_id
      AND pfv.feature_id = pf.id
     INNER JOIN catalog.product_feature_value_translation pfvt
-      ON pfvt.project_id = pfv.project_id
+      ON pfvt.store_id = pfv.store_id
      AND pfvt.feature_value_id = pfv.id
      AND pfvt.locale = pft.locale
     WHERE pf.is_group = false
-    GROUP BY pf.project_id, pfvt.locale, pf.slug, pfv.slug
+    GROUP BY pf.store_id, pfvt.locale, pf.slug, pfv.slug
   `);
 
 export type FacetFeatureValueCandidateView =

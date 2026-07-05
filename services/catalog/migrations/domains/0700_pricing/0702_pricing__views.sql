@@ -3,7 +3,7 @@
 CREATE VIEW "catalog"."variant_prices_current" AS
 SELECT
   "id",
-  "project_id",
+  "store_id",
   "variant_id",
   "currency",
   "amount_minor",
@@ -17,7 +17,7 @@ WHERE "effective_to" IS NULL;
 CREATE VIEW "catalog"."variant_costs_current" AS
 SELECT
   "id",
-  "project_id",
+  "store_id",
   "variant_id",
   "currency",
   "unit_cost_minor",
@@ -29,7 +29,7 @@ WHERE "effective_to" IS NULL;
 
 CREATE VIEW "catalog"."product_price_range" AS
 SELECT
-  item_pricing.project_id,
+  item_pricing.store_id,
   variant.product_id,
   item_pricing.currency,
   MIN(item_pricing.amount_minor) AS min_amount_minor,
@@ -39,4 +39,4 @@ INNER JOIN "catalog"."variant" variant
   ON variant.id = item_pricing.variant_id
  AND variant.deleted_at IS NULL
 WHERE item_pricing.effective_to IS NULL
-GROUP BY item_pricing.project_id, variant.product_id, item_pricing.currency;
+GROUP BY item_pricing.store_id, variant.product_id, item_pricing.currency;

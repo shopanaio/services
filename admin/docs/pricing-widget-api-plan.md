@@ -114,7 +114,7 @@ interface PriceHistoryStatistics {
 }
 
 interface GetPriceStatisticsInput {
-  projectId: string;
+  storeId: string;
   variantId: string;
   currency: CurrencyCode;
   from: Date;
@@ -131,7 +131,7 @@ async getPriceStatistics(input: GetPriceStatisticsInput): Promise<PriceHistorySt
     .from(itemPricing)
     .where(
       and(
-        eq(itemPricing.projectId, input.projectId),
+        eq(itemPricing.storeId, input.storeId),
         eq(itemPricing.variantId, input.variantId),
         eq(itemPricing.currency, input.currency),
         // Period overlap: [effectiveFrom, effectiveTo] intersects [from, to].
@@ -185,7 +185,7 @@ export class PricingWidgetResolver extends InventoryType<PricingWidgetInput> {
   async currentPrice() {
     const services = this.$ctx.kernel.getServices();
     const price = await services.repository.pricing.getCurrentPrice({
-      projectId: this.$ctx.projectId,
+      storeId: this.$ctx.storeId,
       variantId: this.$props.variantId,
       currency: this.$props.currency,
     });
@@ -196,7 +196,7 @@ export class PricingWidgetResolver extends InventoryType<PricingWidgetInput> {
   async currentCostPrice() {
     const services = this.$ctx.kernel.getServices();
     const cost = await services.repository.cost.getCurrentCost({
-      projectId: this.$ctx.projectId,
+      storeId: this.$ctx.storeId,
       variantId: this.$props.variantId,
       currency: this.$props.currency,
     });
@@ -210,7 +210,7 @@ export class PricingWidgetResolver extends InventoryType<PricingWidgetInput> {
     const first = this.$props.first ?? 50;
 
     const prices = await services.repository.pricing.getPriceHistory({
-      projectId: this.$ctx.projectId,
+      storeId: this.$ctx.storeId,
       variantId: this.$props.variantId,
       currency: this.$props.currency,
       from,
@@ -244,7 +244,7 @@ export class PricingWidgetResolver extends InventoryType<PricingWidgetInput> {
     const { from, to } = this.getDateRange();
 
     const stats = await services.repository.pricing.getPriceStatistics({
-      projectId: this.$ctx.projectId,
+      storeId: this.$ctx.storeId,
       variantId: this.$props.variantId,
       currency: this.$props.currency,
       from,

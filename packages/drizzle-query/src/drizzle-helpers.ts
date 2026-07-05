@@ -23,7 +23,7 @@ export function notDeleted(deletedAtColumn: Column): SQL {
  *
  * @example
  * ```ts
- * const scopedWhere = withProjectScope(product.projectId, projectId);
+ * const scopedWhere = withProjectScope(product.storeId, storeId);
  *
  * const where = and(
  *   scopedWhere,
@@ -32,8 +32,8 @@ export function notDeleted(deletedAtColumn: Column): SQL {
  * );
  * ```
  */
-export function withProjectScope(projectIdColumn: Column, projectId: string): SQL {
-  return eq(projectIdColumn, projectId);
+export function withProjectScope(projectIdColumn: Column, storeId: string): SQL {
+  return eq(projectIdColumn, storeId);
 }
 
 /**
@@ -42,7 +42,7 @@ export function withProjectScope(projectIdColumn: Column, projectId: string): SQ
  * @example
  * ```ts
  * const where = combineAnd(
- *   withProjectScope(product.projectId, projectId),
+ *   withProjectScope(product.storeId, storeId),
  *   notDeleted(product.deletedAt),
  *   qb.where(input).sql // may be undefined
  * );
@@ -63,7 +63,7 @@ export function combineAnd(
  * @example
  * ```ts
  * const filters = applyDefaultFilters(product, {
- *   projectId: "uuid",
+ *   storeId: "uuid",
  *   includeDeleted: false,
  * });
  *
@@ -71,7 +71,7 @@ export function combineAnd(
  * ```
  */
 export type DefaultFiltersOptions<T extends Table> = {
-  projectId?: string;
+  storeId?: string;
   projectIdColumn?: ColumnNames<T>;
   includeDeleted?: boolean;
   deletedAtColumn?: ColumnNames<T>;
@@ -85,11 +85,11 @@ export function applyDefaultFilters<T extends PgTable>(
   const columns = table["_"]["columns"];
 
   // Project scope
-  if (options.projectId) {
-    const colName = options.projectIdColumn ?? "projectId";
+  if (options.storeId) {
+    const colName = options.projectIdColumn ?? "storeId";
     const column = columns[colName as keyof typeof columns] as Column | undefined;
     if (column) {
-      conditions.push(eq(column, options.projectId));
+      conditions.push(eq(column, options.storeId));
     }
   }
 

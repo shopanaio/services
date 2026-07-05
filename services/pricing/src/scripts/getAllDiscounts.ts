@@ -4,7 +4,7 @@ import { buildEmergencyFallback } from "./fallback";
 
 // Parameters for getting all discounts
 export interface GetAllDiscountsParams {
-  readonly projectId: string;
+  readonly storeId: string;
   readonly requestId?: string;
   readonly userAgent?: string;
 }
@@ -22,7 +22,7 @@ export const getAllDiscounts: TransactionScript<
   GetAllDiscountsParams,
   GetAllDiscountsResult
 > = async (params, services) => {
-  const { projectId } = params;
+  const { storeId } = params;
   const { broker, logger } = services;
 
   try {
@@ -30,14 +30,14 @@ export const getAllDiscounts: TransactionScript<
     const result = await broker.call("apps.execute", {
       domain: "pricing",
       operation: "list",
-      params: { projectId },
+      params: { storeId },
     }) as { data?: unknown; warnings?: Array<{ code: string; message: string }> };
 
     const discounts = (result.data as Discount[]) || [];
     const warnings = result.warnings || [];
 
     if (discounts.length === 0) {
-      logger.warn({ projectId }, "No discounts returned");
+      logger.warn({ storeId }, "No discounts returned");
     }
 
     return {

@@ -69,7 +69,7 @@ export class CategoryUpdateIdentityScript extends BaseScript<
 
       if (params.name !== existingTranslation?.name) {
         await this.repository.category.upsertTranslation({
-          projectId: this.getProjectId(),
+          storeId: this.getProjectId(),
           categoryId: params.categoryId,
           locale: this.getLocale(),
           name: params.name,

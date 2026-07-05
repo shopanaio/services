@@ -213,7 +213,7 @@ costBulkUpdate(input: CostBulkUpdateInput!): CostBulkUpdatePayload
 -- Core product tables
 CREATE TABLE product (
   id UUID PRIMARY KEY,
-  project_id UUID NOT NULL,
+  store_id UUID NOT NULL,
   handle TEXT,
   published_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -223,7 +223,7 @@ CREATE TABLE product (
 
 CREATE TABLE variant (
   id UUID PRIMARY KEY,
-  project_id UUID NOT NULL,
+  store_id UUID NOT NULL,
   product_id UUID NOT NULL REFERENCES product(id) ON DELETE CASCADE,
   is_default BOOLEAN DEFAULT FALSE,
   handle TEXT,
@@ -235,7 +235,7 @@ CREATE TABLE variant (
 -- Physical attributes (moved from inventory)
 CREATE TABLE item_dimensions (
   variant_id UUID PRIMARY KEY REFERENCES variant(id) ON DELETE CASCADE,
-  project_id UUID NOT NULL,
+  store_id UUID NOT NULL,
   w_mm NUMERIC NOT NULL CHECK (w_mm > 0),
   l_mm NUMERIC NOT NULL CHECK (l_mm > 0),
   h_mm NUMERIC NOT NULL CHECK (h_mm > 0),
@@ -244,7 +244,7 @@ CREATE TABLE item_dimensions (
 
 CREATE TABLE item_weight (
   variant_id UUID PRIMARY KEY REFERENCES variant(id) ON DELETE CASCADE,
-  project_id UUID NOT NULL,
+  store_id UUID NOT NULL,
   weight_gr NUMERIC NOT NULL CHECK (weight_gr > 0),
   display_unit weight_display_unit_enum DEFAULT 'kg'
 );
@@ -259,7 +259,7 @@ CREATE TABLE item_weight (
 -- Pricing tables (new service)
 CREATE TABLE item_pricing (
   id UUID PRIMARY KEY,
-  project_id UUID NOT NULL,
+  store_id UUID NOT NULL,
   variant_id UUID NOT NULL,  -- External reference to Products service
   currency currency_enum NOT NULL,
   amount_minor INTEGER NOT NULL,
@@ -285,7 +285,7 @@ CREATE INDEX idx_item_pricing_variant_currency
 -- Inventory-specific tables
 CREATE TABLE warehouse (
   id UUID PRIMARY KEY,
-  project_id UUID NOT NULL,
+  store_id UUID NOT NULL,
   code TEXT NOT NULL,
   name TEXT,
   is_default BOOLEAN DEFAULT FALSE,
@@ -295,7 +295,7 @@ CREATE TABLE warehouse (
 
 CREATE TABLE warehouse_stock (
   id UUID PRIMARY KEY,
-  project_id UUID NOT NULL,
+  store_id UUID NOT NULL,
   warehouse_id UUID NOT NULL REFERENCES warehouse(id),
   variant_id UUID NOT NULL,  -- External reference to Products service
   quantity_on_hand INTEGER DEFAULT 0 CHECK (quantity_on_hand >= 0),
@@ -306,7 +306,7 @@ CREATE TABLE warehouse_stock (
 -- SKU management
 CREATE TABLE variant_sku (
   variant_id UUID PRIMARY KEY,  -- External reference
-  project_id UUID NOT NULL,
+  store_id UUID NOT NULL,
   sku TEXT,
   external_system TEXT,
   external_id TEXT,
@@ -316,7 +316,7 @@ CREATE TABLE variant_sku (
 -- Cost history (internal operational data)
 CREATE TABLE product_variant_cost_history (
   id UUID PRIMARY KEY,
-  project_id UUID NOT NULL,
+  store_id UUID NOT NULL,
   variant_id UUID NOT NULL,  -- External reference
   currency currency_enum NOT NULL,
   unit_cost_minor INTEGER NOT NULL,
@@ -495,22 +495,22 @@ type WarehouseStock @key(fields: "id") {
 
    -- Copy products
    INSERT INTO products_db.product
-   SELECT id, project_id, handle, published_at, created_at, updated_at, deleted_at
+   SELECT id, store_id, handle, published_at, created_at, updated_at, deleted_at
    FROM inventory_db.product;
 
    -- Copy variants
    INSERT INTO products_db.variant
-   SELECT id, project_id, product_id, is_default, handle, created_at, updated_at, deleted_at
+   SELECT id, store_id, product_id, is_default, handle, created_at, updated_at, deleted_at
    FROM inventory_db.variant;
 
    -- Copy dimensions
    INSERT INTO products_db.item_dimensions
-   SELECT variant_id, project_id, w_mm, l_mm, h_mm, display_unit
+   SELECT variant_id, store_id, w_mm, l_mm, h_mm, display_unit
    FROM inventory_db.item_dimensions;
 
    -- Copy weight
    INSERT INTO products_db.item_weight
-   SELECT variant_id, project_id, weight_gr, display_unit
+   SELECT variant_id, store_id, weight_gr, display_unit
    FROM inventory_db.item_weight;
 
    -- Copy options, features, translations, media...
@@ -524,7 +524,7 @@ type WarehouseStock @key(fields: "id") {
    BEGIN;
 
    INSERT INTO pricing_db.item_pricing
-   SELECT id, project_id, variant_id, currency, amount_minor, compare_at_minor,
+   SELECT id, store_id, variant_id, currency, amount_minor, compare_at_minor,
           effective_from, effective_to, recorded_at
    FROM inventory_db.item_pricing;
 
@@ -535,8 +535,8 @@ type WarehouseStock @key(fields: "id") {
 
    ```sql
    -- Extract SKU to separate table
-   INSERT INTO inventory_db.variant_sku (variant_id, project_id, sku, external_system, external_id)
-   SELECT id, project_id, sku, external_system, external_id
+   INSERT INTO inventory_db.variant_sku (variant_id, store_id, sku, external_system, external_id)
+   SELECT id, store_id, sku, external_system, external_id
    FROM inventory_db.variant
    WHERE sku IS NOT NULL OR external_system IS NOT NULL;
    ```

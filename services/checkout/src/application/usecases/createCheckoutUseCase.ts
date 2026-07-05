@@ -77,7 +77,7 @@ export class CreateCheckoutUseCase extends UseCase<
   > {
     try {
       const deliveryGroups = await this.shippingApi.createDeliveryGroups({
-        projectId: context.store.id,
+        storeId: context.store.id,
         items: [],
       });
 
@@ -120,7 +120,7 @@ export class CreateCheckoutUseCase extends UseCase<
   > {
     try {
       const paymentMethods = await this.paymentApi.getPaymentMethods({
-        projectId: context.store.id,
+        storeId: context.store.id,
         currencyCode,
         apiKey: context.apiKey,
       });

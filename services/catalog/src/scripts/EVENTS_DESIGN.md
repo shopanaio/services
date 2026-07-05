@@ -111,7 +111,7 @@ All types defined in `src/snapshots/types.ts` — single source of truth for:
 
 interface ProductSyncEvent {
   readonly meta: ProductSyncEventMeta;
-  readonly projectId: string;
+  readonly storeId: string;
   readonly productId: string;
   readonly trigger: ProductSyncTrigger;
   readonly deleted: boolean;
@@ -173,7 +173,7 @@ ProductSnapshot
 
 interface ProductSnapshot {
   readonly id: string;
-  readonly projectId: string;
+  readonly storeId: string;
   readonly publishedAt: string | null;  // ISO 8601
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -257,7 +257,7 @@ src/kernel/
 // src/snapshots/types.ts
 
 export interface SyncRequest {
-  projectId: string;
+  storeId: string;
   productId: string;
   trigger: ProductSyncTrigger;
   deleted?: boolean;
@@ -285,19 +285,19 @@ export class SnapshotRepository {
    * Uses batch queries to avoid N+1.
    */
   async buildSnapshot(
-    projectId: string,
+    storeId: string,
     productId: string
   ): Promise<ProductSnapshot | null> {
     // 1. Fetch product
-    const productRow = await this.fetchProduct(projectId, productId);
+    const productRow = await this.fetchProduct(storeId, productId);
     if (!productRow) return null;
 
     // 2. Parallel fetch all related data
     const [productTranslations, variants, options, features] = await Promise.all([
       this.fetchProductTranslations(productId),
-      this.fetchVariantsWithDetails(projectId, productId),
-      this.fetchOptionsWithDetails(projectId, productId),
-      this.fetchFeaturesWithDetails(projectId, productId),
+      this.fetchVariantsWithDetails(storeId, productId),
+      this.fetchOptionsWithDetails(storeId, productId),
+      this.fetchFeaturesWithDetails(storeId, productId),
     ]);
 
     // 3. Aggregate from variants
@@ -306,7 +306,7 @@ export class SnapshotRepository {
 
     return {
       id: productRow.id,
-      projectId: productRow.projectId,
+      storeId: productRow.storeId,
       publishedAt: productRow.publishedAt?.toISOString() ?? null,
       createdAt: productRow.createdAt.toISOString(),
       updatedAt: productRow.updatedAt.toISOString(),
@@ -327,10 +327,10 @@ export class SnapshotRepository {
     // Batch fetch all related data
     const [optionLinksMap, pricesMap, stockMap, mediaMap, translationsMap] =
       await Promise.all([
-        this.fetchVariantOptionLinks(projectId, variantIds),
-        this.fetchVariantPrices(projectId, variantIds),
-        this.fetchVariantStock(projectId, variantIds),
-        this.fetchVariantMedia(projectId, variantIds),
+        this.fetchVariantOptionLinks(storeId, variantIds),
+        this.fetchVariantPrices(storeId, variantIds),
+        this.fetchVariantStock(storeId, variantIds),
+        this.fetchVariantMedia(storeId, variantIds),
         this.fetchVariantTranslations(variantIds),
       ]);
 
@@ -396,7 +396,7 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
     try {
       const snapshot = sync.deleted
         ? null
-        : await this.repository.snapshot.buildSnapshot(sync.projectId, sync.productId);
+        : await this.repository.snapshot.buildSnapshot(sync.storeId, sync.productId);
 
       const event: ProductSyncEvent = {
         meta: {
@@ -406,7 +406,7 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
           timestamp: new Date().toISOString(),
           source: 'inventory',
         },
-        projectId: sync.projectId,
+        storeId: sync.storeId,
         productId: sync.productId,
         trigger: sync.trigger,
         deleted: sync.deleted ?? false,
@@ -432,13 +432,13 @@ export const productCreate: TransactionScript<
   ScriptResultWithSync<ProductCreateResult>
 > = async (params, services) => {
   const { repository } = services;
-  const { projectId, id, translations, features, options } = params;
+  const { storeId, id, translations, features, options } = params;
 
   // ... existing creation logic ...
 
   const product = await repository.product.create({
     id,
-    projectId,
+    storeId,
     publishedAt: null,
   });
 
@@ -448,7 +448,7 @@ export const productCreate: TransactionScript<
   return {
     result: { product, userErrors: [] },
     sync: {
-      projectId,
+      storeId,
       productId: product.id,
       trigger: 'product.created',
     },
@@ -464,9 +464,9 @@ export const variantSetPricing: TransactionScript<
   ScriptResultWithSync<VariantSetPricingResult>
 > = async (params, services) => {
   const { repository } = services;
-  const { projectId, variantId, pricing } = params;
+  const { storeId, variantId, pricing } = params;
 
-  const variant = await repository.variant.findById(projectId, variantId);
+  const variant = await repository.variant.findById(storeId, variantId);
   if (!variant) {
     return {
       result: {
@@ -477,7 +477,7 @@ export const variantSetPricing: TransactionScript<
   }
 
   await repository.pricing.upsert({
-    projectId,
+    storeId,
     variantId,
     currency: pricing.currency,
     amountMinor: pricing.amount,
@@ -489,7 +489,7 @@ export const variantSetPricing: TransactionScript<
   return {
     result: { success: true, userErrors: [] },
     sync: {
-      projectId,
+      storeId,
       productId: variant.productId,
       trigger: 'pricing.changed',
     },
@@ -505,14 +505,14 @@ export const productDelete: TransactionScript<
   ScriptResultWithSync<ProductDeleteResult>
 > = async (params, services) => {
   const { repository } = services;
-  const { projectId, productId } = params;
+  const { storeId, productId } = params;
 
-  await repository.product.softDelete(projectId, productId);
+  await repository.product.softDelete(storeId, productId);
 
   return {
     result: { success: true, userErrors: [] },
     sync: {
-      projectId,
+      storeId,
       productId,
       trigger: 'product.deleted',
       deleted: true,
@@ -546,12 +546,12 @@ async handleProductSync(event: ProductSyncEvent): Promise<void> {
   }, 'Processing product sync');
 
   if (event.deleted || !event.snapshot) {
-    await this.indexService.deleteProduct(event.projectId, event.productId);
+    await this.indexService.deleteProduct(event.storeId, event.productId);
     return;
   }
 
   await this.indexService.upsertProduct(
-    event.projectId,
+    event.storeId,
     event.productId,
     event.snapshot
   );
@@ -563,12 +563,12 @@ async handleProductSync(event: ProductSyncEvent): Promise<void> {
 
 export class IndexService {
   async upsertProduct(
-    projectId: string,
+    storeId: string,
     productId: string,
     snapshot: ProductSnapshot
   ): Promise<void> {
     const indexRow = {
-      project_id: projectId,
+      store_id: storeId,
       product_id: productId,
 
       // Price aggregation
@@ -629,20 +629,20 @@ export class IndexService {
 })
 async handleProductSync(event: ProductSyncEvent): Promise<void> {
   if (event.deleted || !event.snapshot) {
-    await this.searchIndex.delete(event.projectId, event.productId);
+    await this.searchIndex.delete(event.storeId, event.productId);
     return;
   }
 
   const doc = this.buildSearchDocument(event);
-  await this.searchIndex.upsert(event.projectId, doc);
+  await this.searchIndex.upsert(event.storeId, doc);
 }
 
 private buildSearchDocument(event: ProductSyncEvent): SearchDocument {
-  const { productId, projectId, snapshot } = event;
+  const { productId, storeId, snapshot } = event;
 
   const doc: SearchDocument = {
     id: productId,
-    project_id: projectId,
+    store_id: storeId,
   };
 
   // Add translations per locale
@@ -730,13 +730,13 @@ export const backfillProductSync: TransactionScript<
   BackfillResult
 > = async (params, services) => {
   const { repository } = services;
-  const { projectId, batchSize = 100 } = params;
+  const { storeId, batchSize = 100 } = params;
 
   let offset = 0;
   let processed = 0;
 
   while (true) {
-    const products = await repository.product.findAll(projectId, {
+    const products = await repository.product.findAll(storeId, {
       limit: batchSize,
       offset,
     });
@@ -744,7 +744,7 @@ export const backfillProductSync: TransactionScript<
     if (products.length === 0) break;
 
     for (const product of products) {
-      const snapshot = await repository.snapshot.buildSnapshot(projectId, product.id);
+      const snapshot = await repository.snapshot.buildSnapshot(storeId, product.id);
 
       await services.broker.emit('product.sync.requested', {
         meta: {
@@ -754,7 +754,7 @@ export const backfillProductSync: TransactionScript<
           timestamp: new Date().toISOString(),
           source: 'inventory',
         },
-        projectId,
+        storeId,
         productId: product.id,
         trigger: 'manual.resync',
         deleted: false,

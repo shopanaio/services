@@ -2,7 +2,7 @@
 
 CREATE TABLE "catalog"."bundle_item" (
   "id" uuid NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "group_id" uuid NOT NULL,
   "item_type" varchar(32) NOT NULL,
   "sort_index" integer NOT NULL DEFAULT 0,
@@ -72,7 +72,7 @@ CREATE INDEX "idx_bundle_item_price_rule_id"
 
 CREATE TABLE "catalog"."bundle_item_option_selection" (
   "id" uuid NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "item_id" uuid NOT NULL,
   "ref_option_id" uuid NOT NULL,
   "parent_option_id" uuid,
@@ -108,7 +108,7 @@ CREATE UNIQUE INDEX "bundle_item_option_selection_item_option_unique"
 
 CREATE TABLE "catalog"."bundle_item_option_value_selection" (
   "id" uuid NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "option_selection_id" uuid NOT NULL,
   "ref_option_value_id" uuid,
   "value" text NOT NULL,
@@ -140,7 +140,7 @@ CREATE UNIQUE INDEX "bundle_item_option_value_selection_value_unique"
   ON "catalog"."bundle_item_option_value_selection" ("option_selection_id", "value");
 
 CREATE TABLE "catalog"."bundle_item_translation" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "item_id" uuid NOT NULL,
   "locale" varchar(8) NOT NULL,
   "name" text NOT NULL,
@@ -151,5 +151,5 @@ CREATE TABLE "catalog"."bundle_item_translation" (
     ON DELETE CASCADE
 );
 
-CREATE INDEX "idx_bundle_item_translation_project_locale"
-  ON "catalog"."bundle_item_translation" ("project_id", "locale");
+CREATE INDEX "idx_bundle_item_translation_store_locale"
+  ON "catalog"."bundle_item_translation" ("store_id", "locale");

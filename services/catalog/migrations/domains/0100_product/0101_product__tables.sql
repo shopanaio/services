@@ -1,7 +1,7 @@
 -- Up Migration
 
 CREATE TABLE "catalog"."product" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "id" uuid NOT NULL,
   "vendor_id" uuid,
   "handle" varchar(255),
@@ -14,18 +14,18 @@ CREATE TABLE "catalog"."product" (
   CONSTRAINT "product_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "product_published_requires_handle"
     CHECK ("published_at" IS NULL OR "handle" IS NOT NULL),
-  CONSTRAINT "product_project_id_id_unique" UNIQUE ("project_id", "id"),
+  CONSTRAINT "product_store_id_id_unique" UNIQUE ("store_id", "id"),
   CONSTRAINT "product_vendor_fk"
     FOREIGN KEY ("vendor_id")
     REFERENCES "catalog"."vendor" ("id")
 );
 
-CREATE UNIQUE INDEX "product_project_id_handle_key"
-  ON "catalog"."product" ("project_id", "handle")
+CREATE UNIQUE INDEX "product_store_id_handle_key"
+  ON "catalog"."product" ("store_id", "handle")
   WHERE "deleted_at" IS NULL AND "handle" IS NOT NULL;
 
-CREATE INDEX "idx_product_project_id"
-  ON "catalog"."product" ("project_id");
+CREATE INDEX "idx_product_store_id"
+  ON "catalog"."product" ("store_id");
 
 CREATE INDEX "idx_product_vendor_id"
   ON "catalog"."product" ("vendor_id");
@@ -44,7 +44,7 @@ CREATE INDEX "idx_product_revision"
   ON "catalog"."product" ("id", "revision");
 
 CREATE TABLE "catalog"."variant" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "product_id" uuid NOT NULL,
   "kind" "catalog"."product_kind" NOT NULL DEFAULT 'BASE',
   "id" uuid NOT NULL,
@@ -59,8 +59,8 @@ CREATE TABLE "catalog"."variant" (
   CONSTRAINT "variant_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "variant_handle_required_if_not_default"
     CHECK ("is_default" = true OR length("handle") > 0),
-  CONSTRAINT "variant_project_id_product_id_id_unique"
-    UNIQUE ("project_id", "product_id", "id")
+  CONSTRAINT "variant_store_id_product_id_id_unique"
+    UNIQUE ("store_id", "product_id", "id")
 );
 
 CREATE UNIQUE INDEX "variant_product_id_default_key"
@@ -71,16 +71,16 @@ CREATE UNIQUE INDEX "variant_product_id_handle_key"
   ON "catalog"."variant" ("product_id", "handle")
   WHERE "deleted_at" IS NULL;
 
-CREATE UNIQUE INDEX "variant_project_id_sku_key"
-  ON "catalog"."variant" ("project_id", "sku")
+CREATE UNIQUE INDEX "variant_store_id_sku_key"
+  ON "catalog"."variant" ("store_id", "sku")
   WHERE "deleted_at" IS NULL AND "sku" IS NOT NULL;
 
-CREATE UNIQUE INDEX "variant_project_id_external_system_external_id_key"
-  ON "catalog"."variant" ("project_id", "external_system", "external_id")
+CREATE UNIQUE INDEX "variant_store_id_external_system_external_id_key"
+  ON "catalog"."variant" ("store_id", "external_system", "external_id")
   WHERE "deleted_at" IS NULL AND "external_id" IS NOT NULL;
 
-CREATE INDEX "idx_variant_project_id"
-  ON "catalog"."variant" ("project_id");
+CREATE INDEX "idx_variant_store_id"
+  ON "catalog"."variant" ("store_id");
 
 CREATE INDEX "idx_variant_product_id"
   ON "catalog"."variant" ("product_id");

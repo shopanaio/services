@@ -660,8 +660,8 @@ function matchAction(actions: string[], action: string): boolean {
 ### Query: Get Project Roles and Current User
 
 ```graphql
-query GetProjectWithRoles($projectId: ID!) {
-  project(id: $projectId) {
+query GetProjectWithRoles($storeId: ID!) {
+  project(id: $storeId) {
     id
     name
 
@@ -693,8 +693,8 @@ query GetProjectWithRoles($projectId: ID!) {
 ### Query: Get Team Members
 
 ```graphql
-query GetTeamMembers($projectId: ID!) {
-  project(id: $projectId) {
+query GetTeamMembers($storeId: ID!) {
+  project(id: $storeId) {
     members(first: 50) {
       edges {
         node {

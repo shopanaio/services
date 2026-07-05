@@ -34,14 +34,14 @@ export function compileFacetResolutionSql(): SQL {
       FROM requested_facets r
       JOIN input i ON true
       JOIN listing.facet f
-        ON f.project_id = i.project_id
+        ON f.store_id = i.store_id
        AND f.slug = r.facet_slug
       JOIN listing.facet_value fv
-        ON fv.project_id = f.project_id
+        ON fv.store_id = f.store_id
        AND fv.facet_id = f.id
        AND fv.handle = r.value_handle
       LEFT JOIN listing.facet_value parent_fv
-        ON parent_fv.project_id = fv.project_id
+        ON parent_fv.store_id = fv.store_id
        AND parent_fv.id = fv.parent_id
        AND parent_fv.kind = 'display'
        AND parent_fv.parent_id IS NULL

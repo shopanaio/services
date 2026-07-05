@@ -20,7 +20,7 @@ export const reservations = catalogSchema.table(
   "reservations",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     variantId: uuid("variant_id").notNull(),
     warehouseId: uuid("warehouse_id")
       .notNull()
@@ -34,8 +34,8 @@ export const reservations = catalogSchema.table(
   },
   (table) => [
     check("reservations_quantity_check", sql`${table.quantity} > 0`),
-    unique("reservations_project_order_variant_warehouse_key").on(
-      table.projectId,
+    unique("reservations_store_order_variant_warehouse_key").on(
+      table.storeId,
       table.orderSystem,
       table.orderId,
       table.variantId,

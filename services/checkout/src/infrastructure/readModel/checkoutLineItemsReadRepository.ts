@@ -26,7 +26,7 @@ export class CheckoutLineItemsReadRepositoryPort
       .leftJoin("checkout_tags as ct", "ct.id", "cli.tag_id")
       .select(
         "cli.id",
-        "cli.project_id",
+        "cli.store_id",
         "cli.checkout_id",
         "cli.parent_line_item_id",
         "cli.quantity",

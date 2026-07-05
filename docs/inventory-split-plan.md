@@ -93,7 +93,7 @@ Catalog.Variant ←──1:1──→ Inventory.InventoryItem
 ```sql
 CREATE TABLE inventory_item (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id UUID NOT NULL,
+  store_id UUID NOT NULL,
 
   -- Ссылка на Catalog
   variant_id UUID NOT NULL UNIQUE, -- Federated reference, без FK
@@ -110,11 +110,11 @@ CREATE TABLE inventory_item (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
   CONSTRAINT inventory_item_sku_unique
-    UNIQUE (project_id, sku) WHERE sku IS NOT NULL
+    UNIQUE (store_id, sku) WHERE sku IS NOT NULL
 );
 
 CREATE INDEX idx_inventory_item_variant ON inventory_item(variant_id);
-CREATE INDEX idx_inventory_item_project ON inventory_item(project_id);
+CREATE INDEX idx_inventory_item_store ON inventory_item(store_id);
 ```
 
 > **Примечание:** `external_system` и `external_id` остаются в `Variant` (Catalog), так как это идентификаторы товара во внешних системах (не связаны с инвентарем).
@@ -124,7 +124,7 @@ CREATE INDEX idx_inventory_item_project ON inventory_item(project_id);
 ```sql
 CREATE TABLE category (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id UUID NOT NULL,
+  store_id UUID NOT NULL,
 
   -- Иерархия
   parent_id UUID REFERENCES category(id) ON DELETE CASCADE,
@@ -143,7 +143,7 @@ CREATE TABLE category (
   deleted_at TIMESTAMPTZ,
 
   CONSTRAINT category_handle_unique
-    UNIQUE (project_id, handle) WHERE deleted_at IS NULL,
+    UNIQUE (store_id, handle) WHERE deleted_at IS NULL,
   -- handle обязателен для публикации
   CONSTRAINT category_published_requires_handle
     CHECK (published_at IS NULL OR handle IS NOT NULL)
@@ -151,7 +151,7 @@ CREATE TABLE category (
 
 CREATE INDEX idx_category_path ON category USING GIST (path);
 CREATE INDEX idx_category_parent ON category(parent_id);
-CREATE INDEX idx_category_published ON category(project_id, published_at) WHERE deleted_at IS NULL;
+CREATE INDEX idx_category_published ON category(store_id, published_at) WHERE deleted_at IS NULL;
 
 -- Медиа категории (как variant_media)
 CREATE TABLE category_media (
@@ -167,7 +167,7 @@ CREATE TABLE category_media (
 ```sql
 CREATE TABLE tag (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id UUID NOT NULL,
+  store_id UUID NOT NULL,
 
   -- Идентификатор
   handle VARCHAR(255) NOT NULL,
@@ -175,7 +175,7 @@ CREATE TABLE tag (
   -- Timestamps
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-  CONSTRAINT tag_handle_unique UNIQUE (project_id, handle)
+  CONSTRAINT tag_handle_unique UNIQUE (store_id, handle)
 );
 
 -- Many-to-many с Product
@@ -591,7 +591,7 @@ interface VariantCreatedEvent {
   payload: {
     variantId: string;
     productId: string;
-    projectId: string;
+    storeId: string;
     sku?: string; // SKU переносится в InventoryItem
   };
 }
@@ -601,7 +601,7 @@ interface VariantDeletedEvent {
   payload: {
     variantId: string;
     productId: string;
-    projectId: string;
+    storeId: string;
   };
 }
 
@@ -611,12 +611,12 @@ class InventoryEventHandler {
   async onVariantCreated(event: VariantCreatedEvent) {
     const newItem = await this.inventoryItemService.create({
       variantId: event.payload.variantId,
-      projectId: event.payload.projectId,
+      storeId: event.payload.storeId,
       sku: event.payload.sku,
     });
 
     // Создать начальный stock для всех warehouse
-    const warehouses = await this.warehouseRepo.findByProject(event.payload.projectId);
+    const warehouses = await this.warehouseRepo.findByProject(event.payload.storeId);
     for (const warehouse of warehouses) {
       await this.warehouseStockService.initializeStock({
         inventoryItemId: newItem.id,
@@ -644,7 +644,7 @@ interface StockChangedEvent {
     inventoryItemId: string;
     variantId: string;
     warehouseId: string;
-    projectId: string;
+    storeId: string;
     quantityOnHand: number;
     previousQuantity: number;
     movementType: StockMovementType;
@@ -658,7 +658,7 @@ interface OutOfStockEvent {
     inventoryItemId: string;
     variantId: string;
     productId: string;
-    projectId: string;
+    storeId: string;
     warehouseId?: string; // null = все склады
   };
 }
@@ -669,7 +669,7 @@ interface LowStockAlertEvent {
     inventoryItemId: string;
     variantId: string;
     productId: string;
-    projectId: string;
+    storeId: string;
     currentStock: number;
     threshold: number;
   };

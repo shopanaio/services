@@ -15,7 +15,7 @@ export type GetPaymentMethodsResponse = {
  */
 export type GetPaymentMethodsInput = {
   /** Project identifier for multi-tenant isolation */
-  projectId: string;
+  storeId: string;
   /** Currency code for payment methods filtering */
   currencyCode: string;
   /** API key for authentication */

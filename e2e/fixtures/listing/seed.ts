@@ -142,7 +142,7 @@ export async function seedCategoryListingProducts(
   );
 
   await seedListingCategoryProducts({
-    projectId: api.session.project.id,
+    storeId: api.session.project.id,
     category,
     products: products.map((product, productIndex) => ({
       id: product.id,

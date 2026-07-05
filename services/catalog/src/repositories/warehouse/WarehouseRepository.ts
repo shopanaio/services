@@ -29,7 +29,7 @@ export class WarehouseRepository extends BaseRepository {
     const result = await this.connection
       .select({ id: warehouses.id })
       .from(warehouses)
-      .where(and(eq(warehouses.projectId, this.storeId), eq(warehouses.id, id)))
+      .where(and(eq(warehouses.storeId, this.storeId), eq(warehouses.id, id)))
       .limit(1);
 
     return result.length > 0;
@@ -39,7 +39,7 @@ export class WarehouseRepository extends BaseRepository {
     const result = await this.connection
       .select()
       .from(warehouses)
-      .where(and(eq(warehouses.projectId, this.storeId), eq(warehouses.id, id)))
+      .where(and(eq(warehouses.storeId, this.storeId), eq(warehouses.id, id)))
       .limit(1);
 
     return result[0] ?? null;
@@ -49,7 +49,7 @@ export class WarehouseRepository extends BaseRepository {
     const query = this.connection
       .select()
       .from(warehouses)
-      .where(eq(warehouses.projectId, this.storeId))
+      .where(eq(warehouses.storeId, this.storeId))
       .orderBy(warehouses.createdAt);
 
     if (limit) {
@@ -63,7 +63,7 @@ export class WarehouseRepository extends BaseRepository {
     const result = await this.connection
       .select({ count: count() })
       .from(warehouses)
-      .where(eq(warehouses.projectId, this.storeId));
+      .where(eq(warehouses.storeId, this.storeId));
 
     return result[0]?.count ?? 0;
   }
@@ -72,7 +72,7 @@ export class WarehouseRepository extends BaseRepository {
     const result = await this.connection
       .select()
       .from(warehouses)
-      .where(and(eq(warehouses.projectId, this.storeId), eq(warehouses.code, code)))
+      .where(and(eq(warehouses.storeId, this.storeId), eq(warehouses.code, code)))
       .limit(1);
 
     return result[0] ?? null;
@@ -83,7 +83,7 @@ export class WarehouseRepository extends BaseRepository {
       .update(warehouses)
       .set({ isDefault: false, updatedAt: new Date().toISOString() })
       .where(
-        and(eq(warehouses.projectId, this.storeId), eq(warehouses.isDefault, true))
+        and(eq(warehouses.storeId, this.storeId), eq(warehouses.isDefault, true))
       );
   }
 
@@ -92,7 +92,7 @@ export class WarehouseRepository extends BaseRepository {
     const now = new Date().toISOString();
 
     const newWarehouse: NewWarehouse = {
-      projectId: this.storeId,
+      storeId: this.storeId,
       id,
       code: data.code,
       name: data.name,
@@ -124,7 +124,7 @@ export class WarehouseRepository extends BaseRepository {
     const result = await this.connection
       .update(warehouses)
       .set(updateData)
-      .where(and(eq(warehouses.projectId, this.storeId), eq(warehouses.id, id)))
+      .where(and(eq(warehouses.storeId, this.storeId), eq(warehouses.id, id)))
       .returning();
 
     return result[0] ?? null;
@@ -133,7 +133,7 @@ export class WarehouseRepository extends BaseRepository {
   async delete(id: string): Promise<boolean> {
     const result = await this.connection
       .delete(warehouses)
-      .where(and(eq(warehouses.projectId, this.storeId), eq(warehouses.id, id)))
+      .where(and(eq(warehouses.storeId, this.storeId), eq(warehouses.id, id)))
       .returning({ id: warehouses.id });
 
     return result.length > 0;
@@ -144,10 +144,10 @@ export class WarehouseRepository extends BaseRepository {
   async getConnection(args: WarehouseRelayInput): Promise<WarehouseConnectionResult> {
     const { where, orderBy, ...paginationArgs } = args;
 
-    // Merge user-provided where with projectId filter
+    // Merge user-provided where with storeId filter
     const mergedWhere: WarehouseRelayInput["where"] = {
       _and: [
-        { projectId: { _eq: this.storeId } },
+        { storeId: { _eq: this.storeId } },
         ...(where ? [where] : []),
       ],
     };
@@ -181,7 +181,7 @@ export class WarehouseRepository extends BaseRepository {
       .from(warehouses)
       .where(
         and(
-          eq(warehouses.projectId, this.storeId),
+          eq(warehouses.storeId, this.storeId),
           inArray(warehouses.id, [...warehouseIds])
         )
       );

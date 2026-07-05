@@ -1337,7 +1337,7 @@ export function TagWhereInputSchema(): z.ZodObject<Properties<TagWhereInput>> {
     locale: z.lazy(() => StringFilterSchema().nullish()),
     name: z.lazy(() => StringFilterSchema().nullish()),
     productsCount: z.lazy(() => IntFilterSchema().nullish()),
-    projectId: z.lazy(() => IdFilterSchema().nullish())
+    storeId: z.lazy(() => IdFilterSchema().nullish())
   })
 }
 

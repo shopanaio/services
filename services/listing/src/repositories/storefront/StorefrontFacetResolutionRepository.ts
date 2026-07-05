@@ -102,7 +102,7 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
           SELECT rb_build_agg(vli.variant_doc_id)
           FROM listing.variant_listing_index vli
           CROSS JOIN scope_products sp
-          WHERE vli.project_id = ${this.storeId}::uuid
+          WHERE vli.store_id = ${this.storeId}::uuid
             AND vli.in_stock = true
             AND sp.product_bitmap @> vli.product_doc_id
         )`)} AS variant_bitmap
@@ -113,7 +113,7 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
           split_part(p.value_key, ':', 2)::uuid AS facet_value_id
         FROM listing.listing_posting_bitmap p
         CROSS JOIN scope_products sp
-        WHERE p.project_id = ${this.storeId}::uuid
+        WHERE p.store_id = ${this.storeId}::uuid
           AND p.entity_type = 'product'
           AND p.field = 'facet'
           AND rb_cardinality(sp.product_bitmap & p.bitmap) > 0
@@ -125,7 +125,7 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
           split_part(p.value_key, ':', 2)::uuid AS facet_value_id
         FROM listing.listing_posting_bitmap p
         CROSS JOIN scope_variants sv
-        WHERE p.project_id = ${this.storeId}::uuid
+        WHERE p.store_id = ${this.storeId}::uuid
           AND p.entity_type = 'variant'
           AND p.field = 'facet'
           AND rb_cardinality(sv.variant_bitmap & p.bitmap) > 0
@@ -139,10 +139,10 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
         f.id::text || ':' || fv.id::text AS "valueKey"
       FROM candidate_values
       JOIN ${facet} f
-        ON f.project_id = ${this.storeId}::uuid
+        ON f.store_id = ${this.storeId}::uuid
        AND f.id = candidate_values.facet_id
       JOIN ${facetValue} fv
-        ON fv.project_id = f.project_id
+        ON fv.store_id = f.store_id
        AND fv.facet_id = f.id
        AND fv.id = candidate_values.facet_value_id
       WHERE true
@@ -168,7 +168,7 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
       & ${coalesceScopeBitmapSql(sql`(
         SELECT p.bitmap
         FROM listing.listing_posting_bitmap p
-        WHERE p.project_id = ${this.storeId}::uuid
+        WHERE p.store_id = ${this.storeId}::uuid
           AND p.entity_type = 'product'
           AND p.field = ${field}
           AND p.value_key = ${valueKey}
@@ -180,7 +180,7 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
     return coalesceScopeBitmapSql(sql`(
       SELECT rb_build_agg(pli.product_doc_id)
       FROM listing.product_listing_index pli
-      WHERE pli.project_id = ${this.storeId}::uuid
+      WHERE pli.store_id = ${this.storeId}::uuid
         AND pli.status = 'published'
     )`);
   }
@@ -224,14 +224,14 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
           fv.kind = 'display' AS is_display
         FROM requested r
         JOIN ${facet} f
-          ON f.project_id = ${this.storeId}::uuid
+          ON f.store_id = ${this.storeId}::uuid
          AND f.slug = r.facet_slug
         JOIN ${facetValue} fv
-          ON fv.project_id = f.project_id
+          ON fv.store_id = f.store_id
          AND fv.facet_id = f.id
          AND fv.handle = r.value_handle
         LEFT JOIN ${facetValue} parent_fv
-          ON parent_fv.project_id = fv.project_id
+          ON parent_fv.store_id = fv.store_id
          AND parent_fv.id = fv.parent_id
          AND parent_fv.kind = 'display'
          AND parent_fv.parent_id IS NULL

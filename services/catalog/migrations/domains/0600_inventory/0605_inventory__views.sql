@@ -2,7 +2,7 @@
 
 CREATE VIEW "catalog"."variant_warehouse_candidate_view" AS
 SELECT
-  variant.project_id,
+  variant.store_id,
   warehouse.id AS warehouse_scope_id,
   variant.product_id,
   variant.kind,
@@ -21,18 +21,18 @@ SELECT
   item.id AS inventory_item_id
 FROM "catalog"."variant" variant
 JOIN "catalog"."product" product
-  ON product.project_id = variant.project_id
+  ON product.store_id = variant.store_id
  AND product.id = variant.product_id
 JOIN "catalog"."warehouses" warehouse
-  ON warehouse.project_id = variant.project_id
+  ON warehouse.store_id = variant.store_id
 JOIN "catalog"."product_translation" translation
-  ON translation.project_id = variant.project_id
+  ON translation.store_id = variant.store_id
  AND translation.product_id = product.id
 LEFT JOIN "catalog"."inventory_item" item
-  ON item.project_id = variant.project_id
+  ON item.store_id = variant.store_id
  AND item.variant_id = variant.id
 LEFT JOIN "catalog"."warehouse_stock" stock
-  ON stock.project_id = variant.project_id
+  ON stock.store_id = variant.store_id
  AND stock.variant_id = variant.id
  AND stock.warehouse_id = warehouse.id
 WHERE stock.id IS NULL
@@ -40,7 +40,7 @@ WHERE stock.id IS NULL
 
 CREATE VIEW "catalog"."inventory_item_list_all_stock_view" AS
 SELECT
-  item.project_id,
+  item.store_id,
   item.id,
   item.variant_id,
   product.id AS product_id,
@@ -67,30 +67,30 @@ SELECT
   )::integer AS available_for_sale
 FROM "catalog"."inventory_item" item
 JOIN "catalog"."variant" variant
-  ON variant.project_id = item.project_id
+  ON variant.store_id = item.store_id
  AND variant.id = item.variant_id
 JOIN "catalog"."product" product
-  ON product.project_id = item.project_id
+  ON product.store_id = item.store_id
  AND product.id = variant.product_id
 JOIN "catalog"."product_translation" translation
-  ON translation.project_id = item.project_id
+  ON translation.store_id = item.store_id
  AND translation.product_id = product.id
 LEFT JOIN (
   SELECT
-    project_id,
+    store_id,
     variant_id,
     sum(quantity_on_hand)::integer AS quantity_on_hand,
     sum(reserved_qty)::integer AS reserved_quantity,
     sum(unavailable_qty)::integer AS unavailable_quantity
   FROM "catalog"."warehouse_stock"
-  GROUP BY project_id, variant_id
+  GROUP BY store_id, variant_id
 ) stock
-  ON stock.project_id = item.project_id
+  ON stock.store_id = item.store_id
  AND stock.variant_id = item.variant_id;
 
 CREATE VIEW "catalog"."inventory_item_list_warehouse_stock_view" AS
 SELECT
-  item.project_id,
+  item.store_id,
   item.id,
   item.variant_id,
   product.id AS product_id,
@@ -118,14 +118,14 @@ SELECT
   )::integer AS available_for_sale
 FROM "catalog"."inventory_item" item
 JOIN "catalog"."variant" variant
-  ON variant.project_id = item.project_id
+  ON variant.store_id = item.store_id
  AND variant.id = item.variant_id
 JOIN "catalog"."product" product
-  ON product.project_id = item.project_id
+  ON product.store_id = item.store_id
  AND product.id = variant.product_id
 JOIN "catalog"."product_translation" translation
-  ON translation.project_id = item.project_id
+  ON translation.store_id = item.store_id
  AND translation.product_id = product.id
 JOIN "catalog"."warehouse_stock" stock
-  ON stock.project_id = item.project_id
+  ON stock.store_id = item.store_id
  AND stock.variant_id = item.variant_id;

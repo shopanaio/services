@@ -63,7 +63,7 @@ Define all bundle-related tables using Drizzle ORM following the pattern from `c
 
 1. **bundlePricingTemplate**
    - `id: uuid("id").primaryKey()`
-   - `projectId: uuid("project_id").notNull()`
+   - `storeId: uuid("store_id").notNull()`
    - `productId: uuid("product_id").notNull()` - FK to inventory.product (logical, not enforced)
    - `name: varchar("name", { length: 255 }).notNull()`
    - `priceType: varchar("price_type", { length: 32 }).notNull()` - BundlePriceType enum
@@ -73,7 +73,7 @@ Define all bundle-related tables using Drizzle ORM following the pattern from `c
 
 2. **bundleGroup**
    - `id: uuid("id").primaryKey()`
-   - `projectId: uuid("project_id").notNull()`
+   - `storeId: uuid("store_id").notNull()`
    - `productId: uuid("product_id").notNull()`
    - `title: varchar("title", { length: 255 }).notNull()`
    - `sortIndex: integer("sort_index").notNull().default(0)`
@@ -84,7 +84,7 @@ Define all bundle-related tables using Drizzle ORM following the pattern from `c
 
 3. **bundleItem**
    - `id: uuid("id").primaryKey()`
-   - `projectId: uuid("project_id").notNull()`
+   - `storeId: uuid("store_id").notNull()`
    - `groupId: uuid("group_id").notNull().references(() => bundleGroup.id, { onDelete: "cascade" })`
    - `itemType: varchar("item_type", { length: 32 }).notNull()` - PRODUCT | VARIANT
    - `sortIndex: integer("sort_index").notNull().default(0)`
@@ -106,7 +106,7 @@ Define all bundle-related tables using Drizzle ORM following the pattern from `c
 
 4. **dependencyRule**
    - `id: uuid("id").primaryKey()`
-   - `projectId: uuid("project_id").notNull()`
+   - `storeId: uuid("store_id").notNull()`
    - `productId: uuid("product_id").notNull()`
    - `name: varchar("name", { length: 255 }).notNull()`
    - `enabled: boolean("enabled").notNull().default(true)`
@@ -117,7 +117,7 @@ Define all bundle-related tables using Drizzle ORM following the pattern from `c
 
 5. **conditionGroup**
    - `id: uuid("id").primaryKey()`
-   - `projectId: uuid("project_id").notNull()`
+   - `storeId: uuid("store_id").notNull()`
    - `ruleId: uuid("rule_id").notNull().references(() => dependencyRule.id, { onDelete: "cascade" })`
    - `logicOperator: varchar("logic_operator", { length: 8 }).notNull().default("AND")`
    - `sortIndex: integer("sort_index").notNull().default(0)`
@@ -125,7 +125,7 @@ Define all bundle-related tables using Drizzle ORM following the pattern from `c
 
 6. **condition**
    - `id: uuid("id").primaryKey()`
-   - `projectId: uuid("project_id").notNull()`
+   - `storeId: uuid("store_id").notNull()`
    - `groupId: uuid("group_id").notNull().references(() => conditionGroup.id, { onDelete: "cascade" })`
    - `category: varchar("category", { length: 32 }).notNull()` - STATE_CHECK | NUMERIC
    - `subject: varchar("subject", { length: 32 }).notNull()` - ITEM_SELECTED | ITEM_QTY | GROUP_TOTAL_QTY
@@ -138,7 +138,7 @@ Define all bundle-related tables using Drizzle ORM following the pattern from `c
 
 7. **dependencyAction**
    - `id: uuid("id").primaryKey()`
-   - `projectId: uuid("project_id").notNull()`
+   - `storeId: uuid("store_id").notNull()`
    - `ruleId: uuid("rule_id").notNull().references(() => dependencyRule.id, { onDelete: "cascade" })`
    - `actionType: varchar("action_type", { length: 32 }).notNull()` - SHOW | HIDE | SET_REQUIRED | ADJUST_PRICE
    - `targetType: varchar("target_type", { length: 32 }).notNull()`
@@ -361,13 +361,13 @@ public readonly condition: ConditionRepository;
 public readonly dependencyAction: DependencyActionRepository;
 
 // In constructor:
-this.bundleGroup = new BundleGroupRepository(db, projectId);
-this.bundleItem = new BundleItemRepository(db, projectId);
-this.bundlePricingTemplate = new BundlePricingTemplateRepository(db, projectId);
-this.dependencyRule = new DependencyRuleRepository(db, projectId);
-this.conditionGroup = new ConditionGroupRepository(db, projectId);
-this.condition = new ConditionRepository(db, projectId);
-this.dependencyAction = new DependencyActionRepository(db, projectId);
+this.bundleGroup = new BundleGroupRepository(db, storeId);
+this.bundleItem = new BundleItemRepository(db, storeId);
+this.bundlePricingTemplate = new BundlePricingTemplateRepository(db, storeId);
+this.dependencyRule = new DependencyRuleRepository(db, storeId);
+this.conditionGroup = new ConditionGroupRepository(db, storeId);
+this.condition = new ConditionRepository(db, storeId);
+this.dependencyAction = new DependencyActionRepository(db, storeId);
 ```
 
 ---

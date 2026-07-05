@@ -10,7 +10,7 @@
 - использовать `@shopana/drizzle-query` Relay pagination через `createRelayQuery`;
 - поддерживать generated `CategoryWhereInput` и `CategoryOrderByInput` по полям list view;
 - фильтровать и сортировать по локализованному `name`, а не только по полям таблицы `category`;
-- всегда ограничиваться текущим `projectId`, `deletedAt IS NULL` и текущей `locale`;
+- всегда ограничиваться текущим `storeId`, `deletedAt IS NULL` и текущей `locale`;
 - сохранить существующее поведение `Category.products(...)`: продукты внутри категории остаются отдельным connection и продолжают сортироваться через `ListingOrderByInput` (`MANUAL`, `NAME`, `NEWEST`, `PRICE`).
 
 ## Текущий baseline
@@ -26,7 +26,7 @@ Products list уже использует dedicated view:
 
 - `productListView` разворачивает translated `name`, `locale`, price range, primary category и vendor/brand в одну read-модель;
 - `ProductRepository.getConnection()` добавляет repository-owned filters:
-  - `projectId = storeId`;
+  - `storeId = storeId`;
   - `deletedAt IS NULL`;
   - `locale = ctx.locale ?? ctx.store.defaultLocale`;
   - `currency = ctx.currency ?? "UAH"` или `currency IS NULL`;
@@ -75,7 +75,7 @@ import { category, categoryTranslation } from "./categories";
 export const categoryListView = catalogSchema.view("category_list_view").as((qb) =>
   qb
     .select({
-      projectId: category.projectId,
+      storeId: category.storeId,
       id: category.id,
       parentId: category.parentId,
       path: category.path,
@@ -95,7 +95,7 @@ export const categoryListView = catalogSchema.view("category_list_view").as((qb)
     .from(category)
     .innerJoin(
       categoryTranslation,
-      sql`${categoryTranslation.projectId} = ${category.projectId} AND ${categoryTranslation.categoryId} = ${category.id}`,
+      sql`${categoryTranslation.storeId} = ${category.storeId} AND ${categoryTranslation.categoryId} = ${category.id}`,
     )
 );
 ```
@@ -113,7 +113,7 @@ export const categoryListView = catalogSchema.view("category_list_view").as((qb)
 ```sql
 CREATE VIEW "catalog"."category_list_view" AS (
   select
-    "catalog"."category"."project_id",
+    "catalog"."category"."store_id",
     "catalog"."category"."id",
     "catalog"."category"."parent_id",
     "catalog"."category"."path",
@@ -142,7 +142,7 @@ Acceptance:
 - нет агрегатов и cross-service данных;
 - `products_count` берется из denormalized `category.products_count`;
 - `locale` и `name` берутся из `category_translation`;
-- join обязательно tenant-aware через `project_id`.
+- join обязательно tenant-aware через `store_id`.
 
 ## 3. Переключить `categoryRelayQuery` на view
 
@@ -181,7 +181,7 @@ Target merge-фильтр:
 ```ts
 const mergedWhere: CategoryRelayInput["where"] = {
   _and: [
-    { projectId: { _eq: this.storeId } },
+    { storeId: { _eq: this.storeId } },
     { deletedAt: { _is: null } },
     { locale: { _eq: this.locale } },
     ...(where ? [where] : []),
@@ -271,13 +271,13 @@ const categoryListFieldTypes: Record<string, GraphQLFieldType> = {
 const categoryWhere = generateWhereInputType(categoryRelayQuery, "Category", {
   includeDescriptions: true,
   fieldTypes: categoryListFieldTypes,
-  excludeFields: ["projectId", "deletedAt", "revision"],
+  excludeFields: ["storeId", "deletedAt", "revision"],
 });
 
 const categoryOrderBy = generateOrderByInputType(categoryRelayQuery, "Category", {
   includeDescriptions: true,
   fieldTypes: categoryListFieldTypes,
-  excludeFields: ["projectId", "deletedAt", "revision"],
+  excludeFields: ["storeId", "deletedAt", "revision"],
 });
 ```
 
@@ -331,7 +331,7 @@ products(
 Текущая логика в `getCategoryProductsConnection()` должна остаться отдельной:
 
 - base filters:
-  - `projectId = storeId`;
+  - `storeId = storeId`;
   - `deletedAt IS NULL`;
   - `category.categoryId = categoryId`;
 - default sort:
@@ -386,7 +386,7 @@ Backend acceptance:
 
 - `catalog.category_list_view` существует в Drizzle model и migration snapshot.
 - `categoryRelayQuery` построен от `categoryListView`, а не от `category`.
-- `CategoryRepository.getConnection()` всегда добавляет `projectId`, `deletedAt`, `locale`.
+- `CategoryRepository.getConnection()` всегда добавляет `storeId`, `deletedAt`, `locale`.
 - `totalCount` считается через `categoryRelayQuery.count()` с тем же `mergedWhere`.
 - `CategoryWhereInput` содержит `name` и `locale`.
 - `CategoryOrderField` содержит `name` и `locale`.

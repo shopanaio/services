@@ -227,15 +227,15 @@ where: {
 одной локали обновляет только строку этой локали, а список фильтруется по
 активной локали.
 
-### `inventory.inventory_item_catalog_projection`
+### `inventory.inventory_item_catalog_storeion`
 
 Хранит нелокализованный catalog snapshot для inventory item list.
 
 ```ts
 export const inventoryItemCatalogProjection = inventorySchema.table(
-  "inventory_item_catalog_projection",
+  "inventory_item_catalog_storeion",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     id: uuid("id").primaryKey().defaultRandom(),
 
     variantId: uuid("variant_id").notNull(),
@@ -260,20 +260,20 @@ export const inventoryItemCatalogProjection = inventorySchema.table(
 
 Indexes/constraints:
 
-- unique `(project_id, variant_id)`;
-- index `(project_id, product_id)`;
-- index `(project_id, deleted_at)`.
+- unique `(store_id, variant_id)`;
+- index `(store_id, product_id)`;
+- index `(store_id, deleted_at)`.
 
 Do not store `inventoryItemId` in this projection. The invariant between Catalog
 variant and canonical Inventory item is `inventory_item.variant_id`, which is
 already unique. The list view must join real `inventory_item` by
-`(projectId, variantId)` and return only existing inventory items. This avoids a
+`(storeId, variantId)` and return only existing inventory items. This avoids a
 second identifier that would need out-of-order event synchronization.
 
 ### `inventory.inventory_product_translation`
 
 Хранит product name по locale тем же translation-паттерном, что и catalog:
-`projectId`, `productId`, `locale`, `name`. Это inventory-local копия catalog
+`storeId`, `productId`, `locale`, `name`. Это inventory-local копия catalog
 translation для read model, но форма таблицы должна оставаться catalog-style
 translation, а не `productName`-specific projection.
 
@@ -281,7 +281,7 @@ translation, а не `productName`-specific projection.
 export const inventoryProductTranslation = inventorySchema.table(
   "inventory_product_translation",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id").notNull(),
     locale: varchar("locale", { length: 8 }).notNull(),
 
@@ -289,13 +289,13 @@ export const inventoryProductTranslation = inventorySchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.productId, table.locale] }),
-    index("idx_inventory_product_translation_project").on(table.projectId),
-    index("idx_inventory_product_translation_project_locale").on(
-      table.projectId,
+    index("idx_inventory_product_translation_store").on(table.storeId),
+    index("idx_inventory_product_translation_store_locale").on(
+      table.storeId,
       table.locale,
     ),
-    index("idx_inventory_product_translation_project_locale_name").on(
-      table.projectId,
+    index("idx_inventory_product_translation_store_locale_name").on(
+      table.storeId,
       table.locale,
       table.name,
     ),
@@ -306,9 +306,9 @@ export const inventoryProductTranslation = inventorySchema.table(
 Indexes/constraints:
 
 - primary key `(product_id, locale)`, matching `catalog.product_translation`;
-- index `(project_id)`;
-- index `(project_id, locale)`;
-- index `(project_id, locale, name)`;
+- index `(store_id)`;
+- index `(store_id, locale)`;
+- index `(store_id, locale, name)`;
 - optional trigram index for `name` if `_containsi` becomes slow.
 
 Не добавлять `catalogRevision`, `lastCatalogEventId`, `createdAt` или `updatedAt`
@@ -335,7 +335,7 @@ inventory.inventory_item_list_warehouse_stock_view
 Both views join the same base item projection:
 
 - `inventory_item`;
-- `inventory_item_catalog_projection`;
+- `inventory_item_catalog_storeion`;
 - `inventory_product_translation`.
 
 The views intentionally do not filter locale. Repository scope does that so the
@@ -351,7 +351,7 @@ Conceptual shape:
 
 ```sql
 SELECT
-  item.project_id,
+  item.store_id,
   item.id,
   item.variant_id,
   projection.product_id,
@@ -370,23 +370,23 @@ SELECT
     - coalesce(stock.reserved_quantity, 0)
     - coalesce(stock.unavailable_quantity, 0) AS available_for_sale
 FROM inventory.inventory_item item
-JOIN inventory.inventory_item_catalog_projection projection
-  ON projection.project_id = item.project_id
+JOIN inventory.inventory_item_catalog_storeion projection
+  ON projection.store_id = item.store_id
  AND projection.variant_id = item.variant_id
 JOIN inventory.inventory_product_translation translation
-  ON translation.project_id = item.project_id
+  ON translation.store_id = item.store_id
  AND translation.product_id = projection.product_id
 LEFT JOIN (
   SELECT
-    project_id,
+    store_id,
     variant_id,
     SUM(quantity_on_hand) AS quantity_on_hand,
     SUM(reserved_qty) AS reserved_quantity,
     SUM(unavailable_qty) AS unavailable_quantity
   FROM inventory.warehouse_stock
-  GROUP BY project_id, variant_id
+  GROUP BY store_id, variant_id
 ) stock
-  ON stock.project_id = item.project_id
+  ON stock.store_id = item.store_id
  AND stock.variant_id = item.variant_id
 ```
 
@@ -403,7 +403,7 @@ Conceptual shape:
 
 ```sql
 SELECT
-  item.project_id,
+  item.store_id,
   item.id,
   item.variant_id,
   projection.product_id,
@@ -423,23 +423,23 @@ SELECT
     - coalesce(stock.reserved_qty, 0)
     - coalesce(stock.unavailable_qty, 0) AS available_for_sale
 FROM inventory.inventory_item item
-JOIN inventory.inventory_item_catalog_projection projection
-  ON projection.project_id = item.project_id
+JOIN inventory.inventory_item_catalog_storeion projection
+  ON projection.store_id = item.store_id
  AND projection.variant_id = item.variant_id
 JOIN inventory.inventory_product_translation translation
-  ON translation.project_id = item.project_id
+  ON translation.store_id = item.store_id
  AND translation.product_id = projection.product_id
 JOIN inventory.warehouses warehouse
-  ON warehouse.project_id = item.project_id
+  ON warehouse.store_id = item.store_id
 LEFT JOIN inventory.warehouse_stock stock
-  ON stock.project_id = item.project_id
+  ON stock.store_id = item.store_id
  AND stock.variant_id = item.variant_id
  AND stock.warehouse_id = warehouse.id
 ```
 
 Repository scope must add:
 
-- `projectId = ctx.store.id`;
+- `storeId = ctx.store.id`;
 - `locale = ctx.locale ?? ctx.store.defaultLocale`;
 - `deletedAt is null`;
 - `warehouseScopeId = normalizedWarehouseId` only for the warehouse-scoped view.
@@ -596,7 +596,7 @@ const relayQuery =
 
 const mergedWhere = {
   _and: [
-    { projectId: { _eq: this.storeId } },
+    { storeId: { _eq: this.storeId } },
     { locale: { _eq: this.locale } },
     { deletedAt: { _is: null } },
     ...(warehouseScope.kind === "warehouse"
@@ -714,9 +714,9 @@ Inventory must stop exposing that item through list APIs immediately.
 Variant deletion rules:
 
 - `variantDeleted` must soft-delete the corresponding
-  `inventory_item_catalog_projection` row by `(projectId, variantId)`;
+  `inventory_item_catalog_storeion` row by `(storeId, variantId)`;
 - `inventoryQuery.inventoryItems` excludes the item through
-  `inventory_item_catalog_projection.deleted_at is null`;
+  `inventory_item_catalog_storeion.deleted_at is null`;
 - canonical `inventory_item` may be retained for audit/history and to preserve
   existing stock/cost/change records unless a separate hard-delete cleanup
   policy is defined;
@@ -888,9 +888,9 @@ variant event.
 
 Handler rules:
 
-- base projection upsert is idempotent on `(projectId, variantId)`;
+- base projection upsert is idempotent on `(storeId, variantId)`;
 - translation upsert is idempotent on `(productId, locale)` and scoped by
-  `projectId` for query safety;
+  `storeId` for query safety;
 - `catalogRevision` prevents applying older snapshots over newer rows when
   revision is present;
 - `lastCatalogEventId` is stored for observability/debugging;
@@ -1036,7 +1036,7 @@ unless product events are changed to be explicitly locale-aware first.
 3. Extend inventory event handlers for `productDeleted`.
 4. Extend inventory event handlers for `variantDeleted`.
 5. Fetch Catalog snapshots when event payloads are not locale-complete.
-6. Upsert base projection rows idempotently by `(projectId, variantId)`.
+6. Upsert base projection rows idempotently by `(storeId, variantId)`.
 7. Upsert translation rows idempotently by `(productId, locale)`.
 8. Apply `catalogRevision` ordering when revision is present.
 9. Persist `lastCatalogEventId` for observability/debugging.

@@ -14,21 +14,21 @@
 
 Сейчас теги уже имеют таблицу переводов:
 
-- `tag` хранит `projectId`, `id`, `handle`, `createdAt`;
-- `tag_translation` хранит `projectId`, `tagId`, `locale`, `name`;
+- `tag` хранит `storeId`, `id`, `handle`, `createdAt`;
+- `tag_translation` хранит `storeId`, `tagId`, `locale`, `name`;
 - primary key у перевода: `[tagId, locale]`.
 - у категорий `productsCount` уже реализован как денормализованное поле `products_count` в основной таблице `category`; для тегов нужно повторить этот подход, а не считать количество продуктов внутри list view.
 
 Но список тегов работает проще, чем список продуктов:
 
 - `tagRelayQuery` построен напрямую на `tag`;
-- `TagRepository.getConnection()` добавляет только `projectId`;
+- `TagRepository.getConnection()` добавляет только `storeId`;
 - `totalCount` считается через `this.count()`, поэтому не учитывает `where` из Relay query;
 - `Tag.name` резолвится отдельно через DataLoader по текущей локали;
 - `catalogQuery.tags` не принимает `where` и `orderBy`;
 - Admin UI фильтрует search локально по текущей странице, а не через API.
 
-Для сравнения, продукты используют `product_list_view`, где уже соединены продукт, перевод, цена, primary category и бренд. `ProductRepository.getConnection()` строит `mergedWhere` с `projectId`, `deletedAt`, `locale`, `currency`, пользовательским `where` и дополнительным scope, а затем вызывает:
+Для сравнения, продукты используют `product_list_view`, где уже соединены продукт, перевод, цена, primary category и бренд. `ProductRepository.getConnection()` строит `mergedWhere` с `storeId`, `deletedAt`, `locale`, `currency`, пользовательским `where` и дополнительным scope, а затем вызывает:
 
 ```ts
 productRelayQuery.execute(this.connection, executeInput)
@@ -45,7 +45,7 @@ productRelayQuery.count(this.connection, { where: mergedWhere })
 export const tagListView = catalogSchema.view("tag_list_view").as((qb) =>
   qb
     .select({
-      projectId: tag.projectId,
+      storeId: tag.storeId,
       id: tag.id,
       handle: tag.handle,
       createdAt: tag.createdAt,
@@ -56,7 +56,7 @@ export const tagListView = catalogSchema.view("tag_list_view").as((qb) =>
     .from(tag)
     .innerJoin(
       tagTranslation,
-      sql`${tagTranslation.projectId} = ${tag.projectId} AND ${tagTranslation.tagId} = ${tag.id}`
+      sql`${tagTranslation.storeId} = ${tag.storeId} AND ${tagTranslation.tagId} = ${tag.id}`
     )
 );
 ```
@@ -89,7 +89,7 @@ services/catalog/src/repositories/models/index.ts
 
 Важные детали:
 
-- view не должна фильтровать `projectId` или `locale` внутри SQL; это делает repository scope;
+- view не должна фильтровать `storeId` или `locale` внутри SQL; это делает repository scope;
 - `productsCount` должен быть обычной колонкой `tag.products_count`, как у категорий;
 - view не должна читать `product_tag` для счетчика;
 - не добавлять fallback `name = handle` внутри view, если цель - полная аналогия с products list view;
@@ -118,7 +118,7 @@ where counts.tag_id = t.id;
 
 ```ts
 await this.repository.tag.upsertTranslation({
-  projectId: this.getProjectId(),
+  storeId: this.getProjectId(),
   tagId: tag.id,
   locale: this.getLocale(),
   name: name ?? handle,
@@ -128,10 +128,10 @@ await this.repository.tag.upsertTranslation({
 Для существующих данных нужна миграция/backfill:
 
 ```sql
-insert into catalog.tag_translation (project_id, tag_id, locale, name)
-select t.project_id, t.id, s.default_locale, t.handle
+insert into catalog.tag_translation (store_id, tag_id, locale, name)
+select t.store_id, t.id, s.default_locale, t.handle
 from catalog.tag t
-join project.store s on s.id = t.project_id
+join project.store s on s.id = t.store_id
 where not exists (
   select 1
   from catalog.tag_translation tt
@@ -194,7 +194,7 @@ async getConnection(args: TagRelayInput): Promise<TagConnectionResult> {
 
   const mergedWhere: TagRelayInput["where"] = {
     _and: [
-      { projectId: { _eq: this.storeId } },
+      { storeId: { _eq: this.storeId } },
       { locale: { _eq: this.locale } },
       ...(where ? [where] : []),
     ],
@@ -257,14 +257,14 @@ tags(
 После добавления `tagListView` и обновления `tagRelayQuery` generated filters должны получить поля view:
 
 - `id`;
-- `projectId`;
+- `storeId`;
 - `handle`;
 - `createdAt`;
 - `locale`;
 - `name`;
 - `productsCount`.
 
-Для public GraphQL не нужно раскрывать `projectId` и `locale` как поля `Tag`; они нужны только в generated input types для repository scope.
+Для public GraphQL не нужно раскрывать `storeId` и `locale` как поля `Tag`; они нужны только в generated input types для repository scope.
 
 ## Фаза 6. Resolver layer
 
@@ -370,7 +370,7 @@ query Tags(
 - В базе есть `catalog.tag_list_view`.
 - `tag_list_view` возвращает одну строку на пару `tag + locale`.
 - `TagRepository.tagRelayQuery` построен поверх `tagListView`, а не `tag`.
-- `TagRepository.getConnection()` всегда добавляет `projectId` и текущую `locale`.
+- `TagRepository.getConnection()` всегда добавляет `storeId` и текущую `locale`.
 - `TagRepository.getConnection()` считает `totalCount` через `tagRelayQuery.count(..., { where: mergedWhere })`.
 - `catalogQuery.tags` принимает `where` и `orderBy`.
 - Поиск/фильтрация по `name` и `handle` работает на backend.

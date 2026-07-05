@@ -104,7 +104,7 @@ export class CatalogClient implements CatalogApiClient {
 
 ```ts
 export interface GetProductPublicSnapshotsInput {
-  projectId: string;
+  storeId: string;
   productIds: string[];
   locale?: string;
   currencyCode?: string;
@@ -113,7 +113,7 @@ export interface GetProductPublicSnapshotsInput {
 
 Правила:
 
-- `projectId` обязателен для multi-tenancy и изоляции данных.
+- `storeId` обязателен для multi-tenancy и изоляции данных.
 - `productIds` всегда массив, даже если нужен один продукт.
 - `locale` опционален. Если не передан, `catalog` может использовать locale проекта по умолчанию.
 - `currencyCode` опционален. Нужен только если public snapshot включает price display fields.
@@ -271,7 +271,7 @@ searchableText?: string;
 
 ```ts
 export interface ProductPublicSnapshotChangedEvent {
-  projectId: string;
+  storeId: string;
   productId: string;
   revision: number;
   reason: ProductPublicSnapshotChangedReason;
@@ -290,7 +290,7 @@ Flow:
 ```ts
 // listing получил ProductPublicSnapshotChangedEvent
 const result = await serviceApi.catalog.getProductPublicSnapshots({
-  projectId: event.projectId,
+  storeId: event.storeId,
   productIds: [event.productId],
   locale: "uk",
   currencyCode: "UAH",
@@ -396,7 +396,7 @@ catalog.getProductPublicSnapshotsV2
 
 ```ts
 export interface GetProductPublicSnapshotsInput {
-  projectId: string;
+  storeId: string;
   productIds: string[];
   locale?: string;
   currencyCode?: string;

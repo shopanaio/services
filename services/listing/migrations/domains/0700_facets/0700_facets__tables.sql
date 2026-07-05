@@ -7,7 +7,7 @@ CREATE TYPE "listing"."reference_status" AS ENUM (
 
 CREATE TABLE "listing"."facet" (
   "id" uuid NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "facet_type" varchar(32) NOT NULL,
   "ui_type" varchar(16) NOT NULL DEFAULT 'checkbox',
   "selection_mode" varchar(16) NOT NULL DEFAULT 'multi',
@@ -16,16 +16,16 @@ CREATE TABLE "listing"."facet" (
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
   "updated_at" timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT "facet_pkey" PRIMARY KEY ("id"),
-  CONSTRAINT "facet_project_id_slug_uniq" UNIQUE ("project_id", "slug")
+  CONSTRAINT "facet_store_id_slug_uniq" UNIQUE ("store_id", "slug")
 );
 
 CREATE INDEX "idx_facet_rank"
-  ON "listing"."facet" ("project_id", "lexo_rank");
+  ON "listing"."facet" ("store_id", "lexo_rank");
 
 CREATE TABLE "listing"."facet_translation" (
   "facet_id" uuid NOT NULL,
   "locale" varchar(8) NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "label" text NOT NULL,
   CONSTRAINT "facet_translation_pkey" PRIMARY KEY ("facet_id", "locale"),
   CONSTRAINT "facet_translation_facet_id_fk"
@@ -34,5 +34,5 @@ CREATE TABLE "listing"."facet_translation" (
     ON DELETE CASCADE
 );
 
-CREATE INDEX "idx_facet_translation_project_locale"
-  ON "listing"."facet_translation" ("project_id", "locale");
+CREATE INDEX "idx_facet_translation_store_locale"
+  ON "listing"."facet_translation" ("store_id", "locale");

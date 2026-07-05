@@ -16,7 +16,7 @@ export function compileFacetsQuerySql(request: ListingSqlRequest): SQL {
       FROM input i
       CROSS JOIN scope_products sp
       JOIN listing.listing_posting_bitmap p
-        ON p.project_id = i.project_id
+        ON p.store_id = i.store_id
        AND p.entity_type = 'product'
        AND p.field = 'facet'
        AND rb_cardinality(sp.bitmap & p.bitmap) > 0
@@ -27,11 +27,11 @@ export function compileFacetsQuerySql(request: ListingSqlRequest): SQL {
       FROM input i
       CROSS JOIN scope_products sp
       JOIN listing.listing_option_signature os
-        ON os.project_id = i.project_id
+        ON os.store_id = i.store_id
        AND rb_cardinality(sp.bitmap & os.product_bitmap) > 0
       JOIN listing.listing_option_signature_value sv
         ON sv.option_signature_id = os.option_signature_id
-       AND sv.project_id = os.project_id
+       AND sv.store_id = os.store_id
     ),
     facet_values AS (
       SELECT
@@ -49,20 +49,20 @@ export function compileFacetsQuerySql(request: ListingSqlRequest): SQL {
         f.id::text || ':' || fv.id::text AS value_key
       FROM input i
       JOIN listing.facet f
-        ON f.project_id = i.project_id
+        ON f.store_id = i.store_id
       LEFT JOIN listing.facet_translation ft
-        ON ft.project_id = f.project_id
+        ON ft.store_id = f.store_id
        AND ft.facet_id = f.id
        AND ft.locale = i.locale
       JOIN listing.facet_value fv
-        ON fv.project_id = f.project_id
+        ON fv.store_id = f.store_id
        AND fv.facet_id = f.id
        AND fv.kind = 'display'
        AND fv.parent_id IS NULL
        AND fv.enabled = true
        AND fv.reference_status = 'VALID'
       LEFT JOIN listing.facet_value_translation fvt
-        ON fvt.project_id = fv.project_id
+        ON fvt.store_id = fv.store_id
        AND fvt.facet_value_id = fv.id
        AND fvt.locale = i.locale
       JOIN candidate_values cv

@@ -147,7 +147,7 @@ Repository/database rules:
 
 ```sql
 CREATE UNIQUE INDEX product_category_one_primary_per_product_idx
-  ON catalog.product_category(project_id, product_id)
+  ON catalog.product_category(store_id, product_id)
   WHERE is_primary = true;
 ```
 
@@ -169,7 +169,7 @@ filters/sorts запрещены в этом cutover.
 
 Important: `createQuery(category).include(["id"])` does not limit filter/order fields. It only
 forces `id` into selected relay rows for cursor/node mapping. Public generated inputs must exclude
-repository-owned fields `projectId` и `deletedAt` through `generateWhereInputType` /
+repository-owned fields `storeId` и `deletedAt` through `generateWhereInputType` /
 `generateOrderByInputType` `excludeFields`; repository добавляет эти filters самостоятельно.
 
 Expected public generated shape:
@@ -507,10 +507,10 @@ Required capabilities:
 
 - `first/after/last/before`
 - generated public `CategoryWhereInput` from `categoryRelayQuery` using
-  `generateWhereInputType(..., { excludeFields: ["projectId", "deletedAt"] })`
+  `generateWhereInputType(..., { excludeFields: ["storeId", "deletedAt"] })`
 - generated public `CategoryOrderByInput` / `CategoryOrderField` from `categoryRelayQuery` using
-  `generateOrderByInputType(..., { excludeFields: ["projectId", "deletedAt"] })`
-- repository-owned tenant filter by `projectId`
+  `generateOrderByInputType(..., { excludeFields: ["storeId", "deletedAt"] })`
+- repository-owned tenant filter by `storeId`
 - default soft-delete filter `{ deletedAt: { _is: null } }`, always applied by the repository,
   matching `ProductRepository.getConnection`
 - total count with the exact same merged generated filters as the relay query
@@ -543,7 +543,7 @@ async getConnection(args: CategoryRelayInput): Promise<CategoryConnectionResult>
 
   const mergedWhere: CategoryRelayInput["where"] = {
     _and: [
-      { projectId: { _eq: this.storeId } },
+      { storeId: { _eq: this.storeId } },
       { deletedAt: { _is: null } },
       ...(where ? [where] : []),
     ],
@@ -615,7 +615,7 @@ Do not use the existing unfiltered `count()` method for connection `totalCount`.
 
 ```ts
 _and: [
-  { projectId: { _eq: this.storeId } },
+  { storeId: { _eq: this.storeId } },
   { deletedAt: { _is: null } },
   ...(where ? [where] : []),
 ]
@@ -792,12 +792,12 @@ Model changes:
 - `src/repositories/models/categories.ts`:
   - добавить `category.revision = integer("revision").notNull().default(0)`;
   - заменить `idx_product_category_primary` на финальный partial unique index по
-    `(projectId, productId) WHERE is_primary = true`;
+    `(storeId, productId) WHERE is_primary = true`;
   - не оставлять одновременно старый product-only primary index и новый tenant-scoped index.
 - Не добавлять `category_list` или supporting aggregate views для category list в этом cutover.
   Category list query должна работать от таблицы `catalog.category`, как product list.
 - `CategoryRepository` должен соответствовать repository KB pattern: использовать
-  transaction-aware `this.connection`, всегда применять `projectId`/`storeId` scoping, и
+  transaction-aware `this.connection`, всегда применять `storeId`/`storeId` scoping, и
   предпочтительно перейти на `extends BaseRepository`, чтобы не дублировать context/connection
   plumbing вручную.
 
@@ -812,7 +812,7 @@ Migration SQL acceptance criteria:
 DROP INDEX IF EXISTS "catalog"."idx_product_category_primary";
 
 CREATE UNIQUE INDEX "product_category_one_primary_per_product_idx"
-  ON "catalog"."product_category" ("project_id", "product_id")
+  ON "catalog"."product_category" ("store_id", "product_id")
   WHERE is_primary = true;
 ```
 
@@ -840,7 +840,7 @@ export const categoryRelayQuery = createRelayQuery(
 - `CategoryRepository.getConnection(args)` должен:
   - принимать `first/after/last/before`, `where`, `orderBy`;
   - merge-ить repository-owned filters:
-    `{ projectId: { _eq: this.storeId } }` и default `{ deletedAt: { _is: null } }` всегда, как
+    `{ storeId: { _eq: this.storeId } }` и default `{ deletedAt: { _is: null } }` всегда, как
     `ProductRepository.getConnection`;
   - использовать `categoryRelayQuery.execute(this.connection, executeInput)`;
   - считать `totalCount` через `categoryRelayQuery.count(this.connection, { where: mergedWhere })`;
@@ -859,7 +859,7 @@ export const categoryRelayQuery = createRelayQuery(
   - root categories выражаются только generated filter `{ parentId: { _is: null } }`;
   - published/draft фильтруется только generated `publishedAt` null filters;
   - generated `CategoryOrderByInput.field` соответствует public field names emitted by
-    `generateOrderByInputType(categoryRelayQuery, "Category", { excludeFields: ["projectId", "deletedAt"] })`.
+    `generateOrderByInputType(categoryRelayQuery, "Category", { excludeFields: ["storeId", "deletedAt"] })`.
 
 Hierarchy repository fix:
 
@@ -870,7 +870,7 @@ Hierarchy repository fix:
 ```sql
 UPDATE catalog.category
 SET path = ..., depth = ..., updated_at = now()
-WHERE project_id = ...
+WHERE store_id = ...
   AND path LIKE ...
 ```
 
@@ -906,7 +906,7 @@ edges: Array<{
 
 Repository cutover acceptance criteria:
 
-- All category/product-category repository reads and writes are scoped by `projectId`.
+- All category/product-category repository reads and writes are scoped by `storeId`.
 - All repository queries use transaction-aware `this.connection`; no direct `this.db` bypass.
 - `CategoryRepository.getConnection` relies on `@shopana/drizzle-query` relay output for cursors and
   pageInfo.
@@ -1024,7 +1024,7 @@ Partial-apply implementation requirement:
 ```ts
 UPDATE catalog.category
 SET revision = revision + 1, updated_at = now()
-WHERE project_id = :projectId
+WHERE store_id = :storeId
   AND id = :categoryId
   AND (:expectedRevision IS NULL OR revision = :expectedRevision)
   AND deleted_at IS NULL
@@ -1040,7 +1040,7 @@ RETURNING id, revision;
 Section script rules:
 
 - Identity section:
-  - validate duplicate handle scoped by `projectId` and excluding the current category;
+  - validate duplicate handle scoped by `storeId` and excluding the current category;
   - update handle only when provided;
   - update translated name only when provided.
 - Content section:
@@ -1310,12 +1310,12 @@ Generation order:
 ```ts
 const categoryWhere = generateWhereInputType(categoryRelayQuery, "Category", {
   includeDescriptions: true,
-  excludeFields: ["projectId", "deletedAt"],
+  excludeFields: ["storeId", "deletedAt"],
 });
 
 const categoryOrderBy = generateOrderByInputType(categoryRelayQuery, "Category", {
   includeDescriptions: true,
-  excludeFields: ["projectId", "deletedAt"],
+  excludeFields: ["storeId", "deletedAt"],
 });
 ```
 
@@ -1382,8 +1382,8 @@ Drizzle-query generated schema requirements:
   schema owner for `CategoryWhereInput`, `CategoryOrderField` and `CategoryOrderByInput`.
 - Manual schema files must not define category list filter/order types.
 - Generated `CategoryWhereInput` must expose only fields emitted by
-  `generateWhereInputType(categoryRelayQuery, "Category", { excludeFields: ["projectId", "deletedAt"] })`.
-- Generated `CategoryOrderField` must not expose `projectId` or `deletedAt`.
+  `generateWhereInputType(categoryRelayQuery, "Category", { excludeFields: ["storeId", "deletedAt"] })`.
+- Generated `CategoryOrderField` must not expose `storeId` or `deletedAt`.
 - Generated `CategoryOrderByInput` must use generated `CategoryOrderField`.
 - Search the composed source schema for duplicate type definitions before exporting/composing the
   subgraph.
@@ -1621,7 +1621,7 @@ getProductIdsByCategoryId(categoryId: string): Promise<string[]>;
 getProductIdsByCategoryIds(categoryIds: readonly string[]): Promise<Map<string, string[]>>;
 ```
 
-- Discovery queries must be scoped by `projectId`.
+- Discovery queries must be scoped by `storeId`.
 - For category handle/name/status/hierarchy changes, compute affected products from committed
   `product_category` rows for the changed category.
 - For category product add/remove/reorder, use affected IDs returned by the scripts:

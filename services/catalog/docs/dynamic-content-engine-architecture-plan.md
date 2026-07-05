@@ -50,7 +50,7 @@ Dynamic Content Engine должен встроиться в этот подхо�
 2. **Источник и результат разделены.** Редактор хранит шаблон, витрина и поиск читают материализованный результат.
 3. **HTML всегда экранируется.** Токены подставляют текстовые значения, которые проходят через безопасный renderer.
 4. **Материализация обязательна.** Если шаблон сохранен, engine должен создать или обновить финальную проекцию.
-5. **Локаль и tenant обязательны.** Все таблицы и запросы включают `project_id` и `locale`.
+5. **Локаль и tenant обязательны.** Все таблицы и запросы включают `store_id` и `locale`.
 6. **Variant-specific данные не смешиваются с product-level полями.** Если поле использует `variant.*`, результат должен иметь `VARIANT` scope.
 
 ## Поддерживаемые поля v1
@@ -132,7 +132,7 @@ Registry должен отдавать metadata для Admin UI:
 Хранит исходный шаблон, который редактирует Admin.
 
 ```text
-project_id uuid not null
+store_id uuid not null
 id uuid primary key
 owner_type text not null              -- PRODUCT | VARIANT
 owner_id uuid not null
@@ -150,9 +150,9 @@ enabled boolean not null default true
 created_at timestamptz not null default now()
 updated_at timestamptz not null default now()
 
-unique(project_id, owner_type, owner_id, field_key, locale)
-index(project_id, owner_type, owner_id)
-index(project_id, locale, field_key)
+unique(store_id, owner_type, owner_id, field_key, locale)
+index(store_id, owner_type, owner_id)
+index(store_id, locale, field_key)
 gin(dependency_keys)
 ```
 
@@ -161,7 +161,7 @@ gin(dependency_keys)
 Хранит финальный материализованный результат.
 
 ```text
-project_id uuid not null
+store_id uuid not null
 id uuid primary key
 template_id uuid not null references dynamic_content_template(id) on delete cascade
 target_type text not null             -- PRODUCT | VARIANT
@@ -183,10 +183,10 @@ error_message text
 rendered_at timestamptz
 updated_at timestamptz not null default now()
 
-unique(project_id, target_type, target_id, field_key, locale)
-index(project_id, product_id, locale)
-index(project_id, variant_id, locale)
-index(project_id, status)
+unique(store_id, target_type, target_id, field_key, locale)
+index(store_id, product_id, locale)
+index(store_id, variant_id, locale)
+index(store_id, status)
 ```
 
 ### `catalog.dynamic_content_dependency`
@@ -194,7 +194,7 @@ index(project_id, status)
 Для точной invalidation после v1. В первом релизе можно начать с `dependency_keys` и coarse rerender по productId.
 
 ```text
-project_id uuid not null
+store_id uuid not null
 template_id uuid not null references dynamic_content_template(id) on delete cascade
 dependency_kind text not null          -- PRODUCT | VARIANT | OPTION | OPTION_VALUE | FEATURE | FEATURE_VALUE | VENDOR
 dependency_key text not null           -- например option:color
@@ -202,9 +202,9 @@ entity_id uuid
 product_id uuid
 variant_id uuid
 
-index(project_id, dependency_kind, entity_id)
-index(project_id, product_id)
-index(project_id, variant_id)
+index(store_id, dependency_kind, entity_id)
+index(store_id, product_id)
+index(store_id, variant_id)
 ```
 
 ## Совместимость с текущими таблицами
@@ -529,7 +529,7 @@ DynamicContentRebuildScript
 
 Параметры:
 
-- `projectId`;
+- `storeId`;
 - `productId?`;
 - `variantId?`;
 - `locale?`;

@@ -18,7 +18,7 @@ export const collection = catalogSchema.table(
   "collection",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     handle: varchar("handle", { length: 255 }),
     type: varchar("type", { length: 16 }).notNull(),
     defaultSort: varchar("default_sort", { length: 32 }).notNull().default("newest"),
@@ -43,8 +43,8 @@ export const collection = catalogSchema.table(
     deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
-    uniqueIndex("collection_project_id_handle_uniq")
-      .on(table.projectId, table.handle)
+    uniqueIndex("collection_store_id_handle_uniq")
+      .on(table.storeId, table.handle)
       .where(sql`deleted_at IS NULL AND handle IS NOT NULL`),
     check("collection_type_check", sql`type IN ('manual', 'rule')`),
     check(
@@ -64,7 +64,7 @@ export const collection = catalogSchema.table(
       sql`effective_to IS NULL OR effective_from IS NULL OR effective_to > effective_from`
     ),
     index("idx_collection_scheduling").on(
-      table.projectId,
+      table.storeId,
       table.effectiveFrom,
       table.effectiveTo
     ),
@@ -78,7 +78,7 @@ export const collectionTranslation = catalogSchema.table(
       .notNull()
       .references(() => collection.id, { onDelete: "cascade" }),
     locale: varchar("locale", { length: 8 }).notNull(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     name: text("name").notNull(),
     descriptionText: text("description_text"),
     descriptionHtml: text("description_html"),
@@ -89,8 +89,8 @@ export const collectionTranslation = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.collectionId, table.locale] }),
-    index("idx_collection_translation_project_locale").on(
-      table.projectId,
+    index("idx_collection_translation_store_locale").on(
+      table.storeId,
       table.locale
     ),
   ]
@@ -103,7 +103,7 @@ export const collectionSeo = catalogSchema.table(
       .notNull()
       .references(() => collection.id, { onDelete: "cascade" }),
     locale: varchar("locale", { length: 8 }).notNull(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     seoTitle: varchar("seo_title", { length: 70 }),
     seoDescription: varchar("seo_description", { length: 160 }),
     ogTitle: varchar("og_title", { length: 95 }),
@@ -112,7 +112,7 @@ export const collectionSeo = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.collectionId, table.locale] }),
-    index("idx_collection_seo_project_locale").on(table.projectId, table.locale),
+    index("idx_collection_seo_store_locale").on(table.storeId, table.locale),
   ]
 );
 
@@ -123,7 +123,7 @@ export const collectionMedia = catalogSchema.table(
       .notNull()
       .references(() => collection.id, { onDelete: "cascade" }),
     fileId: uuid("file_id").notNull(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     sortIndex: integer("sort_index").notNull().default(0),
   },
   (table) => [primaryKey({ columns: [table.collectionId, table.fileId] })]
@@ -135,7 +135,7 @@ export const collectionItem = catalogSchema.table(
     collectionId: uuid("collection_id")
       .notNull()
       .references(() => collection.id, { onDelete: "cascade" }),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
@@ -148,7 +148,7 @@ export const collectionItem = catalogSchema.table(
     primaryKey({ columns: [table.collectionId, table.productId] }),
     index("idx_collection_item_rank").on(table.collectionId, table.lexoRank),
     index("idx_collection_item_listing_scope").on(
-      table.projectId,
+      table.storeId,
       table.collectionId,
       table.lexoRank,
       table.productId
@@ -163,7 +163,7 @@ export const collectionRule = catalogSchema.table(
     collectionId: uuid("collection_id")
       .notNull()
       .references(() => collection.id, { onDelete: "cascade" }),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     field: varchar("field", { length: 64 }).notNull(),
     operator: varchar("operator", { length: 16 }).notNull(),
     value: jsonb("value").notNull(),

@@ -23,7 +23,7 @@ export const inventoryItem = catalogSchema.table(
   "inventory_item",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
 
     // Reference to Catalog.Variant
     variantId: uuid("variant_id").notNull().unique(),
@@ -49,9 +49,9 @@ export const inventoryItem = catalogSchema.table(
     // Index for variant lookup (federation)
     index("idx_inventory_item_variant").on(table.variantId),
     // Index for project
-    index("idx_inventory_item_project").on(table.projectId),
+    index("idx_inventory_item_store").on(table.storeId),
     // SKU uniqueness per project
-    unique("inventory_item_sku_unique").on(table.projectId, table.sku),
+    unique("inventory_item_sku_unique").on(table.storeId, table.sku),
   ]
 );
 

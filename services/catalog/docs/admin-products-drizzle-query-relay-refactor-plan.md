@@ -148,7 +148,7 @@ Generated root product filters/sorts тогда включают поля produc
 - `createdAt`;
 - `updatedAt`.
 
-`projectId`, `deletedAt`, `revision` не должны быть публичными filter/order fields.
+`storeId`, `deletedAt`, `revision` не должны быть публичными filter/order fields.
 
 Если product list должен фильтровать/сортировать по `title`, `category`, `brand`, `inventory`, `variantsCount` в том же релизе, не добавлять это вручную в GraphQL schema. Нужно расширять drizzle-query builder через joins/views и генерировать схему из него:
 
@@ -170,12 +170,12 @@ Recommended first cut: root products supports table-level filters/sorts only. Un
 ```ts
 const productWhere = generateWhereInputType(productRelayQuery, "Product", {
   includeDescriptions: true,
-  excludeFields: ["projectId", "deletedAt", "revision"],
+  excludeFields: ["storeId", "deletedAt", "revision"],
 });
 
 const productOrderBy = generateOrderByInputType(productRelayQuery, "Product", {
   includeDescriptions: true,
-  excludeFields: ["projectId", "deletedAt", "revision"],
+  excludeFields: ["storeId", "deletedAt", "revision"],
 });
 ```
 
@@ -258,7 +258,7 @@ async getConnection(args: ProductRelayInput): Promise<ProductConnectionResult> {
 
   const mergedWhere: ProductRelayInput["where"] = {
     _and: [
-      { projectId: { _eq: this.storeId } },
+      { storeId: { _eq: this.storeId } },
       { deletedAt: { _is: null } },
       ...(where ? [where] : []),
     ],
@@ -352,5 +352,5 @@ Manual API verification after implementation:
 - Legacy PLP/listing sort input is renamed to `ListingOrderByInput` and category-products behavior is preserved.
 - `QueryResolver.products()` normalizes product global ID filters before constructing `ProductConnectionResolver`.
 - `ProductRepository.getConnection()` uses `productRelayQuery.execute()` and `productRelayQuery.count()` with the same merged `where`.
-- Repository-internal filters keep `projectId = storeId` and `deletedAt is null` out of the public schema.
+- Repository-internal filters keep `storeId = storeId` and `deletedAt is null` out of the public schema.
 - Category-products runtime sort mapping for `MANUAL/NAME/NEWEST/PRICE` is unchanged.

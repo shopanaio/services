@@ -11,7 +11,7 @@ import { catalogSchema } from "./schema";
 
 export const variantWarehouseCandidateView = catalogSchema
   .view("variant_warehouse_candidate_view", {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     warehouseScopeId: uuid("warehouse_scope_id").notNull(),
     productId: uuid("product_id").notNull(),
     kind: productKindEnum("kind").notNull(),
@@ -40,7 +40,7 @@ export const variantWarehouseCandidateView = catalogSchema
   })
   .as(sql`
     SELECT
-      variant.project_id,
+      variant.store_id,
       warehouse.id AS warehouse_scope_id,
       variant.product_id,
       variant.kind,
@@ -59,18 +59,18 @@ export const variantWarehouseCandidateView = catalogSchema
       item.id AS inventory_item_id
     FROM catalog.variant variant
     JOIN catalog.product product
-      ON product.project_id = variant.project_id
+      ON product.store_id = variant.store_id
      AND product.id = variant.product_id
     JOIN catalog.warehouses warehouse
-      ON warehouse.project_id = variant.project_id
+      ON warehouse.store_id = variant.store_id
     JOIN catalog.product_translation translation
-      ON translation.project_id = variant.project_id
+      ON translation.store_id = variant.store_id
      AND translation.product_id = product.id
     LEFT JOIN catalog.inventory_item item
-      ON item.project_id = variant.project_id
+      ON item.store_id = variant.store_id
      AND item.variant_id = variant.id
     LEFT JOIN catalog.warehouse_stock stock
-      ON stock.project_id = variant.project_id
+      ON stock.store_id = variant.store_id
      AND stock.variant_id = variant.id
      AND stock.warehouse_id = warehouse.id
     WHERE stock.id IS NULL

@@ -40,7 +40,7 @@ export class InventoryPluginManager extends CorePluginManager<
     pluginCode: string;
     input: Inventory.GetOffersInput;
     requestMeta?: { requestId?: string; userAgent?: string };
-    projectId?: string;
+    storeId?: string;
   }): Promise<Inventory.InventoryOffer[]> {
     const { provider, plugin } = await this.createProvider({
       pluginCode: params.pluginCode,
@@ -55,7 +55,7 @@ export class InventoryPluginManager extends CorePluginManager<
       {
         pluginCode: plugin.manifest.code,
         operation: "getOffers",
-        projectId: params.projectId || "unknown",
+        storeId: params.storeId || "unknown",
       },
       async () => {
         try {
@@ -63,13 +63,13 @@ export class InventoryPluginManager extends CorePluginManager<
           hooks.onTelemetry?.("getOffers.success", {
             count: result.length,
             itemsRequested: params.input.items.length,
-            projectId: params.projectId || "unknown",
+            storeId: params.storeId || "unknown",
           });
           return result;
         } catch (err) {
           hooks.onError?.(err, {
             operation: "getOffers",
-            projectId: params.projectId || "unknown",
+            storeId: params.storeId || "unknown",
           });
           throw err;
         }

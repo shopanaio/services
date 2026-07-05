@@ -18,7 +18,7 @@ import {
 
 // Test table
 const warehouses = pgTable("warehouses", {
-  projectId: uuid("project_id").notNull(),
+  storeId: uuid("store_id").notNull(),
   id: uuid("id").primaryKey(),
   code: text("code").notNull(),
   name: text("name").notNull(),
@@ -123,7 +123,7 @@ describe("Type inference utilities", () => {
         name: string;
         code: string;
         isDefault: boolean;
-        projectId: string;
+        storeId: string;
         createdAt: Date;
         updatedAt: Date;
       }>();

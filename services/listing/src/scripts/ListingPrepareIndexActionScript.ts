@@ -22,7 +22,7 @@ export class ListingPrepareIndexActionScript extends BaseScript<
 
     if (action.type === "syncSellableItem") {
       const itemKey: ListingIndexItemKey = {
-        projectId: action.params.projectId,
+        storeId: action.params.storeId,
         entityType: action.params.item.entityType,
         itemId: action.params.item.id,
       };
@@ -39,7 +39,7 @@ export class ListingPrepareIndexActionScript extends BaseScript<
     }
 
     const itemKey: ListingIndexItemKey = {
-      projectId: action.params.projectId,
+      storeId: action.params.storeId,
       entityType: action.params.itemRef.entityType,
       itemId: action.params.itemRef.id,
     };
@@ -64,7 +64,7 @@ function validateAction(
   action: ListingIndexQueuedAction
 ): ListingIndexValidationIssue[] {
   const issues: ListingIndexValidationIssue[] = [];
-  const { meta, projectId } = action.params;
+  const { meta, storeId } = action.params;
 
   if (meta.contractVersion !== "2026-07-04") {
     issues.push({
@@ -73,11 +73,11 @@ function validateAction(
       message: `Unsupported listing update contract version: ${meta.contractVersion}`,
     });
   }
-  if (!projectId) {
+  if (!storeId) {
     issues.push({
       code: "VALIDATION_FAILED",
-      field: ["projectId"],
-      message: "projectId is required",
+      field: ["storeId"],
+      message: "storeId is required",
     });
   }
   if (!meta.operationId) {
@@ -115,7 +115,7 @@ function validateSyncAction(
   action: Extract<ListingIndexQueuedAction, { type: "syncSellableItem" }>,
   issues: ListingIndexValidationIssue[]
 ): void {
-  const { projectId, item } = action.params;
+  const { storeId, item } = action.params;
   if (item.id.length === 0) {
     issues.push({
       code: "VALIDATION_FAILED",
@@ -217,10 +217,10 @@ function validateSyncAction(
     );
   }
 
-  if (projectId !== action.params.projectId) {
+  if (storeId !== action.params.storeId) {
     issues.push({
       code: "PROJECT_MISMATCH",
-      field: ["projectId"],
+      field: ["storeId"],
       message: "Project mismatch",
     });
   }

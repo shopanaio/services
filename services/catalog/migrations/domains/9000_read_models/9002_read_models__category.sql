@@ -2,7 +2,7 @@
 
 CREATE VIEW "catalog"."category_list_view" AS
 SELECT
-  category.project_id,
+  category.store_id,
   category.id,
   category.parent_id,
   category.path,
@@ -20,12 +20,12 @@ SELECT
   category_translation.name
 FROM "catalog"."category" category
 INNER JOIN "catalog"."category_translation" category_translation
-  ON category_translation.project_id = category.project_id
+  ON category_translation.store_id = category.store_id
  AND category_translation.category_id = category.id;
 
 CREATE VIEW "catalog"."tag_list_view" AS
 SELECT
-  tag.project_id,
+  tag.store_id,
   tag.id,
   tag.handle,
   tag.created_at,
@@ -34,5 +34,5 @@ SELECT
   tag_translation.name
 FROM "catalog"."tag" tag
 INNER JOIN "catalog"."tag_translation" tag_translation
-  ON tag_translation.project_id = tag.project_id
+  ON tag_translation.store_id = tag.store_id
  AND tag_translation.tag_id = tag.id;

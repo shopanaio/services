@@ -20,7 +20,7 @@ export class OrderNumberRepository implements OrderNumberPort {
    * Allows overriding the SQL executor to share a transaction context.
    */
   async reserve(
-    projectId: string,
+    storeId: string,
     options?: { executor?: SQLExecutor }
   ): Promise<number> {
     const executor = options?.executor ?? this.execute;
@@ -28,10 +28,10 @@ export class OrderNumberRepository implements OrderNumberPort {
       .withSchema("platform")
       .table("order_number_counters")
       .insert({
-        project_id: projectId,
+        store_id: storeId,
         last_number: 1,
       })
-      .onConflict("project_id")
+      .onConflict("store_id")
       .merge({
         last_number: knex.raw('"order_number_counters"."last_number" + 1'),
         updated_at: knex.raw("NOW()"),
@@ -42,13 +42,13 @@ export class OrderNumberRepository implements OrderNumberPort {
     const result = await executor.query<ReserveRow>(rawSql(query));
     const row = result.rows[0];
     if (!row) {
-      throw new Error(`Failed to reserve order number for project ${projectId}`);
+      throw new Error(`Failed to reserve order number for project ${storeId}`);
     }
 
     const numberValue = Number(row.last_number);
     if (!Number.isFinite(numberValue)) {
       throw new Error(
-        `Invalid order number value returned for project ${projectId}`
+        `Invalid order number value returned for project ${storeId}`
       );
     }
 

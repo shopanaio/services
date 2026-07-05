@@ -299,8 +299,8 @@ input TagWhereInput {
   _or: [TagWhereInput!]
   """Negate the condition"""
   _not: TagWhereInput
-  """Filter by projectId"""
-  projectId: IDFilter
+  """Filter by storeId"""
+  storeId: IDFilter
   """Filter by id"""
   id: IDFilter
   """Filter by handle"""
@@ -317,8 +317,8 @@ input TagWhereInput {
 
 """Fields available for sorting Tag"""
 enum TagOrderField {
-  """Sort by projectId"""
-  projectId
+  """Sort by storeId"""
+  storeId
   """Sort by id"""
   id
   """Sort by handle"""

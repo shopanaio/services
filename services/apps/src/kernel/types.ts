@@ -12,7 +12,7 @@ export type SlotEnvironment = 'development' | 'staging' | 'production';
  */
 export interface ProviderConfig {
   id: string;
-  project_id: string;
+  store_id: string;
   provider: string;
   data: Record<string, unknown>;
   version: number;
@@ -28,7 +28,7 @@ export interface ProviderConfig {
  */
 export interface Slot {
   id: string;
-  project_id: string;
+  store_id: string;
   domain: string;
   provider: string;
   provider_config_id: string;
@@ -41,7 +41,7 @@ export interface Slot {
 
 export interface SlotAssignment {
   id: string;
-  project_id: string;
+  store_id: string;
   aggregate: string;
   aggregate_id: string;
   slot_id: string;
@@ -65,7 +65,7 @@ export interface AvailableApp {
 
 export interface InstalledApp {
   id: string;
-  projectID: string;
+  storeID: string;
   appCode: string;
   domain: string;
   baseURL: string;

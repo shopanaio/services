@@ -9,11 +9,11 @@ export class BucketCreateScript extends BaseScript<
   BucketCreateResult
 > {
   protected async execute(params: BucketCreateParams): Promise<BucketCreateResult> {
-    const projectId = this.storeId;
+    const storeId = this.storeId;
 
-    this.logger.info({ params, projectId }, "BucketCreateScript: starting");
+    this.logger.info({ params, storeId }, "BucketCreateScript: starting");
 
-    const bucket = await this.repository.bucket.create(projectId, {
+    const bucket = await this.repository.bucket.create(storeId, {
       bucketName: params.bucketName,
       region: params.region,
       status: params.status,

@@ -35,7 +35,7 @@ export class MediaRepository extends BaseRepository {
       .from(productMedia)
       .where(
         and(
-          eq(productMedia.projectId, this.storeId),
+          eq(productMedia.storeId, this.storeId),
           eq(productMedia.productId, productId)
         )
       )
@@ -52,7 +52,7 @@ export class MediaRepository extends BaseRepository {
       .from(productMedia)
       .where(
         and(
-          eq(productMedia.projectId, this.storeId),
+          eq(productMedia.storeId, this.storeId),
           inArray(productMedia.productId, [...productIds])
         )
       )
@@ -71,7 +71,7 @@ export class MediaRepository extends BaseRepository {
       .from(productMedia)
       .where(
         and(
-          eq(productMedia.projectId, this.storeId),
+          eq(productMedia.storeId, this.storeId),
           eq(productMedia.productId, productId),
           inArray(productMedia.fileId, uniqueFileIds)
         )
@@ -98,7 +98,7 @@ export class MediaRepository extends BaseRepository {
         .delete(productMedia)
         .where(
           and(
-            eq(productMedia.projectId, this.storeId),
+            eq(productMedia.storeId, this.storeId),
             eq(productMedia.productId, productId),
             inArray(productMedia.fileId, removedFileIds)
           )
@@ -113,7 +113,7 @@ export class MediaRepository extends BaseRepository {
       if (!existingMedia) {
         inserts.push({
           id: randomUUID(),
-          projectId: this.storeId,
+          storeId: this.storeId,
           productId,
           fileId,
           sortIndex,
@@ -127,7 +127,7 @@ export class MediaRepository extends BaseRepository {
           .set({ sortIndex })
           .where(
             and(
-              eq(productMedia.projectId, this.storeId),
+              eq(productMedia.storeId, this.storeId),
               eq(productMedia.id, existingMedia.id)
             )
           );
@@ -148,7 +148,7 @@ export class MediaRepository extends BaseRepository {
   async getVariantMedia(variantId: string): Promise<VariantMediaWithFile[]> {
     return this.connection
       .select({
-        projectId: variantMedia.projectId,
+        storeId: variantMedia.storeId,
         productId: variantMedia.productId,
         variantId: variantMedia.variantId,
         productMediaId: variantMedia.productMediaId,
@@ -160,14 +160,14 @@ export class MediaRepository extends BaseRepository {
       .innerJoin(
         productMedia,
         and(
-          eq(variantMedia.projectId, productMedia.projectId),
+          eq(variantMedia.storeId, productMedia.storeId),
           eq(variantMedia.productId, productMedia.productId),
           eq(variantMedia.productMediaId, productMedia.id)
         )
       )
       .where(
         and(
-          eq(variantMedia.projectId, this.storeId),
+          eq(variantMedia.storeId, this.storeId),
           eq(variantMedia.variantId, variantId)
         )
       )
@@ -181,7 +181,7 @@ export class MediaRepository extends BaseRepository {
 
     return this.connection
       .select({
-        projectId: variantMedia.projectId,
+        storeId: variantMedia.storeId,
         productId: variantMedia.productId,
         variantId: variantMedia.variantId,
         productMediaId: variantMedia.productMediaId,
@@ -193,14 +193,14 @@ export class MediaRepository extends BaseRepository {
       .innerJoin(
         productMedia,
         and(
-          eq(variantMedia.projectId, productMedia.projectId),
+          eq(variantMedia.storeId, productMedia.storeId),
           eq(variantMedia.productId, productMedia.productId),
           eq(variantMedia.productMediaId, productMedia.id)
         )
       )
       .where(
         and(
-          eq(variantMedia.projectId, this.storeId),
+          eq(variantMedia.storeId, this.storeId),
           inArray(variantMedia.variantId, [...variantIds])
         )
       )
@@ -245,7 +245,7 @@ export class MediaRepository extends BaseRepository {
       }
 
       return {
-        projectId: this.storeId,
+        storeId: this.storeId,
         productId: targetVariant.productId,
         variantId,
         productMediaId: media.id,
@@ -263,7 +263,7 @@ export class MediaRepository extends BaseRepository {
       .delete(variantMedia)
       .where(
         and(
-          eq(variantMedia.projectId, this.storeId),
+          eq(variantMedia.storeId, this.storeId),
           eq(variantMedia.variantId, variantId)
         )
       )
@@ -289,7 +289,7 @@ export class MediaRepository extends BaseRepository {
       .from(variant)
       .where(
         and(
-          eq(variant.projectId, this.storeId),
+          eq(variant.storeId, this.storeId),
           eq(variant.id, variantId),
           isNull(variant.deletedAt)
         )

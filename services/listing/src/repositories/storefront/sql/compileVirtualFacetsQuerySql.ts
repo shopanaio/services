@@ -93,7 +93,7 @@ function compileOptionVariantPricesCte(request: ListingSqlRequest): SQL {
           price.variant_doc_id,
           price.price_minor
         FROM listing.listing_posting_variant_price price
-        WHERE price.project_id = i.project_id
+        WHERE price.store_id = i.store_id
           AND price.currency = i.currency
           AND price.variant_doc_id = ov.variant_doc_id
         LIMIT 1
@@ -134,7 +134,7 @@ function compileOptionMatchingSignatureKeysCte(
       FROM input i
       JOIN option_required_values rv ON true
       JOIN listing.listing_option_signature_value sv
-        ON sv.project_id = i.project_id
+        ON sv.store_id = i.store_id
        AND sv.value_key = rv.value_key
       GROUP BY sv.signature_key
       HAVING COUNT(DISTINCT rv.group_ordinal) = (
@@ -182,7 +182,7 @@ function compileProductPriceBoundSql(
     FROM listing.listing_posting_product_sort s
     JOIN input i ON true
     CROSS JOIN product_base pb
-    WHERE s.project_id = i.project_id
+    WHERE s.store_id = i.store_id
       AND s.sort_kind = ${sortKind}
       AND s.locale = ''
       AND s.currency = i.currency
@@ -236,7 +236,7 @@ function compilePricedInStockProductsBitmapSql(
       FROM listing.listing_posting_variant_price vp
       JOIN input i ON true
       CROSS JOIN product_base pb
-      WHERE vp.project_id = i.project_id
+      WHERE vp.store_id = i.store_id
         AND vp.currency = i.currency
         AND pb.bitmap @> vp.product_doc_id
         ${compilePricePredicateSql(request, sql`vp`)}
@@ -252,7 +252,7 @@ function compileOptionInStockProductsBitmapSql(): SQL {
       CROSS JOIN product_base pb
       JOIN option_matching_signature_keys ms ON true
       JOIN listing.listing_option_signature os
-        ON os.project_id = i.project_id
+        ON os.store_id = i.store_id
        AND os.signature_key = ms.signature_key
     ), ${emptyRoaringBitmapSql()})
   `;
@@ -265,7 +265,7 @@ function compileProductInStockProductsBitmapSql(): SQL {
       FROM listing.product_listing_index pli
       JOIN input i ON true
       CROSS JOIN product_base pb
-      WHERE pli.project_id = i.project_id
+      WHERE pli.store_id = i.store_id
         AND pli.status = 'published'
         AND pli.in_stock = true
         AND pb.bitmap @> pli.product_doc_id

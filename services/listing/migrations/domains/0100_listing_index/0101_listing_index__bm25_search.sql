@@ -2,7 +2,7 @@ CREATE EXTENSION IF NOT EXISTS pg_search;
 
 CREATE TABLE listing.product_title_bm25_search_index (
   search_id              uuid NOT NULL,
-  project_id             uuid NOT NULL,
+  store_id             uuid NOT NULL,
   product_id             uuid NOT NULL,
   locale                 varchar(8) NOT NULL,
   kind                   varchar(16) NOT NULL,
@@ -29,12 +29,12 @@ CREATE TABLE listing.product_title_bm25_search_index (
     CHECK (status IN ('published', 'draft'))
 );
 
-CREATE INDEX idx_product_title_bm25_project_locale_product
-  ON listing.product_title_bm25_search_index (project_id, locale, product_id);
+CREATE INDEX idx_product_title_bm25_store_locale_product
+  ON listing.product_title_bm25_search_index (store_id, locale, product_id);
 
 CREATE INDEX idx_product_title_bm25_visible
   ON listing.product_title_bm25_search_index (
-    project_id,
+    store_id,
     locale,
     published_at DESC,
     product_id
@@ -45,7 +45,7 @@ CREATE INDEX idx_product_title_bm25_search
   ON listing.product_title_bm25_search_index
   USING bm25 (
     search_id,
-    project_id,
+    store_id,
     locale,
     status,
     kind,

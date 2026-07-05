@@ -155,7 +155,7 @@ export class AddCheckoutLinesUseCase extends UseCase<
     const { offers } = await this.checkoutService.getOffers({
       apiKey: ctx.apiKey,
       currency: state.currencyCode,
-      projectId: ctx.store.id,
+      storeId: ctx.store.id,
       items: inventoryItems,
     });
 
@@ -258,7 +258,7 @@ export class AddCheckoutLinesUseCase extends UseCase<
 
     const checkoutLines = [...preservedLines, ...newLines];
     const computed = await this.checkoutService.computeTotals({
-      projectId: context.store.id,
+      storeId: context.store.id,
       checkoutLines,
       appliedDiscounts: state.appliedDiscounts,
       currency: state.currencyCode,

@@ -78,7 +78,7 @@ export const productMutation = createMutation(products, {
   name: "product",
   key: products.id,
 
-  scope: ({ ctx }) => eq(products.projectId, ctx.store.id),
+  scope: ({ ctx }) => eq(products.storeId, ctx.store.id),
 
   fields: {
     title: field(products.title),
@@ -324,7 +324,7 @@ Default policy должна быть `ignore`.
 Каждый root и relation config должен поддерживать `scope` callback:
 
 ```typescript
-scope: ({ ctx }) => eq(products.projectId, ctx.store.id)
+scope: ({ ctx }) => eq(products.storeId, ctx.store.id)
 ```
 
 Scope должен применяться к:
@@ -369,7 +369,7 @@ Builder должен поддерживать generated values, но не вла
 ```typescript
 defaults: {
   id: () => uuidv7(),
-  projectId: ({ ctx }) => ctx.store.id,
+  storeId: ({ ctx }) => ctx.store.id,
 }
 ```
 
@@ -637,10 +637,10 @@ delete variants[variant-2]
 Generated operations:
 
 ```text
-update products set title, updated_at where project_id and id
-update product_variants set price, updated_at where project_id and id
+update products set title, updated_at where store_id and id
+update product_variants set price, updated_at where store_id and id
 insert product_variants values (...)
-delete product_variants where project_id and id
+delete product_variants where store_id and id
 ```
 
 ## Открытые Вопросы

@@ -64,7 +64,7 @@ Suggested SQL shape:
 ```sql
 CREATE VIEW catalog.variant_warehouse_candidate_view AS
 SELECT
-  v.project_id,
+  v.store_id,
   w.id AS warehouse_scope_id,
   v.product_id,
   v.id,
@@ -79,15 +79,15 @@ SELECT
   ii.id AS inventory_item_id
 FROM catalog.variant v
 JOIN catalog.product p
-  ON p.project_id = v.project_id
+  ON p.store_id = v.store_id
  AND p.id = v.product_id
 JOIN catalog.warehouses w
-  ON w.project_id = v.project_id
+  ON w.store_id = v.store_id
 LEFT JOIN catalog.inventory_item ii
-  ON ii.project_id = v.project_id
+  ON ii.store_id = v.store_id
  AND ii.variant_id = v.id
 LEFT JOIN catalog.warehouse_stock ws
-  ON ws.project_id = v.project_id
+  ON ws.store_id = v.store_id
  AND ws.variant_id = v.id
  AND ws.warehouse_id = w.id
 WHERE ws.id IS NULL;
@@ -96,7 +96,7 @@ WHERE ws.id IS NULL;
 This creates one candidate row per `(warehouse, variant)` pair where the variant is not stocked in
 that warehouse. Repository filters will add:
 
-- `projectId = storeId`;
+- `storeId = storeId`;
 - `warehouseScopeId = decoded warehouseId`;
 - `deletedAt IS NULL`;
 - `productDeletedAt IS NULL`;

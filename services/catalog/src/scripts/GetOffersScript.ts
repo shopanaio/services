@@ -2,7 +2,7 @@ import { BaseScript, type UserError } from "../kernel/BaseScript.js";
 import type { inventory as Inventory } from "@shopana/plugin-sdk";
 
 export interface GetOffersParams extends Inventory.GetOffersInput {
-  projectId: string;
+  storeId: string;
   requestId: string;
   userAgent?: string;
 }

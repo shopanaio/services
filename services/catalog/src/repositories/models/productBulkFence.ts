@@ -5,7 +5,7 @@ import { bulkEditJob } from "./bulkEditJobs";
 export const productBulkFence = catalogSchema.table(
   "product_bulk_fence",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id").primaryKey(),
     fenceToken: text("fence_token").notNull(),
     jobId: uuid("job_id")

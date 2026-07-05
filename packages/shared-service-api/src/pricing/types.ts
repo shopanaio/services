@@ -25,18 +25,18 @@ export type GetAllDiscountsResponse = Readonly<{
 export interface PricingApiClient {
   /**
    * Fetch all available discounts for a project (tenant).
-   * Project ID and API key are obtained from correlation context.
+   * Store ID and API key are obtained from correlation context.
    */
   getProjectDiscounts(): Promise<Discount[]>;
 
   /**
    * Validate a discount code and get discount details.
-   * Project ID and API key are obtained from correlation context.
+   * Store ID and API key are obtained from correlation context.
    */
   validateDiscount(input: {
     code: string;
     provider?: string;
-    projectId: string;
+    storeId: string;
   }): Promise<ValidateDiscountResponse>;
 
   /**
@@ -68,7 +68,7 @@ export type PricingEvaluateDiscountsLine = Readonly<{
 }>;
 
 export type PricingEvaluateDiscountsInput = Readonly<{
-  projectId: string;
+  storeId: string;
   currency: string;
   lines: PricingEvaluateDiscountsLine[];
   appliedDiscountCodes: string[];

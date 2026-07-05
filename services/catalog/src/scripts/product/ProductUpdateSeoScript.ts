@@ -17,7 +17,7 @@ export class ProductUpdateSeoScript extends BaseScript<ProductUpdateSeoParams, P
     }
 
     const locale = this.getLocale();
-    const projectId = this.getProjectId();
+    const storeId = this.getProjectId();
 
     // 2. Get existing SEO
     const existingSeo = await this.repository.translation.getProductSeo(id, locale);
@@ -61,7 +61,7 @@ export class ProductUpdateSeoScript extends BaseScript<ProductUpdateSeoParams, P
     const hasChanges = Object.keys(changes).length > 0;
     if (hasChanges) {
       await this.repository.translation.upsertProductSeo({
-        projectId,
+        storeId,
         productId: id,
         locale,
         seoTitle: title !== undefined ? title : existingSeo?.seoTitle ?? null,

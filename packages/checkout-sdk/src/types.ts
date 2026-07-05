@@ -141,7 +141,7 @@ export type Checkout = Readonly<{
   id: string;
   createdAt: string; // DateTime ISO
   updatedAt: string; // DateTime ISO
-  projectId?: string;
+  storeId?: string;
   currencyCode?: string;
   idempotencyKey?: string;
   salesChannel?: string;

@@ -21,7 +21,7 @@ Implementation of AWS IAM-style authorization model where:
 - Users (synced from main organization)
 - Roles (owner, admin, manager, support, viewer, custom roles)
 - Permissions (Casbin policies: `p, role, project, resource, action`)
-- Grouping policies (`g, userId, roleName, projectId`)
+- Grouping policies (`g, userId, roleName, storeId`)
 - Access enforcement via `enforce` API
 
 **IAM service has NO database tables.** Resource definitions are fetched from services on demand.
@@ -66,7 +66,7 @@ Casdoor (admin org: shopana)
 | Aspect | Old (Logical) | New (Physical) |
 |--------|---------------|----------------|
 | Isolation | Filter by `domains` field | Separate Casdoor org per tenant |
-| Role names | `{projectId}-owner` | `owner` (simple) |
+| Role names | `{storeId}-owner` | `owner` (simple) |
 | Risk of data leak | Higher (code error) | Lower (Casdoor enforces) |
 | Scalability | All in one org | Independent orgs |
 
@@ -77,7 +77,7 @@ The `tenantId` (Casdoor organization name, e.g., `org-shop-a`) is:
 2. **Stored** in `project_integration` table:
    ```typescript
    {
-     projectId: "uuid-...",
+     storeId: "uuid-...",
      type: "iam",
      provider: "casdoor",
      config: { tenantId: "org-shop-a" }
@@ -411,7 +411,7 @@ p, manager, proj-123, order:own, write   # but only edit assigned
 ```typescript
 broker.register("Authorize", async (params: {
   userId: string;
-  projectId: string;
+  storeId: string;
   resource: string;
   action: string;
   resourceId?: string;
@@ -488,7 +488,7 @@ interface ServiceToken {
 │    {                                                        │
 │      meta: {                                                │
 │        serviceToken: this.serviceToken,                     │
-│        projectId: ctx.project.id                            │
+│        storeId: ctx.project.id                            │
 │      }                                                      │
 │    }                                                        │
 │  );                                                         │
@@ -569,7 +569,7 @@ broker.register("GetServiceToken", async (params: {
 | `CreateRole` | `sdk.addRole()` + `sdk.addPermission()` | Create role and its policies |
 | `UpdateRole` | `sdk.updatePermission()` | Update permission policies |
 | `DeleteRole` | `sdk.deleteRole()` | Remove role and policies |
-| `AttachUserRole` | `sdk.addPolicy()` | Add `g, userId, role, projectId` |
+| `AttachUserRole` | `sdk.addPolicy()` | Add `g, userId, role, storeId` |
 | `DetachUserRole` | `sdk.removePolicy()` | Remove grouping policy |
 | `GetUserRole` | `sdk.getRolesForUser()` | Get user's roles for org |
 | `ListRoles` | `sdk.getRoles()` | List all roles in org |
@@ -1459,7 +1459,7 @@ User A → projectCreate mutation (slug: "my-shop")
 │                                                             │
 │  4. Save tenantId in project_integration:                   │
 │     {                                                       │
-│       projectId: "uuid-...",                                │
+│       storeId: "uuid-...",                                │
 │       type: "iam",                                          │
 │       provider: "casdoor",                                  │
 │       config: { tenantId: "org-my-shop" }                   │
@@ -1540,7 +1540,7 @@ User A → projectCreate mutation (slug: "my-shop")
 // project_integration table
 {
   id: "uuid-...",
-  projectId: "project-uuid-...",
+  storeId: "project-uuid-...",
   type: "iam",
   provider: "casdoor",
   config: {
@@ -1632,9 +1632,9 @@ async orderUpdate(parent, args, ctx) {
 7. [x] Implement cache invalidation (version-based)
 
 ### Phase 1.5: Tenant ID Refactoring ✅ DONE
-1. [x] Update all IAM scripts to accept `tenantId` instead of computing from `projectId`
+1. [x] Update all IAM scripts to accept `tenantId` instead of computing from `storeId`
 2. [x] Remove `getTenantOrg()` calls from authorization scripts (keep only in ProvisionTenant)
-3. [x] Update DTOs: `projectId` → `tenantId` in all params
+3. [x] Update DTOs: `storeId` → `tenantId` in all params
 4. [x] Project service stores `tenantId` in `project_integration.config.tenantId`
 5. [x] Calling services read `tenantId` from integrations and pass to IAM
 
@@ -1748,14 +1748,14 @@ type Query {
 
   # List project members (requires project.team:read)
   projectMembers(
-    projectId: ID!
+    storeId: ID!
     first: Int
     after: String
   ): ProjectMemberConnection!
 
   # List project roles (requires project.team:read)
   projectRoles(
-    projectId: ID!
+    storeId: ID!
     includeSystem: Boolean = true
   ): [ProjectRole!]!
 }
@@ -1781,7 +1781,7 @@ type Mutation {
   deleteRole(roleId: ID!): Boolean!
 
   # Leave project (self)
-  leaveProject(projectId: ID!): Boolean!
+  leaveProject(storeId: ID!): Boolean!
 }
 
 input ChangeMemberRoleInput {
@@ -1790,7 +1790,7 @@ input ChangeMemberRoleInput {
 }
 
 input CreateRoleInput {
-  projectId: ID!
+  storeId: ID!
   name: String!
   displayName: String!
   description: String
@@ -1859,13 +1859,13 @@ Cache uses **version-based invalidation** instead of active cache deletion. This
 
 ```
 # Role version (incremented on role changes)
-iam:version:role:{projectId}:{roleName} → 42
+iam:version:role:{storeId}:{roleName} → 42
 
 # User membership version (incremented on attach/detach)
-iam:version:user:{projectId}:{userId} → 17
+iam:version:user:{storeId}:{userId} → 17
 
 # User role cache (includes version at cache time)
-iam:role:{projectId}:{userId} → {
+iam:role:{storeId}:{userId} → {
   role,
   permissions,
   grantedAt,
@@ -1874,7 +1874,7 @@ iam:role:{projectId}:{userId} → {
 }
 
 # Authorization result cache (includes versions)
-iam:auth:{projectId}:{userId}:{resource}:{action} → {
+iam:auth:{storeId}:{userId}:{resource}:{action} → {
   allowed,
   checkedAt,
   userVersion: 17,
@@ -1882,7 +1882,7 @@ iam:auth:{projectId}:{userId}:{resource}:{action} → {
 }
 
 # Role definition cache
-iam:roledef:{projectId}:{roleName} → {
+iam:roledef:{storeId}:{roleName} → {
   permissions,
   isSystem,
   version: 42
@@ -1912,18 +1912,18 @@ interface CachedAuthResult {
 }
 
 async function checkCache(
-  projectId: string,
+  storeId: string,
   userId: string,
   roleName: string,
   resource: string,
   action: string
 ): Promise<{ hit: boolean; allowed?: boolean }> {
-  const cacheKey = `iam:auth:${projectId}:${userId}:${resource}:${action}`;
+  const cacheKey = `iam:auth:${storeId}:${userId}:${resource}:${action}`;
 
   // Try L1 cache first
   const l1Result = this.l1Cache.get(cacheKey);
   if (l1Result) {
-    const isValid = await this.validateVersions(projectId, userId, roleName, l1Result);
+    const isValid = await this.validateVersions(storeId, userId, roleName, l1Result);
     if (isValid) {
       return { hit: true, allowed: l1Result.allowed };
     }
@@ -1935,7 +1935,7 @@ async function checkCache(
   const l2Result = await this.redis.get(cacheKey);
   if (l2Result) {
     const parsed: CachedAuthResult = JSON.parse(l2Result);
-    const isValid = await this.validateVersions(projectId, userId, roleName, parsed);
+    const isValid = await this.validateVersions(storeId, userId, roleName, parsed);
     if (isValid) {
       // Populate L1
       this.l1Cache.set(cacheKey, parsed, { ttl: 10_000 });
@@ -1948,15 +1948,15 @@ async function checkCache(
 }
 
 async function validateVersions(
-  projectId: string,
+  storeId: string,
   userId: string,
   roleName: string,
   cached: CachedAuthResult
 ): Promise<boolean> {
   // Batch fetch current versions (uses Redis MGET - single round trip)
   const [currentUserVersion, currentRoleVersion] = await this.redis.mget([
-    `iam:version:user:${projectId}:${userId}`,
-    `iam:version:role:${projectId}:${roleName}`
+    `iam:version:user:${storeId}:${userId}`,
+    `iam:version:role:${storeId}:${roleName}`
   ]);
 
   return (
@@ -1970,64 +1970,64 @@ async function validateVersions(
 
 | Event | Operation | Redis Commands |
 |-------|-----------|----------------|
-| AttachUserRole | Increment user version | `INCR iam:version:user:{projectId}:{userId}` |
-| DetachUserRole | Increment user version | `INCR iam:version:user:{projectId}:{userId}` |
-| UpdateRole | Increment role version | `INCR iam:version:role:{projectId}:{roleName}` |
-| DeleteRole | Increment role version | `INCR iam:version:role:{projectId}:{roleName}` |
+| AttachUserRole | Increment user version | `INCR iam:version:user:{storeId}:{userId}` |
+| DetachUserRole | Increment user version | `INCR iam:version:user:{storeId}:{userId}` |
+| UpdateRole | Increment role version | `INCR iam:version:role:{storeId}:{roleName}` |
+| DeleteRole | Increment role version | `INCR iam:version:role:{storeId}:{roleName}` |
 
 **Cost**: 1 Redis operation per change (vs O(n) in deletion-based approach).
 
 ### Implementation
 
 ```typescript
-async function onAttachUserRole(projectId: string, userId: string) {
+async function onAttachUserRole(storeId: string, userId: string) {
   // Single Redis operation - increment version
-  await this.redis.incr(`iam:version:user:${projectId}:${userId}`);
+  await this.redis.incr(`iam:version:user:${storeId}:${userId}`);
 
   // Invalidate local L1 cache for this user (optional, TTL will handle it)
-  this.l1Cache.delete(`role:${projectId}:${userId}`);
+  this.l1Cache.delete(`role:${storeId}:${userId}`);
 
   // Publish event for other instances to clear their L1 cache
   await this.redis.publish('iam:cache:invalidate', JSON.stringify({
     type: 'user',
-    projectId,
+    storeId,
     userId
   }));
 }
 
-async function onDetachUserRole(projectId: string, userId: string) {
-  await this.redis.incr(`iam:version:user:${projectId}:${userId}`);
-  this.l1Cache.delete(`role:${projectId}:${userId}`);
+async function onDetachUserRole(storeId: string, userId: string) {
+  await this.redis.incr(`iam:version:user:${storeId}:${userId}`);
+  this.l1Cache.delete(`role:${storeId}:${userId}`);
 
   await this.redis.publish('iam:cache:invalidate', JSON.stringify({
     type: 'user',
-    projectId,
+    storeId,
     userId
   }));
 }
 
-async function onUpdateRole(projectId: string, roleName: string) {
+async function onUpdateRole(storeId: string, roleName: string) {
   // Single Redis operation - no need to find all users with this role!
-  await this.redis.incr(`iam:version:role:${projectId}:${roleName}`);
+  await this.redis.incr(`iam:version:role:${storeId}:${roleName}`);
 
   // Invalidate role definition in L1
-  this.l1Cache.delete(`roledef:${projectId}:${roleName}`);
+  this.l1Cache.delete(`roledef:${storeId}:${roleName}`);
 
   // Publish for L1 invalidation across instances
   await this.redis.publish('iam:cache:invalidate', JSON.stringify({
     type: 'role',
-    projectId,
+    storeId,
     roleName
   }));
 }
 
-async function onDeleteRole(projectId: string, roleName: string) {
+async function onDeleteRole(storeId: string, roleName: string) {
   // Same as update - version increment invalidates all cached results
-  await this.redis.incr(`iam:version:role:${projectId}:${roleName}`);
+  await this.redis.incr(`iam:version:role:${storeId}:${roleName}`);
 
   await this.redis.publish('iam:cache:invalidate', JSON.stringify({
     type: 'role',
-    projectId,
+    storeId,
     roleName
   }));
 }
@@ -2044,10 +2044,10 @@ this.redis.subscribe('iam:cache:invalidate', (message) => {
 
   if (event.type === 'user') {
     // Clear all L1 entries for this user (pattern match in memory is fast)
-    this.l1Cache.deleteByPrefix(`${event.projectId}:${event.userId}`);
+    this.l1Cache.deleteByPrefix(`${event.storeId}:${event.userId}`);
   } else if (event.type === 'role') {
     // Clear role definition
-    this.l1Cache.delete(`roledef:${event.projectId}:${event.roleName}`);
+    this.l1Cache.delete(`roledef:${event.storeId}:${event.roleName}`);
     // Note: Auth results for users with this role will be invalidated
     // on next access via version check
   }

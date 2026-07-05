@@ -15,7 +15,7 @@ export const inboundSupply = catalogSchema.table(
   "inbound_supply",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     variantId: uuid("variant_id").notNull(),
     warehouseId: uuid("warehouse_id")
       .notNull()
@@ -35,8 +35,8 @@ export const inboundSupply = catalogSchema.table(
       "inbound_supply_qty_received_check",
       sql`${table.qtyReceived} >= 0`
     ),
-    unique("inbound_supply_project_source_variant_warehouse_key").on(
-      table.projectId,
+    unique("inbound_supply_store_source_variant_warehouse_key").on(
+      table.storeId,
       table.sourceType,
       table.sourceId,
       table.variantId,

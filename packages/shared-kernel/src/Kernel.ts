@@ -69,7 +69,7 @@ export class Kernel<TServices extends BaseKernelServices = BaseKernelServices> {
   ): Promise<TResult> {
     const fullContext: ScriptContext = {
       requestId: context.requestId || this.generateRequestId(),
-      projectId: context.projectId,
+      storeId: context.storeId,
       startTime: Date.now(),
       metadata: context.metadata,
     };
@@ -136,7 +136,7 @@ export class Kernel<TServices extends BaseKernelServices = BaseKernelServices> {
   ): Promise<TResult> {
     const fullContext: ScriptContext = {
       requestId: context.requestId || this.generateRequestId(),
-      projectId: context.projectId,
+      storeId: context.storeId,
       startTime: Date.now(),
       metadata: context.metadata,
     };

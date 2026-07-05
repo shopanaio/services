@@ -1,7 +1,7 @@
 -- Up Migration
 
 CREATE TABLE "catalog"."category" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "id" uuid NOT NULL,
   "parent_id" uuid,
   "path" text NOT NULL,
@@ -24,12 +24,12 @@ CREATE TABLE "catalog"."category" (
     CHECK ("default_sort_direction" IN ('asc', 'desc'))
 );
 
-CREATE UNIQUE INDEX "category_project_id_handle_key"
-  ON "catalog"."category" ("project_id", "handle")
+CREATE UNIQUE INDEX "category_store_id_handle_key"
+  ON "catalog"."category" ("store_id", "handle")
   WHERE "deleted_at" IS NULL;
 
-CREATE INDEX "idx_category_project_id"
-  ON "catalog"."category" ("project_id");
+CREATE INDEX "idx_category_store_id"
+  ON "catalog"."category" ("store_id");
 
 CREATE INDEX "idx_category_parent_id"
   ON "catalog"."category" ("parent_id");
@@ -38,11 +38,11 @@ CREATE INDEX "idx_category_path"
   ON "catalog"."category" ("path");
 
 CREATE INDEX "idx_category_published"
-  ON "catalog"."category" ("project_id", "published_at")
+  ON "catalog"."category" ("store_id", "published_at")
   WHERE "deleted_at" IS NULL;
 
 CREATE TABLE "catalog"."category_media" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "category_id" uuid NOT NULL,
   "file_id" uuid NOT NULL,
   "sort_index" integer NOT NULL DEFAULT 0,

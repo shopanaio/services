@@ -22,7 +22,7 @@ import { product } from "./products";
 export const category = catalogSchema.table(
   "category",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     id: uuid("id").primaryKey(),
 
     // Hierarchy
@@ -72,14 +72,14 @@ export const category = catalogSchema.table(
       "category_default_sort_direction_check",
       sql`default_sort_direction IN ('asc', 'desc')`
     ),
-    uniqueIndex("category_project_id_handle_key")
-      .on(table.projectId, table.handle)
+    uniqueIndex("category_store_id_handle_key")
+      .on(table.storeId, table.handle)
       .where(sql`deleted_at IS NULL`),
-    index("idx_category_project_id").on(table.projectId),
+    index("idx_category_store_id").on(table.storeId),
     index("idx_category_parent_id").on(table.parentId),
     index("idx_category_path").on(table.path),
     index("idx_category_published")
-      .on(table.projectId, table.publishedAt)
+      .on(table.storeId, table.publishedAt)
       .where(sql`deleted_at IS NULL`),
   ]
 );
@@ -92,7 +92,7 @@ export const category = catalogSchema.table(
 export const categoryMedia = catalogSchema.table(
   "category_media",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     categoryId: uuid("category_id")
       .notNull()
       .references(() => category.id, { onDelete: "cascade" }),
@@ -112,7 +112,7 @@ export const categoryMedia = catalogSchema.table(
 export const categoryTranslation = catalogSchema.table(
   "category_translation",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     categoryId: uuid("category_id")
       .notNull()
       .references(() => category.id, { onDelete: "cascade" }),
@@ -129,9 +129,9 @@ export const categoryTranslation = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.categoryId, table.locale] }),
-    index("idx_category_translation_project").on(table.projectId),
-    index("idx_category_translation_project_locale").on(
-      table.projectId,
+    index("idx_category_translation_store").on(table.storeId),
+    index("idx_category_translation_store_locale").on(
+      table.storeId,
       table.locale
     ),
   ]
@@ -144,7 +144,7 @@ export const categoryTranslation = catalogSchema.table(
 export const productCategory = catalogSchema.table(
   "product_category",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
@@ -162,13 +162,13 @@ export const productCategory = catalogSchema.table(
     primaryKey({ columns: [table.productId, table.categoryId] }),
     // Only one primary category per product within a project
     uniqueIndex("product_category_one_primary_per_product_idx")
-      .on(table.projectId, table.productId)
+      .on(table.storeId, table.productId)
       .where(sql`is_primary = true`),
     index("idx_product_category_product").on(table.productId),
     index("idx_product_category_category").on(table.categoryId),
     index("idx_product_category_rank").on(table.categoryId, table.lexoRank),
     index("idx_product_category_listing_scope").on(
-      table.projectId,
+      table.storeId,
       table.categoryId,
       table.lexoRank,
       table.productId

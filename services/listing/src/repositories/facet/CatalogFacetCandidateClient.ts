@@ -3,7 +3,7 @@ import type { ServiceBroker } from "@shopana/shared-kernel";
 
 export interface FacetSourceCandidateView {
   id: string;
-  projectId: string;
+  storeId: string;
   locale: string;
   facetType: string;
   handle: string;
@@ -16,7 +16,7 @@ export type FacetValueCandidateType = "TAG" | "OPTION" | "FEATURE";
 
 export interface FacetValueCandidateView {
   id: string;
-  projectId: string;
+  storeId: string;
   locale: string;
   facetType: FacetValueCandidateType;
   sourceHandle: string;
@@ -62,7 +62,7 @@ export interface FacetSourceCandidateRef {
 }
 
 export interface CatalogFacetCandidateClientContext {
-  projectId: string;
+  storeId: string;
   locale: string;
 }
 
@@ -79,13 +79,13 @@ export class CatalogFacetCandidateClient {
     return this.broker.call<
       FacetSourceCandidateConnectionResult,
       {
-        projectId: string;
+        storeId: string;
         locale: string;
         excludedSources?: FacetSourceCandidateRef[];
         input: FacetSourceCandidateRelayInput;
       }
     >("catalog.facetSourceCandidates", {
-      projectId: context.projectId,
+      storeId: context.storeId,
       locale: context.locale,
       excludedSources: input.excludedSources,
       input: input.relay,
@@ -104,7 +104,7 @@ export class CatalogFacetCandidateClient {
     return this.broker.call<
       FacetValueCandidateConnectionResult,
       {
-        projectId: string;
+        storeId: string;
         locale: string;
         candidateType: FacetValueCandidateType;
         sourceHandles: string[];
@@ -112,7 +112,7 @@ export class CatalogFacetCandidateClient {
         input: FacetValueCandidateRelayInput;
       }
     >("catalog.facetValueCandidates", {
-      projectId: context.projectId,
+      storeId: context.storeId,
       locale: context.locale,
       candidateType: input.candidateType,
       sourceHandles: input.sourceHandles,
@@ -127,9 +127,9 @@ export class CatalogFacetCandidateClient {
   ): Promise<FacetSourceCandidateView | null> {
     return this.broker.call<
       FacetSourceCandidateView | null,
-      { projectId: string; locale: string; facetType: string; handle: string }
+      { storeId: string; locale: string; facetType: string; handle: string }
     >("catalog.getFacetSourceCandidate", {
-      projectId: context.projectId,
+      storeId: context.storeId,
       locale: context.locale,
       facetType: input.facetType,
       handle: input.handle,
@@ -147,14 +147,14 @@ export class CatalogFacetCandidateClient {
     return this.broker.call<
       FacetValueCandidateView[],
       {
-        projectId: string;
+        storeId: string;
         locale: string;
         candidateType: FacetValueCandidateType;
         sourceHandles: string[];
         handles: string[];
       }
     >("catalog.getFacetValueCandidatesByHandles", {
-      projectId: context.projectId,
+      storeId: context.storeId,
       locale: context.locale,
       candidateType: input.candidateType,
       sourceHandles: input.sourceHandles,

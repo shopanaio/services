@@ -296,7 +296,7 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
   }
 
   protected handleError(error: unknown): FacetResult {
-    if (isUniqueViolation(error, "facet_source_project_type_handle_uniq")) {
+    if (isUniqueViolation(error, "facet_source_store_type_handle_uniq")) {
       return {
         facet: undefined,
         userErrors: [
@@ -309,7 +309,7 @@ export class FacetCreateScript extends BaseScript<FacetCreateParams, FacetResult
       };
     }
 
-    if (isUniqueViolation(error, "facet_project_id_slug_uniq")) {
+    if (isUniqueViolation(error, "facet_store_id_slug_uniq")) {
       return {
         facet: undefined,
         userErrors: [

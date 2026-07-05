@@ -9,7 +9,7 @@ export type OrderCommandMetadata = DefaultCommandMetadata & {
   apiKey: string;
   aggregateId: string;
   contractVersion: number;
-  projectId: string;
+  storeId: string;
   userId?: string;
   now: Date;
 };

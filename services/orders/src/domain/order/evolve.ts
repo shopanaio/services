@@ -126,7 +126,7 @@ export type OrderState = Readonly<{
   // Identity and lifecycle
   id: string;
   exists: boolean;
-  projectId: string;
+  storeId: string;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -179,7 +179,7 @@ export type OrderState = Readonly<{
 export const orderInitialState = (): OrderState => ({
   id: "",
   exists: false,
-  projectId: "",
+  storeId: "",
   createdAt: new Date(0),
   updatedAt: new Date(0),
   deletedAt: null,
@@ -254,7 +254,7 @@ export const orderEvolve = (
         ...current,
         exists: true,
         id: event.metadata.aggregateId,
-        projectId: event.metadata.projectId,
+        storeId: event.metadata.storeId,
         createdAt: event.metadata.now,
         updatedAt: event.metadata.now,
 

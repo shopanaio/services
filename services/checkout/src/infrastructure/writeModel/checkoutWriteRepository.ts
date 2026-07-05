@@ -48,7 +48,7 @@ export class CheckoutWriteRepository {
     input: CheckoutCustomerIdentityUpdatedDto
   ): Promise<void> {
     const checkoutId = input.metadata.aggregateId;
-    const projectId = input.metadata.projectId;
+    const storeId = input.metadata.storeId;
 
     // Upsert into checkout_customer_identities using checkoutId as identity id
     const upsertIdentitySql = knex
@@ -56,7 +56,7 @@ export class CheckoutWriteRepository {
       .table("checkout_customer_identities")
       .insert({
         id: checkoutId,
-        project_id: projectId as any,
+        store_id: storeId as any,
         customer_id: (input.data.customerId as any) ?? null,
         email: input.data.email ?? null,
         phone_e164: input.data.phone ?? null,
@@ -70,7 +70,7 @@ export class CheckoutWriteRepository {
       })
       .onConflict(["id"])
       .merge({
-        project_id: projectId as any,
+        store_id: storeId as any,
         customer_id: (input.data.customerId as any) ?? null,
         email: input.data.email ?? null,
         phone_e164: input.data.phone ?? null,
@@ -150,7 +150,7 @@ export class CheckoutWriteRepository {
       .table("checkouts")
       .insert({
         id: input.metadata.aggregateId,
-        project_id: input.metadata.projectId as any,
+        store_id: input.metadata.storeId as any,
         api_key_id: null,
         admin_id: null,
         sales_channel: input.data.salesChannel,
@@ -182,7 +182,7 @@ export class CheckoutWriteRepository {
         .insert(
           deliveryGroups.map((g) => ({
             id: g.id,
-            project_id: input.metadata.projectId as any,
+            store_id: input.metadata.storeId as any,
             checkout_id: input.metadata.aggregateId,
             selected_delivery_method_code: null,
             selected_delivery_method_provider: null,
@@ -206,7 +206,7 @@ export class CheckoutWriteRepository {
           methods.map(({ groupId, method }) => ({
             code: method.code,
             provider: method.provider,
-            project_id: input.metadata.projectId as any,
+            store_id: input.metadata.storeId as any,
             delivery_group_id: groupId,
             delivery_method_type: method.deliveryMethodType,
             payment_model: method.shippingPaymentModel,
@@ -225,7 +225,7 @@ export class CheckoutWriteRepository {
         .insert(
           paymentMethods.map((method) => ({
             checkout_id: input.metadata.aggregateId,
-            project_id: input.metadata.projectId as any,
+            store_id: input.metadata.storeId as any,
             code: method.code,
             provider: method.provider,
             flow: method.flow,
@@ -254,7 +254,7 @@ export class CheckoutWriteRepository {
           tags.map((tag) => ({
             id: tag.id,
             checkout_id: input.metadata.aggregateId,
-            project_id: input.metadata.projectId as any,
+            store_id: input.metadata.storeId as any,
             slug: tag.slug,
             is_unique: tag.isUnique,
             created_at: input.metadata.now,
@@ -278,7 +278,7 @@ export class CheckoutWriteRepository {
       .insert({
         id: input.data.tag.id,
         checkout_id: input.metadata.aggregateId,
-        project_id: input.metadata.projectId as any,
+        store_id: input.metadata.storeId as any,
         slug: input.data.tag.slug,
         is_unique: input.data.tag.isUnique,
         created_at: input.metadata.now,
@@ -310,7 +310,7 @@ export class CheckoutWriteRepository {
       .where({
         id: input.data.tagId,
         checkout_id: input.metadata.aggregateId,
-        project_id: input.metadata.projectId as any,
+        store_id: input.metadata.storeId as any,
       })
       .update(updateFields)
       .toString();
@@ -328,7 +328,7 @@ export class CheckoutWriteRepository {
       .where({
         id: input.data.tagId,
         checkout_id: input.metadata.aggregateId,
-        project_id: input.metadata.projectId as any,
+        store_id: input.metadata.storeId as any,
       })
       .delete()
       .toString();
@@ -346,7 +346,7 @@ export class CheckoutWriteRepository {
       | CheckoutLinesDeletedDto
   ): Promise<void> {
     const sqls = this.buildCheckoutLinesUpsertStatements({
-      projectId: input.metadata.projectId,
+      storeId: input.metadata.storeId,
       checkoutId: input.metadata.aggregateId,
       now: input.metadata.now,
       data: input.data,
@@ -358,7 +358,7 @@ export class CheckoutWriteRepository {
    * Clears lines and updates totals to provided values.
    */
   async clearCheckoutLines(input: CheckoutLinesClearedDto): Promise<void> {
-    const projectId = input.metadata.projectId;
+    const storeId = input.metadata.storeId;
     const checkoutId = input.metadata.aggregateId;
 
     const toBigintSql = (m: Money | null) =>
@@ -368,7 +368,7 @@ export class CheckoutWriteRepository {
       .withSchema("platform")
       .table("checkout_line_items")
       .delete()
-      .where({ checkout_id: checkoutId, project_id: projectId as any })
+      .where({ checkout_id: checkoutId, store_id: storeId as any })
       .toString();
 
     const updateCheckoutSql = knex
@@ -393,7 +393,7 @@ export class CheckoutWriteRepository {
    */
   async applyPromoCodeAdded(input: CheckoutPromoCodeAddedDto): Promise<void> {
     const linesSqls = this.buildCheckoutLinesUpsertStatements({
-      projectId: input.metadata.projectId,
+      storeId: input.metadata.storeId,
       checkoutId: input.metadata.aggregateId,
       now: input.metadata.now,
       data: {
@@ -404,7 +404,7 @@ export class CheckoutWriteRepository {
     });
 
     const discountsSqls = this.buildAppliedDiscountsUpsertStatements({
-      projectId: input.metadata.projectId,
+      storeId: input.metadata.storeId,
       checkoutId: input.metadata.aggregateId,
       data: input.data,
     });
@@ -419,7 +419,7 @@ export class CheckoutWriteRepository {
     input: CheckoutPromoCodeRemovedDto
   ): Promise<void> {
     const linesSqls = this.buildCheckoutLinesUpsertStatements({
-      projectId: input.metadata.projectId,
+      storeId: input.metadata.storeId,
       checkoutId: input.metadata.aggregateId,
       now: input.metadata.now,
       data: {
@@ -430,7 +430,7 @@ export class CheckoutWriteRepository {
     });
 
     const discountsSqls = this.buildAppliedDiscountsUpsertStatements({
-      projectId: input.metadata.projectId,
+      storeId: input.metadata.storeId,
       checkoutId: input.metadata.aggregateId,
       data: input.data,
     });
@@ -557,7 +557,7 @@ export class CheckoutWriteRepository {
         .insert({
           code: deliveryMethod.code,
           provider: deliveryMethod.provider,
-          project_id: input.metadata.projectId as any,
+          store_id: input.metadata.storeId as any,
           delivery_group_id: deliveryGroupId,
           delivery_method_type: deliveryMethod.deliveryMethodType,
           payment_model: deliveryMethod.shippingPaymentModel,
@@ -653,7 +653,7 @@ export class CheckoutWriteRepository {
   ): Promise<void> {
     const { paymentMethod } = input.data;
     const checkoutId = input.metadata.aggregateId;
-    const projectId = input.metadata.projectId;
+    const storeId = input.metadata.storeId;
 
     const statements: string[] = [];
 
@@ -663,7 +663,7 @@ export class CheckoutWriteRepository {
       .table("checkout_payment_methods")
       .insert({
         checkout_id: checkoutId,
-        project_id: projectId as any,
+        store_id: storeId as any,
         code: paymentMethod.code,
         provider: paymentMethod.provider,
         flow: paymentMethod.flow,
@@ -693,7 +693,7 @@ export class CheckoutWriteRepository {
       .table("checkout_selected_payment_methods")
       .insert({
         checkout_id: checkoutId,
-        project_id: projectId as any,
+        store_id: storeId as any,
         code: paymentMethod.code,
         provider: paymentMethod.provider,
       })
@@ -722,7 +722,7 @@ export class CheckoutWriteRepository {
       .table("checkout_recipients")
       .insert({
         id: deliveryGroupId,
-        project_id: input.metadata.projectId as any,
+        store_id: input.metadata.storeId as any,
         first_name: recipient.firstName ?? null,
         last_name: recipient.lastName ?? null,
         middle_name: recipient.middleName ?? null,
@@ -815,7 +815,7 @@ export class CheckoutWriteRepository {
   }
 
   private buildCheckoutLinesUpsertStatements(input: {
-    projectId: string;
+    storeId: string;
     checkoutId: string;
     now: Date;
     data: {
@@ -856,14 +856,14 @@ export class CheckoutWriteRepository {
       };
     };
   }): string[] {
-    const { projectId, checkoutId, now, data } = input;
+    const { storeId, checkoutId, now, data } = input;
     const stmtSqls: string[] = [];
 
     const deleteAllSql = knex
       .withSchema("platform")
       .table("checkout_line_items")
       .delete()
-      .where({ checkout_id: checkoutId, project_id: projectId as any })
+      .where({ checkout_id: checkoutId, store_id: storeId as any })
       .toString();
     stmtSqls.push(deleteAllSql);
 
@@ -877,7 +877,7 @@ export class CheckoutWriteRepository {
 
         return {
           id: l.lineId,
-          project_id: projectId as any,
+          store_id: storeId as any,
           checkout_id: checkoutId,
           parent_line_item_id: l.parentLineId ?? null,
           tag_id: l.tagId ?? null,
@@ -938,27 +938,27 @@ export class CheckoutWriteRepository {
   }
 
   private buildAppliedDiscountsUpsertStatements(input: {
-    projectId: string;
+    storeId: string;
     checkoutId: string;
     data:
       | CheckoutPromoCodeAddedDto["data"]
       | CheckoutPromoCodeRemovedDto["data"];
   }): string[] {
-    const { projectId, checkoutId, data } = input;
+    const { storeId, checkoutId, data } = input;
     const stmtSqls: string[] = [];
 
     const deleteAllSql = knex
       .withSchema("platform")
       .table("checkout_applied_discounts")
       .delete()
-      .where({ checkout_id: checkoutId, project_id: projectId as any })
+      .where({ checkout_id: checkoutId, store_id: storeId as any })
       .toString();
     stmtSqls.push(deleteAllSql);
 
     if (data.appliedDiscounts.length > 0) {
       const values = data.appliedDiscounts.map((d) => ({
         checkout_id: checkoutId,
-        project_id: projectId as any,
+        store_id: storeId as any,
         code: d.code,
         discount_type: d.type,
         value: d.value,

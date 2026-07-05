@@ -231,7 +231,7 @@ async getConnection(
 
   const where: BulkEditJobRelayInput["where"] = {
     _and: [
-      { projectId: { _eq: this.storeId } },
+      { storeId: { _eq: this.storeId } },
       { status: { _in: statusFilter } },
     ],
   };
@@ -286,7 +286,7 @@ async getByIds(jobIds: readonly string[]): Promise<BulkEditJob[]> {
     .from(bulkEditJob)
     .where(
       and(
-        eq(bulkEditJob.projectId, this.storeId),
+        eq(bulkEditJob.storeId, this.storeId),
         inArray(bulkEditJob.id, [...jobIds])
       )
     );
@@ -306,7 +306,7 @@ async getByIds(itemIds: readonly string[]): Promise<BulkEditItem[]> {
     .from(bulkEditItem)
     .where(
       and(
-        eq(bulkEditItem.projectId, this.storeId),
+        eq(bulkEditItem.storeId, this.storeId),
         inArray(bulkEditItem.id, [...itemIds])
       )
     );
@@ -388,7 +388,7 @@ async countByStatusForJobs(
     .from(bulkEditItem)
     .where(
       and(
-        eq(bulkEditItem.projectId, this.storeId),
+        eq(bulkEditItem.storeId, this.storeId),
         inArray(bulkEditItem.jobId, [...jobIds])
       )
     )
@@ -421,7 +421,7 @@ async countDistinctProductsForJobs(
     .from(bulkEditItem)
     .where(
       and(
-        eq(bulkEditItem.projectId, this.storeId),
+        eq(bulkEditItem.storeId, this.storeId),
         inArray(bulkEditItem.jobId, [...jobIds])
       )
     )
@@ -435,7 +435,7 @@ async countDistinctProductsForJobs(
 }
 ```
 
-Repository batch methods must return data scoped by `projectId = this.storeId`.
+Repository batch methods must return data scoped by `storeId = this.storeId`.
 For aggregate methods, the repository returns only rows that exist in the database:
 
 - A job with no `bulk_edit_item` rows is absent from `countByStatusForJobs(...)`.
@@ -729,7 +729,7 @@ Do not denormalize progress counters into `bulk_edit_job` in this change; the cu
 - Multiple simultaneous `QUEUED`/`RUNNING` jobs appear in the same connection response.
 - `productBulkUpdateJob(jobId)` accepts only Relay GID values for `ProductBulkUpdateJob`.
 - Non-GID `jobId` values are rejected by `productBulkUpdateJob(jobId)`.
-- Query is scoped to `projectId = this.storeId`.
+- Query is scoped to `storeId = this.storeId`.
 - Response follows Relay shape: `edges`, `cursor`, `node`, `pageInfo`, `totalCount`.
 - Pagination is stable by `createdAt DESC, id DESC`.
 - Job connection pagination is implemented through `@shopana/drizzle-query` `createRelayQuery`.

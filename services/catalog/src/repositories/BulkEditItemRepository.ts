@@ -102,7 +102,7 @@ export class BulkEditItemRepository extends BaseRepository {
         (item) =>
           ({
             ...item,
-            projectId: this.storeId,
+            storeId: this.storeId,
             status: "PENDING" as const,
             cancelRequested: false,
           }) satisfies NewBulkEditItem,
@@ -116,7 +116,7 @@ export class BulkEditItemRepository extends BaseRepository {
       .from(bulkEditItem)
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           eq(bulkEditItem.id, itemId),
         ),
       );
@@ -132,7 +132,7 @@ export class BulkEditItemRepository extends BaseRepository {
       .from(bulkEditItem)
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           inArray(bulkEditItem.id, [...itemIds]),
         ),
       );
@@ -144,7 +144,7 @@ export class BulkEditItemRepository extends BaseRepository {
       .from(bulkEditItem)
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           eq(bulkEditItem.jobId, jobId),
         ),
       )
@@ -171,7 +171,7 @@ export class BulkEditItemRepository extends BaseRepository {
       })
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           inArray(bulkEditItem.productId, productIds),
           inArray(bulkEditItem.status, ["PENDING", "RUNNING"]),
           ne(bulkEditItem.jobId, newJobId),
@@ -191,7 +191,7 @@ export class BulkEditItemRepository extends BaseRepository {
       })
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           eq(bulkEditItem.id, itemId),
           eq(bulkEditItem.status, "PENDING"),
           eq(bulkEditItem.cancelRequested, false),
@@ -215,7 +215,7 @@ export class BulkEditItemRepository extends BaseRepository {
       })
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           eq(bulkEditItem.id, itemId),
           eq(bulkEditItem.status, "RUNNING"),
         ),
@@ -238,7 +238,7 @@ export class BulkEditItemRepository extends BaseRepository {
       })
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           eq(bulkEditItem.id, itemId),
           eq(bulkEditItem.status, "RUNNING"),
         ),
@@ -262,7 +262,7 @@ export class BulkEditItemRepository extends BaseRepository {
       })
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           eq(bulkEditItem.jobId, jobId),
           eq(bulkEditItem.status, "PENDING"),
           eq(bulkEditItem.cancelRequested, true),
@@ -287,7 +287,7 @@ export class BulkEditItemRepository extends BaseRepository {
       })
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           eq(bulkEditItem.jobId, jobId),
           eq(bulkEditItem.status, "PENDING"),
         ),
@@ -306,7 +306,7 @@ export class BulkEditItemRepository extends BaseRepository {
       .from(bulkEditItem)
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           eq(bulkEditItem.jobId, jobId),
         ),
       )
@@ -334,7 +334,7 @@ export class BulkEditItemRepository extends BaseRepository {
       .from(bulkEditItem)
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           inArray(bulkEditItem.jobId, [...jobIds]),
         ),
       )
@@ -357,7 +357,7 @@ export class BulkEditItemRepository extends BaseRepository {
       .from(bulkEditItem)
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           eq(bulkEditItem.jobId, jobId),
         ),
       );
@@ -379,7 +379,7 @@ export class BulkEditItemRepository extends BaseRepository {
       .from(bulkEditItem)
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           inArray(bulkEditItem.jobId, [...jobIds]),
         ),
       )
@@ -401,7 +401,7 @@ export class BulkEditItemRepository extends BaseRepository {
     );
 
     const baseFilters = [
-      eq(bulkEditItem.projectId, this.storeId),
+      eq(bulkEditItem.storeId, this.storeId),
       eq(bulkEditItem.jobId, input.jobId),
     ];
 

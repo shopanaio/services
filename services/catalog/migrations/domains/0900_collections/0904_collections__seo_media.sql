@@ -3,7 +3,7 @@
 CREATE TABLE "catalog"."collection_seo" (
   "collection_id" uuid NOT NULL,
   "locale" varchar(8) NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "seo_title" varchar(70),
   "seo_description" varchar(160),
   "og_title" varchar(95),
@@ -16,13 +16,13 @@ CREATE TABLE "catalog"."collection_seo" (
     ON DELETE CASCADE
 );
 
-CREATE INDEX "idx_collection_seo_project_locale"
-  ON "catalog"."collection_seo" ("project_id", "locale");
+CREATE INDEX "idx_collection_seo_store_locale"
+  ON "catalog"."collection_seo" ("store_id", "locale");
 
 CREATE TABLE "catalog"."collection_media" (
   "collection_id" uuid NOT NULL,
   "file_id" uuid NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "sort_index" integer NOT NULL DEFAULT 0,
   CONSTRAINT "collection_media_pkey" PRIMARY KEY ("collection_id", "file_id"),
   CONSTRAINT "collection_media_collection_id_fk"

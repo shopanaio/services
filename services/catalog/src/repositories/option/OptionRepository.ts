@@ -32,7 +32,7 @@ export class OptionRepository extends BaseRepository {
       .select()
       .from(productOption)
       .where(
-        and(eq(productOption.projectId, this.storeId), eq(productOption.id, id))
+        and(eq(productOption.storeId, this.storeId), eq(productOption.id, id))
       )
       .limit(1);
 
@@ -45,7 +45,7 @@ export class OptionRepository extends BaseRepository {
       .from(productOption)
       .where(
         and(
-          eq(productOption.projectId, this.storeId),
+          eq(productOption.storeId, this.storeId),
           eq(productOption.productId, productId),
           eq(productOption.slug, slug)
         )
@@ -61,7 +61,7 @@ export class OptionRepository extends BaseRepository {
       .from(productOption)
       .where(
         and(
-          eq(productOption.projectId, this.storeId),
+          eq(productOption.storeId, this.storeId),
           eq(productOption.productId, productId)
         )
       )
@@ -76,7 +76,7 @@ export class OptionRepository extends BaseRepository {
 
     const newOption: NewProductOption = {
       id,
-      projectId: this.storeId,
+      storeId: this.storeId,
       productId,
       slug: data.slug,
       displayType: data.displayType,
@@ -109,7 +109,7 @@ export class OptionRepository extends BaseRepository {
       .update(productOption)
       .set(updateData)
       .where(
-        and(eq(productOption.projectId, this.storeId), eq(productOption.id, id))
+        and(eq(productOption.storeId, this.storeId), eq(productOption.id, id))
       )
       .returning();
 
@@ -120,7 +120,7 @@ export class OptionRepository extends BaseRepository {
     const result = await this.connection
       .delete(productOption)
       .where(
-        and(eq(productOption.projectId, this.storeId), eq(productOption.id, id))
+        and(eq(productOption.storeId, this.storeId), eq(productOption.id, id))
       )
       .returning({ id: productOption.id });
 
@@ -135,7 +135,7 @@ export class OptionRepository extends BaseRepository {
       .from(productOption)
       .where(
         and(
-          eq(productOption.projectId, this.storeId),
+          eq(productOption.storeId, this.storeId),
           eq(productOption.productId, productId)
         )
       );
@@ -152,7 +152,7 @@ export class OptionRepository extends BaseRepository {
       .from(productOption)
       .where(
         and(
-          eq(productOption.projectId, this.storeId),
+          eq(productOption.storeId, this.storeId),
           eq(productOption.productId, productId),
           inArray(productOption.id, ids)
         )
@@ -165,7 +165,7 @@ export class OptionRepository extends BaseRepository {
         .delete(productOption)
         .where(
           and(
-            eq(productOption.projectId, this.storeId),
+            eq(productOption.storeId, this.storeId),
             eq(productOption.productId, productId)
           )
         );
@@ -174,7 +174,7 @@ export class OptionRepository extends BaseRepository {
         .delete(productOption)
         .where(
           and(
-            eq(productOption.projectId, this.storeId),
+            eq(productOption.storeId, this.storeId),
             eq(productOption.productId, productId),
             notInArray(productOption.id, keepIds)
           )
@@ -193,7 +193,7 @@ export class OptionRepository extends BaseRepository {
       .from(productOptionValue)
       .where(
         and(
-          eq(productOptionValue.projectId, this.storeId),
+          eq(productOptionValue.storeId, this.storeId),
           inArray(productOptionValue.optionId, optionIds)
         )
       );
@@ -213,7 +213,7 @@ export class OptionRepository extends BaseRepository {
         .delete(productOptionValue)
         .where(
           and(
-            eq(productOptionValue.projectId, this.storeId),
+            eq(productOptionValue.storeId, this.storeId),
             eq(productOptionValue.optionId, optionId)
           )
         );
@@ -222,7 +222,7 @@ export class OptionRepository extends BaseRepository {
         .delete(productOptionValue)
         .where(
           and(
-            eq(productOptionValue.projectId, this.storeId),
+            eq(productOptionValue.storeId, this.storeId),
             eq(productOptionValue.optionId, optionId),
             notInArray(productOptionValue.id, keepIds)
           )
@@ -238,7 +238,7 @@ export class OptionRepository extends BaseRepository {
       .from(productOptionValue)
       .where(
         and(
-          eq(productOptionValue.projectId, this.storeId),
+          eq(productOptionValue.storeId, this.storeId),
           eq(productOptionValue.id, id)
         )
       )
@@ -253,7 +253,7 @@ export class OptionRepository extends BaseRepository {
       .from(productOptionValue)
       .where(
         and(
-          eq(productOptionValue.projectId, this.storeId),
+          eq(productOptionValue.storeId, this.storeId),
           eq(productOptionValue.optionId, optionId)
         )
       )
@@ -270,7 +270,7 @@ export class OptionRepository extends BaseRepository {
       .from(productOptionValue)
       .where(
         and(
-          eq(productOptionValue.projectId, this.storeId),
+          eq(productOptionValue.storeId, this.storeId),
           inArray(productOptionValue.optionId, optionIds)
         )
       )
@@ -297,7 +297,7 @@ export class OptionRepository extends BaseRepository {
 
     const newValue: NewProductOptionValue = {
       id,
-      projectId: this.storeId,
+      storeId: this.storeId,
       optionId,
       slug: data.slug,
       sortIndex: data.sortIndex,
@@ -331,7 +331,7 @@ export class OptionRepository extends BaseRepository {
       .set(updateData)
       .where(
         and(
-          eq(productOptionValue.projectId, this.storeId),
+          eq(productOptionValue.storeId, this.storeId),
           eq(productOptionValue.id, id)
         )
       )
@@ -345,7 +345,7 @@ export class OptionRepository extends BaseRepository {
       .delete(productOptionValue)
       .where(
         and(
-          eq(productOptionValue.projectId, this.storeId),
+          eq(productOptionValue.storeId, this.storeId),
           eq(productOptionValue.id, id)
         )
       )
@@ -367,7 +367,7 @@ export class OptionRepository extends BaseRepository {
 
     const newSwatch: NewProductOptionSwatch = {
       id,
-      projectId: this.storeId,
+      storeId: this.storeId,
       swatchType: data.swatchType,
       colorOne: data.colorOne ?? null,
       colorTwo: data.colorTwo ?? null,
@@ -391,7 +391,7 @@ export class OptionRepository extends BaseRepository {
     optionValueId: string
   ): Promise<void> {
     const newLink: NewProductOptionVariantLink = {
-      projectId: this.storeId,
+      storeId: this.storeId,
       variantId,
       optionId,
       optionValueId,
@@ -411,7 +411,7 @@ export class OptionRepository extends BaseRepository {
       .delete(productOptionVariantLink)
       .where(
         and(
-          eq(productOptionVariantLink.projectId, this.storeId),
+          eq(productOptionVariantLink.storeId, this.storeId),
           eq(productOptionVariantLink.variantId, variantId)
         )
       );
@@ -427,7 +427,7 @@ export class OptionRepository extends BaseRepository {
       .from(productOptionVariantLink)
       .where(
         and(
-          eq(productOptionVariantLink.projectId, this.storeId),
+          eq(productOptionVariantLink.storeId, this.storeId),
           inArray(productOptionVariantLink.variantId, variantIds)
         )
       );
@@ -451,7 +451,7 @@ export class OptionRepository extends BaseRepository {
       .from(productOptionTranslation)
       .where(
         and(
-          eq(productOptionTranslation.projectId, this.storeId),
+          eq(productOptionTranslation.storeId, this.storeId),
           inArray(productOptionTranslation.optionId, [...optionIds]),
           eq(productOptionTranslation.locale, this.locale)
         )
@@ -470,7 +470,7 @@ export class OptionRepository extends BaseRepository {
       .from(productOptionValue)
       .where(
         and(
-          eq(productOptionValue.projectId, this.storeId),
+          eq(productOptionValue.storeId, this.storeId),
           inArray(productOptionValue.optionId, [...optionIds])
         )
       )
@@ -487,7 +487,7 @@ export class OptionRepository extends BaseRepository {
       .from(productOptionValue)
       .where(
         and(
-          eq(productOptionValue.projectId, this.storeId),
+          eq(productOptionValue.storeId, this.storeId),
           inArray(productOptionValue.id, [...valueIds])
         )
       );
@@ -500,7 +500,7 @@ export class OptionRepository extends BaseRepository {
       .from(productOptionSwatch)
       .where(
         and(
-          eq(productOptionSwatch.projectId, this.storeId),
+          eq(productOptionSwatch.storeId, this.storeId),
           inArray(productOptionSwatch.id, [...swatchIds])
         )
       );
@@ -514,7 +514,7 @@ export class OptionRepository extends BaseRepository {
       .from(productOptionValueTranslation)
       .where(
         and(
-          eq(productOptionValueTranslation.projectId, this.storeId),
+          eq(productOptionValueTranslation.storeId, this.storeId),
           inArray(productOptionValueTranslation.optionValueId, [...optionValueIds]),
           eq(productOptionValueTranslation.locale, this.locale)
         )

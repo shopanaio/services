@@ -1,3 +1,3 @@
 export interface OrderNumberPort {
-  reserve(projectId: string): Promise<number>;
+  reserve(storeId: string): Promise<number>;
 }

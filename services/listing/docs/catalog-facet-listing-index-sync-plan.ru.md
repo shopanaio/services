@@ -55,7 +55,7 @@ full snapshot-ом**.
 Причины:
 
 - текущий listing write path реализован как replace by item snapshot;
-- stale/idempotency protection работает по `projectId + entityType + itemId +
+- stale/idempotency protection работает по `storeId + entityType + itemId +
   sourceRevision`;
 - merge/unmerge display values меняет effective value без изменения raw source
   assignment;
@@ -118,7 +118,7 @@ type FacetListingSourceRef = {
 };
 
 type FacetListingSyncInput = {
-  projectId: string;
+  storeId: string;
   storeId: string;
   organizationId: string;
   userId?: string;
@@ -130,7 +130,7 @@ type FacetListingSyncInput = {
 };
 ```
 
-`projectId` является canonical scope для catalog/listing data и передается в
+`storeId` является canonical scope для catalog/listing data и передается в
 `listing.syncSellableItems`. `storeId` нужен для получения store context,
 default locale и tenant metadata. В текущей модели они могут совпадать, но
 workflow payload не должен полагаться на это неявно.
@@ -187,7 +187,7 @@ FacetListingAffectedProductsScript
 
 ```ts
 type FacetListingAffectedProductsParams = {
-  projectId: string;
+  storeId: string;
   storeId: string;
   sourceRefs: FacetListingSourceRef[];
   productIds?: string[];
@@ -210,7 +210,7 @@ type FacetListingAffectedProductsResult = {
 | `FEATURE` | `product_feature.slug = sourceHandle`; если задан `sourceValueHandle`, дополнительно match normalized handle `${product_feature.slug}:${product_feature_value.slug}` = `sourceValueHandle`. Исключать group features. |
 | `OPTION` | `product_option.slug = sourceHandle`; если задан `sourceValueHandle`, дополнительно match normalized handle `${product_option.slug}:${product_option_value.slug}` = `sourceValueHandle`; через `product_option_variant_link -> variant.product_id`. |
 
-Все queries должны быть scoped by `projectId`. Если конкретная table хранит
+Все queries должны быть scoped by `storeId`. Если конкретная table хранит
 `storeId` как отдельный ключ, дополнительно фильтровать по `storeId`. Affected
 lookup должен исключать soft-deleted products/variants.
 
@@ -433,10 +433,10 @@ Workflow должен:
 
 - принимает `FacetListingSyncInput`;
 - получает store context по `storeId` и проверяет, что он относится к
-  `projectId`;
+  `storeId`;
 - запускает affected products script;
 - запускает `ListingSnapshotBuildScript`;
-- вызывает `ListingSyncPublisher.syncItems` с `projectId`.
+- вызывает `ListingSyncPublisher.syncItems` с `storeId`.
 
 ### 3. Подключить к mutation flows
 

@@ -3,7 +3,7 @@
 CREATE TABLE "catalog"."collection_translation" (
   "collection_id" uuid NOT NULL,
   "locale" varchar(8) NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "name" text NOT NULL,
   "description_text" text,
   "description_html" text,
@@ -18,5 +18,5 @@ CREATE TABLE "catalog"."collection_translation" (
     ON DELETE CASCADE
 );
 
-CREATE INDEX "idx_collection_translation_project_locale"
-  ON "catalog"."collection_translation" ("project_id", "locale");
+CREATE INDEX "idx_collection_translation_store_locale"
+  ON "catalog"."collection_translation" ("store_id", "locale");

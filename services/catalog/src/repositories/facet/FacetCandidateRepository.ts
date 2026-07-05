@@ -22,7 +22,7 @@ const FACET_VALUE_CANDIDATE_TYPES = new Set(["TAG", "OPTION", "FEATURE"]);
 
 export const facetSourceCandidateRelayQuery = createRelayQuery(
   createQuery(facetSourceCandidateView)
-    .include(["id", "projectId", "locale", "facetType", "handle"])
+    .include(["id", "storeId", "locale", "facetType", "handle"])
     .maxLimit(100)
     .defaultLimit(30),
   { name: "facetSourceCandidate", tieBreaker: "id" }
@@ -48,7 +48,7 @@ const createFacetValueCandidateRelayQuery = (
     createQuery(view)
       .include([
         "id",
-        "projectId",
+        "storeId",
         "locale",
         "facetType",
         "sourceHandle",
@@ -92,7 +92,7 @@ export interface FacetValueCandidateConnectionResult {
 }
 
 export interface FacetSourceCandidateQueryParams {
-  projectId: string;
+  storeId: string;
   locale: string;
   excludedSources?: FacetSourceCandidateRef[];
   input: FacetSourceCandidateRelayInput;
@@ -104,7 +104,7 @@ export interface FacetSourceCandidateRef {
 }
 
 export interface FacetValueCandidateQueryParams {
-  projectId: string;
+  storeId: string;
   locale: string;
   candidateType: FacetValueCandidateType;
   sourceHandles: string[];
@@ -113,14 +113,14 @@ export interface FacetValueCandidateQueryParams {
 }
 
 export interface GetFacetSourceCandidateParams {
-  projectId: string;
+  storeId: string;
   locale: string;
   facetType: string;
   handle: string;
 }
 
 export interface GetFacetValueCandidatesByHandlesParams {
-  projectId: string;
+  storeId: string;
   locale: string;
   candidateType: FacetValueCandidateType;
   sourceHandles: string[];
@@ -144,7 +144,7 @@ export class FacetCandidateRepository {
     const excludedSources = normalizeSourceCandidateRefs(params.excludedSources);
     const mergedWhere: FacetSourceCandidateRelayInput["where"] = {
       _and: [
-        { projectId: { _eq: params.projectId } },
+        { storeId: { _eq: params.storeId } },
         { locale: { _eq: params.locale } },
         ...excludedSources.map((source) => ({
           _not: {
@@ -196,7 +196,7 @@ export class FacetCandidateRepository {
     const excludedHandles = normalizeHandles(params.existingSourceValueHandles);
     const mergedWhere: FacetValueCandidateRelayInput["where"] = {
       _and: [
-        { projectId: { _eq: params.projectId } },
+        { storeId: { _eq: params.storeId } },
         { locale: { _eq: params.locale } },
         { facetType: { _eq: params.candidateType } },
         { sourceHandle: { _in: sourceHandles } },
@@ -241,7 +241,7 @@ export class FacetCandidateRepository {
       .from(facetSourceCandidateView)
       .where(
         and(
-          eq(facetSourceCandidateView.projectId, params.projectId),
+          eq(facetSourceCandidateView.storeId, params.storeId),
           eq(facetSourceCandidateView.locale, params.locale),
           eq(facetSourceCandidateView.facetType, params.facetType),
           eq(facetSourceCandidateView.handle, params.handle)
@@ -276,7 +276,7 @@ export class FacetCandidateRepository {
       .from(view)
       .where(
         and(
-          eq(view.projectId, params.projectId),
+          eq(view.storeId, params.storeId),
           eq(view.locale, params.locale),
           eq(view.facetType, params.candidateType),
           inArray(view.sourceHandle, sourceHandles),

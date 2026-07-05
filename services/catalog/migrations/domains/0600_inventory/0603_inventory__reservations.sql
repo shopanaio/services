@@ -2,7 +2,7 @@
 
 CREATE TABLE "catalog"."reservations" (
   "id" uuid NOT NULL DEFAULT gen_random_uuid(),
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "variant_id" uuid NOT NULL,
   "warehouse_id" uuid NOT NULL,
   "order_system" varchar(50) NOT NULL,
@@ -17,8 +17,8 @@ CREATE TABLE "catalog"."reservations" (
     REFERENCES "catalog"."warehouses" ("id")
     ON DELETE CASCADE,
   CONSTRAINT "reservations_quantity_check" CHECK ("quantity" > 0),
-  CONSTRAINT "reservations_project_order_variant_warehouse_key"
-    UNIQUE ("project_id", "order_system", "order_id", "variant_id", "warehouse_id")
+  CONSTRAINT "reservations_store_order_variant_warehouse_key"
+    UNIQUE ("store_id", "order_system", "order_id", "variant_id", "warehouse_id")
 );
 
 CREATE INDEX "idx_reservations_variant"

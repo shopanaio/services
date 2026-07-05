@@ -292,7 +292,7 @@ const scopeWhere = await this.buildHierarchyScopeWhere(
 
 const mergedWhere = {
   _and: [
-    { projectId: { _eq: this.storeId } },
+    { storeId: { _eq: this.storeId } },
     { deletedAt: { _is: null } },
     ...(where ? [where] : []),
     ...(scopeWhere ? [scopeWhere] : []),
@@ -356,8 +356,8 @@ Backend не должен silently менять `orderBy`, иначе cursor pag
 Добавить миграцию с prefix-friendly index:
 
 ```sql
-CREATE INDEX IF NOT EXISTS idx_category_project_path_prefix
-  ON catalog.category (project_id, path text_pattern_ops)
+CREATE INDEX IF NOT EXISTS idx_category_store_path_prefix
+  ON catalog.category (store_id, path text_pattern_ops)
   WHERE deleted_at IS NULL;
 ```
 
@@ -445,6 +445,6 @@ Descendants, которые не являются direct children, остают�
 - `CategoryWhereInput` остается generated и не редактируется вручную.
 - `meta.hierarchyScope.referenceId` strict-decode как `GlobalIdEntity.Category` на resolver boundary.
 - Existing generated `where` normalization сохраняет текущую tolerant-семантику для `id`/`parentId`.
-- Repository всегда применяет `projectId` и `deletedAt` вместе с hierarchy scope.
+- Repository всегда применяет `storeId` и `deletedAt` вместе с hierarchy scope.
 - Mutation validation от циклов остается обязательной и не заменяется UI фильтрацией.
 - `totalCount` использует те же filters, что и paginated connection.

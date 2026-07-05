@@ -38,7 +38,7 @@ export class CategoryUpdateSeoScript extends BaseScript<
       );
     } else {
       await this.repository.translation.upsertCategorySeo({
-        projectId: this.getProjectId(),
+        storeId: this.getProjectId(),
         categoryId: params.categoryId,
         locale: this.getLocale(),
         seoTitle: params.seo.seoTitle ?? null,

@@ -30,7 +30,7 @@ export class VariantListingIndexRepository extends BaseRepository {
       .from(variantListingIndex)
       .where(
         and(
-          eq(variantListingIndex.projectId, this.storeId),
+          eq(variantListingIndex.storeId, this.storeId),
           eq(variantListingIndex.variantId, variantId)
         )
       )
@@ -47,7 +47,7 @@ export class VariantListingIndexRepository extends BaseRepository {
       .from(variantListingIndex)
       .where(
         and(
-          eq(variantListingIndex.projectId, this.storeId),
+          eq(variantListingIndex.storeId, this.storeId),
           eq(variantListingIndex.variantDocId, variantDocId)
         )
       )
@@ -63,7 +63,7 @@ export class VariantListingIndexRepository extends BaseRepository {
       .from(variantListingIndex)
       .where(
         and(
-          eq(variantListingIndex.projectId, this.storeId),
+          eq(variantListingIndex.storeId, this.storeId),
           eq(variantListingIndex.variantId, variantId)
         )
       )
@@ -82,7 +82,7 @@ export class VariantListingIndexRepository extends BaseRepository {
       .from(variantListingIndex)
       .where(
         and(
-          eq(variantListingIndex.projectId, this.storeId),
+          eq(variantListingIndex.storeId, this.storeId),
           eq(variantListingIndex.variantDocId, variantDocId)
         )
       )
@@ -104,7 +104,7 @@ export class VariantListingIndexRepository extends BaseRepository {
       .from(variantListingIndex)
       .where(
         and(
-          eq(variantListingIndex.projectId, this.storeId),
+          eq(variantListingIndex.storeId, this.storeId),
           inArray(variantListingIndex.variantId, [...new Set(variantIds)])
         )
       );
@@ -127,7 +127,7 @@ export class VariantListingIndexRepository extends BaseRepository {
       .from(variantListingIndex)
       .where(
         and(
-          eq(variantListingIndex.projectId, this.storeId),
+          eq(variantListingIndex.storeId, this.storeId),
           inArray(variantListingIndex.variantDocId, [...new Set(variantDocIds)])
         )
       );
@@ -146,7 +146,7 @@ export class VariantListingIndexRepository extends BaseRepository {
       .from(variantListingIndex)
       .where(
         and(
-          eq(variantListingIndex.projectId, this.storeId),
+          eq(variantListingIndex.storeId, this.storeId),
           inArray(variantListingIndex.productId, [...new Set(productIds)])
         )
       );
@@ -169,7 +169,7 @@ export class VariantListingIndexRepository extends BaseRepository {
       .from(variantListingIndex)
       .where(
         and(
-          eq(variantListingIndex.projectId, this.storeId),
+          eq(variantListingIndex.storeId, this.storeId),
           inArray(variantListingIndex.productDocId, [...new Set(productDocIds)])
         )
       );
@@ -180,7 +180,7 @@ export class VariantListingIndexRepository extends BaseRepository {
     const rows = await this.connection
       .select({ value: count() })
       .from(variantListingIndex)
-      .where(eq(variantListingIndex.projectId, this.storeId));
+      .where(eq(variantListingIndex.storeId, this.storeId));
 
     return rows[0]?.value ?? 0;
   }
@@ -208,7 +208,7 @@ export class VariantListingIndexRepository extends BaseRepository {
         .values(values)
         .onConflictDoUpdate({
           target: variantListingIndex.variantId,
-          setWhere: eq(variantListingIndex.projectId, this.storeId),
+          setWhere: eq(variantListingIndex.storeId, this.storeId),
           set: {
             productId: sql`excluded.product_id`,
             productDocId: sql`excluded.product_doc_id`,
@@ -236,7 +236,7 @@ export class VariantListingIndexRepository extends BaseRepository {
       .set(this.toPatchRow(patch))
       .where(
         and(
-          eq(variantListingIndex.projectId, this.storeId),
+          eq(variantListingIndex.storeId, this.storeId),
           eq(variantListingIndex.variantId, variantId)
         )
       )
@@ -262,7 +262,7 @@ export class VariantListingIndexRepository extends BaseRepository {
       })
       .where(
         and(
-          eq(variantListingIndex.projectId, this.storeId),
+          eq(variantListingIndex.storeId, this.storeId),
           eq(variantListingIndex.variantId, variantId)
         )
       )
@@ -276,7 +276,7 @@ export class VariantListingIndexRepository extends BaseRepository {
       .delete(variantListingIndex)
       .where(
         and(
-          eq(variantListingIndex.projectId, this.storeId),
+          eq(variantListingIndex.storeId, this.storeId),
           eq(variantListingIndex.variantId, variantId)
         )
       )
@@ -296,7 +296,7 @@ export class VariantListingIndexRepository extends BaseRepository {
         .delete(variantListingIndex)
         .where(
           and(
-            eq(variantListingIndex.projectId, this.storeId),
+            eq(variantListingIndex.storeId, this.storeId),
             inArray(variantListingIndex.variantId, chunk)
           )
         )
@@ -313,7 +313,7 @@ export class VariantListingIndexRepository extends BaseRepository {
       .delete(variantListingIndex)
       .where(
         and(
-          eq(variantListingIndex.projectId, this.storeId),
+          eq(variantListingIndex.storeId, this.storeId),
           eq(variantListingIndex.productId, productId)
         )
       )
@@ -333,7 +333,7 @@ export class VariantListingIndexRepository extends BaseRepository {
         .delete(variantListingIndex)
         .where(
           and(
-            eq(variantListingIndex.projectId, this.storeId),
+            eq(variantListingIndex.storeId, this.storeId),
             inArray(variantListingIndex.productId, chunk)
           )
         )
@@ -366,7 +366,7 @@ export class VariantListingIndexRepository extends BaseRepository {
       .from(variantListingIndex)
       .where(
         and(
-          eq(variantListingIndex.projectId, this.storeId),
+          eq(variantListingIndex.storeId, this.storeId),
           inArray(variantListingIndex.productId, [...new Set(productIds)])
         )
       );
@@ -402,7 +402,7 @@ export class VariantListingIndexRepository extends BaseRepository {
       .from(variantListingIndex)
       .where(
         and(
-          eq(variantListingIndex.projectId, this.storeId),
+          eq(variantListingIndex.storeId, this.storeId),
           inArray(variantListingIndex.productId, [...new Set(productIds)])
         )
       )
@@ -428,7 +428,7 @@ export class VariantListingIndexRepository extends BaseRepository {
     const signatureKey = normalizeOptionalSignatureKey(row.signatureKey);
 
     return {
-      projectId: this.storeId,
+      storeId: this.storeId,
       productId: row.productId,
       productDocId: row.productDocId,
       variantId: row.variantId,

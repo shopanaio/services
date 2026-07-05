@@ -37,7 +37,7 @@ export class BulkEditJobRepository extends BaseRepository {
       .insert(bulkEditJob)
       .values({
         id: data.id,
-        projectId: this.storeId,
+        storeId: this.storeId,
         status: "QUEUED",
       } satisfies NewBulkEditJob)
       .returning();
@@ -50,7 +50,7 @@ export class BulkEditJobRepository extends BaseRepository {
       .select()
       .from(bulkEditJob)
       .where(
-        and(eq(bulkEditJob.projectId, this.storeId), eq(bulkEditJob.id, id))
+        and(eq(bulkEditJob.storeId, this.storeId), eq(bulkEditJob.id, id))
       );
 
     return job ?? null;
@@ -66,7 +66,7 @@ export class BulkEditJobRepository extends BaseRepository {
 
     const where: BulkEditJobRelayInput["where"] = {
       _and: [
-        { projectId: { _eq: this.storeId } },
+        { storeId: { _eq: this.storeId } },
         { status: { _in: statusFilter } },
       ],
     };
@@ -104,7 +104,7 @@ export class BulkEditJobRepository extends BaseRepository {
       .from(bulkEditJob)
       .where(
         and(
-          eq(bulkEditJob.projectId, this.storeId),
+          eq(bulkEditJob.storeId, this.storeId),
           inArray(bulkEditJob.id, [...jobIds])
         )
       );
@@ -123,7 +123,7 @@ export class BulkEditJobRepository extends BaseRepository {
       })
       .where(
         and(
-          eq(bulkEditJob.projectId, this.storeId),
+          eq(bulkEditJob.storeId, this.storeId),
           eq(bulkEditJob.id, jobId),
           eq(bulkEditJob.status, "QUEUED")
         )
@@ -139,7 +139,7 @@ export class BulkEditJobRepository extends BaseRepository {
       .set({ status: "CANCELLED" })
       .where(
         and(
-          eq(bulkEditJob.projectId, this.storeId),
+          eq(bulkEditJob.storeId, this.storeId),
           eq(bulkEditJob.id, jobId),
           inArray(bulkEditJob.status, ["QUEUED", "RUNNING"])
         )
@@ -157,7 +157,7 @@ export class BulkEditJobRepository extends BaseRepository {
         finishedAt: sql`NOW()`,
       })
       .where(
-        and(eq(bulkEditJob.projectId, this.storeId), eq(bulkEditJob.id, jobId))
+        and(eq(bulkEditJob.storeId, this.storeId), eq(bulkEditJob.id, jobId))
       );
   }
 }

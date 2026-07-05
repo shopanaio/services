@@ -28,7 +28,7 @@ export type OrderCost = Readonly<{
 }>;
 
 type ComputeTotalsInput = {
-  projectId: string;
+  storeId: string;
   orderLines: OrderLineItemState[];
   appliedDiscounts?: Discount[] | null;
   currency: string;
@@ -166,9 +166,9 @@ export class OrderCostService {
   private buildPricingInput(
     input: ComputeTotalsInput
   ): PricingEvaluateDiscountsInput {
-    // Check for required projectId presence
-    if (!input.projectId || input.projectId.trim() === "") {
-      throw new Error("projectId is required for pricing evaluation");
+    // Check for required storeId presence
+    if (!input.storeId || input.storeId.trim() === "") {
+      throw new Error("storeId is required for pricing evaluation");
     }
 
     // Extract discount codes from appliedDiscounts
@@ -176,7 +176,7 @@ export class OrderCostService {
       input.appliedDiscounts?.map((discount) => discount.code) || [];
 
     return {
-      projectId: input.projectId,
+      storeId: input.storeId,
       currency: input.currency,
       appliedDiscountCodes,
       lines: input.orderLines.map((line) => ({

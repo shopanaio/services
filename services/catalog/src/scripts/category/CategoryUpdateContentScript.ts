@@ -57,7 +57,7 @@ export class CategoryUpdateContentScript extends BaseScript<
         : toRichTextStorage(params.excerpt);
 
     await this.repository.category.upsertTranslation({
-      projectId: this.getProjectId(),
+      storeId: this.getProjectId(),
       categoryId: params.categoryId,
       locale: this.getLocale(),
       name: existingTranslation?.name ?? "",

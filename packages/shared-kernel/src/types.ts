@@ -52,7 +52,7 @@ export interface TransactionScript<TParams = any, TResult = any, TServices exten
  */
 export interface ScriptContext {
   readonly requestId?: string;
-  readonly projectId?: string;
+  readonly storeId?: string;
   readonly startTime: number;
   readonly metadata?: Record<string, unknown>;
 }

@@ -244,7 +244,7 @@ interface LogContext {
   requestId?: string;     // Correlation ID
   userId?: string;        // Current user
   organizationId?: string;// Organization/tenant
-  projectId?: string;     // Project/store
+  storeId?: string;     // Store
   resourceId?: string;    // Resource being operated on
   action?: string;        // Action being performed
   duration?: number;      // Operation duration in ms

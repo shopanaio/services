@@ -42,7 +42,7 @@ export const productFeature = pgTable(
   "product_feature",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),

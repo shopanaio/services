@@ -2,7 +2,7 @@
 
 CREATE TABLE "catalog"."dependency_rule" (
   "id" uuid NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "configuration_id" uuid NOT NULL,
   "name" varchar(255) NOT NULL,
   "enabled" boolean NOT NULL DEFAULT true,

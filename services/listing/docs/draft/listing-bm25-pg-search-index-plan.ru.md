@@ -37,7 +37,7 @@ options или другим полям. Текстовый поиск возвр
 2. Искать только по product title в выбранной locale.
 3. Сохранить разделение: BM25 индекс ищет название, listing index фильтрует и
    считает фасеты.
-4. Поддержать multi-tenant и locale-aware поиск: `project_id` + `locale`.
+4. Поддержать multi-tenant и locale-aware поиск: `store_id` + `locale`.
 5. Возвращать стабильный relevance sort в общем listing contract:
    `in_stock DESC, relevance_score DESC, product_id ASC`.
 6. Обеспечить project-scoped rebuild индекса из upstream title snapshots.
@@ -88,7 +88,7 @@ Deployment rules:
 
 - `listing.product_title_bm25_search_index`
 
-Одна строка на product + locale. `project_id` хранится как tenant scope column
+Одна строка на product + locale. `store_id` хранится как tenant scope column
 для фильтрации и индексов, но не входит в PK/FK, потому что `product_id`
 является глобальным идентификатором product row. Валюта не входит в search
 index: цена и доступность остаются в listing index.
@@ -96,7 +96,7 @@ index: цена и доступность остаются в listing index.
 ```sql
 CREATE TABLE listing.product_title_bm25_search_index (
   search_id              uuid NOT NULL,
-  project_id             uuid NOT NULL,
+  store_id             uuid NOT NULL,
   product_id             uuid NOT NULL,
   locale                 varchar(8) NOT NULL,
 
@@ -126,23 +126,23 @@ Column semantics:
 - `search_id` is the BM25 key field. It must be globally unique and stable for
   `(product_id, locale)`. Use deterministic UUID or preserve the generated value
   on upsert.
-- `project_id` comes from indexing snapshot and is used for tenant isolation in
+- `store_id` comes from indexing snapshot and is used for tenant isolation in
   queries and ordinary/BM25 indexes. It is not part of the row identity.
 - `status` mirrors product visibility. Soft-deleted products are deleted from the
   index.
 - `title` comes only from upstream title snapshot data for the same `product_id`,
-  `project_id` and `locale`.
+  `store_id` and `locale`.
 - Empty or missing title rows should be indexed as `title = ''` only if the
   locale is enabled for the project. They will not match normal text queries.
 
 Ordinary indexes:
 
 ```sql
-CREATE INDEX idx_product_title_bm25_project_locale_product
-  ON listing.product_title_bm25_search_index (project_id, locale, product_id);
+CREATE INDEX idx_product_title_bm25_store_locale_product
+  ON listing.product_title_bm25_search_index (store_id, locale, product_id);
 
 CREATE INDEX idx_product_title_bm25_visible
-  ON listing.product_title_bm25_search_index (project_id, locale, published_at DESC, product_id)
+  ON listing.product_title_bm25_search_index (store_id, locale, published_at DESC, product_id)
   WHERE status = 'published';
 ```
 
@@ -153,7 +153,7 @@ CREATE INDEX idx_product_title_bm25_search
   ON listing.product_title_bm25_search_index
   USING bm25 (
     search_id,
-    project_id,
+    store_id,
     locale,
     status,
     kind,
@@ -168,7 +168,7 @@ CREATE INDEX idx_product_title_bm25_search
 Notes:
 
 - `title` is the only searchable text field.
-- `project_id`, `locale`, `status`, `kind` are included so tenant, locale and
+- `store_id`, `locale`, `status`, `kind` are included so tenant, locale and
   visibility filters stay inside the BM25 query.
 - Before implementation, verify that the selected `pg_search` version accepts
   `uuid`, `varchar` and `timestamptz` fields in `USING bm25`. If `uuid` is not
@@ -221,7 +221,7 @@ WITH search_candidates AS (
     ptsi.product_id,
     pdb.score(ptsi.search_id) AS bm25_score
   FROM listing.product_title_bm25_search_index ptsi
-  WHERE ptsi.project_id = :projectId
+  WHERE ptsi.store_id = :storeId
     AND ptsi.locale = :locale
     AND ptsi.status = 'published'
     AND ptsi.title ||| :query
@@ -260,7 +260,7 @@ base_all AS (
   FROM scope_products sp
   JOIN listing.product_listing_index pli
     ON pli.product_id = sp.product_id
-   AND pli.project_id = :projectId
+   AND pli.store_id = :storeId
   JOIN search_candidates sc
     ON sc.product_id = pli.product_id
   WHERE pli.status = 'published'
@@ -305,7 +305,7 @@ Cursor pagination:
 - Relevance cursor includes `in_stock`, `relevance_score` and `product_id`.
 - Business-sort cursors include the selected listing sort keys, optional
   `relevance_score` tie-breaker and `product_id`.
-- Cursor filter hash includes normalized `query`, `project_id`, `locale`,
+- Cursor filter hash includes normalized `query`, `store_id`, `locale`,
   `currency`, listing scope, structured filters and selected sort. A cursor from
   one query/scope/filter set must not be reused for another result set.
 - Do not use offset to derive search depth. Pagination stays keyset/cursor based
@@ -331,7 +331,7 @@ fuzzy_candidates AS (
     ptsi.product_id,
     pdb.score(ptsi.search_id) * 0.75 AS bm25_score
   FROM listing.product_title_bm25_search_index ptsi
-  WHERE ptsi.project_id = :projectId
+  WHERE ptsi.store_id = :storeId
     AND ptsi.locale = :locale
     AND ptsi.status = 'published'
     AND ptsi.title ||| (:query)::pdb.fuzzy(1)
@@ -363,9 +363,9 @@ Add scripts:
 
 `SyncProductTitleBm25SearchIndexScript`:
 
-1. Normalize product title indexing snapshot by `product_id` and `project_id`.
+1. Normalize product title indexing snapshot by `product_id` and `store_id`.
 2. If product is deleted/missing, delete all locale rows for product in the same
-   `project_id`.
+   `store_id`.
 3. Read enabled project locales from the snapshot/project command.
 4. Read title values per enabled locale from snapshot data.
 5. Upsert one row per product/locale with only `title` as searchable text.
@@ -375,7 +375,7 @@ Add scripts:
 `RebuildProductTitleBm25SearchIndexScript`:
 
 1. Supports project-scoped rebuild mode.
-2. Project-scoped rebuild deletes rows by `project_id`, then rebuilds only that
+2. Project-scoped rebuild deletes rows by `store_id`, then rebuilds only that
    project. This mode is used for enabled locale changes.
 3. Process products in batches.
 4. Sync title search index for every active and draft product in scope.
@@ -466,11 +466,11 @@ Rules:
 ## Acceptance criteria
 
 - Project-scoped rebuild deletes and recreates only rows for the selected
-  `project_id`.
+  `store_id`.
 - Search query with `query` uses BM25 candidate CTE over `title` only.
 - No description, SEO, handle, vendor, tag, feature, option or category text is
   stored in the BM25 search table.
-- Query results are tenant-isolated by `project_id` and locale-isolated by
+- Query results are tenant-isolated by `store_id` and locale-isolated by
   `locale`.
 - Relevance sort is deterministic and availability-first:
   `in_stock DESC, relevance_score DESC, product_id ASC`.

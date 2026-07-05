@@ -6,7 +6,7 @@ type App {
 
 type InstalledApp {
   id: String!
-  projectID: String!
+  storeID: String!
   appCode: String!
   domain: String!
   baseURL: String!

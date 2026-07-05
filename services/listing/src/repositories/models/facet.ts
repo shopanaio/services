@@ -25,7 +25,7 @@ export const facet = listingSchema.table(
   "facet",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     facetType: varchar("facet_type", { length: 32 }).notNull(),
     uiType: varchar("ui_type", { length: 16 }).notNull().default("checkbox"),
     selectionMode: varchar("selection_mode", { length: 16 })
@@ -41,8 +41,8 @@ export const facet = listingSchema.table(
       .defaultNow(),
   },
   (table) => [
-    unique("facet_project_id_slug_uniq").on(table.projectId, table.slug),
-    index("idx_facet_rank").on(table.projectId, table.lexoRank),
+    unique("facet_store_id_slug_uniq").on(table.storeId, table.slug),
+    index("idx_facet_rank").on(table.storeId, table.lexoRank),
   ]
 );
 
@@ -53,12 +53,12 @@ export const facetTranslation = listingSchema.table(
       .notNull()
       .references(() => facet.id, { onDelete: "cascade" }),
     locale: varchar("locale", { length: 8 }).notNull(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     label: text("label").notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.facetId, table.locale] }),
-    index("idx_facet_translation_project_locale").on(table.projectId, table.locale),
+    index("idx_facet_translation_store_locale").on(table.storeId, table.locale),
   ]
 );
 
@@ -66,7 +66,7 @@ export const facetSource = listingSchema.table(
   "facet_source",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     facetId: uuid("facet_id")
       .notNull()
       .references(() => facet.id, { onDelete: "cascade" }),
@@ -88,22 +88,22 @@ export const facetSource = listingSchema.table(
       .defaultNow(),
   },
   (table) => [
-    unique("facet_source_project_facet_handle_uniq").on(
-      table.projectId,
+    unique("facet_source_store_facet_handle_uniq").on(
+      table.storeId,
       table.facetId,
       table.handle
     ),
-    unique("facet_source_project_type_handle_uniq").on(
-      table.projectId,
+    unique("facet_source_store_type_handle_uniq").on(
+      table.storeId,
       table.facetType,
       table.handle
     ),
-    index("idx_facet_source_project_facet").on(
-      table.projectId,
+    index("idx_facet_source_store_facet").on(
+      table.storeId,
       table.facetId
     ),
-    index("idx_facet_source_project_type_handle").on(
-      table.projectId,
+    index("idx_facet_source_store_type_handle").on(
+      table.storeId,
       table.facetType,
       table.handle
     ),
@@ -117,13 +117,13 @@ export const facetSourceTranslation = listingSchema.table(
       .notNull()
       .references(() => facetSource.id, { onDelete: "cascade" }),
     locale: varchar("locale", { length: 8 }).notNull(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     name: text("name").notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.facetSourceId, table.locale] }),
-    index("idx_facet_source_translation_project_locale").on(
-      table.projectId,
+    index("idx_facet_source_translation_store_locale").on(
+      table.storeId,
       table.locale
     ),
   ]
@@ -131,7 +131,7 @@ export const facetSourceTranslation = listingSchema.table(
 
 export const facetSwatch = listingSchema.table("facet_swatch", {
   id: uuid("id").primaryKey(),
-  projectId: uuid("project_id").notNull(),
+  storeId: uuid("store_id").notNull(),
   swatchType: varchar("swatch_type", { length: 32 }).notNull(),
   colorOne: varchar("color_one", { length: 32 }),
   colorTwo: varchar("color_two", { length: 32 }),
@@ -143,7 +143,7 @@ export const facetValue = listingSchema.table(
   "facet_value",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     facetId: uuid("facet_id")
       .notNull()
       .references(() => facet.id, { onDelete: "cascade" }),
@@ -186,20 +186,20 @@ export const facetValue = listingSchema.table(
       "facet_value_display_reference_status_check",
       sql`${table.kind} <> 'display' OR ${table.referenceStatus} = 'VALID'`
     ),
-    uniqueIndex("facet_value_source_project_facet_handle_uniq")
-      .on(table.projectId, table.facetId, table.handle)
+    uniqueIndex("facet_value_source_store_facet_handle_uniq")
+      .on(table.storeId, table.facetId, table.handle)
       .where(sql`kind = 'source'`),
-    uniqueIndex("facet_value_root_project_facet_handle_uniq")
-      .on(table.projectId, table.facetId, table.handle)
+    uniqueIndex("facet_value_root_store_facet_handle_uniq")
+      .on(table.storeId, table.facetId, table.handle)
       .where(sql`parent_id IS NULL`),
-    index("idx_facet_value_project_facet_visible_order")
-      .on(table.projectId, table.facetId, table.sortIndex, table.id)
+    index("idx_facet_value_store_facet_visible_order")
+      .on(table.storeId, table.facetId, table.sortIndex, table.id)
       .where(sql`parent_id IS NULL`),
-    index("idx_facet_value_project_parent")
-      .on(table.projectId, table.parentId)
+    index("idx_facet_value_store_parent")
+      .on(table.storeId, table.parentId)
       .where(sql`parent_id IS NOT NULL`),
-    index("idx_facet_value_project_facet_source_handle")
-      .on(table.projectId, table.facetId, table.handle)
+    index("idx_facet_value_store_facet_source_handle")
+      .on(table.storeId, table.facetId, table.handle)
       .where(sql`kind = 'source'`),
   ]
 );
@@ -211,13 +211,13 @@ export const facetValueTranslation = listingSchema.table(
       .notNull()
       .references(() => facetValue.id, { onDelete: "cascade" }),
     locale: varchar("locale", { length: 8 }).notNull(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     label: text("label").notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.facetValueId, table.locale] }),
-    index("idx_facet_value_translation_project_locale").on(
-      table.projectId,
+    index("idx_facet_value_translation_store_locale").on(
+      table.storeId,
       table.locale
     ),
   ]

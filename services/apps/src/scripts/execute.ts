@@ -25,14 +25,14 @@ export const execute: TransactionScript<ExecuteParams, ExecuteResult, AppsKernel
   services,
 ) => {
   const { domain, operation, provider, params: opParams = {} } = params;
-  const projectId = opParams.projectId as string | undefined;
+  const storeId = opParams.storeId as string | undefined;
 
-  if (!projectId) {
-    throw new Error('projectId is required in params');
+  if (!storeId) {
+    throw new Error('storeId is required in params');
   }
 
   const { slotsRepository, pluginManager } = services;
-  const slots = await slotsRepository.findAllSlots(projectId, domain);
+  const slots = await slotsRepository.findAllSlots(storeId, domain);
   const targetSlots = provider
     ? slots.filter((s: any) => s.provider === provider)
     : slots;
@@ -50,7 +50,7 @@ export const execute: TransactionScript<ExecuteParams, ExecuteResult, AppsKernel
       operationId: operation,
       pluginCode: s.provider,
       rawConfig: (s.config?.data ?? {}) as any,
-      projectId,
+      storeId,
       input: opParams,
     });
     return { data, warnings };
@@ -64,7 +64,7 @@ export const execute: TransactionScript<ExecuteParams, ExecuteResult, AppsKernel
       provider: s.provider,
       data: s.config?.data ?? {},
     })) as any,
-    projectId,
+    storeId,
     input: opParams,
   });
 

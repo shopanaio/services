@@ -2,7 +2,7 @@
 
 CREATE TABLE "catalog"."bundle" (
   "id" uuid NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "product_id" uuid NOT NULL,
   "type" varchar(32),
   "display_style" varchar(32) NOT NULL DEFAULT 'ACCORDION',
@@ -20,12 +20,12 @@ CREATE TABLE "catalog"."bundle" (
 CREATE UNIQUE INDEX "bundle_product_id_unique"
   ON "catalog"."bundle" ("product_id");
 
-CREATE INDEX "idx_bundle_project_id"
-  ON "catalog"."bundle" ("project_id");
+CREATE INDEX "idx_bundle_store_id"
+  ON "catalog"."bundle" ("store_id");
 
 CREATE TABLE "catalog"."bundle_configuration" (
   "id" uuid NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "bundle_id" uuid NOT NULL,
   "name" varchar(255) NOT NULL,
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
@@ -41,7 +41,7 @@ CREATE INDEX "idx_bundle_configuration_bundle_id"
   ON "catalog"."bundle_configuration" ("bundle_id");
 
 CREATE TABLE "catalog"."bundle_configuration_variant" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "configuration_id" uuid NOT NULL,
   "variant_id" uuid NOT NULL,
   CONSTRAINT "bundle_configuration_variant_pkey"
@@ -59,5 +59,5 @@ CREATE TABLE "catalog"."bundle_configuration_variant" (
 CREATE UNIQUE INDEX "bundle_configuration_variant_unique"
   ON "catalog"."bundle_configuration_variant" ("variant_id");
 
-CREATE INDEX "idx_bundle_configuration_variant_project_id"
-  ON "catalog"."bundle_configuration_variant" ("project_id");
+CREATE INDEX "idx_bundle_configuration_variant_store_id"
+  ON "catalog"."bundle_configuration_variant" ("store_id");

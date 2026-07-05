@@ -66,7 +66,7 @@ export class CategoryCreateScript extends BaseScript<
     // 4. Create translation
     const excerptStorage = toRichTextStorage(excerpt);
     await this.repository.category.upsertTranslation({
-      projectId: this.getProjectId(),
+      storeId: this.getProjectId(),
       categoryId: category.id,
       locale: this.getLocale(),
       name,
@@ -85,7 +85,7 @@ export class CategoryCreateScript extends BaseScript<
 
     if (seo) {
       await this.repository.translation.upsertCategorySeo({
-        projectId: this.getProjectId(),
+        storeId: this.getProjectId(),
         categoryId: category.id,
         locale: this.getLocale(),
         seoTitle: seo.seoTitle ?? null,

@@ -23,7 +23,7 @@ export class TagCreateScript extends BaseScript<TagCreateParams, TagCreateResult
     // 3. Create translation if name provided
     if (name) {
       await this.repository.tag.upsertTranslation({
-        projectId: this.getProjectId(),
+        storeId: this.getProjectId(),
         tagId: tag.id,
         locale: this.getLocale(),
         name,

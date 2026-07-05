@@ -20,7 +20,7 @@
 ## Важные ограничения текущей модели
 
 1. `tag.handle` уникален в рамках проекта:
-   `tag_project_id_handle_key`.
+   `tag_store_id_handle_key`.
 
 2. `product_option.slug` не уникален глобально:
    `product_option_product_id_slug_key` гарантирует уникальность только внутри продукта.
@@ -128,7 +128,7 @@ enum FacetValueCandidateOrderField {
 Важно: generated enum values должны быть в текущем стиле проекта
 (`handle`, `label`), а не `HANDLE`/`LABEL`.
 В `services/catalog/scripts/generate-filters.ts` для `FacetValueCandidate`
-обязательно указать `excludeFields: ["projectId", "locale", "facetType", "sourceHandle"]`
+обязательно указать `excludeFields: ["storeId", "locale", "facetType", "sourceHandle"]`
 и для `generateWhereInputType`, и для `generateOrderByInputType`.
 `facetType` и `sourceHandle` остаются raw полями view и полями public object,
 но не должны попадать в public generated `where`/`orderBy`: routing выполняется
@@ -202,7 +202,7 @@ facetValueCandidates(
 
 ```ts
 id: text("id").notNull(),
-projectId: uuid("project_id").notNull(),
+storeId: uuid("store_id").notNull(),
 locale: varchar("locale", { length: 8 }).notNull(),
 facetType: varchar("facet_type", { length: 32 }).notNull(),
 sourceHandle: text("source_handle").notNull(),
@@ -245,7 +245,7 @@ View для `PRICE` и `IN_STOCK` не добавлять, потому что �
 - `rawValueHandle = product_option_value.slug`;
 - `handle = product_option.slug || ':' || product_option_value.slug`;
 - `label = MIN(product_option_value_translation.name)`;
-- group by `project_id`, `locale`, `product_option.slug`, `product_option_value.slug`;
+- group by `store_id`, `locale`, `product_option.slug`, `product_option_value.slug`;
 - `id = 'OPTION:' || handle`.
 
 Так мы группируем одинаковые option values из разных продуктов, потому что option slug не глобален, и сразу возвращаем handle, совместимый с `isValidSourceHandle('OPTION', handle)`.
@@ -261,7 +261,7 @@ View для `PRICE` и `IN_STOCK` не добавлять, потому что �
 - `rawValueHandle = product_feature_value.slug`;
 - `handle = product_feature.slug || ':' || product_feature_value.slug`;
 - `label = MIN(product_feature_value_translation.name)`;
-- group by `project_id`, `locale`, `product_feature.slug`, `product_feature_value.slug`;
+- group by `store_id`, `locale`, `product_feature.slug`, `product_feature_value.slug`;
 - `id = 'FEATURE:' || handle`.
 
 ## Migration SQL
@@ -278,7 +278,7 @@ View для `PRICE` и `IN_STOCK` не добавлять, потому что �
 CREATE VIEW "catalog"."facet_tag_value_candidate_view" AS
 SELECT
   'TAG:' || t.handle AS id,
-  t.project_id,
+  t.store_id,
   tt.locale,
   'TAG'::text AS facet_type,
   'tags'::text AS source_handle,
@@ -286,13 +286,13 @@ SELECT
   tt.name::text AS label
 FROM "catalog"."tag" t
 INNER JOIN "catalog"."tag_translation" tt
-  ON tt.project_id = t.project_id
+  ON tt.store_id = t.store_id
  AND tt.tag_id = t.id;
 
 CREATE VIEW "catalog"."facet_option_value_candidate_view" AS
 SELECT
   'OPTION:' || po.slug || ':' || pov.slug AS id,
-  po.project_id,
+  po.store_id,
   povt.locale,
   'OPTION'::text AS facet_type,
   po.slug::text AS source_handle,
@@ -300,21 +300,21 @@ SELECT
   MIN(povt.name)::text AS label
 FROM "catalog"."product_option" po
 INNER JOIN "catalog"."product_option_translation" pot
-  ON pot.project_id = po.project_id
+  ON pot.store_id = po.store_id
  AND pot.option_id = po.id
 INNER JOIN "catalog"."product_option_value" pov
-  ON pov.project_id = po.project_id
+  ON pov.store_id = po.store_id
  AND pov.option_id = po.id
 INNER JOIN "catalog"."product_option_value_translation" povt
-  ON povt.project_id = pov.project_id
+  ON povt.store_id = pov.store_id
  AND povt.option_value_id = pov.id
  AND povt.locale = pot.locale
-GROUP BY po.project_id, povt.locale, po.slug, pov.slug;
+GROUP BY po.store_id, povt.locale, po.slug, pov.slug;
 
 CREATE VIEW "catalog"."facet_feature_value_candidate_view" AS
 SELECT
   'FEATURE:' || pf.slug || ':' || pfv.slug AS id,
-  pf.project_id,
+  pf.store_id,
   pfvt.locale,
   'FEATURE'::text AS facet_type,
   pf.slug::text AS source_handle,
@@ -322,17 +322,17 @@ SELECT
   MIN(pfvt.name)::text AS label
 FROM "catalog"."product_feature" pf
 INNER JOIN "catalog"."product_feature_translation" pft
-  ON pft.project_id = pf.project_id
+  ON pft.store_id = pf.store_id
  AND pft.feature_id = pf.id
 INNER JOIN "catalog"."product_feature_value" pfv
-  ON pfv.project_id = pf.project_id
+  ON pfv.store_id = pf.store_id
  AND pfv.feature_id = pf.id
 INNER JOIN "catalog"."product_feature_value_translation" pfvt
-  ON pfvt.project_id = pfv.project_id
+  ON pfvt.store_id = pfv.store_id
  AND pfvt.feature_value_id = pfv.id
  AND pfvt.locale = pft.locale
 WHERE pf.is_group = false
-GROUP BY pf.project_id, pfvt.locale, pf.slug, pfv.slug;
+GROUP BY pf.store_id, pfvt.locale, pf.slug, pfv.slug;
 ```
 
 Старые migration файлы не изменять. `0504_facets__source_candidate_view.sql` остается без изменений, потому новый API читает отдельные value candidate views и не меняет contract `facetSourceCandidates`.
@@ -342,7 +342,7 @@ GROUP BY pf.project_id, pfvt.locale, pf.slug, pfv.slug;
 - `services/catalog/src/repositories/models/index.ts` — добавить export `facetTagValueCandidateView`, `facetOptionValueCandidateView`, `facetFeatureValueCandidateView`.
 - `services/catalog/src/api/graphql-admin/schema/facet.graphql` — добавить публичные object/connection/meta types.
 - `services/catalog/src/api/graphql-admin/schema/base.graphql` — обновится через существующий schema/codegen flow, если этот файл является агрегированным generated snapshot в текущем процессе.
-- `services/catalog/scripts/generate-filters.ts` — добавить генерацию `FacetValueCandidateWhereInput` и `FacetValueCandidateOrderByInput`; исключить `projectId`, `locale`, `facetType`, `sourceHandle` из public filters/order.
+- `services/catalog/scripts/generate-filters.ts` — добавить генерацию `FacetValueCandidateWhereInput` и `FacetValueCandidateOrderByInput`; исключить `storeId`, `locale`, `facetType`, `sourceHandle` из public filters/order.
 - `services/catalog/src/api/graphql-admin/schema/__generated__/filters.graphql` — generated output после `generate:filters`.
 - `services/catalog/src/resolvers/admin/generated/types.ts` и `services/catalog/src/resolvers/admin/generated/schemas.ts` — generated output после GraphQL codegen.
 - `services/catalog/src/repositories/facet/FacetRepository.ts` — добавить concrete relay queries по `TAG`/`OPTION`/`FEATURE` и repository method с dispatch по `meta.candidateType`.
@@ -369,7 +369,7 @@ const createFacetValueCandidateRelayQuery = (
     createQuery(view)
       .include([
         "id",
-        "projectId",
+        "storeId",
         "locale",
         "facetType",
         "sourceHandle",
@@ -404,7 +404,7 @@ const facetValueCandidateFilterRelayQuery = createRelayQuery(
   createQuery(facetTagValueCandidateView)
     .include([
       "id",
-      "projectId",
+      "storeId",
       "locale",
       "facetType",
       "sourceHandle",
@@ -446,7 +446,7 @@ export type FacetValueCandidateArgs = FacetValueCandidateRelayInput & {
 ```ts
 {
   _and: [
-    { projectId: { _eq: this.storeId } },
+    { storeId: { _eq: this.storeId } },
     { locale: { _eq: this.locale } },
     { facetType: { _eq: args.meta.candidateType } },
     { sourceHandle: { _in: args.meta.sourceHandles } },
@@ -475,7 +475,7 @@ const facetValueCandidateWhere = generateWhereInputType(
   {
     includeDescriptions: true,
     fieldTypes: facetValueCandidateFieldTypes,
-    excludeFields: ["projectId", "locale", "facetType", "sourceHandle"],
+    excludeFields: ["storeId", "locale", "facetType", "sourceHandle"],
   }
 );
 
@@ -485,7 +485,7 @@ const facetValueCandidateOrderBy = generateOrderByInputType(
   {
     includeDescriptions: true,
     fieldTypes: facetValueCandidateFieldTypes,
-    excludeFields: ["projectId", "locale", "facetType", "sourceHandle"],
+    excludeFields: ["storeId", "locale", "facetType", "sourceHandle"],
   }
 );
 ```
@@ -494,7 +494,7 @@ const facetValueCandidateOrderBy = generateOrderByInputType(
 
 Если `meta.facetId` не передан, repository берет `meta.candidateType`,
 выбирает concrete relay query из `facetValueCandidateRelayQueries`, а затем
-добавляет системные фильтры `projectId`, `locale`, `facetType = meta.candidateType`
+добавляет системные фильтры `storeId`, `locale`, `facetType = meta.candidateType`
 и `sourceHandle IN meta.sourceHandles`.
 Клиент обязан передать выбранные facet sources через `meta.sourceHandles`.
 Generic `where` используется только для поиска по public candidate fields
@@ -529,7 +529,7 @@ Generic `where` используется только для поиска по p
    ```ts
    {
      _and: [
-       { projectId: { _eq: this.storeId } },
+       { storeId: { _eq: this.storeId } },
        { locale: { _eq: this.locale } },
        { facetType: { _eq: facet.facetType } },
        { sourceHandle: { _in: facetSourceHandles } },
@@ -546,7 +546,7 @@ Generic `where` используется только для поиска по p
 ```sql
 SELECT *
 FROM "catalog"."facet_<tag|option|feature>_value_candidate_view"
-WHERE project_id = :projectId
+WHERE store_id = :storeId
   AND locale = :locale
   AND facet_type = :facetType
   AND source_handle IN (:facetSourceHandles)
@@ -554,7 +554,7 @@ WHERE project_id = :projectId
 ```
 
 `existingSourceValueHandles` должны загружаться из `catalog.facet_value` только
-для текущего `project_id`, `facet_id` и `kind = 'source'`. Display values не
+для текущего `store_id`, `facet_id` и `kind = 'source'`. Display values не
 должны исключать raw candidates: candidate считается занятым только когда для
 этого facet уже существует source `facet_value` с тем же `handle`.
 
@@ -693,7 +693,7 @@ query ExistingFacetValueCandidates(
    - изменить `FacetCreateScript`;
    - добавить `sources` в `FacetUpdateInput`;
    - решить, разрешать ли несколько sources одного `facetType`;
-   - проверить constraint `facet_source_project_type_handle_uniq`, потому что он запрещает повторное использование одного source handle в другом facet.
+   - проверить constraint `facet_source_store_type_handle_uniq`, потому что он запрещает повторное использование одного source handle в другом facet.
 
 2. Создание source facet values.
 

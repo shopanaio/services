@@ -50,7 +50,7 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
     // 4. Update translation if name provided
     if (name !== undefined) {
       await this.repository.translation.upsertOptionTranslation({
-        projectId: this.getProjectId(),
+        storeId: this.getProjectId(),
         optionId: id,
         locale: this.getLocale(),
         name,
@@ -145,7 +145,7 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
 
         if (valueUpdate.name !== undefined) {
           await this.repository.translation.upsertOptionValueTranslation({
-            projectId: this.getProjectId(),
+            storeId: this.getProjectId(),
             optionValueId: valueUpdate.id,
             locale: this.getLocale(),
             name: valueUpdate.name,
@@ -176,7 +176,7 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
         });
 
         await this.repository.translation.upsertOptionValueTranslation({
-          projectId: this.getProjectId(),
+          storeId: this.getProjectId(),
           optionValueId: optionValue.id,
           locale: this.getLocale(),
           name: valueInput.name,
@@ -199,7 +199,7 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
    */
   private async rebuildAffectedVariantHandles(valueIds: string[]): Promise<void> {
     const db = this.repository.db;
-    const projectId = this.getProjectId();
+    const storeId = this.getProjectId();
 
     // Find all variant IDs that have any of these values linked
     const affectedLinks = await db
@@ -209,7 +209,7 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
       .from(productOptionVariantLink)
       .where(
         and(
-          eq(productOptionVariantLink.projectId, projectId),
+          eq(productOptionVariantLink.storeId, storeId),
           inArray(productOptionVariantLink.optionValueId, valueIds)
         )
       );
@@ -224,7 +224,7 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
     const newHandles = await buildVariantHandlesBatch(
       db,
       variantIdArray,
-      projectId
+      storeId
     );
 
     // Update each variant with its new handle

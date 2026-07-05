@@ -16,7 +16,7 @@ export const productFeature = catalogSchema.table(
   "product_feature",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
@@ -63,7 +63,7 @@ export const productFeatureValue = catalogSchema.table(
   "product_feature_value",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     featureId: uuid("feature_id")
       .notNull()
       .references(() => productFeature.id, { onDelete: "cascade" }),

@@ -15,8 +15,8 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "project_id": {
-          "name": "project_id",
+        "store_id": {
+          "name": "store_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -73,11 +73,11 @@
         }
       },
       "indexes": {
-        "idx_provider_configs_project": {
-          "name": "idx_provider_configs_project",
+        "idx_provider_configs_store": {
+          "name": "idx_provider_configs_store",
           "columns": [
             {
-              "expression": "project_id",
+              "expression": "store_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -92,11 +92,11 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "provider_configs_project_id_provider_key": {
-          "name": "provider_configs_project_id_provider_key",
+        "provider_configs_store_id_provider_key": {
+          "name": "provider_configs_store_id_provider_key",
           "nullsNotDistinct": false,
           "columns": [
-            "project_id",
+            "store_id",
             "provider"
           ]
         }
@@ -116,8 +116,8 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "project_id": {
-          "name": "project_id",
+        "store_id": {
+          "name": "store_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -181,7 +181,7 @@
           "name": "idx_slot_assignments_resolve",
           "columns": [
             {
-              "expression": "project_id",
+              "expression": "store_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -271,8 +271,8 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "project_id": {
-          "name": "project_id",
+        "store_id": {
+          "name": "store_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -318,11 +318,11 @@
         }
       },
       "indexes": {
-        "idx_slots_project_domain": {
-          "name": "idx_slots_project_domain",
+        "idx_slots_store_domain": {
+          "name": "idx_slots_store_domain",
           "columns": [
             {
-              "expression": "project_id",
+              "expression": "store_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -373,11 +373,11 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "slots_project_id_domain_provider_key": {
-          "name": "slots_project_id_domain_provider_key",
+        "slots_store_id_domain_provider_key": {
+          "name": "slots_store_id_domain_provider_key",
           "nullsNotDistinct": false,
           "columns": [
-            "project_id",
+            "store_id",
             "domain",
             "provider"
           ]

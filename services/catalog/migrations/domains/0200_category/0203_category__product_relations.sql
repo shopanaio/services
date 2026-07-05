@@ -1,7 +1,7 @@
 -- Up Migration
 
 CREATE TABLE "catalog"."product_category" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "product_id" uuid NOT NULL,
   "category_id" uuid NOT NULL,
   "is_primary" boolean NOT NULL DEFAULT false,
@@ -18,7 +18,7 @@ CREATE TABLE "catalog"."product_category" (
 );
 
 CREATE UNIQUE INDEX "product_category_one_primary_per_product_idx"
-  ON "catalog"."product_category" ("project_id", "product_id")
+  ON "catalog"."product_category" ("store_id", "product_id")
   WHERE "is_primary" = true;
 
 CREATE INDEX "idx_product_category_product"

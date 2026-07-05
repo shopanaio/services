@@ -1,7 +1,7 @@
 -- Up Migration
 
 CREATE TABLE "catalog"."category_translation" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "category_id" uuid NOT NULL,
   "locale" varchar(8) NOT NULL,
   "name" text NOT NULL,
@@ -18,8 +18,8 @@ CREATE TABLE "catalog"."category_translation" (
     ON DELETE CASCADE
 );
 
-CREATE INDEX "idx_category_translation_project"
-  ON "catalog"."category_translation" ("project_id");
+CREATE INDEX "idx_category_translation_store"
+  ON "catalog"."category_translation" ("store_id");
 
-CREATE INDEX "idx_category_translation_project_locale"
-  ON "catalog"."category_translation" ("project_id", "locale");
+CREATE INDEX "idx_category_translation_store_locale"
+  ON "catalog"."category_translation" ("store_id", "locale");

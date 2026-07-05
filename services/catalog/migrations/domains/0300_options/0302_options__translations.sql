@@ -1,7 +1,7 @@
 -- Up Migration
 
 CREATE TABLE "catalog"."product_option_translation" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "option_id" uuid NOT NULL,
   "locale" varchar(8) NOT NULL,
   "name" text NOT NULL,
@@ -12,11 +12,11 @@ CREATE TABLE "catalog"."product_option_translation" (
     ON DELETE CASCADE
 );
 
-CREATE INDEX "idx_product_option_translation_project"
-  ON "catalog"."product_option_translation" ("project_id");
+CREATE INDEX "idx_product_option_translation_store"
+  ON "catalog"."product_option_translation" ("store_id");
 
 CREATE TABLE "catalog"."product_option_value_translation" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "option_value_id" uuid NOT NULL,
   "locale" varchar(8) NOT NULL,
   "name" text NOT NULL,
@@ -28,5 +28,5 @@ CREATE TABLE "catalog"."product_option_value_translation" (
     ON DELETE CASCADE
 );
 
-CREATE INDEX "idx_product_option_value_translation_project"
-  ON "catalog"."product_option_value_translation" ("project_id");
+CREATE INDEX "idx_product_option_value_translation_store"
+  ON "catalog"."product_option_value_translation" ("store_id");

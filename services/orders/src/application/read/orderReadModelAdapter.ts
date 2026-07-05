@@ -26,7 +26,7 @@ export class OrderReadModelAdapter {
     return {
       id: readView.id,
       exists: true, // If data exists in read model, order exists
-      projectId: readView.projectId,
+      storeId: readView.storeId,
       currencyCode: readView.currencyCode,
       idempotencyKey: "", // Not available in read model, setting default
       salesChannel: readView.salesChannel || "",

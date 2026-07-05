@@ -12,13 +12,13 @@ export function compileScopeSql(request: ListingSqlRequest): SQL {
         pdb.score(ptsi.search_id)::double precision AS relevance_score
       FROM input i
       JOIN listing.product_title_bm25_search_index ptsi
-        ON ptsi.project_id = i.project_id
+        ON ptsi.store_id = i.store_id
        AND ptsi.locale = i.locale
        AND ptsi.status = 'published'
        AND i.normalized_search_query IS NOT NULL
        AND ptsi.title @@@ i.normalized_search_query
       JOIN listing.product_listing_index pli
-        ON pli.project_id = ptsi.project_id
+        ON pli.store_id = ptsi.store_id
        AND pli.product_id = ptsi.product_id
        AND pli.status = 'published'
     ),
@@ -44,7 +44,7 @@ export function compileScopeSql(request: ListingSqlRequest): SQL {
           THEN COALESCE((
             SELECT p.bitmap
             FROM listing.listing_posting_bitmap p
-            WHERE p.project_id = i.project_id
+            WHERE p.store_id = i.store_id
               AND p.entity_type = 'product'
               AND p.field = 'category'
               AND p.value_key = i.scope_id::text
@@ -59,7 +59,7 @@ export function compileScopeSql(request: ListingSqlRequest): SQL {
       SELECT COALESCE(rb_build_agg(pli.product_doc_id), ${emptyRoaringBitmapSql()}) AS bitmap
       FROM listing.product_listing_index pli
       JOIN input i ON true
-      WHERE pli.project_id = i.project_id
+      WHERE pli.store_id = i.store_id
         AND pli.status = 'published'
     ),
     scope_products AS (

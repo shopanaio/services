@@ -96,7 +96,7 @@ function emptyInventoryItemConnection(): InventoryItemConnectionResult {
 
 const inventoryItemSelectColumns = {
   id: inventoryItem.id,
-  projectId: inventoryItem.projectId,
+  storeId: inventoryItem.storeId,
   variantId: inventoryItem.variantId,
   sku: inventoryItem.sku,
   trackInventory: inventoryItem.trackInventory,
@@ -132,7 +132,7 @@ export class InventoryItemRepository extends BaseRepository {
 
     const newItem: NewInventoryItem = {
       id,
-      projectId: this.storeId,
+      storeId: this.storeId,
       variantId: data.variantId,
       sku: data.sku ?? null,
       trackInventory: data.trackInventory ?? true,
@@ -172,7 +172,7 @@ export class InventoryItemRepository extends BaseRepository {
       .set(updateData)
       .where(
         and(
-          eq(inventoryItem.projectId, this.storeId),
+          eq(inventoryItem.storeId, this.storeId),
           eq(inventoryItem.id, id)
         )
       )
@@ -186,7 +186,7 @@ export class InventoryItemRepository extends BaseRepository {
       .delete(inventoryItem)
       .where(
         and(
-          eq(inventoryItem.projectId, this.storeId),
+          eq(inventoryItem.storeId, this.storeId),
           eq(inventoryItem.id, id)
         )
       )
@@ -203,7 +203,7 @@ export class InventoryItemRepository extends BaseRepository {
       .from(inventoryItem)
       .where(
         and(
-          eq(inventoryItem.projectId, this.storeId),
+          eq(inventoryItem.storeId, this.storeId),
           eq(inventoryItem.id, id)
         )
       )
@@ -218,7 +218,7 @@ export class InventoryItemRepository extends BaseRepository {
       .from(inventoryItem)
       .where(
         and(
-          eq(inventoryItem.projectId, this.storeId),
+          eq(inventoryItem.storeId, this.storeId),
           eq(inventoryItem.variantId, variantId)
         )
       )
@@ -234,20 +234,20 @@ export class InventoryItemRepository extends BaseRepository {
       .innerJoin(
         variant,
         and(
-          eq(variant.projectId, inventoryItem.projectId),
+          eq(variant.storeId, inventoryItem.storeId),
           eq(variant.id, inventoryItem.variantId)
         )
       )
       .innerJoin(
         product,
         and(
-          eq(product.projectId, inventoryItem.projectId),
+          eq(product.storeId, inventoryItem.storeId),
           eq(product.id, variant.productId)
         )
       )
       .where(
         and(
-          eq(inventoryItem.projectId, this.storeId),
+          eq(inventoryItem.storeId, this.storeId),
           eq(inventoryItem.id, id),
           isNull(variant.deletedAt),
           isNull(product.deletedAt)
@@ -265,20 +265,20 @@ export class InventoryItemRepository extends BaseRepository {
       .innerJoin(
         variant,
         and(
-          eq(variant.projectId, inventoryItem.projectId),
+          eq(variant.storeId, inventoryItem.storeId),
           eq(variant.id, inventoryItem.variantId)
         )
       )
       .innerJoin(
         product,
         and(
-          eq(product.projectId, inventoryItem.projectId),
+          eq(product.storeId, inventoryItem.storeId),
           eq(product.id, variant.productId)
         )
       )
       .where(
         and(
-          eq(inventoryItem.projectId, this.storeId),
+          eq(inventoryItem.storeId, this.storeId),
           eq(inventoryItem.variantId, variantId),
           isNull(variant.deletedAt),
           isNull(product.deletedAt)
@@ -298,20 +298,20 @@ export class InventoryItemRepository extends BaseRepository {
       .innerJoin(
         variant,
         and(
-          eq(variant.projectId, inventoryItem.projectId),
+          eq(variant.storeId, inventoryItem.storeId),
           eq(variant.id, inventoryItem.variantId)
         )
       )
       .innerJoin(
         product,
         and(
-          eq(product.projectId, inventoryItem.projectId),
+          eq(product.storeId, inventoryItem.storeId),
           eq(product.id, variant.productId)
         )
       )
       .where(
         and(
-          eq(inventoryItem.projectId, this.storeId),
+          eq(inventoryItem.storeId, this.storeId),
           inArray(inventoryItem.id, [...ids]),
           isNull(variant.deletedAt),
           isNull(product.deletedAt)
@@ -330,20 +330,20 @@ export class InventoryItemRepository extends BaseRepository {
       .innerJoin(
         variant,
         and(
-          eq(variant.projectId, inventoryItem.projectId),
+          eq(variant.storeId, inventoryItem.storeId),
           eq(variant.id, inventoryItem.variantId)
         )
       )
       .innerJoin(
         product,
         and(
-          eq(product.projectId, inventoryItem.projectId),
+          eq(product.storeId, inventoryItem.storeId),
           eq(product.id, variant.productId)
         )
       )
       .where(
         and(
-          eq(inventoryItem.projectId, this.storeId),
+          eq(inventoryItem.storeId, this.storeId),
           inArray(inventoryItem.variantId, [...variantIds]),
           isNull(variant.deletedAt),
           isNull(product.deletedAt)
@@ -357,7 +357,7 @@ export class InventoryItemRepository extends BaseRepository {
       .from(inventoryItem)
       .where(
         and(
-          eq(inventoryItem.projectId, this.storeId),
+          eq(inventoryItem.storeId, this.storeId),
           eq(inventoryItem.sku, sku)
         )
       )
@@ -383,7 +383,7 @@ export class InventoryItemRepository extends BaseRepository {
     }
 
     const baseWhere: InventoryItemListWhere[] = [
-      { projectId: { _eq: this.storeId } },
+      { storeId: { _eq: this.storeId } },
       { locale: { _eq: this.locale } },
       { deletedAt: { _is: null } },
       ...(where ? [where] : []),
@@ -466,7 +466,7 @@ export class InventoryItemRepository extends BaseRepository {
       .from(inventoryItem)
       .where(
         and(
-          eq(inventoryItem.projectId, this.storeId),
+          eq(inventoryItem.storeId, this.storeId),
           inArray(inventoryItem.id, [...ids])
         )
       );
@@ -480,7 +480,7 @@ export class InventoryItemRepository extends BaseRepository {
       .from(inventoryItem)
       .where(
         and(
-          eq(inventoryItem.projectId, this.storeId),
+          eq(inventoryItem.storeId, this.storeId),
           inArray(inventoryItem.variantId, [...variantIds])
         )
       );

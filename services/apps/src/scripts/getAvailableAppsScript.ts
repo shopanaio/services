@@ -2,7 +2,7 @@ import type { TransactionScript, AvailableApp } from "@src/kernel/types";
 
 // Parameters for getting available apps
 export interface GetAvailableAppsParams {
-  readonly projectId: string;
+  readonly storeId: string;
 }
 
 // Execution result
@@ -18,11 +18,11 @@ export const getAvailableAppsScript: TransactionScript<
   GetAvailableAppsParams,
   GetAvailableAppsResult
 > = async (params, services) => {
-  const { projectId } = params;
+  const { storeId } = params;
   const { pluginManager, logger } = services;
 
   try {
-    logger.debug({ projectId }, "Fetching available apps from plugin manager");
+    logger.debug({ storeId }, "Fetching available apps from plugin manager");
 
     // Get all plugin manifests from centralized plugin manager
     const manifests = pluginManager.listManifests();
@@ -43,14 +43,14 @@ export const getAvailableAppsScript: TransactionScript<
     logger.info(
       {
         count: apps.length,
-        projectId,
+        storeId,
       },
       "Retrieved available apps from plugin manager"
     );
 
     return { apps };
   } catch (error) {
-    logger.error({ error, projectId }, "Failed to get available apps");
+    logger.error({ error, storeId }, "Failed to get available apps");
 
     return {
       apps: [],

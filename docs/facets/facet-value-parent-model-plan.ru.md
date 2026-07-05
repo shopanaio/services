@@ -152,7 +152,7 @@ color:black
 ```sql
 catalog.facet_value (
   id             uuid PRIMARY KEY,
-  project_id     uuid NOT NULL,
+  store_id     uuid NOT NULL,
   facet_id       uuid NOT NULL REFERENCES catalog.facet(id) ON DELETE CASCADE,
 
   parent_id      uuid NULL REFERENCES catalog.facet_value(id) ON DELETE NO ACTION,
@@ -174,29 +174,29 @@ catalog.facet_value (
 ```sql
 -- source handle уникален среди source rows одного facet_id;
 -- source и display rows могут иметь одинаковый handle
-CREATE UNIQUE INDEX facet_value_source_project_facet_handle_uniq
-  ON catalog.facet_value (project_id, facet_id, handle)
+CREATE UNIQUE INDEX facet_value_source_store_facet_handle_uniq
+  ON catalog.facet_value (store_id, facet_id, handle)
   WHERE kind = 'source';
 
 -- public/root handle уникален среди visible values одного facet;
 -- это сохраняет однозначность storefront token facetSlug:valueHandle
-CREATE UNIQUE INDEX facet_value_root_project_facet_handle_uniq
-  ON catalog.facet_value (project_id, facet_id, handle)
+CREATE UNIQUE INDEX facet_value_root_store_facet_handle_uniq
+  ON catalog.facet_value (store_id, facet_id, handle)
   WHERE parent_id IS NULL;
 
 -- быстрый вывод visible values
-CREATE INDEX idx_facet_value_project_facet_visible_order
-  ON catalog.facet_value (project_id, facet_id, sort_index, id)
+CREATE INDEX idx_facet_value_store_facet_visible_order
+  ON catalog.facet_value (store_id, facet_id, sort_index, id)
   WHERE parent_id IS NULL;
 
 -- быстрый lookup child source values для display value
-CREATE INDEX idx_facet_value_project_parent
-  ON catalog.facet_value (project_id, parent_id)
+CREATE INDEX idx_facet_value_store_parent
+  ON catalog.facet_value (store_id, parent_id)
   WHERE parent_id IS NOT NULL;
 
 -- быстрый lookup source values по source handle
-CREATE INDEX idx_facet_value_project_facet_source_handle
-  ON catalog.facet_value (project_id, facet_id, handle)
+CREATE INDEX idx_facet_value_store_facet_source_handle
+  ON catalog.facet_value (store_id, facet_id, handle)
   WHERE kind = 'source';
 ```
 
@@ -215,7 +215,7 @@ CHECK (kind <> 'display' OR parent_id IS NULL);
 
 Что остается application-level validation:
 
-- `parent_id` должен указывать на value того же `project_id` и `facet_id`;
+- `parent_id` должен указывать на value того же `store_id` и `facet_id`;
 - parent для source value должен быть `kind = 'display'`;
 - display value не может быть child другого value;
 - display value, который включен (`enabled = true`), должен иметь хотя бы один
@@ -240,7 +240,7 @@ CHECK (kind <> 'display' OR parent_id IS NULL);
 catalog.facet_value_translation (
   facet_value_id uuid NOT NULL REFERENCES catalog.facet_value(id) ON DELETE CASCADE,
   locale         varchar(8) NOT NULL,
-  project_id     uuid NOT NULL,
+  store_id     uuid NOT NULL,
   label          text NOT NULL,
   PRIMARY KEY (facet_value_id, locale)
 )
@@ -268,13 +268,13 @@ facetSlug:valueHandle
 
 Алгоритм:
 
-1. Найти facet по `project_id + facet.slug`.
+1. Найти facet по `store_id + facet.slug`.
 2. Найти visible value по публичному handle:
 
 ```sql
 SELECT fv.*
 FROM catalog.facet_value fv
-WHERE fv.project_id = :projectId
+WHERE fv.store_id = :storeId
   AND fv.facet_id = :facetId
   AND fv.handle = :valueHandle
   AND fv.parent_id IS NULL
@@ -299,7 +299,7 @@ LIMIT 1;
 ```sql
 SELECT child.handle
 FROM catalog.facet_value child
-WHERE child.project_id = :projectId
+WHERE child.store_id = :storeId
   AND child.facet_id = :facetId
   AND child.parent_id = :displayValueId
   AND child.kind = 'source'
@@ -336,7 +336,7 @@ UPDATE catalog.facet_value
 SET parent_id = :displayValueId,
     updated_at = now()
 WHERE id = ANY(:sourceValueIds)
-  AND project_id = :projectId
+  AND store_id = :storeId
   AND facet_id = :facetId
   AND kind = 'source';
 ```
@@ -349,14 +349,14 @@ Unmerge делает source value снова visible:
 value с тем же `handle`. Если есть root display/root source с таким handle,
 mutation должна вернуть userError или требовать сначала изменить/delete
 конфликтующий display value. DB unique
-`facet_value_root_project_facet_handle_uniq` должен дублировать эту защиту.
+`facet_value_root_store_facet_handle_uniq` должен дублировать эту защиту.
 
 ```sql
 UPDATE catalog.facet_value
 SET parent_id = NULL,
     updated_at = now()
 WHERE id = :sourceValueId
-  AND project_id = :projectId
+  AND store_id = :storeId
   AND kind = 'source';
 ```
 
@@ -480,11 +480,11 @@ export type FacetValueKind = "source" | "display";
 
 CONSTRAINT "facet_value_facet_id_slug_uniq" UNIQUE ("facet_id", "slug")
   -> удалить и заменить target indexes/constraints:
-     - facet_value_source_project_facet_handle_uniq
-     - facet_value_root_project_facet_handle_uniq
-     - idx_facet_value_project_facet_visible_order
-     - idx_facet_value_project_parent
-     - idx_facet_value_project_facet_source_handle
+     - facet_value_source_store_facet_handle_uniq
+     - facet_value_root_store_facet_handle_uniq
+     - idx_facet_value_store_facet_visible_order
+     - idx_facet_value_store_parent
+     - idx_facet_value_store_facet_source_handle
      - CHECK (kind IN ('source', 'display'))
      - CHECK (kind <> 'display' OR parent_id IS NULL)
 ```
@@ -578,7 +578,7 @@ types.
 
 Валидации внутри repository/script:
 
-- source child и display parent должны быть в одном `projectId/facetId`;
+- source child и display parent должны быть в одном `storeId/facetId`;
 - parent должен быть `kind = 'display'`;
 - source value нельзя attach к source parent;
 - display value нельзя attach как child;
@@ -1289,13 +1289,13 @@ source:  handle=nike, parent_id=<display nike>
 display: handle=nike, parent_id=NULL
 ```
 
-Поэтому нельзя делать global unique `(project_id, facet_id, handle)` на все rows
+Поэтому нельзя делать global unique `(store_id, facet_id, handle)` на все rows
 и нельзя разрешать два visible values с одинаковым `handle`.
 
 Нужны visibility-scoped constraints:
 
-- source rows: unique `(project_id, facet_id, handle) WHERE kind = 'source'`;
-- root/visible rows: unique `(project_id, facet_id, handle) WHERE parent_id IS NULL`.
+- source rows: unique `(store_id, facet_id, handle) WHERE kind = 'source'`;
+- root/visible rows: unique `(store_id, facet_id, handle) WHERE parent_id IS NULL`.
 
 Так display `handle=nike` и source `handle=nike` могут сосуществовать только как
 root display + hidden source child. Если такой source child попытаться unmerge в

@@ -195,8 +195,8 @@ export class FacetValueCreateScript extends BaseScript<
       return { facetValue: facetValue ?? created, userErrors: [] };
     } catch (error) {
       if (
-        isUniqueViolation(error, "facet_value_root_project_facet_handle_uniq") ||
-        isUniqueViolation(error, "facet_value_source_project_facet_handle_uniq")
+        isUniqueViolation(error, "facet_value_root_store_facet_handle_uniq") ||
+        isUniqueViolation(error, "facet_value_source_store_facet_handle_uniq")
       ) {
         return {
           facetValue: undefined,

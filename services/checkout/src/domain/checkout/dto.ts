@@ -15,7 +15,7 @@ type CheckoutMetadataDto = {
   apiKey: string;
   aggregateId: string;
   contractVersion: number;
-  projectId: string;
+  storeId: string;
   userId?: string;
   now: Date;
 };

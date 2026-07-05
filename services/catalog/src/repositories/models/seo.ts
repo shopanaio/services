@@ -18,7 +18,7 @@ import { category } from "./categories";
 export const productSeo = catalogSchema.table(
   "product_seo",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
@@ -35,15 +35,15 @@ export const productSeo = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.productId, table.locale] }),
-    index("idx_product_seo_project").on(table.projectId),
-    index("idx_product_seo_project_locale").on(table.projectId, table.locale),
+    index("idx_product_seo_store").on(table.storeId),
+    index("idx_product_seo_store_locale").on(table.storeId, table.locale),
   ]
 );
 
 export const categorySeo = catalogSchema.table(
   "category_seo",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     categoryId: uuid("category_id")
       .notNull()
       .references(() => category.id, { onDelete: "cascade" }),
@@ -58,8 +58,8 @@ export const categorySeo = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.categoryId, table.locale] }),
-    index("idx_category_seo_project").on(table.projectId),
-    index("idx_category_seo_project_locale").on(table.projectId, table.locale),
+    index("idx_category_seo_store").on(table.storeId),
+    index("idx_category_seo_store_locale").on(table.storeId, table.locale),
   ]
 );
 

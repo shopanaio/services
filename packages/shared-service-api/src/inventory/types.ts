@@ -19,7 +19,7 @@ export interface InventoryApiClient {
    */
   getOffers(
     input: GetOffersInput & {
-      projectId: string;
+      storeId: string;
       apiKey: string;
     }
   ): Promise<InventoryOffer[]>;

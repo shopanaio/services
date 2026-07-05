@@ -77,7 +77,7 @@ export class FeatureCreateScript extends BaseScript<FeatureCreateParams, Feature
 
     // 4. Create feature translation
     await this.repository.translation.upsertFeatureTranslation({
-      projectId: this.getProjectId(),
+      storeId: this.getProjectId(),
       featureId: feature.id,
       locale: this.getLocale(),
       name,
@@ -92,7 +92,7 @@ export class FeatureCreateScript extends BaseScript<FeatureCreateParams, Feature
       });
 
       await this.repository.translation.upsertFeatureValueTranslation({
-        projectId: this.getProjectId(),
+        storeId: this.getProjectId(),
         featureValueId: featureValue.id,
         locale: this.getLocale(),
         name: valueInput.name,

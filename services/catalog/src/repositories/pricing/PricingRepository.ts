@@ -99,7 +99,7 @@ export class PricingRepository extends BaseRepository {
     const now = new Date().toISOString();
 
     const newPricing: NewItemPricing = {
-      projectId: this.storeId,
+      storeId: this.storeId,
       id,
       variantId,
       currency: data.currency,
@@ -133,7 +133,7 @@ export class PricingRepository extends BaseRepository {
       .set({ effectiveTo: now })
       .where(
         and(
-          eq(itemPricing.projectId, this.storeId),
+          eq(itemPricing.storeId, this.storeId),
           eq(itemPricing.variantId, variantId),
           eq(itemPricing.currency, data.currency),
           isNull(itemPricing.effectiveTo)
@@ -144,7 +144,7 @@ export class PricingRepository extends BaseRepository {
     const result = await this.connection
       .insert(itemPricing)
       .values({
-        projectId: this.storeId,
+        storeId: this.storeId,
         id,
         variantId,
         currency: data.currency,
@@ -167,7 +167,7 @@ export class PricingRepository extends BaseRepository {
       ...input,
       where: {
         ...input?.where,
-        projectId: { _eq: this.storeId },
+        storeId: { _eq: this.storeId },
       },
     });
   }
@@ -177,7 +177,7 @@ export class PricingRepository extends BaseRepository {
     const results = await pricingQuery.execute(this.connection, {
       where: {
         id: { _eq: id },
-        projectId: { _eq: this.storeId },
+        storeId: { _eq: this.storeId },
       },
       limit: 1,
     });
@@ -191,7 +191,7 @@ export class PricingRepository extends BaseRepository {
       ...args,
       where: {
         ...args.where,
-        projectId: { _eq: this.storeId },
+        storeId: { _eq: this.storeId },
         variantId: { _eq: variantId },
       },
     });
@@ -206,7 +206,7 @@ export class PricingRepository extends BaseRepository {
       .from(variantPricesCurrent)
       .where(
         and(
-          eq(variantPricesCurrent.projectId, this.storeId),
+          eq(variantPricesCurrent.storeId, this.storeId),
           eq(variantPricesCurrent.variantId, input.variantId),
           eq(variantPricesCurrent.currency, input.currency)
         )
@@ -222,7 +222,7 @@ export class PricingRepository extends BaseRepository {
       first: input.first,
       after: input.after,
       where: {
-        projectId: { _eq: this.storeId },
+        storeId: { _eq: this.storeId },
         variantId: { _eq: input.variantId },
         currency: { _eq: input.currency },
         ...this.buildOverlapWhere(input.from, input.to),
@@ -247,7 +247,7 @@ export class PricingRepository extends BaseRepository {
       .from(itemPricing)
       .where(
         and(
-          eq(itemPricing.projectId, this.storeId),
+          eq(itemPricing.storeId, this.storeId),
           eq(itemPricing.variantId, input.variantId),
           eq(itemPricing.currency, input.currency),
           lte(itemPricing.effectiveFrom, toIso),

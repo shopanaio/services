@@ -13,7 +13,7 @@ import { product, variant } from "./products";
 export const productOptionSwatch = catalogSchema.table(
   "product_option_swatch",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     id: uuid("id").primaryKey(),
     colorOne: varchar("color_one", { length: 32 }),
     colorTwo: varchar("color_two", { length: 32 }),
@@ -22,7 +22,7 @@ export const productOptionSwatch = catalogSchema.table(
     metadata: jsonb("metadata"),
   },
   (table) => [
-    index("idx_product_option_swatch_project_id").on(table.projectId),
+    index("idx_product_option_swatch_store_id").on(table.storeId),
   ]
 );
 
@@ -30,7 +30,7 @@ export const productOption = catalogSchema.table(
   "product_option",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
@@ -42,7 +42,7 @@ export const productOption = catalogSchema.table(
     unique("product_option_product_id_slug_key").on(table.productId, table.slug),
     index("idx_product_option_product_id").on(table.productId),
     index("idx_product_option_sort").on(
-      table.projectId,
+      table.storeId,
       table.productId,
       table.sortIndex
     ),
@@ -53,7 +53,7 @@ export const productOptionValue = catalogSchema.table(
   "product_option_value",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     optionId: uuid("option_id")
       .notNull()
       .references(() => productOption.id, { onDelete: "cascade" }),
@@ -75,7 +75,7 @@ export const productOptionValue = catalogSchema.table(
 export const productOptionVariantLink = catalogSchema.table(
   "product_option_variant_link",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     variantId: uuid("variant_id")
       .notNull()
       .references(() => variant.id, { onDelete: "cascade" }),
@@ -89,7 +89,7 @@ export const productOptionVariantLink = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.variantId, table.optionId] }),
-    index("idx_product_option_variant_link_project_id").on(table.projectId),
+    index("idx_product_option_variant_link_store_id").on(table.storeId),
   ]
 );
 

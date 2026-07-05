@@ -11,7 +11,7 @@ import {
 
 const testTable = pgTable("test", {
   id: uuid("id").primaryKey(),
-  projectId: uuid("project_id").notNull(),
+  storeId: uuid("store_id").notNull(),
   name: text("name"),
   deletedAt: timestamp("deleted_at"),
 });
@@ -25,8 +25,8 @@ describe("notDeleted", () => {
 
 describe("withProjectScope", () => {
   it("should create equality condition for project id", () => {
-    const projectId = "123e4567-e89b-12d3-a456-426614174000";
-    const result = withProjectScope(testTable.projectId, projectId);
+    const storeId = "123e4567-e89b-12d3-a456-426614174000";
+    const result = withProjectScope(testTable.storeId, storeId);
     expect(result).toBeDefined();
   });
 });
@@ -50,7 +50,7 @@ describe("combineAnd", () => {
 
   it("should combine multiple conditions with AND", () => {
     const cond1 = notDeleted(testTable.deletedAt);
-    const cond2 = withProjectScope(testTable.projectId, "test-id");
+    const cond2 = withProjectScope(testTable.storeId, "test-id");
     const result = combineAnd(cond1, cond2);
     expect(result).toBeDefined();
   });

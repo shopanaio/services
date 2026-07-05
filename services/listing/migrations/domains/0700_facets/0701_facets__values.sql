@@ -2,7 +2,7 @@
 
 CREATE TABLE "listing"."facet_swatch" (
   "id" uuid NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "swatch_type" varchar(32) NOT NULL,
   "color_one" varchar(32),
   "color_two" varchar(32),
@@ -13,7 +13,7 @@ CREATE TABLE "listing"."facet_swatch" (
 
 CREATE TABLE "listing"."facet_value" (
   "id" uuid NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "facet_id" uuid NOT NULL,
   "parent_id" uuid,
   "kind" varchar(16) NOT NULL,
@@ -47,30 +47,30 @@ CREATE TABLE "listing"."facet_value" (
     CHECK ("kind" <> 'display' OR "reference_status" = 'VALID')
 );
 
-CREATE UNIQUE INDEX "facet_value_source_project_facet_handle_uniq"
-  ON "listing"."facet_value" ("project_id", "facet_id", "handle")
+CREATE UNIQUE INDEX "facet_value_source_store_facet_handle_uniq"
+  ON "listing"."facet_value" ("store_id", "facet_id", "handle")
   WHERE "kind" = 'source';
 
-CREATE UNIQUE INDEX "facet_value_root_project_facet_handle_uniq"
-  ON "listing"."facet_value" ("project_id", "facet_id", "handle")
+CREATE UNIQUE INDEX "facet_value_root_store_facet_handle_uniq"
+  ON "listing"."facet_value" ("store_id", "facet_id", "handle")
   WHERE "parent_id" IS NULL;
 
-CREATE INDEX "idx_facet_value_project_facet_visible_order"
-  ON "listing"."facet_value" ("project_id", "facet_id", "sort_index", "id")
+CREATE INDEX "idx_facet_value_store_facet_visible_order"
+  ON "listing"."facet_value" ("store_id", "facet_id", "sort_index", "id")
   WHERE "parent_id" IS NULL;
 
-CREATE INDEX "idx_facet_value_project_parent"
-  ON "listing"."facet_value" ("project_id", "parent_id")
+CREATE INDEX "idx_facet_value_store_parent"
+  ON "listing"."facet_value" ("store_id", "parent_id")
   WHERE "parent_id" IS NOT NULL;
 
-CREATE INDEX "idx_facet_value_project_facet_source_handle"
-  ON "listing"."facet_value" ("project_id", "facet_id", "handle")
+CREATE INDEX "idx_facet_value_store_facet_source_handle"
+  ON "listing"."facet_value" ("store_id", "facet_id", "handle")
   WHERE "kind" = 'source';
 
 CREATE TABLE "listing"."facet_value_translation" (
   "facet_value_id" uuid NOT NULL,
   "locale" varchar(8) NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "label" text NOT NULL,
   CONSTRAINT "facet_value_translation_pkey" PRIMARY KEY ("facet_value_id", "locale"),
   CONSTRAINT "facet_value_translation_facet_value_id_fk"
@@ -79,5 +79,5 @@ CREATE TABLE "listing"."facet_value_translation" (
     ON DELETE CASCADE
 );
 
-CREATE INDEX "idx_facet_value_translation_project_locale"
-  ON "listing"."facet_value_translation" ("project_id", "locale");
+CREATE INDEX "idx_facet_value_translation_store_locale"
+  ON "listing"."facet_value_translation" ("store_id", "locale");

@@ -2,7 +2,7 @@
 
 CREATE TABLE "catalog"."product_feature_value" (
   "id" uuid NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "feature_id" uuid NOT NULL,
   "slug" varchar(255) NOT NULL,
   "index" integer NOT NULL,

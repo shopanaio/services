@@ -140,20 +140,20 @@ Runtime code использует `pg_roaringbitmap` напрямую. Query bui
 rows:
 
 ```text
-listing.product_listing_index(project_id, product_doc_id, product_id)
-listing.variant_listing_index(project_id, variant_doc_id, product_doc_id, product_id, variant_id)
+listing.product_listing_index(store_id, product_doc_id, product_id)
+listing.variant_listing_index(store_id, variant_doc_id, product_doc_id, product_id, variant_id)
 ```
 
 Allocation state хранится в `listing.listing_doc_id_allocator`:
 
 ```sql
 CREATE TABLE listing.listing_doc_id_allocator (
-  project_id              uuid NOT NULL,
+  store_id              uuid NOT NULL,
   next_product_doc_id     int NOT NULL DEFAULT 1,
   next_variant_doc_id     int NOT NULL DEFAULT 1,
   updated_at              timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id),
+  PRIMARY KEY (store_id),
   CONSTRAINT chk_listing_doc_id_allocator_product_positive
     CHECK (next_product_doc_id > 0),
   CONSTRAINT chk_listing_doc_id_allocator_variant_positive
@@ -166,7 +166,7 @@ Sync code выделяет ids под row-level lock:
 ```sql
 SELECT next_product_doc_id
 FROM listing.listing_doc_id_allocator
-WHERE project_id = :projectId
+WHERE store_id = :storeId
 FOR UPDATE;
 ```
 
@@ -177,7 +177,7 @@ FOR UPDATE;
 
 ```sql
 CREATE TABLE listing.listing_posting_bitmap (
-  project_id             uuid NOT NULL,
+  store_id             uuid NOT NULL,
   entity_type            varchar(16) NOT NULL,
   field                  varchar(64) NOT NULL,
   value_key              text NOT NULL,
@@ -186,7 +186,7 @@ CREATE TABLE listing.listing_posting_bitmap (
   metadata               jsonb NOT NULL DEFAULT '{}'::jsonb,
   updated_at             timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (project_id, entity_type, field, value_key),
+  PRIMARY KEY (store_id, entity_type, field, value_key),
   CONSTRAINT chk_listing_posting_bitmap_entity_type
     CHECK (entity_type IN ('product', 'variant'))
 );
@@ -219,7 +219,7 @@ Bitmap хорошо отвечает на вопрос “какие docs под
 
 ```sql
 CREATE TABLE listing.listing_posting_product_sort (
-  project_id             uuid NOT NULL,
+  store_id             uuid NOT NULL,
   product_doc_id         int NOT NULL,
   product_id             uuid NOT NULL,
   sort_kind              varchar(32) NOT NULL,
@@ -235,7 +235,7 @@ CREATE TABLE listing.listing_posting_product_sort (
   numeric_value          numeric,
 
   PRIMARY KEY (
-    project_id,
+    store_id,
     product_doc_id,
     sort_kind,
     locale,
@@ -243,9 +243,9 @@ CREATE TABLE listing.listing_posting_product_sort (
     manual_scope_id
   ),
   CONSTRAINT fk_listing_posting_product_sort_doc
-    FOREIGN KEY (project_id, product_doc_id, product_id)
+    FOREIGN KEY (store_id, product_doc_id, product_id)
     REFERENCES listing.product_listing_index(
-      project_id,
+      store_id,
       product_doc_id,
       product_id
     )
@@ -258,7 +258,7 @@ Main indexes:
 ```sql
 CREATE INDEX idx_listing_posting_product_sort_newest
   ON listing.listing_posting_product_sort (
-    project_id,
+    store_id,
     sort_kind,
     locale,
     currency,
@@ -272,7 +272,7 @@ CREATE INDEX idx_listing_posting_product_sort_newest
 
 CREATE INDEX idx_listing_posting_product_sort_text
   ON listing.listing_posting_product_sort (
-    project_id,
+    store_id,
     sort_kind,
     locale,
     currency,
@@ -285,7 +285,7 @@ CREATE INDEX idx_listing_posting_product_sort_text
 
 CREATE INDEX idx_listing_posting_product_sort_bigint_asc
   ON listing.listing_posting_product_sort (
-    project_id,
+    store_id,
     sort_kind,
     locale,
     currency,
@@ -298,7 +298,7 @@ CREATE INDEX idx_listing_posting_product_sort_bigint_asc
 
 CREATE INDEX idx_listing_posting_product_sort_bigint_desc
   ON listing.listing_posting_product_sort (
-    project_id,
+    store_id,
     sort_kind,
     locale,
     currency,
@@ -334,23 +334,23 @@ Exact price values не хранятся как one posting bitmap per price. Д
 
 ```sql
 CREATE TABLE listing.listing_posting_variant_price (
-  project_id             uuid NOT NULL,
+  store_id             uuid NOT NULL,
   currency               varchar(3) NOT NULL,
   variant_doc_id         int NOT NULL,
   product_doc_id         int NOT NULL,
   product_id             uuid NOT NULL,
   price_minor            bigint NOT NULL,
 
-  PRIMARY KEY (project_id, currency, variant_doc_id),
+  PRIMARY KEY (store_id, currency, variant_doc_id),
   CONSTRAINT fk_listing_posting_variant_price_doc
     FOREIGN KEY (
-      project_id,
+      store_id,
       variant_doc_id,
       product_doc_id,
       product_id
     )
     REFERENCES listing.variant_listing_index(
-      project_id,
+      store_id,
       variant_doc_id,
       product_doc_id,
       product_id
@@ -364,7 +364,7 @@ Main indexes:
 ```sql
 CREATE INDEX idx_listing_posting_variant_price_range
   ON listing.listing_posting_variant_price (
-    project_id,
+    store_id,
     currency,
     price_minor,
     product_id,
@@ -374,7 +374,7 @@ CREATE INDEX idx_listing_posting_variant_price_range
 
 CREATE INDEX idx_listing_posting_variant_price_desc
   ON listing.listing_posting_variant_price (
-    project_id,
+    store_id,
     currency,
     price_minor DESC,
     product_id,
@@ -384,7 +384,7 @@ CREATE INDEX idx_listing_posting_variant_price_desc
 
 CREATE INDEX idx_listing_posting_variant_price_product_order
   ON listing.listing_posting_variant_price (
-    project_id,
+    store_id,
     currency,
     product_id,
     price_minor,
@@ -407,8 +407,8 @@ filters must not expand every matching variant through `rb_iterate`.
 Projection helper:
 
 ```sql
-CREATE TABLE listing.listing_posting_variant_projection_block (
-  project_id             uuid NOT NULL,
+CREATE TABLE listing.listing_posting_variant_storeion_block (
+  store_id             uuid NOT NULL,
   block_id               int NOT NULL,
   variant_doc_from       int NOT NULL,
   variant_doc_to         int NOT NULL,
@@ -417,7 +417,7 @@ CREATE TABLE listing.listing_posting_variant_projection_block (
   variant_count          int NOT NULL,
   product_count          int NOT NULL,
 
-  PRIMARY KEY (project_id, block_id)
+  PRIMARY KEY (store_id, block_id)
 );
 ```
 
@@ -427,8 +427,8 @@ variants through `variant_listing_index` and deduplicate `product_doc_id`.
 
 ## Project isolation
 
-`project_id` is the tenant boundary. Every posting table row and query must be
-scoped by `project_id`.
+`store_id` is the tenant boundary. Every posting table row and query must be
+scoped by `store_id`.
 
 Doc ids are stable only inside project:
 
@@ -441,7 +441,7 @@ project B:
 ```
 
 Repositories must not expose methods that accept only doc ids. Public/internal
-repository methods must accept `project_id` together with any `product_doc_id` or
+repository methods must accept `store_id` together with any `product_doc_id` or
 `variant_doc_id`.
 
 ## Query pipeline
@@ -512,7 +512,7 @@ currency and builds a variant bitmap:
 ```sql
 SELECT rb_build_agg(vp.variant_doc_id) AS price_variant_bitmap
 FROM listing.listing_posting_variant_price vp
-WHERE vp.project_id = :projectId
+WHERE vp.store_id = :storeId
   AND vp.currency = :currency
   AND vp.price_minor >= :minPriceMinor
   AND vp.price_minor <= :maxPriceMinor;
@@ -549,7 +549,7 @@ and checks bitmap membership:
 ```sql
 SELECT s.product_doc_id, s.product_id
 FROM listing.listing_posting_product_sort s
-WHERE s.project_id = :projectId
+WHERE s.store_id = :storeId
   AND s.sort_kind = :sortKind
   AND s.locale = :locale
   AND s.currency = :currency
@@ -572,7 +572,7 @@ SELECT DISTINCT ON (vp.product_id)
   vp.product_id,
   vp.price_minor
 FROM listing.listing_posting_variant_price vp
-WHERE vp.project_id = :projectId
+WHERE vp.store_id = :storeId
   AND vp.currency = :currency
   AND :variantMatchesBitmap::roaringbitmap @> vp.variant_doc_id
   AND :productMatchesBitmap::roaringbitmap @> vp.product_doc_id
@@ -631,8 +631,8 @@ SELECT pli.product_doc_id
 FROM listing.product_title_bm25_search_index s
 JOIN listing.product_listing_index pli
   ON pli.product_id = s.product_id
- AND pli.project_id = s.project_id
-WHERE s.project_id = :projectId
+ AND pli.store_id = s.store_id
+WHERE s.store_id = :storeId
   AND s.locale = :locale
   AND s.status = 'published';
 ```
@@ -722,9 +722,9 @@ return a consistency error or wait according to the caller policy.
 ## Concurrency
 
 Doc id allocation must run under row-level lock on
-`listing_doc_id_allocator(project_id)`.
+`listing_doc_id_allocator(store_id)`.
 
-Posting row updates for the same `(project_id, entity_type, field, value_key)`
+Posting row updates for the same `(store_id, entity_type, field, value_key)`
 must be serialized by transaction boundaries or advisory locks. A sync operation
 that moves a doc id from one posting row to another must update both rows in the
 same transaction where practical.
@@ -735,7 +735,7 @@ one field group. Batching must preserve final current-state membership.
 ## Partitioning
 
 Initial implementation can use non-partitioned tables. If posting rows grow too
-large, partition by `project_id`, not by doc id.
+large, partition by `store_id`, not by doc id.
 
 Candidate partitioned tables:
 
@@ -743,11 +743,11 @@ Candidate partitioned tables:
 listing_posting_bitmap
 listing_posting_product_sort
 listing_posting_variant_price
-listing_posting_variant_projection_block
+listing_posting_variant_storeion_block
 ```
 
 Partitioning must preserve the same logical primary keys and query shape:
-`project_id` remains the leading filter.
+`store_id` remains the leading filter.
 
 ## Future segmented storage
 
@@ -790,14 +790,14 @@ not raw SQL fragments spread across resolvers:
 ```ts
 interface ListingPostingRepository {
   getPostingBitmap(input: {
-    projectId: string;
+    storeId: string;
     entityType: 'product' | 'variant';
     field: string;
     valueKey: string;
   }): Promise<RoaringBitmap | null>;
 
   upsertPostingBitmap(input: {
-    projectId: string;
+    storeId: string;
     entityType: 'product' | 'variant';
     field: string;
     valueKey: string;
@@ -810,7 +810,7 @@ interface ListingPostingRepository {
 }
 ```
 
-Repositories must always require `projectId`.
+Repositories must always require `storeId`.
 
 ## Summary
 

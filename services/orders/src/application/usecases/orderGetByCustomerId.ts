@@ -56,7 +56,7 @@ export class GetUserOrdersUseCase extends UseCase<GetUserOrdersUseCaseInput, any
         this.logger.warn({
           requestingUserId: context.user.id,
           targetUserId: userId,
-          projectId: context.store.id
+          storeId: context.store.id
         }, "User attempting to access orders for different user");
       }
 
@@ -66,7 +66,7 @@ export class GetUserOrdersUseCase extends UseCase<GetUserOrdersUseCaseInput, any
 
       this.logger.info({
         userId,
-        projectId: context.store.id,
+        storeId: context.store.id,
         limit: safeLimit,
         offset: safeOffset,
         statusFilter: status
@@ -77,7 +77,7 @@ export class GetUserOrdersUseCase extends UseCase<GetUserOrdersUseCaseInput, any
 
       // Placeholder implementation - should be replaced with actual repository call
       // Example: const orders = await this.orderReadRepository.findByUserId(userId, {
-      //   projectId: context.store.id,
+      //   storeId: context.store.id,
       //   limit: safeLimit,
       //   offset: safeOffset,
       //   status: status ? { in: status } : undefined,
@@ -88,7 +88,7 @@ export class GetUserOrdersUseCase extends UseCase<GetUserOrdersUseCaseInput, any
 
       this.logger.debug({
         userId,
-        projectId: context.store.id,
+        storeId: context.store.id,
         foundOrdersCount: orders.length
       }, "Retrieved user orders");
 
@@ -98,7 +98,7 @@ export class GetUserOrdersUseCase extends UseCase<GetUserOrdersUseCaseInput, any
       this.logger.error({
         error,
         userId,
-        projectId: context.store.id
+        storeId: context.store.id
       }, "Failed to fetch user orders");
 
       // Re-throw known errors as-is

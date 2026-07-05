@@ -27,7 +27,7 @@ type SlotAssignmentRow = Omit<SlotAssignment, "created_at" | "updated_at"> & {
 
 const slotColumns = [
   "s.id",
-  "s.project_id",
+  "s.store_id",
   "s.domain",
   "s.provider",
   "s.provider_config_id",
@@ -43,7 +43,7 @@ const slotColumns = [
 
 const assignmentColumns = [
   "id",
-  "project_id",
+  "store_id",
   "aggregate",
   "aggregate_id",
   "slot_id",
@@ -75,10 +75,10 @@ export class SlotsRepository {
   /**
    * Finds a slot in the catalog by its ID and project ID.
    * @param id - Unique identifier of the slot.
-   * @param projectId - Unique identifier of the project.
+   * @param storeId - Unique identifier of the project.
    * @returns Slot object or `null` if the slot is not found.
    */
-  async findSlotById(id: string, projectId: string): Promise<Slot | null> {
+  async findSlotById(id: string, storeId: string): Promise<Slot | null> {
     const query = this.knex
       .select(slotColumns)
       .from("platform.slots as s")
@@ -87,7 +87,7 @@ export class SlotsRepository {
         "s.provider_config_id",
         "pc.id"
       )
-      .where({ "s.id": id, "s.project_id": projectId })
+      .where({ "s.id": id, "s.store_id": storeId })
       .toString();
 
     const result = await singleOrNull(this.executor.query<any>(rawSql(query)));
@@ -98,11 +98,11 @@ export class SlotsRepository {
 
   /**
    * Finds all slots for the specified project, optionally filtering by domain.
-   * @param projectId - Unique identifier of the project.
+   * @param storeId - Unique identifier of the project.
    * @param domain - Optional domain for filtering slots.
    * @returns Array of found slots.
    */
-  async findAllSlots(projectId: string, domain?: string): Promise<Slot[]> {
+  async findAllSlots(storeId: string, domain?: string): Promise<Slot[]> {
     let queryBuilder = this.knex
       .select(slotColumns)
       .from("platform.slots as s")
@@ -111,7 +111,7 @@ export class SlotsRepository {
         "s.provider_config_id",
         "pc.id"
       )
-      .where({ "s.project_id": projectId })
+      .where({ "s.store_id": storeId })
       .orderBy("s.updated_at", "desc");
 
     if (domain) {
@@ -130,7 +130,7 @@ export class SlotsRepository {
   private mapRowToSlot(row: any): Slot {
     return {
       id: row.id,
-      project_id: row.project_id,
+      store_id: row.store_id,
       domain: row.domain,
       provider: row.provider,
       provider_config_id: row.provider_config_id,
@@ -145,7 +145,7 @@ export class SlotsRepository {
           : row.updated_at,
       config: {
         id: row.provider_config_id,
-        project_id: row.project_id,
+        store_id: row.store_id,
         provider: row.provider,
         data: row.config_data || {},
         version: row.config_version || 1,
@@ -167,7 +167,7 @@ export class SlotsRepository {
    * Upserts provider config - creates or updates configuration for a provider
    */
   private async upsertProviderConfig(params: {
-    projectId: string;
+    storeId: string;
     provider: string;
     data?: Record<string, unknown>;
     version?: number;
@@ -175,7 +175,7 @@ export class SlotsRepository {
     environment?: "development" | "staging" | "production";
   }): Promise<string> {
     const {
-      projectId,
+      storeId,
       provider,
       data = {},
       version = 1,
@@ -185,7 +185,7 @@ export class SlotsRepository {
 
     const query = this.knex
       .insert({
-        project_id: projectId,
+        store_id: storeId,
         provider,
         data: this.knex.raw(`?::jsonb`, [JSON.stringify(data)]),
         version,
@@ -194,7 +194,7 @@ export class SlotsRepository {
       })
       .withSchema("platform")
       .into("provider_configs")
-      .onConflict(["project_id", "provider"])
+      .onConflict(["store_id", "provider"])
       .merge({
         data: this.knex.raw(`?::jsonb`, [JSON.stringify(data)]),
         version,
@@ -212,7 +212,7 @@ export class SlotsRepository {
   }
 
   /**
-   * Creates a new slot or updates an existing one based on the unique key (projectId, domain, provider).
+   * Creates a new slot or updates an existing one based on the unique key (storeId, domain, provider).
    * Now works with normalized provider_configs structure.
    * @param params - Parameters for creating/updating the slot.
    * @returns Created or updated slot object.
@@ -220,8 +220,8 @@ export class SlotsRepository {
   async upsertSlot(params: {
     /** Slot domain (e.g., 'shipping', 'payment'). */
     domain: string;
-    /** Project ID. */
-    projectId: string;
+    /** Store ID. */
+    storeId: string;
     /** Provider code (e.g., 'novaposhta'). */
     provider: string;
     /** List of provider capabilities. */
@@ -240,7 +240,7 @@ export class SlotsRepository {
       provider,
       capabilities = [],
       data = {},
-      projectId,
+      storeId,
       status = "active",
       environment = "production",
       version = 1,
@@ -248,7 +248,7 @@ export class SlotsRepository {
 
     // Step 1: Upsert provider config (shared across all domains for this provider)
     const providerConfigId = await this.upsertProviderConfig({
-      projectId,
+      storeId,
       provider,
       data,
       version,
@@ -260,14 +260,14 @@ export class SlotsRepository {
     const query = this.knex
       .insert({
         domain,
-        project_id: projectId,
+        store_id: storeId,
         provider,
         provider_config_id: providerConfigId,
         capabilities,
       })
       .withSchema("platform")
       .into("slots")
-      .onConflict(["project_id", "domain", "provider"])
+      .onConflict(["store_id", "domain", "provider"])
       .merge({
         capabilities,
         provider_config_id: providerConfigId,
@@ -281,7 +281,7 @@ export class SlotsRepository {
     );
 
     // Step 3: Fetch the complete slot with joined config
-    const slot = await this.findSlotById(result.id, projectId);
+    const slot = await this.findSlotById(result.id, storeId);
     if (!slot) {
       throw new Error(`Failed to fetch created slot ${result.id}`);
     }
@@ -292,15 +292,15 @@ export class SlotsRepository {
   /**
    * Deletes a slot from the catalog by its ID and project ID.
    * @param id - Unique identifier of the slot to delete.
-   * @param projectId - Unique identifier of the project.
+   * @param storeId - Unique identifier of the project.
    * @returns `true` on successful deletion, otherwise `false`.
    */
-  async deleteSlot(id: string, projectId: string): Promise<boolean> {
+  async deleteSlot(id: string, storeId: string): Promise<boolean> {
     const query = this.knex
       .withSchema("platform")
       .table("slots")
       .delete()
-      .where({ id, project_id: projectId })
+      .where({ id, store_id: storeId })
       .toString();
 
     const res = await this.executor.command(rawSql(query));
@@ -314,17 +314,17 @@ export class SlotsRepository {
   /**
    * Finds assignment by its ID and project ID.
    * @param id - Unique identifier of the assignment.
-   * @param projectId - Unique identifier of the project.
+   * @param storeId - Unique identifier of the project.
    * @returns Assignment object or `null` if not found.
    */
   async findAssignmentById(
     id: string,
-    projectId: string
+    storeId: string
   ): Promise<SlotAssignment | null> {
     const query = this.knex
       .select(assignmentColumns)
       .from("platform.slot_assignments")
-      .where({ id, project_id: projectId })
+      .where({ id, store_id: storeId })
       .toString();
 
     const result = await singleOrNull(
@@ -345,8 +345,8 @@ export class SlotsRepository {
    * @returns Created assignment object.
    */
   async createAssignment(params: {
-    /** Project ID. */
-    projectId: string;
+    /** Store ID. */
+    storeId: string;
     /** Aggregate name (e.g., 'checkout'). */
     aggregate: string;
     /** Aggregate instance ID. */
@@ -359,7 +359,7 @@ export class SlotsRepository {
     precedence?: number;
   }): Promise<SlotAssignment> {
     const {
-      projectId,
+      storeId,
       aggregate,
       aggregateId,
       slotId,
@@ -369,7 +369,7 @@ export class SlotsRepository {
 
     const query = this.knex
       .insert({
-        project_id: projectId,
+        store_id: storeId,
         aggregate,
         aggregate_id: aggregateId,
         slot_id: slotId,
@@ -395,13 +395,13 @@ export class SlotsRepository {
   /**
    * Updates existing assignment (status or precedence).
    * @param id - Unique identifier of assignment to update.
-   * @param projectId - Project ID.
+   * @param storeId - Store ID.
    * @param data - Data to update.
    * @returns Updated assignment object or `null` if assignment not found.
    */
   async updateAssignment(
     id: string,
-    projectId: string,
+    storeId: string,
     data: {
       /** New precedence. */
       precedence?: number;
@@ -413,7 +413,7 @@ export class SlotsRepository {
       .withSchema("platform")
       .table("slot_assignments")
       .update({ ...data, updated_at: this.knex.raw("now()") })
-      .where({ id, project_id: projectId })
+      .where({ id, store_id: storeId })
       .returning(assignmentColumns)
       .toString();
 
@@ -432,15 +432,15 @@ export class SlotsRepository {
   /**
    * Deletes slot assignment by its ID and project ID.
    * @param id - Unique identifier of assignment to delete.
-   * @param projectId - Unique identifier of the project.
+   * @param storeId - Unique identifier of the project.
    * @returns `true` on successful deletion, otherwise `false`.
    */
-  async deleteAssignment(id: string, projectId: string): Promise<boolean> {
+  async deleteAssignment(id: string, storeId: string): Promise<boolean> {
     const query = this.knex
       .withSchema("platform")
       .table("slot_assignments")
       .delete()
-      .where({ id, project_id: projectId })
+      .where({ id, store_id: storeId })
       .toString();
     const res = await this.executor.command(rawSql(query));
     return (res.rowCount ?? 0) > 0;
@@ -454,21 +454,21 @@ export class SlotsRepository {
    * Finds one most prioritized active assignment for aggregate.
    * Used to determine which provider should be used at the moment.
    * @param domain - Domain where assignment is searched.
-   * @param projectId - Project ID.
+   * @param storeId - Store ID.
    * @param aggregate - Aggregate name.
    * @param aggregateId - Aggregate instance ID.
    * @returns Object with slot data and its assignment, or `null`.
    */
   async findResolvedSlotForAggregate(
     domain: string,
-    projectId: string,
+    storeId: string,
     aggregate: string,
     aggregateId: string
   ): Promise<{ slot: Slot; assignment: SlotAssignment } | null> {
     const query = this.knex
       .select({
         slot_id: "s.id",
-        slot_project_id: "s.project_id",
+        slot_store_id: "s.store_id",
         slot_domain: "s.domain",
         slot_provider: "s.provider",
         slot_provider_config_id: "s.provider_config_id",
@@ -481,7 +481,7 @@ export class SlotsRepository {
         config_status: "pc.status",
         config_environment: "pc.environment",
         assignment_id: "sa.id",
-        assignment_project_id: "sa.project_id",
+        assignment_store_id: "sa.store_id",
         assignment_aggregate: "sa.aggregate",
         assignment_aggregate_id: "sa.aggregate_id",
         assignment_slot_id: "sa.slot_id",
@@ -495,7 +495,7 @@ export class SlotsRepository {
       .join({ s: "platform.slots" }, "s.id", "sa.slot_id")
       .join({ pc: "platform.provider_configs" }, "s.provider_config_id", "pc.id")
       .where({
-        "sa.project_id": projectId,
+        "sa.store_id": storeId,
         "sa.aggregate": aggregate,
         "sa.aggregate_id": aggregateId,
         "sa.domain": domain,
@@ -511,7 +511,7 @@ export class SlotsRepository {
      */
     type ResolvedSlotRow = {
       slot_id: string;
-      slot_project_id: string;
+      slot_store_id: string;
       slot_domain: string;
       slot_provider: string;
       slot_provider_config_id: string;
@@ -523,7 +523,7 @@ export class SlotsRepository {
       config_status: string;
       config_environment: string;
       assignment_id: string;
-      assignment_project_id: string;
+      assignment_store_id: string;
       assignment_aggregate: string;
       assignment_aggregate_id: string;
       assignment_slot_id: string;
@@ -542,7 +542,7 @@ export class SlotsRepository {
 
     const slot: Slot = {
       id: row.slot_id,
-      project_id: row.slot_project_id,
+      store_id: row.slot_store_id,
       domain: row.slot_domain,
       provider: row.slot_provider,
       provider_config_id: row.slot_provider_config_id,
@@ -551,7 +551,7 @@ export class SlotsRepository {
       updated_at: row.slot_updated_at.toISOString(),
       config: {
         id: row.slot_provider_config_id,
-        project_id: row.slot_project_id,
+        store_id: row.slot_store_id,
         provider: row.slot_provider,
         data: row.config_data,
         version: row.config_version,
@@ -564,7 +564,7 @@ export class SlotsRepository {
 
     const assignment: SlotAssignment = {
       id: row.assignment_id,
-      project_id: row.assignment_project_id,
+      store_id: row.assignment_store_id,
       aggregate: row.assignment_aggregate,
       aggregate_id: row.assignment_aggregate_id,
       slot_id: row.assignment_slot_id,
@@ -581,7 +581,7 @@ export class SlotsRepository {
   /**
    * Finds all assignments for specified aggregate.
    * @param domain - Domain for filtering assignments.
-   * @param projectId - Project ID.
+   * @param storeId - Store ID.
    * @param aggregate - Aggregate name.
    * @param aggregateId - Aggregate instance ID.
    * @param includeDisabled - Flag indicating whether to include disabled assignments in result.
@@ -589,7 +589,7 @@ export class SlotsRepository {
    */
   async findAllAssignmentsForAggregate(
     domain: string,
-    projectId: string,
+    storeId: string,
     aggregate: string,
     aggregateId: string,
     includeDisabled = false
@@ -597,7 +597,7 @@ export class SlotsRepository {
     let query = this.knex
       .select({
         slot_id: "s.id",
-        slot_project_id: "s.project_id",
+        slot_store_id: "s.store_id",
         slot_domain: "s.domain",
         slot_provider: "s.provider",
         slot_provider_config_id: "s.provider_config_id",
@@ -609,7 +609,7 @@ export class SlotsRepository {
         config_status: "pc.status",
         config_environment: "pc.environment",
         assignment_id: "sa.id",
-        assignment_project_id: "sa.project_id",
+        assignment_store_id: "sa.store_id",
         assignment_aggregate: "sa.aggregate",
         assignment_aggregate_id: "sa.aggregate_id",
         assignment_slot_id: "sa.slot_id",
@@ -623,7 +623,7 @@ export class SlotsRepository {
       .join({ s: "platform.slots" }, "s.id", "sa.slot_id")
       .join({ pc: "platform.provider_configs" }, "s.provider_config_id", "pc.id")
       .where({
-        "sa.project_id": projectId,
+        "sa.store_id": storeId,
         "sa.aggregate": aggregate,
         "sa.aggregate_id": aggregateId,
         "sa.domain": domain,
@@ -643,7 +643,7 @@ export class SlotsRepository {
      */
     type ResolvedSlotRow = {
       slot_id: string;
-      slot_project_id: string;
+      slot_store_id: string;
       slot_domain: string;
       slot_provider: string;
       slot_provider_config_id: string;
@@ -655,7 +655,7 @@ export class SlotsRepository {
       config_status: string;
       config_environment: string;
       assignment_id: string;
-      assignment_project_id: string;
+      assignment_store_id: string;
       assignment_aggregate: string;
       assignment_aggregate_id: string;
       assignment_slot_id: string;
@@ -673,7 +673,7 @@ export class SlotsRepository {
     return rows.map((row) => ({
       slot: {
         id: row.slot_id,
-        project_id: row.slot_project_id,
+        store_id: row.slot_store_id,
         domain: row.slot_domain,
         provider: row.slot_provider,
         provider_config_id: row.slot_provider_config_id,
@@ -682,7 +682,7 @@ export class SlotsRepository {
         updated_at: row.slot_updated_at.toISOString(),
         config: {
           id: row.slot_provider_config_id,
-          project_id: row.slot_project_id,
+          store_id: row.slot_store_id,
           provider: row.slot_provider,
           data: row.config_data,
           version: row.config_version,
@@ -694,7 +694,7 @@ export class SlotsRepository {
       },
       assignment: {
         id: row.assignment_id,
-        project_id: row.assignment_project_id,
+        store_id: row.assignment_store_id,
         aggregate: row.assignment_aggregate,
         aggregate_id: row.assignment_aggregate_id,
         slot_id: row.assignment_slot_id,

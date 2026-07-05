@@ -13,7 +13,7 @@ import { currencyEnum } from "./pricing";
 export const productVariantCostHistory = catalogSchema.table(
   "product_variant_cost_history",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     id: uuid("id").primaryKey(),
     variantId: uuid("variant_id").notNull(),
     currency: currencyEnum("currency").notNull(),
@@ -35,26 +35,26 @@ export const productVariantCostHistory = catalogSchema.table(
     ),
     // Indexes
     index("idx_product_variant_cost_history_variant_currency_effective_from").on(
-      table.projectId,
+      table.storeId,
       table.variantId,
       table.currency,
       table.effectiveFrom
     ),
     index("idx_product_variant_cost_history_variant_effective_from").on(
-      table.projectId,
+      table.storeId,
       table.variantId,
       table.effectiveFrom
     ),
     index("idx_product_variant_cost_history_recorded_at").on(
-      table.projectId,
+      table.storeId,
       table.recordedAt
     ),
     index("idx_product_variant_cost_history_effective_to").on(
-      table.projectId,
+      table.storeId,
       table.effectiveTo
     ),
     uniqueIndex("idx_product_variant_cost_history_current_unique")
-      .on(table.projectId, table.variantId, table.currency)
+      .on(table.storeId, table.variantId, table.currency)
       .where(sql`effective_to IS NULL`),
   ]
 );
@@ -64,7 +64,7 @@ export const variantCostsCurrent = catalogSchema.view("variant_costs_current").a
   qb
     .select({
       id: productVariantCostHistory.id,
-      projectId: productVariantCostHistory.projectId,
+      storeId: productVariantCostHistory.storeId,
       variantId: productVariantCostHistory.variantId,
       currency: productVariantCostHistory.currency,
       unitCostMinor: productVariantCostHistory.unitCostMinor,

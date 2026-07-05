@@ -1,7 +1,7 @@
 -- Up Migration
 
 CREATE TABLE "catalog"."tag" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "id" uuid NOT NULL,
   "handle" varchar(255) NOT NULL,
   "products_count" integer NOT NULL DEFAULT 0,
@@ -9,14 +9,14 @@ CREATE TABLE "catalog"."tag" (
   CONSTRAINT "tag_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX "tag_project_id_handle_key"
-  ON "catalog"."tag" ("project_id", "handle");
+CREATE UNIQUE INDEX "tag_store_id_handle_key"
+  ON "catalog"."tag" ("store_id", "handle");
 
-CREATE INDEX "idx_tag_project_id"
-  ON "catalog"."tag" ("project_id");
+CREATE INDEX "idx_tag_store_id"
+  ON "catalog"."tag" ("store_id");
 
 CREATE TABLE "catalog"."tag_translation" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "tag_id" uuid NOT NULL,
   "locale" varchar(8) NOT NULL,
   "name" text NOT NULL,
@@ -27,11 +27,11 @@ CREATE TABLE "catalog"."tag_translation" (
     ON DELETE CASCADE
 );
 
-CREATE INDEX "idx_tag_translation_project"
-  ON "catalog"."tag_translation" ("project_id");
+CREATE INDEX "idx_tag_translation_store"
+  ON "catalog"."tag_translation" ("store_id");
 
 CREATE TABLE "catalog"."product_tag" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "product_id" uuid NOT NULL,
   "tag_id" uuid NOT NULL,
   CONSTRAINT "product_tag_pkey" PRIMARY KEY ("product_id", "tag_id"),
@@ -52,7 +52,7 @@ CREATE INDEX "idx_product_tag_tag"
   ON "catalog"."product_tag" ("tag_id");
 
 CREATE TABLE "catalog"."category_tag" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "category_id" uuid NOT NULL,
   "tag_id" uuid NOT NULL,
   CONSTRAINT "category_tag_pkey" PRIMARY KEY ("category_id", "tag_id"),

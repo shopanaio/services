@@ -36,12 +36,12 @@
   - имя constraint/index привести к `..._handle...`.
 - `services/catalog/migrations/domains/0500_facets/0500_facets__tables.sql`
   - `facet.slug` -> `facet.handle`.
-  - constraint `facet_project_id_slug_uniq` -> `facet_project_id_handle_uniq`.
+  - constraint `facet_store_id_slug_uniq` -> `facet_store_id_handle_uniq`.
 - `services/catalog/migrations/domains/0500_facets/0504_facets__source_candidate_view.sql`
   - `po.slug AS handle` -> `po.handle AS handle`.
   - `pf.slug AS handle` -> `pf.handle AS handle`.
   - `GROUP BY ... po.slug/pf.slug` -> `GROUP BY ... po.handle/pf.handle`.
-  - indexes on `product_option(project_id, slug)` and `product_feature(project_id, is_group, slug)` -> `handle`.
+  - indexes on `product_option(store_id, slug)` and `product_feature(store_id, is_group, slug)` -> `handle`.
   - index names привести к `...handle...`.
 - `services/catalog/migrations/domains/0500_facets/0505_facets__value_candidate_views.sql`
   - все compositions вида `po.slug || ':' || pov.slug` -> `po.handle || ':' || pov.handle`.
@@ -69,7 +69,7 @@ rg -n "\bslug\b|Slug" services/catalog/migrations/domains
   - DB column names, unique names и indexes перевести на `handle`.
 - `services/catalog/src/repositories/models/facet.ts`
   - `facet.slug` -> `facet.handle`.
-  - unique constraint `facet_project_id_handle_uniq`.
+  - unique constraint `facet_store_id_handle_uniq`.
 - `services/catalog/src/repositories/models/facetSourceCandidateView.ts`
 - `services/catalog/src/repositories/models/facetOptionValueCandidateView.ts`
 - `services/catalog/src/repositories/models/facetFeatureValueCandidateView.ts`

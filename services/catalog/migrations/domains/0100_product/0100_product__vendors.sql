@@ -1,15 +1,15 @@
 -- Up Migration
 
 CREATE TABLE "catalog"."vendor" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "id" uuid NOT NULL,
   "name" varchar(255) NOT NULL,
   CONSTRAINT "vendor_pkey" PRIMARY KEY ("id"),
-  CONSTRAINT "vendor_project_id_id_unique" UNIQUE ("project_id", "id")
+  CONSTRAINT "vendor_store_id_id_unique" UNIQUE ("store_id", "id")
 );
 
-CREATE UNIQUE INDEX "vendor_project_id_name_key"
-  ON "catalog"."vendor" ("project_id", "name");
+CREATE UNIQUE INDEX "vendor_store_id_name_key"
+  ON "catalog"."vendor" ("store_id", "name");
 
-CREATE INDEX "idx_vendor_project_id"
-  ON "catalog"."vendor" ("project_id");
+CREATE INDEX "idx_vendor_store_id"
+  ON "catalog"."vendor" ("store_id");

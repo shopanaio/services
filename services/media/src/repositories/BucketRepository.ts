@@ -14,13 +14,13 @@ export interface CreateBucketInput {
 export class BucketRepository {
   constructor(private readonly db: Database) {}
 
-  async findById(projectId: string, bucketId: string): Promise<Bucket | null> {
+  async findById(storeId: string, bucketId: string): Promise<Bucket | null> {
     const result = await this.db
       .select()
       .from(buckets)
       .where(
         and(
-          eq(buckets.projectId, projectId),
+          eq(buckets.storeId, storeId),
           eq(buckets.id, bucketId),
           isNull(buckets.deletedAt)
         )
@@ -45,13 +45,13 @@ export class BucketRepository {
     return result[0] ?? null;
   }
 
-  async findActive(projectId: string): Promise<Bucket | null> {
+  async findActive(storeId: string): Promise<Bucket | null> {
     const result = await this.db
       .select()
       .from(buckets)
       .where(
         and(
-          eq(buckets.projectId, projectId),
+          eq(buckets.storeId, storeId),
           eq(buckets.status, "active"),
           isNull(buckets.deletedAt)
         )
@@ -61,12 +61,12 @@ export class BucketRepository {
     return result[0] ?? null;
   }
 
-  async create(projectId: string, data: CreateBucketInput): Promise<Bucket> {
+  async create(storeId: string, data: CreateBucketInput): Promise<Bucket> {
     const id = data.id ?? crypto.randomUUID();
 
     const newBucket: NewBucket = {
       id,
-      projectId,
+      storeId,
       bucketName: data.bucketName,
       region: data.region ?? "us-east-1",
       status: data.status ?? "active",

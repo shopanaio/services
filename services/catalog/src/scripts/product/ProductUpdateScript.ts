@@ -34,7 +34,7 @@ export class ProductUpdateScript extends BaseScript<ProductUpdateParams, Product
     }
 
     const locale = this.getLocale();
-    const projectId = this.getProjectId();
+    const storeId = this.getProjectId();
 
     // Track what actually changed
     const changes: ProductIdentityChanges = {};
@@ -46,7 +46,7 @@ export class ProductUpdateScript extends BaseScript<ProductUpdateParams, Product
 
       if (title !== currentTitle) {
         await this.repository.translation.upsertProductTranslation({
-          projectId,
+          storeId,
           productId: id,
           locale,
           name: title,
@@ -67,7 +67,7 @@ export class ProductUpdateScript extends BaseScript<ProductUpdateParams, Product
         await this.repository.product.update(id, { handle });
         changes.handle = handle;
       } catch (error) {
-        if (isUniqueViolation(error, "product_project_id_handle_key")) {
+        if (isUniqueViolation(error, "product_store_id_handle_key")) {
           return singleError(
             "Product with this handle already exists",
             "DUPLICATE_HANDLE",

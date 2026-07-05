@@ -19,7 +19,7 @@ import { product, variant } from "./products";
 export const productMedia = catalogSchema.table(
   "product_media",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id").notNull(),
     id: uuid("id").primaryKey(),
     fileId: uuid("file_id").notNull(),
@@ -29,25 +29,25 @@ export const productMedia = catalogSchema.table(
       .defaultNow(),
   },
   (table) => [
-    unique("product_media_project_id_product_id_file_id_unique").on(
-      table.projectId,
+    unique("product_media_store_id_product_id_file_id_unique").on(
+      table.storeId,
       table.productId,
       table.fileId
     ),
-    unique("product_media_project_id_product_id_id_unique").on(
-      table.projectId,
+    unique("product_media_store_id_product_id_id_unique").on(
+      table.storeId,
       table.productId,
       table.id
     ),
-    unique("product_media_project_id_id_unique").on(
-      table.projectId,
+    unique("product_media_store_id_id_unique").on(
+      table.storeId,
       table.id
     ),
-    index("idx_product_media_project").on(table.projectId),
-    index("idx_product_media_product").on(table.projectId, table.productId),
-    index("idx_product_media_file").on(table.projectId, table.fileId),
+    index("idx_product_media_store").on(table.storeId),
+    index("idx_product_media_product").on(table.storeId, table.productId),
+    index("idx_product_media_file").on(table.storeId, table.fileId),
     index("idx_product_media_sort").on(
-      table.projectId,
+      table.storeId,
       table.productId,
       table.sortIndex
     ),
@@ -68,7 +68,7 @@ export const productMedia = catalogSchema.table(
 export const variantMedia = catalogSchema.table(
   "variant_media",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id").notNull(),
     variantId: uuid("variant_id").notNull(),
     productMediaId: uuid("product_media_id").notNull(),
@@ -78,15 +78,15 @@ export const variantMedia = catalogSchema.table(
     primaryKey({
       columns: [table.variantId, table.productMediaId],
     }),
-    index("idx_variant_media_project").on(table.projectId),
-    index("idx_variant_media_product").on(table.projectId, table.productId),
-    index("idx_variant_media_variant").on(table.projectId, table.variantId),
+    index("idx_variant_media_store").on(table.storeId),
+    index("idx_variant_media_product").on(table.storeId, table.productId),
+    index("idx_variant_media_variant").on(table.storeId, table.variantId),
     index("idx_variant_media_product_media").on(
-      table.projectId,
+      table.storeId,
       table.productMediaId
     ),
     index("idx_variant_media_sort").on(
-      table.projectId,
+      table.storeId,
       table.variantId,
       table.sortIndex
     ),

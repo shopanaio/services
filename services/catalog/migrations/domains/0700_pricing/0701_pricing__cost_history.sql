@@ -1,7 +1,7 @@
 -- Up Migration
 
 CREATE TABLE "catalog"."product_variant_cost_history" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "id" uuid NOT NULL,
   "variant_id" uuid NOT NULL,
   "currency" "catalog"."currency" NOT NULL,
@@ -18,21 +18,21 @@ CREATE TABLE "catalog"."product_variant_cost_history" (
 
 CREATE INDEX "idx_product_variant_cost_history_variant_currency_effective_from"
   ON "catalog"."product_variant_cost_history" (
-    "project_id",
+    "store_id",
     "variant_id",
     "currency",
     "effective_from"
   );
 
 CREATE INDEX "idx_product_variant_cost_history_variant_effective_from"
-  ON "catalog"."product_variant_cost_history" ("project_id", "variant_id", "effective_from");
+  ON "catalog"."product_variant_cost_history" ("store_id", "variant_id", "effective_from");
 
 CREATE INDEX "idx_product_variant_cost_history_recorded_at"
-  ON "catalog"."product_variant_cost_history" ("project_id", "recorded_at");
+  ON "catalog"."product_variant_cost_history" ("store_id", "recorded_at");
 
 CREATE INDEX "idx_product_variant_cost_history_effective_to"
-  ON "catalog"."product_variant_cost_history" ("project_id", "effective_to");
+  ON "catalog"."product_variant_cost_history" ("store_id", "effective_to");
 
 CREATE UNIQUE INDEX "idx_product_variant_cost_history_current_unique"
-  ON "catalog"."product_variant_cost_history" ("project_id", "variant_id", "currency")
+  ON "catalog"."product_variant_cost_history" ("store_id", "variant_id", "currency")
   WHERE "effective_to" IS NULL;

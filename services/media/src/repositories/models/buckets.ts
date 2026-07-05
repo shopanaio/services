@@ -14,7 +14,7 @@ export const buckets = mediaSchema.table(
   "buckets",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     bucketName: varchar("bucket_name", { length: 63 }).notNull().unique(),
     region: varchar("region", { length: 32 }).notNull().default("us-east-1"),
     status: varchar("status", { length: 16 }).notNull().default("active"),
@@ -30,7 +30,7 @@ export const buckets = mediaSchema.table(
     deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
-    index("idx_buckets_project_id").on(table.projectId),
+    index("idx_buckets_store_id").on(table.storeId),
     index("idx_buckets_status")
       .on(table.status)
       .where(sql`deleted_at IS NULL`),

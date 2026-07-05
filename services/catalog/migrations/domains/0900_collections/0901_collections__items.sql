@@ -2,7 +2,7 @@
 
 CREATE TABLE "catalog"."collection_item" (
   "collection_id" uuid NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "product_id" uuid NOT NULL,
   "lexo_rank" varchar(64) NOT NULL,
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),

@@ -89,8 +89,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "project_id": {
-          "name": "project_id",
+        "store_id": {
+          "name": "store_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -156,11 +156,11 @@
         }
       },
       "indexes": {
-        "idx_buckets_project_id": {
-          "name": "idx_buckets_project_id",
+        "idx_buckets_store_id": {
+          "name": "idx_buckets_store_id",
           "columns": [
             {
-              "expression": "project_id",
+              "expression": "store_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1004,8 +1004,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "project_id": {
-          "name": "project_id",
+        "store_id": {
+          "name": "store_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -1082,11 +1082,11 @@
         }
       },
       "indexes": {
-        "idx_upload_sessions_project": {
-          "name": "idx_upload_sessions_project",
+        "idx_upload_sessions_store": {
+          "name": "idx_upload_sessions_store",
           "columns": [
             {
-              "expression": "project_id",
+              "expression": "store_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1146,8 +1146,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "project_id": {
-          "name": "project_id",
+        "store_id": {
+          "name": "store_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -1185,11 +1185,11 @@
         }
       },
       "indexes": {
-        "idx_bucket_rotation_log_project": {
-          "name": "idx_bucket_rotation_log_project",
+        "idx_bucket_rotation_log_store": {
+          "name": "idx_bucket_rotation_log_store",
           "columns": [
             {
-              "expression": "project_id",
+              "expression": "store_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

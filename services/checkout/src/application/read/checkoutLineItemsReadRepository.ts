@@ -3,7 +3,7 @@ import { ChildPriceType } from "@src/domain/checkout/types";
 
 export type CheckoutLineItemReadPortRow = {
   id: string;
-  project_id: string;
+  store_id: string;
   checkout_id: string;
   parent_line_item_id: string | null;
   tag_id: string | null;
@@ -49,7 +49,7 @@ export type CheckoutLinePriceConfigView = {
 
 export type CheckoutLineItemReadView = {
   id: string;
-  projectId: string;
+  storeId: string;
   checkoutId: string;
   parentLineId: string | null;
   priceConfig: CheckoutLinePriceConfigView | null;
@@ -106,7 +106,7 @@ export class CheckoutLineItemsReadRepository {
 
     return {
       id: row.id,
-      projectId: row.project_id,
+      storeId: row.store_id,
       checkoutId: row.checkout_id,
       parentLineId: row.parent_line_item_id,
       priceConfig: row.price_type

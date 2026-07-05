@@ -38,7 +38,7 @@ export class TagUpdateScript extends BaseScript<TagUpdateParams, TagUpdateResult
     // 4. Update translation if name provided
     if (name !== undefined) {
       await this.repository.tag.upsertTranslation({
-        projectId: this.getProjectId(),
+        storeId: this.getProjectId(),
         tagId: id,
         locale: this.getLocale(),
         name,

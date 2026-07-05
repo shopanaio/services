@@ -367,7 +367,7 @@ await this.broker.startWorkflow(
   },
   {
     source: "content",
-    tenantId: params.projectId,
+    tenantId: params.storeId,
     resourceId: `${params.item.entityType}:${params.item.id}`,
     operation: "listing.syncSellableItem",
     contentHash: params.meta.idempotencyKey,
@@ -376,7 +376,7 @@ await this.broker.startWorkflow(
     queueName: "listing_index_actions",
     enqueueOptions: {
       queuePartitionKey: [
-        params.projectId,
+        params.storeId,
         params.item.entityType,
         params.item.id,
       ].join(":"),

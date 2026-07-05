@@ -19,13 +19,13 @@ export class BulkFenceRepository extends BaseRepository {
       await this.connection
         .insert(productBulkFence)
         .values({
-          projectId: this.storeId,
+          storeId: this.storeId,
           productId: fence.productId,
           fenceToken: fence.fenceToken,
           jobId: fence.jobId,
         } satisfies NewProductBulkFence)
         .onConflictDoUpdate({
-          target: [productBulkFence.projectId, productBulkFence.productId],
+          target: [productBulkFence.storeId, productBulkFence.productId],
           set: {
             fenceToken: fence.fenceToken,
             jobId: fence.jobId,

@@ -264,7 +264,7 @@ candidate path. Она не является точной стоимостью h
 base signatures через индекс по selected `value_key`, затем делает bucket
 expansion по найденным signatures. Реальный выигрыш зависит от selectivity
 selected option values, количества matched signatures и индекса для
-`project_id + facet_id + signature_key`.
+`store_id + facet_id + signature_key`.
 
 ### TypeScript helper
 
@@ -670,7 +670,7 @@ option_heavy_base_signatures AS (
     ON counts.target_facet_id = required.target_facet_id
    AND counts.required_facet_count > 0
   JOIN listing.listing_option_signature_value sv
-    ON sv.project_id = i.project_id
+    ON sv.store_id = i.store_id
    AND sv.facet_id = required.required_facet_id::uuid
    AND sv.value_key = required.value_key
   GROUP BY
@@ -689,7 +689,7 @@ option_heavy_bucket_signatures AS (
   FROM option_heavy_base_signatures base
   JOIN input i ON true
   JOIN listing.listing_option_signature_value sv
-    ON sv.project_id = i.project_id
+    ON sv.store_id = i.store_id
    AND sv.signature_key = base.signature_key
    AND sv.facet_id = base.target_facet_id::uuid
   JOIN option_facet_values ofv
@@ -730,7 +730,7 @@ option_heavy_signature_product_bitmaps AS (
   FROM option_heavy_bucket_signatures bucket
   JOIN input i ON true
   JOIN listing.listing_option_signature os
-    ON os.project_id = i.project_id
+    ON os.store_id = i.store_id
    AND os.signature_key = bucket.signature_key
   GROUP BY bucket.facet_id, bucket.value_key
 )
@@ -761,7 +761,7 @@ option_heavy_signature_price_product_bitmaps AS (
   JOIN input i
     ON i.price_filter_json <> '{}'::jsonb
   LEFT JOIN listing.variant_listing_price_index vp
-    ON vp.project_id = i.project_id
+    ON vp.store_id = i.store_id
    AND vp.signature_key = bucket.signature_key
    AND vp.currency = i.currency
    AND vp.has_price = true
@@ -830,7 +830,7 @@ option_heavy_signature_facet_counts AS (
 ```sql
 CREATE INDEX idx_listing_option_signature_value_lookup
   ON listing.listing_option_signature_value (
-    project_id,
+    store_id,
     value_key,
     signature_key
   );
@@ -839,7 +839,7 @@ CREATE INDEX idx_listing_option_signature_value_lookup
 хорош для lookup по selected `value_key`, но heavy bucket expansion делает join:
 
 ```sql
-project_id + facet_id + signature_key -> value_key
+store_id + facet_id + signature_key -> value_key
 ```
 
 Добавить migration вместе с heavy path. `EXPLAIN` использовать для проверки
@@ -850,7 +850,7 @@ heavy bucket expansion может превратиться в scan/hash на б�
 ```sql
 CREATE INDEX idx_listing_option_signature_value_facet_signature
   ON listing.listing_option_signature_value (
-    project_id,
+    store_id,
     facet_id,
     signature_key,
     value_key
@@ -861,7 +861,7 @@ CREATE INDEX idx_listing_option_signature_value_facet_signature
 
 ```ts
 index("idx_listing_option_signature_value_facet_signature").on(
-  table.projectId,
+  table.storeId,
   table.facetId,
   table.signatureKey,
   table.valueKey

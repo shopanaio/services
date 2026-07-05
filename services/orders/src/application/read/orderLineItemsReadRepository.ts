@@ -2,7 +2,7 @@ import { Money } from "@shopana/shared-money";
 
 export type OrderLineItemReadPortRow = {
   id: string;
-  project_id: string;
+  store_id: string;
   order_id: string;
   quantity: number;
   unit_id: string;
@@ -29,7 +29,7 @@ export interface OrderLineItemsReadPort {
 
 export type OrderLineItemReadView = {
   id: string;
-  projectId: string;
+  storeId: string;
   orderId: string;
   quantity: number;
   unit: {
@@ -66,7 +66,7 @@ export class OrderLineItemsReadRepository {
 
     return rows.map((row) => ({
       id: row.id,
-      projectId: row.project_id,
+      storeId: row.store_id,
       orderId: row.order_id,
       quantity: row.quantity,
       unit: {

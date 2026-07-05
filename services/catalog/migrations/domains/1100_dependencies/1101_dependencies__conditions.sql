@@ -2,7 +2,7 @@
 
 CREATE TABLE "catalog"."condition_group" (
   "id" uuid NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "rule_id" uuid NOT NULL,
   "logic_operator" varchar(8) NOT NULL DEFAULT 'AND',
   "sort_index" integer NOT NULL DEFAULT 0,
@@ -18,7 +18,7 @@ CREATE INDEX "idx_condition_group_rule_id"
 
 CREATE TABLE "catalog"."condition" (
   "id" uuid NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "group_id" uuid NOT NULL,
   "category" varchar(32) NOT NULL,
   "subject" varchar(32) NOT NULL,

@@ -66,7 +66,7 @@ function compileProductSortPageQuerySql(request: ListingSqlRequest): SQL {
       FROM listing.listing_posting_product_sort s
       JOIN input i ON true
       CROSS JOIN product_matches m
-      WHERE s.project_id = i.project_id
+      WHERE s.store_id = i.store_id
         AND s.sort_kind = ${productConfig.sortKind}
         AND s.locale = ${productConfig.locale}
         AND s.currency = ${productConfig.currency}
@@ -125,7 +125,7 @@ function compileMatchedVariantPricePageQuerySql(
       FROM listing.listing_posting_variant_price vp
       JOIN input i ON true
       CROSS JOIN product_base pb
-      WHERE vp.project_id = i.project_id
+      WHERE vp.store_id = i.store_id
         AND vp.currency = i.currency
         AND pb.bitmap @> vp.product_doc_id
         ${pricePredicate}
@@ -157,7 +157,7 @@ function compileMatchedVariantPricePageQuerySql(
       FROM variant_price_chosen chosen
       JOIN input i ON true
       JOIN listing.product_listing_index pli
-        ON pli.project_id = i.project_id
+        ON pli.store_id = i.store_id
        AND pli.product_doc_id = chosen.product_doc_id
        AND pli.product_id = chosen.product_id
       WHERE true
@@ -217,7 +217,7 @@ function compileOptionBitmapMatchedVariantPricePageQuerySql(
       FROM option_variant_ids ov
       JOIN input i ON true
       JOIN listing.listing_posting_variant_price vp
-        ON vp.project_id = i.project_id
+        ON vp.store_id = i.store_id
        AND vp.currency = i.currency
        AND vp.variant_doc_id = ov.variant_doc_id
       CROSS JOIN product_base pb
@@ -250,7 +250,7 @@ function compileOptionBitmapMatchedVariantPricePageQuerySql(
       FROM variant_price_chosen chosen
       JOIN input i ON true
       JOIN listing.product_listing_index pli
-        ON pli.project_id = i.project_id
+        ON pli.store_id = i.store_id
        AND pli.product_doc_id = chosen.product_doc_id
        AND pli.product_id = chosen.product_id
       WHERE true

@@ -38,7 +38,7 @@ export class OptionCreateScript extends BaseScript<OptionCreateParams, OptionCre
 
     // 4. Create option translation
     await this.repository.translation.upsertOptionTranslation({
-      projectId: this.getProjectId(),
+      storeId: this.getProjectId(),
       optionId: option.id,
       locale: this.getLocale(),
       name,
@@ -60,7 +60,7 @@ export class OptionCreateScript extends BaseScript<OptionCreateParams, OptionCre
       });
 
       await this.repository.translation.upsertOptionValueTranslation({
-        projectId: this.getProjectId(),
+        storeId: this.getProjectId(),
         optionValueId: optionValue.id,
         locale: this.getLocale(),
         name: valueInput.name,

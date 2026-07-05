@@ -36,7 +36,7 @@ export interface DiscountValidationRequest {
   code: string;
 
   /** Project identifier */
-  projectId: string;
+  storeId: string;
 
   /** Request metadata */
   requestMeta?: {

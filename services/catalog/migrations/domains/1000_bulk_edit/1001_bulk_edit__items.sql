@@ -3,7 +3,7 @@
 CREATE TABLE "catalog"."bulk_edit_item" (
   "id" uuid NOT NULL,
   "job_id" uuid NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "product_id" uuid NOT NULL,
   "variant_id" uuid,
   "op_type" text NOT NULL,
@@ -25,8 +25,8 @@ CREATE TABLE "catalog"."bulk_edit_item" (
     ON DELETE CASCADE
 );
 
-CREATE INDEX "bulk_edit_item_project_product_status_idx"
-  ON "catalog"."bulk_edit_item" ("project_id", "product_id", "status");
+CREATE INDEX "bulk_edit_item_store_product_status_idx"
+  ON "catalog"."bulk_edit_item" ("store_id", "product_id", "status");
 
 CREATE INDEX "bulk_edit_item_job_chunk_op_idx"
   ON "catalog"."bulk_edit_item" ("job_id", "chunk_index", "op_index");

@@ -8,7 +8,7 @@ export function compileInputCte(request: ListingSqlRequest): SQL {
   return sql`
     input AS (
       SELECT
-        ${request.projectId}::uuid AS project_id,
+        ${request.storeId}::uuid AS store_id,
         ${request.locale}::text AS locale,
         ${request.currency}::text AS currency,
         ${request.first}::int AS first
@@ -141,10 +141,10 @@ function compileSearchCandidateRowsCte(request: ListingSqlRequest): SQL {
         pdb.score(ptsi.search_id)::double precision AS relevance_score
       FROM listing.product_title_bm25_search_index ptsi
       JOIN listing.product_listing_index pli
-        ON pli.project_id = ptsi.project_id
+        ON pli.store_id = ptsi.store_id
        AND pli.product_id = ptsi.product_id
        AND pli.status = 'published'
-      WHERE ptsi.project_id = ${request.projectId}::uuid
+      WHERE ptsi.store_id = ${request.storeId}::uuid
         AND ptsi.locale = ${request.locale}
         AND ptsi.status = 'published'
         AND ptsi.title @@@ ${request.normalizedQuery}
@@ -160,7 +160,7 @@ function compileScopeProductBitmapSql(request: ListingSqlRequest): SQL {
         & ${coalesceBitmapSql(sql`(
           SELECT p.bitmap
           FROM listing.listing_posting_bitmap p
-          WHERE p.project_id = ${request.projectId}::uuid
+          WHERE p.store_id = ${request.storeId}::uuid
             AND p.entity_type = 'product'
             AND p.field = 'category'
             AND p.value_key = ${request.scopeId}
@@ -180,7 +180,7 @@ function compilePublishedProductBitmapSql(request: ListingSqlRequest): SQL {
   return coalesceBitmapSql(sql`(
     SELECT rb_build_agg(pli.product_doc_id)
     FROM listing.product_listing_index pli
-    WHERE pli.project_id = ${request.projectId}::uuid
+    WHERE pli.store_id = ${request.storeId}::uuid
       AND pli.status = 'published'
   )`);
 }
@@ -238,7 +238,7 @@ function compileFacetGroupBitmapSql(
   return coalesceBitmapSql(sql`(
     SELECT rb_or_agg(p.bitmap)
     FROM listing.listing_posting_bitmap p
-    WHERE p.project_id = ${request.projectId}::uuid
+    WHERE p.store_id = ${request.storeId}::uuid
       AND p.entity_type = ${entityType}
       AND p.field = 'facet'
       AND p.value_key IN (${joinTextValues(group.valueKeys)})
@@ -254,7 +254,7 @@ function compileVendorBitmapSql(request: ListingSqlRequest): SQL | null {
   return coalesceBitmapSql(sql`(
     SELECT rb_or_agg(p.bitmap)
     FROM listing.listing_posting_bitmap p
-    WHERE p.project_id = ${request.projectId}::uuid
+    WHERE p.store_id = ${request.storeId}::uuid
       AND p.entity_type = 'product'
       AND p.field = 'vendor'
       AND p.value_key IN (${joinTextValues(vendorIds)})
@@ -265,7 +265,7 @@ function compileProductStockBitmapSql(request: ListingSqlRequest): SQL {
   return coalesceBitmapSql(sql`(
     SELECT rb_build_agg(pli.product_doc_id)
     FROM listing.product_listing_index pli
-    WHERE pli.project_id = ${request.projectId}::uuid
+    WHERE pli.store_id = ${request.storeId}::uuid
       AND pli.status = 'published'
       AND pli.in_stock = ${request.request.filterPlan.inStock}
   )`);
@@ -288,7 +288,7 @@ function compilePricedVariantProductsBitmapSql(
       SELECT rb_build_agg(vp.product_doc_id)
       FROM option_variant_matches ovm
       JOIN listing.listing_posting_variant_price vp
-        ON vp.project_id = ${request.projectId}::uuid
+        ON vp.store_id = ${request.storeId}::uuid
        AND vp.currency = ${request.currency}
       WHERE ovm.bitmap @> vp.variant_doc_id
         ${compilePricePredicateSql(request, sql`vp`)}
@@ -298,7 +298,7 @@ function compilePricedVariantProductsBitmapSql(
   return coalesceBitmapSql(sql`(
     SELECT rb_build_agg(vp.product_doc_id)
     FROM listing.listing_posting_variant_price vp
-    WHERE vp.project_id = ${request.projectId}::uuid
+    WHERE vp.store_id = ${request.storeId}::uuid
       AND vp.currency = ${request.currency}
       ${compilePricePredicateSql(request, sql`vp`)}
   )`);
@@ -317,7 +317,7 @@ function compileOptionVariantProductsBitmapSql(
     FROM option_variant_matches ovm
     CROSS JOIN LATERAL rb_iterate(ovm.bitmap) AS ov(variant_doc_id)
     JOIN listing.variant_listing_index vli
-      ON vli.project_id = ${request.projectId}::uuid
+      ON vli.store_id = ${request.storeId}::uuid
      AND vli.variant_doc_id = ov.variant_doc_id
      AND vli.in_stock = ${inStock}
   )`);

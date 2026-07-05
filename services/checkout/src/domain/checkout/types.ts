@@ -124,7 +124,7 @@ export type CheckoutDeliveryGroup = {
 export type CheckoutState = {
   id: string;
   exists: boolean;
-  projectId: string;
+  storeId: string;
   currencyCode: string;
   idempotencyKey: string;
   salesChannel: string;
@@ -183,7 +183,7 @@ export type CheckoutState = {
 export const checkoutInitialState = (): CheckoutState => ({
   id: "",
   exists: false,
-  projectId: "",
+  storeId: "",
   currencyCode: "",
   idempotencyKey: "",
   salesChannel: "",

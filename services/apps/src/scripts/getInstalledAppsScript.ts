@@ -6,7 +6,7 @@ import type {
 
 // Parameters for getting installed apps
 export interface GetInstalledAppsParams {
-  readonly projectId: string;
+  readonly storeId: string;
 }
 
 // Execution result
@@ -22,17 +22,17 @@ export const getInstalledAppsScript: TransactionScript<
   GetInstalledAppsParams,
   GetInstalledAppsResult
 > = async (params, services) => {
-  const { projectId } = params;
+  const { storeId } = params;
   const { slotsRepository, logger } = services;
 
   try {
     // 1. Getting all slots from all domains (shipping, pricing, inventory, etc.)
-    const slots = await slotsRepository.findAllSlots(projectId);
+    const slots = await slotsRepository.findAllSlots(storeId);
 
     // 2. Transform slots to InstalledApp format
     const installedApps: InstalledApp[] = slots.map((slot) => ({
       id: slot.id,
-      projectID: projectId,
+      storeID: storeId,
       appCode: slot.provider,
       domain: slot.domain, // Include domain information
       baseURL: String((slot.config?.data as any)?.baseUrl ?? ""),
@@ -44,14 +44,14 @@ export const getInstalledAppsScript: TransactionScript<
     logger.info(
       {
         count: installedApps.length,
-        projectId,
+        storeId,
       },
       "Retrieved installed apps"
     );
 
     return { apps: installedApps };
   } catch (error) {
-    logger.error({ error, projectId }, "Failed to get installed apps");
+    logger.error({ error, storeId }, "Failed to get installed apps");
 
     return {
       apps: [],

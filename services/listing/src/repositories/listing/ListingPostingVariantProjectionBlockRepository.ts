@@ -26,7 +26,7 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
       .from(listingPostingVariantProjectionBlock)
       .where(
         and(
-          eq(listingPostingVariantProjectionBlock.projectId, this.storeId),
+          eq(listingPostingVariantProjectionBlock.storeId, this.storeId),
           eq(listingPostingVariantProjectionBlock.blockId, blockId)
         )
       )
@@ -45,7 +45,7 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
       .from(listingPostingVariantProjectionBlock)
       .where(
         and(
-          eq(listingPostingVariantProjectionBlock.projectId, this.storeId),
+          eq(listingPostingVariantProjectionBlock.storeId, this.storeId),
           eq(listingPostingVariantProjectionBlock.blockId, blockId)
         )
       )
@@ -71,7 +71,7 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
       .from(listingPostingVariantProjectionBlock)
       .where(
         and(
-          eq(listingPostingVariantProjectionBlock.projectId, this.storeId),
+          eq(listingPostingVariantProjectionBlock.storeId, this.storeId),
           inArray(listingPostingVariantProjectionBlock.blockId, [
             ...new Set(blockIds),
           ])
@@ -93,7 +93,7 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
     const rows = await this.connection
       .select({ value: count() })
       .from(listingPostingVariantProjectionBlock)
-      .where(eq(listingPostingVariantProjectionBlock.projectId, this.storeId));
+      .where(eq(listingPostingVariantProjectionBlock.storeId, this.storeId));
 
     return rows[0]?.value ?? 0;
   }
@@ -122,10 +122,10 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
         .values(values)
         .onConflictDoUpdate({
           target: [
-            listingPostingVariantProjectionBlock.projectId,
+            listingPostingVariantProjectionBlock.storeId,
             listingPostingVariantProjectionBlock.blockId,
           ],
-          setWhere: eq(listingPostingVariantProjectionBlock.projectId, this.storeId),
+          setWhere: eq(listingPostingVariantProjectionBlock.storeId, this.storeId),
           set: {
             variantDocFrom: sql`excluded.variant_doc_from`,
             variantDocTo: sql`excluded.variant_doc_to`,
@@ -157,7 +157,7 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
       .delete(listingPostingVariantProjectionBlock)
       .where(
         and(
-          eq(listingPostingVariantProjectionBlock.projectId, this.storeId),
+          eq(listingPostingVariantProjectionBlock.storeId, this.storeId),
           eq(listingPostingVariantProjectionBlock.blockId, blockId)
         )
       )
@@ -181,7 +181,7 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
         .delete(listingPostingVariantProjectionBlock)
         .where(
           and(
-            eq(listingPostingVariantProjectionBlock.projectId, this.storeId),
+            eq(listingPostingVariantProjectionBlock.storeId, this.storeId),
             inArray(listingPostingVariantProjectionBlock.blockId, chunk)
           )
         )
@@ -196,7 +196,7 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
   async deleteAllForCurrentProject(): Promise<number> {
     const rows = await this.connection
       .delete(listingPostingVariantProjectionBlock)
-      .where(eq(listingPostingVariantProjectionBlock.projectId, this.storeId))
+      .where(eq(listingPostingVariantProjectionBlock.storeId, this.storeId))
       .returning({ blockId: listingPostingVariantProjectionBlock.blockId });
 
     return rows.length;
@@ -258,7 +258,7 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
       .from(variantListingIndex)
       .where(
         and(
-          eq(variantListingIndex.projectId, this.storeId),
+          eq(variantListingIndex.storeId, this.storeId),
           inArray(variantListingIndex.productDocId, [...new Set(productDocIds)])
         )
       );
@@ -279,7 +279,7 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
     const rows = await this.connection
       .select({ variantDocId: variantListingIndex.variantDocId })
       .from(variantListingIndex)
-      .where(eq(variantListingIndex.projectId, this.storeId));
+      .where(eq(variantListingIndex.storeId, this.storeId));
 
     return this.refreshBlocksForVariantDocIds(
       rows.map((row) => row.variantDocId),
@@ -303,7 +303,7 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
             variant_doc_id,
             product_doc_id
           FROM listing.variant_listing_index
-          WHERE project_id = ${this.storeId}::uuid
+          WHERE store_id = ${this.storeId}::uuid
             AND variant_doc_id >= ${variantDocFrom}
             AND variant_doc_id < ${variantDocTo}
         ),
@@ -313,8 +313,8 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
             rb_build_agg(product_doc_id) AS product_bitmap
           FROM variants
         )
-        INSERT INTO listing.listing_posting_variant_projection_block (
-          project_id,
+        INSERT INTO listing.listing_posting_variant_storeion_block (
+          store_id,
           block_id,
           variant_doc_from,
           variant_doc_to,
@@ -334,7 +334,7 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
           rb_cardinality(product_bitmap)::int
         FROM bitmaps
         WHERE variant_bitmap IS NOT NULL
-        ON CONFLICT (project_id, block_id)
+        ON CONFLICT (store_id, block_id)
         DO UPDATE SET
           variant_doc_from = excluded.variant_doc_from,
           variant_doc_to = excluded.variant_doc_to,
@@ -343,7 +343,7 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
           variant_count = excluded.variant_count,
           product_count = excluded.product_count
         RETURNING
-          project_id AS "projectId",
+          store_id AS "storeId",
           block_id AS "blockId",
           variant_doc_from AS "variantDocFrom",
           variant_doc_to AS "variantDocTo",
@@ -368,7 +368,7 @@ export class ListingPostingVariantProjectionBlockRepository extends BaseReposito
     const productBitmapSql = sql`${row.productBitmap}::roaringbitmap`;
 
     return {
-      projectId: this.storeId,
+      storeId: this.storeId,
       blockId: row.blockId,
       variantDocFrom: row.variantDocFrom,
       variantDocTo: row.variantDocTo,

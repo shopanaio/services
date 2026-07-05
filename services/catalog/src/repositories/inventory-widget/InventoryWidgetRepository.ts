@@ -113,7 +113,7 @@ export class InventoryWidgetRepository extends BaseRepository {
       .from(productInventorySettings)
       .where(
         and(
-          eq(productInventorySettings.projectId, this.storeId),
+          eq(productInventorySettings.storeId, this.storeId),
           eq(productInventorySettings.productId, productId)
         )
       )
@@ -143,8 +143,8 @@ export class InventoryWidgetRepository extends BaseRepository {
       .innerJoin(variant, eq(variant.id, warehouseStock.variantId))
       .where(
         and(
-          eq(warehouseStock.projectId, this.storeId),
-          eq(variant.projectId, this.storeId),
+          eq(warehouseStock.storeId, this.storeId),
+          eq(variant.storeId, this.storeId),
           eq(variant.productId, productId),
           isNull(variant.deletedAt)
         )
@@ -167,7 +167,7 @@ export class InventoryWidgetRepository extends BaseRepository {
         .from(variant)
         .where(
           and(
-            eq(variant.projectId, this.storeId),
+            eq(variant.storeId, this.storeId),
             eq(variant.productId, productId),
             isNull(variant.deletedAt)
           )
@@ -182,7 +182,7 @@ export class InventoryWidgetRepository extends BaseRepository {
       .from(stockChanges)
       .where(
         and(
-          eq(stockChanges.projectId, this.storeId),
+          eq(stockChanges.storeId, this.storeId),
           inArray(stockChanges.variantId, this.connection.select({ id: productVariants.id }).from(productVariants)),
           eq(stockChanges.applyStatus, "APPLIED"),
           gte(stockChanges.createdAt, sql`NOW() - INTERVAL '7 days'`)
@@ -201,7 +201,7 @@ export class InventoryWidgetRepository extends BaseRepository {
         .from(variant)
         .where(
           and(
-            eq(variant.projectId, this.storeId),
+            eq(variant.storeId, this.storeId),
             eq(variant.productId, productId),
             isNull(variant.deletedAt)
           )
@@ -221,7 +221,7 @@ export class InventoryWidgetRepository extends BaseRepository {
       .innerJoin(productVariants, eq(productVariants.id, inboundSupply.variantId))
       .where(
         and(
-          eq(inboundSupply.projectId, this.storeId),
+          eq(inboundSupply.storeId, this.storeId),
           inArray(inboundSupply.status, ["PLANNED", "IN_TRANSIT"]),
           sql`(${inboundSupply.qtyExpected} - ${inboundSupply.qtyReceived}) > 0`,
           gte(inboundSupply.expectedAt, sql`NOW()`)
@@ -258,7 +258,7 @@ export class InventoryWidgetRepository extends BaseRepository {
       WITH product_variants AS (
         SELECT ${v.id}
         FROM ${v}
-        WHERE ${v.projectId} = ${this.storeId}
+        WHERE ${v.storeId} = ${this.storeId}
           AND ${v.productId} = ${productId}
           AND ${v.deletedAt} IS NULL
       ),
@@ -269,7 +269,7 @@ export class InventoryWidgetRepository extends BaseRepository {
         FROM product_variants pv
         LEFT JOIN ${ws}
           ON ${ws.variantId} = pv.id
-         AND ${ws.projectId} = ${this.storeId}
+         AND ${ws.storeId} = ${this.storeId}
         GROUP BY pv.id
       ),
       warehouse_available AS (
@@ -278,7 +278,7 @@ export class InventoryWidgetRepository extends BaseRepository {
           ${ws.warehouseId} as warehouse_id,
           (${ws.quantityOnHand} - ${ws.reservedQty} - ${ws.unavailableQty}) as available
         FROM ${ws}
-        WHERE ${ws.projectId} = ${this.storeId}
+        WHERE ${ws.storeId} = ${this.storeId}
           AND ${ws.variantId} IN (SELECT id FROM product_variants)
       ),
       warehouse_oos AS (
@@ -295,7 +295,7 @@ export class InventoryWidgetRepository extends BaseRepository {
             LAG(${sc.onHandAfter} - ${sc.reservedAfter} - ${sc.unavailableAfter})
               OVER (PARTITION BY ${sc.variantId}, ${sc.warehouseId} ORDER BY ${sc.createdAt}, ${sc.seq}) as prev_available
           FROM ${sc}
-          WHERE ${sc.projectId} = ${this.storeId}
+          WHERE ${sc.storeId} = ${this.storeId}
             AND ${sc.variantId} IN (SELECT id FROM product_variants)
             AND ${sc.applyStatus} = 'APPLIED'
         ) sc_inner
@@ -312,7 +312,7 @@ export class InventoryWidgetRepository extends BaseRepository {
         JOIN ${ws}
           ON ${ws.variantId} = wa.variant_id
          AND ${ws.warehouseId} = wa.warehouse_id
-         AND ${ws.projectId} = ${this.storeId}
+         AND ${ws.storeId} = ${this.storeId}
         WHERE wa.available <= 0
           AND NOT EXISTS (
             SELECT 1
@@ -340,7 +340,7 @@ export class InventoryWidgetRepository extends BaseRepository {
         FROM product_variants pv
         LEFT JOIN ${s}
           ON ${s.variantId} = pv.id
-         AND ${s.projectId} = ${this.storeId}
+         AND ${s.storeId} = ${this.storeId}
          AND ${s.status} IN ('PLANNED', 'IN_TRANSIT')
         GROUP BY pv.id
       )

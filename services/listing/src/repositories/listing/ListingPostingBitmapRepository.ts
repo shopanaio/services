@@ -79,7 +79,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
       .from(listingPostingBitmap)
       .where(
         and(
-          eq(listingPostingBitmap.projectId, this.storeId),
+          eq(listingPostingBitmap.storeId, this.storeId),
           keyFilters.length === 1 ? keyFilters[0] : or(...keyFilters)
         )
       );
@@ -102,13 +102,13 @@ export class ListingPostingBitmapRepository extends BaseRepository {
     const where =
       uniqueValueKeys.length > 0
         ? and(
-            eq(listingPostingBitmap.projectId, this.storeId),
+            eq(listingPostingBitmap.storeId, this.storeId),
             eq(listingPostingBitmap.entityType, input.entityType),
             eq(listingPostingBitmap.field, input.field),
             inArray(listingPostingBitmap.valueKey, uniqueValueKeys)
           )
         : and(
-            eq(listingPostingBitmap.projectId, this.storeId),
+            eq(listingPostingBitmap.storeId, this.storeId),
             eq(listingPostingBitmap.entityType, input.entityType),
             eq(listingPostingBitmap.field, input.field)
           );
@@ -121,7 +121,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
     const rows = await this.connection
       .select({ value: count() })
       .from(listingPostingBitmap)
-      .where(eq(listingPostingBitmap.projectId, this.storeId));
+      .where(eq(listingPostingBitmap.storeId, this.storeId));
 
     return rows[0]?.value ?? 0;
   }
@@ -136,7 +136,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
     const rows = await this.connection
       .insert(listingPostingBitmap)
       .values({
-        projectId: this.storeId,
+        storeId: this.storeId,
         entityType: input.entityType,
         field: input.field,
         valueKey: input.valueKey,
@@ -147,12 +147,12 @@ export class ListingPostingBitmapRepository extends BaseRepository {
       })
       .onConflictDoUpdate({
         target: [
-          listingPostingBitmap.projectId,
+          listingPostingBitmap.storeId,
           listingPostingBitmap.entityType,
           listingPostingBitmap.field,
           listingPostingBitmap.valueKey,
         ],
-        setWhere: eq(listingPostingBitmap.projectId, this.storeId),
+        setWhere: eq(listingPostingBitmap.storeId, this.storeId),
         set: {
           bitmap: bitmapSql,
           cardinality: sql`rb_cardinality(${bitmapSql})`,
@@ -204,7 +204,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
         .delete(listingPostingBitmap)
         .where(
           and(
-            eq(listingPostingBitmap.projectId, this.storeId),
+            eq(listingPostingBitmap.storeId, this.storeId),
             keyFilters.length === 1 ? keyFilters[0] : or(...keyFilters)
           )
         )
@@ -219,7 +219,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
   async deleteAllForCurrentProject(): Promise<number> {
     const rows = await this.connection
       .delete(listingPostingBitmap)
-      .where(eq(listingPostingBitmap.projectId, this.storeId))
+      .where(eq(listingPostingBitmap.storeId, this.storeId))
       .returning({ valueKey: listingPostingBitmap.valueKey });
 
     return rows.length;
@@ -242,7 +242,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
         FROM input_doc_ids
       )
       INSERT INTO listing.listing_posting_bitmap (
-        project_id,
+        store_id,
         entity_type,
         field,
         value_key,
@@ -262,7 +262,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
         now()
       FROM delta
       WHERE delta.bitmap IS NOT NULL
-      ON CONFLICT (project_id, entity_type, field, value_key)
+      ON CONFLICT (store_id, entity_type, field, value_key)
       DO UPDATE SET
         bitmap = listing.listing_posting_bitmap.bitmap | excluded.bitmap,
         cardinality = rb_cardinality(listing.listing_posting_bitmap.bitmap | excluded.bitmap),
@@ -303,7 +303,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
         : undefined;
 
     const where = and(
-      eq(listingPostingBitmap.projectId, this.storeId),
+      eq(listingPostingBitmap.storeId, this.storeId),
       eq(listingPostingBitmap.entityType, input.entityType),
       input.field !== undefined
         ? eq(listingPostingBitmap.field, input.field)
@@ -487,13 +487,13 @@ export class ListingPostingBitmapRepository extends BaseRepository {
           cardinality = rb_cardinality(target.bitmap - delta.bitmap),
           updated_at = now()
         FROM delta
-        WHERE target.project_id = ${this.storeId}::uuid
+        WHERE target.store_id = ${this.storeId}::uuid
           AND target.entity_type = ${input.entityType}
           AND target.field = ${input.field}
           AND target.value_key = ${input.valueKey}
           AND delta.bitmap IS NOT NULL
         RETURNING
-          target.project_id,
+          target.store_id,
           target.entity_type,
           target.field,
           target.value_key,
@@ -502,7 +502,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
       deleted AS (
         DELETE FROM listing.listing_posting_bitmap AS target
         USING updated
-        WHERE target.project_id = updated.project_id
+        WHERE target.store_id = updated.store_id
           AND target.entity_type = updated.entity_type
           AND target.field = updated.field
           AND target.value_key = updated.value_key
@@ -534,7 +534,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
 
   private keyWhere(key: PostingKeyInput) {
     return and(
-      eq(listingPostingBitmap.projectId, this.storeId),
+      eq(listingPostingBitmap.storeId, this.storeId),
       eq(listingPostingBitmap.entityType, key.entityType),
       eq(listingPostingBitmap.field, key.field),
       eq(listingPostingBitmap.valueKey, key.valueKey)

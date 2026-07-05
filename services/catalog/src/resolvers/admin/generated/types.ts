@@ -4795,8 +4795,8 @@ export enum TagOrderField {
   Name = 'name',
   /** Sort by productsCount */
   ProductsCount = 'productsCount',
-  /** Sort by projectId */
-  ProjectId = 'projectId'
+  /** Sort by storeId */
+  ProjectId = 'storeId'
 }
 
 /** Input for updating a tag. */
@@ -4838,8 +4838,8 @@ export type TagWhereInput = {
   name?: InputMaybe<StringFilter>;
   /** Filter by productsCount */
   productsCount?: InputMaybe<IntFilter>;
-  /** Filter by projectId */
-  projectId?: InputMaybe<IdFilter>;
+  /** Filter by storeId */
+  storeId?: InputMaybe<IdFilter>;
 };
 
 export enum ThresholdMethod {

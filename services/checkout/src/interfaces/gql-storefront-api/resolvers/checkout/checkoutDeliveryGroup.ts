@@ -62,7 +62,7 @@ export const deliveryMethods = async (
   const { serviceApi, logger } = App.getInstance();
   try {
     const methods = await serviceApi.shipping.getProjectMethods({
-      projectId: ctx.store.id,
+      storeId: ctx.store.id,
     });
 
     return (methods || []).map((method: any) => ({

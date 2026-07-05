@@ -7,7 +7,7 @@ import type {
 // Parameters for getting integration HTTP client
 export interface GetIntegrationClientParams {
   readonly domain: string;
-  readonly projectId: string;
+  readonly storeId: string;
   readonly aggregateId: string | null | undefined;
   readonly apiKey: string; // Simplified - no correlation object
 }
@@ -26,15 +26,15 @@ export const getIntegrationClientScript: TransactionScript<
   GetIntegrationClientParams,
   GetIntegrationClientResult
 > = async (params, services, scriptContext) => {
-  const { domain, projectId, aggregateId, apiKey } = params;
+  const { domain, storeId, aggregateId, apiKey } = params;
   const { slotsRepository, logger } = services;
 
   try {
     // 1. Input data validation
-    if (!domain || !projectId) {
+    if (!domain || !storeId) {
       return {
         client: null,
-        warnings: [{ code: 'VALIDATION_ERROR', message: 'Domain and projectId are required' }]
+        warnings: [{ code: 'VALIDATION_ERROR', message: 'Domain and storeId are required' }]
       };
     }
 
@@ -46,7 +46,7 @@ export const getIntegrationClientScript: TransactionScript<
     // 2. Search for assigned slot for aggregate
     const result = await slotsRepository.findResolvedSlotForAggregate(
       domain,
-      projectId,
+      storeId,
       'checkout', // default aggregate type
       aggregateId
     );
@@ -55,7 +55,7 @@ export const getIntegrationClientScript: TransactionScript<
       // Slot not found for this aggregate
       logger.debug({
         domain,
-        projectId,
+        storeId,
         aggregateId
       }, 'No slot assignment found for aggregate');
 
@@ -80,7 +80,7 @@ export const getIntegrationClientScript: TransactionScript<
         // Simplified headers - only essential ones
         const headers = {
           'x-api-key': apiKey,
-          'x-project-id': projectId,
+          'x-store-id': storeId,
           'content-type': 'application/json',
           ...init.headers // user headers take priority
         };
@@ -102,7 +102,7 @@ export const getIntegrationClientScript: TransactionScript<
       domain,
       provider: slot.provider,
       baseUrl,
-      projectId,
+      storeId,
       aggregateId,
       requestId: scriptContext?.requestId
     }, 'Integration client created');
@@ -112,7 +112,7 @@ export const getIntegrationClientScript: TransactionScript<
   } catch (error) {
     logger.error({
       domain,
-      projectId,
+      storeId,
       aggregateId,
       error
     }, 'Failed to create integration client');

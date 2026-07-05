@@ -5,7 +5,7 @@ import { catalogSchema } from "./schema";
 export const facetTagValueCandidateView = catalogSchema
   .view("facet_tag_value_candidate_view", {
     id: text("id").notNull(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     locale: varchar("locale", { length: 8 }).notNull(),
     facetType: varchar("facet_type", { length: 32 }).notNull(),
     sourceHandle: text("source_handle").notNull(),
@@ -15,7 +15,7 @@ export const facetTagValueCandidateView = catalogSchema
   .as(sql`
     SELECT
       'TAG:' || t.handle AS id,
-      t.project_id,
+      t.store_id,
       tt.locale,
       'TAG'::text AS facet_type,
       'tags'::text AS source_handle,
@@ -23,7 +23,7 @@ export const facetTagValueCandidateView = catalogSchema
       tt.name::text AS label
     FROM catalog.tag t
     INNER JOIN catalog.tag_translation tt
-      ON tt.project_id = t.project_id
+      ON tt.store_id = t.store_id
      AND tt.tag_id = t.id
   `);
 

@@ -120,7 +120,7 @@ export class FacetValueUpdateScript extends BaseScript<
 
       return { facetValue: facetValue ?? undefined, userErrors: [] };
     } catch (error) {
-      if (isUniqueViolation(error, "facet_value_root_project_facet_handle_uniq")) {
+      if (isUniqueViolation(error, "facet_value_root_store_facet_handle_uniq")) {
         return {
           facetValue: undefined,
           userErrors: [

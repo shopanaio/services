@@ -21,7 +21,7 @@ export type OrderDeliveryAddressRow = {
 
 export type OrderRecipientRow = {
   id: string;
-  project_id: string;
+  store_id: string;
   first_name: string | null;
   last_name: string | null;
   middle_name: string | null;
@@ -34,7 +34,7 @@ export type OrderRecipientRow = {
 
 export type OrderPromoCodeRow = {
   order_id: string;
-  project_id: string;
+  store_id: string;
   code: string;
   discount_type: string;
   value: string; // bigint as string
@@ -45,7 +45,7 @@ export type OrderPromoCodeRow = {
 
 export type OrderDeliveryGroupRow = {
   id: string;
-  project_id: string;
+  store_id: string;
   order_id: string;
   address_id: string | null;
   recipient_id: string | null;
@@ -58,7 +58,7 @@ export type OrderDeliveryGroupRow = {
 
 export type OrderReadPortRow = {
   id: string;
-  project_id: string;
+  store_id: string;
   api_key_id: string | null;
   user_id: string | null;
   sales_channel: string | null;
@@ -112,7 +112,7 @@ export type OrderDeliveryAddress = {
 
 export type OrderRecipient = {
   id: string;
-  projectId: string;
+  storeId: string;
   firstName: string | null;
   lastName: string | null;
   middleName: string | null;
@@ -125,7 +125,7 @@ export type OrderRecipient = {
 
 export type OrderPromoCode = {
   orderId: string;
-  projectId: string;
+  storeId: string;
   code: string;
   discountType: string;
   value: number; // converted from bigint string
@@ -137,7 +137,7 @@ export type OrderPromoCode = {
 export type OrderDeliveryMethodRow = {
   code: string;
   provider: string;
-  project_id: string;
+  store_id: string;
   delivery_group_id: string;
   delivery_method_type: string;
   payment_model: string | null;
@@ -147,7 +147,7 @@ export type OrderDeliveryMethodRow = {
 
 export type OrderPaymentMethodRow = {
   order_id: string;
-  project_id: string;
+  store_id: string;
   code: string;
   provider: string;
   flow: string;
@@ -157,14 +157,14 @@ export type OrderPaymentMethodRow = {
 
 export type OrderSelectedPaymentMethodRow = {
   order_id: string;
-  project_id: string;
+  store_id: string;
   code: string;
   provider: string;
 };
 
 export type OrderDeliveryGroup = {
   id: string;
-  projectId: string;
+  storeId: string;
   orderId: string;
   addressId: string | null;
   recipientId: string | null;
@@ -178,7 +178,7 @@ export type OrderDeliveryGroup = {
 export type OrderDeliveryMethod = {
   code: string;
   provider: string;
-  projectId: string;
+  storeId: string;
   deliveryGroupId: string;
   deliveryMethodType: string;
   paymentModel: string | null;
@@ -188,7 +188,7 @@ export type OrderDeliveryMethod = {
 
 export type OrderPaymentMethod = {
   orderId: string;
-  projectId: string;
+  storeId: string;
   code: string;
   provider: string;
   flow: string;
@@ -198,14 +198,14 @@ export type OrderPaymentMethod = {
 
 export type OrderSelectedPaymentMethod = {
   orderId: string;
-  projectId: string;
+  storeId: string;
   code: string;
   provider: string;
 };
 
 export type OrderReadView = {
   id: string;
-  projectId: string;
+  storeId: string;
   apiKeyId: string | null;
   adminId: string | null;
   number: number;
@@ -314,7 +314,7 @@ export class OrderReadRepository {
         rec.id,
         {
           id: rec.id,
-          projectId: rec.project_id,
+          storeId: rec.store_id,
           firstName: rec.first_name,
           lastName: rec.last_name,
           middleName: rec.middle_name,
@@ -334,7 +334,7 @@ export class OrderReadRepository {
       groupMethods.push({
         code: method.code,
         provider: method.provider,
-        projectId: method.project_id,
+        storeId: method.store_id,
         deliveryGroupId: method.delivery_group_id,
         deliveryMethodType: method.delivery_method_type,
         paymentModel: method.payment_model,
@@ -347,7 +347,7 @@ export class OrderReadRepository {
     // Map payment methods
     const mappedPaymentMethods: OrderPaymentMethod[] = paymentMethods.map(pm => ({
       orderId: pm.order_id,
-      projectId: pm.project_id,
+      storeId: pm.store_id,
       code: pm.code,
       provider: pm.provider,
       flow: pm.flow,
@@ -359,7 +359,7 @@ export class OrderReadRepository {
     const mappedSelectedPaymentMethod: OrderSelectedPaymentMethod | null = selectedPaymentMethod
       ? {
           orderId: selectedPaymentMethod.order_id,
-          projectId: selectedPaymentMethod.project_id,
+          storeId: selectedPaymentMethod.store_id,
           code: selectedPaymentMethod.code,
           provider: selectedPaymentMethod.provider,
         }
@@ -406,7 +406,7 @@ export class OrderReadRepository {
 
     return {
       id: row.id,
-      projectId: row.project_id,
+      storeId: row.store_id,
       apiKeyId: row.api_key_id,
       adminId: row.user_id,
       salesChannel: row.sales_channel,

@@ -110,7 +110,7 @@ export const productFeature = inventorySchema.table(
   "product_feature",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
@@ -149,7 +149,7 @@ export const productFeatureValue = inventorySchema.table(
   "product_feature_value",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     featureId: uuid("feature_id")
       .notNull()
       .references(() => productFeature.id, { onDelete: "cascade" }),
@@ -399,7 +399,7 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
     });
 
     await this.repository.translation.upsertFeatureTranslation({
-      projectId: this.getProjectId(),
+      storeId: this.getProjectId(),
       featureId: item.id,
       locale: this.getLocale(),
       name: item.input.name,
@@ -424,7 +424,7 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
       }
 
       await this.repository.translation.upsertFeatureValueTranslation({
-        projectId: this.getProjectId(),
+        storeId: this.getProjectId(),
         featureValueId: valueId,
         locale: this.getLocale(),
         name: value.name,
@@ -590,8 +590,8 @@ ALTER TABLE inventory.product_feature_value_translation
 | Two-phase updates | Да | Нет |
 | Temp slugs | Да | Нет |
 | Edge cases | Много | Нет |
-| Колонки в БД (feature) | 7 | 5 (`id`, `projectId`, `productId`, `index`, `isGroup`, `parentId`) |
-| Колонки в БД (value) | 5 | 4 (`id`, `projectId`, `featureId`, `index`) |
+| Колонки в БД (feature) | 7 | 5 (`id`, `storeId`, `productId`, `index`, `isGroup`, `parentId`) |
+| Колонки в БД (value) | 5 | 4 (`id`, `storeId`, `featureId`, `index`) |
 | Feature.index | — | `int[]` |
 | Value.index | — | `int` |
 | Сортировка | Ручная | PostgreSQL `ORDER BY index` |
@@ -610,7 +610,7 @@ ALTER TABLE inventory.product_feature_value_translation
 ```
 ProductFeature:
   id          UUID PRIMARY KEY
-  projectId   UUID NOT NULL
+  storeId   UUID NOT NULL
   productId   UUID NOT NULL REFERENCES product(id)
   index       INTEGER[] NOT NULL        -- tree position: [0], [0, 1], etc.
   isGroup     BOOLEAN NOT NULL
@@ -619,7 +619,7 @@ ProductFeature:
 
 ProductFeatureValue:
   id          UUID PRIMARY KEY
-  projectId   UUID NOT NULL
+  storeId   UUID NOT NULL
   featureId   UUID NOT NULL REFERENCES product_feature(id)
   index       INTEGER NOT NULL          -- position: 0, 1, 2, ...
   + translations: name

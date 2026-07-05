@@ -53,7 +53,7 @@ export class ProductCreateScript extends BaseScript<
 
     // 2. Create product translation (name, description)
     await this.repository.translation.upsertProductTranslation({
-      projectId: this.getProjectId(),
+      storeId: this.getProjectId(),
       productId: product.id,
       locale: this.getLocale(),
       name: title,
@@ -160,7 +160,7 @@ export class ProductCreateScript extends BaseScript<
 
       // Create option translation
       await this.repository.translation.upsertOptionTranslation({
-        projectId: this.getProjectId(),
+        storeId: this.getProjectId(),
         optionId: option.id,
         locale: this.getLocale(),
         name: optionInput.name,
@@ -182,7 +182,7 @@ export class ProductCreateScript extends BaseScript<
 
         // Create value translation
         await this.repository.translation.upsertOptionValueTranslation({
-          projectId: this.getProjectId(),
+          storeId: this.getProjectId(),
           optionValueId: optionValue.id,
           locale: this.getLocale(),
           name: valueInput.name,

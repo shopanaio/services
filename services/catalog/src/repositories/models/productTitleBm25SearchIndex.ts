@@ -17,7 +17,7 @@ export const productTitleBm25SearchIndex = catalogSchema.table(
   "product_title_bm25_search_index",
   {
     searchId: uuid("search_id").notNull(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id").notNull(),
     locale: varchar("locale", { length: 8 }).notNull(),
     kind: productKindEnum("kind").notNull(),
@@ -54,14 +54,14 @@ export const productTitleBm25SearchIndex = catalogSchema.table(
       columns: [table.productId],
       foreignColumns: [product.id],
     }).onDelete("cascade"),
-    index("idx_product_title_bm25_project_locale_product").on(
-      table.projectId,
+    index("idx_product_title_bm25_store_locale_product").on(
+      table.storeId,
       table.locale,
       table.productId
     ),
     index("idx_product_title_bm25_visible")
       .on(
-        table.projectId,
+        table.storeId,
         table.locale,
         table.publishedAt.desc(),
         table.productId
@@ -71,7 +71,7 @@ export const productTitleBm25SearchIndex = catalogSchema.table(
       .using(
         "bm25",
         table.searchId,
-        table.projectId,
+        table.storeId,
         table.locale,
         table.status,
         table.kind,

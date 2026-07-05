@@ -2,7 +2,7 @@
 
 CREATE TABLE "catalog"."bundle_group" (
   "id" uuid NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "configuration_id" uuid NOT NULL,
   "sort_index" integer NOT NULL DEFAULT 0,
   "min_selection" integer,
@@ -33,7 +33,7 @@ CREATE INDEX "idx_bundle_group_sort"
   ON "catalog"."bundle_group" ("configuration_id", "sort_index");
 
 CREATE TABLE "catalog"."bundle_group_translation" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "group_id" uuid NOT NULL,
   "locale" varchar(8) NOT NULL,
   "name" text NOT NULL,
@@ -44,5 +44,5 @@ CREATE TABLE "catalog"."bundle_group_translation" (
     ON DELETE CASCADE
 );
 
-CREATE INDEX "idx_bundle_group_translation_project_locale"
-  ON "catalog"."bundle_group_translation" ("project_id", "locale");
+CREATE INDEX "idx_bundle_group_translation_store_locale"
+  ON "catalog"."bundle_group_translation" ("store_id", "locale");

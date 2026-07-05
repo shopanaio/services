@@ -21,7 +21,7 @@ import { roaringbitmap } from "./postgresTypes.js";
 export const listingDocIdAllocator = listingSchema.table(
   "listing_doc_id_allocator",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     nextProductDocId: integer("next_product_doc_id").notNull().default(1),
     nextVariantDocId: integer("next_variant_doc_id").notNull().default(1),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
@@ -29,7 +29,7 @@ export const listingDocIdAllocator = listingSchema.table(
       .defaultNow(),
   },
   (table) => [
-    primaryKey({ columns: [table.projectId] }),
+    primaryKey({ columns: [table.storeId] }),
     check(
       "chk_listing_doc_id_allocator_product_positive",
       sql`${table.nextProductDocId} > 0`
@@ -44,7 +44,7 @@ export const listingDocIdAllocator = listingSchema.table(
 export const listingIndexItemState = listingSchema.table(
   "listing_index_item_state",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     entityType: varchar("entity_type", { length: 32 }).notNull(),
     itemId: uuid("item_id").notNull(),
     sourceRevision: integer("source_revision").notNull(),
@@ -58,7 +58,7 @@ export const listingIndexItemState = listingSchema.table(
   },
   (table) => [
     primaryKey({
-      columns: [table.projectId, table.entityType, table.itemId],
+      columns: [table.storeId, table.entityType, table.itemId],
     }),
     check(
       "chk_listing_index_item_state_source_revision",
@@ -74,7 +74,7 @@ export const listingIndexItemState = listingSchema.table(
 export const productListingIndex = listingSchema.table(
   "product_listing_index",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id").primaryKey(),
     productDocId: integer("product_doc_id").notNull(),
     kind: varchar("kind", { length: 16 }).notNull(),
@@ -104,16 +104,16 @@ export const productListingIndex = listingSchema.table(
       .defaultNow(),
   },
   (table) => [
-    unique("product_listing_project_doc_unique").on(
-      table.projectId,
+    unique("product_listing_store_doc_unique").on(
+      table.storeId,
       table.productDocId
     ),
-    unique("product_listing_project_product_unique").on(
-      table.projectId,
+    unique("product_listing_store_product_unique").on(
+      table.storeId,
       table.productId
     ),
-    unique("product_listing_project_doc_product_unique").on(
-      table.projectId,
+    unique("product_listing_store_doc_product_unique").on(
+      table.storeId,
       table.productDocId,
       table.productId
     ),
@@ -127,17 +127,17 @@ export const productListingIndex = listingSchema.table(
       "chk_product_listing_total_stock_nonnegative",
       sql`${table.totalStock} >= 0`
     ),
-    index("idx_product_listing_project_product").on(
-      table.projectId,
+    index("idx_product_listing_store_product").on(
+      table.storeId,
       table.productId
     ),
-    index("idx_product_listing_project_doc").on(
-      table.projectId,
+    index("idx_product_listing_store_doc").on(
+      table.storeId,
       table.productDocId
     ),
     index("idx_product_listing_visible_newest")
       .on(
-        table.projectId,
+        table.storeId,
         table.inStock.desc(),
         table.publishedAt.desc().nullsLast(),
         table.productCreatedAt.desc(),
@@ -146,23 +146,23 @@ export const productListingIndex = listingSchema.table(
       .where(sql`${table.status} = 'published'`),
     index("idx_product_listing_visible_created")
       .on(
-        table.projectId,
+        table.storeId,
         table.inStock.desc(),
         table.productCreatedAt.desc(),
         table.productId
       )
       .where(sql`${table.status} = 'published'`),
     index("idx_product_listing_vendor")
-      .on(table.projectId, table.vendorId)
+      .on(table.storeId, table.vendorId)
       .where(sql`${table.vendorId} IS NOT NULL`),
-    index("idx_product_listing_in_stock").on(table.projectId, table.inStock),
+    index("idx_product_listing_in_stock").on(table.storeId, table.inStock),
   ]
 );
 
 export const productListingPriceIndex = listingSchema.table(
   "product_listing_price_index",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id").notNull(),
     currency: varchar("currency", { length: 3 }).notNull(),
     minPriceMinor: bigint("min_price_minor", { mode: "number" }),
@@ -183,10 +183,10 @@ export const productListingPriceIndex = listingSchema.table(
       foreignColumns: [productListingIndex.productId],
     }).onDelete("cascade"),
     foreignKey({
-      name: "fk_product_listing_price_project_product",
-      columns: [table.projectId, table.productId],
+      name: "fk_product_listing_price_store_product",
+      columns: [table.storeId, table.productId],
       foreignColumns: [
-        productListingIndex.projectId,
+        productListingIndex.storeId,
         productListingIndex.productId,
       ],
     }).onDelete("cascade"),
@@ -200,7 +200,7 @@ export const productListingPriceIndex = listingSchema.table(
     ),
     index("idx_product_listing_price_visible_asc")
       .on(
-        table.projectId,
+        table.storeId,
         table.currency,
         table.minPriceMinor.asc(),
         table.productId
@@ -208,7 +208,7 @@ export const productListingPriceIndex = listingSchema.table(
       .where(sql`${table.hasPrice} = true`),
     index("idx_product_listing_price_visible_desc")
       .on(
-        table.projectId,
+        table.storeId,
         table.currency,
         table.maxPriceMinor.desc(),
         table.productId
@@ -220,7 +220,7 @@ export const productListingPriceIndex = listingSchema.table(
 export const variantListingIndex = listingSchema.table(
   "variant_listing_index",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id").notNull(),
     productDocId: integer("product_doc_id").notNull(),
     variantId: uuid("variant_id").primaryKey(),
@@ -236,20 +236,20 @@ export const variantListingIndex = listingSchema.table(
       .defaultNow(),
   },
   (table) => [
-    unique("variant_listing_project_product_variant_unique").on(
+    unique("variant_listing_store_product_variant_unique").on(
       table.productId,
       table.variantId
     ),
-    unique("variant_listing_project_variant_unique").on(
-      table.projectId,
+    unique("variant_listing_store_variant_unique").on(
+      table.storeId,
       table.variantId
     ),
-    unique("variant_listing_project_doc_unique").on(
-      table.projectId,
+    unique("variant_listing_store_doc_unique").on(
+      table.storeId,
       table.variantDocId
     ),
-    unique("variant_listing_project_doc_variant_unique").on(
-      table.projectId,
+    unique("variant_listing_store_doc_variant_unique").on(
+      table.storeId,
       table.variantDocId,
       table.productDocId,
       table.productId
@@ -261,9 +261,9 @@ export const variantListingIndex = listingSchema.table(
     }).onDelete("cascade"),
     foreignKey({
       name: "fk_variant_listing_product_doc",
-      columns: [table.projectId, table.productDocId, table.productId],
+      columns: [table.storeId, table.productDocId, table.productId],
       foreignColumns: [
-        productListingIndex.projectId,
+        productListingIndex.storeId,
         productListingIndex.productDocId,
         productListingIndex.productId,
       ],
@@ -277,22 +277,22 @@ export const variantListingIndex = listingSchema.table(
       "chk_variant_listing_total_stock_nonnegative",
       sql`${table.totalStock} >= 0`
     ),
-    index("idx_variant_listing_project_product").on(
-      table.projectId,
+    index("idx_variant_listing_store_product").on(
+      table.storeId,
       table.productId
     ),
-    index("idx_variant_listing_project_variant").on(
-      table.projectId,
+    index("idx_variant_listing_store_variant").on(
+      table.storeId,
       table.variantId
     ),
-    index("idx_variant_listing_project_doc").on(
-      table.projectId,
+    index("idx_variant_listing_store_doc").on(
+      table.storeId,
       table.variantDocId
     ),
-    index("idx_variant_listing_in_stock").on(table.projectId, table.inStock),
+    index("idx_variant_listing_in_stock").on(table.storeId, table.inStock),
     index("idx_variant_listing_in_stock_product_variant")
       .on(
-        table.projectId,
+        table.storeId,
         table.productDocId,
         table.productId,
         table.variantDocId,
@@ -301,7 +301,7 @@ export const variantListingIndex = listingSchema.table(
       .where(sql`${table.inStock} = true`),
     index("idx_variant_listing_signature")
       .on(
-        table.projectId,
+        table.storeId,
         table.signatureKey,
         table.variantDocId,
         table.productDocId
@@ -313,7 +313,7 @@ export const variantListingIndex = listingSchema.table(
 export const variantListingPriceIndex = listingSchema.table(
   "variant_listing_price_index",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     variantId: uuid("variant_id").notNull(),
     currency: varchar("currency", { length: 3 }).notNull(),
     variantDocId: integer("variant_doc_id").notNull(),
@@ -337,10 +337,10 @@ export const variantListingPriceIndex = listingSchema.table(
       foreignColumns: [variantListingIndex.variantId],
     }).onDelete("cascade"),
     foreignKey({
-      name: "fk_variant_listing_price_project_variant",
-      columns: [table.projectId, table.variantId],
+      name: "fk_variant_listing_price_store_variant",
+      columns: [table.storeId, table.variantId],
       foreignColumns: [
-        variantListingIndex.projectId,
+        variantListingIndex.storeId,
         variantListingIndex.variantId,
       ],
     }).onDelete("cascade"),
@@ -365,17 +365,17 @@ export const variantListingPriceIndex = listingSchema.table(
       sql`length(btrim(${table.signatureKey})) > 0`
     ),
     index("idx_variant_listing_price_value")
-      .on(table.projectId, table.currency, table.priceMinor)
+      .on(table.storeId, table.currency, table.priceMinor)
       .where(sql`${table.hasPrice} = true`),
     index("idx_variant_listing_price_variant")
-      .on(table.projectId, table.currency, table.variantId, table.priceMinor)
+      .on(table.storeId, table.currency, table.variantId, table.priceMinor)
       .where(sql`${table.hasPrice} = true`),
     index("idx_variant_listing_price_value_variant")
-      .on(table.projectId, table.currency, table.priceMinor, table.variantId)
+      .on(table.storeId, table.currency, table.priceMinor, table.variantId)
       .where(sql`${table.hasPrice} = true`),
     index("idx_variant_listing_price_signature_range")
       .on(
-        table.projectId,
+        table.storeId,
         table.signatureKey,
         table.currency,
         table.priceMinor,
@@ -390,7 +390,7 @@ export const listingOptionSignature = listingSchema.table(
   "listing_option_signature",
   {
     optionSignatureId: uuid("option_signature_id").notNull(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     signatureKey: text("signature_key").notNull(),
     optionValueCount: integer("option_value_count").notNull(),
     productBitmap: roaringbitmap("product_bitmap").notNull(),
@@ -408,8 +408,8 @@ export const listingOptionSignature = listingSchema.table(
       name: "listing_option_signature_pkey",
       columns: [table.optionSignatureId],
     }),
-    unique("listing_option_signature_project_signature_unique").on(
-      table.projectId,
+    unique("listing_option_signature_store_signature_unique").on(
+      table.storeId,
       table.signatureKey
     ),
     check(
@@ -431,7 +431,7 @@ export const listingOptionSignatureValue = listingSchema.table(
   "listing_option_signature_value",
   {
     optionSignatureId: uuid("option_signature_id").notNull(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     signatureKey: text("signature_key").notNull(),
     facetId: uuid("facet_id").notNull(),
     valueKey: text("value_key").notNull(),
@@ -455,12 +455,12 @@ export const listingOptionSignatureValue = listingSchema.table(
       sql`length(btrim(${table.valueKey})) > 0`
     ),
     index("idx_listing_option_signature_value_lookup").on(
-      table.projectId,
+      table.storeId,
       table.valueKey,
       table.signatureKey
     ),
     index("idx_listing_option_signature_value_facet_signature").on(
-      table.projectId,
+      table.storeId,
       table.facetId,
       table.signatureKey,
       table.valueKey
@@ -472,7 +472,7 @@ export const listingOptionSignatureProductMembership = listingSchema.table(
   "listing_option_signature_product_membership",
   {
     optionSignatureId: uuid("option_signature_id").notNull(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     signatureKey: text("signature_key").notNull(),
     productDocId: integer("product_doc_id").notNull(),
     variantCount: integer("variant_count").notNull(),
@@ -503,7 +503,7 @@ export const listingOptionSignatureProductMembership = listingSchema.table(
       sql`${table.variantCount} > 0`
     ),
     index("idx_listing_option_signature_membership_lookup").on(
-      table.projectId,
+      table.storeId,
       table.signatureKey,
       table.productDocId
     ),
@@ -513,7 +513,7 @@ export const listingOptionSignatureProductMembership = listingSchema.table(
 export const listingPostingBitmap = listingSchema.table(
   "listing_posting_bitmap",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     entityType: varchar("entity_type", { length: 16 }).notNull(),
     field: varchar("field", { length: 64 }).notNull(),
     valueKey: text("value_key").notNull(),
@@ -529,7 +529,7 @@ export const listingPostingBitmap = listingSchema.table(
   },
   (table) => [
     primaryKey({
-      columns: [table.projectId, table.entityType, table.field, table.valueKey],
+      columns: [table.storeId, table.entityType, table.field, table.valueKey],
     }),
     check(
       "chk_listing_posting_bitmap_entity_type",
@@ -545,7 +545,7 @@ export const listingPostingBitmap = listingSchema.table(
 export const listingPostingProductSort = listingSchema.table(
   "listing_posting_product_sort",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productDocId: integer("product_doc_id").notNull(),
     productId: uuid("product_id").notNull(),
     sortKind: varchar("sort_kind", { length: 32 }).notNull(),
@@ -570,7 +570,7 @@ export const listingPostingProductSort = listingSchema.table(
   (table) => [
     primaryKey({
       columns: [
-        table.projectId,
+        table.storeId,
         table.productDocId,
         table.sortKind,
         table.locale,
@@ -580,16 +580,16 @@ export const listingPostingProductSort = listingSchema.table(
     }),
     foreignKey({
       name: "fk_listing_posting_product_sort_doc",
-      columns: [table.projectId, table.productDocId, table.productId],
+      columns: [table.storeId, table.productDocId, table.productId],
       foreignColumns: [
-        productListingIndex.projectId,
+        productListingIndex.storeId,
         productListingIndex.productDocId,
         productListingIndex.productId,
       ],
     }).onDelete("cascade"),
     // SQL migration adds INCLUDE (product_doc_id); Drizzle cannot express INCLUDE.
     index("idx_listing_posting_product_sort_newest").on(
-      table.projectId,
+      table.storeId,
       table.sortKind,
       table.locale,
       table.currency,
@@ -601,7 +601,7 @@ export const listingPostingProductSort = listingSchema.table(
     ),
     // SQL migration adds INCLUDE (product_doc_id); Drizzle cannot express INCLUDE.
     index("idx_listing_posting_product_sort_text").on(
-      table.projectId,
+      table.storeId,
       table.sortKind,
       table.locale,
       table.currency,
@@ -612,7 +612,7 @@ export const listingPostingProductSort = listingSchema.table(
     ),
     // SQL migration adds INCLUDE (product_doc_id); Drizzle cannot express INCLUDE.
     index("idx_listing_posting_product_sort_bigint_asc").on(
-      table.projectId,
+      table.storeId,
       table.sortKind,
       table.locale,
       table.currency,
@@ -623,7 +623,7 @@ export const listingPostingProductSort = listingSchema.table(
     ),
     // SQL migration adds INCLUDE (product_doc_id); Drizzle cannot express INCLUDE.
     index("idx_listing_posting_product_sort_bigint_desc").on(
-      table.projectId,
+      table.storeId,
       table.sortKind,
       table.locale,
       table.currency,
@@ -638,7 +638,7 @@ export const listingPostingProductSort = listingSchema.table(
 export const listingPostingVariantPrice = listingSchema.table(
   "listing_posting_variant_price",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     currency: varchar("currency", { length: 3 }).notNull(),
     variantDocId: integer("variant_doc_id").notNull(),
     productDocId: integer("product_doc_id").notNull(),
@@ -647,25 +647,25 @@ export const listingPostingVariantPrice = listingSchema.table(
   },
   (table) => [
     primaryKey({
-      columns: [table.projectId, table.currency, table.variantDocId],
+      columns: [table.storeId, table.currency, table.variantDocId],
     }),
     foreignKey({
       name: "fk_listing_posting_variant_price_doc",
       columns: [
-        table.projectId,
+        table.storeId,
         table.variantDocId,
         table.productDocId,
         table.productId,
       ],
       foreignColumns: [
-        variantListingIndex.projectId,
+        variantListingIndex.storeId,
         variantListingIndex.variantDocId,
         variantListingIndex.productDocId,
         variantListingIndex.productId,
       ],
     }).onDelete("cascade"),
     index("idx_listing_posting_variant_price_range").on(
-      table.projectId,
+      table.storeId,
       table.currency,
       table.priceMinor,
       table.productId,
@@ -673,7 +673,7 @@ export const listingPostingVariantPrice = listingSchema.table(
       table.productDocId
     ),
     index("idx_listing_posting_variant_price_desc").on(
-      table.projectId,
+      table.storeId,
       table.currency,
       table.priceMinor.desc(),
       table.productId,
@@ -681,7 +681,7 @@ export const listingPostingVariantPrice = listingSchema.table(
       table.productDocId
     ),
     index("idx_listing_posting_variant_price_product_order").on(
-      table.projectId,
+      table.storeId,
       table.currency,
       table.productId,
       table.priceMinor,
@@ -692,9 +692,9 @@ export const listingPostingVariantPrice = listingSchema.table(
 );
 
 export const listingPostingVariantProjectionBlock = listingSchema.table(
-  "listing_posting_variant_projection_block",
+  "listing_posting_variant_storeion_block",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     blockId: integer("block_id").notNull(),
     variantDocFrom: integer("variant_doc_from").notNull(),
     variantDocTo: integer("variant_doc_to").notNull(),
@@ -704,21 +704,21 @@ export const listingPostingVariantProjectionBlock = listingSchema.table(
     productCount: integer("product_count").notNull(),
   },
   (table) => [
-    primaryKey({ columns: [table.projectId, table.blockId] }),
+    primaryKey({ columns: [table.storeId, table.blockId] }),
     check(
-      "chk_listing_projection_block_id_nonnegative",
+      "chk_listing_storeion_block_id_nonnegative",
       sql`${table.blockId} >= 0`
     ),
     check(
-      "chk_listing_projection_block_range",
+      "chk_listing_storeion_block_range",
       sql`${table.variantDocFrom} >= 0 AND ${table.variantDocTo} > ${table.variantDocFrom}`
     ),
     check(
-      "chk_listing_projection_block_counts_nonnegative",
+      "chk_listing_storeion_block_counts_nonnegative",
       sql`${table.variantCount} >= 0 AND ${table.productCount} >= 0`
     ),
-    index("idx_listing_projection_block_range").on(
-      table.projectId,
+    index("idx_listing_storeion_block_range").on(
+      table.storeId,
       table.variantDocFrom,
       table.variantDocTo
     ),
@@ -729,7 +729,7 @@ export const productTitleBm25SearchIndex = listingSchema.table(
   "product_title_bm25_search_index",
   {
     searchId: uuid("search_id").notNull(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id").notNull(),
     locale: varchar("locale", { length: 8 }).notNull(),
     kind: varchar("kind", { length: 16 }).notNull(),
@@ -774,14 +774,14 @@ export const productTitleBm25SearchIndex = listingSchema.table(
       "chk_product_title_bm25_status",
       sql`${table.status} IN ('published', 'draft')`
     ),
-    index("idx_product_title_bm25_project_locale_product").on(
-      table.projectId,
+    index("idx_product_title_bm25_store_locale_product").on(
+      table.storeId,
       table.locale,
       table.productId
     ),
     index("idx_product_title_bm25_visible")
       .on(
-        table.projectId,
+        table.storeId,
         table.locale,
         table.publishedAt.desc(),
         table.productId
@@ -791,7 +791,7 @@ export const productTitleBm25SearchIndex = listingSchema.table(
       .using(
         "bm25",
         table.searchId,
-        table.projectId,
+        table.storeId,
         table.locale,
         table.status,
         table.kind,

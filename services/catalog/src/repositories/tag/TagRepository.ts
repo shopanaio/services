@@ -55,7 +55,7 @@ export class TagRepository extends BaseRepository {
       .select({ id: tag.id })
       .from(tag)
       .where(
-        and(eq(tag.projectId, this.storeId), eq(tag.id, id))
+        and(eq(tag.storeId, this.storeId), eq(tag.id, id))
       )
       .limit(1);
 
@@ -67,7 +67,7 @@ export class TagRepository extends BaseRepository {
       .select()
       .from(tag)
       .where(
-        and(eq(tag.projectId, this.storeId), eq(tag.id, id))
+        and(eq(tag.storeId, this.storeId), eq(tag.id, id))
       )
       .limit(1);
 
@@ -79,7 +79,7 @@ export class TagRepository extends BaseRepository {
       .select()
       .from(tag)
       .where(
-        and(eq(tag.projectId, this.storeId), eq(tag.handle, handle))
+        and(eq(tag.storeId, this.storeId), eq(tag.handle, handle))
       )
       .limit(1);
 
@@ -91,7 +91,7 @@ export class TagRepository extends BaseRepository {
     const now = new Date().toISOString();
 
     const newTag: NewTag = {
-      projectId: this.storeId,
+      storeId: this.storeId,
       id,
       handle: data.handle,
       createdAt: now,
@@ -112,7 +112,7 @@ export class TagRepository extends BaseRepository {
       .update(tag)
       .set({ handle: data.handle })
       .where(
-        and(eq(tag.projectId, this.storeId), eq(tag.id, id))
+        and(eq(tag.storeId, this.storeId), eq(tag.id, id))
       )
       .returning();
 
@@ -123,7 +123,7 @@ export class TagRepository extends BaseRepository {
     const result = await this.connection
       .delete(tag)
       .where(
-        and(eq(tag.projectId, this.storeId), eq(tag.id, id))
+        and(eq(tag.storeId, this.storeId), eq(tag.id, id))
       )
       .returning({ id: tag.id });
 
@@ -142,7 +142,7 @@ export class TagRepository extends BaseRepository {
     const result = await this.connection
       .select({ count: count() })
       .from(tag)
-      .where(eq(tag.projectId, this.storeId));
+      .where(eq(tag.storeId, this.storeId));
     return result[0]?.count ?? 0;
   }
 
@@ -151,7 +151,7 @@ export class TagRepository extends BaseRepository {
 
     const mergedWhere: TagRelayInput["where"] = {
       _and: [
-        { projectId: { _eq: this.storeId } },
+        { storeId: { _eq: this.storeId } },
         { locale: { _eq: this.locale } },
         ...(where ? [where] : []),
       ],
@@ -190,7 +190,7 @@ export class TagRepository extends BaseRepository {
       ],
       where: {
         ...input?.where,
-        projectId: { _eq: this.storeId },
+        storeId: { _eq: this.storeId },
       },
     });
   }
@@ -203,7 +203,7 @@ export class TagRepository extends BaseRepository {
       .from(tag)
       .where(
         and(
-          eq(tag.projectId, this.storeId),
+          eq(tag.storeId, this.storeId),
           inArray(tag.id, [...tagIds])
         )
       );
@@ -217,7 +217,7 @@ export class TagRepository extends BaseRepository {
       .from(tagTranslation)
       .where(
         and(
-          eq(tagTranslation.projectId, this.storeId),
+          eq(tagTranslation.storeId, this.storeId),
           inArray(tagTranslation.tagId, [...tagIds]),
           eq(tagTranslation.locale, this.locale)
         )
@@ -234,7 +234,7 @@ export class TagRepository extends BaseRepository {
       .from(productTag)
       .where(
         and(
-          eq(productTag.projectId, this.storeId),
+          eq(productTag.storeId, this.storeId),
           inArray(productTag.productId, [...productIds])
         )
       );
@@ -249,7 +249,7 @@ export class TagRepository extends BaseRepository {
       .from(productTag)
       .where(
         and(
-          eq(productTag.projectId, this.storeId),
+          eq(productTag.storeId, this.storeId),
           eq(productTag.productId, productId),
           eq(productTag.tagId, tagId)
         )
@@ -265,7 +265,7 @@ export class TagRepository extends BaseRepository {
       .from(productTag)
       .where(
         and(
-          eq(productTag.projectId, this.storeId),
+          eq(productTag.storeId, this.storeId),
           inArray(productTag.tagId, [...tagIds])
         )
       );
@@ -284,7 +284,7 @@ export class TagRepository extends BaseRepository {
       .from(tag)
       .where(
         and(
-          eq(tag.projectId, this.storeId),
+          eq(tag.storeId, this.storeId),
           inArray(tag.id, [...tagIds])
         )
       );
@@ -296,19 +296,19 @@ export class TagRepository extends BaseRepository {
     await this.connection
       .update(tag)
       .set({ productsCount: sql`${tag.productsCount} + 1` })
-      .where(and(eq(tag.projectId, this.storeId), eq(tag.id, tagId)));
+      .where(and(eq(tag.storeId, this.storeId), eq(tag.id, tagId)));
   }
 
   async decrementProductsCount(tagId: string): Promise<void> {
     await this.connection
       .update(tag)
       .set({ productsCount: sql`greatest(${tag.productsCount} - 1, 0)` })
-      .where(and(eq(tag.projectId, this.storeId), eq(tag.id, tagId)));
+      .where(and(eq(tag.storeId, this.storeId), eq(tag.id, tagId)));
   }
 
   async linkProductToTag(productId: string, tagId: string): Promise<ProductTag> {
     const newLink: NewProductTag = {
-      projectId: this.storeId,
+      storeId: this.storeId,
       productId,
       tagId,
     };
@@ -325,7 +325,7 @@ export class TagRepository extends BaseRepository {
         .from(productTag)
         .where(
           and(
-            eq(productTag.projectId, this.storeId),
+            eq(productTag.storeId, this.storeId),
             eq(productTag.productId, productId),
             eq(productTag.tagId, tagId)
           )
@@ -344,7 +344,7 @@ export class TagRepository extends BaseRepository {
       .delete(productTag)
       .where(
         and(
-          eq(productTag.projectId, this.storeId),
+          eq(productTag.storeId, this.storeId),
           eq(productTag.productId, productId),
           eq(productTag.tagId, tagId)
         )
@@ -362,7 +362,7 @@ export class TagRepository extends BaseRepository {
   // ============ Translation ============
 
   async upsertTranslation(data: {
-    projectId: string;
+    storeId: string;
     tagId: string;
     locale: string;
     name: string;
@@ -370,7 +370,7 @@ export class TagRepository extends BaseRepository {
     const result = await this.connection
       .insert(tagTranslation)
       .values({
-        projectId: data.projectId,
+        storeId: data.storeId,
         tagId: data.tagId,
         locale: data.locale,
         name: data.name,

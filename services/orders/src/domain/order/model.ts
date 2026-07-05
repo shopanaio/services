@@ -18,7 +18,7 @@ export class Order {
   }
 
   getprojectId(): string {
-    return this.state.projectId;
+    return this.state.storeId;
   }
 
   getCurrencyCode(): string {

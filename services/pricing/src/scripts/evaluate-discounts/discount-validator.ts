@@ -31,7 +31,7 @@ export class DiscountValidator {
         const result = await validateDiscount(
           {
             code,
-            projectId: params.projectId,
+            storeId: params.storeId,
             requestId: params.requestId,
             userAgent: params.userAgent,
           },

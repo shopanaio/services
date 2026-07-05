@@ -124,7 +124,7 @@ type App @join__type(graph: APPS_ADMIN)  {
 
 type InstalledApp @join__type(graph: APPS_ADMIN)  {
   id: String!
-  projectID: String!
+  storeID: String!
   appCode: String!
   domain: String!
   baseURL: String!
@@ -6835,9 +6835,9 @@ Fields available for sorting Tag
 """
 enum TagOrderField @join__type(graph: CATALOG_ADMIN)  {
   """
-  Sort by projectId
+  Sort by storeId
   """
-  projectId @join__enumValue(graph: CATALOG_ADMIN) 
+  storeId @join__enumValue(graph: CATALOG_ADMIN) 
   """
   Sort by id
   """
@@ -8869,9 +8869,9 @@ input TagWhereInput @join__type(graph: CATALOG_ADMIN)  {
   """
   _not: TagWhereInput
   """
-  Filter by projectId
+  Filter by storeId
   """
-  projectId: IDFilter
+  storeId: IDFilter
   """
   Filter by id
   """

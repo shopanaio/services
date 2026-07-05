@@ -126,7 +126,7 @@ export class PluginManager<TConfig extends Record<string, unknown>, TContext, TP
     const tasks = this.descriptors.map(async (d) => {
       try {
         const res = await this.runner.execute(
-          { pluginCode: d.plugin.manifest.code, operation: 'health', projectId: 'system' },
+          { pluginCode: d.plugin.manifest.code, operation: 'health', storeId: 'system' },
           async () => await (d.plugin.hooks?.healthCheck?.() ?? Promise.resolve(undefined)),
           { timeoutMs: 1000, retries: 0 }
         );

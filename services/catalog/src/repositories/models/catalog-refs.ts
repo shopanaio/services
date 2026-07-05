@@ -8,7 +8,7 @@ import { pgSchema, uuid, varchar, boolean, timestamp } from "drizzle-orm/pg-core
 const catalogSchema = pgSchema("catalog");
 
 export const catalogVariant = catalogSchema.table("variant", {
-  projectId: uuid("project_id").notNull(),
+  storeId: uuid("store_id").notNull(),
   productId: uuid("product_id").notNull(),
   id: uuid("id").primaryKey(),
   isDefault: boolean("is_default"),

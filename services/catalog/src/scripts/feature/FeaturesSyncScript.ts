@@ -167,7 +167,7 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
     });
 
     await this.repository.translation.upsertFeatureTranslation({
-      projectId: this.getProjectId(),
+      storeId: this.getProjectId(),
       featureId: item.id,
       locale: this.getLocale(),
       name: item.input.name,
@@ -198,7 +198,7 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
       }
 
       await this.repository.translation.upsertFeatureValueTranslation({
-        projectId: this.getProjectId(),
+        storeId: this.getProjectId(),
         featureValueId: valueId,
         locale: this.getLocale(),
         name: value.name,

@@ -2,7 +2,7 @@ import type { TransactionScript } from "@shopana/shared-kernel";
 import type { PaymentMethod, ListPaymentMethodsInput } from "@shopana/plugin-sdk/payment";
 
 export interface GetPaymentMethodsParams extends ListPaymentMethodsInput {
-  readonly projectId: string;
+  readonly storeId: string;
   readonly requestId?: string;
   readonly userAgent?: string;
 }
@@ -16,17 +16,17 @@ export const paymentMethods: TransactionScript<
   GetPaymentMethodsParams,
   GetPaymentMethodsResult
 > = async (params, services) => {
-  const { projectId, ...input } = params;
+  const { storeId, ...input } = params;
   const { broker, logger } = services;
 
   try {
-    console.log("[paymentMethods] 🔵 Calling apps.execute with domain=payment, operation=list, projectId=", projectId);
+    console.log("[paymentMethods] 🔵 Calling apps.execute with domain=payment, operation=list, storeId=", storeId);
 
     // Execute apps.execute to get payment methods via centralized plugin manager
     const result = await broker.call("apps.execute", {
       domain: "payment",
       operation: "list",
-      params: { projectId, ...input },
+      params: { storeId, ...input },
     }) as { data?: unknown; warnings?: Array<{ code: string; message: string }> };
 
     console.log("[paymentMethods] ✅ Received result:", JSON.stringify(result, null, 2));

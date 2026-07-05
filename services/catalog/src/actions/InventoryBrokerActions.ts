@@ -29,7 +29,7 @@ type GetStoreByIdResult = {
 };
 
 export interface GetVariantCostParams {
-  projectId: string;
+  storeId: string;
   variantId: string;
   currency: CurrencyCode;
 }
@@ -120,7 +120,7 @@ export class InventoryBrokerActions extends BrokerActions {
    */
   @Action("getVariantCost")
   async getVariantCost(params: GetVariantCostParams): Promise<VariantCost | null> {
-    return this.runWithStoreContext(params.projectId, async () => {
+    return this.runWithStoreContext(params.storeId, async () => {
       const cost = await this.kernel.repository.cost.getCurrentCost({
         variantId: params.variantId,
         currency: params.currency,

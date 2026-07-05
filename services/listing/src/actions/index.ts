@@ -46,7 +46,7 @@ export class ListingBrokerActions extends BrokerActions {
 
     return buildAcceptedListingUpdateResult({
       meta: params.meta,
-      projectId: params.projectId,
+      storeId: params.storeId,
       itemRef: params.item,
       sourceRevision: params.item.sourceRevision,
     });
@@ -63,7 +63,7 @@ export class ListingBrokerActions extends BrokerActions {
 
     return buildAcceptedListingUpdateResult({
       meta: params.meta,
-      projectId: params.projectId,
+      storeId: params.storeId,
       itemRef: params.itemRef,
       sourceRevision: params.sourceRevision,
     });
@@ -81,14 +81,14 @@ export class ListingBrokerActions extends BrokerActions {
           type: "syncSellableItem",
           params: {
             meta: params.meta,
-            projectId: params.projectId,
+            storeId: params.storeId,
             item,
           },
         });
 
         return buildAcceptedListingUpdateResult({
           meta: params.meta,
-          projectId: params.projectId,
+          storeId: params.storeId,
           itemRef: item,
           sourceRevision: item.sourceRevision,
         });
@@ -106,7 +106,7 @@ export class ListingBrokerActions extends BrokerActions {
       this.logger.error(
         {
           error: result.reason,
-          projectId: params.projectId,
+          storeId: params.storeId,
           entityType: item?.entityType,
           itemId: item?.id,
           operationId: params.meta.operationId,
@@ -136,7 +136,7 @@ export class ListingBrokerActions extends BrokerActions {
         : input.params.sourceRevision;
     const effectiveIdempotencyKey = buildListingIndexEffectiveIdempotencyKey({
       rawIdempotencyKey: params.meta.idempotencyKey,
-      projectId: params.projectId,
+      storeId: params.storeId,
       entityType: itemRef.entityType,
       itemId: itemRef.id,
       actionType: input.type,
@@ -144,7 +144,7 @@ export class ListingBrokerActions extends BrokerActions {
     });
     const payloadHash = buildListingIndexPayloadHash(input);
     const idempotencyCtx = buildListingIndexWorkflowIdempotencyContext({
-      projectId: params.projectId,
+      storeId: params.storeId,
       entityType: itemRef.entityType,
       itemId: itemRef.id,
       actionType: input.type,
@@ -169,7 +169,7 @@ export class ListingBrokerActions extends BrokerActions {
           queueName: LISTING_INDEX_ACTIONS_QUEUE,
           enqueueOptions: {
             queuePartitionKey: buildListingIndexQueuePartitionKey({
-              projectId: params.projectId,
+              storeId: params.storeId,
               entityType: itemRef.entityType,
               itemId: itemRef.id,
             }),

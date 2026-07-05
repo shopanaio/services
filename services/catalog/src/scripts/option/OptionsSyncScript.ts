@@ -131,7 +131,7 @@ export class OptionsSyncScript extends BaseScript<OptionSyncParams, OptionSyncRe
     });
 
     await this.repository.translation.upsertOptionTranslation({
-      projectId: this.getProjectId(),
+      storeId: this.getProjectId(),
       optionId: item.id,
       locale: this.getLocale(),
       name: item.input.name,
@@ -170,7 +170,7 @@ export class OptionsSyncScript extends BaseScript<OptionSyncParams, OptionSyncRe
       }
 
       await this.repository.translation.upsertOptionValueTranslation({
-        projectId: this.getProjectId(),
+        storeId: this.getProjectId(),
         optionValueId: valueId,
         locale: this.getLocale(),
         name: value.name,

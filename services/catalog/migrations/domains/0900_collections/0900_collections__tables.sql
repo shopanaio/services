@@ -2,7 +2,7 @@
 
 CREATE TABLE "catalog"."collection" (
   "id" uuid NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "handle" varchar(255),
   "type" varchar(16) NOT NULL,
   "default_sort" varchar(32) NOT NULL DEFAULT 'newest',
@@ -29,9 +29,9 @@ CREATE TABLE "catalog"."collection" (
     )
 );
 
-CREATE UNIQUE INDEX "collection_project_id_handle_uniq"
-  ON "catalog"."collection" ("project_id", "handle")
+CREATE UNIQUE INDEX "collection_store_id_handle_uniq"
+  ON "catalog"."collection" ("store_id", "handle")
   WHERE "deleted_at" IS NULL AND "handle" IS NOT NULL;
 
 CREATE INDEX "idx_collection_scheduling"
-  ON "catalog"."collection" ("project_id", "effective_from", "effective_to");
+  ON "catalog"."collection" ("store_id", "effective_from", "effective_to");

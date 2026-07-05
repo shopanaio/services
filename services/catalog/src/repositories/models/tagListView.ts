@@ -5,7 +5,7 @@ import { tag, tagTranslation } from "./tags";
 export const tagListView = catalogSchema.view("tag_list_view").as((qb) =>
   qb
     .select({
-      projectId: tag.projectId,
+      storeId: tag.storeId,
       id: tag.id,
       handle: tag.handle,
       createdAt: tag.createdAt,
@@ -16,6 +16,6 @@ export const tagListView = catalogSchema.view("tag_list_view").as((qb) =>
     .from(tag)
     .innerJoin(
       tagTranslation,
-      sql`${tagTranslation.projectId} = ${tag.projectId} AND ${tagTranslation.tagId} = ${tag.id}`
+      sql`${tagTranslation.storeId} = ${tag.storeId} AND ${tagTranslation.tagId} = ${tag.id}`
     )
 );

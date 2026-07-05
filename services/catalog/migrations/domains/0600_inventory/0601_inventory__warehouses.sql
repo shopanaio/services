@@ -1,7 +1,7 @@
 -- Up Migration
 
 CREATE TABLE "catalog"."warehouses" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "id" uuid NOT NULL,
   "code" varchar(32) NOT NULL,
   "name" text NOT NULL,
@@ -9,16 +9,16 @@ CREATE TABLE "catalog"."warehouses" (
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
   "updated_at" timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT "warehouses_pkey" PRIMARY KEY ("id"),
-  CONSTRAINT "warehouses_project_id_code_key" UNIQUE ("project_id", "code"),
-  CONSTRAINT "warehouses_project_id_id_unique" UNIQUE ("project_id", "id")
+  CONSTRAINT "warehouses_store_id_code_key" UNIQUE ("store_id", "code"),
+  CONSTRAINT "warehouses_store_id_id_unique" UNIQUE ("store_id", "id")
 );
 
 CREATE UNIQUE INDEX "idx_warehouses_default_unique"
-  ON "catalog"."warehouses" ("project_id")
+  ON "catalog"."warehouses" ("store_id")
   WHERE "is_default" = true;
 
 CREATE TABLE "catalog"."warehouse_translation" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "warehouse_id" uuid NOT NULL,
   "locale" varchar(8) NOT NULL,
   "name" text NOT NULL,
@@ -29,5 +29,5 @@ CREATE TABLE "catalog"."warehouse_translation" (
     ON DELETE CASCADE
 );
 
-CREATE INDEX "idx_warehouse_translation_project"
-  ON "catalog"."warehouse_translation" ("project_id");
+CREATE INDEX "idx_warehouse_translation_store"
+  ON "catalog"."warehouse_translation" ("store_id");

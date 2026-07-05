@@ -22,7 +22,7 @@ ALTER TABLE inventory.warehouse_stock
   ADD CONSTRAINT warehouse_stock_unavailable_check CHECK (unavailable_qty >= 0),
   ADD CONSTRAINT warehouse_stock_unavailable_le_onhand CHECK (unavailable_qty <= quantity_on_hand);
 
--- Убедиться, что есть UNIQUE (project_id, warehouse_id, variant_id).
+-- Убедиться, что есть UNIQUE (store_id, warehouse_id, variant_id).
 --
 -- Backorder семантика:
 --   quantity_on_hand >= 0 всегда (физический остаток не может быть отрицательным)
@@ -57,7 +57,7 @@ CREATE TYPE inventory.stock_apply_status AS ENUM ('APPLIED', 'REJECTED');
 CREATE TABLE inventory.stock_changes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   seq BIGINT GENERATED ALWAYS AS IDENTITY,  -- монотонный порядок, решает created_at-гонки
-  project_id UUID NOT NULL,
+  store_id UUID NOT NULL,
   variant_id UUID NOT NULL REFERENCES inventory.variant(id) ON DELETE CASCADE,
   warehouse_id UUID NOT NULL,
 
@@ -119,7 +119,7 @@ CREATE TABLE inventory.stock_changes (
   created_by UUID,
   apply_status inventory.stock_apply_status NOT NULL DEFAULT 'APPLIED',
 
-  -- FK только на warehouse_id (project_id денормализован для запросов)
+  -- FK только на warehouse_id (store_id денормализован для запросов)
   CONSTRAINT stock_changes_warehouse_fk
     FOREIGN KEY (warehouse_id) REFERENCES inventory.warehouses(id) ON DELETE CASCADE
 );
@@ -132,16 +132,16 @@ CREATE INDEX idx_stock_changes_variant_created_seq
   ON inventory.stock_changes(variant_id, created_at DESC, seq DESC);
 CREATE INDEX idx_stock_changes_variant_warehouse_created_seq
   ON inventory.stock_changes(variant_id, warehouse_id, created_at DESC, seq DESC);
-CREATE INDEX idx_stock_changes_project_seq ON inventory.stock_changes(project_id, seq DESC);
+CREATE INDEX idx_stock_changes_store_seq ON inventory.stock_changes(store_id, seq DESC);
 CREATE INDEX idx_stock_changes_type_seq ON inventory.stock_changes(movement_type, seq DESC);
 CREATE INDEX idx_stock_changes_reason_seq ON inventory.stock_changes(reason, seq DESC);
 
 -- Идемпотентность
 CREATE UNIQUE INDEX idx_stock_changes_idempotency
-  ON inventory.stock_changes(project_id, source_system, source_event_id, warehouse_id, variant_id);
+  ON inventory.stock_changes(store_id, source_system, source_event_id, warehouse_id, variant_id);
 -- Индекс для быстрого lookup без variant_id/warehouse_id (проверка "был ли event вообще")
 CREATE INDEX idx_stock_changes_idempo_lookup
-  ON inventory.stock_changes(project_id, source_system, source_event_id);
+  ON inventory.stock_changes(store_id, source_system, source_event_id);
 
 -- Индекс для availableChange7d и других time-based запросов
 ```
@@ -166,26 +166,26 @@ WITH
 -- 1. Идемпотентность: INSERT с UNIQUE constraint, только один поток получит id
 ins AS (
   INSERT INTO inventory.stock_changes (
-    project_id, warehouse_id, variant_id,
+    store_id, warehouse_id, variant_id,
     delta_on_hand, delta_reserved, delta_unavailable,
     movement_type, reason, transfer_direction,
     source_system, source_event_id, correlation_id, note, created_by,
     on_hand_after, reserved_after, unavailable_after  -- placeholder
   )
   SELECT
-    $project_id, $warehouse_id, $variant_id,
+    $store_id, $warehouse_id, $variant_id,
     $delta_on_hand, $delta_reserved, $delta_unavailable,
     $movement_type, $reason, $transfer_direction,
     $source_system, $source_event_id, $correlation_id, $note, $created_by,
     0, 0, 0  -- placeholder (0>=0, 0>=0, 0>=0, 0<=0 — проходит CHECK)
-  ON CONFLICT (project_id, source_system, source_event_id, warehouse_id, variant_id)
+  ON CONFLICT (store_id, source_system, source_event_id, warehouse_id, variant_id)
   DO NOTHING
   RETURNING id
 ),
 existing AS (
   SELECT id
   FROM inventory.stock_changes
-  WHERE project_id = $project_id
+  WHERE store_id = $store_id
     AND source_system = $source_system
     AND source_event_id = $source_event_id
     AND warehouse_id = $warehouse_id
@@ -195,12 +195,12 @@ existing AS (
 -- 2. UPSERT warehouse_stock: только если ins вставился И результат валиден
 up AS (
   INSERT INTO inventory.warehouse_stock (
-    project_id, warehouse_id, variant_id,
+    store_id, warehouse_id, variant_id,
     quantity_on_hand, reserved_qty, unavailable_qty
   )
   -- INSERT-ветка (строки нет): вставляем дельты как итог, но только если валидно
   SELECT
-    $project_id, $warehouse_id, $variant_id,
+    $store_id, $warehouse_id, $variant_id,
     $delta_on_hand, $delta_reserved, $delta_unavailable
   FROM ins
   WHERE
@@ -209,7 +209,7 @@ up AS (
     AND $delta_unavailable >= 0
     AND $delta_unavailable <= $delta_on_hand
 
-  ON CONFLICT (project_id, warehouse_id, variant_id) DO UPDATE SET
+  ON CONFLICT (store_id, warehouse_id, variant_id) DO UPDATE SET
     -- UPDATE-ветка (строка есть): инкремент от текущего значения (нет lost-update)
     quantity_on_hand = inventory.warehouse_stock.quantity_on_hand + $delta_on_hand,
     reserved_qty     = inventory.warehouse_stock.reserved_qty     + $delta_reserved,
@@ -249,7 +249,7 @@ reject AS (
     apply_status      = 'REJECTED'
   FROM ins
   LEFT JOIN inventory.warehouse_stock ws
-    ON ws.project_id = sc.project_id
+    ON ws.store_id = sc.store_id
    AND ws.warehouse_id = sc.warehouse_id
    AND ws.variant_id = sc.variant_id
   WHERE sc.id = ins.id
@@ -311,7 +311,7 @@ CREATE TYPE inventory.reservation_status AS ENUM ('ACTIVE', 'RELEASED', 'FULFILL
 
 CREATE TABLE inventory.reservations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id UUID NOT NULL,
+  store_id UUID NOT NULL,
   variant_id UUID NOT NULL REFERENCES inventory.variant(id),
   warehouse_id UUID NOT NULL,
 
@@ -325,10 +325,10 @@ CREATE TABLE inventory.reservations (
   reserved_at TIMESTAMPTZ DEFAULT NOW(),
   released_at TIMESTAMPTZ,
 
-  -- project_id в UNIQUE для изоляции между проектами
-  UNIQUE(project_id, order_system, order_id, variant_id, warehouse_id),
+  -- store_id в UNIQUE для изоляции между проектами
+  UNIQUE(store_id, order_system, order_id, variant_id, warehouse_id),
 
-  -- FK только на warehouse_id (project_id денормализован)
+  -- FK только на warehouse_id (store_id денормализован)
   CONSTRAINT reservations_warehouse_fk
     FOREIGN KEY (warehouse_id) REFERENCES inventory.warehouses(id) ON DELETE CASCADE
 );
@@ -346,7 +346,7 @@ CREATE INDEX idx_reservations_order ON inventory.reservations(order_system, orde
 
 ```sql
 CREATE TABLE inventory.product_inventory_settings (
-  project_id UUID NOT NULL,
+  store_id UUID NOT NULL,
   product_id UUID NOT NULL REFERENCES inventory.product(id) ON DELETE CASCADE,
   alert_threshold_method VARCHAR(20) NOT NULL DEFAULT 'SAFETY_STOCK',
   alert_minimum_stock INTEGER NOT NULL DEFAULT 10,
@@ -355,7 +355,7 @@ CREATE TABLE inventory.product_inventory_settings (
   backorder_max_qty INTEGER,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (project_id, product_id)
+  PRIMARY KEY (store_id, product_id)
 );
 ```
 
@@ -364,7 +364,7 @@ CREATE TABLE inventory.product_inventory_settings (
 ```sql
 CREATE TABLE inventory.inbound_supply (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id UUID NOT NULL,
+  store_id UUID NOT NULL,
   variant_id UUID NOT NULL REFERENCES inventory.variant(id),
   warehouse_id UUID NOT NULL REFERENCES inventory.warehouses(id),
 
@@ -379,7 +379,7 @@ CREATE TABLE inventory.inbound_supply (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
 
-  UNIQUE(project_id, source_type, source_id, variant_id, warehouse_id)
+  UNIQUE(store_id, source_type, source_id, variant_id, warehouse_id)
 );
 
 CREATE INDEX idx_inbound_supply_variant_date
@@ -571,13 +571,13 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- Seed-записи для существующих остатков
 -- source_event_id должен быть <= 128 символов, используем короткий хеш
 INSERT INTO inventory.stock_changes (
-  project_id, warehouse_id, variant_id,
+  store_id, warehouse_id, variant_id,
   delta_on_hand, delta_reserved, delta_unavailable,
   on_hand_after, reserved_after, unavailable_after,
   movement_type, source_system, source_event_id, created_at
 )
 SELECT
-  ws.project_id,
+  ws.store_id,
   ws.warehouse_id,
   ws.variant_id,
   0, 0, 0,  -- delta=0 разрешено для SEED
@@ -587,7 +587,7 @@ SELECT
   'SEED',
   'MIGRATION',
   -- Детерминированный короткий ключ с префиксом seed: (5 + 64 hex = 69 символов < 128)
-  'seed:' || encode(digest(concat_ws(':', ws.project_id::text, ws.warehouse_id::text, ws.variant_id::text), 'sha256'), 'hex'),
+  'seed:' || encode(digest(concat_ws(':', ws.store_id::text, ws.warehouse_id::text, ws.variant_id::text), 'sha256'), 'hex'),
   COALESCE(ws.updated_at, ws.created_at, NOW())
 FROM inventory.warehouse_stock ws;
 ```
@@ -599,7 +599,7 @@ FROM inventory.warehouse_stock ws;
 -- deficit = max(0, reserved_qty + unavailable_qty - quantity_on_hand)
 WITH deficit AS (
   SELECT
-    ws.project_id,
+    ws.store_id,
     ws.variant_id,
     ws.warehouse_id,
     GREATEST(ws.reserved_qty + ws.unavailable_qty - ws.quantity_on_hand, 0) as deficit

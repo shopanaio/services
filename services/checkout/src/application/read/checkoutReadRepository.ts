@@ -28,7 +28,7 @@ export type CheckoutDeliveryAddressRow = {
 
 export type CheckoutPromoCodeRow = {
   checkout_id: string;
-  project_id: string;
+  store_id: string;
   code: string;
   discount_type: string;
   value: string; // bigint as string
@@ -39,7 +39,7 @@ export type CheckoutPromoCodeRow = {
 
 export type CheckoutDeliveryGroupRow = {
   id: string;
-  project_id: string;
+  store_id: string;
   checkout_id: string;
   selected_delivery_method_code: string | null;
   selected_delivery_method_provider: string | null;
@@ -51,7 +51,7 @@ export type CheckoutDeliveryGroupRow = {
 export type CheckoutDeliveryMethodRow = {
   code: string;
   provider: string;
-  project_id: string;
+  store_id: string;
   delivery_group_id: string;
   delivery_method_type: string;
   payment_model: string;
@@ -68,7 +68,7 @@ export type CheckoutPaymentMethod = {
 
 export type CheckoutReadPortRow = {
   id: string;
-  project_id: string;
+  store_id: string;
   api_key_id: string | null;
   admin_id: string | null;
   sales_channel: string | null;
@@ -133,7 +133,7 @@ export type CheckoutDeliveryAddress = {
 
 export type CheckoutPromoCode = {
   checkoutId: string;
-  projectId: string;
+  storeId: string;
   code: string;
   discountType: string;
   value: number; // converted from bigint string
@@ -144,7 +144,7 @@ export type CheckoutPromoCode = {
 
 export type CheckoutDeliveryGroup = {
   id: string;
-  projectId: string;
+  storeId: string;
   checkoutId: string;
   selectedDeliveryMethod: string | null;
   selectedDeliveryMethodProvider: string | null;
@@ -163,7 +163,7 @@ export type CheckoutDeliveryGroup = {
 
 export type CheckoutDeliveryMethod = {
   code: string;
-  projectId: string;
+  storeId: string;
   deliveryGroupId: string;
   deliveryMethodType: string;
   paymentModel: string;
@@ -174,7 +174,7 @@ export type CheckoutDeliveryMethod = {
 export type CheckoutTagRow = {
   id: string;
   checkout_id: string;
-  project_id: string;
+  store_id: string;
   slug: string;
   is_unique: boolean;
   created_at: Date;
@@ -184,7 +184,7 @@ export type CheckoutTagRow = {
 export type CheckoutTag = {
   id: string;
   checkoutId: string;
-  projectId: string;
+  storeId: string;
   slug: string;
   isUnique: boolean;
   createdAt: Date;
@@ -193,7 +193,7 @@ export type CheckoutTag = {
 
 export type CheckoutReadView = {
   id: string;
-  projectId: string;
+  storeId: string;
   apiKeyId: string | null;
   adminId: string | null;
   salesChannel: string | null;
@@ -302,7 +302,7 @@ export class CheckoutReadRepository {
     const mappedDeliveryMethods: CheckoutDeliveryMethod[] = deliveryMethods.map(
       (method): CheckoutDeliveryMethod => ({
         code: method.code,
-        projectId: method.project_id,
+        storeId: method.store_id,
         deliveryGroupId: method.delivery_group_id,
         deliveryMethodType: method.delivery_method_type,
         paymentModel: method.payment_model,
@@ -347,7 +347,7 @@ export class CheckoutReadRepository {
 
     return {
       id: row.id,
-      projectId: row.project_id,
+      storeId: row.store_id,
       apiKeyId: row.api_key_id,
       adminId: row.admin_id,
       salesChannel: row.sales_channel,
@@ -394,7 +394,7 @@ export class CheckoutReadRepository {
         (tag): CheckoutTag => ({
           id: tag.id,
           checkoutId: tag.checkout_id,
-          projectId: tag.project_id,
+          storeId: tag.store_id,
           slug: tag.slug,
           isUnique: tag.is_unique,
           createdAt: tag.created_at,

@@ -14,7 +14,7 @@ export class CollectionRuleRepository extends BaseRepository {
       .from(collectionRule)
       .where(
         and(
-          eq(collectionRule.projectId, this.storeId),
+          eq(collectionRule.storeId, this.storeId),
           eq(collectionRule.collectionId, collectionId)
         )
       )
@@ -29,7 +29,7 @@ export class CollectionRuleRepository extends BaseRepository {
       .delete(collectionRule)
       .where(
         and(
-          eq(collectionRule.projectId, this.storeId),
+          eq(collectionRule.storeId, this.storeId),
           eq(collectionRule.collectionId, collectionId)
         )
       );
@@ -42,7 +42,7 @@ export class CollectionRuleRepository extends BaseRepository {
     const inserts: NewCollectionRule[] = rules.map((rule, index) => ({
       id: randomUUID(),
       collectionId,
-      projectId: this.storeId,
+      storeId: this.storeId,
       field: rule.field,
       operator: rule.operator,
       value: rule.value,

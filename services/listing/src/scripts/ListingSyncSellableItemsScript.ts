@@ -39,7 +39,7 @@ export class ListingSyncSellableItemsScript extends BaseScript<
         this.logger.error(
           {
             error,
-            projectId: input.params.projectId,
+            storeId: input.params.storeId,
             entityType: item.entityType,
             itemId: item.id,
             operationId: input.params.meta.operationId,
@@ -69,12 +69,12 @@ export class ListingSyncSellableItemsScript extends BaseScript<
       type: "syncSellableItem",
       params: {
         meta: params.meta,
-        projectId: params.projectId,
+        storeId: params.storeId,
         item,
       },
       effectiveIdempotencyKey: buildListingIndexEffectiveIdempotencyKey({
         rawIdempotencyKey: params.meta.idempotencyKey,
-        projectId: params.projectId,
+        storeId: params.storeId,
         entityType: item.entityType,
         itemId: item.id,
         actionType: "syncSellableItem",
@@ -84,7 +84,7 @@ export class ListingSyncSellableItemsScript extends BaseScript<
         type: "syncSellableItem",
         params: {
           meta: params.meta,
-          projectId: params.projectId,
+          storeId: params.storeId,
           item,
         },
       }),

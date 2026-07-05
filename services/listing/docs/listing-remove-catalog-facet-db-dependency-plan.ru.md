@@ -26,7 +26,7 @@ dual-write, dual-read и SQL backfill для сохранения старого
 - `facetHandle` в этом документе означает публичный handle facet. В текущем
   catalog коде это поле называется `Facet.slug`.
 - `facetValueHandle` означает root/display `FacetValue.handle`, который
-  уникален внутри `(project_id, facet_id)`.
+  уникален внутри `(store_id, facet_id)`.
 - Для текущего формата handle `:` безопасен как delimiter для display values:
   `Facet.slug` и display `FacetValue.handle` валидируются slug regex без `:`.
   Source handles для `OPTION`/`FEATURE` могут содержать `:`, но storefront
@@ -137,7 +137,7 @@ catalog lookup.
   handle-based value key;
 - `listing.listing_option_signature_value.facet_id uuid NOT NULL`;
 - индекс `idx_listing_option_signature_value_facet_signature` построен по
-  `(project_id, facet_id, signature_key, value_key)`.
+  `(store_id, facet_id, signature_key, value_key)`.
 
 Целевое состояние для option signatures: заменить `facet_id` на
 `facet_handle`/`facet_value_handle` и индексировать по handle columns.
@@ -380,7 +380,7 @@ Facet: {
 ```sql
 SELECT *
 FROM catalog.facet
-WHERE project_id = :storeId
+WHERE store_id = :storeId
   AND slug = :slug
 ```
 
@@ -426,9 +426,9 @@ FacetValue: {
 SELECT fv.*
 FROM catalog.facet f
 JOIN catalog.facet_value fv
-  ON fv.project_id = f.project_id
+  ON fv.store_id = f.store_id
  AND fv.facet_id = f.id
-WHERE f.project_id = :storeId
+WHERE f.store_id = :storeId
   AND f.slug = :facetHandle
   AND fv.handle = :handle
   AND fv.parent_id IS NULL
@@ -448,7 +448,7 @@ WHERE f.project_id = :storeId
 Таблица уже generic:
 
 ```sql
-PRIMARY KEY (project_id, entity_type, field, value_key)
+PRIMARY KEY (store_id, entity_type, field, value_key)
 ```
 
 Ее можно оставить без новых колонок, если `value_key` становится
@@ -476,7 +476,7 @@ ALTER TABLE listing.listing_option_signature_value
 
 CREATE INDEX idx_listing_option_signature_value_facet_handle_signature
   ON listing.listing_option_signature_value (
-    project_id,
+    store_id,
     facet_handle,
     signature_key,
     value_key

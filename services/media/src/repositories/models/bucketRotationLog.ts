@@ -13,7 +13,7 @@ export const bucketRotationLog = mediaSchema.table(
   "bucket_rotation_log",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     oldBucketId: uuid("old_bucket_id").references(() => buckets.id, {
       onDelete: "set null",
     }),
@@ -27,7 +27,7 @@ export const bucketRotationLog = mediaSchema.table(
       .defaultNow(),
   },
   (table) => [
-    index("idx_bucket_rotation_log_project").on(table.projectId, sql`${table.createdAt} DESC`),
+    index("idx_bucket_rotation_log_store").on(table.storeId, sql`${table.createdAt} DESC`),
   ]
 );
 

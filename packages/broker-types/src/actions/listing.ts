@@ -122,7 +122,7 @@ export interface ListingSellableItemSnapshot extends ListingSellableItemRef {
 
 export interface SyncSellableItemParams {
   meta: ListingUpdateMeta;
-  projectId: string;
+  storeId: string;
   item: ListingSellableItemSnapshot;
 }
 
@@ -130,7 +130,7 @@ export type SyncSellableItemResult = ListingUpdateResult;
 
 export interface DeleteSellableItemParams {
   meta: ListingUpdateMeta;
-  projectId: string;
+  storeId: string;
   itemRef: ListingSellableItemRef;
   sourceRevision: number;
   deletedAt: string;
@@ -141,7 +141,7 @@ export type DeleteSellableItemResult = ListingUpdateResult;
 
 export interface SyncSellableItemsParams {
   meta: ListingUpdateMeta;
-  projectId: string;
+  storeId: string;
   items: ListingSellableItemSnapshot[];
 }
 
@@ -153,7 +153,7 @@ export interface SyncSellableItemsResult {
 
 export interface ListingUpdateResult {
   operationId: string;
-  projectId: string;
+  storeId: string;
   itemRef: ListingSellableItemRef;
   sourceRevision: number;
   status: "applied" | "noop" | "ignored_stale" | "accepted";

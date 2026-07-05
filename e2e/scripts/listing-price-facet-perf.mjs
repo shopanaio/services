@@ -107,7 +107,7 @@ function parseArgs(argv) {
     products: DEFAULT_PRODUCTS,
     pageSize: DEFAULT_PAGE_SIZE,
     maxMs: null,
-    projectId: null,
+    storeId: null,
     categoryId: null,
     seedOnly: false,
     outDir: resolve(E2E_DIR, 'test-results/listing-perf'),
@@ -127,7 +127,7 @@ function parseArgs(argv) {
       args.maxMs = Number.parseFloat(next);
       i += 1;
     } else if (arg === '--project-id' && next) {
-      args.projectId = next;
+      args.storeId = next;
       i += 1;
     } else if (arg === '--category-id' && next) {
       args.categoryId = next;
@@ -360,7 +360,7 @@ async function main() {
     max: 1,
   });
 
-  const projectId = args.projectId ?? randomUUID();
+  const storeId = args.storeId ?? randomUUID();
   const categoryId = args.categoryId ?? randomUUID();
   const productIds = Array.from({ length: args.products }, () => randomUUID());
   const productDocIds = Array.from({ length: args.products }, (_, index) => index + 1);
@@ -485,7 +485,7 @@ async function main() {
 
   await sql.begin(async (tx) => {
     await seedCatalogProductsAndOptions(tx, {
-      projectId,
+      storeId,
       categoryId,
       productIds,
       productDocIds,
@@ -497,9 +497,9 @@ async function main() {
       productOptionValueIds,
       now,
     });
-    await seedCatalogFacets(tx, projectId, facets);
+    await seedCatalogFacets(tx, storeId, facets);
     await seedListingRows(tx, {
-      projectId,
+      storeId,
       categoryId,
       productIds,
       productDocIds,
@@ -509,10 +509,10 @@ async function main() {
       signatureKeys,
       now,
     });
-    await seedCategoryBitmaps(tx, projectId, categories);
-    await seedVariantProjectionBlock(tx, projectId, variants);
-    await seedOptionFacetBitmaps(tx, projectId, facets, variantValueKeys, variants);
-    await seedOptionSignatures(tx, projectId, variantValueKeys, variants);
+    await seedCategoryBitmaps(tx, storeId, categories);
+    await seedVariantProjectionBlock(tx, storeId, variants);
+    await seedOptionFacetBitmaps(tx, storeId, facets, variantValueKeys, variants);
+    await seedOptionSignatures(tx, storeId, variantValueKeys, variants);
   });
 
   await sql`ANALYZE listing.product_listing_index`;
@@ -520,7 +520,7 @@ async function main() {
   await sql`ANALYZE listing.variant_listing_price_index`;
   await sql`ANALYZE listing.listing_posting_variant_price`;
   await sql`ANALYZE listing.listing_posting_bitmap`;
-  await sql`ANALYZE listing.listing_posting_variant_projection_block`;
+  await sql`ANALYZE listing.listing_posting_variant_storeion_block`;
   await sql`ANALYZE listing.listing_option_signature`;
   await sql`ANALYZE listing.listing_option_signature_value`;
   await sql`ANALYZE listing.listing_option_signature_product_membership`;
@@ -531,7 +531,7 @@ async function main() {
       `${RESULT_PREFIX}-seed.json`,
       `${JSON.stringify(
         {
-          projectId,
+          storeId,
           categoryId,
           variants: variants.length,
           variantsPerProduct: {
@@ -573,7 +573,7 @@ async function main() {
         2,
       )}\n`,
     );
-    console.log(`seeded project=${projectId} category=${categoryId} products=${args.products}`);
+    console.log(`seeded project=${storeId} category=${categoryId} products=${args.products}`);
     console.log(
       `variants=${variants.length} variantsPerProduct=${Math.min(...productVariantCounts)}-${Math.max(...productVariantCounts)}`,
     );
@@ -589,13 +589,13 @@ async function main() {
   }
 
   const pageInput = {
-    projectId,
+    storeId,
     categoryId,
     pageSize: args.pageSize,
     selectedFilterRows,
   };
   const totalInput = {
-    projectId,
+    storeId,
     categoryId,
     selectedFilterRows,
   };
@@ -616,7 +616,7 @@ async function main() {
   const totalExecutionMs = planMetric(totalPlan, 'Execution Time');
   const pageBuffers = collectBufferSummary(pagePlan[0].Plan);
 
-  console.log(`seeded project=${projectId} category=${categoryId} products=${args.products}`);
+  console.log(`seeded project=${storeId} category=${categoryId} products=${args.products}`);
   console.log(
     `variants=${variants.length} variantsPerProduct=${Math.min(...productVariantCounts)}-${Math.max(...productVariantCounts)}`,
   );
@@ -647,9 +647,9 @@ async function measureQuery(callback) {
 
 async function seedCatalogProductsAndOptions(sql, input) {
   await seedCatalogProducts(sql, input);
-  await seedCatalogCategories(sql, input.projectId, input.categories, input.now);
-  await seedCatalogProductCategories(sql, input.projectId, input.productIds, input.categories);
-  await seedCatalogVariants(sql, input.projectId, input.variants, input.now);
+  await seedCatalogCategories(sql, input.storeId, input.categories, input.now);
+  await seedCatalogProductCategories(sql, input.storeId, input.productIds, input.categories);
+  await seedCatalogVariants(sql, input.storeId, input.variants, input.now);
   await seedCatalogProductOptions(sql, input);
   await seedCatalogVariantOptionLinks(sql, input);
 }
@@ -662,7 +662,7 @@ async function seedCatalogProducts(sql, input) {
   })), CATALOG_INSERT_CHUNK_SIZE)) {
     await sql`
       INSERT INTO catalog.product (
-        project_id,
+        store_id,
         id,
         handle,
         published_at,
@@ -672,7 +672,7 @@ async function seedCatalogProducts(sql, input) {
         kind
       )
       SELECT
-        ${input.projectId}::uuid,
+        ${input.storeId}::uuid,
         product_id,
         handle,
         ${input.now}::timestamptz,
@@ -689,13 +689,13 @@ async function seedCatalogProducts(sql, input) {
 
     await sql`
       INSERT INTO catalog.product_translation (
-        project_id,
+        store_id,
         product_id,
         locale,
         name
       )
       SELECT
-        ${input.projectId}::uuid,
+        ${input.storeId}::uuid,
         product_id,
         ${LOCALE},
         'Perf product ' || doc_id::text
@@ -708,10 +708,10 @@ async function seedCatalogProducts(sql, input) {
   }
 }
 
-async function seedCatalogCategories(sql, projectId, categories, now) {
+async function seedCatalogCategories(sql, storeId, categories, now) {
   await sql`
     INSERT INTO catalog.category (
-      project_id,
+      store_id,
       id,
       path,
       depth,
@@ -725,7 +725,7 @@ async function seedCatalogCategories(sql, projectId, categories, now) {
       updated_at
     )
     SELECT
-      ${projectId}::uuid,
+      ${storeId}::uuid,
       category_id,
       '/' || slug,
       0,
@@ -747,13 +747,13 @@ async function seedCatalogCategories(sql, projectId, categories, now) {
 
   await sql`
     INSERT INTO catalog.category_translation (
-      project_id,
+      store_id,
       category_id,
       locale,
       name
     )
     SELECT
-      ${projectId}::uuid,
+      ${storeId}::uuid,
       category_id,
       ${LOCALE},
       slug
@@ -765,7 +765,7 @@ async function seedCatalogCategories(sql, projectId, categories, now) {
   `;
 }
 
-async function seedCatalogProductCategories(sql, projectId, productIds, categories) {
+async function seedCatalogProductCategories(sql, storeId, productIds, categories) {
   const productIdByDocId = new Map(productIds.map((productId, index) => [index + 1, productId]));
 
   for (const category of categories) {
@@ -778,14 +778,14 @@ async function seedCatalogProductCategories(sql, projectId, productIds, categori
     for (const rowChunk of chunks(rows, CATALOG_INSERT_CHUNK_SIZE)) {
       await sql`
         INSERT INTO catalog.product_category (
-          project_id,
+          store_id,
           product_id,
           category_id,
           is_primary,
           lexo_rank
         )
         SELECT
-          ${projectId}::uuid,
+          ${storeId}::uuid,
           product_id,
           ${category.id}::uuid,
           ${isPrimary}::boolean,
@@ -800,11 +800,11 @@ async function seedCatalogProductCategories(sql, projectId, productIds, categori
   }
 }
 
-async function seedCatalogVariants(sql, projectId, variants, now) {
+async function seedCatalogVariants(sql, storeId, variants, now) {
   for (const variantChunk of chunks(variants, CATALOG_INSERT_CHUNK_SIZE)) {
     await sql`
       INSERT INTO catalog.variant (
-        project_id,
+        store_id,
         product_id,
         kind,
         id,
@@ -815,7 +815,7 @@ async function seedCatalogVariants(sql, projectId, variants, now) {
         updated_at
       )
       SELECT
-        ${projectId}::uuid,
+        ${storeId}::uuid,
         product_id,
         'BASE',
         variant_id,
@@ -849,7 +849,7 @@ async function seedCatalogProductOptions(sql, input) {
     await sql`
       INSERT INTO catalog.product_option (
         id,
-        project_id,
+        store_id,
         product_id,
         slug,
         display_type,
@@ -857,7 +857,7 @@ async function seedCatalogProductOptions(sql, input) {
       )
       SELECT
         option_id,
-        ${input.projectId}::uuid,
+        ${input.storeId}::uuid,
         product_id,
         slug,
         'BUTTONS',
@@ -873,13 +873,13 @@ async function seedCatalogProductOptions(sql, input) {
 
     await sql`
       INSERT INTO catalog.product_option_translation (
-        project_id,
+        store_id,
         option_id,
         locale,
         name
       )
       SELECT
-        ${input.projectId}::uuid,
+        ${input.storeId}::uuid,
         option_id,
         ${LOCALE},
         slug
@@ -909,14 +909,14 @@ async function seedCatalogProductOptions(sql, input) {
     await sql`
       INSERT INTO catalog.product_option_value (
         id,
-        project_id,
+        store_id,
         option_id,
         slug,
         sort_index
       )
       SELECT
         value_id,
-        ${input.projectId}::uuid,
+        ${input.storeId}::uuid,
         option_id,
         value_handle,
         sort_index
@@ -931,13 +931,13 @@ async function seedCatalogProductOptions(sql, input) {
 
     await sql`
       INSERT INTO catalog.product_option_value_translation (
-        project_id,
+        store_id,
         option_value_id,
         locale,
         name
       )
       SELECT
-        ${input.projectId}::uuid,
+        ${input.storeId}::uuid,
         value_id,
         ${LOCALE},
         value_handle
@@ -962,13 +962,13 @@ async function seedCatalogVariantOptionLinks(sql, input) {
 
     await sql`
       INSERT INTO catalog.product_option_variant_link (
-        project_id,
+        store_id,
         variant_id,
         option_id,
         option_value_id
       )
       SELECT
-        ${input.projectId}::uuid,
+        ${input.storeId}::uuid,
         variant_id,
         option_id,
         option_value_id
@@ -982,12 +982,12 @@ async function seedCatalogVariantOptionLinks(sql, input) {
   }
 }
 
-async function seedCatalogFacets(sql, projectId, facets) {
+async function seedCatalogFacets(sql, storeId, facets) {
   for (const [facetIndex, facet] of facets.entries()) {
     await sql`
       INSERT INTO catalog.facet (
         id,
-        project_id,
+        store_id,
         facet_type,
         ui_type,
         selection_mode,
@@ -998,7 +998,7 @@ async function seedCatalogFacets(sql, projectId, facets) {
       )
       VALUES (
         ${facet.id}::uuid,
-        ${projectId}::uuid,
+        ${storeId}::uuid,
         'OPTION',
         'checkbox',
         'multi',
@@ -1007,11 +1007,11 @@ async function seedCatalogFacets(sql, projectId, facets) {
         now(),
         now()
       )
-      ON CONFLICT (project_id, slug) DO NOTHING
+      ON CONFLICT (store_id, slug) DO NOTHING
     `;
     await sql`
-      INSERT INTO catalog.facet_translation (facet_id, locale, project_id, label)
-      VALUES (${facet.id}::uuid, ${LOCALE}, ${projectId}::uuid, ${facet.slug})
+      INSERT INTO catalog.facet_translation (facet_id, locale, store_id, label)
+      VALUES (${facet.id}::uuid, ${LOCALE}, ${storeId}::uuid, ${facet.slug})
       ON CONFLICT (facet_id, locale) DO UPDATE SET label = EXCLUDED.label
     `;
 
@@ -1019,7 +1019,7 @@ async function seedCatalogFacets(sql, projectId, facets) {
       await sql`
         INSERT INTO catalog.facet_value (
           id,
-          project_id,
+          store_id,
           facet_id,
           kind,
           handle,
@@ -1030,7 +1030,7 @@ async function seedCatalogFacets(sql, projectId, facets) {
         )
         VALUES (
           ${value.id}::uuid,
-          ${projectId}::uuid,
+          ${storeId}::uuid,
           ${facet.id}::uuid,
           'display',
           ${value.handle},
@@ -1045,10 +1045,10 @@ async function seedCatalogFacets(sql, projectId, facets) {
         INSERT INTO catalog.facet_value_translation (
           facet_value_id,
           locale,
-          project_id,
+          store_id,
           label
         )
-        VALUES (${value.id}::uuid, ${LOCALE}, ${projectId}::uuid, ${value.handle})
+        VALUES (${value.id}::uuid, ${LOCALE}, ${storeId}::uuid, ${value.handle})
         ON CONFLICT (facet_value_id, locale) DO UPDATE SET label = EXCLUDED.label
       `;
     }
@@ -1061,7 +1061,7 @@ async function seedListingRows(sql, input) {
 
   await sql`
     INSERT INTO listing.product_listing_index (
-      project_id,
+      store_id,
       product_id,
       product_doc_id,
       kind,
@@ -1077,7 +1077,7 @@ async function seedListingRows(sql, input) {
       updated_at
     )
     SELECT
-      ${input.projectId}::uuid,
+      ${input.storeId}::uuid,
       product_id,
       product_doc_id,
       'BASE',
@@ -1108,7 +1108,7 @@ async function seedListingRows(sql, input) {
 
     await sql`
       INSERT INTO listing.variant_listing_index (
-        project_id,
+        store_id,
         product_id,
         product_doc_id,
         variant_id,
@@ -1120,7 +1120,7 @@ async function seedListingRows(sql, input) {
         updated_at
       )
       SELECT
-        ${input.projectId}::uuid,
+        ${input.storeId}::uuid,
         product_id,
         product_doc_id,
         variant_id,
@@ -1141,7 +1141,7 @@ async function seedListingRows(sql, input) {
 
     await sql`
       INSERT INTO listing.variant_listing_price_index (
-        project_id,
+        store_id,
         variant_id,
         currency,
         variant_doc_id,
@@ -1154,7 +1154,7 @@ async function seedListingRows(sql, input) {
         updated_at
       )
       SELECT
-        ${input.projectId}::uuid,
+        ${input.storeId}::uuid,
         variant_id,
         ${CURRENCY},
         variant_doc_id,
@@ -1177,7 +1177,7 @@ async function seedListingRows(sql, input) {
 
     await sql`
       INSERT INTO listing.listing_posting_variant_price (
-        project_id,
+        store_id,
         currency,
         variant_doc_id,
         product_doc_id,
@@ -1185,7 +1185,7 @@ async function seedListingRows(sql, input) {
         price_minor
       )
       SELECT
-        ${input.projectId}::uuid,
+        ${input.storeId}::uuid,
         ${CURRENCY},
         variant_doc_id,
         product_doc_id,
@@ -1202,7 +1202,7 @@ async function seedListingRows(sql, input) {
 
   await sql`
     INSERT INTO listing.product_listing_price_index (
-      project_id,
+      store_id,
       product_id,
       currency,
       min_price_minor,
@@ -1212,7 +1212,7 @@ async function seedListingRows(sql, input) {
       updated_at
     )
     SELECT
-      ${input.projectId}::uuid,
+      ${input.storeId}::uuid,
       product_id,
       ${CURRENCY},
       min_price_minor,
@@ -1229,7 +1229,7 @@ async function seedListingRows(sql, input) {
 
   await sql`
     INSERT INTO listing.listing_posting_product_sort (
-      project_id,
+      store_id,
       product_doc_id,
       product_id,
       sort_kind,
@@ -1240,7 +1240,7 @@ async function seedListingRows(sql, input) {
       bigint_value
     )
     SELECT
-      ${input.projectId}::uuid,
+      ${input.storeId}::uuid,
       product_doc_id,
       product_id,
       'price_asc',
@@ -1258,7 +1258,7 @@ async function seedListingRows(sql, input) {
 
   await sql`
     INSERT INTO listing.listing_posting_product_sort (
-      project_id,
+      store_id,
       product_doc_id,
       product_id,
       sort_kind,
@@ -1270,7 +1270,7 @@ async function seedListingRows(sql, input) {
       timestamptz_value_2
     )
     SELECT
-      ${input.projectId}::uuid,
+      ${input.storeId}::uuid,
       product_doc_id,
       product_id,
       'newest',
@@ -1287,7 +1287,7 @@ async function seedListingRows(sql, input) {
   `;
 }
 
-async function seedCategoryBitmaps(sql, projectId, categories) {
+async function seedCategoryBitmaps(sql, storeId, categories) {
   for (const category of categories) {
     await sql`
       WITH docs AS (
@@ -1298,7 +1298,7 @@ async function seedCategoryBitmaps(sql, projectId, categories) {
         FROM docs
       )
       INSERT INTO listing.listing_posting_bitmap (
-        project_id,
+        store_id,
         entity_type,
         field,
         value_key,
@@ -1308,7 +1308,7 @@ async function seedCategoryBitmaps(sql, projectId, categories) {
         updated_at
       )
       SELECT
-        ${projectId}::uuid,
+        ${storeId}::uuid,
         'product',
         'category',
         ${category.id},
@@ -1321,7 +1321,7 @@ async function seedCategoryBitmaps(sql, projectId, categories) {
   }
 }
 
-async function seedVariantProjectionBlock(sql, projectId, variants) {
+async function seedVariantProjectionBlock(sql, storeId, variants) {
   for (const [blockIndex, variantChunk] of chunks(variants, VARIANT_PROJECTION_BLOCK_SIZE).entries()) {
     const variantDocIds = variantChunk.map((variant) => variant.variantDocId);
     const productDocIds = [...new Set(variantChunk.map((variant) => variant.productDocId))];
@@ -1341,8 +1341,8 @@ async function seedVariantProjectionBlock(sql, projectId, variants) {
         SELECT rb_build_agg(doc_id) AS value
         FROM product_docs
       )
-      INSERT INTO listing.listing_posting_variant_projection_block (
-        project_id,
+      INSERT INTO listing.listing_posting_variant_storeion_block (
+        store_id,
         block_id,
         variant_doc_from,
         variant_doc_to,
@@ -1352,7 +1352,7 @@ async function seedVariantProjectionBlock(sql, projectId, variants) {
         product_count
       )
       SELECT
-        ${projectId}::uuid,
+        ${storeId}::uuid,
         ${blockIndex},
         ${variantDocIds[0]},
         ${variantDocIds[variantDocIds.length - 1] + 1},
@@ -1366,7 +1366,7 @@ async function seedVariantProjectionBlock(sql, projectId, variants) {
   }
 }
 
-async function seedOptionFacetBitmaps(sql, projectId, facets, variantValueKeys, variants) {
+async function seedOptionFacetBitmaps(sql, storeId, facets, variantValueKeys, variants) {
   const grouped = new Map();
 
   for (const [variantIndex, valueKeys] of variantValueKeys.entries()) {
@@ -1391,7 +1391,7 @@ async function seedOptionFacetBitmaps(sql, projectId, facets, variantValueKeys, 
           FROM docs
         )
         INSERT INTO listing.listing_posting_bitmap (
-          project_id,
+          store_id,
           entity_type,
           field,
           value_key,
@@ -1401,7 +1401,7 @@ async function seedOptionFacetBitmaps(sql, projectId, facets, variantValueKeys, 
           updated_at
         )
         SELECT
-          ${projectId}::uuid,
+          ${storeId}::uuid,
           'variant',
           'facet',
           ${valueKey},
@@ -1415,7 +1415,7 @@ async function seedOptionFacetBitmaps(sql, projectId, facets, variantValueKeys, 
   }
 }
 
-async function seedOptionSignatures(sql, projectId, variantValueKeys, variants) {
+async function seedOptionSignatures(sql, storeId, variantValueKeys, variants) {
   const groups = new Map();
 
   for (const [variantIndex, valueKeys] of variantValueKeys.entries()) {
@@ -1444,7 +1444,7 @@ async function seedOptionSignatures(sql, projectId, variantValueKeys, variants) 
       )
       INSERT INTO listing.listing_option_signature (
         option_signature_id,
-        project_id,
+        store_id,
         signature_key,
         option_value_count,
         product_bitmap,
@@ -1454,7 +1454,7 @@ async function seedOptionSignatures(sql, projectId, variantValueKeys, variants) 
       )
       SELECT
         ${optionSignatureId}::uuid,
-        ${projectId}::uuid,
+        ${storeId}::uuid,
         ${signatureKey},
         ${group.valueKeys.length},
         value,
@@ -1467,14 +1467,14 @@ async function seedOptionSignatures(sql, projectId, variantValueKeys, variants) 
     await sql`
       INSERT INTO listing.listing_option_signature_value (
         option_signature_id,
-        project_id,
+        store_id,
         signature_key,
         facet_id,
         value_key
       )
       SELECT
         ${optionSignatureId}::uuid,
-        ${projectId}::uuid,
+        ${storeId}::uuid,
         ${signatureKey},
         facet_id,
         value_key
@@ -1487,7 +1487,7 @@ async function seedOptionSignatures(sql, projectId, variantValueKeys, variants) 
     await sql`
       INSERT INTO listing.listing_option_signature_product_membership (
         option_signature_id,
-        project_id,
+        store_id,
         signature_key,
         product_doc_id,
         variant_count,
@@ -1495,7 +1495,7 @@ async function seedOptionSignatures(sql, projectId, variantValueKeys, variants) 
       )
       SELECT
         ${optionSignatureId}::uuid,
-        ${projectId}::uuid,
+        ${storeId}::uuid,
         ${signatureKey},
         product_doc_id,
         variant_count,
@@ -1543,7 +1543,7 @@ function buildPageSelectSql(input) {
     WITH
     input AS (
       SELECT
-        ${sqlLiteral(input.projectId)}::uuid AS project_id,
+        ${sqlLiteral(input.storeId)}::uuid AS store_id,
         ${sqlLiteral(input.categoryId)}::text AS category_value_key,
         ${sqlLiteral(CURRENCY)}::text AS currency,
         ${input.pageSize}::int AS first
@@ -1559,7 +1559,7 @@ function buildPageSelectSql(input) {
       FROM selected_filter_values sfv
       JOIN input i ON true
       LEFT JOIN listing.listing_posting_bitmap p
-        ON p.project_id = i.project_id
+        ON p.store_id = i.store_id
        AND p.entity_type = 'variant'
        AND p.field = 'facet'
        AND p.value_key = sfv.value_key
@@ -1569,7 +1569,7 @@ function buildPageSelectSql(input) {
       SELECT COALESCE(rb_build_agg(vli.variant_doc_id), ${emptyBitmapSql}) AS bitmap
       FROM listing.variant_listing_index vli
       JOIN input i ON true
-      WHERE vli.project_id = i.project_id
+      WHERE vli.store_id = i.store_id
         AND vli.in_stock = true
     ),
     variant_filters AS (
@@ -1585,7 +1585,7 @@ function buildPageSelectSql(input) {
         SELECT p.bitmap
         FROM listing.listing_posting_bitmap p
         JOIN input i ON true
-        WHERE p.project_id = i.project_id
+        WHERE p.store_id = i.store_id
           AND p.entity_type = 'product'
           AND p.field = 'category'
           AND p.value_key = i.category_value_key
@@ -1595,7 +1595,7 @@ function buildPageSelectSql(input) {
       SELECT COALESCE(rb_build_agg(pli.product_doc_id), ${emptyBitmapSql}) AS bitmap
       FROM listing.product_listing_index pli
       JOIN input i ON true
-      WHERE pli.project_id = i.project_id
+      WHERE pli.store_id = i.store_id
         AND pli.status = 'published'
     ),
     projected_variant_products AS (
@@ -1608,9 +1608,9 @@ function buildPageSelectSql(input) {
             b.product_bitmap,
             b.variant_count,
             ((SELECT bitmap FROM variant_filters) & b.variant_bitmap) AS block_match
-          FROM listing.listing_posting_variant_projection_block b
+          FROM listing.listing_posting_variant_storeion_block b
           JOIN input i ON true
-          WHERE b.project_id = i.project_id
+          WHERE b.store_id = i.store_id
             AND rb_cardinality((SELECT bitmap FROM variant_filters) & b.variant_bitmap) > 0
         ),
         full_block_products AS (
@@ -1623,7 +1623,7 @@ function buildPageSelectSql(input) {
           FROM matched_blocks mb
           JOIN input i ON true
           JOIN listing.variant_listing_index vli
-            ON vli.project_id = i.project_id
+            ON vli.store_id = i.store_id
            AND vli.variant_doc_id >= mb.variant_doc_from
            AND vli.variant_doc_id < mb.variant_doc_to
           WHERE rb_cardinality(mb.block_match) < mb.variant_count
@@ -1655,13 +1655,13 @@ function buildPageSelectSql(input) {
         vp.price_minor
       FROM listing.variant_listing_price_index vp
       JOIN listing.variant_listing_index vli
-        ON vli.project_id = vp.project_id
+        ON vli.store_id = vp.store_id
        AND vli.variant_id = vp.variant_id
        AND vli.in_stock = true
       JOIN input i ON true
       CROSS JOIN matches m
       CROSS JOIN variant_filters vf
-      WHERE vp.project_id = i.project_id
+      WHERE vp.store_id = i.store_id
         AND vp.currency = i.currency
         AND vp.has_price = true
         AND vp.price_minor IS NOT NULL
@@ -1686,7 +1686,7 @@ function buildPageSelectSql(input) {
       FROM variant_price_chosen chosen
       JOIN input i ON true
       JOIN listing.product_listing_index pli
-        ON pli.project_id = i.project_id
+        ON pli.store_id = i.store_id
        AND pli.product_doc_id = chosen.product_doc_id
        AND pli.product_id = chosen.product_id
       ORDER BY pli.in_stock DESC, chosen.price_minor ASC NULLS LAST, chosen.product_id ASC
@@ -1705,7 +1705,7 @@ function buildTotalSelectSql(input) {
     WITH
     input AS (
       SELECT
-        ${sqlLiteral(input.projectId)}::uuid AS project_id,
+        ${sqlLiteral(input.storeId)}::uuid AS store_id,
         ${sqlLiteral(input.categoryId)}::text AS category_value_key
     ),
     selected_filter_values AS (
@@ -1719,7 +1719,7 @@ function buildTotalSelectSql(input) {
       FROM selected_filter_values sfv
       JOIN input i ON true
       LEFT JOIN listing.listing_posting_bitmap p
-        ON p.project_id = i.project_id
+        ON p.store_id = i.store_id
        AND p.entity_type = 'variant'
        AND p.field = 'facet'
        AND p.value_key = sfv.value_key
@@ -1734,7 +1734,7 @@ function buildTotalSelectSql(input) {
         SELECT p.bitmap
         FROM listing.listing_posting_bitmap p
         JOIN input i ON true
-        WHERE p.project_id = i.project_id
+        WHERE p.store_id = i.store_id
           AND p.entity_type = 'product'
           AND p.field = 'category'
           AND p.value_key = i.category_value_key
@@ -1744,7 +1744,7 @@ function buildTotalSelectSql(input) {
       SELECT COALESCE(rb_build_agg(pli.product_doc_id), ${emptyBitmapSql}) AS bitmap
       FROM listing.product_listing_index pli
       JOIN input i ON true
-      WHERE pli.project_id = i.project_id
+      WHERE pli.store_id = i.store_id
         AND pli.status = 'published'
     ),
     matches AS (
@@ -1767,7 +1767,7 @@ async function runPageExplain(sql, input) {
     WITH
     input AS (
       SELECT
-        ${input.projectId}::uuid AS project_id,
+        ${input.storeId}::uuid AS store_id,
         ${input.categoryId}::text AS category_value_key,
         ${CURRENCY}::text AS currency,
         ${input.pageSize}::int AS first
@@ -1783,7 +1783,7 @@ async function runPageExplain(sql, input) {
       FROM selected_filter_values sfv
       JOIN input i ON true
       LEFT JOIN listing.listing_posting_bitmap p
-        ON p.project_id = i.project_id
+        ON p.store_id = i.store_id
        AND p.entity_type = 'variant'
        AND p.field = 'facet'
        AND p.value_key = sfv.value_key
@@ -1793,7 +1793,7 @@ async function runPageExplain(sql, input) {
       SELECT COALESCE(rb_build_agg(vli.variant_doc_id), ${sql.unsafe(emptyBitmapSql)}) AS bitmap
       FROM listing.variant_listing_index vli
       JOIN input i ON true
-      WHERE vli.project_id = i.project_id
+      WHERE vli.store_id = i.store_id
         AND vli.in_stock = true
     ),
     variant_filters AS (
@@ -1809,7 +1809,7 @@ async function runPageExplain(sql, input) {
         SELECT p.bitmap
         FROM listing.listing_posting_bitmap p
         JOIN input i ON true
-        WHERE p.project_id = i.project_id
+        WHERE p.store_id = i.store_id
           AND p.entity_type = 'product'
           AND p.field = 'category'
           AND p.value_key = i.category_value_key
@@ -1819,7 +1819,7 @@ async function runPageExplain(sql, input) {
       SELECT COALESCE(rb_build_agg(pli.product_doc_id), ${sql.unsafe(emptyBitmapSql)}) AS bitmap
       FROM listing.product_listing_index pli
       JOIN input i ON true
-      WHERE pli.project_id = i.project_id
+      WHERE pli.store_id = i.store_id
         AND pli.status = 'published'
     ),
     projected_variant_products AS (
@@ -1832,9 +1832,9 @@ async function runPageExplain(sql, input) {
             b.product_bitmap,
             b.variant_count,
             ((SELECT bitmap FROM variant_filters) & b.variant_bitmap) AS block_match
-          FROM listing.listing_posting_variant_projection_block b
+          FROM listing.listing_posting_variant_storeion_block b
           JOIN input i ON true
-          WHERE b.project_id = i.project_id
+          WHERE b.store_id = i.store_id
             AND rb_cardinality((SELECT bitmap FROM variant_filters) & b.variant_bitmap) > 0
         ),
         full_block_products AS (
@@ -1847,7 +1847,7 @@ async function runPageExplain(sql, input) {
           FROM matched_blocks mb
           JOIN input i ON true
           JOIN listing.variant_listing_index vli
-            ON vli.project_id = i.project_id
+            ON vli.store_id = i.store_id
            AND vli.variant_doc_id >= mb.variant_doc_from
            AND vli.variant_doc_id < mb.variant_doc_to
           WHERE rb_cardinality(mb.block_match) < mb.variant_count
@@ -1879,13 +1879,13 @@ async function runPageExplain(sql, input) {
         vp.price_minor
       FROM listing.variant_listing_price_index vp
       JOIN listing.variant_listing_index vli
-        ON vli.project_id = vp.project_id
+        ON vli.store_id = vp.store_id
        AND vli.variant_id = vp.variant_id
        AND vli.in_stock = true
       JOIN input i ON true
       CROSS JOIN matches m
       CROSS JOIN variant_filters vf
-      WHERE vp.project_id = i.project_id
+      WHERE vp.store_id = i.store_id
         AND vp.currency = i.currency
         AND vp.has_price = true
         AND vp.price_minor IS NOT NULL
@@ -1910,7 +1910,7 @@ async function runPageExplain(sql, input) {
       FROM variant_price_chosen chosen
       JOIN input i ON true
       JOIN listing.product_listing_index pli
-        ON pli.project_id = i.project_id
+        ON pli.store_id = i.store_id
        AND pli.product_doc_id = chosen.product_doc_id
        AND pli.product_id = chosen.product_id
       ORDER BY pli.in_stock DESC, chosen.price_minor ASC NULLS LAST, chosen.product_id ASC
@@ -1932,7 +1932,7 @@ async function runTotalExplain(sql, input) {
     WITH
     input AS (
       SELECT
-        ${input.projectId}::uuid AS project_id,
+        ${input.storeId}::uuid AS store_id,
         ${input.categoryId}::text AS category_value_key
     ),
     selected_filter_values AS (
@@ -1946,7 +1946,7 @@ async function runTotalExplain(sql, input) {
       FROM selected_filter_values sfv
       JOIN input i ON true
       LEFT JOIN listing.listing_posting_bitmap p
-        ON p.project_id = i.project_id
+        ON p.store_id = i.store_id
        AND p.entity_type = 'variant'
        AND p.field = 'facet'
        AND p.value_key = sfv.value_key
@@ -1961,7 +1961,7 @@ async function runTotalExplain(sql, input) {
         SELECT p.bitmap
         FROM listing.listing_posting_bitmap p
         JOIN input i ON true
-        WHERE p.project_id = i.project_id
+        WHERE p.store_id = i.store_id
           AND p.entity_type = 'product'
           AND p.field = 'category'
           AND p.value_key = i.category_value_key
@@ -1971,7 +1971,7 @@ async function runTotalExplain(sql, input) {
       SELECT COALESCE(rb_build_agg(pli.product_doc_id), ${sql.unsafe(emptyBitmapSql)}) AS bitmap
       FROM listing.product_listing_index pli
       JOIN input i ON true
-      WHERE pli.project_id = i.project_id
+      WHERE pli.store_id = i.store_id
         AND pli.status = 'published'
     ),
     matches AS (

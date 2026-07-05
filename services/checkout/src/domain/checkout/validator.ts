@@ -1,7 +1,7 @@
 import { vo } from '@src/domain/shared/valueObjects';
 
 export type CreateCheckoutValidationInput = {
-  projectId: string;
+  storeId: string;
   currencyCode: string;
   idempotencyKey: string;
   salesChannel: string | null | undefined;
@@ -10,7 +10,7 @@ export type CreateCheckoutValidationInput = {
 };
 
 export type CreateCheckoutValidated = {
-  projectId: string;
+  storeId: string;
   currencyCode: string;
   idempotencyKey: string;
   salesChannel: string;
@@ -25,7 +25,7 @@ export class CheckoutDomainValidator {
 
     const salesChannel = vo.normalizeSalesChannel(input.salesChannel);
     return {
-      projectId: input.projectId,
+      storeId: input.storeId,
       currencyCode,
       idempotencyKey: input.idempotencyKey,
       salesChannel,

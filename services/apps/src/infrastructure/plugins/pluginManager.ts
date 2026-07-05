@@ -66,7 +66,7 @@ export class AppsPluginManager {
     operationId: string;
     pluginCode: string;
     rawConfig: Record<string, unknown> & { configVersion?: string };
-    projectId: string;
+    storeId: string;
     input?: unknown;
   }): Promise<unknown> {
     try {
@@ -91,13 +91,13 @@ export class AppsPluginManager {
         {
           pluginCode: plugin.manifest.code,
           operation: method,
-          projectId: params.projectId,
+          storeId: params.storeId,
         },
         async () => {
           try {
             const result = await domainApi[method](params.input);
             hooks.onTelemetry?.(`${method}.success`, {
-              projectId: params.projectId,
+              storeId: params.storeId,
             });
             return result;
           } catch (err) {
@@ -117,7 +117,7 @@ export class AppsPluginManager {
     domain: Domain;
     operationId: string;
     slots: Array<{ provider: string; data: Record<string, unknown> }>;
-    projectId: string;
+    storeId: string;
     input?: unknown;
   }): Promise<{
     results: unknown[];
@@ -136,7 +136,7 @@ export class AppsPluginManager {
           operationId: params.operationId,
           pluginCode: s.provider,
           rawConfig: (s.data ?? {}) as any,
-          projectId: params.projectId,
+          storeId: params.storeId,
           input: params.input,
         });
         results.push(res);

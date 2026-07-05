@@ -60,7 +60,7 @@ export class GetOrdersUseCase extends UseCase<GetOrdersUseCaseInput, GetOrdersOu
       // For now, return empty result structure
 
       this.logger.info({
-        projectId: context.store.id,
+        storeId: context.store.id,
         userId: context.user?.id,
         page,
         pageSize,
@@ -70,7 +70,7 @@ export class GetOrdersUseCase extends UseCase<GetOrdersUseCaseInput, GetOrdersOu
 
       // Placeholder implementation - should be replaced with actual repository call
       // Example: const result = await this.orderReadRepository.findMany({
-      //   where: { ...where, projectId: context.store.id },
+      //   where: { ...where, storeId: context.store.id },
       //   order,
       //   page,
       //   pageSize
@@ -92,7 +92,7 @@ export class GetOrdersUseCase extends UseCase<GetOrdersUseCaseInput, GetOrdersOu
       };
 
     } catch (error) {
-      this.logger.error({ error, projectId: context.store.id }, "Failed to fetch orders");
+      this.logger.error({ error, storeId: context.store.id }, "Failed to fetch orders");
       throw new Error(
         `Failed to fetch orders: ${
           error instanceof Error ? error.message : "Unknown error"

@@ -103,7 +103,7 @@ Fit Size = M
 Runtime index хранит bitmap row:
 
 ```text
-project_id
+store_id
 entity_type = variant
 field = facet
 value_key = <facet_id>:<facet_value_id>
@@ -204,7 +204,7 @@ value_key = facet_fit_size:display_m
 Sync adds `variant_doc_id` for Variant A to bitmap row:
 
 ```text
-project_id = project_1
+store_id = project_1
 entity_type = variant
 field = facet
 value_key = facet_fit_size:display_m
@@ -265,7 +265,7 @@ Listing query then reads bitmap row:
 ```sql
 SELECT p.bitmap
 FROM listing.listing_posting_bitmap p
-WHERE p.project_id = :projectId
+WHERE p.store_id = :storeId
   AND p.entity_type = 'variant'
   AND p.field = 'facet'
   AND p.value_key = :fitSizeDisplayMValueKey;

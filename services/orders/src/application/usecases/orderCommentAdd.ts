@@ -45,7 +45,7 @@ export class AddOrderCommentUseCase extends UseCase<
 
       this.logger.info({
         orderId,
-        projectId: context.store.id,
+        storeId: context.store.id,
         userId: context.user?.id,
         commentLength: comment.length
       }, "Added comment to order");

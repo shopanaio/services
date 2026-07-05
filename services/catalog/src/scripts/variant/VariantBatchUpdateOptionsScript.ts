@@ -57,7 +57,7 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
     params: VariantBatchUpdateOptionsParams
   ): Promise<VariantBatchUpdateOptionsResult> {
     const { productId, updates } = params;
-    const projectId = this.getProjectId();
+    const storeId = this.getProjectId();
 
     if (updates.length === 0) {
       return unchangedResult([]);
@@ -255,7 +255,7 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
       const newHandle = await buildVariantHandle(
         this.repository.db,
         update.variant.id,
-        projectId
+        storeId
       );
       newHandles.set(update.variant.id, newHandle);
     }

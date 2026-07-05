@@ -26,7 +26,7 @@ export class CollectionRepository extends BaseRepository {
       .from(collection)
       .where(
         and(
-          eq(collection.projectId, this.storeId),
+          eq(collection.storeId, this.storeId),
           eq(collection.id, id),
           isNull(collection.deletedAt)
         )
@@ -41,7 +41,7 @@ export class CollectionRepository extends BaseRepository {
       .from(collection)
       .where(
         and(
-          eq(collection.projectId, this.storeId),
+          eq(collection.storeId, this.storeId),
           eq(collection.handle, handle),
           isNull(collection.deletedAt)
         )
@@ -54,7 +54,7 @@ export class CollectionRepository extends BaseRepository {
     return this.connection
       .select()
       .from(collection)
-      .where(and(eq(collection.projectId, this.storeId), isNull(collection.deletedAt)))
+      .where(and(eq(collection.storeId, this.storeId), isNull(collection.deletedAt)))
       .orderBy(asc(collection.createdAt));
   }
 
@@ -65,7 +65,7 @@ export class CollectionRepository extends BaseRepository {
       .from(collection)
       .where(
         and(
-          eq(collection.projectId, this.storeId),
+          eq(collection.storeId, this.storeId),
           inArray(collection.id, [...ids]),
           isNull(collection.deletedAt)
         )
@@ -84,7 +84,7 @@ export class CollectionRepository extends BaseRepository {
     const now = new Date().toISOString();
     const insert: NewCollection = {
       id: randomUUID(),
-      projectId: this.storeId,
+      storeId: this.storeId,
       handle: data.handle ?? null,
       type: data.type,
       defaultSort: data.defaultSort,
@@ -126,7 +126,7 @@ export class CollectionRepository extends BaseRepository {
     const rows = await this.connection
       .update(collection)
       .set(updates)
-      .where(and(eq(collection.projectId, this.storeId), eq(collection.id, id)))
+      .where(and(eq(collection.storeId, this.storeId), eq(collection.id, id)))
       .returning();
     return rows[0] ?? null;
   }
@@ -137,7 +137,7 @@ export class CollectionRepository extends BaseRepository {
       .set({ deletedAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
       .where(
         and(
-          eq(collection.projectId, this.storeId),
+          eq(collection.storeId, this.storeId),
           eq(collection.id, id),
           isNull(collection.deletedAt)
         )
@@ -159,7 +159,7 @@ export class CollectionRepository extends BaseRepository {
     const insert: NewCollectionTranslation = {
       collectionId: data.collectionId,
       locale: this.locale,
-      projectId: this.storeId,
+      storeId: this.storeId,
       name: data.name,
       descriptionText: data.descriptionText ?? null,
       descriptionHtml: data.descriptionHtml ?? null,
@@ -197,7 +197,7 @@ export class CollectionRepository extends BaseRepository {
       .from(collectionTranslation)
       .where(
         and(
-          eq(collectionTranslation.projectId, this.storeId),
+          eq(collectionTranslation.storeId, this.storeId),
           eq(collectionTranslation.locale, this.locale),
           inArray(collectionTranslation.collectionId, [...collectionIds])
         )
@@ -215,7 +215,7 @@ export class CollectionRepository extends BaseRepository {
     const insert: NewCollectionSeo = {
       collectionId: data.collectionId,
       locale: this.locale,
-      projectId: this.storeId,
+      storeId: this.storeId,
       seoTitle: data.seoTitle ?? null,
       seoDescription: data.seoDescription ?? null,
       ogTitle: data.ogTitle ?? null,
@@ -247,7 +247,7 @@ export class CollectionRepository extends BaseRepository {
       .from(collectionSeo)
       .where(
         and(
-          eq(collectionSeo.projectId, this.storeId),
+          eq(collectionSeo.storeId, this.storeId),
           eq(collectionSeo.locale, this.locale),
           inArray(collectionSeo.collectionId, [...collectionIds])
         )
@@ -259,7 +259,7 @@ export class CollectionRepository extends BaseRepository {
       .delete(collectionMedia)
       .where(
         and(
-          eq(collectionMedia.projectId, this.storeId),
+          eq(collectionMedia.storeId, this.storeId),
           eq(collectionMedia.collectionId, collectionId)
         )
       );
@@ -272,7 +272,7 @@ export class CollectionRepository extends BaseRepository {
       fileIds.map((fileId, index) => ({
         collectionId,
         fileId,
-        projectId: this.storeId,
+        storeId: this.storeId,
         sortIndex: index,
       }))
     );
@@ -285,7 +285,7 @@ export class CollectionRepository extends BaseRepository {
       .from(collectionMedia)
       .where(
         and(
-          eq(collectionMedia.projectId, this.storeId),
+          eq(collectionMedia.storeId, this.storeId),
           inArray(collectionMedia.collectionId, [...collectionIds])
         )
       )

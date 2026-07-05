@@ -73,7 +73,7 @@ const LineItemSchema = z.object({
  */
 const EvaluateDiscountsParamsSchema = z.object({
   currency: z.string().min(1, "Currency cannot be empty"),
-  projectId: z.string().min(1, "Project ID cannot be empty"),
+  storeId: z.string().min(1, "Store ID cannot be empty"),
   lines: z.array(LineItemSchema).min(1, "Lines cannot be empty"),
   appliedDiscountCodes: z.array(z.string()).optional(),
   checkoutId: z.string().optional(),
@@ -106,7 +106,7 @@ export const validateParams = (params: unknown): EvaluateDiscountsParamsDto => {
     // Convert validated data to DTO class instance for type compatibility
     return {
       currency: validated.currency,
-      projectId: validated.projectId,
+      storeId: validated.storeId,
       lines: validated.lines.map((line) => ({
         lineId: line.lineId,
         quantity: line.quantity,

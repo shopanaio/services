@@ -48,7 +48,7 @@ export class VendorCreateScript extends BaseScript<
 
       return { vendor, userErrors: [] };
     } catch (error) {
-      if (isUniqueViolation(error, "vendor_project_id_name_key")) {
+      if (isUniqueViolation(error, "vendor_store_id_name_key")) {
         return {
           vendor: undefined,
           userErrors: [

@@ -27,7 +27,7 @@ export type CheckoutAddress = Readonly<{
 
 export type CheckoutAggregate = Readonly<{
   id: string;
-  projectId: string;
+  storeId: string;
   customerId: string | null;
   currencyCode: string;
   localeCode?: string | null;

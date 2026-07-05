@@ -53,7 +53,7 @@ export class ListingPostingProductSortRepository extends BaseRepository {
       .from(listingPostingProductSort)
       .where(
         and(
-          eq(listingPostingProductSort.projectId, this.storeId),
+          eq(listingPostingProductSort.storeId, this.storeId),
           eq(listingPostingProductSort.productDocId, productDocId)
         )
       );
@@ -76,7 +76,7 @@ export class ListingPostingProductSortRepository extends BaseRepository {
       .from(listingPostingProductSort)
       .where(
         and(
-          eq(listingPostingProductSort.projectId, this.storeId),
+          eq(listingPostingProductSort.storeId, this.storeId),
           inArray(listingPostingProductSort.productDocId, [
             ...new Set(productDocIds),
           ])
@@ -97,7 +97,7 @@ export class ListingPostingProductSortRepository extends BaseRepository {
       .from(listingPostingProductSort)
       .where(
         and(
-          eq(listingPostingProductSort.projectId, this.storeId),
+          eq(listingPostingProductSort.storeId, this.storeId),
           inArray(listingPostingProductSort.productId, [...new Set(productIds)])
         )
       );
@@ -108,7 +108,7 @@ export class ListingPostingProductSortRepository extends BaseRepository {
     const rows = await this.connection
       .select({ value: count() })
       .from(listingPostingProductSort)
-      .where(eq(listingPostingProductSort.projectId, this.storeId));
+      .where(eq(listingPostingProductSort.storeId, this.storeId));
 
     return rows[0]?.value ?? 0;
   }
@@ -137,14 +137,14 @@ export class ListingPostingProductSortRepository extends BaseRepository {
         .values(values)
         .onConflictDoUpdate({
           target: [
-            listingPostingProductSort.projectId,
+            listingPostingProductSort.storeId,
             listingPostingProductSort.productDocId,
             listingPostingProductSort.sortKind,
             listingPostingProductSort.locale,
             listingPostingProductSort.currency,
             listingPostingProductSort.manualScopeId,
           ],
-          setWhere: eq(listingPostingProductSort.projectId, this.storeId),
+          setWhere: eq(listingPostingProductSort.storeId, this.storeId),
           set: {
             productId: sql`excluded.product_id`,
             boolValue: sql`excluded.bool_value`,
@@ -223,7 +223,7 @@ export class ListingPostingProductSortRepository extends BaseRepository {
       .delete(listingPostingProductSort)
       .where(
         and(
-          eq(listingPostingProductSort.projectId, this.storeId),
+          eq(listingPostingProductSort.storeId, this.storeId),
           eq(listingPostingProductSort.productDocId, productDocId)
         )
       )
@@ -247,7 +247,7 @@ export class ListingPostingProductSortRepository extends BaseRepository {
         .delete(listingPostingProductSort)
         .where(
           and(
-            eq(listingPostingProductSort.projectId, this.storeId),
+            eq(listingPostingProductSort.storeId, this.storeId),
             inArray(listingPostingProductSort.productDocId, chunk)
           )
         )
@@ -264,7 +264,7 @@ export class ListingPostingProductSortRepository extends BaseRepository {
       .delete(listingPostingProductSort)
       .where(
         and(
-          eq(listingPostingProductSort.projectId, this.storeId),
+          eq(listingPostingProductSort.storeId, this.storeId),
           eq(listingPostingProductSort.productId, productId)
         )
       )
@@ -284,7 +284,7 @@ export class ListingPostingProductSortRepository extends BaseRepository {
         .delete(listingPostingProductSort)
         .where(
           and(
-            eq(listingPostingProductSort.projectId, this.storeId),
+            eq(listingPostingProductSort.storeId, this.storeId),
             inArray(listingPostingProductSort.productId, chunk)
           )
         )
@@ -299,7 +299,7 @@ export class ListingPostingProductSortRepository extends BaseRepository {
   async deleteAllForCurrentProject(): Promise<number> {
     const rows = await this.connection
       .delete(listingPostingProductSort)
-      .where(eq(listingPostingProductSort.projectId, this.storeId))
+      .where(eq(listingPostingProductSort.storeId, this.storeId))
       .returning({ productDocId: listingPostingProductSort.productDocId });
 
     return rows.length;
@@ -308,7 +308,7 @@ export class ListingPostingProductSortRepository extends BaseRepository {
   private toInsertRow(row: ProductSortRowInput): NewListingPostingProductSort {
     const normalized = this.normalizeKey(row);
     return {
-      projectId: this.storeId,
+      storeId: this.storeId,
       productDocId: normalized.productDocId,
       productId: row.productId,
       sortKind: normalized.sortKind,
@@ -351,7 +351,7 @@ export class ListingPostingProductSortRepository extends BaseRepository {
     manualScopeId: string;
   }) {
     return and(
-      eq(listingPostingProductSort.projectId, this.storeId),
+      eq(listingPostingProductSort.storeId, this.storeId),
       eq(listingPostingProductSort.productDocId, key.productDocId),
       eq(listingPostingProductSort.sortKind, key.sortKind),
       eq(listingPostingProductSort.locale, key.locale),

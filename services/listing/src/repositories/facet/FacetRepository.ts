@@ -126,7 +126,7 @@ export class FacetRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(facet)
-      .where(and(eq(facet.projectId, this.storeId), eq(facet.id, id)))
+      .where(and(eq(facet.storeId, this.storeId), eq(facet.id, id)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -135,7 +135,7 @@ export class FacetRepository extends BaseRepository {
     const rows = await this.connection
       .select()
       .from(facet)
-      .where(and(eq(facet.projectId, this.storeId), eq(facet.slug, slug)))
+      .where(and(eq(facet.storeId, this.storeId), eq(facet.slug, slug)))
       .limit(1);
     return rows[0] ?? null;
   }
@@ -144,7 +144,7 @@ export class FacetRepository extends BaseRepository {
     return this.connection
       .select()
       .from(facet)
-      .where(eq(facet.projectId, this.storeId))
+      .where(eq(facet.storeId, this.storeId))
       .orderBy(asc(facet.lexoRank), asc(facet.id));
   }
 
@@ -163,7 +163,7 @@ export class FacetRepository extends BaseRepository {
 
     const insert: NewFacet = {
       id,
-      projectId: this.storeId,
+      storeId: this.storeId,
       facetType: data.facetType,
       slug: data.slug,
       uiType: data.uiType ?? "checkbox",
@@ -177,7 +177,7 @@ export class FacetRepository extends BaseRepository {
     await this.connection.insert(facetTranslation).values({
       facetId: id,
       locale: this.locale,
-      projectId: this.storeId,
+      storeId: this.storeId,
       label: data.label,
     });
 
@@ -211,7 +211,7 @@ export class FacetRepository extends BaseRepository {
     const rows = await this.connection
       .update(facet)
       .set(updates)
-      .where(and(eq(facet.projectId, this.storeId), eq(facet.id, id)))
+      .where(and(eq(facet.storeId, this.storeId), eq(facet.id, id)))
       .returning();
 
     if (data.label !== undefined) {
@@ -220,7 +220,7 @@ export class FacetRepository extends BaseRepository {
         .values({
           facetId: id,
           locale: this.locale,
-          projectId: this.storeId,
+          storeId: this.storeId,
           label: data.label,
         })
         .onConflictDoUpdate({
@@ -240,7 +240,7 @@ export class FacetRepository extends BaseRepository {
     const rows = await this.connection
       .update(facet)
       .set({ lexoRank, updatedAt: new Date().toISOString() })
-      .where(and(eq(facet.projectId, this.storeId), eq(facet.id, id)))
+      .where(and(eq(facet.storeId, this.storeId), eq(facet.id, id)))
       .returning();
 
     return rows[0] ?? null;
@@ -265,7 +265,7 @@ export class FacetRepository extends BaseRepository {
   async delete(id: string): Promise<boolean> {
     const rows = await this.connection
       .delete(facet)
-      .where(and(eq(facet.projectId, this.storeId), eq(facet.id, id)))
+      .where(and(eq(facet.storeId, this.storeId), eq(facet.id, id)))
       .returning({ id: facet.id });
     return rows.length > 0;
   }
@@ -275,7 +275,7 @@ export class FacetRepository extends BaseRepository {
     return this.connection
       .select()
       .from(facet)
-      .where(and(eq(facet.projectId, this.storeId), inArray(facet.id, [...facetIds])));
+      .where(and(eq(facet.storeId, this.storeId), inArray(facet.id, [...facetIds])));
   }
 
   async getTranslationsByFacetIds(
@@ -287,7 +287,7 @@ export class FacetRepository extends BaseRepository {
       .from(facetTranslation)
       .where(
         and(
-          eq(facetTranslation.projectId, this.storeId),
+          eq(facetTranslation.storeId, this.storeId),
           eq(facetTranslation.locale, this.locale),
           inArray(facetTranslation.facetId, [...facetIds])
         )
@@ -309,13 +309,13 @@ export class FacetRepository extends BaseRepository {
         facetSourceTranslation,
         and(
           eq(facetSourceTranslation.facetSourceId, facetSource.id),
-          eq(facetSourceTranslation.projectId, facetSource.projectId),
+          eq(facetSourceTranslation.storeId, facetSource.storeId),
           eq(facetSourceTranslation.locale, this.locale)
         )
       )
       .where(
         and(
-          eq(facetSource.projectId, this.storeId),
+          eq(facetSource.storeId, this.storeId),
           inArray(facetSource.facetId, [...facetIds])
         )
       );
@@ -327,10 +327,10 @@ export class FacetRepository extends BaseRepository {
     const usedSources = await this.connection
       .select({ facetType: facetSource.facetType, handle: facetSource.handle })
       .from(facetSource)
-      .where(eq(facetSource.projectId, this.storeId));
+      .where(eq(facetSource.storeId, this.storeId));
 
     return this.candidateClient.getSourceCandidates(
-      { projectId: this.storeId, locale: this.locale },
+      { storeId: this.storeId, locale: this.locale },
       {
         relay: args,
         excludedSources: usedSources,
@@ -365,7 +365,7 @@ export class FacetRepository extends BaseRepository {
         .from(facetSource)
         .where(
           and(
-            eq(facetSource.projectId, this.storeId),
+            eq(facetSource.storeId, this.storeId),
             eq(facetSource.facetId, meta.facetId)
           )
         );
@@ -390,7 +390,7 @@ export class FacetRepository extends BaseRepository {
         .from(facetValue)
         .where(
           and(
-            eq(facetValue.projectId, this.storeId),
+            eq(facetValue.storeId, this.storeId),
             eq(facetValue.facetId, meta.facetId),
             eq(facetValue.kind, "source")
           )
@@ -407,7 +407,7 @@ export class FacetRepository extends BaseRepository {
     }
 
     return this.candidateClient.getValueCandidates(
-      { projectId: this.storeId, locale: this.locale },
+      { storeId: this.storeId, locale: this.locale },
       {
         candidateType,
         sourceHandles,
@@ -434,7 +434,7 @@ export class FacetRepository extends BaseRepository {
     }
 
     return this.candidateClient.getValueCandidatesByHandles(
-      { projectId: this.storeId, locale: this.locale },
+      { storeId: this.storeId, locale: this.locale },
       { candidateType, sourceHandles, handles }
     );
   }
@@ -455,7 +455,7 @@ export class FacetRepository extends BaseRepository {
     const now = new Date().toISOString();
     const inserts: NewFacetValue[] = args.values.map((value) => ({
       id: randomUUID(),
-      projectId: this.storeId,
+      storeId: this.storeId,
       facetId: args.facetId,
       parentId: null,
       kind: "source",
@@ -473,7 +473,7 @@ export class FacetRepository extends BaseRepository {
       rows.map((row, index) => ({
         facetValueId: row.id,
         locale: this.locale,
-        projectId: this.storeId,
+        storeId: this.storeId,
         label: args.values[index]?.label ?? row.handle,
       }))
     );
@@ -490,7 +490,7 @@ export class FacetRepository extends BaseRepository {
       .from(facetSource)
       .where(
         and(
-          eq(facetSource.projectId, this.storeId),
+          eq(facetSource.storeId, this.storeId),
           eq(facetSource.facetType, args.facetType),
           eq(facetSource.handle, args.handle)
         )
@@ -502,7 +502,7 @@ export class FacetRepository extends BaseRepository {
     }
 
     return this.candidateClient.getSourceCandidate(
-      { projectId: this.storeId, locale: this.locale },
+      { storeId: this.storeId, locale: this.locale },
       args
     );
   }
@@ -520,7 +520,7 @@ export class FacetRepository extends BaseRepository {
       .delete(facetSource)
       .where(
         and(
-          eq(facetSource.projectId, this.storeId),
+          eq(facetSource.storeId, this.storeId),
           eq(facetSource.facetId, facetId)
         )
       );
@@ -541,7 +541,7 @@ export class FacetRepository extends BaseRepository {
     const inserted = await this.connection.insert(facetSource).values(
       uniqueSources.map((source) => ({
         id: randomUUID(),
-        projectId: this.storeId,
+        storeId: this.storeId,
         facetId,
         facetType: facetRow.facetType,
         handle: source.handle,
@@ -552,7 +552,7 @@ export class FacetRepository extends BaseRepository {
       inserted.map((source) => ({
         facetSourceId: source.id,
         locale: this.locale,
-        projectId: this.storeId,
+        storeId: this.storeId,
         name: uniqueSources.find((item) => item.handle === source.handle)?.name ?? source.handle,
       }))
     );
@@ -592,11 +592,11 @@ export class FacetRepository extends BaseRepository {
       .from(facet)
       .innerJoin(
         facetValue,
-        and(eq(facetValue.facetId, facet.id), eq(facetValue.projectId, facet.projectId))
+        and(eq(facetValue.facetId, facet.id), eq(facetValue.storeId, facet.storeId))
       )
       .where(
         and(
-          eq(facet.projectId, this.storeId),
+          eq(facet.storeId, this.storeId),
           inArray(facet.slug, facetSlugs),
           inArray(facetValue.handle, valueHandles),
           isNull(facetValue.parentId),
@@ -618,7 +618,7 @@ export class FacetRepository extends BaseRepository {
             .from(facetValue)
             .where(
               and(
-                eq(facetValue.projectId, this.storeId),
+                eq(facetValue.storeId, this.storeId),
                 inArray(facetValue.parentId, displayValueIds),
                 eq(facetValue.kind, "source"),
                 eq(facetValue.enabled, true)

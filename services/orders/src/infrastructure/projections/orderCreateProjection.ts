@@ -48,10 +48,10 @@ export const orderCreateProjection =
     for (const event of events) {
       const statements: ReturnType<typeof rawSql>[] = [];
 
-      const projectId = event.metadata.projectId;
+      const storeId = event.metadata.storeId;
       const orderId = event.metadata.aggregateId;
       const projectionContext = consumeOrderCreateProjectionContext(orderId);
-      const orderNumber = await orderNumberRepository.reserve(projectId, {
+      const orderNumber = await orderNumberRepository.reserve(storeId, {
         executor: context.execute,
       });
 
@@ -62,7 +62,7 @@ export const orderCreateProjection =
         .insert({
           id: orderId,
           // TODO: Remove `as any` by aligning metadata type with DB schema (UUID/text).
-          project_id: projectId as any,
+          store_id: storeId as any,
           order_number: orderNumber,
           api_key_id: null,
           user_id: event.metadata.userId ?? null,
@@ -108,7 +108,7 @@ export const orderCreateProjection =
 
           return {
             id: l.lineId,
-            project_id: projectId,
+            store_id: storeId,
             order_id: orderId,
             quantity: l.quantity,
             subtotal_amount: toBigintSql(subtotalMoney),
@@ -167,7 +167,7 @@ export const orderCreateProjection =
           .insert(
             projectionContext.recipients.map((recipient) => ({
               id: recipient.id,
-              project_id: recipient.projectId,
+              store_id: recipient.storeId,
               first_name: recipient.firstName,
               last_name: recipient.lastName,
               middle_name: recipient.middleName,
@@ -191,7 +191,7 @@ export const orderCreateProjection =
             .insert({
               code: method.code,
               provider: method.provider,
-              project_id: projectId,
+              store_id: storeId,
               delivery_group_id: method.deliveryGroupId,
               delivery_method_type: method.deliveryMethodType,
               payment_model: method.paymentModel,
@@ -233,7 +233,7 @@ export const orderCreateProjection =
           const selectedMethod = selectedMethods.get(g.id);
           return {
             id: g.id,
-            project_id: projectId as any,
+            store_id: storeId as any,
             order_id: orderId,
             address_id: mapping?.addressId ?? null,
             recipient_id: mapping?.recipientId ?? null,
@@ -251,7 +251,7 @@ export const orderCreateProjection =
             .table("order_delivery_groups")
             .insert({
               id: r.id,
-              project_id: r.project_id as any,
+              store_id: r.store_id as any,
               order_id: r.order_id,
               address_id: r.address_id,
               recipient_id: r.recipient_id,
@@ -274,7 +274,7 @@ export const orderCreateProjection =
           .insert(
             projectionContext.paymentMethods.map((method) => ({
               order_id: orderId,
-              project_id: projectId,
+              store_id: storeId,
               code: method.code,
               provider: method.provider,
               flow: method.flow,
@@ -298,7 +298,7 @@ export const orderCreateProjection =
           .table("order_selected_payment_methods")
           .insert({
             order_id: orderId,
-            project_id: projectId,
+            store_id: storeId,
             code: selectedPaymentMethod.code,
             provider: selectedPaymentMethod.provider,
           })
@@ -312,7 +312,7 @@ export const orderCreateProjection =
         const discountRows = discounts.map((d) => ({
           order_id: orderId,
           // TODO: Remove `as any` by aligning types with DB (UUID).
-          project_id: projectId as any,
+          store_id: storeId as any,
           code: d.code,
           discount_type: d.type,
           // TODO: Generalize money coercion: accept number/Money and bind as bigint parameter.
@@ -337,7 +337,7 @@ export const orderCreateProjection =
           .withSchema("platform")
           .table("orders_pii_records")
           .insert({
-            project_id: contact.projectId,
+            store_id: contact.storeId,
             order_id: orderId,
             first_name: contact.firstName,
             last_name: contact.lastName,

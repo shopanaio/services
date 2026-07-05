@@ -4,7 +4,7 @@ import { Checkout } from "@src/domain/checkout/model";
 
 export interface GetCheckoutDtoByIdInput {
   checkoutId: string;
-  projectId: string;
+  storeId: string;
 }
 
 export class GetCheckoutDtoByIdUseCase extends UseCase<
@@ -18,7 +18,7 @@ export class GetCheckoutDtoByIdUseCase extends UseCase<
   async execute(input: GetCheckoutDtoByIdInput): Promise<CheckoutDto | null> {
     const state = await this.getCheckoutState(input.checkoutId);
     if (!state) return null;
-    if (state.projectId !== input.projectId) {
+    if (state.storeId !== input.storeId) {
       throw new Error("ProjectId mismatch for checkout");
     }
     return Checkout.fromAggregate(input.checkoutId, state).toJSON();

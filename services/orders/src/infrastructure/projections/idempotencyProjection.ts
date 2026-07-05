@@ -19,7 +19,7 @@ export const orderIdempotencyProjection =
 
     const sqls = events.map((event) => {
       const requestDescriptor = {
-        projectId: event.metadata.projectId,
+        storeId: event.metadata.storeId,
         currencyCode: event.data.currencyCode,
         salesChannel: event.data.salesChannel,
       };
@@ -29,7 +29,7 @@ export const orderIdempotencyProjection =
 
       const responseDescriptor = {
         id: event.metadata.aggregateId,
-        projectId: event.metadata.projectId,
+        storeId: event.metadata.storeId,
         currencyCode: event.data.currencyCode,
         orderNumber: event.data.orderNumber, // TODO: delete order number from idempotency completely
       };
@@ -38,7 +38,7 @@ export const orderIdempotencyProjection =
         .withSchema("platform")
         .table("idempotency")
         .insert({
-          project_id: event.metadata.projectId,
+          store_id: event.metadata.storeId,
           idempotency_key: event.data.idempotencyKey,
           request_hash: requestHash,
           response: knex.raw("?::jsonb", [JSON.stringify(responseDescriptor)]),

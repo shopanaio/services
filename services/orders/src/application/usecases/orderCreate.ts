@@ -182,7 +182,7 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
 
   private populateProjectionContext(
     orderId: string,
-    projectId: string,
+    storeId: string,
     checkoutAggregate: Checkout
   ): Map<string, string> {
     const deliveryGroups = checkoutAggregate.deliveryGroups.filter(
@@ -190,7 +190,7 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
     );
 
     const contact = {
-      projectId,
+      storeId,
       orderId,
       firstName: checkoutAggregate.customerIdentity.firstName ?? null,
       lastName: checkoutAggregate.customerIdentity.lastName ?? null,
@@ -232,7 +232,7 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
 
       recipients.push({
         id: recipientId,
-        projectId,
+        storeId,
         firstName: address.firstName ?? null,
         lastName: address.lastName ?? null,
         middleName: null,
@@ -296,7 +296,7 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
   ): CheckoutSnapshot {
     const snapshot: CheckoutSnapshot = {
       checkoutId: aggregate.id,
-      projectId: input.store.id,
+      storeId: input.store.id,
       currencyCode:
         aggregate.currencyCode ?? aggregate.cost.totalAmount.currency().code,
       externalSource: aggregate.externalSource ?? null,

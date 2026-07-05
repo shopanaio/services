@@ -19,7 +19,7 @@ export class PhysicalRepository extends BaseRepository {
   ): Promise<ItemDimensions> {
     const newDimensions: NewItemDimensions = {
       variantId,
-      projectId: this.storeId,
+      storeId: this.storeId,
       wMm: data.wMm,
       lMm: data.lMm,
       hMm: data.hMm,
@@ -51,7 +51,7 @@ export class PhysicalRepository extends BaseRepository {
   ): Promise<ItemWeight> {
     const newWeight: NewItemWeight = {
       variantId,
-      projectId: this.storeId,
+      storeId: this.storeId,
       weightGr: data.weightGr,
       displayUnit: "g",
     };
@@ -83,7 +83,7 @@ export class PhysicalRepository extends BaseRepository {
       .from(itemDimensions)
       .where(
         and(
-          eq(itemDimensions.projectId, this.storeId),
+          eq(itemDimensions.storeId, this.storeId),
           inArray(itemDimensions.variantId, [...variantIds])
         )
       );
@@ -102,7 +102,7 @@ export class PhysicalRepository extends BaseRepository {
       .from(itemWeight)
       .where(
         and(
-          eq(itemWeight.projectId, this.storeId),
+          eq(itemWeight.storeId, this.storeId),
           inArray(itemWeight.variantId, [...variantIds])
         )
       );

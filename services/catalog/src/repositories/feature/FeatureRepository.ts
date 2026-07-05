@@ -27,7 +27,7 @@ export class FeatureRepository extends BaseRepository {
       .from(productFeature)
       .where(
         and(
-          eq(productFeature.projectId, this.storeId),
+          eq(productFeature.storeId, this.storeId),
           eq(productFeature.id, id)
         )
       )
@@ -43,7 +43,7 @@ export class FeatureRepository extends BaseRepository {
       .from(productFeature)
       .where(
         and(
-          eq(productFeature.projectId, this.storeId),
+          eq(productFeature.storeId, this.storeId),
           eq(productFeature.productId, productId),
           inArray(productFeature.id, ids)
         )
@@ -56,7 +56,7 @@ export class FeatureRepository extends BaseRepository {
       .from(productFeature)
       .where(
         and(
-          eq(productFeature.projectId, this.storeId),
+          eq(productFeature.storeId, this.storeId),
           eq(productFeature.productId, productId)
         )
       )
@@ -69,7 +69,7 @@ export class FeatureRepository extends BaseRepository {
       .from(productFeature)
       .where(
         and(
-          eq(productFeature.projectId, this.storeId),
+          eq(productFeature.storeId, this.storeId),
           eq(productFeature.productId, productId),
           eq(productFeature.slug, slug)
         )
@@ -87,7 +87,7 @@ export class FeatureRepository extends BaseRepository {
       .from(productFeature)
       .where(
         and(
-          eq(productFeature.projectId, this.storeId),
+          eq(productFeature.storeId, this.storeId),
           inArray(productFeature.productId, productIds)
         )
       )
@@ -115,7 +115,7 @@ export class FeatureRepository extends BaseRepository {
 
     const newFeature: NewProductFeature = {
       id,
-      projectId: this.storeId,
+      storeId: this.storeId,
       productId,
       slug: data.slug,
       index: data.index,
@@ -156,7 +156,7 @@ export class FeatureRepository extends BaseRepository {
       .set(updateData)
       .where(
         and(
-          eq(productFeature.projectId, this.storeId),
+          eq(productFeature.storeId, this.storeId),
           eq(productFeature.id, id)
         )
       )
@@ -171,7 +171,7 @@ export class FeatureRepository extends BaseRepository {
         .delete(productFeature)
         .where(
           and(
-            eq(productFeature.projectId, this.storeId),
+            eq(productFeature.storeId, this.storeId),
             eq(productFeature.productId, productId)
           )
         );
@@ -180,7 +180,7 @@ export class FeatureRepository extends BaseRepository {
         .delete(productFeature)
         .where(
           and(
-            eq(productFeature.projectId, this.storeId),
+            eq(productFeature.storeId, this.storeId),
             eq(productFeature.productId, productId),
             notInArray(productFeature.id, keepIds)
           )
@@ -193,7 +193,7 @@ export class FeatureRepository extends BaseRepository {
       .delete(productFeature)
       .where(
         and(
-          eq(productFeature.projectId, this.storeId),
+          eq(productFeature.storeId, this.storeId),
           eq(productFeature.id, id)
         )
       )
@@ -210,7 +210,7 @@ export class FeatureRepository extends BaseRepository {
       .from(productFeatureValue)
       .where(
         and(
-          eq(productFeatureValue.projectId, this.storeId),
+          eq(productFeatureValue.storeId, this.storeId),
           eq(productFeatureValue.id, id)
         )
       )
@@ -230,7 +230,7 @@ export class FeatureRepository extends BaseRepository {
       .from(productFeatureValue)
       .where(
         and(
-          eq(productFeatureValue.projectId, this.storeId),
+          eq(productFeatureValue.storeId, this.storeId),
           inArray(productFeatureValue.featureId, featureIds)
         )
       );
@@ -250,7 +250,7 @@ export class FeatureRepository extends BaseRepository {
       .from(productFeatureValue)
       .where(
         and(
-          eq(productFeatureValue.projectId, this.storeId),
+          eq(productFeatureValue.storeId, this.storeId),
           eq(productFeatureValue.featureId, featureId)
         )
       )
@@ -266,7 +266,7 @@ export class FeatureRepository extends BaseRepository {
       .from(productFeatureValue)
       .where(
         and(
-          eq(productFeatureValue.projectId, this.storeId),
+          eq(productFeatureValue.storeId, this.storeId),
           eq(productFeatureValue.featureId, featureId),
           eq(productFeatureValue.slug, slug)
         )
@@ -286,7 +286,7 @@ export class FeatureRepository extends BaseRepository {
       .from(productFeatureValue)
       .where(
         and(
-          eq(productFeatureValue.projectId, this.storeId),
+          eq(productFeatureValue.storeId, this.storeId),
           inArray(productFeatureValue.featureId, featureIds)
         )
       )
@@ -309,7 +309,7 @@ export class FeatureRepository extends BaseRepository {
 
     const newValue: NewProductFeatureValue = {
       id,
-      projectId: this.storeId,
+      storeId: this.storeId,
       featureId,
       slug: data.slug,
       index: data.index,
@@ -341,7 +341,7 @@ export class FeatureRepository extends BaseRepository {
       .set(updateData)
       .where(
         and(
-          eq(productFeatureValue.projectId, this.storeId),
+          eq(productFeatureValue.storeId, this.storeId),
           eq(productFeatureValue.id, valueId),
           eq(productFeatureValue.featureId, featureId)
         )
@@ -354,7 +354,7 @@ export class FeatureRepository extends BaseRepository {
         .delete(productFeatureValue)
         .where(
           and(
-            eq(productFeatureValue.projectId, this.storeId),
+            eq(productFeatureValue.storeId, this.storeId),
             eq(productFeatureValue.featureId, featureId)
           )
         );
@@ -363,7 +363,7 @@ export class FeatureRepository extends BaseRepository {
         .delete(productFeatureValue)
         .where(
           and(
-            eq(productFeatureValue.projectId, this.storeId),
+            eq(productFeatureValue.storeId, this.storeId),
             eq(productFeatureValue.featureId, featureId),
             notInArray(productFeatureValue.id, keepIds)
           )
@@ -376,7 +376,7 @@ export class FeatureRepository extends BaseRepository {
       .delete(productFeatureValue)
       .where(
         and(
-          eq(productFeatureValue.projectId, this.storeId),
+          eq(productFeatureValue.storeId, this.storeId),
           eq(productFeatureValue.id, id)
         )
       )
@@ -395,7 +395,7 @@ export class FeatureRepository extends BaseRepository {
       .from(productFeatureTranslation)
       .where(
         and(
-          eq(productFeatureTranslation.projectId, this.storeId),
+          eq(productFeatureTranslation.storeId, this.storeId),
           inArray(productFeatureTranslation.featureId, [...featureIds]),
           eq(productFeatureTranslation.locale, this.locale)
         )
@@ -414,7 +414,7 @@ export class FeatureRepository extends BaseRepository {
       .from(productFeatureValue)
       .where(
         and(
-          eq(productFeatureValue.projectId, this.storeId),
+          eq(productFeatureValue.storeId, this.storeId),
           inArray(productFeatureValue.featureId, [...featureIds])
         )
       )
@@ -427,7 +427,7 @@ export class FeatureRepository extends BaseRepository {
       .from(productFeatureValue)
       .where(
         and(
-          eq(productFeatureValue.projectId, this.storeId),
+          eq(productFeatureValue.storeId, this.storeId),
           inArray(productFeatureValue.id, [...valueIds])
         )
       );
@@ -441,7 +441,7 @@ export class FeatureRepository extends BaseRepository {
       .from(productFeatureValueTranslation)
       .where(
         and(
-          eq(productFeatureValueTranslation.projectId, this.storeId),
+          eq(productFeatureValueTranslation.storeId, this.storeId),
           inArray(productFeatureValueTranslation.featureValueId, [...featureValueIds]),
           eq(productFeatureValueTranslation.locale, this.locale)
         )
@@ -466,7 +466,7 @@ export class FeatureRepository extends BaseRepository {
       .from(productFeature)
       .where(
         and(
-          eq(productFeature.projectId, this.storeId),
+          eq(productFeature.storeId, this.storeId),
           inArray(productFeature.productId, [...productIds]),
           inArray(productFeature.parentId, [...parentIds])
         )

@@ -15,7 +15,7 @@ export const currencyEnum = catalogSchema.enum("currency", ["UAH", "USD", "EUR"]
 export const itemPricing = catalogSchema.table(
   "item_pricing",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     id: uuid("id").primaryKey(),
     variantId: uuid("variant_id")
       .notNull()
@@ -41,20 +41,20 @@ export const itemPricing = catalogSchema.table(
     ),
     // Indexes
     index("idx_item_pricing_variant_currency_effective_from").on(
-      table.projectId,
+      table.storeId,
       table.variantId,
       table.currency,
       table.effectiveFrom
     ),
     index("idx_item_pricing_variant_effective_from").on(
-      table.projectId,
+      table.storeId,
       table.variantId,
       table.effectiveFrom
     ),
-    index("idx_item_pricing_recorded_at").on(table.projectId, table.recordedAt),
-    index("idx_item_pricing_effective_to").on(table.projectId, table.effectiveTo),
+    index("idx_item_pricing_recorded_at").on(table.storeId, table.recordedAt),
+    index("idx_item_pricing_effective_to").on(table.storeId, table.effectiveTo),
     uniqueIndex("idx_item_pricing_current_unique")
-      .on(table.projectId, table.variantId, table.currency)
+      .on(table.storeId, table.variantId, table.currency)
       .where(sql`effective_to IS NULL`),
   ]
 );
@@ -64,7 +64,7 @@ export const variantPricesCurrent = catalogSchema.view("variant_prices_current")
   qb
     .select({
       id: itemPricing.id,
-      projectId: itemPricing.projectId,
+      storeId: itemPricing.storeId,
       variantId: itemPricing.variantId,
       currency: itemPricing.currency,
       amountMinor: itemPricing.amountMinor,
@@ -81,7 +81,7 @@ export const variantPricesCurrent = catalogSchema.view("variant_prices_current")
 export const productPriceRange = catalogSchema.view("product_price_range").as((qb) =>
   qb
     .select({
-      projectId: itemPricing.projectId,
+      storeId: itemPricing.storeId,
       productId: variant.productId,
       currency: itemPricing.currency,
       minAmountMinor: sql<number>`MIN(${itemPricing.amountMinor})`.as("min_amount_minor"),
@@ -90,7 +90,7 @@ export const productPriceRange = catalogSchema.view("product_price_range").as((q
     .from(itemPricing)
     .innerJoin(variant, sql`${variant.id} = ${itemPricing.variantId} AND ${variant.deletedAt} IS NULL`)
     .where(sql`${itemPricing.effectiveTo} IS NULL`)
-    .groupBy(itemPricing.projectId, variant.productId, itemPricing.currency)
+    .groupBy(itemPricing.storeId, variant.productId, itemPricing.currency)
 );
 
 export type ItemPricing = typeof itemPricing.$inferSelect;

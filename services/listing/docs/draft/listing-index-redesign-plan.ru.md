@@ -85,7 +85,7 @@ Runtime posting index:
 - `listing.listing_posting_bitmap`
 - `listing.listing_posting_product_sort`
 - `listing.listing_posting_variant_price`
-- `listing.listing_posting_variant_projection_block`
+- `listing.listing_posting_variant_storeion_block`
 
 Title search index:
 
@@ -327,7 +327,7 @@ Facet/source mapping changed:
 - Storefront configured facets never read raw handle arrays.
 - `product_listing_index` and `variant_listing_index` contain stable doc ids.
 - `listing_posting_bitmap` is keyed only by
-  `(project_id, entity_type, field, value_key)` and stores `roaringbitmap`.
+  `(store_id, entity_type, field, value_key)` and stores `roaringbitmap`.
 - Row-based product/variant facet posting tables are not recreated.
 - `price` and `in_stock` are virtual facets and do not have generic bitmap rows.
 - Product-level filters operate on product doc bitmaps.

@@ -1,7 +1,7 @@
 -- Up Migration
 
 CREATE TABLE "catalog"."product_option_variant_link" (
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "variant_id" uuid NOT NULL,
   "option_id" uuid NOT NULL,
   "option_value_id" uuid,
@@ -20,5 +20,5 @@ CREATE TABLE "catalog"."product_option_variant_link" (
     ON DELETE CASCADE
 );
 
-CREATE INDEX "idx_product_option_variant_link_project_id"
-  ON "catalog"."product_option_variant_link" ("project_id");
+CREATE INDEX "idx_product_option_variant_link_store_id"
+  ON "catalog"."product_option_variant_link" ("store_id");

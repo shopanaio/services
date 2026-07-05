@@ -25,7 +25,7 @@ export const bundle = catalogSchema.table(
   "bundle",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
@@ -42,7 +42,7 @@ export const bundle = catalogSchema.table(
   },
   (table) => [
     uniqueIndex("bundle_product_id_unique").on(table.productId),
-    index("idx_bundle_project_id").on(table.projectId),
+    index("idx_bundle_store_id").on(table.storeId),
     check(
       "bundle_display_style_check",
       sql`${table.displayStyle} IN ('ACCORDION', 'TABS', 'FLAT', 'WIZARD')`
@@ -54,7 +54,7 @@ export const bundleConfiguration = catalogSchema.table(
   "bundle_configuration",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     bundleId: uuid("bundle_id")
       .notNull()
       .references(() => bundle.id, { onDelete: "cascade" }),
@@ -74,7 +74,7 @@ export const bundleConfiguration = catalogSchema.table(
 export const bundleConfigurationVariant = catalogSchema.table(
   "bundle_configuration_variant",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     configurationId: uuid("configuration_id")
       .notNull()
       .references(() => bundleConfiguration.id, { onDelete: "cascade" }),
@@ -85,7 +85,7 @@ export const bundleConfigurationVariant = catalogSchema.table(
   (table) => [
     primaryKey({ columns: [table.configurationId, table.variantId] }),
     uniqueIndex("bundle_configuration_variant_unique").on(table.variantId),
-    index("idx_bundle_configuration_variant_project_id").on(table.projectId),
+    index("idx_bundle_configuration_variant_store_id").on(table.storeId),
   ]
 );
 
@@ -97,7 +97,7 @@ export const bundlePriceRule = catalogSchema.table(
   "bundle_price_rule",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     configurationId: uuid("configuration_id")
       .notNull()
       .references(() => bundleConfiguration.id, { onDelete: "cascade" }),
@@ -111,7 +111,7 @@ export const bundlePriceRule = catalogSchema.table(
 export const bundlePriceRuleAmount = catalogSchema.table(
   "bundle_price_rule_amount",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     priceRuleId: uuid("price_rule_id")
       .notNull()
       .references(() => bundlePriceRule.id, { onDelete: "cascade" }),
@@ -120,8 +120,8 @@ export const bundlePriceRuleAmount = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.priceRuleId, table.currency] }),
-    index("idx_bundle_price_rule_amount_project_currency").on(
-      table.projectId,
+    index("idx_bundle_price_rule_amount_store_currency").on(
+      table.storeId,
       table.currency
     ),
     check(
@@ -134,14 +134,14 @@ export const bundlePriceRuleAmount = catalogSchema.table(
 export const bundlePriceRulePercent = catalogSchema.table(
   "bundle_price_rule_percent",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     priceRuleId: uuid("price_rule_id")
       .primaryKey()
       .references(() => bundlePriceRule.id, { onDelete: "cascade" }),
     percentValue: integer("percent_value").notNull(),
   },
   (table) => [
-    index("idx_bundle_price_rule_percent_project_id").on(table.projectId),
+    index("idx_bundle_price_rule_percent_store_id").on(table.storeId),
     check(
       "bundle_price_rule_percent_value_check",
       sql`${table.percentValue} >= 0 AND ${table.percentValue} <= 100`
@@ -153,7 +153,7 @@ export const bundlePricingTemplate = catalogSchema.table(
   "bundle_pricing_template",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     configurationId: uuid("configuration_id")
       .notNull()
       .references(() => bundleConfiguration.id, { onDelete: "cascade" }),
@@ -179,7 +179,7 @@ export const bundleGroup = catalogSchema.table(
   "bundle_group",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     configurationId: uuid("configuration_id")
       .notNull()
       .references(() => bundleConfiguration.id, { onDelete: "cascade" }),
@@ -212,7 +212,7 @@ export const bundleGroup = catalogSchema.table(
 export const bundleGroupTranslation = catalogSchema.table(
   "bundle_group_translation",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     groupId: uuid("group_id")
       .notNull()
       .references(() => bundleGroup.id, { onDelete: "cascade" }),
@@ -221,8 +221,8 @@ export const bundleGroupTranslation = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.groupId, table.locale] }),
-    index("idx_bundle_group_translation_project_locale").on(
-      table.projectId,
+    index("idx_bundle_group_translation_store_locale").on(
+      table.storeId,
       table.locale
     ),
   ]
@@ -236,7 +236,7 @@ export const bundleItem = catalogSchema.table(
   "bundle_item",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     groupId: uuid("group_id")
       .notNull()
       .references(() => bundleGroup.id, { onDelete: "cascade" }),
@@ -301,7 +301,7 @@ export const bundleItemOptionSelection = catalogSchema.table(
   "bundle_item_option_selection",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     itemId: uuid("item_id")
       .notNull()
       .references(() => bundleItem.id, { onDelete: "cascade" }),
@@ -338,7 +338,7 @@ export const bundleItemOptionValueSelection = catalogSchema.table(
   "bundle_item_option_value_selection",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     optionSelectionId: uuid("option_selection_id")
       .notNull()
       .references(() => bundleItemOptionSelection.id, { onDelete: "cascade" }),
@@ -377,7 +377,7 @@ export const bundleItemOptionValueSelection = catalogSchema.table(
 export const bundleItemTranslation = catalogSchema.table(
   "bundle_item_translation",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     itemId: uuid("item_id")
       .notNull()
       .references(() => bundleItem.id, { onDelete: "cascade" }),
@@ -386,8 +386,8 @@ export const bundleItemTranslation = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.itemId, table.locale] }),
-    index("idx_bundle_item_translation_project_locale").on(
-      table.projectId,
+    index("idx_bundle_item_translation_store_locale").on(
+      table.storeId,
       table.locale
     ),
   ]
@@ -401,7 +401,7 @@ export const dependencyRule = catalogSchema.table(
   "dependency_rule",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     configurationId: uuid("configuration_id")
       .notNull()
       .references(() => bundleConfiguration.id, { onDelete: "cascade" }),
@@ -429,7 +429,7 @@ export const conditionGroup = catalogSchema.table(
   "condition_group",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     ruleId: uuid("rule_id")
       .notNull()
       .references(() => dependencyRule.id, { onDelete: "cascade" }),
@@ -445,7 +445,7 @@ export const condition = catalogSchema.table(
   "condition",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     groupId: uuid("group_id")
       .notNull()
       .references(() => conditionGroup.id, { onDelete: "cascade" }),
@@ -467,7 +467,7 @@ export const dependencyAction = catalogSchema.table(
   "dependency_action",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     ruleId: uuid("rule_id")
       .notNull()
       .references(() => dependencyRule.id, { onDelete: "cascade" }),

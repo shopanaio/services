@@ -20,7 +20,7 @@ The `Kernel` class is the core execution engine that:
 1. Provides a **service container** with broker, logger, and custom services
 2. Executes **transaction scripts** — functions that receive services and context
 3. Automatically wraps write operations in **database transactions**
-4. Propagates **context** (requestId, projectId, metadata) through the call stack
+4. Propagates **context** (requestId, storeId, metadata) through the call stack
 
 ## Transaction Script Pattern
 
@@ -143,7 +143,7 @@ Pass execution context for tracing and multi-tenancy:
 ```typescript
 const context: ScriptContext = {
   requestId: "req_abc123",
-  projectId: "proj_xyz",
+  storeId: "proj_xyz",
   startTime: Date.now(),
   metadata: {
     userId: "user_123",
@@ -165,7 +165,7 @@ Execution context passed to all scripts:
 ```typescript
 interface ScriptContext {
   readonly requestId?: string;  // Correlation ID for tracing
-  readonly projectId?: string;  // Multi-tenant project identifier
+  readonly storeId?: string;  // Multi-tenant store identifier
   readonly startTime: number;   // Execution start timestamp
   readonly metadata?: Record<string, unknown>;  // Custom metadata
 }
@@ -181,14 +181,14 @@ const processOrder: TransactionScript<OrderInput, Order, OrderServices> =
     // Log with context
     logger.info({
       requestId: context?.requestId,
-      projectId: context?.projectId,
+      storeId: context?.storeId,
       orderId: params.orderId,
     }, "Processing order");
 
     // Pass context to other service calls
     const inventory = await broker.call("inventory.reserveStock", {
       items: params.items,
-      projectId: context?.projectId,
+      storeId: context?.storeId,
     });
 
     // Track timing

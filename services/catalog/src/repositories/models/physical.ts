@@ -22,7 +22,7 @@ export const itemDimensions = catalogSchema.table(
   "item_dimensions",
   {
     variantId: uuid("variant_id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     wMm: integer("w_mm").notNull(),
     lMm: integer("l_mm").notNull(),
     hMm: integer("h_mm").notNull(),
@@ -34,7 +34,7 @@ export const itemDimensions = catalogSchema.table(
       "item_dimensions_positive_check",
       sql`${table.wMm} > 0 AND ${table.lMm} > 0 AND ${table.hMm} > 0`
     ),
-    index("idx_item_dimensions_project_id").on(table.projectId),
+    index("idx_item_dimensions_store_id").on(table.storeId),
   ]
 );
 
@@ -42,14 +42,14 @@ export const itemWeight = catalogSchema.table(
   "item_weight",
   {
     variantId: uuid("variant_id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     weightGr: integer("weight_gr").notNull(),
     displayUnit: weightUnitEnum("display_unit").notNull().default("g"),
   },
   (table) => [
     // CHECK constraint: weight must be positive
     check("item_weight_positive_check", sql`${table.weightGr} > 0`),
-    index("idx_item_weight_project_id").on(table.projectId),
+    index("idx_item_weight_store_id").on(table.storeId),
   ]
 );
 

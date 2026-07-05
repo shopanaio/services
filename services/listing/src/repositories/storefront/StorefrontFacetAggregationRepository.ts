@@ -198,10 +198,10 @@ export class StorefrontFacetAggregationRepository extends BaseRepository {
         MAX(vp.price_minor)::double precision AS "maxPriceMinor"
       FROM listing.variant_listing_price_index vp
       JOIN listing.variant_listing_index vli
-        ON vli.project_id = vp.project_id
+        ON vli.store_id = vp.store_id
        AND vli.variant_id = vp.variant_id
        AND vli.in_stock = true
-      WHERE vp.project_id = ${this.storeId}::uuid
+      WHERE vp.store_id = ${this.storeId}::uuid
         AND vp.currency = ${input.currency}
         AND vp.has_price = true
         AND vp.price_minor IS NOT NULL
@@ -265,7 +265,7 @@ export class StorefrontFacetAggregationRepository extends BaseRepository {
         sql: coalesceBitmapSql(sql`(
           SELECT rb_build_agg(vli.variant_doc_id)
           FROM listing.variant_listing_index vli
-          WHERE vli.project_id = ${this.storeId}::uuid
+          WHERE vli.store_id = ${this.storeId}::uuid
             AND vli.in_stock = true
         )`),
         empty: false,
@@ -289,7 +289,7 @@ export class StorefrontFacetAggregationRepository extends BaseRepository {
         & ${coalesceBitmapSql(sql`(
           SELECT rb_build_agg(pli.product_doc_id)
           FROM listing.product_listing_index pli
-          WHERE pli.project_id = ${this.storeId}::uuid
+          WHERE pli.store_id = ${this.storeId}::uuid
             AND pli.status = 'published'
             AND pli.in_stock = true
         )`)}
@@ -362,7 +362,7 @@ export class StorefrontFacetAggregationRepository extends BaseRepository {
       .from(listingPostingBitmap)
       .where(
         and(
-          eq(listingPostingBitmap.projectId, this.storeId),
+          eq(listingPostingBitmap.storeId, this.storeId),
           eq(listingPostingBitmap.entityType, entityType),
           eq(listingPostingBitmap.field, "facet"),
           inArray(listingPostingBitmap.valueKey, uniqueValueKeys)
@@ -451,8 +451,8 @@ export class StorefrontFacetAggregationRepository extends BaseRepository {
           b.variant_count,
           (vm.bitmap & b.variant_bitmap) AS block_match
         FROM variant_matches vm
-        JOIN listing.listing_posting_variant_projection_block b
-          ON b.project_id = ${this.storeId}::uuid
+        JOIN listing.listing_posting_variant_storeion_block b
+          ON b.store_id = ${this.storeId}::uuid
          AND rb_cardinality(vm.bitmap & b.variant_bitmap) > 0
       ),
       full_block_products AS (
@@ -469,7 +469,7 @@ export class StorefrontFacetAggregationRepository extends BaseRepository {
         ) mb
         CROSS JOIN LATERAL rb_iterate(mb.block_match) AS matched(variant_doc_id)
         JOIN listing.variant_listing_index vli
-          ON vli.project_id = ${this.storeId}::uuid
+          ON vli.store_id = ${this.storeId}::uuid
          AND vli.variant_doc_id = matched.variant_doc_id
       ),
       projected AS (

@@ -3,7 +3,7 @@
 CREATE TABLE "catalog"."collection_rule" (
   "id" uuid NOT NULL,
   "collection_id" uuid NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "field" varchar(64) NOT NULL,
   "operator" varchar(16) NOT NULL,
   "value" jsonb NOT NULL,

@@ -208,8 +208,8 @@ the owning domain folder with a globally unique basename.
 
 ### Migration Key Constraint Rule
 
-`project_id` is a tenant scope column only. Migration SQL must not include
-`project_id` in primary keys or foreign keys. Keep primary keys and foreign keys
+`store_id` is a tenant scope column only. Migration SQL must not include
+`store_id` in primary keys or foreign keys. Keep primary keys and foreign keys
 based on stable entity identifiers, and use separate indexes or unique
 constraints for tenant-scoped lookups when needed.
 

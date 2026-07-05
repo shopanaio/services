@@ -67,7 +67,7 @@ const EMPTY_CATEGORY_WHERE: CategoryRelayInput["where"] = {
 // ---- Relay Query for Category Products/Listings ----
 
 const productCategoryQuery = createQuery(productCategory, {
-  projectId: field(productCategory.projectId),
+  storeId: field(productCategory.storeId),
   categoryId: field(productCategory.categoryId),
   productId: field(productCategory.productId),
   lexoRank: field(productCategory.lexoRank),
@@ -79,7 +79,7 @@ const productTranslationQuery = createQuery(productTranslation, {
 });
 
 const priceRangeQuery = createQuery(productPriceRange, {
-  projectId: field(productPriceRange.projectId),
+  storeId: field(productPriceRange.storeId),
   productId: field(productPriceRange.productId),
   currency: field(productPriceRange.currency),
   minAmountMinor: field(productPriceRange.minAmountMinor),
@@ -90,7 +90,7 @@ const categoryProductsQuery = createQuery(product, {
   id: field(product.id),
   createdAt: field(product.createdAt),
   deletedAt: field(product.deletedAt),
-  projectId: field(product.projectId),
+  storeId: field(product.storeId),
   category: field(product.id).innerJoin(
     productCategoryQuery,
     productCategory.productId,
@@ -164,7 +164,7 @@ export class CategoryRepository extends BaseRepository {
       .from(category)
       .where(
         and(
-          eq(category.projectId, this.storeId),
+          eq(category.storeId, this.storeId),
           eq(category.id, id),
           isNull(category.deletedAt),
         ),
@@ -180,7 +180,7 @@ export class CategoryRepository extends BaseRepository {
       .from(category)
       .where(
         and(
-          eq(category.projectId, this.storeId),
+          eq(category.storeId, this.storeId),
           eq(category.id, id),
           isNull(category.deletedAt),
         ),
@@ -196,7 +196,7 @@ export class CategoryRepository extends BaseRepository {
       .from(category)
       .where(
         and(
-          eq(category.projectId, this.storeId),
+          eq(category.storeId, this.storeId),
           eq(category.handle, handle),
           isNull(category.deletedAt),
         ),
@@ -215,7 +215,7 @@ export class CategoryRepository extends BaseRepository {
       .from(category)
       .where(
         and(
-          eq(category.projectId, this.storeId),
+          eq(category.storeId, this.storeId),
           eq(category.handle, handle),
           sql`${category.id} <> ${id}`,
           isNull(category.deletedAt),
@@ -247,7 +247,7 @@ export class CategoryRepository extends BaseRepository {
     }
 
     const newCategory: NewCategory = {
-      projectId: this.storeId,
+      storeId: this.storeId,
       id,
       parentId: data.parentId ?? null,
       path,
@@ -297,7 +297,7 @@ export class CategoryRepository extends BaseRepository {
     const result = await this.connection
       .update(category)
       .set(updateData)
-      .where(and(eq(category.projectId, this.storeId), eq(category.id, id)))
+      .where(and(eq(category.storeId, this.storeId), eq(category.id, id)))
       .returning();
 
     return result[0] ?? null;
@@ -326,7 +326,7 @@ export class CategoryRepository extends BaseRepository {
         depth: newDepth,
         updatedAt: new Date().toISOString(),
       })
-      .where(and(eq(category.projectId, this.storeId), eq(category.id, id)))
+      .where(and(eq(category.storeId, this.storeId), eq(category.id, id)))
       .returning();
 
     // Update paths of all descendants
@@ -337,7 +337,7 @@ export class CategoryRepository extends BaseRepository {
             SET path = ${newPath} || substr(path, ${oldPath.length + 1}),
                 depth = depth + ${newDepth - cat.depth},
                 updated_at = now()
-            WHERE project_id = ${this.storeId}
+            WHERE store_id = ${this.storeId}
               AND path LIKE ${oldPath + ".%"}`,
       );
     }
@@ -352,7 +352,7 @@ export class CategoryRepository extends BaseRepository {
       .set({ deletedAt: now, updatedAt: now })
       .where(
         and(
-          eq(category.projectId, this.storeId),
+          eq(category.storeId, this.storeId),
           eq(category.id, id),
           isNull(category.deletedAt),
         ),
@@ -365,7 +365,7 @@ export class CategoryRepository extends BaseRepository {
   async hardDelete(id: string): Promise<boolean> {
     const result = await this.connection
       .delete(category)
-      .where(and(eq(category.projectId, this.storeId), eq(category.id, id)))
+      .where(and(eq(category.storeId, this.storeId), eq(category.id, id)))
       .returning({ id: category.id });
 
     return result.length > 0;
@@ -378,7 +378,7 @@ export class CategoryRepository extends BaseRepository {
       .set({ publishedAt: now, updatedAt: now })
       .where(
         and(
-          eq(category.projectId, this.storeId),
+          eq(category.storeId, this.storeId),
           eq(category.id, id),
           isNull(category.deletedAt),
         ),
@@ -394,7 +394,7 @@ export class CategoryRepository extends BaseRepository {
       .set({ publishedAt: null, updatedAt: new Date().toISOString() })
       .where(
         and(
-          eq(category.projectId, this.storeId),
+          eq(category.storeId, this.storeId),
           eq(category.id, id),
           isNull(category.deletedAt),
         ),
@@ -411,7 +411,7 @@ export class CategoryRepository extends BaseRepository {
       .select({ count: count() })
       .from(category)
       .where(
-        and(eq(category.projectId, this.storeId), isNull(category.deletedAt)),
+        and(eq(category.storeId, this.storeId), isNull(category.deletedAt)),
       );
     return result[0]?.count ?? 0;
   }
@@ -425,7 +425,7 @@ export class CategoryRepository extends BaseRepository {
       .select()
       .from(category)
       .where(
-        and(eq(category.projectId, this.storeId), isNull(category.deletedAt)),
+        and(eq(category.storeId, this.storeId), isNull(category.deletedAt)),
       )
       .orderBy(desc(category.createdAt), desc(category.id));
 
@@ -452,7 +452,7 @@ export class CategoryRepository extends BaseRepository {
 
     const mergedWhere: CategoryRelayInput["where"] = {
       _and: [
-        { projectId: { _eq: this.storeId } },
+        { storeId: { _eq: this.storeId } },
         { deletedAt: { _is: null } },
         { locale: { _eq: this.locale } },
         ...(where ? [where] : []),
@@ -546,7 +546,7 @@ export class CategoryRepository extends BaseRepository {
       .from(productCategory)
       .where(
         and(
-          eq(productCategory.projectId, this.storeId),
+          eq(productCategory.storeId, this.storeId),
           inArray(productCategory.productId, scope.referenceIds),
         ),
       );
@@ -567,7 +567,7 @@ export class CategoryRepository extends BaseRepository {
       .from(category)
       .where(
         and(
-          eq(category.projectId, this.storeId),
+          eq(category.storeId, this.storeId),
           eq(category.id, id),
           isNull(category.deletedAt),
         ),
@@ -586,7 +586,7 @@ export class CategoryRepository extends BaseRepository {
       .from(category)
       .where(
         and(
-          eq(category.projectId, this.storeId),
+          eq(category.storeId, this.storeId),
           inArray(category.id, [...categoryIds]),
           isNull(category.deletedAt),
         ),
@@ -602,7 +602,7 @@ export class CategoryRepository extends BaseRepository {
       .from(category)
       .where(
         and(
-          eq(category.projectId, this.storeId),
+          eq(category.storeId, this.storeId),
           inArray(category.parentId, [...parentIds]),
           isNull(category.deletedAt),
         ),
@@ -635,7 +635,7 @@ export class CategoryRepository extends BaseRepository {
       .from(categoryTranslation)
       .where(
         and(
-          eq(categoryTranslation.projectId, this.storeId),
+          eq(categoryTranslation.storeId, this.storeId),
           inArray(categoryTranslation.categoryId, [...categoryIds]),
           eq(categoryTranslation.locale, this.locale),
         ),
@@ -651,7 +651,7 @@ export class CategoryRepository extends BaseRepository {
       .from(categoryMedia)
       .where(
         and(
-          eq(categoryMedia.projectId, this.storeId),
+          eq(categoryMedia.storeId, this.storeId),
           inArray(categoryMedia.categoryId, [...categoryIds]),
         ),
       )
@@ -669,7 +669,7 @@ export class CategoryRepository extends BaseRepository {
       .from(productCategory)
       .where(
         and(
-          eq(productCategory.projectId, this.storeId),
+          eq(productCategory.storeId, this.storeId),
           inArray(productCategory.productId, [...productIds]),
         ),
       );
@@ -688,7 +688,7 @@ export class CategoryRepository extends BaseRepository {
       .from(productCategory)
       .where(
         and(
-          eq(productCategory.projectId, this.storeId),
+          eq(productCategory.storeId, this.storeId),
           inArray(productCategory.productId, [...productIds]),
         ),
       )
@@ -711,7 +711,7 @@ export class CategoryRepository extends BaseRepository {
       .from(category)
       .where(
         and(
-          eq(category.projectId, this.storeId),
+          eq(category.storeId, this.storeId),
           inArray(category.id, [...categoryIds]),
           isNull(category.deletedAt),
         ),
@@ -735,8 +735,8 @@ export class CategoryRepository extends BaseRepository {
       .innerJoin(product, eq(product.id, productCategory.productId))
       .where(
         and(
-          eq(productCategory.projectId, this.storeId),
-          eq(product.projectId, this.storeId),
+          eq(productCategory.storeId, this.storeId),
+          eq(product.storeId, this.storeId),
           inArray(productCategory.categoryId, uniqueCategoryIds),
           isNull(product.deletedAt),
         ),
@@ -753,7 +753,7 @@ export class CategoryRepository extends BaseRepository {
         .set({ productsCount: countByCategoryId.get(categoryId) ?? 0 })
         .where(
           and(
-            eq(category.projectId, this.storeId),
+            eq(category.storeId, this.storeId),
             eq(category.id, categoryId),
             isNull(category.deletedAt),
           ),
@@ -769,7 +769,7 @@ export class CategoryRepository extends BaseRepository {
     const rank = await this.getNextCategoryProductRank(categoryId);
 
     const data: NewProductCategory = {
-      projectId: this.storeId,
+      storeId: this.storeId,
       productId,
       categoryId,
       isPrimary,
@@ -798,7 +798,7 @@ export class CategoryRepository extends BaseRepository {
         .from(productCategory)
         .where(
           and(
-            eq(productCategory.projectId, this.storeId),
+            eq(productCategory.storeId, this.storeId),
             eq(productCategory.productId, productId),
             eq(productCategory.categoryId, categoryId),
           ),
@@ -814,7 +814,7 @@ export class CategoryRepository extends BaseRepository {
         .set({ isPrimary: false })
         .where(
           and(
-            eq(productCategory.projectId, this.storeId),
+            eq(productCategory.storeId, this.storeId),
             eq(productCategory.productId, productId),
           ),
         );
@@ -824,7 +824,7 @@ export class CategoryRepository extends BaseRepository {
         .set({ isPrimary: true })
         .where(
           and(
-            eq(productCategory.projectId, this.storeId),
+            eq(productCategory.storeId, this.storeId),
             eq(productCategory.productId, productId),
             eq(productCategory.categoryId, categoryId),
           ),
@@ -844,7 +844,7 @@ export class CategoryRepository extends BaseRepository {
       .from(productCategory)
       .where(
         and(
-          eq(productCategory.projectId, this.storeId),
+          eq(productCategory.storeId, this.storeId),
           eq(productCategory.categoryId, categoryId),
           eq(productCategory.productId, productId),
         ),
@@ -862,7 +862,7 @@ export class CategoryRepository extends BaseRepository {
       .from(productCategory)
       .where(
         and(
-          eq(productCategory.projectId, this.storeId),
+          eq(productCategory.storeId, this.storeId),
           eq(productCategory.categoryId, categoryId),
         ),
       )
@@ -887,7 +887,7 @@ export class CategoryRepository extends BaseRepository {
 
     // Build where filter for this category, merging with user's filter
     const baseConditions: Array<Record<string, unknown>> = [
-      { projectId: { _eq: this.storeId } },
+      { storeId: { _eq: this.storeId } },
       { deletedAt: { _is: null } },
       { category: { categoryId: { _eq: categoryId } } },
     ];
@@ -977,7 +977,7 @@ export class CategoryRepository extends BaseRepository {
       .from(productCategory)
       .where(
         and(
-          eq(productCategory.projectId, this.storeId),
+          eq(productCategory.storeId, this.storeId),
           eq(productCategory.categoryId, categoryId),
         ),
       );
@@ -1003,7 +1003,7 @@ export class CategoryRepository extends BaseRepository {
       .from(productCategory)
       .where(
         and(
-          eq(productCategory.projectId, this.storeId),
+          eq(productCategory.storeId, this.storeId),
           inArray(productCategory.categoryId, [...categoryIds]),
         ),
       );
@@ -1025,7 +1025,7 @@ export class CategoryRepository extends BaseRepository {
       .delete(productCategory)
       .where(
         and(
-          eq(productCategory.projectId, this.storeId),
+          eq(productCategory.storeId, this.storeId),
           eq(productCategory.productId, productId),
           eq(productCategory.categoryId, categoryId),
         ),
@@ -1042,7 +1042,7 @@ export class CategoryRepository extends BaseRepository {
       .innerJoin(product, eq(product.id, productCategory.productId))
       .where(
         and(
-          eq(productCategory.projectId, this.storeId),
+          eq(productCategory.storeId, this.storeId),
           eq(productCategory.categoryId, categoryId),
           isNull(product.deletedAt),
         ),
@@ -1061,7 +1061,7 @@ export class CategoryRepository extends BaseRepository {
       .set({ lexoRank })
       .where(
         and(
-          eq(productCategory.projectId, this.storeId),
+          eq(productCategory.storeId, this.storeId),
           eq(productCategory.categoryId, categoryId),
           eq(productCategory.productId, productId),
         ),
@@ -1100,7 +1100,7 @@ export class CategoryRepository extends BaseRepository {
   // ============ Translation ============
 
   async upsertTranslation(data: {
-    projectId: string;
+    storeId: string;
     categoryId: string;
     locale: string;
     name: string;
@@ -1114,7 +1114,7 @@ export class CategoryRepository extends BaseRepository {
     const result = await this.connection
       .insert(categoryTranslation)
       .values({
-        projectId: data.projectId,
+        storeId: data.storeId,
         categoryId: data.categoryId,
         locale: data.locale,
         name: data.name,
@@ -1150,7 +1150,7 @@ export class CategoryRepository extends BaseRepository {
       .delete(categoryMedia)
       .where(
         and(
-          eq(categoryMedia.projectId, this.storeId),
+          eq(categoryMedia.storeId, this.storeId),
           eq(categoryMedia.categoryId, categoryId),
         ),
       );
@@ -1158,7 +1158,7 @@ export class CategoryRepository extends BaseRepository {
     // Insert new media
     if (fileIds.length > 0) {
       const values = fileIds.map((fileId, index) => ({
-        projectId: this.storeId,
+        storeId: this.storeId,
         categoryId,
         fileId,
         sortIndex: index,

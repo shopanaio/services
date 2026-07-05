@@ -34,7 +34,7 @@ export class VendorRepository extends BaseRepository {
     const result = await this.connection
       .select()
       .from(vendor)
-      .where(and(eq(vendor.projectId, this.storeId), eq(vendor.id, id)))
+      .where(and(eq(vendor.storeId, this.storeId), eq(vendor.id, id)))
       .limit(1);
 
     return result[0] ?? null;
@@ -44,7 +44,7 @@ export class VendorRepository extends BaseRepository {
     const result = await this.connection
       .select()
       .from(vendor)
-      .where(and(eq(vendor.projectId, this.storeId), eq(vendor.name, name)))
+      .where(and(eq(vendor.storeId, this.storeId), eq(vendor.name, name)))
       .limit(1);
 
     return result[0] ?? null;
@@ -52,7 +52,7 @@ export class VendorRepository extends BaseRepository {
 
   async create(data: { name: string }): Promise<Vendor> {
     const newVendor: NewVendor = {
-      projectId: this.storeId,
+      storeId: this.storeId,
       id: randomUUID(),
       name: data.name,
     };
@@ -72,7 +72,7 @@ export class VendorRepository extends BaseRepository {
 
     const mergedWhere: VendorRelayInput["where"] = {
       _and: [
-        { projectId: { _eq: this.storeId } },
+        { storeId: { _eq: this.storeId } },
         ...(where ? [where] : []),
       ],
     };
@@ -111,7 +111,7 @@ export class VendorRepository extends BaseRepository {
       .from(vendor)
       .where(
         and(
-          eq(vendor.projectId, this.storeId),
+          eq(vendor.storeId, this.storeId),
           inArray(vendor.id, [...vendorIds])
         )
       );

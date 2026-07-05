@@ -18,8 +18,8 @@ export function compileVariantProjectionSql(input: {
         b.variant_count,
         (vm.bitmap & b.variant_bitmap) AS block_match
       FROM variant_matches vm
-      JOIN listing.listing_posting_variant_projection_block b
-        ON b.project_id = ${input.projectIdSql}
+      JOIN listing.listing_posting_variant_storeion_block b
+        ON b.store_id = ${input.projectIdSql}
        AND rb_cardinality(vm.bitmap & b.variant_bitmap) > 0
     ),
     full_block_products AS (
@@ -36,7 +36,7 @@ export function compileVariantProjectionSql(input: {
       ) mb
       CROSS JOIN LATERAL rb_iterate(mb.block_match) AS matched(variant_doc_id)
       JOIN listing.variant_listing_index vli
-        ON vli.project_id = ${input.projectIdSql}
+        ON vli.store_id = ${input.projectIdSql}
        AND vli.variant_doc_id = matched.variant_doc_id
     ),
     projected AS (

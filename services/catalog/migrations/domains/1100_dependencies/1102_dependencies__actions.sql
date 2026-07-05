@@ -2,7 +2,7 @@
 
 CREATE TABLE "catalog"."dependency_action" (
   "id" uuid NOT NULL,
-  "project_id" uuid NOT NULL,
+  "store_id" uuid NOT NULL,
   "rule_id" uuid NOT NULL,
   "action_type" varchar(32) NOT NULL,
   "target_type" varchar(32) NOT NULL,

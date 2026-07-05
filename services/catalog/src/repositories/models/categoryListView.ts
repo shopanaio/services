@@ -5,7 +5,7 @@ import { category, categoryTranslation } from "./categories";
 export const categoryListView = catalogSchema.view("category_list_view").as((qb) =>
   qb
     .select({
-      projectId: category.projectId,
+      storeId: category.storeId,
       id: category.id,
       parentId: category.parentId,
       path: category.path,
@@ -25,6 +25,6 @@ export const categoryListView = catalogSchema.view("category_list_view").as((qb)
     .from(category)
     .innerJoin(
       categoryTranslation,
-      sql`${categoryTranslation.projectId} = ${category.projectId} AND ${categoryTranslation.categoryId} = ${category.id}`
+      sql`${categoryTranslation.storeId} = ${category.storeId} AND ${categoryTranslation.categoryId} = ${category.id}`
     )
 );

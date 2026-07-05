@@ -19,7 +19,7 @@ total count, cursor pagination и sort. Hydration карточек товара 
 
 Любая storefront listing операция проходит один bitmap-first pipeline:
 
-1. Request normalizer получает `project_id`, default currency, locale, scope,
+1. Request normalizer получает `store_id`, default currency, locale, scope,
    filters, sort и pagination input.
 2. Facet resolver batch-запросом переводит public postings
    `facetSlug:valueHandle` в `facet_id`, `facet_type`, `facet_value_id`.
@@ -101,7 +101,7 @@ in_stock DESC, relevance_score DESC NULLS LAST, product_id ASC
 
 ## Scope и visibility
 
-Каждый storefront query всегда ограничен `project_id`. Stable doc ids уникальны
+Каждый storefront query всегда ограничен `store_id`. Stable doc ids уникальны
 только внутри project.
 
 Visibility работает через `product_listing_index.status = 'published'` и/или

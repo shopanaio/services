@@ -173,7 +173,7 @@ function compileFacetCountsCtesSql(
       FROM product_facet_values fv
       JOIN input i ON true
       JOIN listing.listing_posting_bitmap p
-        ON p.project_id = i.project_id
+        ON p.store_id = i.store_id
        AND p.entity_type = 'product'
        AND p.field = 'facet'
        AND p.value_key = fv.value_key
@@ -292,7 +292,7 @@ function compileDiscoveredFacetValueCtesSql(): SQL {
       JOIN input i ON true
       CROSS JOIN scope_product_base sp
       CROSS JOIN scope_variant_filters svf
-      WHERE vli.project_id = i.project_id
+      WHERE vli.store_id = i.store_id
         AND vli.in_stock = true
         AND sp.bitmap @> vli.product_doc_id
         AND (svf.bitmap IS NULL OR svf.bitmap @> vli.variant_doc_id)
@@ -302,7 +302,7 @@ function compileDiscoveredFacetValueCtesSql(): SQL {
       FROM input i
       CROSS JOIN scope_product_base sp
       JOIN listing.listing_posting_bitmap p
-        ON p.project_id = i.project_id
+        ON p.store_id = i.store_id
        AND p.entity_type = 'product'
        AND p.field = 'facet'
        AND rb_cardinality(sp.bitmap & p.bitmap) > 0
@@ -313,7 +313,7 @@ function compileDiscoveredFacetValueCtesSql(): SQL {
       FROM input i
       CROSS JOIN scope_variants sv
       JOIN listing.listing_posting_bitmap p
-        ON p.project_id = i.project_id
+        ON p.store_id = i.store_id
        AND p.entity_type = 'variant'
        AND p.field = 'facet'
        AND rb_cardinality(sv.bitmap & p.bitmap) > 0
@@ -328,9 +328,9 @@ function compileDiscoveredFacetValueCtesSql(): SQL {
         f.id::text || ':' || fv.id::text AS value_key
       FROM input i
       JOIN listing.facet f
-        ON f.project_id = i.project_id
+        ON f.store_id = i.store_id
       JOIN listing.facet_value fv
-        ON fv.project_id = f.project_id
+        ON fv.store_id = f.store_id
        AND fv.facet_id = f.id
        AND fv.kind = 'display'
        AND fv.parent_id IS NULL
@@ -594,7 +594,7 @@ function compileOptionSignatureMatchingSql(input: {
         ON ofv.value_key = state.value_key
       JOIN input i ON true
       JOIN listing.listing_option_signature_value sv
-        ON sv.project_id = i.project_id
+        ON sv.store_id = i.store_id
        AND sv.value_key = state.value_key
       WHERE state.signature_lookup_enabled
     ),
@@ -617,7 +617,7 @@ function compileOptionSignatureMatchingSql(input: {
       JOIN option_active_filter_value_rows active
         ON active.facet_id <> candidate.facet_id
       JOIN listing.listing_option_signature_value sv
-        ON sv.project_id = i.project_id
+        ON sv.store_id = i.store_id
        AND sv.signature_key = candidate.signature_key
        AND sv.value_key = active.value_key
       GROUP BY candidate.candidate_value_key, candidate.signature_key
@@ -655,7 +655,7 @@ function compileOptionSignatureMatchingSql(input: {
       LEFT JOIN option_matching_signature_keys ms
         ON ms.candidate_value_key = state.value_key
       LEFT JOIN listing.listing_option_signature os
-        ON os.project_id = i.project_id
+        ON os.store_id = i.store_id
        AND os.signature_key = ms.signature_key
       WHERE state.use_signature
       GROUP BY state.value_key
@@ -731,7 +731,7 @@ function compileOptimizedOptionPriceSignatureProductBitmapsSql(): SQL {
         ON i.price_filter_json <> '{}'::jsonb
       CROSS JOIN option_count_product_scope price_scope
       JOIN listing.variant_listing_price_index vp
-        ON vp.project_id = i.project_id
+        ON vp.store_id = i.store_id
        AND vp.signature_key = lookup.signature_key
        AND vp.signature_key IS NOT NULL
        AND vp.currency = i.currency
@@ -763,7 +763,7 @@ function compileWideOptionPriceSignatureProductBitmapsSql(): SQL {
       FROM input i
       CROSS JOIN option_count_product_scope price_scope
       JOIN listing.variant_listing_price_index vp
-        ON vp.project_id = i.project_id
+        ON vp.store_id = i.store_id
        AND vp.currency = i.currency
        AND vp.has_price = true
        AND vp.signature_key IS NOT NULL
@@ -805,10 +805,10 @@ function compileSimpleOptionFacetCountsProducerSql(): SQL {
       JOIN input i ON true
       CROSS JOIN stock_filter_state sfs
       LEFT JOIN listing.listing_option_signature_value sv
-        ON sv.project_id = i.project_id
+        ON sv.store_id = i.store_id
        AND sv.value_key = ofv.value_key
       LEFT JOIN listing.listing_option_signature os
-        ON os.project_id = i.project_id
+        ON os.store_id = i.store_id
        AND os.signature_key = sv.signature_key
       GROUP BY
         ofv.facet_id,
@@ -830,7 +830,7 @@ function compilePriceOnlyOptionFacetCountsProducerSql(
       FROM input i
       JOIN option_facet_values ofv ON true
       JOIN listing.listing_option_signature_value sv
-        ON sv.project_id = i.project_id
+        ON sv.store_id = i.store_id
        AND sv.value_key = ofv.value_key
     ),
     option_price_only_signature_product_bitmaps AS (
@@ -845,7 +845,7 @@ function compilePriceOnlyOptionFacetCountsProducerSql(
       CROSS JOIN LATERAL (
         SELECT rb_build_agg(vp.product_doc_id) AS product_bitmap
         FROM listing.variant_listing_price_index vp
-        WHERE vp.project_id = ${request.projectId}::uuid
+        WHERE vp.store_id = ${request.storeId}::uuid
           AND vp.signature_key = lookup.signature_key
           AND vp.currency = ${request.currency}
           AND vp.has_price = true
@@ -865,7 +865,7 @@ function compilePriceOnlyOptionFacetCountsProducerSql(
       FROM input i
       JOIN option_facet_values ofv ON true
       LEFT JOIN listing.listing_option_signature_value sv
-        ON sv.project_id = i.project_id
+        ON sv.store_id = i.store_id
        AND sv.value_key = ofv.value_key
       LEFT JOIN option_price_only_signature_product_bitmaps signature_products
         ON signature_products.signature_key = sv.signature_key
@@ -941,7 +941,7 @@ function compileHeavyOptionFacetCountsProducerSql(): SQL {
         ON counts.target_facet_id = required.target_facet_id
        AND counts.required_facet_count > 0
       JOIN listing.listing_option_signature_value sv
-        ON sv.project_id = i.project_id
+        ON sv.store_id = i.store_id
        AND sv.facet_id = required.required_facet_id::uuid
        AND sv.value_key = required.value_key
       GROUP BY
@@ -960,7 +960,7 @@ function compileHeavyOptionFacetCountsProducerSql(): SQL {
       FROM option_heavy_base_signatures base
       JOIN input i ON true
       JOIN listing.listing_option_signature_value sv
-        ON sv.project_id = i.project_id
+        ON sv.store_id = i.store_id
        AND sv.signature_key = base.signature_key
        AND sv.facet_id = base.target_facet_id::uuid
       JOIN option_facet_values ofv
@@ -978,7 +978,7 @@ function compileHeavyOptionFacetCountsProducerSql(): SQL {
       FROM option_heavy_bucket_signatures bucket
       JOIN input i ON i.price_filter_json = '{}'::jsonb
       JOIN listing.listing_option_signature os
-        ON os.project_id = i.project_id
+        ON os.store_id = i.store_id
        AND os.signature_key = bucket.signature_key
       GROUP BY bucket.facet_id, bucket.value_key
     ),

@@ -20,7 +20,7 @@ import { category } from "./categories";
 export const tag = catalogSchema.table(
   "tag",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     id: uuid("id").primaryKey(),
 
     // Identifier (URL-safe slug)
@@ -35,8 +35,8 @@ export const tag = catalogSchema.table(
       .defaultNow(),
   },
   (table) => [
-    uniqueIndex("tag_project_id_handle_key").on(table.projectId, table.handle),
-    index("idx_tag_project_id").on(table.projectId),
+    uniqueIndex("tag_store_id_handle_key").on(table.storeId, table.handle),
+    index("idx_tag_store_id").on(table.storeId),
   ]
 );
 
@@ -47,7 +47,7 @@ export const tag = catalogSchema.table(
 export const tagTranslation = catalogSchema.table(
   "tag_translation",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     tagId: uuid("tag_id")
       .notNull()
       .references(() => tag.id, { onDelete: "cascade" }),
@@ -58,7 +58,7 @@ export const tagTranslation = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.tagId, table.locale] }),
-    index("idx_tag_translation_project").on(table.projectId),
+    index("idx_tag_translation_store").on(table.storeId),
   ]
 );
 
@@ -69,7 +69,7 @@ export const tagTranslation = catalogSchema.table(
 export const productTag = catalogSchema.table(
   "product_tag",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
@@ -91,7 +91,7 @@ export const productTag = catalogSchema.table(
 export const categoryTag = catalogSchema.table(
   "category_tag",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     categoryId: uuid("category_id")
       .notNull()
       .references(() => category.id, { onDelete: "cascade" }),

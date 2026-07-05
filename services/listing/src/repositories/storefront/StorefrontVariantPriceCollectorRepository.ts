@@ -38,10 +38,10 @@ export class StorefrontVariantPriceCollectorRepository extends BaseRepository {
         SELECT rb_build_agg(vp.variant_doc_id)
         FROM listing.variant_listing_price_index vp
         JOIN listing.variant_listing_index vli
-          ON vli.project_id = vp.project_id
+          ON vli.store_id = vp.store_id
          AND vli.variant_id = vp.variant_id
          AND vli.in_stock = true
-        WHERE vp.project_id = ${this.storeId}::uuid
+        WHERE vp.store_id = ${this.storeId}::uuid
           AND vp.currency = ${input.currency}
           AND vp.has_price = true
           AND vp.price_minor IS NOT NULL
@@ -143,14 +143,14 @@ export class StorefrontVariantPriceCollectorRepository extends BaseRepository {
         vp.price_minor::double precision AS "priceMinor"
       FROM listing.variant_listing_price_index vp
       JOIN listing.variant_listing_index vli
-        ON vli.project_id = vp.project_id
+        ON vli.store_id = vp.store_id
        AND vli.variant_id = vp.variant_id
        AND vli.in_stock = true
       JOIN listing.product_listing_index pli
-        ON pli.project_id = vp.project_id
+        ON pli.store_id = vp.store_id
        AND pli.product_doc_id = vp.product_doc_id
        AND pli.product_id = vp.product_id
-      WHERE vp.project_id = ${this.storeId}::uuid
+      WHERE vp.store_id = ${this.storeId}::uuid
         AND vp.currency = ${input.currency}
         AND vp.has_price = true
         AND vp.price_minor IS NOT NULL
@@ -201,10 +201,10 @@ export class StorefrontVariantPriceCollectorRepository extends BaseRepository {
           vp.price_minor
         FROM listing.variant_listing_price_index vp
         JOIN listing.variant_listing_index vli
-          ON vli.project_id = vp.project_id
+          ON vli.store_id = vp.store_id
          AND vli.variant_id = vp.variant_id
          AND vli.in_stock = true
-        WHERE vp.project_id = ${this.storeId}::uuid
+        WHERE vp.store_id = ${this.storeId}::uuid
           AND vp.currency = ${input.currency}
           AND vp.has_price = true
           AND vp.price_minor IS NOT NULL
@@ -231,7 +231,7 @@ export class StorefrontVariantPriceCollectorRepository extends BaseRepository {
         chosen.price_minor::double precision AS "priceMinor"
       FROM chosen
       JOIN listing.product_listing_index pli
-        ON pli.project_id = ${this.storeId}::uuid
+        ON pli.store_id = ${this.storeId}::uuid
        AND pli.product_doc_id = chosen.product_doc_id
        AND pli.product_id = chosen.product_id
       WHERE true

@@ -965,7 +965,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       operations: mapped.operations,
       context: {
         organizationId: this.$ctx.store.organizationId,
-        projectId: this.$ctx.store.id,
         storeId: this.$ctx.store.id,
         userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
         locale: this.$ctx.locale ?? this.$ctx.store.defaultLocale,
@@ -1708,7 +1707,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       operations: mapped.operations,
       context: {
         organizationId: this.$ctx.store.organizationId,
-        projectId: this.$ctx.store.id,
         storeId: this.$ctx.store.id,
         userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
         locale: this.$ctx.locale ?? this.$ctx.store.defaultLocale,
@@ -2228,7 +2226,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     // Build context
     const context: WorkflowContext = {
       organizationId: this.$ctx.store.organizationId,
-      projectId: this.$ctx.store.id,
       storeId: this.$ctx.store.id,
       userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
       locale: this.$ctx.locale ?? this.$ctx.store.defaultLocale,
@@ -2290,7 +2287,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         { products, context },
         {
           source: "workflow",
-          workflowId: `productBulkEdit:${context.projectId}:${idempotencyKey}`,
+          workflowId: `productBulkEdit:${context.storeId}:${idempotencyKey}`,
           stepId: "start",
         }
       )) as { jobId: string };

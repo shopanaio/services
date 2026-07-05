@@ -59,7 +59,7 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
     // 2. Update translation if name provided
     if (name !== undefined) {
       await this.repository.translation.upsertFeatureTranslation({
-        projectId: this.getProjectId(),
+        storeId: this.getProjectId(),
         featureId: id,
         locale: this.getLocale(),
         name,
@@ -169,7 +169,7 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
 
         if (valueUpdate.name !== undefined) {
           await this.repository.translation.upsertFeatureValueTranslation({
-            projectId: this.getProjectId(),
+            storeId: this.getProjectId(),
             featureValueId: valueUpdate.id,
             locale: this.getLocale(),
             name: valueUpdate.name,
@@ -216,7 +216,7 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
         occupiedSlugs.add(valueInput.slug);
 
         await this.repository.translation.upsertFeatureValueTranslation({
-          projectId: this.getProjectId(),
+          storeId: this.getProjectId(),
           featureValueId: featureValue.id,
           locale: this.getLocale(),
           name: valueInput.name,

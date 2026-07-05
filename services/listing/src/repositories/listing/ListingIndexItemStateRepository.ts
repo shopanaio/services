@@ -9,7 +9,7 @@ import {
 } from "../models/index.js";
 
 export interface ListingIndexItemStateKey {
-  projectId: string;
+  storeId: string;
   entityType: Listing.ListingSellableItemEntityType;
   itemId: string;
 }
@@ -59,7 +59,7 @@ export class ListingIndexItemStateRepository extends BaseRepository {
       .values(values)
       .onConflictDoUpdate({
         target: [
-          listingIndexItemState.projectId,
+          listingIndexItemState.storeId,
           listingIndexItemState.entityType,
           listingIndexItemState.itemId,
         ],
@@ -79,13 +79,13 @@ export class ListingIndexItemStateRepository extends BaseRepository {
 
   private whereItemKey(key: ListingIndexItemStateKey) {
     return and(
-      eq(listingIndexItemState.projectId, key.projectId),
+      eq(listingIndexItemState.storeId, key.storeId),
       eq(listingIndexItemState.entityType, key.entityType),
       eq(listingIndexItemState.itemId, key.itemId)
     );
   }
 
   private lockKey(key: ListingIndexItemStateKey): string {
-    return `listing_index_item_state:v1:${key.projectId}:${key.entityType}:${key.itemId}`;
+    return `listing_index_item_state:v1:${key.storeId}:${key.entityType}:${key.itemId}`;
   }
 }

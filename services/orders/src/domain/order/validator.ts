@@ -1,12 +1,12 @@
 import { vo } from "@src/domain/shared/valueObjects";
 
 export type CreateOrderValidationInput = {
-  projectId: string;
+  storeId: string;
   currencyCode: string;
 };
 
 export type CreateOrderValidated = {
-  projectId: string;
+  storeId: string;
   currencyCode: string;
 };
 
@@ -15,7 +15,7 @@ export class OrderDomainValidator {
     input: CreateOrderValidationInput
   ): CreateOrderValidated {
     return {
-      projectId: input.projectId,
+      storeId: input.storeId,
       currencyCode: input.currencyCode,
     };
   }

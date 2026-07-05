@@ -17,7 +17,7 @@ Integration between Inventory and Media services for:
 **Table `variant_media`:**
 ```typescript
 {
-  projectId: uuid,
+  storeId: uuid,
   variantId: uuid,       // FK → variant.id (CASCADE)
   fileId: uuid,          // NO FK to Media (loose coupling)
   sortIndex: integer,

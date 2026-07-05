@@ -17,7 +17,7 @@ import { catalogSchema } from "./schema";
 export const productInventorySettings = catalogSchema.table(
   "product_inventory_settings",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id").primaryKey(), // References Catalog.product
     alertThresholdMethod: varchar("alert_threshold_method", { length: 20 })
       .notNull()

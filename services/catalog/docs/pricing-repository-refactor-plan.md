@@ -53,7 +53,7 @@ async getPriceHistory(input: GetPriceHistoryInput) {
     first: input.limit,
     after: input.after,
     where: {
-      projectId: { _eq: this.storeId },
+      storeId: { _eq: this.storeId },
       variantId: { _eq: input.variantId },
       currency: { _eq: input.currency },
       effectiveFrom: { _lte: input.to },
@@ -90,7 +90,7 @@ async setPrice(
       .set({ effectiveTo: new Date() })
       .where(
         and(
-          eq(itemPricing.projectId, this.storeId),
+          eq(itemPricing.storeId, this.storeId),
           eq(itemPricing.variantId, variantId),
           eq(itemPricing.currency, data.currency),
           isNull(itemPricing.effectiveTo)
@@ -102,7 +102,7 @@ async setPrice(
     const result = await tx
       .insert(itemPricing)
       .values({
-        projectId: this.storeId,
+        storeId: this.storeId,
         id,
         variantId,
         currency: data.currency,

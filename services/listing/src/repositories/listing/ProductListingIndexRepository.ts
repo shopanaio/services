@@ -27,7 +27,7 @@ export class ProductListingIndexRepository extends BaseRepository {
       .from(productListingIndex)
       .where(
         and(
-          eq(productListingIndex.projectId, this.storeId),
+          eq(productListingIndex.storeId, this.storeId),
           eq(productListingIndex.productId, productId)
         )
       )
@@ -44,7 +44,7 @@ export class ProductListingIndexRepository extends BaseRepository {
       .from(productListingIndex)
       .where(
         and(
-          eq(productListingIndex.projectId, this.storeId),
+          eq(productListingIndex.storeId, this.storeId),
           eq(productListingIndex.productDocId, productDocId)
         )
       )
@@ -60,7 +60,7 @@ export class ProductListingIndexRepository extends BaseRepository {
       .from(productListingIndex)
       .where(
         and(
-          eq(productListingIndex.projectId, this.storeId),
+          eq(productListingIndex.storeId, this.storeId),
           eq(productListingIndex.productId, productId)
         )
       )
@@ -79,7 +79,7 @@ export class ProductListingIndexRepository extends BaseRepository {
       .from(productListingIndex)
       .where(
         and(
-          eq(productListingIndex.projectId, this.storeId),
+          eq(productListingIndex.storeId, this.storeId),
           eq(productListingIndex.productDocId, productDocId)
         )
       )
@@ -101,7 +101,7 @@ export class ProductListingIndexRepository extends BaseRepository {
       .from(productListingIndex)
       .where(
         and(
-          eq(productListingIndex.projectId, this.storeId),
+          eq(productListingIndex.storeId, this.storeId),
           inArray(productListingIndex.productId, [...new Set(productIds)])
         )
       );
@@ -124,7 +124,7 @@ export class ProductListingIndexRepository extends BaseRepository {
       .from(productListingIndex)
       .where(
         and(
-          eq(productListingIndex.projectId, this.storeId),
+          eq(productListingIndex.storeId, this.storeId),
           inArray(productListingIndex.productDocId, [...new Set(productDocIds)])
         )
       );
@@ -135,7 +135,7 @@ export class ProductListingIndexRepository extends BaseRepository {
     const rows = await this.connection
       .select({ value: count() })
       .from(productListingIndex)
-      .where(eq(productListingIndex.projectId, this.storeId));
+      .where(eq(productListingIndex.storeId, this.storeId));
 
     return rows[0]?.value ?? 0;
   }
@@ -173,7 +173,7 @@ export class ProductListingIndexRepository extends BaseRepository {
       }
 
       return {
-        projectId: this.storeId,
+        storeId: this.storeId,
         productId: row.productId,
         productDocId: row.productDocId,
         kind: row.kind ?? "BASE",
@@ -233,7 +233,7 @@ export class ProductListingIndexRepository extends BaseRepository {
         .values(values)
         .onConflictDoUpdate({
           target: productListingIndex.productId,
-          setWhere: eq(productListingIndex.projectId, this.storeId),
+          setWhere: eq(productListingIndex.storeId, this.storeId),
           set: {
             kind: sql`excluded.kind`,
             vendorId: sql`excluded.vendor_id`,
@@ -267,7 +267,7 @@ export class ProductListingIndexRepository extends BaseRepository {
       .set(updateData)
       .where(
         and(
-          eq(productListingIndex.projectId, this.storeId),
+          eq(productListingIndex.storeId, this.storeId),
           eq(productListingIndex.productId, productId)
         )
       )
@@ -293,7 +293,7 @@ export class ProductListingIndexRepository extends BaseRepository {
       })
       .where(
         and(
-          eq(productListingIndex.projectId, this.storeId),
+          eq(productListingIndex.storeId, this.storeId),
           eq(productListingIndex.productId, productId)
         )
       )
@@ -307,7 +307,7 @@ export class ProductListingIndexRepository extends BaseRepository {
       .delete(productListingIndex)
       .where(
         and(
-          eq(productListingIndex.projectId, this.storeId),
+          eq(productListingIndex.storeId, this.storeId),
           eq(productListingIndex.productId, productId)
         )
       )
@@ -327,7 +327,7 @@ export class ProductListingIndexRepository extends BaseRepository {
         .delete(productListingIndex)
         .where(
           and(
-            eq(productListingIndex.projectId, this.storeId),
+            eq(productListingIndex.storeId, this.storeId),
             inArray(productListingIndex.productId, chunk)
           )
         )
@@ -354,7 +354,7 @@ export class ProductListingIndexRepository extends BaseRepository {
         .delete(productListingIndex)
         .where(
           and(
-            eq(productListingIndex.projectId, this.storeId),
+            eq(productListingIndex.storeId, this.storeId),
             inArray(productListingIndex.productDocId, chunk)
           )
         )
@@ -377,7 +377,7 @@ export class ProductListingIndexRepository extends BaseRepository {
     assertNonNegativeInteger(row.totalStock, "totalStock");
 
     return {
-      projectId: this.storeId,
+      storeId: this.storeId,
       productId: row.productId,
       productDocId: row.productDocId,
       kind: row.kind,

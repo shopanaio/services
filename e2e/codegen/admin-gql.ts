@@ -4056,7 +4056,7 @@ export type ApiInstalledApp = {
   enabled: Scalars['Boolean']['output'];
   id: Scalars['String']['output'];
   meta?: Maybe<Scalars['JSON']['output']>;
-  projectID: Scalars['String']['output'];
+  storeID: Scalars['String']['output'];
 };
 
 /** Filter operators for Int fields */
@@ -7272,8 +7272,8 @@ export type TagOrderField =
   | 'name'
   /** Sort by productsCount */
   | 'productsCount'
-  /** Sort by projectId */
-  | 'projectId';
+  /** Sort by storeId */
+  | 'storeId';
 
 /** Input for updating a tag. */
 export type ApiTagUpdateInput = {
@@ -7314,8 +7314,8 @@ export type ApiTagWhereInput = {
   name?: InputMaybe<ApiStringFilter>;
   /** Filter by productsCount */
   productsCount?: InputMaybe<ApiIntFilter>;
-  /** Filter by projectId */
-  projectId?: InputMaybe<ApiIdFilter>;
+  /** Filter by storeId */
+  storeId?: InputMaybe<ApiIdFilter>;
 };
 
 export type ThresholdMethod =

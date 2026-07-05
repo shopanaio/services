@@ -46,7 +46,7 @@ dependency rules, configuration metadata), а не отправляет весь
 - Catalog service владеет `Product`, `Variant` и `Bundle`; bundle-specific поля
   публикуются на `Bundle`, а не как `Product.bundle`.
 - Все bundle queries/mutations должны scope-иться по текущему project/store через
-  request context. `projectId` из DB не публикуется в GraphQL.
+  request context. `storeId` из DB не публикуется в GraphQL.
 - Для плоских catalog/listing списков, где рядом отображаются обычные продукты и
   бандлы, использовать общий GraphQL interface (`CatalogSellable`), а не union.
   `Product` и `Bundle` реализуют этот interface, поэтому UI может читать общие
@@ -1281,7 +1281,7 @@ input BundleDependencyActionSyncInput {
 - Каждый variant может быть назначен только одной configuration.
 - Все IDs в input принимаются как GraphQL global IDs и декодируются к ожидаемым
   `GlobalIdEntity`; invalid type должен возвращать `GenericUserError`.
-- Все операции фильтруются по текущему `projectId` из context. Запрещено читать или
+- Все операции фильтруются по текущему `storeId` из context. Запрещено читать или
   менять bundle-структуру другого project/store даже при валидном UUID.
 - `BundleGroupSyncItemInput.title` обязателен и пишется в
   `bundle_group_translation` текущей locale.
@@ -1348,7 +1348,7 @@ input BundleDependencyActionSyncInput {
 | `BundleCondition` | `catalog.condition` |
 | `BundleDependencyAction` | `catalog.dependency_action` |
 
-`catalog.*.project_id` columns are implementation scoping fields and are not exposed
+`catalog.*.store_id` columns are implementation scoping fields and are not exposed
 in GraphQL. Repositories/resolvers must include the current project/store scope in
 all reads and writes.
 

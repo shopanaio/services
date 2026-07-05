@@ -114,7 +114,7 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
     expectedRevision?: number,
   ): Promise<{ revision: number } | { error: UserError }> {
     const conditions = [
-      eq(category.projectId, storeId),
+      eq(category.storeId, storeId),
       eq(category.id, categoryId),
       isNull(category.deletedAt),
     ];
@@ -140,7 +140,7 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
       .from(category)
       .where(
         and(
-          eq(category.projectId, storeId),
+          eq(category.storeId, storeId),
           eq(category.id, categoryId),
           isNull(category.deletedAt),
         ),
@@ -278,7 +278,7 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
       .from(productCategory)
       .where(
         and(
-          eq(productCategory.projectId, storeId),
+          eq(productCategory.storeId, storeId),
           eq(productCategory.categoryId, categoryId),
         ),
       );
@@ -340,7 +340,7 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
       .from(product)
       .where(
         and(
-          eq(product.projectId, storeId),
+          eq(product.storeId, storeId),
           inArray(product.id, productIds),
           isNull(product.deletedAt),
         ),

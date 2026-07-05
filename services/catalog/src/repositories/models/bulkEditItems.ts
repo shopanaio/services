@@ -34,7 +34,7 @@ export const bulkEditItem = catalogSchema.table(
     jobId: uuid("job_id")
       .notNull()
       .references(() => bulkEditJob.id, { onDelete: "cascade" }),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id").notNull(),
     variantId: uuid("variant_id"),
     opType: text("op_type").notNull(),
@@ -51,8 +51,8 @@ export const bulkEditItem = catalogSchema.table(
     finishedAt: timestamp("finished_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
-    index("bulk_edit_item_project_product_status_idx").on(
-      table.projectId,
+    index("bulk_edit_item_store_product_status_idx").on(
+      table.storeId,
       table.productId,
       table.status
     ),

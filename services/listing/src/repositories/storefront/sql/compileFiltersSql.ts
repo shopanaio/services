@@ -14,7 +14,7 @@ export function compileFiltersSql(): SQL {
       FROM resolved_facets rf
       JOIN input i ON true
       LEFT JOIN listing.listing_posting_bitmap p
-        ON p.project_id = i.project_id
+        ON p.store_id = i.store_id
        AND p.entity_type = 'product'
        AND p.field = 'facet'
        AND p.value_key = rf.value_key
@@ -31,7 +31,7 @@ export function compileFiltersSql(): SQL {
       FROM input i
       CROSS JOIN LATERAL jsonb_array_elements_text(i.vendor_ids_json) v(vendor_id)
       LEFT JOIN listing.listing_posting_bitmap p
-        ON p.project_id = i.project_id
+        ON p.store_id = i.store_id
        AND p.entity_type = 'product'
        AND p.field = 'vendor'
        AND p.value_key = v.vendor_id
@@ -46,7 +46,7 @@ export function compileFiltersSql(): SQL {
       FROM resolved_facets rf
       JOIN input i ON true
       LEFT JOIN listing.listing_posting_bitmap p
-        ON p.project_id = i.project_id
+        ON p.store_id = i.store_id
        AND p.entity_type = 'variant'
        AND p.field = 'facet'
        AND p.value_key = rf.value_key
@@ -63,7 +63,7 @@ export function compileFiltersSql(): SQL {
           THEN COALESCE((
             SELECT rb_build_agg(pli.product_doc_id)
             FROM listing.product_listing_index pli
-            WHERE pli.project_id = i.project_id
+            WHERE pli.store_id = i.store_id
               AND pli.status = 'published'
               AND pli.in_stock = sfs.value
           ), ${emptyRoaringBitmapSql()})
@@ -91,7 +91,7 @@ export function compileFiltersSql(): SQL {
       SELECT COALESCE(rb_build_agg(vli.variant_doc_id), ${emptyRoaringBitmapSql()}) AS bitmap
       FROM listing.variant_listing_index vli
       JOIN input i ON true
-      WHERE vli.project_id = i.project_id
+      WHERE vli.store_id = i.store_id
         AND vli.in_stock = true
     ),
     active_stock_variant_filter AS (
@@ -101,7 +101,7 @@ export function compileFiltersSql(): SQL {
           THEN COALESCE((
             SELECT rb_build_agg(vli.variant_doc_id)
             FROM listing.variant_listing_index vli
-            WHERE vli.project_id = i.project_id
+            WHERE vli.store_id = i.store_id
               AND vli.in_stock = sfs.value
           ), ${emptyRoaringBitmapSql()})
           WHEN EXISTS (SELECT 1 FROM option_filter_groups)
@@ -120,10 +120,10 @@ export function compileFiltersSql(): SQL {
             SELECT rb_build_agg(vp.variant_doc_id)
             FROM listing.variant_listing_price_index vp
             JOIN listing.variant_listing_index vli
-              ON vli.project_id = vp.project_id
+              ON vli.store_id = vp.store_id
              AND vli.variant_id = vp.variant_id
              AND vli.in_stock = true
-            WHERE vp.project_id = i.project_id
+            WHERE vp.store_id = i.store_id
               AND vp.currency = i.currency
               AND vp.has_price = true
               AND vp.price_minor IS NOT NULL
@@ -171,7 +171,7 @@ export function compileFiltersSql(): SQL {
           WHEN (SELECT bitmap FROM variant_filters) IS NULL
           THEN NULL
           ELSE ${compileVariantProjectionSql({
-            projectIdSql: sql`(SELECT project_id FROM input)`,
+            projectIdSql: sql`(SELECT store_id FROM input)`,
             variantBitmapSql: sql`(SELECT bitmap FROM variant_filters)`,
           })}
         END AS bitmap

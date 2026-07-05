@@ -22,7 +22,7 @@ export type ServiceError = Readonly<{
 export type RunnerMeta = Readonly<{
   pluginCode: string;
   operation: string;
-  projectId: string;
+  storeId: string;
 }>;
 
 export type RunnerOptions = Readonly<{
@@ -64,7 +64,7 @@ const stopRetryCodes = new Set(['TIMEOUT', 'CIRCUIT_OPEN', 'VALIDATION_ERROR', '
 /**
  * Forms partition key for limiter/breaker.
  */
-function buildPartitionKey(meta: RunnerMeta): string { return `${meta.pluginCode}:${meta.operation}:${meta.projectId}`; }
+function buildPartitionKey(meta: RunnerMeta): string { return `${meta.pluginCode}:${meta.operation}:${meta.storeId}`; }
 
 export class ResilienceRunner {
   private readonly keyToLimiter = new Map<string, Bottleneck>();

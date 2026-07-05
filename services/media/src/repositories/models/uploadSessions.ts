@@ -13,7 +13,7 @@ export const uploadSessions = mediaSchema.table(
   "upload_sessions",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     bucketId: uuid("bucket_id")
       .notNull()
       .references(() => buckets.id, { onDelete: "cascade" }),
@@ -35,7 +35,7 @@ export const uploadSessions = mediaSchema.table(
       .defaultNow(),
   },
   (table) => [
-    index("idx_upload_sessions_project").on(table.projectId),
+    index("idx_upload_sessions_store").on(table.storeId),
     index("idx_upload_sessions_expires")
       .on(table.expiresAt)
       .where(sql`status = 'pending'`),

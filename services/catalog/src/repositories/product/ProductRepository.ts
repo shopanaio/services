@@ -106,7 +106,7 @@ export class ProductRepository extends BaseRepository {
       .from(product)
       .where(
         and(
-          eq(product.projectId, this.storeId),
+          eq(product.storeId, this.storeId),
           eq(product.id, id),
           isNull(product.deletedAt)
         )
@@ -122,7 +122,7 @@ export class ProductRepository extends BaseRepository {
       .from(product)
       .where(
         and(
-          eq(product.projectId, this.storeId),
+          eq(product.storeId, this.storeId),
           eq(product.id, id),
           isNull(product.deletedAt)
         )
@@ -139,7 +139,7 @@ export class ProductRepository extends BaseRepository {
     const now = new Date().toISOString();
 
     const newProduct: NewProduct = {
-      projectId: this.storeId,
+      storeId: this.storeId,
       id,
       vendorId: data.vendorId ?? null,
       publishedAt: data.publishedAt instanceof Date ? data.publishedAt.toISOString() : data.publishedAt ?? null,
@@ -162,7 +162,7 @@ export class ProductRepository extends BaseRepository {
       .set({ updatedAt: new Date().toISOString() })
       .where(
         and(
-          eq(product.projectId, this.storeId),
+          eq(product.storeId, this.storeId),
           eq(product.id, id)
         )
       );
@@ -189,7 +189,7 @@ export class ProductRepository extends BaseRepository {
       .set(updateData)
       .where(
         and(
-          eq(product.projectId, this.storeId),
+          eq(product.storeId, this.storeId),
           eq(product.id, id)
         )
       )
@@ -205,7 +205,7 @@ export class ProductRepository extends BaseRepository {
       .set({ deletedAt: now, updatedAt: now })
       .where(
         and(
-          eq(product.projectId, this.storeId),
+          eq(product.storeId, this.storeId),
           eq(product.id, id),
           isNull(product.deletedAt)
         )
@@ -231,7 +231,7 @@ export class ProductRepository extends BaseRepository {
       })
       .where(
         and(
-          eq(product.projectId, this.storeId),
+          eq(product.storeId, this.storeId),
           eq(product.id, id),
           isNull(product.deletedAt)
         )
@@ -251,7 +251,7 @@ export class ProductRepository extends BaseRepository {
       .delete(product)
       .where(
         and(
-          eq(product.projectId, this.storeId),
+          eq(product.storeId, this.storeId),
           eq(product.id, id)
         )
       )
@@ -267,7 +267,7 @@ export class ProductRepository extends BaseRepository {
       .set({ publishedAt: now, updatedAt: now })
       .where(
         and(
-          eq(product.projectId, this.storeId),
+          eq(product.storeId, this.storeId),
           eq(product.id, id),
           isNull(product.deletedAt)
         )
@@ -283,7 +283,7 @@ export class ProductRepository extends BaseRepository {
       .set({ publishedAt: null, updatedAt: new Date().toISOString() })
       .where(
         and(
-          eq(product.projectId, this.storeId),
+          eq(product.storeId, this.storeId),
           eq(product.id, id),
           isNull(product.deletedAt)
         )
@@ -301,7 +301,7 @@ export class ProductRepository extends BaseRepository {
       .from(product)
       .where(
         and(
-          eq(product.projectId, this.storeId),
+          eq(product.storeId, this.storeId),
           isNull(product.deletedAt)
         )
       );
@@ -317,7 +317,7 @@ export class ProductRepository extends BaseRepository {
     // Scope list view rows to current tenant, locale, and currency.
     const mergedWhere: ProductRelayInput["where"] = {
       _and: [
-        { projectId: { _eq: this.storeId } },
+        { storeId: { _eq: this.storeId } },
         { deletedAt: { _is: null } },
         { locale: { _eq: this.locale } },
         {
@@ -363,7 +363,7 @@ export class ProductRepository extends BaseRepository {
 
     const mergedWhere: BundleRelayInput["where"] = {
       _and: [
-        { projectId: { _eq: this.storeId } },
+        { storeId: { _eq: this.storeId } },
         { deletedAt: { _is: null } },
         { locale: { _eq: this.locale } },
         {
@@ -417,7 +417,7 @@ export class ProductRepository extends BaseRepository {
       .from(productCategory)
       .where(
         and(
-          eq(productCategory.projectId, this.storeId),
+          eq(productCategory.storeId, this.storeId),
           inArray(productCategory.categoryId, scope.referenceIds)
         )
       );
@@ -441,7 +441,7 @@ export class ProductRepository extends BaseRepository {
       ],
       where: {
         ...input?.where,
-        projectId: { _eq: this.storeId },
+        storeId: { _eq: this.storeId },
         deletedAt: { _is: null },
       },
     });
@@ -451,7 +451,7 @@ export class ProductRepository extends BaseRepository {
     const results = await productQuery.execute(this.connection, {
       where: {
         id: { _eq: id },
-        projectId: { _eq: this.storeId },
+        storeId: { _eq: this.storeId },
         deletedAt: { _is: null },
       },
       limit: 1,
@@ -468,7 +468,7 @@ export class ProductRepository extends BaseRepository {
       .from(product)
       .where(
         and(
-          eq(product.projectId, this.storeId),
+          eq(product.storeId, this.storeId),
           inArray(product.id, [...productIds]),
           isNull(product.deletedAt)
         )
@@ -482,7 +482,7 @@ export class ProductRepository extends BaseRepository {
       .from(bundle)
       .where(
         and(
-          eq(bundle.projectId, this.storeId),
+          eq(bundle.storeId, this.storeId),
           inArray(bundle.productId, [...productIds])
         )
       );
@@ -498,7 +498,7 @@ export class ProductRepository extends BaseRepository {
       .from(productPriceRange)
       .where(
         and(
-          eq(productPriceRange.projectId, this.storeId),
+          eq(productPriceRange.storeId, this.storeId),
           inArray(productPriceRange.productId, [...productIds]),
           eq(productPriceRange.currency, this.currency)
         )
@@ -513,7 +513,7 @@ export class ProductRepository extends BaseRepository {
       .from(productTranslation)
       .where(
         and(
-          eq(productTranslation.projectId, this.storeId),
+          eq(productTranslation.storeId, this.storeId),
           inArray(productTranslation.productId, [...productIds]),
           eq(productTranslation.locale, this.locale)
         )
@@ -528,7 +528,7 @@ export class ProductRepository extends BaseRepository {
       .from(productOption)
       .where(
         and(
-          eq(productOption.projectId, this.storeId),
+          eq(productOption.storeId, this.storeId),
           inArray(productOption.productId, [...productIds])
         )
       )
@@ -547,7 +547,7 @@ export class ProductRepository extends BaseRepository {
       .from(productFeature)
       .where(
         and(
-          eq(productFeature.projectId, this.storeId),
+          eq(productFeature.storeId, this.storeId),
           inArray(productFeature.productId, [...productIds])
         )
       );
@@ -565,7 +565,7 @@ export class ProductRepository extends BaseRepository {
       .from(productFeature)
       .where(
         and(
-          eq(productFeature.projectId, this.storeId),
+          eq(productFeature.storeId, this.storeId),
           inArray(productFeature.productId, [...productIds]),
           isNull(productFeature.parentId)
         )
@@ -579,7 +579,7 @@ export class ProductRepository extends BaseRepository {
       .from(productOption)
       .where(
         and(
-          eq(productOption.projectId, this.storeId),
+          eq(productOption.storeId, this.storeId),
           inArray(productOption.id, [...optionIds])
         )
       );
@@ -591,7 +591,7 @@ export class ProductRepository extends BaseRepository {
       .from(productFeature)
       .where(
         and(
-          eq(productFeature.projectId, this.storeId),
+          eq(productFeature.storeId, this.storeId),
           inArray(productFeature.id, [...featureIds])
         )
       );

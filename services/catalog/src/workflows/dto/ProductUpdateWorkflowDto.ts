@@ -18,7 +18,6 @@ export interface ProductUpdateWorkflowInput {
  */
 export interface WorkflowContext {
   organizationId: string;
-  projectId: string;
   storeId: string;
   userId?: string;
   locale: string;

@@ -60,7 +60,7 @@ export type InstalledApp = {
   enabled: Scalars['Boolean']['output'];
   id: Scalars['String']['output'];
   meta?: Maybe<Scalars['JSON']['output']>;
-  projectID: Scalars['String']['output'];
+  storeID: Scalars['String']['output'];
 };
 
 export type Mutation = {
@@ -195,7 +195,7 @@ export type InstalledAppResolvers<ContextType = GraphQLContext, ParentType exten
   enabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta?: Resolver<Maybe<ResolversTypes['JSON']>, ParentType, ContextType>;
-  projectID?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  storeID?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 

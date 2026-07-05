@@ -10,7 +10,7 @@ export const bulkEditJob = catalogSchema.table(
   "bulk_edit_job",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     status: bulkEditJobStatusEnum("status").notNull().default("QUEUED"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
@@ -19,12 +19,12 @@ export const bulkEditJob = catalogSchema.table(
     finishedAt: timestamp("finished_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
-    index("bulk_edit_job_project_created_idx").on(
-      table.projectId,
+    index("bulk_edit_job_store_created_idx").on(
+      table.storeId,
       table.createdAt
     ),
-    index("bulk_edit_job_project_status_idx").on(
-      table.projectId,
+    index("bulk_edit_job_store_status_idx").on(
+      table.storeId,
       table.status
     ),
   ]

@@ -39,14 +39,14 @@ export const bulkEditJobStatusEnum = inventorySchema.enum("bulk_edit_job_status"
 
 export const bulkEditJob = inventorySchema.table("bulk_edit_job", {
   id: uuid("id").primaryKey(),
-  projectId: uuid("project_id").notNull(),
+  storeId: uuid("store_id").notNull(),
   status: bulkEditJobStatusEnum("status").notNull().default("QUEUED"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   startedAt: timestamp("started_at", { withTimezone: true, mode: "string" }),
   finishedAt: timestamp("finished_at", { withTimezone: true, mode: "string" }),
 }, (table) => [
-  index("bulk_edit_job_project_created_idx").on(table.projectId, table.createdAt),
-  index("bulk_edit_job_project_status_idx").on(table.projectId, table.status),
+  index("bulk_edit_job_store_created_idx").on(table.storeId, table.createdAt),
+  index("bulk_edit_job_store_status_idx").on(table.storeId, table.status),
 ]);
 
 export type BulkEditJob = typeof bulkEditJob.$inferSelect;
@@ -77,7 +77,7 @@ export const bulkEditCancelReasonEnum = inventorySchema.enum("bulk_edit_cancel_r
 export const bulkEditItem = inventorySchema.table("bulk_edit_item", {
   id: uuid("id").primaryKey(),
   jobId: uuid("job_id").notNull().references(() => bulkEditJob.id, { onDelete: "cascade" }),
-  projectId: uuid("project_id").notNull(),
+  storeId: uuid("store_id").notNull(),
   productId: uuid("product_id").notNull(),
   variantId: uuid("variant_id"),
   opType: text("op_type").notNull(),
@@ -94,8 +94,8 @@ export const bulkEditItem = inventorySchema.table("bulk_edit_item", {
   finishedAt: timestamp("finished_at", { withTimezone: true, mode: "string" }),
 }, (table) => [
   // Query indexes (unique constraint добавляется через raw SQL миграцию, см. примечание ниже)
-  index("bulk_edit_item_project_product_status_idx")
-    .on(table.projectId, table.productId, table.status),
+  index("bulk_edit_item_store_product_status_idx")
+    .on(table.storeId, table.productId, table.status),
   index("bulk_edit_item_job_chunk_op_idx")
     .on(table.jobId, table.chunkIndex, table.opIndex),
   index("bulk_edit_item_job_status_idx")
@@ -119,13 +119,13 @@ import { inventorySchema } from "./schema.js";
 import { bulkEditJob } from "./bulkEditJobs.js";
 
 export const productBulkFence = inventorySchema.table("product_bulk_fence", {
-  projectId: uuid("project_id").notNull(),
+  storeId: uuid("store_id").notNull(),
   productId: text("product_id").notNull(),
   fenceToken: text("fence_token").notNull(),
   jobId: uuid("job_id").notNull().references(() => bulkEditJob.id, { onDelete: "cascade" }),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 }, (table) => [
-  primaryKey({ columns: [table.projectId, table.productId] }),
+  primaryKey({ columns: [table.storeId, table.productId] }),
 ]);
 
 export type ProductBulkFence = typeof productBulkFence.$inferSelect;
@@ -170,7 +170,7 @@ export class BulkEditJobRepository extends BaseRepository {
       .insert(bulkEditJob)
       .values({
         id: data.id,
-        projectId: this.storeId,
+        storeId: this.storeId,
         status: "QUEUED",
         createdAt: now,
       } satisfies NewBulkEditJob)
@@ -184,7 +184,7 @@ export class BulkEditJobRepository extends BaseRepository {
       .from(bulkEditJob)
       .where(
         and(
-          eq(bulkEditJob.projectId, this.storeId),
+          eq(bulkEditJob.storeId, this.storeId),
           eq(bulkEditJob.id, id)
         )
       );
@@ -205,7 +205,7 @@ export class BulkEditJobRepository extends BaseRepository {
       })
       .where(
         and(
-          eq(bulkEditJob.projectId, this.storeId),
+          eq(bulkEditJob.storeId, this.storeId),
           eq(bulkEditJob.id, jobId),
           eq(bulkEditJob.status, "QUEUED")
         )
@@ -219,7 +219,7 @@ export class BulkEditJobRepository extends BaseRepository {
       .set({ status: "CANCELLED" })
       .where(
         and(
-          eq(bulkEditJob.projectId, this.storeId),
+          eq(bulkEditJob.storeId, this.storeId),
           eq(bulkEditJob.id, jobId),
           inArray(bulkEditJob.status, ["QUEUED", "RUNNING"])
         )
@@ -237,7 +237,7 @@ export class BulkEditJobRepository extends BaseRepository {
       })
       .where(
         and(
-          eq(bulkEditJob.projectId, this.storeId),
+          eq(bulkEditJob.storeId, this.storeId),
           eq(bulkEditJob.id, jobId)
         )
       );
@@ -275,7 +275,7 @@ export class BulkEditItemRepository extends BaseRepository {
     await this.connection.insert(bulkEditItem).values(
       items.map((item) => ({
         ...item,
-        projectId: this.storeId,
+        storeId: this.storeId,
         status: "PENDING" as const,
         cancelRequested: false,
       } satisfies NewBulkEditItem))
@@ -288,7 +288,7 @@ export class BulkEditItemRepository extends BaseRepository {
       .from(bulkEditItem)
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           eq(bulkEditItem.id, itemId)
         )
       );
@@ -301,7 +301,7 @@ export class BulkEditItemRepository extends BaseRepository {
       .from(bulkEditItem)
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           eq(bulkEditItem.jobId, jobId)
         )
       )
@@ -329,7 +329,7 @@ export class BulkEditItemRepository extends BaseRepository {
       })
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           inArray(bulkEditItem.productId, productIds),
           inArray(bulkEditItem.status, ["PENDING", "RUNNING"]),
           ne(bulkEditItem.jobId, newJobId)
@@ -350,7 +350,7 @@ export class BulkEditItemRepository extends BaseRepository {
       })
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           eq(bulkEditItem.id, itemId),
           eq(bulkEditItem.status, "PENDING"),
           eq(bulkEditItem.cancelRequested, false)
@@ -373,7 +373,7 @@ export class BulkEditItemRepository extends BaseRepository {
       })
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           eq(bulkEditItem.id, itemId),
           eq(bulkEditItem.status, "RUNNING")
         )
@@ -395,7 +395,7 @@ export class BulkEditItemRepository extends BaseRepository {
       })
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           eq(bulkEditItem.id, itemId),
           eq(bulkEditItem.status, "RUNNING")
         )
@@ -418,7 +418,7 @@ export class BulkEditItemRepository extends BaseRepository {
       })
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           eq(bulkEditItem.jobId, jobId),
           eq(bulkEditItem.status, "PENDING"),
           eq(bulkEditItem.cancelRequested, true)
@@ -441,7 +441,7 @@ export class BulkEditItemRepository extends BaseRepository {
       })
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           eq(bulkEditItem.jobId, jobId),
           eq(bulkEditItem.status, "PENDING")
         )
@@ -460,7 +460,7 @@ export class BulkEditItemRepository extends BaseRepository {
       })
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           eq(bulkEditItem.jobId, jobId),
           eq(bulkEditItem.status, "PENDING")
         )
@@ -481,7 +481,7 @@ export class BulkEditItemRepository extends BaseRepository {
       })
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           eq(bulkEditItem.jobId, jobId),
           inArray(bulkEditItem.productId, productIds),
           eq(bulkEditItem.status, "PENDING")
@@ -501,7 +501,7 @@ export class BulkEditItemRepository extends BaseRepository {
       .from(bulkEditItem)
       .where(
         and(
-          eq(bulkEditItem.projectId, this.storeId),
+          eq(bulkEditItem.storeId, this.storeId),
           eq(bulkEditItem.jobId, jobId)
         )
       )
@@ -545,14 +545,14 @@ export class BulkFenceRepository extends BaseRepository {
       await this.connection
         .insert(productBulkFence)
         .values({
-          projectId: this.storeId,
+          storeId: this.storeId,
           productId: fence.productId,
           fenceToken: fence.fenceToken,
           jobId: fence.jobId,
           updatedAt: now,
         } satisfies NewProductBulkFence)
         .onConflictDoUpdate({
-          target: [productBulkFence.projectId, productBulkFence.productId],
+          target: [productBulkFence.storeId, productBulkFence.productId],
           set: {
             fenceToken: fence.fenceToken,
             jobId: fence.jobId,
@@ -652,7 +652,7 @@ export class BulkEditCreateJobScript extends BaseScript<
   @Transactional()
   protected async execute(params: BulkEditCreateJobParams): Promise<BulkEditCreateJobResult> {
     const { operations } = params;
-    const projectId = this.getProjectId();
+    const storeId = this.getProjectId();
 
     if (operations.length === 0) {
       return {
@@ -930,7 +930,7 @@ export type {
 } from "./BulkEditCancelItemsScript.js";
 ```
 
-> **Примечание:** Скрипты используют `this.getProjectId()` для получения projectId из контекста. Все репозитории автоматически получают `storeId` из AsyncLocalStorage.
+> **Примечание:** Скрипты используют `this.getProjectId()` для получения storeId из контекста. Все репозитории автоматически получают `storeId` из AsyncLocalStorage.
 
 ---
 
@@ -943,7 +943,7 @@ export type {
 ```typescript
 /**
  * Input для root workflow — получает плоские операции от resolver'а
- * projectId берётся из контекста внутри скрипта (через this.getProjectId())
+ * storeId берётся из контекста внутри скрипта (через this.getProjectId())
  */
 export interface ProductBulkEditInput {
   operations: FlatOperation[];
@@ -1761,7 +1761,7 @@ async productBulkUpdate(args: { input: ProductBulkUpdateInput }) {
   const idempotencyKey = this.$ctx.requestId;
 
   // 5. Run workflow via broker
-  // projectId берётся из контекста внутри скрипта/workflow
+  // storeId берётся из контекста внутри скрипта/workflow
   const result = await this.$ctx.kernel.services.broker.runWorkflow(
     "inventory.productBulkEdit",
     { operations },

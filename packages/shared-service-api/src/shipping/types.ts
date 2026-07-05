@@ -17,11 +17,11 @@ export type GetAllMethodsResponse = Readonly<{
 export interface ShippingApiClient {
   /**
    * Fetch all available shipping methods for a project (tenant).
-   * @param input.projectId - Tenant identifier for multi-tenant isolation.
+   * @param input.storeId - Tenant identifier for multi-tenant isolation.
    * @returns Array of shipping methods.
    */
   getProjectMethods(input: {
-    projectId: string;
+    storeId: string;
     requestId?: string;
     userAgent?: string;
   }): Promise<ShippingMethod[]>;
@@ -56,11 +56,11 @@ export type GroupingItem = Readonly<{
 /**
  * Input for creating delivery groups.
  *
- * @property projectId - Tenant identifier for multi-tenant isolation.
+ * @property storeId - Tenant identifier for multi-tenant isolation.
  * @property items - Items to group by delivery method types.
  */
 export type CreateDeliveryGroupsInput = Readonly<{
-  projectId: string;
+  storeId: string;
   items?: GroupingItem[];
 }>;
 
@@ -97,7 +97,7 @@ export type GetPaymentMethodsResponse = Readonly<{
  * Input for getting payment methods from shipping service (proxied to plugins).
  */
 export type GetPaymentMethodsInput = Readonly<{
-  projectId: string;
+  storeId: string;
   currency: string;
   apiKey: string;
 }>;

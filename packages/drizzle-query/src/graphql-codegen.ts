@@ -129,12 +129,12 @@ export type GraphQLSchemaConfig = {
  *     Warehouse: {
  *       query: warehouseQuery,
  *       output: "src/api/graphql/schema/__generated__/warehouse.graphql",
- *       options: { excludeFields: ["projectId"] },
+ *       options: { excludeFields: ["storeId"] },
  *     },
  *     Product: {
  *       query: productQuery,
  *       output: "src/api/graphql/schema/__generated__/product.graphql",
- *       options: { excludeFields: ["projectId", "deletedAt"] },
+ *       options: { excludeFields: ["storeId", "deletedAt"] },
  *     },
  *   },
  * });

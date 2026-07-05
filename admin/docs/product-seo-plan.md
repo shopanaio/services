@@ -54,7 +54,7 @@ import { product } from "./products";
 export const productSeo = inventorySchema.table(
   "product_seo",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
@@ -71,8 +71,8 @@ export const productSeo = inventorySchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.productId, table.locale] }),
-    index("idx_product_seo_project").on(table.projectId),
-    index("idx_product_seo_project_locale").on(table.projectId, table.locale),
+    index("idx_product_seo_store").on(table.storeId),
+    index("idx_product_seo_store_locale").on(table.storeId, table.locale),
   ]
 );
 
@@ -95,7 +95,7 @@ export type NewProductSeo = typeof productSeo.$inferInsert;
 ```sql
 -- Create product_seo table
 CREATE TABLE inventory.product_seo (
-  project_id UUID NOT NULL,
+  store_id UUID NOT NULL,
   product_id UUID NOT NULL REFERENCES inventory.product(id) ON DELETE CASCADE,
   locale VARCHAR(8) NOT NULL,
 
@@ -111,12 +111,12 @@ CREATE TABLE inventory.product_seo (
   PRIMARY KEY (product_id, locale)
 );
 
-CREATE INDEX idx_product_seo_project ON inventory.product_seo(project_id);
-CREATE INDEX idx_product_seo_project_locale ON inventory.product_seo(project_id, locale);
+CREATE INDEX idx_product_seo_store ON inventory.product_seo(store_id);
+CREATE INDEX idx_product_seo_store_locale ON inventory.product_seo(store_id, locale);
 
 -- Migrate existing SEO data from product_translation
-INSERT INTO inventory.product_seo (project_id, product_id, locale, seo_title, seo_description)
-SELECT project_id, product_id, locale, seo_title, seo_description
+INSERT INTO inventory.product_seo (store_id, product_id, locale, seo_title, seo_description)
+SELECT store_id, product_id, locale, seo_title, seo_description
 FROM inventory.product_translation
 WHERE seo_title IS NOT NULL OR seo_description IS NOT NULL;
 

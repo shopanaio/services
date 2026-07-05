@@ -10,14 +10,14 @@ import { catalogSchema } from "./schema";
 export const vendor = catalogSchema.table(
   "vendor",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     id: uuid("id").primaryKey(),
     name: varchar("name", { length: 255 }).notNull(),
   },
   (table) => [
-    uniqueIndex("vendor_project_id_name_key").on(table.projectId, table.name),
-    unique("vendor_project_id_id_unique").on(table.projectId, table.id),
-    index("idx_vendor_project_id").on(table.projectId),
+    uniqueIndex("vendor_store_id_name_key").on(table.storeId, table.name),
+    unique("vendor_store_id_id_unique").on(table.storeId, table.id),
+    index("idx_vendor_store_id").on(table.storeId),
   ]
 );
 

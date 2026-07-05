@@ -124,11 +124,11 @@ Always include specific fields (even if not in select):
 
 ```typescript
 const query = createQuery(products)
-  .include(["id", "projectId"]);
+  .include(["id", "storeId"]);
 
-// id and projectId always returned regardless of select
+// id and storeId always returned regardless of select
 await query.execute(db, {
-  select: ["name", "price"],  // Also includes id, projectId
+  select: ["name", "price"],  // Also includes id, storeId
 });
 ```
 
@@ -169,7 +169,7 @@ const productsQuery = createQuery(products)
   .defaultLimit(20)
   .maxLimit(100)
   .defaultSelect(["id", "title", "price", "status"])
-  .include(["id", "projectId"])
+  .include(["id", "storeId"])
   .exclude(["internalNotes"])
   .defaultWhere({ deletedAt: { _is: null } });
 ```

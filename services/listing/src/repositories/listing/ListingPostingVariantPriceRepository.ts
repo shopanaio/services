@@ -25,7 +25,7 @@ export class ListingPostingVariantPriceRepository extends BaseRepository {
       .from(listingPostingVariantPrice)
       .where(
         and(
-          eq(listingPostingVariantPrice.projectId, this.storeId),
+          eq(listingPostingVariantPrice.storeId, this.storeId),
           eq(listingPostingVariantPrice.currency, currency),
           eq(listingPostingVariantPrice.variantDocId, variantDocId)
         )
@@ -47,7 +47,7 @@ export class ListingPostingVariantPriceRepository extends BaseRepository {
       .from(listingPostingVariantPrice)
       .where(
         and(
-          eq(listingPostingVariantPrice.projectId, this.storeId),
+          eq(listingPostingVariantPrice.storeId, this.storeId),
           eq(listingPostingVariantPrice.currency, currency),
           eq(listingPostingVariantPrice.variantDocId, variantDocId)
         )
@@ -67,7 +67,7 @@ export class ListingPostingVariantPriceRepository extends BaseRepository {
       .from(listingPostingVariantPrice)
       .where(
         and(
-          eq(listingPostingVariantPrice.projectId, this.storeId),
+          eq(listingPostingVariantPrice.storeId, this.storeId),
           eq(listingPostingVariantPrice.variantDocId, variantDocId)
         )
       );
@@ -90,7 +90,7 @@ export class ListingPostingVariantPriceRepository extends BaseRepository {
       .from(listingPostingVariantPrice)
       .where(
         and(
-          eq(listingPostingVariantPrice.projectId, this.storeId),
+          eq(listingPostingVariantPrice.storeId, this.storeId),
           inArray(listingPostingVariantPrice.variantDocId, [
             ...new Set(variantDocIds),
           ])
@@ -108,7 +108,7 @@ export class ListingPostingVariantPriceRepository extends BaseRepository {
       .from(listingPostingVariantPrice)
       .where(
         and(
-          eq(listingPostingVariantPrice.projectId, this.storeId),
+          eq(listingPostingVariantPrice.storeId, this.storeId),
           eq(listingPostingVariantPrice.productDocId, productDocId)
         )
       );
@@ -131,7 +131,7 @@ export class ListingPostingVariantPriceRepository extends BaseRepository {
       .from(listingPostingVariantPrice)
       .where(
         and(
-          eq(listingPostingVariantPrice.projectId, this.storeId),
+          eq(listingPostingVariantPrice.storeId, this.storeId),
           inArray(listingPostingVariantPrice.productDocId, [
             ...new Set(productDocIds),
           ])
@@ -144,7 +144,7 @@ export class ListingPostingVariantPriceRepository extends BaseRepository {
     const rows = await this.connection
       .select({ value: count() })
       .from(listingPostingVariantPrice)
-      .where(eq(listingPostingVariantPrice.projectId, this.storeId));
+      .where(eq(listingPostingVariantPrice.storeId, this.storeId));
 
     return rows[0]?.value ?? 0;
   }
@@ -177,11 +177,11 @@ export class ListingPostingVariantPriceRepository extends BaseRepository {
         .values(values)
         .onConflictDoUpdate({
           target: [
-            listingPostingVariantPrice.projectId,
+            listingPostingVariantPrice.storeId,
             listingPostingVariantPrice.currency,
             listingPostingVariantPrice.variantDocId,
           ],
-          setWhere: eq(listingPostingVariantPrice.projectId, this.storeId),
+          setWhere: eq(listingPostingVariantPrice.storeId, this.storeId),
           set: {
             productDocId: sql`excluded.product_doc_id`,
             productId: sql`excluded.product_id`,
@@ -263,7 +263,7 @@ export class ListingPostingVariantPriceRepository extends BaseRepository {
       .delete(listingPostingVariantPrice)
       .where(
         and(
-          eq(listingPostingVariantPrice.projectId, this.storeId),
+          eq(listingPostingVariantPrice.storeId, this.storeId),
           eq(listingPostingVariantPrice.currency, currency),
           eq(listingPostingVariantPrice.variantDocId, variantDocId)
         )
@@ -279,7 +279,7 @@ export class ListingPostingVariantPriceRepository extends BaseRepository {
       .delete(listingPostingVariantPrice)
       .where(
         and(
-          eq(listingPostingVariantPrice.projectId, this.storeId),
+          eq(listingPostingVariantPrice.storeId, this.storeId),
           eq(listingPostingVariantPrice.variantDocId, variantDocId)
         )
       )
@@ -303,7 +303,7 @@ export class ListingPostingVariantPriceRepository extends BaseRepository {
         .delete(listingPostingVariantPrice)
         .where(
           and(
-            eq(listingPostingVariantPrice.projectId, this.storeId),
+            eq(listingPostingVariantPrice.storeId, this.storeId),
             inArray(listingPostingVariantPrice.variantDocId, chunk)
           )
         )
@@ -321,7 +321,7 @@ export class ListingPostingVariantPriceRepository extends BaseRepository {
       .delete(listingPostingVariantPrice)
       .where(
         and(
-          eq(listingPostingVariantPrice.projectId, this.storeId),
+          eq(listingPostingVariantPrice.storeId, this.storeId),
           eq(listingPostingVariantPrice.productDocId, productDocId)
         )
       )
@@ -345,7 +345,7 @@ export class ListingPostingVariantPriceRepository extends BaseRepository {
         .delete(listingPostingVariantPrice)
         .where(
           and(
-            eq(listingPostingVariantPrice.projectId, this.storeId),
+            eq(listingPostingVariantPrice.storeId, this.storeId),
             inArray(listingPostingVariantPrice.productDocId, chunk)
           )
         )
@@ -360,7 +360,7 @@ export class ListingPostingVariantPriceRepository extends BaseRepository {
   async deleteAllForCurrentProject(): Promise<number> {
     const rows = await this.connection
       .delete(listingPostingVariantPrice)
-      .where(eq(listingPostingVariantPrice.projectId, this.storeId))
+      .where(eq(listingPostingVariantPrice.storeId, this.storeId))
       .returning({ variantDocId: listingPostingVariantPrice.variantDocId });
 
     return rows.length;
@@ -375,7 +375,7 @@ export class ListingPostingVariantPriceRepository extends BaseRepository {
     assertNonNegativeInteger(row.priceMinor, "priceMinor");
 
     return {
-      projectId: this.storeId,
+      storeId: this.storeId,
       currency: row.currency,
       variantDocId: row.variantDocId,
       productDocId: row.productDocId,

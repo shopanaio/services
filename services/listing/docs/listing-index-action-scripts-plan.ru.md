@@ -36,7 +36,7 @@ DBOS workflow/step execution.
   уровне.
 - `syncSellableItem` принимает полный snapshot. Partial patch semantics нет.
 - `sourceRevision` монотонен для ключа
-  `projectId + entityType + itemId`.
+  `storeId + entityType + itemId`.
 - Public `meta.idempotencyKey` не обязан быть уникальным между items batch.
   Для item workflows используется item-scoped `effectiveIdempotencyKey`.
 - Старая revision возвращает `ignored_stale` без изменения physical index.
@@ -53,7 +53,7 @@ DBOS workflow/step execution.
 
 ```ts
 type ListingIndexItemKey = {
-  projectId: string;
+  storeId: string;
   entityType: Listing.ListingSellableItemEntityType;
   itemId: string;
 };
@@ -62,7 +62,7 @@ type ListingIndexItemKey = {
 `effectiveIdempotencyKey`:
 
 - для single item action и для item внутри batch всегда строится одним helper-ом
-  как stable hash от `meta.idempotencyKey + projectId + entityType + itemId +
+  как stable hash от `meta.idempotencyKey + storeId + entityType + itemId +
   actionType + sourceRevision`;
 - используется в DBOS workflow identity и latest-state diagnostics;
 - не должен строиться только из raw/batch-level `meta.idempotencyKey`.
@@ -75,7 +75,7 @@ type ListingIndexItemKey = {
 `payloadHash`:
 
 - canonical hash публичного action payload, включая action type,
-  `projectId`, item identity, `sourceRevision` и snapshot/delete payload;
+  `storeId`, item identity, `sourceRevision` и snapshot/delete payload;
 - нужен для диагностики и conflict detection при повторном использовании
   idempotency key с другим payload.
 
@@ -112,7 +112,7 @@ WorkflowModule.forRoot({
 
 ```ts
 const queuePartitionKey = [
-  projectId,
+  storeId,
   entityType,
   itemId,
 ].join(":");
@@ -140,7 +140,7 @@ type ListingIndexActionType = "syncSellableItem" | "deleteSellableItem";
 
 function buildListingIndexEffectiveIdempotencyKey(input: {
   rawIdempotencyKey: string;
-  projectId: string;
+  storeId: string;
   entityType: Listing.ListingSellableItemEntityType;
   itemId: string;
   actionType: ListingIndexActionType;
@@ -148,7 +148,7 @@ function buildListingIndexEffectiveIdempotencyKey(input: {
 }): string {
   return hashContent({
     v: 1,
-    projectId: input.projectId,
+    storeId: input.storeId,
     entityType: input.entityType,
     itemId: input.itemId,
     actionType: input.actionType,
@@ -158,7 +158,7 @@ function buildListingIndexEffectiveIdempotencyKey(input: {
 }
 
 function buildListingIndexWorkflowIdempotencyContext(input: {
-  projectId: string;
+  storeId: string;
   entityType: Listing.ListingSellableItemEntityType;
   itemId: string;
   actionType: ListingIndexActionType;
@@ -166,7 +166,7 @@ function buildListingIndexWorkflowIdempotencyContext(input: {
 }): IdempotencyContext {
   return {
     source: "content",
-    tenantId: input.projectId,
+    tenantId: input.storeId,
     resourceId: `${input.entityType}:${input.itemId}`,
     operation: `listing.${input.actionType}`,
     contentHash: input.effectiveIdempotencyKey,
@@ -189,7 +189,7 @@ function buildListingIndexWorkflowName(
 - для `source: "content"` DBOS workflow identity строится из
   `tenantId`, `resourceId`, `operation`, `contentHash` и qualified workflow
   name;
-- `tenantId = projectId` дает project-level isolation;
+- `tenantId = storeId` дает project-level isolation;
 - `resourceId = entityType:itemId` делает workflow identity item-scoped;
 - `operation = listing.${actionType}` разделяет sync и delete при одном
   external idempotency key;
@@ -209,7 +209,7 @@ const sourceRevision =
 const effectiveIdempotencyKey =
   buildListingIndexEffectiveIdempotencyKey({
     rawIdempotencyKey: queuedAction.params.meta.idempotencyKey,
-    projectId,
+    storeId,
     entityType,
     itemId,
     actionType: queuedAction.type,
@@ -218,7 +218,7 @@ const effectiveIdempotencyKey =
 
 const idempotencyCtx =
   buildListingIndexWorkflowIdempotencyContext({
-    projectId,
+    storeId,
     entityType,
     itemId,
     actionType: queuedAction.type,
@@ -247,7 +247,7 @@ await this.broker.startWorkflow(
 
 - `accepted` возвращается только после успешного `broker.startWorkflow(...)`,
   либо после duplicate workflow conflict, который доказал, что deterministic
-  workflow для того же `projectId + entityType + itemId + actionType +
+  workflow для того же `storeId + entityType + itemId + actionType +
   sourceRevision + effectiveIdempotencyKey` уже durably accepted.
 - Если process crash произошел после `broker.startWorkflow(...)`, но до
   response, следующий same-revision retry может получить DBOS duplicate workflow
@@ -266,7 +266,7 @@ await this.broker.startWorkflow(
   `params.meta.idempotencyKey` напрямую в `contentHash`, должна быть заменена
   на helper выше.
 - Explicit `options.workflowId` можно передать только если он строится тем же
-  helper-ом из `projectId + entityType + itemId + actionType +
+  helper-ом из `storeId + entityType + itemId + actionType +
   sourceRevision + effectiveIdempotencyKey`.
 - `enqueueOptions.queuePartitionKey` используется всегда.
 - `enqueueOptions.deduplicationID` не используется для этой queue.
@@ -575,7 +575,7 @@ Step rules:
 
 `RunScriptContext` строится внутри DBOS step из action params:
 
-- `storeId = params.projectId`;
+- `storeId = params.storeId`;
 - `requestId = params.meta.source.requestId ?? params.meta.operationId`;
 - `locale/defaultLocale` для sync берутся из snapshot content;
 - для delete locale/defaultLocale должны быть переданы в delete contract или
@@ -583,7 +583,7 @@ Step rules:
 - `organizationId` и `userId` заполняются только если доступны в source
   metadata.
 
-Repositories внутри scripts должны видеть `this.storeId = params.projectId`.
+Repositories внутри scripts должны видеть `this.storeId = params.storeId`.
 Project mismatch завершается validation result до physical writes.
 
 ## Action handler contract
@@ -681,7 +681,7 @@ Latest state хранит последнюю принятую revision по item
 
 ```sql
 CREATE TABLE listing.listing_index_item_state (
-  project_id uuid NOT NULL,
+  store_id uuid NOT NULL,
   entity_type varchar(32) NOT NULL,
   item_id uuid NOT NULL,
   source_revision integer NOT NULL,
@@ -690,7 +690,7 @@ CREATE TABLE listing.listing_index_item_state (
   last_effective_idempotency_key text NOT NULL,
   last_operation_id text NOT NULL,
   updated_at timestamptz NOT NULL,
-  PRIMARY KEY (project_id, entity_type, item_id)
+  PRIMARY KEY (store_id, entity_type, item_id)
 );
 ```
 
@@ -698,7 +698,7 @@ Constraints:
 
 - `source_revision >= 0`.
 - `lifecycle_status IN ('indexed', 'deleted')`.
-- `(project_id, entity_type, item_id)` is the canonical latest-state key.
+- `(store_id, entity_type, item_id)` is the canonical latest-state key.
 - Эта table обновляется только после successful apply/delete decision.
 - Stale/noop decisions не должны откатывать latest state назад.
 
@@ -741,7 +741,7 @@ Contract:
 
 - Выполняется только внутри transaction.
 - Первым write-side DB operation берет transaction-scoped item lock по
-  `projectId + entityType + itemId`.
+  `storeId + entityType + itemId`.
 - Recommended implementation: PostgreSQL advisory transaction lock
   `pg_advisory_xact_lock` от stable hash canonical key.
 - После advisory lock читает existing `listing_index_item_state` row через
@@ -931,7 +931,7 @@ to current public `ListingUpdateErrorCode` before crossing broker boundaries;
 
 Responsibilities:
 
-- Проверяет `contractVersion`, `projectId`, timestamps и required fields.
+- Проверяет `contractVersion`, `storeId`, timestamps и required fields.
 - Проверяет duplicate variant ids, duplicate facet value handles и currency
   format.
 - Проверяет `productFacets[].scope = "product"` и
@@ -969,7 +969,7 @@ Responsibilities:
 Responsibilities:
 
 - Валидирует action params.
-- Проверяет project boundary.
+- Проверяет store boundary.
 - Не выполняет physical index writes.
 - Для потенциального `apply` возвращает normalized immutable action без
   physical write model.
@@ -1112,7 +1112,7 @@ Rules for coalescing:
 
 ```ts
 interface ListingIndexItemStateKey {
-  projectId: string;
+  storeId: string;
   entityType: Listing.ListingSellableItemEntityType;
   itemId: string;
 }
@@ -1262,7 +1262,7 @@ DBOS `@WorkflowStep`; final physical writes happen only inside the single
 - [ ] Validation/idempotency/revision conflicts are non-retryable domain
       results.
 - [ ] DBOS step calls `Kernel.runScript(..., RunScriptContext)`.
-- [ ] Repositories run with `this.storeId = params.projectId`.
+- [ ] Repositories run with `this.storeId = params.storeId`.
 - [ ] Batch enqueue processing fans out items into item-partitioned workflows.
 - [ ] Batch item effective idempotency key includes item identity.
 - [ ] `listing_index_item_state` stores latest item revision/state.

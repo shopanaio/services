@@ -20,7 +20,7 @@ import { productFeature, productFeatureValue } from "./features";
 export const productTranslation = catalogSchema.table(
   "product_translation",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
@@ -41,13 +41,13 @@ export const productTranslation = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.productId, table.locale] }),
-    index("idx_product_translation_project").on(table.projectId),
-    index("idx_product_translation_project_locale").on(
-      table.projectId,
+    index("idx_product_translation_store").on(table.storeId),
+    index("idx_product_translation_store_locale").on(
+      table.storeId,
       table.locale
     ),
     index("idx_product_translation_listing_name").on(
-      table.projectId,
+      table.storeId,
       table.locale,
       table.name,
       table.productId
@@ -64,7 +64,7 @@ export const productTranslation = catalogSchema.table(
 export const variantTranslation = catalogSchema.table(
   "variant_translation",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     variantId: uuid("variant_id")
       .notNull()
       .references(() => variant.id, { onDelete: "cascade" }),
@@ -74,7 +74,7 @@ export const variantTranslation = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.variantId, table.locale] }),
-    index("idx_variant_translation_project").on(table.projectId),
+    index("idx_variant_translation_store").on(table.storeId),
   ]
 );
 
@@ -87,7 +87,7 @@ export const variantTranslation = catalogSchema.table(
 export const productOptionTranslation = catalogSchema.table(
   "product_option_translation",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     optionId: uuid("option_id")
       .notNull()
       .references(() => productOption.id, { onDelete: "cascade" }),
@@ -97,7 +97,7 @@ export const productOptionTranslation = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.optionId, table.locale] }),
-    index("idx_product_option_translation_project").on(table.projectId),
+    index("idx_product_option_translation_store").on(table.storeId),
   ]
 );
 
@@ -110,7 +110,7 @@ export const productOptionTranslation = catalogSchema.table(
 export const productOptionValueTranslation = catalogSchema.table(
   "product_option_value_translation",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     optionValueId: uuid("option_value_id")
       .notNull()
       .references(() => productOptionValue.id, { onDelete: "cascade" }),
@@ -120,7 +120,7 @@ export const productOptionValueTranslation = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.optionValueId, table.locale] }),
-    index("idx_product_option_value_translation_project").on(table.projectId),
+    index("idx_product_option_value_translation_store").on(table.storeId),
   ]
 );
 
@@ -132,7 +132,7 @@ export const productOptionValueTranslation = catalogSchema.table(
 export const productFeatureTranslation = catalogSchema.table(
   "product_feature_translation",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     featureId: uuid("feature_id")
       .notNull()
       .references(() => productFeature.id, { onDelete: "cascade" }),
@@ -142,7 +142,7 @@ export const productFeatureTranslation = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.featureId, table.locale] }),
-    index("idx_product_feature_translation_project").on(table.projectId),
+    index("idx_product_feature_translation_store").on(table.storeId),
   ]
 );
 
@@ -154,7 +154,7 @@ export const productFeatureTranslation = catalogSchema.table(
 export const productFeatureValueTranslation = catalogSchema.table(
   "product_feature_value_translation",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     featureValueId: uuid("feature_value_id")
       .notNull()
       .references(() => productFeatureValue.id, { onDelete: "cascade" }),
@@ -164,7 +164,7 @@ export const productFeatureValueTranslation = catalogSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.featureValueId, table.locale] }),
-    index("idx_product_feature_value_translation_project").on(table.projectId),
+    index("idx_product_feature_value_translation_store").on(table.storeId),
   ]
 );
 

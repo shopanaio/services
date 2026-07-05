@@ -47,9 +47,9 @@ export class StorefrontProductTitleSearchQueryRepository extends BaseRepository 
         pdb.score(ptsi.search_id)::double precision AS relevance_score
       FROM listing.product_title_bm25_search_index ptsi
       JOIN listing.product_listing_index pli
-        ON pli.project_id = ptsi.project_id
+        ON pli.store_id = ptsi.store_id
        AND pli.product_id = ptsi.product_id
-      WHERE ptsi.project_id = ${this.storeId}::uuid
+      WHERE ptsi.store_id = ${this.storeId}::uuid
         AND ptsi.locale = ${input.locale}
         AND ptsi.status = 'published'
         AND pli.status = 'published'

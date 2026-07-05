@@ -21,7 +21,7 @@ export class ProductUpdateContentScript extends BaseScript<ProductUpdateContentP
     }
 
     const locale = this.getLocale();
-    const projectId = this.getProjectId();
+    const storeId = this.getProjectId();
 
     // 2. Get existing translation
     const existingTranslation = await this.repository.translation.getProductTranslation(id, locale);
@@ -63,7 +63,7 @@ export class ProductUpdateContentScript extends BaseScript<ProductUpdateContentP
     const hasChanges = Object.keys(changes).length > 0;
     if (hasChanges) {
       await this.repository.translation.upsertProductTranslation({
-        projectId,
+        storeId,
         productId: id,
         locale,
         name: existingTranslation?.name ?? "",

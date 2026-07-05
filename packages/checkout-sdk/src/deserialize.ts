@@ -175,7 +175,7 @@ export const deserializeCheckout = (dto: CheckoutDto): Checkout => ({
   id: dto.id,
   createdAt: dto.createdAt,
   updatedAt: dto.updatedAt,
-  projectId: dto.projectId,
+  storeId: dto.storeId,
   currencyCode: dto.currencyCode,
   idempotencyKey: dto.idempotencyKey,
   salesChannel: dto.salesChannel,

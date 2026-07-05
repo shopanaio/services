@@ -24,7 +24,7 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
       .from(productListingPriceIndex)
       .where(
         and(
-          eq(productListingPriceIndex.projectId, this.storeId),
+          eq(productListingPriceIndex.storeId, this.storeId),
           eq(productListingPriceIndex.productId, productId),
           eq(productListingPriceIndex.currency, currency)
         )
@@ -45,7 +45,7 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
       .from(productListingPriceIndex)
       .where(
         and(
-          eq(productListingPriceIndex.projectId, this.storeId),
+          eq(productListingPriceIndex.storeId, this.storeId),
           eq(productListingPriceIndex.productId, productId),
           eq(productListingPriceIndex.currency, currency)
         )
@@ -62,7 +62,7 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
       .from(productListingPriceIndex)
       .where(
         and(
-          eq(productListingPriceIndex.projectId, this.storeId),
+          eq(productListingPriceIndex.storeId, this.storeId),
           eq(productListingPriceIndex.productId, productId)
         )
       );
@@ -86,12 +86,12 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
     const where =
       uniqueCurrencies.length > 0
         ? and(
-            eq(productListingPriceIndex.projectId, this.storeId),
+            eq(productListingPriceIndex.storeId, this.storeId),
             inArray(productListingPriceIndex.productId, uniqueProductIds),
             inArray(productListingPriceIndex.currency, uniqueCurrencies)
           )
         : and(
-            eq(productListingPriceIndex.projectId, this.storeId),
+            eq(productListingPriceIndex.storeId, this.storeId),
             inArray(productListingPriceIndex.productId, uniqueProductIds)
           );
 
@@ -106,7 +106,7 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
     const rows = await this.connection
       .select({ value: count() })
       .from(productListingPriceIndex)
-      .where(eq(productListingPriceIndex.projectId, this.storeId));
+      .where(eq(productListingPriceIndex.storeId, this.storeId));
 
     return rows[0]?.value ?? 0;
   }
@@ -144,7 +144,7 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
             productListingPriceIndex.productId,
             productListingPriceIndex.currency,
           ],
-          setWhere: eq(productListingPriceIndex.projectId, this.storeId),
+          setWhere: eq(productListingPriceIndex.storeId, this.storeId),
           set: {
             minPriceMinor: sql`excluded.min_price_minor`,
             maxPriceMinor: sql`excluded.max_price_minor`,
@@ -204,7 +204,7 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
       .delete(productListingPriceIndex)
       .where(
         and(
-          eq(productListingPriceIndex.projectId, this.storeId),
+          eq(productListingPriceIndex.storeId, this.storeId),
           eq(productListingPriceIndex.productId, productId),
           eq(productListingPriceIndex.currency, currency)
         )
@@ -219,7 +219,7 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
       .delete(productListingPriceIndex)
       .where(
         and(
-          eq(productListingPriceIndex.projectId, this.storeId),
+          eq(productListingPriceIndex.storeId, this.storeId),
           eq(productListingPriceIndex.productId, productId)
         )
       )
@@ -239,7 +239,7 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
         .delete(productListingPriceIndex)
         .where(
           and(
-            eq(productListingPriceIndex.projectId, this.storeId),
+            eq(productListingPriceIndex.storeId, this.storeId),
             inArray(productListingPriceIndex.productId, chunk)
           )
         )
@@ -263,7 +263,7 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
       }
 
       return {
-        projectId: this.storeId,
+        storeId: this.storeId,
         productId: row.productId,
         currency: row.currency,
         hasPrice: false,
@@ -285,7 +285,7 @@ export class ProductListingPriceIndexRepository extends BaseRepository {
     }
 
     return {
-      projectId: this.storeId,
+      storeId: this.storeId,
       productId: row.productId,
       currency: row.currency,
       hasPrice: true,

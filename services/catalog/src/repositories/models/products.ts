@@ -23,7 +23,7 @@ export const productKindEnum = catalogSchema.enum("product_kind", [
 export const product = catalogSchema.table(
   "product",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     id: uuid("id").primaryKey(),
     vendorId: uuid("vendor_id"),
     handle: varchar("handle", { length: 255 }),
@@ -43,11 +43,11 @@ export const product = catalogSchema.table(
       "product_published_requires_handle",
       sql`published_at IS NULL OR handle IS NOT NULL`
     ),
-    uniqueIndex("product_project_id_handle_key")
-      .on(table.projectId, table.handle)
+    uniqueIndex("product_store_id_handle_key")
+      .on(table.storeId, table.handle)
       .where(sql`deleted_at IS NULL AND handle IS NOT NULL`),
-    unique("product_project_id_id_unique").on(table.projectId, table.id),
-    index("idx_product_project_id").on(table.projectId),
+    unique("product_store_id_id_unique").on(table.storeId, table.id),
+    index("idx_product_store_id").on(table.storeId),
     index("idx_product_vendor_id").on(table.vendorId),
     index("idx_product_created_at").on(table.createdAt),
     index("idx_product_updated_at").on(table.updatedAt),
@@ -66,7 +66,7 @@ export const product = catalogSchema.table(
 export const variant = catalogSchema.table(
   "variant",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     productId: uuid("product_id").notNull(),
     kind: productKindEnum("kind").notNull().default("BASE"),
     id: uuid("id").primaryKey(),
@@ -94,18 +94,18 @@ export const variant = catalogSchema.table(
     uniqueIndex("variant_product_id_handle_key")
       .on(table.productId, table.handle)
       .where(sql`deleted_at IS NULL`),
-    uniqueIndex("variant_project_id_sku_key")
-      .on(table.projectId, table.sku)
+    uniqueIndex("variant_store_id_sku_key")
+      .on(table.storeId, table.sku)
       .where(sql`deleted_at IS NULL AND sku IS NOT NULL`),
-    uniqueIndex("variant_project_id_external_system_external_id_key")
-      .on(table.projectId, table.externalSystem, table.externalId)
+    uniqueIndex("variant_store_id_external_system_external_id_key")
+      .on(table.storeId, table.externalSystem, table.externalId)
       .where(sql`deleted_at IS NULL AND external_id IS NOT NULL`),
-    unique("variant_project_id_product_id_id_unique").on(
-      table.projectId,
+    unique("variant_store_id_product_id_id_unique").on(
+      table.storeId,
       table.productId,
       table.id
     ),
-    index("idx_variant_project_id").on(table.projectId),
+    index("idx_variant_store_id").on(table.storeId),
     index("idx_variant_product_id").on(table.productId),
     index("idx_variant_product_active")
       .on(table.productId)
