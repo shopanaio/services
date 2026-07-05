@@ -21,7 +21,6 @@ import type {
   ApiProductOrderByInput,
   ApiProductProductsMetaInput,
   ApiProductUpdateInput,
-  ApiProductUpdateStatusInput,
   ApiProductWhereInput,
   ApiVendorConnection,
   ApiVendorOrderByInput,
@@ -201,19 +200,6 @@ export interface ProductDeleteMutationData {
 
 export interface ProductDeleteMutationVariables {
   input: ApiProductDeleteInput;
-}
-
-export interface ProductUpdateStatusMutationData {
-  catalogMutation: Pick<ApiCatalogMutation, "productUpdateStatus"> & {
-    productUpdateStatus: {
-      product: ApiProduct | null;
-      userErrors: ApiGenericUserError[];
-    };
-  };
-}
-
-export interface ProductUpdateStatusMutationVariables {
-  input: ApiProductUpdateStatusInput;
 }
 
 export type ProductFeaturesSyncProduct = Pick<ApiProduct, "id" | "features"> & {

@@ -76,25 +76,6 @@ export const PRODUCT_DELETE_MUTATION = gql`
   ${USER_ERROR_FRAGMENT}
 `;
 
-export const PRODUCT_UPDATE_STATUS_MUTATION = gql`
-  mutation ProductUpdateStatus($input: ProductUpdateStatusInput!) {
-    catalogMutation {
-      productUpdateStatus(input: $input) {
-        product {
-          ...ProductMutationResultFields
-        }
-        userErrors {
-          ...UserErrorFields
-        }
-      }
-    }
-  }
-  ${PRODUCT_MUTATION_RESULT_FRAGMENT}
-  ${USER_ERROR_FRAGMENT}
-`;
-
-export const PRODUCT_PUBLISH_MUTATION = PRODUCT_UPDATE_STATUS_MUTATION;
-
 export const PRODUCT_OPTION_CREATE_MUTATION = gql`
   mutation ProductOptionCreate($input: ProductOptionCreateInput!) {
     catalogMutation {

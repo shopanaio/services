@@ -389,11 +389,6 @@ type CatalogMutation {
   productDelete(input: ProductDeleteInput!): ProductDeletePayload!
 
   """
-  Update product status (active, draft, archived)
-  """
-  productUpdateStatus(input: ProductUpdateStatusInput!): ProductUpdateStatusPayload!
-
-  """
   Unified product update with optimistic locking.
   Supports product and variant updates in a single request.
   """

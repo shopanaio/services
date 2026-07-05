@@ -39,7 +39,6 @@ import {
   getProductSku,
 } from "../../utils/api-product-display";
 import { getProductStatus } from "../../utils/product-status";
-import { ProductStatusAction } from "@/graphql/types";
 import {
   useDeleteProduct,
   useUpdateProduct,
@@ -117,9 +116,8 @@ export const ProductInfoHeader = ({
     void (async () => {
       const result = await updateProductStatus({
         productId: product.id,
-        action: product.isPublished
-          ? ProductStatusAction.Unpublish
-          : ProductStatusAction.Publish,
+        expectedRevision: product.revision,
+        published: !product.isPublished,
       });
 
       if (result.userErrors.length > 0) {

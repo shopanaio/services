@@ -5,13 +5,19 @@ import { useMutation } from "@apollo/client/react";
 import type {
   ApiGenericUserError,
   ApiProduct,
-  ApiProductUpdateStatusInput,
 } from "@/graphql/types";
-import { PRODUCT_UPDATE_STATUS_MUTATION } from "../graphql";
+import { ProductStatus } from "@/graphql/types";
+import { PRODUCT_UPDATE_MUTATION } from "../graphql";
 import type {
-  ProductUpdateStatusMutationData,
-  ProductUpdateStatusMutationVariables,
+  ProductUpdateMutationData,
+  ProductUpdateMutationVariables,
 } from "../graphql/operation-types";
+
+export interface ProductStatusUpdateInput {
+  productId: string;
+  published: boolean;
+  expectedRevision?: number | null;
+}
 
 interface UpdateProductStatusResult {
   product: ApiProduct | null;
@@ -20,7 +26,7 @@ interface UpdateProductStatusResult {
 
 interface UseUpdateProductStatusReturn {
   updateProductStatus: (
-    input: ApiProductUpdateStatusInput,
+    input: ProductStatusUpdateInput,
   ) => Promise<UpdateProductStatusResult>;
   loading: boolean;
   error: Error | null;
@@ -29,20 +35,28 @@ interface UseUpdateProductStatusReturn {
 
 export function useUpdateProductStatus(): UseUpdateProductStatusReturn {
   const [updateStatusMutation, { loading, error, reset }] = useMutation<
-    ProductUpdateStatusMutationData,
-    ProductUpdateStatusMutationVariables
-  >(PRODUCT_UPDATE_STATUS_MUTATION);
+    ProductUpdateMutationData,
+    ProductUpdateMutationVariables
+  >(PRODUCT_UPDATE_MUTATION);
 
   const updateProductStatus = useCallback(
     async (
-      input: ApiProductUpdateStatusInput,
+      input: ProductStatusUpdateInput,
     ): Promise<UpdateProductStatusResult> => {
       try {
         const result = await updateStatusMutation({
-          variables: { input },
+          variables: {
+            productId: input.productId,
+            expectedRevision: input.expectedRevision ?? undefined,
+            operations: {
+              status: input.published
+                ? ProductStatus.Published
+                : ProductStatus.Draft,
+            },
+          },
         });
 
-        const payload = result.data?.catalogMutation.productUpdateStatus;
+        const payload = result.data?.catalogMutation.productUpdate;
 
         return {
           product: payload?.product ?? null,

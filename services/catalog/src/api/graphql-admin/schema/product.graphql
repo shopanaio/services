@@ -364,29 +364,6 @@ type ProductDeletePayload {
   userErrors: [GenericUserError!]!
 }
 
-"""
-Input for updating product status (publish or unpublish).
-Reused in bulk operations.
-"""
-input ProductUpdateStatusInput {
-  """Product ID."""
-  productId: ID!
-
-  """Action: PUBLISH or UNPUBLISH."""
-  action: ProductStatusAction!
-}
-
-"""
-Payload for product update status.
-"""
-type ProductUpdateStatusPayload {
-  """The updated product."""
-  product: Product
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
 # ---- Unified ProductUpdate Workflow Types ----
 
 """

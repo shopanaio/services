@@ -1321,8 +1321,6 @@ export type ApiCatalogMutation = {
    * Supports product and variant updates in a single request.
    */
   productUpdate: ApiProductUpdatePayload;
-  /** Update product status (active, draft, archived) */
-  productUpdateStatus: ApiProductUpdateStatusPayload;
   /** Create a new tag */
   tagCreate: ApiTagCreatePayload;
   /** Delete a tag */
@@ -1507,11 +1505,6 @@ export type ApiCatalogMutationProductUpdateArgs = {
   expectedRevision?: InputMaybe<Scalars['Int']['input']>;
   operations?: InputMaybe<ApiProductUpdateInput>;
   productId: Scalars['ID']['input'];
-};
-
-
-export type ApiCatalogMutationProductUpdateStatusArgs = {
-  input: ApiProductUpdateStatusInput;
 };
 
 
@@ -6565,26 +6558,6 @@ export type ApiProductUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-/**
- * Input for updating product status (publish or unpublish).
- * Reused in bulk operations.
- */
-export type ApiProductUpdateStatusInput = {
-  /** Action: PUBLISH or UNPUBLISH. */
-  action: ProductStatusAction;
-  /** Product ID. */
-  productId: Scalars['ID']['input'];
-};
-
-/** Payload for product update status. */
-export type ApiProductUpdateStatusPayload = {
-  __typename?: 'ProductUpdateStatusPayload';
-  /** The updated product. */
-  product?: Maybe<ApiProduct>;
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<ApiGenericUserError>;
-};
-
 /** Filter conditions for Product */
 export type ApiProductWhereInput = {
   /** Logical AND of multiple conditions */
@@ -7327,7 +7300,7 @@ export enum TagOrderField {
   /** Sort by productsCount */
   ProductsCount = 'productsCount',
   /** Sort by storeId */
-  ProjectId = 'storeId'
+  StoreId = 'storeId'
 }
 
 /** Input for updating a tag. */

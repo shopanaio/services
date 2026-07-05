@@ -1046,38 +1046,6 @@ export type CatalogMutation = {
   collectionUpdate: CollectionUpdatePayload;
   /** Update collection rules for automatic product inclusion */
   collectionUpdateRules: CollectionUpdateRulesPayload;
-  /** Create a new facet */
-  facetCreate: FacetCreatePayload;
-  /** Delete a facet */
-  facetDelete: FacetDeletePayload;
-  /** Move a facet before or after another facet. */
-  facetMove: FacetMovePayload;
-  /** Rebalance facet lexo ranks. */
-  facetRebalance: FacetRebalancePayload;
-  /** Create a new facet swatch */
-  facetSwatchCreate: FacetSwatchCreatePayload;
-  /** Delete a facet swatch */
-  facetSwatchDelete: FacetSwatchDeletePayload;
-  /** Update an existing facet swatch */
-  facetSwatchUpdate: FacetSwatchUpdatePayload;
-  /** Update an existing facet */
-  facetUpdate: FacetUpdatePayload;
-  /** Create a new facet value */
-  facetValueCreate: FacetValueCreatePayload;
-  /** Delete a facet value */
-  facetValueDelete: FacetValueDeletePayload;
-  /**
-   * Attach source facet values to an existing or newly-created display value.
-   * This is the only mutation that merges source values into a display value.
-   */
-  facetValueMerge: FacetValueMergePayload;
-  /**
-   * Detach source facet values from their display value and make them root values.
-   * This is the only mutation that unmerges source values.
-   */
-  facetValueUnmerge: FacetValueUnmergePayload;
-  /** Update an existing facet value */
-  facetValueUpdate: FacetValueUpdatePayload;
   /**
    * Start async bulk update.
    * Requires X-Idempotency-Key header.
@@ -1112,8 +1080,6 @@ export type CatalogMutation = {
    * Supports product and variant updates in a single request.
    */
   productUpdate: ProductUpdatePayload;
-  /** Update product status (active, draft, archived) */
-  productUpdateStatus: ProductUpdateStatusPayload;
   /** Create a new tag */
   tagCreate: TagCreatePayload;
   /** Delete a tag */
@@ -1239,71 +1205,6 @@ export type CatalogMutationCollectionUpdateRulesArgs = {
 };
 
 
-export type CatalogMutationFacetCreateArgs = {
-  input: FacetCreateInput;
-};
-
-
-export type CatalogMutationFacetDeleteArgs = {
-  input: FacetDeleteInput;
-};
-
-
-export type CatalogMutationFacetMoveArgs = {
-  input: FacetMoveInput;
-};
-
-
-export type CatalogMutationFacetRebalanceArgs = {
-  input: FacetRebalanceInput;
-};
-
-
-export type CatalogMutationFacetSwatchCreateArgs = {
-  input: FacetSwatchCreateInput;
-};
-
-
-export type CatalogMutationFacetSwatchDeleteArgs = {
-  input: FacetSwatchDeleteInput;
-};
-
-
-export type CatalogMutationFacetSwatchUpdateArgs = {
-  input: FacetSwatchUpdateInput;
-};
-
-
-export type CatalogMutationFacetUpdateArgs = {
-  input: FacetUpdateInput;
-};
-
-
-export type CatalogMutationFacetValueCreateArgs = {
-  input: FacetValueCreateInput;
-};
-
-
-export type CatalogMutationFacetValueDeleteArgs = {
-  input: FacetValueDeleteInput;
-};
-
-
-export type CatalogMutationFacetValueMergeArgs = {
-  input: FacetValueMergeInput;
-};
-
-
-export type CatalogMutationFacetValueUnmergeArgs = {
-  input: FacetValueUnmergeInput;
-};
-
-
-export type CatalogMutationFacetValueUpdateArgs = {
-  input: FacetValueUpdateInput;
-};
-
-
 export type CatalogMutationProductBulkUpdateArgs = {
   input: ProductBulkUpdateInput;
 };
@@ -1363,11 +1264,6 @@ export type CatalogMutationProductUpdateArgs = {
   expectedRevision?: InputMaybe<Scalars['Int']['input']>;
   operations?: InputMaybe<ProductUpdateInput>;
   productId: Scalars['ID']['input'];
-};
-
-
-export type CatalogMutationProductUpdateStatusArgs = {
-  input: ProductUpdateStatusInput;
 };
 
 
@@ -1433,22 +1329,6 @@ export type CatalogQuery = {
   collectionRulesPreviewCount: Scalars['Int']['output'];
   /** Get collections with Relay-style pagination */
   collections: CollectionConnection;
-  /** Get a facet by ID */
-  facet: Maybe<Facet>;
-  /** Get available facet source candidates for create flow */
-  facetSourceCandidates: FacetSourceCandidateConnection;
-  /** Get a facet swatch by ID */
-  facetSwatch: Maybe<FacetSwatch>;
-  /** Get all facet swatches */
-  facetSwatches: Array<FacetSwatch>;
-  /** Get a facet value by ID */
-  facetValue: Maybe<FacetValue>;
-  /** Get available facet source value candidates for create and edit flows */
-  facetValueCandidates: FacetValueCandidateConnection;
-  /** Get all facet values for a specific facet */
-  facetValues: Array<FacetValue>;
-  /** Get all facets */
-  facets: Array<Facet>;
   /** Get a node by its global ID */
   node: Maybe<Node>;
   /** Get multiple nodes by their global IDs */
@@ -1531,47 +1411,6 @@ export type CatalogQueryCollectionsArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
-export type CatalogQueryFacetArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type CatalogQueryFacetSourceCandidatesArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  orderBy?: InputMaybe<Array<FacetSourceCandidateOrderByInput>>;
-  where?: InputMaybe<FacetSourceCandidateWhereInput>;
-};
-
-
-export type CatalogQueryFacetSwatchArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type CatalogQueryFacetValueArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type CatalogQueryFacetValueCandidatesArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  meta: FacetValueCandidatesMetaInput;
-  orderBy?: InputMaybe<Array<FacetValueCandidateOrderByInput>>;
-  where?: InputMaybe<FacetValueCandidateWhereInput>;
-};
-
-
-export type CatalogQueryFacetValuesArgs = {
-  facetId: Scalars['ID']['input'];
 };
 
 
@@ -2531,111 +2370,6 @@ export type DimensionsInput = {
   width: Scalars['Int']['input'];
 };
 
-export type Facet = Node & {
-  __typename?: 'Facet';
-  facetType: FacetType;
-  id: Scalars['ID']['output'];
-  label: Scalars['String']['output'];
-  lexoRank: Scalars['String']['output'];
-  selectionMode: FacetSelectionMode;
-  slug: Scalars['String']['output'];
-  sources: Array<FacetSource>;
-  uiType: FacetUiType;
-  values: Array<FacetValue>;
-};
-
-export type FacetCreateInput = {
-  facetType: FacetType;
-  label: Scalars['String']['input'];
-  selectionMode?: InputMaybe<FacetSelectionMode>;
-  slug: Scalars['String']['input'];
-  sources?: InputMaybe<Array<FacetCreateSourceInput>>;
-  uiType?: InputMaybe<FacetUiType>;
-  valueCandidates?: InputMaybe<Array<FacetCreateValueCandidateInput>>;
-};
-
-export type FacetCreatePayload = {
-  __typename?: 'FacetCreatePayload';
-  facet: Maybe<Facet>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type FacetCreateSourceInput = {
-  handle: Scalars['String']['input'];
-  name: Scalars['String']['input'];
-};
-
-export type FacetCreateValueCandidateInput = {
-  handle: Scalars['String']['input'];
-  label: Scalars['String']['input'];
-  sourceHandle: Scalars['String']['input'];
-};
-
-export type FacetDeleteInput = {
-  id: Scalars['ID']['input'];
-};
-
-export type FacetDeletePayload = {
-  __typename?: 'FacetDeletePayload';
-  deletedFacetId: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type FacetMoveInput = {
-  afterFacetId?: InputMaybe<Scalars['ID']['input']>;
-  beforeFacetId?: InputMaybe<Scalars['ID']['input']>;
-  id: Scalars['ID']['input'];
-};
-
-export type FacetMovePayload = {
-  __typename?: 'FacetMovePayload';
-  facet: Maybe<Facet>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type FacetRebalanceInput = {
-  confirm?: InputMaybe<Scalars['Boolean']['input']>;
-};
-
-export type FacetRebalancePayload = {
-  __typename?: 'FacetRebalancePayload';
-  facets: Array<Facet>;
-  userErrors: Array<GenericUserError>;
-};
-
-export enum FacetSelectionMode {
-  Multi = 'MULTI',
-  Single = 'SINGLE'
-}
-
-export type FacetSource = {
-  __typename?: 'FacetSource';
-  handle: Scalars['String']['output'];
-  name: Scalars['String']['output'];
-};
-
-export type FacetSourceCandidate = {
-  __typename?: 'FacetSourceCandidate';
-  facetType: FacetType;
-  handle: Scalars['String']['output'];
-  id: Scalars['ID']['output'];
-  locale: Scalars['String']['output'];
-  name: Maybe<Scalars['String']['output']>;
-};
-
-export type FacetSourceCandidateConnection = {
-  __typename?: 'FacetSourceCandidateConnection';
-  edges: Array<FacetSourceCandidateEdge>;
-  pageInfo: PageInfo;
-  totalCount: Scalars['Int']['output'];
-};
-
-export type FacetSourceCandidateEdge = {
-  __typename?: 'FacetSourceCandidateEdge';
-  cursor: Scalars['String']['output'];
-  node: FacetSourceCandidate;
-};
-
 /** Ordering configuration for FacetSourceCandidate */
 export type FacetSourceCandidateOrderByInput = {
   /** Sort direction */
@@ -2682,121 +2416,6 @@ export type FacetSourceCandidateWhereInput = {
   sourceSortBucket?: InputMaybe<IntFilter>;
 };
 
-export type FacetSwatch = Node & {
-  __typename?: 'FacetSwatch';
-  colorOne: Maybe<Scalars['String']['output']>;
-  colorTwo: Maybe<Scalars['String']['output']>;
-  file: Maybe<File>;
-  id: Scalars['ID']['output'];
-  metadata: Maybe<Scalars['JSON']['output']>;
-  swatchType: SwatchType;
-};
-
-export type FacetSwatchCreateInput = {
-  colorOne?: InputMaybe<Scalars['String']['input']>;
-  colorTwo?: InputMaybe<Scalars['String']['input']>;
-  fileId?: InputMaybe<Scalars['ID']['input']>;
-  metadata?: InputMaybe<Scalars['JSON']['input']>;
-  swatchType: SwatchType;
-};
-
-export type FacetSwatchCreatePayload = {
-  __typename?: 'FacetSwatchCreatePayload';
-  facetSwatch: Maybe<FacetSwatch>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type FacetSwatchDeleteInput = {
-  id: Scalars['ID']['input'];
-};
-
-export type FacetSwatchDeletePayload = {
-  __typename?: 'FacetSwatchDeletePayload';
-  deletedFacetSwatchId: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type FacetSwatchUpdateInput = {
-  colorOne?: InputMaybe<Scalars['String']['input']>;
-  colorTwo?: InputMaybe<Scalars['String']['input']>;
-  fileId?: InputMaybe<Scalars['ID']['input']>;
-  id: Scalars['ID']['input'];
-  metadata?: InputMaybe<Scalars['JSON']['input']>;
-  swatchType?: InputMaybe<SwatchType>;
-};
-
-export type FacetSwatchUpdatePayload = {
-  __typename?: 'FacetSwatchUpdatePayload';
-  facetSwatch: Maybe<FacetSwatch>;
-  userErrors: Array<GenericUserError>;
-};
-
-export enum FacetType {
-  Feature = 'FEATURE',
-  InStock = 'IN_STOCK',
-  Option = 'OPTION',
-  Price = 'PRICE',
-  Tag = 'TAG'
-}
-
-export enum FacetUiType {
-  Boolean = 'BOOLEAN',
-  Checkbox = 'CHECKBOX',
-  Dropdown = 'DROPDOWN',
-  Radio = 'RADIO',
-  Range = 'RANGE'
-}
-
-export type FacetUpdateInput = {
-  id: Scalars['ID']['input'];
-  label?: InputMaybe<Scalars['String']['input']>;
-  selectionMode?: InputMaybe<FacetSelectionMode>;
-  slug?: InputMaybe<Scalars['String']['input']>;
-  uiType?: InputMaybe<FacetUiType>;
-};
-
-export type FacetUpdatePayload = {
-  __typename?: 'FacetUpdatePayload';
-  facet: Maybe<Facet>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type FacetValue = Node & {
-  __typename?: 'FacetValue';
-  enabled: Scalars['Boolean']['output'];
-  facet: Facet;
-  handle: Scalars['String']['output'];
-  id: Scalars['ID']['output'];
-  kind: FacetValueKind;
-  label: Scalars['String']['output'];
-  parent: Maybe<FacetValue>;
-  sortIndex: Scalars['Int']['output'];
-  sourceValues: Array<FacetValue>;
-  swatch: Maybe<FacetSwatch>;
-};
-
-export type FacetValueCandidate = {
-  __typename?: 'FacetValueCandidate';
-  facetType: FacetType;
-  handle: Scalars['String']['output'];
-  id: Scalars['ID']['output'];
-  label: Scalars['String']['output'];
-  sourceHandle: Scalars['String']['output'];
-};
-
-export type FacetValueCandidateConnection = {
-  __typename?: 'FacetValueCandidateConnection';
-  edges: Array<FacetValueCandidateEdge>;
-  pageInfo: PageInfo;
-  totalCount: Scalars['Int']['output'];
-};
-
-export type FacetValueCandidateEdge = {
-  __typename?: 'FacetValueCandidateEdge';
-  cursor: Scalars['String']['output'];
-  node: FacetValueCandidate;
-};
-
 /** Ordering configuration for FacetValueCandidate */
 export type FacetValueCandidateOrderByInput = {
   /** Sort direction */
@@ -2815,12 +2434,6 @@ export enum FacetValueCandidateOrderField {
   Label = 'label'
 }
 
-export enum FacetValueCandidateType {
-  Feature = 'FEATURE',
-  Option = 'OPTION',
-  Tag = 'TAG'
-}
-
 /** Filter conditions for FacetValueCandidate */
 export type FacetValueCandidateWhereInput = {
   /** Logical AND of multiple conditions */
@@ -2835,85 +2448,6 @@ export type FacetValueCandidateWhereInput = {
   id?: InputMaybe<IdFilter>;
   /** Filter by label */
   label?: InputMaybe<StringFilter>;
-};
-
-export type FacetValueCandidatesMetaInput = {
-  candidateType: FacetValueCandidateType;
-  facetId?: InputMaybe<Scalars['ID']['input']>;
-  sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
-};
-
-export type FacetValueCreateInput = {
-  enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  facetId: Scalars['ID']['input'];
-  handle: Scalars['String']['input'];
-  kind?: InputMaybe<FacetValueKind>;
-  label: Scalars['String']['input'];
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
-  sourceValueIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  swatchId?: InputMaybe<Scalars['ID']['input']>;
-};
-
-export type FacetValueCreatePayload = {
-  __typename?: 'FacetValueCreatePayload';
-  facetValue: Maybe<FacetValue>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type FacetValueDeleteInput = {
-  id: Scalars['ID']['input'];
-};
-
-export type FacetValueDeletePayload = {
-  __typename?: 'FacetValueDeletePayload';
-  deletedFacetValueId: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<GenericUserError>;
-};
-
-export enum FacetValueKind {
-  Display = 'DISPLAY',
-  Source = 'SOURCE'
-}
-
-export type FacetValueMergeInput = {
-  facetId: Scalars['ID']['input'];
-  sourceValueIds: Array<Scalars['ID']['input']>;
-  targetDisplayValueId?: InputMaybe<Scalars['ID']['input']>;
-  targetHandle?: InputMaybe<Scalars['String']['input']>;
-  targetLabel?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type FacetValueMergePayload = {
-  __typename?: 'FacetValueMergePayload';
-  facetValue: Maybe<FacetValue>;
-  sourceValues: Array<FacetValue>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type FacetValueUnmergeInput = {
-  sourceValueIds: Array<Scalars['ID']['input']>;
-};
-
-export type FacetValueUnmergePayload = {
-  __typename?: 'FacetValueUnmergePayload';
-  affectedDisplayValues: Array<FacetValue>;
-  sourceValues: Array<FacetValue>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type FacetValueUpdateInput = {
-  enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  handle?: InputMaybe<Scalars['String']['input']>;
-  id: Scalars['ID']['input'];
-  label?: InputMaybe<Scalars['String']['input']>;
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
-  swatchId?: InputMaybe<Scalars['ID']['input']>;
-};
-
-export type FacetValueUpdatePayload = {
-  __typename?: 'FacetValueUpdatePayload';
-  facetValue: Maybe<FacetValue>;
-  userErrors: Array<GenericUserError>;
 };
 
 export type File = {
@@ -4516,26 +4050,6 @@ export type ProductUpdatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
-/**
- * Input for updating product status (publish or unpublish).
- * Reused in bulk operations.
- */
-export type ProductUpdateStatusInput = {
-  /** Action: PUBLISH or UNPUBLISH. */
-  action: ProductStatusAction;
-  /** Product ID. */
-  productId: Scalars['ID']['input'];
-};
-
-/** Payload for product update status. */
-export type ProductUpdateStatusPayload = {
-  __typename?: 'ProductUpdateStatusPayload';
-  /** The updated product. */
-  product: Maybe<Product>;
-  /** List of errors that occurred during the mutation. */
-  userErrors: Array<GenericUserError>;
-};
-
 /** Filter conditions for Product */
 export type ProductWhereInput = {
   /** Logical AND of multiple conditions */
@@ -4796,7 +4310,7 @@ export enum TagOrderField {
   /** Sort by productsCount */
   ProductsCount = 'productsCount',
   /** Sort by storeId */
-  ProjectId = 'storeId'
+  StoreId = 'storeId'
 }
 
 /** Input for updating a tag. */
@@ -5869,7 +5383,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
   BundlePriceRule: ( BundleBasePriceRule ) | ( BundleDiscountFixedPriceRule ) | ( BundleDiscountPercentPriceRule ) | ( BundleFixedPriceRule ) | ( BundleFreePriceRule );
-  Node: ( Omit<Bundle, 'configurations'> & { configurations: Array<_RefType['BundleConfiguration']> } ) | ( BundleBasePriceRule ) | ( BundleCondition ) | ( BundleConditionGroup ) | ( Omit<BundleConfiguration, 'dependencyRules' | 'groups' | 'pricingTemplates'> & { dependencyRules: Array<_RefType['BundleDependencyRule']>, groups: Array<_RefType['BundleGroup']>, pricingTemplates: Array<_RefType['BundlePricingTemplate']> } ) | ( Omit<BundleDependencyAction, 'priceRule'> & { priceRule?: Maybe<_RefType['BundlePriceRule']> } ) | ( Omit<BundleDependencyRule, 'actions'> & { actions: Array<_RefType['BundleDependencyAction']> } ) | ( BundleDiscountFixedPriceRule ) | ( BundleDiscountPercentPriceRule ) | ( BundleFixedPriceRule ) | ( BundleFreePriceRule ) | ( Omit<BundleGroup, 'items'> & { items: Array<_RefType['BundleItem']> } ) | ( Omit<BundleItem, 'group' | 'priceRule' | 'pricingTemplate'> & { group: _RefType['BundleGroup'], priceRule?: Maybe<_RefType['BundlePriceRule']>, pricingTemplate?: Maybe<_RefType['BundlePricingTemplate']> } ) | ( BundleItemOptionSelection ) | ( BundleItemOptionValueSelection ) | ( Omit<BundlePricingTemplate, 'priceRule'> & { priceRule: _RefType['BundlePriceRule'] } ) | ( Category ) | ( Collection ) | ( Facet ) | ( FacetSwatch ) | ( FacetValue ) | ( InventoryItem ) | ( Product ) | ( ProductFeature ) | ( ProductFeatureValue ) | ( ProductOption ) | ( ProductOptionSwatch ) | ( ProductOptionValue ) | ( Tag ) | ( Omit<Variant, 'bundleConfiguration'> & { bundleConfiguration?: Maybe<_RefType['BundleConfiguration']> } ) | ( VariantCost ) | ( VariantPrice ) | ( Vendor ) | ( Warehouse ) | ( WarehouseStock );
+  Node: ( Omit<Bundle, 'configurations'> & { configurations: Array<_RefType['BundleConfiguration']> } ) | ( BundleBasePriceRule ) | ( BundleCondition ) | ( BundleConditionGroup ) | ( Omit<BundleConfiguration, 'dependencyRules' | 'groups' | 'pricingTemplates'> & { dependencyRules: Array<_RefType['BundleDependencyRule']>, groups: Array<_RefType['BundleGroup']>, pricingTemplates: Array<_RefType['BundlePricingTemplate']> } ) | ( Omit<BundleDependencyAction, 'priceRule'> & { priceRule?: Maybe<_RefType['BundlePriceRule']> } ) | ( Omit<BundleDependencyRule, 'actions'> & { actions: Array<_RefType['BundleDependencyAction']> } ) | ( BundleDiscountFixedPriceRule ) | ( BundleDiscountPercentPriceRule ) | ( BundleFixedPriceRule ) | ( BundleFreePriceRule ) | ( Omit<BundleGroup, 'items'> & { items: Array<_RefType['BundleItem']> } ) | ( Omit<BundleItem, 'group' | 'priceRule' | 'pricingTemplate'> & { group: _RefType['BundleGroup'], priceRule?: Maybe<_RefType['BundlePriceRule']>, pricingTemplate?: Maybe<_RefType['BundlePricingTemplate']> } ) | ( BundleItemOptionSelection ) | ( BundleItemOptionValueSelection ) | ( Omit<BundlePricingTemplate, 'priceRule'> & { priceRule: _RefType['BundlePriceRule'] } ) | ( Category ) | ( Collection ) | ( InventoryItem ) | ( Product ) | ( ProductFeature ) | ( ProductFeatureValue ) | ( ProductOption ) | ( ProductOptionSwatch ) | ( ProductOptionValue ) | ( Tag ) | ( Omit<Variant, 'bundleConfiguration'> & { bundleConfiguration?: Maybe<_RefType['BundleConfiguration']> } ) | ( VariantCost ) | ( VariantPrice ) | ( Vendor ) | ( Warehouse ) | ( WarehouseStock );
   UserError: ( BulkUpdateUserError ) | ( GenericUserError );
 }>;
 
@@ -6012,56 +5526,12 @@ export type ResolversTypes = ResolversObject<{
   DimensionUnit: DimensionUnit;
   DimensionsInput: DimensionsInput;
   Email: ResolverTypeWrapper<Scalars['Email']['output']>;
-  Facet: ResolverTypeWrapper<Facet>;
-  FacetCreateInput: FacetCreateInput;
-  FacetCreatePayload: ResolverTypeWrapper<FacetCreatePayload>;
-  FacetCreateSourceInput: FacetCreateSourceInput;
-  FacetCreateValueCandidateInput: FacetCreateValueCandidateInput;
-  FacetDeleteInput: FacetDeleteInput;
-  FacetDeletePayload: ResolverTypeWrapper<FacetDeletePayload>;
-  FacetMoveInput: FacetMoveInput;
-  FacetMovePayload: ResolverTypeWrapper<FacetMovePayload>;
-  FacetRebalanceInput: FacetRebalanceInput;
-  FacetRebalancePayload: ResolverTypeWrapper<FacetRebalancePayload>;
-  FacetSelectionMode: FacetSelectionMode;
-  FacetSource: ResolverTypeWrapper<FacetSource>;
-  FacetSourceCandidate: ResolverTypeWrapper<FacetSourceCandidate>;
-  FacetSourceCandidateConnection: ResolverTypeWrapper<FacetSourceCandidateConnection>;
-  FacetSourceCandidateEdge: ResolverTypeWrapper<FacetSourceCandidateEdge>;
   FacetSourceCandidateOrderByInput: FacetSourceCandidateOrderByInput;
   FacetSourceCandidateOrderField: FacetSourceCandidateOrderField;
   FacetSourceCandidateWhereInput: FacetSourceCandidateWhereInput;
-  FacetSwatch: ResolverTypeWrapper<FacetSwatch>;
-  FacetSwatchCreateInput: FacetSwatchCreateInput;
-  FacetSwatchCreatePayload: ResolverTypeWrapper<FacetSwatchCreatePayload>;
-  FacetSwatchDeleteInput: FacetSwatchDeleteInput;
-  FacetSwatchDeletePayload: ResolverTypeWrapper<FacetSwatchDeletePayload>;
-  FacetSwatchUpdateInput: FacetSwatchUpdateInput;
-  FacetSwatchUpdatePayload: ResolverTypeWrapper<FacetSwatchUpdatePayload>;
-  FacetType: FacetType;
-  FacetUIType: FacetUiType;
-  FacetUpdateInput: FacetUpdateInput;
-  FacetUpdatePayload: ResolverTypeWrapper<FacetUpdatePayload>;
-  FacetValue: ResolverTypeWrapper<FacetValue>;
-  FacetValueCandidate: ResolverTypeWrapper<FacetValueCandidate>;
-  FacetValueCandidateConnection: ResolverTypeWrapper<FacetValueCandidateConnection>;
-  FacetValueCandidateEdge: ResolverTypeWrapper<FacetValueCandidateEdge>;
   FacetValueCandidateOrderByInput: FacetValueCandidateOrderByInput;
   FacetValueCandidateOrderField: FacetValueCandidateOrderField;
-  FacetValueCandidateType: FacetValueCandidateType;
   FacetValueCandidateWhereInput: FacetValueCandidateWhereInput;
-  FacetValueCandidatesMetaInput: FacetValueCandidatesMetaInput;
-  FacetValueCreateInput: FacetValueCreateInput;
-  FacetValueCreatePayload: ResolverTypeWrapper<FacetValueCreatePayload>;
-  FacetValueDeleteInput: FacetValueDeleteInput;
-  FacetValueDeletePayload: ResolverTypeWrapper<FacetValueDeletePayload>;
-  FacetValueKind: FacetValueKind;
-  FacetValueMergeInput: FacetValueMergeInput;
-  FacetValueMergePayload: ResolverTypeWrapper<FacetValueMergePayload>;
-  FacetValueUnmergeInput: FacetValueUnmergeInput;
-  FacetValueUnmergePayload: ResolverTypeWrapper<FacetValueUnmergePayload>;
-  FacetValueUpdateInput: FacetValueUpdateInput;
-  FacetValueUpdatePayload: ResolverTypeWrapper<FacetValueUpdatePayload>;
   File: ResolverTypeWrapper<File>;
   FloatFilter: FloatFilter;
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
@@ -6171,8 +5641,6 @@ export type ResolversTypes = ResolversObject<{
   ProductTagOperationInput: ProductTagOperationInput;
   ProductUpdateInput: ProductUpdateInput;
   ProductUpdatePayload: ResolverTypeWrapper<ProductUpdatePayload>;
-  ProductUpdateStatusInput: ProductUpdateStatusInput;
-  ProductUpdateStatusPayload: ResolverTypeWrapper<ProductUpdateStatusPayload>;
   ProductWhereInput: ProductWhereInput;
   Query: ResolverTypeWrapper<{}>;
   RichText: ResolverTypeWrapper<RichText>;
@@ -6392,49 +5860,10 @@ export type ResolversParentTypes = ResolversObject<{
   DateTimeFilter: DateTimeFilter;
   DimensionsInput: DimensionsInput;
   Email: Scalars['Email']['output'];
-  Facet: Facet;
-  FacetCreateInput: FacetCreateInput;
-  FacetCreatePayload: FacetCreatePayload;
-  FacetCreateSourceInput: FacetCreateSourceInput;
-  FacetCreateValueCandidateInput: FacetCreateValueCandidateInput;
-  FacetDeleteInput: FacetDeleteInput;
-  FacetDeletePayload: FacetDeletePayload;
-  FacetMoveInput: FacetMoveInput;
-  FacetMovePayload: FacetMovePayload;
-  FacetRebalanceInput: FacetRebalanceInput;
-  FacetRebalancePayload: FacetRebalancePayload;
-  FacetSource: FacetSource;
-  FacetSourceCandidate: FacetSourceCandidate;
-  FacetSourceCandidateConnection: FacetSourceCandidateConnection;
-  FacetSourceCandidateEdge: FacetSourceCandidateEdge;
   FacetSourceCandidateOrderByInput: FacetSourceCandidateOrderByInput;
   FacetSourceCandidateWhereInput: FacetSourceCandidateWhereInput;
-  FacetSwatch: FacetSwatch;
-  FacetSwatchCreateInput: FacetSwatchCreateInput;
-  FacetSwatchCreatePayload: FacetSwatchCreatePayload;
-  FacetSwatchDeleteInput: FacetSwatchDeleteInput;
-  FacetSwatchDeletePayload: FacetSwatchDeletePayload;
-  FacetSwatchUpdateInput: FacetSwatchUpdateInput;
-  FacetSwatchUpdatePayload: FacetSwatchUpdatePayload;
-  FacetUpdateInput: FacetUpdateInput;
-  FacetUpdatePayload: FacetUpdatePayload;
-  FacetValue: FacetValue;
-  FacetValueCandidate: FacetValueCandidate;
-  FacetValueCandidateConnection: FacetValueCandidateConnection;
-  FacetValueCandidateEdge: FacetValueCandidateEdge;
   FacetValueCandidateOrderByInput: FacetValueCandidateOrderByInput;
   FacetValueCandidateWhereInput: FacetValueCandidateWhereInput;
-  FacetValueCandidatesMetaInput: FacetValueCandidatesMetaInput;
-  FacetValueCreateInput: FacetValueCreateInput;
-  FacetValueCreatePayload: FacetValueCreatePayload;
-  FacetValueDeleteInput: FacetValueDeleteInput;
-  FacetValueDeletePayload: FacetValueDeletePayload;
-  FacetValueMergeInput: FacetValueMergeInput;
-  FacetValueMergePayload: FacetValueMergePayload;
-  FacetValueUnmergeInput: FacetValueUnmergeInput;
-  FacetValueUnmergePayload: FacetValueUnmergePayload;
-  FacetValueUpdateInput: FacetValueUpdateInput;
-  FacetValueUpdatePayload: FacetValueUpdatePayload;
   File: File;
   FloatFilter: FloatFilter;
   Float: Scalars['Float']['output'];
@@ -6532,8 +5961,6 @@ export type ResolversParentTypes = ResolversObject<{
   ProductTagOperationInput: ProductTagOperationInput;
   ProductUpdateInput: ProductUpdateInput;
   ProductUpdatePayload: ProductUpdatePayload;
-  ProductUpdateStatusInput: ProductUpdateStatusInput;
-  ProductUpdateStatusPayload: ProductUpdateStatusPayload;
   ProductWhereInput: ProductWhereInput;
   Query: {};
   RichText: RichText;
@@ -6981,19 +6408,6 @@ export type CatalogMutationResolvers<ContextType = ServiceContext, ParentType ex
   collectionRemoveProducts?: Resolver<ResolversTypes['CollectionRemoveProductsPayload'], ParentType, ContextType, RequireFields<CatalogMutationCollectionRemoveProductsArgs, 'input'>>;
   collectionUpdate?: Resolver<ResolversTypes['CollectionUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationCollectionUpdateArgs, 'input'>>;
   collectionUpdateRules?: Resolver<ResolversTypes['CollectionUpdateRulesPayload'], ParentType, ContextType, RequireFields<CatalogMutationCollectionUpdateRulesArgs, 'input'>>;
-  facetCreate?: Resolver<ResolversTypes['FacetCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetCreateArgs, 'input'>>;
-  facetDelete?: Resolver<ResolversTypes['FacetDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetDeleteArgs, 'input'>>;
-  facetMove?: Resolver<ResolversTypes['FacetMovePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetMoveArgs, 'input'>>;
-  facetRebalance?: Resolver<ResolversTypes['FacetRebalancePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetRebalanceArgs, 'input'>>;
-  facetSwatchCreate?: Resolver<ResolversTypes['FacetSwatchCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetSwatchCreateArgs, 'input'>>;
-  facetSwatchDelete?: Resolver<ResolversTypes['FacetSwatchDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetSwatchDeleteArgs, 'input'>>;
-  facetSwatchUpdate?: Resolver<ResolversTypes['FacetSwatchUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetSwatchUpdateArgs, 'input'>>;
-  facetUpdate?: Resolver<ResolversTypes['FacetUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetUpdateArgs, 'input'>>;
-  facetValueCreate?: Resolver<ResolversTypes['FacetValueCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetValueCreateArgs, 'input'>>;
-  facetValueDelete?: Resolver<ResolversTypes['FacetValueDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetValueDeleteArgs, 'input'>>;
-  facetValueMerge?: Resolver<ResolversTypes['FacetValueMergePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetValueMergeArgs, 'input'>>;
-  facetValueUnmerge?: Resolver<ResolversTypes['FacetValueUnmergePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetValueUnmergeArgs, 'input'>>;
-  facetValueUpdate?: Resolver<ResolversTypes['FacetValueUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationFacetValueUpdateArgs, 'input'>>;
   productBulkUpdate?: Resolver<ResolversTypes['ProductBulkUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductBulkUpdateArgs, 'input'>>;
   productCreate?: Resolver<ResolversTypes['ProductCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductCreateArgs, 'input'>>;
   productDelete?: Resolver<ResolversTypes['ProductDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductDeleteArgs, 'input'>>;
@@ -7006,7 +6420,6 @@ export type CatalogMutationResolvers<ContextType = ServiceContext, ParentType ex
   productOptionUpdate?: Resolver<ResolversTypes['ProductOptionUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductOptionUpdateArgs, 'input'>>;
   productOptionsSync?: Resolver<ResolversTypes['ProductOptionsSyncPayload'], ParentType, ContextType, RequireFields<CatalogMutationProductOptionsSyncArgs, 'input'>>;
   productUpdate?: Resolver<ResolversTypes['ProductUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationProductUpdateArgs, 'productId'>>;
-  productUpdateStatus?: Resolver<ResolversTypes['ProductUpdateStatusPayload'], ParentType, ContextType, RequireFields<CatalogMutationProductUpdateStatusArgs, 'input'>>;
   tagCreate?: Resolver<ResolversTypes['TagCreatePayload'], ParentType, ContextType, RequireFields<CatalogMutationTagCreateArgs, 'input'>>;
   tagDelete?: Resolver<ResolversTypes['TagDeletePayload'], ParentType, ContextType, RequireFields<CatalogMutationTagDeleteArgs, 'input'>>;
   tagUpdate?: Resolver<ResolversTypes['TagUpdatePayload'], ParentType, ContextType, RequireFields<CatalogMutationTagUpdateArgs, 'input'>>;
@@ -7028,14 +6441,6 @@ export type CatalogQueryResolvers<ContextType = ServiceContext, ParentType exten
   collectionByHandle?: Resolver<Maybe<ResolversTypes['Collection']>, ParentType, ContextType, RequireFields<CatalogQueryCollectionByHandleArgs, 'handle'>>;
   collectionRulesPreviewCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType, RequireFields<CatalogQueryCollectionRulesPreviewCountArgs, 'rules'>>;
   collections?: Resolver<ResolversTypes['CollectionConnection'], ParentType, ContextType, Partial<CatalogQueryCollectionsArgs>>;
-  facet?: Resolver<Maybe<ResolversTypes['Facet']>, ParentType, ContextType, RequireFields<CatalogQueryFacetArgs, 'id'>>;
-  facetSourceCandidates?: Resolver<ResolversTypes['FacetSourceCandidateConnection'], ParentType, ContextType, Partial<CatalogQueryFacetSourceCandidatesArgs>>;
-  facetSwatch?: Resolver<Maybe<ResolversTypes['FacetSwatch']>, ParentType, ContextType, RequireFields<CatalogQueryFacetSwatchArgs, 'id'>>;
-  facetSwatches?: Resolver<Array<ResolversTypes['FacetSwatch']>, ParentType, ContextType>;
-  facetValue?: Resolver<Maybe<ResolversTypes['FacetValue']>, ParentType, ContextType, RequireFields<CatalogQueryFacetValueArgs, 'id'>>;
-  facetValueCandidates?: Resolver<ResolversTypes['FacetValueCandidateConnection'], ParentType, ContextType, RequireFields<CatalogQueryFacetValueCandidatesArgs, 'meta'>>;
-  facetValues?: Resolver<Array<ResolversTypes['FacetValue']>, ParentType, ContextType, RequireFields<CatalogQueryFacetValuesArgs, 'facetId'>>;
-  facets?: Resolver<Array<ResolversTypes['Facet']>, ParentType, ContextType>;
   node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<CatalogQueryNodeArgs, 'id'>>;
   nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<CatalogQueryNodesArgs, 'ids'>>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType, RequireFields<CatalogQueryProductArgs, 'id'>>;
@@ -7243,174 +6648,6 @@ export interface EmailScalarConfig extends GraphQLScalarTypeConfig<ResolversType
   name: 'Email';
 }
 
-export type FacetResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Facet'] = ResolversParentTypes['Facet']> = ResolversObject<{
-  facetType?: Resolver<ResolversTypes['FacetType'], ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  lexoRank?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  selectionMode?: Resolver<ResolversTypes['FacetSelectionMode'], ParentType, ContextType>;
-  slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  sources?: Resolver<Array<ResolversTypes['FacetSource']>, ParentType, ContextType>;
-  uiType?: Resolver<ResolversTypes['FacetUIType'], ParentType, ContextType>;
-  values?: Resolver<Array<ResolversTypes['FacetValue']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetCreatePayload'] = ResolversParentTypes['FacetCreatePayload']> = ResolversObject<{
-  facet?: Resolver<Maybe<ResolversTypes['Facet']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetDeletePayload'] = ResolversParentTypes['FacetDeletePayload']> = ResolversObject<{
-  deletedFacetId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetMovePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetMovePayload'] = ResolversParentTypes['FacetMovePayload']> = ResolversObject<{
-  facet?: Resolver<Maybe<ResolversTypes['Facet']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetRebalancePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetRebalancePayload'] = ResolversParentTypes['FacetRebalancePayload']> = ResolversObject<{
-  facets?: Resolver<Array<ResolversTypes['Facet']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetSourceResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetSource'] = ResolversParentTypes['FacetSource']> = ResolversObject<{
-  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetSourceCandidateResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetSourceCandidate'] = ResolversParentTypes['FacetSourceCandidate']> = ResolversObject<{
-  facetType?: Resolver<ResolversTypes['FacetType'], ParentType, ContextType>;
-  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  locale?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetSourceCandidateConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetSourceCandidateConnection'] = ResolversParentTypes['FacetSourceCandidateConnection']> = ResolversObject<{
-  edges?: Resolver<Array<ResolversTypes['FacetSourceCandidateEdge']>, ParentType, ContextType>;
-  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
-  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetSourceCandidateEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetSourceCandidateEdge'] = ResolversParentTypes['FacetSourceCandidateEdge']> = ResolversObject<{
-  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  node?: Resolver<ResolversTypes['FacetSourceCandidate'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetSwatchResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetSwatch'] = ResolversParentTypes['FacetSwatch']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['FacetSwatch']>, { __typename: 'FacetSwatch' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
-  colorOne?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  colorTwo?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  file?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  metadata?: Resolver<Maybe<ResolversTypes['JSON']>, ParentType, ContextType>;
-  swatchType?: Resolver<ResolversTypes['SwatchType'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetSwatchCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetSwatchCreatePayload'] = ResolversParentTypes['FacetSwatchCreatePayload']> = ResolversObject<{
-  facetSwatch?: Resolver<Maybe<ResolversTypes['FacetSwatch']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetSwatchDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetSwatchDeletePayload'] = ResolversParentTypes['FacetSwatchDeletePayload']> = ResolversObject<{
-  deletedFacetSwatchId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetSwatchUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetSwatchUpdatePayload'] = ResolversParentTypes['FacetSwatchUpdatePayload']> = ResolversObject<{
-  facetSwatch?: Resolver<Maybe<ResolversTypes['FacetSwatch']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetUpdatePayload'] = ResolversParentTypes['FacetUpdatePayload']> = ResolversObject<{
-  facet?: Resolver<Maybe<ResolversTypes['Facet']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetValueResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValue'] = ResolversParentTypes['FacetValue']> = ResolversObject<{
-  enabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  facet?: Resolver<ResolversTypes['Facet'], ParentType, ContextType>;
-  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  kind?: Resolver<ResolversTypes['FacetValueKind'], ParentType, ContextType>;
-  label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  parent?: Resolver<Maybe<ResolversTypes['FacetValue']>, ParentType, ContextType>;
-  sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  sourceValues?: Resolver<Array<ResolversTypes['FacetValue']>, ParentType, ContextType>;
-  swatch?: Resolver<Maybe<ResolversTypes['FacetSwatch']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetValueCandidateResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValueCandidate'] = ResolversParentTypes['FacetValueCandidate']> = ResolversObject<{
-  facetType?: Resolver<ResolversTypes['FacetType'], ParentType, ContextType>;
-  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  sourceHandle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetValueCandidateConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValueCandidateConnection'] = ResolversParentTypes['FacetValueCandidateConnection']> = ResolversObject<{
-  edges?: Resolver<Array<ResolversTypes['FacetValueCandidateEdge']>, ParentType, ContextType>;
-  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
-  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetValueCandidateEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValueCandidateEdge'] = ResolversParentTypes['FacetValueCandidateEdge']> = ResolversObject<{
-  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  node?: Resolver<ResolversTypes['FacetValueCandidate'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetValueCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValueCreatePayload'] = ResolversParentTypes['FacetValueCreatePayload']> = ResolversObject<{
-  facetValue?: Resolver<Maybe<ResolversTypes['FacetValue']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetValueDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValueDeletePayload'] = ResolversParentTypes['FacetValueDeletePayload']> = ResolversObject<{
-  deletedFacetValueId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetValueMergePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValueMergePayload'] = ResolversParentTypes['FacetValueMergePayload']> = ResolversObject<{
-  facetValue?: Resolver<Maybe<ResolversTypes['FacetValue']>, ParentType, ContextType>;
-  sourceValues?: Resolver<Array<ResolversTypes['FacetValue']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetValueUnmergePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValueUnmergePayload'] = ResolversParentTypes['FacetValueUnmergePayload']> = ResolversObject<{
-  affectedDisplayValues?: Resolver<Array<ResolversTypes['FacetValue']>, ParentType, ContextType>;
-  sourceValues?: Resolver<Array<ResolversTypes['FacetValue']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetValueUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValueUpdatePayload'] = ResolversParentTypes['FacetValueUpdatePayload']> = ResolversObject<{
-  facetValue?: Resolver<Maybe<ResolversTypes['FacetValue']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type FileResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['File'] = ResolversParentTypes['File']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
 
@@ -7526,7 +6763,7 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Bundle' | 'BundleBasePriceRule' | 'BundleCondition' | 'BundleConditionGroup' | 'BundleConfiguration' | 'BundleDependencyAction' | 'BundleDependencyRule' | 'BundleDiscountFixedPriceRule' | 'BundleDiscountPercentPriceRule' | 'BundleFixedPriceRule' | 'BundleFreePriceRule' | 'BundleGroup' | 'BundleItem' | 'BundleItemOptionSelection' | 'BundleItemOptionValueSelection' | 'BundlePricingTemplate' | 'Category' | 'Collection' | 'Facet' | 'FacetSwatch' | 'FacetValue' | 'InventoryItem' | 'Product' | 'ProductFeature' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionSwatch' | 'ProductOptionValue' | 'Tag' | 'Variant' | 'VariantCost' | 'VariantPrice' | 'Vendor' | 'Warehouse' | 'WarehouseStock', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'Bundle' | 'BundleBasePriceRule' | 'BundleCondition' | 'BundleConditionGroup' | 'BundleConfiguration' | 'BundleDependencyAction' | 'BundleDependencyRule' | 'BundleDiscountFixedPriceRule' | 'BundleDiscountPercentPriceRule' | 'BundleFixedPriceRule' | 'BundleFreePriceRule' | 'BundleGroup' | 'BundleItem' | 'BundleItemOptionSelection' | 'BundleItemOptionValueSelection' | 'BundlePricingTemplate' | 'Category' | 'Collection' | 'InventoryItem' | 'Product' | 'ProductFeature' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionSwatch' | 'ProductOptionValue' | 'Tag' | 'Variant' | 'VariantCost' | 'VariantPrice' | 'Vendor' | 'Warehouse' | 'WarehouseStock', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -7788,12 +7025,6 @@ export type ProductSeoResolvers<ContextType = ServiceContext, ParentType extends
 
 export type ProductUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductUpdatePayload'] = ResolversParentTypes['ProductUpdatePayload']> = ResolversObject<{
   operationResults?: Resolver<Array<ResolversTypes['OperationResult']>, ParentType, ContextType>;
-  product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type ProductUpdateStatusPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductUpdateStatusPayload'] = ResolversParentTypes['ProductUpdateStatusPayload']> = ResolversObject<{
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -8202,29 +7433,6 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   CollectionUpdateRulesPayload?: CollectionUpdateRulesPayloadResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
   Email?: GraphQLScalarType;
-  Facet?: FacetResolvers<ContextType>;
-  FacetCreatePayload?: FacetCreatePayloadResolvers<ContextType>;
-  FacetDeletePayload?: FacetDeletePayloadResolvers<ContextType>;
-  FacetMovePayload?: FacetMovePayloadResolvers<ContextType>;
-  FacetRebalancePayload?: FacetRebalancePayloadResolvers<ContextType>;
-  FacetSource?: FacetSourceResolvers<ContextType>;
-  FacetSourceCandidate?: FacetSourceCandidateResolvers<ContextType>;
-  FacetSourceCandidateConnection?: FacetSourceCandidateConnectionResolvers<ContextType>;
-  FacetSourceCandidateEdge?: FacetSourceCandidateEdgeResolvers<ContextType>;
-  FacetSwatch?: FacetSwatchResolvers<ContextType>;
-  FacetSwatchCreatePayload?: FacetSwatchCreatePayloadResolvers<ContextType>;
-  FacetSwatchDeletePayload?: FacetSwatchDeletePayloadResolvers<ContextType>;
-  FacetSwatchUpdatePayload?: FacetSwatchUpdatePayloadResolvers<ContextType>;
-  FacetUpdatePayload?: FacetUpdatePayloadResolvers<ContextType>;
-  FacetValue?: FacetValueResolvers<ContextType>;
-  FacetValueCandidate?: FacetValueCandidateResolvers<ContextType>;
-  FacetValueCandidateConnection?: FacetValueCandidateConnectionResolvers<ContextType>;
-  FacetValueCandidateEdge?: FacetValueCandidateEdgeResolvers<ContextType>;
-  FacetValueCreatePayload?: FacetValueCreatePayloadResolvers<ContextType>;
-  FacetValueDeletePayload?: FacetValueDeletePayloadResolvers<ContextType>;
-  FacetValueMergePayload?: FacetValueMergePayloadResolvers<ContextType>;
-  FacetValueUnmergePayload?: FacetValueUnmergePayloadResolvers<ContextType>;
-  FacetValueUpdatePayload?: FacetValueUpdatePayloadResolvers<ContextType>;
   File?: FileResolvers<ContextType>;
   GenericUserError?: GenericUserErrorResolvers<ContextType>;
   InventoryAlertThreshold?: InventoryAlertThresholdResolvers<ContextType>;
@@ -8272,7 +7480,6 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ProductPriceRange?: ProductPriceRangeResolvers<ContextType>;
   ProductSeo?: ProductSeoResolvers<ContextType>;
   ProductUpdatePayload?: ProductUpdatePayloadResolvers<ContextType>;
-  ProductUpdateStatusPayload?: ProductUpdateStatusPayloadResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   RichText?: RichTextResolvers<ContextType>;
   SelectedOption?: SelectedOptionResolvers<ContextType>;

@@ -78,10 +78,7 @@ import { CategoryResolver } from "./CategoryResolver.js";
 import { TagResolver } from "./TagResolver.js";
 import { CollectionResolver } from "./CollectionResolver.js";
 import { ProductBulkUpdateJobResolver } from "./ProductBulkUpdateJobResolver.js";
-import {
-  ProductDeleteScript,
-  ProductUpdateStatusScript,
-} from "../../scripts/product/index.js";
+import { ProductDeleteScript } from "../../scripts/product/index.js";
 import {
   CategoryCreateScript,
   CategoryDeleteScript,
@@ -153,7 +150,6 @@ import type {
   ProductBulkUpdateInput,
   ProductUpdateInput,
   ProductDeleteInput,
-  ProductUpdateStatusInput,
   BundleCreateInput,
   BundleConfigurationCreateInput,
   BundleConfigurationUpdateInput,
@@ -196,7 +192,6 @@ import {
   VendorCreateInputSchema,
   ProductCreateInputSchema,
   ProductDeleteInputSchema,
-  ProductUpdateStatusInputSchema,
   BundleCreateInputSchema,
   BundleConfigurationCreateInputSchema,
   BundleConfigurationUpdateInputSchema,
@@ -887,31 +882,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     return {
       deletedProductId: result.deletedProductId ?? null,
-      userErrors: result.userErrors,
-    };
-  }
-
-  /**
-   * Update product status (publish or unpublish).
-   */
-  @ZodResolver(ProductUpdateStatusInputSchema())
-  async productUpdateStatus(args: { input: ProductUpdateStatusInput }) {
-    const { input } = args;
-    const productId = decodeGlobalIdByType(
-      input.productId,
-      GlobalIdEntity.Product
-    );
-
-    const status = input.action === "PUBLISH" ? "published" : "draft";
-    const result = await this.$ctx.kernel.runScript(ProductUpdateStatusScript, {
-      id: productId,
-      status,
-    });
-
-    return {
-      product: result.result
-        ? new ProductResolver(result.result.id, this.$ctx)
-        : null,
       userErrors: result.userErrors,
     };
   }
