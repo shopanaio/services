@@ -90,7 +90,7 @@ export type ProductSnapshotField =
   | "deletedAt"
   | "handle"
   | "vendorId"
-  | "content"
+  | "translations"
   | "availability"
   | "primaryCategory"
   | "categories"
@@ -129,8 +129,8 @@ export interface ProductSnapshot {
   handle: string | null;
   /** Source: catalog.product.vendor_id. */
   vendorId?: string | null;
-  /** Source: catalog.product_translation. */
-  content: CatalogProductContentSnapshot;
+  /** Source: catalog.product_translation rows. */
+  content: CatalogProductLocalizedContentSnapshot[];
   /** Source: computed from catalog.inventory_item and catalog.warehouse_stock. */
   availability: CatalogProductAvailabilitySnapshot;
   /** Source: catalog.product_category where is_primary = true. */
@@ -146,11 +146,6 @@ export interface ProductSnapshot {
 }
 
 export type CatalogProductSnapshot = ProductSnapshot;
-
-export interface CatalogProductContentSnapshot {
-  /** Source: catalog.product_translation rows. */
-  translations: CatalogProductLocalizedContentSnapshot[];
-}
 
 export interface CatalogProductLocalizedContentSnapshot {
   /** Source: catalog.product_translation.locale. */

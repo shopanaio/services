@@ -18,7 +18,6 @@ export * as Catalog from "./catalog.js";
 export type {
   CatalogProductAvailabilitySnapshot,
   CatalogProductCategorySnapshot,
-  CatalogProductContentSnapshot,
   CatalogProductFeatureRef,
   CatalogProductFeatureSelectionSnapshot,
   CatalogProductFeatureValueRef,
