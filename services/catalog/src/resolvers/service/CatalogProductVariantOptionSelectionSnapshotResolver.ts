@@ -1,23 +1,72 @@
-import type { CatalogProductVariantOptionSelectionSnapshot } from "@shopana/broker-types";
+import type { CatalogProductOptionValueRef } from "@shopana/broker-types";
 import { CatalogProductOptionValueRefResolver } from "./CatalogProductOptionValueRefResolver.js";
 import { ServiceType } from "./ServiceType.js";
 
-export class CatalogProductVariantOptionSelectionSnapshotResolver extends ServiceType<CatalogProductVariantOptionSelectionSnapshot> {
-  id(): string | null {
-    return this.notImplemented(
-      "CatalogProductVariantOptionSelectionSnapshot.id"
+export type CatalogProductVariantOptionSelectionSnapshotInput = {
+  variantId: string;
+  optionId: string;
+};
+
+type CatalogProductVariantOptionSelectionSnapshotData = {
+  id?: string;
+  handle: string;
+  values: CatalogProductOptionValueRef[];
+};
+
+export class CatalogProductVariantOptionSelectionSnapshotResolver extends ServiceType<
+  CatalogProductVariantOptionSelectionSnapshotInput,
+  CatalogProductVariantOptionSelectionSnapshotData
+> {
+  protected async $preload(): Promise<CatalogProductVariantOptionSelectionSnapshotData> {
+    const option = await this.$ctx.loaders.productOption.load(
+      this.$props.optionId
+    );
+    if (!option) {
+      throw new Error(`Product option with ID ${this.$props.optionId} not found`);
+    }
+
+    const valueIds = await this.getSelectedValueIds();
+    const values = await Promise.all(
+      valueIds.map(async (valueId) =>
+        new CatalogProductOptionValueRefResolver(valueId, this.$ctx).$snapshot()
+      )
+    );
+
+    return {
+      id: option.id,
+      handle: option.slug,
+      values,
+    };
+  }
+
+  async id(): Promise<string | null> {
+    return (await this.$get("id")) ?? null;
+  }
+
+  async handle(): Promise<string> {
+    return this.$get("handle");
+  }
+
+  async values(): Promise<CatalogProductOptionValueRefResolver[]> {
+    const valueIds = await this.getSelectedValueIds();
+    return valueIds.map(
+      (valueId) => new CatalogProductOptionValueRefResolver(valueId, this.$ctx)
     );
   }
 
-  handle(): string {
-    return this.notImplemented(
-      "CatalogProductVariantOptionSelectionSnapshot.handle"
-    );
+  async $snapshot() {
+    return this.$data;
   }
 
-  values(): CatalogProductOptionValueRefResolver[] {
-    return this.notImplemented(
-      "CatalogProductVariantOptionSelectionSnapshot.values"
+  private async getSelectedValueIds(): Promise<string[]> {
+    const links = await this.$ctx.loaders.variantSelectedOptions.load(
+      this.$props.variantId
     );
+    return links
+      .filter(
+        (link) =>
+          link.optionId === this.$props.optionId && link.optionValueId !== null
+      )
+      .map((link) => link.optionValueId!);
   }
 }

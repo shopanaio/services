@@ -1,17 +1,53 @@
-import type { CatalogProductFeatureSelectionSnapshot } from "@shopana/broker-types";
+import type { CatalogProductFeatureValueRef } from "@shopana/broker-types";
 import { CatalogProductFeatureValueRefResolver } from "./CatalogProductFeatureValueRefResolver.js";
 import { ServiceType } from "./ServiceType.js";
 
-export class CatalogProductFeatureSelectionSnapshotResolver extends ServiceType<CatalogProductFeatureSelectionSnapshot> {
-  id(): string | null {
-    return this.notImplemented("CatalogProductFeatureSelectionSnapshot.id");
+type CatalogProductFeatureSelectionSnapshotData = {
+  id?: string;
+  handle: string;
+  values: CatalogProductFeatureValueRef[];
+};
+
+export class CatalogProductFeatureSelectionSnapshotResolver extends ServiceType<
+  string,
+  CatalogProductFeatureSelectionSnapshotData
+> {
+  protected async $preload(): Promise<CatalogProductFeatureSelectionSnapshotData> {
+    const feature = await this.$ctx.loaders.productFeature.load(this.$props);
+    if (!feature) {
+      throw new Error(`Product feature with ID ${this.$props} not found`);
+    }
+
+    const valueIds = await this.$ctx.loaders.featureValueIds.load(feature.id);
+    const values = await Promise.all(
+      valueIds.map(async (valueId) =>
+        new CatalogProductFeatureValueRefResolver(valueId, this.$ctx).$snapshot()
+      )
+    );
+
+    return {
+      id: feature.id,
+      handle: feature.slug,
+      values,
+    };
   }
 
-  handle(): string {
-    return this.notImplemented("CatalogProductFeatureSelectionSnapshot.handle");
+  async id(): Promise<string | null> {
+    return (await this.$get("id")) ?? null;
   }
 
-  values(): CatalogProductFeatureValueRefResolver[] {
-    return this.notImplemented("CatalogProductFeatureSelectionSnapshot.values");
+  async handle(): Promise<string> {
+    return this.$get("handle");
+  }
+
+  async values(): Promise<CatalogProductFeatureValueRefResolver[]> {
+    const valueIds = await this.$ctx.loaders.featureValueIds.load(this.$props);
+    return valueIds.map(
+      (valueId) => new CatalogProductFeatureValueRefResolver(valueId, this.$ctx)
+    );
+  }
+
+  async $snapshot() {
+    return this.$data;
   }
 }

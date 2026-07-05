@@ -7,3 +7,4 @@ export { ServiceQueryResolver } from "./QueryResolver.js";
 export type { ServiceQueryProductsArgs } from "./QueryResolver.js";
 export { ServiceProductConnectionResolver } from "./ProductConnectionResolver.js";
 export { ProductSnapshotResolver } from "./ProductSnapshotResolver.js";
+export { CatalogProductSeoSnapshotResolver } from "./CatalogProductSeoSnapshotResolver.js";

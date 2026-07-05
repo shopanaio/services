@@ -1,17 +1,9 @@
-import type {
-  CatalogProductAvailabilitySnapshot,
-  CatalogProductCategorySnapshot,
-  CatalogProductFeatureSelectionSnapshot,
-  CatalogProductFeatureValueRef,
-  CatalogProductLocalizedContentSnapshot,
-  CatalogProductOptionValueRef,
-  CatalogProductTagSnapshot,
-  CatalogProductVariantOptionSelectionSnapshot,
-  CatalogProductVariantPriceSnapshot,
-  CatalogProductVariantSnapshot,
-  CatalogRichTextSnapshot,
-} from "@shopana/broker-types";
 import type { ServiceContext } from "../../context/types.js";
+import type { CatalogProductAvailabilitySnapshotInput } from "./CatalogProductAvailabilitySnapshotResolver.js";
+import type { CatalogProductLocalizedContentSnapshotInput } from "./CatalogProductLocalizedContentSnapshotResolver.js";
+import type { CatalogProductSeoSnapshotInput } from "./CatalogProductSeoSnapshotResolver.js";
+import type { CatalogProductVariantOptionSelectionSnapshotInput } from "./CatalogProductVariantOptionSelectionSnapshotResolver.js";
+import type { CatalogRichTextSnapshotInput } from "./CatalogRichTextSnapshotResolver.js";
 
 const registries = new WeakMap<ServiceContext, ServiceResolverRegistry>();
 
@@ -35,102 +27,97 @@ export class ServiceResolverRegistry {
   }
 
   async catalogProductLocalizedContentSnapshot(
-    snapshot: CatalogProductLocalizedContentSnapshot
+    input: CatalogProductLocalizedContentSnapshotInput
   ) {
     const { CatalogProductLocalizedContentSnapshotResolver } = await import(
       "./CatalogProductLocalizedContentSnapshotResolver.js"
     );
-    return new CatalogProductLocalizedContentSnapshotResolver(snapshot, this.ctx);
+    return new CatalogProductLocalizedContentSnapshotResolver(input, this.ctx);
   }
 
-  async catalogRichTextSnapshot(snapshot: CatalogRichTextSnapshot) {
+  async catalogProductSeoSnapshot(input: CatalogProductSeoSnapshotInput) {
+    const { CatalogProductSeoSnapshotResolver } = await import(
+      "./CatalogProductSeoSnapshotResolver.js"
+    );
+    return new CatalogProductSeoSnapshotResolver(input, this.ctx);
+  }
+
+  async catalogRichTextSnapshot(input: CatalogRichTextSnapshotInput) {
     const { CatalogRichTextSnapshotResolver } = await import(
       "./CatalogRichTextSnapshotResolver.js"
     );
-    return new CatalogRichTextSnapshotResolver(snapshot, this.ctx);
+    return new CatalogRichTextSnapshotResolver(input, this.ctx);
   }
 
   async catalogProductAvailabilitySnapshot(
-    snapshot: CatalogProductAvailabilitySnapshot
+    input: CatalogProductAvailabilitySnapshotInput
   ) {
     const { CatalogProductAvailabilitySnapshotResolver } = await import(
       "./CatalogProductAvailabilitySnapshotResolver.js"
     );
-    return new CatalogProductAvailabilitySnapshotResolver(snapshot, this.ctx);
+    return new CatalogProductAvailabilitySnapshotResolver(input, this.ctx);
   }
 
-  async catalogProductCategorySnapshot(
-    snapshot: CatalogProductCategorySnapshot
-  ) {
+  async catalogProductCategorySnapshot(categoryId: string) {
     const { CatalogProductCategorySnapshotResolver } = await import(
       "./CatalogProductCategorySnapshotResolver.js"
     );
-    return new CatalogProductCategorySnapshotResolver(snapshot, this.ctx);
+    return new CatalogProductCategorySnapshotResolver(categoryId, this.ctx);
   }
 
-  async catalogProductTagSnapshot(snapshot: CatalogProductTagSnapshot) {
+  async catalogProductTagSnapshot(tagId: string) {
     const { CatalogProductTagSnapshotResolver } = await import(
       "./CatalogProductTagSnapshotResolver.js"
     );
-    return new CatalogProductTagSnapshotResolver(snapshot, this.ctx);
+    return new CatalogProductTagSnapshotResolver(tagId, this.ctx);
   }
 
-  async catalogProductFeatureSelectionSnapshot(
-    snapshot: CatalogProductFeatureSelectionSnapshot
-  ) {
+  async catalogProductFeatureSelectionSnapshot(featureId: string) {
     const { CatalogProductFeatureSelectionSnapshotResolver } = await import(
       "./CatalogProductFeatureSelectionSnapshotResolver.js"
     );
     return new CatalogProductFeatureSelectionSnapshotResolver(
-      snapshot,
+      featureId,
       this.ctx
     );
   }
 
-  async catalogProductFeatureValueRef(
-    snapshot: CatalogProductFeatureValueRef
-  ) {
+  async catalogProductFeatureValueRef(valueId: string) {
     const { CatalogProductFeatureValueRefResolver } = await import(
       "./CatalogProductFeatureValueRefResolver.js"
     );
-    return new CatalogProductFeatureValueRefResolver(snapshot, this.ctx);
+    return new CatalogProductFeatureValueRefResolver(valueId, this.ctx);
   }
 
-  async catalogProductVariantSnapshot(
-    snapshot: CatalogProductVariantSnapshot
-  ) {
+  async catalogProductVariantSnapshot(variantId: string) {
     const { CatalogProductVariantSnapshotResolver } = await import(
       "./CatalogProductVariantSnapshotResolver.js"
     );
-    return new CatalogProductVariantSnapshotResolver(snapshot, this.ctx);
+    return new CatalogProductVariantSnapshotResolver(variantId, this.ctx);
   }
 
-  async catalogProductVariantPriceSnapshot(
-    snapshot: CatalogProductVariantPriceSnapshot
-  ) {
+  async catalogProductVariantPriceSnapshot(priceId: string) {
     const { CatalogProductVariantPriceSnapshotResolver } = await import(
       "./CatalogProductVariantPriceSnapshotResolver.js"
     );
-    return new CatalogProductVariantPriceSnapshotResolver(snapshot, this.ctx);
+    return new CatalogProductVariantPriceSnapshotResolver(priceId, this.ctx);
   }
 
   async catalogProductVariantOptionSelectionSnapshot(
-    snapshot: CatalogProductVariantOptionSelectionSnapshot
+    input: CatalogProductVariantOptionSelectionSnapshotInput
   ) {
     const { CatalogProductVariantOptionSelectionSnapshotResolver } =
       await import("./CatalogProductVariantOptionSelectionSnapshotResolver.js");
     return new CatalogProductVariantOptionSelectionSnapshotResolver(
-      snapshot,
+      input,
       this.ctx
     );
   }
 
-  async catalogProductOptionValueRef(
-    snapshot: CatalogProductOptionValueRef
-  ) {
+  async catalogProductOptionValueRef(valueId: string) {
     const { CatalogProductOptionValueRefResolver } = await import(
       "./CatalogProductOptionValueRefResolver.js"
     );
-    return new CatalogProductOptionValueRefResolver(snapshot, this.ctx);
+    return new CatalogProductOptionValueRefResolver(valueId, this.ctx);
   }
 }

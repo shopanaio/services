@@ -12,7 +12,7 @@ import {
 
 export { Cache };
 
-export abstract class ServiceType<TValue, TData = unknown>
+export abstract class ServiceType<TValue, TData = TValue>
   extends BaseType<TValue, TData, ServiceContext>
 {
   static executor = createExecutor<ServiceContext>({});

@@ -72,7 +72,7 @@ export interface ProductEdgePopulate {
 
 export interface ProductSnapshotSelection {
   fields?: ProductSnapshotField[];
-  populate?: never;
+  populate?: ProductSnapshotPopulate;
   args?: never;
   fieldName?: never;
 }
@@ -87,16 +87,160 @@ export type ProductSnapshotField =
   | "publishedAt"
   | "createdAt"
   | "updatedAt"
-  | "deletedAt"
   | "handle"
-  | "vendorId"
-  | "translations"
-  | "availability"
-  | "primaryCategory"
-  | "categories"
-  | "tags"
-  | "features"
-  | "variants";
+  | "vendorId";
+
+export interface ProductSnapshotPopulate {
+  content?: CatalogProductLocalizedContentSnapshotSelection;
+  seo?: CatalogProductSeoSnapshotSelection;
+  availability?: CatalogProductAvailabilitySnapshotSelection;
+  primaryCategory?: CatalogProductCategorySnapshotSelection;
+  categories?: CatalogProductCategorySnapshotSelection;
+  tags?: CatalogProductTagSnapshotSelection;
+  features?: CatalogProductFeatureSelectionSnapshotSelection;
+  variants?: CatalogProductVariantSnapshotSelection;
+}
+
+export interface CatalogProductLocalizedContentSnapshotSelection {
+  fields?: CatalogProductLocalizedContentSnapshotField[];
+  populate?: CatalogProductLocalizedContentSnapshotPopulate;
+  args?: never;
+  fieldName?: "content";
+}
+
+export type CatalogProductLocalizedContentSnapshotField =
+  | "locale"
+  | "title";
+
+export interface CatalogProductLocalizedContentSnapshotPopulate {
+  excerpt?: CatalogRichTextSnapshotSelection;
+  description?: CatalogRichTextSnapshotSelection;
+}
+
+export interface CatalogProductSeoSnapshotSelection {
+  fields?: CatalogProductSeoSnapshotField[];
+  populate?: never;
+  args?: never;
+  fieldName?: "seo";
+}
+
+export type CatalogProductSeoSnapshotField =
+  | "locale"
+  | "seoTitle"
+  | "seoDescription";
+
+export interface CatalogRichTextSnapshotSelection {
+  fields?: CatalogRichTextSnapshotField[];
+  populate?: never;
+  args?: never;
+  fieldName?: "excerpt" | "description";
+}
+
+export type CatalogRichTextSnapshotField = "text" | "html" | "json";
+
+export interface CatalogProductAvailabilitySnapshotSelection {
+  fields?: CatalogProductAvailabilitySnapshotField[];
+  populate?: never;
+  args?: never;
+  fieldName?: "availability";
+}
+
+export type CatalogProductAvailabilitySnapshotField =
+  | "availableForSale"
+  | "totalQuantity";
+
+export interface CatalogProductCategorySnapshotSelection {
+  fields?: CatalogProductCategorySnapshotField[];
+  populate?: never;
+  args?: never;
+  fieldName?: "primaryCategory" | "categories";
+}
+
+export type CatalogProductCategorySnapshotField = "id";
+
+export interface CatalogProductTagSnapshotSelection {
+  fields?: CatalogProductTagSnapshotField[];
+  populate?: never;
+  args?: never;
+  fieldName?: "tags";
+}
+
+export type CatalogProductTagSnapshotField = "id" | "handle";
+
+export interface CatalogProductFeatureSelectionSnapshotSelection {
+  fields?: CatalogProductFeatureSelectionSnapshotField[];
+  populate?: CatalogProductFeatureSelectionSnapshotPopulate;
+  args?: never;
+  fieldName?: "features";
+}
+
+export type CatalogProductFeatureSelectionSnapshotField = "id" | "handle";
+
+export interface CatalogProductFeatureSelectionSnapshotPopulate {
+  values?: CatalogProductFeatureValueRefSelection;
+}
+
+export interface CatalogProductFeatureValueRefSelection {
+  fields?: CatalogProductFeatureValueRefField[];
+  populate?: never;
+  args?: never;
+  fieldName?: "values";
+}
+
+export type CatalogProductFeatureValueRefField = "id" | "handle";
+
+export interface CatalogProductVariantSnapshotSelection {
+  fields?: CatalogProductVariantSnapshotField[];
+  populate?: CatalogProductVariantSnapshotPopulate;
+  args?: never;
+  fieldName?: "variants";
+}
+
+export type CatalogProductVariantSnapshotField =
+  | "id"
+  | "handle"
+  | "isDefault"
+  | "createdAt"
+  | "updatedAt";
+
+export interface CatalogProductVariantSnapshotPopulate {
+  availability?: CatalogProductAvailabilitySnapshotSelection;
+  prices?: CatalogProductVariantPriceSnapshotSelection;
+  options?: CatalogProductVariantOptionSelectionSnapshotSelection;
+}
+
+export interface CatalogProductVariantPriceSnapshotSelection {
+  fields?: CatalogProductVariantPriceSnapshotField[];
+  populate?: never;
+  args?: never;
+  fieldName?: "prices";
+}
+
+export type CatalogProductVariantPriceSnapshotField =
+  | "currencyCode"
+  | "amountMinor";
+
+export interface CatalogProductVariantOptionSelectionSnapshotSelection {
+  fields?: CatalogProductVariantOptionSelectionSnapshotField[];
+  populate?: CatalogProductVariantOptionSelectionSnapshotPopulate;
+  args?: never;
+  fieldName?: "options";
+}
+
+export type CatalogProductVariantOptionSelectionSnapshotField = "id" | "handle";
+
+export interface CatalogProductVariantOptionSelectionSnapshotPopulate {
+  values?: CatalogProductOptionValueRefSelection;
+}
+
+export interface CatalogProductOptionValueRefSelection {
+  fields?: CatalogProductOptionValueRefField[];
+  populate?: never;
+  args?: never;
+  fieldName?: "values";
+}
+
+export type CatalogProductOptionValueRefField = "id" | "handle";
 
 export type CatalogProductSnapshotVersion = "2026-07-05";
 
@@ -129,6 +273,8 @@ export interface ProductSnapshot {
   vendorId?: string | null;
   /** Source: catalog.product_translation rows. */
   content: CatalogProductLocalizedContentSnapshot[];
+  /** Source: catalog.product_seo rows. */
+  seo: CatalogProductSeoSnapshot[];
   /** Source: computed from catalog.inventory_item and catalog.warehouse_stock. */
   availability: CatalogProductAvailabilitySnapshot;
   /** Source: catalog.product_category where is_primary = true. */
@@ -154,6 +300,11 @@ export interface CatalogProductLocalizedContentSnapshot {
   excerpt?: CatalogRichTextSnapshot | null;
   /** Source: catalog.product_translation.description_text/html/json. */
   description?: CatalogRichTextSnapshot | null;
+}
+
+export interface CatalogProductSeoSnapshot {
+  /** Source: catalog.product_seo.locale. */
+  locale: string;
   /** Source: catalog.product_seo.seo_title. */
   seoTitle?: string | null;
   /** Source: catalog.product_seo.seo_description. */

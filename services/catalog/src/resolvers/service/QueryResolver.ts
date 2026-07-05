@@ -8,6 +8,10 @@ export type ServiceQueryProductsArgs = Omit<
 >;
 
 export class ServiceQueryResolver extends ServiceType<Record<string, never>> {
+  protected $preload(): Record<string, never> {
+    return this.$props;
+  }
+
   products(args: ServiceQueryProductsArgs) {
     return new ServiceProductConnectionResolver(args, this.$ctx);
   }

@@ -1,94 +1,248 @@
 import type {
   CatalogProductKind,
+  CatalogProductLocalizedContentSnapshot,
+  CatalogProductSeoSnapshot,
   CatalogProductSnapshotVersion,
   CatalogProductStatus,
 } from "@shopana/broker-types";
+import type { Product } from "../../repositories/models/index.js";
 import { CatalogProductAvailabilitySnapshotResolver } from "./CatalogProductAvailabilitySnapshotResolver.js";
 import { CatalogProductCategorySnapshotResolver } from "./CatalogProductCategorySnapshotResolver.js";
 import { CatalogProductFeatureSelectionSnapshotResolver } from "./CatalogProductFeatureSelectionSnapshotResolver.js";
 import { CatalogProductLocalizedContentSnapshotResolver } from "./CatalogProductLocalizedContentSnapshotResolver.js";
+import { CatalogProductSeoSnapshotResolver } from "./CatalogProductSeoSnapshotResolver.js";
 import { CatalogProductTagSnapshotResolver } from "./CatalogProductTagSnapshotResolver.js";
 import { CatalogProductVariantSnapshotResolver } from "./CatalogProductVariantSnapshotResolver.js";
 import { ServiceType } from "./ServiceType.js";
 
-export class ProductSnapshotResolver extends ServiceType<string> {
+export class ProductSnapshotResolver extends ServiceType<string, Product> {
+  protected async $preload(): Promise<Product> {
+    const product = await this.$ctx.loaders.product.load(this.$props);
+    if (!product) {
+      throw new Error(`Product with ID ${this.$props} not found`);
+    }
+    return product;
+  }
+
   id() {
     return this.$props;
   }
 
   snapshotVersion(): CatalogProductSnapshotVersion {
-    return this.notImplemented("ProductSnapshot.snapshotVersion");
+    return "2026-07-05";
   }
 
-  storeId(): string {
-    return this.notImplemented("ProductSnapshot.storeId");
+  async storeId(): Promise<string> {
+    return this.$get("storeId");
   }
 
-  revision(): number {
-    return this.notImplemented("ProductSnapshot.revision");
+  async revision(): Promise<number> {
+    return this.$get("revision");
   }
 
-  kind(): CatalogProductKind {
-    return this.notImplemented("ProductSnapshot.kind");
+  async kind(): Promise<CatalogProductKind> {
+    return this.$get("kind");
   }
 
-  status(): CatalogProductStatus {
-    return this.notImplemented("ProductSnapshot.status");
+  async status(): Promise<CatalogProductStatus> {
+    return (await this.$get("publishedAt")) ? "published" : "draft";
   }
 
-  publishedAt(): string | null {
-    return this.notImplemented("ProductSnapshot.publishedAt");
+  async publishedAt(): Promise<string | null> {
+    return this.$get("publishedAt");
   }
 
-  createdAt(): string {
-    return this.notImplemented("ProductSnapshot.createdAt");
+  async createdAt(): Promise<string> {
+    return this.$get("createdAt");
   }
 
-  updatedAt(): string {
-    return this.notImplemented("ProductSnapshot.updatedAt");
+  async updatedAt(): Promise<string> {
+    return this.$get("updatedAt");
   }
 
-  deletedAt(): string | null {
-    return this.notImplemented("ProductSnapshot.deletedAt");
+  async deletedAt(): Promise<string | null> {
+    return this.$get("deletedAt");
   }
 
-  handle(): string | null {
-    return this.notImplemented("ProductSnapshot.handle");
+  async handle(): Promise<string | null> {
+    return this.$get("handle");
   }
 
-  vendorId(): string | null {
-    return this.notImplemented("ProductSnapshot.vendorId");
+  async vendorId(): Promise<string | null> {
+    return (await this.$get("vendorId")) ?? null;
   }
 
-  translations(): CatalogProductLocalizedContentSnapshotResolver[] {
-    return this.notImplemented("ProductSnapshot.translations");
+  async content(): Promise<CatalogProductLocalizedContentSnapshotResolver[]> {
+    return this.localizedContentResolvers();
   }
 
-  content(): CatalogProductLocalizedContentSnapshotResolver[] {
-    return this.notImplemented("ProductSnapshot.content");
+  async seo(): Promise<CatalogProductSeoSnapshotResolver[]> {
+    return this.seoResolvers();
   }
 
   availability(): CatalogProductAvailabilitySnapshotResolver {
-    return this.notImplemented("ProductSnapshot.availability");
+    return new CatalogProductAvailabilitySnapshotResolver(
+      { productId: this.$props },
+      this.$ctx
+    );
   }
 
-  primaryCategory(): CatalogProductCategorySnapshotResolver | null {
-    return this.notImplemented("ProductSnapshot.primaryCategory");
+  async primaryCategory(): Promise<CatalogProductCategorySnapshotResolver | null> {
+    const links = await this.$ctx.loaders.productCategoryLinksByProductId.load(
+      this.$props
+    );
+    const primary = links.find((link) => link.isPrimary);
+    return primary
+      ? new CatalogProductCategorySnapshotResolver(primary.categoryId, this.$ctx)
+      : null;
   }
 
-  categories(): CatalogProductCategorySnapshotResolver[] {
-    return this.notImplemented("ProductSnapshot.categories");
+  async categories(): Promise<CatalogProductCategorySnapshotResolver[]> {
+    const links = await this.$ctx.loaders.productCategoryLinksByProductId.load(
+      this.$props
+    );
+    return [...links]
+      .sort((a, b) => {
+        if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
+        const rank = a.lexoRank.localeCompare(b.lexoRank);
+        if (rank !== 0) return rank;
+        return a.categoryId.localeCompare(b.categoryId);
+      })
+      .map(
+        (link) => new CatalogProductCategorySnapshotResolver(link.categoryId, this.$ctx)
+      );
   }
 
-  tags(): CatalogProductTagSnapshotResolver[] {
-    return this.notImplemented("ProductSnapshot.tags");
+  async tags(): Promise<CatalogProductTagSnapshotResolver[]> {
+    const tagIds = await this.$ctx.loaders.productTagIds.load(this.$props);
+    return tagIds.map((tagId) => new CatalogProductTagSnapshotResolver(tagId, this.$ctx));
   }
 
-  features(): CatalogProductFeatureSelectionSnapshotResolver[] {
-    return this.notImplemented("ProductSnapshot.features");
+  async features(): Promise<CatalogProductFeatureSelectionSnapshotResolver[]> {
+    const featureIds = await this.$ctx.loaders.productFeatureIds.load(this.$props);
+    return featureIds.map(
+      (featureId) =>
+        new CatalogProductFeatureSelectionSnapshotResolver(featureId, this.$ctx)
+    );
   }
 
-  variants(): CatalogProductVariantSnapshotResolver[] {
-    return this.notImplemented("ProductSnapshot.variants");
+  async variants(): Promise<CatalogProductVariantSnapshotResolver[]> {
+    const variantIds = await this.$ctx.loaders.variantIds.load(this.$props);
+    return variantIds.map(
+      (variantId) => new CatalogProductVariantSnapshotResolver(variantId, this.$ctx)
+    );
+  }
+
+  async $snapshot() {
+    const product = await this.$data;
+    const [
+      content,
+      seo,
+      availability,
+      primaryCategory,
+      categories,
+      tags,
+      features,
+      variants,
+    ] = await Promise.all([
+      this.contentSnapshot(),
+      this.seoSnapshot(),
+      this.availability().$snapshot(),
+      this.primaryCategorySnapshot(),
+      this.categorySnapshots(),
+      this.tagSnapshots(),
+      this.featureSnapshots(),
+      this.variantSnapshots(),
+    ]);
+
+    return {
+      snapshotVersion: this.snapshotVersion(),
+      id: product.id,
+      storeId: product.storeId,
+      revision: product.revision,
+      kind: product.kind,
+      status: product.publishedAt ? "published" : "draft",
+      publishedAt: product.publishedAt,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+      deletedAt: product.deletedAt,
+      handle: product.handle,
+      vendorId: product.vendorId,
+      content,
+      seo,
+      availability,
+      primaryCategory,
+      categories,
+      tags,
+      features,
+      variants,
+    };
+  }
+
+  private async contentSnapshot(): Promise<
+    CatalogProductLocalizedContentSnapshot[]
+  > {
+    const resolvers = this.localizedContentResolvers();
+    return Promise.all(
+      (await resolvers).map(async (resolver) => resolver.$snapshot())
+    );
+  }
+
+  private async seoSnapshot(): Promise<CatalogProductSeoSnapshot[]> {
+    const resolvers = this.seoResolvers();
+    return Promise.all(
+      (await resolvers).map(async (resolver) => resolver.$snapshot())
+    );
+  }
+
+  private async localizedContentResolvers(): Promise<
+    CatalogProductLocalizedContentSnapshotResolver[]
+  > {
+    const translations = await this.$ctx.loaders.productTranslations.load(
+      this.$props
+    );
+    return translations.map(
+      (translation) =>
+        new CatalogProductLocalizedContentSnapshotResolver(
+          { productId: this.$props, locale: translation.locale },
+          this.$ctx
+        )
+    );
+  }
+
+  private async seoResolvers(): Promise<CatalogProductSeoSnapshotResolver[]> {
+    const seoRows = await this.$ctx.loaders.productSeos.load(this.$props);
+    return seoRows.map(
+      (seo) =>
+        new CatalogProductSeoSnapshotResolver(
+          { productId: this.$props, locale: seo.locale },
+          this.$ctx
+        )
+    );
+  }
+
+  private async primaryCategorySnapshot() {
+    const resolver = await this.primaryCategory();
+    return resolver ? resolver.$snapshot() : null;
+  }
+
+  private async categorySnapshots() {
+    const resolvers = await this.categories();
+    return Promise.all(resolvers.map((resolver) => resolver.$snapshot()));
+  }
+
+  private async tagSnapshots() {
+    const resolvers = await this.tags();
+    return Promise.all(resolvers.map((resolver) => resolver.$snapshot()));
+  }
+
+  private async featureSnapshots() {
+    const resolvers = await this.features();
+    return Promise.all(resolvers.map((resolver) => resolver.$snapshot()));
+  }
+
+  private async variantSnapshots() {
+    const resolvers = await this.variants();
+    return Promise.all(resolvers.map((resolver) => resolver.$snapshot()));
   }
 }

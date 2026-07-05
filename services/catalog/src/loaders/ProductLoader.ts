@@ -14,7 +14,9 @@ import type { Repository } from "../repositories/Repository.js";
 export class ProductLoader {
   public readonly product: DataLoader<string, Product | null>;
   public readonly productTranslation: DataLoader<string, ProductTranslation | null>;
+  public readonly productTranslations: DataLoader<string, ProductTranslation[]>;
   public readonly productSeo: DataLoader<string, ProductSeo | null>;
+  public readonly productSeos: DataLoader<string, ProductSeo[]>;
   public readonly productOptionIds: DataLoader<string, string[]>;
   public readonly productFeatureIds: DataLoader<string, string[]>;
   public readonly productRootFeatureIds: DataLoader<string, string[]>;
@@ -35,9 +37,23 @@ export class ProductLoader {
       return productIds.map((id) => results.find((t) => t.productId === id) ?? null);
     });
 
+    this.productTranslations = new DataLoader<string, ProductTranslation[]>(async (productIds) => {
+      const results = await repository.product.getAllTranslationsByProductIds(productIds);
+      return productIds.map((id) =>
+        results.filter((translation) => translation.productId === id)
+      );
+    });
+
     this.productSeo = new DataLoader<string, ProductSeo | null>(async (productIds) => {
       const results = await repository.translation.getProductSeoBatch(productIds);
       return productIds.map((id) => results.get(id) ?? null);
+    });
+
+    this.productSeos = new DataLoader<string, ProductSeo[]>(async (productIds) => {
+      const results = await repository.translation.getProductSeoByProductIds(productIds);
+      return productIds.map((id) =>
+        results.filter((seo) => seo.productId === id)
+      );
     });
 
     this.productOptionIds = new DataLoader<string, string[]>(async (productIds) => {

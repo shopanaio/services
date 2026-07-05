@@ -1,4 +1,4 @@
-import { eq, and, inArray, sql } from "drizzle-orm";
+import { eq, and, inArray, sql, asc } from "drizzle-orm";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import type { Database } from "../../infrastructure/db/database.js";
 import { getContext } from "../../context/index.js";
@@ -294,6 +294,26 @@ export class TranslationRepository {
       );
 
     return new Map(results.map((s) => [s.productId, s]));
+  }
+
+  async getProductSeoByProductIds(
+    productIds: readonly string[]
+  ): Promise<ProductSeo[]> {
+    if (productIds.length === 0) return [];
+
+    return this.connection
+      .select()
+      .from(productSeo)
+      .where(
+        and(
+          eq(productSeo.storeId, getContext().store.id),
+          inArray(productSeo.productId, productIds as string[])
+        )
+      )
+      .orderBy(
+        asc(productSeo.productId),
+        asc(productSeo.locale)
+      );
   }
 
   async upsertProductSeo(data: NewProductSeo): Promise<ProductSeo> {

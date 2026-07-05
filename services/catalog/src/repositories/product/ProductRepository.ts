@@ -520,6 +520,26 @@ export class ProductRepository extends BaseRepository {
       );
   }
 
+  async getAllTranslationsByProductIds(
+    productIds: readonly string[]
+  ): Promise<ProductTranslation[]> {
+    if (productIds.length === 0) return [];
+
+    return this.connection
+      .select()
+      .from(productTranslation)
+      .where(
+        and(
+          eq(productTranslation.storeId, this.storeId),
+          inArray(productTranslation.productId, [...productIds])
+        )
+      )
+      .orderBy(
+        asc(productTranslation.productId),
+        asc(productTranslation.locale)
+      );
+  }
+
   async getOptionIdsByProductIds(
     productIds: readonly string[]
   ): Promise<Array<{ id: string; productId: string }>> {
