@@ -48,19 +48,24 @@ export class ListingResolveFacetSelectionsScript extends BaseScript<
     const displayParentById = new Map(
       displayParents.map((value) => [value.id, value])
     );
-    const sourceValueByHandle = new Map(
-      sourceValues.map((value) => [value.handle, value])
-    );
+    const sourceValuesByHandle = groupBy(sourceValues, (value) => value.handle);
     const resolved = new Map<string, ResolvedValueRef>();
     const warnings = action.warnings ? [...action.warnings] : [];
 
     for (const ref of refs) {
-      const sourceValue = sourceValueByHandle.get(ref.sourceValueHandle);
-      if (!sourceValue) {
+      const matchingSourceValues =
+        sourceValuesByHandle.get(ref.sourceValueHandle) ?? [];
+      if (matchingSourceValues.length === 0) {
         warnings.push(buildWarning("LISTING_FACET_VALUE_NOT_CONFIGURED", ref));
         continue;
       }
 
+      if (matchingSourceValues.length > 1) {
+        warnings.push(buildWarning("LISTING_FACET_VALUE_AMBIGUOUS", ref));
+        continue;
+      }
+
+      const sourceValue = matchingSourceValues[0];
       const displayParent = sourceValue.parentId
         ? displayParentById.get(sourceValue.parentId)
         : null;
@@ -278,13 +283,18 @@ function uniqueRefs(refs: SourceValueRef[]): SourceValueRef[] {
 }
 
 function buildWarning(
-  code: "LISTING_FACET_VALUE_NOT_CONFIGURED",
+  code:
+    | "LISTING_FACET_VALUE_NOT_CONFIGURED"
+    | "LISTING_FACET_VALUE_AMBIGUOUS",
   ref: SourceValueRef
 ): Listing.ListingUpdateWarning {
   return {
     code,
     field: ["item", "facets"],
-    message: `${ref.facetType} source facet value is not configured or not valid in listing: ${ref.sourceValueHandle}`,
+    message:
+      code === "LISTING_FACET_VALUE_AMBIGUOUS"
+        ? `${ref.facetType} source facet value matches multiple listing facet values: ${ref.sourceValueHandle}`
+        : `${ref.facetType} source facet value is not configured or not valid in listing: ${ref.sourceValueHandle}`,
   };
 }
 
@@ -299,4 +309,15 @@ function dedupeWarnings(
       ])
     ).values(),
   ];
+}
+
+function groupBy<T, K>(items: readonly T[], keyOf: (item: T) => K): Map<K, T[]> {
+  const result = new Map<K, T[]>();
+  for (const item of items) {
+    const key = keyOf(item);
+    const group = result.get(key) ?? [];
+    group.push(item);
+    result.set(key, group);
+  }
+  return result;
 }
