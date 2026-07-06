@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import {
   BrokerWorkflows,
+  DBOS,
   InjectBroker,
   ServiceBroker,
   Workflow,
@@ -9,12 +10,26 @@ import {
 import type { Catalog, Listing } from "@shopana/broker-types";
 import { Kernel } from "../kernel/Kernel.js";
 import type { RunScriptContext } from "../kernel/types.js";
+import {
+  ListingBuildFacetReferenceSyncPlanScript,
+  type ListingFacetReferenceSyncPlan,
+} from "../scripts/ListingBuildFacetReferenceSyncPlanScript.js";
 import { ListingBuildSyncWriteModelScript } from "../scripts/ListingBuildSyncWriteModelScript.js";
 import { ListingPrepareIndexActionScript } from "../scripts/ListingPrepareIndexActionScript.js";
 import { ListingResolveFacetSelectionsScript } from "../scripts/ListingResolveFacetSelectionsScript.js";
 import { ListingWriteIndexActionScript } from "../scripts/ListingWriteIndexActionScript.js";
 import { mapCatalogProductToListingSnapshot } from "./catalogListingSnapshotMapper.js";
-import { buildListingIndexPayloadHash } from "./listingIndexWorkflowHelpers.js";
+import {
+  buildListingIndexPayloadHash,
+  isDuplicateWorkflowStartError,
+  LISTING_INDEX_ACTIONS_QUEUE,
+} from "./listingIndexWorkflowHelpers.js";
+import {
+  buildFacetReferenceStateSyncQueuePartitionKey,
+  buildFacetReferenceStateSyncWorkflowId,
+  buildFacetReferenceStateSyncWorkflowIdempotencyContext,
+  type FacetReferenceStateSyncWorkflowInput,
+} from "./FacetReferenceStateSyncWorkflow.js";
 import { ListingIndexActionScriptError } from "../scripts/listingIndexActionTypes.js";
 import type {
   ListingIndexHydratedSyncAction,
@@ -142,6 +157,34 @@ abstract class ListingIndexWorkflowBase<
   }
 
   @WorkflowStep({
+    name: "buildListingFacetReferenceSyncPlan",
+    timeoutMs: 30_000,
+    retry: {
+      maxAttempts: 5,
+      intervalSeconds: 1,
+      backoffRate: 2,
+    },
+  })
+  protected async stepBuildFacetReferenceSyncPlan(
+    input:
+      | {
+          action: ListingPreparedSyncAction;
+          syncWriteModel: ListingSyncWriteModel;
+        }
+      | {
+          action: ListingPreparedDeleteAction;
+        }
+  ): Promise<ListingFacetReferenceSyncPlan> {
+    const kernel = Kernel.getInstance();
+
+    return kernel.runScript(
+      ListingBuildFacetReferenceSyncPlanScript,
+      input,
+      buildRunScriptContext(input.action)
+    );
+  }
+
+  @WorkflowStep({
     name: "writeListingSyncIndexAction",
     timeoutMs: 120_000,
     retry: {
@@ -160,6 +203,86 @@ abstract class ListingIndexWorkflowBase<
       input,
       buildRunScriptContext(input.action)
     );
+  }
+
+  @WorkflowStep({
+    name: "startFacetReferenceStateSync",
+    timeoutMs: 30_000,
+    retry: {
+      maxAttempts: 5,
+      intervalSeconds: 1,
+      backoffRate: 2,
+    },
+  })
+  protected async stepStartFacetReferenceStateSync(input: {
+    result: Listing.ListingUpdateResult;
+    plan: ListingFacetReferenceSyncPlan;
+  }): Promise<string | null> {
+    if (input.result.status === "ignored_stale" || input.plan.refs.length === 0) {
+      return null;
+    }
+
+    const workflowInput: FacetReferenceStateSyncWorkflowInput = {
+      organizationId: input.plan.organizationId,
+      storeId: input.plan.storeId,
+      reason: input.plan.reason,
+      sourceSequence: input.plan.sourceSequence,
+      refs: input.plan.refs,
+      eventIds: [input.plan.operationId],
+      checkValues: true,
+    };
+    const idempotencyCtx =
+      buildFacetReferenceStateSyncWorkflowIdempotencyContext({
+        organizationId: input.plan.organizationId,
+        productId: input.plan.productId,
+        reason: input.plan.reason,
+        sourceSequence: input.plan.sourceSequence,
+        operationId: input.plan.operationId,
+        actionType: input.plan.actionType,
+        refsHash: input.plan.refsHash,
+      });
+    const workflowId = buildFacetReferenceStateSyncWorkflowId({
+      idempotencyCtx,
+    });
+
+    try {
+      const started = await this.broker.startWorkflow(
+        "listing.syncFacetReferenceState",
+        workflowInput,
+        idempotencyCtx,
+        {
+          queueName: LISTING_INDEX_ACTIONS_QUEUE,
+          enqueueOptions: {
+            queuePartitionKey: buildFacetReferenceStateSyncQueuePartitionKey({
+              storeId: input.plan.storeId,
+              productId: input.plan.productId,
+            }),
+          },
+          timeoutMS: 120_000,
+          workflowId,
+        }
+      );
+      return started.workflowId;
+    } catch (error) {
+      if (isDuplicateWorkflowStartError(error, workflowId)) {
+        return workflowId;
+      }
+
+      this.logger.error(
+        {
+          error,
+          workflowName: "listing.syncFacetReferenceState",
+          workflowId,
+          parentWorkflowId: DBOS.workflowID,
+          storeId: input.plan.storeId,
+          productId: input.plan.productId,
+          sourceSequence: input.plan.sourceSequence,
+          reason: input.plan.reason,
+        },
+        "Failed to start facet reference state sync workflow"
+      );
+      throw error;
+    }
   }
 
   @WorkflowStep({
@@ -213,11 +336,21 @@ export class ListingSyncSellableItemIndexWorkflow extends ListingIndexWorkflowBa
     const syncWriteModel = await this.stepBuildSyncWriteModel({
       action: prepared.action,
     });
-
-    return this.stepWriteSyncIndexAction({
+    const facetReferenceSyncPlan = await this.stepBuildFacetReferenceSyncPlan({
       action: prepared.action,
       syncWriteModel,
     });
+
+    const result = await this.stepWriteSyncIndexAction({
+      action: prepared.action,
+      syncWriteModel,
+    });
+    await this.stepStartFacetReferenceStateSync({
+      result,
+      plan: facetReferenceSyncPlan,
+    });
+
+    return result;
   }
 
   @WorkflowStep({
@@ -340,9 +473,18 @@ export class ListingDeleteSellableItemIndexWorkflow extends ListingIndexWorkflow
       return prepared.result;
     }
 
-    return this.stepWriteDeleteIndexAction({
+    const facetReferenceSyncPlan = await this.stepBuildFacetReferenceSyncPlan({
       action: prepared.action,
     });
+    const result = await this.stepWriteDeleteIndexAction({
+      action: prepared.action,
+    });
+    await this.stepStartFacetReferenceStateSync({
+      result,
+      plan: facetReferenceSyncPlan,
+    });
+
+    return result;
   }
 }
 

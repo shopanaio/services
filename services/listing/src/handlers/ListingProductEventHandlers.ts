@@ -28,13 +28,6 @@ import type {
   ListingIndexQueuedDeleteAction,
   ListingIndexQueuedSyncAction,
 } from "../scripts/listingIndexActionTypes.js";
-import {
-  buildFacetReferenceStateSyncQueuePartitionKey,
-  buildFacetReferenceStateSyncWorkflowId,
-  buildFacetReferenceStateSyncWorkflowIdempotencyContext,
-  type FacetReferenceStateSyncReason,
-  type FacetReferenceStateSyncWorkflowInput,
-} from "../workflows/FacetReferenceStateSyncWorkflow.js";
 
 @Injectable()
 export class ListingProductEventHandlers extends EventHandlers {
@@ -57,10 +50,6 @@ export class ListingProductEventHandlers extends EventHandlers {
 
     try {
       await this.enqueueSyncWorkflow(params.event, undefined);
-      await this.enqueueFacetReferenceStateSyncWorkflow(
-        params.event,
-        "productCreated"
-      );
       return { success: true };
     } catch (error) {
       return this.handleError(error, "Failed to enqueue productCreated listing sync");
@@ -87,10 +76,6 @@ export class ListingProductEventHandlers extends EventHandlers {
         params.event,
         params.event.payload.revision
       );
-      await this.enqueueFacetReferenceStateSyncWorkflow(
-        params.event,
-        "productUpdated"
-      );
       return { success: true };
     } catch (error) {
       return this.handleError(error, "Failed to enqueue productUpdated listing sync");
@@ -114,10 +99,6 @@ export class ListingProductEventHandlers extends EventHandlers {
 
     try {
       await this.enqueueDeleteWorkflow(params.event);
-      await this.enqueueFacetReferenceStateSyncWorkflow(
-        params.event,
-        "productDeleted"
-      );
       return { success: true };
     } catch (error) {
       return this.handleError(error, "Failed to enqueue productDeleted listing sync");
@@ -278,70 +259,6 @@ export class ListingProductEventHandlers extends EventHandlers {
           sourceSequence,
         },
         "Failed to start listing index workflow"
-      );
-      throw error;
-    }
-  }
-
-  private async enqueueFacetReferenceStateSyncWorkflow(
-    event: ProductCreatedEvent | ProductUpdatedEvent | ProductDeletedEvent,
-    reason: FacetReferenceStateSyncReason
-  ): Promise<void> {
-    const sourceSequence = this.getEventSequence(event);
-    const productId = event.payload.productId;
-    const idempotencyCtx =
-      buildFacetReferenceStateSyncWorkflowIdempotencyContext({
-        organizationId: event.context.organizationId,
-        productId,
-        reason,
-        sourceSequence,
-        eventId: event.eventId,
-      });
-    const workflowId = buildFacetReferenceStateSyncWorkflowId({
-      idempotencyCtx,
-    });
-    const input: FacetReferenceStateSyncWorkflowInput = {
-      organizationId: event.context.organizationId,
-      storeId: event.payload.storeId,
-      reason,
-      productIds: [productId],
-      sourceSequence,
-      checkValues: true,
-    };
-
-    try {
-      await this.broker.startWorkflow(
-        "listing.syncFacetReferenceState",
-        input,
-        idempotencyCtx,
-        {
-          queueName: LISTING_INDEX_ACTIONS_QUEUE,
-          enqueueOptions: {
-            queuePartitionKey: buildFacetReferenceStateSyncQueuePartitionKey({
-              storeId: event.payload.storeId,
-              productId,
-            }),
-          },
-          timeoutMS: 120_000,
-          workflowId,
-        }
-      );
-    } catch (error) {
-      if (isDuplicateWorkflowStartError(error, workflowId)) {
-        return;
-      }
-
-      this.logger.error(
-        {
-          error,
-          workflowName: "listing.syncFacetReferenceState",
-          workflowId,
-          storeId: event.payload.storeId,
-          productId,
-          sourceSequence,
-          reason,
-        },
-        "Failed to start facet reference state sync workflow"
       );
       throw error;
     }

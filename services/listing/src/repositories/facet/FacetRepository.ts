@@ -66,6 +66,7 @@ export interface FacetSourceWithName {
 export interface FacetSourceRef {
   facetType: "TAG" | "OPTION" | "FEATURE";
   sourceHandle: string;
+  valueHandle?: string;
 }
 
 const FACET_VALUE_CANDIDATE_TYPES = new Set(["TAG", "OPTION", "FEATURE"]);
@@ -105,6 +106,94 @@ function isFacetValueCandidateType(
   value: string
 ): value is FacetValueCandidateType {
   return FACET_VALUE_CANDIDATE_TYPES.has(value);
+}
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function parseCanonicalPostingValueKey(
+  valueKey: string
+): { facetId: string; valueId: string } | null {
+  const parts = valueKey.split(":");
+  if (parts.length !== 2) return null;
+  const [facetId, valueId] = parts;
+  return UUID_RE.test(facetId) && UUID_RE.test(valueId)
+    ? { facetId, valueId }
+    : null;
+}
+
+function parseFallbackPostingValueKey(valueKey: string): FacetSourceRef | null {
+  if (parseCanonicalPostingValueKey(valueKey)) return null;
+
+  const first = valueKey.indexOf(":");
+  const second = valueKey.indexOf(":", first + 1);
+  if (first <= 0 || second <= first + 1 || second === valueKey.length - 1) {
+    return null;
+  }
+
+  const facetType = valueKey.slice(0, first);
+  if (facetType !== "TAG" && facetType !== "OPTION" && facetType !== "FEATURE") {
+    return null;
+  }
+
+  return {
+    facetType,
+    sourceHandle: valueKey.slice(first + 1, second),
+    valueHandle: valueKey.slice(second + 1),
+  };
+}
+
+function sourceRefFromFacetValue(
+  facetType: string,
+  valueHandle: string
+): FacetSourceRef | null {
+  if (facetType === "TAG") {
+    return {
+      facetType: "TAG",
+      sourceHandle: "tags",
+      valueHandle,
+    };
+  }
+
+  if (facetType !== "OPTION" && facetType !== "FEATURE") {
+    return null;
+  }
+
+  const composite = splitCompositeHandle(valueHandle);
+  if (!composite) return null;
+
+  return {
+    facetType,
+    sourceHandle: composite.sourceHandle,
+    valueHandle,
+  };
+}
+
+function splitCompositeHandle(
+  handle: string
+): { sourceHandle: string; valueHandle: string } | null {
+  const index = handle.indexOf(":");
+  if (index <= 0 || index === handle.length - 1) return null;
+  return {
+    sourceHandle: handle.slice(0, index),
+    valueHandle: handle.slice(index + 1),
+  };
+}
+
+function uniqueFacetSourceRefs(refs: readonly FacetSourceRef[]): FacetSourceRef[] {
+  return [
+    ...new Map(
+      refs.map((ref) => [
+        JSON.stringify([ref.facetType, ref.sourceHandle, ref.valueHandle ?? ""]),
+        ref,
+      ])
+    ).values(),
+  ].sort(
+    (left, right) =>
+      left.facetType.localeCompare(right.facetType) ||
+      left.sourceHandle.localeCompare(right.sourceHandle) ||
+      (left.valueHandle ?? "").localeCompare(right.valueHandle ?? "")
+  );
 }
 
 export class FacetRepository extends BaseRepository {
@@ -369,6 +458,94 @@ export class FacetRepository extends BaseRepository {
       .from(facetSource)
       .where(and(eq(facetSource.storeId, this.storeId), or(...predicates)))
       .orderBy(asc(facetSource.facetType), asc(facetSource.handle), asc(facetSource.id));
+  }
+
+  async getSourceRefsByPostingValueKeys(
+    valueKeys: readonly string[]
+  ): Promise<FacetSourceRef[]> {
+    const uniqueValueKeys = [...new Set(valueKeys)].filter(Boolean);
+    if (uniqueValueKeys.length === 0) return [];
+
+    const refs: FacetSourceRef[] = [];
+    const canonicalPairs = uniqueValueKeys
+      .map(parseCanonicalPostingValueKey)
+      .filter(
+        (pair): pair is { facetId: string; valueId: string } => pair !== null
+      );
+
+    for (const valueKey of uniqueValueKeys) {
+      const fallback = parseFallbackPostingValueKey(valueKey);
+      if (fallback) refs.push(fallback);
+    }
+
+    if (canonicalPairs.length > 0) {
+      const facetIds = [...new Set(canonicalPairs.map((pair) => pair.facetId))];
+      const valueIds = [...new Set(canonicalPairs.map((pair) => pair.valueId))];
+      const rows = await this.connection
+        .select({
+          facetId: facet.id,
+          facetType: facet.facetType,
+          valueId: facetValue.id,
+          valueKind: facetValue.kind,
+          valueHandle: facetValue.handle,
+        })
+        .from(facet)
+        .innerJoin(
+          facetValue,
+          and(eq(facetValue.facetId, facet.id), eq(facetValue.storeId, facet.storeId))
+        )
+        .where(
+          and(
+            eq(facet.storeId, this.storeId),
+            inArray(facet.id, facetIds),
+            inArray(facetValue.id, valueIds)
+          )
+        );
+
+      const rowByPair = new Map(
+        rows.map((row) => [`${row.facetId}:${row.valueId}`, row])
+      );
+      const displayValueIds: string[] = [];
+
+      for (const pair of canonicalPairs) {
+        const row = rowByPair.get(`${pair.facetId}:${pair.valueId}`);
+        if (!row) continue;
+        if (row.valueKind === "display") {
+          displayValueIds.push(row.valueId);
+          continue;
+        }
+
+        const ref = sourceRefFromFacetValue(row.facetType, row.valueHandle);
+        if (ref) refs.push(ref);
+      }
+
+      if (displayValueIds.length > 0) {
+        const childRows = await this.connection
+          .select({
+            facetType: facet.facetType,
+            valueHandle: facetValue.handle,
+          })
+          .from(facetValue)
+          .innerJoin(
+            facet,
+            and(eq(facet.id, facetValue.facetId), eq(facet.storeId, facetValue.storeId))
+          )
+          .where(
+            and(
+              eq(facetValue.storeId, this.storeId),
+              inArray(facetValue.parentId, [...new Set(displayValueIds)]),
+              eq(facetValue.kind, "source")
+            )
+          );
+
+        for (const row of childRows) {
+          const ref = sourceRefFromFacetValue(row.facetType, row.valueHandle);
+          if (ref) refs.push(ref);
+        }
+      }
+    }
+
+    return uniqueFacetSourceRefs(refs);
   }
 
   async getAllReferenceSources(): Promise<FacetSource[]> {

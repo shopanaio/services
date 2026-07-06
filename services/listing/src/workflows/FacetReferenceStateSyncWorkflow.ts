@@ -280,11 +280,11 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
       refs.push(...event.refs.flatMap(expandChangeRefs));
     }
 
-    if (input.reason === "productCreated") {
+    if (input.reason === "productCreated" && refs.length === 0) {
       refs.push(...(await this.collectCurrentProductRefs(input)));
     }
 
-    if (input.reason === "productUpdated") {
+    if (input.reason === "productUpdated" && refs.length === 0) {
       refs.push(...(await this.collectCurrentProductRefs(input)));
       if (refs.length === 0) {
         return {
@@ -300,7 +300,10 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
       refs: uniqueFacetSourceRefs(refs),
       facetIds: unique(input.facetIds ?? []),
       triggerEventIds: unique(triggerEventIds),
-      reconcileAll: input.reason === "productDeleted",
+      reconcileAll:
+        input.reason === "productDeleted" &&
+        refs.length === 0 &&
+        (input.facetIds ?? []).length === 0,
     };
   }
 
@@ -318,7 +321,7 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
       const sourceFacetIds = unique(sources.map((source) => source.facetId));
       const values = input.checkValues === false
         ? []
-        : await this.loadAffectedValues(sources, collected.refs);
+        : await this.loadAffectedValues(sources, collected);
       const displayParents =
         await this.repository.facetValue.getDisplayParentsBySourceValueIds(
           values.map((value) => value.id)
@@ -466,12 +469,22 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
 
   private async loadAffectedValues(
     sources: readonly FacetSource[],
-    refs: readonly FacetSourceRef[]
+    collected: CollectedRefs
   ): Promise<FacetValue[]> {
+    if (
+      collected.reconcileAll ||
+      collected.facetIds.length > 0 ||
+      collected.refs.length === 0
+    ) {
+      return this.repository.facetValue.getSourceValuesByFacetIds(
+        unique(sources.map((source) => source.facetId))
+      );
+    }
+
     const sourceByTypeHandle = new Map(
       sources.map((source) => [`${source.facetType}:${source.handle}`, source])
     );
-    const valueRefs = refs
+    const valueRefs = collected.refs
       .filter((ref) => isString(ref.valueHandle))
       .map((ref) => {
         const source = sourceByTypeHandle.get(
@@ -482,13 +495,28 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
           : null;
       })
       .filter((ref): ref is { facetId: string; handle: string } => ref !== null);
+    const sourceOnlyFacetIds = collected.refs
+      .filter((ref) => !isString(ref.valueHandle))
+      .map((ref) =>
+        sourceByTypeHandle.get(`${ref.facetType}:${ref.sourceHandle}`)?.facetId
+      )
+      .filter(isString);
+    const rows = [
+      ...(valueRefs.length > 0
+        ? await this.repository.facetValue.getSourceValuesByRefs(valueRefs)
+        : []),
+      ...(sourceOnlyFacetIds.length > 0
+        ? await this.repository.facetValue.getSourceValuesByFacetIds(
+            unique(sourceOnlyFacetIds)
+          )
+        : []),
+    ];
 
-    if (valueRefs.length > 0) {
-      return this.repository.facetValue.getSourceValuesByRefs(valueRefs);
-    }
-
-    return this.repository.facetValue.getSourceValuesByFacetIds(
-      unique(sources.map((source) => source.facetId))
+    return [...new Map(rows.map((row) => [row.id, row])).values()].sort(
+      (left, right) =>
+        left.facetId.localeCompare(right.facetId) ||
+        left.handle.localeCompare(right.handle) ||
+        left.id.localeCompare(right.id)
     );
   }
 
@@ -659,6 +687,12 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
     }
 
     const store = storeResult.store;
+    if (store.organizationId !== input.organizationId) {
+      throw new Error(
+        `Store organization mismatch for "${input.storeId}": expected ${input.organizationId}, got ${store.organizationId}`
+      );
+    }
+
     return this.withResolvedListingContext(input, store, () => fn(store));
   }
 
@@ -1032,20 +1066,28 @@ export function buildFacetReferenceStateSyncWorkflowIdempotencyContext(input: {
   productId: string;
   reason: FacetReferenceStateSyncReason;
   sourceSequence: number;
-  eventId: string;
+  eventId?: string;
+  operationId?: string;
+  actionType?: string;
+  refsHash?: string;
 }): IdempotencyContext {
+  const content: Record<string, unknown> = {
+    v: 1,
+    productId: input.productId,
+    reason: input.reason,
+    sourceSequence: input.sourceSequence,
+  };
+  if (input.eventId !== undefined) content.eventId = input.eventId;
+  if (input.operationId !== undefined) content.operationId = input.operationId;
+  if (input.actionType !== undefined) content.actionType = input.actionType;
+  if (input.refsHash !== undefined) content.refsHash = input.refsHash;
+
   return {
     source: "content",
     organizationId: input.organizationId,
     resourceId: `product:${input.productId}`,
     operation: `listing.syncFacetReferenceState.${input.reason}`,
-    contentHash: hashContent({
-      v: 1,
-      productId: input.productId,
-      reason: input.reason,
-      sourceSequence: input.sourceSequence,
-      eventId: input.eventId,
-    }),
+    contentHash: hashContent(content),
   };
 }
 
