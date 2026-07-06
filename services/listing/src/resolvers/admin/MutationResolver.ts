@@ -4,6 +4,7 @@ import {
   type GlobalIdType,
 } from "@shopana/shared-graphql-guid";
 import { ApolloMutation } from "@shopana/type-resolver";
+import { hashContent } from "@shopana/shared-kernel";
 import type { UserError } from "../../kernel/BaseScript.js";
 import {
   FacetMoveScript,
@@ -88,12 +89,20 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     operation: string,
     resourceId: string
   ): Promise<TResult> {
+    const paramsHash = hashContent({
+      v: 1,
+      workflowName,
+      resourceId,
+      params,
+    }).slice(0, 32);
+    const callId = paramsHash;
     const operationId = [
       "listing",
       operation,
       this.$ctx.store.id,
       resourceId,
       this.$ctx.requestId,
+      callId,
     ].join(":");
 
     return this.$ctx.kernel.getServices().broker.runWorkflow(
@@ -105,8 +114,10 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
       },
       {
         source: "workflow",
+        organizationId: this.$ctx.store.organizationId,
         workflowId: `${workflowName}:${this.$ctx.store.id}:${resourceId}:${this.$ctx.requestId}`,
         stepId: "start",
+        callId,
       }
     ) as Promise<TResult>;
   }
