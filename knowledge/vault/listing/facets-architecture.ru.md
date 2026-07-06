@@ -170,15 +170,30 @@ Listing не владеет catalog domain values. Для админского �
 смешивать source candidates со значениями: source rows используются для
 `OPTION`/`FEATURE` namespaces, а конкретные значения живут в `facet_value`.
 
-Candidate views в Catalog возвращают уже нормализованные handles:
+Candidate views в Catalog возвращают уже нормализованные candidate records.
+Важно различать `id` candidate и публичный `handle`, который потом уходит в
+create input:
 
 - source candidates:
-  - `OPTION:<product_option.slug>`;
-  - `FEATURE:<product_feature.slug>`;
+  - `PRICE:price` - `facetType = PRICE`, `handle = price`;
+  - `IN_STOCK:availability` - `facetType = IN_STOCK`, `handle = availability`;
+  - `TAG:tags` - `facetType = TAG`, `handle = tags`;
+  - `OPTION:<product_option.slug>` - `facetType = OPTION`, `handle = <product_option.slug>`;
+  - `FEATURE:<product_feature.slug>` - `facetType = FEATURE`, `handle = <product_feature.slug>`.
 - value candidates:
-  - `TAG:<tag.handle>`;
-  - `OPTION:<product_option.slug>:<product_option_value.slug>`;
-  - `FEATURE:<product_feature.slug>:<product_feature_value.slug>`.
+  - `TAG:<tag.handle>` - `facetType = TAG`, `sourceHandle = tags`,
+    `handle = <tag.handle>`;
+  - `OPTION:<product_option.slug>:<product_option_value.slug>` -
+    `facetType = OPTION`, `sourceHandle = <product_option.slug>`,
+    `handle = <product_option.slug>:<product_option_value.slug>`;
+  - `FEATURE:<product_feature.slug>:<product_feature_value.slug>` -
+    `facetType = FEATURE`, `sourceHandle = <product_feature.slug>`,
+    `handle = <product_feature.slug>:<product_feature_value.slug>`.
+
+`facetSourceCandidates` доступен для create flow всех facet types. Но persisted
+`listing.facet_source` после создания остается только для `OPTION` и `FEATURE`.
+Для `PRICE`, `IN_STOCK` и `TAG` выбранный source candidate валидирует create
+input, но не превращается в persisted `facet_source` row.
 
 При создании `OPTION`/`FEATURE` facet выбранные sources записываются в
 `listing.facet_source`. Для `TAG`, `OPTION`, `FEATURE` выбранные value
