@@ -295,7 +295,8 @@ export class ListingWriteIndexActionScript extends BaseScript<
     payloadHash: string
   ): Promise<void> {
     await this.repository.listingIndexItemState.upsertLatestState({
-      ...action.itemKey,
+      storeId: action.itemKey.storeId,
+      itemId: action.itemKey.itemId,
       sourceSequence: action.sourceSequence,
       payloadHash,
       lifecycleStatus,

@@ -214,7 +214,6 @@ CREATE INDEX idx_variant_listing_signature
 
 CREATE TABLE listing.listing_index_item_state (
   store_id                      uuid NOT NULL,
-  entity_type                     varchar(32) NOT NULL,
   item_id                         uuid NOT NULL,
   source_sequence                 integer NOT NULL,
   payload_hash                    text NOT NULL,
@@ -223,7 +222,7 @@ CREATE TABLE listing.listing_index_item_state (
   last_operation_id               text NOT NULL,
   updated_at                      timestamptz NOT NULL,
 
-  PRIMARY KEY (store_id, entity_type, item_id),
+  PRIMARY KEY (store_id, item_id),
   CONSTRAINT chk_listing_index_item_state_source_sequence
     CHECK (source_sequence > 0),
   CONSTRAINT chk_listing_index_item_state_lifecycle_status

@@ -1,6 +1,5 @@
 import { and, eq, sql } from "drizzle-orm";
 import { ReadOnly } from "@shopana/shared-kernel";
-import type { Listing } from "@shopana/broker-types";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   listingIndexItemState,
@@ -10,12 +9,10 @@ import {
 
 export interface ListingIndexItemStateKey {
   storeId: string;
-  entityType: Listing.ListingSellableItemEntityType;
   itemId: string;
 }
 
 export type ListingIndexItemStateRow = ListingIndexItemState & {
-  entityType: Listing.ListingSellableItemEntityType;
   lifecycleStatus: "indexed" | "deleted";
 };
 
@@ -58,11 +55,7 @@ export class ListingIndexItemStateRepository extends BaseRepository {
       .insert(listingIndexItemState)
       .values(values)
       .onConflictDoUpdate({
-        target: [
-          listingIndexItemState.storeId,
-          listingIndexItemState.entityType,
-          listingIndexItemState.itemId,
-        ],
+        target: [listingIndexItemState.storeId, listingIndexItemState.itemId],
         set: {
           sourceSequence: row.sourceSequence,
           payloadHash: row.payloadHash,
@@ -80,12 +73,11 @@ export class ListingIndexItemStateRepository extends BaseRepository {
   private whereItemKey(key: ListingIndexItemStateKey) {
     return and(
       eq(listingIndexItemState.storeId, key.storeId),
-      eq(listingIndexItemState.entityType, key.entityType),
       eq(listingIndexItemState.itemId, key.itemId)
     );
   }
 
   private lockKey(key: ListingIndexItemStateKey): string {
-    return `listing_index_item_state:v1:${key.storeId}:${key.entityType}:${key.itemId}`;
+    return `listing_index_item_state:v1:${key.storeId}:${key.itemId}`;
   }
 }

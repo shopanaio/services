@@ -45,7 +45,6 @@ export const listingIndexItemState = listingSchema.table(
   "listing_index_item_state",
   {
     storeId: uuid("store_id").notNull(),
-    entityType: varchar("entity_type", { length: 32 }).notNull(),
     itemId: uuid("item_id").notNull(),
     sourceSequence: integer("source_sequence").notNull(),
     payloadHash: text("payload_hash").notNull(),
@@ -58,7 +57,7 @@ export const listingIndexItemState = listingSchema.table(
   },
   (table) => [
     primaryKey({
-      columns: [table.storeId, table.entityType, table.itemId],
+      columns: [table.storeId, table.itemId],
     }),
     check(
       "chk_listing_index_item_state_source_sequence",
