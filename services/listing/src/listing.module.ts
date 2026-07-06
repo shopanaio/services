@@ -6,6 +6,7 @@ import {
   ListingDeleteSellableItemIndexWorkflow,
   ListingSyncSellableItemIndexWorkflow,
 } from "./workflows/listingIndexWorkflows.js";
+import { FacetReferenceStateSyncWorkflow } from "./workflows/FacetReferenceStateSyncWorkflow.js";
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: "listing" })],
@@ -14,6 +15,7 @@ import {
     ListingProductEventHandlers,
     ListingSyncSellableItemIndexWorkflow,
     ListingDeleteSellableItemIndexWorkflow,
+    FacetReferenceStateSyncWorkflow,
   ],
 })
 export class ListingModule {}
