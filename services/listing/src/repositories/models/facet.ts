@@ -88,6 +88,10 @@ export const facetSource = listingSchema.table(
       .defaultNow(),
   },
   (table) => [
+    check(
+      "facet_source_type_check",
+      sql`${table.facetType} IN ('OPTION', 'FEATURE')`
+    ),
     unique("facet_source_store_facet_handle_uniq").on(
       table.storeId,
       table.facetId,

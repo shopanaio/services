@@ -69,6 +69,7 @@ export interface FacetSourceRef {
 }
 
 const FACET_VALUE_CANDIDATE_TYPES = new Set(["TAG", "OPTION", "FEATURE"]);
+const PERSISTED_FACET_SOURCE_TYPES = new Set(["OPTION", "FEATURE"]);
 
 function emptyFacetValueCandidateConnection(): FacetValueCandidateConnectionResult {
   return {
@@ -644,6 +645,10 @@ export class FacetRepository extends BaseRepository {
           eq(facetSource.facetId, facetId)
         )
       );
+
+    if (!PERSISTED_FACET_SOURCE_TYPES.has(facetRow.facetType)) {
+      return;
+    }
 
     if (sources.length === 0) {
       return;
