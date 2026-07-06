@@ -75,6 +75,8 @@ export class FacetAffectedProductsResyncWorkflow extends BrokerWorkflows<
   ): Promise<FacetAffectedProductsResyncWorkflowResult> {
     const refs = normalizeRefs([...(input.oldRefs ?? []), ...(input.newRefs ?? [])]);
     const refsHash = hashContent({ v: 1, refs });
+    // Problem: this stores one event id per affected product across all pages, and DBOS persists
+    // the full array in the durable workflow output for large facet changes.
     const emittedEventIds: string[] = [];
 
     if (refs.length === 0) {
