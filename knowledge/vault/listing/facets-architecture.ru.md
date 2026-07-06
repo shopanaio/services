@@ -42,8 +42,8 @@ posting bitmap.
 
 - `available` - виртуальный boolean-фильтр наличия;
 - `price` - диапазон цены в minor units;
-- `tag` - прямой фильтр по тегу, без configured facet model;
-- `variantOption` - прямой фильтр по опции варианта, без configured facet model;
+- `tag` - фильтр по product tag;
+- `variantOption` - фильтр по variant option;
 - `productFacet` - фильтр по product-level facet value;
 - `variantFacet` - фильтр по variant-level facet value.
 
@@ -81,10 +81,57 @@ input ListingFacetValueFilter {
 - `slug`: стабильный публичный идентификатор;
 - translation label.
 
-`facet_value` хранит два типа значений:
+`facet_source` описывает выбранные catalog sources для facets, у которых есть
+явный source-handle namespace. В текущей persisted модели это `OPTION` и
+`FEATURE`.
+
+| Facet type | `facet_source.handle` | Catalog source |
+|------------|------------------------|----------------|
+| `OPTION` | `catalog.product_option.slug` | одна option family, например `color` или `size` |
+| `FEATURE` | `catalog.product_feature.slug` | одна feature, например `material` |
+
+`TAG`, `PRICE` и `IN_STOCK` не должны описываться как persisted
+`facet_source` rows в этом документе:
+
+```text
+TAG      -> конкретные tag values описываются через facet_value, не facet_source
+PRICE    -> runtime price берется из price index tables
+IN_STOCK -> runtime availability берется из availability/index state
+```
+
+Конкретные теги не сохраняются в `facet_source`. Для tag facet конкретный
+catalog tag хранится в `facet_value.handle`.
+
+`facet_source` нужен для трех вещей:
+
+- зафиксировать, какие catalog sources участвуют в конкретном listing facet;
+- хранить localized source name через `facet_source_translation`;
+- запретить неоднозначную конфигурацию для option/feature sources: уникальность
+  `(store_id, facet_type, handle)` не дает подключить один и тот же catalog
+  source к нескольким facets одного store.
+
+Важно: `PRICE` в этой модели не имеет rows в `listing.facet_value`. Запись
+`facet_type = PRICE` не означает наличие `facet_source` или `facet_value` для
+price; runtime listing строит price facet виртуально из price index.
+
+`facet_value` хранит два типа значений только для дискретных facets
+`TAG`, `FEATURE`, `OPTION`:
 
 - `source` - реальное значение из каталога: tag handle, feature value handle или option value handle;
 - `display` - публичное значение фильтра, которое может группировать несколько source values.
+
+Связь catalog values с `facet_value` задается через source value handle:
+
+| Catalog entity | Source namespace | `facet_value.kind = source`, `handle` |
+|----------------|------------------------|----------------------------------------|
+| `catalog.tag` | tags namespace, не persisted `facet_source` | `tag.handle`, например `sale` |
+| `catalog.product_option` + `product_option_value` | `product_option.slug`, например `color` | `option.slug:value.slug`, например `color:red` |
+| `catalog.product_feature` + `product_feature_value` | `product_feature.slug`, например `material` | `feature.slug:value.slug`, например `material:cotton` |
+
+Catalog snapshot может прийти с value handle без префикса source. Для `OPTION`
+и `FEATURE` listing resolution нормализует его к форме
+`sourceHandle:valueHandle`. Для `TAG` source handle всегда `tags`, а value handle
+остается `tag.handle`.
 
 В админской модели root values - это rows с `parent_id IS NULL`: они показываются
 при управлении facet values и сортируются по `sort_index`.
@@ -119,9 +166,118 @@ Listing не владеет catalog domain values. Для админского �
 - `facetSourceCandidates` показывает доступные источники facet;
 - `facetValueCandidates` показывает доступные values для выбранных источников.
 
-В Catalog это построено на views для `TAG`, `OPTION`, `FEATURE`, а также
-служебных источников `PRICE` и `IN_STOCK`. Listing сохраняет только выбранную
-конфигурацию и reference status.
+В Catalog это построено на candidate views. В persisted `facet_source` нельзя
+смешивать source candidates со значениями: source rows используются для
+`OPTION`/`FEATURE` namespaces, а конкретные значения живут в `facet_value`.
+
+Candidate views в Catalog возвращают уже нормализованные handles:
+
+- source candidates:
+  - `OPTION:<product_option.slug>`;
+  - `FEATURE:<product_feature.slug>`;
+- value candidates:
+  - `TAG:<tag.handle>`;
+  - `OPTION:<product_option.slug>:<product_option_value.slug>`;
+  - `FEATURE:<product_feature.slug>:<product_feature_value.slug>`.
+
+При создании `OPTION`/`FEATURE` facet выбранные sources записываются в
+`listing.facet_source`. Для `TAG`, `OPTION`, `FEATURE` выбранные value
+candidates записываются в `listing.facet_value` как `kind = 'source'`. Если
+нужно публичное имя, ручной handle, swatch или группировка нескольких source
+values, создается `kind = 'display'`, а source values получают `parent_id` этого
+display value.
+
+Для `PRICE` и `IN_STOCK` value candidates не создаются: scripts запрещают
+`facet_value` для этих типов. Они обрабатываются как virtual facets.
+
+## Что хранится в bitmap value key
+
+`listing.listing_posting_bitmap` - общий posting-list индекс. Его primary key:
+
+```text
+store_id + entity_type + field + value_key
+```
+
+`bitmap` хранит набор integer doc ids, а `value_key` говорит, для какого
+значения построен этот bitmap. Смысл `value_key` зависит от пары
+`entity_type`/`field`:
+
+| `entity_type` | `field` | Что лежит в `value_key` | Что лежит в `bitmap` |
+|---------------|---------|--------------------------|----------------------|
+| `product` | `category` | `categoryId` | `product_doc_id` продуктов в категории |
+| `product` | `vendor` | `vendorId` | `product_doc_id` продуктов vendor |
+| `product` | `facet` | `facetId:facetValueId` | `product_doc_id` продуктов с этим product-level facet value |
+| `variant` | `facet` | `facetId:facetValueId` | `variant_doc_id` вариантов с этим option facet value |
+| `variant` | `variant_product` | `productId` | `variant_doc_id` вариантов продукта |
+
+Для дискретных listing facets (`TAG`, `FEATURE`, `OPTION`) важен формат:
+
+```text
+value_key = <listing.facet.id>:<listing.facet_value.id>
+```
+
+Пример:
+
+```text
+facet.slug = color
+facet.id = 7f0...
+display facet_value.handle = red
+display facet_value.id = 9a1...
+
+bitmap value_key = 7f0...:9a1...
+GraphQL value id/input value = red
+```
+
+Наружу API никогда не отдает `value_key`. UI работает с `facet.slug` и
+`facet_value.handle`, а `value_key` нужен только для быстрых пересечений bitmap.
+
+Price не использует этот формат. Для price нет `field = facet` bitmap key вида
+`priceFacetId:priceValueId`, потому что нет `price` rows в `facet_value`.
+
+## Как хранится price
+
+Price хранится не в `listing.facet_value` и не в `listing_posting_bitmap`.
+
+Конфигурационный слой может содержать сам facet type:
+
+```text
+listing.facet.facet_type = PRICE
+```
+
+Но persisted `facet_source`/`facet_value` для price не нужны. Runtime данные
+цены лежат в индексных таблицах:
+
+| Таблица | Что хранит |
+|---------|------------|
+| `listing.product_listing_price_index` | product-level диапазон цены по currency: `min_price_minor`, `max_price_minor`, `has_price` |
+| `listing.variant_listing_price_index` | variant-level цену по currency: `price_minor`, `signature_key`, `product_doc_id`, `variant_doc_id`, `has_price` |
+| `listing.listing_posting_product_sort` | price sort rows: `sort_kind = price`, `currency`, `bigint_value = minPriceMinor` |
+| `listing.listing_posting_variant_price` | runtime rows для priced active/in-stock variants, используемые при option + price фильтрах |
+
+Price filter приходит через dedicated input:
+
+```graphql
+input ListingPriceRangeFilter {
+  min: BigInt
+  max: BigInt
+}
+```
+
+Runtime `price` facet строится в `virtualFacets`: SQL вычисляет текущий
+`minPriceMinor`/`maxPriceMinor` для matched result, а GraphQL mapper возвращает
+facet:
+
+```text
+id = price
+type = PRICE_RANGE
+uiType = RANGE
+value.id = range
+value.input = { price: { min, max } }
+```
+
+Поэтому price нельзя фильтровать через `productFacet`/`variantFacet`; если в
+facet resolution встретится `facet_type = PRICE`, такой ввод считается ошибкой
+`UNSUPPORTED_PRICE_FACET_FILTER`.
 
 ## Write path индекса
 
@@ -153,6 +309,11 @@ Listing не владеет catalog domain values. Для админского �
 ```text
 facet selection -> facet.id + facet_value.id -> valueKey = facetId:valueId
 ```
+
+Эта нормализация относится к дискретным product/variant facets. Price идет
+отдельно: `ListingBuildSyncWriteModelScript` пишет product price ranges,
+variant prices и price sort rows, но не создает facet bitmap memberships для
+price.
 
 Product-level facets пишутся в `listing_posting_bitmap` как:
 
