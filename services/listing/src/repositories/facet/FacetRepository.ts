@@ -433,7 +433,7 @@ export class FacetRepository extends BaseRepository {
       return [];
     }
 
-    return this.candidateClient.getValueCandidatesByHandles(
+    return this.candidateClient.findValueCandidatesByHandles(
       { storeId: this.storeId, locale: this.locale },
       { candidateType, sourceHandles, handles }
     );
@@ -501,7 +501,7 @@ export class FacetRepository extends BaseRepository {
       return null;
     }
 
-    return this.candidateClient.getSourceCandidate(
+    return this.candidateClient.findSourceCandidateByRef(
       { storeId: this.storeId, locale: this.locale },
       args
     );

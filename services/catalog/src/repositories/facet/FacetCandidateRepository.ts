@@ -112,14 +112,14 @@ export interface FacetValueCandidateQueryParams {
   input: FacetValueCandidateRelayInput;
 }
 
-export interface GetFacetSourceCandidateParams {
+export interface FindFacetSourceCandidateByRefParams {
   storeId: string;
   locale: string;
   facetType: string;
   handle: string;
 }
 
-export interface GetFacetValueCandidatesByHandlesParams {
+export interface FindFacetValueCandidatesByHandlesParams {
   storeId: string;
   locale: string;
   candidateType: FacetValueCandidateType;
@@ -233,8 +233,8 @@ export class FacetCandidateRepository {
     };
   }
 
-  async getSourceCandidate(
-    params: GetFacetSourceCandidateParams
+  async findSourceCandidateByRef(
+    params: FindFacetSourceCandidateByRefParams
   ): Promise<FacetSourceCandidateView | null> {
     const rows = await this.connection
       .select()
@@ -252,8 +252,8 @@ export class FacetCandidateRepository {
     return rows[0] ?? null;
   }
 
-  async getValueCandidatesByHandles(
-    params: GetFacetValueCandidatesByHandlesParams
+  async findValueCandidatesByHandles(
+    params: FindFacetValueCandidatesByHandlesParams
   ): Promise<FacetValueCandidateView[]> {
     if (!isFacetValueCandidateType(params.candidateType)) {
       throw new Error("Invalid candidateType");

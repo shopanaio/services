@@ -38,8 +38,8 @@ Listing уже хранит reference state:
 
 Catalog уже предоставляет candidate actions:
 
-- `catalog.getFacetSourceCandidate`
-- `catalog.getFacetValueCandidatesByHandles`
+- `catalog.findFacetSourceCandidateByRef`
+- `catalog.findFacetValueCandidatesByHandles`
 - `catalog.facetSourceCandidates`
 - `catalog.facetValueCandidates`
 
@@ -61,7 +61,7 @@ Candidate actions могут ответить, существует ли referen
 ### Проверка facet source
 
 Для точечной проверки source reference использовать
-`catalog.getFacetSourceCandidate`:
+`catalog.findFacetSourceCandidateByRef`:
 
 ```ts
 {
@@ -86,7 +86,7 @@ Candidate actions могут ответить, существует ли referen
 
 ### Проверка source value
 
-Для batch-проверки values использовать `catalog.getFacetValueCandidatesByHandles`:
+Для batch-проверки values использовать `catalog.findFacetValueCandidatesByHandles`:
 
 ```ts
 {
@@ -192,7 +192,7 @@ Script выполняется внутри Listing context и используе
 
 1. Загрузить целевые rows `facet_source` с `facetType` и `handle`.
 2. Сгруппировать уникальные keys `(facetType, handle)`.
-3. Для маленьких batches вызвать `getFacetSourceCandidate` на каждый уникальный key.
+3. Для маленьких batches вызвать `findFacetSourceCandidateByRef` на каждый уникальный key.
 4. Для больших batches опционально использовать `facetSourceCandidates` с filters и pagination.
 5. Пометить каждый row:
    - found: `VALID`
@@ -205,7 +205,7 @@ Script выполняется внутри Listing context и используе
 2. Пропустить non-source values.
 3. Если owning facet source уже `STALE`, пометить value как `STALE`.
 4. Сгруппировать оставшиеся values по `facetType`.
-5. Для каждой группы вызвать `getFacetValueCandidatesByHandles`.
+5. Для каждой группы вызвать `findFacetValueCandidatesByHandles`.
 6. Собрать existing keys из возвращенных rows `(sourceHandle, handle)`.
 7. Пометить каждый source value:
    - found: `VALID`

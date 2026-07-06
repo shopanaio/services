@@ -121,14 +121,14 @@ export class CatalogFacetCandidateClient {
     });
   }
 
-  getSourceCandidate(
+  findSourceCandidateByRef(
     context: CatalogFacetCandidateClientContext,
     input: { facetType: string; handle: string }
   ): Promise<FacetSourceCandidateView | null> {
     return this.broker.call<
       FacetSourceCandidateView | null,
       { storeId: string; locale: string; facetType: string; handle: string }
-    >("catalog.getFacetSourceCandidate", {
+    >("catalog.findFacetSourceCandidateByRef", {
       storeId: context.storeId,
       locale: context.locale,
       facetType: input.facetType,
@@ -136,7 +136,7 @@ export class CatalogFacetCandidateClient {
     });
   }
 
-  getValueCandidatesByHandles(
+  findValueCandidatesByHandles(
     context: CatalogFacetCandidateClientContext,
     input: {
       candidateType: FacetValueCandidateType;
@@ -153,7 +153,7 @@ export class CatalogFacetCandidateClient {
         sourceHandles: string[];
         handles: string[];
       }
-    >("catalog.getFacetValueCandidatesByHandles", {
+    >("catalog.findFacetValueCandidatesByHandles", {
       storeId: context.storeId,
       locale: context.locale,
       candidateType: input.candidateType,
