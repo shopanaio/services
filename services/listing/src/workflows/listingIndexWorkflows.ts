@@ -3,6 +3,7 @@ import {
   BrokerWorkflows,
   DBOS,
   InjectBroker,
+  RetryableError,
   ServiceBroker,
   Workflow,
   WorkflowStep,
@@ -388,7 +389,9 @@ export class ListingSyncSellableItemIndexWorkflow extends ListingIndexWorkflowBa
 
     if (!queryResult.ok) {
       if (queryResult.retryable) {
-        throw new Error(queryResult.message);
+        throw new RetryableError(
+          `Catalog product query failed: ${queryResult.code}: ${queryResult.message}`
+        );
       }
 
       throw new Error(

@@ -6,6 +6,7 @@ import {
   hashContent,
   type IdempotencyContext,
   InjectBroker,
+  RetryableError,
   ServiceBroker,
   Workflow,
   WorkflowStep,
@@ -428,6 +429,12 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
       });
 
       if (!queryResult.ok) {
+        if (queryResult.retryable) {
+          throw new RetryableError(
+            `Catalog product reference query failed: ${queryResult.code}: ${queryResult.message}`
+          );
+        }
+
         throw new Error(
           `Catalog product reference query failed: ${queryResult.code}: ${queryResult.message}`
         );
