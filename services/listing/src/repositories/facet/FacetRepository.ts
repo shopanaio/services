@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import { GraphQLError } from "graphql";
@@ -26,8 +26,10 @@ import {
   facetValue,
   facetValueTranslation,
   type Facet,
+  type FacetSource,
   type FacetValue,
   type NewFacet,
+  type NewFacetSource,
   type NewFacetValue,
   type FacetTranslation,
 } from "../models/index.js";
@@ -59,6 +61,11 @@ export interface FacetSourceWithName {
   facetId: string;
   handle: string;
   name: string | null;
+}
+
+export interface FacetSourceRef {
+  facetType: "TAG" | "OPTION" | "FEATURE";
+  sourceHandle: string;
 }
 
 const FACET_VALUE_CANDIDATE_TYPES = new Set(["TAG", "OPTION", "FEATURE"]);
@@ -321,6 +328,98 @@ export class FacetRepository extends BaseRepository {
       );
   }
 
+  async getReferenceSourcesByFacetIds(
+    facetIds: readonly string[]
+  ): Promise<FacetSource[]> {
+    const uniqueFacetIds = [...new Set(facetIds)];
+    if (uniqueFacetIds.length === 0) return [];
+
+    return this.connection
+      .select()
+      .from(facetSource)
+      .where(
+        and(
+          eq(facetSource.storeId, this.storeId),
+          inArray(facetSource.facetId, uniqueFacetIds)
+        )
+      )
+      .orderBy(asc(facetSource.facetType), asc(facetSource.handle), asc(facetSource.id));
+  }
+
+  async getReferenceSourcesByRefs(
+    refs: readonly FacetSourceRef[]
+  ): Promise<FacetSource[]> {
+    const uniqueRefs = [
+      ...new Map(
+        refs.map((ref) => [`${ref.facetType}:${ref.sourceHandle}`, ref])
+      ).values(),
+    ];
+    if (uniqueRefs.length === 0) return [];
+
+    const predicates = uniqueRefs.map((ref) =>
+      and(
+        eq(facetSource.facetType, ref.facetType),
+        eq(facetSource.handle, ref.sourceHandle)
+      )
+    );
+
+    return this.connection
+      .select()
+      .from(facetSource)
+      .where(and(eq(facetSource.storeId, this.storeId), or(...predicates)))
+      .orderBy(asc(facetSource.facetType), asc(facetSource.handle), asc(facetSource.id));
+  }
+
+  async getAllReferenceSources(): Promise<FacetSource[]> {
+    return this.connection
+      .select()
+      .from(facetSource)
+      .where(eq(facetSource.storeId, this.storeId))
+      .orderBy(asc(facetSource.facetType), asc(facetSource.handle), asc(facetSource.id));
+  }
+
+  async refreshSourceStatus(
+    id: string,
+    referenceStatus: FacetSource["referenceStatus"]
+  ): Promise<{
+    id: string;
+    previousStatus: FacetSource["referenceStatus"];
+    nextStatus: FacetSource["referenceStatus"];
+    changed: boolean;
+  } | null> {
+    const existing = await this.connection
+      .select({
+        id: facetSource.id,
+        referenceStatus: facetSource.referenceStatus,
+      })
+      .from(facetSource)
+      .where(and(eq(facetSource.storeId, this.storeId), eq(facetSource.id, id)))
+      .limit(1);
+    const row = existing[0];
+    if (!row) return null;
+
+    const now = new Date().toISOString();
+    const updates: Partial<NewFacetSource> = {
+      referenceCheckedAt: now,
+    };
+    if (row.referenceStatus !== referenceStatus) {
+      updates.referenceStatus = referenceStatus;
+      updates.referenceStatusChangedAt = now;
+    }
+
+    await this.connection
+      .update(facetSource)
+      .set(updates)
+      .where(and(eq(facetSource.storeId, this.storeId), eq(facetSource.id, id)));
+
+    return {
+      id,
+      previousStatus: row.referenceStatus,
+      nextStatus: referenceStatus,
+      changed: row.referenceStatus !== referenceStatus,
+    };
+  }
+
   async getAvailableFacetSourceCandidates(
     args: FacetSourceCandidateRelayInput
   ): Promise<FacetSourceCandidateConnectionResult> {
@@ -414,6 +513,27 @@ export class FacetRepository extends BaseRepository {
         existingSourceValueHandles,
         relay: paginationArgs,
       }
+    );
+  }
+
+  async findSourceCandidateByRef(input: {
+    facetType: string;
+    handle: string;
+  }): Promise<FacetSourceCandidateView | null> {
+    return this.candidateClient.findSourceCandidateByRef(
+      { storeId: this.storeId, locale: this.locale },
+      input
+    );
+  }
+
+  async findValueCandidatesByHandles(input: {
+    candidateType: FacetValueCandidateType;
+    sourceHandles: string[];
+    handles: string[];
+  }): Promise<FacetValueCandidateView[]> {
+    return this.candidateClient.findValueCandidatesByHandles(
+      { storeId: this.storeId, locale: this.locale },
+      input
     );
   }
 

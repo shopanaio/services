@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
 import {
@@ -26,6 +26,11 @@ export interface FacetValueUpdateData {
   swatchId?: string | null;
   sortIndex?: number;
   enabled?: boolean;
+}
+
+export interface FacetValueRef {
+  facetId: string;
+  handle: string;
 }
 
 export class FacetValueRepository extends BaseRepository {
@@ -234,6 +239,118 @@ export class FacetValueRepository extends BaseRepository {
         )
       )
       .orderBy(asc(facetValue.handle), asc(facetValue.id));
+  }
+
+  async getSourceValuesByFacetIds(
+    facetIds: readonly string[]
+  ): Promise<FacetValue[]> {
+    const uniqueFacetIds = [...new Set(facetIds)];
+    if (uniqueFacetIds.length === 0) return [];
+
+    return this.connection
+      .select()
+      .from(facetValue)
+      .where(
+        and(
+          eq(facetValue.storeId, this.storeId),
+          inArray(facetValue.facetId, uniqueFacetIds),
+          eq(facetValue.kind, "source")
+        )
+      )
+      .orderBy(asc(facetValue.facetId), asc(facetValue.handle), asc(facetValue.id));
+  }
+
+  async getSourceValuesByRefs(
+    refs: readonly FacetValueRef[]
+  ): Promise<FacetValue[]> {
+    const uniqueRefs = [
+      ...new Map(refs.map((ref) => [`${ref.facetId}:${ref.handle}`, ref])).values(),
+    ];
+    if (uniqueRefs.length === 0) return [];
+
+    const predicates = uniqueRefs.map((ref) =>
+      and(eq(facetValue.facetId, ref.facetId), eq(facetValue.handle, ref.handle))
+    );
+
+    return this.connection
+      .select()
+      .from(facetValue)
+      .where(
+        and(
+          eq(facetValue.storeId, this.storeId),
+          eq(facetValue.kind, "source"),
+          or(...predicates)
+        )
+      )
+      .orderBy(asc(facetValue.facetId), asc(facetValue.handle), asc(facetValue.id));
+  }
+
+  async getDisplayParentsBySourceValueIds(
+    valueIds: readonly string[]
+  ): Promise<FacetValue[]> {
+    const sourceValues = await this.getByIds(valueIds);
+    const parentIds = [
+      ...new Set(
+        sourceValues
+          .map((value) => value.parentId)
+          .filter((parentId): parentId is string => typeof parentId === "string")
+      ),
+    ];
+    if (parentIds.length === 0) return [];
+
+    return this.connection
+      .select()
+      .from(facetValue)
+      .where(
+        and(
+          eq(facetValue.storeId, this.storeId),
+          inArray(facetValue.id, parentIds),
+          eq(facetValue.kind, "display")
+        )
+      );
+  }
+
+  async refreshValueStatus(
+    id: string,
+    referenceStatus: FacetValue["referenceStatus"]
+  ): Promise<{
+    id: string;
+    previousStatus: FacetValue["referenceStatus"];
+    nextStatus: FacetValue["referenceStatus"];
+    changed: boolean;
+  } | null> {
+    const existing = await this.connection
+      .select({
+        id: facetValue.id,
+        referenceStatus: facetValue.referenceStatus,
+      })
+      .from(facetValue)
+      .where(and(eq(facetValue.storeId, this.storeId), eq(facetValue.id, id)))
+      .limit(1);
+    const row = existing[0];
+    if (!row) return null;
+
+    const now = new Date().toISOString();
+    const updates: Partial<NewFacetValue> = {
+      referenceCheckedAt: now,
+      updatedAt: now,
+    };
+    if (row.referenceStatus !== referenceStatus) {
+      updates.referenceStatus = referenceStatus;
+      updates.referenceStatusChangedAt = now;
+    }
+
+    await this.connection
+      .update(facetValue)
+      .set(updates)
+      .where(and(eq(facetValue.storeId, this.storeId), eq(facetValue.id, id)));
+
+    return {
+      id,
+      previousStatus: row.referenceStatus,
+      nextStatus: referenceStatus,
+      changed: row.referenceStatus !== referenceStatus,
+    };
   }
 
   async getVisibleValueSourceHandles(
