@@ -1,7 +1,8 @@
-import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
 import {
+  facet,
   facetValue,
   facetValueTranslation,
   type FacetValue,
@@ -31,6 +32,73 @@ export interface FacetValueUpdateData {
 export interface FacetValueRef {
   facetId: string;
   handle: string;
+}
+
+export type FacetSourceValueFacetType = "TAG" | "OPTION" | "FEATURE";
+
+export interface FacetSourceValueRef {
+  facetType: FacetSourceValueFacetType;
+  sourceHandle: string;
+  valueHandle?: string;
+}
+
+const facetValueSelectColumns = {
+  id: facetValue.id,
+  storeId: facetValue.storeId,
+  facetId: facetValue.facetId,
+  parentId: facetValue.parentId,
+  kind: facetValue.kind,
+  handle: facetValue.handle,
+  swatchId: facetValue.swatchId,
+  sortIndex: facetValue.sortIndex,
+  enabled: facetValue.enabled,
+  referenceStatus: facetValue.referenceStatus,
+  referenceStatusChangedAt: facetValue.referenceStatusChangedAt,
+  referenceCheckedAt: facetValue.referenceCheckedAt,
+  createdAt: facetValue.createdAt,
+  updatedAt: facetValue.updatedAt,
+};
+
+function uniqueFacetSourceValueRefs(
+  refs: readonly FacetSourceValueRef[]
+): FacetSourceValueRef[] {
+  return [
+    ...new Map(
+      refs
+        .map((ref) => ({
+          facetType: ref.facetType,
+          sourceHandle: ref.sourceHandle.trim(),
+          valueHandle: ref.valueHandle?.trim(),
+        }))
+        .filter((ref) => ref.sourceHandle.length > 0)
+        .map((ref) => [
+          `${ref.facetType}\0${ref.sourceHandle}\0${ref.valueHandle ?? ""}`,
+          ref,
+        ])
+    ).values(),
+  ];
+}
+
+function normalizeSourceValueHandle(ref: FacetSourceValueRef): string | null {
+  const valueHandle = ref.valueHandle?.trim();
+  if (!valueHandle) return null;
+
+  if (ref.facetType === "TAG") {
+    return valueHandle;
+  }
+
+  const sourceHandle = ref.sourceHandle.trim();
+  const prefix = `${sourceHandle}:`;
+  return valueHandle.startsWith(prefix) ? valueHandle : `${prefix}${valueHandle}`;
+}
+
+function sourceValueHandleStartsWith(sourceHandle: string): SQL {
+  const pattern = `${escapeLikePattern(sourceHandle.trim())}:%`;
+  return sql`${facetValue.handle} LIKE ${pattern} ESCAPE '\\'`;
+}
+
+function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, (char) => `\\${char}`);
 }
 
 export class FacetValueRepository extends BaseRepository {
@@ -260,6 +328,29 @@ export class FacetValueRepository extends BaseRepository {
       .orderBy(asc(facetValue.facetId), asc(facetValue.handle), asc(facetValue.id));
   }
 
+  async getSourceValuesByFacetTypes(
+    facetTypes: readonly FacetSourceValueFacetType[]
+  ): Promise<FacetValue[]> {
+    const uniqueFacetTypes = [...new Set(facetTypes)];
+    if (uniqueFacetTypes.length === 0) return [];
+
+    return this.connection
+      .select(facetValueSelectColumns)
+      .from(facetValue)
+      .innerJoin(
+        facet,
+        and(eq(facet.id, facetValue.facetId), eq(facet.storeId, facetValue.storeId))
+      )
+      .where(
+        and(
+          eq(facetValue.storeId, this.storeId),
+          eq(facetValue.kind, "source"),
+          inArray(facet.facetType, uniqueFacetTypes)
+        )
+      )
+      .orderBy(asc(facetValue.facetId), asc(facetValue.handle), asc(facetValue.id));
+  }
+
   async getSourceValuesByRefs(
     refs: readonly FacetValueRef[]
   ): Promise<FacetValue[]> {
@@ -275,6 +366,56 @@ export class FacetValueRepository extends BaseRepository {
     return this.connection
       .select()
       .from(facetValue)
+      .where(
+        and(
+          eq(facetValue.storeId, this.storeId),
+          eq(facetValue.kind, "source"),
+          or(...predicates)
+        )
+      )
+      .orderBy(asc(facetValue.facetId), asc(facetValue.handle), asc(facetValue.id));
+  }
+
+  async getSourceValuesBySourceRefs(
+    refs: readonly FacetSourceValueRef[]
+  ): Promise<FacetValue[]> {
+    const uniqueRefs = uniqueFacetSourceValueRefs(refs);
+    if (uniqueRefs.length === 0) return [];
+
+    const predicates: SQL[] = [];
+    for (const ref of uniqueRefs) {
+      if (ref.facetType === "TAG") {
+        if (ref.sourceHandle !== "tags") continue;
+
+        const valueHandle = normalizeSourceValueHandle(ref);
+        predicates.push(
+          valueHandle
+            ? and(eq(facet.facetType, "TAG"), eq(facetValue.handle, valueHandle))!
+            : eq(facet.facetType, "TAG")
+        );
+        continue;
+      }
+
+      const valueHandle = normalizeSourceValueHandle(ref);
+      predicates.push(
+        valueHandle
+          ? and(eq(facet.facetType, ref.facetType), eq(facetValue.handle, valueHandle))!
+          : and(
+              eq(facet.facetType, ref.facetType),
+              sourceValueHandleStartsWith(ref.sourceHandle)
+            )!
+      );
+    }
+
+    if (predicates.length === 0) return [];
+
+    return this.connection
+      .select(facetValueSelectColumns)
+      .from(facetValue)
+      .innerJoin(
+        facet,
+        and(eq(facet.id, facetValue.facetId), eq(facet.storeId, facetValue.storeId))
+      )
       .where(
         and(
           eq(facetValue.storeId, this.storeId),

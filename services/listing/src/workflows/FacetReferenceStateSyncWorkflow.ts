@@ -16,7 +16,7 @@ import type { EventDispatchResult, EventEmitResult } from "@shopana/events";
 import { Kernel } from "../kernel/Kernel.js";
 import { Loader } from "../loaders/Loader.js";
 import { runWithContext, ServiceContext } from "../context/index.js";
-import type { FacetSource, FacetValue } from "../repositories/models/index.js";
+import type { Facet, FacetSource, FacetValue } from "../repositories/models/index.js";
 import {
   FacetReferenceStateWriteReconciliationScript,
   type FacetReferenceStateWriteReconciliationResult,
@@ -90,6 +90,7 @@ interface CollectedRefs {
 }
 
 type ReferenceStatus = FacetSource["referenceStatus"];
+const REFERENCE_VALUE_FACET_TYPES = ["TAG", "OPTION", "FEATURE"] as const;
 
 interface ReferenceExistence {
   tagHandles: ReadonlySet<string>;
@@ -319,10 +320,15 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
   ): Promise<ReconciliationPlan> {
     return this.withListingContext(input, async (store) => {
       const sources = await this.loadAffectedSources(collected);
-      const sourceFacetIds = unique(sources.map((source) => source.facetId));
       const values = input.checkValues === false
         ? []
-        : await this.loadAffectedValues(sources, collected);
+        : await this.loadAffectedValues(collected);
+      const affectedFacetIds = unique([
+        ...sources.map((source) => source.facetId),
+        ...values.map((value) => value.facetId),
+      ]);
+      const facets = await this.repository.facet.getByIds(affectedFacetIds);
+      const facetsById = new Map(facets.map((facet) => [facet.id, facet]));
       const displayParents =
         await this.repository.facetValue.getDisplayParentsBySourceValueIds(
           values.map((value) => value.id)
@@ -330,7 +336,8 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
       const existence = await this.loadReferenceExistence(
         input.storeId,
         sources,
-        values
+        values,
+        facetsById
       );
       const sourceUpdates = sources.map((source) => ({
         id: source.id,
@@ -338,7 +345,7 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
       }));
       const valueUpdates = values.map((value) => ({
         id: value.id,
-        nextStatus: resolveValueStatus(value, sources, existence),
+        nextStatus: resolveValueStatus(value, facetsById, existence),
       }));
 
       return {
@@ -349,7 +356,7 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
         displayParents,
         sourceUpdates,
         valueUpdates,
-        affectedFacetIds: sourceFacetIds,
+        affectedFacetIds,
         affectedSourceIds: sources.map((source) => source.id),
         affectedValueIds: values.map((value) => value.id),
       };
@@ -475,46 +482,22 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
   }
 
   private async loadAffectedValues(
-    sources: readonly FacetSource[],
     collected: CollectedRefs
   ): Promise<FacetValue[]> {
-    if (
-      collected.reconcileAll ||
-      collected.facetIds.length > 0 ||
-      collected.refs.length === 0
-    ) {
-      return this.repository.facetValue.getSourceValuesByFacetIds(
-        unique(sources.map((source) => source.facetId))
-      );
-    }
-
-    const sourceByTypeHandle = new Map(
-      sources.map((source) => [`${source.facetType}:${source.handle}`, source])
-    );
-    const valueRefs = collected.refs
-      .filter((ref) => isString(ref.valueHandle))
-      .map((ref) => {
-        const source = sourceByTypeHandle.get(
-          `${ref.facetType}:${ref.sourceHandle}`
-        );
-        return source && ref.valueHandle
-          ? { facetId: source.facetId, handle: ref.valueHandle }
-          : null;
-      })
-      .filter((ref): ref is { facetId: string; handle: string } => ref !== null);
-    const sourceOnlyFacetIds = collected.refs
-      .filter((ref) => !isString(ref.valueHandle))
-      .map((ref) =>
-        sourceByTypeHandle.get(`${ref.facetType}:${ref.sourceHandle}`)?.facetId
-      )
-      .filter(isString);
     const rows = [
-      ...(valueRefs.length > 0
-        ? await this.repository.facetValue.getSourceValuesByRefs(valueRefs)
+      ...(collected.reconcileAll
+        ? await this.repository.facetValue.getSourceValuesByFacetTypes(
+            REFERENCE_VALUE_FACET_TYPES
+          )
         : []),
-      ...(sourceOnlyFacetIds.length > 0
+      ...(collected.facetIds.length > 0
         ? await this.repository.facetValue.getSourceValuesByFacetIds(
-            unique(sourceOnlyFacetIds)
+            collected.facetIds
+          )
+        : []),
+      ...(collected.refs.length > 0
+        ? await this.repository.facetValue.getSourceValuesBySourceRefs(
+            collected.refs
           )
         : []),
     ];
@@ -530,7 +513,8 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
   private async loadReferenceExistence(
     _storeId: string,
     sources: readonly FacetSource[],
-    values: readonly FacetValue[]
+    values: readonly FacetValue[],
+    facetsById: ReadonlyMap<string, Facet>
   ): Promise<ReferenceExistence> {
     const optionSourceHandles = new Set<string>();
     const featureSourceHandles = new Set<string>();
@@ -555,7 +539,7 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
     const optionValueHandles = new Set<string>();
     const featureValueHandles = new Set<string>();
     const valuesByType = groupBy(values, (value) =>
-      valueFacetType(value, sources) ?? "UNKNOWN"
+      valueFacetType(value, facetsById) ?? "UNKNOWN"
     );
 
     const tagValues = valuesByType.get("TAG") ?? [];
@@ -804,10 +788,10 @@ function resolveSourceStatus(
 
 function resolveValueStatus(
   value: FacetValue,
-  sources: readonly FacetSource[],
+  facetsById: ReadonlyMap<string, Facet>,
   existence: ReferenceExistence
 ): ReferenceStatus {
-  const type = valueFacetType(value, sources);
+  const type = valueFacetType(value, facetsById);
   if (type === "TAG") {
     return existence.tagHandles.has(value.handle) ? "VALID" : "STALE";
   }
@@ -896,22 +880,13 @@ function getFacetAccumulator(
 
 function valueFacetType(
   value: FacetValue,
-  sources: readonly FacetSource[]
+  facetsById: ReadonlyMap<string, Facet>
 ): FacetSourceRef["facetType"] | null {
-  if (sources.some((source) => source.facetId === value.facetId && source.facetType === "TAG")) {
-    return "TAG";
-  }
-
-  const composite = splitCompositeHandle(value.handle);
-  if (!composite) return null;
-
-  const source = sources.find(
-    (candidate) =>
-      candidate.facetId === value.facetId &&
-      candidate.handle === composite.sourceHandle
-  );
-  return source?.facetType === "OPTION" || source?.facetType === "FEATURE"
-    ? source.facetType
+  const facetType = facetsById.get(value.facetId)?.facetType;
+  return facetType === "TAG" ||
+    facetType === "OPTION" ||
+    facetType === "FEATURE"
+    ? facetType
     : null;
 }
 
