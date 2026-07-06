@@ -224,11 +224,13 @@ function facetValueKeys(
   facet: ListingPreparedSyncAction["params"]["item"]["productFacets"][number]
 ): string[] {
   return facet.values.map((value) => {
-    if (facet.facet.id && value.id) {
-      return [facet.facet.id, value.id].join(":");
+    if (!facet.facet.id || !value.id) {
+      throw new Error(
+        `Facet value key requires facet id and value id: facet=${facet.facet.handle}, value=${value.handle}`
+      );
     }
 
-    return [facet.facet.type, facet.facet.handle, value.handle].join(":");
+    return [facet.facet.id, value.id].join(":");
   });
 }
 
