@@ -6,6 +6,7 @@ import {
 import { BaseScript } from "../kernel/BaseScript.js";
 import { ListingBuildSyncWriteModelScript } from "./ListingBuildSyncWriteModelScript.js";
 import { ListingPrepareIndexActionScript } from "./ListingPrepareIndexActionScript.js";
+import { ListingResolveFacetSelectionsScript } from "./ListingResolveFacetSelectionsScript.js";
 import { ListingWriteIndexActionScript } from "./ListingWriteIndexActionScript.js";
 import type {
   ListingIndexHydratedSyncAction,
@@ -93,9 +94,14 @@ export class ListingSyncSellableItemsScript extends BaseScript<
       }),
     };
 
+    const resolved = await this.executeScript(
+      ListingResolveFacetSelectionsScript,
+      queued
+    );
+
     const prepared = (await this.executeScript(
       ListingPrepareIndexActionScript,
-      queued
+      resolved.action
     )) as ListingIndexPreparedSyncAction;
 
     if (prepared.kind === "final") {

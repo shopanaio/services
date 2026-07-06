@@ -11,6 +11,7 @@ import { Kernel } from "../kernel/Kernel.js";
 import type { RunScriptContext } from "../kernel/types.js";
 import { ListingBuildSyncWriteModelScript } from "../scripts/ListingBuildSyncWriteModelScript.js";
 import { ListingPrepareIndexActionScript } from "../scripts/ListingPrepareIndexActionScript.js";
+import { ListingResolveFacetSelectionsScript } from "../scripts/ListingResolveFacetSelectionsScript.js";
 import { ListingWriteIndexActionScript } from "../scripts/ListingWriteIndexActionScript.js";
 import { mapCatalogProductToListingSnapshot } from "./catalogListingSnapshotMapper.js";
 import { buildListingIndexPayloadHash } from "./listingIndexWorkflowHelpers.js";
@@ -74,6 +75,28 @@ abstract class ListingIndexWorkflowBase<
       action,
       buildRunScriptContext(action)
     ) as Promise<ListingIndexPreparedSyncAction>;
+  }
+
+  @WorkflowStep({
+    name: "resolveListingFacetSelections",
+    timeoutMs: 30_000,
+    retry: {
+      maxAttempts: 5,
+      intervalSeconds: 1,
+      backoffRate: 2,
+    },
+  })
+  protected async stepResolveFacetSelections(
+    action: ListingIndexHydratedSyncAction
+  ): Promise<ListingIndexHydratedSyncAction> {
+    const kernel = Kernel.getInstance();
+    const result = await kernel.runScript(
+      ListingResolveFacetSelectionsScript,
+      action,
+      buildRunScriptContext(action)
+    );
+
+    return result.action;
   }
 
   @WorkflowStep({
@@ -180,7 +203,8 @@ export class ListingSyncSellableItemIndexWorkflow extends ListingIndexWorkflowBa
       return hydration.result;
     }
 
-    const prepared = await this.stepPrepareSyncIndexAction(hydration.action);
+    const resolved = await this.stepResolveFacetSelections(hydration.action);
+    const prepared = await this.stepPrepareSyncIndexAction(resolved);
 
     if (prepared.kind === "final") {
       return prepared.result;

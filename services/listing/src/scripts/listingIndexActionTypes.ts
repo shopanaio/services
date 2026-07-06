@@ -24,6 +24,7 @@ export type ListingIndexHydratedSyncAction = {
   organizationId: string;
   effectiveIdempotencyKey: string;
   payloadHash: string;
+  warnings?: Listing.ListingUpdateWarning[];
 };
 
 export type ListingIndexQueuedDeleteAction = {

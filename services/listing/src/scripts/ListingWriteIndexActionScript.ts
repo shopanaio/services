@@ -24,6 +24,7 @@ export class ListingWriteIndexActionScript extends BaseScript<
   ): Promise<Listing.ListingUpdateResult> {
     return this.repository.runListingIndexItemTransaction(async () => {
       const action = input.action;
+      const statePayloadHash = this.getStatePayloadHash(input);
       const current = await this.repository.listingIndexItemState.lockByItem(
         action.itemKey
       );
@@ -33,32 +34,45 @@ export class ListingWriteIndexActionScript extends BaseScript<
       }
 
       if (current && action.sourceSequence === current.sourceSequence) {
-        if (
-          action.effectiveIdempotencyKey ===
-            current.lastEffectiveIdempotencyKey &&
-          action.payloadHash === current.payloadHash
-        ) {
+        if (action.effectiveIdempotencyKey !== current.lastEffectiveIdempotencyKey) {
+          throw new ListingIndexActionScriptError([
+            {
+              code: "REVISION_CONFLICT",
+              field: ["sourceSequence"],
+              message:
+                "Listing index action reused a sourceSequence with a different idempotency key",
+            },
+          ]);
+        }
+
+        if (statePayloadHash === current.payloadHash) {
           return this.buildResult(action, "noop");
         }
 
-        throw new ListingIndexActionScriptError([
-          {
-            code: "REVISION_CONFLICT",
-            field: ["sourceSequence"],
-            message:
-              "Listing index action reused a sourceSequence with a different idempotency key or payload",
-          },
-        ]);
+        if (!("syncWriteModel" in input)) {
+          throw new ListingIndexActionScriptError([
+            {
+              code: "REVISION_CONFLICT",
+              field: ["sourceSequence"],
+              message:
+                "Listing delete action reused a sourceSequence with a different payload",
+            },
+          ]);
+        }
       }
 
       if ("syncWriteModel" in input) {
         await this.applySync(input.action, input.syncWriteModel.writeModelJson);
-        await this.upsertLatestState(input.action, "indexed");
+        await this.upsertLatestState(
+          input.action,
+          "indexed",
+          statePayloadHash
+        );
         return this.buildResult(input.action, "applied");
       }
 
       await this.applyDelete(input.action);
-      await this.upsertLatestState(input.action, "deleted");
+      await this.upsertLatestState(input.action, "deleted", statePayloadHash);
       return this.buildResult(input.action, "applied");
     });
   }
@@ -277,12 +291,13 @@ export class ListingWriteIndexActionScript extends BaseScript<
 
   private async upsertLatestState(
     action: ListingPreparedSyncAction | ListingPreparedDeleteAction,
-    lifecycleStatus: "indexed" | "deleted"
+    lifecycleStatus: "indexed" | "deleted",
+    payloadHash: string
   ): Promise<void> {
     await this.repository.listingIndexItemState.upsertLatestState({
       ...action.itemKey,
       sourceSequence: action.sourceSequence,
-      payloadHash: action.payloadHash,
+      payloadHash,
       lifecycleStatus,
       lastEffectiveIdempotencyKey: action.effectiveIdempotencyKey,
       lastOperationId: action.params.meta.operationId,
@@ -294,7 +309,7 @@ export class ListingWriteIndexActionScript extends BaseScript<
     action: ListingPreparedSyncAction | ListingPreparedDeleteAction,
     status: Exclude<Listing.ListingUpdateResult["status"], "accepted">
   ): Listing.ListingUpdateResult {
-    return {
+    const result: Listing.ListingUpdateResult = {
       operationId: action.params.meta.operationId,
       storeId: action.itemKey.storeId,
       itemRef: {
@@ -305,5 +320,19 @@ export class ListingWriteIndexActionScript extends BaseScript<
       status,
       processedAt: new Date().toISOString(),
     };
+
+    if ("warnings" in action && action.warnings && action.warnings.length > 0) {
+      result.warnings = action.warnings;
+    }
+
+    return result;
+  }
+
+  private getStatePayloadHash(
+    input: ListingPreparedSyncWriteAction | ListingPreparedDeleteWriteAction
+  ): string {
+    return "syncWriteModel" in input
+      ? input.syncWriteModel.writeModelHash
+      : input.action.payloadHash;
   }
 }

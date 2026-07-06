@@ -285,6 +285,27 @@ export class FacetValueRepository extends BaseRepository {
       .orderBy(asc(facetValue.facetId), asc(facetValue.handle), asc(facetValue.id));
   }
 
+  async getValidSourceValuesByHandles(
+    handles: readonly string[]
+  ): Promise<FacetValue[]> {
+    const uniqueHandles = [...new Set(handles)];
+    if (uniqueHandles.length === 0) return [];
+
+    return this.connection
+      .select()
+      .from(facetValue)
+      .where(
+        and(
+          eq(facetValue.storeId, this.storeId),
+          eq(facetValue.kind, "source"),
+          inArray(facetValue.handle, uniqueHandles),
+          eq(facetValue.enabled, true),
+          eq(facetValue.referenceStatus, "VALID")
+        )
+      )
+      .orderBy(asc(facetValue.handle), asc(facetValue.facetId), asc(facetValue.id));
+  }
+
   async getDisplayParentsBySourceValueIds(
     valueIds: readonly string[]
   ): Promise<FacetValue[]> {
