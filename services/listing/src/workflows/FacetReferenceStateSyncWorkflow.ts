@@ -16,6 +16,11 @@ import { Kernel } from "../kernel/Kernel.js";
 import { Loader } from "../loaders/Loader.js";
 import { runWithContext, ServiceContext } from "../context/index.js";
 import type { FacetSource, FacetValue } from "../repositories/models/index.js";
+import {
+  FacetReferenceStateWriteReconciliationScript,
+  type ReferenceStatusDelta,
+  type ReferenceStatusUpdate,
+} from "../scripts/facet/FacetReferenceStateWriteReconciliationScript.js";
 
 export type FacetReferenceStateSyncReason =
   | "productCreated"
@@ -83,18 +88,6 @@ interface CollectedRefs {
 }
 
 type ReferenceStatus = FacetSource["referenceStatus"];
-
-interface ReferenceStatusDelta {
-  id: string;
-  previousStatus: ReferenceStatus;
-  nextStatus: ReferenceStatus;
-  changed: boolean;
-}
-
-interface ReferenceStatusUpdate {
-  id: string;
-  nextStatus: ReferenceStatus;
-}
 
 interface ReferenceExistence {
   tagHandles: ReadonlySet<string>;
@@ -363,27 +356,13 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
     plan: ReconciliationPlan
   ): Promise<ReconciliationResult> {
     return this.withResolvedListingContext(input, plan.store, async () => {
-      const sourceDeltas = (
-        await Promise.all(
-          plan.sourceUpdates.map((update) =>
-            this.repository.facet.refreshSourceStatus(
-              update.id,
-              update.nextStatus
-            )
-          )
-        )
-      ).filter((delta): delta is ReferenceStatusDelta => delta !== null);
-
-      const valueDeltas = (
-        await Promise.all(
-          plan.valueUpdates.map((update) =>
-            this.repository.facetValue.refreshValueStatus(
-              update.id,
-              update.nextStatus
-            )
-          )
-        )
-      ).filter((delta): delta is ReferenceStatusDelta => delta !== null);
+      const { sourceDeltas, valueDeltas } = await this.kernel.runScript(
+        FacetReferenceStateWriteReconciliationScript,
+        {
+          sourceUpdates: plan.sourceUpdates,
+          valueUpdates: plan.valueUpdates,
+        }
+      );
 
       const displayParents = new Map(
         plan.displayParents.map((value) => [value.id, value])
