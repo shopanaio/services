@@ -8,7 +8,7 @@ Project is at 25% readiness. No stage/production data or users does exist.
 
 @knowledge/AGENTS.md
 
-Project rules and architecture patterns are stored in the knowledge base vault under `@knowledge/vault/`.
+Project READ ONLY rules and architecture patterns are stored in the knowledge base vault under `@knowledge/vault/`.
 Before creating implementation plans or making code/documentation changes, review and align the work with the relevant documents from the knowledge base.
 
 ## Architecture
