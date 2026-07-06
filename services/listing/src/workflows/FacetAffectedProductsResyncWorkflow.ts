@@ -98,7 +98,7 @@ export class FacetAffectedProductsResyncWorkflow extends BrokerWorkflows<
         break;
       }
 
-      const pageEventIds = await this.stepEmitProductInvalidationEvents({
+      const pageEventIds = await this.emitProductInvalidationEvents({
         input,
         productIds: page.productIds,
         refsHash,
@@ -128,12 +128,7 @@ export class FacetAffectedProductsResyncWorkflow extends BrokerWorkflows<
     >("catalog.findListingFacetAffectedProducts", params);
   }
 
-  @WorkflowStep({
-    name: "emitListingFacetMembershipChanged",
-    timeoutMs: 60_000,
-    retry: { maxAttempts: 5, intervalSeconds: 1, backoffRate: 2 },
-  })
-  private async stepEmitProductInvalidationEvents(params: {
+  private async emitProductInvalidationEvents(params: {
     input: FacetAffectedProductsResyncWorkflowInput;
     productIds: string[];
     refsHash: string;
