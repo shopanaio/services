@@ -18,6 +18,7 @@ import { runWithContext, ServiceContext } from "../context/index.js";
 import type { FacetSource, FacetValue } from "../repositories/models/index.js";
 import {
   FacetReferenceStateWriteReconciliationScript,
+  type FacetReferenceStateWriteReconciliationResult,
   type ReferenceStatusDelta,
   type ReferenceStatusUpdate,
 } from "../scripts/facet/FacetReferenceStateWriteReconciliationScript.js";
@@ -209,19 +210,24 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
       input,
       reconciliationPlan
     );
+    const eventPreparation = await this.stepPrepareFacetEvents(
+      input,
+      reconciliationPlan,
+      reconciliation
+    );
     const emittedEventIds = await this.stepEmitFacetEvents(
       input,
-      reconciliation.payloads
+      eventPreparation.payloads
     );
 
     return {
-      checkedSourceCount: reconciliation.checkedSourceCount,
-      staleSourceCount: reconciliation.staleSourceCount,
-      checkedValueCount: reconciliation.checkedValueCount,
-      staleValueCount: reconciliation.staleValueCount,
-      affectedFacetIds: reconciliation.affectedFacetIds,
-      affectedSourceIds: reconciliation.affectedSourceIds,
-      affectedValueIds: reconciliation.affectedValueIds,
+      checkedSourceCount: eventPreparation.checkedSourceCount,
+      staleSourceCount: eventPreparation.staleSourceCount,
+      checkedValueCount: eventPreparation.checkedValueCount,
+      staleValueCount: eventPreparation.staleValueCount,
+      affectedFacetIds: eventPreparation.affectedFacetIds,
+      affectedSourceIds: eventPreparation.affectedSourceIds,
+      affectedValueIds: eventPreparation.affectedValueIds,
       emittedEventIds,
     };
   }
@@ -354,44 +360,55 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
   private async stepWriteReconciliation(
     input: FacetReferenceStateSyncWorkflowInput,
     plan: ReconciliationPlan
-  ): Promise<ReconciliationResult> {
+  ): Promise<FacetReferenceStateWriteReconciliationResult> {
     return this.withResolvedListingContext(input, plan.store, async () => {
-      const { sourceDeltas, valueDeltas } = await this.kernel.runScript(
+      return this.kernel.runScript(
         FacetReferenceStateWriteReconciliationScript,
         {
           sourceUpdates: plan.sourceUpdates,
           valueUpdates: plan.valueUpdates,
         }
       );
-
-      const displayParents = new Map(
-        plan.displayParents.map((value) => [value.id, value])
-      );
-      const payloads = buildFacetEvents({
-        storeId: input.storeId,
-        triggerEventIds: plan.triggerEventIds,
-        sources: plan.sources,
-        values: plan.values,
-        displayParents,
-        sourceDeltas,
-        valueDeltas,
-      });
-
-      return {
-        checkedSourceCount: plan.sources.length,
-        staleSourceCount: sourceDeltas.filter(
-          (delta) => delta.nextStatus === "STALE"
-        ).length,
-        checkedValueCount: plan.values.length,
-        staleValueCount: valueDeltas.filter(
-          (delta) => delta.nextStatus === "STALE"
-        ).length,
-        affectedFacetIds: plan.affectedFacetIds,
-        affectedSourceIds: plan.affectedSourceIds,
-        affectedValueIds: plan.affectedValueIds,
-        payloads,
-      };
     });
+  }
+
+  @WorkflowStep({
+    name: "prepareFacetReferenceStateChangedEvents",
+    timeoutMs: 30_000,
+    retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
+  })
+  private async stepPrepareFacetEvents(
+    input: FacetReferenceStateSyncWorkflowInput,
+    plan: ReconciliationPlan,
+    reconciliation: FacetReferenceStateWriteReconciliationResult
+  ): Promise<ReconciliationResult> {
+    const displayParents = new Map(
+      plan.displayParents.map((value) => [value.id, value])
+    );
+    const payloads = buildFacetEvents({
+      storeId: input.storeId,
+      triggerEventIds: plan.triggerEventIds,
+      sources: plan.sources,
+      values: plan.values,
+      displayParents,
+      sourceDeltas: reconciliation.sourceDeltas,
+      valueDeltas: reconciliation.valueDeltas,
+    });
+
+    return {
+      checkedSourceCount: plan.sources.length,
+      staleSourceCount: reconciliation.sourceDeltas.filter(
+        (delta) => delta.nextStatus === "STALE"
+      ).length,
+      checkedValueCount: plan.values.length,
+      staleValueCount: reconciliation.valueDeltas.filter(
+        (delta) => delta.nextStatus === "STALE"
+      ).length,
+      affectedFacetIds: plan.affectedFacetIds,
+      affectedSourceIds: plan.affectedSourceIds,
+      affectedValueIds: plan.affectedValueIds,
+      payloads,
+    };
   }
 
   private async collectCurrentProductRefs(
