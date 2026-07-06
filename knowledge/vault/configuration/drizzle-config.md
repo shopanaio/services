@@ -213,6 +213,13 @@ the owning domain folder with a globally unique basename.
 based on stable entity identifiers, and use separate indexes or unique
 constraints for tenant-scoped lookups when needed.
 
+### UUID Version Rule
+
+All UUID values stored in PostgreSQL must be UUIDv7. This applies to primary
+keys, foreign keys, tenant/store identifiers, workflow-related entity IDs, and
+any other database column typed or treated as UUID. Do not introduce UUIDv4 or
+random UUID generation for persisted database identifiers.
+
 ## Applying Migrations
 
 Migrations run at service startup via `shopana migrate --service <name>`. Uses connection from [[configuration/bootstrap-config|config.yml]] database section.
