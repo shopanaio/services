@@ -9,6 +9,7 @@ export * from "./FacetValueUpdateScript.js";
 export * from "./FacetValueDeleteScript.js";
 export * from "./FacetValueMergeScript.js";
 export * from "./FacetValueUnmergeScript.js";
+export * from "./FacetIndexImpactCollectorScript.js";
 export * from "./FacetSwatchCreateScript.js";
 export * from "./FacetSwatchUpdateScript.js";
 export * from "./FacetSwatchDeleteScript.js";

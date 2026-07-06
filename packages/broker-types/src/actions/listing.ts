@@ -10,7 +10,7 @@ export type ListingUpdateContractVersion =
 export type ListingUpdateActor = "admin" | "system" | "migration" | "api";
 
 export interface ListingUpdateSource {
-  service: "catalog";
+  service: "catalog" | "listing";
   actor?: ListingUpdateActor;
   requestId?: string;
   workflowId?: string;

@@ -24,6 +24,24 @@ export type CatalogQueryErrorCode =
   | "CATALOG_STORE_NOT_FOUND"
   | "CATALOG_PRODUCT_READ_QUERY_FAILED";
 
+export interface ListingFacetAffectedProductRef {
+  facetType: "TAG" | "FEATURE" | "OPTION";
+  sourceHandle: string;
+  sourceValueHandle?: string;
+}
+
+export interface FindListingFacetAffectedProductsParams {
+  storeId: string;
+  refs: ListingFacetAffectedProductRef[];
+  afterProductId?: string;
+  limit?: number;
+}
+
+export interface FindListingFacetAffectedProductsResult {
+  productIds: string[];
+  nextCursor?: string;
+}
+
 export interface CatalogQuerySelection {
   fields?: never;
   populate?: CatalogQueryPopulate;

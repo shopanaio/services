@@ -6,20 +6,26 @@ import {
 import { ApolloMutation } from "@shopana/type-resolver";
 import type { UserError } from "../../kernel/BaseScript.js";
 import {
-  FacetCreateScript,
-  FacetDeleteScript,
   FacetMoveScript,
   FacetRebalanceScript,
   FacetSwatchCreateScript,
   FacetSwatchDeleteScript,
   FacetSwatchUpdateScript,
   FacetUpdateScript,
-  FacetValueCreateScript,
-  FacetValueDeleteScript,
-  FacetValueMergeScript,
-  FacetValueUnmergeScript,
-  FacetValueUpdateScript,
 } from "../../scripts/facet/index.js";
+import type {
+  FacetCreateParams,
+  FacetDeleteResult,
+  FacetResult,
+  FacetValueCreateParams,
+  FacetValueDeleteResult,
+  FacetValueMergeParams,
+  FacetValueMergeResult,
+  FacetValueResult,
+  FacetValueUnmergeParams,
+  FacetValueUnmergeResult,
+  FacetValueUpdateParams,
+} from "../../scripts/facet/dto/index.js";
 import { ListingType } from "./ListingType.js";
 
 function safeDecodeGlobalId(
@@ -65,6 +71,46 @@ export class MutationResolver extends ListingType<Record<string, never>> {
 }
 
 export class ListingMutationResolver extends ListingType<Record<string, never>> {
+  private facetWorkflowContext() {
+    return {
+      storeId: this.$ctx.store.id,
+      organizationId: this.$ctx.store.organizationId,
+      locale: this.$ctx.locale ?? this.$ctx.store.defaultLocale,
+      defaultLocale: this.$ctx.store.defaultLocale,
+      requestId: this.$ctx.requestId,
+      userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
+    };
+  }
+
+  private async runFacetMutationWorkflow<TResult, TParams>(
+    workflowName: string,
+    params: TParams,
+    operation: string,
+    resourceId: string
+  ): Promise<TResult> {
+    const operationId = [
+      "listing",
+      operation,
+      this.$ctx.store.id,
+      resourceId,
+      this.$ctx.requestId,
+    ].join(":");
+
+    return this.$ctx.kernel.getServices().broker.runWorkflow(
+      `listing.${workflowName}`,
+      {
+        params,
+        context: this.facetWorkflowContext(),
+        operationId,
+      },
+      {
+        source: "workflow",
+        workflowId: `${workflowName}:${this.$ctx.store.id}:${resourceId}:${this.$ctx.requestId}`,
+        stepId: "start",
+      }
+    ) as Promise<TResult>;
+  }
+
   async facetCreate(args: {
     input: {
       facetType: "PRICE" | "TAG" | "FEATURE" | "OPTION" | "IN_STOCK";
@@ -83,7 +129,10 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
       }> | null;
     };
   }) {
-    const result = await this.$ctx.kernel.runScript(FacetCreateScript, {
+    const result = await this.runFacetMutationWorkflow<
+      FacetResult,
+      FacetCreateParams
+    >("facetCreate", {
       facetType: args.input.facetType,
       slug: args.input.slug,
       label: args.input.label,
@@ -98,7 +147,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
         label: candidate.label,
         sourceHandle: candidate.sourceHandle,
       })),
-    });
+    }, "facetCreate", args.input.slug);
 
     return {
       facet: result.facet ? await this.resolvers.facet(result.facet.id) : null,
@@ -144,7 +193,10 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
         userErrors: [{ message: "Invalid facet ID", field: ["input", "id"], code: "INVALID_ID" }],
       };
     }
-    const result = await this.$ctx.kernel.runScript(FacetDeleteScript, { id });
+    const result = await this.runFacetMutationWorkflow<
+      FacetDeleteResult,
+      { id: string }
+    >("facetDelete", { id }, "facetDelete", id);
     return {
       deletedFacetId: result.deletedFacetId ? args.input.id : null,
       userErrors: result.userErrors,
@@ -247,7 +299,10 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
       return { facetValue: null, userErrors: decodedSourceValues.userErrors };
     }
 
-    const result = await this.$ctx.kernel.runScript(FacetValueCreateScript, {
+    const result = await this.runFacetMutationWorkflow<
+      FacetValueResult,
+      FacetValueCreateParams
+    >("facetValueCreate", {
       facetId,
       kind: (args.input.kind ?? "DISPLAY").toLowerCase() as "source" | "display",
       handle: args.input.handle,
@@ -256,7 +311,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
       swatchId,
       sortIndex: args.input.sortIndex ?? undefined,
       enabled: args.input.enabled ?? undefined,
-    });
+    }, "facetValueCreate", facetId);
 
     return {
       facetValue: result.facetValue
@@ -294,14 +349,17 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
         userErrors: [{ message: "Invalid swatch ID", field: ["input", "swatchId"], code: "INVALID_ID" }],
       };
     }
-    const result = await this.$ctx.kernel.runScript(FacetValueUpdateScript, {
+    const result = await this.runFacetMutationWorkflow<
+      FacetValueResult,
+      FacetValueUpdateParams
+    >("facetValueUpdate", {
       id,
       handle: args.input.handle ?? undefined,
       label: args.input.label ?? undefined,
       swatchId,
       sortIndex: args.input.sortIndex ?? undefined,
       enabled: args.input.enabled ?? undefined,
-    });
+    }, "facetValueUpdate", id);
 
     return {
       facetValue: result.facetValue
@@ -353,13 +411,16 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
       };
     }
 
-    const result = await this.$ctx.kernel.runScript(FacetValueMergeScript, {
+    const result = await this.runFacetMutationWorkflow<
+      FacetValueMergeResult,
+      FacetValueMergeParams
+    >("facetValueMerge", {
       facetId,
       targetDisplayValueId: targetDisplayValueId ?? undefined,
       targetHandle: args.input.targetHandle ?? undefined,
       targetLabel: args.input.targetLabel ?? undefined,
       sourceValueIds: decodedSourceValues.ids,
-    });
+    }, "facetValueMerge", facetId);
 
     return {
       facetValue: result.facetValue
@@ -390,9 +451,12 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
       };
     }
 
-    const result = await this.$ctx.kernel.runScript(FacetValueUnmergeScript, {
+    const result = await this.runFacetMutationWorkflow<
+      FacetValueUnmergeResult,
+      FacetValueUnmergeParams
+    >("facetValueUnmerge", {
       sourceValueIds: decodedSourceValues.ids,
-    });
+    }, "facetValueUnmerge", decodedSourceValues.ids.join(","));
 
     return {
       sourceValues: await Promise.all(
@@ -415,9 +479,10 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
         userErrors: [{ message: "Invalid facet value ID", field: ["input", "id"], code: "INVALID_ID" }],
       };
     }
-    const result = await this.$ctx.kernel.runScript(FacetValueDeleteScript, {
-      id,
-    });
+    const result = await this.runFacetMutationWorkflow<
+      FacetValueDeleteResult,
+      { id: string }
+    >("facetValueDelete", { id }, "facetValueDelete", id);
     return {
       deletedFacetValueId: result.deletedFacetValueId ? args.input.id : null,
       userErrors: result.userErrors,

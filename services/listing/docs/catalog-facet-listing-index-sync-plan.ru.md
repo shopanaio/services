@@ -106,8 +106,7 @@ type FacetListingSyncReason =
   | "facet_value_updated"
   | "facet_value_deleted"
   | "facet_value_merged"
-  | "facet_value_unmerged"
-  | "facet_reference_state_changed";
+  | "facet_value_unmerged";
 
 type FacetListingSourceRef = {
   facetType: "TAG" | "FEATURE" | "OPTION";

@@ -8,6 +8,7 @@ import {
 import { Listing } from "@shopana/broker-types";
 import type {
   EventHandlerResponse,
+  ListingFacetMembershipChangedEvent,
   ProductCreatedEvent,
   ProductDeletedEvent,
   ProductUpdatedEvent,
@@ -28,6 +29,7 @@ import type {
   ListingIndexQueuedDeleteAction,
   ListingIndexQueuedSyncAction,
 } from "../scripts/listingIndexActionTypes.js";
+import { enqueueListingSyncItemIndexWorkflow } from "./listingIndexWorkflowEnqueue.js";
 
 @Injectable()
 export class ListingProductEventHandlers extends EventHandlers {
@@ -105,6 +107,32 @@ export class ListingProductEventHandlers extends EventHandlers {
     }
   }
 
+  @EventHandler("listingFacetMembershipChanged", { retry: { maxAttempts: 5 } })
+  async handleListingFacetMembershipChanged(params: {
+    event: ListingFacetMembershipChangedEvent;
+  }): Promise<EventHandlerResponse> {
+    this.logger.debug(
+      {
+        eventId: params.event.eventId,
+        productId: params.event.payload.productId,
+        storeId: params.event.payload.storeId,
+        reason: params.event.payload.reason,
+        operationId: params.event.payload.operationId,
+      },
+      "Received listingFacetMembershipChanged event"
+    );
+
+    try {
+      await this.enqueueFacetMembershipSyncWorkflow(params.event);
+      return { success: true };
+    } catch (error) {
+      return this.handleError(
+        error,
+        "Failed to enqueue listing facet membership sync"
+      );
+    }
+  }
+
   private async enqueueSyncWorkflow(
     event: ProductCreatedEvent | ProductUpdatedEvent,
     expectedRevision: number | undefined
@@ -124,27 +152,36 @@ export class ListingProductEventHandlers extends EventHandlers {
       requestId: event.context.correlationId,
       workflowId: event.parentWorkflowId,
     });
-    const action: ListingIndexQueuedSyncAction = {
-      type: "syncSellableItem",
-      params: {
-        meta,
-        storeId: event.payload.storeId,
-        itemRef,
-        sourceSequence,
-        expectedRevision,
-      },
+    await enqueueListingSyncItemIndexWorkflow({
+      broker: this.broker,
+      logger: this.logger,
       organizationId: event.context.organizationId,
-      effectiveIdempotencyKey: buildListingIndexEffectiveIdempotencyKey({
-        rawIdempotencyKey: meta.idempotencyKey,
-        storeId: event.payload.storeId,
-        entityType: itemRef.entityType,
-        itemId: itemRef.id,
-        actionType: "syncSellableItem",
-        sourceSequence,
-      }),
+      storeId: event.payload.storeId,
+      itemRef,
+      sourceSequence,
+      expectedRevision,
+      meta,
+    });
+  }
+
+  private async enqueueFacetMembershipSyncWorkflow(
+    event: ListingFacetMembershipChangedEvent
+  ): Promise<void> {
+    const sourceSequence = this.getEventSequence(event);
+    const itemRef: Listing.ListingSellableItemRef = {
+      entityType: "product",
+      id: event.payload.productId,
     };
 
-    await this.startIndexWorkflow(action, "syncSellableItem", sourceSequence);
+    await enqueueListingSyncItemIndexWorkflow({
+      broker: this.broker,
+      logger: this.logger,
+      organizationId: event.context.organizationId,
+      storeId: event.payload.storeId,
+      itemRef,
+      sourceSequence,
+      meta: this.buildFacetMembershipMeta(event),
+    });
   }
 
   private async enqueueDeleteWorkflow(event: ProductDeletedEvent): Promise<void> {
@@ -299,7 +336,11 @@ export class ListingProductEventHandlers extends EventHandlers {
   }
 
   private getEventSequence(
-    event: ProductCreatedEvent | ProductUpdatedEvent | ProductDeletedEvent
+    event:
+      | ProductCreatedEvent
+      | ProductUpdatedEvent
+      | ProductDeletedEvent
+      | ListingFacetMembershipChangedEvent
   ): number {
     if (
       Number.isInteger(event.eventSequence) &&
@@ -312,6 +353,36 @@ export class ListingProductEventHandlers extends EventHandlers {
     throw new Error(
       `Domain event ${event.eventId} is missing a positive eventSequence`
     );
+  }
+
+  private buildFacetMembershipMeta(
+    event: ListingFacetMembershipChangedEvent
+  ): Listing.ListingUpdateMeta {
+    const sourceSequence =
+      event.eventSequence === undefined ? "unknown" : event.eventSequence;
+
+    return {
+      contractVersion: Listing.LISTING_UPDATE_CONTRACT_VERSION,
+      operationId: `listing:${event.eventType}:${event.eventId}`,
+      idempotencyKey: [
+        "listing",
+        event.eventType,
+        event.payload.storeId,
+        "product",
+        event.payload.productId,
+        event.payload.reason,
+        event.payload.refsHash,
+        sourceSequence,
+        event.eventId,
+      ].join(":"),
+      occurredAt: event.timestamp,
+      source: {
+        service: "listing",
+        actor: "system",
+        requestId: event.context.correlationId,
+        workflowId: event.parentWorkflowId,
+      },
+    };
   }
 
   private handleError(error: unknown, logMessage: string): EventHandlerResponse {

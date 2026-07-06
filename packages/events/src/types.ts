@@ -205,6 +205,26 @@ export interface FacetDeletedEvent
     }
   > {}
 
+export interface ListingFacetMembershipChangedEvent
+  extends DomainEvent<
+    "listingFacetMembershipChanged",
+    {
+      storeId: string;
+      productId: string;
+      reason:
+        | "facet_created"
+        | "facet_deleted"
+        | "facet_value_created"
+        | "facet_value_updated"
+        | "facet_value_deleted"
+        | "facet_value_merged"
+        | "facet_value_unmerged";
+      operationId: string;
+      facetIds: string[];
+      refsHash: string;
+    }
+  > {}
+
 export interface VariantDeletedEvent
   extends DomainEvent<
     "variantDeleted",
@@ -271,6 +291,7 @@ export type ShopanaEvent =
   | FacetCreatedEvent
   | FacetUpdatedEvent
   | FacetDeletedEvent
+  | ListingFacetMembershipChangedEvent
   | VariantDeletedEvent
   | OrderCreatedEvent
   | OrderCompletedEvent
