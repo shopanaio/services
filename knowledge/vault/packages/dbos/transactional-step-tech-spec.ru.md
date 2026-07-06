@@ -190,7 +190,7 @@ const repository = await Repository.create({ db });
 
 ## Architecture Decisions
 
-### AD-1. `@TransactionalStep()` v1 требует node-postgres Drizzle
+### AD-1. `@TransactionalStep()` требует node-postgres Drizzle
 
 `@dbos-inc/drizzle-datasource@4.23.6` работает через:
 
@@ -204,7 +204,7 @@ Shopana сейчас использует:
 - `drizzle-orm/postgres-js`;
 - `PostgresJsDatabase`.
 
-Решение: `@TransactionalStep()` v1 реализуется только для services, переведенных на shared `pg.Pool` + `drizzle-orm/node-postgres`, либо не внедряется.
+Решение: `@TransactionalStep()` реализуется только для services, переведенных на shared `pg.Pool` + `drizzle-orm/node-postgres`, либо не внедряется.
 
 Adapter между `NodePgDatabase` transaction client и текущими `PostgresJsDatabase` repositories не принимается. Это был бы runtime/type-level shim поверх разных Drizzle drivers и different transaction clients.
 
@@ -304,8 +304,7 @@ DBOS transaction numbering/checkpointing is provided by datasource `runTransacti
 Required behavior:
 
 - success: callback returns result, datasource records output inside user DB transaction, commit;
-- retryable error: callback throws, user DB transaction rollback, DBOS/datasource retry handles retry;
-- non-retryable/business error: callback throws, user DB transaction rollback, datasource records serialized error in `dbos.transaction_completion`, workflow observes throw;
+- error: callback throws, user DB transaction rollback, datasource records serialized error in `dbos.transaction_completion`, workflow observes throw;
 - timeout: timeout path throws, user DB transaction rollback;
 - non-critical behavior can only be handled outside the transaction after rollback.
 
@@ -365,14 +364,18 @@ class TransactionManager<TDatabase, TTransaction> {
 ### TransactionalStep decorator
 
 ```ts
-interface TransactionalStepMetadata<TSelf = unknown>
-  extends Omit<WorkflowStepMetadata, "retriesAllowed"> {
+interface TransactionalStepMetadata<TSelf = unknown> {
+  name?: string;
+  timeoutMs?: number;
   txManager: (self: TSelf) => TransactionManagerLike;
   bridge: (self: TSelf) => DbosDrizzleTransactionBridge<unknown, TransactionConfig>;
   isolationLevel?: TransactionConfig["isolationLevel"];
   accessMode?: TransactionConfig["accessMode"];
 }
 ```
+
+`@TransactionalStep()` не поддерживает `retry` и `retriesAllowed`.
+Metadata type должен быть отдельным и не должен наследоваться от `WorkflowStepMetadata`, потому что `WorkflowStepMetadata` содержит retry-настройки для `DBOS.runStep()`, а `@TransactionalStep()` не вызывает `DBOS.runStep()`.
 
 `accessMode: "read only"` is allowed but should not be used for write steps because read-only datasource transactions do not save output in `transaction_completion`.
 
@@ -524,4 +527,3 @@ If script writes to DB, either use `@TransactionalStep()` or prove script-level 
 - Wrapping external side effects in DB transactions.
 - Replacing all workflow steps with transactional steps.
 - Editing changeset files manually.
-
