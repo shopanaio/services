@@ -291,20 +291,115 @@ type ListingPreparedSyncBatchWriteAction = {
 };
 ```
 
+Writer не должен применять `syncWriteModel` последовательно как
+`for product -> write all tables`. Он должен сначала принять per-item decisions,
+затем собрать merged write payload по таблицам и выполнить physical writes
+table-by-table внутри transaction.
+
 Порядок внутри script:
 
 1. Отсортировать actions по `itemKey.itemId`.
 2. В transaction взять locks `listingIndexItemState.lockByItem(...)`.
 3. Для каждого item принять stale/noop/conflict decision.
 4. Исключить `ignored_stale` и `noop` из physical writes.
-5. Одним вызовом выделить product doc ids.
-6. Одним вызовом выделить variant doc ids.
-7. Batch upsert обычных таблиц.
-8. Batch replace posting memberships.
-9. Удалить stale variants по всем products.
-10. Refresh projection blocks по union измененных variant doc ids.
-11. Upsert latest item state для applied items.
-12. Вернуть per-item results.
+5. Для applied items одним вызовом выделить product doc ids.
+6. Для applied variants одним вызовом выделить variant doc ids.
+7. Собрать `ListingMergedSyncBatchWritePayload`.
+8. Выполнить batch writes по таблицам из merged payload.
+9. Выполнить batch replace posting memberships.
+10. Удалить stale variants по всем applied products.
+11. Refresh projection blocks по union измененных variant doc ids.
+12. Upsert latest item state для applied items.
+13. Вернуть per-item results.
+
+## Merged batch write payload
+
+`ListingMergedSyncBatchWritePayload` - это промежуточная структура внутри batch
+writer. Она не меняет public listing contract и не заменяет per-item
+idempotency state. Ее задача - превратить набор applied item write models в
+один payload, сгруппированный по физическим таблицам.
+
+Пример формы:
+
+```ts
+type ListingMergedSyncBatchWritePayload = {
+  items: Array<{
+    action: ListingPreparedSyncAction;
+    syncWriteModel: ListingSyncWriteModel;
+    productDocId: number;
+    variantDocIdsByVariantId: Map<string, number>;
+    statePayloadHash: string;
+  }>;
+
+  productBootstrapRows: ProductListingBootstrapRowInput[];
+  productRows: ProductListingIndexUpsertInput[];
+  productPriceRowsByProductId: Map<string, ProductListingPriceRowInput[]>;
+  productTitleRowsByProductId: Map<string, ProductTitleBm25RowInput[]>;
+  productSortRowsByProductDocId: Map<number, ProductSortRowInput[]>;
+
+  variantRows: VariantListingIndexUpsertInput[];
+  variantPriceRowsByVariantId: Map<string, VariantListingPriceRowInput[]>;
+  runtimePriceRowsByVariantDocId: Map<number, RuntimeVariantPriceRowInput[]>;
+
+  productBitmapMemberships: Array<{
+    productDocId: number;
+    field: "category" | "vendor" | "facet";
+    nextValueKeys: string[];
+    valueKeyPrefixes?: string[];
+  }>;
+
+  variantBitmapMemberships: Array<{
+    variantDocId: number;
+    field: "facet" | "variant_product";
+    nextValueKeys: string[];
+    valueKeyPrefixes?: string[];
+  }>;
+
+  staleVariants: Array<{
+    variantId: string;
+    variantDocId: number;
+  }>;
+
+  projectionVariantDocIdsToRefresh: number[];
+  stateRows: ListingIndexItemStateRow[];
+};
+```
+
+Правила merge:
+
+- каждый product сохраняет отдельный `action`, `sourceSequence`,
+  `effectiveIdempotencyKey` и `statePayloadHash`;
+- `ignored_stale`, `noop` и failed-before-write items не попадают в merged
+  physical write payload;
+- product rows, price rows, title rows, sort rows, variant rows и runtime price
+  rows группируются по соответствующим repository batch input shapes;
+- posting bitmap memberships не выполняются по одному product/variant, а
+  сначала собираются в `productBitmapMemberships` и
+  `variantBitmapMemberships`;
+- stale variants считаются по applied products: existing variants minus variants
+  из нового snapshot;
+- projection refresh получает union актуальных и stale `variantDocId`;
+- state rows создаются только для applied items после успешных physical writes.
+
+Порядок physical writes в transaction:
+
+```text
+lock item states in sorted productId order
+  -> decide applied/noop/ignored_stale/conflict per item
+  -> allocate product doc ids for applied products
+  -> allocate variant doc ids for applied variants
+  -> build merged write payload
+  -> ensure product bootstrap rows
+  -> upsert product rows
+  -> replace product price/title/sort rows
+  -> batch replace product bitmap memberships
+  -> upsert variant rows
+  -> replace variant price/runtime price rows
+  -> batch replace variant bitmap memberships
+  -> delete stale variant dependencies
+  -> refresh projection blocks
+  -> upsert item states for applied items
+```
 
 ## Batch writes по таблицам
 
@@ -322,6 +417,10 @@ type ListingPreparedSyncBatchWriteAction = {
 - `variantListingPriceIndex.replaceForVariants(rowsByVariantId)`;
 - `listingPostingVariantPrice.replaceForVariants(rowsByVariantDocId)`;
 - `listingPostingVariantProjectionBlock.refreshBlocksForVariantDocIds(docIds)`.
+
+Эти вызовы должны получать данные из `ListingMergedSyncBatchWritePayload`, а не
+из item-level loop, чтобы один chunk выполнял один набор операций по каждой
+таблице.
 
 ## Batch bitmap delta API
 
@@ -714,8 +813,9 @@ listing:<reason>:<storeId>:product:<productId>:<operationId>:<refsHash>:<sourceS
 
 Основной вариант:
 
-- один DB transaction на batch page до 100 products;
-- если batch page слишком большой, workflow делит его на write chunks;
+- workflow делит batch page на write chunks;
+- один DB transaction на один chunk;
+- внутри chunk payload мержится в `ListingMergedSyncBatchWritePayload`;
 - каждый chunk возвращает per-item results.
 
 Более безопасный вариант для больших tenants:
@@ -724,6 +824,80 @@ listing:<reason>:<storeId>:product:<productId>:<operationId>:<refsHash>:<sourceS
 - workflow агрегирует chunk results;
 - failed chunk retry не повторяет уже persisted DBOS step results.
 
+Ошибки делятся по границе merge/write:
+
+- item-level validation/domain errors должны быть пойманы до physical write
+  transaction и возвращены как per-item `failed`;
+- после начала physical writes любая SQL/infrastructure ошибка откатывает весь
+  chunk transaction;
+- retry chunk повторяет только failed DBOS write step, уже completed chunks не
+  выполняются повторно.
+
+## Failed chunk rescheduling
+
+Если write chunk падает после начала physical writes, workflow не может
+безопасно определить, какой item внутри chunk был причиной ошибки: transaction
+откатилась целиком. Поэтому batch workflow должен уметь рескедулить failed
+chunk меньшими chunks, пока не изолирует проблемный item.
+
+Цель:
+
+- не блокировать весь batch из-за одного проблемного product;
+- сохранить atomic write для каждого retry chunk;
+- не повторять chunks, которые уже persisted как completed DBOS steps;
+- получить per-item `failed` только после того, как ошибка воспроизведена на
+  chunk size `1`.
+
+Алгоритм:
+
+```text
+initial chunk size: 25-50 products
+
+write chunk failed
+  -> if chunk size > 10:
+       split failed chunk into chunks of 10 products
+       schedule/write each subchunk as separate DBOS step
+  -> if chunk size <= 10 and > 1:
+       split failed chunk into single-product chunks
+       schedule/write each item as separate DBOS step
+  -> if chunk size == 1:
+       mark item result as failed
+       include error code/message in batch result
+```
+
+Rescheduled chunks должны сохранять deterministic identity:
+
+```text
+batchId + parentChunkId + retryLevel + chunkIndex + productIdsHash
+```
+
+Рекомендуемые уровни:
+
+| Level | Chunk size | Назначение |
+| --- | ---: | --- |
+| `normal` | 25-50 | основной throughput |
+| `narrow` | 10 | снизить blast radius failed chunk |
+| `single` | 1 | изолировать problematic item |
+
+Правила:
+
+- порядок product ids внутри failed chunk сохраняется;
+- split deterministic: одинаковый failed chunk всегда дает одинаковые child
+  chunk ids;
+- каждый child chunk является отдельным DBOS step, чтобы completed child chunks
+  не повторялись при replay;
+- child chunks используют тот же write алгоритм: lock item states, stale/noop
+  decision, merge payload, physical writes, state upsert;
+- если `single` chunk падает инфраструктурной retryable ошибкой, DBOS retry
+  применяется по обычной retry policy;
+- если `single` chunk стабильно падает non-retryable write/domain ошибкой,
+  item получает `failed`, остальные single chunks продолжают выполняться;
+- batch result агрегирует results из completed normal/narrow/single chunks.
+
+Важно: single fallback не должен обходить stale/noop/idempotency checks. Даже
+после split до одного product writer обязан заново взять item lock и принять
+decision относительно актуального `listing_index_item_state`.
+
 ## Задачи внедрения
 
 - Добавить `replaceProductMembershipsBatch`.
@@ -731,6 +905,14 @@ listing:<reason>:<storeId>:product:<productId>:<operationId>:<refsHash>:<sourceS
 - Добавить helper для чтения current memberships по массиву doc ids.
 - Не менять существующий single-item API.
 - Добавить `ListingWriteIndexBatchActionScript`.
+- Добавить `ListingMergedSyncBatchWritePayload`.
+- В batch writer выполнять merge write models в table-wise payload перед
+  physical writes.
+- Добавить deterministic failed chunk rescheduling:
+  - failed normal chunk дробить до chunks по 10 products;
+  - failed narrow chunk дробить до single-product chunks;
+  - failed single-product chunk возвращать как per-item `failed`;
+  - completed child chunks не выполнять повторно на DBOS replay.
 - Использовать существующие batch repository методы.
 - Сохранить item-level stale/noop/conflict checks.
 - Возвращать per-item results.
