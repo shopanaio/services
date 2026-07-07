@@ -9,10 +9,13 @@ mutation FacetUpdate($input: FacetUpdateInput!) {
         uiType
         selectionMode
         lexoRank
-        sourceHandles
+        sources {
+          handle
+          name
+        }
         values {
           id
-          slug
+          handle
           label
         }
       }

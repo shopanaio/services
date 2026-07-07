@@ -1,5 +1,6 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
+import { encodeGlobalId } from '@utils/globalid';
 
 type FacetType = 'PRICE' | 'TAG' | 'FEATURE' | 'OPTION' | 'IN_STOCK';
 
@@ -510,7 +511,7 @@ test.describe('Facet API', () => {
       throwOnError: false,
       variables: {
         input: {
-          id: 'non-existent-id',
+          id: encodeGlobalId('Facet', '00000000-0000-0000-0000-000000000000'),
           label: 'New Label',
         },
       },
