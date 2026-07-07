@@ -62,8 +62,10 @@ listing.syncSellableItemIndexBatch
 1. batch facet changes: `FacetAffectedProductsResyncWorkflow` вместо
    per-product event fan-out запускает batch workflow на каждую страницу
    affected product ids;
-2. batch product event handler: `productCreated`/`productUpdated` складываются
-   в short debounce/outbox buffer и обрабатываются группами.
+2. batch product event handler: существующий events service доставляет
+   deferred `productCreated`/`productUpdated` события через `@BatchEventHandler`,
+   а listing handler coalesce-ит события внутри полученной пачки и запускает
+   `listing.syncSellableItemIndexBatch`.
 
 Single-item workflows остаются:
 
@@ -170,11 +172,35 @@ items, если DBOS history size станет проблемой. Полный 
 | Источник | Default | Hard cap | Дополнительное ограничение |
 | --- | ---: | ---: | --- |
 | facet changes | 100 products | 250 products | не больше 2000 variants на batch |
-| product create/update event handler | 50 products | 100 products | debounce 500-2000 ms |
+| product create/update batch handler | 50 products | 100 products | общий deferred `batchKey` / dispatch window |
 | manual reindex | 100 products | 250 products | shard/page based |
 
 Если страница products превышает `maxVariantsPerBatch`, workflow должен
 разделить ее на меньшие chunks перед hydration/write.
+
+## Chunking contract
+
+Chunk - это подмножество products из одного batch input, которое записывается
+одним write step и одной DB transaction.
+
+Правила:
+
+- product не делится между chunks;
+- `productIds` перед chunking должны быть unique и отсортированы;
+- порядок products внутри chunks сохраняет sorted `productIds`;
+- chunk строится по двум лимитам:
+  - `maxProductsPerChunk`;
+  - `maxVariantsPerChunk`;
+- если добавление следующего product превышает любой лимит, workflow закрывает
+  текущий chunk и начинает новый;
+- если один product сам превышает `maxVariantsPerChunk`, он идет отдельным
+  chunk;
+- hydration может выполняться на batch page, но write выполняется chunk-by-chunk;
+- каждый write chunk является отдельным DBOS step;
+- каждый chunk возвращает per-item results;
+- workflow агрегирует chunk results в общий batch result;
+- retry failed chunk не должен повторять chunks, которые уже persisted как
+  completed DBOS steps.
 
 ## Batch workflow pipeline
 
@@ -432,7 +458,7 @@ sourceSequence, facet batch должен стать `ignored_stale` для эт�
 listing index item state или перейти на source timestamp/revision arbitration.
 Без этого batch facet changes могут конкурировать с product updates.
 
-## Batch event handler для product create/update
+## Batch product events
 
 ### Цель
 
@@ -445,124 +471,109 @@ listing index item state или перейти на source timestamp/revision ar
 
 ### Новый компонент
 
-Добавить handler/buffer:
+Добавить batch handlers в существующий listing event handler слой:
 
 ```ts
-ListingProductBatchEventHandler
+@BatchEventHandler("productCreated", { retry: { maxAttempts: 5 } })
+@BatchEventHandler("productUpdated", { retry: { maxAttempts: 5 } })
 ```
 
-Он подписывается на:
+Можно реализовать отдельным классом `ListingProductBatchEventHandlers` или
+добавить методы в `ListingProductEventHandlers`.
 
-- `productCreated`;
-- `productUpdated`.
+Важно: отдельная таблица `listing_index_event_buffer` не нужна. В проекте уже
+есть durable batch transport в events service:
 
-`productDeleted` остается в `ListingProductEventHandlers` и запускает
-single-item delete workflow.
+- `events.emit` принимает `dispatch: { mode: "deferred", batchKey }`;
+- событие сохраняется в `events.domain_events` с `dispatch_mode = deferred`;
+- `events.dispatch` с `kind = "batch"` вызывает `claimBatch`;
+- `claimBatch` выбирает pending rows по `organizationId + eventType + batchKey`
+  через `FOR UPDATE SKIP LOCKED`;
+- `EventDispatchWorkflow` вызывает action `${eventType}:batch`;
+- `EventHandlers` регистрирует `@BatchEventHandler("productUpdated")` как
+  broker action `productUpdated:batch`.
 
-### Буферизация
+`productDeleted` остается single-item delete workflow. Для delete batch path не
+вводится, потому что delete имеет более сложные stale/order конфликты.
 
-Буферизация должна использовать durable outbox table, а не in-memory debounce,
-чтобы не терять events при restart.
+### Требование к producer-ам product events
 
-Новая таблица:
+Batch product events появятся только если producer эмитит события как deferred:
 
-```sql
-listing.listing_index_event_buffer
+```ts
+await broker.runWorkflow("events.emit", {
+  eventType: "productUpdated",
+  ...,
+  dispatch: {
+    mode: "deferred",
+    batchKey,
+    aggregateKey: `product:${productId}`,
+  },
+});
 ```
 
-Поля:
+Для bulk/import/admin batch операций catalog должен использовать стабильный
+`batchKey`, общий для окна/операции, например:
 
 ```text
-store_id uuid not null
-organization_id uuid not null
-event_id text not null
-event_type text not null
-product_id uuid not null
-source_sequence bigint not null
-expected_revision bigint null
-occurred_at timestamptz not null
-payload_hash text not null
-status text not null -- pending, claimed, processed, failed
-claim_id text null
-claimed_at timestamptz null
-created_at timestamptz not null default now()
-updated_at timestamptz not null default now()
+catalog:product-index:<storeId>:<operationId>
 ```
 
-Indexes:
+или time-bucket key, если upstream operation id нет:
 
 ```text
-unique(event_id)
-index(store_id, status, created_at)
-index(store_id, product_id, source_sequence)
+catalog:product-index:<storeId>:<floor(timestamp / 2s)>
 ```
+
+После записи deferred events producer или orchestrator должен стартовать
+dispatch:
+
+```ts
+await broker.call("events.dispatch", {
+  kind: "batch",
+  organizationId,
+  eventType: "productUpdated",
+  batchKey,
+  limit: 100,
+});
+```
+
+Immediate `productCreated`/`productUpdated` остаются совместимым single-item
+path и обрабатываются текущими `@EventHandler`.
 
 ### Coalescing rules
 
-При flush batch:
+При вызове listing batch handler:
 
-1. выбрать pending rows по `storeId`, oldest first;
-2. сгруппировать по `productId`;
-3. оставить только row с максимальным `sourceSequence` для каждого product;
-4. older rows того же product пометить `processed/coalesced`;
-5. создать batch workflow для latest rows.
+1. получить `params.events` от `EventDispatchWorkflow`;
+2. отфильтровать/разделить events по `storeId`;
+3. сгруппировать по `productId`;
+4. оставить только event с максимальным `eventSequence` для каждого product;
+5. older events того же product считаются coalesced внутри handler response;
+6. создать batch workflow для latest events.
+
+Events service уже сделал durable claim rows перед вызовом handler:
+
+1. выбрать pending rows по `organizationId + eventType + batchKey`, oldest first;
+2. сгруппировать claimed records по `eventType`;
+3. вызвать `productUpdated:batch`/`productCreated:batch`;
+4. пометить dispatched только events, не попавшие в `failedEventIds`.
+
+Coalescing по `productId` не является ответственностью events service. Это
+listing-specific logic внутри batch handler-а.
 
 Это важно: если один product обновился 10 раз за короткое окно, listing должен
 переиндексировать только последнее состояние.
 
-### Flush workflow
-
-Добавить workflow:
-
-```ts
-listing.flushProductIndexEventBatch
-```
-
-Input:
-
-```ts
-type ListingFlushProductIndexEventBatchInput = {
-  storeId: string;
-  organizationId: string;
-  maxEvents: number;
-  maxProducts: number;
-  debounceMs: number;
-};
-```
-
-Pipeline:
-
-```text
-claim pending events
-  -> coalesce by productId
-  -> start listing.syncSellableItemIndexBatch
-  -> mark claimed events processed after batch accepted
-```
-
-Claim должен использовать `FOR UPDATE SKIP LOCKED` или эквивалент Drizzle raw
-SQL, чтобы несколько workers не забрали одни и те же events.
-
-### Trigger flush
-
-Handler `productCreated/productUpdated` после записи event buffer может:
-
-- стартовать `listing.flushProductIndexEventBatch` с deterministic id по
-  `storeId + time bucket`;
-- или полагаться на periodic scheduler.
-
-Рекомендуемый вариант:
-
-```text
-timeBucket = floor(event.createdAt / 2 seconds)
-workflowId = hash(storeId, "product-index-batch", timeBucket)
-```
-
-Так несколько events в одном коротком окне стартуют один flush workflow.
-
 ### Fallback
 
-Если запись в buffer или старт flush workflow падает, handler может fallback-ом
-запустить текущий `enqueueListingSyncItemIndexWorkflow` для одного product.
+Если batch handler не может построить batch input для части events, он должен
+вернуть `success: false` и `failedEventIds` только для этих events. Events
+service повторит failed subset по retry policy batch handler-а.
+
+Если producer отправил событие immediate, оно не попадает в batch dispatch и
+обрабатывается текущим single-item handler-ом через
+`enqueueListingSyncItemIndexWorkflow`.
 
 Fallback должен логироваться как degraded mode.
 
@@ -581,7 +592,7 @@ Partition keys:
 | single sync | `storeId:product:itemId` |
 | single delete | `storeId:product:itemId` |
 | facet batch page | `storeId:facet-resync:operationId:pageNo` |
-| product event flush | `storeId:product-event-batch:timeBucket` |
+| product event batch | `storeId:product-event-batch:batchKeyHash` |
 | batch write workflow | `storeId:batch:batchId` |
 
 Для batch workflows `concurrency: 1` внутри partition защищает только сам batch.
@@ -664,7 +675,8 @@ hash(
 )
 ```
 
-Raw idempotency key для batch product events:
+Raw idempotency key для batch product events берется из каждого domain event,
+как в single-item path:
 
 ```text
 catalog:<eventType>:<storeId>:product:<productId>:<revision>:<eventId>
@@ -705,17 +717,22 @@ listing:<reason>:<storeId>:product:<productId>:<operationId>:<refsHash>:<sourceS
 - Добавить `ListingResolveFacetSelectionsBatchScript`.
 - Добавить batch build/write pipeline.
 - Зарегистрировать workflow в listing module.
+- Добавить `@BatchEventHandler("productCreated")` для listing.
+- Добавить `@BatchEventHandler("productUpdated")` для listing.
+- В batch handlers:
+  - группировать events по `storeId`;
+  - coalesce по `productId`;
+  - брать latest event по `eventSequence`;
+  - строить batch input;
+  - стартовать `listing.syncSellableItemIndexBatch`.
+- Обновить catalog producers/import/bulk paths, чтобы они эмитили product events
+  через `dispatch.mode = "deferred"` с общим `batchKey`, когда операция batch.
+- Для immediate product events оставить текущий single-item handler.
 - Изменить `FacetAffectedProductsResyncWorkflow`:
   - не эмитить обязательный event per product;
   - стартовать batch workflow per affected page;
   - хранить счетчики и workflow ids вместо всех event ids.
 - Compatibility event оставить опциональным.
-- Добавить `listing_index_event_buffer`.
-- Добавить repository для claim/coalesce/mark processed.
-- Добавить `ListingProductBatchEventHandler`.
-- Добавить `listing.flushProductIndexEventBatch`.
-- Перевести `productCreated/productUpdated` на buffer + flush.
-- Оставить single-item fallback.
 - Добавить batch reference sync plan.
 - Уменьшить per-product child workflow fan-out.
 - Добавить метрики/log fields:
@@ -739,8 +756,9 @@ listing:<reason>:<storeId>:product:<productId>:<operationId>:<refsHash>:<sourceS
 - Locks для batch items всегда брать в sorted `itemId` order.
 - Batch page ограничивать по products и variants; oversized pages писать chunks.
 - Batch result не должен хранить полный per-item payload для больших batches.
-- Product event buffering должен быть durable; in-memory debounce не использовать
-  как единственный transport.
+- Product event batching должен использовать существующий durable events
+  transport: deferred `domain_events` + `events.dispatch` batch +
+  `@BatchEventHandler`. In-memory debounce не использовать как transport.
 - Source sequences от catalog/listing events должны быть сравнимы между собой
   или заменены явной arbitration policy.
 - Posting bitmap updates должны использовать batch delta по
