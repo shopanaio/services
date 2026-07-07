@@ -24,6 +24,7 @@ import {
   type ListingBatchFacetResolutionStepResult,
 } from "./ListingBatchProductIndexWorkflow/stepResolveListingFacetSelectionsBatch.js";
 import { prepareListingSyncIndexActionsBatch } from "./ListingBatchProductIndexWorkflow/stepPrepareListingSyncIndexActionsBatch.js";
+import { buildListingSyncWriteModelsBatch } from "./ListingBatchProductIndexWorkflow/stepBuildListingSyncWriteModelsBatch.js";
 
 export type ListingIndexProductUpdateBatchItem = {
   eventId: string;
@@ -181,9 +182,12 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
     const hydration = await this.stepFetchCatalogListingSnapshotsBatch(input);
     const resolution = await this.stepResolveListingFacetSelectionsBatch(hydration);
     const prepared = await this.stepPrepareListingSyncIndexActionsBatch(resolution);
+    const writeModels = await this.stepBuildListingSyncWriteModelsBatch({
+      actions: prepared.actions,
+    });
 
-    // Hydration, facet resolution, and prepare are wired. The remaining batch
-    // indexing steps are intentionally not implemented in this change.
+    // Hydration, facet resolution, prepare, and write model build are wired.
+    // The remaining batch indexing steps are intentionally not implemented yet.
     this.logger.warn(
       {
         storeId: input.storeId,
@@ -192,9 +196,10 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
         missing: hydration.missing.length,
         resolved: resolution.actions.length,
         prepared: prepared.actions.length,
+        writeModels: writeModels.items.length,
         finalizedBeforeWrite: prepared.finalResults.length,
       },
-      "Listing batch product index workflow prepared actions but remaining steps are not implemented yet"
+      "Listing batch product index workflow built write models but remaining steps are not implemented yet"
     );
 
     return {
@@ -291,8 +296,7 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
      *   first, exclude noop/ignored_stale products, and only then merge rows for
      *   products that will actually be applied.
      */
-    void input;
-    throw new Error("Not implemented");
+    return buildListingSyncWriteModelsBatch(input);
   }
 
   @WorkflowStep({
