@@ -8,7 +8,7 @@ import {
 
 export const FACET_CREATE_MUTATION = gql`
   mutation FacetCreate($input: FacetCreateInput!) {
-    catalogMutation {
+    listingMutation {
       facetCreate(input: $input) {
         facet {
           ...FacetGridFields
@@ -25,7 +25,7 @@ export const FACET_CREATE_MUTATION = gql`
 
 export const FACET_UPDATE_MUTATION = gql`
   mutation FacetUpdate($input: FacetUpdateInput!) {
-    catalogMutation {
+    listingMutation {
       facetUpdate(input: $input) {
         facet {
           ...FacetGridFields
@@ -42,7 +42,7 @@ export const FACET_UPDATE_MUTATION = gql`
 
 export const FACET_DELETE_MUTATION = gql`
   mutation FacetDelete($input: FacetDeleteInput!) {
-    catalogMutation {
+    listingMutation {
       facetDelete(input: $input) {
         deletedFacetId
         userErrors {
@@ -56,7 +56,7 @@ export const FACET_DELETE_MUTATION = gql`
 
 export const FACET_MOVE_MUTATION = gql`
   mutation FacetMove($input: FacetMoveInput!) {
-    catalogMutation {
+    listingMutation {
       facetMove(input: $input) {
         facet {
           ...FacetGridFields
@@ -73,7 +73,7 @@ export const FACET_MOVE_MUTATION = gql`
 
 export const FACET_VALUE_CREATE_MUTATION = gql`
   mutation FacetValueCreate($input: FacetValueCreateInput!) {
-    catalogMutation {
+    listingMutation {
       facetValueCreate(input: $input) {
         facetValue {
           ...FacetValueGridFields
@@ -93,7 +93,7 @@ export const FACET_VALUE_CREATE_MUTATION = gql`
 
 export const FACET_VALUE_UPDATE_MUTATION = gql`
   mutation FacetValueUpdate($input: FacetValueUpdateInput!) {
-    catalogMutation {
+    listingMutation {
       facetValueUpdate(input: $input) {
         facetValue {
           ...FacetValueGridFields
@@ -113,7 +113,7 @@ export const FACET_VALUE_UPDATE_MUTATION = gql`
 
 export const FACET_VALUE_DELETE_MUTATION = gql`
   mutation FacetValueDelete($input: FacetValueDeleteInput!) {
-    catalogMutation {
+    listingMutation {
       facetValueDelete(input: $input) {
         deletedFacetValueId
         userErrors {
@@ -127,7 +127,7 @@ export const FACET_VALUE_DELETE_MUTATION = gql`
 
 export const FACET_VALUE_MERGE_MUTATION = gql`
   mutation FacetValueMerge($input: FacetValueMergeInput!) {
-    catalogMutation {
+    listingMutation {
       facetValueMerge(input: $input) {
         facetValue {
           ...FacetValueGridFields
@@ -150,7 +150,7 @@ export const FACET_VALUE_MERGE_MUTATION = gql`
 
 export const FACET_VALUE_UNMERGE_MUTATION = gql`
   mutation FacetValueUnmerge($input: FacetValueUnmergeInput!) {
-    catalogMutation {
+    listingMutation {
       facetValueUnmerge(input: $input) {
         sourceValues {
           ...FacetValueGridFields
@@ -170,7 +170,7 @@ export const FACET_VALUE_UNMERGE_MUTATION = gql`
 
 export const FACET_SWATCH_CREATE_MUTATION = gql`
   mutation FacetSwatchCreate($input: FacetSwatchCreateInput!) {
-    catalogMutation {
+    listingMutation {
       facetSwatchCreate(input: $input) {
         facetSwatch {
           ...FacetSwatchFields
@@ -187,7 +187,7 @@ export const FACET_SWATCH_CREATE_MUTATION = gql`
 
 export const FACET_SWATCH_UPDATE_MUTATION = gql`
   mutation FacetSwatchUpdate($input: FacetSwatchUpdateInput!) {
-    catalogMutation {
+    listingMutation {
       facetSwatchUpdate(input: $input) {
         facetSwatch {
           ...FacetSwatchFields

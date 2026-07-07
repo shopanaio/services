@@ -3,7 +3,7 @@ import { FACET_GRID_FRAGMENT, FACET_VALUE_GRID_FRAGMENT } from "./fragments";
 
 export const FACET_GRID_QUERY = gql`
   query FacetGrid {
-    catalogQuery {
+    listingQuery {
       facets {
         ...FacetGridFields
       }
@@ -14,7 +14,7 @@ export const FACET_GRID_QUERY = gql`
 
 export const FACET_DETAILS_QUERY = gql`
   query FacetDetails($id: ID!) {
-    catalogQuery {
+    listingQuery {
       facet(id: $id) {
         ...FacetGridFields
       }
@@ -25,7 +25,7 @@ export const FACET_DETAILS_QUERY = gql`
 
 export const FACET_VALUE_DETAILS_QUERY = gql`
   query FacetValueDetails($id: ID!) {
-    catalogQuery {
+    listingQuery {
       facetValue(id: $id) {
         ...FacetValueGridFields
         facet {
@@ -48,7 +48,7 @@ export const FACET_SOURCE_CANDIDATES_QUERY = gql`
     $where: FacetSourceCandidateWhereInput
     $orderBy: [FacetSourceCandidateOrderByInput!]
   ) {
-    catalogQuery {
+    listingQuery {
       facetSourceCandidates(
         first: $first
         after: $after
@@ -88,7 +88,7 @@ export const FACET_VALUE_CANDIDATES_QUERY = gql`
     $orderBy: [FacetValueCandidateOrderByInput!]
     $meta: FacetValueCandidatesMetaInput!
   ) {
-    catalogQuery {
+    listingQuery {
       facetValueCandidates(
         first: $first
         after: $after

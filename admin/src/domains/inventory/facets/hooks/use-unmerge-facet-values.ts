@@ -35,7 +35,7 @@ export function useUnmergeFacetValues(): UseUnmergeFacetValuesReturn {
           refetchQueries: [FACET_GRID_QUERY],
           awaitRefetchQueries: true,
         });
-        const payload = result.data?.catalogMutation.facetValueUnmerge;
+        const payload = result.data?.listingMutation.facetValueUnmerge;
 
         return {
           sourceValues: payload?.sourceValues ?? [],

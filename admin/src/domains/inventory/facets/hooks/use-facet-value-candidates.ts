@@ -69,7 +69,7 @@ export function useFacetValueCandidates(
     },
     skip: shouldSkip,
     fetchPolicy: "cache-and-network",
-    getConnection: (data) => data?.catalogQuery.facetValueCandidates,
+    getConnection: (data) => data?.listingQuery.facetValueCandidates,
   });
 
   return {

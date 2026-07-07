@@ -35,7 +35,7 @@ export function useUpdateFacet(): UseUpdateFacetReturn {
           refetchQueries: [FACET_GRID_QUERY, FACET_DETAILS_QUERY],
           awaitRefetchQueries: true,
         });
-        const payload = result.data?.catalogMutation.facetUpdate;
+        const payload = result.data?.listingMutation.facetUpdate;
 
         return {
           facet: payload?.facet ?? null,

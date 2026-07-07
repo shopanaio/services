@@ -35,7 +35,7 @@ export function useCreateFacetValue(): UseCreateFacetValueReturn {
           refetchQueries: [FACET_GRID_QUERY],
           awaitRefetchQueries: true,
         });
-        const payload = result.data?.catalogMutation.facetValueCreate;
+        const payload = result.data?.listingMutation.facetValueCreate;
 
         return {
           facetValue: payload?.facetValue ?? null,

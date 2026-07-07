@@ -35,7 +35,7 @@ export function useDeleteFacet(): UseDeleteFacetReturn {
           refetchQueries: [FACET_GRID_QUERY],
           awaitRefetchQueries: true,
         });
-        const payload = result.data?.catalogMutation.facetDelete;
+        const payload = result.data?.listingMutation.facetDelete;
 
         return {
           deletedFacetId: payload?.deletedFacetId ?? null,

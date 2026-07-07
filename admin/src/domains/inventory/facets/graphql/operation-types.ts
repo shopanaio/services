@@ -73,13 +73,13 @@ export type FacetValueDetailsFields = FacetValueGridFields & {
 };
 
 export interface FacetGridQueryData {
-  catalogQuery: {
+  listingQuery: {
     facets: FacetGridFields[];
   };
 }
 
 export interface FacetDetailsQueryData {
-  catalogQuery: {
+  listingQuery: {
     facet: FacetGridFields | null;
   };
 }
@@ -89,7 +89,7 @@ export interface FacetDetailsQueryVariables {
 }
 
 export interface FacetValueDetailsQueryData {
-  catalogQuery: {
+  listingQuery: {
     facetValue: FacetValueDetailsFields | null;
   };
 }
@@ -114,7 +114,7 @@ export type FacetSourceCandidateConnectionFields = Pick<
 };
 
 export interface FacetSourceCandidatesQueryData {
-  catalogQuery: {
+  listingQuery: {
     facetSourceCandidates: FacetSourceCandidateConnectionFields;
   };
 }
@@ -144,7 +144,7 @@ export type FacetValueCandidateConnectionFields = Pick<
 };
 
 export interface FacetValueCandidatesQueryData {
-  catalogQuery: {
+  listingQuery: {
     facetValueCandidates: FacetValueCandidateConnectionFields;
   };
 }
@@ -160,7 +160,7 @@ export interface FacetValueCandidatesQueryVariables {
 }
 
 export interface FacetCreateMutationData {
-  catalogMutation: {
+  listingMutation: {
     facetCreate: Omit<ApiFacetCreatePayload, "facet"> & {
       facet: FacetGridFields | null;
     };
@@ -172,7 +172,7 @@ export interface FacetCreateMutationVariables {
 }
 
 export interface FacetUpdateMutationData {
-  catalogMutation: {
+  listingMutation: {
     facetUpdate: Omit<ApiFacetUpdatePayload, "facet"> & {
       facet: FacetGridFields | null;
     };
@@ -184,7 +184,7 @@ export interface FacetUpdateMutationVariables {
 }
 
 export interface FacetDeleteMutationData {
-  catalogMutation: {
+  listingMutation: {
     facetDelete: ApiFacetDeletePayload;
   };
 }
@@ -194,7 +194,7 @@ export interface FacetDeleteMutationVariables {
 }
 
 export interface FacetMoveMutationData {
-  catalogMutation: {
+  listingMutation: {
     facetMove: Omit<ApiFacetMovePayload, "facet"> & {
       facet: FacetGridFields | null;
     };
@@ -206,7 +206,7 @@ export interface FacetMoveMutationVariables {
 }
 
 export interface FacetValueCreateMutationData {
-  catalogMutation: {
+  listingMutation: {
     facetValueCreate: Omit<ApiFacetValueCreatePayload, "facetValue"> & {
       facetValue: (FacetValueGridFields & { facet: Pick<ApiFacet, "id"> }) | null;
     };
@@ -218,7 +218,7 @@ export interface FacetValueCreateMutationVariables {
 }
 
 export interface FacetValueUpdateMutationData {
-  catalogMutation: {
+  listingMutation: {
     facetValueUpdate: Omit<ApiFacetValueUpdatePayload, "facetValue"> & {
       facetValue: (FacetValueGridFields & { facet: Pick<ApiFacet, "id"> }) | null;
     };
@@ -230,7 +230,7 @@ export interface FacetValueUpdateMutationVariables {
 }
 
 export interface FacetValueDeleteMutationData {
-  catalogMutation: {
+  listingMutation: {
     facetValueDelete: ApiFacetValueDeletePayload;
   };
 }
@@ -240,7 +240,7 @@ export interface FacetValueDeleteMutationVariables {
 }
 
 export interface FacetValueMergeMutationData {
-  catalogMutation: {
+  listingMutation: {
     facetValueMerge: Omit<
       ApiFacetValueMergePayload,
       "facetValue" | "sourceValues"
@@ -256,7 +256,7 @@ export interface FacetValueMergeMutationVariables {
 }
 
 export interface FacetValueUnmergeMutationData {
-  catalogMutation: {
+  listingMutation: {
     facetValueUnmerge: Omit<
       ApiFacetValueUnmergePayload,
       "sourceValues" | "affectedDisplayValues"
@@ -272,7 +272,7 @@ export interface FacetValueUnmergeMutationVariables {
 }
 
 export interface FacetSwatchCreateMutationData {
-  catalogMutation: {
+  listingMutation: {
     facetSwatchCreate: Omit<ApiFacetSwatchCreatePayload, "facetSwatch"> & {
       facetSwatch: FacetSwatchFields | null;
     };
@@ -284,7 +284,7 @@ export interface FacetSwatchCreateMutationVariables {
 }
 
 export interface FacetSwatchUpdateMutationData {
-  catalogMutation: {
+  listingMutation: {
     facetSwatchUpdate: Omit<ApiFacetSwatchUpdatePayload, "facetSwatch"> & {
       facetSwatch: FacetSwatchFields | null;
     };

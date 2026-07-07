@@ -57,7 +57,7 @@ export function useUpsertFacetSwatch(): UseUpsertFacetSwatchReturn {
     ): Promise<FacetSwatchMutationResult> => {
       try {
         const result = await createMutation({ variables: { input } });
-        const payload = result.data?.catalogMutation.facetSwatchCreate;
+        const payload = result.data?.listingMutation.facetSwatchCreate;
 
         return {
           facetSwatch: payload?.facetSwatch ?? null,
@@ -76,7 +76,7 @@ export function useUpsertFacetSwatch(): UseUpsertFacetSwatchReturn {
     ): Promise<FacetSwatchMutationResult> => {
       try {
         const result = await updateMutation({ variables: { input } });
-        const payload = result.data?.catalogMutation.facetSwatchUpdate;
+        const payload = result.data?.listingMutation.facetSwatchUpdate;
 
         return {
           facetSwatch: payload?.facetSwatch ?? null,

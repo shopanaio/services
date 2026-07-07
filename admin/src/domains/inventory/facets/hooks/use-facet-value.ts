@@ -27,7 +27,7 @@ export function useFacetValue(id?: string | null): UseFacetValueReturn {
   const effectiveData = data ?? previousData;
 
   return {
-    facetValue: effectiveData?.catalogQuery.facetValue ?? null,
+    facetValue: effectiveData?.listingQuery.facetValue ?? null,
     loading,
     error: error ?? null,
     refetch: () => refetch(),

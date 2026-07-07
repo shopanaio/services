@@ -23,12 +23,12 @@ export function useFacets(): UseFacetsReturn {
   const effectiveData = data ?? previousData;
 
   return {
-    facets: effectiveData?.catalogQuery.facets ?? [],
+    facets: effectiveData?.listingQuery.facets ?? [],
     loading,
     error: error ?? null,
     refetch: async () => {
       const result = await refetch();
-      return result.data?.catalogQuery.facets ?? [];
+      return result.data?.listingQuery.facets ?? [];
     },
   };
 }

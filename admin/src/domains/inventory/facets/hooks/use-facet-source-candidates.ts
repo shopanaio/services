@@ -55,7 +55,7 @@ export function useFacetSourceCandidatesPageQuery(
     variables: { first, after, last, before, where, orderBy },
     skip,
     fetchPolicy: "cache-and-network",
-    getConnection: (data) => data?.catalogQuery.facetSourceCandidates,
+    getConnection: (data) => data?.listingQuery.facetSourceCandidates,
   });
 
   return {

@@ -35,7 +35,7 @@ export function useMergeFacetValues(): UseMergeFacetValuesReturn {
           refetchQueries: [FACET_GRID_QUERY],
           awaitRefetchQueries: true,
         });
-        const payload = result.data?.catalogMutation.facetValueMerge;
+        const payload = result.data?.listingMutation.facetValueMerge;
 
         return {
           facetValue: payload?.facetValue ?? null,
