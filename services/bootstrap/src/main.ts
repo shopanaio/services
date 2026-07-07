@@ -42,7 +42,7 @@ async function bootstrap() {
           concurrency: 1,
           workerConcurrency: parsePositiveInteger(
             process.env.LISTING_INDEX_ACTIONS_WORKER_CONCURRENCY,
-            50,
+            1,
           ),
           onConflict: 'update_if_latest_version',
         },
