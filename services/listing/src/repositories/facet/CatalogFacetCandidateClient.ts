@@ -1,52 +1,20 @@
-import type { PageInfo } from "@shopana/drizzle-query";
+import {
+  CatalogFacetCandidateActions,
+  type Catalog,
+} from "@shopana/broker-types";
 import type { ServiceBroker } from "@shopana/shared-kernel";
 
-export interface FacetSourceCandidateView {
-  id: string;
-  storeId: string;
-  locale: string;
-  facetType: string;
-  handle: string;
-  name: string | null;
-  sourceSortBucket: number;
-  sortName: string | null;
-}
-
-export type FacetValueCandidateType = "TAG" | "OPTION" | "FEATURE";
-
-export interface FacetValueCandidateView {
-  id: string;
-  storeId: string;
-  locale: string;
-  facetType: FacetValueCandidateType;
-  sourceHandle: string;
-  handle: string;
-  label: string;
-}
-
-export interface CandidateRelayInput {
-  after?: string | null;
-  before?: string | null;
-  first?: number | null;
-  last?: number | null;
-  where?: unknown;
-  orderBy?: unknown;
-}
-
-export type FacetSourceCandidateRelayInput = CandidateRelayInput;
-export type FacetValueCandidateRelayInput = CandidateRelayInput;
-
-export interface FacetSourceCandidateConnectionResult {
-  edges: Array<{ cursor: string; node: FacetSourceCandidateView }>;
-  pageInfo: PageInfo;
-  totalCount: number;
-}
-
-export interface FacetValueCandidateConnectionResult {
-  edges: Array<{ cursor: string; node: FacetValueCandidateView }>;
-  pageInfo: PageInfo;
-  totalCount: number;
-}
+export type FacetSourceCandidateView = Catalog.FacetSourceCandidateView;
+export type FacetValueCandidateType = Catalog.FacetValueCandidateType;
+export type FacetValueCandidateView = Catalog.FacetValueCandidateView;
+export type FacetSourceCandidateRelayInput =
+  Catalog.FacetSourceCandidateRelayInput;
+export type FacetValueCandidateRelayInput =
+  Catalog.FacetValueCandidateRelayInput;
+export type FacetSourceCandidateConnectionResult =
+  Catalog.FacetSourceCandidateConnectionResult;
+export type FacetValueCandidateConnectionResult =
+  Catalog.FacetValueCandidateConnectionResult;
 
 export interface FacetValueCandidateArgs extends FacetValueCandidateRelayInput {
   meta: {
@@ -56,10 +24,7 @@ export interface FacetValueCandidateArgs extends FacetValueCandidateRelayInput {
   };
 }
 
-export interface FacetSourceCandidateRef {
-  facetType: string;
-  handle: string;
-}
+export type FacetSourceCandidateRef = Catalog.FacetSourceCandidateRef;
 
 export interface CatalogFacetCandidateClientContext {
   storeId: string;
@@ -77,14 +42,9 @@ export class CatalogFacetCandidateClient {
     }
   ): Promise<FacetSourceCandidateConnectionResult> {
     return this.broker.call<
-      FacetSourceCandidateConnectionResult,
-      {
-        storeId: string;
-        locale: string;
-        excludedSources?: FacetSourceCandidateRef[];
-        input: FacetSourceCandidateRelayInput;
-      }
-    >("catalog.facetSourceCandidates", {
+      Catalog.FacetSourceCandidateConnectionResult,
+      Catalog.FacetSourceCandidateQueryParams
+    >(CatalogFacetCandidateActions.sourceCandidates, {
       storeId: context.storeId,
       locale: context.locale,
       excludedSources: input.excludedSources,
@@ -102,16 +62,9 @@ export class CatalogFacetCandidateClient {
     }
   ): Promise<FacetValueCandidateConnectionResult> {
     return this.broker.call<
-      FacetValueCandidateConnectionResult,
-      {
-        storeId: string;
-        locale: string;
-        candidateType: FacetValueCandidateType;
-        sourceHandles: string[];
-        existingSourceValueHandles?: string[];
-        input: FacetValueCandidateRelayInput;
-      }
-    >("catalog.facetValueCandidates", {
+      Catalog.FacetValueCandidateConnectionResult,
+      Catalog.FacetValueCandidateQueryParams
+    >(CatalogFacetCandidateActions.valueCandidates, {
       storeId: context.storeId,
       locale: context.locale,
       candidateType: input.candidateType,
@@ -126,9 +79,9 @@ export class CatalogFacetCandidateClient {
     input: { facetType: string; handle: string }
   ): Promise<FacetSourceCandidateView | null> {
     return this.broker.call<
-      FacetSourceCandidateView | null,
-      { storeId: string; locale: string; facetType: string; handle: string }
-    >("catalog.findFacetSourceCandidateByRef", {
+      Catalog.FacetSourceCandidateView | null,
+      Catalog.FindFacetSourceCandidateByRefParams
+    >(CatalogFacetCandidateActions.findSourceByRef, {
       storeId: context.storeId,
       locale: context.locale,
       facetType: input.facetType,
@@ -145,15 +98,9 @@ export class CatalogFacetCandidateClient {
     }
   ): Promise<FacetValueCandidateView[]> {
     return this.broker.call<
-      FacetValueCandidateView[],
-      {
-        storeId: string;
-        locale: string;
-        candidateType: FacetValueCandidateType;
-        sourceHandles: string[];
-        handles: string[];
-      }
-    >("catalog.findFacetValueCandidatesByHandles", {
+      Catalog.FacetValueCandidateView[],
+      Catalog.FindFacetValueCandidatesByHandlesParams
+    >(CatalogFacetCandidateActions.findValuesByHandles, {
       storeId: context.storeId,
       locale: context.locale,
       candidateType: input.candidateType,

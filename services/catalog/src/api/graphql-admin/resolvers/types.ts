@@ -63,11 +63,6 @@ export const typeResolvers: Partial<Resolvers> = {
       if ("unitCostMinor" in record) return "VariantCost";
       if ("isGroup" in record) return "ProductFeature";
       if ("featureId" in record) return "ProductFeatureValue";
-      if ("facetType" in record && "selectionMode" in record) return "Facet";
-      if ("enabled" in record && "facetId" in record && "handle" in record)
-        return "FacetValue";
-      if ("swatchType" in record && "colorOne" in record && !("displayType" in record))
-        return "FacetSwatch";
       if ("effectiveFrom" in record && "defaultSort" in record) return "Collection";
       if ("name" in record && !("handle" in record) && !("path" in record))
         return "Vendor";

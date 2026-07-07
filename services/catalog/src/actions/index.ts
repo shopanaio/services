@@ -164,7 +164,7 @@ export class CatalogBrokerActions extends BrokerActions {
   async findListingFacetAffectedProducts(
     params: Catalog.FindListingFacetAffectedProductsParams
   ): Promise<Catalog.FindListingFacetAffectedProductsResult> {
-    return this.kernel.repository.facetCandidate.findListingFacetAffectedProducts(
+    return this.kernel.repository.listingFacetAffectedProduct.findListingFacetAffectedProducts(
       params
     );
   }

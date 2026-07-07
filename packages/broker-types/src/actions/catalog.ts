@@ -24,6 +24,103 @@ export type CatalogQueryErrorCode =
   | "CATALOG_STORE_NOT_FOUND"
   | "CATALOG_PRODUCT_READ_QUERY_FAILED";
 
+export const CatalogFacetCandidateActionNames = {
+  sourceCandidates: "facetSourceCandidates",
+  valueCandidates: "facetValueCandidates",
+  findSourceByRef: "findFacetSourceCandidateByRef",
+  findValuesByHandles: "findFacetValueCandidatesByHandles",
+} as const;
+
+export const CatalogFacetCandidateActions = {
+  sourceCandidates: `catalog.${CatalogFacetCandidateActionNames.sourceCandidates}`,
+  valueCandidates: `catalog.${CatalogFacetCandidateActionNames.valueCandidates}`,
+  findSourceByRef: `catalog.${CatalogFacetCandidateActionNames.findSourceByRef}`,
+  findValuesByHandles: `catalog.${CatalogFacetCandidateActionNames.findValuesByHandles}`,
+} as const;
+
+export type FacetValueCandidateType = "TAG" | "OPTION" | "FEATURE";
+
+export interface FacetCandidateRelayInput {
+  after?: string | null;
+  before?: string | null;
+  first?: number | null;
+  last?: number | null;
+  where?: unknown;
+  orderBy?: unknown;
+}
+
+export type FacetSourceCandidateRelayInput = FacetCandidateRelayInput;
+export type FacetValueCandidateRelayInput = FacetCandidateRelayInput;
+
+export interface FacetSourceCandidateView {
+  id: string;
+  storeId: string;
+  locale: string;
+  facetType: string;
+  handle: string;
+  name: string | null;
+  sourceSortBucket: number;
+  sortName: string | null;
+}
+
+export interface FacetValueCandidateView {
+  id: string;
+  storeId: string;
+  locale: string;
+  facetType: FacetValueCandidateType;
+  sourceHandle: string;
+  handle: string;
+  label: string;
+}
+
+export interface FacetSourceCandidateRef {
+  facetType: string;
+  handle: string;
+}
+
+export interface FacetSourceCandidateConnectionResult {
+  edges: Array<{ cursor: string; node: FacetSourceCandidateView }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
+
+export interface FacetValueCandidateConnectionResult {
+  edges: Array<{ cursor: string; node: FacetValueCandidateView }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
+
+export interface FacetSourceCandidateQueryParams {
+  storeId: string;
+  locale: string;
+  excludedSources?: FacetSourceCandidateRef[];
+  input: FacetSourceCandidateRelayInput;
+}
+
+export interface FacetValueCandidateQueryParams {
+  storeId: string;
+  locale: string;
+  candidateType: FacetValueCandidateType;
+  sourceHandles: string[];
+  existingSourceValueHandles?: string[];
+  input: FacetValueCandidateRelayInput;
+}
+
+export interface FindFacetSourceCandidateByRefParams {
+  storeId: string;
+  locale: string;
+  facetType: string;
+  handle: string;
+}
+
+export interface FindFacetValueCandidatesByHandlesParams {
+  storeId: string;
+  locale: string;
+  candidateType: FacetValueCandidateType;
+  sourceHandles: string[];
+  handles: string[];
+}
+
 export interface ListingFacetAffectedProductRef {
   facetType: "TAG" | "FEATURE" | "OPTION";
   sourceHandle: string;

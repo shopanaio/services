@@ -709,10 +709,7 @@ export class FacetRepository extends BaseRepository {
     sourceHandles: string[];
     handles: string[];
   }): Promise<FacetValueCandidateView[]> {
-    return this.candidateClient.findValueCandidatesByHandles(
-      { storeId: this.storeId, locale: this.locale },
-      input
-    );
+    return this.findFacetValueCandidatesByHandles(input);
   }
 
   async findFacetValueCandidatesByHandles(args: {

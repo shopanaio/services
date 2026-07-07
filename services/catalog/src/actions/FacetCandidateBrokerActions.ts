@@ -5,17 +5,17 @@ import {
   InjectBroker,
   ServiceBroker,
 } from "@shopana/shared-kernel";
+import {
+  CatalogFacetCandidateActionNames,
+  type Catalog,
+} from "@shopana/broker-types";
 import { Kernel } from "../kernel/Kernel.js";
 import type {
-  FacetSourceCandidateConnectionResult,
   FacetSourceCandidateQueryParams,
-  FacetValueCandidateView,
-  FacetValueCandidateConnectionResult,
   FacetValueCandidateQueryParams,
   FindFacetSourceCandidateByRefParams,
   FindFacetValueCandidatesByHandlesParams,
 } from "../repositories/facet/FacetCandidateRepository.js";
-import type { FacetSourceCandidateView } from "../repositories/models/index.js";
 
 @Injectable()
 export class FacetCandidateBrokerActions extends BrokerActions {
@@ -27,31 +27,31 @@ export class FacetCandidateBrokerActions extends BrokerActions {
     return Kernel.getInstance();
   }
 
-  @Action("facetSourceCandidates")
+  @Action(CatalogFacetCandidateActionNames.sourceCandidates)
   async facetSourceCandidates(
     params: FacetSourceCandidateQueryParams
-  ): Promise<FacetSourceCandidateConnectionResult> {
+  ): Promise<Catalog.FacetSourceCandidateConnectionResult> {
     return this.kernel.repository.facetCandidate.getSourceCandidates(params);
   }
 
-  @Action("facetValueCandidates")
+  @Action(CatalogFacetCandidateActionNames.valueCandidates)
   async facetValueCandidates(
     params: FacetValueCandidateQueryParams
-  ): Promise<FacetValueCandidateConnectionResult> {
+  ): Promise<Catalog.FacetValueCandidateConnectionResult> {
     return this.kernel.repository.facetCandidate.getValueCandidates(params);
   }
 
-  @Action("findFacetSourceCandidateByRef")
+  @Action(CatalogFacetCandidateActionNames.findSourceByRef)
   async findFacetSourceCandidateByRef(
     params: FindFacetSourceCandidateByRefParams
-  ): Promise<FacetSourceCandidateView | null> {
+  ): Promise<Catalog.FacetSourceCandidateView | null> {
     return this.kernel.repository.facetCandidate.findSourceCandidateByRef(params);
   }
 
-  @Action("findFacetValueCandidatesByHandles")
+  @Action(CatalogFacetCandidateActionNames.findValuesByHandles)
   async findFacetValueCandidatesByHandles(
     params: FindFacetValueCandidatesByHandlesParams
-  ): Promise<FacetValueCandidateView[]> {
+  ): Promise<Catalog.FacetValueCandidateView[]> {
     return this.kernel.repository.facetCandidate.findValueCandidatesByHandles(params);
   }
 }

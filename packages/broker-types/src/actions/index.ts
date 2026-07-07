@@ -15,6 +15,10 @@ export type {
 
 // Catalog service actions
 export * as Catalog from "./catalog.js";
+export {
+  CatalogFacetCandidateActionNames,
+  CatalogFacetCandidateActions,
+} from "./catalog.js";
 export type {
   CatalogProductAvailabilitySnapshot,
   CatalogProductAvailabilitySnapshotField,
@@ -60,6 +64,23 @@ export type {
   CatalogRichTextSnapshot,
   CatalogRichTextSnapshotField,
   CatalogRichTextSnapshotSelection,
+  FacetCandidateRelayInput,
+  FacetSourceCandidateConnectionResult,
+  FacetSourceCandidateQueryParams,
+  FacetSourceCandidateRef,
+  FacetSourceCandidateRelayInput,
+  FacetSourceCandidateView,
+  FacetValueCandidateConnectionResult,
+  FacetValueCandidateQueryParams,
+  FacetValueCandidateRelayInput,
+  FacetValueCandidateType,
+  FacetValueCandidateView,
+  FindFacetSourceCandidateByRefParams,
+  FindFacetValueCandidatesByHandlesParams,
+  FindListingFacetAffectedProductsParams,
+  FindListingFacetAffectedProductsResult,
+  ListingFacetAffectedProductRef,
+  PageInfo,
   ProductSnapshotField,
   ProductSnapshotPopulate,
   ProductSnapshotSelection,
