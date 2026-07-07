@@ -25,6 +25,7 @@ import {
 } from "./ListingBatchProductIndexWorkflow/stepResolveListingFacetSelectionsBatch.js";
 import { prepareListingSyncIndexActionsBatch } from "./ListingBatchProductIndexWorkflow/stepPrepareListingSyncIndexActionsBatch.js";
 import { buildListingSyncWriteModelsBatch } from "./ListingBatchProductIndexWorkflow/stepBuildListingSyncWriteModelsBatch.js";
+import { buildListingFacetReferenceSyncPlansBatch } from "./ListingBatchProductIndexWorkflow/stepBuildListingFacetReferenceSyncPlansBatch.js";
 import { writeListingBatchSyncIndexAction } from "./ListingBatchProductIndexWorkflow/stepWriteListingBatchSyncIndexAction.js";
 
 export type ListingIndexProductUpdateBatchItem = {
@@ -186,12 +187,16 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
     const writeModels = await this.stepBuildListingSyncWriteModelsBatch({
       actions: prepared.actions,
     });
+    const facetReferencePlans =
+      await this.stepBuildListingFacetReferenceSyncPlansBatch({
+        items: writeModels.items,
+      });
     const writeResult = await this.stepWriteListingBatchSyncIndexAction({
       items: writeModels.items,
     });
 
-    // Facet reference plan/start steps are still intentionally not wired because
-    // their batch implementations are not implemented yet.
+    // Facet reference child workflow startup is still intentionally not wired
+    // because its batch implementation is not implemented yet.
     this.logger.debug(
       {
         storeId: input.storeId,
@@ -201,6 +206,9 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
         resolved: resolution.actions.length,
         prepared: prepared.actions.length,
         writeModels: writeModels.items.length,
+        facetReferencePlans: Object.keys(
+          facetReferencePlans.plansByProductId
+        ).length,
         writeResults: writeResult.results.length,
         applied: writeResult.appliedProductIds.length,
         finalizedWithoutWrite:
@@ -331,8 +339,7 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
      * - Child workflows must not be started here. They should start only after
      *   writeListingBatchSyncIndexAction commits and reports appliedProductIds.
      */
-    void input;
-    throw new Error("Not implemented");
+    return buildListingFacetReferenceSyncPlansBatch(input);
   }
 
   @WorkflowStep({
