@@ -1,7 +1,9 @@
 import { Module } from "@nestjs/common";
 import { BrokerModule } from "@shopana/shared-kernel";
+import { ListingProductBatchEventHandlers } from "./handlers/ListingProductBatchEventHandlers.js";
 import { ListingProductEventHandlers } from "./handlers/ListingProductEventHandlers.js";
 import { ListingNestService } from "./listing.nest-service.js";
+import { ListingBatchProductIndexWorkflow } from "./workflows/ListingBatchProductIndexWorkflow.js";
 import {
   ListingDeleteSellableItemIndexWorkflow,
   ListingSyncSellableItemIndexWorkflow,
@@ -23,6 +25,8 @@ import {
   providers: [
     ListingNestService,
     ListingProductEventHandlers,
+    ListingProductBatchEventHandlers,
+    ListingBatchProductIndexWorkflow,
     ListingSyncSellableItemIndexWorkflow,
     ListingDeleteSellableItemIndexWorkflow,
     FacetReferenceStateSyncWorkflow,
