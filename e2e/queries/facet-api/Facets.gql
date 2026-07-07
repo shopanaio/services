@@ -8,10 +8,13 @@ query Facets {
       uiType
       selectionMode
       lexoRank
-      sourceHandles
+      sources {
+        handle
+        name
+      }
       values {
         id
-        slug
+        handle
         label
       }
     }

@@ -1,9 +1,12 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 
+type FacetType = 'PRICE' | 'TAG' | 'FEATURE' | 'OPTION' | 'IN_STOCK';
+
 test.describe('Facet API', () => {
   test.beforeEach(async ({ api }) => {
     await api.session.setupUserAndStore();
+    await seedFacetSources(api);
   });
 
   // ═══════════════════════════════════════
@@ -17,6 +20,7 @@ test.describe('Facet API', () => {
           facetType: 'TAG',
           slug: 'brand',
           label: 'Brand',
+          sources: [facetSource('TAG')],
         },
       },
     });
@@ -41,6 +45,7 @@ test.describe('Facet API', () => {
           label: 'Color',
           uiType: 'DROPDOWN',
           selectionMode: 'SINGLE',
+          sources: [facetSource('FEATURE')],
         },
       },
     });
@@ -69,6 +74,7 @@ test.describe('Facet API', () => {
           slug: 'price-range',
           label: 'Price Range',
           uiType: 'RANGE',
+          sources: [facetSource('PRICE')],
         },
       },
     });
@@ -90,6 +96,7 @@ test.describe('Facet API', () => {
           label: 'Collections',
           uiType: 'CHECKBOX',
           selectionMode: 'MULTI',
+          sources: [facetSource('TAG')],
         },
       },
     });
@@ -108,6 +115,7 @@ test.describe('Facet API', () => {
           slug: 'material',
           label: 'Material',
           uiType: 'CHECKBOX',
+          sources: [facetSource('FEATURE')],
         },
       },
     });
@@ -127,6 +135,7 @@ test.describe('Facet API', () => {
           label: 'Size',
           uiType: 'DROPDOWN',
           selectionMode: 'SINGLE',
+          sources: [facetSource('OPTION', 'size', 'Size')],
         },
       },
     });
@@ -146,6 +155,7 @@ test.describe('Facet API', () => {
           label: 'In Stock',
           uiType: 'BOOLEAN',
           selectionMode: 'SINGLE',
+          sources: [facetSource('IN_STOCK')],
         },
       },
     });
@@ -169,6 +179,7 @@ test.describe('Facet API', () => {
           slug: 'checkbox-facet',
           label: 'Checkbox Facet',
           uiType: 'CHECKBOX',
+          sources: [facetSource('TAG')],
         },
       },
     });
@@ -185,6 +196,7 @@ test.describe('Facet API', () => {
           label: 'Radio Facet',
           uiType: 'RADIO',
           selectionMode: 'SINGLE',
+          sources: [facetSource('TAG')],
         },
       },
     });
@@ -200,6 +212,7 @@ test.describe('Facet API', () => {
           slug: 'dropdown-facet',
           label: 'Dropdown Facet',
           uiType: 'DROPDOWN',
+          sources: [facetSource('TAG')],
         },
       },
     });
@@ -215,6 +228,7 @@ test.describe('Facet API', () => {
           slug: 'range-facet',
           label: 'Range Facet',
           uiType: 'RANGE',
+          sources: [facetSource('PRICE')],
         },
       },
     });
@@ -230,6 +244,7 @@ test.describe('Facet API', () => {
           slug: 'boolean-facet',
           label: 'Boolean Facet',
           uiType: 'BOOLEAN',
+          sources: [facetSource('IN_STOCK')],
         },
       },
     });
@@ -249,6 +264,7 @@ test.describe('Facet API', () => {
           facetType: 'TAG',
           slug: 'update-label-test',
           label: 'Original Label',
+          sources: [facetSource('TAG')],
         },
       },
     });
@@ -282,6 +298,7 @@ test.describe('Facet API', () => {
           label: 'Original',
           uiType: 'CHECKBOX',
           selectionMode: 'MULTI',
+          sources: [facetSource('TAG')],
         },
       },
     });
@@ -323,6 +340,7 @@ test.describe('Facet API', () => {
           facetType: 'TAG',
           slug: 'delete-test',
           label: 'Facet to Delete',
+          sources: [facetSource('TAG')],
         },
       },
     });
@@ -362,6 +380,7 @@ test.describe('Facet API', () => {
           facetType: 'TAG',
           slug: 'list-test-a',
           label: 'Facet A',
+          sources: [facetSource('TAG')],
         },
       },
     });
@@ -371,6 +390,7 @@ test.describe('Facet API', () => {
           facetType: 'FEATURE',
           slug: 'list-test-b',
           label: 'Facet B',
+          sources: [facetSource('FEATURE')],
         },
       },
     });
@@ -394,6 +414,7 @@ test.describe('Facet API', () => {
           slug: 'query-single-test',
           label: 'Query Test Facet',
           uiType: 'DROPDOWN',
+          sources: [facetSource('OPTION', 'size', 'Size')],
         },
       },
     });
@@ -460,6 +481,7 @@ test.describe('Facet API', () => {
           facetType: 'TAG',
           slug: 'duplicate-slug',
           label: 'First Facet',
+          sources: [facetSource('TAG')],
         },
       },
     });
@@ -472,6 +494,7 @@ test.describe('Facet API', () => {
           facetType: 'TAG',
           slug: 'duplicate-slug',
           label: 'Second Facet',
+          sources: [facetSource('TAG')],
         },
       },
     });
@@ -524,6 +547,7 @@ test.describe('Facet API', () => {
           facetType: 'TAG',
           slug: 'my-test-slug-123',
           label: 'Special Slug Facet',
+          sources: [facetSource('TAG')],
         },
       },
     });
@@ -543,3 +567,86 @@ test.describe('Facet API', () => {
   });
 
 });
+
+function facetSource(type: FacetType, handle?: string, name?: string) {
+  const defaults: Record<FacetType, { handle: string; name: string }> = {
+    PRICE: { handle: 'price', name: 'Price' },
+    TAG: { handle: 'tags', name: 'Tags' },
+    FEATURE: { handle: 'material', name: 'Material' },
+    OPTION: { handle: 'color', name: 'Color' },
+    IN_STOCK: { handle: 'availability', name: 'Availability' },
+  };
+
+  return {
+    handle: handle ?? defaults[type].handle,
+    name: name ?? defaults[type].name,
+  };
+}
+
+async function seedFacetSources(api: any) {
+  const { data: productData } = await api.admin.mutation('inventory-api/ProductCreate', {
+    variables: {
+      input: {
+        title: 'Facet Source Seed',
+        handle: `facet-source-seed-${crypto.randomUUID().slice(0, 8)}`,
+        options: [
+          {
+            name: 'Color',
+            slug: 'color',
+            displayType: 'BUTTONS',
+            sortIndex: 0,
+            values: [
+              { name: 'Black', slug: 'black', sortIndex: 0 },
+              { name: 'White', slug: 'white', sortIndex: 1 },
+            ],
+          },
+          {
+            name: 'Size',
+            slug: 'size',
+            displayType: 'BUTTONS',
+            sortIndex: 1,
+            values: [
+              { name: 'Small', slug: 's', sortIndex: 0 },
+              { name: 'Large', slug: 'l', sortIndex: 1 },
+            ],
+          },
+        ],
+        variants: [
+          { handle: 'black-s' },
+          { handle: 'black-l' },
+          { handle: 'white-s' },
+          { handle: 'white-l' },
+        ],
+      },
+    },
+  });
+
+  const productResult = productData.catalogMutation.productCreate;
+  expect(productResult.userErrors).toHaveLength(0);
+  expect(productResult.product?.id).toBeTruthy();
+
+  const { data: featuresData } = await api.admin.mutation('inventory-api/ProductFeaturesSync', {
+    variables: {
+      input: {
+        productId: productResult.product!.id,
+        features: [
+          {
+            index: [0],
+            isGroup: false,
+            name: 'Material',
+            slug: 'material',
+            values: [
+              {
+                index: 0,
+                name: 'Cotton',
+                slug: 'cotton',
+              },
+            ],
+          },
+        ],
+      },
+    },
+  });
+
+  expect(featuresData.catalogMutation.productFeaturesSync.userErrors).toHaveLength(0);
+}
