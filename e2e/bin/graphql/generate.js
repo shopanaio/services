@@ -2,9 +2,21 @@
 import { exec } from 'child_process';
 
 export const generate = () =>
-  exec('npx graphql-codegen', (error) => {
-    if (error) {
-      console.error(`exec error: ${error}`);
-      return;
-    }
+  new Promise((resolve, reject) => {
+    exec('npx graphql-codegen', (error, stdout, stderr) => {
+      if (stdout) {
+        process.stdout.write(stdout);
+      }
+
+      if (stderr) {
+        process.stderr.write(stderr);
+      }
+
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve();
+    });
   });
