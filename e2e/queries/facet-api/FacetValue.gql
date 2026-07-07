@@ -1,5 +1,5 @@
 query FacetValue($id: ID!) {
-  catalogQuery {
+  listingQuery {
     facetValue(id: $id) {
       id
       slug

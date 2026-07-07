@@ -1,5 +1,5 @@
 mutation FacetSwatchDelete($input: FacetSwatchDeleteInput!) {
-  catalogMutation {
+  listingMutation {
     facetSwatchDelete(input: $input) {
       deletedFacetSwatchId
       userErrors {

@@ -20,7 +20,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetSwatchCreate;
+    const result = data.listingMutation.facetSwatchCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetSwatch).toBeTruthy();
@@ -40,7 +40,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetSwatchCreate;
+    const result = data.listingMutation.facetSwatchCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetSwatch).toBeTruthy();
@@ -60,7 +60,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetSwatchCreate;
+    const result = data.listingMutation.facetSwatchCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetSwatch).toBeTruthy();
@@ -84,7 +84,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetSwatchCreate;
+    const result = data.listingMutation.facetSwatchCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetSwatch?.metadata).toBeTruthy();
@@ -107,7 +107,7 @@ test.describe('FacetSwatch API', () => {
         },
       },
     });
-    expect(colorData.catalogMutation.facetSwatchCreate.facetSwatch?.swatchType).toBe('COLOR');
+    expect(colorData.listingMutation.facetSwatchCreate.facetSwatch?.swatchType).toBe('COLOR');
 
     // GRADIENT
     const { data: gradientData } = await api.admin.mutation('facet-api/FacetSwatchCreate', {
@@ -119,7 +119,7 @@ test.describe('FacetSwatch API', () => {
         },
       },
     });
-    expect(gradientData.catalogMutation.facetSwatchCreate.facetSwatch?.swatchType).toBe('GRADIENT');
+    expect(gradientData.listingMutation.facetSwatchCreate.facetSwatch?.swatchType).toBe('GRADIENT');
 
     // IMAGE
     const { data: imageData } = await api.admin.mutation('facet-api/FacetSwatchCreate', {
@@ -129,7 +129,7 @@ test.describe('FacetSwatch API', () => {
         },
       },
     });
-    expect(imageData.catalogMutation.facetSwatchCreate.facetSwatch?.swatchType).toBe('IMAGE');
+    expect(imageData.listingMutation.facetSwatchCreate.facetSwatch?.swatchType).toBe('IMAGE');
   });
 
   // ═══════════════════════════════════════
@@ -147,7 +147,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const swatchId = createData.catalogMutation.facetSwatchCreate.facetSwatch?.id;
+    const swatchId = createData.listingMutation.facetSwatchCreate.facetSwatch?.id;
 
     // Update the swatch
     const { data } = await api.admin.mutation('facet-api/FacetSwatchUpdate', {
@@ -159,7 +159,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetSwatchUpdate;
+    const result = data.listingMutation.facetSwatchUpdate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetSwatch?.colorOne).toBe('#999999');
@@ -176,7 +176,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const swatchId = createData.catalogMutation.facetSwatchCreate.facetSwatch?.id;
+    const swatchId = createData.listingMutation.facetSwatchCreate.facetSwatch?.id;
 
     // Update to GRADIENT
     const { data } = await api.admin.mutation('facet-api/FacetSwatchUpdate', {
@@ -189,7 +189,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetSwatchUpdate;
+    const result = data.listingMutation.facetSwatchUpdate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetSwatch?.swatchType).toBe('GRADIENT');
@@ -209,7 +209,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const swatchId = createData.catalogMutation.facetSwatchCreate.facetSwatch?.id;
+    const swatchId = createData.listingMutation.facetSwatchCreate.facetSwatch?.id;
 
     // Update metadata
     const { data } = await api.admin.mutation('facet-api/FacetSwatchUpdate', {
@@ -221,7 +221,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetSwatchUpdate;
+    const result = data.listingMutation.facetSwatchUpdate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetSwatch?.metadata.version).toBe(2);
@@ -243,7 +243,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const swatchId = createData.catalogMutation.facetSwatchCreate.facetSwatch?.id;
+    const swatchId = createData.listingMutation.facetSwatchCreate.facetSwatch?.id;
 
     // Delete the swatch
     const { data } = await api.admin.mutation('facet-api/FacetSwatchDelete', {
@@ -252,7 +252,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetSwatchDelete;
+    const result = data.listingMutation.facetSwatchDelete;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.deletedFacetSwatchId).toBe(swatchId);
@@ -262,7 +262,7 @@ test.describe('FacetSwatch API', () => {
       variables: { id: swatchId },
     });
 
-    expect(queryData.catalogQuery.facetSwatch).toBeNull();
+    expect(queryData.listingQuery.facetSwatch).toBeNull();
   });
 
   // ═══════════════════════════════════════
@@ -291,8 +291,8 @@ test.describe('FacetSwatch API', () => {
 
     const { data } = await api.admin.query('facet-api/FacetSwatches', {});
 
-    expect(data.catalogQuery.facetSwatches).toBeTruthy();
-    expect(data.catalogQuery.facetSwatches.length).toBeGreaterThanOrEqual(2);
+    expect(data.listingQuery.facetSwatches).toBeTruthy();
+    expect(data.listingQuery.facetSwatches.length).toBeGreaterThanOrEqual(2);
   });
 
   test('should get single swatch by ID', async ({ api }) => {
@@ -308,19 +308,19 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const swatchId = createData.catalogMutation.facetSwatchCreate.facetSwatch?.id;
+    const swatchId = createData.listingMutation.facetSwatchCreate.facetSwatch?.id;
 
     // Query the swatch
     const { data } = await api.admin.query('facet-api/FacetSwatch', {
       variables: { id: swatchId },
     });
 
-    expect(data.catalogQuery.facetSwatch).toBeTruthy();
-    expect(data.catalogQuery.facetSwatch?.id).toBe(swatchId);
-    expect(data.catalogQuery.facetSwatch?.swatchType).toBe('GRADIENT');
-    expect(data.catalogQuery.facetSwatch?.colorOne).toBe('#123456');
-    expect(data.catalogQuery.facetSwatch?.colorTwo).toBe('#654321');
-    expect(data.catalogQuery.facetSwatch?.metadata.test).toBe(true);
+    expect(data.listingQuery.facetSwatch).toBeTruthy();
+    expect(data.listingQuery.facetSwatch?.id).toBe(swatchId);
+    expect(data.listingQuery.facetSwatch?.swatchType).toBe('GRADIENT');
+    expect(data.listingQuery.facetSwatch?.colorOne).toBe('#123456');
+    expect(data.listingQuery.facetSwatch?.colorTwo).toBe('#654321');
+    expect(data.listingQuery.facetSwatch?.metadata.test).toBe(true);
   });
 
   // ═══════════════════════════════════════
@@ -338,7 +338,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetSwatchUpdate;
+    const result = data.listingMutation.facetSwatchUpdate;
 
     expect(result.facetSwatch).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -352,7 +352,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetSwatchDelete;
+    const result = data.listingMutation.facetSwatchDelete;
 
     expect(result.deletedFacetSwatchId).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -372,7 +372,7 @@ test.describe('FacetSwatch API', () => {
         },
       },
     });
-    expect(lowerData.catalogMutation.facetSwatchCreate.userErrors).toHaveLength(0);
+    expect(lowerData.listingMutation.facetSwatchCreate.userErrors).toHaveLength(0);
 
     // Hex with uppercase
     const { data: upperData } = await api.admin.mutation('facet-api/FacetSwatchCreate', {
@@ -383,7 +383,7 @@ test.describe('FacetSwatch API', () => {
         },
       },
     });
-    expect(upperData.catalogMutation.facetSwatchCreate.userErrors).toHaveLength(0);
+    expect(upperData.listingMutation.facetSwatchCreate.userErrors).toHaveLength(0);
 
     // Short hex
     const { data: shortData } = await api.admin.mutation('facet-api/FacetSwatchCreate', {
@@ -394,7 +394,7 @@ test.describe('FacetSwatch API', () => {
         },
       },
     });
-    expect(shortData.catalogMutation.facetSwatchCreate.userErrors).toHaveLength(0);
+    expect(shortData.listingMutation.facetSwatchCreate.userErrors).toHaveLength(0);
   });
 
   test('should handle rgba format for colors', async ({ api }) => {
@@ -407,7 +407,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetSwatchCreate;
+    const result = data.listingMutation.facetSwatchCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetSwatch?.colorOne).toBe('rgba(255, 100, 50, 0.5)');
@@ -423,7 +423,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetSwatchCreate;
+    const result = data.listingMutation.facetSwatchCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetSwatch?.colorOne).toBe('red');
@@ -434,7 +434,7 @@ test.describe('FacetSwatch API', () => {
       variables: { id: 'non-existent-id' },
     });
 
-    expect(data.catalogQuery.facetSwatch).toBeNull();
+    expect(data.listingQuery.facetSwatch).toBeNull();
   });
 
   test('should handle complex metadata object', async ({ api }) => {
@@ -463,7 +463,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetSwatchCreate;
+    const result = data.listingMutation.facetSwatchCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetSwatch?.metadata.nested.level1.level2.value).toBe('deep');
@@ -482,7 +482,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetSwatchCreate;
+    const result = data.listingMutation.facetSwatchCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetSwatch?.colorTwo).toBeNull();
@@ -498,7 +498,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetSwatchCreate;
+    const result = data.listingMutation.facetSwatchCreate;
 
     // This may or may not fail depending on business rules
     // If gradient requires two colors, expect error; otherwise success
@@ -527,7 +527,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetSwatchCreate;
+    const result = data.listingMutation.facetSwatchCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetSwatch?.swatchType).toBe('IMAGE');
@@ -545,7 +545,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const swatchId = createData.catalogMutation.facetSwatchCreate.facetSwatch?.id;
+    const swatchId = createData.listingMutation.facetSwatchCreate.facetSwatch?.id;
 
     // Update to IMAGE type
     const { data } = await api.admin.mutation('facet-api/FacetSwatchUpdate', {
@@ -559,7 +559,7 @@ test.describe('FacetSwatch API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetSwatchUpdate;
+    const result = data.listingMutation.facetSwatchUpdate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetSwatch?.swatchType).toBe('IMAGE');

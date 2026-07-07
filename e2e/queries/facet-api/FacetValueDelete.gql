@@ -1,5 +1,5 @@
 mutation FacetValueDelete($input: FacetValueDeleteInput!) {
-  catalogMutation {
+  listingMutation {
     facetValueDelete(input: $input) {
       deletedFacetValueId
       userErrors {

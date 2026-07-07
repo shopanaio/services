@@ -1,5 +1,5 @@
 query FacetSwatch($id: ID!) {
-  catalogQuery {
+  listingQuery {
     facetSwatch(id: $id) {
       id
       swatchType

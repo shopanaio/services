@@ -1,5 +1,5 @@
 query Facet($id: ID!) {
-  catalogQuery {
+  listingQuery {
     facet(id: $id) {
       id
       facetType

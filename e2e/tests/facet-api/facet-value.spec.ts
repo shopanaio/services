@@ -21,7 +21,7 @@ test.describe('FacetValue API', () => {
         },
       },
     });
-    return data.catalogMutation.facetCreate.facet?.id;
+    return data.listingMutation.facetCreate.facet?.id;
   }
 
   // ═══════════════════════════════════════
@@ -42,7 +42,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueCreate;
+    const result = data.listingMutation.facetValueCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetValue).toBeTruthy();
@@ -65,7 +65,7 @@ test.describe('FacetValue API', () => {
         },
       },
     });
-    const swatchId = swatchData.catalogMutation.facetSwatchCreate.facetSwatch?.id;
+    const swatchId = swatchData.listingMutation.facetSwatchCreate.facetSwatch?.id;
 
     const { data } = await api.admin.mutation('facet-api/FacetValueCreate', {
       variables: {
@@ -81,7 +81,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueCreate;
+    const result = data.listingMutation.facetValueCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetValue).toBeTruthy();
@@ -109,7 +109,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueCreate;
+    const result = data.listingMutation.facetValueCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetValue).toBeTruthy();
@@ -135,7 +135,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueCreate;
+    const result = data.listingMutation.facetValueCreate;
 
     expect(result.facetValue).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -156,7 +156,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueCreate;
+    const result = data.listingMutation.facetValueCreate;
 
     expect(result.facetValue).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -177,7 +177,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueCreate;
+    const result = data.listingMutation.facetValueCreate;
 
     expect(result.facetValue).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -198,7 +198,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueCreate;
+    const result = data.listingMutation.facetValueCreate;
 
     expect(result.facetValue).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -219,7 +219,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueCreate;
+    const result = data.listingMutation.facetValueCreate;
 
     expect(result.facetValue).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -239,7 +239,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueCreate;
+    const result = data.listingMutation.facetValueCreate;
 
     // PRICE facet values are computed dynamically, not created manually
     expect(result.facetValue).toBeNull();
@@ -260,7 +260,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueCreate;
+    const result = data.listingMutation.facetValueCreate;
 
     // IN_STOCK facet values are computed dynamically, not created manually
     expect(result.facetValue).toBeNull();
@@ -286,7 +286,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const valueId = createData.catalogMutation.facetValueCreate.facetValue?.id;
+    const valueId = createData.listingMutation.facetValueCreate.facetValue?.id;
 
     // Update the value
     const { data } = await api.admin.mutation('facet-api/FacetValueUpdate', {
@@ -298,7 +298,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueUpdate;
+    const result = data.listingMutation.facetValueUpdate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetValue?.label).toBe('Updated Label');
@@ -319,7 +319,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const valueId = createData.catalogMutation.facetValueCreate.facetValue?.id;
+    const valueId = createData.listingMutation.facetValueCreate.facetValue?.id;
 
     // Update sourceHandles
     const { data } = await api.admin.mutation('facet-api/FacetValueUpdate', {
@@ -331,7 +331,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueUpdate;
+    const result = data.listingMutation.facetValueUpdate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetValue?.sourceHandles).toHaveLength(2);
@@ -354,8 +354,8 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const valueId = createData.catalogMutation.facetValueCreate.facetValue?.id;
-    expect(createData.catalogMutation.facetValueCreate.facetValue?.enabled).toBe(true);
+    const valueId = createData.listingMutation.facetValueCreate.facetValue?.id;
+    expect(createData.listingMutation.facetValueCreate.facetValue?.enabled).toBe(true);
 
     // Disable the value
     const { data } = await api.admin.mutation('facet-api/FacetValueUpdate', {
@@ -367,7 +367,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueUpdate;
+    const result = data.listingMutation.facetValueUpdate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetValue?.enabled).toBe(false);
@@ -392,7 +392,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const valueId = createData.catalogMutation.facetValueCreate.facetValue?.id;
+    const valueId = createData.listingMutation.facetValueCreate.facetValue?.id;
 
     // Delete the value
     const { data } = await api.admin.mutation('facet-api/FacetValueDelete', {
@@ -401,7 +401,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueDelete;
+    const result = data.listingMutation.facetValueDelete;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.deletedFacetValueId).toBe(valueId);
@@ -411,7 +411,7 @@ test.describe('FacetValue API', () => {
       variables: { id: valueId },
     });
 
-    expect(queryData.catalogQuery.facetValue).toBeNull();
+    expect(queryData.listingQuery.facetValue).toBeNull();
   });
 
   // ═══════════════════════════════════════
@@ -449,10 +449,10 @@ test.describe('FacetValue API', () => {
       variables: { facetId },
     });
 
-    expect(data.catalogQuery.facetValues).toBeTruthy();
-    expect(data.catalogQuery.facetValues.length).toBeGreaterThanOrEqual(2);
+    expect(data.listingQuery.facetValues).toBeTruthy();
+    expect(data.listingQuery.facetValues.length).toBeGreaterThanOrEqual(2);
 
-    const slugs = data.catalogQuery.facetValues.map((v: { slug: string }) => v.slug);
+    const slugs = data.listingQuery.facetValues.map((v: { slug: string }) => v.slug);
     expect(slugs).toContain('value-a');
     expect(slugs).toContain('value-b');
   });
@@ -473,19 +473,19 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const valueId = createData.catalogMutation.facetValueCreate.facetValue?.id;
+    const valueId = createData.listingMutation.facetValueCreate.facetValue?.id;
 
     // Query the value
     const { data } = await api.admin.query('facet-api/FacetValue', {
       variables: { id: valueId },
     });
 
-    expect(data.catalogQuery.facetValue).toBeTruthy();
-    expect(data.catalogQuery.facetValue?.id).toBe(valueId);
-    expect(data.catalogQuery.facetValue?.slug).toBe('query-test-value');
-    expect(data.catalogQuery.facetValue?.label).toBe('Query Test Value');
-    expect(data.catalogQuery.facetValue?.sortIndex).toBe(3);
-    expect(data.catalogQuery.facetValue?.facet.id).toBe(facetId);
+    expect(data.listingQuery.facetValue).toBeTruthy();
+    expect(data.listingQuery.facetValue?.id).toBe(valueId);
+    expect(data.listingQuery.facetValue?.slug).toBe('query-test-value');
+    expect(data.listingQuery.facetValue?.label).toBe('Query Test Value');
+    expect(data.listingQuery.facetValue?.sortIndex).toBe(3);
+    expect(data.listingQuery.facetValue?.facet.id).toBe(facetId);
   });
 
   // ═══════════════════════════════════════
@@ -507,7 +507,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueCreate;
+    const result = data.listingMutation.facetValueCreate;
 
     expect(result.facetValue).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -528,7 +528,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueCreate;
+    const result = data.listingMutation.facetValueCreate;
 
     expect(result.facetValue).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -547,7 +547,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueCreate;
+    const result = data.listingMutation.facetValueCreate;
 
     expect(result.facetValue).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -564,7 +564,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueUpdate;
+    const result = data.listingMutation.facetValueUpdate;
 
     expect(result.facetValue).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -578,7 +578,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueDelete;
+    const result = data.listingMutation.facetValueDelete;
 
     expect(result.deletedFacetValueId).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -603,7 +603,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueCreate;
+    const result = data.listingMutation.facetValueCreate;
 
     expect(result.facetValue).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -628,7 +628,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueCreate;
+    const result = data.listingMutation.facetValueCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetValue?.sourceHandles).toHaveLength(4);
@@ -639,7 +639,7 @@ test.describe('FacetValue API', () => {
       variables: { id: 'non-existent-id' },
     });
 
-    expect(data.catalogQuery.facetValue).toBeNull();
+    expect(data.listingQuery.facetValue).toBeNull();
   });
 
   test('should handle value with swatch attachment', async ({ api }) => {
@@ -654,7 +654,7 @@ test.describe('FacetValue API', () => {
         },
       },
     });
-    const swatchId = swatchData.catalogMutation.facetSwatchCreate.facetSwatch?.id;
+    const swatchId = swatchData.listingMutation.facetSwatchCreate.facetSwatch?.id;
 
     // Create value with swatch
     const { data } = await api.admin.mutation('facet-api/FacetValueCreate', {
@@ -669,7 +669,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueCreate;
+    const result = data.listingMutation.facetValueCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetValue?.swatch).toBeTruthy();
@@ -693,8 +693,8 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const valueId = createData.catalogMutation.facetValueCreate.facetValue?.id;
-    expect(createData.catalogMutation.facetValueCreate.facetValue?.swatch).toBeNull();
+    const valueId = createData.listingMutation.facetValueCreate.facetValue?.id;
+    expect(createData.listingMutation.facetValueCreate.facetValue?.swatch).toBeNull();
 
     // Create a swatch
     const { data: swatchData } = await api.admin.mutation('facet-api/FacetSwatchCreate', {
@@ -706,7 +706,7 @@ test.describe('FacetValue API', () => {
         },
       },
     });
-    const swatchId = swatchData.catalogMutation.facetSwatchCreate.facetSwatch?.id;
+    const swatchId = swatchData.listingMutation.facetSwatchCreate.facetSwatch?.id;
 
     // Update value to attach swatch
     const { data } = await api.admin.mutation('facet-api/FacetValueUpdate', {
@@ -718,7 +718,7 @@ test.describe('FacetValue API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetValueUpdate;
+    const result = data.listingMutation.facetValueUpdate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facetValue?.swatch).toBeTruthy();

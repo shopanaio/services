@@ -21,7 +21,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetCreate;
+    const result = data.listingMutation.facetCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facet).toBeTruthy();
@@ -45,7 +45,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetCreate;
+    const result = data.listingMutation.facetCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facet).toBeTruthy();
@@ -73,7 +73,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetCreate;
+    const result = data.listingMutation.facetCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facet).toBeTruthy();
@@ -94,7 +94,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetCreate;
+    const result = data.listingMutation.facetCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facet?.facetType).toBe('TAG');
@@ -112,7 +112,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetCreate;
+    const result = data.listingMutation.facetCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facet?.facetType).toBe('FEATURE');
@@ -131,7 +131,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetCreate;
+    const result = data.listingMutation.facetCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facet?.facetType).toBe('OPTION');
@@ -150,7 +150,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetCreate;
+    const result = data.listingMutation.facetCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facet?.facetType).toBe('IN_STOCK');
@@ -173,7 +173,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    expect(data.catalogMutation.facetCreate.facet?.uiType).toBe('CHECKBOX');
+    expect(data.listingMutation.facetCreate.facet?.uiType).toBe('CHECKBOX');
   });
 
   test('should create facet with RADIO uiType', async ({ api }) => {
@@ -189,7 +189,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    expect(data.catalogMutation.facetCreate.facet?.uiType).toBe('RADIO');
+    expect(data.listingMutation.facetCreate.facet?.uiType).toBe('RADIO');
   });
 
   test('should create facet with DROPDOWN uiType', async ({ api }) => {
@@ -204,7 +204,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    expect(data.catalogMutation.facetCreate.facet?.uiType).toBe('DROPDOWN');
+    expect(data.listingMutation.facetCreate.facet?.uiType).toBe('DROPDOWN');
   });
 
   test('should create facet with RANGE uiType', async ({ api }) => {
@@ -219,7 +219,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    expect(data.catalogMutation.facetCreate.facet?.uiType).toBe('RANGE');
+    expect(data.listingMutation.facetCreate.facet?.uiType).toBe('RANGE');
   });
 
   test('should create facet with BOOLEAN uiType', async ({ api }) => {
@@ -234,7 +234,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    expect(data.catalogMutation.facetCreate.facet?.uiType).toBe('BOOLEAN');
+    expect(data.listingMutation.facetCreate.facet?.uiType).toBe('BOOLEAN');
   });
 
   // ═══════════════════════════════════════
@@ -253,7 +253,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    const facetId = createData.catalogMutation.facetCreate.facet?.id;
+    const facetId = createData.listingMutation.facetCreate.facet?.id;
     expect(facetId).toBeTruthy();
 
     // Update the facet
@@ -266,7 +266,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetUpdate;
+    const result = data.listingMutation.facetUpdate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facet?.label).toBe('Updated Label');
@@ -286,7 +286,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    const facetId = createData.catalogMutation.facetCreate.facet?.id;
+    const facetId = createData.listingMutation.facetCreate.facet?.id;
 
     // Update all fields
     const { data } = await api.admin.mutation('facet-api/FacetUpdate', {
@@ -301,7 +301,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetUpdate;
+    const result = data.listingMutation.facetUpdate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facet?.slug).toBe('updated-slug');
@@ -327,7 +327,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    const facetId = createData.catalogMutation.facetCreate.facet?.id;
+    const facetId = createData.listingMutation.facetCreate.facet?.id;
     expect(facetId).toBeTruthy();
 
     // Delete the facet
@@ -337,7 +337,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetDelete;
+    const result = data.listingMutation.facetDelete;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.deletedFacetId).toBe(facetId);
@@ -347,7 +347,7 @@ test.describe('Facet API', () => {
       variables: { id: facetId },
     });
 
-    expect(queryData.catalogQuery.facet).toBeNull();
+    expect(queryData.listingQuery.facet).toBeNull();
   });
 
   // ═══════════════════════════════════════
@@ -377,10 +377,10 @@ test.describe('Facet API', () => {
 
     const { data } = await api.admin.query('facet-api/Facets', {});
 
-    expect(data.catalogQuery.facets).toBeTruthy();
-    expect(data.catalogQuery.facets.length).toBeGreaterThanOrEqual(2);
+    expect(data.listingQuery.facets).toBeTruthy();
+    expect(data.listingQuery.facets.length).toBeGreaterThanOrEqual(2);
 
-    const slugs = data.catalogQuery.facets.map((f: { slug: string }) => f.slug);
+    const slugs = data.listingQuery.facets.map((f: { slug: string }) => f.slug);
     expect(slugs).toContain('list-test-a');
     expect(slugs).toContain('list-test-b');
   });
@@ -398,18 +398,18 @@ test.describe('Facet API', () => {
       },
     });
 
-    const facetId = createData.catalogMutation.facetCreate.facet?.id;
+    const facetId = createData.listingMutation.facetCreate.facet?.id;
 
     // Query the facet
     const { data } = await api.admin.query('facet-api/Facet', {
       variables: { id: facetId },
     });
 
-    expect(data.catalogQuery.facet).toBeTruthy();
-    expect(data.catalogQuery.facet?.id).toBe(facetId);
-    expect(data.catalogQuery.facet?.slug).toBe('query-single-test');
-    expect(data.catalogQuery.facet?.label).toBe('Query Test Facet');
-    expect(data.catalogQuery.facet?.facetType).toBe('OPTION');
+    expect(data.listingQuery.facet).toBeTruthy();
+    expect(data.listingQuery.facet?.id).toBe(facetId);
+    expect(data.listingQuery.facet?.slug).toBe('query-single-test');
+    expect(data.listingQuery.facet?.label).toBe('Query Test Facet');
+    expect(data.listingQuery.facet?.facetType).toBe('OPTION');
   });
 
   // ═══════════════════════════════════════
@@ -428,7 +428,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetCreate;
+    const result = data.listingMutation.facetCreate;
 
     expect(result.facet).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -446,7 +446,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetCreate;
+    const result = data.listingMutation.facetCreate;
 
     expect(result.facet).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -476,7 +476,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetCreate;
+    const result = data.listingMutation.facetCreate;
 
     expect(result.facet).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -493,7 +493,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetUpdate;
+    const result = data.listingMutation.facetUpdate;
 
     expect(result.facet).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -507,7 +507,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetDelete;
+    const result = data.listingMutation.facetDelete;
 
     expect(result.deletedFacetId).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -528,7 +528,7 @@ test.describe('Facet API', () => {
       },
     });
 
-    const result = data.catalogMutation.facetCreate;
+    const result = data.listingMutation.facetCreate;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.facet?.slug).toBe('my-test-slug-123');
@@ -539,7 +539,7 @@ test.describe('Facet API', () => {
       variables: { id: 'non-existent-id' },
     });
 
-    expect(data.catalogQuery.facet).toBeNull();
+    expect(data.listingQuery.facet).toBeNull();
   });
 
 });

@@ -299,7 +299,7 @@ async function createListingFacets(
       },
     });
 
-    const result = data.catalogMutation.facetCreate;
+    const result = data.listingMutation.facetCreate;
     expect(result.userErrors).toHaveLength(0);
     const facet = result.facet;
     expect(facet).toBeTruthy();
@@ -329,7 +329,7 @@ async function createListingFacets(
           },
         },
       });
-      const valueResult = valueData.catalogMutation.facetValueCreate;
+      const valueResult = valueData.listingMutation.facetValueCreate;
       expect(valueResult.userErrors).toHaveLength(0);
       expect(valueResult.facetValue).toBeTruthy();
       displayValues.push({ ...valueResult.facetValue, handle: value.handle, label: value.label });

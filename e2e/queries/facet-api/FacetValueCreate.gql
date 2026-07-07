@@ -1,5 +1,5 @@
 mutation FacetValueCreate($input: FacetValueCreateInput!) {
-  catalogMutation {
+  listingMutation {
     facetValueCreate(input: $input) {
       facetValue {
         id

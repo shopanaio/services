@@ -1,5 +1,5 @@
 mutation FacetSwatchCreate($input: FacetSwatchCreateInput!) {
-  catalogMutation {
+  listingMutation {
     facetSwatchCreate(input: $input) {
       facetSwatch {
         id

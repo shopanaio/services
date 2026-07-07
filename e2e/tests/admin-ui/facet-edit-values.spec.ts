@@ -79,7 +79,7 @@ async function createOptionFacet(api: Api, unique: string) {
     },
   });
 
-  const result = data.catalogMutation.facetCreate;
+  const result = data.listingMutation.facetCreate;
   expect(result.userErrors).toHaveLength(0);
   expect(result.facet?.id).toBeTruthy();
 
