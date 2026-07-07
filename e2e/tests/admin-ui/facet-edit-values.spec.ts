@@ -128,9 +128,12 @@ async function addFacetValues(page: Page, handles: string[]) {
 }
 
 async function selectFacetValueRow(page: Page, handle: string) {
-  const row = page.getByTestId(`facet-values-row-${handle}`);
-  await expect(row).toBeVisible();
-  await row.click();
+  const valueCell = page.getByTestId(`facet-values-row-${handle}`);
+  await expect(valueCell).toBeVisible();
+
+  const row = valueCell.locator('xpath=ancestor::*[contains(@class, "ag-row")][1]');
+  await row.locator('.ag-selection-checkbox').click();
+  await expect(row).toHaveAttribute('aria-selected', 'true');
 }
 
 async function removeValueFromGroupModal(page: Page, handle: string) {
@@ -250,12 +253,9 @@ test.describe('Admin facet values edit UI', () => {
     );
 
     await ungroupValueGroup(page, 'compact');
-    await expect(page.getByTestId('facet-values-grouped-cell-compact')).not.toContainText(
-      'Medium',
-    );
-    await expect(page.getByTestId('facet-values-grouped-cell-compact')).not.toContainText(
-      'Large',
-    );
+    await expect(page.getByTestId('facet-values-row-compact')).toBeHidden({
+      timeout: 20_000,
+    });
     await expect(page.getByTestId('facet-values-row-size:s')).toBeVisible();
     await expect(page.getByTestId('facet-values-row-size:m')).toBeVisible();
     await expect(page.getByTestId('facet-values-row-size:l')).toBeVisible();
