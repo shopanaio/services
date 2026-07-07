@@ -19,6 +19,10 @@ import {
   fetchCatalogListingSnapshotsBatch,
   type ListingBatchHydrationStepResult,
 } from "./ListingBatchProductIndexWorkflow/stepFetchCatalogListingSnapshotsBatch.js";
+import {
+  resolveListingFacetSelectionsBatch,
+  type ListingBatchFacetResolutionStepResult,
+} from "./ListingBatchProductIndexWorkflow/stepResolveListingFacetSelectionsBatch.js";
 
 export type ListingIndexProductUpdateBatchItem = {
   eventId: string;
@@ -42,14 +46,6 @@ export type ListingIndexProductUpdateBatchResult = {
   status: "accepted";
   accepted: number;
   processedAt: string;
-};
-
-type ListingBatchFacetResolutionStepInput = {
-  actions: ListingIndexHydratedSyncAction[];
-};
-
-type ListingBatchFacetResolutionStepResult = {
-  actions: ListingIndexHydratedSyncAction[];
 };
 
 type ListingBatchPrepareStepInput = {
@@ -182,6 +178,7 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
      *    starts are treated as success, matching the single product workflow.
      */
     const hydration = await this.stepFetchCatalogListingSnapshotsBatch(input);
+    const resolution = await this.stepResolveListingFacetSelectionsBatch(hydration);
 
     // Hydration is wired. The remaining batch indexing steps are intentionally
     // not implemented in this change.
@@ -191,8 +188,9 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
         itemCount: input.items.length,
         found: hydration.found.length,
         missing: hydration.missing.length,
+        resolved: resolution.actions.length,
       },
-      "Listing batch product index workflow hydrated input but remaining steps are not implemented yet"
+      "Listing batch product index workflow resolved facets but remaining steps are not implemented yet"
     );
 
     return {
@@ -232,24 +230,9 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
     },
   })
   private async stepResolveListingFacetSelectionsBatch(
-    input: ListingBatchFacetResolutionStepInput
+    input: ListingBatchHydrationStepResult
   ): Promise<ListingBatchFacetResolutionStepResult> {
-    /*
-     * Contract:
-     * - Input contains hydrated sync actions with catalog-facing facet/tag/option
-     *   handles.
-     * - Output contains the same actions with selections resolved to listing
-     *   facet/value ids that can become posting bitmap value keys.
-     *
-     * Implementation notes:
-     * - Prefer a batch script or repository path that resolves all products'
-     *   facet selections together.
-     * - Preserve item order and action metadata so per-product results can be
-     *   correlated back to input.items.
-     * - Return resolved actions only; no DB index writes belong in this step.
-     */
-    void input;
-    throw new Error("Not implemented");
+    return resolveListingFacetSelectionsBatch(input);
   }
 
   @WorkflowStep({
