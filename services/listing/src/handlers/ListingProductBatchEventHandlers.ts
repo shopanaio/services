@@ -9,6 +9,7 @@ import {
 import { Listing } from "@shopana/broker-types";
 import type {
   EventBatchHandlerResponse,
+  ProductCreatedEvent,
   ProductUpdatedEvent,
 } from "@shopana/events";
 import {
@@ -29,6 +30,25 @@ export class ListingProductBatchEventHandlers extends EventHandlers {
     super(broker);
   }
 
+  @BatchEventHandler("productCreated", { retry: { maxAttempts: 5 } })
+  async handleProductCreatedBatch(params: {
+    events: ProductCreatedEvent[];
+    payloads: ProductCreatedEvent["payload"][];
+  }): Promise<EventBatchHandlerResponse> {
+    this.logger.debug(
+      {
+        eventCount: params.events.length,
+        productIds: params.payloads.map((payload) => payload.productId),
+      },
+      "Received productCreated event batch"
+    );
+
+    return this.handleProductEventBatch(
+      params.events,
+      "Failed to enqueue productCreated listing batch sync"
+    );
+  }
+
   @BatchEventHandler("productUpdated", { retry: { maxAttempts: 5 } })
   async handleProductUpdatedBatch(params: {
     events: ProductUpdatedEvent[];
@@ -42,16 +62,26 @@ export class ListingProductBatchEventHandlers extends EventHandlers {
       "Received productUpdated event batch"
     );
 
+    return this.handleProductEventBatch(
+      params.events,
+      "Failed to enqueue productUpdated listing batch sync"
+    );
+  }
+
+  private async handleProductEventBatch(
+    events: readonly ProductIndexBatchEvent[],
+    logMessage: string
+  ): Promise<EventBatchHandlerResponse> {
     const failedEventIds: string[] = [];
     const errors: string[] = [];
 
     // A batch dispatch can contain events for multiple stores; each store gets
     // its own workflow so store-scoped ordering and retry state stay isolated.
-    for (const events of groupProductUpdateBatchEvents(params.events).values()) {
+    for (const groupedEvents of groupProductIndexBatchEvents(events).values()) {
       try {
-        await this.enqueueProductUpdateBatchWorkflow(events);
+        await this.enqueueProductIndexBatchWorkflow(groupedEvents);
       } catch (error) {
-        failedEventIds.push(...events.map((event) => event.eventId));
+        failedEventIds.push(...groupedEvents.map((event) => event.eventId));
         errors.push(error instanceof Error ? error.message : String(error));
       }
     }
@@ -61,10 +91,7 @@ export class ListingProductBatchEventHandlers extends EventHandlers {
     }
 
     const message = [...new Set(errors)].join("; ");
-    this.logger.error(
-      { failedEventIds, error: message },
-      "Failed to enqueue productUpdated listing batch sync"
-    );
+    this.logger.error({ failedEventIds, error: message }, logMessage);
 
     return {
       success: false,
@@ -76,12 +103,13 @@ export class ListingProductBatchEventHandlers extends EventHandlers {
     };
   }
 
-  private async enqueueProductUpdateBatchWorkflow(
-    events: readonly ProductUpdatedEvent[]
+  private async enqueueProductIndexBatchWorkflow(
+    events: readonly ProductIndexBatchEvent[]
   ): Promise<void> {
-    // Several updates for the same product can be claimed in one batch window.
-    // The batch workflow should only receive the latest event per product.
-    const latestEvents = coalesceLatestProductUpdateEvents(events);
+    // Several product events for the same product can be claimed in one batch
+    // window. The batch workflow should only receive the latest event per
+    // product.
+    const latestEvents = coalesceLatestProductIndexEvents(events);
     const firstEvent = latestEvents[0];
 
     if (!firstEvent) return;
@@ -93,18 +121,25 @@ export class ListingProductBatchEventHandlers extends EventHandlers {
 
       return {
         eventId: event.eventId,
+        eventType: event.eventType,
         productId: event.payload.productId,
         sourceSequence,
         meta: buildMeta(event),
       };
     });
+    const actionItems = items.map((item) => ({
+      eventId: item.eventId,
+      productId: item.productId,
+      sourceSequence: item.sourceSequence,
+      meta: item.meta,
+    }));
     const effectiveIdempotencyKey = hashContent({
       v: 1,
-      eventType: "productUpdated",
       organizationId,
       storeId,
       items: items.map((item) => ({
         eventId: item.eventId,
+        eventType: item.eventType,
         productId: item.productId,
         sourceSequence: item.sourceSequence,
         idempotencyKey: item.meta.idempotencyKey,
@@ -117,7 +152,7 @@ export class ListingProductBatchEventHandlers extends EventHandlers {
       type: "batchProductUpdate",
       organizationId,
       storeId,
-      items,
+      items: actionItems,
       effectiveIdempotencyKey,
     };
     const idempotencyCtx =
@@ -140,7 +175,6 @@ export class ListingProductBatchEventHandlers extends EventHandlers {
           enqueueOptions: {
             queuePartitionKey: buildListingProductEventBatchQueuePartitionKey({
               storeId,
-              eventsHash: effectiveIdempotencyKey,
             }),
           },
           timeoutMS: LISTING_INDEX_WORKFLOW_TIMEOUT_MS,
@@ -165,10 +199,12 @@ export class ListingProductBatchEventHandlers extends EventHandlers {
   }
 }
 
-function groupProductUpdateBatchEvents(
-  events: readonly ProductUpdatedEvent[]
-): Map<string, ProductUpdatedEvent[]> {
-  const groups = new Map<string, ProductUpdatedEvent[]>();
+type ProductIndexBatchEvent = ProductCreatedEvent | ProductUpdatedEvent;
+
+function groupProductIndexBatchEvents(
+  events: readonly ProductIndexBatchEvent[]
+): Map<string, ProductIndexBatchEvent[]> {
+  const groups = new Map<string, ProductIndexBatchEvent[]>();
 
   for (const event of events) {
     const key = [event.context.organizationId, event.payload.storeId].join(":");
@@ -184,10 +220,10 @@ function groupProductUpdateBatchEvents(
   return groups;
 }
 
-function coalesceLatestProductUpdateEvents(
-  events: readonly ProductUpdatedEvent[]
-): ProductUpdatedEvent[] {
-  const latestByProductId = new Map<string, ProductUpdatedEvent>();
+function coalesceLatestProductIndexEvents(
+  events: readonly ProductIndexBatchEvent[]
+): ProductIndexBatchEvent[] {
+  const latestByProductId = new Map<string, ProductIndexBatchEvent>();
 
   // eventSequence is the monotonic product stream ordering token assigned by
   // events service; the highest sequence is the freshest product state.
@@ -204,7 +240,7 @@ function coalesceLatestProductUpdateEvents(
   );
 }
 
-function getEventSequence(event: ProductUpdatedEvent): number {
+function getEventSequence(event: ProductIndexBatchEvent): number {
   if (
     Number.isInteger(event.eventSequence) &&
     event.eventSequence !== undefined &&
@@ -218,7 +254,10 @@ function getEventSequence(event: ProductUpdatedEvent): number {
   );
 }
 
-function buildMeta(event: ProductUpdatedEvent): Listing.ListingUpdateMeta {
+function buildMeta(event: ProductIndexBatchEvent): Listing.ListingUpdateMeta {
+  const revisionPart =
+    event.eventType === "productUpdated" ? event.payload.revision : "unknown";
+
   return {
     contractVersion: Listing.LISTING_UPDATE_CONTRACT_VERSION,
     operationId: `listing:${event.eventType}:${event.eventId}`,
@@ -228,7 +267,7 @@ function buildMeta(event: ProductUpdatedEvent): Listing.ListingUpdateMeta {
       event.payload.storeId,
       "product",
       event.payload.productId,
-      event.payload.revision,
+      revisionPart,
       event.eventId,
     ].join(":"),
     occurredAt: event.timestamp,

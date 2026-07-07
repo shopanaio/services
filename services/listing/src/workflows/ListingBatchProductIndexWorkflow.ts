@@ -123,11 +123,10 @@ export function buildListingProductEventBatchWorkflowId(input: {
 
 export function buildListingProductEventBatchQueuePartitionKey(input: {
   storeId: string;
-  eventsHash: string;
 }): string {
   // Batch product updates use a store-scoped partition instead of item-scoped
   // partitions because a single workflow can cover many products.
-  return [input.storeId, "product-event-batch", input.eventsHash].join(":");
+  return [input.storeId, "product-event-batch"].join(":");
 }
 
 @Injectable()
@@ -195,9 +194,12 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
     const writeResult = await this.stepWriteListingBatchSyncIndexAction({
       items: writeModels.items,
     });
+    const facetReferenceSync =
+      await this.stepStartFacetReferenceStateSyncBatch({
+        writeResult,
+        plansByProductId: facetReferencePlans.plansByProductId,
+      });
 
-    // Facet reference child workflow startup is still intentionally not wired
-    // because its batch implementation is not implemented yet.
     this.logger.debug(
       {
         storeId: input.storeId,
@@ -212,6 +214,9 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
         ).length,
         writeResults: writeResult.results.length,
         applied: writeResult.appliedProductIds.length,
+        facetReferenceSyncStarted: Object.values(
+          facetReferenceSync.workflowIdsByProductId
+        ).filter((workflowId) => workflowId !== null).length,
         finalizedWithoutWrite:
           hydration.missing.length + prepared.finalResults.length,
         finalizedBeforeWrite: prepared.finalResults.length,
