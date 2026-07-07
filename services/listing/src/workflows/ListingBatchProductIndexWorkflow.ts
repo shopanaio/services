@@ -25,6 +25,7 @@ import {
 } from "./ListingBatchProductIndexWorkflow/stepResolveListingFacetSelectionsBatch.js";
 import { prepareListingSyncIndexActionsBatch } from "./ListingBatchProductIndexWorkflow/stepPrepareListingSyncIndexActionsBatch.js";
 import { buildListingSyncWriteModelsBatch } from "./ListingBatchProductIndexWorkflow/stepBuildListingSyncWriteModelsBatch.js";
+import { writeListingBatchSyncIndexAction } from "./ListingBatchProductIndexWorkflow/stepWriteListingBatchSyncIndexAction.js";
 
 export type ListingIndexProductUpdateBatchItem = {
   eventId: string;
@@ -185,10 +186,13 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
     const writeModels = await this.stepBuildListingSyncWriteModelsBatch({
       actions: prepared.actions,
     });
+    const writeResult = await this.stepWriteListingBatchSyncIndexAction({
+      items: writeModels.items,
+    });
 
-    // Hydration, facet resolution, prepare, and write model build are wired.
-    // The remaining batch indexing steps are intentionally not implemented yet.
-    this.logger.warn(
+    // Facet reference plan/start steps are still intentionally not wired because
+    // their batch implementations are not implemented yet.
+    this.logger.debug(
       {
         storeId: input.storeId,
         itemCount: input.items.length,
@@ -197,9 +201,13 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
         resolved: resolution.actions.length,
         prepared: prepared.actions.length,
         writeModels: writeModels.items.length,
+        writeResults: writeResult.results.length,
+        applied: writeResult.appliedProductIds.length,
+        finalizedWithoutWrite:
+          hydration.missing.length + prepared.finalResults.length,
         finalizedBeforeWrite: prepared.finalResults.length,
       },
-      "Listing batch product index workflow built write models but remaining steps are not implemented yet"
+      "Listing batch product index workflow wrote listing index rows"
     );
 
     return {
@@ -437,8 +445,7 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
      *   startFacetReferenceStateSyncBatch never starts child workflows for noop
      *   or ignored_stale products.
      */
-    void input;
-    throw new Error("Not implemented");
+    return writeListingBatchSyncIndexAction(input);
   }
 
   @WorkflowStep({
