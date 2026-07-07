@@ -440,12 +440,34 @@ await broker.startWorkflow(
 Facet changes не приходят из catalog product revision. Для них нужен stable
 listing source sequence per product.
 
+Текущая реализация `events.emit` уже назначает `domain_events.event_sequence`
+как монотонный счетчик в рамках одного subject:
+
+```text
+organizationId + subject.type + subject.id
+```
+
+Для существующего event-based пути это означает, что `productUpdated` и
+`listingFacetMembershipChanged` сравнимы между собой, если оба события имеют
+одинаковый product subject:
+
+```ts
+subject: { type: "product", id: productId }
+```
+
+Именно так сейчас эмитится `listingFacetMembershipChanged`, поэтому его
+`eventSequence` можно использовать как `sourceSequence` для того же product.
+
 Рекомендуемый вариант:
 
 - использовать `eventSequence` события `listingFacetMembershipChanged`, если
   compatibility event остается;
-- для direct batch path использовать sequence из исходного facet mutation
-  workflow/event;
+- для direct batch path нельзя использовать sequence из исходного facet mutation
+  workflow/event, если этот sequence относится к subject facet/facetValue/operation,
+  а не к `product:<productId>`;
+- direct batch path должен либо выделять per-product `sourceSequence` через тот
+  же per-product domain event stream, либо использовать отдельный monotonic
+  sequence allocator для listing index item state;
 - одинаковый sequence ожидаем для affected products одного facet event;
 - одинаковый sequence разрешен для разных products, потому что stale/noop
   decision принимается отдельно по каждому product.
@@ -453,10 +475,10 @@ listing source sequence per product.
 Важно: если после facet batch приходит более свежий `productUpdated` с большим
 sourceSequence, facet batch должен стать `ignored_stale` для этого product.
 
-Если единая event sequence между catalog product events и listing facet events
-не гарантирована, нужно добавить отдельный monotonic sequence allocator для
-listing index item state или перейти на source timestamp/revision arbitration.
-Без этого batch facet changes могут конкурировать с product updates.
+Если direct batch path обходит per-product `events.emit`, нужно явно сохранить
+эту же сравнимость sequence. Иначе batch facet changes могут конкурировать с
+product updates и stale/noop decision в writer будет принимать решение по числам
+из разных sequence streams.
 
 ## Batch product events
 
