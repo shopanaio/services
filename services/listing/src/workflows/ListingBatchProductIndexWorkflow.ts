@@ -23,6 +23,7 @@ import {
   resolveListingFacetSelectionsBatch,
   type ListingBatchFacetResolutionStepResult,
 } from "./ListingBatchProductIndexWorkflow/stepResolveListingFacetSelectionsBatch.js";
+import { prepareListingSyncIndexActionsBatch } from "./ListingBatchProductIndexWorkflow/stepPrepareListingSyncIndexActionsBatch.js";
 
 export type ListingIndexProductUpdateBatchItem = {
   eventId: string;
@@ -179,9 +180,10 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
      */
     const hydration = await this.stepFetchCatalogListingSnapshotsBatch(input);
     const resolution = await this.stepResolveListingFacetSelectionsBatch(hydration);
+    const prepared = await this.stepPrepareListingSyncIndexActionsBatch(resolution);
 
-    // Hydration is wired. The remaining batch indexing steps are intentionally
-    // not implemented in this change.
+    // Hydration, facet resolution, and prepare are wired. The remaining batch
+    // indexing steps are intentionally not implemented in this change.
     this.logger.warn(
       {
         storeId: input.storeId,
@@ -189,8 +191,10 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
         found: hydration.found.length,
         missing: hydration.missing.length,
         resolved: resolution.actions.length,
+        prepared: prepared.actions.length,
+        finalizedBeforeWrite: prepared.finalResults.length,
       },
-      "Listing batch product index workflow resolved facets but remaining steps are not implemented yet"
+      "Listing batch product index workflow prepared actions but remaining steps are not implemented yet"
     );
 
     return {
@@ -260,8 +264,7 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
      * - Do not perform stale/noop checks that require locking
      *   listing_index_item_state; those checks belong in the write transaction.
      */
-    void input;
-    throw new Error("Not implemented");
+    return prepareListingSyncIndexActionsBatch(input);
   }
 
   @WorkflowStep({
