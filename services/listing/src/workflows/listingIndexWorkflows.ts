@@ -229,7 +229,6 @@ abstract class ListingIndexWorkflowBase<
       reason: input.plan.reason,
       sourceSequence: input.plan.sourceSequence,
       refs: input.plan.refs,
-      eventIds: [input.plan.operationId],
       checkValues: true,
     };
     const idempotencyCtx =

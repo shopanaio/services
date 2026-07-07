@@ -379,10 +379,9 @@ listingSourceRevisionFromEvent(event)
 - `ListingSyncPublisher.buildBatchMeta`.
 
 Для facet mutation wrapper рекомендуется эмитить отдельный domain event
-`facetListingSyncRequested` с immutable payload affected refs/product ids. Для
-reference status changes можно использовать уже существующий
-`facetReferenceStateChanged`, потому что он содержит touched source handles,
-changed source/value ids и affected display value ids.
+`facetListingSyncRequested` с immutable payload affected refs/product ids.
+Reference status changes должны обновляться внутри reconciliation без отдельного
+domain event.
 
 Не использовать ad hoc revision из `Date.now()` внутри workflow step: replay или
 retry должен давать тот же source revision и тот же idempotency key для одного
@@ -488,8 +487,8 @@ pre-read до mutation:
   и не меняют listing bitmap memberships.
 - Merge display values обновляет counts/filter results для affected products.
 - Unmerge display values возвращает affected products на source value handles.
-- `facetReferenceStateChanged` с переходом `VALID <-> STALE` запускает listing
-  sync для affected products.
+- Переход reference status `VALID <-> STALE` обрабатывается reconciliation без
+  отдельного domain event.
 - Presentation-only изменения не запускают listing sync.
 - Повтор одного и того же facet sync не создает конфликтов и не дублирует
   membership rows.
@@ -499,7 +498,7 @@ pre-read до mutation:
 
 ## Открытые вопросы
 
-- Должен ли `facetReferenceStateChanged` сразу запускать listing sync или только
-  публиковать событие для отдельного handler?
+- Нужно ли запускать listing sync для affected products сразу внутри reference
+  reconciliation или отдельным workflow?
 - Нужен ли admin-visible статус фоновой переиндексации для массовых facet
   операций?

@@ -12,7 +12,6 @@ import {
   WorkflowStep,
 } from "@shopana/shared-kernel";
 import type { Catalog } from "@shopana/broker-types";
-import type { EventDispatchResult, EventEmitResult } from "@shopana/events";
 import { Kernel } from "../kernel/Kernel.js";
 import { Loader } from "../loaders/Loader.js";
 import { runWithContext, ServiceContext } from "../context/index.js";
@@ -20,7 +19,6 @@ import type { Facet, FacetSource, FacetValue } from "../repositories/models/inde
 import {
   FacetReferenceStateWriteReconciliationScript,
   type FacetReferenceStateWriteReconciliationResult,
-  type ReferenceStatusDelta,
   type ReferenceStatusUpdate,
 } from "../scripts/facet/FacetReferenceStateWriteReconciliationScript.js";
 
@@ -39,7 +37,6 @@ export interface FacetReferenceStateSyncWorkflowInput {
   checkValues?: boolean;
   refs?: FacetSourceRef[];
   events?: FacetReferenceSyncEventInput[];
-  eventIds?: string[];
   userId?: string;
 }
 
@@ -51,7 +48,6 @@ export interface FacetReferenceStateSyncWorkflowResult {
   affectedFacetIds?: string[];
   affectedSourceIds?: string[];
   affectedValueIds?: string[];
-  emittedEventIds?: string[];
 }
 
 export interface FacetSourceRef {
@@ -85,7 +81,6 @@ interface NormalizedEvent {
 interface CollectedRefs {
   refs: FacetSourceRef[];
   facetIds: string[];
-  triggerEventIds: string[];
   reconcileAll: boolean;
 }
 
@@ -102,10 +97,8 @@ interface ReferenceExistence {
 
 interface ReconciliationPlan {
   store: StoreContextStore;
-  triggerEventIds: string[];
   sources: FacetSource[];
   values: FacetValue[];
-  displayParents: FacetValue[];
   sourceUpdates: ReferenceStatusUpdate[];
   valueUpdates: ReferenceStatusUpdate[];
   affectedFacetIds: string[];
@@ -121,42 +114,7 @@ interface ReconciliationResult {
   affectedFacetIds: string[];
   affectedSourceIds: string[];
   affectedValueIds: string[];
-  payloads: FacetReferenceStateChangedPayload[];
 }
-
-interface FacetReferenceStateChangedPayload {
-  storeId: string;
-  facetId: string;
-  triggerEventIds: string[];
-  touchedSourceHandles: string[];
-  touchedSourceValueHandles: string[];
-  affectedSourceIds: string[];
-  affectedSourceValueIds: string[];
-  affectedDisplayValueIds: string[];
-  sourceDeltas: ReferenceStatusDelta[];
-  valueDeltas: ReferenceStatusDelta[];
-  reasons: string[];
-}
-
-interface EmitFacetReferenceStateChangedParams {
-  eventType: string;
-  payload: FacetReferenceStateChangedPayload;
-  source: string;
-  context: {
-    organizationId: string;
-    userId?: string;
-    correlationId?: string;
-  };
-  subject: { type: string; id: string };
-  emitKey: string;
-  dispatch: {
-    mode: "deferred";
-    batchKey: string;
-    aggregateKey: string;
-  };
-}
-
-interface FacetEventAccumulator extends FacetReferenceStateChangedPayload {}
 
 type StoreContextStore = {
   id: string;
@@ -212,25 +170,19 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
       input,
       reconciliationPlan
     );
-    const eventPreparation = await this.stepPrepareFacetEvents(
-      input,
+    const result = await this.stepPrepareResult(
       reconciliationPlan,
       reconciliation
     );
-    const emittedEventIds = await this.stepEmitFacetEvents(
-      input,
-      eventPreparation.payloads
-    );
 
     return {
-      checkedSourceCount: eventPreparation.checkedSourceCount,
-      staleSourceCount: eventPreparation.staleSourceCount,
-      checkedValueCount: eventPreparation.checkedValueCount,
-      staleValueCount: eventPreparation.staleValueCount,
-      affectedFacetIds: eventPreparation.affectedFacetIds,
-      affectedSourceIds: eventPreparation.affectedSourceIds,
-      affectedValueIds: eventPreparation.affectedValueIds,
-      emittedEventIds,
+      checkedSourceCount: result.checkedSourceCount,
+      staleSourceCount: result.staleSourceCount,
+      checkedValueCount: result.checkedValueCount,
+      staleValueCount: result.staleValueCount,
+      affectedFacetIds: result.affectedFacetIds,
+      affectedSourceIds: result.affectedSourceIds,
+      affectedValueIds: result.affectedValueIds,
     };
   }
 
@@ -272,10 +224,6 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
     events: readonly NormalizedEvent[]
   ): Promise<CollectedRefs> {
     const refs: FacetSourceRef[] = [];
-    const triggerEventIds = [
-      ...(input.eventIds ?? []),
-      ...events.map((event) => event.eventId),
-    ];
 
     refs.push(...(input.refs ?? []));
     for (const event of events) {
@@ -292,7 +240,6 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
         return {
           refs: [],
           facetIds: unique(input.facetIds ?? []),
-          triggerEventIds: unique(triggerEventIds),
           reconcileAll: true,
         };
       }
@@ -301,7 +248,6 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
     return {
       refs: uniqueFacetSourceRefs(refs),
       facetIds: unique(input.facetIds ?? []),
-      triggerEventIds: unique(triggerEventIds),
       reconcileAll:
         input.reason === "productDeleted" &&
         refs.length === 0 &&
@@ -329,10 +275,6 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
       ]);
       const facets = await this.repository.facet.getByIds(affectedFacetIds);
       const facetsById = new Map(facets.map((facet) => [facet.id, facet]));
-      const displayParents =
-        await this.repository.facetValue.getDisplayParentsBySourceValueIds(
-          values.map((value) => value.id)
-        );
       const existence = await this.loadReferenceExistence(
         input.storeId,
         sources,
@@ -350,10 +292,8 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
 
       return {
         store,
-        triggerEventIds: collected.triggerEventIds,
         sources,
         values,
-        displayParents,
         sourceUpdates,
         valueUpdates,
         affectedFacetIds,
@@ -384,28 +324,14 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
   }
 
   @WorkflowStep({
-    name: "prepareFacetReferenceStateChangedEvents",
+    name: "prepareFacetReferenceStateResult",
     timeoutMs: 30_000,
     retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 },
   })
-  private async stepPrepareFacetEvents(
-    input: FacetReferenceStateSyncWorkflowInput,
+  private async stepPrepareResult(
     plan: ReconciliationPlan,
     reconciliation: FacetReferenceStateWriteReconciliationResult
   ): Promise<ReconciliationResult> {
-    const displayParents = new Map(
-      plan.displayParents.map((value) => [value.id, value])
-    );
-    const payloads = buildFacetEvents({
-      storeId: input.storeId,
-      triggerEventIds: plan.triggerEventIds,
-      sources: plan.sources,
-      values: plan.values,
-      displayParents,
-      sourceDeltas: reconciliation.sourceDeltas,
-      valueDeltas: reconciliation.valueDeltas,
-    });
-
     return {
       checkedSourceCount: plan.sources.length,
       staleSourceCount: reconciliation.sourceDeltas.filter(
@@ -418,7 +344,6 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
       affectedFacetIds: plan.affectedFacetIds,
       affectedSourceIds: plan.affectedSourceIds,
       affectedValueIds: plan.affectedValueIds,
-      payloads,
     };
   }
 
@@ -589,78 +514,6 @@ export class FacetReferenceStateSyncWorkflow extends BrokerWorkflows<
     };
   }
 
-  @WorkflowStep({
-    name: "emitFacetReferenceStateChanged",
-    timeoutMs: 60_000,
-    retry: { maxAttempts: 5, intervalSeconds: 1, backoffRate: 2 },
-  })
-  private async stepEmitFacetEvents(
-    input: FacetReferenceStateSyncWorkflowInput,
-    payloads: readonly FacetReferenceStateChangedPayload[]
-  ): Promise<string[]> {
-    if (payloads.length === 0) return [];
-
-    const batchKey = [
-      "listing",
-      "facetReferenceStateChanged",
-      input.storeId,
-      DBOS.workflowID ?? "workflow",
-    ].join(":");
-    const eventIds: string[] = [];
-
-    for (const payload of payloads) {
-      const result = await this.broker.runWorkflow<
-        EventEmitResult,
-        EmitFacetReferenceStateChangedParams
-      >(
-        "events.emit",
-        {
-          eventType: "facetReferenceStateChanged",
-          payload,
-          source: "listing",
-          context: {
-            organizationId: input.organizationId,
-            userId: input.userId,
-          },
-          subject: { type: "facet", id: payload.facetId },
-          emitKey: `facet:${payload.facetId}:reference-state:${DBOS.workflowID ?? "workflow"}`,
-          dispatch: {
-            mode: "deferred",
-            batchKey,
-            aggregateKey: `facet:${payload.facetId}`,
-          },
-        },
-        {
-          source: "workflow",
-          workflowId: DBOS.workflowID!,
-          stepId: "emitFacetReferenceStateChanged",
-          callId: payload.facetId,
-          organizationId: input.organizationId,
-        }
-      );
-      eventIds.push(result.eventId);
-    }
-
-    await this.broker.call<
-      { workflowId: string; status: string; result?: EventDispatchResult },
-      {
-        kind: "batch";
-        organizationId: string;
-        eventType: string;
-        batchKey: string;
-        waitForResult: boolean;
-      }
-    >("events.dispatch", {
-      kind: "batch",
-      organizationId: input.organizationId,
-      eventType: "facetReferenceStateChanged",
-      batchKey,
-      waitForResult: true,
-    });
-
-    return eventIds;
-  }
-
   private async withListingContext<TResult>(
     input: FacetReferenceStateSyncWorkflowInput,
     fn: (store: StoreContextStore) => Promise<TResult>
@@ -723,7 +576,6 @@ function emptyResult(_storeId: string): FacetReferenceStateSyncWorkflowResult {
     affectedFacetIds: [],
     affectedSourceIds: [],
     affectedValueIds: [],
-    emittedEventIds: [],
   };
 }
 
@@ -803,79 +655,6 @@ function resolveValueStatus(
   }
 
   return "STALE";
-}
-
-function buildFacetEvents(input: {
-  storeId: string;
-  triggerEventIds: string[];
-  sources: readonly FacetSource[];
-  values: readonly FacetValue[];
-  displayParents: ReadonlyMap<string, FacetValue>;
-  sourceDeltas: readonly ReferenceStatusDelta[];
-  valueDeltas: readonly ReferenceStatusDelta[];
-}): FacetReferenceStateChangedPayload[] {
-  const sourceDeltasById = new Map(input.sourceDeltas.map((delta) => [delta.id, delta]));
-  const valueDeltasById = new Map(input.valueDeltas.map((delta) => [delta.id, delta]));
-  const acc = new Map<string, FacetEventAccumulator>();
-
-  for (const source of input.sources) {
-    const delta = sourceDeltasById.get(source.id);
-    if (!delta?.changed) continue;
-    const facet = getFacetAccumulator(acc, input.storeId, source.facetId);
-    facet.affectedSourceIds.push(source.id);
-    facet.touchedSourceHandles.push(source.handle);
-    facet.sourceDeltas.push(delta);
-    facet.reasons.push("source_reference_status_changed");
-  }
-
-  for (const value of input.values) {
-    const delta = valueDeltasById.get(value.id);
-    if (!delta?.changed) continue;
-    const facet = getFacetAccumulator(acc, input.storeId, value.facetId);
-    facet.affectedSourceValueIds.push(value.id);
-    facet.touchedSourceValueHandles.push(value.handle);
-    facet.valueDeltas.push(delta);
-    facet.reasons.push("value_reference_status_changed");
-    if (value.parentId && input.displayParents.has(value.parentId)) {
-      facet.affectedDisplayValueIds.push(value.parentId);
-    }
-  }
-
-  return [...acc.values()].map((payload) => ({
-    ...payload,
-    triggerEventIds: unique(input.triggerEventIds),
-    touchedSourceHandles: unique(payload.touchedSourceHandles),
-    touchedSourceValueHandles: unique(payload.touchedSourceValueHandles),
-    affectedSourceIds: unique(payload.affectedSourceIds),
-    affectedSourceValueIds: unique(payload.affectedSourceValueIds),
-    affectedDisplayValueIds: unique(payload.affectedDisplayValueIds),
-    reasons: unique(payload.reasons),
-  }));
-}
-
-function getFacetAccumulator(
-  acc: Map<string, FacetEventAccumulator>,
-  storeId: string,
-  facetId: string
-): FacetEventAccumulator {
-  const existing = acc.get(facetId);
-  if (existing) return existing;
-
-  const created: FacetEventAccumulator = {
-    storeId,
-    facetId,
-    triggerEventIds: [],
-    touchedSourceHandles: [],
-    touchedSourceValueHandles: [],
-    affectedSourceIds: [],
-    affectedSourceValueIds: [],
-    affectedDisplayValueIds: [],
-    sourceDeltas: [],
-    valueDeltas: [],
-    reasons: [],
-  };
-  acc.set(facetId, created);
-  return created;
 }
 
 function valueFacetType(

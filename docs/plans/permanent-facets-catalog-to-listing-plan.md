@@ -408,12 +408,9 @@ Events should be improved but not overloaded:
    - Проверку текущего существования source/value handles выполнять через `catalog.productAttributeRefsExist`.
    - Не переносить direct catalog joins из старого `FacetReferenceRepository`.
 
-7. Обновить event emission:
-   - `source: "listing"`.
-   - service actor id `listing`.
-   - batch key prefix `listing:facet-reference-sync`.
+7. Обновить facet reference reconciliation:
    - workflow ids и operation labels используют listing naming.
-   - Event type `facetReferenceStateChanged` можно оставить, потому что это domain fact, а не catalog-specific событие.
+   - Reconciliation обновляет persisted reference status без публикации отдельного domain event.
 
 8. Удалить facet reference sync из catalog:
    - Удалить `FacetReferenceSyncWorkflow` из catalog workflow exports/module.
@@ -559,7 +556,7 @@ Events should be improved but not overloaded:
 - Catalog generic read/query actions применяют consumer-provided exclusions до pagination и возвращают корректный `totalCount`.
 - Listing candidate resolvers не фильтруют candidates после pagination.
 - Product/tag/option/feature changes все еще emit-ят events, которые listing consumes для facet reference reconciliation.
-- `listing.facetReferenceSync` emit-ит `facetReferenceStateChanged` с `source: "listing"`.
+- `listing.facetReferenceSync` обновляет reference status без emission отдельного domain event.
 - Catalog не вызывает listing index/facet sync напрямую после event-driven migration; listing сам consumes catalog events.
 - Listing workflow/repositories/scripts не импортируют catalog repository models и не делают joins к `catalog.product_*`, `catalog.tag*`, `catalog.product_option*`, `catalog.product_feature*`.
 - Admin frontend facet operations target listing API namespaces.
