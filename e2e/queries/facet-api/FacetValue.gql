@@ -2,9 +2,13 @@ query FacetValue($id: ID!) {
   listingQuery {
     facetValue(id: $id) {
       id
-      slug
+      kind
+      handle
       label
-      sourceHandles
+      sourceValues {
+        id
+        handle
+      }
       sortIndex
       enabled
       swatch {

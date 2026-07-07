@@ -337,11 +337,6 @@ abstract class FacetMutationWorkflowBase<
     );
   }
 
-  @WorkflowStep({
-    name: "startFacetAffectedProductsResync",
-    timeoutMs: 30_000,
-    retry: { maxAttempts: 5, intervalSeconds: 1, backoffRate: 2 },
-  })
   protected async stepStartResync<TParams>(params: {
     input: FacetMutationWorkflowInput<TParams>;
     reason: FacetAffectedProductsResyncReason;

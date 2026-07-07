@@ -3,9 +3,13 @@ mutation FacetValueUpdate($input: FacetValueUpdateInput!) {
     facetValueUpdate(input: $input) {
       facetValue {
         id
-        slug
+        kind
+        handle
         label
-        sourceHandles
+        sourceValues {
+          id
+          handle
+        }
         sortIndex
         enabled
         swatch {
