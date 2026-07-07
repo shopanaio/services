@@ -15,6 +15,10 @@ import type {
   ListingPreparedSyncAction,
   ListingSyncWriteModel,
 } from "../scripts/listingIndexActionTypes.js";
+import {
+  fetchCatalogListingSnapshotsBatch,
+  type ListingBatchHydrationStepResult,
+} from "./ListingBatchProductIndexWorkflow/stepFetchCatalogListingSnapshotsBatch.js";
 
 export type ListingIndexProductUpdateBatchItem = {
   eventId: string;
@@ -38,16 +42,6 @@ export type ListingIndexProductUpdateBatchResult = {
   status: "accepted";
   accepted: number;
   processedAt: string;
-};
-
-type ListingBatchHydrationStepResult = {
-  store: {
-    id: string;
-    organizationId: string;
-    defaultLocale: string;
-  };
-  found: ListingIndexHydratedSyncAction[];
-  missing: Listing.ListingUpdateResult[];
 };
 
 type ListingBatchFacetResolutionStepInput = {
@@ -187,14 +181,18 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
      *    actually applied and have non-empty plans. Duplicate child workflow
      *    starts are treated as success, matching the single product workflow.
      */
-    // Placeholder workflow: enqueue path is wired, but batch indexing steps are
-    // intentionally not implemented in this change.
+    const hydration = await this.stepFetchCatalogListingSnapshotsBatch(input);
+
+    // Hydration is wired. The remaining batch indexing steps are intentionally
+    // not implemented in this change.
     this.logger.warn(
       {
         storeId: input.storeId,
         itemCount: input.items.length,
+        found: hydration.found.length,
+        missing: hydration.missing.length,
       },
-      "Listing batch product index workflow accepted input but is not implemented yet"
+      "Listing batch product index workflow hydrated input but remaining steps are not implemented yet"
     );
 
     return {
@@ -218,23 +216,10 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
   private async stepFetchCatalogListingSnapshotsBatch(
     input: ListingIndexProductUpdateBatchInput
   ): Promise<ListingBatchHydrationStepResult> {
-    /*
-     * Contract:
-     * - Input is the original coalesced productUpdated batch for one store.
-     * - Output contains hydrated sync actions for found catalog products and
-     *   ListingUpdateResult noop entries for products missing from Catalog.
-     *
-     * Implementation notes:
-     * - Fetch the project store once to obtain organization/defaultLocale and
-     *   verify the batch store exists.
-     * - Query Catalog with all input product ids in one request, preserving the
-     *   event sourceSequence/meta from input.items.
-     * - Map each catalog product through catalogListingSnapshotMapper.
-     * - Compute payloadHash per product from the hydrated sync params.
-     * - Do not write listing tables here; this step is read/hydration only.
-     */
-    void input;
-    throw new Error("Not implemented");
+    return fetchCatalogListingSnapshotsBatch({
+      broker: this.broker,
+      batch: input,
+    });
   }
 
   @WorkflowStep({
