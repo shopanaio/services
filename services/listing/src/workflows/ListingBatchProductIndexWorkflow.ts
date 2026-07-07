@@ -27,6 +27,7 @@ import { prepareListingSyncIndexActionsBatch } from "./ListingBatchProductIndexW
 import { buildListingSyncWriteModelsBatch } from "./ListingBatchProductIndexWorkflow/stepBuildListingSyncWriteModelsBatch.js";
 import { buildListingFacetReferenceSyncPlansBatch } from "./ListingBatchProductIndexWorkflow/stepBuildListingFacetReferenceSyncPlansBatch.js";
 import { writeListingBatchSyncIndexAction } from "./ListingBatchProductIndexWorkflow/stepWriteListingBatchSyncIndexAction.js";
+import { startFacetReferenceStateSyncBatch } from "./ListingBatchProductIndexWorkflow/stepStartFacetReferenceStateSyncBatch.js";
 
 export type ListingIndexProductUpdateBatchItem = {
   eventId: string;
@@ -482,7 +483,10 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
      *   committed, so child workflows never observe uncommitted listing index
      *   state.
      */
-    void input;
-    throw new Error("Not implemented");
+    return startFacetReferenceStateSyncBatch({
+      broker: this.broker,
+      logger: this.logger,
+      ...input,
+    });
   }
 }
