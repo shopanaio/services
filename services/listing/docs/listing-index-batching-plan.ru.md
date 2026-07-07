@@ -36,7 +36,7 @@ single-item path.
 - группировать `productCreated`/`productUpdated` события в batch event handler;
 - сохранять stale/idempotency guarantees на уровне каждого product;
 - уменьшить количество DBOS workflows, catalog queries и bitmap writes;
-- оставить `productDeleted` item-level на первом этапе;
+- оставить `productDeleted` item-level;
 - не менять публичную storefront query модель;
 - не требовать глобального rebuild как основного способа синхронизации.
 
@@ -45,8 +45,8 @@ single-item path.
 - Не переписывать весь listing index storage.
 - Не добавлять partial patch semantics для listing snapshot.
 - Не менять contract `ListingSellableItemSnapshot`: snapshot остается полным.
-- Не батчить `productDeleted` в MVP, потому что delete path имеет более высокий
-  риск stale/order конфликтов.
+- Не батчить `productDeleted`, потому что delete path имеет более сложные
+  stale/order конфликты.
 - Не запускать `test` или `tsc` как часть реализации по проектному правилу.
 
 ## Основное решение
@@ -131,8 +131,10 @@ type ListingSyncSellableItemIndexBatchInput = {
 Правила:
 
 - `productIds` должен быть unique и отсортирован до запуска workflow.
-- `sourceSequenceByProductId` обязателен. Нельзя использовать один общий
-  sequence на весь batch.
+- `sourceSequenceByProductId` обязателен. Значения могут быть одинаковыми для
+  разных products, например при одном facet event. Нельзя принимать
+  stale/idempotency decision один раз на уровне batch: sequence должен
+  проверяться отдельно для каждого product.
 - `batchId` стабилен для одной страницы/окна батчинга и участвует в
   idempotency context batch workflow.
 - Item-level `effectiveIdempotencyKey` строится по тем же правилам, что и в
@@ -158,8 +160,8 @@ type ListingSyncSellableItemIndexBatchResult = {
 ```
 
 Для больших batches `results` можно ограничить только failed/missing/noop
-items, если DBOS history size станет проблемой. MVP может возвращать полный
-массив при размере страницы до 100.
+items, если DBOS history size станет проблемой. Полный массив допустим только
+при небольшом размере страницы.
 
 ## Размеры batch
 
@@ -172,7 +174,7 @@ items, если DBOS history size станет проблемой. MVP може�
 | manual reindex | 100 products | 250 products | shard/page based |
 
 Если страница products превышает `maxVariantsPerBatch`, workflow должен
-разделить ее на меньшие chunks до hydration/write phase.
+разделить ее на меньшие chunks перед hydration/write.
 
 ## Batch workflow pipeline
 
@@ -412,14 +414,15 @@ await broker.startWorkflow(
 Facet changes не приходят из catalog product revision. Для них нужен stable
 listing source sequence per product.
 
-Рекомендуемый вариант MVP:
+Рекомендуемый вариант:
 
 - использовать `eventSequence` события `listingFacetMembershipChanged`, если
   compatibility event остается;
 - для direct batch path использовать sequence из исходного facet mutation
   workflow/event;
-- одинаковый sequence разрешен для разных products, потому что latest state key
-  item-scoped.
+- одинаковый sequence ожидаем для affected products одного facet event;
+- одинаковый sequence разрешен для разных products, потому что stale/noop
+  decision принимается отдельно по каждому product.
 
 Важно: если после facet batch приходит более свежий `productUpdated` с большим
 sourceSequence, facet batch должен стать `ignored_stale` для этого product.
@@ -458,8 +461,8 @@ single-item delete workflow.
 
 ### Буферизация
 
-MVP должен использовать durable outbox table, а не in-memory debounce, чтобы не
-терять events при restart.
+Буферизация должна использовать durable outbox table, а не in-memory debounce,
+чтобы не терять events при restart.
 
 Новая таблица:
 
@@ -547,7 +550,7 @@ Handler `productCreated/productUpdated` после записи event buffer м�
   `storeId + time bucket`;
 - или полагаться на periodic scheduler.
 
-Рекомендуемый MVP:
+Рекомендуемый вариант:
 
 ```text
 timeBucket = floor(event.createdAt / 2 seconds)
@@ -584,6 +587,24 @@ Partition keys:
 Для batch workflows `concurrency: 1` внутри partition защищает только сам batch.
 Item-level correctness обеспечивается locks в `listing_index_item_state`.
 
+## Concurrency contract
+
+Batch workflow и single-item workflows могут выполняться параллельно, потому
+что batch partition не item-scoped. Корректность для конкретного product
+обеспечивается только item lock в `listing_index_item_state`.
+
+Правила:
+
+- batch writer берет `listing_index_item_state` lock для каждого product;
+- locks внутри batch всегда берутся в сортированном порядке по `itemId`;
+- stale/noop/conflict decision выполняется после взятия item lock;
+- physical writes выполняются только для items со статусом `applied`;
+- `ignored_stale` и `noop` items не должны менять физические таблицы индекса;
+- если single-item `productUpdated` с большим `sourceSequence` записался раньше,
+  соответствующий item внутри batch получает `ignored_stale`;
+- если batch item записался раньше, последующий single-item `productUpdated` с
+  большим `sourceSequence` применяется как более свежий update.
+
 ## Aggregated facet reference sync
 
 После batch write не нужно запускать `syncFacetReferenceState` на каждый product.
@@ -612,8 +633,8 @@ listing.syncFacetReferenceState
 listing.syncFacetReferenceStateBatch
 ```
 
-MVP может оставить per-product sync, если нужно снизить scope первого PR, но
-это сохранит заметную часть workflow amplification.
+Можно оставить per-product sync, если нужно снизить объем изменения, но это
+сохранит заметную часть workflow amplification.
 
 ## Idempotency
 
@@ -657,7 +678,7 @@ listing:<reason>:<storeId>:product:<productId>:<operationId>:<refsHash>:<sourceS
 
 ## Transaction boundaries
 
-MVP вариант:
+Основной вариант:
 
 - один DB transaction на batch page до 100 products;
 - если batch page слишком большой, workflow делит его на write chunks;
@@ -669,101 +690,60 @@ MVP вариант:
 - workflow агрегирует chunk results;
 - failed chunk retry не повторяет уже persisted DBOS step results.
 
-## Этапы внедрения
-
-### Этап 1. Repository batch bitmap delta
+## Задачи внедрения
 
 - Добавить `replaceProductMembershipsBatch`.
 - Добавить `replaceVariantMembershipsBatch`.
 - Добавить helper для чтения current memberships по массиву doc ids.
 - Не менять существующий single-item API.
-
-### Этап 2. Batch write script
-
 - Добавить `ListingWriteIndexBatchActionScript`.
 - Использовать существующие batch repository методы.
 - Сохранить item-level stale/noop/conflict checks.
 - Возвращать per-item results.
-
-### Этап 3. Batch workflow
-
 - Добавить `ListingSyncSellableItemIndexBatchWorkflow`.
 - Добавить batch hydration.
 - Добавить `ListingResolveFacetSelectionsBatchScript`.
 - Добавить batch build/write pipeline.
 - Зарегистрировать workflow в listing module.
-
-### Этап 4. Batch facet changes
-
 - Изменить `FacetAffectedProductsResyncWorkflow`:
   - не эмитить обязательный event per product;
   - стартовать batch workflow per affected page;
   - хранить счетчики и workflow ids вместо всех event ids.
 - Compatibility event оставить опциональным.
-
-### Этап 5. Batch product event handler
-
 - Добавить `listing_index_event_buffer`.
 - Добавить repository для claim/coalesce/mark processed.
 - Добавить `ListingProductBatchEventHandler`.
 - Добавить `listing.flushProductIndexEventBatch`.
 - Перевести `productCreated/productUpdated` на buffer + flush.
 - Оставить single-item fallback.
-
-### Этап 6. Aggregated facet reference sync
-
 - Добавить batch reference sync plan.
 - Уменьшить per-product child workflow fan-out.
+- Добавить метрики/log fields:
 
-### Этап 7. Observability и tuning
+  - `batchId`;
+  - `operationId`;
+  - `reason`;
+  - `productCount`;
+  - `variantCount`;
+  - `applied/noop/ignoredStale/missing/failed`;
+  - `bitmapValueKeysAdded`;
+  - `bitmapValueKeysRemoved`;
+  - `bitmapDocIdsAdded`;
+  - `bitmapDocIdsRemoved`;
+  - `durationMs`;
+  - `catalogHydrationMs`;
+  - `writeMs`.
 
-Добавить метрики/log fields:
+## Implementation constraints
 
-- `batchId`;
-- `operationId`;
-- `reason`;
-- `productCount`;
-- `variantCount`;
-- `applied/noop/ignoredStale/missing/failed`;
-- `bitmapValueKeysAdded`;
-- `bitmapValueKeysRemoved`;
-- `bitmapDocIdsAdded`;
-- `bitmapDocIdsRemoved`;
-- `durationMs`;
-- `catalogHydrationMs`;
-- `writeMs`.
-
-## Риски и решения
-
-| Риск | Решение |
-| --- | --- |
-| Deadlock при item locks | Всегда lock по sorted `itemId`. |
-| Большая DB transaction | Hard cap по products и variants, chunked writes. |
-| DBOS history growth | Ограничить result details, retention policy для completed workflows. |
-| Потеря events при restart | Durable event buffer вместо in-memory debounce. |
-| Stale facet batch после product update | Per-item sourceSequence check. |
-| Конфликт разных source sequences между catalog/listing events | Нужен единый monotonic sequence или явная arbitration policy. |
-| Bitmap write amplification остается высокой | Batch delta по `valueKey -> docIds[]`. |
-| One bad product валит массовый batch | Per-item failed result для validation/domain errors. |
-
-## MVP scope
-
-Первый полезный PR:
-
-1. batch bitmap delta repository methods;
-2. `ListingWriteIndexBatchActionScript`;
-3. `ListingSyncSellableItemIndexBatchWorkflow`;
-4. перевод `FacetAffectedProductsResyncWorkflow` на batch workflow per page.
-
-Второй PR:
-
-1. durable event buffer;
-2. batch event handler для `productCreated/productUpdated`;
-3. flush workflow;
-4. fallback на single-item sync.
-
-Третий PR:
-
-1. aggregated facet reference sync;
-2. tuning batch sizes;
-3. metrics и history retention.
+- Locks для batch items всегда брать в sorted `itemId` order.
+- Batch page ограничивать по products и variants; oversized pages писать chunks.
+- Batch result не должен хранить полный per-item payload для больших batches.
+- Product event buffering должен быть durable; in-memory debounce не использовать
+  как единственный transport.
+- Source sequences от catalog/listing events должны быть сравнимы между собой
+  или заменены явной arbitration policy.
+- Posting bitmap updates должны использовать batch delta по
+  `valueKey -> docIds[]`.
+- Item-level validation/domain errors должны возвращаться как per-item
+  `failed` result и не отменять successful items.
