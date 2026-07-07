@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import {
   BrokerWorkflows,
   buildIdempotencyKey,
+  DBOS,
   InjectBroker,
   ServiceBroker,
   type IdempotencyContext,
@@ -229,7 +230,7 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
       storeId: input.storeId,
       status: "accepted",
       accepted: input.items.length,
-      processedAt: new Date().toISOString(),
+      processedAt: new Date(await DBOS.now()).toISOString(),
     };
   }
 
