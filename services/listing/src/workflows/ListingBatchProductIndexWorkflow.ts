@@ -341,28 +341,101 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
   ): Promise<ListingBatchWriteIndexStepResult> {
     /*
      * Contract:
-     * - Input contains per-product write model items.
-     * - Output contains per-product ListingUpdateResult entries and the product
-     *   ids whose index rows were actually applied.
+     * - Input contains per-product write model items from
+     *   buildListingSyncWriteModelsBatch. Each item keeps its own prepared action
+     *   and writeModelHash because freshness/idempotency are product-scoped.
+     * - Output contains one ListingUpdateResult per input item and the product ids
+     *   whose rows were actually applied to listing index tables.
      *
-     * Transaction contract:
+     * Required write algorithm:
      * - Open exactly one listing repository transaction for the whole batch.
-     * - Lock listing_index_item_state rows for every product item key.
-     * - For each product decide ignored_stale/noop/conflict/applied while the
-     *   locks are held.
-     * - Build the merged payload only from applied items.
-     * - Write table-by-table inside the same transaction:
-     *   1. allocate product and variant doc ids;
-     *   2. ensure product bootstrap rows;
-     *   3. upsert product_listing_index rows;
-     *   4. replace product price, title search, sort, and product bitmap rows;
-     *   5. upsert variant_listing_index rows;
-     *   6. replace variant source price, runtime price, facet bitmap, and
-     *      variant_product bitmap rows;
-     *   7. delete stale variants and their dependent rows;
-     *   8. refresh variant projection blocks for all changed variant doc ids;
-     *   9. upsert listing_index_item_state rows for applied products.
-     * - Commit all applied products atomically or roll back the whole write step.
+     * - Lock current listing_index_item_state rows for every input item key
+     *   before deciding what to write. The lock decision and all index writes
+     *   must share the same transaction.
+     * - For each item, derive statePayloadHash from syncWriteModel.writeModelHash
+     *   and classify it while locks are held:
+     *   - ignored_stale when action.sourceSequence < current.sourceSequence;
+     *   - noop when sourceSequence and effectiveIdempotencyKey match current
+     *     state and statePayloadHash matches current.payloadHash;
+     *   - revision conflict when the same sourceSequence is reused with a
+     *     different effective idempotency key or incompatible payload;
+     *   - applied when the product is fresh enough and must rewrite index rows.
+     * - Build the merged payload only after classification, and only from
+     *   applied items. No noop/ignored_stale product can contribute rows,
+     *   delete keys, doc-id allocation input, projection refresh ids, or state
+     *   upsert data.
+     *
+     * Merged payload requirements:
+     * - Merge by target table/operation, not by executing the single-product
+     *   write script in a loop. The transaction should issue table-level batch
+     *   operations over arrays/maps collected from all applied products.
+     * - Keep deterministic ordering for every array that goes into a repository
+     *   call: productId, variantId, variantDocId, field, valueKey. This keeps
+     *   DBOS replay, logs, generated hashes, and conflict diagnostics stable.
+     * - Product doc ids are allocated once for all applied product ids. Variant
+     *   doc ids are allocated once for all variant ids from applied write models.
+     *   Every later row must use these allocated ids; do not allocate inside
+     *   per-product loops after the payload is merged.
+     * - Existing variants must be loaded for all applied product ids before
+     *   delete planning. Stale variants are variants currently indexed for a
+     *   product but absent from that product's next write model.
+     * - Replacement operations are scoped to the affected product/variant ids:
+     *   replacing price rows, sort rows, title rows, runtime price rows, and
+     *   bitmap memberships must delete old rows only for the specific products
+     *   or variants in the applied set, not for the whole store.
+     * - Product-level merged groups:
+     *   - product_listing_index bootstrap rows;
+     *   - product_listing_index upsert rows;
+     *   - product_listing_price_index rows grouped by productId;
+     *   - product_title_bm25_search_index rows grouped by productId;
+     *   - listing_posting_product_sort rows grouped by productDocId;
+     *   - listing_posting_bitmap product memberships grouped by
+     *     productDocId + field, for category, vendor, and facet.
+     * - Variant-level merged groups:
+     *   - variant_listing_index upsert rows;
+     *   - variant_listing_price_index source price rows grouped by variantId;
+     *   - listing_posting_variant_price runtime price rows grouped by
+     *     variantDocId;
+     *   - listing_posting_bitmap variant memberships grouped by
+     *     variantDocId + field, for facet and variant_product.
+     * - Stale variant merged groups:
+     *   - variant bitmap memberships to delete by stale variantDocId;
+     *   - runtime variant price rows to delete by stale variantDocId;
+     *   - source variant price rows to delete by stale variantId;
+     *   - variant_listing_index rows to delete by stale variantId.
+     * - Projection refresh ids are the union of upserted variantDocIds and stale
+     *   variantDocIds. Refresh each affected projection block once after variant
+     *   rows/dependencies are written.
+     * - listing_index_item_state upserts are also a merged payload: one row per
+     *   applied product with lifecycleStatus "indexed", sourceSequence,
+     *   payloadHash, lastEffectiveIdempotencyKey, lastOperationId, and updatedAt.
+     *
+     * Required write order inside the single transaction:
+     * 1. Lock item states and classify results.
+     * 2. Allocate productDocIds and variantDocIds for applied items.
+     * 3. Load existing variants and compute stale variants.
+     * 4. Ensure product bootstrap rows.
+     * 5. Upsert product_listing_index rows.
+     * 6. Replace product price, title search, sort, and product bitmap groups.
+     * 7. Upsert variant_listing_index rows.
+     * 8. Replace variant source price, runtime price, facet bitmap, and
+     *    variant_product bitmap groups.
+     * 9. Delete stale variant dependencies and stale variant rows.
+     * 10. Refresh projection blocks for all changed variant doc ids.
+     * 11. Upsert latest item state rows for applied products.
+     *
+     * Atomicity/idempotency requirements:
+     * - Either every table mutation for all applied products commits, or none of
+     *   them commits. The workflow must not expose a partially applied batch.
+     * - Per-product results can differ inside one committed transaction:
+     *   ignored_stale/noop items are returned as results but do not mutate index
+     *   tables; applied items mutate tables and latest state.
+     * - Duplicate replay of the same workflow input must converge to noop for
+     *   already-applied products because statePayloadHash and
+     *   lastEffectiveIdempotencyKey match the locked latest state.
+     * - The method should return appliedProductIds from the actual applied set so
+     *   startFacetReferenceStateSyncBatch never starts child workflows for noop
+     *   or ignored_stale products.
      */
     void input;
     throw new Error("Not implemented");
