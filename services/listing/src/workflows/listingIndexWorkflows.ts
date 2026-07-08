@@ -207,15 +207,6 @@ abstract class ListingIndexWorkflowBase<
     );
   }
 
-  @WorkflowStep({
-    name: "startFacetReferenceStateSync",
-    timeoutMs: 30_000,
-    retry: {
-      maxAttempts: 5,
-      intervalSeconds: 1,
-      backoffRate: 2,
-    },
-  })
   protected async stepStartFacetReferenceStateSync(input: {
     result: Listing.ListingUpdateResult;
     plan: ListingFacetReferenceSyncPlan;

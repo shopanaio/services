@@ -462,15 +462,6 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
     return writeListingBatchSyncIndexAction(input);
   }
 
-  @WorkflowStep({
-    name: "startFacetReferenceStateSyncBatch",
-    timeoutMs: 60_000,
-    retry: {
-      maxAttempts: 5,
-      intervalSeconds: 1,
-      backoffRate: 2,
-    },
-  })
   private async stepStartFacetReferenceStateSyncBatch(
     input: ListingBatchStartFacetReferenceSyncStepInput
   ): Promise<ListingBatchStartFacetReferenceSyncStepResult> {
