@@ -26,6 +26,10 @@ export async function enqueueListingSyncItemIndexWorkflow(input: {
   expectedRevision?: number;
   meta: Listing.ListingUpdateMeta;
 }): Promise<void> {
+  if (process.env.E2E_DISABLE_LISTING_EVENT_INDEXING === "true") {
+    return;
+  }
+
   const actionType = "syncSellableItem";
   const action: ListingIndexQueuedSyncAction = {
     type: actionType,

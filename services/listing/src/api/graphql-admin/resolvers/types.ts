@@ -1,6 +1,25 @@
+import {
+  decodeGlobalId,
+  GLOBAL_ID_NAMESPACE,
+} from "@shopana/shared-graphql-guid";
 import { FacetResolver } from "../../../resolvers/admin/FacetResolver.js";
 import { FacetSwatchResolver } from "../../../resolvers/admin/FacetSwatchResolver.js";
 import { FacetValueResolver } from "../../../resolvers/admin/FacetValueResolver.js";
+
+function resolveListingTypeById(id: unknown): "Product" | "Bundle" | null {
+  if (typeof id !== "string") return null;
+
+  try {
+    const decoded = decodeGlobalId(id);
+    if (decoded.namespace !== GLOBAL_ID_NAMESPACE) return null;
+    if (decoded.typeName === "Product" || decoded.typeName === "Bundle") {
+      return decoded.typeName;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 export const typeResolvers = {
   Node: {
@@ -16,7 +35,11 @@ export const typeResolvers = {
   Listing: {
     __resolveType: (obj: unknown) => {
       const typename = (obj as { __typename?: string }).__typename;
-      return typename === "Product" || typename === "Bundle" ? typename : null;
+      if (typename === "Product" || typename === "Bundle") {
+        return typename;
+      }
+
+      return resolveListingTypeById((obj as { id?: unknown }).id);
     },
   },
 

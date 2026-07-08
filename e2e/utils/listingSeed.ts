@@ -1,6 +1,23 @@
 import postgres from 'postgres';
 import { decodeGlobalId } from './globalid';
 
+/*
+ * Listing seed helpers write directly into listing index/posting tables.
+ *
+ * Specs that use this seed must run with:
+ *   E2E_DISABLE_LISTING_EVENT_INDEXING=true
+ *
+ * Otherwise catalog product events can start background listing index workflows
+ * while this seed writes the same rows. That makes the fixture nondeterministic:
+ * product/variant doc IDs may be allocated twice, posting bitmaps can deadlock,
+ * and direct seed data can race with event-driven indexing.
+ *
+ * For new listing seed helpers, keep the same contract: catalog data may be
+ * created through the API, but listing read-model tables should have a single
+ * writer during the spec. Either use direct seed with the env flag above, or do
+ * not touch listing index/posting tables and wait for normal indexing instead.
+ */
+
 const DEFAULT_DATABASE_URL = 'postgresql://postgres:postgres@localhost:15432/portal';
 const ZERO_UUID = '00000000-0000-0000-0000-000000000000';
 
@@ -34,6 +51,11 @@ export interface SeedListingCategoryProductsInput {
   currency?: string;
 }
 
+type SeedListingProductWithDocIds = ListingSeedProductInput & {
+  productDocId: number;
+  variantDocId: number;
+};
+
 export async function seedListingCategoryProducts({
   storeId,
   category,
@@ -55,6 +77,7 @@ export async function seedListingCategoryProducts({
           productUuid: decodeGlobalId(product.id).id,
           variantUuid: product.variantId ? decodeGlobalId(product.variantId).id : null,
           productDocId: product.productDocId,
+          variantDocId: product.variantDocId,
           handle: product.handle,
           title: product.title,
           publishedAt: product.publishedAt,
@@ -80,7 +103,10 @@ export async function seedListingCategoryProducts({
 
       await seedVariantProjectionBlock(tx, {
         projectUuid,
-        productDocIds: seedProducts.map((product) => product.productDocId),
+        products: seedProducts.map((product) => ({
+          productDocId: product.productDocId,
+          variantDocId: product.variantDocId,
+        })),
       });
 
       await seedFacetPostings(tx, {
@@ -104,7 +130,7 @@ export async function seedListingCategoryProducts({
           .flatMap((product) =>
             (product.variantFacetValueKeys ?? []).map((valueKey) => ({
               valueKey,
-              docId: product.productDocId,
+              docId: product.variantDocId,
             })),
           ),
       });
@@ -134,22 +160,84 @@ async function assignProductDocIds(
   sql: postgres.TransactionSql,
   projectUuid: string,
   products: ListingSeedProductInput[],
-): Promise<(ListingSeedProductInput & { productDocId: number })[]> {
+): Promise<SeedListingProductWithDocIds[]> {
+  const productUuids = products.map((product) => decodeGlobalId(product.id).id);
+  const variantUuids = products.map((product, index) =>
+    product.variantId ? decodeGlobalId(product.variantId).id : productUuids[index],
+  );
+
+  const existingProducts = productUuids.length
+    ? await sql<{ productUuid: string; productDocId: number }[]>`
+        SELECT
+          product_id::text AS "productUuid",
+          product_doc_id::int AS "productDocId"
+        FROM listing.product_listing_index
+        WHERE store_id = ${projectUuid}::uuid
+          AND product_id = ANY(${productUuids}::uuid[])
+      `
+    : [];
+
+  const existingVariants = variantUuids.length
+    ? await sql<{ variantUuid: string; variantDocId: number }[]>`
+        SELECT
+          variant_id::text AS "variantUuid",
+          variant_doc_id::int AS "variantDocId"
+        FROM listing.variant_listing_index
+        WHERE store_id = ${projectUuid}::uuid
+          AND variant_id = ANY(${variantUuids}::uuid[])
+      `
+    : [];
+
   const [{ maxDocId }] = await sql<{ maxDocId: number | null }[]>`
     SELECT COALESCE(MAX(product_doc_id), 0)::int AS "maxDocId"
     FROM listing.product_listing_index
     WHERE store_id = ${projectUuid}::uuid
   `;
-  let nextDocId = (maxDocId ?? 0) + 1;
 
-  return products.map((product) => {
-    if (product.productDocId) {
-      return { ...product, productDocId: product.productDocId };
+  const [{ maxVariantDocId }] = await sql<{ maxVariantDocId: number | null }[]>`
+    SELECT COALESCE(MAX(variant_doc_id), 0)::int AS "maxVariantDocId"
+    FROM listing.variant_listing_index
+    WHERE store_id = ${projectUuid}::uuid
+  `;
+
+  const productDocIdsByProductId = new Map(
+    existingProducts.map((product) => [product.productUuid, product.productDocId]),
+  );
+  const variantDocIdsByVariantId = new Map(existingVariants.map((variant) => [variant.variantUuid, variant.variantDocId]));
+  const usedProductDocIds = new Set(existingProducts.map((product) => product.productDocId));
+  const usedVariantDocIds = new Set(existingVariants.map((variant) => variant.variantDocId));
+  let nextProductDocId = (maxDocId ?? 0) + 1;
+  let nextVariantDocId = (maxVariantDocId ?? 0) + 1;
+
+  const nextUnusedProductDocId = () => {
+    while (usedProductDocIds.has(nextProductDocId)) {
+      nextProductDocId += 1;
     }
+    const docId = nextProductDocId;
+    usedProductDocIds.add(docId);
+    nextProductDocId += 1;
+    return docId;
+  };
 
-    const productDocId = nextDocId;
-    nextDocId += 1;
-    return { ...product, productDocId };
+  const nextUnusedVariantDocId = () => {
+    while (usedVariantDocIds.has(nextVariantDocId)) {
+      nextVariantDocId += 1;
+    }
+    const docId = nextVariantDocId;
+    usedVariantDocIds.add(docId);
+    nextVariantDocId += 1;
+    return docId;
+  };
+
+  return products.map((product, index) => {
+    const productDocId =
+      productDocIdsByProductId.get(productUuids[index]) ?? product.productDocId ?? nextUnusedProductDocId();
+    usedProductDocIds.add(productDocId);
+
+    const variantDocId = variantDocIdsByVariantId.get(variantUuids[index]) ?? nextUnusedVariantDocId();
+    usedVariantDocIds.add(variantDocId);
+
+    return { ...product, productDocId, variantDocId };
   });
 }
 
@@ -160,6 +248,7 @@ async function seedListingProduct(
     productUuid: string;
     variantUuid?: string | null;
     productDocId: number;
+    variantDocId: number;
     handle?: string | null;
     title?: string | null;
     publishedAt?: string | null;
@@ -216,7 +305,6 @@ async function seedListingProduct(
     )
     ON CONFLICT (product_id) DO UPDATE SET
       store_id = EXCLUDED.store_id,
-      product_doc_id = EXCLUDED.product_doc_id,
       kind = EXCLUDED.kind,
       handle = EXCLUDED.handle,
       status = EXCLUDED.status,
@@ -285,7 +373,7 @@ async function seedListingProduct(
       productUuid: input.productUuid,
       productDocId: input.productDocId,
       variantUuid: input.variantUuid ?? input.productUuid,
-      variantDocId: input.productDocId,
+      variantDocId: input.variantDocId,
       priceMinor: input.priceMinor,
       currency: input.currency,
       signatureKey: input.variantSignatureKey ?? 'default',
@@ -431,10 +519,6 @@ async function seedVariantPrice(
       now()
     )
     ON CONFLICT (variant_id) DO UPDATE SET
-      store_id = EXCLUDED.store_id,
-      product_id = EXCLUDED.product_id,
-      product_doc_id = EXCLUDED.product_doc_id,
-      variant_doc_id = EXCLUDED.variant_doc_id,
       signature_key = EXCLUDED.signature_key,
       in_stock = EXCLUDED.in_stock,
       total_stock = EXCLUDED.total_stock,
@@ -600,22 +684,31 @@ async function seedVariantProjectionBlock(
   sql: postgres.TransactionSql,
   input: {
     projectUuid: string;
-    productDocIds: number[];
+    products: { productDocId: number; variantDocId: number }[];
   },
 ) {
-  if (input.productDocIds.length === 0) {
+  if (input.products.length === 0) {
     return;
   }
 
-  const variantDocFrom = Math.min(...input.productDocIds);
-  const variantDocTo = Math.max(...input.productDocIds) + 1;
+  const variantDocIds = input.products.map((product) => product.variantDocId);
+  const variantDocFrom = Math.min(...variantDocIds);
+  const variantDocTo = Math.max(...variantDocIds) + 1;
 
   await sql`
     WITH docs AS (
-      SELECT unnest(${input.productDocIds}::int[]) AS doc_id
+      SELECT *
+      FROM unnest(
+        ${variantDocIds}::int[],
+        ${input.products.map((product) => product.productDocId)}::int[]
+      ) AS doc(variant_doc_id, product_doc_id)
     ),
     bitmap AS (
-      SELECT rb_build_agg(doc_id) AS value
+      SELECT
+        rb_build_agg(variant_doc_id) AS variant_value,
+        rb_build_agg(product_doc_id) AS product_value,
+        COUNT(*)::int AS variant_count,
+        COUNT(DISTINCT product_doc_id)::int AS product_count
       FROM docs
     )
     INSERT INTO listing.listing_posting_variant_storeion_block (
@@ -633,10 +726,10 @@ async function seedVariantProjectionBlock(
       0,
       ${variantDocFrom},
       ${variantDocTo},
-      value,
-      value,
-      rb_cardinality(value)::int,
-      rb_cardinality(value)::int
+      variant_value,
+      product_value,
+      variant_count,
+      product_count
     FROM bitmap
     ON CONFLICT (store_id, block_id) DO UPDATE SET
       variant_doc_from = EXCLUDED.variant_doc_from,
