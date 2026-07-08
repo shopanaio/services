@@ -316,7 +316,7 @@ export class Repository {
   }): Promise<DomainEventRecord[]> {
     const limit = input.limit ?? DEFAULT_DISPATCH_LIMIT;
     const baseWhere = and(
-      inArray(domainEvents.status, ["pending", "dispatching"]),
+      eq(domainEvents.status, "pending"),
       eq(domainEvents.dispatchMode, "deferred"),
       eq(domainEvents.organizationId, input.organizationId),
       eq(domainEvents.batchKey, input.batchKey),
