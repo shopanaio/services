@@ -552,9 +552,19 @@ function facetValueInput(facets: ApiListingFacet[], facetId: string, valueId: st
   const facet = facets.find((candidate) => candidate.id === facetId);
   const value = facet?.values.find((candidate) => candidate.id === valueId);
 
-  if (!value?.input) {
+  if (!facet || !value) {
     throw new Error(`Missing listing facet value input for ${facetId}:${valueId}`);
   }
 
-  return value.input as ApiListingProductFilter;
+  const input = value.input as ApiListingProductFilter | undefined;
+  if (input && Object.keys(input).length > 0) {
+    return input;
+  }
+
+  return {
+    variantFacet: {
+      facet: facet.id,
+      value: value.id,
+    },
+  };
 }
