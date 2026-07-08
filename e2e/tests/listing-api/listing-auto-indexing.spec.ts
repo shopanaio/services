@@ -121,6 +121,14 @@ test.describe('Listing API automatic indexing', () => {
     await expectListingSnapshot(api, category, {
       totalCount: filteredProducts.length,
       productIds: filteredProducts.map((product) => product.id),
+      facetCounts: expectedFilteredFacetCounts(createdFacets, facets, nextDefinitions, {
+        [facets[0].sourceSlug]: 'red',
+        [facets[1].sourceSlug]: 'm',
+      }),
+      selectedFacetValues: {
+        [facets[0].facetSlug]: ['red'],
+        [facets[1].facetSlug]: ['m'],
+      },
       facets: [colorRedFilter, sizeMFilter],
     });
   });
@@ -169,7 +177,137 @@ test.describe('Listing API automatic indexing', () => {
     await expectListingSnapshot(api, category, {
       totalCount: filteredProducts.length,
       productIds: filteredProducts.map((product) => product.id),
+      facetCounts: expectedFilteredFacetCounts(createdFacets, facets, productDefinitions, {
+        [facets[2].sourceSlug]: 'cotton',
+        [facets[3].sourceSlug]: 'modern',
+      }),
+      selectedFacetValues: {
+        [facets[2].facetSlug]: ['cotton'],
+        [facets[3].facetSlug]: ['modern'],
+      },
       facets: [materialCottonFilter, styleModernFilter],
+    });
+  });
+
+  test('removes and rewrites indexed memberships across product and facet lifecycle changes', async ({ api }) => {
+    const unique = crypto.randomUUID().slice(0, 8);
+    const facets = facetDefinitions(unique, 'lifecycle');
+    const category = await api.admin.category.create({
+      handle: `auto-lifecycle-category-${unique}`,
+      name: 'Auto Lifecycle Listing Category',
+    });
+    const warehouse = await createWarehouse(api, `AUTO-LIFE-${unique}`);
+
+    await createSourceProducts(api, unique, facets);
+    const createdFacets = await createOptionFacets(api, facets);
+    const productDefinitions = productMatrix(unique, facets, 8, 8);
+
+    const indexedProducts: ApiProduct[] = [];
+    for (const definition of productDefinitions) {
+      indexedProducts.push(
+        await createListingProduct(api, {
+          definition,
+          category,
+          warehouseId: warehouse.id,
+        }),
+      );
+    }
+
+    const expectedProducts = [...indexedProducts];
+    const expectedDefinitions = [...productDefinitions];
+    const removeExpectedProduct = (product: ApiProduct) => {
+      const index = expectedProducts.findIndex((candidate) => candidate.id === product.id);
+      if (index < 0) {
+        throw new Error(`Product ${product.id} is not tracked by lifecycle expectations`);
+      }
+
+      expectedProducts.splice(index, 1);
+      expectedDefinitions.splice(index, 1);
+    };
+
+    await expectListingSnapshot(api, category, {
+      totalCount: expectedProducts.length,
+      productIds: expectedProducts.map((product) => product.id),
+      facetCounts: expectedFacetCounts(createdFacets, facets, expectedDefinitions),
+    });
+
+    indexedProducts[0] = await updateProductStatus(api, indexedProducts[0], 'DRAFT');
+    removeExpectedProduct(indexedProducts[0]);
+    await expectListingSnapshot(api, category, {
+      totalCount: expectedProducts.length,
+      productIds: expectedProducts.map((product) => product.id),
+      facetCounts: expectedFacetCounts(createdFacets, facets, expectedDefinitions),
+    });
+
+    indexedProducts[1] = await removeProductFromCategory(api, indexedProducts[1], category);
+    await expectProductCategoryAssignment(api, indexedProducts[1], category, false);
+    removeExpectedProduct(indexedProducts[1]);
+    await expectListingSnapshot(api, category, {
+      totalCount: expectedProducts.length,
+      productIds: expectedProducts.map((product) => product.id),
+      facetCounts: expectedFacetCounts(createdFacets, facets, expectedDefinitions),
+    });
+
+    indexedProducts[2] = await updateProductVariantInventory(api, indexedProducts[2], {
+      warehouseId: warehouse.id,
+      onHand: 0,
+    });
+    removeExpectedProduct(indexedProducts[2]);
+    await expectListingSnapshot(api, category, {
+      totalCount: expectedProducts.length,
+      productIds: expectedProducts.map((product) => product.id),
+      facetCounts: expectedFacetCounts(createdFacets, facets, expectedDefinitions),
+    });
+
+    const snapshot = await expectListingSnapshot(api, category, {
+      totalCount: expectedProducts.length,
+      productIds: expectedProducts.map((product) => product.id),
+      facetCounts: expectedFacetCounts(createdFacets, facets, expectedDefinitions),
+    });
+    const lifecycleProductDefinition = expectedDefinitions[0];
+    const lifecycleColor = lifecycleProductDefinition.options[facets[0].sourceSlug];
+    const lifecycleColorFilter = facetValueInput(snapshot.facets, facets[0].facetSlug, lifecycleColor);
+    const lifecycleColorProducts = expectedProducts.filter(
+      (_product, index) => expectedDefinitions[index].options[facets[0].sourceSlug] === lifecycleColor,
+    );
+
+    await updateFacetDisplayValueEnabled(api, createdFacets[0], lifecycleColor, false);
+    await expectListingSnapshot(api, category, {
+      totalCount: 0,
+      productIds: [],
+      facets: [lifecycleColorFilter],
+    });
+
+    await updateFacetDisplayValueEnabled(api, createdFacets[0], lifecycleColor, true);
+    await expectListingSnapshot(api, category, {
+      totalCount: lifecycleColorProducts.length,
+      productIds: lifecycleColorProducts.map((product) => product.id),
+      facets: [lifecycleColorFilter],
+    });
+
+    await deleteFacet(api, createdFacets[3].id);
+    await expectListingSnapshot(api, category, {
+      totalCount: expectedProducts.length,
+      productIds: expectedProducts.map((product) => product.id),
+      facetCounts: expectedFacetCounts(
+        createdFacets.slice(0, 3),
+        facets.slice(0, 3),
+        expectedDefinitions,
+      ),
+      missingFacetIds: [createdFacets[3].id],
+    });
+
+    await deleteProduct(api, indexedProducts[4]);
+    removeExpectedProduct(indexedProducts[4]);
+    await expectListingSnapshot(api, category, {
+      totalCount: expectedProducts.length,
+      productIds: expectedProducts.map((product) => product.id),
+      facetCounts: expectedFacetCounts(
+        createdFacets.slice(0, 3),
+        facets.slice(0, 3),
+        expectedDefinitions,
+      ),
+      missingFacetIds: [createdFacets[3].id],
     });
   });
 });
@@ -225,15 +363,19 @@ function productMatrix(
   count: number,
   publishedCount: number,
 ): ProductDefinition[] {
+  const combinationCount = facets.reduce((acc, facet) => acc * facet.values.length, 1);
+
   return Array.from({ length: count }, (_, index) => {
     const ordinal = String(index + 1).padStart(2, '0');
+    let combinationIndex = (index * 17) % combinationCount;
 
     return {
       title: `Auto Indexed Product ${ordinal}`,
       handle: `auto-indexed-product-${unique}-${ordinal}`,
       options: Object.fromEntries(
-        facets.map((facet, facetIndex) => {
-          const value = facet.values[(index + facetIndex) % facet.values.length];
+        facets.map((facet) => {
+          const value = facet.values[combinationIndex % facet.values.length];
+          combinationIndex = Math.floor(combinationIndex / facet.values.length);
 
           return [facet.sourceSlug, value.handle];
         }),
@@ -303,7 +445,7 @@ async function createListingProduct(
     categoryId: input.category.id,
   });
 
-  return api.admin.product.findOne(product.id);
+  return product;
 }
 
 async function createOptionFacets(api: Api, facets: FacetDefinition[]): Promise<ApiFacet[]> {
@@ -394,6 +536,32 @@ function expectedFacetCounts(
   );
 }
 
+function expectedFilteredFacetCounts(
+  createdFacets: ApiFacet[],
+  facets: FacetDefinition[],
+  products: ProductDefinition[],
+  selectedValues: OptionValues,
+): Record<string, Record<string, number>> {
+  return Object.fromEntries(
+    facets.map((facet, index) => [
+      createdFacets[index].slug,
+      Object.fromEntries(
+        facet.values.map((value) => [
+          value.handle,
+          products.filter(
+            (product) =>
+              product.options[facet.sourceSlug] === value.handle
+              && Object.entries(selectedValues).every(
+                ([sourceSlug, selectedValue]) =>
+                  sourceSlug === facet.sourceSlug || product.options[sourceSlug] === selectedValue,
+              ),
+          ).length,
+        ]),
+      ),
+    ]),
+  );
+}
+
 async function createWarehouse(api: Api, codePrefix: string): Promise<{ id: string }> {
   const { data } = await api.admin.mutation('inventory-api/WarehouseCreate', {
     variables: {
@@ -454,6 +622,125 @@ async function addProductToCategory(
   expect(data.catalogMutation.productUpdate.userErrors).toHaveLength(0);
 }
 
+async function removeProductFromCategory(
+  api: Api,
+  product: ApiProduct,
+  category: CategoryData,
+): Promise<ApiProduct> {
+  return api.admin.product.update({
+    productId: product.id,
+    operations: {
+      categories: [
+        {
+          action: 'REMOVE',
+          categoryId: category.id,
+        },
+      ],
+    },
+  });
+}
+
+async function expectProductCategoryAssignment(
+  api: Api,
+  product: ApiProduct,
+  category: CategoryData,
+  assigned: boolean,
+): Promise<void> {
+  const latestProduct = await api.admin.product.findOne(product.id);
+  expect(
+    latestProduct.categoryAssignments.some((assignment) => assignment.category.id === category.id),
+  ).toBe(assigned);
+}
+
+async function updateProductStatus(
+  api: Api,
+  product: ApiProduct,
+  status: ProductDefinition['status'],
+): Promise<ApiProduct> {
+  return api.admin.product.update({
+    productId: product.id,
+    operations: { status },
+  });
+}
+
+async function updateProductVariantInventory(
+  api: Api,
+  product: ApiProduct,
+  input: {
+    warehouseId: string;
+    onHand: number;
+  },
+): Promise<ApiProduct> {
+  const latestProduct = await api.admin.product.findOne(product.id);
+  const variant = latestProduct.variants.edges[0]?.node;
+  if (!variant) {
+    throw new Error(`Product ${product.id} does not have a variant to update inventory`);
+  }
+
+  return api.admin.product.update({
+    productId: latestProduct.id,
+    expectedRevision: latestProduct.revision,
+    operations: {
+      variants: [
+        {
+          action: 'UPDATE',
+          variantId: variant.id,
+          inventory: {
+            warehouseId: input.warehouseId,
+            onHand: input.onHand,
+          },
+        },
+      ],
+    },
+  });
+}
+
+async function updateFacetDisplayValueEnabled(
+  api: Api,
+  facet: ApiFacet,
+  valueId: string,
+  enabled: boolean,
+): Promise<void> {
+  const value = facet.values.find((candidate) => candidate.id === valueId);
+  if (!value) {
+    throw new Error(`Facet ${facet.id} does not have display value ${valueId}`);
+  }
+
+  const { data } = await api.admin.mutation('facet-api/FacetValueUpdate', {
+    variables: {
+      input: {
+        id: value.id,
+        enabled,
+      },
+    },
+  });
+  const result = data.listingMutation.facetValueUpdate;
+  expect(result.userErrors).toHaveLength(0);
+  expect(result.facetValue?.enabled).toBe(enabled);
+}
+
+async function deleteFacet(api: Api, facetId: string): Promise<void> {
+  const { data } = await api.admin.mutation('facet-api/FacetDelete', {
+    variables: {
+      input: { id: facetId },
+    },
+  });
+  const result = data.listingMutation.facetDelete;
+  expect(result.userErrors).toHaveLength(0);
+  expect(result.deletedFacetId).toBe(facetId);
+}
+
+async function deleteProduct(api: Api, product: ApiProduct): Promise<void> {
+  const { data } = await api.admin.mutation('inventory-api/ProductDelete', {
+    variables: {
+      input: { id: product.id },
+    },
+  });
+  const result = data.catalogMutation.productDelete;
+  expect(result.userErrors).toHaveLength(0);
+  expect(result.deletedProductId).toBe(product.id);
+}
+
 async function expectListingSnapshot(
   api: Api,
   category: CategoryData,
@@ -462,6 +749,7 @@ async function expectListingSnapshot(
     productIds: string[];
     facetCounts?: Record<string, Record<string, number>>;
     missingFacetIds?: string[];
+    selectedFacetValues?: Record<string, string[]>;
     facets?: ApiListingProductFilter[];
   },
 ): Promise<ListingSnapshot> {
@@ -479,6 +767,7 @@ async function expectListingSnapshot(
           missingFacetIds: (expected.missingFacetIds ?? []).filter((facetId) =>
             lastSnapshot?.facets.some((facet) => facet.id === facetId),
           ),
+          selectedFacetValues: readSelectedFacetValues(lastSnapshot.facets, expected.selectedFacetValues),
         };
       },
       {
@@ -491,6 +780,7 @@ async function expectListingSnapshot(
       productIds: [...expected.productIds].sort(),
       facetCounts: expected.facetCounts ?? {},
       missingFacetIds: [],
+      selectedFacetValues: expected.selectedFacetValues ?? {},
     });
 
   if (!lastSnapshot) {
@@ -548,6 +838,23 @@ function readFacetCounts(facets: ApiListingFacet[], expected?: Record<string, Re
   );
 }
 
+function readSelectedFacetValues(facets: ApiListingFacet[], expected?: Record<string, string[]>) {
+  if (!expected) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.keys(expected).map((facetId) => {
+      const facet = facets.find((candidate) => candidate.id === facetId);
+
+      return [
+        facetId,
+        (facet?.values.filter((value) => value.selected).map((value) => value.id) ?? []).sort(),
+      ];
+    }),
+  );
+}
+
 function facetValueInput(facets: ApiListingFacet[], facetId: string, valueId: string) {
   const facet = facets.find((candidate) => candidate.id === facetId);
   const value = facet?.values.find((candidate) => candidate.id === valueId);
@@ -556,15 +863,18 @@ function facetValueInput(facets: ApiListingFacet[], facetId: string, valueId: st
     throw new Error(`Missing listing facet value input for ${facetId}:${valueId}`);
   }
 
-  const input = value.input as ApiListingProductFilter | undefined;
-  if (input && Object.keys(input).length > 0) {
-    return input;
-  }
-
-  return {
+  const expectedInput: ApiListingProductFilter = {
     variantFacet: {
-      facet: facet.id,
-      value: value.id,
+      facet: facetId,
+      value: valueId,
     },
   };
+  const input = value.input as ApiListingProductFilter | null | undefined;
+  expect(input, `Listing facet value ${facetId}:${valueId} must expose reusable input`).toEqual(expectedInput);
+
+  if (!input) {
+    throw new Error(`Listing facet value ${facetId}:${valueId} did not expose reusable input`);
+  }
+
+  return input;
 }

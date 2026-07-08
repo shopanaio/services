@@ -3,6 +3,7 @@ query ProductFindOne($id: ID!) {
     product(id: $id) {
       id
       handle
+      revision
       publishedAt
       isPublished
       createdAt
@@ -72,6 +73,12 @@ query ProductFindOne($id: ID!) {
           slug
           index
         }
+      }
+      categoryAssignments {
+        category {
+          id
+        }
+        isPrimary
       }
       tags {
         id
