@@ -118,17 +118,14 @@ function buildDispatchIdempotency(
   input: EventDispatchInput,
 ): IdempotencyContext {
   const parentWorkflowId = DBOS.workflowID;
-  const callId =
-    input.kind === "event"
-      ? input.eventId
-      : `${input.batchKey}:${input.eventType ?? "*"}:${input.limit ?? "default"}`;
+  const callId = buildDispatchCallId(input);
 
   if (parentWorkflowId) {
     return {
       source: "workflow",
       organizationId: input.organizationId,
       workflowId: parentWorkflowId,
-      stepId: input.kind === "event" ? "dispatchEvent" : "dispatchBatch",
+      stepId: buildDispatchOperation(input),
       callId,
     };
   }
@@ -136,8 +133,32 @@ function buildDispatchIdempotency(
   return {
     source: "content",
     organizationId: input.organizationId,
-    resourceId: input.kind === "event" ? input.eventId : input.batchKey,
-    operation: input.kind === "event" ? "dispatchEvent" : "dispatchBatch",
+    resourceId: buildDispatchResourceId(input),
+    operation: buildDispatchOperation(input),
     content: input,
   };
+}
+
+function buildDispatchCallId(input: EventDispatchInput): string {
+  if (input.kind === "event") {
+    return input.eventId;
+  }
+
+  return `${input.batchKey}:${input.eventType ?? "*"}:${input.limit ?? "default"}`;
+}
+
+function buildDispatchResourceId(input: EventDispatchInput): string {
+  if (input.kind === "event") {
+    return input.eventId;
+  }
+
+  return input.batchKey;
+}
+
+function buildDispatchOperation(input: EventDispatchInput): string {
+  if (input.kind === "event") {
+    return "dispatchEvent";
+  }
+
+  return "dispatchBatch";
 }

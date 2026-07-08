@@ -65,6 +65,13 @@ export interface HandlerInfo {
   };
 }
 
+export interface EventHandlerDelivery {
+  jobId: string;
+  attempt: number;
+  maxAttempts: number;
+  idempotencyKey: string;
+}
+
 export interface EventEmitResult {
   eventId: string;
   eventType: string;
