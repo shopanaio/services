@@ -1,3 +1,5 @@
+import { createHash } from "crypto";
+
 export type ProductKind = "BASE" | "BUNDLE";
 export type ListingStatus = "published" | "draft";
 export type PostingEntityType = "product" | "variant";
@@ -191,7 +193,15 @@ export function buildOptionSignatureKey(
   valueKeys: readonly string[]
 ): string | null {
   const normalized = normalizeOptionValueKeys(valueKeys);
-  return normalized.length > 0 ? normalized.join("|") : null;
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  const digest = createHash("sha256")
+    .update(JSON.stringify(normalized))
+    .digest("hex");
+
+  return `option:v1:${digest}`;
 }
 
 export function buildVariantSignatureKey(valueKeys: readonly string[]): string {

@@ -730,13 +730,14 @@ function compileOptimizedOptionPriceSignatureProductBitmapsSql(): SQL {
       JOIN input i
         ON i.price_filter_json <> '{}'::jsonb
       CROSS JOIN option_count_product_scope price_scope
-      JOIN listing.variant_listing_price_index vp
-        ON vp.store_id = i.store_id
-       AND vp.signature_key = lookup.signature_key
-       AND vp.signature_key IS NOT NULL
+      JOIN listing.variant_listing_index vli
+        ON vli.store_id = i.store_id
+       AND vli.signature_key = lookup.signature_key
+       AND vli.signature_key IS NOT NULL
+      JOIN listing.listing_posting_variant_price vp
+        ON vp.store_id = vli.store_id
+       AND vp.variant_doc_id = vli.variant_doc_id
        AND vp.currency = i.currency
-       AND vp.has_price = true
-       AND vp.price_minor IS NOT NULL
        AND price_scope.bitmap @> vp.product_doc_id
        AND (
          NOT (i.price_filter_json ? 'minPriceMinor')
@@ -755,19 +756,20 @@ function compileWideOptionPriceSignatureProductBitmapsSql(): SQL {
   return sql`
     option_price_signature_product_bitmaps AS MATERIALIZED (
       SELECT
-        vp.signature_key,
+        vli.signature_key,
         COALESCE(
           rb_build_agg(vp.product_doc_id),
           ${emptyRoaringBitmapSql()}
         ) AS product_bitmap
       FROM input i
       CROSS JOIN option_count_product_scope price_scope
-      JOIN listing.variant_listing_price_index vp
-        ON vp.store_id = i.store_id
+      JOIN listing.variant_listing_index vli
+        ON vli.store_id = i.store_id
+       AND vli.signature_key IS NOT NULL
+      JOIN listing.listing_posting_variant_price vp
+        ON vp.store_id = vli.store_id
+       AND vp.variant_doc_id = vli.variant_doc_id
        AND vp.currency = i.currency
-       AND vp.has_price = true
-       AND vp.signature_key IS NOT NULL
-       AND vp.price_minor IS NOT NULL
        AND price_scope.bitmap @> vp.product_doc_id
        AND (
          NOT (i.price_filter_json ? 'minPriceMinor')
@@ -778,7 +780,7 @@ function compileWideOptionPriceSignatureProductBitmapsSql(): SQL {
          OR vp.price_minor <= (i.price_filter_json->>'maxPriceMinor')::bigint
        )
       WHERE i.price_filter_json <> '{}'::jsonb
-      GROUP BY vp.signature_key
+      GROUP BY vli.signature_key
     )
   `;
 }
@@ -844,13 +846,15 @@ function compilePriceOnlyOptionFacetCountsProducerSql(
         ON NOT COALESCE(sfs.has_value AND sfs.value = false, false)
       CROSS JOIN LATERAL (
         SELECT rb_build_agg(vp.product_doc_id) AS product_bitmap
-        FROM listing.variant_listing_price_index vp
-        WHERE vp.store_id = ${request.storeId}::uuid
-          AND vp.signature_key = lookup.signature_key
-          AND vp.currency = ${request.currency}
-          AND vp.has_price = true
-          AND vp.price_minor IS NOT NULL
-          AND price_scope.bitmap @> vp.product_doc_id
+        FROM listing.variant_listing_index vli
+        JOIN listing.listing_posting_variant_price vp
+          ON vp.store_id = vli.store_id
+         AND vp.variant_doc_id = vli.variant_doc_id
+         AND vp.currency = ${request.currency}
+         AND price_scope.bitmap @> vp.product_doc_id
+        WHERE vli.store_id = ${request.storeId}::uuid
+          AND vli.signature_key = lookup.signature_key
+          AND vli.signature_key IS NOT NULL
           ${compilePricePredicateSql(request, sql`vp`)}
       ) price_products
     ),

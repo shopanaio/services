@@ -64,6 +64,12 @@ export class ListingOptionSignatureRepository extends BaseRepository {
       await this.getMembershipSignatureKeys(productDocIds);
     const groups = this.groupNextSignatures(normalized);
     const nextSignatureKeys = [...groups.keys()].sort(compareStrings);
+    const touchedSignatureKeys = uniqueSortedStrings([
+      ...currentSignatureKeys,
+      ...nextSignatureKeys,
+    ]);
+
+    await this.lockSignatureKeys(touchedSignatureKeys);
 
     await this.deleteMembershipsByProductDocIds(productDocIds);
 
@@ -72,13 +78,11 @@ export class ListingOptionSignatureRepository extends BaseRepository {
       const optionSignatureIds =
         await this.getOptionSignatureIds(nextSignatureKeys);
 
-      await this.replaceSignatureValueRows(groups, optionSignatureIds);
+      await this.upsertSignatureValueRows(groups, optionSignatureIds);
       await this.upsertMembershipRows(groups, optionSignatureIds);
     }
 
-    await this.refreshSignatureBitmaps(
-      uniqueSortedStrings([...currentSignatureKeys, ...nextSignatureKeys])
-    );
+    await this.refreshSignatureBitmaps(touchedSignatureKeys);
   }
 
   @Transactional()
@@ -88,6 +92,7 @@ export class ListingOptionSignatureRepository extends BaseRepository {
       productDocId,
     ]);
 
+    await this.lockSignatureKeys(currentSignatureKeys);
     await this.deleteMembershipsByProductDocIds([productDocId]);
     await this.refreshSignatureBitmaps(currentSignatureKeys);
   }
@@ -206,6 +211,14 @@ export class ListingOptionSignatureRepository extends BaseRepository {
     }
   }
 
+  private async lockSignatureKeys(signatureKeys: readonly string[]): Promise<void> {
+    for (const signatureKey of uniqueSortedStrings(signatureKeys)) {
+      await this.connection.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${this.lockKey(signatureKey)}, 0))`
+      );
+    }
+  }
+
   private async ensureSignatureRows(
     groups: readonly SignatureGroup[]
   ): Promise<void> {
@@ -284,23 +297,10 @@ export class ListingOptionSignatureRepository extends BaseRepository {
     return result;
   }
 
-  private async replaceSignatureValueRows(
+  private async upsertSignatureValueRows(
     groups: ReadonlyMap<string, SignatureGroup>,
     optionSignatureIds: ReadonlyMap<string, string>
   ): Promise<void> {
-    const signatureIds = [...optionSignatureIds.values()].sort(compareStrings);
-
-    for (const chunk of chunkArray(signatureIds)) {
-      await this.connection
-        .delete(listingOptionSignatureValue)
-        .where(
-          and(
-            eq(listingOptionSignatureValue.storeId, this.storeId),
-            inArray(listingOptionSignatureValue.optionSignatureId, chunk)
-          )
-        );
-    }
-
     const rows = [...groups.values()]
       .flatMap((group) => {
         const optionSignatureId = optionSignatureIds.get(group.signatureKey);
@@ -319,7 +319,20 @@ export class ListingOptionSignatureRepository extends BaseRepository {
       .sort(compareSignatureValueRows);
 
     for (const chunk of chunkArray(rows)) {
-      await this.connection.insert(listingOptionSignatureValue).values(chunk);
+      await this.connection
+        .insert(listingOptionSignatureValue)
+        .values(chunk)
+        .onConflictDoUpdate({
+          target: [
+            listingOptionSignatureValue.optionSignatureId,
+            listingOptionSignatureValue.valueKey,
+          ],
+          set: {
+            storeId: sql`excluded.store_id`,
+            signatureKey: sql`excluded.signature_key`,
+            facetId: sql`excluded.facet_id`,
+          },
+        });
     }
   }
 
@@ -430,6 +443,10 @@ export class ListingOptionSignatureRepository extends BaseRepository {
       signatureKeys.map((signatureKey) => sql`(${signatureKey}::text)`),
       sql`, `
     );
+  }
+
+  private lockKey(signatureKey: string): string {
+    return `listing_option_signature:${this.storeId}:${signatureKey}`;
   }
 }
 

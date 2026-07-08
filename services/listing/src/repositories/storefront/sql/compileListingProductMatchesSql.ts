@@ -279,7 +279,7 @@ function compilePricedVariantProductsBitmapSql(
     return emptyRoaringBitmapSql();
   }
 
-  // listing_posting_variant_price stores only priced active in-stock variants.
+  // listing_posting_variant_price stores only priced runtime-eligible variants.
   if (optionBitmap) {
     return coalesceBitmapSql(sql`(
       WITH option_variant_matches AS MATERIALIZED (

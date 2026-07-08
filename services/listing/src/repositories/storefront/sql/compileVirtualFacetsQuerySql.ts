@@ -74,7 +74,7 @@ function compileOptionVariantPricesCte(request: ListingSqlRequest): SQL {
     return sql``;
   }
 
-  // listing_posting_variant_price stores only priced active in-stock variants.
+  // listing_posting_variant_price stores only priced runtime-eligible variants.
   return sql`
     option_variant_prices AS MATERIALIZED (
       SELECT
