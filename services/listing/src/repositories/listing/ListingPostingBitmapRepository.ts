@@ -309,7 +309,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
         ? eq(listingPostingBitmap.field, input.field)
         : undefined,
       prefixFilters,
-      sql`${listingPostingBitmap.bitmap} @> ${input.docId}`
+      sql`${listingPostingBitmap.bitmap} @> ${input.docId}::int`
     );
 
     const rows = await this.connection
@@ -527,7 +527,7 @@ export class ListingPostingBitmapRepository extends BaseRepository {
 
   private docIdValuesSql(docIds: readonly number[]) {
     return sql.join(
-      docIds.map((docId) => sql`(${docId})`),
+      docIds.map((docId) => sql`(${docId}::int)`),
       sql`, `
     );
   }
