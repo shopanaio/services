@@ -9,6 +9,9 @@ import type {
   ProductKind,
   ProductSortRowInput,
 } from "../repositories/listing/listingRepositoryTypes.js";
+import {
+  buildVariantSignatureKey as buildOptionVariantSignatureKey,
+} from "../repositories/listing/listingRepositoryTypes.js";
 
 export class ListingBuildSyncWriteModelScript extends BaseScript<
   { action: ListingPreparedSyncAction },
@@ -237,11 +240,5 @@ function facetValueKeys(
 function buildVariantSignatureKey(
   variant: ListingPreparedSyncAction["params"]["item"]["variants"][number]
 ): string {
-  return hashContent({
-    v: 1,
-    facets: variant.facets.map((facet) => ({
-      facet: facet.facet.handle,
-      values: facet.values.map((value) => value.handle).sort(),
-    })),
-  });
+  return buildOptionVariantSignatureKey(variant.facets.flatMap(facetValueKeys));
 }

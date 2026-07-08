@@ -8,6 +8,7 @@ import {
   VariantListingIndexRepository,
   VariantListingPriceIndexRepository,
   ListingPostingBitmapRepository,
+  ListingOptionSignatureRepository,
   ListingPostingProductSortRepository,
   ListingPostingVariantPriceRepository,
   ListingPostingVariantProjectionBlockRepository,
@@ -49,6 +50,7 @@ export class Repository {
   public readonly variantListingIndex: VariantListingIndexRepository;
   public readonly variantListingPriceIndex: VariantListingPriceIndexRepository;
   public readonly listingPostingBitmap: ListingPostingBitmapRepository;
+  public readonly listingOptionSignature: ListingOptionSignatureRepository;
   public readonly listingPostingProductSort: ListingPostingProductSortRepository;
   public readonly listingPostingVariantPrice: ListingPostingVariantPriceRepository;
   public readonly listingPostingVariantProjectionBlock: ListingPostingVariantProjectionBlockRepository;
@@ -78,6 +80,7 @@ export class Repository {
     variantListingIndex: VariantListingIndexRepository,
     variantListingPriceIndex: VariantListingPriceIndexRepository,
     listingPostingBitmap: ListingPostingBitmapRepository,
+    listingOptionSignature: ListingOptionSignatureRepository,
     listingPostingProductSort: ListingPostingProductSortRepository,
     listingPostingVariantPrice: ListingPostingVariantPriceRepository,
     listingPostingVariantProjectionBlock: ListingPostingVariantProjectionBlockRepository,
@@ -102,6 +105,7 @@ export class Repository {
     this.variantListingIndex = variantListingIndex;
     this.variantListingPriceIndex = variantListingPriceIndex;
     this.listingPostingBitmap = listingPostingBitmap;
+    this.listingOptionSignature = listingOptionSignature;
     this.listingPostingProductSort = listingPostingProductSort;
     this.listingPostingVariantPrice = listingPostingVariantPrice;
     this.listingPostingVariantProjectionBlock = listingPostingVariantProjectionBlock;
@@ -149,6 +153,10 @@ export class Repository {
       txManager
     );
     const listingPostingBitmap = new ListingPostingBitmapRepository(
+      db,
+      txManager
+    );
+    const listingOptionSignature = new ListingOptionSignatureRepository(
       db,
       txManager
     );
@@ -208,6 +216,7 @@ export class Repository {
       variantListingIndex,
       variantListingPriceIndex,
       listingPostingBitmap,
+      listingOptionSignature,
       listingPostingProductSort,
       listingPostingVariantPrice,
       listingPostingVariantProjectionBlock,

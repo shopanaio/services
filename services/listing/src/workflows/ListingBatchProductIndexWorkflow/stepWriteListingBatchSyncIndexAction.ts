@@ -15,6 +15,7 @@ import type {
   RuntimeVariantPriceRowInput,
   VariantListingIndexUpsertInput,
   VariantListingPriceRowInput,
+  OptionSignatureProductReplacementInput,
 } from "../../repositories/listing/listingRepositoryTypes.js";
 import type { VariantListingIndex } from "../../repositories/models/index.js";
 import type {
@@ -72,6 +73,7 @@ type MergedBatchSyncPayload = {
   sourcePriceRowsByVariantId: Map<string, VariantListingPriceRowInput[]>;
   runtimePriceRowsByVariantDocId: Map<number, RuntimeVariantPriceRowInput[]>;
   variantMemberships: VariantMembershipReplacement[];
+  optionSignatureProductReplacements: OptionSignatureProductReplacementInput[];
   staleVariants: StaleVariant[];
   projectionRefreshVariantDocIds: number[];
   stateRows: ListingIndexItemStateRow[];
@@ -244,6 +246,9 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
       payload.runtimePriceRowsByVariantDocId
     );
     await this.replaceVariantMemberships(payload.variantMemberships);
+    await this.repository.listingOptionSignature.replaceForProducts(
+      payload.optionSignatureProductReplacements
+    );
     await this.deleteStaleVariantDependencies(payload.staleVariants);
     await this.repository.variantListingIndex.deleteByVariantIds(
       payload.staleVariants.map((variant) => variant.variantId)
@@ -289,6 +294,8 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
       RuntimeVariantPriceRowInput[]
     >();
     const variantMemberships: VariantMembershipReplacement[] = [];
+    const optionSignatureProductReplacements: OptionSignatureProductReplacementInput[] =
+      [];
     const currentVariantIdsByProductId = new Map<string, Set<string>>();
 
     for (const item of input.appliedItems) {
@@ -338,6 +345,16 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
         buildProductMembership(productDocId, "vendor", writeModel),
         buildProductMembership(productDocId, "facet", writeModel)
       );
+      optionSignatureProductReplacements.push({
+        productDocId,
+        variants: writeModel.variants
+          .filter((variant) => variant.inStock)
+          .map((variant) => ({
+            valueKeys: sortedValueKeys(
+              writeModel.variantFacetValueKeysByVariantId[variant.variantId] ?? []
+            ),
+          })),
+      });
 
       for (const variant of writeModel.variants) {
         const variantDocId = getRequiredMapValue(
@@ -448,6 +465,10 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
         runtimePriceRowsByVariantDocId
       ),
       variantMemberships: variantMemberships.sort(compareVariantMemberships),
+      optionSignatureProductReplacements:
+        optionSignatureProductReplacements.sort(
+          compareOptionSignatureProductReplacements
+        ),
       staleVariants,
       projectionRefreshVariantDocIds,
       stateRows,
@@ -698,6 +719,13 @@ function compareVariantMemberships(
     compareNumbers(left.variantDocId, right.variantDocId) ||
     compareStrings(left.field, right.field)
   );
+}
+
+function compareOptionSignatureProductReplacements(
+  left: OptionSignatureProductReplacementInput,
+  right: OptionSignatureProductReplacementInput
+): number {
+  return compareNumbers(left.productDocId, right.productDocId);
 }
 
 function compareStaleVariants(left: StaleVariant, right: StaleVariant): number {

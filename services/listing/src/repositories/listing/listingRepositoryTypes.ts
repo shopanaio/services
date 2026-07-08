@@ -101,6 +101,15 @@ export interface RuntimeVariantPriceRowInput {
   priceMinor: number;
 }
 
+export interface OptionSignatureVariantInput {
+  valueKeys: readonly string[];
+}
+
+export interface OptionSignatureProductReplacementInput {
+  productDocId: number;
+  variants: readonly OptionSignatureVariantInput[];
+}
+
 export interface ProjectionBlockRowInput {
   blockId: number;
   variantDocFrom: number;
@@ -149,6 +158,7 @@ export interface BulkWriteResult {
 }
 
 export const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
+export const DEFAULT_VARIANT_SIGNATURE_KEY = "default";
 export const DEFAULT_VARIANT_PROJECTION_BLOCK_SIZE = 4096;
 export const LISTING_REPOSITORY_BULK_CHUNK_SIZE = 500;
 
@@ -169,6 +179,23 @@ export function chunkArray<T>(
 
 export function uniqueValues<T>(values: readonly T[]): T[] {
   return [...new Set(values)];
+}
+
+export function normalizeOptionValueKeys(valueKeys: readonly string[]): string[] {
+  return uniqueValues(
+    valueKeys.map((valueKey) => valueKey.trim()).filter(Boolean)
+  ).sort();
+}
+
+export function buildOptionSignatureKey(
+  valueKeys: readonly string[]
+): string | null {
+  const normalized = normalizeOptionValueKeys(valueKeys);
+  return normalized.length > 0 ? normalized.join("|") : null;
+}
+
+export function buildVariantSignatureKey(valueKeys: readonly string[]): string {
+  return buildOptionSignatureKey(valueKeys) ?? DEFAULT_VARIANT_SIGNATURE_KEY;
 }
 
 export function assertNonEmptyString(value: string, label: string): void {

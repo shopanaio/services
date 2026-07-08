@@ -194,6 +194,15 @@ export class ListingWriteIndexActionScript extends BaseScript<
     await this.repository.listingPostingVariantPrice.replaceForVariants(
       runtimePriceRows
     );
+    await this.repository.listingOptionSignature.replaceForProduct({
+      productDocId,
+      variants: writeModel.variants
+        .filter((variant) => variant.inStock)
+        .map((variant) => ({
+          valueKeys:
+            writeModel.variantFacetValueKeysByVariantId[variant.variantId] ?? [],
+        })),
+    });
 
     const keepVariantIds = new Set(variantIds);
     const staleVariants = existingVariants.filter(
@@ -243,6 +252,9 @@ export class ListingWriteIndexActionScript extends BaseScript<
         product.productId
       );
       await this.repository.listingPostingBitmap.deleteProductMemberships(
+        product.productDocId
+      );
+      await this.repository.listingOptionSignature.deleteProductMemberships(
         product.productDocId
       );
       await this.repository.productListingIndex.delete(product.productId);

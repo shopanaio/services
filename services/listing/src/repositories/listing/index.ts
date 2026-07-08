@@ -6,6 +6,7 @@ export * from "./ProductListingPriceIndexRepository.js";
 export * from "./VariantListingIndexRepository.js";
 export * from "./VariantListingPriceIndexRepository.js";
 export * from "./ListingPostingBitmapRepository.js";
+export * from "./ListingOptionSignatureRepository.js";
 export * from "./ListingPostingProductSortRepository.js";
 export * from "./ListingPostingVariantPriceRepository.js";
 export * from "./ListingPostingVariantProjectionBlockRepository.js";

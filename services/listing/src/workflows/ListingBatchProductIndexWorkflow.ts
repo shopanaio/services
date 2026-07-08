@@ -420,6 +420,9 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
      *     variantDocId;
      *   - listing_posting_bitmap variant memberships grouped by
      *     variantDocId + field, for facet and variant_product.
+     *   - listing_option_signature rows, signature value rows, and
+     *     product memberships grouped by current in-stock variant option
+     *     signatures.
      * - Stale variant merged groups:
      *   - variant bitmap memberships to delete by stale variantDocId;
      *   - runtime variant price rows to delete by stale variantDocId;
@@ -440,8 +443,9 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
      * 5. Upsert product_listing_index rows.
      * 6. Replace product price, title search, sort, and product bitmap groups.
      * 7. Upsert variant_listing_index rows.
-     * 8. Replace variant source price, runtime price, facet bitmap, and
-     *    variant_product bitmap groups.
+     * 8. Replace variant source price, runtime price, facet bitmap,
+     *    variant_product bitmap groups, and option signature product
+     *    memberships.
      * 9. Delete stale variant dependencies and stale variant rows.
      * 10. Refresh projection blocks for all changed variant doc ids.
      * 11. Upsert latest item state rows for applied products.
