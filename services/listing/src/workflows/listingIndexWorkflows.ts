@@ -426,7 +426,7 @@ export class ListingSyncSellableItemIndexWorkflow extends ListingIndexWorkflowBa
         {
           code: "PROJECT_MISMATCH",
           field: ["storeId"],
-          message: "Catalog product storeId does not match listing sync storeId",
+          message: `Catalog product storeId "${product.storeId}" does not match listing sync storeId "${action.params.storeId}" for product "${product.id}"`,
         },
       ]);
     }

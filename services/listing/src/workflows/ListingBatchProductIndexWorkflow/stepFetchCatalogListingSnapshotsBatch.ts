@@ -118,7 +118,7 @@ export async function fetchCatalogListingSnapshotsBatch(input: {
         {
           code: "PROJECT_MISMATCH",
           field: ["storeId"],
-          message: "Catalog product storeId does not match listing sync storeId",
+          message: `Catalog product storeId "${product.storeId}" does not match listing sync storeId "${batch.storeId}" for product "${product.id}"`,
         },
       ]);
     }
