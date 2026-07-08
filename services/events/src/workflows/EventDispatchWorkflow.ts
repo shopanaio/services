@@ -109,10 +109,7 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
 
     for (const record of records) {
       const event = toDomainEvent(record);
-      const handlers = await this.getAvailableHandlers(
-        event.eventType,
-        event.eventId,
-      );
+      const handlers = await this.getAvailableHandlers(event.eventType);
       const results = await Promise.all(
         handlers.map((handler) => this.tryInvokeHandler(event, handler)),
       );
@@ -143,11 +140,9 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
       const eventIds = events.map((event) => event.eventId);
       const batchHandlers = await this.getAvailableBatchHandlers(
         firstEvent.eventType,
-        eventIds,
       );
       const individualHandlers = await this.getAvailableHandlers(
         firstEvent.eventType,
-        hashValues(eventIds),
       );
       const individualOnlyHandlers = excludeBatchHandledServices(
         individualHandlers,
@@ -200,80 +195,52 @@ export class EventDispatchWorkflow extends BrokerWorkflows<
     return failedEventIds;
   }
 
-  private async getAvailableHandlers(
-    eventType: string,
-    eventId: string,
-  ): Promise<HandlerInfo[]> {
-    return DBOS.runStep(
-      async () => {
-        const config = getConfig();
-        const serviceNames = Object.keys(config.services ?? {});
-        const handlers: HandlerInfo[] = [];
+  private async getAvailableHandlers(eventType: string): Promise<HandlerInfo[]> {
+    const config = getConfig();
+    const serviceNames = Object.keys(config.services ?? {});
+    const handlers: HandlerInfo[] = [];
 
-        for (const serviceName of serviceNames) {
-          const action = `${serviceName}.${eventType}`;
+    for (const serviceName of serviceNames) {
+      const action = `${serviceName}.${eventType}`;
 
-          if (this.broker.hasAction(action)) {
-            const metadata = this.broker.getActionMetadata(action);
-            const retryPolicy = metadata?.retryPolicy ?? {
-              maxAttempts: 3,
-              intervalSeconds: 1,
-              backoffRate: 2,
-            };
+      if (this.broker.hasAction(action)) {
+        const metadata = this.broker.getActionMetadata(action);
+        const retryPolicy = metadata?.retryPolicy ?? {
+          maxAttempts: 3,
+          intervalSeconds: 1,
+          backoffRate: 2,
+        };
 
-            handlers.push({ serviceName, action, retryPolicy });
-          }
-        }
+        handlers.push({ serviceName, action, retryPolicy });
+      }
+    }
 
-        return handlers;
-      },
-      {
-        name: `handlers:${eventId}:${eventType}`,
-        retriesAllowed: true,
-        maxAttempts: 3,
-        intervalSeconds: 1,
-        backoffRate: 2,
-      },
-    );
+    return handlers;
   }
 
   private async getAvailableBatchHandlers(
     eventType: string,
-    eventIds: readonly string[],
   ): Promise<HandlerInfo[]> {
-    const batchHash = hashValues(eventIds);
+    const config = getConfig();
+    const serviceNames = Object.keys(config.services ?? {});
+    const handlers: HandlerInfo[] = [];
 
-    return DBOS.runStep(
-      async () => {
-        const config = getConfig();
-        const serviceNames = Object.keys(config.services ?? {});
-        const handlers: HandlerInfo[] = [];
+    for (const serviceName of serviceNames) {
+      const action = `${serviceName}.${eventType}${BATCH_EVENT_ACTION_SUFFIX}`;
 
-        for (const serviceName of serviceNames) {
-          const action = `${serviceName}.${eventType}${BATCH_EVENT_ACTION_SUFFIX}`;
+      if (this.broker.hasAction(action)) {
+        const metadata = this.broker.getActionMetadata(action);
+        const retryPolicy = metadata?.retryPolicy ?? {
+          maxAttempts: 3,
+          intervalSeconds: 1,
+          backoffRate: 2,
+        };
 
-          if (this.broker.hasAction(action)) {
-            const metadata = this.broker.getActionMetadata(action);
-            const retryPolicy = metadata?.retryPolicy ?? {
-              maxAttempts: 3,
-              intervalSeconds: 1,
-              backoffRate: 2,
-            };
+        handlers.push({ serviceName, action, retryPolicy });
+      }
+    }
 
-            handlers.push({ serviceName, action, retryPolicy });
-          }
-        }
-
-        return handlers;
-      },
-      {
-        name: `batchHandlers:${eventType}:${batchHash}`,
-        retriesAllowed: true,
-        maxAttempts: 3,
-        intervalSeconds: 1,
-        backoffRate: 2,
-      },
-    );
+    return handlers;
   }
 
   private async tryInvokeHandler(
