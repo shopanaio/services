@@ -144,7 +144,25 @@ export class ListingIndexActionScriptError extends Error {
     public readonly issues: readonly ListingIndexValidationIssue[],
     message = "Listing index action failed"
   ) {
-    super(message);
+    super(formatListingIndexActionErrorMessage(message, issues));
     this.name = "ListingIndexActionScriptError";
   }
+}
+
+function formatListingIndexActionErrorMessage(
+  message: string,
+  issues: readonly ListingIndexValidationIssue[]
+): string {
+  if (issues.length === 0) {
+    return message;
+  }
+
+  const details = issues
+    .map((issue) => {
+      const field = issue.field?.length ? ` field=${issue.field.join(".")}` : "";
+      return `${issue.code}${field}: ${issue.message}`;
+    })
+    .join("; ");
+
+  return `${message}: ${details}`;
 }

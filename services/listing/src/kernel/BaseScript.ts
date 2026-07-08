@@ -6,6 +6,7 @@ import {
 import { getContext } from "../context/index.js";
 import type { ListingKernelServices } from "./types.js";
 import { AuthProvider } from "./Authorizable.js";
+import { ListingIndexActionScriptError } from "../scripts/listingIndexActionTypes.js";
 
 export { Transactional, ValidationError, ZodSchema } from "@shopana/shared-kernel";
 
@@ -40,6 +41,18 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
         !(error instanceof ValidationError) &&
         !(error instanceof AuthorizationError)
       ) {
+        if (error instanceof ListingIndexActionScriptError) {
+          this.logger.error(
+            {
+              error: {
+                name: error.name,
+                message: error.message,
+                issues: error.issues,
+              },
+            },
+            `${this.constructor.name} listing index action error details`
+          );
+        }
         this.logger.error({ error }, `${this.constructor.name} failed`);
       }
       return this.handleError(error);
