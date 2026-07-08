@@ -6,6 +6,7 @@ import {
   WorkflowModule,
   type DatabaseModuleOptions,
   type WorkflowQueueConfig,
+  BrokerModule,
 } from "@shopana/shared-kernel";
 import { PaymentsModule } from "@shopana/payments-service";
 import { AppsModule } from "@shopana/apps-service";
@@ -19,6 +20,7 @@ import { IamModule } from "@shopana/iam-service";
 import { EventsModule } from "@shopana/events-service";
 import { CatalogModule } from "@shopana/catalog-service";
 import { ListingModule } from "@shopana/listing-service";
+import { TestActionProxyService } from "./test-action-proxy.service.js";
 
 export interface BootstrapModuleOptions extends BrokerCoreModuleOptions {
   /** DBOS workflows configuration */
@@ -47,6 +49,7 @@ export class BootstrapModule {
       // Shared database pool - available to all services
       DatabaseModule.forRoot(options.database),
       BrokerCoreModule.forRoot(options),
+      BrokerModule.forFeature({ serviceName: "test" }),
       PaymentsModule,
       EventsModule,
       AppsModule,
@@ -73,7 +76,7 @@ export class BootstrapModule {
       );
     }
 
-    @Module({ imports })
+    @Module({ imports, providers: [TestActionProxyService] })
     class DynamicBootstrapModule {}
 
     return DynamicBootstrapModule as unknown as typeof BootstrapModule;

@@ -103,6 +103,10 @@ services:
 
   pricing: {}
 
+  test:
+    ports:
+      action_proxy: 15000
+
 workflows:
   database_url: postgresql://postgres:postgres@localhost:15432/portal
   app_name: shopana-e2e
