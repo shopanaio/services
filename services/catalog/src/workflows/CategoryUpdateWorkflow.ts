@@ -7,12 +7,11 @@ import {
   ServiceBroker,
   DBOS,
 } from "@shopana/shared-kernel";
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { Kernel } from "../kernel/Kernel.js";
 import type { RunScriptContext } from "../kernel/types.js";
 import {
   category,
-  product,
   productCategory,
 } from "../repositories/models/index.js";
 import { CategoryUpdateContentScript } from "../scripts/category/CategoryUpdateContentScript.js";
@@ -291,11 +290,6 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
     productIds: string[],
     changes: CategoryChanges,
   ): Promise<void> {
-    const revisions = await this.getProductRevisions(
-      productIds,
-      input.context.storeId,
-    );
-
     for (const productId of productIds) {
       await this.broker.runWorkflow(
         "events.emit",
@@ -304,7 +298,6 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
           payload: {
             productId,
             storeId: input.context.storeId,
-            revision: revisions.get(productId) ?? 0,
             reasons: getProductUpdatedReasons(changes),
           },
           source: "catalog",
@@ -328,26 +321,6 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
     }
   }
 
-  @WorkflowStep()
-  private async getProductRevisions(
-    productIds: string[],
-    storeId: string,
-  ): Promise<Map<string, number>> {
-    if (productIds.length === 0) return new Map();
-
-    const rows = await this.kernel.db
-      .select({ id: product.id, revision: product.revision })
-      .from(product)
-      .where(
-        and(
-          eq(product.storeId, storeId),
-          inArray(product.id, productIds),
-          isNull(product.deletedAt),
-        ),
-      );
-
-    return new Map(rows.map((row) => [row.id, row.revision]));
-  }
 }
 
 function getProductUpdatedReasons(changes: CategoryChanges): ["category"] {

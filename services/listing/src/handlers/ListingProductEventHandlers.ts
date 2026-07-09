@@ -51,7 +51,7 @@ export class ListingProductEventHandlers extends EventHandlers {
     );
 
     try {
-      await this.enqueueSyncWorkflow(params.event, undefined);
+      await this.enqueueSyncWorkflow(params.event);
       return { success: true };
     } catch (error) {
       return this.handleError(error, "Failed to enqueue productCreated listing sync");
@@ -67,17 +67,13 @@ export class ListingProductEventHandlers extends EventHandlers {
         eventId: params.event.eventId,
         productId: params.event.payload.productId,
         storeId: params.event.payload.storeId,
-        revision: params.event.payload.revision,
         reasons: params.event.payload.reasons,
       },
       "Received productUpdated event"
     );
 
     try {
-      await this.enqueueSyncWorkflow(
-        params.event,
-        params.event.payload.revision
-      );
+      await this.enqueueSyncWorkflow(params.event);
       return { success: true };
     } catch (error) {
       return this.handleError(error, "Failed to enqueue productUpdated listing sync");
@@ -93,7 +89,6 @@ export class ListingProductEventHandlers extends EventHandlers {
         eventId: params.event.eventId,
         productId: params.event.payload.productId,
         storeId: params.event.payload.storeId,
-        revision: params.event.payload.revision,
         entityType: params.event.payload.entityType,
       },
       "Received productDeleted event"
@@ -134,10 +129,9 @@ export class ListingProductEventHandlers extends EventHandlers {
   }
 
   private async enqueueSyncWorkflow(
-    event: ProductCreatedEvent | ProductUpdatedEvent,
-    expectedRevision: number | undefined
+    event: ProductCreatedEvent | ProductUpdatedEvent
   ): Promise<void> {
-    const sourceSequence = this.getEventSequence(event);
+    const eventSequence = this.getEventSequence(event);
     const itemRef: Listing.ListingSellableItemRef = {
       entityType: "product",
       id: event.payload.productId,
@@ -147,7 +141,6 @@ export class ListingProductEventHandlers extends EventHandlers {
       eventType: event.eventType,
       storeId: event.payload.storeId,
       productId: event.payload.productId,
-      revision: expectedRevision,
       timestamp: event.timestamp,
       requestId: event.context.correlationId,
       workflowId: event.parentWorkflowId,
@@ -158,8 +151,7 @@ export class ListingProductEventHandlers extends EventHandlers {
       organizationId: event.context.organizationId,
       storeId: event.payload.storeId,
       itemRef,
-      sourceSequence,
-      expectedRevision,
+      eventSequence,
       meta,
     });
   }
@@ -167,7 +159,7 @@ export class ListingProductEventHandlers extends EventHandlers {
   private async enqueueFacetMembershipSyncWorkflow(
     event: ListingFacetMembershipChangedEvent
   ): Promise<void> {
-    const sourceSequence = this.getEventSequence(event);
+    const eventSequence = this.getEventSequence(event);
     const itemRef: Listing.ListingSellableItemRef = {
       entityType: "product",
       id: event.payload.productId,
@@ -179,34 +171,23 @@ export class ListingProductEventHandlers extends EventHandlers {
       organizationId: event.context.organizationId,
       storeId: event.payload.storeId,
       itemRef,
-      sourceSequence,
+      eventSequence,
       meta: this.buildFacetMembershipMeta(event),
     });
   }
 
   private async enqueueDeleteWorkflow(event: ProductDeletedEvent): Promise<void> {
-    const sourceSequence = this.getEventSequence(event);
+    const eventSequence = this.getEventSequence(event);
     const itemRef: Listing.ListingSellableItemRef = {
       entityType: event.payload.entityType ?? "product",
       id: event.payload.productId,
     };
-    if (event.payload.revision === undefined) {
-      this.logger.warn(
-        {
-          eventId: event.eventId,
-          productId: event.payload.productId,
-          storeId: event.payload.storeId,
-        },
-        "Product deleted event is missing revision; using stale-safe revision fallback"
-      );
-    }
 
     const meta = this.buildMeta({
       eventId: event.eventId,
       eventType: event.eventType,
       storeId: event.payload.storeId,
       productId: event.payload.productId,
-      revision: event.payload.revision,
       timestamp: event.timestamp,
       requestId: event.context.correlationId,
       workflowId: event.parentWorkflowId,
@@ -215,7 +196,7 @@ export class ListingProductEventHandlers extends EventHandlers {
       meta,
       storeId: event.payload.storeId,
       itemRef,
-      sourceSequence,
+      eventSequence,
       deletedAt: event.payload.deletedAt ?? event.timestamp,
       reason: "deleted",
     };
@@ -229,7 +210,7 @@ export class ListingProductEventHandlers extends EventHandlers {
         entityType: itemRef.entityType,
         itemId: itemRef.id,
         actionType: "deleteSellableItem",
-        sourceSequence,
+        eventSequence,
       }),
       payloadHash: buildListingIndexPayloadHash({
         type: "deleteSellableItem",
@@ -237,13 +218,13 @@ export class ListingProductEventHandlers extends EventHandlers {
       }),
     };
 
-    await this.startIndexWorkflow(action, "deleteSellableItem", sourceSequence);
+    await this.startIndexWorkflow(action, "deleteSellableItem", eventSequence);
   }
 
   private async startIndexWorkflow(
     action: ListingIndexQueuedSyncAction | ListingIndexQueuedDeleteAction,
     actionType: ListingIndexActionType,
-    sourceSequence: number
+    eventSequence: number
   ): Promise<void> {
     const itemRef =
       action.type === "syncSellableItem"
@@ -293,7 +274,7 @@ export class ListingProductEventHandlers extends EventHandlers {
           workflowId,
           storeId: action.params.storeId,
           itemRef,
-          sourceSequence,
+          eventSequence,
         },
         "Failed to start listing index workflow"
       );
@@ -306,13 +287,10 @@ export class ListingProductEventHandlers extends EventHandlers {
     eventType: string;
     storeId: string;
     productId: string;
-    revision: number | undefined;
     timestamp: string;
     requestId?: string;
     workflowId?: string;
   }): Listing.ListingUpdateMeta {
-    const revisionPart = input.revision === undefined ? "unknown" : input.revision;
-
     return {
       contractVersion: Listing.LISTING_UPDATE_CONTRACT_VERSION,
       operationId: `listing:${input.eventType}:${input.eventId}`,
@@ -322,7 +300,6 @@ export class ListingProductEventHandlers extends EventHandlers {
         input.storeId,
         "product",
         input.productId,
-        revisionPart,
         input.eventId,
       ].join(":"),
       occurredAt: input.timestamp,
@@ -358,7 +335,7 @@ export class ListingProductEventHandlers extends EventHandlers {
   private buildFacetMembershipMeta(
     event: ListingFacetMembershipChangedEvent
   ): Listing.ListingUpdateMeta {
-    const sourceSequence =
+    const eventSequence =
       event.eventSequence === undefined ? "unknown" : event.eventSequence;
 
     return {
@@ -372,7 +349,7 @@ export class ListingProductEventHandlers extends EventHandlers {
         event.payload.productId,
         event.payload.reason,
         event.payload.refsHash,
-        sourceSequence,
+        eventSequence,
         event.eventId,
       ].join(":"),
       occurredAt: event.timestamp,

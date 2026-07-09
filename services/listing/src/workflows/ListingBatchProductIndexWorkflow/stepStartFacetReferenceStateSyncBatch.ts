@@ -60,7 +60,7 @@ async function startFacetReferenceStateSyncForPlan(
     organizationId: plan.organizationId,
     storeId: plan.storeId,
     reason: plan.reason,
-    sourceSequence: plan.sourceSequence,
+    eventSequence: plan.eventSequence,
     refs: plan.refs,
     checkValues: true,
   };
@@ -69,7 +69,7 @@ async function startFacetReferenceStateSyncForPlan(
       organizationId: plan.organizationId,
       productId: plan.productId,
       reason: plan.reason,
-      sourceSequence: plan.sourceSequence,
+      eventSequence: plan.eventSequence,
       operationId: plan.operationId,
       actionType: plan.actionType,
       refsHash: plan.refsHash,
@@ -110,7 +110,7 @@ async function startFacetReferenceStateSyncForPlan(
         parentWorkflowId: DBOS.workflowID,
         storeId: plan.storeId,
         productId: plan.productId,
-        sourceSequence: plan.sourceSequence,
+        eventSequence: plan.eventSequence,
         reason: plan.reason,
       },
       "Failed to start facet reference state sync workflow"

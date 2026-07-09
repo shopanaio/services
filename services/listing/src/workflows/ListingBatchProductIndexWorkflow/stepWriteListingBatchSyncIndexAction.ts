@@ -145,7 +145,7 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
     const action = item.action;
     const payloadHash = item.syncWriteModel.writeModelHash;
 
-    if (current && action.sourceSequence < current.sourceSequence) {
+    if (current && action.eventSequence < current.eventSequence) {
       return {
         item,
         payloadHash,
@@ -153,14 +153,14 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
       };
     }
 
-    if (current && action.sourceSequence === current.sourceSequence) {
+    if (current && action.eventSequence === current.eventSequence) {
       if (action.effectiveIdempotencyKey !== current.lastEffectiveIdempotencyKey) {
         throw new ListingIndexActionScriptError([
           {
             code: "REVISION_CONFLICT",
-            field: ["sourceSequence"],
+            field: ["eventSequence"],
             message:
-              "Listing index action reused a sourceSequence with a different idempotency key",
+              "Listing index action reused an eventSequence with a different idempotency key",
           },
         ]);
       }
@@ -176,9 +176,9 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
       throw new ListingIndexActionScriptError([
         {
           code: "REVISION_CONFLICT",
-          field: ["sourceSequence"],
+          field: ["eventSequence"],
           message:
-            "Listing sync action reused a sourceSequence with a different payload",
+            "Listing sync action reused an eventSequence with a different payload",
         },
       ]);
     }
@@ -443,7 +443,7 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
       return {
         storeId: action.itemKey.storeId,
         itemId: action.itemKey.itemId,
-        sourceSequence: action.sourceSequence,
+        eventSequence: action.eventSequence,
         payloadHash,
         lifecycleStatus: "indexed",
         lastEffectiveIdempotencyKey: action.effectiveIdempotencyKey,
@@ -524,7 +524,7 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
         entityType: action.itemKey.entityType,
         id: action.itemKey.itemId,
       },
-      sourceSequence: action.sourceSequence,
+      eventSequence: action.eventSequence,
       status,
       processedAt,
     };

@@ -219,12 +219,12 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       }
     }
 
-    // 5. Emit event with reason + new revision
+    // 5. Emit event with update reasons
     const hasChanges =
       changes.product !== undefined || changes.variants !== undefined;
     if (hasChanges) {
       await this.workflowNotifyProductMediaBackRefs(input, changes);
-      await this.workflowEmitEvent(input, changes, revision);
+      await this.workflowEmitEvent(input, changes);
     }
 
     return {
@@ -1303,7 +1303,6 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   private async workflowEmitEvent(
     input: ProductUpdateWorkflowInput,
     changes: ProductChanges,
-    revision: number,
   ): Promise<void> {
     await this.broker.runWorkflow(
       "events.emit",
@@ -1312,7 +1311,6 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
         payload: {
           productId: input.productId,
           storeId: input.context.storeId,
-          revision,
           reasons: getProductUpdatedReasons(changes),
         },
         source: "catalog",

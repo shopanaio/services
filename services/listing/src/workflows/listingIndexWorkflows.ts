@@ -219,7 +219,7 @@ abstract class ListingIndexWorkflowBase<
       organizationId: input.plan.organizationId,
       storeId: input.plan.storeId,
       reason: input.plan.reason,
-      sourceSequence: input.plan.sourceSequence,
+      eventSequence: input.plan.eventSequence,
       refs: input.plan.refs,
       checkValues: true,
     };
@@ -228,7 +228,7 @@ abstract class ListingIndexWorkflowBase<
         organizationId: input.plan.organizationId,
         productId: input.plan.productId,
         reason: input.plan.reason,
-        sourceSequence: input.plan.sourceSequence,
+        eventSequence: input.plan.eventSequence,
         operationId: input.plan.operationId,
         actionType: input.plan.actionType,
         refsHash: input.plan.refsHash,
@@ -268,7 +268,7 @@ abstract class ListingIndexWorkflowBase<
           parentWorkflowId: DBOS.workflowID,
           storeId: input.plan.storeId,
           productId: input.plan.productId,
-          sourceSequence: input.plan.sourceSequence,
+          eventSequence: input.plan.eventSequence,
           reason: input.plan.reason,
         },
         "Failed to start facet reference state sync workflow"
@@ -398,7 +398,7 @@ export class ListingSyncSellableItemIndexWorkflow extends ListingIndexWorkflowBa
           operationId: action.params.meta.operationId,
           storeId: action.params.storeId,
           itemRef: action.params.itemRef,
-          sourceSequence: action.params.sourceSequence,
+          eventSequence: action.params.eventSequence,
           status: "noop",
           processedAt: new Date().toISOString(),
           warnings: [
@@ -425,7 +425,7 @@ export class ListingSyncSellableItemIndexWorkflow extends ListingIndexWorkflowBa
     const syncParams: Listing.SyncSellableItemParams = {
       meta: action.params.meta,
       storeId: action.params.storeId,
-      sourceSequence: action.params.sourceSequence,
+      eventSequence: action.params.eventSequence,
       item: mapCatalogProductToListingSnapshot({
         product,
         defaultLocale: storeResult.store.defaultLocale,

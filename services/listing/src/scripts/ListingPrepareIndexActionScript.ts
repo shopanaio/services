@@ -32,7 +32,7 @@ export class ListingPrepareIndexActionScript extends BaseScript<
         action: {
           ...action,
           actionType: "syncSellableItem",
-          sourceSequence: action.params.sourceSequence,
+          eventSequence: action.params.eventSequence,
           itemKey,
         },
       };
@@ -49,7 +49,7 @@ export class ListingPrepareIndexActionScript extends BaseScript<
       action: {
         ...action,
         actionType: "deleteSellableItem",
-        sourceSequence: action.params.sourceSequence,
+        eventSequence: action.params.eventSequence,
         itemKey,
       },
     };
@@ -131,13 +131,13 @@ function validateSyncAction(
     });
   }
   if (
-    !Number.isInteger(action.params.sourceSequence) ||
-    action.params.sourceSequence <= 0
+    !Number.isInteger(action.params.eventSequence) ||
+    action.params.eventSequence <= 0
   ) {
     issues.push({
       code: "VALIDATION_FAILED",
-      field: ["sourceSequence"],
-      message: "sourceSequence must be a positive integer",
+      field: ["eventSequence"],
+      message: "eventSequence must be a positive integer",
     });
   }
   if (item.entityType !== "product" && item.entityType !== "bundle") {
@@ -240,13 +240,13 @@ function validateDeleteAction(
     });
   }
   if (
-    !Number.isInteger(action.params.sourceSequence) ||
-    action.params.sourceSequence <= 0
+    !Number.isInteger(action.params.eventSequence) ||
+    action.params.eventSequence <= 0
   ) {
     issues.push({
       code: "VALIDATION_FAILED",
-      field: ["sourceSequence"],
-      message: "sourceSequence must be a positive integer",
+      field: ["eventSequence"],
+      message: "eventSequence must be a positive integer",
     });
   }
   if (Number.isNaN(Date.parse(action.params.deletedAt))) {

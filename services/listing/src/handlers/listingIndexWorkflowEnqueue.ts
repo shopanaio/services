@@ -22,8 +22,7 @@ export async function enqueueListingSyncItemIndexWorkflow(input: {
   organizationId: string;
   storeId: string;
   itemRef: Listing.ListingSellableItemRef;
-  sourceSequence: number;
-  expectedRevision?: number;
+  eventSequence: number;
   meta: Listing.ListingUpdateMeta;
 }): Promise<void> {
   if (process.env.E2E_DISABLE_LISTING_EVENT_INDEXING === "true") {
@@ -37,8 +36,7 @@ export async function enqueueListingSyncItemIndexWorkflow(input: {
       meta: input.meta,
       storeId: input.storeId,
       itemRef: input.itemRef,
-      sourceSequence: input.sourceSequence,
-      expectedRevision: input.expectedRevision,
+      eventSequence: input.eventSequence,
     },
     organizationId: input.organizationId,
     effectiveIdempotencyKey: buildListingIndexEffectiveIdempotencyKey({
@@ -47,7 +45,7 @@ export async function enqueueListingSyncItemIndexWorkflow(input: {
       entityType: input.itemRef.entityType,
       itemId: input.itemRef.id,
       actionType,
-      sourceSequence: input.sourceSequence,
+      eventSequence: input.eventSequence,
     }),
   };
   const idempotencyCtx = buildListingIndexWorkflowIdempotencyContext({
@@ -89,7 +87,7 @@ export async function enqueueListingSyncItemIndexWorkflow(input: {
         workflowId,
         storeId: input.storeId,
         itemRef: input.itemRef,
-        sourceSequence: input.sourceSequence,
+        eventSequence: input.eventSequence,
       },
       "Failed to start listing index workflow"
     );

@@ -29,18 +29,18 @@ export class ListingWriteIndexActionScript extends BaseScript<
         action.itemKey
       );
 
-      if (current && action.sourceSequence < current.sourceSequence) {
+      if (current && action.eventSequence < current.eventSequence) {
         return this.buildResult(action, "ignored_stale");
       }
 
-      if (current && action.sourceSequence === current.sourceSequence) {
+      if (current && action.eventSequence === current.eventSequence) {
         if (action.effectiveIdempotencyKey !== current.lastEffectiveIdempotencyKey) {
           throw new ListingIndexActionScriptError([
             {
               code: "REVISION_CONFLICT",
-              field: ["sourceSequence"],
+              field: ["eventSequence"],
               message:
-                "Listing index action reused a sourceSequence with a different idempotency key",
+                "Listing index action reused an eventSequence with a different idempotency key",
             },
           ]);
         }
@@ -53,9 +53,9 @@ export class ListingWriteIndexActionScript extends BaseScript<
           throw new ListingIndexActionScriptError([
             {
               code: "REVISION_CONFLICT",
-              field: ["sourceSequence"],
+              field: ["eventSequence"],
               message:
-                "Listing delete action reused a sourceSequence with a different payload",
+                "Listing delete action reused an eventSequence with a different payload",
             },
           ]);
         }
@@ -309,7 +309,7 @@ export class ListingWriteIndexActionScript extends BaseScript<
     await this.repository.listingIndexItemState.upsertLatestState({
       storeId: action.itemKey.storeId,
       itemId: action.itemKey.itemId,
-      sourceSequence: action.sourceSequence,
+      eventSequence: action.eventSequence,
       payloadHash,
       lifecycleStatus,
       lastEffectiveIdempotencyKey: action.effectiveIdempotencyKey,
@@ -329,7 +329,7 @@ export class ListingWriteIndexActionScript extends BaseScript<
         entityType: action.itemKey.entityType,
         id: action.itemKey.itemId,
       },
-      sourceSequence: action.sourceSequence,
+      eventSequence: action.eventSequence,
       status,
       processedAt: new Date().toISOString(),
     };

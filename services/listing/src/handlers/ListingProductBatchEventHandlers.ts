@@ -117,20 +117,20 @@ export class ListingProductBatchEventHandlers extends EventHandlers {
     const storeId = firstEvent.payload.storeId;
     const organizationId = firstEvent.context.organizationId;
     const items = latestEvents.map((event) => {
-      const sourceSequence = getEventSequence(event);
+      const eventSequence = getEventSequence(event);
 
       return {
         eventId: event.eventId,
         eventType: event.eventType,
         productId: event.payload.productId,
-        sourceSequence,
+        eventSequence,
         meta: buildMeta(event),
       };
     });
     const actionItems = items.map((item) => ({
       eventId: item.eventId,
       productId: item.productId,
-      sourceSequence: item.sourceSequence,
+      eventSequence: item.eventSequence,
       meta: item.meta,
     }));
     const effectiveIdempotencyKey = hashContent({
@@ -141,7 +141,7 @@ export class ListingProductBatchEventHandlers extends EventHandlers {
         eventId: item.eventId,
         eventType: item.eventType,
         productId: item.productId,
-        sourceSequence: item.sourceSequence,
+        eventSequence: item.eventSequence,
         idempotencyKey: item.meta.idempotencyKey,
       })),
     });
@@ -255,8 +255,7 @@ function getEventSequence(event: ProductIndexBatchEvent): number {
 }
 
 function buildMeta(event: ProductIndexBatchEvent): Listing.ListingUpdateMeta {
-  const revisionPart =
-    event.eventType === "productUpdated" ? event.payload.revision : "unknown";
+  const eventSequence = getEventSequence(event);
 
   return {
     contractVersion: Listing.LISTING_UPDATE_CONTRACT_VERSION,
@@ -267,7 +266,7 @@ function buildMeta(event: ProductIndexBatchEvent): Listing.ListingUpdateMeta {
       event.payload.storeId,
       "product",
       event.payload.productId,
-      revisionPart,
+      eventSequence,
       event.eventId,
     ].join(":"),
     occurredAt: event.timestamp,

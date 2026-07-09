@@ -134,7 +134,6 @@ export interface ProductDeletedEvent
       productId: string;
       storeId: string;
       categoryIds?: string[];
-      revision?: number;
       deletedAt?: string;
       entityType?: "product" | "bundle";
     }
@@ -162,8 +161,6 @@ export type ProductUpdatedReason =
 export interface ProductUpdatedPayload {
   productId: string;
   storeId: string;
-  /** New revision after update (for optimistic locking) */
-  revision: number;
   reasons: ProductUpdatedReason[];
 }
 

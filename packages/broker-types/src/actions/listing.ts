@@ -127,7 +127,7 @@ export interface SyncSellableItemParams {
    * Monotonic ordering token for this listing item update.
    * For catalog-originated events this is domain_events.event_sequence.
    */
-  sourceSequence: number;
+  eventSequence: number;
   item: ListingSellableItemSnapshot;
 }
 
@@ -137,15 +137,14 @@ export interface SyncSellableItemHydrationParams {
   meta: ListingUpdateMeta;
   storeId: string;
   itemRef: ListingSellableItemRef;
-  sourceSequence: number;
-  expectedRevision?: number;
+  eventSequence: number;
 }
 
 export interface DeleteSellableItemParams {
   meta: ListingUpdateMeta;
   storeId: string;
   itemRef: ListingSellableItemRef;
-  sourceSequence: number;
+  eventSequence: number;
   deletedAt: string;
   reason?: "deleted" | "merged" | "project_removed" | "manual";
 }
@@ -169,7 +168,7 @@ export interface ListingUpdateResult {
   operationId: string;
   storeId: string;
   itemRef: ListingSellableItemRef;
-  sourceSequence: number;
+  eventSequence: number;
   status: "applied" | "noop" | "ignored_stale" | "accepted";
   processedAt: string;
   warnings?: ListingUpdateWarning[];

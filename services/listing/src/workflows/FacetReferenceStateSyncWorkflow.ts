@@ -32,7 +32,7 @@ export interface FacetReferenceStateSyncWorkflowInput {
   storeId: string;
   reason: FacetReferenceStateSyncReason;
   productIds?: string[];
-  sourceSequence?: number;
+  eventSequence?: number;
   facetIds?: string[];
   checkValues?: boolean;
   refs?: FacetSourceRef[];
@@ -826,7 +826,7 @@ export function buildFacetReferenceStateSyncWorkflowIdempotencyContext(input: {
   organizationId: string;
   productId: string;
   reason: FacetReferenceStateSyncReason;
-  sourceSequence: number;
+  eventSequence: number;
   eventId?: string;
   operationId?: string;
   actionType?: string;
@@ -836,7 +836,7 @@ export function buildFacetReferenceStateSyncWorkflowIdempotencyContext(input: {
     v: 1,
     productId: input.productId,
     reason: input.reason,
-    sourceSequence: input.sourceSequence,
+    eventSequence: input.eventSequence,
   };
   if (input.eventId !== undefined) content.eventId = input.eventId;
   if (input.operationId !== undefined) content.operationId = input.operationId;

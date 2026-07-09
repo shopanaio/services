@@ -50,7 +50,7 @@ export async function fetchCatalogListingSnapshotsBatch(input: {
    * - Fetch the project store once to obtain organization/defaultLocale and
    *   verify the batch store exists.
    * - Query Catalog with all input product ids in one request, preserving the
-   *   event sourceSequence/meta from input.items.
+   *   event eventSequence/meta from input.items.
    * - Map each catalog product through catalogListingSnapshotMapper.
    * - Compute payloadHash per product from the hydrated sync params.
    * - Do not write listing tables here; this step is read/hydration only.
@@ -140,7 +140,7 @@ export async function fetchCatalogListingSnapshotsBatch(input: {
           entityType: "product",
           id: item.productId,
         },
-        sourceSequence: item.sourceSequence,
+        eventSequence: item.eventSequence,
         status: "noop",
         processedAt: new Date().toISOString(),
         warnings: [
@@ -157,7 +157,7 @@ export async function fetchCatalogListingSnapshotsBatch(input: {
     const syncParams: Listing.SyncSellableItemParams = {
       meta: item.meta,
       storeId: batch.storeId,
-      sourceSequence: item.sourceSequence,
+      eventSequence: item.eventSequence,
       item: mapCatalogProductToListingSnapshot({
         product,
         defaultLocale: storeResult.store.defaultLocale,
@@ -174,7 +174,7 @@ export async function fetchCatalogListingSnapshotsBatch(input: {
         entityType: syncParams.item.entityType,
         itemId: syncParams.item.id,
         actionType: "syncSellableItem",
-        sourceSequence: item.sourceSequence,
+        eventSequence: item.eventSequence,
       }),
       payloadHash: buildListingIndexPayloadHash({
         type: "syncSellableItem",

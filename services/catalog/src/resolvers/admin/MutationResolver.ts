@@ -604,13 +604,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const productIds = [...new Set(args.productIds ?? [])];
     if (productIds.length === 0) return;
 
-    const products = await this.$ctx.kernel.repository.product.getByIds(
-      productIds
-    );
-    const revisionByProductId = new Map(
-      products.map((product) => [product.id, product.revision])
-    );
-
     if (args.reason === "assignment" && args.categoryIds.length > 0) {
       const result = await this.$ctx.kernel.runScript(
         CategoryProductsCountRefreshScript,
@@ -630,7 +623,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           payload: {
             productId,
             storeId: this.$ctx.store.id,
-            revision: revisionByProductId.get(productId) ?? 0,
             reasons: ["category"],
           },
           source: "catalog",
@@ -657,7 +649,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   private async emitProductDeleted(args: {
     productId: string;
     categoryIds: readonly string[] | undefined;
-    revision?: number;
     deletedAt?: string;
     entityType?: "product" | "bundle";
   }): Promise<void> {
@@ -669,7 +660,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           productId: args.productId,
           storeId: this.$ctx.store.id,
           categoryIds: [...new Set(args.categoryIds ?? [])],
-          revision: args.revision,
           deletedAt: args.deletedAt,
           entityType: args.entityType,
         },
@@ -696,10 +686,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     productId: string;
     variantId: string;
   }): Promise<void> {
-    const product = await this.$ctx.kernel.repository.product.findById(
-      args.productId
-    );
-
     await this.$ctx.kernel.getServices().broker.runWorkflow(
       "events.emit",
       {
@@ -707,7 +693,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         payload: {
           productId: args.productId,
           storeId: this.$ctx.store.id,
-          revision: product?.revision ?? 0,
           reasons: ["variant"],
         },
         source: "catalog",
@@ -874,7 +859,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       await this.emitProductDeleted({
         productId: result.deletedProductId,
         categoryIds: result.categoryIds,
-        revision: result.revision,
         deletedAt: result.deletedAt,
         entityType: result.entityType,
       });

@@ -33,7 +33,7 @@ import { startFacetReferenceStateSyncBatch } from "./ListingBatchProductIndexWor
 export type ListingIndexProductUpdateBatchItem = {
   eventId: string;
   productId: string;
-  sourceSequence: number;
+  eventSequence: number;
   meta: Listing.ListingUpdateMeta;
 };
 
@@ -287,7 +287,7 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
      *
      * Implementation notes:
      * - Reuse the single-product prepare semantics: contract version validation,
-     *   project/store validation, sourceSequence normalization, itemKey creation,
+     *   project/store validation, eventSequence normalization, itemKey creation,
      *   idempotency checks that do not require row locks, and warning propagation.
      * - Do not perform stale/noop checks that require locking
      *   listing_index_item_state; those checks belong in the write transaction.
@@ -376,10 +376,10 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
      *   must share the same transaction.
      * - For each item, derive statePayloadHash from syncWriteModel.writeModelHash
      *   and classify it while locks are held:
-     *   - ignored_stale when action.sourceSequence < current.sourceSequence;
-     *   - noop when sourceSequence and effectiveIdempotencyKey match current
+     *   - ignored_stale when action.eventSequence < current.eventSequence;
+     *   - noop when eventSequence and effectiveIdempotencyKey match current
      *     state and statePayloadHash matches current.payloadHash;
-     *   - revision conflict when the same sourceSequence is reused with a
+     *   - revision conflict when the same eventSequence is reused with a
      *     different effective idempotency key or incompatible payload;
      *   - applied when the product is fresh enough and must rewrite index rows.
      * - Build the merged payload only after classification, and only from
@@ -432,7 +432,7 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
      *   variantDocIds. Refresh each affected projection block once after variant
      *   rows/dependencies are written.
      * - listing_index_item_state upserts are also a merged payload: one row per
-     *   applied product with lifecycleStatus "indexed", sourceSequence,
+     *   applied product with lifecycleStatus "indexed", eventSequence,
      *   payloadHash, lastEffectiveIdempotencyKey, lastOperationId, and updatedAt.
      *
      * Required write order inside the single transaction:

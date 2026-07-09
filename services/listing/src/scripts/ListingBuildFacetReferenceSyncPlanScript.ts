@@ -16,7 +16,7 @@ export interface ListingFacetReferenceSyncPlan {
   productId: string;
   actionType: "syncSellableItem" | "deleteSellableItem";
   reason: FacetReferenceStateSyncReason;
-  sourceSequence: number;
+  eventSequence: number;
   operationId: string;
   refs: FacetSourceRef[];
   refsHash: string;
@@ -137,7 +137,7 @@ export class ListingBuildFacetReferenceSyncPlanScript extends BaseScript<
       productId: input.action.itemKey.itemId,
       actionType: input.actionType,
       reason: input.reason,
-      sourceSequence: input.action.sourceSequence,
+      eventSequence: input.action.eventSequence,
       operationId: input.action.params.meta.operationId,
       refs,
       refsHash: hashContent({ v: 1, refs }),
