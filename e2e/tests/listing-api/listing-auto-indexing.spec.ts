@@ -253,19 +253,11 @@ test.describe('Listing API automatic indexing', () => {
       onHand: 0,
     });
     removeExpectedProduct(indexedProducts[2]);
-    const availabilitySnapshot = await readListingSnapshot(api, category);
-    const availableFilter = availabilityFacetInput(availabilitySnapshot.facets);
-    const snapshot = await expectListingSnapshot(api, category, {
-      totalCount: expectedProducts.length,
-      productIds: expectedProducts.map((product) => product.id),
-      facetCounts: expectedFacetCounts(createdFacets, facets, expectedDefinitions),
-      availableCount: expectedProducts.length,
-      facets: [availableFilter],
-    });
 
     const lifecycleProductDefinition = expectedDefinitions[0];
     const lifecycleColor = lifecycleProductDefinition.options[facets[0].sourceSlug];
-    const lifecycleColorFilter = facetValueInput(snapshot.facets, facets[0].facetSlug, lifecycleColor);
+    const lifecycleSnapshot = await readListingSnapshot(api, category);
+    const lifecycleColorFilter = facetValueInput(lifecycleSnapshot.facets, facets[0].facetSlug, lifecycleColor);
     const lifecycleColorProducts = expectedProducts.filter(
       (_product, index) => expectedDefinitions[index].options[facets[0].sourceSlug] === lifecycleColor,
     );
@@ -282,6 +274,16 @@ test.describe('Listing API automatic indexing', () => {
       totalCount: lifecycleColorProducts.length,
       productIds: lifecycleColorProducts.map((product) => product.id),
       facets: [lifecycleColorFilter],
+    });
+
+    const availabilitySnapshot = await readListingSnapshot(api, category);
+    const availableFilter = availabilityFacetInput(availabilitySnapshot.facets);
+    await expectListingSnapshot(api, category, {
+      totalCount: expectedProducts.length,
+      productIds: expectedProducts.map((product) => product.id),
+      facetCounts: expectedFacetCounts(createdFacets, facets, expectedDefinitions),
+      availableCount: expectedProducts.length,
+      facets: [availableFilter],
     });
 
     await deleteFacet(api, createdFacets[3].id);
