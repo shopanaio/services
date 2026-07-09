@@ -215,7 +215,7 @@ CREATE INDEX idx_variant_listing_signature
 CREATE TABLE listing.listing_index_item_state (
   store_id                      uuid NOT NULL,
   item_id                         uuid NOT NULL,
-  source_sequence                 integer NOT NULL,
+  event_sequence                  integer NOT NULL,
   payload_hash                    text NOT NULL,
   lifecycle_status                varchar(32) NOT NULL,
   last_effective_idempotency_key  text NOT NULL,
@@ -223,8 +223,8 @@ CREATE TABLE listing.listing_index_item_state (
   updated_at                      timestamptz NOT NULL,
 
   PRIMARY KEY (store_id, item_id),
-  CONSTRAINT chk_listing_index_item_state_source_sequence
-    CHECK (source_sequence > 0),
+  CONSTRAINT chk_listing_index_item_state_event_sequence
+    CHECK (event_sequence > 0),
   CONSTRAINT chk_listing_index_item_state_lifecycle_status
     CHECK (lifecycle_status IN ('indexed', 'deleted'))
 );

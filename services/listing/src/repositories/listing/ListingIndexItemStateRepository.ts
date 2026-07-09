@@ -114,7 +114,7 @@ export class ListingIndexItemStateRepository extends BaseRepository {
         .onConflictDoUpdate({
           target: [listingIndexItemState.storeId, listingIndexItemState.itemId],
           set: {
-            eventSequence: sql`excluded.source_sequence`,
+            eventSequence: sql`excluded.event_sequence`,
             payloadHash: sql`excluded.payload_hash`,
             lifecycleStatus: sql`excluded.lifecycle_status`,
             lastEffectiveIdempotencyKey: sql`excluded.last_effective_idempotency_key`,
