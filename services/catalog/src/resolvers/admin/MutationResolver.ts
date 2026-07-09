@@ -881,7 +881,9 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     }
 
     return {
-      deletedProductId: result.deletedProductId ?? null,
+      deletedProductId: result.deletedProductId
+        ? encodeGlobalIdByType(result.deletedProductId, GlobalIdEntity.Product)
+        : null,
       userErrors: result.userErrors,
     };
   }
