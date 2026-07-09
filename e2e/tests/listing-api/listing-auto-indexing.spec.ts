@@ -253,17 +253,16 @@ test.describe('Listing API automatic indexing', () => {
       onHand: 0,
     });
     removeExpectedProduct(indexedProducts[2]);
-    await expectListingSnapshot(api, category, {
-      totalCount: expectedProducts.length,
-      productIds: expectedProducts.map((product) => product.id),
-      facetCounts: expectedFacetCounts(createdFacets, facets, expectedDefinitions),
-    });
-
+    const availabilitySnapshot = await readListingSnapshot(api, category);
+    const availableFilter = availabilityFacetInput(availabilitySnapshot.facets);
     const snapshot = await expectListingSnapshot(api, category, {
       totalCount: expectedProducts.length,
       productIds: expectedProducts.map((product) => product.id),
       facetCounts: expectedFacetCounts(createdFacets, facets, expectedDefinitions),
+      availableCount: expectedProducts.length,
+      facets: [availableFilter],
     });
+
     const lifecycleProductDefinition = expectedDefinitions[0];
     const lifecycleColor = lifecycleProductDefinition.options[facets[0].sourceSlug];
     const lifecycleColorFilter = facetValueInput(snapshot.facets, facets[0].facetSlug, lifecycleColor);
@@ -748,6 +747,7 @@ async function expectListingSnapshot(
     totalCount: number;
     productIds: string[];
     facetCounts?: Record<string, Record<string, number>>;
+    availableCount?: number;
     missingFacetIds?: string[];
     selectedFacetValues?: Record<string, string[]>;
     facets?: ApiListingProductFilter[];
@@ -764,6 +764,7 @@ async function expectListingSnapshot(
           totalCount: lastSnapshot.totalCount,
           productIds: [...lastSnapshot.productIds].sort(),
           facetCounts: readFacetCounts(lastSnapshot.facets, expected.facetCounts),
+          availableCount: readAvailabilityCount(lastSnapshot.facets),
           missingFacetIds: (expected.missingFacetIds ?? []).filter((facetId) =>
             lastSnapshot?.facets.some((facet) => facet.id === facetId),
           ),
@@ -779,6 +780,7 @@ async function expectListingSnapshot(
       totalCount: expected.totalCount,
       productIds: [...expected.productIds].sort(),
       facetCounts: expected.facetCounts ?? {},
+      availableCount: expected.availableCount ?? expected.totalCount,
       missingFacetIds: [],
       selectedFacetValues: expected.selectedFacetValues ?? {},
     });
@@ -838,6 +840,13 @@ function readFacetCounts(facets: ApiListingFacet[], expected?: Record<string, Re
   );
 }
 
+function readAvailabilityCount(facets: ApiListingFacet[]) {
+  const facet = facets.find((candidate) => candidate.id === 'available');
+  const value = facet?.values.find((candidate) => candidate.id === 'true');
+
+  return value?.count ?? null;
+}
+
 function readSelectedFacetValues(facets: ApiListingFacet[], expected?: Record<string, string[]>) {
   if (!expected) {
     return {};
@@ -874,6 +883,27 @@ function facetValueInput(facets: ApiListingFacet[], facetId: string, valueId: st
 
   if (!input) {
     throw new Error(`Listing facet value ${facetId}:${valueId} did not expose reusable input`);
+  }
+
+  return input;
+}
+
+function availabilityFacetInput(facets: ApiListingFacet[]) {
+  const facet = facets.find((candidate) => candidate.id === 'available');
+  const value = facet?.values.find((candidate) => candidate.id === 'true');
+
+  if (!facet || !value) {
+    throw new Error('Missing listing availability facet value input');
+  }
+
+  const expectedInput: ApiListingProductFilter = {
+    available: true,
+  };
+  const input = value.input as ApiListingProductFilter | null | undefined;
+  expect(input, 'Listing availability facet value must expose reusable input').toEqual(expectedInput);
+
+  if (!input) {
+    throw new Error('Listing availability facet value did not expose reusable input');
   }
 
   return input;
