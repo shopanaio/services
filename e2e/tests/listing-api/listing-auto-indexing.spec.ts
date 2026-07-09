@@ -698,12 +698,12 @@ async function updateProductVariantInventory(
 async function updateFacetDisplayValueEnabled(
   api: Api,
   facet: ApiFacet,
-  valueId: string,
+  valueHandle: string,
   enabled: boolean,
 ): Promise<void> {
-  const value = facet.values.find((candidate) => candidate.id === valueId);
+  const value = facet.values.find((candidate) => candidate.handle === valueHandle);
   if (!value) {
-    throw new Error(`Facet ${facet.id} does not have display value ${valueId}`);
+    throw new Error(`Facet ${facet.id} does not have display value ${valueHandle}`);
   }
 
   const { data } = await api.admin.mutation('facet-api/FacetValueUpdate', {
