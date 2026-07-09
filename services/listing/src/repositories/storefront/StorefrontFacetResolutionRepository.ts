@@ -32,6 +32,19 @@ interface FacetValueSqlRow extends Record<string, unknown> {
   valueKey: string;
 }
 
+interface InvalidFacetResolutionSqlRow extends Record<string, unknown> {
+  facetSlug: string;
+  requestedValueHandle: string;
+  facetExists: boolean;
+  valueExists: boolean;
+  valueKind: string | null;
+  valueEnabled: boolean | null;
+  valueReferenceStatus: string | null;
+  parentValueExists: boolean | null;
+  parentValueEnabled: boolean | null;
+  parentValueReferenceStatus: string | null;
+}
+
 export class StorefrontFacetResolutionRepository extends BaseRepository {
   @ReadOnly()
   async resolveFilterPlan(input: {
@@ -273,13 +286,62 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
       (pair) => !rowKeys.has(`${pair.facetSlug}:${pair.valueHandle}`)
     );
     if (missing.length > 0) {
+      const message = await this.invalidFacetValueMessage(missing[0]);
       throw new StorefrontRepositoryValidationError(
-        `Unknown storefront facet value: ${missing[0].facetSlug}:${missing[0].valueHandle}`,
+        message,
         ["filters"]
       );
     }
 
     return rows;
+  }
+
+  private async invalidFacetValueMessage(input: {
+    facetSlug: string;
+    valueHandle: string;
+  }): Promise<string> {
+    const rows = await this.connection.execute<InvalidFacetResolutionSqlRow>(sql`
+      WITH requested(facet_slug, value_handle) AS (
+        VALUES (${input.facetSlug}, ${input.valueHandle})
+      )
+      SELECT
+        r.facet_slug AS "facetSlug",
+        r.value_handle AS "requestedValueHandle",
+        f.id IS NOT NULL AS "facetExists",
+        fv.id IS NOT NULL AS "valueExists",
+        fv.kind AS "valueKind",
+        fv.enabled AS "valueEnabled",
+        fv.reference_status AS "valueReferenceStatus",
+        CASE WHEN fv.kind = 'source' THEN parent_fv.id IS NOT NULL ELSE NULL END AS "parentValueExists",
+        parent_fv.enabled AS "parentValueEnabled",
+        parent_fv.reference_status AS "parentValueReferenceStatus"
+      FROM requested r
+      LEFT JOIN ${facet} f
+        ON f.store_id = ${this.storeId}::uuid
+       AND f.slug = r.facet_slug
+      LEFT JOIN ${facetValue} fv
+        ON fv.store_id = f.store_id
+       AND fv.facet_id = f.id
+       AND fv.handle = r.value_handle
+      LEFT JOIN ${facetValue} parent_fv
+        ON parent_fv.store_id = fv.store_id
+       AND parent_fv.id = fv.parent_id
+       AND parent_fv.kind = 'display'
+       AND parent_fv.parent_id IS NULL
+      LIMIT 1
+    `);
+
+    const row = rows[0];
+    const filterName = `${input.facetSlug}:${input.valueHandle}`;
+    if (!row?.facetExists) {
+      return `Invalid storefront facet filter ${filterName}: facet does not exist`;
+    }
+    if (!row.valueExists) {
+      return `Invalid storefront facet filter ${filterName}: value does not exist`;
+    }
+
+    const reason = invalidFacetValueReason(row);
+    return `Invalid storefront facet filter ${filterName}: ${reason}`;
   }
 
   private addFacetFilterGroup(
@@ -479,4 +541,39 @@ function emptyScopeBitmapSql(): SQL {
 
 function coalesceScopeBitmapSql(value: SQL): SQL {
   return sql`COALESCE(${value}, ${emptyScopeBitmapSql()})`;
+}
+
+function invalidFacetValueReason(row: InvalidFacetResolutionSqlRow): string {
+  if (row.valueKind === "display") {
+    if (row.valueEnabled === false) {
+      return "display value is disabled";
+    }
+    if (row.valueReferenceStatus !== "VALID") {
+      return `display value reference status is ${row.valueReferenceStatus ?? "unknown"}`;
+    }
+    return "display value is not a valid root storefront value";
+  }
+
+  if (row.valueKind === "source") {
+    if (row.valueEnabled === false) {
+      return "source value is disabled";
+    }
+    if (row.valueReferenceStatus !== "VALID") {
+      return `source value reference status is ${row.valueReferenceStatus ?? "unknown"}`;
+    }
+    if (row.parentValueExists === false) {
+      return "source value is not mapped to a display value";
+    }
+    if (row.parentValueEnabled === false) {
+      return "source value parent display value is disabled";
+    }
+    if (row.parentValueReferenceStatus !== "VALID") {
+      return `source value parent display value reference status is ${
+        row.parentValueReferenceStatus ?? "unknown"
+      }`;
+    }
+    return "source value is not mapped to a valid storefront display value";
+  }
+
+  return `unsupported facet value kind ${row.valueKind ?? "unknown"}`;
 }

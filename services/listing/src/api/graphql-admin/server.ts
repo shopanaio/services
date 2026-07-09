@@ -1,4 +1,5 @@
 import { ApolloServer } from "@apollo/server";
+import { unwrapResolverError } from "@apollo/server/errors";
 import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
 import fastifyApollo, {
@@ -6,6 +7,7 @@ import fastifyApollo, {
 } from "@as-integrations/fastify";
 import fastify from "fastify";
 import { readFileSync } from "fs";
+import { GraphQLError } from "graphql";
 import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
@@ -13,6 +15,7 @@ import {
   getServiceConfig,
   isDevelopment,
 } from "@shopana/shared-service-config";
+import { ResolverError } from "@shopana/type-resolver";
 import { setContext, ServiceContext } from "../../context/index.js";
 import { Kernel } from "../../kernel/Kernel.js";
 import { Loader } from "../../loaders/Loader.js";
@@ -90,6 +93,21 @@ export async function startServer(serverConfig: ServerConfig) {
       fastifyApolloDrainPlugin(app),
       ApolloServerPluginInlineTraceDisabled(),
     ],
+    formatError: (formattedError, error) => {
+      const graphQLError = unwrapTypeResolverGraphQLError(error);
+      if (graphQLError) {
+        return {
+          ...formattedError,
+          message: graphQLError.message,
+          extensions: {
+            ...formattedError.extensions,
+            ...graphQLError.extensions,
+          },
+        };
+      }
+
+      return formattedError;
+    },
   });
 
   await apollo.start();
@@ -154,4 +172,14 @@ export async function startServer(serverConfig: ServerConfig) {
   });
 
   return app;
+}
+
+function unwrapTypeResolverGraphQLError(error: unknown): GraphQLError | null {
+  let current = unwrapResolverError(error);
+
+  while (current instanceof ResolverError) {
+    current = current.originalError;
+  }
+
+  return current instanceof GraphQLError ? current : null;
 }

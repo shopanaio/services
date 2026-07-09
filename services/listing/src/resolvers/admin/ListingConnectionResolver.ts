@@ -31,6 +31,7 @@ export class ListingConnectionResolver extends ListingType<
           this.toRepositoryInput()
         );
     } catch (error) {
+      this.logListingError(error, "Listing connection preload failed");
       throwGraphqlListingError(error);
     }
   }
@@ -89,6 +90,7 @@ export class ListingConnectionResolver extends ListingType<
         this.$props
       );
     } catch (error) {
+      this.logListingError(error, "Listing facets mapping failed");
       throwGraphqlListingError(error);
     }
   }
@@ -108,4 +110,53 @@ export class ListingConnectionResolver extends ListingType<
       throwGraphqlListingError(error);
     }
   }
+
+  private logListingError(error: unknown, message: string): void {
+    this.$ctx.kernel.getServices().logger.error(
+      {
+        error: errorToLogObject(error),
+        listingArgs: listingArgsToLogObject(this.$props),
+        storeId: this.$ctx.store.id,
+        locale: this.$ctx.locale || this.$ctx.store.defaultLocale,
+        currency: this.$ctx.currency || this.$ctx.store.defaultCurrency,
+      },
+      message
+    );
+  }
+}
+
+function listingArgsToLogObject(args: ListingQueryArgs) {
+  return {
+    first: args.first ?? null,
+    after: args.after ?? null,
+    last: args.last ?? null,
+    before: args.before ?? null,
+    scope: args.scope ?? null,
+    query: args.query ?? null,
+    locale: args.locale ?? null,
+    currency: args.currency ?? null,
+    orderBy: args.orderBy ?? null,
+    facets: (args.facets ?? []).map((filter) => ({
+      available: filter.available ?? null,
+      price: filter.price ?? null,
+      productVendor: filter.productVendor ?? null,
+      tag: filter.tag ?? null,
+      variantOption: filter.variantOption ?? null,
+      productFacet: filter.productFacet ?? null,
+      variantFacet: filter.variantFacet ?? null,
+    })),
+  };
+}
+
+function errorToLogObject(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause,
+    };
+  }
+
+  return error;
 }
