@@ -71,7 +71,7 @@ const LISTING_PERF_QUERY = /* GraphQL */ `
 test.describe('Listing service no filters perf', () => {
   test.describe.configure({ timeout: 240_000 });
 
-  test('returns mixed display and root source facets without selected filters on 10k products', async ({
+  test('returns mixed group and root source facets without selected filters on 10k products', async ({
     api,
     request,
   }) => {
@@ -190,7 +190,7 @@ interface ListingPerfSeedMeta {
 
 interface ListingPerfFacetValueKinds {
   slug: string;
-  displayValueHandles: string[];
+  groupValueHandles: string[];
   rootSourceValueHandles: string[];
 }
 
@@ -217,8 +217,8 @@ function expectMixedFacetValues(
 ): void {
   for (const expectedFacet of expectedFacets) {
     expect(
-      expectedFacet.displayValueHandles.length,
-      `${expectedFacet.slug} display values`,
+      expectedFacet.groupValueHandles.length,
+      `${expectedFacet.slug} group values`,
     ).toBeGreaterThan(0);
     expect(
       expectedFacet.rootSourceValueHandles.length,
@@ -228,7 +228,7 @@ function expectMixedFacetValues(
     const facet = facets.find((candidate) => candidate.id === expectedFacet.slug);
     expect(facet, `facet ${expectedFacet.slug}`).toBeTruthy();
     expect(facet?.values.map((value) => value.id).sort()).toEqual(
-      [...expectedFacet.displayValueHandles, ...expectedFacet.rootSourceValueHandles].sort(),
+      [...expectedFacet.groupValueHandles, ...expectedFacet.rootSourceValueHandles].sort(),
     );
   }
 }

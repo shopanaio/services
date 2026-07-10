@@ -74,15 +74,15 @@ export class FacetIndexImpactCollectorScript extends BaseScript<
     const valueIds = [...new Set(params.valueIds ?? [])];
     if (valueIds.length > 0) {
       const values = await this.repository.facetValue.getByIds(valueIds);
-      const displayIds = values
-        .filter((value) => value.kind === "display")
+      const groupIds = values
+        .filter((value) => value.kind === "group")
         .map((value) => value.id);
-      const displayChildren =
+      const groupChildren =
         await this.repository.facetValue.getSourceChildrenByParentIds(
-          displayIds
+          groupIds
         );
 
-      for (const value of [...values, ...displayChildren]) {
+      for (const value of [...values, ...groupChildren]) {
         if (value.kind === "source") {
           sourceValuesById.set(value.id, value);
         }

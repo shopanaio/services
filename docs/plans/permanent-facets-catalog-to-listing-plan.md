@@ -404,7 +404,7 @@ Events should be improved but not overloaded:
    - Full fallback reconciliation использует only listing-owned persisted `listing.facet_source`/`listing.facet_value` refs plus `catalog.productAttributeRefsExist`.
 
 6. Обновить reconciliation step:
-   - `findAffectedSources`, `findAffectedSourceValues`, `findDisplayParents`, `refreshSourceStatus`, `refreshValueStatus` читают/пишут только listing DB.
+   - `findAffectedSources`, `findAffectedSourceValues`, `findGroupParents`, `refreshSourceStatus`, `refreshValueStatus` читают/пишут только listing DB.
    - Проверку текущего существования source/value handles выполнять через `catalog.productAttributeRefsExist`.
    - Не переносить direct catalog joins из старого `FacetReferenceRepository`.
 

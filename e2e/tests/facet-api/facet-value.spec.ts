@@ -64,7 +64,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'value-one',
           label: 'Value One',
           sourceValueIds: [sourceValueId],
@@ -108,7 +108,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'full-value',
           label: 'Full Value',
           sourceValueIds: [cottonSourceId, organicCottonSourceId],
@@ -143,7 +143,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'size-large',
           label: 'Large',
           sourceValueIds: [sourceValueId],
@@ -170,7 +170,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'no-handles',
           label: 'No Handles',
           // sourceValueIds omitted - should fail
@@ -192,7 +192,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'no-handles',
           label: 'No Handles',
           // sourceValueIds omitted - should fail
@@ -214,7 +214,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'no-handles',
           label: 'No Handles',
           // sourceValueIds omitted - should fail
@@ -236,7 +236,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'price-value',
           label: '$0-$50',
           sourceValueIds: ['should:not:be:here'], // Should fail for PRICE
@@ -258,7 +258,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'in-stock-value',
           label: 'Available',
           sourceValueIds: ['should:not:be:here'], // Should fail for IN_STOCK
@@ -280,7 +280,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'price-range-1',
           label: '$0 - $50',
         },
@@ -302,7 +302,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'available',
           label: 'In Stock',
         },
@@ -329,7 +329,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'update-me',
           label: 'Original Label',
           sourceValueIds: [sourceValueId],
@@ -364,7 +364,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'handle-update',
           label: 'Handle Update',
           sourceValueIds: [sourceValueId],
@@ -399,7 +399,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'toggle-enabled',
           label: 'Toggle Enabled',
           sourceValueIds: [sourceValueId],
@@ -433,12 +433,12 @@ test.describe('FacetValue API', () => {
   test('should delete facet value', async ({ api }) => {
     const facetId = await createFacet(api, 'TAG', 'delete-value-test');
 
-    // Create a disabled display value without source children so it can be deleted directly.
+    // Create a disabled group value without source children so it can be deleted directly.
     const { data: createData } = await api.admin.mutation('facet-api/FacetValueCreate', {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'delete-me',
           label: 'Delete Me',
           enabled: false,
@@ -482,7 +482,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'value-a',
           label: 'Value A',
           sourceValueIds: [sourceValueAId],
@@ -494,7 +494,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'value-b',
           label: 'Value B',
           sourceValueIds: [sourceValueBId],
@@ -524,7 +524,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'query-test-value',
           label: 'Query Test Value',
           sourceValueIds: [sourceValueId],
@@ -561,7 +561,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: '',
           label: 'Test',
           sourceValueIds: [sourceValueId],
@@ -584,7 +584,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'valid-handle',
           label: '',
           sourceValueIds: [sourceValueId],
@@ -604,7 +604,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId: 'non-existent-facet-id',
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'orphan-value',
           label: 'Orphan Value',
           sourceValueIds: ['non-existent-source-value-id'],
@@ -661,10 +661,10 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'empty-handles',
           label: 'Empty Handles',
-          sourceValueIds: [], // Empty array - should fail for enabled display values
+          sourceValueIds: [], // Empty array - should fail for enabled group values
         },
       },
     });
@@ -686,7 +686,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'multi-handle',
           label: 'Multi Handle',
           sourceValueIds: [
@@ -733,7 +733,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'blue',
           label: 'Blue',
           sourceValueIds: [sourceValueId],
@@ -760,7 +760,7 @@ test.describe('FacetValue API', () => {
       variables: {
         input: {
           facetId,
-          kind: 'DISPLAY',
+          kind: 'GROUP',
           handle: 'no-swatch-yet',
           label: 'No Swatch Yet',
           sourceValueIds: [sourceValueId],

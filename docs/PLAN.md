@@ -580,7 +580,7 @@ CREATE INDEX idx_variant_search_index_option_slugs_gin
 
 ### Lookup slug -> composite handle для storefront filter inputs
 
-Search index и facets хранят **slugs/handles**, не UUIDs. Variant search index хранит composite slugs (`option_slug:value_slug`) для options, а facets мапят display slugs в source composite handles через `facet_value_source_handle`.
+Search index и facets хранят **slugs/handles**, не UUIDs. Variant search index хранит composite slugs (`option_slug:value_slug`) для options, а facets мапят group slugs в source composite handles через `facet_value_source_handle`.
 
 Storefront передает facet filters через единое поле `ProductFiltersInput.facets` как строки `facetSlug:valueSlug`. Resolution идет через facets, см. §3.4:
 1. `facet.slug` -> `facet_type`
@@ -707,7 +707,7 @@ QueryCollectionProductsScript:
 
 1. **Стабильный список facets/values** - выводится из base product set: category/collection без user filters. Список фасетов и values не меняется при изменении filters, меняются только counts.
 2. **Facet isolation** - counts для каждого facet вычисляются **без** filter этого же facet, но со всеми остальными facet filters. Это позволяет пользователю видеть sibling values и переключаться между ними. Стандартный паттерн e-commerce.
-3. **Merged values** - когда один `facet_value` мапится на несколько строк `facet_value_source_handle`, counts должны объединяться в одно display value.
+3. **Merged values** - когда один `facet_value` мапится на несколько строк `facet_value_source_handle`, counts должны объединяться в одно group value.
 
 #### 5.3.1 Подход одним query с boolean filter columns
 
@@ -876,7 +876,7 @@ FROM base
 
 #### 5.3.2 Дедупликация объединенных values
 
-Для discrete facets (`TAG`/`FEATURE`/`OPTION`) counts группируются по `facet_value.id` **после** mapping source values в `facet_value`, используя `COUNT(DISTINCT product_id)`. Это предотвращает double-counting, когда у товара несколько source slugs мапятся на одно display value. Values без `facet_value` mapping исключаются из results.
+Для discrete facets (`TAG`/`FEATURE`/`OPTION`) counts группируются по `facet_value.id` **после** mapping source values в `facet_value`, используя `COUNT(DISTINCT product_id)`. Это предотвращает double-counting, когда у товара несколько source slugs мапятся на одно group value. Values без `facet_value` mapping исключаются из results.
 
 #### 5.3.3 Сборка результата
 

@@ -505,13 +505,13 @@ export class FacetRepository extends BaseRepository {
       const rowByPair = new Map(
         rows.map((row) => [`${row.facetId}:${row.valueId}`, row])
       );
-      const displayValueIds: string[] = [];
+      const groupValueIds: string[] = [];
 
       for (const pair of canonicalPairs) {
         const row = rowByPair.get(`${pair.facetId}:${pair.valueId}`);
         if (!row) continue;
-        if (row.valueKind === "display") {
-          displayValueIds.push(row.valueId);
+        if (row.valueKind === "group") {
+          groupValueIds.push(row.valueId);
           continue;
         }
 
@@ -519,7 +519,7 @@ export class FacetRepository extends BaseRepository {
         if (ref) refs.push(ref);
       }
 
-      if (displayValueIds.length > 0) {
+      if (groupValueIds.length > 0) {
         const childRows = await this.connection
           .select({
             facetType: facet.facetType,
@@ -533,7 +533,7 @@ export class FacetRepository extends BaseRepository {
           .where(
             and(
               eq(facetValue.storeId, this.storeId),
-              inArray(facetValue.parentId, [...new Set(displayValueIds)]),
+              inArray(facetValue.parentId, [...new Set(groupValueIds)]),
               eq(facetValue.kind, "source")
             )
           );
@@ -903,12 +903,12 @@ export class FacetRepository extends BaseRepository {
         )
       );
 
-    const displayValueIds = visibleRows
-      .filter((row) => row.valueKind === "display")
+    const groupValueIds = visibleRows
+      .filter((row) => row.valueKind === "group")
       .map((row) => row.valueId);
 
     const childRows =
-      displayValueIds.length > 0
+      groupValueIds.length > 0
         ? await this.connection
             .select({
               parentId: facetValue.parentId,
@@ -918,7 +918,7 @@ export class FacetRepository extends BaseRepository {
             .where(
               and(
                 eq(facetValue.storeId, this.storeId),
-                inArray(facetValue.parentId, displayValueIds),
+                inArray(facetValue.parentId, groupValueIds),
                 eq(facetValue.kind, "source"),
                 eq(facetValue.enabled, true)
               )
@@ -926,13 +926,13 @@ export class FacetRepository extends BaseRepository {
             .orderBy(asc(facetValue.handle))
         : [];
 
-    const resolvedSourceHandlesByDisplayId = new Map<string, Set<string>>();
+    const resolvedSourceHandlesByGroupId = new Map<string, Set<string>>();
     for (const child of childRows) {
       if (!child.parentId) continue;
       const handles =
-        resolvedSourceHandlesByDisplayId.get(child.parentId) ?? new Set<string>();
+        resolvedSourceHandlesByGroupId.get(child.parentId) ?? new Set<string>();
       handles.add(child.handle);
-      resolvedSourceHandlesByDisplayId.set(child.parentId, handles);
+      resolvedSourceHandlesByGroupId.set(child.parentId, handles);
     }
 
     const resolvedByToken = new Map<string, ResolvedFacetFilterValue>();
@@ -940,7 +940,7 @@ export class FacetRepository extends BaseRepository {
       const resolvedSourceHandles =
         row.valueKind === "source"
           ? [row.valueHandle]
-          : [...(resolvedSourceHandlesByDisplayId.get(row.valueId) ?? [])].sort();
+          : [...(resolvedSourceHandlesByGroupId.get(row.valueId) ?? [])].sort();
 
       if (resolvedSourceHandles.length === 0) {
         continue;

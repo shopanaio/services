@@ -4245,12 +4245,12 @@ type ListingMutation @join__type(graph: LISTING_ADMIN)  {
   """
   facetValueUpdate(input: FacetValueUpdateInput!) : FacetValueUpdatePayload!
   """
-  Attach source facet values to an existing or newly-created display value.
-  This is the only mutation that merges source values into a display value.
+  Attach source facet values to an existing or newly-created group value.
+  This is the only mutation that merges source values into a group value.
   """
   facetValueMerge(input: FacetValueMergeInput!) : FacetValueMergePayload!
   """
-  Detach source facet values from their display value and make them root values.
+  Detach source facet values from their group value and make them root values.
   This is the only mutation that unmerges source values.
   """
   facetValueUnmerge(input: FacetValueUnmergeInput!) : FacetValueUnmergePayload!
@@ -4392,7 +4392,7 @@ type FacetValueMergePayload @join__type(graph: LISTING_ADMIN)  {
 
 type FacetValueUnmergePayload @join__type(graph: LISTING_ADMIN)  {
   sourceValues: [FacetValue!]!
-  affectedDisplayValues: [FacetValue!]!
+  affectedGroupValues: [FacetValue!]!
   userErrors: [GenericUserError!]!
 }
 
@@ -7373,7 +7373,7 @@ enum FacetSelectionMode @join__type(graph: LISTING_ADMIN)  {
 
 enum FacetValueKind @join__type(graph: LISTING_ADMIN)  {
   SOURCE @join__enumValue(graph: LISTING_ADMIN) 
-  DISPLAY @join__enumValue(graph: LISTING_ADMIN) 
+  GROUP @join__enumValue(graph: LISTING_ADMIN)
 }
 
 enum FacetValueCandidateType @join__type(graph: LISTING_ADMIN)  {
@@ -11860,7 +11860,7 @@ input FacetValueUpdateInput @join__type(graph: LISTING_ADMIN)  {
 
 input FacetValueMergeInput @join__type(graph: LISTING_ADMIN)  {
   facetId: ID!
-  targetDisplayValueId: ID
+  targetGroupValueId: ID
   targetHandle: String
   targetLabel: String
   sourceValueIds: [ID!]!

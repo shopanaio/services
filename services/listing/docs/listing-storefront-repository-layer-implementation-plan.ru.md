@@ -519,10 +519,10 @@ async getFacetValues(input: {
   `store_id`, repository резолвит их regardless of enabled/disabled,
   visibility-like state or reference freshness;
 - `kind = source` with `parent_id IS NULL` resolves to its own `facet_value_id`;
-- `kind = display` resolves to the display value id itself; source children are
+- `kind = group` resolves to the group value id itself; source children are
   not required for filter resolution;
 - если caller передал handle source child where `parent_id IS NOT NULL`, метод
-  may resolve it to its parent display value id to preserve canonical
+  may resolve it to its parent group value id to preserve canonical
   storefront grouping, but public storefront handles are expected to be root
   values;
 - `facet_type` используется в том же canonical формате, что и catalog; repository
@@ -543,7 +543,7 @@ Acceptance:
 - read path не читает canonical product/variant source rows для resolution;
 - canonical catalog facet metadata читается только через минимальные read-only
   runtime models;
-- resolution does not filter out disabled, hidden-like, stale or display-without-
+- resolution does not filter out disabled, hidden-like, stale or group-without-
   child values when the canonical catalog row exists.
 
 ## StorefrontPostingBitmapQueryRepository

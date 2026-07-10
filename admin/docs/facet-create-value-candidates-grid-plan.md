@@ -584,6 +584,6 @@ Admin:
 ## Открытые решения
 
 1. Нужно ли автоматически preselect all candidates по умолчанию или selection должна стартовать пустой.
-2. Нужна ли отдельная колонка `Grouped values` как на screenshot, если display grouping/merge будет реализован позже.
+2. Нужна ли отдельная колонка `Grouped values` как на screenshot, если grouping/merge будет реализован позже.
 3. Нужно ли разрешить batch select across all filtered results, или header checkbox должен выбирать только текущую страницу.
-4. Должны ли созданные source values сразу иметь paired display values, или display grouping остаётся отдельным follow-up flow.
+4. Должны ли созданные source values сразу иметь paired group values, или grouping остаётся отдельным follow-up flow.

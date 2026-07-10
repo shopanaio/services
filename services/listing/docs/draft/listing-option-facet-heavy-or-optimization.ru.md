@@ -713,7 +713,7 @@ Why this is correct:
 - `base.target_facet_id::uuid` keeps the join to
   `listing_option_signature_value.facet_id` index-friendly while the surrounding
   CTE pipeline still exposes `facet_id` as text.
-- `option_facet_values` limits returned buckets to visible configured display
+- `option_facet_values` limits returned buckets to visible configured group
   values.
 
 ## Heavy count without price
@@ -1006,8 +1006,8 @@ Compare old candidate path and new heavy path on the same fixtures:
     `(facet_id, value_key)` rows because candidate/heavy producer ownership is
     still exclusive
 
-11. merged/source display values
-   expected: counts use resolved display value_key from option_facet_values
+11. merged/source group values
+   expected: counts use resolved group value_key from option_facet_values
    and isolation uses resolved facet_id, not requested slug
 
 12. target facet is also active

@@ -3446,14 +3446,14 @@ export type ApiFacetValueDeletePayload = {
 };
 
 export enum FacetValueKind {
-  Display = 'DISPLAY',
+  Group = 'GROUP',
   Source = 'SOURCE'
 }
 
 export type ApiFacetValueMergeInput = {
   facetId: Scalars['ID']['input'];
   sourceValueIds: Array<Scalars['ID']['input']>;
-  targetDisplayValueId?: InputMaybe<Scalars['ID']['input']>;
+  targetGroupValueId?: InputMaybe<Scalars['ID']['input']>;
   targetHandle?: InputMaybe<Scalars['String']['input']>;
   targetLabel?: InputMaybe<Scalars['String']['input']>;
 };
@@ -3471,7 +3471,7 @@ export type ApiFacetValueUnmergeInput = {
 
 export type ApiFacetValueUnmergePayload = {
   __typename?: 'FacetValueUnmergePayload';
-  affectedDisplayValues: Array<ApiFacetValue>;
+  affectedGroupValues: Array<ApiFacetValue>;
   sourceValues: Array<ApiFacetValue>;
   userErrors: Array<ApiGenericUserError>;
 };
@@ -4361,12 +4361,12 @@ export type ApiListingMutation = {
   /** Delete a facet value. */
   facetValueDelete: ApiFacetValueDeletePayload;
   /**
-   * Attach source facet values to an existing or newly-created display value.
-   * This is the only mutation that merges source values into a display value.
+   * Attach source facet values to an existing or newly-created group value.
+   * This is the only mutation that merges source values into a group value.
    */
   facetValueMerge: ApiFacetValueMergePayload;
   /**
-   * Detach source facet values from their display value and make them root values.
+   * Detach source facet values from their group value and make them root values.
    * This is the only mutation that unmerges source values.
    */
   facetValueUnmerge: ApiFacetValueUnmergePayload;

@@ -21,7 +21,7 @@ enum FacetSelectionMode {
 
 enum FacetValueKind {
   SOURCE
-  DISPLAY
+  GROUP
 }
 
 """
@@ -187,7 +187,7 @@ input FacetValueUpdateInput {
 
 input FacetValueMergeInput {
   facetId: ID!
-  targetDisplayValueId: ID
+  targetGroupValueId: ID
   targetHandle: String
   targetLabel: String
   sourceValueIds: [ID!]!
@@ -265,7 +265,7 @@ type FacetValueMergePayload {
 
 type FacetValueUnmergePayload {
   sourceValues: [FacetValue!]!
-  affectedDisplayValues: [FacetValue!]!
+  affectedGroupValues: [FacetValue!]!
   userErrors: [GenericUserError!]!
 }
 

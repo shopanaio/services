@@ -275,7 +275,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
   async facetValueCreate(args: {
     input: {
       facetId: string;
-      kind?: "SOURCE" | "DISPLAY" | null;
+      kind?: "SOURCE" | "GROUP" | null;
       handle: string;
       label: string;
       sourceValueIds?: string[] | null;
@@ -315,7 +315,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
       FacetValueCreateParams
     >("facetValueCreate", {
       facetId,
-      kind: (args.input.kind ?? "DISPLAY").toLowerCase() as "source" | "display",
+      kind: (args.input.kind ?? "GROUP").toLowerCase() as "source" | "group",
       handle: args.input.handle,
       label: args.input.label,
       sourceValueIds: decodedSourceValues.ids,
@@ -383,7 +383,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
   async facetValueMerge(args: {
     input: {
       facetId: string;
-      targetDisplayValueId?: string | null;
+      targetGroupValueId?: string | null;
       targetHandle?: string | null;
       targetLabel?: string | null;
       sourceValueIds: string[];
@@ -398,14 +398,14 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
       };
     }
 
-    const targetDisplayValueId = args.input.targetDisplayValueId
-      ? safeDecodeGlobalId(args.input.targetDisplayValueId, GlobalIdEntity.FacetValue)
+    const targetGroupValueId = args.input.targetGroupValueId
+      ? safeDecodeGlobalId(args.input.targetGroupValueId, GlobalIdEntity.FacetValue)
       : undefined;
-    if (args.input.targetDisplayValueId && !targetDisplayValueId) {
+    if (args.input.targetGroupValueId && !targetGroupValueId) {
       return {
         facetValue: null,
         sourceValues: [],
-        userErrors: [{ message: "Invalid target display value ID", field: ["input", "targetDisplayValueId"], code: "INVALID_ID" }],
+        userErrors: [{ message: "Invalid target group value ID", field: ["input", "targetGroupValueId"], code: "INVALID_ID" }],
       };
     }
 
@@ -427,7 +427,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
       FacetValueMergeParams
     >("facetValueMerge", {
       facetId,
-      targetDisplayValueId: targetDisplayValueId ?? undefined,
+      targetGroupValueId: targetGroupValueId ?? undefined,
       targetHandle: args.input.targetHandle ?? undefined,
       targetLabel: args.input.targetLabel ?? undefined,
       sourceValueIds: decodedSourceValues.ids,
@@ -457,7 +457,7 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
     if (decodedSourceValues.userErrors.length > 0) {
       return {
         sourceValues: [],
-        affectedDisplayValues: [],
+        affectedGroupValues: [],
         userErrors: decodedSourceValues.userErrors,
       };
     }
@@ -473,8 +473,8 @@ export class ListingMutationResolver extends ListingType<Record<string, never>> 
       sourceValues: await Promise.all(
         result.sourceValues.map((value) => this.resolvers.facetValue(value.id))
       ),
-      affectedDisplayValues: await Promise.all(
-        result.affectedDisplayValues.map((value) =>
+      affectedGroupValues: await Promise.all(
+        result.affectedGroupValues.map((value) =>
           this.resolvers.facetValue(value.id)
         )
       ),

@@ -202,7 +202,7 @@ export function FacetValueGroupModal() {
           facetId: typedPayload.facetId,
           sourceValueIds,
           ...(typedPayload.groupValueId
-            ? { targetDisplayValueId: typedPayload.groupValueId }
+            ? { targetGroupValueId: typedPayload.groupValueId }
             : {
                 targetLabel: values.label,
                 targetHandle: slugify(values.label),

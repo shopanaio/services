@@ -31,7 +31,7 @@ Listing facets - это не фильтры таблиц Admin UI. Это дом
 
 Внешний API работает со стабильными `slug` и `handle`, а внутренний индекс - с
 `valueKey = facetId:valueId`. Поэтому можно менять label, перевод, swatch и даже
-группировать source values в display value без смены внутренней структуры
+группировать source values в group value без смены внутренней структуры
 posting bitmap.
 
 ## Публичный GraphQL контракт
@@ -118,7 +118,7 @@ price; runtime listing строит price facet виртуально из price 
 `TAG`, `FEATURE`, `OPTION`:
 
 - `source` - реальное значение из каталога: tag handle, feature value handle или option value handle;
-- `display` - публичное значение фильтра, которое может группировать несколько source values.
+- `group` - публичное значение фильтра, которое может группировать несколько source values.
 
 Связь catalog values с `facet_value` задается через source value handle:
 
@@ -135,20 +135,20 @@ Catalog snapshot может прийти с value handle без префикса
 
 В админской модели root values - это rows с `parent_id IS NULL`: они показываются
 при управлении facet values и сортируются по `sort_index`. Root value может быть
-как `display`, так и `source`: негруппированный source value остается root и
+как `group`, так и `source`: негруппированный source value остается root и
 является самостоятельным публичным значением фильтра.
 
 Runtime listing metadata выбирает все видимые root values: `parent_id IS NULL`,
-`enabled = true`, `reference_status = VALID` и `kind IN ('display', 'source')`.
-Source value с display parent является внутренним child этой группы и отдельно
-не показывается. Source value без display parent показывается самостоятельно с
+`enabled = true`, `reference_status = VALID` и `kind IN ('group', 'source')`.
+Source value с group parent является внутренним child этой группы и отдельно
+не показывается. Source value без group parent показывается самостоятельно с
 собственным `handle`, label, count и reusable `input`.
 
 Пример группировки:
 
 ```text
-source: color:red       -> parent display:red-tones
-source: color:dark-red  -> parent display:red-tones
+source: color:red       -> parent group:red-tones
+source: color:dark-red  -> parent group:red-tones
 source: color:black     -> parent отсутствует, value показывается самостоятельно
 
 UI видит:
@@ -156,10 +156,10 @@ UI видит:
 - black
 ```
 
-При выборе `red-tones` runtime фильтрует индекс по ключу display parent:
+При выборе `red-tones` runtime фильтрует индекс по ключу group parent:
 `facetId:redTonesValueId`. При выборе негруппированного `black` используется
 ключ самого source value: `facetId:blackSourceValueId`. При индексировании
-source selection заранее разрешается либо в display parent, если он есть, либо
+source selection заранее разрешается либо в group parent, если он есть, либо
 в собственный source value. Поэтому query path не должен раскрывать группу
 каждый раз.
 
@@ -204,8 +204,8 @@ input, но не превращается в persisted `facet_source` row.
 `listing.facet_source`. Для `TAG`, `OPTION`, `FEATURE` выбранные value
 candidates записываются в `listing.facet_value` как `kind = 'source'`. Если
 нужно публичное имя, ручной handle, swatch или группировка нескольких source
-values, создается `kind = 'display'`, а source values получают `parent_id` этого
-display value. Source values, которые не включены в display group, сохраняют
+values, создается `kind = 'group'`, а source values получают `parent_id` этого
+group value. Source values, которые не включены в group, сохраняют
 `parent_id IS NULL` и показываются в storefront как самостоятельные facet
 values.
 
@@ -243,8 +243,8 @@ value_key = <listing.facet.id>:<listing.facet_value.id>
 ```text
 facet.slug = color
 facet.id = 7f0...
-display facet_value.handle = red
-display facet_value.id = 9a1...
+group facet_value.handle = red
+group facet_value.id = 9a1...
 
 bitmap value_key = 7f0...:9a1...
 GraphQL value id/input value = red
@@ -393,11 +393,11 @@ Runtime принимает публичные `facet.slug` и `value.handle`, з
 
 Правила:
 
-- `display` value валиден, если он root, enabled и `reference_status = VALID`;
+- `group` value валиден, если он root, enabled и `reference_status = VALID`;
 - root `source` value валиден как самостоятельный публичный input, если он
   enabled и `reference_status = VALID`;
 - `source` value с parent не является отдельным публичным input: storefront
-  использует handle его валидного display parent;
+  использует handle его валидного group parent;
 - неизвестная пара `facet:value` приводит к validation error;
 - `PRICE` нельзя применять через `productFacet`/`variantFacet`, для него есть
   `price` range input;
@@ -455,7 +455,7 @@ source values с обычным `facet_value` lifecycle. Они считаютс
 ## Sorting и порядок вывода
 
 Порядок facets задается `facet.lexo_rank`.
-Порядок видимых root values (`display` и негруппированных `source`) задается
+Порядок видимых root values (`group` и негруппированных `source`) задается
 `facet_value.sort_index`, затем стабильным `facet_value.id`.
 
 GraphQL наружу отдает:
@@ -503,7 +503,7 @@ schema `listing`.
   в variant postings плюс option signatures/projection.
 - Price и availability держи как virtual facets, если не нужна полноценная
   discrete configuration model.
-- При изменении grouping source/display values нужен reindex affected sellable
+- При изменении grouping source/group values нужен reindex affected sellable
   items, иначе posting bitmap продолжит ссылаться на старый resolved value id.
 - Counts должны сохранять isolated-facet поведение: исключать только текущий
   facet group и учитывать остальные filters.

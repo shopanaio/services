@@ -236,7 +236,7 @@ async function createListingFacets(
         variables: {
           input: {
             facetId: sourceFacet.id,
-            kind: 'DISPLAY',
+            kind: 'GROUP',
             handle: value.handle,
             label: value.label,
             sortIndex,

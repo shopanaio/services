@@ -3,7 +3,7 @@ import { isUniqueViolation } from "../../kernel/types.js";
 import type { FacetValueResult, FacetValueUpdateParams } from "./dto/index.js";
 import {
   isFacetWithValues,
-  isValidDisplayHandle,
+  isValidGroupHandle,
   normalizeFacetValueHandle,
 } from "./facetValueValidation.js";
 
@@ -68,11 +68,11 @@ export class FacetValueUpdateScript extends BaseScript<
         };
       }
 
-      if (!isValidDisplayHandle(handle)) {
+      if (!isValidGroupHandle(handle)) {
         return {
           facetValue: undefined,
           userErrors: [
-            { message: "Invalid display value handle", field: ["handle"], code: "INVALID_HANDLE" },
+            { message: "Invalid group value handle", field: ["handle"], code: "INVALID_HANDLE" },
           ],
         };
       }
@@ -91,7 +91,7 @@ export class FacetValueUpdateScript extends BaseScript<
       }
     }
 
-    if (existing.kind === "display" && params.enabled === true) {
+    if (existing.kind === "group" && params.enabled === true) {
       const children = await this.repository.facetValue.getSourceChildrenByParentIds([
         existing.id,
       ]);
@@ -100,7 +100,7 @@ export class FacetValueUpdateScript extends BaseScript<
           facetValue: undefined,
           userErrors: [
             {
-              message: "Enabled display values require at least one enabled source value",
+              message: "Enabled group values require at least one enabled source value",
               field: ["enabled"],
               code: "SOURCE_VALUES_REQUIRED",
             },

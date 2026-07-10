@@ -259,10 +259,10 @@ export interface FacetValueUnmergeMutationData {
   listingMutation: {
     facetValueUnmerge: Omit<
       ApiFacetValueUnmergePayload,
-      "sourceValues" | "affectedDisplayValues"
+      "sourceValues" | "affectedGroupValues"
     > & {
       sourceValues: FacetValueGridFields[];
-      affectedDisplayValues: FacetValueGridFields[];
+      affectedGroupValues: FacetValueGridFields[];
     };
   };
 }
@@ -317,7 +317,7 @@ export interface FacetValueMergeMutationResult {
 
 export interface FacetValueUnmergeMutationResult {
   sourceValues: FacetValueGridFields[];
-  affectedDisplayValues: FacetValueGridFields[];
+  affectedGroupValues: FacetValueGridFields[];
   userErrors: ApiGenericUserError[];
 }
 

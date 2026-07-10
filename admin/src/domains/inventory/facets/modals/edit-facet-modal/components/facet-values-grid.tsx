@@ -75,7 +75,7 @@ function canMergeSelection(rows: FacetValueEditorRow[]): boolean {
 function canUngroupSelection(rows: FacetValueEditorRow[]): boolean {
   return rows.some(
     (row) =>
-      (row.kind === FacetValueKind.Display && row.sourceValues.length > 0) ||
+      (row.kind === FacetValueKind.Group && row.sourceValues.length > 0) ||
       (row.kind === FacetValueKind.Source && Boolean(row.parent?.id)),
   );
 }
@@ -275,13 +275,13 @@ export function FacetValuesGrid({
         sortable: false,
         cellRenderer: ({ data }: ICellRendererParams<FacetValueEditorRow>) => {
           if (!data) return null;
-          const isDisplay = data.kind === FacetValueKind.Display;
+          const isGroup = data.kind === FacetValueKind.Group;
           return (
             <Dropdown
               trigger={["click"]}
               menu={{
                 items: [
-                  ...(isDisplay
+                  ...(isGroup
                     ? [
                         {
                           key: "edit",

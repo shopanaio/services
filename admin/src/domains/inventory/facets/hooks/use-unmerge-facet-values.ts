@@ -39,7 +39,7 @@ export function useUnmergeFacetValues(): UseUnmergeFacetValuesReturn {
 
         return {
           sourceValues: payload?.sourceValues ?? [],
-          affectedDisplayValues: payload?.affectedDisplayValues ?? [],
+          affectedGroupValues: payload?.affectedGroupValues ?? [],
           userErrors: payload?.userErrors ?? [],
         };
       } catch (err) {
@@ -47,7 +47,7 @@ export function useUnmergeFacetValues(): UseUnmergeFacetValuesReturn {
           err instanceof Error ? err.message : "An unexpected error occurred";
         return {
           sourceValues: [],
-          affectedDisplayValues: [],
+          affectedGroupValues: [],
           userErrors: [{ message, code: "UNEXPECTED_ERROR" }],
         };
       }

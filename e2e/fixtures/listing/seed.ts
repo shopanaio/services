@@ -308,7 +308,7 @@ async function createListingFacets(
     }
 
     const sourceValueByHandle = new Map(facet.values.map((value) => [value.handle, value]));
-    const displayValues = [];
+    const groupValues = [];
 
     for (const [index, value] of group.values.entries()) {
       const sourceValue = sourceValueByHandle.get(value.sourceValueHandle ?? value.handle);
@@ -321,7 +321,7 @@ async function createListingFacets(
         variables: {
           input: {
             facetId: facet.id,
-            kind: 'DISPLAY',
+            kind: 'GROUP',
             handle: value.handle,
             label: value.label,
             sortIndex: index,
@@ -332,10 +332,10 @@ async function createListingFacets(
       const valueResult = valueData.listingMutation.facetValueCreate;
       expect(valueResult.userErrors).toHaveLength(0);
       expect(valueResult.facetValue).toBeTruthy();
-      displayValues.push({ ...valueResult.facetValue, handle: value.handle, label: value.label });
+      groupValues.push({ ...valueResult.facetValue, handle: value.handle, label: value.label });
     }
 
-    facets.push({ ...facet, values: displayValues as ApiFacet['values'] });
+    facets.push({ ...facet, values: groupValues as ApiFacet['values'] });
   }
 
   return facets;

@@ -447,7 +447,7 @@ export class FacetValueRepository extends BaseRepository {
       .orderBy(asc(facetValue.handle), asc(facetValue.facetId), asc(facetValue.id));
   }
 
-  async getDisplayParentsBySourceValueIds(
+  async getGroupParentsBySourceValueIds(
     valueIds: readonly string[]
   ): Promise<FacetValue[]> {
     const sourceValues = await this.getByIds(valueIds);
@@ -467,7 +467,7 @@ export class FacetValueRepository extends BaseRepository {
         and(
           eq(facetValue.storeId, this.storeId),
           inArray(facetValue.id, parentIds),
-          eq(facetValue.kind, "display")
+          eq(facetValue.kind, "group")
         )
       );
   }
@@ -525,7 +525,7 @@ export class FacetValueRepository extends BaseRepository {
       result.set(id, []);
     }
 
-    const displayIds: string[] = [];
+    const groupIds: string[] = [];
     for (const value of values) {
       if (!value.enabled) {
         continue;
@@ -533,12 +533,12 @@ export class FacetValueRepository extends BaseRepository {
 
       if (value.kind === "source") {
         result.set(value.id, [value.handle]);
-      } else if (value.kind === "display") {
-        displayIds.push(value.id);
+      } else if (value.kind === "group") {
+        groupIds.push(value.id);
       }
     }
 
-    const children = await this.getSourceChildrenByParentIds(displayIds);
+    const children = await this.getSourceChildrenByParentIds(groupIds);
     const childHandlesByParentId = new Map<string, Set<string>>();
     for (const child of children) {
       if (!child.parentId || !child.enabled) {
@@ -549,15 +549,15 @@ export class FacetValueRepository extends BaseRepository {
       childHandlesByParentId.set(child.parentId, handles);
     }
 
-    for (const displayId of displayIds) {
-      result.set(displayId, [...(childHandlesByParentId.get(displayId) ?? [])].sort());
+    for (const groupId of groupIds) {
+      result.set(groupId, [...(childHandlesByParentId.get(groupId) ?? [])].sort());
     }
 
     return result;
   }
 
-  async attachSourcesToDisplay(
-    displayValueId: string,
+  async attachSourcesToGroup(
+    groupValueId: string,
     sourceValueIds: string[]
   ): Promise<void> {
     const uniqueSourceValueIds = [...new Set(sourceValueIds)];
@@ -566,7 +566,7 @@ export class FacetValueRepository extends BaseRepository {
     await this.connection
       .update(facetValue)
       .set({
-        parentId: displayValueId,
+        parentId: groupValueId,
         updatedAt: new Date().toISOString(),
       })
       .where(

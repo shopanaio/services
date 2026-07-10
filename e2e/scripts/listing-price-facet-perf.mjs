@@ -382,7 +382,7 @@ async function main() {
 
       return {
         id: randomUUID(),
-        kind: isRootSource ? 'source' : 'display',
+        kind: isRootSource ? 'source' : 'group',
         handle: isRootSource ? `${group.slug}:${sourceValueHandle}` : sourceValueHandle,
         sourceValueHandle,
         childSourceId: isRootSource ? null : randomUUID(),
@@ -569,8 +569,8 @@ async function main() {
           filters: OPTION_GROUPS.map(({ slug, selected }) => ({ slug, selected })),
           facetValueKinds: facets.map((facet) => ({
             slug: facet.slug,
-            displayValueHandles: facet.values
-              .filter((value) => value.kind === 'display')
+            groupValueHandles: facet.values
+              .filter((value) => value.kind === 'group')
               .map((value) => value.handle),
             rootSourceValueHandles: facet.values
               .filter((value) => value.kind === 'source')
@@ -1100,7 +1100,7 @@ async function seedListingFacets(sql, storeId, facets) {
         ON CONFLICT (facet_value_id, locale) DO UPDATE SET label = EXCLUDED.label
       `;
 
-      if (value.kind === 'display') {
+      if (value.kind === 'group') {
         const sourceHandle = `${facet.slug}:${value.sourceValueHandle}`;
         await sql`
           INSERT INTO listing.facet_value (

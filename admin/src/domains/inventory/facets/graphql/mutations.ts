@@ -155,7 +155,7 @@ export const FACET_VALUE_UNMERGE_MUTATION = gql`
         sourceValues {
           ...FacetValueGridFields
         }
-        affectedDisplayValues {
+        affectedGroupValues {
           ...FacetValueGridFields
         }
         userErrors {

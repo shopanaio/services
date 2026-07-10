@@ -36,14 +36,14 @@ export function compileFacetResolutionSql(): SQL {
           WHEN fv.id IS NULL THEN 'VALUE_MISSING'
           WHEN fv.enabled = false THEN 'VALUE_DISABLED'
           WHEN fv.reference_status <> 'VALID' THEN 'VALUE_REFERENCE_INVALID'
-          WHEN fv.kind = 'display' AND fv.parent_id IS NOT NULL THEN 'DISPLAY_NOT_ROOT'
-          WHEN fv.kind = 'display' THEN 'VALID'
+          WHEN fv.kind = 'group' AND fv.parent_id IS NOT NULL THEN 'GROUP_NOT_ROOT'
+          WHEN fv.kind = 'group' THEN 'VALID'
           WHEN fv.kind = 'source' AND fv.parent_id IS NOT NULL THEN 'SOURCE_NOT_ROOT'
           WHEN fv.kind = 'source' THEN 'VALID'
           ELSE 'VALUE_KIND_UNSUPPORTED'
         END AS resolution_status,
         fv.parent_id IS NULL AS is_root,
-        fv.kind = 'display' AS is_display
+        fv.kind = 'group' AS is_group
       FROM requested_facets r
       JOIN input i ON true
       LEFT JOIN listing.facet f
@@ -70,7 +70,7 @@ export function compileFacetResolutionSql(): SQL {
         requested_facet_slug,
         requested_value_handle,
         is_root DESC NULLS LAST,
-        is_display DESC NULLS LAST,
+        is_group DESC NULLS LAST,
         facet_value_id ASC
     ),
     missing_requested_facets AS (
@@ -86,7 +86,7 @@ export function compileFacetResolutionSql(): SQL {
         CASE cf.resolution_status
           WHEN 'VALUE_DISABLED' THEN 10
           WHEN 'VALUE_REFERENCE_INVALID' THEN 20
-          WHEN 'DISPLAY_NOT_ROOT' THEN 30
+          WHEN 'GROUP_NOT_ROOT' THEN 30
           WHEN 'SOURCE_NOT_ROOT' THEN 40
           WHEN 'VALUE_KIND_UNSUPPORTED' THEN 50
           ELSE 100

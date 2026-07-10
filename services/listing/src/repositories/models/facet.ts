@@ -181,14 +181,14 @@ export const facetValue = listingSchema.table(
       .defaultNow(),
   },
   (table) => [
-    check("facet_value_kind_check", sql`${table.kind} IN ('source', 'display')`),
+    check("facet_value_kind_check", sql`${table.kind} IN ('source', 'group')`),
     check(
-      "facet_value_display_root_check",
-      sql`${table.kind} <> 'display' OR ${table.parentId} IS NULL`
+      "facet_value_group_root_check",
+      sql`${table.kind} <> 'group' OR ${table.parentId} IS NULL`
     ),
     check(
-      "facet_value_display_reference_status_check",
-      sql`${table.kind} <> 'display' OR ${table.referenceStatus} = 'VALID'`
+      "facet_value_group_reference_status_check",
+      sql`${table.kind} <> 'group' OR ${table.referenceStatus} = 'VALID'`
     ),
     uniqueIndex("facet_value_source_store_facet_handle_uniq")
       .on(table.storeId, table.facetId, table.handle)
@@ -237,7 +237,7 @@ export type FacetSourceTranslation = typeof facetSourceTranslation.$inferSelect;
 export type NewFacetSourceTranslation = typeof facetSourceTranslation.$inferInsert;
 export type FacetSwatch = typeof facetSwatch.$inferSelect;
 export type NewFacetSwatch = typeof facetSwatch.$inferInsert;
-export type FacetValueKind = "source" | "display";
+export type FacetValueKind = "source" | "group";
 export type FacetValue = typeof facetValue.$inferSelect;
 export type NewFacetValue = typeof facetValue.$inferInsert;
 export type FacetValueTranslation = typeof facetValueTranslation.$inferSelect;

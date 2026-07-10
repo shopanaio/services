@@ -20,7 +20,7 @@
 2. Переименовать `facet_value.slug` в `facet_value.handle`.
 3. Хранить исходные source handles как строки `facet_value.kind = 'source'`.
 4. Хранить исходные i18n names source values в `facet_value_translation`.
-5. Поддержать custom display values и merge/unmerge через `parent_id`.
+5. Поддержать custom group values и merge/unmerge через `parent_id`.
 6. Не создавать и не удалять source rows при merge/unmerge. Merge/unmerge должен
    менять только `parent_id` у source rows.
 7. Перевести backend, GraphQL Admin API, listing/facet counts и docs на новую
@@ -55,27 +55,27 @@ Translation source value хранит исходное имя source value. На
 - `facet_value_translation.label = Dark red`.
 
 Source value может быть видимым само по себе, если `parent_id IS NULL`, или
-может быть скрытым child внутри display value, если `parent_id IS NOT NULL`.
+может быть скрытым child внутри group value, если `parent_id IS NOT NULL`.
 
-### Display value
+### Group value
 
-`facet_value` строка с `kind = 'display'`.
+`facet_value` строка с `kind = 'group'`.
 
 Она не является raw source handle. Это публичное значение, которое существует
 для custom label, custom handle, swatch, порядка или группировки нескольких
 source values.
 
-Display value всегда root row:
+Group value всегда root row:
 
 ```text
-kind = 'display'
+kind = 'group'
 parent_id = NULL
 ```
 
-Display value получает source handles через дочерние source values:
+Group value получает source handles через дочерние source values:
 
 ```text
-source.parent_id = display.id
+source.parent_id = group.id
 ```
 
 ### Visible value
@@ -91,7 +91,7 @@ parent_id IS NULL
 То есть visible values включают:
 
 - source values без parent;
-- display values.
+- group values.
 
 Source values с `parent_id IS NOT NULL` не выводятся как отдельные значения.
 
@@ -108,7 +108,7 @@ facet_value:
 3. kind=source,  handle=color:black,     label=Black,     parent_id=NULL
 4. kind=source,  handle=color:white,     label=White,     parent_id=NULL
 
-10. kind=display, handle=red, label=Red tones, parent_id=NULL
+10. kind=group, handle=red, label=Red tones, parent_id=NULL
 ```
 
 В списке фильтров выводятся:
@@ -156,7 +156,7 @@ catalog.facet_value (
   facet_id       uuid NOT NULL REFERENCES catalog.facet(id) ON DELETE CASCADE,
 
   parent_id      uuid NULL REFERENCES catalog.facet_value(id) ON DELETE NO ACTION,
-  kind           varchar(16) NOT NULL, -- 'source' | 'display'
+  kind           varchar(16) NOT NULL, -- 'source' | 'group'
   handle         text NOT NULL,
 
   swatch_id      uuid NULL REFERENCES catalog.facet_swatch(id) ON DELETE SET NULL,
@@ -173,7 +173,7 @@ catalog.facet_value (
 
 ```sql
 -- source handle уникален среди source rows одного facet_id;
--- source и display rows могут иметь одинаковый handle
+-- source и group rows могут иметь одинаковый handle
 CREATE UNIQUE INDEX facet_value_source_store_facet_handle_uniq
   ON catalog.facet_value (store_id, facet_id, handle)
   WHERE kind = 'source';
@@ -189,7 +189,7 @@ CREATE INDEX idx_facet_value_store_facet_visible_order
   ON catalog.facet_value (store_id, facet_id, sort_index, id)
   WHERE parent_id IS NULL;
 
--- быстрый lookup child source values для display value
+-- быстрый lookup child source values для group value
 CREATE INDEX idx_facet_value_store_parent
   ON catalog.facet_value (store_id, parent_id)
   WHERE parent_id IS NOT NULL;
@@ -209,16 +209,16 @@ CREATE INDEX idx_facet_value_store_facet_source_handle
 Рекомендуемые checks:
 
 ```sql
-CHECK (kind IN ('source', 'display'));
-CHECK (kind <> 'display' OR parent_id IS NULL);
+CHECK (kind IN ('source', 'group'));
+CHECK (kind <> 'group' OR parent_id IS NULL);
 ```
 
 Что остается application-level validation:
 
 - `parent_id` должен указывать на value того же `store_id` и `facet_id`;
-- parent для source value должен быть `kind = 'display'`;
-- display value не может быть child другого value;
-- display value, который включен (`enabled = true`), должен иметь хотя бы один
+- parent для source value должен быть `kind = 'group'`;
+- group value не может быть child другого value;
+- group value, который включен (`enabled = true`), должен иметь хотя бы один
   enabled source child перед публикацией/использованием в storefront;
 - `PRICE` и `IN_STOCK` не должны иметь `facet_value` rows.
 
@@ -232,7 +232,7 @@ CHECK (kind <> 'display' OR parent_id IS NULL);
 Таблица остается, но поле `label` меняет смысл в зависимости от kind:
 
 - `kind = 'source'`: исходное i18n имя source value;
-- `kind = 'display'`: публичное custom имя display/group value.
+- `kind = 'group'`: публичное custom имя group value.
 
 Структура может остаться прежней:
 
@@ -282,7 +282,7 @@ WHERE fv.store_id = :storeId
 LIMIT 1;
 ```
 
-Важно: `source` и `display` rows могут иметь одинаковый `handle` только если
+Важно: `source` и `group` rows могут иметь одинаковый `handle` только если
 одна из строк hidden (`parent_id IS NOT NULL`). Среди visible values
 `handle` уникален, поэтому storefront token `facetSlug:valueHandle` остается
 однозначным.
@@ -294,20 +294,20 @@ LIMIT 1;
 [fv.handle]
 ```
 
-5. Если `fv.kind = 'display'`, source handles:
+5. Если `fv.kind = 'group'`, source handles:
 
 ```sql
 SELECT child.handle
 FROM catalog.facet_value child
 WHERE child.store_id = :storeId
   AND child.facet_id = :facetId
-  AND child.parent_id = :displayValueId
+  AND child.parent_id = :groupValueId
   AND child.kind = 'source'
   AND child.enabled = true
 ORDER BY child.handle;
 ```
 
-6. Если display value не имеет enabled source children, filter value invalid и
+6. Если group value не имеет enabled source children, filter value invalid и
    игнорируется.
 
 ### Counts
@@ -315,7 +315,7 @@ ORDER BY child.handle;
 Для listing counts visible value сначала разворачивается в source handles:
 
 - visible source value -> один `handle`;
-- display value -> handles всех enabled source children.
+- group value -> handles всех enabled source children.
 
 Дальше текущая логика counts сохраняется:
 
@@ -325,7 +325,7 @@ ORDER BY child.handle;
 
 ## Merge / unmerge
 
-### Merge нескольких source values в display value
+### Merge нескольких source values в group value
 
 Merge не создает и не удаляет source rows.
 
@@ -333,7 +333,7 @@ Merge не создает и не удаляет source rows.
 
 ```sql
 UPDATE catalog.facet_value
-SET parent_id = :displayValueId,
+SET parent_id = :groupValueId,
     updated_at = now()
 WHERE id = ANY(:sourceValueIds)
   AND store_id = :storeId
@@ -346,9 +346,9 @@ WHERE id = ANY(:sourceValueIds)
 Unmerge делает source value снова visible:
 
 Перед `parent_id = NULL` нужно проверить, что в этом facet нет другого root
-value с тем же `handle`. Если есть root display/root source с таким handle,
+value с тем же `handle`. Если есть root group/root source с таким handle,
 mutation должна вернуть userError или требовать сначала изменить/delete
-конфликтующий display value. DB unique
+конфликтующий group value. DB unique
 `facet_value_root_store_facet_handle_uniq` должен дублировать эту защиту.
 
 ```sql
@@ -362,15 +362,15 @@ WHERE id = :sourceValueId
 
 ### Custom name для одного source value
 
-Custom label/handle для одного source value делается через display parent:
+Custom label/handle для одного source value делается через group parent:
 
 ```text
-source:  kind=source,  handle=nike, label=Nike, parent_id=<display id>
-display: kind=display, handle=nike, label=Nike official, parent_id=NULL
+source:  kind=source,  handle=nike, label=Nike, parent_id=<group id>
+group: kind=group, handle=nike, label=Nike official, parent_id=NULL
 ```
 
-Важно: если display value должен получить тот же `handle`, что и root source
-value, нельзя сначала создать display row с финальным `handle`.
+Важно: если group value должен получить тот же `handle`, что и root source
+value, нельзя сначала создать group row с финальным `handle`.
 
 До attach source value является visible/root row:
 
@@ -382,7 +382,7 @@ source: kind=source, handle=nike, parent_id=NULL
 
 ```sql
 INSERT INTO catalog.facet_value (kind, handle, parent_id)
-VALUES ('display', 'nike', NULL);
+VALUES ('group', 'nike', NULL);
 ```
 
 Правильный порядок должен быть transactional:
@@ -390,26 +390,26 @@ VALUES ('display', 'nike', NULL);
 ```text
 BEGIN
 
-1. Создать display row с временным уникальным handle:
-   kind=display, handle=__tmp_<uuid>, parent_id=NULL
+1. Создать group row с временным уникальным handle:
+   kind=group, handle=__tmp_<uuid>, parent_id=NULL
 
-2. Attach source к display:
-   source.parent_id = display.id
+2. Attach source к group:
+   source.parent_id = group.id
 
 3. После attach source больше не root, поэтому можно поставить финальный handle:
-   display.handle = nike
+   group.handle = nike
 
 COMMIT
 ```
 
 Если финальный `targetHandle` не совпадает с handle root source values, можно
-создавать display сразу с финальным handle. Если совпадает хотя бы с одним root
+создавать group сразу с финальным handle. Если совпадает хотя бы с одним root
 source value из merge set, нужно использовать temporary-handle flow выше.
 
-Custom display нельзя удалять как обычную parent row, пока у него есть source
+Custom group нельзя удалять как обычную parent row, пока у него есть source
 children. Нужно вызвать explicit unmerge/detach flow: source child получает
 `parent_id = NULL` только через mutation, которая проверяет конфликт root
-`handle`, после чего display можно удалить или disable.
+`handle`, после чего group можно удалить или disable.
 
 ## Изменения backend: DB и модели
 
@@ -446,7 +446,7 @@ Catalog migrations в этом проекте handwritten SQL через `node-p
 4. Добавить локальные TypeScript helper types:
 
 ```ts
-export type FacetValueKind = "source" | "display";
+export type FacetValueKind = "source" | "group";
 ```
 
 5. Убедиться, что timestamps остаются `mode: "string"`.
@@ -485,8 +485,8 @@ CONSTRAINT "facet_value_facet_id_slug_uniq" UNIQUE ("facet_id", "slug")
      - idx_facet_value_store_facet_visible_order
      - idx_facet_value_store_parent
      - idx_facet_value_store_facet_source_handle
-     - CHECK (kind IN ('source', 'display'))
-     - CHECK (kind <> 'display' OR parent_id IS NULL)
+     - CHECK (kind IN ('source', 'group'))
+     - CHECK (kind <> 'group' OR parent_id IS NULL)
 ```
 
 В `0503_facets__relations.sql` удалить создание
@@ -537,7 +537,7 @@ Resolution contract:
 - resolve visible values through `facet.slug` + root `facet_value.handle`;
 - do not execute DB queries inside a loop over raw filters;
 - if visible value `kind = 'source'`, return `[value.handle]`;
-- if visible value `kind = 'display'`, load enabled source children in batch by
+- if visible value `kind = 'group'`, load enabled source children in batch by
   parent ids and return child handles;
 - invalid tokens and values without enabled source handles are ignored.
 
@@ -560,14 +560,14 @@ async findVisibleByFacetId(facetId: string): Promise<FacetValue[]>
 async findAllByFacetId(facetId: string): Promise<FacetValue[]>
 async getSourceChildrenByParentIds(parentIds: readonly string[]): Promise<FacetValue[]>
 async getVisibleValueSourceHandles(valueIds: readonly string[]): Promise<Map<string, string[]>>
-async attachSourcesToDisplay(displayValueId: string, sourceValueIds: string[]): Promise<void>
+async attachSourcesToGroup(groupValueId: string, sourceValueIds: string[]): Promise<void>
 async detachSources(sourceValueIds: string[]): Promise<void>
 async createValue(data: FacetValueCreateData): Promise<FacetValue>
 async updateValue(id: string, data: FacetValueUpdateData): Promise<FacetValue | null>
 ```
 
 Repository возвращает один domain type `FacetValue`. `kind = "source"` и
-`kind = "display"` - это варианты состояния одной модели, не отдельные output
+`kind = "group"` - это варианты состояния одной модели, не отдельные output
 types.
 
 `findByFacetId` должен быть переосмыслен:
@@ -578,10 +578,10 @@ types.
 
 Валидации внутри repository/script:
 
-- source child и display parent должны быть в одном `storeId/facetId`;
-- parent должен быть `kind = 'display'`;
+- source child и group parent должны быть в одном `storeId/facetId`;
+- parent должен быть `kind = 'group'`;
 - source value нельзя attach к source parent;
-- display value нельзя attach как child;
+- group value нельзя attach как child;
 - нельзя создать `facet_value` для `price` и `in_stock`;
 - `handle` должен быть нормализован, но для source handles разрешить `:`.
 
@@ -622,13 +622,13 @@ Source values управляются отдельными value-level опера
 Переименовать:
 
 - `slug` -> `handle`;
-- `sourceHandles` -> `sourceValueIds` для create display value и dedicated
+- `sourceHandles` -> `sourceValueIds` для create group value и dedicated
   merge/unmerge operations.
 
 Новые DTO:
 
 ```ts
-export type FacetValueKind = "source" | "display";
+export type FacetValueKind = "source" | "group";
 
 export interface FacetValueCreateParams {
   facetId: string;
@@ -654,11 +654,11 @@ export interface FacetValueUpdateParams {
 Правила create:
 
 - `kind = 'source'` создается только sync script или explicit admin source-value
-  operation. Обычный create value flow должен создавать `display`, если
+  operation. Обычный create value flow должен создавать `group`, если
   переданы `sourceValueIds`, или source только в "create source value" flow.
-- `kind = 'display'` требует `sourceValueIds.length > 0`, если value сразу
+- `kind = 'group'` требует `sourceValueIds.length > 0`, если value сразу
   включен и должен быть usable.
-- `handle` display value должен быть valid slug-like storefront handle.
+- `handle` group value должен быть valid slug-like storefront handle.
 - `handle` source value должен быть valid source handle:
   - tag: без `:`;
   - feature/option: `source_slug:value_slug`.
@@ -669,12 +669,12 @@ export interface FacetValueUpdateParams {
 
 - generic update не принимает `sourceValueIds` и не меняет `parent_id` у
   source rows;
-- attach/detach source rows к display value делается только через
+- attach/detach source rows к group value делается только через
   `FacetValueMergeScript` / `FacetValueUnmergeScript`;
-- update source не должен менять `handle` через generic display-value update.
+- update source не должен менять `handle` через generic group-value update.
   Изменение source handle должно быть отдельной explicit source-value operation;
-- если display loses all children после unmerge, dedicated mutation должна
-  вернуть userError или автоматически disable display.
+- если group loses all children после unmerge, dedicated mutation должна
+  вернуть userError или автоматически disable group.
 
 ### Merge/unmerge scripts
 
@@ -694,7 +694,7 @@ DTO:
 ```ts
 export interface FacetValueMergeParams {
   facetId: string;
-  targetDisplayValueId?: string;
+  targetGroupValueId?: string;
   targetHandle?: string;
   targetLabel?: string;
   sourceValueIds: string[];
@@ -702,7 +702,7 @@ export interface FacetValueMergeParams {
 
 export interface FacetValueUnmergeParams {
   sourceValueIds: string[];
-  emptyDisplayAction?: "disable" | "delete" | "keep";
+  emptyGroupAction?: "disable" | "delete" | "keep";
 }
 
 export interface FacetValueMergeResult {
@@ -713,7 +713,7 @@ export interface FacetValueMergeResult {
 
 export interface FacetValueUnmergeResult {
   sourceValues: FacetValue[];
-  affectedDisplayValues: FacetValue[];
+  affectedGroupValues: FacetValue[];
   userErrors: UserError[];
 }
 ```
@@ -721,26 +721,26 @@ export interface FacetValueUnmergeResult {
 Merge contract:
 
 - mutation принимает `facetId`, `sourceValueIds` и один из target modes:
-  `targetDisplayValueId` для merge в существующий display value или
-  `targetHandle + targetLabel` для создания нового display value;
-- `targetDisplayValueId` и `targetHandle/targetLabel` не должны использоваться
+  `targetGroupValueId` для merge в существующий group value или
+  `targetHandle + targetLabel` для создания нового group value;
+- `targetGroupValueId` и `targetHandle/targetLabel` не должны использоваться
   одновременно;
-- если `targetDisplayValueId` передан, attach source values к нему;
-- если `targetDisplayValueId` не передан, создать display value с
+- если `targetGroupValueId` передан, attach source values к нему;
+- если `targetGroupValueId` не передан, создать group value с
   `targetHandle/targetLabel`;
 - если новый `targetHandle` совпадает с handle root source value из merge set,
-  создание нового display value должно идти через temporary-handle flow:
-  создать display с временным уникальным handle, attach source values, затем
-  обновить display.handle на `targetHandle` в той же transaction;
+  создание нового group value должно идти через temporary-handle flow:
+  создать group с временным уникальным handle, attach source values, затем
+  обновить group.handle на `targetHandle` в той же transaction;
 - если новый `targetHandle` конфликтует с root value вне merge set, mutation
   должна вернуть `HANDLE_ALREADY_EXISTS`;
 - source values должны быть `kind = 'source'`;
 - source values должны принадлежать тому же facet;
-- target должен быть `kind = 'display'`;
-- source values могут быть root или уже hidden children другого display value;
-- merge переводит каждый source value в `parent_id = targetDisplayValueId`;
+- target должен быть `kind = 'group'`;
+- source values могут быть root или уже hidden children другого group value;
+- merge переводит каждый source value в `parent_id = targetGroupValueId`;
 - merge не создает и не удаляет source rows;
-- результат возвращает target display value в `facetValue` и измененные source
+- результат возвращает target group value в `facetValue` и измененные source
   rows в `sourceValues`.
 
 Merge userErrors:
@@ -748,33 +748,33 @@ Merge userErrors:
 - `INVALID_FACET_ID` для невалидного `facetId`;
 - `INVALID_SOURCE_VALUE_ID` для невалидного id в `sourceValueIds`;
 - `SOURCE_VALUES_REQUIRED`, если `sourceValueIds` пустой;
-- `TARGET_REQUIRED`, если не передан ни `targetDisplayValueId`, ни
+- `TARGET_REQUIRED`, если не передан ни `targetGroupValueId`, ни
   `targetHandle/targetLabel`;
-- `TARGET_AMBIGUOUS`, если одновременно переданы `targetDisplayValueId` и
+- `TARGET_AMBIGUOUS`, если одновременно переданы `targetGroupValueId` и
   `targetHandle/targetLabel`;
-- `TARGET_NOT_DISPLAY`, если target row не `kind = 'display'`;
+- `TARGET_NOT_GROUP`, если target row не `kind = 'group'`;
 - `SOURCE_NOT_SOURCE`, если source row не `kind = 'source'`;
 - `FACET_MISMATCH`, если target/source rows не принадлежат `facetId`;
-- `HANDLE_ALREADY_EXISTS`, если новый display handle конфликтует с root value.
+- `HANDLE_ALREADY_EXISTS`, если новый group handle конфликтует с root value.
 
 Unmerge contract:
 
-- mutation принимает `sourceValueIds` и опциональный `emptyDisplayAction`;
+- mutation принимает `sourceValueIds` и опциональный `emptyGroupAction`;
 - все `sourceValueIds` должны указывать на rows `kind = 'source'`;
 - source values получают `parent_id = NULL`;
 - перед detach нужно проверить, что root value с таким же `handle` не существует
   в том же facet, кроме самой unmerged source row;
 - если root handle конфликтует, mutation возвращает userError и не делает
   частичный detach;
-- если old display остается без children, применяется `emptyDisplayAction`;
-- default `emptyDisplayAction = "disable"`;
-- `disable` ставит old display `enabled = false`;
-- `delete` удаляет old display, только если у него не осталось children;
-- `keep` оставляет old display без children, но такой display не должен быть
+- если old group остается без children, применяется `emptyGroupAction`;
+- default `emptyGroupAction = "disable"`;
+- `disable` ставит old group `enabled = false`;
+- `delete` удаляет old group, только если у него не осталось children;
+- `keep` оставляет old group без children, но такой group не должен быть
   usable storefront filter value;
 - unmerge не создает и не удаляет source rows;
 - результат возвращает detached source rows в `sourceValues` и затронутые old
-  display rows в `affectedDisplayValues`.
+  group rows в `affectedGroupValues`.
 
 Unmerge userErrors:
 
@@ -783,7 +783,7 @@ Unmerge userErrors:
 - `SOURCE_NOT_SOURCE`, если source row не `kind = 'source'`;
 - `SOURCE_NOT_MERGED`, если source row уже root и detach не нужен;
 - `ROOT_HANDLE_CONFLICT`, если unmerge сделает неоднозначный root handle;
-- `EMPTY_DISPLAY_ACTION_INVALID`, если передан неизвестный action.
+- `EMPTY_GROUP_ACTION_INVALID`, если передан неизвестный action.
 
 ## Изменения GraphQL Admin API
 
@@ -810,10 +810,10 @@ FacetValueUpdateInput.sourceHandles
 ```graphql
 enum FacetValueKind {
   SOURCE
-  DISPLAY
+  GROUP
 }
 
-enum FacetValueEmptyDisplayAction {
+enum FacetValueEmptyGroupAction {
   DISABLE
   DELETE
   KEEP
@@ -845,16 +845,16 @@ type FacetValue implements Node {
 ```
 
 `FacetValue` - единственный GraphQL output type для facet values. Source value
-и display value не являются отдельными output types; они отличаются только
+и group value не являются отдельными output types; они отличаются только
 полем `kind`.
 
 `FacetValue.sourceValues` возвращает объекты того же GraphQL type
 `FacetValue`, не строки handles и не отдельный type.
 
-Для display value поле возвращает child rows как `FacetValue` objects:
+Для group value поле возвращает child rows как `FacetValue` objects:
 
 ```text
-FacetValue(kind=DISPLAY, handle=red)
+FacetValue(kind=GROUP, handle=red)
   sourceValues: [
     FacetValue(kind=SOURCE, handle=color:red),
     FacetValue(kind=SOURCE, handle=color:dark-red)
@@ -878,7 +878,7 @@ runtime-derived результатом resolution, не GraphQL Admin API output
 ```graphql
 input FacetValueCreateInput {
   facetId: ID!
-  kind: FacetValueKind = DISPLAY
+  kind: FacetValueKind = GROUP
   handle: String!
   label: String!
   sourceValueIds: [ID!]
@@ -898,7 +898,7 @@ input FacetValueUpdateInput {
 
 input FacetValueMergeInput {
   facetId: ID!
-  targetDisplayValueId: ID
+  targetGroupValueId: ID
   targetHandle: String
   targetLabel: String
   sourceValueIds: [ID!]!
@@ -906,29 +906,29 @@ input FacetValueMergeInput {
 
 input FacetValueUnmergeInput {
   sourceValueIds: [ID!]!
-  emptyDisplayAction: FacetValueEmptyDisplayAction = DISABLE
+  emptyGroupAction: FacetValueEmptyGroupAction = DISABLE
 }
 ```
 
 `FacetValueMergeInput` contract:
 
 - `facetId` - facet scope для target и source values;
-- `sourceValueIds` - source rows, которые нужно attach к display value;
-- `targetDisplayValueId` - существующий display value target;
-- `targetHandle` / `targetLabel` - данные для нового display value, если
-  `targetDisplayValueId` не передан;
+- `sourceValueIds` - source rows, которые нужно attach к group value;
+- `targetGroupValueId` - существующий group value target;
+- `targetHandle` / `targetLabel` - данные для нового group value, если
+  `targetGroupValueId` не передан;
 - нужно передать ровно один target mode:
-  - existing target: `targetDisplayValueId`;
+  - existing target: `targetGroupValueId`;
   - new target: `targetHandle` + `targetLabel`.
 
 `FacetValueUnmergeInput` contract:
 
 - `sourceValueIds` - source rows, которые нужно detach в root values;
-- `emptyDisplayAction` - что делать с display values, которые после detach
+- `emptyGroupAction` - что делать с group values, которые после detach
   остались без source children:
   - `DISABLE` default: оставить row и выставить `enabled = false`;
-  - `DELETE`: удалить пустой display row;
-  - `KEEP`: оставить пустой display row; storefront/listing не должны считать
+  - `DELETE`: удалить пустой group row;
+  - `KEEP`: оставить пустой group row; storefront/listing не должны считать
     его usable enabled filter value.
 
 Payloads:
@@ -942,14 +942,14 @@ type FacetValueMergePayload {
 
 type FacetValueUnmergePayload {
   sourceValues: [FacetValue!]!
-  affectedDisplayValues: [FacetValue!]!
+  affectedGroupValues: [FacetValue!]!
   userErrors: [GenericUserError!]!
 }
 ```
 
 `FacetValueMergePayload`:
 
-- `facetValue` - target display value, существующий или созданный mutation;
+- `facetValue` - target group value, существующий или созданный mutation;
 - `sourceValues` - source rows, у которых изменился `parent_id`;
 - `userErrors` - business validation errors; если массив не пустой, mutation не
   должна делать частичный merge.
@@ -957,7 +957,7 @@ type FacetValueUnmergePayload {
 `FacetValueUnmergePayload`:
 
 - `sourceValues` - detached source rows;
-- `affectedDisplayValues` - old display rows, которые были disabled/kept или
+- `affectedGroupValues` - old group rows, которые были disabled/kept или
   остаются после detach; для `DELETE` удаленные rows сюда не возвращаются;
 - `userErrors` - business validation errors; если массив не пустой, mutation не
   должна делать частичный unmerge.
@@ -969,13 +969,13 @@ type FacetValueUnmergePayload {
 ```graphql
 type CatalogMutation {
   """
-  Attach source facet values to an existing or newly-created display value.
-  This is the only mutation that merges source values into a display value.
+  Attach source facet values to an existing or newly-created group value.
+  This is the only mutation that merges source values into a group value.
   """
   facetValueMerge(input: FacetValueMergeInput!): FacetValueMergePayload!
 
   """
-  Detach source facet values from their display value and make them root values.
+  Detach source facet values from their group value and make them root values.
   This is the only mutation that unmerges source values.
   """
   facetValueUnmerge(input: FacetValueUnmergeInput!): FacetValueUnmergePayload!
@@ -983,7 +983,7 @@ type CatalogMutation {
 ```
 
 `facetValueUpdate` не должен принимать `sourceValueIds` и не должен менять
-`parent_id`. Все изменения связей source/display values проходят только через
+`parent_id`. Все изменения связей source/group values проходят только через
 `facetValueMerge` и `facetValueUnmerge`.
 
 ### Resolvers
@@ -1010,7 +1010,7 @@ type CatalogMutation {
 `facetValueMerge` resolver contract:
 
 1. Decode `input.facetId` как `GlobalIdEntity.Facet`.
-2. Decode `input.targetDisplayValueId`, если передан, как
+2. Decode `input.targetGroupValueId`, если передан, как
    `GlobalIdEntity.FacetValue`.
 3. Decode каждый id из `input.sourceValueIds` как `GlobalIdEntity.FacetValue`.
 4. При invalid global id вернуть payload:
@@ -1032,7 +1032,7 @@ type CatalogMutation {
 `facetValueUnmerge` resolver contract:
 
 1. Decode каждый id из `input.sourceValueIds` как `GlobalIdEntity.FacetValue`.
-2. Map `emptyDisplayAction` enum:
+2. Map `emptyGroupAction` enum:
    - `DISABLE` -> `"disable"`;
    - `DELETE` -> `"delete"`;
    - `KEEP` -> `"keep"`.
@@ -1041,7 +1041,7 @@ type CatalogMutation {
 ```ts
 {
   sourceValues: [],
-  affectedDisplayValues: [],
+  affectedGroupValues: [],
   userErrors: [{ field: ["input", "sourceValueIds"], code: "INVALID_ID", message: "..." }]
 }
 ```
@@ -1049,7 +1049,7 @@ type CatalogMutation {
 4. Вызвать `FacetValueUnmergeScript` с decoded ids.
 5. Вернуть:
    - `sourceValues: FacetValueResolver[]`;
-   - `affectedDisplayValues: FacetValueResolver[]`;
+   - `affectedGroupValues: FacetValueResolver[]`;
    - `userErrors`.
 
 ## Изменения DataLoader
@@ -1128,15 +1128,15 @@ sourceHandles -> resolvedSourceHandles
 
 1. грузить visible values через `findVisibleByFacetId`;
 2. грузить translations для visible values;
-3. грузить source children для visible display values;
+3. грузить source children для visible group values;
 4. для visible source values source handles = `[value.handle]`;
-5. для visible display values source handles = children source handles;
+5. для visible group values source handles = children source handles;
 6. counts остаются прежними.
 
 Важно:
 
 - hidden source rows не должны попадать в `values` payload;
-- display без enabled children не должен попадать в storefront facets или должен
+- group без enabled children не должен попадать в storefront facets или должен
   иметь count `0`, если product decision требует показывать empty values;
 - source children должны быть deduplicated, чтобы merged values не double-count.
 
@@ -1204,10 +1204,10 @@ Acceptance:
 Acceptance:
 
 - `Facet.values` может получить only visible values;
-- display value разворачивается в children source handles;
+- group value разворачивается в children source handles;
 - source value без parent разворачивается в свой handle.
 - `resolveFacetFilterValues` не делает DB query внутри цикла по raw filters;
-  display children грузятся batch by parent ids.
+  group children грузятся batch by parent ids.
 
 ### Phase 3. Scripts и business validation
 
@@ -1219,7 +1219,7 @@ Acceptance:
 
 - merge/unmerge меняет только `parent_id`;
 - source rows не создаются/удаляются при merge/unmerge;
-- display без source children не может стать валидным enabled filter value.
+- group без source children не может стать валидным enabled filter value.
 
 ### Phase 4. GraphQL Admin API
 
@@ -1237,10 +1237,10 @@ Acceptance:
 - `CatalogMutation.facetValueUnmerge` добавлен;
 - `FacetValueUpdateInput.sourceValueIds` отсутствует;
 - `FacetValueMergeInput` поддерживает existing target через
-  `targetDisplayValueId` и new target через `targetHandle/targetLabel`;
-- `FacetValueUnmergeInput.emptyDisplayAction` добавлен с default `DISABLE`;
+  `targetGroupValueId` и new target через `targetHandle/targetLabel`;
+- `FacetValueUnmergeInput.emptyGroupAction` добавлен с default `DISABLE`;
 - merge payload возвращает `facetValue`, `sourceValues`, `userErrors`;
-- unmerge payload возвращает `sourceValues`, `affectedDisplayValues`,
+- unmerge payload возвращает `sourceValues`, `affectedGroupValues`,
   `userErrors`;
 - merge/unmerge resolvers декодируют ids и вызывают dedicated scripts, а не
   `FacetValueUpdateScript`;
@@ -1255,7 +1255,7 @@ Acceptance:
 
 Acceptance:
 
-- `facetSlug:displayHandle` фильтрует по child source handles;
+- `facetSlug:groupHandle` фильтрует по child source handles;
 - `facetSlug:sourceHandle` фильтрует по самому source handle, если source root;
 - hidden children не появляются в storefront values.
 
@@ -1280,13 +1280,13 @@ FacetValue.slug
 
 ## Риски и решения
 
-### Риск: `handle` display совпадает с `handle` source
+### Риск: `handle` group совпадает с `handle` source
 
 Это нормальный сценарий для tag values:
 
 ```text
-source:  handle=nike, parent_id=<display nike>
-display: handle=nike, parent_id=NULL
+source:  handle=nike, parent_id=<group nike>
+group: handle=nike, parent_id=NULL
 ```
 
 Поэтому нельзя делать global unique `(store_id, facet_id, handle)` на все rows
@@ -1297,12 +1297,12 @@ display: handle=nike, parent_id=NULL
 - source rows: unique `(store_id, facet_id, handle) WHERE kind = 'source'`;
 - root/visible rows: unique `(store_id, facet_id, handle) WHERE parent_id IS NULL`.
 
-Так display `handle=nike` и source `handle=nike` могут сосуществовать только как
-root display + hidden source child. Если такой source child попытаться unmerge в
+Так group `handle=nike` и source `handle=nike` могут сосуществовать только как
+root group + hidden source child. Если такой source child попытаться unmerge в
 root, unique constraint на `parent_id IS NULL` должен сохранить инвариант и
-заставить mutation вернуть userError или сначала изменить/delete display value.
+заставить mutation вернуть userError или сначала изменить/delete group value.
 
-### Риск: display value без children
+### Риск: group value без children
 
 Такой value не может фильтровать товары. Backend должен:
 
@@ -1310,27 +1310,27 @@ root, unique constraint на `parent_id IS NULL` должен сохранить
 - или возвращать count `0`, если product decision требует показывать пустые
   values.
 
-Рекомендуемое решение: не возвращать enabled display value без enabled source
+Рекомендуемое решение: не возвращать enabled group value без enabled source
 children в storefront facets и считать его invalid при resolution.
 
-### Риск: удаление display parent
+### Риск: удаление group parent
 
 `ON DELETE SET NULL` на `parent_id` запрещен, потому что обычное удаление
-display parent неожиданно сделает hidden source children visible и обойдет
+group parent неожиданно сделает hidden source children visible и обойдет
 business validation unmerge.
 
-FK для `parent_id` должен быть `ON DELETE NO ACTION`. Delete display with
+FK для `parent_id` должен быть `ON DELETE NO ACTION`. Delete group with
 children должен fail fast на DB/application уровне, пока mutation явно не
 выберет один из сценариев:
 
 - сначала explicit unmerge children с проверкой root `handle` conflicts;
-- detach children в другой display value;
-- disable display и оставить children attached;
-- hard-delete display только если children отсутствуют.
+- detach children в другой group value;
+- disable group и оставить children attached;
+- hard-delete group только если children отсутствуют.
 
-Рекомендуемое поведение: delete display with children без явного режима =
-userError. Для custom display delete нужно выполнять unmerge children in same
-transaction, then delete display, но только после успешной проверки uniqueness
+Рекомендуемое поведение: delete group with children без явного режима =
+userError. Для custom group delete нужно выполнять unmerge children in same
+transaction, then delete group, но только после успешной проверки uniqueness
 для будущих root source values.
 
 ## Минимальный end-to-end сценарий после реализации
@@ -1353,11 +1353,11 @@ Dark red
 Black
 ```
 
-5. Admin merge `color:red` и `color:dark-red` в display `red`.
-6. Backend создает display row:
+5. Admin merge `color:red` и `color:dark-red` в group `red`.
+6. Backend создает group row:
 
 ```text
-kind=display, handle=red, label=Red tones, parent_id=NULL
+kind=group, handle=red, label=Red tones, parent_id=NULL
 ```
 
 7. Backend updates:

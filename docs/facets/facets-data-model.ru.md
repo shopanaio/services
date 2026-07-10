@@ -57,7 +57,7 @@ facetSlug:valueHandle
 ### FacetValue
 
 `FacetValue` описывает значение дискретного facet. В целевой модели одна таблица
-`catalog.facet_value` хранит и реальные source values, и публичные display values.
+`catalog.facet_value` хранит и реальные source values, и публичные group values.
 Отдельной source-handle mapping table больше нет.
 
 DB таблицы:
@@ -69,7 +69,7 @@ DB таблицы:
 
 - `facet_id`;
 - `parent_id`;
-- `kind` - `source` или `display`;
+- `kind` - `source` или `group`;
 - `handle`;
 - `swatch_id`;
 - `sort_index`;
@@ -82,7 +82,7 @@ DB таблицы:
 - для `FEATURE`: `handle = feature.slug:value.slug`;
 - для `OPTION`: `handle = option.slug:option_value.slug`.
 
-`FacetValue.kind = display` означает публичное значение фильтра. Оно используется
+`FacetValue.kind = group` означает публичное значение фильтра. Оно используется
 для custom label, custom handle, swatch, порядка или группировки нескольких
 source values.
 
@@ -95,10 +95,10 @@ parent_id IS NULL
 Visible values включают:
 
 - root source values без parent;
-- display values.
+- group values.
 
 Source values с `parent_id IS NOT NULL` не выводятся как отдельные значения.
-Они являются hidden children своего display value.
+Они являются hidden children своего group value.
 
 Пример:
 
@@ -111,7 +111,7 @@ facet_value:
 3. kind=source,  handle=color:black,     label=Black,     parent_id=NULL
 4. kind=source,  handle=color:white,     label=White,     parent_id=NULL
 
-10. kind=display, handle=red, label=Red tones, parent_id=NULL
+10. kind=group, handle=red, label=Red tones, parent_id=NULL
 ```
 
 В списке фильтров выводятся:
@@ -143,7 +143,7 @@ catalog.facet_value (
   facet_id       uuid NOT NULL REFERENCES catalog.facet(id) ON DELETE CASCADE,
 
   parent_id      uuid NULL REFERENCES catalog.facet_value(id) ON DELETE NO ACTION,
-  kind           varchar(16) NOT NULL, -- 'source' | 'display'
+  kind           varchar(16) NOT NULL, -- 'source' | 'group'
   handle         text NOT NULL,
 
   swatch_id      uuid NULL REFERENCES catalog.facet_swatch(id) ON DELETE SET NULL,
@@ -177,8 +177,8 @@ CREATE INDEX idx_facet_value_store_facet_source_handle
   ON catalog.facet_value (store_id, facet_id, handle)
   WHERE kind = 'source';
 
-CHECK (kind IN ('source', 'display'));
-CHECK (kind <> 'display' OR parent_id IS NULL);
+CHECK (kind IN ('source', 'group'));
+CHECK (kind <> 'group' OR parent_id IS NULL);
 ```
 
 Source handle уникален только в рамках конкретного `facet_id`. Один raw source
@@ -189,9 +189,9 @@ resolution всегда начинается с `facet.slug`, поэтому tok
 Application-level validation:
 
 - `parent_id` должен указывать на value того же `store_id` и `facet_id`;
-- parent для source value должен быть `kind = 'display'`;
-- display value не может быть child другого value;
-- enabled display value должен иметь хотя бы один enabled source child перед
+- parent для source value должен быть `kind = 'group'`;
+- group value не может быть child другого value;
+- enabled group value должен иметь хотя бы один enabled source child перед
   использованием в storefront/listing;
 - `PRICE` и `IN_STOCK` не должны иметь `facet_value` rows.
 
@@ -201,7 +201,7 @@ Application-level validation:
 `facet_value.kind`:
 
 - `source`: исходное i18n имя source value;
-- `display`: публичное custom имя display/group value.
+- `group`: публичное custom имя group value.
 
 Структура таблицы остается обычной translation table:
 
@@ -249,9 +249,9 @@ facetSlug:valueHandle
 2. Найти visible value по `facet_id + handle + parent_id IS NULL + enabled`.
 3. Если value не найден, filter value invalid и игнорируется.
 4. Если `value.kind = source`, source handles равны `[value.handle]`.
-5. Если `value.kind = display`, source handles равны handles всех enabled source
-   children этого display value.
-6. Если display value не имеет enabled source children, filter value invalid и
+5. Если `value.kind = group`, source handles равны handles всех enabled source
+   children этого group value.
+6. Если group value не имеет enabled source children, filter value invalid и
    игнорируется.
 
 Lookup visible value:
@@ -274,7 +274,7 @@ SELECT child.handle
 FROM catalog.facet_value child
 WHERE child.store_id = :storeId
   AND child.facet_id = :facetId
-  AND child.parent_id = :displayValueId
+  AND child.parent_id = :groupValueId
   AND child.kind = 'source'
   AND child.enabled = true
 ORDER BY child.handle;
@@ -290,11 +290,11 @@ Merge/unmerge не создает и не удаляет source rows. Эти о�
 
 ### Merge
 
-Merge attach-ит source values к существующему или новому display value:
+Merge attach-ит source values к существующему или новому group value:
 
 ```sql
 UPDATE catalog.facet_value
-SET parent_id = :displayValueId,
+SET parent_id = :groupValueId,
     updated_at = now()
 WHERE id = ANY(:sourceValueIds)
   AND store_id = :storeId
@@ -302,12 +302,12 @@ WHERE id = ANY(:sourceValueIds)
   AND kind = 'source';
 ```
 
-Если новый display value должен получить тот же `handle`, что и root source
+Если новый group value должен получить тот же `handle`, что и root source
 value из merge set, операция должна идти transactionally через временный handle:
 
-1. создать display row с временным уникальным `handle`;
-2. attach source values к display;
-3. обновить display `handle` на финальный.
+1. создать group row с временным уникальным `handle`;
+2. attach source values к group;
+3. обновить group `handle` на финальный.
 
 Так сохраняется unique constraint для root values.
 
@@ -328,12 +328,12 @@ WHERE id = :sourceValueId
 же `handle`. Если конфликт есть, mutation должна вернуть userError и не делать
 частичный detach.
 
-Если display value после unmerge остался без source children, dedicated mutation
-применяет `emptyDisplayAction`:
+Если group value после unmerge остался без source children, dedicated mutation
+применяет `emptyGroupAction`:
 
 - `disable` - выставить `enabled = false`;
-- `delete` - удалить пустой display row;
-- `keep` - оставить пустой display row, но storefront/listing не должны считать
+- `delete` - удалить пустой group row;
+- `keep` - оставить пустой group row, но storefront/listing не должны считать
   его usable filter value.
 
 ## GraphQL Admin API
@@ -353,11 +353,11 @@ Enums:
 - `FacetType`: `PRICE`, `TAG`, `FEATURE`, `OPTION`, `IN_STOCK`;
 - `FacetUIType`: `CHECKBOX`, `RADIO`, `DROPDOWN`, `RANGE`, `BOOLEAN`;
 - `FacetSelectionMode`: `SINGLE`, `MULTI`;
-- `FacetValueKind`: `SOURCE`, `DISPLAY`;
-- `FacetValueEmptyDisplayAction`: `DISABLE`, `DELETE`, `KEEP`.
+- `FacetValueKind`: `SOURCE`, `GROUP`;
+- `FacetValueEmptyGroupAction`: `DISABLE`, `DELETE`, `KEEP`.
 
 `FacetValue` - единственный GraphQL output type для facet values. Source value и
-display value отличаются полем `kind`.
+group value отличаются полем `kind`.
 
 ```graphql
 type FacetValue implements Node {
@@ -376,7 +376,7 @@ type FacetValue implements Node {
 
 `FacetValue.sourceValues` возвращает child rows как `FacetValue` objects:
 
-- для `DISPLAY` - child source values;
+- для `GROUP` - child source values;
 - для `SOURCE` - пустой список.
 
 Admin API не экспонирует строковое поле source handles на `FacetValue`.
@@ -427,7 +427,7 @@ Value inputs:
 ```graphql
 input FacetValueCreateInput {
   facetId: ID!
-  kind: FacetValueKind = DISPLAY
+  kind: FacetValueKind = GROUP
   handle: String!
   label: String!
   sourceValueIds: [ID!]
@@ -447,7 +447,7 @@ input FacetValueUpdateInput {
 
 input FacetValueMergeInput {
   facetId: ID!
-  targetDisplayValueId: ID
+  targetGroupValueId: ID
   targetHandle: String
   targetLabel: String
   sourceValueIds: [ID!]!
@@ -455,12 +455,12 @@ input FacetValueMergeInput {
 
 input FacetValueUnmergeInput {
   sourceValueIds: [ID!]!
-  emptyDisplayAction: FacetValueEmptyDisplayAction = DISABLE
+  emptyGroupAction: FacetValueEmptyGroupAction = DISABLE
 }
 ```
 
 `facetValueUpdate` не меняет `parent_id` и не принимает `sourceValueIds`.
-Все изменения связей source/display values проходят только через
+Все изменения связей source/group values проходят только через
 `facetValueMerge` и `facetValueUnmerge`.
 
 На GraphQL boundary используются global IDs. Резолверы декодируют их в raw UUID
@@ -481,13 +481,13 @@ Create/update логика находится в scripts:
 Основные правила:
 
 - `Facet.slug` должен быть валидным slug;
-- `FacetValue.handle` для display value должен быть valid slug-like storefront handle;
+- `FacetValue.handle` для group value должен быть valid slug-like storefront handle;
 - `FacetValue.handle` для source value должен быть valid source handle:
   - tag: без `:`;
   - feature/option: `source_slug:value_slug`;
 - `Facet.label` и `FacetValue.label` обязательны;
 - source values управляются отдельными value-level операциями или sync flow;
-- display value может группировать один или несколько source values;
+- group value может группировать один или несколько source values;
 - generic update не меняет `parent_id`;
 - для `PRICE` и `IN_STOCK` facet values запрещены;
 - `uiType` валидируется относительно `facetType`:
@@ -523,7 +523,7 @@ Builder читает configured facets из DB и строит результа�
 Для counts каждый visible value разворачивается в source handles:
 
 - visible source value -> один `handle`;
-- display value -> handles всех enabled source children.
+- group value -> handles всех enabled source children.
 
 Дальше логика counts использует search index:
 

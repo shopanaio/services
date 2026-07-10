@@ -40,11 +40,11 @@ CREATE TABLE "listing"."facet_value" (
     REFERENCES "listing"."facet_swatch" ("id")
     ON DELETE SET NULL,
   CONSTRAINT "facet_value_kind_check"
-    CHECK ("kind" IN ('source', 'display')),
-  CONSTRAINT "facet_value_display_root_check"
-    CHECK ("kind" <> 'display' OR "parent_id" IS NULL),
-  CONSTRAINT "facet_value_display_reference_status_check"
-    CHECK ("kind" <> 'display' OR "reference_status" = 'VALID')
+    CHECK ("kind" IN ('source', 'group')),
+  CONSTRAINT "facet_value_group_root_check"
+    CHECK ("kind" <> 'group' OR "parent_id" IS NULL),
+  CONSTRAINT "facet_value_group_reference_status_check"
+    CHECK ("kind" <> 'group' OR "reference_status" = 'VALID')
 );
 
 CREATE UNIQUE INDEX "facet_value_source_store_facet_handle_uniq"

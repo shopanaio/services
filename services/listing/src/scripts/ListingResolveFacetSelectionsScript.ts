@@ -40,13 +40,13 @@ export class ListingResolveFacetSelectionsScript extends BaseScript<
       await this.repository.facetValue.getValidSourceValuesByHandles(
         refs.map((ref) => ref.sourceValueHandle)
       );
-    const displayParents =
-      await this.repository.facetValue.getDisplayParentsBySourceValueIds(
+    const groupParents =
+      await this.repository.facetValue.getGroupParentsBySourceValueIds(
         sourceValues.map((value) => value.id)
       );
 
-    const displayParentById = new Map(
-      displayParents.map((value) => [value.id, value])
+    const groupParentById = new Map(
+      groupParents.map((value) => [value.id, value])
     );
     const sourceValuesByHandle = groupBy(sourceValues, (value) => value.handle);
     const resolved = new Map<string, ResolvedValueRef>();
@@ -66,25 +66,25 @@ export class ListingResolveFacetSelectionsScript extends BaseScript<
       }
 
       const sourceValue = matchingSourceValues[0];
-      const displayParent = sourceValue.parentId
-        ? displayParentById.get(sourceValue.parentId)
+      const groupParent = sourceValue.parentId
+        ? groupParentById.get(sourceValue.parentId)
         : null;
       if (
         sourceValue.parentId &&
-        (!displayParent ||
-          displayParent.kind !== "display" ||
-          displayParent.parentId !== null ||
-          displayParent.facetId !== sourceValue.facetId ||
-          !displayParent.enabled ||
-          displayParent.referenceStatus !== "VALID")
+        (!groupParent ||
+          groupParent.kind !== "group" ||
+          groupParent.parentId !== null ||
+          groupParent.facetId !== sourceValue.facetId ||
+          !groupParent.enabled ||
+          groupParent.referenceStatus !== "VALID")
       ) {
         warnings.push(buildWarning("LISTING_FACET_VALUE_NOT_CONFIGURED", ref));
         continue;
       }
 
       resolved.set(sourceValueRefKey(ref), {
-        facetId: displayParent?.facetId ?? sourceValue.facetId,
-        valueId: displayParent?.id ?? sourceValue.id,
+        facetId: groupParent?.facetId ?? sourceValue.facetId,
+        valueId: groupParent?.id ?? sourceValue.id,
       });
     }
 

@@ -283,7 +283,7 @@ function assertNoFacetResolutionError(
       );
     case "VALUE_DISABLED":
     case "VALUE_REFERENCE_INVALID":
-    case "DISPLAY_NOT_ROOT":
+    case "GROUP_NOT_ROOT":
     case "SOURCE_NOT_ROOT":
     case "VALUE_KIND_UNSUPPORTED":
       throw new StorefrontRepositoryValidationError(
@@ -314,10 +314,10 @@ function invalidFacetFilterMessage(
       return `Invalid storefront facet filter ${filterName}: value is disabled`;
     case "VALUE_REFERENCE_INVALID":
       return `Invalid storefront facet filter ${filterName}: value reference status is not valid`;
-    case "DISPLAY_NOT_ROOT":
-      return `Invalid storefront facet filter ${filterName}: display value is not a root value`;
+    case "GROUP_NOT_ROOT":
+      return `Invalid storefront facet filter ${filterName}: group value is not a root value`;
     case "SOURCE_NOT_ROOT":
-      return `Invalid storefront facet filter ${filterName}: source child is not public; use its display parent handle`;
+      return `Invalid storefront facet filter ${filterName}: source child is not public; use its group parent handle`;
     case "VALUE_KIND_UNSUPPORTED":
       return `Invalid storefront facet filter ${filterName}: value kind is not supported`;
     default:

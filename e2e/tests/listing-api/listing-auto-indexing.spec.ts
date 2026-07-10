@@ -142,7 +142,7 @@ test.describe('Listing API automatic indexing', () => {
     });
   });
 
-  test('reindexes existing products when several facets and display values are created', async ({ api }) => {
+  test('reindexes existing products when several facets and group values are created', async ({ api }) => {
     const unique = crypto.randomUUID().slice(0, 8);
     const facets = facetDefinitions(unique, 'facet');
     const category = await api.admin.category.create({
@@ -198,7 +198,7 @@ test.describe('Listing API automatic indexing', () => {
     });
   });
 
-  test('indexes mixed display groups and root source values across merge and unmerge', async ({ api }) => {
+  test('indexes mixed grouped values and root source values across merge and unmerge', async ({ api }) => {
     const unique = crypto.randomUUID().slice(0, 8);
     const optionSource = `root-color-${unique}`;
     const featureSource = `root-material-${unique}`;
@@ -530,7 +530,7 @@ test.describe('Listing API automatic indexing', () => {
       },
     );
 
-    await updateFacetDisplayValueEnabled(api, createdFacets[0], lifecycleColor, false);
+    await updateFacetGroupValueEnabled(api, createdFacets[0], lifecycleColor, false);
     await expectListingErrors(api, category, {
       facets: [lifecycleColorFilter],
       expectedErrors: [
@@ -541,7 +541,7 @@ test.describe('Listing API automatic indexing', () => {
       ],
     });
 
-    await updateFacetDisplayValueEnabled(api, createdFacets[0], lifecycleColor, true);
+    await updateFacetGroupValueEnabled(api, createdFacets[0], lifecycleColor, true);
     await expectListingSnapshot(api, category, {
       totalCount: lifecycleColorProducts.length,
       productIds: lifecycleColorProducts.map((product) => product.id),
@@ -925,7 +925,7 @@ async function createOptionFacets(api: Api, facets: FacetDefinition[]): Promise<
     }
 
     const sourceValueByHandle = new Map(sourceFacet.values.map((value) => [value.handle, value]));
-    const displayValues = [];
+    const groupValues = [];
 
     for (const [index, value] of facet.values.entries()) {
       const sourceValue = sourceValueByHandle.get(`${facet.sourceSlug}:${value.handle}`);
@@ -937,7 +937,7 @@ async function createOptionFacets(api: Api, facets: FacetDefinition[]): Promise<
         variables: {
           input: {
             facetId: sourceFacet.id,
-            kind: 'DISPLAY',
+            kind: 'GROUP',
             handle: value.handle,
             label: value.label,
             sortIndex: index,
@@ -948,12 +948,12 @@ async function createOptionFacets(api: Api, facets: FacetDefinition[]): Promise<
       const valueResult = valueData.listingMutation.facetValueCreate;
       expect(valueResult.userErrors).toHaveLength(0);
       expect(valueResult.facetValue).toBeTruthy();
-      displayValues.push(valueResult.facetValue);
+      groupValues.push(valueResult.facetValue);
     }
 
     createdFacets.push({
       ...sourceFacet,
-      values: displayValues as ApiFacet['values'],
+      values: groupValues as ApiFacet['values'],
     });
   }
 
@@ -1141,7 +1141,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function updateFacetDisplayValueEnabled(
+async function updateFacetGroupValueEnabled(
   api: Api,
   facet: ApiFacet,
   valueHandle: string,
@@ -1149,7 +1149,7 @@ async function updateFacetDisplayValueEnabled(
 ): Promise<void> {
   const value = facet.values.find((candidate) => candidate.handle === valueHandle);
   if (!value) {
-    throw new Error(`Facet ${facet.id} does not have display value ${valueHandle}`);
+    throw new Error(`Facet ${facet.id} does not have group value ${valueHandle}`);
   }
 
   const { data } = await api.admin.mutation('facet-api/FacetValueUpdate', {

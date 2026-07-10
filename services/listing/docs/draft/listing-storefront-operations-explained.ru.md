@@ -190,7 +190,7 @@ value_key = <facet_id>:<facet_value_id>
 ```
 
 Resolver читает `facet`, visible root `facet_value` rows and enabled source
-children through the source/display parent model. Storefront получает только
+children through the source/group parent model. Storefront получает только
 configured facets and values that resolve to at least one enabled source value.
 
 Raw source handles используются только для sync/rebuild from canonical data.

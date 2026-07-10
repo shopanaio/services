@@ -19,7 +19,7 @@ export class FacetValueDeleteScript extends BaseScript<
       };
     }
 
-    if (existing.kind === "display") {
+    if (existing.kind === "group") {
       const children = await this.repository.facetValue.getSourceChildrenByParentIds([
         existing.id,
       ]);
@@ -28,9 +28,9 @@ export class FacetValueDeleteScript extends BaseScript<
           deletedFacetValueId: undefined,
           userErrors: [
             {
-              message: "Display value has source values and must be unmerged before delete",
+              message: "Group value has source values and must be unmerged before delete",
               field: ["id"],
-              code: "DISPLAY_HAS_SOURCE_VALUES",
+              code: "GROUP_HAS_SOURCE_VALUES",
             },
           ],
         };

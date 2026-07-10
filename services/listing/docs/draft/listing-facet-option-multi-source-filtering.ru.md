@@ -7,7 +7,7 @@
 - один storefront facet типа `option` может быть собран из нескольких catalog
   option sources;
 - значения этих options могут быть сгруппированы через
-  `facet_value.kind = 'display'`;
+  `facet_value.kind = 'group'`;
 - runtime listing index хранит не raw option handles и не row-based token
   tables, а roaring bitmap memberships for resolved
   `facet_id + facet_value_id`;
@@ -69,27 +69,27 @@ frame_size:m
 ```
 
 Если root source value остается public storefront value, его public handle тоже
-source-qualified. Если URL должен быть `?fit-size=m`, нужен root display value
+source-qualified. Если URL должен быть `?fit-size=m`, нужен root group value
 with `handle = m`, к которому attached source values.
 
-### Display value
+### Group value
 
-`facet_value.kind = 'display'` - группирующее значение, которое объединяет
+`facet_value.kind = 'group'` - группирующее значение, которое объединяет
 несколько source values в одно storefront value.
 
 Example:
 
 ```text
-display value:
-  id = display_m
+group value:
+  id = group_m
   handle = m
-  kind = display
+  kind = group
   parent_id = null
 
 source values:
-  clothing_size:m -> parent_id = display_m
-  shoe_size:m     -> parent_id = display_m
-  frame_size:m    -> parent_id = display_m
+  clothing_size:m -> parent_id = group_m
+  shoe_size:m     -> parent_id = group_m
+  frame_size:m    -> parent_id = group_m
 ```
 
 Storefront видит один value:
@@ -153,20 +153,20 @@ facet_source:
 Facet values:
 
 ```text
-display_m:
-  kind = display
+group_m:
+  kind = group
   handle = m
   parent_id = null
 
 source_clothing_size_m:
   kind = source
   handle = clothing_size:m
-  parent_id = display_m
+  parent_id = group_m
 
 source_shoe_size_m:
   kind = source
   handle = shoe_size:m
-  parent_id = display_m
+  parent_id = group_m
 ```
 
 Variant A has canonical option:
@@ -190,15 +190,15 @@ Resolve:
    `facet_id = facet_fit_size`, `kind = source`, `handle = clothing_size:m`.
 4. If source value is missing, disabled or no longer belongs to configured
    source, do not add bitmap membership.
-5. If `source.parent_id IS NOT NULL`, resolved value is parent display id.
+5. If `source.parent_id IS NOT NULL`, resolved value is parent group id.
 6. Otherwise resolved value is source value id.
 
 Result:
 
 ```text
 facet_id = facet_fit_size
-facet_value_id = display_m
-value_key = facet_fit_size:display_m
+facet_value_id = group_m
+value_key = facet_fit_size:group_m
 ```
 
 Sync adds `variant_doc_id` for Variant A to bitmap row:
@@ -207,7 +207,7 @@ Sync adds `variant_doc_id` for Variant A to bitmap row:
 store_id = project_1
 entity_type = variant
 field = facet
-value_key = facet_fit_size:display_m
+value_key = facet_fit_size:group_m
 ```
 
 Variant B with `shoe_size = m` resolves to the same `value_key`, so both variant
@@ -226,7 +226,7 @@ else:
   facet_value_id = source_value.id
 ```
 
-`kind = display` itself is not stored in runtime index. Display affects
+`kind = group` itself is not stored in runtime index. Group affects
 membership only through source value parent mapping.
 
 If source value disabled, missing or removed from `facet_source`, old bitmap
@@ -252,11 +252,11 @@ Resolver returns:
 ```text
 facet_id = facet_fit_size
 facet_type = option
-facet_value_id = display_m
-value_key = facet_fit_size:display_m
+facet_value_id = group_m
+value_key = facet_fit_size:group_m
 ```
 
-For `kind = display`, resolver must check that the display value has at least one
+For `kind = group`, resolver must check that the group value has at least one
 enabled source child. Otherwise the value has no real catalog membership and must
 not participate in filters/counts.
 
@@ -268,7 +268,7 @@ FROM listing.listing_posting_bitmap p
 WHERE p.store_id = :storeId
   AND p.entity_type = 'variant'
   AND p.field = 'facet'
-  AND p.value_key = :fitSizeDisplayMValueKey;
+  AND p.value_key = :fitSizeGroupMValueKey;
 ```
 
 Missing posting row means empty bitmap for this value.
@@ -339,7 +339,7 @@ Both groups are applied on `variant_doc_id` before projection.
 
 ## Deduplication
 
-If one variant has multiple source options resolving to the same display value,
+If one variant has multiple source options resolving to the same group value,
 sync must add `variant_doc_id` to the bitmap only once.
 
 Example:
@@ -353,8 +353,8 @@ Both resolve to:
 
 ```text
 facet_id = facet_fit_size
-facet_value_id = display_m
-value_key = facet_fit_size:display_m
+facet_value_id = group_m
+value_key = facet_fit_size:group_m
 ```
 
 Bitmap membership is a set membership, so one `variant_doc_id` appears once in
@@ -374,9 +374,9 @@ after all active filters except active filters from fit-size facet?
 Rules:
 
 - source values `clothing_size:m`, `shoe_size:m`, `frame_size:m` count as one
-  value `display_m`;
-- multiple variants of one product with `display_m` count as one product;
-- multiple source mappings of one variant with `display_m` count as one variant
+  value `group_m`;
+- multiple variants of one product with `group_m` count as one product;
+- multiple source mappings of one variant with `group_m` count as one variant
   membership;
 - facet isolation excludes only the active predicate of the same `facet_id`.
 
@@ -404,21 +404,21 @@ for the project.
 
 ## Что происходит при изменении grouping
 
-If source value is moved to another display value, `facet_value.parent_id`
+If source value is moved to another group value, `facet_value.parent_id`
 changes.
 
 Example:
 
 ```text
-before: shoe_size:m -> display_m
-after:  shoe_size:m -> display_medium
+before: shoe_size:m -> group_m
+after:  shoe_size:m -> group_medium
 ```
 
 Canonical product/variant may not change, but bitmap membership is stale:
 
 ```text
-old value_key = facet_fit_size:display_m
-new value_key = facet_fit_size:display_medium
+old value_key = facet_fit_size:group_m
+new value_key = facet_fit_size:group_medium
 ```
 
 This must trigger posting refresh:
@@ -437,7 +437,7 @@ Refresh is also required when:
 - source enters or leaves `catalog.facet_source`;
 - affected variants/products cannot be found cheaply by source handles.
 
-Changing display label, sort, swatch or public handle does not require rewriting
+Changing group label, sort, swatch or public handle does not require rewriting
 posting bitmaps if `facet_value_id` remains the same. Storefront
 resolve/aggregation still reads current visible values.
 
@@ -455,6 +455,5 @@ not with:
 option_slug + value_slug
 ```
 
-Multi-source option facet and `kind = display` are resolved before read path.
+Multi-source option facet and `kind = group` are resolved before read path.
 Runtime listing queries operate on stable ids and set algebra.
-

@@ -9,7 +9,7 @@ import type { FacetValue } from "../../repositories/models/index.js";
 import type { FacetValueCreateParams, FacetValueResult } from "./dto/index.js";
 import {
   isFacetWithValues,
-  isValidDisplayHandle,
+  isValidGroupHandle,
   isValidSourceHandle,
   normalizeFacetValueHandle,
 } from "./facetValueValidation.js";
@@ -112,7 +112,7 @@ export class FacetValueCreateScript extends BaseScript<
       }
     }
 
-    if (params.kind !== "display") {
+    if (params.kind !== "group") {
       return {
         facetValue: undefined,
         userErrors: [
@@ -121,11 +121,11 @@ export class FacetValueCreateScript extends BaseScript<
       };
     }
 
-    if (!isValidDisplayHandle(handle)) {
+    if (!isValidGroupHandle(handle)) {
       return {
         facetValue: undefined,
         userErrors: [
-          { message: "Invalid display value handle", field: ["handle"], code: "INVALID_HANDLE" },
+          { message: "Invalid group value handle", field: ["handle"], code: "INVALID_HANDLE" },
         ],
       };
     }
@@ -135,7 +135,7 @@ export class FacetValueCreateScript extends BaseScript<
         facetValue: undefined,
         userErrors: [
           {
-            message: "sourceValueIds are required for enabled display values",
+            message: "sourceValueIds are required for enabled group values",
             field: ["sourceValueIds"],
             code: "SOURCE_VALUES_REQUIRED",
           },
@@ -172,7 +172,7 @@ export class FacetValueCreateScript extends BaseScript<
     try {
       const created = await this.repository.facetValue.createValue({
         facetId: facet.id,
-        kind: "display",
+        kind: "group",
         handle: initialHandle,
         label: params.label,
         swatchId: params.swatchId,
@@ -181,7 +181,7 @@ export class FacetValueCreateScript extends BaseScript<
       });
 
       if (sourceValueIds.length > 0) {
-        await this.repository.facetValue.attachSourcesToDisplay(
+        await this.repository.facetValue.attachSourcesToGroup(
           created.id,
           sourceValueIds
         );

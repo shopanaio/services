@@ -21,7 +21,7 @@ export class FacetValueUnmergeScript extends BaseScript<
     if (sourceValueIds.length === 0) {
       return {
         sourceValues: [],
-        affectedDisplayValues: [],
+        affectedGroupValues: [],
         userErrors: [
           {
             message: "sourceValueIds are required",
@@ -35,32 +35,32 @@ export class FacetValueUnmergeScript extends BaseScript<
     const sourceValues = await this.repository.facetValue.getByIds(sourceValueIds);
     const sourceErrors = this.validateSourceValues(sourceValueIds, sourceValues);
     if (sourceErrors.length > 0) {
-      return { sourceValues: [], affectedDisplayValues: [], userErrors: sourceErrors };
+      return { sourceValues: [], affectedGroupValues: [], userErrors: sourceErrors };
     }
 
     const conflictErrors = await this.validateRootHandleConflicts(sourceValues);
     if (conflictErrors.length > 0) {
       return {
         sourceValues: [],
-        affectedDisplayValues: [],
+        affectedGroupValues: [],
         userErrors: conflictErrors,
       };
     }
 
-    const oldDisplayIds = [
+    const oldGroupIds = [
       ...new Set(sourceValues.flatMap((value) => value.parentId ? [value.parentId] : [])),
     ];
 
     await this.repository.facetValue.detachSources(sourceValueIds);
 
-    const [detachedSourceValues, affectedDisplayValues] = await Promise.all([
+    const [detachedSourceValues, affectedGroupValues] = await Promise.all([
       this.repository.facetValue.getByIds(sourceValueIds),
-      this.deleteEmptyDisplayValues(oldDisplayIds),
+      this.deleteEmptyGroupValues(oldGroupIds),
     ]);
 
     return {
       sourceValues: detachedSourceValues,
-      affectedDisplayValues,
+      affectedGroupValues,
       userErrors: [],
     };
   }
@@ -68,7 +68,7 @@ export class FacetValueUnmergeScript extends BaseScript<
   protected handleError(_error: unknown): FacetValueUnmergeResult {
     return {
       sourceValues: [],
-      affectedDisplayValues: [],
+      affectedGroupValues: [],
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }
@@ -141,37 +141,37 @@ export class FacetValueUnmergeScript extends BaseScript<
     return errors;
   }
 
-  private async deleteEmptyDisplayValues(
-    displayValueIds: readonly string[]
+  private async deleteEmptyGroupValues(
+    groupValueIds: readonly string[]
   ): Promise<FacetValue[]> {
-    if (displayValueIds.length === 0) {
+    if (groupValueIds.length === 0) {
       return [];
     }
 
-    const [displayValues, remainingChildren] = await Promise.all([
-      this.repository.facetValue.getByIds(displayValueIds),
-      this.repository.facetValue.getSourceChildrenByParentIds(displayValueIds),
+    const [groupValues, remainingChildren] = await Promise.all([
+      this.repository.facetValue.getByIds(groupValueIds),
+      this.repository.facetValue.getSourceChildrenByParentIds(groupValueIds),
     ]);
 
-    const childrenByDisplayId = new Map<string, FacetValue[]>();
+    const childrenByGroupId = new Map<string, FacetValue[]>();
     for (const child of remainingChildren) {
       if (!child.parentId) continue;
-      const children = childrenByDisplayId.get(child.parentId) ?? [];
+      const children = childrenByGroupId.get(child.parentId) ?? [];
       children.push(child);
-      childrenByDisplayId.set(child.parentId, children);
+      childrenByGroupId.set(child.parentId, children);
     }
 
-    const affectedDisplayValues: FacetValue[] = [];
-    for (const displayValue of displayValues) {
-      const remaining = childrenByDisplayId.get(displayValue.id) ?? [];
+    const affectedGroupValues: FacetValue[] = [];
+    for (const groupValue of groupValues) {
+      const remaining = childrenByGroupId.get(groupValue.id) ?? [];
       if (remaining.length > 0) {
-        affectedDisplayValues.push(displayValue);
+        affectedGroupValues.push(groupValue);
         continue;
       }
 
-      await this.repository.facetValue.delete(displayValue.id);
+      await this.repository.facetValue.delete(groupValue.id);
     }
 
-    return affectedDisplayValues;
+    return affectedGroupValues;
   }
 }

@@ -114,7 +114,7 @@ abstract class FacetMutationWorkflowBase<
     input: FacetMutationWorkflowInput<FacetValueCreateParams>
   ): Promise<FacetValueResult> {
     const oldImpact =
-      input.params.kind === "display" && (input.params.sourceValueIds?.length ?? 0) > 0
+      input.params.kind === "group" && (input.params.sourceValueIds?.length ?? 0) > 0
         ? await this.stepCollectImpact({
             context: input.context,
             params: {

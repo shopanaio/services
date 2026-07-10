@@ -12,7 +12,7 @@ import type {
 } from "./dto/index.js";
 import {
   isFacetWithValues,
-  isValidDisplayHandle,
+  isValidGroupHandle,
   normalizeFacetValueHandle,
 } from "./facetValueValidation.js";
 
@@ -39,7 +39,7 @@ export class FacetValueMergeScript extends BaseScript<
       };
     }
 
-    const hasExistingTarget = params.targetDisplayValueId !== undefined;
+    const hasExistingTarget = params.targetGroupValueId !== undefined;
     const hasNewTarget =
       params.targetHandle !== undefined || params.targetLabel !== undefined;
     if (hasExistingTarget && hasNewTarget) {
@@ -48,8 +48,8 @@ export class FacetValueMergeScript extends BaseScript<
         sourceValues: [],
         userErrors: [
           {
-            message: "Specify either targetDisplayValueId or targetHandle/targetLabel",
-            field: ["targetDisplayValueId"],
+            message: "Specify either targetGroupValueId or targetHandle/targetLabel",
+            field: ["targetGroupValueId"],
             code: "TARGET_AMBIGUOUS",
           },
         ],
@@ -62,7 +62,7 @@ export class FacetValueMergeScript extends BaseScript<
         sourceValues: [],
         userErrors: [
           {
-            message: "Target display value or target handle and label are required",
+            message: "Target group value or target handle and label are required",
             field: ["targetHandle"],
             code: "TARGET_REQUIRED",
           },
@@ -89,8 +89,8 @@ export class FacetValueMergeScript extends BaseScript<
 
     try {
       const target = hasExistingTarget
-        ? await this.resolveExistingTarget(params.targetDisplayValueId!, facet.id)
-        : await this.createTargetDisplayValue(params, facet.id, sourceValues);
+        ? await this.resolveExistingTarget(params.targetGroupValueId!, facet.id)
+        : await this.createTargetGroupValue(params, facet.id, sourceValues);
 
       if (target.userErrors.length > 0 || !target.facetValue) {
         return {
@@ -112,7 +112,7 @@ export class FacetValueMergeScript extends BaseScript<
         };
       }
 
-      await this.repository.facetValue.attachSourcesToDisplay(
+      await this.repository.facetValue.attachSourcesToGroup(
         target.facetValue.id,
         sourceValueIds
       );
@@ -197,22 +197,22 @@ export class FacetValueMergeScript extends BaseScript<
   }
 
   private async resolveExistingTarget(
-    targetDisplayValueId: string,
+    targetGroupValueId: string,
     facetId: string
   ): Promise<{
     facetValue?: FacetValue;
     finalHandle?: string;
     userErrors: UserError[];
   }> {
-    const target = await this.repository.facetValue.findById(targetDisplayValueId);
-    if (!target || target.kind !== "display") {
+    const target = await this.repository.facetValue.findById(targetGroupValueId);
+    if (!target || target.kind !== "group") {
       return {
         facetValue: undefined,
         userErrors: [
           {
-            message: "Target value must have kind DISPLAY",
-            field: ["targetDisplayValueId"],
-            code: "TARGET_NOT_DISPLAY",
+            message: "Target value must have kind GROUP",
+            field: ["targetGroupValueId"],
+            code: "TARGET_NOT_GROUP",
           },
         ],
       };
@@ -224,7 +224,7 @@ export class FacetValueMergeScript extends BaseScript<
         userErrors: [
           {
             message: "Target value does not belong to the target facet",
-            field: ["targetDisplayValueId"],
+            field: ["targetGroupValueId"],
             code: "FACET_MISMATCH",
           },
         ],
@@ -234,7 +234,7 @@ export class FacetValueMergeScript extends BaseScript<
     return { facetValue: target, userErrors: [] };
   }
 
-  private async createTargetDisplayValue(
+  private async createTargetGroupValue(
     params: FacetValueMergeParams,
     facetId: string,
     sourceValues: readonly FacetValue[]
@@ -259,12 +259,12 @@ export class FacetValueMergeScript extends BaseScript<
       };
     }
 
-    if (!isValidDisplayHandle(targetHandle)) {
+    if (!isValidGroupHandle(targetHandle)) {
       return {
         facetValue: undefined,
         userErrors: [
           {
-            message: "Invalid target display handle",
+            message: "Invalid target group handle",
             field: ["targetHandle"],
             code: "INVALID_HANDLE",
           },
@@ -277,7 +277,7 @@ export class FacetValueMergeScript extends BaseScript<
         facetValue: undefined,
         userErrors: [
           {
-            message: "Enabled display values require at least one enabled source value",
+            message: "Enabled group values require at least one enabled source value",
             field: ["sourceValueIds"],
             code: "SOURCE_VALUES_REQUIRED",
           },
@@ -311,7 +311,7 @@ export class FacetValueMergeScript extends BaseScript<
       : targetHandle;
     const created = await this.repository.facetValue.createValue({
       facetId,
-      kind: "display",
+      kind: "group",
       handle: initialHandle,
       label: targetLabel,
       enabled: true,
@@ -344,7 +344,7 @@ export class FacetValueMergeScript extends BaseScript<
     }
 
     return {
-      message: "Enabled display values require at least one enabled source value",
+      message: "Enabled group values require at least one enabled source value",
       field: ["sourceValueIds"],
       code: "SOURCE_VALUES_REQUIRED",
     };

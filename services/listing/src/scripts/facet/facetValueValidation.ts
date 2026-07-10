@@ -13,7 +13,7 @@ export function isFacetWithValues(facetType: string): boolean {
   return normalizedType !== "PRICE" && normalizedType !== "IN_STOCK";
 }
 
-export function isValidDisplayHandle(handle: string): boolean {
+export function isValidGroupHandle(handle: string): boolean {
   return isValidSlug(handle);
 }
 

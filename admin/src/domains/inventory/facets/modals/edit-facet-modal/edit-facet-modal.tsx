@@ -598,7 +598,7 @@ export function EditFacetModal() {
   const collectUngroupSourceIds = useCallback((rows: FacetValueEditorRow[]) => {
     const ids = new Set<string>();
     for (const row of rows) {
-      if (row.kind === FacetValueKind.Display) {
+      if (row.kind === FacetValueKind.Group) {
         row.sourceValues.forEach((sourceValue) => ids.add(sourceValue.id));
       }
       if (row.kind === FacetValueKind.Source && row.parent?.id) {
@@ -642,11 +642,11 @@ export function EditFacetModal() {
   const handleDeleteValues = useCallback(
     (rows: FacetValueEditorRow[]) => {
       if (!ensureNoDraftChanges()) return;
-      const groupedDisplay = rows.find(
-        (row) => row.kind === FacetValueKind.Display && row.sourceValues.length > 0,
+      const groupedValue = rows.find(
+        (row) => row.kind === FacetValueKind.Group && row.sourceValues.length > 0,
       );
-      if (groupedDisplay) {
-        message.warning("Ungroup display values before deleting them.");
+      if (groupedValue) {
+        message.warning("Ungroup grouped values before deleting them.");
         return;
       }
 

@@ -48,7 +48,7 @@ export interface FacetMoveParams {
 
 export interface FacetRebalanceParams {}
 
-export type FacetValueKind = "source" | "display";
+export type FacetValueKind = "source" | "group";
 
 export interface FacetValueCreateParams {
   facetId: string;
@@ -137,7 +137,7 @@ export interface FacetValueResult {
 
 export interface FacetValueMergeParams {
   facetId: string;
-  targetDisplayValueId?: string;
+  targetGroupValueId?: string;
   targetHandle?: string;
   targetLabel?: string;
   sourceValueIds: string[];
@@ -155,7 +155,7 @@ export interface FacetValueMergeResult {
 
 export interface FacetValueUnmergeResult {
   sourceValues: FacetValue[];
-  affectedDisplayValues: FacetValue[];
+  affectedGroupValues: FacetValue[];
   userErrors: UserError[];
 }
 

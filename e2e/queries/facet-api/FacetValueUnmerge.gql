@@ -5,7 +5,7 @@ mutation FacetValueUnmerge($input: FacetValueUnmergeInput!) {
         id
         handle
       }
-      affectedDisplayValues {
+      affectedGroupValues {
         id
         handle
       }

@@ -227,14 +227,14 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
             WHEN fv.id IS NULL THEN 'VALUE_MISSING'
             WHEN fv.enabled = false THEN 'VALUE_DISABLED'
             WHEN fv.reference_status <> 'VALID' THEN 'VALUE_REFERENCE_INVALID'
-            WHEN fv.kind = 'display' AND fv.parent_id IS NOT NULL THEN 'DISPLAY_NOT_ROOT'
-            WHEN fv.kind = 'display' THEN 'VALID'
+            WHEN fv.kind = 'group' AND fv.parent_id IS NOT NULL THEN 'GROUP_NOT_ROOT'
+            WHEN fv.kind = 'group' THEN 'VALID'
             WHEN fv.kind = 'source' AND fv.parent_id IS NOT NULL THEN 'SOURCE_NOT_ROOT'
             WHEN fv.kind = 'source' THEN 'VALID'
             ELSE 'VALUE_KIND_UNSUPPORTED'
           END AS "resolutionStatus",
           fv.parent_id IS NULL AS is_root,
-          fv.kind = 'display' AS is_display
+          fv.kind = 'group' AS is_group
         FROM requested r
         LEFT JOIN ${facet} f
           ON f.store_id = ${this.storeId}::uuid
@@ -259,7 +259,7 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
         "requestedValueHandle",
         ("resolutionStatus" = 'VALID') DESC,
         is_root DESC NULLS LAST,
-        is_display DESC NULLS LAST,
+        is_group DESC NULLS LAST,
         "facetValueId" ASC
     `);
 
@@ -515,10 +515,10 @@ function invalidFacetValueMessage(row: FacetResolutionSqlRow): string {
       return `Invalid storefront facet filter ${filterName}: value is disabled`;
     case "VALUE_REFERENCE_INVALID":
       return `Invalid storefront facet filter ${filterName}: value reference status is not valid`;
-    case "DISPLAY_NOT_ROOT":
-      return `Invalid storefront facet filter ${filterName}: display value is not a root value`;
+    case "GROUP_NOT_ROOT":
+      return `Invalid storefront facet filter ${filterName}: group value is not a root value`;
     case "SOURCE_NOT_ROOT":
-      return `Invalid storefront facet filter ${filterName}: source child is not public; use its display parent handle`;
+      return `Invalid storefront facet filter ${filterName}: source child is not public; use its group parent handle`;
     case "VALUE_KIND_UNSUPPORTED":
       return `Invalid storefront facet filter ${filterName}: value kind is not supported`;
     default:

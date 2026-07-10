@@ -25,12 +25,12 @@ dual-write, dual-read и SQL backfill для сохранения старого
 
 - `facetHandle` в этом документе означает публичный handle facet. В текущем
   catalog коде это поле называется `Facet.slug`.
-- `facetValueHandle` означает root/display `FacetValue.handle`, который
+- `facetValueHandle` означает root/group `FacetValue.handle`, который
   уникален внутри `(store_id, facet_id)`.
-- Для текущего формата handle `:` безопасен как delimiter для display values:
-  `Facet.slug` и display `FacetValue.handle` валидируются slug regex без `:`.
+- Для текущего формата handle `:` безопасен как delimiter для group values:
+  `Facet.slug` и group `FacetValue.handle` валидируются slug regex без `:`.
   Source handles для `OPTION`/`FEATURE` могут содержать `:`, но storefront
-  listing должен работать с display/root handles.
+  listing должен работать с group/root handles.
 
 ## Найденные зависимости
 
@@ -53,7 +53,7 @@ fallback.
 - `resolveFacetFilters()` делает join:
   - `catalog.facet` по `f.slug = requested.facet_slug`;
   - `catalog.facet_value` по `fv.facet_id = f.id` и `fv.handle = requested.value_handle`;
-  - parent display value через self-join `catalog.facet_value`;
+  - parent group value через self-join `catalog.facet_value`;
 - `getFacetValues()` берет candidate `value_key` из listing index, затем снова
   join-ит `catalog.facet`/`catalog.facet_value`, чтобы вернуть slug/type/handle.
 
@@ -164,10 +164,10 @@ material:cotton
 Правила:
 
 - `facetHandle` берется из catalog facet public handle (`Facet.slug` сейчас);
-- `facetValueHandle` берется из root/display `FacetValue.handle`;
+- `facetValueHandle` берется из root/group `FacetValue.handle`;
 - source child handles не являются storefront listing filter key;
 - если нужно поддержать source child input, этот alias должен резолвиться до
-  display handle до попадания в listing, но не через listing DB join к catalog.
+  group handle до попадания в listing, но не через listing DB join к catalog.
 
 ### Filter input без `handle -> id` resolution
 
@@ -623,7 +623,7 @@ E2E seed changes:
 
 - `e2e/fixtures/listing/seed.ts` больше не должен строить `facetUuid:valueUuid`
   через `decodeGlobalId`;
-- `mapFacetValueKeys()` должен строить keys из facet slug + display value handle;
+- `mapFacetValueKeys()` должен строить keys из facet slug + group value handle;
 - `e2e/utils/listingSeed.ts` должен заполнять `facet_handle` и
   `facet_value_handle`, а не парсить uuid из `valueKey.split(":")[0]`.
 
@@ -733,7 +733,7 @@ Current code still exposes `Facet.slug`. Если catalog в рамках это
 ### Source child handles
 
 Текущий catalog source handle для `OPTION`/`FEATURE` имеет формат
-`sourceHandle:valueHandle`. Listing target key должен использовать root/display
+`sourceHandle:valueHandle`. Listing target key должен использовать root/group
 value handle. Иначе `value_key = facetHandle:facetValueHandle` станет
 неоднозначным и перестанет соответствовать visible storefront values.
 

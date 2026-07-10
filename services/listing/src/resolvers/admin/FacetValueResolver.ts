@@ -49,7 +49,7 @@ export class FacetValueResolver extends ListingType<string, FacetValue> {
 
   async sourceValues() {
     const kind = await this.$get("kind");
-    if (kind !== "display") return [];
+    if (kind !== "group") return [];
     const children = await this.$ctx.loaders.facetValueSourceChildren.load(
       this.$props
     );
