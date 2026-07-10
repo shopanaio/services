@@ -110,6 +110,8 @@ export const useListingPreviewStyles = createStyles(({ css, token }) => ({
   grid: css`
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-rows: max-content;
+    align-items: start;
     gap: 12px;
     min-height: 0;
     overflow-y: auto;
