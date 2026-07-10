@@ -111,13 +111,21 @@ export class StorefrontProductSortCollectorRepository extends BaseRepository {
           manualScopeId: ZERO_UUID,
           orderBy: sql`s.bool_value DESC, s.timestamptz_value DESC, s.product_id ASC`,
         };
-      case "name":
+      case "name_asc":
         return {
           sortKind: "name",
           locale: input.locale,
           currency: "",
           manualScopeId: ZERO_UUID,
           orderBy: sql`s.bool_value DESC, s.text_value ASC NULLS LAST, s.product_id ASC`,
+        };
+      case "name_desc":
+        return {
+          sortKind: "name",
+          locale: input.locale,
+          currency: "",
+          manualScopeId: ZERO_UUID,
+          orderBy: sql`s.bool_value DESC, s.text_value DESC NULLS LAST, s.product_id ASC`,
         };
       case "price_asc":
         return {
@@ -152,8 +160,15 @@ export class StorefrontProductSortCollectorRepository extends BaseRepository {
 
     switch (sort) {
       case "manual":
-      case "name":
+      case "name_asc":
         downstream = this.ascNullsLastSeek(
+          sql`s.text_value`,
+          payload.textValue ?? null,
+          productSeek
+        );
+        break;
+      case "name_desc":
+        downstream = this.descNullsLastSeek(
           sql`s.text_value`,
           payload.textValue ?? null,
           productSeek
@@ -243,7 +258,8 @@ export class StorefrontProductSortCollectorRepository extends BaseRepository {
 
     switch (sort) {
       case "manual":
-      case "name":
+      case "name_asc":
+      case "name_desc":
         cursorValues.textValue = row.textValue;
         break;
       case "newest":

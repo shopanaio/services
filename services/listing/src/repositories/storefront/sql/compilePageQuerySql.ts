@@ -394,14 +394,23 @@ function productSortConfig(request: ListingSqlRequest): {
         manualScopeId: ZERO_UUID,
         orderBy: sql`s.bool_value DESC, s.timestamptz_value DESC, s.product_id ASC`,
       };
-    case "name":
+    case "name_asc":
       return {
-        sort: "name",
+        sort: "name_asc",
         sortKind: "name",
         locale: request.locale,
         currency: "",
         manualScopeId: ZERO_UUID,
         orderBy: sql`s.bool_value DESC, s.text_value ASC NULLS LAST, s.product_id ASC`,
+      };
+    case "name_desc":
+      return {
+        sort: "name_desc",
+        sortKind: "name",
+        locale: request.locale,
+        currency: "",
+        manualScopeId: ZERO_UUID,
+        orderBy: sql`s.bool_value DESC, s.text_value DESC NULLS LAST, s.product_id ASC`,
       };
     case "price_asc":
       return {
@@ -454,8 +463,15 @@ function buildProductSortSeekPredicate(
 
   switch (sort) {
     case "manual":
-    case "name":
+    case "name_asc":
       downstream = ascNullsLastSeek(
+        sql`s.text_value`,
+        payload.textValue ?? null,
+        productSeek
+      );
+      break;
+    case "name_desc":
+      downstream = descNullsLastSeek(
         sql`s.text_value`,
         payload.textValue ?? null,
         productSeek

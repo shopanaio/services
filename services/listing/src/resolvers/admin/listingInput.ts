@@ -249,7 +249,9 @@ function normalizeListingSort(
     case "CREATED":
       return { kind: "created" };
     case "NAME":
-      return { kind: "name" };
+      return {
+        kind: orderBy.direction === "desc" ? "name_desc" : "name_asc",
+      };
     case "PRICE":
       return {
         kind: orderBy.direction === "desc" ? "price_desc" : "price_asc",

@@ -15,7 +15,8 @@ export type StorefrontSortKind =
   | "manual"
   | "newest"
   | "created"
-  | "name"
+  | "name_asc"
+  | "name_desc"
   | "price_asc"
   | "price_desc"
   | "relevance";
@@ -161,7 +162,8 @@ export type ProductSortCollectKind =
   | "manual"
   | "newest"
   | "created"
-  | "name"
+  | "name_asc"
+  | "name_desc"
   | "price_asc"
   | "price_desc";
 

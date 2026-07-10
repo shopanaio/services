@@ -207,7 +207,8 @@ function toListingPageRow(
     default:
       switch (request.sort.kind) {
         case "manual":
-        case "name":
+        case "name_asc":
+        case "name_desc":
           cursorValues.textValue = row.textValue;
           break;
         case "newest":
