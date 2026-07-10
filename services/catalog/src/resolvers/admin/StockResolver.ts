@@ -1,3 +1,4 @@
+import { PreloadNotFoundError } from "@shopana/type-resolver";
 import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
@@ -14,7 +15,7 @@ export class StockResolver extends CatalogType<string, WarehouseStock> {
       .getServices()
       .repository.stock.findById(this.$props);
     if (!data) {
-      throw new Error(`Stock not found: ${this.$props}`);
+      throw new PreloadNotFoundError(`Stock not found: ${this.$props}`);
     }
     return data;
   }

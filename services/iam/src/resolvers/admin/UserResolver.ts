@@ -1,4 +1,7 @@
-import { SubgraphReference } from "@shopana/type-resolver";
+import {
+  PreloadNotFoundError,
+  SubgraphReference,
+} from "@shopana/type-resolver";
 import {
   encodeGlobalIdByType,
   GlobalIdEntity,
@@ -15,7 +18,7 @@ export class UserResolver extends IAMType<string, User> {
   async $preload() {
     const user = await this.$ctx.kernel.repository.user.findById(this.$props);
     if (!user) {
-      throw new Error(`User not found: ${this.$props}`);
+      throw new PreloadNotFoundError(`User not found: ${this.$props}`);
     }
     return user;
   }

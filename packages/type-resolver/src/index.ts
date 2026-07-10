@@ -3,6 +3,7 @@ export { BaseType } from "./baseType.js";
 
 // Executor
 export { Executor, createExecutor, ResolverError } from "./executor.js";
+export { PreloadNotFoundError } from "./preloadFailure.js";
 
 // Decorators
 export { Cache, type CacheOptions, type CacheStore } from "./decorators/Cache.js";

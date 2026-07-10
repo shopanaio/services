@@ -1,4 +1,5 @@
 import type { CatalogProductVariantPriceSnapshot } from "@shopana/broker-types";
+import { PreloadNotFoundError } from "@shopana/type-resolver";
 import { ServiceType } from "./ServiceType.js";
 
 export class CatalogProductVariantPriceSnapshotResolver extends ServiceType<
@@ -8,7 +9,9 @@ export class CatalogProductVariantPriceSnapshotResolver extends ServiceType<
   protected async $preload(): Promise<CatalogProductVariantPriceSnapshot> {
     const price = await this.$ctx.loaders.variantPriceById.load(this.$props);
     if (!price) {
-      throw new Error(`Variant price with ID ${this.$props} not found`);
+      throw new PreloadNotFoundError(
+        `Variant price with ID ${this.$props} not found`
+      );
     }
 
     return {

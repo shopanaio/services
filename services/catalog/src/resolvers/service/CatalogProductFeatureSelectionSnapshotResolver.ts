@@ -1,4 +1,5 @@
 import type { CatalogProductFeatureValueRef } from "@shopana/broker-types";
+import { PreloadNotFoundError } from "@shopana/type-resolver";
 import { CatalogProductFeatureValueRefResolver } from "./CatalogProductFeatureValueRefResolver.js";
 import { ServiceType } from "./ServiceType.js";
 
@@ -15,7 +16,9 @@ export class CatalogProductFeatureSelectionSnapshotResolver extends ServiceType<
   protected async $preload(): Promise<CatalogProductFeatureSelectionSnapshotData> {
     const feature = await this.$ctx.loaders.productFeature.load(this.$props);
     if (!feature) {
-      throw new Error(`Product feature with ID ${this.$props} not found`);
+      throw new PreloadNotFoundError(
+        `Product feature with ID ${this.$props} not found`
+      );
     }
 
     const valueIds = await this.$ctx.loaders.featureValueIds.load(feature.id);

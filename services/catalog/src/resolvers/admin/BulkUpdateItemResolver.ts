@@ -1,3 +1,4 @@
+import { PreloadNotFoundError } from "@shopana/type-resolver";
 import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
@@ -24,7 +25,9 @@ export class BulkUpdateItemResolver extends CatalogType<string, BulkEditItem> {
   async $preload() {
     const item = await this.$ctx.loaders.bulkEditItem.load(this.$props);
     if (!item) {
-      throw new Error(`BulkEditItem with ID ${this.$props} not found`);
+      throw new PreloadNotFoundError(
+        `BulkEditItem with ID ${this.$props} not found`
+      );
     }
     return item;
   }

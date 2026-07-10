@@ -1,3 +1,4 @@
+import { PreloadNotFoundError } from "@shopana/type-resolver";
 import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
@@ -10,7 +11,9 @@ export class ProductBulkUpdateJobResolver extends CatalogType<string, BulkEditJo
   async $preload() {
     const job = await this.$ctx.loaders.bulkEditJob.load(this.$props);
     if (!job) {
-      throw new Error(`BulkEditJob with ID ${this.$props} not found`);
+      throw new PreloadNotFoundError(
+        `BulkEditJob with ID ${this.$props} not found`
+      );
     }
     return job;
   }

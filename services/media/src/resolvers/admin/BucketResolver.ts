@@ -1,3 +1,4 @@
+import { PreloadNotFoundError } from "@shopana/type-resolver";
 import { MediaType, Cache } from "./MediaType.js";
 import {
   encodeGlobalIdByType,
@@ -15,7 +16,7 @@ export class BucketResolver extends MediaType<string, Bucket> {
       this.$props
     );
     if (!bucket) {
-      throw new Error(`Bucket not found: ${this.$props}`);
+      throw new PreloadNotFoundError(`Bucket not found: ${this.$props}`);
     }
     return bucket;
   }

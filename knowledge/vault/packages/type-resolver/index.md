@@ -30,12 +30,18 @@ Define data types as classes where each method is a resolver. Combined with `@sh
 ## Quick Example
 
 ```typescript
-import { BaseType, parseGraphqlInfo } from "@shopana/type-resolver";
+import {
+  BaseType,
+  PreloadNotFoundError,
+  parseGraphqlInfo,
+} from "@shopana/type-resolver";
 
 class ProductResolver extends BaseType<string, Product, ServiceContext> {
   protected async $preload() {
     const product = await this.$ctx.loaders.product.load(this.$props);
-    if (!product) throw new Error(`Product not found: ${this.$props}`);
+    if (!product) {
+      throw new PreloadNotFoundError(`Product not found: ${this.$props}`);
+    }
     return product;
   }
 

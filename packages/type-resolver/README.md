@@ -176,7 +176,7 @@ const result = await ProductType.load(product, {
 Convenience base class with lazy data loading:
 
 ```ts
-import { BaseType } from "@shopana/type-resolver";
+import { BaseType, PreloadNotFoundError } from "@shopana/type-resolver";
 
 class ProductType extends BaseType<string, Product, MyContext> {
   // value = product ID
@@ -184,7 +184,11 @@ class ProductType extends BaseType<string, Product, MyContext> {
 
   // Override to preload data from ID
   protected async $preload(): Promise<Product> {
-    return this.ctx.loaders.products.load(this.value);
+    const product = await this.$ctx.loaders.products.load(this.$props);
+    if (!product) {
+      throw new PreloadNotFoundError(`Product not found: ${this.$props}`);
+    }
+    return product;
   }
 
   async id() {
@@ -203,6 +207,10 @@ const product = await ProductType.load(productId, query, ctx);
 // Load multiple items
 const products = await ProductType.loadMany(productIds, query, ctx);
 ```
+
+`$preload()` is lazy and non-nullable. `PreloadNotFoundError` is converted to
+`null` for the whole root object; other preload errors are rethrown unchanged
+and are never wrapped as errors of the field that first accessed `$data`.
 
 ## Integration with GraphQL
 

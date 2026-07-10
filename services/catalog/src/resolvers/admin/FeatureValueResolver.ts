@@ -1,3 +1,4 @@
+import { PreloadNotFoundError } from "@shopana/type-resolver";
 import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
@@ -15,7 +16,9 @@ export class FeatureValueResolver extends CatalogType<
   async $preload() {
     const data = await this.$ctx.loaders.featureValue.load(this.$props);
     if (!data) {
-      throw new Error(`Feature value ${this.$props} not found`);
+      throw new PreloadNotFoundError(
+        `Feature value ${this.$props} not found`
+      );
     }
     return data;
   }

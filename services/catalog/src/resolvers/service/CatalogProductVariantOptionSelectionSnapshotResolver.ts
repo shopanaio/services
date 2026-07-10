@@ -1,4 +1,5 @@
 import type { CatalogProductOptionValueRef } from "@shopana/broker-types";
+import { PreloadNotFoundError } from "@shopana/type-resolver";
 import { CatalogProductOptionValueRefResolver } from "./CatalogProductOptionValueRefResolver.js";
 import { ServiceType } from "./ServiceType.js";
 
@@ -22,7 +23,9 @@ export class CatalogProductVariantOptionSelectionSnapshotResolver extends Servic
       this.$props.optionId
     );
     if (!option) {
-      throw new Error(`Product option with ID ${this.$props.optionId} not found`);
+      throw new PreloadNotFoundError(
+        `Product option with ID ${this.$props.optionId} not found`
+      );
     }
 
     const valueIds = await this.getSelectedValueIds();

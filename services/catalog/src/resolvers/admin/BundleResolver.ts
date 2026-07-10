@@ -1,3 +1,4 @@
+import { PreloadNotFoundError } from "@shopana/type-resolver";
 import { ProductResolver } from "./ProductResolver.js";
 import type { Product } from "../../repositories/models/index.js";
 
@@ -9,7 +10,9 @@ export class BundleResolver extends ProductResolver {
   async $preload(): Promise<Product> {
     const product = await super.$preload();
     if (product.kind !== "BUNDLE") {
-      throw new Error(`Product with ID ${this.$props} is not a bundle`);
+      throw new PreloadNotFoundError(
+        `Product with ID ${this.$props} is not a bundle`
+      );
     }
     return product;
   }

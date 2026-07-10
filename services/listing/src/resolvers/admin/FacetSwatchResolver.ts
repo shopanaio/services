@@ -1,3 +1,4 @@
+import { PreloadNotFoundError } from "@shopana/type-resolver";
 import {
   encodeGlobalIdByType,
   GlobalIdEntity,
@@ -9,7 +10,9 @@ export class FacetSwatchResolver extends ListingType<string, FacetSwatch> {
   async $preload() {
     const swatch = await this.$ctx.loaders.facetSwatch.load(this.$props);
     if (!swatch) {
-      throw new Error(`FacetSwatch with ID ${this.$props} not found`);
+      throw new PreloadNotFoundError(
+        `FacetSwatch with ID ${this.$props} not found`
+      );
     }
     return swatch;
   }

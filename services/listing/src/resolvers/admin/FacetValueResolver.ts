@@ -1,3 +1,4 @@
+import { PreloadNotFoundError } from "@shopana/type-resolver";
 import {
   encodeGlobalIdByType,
   GlobalIdEntity,
@@ -9,7 +10,9 @@ export class FacetValueResolver extends ListingType<string, FacetValue> {
   async $preload() {
     const facetValue = await this.$ctx.loaders.facetValue.load(this.$props);
     if (!facetValue) {
-      throw new Error(`FacetValue with ID ${this.$props} not found`);
+      throw new PreloadNotFoundError(
+        `FacetValue with ID ${this.$props} not found`
+      );
     }
     return facetValue;
   }

@@ -1,5 +1,6 @@
 import type { Executor } from "./executor.js";
 import type { CacheStore } from "./decorators/Cache.js";
+import { markPreloadFailure } from "./preloadFailure.js";
 import type { QueryArgs, TypeClass, TypeContext, TypeResult } from "./types.js";
 
 /**
@@ -114,7 +115,11 @@ export abstract class BaseType<TProps, TData = TProps, TContext = unknown> {
    */
   protected get $data(): Promise<TData> {
     if (!this._dataPromise) {
-      this._dataPromise = Promise.resolve(this.$preload());
+      this._dataPromise = Promise.resolve()
+        .then(() => this.$preload())
+        .catch((error) => {
+          throw markPreloadFailure(error);
+        });
     }
     return this._dataPromise;
   }

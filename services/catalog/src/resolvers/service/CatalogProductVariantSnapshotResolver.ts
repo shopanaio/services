@@ -2,6 +2,7 @@ import type {
   CatalogProductAvailabilitySnapshot,
   CatalogProductVariantPriceSnapshot,
 } from "@shopana/broker-types";
+import { PreloadNotFoundError } from "@shopana/type-resolver";
 import { CatalogProductAvailabilitySnapshotResolver } from "./CatalogProductAvailabilitySnapshotResolver.js";
 import { CatalogProductVariantOptionSelectionSnapshotResolver } from "./CatalogProductVariantOptionSelectionSnapshotResolver.js";
 import { CatalogProductVariantPriceSnapshotResolver } from "./CatalogProductVariantPriceSnapshotResolver.js";
@@ -30,7 +31,9 @@ export class CatalogProductVariantSnapshotResolver extends ServiceType<
   protected async $preload() {
     const variant = await this.$ctx.loaders.variant.load(this.$props);
     if (!variant) {
-      throw new Error(`Variant with ID ${this.$props} not found`);
+      throw new PreloadNotFoundError(
+        `Variant with ID ${this.$props} not found`
+      );
     }
 
     const [prices, optionSelections] = await Promise.all([

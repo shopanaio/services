@@ -1,3 +1,4 @@
+import { PreloadNotFoundError } from "@shopana/type-resolver";
 import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
@@ -14,7 +15,9 @@ export class OptionResolver extends CatalogType<string, ProductOption> {
   async $preload() {
     const option = await this.$ctx.loaders.productOption.load(this.$props);
     if (!option) {
-      throw new Error(`Option with ID ${this.$props} not found`);
+      throw new PreloadNotFoundError(
+        `Option with ID ${this.$props} not found`
+      );
     }
     return option;
   }

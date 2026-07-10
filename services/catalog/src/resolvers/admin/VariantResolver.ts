@@ -1,4 +1,7 @@
-import { SubgraphReference } from "@shopana/type-resolver";
+import {
+  PreloadNotFoundError,
+  SubgraphReference,
+} from "@shopana/type-resolver";
 import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
@@ -22,7 +25,9 @@ export class VariantResolver extends CatalogType<string, Variant> {
   async $preload() {
     const variant = await this.$ctx.loaders.variant.load(this.$props);
     if (!variant) {
-      throw new Error(`Variant with ID ${this.$props} not found`);
+      throw new PreloadNotFoundError(
+        `Variant with ID ${this.$props} not found`
+      );
     }
     return variant;
   }

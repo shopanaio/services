@@ -1,4 +1,5 @@
 import type { CatalogProductTagSnapshot } from "@shopana/broker-types";
+import { PreloadNotFoundError } from "@shopana/type-resolver";
 import { ServiceType } from "./ServiceType.js";
 
 export class CatalogProductTagSnapshotResolver extends ServiceType<
@@ -8,7 +9,7 @@ export class CatalogProductTagSnapshotResolver extends ServiceType<
   protected async $preload(): Promise<CatalogProductTagSnapshot> {
     const tag = await this.$ctx.loaders.tag.load(this.$props);
     if (!tag) {
-      throw new Error(`Tag with ID ${this.$props} not found`);
+      throw new PreloadNotFoundError(`Tag with ID ${this.$props} not found`);
     }
     return { id: tag.id, handle: tag.handle };
   }

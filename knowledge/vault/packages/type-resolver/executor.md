@@ -171,6 +171,28 @@ class ResolverError extends Error {
 
 Errors are caught per-field — other fields continue resolving even if one fails.
 
+### Lazy preload failures
+
+`$preload()` is still started only by the first `$data` or `$get()` access and
+its promise is shared by every field on the resolver instance.
+
+- `PreloadNotFoundError` makes `load()` return `null` for the whole root object.
+- Other errors thrown by `$preload()` are rethrown unchanged as root-level errors.
+- Neither failure is wrapped in a field `ResolverError` or handled by field-level
+  `onError` behavior.
+- `loadMany()` preserves order and returns `null` only at positions whose root
+  preload reported not found.
+
+```typescript
+protected async $preload(): Promise<Product> {
+  const product = await this.$ctx.loaders.product.load(this.$props);
+  if (!product) {
+    throw new PreloadNotFoundError(`Product not found: ${this.$props}`);
+  }
+  return product;
+}
+```
+
 ## Static Executor on BaseType
 
 ```typescript

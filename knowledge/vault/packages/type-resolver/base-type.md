@@ -38,7 +38,9 @@ class BaseType<TProps, TData = TProps, TContext = unknown>
 class ProductResolver extends BaseType<string, Product, ServiceContext> {
   protected async $preload() {
     const product = await this.$ctx.loaders.product.load(this.$props);
-    if (!product) throw new Error(`Product not found: ${this.$props}`);
+    if (!product) {
+      throw new PreloadNotFoundError(`Product not found: ${this.$props}`);
+    }
     return product;
   }
 
@@ -56,6 +58,11 @@ class ProductResolver extends BaseType<string, Product, ServiceContext> {
   }
 }
 ```
+
+`$preload()` remains non-nullable. Throw `PreloadNotFoundError` when the root
+aggregate does not exist; `Executor.load()` converts that lazy preload failure
+to `null` for the whole resolved object. Other preload errors remain root-level
+errors and are not attributed to whichever field first accessed `$data`.
 
 ## Static Methods
 

@@ -1,4 +1,7 @@
-import { SubgraphReference } from "@shopana/type-resolver";
+import {
+  PreloadNotFoundError,
+  SubgraphReference,
+} from "@shopana/type-resolver";
 import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
@@ -26,7 +29,9 @@ export class ProductResolver extends CatalogType<string, Product> {
   async $preload() {
     const product = await this.$ctx.loaders.product.load(this.$props);
     if (!product) {
-      throw new Error(`Product with ID ${this.$props} not found`);
+      throw new PreloadNotFoundError(
+        `Product with ID ${this.$props} not found`
+      );
     }
     return product;
   }

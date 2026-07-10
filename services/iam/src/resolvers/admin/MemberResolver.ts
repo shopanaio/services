@@ -1,3 +1,4 @@
+import { PreloadNotFoundError } from "@shopana/type-resolver";
 import { IAMType } from "./IAMType.js";
 import {
   encodeGlobalIdByType,
@@ -30,7 +31,7 @@ export class MemberResolver extends IAMType<MemberInput, UserRole> {
     });
 
     if (!userRoleData) {
-      throw new Error(
+      throw new PreloadNotFoundError(
         `UserRole not found: org=${organizationId}, user=${userId}, domain=${domain}`
       );
     }

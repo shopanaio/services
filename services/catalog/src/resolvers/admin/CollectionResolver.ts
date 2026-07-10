@@ -1,3 +1,4 @@
+import { PreloadNotFoundError } from "@shopana/type-resolver";
 import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
@@ -11,7 +12,9 @@ export class CollectionResolver extends CatalogType<string, Collection> {
   async $preload() {
     const collection = await this.$ctx.loaders.collection.load(this.$props);
     if (!collection) {
-      throw new Error(`Collection with ID ${this.$props} not found`);
+      throw new PreloadNotFoundError(
+        `Collection with ID ${this.$props} not found`
+      );
     }
     return collection;
   }

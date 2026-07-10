@@ -1,3 +1,4 @@
+import { PreloadNotFoundError } from "@shopana/type-resolver";
 import { MediaType, Cache } from "./MediaType.js";
 import type { ExternalMedia } from "../../repositories/models/index.js";
 
@@ -10,7 +11,9 @@ export class ExternalDataResolver extends MediaType<string, ExternalMedia> {
       this.$props
     );
     if (!externalMedia) {
-      throw new Error(`External media not found for file: ${this.$props}`);
+      throw new PreloadNotFoundError(
+        `External media not found for file: ${this.$props}`
+      );
     }
     return externalMedia;
   }

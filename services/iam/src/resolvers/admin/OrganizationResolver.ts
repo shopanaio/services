@@ -1,4 +1,7 @@
-import { SubgraphReference } from "@shopana/type-resolver";
+import {
+  PreloadNotFoundError,
+  SubgraphReference,
+} from "@shopana/type-resolver";
 import {
   decodeGlobalIdByType,
   encodeGlobalIdByType,
@@ -21,7 +24,9 @@ export class OrganizationResolver extends IAMType<string, Organization> {
       this.$props
     );
     if (!org) {
-      throw new Error(`Organization not found: ${this.$props}`);
+      throw new PreloadNotFoundError(
+        `Organization not found: ${this.$props}`
+      );
     }
     return org;
   }

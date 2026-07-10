@@ -1,4 +1,7 @@
-import { SubgraphReference } from "@shopana/type-resolver";
+import {
+  PreloadNotFoundError,
+  SubgraphReference,
+} from "@shopana/type-resolver";
 import { MediaType, Cache } from "./MediaType.js";
 import { S3DataResolver } from "./S3DataResolver.js";
 import { ExternalDataResolver } from "./ExternalDataResolver.js";
@@ -15,7 +18,7 @@ abstract class FileResolverBase extends MediaType<string, File> {
     const file = await this.loadFile(this.$props);
 
     if (!file) {
-      throw new Error(`File not found: ${this.$props}`);
+      throw new PreloadNotFoundError(`File not found: ${this.$props}`);
     }
 
     return file;

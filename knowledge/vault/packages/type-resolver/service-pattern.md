@@ -29,6 +29,7 @@ Each service defines its own base resolver class:
 // CatalogType.ts
 import {
   BaseType,
+  PreloadNotFoundError,
   createExecutor,
   createAuthorizationMiddleware,
   type CacheStore,
@@ -58,7 +59,9 @@ export abstract class CatalogType<TValue, TData = unknown>
 class ProductResolver extends CatalogType<string, Product> {
   async $preload() {
     const product = await this.$ctx.loaders.product.load(this.$props);
-    if (!product) throw new Error(`Product not found: ${this.$props}`);
+    if (!product) {
+      throw new PreloadNotFoundError(`Product not found: ${this.$props}`);
+    }
     return product;
   }
 
@@ -75,14 +78,17 @@ class ProductResolver extends CatalogType<string, Product> {
 
 ## $preload Error Handling
 
-Always throw an error in `$preload()` if the entity is not found. Never use `TData | null`:
+Always throw `PreloadNotFoundError` in `$preload()` if the entity is not found.
+Never use `TData | null`:
 
 ```typescript
-// ✅ Correct — throw if not found
+// ✅ Correct — throw the explicit root-not-found error
 class ProductResolver extends CatalogType<string, Product> {
   async $preload() {
     const product = await this.$ctx.loaders.product.load(this.$props);
-    if (!product) throw new Error(`Product not found: ${this.$props}`);
+    if (!product) {
+      throw new PreloadNotFoundError(`Product not found: ${this.$props}`);
+    }
     return product;
   }
 }
@@ -99,7 +105,8 @@ class ProductResolver extends CatalogType<string, Product | null> {
 
 - Cleaner type inference — `this.$data` is always `Product`, not `Product | null`
 - No null checks needed in field methods — `this.$get("title")` is safe
-- Errors are caught by executor's `onError` strategy
+- Missing roots become `null` for the whole object, independent of `onError`
+- System preload errors stay root-level errors
 - Use `@TypePolicy({ onDeny: "null" })` for authorization-based null returns
 
 ## With Authorization

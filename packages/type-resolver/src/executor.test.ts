@@ -8,6 +8,7 @@ import {
   resolve,
 } from "./executor.js";
 import { BaseType } from "./baseType.js";
+import { PreloadNotFoundError } from "./preloadFailure.js";
 
 // Helper function for delays
 function delay(ms: number): Promise<void> {
@@ -239,6 +240,44 @@ describe("Executor", () => {
 
       expect(result).toEqual([{ id: "1" }, { id: "2" }, { id: "3" }]);
     });
+
+    it("returns null only for roots missing during lazy preload", async () => {
+      class ItemType extends BaseType<
+        { id: string; missing?: boolean },
+        { title: string },
+        unknown
+      > {
+        protected async $preload() {
+          if (this.$props.missing) {
+            throw new PreloadNotFoundError(`Missing: ${this.$props.id}`);
+          }
+          return { title: `Item ${this.$props.id}` };
+        }
+        id() {
+          return this.$props.id;
+        }
+        title() {
+          return this.$get("title");
+        }
+      }
+
+      const executor = new Executor();
+      const instances = [
+        new ItemType({ id: "1" }, {}),
+        new ItemType({ id: "2", missing: true }, {}),
+        new ItemType({ id: "3" }, {}),
+      ];
+
+      const result = await executor.loadMany(instances, {
+        fields: ["id", "title"],
+      });
+
+      expect(result).toEqual([
+        { id: "1", title: "Item 1" },
+        null,
+        { id: "3", title: "Item 3" },
+      ]);
+    });
   });
 
   describe("error handling", () => {
@@ -295,6 +334,95 @@ describe("Executor", () => {
         working: "works",
         broken: { __error: "Something went wrong" },
       });
+    });
+
+    it("returns null for the whole root on preload not found", async () => {
+      const afterLoad = vi.fn();
+
+      class MissingType extends BaseType<
+        string,
+        { title: string },
+        unknown
+      > {
+        protected async $preload() {
+          await delay(10);
+          throw new PreloadNotFoundError(`Root not found: ${this.$props}`);
+        }
+        id() {
+          return this.$props;
+        }
+        title() {
+          return this.$get("title");
+        }
+      }
+
+      const executor = createExecutor({
+        onError: "partial",
+        middleware: [{ afterLoad }],
+      });
+      const result = await executor.load(new MissingType("missing", {}), {
+        fields: ["id", "title"],
+      });
+
+      expect(result).toBeNull();
+      expect(afterLoad).not.toHaveBeenCalled();
+    });
+
+    it("rethrows a system preload error without field wrapping", async () => {
+      const systemError = new Error("Database unavailable");
+
+      class ErrorType extends BaseType<string, { title: string }, unknown> {
+        protected $preload(): { title: string } {
+          throw systemError;
+        }
+        title() {
+          return this.$get("title");
+        }
+      }
+
+      const executor = createExecutor({ onError: "null" });
+      await expect(
+        executor.load(new ErrorType("1", {}), { fields: ["title"] })
+      ).rejects.toBe(systemError);
+    });
+
+    it("wraps a field error after successful preload", async () => {
+      const fieldError = new Error("Formatting failed");
+
+      class ErrorType extends BaseType<string, { title: string }, unknown> {
+        protected $preload() {
+          return { title: "Loaded" };
+        }
+        async title() {
+          await this.$get("title");
+          throw fieldError;
+        }
+      }
+
+      const executor = new Executor();
+
+      try {
+        await executor.load(new ErrorType("1", {}), { fields: ["title"] });
+        throw new Error("Expected load to fail");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ResolverError);
+        expect((error as ResolverError).field).toBe("title");
+        expect((error as ResolverError).type).toBe("ErrorType");
+        expect((error as ResolverError).originalError).toBe(fieldError);
+      }
+    });
+
+    it("treats a not-found error thrown by a field as a field error", async () => {
+      class ErrorType extends BaseType<string, string, unknown> {
+        broken() {
+          throw new PreloadNotFoundError("Field lookup failed");
+        }
+      }
+
+      const executor = new Executor();
+      await expect(
+        executor.load(new ErrorType("1", {}), { fields: ["broken"] })
+      ).rejects.toThrow('Failed to resolve field "broken" on ErrorType');
     });
   });
 
@@ -379,6 +507,31 @@ describe("BaseType", () => {
     expect(result).toEqual({ id: "loaded-1", name: "Loaded Product" });
   });
 
+  it("does not preload when requested fields do not access data", async () => {
+    const loadSpy = vi.fn().mockResolvedValue({ title: "Loaded Product" });
+
+    class ProductType extends BaseType<
+      string,
+      { title: string },
+      unknown
+    > {
+      protected $preload() {
+        return loadSpy(this.$props);
+      }
+      id() {
+        return this.$props;
+      }
+    }
+
+    const executor = new Executor();
+    const result = await executor.load(new ProductType("product-id", {}), {
+      fields: ["id"],
+    });
+
+    expect(result).toEqual({ id: "product-id" });
+    expect(loadSpy).not.toHaveBeenCalled();
+  });
+
   it("caches $preload result across multiple field accesses", async () => {
     let loadCount = 0;
 
@@ -408,13 +561,8 @@ describe("BaseType", () => {
       fields: ["id", "name", "price"],
     });
 
-    // $preload is called once by Executor to check for null, and once by BaseType.$data getter
-    // But BaseType caches it internally via _dataPromise, so subsequent $get() calls don't reload
-    // The important thing is that we get the correct result
     expect(result).toEqual({ id: "1", name: "Test", price: 100 });
-    // $preload may be called twice (once in Executor for null check, once in BaseType.$data)
-    // but the $data getter in BaseType caches, so all field accesses share the same promise
-    expect(loadCount).toBeLessThanOrEqual(2);
+    expect(loadCount).toBe(1);
   });
 
   it("static load() works correctly", async () => {

@@ -5,6 +5,7 @@ import type {
   CatalogProductSnapshotVersion,
   CatalogProductStatus,
 } from "@shopana/broker-types";
+import { PreloadNotFoundError } from "@shopana/type-resolver";
 import type { Product } from "../../repositories/models/index.js";
 import { CatalogProductAvailabilitySnapshotResolver } from "./CatalogProductAvailabilitySnapshotResolver.js";
 import { CatalogProductCategorySnapshotResolver } from "./CatalogProductCategorySnapshotResolver.js";
@@ -19,7 +20,9 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
   protected async $preload(): Promise<Product> {
     const product = await this.$ctx.loaders.product.load(this.$props);
     if (!product) {
-      throw new Error(`Product with ID ${this.$props} not found`);
+      throw new PreloadNotFoundError(
+        `Product with ID ${this.$props} not found`
+      );
     }
     return product;
   }

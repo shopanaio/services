@@ -1,3 +1,4 @@
+import { PreloadNotFoundError } from "@shopana/type-resolver";
 import { IAMType } from "./IAMType.js";
 import {
   encodeGlobalIdByType,
@@ -31,7 +32,7 @@ export class RoleResolver extends IAMType<RoleInput, RoleData> {
     ]);
 
     if (!roleData) {
-      throw new Error(
+      throw new PreloadNotFoundError(
         `Role not found: org=${organizationId}, domain=${domain}, name=${name}`
       );
     }

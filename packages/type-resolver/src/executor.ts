@@ -8,6 +8,7 @@ import type {
   TypeClass,
 } from "./types.js";
 import { BaseType } from "./baseType.js";
+import { getPreloadFailureKind } from "./preloadFailure.js";
 
 /**
  * Infers the result type from a BaseType instance.
@@ -106,6 +107,21 @@ export class Executor<TContext = unknown> {
     instance: T,
     query?: QueryArgs
   ): Promise<InstanceResult<T>> {
+    try {
+      return await this.loadInstance(instance, query);
+    } catch (error) {
+      if (getPreloadFailureKind(error) === "not-found") {
+        return null as unknown as InstanceResult<T>;
+      }
+
+      throw error;
+    }
+  }
+
+  private async loadInstance<T extends BaseType<unknown, unknown, TContext>>(
+    instance: T,
+    query?: QueryArgs
+  ): Promise<InstanceResult<T>> {
     const Type = instance.constructor as TypeClass;
     const value = (instance as any).$props;
 
@@ -160,7 +176,7 @@ export class Executor<TContext = unknown> {
     }
 
     // Resolve fields
-    await Promise.all(
+    const fieldResults = await Promise.allSettled(
       Array.from(fieldsToResolve).map(async (key) => {
         try {
           // Get config for field from populate (if exists)
@@ -196,6 +212,12 @@ export class Executor<TContext = unknown> {
             result[key] = resolved;
           }
         } catch (error) {
+          // A lazy preload failure belongs to the root object, not to the
+          // field that happened to access $data first.
+          if (getPreloadFailureKind(error)) {
+            throw error;
+          }
+
           switch (this.options.onError) {
             case "null":
               result[key] = null;
@@ -213,6 +235,34 @@ export class Executor<TContext = unknown> {
         }
       })
     );
+
+    // A root preload failure takes precedence over any concurrently resolved
+    // field. This prevents timing from deciding whether a missing aggregate is
+    // returned as null or reported as an unrelated field error.
+    const preloadNotFound = fieldResults.find(
+      (fieldResult) =>
+        fieldResult.status === "rejected" &&
+        getPreloadFailureKind(fieldResult.reason) === "not-found"
+    );
+    if (preloadNotFound?.status === "rejected") {
+      throw preloadNotFound.reason;
+    }
+
+    const preloadError = fieldResults.find(
+      (fieldResult) =>
+        fieldResult.status === "rejected" &&
+        getPreloadFailureKind(fieldResult.reason) === "error"
+    );
+    if (preloadError?.status === "rejected") {
+      throw preloadError.reason;
+    }
+
+    const fieldFailure = fieldResults.find(
+      (fieldResult) => fieldResult.status === "rejected"
+    );
+    if (fieldFailure?.status === "rejected") {
+      throw fieldFailure.reason;
+    }
 
     // Run afterLoad middleware (e.g., result transformation)
     const afterLoadCtx: AfterLoadContext<TContext> = {

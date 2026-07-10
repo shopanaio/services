@@ -1,3 +1,4 @@
+import { PreloadNotFoundError } from "@shopana/type-resolver";
 import { MediaType, Cache } from "./MediaType.js";
 import { BucketResolver } from "./BucketResolver.js";
 import type { S3Object } from "../../repositories/models/index.js";
@@ -9,7 +10,9 @@ export class S3DataResolver extends MediaType<string, S3Object> {
   async $preload() {
     const s3Object = await this.$ctx.loaders.s3Object.load(this.$props);
     if (!s3Object) {
-      throw new Error(`S3 object not found for file: ${this.$props}`);
+      throw new PreloadNotFoundError(
+        `S3 object not found for file: ${this.$props}`
+      );
     }
     return s3Object;
   }

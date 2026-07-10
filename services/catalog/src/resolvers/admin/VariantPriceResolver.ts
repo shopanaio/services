@@ -1,3 +1,4 @@
+import { PreloadNotFoundError } from "@shopana/type-resolver";
 import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
@@ -16,7 +17,7 @@ export class VariantPriceResolver extends CatalogType<
   async $preload() {
     const price = await this.$ctx.loaders.variantPriceById.load(this.$props);
     if (!price) {
-      throw new Error(`Price with ID ${this.$props} not found`);
+      throw new PreloadNotFoundError(`Price with ID ${this.$props} not found`);
     }
     return price;
   }
