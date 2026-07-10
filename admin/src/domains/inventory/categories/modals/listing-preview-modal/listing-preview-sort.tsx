@@ -6,7 +6,6 @@ import { ListingSortBy, ListingSortDirection } from "@/graphql/types";
 import type { ListingPreviewSortOption } from "./types";
 
 export const LISTING_PREVIEW_SORT_OPTIONS: ListingPreviewSortOption[] = [
-  { key: "manual", label: "Manual", orderBy: { by: ListingSortBy.Manual } },
   {
     key: "newest-desc",
     label: "Newest first",
@@ -42,7 +41,7 @@ export const getListingPreviewSortKey = (value: ApiListingOrderByInput) => {
   return (
     LISTING_PREVIEW_SORT_OPTIONS.find(
       (option) => serializeOrderBy(option.orderBy) === serialized,
-    )?.key ?? "manual"
+    )?.key ?? "newest-desc"
   );
 };
 

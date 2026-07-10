@@ -54,7 +54,10 @@ const mapCategorySort = (category: ApiCategory): ApiListingOrderByInput => {
       };
     case ProductSortBy.Manual:
     default:
-      return { by: ListingSortBy.Manual };
+      return {
+        by: ListingSortBy.Newest,
+        direction: ListingSortDirection.Desc,
+      };
   }
 };
 
