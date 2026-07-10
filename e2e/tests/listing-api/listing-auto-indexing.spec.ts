@@ -1023,17 +1023,12 @@ function readFacetCounts(
   }
 
   return Object.fromEntries(
-    Object.entries(expected).map(([facetId, values]) => {
+    Object.keys(expected).map((facetId) => {
       const facet = facets.find((candidate) => candidate.id === facetId);
 
       return [
         facetId,
-        Object.fromEntries(
-          Object.keys(values).map((valueId) => [
-            valueId,
-            facet?.values.find((value) => value.id === valueId)?.count ?? null,
-          ]),
-        ),
+        Object.fromEntries((facet?.values ?? []).map((value) => [value.id, value.count])),
       ];
     }),
   );
