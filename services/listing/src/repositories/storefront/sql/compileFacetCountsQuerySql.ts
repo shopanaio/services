@@ -147,10 +147,22 @@ function compileFacetCountsCtesSql(
 
   return sql`
     ${compileFacetCountsCoreSql(request)},
+    in_stock_products AS (
+      SELECT COALESCE(
+        rb_build_agg(pli.product_doc_id),
+        ${emptyRoaringBitmapSql()}
+      ) AS bitmap
+      FROM listing.product_listing_index pli
+      JOIN input i ON true
+      WHERE pli.store_id = i.store_id
+        AND pli.status = 'published'
+        AND pli.in_stock = true
+    ),
     scope_product_base AS (
-      SELECT sp.bitmap & pp.bitmap AS bitmap
+      SELECT sp.bitmap & pp.bitmap & isp.bitmap AS bitmap
       FROM scope_products sp
       CROSS JOIN published_products pp
+      CROSS JOIN in_stock_products isp
     ),
     ${facetValueDiscoverySql}
     product_facet_values AS (
@@ -189,22 +201,16 @@ function compileFacetCountsCtesSql(
               CASE
                 WHEN isolated_product_filters.bitmap IS NOT NULL
                  AND projected_variant_products.bitmap IS NOT NULL
-                THEN scope_products.bitmap
-                  & published_products.bitmap
+                THEN scope_product_base.bitmap
                   & isolated_product_filters.bitmap
                   & projected_variant_products.bitmap
                 WHEN isolated_product_filters.bitmap IS NOT NULL
-                THEN scope_products.bitmap
-                  & published_products.bitmap
-                  & isolated_product_filters.bitmap
+                THEN scope_product_base.bitmap & isolated_product_filters.bitmap
                 WHEN projected_variant_products.bitmap IS NOT NULL
-                THEN scope_products.bitmap
-                  & published_products.bitmap
-                  & projected_variant_products.bitmap
-                ELSE scope_products.bitmap & published_products.bitmap
+                THEN scope_product_base.bitmap & projected_variant_products.bitmap
+                ELSE scope_product_base.bitmap
               END
-            FROM scope_products
-            CROSS JOIN published_products
+            FROM scope_product_base
             CROSS JOIN projected_variant_products
             CROSS JOIN LATERAL (
               SELECT rb_and_agg(bitmap) AS bitmap

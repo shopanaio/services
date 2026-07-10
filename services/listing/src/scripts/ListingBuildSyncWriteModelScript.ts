@@ -174,13 +174,15 @@ function buildProductSortRows(
     {
       productId: item.id,
       sortKind: "newest",
+      boolValue: item.availability.availableForSale,
       timestamptzValue: item.createdAt,
       timestamptzValue2: item.updatedAt,
     },
     {
       productId: item.id,
-      sortKind: "title",
+      sortKind: "name",
       locale: item.content.defaultLocale,
+      boolValue: item.availability.availableForSale,
       textValue: title,
     },
     {
@@ -197,6 +199,7 @@ function buildProductSortRows(
         productId: item.id,
         sortKind: "price",
         currency: price.currencyCode,
+        boolValue: item.availability.availableForSale,
         bigintValue: price.minAmountMinor,
       });
     }
@@ -208,6 +211,7 @@ function buildProductSortRows(
         productId: item.id,
         sortKind: "manual",
         manualScopeId: scope.categoryId,
+        boolValue: item.availability.availableForSale,
         textValue: scope.manualRank,
       });
     }
