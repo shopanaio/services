@@ -198,6 +198,231 @@ test.describe('Listing API automatic indexing', () => {
     });
   });
 
+  test('indexes root source values and switches memberships across merge and unmerge', async ({ api }) => {
+    const unique = crypto.randomUUID().slice(0, 8);
+    const optionSource = `root-color-${unique}`;
+    const featureSource = `root-material-${unique}`;
+    const optionFacetSlug = `root-color-facet-${unique}`;
+    const featureFacetSlug = `root-material-facet-${unique}`;
+    const tagHandles = [`root-tag-a-${unique}`, `root-tag-b-${unique}`];
+    const category = await api.admin.category.create({
+      handle: `root-source-category-${unique}`,
+      name: 'Root Source Listing Category',
+    });
+    const warehouse = await createWarehouse(api, `ROOT-SOURCE-${unique}`);
+    const tags = await Promise.all([
+      api.admin.tag.create({ handle: tagHandles[0], name: 'Root Tag A' }),
+      api.admin.tag.create({ handle: tagHandles[1], name: 'Root Tag B' }),
+    ]);
+    const definitions = [
+      { option: 'red', feature: 'cotton', tag: tags[0] },
+      { option: 'blue', feature: 'cotton', tag: tags[1] },
+      { option: 'blue', feature: 'wool', tag: tags[0] },
+    ] as const;
+    const products: ApiProduct[] = [];
+
+    for (const [index, definition] of definitions.entries()) {
+      const product = await createListingProduct(api, {
+        definition: {
+          title: `Root Source Product ${index + 1}`,
+          handle: `root-source-product-${unique}-${index + 1}`,
+          options: { [optionSource]: definition.option },
+          status: 'PUBLISHED',
+          priceMinor: 1_000 + index * 100,
+          stock: 10,
+        },
+        category,
+        warehouseId: warehouse.id,
+      });
+      await syncListingProductFeature(api, {
+        productId: product.id,
+        sourceSlug: featureSource,
+        valueHandle: definition.feature,
+      });
+      await addListingProductTag(api, product.id, definition.tag.id);
+      products.push(product);
+    }
+
+    const optionFacet = await createSourceOnlyFacet(api, {
+      facetType: 'OPTION',
+      slug: optionFacetSlug,
+      label: 'Root Color',
+      sourceHandle: optionSource,
+      values: [
+        { handle: `${optionSource}:red`, label: 'Red' },
+        { handle: `${optionSource}:blue`, label: 'Blue' },
+      ],
+    });
+    const featureFacet = await createSourceOnlyFacet(api, {
+      facetType: 'FEATURE',
+      slug: featureFacetSlug,
+      label: 'Root Material',
+      sourceHandle: featureSource,
+      values: [
+        { handle: `${featureSource}:cotton`, label: 'Cotton' },
+        { handle: `${featureSource}:wool`, label: 'Wool' },
+      ],
+    });
+    await createSourceOnlyFacet(api, {
+      facetType: 'TAG',
+      slug: 'tag',
+      label: 'Tags',
+      sourceHandle: 'tags',
+      values: [
+        { handle: tagHandles[0], label: 'Root Tag A' },
+        { handle: tagHandles[1], label: 'Root Tag B' },
+      ],
+    });
+
+    const rootCounts = {
+      [optionFacetSlug]: {
+        [`${optionSource}:red`]: 1,
+        [`${optionSource}:blue`]: 2,
+      },
+      [featureFacetSlug]: {
+        [`${featureSource}:cotton`]: 2,
+        [`${featureSource}:wool`]: 1,
+      },
+      tag: {
+        [tagHandles[0]]: 2,
+        [tagHandles[1]]: 1,
+      },
+    };
+    const rootSnapshot = await expectListingSnapshot(api, category, {
+      totalCount: products.length,
+      productIds: products.map((product) => product.id),
+      facetCounts: rootCounts,
+    });
+    const redSourceHandle = `${optionSource}:red`;
+    const blueSourceHandle = `${optionSource}:blue`;
+    const cottonSourceHandle = `${featureSource}:cotton`;
+    const redInput = facetValueInput(rootSnapshot.facets, optionFacetSlug, redSourceHandle);
+    const blueInput = facetValueInput(rootSnapshot.facets, optionFacetSlug, blueSourceHandle);
+    const cottonInput = facetValueInput(rootSnapshot.facets, featureFacetSlug, cottonSourceHandle);
+    const tagInput = facetValueInput(rootSnapshot.facets, 'tag', tagHandles[0]);
+
+    expect(redInput).toEqual({
+      variantFacet: { facet: optionFacetSlug, value: redSourceHandle },
+    });
+    expect(cottonInput).toEqual({
+      productFacet: { facet: featureFacetSlug, value: cottonSourceHandle },
+    });
+    expect(tagInput).toEqual({ tag: tagHandles[0] });
+
+    await expectListingSnapshot(api, category, {
+      totalCount: 1,
+      productIds: [products[1].id],
+      facetCounts: {
+        [optionFacetSlug]: {
+          [redSourceHandle]: 1,
+          [blueSourceHandle]: 1,
+        },
+        [featureFacetSlug]: {
+          [cottonSourceHandle]: 1,
+          [`${featureSource}:wool`]: 1,
+        },
+        tag: {
+          [tagHandles[0]]: 0,
+          [tagHandles[1]]: 1,
+        },
+      },
+      selectedFacetValues: {
+        [optionFacetSlug]: [blueSourceHandle],
+        [featureFacetSlug]: [cottonSourceHandle],
+      },
+      facets: [blueInput, cottonInput],
+    });
+
+    const redSourceValue = optionFacet.values.find(
+      (value) => value.handle === redSourceHandle,
+    );
+    if (!redSourceValue) {
+      throw new Error(`Missing root source value ${redSourceHandle}`);
+    }
+
+    await mergeFacetSourceValues(api, {
+      facetId: optionFacet.id,
+      sourceValueIds: [redSourceValue.id],
+      targetHandle: 'warm',
+      targetLabel: 'Warm',
+    });
+    const mergedSnapshot = await expectListingSnapshot(api, category, {
+      totalCount: products.length,
+      productIds: products.map((product) => product.id),
+      facetCounts: {
+        ...rootCounts,
+        [optionFacetSlug]: { warm: 1, [blueSourceHandle]: 2 },
+      },
+    });
+    expect(
+      mergedSnapshot.facets
+        .find((facet) => facet.id === optionFacetSlug)
+        ?.values.some((value) => value.id === redSourceHandle),
+    ).toBe(false);
+
+    const warmInput = facetValueInput(mergedSnapshot.facets, optionFacetSlug, 'warm');
+    await expectListingSnapshot(api, category, {
+      totalCount: 1,
+      productIds: [products[0].id],
+      facets: [warmInput],
+      selectedFacetValues: { [optionFacetSlug]: ['warm'] },
+    });
+    await expectListingErrors(api, category, {
+      facets: [
+        {
+          variantFacet: { facet: optionFacetSlug, value: redSourceHandle },
+        },
+      ],
+      expectedErrors: [
+        {
+          code: 'SOURCE_NOT_ROOT',
+          messageIncludes: `${optionFacetSlug}:${redSourceHandle}`,
+        },
+      ],
+    });
+
+    await unmergeFacetSourceValues(api, [redSourceValue.id]);
+    const unmergedSnapshot = await expectListingSnapshot(api, category, {
+      totalCount: products.length,
+      productIds: products.map((product) => product.id),
+      facetCounts: rootCounts,
+    });
+    expect(
+      unmergedSnapshot.facets
+        .find((facet) => facet.id === optionFacetSlug)
+        ?.values.some((value) => value.id === 'warm'),
+    ).toBe(false);
+
+    const blueSourceValue = optionFacet.values.find(
+      (value) => value.handle === blueSourceHandle,
+    );
+    if (!blueSourceValue) {
+      throw new Error(`Missing root source value ${blueSourceHandle}`);
+    }
+    await updateFacetValueEnabledById(api, blueSourceValue.id, false);
+    await expectListingSnapshot(api, category, {
+      totalCount: products.length,
+      productIds: products.map((product) => product.id),
+      facetCounts: {
+        ...rootCounts,
+        [optionFacetSlug]: { [redSourceHandle]: 1 },
+      },
+    });
+    await expectListingErrors(api, category, {
+      facets: [
+        {
+          variantFacet: { facet: optionFacetSlug, value: blueSourceHandle },
+        },
+      ],
+      expectedErrors: [
+        {
+          code: 'VALUE_DISABLED',
+          messageIncludes: `${optionFacetSlug}:${blueSourceHandle}`,
+        },
+      ],
+    });
+  });
+
   test('removes and rewrites indexed memberships across product and facet lifecycle changes', async ({ api }) => {
     const unique = crypto.randomUUID().slice(0, 8);
     const facets = facetDefinitions(unique, 'lifecycle');
@@ -466,6 +691,140 @@ async function createSourceProducts(api: Api, unique: string, facets: FacetDefin
   }
 
   return products;
+}
+
+async function syncListingProductFeature(
+  api: Api,
+  input: {
+    productId: string;
+    sourceSlug: string;
+    valueHandle: string;
+  },
+): Promise<void> {
+  const { data } = await api.admin.mutation('inventory-api/ProductFeaturesSync', {
+    variables: {
+      input: {
+        productId: input.productId,
+        features: [
+          {
+            index: [0],
+            isGroup: false,
+            name: input.sourceSlug,
+            slug: input.sourceSlug,
+            values: [
+              {
+                index: 0,
+                name: input.valueHandle,
+                slug: input.valueHandle,
+              },
+            ],
+          },
+        ],
+      },
+    },
+  });
+
+  expect(data.catalogMutation.productFeaturesSync.userErrors).toHaveLength(0);
+}
+
+async function addListingProductTag(
+  api: Api,
+  productId: string,
+  tagId: string,
+): Promise<void> {
+  const product = await api.admin.product.findOne(productId);
+  const updated = await api.admin.product.update({
+    productId,
+    expectedRevision: product.revision,
+    operations: {
+      tags: [{ action: 'ADD', tagId }],
+    },
+  });
+
+  expect(updated.tags.some((tag) => tag.id === tagId)).toBe(true);
+}
+
+async function createSourceOnlyFacet(
+  api: Api,
+  input: {
+    facetType: 'TAG' | 'FEATURE' | 'OPTION';
+    slug: string;
+    label: string;
+    sourceHandle: string;
+    values: { handle: string; label: string }[];
+  },
+): Promise<ApiFacet> {
+  const { data } = await api.admin.mutation('facet-api/FacetCreate', {
+    variables: {
+      input: {
+        facetType: input.facetType,
+        slug: input.slug,
+        label: input.label,
+        uiType: 'CHECKBOX',
+        selectionMode: 'MULTI',
+        sources: [{ handle: input.sourceHandle, name: input.label }],
+        valueCandidates: input.values.map((value) => ({
+          handle: value.handle,
+          label: value.label,
+          sourceHandle: input.sourceHandle,
+        })),
+      },
+    },
+  });
+  const result = data.listingMutation.facetCreate;
+  expect(result.userErrors).toHaveLength(0);
+  if (!result.facet) {
+    throw new Error(`Failed to create source-only facet ${input.slug}`);
+  }
+
+  expect(result.facet.values.map((value) => value.handle).sort()).toEqual(
+    input.values.map((value) => value.handle).sort(),
+  );
+  return result.facet;
+}
+
+async function mergeFacetSourceValues(
+  api: Api,
+  input: {
+    facetId: string;
+    sourceValueIds: string[];
+    targetHandle: string;
+    targetLabel: string;
+  },
+): Promise<void> {
+  const { data } = await api.admin.mutation('facet-api/FacetValueMerge', {
+    variables: { input },
+  });
+  const result = data.listingMutation.facetValueMerge;
+  expect(result.userErrors).toHaveLength(0);
+  expect(result.facetValue?.handle).toBe(input.targetHandle);
+  expect(result.sourceValues.map((value) => value.id).sort()).toEqual(
+    [...input.sourceValueIds].sort(),
+  );
+}
+
+async function unmergeFacetSourceValues(api: Api, sourceValueIds: string[]): Promise<void> {
+  const { data } = await api.admin.mutation('facet-api/FacetValueUnmerge', {
+    variables: { input: { sourceValueIds } },
+  });
+  const result = data.listingMutation.facetValueUnmerge;
+  expect(result.userErrors).toHaveLength(0);
+  expect(result.sourceValues.map((value) => value.id).sort()).toEqual(
+    [...sourceValueIds].sort(),
+  );
+}
+
+async function updateFacetValueEnabledById(
+  api: Api,
+  valueId: string,
+  enabled: boolean,
+): Promise<void> {
+  const { data } = await api.admin.mutation('facet-api/FacetValueUpdate', {
+    variables: { input: { id: valueId, enabled } },
+  });
+  const result = data.listingMutation.facetValueUpdate;
+  expect(result.userErrors).toHaveLength(0);
+  expect(result.facetValue?.enabled).toBe(enabled);
 }
 
 async function createListingProduct(

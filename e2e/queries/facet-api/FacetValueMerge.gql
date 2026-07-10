@@ -1,0 +1,20 @@
+mutation FacetValueMerge($input: FacetValueMergeInput!) {
+  listingMutation {
+    facetValueMerge(input: $input) {
+      facetValue {
+        id
+        handle
+        label
+      }
+      sourceValues {
+        id
+        handle
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

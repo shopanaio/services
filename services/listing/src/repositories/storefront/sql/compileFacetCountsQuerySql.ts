@@ -338,8 +338,8 @@ function compileDiscoveredFacetValueCtesSql(): SQL {
       JOIN listing.facet_value fv
         ON fv.store_id = f.store_id
        AND fv.facet_id = f.id
-       AND fv.kind = 'display'
        AND fv.parent_id IS NULL
+       AND fv.kind IN ('display', 'source')
        AND fv.enabled = true
        AND fv.reference_status = 'VALID'
       JOIN candidate_values cv

@@ -1,0 +1,19 @@
+mutation FacetValueUnmerge($input: FacetValueUnmergeInput!) {
+  listingMutation {
+    facetValueUnmerge(input: $input) {
+      sourceValues {
+        id
+        handle
+      }
+      affectedDisplayValues {
+        id
+        handle
+      }
+      userErrors {
+        message
+        code
+        field
+      }
+    }
+  }
+}

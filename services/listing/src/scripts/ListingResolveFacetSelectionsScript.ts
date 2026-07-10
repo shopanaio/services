@@ -72,6 +72,9 @@ export class ListingResolveFacetSelectionsScript extends BaseScript<
       if (
         sourceValue.parentId &&
         (!displayParent ||
+          displayParent.kind !== "display" ||
+          displayParent.parentId !== null ||
+          displayParent.facetId !== sourceValue.facetId ||
           !displayParent.enabled ||
           displayParent.referenceStatus !== "VALID")
       ) {

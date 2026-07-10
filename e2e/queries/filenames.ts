@@ -64,6 +64,8 @@ export type GraphQLFileName =
   | 'facet-api/FacetValue'
   | 'facet-api/FacetValueCreate'
   | 'facet-api/FacetValueDelete'
+  | 'facet-api/FacetValueMerge'
+  | 'facet-api/FacetValueUnmerge'
   | 'facet-api/FacetValueUpdate'
   | 'facet-api/FacetValues'
   | 'facet-api/Facets'

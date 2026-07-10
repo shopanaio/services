@@ -497,7 +497,7 @@ async function main() {
       productOptionValueIds,
       now,
     });
-    await seedCatalogFacets(tx, storeId, facets);
+    await seedListingFacets(tx, storeId, facets);
     await seedListingRows(tx, {
       storeId,
       categoryId,
@@ -982,10 +982,10 @@ async function seedCatalogVariantOptionLinks(sql, input) {
   }
 }
 
-async function seedCatalogFacets(sql, storeId, facets) {
+async function seedListingFacets(sql, storeId, facets) {
   for (const [facetIndex, facet] of facets.entries()) {
     await sql`
-      INSERT INTO catalog.facet (
+      INSERT INTO listing.facet (
         id,
         store_id,
         facet_type,
@@ -1010,14 +1010,14 @@ async function seedCatalogFacets(sql, storeId, facets) {
       ON CONFLICT (store_id, slug) DO NOTHING
     `;
     await sql`
-      INSERT INTO catalog.facet_translation (facet_id, locale, store_id, label)
+      INSERT INTO listing.facet_translation (facet_id, locale, store_id, label)
       VALUES (${facet.id}::uuid, ${LOCALE}, ${storeId}::uuid, ${facet.slug})
       ON CONFLICT (facet_id, locale) DO UPDATE SET label = EXCLUDED.label
     `;
 
     for (const [valueIndex, value] of facet.values.entries()) {
       await sql`
-        INSERT INTO catalog.facet_value (
+        INSERT INTO listing.facet_value (
           id,
           store_id,
           facet_id,
@@ -1042,7 +1042,7 @@ async function seedCatalogFacets(sql, storeId, facets) {
         ON CONFLICT (id) DO NOTHING
       `;
       await sql`
-        INSERT INTO catalog.facet_value_translation (
+        INSERT INTO listing.facet_value_translation (
           facet_value_id,
           locale,
           store_id,

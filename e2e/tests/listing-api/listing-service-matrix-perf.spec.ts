@@ -8,7 +8,7 @@ import { composeGlobalId, decodeGlobalId } from '@utils/globalid';
 
 const execFileAsync = promisify(execFile);
 
-const PRODUCT_COUNT = 10_00;
+const PRODUCT_COUNT = 10_000;
 const PAGE_SIZE = 50;
 const PRICE_FILTER = { min: 20_000, max: 60_000 } as const;
 const LISTING_PERF_RESULTS_DIR = resolve(process.cwd(), 'test-results/listing-perf/matrix-10k');

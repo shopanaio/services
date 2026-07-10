@@ -219,21 +219,17 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
           r.value_handle AS "requestedValueHandle",
           f.id::text AS "facetId",
           f.facet_type AS "facetType",
-          COALESCE(parent_fv.id, fv.id)::text AS "facetValueId",
-          COALESCE(parent_fv.handle, fv.handle) AS "valueHandle",
-          f.id::text || ':' || COALESCE(parent_fv.id, fv.id)::text AS "valueKey",
+          fv.id::text AS "facetValueId",
+          fv.handle AS "valueHandle",
+          f.id::text || ':' || fv.id::text AS "valueKey",
           CASE
             WHEN f.id IS NULL THEN 'FACET_MISSING'
             WHEN fv.id IS NULL THEN 'VALUE_MISSING'
+            WHEN fv.enabled = false THEN 'VALUE_DISABLED'
+            WHEN fv.reference_status <> 'VALID' THEN 'VALUE_REFERENCE_INVALID'
             WHEN fv.kind = 'display' AND fv.parent_id IS NOT NULL THEN 'DISPLAY_NOT_ROOT'
-            WHEN fv.kind = 'display' AND fv.enabled = false THEN 'VALUE_DISABLED'
-            WHEN fv.kind = 'display' AND fv.reference_status <> 'VALID' THEN 'VALUE_REFERENCE_INVALID'
             WHEN fv.kind = 'display' THEN 'VALID'
-            WHEN fv.kind = 'source' AND fv.enabled = false THEN 'VALUE_DISABLED'
-            WHEN fv.kind = 'source' AND fv.reference_status <> 'VALID' THEN 'VALUE_REFERENCE_INVALID'
-            WHEN fv.kind = 'source' AND parent_fv.id IS NULL THEN 'DISPLAY_PARENT_MISSING'
-            WHEN fv.kind = 'source' AND parent_fv.enabled = false THEN 'DISPLAY_PARENT_DISABLED'
-            WHEN fv.kind = 'source' AND parent_fv.reference_status <> 'VALID' THEN 'DISPLAY_PARENT_REFERENCE_INVALID'
+            WHEN fv.kind = 'source' AND fv.parent_id IS NOT NULL THEN 'SOURCE_NOT_ROOT'
             WHEN fv.kind = 'source' THEN 'VALID'
             ELSE 'VALUE_KIND_UNSUPPORTED'
           END AS "resolutionStatus",
@@ -247,11 +243,6 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
           ON fv.store_id = f.store_id
          AND fv.facet_id = f.id
          AND fv.handle = r.value_handle
-        LEFT JOIN ${facetValue} parent_fv
-          ON parent_fv.store_id = fv.store_id
-         AND parent_fv.id = fv.parent_id
-         AND parent_fv.kind = 'display'
-         AND parent_fv.parent_id IS NULL
       )
       SELECT DISTINCT ON ("facetSlug", "requestedValueHandle")
         "facetSlug",
@@ -526,12 +517,8 @@ function invalidFacetValueMessage(row: FacetResolutionSqlRow): string {
       return `Invalid storefront facet filter ${filterName}: value reference status is not valid`;
     case "DISPLAY_NOT_ROOT":
       return `Invalid storefront facet filter ${filterName}: display value is not a root value`;
-    case "DISPLAY_PARENT_MISSING":
-      return `Invalid storefront facet filter ${filterName}: source value is not mapped to a display value`;
-    case "DISPLAY_PARENT_DISABLED":
-      return `Invalid storefront facet filter ${filterName}: source value parent display value is disabled`;
-    case "DISPLAY_PARENT_REFERENCE_INVALID":
-      return `Invalid storefront facet filter ${filterName}: source value parent display value reference status is not valid`;
+    case "SOURCE_NOT_ROOT":
+      return `Invalid storefront facet filter ${filterName}: source child is not public; use its display parent handle`;
     case "VALUE_KIND_UNSUPPORTED":
       return `Invalid storefront facet filter ${filterName}: value kind is not supported`;
     default:

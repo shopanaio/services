@@ -28,21 +28,17 @@ export function compileFacetResolutionSql(): SQL {
         f.id::text AS facet_id,
         f.slug AS facet_slug,
         f.facet_type,
-        COALESCE(parent_fv.id, fv.id)::text AS facet_value_id,
-        COALESCE(parent_fv.handle, fv.handle) AS value_handle,
-        f.id::text || ':' || COALESCE(parent_fv.id, fv.id)::text AS value_key,
+        fv.id::text AS facet_value_id,
+        fv.handle AS value_handle,
+        f.id::text || ':' || fv.id::text AS value_key,
         CASE
           WHEN f.id IS NULL THEN 'FACET_MISSING'
           WHEN fv.id IS NULL THEN 'VALUE_MISSING'
+          WHEN fv.enabled = false THEN 'VALUE_DISABLED'
+          WHEN fv.reference_status <> 'VALID' THEN 'VALUE_REFERENCE_INVALID'
           WHEN fv.kind = 'display' AND fv.parent_id IS NOT NULL THEN 'DISPLAY_NOT_ROOT'
-          WHEN fv.kind = 'display' AND fv.enabled = false THEN 'VALUE_DISABLED'
-          WHEN fv.kind = 'display' AND fv.reference_status <> 'VALID' THEN 'VALUE_REFERENCE_INVALID'
           WHEN fv.kind = 'display' THEN 'VALID'
-          WHEN fv.kind = 'source' AND fv.enabled = false THEN 'VALUE_DISABLED'
-          WHEN fv.kind = 'source' AND fv.reference_status <> 'VALID' THEN 'VALUE_REFERENCE_INVALID'
-          WHEN fv.kind = 'source' AND parent_fv.id IS NULL THEN 'DISPLAY_PARENT_MISSING'
-          WHEN fv.kind = 'source' AND parent_fv.enabled = false THEN 'DISPLAY_PARENT_DISABLED'
-          WHEN fv.kind = 'source' AND parent_fv.reference_status <> 'VALID' THEN 'DISPLAY_PARENT_REFERENCE_INVALID'
+          WHEN fv.kind = 'source' AND fv.parent_id IS NOT NULL THEN 'SOURCE_NOT_ROOT'
           WHEN fv.kind = 'source' THEN 'VALID'
           ELSE 'VALUE_KIND_UNSUPPORTED'
         END AS resolution_status,
@@ -57,11 +53,6 @@ export function compileFacetResolutionSql(): SQL {
         ON fv.store_id = f.store_id
        AND fv.facet_id = f.id
        AND fv.handle = r.value_handle
-      LEFT JOIN listing.facet_value parent_fv
-        ON parent_fv.store_id = fv.store_id
-       AND parent_fv.id = fv.parent_id
-       AND parent_fv.kind = 'display'
-       AND parent_fv.parent_id IS NULL
     ),
     resolved_facets AS (
       SELECT DISTINCT ON (requested_facet_slug, requested_value_handle)
@@ -96,10 +87,8 @@ export function compileFacetResolutionSql(): SQL {
           WHEN 'VALUE_DISABLED' THEN 10
           WHEN 'VALUE_REFERENCE_INVALID' THEN 20
           WHEN 'DISPLAY_NOT_ROOT' THEN 30
-          WHEN 'DISPLAY_PARENT_MISSING' THEN 40
-          WHEN 'DISPLAY_PARENT_DISABLED' THEN 50
-          WHEN 'DISPLAY_PARENT_REFERENCE_INVALID' THEN 60
-          WHEN 'VALUE_KIND_UNSUPPORTED' THEN 70
+          WHEN 'SOURCE_NOT_ROOT' THEN 40
+          WHEN 'VALUE_KIND_UNSUPPORTED' THEN 50
           ELSE 100
         END AS priority
       FROM candidate_facets cf
