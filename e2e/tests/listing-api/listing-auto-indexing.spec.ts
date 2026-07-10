@@ -198,7 +198,7 @@ test.describe('Listing API automatic indexing', () => {
     });
   });
 
-  test('indexes root source values and switches memberships across merge and unmerge', async ({ api }) => {
+  test('indexes mixed display groups and root source values across merge and unmerge', async ({ api }) => {
     const unique = crypto.randomUUID().slice(0, 8);
     const optionSource = `root-color-${unique}`;
     const featureSource = `root-material-${unique}`;
@@ -218,6 +218,7 @@ test.describe('Listing API automatic indexing', () => {
       { option: 'red', feature: 'cotton', tag: tags[0] },
       { option: 'blue', feature: 'cotton', tag: tags[1] },
       { option: 'blue', feature: 'wool', tag: tags[0] },
+      { option: 'orange', feature: 'wool', tag: tags[1] },
     ] as const;
     const products: ApiProduct[] = [];
 
@@ -251,6 +252,7 @@ test.describe('Listing API automatic indexing', () => {
       values: [
         { handle: `${optionSource}:red`, label: 'Red' },
         { handle: `${optionSource}:blue`, label: 'Blue' },
+        { handle: `${optionSource}:orange`, label: 'Orange' },
       ],
     });
     const featureFacet = await createSourceOnlyFacet(api, {
@@ -278,14 +280,15 @@ test.describe('Listing API automatic indexing', () => {
       [optionFacetSlug]: {
         [`${optionSource}:red`]: 1,
         [`${optionSource}:blue`]: 2,
+        [`${optionSource}:orange`]: 1,
       },
       [featureFacetSlug]: {
         [`${featureSource}:cotton`]: 2,
-        [`${featureSource}:wool`]: 1,
+        [`${featureSource}:wool`]: 2,
       },
       tag: {
         [tagHandles[0]]: 2,
-        [tagHandles[1]]: 1,
+        [tagHandles[1]]: 2,
       },
     };
     const rootSnapshot = await expectListingSnapshot(api, category, {
@@ -295,11 +298,21 @@ test.describe('Listing API automatic indexing', () => {
     });
     const redSourceHandle = `${optionSource}:red`;
     const blueSourceHandle = `${optionSource}:blue`;
+    const orangeSourceHandle = `${optionSource}:orange`;
     const cottonSourceHandle = `${featureSource}:cotton`;
     const redInput = facetValueInput(rootSnapshot.facets, optionFacetSlug, redSourceHandle);
     const blueInput = facetValueInput(rootSnapshot.facets, optionFacetSlug, blueSourceHandle);
-    const cottonInput = facetValueInput(rootSnapshot.facets, featureFacetSlug, cottonSourceHandle);
-    const tagInput = facetValueInput(rootSnapshot.facets, 'tag', tagHandles[0]);
+    const cottonInput = facetValueInput(
+      rootSnapshot.facets,
+      featureFacetSlug,
+      cottonSourceHandle,
+      {
+        productFacet: { facet: featureFacetSlug, value: cottonSourceHandle },
+      },
+    );
+    const tagInput = facetValueInput(rootSnapshot.facets, 'tag', tagHandles[0], {
+      tag: tagHandles[0],
+    });
 
     expect(redInput).toEqual({
       variantFacet: { facet: optionFacetSlug, value: redSourceHandle },
@@ -316,6 +329,7 @@ test.describe('Listing API automatic indexing', () => {
         [optionFacetSlug]: {
           [redSourceHandle]: 1,
           [blueSourceHandle]: 1,
+          [orangeSourceHandle]: 0,
         },
         [featureFacetSlug]: {
           [cottonSourceHandle]: 1,
@@ -339,10 +353,16 @@ test.describe('Listing API automatic indexing', () => {
     if (!redSourceValue) {
       throw new Error(`Missing root source value ${redSourceHandle}`);
     }
+    const orangeSourceValue = optionFacet.values.find(
+      (value) => value.handle === orangeSourceHandle,
+    );
+    if (!orangeSourceValue) {
+      throw new Error(`Missing root source value ${orangeSourceHandle}`);
+    }
 
     await mergeFacetSourceValues(api, {
       facetId: optionFacet.id,
-      sourceValueIds: [redSourceValue.id],
+      sourceValueIds: [redSourceValue.id, orangeSourceValue.id],
       targetHandle: 'warm',
       targetLabel: 'Warm',
     });
@@ -351,19 +371,20 @@ test.describe('Listing API automatic indexing', () => {
       productIds: products.map((product) => product.id),
       facetCounts: {
         ...rootCounts,
-        [optionFacetSlug]: { warm: 1, [blueSourceHandle]: 2 },
+        [optionFacetSlug]: { warm: 2, [blueSourceHandle]: 2 },
       },
     });
-    expect(
-      mergedSnapshot.facets
-        .find((facet) => facet.id === optionFacetSlug)
-        ?.values.some((value) => value.id === redSourceHandle),
-    ).toBe(false);
+    const mixedOptionFacet = mergedSnapshot.facets.find(
+      (facet) => facet.id === optionFacetSlug,
+    );
+    expect(mixedOptionFacet?.values.map((value) => value.id).sort()).toEqual(
+      [blueSourceHandle, 'warm'].sort(),
+    );
 
     const warmInput = facetValueInput(mergedSnapshot.facets, optionFacetSlug, 'warm');
     await expectListingSnapshot(api, category, {
-      totalCount: 1,
-      productIds: [products[0].id],
+      totalCount: 2,
+      productIds: [products[0].id, products[3].id],
       facets: [warmInput],
       selectedFacetValues: { [optionFacetSlug]: ['warm'] },
     });
@@ -381,7 +402,7 @@ test.describe('Listing API automatic indexing', () => {
       ],
     });
 
-    await unmergeFacetSourceValues(api, [redSourceValue.id]);
+    await unmergeFacetSourceValues(api, [redSourceValue.id, orangeSourceValue.id]);
     const unmergedSnapshot = await expectListingSnapshot(api, category, {
       totalCount: products.length,
       productIds: products.map((product) => product.id),
@@ -405,7 +426,10 @@ test.describe('Listing API automatic indexing', () => {
       productIds: products.map((product) => product.id),
       facetCounts: {
         ...rootCounts,
-        [optionFacetSlug]: { [redSourceHandle]: 1 },
+        [optionFacetSlug]: {
+          [redSourceHandle]: 1,
+          [orangeSourceHandle]: 1,
+        },
       },
     });
     await expectListingErrors(api, category, {
@@ -1436,7 +1460,14 @@ function readSelectedFacetValues(facets: ApiListingFacet[], expected?: Record<st
   );
 }
 
-function facetValueInput(facets: ApiListingFacet[], facetId: string, valueId: string) {
+function facetValueInput(
+  facets: ApiListingFacet[],
+  facetId: string,
+  valueId: string,
+  expectedInput: ApiListingProductFilter = {
+    variantFacet: { facet: facetId, value: valueId },
+  },
+) {
   const facet = facets.find((candidate) => candidate.id === facetId);
   const value = facet?.values.find((candidate) => candidate.id === valueId);
 
@@ -1444,12 +1475,6 @@ function facetValueInput(facets: ApiListingFacet[], facetId: string, valueId: st
     throw new Error(`Missing listing facet value input for ${facetId}:${valueId}`);
   }
 
-  const expectedInput: ApiListingProductFilter = {
-    variantFacet: {
-      facet: facetId,
-      value: valueId,
-    },
-  };
   const input = value.input as ApiListingProductFilter | null | undefined;
   expect(input, `Listing facet value ${facetId}:${valueId} must expose reusable input`).toEqual(expectedInput);
 

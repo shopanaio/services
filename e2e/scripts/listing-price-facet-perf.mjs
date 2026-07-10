@@ -376,10 +376,18 @@ async function main() {
   const facets = OPTION_GROUPS.map((group, groupIndex) => ({
     ...group,
     id: randomUUID(),
-    values: group.values.map((handle, valueIndex) => ({
-      id: randomUUID(),
-      handle,
-    })),
+    sourceId: randomUUID(),
+    values: group.values.map((sourceValueHandle, valueIndex) => {
+      const isRootSource = valueIndex === group.values.length - 1;
+
+      return {
+        id: randomUUID(),
+        kind: isRootSource ? 'source' : 'display',
+        handle: isRootSource ? `${group.slug}:${sourceValueHandle}` : sourceValueHandle,
+        sourceValueHandle,
+        childSourceId: isRootSource ? null : randomUUID(),
+      };
+    }),
   }));
   const productOptionValuePools = productDocIds.map((_, productIndex) =>
     OPTION_GROUPS.map((group, groupIndex) => productOptionValuePool(group, productIndex, groupIndex)),
@@ -440,8 +448,10 @@ async function main() {
   }
   const variantValueKeys = variants.map((variant) => {
     return facets.map((facet) => {
-      const valueHandle = variant.facetValues[facet.slug];
-      const value = facet.values.find((candidate) => candidate.handle === valueHandle);
+      const sourceValueHandle = variant.facetValues[facet.slug];
+      const value = facet.values.find(
+        (candidate) => candidate.sourceValueHandle === sourceValueHandle,
+      );
       return `${facet.id}:${value.id}`;
     });
   });
@@ -557,6 +567,15 @@ async function main() {
           products: args.products,
           pageSize: args.pageSize,
           filters: OPTION_GROUPS.map(({ slug, selected }) => ({ slug, selected })),
+          facetValueKinds: facets.map((facet) => ({
+            slug: facet.slug,
+            displayValueHandles: facet.values
+              .filter((value) => value.kind === 'display')
+              .map((value) => value.handle),
+            rootSourceValueHandles: facet.values
+              .filter((value) => value.kind === 'source')
+              .map((value) => value.handle),
+          })),
           priceFilter: {
             minMinor: PRICE_FILTER_MIN_MINOR,
             maxMinor: PRICE_FILTER_MAX_MINOR,
@@ -1014,6 +1033,35 @@ async function seedListingFacets(sql, storeId, facets) {
       VALUES (${facet.id}::uuid, ${LOCALE}, ${storeId}::uuid, ${facet.slug})
       ON CONFLICT (facet_id, locale) DO UPDATE SET label = EXCLUDED.label
     `;
+    await sql`
+      INSERT INTO listing.facet_source (
+        id,
+        store_id,
+        facet_id,
+        facet_type,
+        handle,
+        created_at
+      )
+      VALUES (
+        ${facet.sourceId}::uuid,
+        ${storeId}::uuid,
+        ${facet.id}::uuid,
+        'OPTION',
+        ${facet.slug},
+        now()
+      )
+      ON CONFLICT (store_id, facet_id, handle) DO NOTHING
+    `;
+    await sql`
+      INSERT INTO listing.facet_source_translation (
+        facet_source_id,
+        locale,
+        store_id,
+        name
+      )
+      VALUES (${facet.sourceId}::uuid, ${LOCALE}, ${storeId}::uuid, ${facet.slug})
+      ON CONFLICT (facet_source_id, locale) DO UPDATE SET name = EXCLUDED.name
+    `;
 
     for (const [valueIndex, value] of facet.values.entries()) {
       await sql`
@@ -1032,7 +1080,7 @@ async function seedListingFacets(sql, storeId, facets) {
           ${value.id}::uuid,
           ${storeId}::uuid,
           ${facet.id}::uuid,
-          'display',
+          ${value.kind},
           ${value.handle},
           ${valueIndex},
           true,
@@ -1051,6 +1099,52 @@ async function seedListingFacets(sql, storeId, facets) {
         VALUES (${value.id}::uuid, ${LOCALE}, ${storeId}::uuid, ${value.handle})
         ON CONFLICT (facet_value_id, locale) DO UPDATE SET label = EXCLUDED.label
       `;
+
+      if (value.kind === 'display') {
+        const sourceHandle = `${facet.slug}:${value.sourceValueHandle}`;
+        await sql`
+          INSERT INTO listing.facet_value (
+            id,
+            store_id,
+            facet_id,
+            parent_id,
+            kind,
+            handle,
+            sort_index,
+            enabled,
+            created_at,
+            updated_at
+          )
+          VALUES (
+            ${value.childSourceId}::uuid,
+            ${storeId}::uuid,
+            ${facet.id}::uuid,
+            ${value.id}::uuid,
+            'source',
+            ${sourceHandle},
+            ${valueIndex},
+            true,
+            now(),
+            now()
+          )
+          ON CONFLICT (id) DO NOTHING
+        `;
+        await sql`
+          INSERT INTO listing.facet_value_translation (
+            facet_value_id,
+            locale,
+            store_id,
+            label
+          )
+          VALUES (
+            ${value.childSourceId}::uuid,
+            ${LOCALE},
+            ${storeId}::uuid,
+            ${value.sourceValueHandle}
+          )
+          ON CONFLICT (facet_value_id, locale) DO UPDATE SET label = EXCLUDED.label
+        `;
+      }
     }
   }
 }

@@ -71,7 +71,7 @@ const LISTING_PERF_QUERY = /* GraphQL */ `
 test.describe('Listing service no filters perf', () => {
   test.describe.configure({ timeout: 240_000 });
 
-  test('calls listing service for price sort without selected filters on 10k products', async ({
+  test('returns mixed display and root source facets without selected filters on 10k products', async ({
     api,
     request,
   }) => {
@@ -156,6 +156,7 @@ test.describe('Listing service no filters perf', () => {
         expect(listing.totalCount).toBe(seedMeta.products);
         expect(json.data.listingQuery.listing.edges).toHaveLength(PAGE_SIZE);
         expect(json.data.listingQuery.listing.pageInfo.hasNextPage).toBe(true);
+        expectMixedFacetValues(listing.facets, seedMeta.facetValueKinds);
         expectNoSelectedFacetValues(listing.facets);
 
         runMetrics.push({ run, elapsedMs, branchTimings: {} });
@@ -184,6 +185,13 @@ test.describe('Listing service no filters perf', () => {
 
 interface ListingPerfSeedMeta {
   products: number;
+  facetValueKinds: ListingPerfFacetValueKinds[];
+}
+
+interface ListingPerfFacetValueKinds {
+  slug: string;
+  displayValueHandles: string[];
+  rootSourceValueHandles: string[];
 }
 
 interface ListingPerfFacetValue {
@@ -201,6 +209,28 @@ interface ListingPerfRunMetric {
   run: number;
   elapsedMs: number;
   branchTimings: Partial<Record<(typeof LISTING_SQL_BRANCHES)[number], number | null>>;
+}
+
+function expectMixedFacetValues(
+  facets: ListingPerfFacet[],
+  expectedFacets: ListingPerfFacetValueKinds[],
+): void {
+  for (const expectedFacet of expectedFacets) {
+    expect(
+      expectedFacet.displayValueHandles.length,
+      `${expectedFacet.slug} display values`,
+    ).toBeGreaterThan(0);
+    expect(
+      expectedFacet.rootSourceValueHandles.length,
+      `${expectedFacet.slug} root source values`,
+    ).toBeGreaterThan(0);
+
+    const facet = facets.find((candidate) => candidate.id === expectedFacet.slug);
+    expect(facet, `facet ${expectedFacet.slug}`).toBeTruthy();
+    expect(facet?.values.map((value) => value.id).sort()).toEqual(
+      [...expectedFacet.displayValueHandles, ...expectedFacet.rootSourceValueHandles].sort(),
+    );
+  }
 }
 
 function expectNoSelectedFacetValues(facets: ListingPerfFacet[]) {
