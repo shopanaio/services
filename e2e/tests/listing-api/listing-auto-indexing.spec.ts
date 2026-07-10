@@ -13,6 +13,15 @@ interface ListingSnapshot {
   facets: ApiListingFacet[];
 }
 
+interface ListingSnapshotComparison {
+  totalCount: number;
+  productIds: string[];
+  facetCounts: Record<string, Record<string, number | null>>;
+  availableCount: number | null;
+  missingFacetIds: string[];
+  selectedFacetValues: Record<string, string[]>;
+}
+
 interface FacetDefinition {
   sourceSlug: string;
   facetSlug: string;
@@ -252,14 +261,24 @@ test.describe('Listing API automatic indexing', () => {
       warehouseId: warehouse.id,
       onHand: 0,
     });
-    removeExpectedProduct(indexedProducts[2]);
+    await sleep(5_000);
+    const unavailableProduct = indexedProducts[2];
+    const availableProducts = () =>
+      expectedProducts.filter((product) => product.id !== unavailableProduct.id);
+    const availableDefinitions = () =>
+      expectedDefinitions.filter(
+        (_definition, index) => expectedProducts[index].id !== unavailableProduct.id,
+      );
 
     const lifecycleProductDefinition = expectedDefinitions[0];
     const lifecycleColor = lifecycleProductDefinition.options[facets[0].sourceSlug];
     const lifecycleSnapshot = await readListingSnapshot(api, category);
     const lifecycleColorFilter = facetValueInput(lifecycleSnapshot.facets, facets[0].facetSlug, lifecycleColor);
-    const lifecycleColorProducts = expectedProducts.filter(
-      (_product, index) => expectedDefinitions[index].options[facets[0].sourceSlug] === lifecycleColor,
+    const lifecycleColorProducts = availableProducts().filter(
+      (product) => {
+        const index = expectedProducts.findIndex((candidate) => candidate.id === product.id);
+        return expectedDefinitions[index].options[facets[0].sourceSlug] === lifecycleColor;
+      },
     );
 
     await updateFacetDisplayValueEnabled(api, createdFacets[0], lifecycleColor, false);
@@ -280,15 +299,29 @@ test.describe('Listing API automatic indexing', () => {
       facets: [lifecycleColorFilter],
     });
 
-    const availabilitySnapshot = await readListingSnapshot(api, category);
+    const availabilitySnapshot = await expectListingSnapshot(api, category, {
+      totalCount: availableProducts().length,
+      productIds: availableProducts().map((product) => product.id),
+      facetCounts: expectedFacetCounts(createdFacets, facets, availableDefinitions()),
+      availableCount: availableProducts().length,
+      facets: [{ available: true }],
+    });
     const availableFilter = availabilityFacetInput(availabilitySnapshot.facets);
     await expectListingSnapshot(api, category, {
-      totalCount: expectedProducts.length,
-      productIds: expectedProducts.map((product) => product.id),
-      facetCounts: expectedFacetCounts(createdFacets, facets, expectedDefinitions),
-      availableCount: expectedProducts.length,
+      totalCount: availableProducts().length,
+      productIds: availableProducts().map((product) => product.id),
+      facetCounts: expectedFacetCounts(createdFacets, facets, availableDefinitions()),
+      availableCount: availableProducts().length,
       facets: [availableFilter],
     });
+
+    const unfilteredAvailabilitySnapshot = await expectListingSnapshot(api, category, {
+      totalCount: expectedProducts.length,
+      productIds: expectedProducts.map((product) => product.id),
+      facetCounts: expectedFacetCounts(createdFacets, facets, availableDefinitions()),
+      availableCount: availableProducts().length,
+    });
+    expect(unfilteredAvailabilitySnapshot.productIds.at(-1)).toBe(unavailableProduct.id);
 
     await deleteFacet(api, createdFacets[3].id);
     await expectListingSnapshot(api, category, {
@@ -297,8 +330,9 @@ test.describe('Listing API automatic indexing', () => {
       facetCounts: expectedFacetCounts(
         createdFacets.slice(0, 3),
         facets.slice(0, 3),
-        expectedDefinitions,
+        availableDefinitions(),
       ),
+      availableCount: availableProducts().length,
       missingFacetIds: [createdFacets[3].id],
     });
 
@@ -310,8 +344,9 @@ test.describe('Listing API automatic indexing', () => {
       facetCounts: expectedFacetCounts(
         createdFacets.slice(0, 3),
         facets.slice(0, 3),
-        expectedDefinitions,
+        availableDefinitions(),
       ),
+      availableCount: availableProducts().length,
       missingFacetIds: [createdFacets[3].id],
     });
   });
@@ -700,6 +735,10 @@ async function updateProductVariantInventory(
   });
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function updateFacetDisplayValueEnabled(
   api: Api,
   facet: ApiFacet,
@@ -761,13 +800,19 @@ async function expectListingSnapshot(
   },
 ): Promise<ListingSnapshot> {
   let lastSnapshot: ListingSnapshot | null = null;
+  let lastMismatchSignature: string | null = null;
 
   await expect
     .poll(
       async () => {
-        lastSnapshot = await readListingSnapshot(api, category, expected.facets, expected.expectedErrors);
+        lastSnapshot = await readListingSnapshot(
+          api,
+          category,
+          expected.facets,
+          expected.expectedErrors,
+        );
 
-        return {
+        const actual: ListingSnapshotComparison = {
           totalCount: lastSnapshot.totalCount,
           productIds: [...lastSnapshot.productIds].sort(),
           facetCounts: readFacetCounts(lastSnapshot.facets, expected.facetCounts),
@@ -775,8 +820,30 @@ async function expectListingSnapshot(
           missingFacetIds: (expected.missingFacetIds ?? []).filter((facetId) =>
             lastSnapshot?.facets.some((facet) => facet.id === facetId),
           ),
-          selectedFacetValues: readSelectedFacetValues(lastSnapshot.facets, expected.selectedFacetValues),
+          selectedFacetValues: readSelectedFacetValues(
+            lastSnapshot.facets,
+            expected.selectedFacetValues,
+          ),
         };
+        const expectedSnapshot: ListingSnapshotComparison = {
+          totalCount: expected.totalCount,
+          productIds: [...expected.productIds].sort(),
+          facetCounts: expected.facetCounts ?? {},
+          availableCount: expected.availableCount ?? expected.totalCount,
+          missingFacetIds: [],
+          selectedFacetValues: expected.selectedFacetValues ?? {},
+        };
+        const mismatchSignature = JSON.stringify(actual);
+
+        if (
+          mismatchSignature !== JSON.stringify(expectedSnapshot) &&
+          mismatchSignature !== lastMismatchSignature
+        ) {
+          lastMismatchSignature = mismatchSignature;
+          await logListingMismatch(api, category, actual, expectedSnapshot);
+        }
+
+        return actual;
       },
       {
         timeout: 60_000,
@@ -797,6 +864,71 @@ async function expectListingSnapshot(
   }
 
   return lastSnapshot;
+}
+
+async function logListingMismatch(
+  api: Api,
+  category: CategoryData,
+  actual: ListingSnapshotComparison,
+  expected: ListingSnapshotComparison,
+): Promise<void> {
+  const expectedProductIds = new Set(expected.productIds);
+  const actualProductIds = new Set(actual.productIds);
+  const unexpectedProductIds = actual.productIds.filter(
+    (id) => !expectedProductIds.has(id),
+  );
+  const missingProductIds = expected.productIds.filter(
+    (id) => !actualProductIds.has(id),
+  );
+  const unexpectedProducts = await Promise.all(
+    unexpectedProductIds.map(async (productId) => {
+      try {
+        const product = await api.admin.product.findOne(productId);
+        return {
+          id: product.id,
+          title: product.title,
+          handle: product.handle,
+          revision: product.revision,
+          isPublished: product.isPublished,
+          publishedAt: product.publishedAt,
+          updatedAt: product.updatedAt,
+          assignedCategoryIds: product.categoryAssignments.map(
+            (assignment) => assignment.category.id,
+          ),
+          assignedToListingCategory: product.categoryAssignments.some(
+            (assignment) => assignment.category.id === category.id,
+          ),
+          variants: product.variants.edges.map(({ node }) => ({
+            id: node.id,
+            handle: node.handle,
+            inventoryItemId: node.inventoryItem?.id ?? null,
+            trackInventory: node.inventoryItem?.trackInventory ?? null,
+          })),
+        };
+      } catch (error) {
+        return {
+          id: productId,
+          lookupError: error instanceof Error ? error.message : String(error),
+        };
+      }
+    }),
+  );
+
+  console.warn(
+    '[listing-auto-indexing] listing snapshot mismatch',
+    JSON.stringify(
+      {
+        categoryId: category.id,
+        actual,
+        expected,
+        unexpectedProductIds,
+        missingProductIds,
+        unexpectedProducts,
+      },
+      null,
+      2,
+    ),
+  );
 }
 
 async function expectListingErrors(
@@ -882,7 +1014,10 @@ async function readListingSnapshot(
   };
 }
 
-function readFacetCounts(facets: ApiListingFacet[], expected?: Record<string, Record<string, number>>) {
+function readFacetCounts(
+  facets: ApiListingFacet[],
+  expected?: Record<string, Record<string, number>>,
+) {
   if (!expected) {
     return {};
   }
