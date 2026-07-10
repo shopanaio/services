@@ -8,7 +8,6 @@ export interface ListingPreviewState {
   orderBy: ApiListingOrderByInput;
   after: string | null;
   cursorStack: string[];
-  query: string;
 }
 
 export interface ListingPreviewSortOption {

@@ -8,11 +8,6 @@ import type { ListingPreviewSortOption } from "./types";
 export const LISTING_PREVIEW_SORT_OPTIONS: ListingPreviewSortOption[] = [
   { key: "manual", label: "Manual", orderBy: { by: ListingSortBy.Manual } },
   {
-    key: "relevance",
-    label: "Relevance",
-    orderBy: { by: ListingSortBy.Relevance },
-  },
-  {
     key: "newest-desc",
     label: "Newest first",
     orderBy: { by: ListingSortBy.Newest, direction: ListingSortDirection.Desc },

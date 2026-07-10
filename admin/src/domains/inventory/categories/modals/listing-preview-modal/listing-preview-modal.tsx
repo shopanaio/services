@@ -92,14 +92,12 @@ export const ListingPreviewModal = () => {
     orderBy: mapCategorySort(category),
     after: null,
     cursorStack: [],
-    query: "",
   }));
 
   const { items, facets, totalCount, pageInfo, loading, error, refetch } =
     useCategoryListingPreview(category.id, {
       first: DEFAULT_PAGE_SIZE,
       after: state.after,
-      query: state.query || null,
       facets: state.selectedFacetInputs,
       orderBy: state.orderBy,
     });
