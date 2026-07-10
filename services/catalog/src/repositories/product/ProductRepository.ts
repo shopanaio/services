@@ -475,6 +475,20 @@ export class ProductRepository extends BaseRepository {
       );
   }
 
+  async getByIdsIncludingDeleted(
+    productIds: readonly string[]
+  ): Promise<Product[]> {
+    return this.connection
+      .select()
+      .from(product)
+      .where(
+        and(
+          eq(product.storeId, this.storeId),
+          inArray(product.id, [...productIds])
+        )
+      );
+  }
+
   async getBundlesByProductIds(productIds: readonly string[]): Promise<Bundle[]> {
     if (productIds.length === 0) return [];
     return this.connection

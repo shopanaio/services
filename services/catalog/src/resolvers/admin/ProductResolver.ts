@@ -53,8 +53,11 @@ export class ProductResolver extends CatalogType<string, Product> {
   }
 
   async isPublished() {
-    const publishedAt = await this.$get("publishedAt");
-    if (!publishedAt) return false;
+    const [publishedAt, deletedAt] = await Promise.all([
+      this.$get("publishedAt"),
+      this.$get("deletedAt"),
+    ]);
+    if (deletedAt || !publishedAt) return false;
     return new Date(publishedAt) <= new Date();
   }
 
@@ -214,5 +217,21 @@ export class ProductResolver extends CatalogType<string, Product> {
   async tags(): Promise<TagResolver[]> {
     const ids = await this.$ctx.loaders.productTagIds.load(this.$props);
     return ids.map((id) => new TagResolver(id, this.$ctx));
+  }
+}
+
+/**
+ * Resolves internal product references while a soft-delete is still being
+ * propagated to dependent read models.
+ */
+export class ProductReferenceResolver extends ProductResolver {
+  async $preload() {
+    const product = await this.$ctx.loaders.productReference.load(this.$props);
+    if (!product) {
+      throw new PreloadNotFoundError(
+        `Product with ID ${this.$props} not found`
+      );
+    }
+    return product;
   }
 }

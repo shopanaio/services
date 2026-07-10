@@ -13,6 +13,7 @@ import type { Repository } from "../repositories/Repository.js";
 
 export class ProductLoader {
   public readonly product: DataLoader<string, Product | null>;
+  public readonly productReference: DataLoader<string, Product | null>;
   public readonly productTranslation: DataLoader<string, ProductTranslation | null>;
   public readonly productTranslations: DataLoader<string, ProductTranslation[]>;
   public readonly productSeo: DataLoader<string, ProductSeo | null>;
@@ -31,6 +32,17 @@ export class ProductLoader {
       const results = await repository.product.getByIds(productIds);
       return productIds.map((id) => results.find((p) => p.id === id) ?? null);
     });
+
+    this.productReference = new DataLoader<string, Product | null>(
+      async (productIds) => {
+        const results = await repository.product.getByIdsIncludingDeleted(
+          productIds
+        );
+        return productIds.map(
+          (id) => results.find((product) => product.id === id) ?? null
+        );
+      }
+    );
 
     this.productTranslation = new DataLoader<string, ProductTranslation | null>(async (productIds) => {
       const results = await repository.product.getTranslationsByProductIds(productIds);

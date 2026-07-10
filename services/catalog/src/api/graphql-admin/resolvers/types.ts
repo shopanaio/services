@@ -13,7 +13,10 @@ import { FeatureValueResolver } from "../../../resolvers/admin/FeatureValueResol
 import { OptionResolver } from "../../../resolvers/admin/OptionResolver.js";
 import { OptionValueResolver } from "../../../resolvers/admin/OptionValueResolver.js";
 import { BundleResolver } from "../../../resolvers/admin/BundleResolver.js";
-import { ProductResolver } from "../../../resolvers/admin/ProductResolver.js";
+import {
+  ProductReferenceResolver,
+  ProductResolver,
+} from "../../../resolvers/admin/ProductResolver.js";
 import { TagResolver } from "../../../resolvers/admin/TagResolver.js";
 import { VariantResolver } from "../../../resolvers/admin/VariantResolver.js";
 import { VendorResolver } from "../../../resolvers/admin/VendorResolver.js";
@@ -89,7 +92,7 @@ export const typeResolvers: Partial<Resolvers> = {
         reference.id,
         GlobalIdEntity.Product,
       );
-      return ProductResolver.load(productId, fieldInfo, ctx);
+      return ProductReferenceResolver.load(productId, fieldInfo, ctx);
     },
   },
 

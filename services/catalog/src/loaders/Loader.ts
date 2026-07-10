@@ -16,6 +16,7 @@ import { StockLoader } from "./StockLoader.js";
 export class Loader {
   // Product
   public readonly product;
+  public readonly productReference;
   public readonly productTranslation;
   public readonly productTranslations;
   public readonly productSeo;
@@ -114,6 +115,7 @@ export class Loader {
 
     // Product
     this.product = productLoader.product;
+    this.productReference = productLoader.productReference;
     this.productTranslation = productLoader.productTranslation;
     this.productTranslations = productLoader.productTranslations;
     this.productSeo = productLoader.productSeo;
