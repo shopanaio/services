@@ -13,6 +13,11 @@ interface FacetDefinition {
   label: string;
   productField: 'colors' | 'sizes' | 'tags';
   values: Array<{ handle: string; label: string }>;
+  groups?: Array<{
+    handle: string;
+    label: string;
+    sourceValueHandles: string[];
+  }>;
 }
 
 interface PreviewProductDefinition {
@@ -24,6 +29,12 @@ interface PreviewProductDefinition {
   priceMinor: number;
   stock: number;
   inStock: boolean;
+}
+
+interface PublicFacetValueDefinition {
+  handle: string;
+  label: string;
+  sourceValueHandles: string[];
 }
 
 interface SeededPreviewProduct {
@@ -49,9 +60,22 @@ const facetDefinitions = (unique: string): FacetDefinition[] => [
     productField: 'colors',
     values: [
       { handle: 'red', label: 'Red' },
+      { handle: 'orange', label: 'Orange' },
       { handle: 'blue', label: 'Blue' },
       { handle: 'green', label: 'Green' },
       { handle: 'black', label: 'Black' },
+    ],
+    groups: [
+      {
+        handle: 'warm',
+        label: 'Warm',
+        sourceValueHandles: ['red', 'orange'],
+      },
+      {
+        handle: 'cool',
+        label: 'Cool',
+        sourceValueHandles: ['blue', 'green'],
+      },
     ],
   },
   {
@@ -82,7 +106,7 @@ const facetDefinitions = (unique: string): FacetDefinition[] => [
 
 function previewProductDefinitions(unique: string): PreviewProductDefinition[] {
   const colorPairs = [
-    ['red', 'blue'],
+    ['red', 'orange'],
     ['blue', 'green'],
     ['green', 'black'],
     ['black', 'red'],
@@ -205,10 +229,7 @@ async function createListingFacets(
           selectionMode: 'MULTI',
           sources: [{ handle: facet.sourceSlug, name: facet.label }],
           valueCandidates: facet.values.map((value) => ({
-            handle:
-              facet.facetType === 'OPTION'
-                ? `${facet.sourceSlug}:${value.handle}`
-                : value.handle,
+            handle: facetSourceValueHandle(facet, value.handle),
             label: value.label,
             sourceHandle: facet.sourceSlug,
           })),
@@ -222,25 +243,25 @@ async function createListingFacets(
     const sourceFacet = createResult.facet!;
     const sourceValues = new Map(sourceFacet.values.map((value) => [value.handle, value]));
 
-    for (const [sortIndex, value] of facet.values.entries()) {
-      const sourceHandle =
-        facet.facetType === 'OPTION'
-          ? `${facet.sourceSlug}:${value.handle}`
-          : value.handle;
-      const sourceValue = sourceValues.get(sourceHandle);
-      if (!sourceValue) {
-        throw new Error(`Missing source value ${sourceHandle}`);
-      }
+    for (const [sortIndex, group] of (facet.groups ?? []).entries()) {
+      const groupSourceValueIds = group.sourceValueHandles.map((valueHandle) => {
+        const sourceHandle = facetSourceValueHandle(facet, valueHandle);
+        const sourceValue = sourceValues.get(sourceHandle);
+        if (!sourceValue) {
+          throw new Error(`Missing source value ${sourceHandle}`);
+        }
+        return sourceValue.id;
+      });
 
       const { data: valueData } = await api.admin.mutation('facet-api/FacetValueCreate', {
         variables: {
           input: {
             facetId: sourceFacet.id,
             kind: 'GROUP',
-            handle: value.handle,
-            label: value.label,
+            handle: group.handle,
+            label: group.label,
             sortIndex,
-            sourceValueIds: [sourceValue.id],
+            sourceValueIds: groupSourceValueIds,
           },
         },
       });
@@ -249,6 +270,34 @@ async function createListingFacets(
       expect(valueResult.facetValue).toBeTruthy();
     }
   }
+}
+
+function facetSourceValueHandle(facet: FacetDefinition, valueHandle: string): string {
+  return facet.facetType === 'OPTION'
+    ? `${facet.sourceSlug}:${valueHandle}`
+    : valueHandle;
+}
+
+function publicFacetValues(facet: FacetDefinition): PublicFacetValueDefinition[] {
+  const groups = facet.groups ?? [];
+  const groupedSourceValueHandles = new Set(
+    groups.flatMap((group) => group.sourceValueHandles),
+  );
+
+  return [
+    ...groups.map((group) => ({
+      handle: group.handle,
+      label: group.label,
+      sourceValueHandles: group.sourceValueHandles,
+    })),
+    ...facet.values
+      .filter((value) => !groupedSourceValueHandles.has(value.handle))
+      .map((value) => ({
+        handle: facetSourceValueHandle(facet, value.handle),
+        label: value.label,
+        sourceValueHandles: [value.handle],
+      })),
+  ];
 }
 
 async function setVariantStock(
@@ -357,10 +406,15 @@ function expectedFacetCounts(
   products: PreviewProductDefinition[],
 ): Record<string, number> {
   return Object.fromEntries(
-    facet.values.map((value) => [
+    publicFacetValues(facet).map((value) => [
       value.handle,
       products.filter((product) => {
-        return product.inStock && product[facet.productField].includes(value.handle);
+        return (
+          product.inStock &&
+          value.sourceValueHandles.some((handle) =>
+            product[facet.productField].includes(handle),
+          )
+        );
       }).length,
     ]),
   );
@@ -555,7 +609,7 @@ test.describe('Admin category listing preview UI', () => {
         .filter({ visible: true });
       await expect(facetGroup).toBeVisible();
 
-      for (const value of facet.values) {
+      for (const value of publicFacetValues(facet)) {
         const valueRow = facetGroup.getByTestId(
           `category-listing-preview-facet-value-${value.handle}`,
         );
@@ -622,20 +676,22 @@ test.describe('Admin category listing preview UI', () => {
       .getByTestId(`category-listing-preview-facet-${facets[0].facetSlug}`)
       .filter({ visible: true });
     await colorFacet
-      .getByTestId('category-listing-preview-facet-value-red')
+      .getByTestId('category-listing-preview-facet-value-warm')
       .getByRole('checkbox')
       .click();
 
-    const redProducts = products.filter(
-      ({ definition }) => definition.inStock && definition.colors.includes('red'),
+    const warmColors = new Set(['red', 'orange']);
+    const warmProducts = products.filter(
+      ({ definition }) =>
+        definition.inStock && definition.colors.some((color) => warmColors.has(color)),
     );
     await expect(preview.getByTestId('category-listing-preview-total-count')).toHaveText(
-      `${redProducts.length} products`,
+      `${warmProducts.length} products`,
     );
-    await expect(cards).toHaveCount(redProducts.length);
-    await expect(preview.getByText('Color: Red', { exact: true })).toBeVisible();
+    await expect(cards).toHaveCount(warmProducts.length);
+    await expect(preview.getByText('Color: Warm', { exact: true })).toBeVisible();
 
-    for (const { definition } of redProducts) {
+    for (const { definition } of warmProducts) {
       await expect(
         preview.getByTestId(`category-listing-preview-product-card-${definition.handle}`),
       ).toBeVisible();
@@ -646,7 +702,7 @@ test.describe('Admin category listing preview UI', () => {
       `${PRODUCT_COUNT} products`,
     );
     await expect(cards).toHaveCount(PRODUCT_COUNT);
-    await expect(preview.getByText('Color: Red', { exact: true })).toBeHidden();
+    await expect(preview.getByText('Color: Warm', { exact: true })).toBeHidden();
 
     const saleTag = tagFacet.values.find((value) => value.label === 'Sale');
     if (!saleTag) {
