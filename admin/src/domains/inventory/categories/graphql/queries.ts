@@ -57,39 +57,37 @@ export const CATEGORY_DETAILS_QUERY = gql`
 
 export const CATEGORY_PRODUCTS_QUERY = gql`
   query CategoryProducts(
-    $id: ID!
+    $categoryId: ID!
     $first: Int
     $after: String
     $last: Int
     $before: String
-    $where: ListingWhereInput
-    $orderBy: [ListingOrderByInput!]
+    $where: ProductWhereInput
+    $orderBy: [ProductOrderByInput!]
   ) {
     catalogQuery {
-      category(id: $id) {
-        id
-        listing(
-          first: $first
-          after: $after
-          last: $last
-          before: $before
-          where: $where
-          orderBy: $orderBy
-        ) {
-          edges {
-            cursor
-            node {
-              ...CategoryProductListItemFields
-            }
+      products(
+        first: $first
+        after: $after
+        last: $last
+        before: $before
+        where: $where
+        orderBy: $orderBy
+        meta: { categoriesScope: { referenceIds: [$categoryId], mode: INCLUDE } }
+      ) {
+        edges {
+          cursor
+          node {
+            ...CategoryProductListItemFields
           }
-          pageInfo {
-            hasNextPage
-            hasPreviousPage
-            startCursor
-            endCursor
-          }
-          totalCount
         }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
       }
     }
   }

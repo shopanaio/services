@@ -22,18 +22,16 @@ import type {
   ApiListingFacet,
   ApiListingProductFilter,
   ApiProductMediaItem,
+  ApiProductConnection,
+  ApiProductOrderByInput,
   ApiProductPriceRange,
+  ApiProductWhereInput,
   ProductKind,
-  ProductOrderField,
-  SortDirection,
 } from "@/graphql/types";
 
-export interface CategoryProductsOrderByInput {
-  field: ProductOrderField;
-  direction?: SortDirection | null;
-}
+export type CategoryProductsOrderByInput = ApiProductOrderByInput;
 
-export type CategoryProductsWhereInput = Record<string, unknown>;
+export type CategoryProductsWhereInput = ApiProductWhereInput;
 
 export interface CategoriesQueryData {
   catalogQuery: Pick<ApiCatalogQuery, "categories"> & {
@@ -72,15 +70,13 @@ export interface CategoryDetailsQueryVariables {
 }
 
 export interface CategoryProductsQueryData {
-  catalogQuery: Pick<ApiCatalogQuery, "category"> & {
-    category: (Pick<ApiCategory, "id"> & {
-      listing: Pick<ApiListingConnection, "pageInfo" | "totalCount"> & {
-        edges: Array<{
-          cursor: string;
-          node: CategoryProductListItem;
-        }>;
-      };
-    }) | null;
+  catalogQuery: Pick<ApiCatalogQuery, "products"> & {
+    products: Pick<ApiProductConnection, "pageInfo" | "totalCount"> & {
+      edges: Array<{
+        cursor: string;
+        node: CategoryProductListItem;
+      }>;
+    };
   };
 }
 
@@ -97,7 +93,7 @@ export type CategoryProductListItem = Pick<
 };
 
 export interface CategoryProductsQueryVariables {
-  id: string;
+  categoryId: string;
   first?: number;
   after?: string | null;
   last?: number;

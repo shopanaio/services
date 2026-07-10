@@ -110,7 +110,7 @@ export const CATEGORY_DETAILS_FRAGMENT = gql`
 `;
 
 export const CATEGORY_PRODUCT_LIST_ITEM_FRAGMENT = gql`
-  fragment CategoryProductListItemFields on Listing {
+  fragment CategoryProductListItemFields on Product {
     id
     kind
     isPublished

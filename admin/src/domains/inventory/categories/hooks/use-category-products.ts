@@ -21,11 +21,7 @@ export interface UseCategoryProductsOptions
 
 export interface UseCategoryProductsReturn {
   products: CategoryProductListItem[];
-  connection: CategoryProductsQueryData["catalogQuery"]["category"] extends infer T
-    ? T extends { listing: infer TConnection }
-      ? TConnection
-      : null
-    : null;
+  connection: CategoryProductsQueryData["catalogQuery"]["products"] | null;
   totalCount: number;
   pageInfo: ApiPageInfo | null;
   loading: boolean;
@@ -51,11 +47,11 @@ export function useCategoryProducts(
     CategoryProductsQueryData,
     CategoryProductsQueryVariables,
     CategoryProductListItem,
-    NonNullable<CategoryProductsQueryData["catalogQuery"]["category"]>["listing"]
+    CategoryProductsQueryData["catalogQuery"]["products"]
   >({
     query: CATEGORY_PRODUCTS_QUERY,
     variables: {
-      id: categoryId ?? "",
+      categoryId: categoryId ?? "",
       first,
       after,
       last,
@@ -65,7 +61,7 @@ export function useCategoryProducts(
     },
     skip: skip || !categoryId,
     fetchPolicy: "cache-and-network",
-    getConnection: (data) => data?.catalogQuery.category?.listing,
+    getConnection: (data) => data?.catalogQuery.products,
   });
 
   return {
