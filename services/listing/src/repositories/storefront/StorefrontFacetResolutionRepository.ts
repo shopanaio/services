@@ -16,11 +16,12 @@ import { assertNonNegativeSafeInteger } from "./sqlHelpers.js";
 interface FacetResolutionSqlRow extends Record<string, unknown> {
   facetSlug: string;
   requestedValueHandle: string;
-  facetId: string;
-  facetType: string;
-  facetValueId: string;
-  valueHandle: string;
-  valueKey: string;
+  facetId: string | null;
+  facetType: string | null;
+  facetValueId: string | null;
+  valueHandle: string | null;
+  valueKey: string | null;
+  resolutionStatus: string;
 }
 
 interface FacetValueSqlRow extends Record<string, unknown> {
@@ -32,19 +33,6 @@ interface FacetValueSqlRow extends Record<string, unknown> {
   valueKey: string;
 }
 
-interface InvalidFacetResolutionSqlRow extends Record<string, unknown> {
-  facetSlug: string;
-  requestedValueHandle: string;
-  facetExists: boolean;
-  valueExists: boolean;
-  valueKind: string | null;
-  valueEnabled: boolean | null;
-  valueReferenceStatus: string | null;
-  parentValueExists: boolean | null;
-  parentValueEnabled: boolean | null;
-  parentValueReferenceStatus: string | null;
-}
-
 export class StorefrontFacetResolutionRepository extends BaseRepository {
   @ReadOnly()
   async resolveFilterPlan(input: {
@@ -54,6 +42,7 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
       productFacetGroups: [],
       optionFacetGroups: [],
       vendorIds: [],
+      userErrors: [],
     };
 
     const facetFilters = input.filters.filter(
@@ -233,13 +222,28 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
           COALESCE(parent_fv.id, fv.id)::text AS "facetValueId",
           COALESCE(parent_fv.handle, fv.handle) AS "valueHandle",
           f.id::text || ':' || COALESCE(parent_fv.id, fv.id)::text AS "valueKey",
+          CASE
+            WHEN f.id IS NULL THEN 'FACET_MISSING'
+            WHEN fv.id IS NULL THEN 'VALUE_MISSING'
+            WHEN fv.kind = 'display' AND fv.parent_id IS NOT NULL THEN 'DISPLAY_NOT_ROOT'
+            WHEN fv.kind = 'display' AND fv.enabled = false THEN 'VALUE_DISABLED'
+            WHEN fv.kind = 'display' AND fv.reference_status <> 'VALID' THEN 'VALUE_REFERENCE_INVALID'
+            WHEN fv.kind = 'display' THEN 'VALID'
+            WHEN fv.kind = 'source' AND fv.enabled = false THEN 'VALUE_DISABLED'
+            WHEN fv.kind = 'source' AND fv.reference_status <> 'VALID' THEN 'VALUE_REFERENCE_INVALID'
+            WHEN fv.kind = 'source' AND parent_fv.id IS NULL THEN 'DISPLAY_PARENT_MISSING'
+            WHEN fv.kind = 'source' AND parent_fv.enabled = false THEN 'DISPLAY_PARENT_DISABLED'
+            WHEN fv.kind = 'source' AND parent_fv.reference_status <> 'VALID' THEN 'DISPLAY_PARENT_REFERENCE_INVALID'
+            WHEN fv.kind = 'source' THEN 'VALID'
+            ELSE 'VALUE_KIND_UNSUPPORTED'
+          END AS "resolutionStatus",
           fv.parent_id IS NULL AS is_root,
           fv.kind = 'display' AS is_display
         FROM requested r
-        JOIN ${facet} f
+        LEFT JOIN ${facet} f
           ON f.store_id = ${this.storeId}::uuid
          AND f.slug = r.facet_slug
-        JOIN ${facetValue} fv
+        LEFT JOIN ${facetValue} fv
           ON fv.store_id = f.store_id
          AND fv.facet_id = f.id
          AND fv.handle = r.value_handle
@@ -248,19 +252,6 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
          AND parent_fv.id = fv.parent_id
          AND parent_fv.kind = 'display'
          AND parent_fv.parent_id IS NULL
-         AND parent_fv.enabled = true
-         AND parent_fv.reference_status = 'VALID'
-        WHERE (
-            fv.kind = 'display'
-            AND fv.parent_id IS NULL
-            AND fv.enabled = true
-            AND fv.reference_status = 'VALID'
-          )
-          OR (
-            fv.kind = 'source'
-            AND fv.enabled = true
-            AND parent_fv.id IS NOT NULL
-          )
       )
       SELECT DISTINCT ON ("facetSlug", "requestedValueHandle")
         "facetSlug",
@@ -269,79 +260,31 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
         "facetType",
         "facetValueId",
         "valueHandle",
-        "valueKey"
+        "valueKey",
+        "resolutionStatus"
       FROM resolved
       ORDER BY
         "facetSlug",
         "requestedValueHandle",
-        is_root DESC,
-        is_display DESC,
+        ("resolutionStatus" = 'VALID') DESC,
+        is_root DESC NULLS LAST,
+        is_display DESC NULLS LAST,
         "facetValueId" ASC
     `);
 
-    const rowKeys = new Set(
-      rows.map((row) => `${row.facetSlug}:${row.requestedValueHandle}`)
+    const missing = rows.find(
+      (row) =>
+        row.resolutionStatus === "FACET_MISSING" ||
+        row.resolutionStatus === "VALUE_MISSING"
     );
-    const missing = pairs.filter(
-      (pair) => !rowKeys.has(`${pair.facetSlug}:${pair.valueHandle}`)
-    );
-    if (missing.length > 0) {
-      const message = await this.invalidFacetValueMessage(missing[0]);
+    if (missing) {
       throw new StorefrontRepositoryValidationError(
-        message,
+        invalidFacetValueMessage(missing),
         ["filters"]
       );
     }
 
     return rows;
-  }
-
-  private async invalidFacetValueMessage(input: {
-    facetSlug: string;
-    valueHandle: string;
-  }): Promise<string> {
-    const rows = await this.connection.execute<InvalidFacetResolutionSqlRow>(sql`
-      WITH requested(facet_slug, value_handle) AS (
-        VALUES (${input.facetSlug}, ${input.valueHandle})
-      )
-      SELECT
-        r.facet_slug AS "facetSlug",
-        r.value_handle AS "requestedValueHandle",
-        f.id IS NOT NULL AS "facetExists",
-        fv.id IS NOT NULL AS "valueExists",
-        fv.kind AS "valueKind",
-        fv.enabled AS "valueEnabled",
-        fv.reference_status AS "valueReferenceStatus",
-        CASE WHEN fv.kind = 'source' THEN parent_fv.id IS NOT NULL ELSE NULL END AS "parentValueExists",
-        parent_fv.enabled AS "parentValueEnabled",
-        parent_fv.reference_status AS "parentValueReferenceStatus"
-      FROM requested r
-      LEFT JOIN ${facet} f
-        ON f.store_id = ${this.storeId}::uuid
-       AND f.slug = r.facet_slug
-      LEFT JOIN ${facetValue} fv
-        ON fv.store_id = f.store_id
-       AND fv.facet_id = f.id
-       AND fv.handle = r.value_handle
-      LEFT JOIN ${facetValue} parent_fv
-        ON parent_fv.store_id = fv.store_id
-       AND parent_fv.id = fv.parent_id
-       AND parent_fv.kind = 'display'
-       AND parent_fv.parent_id IS NULL
-      LIMIT 1
-    `);
-
-    const row = rows[0];
-    const filterName = `${input.facetSlug}:${input.valueHandle}`;
-    if (!row?.facetExists) {
-      return `Invalid storefront facet filter ${filterName}: facet does not exist`;
-    }
-    if (!row.valueExists) {
-      return `Invalid storefront facet filter ${filterName}: value does not exist`;
-    }
-
-    const reason = invalidFacetValueReason(row);
-    return `Invalid storefront facet filter ${filterName}: ${reason}`;
   }
 
   private addFacetFilterGroup(
@@ -364,12 +307,31 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
       }
       return row;
     });
+    for (const row of rows) {
+      if (row.resolutionStatus !== "VALID") {
+        plan.userErrors.push({
+          message: invalidFacetValueMessage(row),
+          field: ["filters"],
+          code: row.resolutionStatus,
+        });
+      }
+    }
 
     const first = rows[0];
+    if (!first.facetId || !first.facetType) {
+      throw new StorefrontRepositoryValidationError(
+        invalidFacetValueMessage(first),
+        ["filters"]
+      );
+    }
+
     const facetType = this.assertFacetRuntimeType(first.facetType);
+    const validRows = rows.filter(
+      (row) => row.resolutionStatus === "VALID" && row.valueKey
+    );
     const valueKeys = this.mergeUnique(
       [],
-      rows.map((row) => row.valueKey)
+      validRows.map((row) => row.valueKey ?? "")
     );
 
     if (facetType === "TAG" || facetType === "FEATURE") {
@@ -391,7 +353,14 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
     }
 
     if (facetType === "IN_STOCK") {
-      const next = this.parseInStockHandle(rows[0].valueHandle);
+      const validValueHandle = validRows[0]?.valueHandle;
+      if (!validValueHandle) {
+        throw new StorefrontRepositoryValidationError(
+          invalidFacetValueMessage(rows[0]),
+          ["filters"]
+        );
+      }
+      const next = this.parseInStockHandle(validValueHandle);
       plan.inStock = this.mergeInStock(plan.inStock, next);
       return;
     }
@@ -543,37 +512,29 @@ function coalesceScopeBitmapSql(value: SQL): SQL {
   return sql`COALESCE(${value}, ${emptyScopeBitmapSql()})`;
 }
 
-function invalidFacetValueReason(row: InvalidFacetResolutionSqlRow): string {
-  if (row.valueKind === "display") {
-    if (row.valueEnabled === false) {
-      return "display value is disabled";
-    }
-    if (row.valueReferenceStatus !== "VALID") {
-      return `display value reference status is ${row.valueReferenceStatus ?? "unknown"}`;
-    }
-    return "display value is not a valid root storefront value";
-  }
+function invalidFacetValueMessage(row: FacetResolutionSqlRow): string {
+  const filterName = `${row.facetSlug}:${row.requestedValueHandle}`;
 
-  if (row.valueKind === "source") {
-    if (row.valueEnabled === false) {
-      return "source value is disabled";
-    }
-    if (row.valueReferenceStatus !== "VALID") {
-      return `source value reference status is ${row.valueReferenceStatus ?? "unknown"}`;
-    }
-    if (row.parentValueExists === false) {
-      return "source value is not mapped to a display value";
-    }
-    if (row.parentValueEnabled === false) {
-      return "source value parent display value is disabled";
-    }
-    if (row.parentValueReferenceStatus !== "VALID") {
-      return `source value parent display value reference status is ${
-        row.parentValueReferenceStatus ?? "unknown"
-      }`;
-    }
-    return "source value is not mapped to a valid storefront display value";
+  switch (row.resolutionStatus) {
+    case "FACET_MISSING":
+      return `Invalid storefront facet filter ${filterName}: facet does not exist`;
+    case "VALUE_MISSING":
+      return `Invalid storefront facet filter ${filterName}: value does not exist`;
+    case "VALUE_DISABLED":
+      return `Invalid storefront facet filter ${filterName}: value is disabled`;
+    case "VALUE_REFERENCE_INVALID":
+      return `Invalid storefront facet filter ${filterName}: value reference status is not valid`;
+    case "DISPLAY_NOT_ROOT":
+      return `Invalid storefront facet filter ${filterName}: display value is not a root value`;
+    case "DISPLAY_PARENT_MISSING":
+      return `Invalid storefront facet filter ${filterName}: source value is not mapped to a display value`;
+    case "DISPLAY_PARENT_DISABLED":
+      return `Invalid storefront facet filter ${filterName}: source value parent display value is disabled`;
+    case "DISPLAY_PARENT_REFERENCE_INVALID":
+      return `Invalid storefront facet filter ${filterName}: source value parent display value reference status is not valid`;
+    case "VALUE_KIND_UNSUPPORTED":
+      return `Invalid storefront facet filter ${filterName}: value kind is not supported`;
+    default:
+      return `Invalid storefront facet filter ${filterName}: value is not valid`;
   }
-
-  return `unsupported facet value kind ${row.valueKind ?? "unknown"}`;
 }

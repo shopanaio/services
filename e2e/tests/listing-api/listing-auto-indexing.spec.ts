@@ -263,10 +263,14 @@ test.describe('Listing API automatic indexing', () => {
     );
 
     await updateFacetDisplayValueEnabled(api, createdFacets[0], lifecycleColor, false);
-    await expectListingSnapshot(api, category, {
-      totalCount: 0,
-      productIds: [],
+    await expectListingErrors(api, category, {
       facets: [lifecycleColorFilter],
+      expectedErrors: [
+        {
+          code: 'VALUE_DISABLED',
+          messageIncludes: `${facets[0].facetSlug}:${lifecycleColor}`,
+        },
+      ],
     });
 
     await updateFacetDisplayValueEnabled(api, createdFacets[0], lifecycleColor, true);
@@ -753,6 +757,7 @@ async function expectListingSnapshot(
     missingFacetIds?: string[];
     selectedFacetValues?: Record<string, string[]>;
     facets?: ApiListingProductFilter[];
+    expectedErrors?: { code: string; messageIncludes: string }[];
   },
 ): Promise<ListingSnapshot> {
   let lastSnapshot: ListingSnapshot | null = null;
@@ -760,7 +765,7 @@ async function expectListingSnapshot(
   await expect
     .poll(
       async () => {
-        lastSnapshot = await readListingSnapshot(api, category, expected.facets);
+        lastSnapshot = await readListingSnapshot(api, category, expected.facets, expected.expectedErrors);
 
         return {
           totalCount: lastSnapshot.totalCount,
@@ -794,12 +799,54 @@ async function expectListingSnapshot(
   return lastSnapshot;
 }
 
+async function expectListingErrors(
+  api: Api,
+  category: CategoryData,
+  expected: {
+    facets?: ApiListingProductFilter[];
+    expectedErrors: { code: string; messageIncludes: string }[];
+  },
+): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        const { errors } = await api.admin.query('listing-api/Listing', {
+          variables: {
+            first: 50,
+            locale: 'en',
+            currency: 'USD',
+            scope: {
+              kind: 'CATEGORY',
+              categoryId: category.id,
+            },
+            facets: expected.facets,
+          },
+          throwOnError: false,
+        });
+
+        return expected.expectedErrors.every((error) =>
+          (errors ?? []).some(
+            (actual) =>
+              actual.message.includes(error.messageIncludes) &&
+              actual.extensions?.code === error.code,
+          ),
+        );
+      },
+      {
+        timeout: 60_000,
+        intervals: [500, 1_000, 2_000, 5_000],
+      },
+    )
+    .toBe(true);
+}
+
 async function readListingSnapshot(
   api: Api,
   category: CategoryData,
   facets?: ApiListingProductFilter[],
+  expectedErrors?: { code: string; messageIncludes: string }[],
 ): Promise<ListingSnapshot> {
-  const { data } = await api.admin.query('listing-api/Listing', {
+  const { data, errors } = await api.admin.query('listing-api/Listing', {
     variables: {
       first: 50,
       locale: 'en',
@@ -810,7 +857,22 @@ async function readListingSnapshot(
       },
       facets,
     },
+    throwOnError: expectedErrors ? false : undefined,
   });
+  if (expectedErrors) {
+    expect(errors ?? []).toEqual(
+      expect.arrayContaining(
+        expectedErrors.map((error) =>
+          expect.objectContaining({
+            message: expect.stringContaining(error.messageIncludes),
+            extensions: expect.objectContaining({
+              code: error.code,
+            }),
+          }),
+        ),
+      ),
+    );
+  }
   const listing = data.listingQuery.listing;
 
   return {

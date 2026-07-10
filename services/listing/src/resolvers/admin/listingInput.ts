@@ -176,7 +176,10 @@ export function toGraphqlListingError(error: unknown): unknown {
   ) {
     return new GraphQLError(error.message, {
       extensions: {
-        code: "BAD_USER_INPUT",
+        code:
+          error instanceof StorefrontRepositoryValidationError
+            ? (error.code ?? "BAD_USER_INPUT")
+            : "BAD_USER_INPUT",
         field: error.field,
       },
     });

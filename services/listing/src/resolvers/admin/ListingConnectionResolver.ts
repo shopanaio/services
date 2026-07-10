@@ -25,11 +25,15 @@ export class ListingConnectionResolver extends ListingType<
 
   async $preload() {
     try {
-      return await this.$ctx.kernel
+      const result = await this.$ctx.kernel
         .getServices()
         .repository.storefrontListingQuery.getStorefrontListing(
           this.toRepositoryInput()
         );
+      for (const userError of result.userErrors) {
+        this.$ctx.addGraphqlError(userError);
+      }
+      return result;
     } catch (error) {
       this.logListingError(error, "Listing connection preload failed");
       throwGraphqlListingError(error);
@@ -86,6 +90,7 @@ export class ListingConnectionResolver extends ListingType<
           facets: facets ?? [],
           priceRange: priceRange ?? null,
           inStockCount: inStockCount ?? 0,
+          userErrors: [],
         },
         this.$props
       );

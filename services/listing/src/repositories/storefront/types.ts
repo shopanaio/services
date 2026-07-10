@@ -3,7 +3,8 @@ import type { SQL } from "drizzle-orm";
 export class StorefrontRepositoryValidationError extends Error {
   constructor(
     message: string,
-    public readonly field?: readonly string[]
+    public readonly field?: readonly string[],
+    public readonly code?: string
   ) {
     super(message);
     this.name = "StorefrontRepositoryValidationError";
@@ -78,10 +79,17 @@ export interface ResolvedFacetFilterGroup {
   valueKeys: string[];
 }
 
+export interface StorefrontListingUserError {
+  message: string;
+  field?: string[];
+  code?: string;
+}
+
 export interface StorefrontFilterPlan {
   productFacetGroups: ResolvedFacetFilterGroup[];
   optionFacetGroups: ResolvedFacetFilterGroup[];
   vendorIds: string[];
+  userErrors: StorefrontListingUserError[];
   priceRange?: { minPriceMinor?: number; maxPriceMinor?: number };
   inStock?: boolean;
 }
@@ -186,6 +194,7 @@ export interface StorefrontListingRepositoryResult {
   facets: StorefrontListingFacetResult[];
   priceRange: PriceRangeResult | null;
   inStockCount: number;
+  userErrors: StorefrontListingUserError[];
 }
 
 export interface StorefrontListingFacetResult {

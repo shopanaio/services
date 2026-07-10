@@ -2,6 +2,12 @@ import type { ContextStore, ContextUser } from "@shopana/shared-context";
 import type { Kernel } from "../kernel/Kernel.js";
 import type { Loader } from "../loaders/Loader.js";
 
+export interface ServiceGraphqlError {
+  message: string;
+  field?: string[];
+  code?: string;
+}
+
 export interface ServiceContextOptions {
   requestId: string;
   kernel: Kernel;
@@ -21,6 +27,7 @@ export class ServiceContext {
 
   private _store?: ContextStore;
   private _user?: ContextUser;
+  private readonly graphqlErrors: ServiceGraphqlError[] = [];
 
   constructor(options: ServiceContextOptions) {
     this.requestId = options.requestId;
@@ -56,5 +63,13 @@ export class ServiceContext {
 
   get project(): ContextStore {
     return this.store;
+  }
+
+  addGraphqlError(error: ServiceGraphqlError): void {
+    this.graphqlErrors.push(error);
+  }
+
+  getGraphqlErrors(): readonly ServiceGraphqlError[] {
+    return this.graphqlErrors;
   }
 }

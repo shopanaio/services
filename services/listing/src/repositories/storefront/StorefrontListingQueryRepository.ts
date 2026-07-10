@@ -188,6 +188,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
         facets,
         priceRange: virtualFacets.priceRange,
         inStockCount: virtualFacets.inStockCount,
+        userErrors: request.filterPlan.userErrors,
       };
     } finally {
       if (request) {

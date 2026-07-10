@@ -259,28 +259,74 @@ function assertNoFacetResolutionError(
     case "UNKNOWN_FACET_VALUE":
       throw new StorefrontRepositoryValidationError(
         `Unknown storefront facet value: ${errorRow.facetErrorValue}`,
-        ["filters"]
+        ["filters"],
+        errorRow.facetErrorCode
       );
     case "UNSUPPORTED_PRICE_FACET_FILTER":
       throw new StorefrontRepositoryValidationError(
         "PRICE facet filters must use price range input",
-        ["filters"]
+        ["filters"],
+        errorRow.facetErrorCode
       );
     case "INVALID_IN_STOCK_FACET_VALUE":
       throw new StorefrontRepositoryValidationError(
         "IN_STOCK facet value must be boolean-like",
-        ["filters"]
+        ["filters"],
+        errorRow.facetErrorCode
       );
     case "CONFLICTING_IN_STOCK_FILTERS":
       throw new StorefrontRepositoryValidationError(
         "Conflicting in-stock filters",
-        ["filters"]
+        ["filters"],
+        errorRow.facetErrorCode
+      );
+    case "VALUE_DISABLED":
+    case "VALUE_REFERENCE_INVALID":
+    case "DISPLAY_NOT_ROOT":
+    case "DISPLAY_PARENT_MISSING":
+    case "DISPLAY_PARENT_DISABLED":
+    case "DISPLAY_PARENT_REFERENCE_INVALID":
+    case "VALUE_KIND_UNSUPPORTED":
+      throw new StorefrontRepositoryValidationError(
+        invalidFacetFilterMessage(
+          errorRow.facetErrorCode,
+          errorRow.facetErrorValue
+        ),
+        ["filters"],
+        errorRow.facetErrorCode
       );
     default:
       throw new StorefrontRepositoryValidationError(
         `Invalid storefront facet filter: ${errorRow.facetErrorValue ?? errorRow.facetErrorCode}`,
-        ["filters"]
+        ["filters"],
+        errorRow.facetErrorCode
       );
+  }
+}
+
+function invalidFacetFilterMessage(
+  code: string,
+  value: string | null
+): string {
+  const filterName = value ?? code;
+
+  switch (code) {
+    case "VALUE_DISABLED":
+      return `Invalid storefront facet filter ${filterName}: value is disabled`;
+    case "VALUE_REFERENCE_INVALID":
+      return `Invalid storefront facet filter ${filterName}: value reference status is not valid`;
+    case "DISPLAY_NOT_ROOT":
+      return `Invalid storefront facet filter ${filterName}: display value is not a root value`;
+    case "DISPLAY_PARENT_MISSING":
+      return `Invalid storefront facet filter ${filterName}: source value is not mapped to a display value`;
+    case "DISPLAY_PARENT_DISABLED":
+      return `Invalid storefront facet filter ${filterName}: source value parent display value is disabled`;
+    case "DISPLAY_PARENT_REFERENCE_INVALID":
+      return `Invalid storefront facet filter ${filterName}: source value parent display value reference status is not valid`;
+    case "VALUE_KIND_UNSUPPORTED":
+      return `Invalid storefront facet filter ${filterName}: value kind is not supported`;
+    default:
+      return `Invalid storefront facet filter: ${filterName}`;
   }
 }
 

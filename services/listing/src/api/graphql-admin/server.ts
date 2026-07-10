@@ -1,4 +1,4 @@
-import { ApolloServer } from "@apollo/server";
+import { ApolloServer, type ApolloServerPlugin } from "@apollo/server";
 import { unwrapResolverError } from "@apollo/server/errors";
 import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
@@ -27,6 +27,32 @@ const { global } = getServiceConfig("listing");
 export interface ServerConfig {
   port: number;
 }
+
+const userErrorsPlugin: ApolloServerPlugin<ServiceContext> = {
+  async requestDidStart() {
+    return {
+      async willSendResponse({ contextValue, response }) {
+        const errors = contextValue.getGraphqlErrors();
+        if (errors.length === 0 || response.body.kind !== "single") {
+          return;
+        }
+
+        response.body.singleResult.errors = [
+          ...(response.body.singleResult.errors ?? []),
+          ...errors.map(
+            (error) =>
+              new GraphQLError(error.message, {
+                extensions: {
+                  code: error.code ?? "BAD_USER_INPUT",
+                  field: error.field,
+                },
+              }).toJSON()
+          ),
+        ];
+      },
+    };
+  },
+};
 
 function getHeaderValue(
   value: string | string[] | undefined
@@ -91,6 +117,7 @@ export async function startServer(serverConfig: ServerConfig) {
     schema: buildSubgraphSchema(modules),
     plugins: [
       fastifyApolloDrainPlugin(app),
+      userErrorsPlugin,
       ApolloServerPluginInlineTraceDisabled(),
     ],
     formatError: (formattedError, error) => {
