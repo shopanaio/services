@@ -134,19 +134,22 @@ Catalog snapshot может прийти с value handle без префикса
 остается `tag.handle`.
 
 В админской модели root values - это rows с `parent_id IS NULL`: они показываются
-при управлении facet values и сортируются по `sort_index`.
+при управлении facet values и сортируются по `sort_index`. Root value может быть
+как `display`, так и `source`: негруппированный source value остается root и
+является самостоятельным публичным значением фильтра.
 
-В runtime listing metadata текущая SQL-ветка выбирает только display values:
-`kind = 'display'`, `parent_id IS NULL`, `enabled = true` и
-`reference_status = VALID`. Source values участвуют как входные источники и как
-children display value; hidden source children не показываются отдельно.
+Runtime listing metadata выбирает все видимые root values: `parent_id IS NULL`,
+`enabled = true`, `reference_status = VALID` и `kind IN ('display', 'source')`.
+Source value с display parent является внутренним child этой группы и отдельно
+не показывается. Source value без display parent показывается самостоятельно с
+собственным `handle`, label, count и reusable `input`.
 
 Пример группировки:
 
 ```text
 source: color:red       -> parent display:red-tones
 source: color:dark-red  -> parent display:red-tones
-source: color:black     -> может быть присоединен к display:black
+source: color:black     -> parent отсутствует, value показывается самостоятельно
 
 UI видит:
 - red-tones
@@ -154,8 +157,10 @@ UI видит:
 ```
 
 При выборе `red-tones` runtime фильтрует индекс по ключу display parent:
-`facetId:redTonesValueId`. При индексировании source selection заранее
-разрешается в display parent, поэтому query path не должен раскрывать группу
+`facetId:redTonesValueId`. При выборе негруппированного `black` используется
+ключ самого source value: `facetId:blackSourceValueId`. При индексировании
+source selection заранее разрешается либо в display parent, если он есть, либо
+в собственный source value. Поэтому query path не должен раскрывать группу
 каждый раз.
 
 ## Source candidates
@@ -200,7 +205,9 @@ input, но не превращается в persisted `facet_source` row.
 candidates записываются в `listing.facet_value` как `kind = 'source'`. Если
 нужно публичное имя, ручной handle, swatch или группировка нескольких source
 values, создается `kind = 'display'`, а source values получают `parent_id` этого
-display value.
+display value. Source values, которые не включены в display group, сохраняют
+`parent_id IS NULL` и показываются в storefront как самостоятельные facet
+values.
 
 Для `PRICE` и `IN_STOCK` value candidates не создаются: scripts запрещают
 `facet_value` для этих типов. Они обрабатываются как virtual facets.
@@ -387,7 +394,10 @@ Runtime принимает публичные `facet.slug` и `value.handle`, з
 Правила:
 
 - `display` value валиден, если он root, enabled и `reference_status = VALID`;
-- `source` value валиден как вход только если у него есть валидный display parent;
+- root `source` value валиден как самостоятельный публичный input, если он
+  enabled и `reference_status = VALID`;
+- `source` value с parent не является отдельным публичным input: storefront
+  использует handle его валидного display parent;
 - неизвестная пара `facet:value` приводит к validation error;
 - `PRICE` нельзя применять через `productFacet`/`variantFacet`, для него есть
   `price` range input;
@@ -445,7 +455,8 @@ source values с обычным `facet_value` lifecycle. Они считаютс
 ## Sorting и порядок вывода
 
 Порядок facets задается `facet.lexo_rank`.
-Порядок values задается `facet_value.sort_index`, затем стабильным `facet_value.id`.
+Порядок видимых root values (`display` и негруппированных `source`) задается
+`facet_value.sort_index`, затем стабильным `facet_value.id`.
 
 GraphQL наружу отдает:
 
