@@ -338,17 +338,36 @@ test.describe('Listing API automatic indexing', () => {
 
     await deleteProduct(api, indexedProducts[4]);
     removeExpectedProduct(indexedProducts[4]);
-    await expectListingSnapshot(api, category, {
+    // Contract: facet metadata contains only enabled values represented in the current scope.
+    const finalFacetCounts = expectedFacetCounts(
+      createdFacets.slice(0, 3),
+      facets.slice(0, 3),
+      availableDefinitions(),
+    );
+    const zeroCountFacetValues = Object.entries(finalFacetCounts).flatMap(
+      ([facetId, values]) =>
+        Object.entries(values)
+          .filter(([, count]) => count === 0)
+          .map(([valueId]) => ({ facetId, valueId })),
+    );
+    const visibleFinalFacetCounts = Object.fromEntries(
+      Object.entries(finalFacetCounts).map(([facetId, values]) => [
+        facetId,
+        Object.fromEntries(Object.entries(values).filter(([, count]) => count > 0)),
+      ]),
+    );
+    const finalSnapshot = await expectListingSnapshot(api, category, {
       totalCount: expectedProducts.length,
       productIds: expectedProducts.map((product) => product.id),
-      facetCounts: expectedFacetCounts(
-        createdFacets.slice(0, 3),
-        facets.slice(0, 3),
-        availableDefinitions(),
-      ),
+      facetCounts: visibleFinalFacetCounts,
       availableCount: availableProducts().length,
       missingFacetIds: [createdFacets[3].id],
     });
+    // A configured value with no remaining memberships is omitted instead of returned with count 0.
+    for (const { facetId, valueId } of zeroCountFacetValues) {
+      const facet = finalSnapshot.facets.find((candidate) => candidate.id === facetId);
+      expect(facet?.values.some((value) => value.id === valueId) ?? false).toBe(false);
+    }
   });
 });
 
