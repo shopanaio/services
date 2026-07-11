@@ -37,8 +37,7 @@ const FULL_REPORT_PATH = resolve(
 const LISTING_SQL_QUERIES = [
   'listing:page',
   'listing:totalCount',
-  'listing:facetsMetadata',
-  'listing:facetCounts',
+  'listing:facetsWithCounts',
   'listing:virtualFacets',
 ] as const;
 

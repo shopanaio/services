@@ -23,8 +23,7 @@ const EXPLAIN_ANALYZE_REPORT_PATH = resolve(LISTING_PERF_RESULTS_DIR, `${LISTING
 const LISTING_SQL_BRANCHES = [
   'listing:page',
   'listing:totalCount',
-  'listing:facetsMetadata',
-  'listing:facetCounts',
+  'listing:facetsWithCounts',
   'listing:virtualFacets',
 ] as const;
 

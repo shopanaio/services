@@ -1,7 +1,6 @@
 import { encodeListingCursor } from "../cursor.js";
 import {
   StorefrontRepositoryValidationError,
-  type FacetCountResult,
   type FacetRuntimeType,
   type ListingCursorPayload,
   type ListingPageCollectResult,
@@ -48,12 +47,6 @@ export interface FacetMetadataSqlRow extends FacetGuardSqlRow {
   valueKey: string | null;
   swatchId: string | null;
   valueSort: number | null;
-}
-
-export interface FacetCountMapSqlRow extends FacetGuardSqlRow {
-  facetId: string | null;
-  facetType: string | null;
-  valueKey: string | null;
   count: number | null;
 }
 
@@ -113,7 +106,7 @@ export function mapFacetMetadataRows(
         valueLabel: row.valueLabel,
         valueKey: row.valueKey,
         swatchId: row.swatchId,
-        count: 0,
+        count: Number(row.count ?? 0),
       });
       continue;
     }
@@ -131,47 +124,13 @@ export function mapFacetMetadataRows(
           valueLabel: row.valueLabel,
           valueKey: row.valueKey,
           swatchId: row.swatchId,
-          count: 0,
+          count: Number(row.count ?? 0),
         },
       ],
     });
   }
 
   return [...facets.values()];
-}
-
-export function mapFacetCountRows(
-  rows: readonly FacetCountMapSqlRow[]
-): Map<string, FacetCountResult> {
-  assertNoFacetResolutionError(rows);
-
-  const counts = new Map<string, FacetCountResult>();
-  for (const row of rows) {
-    if (!row.facetId || !row.facetType || !row.valueKey) {
-      continue;
-    }
-    counts.set(row.valueKey, {
-      facetId: row.facetId,
-      facetType: assertFacetRuntimeType(row.facetType),
-      valueKey: row.valueKey,
-      count: Number(row.count ?? 0),
-    });
-  }
-
-  return counts;
-}
-
-export function mergeFacetCounts(input: {
-  facets: readonly StorefrontListingFacetResult[];
-  countsByValueKey: ReadonlyMap<string, FacetCountResult>;
-}): StorefrontListingFacetResult[] {
-  return input.facets.map((facet) => ({
-    ...facet,
-    values: facet.values.map((value) => ({
-      ...value,
-      count: input.countsByValueKey.get(value.valueKey)?.count ?? 0,
-    })),
-  }));
 }
 
 export function mapVirtualFacetsRows(rows: readonly VirtualFacetsSqlRow[]): {

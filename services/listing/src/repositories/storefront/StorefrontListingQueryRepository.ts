@@ -16,10 +16,8 @@ import {
 import { StorefrontFacetResolutionRepository } from "./StorefrontFacetResolutionRepository.js";
 import { StorefrontProductTitleSearchQueryRepository } from "./StorefrontProductTitleSearchQueryRepository.js";
 import {
-  compileFacetCountsQuerySql,
-  type FacetCountsVisibleFacetValue,
-} from "./sql/compileFacetCountsQuerySql.js";
-import { compileFacetsQuerySql } from "./sql/compileFacetsQuerySql.js";
+  compileFacetsWithCountsQuerySql,
+} from "./sql/compileFacetsWithCountsQuerySql.js";
 import {
   toListingSqlRequest,
 } from "./sql/compileListingInputSql.js";
@@ -28,13 +26,10 @@ import { compileTotalCountQuerySql } from "./sql/compileTotalCountQuerySql.js";
 import { compileVirtualFacetsQuerySql } from "./sql/compileVirtualFacetsQuerySql.js";
 import { compileVariantCandidateDiagnosticsSql } from "./sql/compileListingProductMatchesSql.js";
 import {
-  mapFacetCountRows,
   mapFacetMetadataRows,
   mapPageRows,
   mapTotalCountRows,
   mapVirtualFacetsRows,
-  mergeFacetCounts,
-  type FacetCountMapSqlRow,
   type FacetMetadataSqlRow,
   type ParallelPageSqlRow,
   type TotalCountSqlRow,
@@ -111,7 +106,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     const branchMetrics: BranchMetric[] = [];
     let request: ResolvedListingRequest | null = null;
     let pageRows: ParallelPageSqlRow[] = [];
-    let sqlRoundTrips = 6;
+    let sqlRoundTrips = 5;
     let variantDiagnostics: VariantDiagnosticsSqlRow | null = null;
 
     try {
@@ -125,7 +120,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
         diagnosticRows,
         pageSqlRows,
         totalCountRows,
-        facetMetadataRows,
+        facetRows,
         virtualFacetRows,
       ] = await Promise.all([
         this.executeMeasured<VariantDiagnosticsSqlRow>(
@@ -143,9 +138,9 @@ export class StorefrontListingQueryRepository extends BaseRepository {
           compileTotalCountQuerySql(sqlRequest),
           branchMetrics
         ),
-        this.executeMeasured<FacetMetadataSqlRow>(
-          "facetsMetadata",
-          compileFacetsQuerySql(sqlRequest),
+        this.executeMeasuredWithLocalJitOff<FacetMetadataSqlRow>(
+          "facetsWithCounts",
+          compileFacetsWithCountsQuerySql(sqlRequest),
           branchMetrics
         ),
         this.executeMeasured<VirtualFacetsSqlRow>(
@@ -155,29 +150,17 @@ export class StorefrontListingQueryRepository extends BaseRepository {
         ),
       ]);
       variantDiagnostics = diagnosticRows[0] ?? null;
-      const visibleFacetValues =
-        toFacetCountsVisibleFacetValues(facetMetadataRows);
-      const facetCountRows =
-        await this.executeMeasuredWithLocalJitOff<FacetCountMapSqlRow>(
-          "facetCounts",
-          compileFacetCountsQuerySql(sqlRequest, { visibleFacetValues }),
-          branchMetrics
-        );
       pageRows = pageSqlRows;
 
       sqlRoundTrips += await this.profileListingSqlIfEnabled(
         sqlRequest,
-        visibleFacetValues,
-        facetCountRows,
+        facetRows,
         branchMetrics
       );
 
       const page = mapPageRows({ rows: pageSqlRows, request });
       const totalCount = mapTotalCountRows(totalCountRows);
-      const facets = mergeFacetCounts({
-        facets: mapFacetMetadataRows(facetMetadataRows),
-        countsByValueKey: mapFacetCountRows(facetCountRows),
-      });
+      const facets = mapFacetMetadataRows(facetRows);
       const virtualFacets = mapVirtualFacetsRows(virtualFacetRows);
 
       return {
@@ -281,8 +264,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
 
   private async profileListingSqlIfEnabled(
     request: ReturnType<typeof toListingSqlRequest>,
-    visibleFacetValues: readonly FacetCountsVisibleFacetValue[],
-    facetCountRows: readonly FacetCountMapSqlRow[],
+    facetRows: readonly FacetMetadataSqlRow[],
     branchMetrics: readonly BranchMetric[]
   ): Promise<number> {
     if (!this.facetCountsProfilingEnabled) {
@@ -297,12 +279,13 @@ export class StorefrontListingQueryRepository extends BaseRepository {
           durationMs:
             [...branchMetrics]
               .reverse()
-              .find((metric) => metric.branch === "facetCounts")?.durationMs ??
+              .find((metric) => metric.branch === "facetsWithCounts")
+              ?.durationMs ??
             0,
-          rowCount: facetCountRows.length,
+          rowCount: facetRows.length,
           distinctSignatureCount: null,
           bitmapCardinality: null,
-          countSum: facetCountRows.reduce(
+          countSum: facetRows.reduce(
             (sum, row) => sum + (numberOrNull(row.count) ?? 0),
             0
           ),
@@ -321,10 +304,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
         "Storefront listing facetCounts SQL profile"
       );
 
-      const explainSections = await this.explainAnalyzeListingBranches(
-        request,
-        visibleFacetValues
-      );
+      const explainSections = await this.explainAnalyzeListingBranches(request);
       roundTrips += explainSections.length;
       await writeE2eExplainAnalyzeReport({
         storeId: request.storeId,
@@ -356,8 +336,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
   }
 
   private async explainAnalyzeListingBranches(
-    request: ReturnType<typeof toListingSqlRequest>,
-    visibleFacetValues: readonly FacetCountsVisibleFacetValue[]
+    request: ReturnType<typeof toListingSqlRequest>
   ): Promise<ExplainAnalyzeReportSection[]> {
     const sections: ExplainAnalyzeReportSection[] = [];
     const branches: {
@@ -374,17 +353,13 @@ export class StorefrontListingQueryRepository extends BaseRepository {
         query: compileTotalCountQuerySql(request),
       },
       {
-        branch: "listing:facetsMetadata",
-        query: compileFacetsQuerySql(request),
+        branch: "listing:facetsWithCounts",
+        query: compileFacetsWithCountsQuerySql(request),
+        jitOff: true,
       },
       {
         branch: "listing:virtualFacets",
         query: compileVirtualFacetsQuerySql(request),
-      },
-      {
-        branch: "listing:facetCounts",
-        query: compileFacetCountsQuerySql(request, { visibleFacetValues }),
-        jitOff: true,
       },
     ];
 
@@ -673,25 +648,6 @@ function numberOrNull(value: number | string | null | undefined): number | null 
 
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : null;
-}
-
-function toFacetCountsVisibleFacetValues(
-  rows: readonly FacetMetadataSqlRow[]
-): FacetCountsVisibleFacetValue[] {
-  const values = new Map<string, FacetCountsVisibleFacetValue>();
-  for (const row of rows) {
-    if (!row.facetId || !row.facetType || !row.valueKey) {
-      continue;
-    }
-
-    values.set(row.valueKey, {
-      facetId: row.facetId,
-      facetType: row.facetType,
-      valueKey: row.valueKey,
-    });
-  }
-
-  return [...values.values()];
 }
 
 function explainAnalyzePlanLine(row: ExplainAnalyzeSqlRow): string {

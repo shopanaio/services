@@ -19,8 +19,7 @@ const POSTGRES_COMPARISON_PATH = resolve(LISTING_PERF_RESULTS_DIR, 'no-filters-1
 const LISTING_SQL_BRANCHES = [
   'listing:page',
   'listing:totalCount',
-  'listing:facetsMetadata',
-  'listing:facetCounts',
+  'listing:facetsWithCounts',
   'listing:virtualFacets',
 ] as const;
 

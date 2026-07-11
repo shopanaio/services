@@ -160,10 +160,10 @@ same-variant parity/benefit не были доказаны, canonical term path 
 
 ## Snapshot, observability и audit
 
-Один listing request выполняет normalization, page, total, metadata, virtual
-facets и counts отдельными statements без общей transaction. До включения
-параллельного orchestration branches запускаются последовательно; каждый
-statement использует собственный `READ COMMITTED` snapshot.
+Один listing request выполняет normalization, page, total, virtual facets и
+объединённую metadata+counts ветку. Metadata и counts используют общий
+`READ COMMITTED` snapshot и переиспользуют scope/value CTE; остальные branches
+остаются отдельными statements и запускаются параллельно.
 
 Request log содержит число groups/terms, cardinality term/numeric/final variant
 candidates, projected products, collector и snapshot strategy без raw payload.
