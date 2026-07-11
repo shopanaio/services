@@ -7,7 +7,7 @@
 Документ является планом реализации требований из
 `services/listing/docs/search-admin-must-have.ru.md`. Он описывает целевую
 архитектуру backend в `services/listing`, необходимые смежные contracts с
-Catalog/Checkout/Orders, Admin UI в `admin/src/domains/discovery/search`,
+Catalog, Admin UI в `admin/src/domains/discovery/search`,
 GraphQL API, хранение данных, применение конфигурации, инкрементальное состояние
 поисковых документов, аналитику и текстовые wireframes.
 
@@ -26,7 +26,7 @@ dual-write и legacy conversion. Changeset-файлы вручную не ред
 product candidate set из ParadeDB, а затем передаёт его существующему listing
 pipeline, где применяются publication visibility, category scope, canonical
 variant filters, price, facets, availability и pagination. Synonyms расширяют
-только текстовую часть query plan, SKU/barcode используют отдельные exact/prefix
+только текстовую часть query plan, SKU использует отдельные exact/prefix
 clauses, fuzzy выполняется вторым полным проходом только после нулевого результата,
 boosts добавляют exact curated candidates и меняют relevance ordering, а Admin Preview вызывает тот же execution
 path в диагностическом режиме. Настройки storefront читает из последней успешно
@@ -98,7 +98,7 @@ event-driven listing index workflow.
 
 | Проблема | Последствие | Целевое исправление |
 |---|---|---|
-| Индексируется только product title | Нельзя включить variant title, SKU, barcode, vendor, category | Новый multi-field search document contract |
+| Индексируется только product title | Нельзя включить variant title, SKU, vendor, category | Новый multi-field search document contract |
 | Нет явного query compiler | Multi-token semantics зависят от implicit `@@@` behavior | Versioned `PgSearchQueryCompiler` с явным boolean plan |
 | `CATEGORY + query + RELEVANCE` | Page отфильтрован поиском, total/facets считают всю category | Search bitmap всегда входит в `product_matches` |
 | `CATEGORY + query + business sort` | Query полностью игнорируется | Candidate bitmap не зависит от выбранного sort |
@@ -107,7 +107,7 @@ event-driven listing index workflow.
 | Availability всегда первый sort key | Реализован только неявный `Place last` | Applied `SHOW/PLACE_LAST/HIDE` policy |
 | Cursor не знает config revision | Следующая страница может получить другие query-time rules | Pin configuration revision в cursor и filter hash |
 | Только per-item listing state | Нет Ready/Updating/Failed и pending/error counters | Search index synchronization state read model |
-| Нет persisted analytics | Нельзя связать search, click и purchase | Search request/click/purchase contracts и daily aggregate |
+| Нет persisted analytics | Нельзя анализировать поисковые запросы и нулевую выдачу | Search request facts и daily aggregate |
 
 Первый backend milestone обязан исправить обе ошибки `CATEGORY + query` даже если
 остальные Search Admin страницы ещё выключены feature flag: Preview нельзя строить
@@ -127,7 +127,7 @@ event-driven listing index workflow.
 6. Fuzzy mode определяется один раз для всего listing result; page не может быть
    fuzzy при exact total/facets или наоборот.
 7. Pending/failed authoring changes не видны storefront до atomic activation.
-8. SKU/barcode не получают synonym или fuzzy expansion.
+8. SKU не получает synonym или fuzzy expansion.
 9. `HIDE` и `PLACE_LAST` имеют приоритет над boost.
 10. Preview не пишет search analytics.
 11. Analytics request записывается один раз после успешного storefront result,
@@ -158,7 +158,7 @@ Storefront/Admin Preview request
   -> if final primary totalCount == 0 and typo tolerance allows:
        rerun the same pipeline with fuzzy text plan
   -> relevance/business ordering + out-of-stock policy + cursor
-  -> storefront: one analytics request + opaque tracking tokens
+  -> storefront: existing listing response
   -> preview: bounded reason diagnostics, no analytics write
 ```
 
@@ -214,7 +214,7 @@ interface NormalizedSearchQuery {
 }
 ```
 
-Не удаляются дефисы и другая значимая пунктуация из SKU/barcode. Для identifier
+Не удаляются дефисы и другая значимая пунктуация из SKU. Для identifier
 matching дополнительно создаётся identifier-normalized form: NFKC, trim,
 case-fold, без произвольного удаления разделителей.
 
@@ -246,7 +246,7 @@ interface SearchQueryPlan {
 ```
 
 Для обычного query все semantic units обязательны (`AND`). Один unit может
-совпасть через `OR(text fields, original SKU/barcode exact/prefix)`. Поэтому
+совпасть через `OR(text fields, original SKU exact/prefix)`. Поэтому
 `nike ABC-123` может найти `nike` в vendor и `ABC-123` в SKU, но не может
 совпасть только по SKU, проигнорировав обязательный `nike`. Synonym alternatives
 добавляются только в text side того же unit и никогда не становятся identifier
@@ -259,12 +259,12 @@ alternatives.
 ```text
 OR(
   AND(OR(unit0 text/synonym, unit0 original identifier), ...),
-  whole-query SKU/barcode exact/prefix
+  whole-query SKU exact/prefix
 )
 ```
 
-Prefix включается от bounded implementation threshold (initially SKU: 3,
-barcode: 4 code points); более короткий identifier допускает только exact match.
+Prefix включается от bounded implementation threshold (initially SKU: 3
+code points); более короткий identifier допускает только exact match.
 Thresholds являются engine guardrails, а не Admin settings. Внутренние field
 weights задаются code registry, а не Admin input:
 
@@ -275,7 +275,6 @@ weights задаются code registry, а не Admin input:
 | Vendor name | 2 | Не подменяет title relevance |
 | Category name | 1 | MVP-замена product type |
 | SKU exact/prefix | отдельный identifier tier | Не сравнивается напрямую с BM25 text weight |
-| Barcode exact/prefix | отдельный identifier tier | Не сравнивается напрямую с BM25 text weight |
 
 Числа являются стартовыми implementation constants и калибруются на fixture
 corpus/`EXPLAIN ANALYZE`; Admin их не видит и не редактирует.
@@ -339,8 +338,8 @@ primary_candidates
 `match_priority` фиксирует только технически надёжные tiers:
 
 ```text
-3 = exact SKU/barcode
-2 = prefix SKU/barcode
+3 = exact SKU
+2 = prefix SKU
 1 = normal text/synonym BM25 or curated boost candidate
 ```
 
@@ -444,7 +443,7 @@ Fuzzy plan:
 - использует edit distance `1`;
 - сохраняет `AND` для всех исходных text units;
 - применяется ко всем включённым text fields;
-- сохраняет SKU/barcode exact/prefix alternatives в тех же units, но никогда не
+- сохраняет SKU exact/prefix alternatives в тех же units, но никогда не
   применяет к ним fuzzy;
 - не использует edit distance `2`;
 - не создаёт или не возвращает corrected query;
@@ -528,8 +527,6 @@ Search cursor version повышается и включает:
 - boosted flag для relevance sort;
 - business sort keys или relevance score;
 - абсолютный ordinal последнего edge;
-- `searchRequestId` только для storefront `TRACK`, чтобы pagination сохраняла
-  одну analytics journey;
 - product ID tie-breaker;
 - issued-at/expiry.
 
@@ -549,8 +546,6 @@ IDs. Он определяет reason codes без публикации numeric 
 - `MATCHED_VARIANT_TITLE`;
 - `MATCHED_SKU_EXACT`;
 - `MATCHED_SKU_PREFIX`;
-- `MATCHED_BARCODE_EXACT`;
-- `MATCHED_BARCODE_PREFIX`;
 - `MATCHED_VENDOR`;
 - `MATCHED_CATEGORY`;
 - `MATCHED_SYNONYM` с group ID/name;
@@ -566,7 +561,7 @@ Preview возвращает `localizedDataMissing`/coverage hints. Он ник�
 
 | Feature | Primary text | Identifier exact/prefix | Fuzzy pass | Scope/filters | Explicit business sort |
 |---|---|---|---|---|---|
-| Searchable field toggle | Да | Да, для SKU/barcode | Да, только text | До listing intersection | Не меняет membership |
+| Searchable field toggle | Да | Да, для SKU | Да, только text | До listing intersection | Не меняет membership |
 | Synonyms | Exact query-time expansion | Никогда | Не расширяются | До listing intersection | Кандидаты сохраняются |
 | Typo tolerance | Нет | Никогда | Distance 1 при final zero | Проверка zero после filters | Кандидаты сохраняются |
 | Product boost | Exact curated candidates по исходной phrase | Может поднять identifier match, но ниже availability/exact tier | Exact phrase rule сохраняется и в fuzzy execution, если fallback всё же нужен | Все curated products проходят canonical filters | Membership сохраняется, boost rank не переопределяет explicit sort |
@@ -584,15 +579,8 @@ Preview возвращает `localizedDataMissing`/coverage hints. Он ник�
 | `PRODUCT_TITLE` | `catalog.product_translation.name` | Уже есть в snapshot/BM25 | Убрать handle/ID fallback, добавить coverage flag |
 | `VARIANT_TITLE` | `catalog.variant_translation.title` | Таблица есть, snapshot не выбирает | Расширить Catalog snapshot selection/resolver |
 | `SKU` | Catalog variant/inventory SKU | Поле есть, snapshot не выбирает | Зафиксировать canonical source и отдать normalized array |
-| `BARCODE` | Catalog variant identifier | Backend-поля сейчас нет | Добавить canonical Catalog storage/API/snapshot; capability до этого `UNAVAILABLE` |
 | `VENDOR` | `catalog.vendor.name` | Snapshot содержит только vendor ID | Добавить vendor label и fan-out resync на rename |
 | `CATEGORY_NAME` | `catalog.category_translation.name` | Snapshot содержит только category ID | Добавить localized names и fan-out resync на rename/membership |
-
-Must-have считается завершённым только после появления barcode source. До этого
-Admin API обязан вернуть `BARCODE = UNAVAILABLE`, а UI не имеет права показывать
-его как рабочий enabled field. План предполагает добавление `barcode` в
-`CatalogProductVariantSnapshot`; конкретное физическое место в Catalog может
-измениться без изменения listing contract.
 
 ### Расширение Catalog broker snapshot
 
@@ -611,7 +599,6 @@ interface CatalogProductSnapshot {
 interface CatalogProductVariantSnapshot {
   id: string;
   sku: string | null;
-  barcode: string | null;
   content: Array<{ locale: string; title: string | null }>;
   // existing availability/prices/options fields remain
 }
@@ -624,7 +611,7 @@ Listing mapper создаёт по строке search document на кажду�
 Fan-out события, которые должны re-sync affected products:
 
 - product/variant title changed;
-- SKU/barcode changed;
+- SKU changed;
 - vendor assignment changed;
 - vendor name changed — все products vendor;
 - category membership changed;
@@ -661,7 +648,6 @@ has_localized_title       boolean not null
 product_title             text not null
 variant_titles            text[] not null
 sku_terms                 text[] not null
-barcode_terms             text[] not null
 vendor_names              text[] not null
 category_names            text[] not null
 indexed_at                timestamptz not null
@@ -675,7 +661,7 @@ foreign key (store_id, product_doc_id, product_id)
 
 Один BM25 index включает key field, `store_id`, locale/status/product-doc metadata
 и все searchable columns. Text columns используют явно закреплённый
-Unicode-compatible tokenizer. SKU/barcode arrays используют whole-value/raw
+Unicode-compatible tokenizer. SKU arrays используют whole-value/raw
 semantics, чтобы exact и prefix query не превращались в обычный word search.
 
 `search_id` стабилен для `(store, product, locale)`: обычный upsert сохраняет его.
@@ -961,63 +947,24 @@ sequence является idempotent no-op. Delete хранится как tombs
 
 ### 6. Search analytics facts
 
-Events service используется как transport/retry/DLQ, но не как аналитическое
-хранилище: его retention и JSON payload не подходят для отчётов. Facts принадлежат
-`listing`.
+Facts принадлежат `listing` и используются только Admin Analytics.
 
 #### `search_request`
 
 ```text
-store_id, id, client_search_id, occurred_at,
-session_id_hash, customer_id nullable,
+store_id, id, occurred_at,
 locale, normalized_query, query_hash,
 scope_kind, scope_id nullable,
 execution_fingerprint,
 result_count, fallback_applied,
 configuration_revision, index_schema_version,
-previous_search_request_id nullable,
-first_clicked_at nullable, click_count,
-first_purchased_at nullable, purchase_count
-unique (store_id, session_id_hash, client_search_id)
+request_dedupe_key
+unique (store_id, request_dedupe_key)
 ```
 
-Admin Preview не создаёт row. IP/user-agent/raw headers не сохраняются. Стабильный
-anonymous `searchSessionId` должен приходить от first-party storefront cookie;
-`requestId`/`correlationId` не являются shopping session.
-
-Storefront SDK создаёт новый UUID `clientSearchId` при явном submit/change query
-и повторно использует его при network retry. Unique constraint делает создание
-`search_request` идемпотентным в пределах signed session: retry с тем же
-fingerprint query/locale/scope/filters/sort возвращает существующий server ID, а
-не увеличивает число searches. Повторное использование ID с другим fingerprint
-отклоняется как `SEARCH_CLIENT_ID_REUSED`. Новый execution создаёт новый ID;
-pagination берёт исходный server ID из подписанного cursor.
-
-#### `search_click`
-
-```text
-store_id, id, session_id_hash, client_event_id,
-search_request_id, product_id, purchasable_id nullable,
-position, occurred_at
-unique (store_id, session_id_hash, client_event_id)
-```
-
-#### `search_purchase_attribution`
-
-```text
-store_id, id,
-search_request_id, search_click_id,
-order_id, order_line_id,
-product_id, purchasable_id nullable,
-quantity, occurred_at,
-unique (store_id, order_line_id)
-```
-
-MVP conversion point — successful `order.created`. Attribution policy — последний
-валидный click для конкретной checkout line в окне 7 дней; canonical resolution
-происходит до insert, поэтому одна order line не может увеличить purchases для
-нескольких clicks. Позже conversion point можно заменить на paid/completed без
-изменения search request/click identity.
+Admin Preview не создаёт row. IP/user-agent/raw headers не сохраняются. Запись
+создаётся существующим listing execution path без добавления нового публичного
+GraphQL server или tracking API.
 
 #### `search_query_daily`
 
@@ -1025,28 +972,19 @@ MVP conversion point — successful `order.created`. Attribution policy — по
 store_id, date, locale, query_hash, normalized_query,
 searches, zero_result_searches,
 result_count_sum, last_result_count,
-searches_with_click, clicks,
-searches_with_purchase, purchases,
-fuzzy_searches, reformulations,
+fuzzy_searches,
 last_searched_at
 ```
 
 Daily rollup является пересчитываемой projection из facts. Определения метрик:
 
-- CTR = search requests с минимум одним valid click / matured search requests;
-- purchase rate = search requests с attributed order line / search requests,
-  matured по 7-day attribution window;
 - no results = `result_count = 0`;
-- results/no click = `result_count > 0` и нет click после 30-minute maturity
-  window;
-- reformulation = следующий отличный normalized query той же session в течение
-  10 минут;
 - average results = `result_count_sum / searches`.
 
 #### `search_query_work_item`
 
 ```text
-store_id, locale, query_hash, issue_kind ZERO_RESULTS|NO_CLICK,
+store_id, locale, query_hash, issue_kind ZERO_RESULTS,
 status OPEN|RESOLVED|IGNORED,
 status_revision, note nullable,
 resolved_by/resolved_at, ignored_by/ignored_at,
@@ -1156,7 +1094,6 @@ enum SearchableFieldCode {
   PRODUCT_TITLE
   VARIANT_TITLE
   SKU
-  BARCODE
   VENDOR
   CATEGORY_NAME
 }
@@ -1240,8 +1177,6 @@ enum SearchMatchReasonCode {
   MATCHED_VARIANT_TITLE
   MATCHED_SKU_EXACT
   MATCHED_SKU_PREFIX
-  MATCHED_BARCODE_EXACT
-  MATCHED_BARCODE_PREFIX
   MATCHED_VENDOR
   MATCHED_CATEGORY
   MATCHED_SYNONYM
@@ -1442,11 +1377,7 @@ type SearchAnalyticsSummary {
   searches: BigInt!
   uniqueQueries: BigInt!
   zeroResultRate: Float!
-  clickThroughRate: Float!
-  purchaseRate: Float!
   dataUpdatedAt: DateTime!
-  clicksMatureThrough: DateTime!
-  purchasesMatureThrough: DateTime!
 }
 
 type SearchQueryMetric {
@@ -1455,17 +1386,13 @@ type SearchQueryMetric {
   searches: BigInt!
   averageResultCount: Float!
   lastResultCount: Int!
-  clicks: BigInt!
-  purchases: BigInt!
   fuzzySearches: BigInt!
-  reformulations: BigInt!
   lastSearchedAt: DateTime!
   workItem: SearchQueryWorkItem
 }
 
 enum SearchQueryIssueKind {
   ZERO_RESULTS
-  NO_CLICK
 }
 
 enum SearchQueryWorkItemStatus {
@@ -1490,14 +1417,8 @@ type SearchOverview {
   indexStatus: SearchIndexStatus!
   analytics: SearchAnalyticsSummary!
   topZeroResultQueries: [SearchQueryMetric!]!
-  topNoClickQueries: [SearchQueryMetric!]!
 }
 ```
-
-CTR считается только по requests не новее `clicksMatureThrough` (MVP: 30 минут),
-а purchase rate — только по requests не новее `purchasesMatureThrough` (MVP:
-7 дней). Нельзя считать свежие requests окончательными no-click/no-purchase
-outcomes; поздние click/purchase facts пересчитывают daily rollups.
 
 ### Index API
 
@@ -1548,152 +1469,6 @@ type SearchAdminMutation {
 }
 ```
 
-## Storefront analytics integration contracts
-
-Search quality нельзя посчитать только по Admin или server logs. Нужны небольшие
-изменения storefront listing, Checkout и Orders.
-
-### Public storefront surface и session context
-
-Listing service получает отдельный `graphql-storefront` server/subgraph, который
-переиспользует application services, но не Admin authorization/schema. В public
-composition он предоставляет тот же canonical listing field и tracking mutation:
-
-```graphql
-input StorefrontSearchJourneyInput {
-  clientSearchId: ID!
-}
-
-extend type Query {
-  listingQuery: ListingStorefrontQuery!
-}
-
-extend type Mutation {
-  listingMutation: ListingStorefrontMutation!
-}
-
-type ListingStorefrontMutation {
-  searchResultClickTrack(
-    input: SearchResultClickTrackInput!
-  ): SearchResultClickTrackPayload!
-}
-
-# canonical listing args опущены только для краткости
-type ListingStorefrontQuery {
-  listing(
-    query: String
-    searchJourney: StorefrontSearchJourneyInput
-    # scope/locale/currency/facets/orderBy/pagination
-  ): ListingConnection!
-}
-```
-
-`searchJourney` разрешён только для non-empty query. Storefront context
-middleware разрешает store из trusted host/channel context, а не input, и
-проверяет/выдаёт signed SameSite first-party anonymous session cookie. Если
-storefront использует отдельный BFF, cookie заверяется BFF и передаётся Listing
-через trusted internal header. В обоих вариантах Listing получает stable session
-identity, customer ID при наличии и consent/analytics flag; raw cookie не
-сохраняется. Click mutation имеет rate limit/CSRF-origin policy и тот же session
-binding. Checkout вызывает отдельный authenticated internal action для проверки
-checkout attribution token, а не Admin GraphQL.
-
-Нужно зарегистрировать storefront server в Nest/bootstrap, добавить context
-middleware, schema/codegen, federation composition/Hive checks и resolver tests.
-Без этого `ListingConnection` extensions ниже не считаются реализованным API.
-
-### Search result tracking
-
-После успешного storefront listing `listing` создаёт один `search_request` для
-первой страницы нового query. Pagination сохраняет request/journey identity и не
-увеличивает `searches`.
-
-Storefront listing принимает служебный `clientSearchId: ID!` вместе с новым
-search execution (не как ranking/filter input). Storefront SDK генерирует его
-один раз на submit и сохраняет при retry. `searchSessionId` остаётся в
-first-party cookie/header и сервер связывает его с request; Admin Preview всегда
-использует `DO_NOT_TRACK` и не требует этих значений.
-
-Storefront response получает:
-
-```graphql
-extend type ListingConnection {
-  searchRequestId: ID
-}
-
-extend type ListingEdge {
-  searchAttributionToken: String
-}
-```
-
-Token — opaque signed HMAC со `storeId`, request ID, product ID, position,
-configuration revision/index schema version, issued-at и expiry. Клиент не может изменить
-product/position без invalid signature.
-
-Click contract:
-
-```graphql
-input SearchResultClickTrackInput {
-  clientEventId: ID!
-  attributionToken: String!
-}
-
-type SearchResultClickTrackPayload {
-  searchClickId: ID
-  checkoutAttributionToken: String
-  userErrors: [GenericUserError!]!
-}
-```
-
-`clientEventId` обеспечивает retry dedupe. Server валидирует store, session,
-signature и TTL. `checkoutAttributionToken` — второй signed opaque token, уже
-содержащий validated `searchClickId`; именно он передаётся при add-to-cart.
-
-### Checkout line attribution
-
-При add/create line storefront передаёт `checkoutAttributionToken`. Checkout
-валидирует его через listing action и сохраняет immutable line-level metadata:
-
-```ts
-interface SearchAttribution {
-  source: "SEARCH";
-  searchRequestId: string;
-  searchClickId: string;
-  productId: string;
-  purchasableId?: string;
-}
-```
-
-Нельзя использовать checkout-wide `externalSource/externalId`, generic tags или
-client-defined purchasable snapshot: разные lines могут иметь разные источники.
-
-### Purchase event
-
-Order line наследует attribution. Orders публикует через transactional outbox
-или durable DBOS step idempotent event:
-
-```ts
-interface SearchPurchaseAttributedEvent {
-  eventType: "searchPurchaseAttributed";
-  storeId: string;
-  orderId: string;
-  checkoutId: string;
-  occurredAt: string;
-  lines: Array<{
-    orderLineId: string;
-    productId: string;
-    purchasableId?: string;
-    quantity: number;
-    searchRequestId: string;
-    searchClickId: string;
-  }>;
-}
-```
-
-Listing принимает его batch handler, дедуплицирует facts и обновляет rollups.
-Generic Events service даёт persistence/retry/DLQ, но его 90-day cleanup не
-заменяет listing analytics storage.
-
 ## Backend module design
 
 ### Целевая структура
@@ -1727,7 +1502,6 @@ services/listing/src/search/
     SearchIndexStatusService.ts
   analytics/
     SearchAnalyticsService.ts
-    SearchAttributionTokenService.ts
     SearchAnalyticsAggregator.ts
 
 services/listing/src/repositories/search/
@@ -1754,14 +1528,7 @@ services/listing/src/workflows/
 
 services/listing/src/api/graphql-admin/schema/search.graphql
 services/listing/src/resolvers/admin/search/
-services/listing/src/api/graphql-storefront/schema/search.graphql
-services/listing/src/resolvers/storefront/search/
 ```
-
-`graphql-storefront` здесь является новым public subgraph surface: в текущем
-service есть только `graphql-admin`, поэтому storefront tracking fields/mutation
-нельзя оставлять как абстрактное расширение без server registration, context
-middleware и generated types.
 
 ### Refactor существующего search path
 
@@ -1816,7 +1583,6 @@ Analytics требует отдельного permission из-за сохран�
 | `SEARCH_BOOST_PRODUCTS_REQUIRED` | Нет target products |
 | `SEARCH_BOOST_PHRASES_REQUIRED` | Нет phrases |
 | `SEARCH_PRODUCT_NOT_FOUND` | Cross-store/deleted target при save |
-| `SEARCH_CLIENT_ID_REUSED` | Idempotency ID повторён в session с другим execution fingerprint |
 | `SEARCH_INDEX_UNAVAILABLE` | Extension/index недоступен или initial sync ещё не даёт serving data |
 | `SEARCH_CURSOR_EXPIRED` | Configuration revision больше не retained |
 
@@ -1847,16 +1613,13 @@ Metrics:
 - config apply duration/failures;
 - incremental indexing lag/failures;
 - index coverage/pending products;
-- analytics ingest/rollup lag;
-- expired/invalid tracking tokens.
+- analytics ingest/rollup lag.
 
 ### Privacy/retention
 
 - normalized query text хранится только в analytics tables с ограниченным RBAC;
 - raw IP/user-agent/auth tokens не сохраняются;
-- anonymous session хранится salted/rotatable hash;
 - fact retention задаётся явно, например 13 месяцев, daily aggregates дольше;
-- delete/export policy для customer-linked data согласуется с IAM privacy flow;
 - preview/technical logs не дублируют raw query;
 - analytics query length ограничен 128 code points.
 
@@ -2053,17 +1816,17 @@ FAILED: Changes could not be applied. Storefront still uses revision 41.
 │ └──────────────────────────────────────────────────────────────────────────┘ │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐          │
-│ │ Searches     │ │ No results   │ │ Click rate   │ │ Purchase rate│          │
-│ │ 24,310       │ │ 4.8%         │ │ 31.2%        │ │ 6.4%         │          │
-│ │ +8.1%        │ │ -0.7 pp      │ │ +1.4 pp      │ │ +0.3 pp      │          │
+│ │ Searches     │ │ No results   │ │ Unique queries│                         │
+│ │ 24,310       │ │ 4.8%         │ │ 3,482         │                         │
+│ │ +8.1%        │ │ -0.7 pp      │ │ +4.2%         │                         │
 │ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘          │
 ├───────────────────────────────────┬──────────────────────────────────────────┤
-│ Top searches with no results      │ Results but no clicks                    │
-│ Query       Searches  Last        │ Query       Searches Results  Last       │
-│ snikers     184       10:44   […] │ winter hat  91       12       10:38  […] │
-│ чохол       121       10:40   […] │ red dress   83       44       10:12  […] │
+│ Top searches with no results      │                                          │
+│ Query       Searches  Last        │                                          │
+│ snikers     184       10:44   […] │                                          │
+│ чохол       121       10:40   […] │                                          │
 │                                   │                                          │
-│ [View all no-result queries →]    │ [View all no-click queries →]            │
+│ [View all no-result queries →]    │                                          │
 └───────────────────────────────────┴──────────────────────────────────────────┘
 ```
 
@@ -2077,8 +1840,7 @@ Mark Resolved
 Mark Ignored
 ```
 
-Если analytics ещё не mature, metric card показывает `Collecting data`, а не
-ложный `0%`. Index `UPDATING` показывает expected/indexed и pending counters;
+Index `UPDATING` показывает expected/indexed и pending counters;
 `READY` не показывает error block.
 
 ### Preview
@@ -2274,7 +2036,6 @@ sort. Missing/deleted target отображается warning chip `Product unav
 │ Product title       Main product name                         [On · locked]  │
 │ Variant title       Localized variant names                   [ On ]          │
 │ SKU                 Exact and prefix matching                 [ On ]          │
-│ Barcode             Exact and prefix matching          [Not indexed yet]    │
 │ Vendor              Vendor/brand name                         [ On ]          │
 │ Category name       Localized category names                  [ On ]          │
 ├──────────────────────────────────────────────────────────────────────────────┤
@@ -2307,19 +2068,18 @@ explanation. `UNAVAILABLE` capability не рендерится как working s
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ Search analytics                         [Locale: All ▼] [Last 30 days ▼]    │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ ┌───────────┐ ┌───────────────┐ ┌──────────┐ ┌───────────────┐              │
-│ │ Searches  │ │ Unique queries│ │ CTR      │ │ Purchase rate │              │
-│ │ 24,310    │ │ 3,482         │ │ 31.2%    │ │ 6.4%          │              │
-│ └───────────┘ └───────────────┘ └──────────┘ └───────────────┘              │
-│ CTR is mature through 10:30 today; purchase rate through 4 Jul, 10:30.      │
+│ ┌───────────┐ ┌───────────────┐ ┌──────────────┐                              │
+│ │ Searches  │ │ Unique queries│ │ No results   │                              │
+│ │ 24,310    │ │ 3,482         │ │ 4.8%         │                              │
+│ └───────────┘ └───────────────┘ └──────────────┘                              │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ [All] [No results] [No clicks] [Fuzzy] [Reformulated] [Worklist]            │
+│ [All] [No results] [Fuzzy] [Worklist]                                     │
 │ [Search query…] [Review: Open ▼]                                             │
 ├────────────────┬────────┬─────────┬────────┬──────────┬───────────┬──────────┤
-│ Query / locale │Searches│ Avg res │ Clicks │ Purchases│ Last      │ Actions  │
+│ Query / locale │Searches│ Avg results │ Fuzzy │ Last         │ Actions    │
 ├────────────────┼────────┼─────────┼────────┼──────────┼───────────┼──────────┤
-│ snikers · en   │ 184    │ 0.0     │ 0      │ 0        │ 10:44     │ […]      │
-│ red dress · en │ 126    │ 42.3    │ 39     │ 7        │ 10:42     │ […]      │
+│ snikers · en   │ 184    │ 0.0         │ 18    │ 10:44        │ […]        │
+│ red dress · en │ 126    │ 42.3        │ 0     │ 10:42        │ […]        │
 └────────────────┴────────┴─────────┴────────┴──────────┴───────────┴──────────┘
 │                                                               [Next page →] │
 └──────────────────────────────────────────────────────────────────────────────┘
@@ -2423,12 +2183,11 @@ Acceptance:
 Catalog/broker-types:
 
 1. Повысить Catalog snapshot version.
-2. Добавить localized variant titles, SKU, barcode, vendor name и localized
+2. Добавить localized variant titles, SKU, vendor name и localized
    category names.
-3. Добавить canonical barcode storage/API; до этого capability unavailable.
-4. Добавить selection/resolver/loaders без N+1 для batch product hydration.
-5. Публиковать/классифицировать reference rename и locale change events.
-6. Удалить неиспользуемую Catalog Drizzle-модель
+3. Добавить selection/resolver/loaders без N+1 для batch product hydration.
+4. Публиковать/классифицировать reference rename и locale change events.
+5. Удалить неиспользуемую Catalog Drizzle-модель
    `repositories/models/productTitleBm25SearchIndex.ts`: physical search index
    принадлежит только Listing.
 
@@ -2466,7 +2225,7 @@ Backend:
 Acceptance:
 
 - enabled fields физически searchable в document index;
-- SKU/barcode exact и prefix не проходят fuzzy/token word semantics;
+- SKU exact и prefix не проходят fuzzy/token word semantics;
 - tenant predicate исключает documents другого store;
 - product update atomically меняет listing и search document;
 - unavailable index/initial sync даёт explicit status, не `ILIKE` fallback.
@@ -2523,7 +2282,7 @@ Admin:
 Acceptance:
 
 - active normalized synonym value уникален в locale;
-- phrases двунаправленные и не затрагивают SKU/barcode;
+- phrases двунаправленные и не затрагивают SKU;
 - fuzzy не применяется ко всем synonym alternatives;
 - boost добавляет curated candidate для exact phrase, но не обходит
   scope/visibility/filters/OOS;
@@ -2554,42 +2313,22 @@ Acceptance:
 - более новое событие может восстановить failed item;
 - stale event/snapshot не воскрешает удалённый product.
 
-### Phase 6. Analytics facts и cross-service attribution
+### Phase 6. Admin search analytics
 
-Listing/storefront:
+Backend/Admin:
 
-1. Добавить/зарегистрировать `graphql-storefront` schema, server, context
-   middleware, generated types и federation composition.
-2. Добавить first-party anonymous search session/consent contract.
-3. Persist один idempotent search request по `clientSearchId` на initial search,
-   не на internal attempts/retries/pages.
-4. Возвращать signed per-edge attribution token.
-5. Добавить session-bound idempotent click tracking.
-
-Checkout/Orders/Events:
-
-1. Добавить typed line-level search attribution.
-2. Переносить attribution checkout line -> order line.
-3. Публиковать durable `searchPurchaseAttributed` после order creation через
-   transactional outbox/DBOS-equivalent.
-4. Listing batch handler сохраняет deduped purchase facts.
-
-Analytics backend/Admin:
-
-1. Daily rollup и late-event recomputation.
-2. Overview metrics/top issues.
-3. Analytics query connection/filters.
-4. No-result/no-click worklist и review mutations.
-5. Analytics page и quick actions.
+1. Сохранять idempotent search request через существующий listing execution path.
+2. Daily rollup и aggregate recomputation.
+3. Overview metrics/top zero-result issues.
+4. Analytics query connection/filters.
+5. No-result worklist и review mutations.
+6. Analytics page и quick actions.
 
 Acceptance:
 
 - Preview не влияет на search count;
 - pagination не считается новым search;
-- duplicate click/order event не удваивает metric;
-- CTR и purchase rate считаются по distinct search requests с отдельными
-  30-minute/7-day maturity windows;
-- одна order line относится только к одному canonical last click;
+- повторная обработка одного request не удваивает metric;
 - review state не удаляет history;
 - resolved issue reopen policy и ignored policy работают предсказуемо.
 
@@ -2616,11 +2355,7 @@ Acceptance:
 | Listing DDL/models | `services/listing/migrations/domains/0100_listing_index/`, `repositories/models/listingIndex.ts` |
 | Listing write path | `ListingBuildSyncWriteModelScript`, `ListingWriteIndexActionScript`, batch workflow steps |
 | Storefront read path | `repositories/storefront/sql/*`, `StorefrontListingQueryRepository.ts`, cursor/types |
-| Storefront GraphQL/tracking | new `services/listing/src/api/graphql-storefront/`, storefront context/resolvers/codegen |
 | Admin GraphQL | `services/listing/src/api/graphql-admin/schema/`, `resolvers/admin/` |
-| Events transport | `packages/events`, `services/events` |
-| Checkout attribution | checkout storefront line input/domain state/snapshot |
-| Orders attribution | order line model/create projection + durable event publication |
 | Admin navigation/UI | `admin/src/domains/discovery/search/`, `admin/src/domains/modals.tsx` |
 | Admin shared picker/preview | `admin/src/shared/components/entity-picker-modal/`, category listing preview components |
 
@@ -2647,7 +2382,6 @@ Acceptance:
 | Product title toggle attempt | Save rejected/locked |
 | Exact SKU | Identifier tier, no synonyms/fuzzy |
 | SKU prefix | Prefix tier, deterministic order |
-| Barcode field unavailable | Нет working toggle/ignored configuration |
 | Missing `uk` title, present `en` | `uk` text search не использует `en`; Preview показывает missing coverage |
 | Missing title + exact SKU | SKU может найти product в selected locale, diagnostics отмечает identifier |
 
@@ -2688,24 +2422,16 @@ Acceptance:
 | Scenario | Expected |
 |---|---|
 | Admin Preview | No `search_request` |
-| Storefront first page | One request, opaque edge tokens |
-| Retried storefront first page | Same `clientSearchId` returns same request; search count unchanged |
-| Storefront next page | Same search identity, no extra search count |
-| Retried click | Deduped by client event ID |
-| Two lines from two searches | Line-level attribution remains distinct |
-| Duplicate order event | No duplicate purchase fact |
-| Multiple historical clicks for one order line | Canonical last valid click creates exactly one attribution fact |
-| Fresh result without click | Provisional, not mature no-click issue |
+| Повторная обработка request | Dedupe key сохраняет search count неизменным |
+| Storefront next page | Pagination не увеличивает search count |
 | Mark work item Resolved/Ignored | Facts/rollups unchanged |
 
 ## Readiness/Definition of Done
 
 Search Admin must-have готов, когда одновременно выполнено следующее:
 
-- все declared searchable fields имеют real capability, включая barcode;
+- все declared searchable fields имеют real capability;
 - storefront и Preview используют один canonical executor;
-- storefront public schema/session context и click mutation реально
-  зарегистрированы, а не существуют только как internal repository types;
 - global/category query membership одинаков для page/total/facets и всех sorts;
 - synonyms/fuzzy/boost/OOS interaction соответствует таблице в этом документе;
 - config save/application и incremental index synchronization имеют раздельные
@@ -2714,8 +2440,7 @@ Search Admin must-have готов, когда одновременно выпо�
   revision при concurrent save;
 - Overview показывает честный Ready/Updating/Failed и per-locale coverage;
 - Preview возвращает понятные reasons без score/SQL/corrected query;
-- analytics связывает search -> click -> order line и имеет documented metric
-  definitions;
+- analytics хранит search requests и zero-result metrics с documented definitions;
 - worklist annotations не удаляют history;
 - Admin routes находятся в `Discovery -> Search` сразу после `Facets`;
 - все UI pages имеют loading/error/empty/pending/failed/unsaved states;
@@ -2725,17 +2450,14 @@ Search Admin must-have готов, когда одновременно выпо�
 
 ## Риски, которые нельзя скрыть реализацией
 
-1. В Catalog пока нет canonical barcode source.
-2. Variant titles/SKU/vendor/category labels ещё не входят в listing snapshot.
-3. Collection scope отсутствует в canonical listing bitmap contract.
-4. Compound/phrase/prefix APIs нужно проверить именно на pinned
+1. Variant titles/SKU/vendor/category labels ещё не входят в listing snapshot.
+2. Collection scope отсутствует в canonical listing bitmap contract.
+3. Compound/phrase/prefix APIs нужно проверить именно на pinned
    `pg_search 0.24.1`.
-5. Общий BM25 corpus может создавать cross-tenant влияние на relative IDF/score,
+4. Общий BM25 corpus может создавать cross-tenant влияние на relative IDF/score,
    хотя `store_id` обязан полностью изолировать membership/data.
-6. Incremental indexing требует monotonic revision/tombstone protection.
-7. Purchase rate требует изменения Checkout и Orders, а не только listing/Admin.
-8. Stable anonymous session требует storefront privacy/consent decision.
-9. Любой hidden candidate cap ломает точность total/facets и запрещён без нового
+5. Incremental indexing требует monotonic revision/tombstone protection.
+6. Любой hidden candidate cap ломает точность total/facets и запрещён без нового
    explicit API contract.
-10. `HIDE` должен использовать canonical availability membership; derived sort
+7. `HIDE` должен использовать canonical availability membership; derived sort
     projection недостаточна как source of truth.
