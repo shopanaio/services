@@ -202,7 +202,9 @@ function readPositiveIntegerEnv(name: string, fallback: number): number {
 }
 
 test.describe('Listing service matrix perf', () => {
-  test.describe.configure({ timeout: 900_000 });
+  test.describe.configure({
+    timeout: readPositiveIntegerEnv('LISTING_PERF_TIMEOUT_MS', 900_000),
+  });
 
   test('calls listing service with newest and price sorts with and without selected filters', async ({
     api,
