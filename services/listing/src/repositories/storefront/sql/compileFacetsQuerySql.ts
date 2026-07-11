@@ -25,7 +25,7 @@ export function compileFacetsQuerySql(request: ListingSqlRequest): SQL {
     WITH
     ${compileInputCte(request)},
     ${compileScopeProductCtes(request)},
-    scope_variants AS (
+    scoped_variant_rows AS MATERIALIZED (
       SELECT COALESCE(
         rb_build_agg(vli.variant_doc_id),
         (
@@ -33,17 +33,19 @@ export function compileFacetsQuerySql(request: ListingSqlRequest): SQL {
           FROM (VALUES (0::int)) AS empty_seed(doc_id)
         )
       ) AS bitmap
-      FROM input i
-      CROSS JOIN scope_products sp
+      FROM scope_products sp
       JOIN listing.variant_listing_index vli
-        ON vli.store_id = i.store_id
+        ON vli.store_id = ${request.storeId}::uuid
        AND sp.bitmap @> vli.product_doc_id
+    ),
+    scope_variants AS MATERIALIZED (
+      SELECT scoped.bitmap & universe.bitmap AS bitmap
+      FROM scoped_variant_rows scoped
       JOIN listing.listing_posting_bitmap universe
-        ON universe.store_id = i.store_id
+        ON universe.store_id = ${request.storeId}::uuid
        AND universe.entity_type = 'variant'
        AND universe.field = 'term'
        AND universe.value_key = '["v1","system.state","indexable"]'
-       AND universe.bitmap @> vli.variant_doc_id
     ),
     selected_values AS (
       ${selectedValuesCte}

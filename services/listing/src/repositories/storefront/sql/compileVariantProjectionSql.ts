@@ -9,7 +9,7 @@ export function compileVariantProjectionSql(input: {
     WITH variant_matches AS MATERIALIZED (
       SELECT ${input.variantBitmapSql} AS bitmap
     ),
-    matched_blocks AS (
+    matched_blocks AS MATERIALIZED (
       SELECT
         b.variant_doc_from,
         b.variant_doc_to,

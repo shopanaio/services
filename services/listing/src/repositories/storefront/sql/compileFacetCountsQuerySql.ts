@@ -7,22 +7,13 @@ import type { ListingSqlRequest } from "./compileListingInputSql.js";
 import {
   compileInputCte,
   compileProductBaseBitmapSql,
+  compilePriceVariantBitmapSql,
   compileProjectedVariantProductsBitmapSql,
   compileScopeProductCtes,
   compileVariantCandidatesBitmapSql,
   compileVariantTermPostingBitmapSql,
   hasVariantPredicate,
 } from "./compileListingProductMatchesSql.js";
-
-export const FACET_COUNTS_PROFILE_TARGETS = [
-  "candidate_values",
-  "visible_facet_values",
-  "option_facet_values",
-  "option_facet_counts",
-] as const;
-export const SIMPLE_FACET_COUNTS_PROFILE_TARGETS = FACET_COUNTS_PROFILE_TARGETS;
-export type FacetCountsProfileTarget =
-  (typeof FACET_COUNTS_PROFILE_TARGETS)[number];
 
 export interface FacetCountsVisibleFacetValue {
   facetId: string;
@@ -35,40 +26,54 @@ export function compileFacetCountsQuerySql(
   options: { visibleFacetValues?: readonly FacetCountsVisibleFacetValue[] } = {}
 ): SQL {
   const values = normalizeVisibleValues(options.visibleFacetValues ?? []);
+  const optionFacetIds = uniqueFacetIds(values, "OPTION");
+  const productFacetIds = uniqueProductFacetIds(values);
+  const sharedPriceBitmap = request.request.filterPlan.priceRange
+    ? sql`(SELECT bitmap FROM price_variant_candidates)`
+    : undefined;
   const producers = values.map((value) => compileValueCountSql(request, value));
+  const priceCandidatesCte = request.request.filterPlan.priceRange
+    ? sql`,
+      price_variant_candidates AS MATERIALIZED (
+        SELECT ${compilePriceVariantBitmapSql(request)} AS bitmap
+      )`
+    : sql``;
+  const sharedVariantProductsCte =
+    productFacetIds.length > 0 && hasVariantPredicate(request)
+      ? sql`,
+      shared_variant_products AS MATERIALIZED (
+        SELECT ${compileProjectedVariantProductsBitmapSql(
+          request,
+          compileVariantCandidatesBitmapSql(request, {
+            priceBitmapSql: sharedPriceBitmap,
+          })
+        )} AS bitmap
+      )`
+      : sql``;
+  const optionFacetBasesCte = compileOptionFacetBasesCte(
+    request,
+    optionFacetIds,
+    sharedPriceBitmap
+  );
+  const productFacetBasesCte = compileProductFacetBasesCte(
+    request,
+    productFacetIds
+  );
   return sql`
     /* listing:facetCounts */
     WITH
     ${compileInputCte(request)},
     ${compileScopeProductCtes(request)}
+    ${priceCandidatesCte},
+    shared_product_base AS MATERIALIZED (
+      SELECT ${compileProductBaseBitmapSql(request)} AS bitmap
+    )
+    ${sharedVariantProductsCte}
+    ${optionFacetBasesCte}
+    ${productFacetBasesCte}
     ${producers.length > 0
       ? sql.join(producers, sql` UNION ALL `)
       : emptyCountSelectSql()}
-  `;
-}
-
-export function facetCountsProfileTargetsForRequest(
-  _request: ListingSqlRequest
-): readonly FacetCountsProfileTarget[] {
-  return SIMPLE_FACET_COUNTS_PROFILE_TARGETS;
-}
-
-export function compileFacetCountsProfileQuerySql(
-  request: ListingSqlRequest,
-  target: FacetCountsProfileTarget,
-  options: { visibleFacetValues?: readonly FacetCountsVisibleFacetValue[] } = {}
-): SQL {
-  const counts = compileFacetCountsQuerySql(request, options);
-  return sql`
-    /* listing:facetCountsProfile:${sql.raw(target)} */
-    WITH measured AS MATERIALIZED (${counts})
-    SELECT
-      ${target}::text AS "target",
-      COUNT(*)::int AS "rowCount",
-      NULL::int AS "distinctSignatureCount",
-      NULL::int AS "bitmapCardinality",
-      COALESCE(SUM(measured."count"), 0)::int AS "countSum"
-    FROM measured
   `;
 }
 
@@ -81,24 +86,27 @@ function compileValueCountSql(
     const encoded = encodeListingVariantTerm(
       buildOptionVariantTerm({ facetId: value.facetId, facetValueId })
     );
-    const baseCandidates = compileVariantCandidatesBitmapSql(request, {
-      excludeGroupKey: `option:${value.facetId}`,
-    });
     const targetPosting = compileVariantTermPostingBitmapSql(request, encoded);
     const projected = compileProjectedVariantProductsBitmapSql(
       request,
-      sql`(${baseCandidates} & ${targetPosting})`
+      sql`(
+        (SELECT bitmap FROM option_facet_bases
+         WHERE facet_id = ${value.facetId})
+        & ${targetPosting}
+      )`
     );
-    const productBase = compileProductBaseBitmapSql(request);
     return countSelectSql(
       value,
-      sql`rb_cardinality(${productBase} & ${projected})`
+      sql`rb_cardinality(
+        (SELECT bitmap FROM shared_product_base) & ${projected}
+      )`
     );
   }
 
-  const productBase = compileProductBaseBitmapSql(request, {
-    excludeProductFacetId: value.facetId,
-  });
+  const productBase = sql`(
+    SELECT bitmap FROM product_facet_bases
+    WHERE facet_id = ${value.facetId}
+  )`;
   const targetPosting = sql`COALESCE((
     SELECT p.bitmap
     FROM listing.listing_posting_bitmap p
@@ -112,17 +120,50 @@ function compileValueCountSql(
   ))`;
   const parts = [productBase, targetPosting];
   if (hasVariantPredicate(request)) {
-    parts.push(
-      compileProjectedVariantProductsBitmapSql(
-        request,
-        compileVariantCandidatesBitmapSql(request)
-      )
-    );
+    parts.push(sql`(SELECT bitmap FROM shared_variant_products)`);
   }
   return countSelectSql(
     value,
     sql`rb_cardinality(${andBitmaps(parts)})`
   );
+}
+
+function compileOptionFacetBasesCte(
+  request: ListingSqlRequest,
+  facetIds: readonly string[],
+  sharedPriceBitmap: SQL | undefined
+): SQL {
+  if (facetIds.length === 0) return sql``;
+  const rows = facetIds.map((facetId) => sql`
+    SELECT
+      ${facetId}::text AS facet_id,
+      ${compileVariantCandidatesBitmapSql(request, {
+        excludeGroupKey: `option:${facetId}`,
+        priceBitmapSql: sharedPriceBitmap,
+      })} AS bitmap
+  `);
+  return sql`,
+    option_facet_bases AS MATERIALIZED (
+      ${sql.join(rows, sql` UNION ALL `)}
+    )`;
+}
+
+function compileProductFacetBasesCte(
+  request: ListingSqlRequest,
+  facetIds: readonly string[]
+): SQL {
+  if (facetIds.length === 0) return sql``;
+  const rows = facetIds.map((facetId) => sql`
+    SELECT
+      ${facetId}::text AS facet_id,
+      ${compileProductBaseBitmapSql(request, {
+        excludeProductFacetId: facetId,
+      })} AS bitmap
+  `);
+  return sql`,
+    product_facet_bases AS MATERIALIZED (
+      ${sql.join(rows, sql` UNION ALL `)}
+    )`;
 }
 
 function countSelectSql(
@@ -166,6 +207,31 @@ function normalizeVisibleValues(
       left.facetId.localeCompare(right.facetId) ||
       left.valueKey.localeCompare(right.valueKey)
   );
+}
+
+function uniqueFacetIds(
+  values: readonly FacetCountsVisibleFacetValue[],
+  facetType: string
+): string[] {
+  return [
+    ...new Set(
+      values
+        .filter((value) => value.facetType === facetType)
+        .map((value) => value.facetId)
+    ),
+  ].sort();
+}
+
+function uniqueProductFacetIds(
+  values: readonly FacetCountsVisibleFacetValue[]
+): string[] {
+  return [
+    ...new Set(
+      values
+        .filter((value) => value.facetType !== "OPTION")
+        .map((value) => value.facetId)
+    ),
+  ].sort();
 }
 
 function andBitmaps(parts: readonly SQL[]): SQL {

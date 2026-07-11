@@ -27,7 +27,7 @@ export function compileVirtualFacetsQuerySql(request: ListingSqlRequest): SQL {
   );
   const availableProducts = compileProjectedVariantProductsBitmapSql(
     request,
-    sql`(${availabilityBase} & ${availablePosting})`
+    sql`((SELECT bitmap FROM availability_base) & ${availablePosting})`
   );
   const unavailablePosting = compileVariantTermPostingBitmapSql(
     request,
@@ -35,34 +35,55 @@ export function compileVirtualFacetsQuerySql(request: ListingSqlRequest): SQL {
   );
   const unavailableProducts = compileProjectedVariantProductsBitmapSql(
     request,
-    sql`(${availabilityBase} & ${unavailablePosting})`
+    sql`((SELECT bitmap FROM availability_base) & ${unavailablePosting})`
   );
+  const priceBoundsSource =
+    request.request.filterPlan.variantTermGroups.length > 0
+      ? sql`
+        FROM matching_term_variants mtv
+        CROSS JOIN LATERAL rb_iterate(mtv.bitmap) AS matched(variant_doc_id)
+        JOIN listing.variant_listing_index vli
+          ON vli.store_id = ${request.storeId}::uuid
+         AND vli.variant_doc_id = matched.variant_doc_id
+        JOIN listing.variant_listing_price_index vp
+          ON vp.store_id = ${request.storeId}::uuid
+         AND vp.variant_id = vli.variant_id
+         AND vp.currency = ${request.currency}
+         AND vp.has_price = true
+         AND vp.price_minor IS NOT NULL
+        CROSS JOIN product_base pb
+        WHERE pb.bitmap @> vli.product_doc_id
+      `
+      : sql`
+        FROM input i
+        JOIN listing.variant_listing_price_index vp
+          ON vp.store_id = i.store_id
+         AND vp.currency = i.currency
+         AND vp.has_price = true
+         AND vp.price_minor IS NOT NULL
+        CROSS JOIN product_base pb
+        WHERE pb.bitmap @> vp.product_doc_id
+      `;
 
   return sql`
     /* listing:virtualFacets */
     WITH
     ${compileInputCte(request)},
     ${compileScopeProductCtes(request)},
-    product_base AS (
+    product_base AS MATERIALIZED (
       SELECT ${productBase} AS bitmap
     ),
-    matching_term_variants AS (
+    matching_term_variants AS MATERIALIZED (
       SELECT ${termsWithoutPrice} AS bitmap
+    ),
+    availability_base AS MATERIALIZED (
+      SELECT ${availabilityBase} AS bitmap
     ),
     price_range_bounds AS (
       SELECT
         MIN(vp.price_minor)::bigint AS min_price_minor,
         MAX(vp.price_minor)::bigint AS max_price_minor
-      FROM input i
-      JOIN listing.variant_listing_price_index vp
-        ON vp.store_id = i.store_id
-       AND vp.currency = i.currency
-       AND vp.has_price = true
-       AND vp.price_minor IS NOT NULL
-      CROSS JOIN product_base pb
-      CROSS JOIN matching_term_variants mtv
-      WHERE mtv.bitmap @> vp.variant_doc_id
-        AND pb.bitmap @> vp.product_doc_id
+      ${priceBoundsSource}
     )
     SELECT
       NULL::text AS "facetErrorCode",
@@ -76,8 +97,12 @@ export function compileVirtualFacetsQuerySql(request: ListingSqlRequest): SQL {
           'currency', ${request.currency}::text
         )
       END AS "priceRange",
-      rb_cardinality(${productBase} & ${availableProducts})::int AS "inStockCount",
-      rb_cardinality(${productBase} & ${unavailableProducts})::int AS "unavailableCount"
+      rb_cardinality(
+        (SELECT bitmap FROM product_base) & ${availableProducts}
+      )::int AS "inStockCount",
+      rb_cardinality(
+        (SELECT bitmap FROM product_base) & ${unavailableProducts}
+      )::int AS "unavailableCount"
     FROM price_range_bounds bounds
   `;
 }

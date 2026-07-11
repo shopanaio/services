@@ -8,6 +8,7 @@ import {
 } from "../../../listing/variantTerms/index.js";
 import { coalesceBitmapSql, emptyRoaringBitmapSql } from "../sqlHelpers.js";
 import type { ListingSqlRequest } from "./compileListingInputSql.js";
+import { compileVariantProjectionSql } from "./compileVariantProjectionSql.js";
 
 export function compileInputCte(request: ListingSqlRequest): SQL {
   return sql`
@@ -114,13 +115,18 @@ export function compileVariantTermGroupsBitmapSql(
 
 export function compileVariantCandidatesBitmapSql(
   request: ListingSqlRequest,
-  options?: { excludeGroupKey?: string; excludePrice?: boolean }
+  options?: {
+    excludeGroupKey?: string;
+    excludePrice?: boolean;
+    priceBitmapSql?: SQL;
+  }
 ): SQL {
-  const parts: SQL[] = [compileIndexableUniverseBitmapSql(request)];
   const terms = compileVariantTermGroupsBitmapSql(request, options);
-  if (terms) parts.push(terms);
+  const parts: SQL[] = [terms ?? compileIndexableUniverseBitmapSql(request)];
   if (request.request.filterPlan.priceRange && !options?.excludePrice) {
-    parts.push(compilePriceVariantBitmapSql(request));
+    parts.push(
+      options?.priceBitmapSql ?? compilePriceVariantBitmapSql(request)
+    );
   }
   return andBitmapSql(parts);
 }
@@ -131,22 +137,45 @@ export function compileVariantCandidateDiagnosticsSql(
   const termCandidates = compileVariantCandidatesBitmapSql(request, {
     excludePrice: true,
   });
-  const numericCandidates = request.request.filterPlan.priceRange
-    ? compilePriceVariantBitmapSql(request)
-    : null;
-  const finalCandidates = compileVariantCandidatesBitmapSql(request);
+  const hasNumericCandidates = !!request.request.filterPlan.priceRange;
+  const numericCandidatesCte = hasNumericCandidates
+    ? sql`,
+      numeric_candidates AS MATERIALIZED (
+        SELECT ${compilePriceVariantBitmapSql(request)} AS bitmap
+      )`
+    : sql``;
+  const finalCandidates = hasNumericCandidates
+    ? sql`(
+      (SELECT bitmap FROM term_candidates)
+      & (SELECT bitmap FROM numeric_candidates)
+    )`
+    : sql`(SELECT bitmap FROM term_candidates)`;
   const projected = compileProjectedVariantProductsBitmapSql(
     request,
-    finalCandidates
+    sql`(SELECT bitmap FROM final_candidates)`
   );
   return sql`
     /* listing:variantDiagnostics */
+    WITH
+    term_candidates AS MATERIALIZED (
+      SELECT ${termCandidates} AS bitmap
+    )
+    ${numericCandidatesCte},
+    final_candidates AS MATERIALIZED (
+      SELECT ${finalCandidates} AS bitmap
+    )
     SELECT
-      rb_cardinality(${termCandidates})::int AS "termCandidateCardinality",
-      ${numericCandidates
-        ? sql`rb_cardinality(${numericCandidates})::int`
+      rb_cardinality(
+        (SELECT bitmap FROM term_candidates)
+      )::int AS "termCandidateCardinality",
+      ${hasNumericCandidates
+        ? sql`rb_cardinality(
+            (SELECT bitmap FROM numeric_candidates)
+          )::int`
         : sql`NULL::int`} AS "numericCandidateCardinality",
-      rb_cardinality(${finalCandidates})::int AS "finalVariantCandidateCardinality",
+      rb_cardinality(
+        (SELECT bitmap FROM final_candidates)
+      )::int AS "finalVariantCandidateCardinality",
       rb_cardinality(${projected})::int AS "projectedProductCardinality"
   `;
 }
@@ -155,17 +184,10 @@ export function compileProjectedVariantProductsBitmapSql(
   request: ListingSqlRequest,
   variantBitmap: SQL
 ): SQL {
-  return coalesceBitmapSql(sql`(
-    WITH variant_matches AS MATERIALIZED (
-      SELECT ${variantBitmap} AS bitmap
-    )
-    SELECT rb_build_agg(vli.product_doc_id)
-    FROM variant_matches vm
-    CROSS JOIN LATERAL rb_iterate(vm.bitmap) AS matched(variant_doc_id)
-    JOIN listing.variant_listing_index vli
-      ON vli.store_id = ${request.storeId}::uuid
-     AND vli.variant_doc_id = matched.variant_doc_id
-  )`);
+  return compileVariantProjectionSql({
+    projectIdSql: sql`${request.storeId}::uuid`,
+    variantBitmapSql: variantBitmap,
+  });
 }
 
 export function hasVariantPredicate(request: ListingSqlRequest): boolean {
@@ -225,7 +247,7 @@ function compileIndexableUniverseBitmapSql(request: ListingSqlRequest): SQL {
   )`);
 }
 
-function compilePriceVariantBitmapSql(request: ListingSqlRequest): SQL {
+export function compilePriceVariantBitmapSql(request: ListingSqlRequest): SQL {
   return coalesceBitmapSql(sql`(
     SELECT rb_build_agg(vp.variant_doc_id)
     FROM listing.variant_listing_price_index vp

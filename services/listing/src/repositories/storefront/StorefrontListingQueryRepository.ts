@@ -16,11 +16,8 @@ import {
 import { StorefrontFacetResolutionRepository } from "./StorefrontFacetResolutionRepository.js";
 import { StorefrontProductTitleSearchQueryRepository } from "./StorefrontProductTitleSearchQueryRepository.js";
 import {
-  compileFacetCountsProfileQuerySql,
   compileFacetCountsQuerySql,
-  facetCountsProfileTargetsForRequest,
   type FacetCountsVisibleFacetValue,
-  type FacetCountsProfileTarget,
 } from "./sql/compileFacetCountsQuerySql.js";
 import { compileFacetsQuerySql } from "./sql/compileFacetsQuerySql.js";
 import {
@@ -69,20 +66,12 @@ interface VariantDiagnosticsSqlRow extends Record<string, unknown> {
   projectedProductCardinality: number;
 }
 
-type FacetCountsProfileSqlRow = Record<string, unknown> & {
-  target: string;
-  rowCount: number | string | null;
-  distinctSignatureCount: number | string | null;
-  bitmapCardinality: number | string | null;
-  countSum: number | string | null;
-};
-
 type ExplainAnalyzeSqlRow = Record<string, unknown> & {
   "QUERY PLAN": string;
 };
 
 interface FacetCountsProfileMetric {
-  target: FacetCountsProfileTarget;
+  target: "facet_counts";
   durationMs: number;
   rowCount: number | null;
   distinctSignatureCount: number | null;
@@ -181,7 +170,9 @@ export class StorefrontListingQueryRepository extends BaseRepository {
 
       sqlRoundTrips += await this.profileListingSqlIfEnabled(
         sqlRequest,
-        visibleFacetValues
+        visibleFacetValues,
+        facetCountRows,
+        branchMetrics
       );
 
       const page = mapPageRows({ rows: pageSqlRows, request });
@@ -293,7 +284,9 @@ export class StorefrontListingQueryRepository extends BaseRepository {
 
   private async profileListingSqlIfEnabled(
     request: ReturnType<typeof toListingSqlRequest>,
-    visibleFacetValues: readonly FacetCountsVisibleFacetValue[]
+    visibleFacetValues: readonly FacetCountsVisibleFacetValue[],
+    facetCountRows: readonly FacetCountMapSqlRow[],
+    branchMetrics: readonly BranchMetric[]
   ): Promise<number> {
     if (!this.facetCountsProfilingEnabled) {
       return 0;
@@ -301,25 +294,23 @@ export class StorefrontListingQueryRepository extends BaseRepository {
 
     let roundTrips = 0;
     try {
-      const metrics: FacetCountsProfileMetric[] = [];
-      for (const target of facetCountsProfileTargetsForRequest(request)) {
-        const startedAt = Date.now();
-        const rows = await this.executeWithLocalJitOff<FacetCountsProfileSqlRow>(
-          compileFacetCountsProfileQuerySql(request, target, {
-            visibleFacetValues,
-          })
-        );
-        roundTrips += 1;
-        const row = (rows as unknown as FacetCountsProfileSqlRow[])[0];
-        metrics.push({
-          target,
-          durationMs: Date.now() - startedAt,
-          rowCount: numberOrNull(row?.rowCount),
-          distinctSignatureCount: numberOrNull(row?.distinctSignatureCount),
-          bitmapCardinality: numberOrNull(row?.bitmapCardinality),
-          countSum: numberOrNull(row?.countSum),
-        });
-      }
+      const metrics: FacetCountsProfileMetric[] = [
+        {
+          target: "facet_counts",
+          durationMs:
+            [...branchMetrics]
+              .reverse()
+              .find((metric) => metric.branch === "facetCounts")?.durationMs ??
+            0,
+          rowCount: facetCountRows.length,
+          distinctSignatureCount: null,
+          bitmapCardinality: null,
+          countSum: facetCountRows.reduce(
+            (sum, row) => sum + (numberOrNull(row.count) ?? 0),
+            0
+          ),
+        },
+      ];
 
       this.ctx.kernel.getServices().logger.warn(
         {
