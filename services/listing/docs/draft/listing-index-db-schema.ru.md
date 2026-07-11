@@ -1,5 +1,8 @@
 # Схема БД listing index
 
+> **LEGACY DRAFT:** документ не описывает universal variant-term cutover.
+> Актуальный contract: `../listing-index-db-contract.ru.md`.
+
 Документ фиксирует целевую PostgreSQL-схему read model для storefront listing:
 выдача товаров, structured filtering, facet counts, total count, pagination и
 sort. Нормативный источник runtime requirements:

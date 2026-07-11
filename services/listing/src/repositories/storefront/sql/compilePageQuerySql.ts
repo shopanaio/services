@@ -11,11 +11,10 @@ import {
 } from "./compileListingInputSql.js";
 import {
   compileInputCte,
-  compileOptionVariantBitmapSql,
-  compileOptionVariantPredicateSql,
   compilePricePredicateSql,
   compileProductMatchesBitmapSql,
   compileScopeProductCtes,
+  compileVariantCandidatesBitmapSql,
   hasVariantPredicate,
   shouldApplyProductStockAtProductLevel,
 } from "./compileListingProductMatchesSql.js";
@@ -87,67 +86,66 @@ function compileProductSortPageQuerySql(request: ListingSqlRequest): SQL {
 function compileMatchedVariantPricePageQuerySql(
   request: ListingSqlRequest
 ): SQL {
-  const plan = request.request.filterPlan;
-  if (plan.inStock === false) {
-    return compileEmptyPageQuerySql();
-  }
-  if (plan.optionFacetGroups.length > 0) {
-    return compileOptionBitmapMatchedVariantPricePageQuerySql(request);
-  }
-
   const variantDirection = request.sortKind === "price_desc" ? "desc" : "asc";
-  const variantSeek = buildVariantPriceSeek(
+  const variantSeek = buildMatchedPriceSeek(
     variantDirection,
     request.request.cursor
   );
   const limitSql = sql`(SELECT first + 1 FROM input)`;
   const pricePredicate = compilePricePredicateSql(request, sql`vp`);
-  const optionPredicate = compileOptionVariantPredicateSql(request, sql`vp`);
+  const finalOrder = variantDirection === "asc"
+    ? sql`chosen.in_stock DESC, chosen.price_minor ASC NULLS LAST, chosen.product_id ASC, chosen.variant_doc_id ASC NULLS LAST`
+    : sql`chosen.in_stock DESC, chosen.price_minor DESC NULLS LAST, chosen.product_id ASC, chosen.variant_doc_id ASC NULLS LAST`;
 
-  // The partial runtime indexes contain only priced variants.
   return sql`
     /* listing:page */
     WITH
     ${compileInputCte(request)},
     ${compileScopeProductCtes(request)},
-    product_base AS (
+    product_matches AS (
       SELECT ${compileProductMatchesBitmapSql(request, {
         includeProductStock: false,
-        includeVariantProjection: false,
+        includeVariantProjection: hasVariantPredicate(request),
       })} AS bitmap
     ),
-    variant_price_candidates AS (
-      SELECT
-        vp.product_doc_id,
-        vp.product_id,
-        vp.variant_doc_id,
-        vp.price_minor
-      FROM listing.variant_listing_price_index vp
-      JOIN input i ON true
-      CROSS JOIN product_base pb
-      WHERE vp.store_id = i.store_id
-        AND vp.currency = i.currency
-        AND vp.has_price = true
-        AND pb.bitmap @> vp.product_doc_id
-        ${pricePredicate}
-        ${optionPredicate}
+    matching_variants AS (
+      SELECT ${compileVariantCandidatesBitmapSql(request)} AS bitmap
     ),
-    variant_price_chosen AS (
-      SELECT DISTINCT ON (vp.product_id)
-        vp.product_doc_id,
-        vp.product_id,
-        vp.variant_doc_id,
-        vp.price_minor
-      FROM variant_price_candidates vp
-      ORDER BY ${variantCandidateOrderBy(variantDirection)}
+    matched_price_rows AS (
+      SELECT
+        pli.product_doc_id,
+        pli.product_id,
+        pli.in_stock,
+        chosen.variant_doc_id,
+        chosen.price_minor
+      FROM listing.product_listing_index pli
+      JOIN input i ON true
+      CROSS JOIN product_matches pm
+      CROSS JOIN matching_variants mv
+      LEFT JOIN LATERAL (
+        SELECT vp.variant_doc_id, vp.price_minor
+        FROM listing.variant_listing_price_index vp
+        WHERE vp.store_id = i.store_id
+          AND vp.currency = i.currency
+          AND vp.product_doc_id = pli.product_doc_id
+          AND vp.product_id = pli.product_id
+          AND vp.has_price = true
+          AND vp.price_minor IS NOT NULL
+          AND mv.bitmap @> vp.variant_doc_id
+          ${pricePredicate}
+        ORDER BY vp.price_minor ASC, vp.variant_doc_id ASC
+        LIMIT 1
+      ) chosen ON true
+      WHERE pli.store_id = i.store_id
+        AND pm.bitmap @> pli.product_doc_id
     ),
     variant_price_ordered AS (
       SELECT
         'matched_variant_price'::text AS collector_kind,
         chosen.product_doc_id,
         chosen.product_id,
-        pli.in_stock,
-        pli.in_stock AS bool_value,
+        chosen.in_stock,
+        chosen.in_stock AS bool_value,
         NULL::timestamptz AS timestamptz_value,
         NULL::timestamptz AS timestamptz_value_2,
         NULL::bigint AS bigint_value,
@@ -155,109 +153,10 @@ function compileMatchedVariantPricePageQuerySql(
         chosen.variant_doc_id,
         chosen.price_minor,
         NULL::double precision AS relevance_score
-      FROM variant_price_chosen chosen
-      JOIN input i ON true
-      JOIN listing.product_listing_index pli
-        ON pli.store_id = i.store_id
-       AND pli.product_doc_id = chosen.product_doc_id
-       AND pli.product_id = chosen.product_id
+      FROM matched_price_rows chosen
       WHERE true
         ${variantSeek}
-      ORDER BY ${variantFinalOrderBy(variantDirection)}
-      LIMIT ${limitSql}
-    ),
-    variant_price_page_scan AS (
-      SELECT row_number() OVER ()::int AS page_ordinal, *
-      FROM variant_price_ordered
-    )
-    ${compilePageSelectSql(sql`variant_price_page_scan`)}
-  `;
-}
-
-function compileOptionBitmapMatchedVariantPricePageQuerySql(
-  request: ListingSqlRequest
-): SQL {
-  const optionBitmap = compileOptionVariantBitmapSql(request);
-  if (!optionBitmap) {
-    return compileMatchedVariantPricePageQuerySql(request);
-  }
-
-  const variantDirection = request.sortKind === "price_desc" ? "desc" : "asc";
-  const variantSeek = buildVariantPriceSeek(
-    variantDirection,
-    request.request.cursor
-  );
-  const limitSql = sql`(SELECT first + 1 FROM input)`;
-  const pricePredicate = compilePricePredicateSql(request, sql`vp`);
-
-  return sql`
-    /* listing:page */
-    WITH
-    ${compileInputCte(request)},
-    ${compileScopeProductCtes(request)},
-    product_base AS (
-      SELECT ${compileProductMatchesBitmapSql(request, {
-        includeProductStock: false,
-        includeVariantProjection: false,
-      })} AS bitmap
-    ),
-    option_variant_matches AS (
-      SELECT ${optionBitmap} AS bitmap
-    ),
-    option_variant_ids AS (
-      SELECT ov.variant_doc_id::int AS variant_doc_id
-      FROM option_variant_matches ovm
-      CROSS JOIN LATERAL rb_iterate(ovm.bitmap) AS ov(variant_doc_id)
-    ),
-    variant_price_candidates AS (
-      SELECT
-        vp.product_doc_id,
-        vp.product_id,
-        vp.variant_doc_id,
-        vp.price_minor
-      FROM option_variant_ids ov
-      JOIN input i ON true
-      JOIN listing.variant_listing_price_index vp
-        ON vp.store_id = i.store_id
-       AND vp.currency = i.currency
-       AND vp.variant_doc_id = ov.variant_doc_id
-       AND vp.has_price = true
-      CROSS JOIN product_base pb
-      WHERE pb.bitmap @> vp.product_doc_id
-        ${pricePredicate}
-    ),
-    variant_price_chosen AS (
-      SELECT DISTINCT ON (vp.product_id)
-        vp.product_doc_id,
-        vp.product_id,
-        vp.variant_doc_id,
-        vp.price_minor
-      FROM variant_price_candidates vp
-      ORDER BY ${variantCandidateOrderBy(variantDirection)}
-    ),
-    variant_price_ordered AS (
-      SELECT
-        'matched_variant_price'::text AS collector_kind,
-        chosen.product_doc_id,
-        chosen.product_id,
-        pli.in_stock,
-        pli.in_stock AS bool_value,
-        NULL::timestamptz AS timestamptz_value,
-        NULL::timestamptz AS timestamptz_value_2,
-        NULL::bigint AS bigint_value,
-        NULL::text AS text_value,
-        chosen.variant_doc_id,
-        chosen.price_minor,
-        NULL::double precision AS relevance_score
-      FROM variant_price_chosen chosen
-      JOIN input i ON true
-      JOIN listing.product_listing_index pli
-        ON pli.store_id = i.store_id
-       AND pli.product_doc_id = chosen.product_doc_id
-       AND pli.product_id = chosen.product_id
-      WHERE true
-        ${variantSeek}
-      ORDER BY ${variantFinalOrderBy(variantDirection)}
+      ORDER BY ${finalOrder}
       LIMIT ${limitSql}
     ),
     variant_price_page_scan AS (
@@ -318,27 +217,6 @@ function compileRelevancePageQuerySql(request: ListingSqlRequest): SQL {
   `;
 }
 
-function compileEmptyPageQuerySql(): SQL {
-  return sql`
-    /* listing:page */
-    SELECT
-      NULL::text AS "facetErrorCode",
-      NULL::text AS "facetErrorValue",
-      NULL::text AS "collectorKind",
-      NULL::int AS "productDocId",
-      NULL::text AS "productId",
-      NULL::boolean AS "inStock",
-      NULL::boolean AS "boolValue",
-      NULL::timestamptz AS "timestamptzValue",
-      NULL::timestamptz AS "timestamptzValue2",
-      NULL::double precision AS "bigintValue",
-      NULL::text AS "textValue",
-      NULL::int AS "variantDocId",
-      NULL::double precision AS "priceMinor",
-      NULL::double precision AS "relevanceScore"
-    WHERE false
-  `;
-}
 
 function compilePageSelectSql(pageScanSql: SQL): SQL {
   return sql`
@@ -363,10 +241,7 @@ function compilePageSelectSql(pageScanSql: SQL): SQL {
 }
 
 function isMatchedVariantPricePage(request: ListingSqlRequest): boolean {
-  return (
-    (request.sortKind === "price_asc" || request.sortKind === "price_desc") &&
-    hasVariantPredicate(request)
-  );
+  return request.sortKind === "price_asc" || request.sortKind === "price_desc";
 }
 
 function productSortConfig(request: ListingSqlRequest): {
@@ -520,7 +395,7 @@ function buildProductSortSeekPredicate(
   return sql`AND ${boolDescSeek(sql`s.bool_value`, payload.inStock, downstream)}`;
 }
 
-function buildVariantPriceSeek(
+function buildMatchedPriceSeek(
   direction: "asc" | "desc",
   cursor: DecodedListingCursor | null
 ): SQL {
@@ -531,33 +406,11 @@ function buildVariantPriceSeek(
   if (payload.sort !== "price_asc" && payload.sort !== "price_desc") {
     return sql``;
   }
-  if (
-    payload.priceMinor === undefined ||
-    payload.priceMinor === null ||
-    payload.variantDocId === undefined ||
-    payload.variantDocId === null
-  ) {
-    return sql``;
-  }
-
-  const priceComparison =
-    direction === "asc"
-      ? sql`chosen.price_minor > ${payload.priceMinor}`
-      : sql`chosen.price_minor < ${payload.priceMinor}`;
-
-  return sql`AND (
-    ${priceComparison}
-    OR (
-      chosen.price_minor = ${payload.priceMinor}
-      AND (
-        chosen.product_id > ${payload.productId}::uuid
-        OR (
-          chosen.product_id = ${payload.productId}::uuid
-          AND chosen.variant_doc_id > ${payload.variantDocId}
-        )
-      )
-    )
-  )`;
+  const productSeek = sql`chosen.product_id > ${payload.productId}::uuid`;
+  const priceSeek = direction === "asc"
+    ? ascNullsLastSeek(sql`chosen.price_minor`, payload.priceMinor ?? null, productSeek)
+    : descNullsLastSeek(sql`chosen.price_minor`, payload.priceMinor ?? null, productSeek);
+  return sql`AND ${boolDescSeek(sql`chosen.in_stock`, payload.inStock, priceSeek)}`;
 }
 
 function buildRelevanceSeek(cursor: DecodedListingCursor | null): SQL {
@@ -629,18 +482,6 @@ function descNullsLastSeek(
     OR ${column} IS NULL
     OR (${column} = ${value} AND ${next})
   )`;
-}
-
-function variantCandidateOrderBy(direction: "asc" | "desc"): SQL {
-  return direction === "asc"
-    ? sql`vp.product_id ASC, vp.price_minor ASC, vp.variant_doc_id ASC`
-    : sql`vp.product_id ASC, vp.price_minor DESC, vp.variant_doc_id ASC`;
-}
-
-function variantFinalOrderBy(direction: "asc" | "desc"): SQL {
-  return direction === "asc"
-    ? sql`chosen.price_minor ASC, chosen.product_id ASC, chosen.variant_doc_id ASC`
-    : sql`chosen.price_minor DESC, chosen.product_id ASC, chosen.variant_doc_id ASC`;
 }
 
 function assertNeverSort(value: StorefrontSortKind): never {

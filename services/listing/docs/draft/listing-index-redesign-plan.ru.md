@@ -1,5 +1,8 @@
 # План переработки listing index для listing, facets, filtering и sort
 
+> **LEGACY DRAFT:** signature/variant-facet решения ниже не являются runtime
+> contract. См. `../listing-index-db-contract.ru.md`.
+
 ## Статус и источники истины
 
 Этот документ описывает верхнеуровневый redesign storefront listing. Каноническая

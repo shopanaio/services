@@ -8,14 +8,24 @@ import { composeGlobalId, decodeGlobalId } from '@utils/globalid';
 
 const execFileAsync = promisify(execFile);
 
-const PRODUCT_COUNT = 10_000;
+const PRODUCT_COUNT = readPositiveIntegerEnv('LISTING_PERF_PRODUCT_COUNT', 10_000);
 const PAGE_SIZE = 50;
 const PRICE_FILTER = { min: 20_000, max: 60_000 } as const;
-const LISTING_PERF_RESULTS_DIR = resolve(process.cwd(), 'test-results/listing-perf/matrix-10k');
+const LISTING_PERF_RESULTS_DIR = resolve(
+  process.cwd(),
+  `test-results/listing-perf/matrix-${PRODUCT_COUNT}`,
+);
 const SEED_META_PATH = resolve(LISTING_PERF_RESULTS_DIR, 'price-facet-10k-seed.json');
-const POSTGRES_RAW_LOG_PATH = resolve(LISTING_PERF_RESULTS_DIR, 'matrix-10k-postgres.log');
-const POSTGRES_SQL_SUMMARY_PATH = resolve(LISTING_PERF_RESULTS_DIR, 'matrix-10k-postgres-sql.txt');
-const MATRIX_REPORT_PATH = resolve(LISTING_PERF_RESULTS_DIR, 'matrix-10k-comparison.json');
+const MATRIX_RESULT_PREFIX = `matrix-${PRODUCT_COUNT}`;
+const POSTGRES_RAW_LOG_PATH = resolve(LISTING_PERF_RESULTS_DIR, `${MATRIX_RESULT_PREFIX}-postgres.log`);
+const POSTGRES_SQL_SUMMARY_PATH = resolve(
+  LISTING_PERF_RESULTS_DIR,
+  `${MATRIX_RESULT_PREFIX}-postgres-sql.txt`,
+);
+const MATRIX_REPORT_PATH = resolve(
+  LISTING_PERF_RESULTS_DIR,
+  `${MATRIX_RESULT_PREFIX}-comparison.json`,
+);
 
 const LISTING_PERF_QUERY = /* GraphQL */ `
   query ListingServicePerfMatrix(
@@ -136,6 +146,20 @@ const SCENARIOS = [
   },
 ] as const;
 
+function readPositiveIntegerEnv(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw === undefined) {
+    return fallback;
+  }
+
+  const value = Number.parseInt(raw, 10);
+  if (!Number.isInteger(value) || value <= 0 || String(value) !== raw.trim()) {
+    throw new Error(`${name} must be a positive integer`);
+  }
+
+  return value;
+}
+
 test.describe('Listing service matrix perf', () => {
   test.describe.configure({ timeout: 900_000 });
 
@@ -241,8 +265,12 @@ test.describe('Listing service matrix perf', () => {
         const expectedTotal = expectedResult?.expectedTotalCount ?? scopedCategory.productCount;
 
         expect(listing.totalCount, scenario.name).toBe(expectedTotal);
-        expect(listing.edges, scenario.name).toHaveLength(PAGE_SIZE);
-        expect(listing.pageInfo.hasNextPage, scenario.name).toBe(true);
+        expect(listing.edges, scenario.name).toHaveLength(
+          Math.min(PAGE_SIZE, expectedTotal),
+        );
+        expect(listing.pageInfo.hasNextPage, scenario.name).toBe(
+          expectedTotal > PAGE_SIZE,
+        );
 
         if (scenario.expected === 'optionOnly') {
           expectSelectedFacetValues(
@@ -255,7 +283,7 @@ test.describe('Listing service matrix perf', () => {
             seedMeta.expected.optionAndPrice.expectedSelectedFacetCounts,
           );
         } else {
-          expectNoSelectedFacetValues(listing.facets);
+          expectNoSelectedOptionFacetValues(listing.facets);
         }
 
         metrics.push({
@@ -372,8 +400,11 @@ function expectSelectedFacetValues(
   }
 }
 
-function expectNoSelectedFacetValues(facets: ListingMatrixFacet[]) {
+function expectNoSelectedOptionFacetValues(facets: ListingMatrixFacet[]) {
   for (const facet of facets) {
+    if (facet.id === 'price') {
+      continue;
+    }
     for (const value of facet.values) {
       expect(value.selected, `selected ${facet.id}:${value.id}`).toBe(false);
     }
@@ -453,7 +484,7 @@ function summarizeSqlTimings(summary: string): SqlTimingSummaryEntry[] {
     }
 
     const duration = entry.match(/duration: ([0-9.]+) ms\s+execute [^:]+:/);
-    const comment = entry.match(/\/\*\s*([^*]+?)\s*\//);
+    const comment = entry.match(/\/\*\s*([^*]+?)\s*\*\//);
     if (!duration || !comment) {
       continue;
     }

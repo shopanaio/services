@@ -12,6 +12,12 @@ import type {
 } from "./types.js";
 import { StorefrontRepositoryValidationError } from "./types.js";
 import { assertNonNegativeSafeInteger } from "./sqlHelpers.js";
+import {
+  buildAvailabilityVariantTermGroup,
+  buildListingVariantTermGroup,
+  buildOptionVariantTerm,
+  encodeListingVariantTerm,
+} from "../../listing/variantTerms/index.js";
 
 interface FacetResolutionSqlRow extends Record<string, unknown> {
   facetSlug: string;
@@ -38,8 +44,10 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
   async resolveFilterPlan(input: {
     filters: StorefrontListingFilterInput[];
   }): Promise<StorefrontFilterPlan> {
+    await this.assertDeclaredVariantTermRows();
     const plan: StorefrontFilterPlan = {
       productFacetGroups: [],
+      variantTermGroups: [],
       optionFacetGroups: [],
       vendorIds: [],
       userErrors: [],
@@ -71,11 +79,49 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
           break;
         case "in_stock":
           plan.inStock = this.mergeInStock(plan.inStock, filter.value);
+          this.upsertVariantTermGroup(
+            plan,
+            buildAvailabilityVariantTermGroup(filter.value)
+          );
           break;
       }
     }
 
     return plan;
+  }
+
+  private async assertDeclaredVariantTermRows(): Promise<void> {
+    const required = [
+      encodeListingVariantTerm({ fieldKey: "system.state", valueKey: "indexable" }),
+      encodeListingVariantTerm({
+        fieldKey: "criterion.availability",
+        valueKey: "available",
+      }),
+      encodeListingVariantTerm({
+        fieldKey: "criterion.availability",
+        valueKey: "unavailable",
+      }),
+    ];
+    const rows = await this.connection.execute<
+      Record<string, unknown> & { presentCount: number }
+    >(sql`
+      SELECT COUNT(*)::int AS "presentCount"
+      FROM listing.listing_posting_bitmap p
+      WHERE p.store_id = ${this.storeId}::uuid
+        AND p.entity_type = 'variant'
+        AND p.field = 'term'
+        AND p.value_key IN (${sql.join(
+          required.map((value) => sql`${value}`),
+          sql`, `
+        )})
+    `);
+    if (rows[0]?.presentCount !== required.length) {
+      throw new StorefrontRepositoryValidationError(
+        "Listing variant term index is incomplete: declared universe/availability rows are missing",
+        undefined,
+        "LISTING_TERM_INDEX_INCOMPLETE"
+      );
+    }
   }
 
   @ReadOnly()
@@ -101,12 +147,16 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
       ),
       scope_variants AS (
         SELECT ${coalesceScopeBitmapSql(sql`(
-          SELECT rb_build_agg(vli.variant_doc_id)
-          FROM listing.variant_listing_index vli
+          SELECT p.bitmap
+          FROM listing.listing_posting_bitmap p
           CROSS JOIN scope_products sp
-          WHERE vli.store_id = ${this.storeId}::uuid
-            AND vli.in_stock = true
-            AND sp.product_bitmap @> vli.product_doc_id
+          WHERE p.store_id = ${this.storeId}::uuid
+            AND p.entity_type = 'variant'
+            AND p.field = 'term'
+            AND p.value_key = ${encodeListingVariantTerm({
+              fieldKey: "system.state",
+              valueKey: "indexable",
+            })}
         )`)} AS variant_bitmap
       ),
       candidate_values AS (
@@ -122,14 +172,21 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
 
         UNION
 
-        SELECT DISTINCT
-          split_part(p.value_key, ':', 1)::uuid AS facet_id,
-          split_part(p.value_key, ':', 2)::uuid AS facet_value_id
-        FROM listing.listing_posting_bitmap p
+        SELECT DISTINCT f.id AS facet_id, fv.id AS facet_value_id
+        FROM ${facet} f
+        JOIN ${facetValue} fv
+          ON fv.store_id = f.store_id
+         AND fv.facet_id = f.id
+        JOIN listing.listing_posting_bitmap p
+          ON p.store_id = f.store_id
+         AND p.entity_type = 'variant'
+         AND p.field = 'term'
+         AND p.value_key = (
+           '["v1","option:' || f.id::text || '","' || fv.id::text || '"]'
+         )
         CROSS JOIN scope_variants sv
-        WHERE p.store_id = ${this.storeId}::uuid
-          AND p.entity_type = 'variant'
-          AND p.field = 'facet'
+        WHERE f.store_id = ${this.storeId}::uuid
+          AND f.facet_type = 'OPTION'
           AND rb_cardinality(sv.variant_bitmap & p.bitmap) > 0
       )
       SELECT
@@ -335,6 +392,20 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
     }
 
     if (facetType === "OPTION") {
+      const terms = validRows.map((row) =>
+        buildOptionVariantTerm({
+          facetId: row.facetId!,
+          facetValueId: row.facetValueId!,
+        })
+      );
+      this.upsertVariantTermGroup(
+        plan,
+        buildListingVariantTermGroup({
+          groupKey: `option:${first.facetId}`,
+          terms,
+          source: "OPTION",
+        })
+      );
       this.upsertGroup(plan.optionFacetGroups, {
         facetId: first.facetId,
         facetType,
@@ -353,6 +424,10 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
       }
       const next = this.parseInStockHandle(validValueHandle);
       plan.inStock = this.mergeInStock(plan.inStock, next);
+      this.upsertVariantTermGroup(
+        plan,
+        buildAvailabilityVariantTermGroup(next)
+      );
       return;
     }
 
@@ -372,6 +447,30 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
       return;
     }
     existing.valueKeys = this.mergeUnique(existing.valueKeys, group.valueKeys);
+  }
+
+  private upsertVariantTermGroup(
+    plan: StorefrontFilterPlan,
+    group: StorefrontFilterPlan["variantTermGroups"][number]
+  ): void {
+    const existingIndex = plan.variantTermGroups.findIndex(
+      (item) => item.groupKey === group.groupKey
+    );
+    if (existingIndex < 0) {
+      plan.variantTermGroups.push(group);
+      plan.variantTermGroups.sort((left, right) =>
+        left.groupKey.localeCompare(right.groupKey)
+      );
+      return;
+    }
+    plan.variantTermGroups[existingIndex] = buildListingVariantTermGroup({
+      groupKey: group.groupKey,
+      source: group.source,
+      terms: [
+        ...plan.variantTermGroups[existingIndex].terms,
+        ...group.terms,
+      ],
+    });
   }
 
   private mergePriceRange(

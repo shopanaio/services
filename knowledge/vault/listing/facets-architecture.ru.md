@@ -1,533 +1,174 @@
 ---
-tags:
-  - listing
-  - facets
-  - architecture
-  - storefront
-related:
-  - architecture/overview
-  - patterns/repository
-  - packages/dbos/workflow-queue-wrapper-plan.ru
+tags: [listing, facets, architecture, storefront]
+related: [architecture/overview, patterns/repository]
 ---
 
 # Архитектура Listing Facets
 
-Документ описывает, как в Shopana устроены facets для каталожного listing:
-как админская настройка фильтров превращается в индекс, как runtime-запрос
-разрешает выбранные значения и как считаются counts для storefront/admin preview.
+Актуальный contract после перехода на universal variant-term index. Модель
+рассчитана на clean DB; dual-read, dual-write и legacy variant facet postings
+отсутствуют.
 
-Listing facets - это не фильтры таблиц Admin UI. Это доменная модель фильтров
-каталожной выдачи: цена, наличие, теги, характеристики и опции вариантов.
+## Слои и public input
 
-## Основная идея
+Facet configuration хранит публичные slug/handle, labels, порядок, swatches и
+configured OPTION/TAG/FEATURE values. Listing index хранит product postings,
+universal variant terms, typed price index, sort/search rows и mapping
+variant-to-product. Storefront query собирает page, total, counts и virtual
+facets из одного canonical contract.
 
-Система разделена на три слоя:
+`available` имеет три режима:
 
-| Слой | Ответственность |
-|------|-----------------|
-| Facet configuration | Хранит публичные фильтры, их порядок, UI type, переводы, visible values, swatches и связь с catalog source values. |
-| Listing index | Хранит денормализованные posting lists и price/sort/search индексы, оптимизированные под выдачу. |
-| Storefront query | На каждый listing request собирает страницу, total count, facet metadata, facet counts и virtual facets. |
+```text
+input отсутствует -> ALL, availability predicate отсутствует
+true              -> AVAILABLE
+false             -> UNAVAILABLE
+```
 
-Внешний API работает со стабильными `slug` и `handle`, а внутренний индекс - с
-`valueKey = facetId:valueId`. Поэтому можно менять label, перевод, swatch и даже
-группировать source values в group value без смены внутренней структуры
-posting bitmap.
+Virtual availability facet возвращает оба declared states (`true`, `false`),
+включая count `0`. Mixed product может входить в оба isolated buckets.
 
-## Публичный GraphQL контракт
+## Physical postings
 
-Входной фильтр listing принимает список `ListingProductFilter`.
+| entity_type | field | value_key | bitmap |
+|---|---|---|---|
+| product | category | category UUID | product_doc_id |
+| product | vendor | vendor UUID | product_doc_id |
+| product | facet | `<facetId>:<facetValueId>` | product_doc_id |
+| variant | term | `JSON.stringify(["v1", fieldKey, valueKey])` | variant_doc_id |
+| variant | variant_product | product UUID | variant_doc_id |
 
-Основные варианты:
+Product `field=facet` используется только TAG/FEATURE. `variant + facet` и
+`product + term` запрещены repository и DB constraints.
 
-- `available` - виртуальный boolean-фильтр наличия;
-- `price` - диапазон цены в minor units;
-- `tag` - фильтр по product tag;
-- `variantOption` - фильтр по variant option;
-- `productFacet` - фильтр по product-level facet value;
-- `variantFacet` - фильтр по variant-level facet value.
+## Universal variant terms
 
-Facet value в новом контракте задается парой:
-
-```graphql
-input ListingFacetValueFilter {
-  facet: String!
-  value: String!
+```ts
+interface ListingVariantTerm {
+  readonly fieldKey: string;
+  readonly valueKey: string;
 }
 ```
 
-`facet` - публичный `facet.slug`, `value` - публичный `facet_value.handle`.
-В ответе `ListingConnection.facets` возвращает `ListingFacet[]`; каждое значение
-содержит `count`, `selected`, готовый reusable `input` и опциональный `swatch`.
+Начальный registry:
 
-## Конфигурационная модель
+| fieldKey | valueKey | Domain |
+|---|---|---|
+| `system.state` | `indexable` | declared, retain empty |
+| `criterion.availability` | `available`, `unavailable` | declared, retain empty |
+| `criterion.delivery.ready` | `true`, `false`, `unknown` | reference definition |
+| `option:<facetId>` | `<facetValueId>` | configured stable UUIDs |
 
-Конфигурация хранится в schema `listing`:
+Rules:
 
-- `listing.facet`;
-- `listing.facet_translation`;
-- `listing.facet_source`;
-- `listing.facet_source_translation`;
-- `listing.facet_value`;
-- `listing.facet_value_translation`;
-- `listing.facet_swatch`.
+- field/value trimmed, non-empty и case-sensitive;
+- labels и mutable handles не входят в identity;
+- OPTION принимает только resolved facet/value UUID;
+- declared domain отклоняет unknown value;
+- terms deduplicate и сортируются до hashing/write;
+- raw broker/public payload не принимает encoded key.
 
-`facet` описывает фильтр:
+Для нового criterion нужно определить semantics/unknown policy, добавить
+normalized upstream field, registry definition/materializer и при необходимости
+public mapper. DB column/table, новый bitmap compiler и отдельная projection не
+нужны.
 
-- `facet_type`: `PRICE`, `TAG`, `FEATURE`, `OPTION`, `IN_STOCK`;
-- `ui_type`: `CHECKBOX`, `RADIO`, `DROPDOWN`, `RANGE`, `BOOLEAN`;
-- `selection_mode`: `SINGLE` или `MULTI`;
-- `lexo_rank`: порядок вывода;
-- `slug`: стабильный публичный идентификатор;
-- translation label.
+## Universe и availability
 
-`facet_source` описывает выбранные catalog sources для facets, у которых есть
-явный source-handle namespace. В текущей persisted модели это `OPTION` и
-`FEATURE`.
+В runtime index входят только variants со `status=active`. Каждый indexable
+variant находится в `system.state=indexable` и ровно в одном availability
+state. Canonical availability определяется только `availableForSale`; quantity
+`0` не меняет backorder state.
 
-| Facet type | `facet_source.handle` | Catalog source |
-|------------|------------------------|----------------|
-| `OPTION` | `catalog.product_option.slug` | одна option family, например `color` или `size` |
-| `FEATURE` | `catalog.product_feature.slug` | одна feature, например `material` |
+`product_listing_index.in_stock`, `variant_listing_index.in_stock` и product
+sort bool используются для diagnostics/order, но не для membership/counts.
+`variant_listing_price_index` содержит priced rows всех indexable variants
+независимо от availability.
 
-`TAG`, `PRICE` и `IN_STOCK` не должны описываться как persisted
-`facet_source` rows в этом документе:
-
-```text
-TAG      -> конкретные tag values описываются через facet_value, не facet_source
-PRICE    -> runtime price берется из price index tables
-IN_STOCK -> runtime availability берется из availability/index state
-```
-
-Конкретные теги не сохраняются в `facet_source`. Для tag facet конкретный
-catalog tag хранится в `facet_value.handle`.
-
-`facet_source` нужен для трех вещей:
-
-- зафиксировать, какие catalog sources участвуют в конкретном listing facet;
-- хранить localized source name через `facet_source_translation`;
-- запретить неоднозначную конфигурацию для option/feature sources: уникальность
-  `(store_id, facet_type, handle)` не дает подключить один и тот же catalog
-  source к нескольким facets одного store.
-
-Важно: `PRICE` в этой модели не имеет rows в `listing.facet_value`. Запись
-`facet_type = PRICE` не означает наличие `facet_source` или `facet_value` для
-price; runtime listing строит price facet виртуально из price index.
-
-`facet_value` хранит два типа значений только для дискретных facets
-`TAG`, `FEATURE`, `OPTION`:
-
-- `source` - реальное значение из каталога: tag handle, feature value handle или option value handle;
-- `group` - публичное значение фильтра, которое может группировать несколько source values.
-
-Связь catalog values с `facet_value` задается через source value handle:
-
-| Catalog entity | Source namespace | `facet_value.kind = source`, `handle` |
-|----------------|------------------------|----------------------------------------|
-| `catalog.tag` | tags namespace, не persisted `facet_source` | `tag.handle`, например `sale` |
-| `catalog.product_option` + `product_option_value` | `product_option.slug`, например `color` | `option.slug:value.slug`, например `color:red` |
-| `catalog.product_feature` + `product_feature_value` | `product_feature.slug`, например `material` | `feature.slug:value.slug`, например `material:cotton` |
-
-Catalog snapshot может прийти с value handle без префикса source. Для `OPTION`
-и `FEATURE` listing resolution нормализует его к форме
-`sourceHandle:valueHandle`. Для `TAG` source handle всегда `tags`, а value handle
-остается `tag.handle`.
-
-В админской модели root values - это rows с `parent_id IS NULL`: они показываются
-при управлении facet values и сортируются по `sort_index`. Root value может быть
-как `group`, так и `source`: негруппированный source value остается root и
-является самостоятельным публичным значением фильтра.
-
-Runtime listing metadata выбирает все видимые root values: `parent_id IS NULL`,
-`enabled = true`, `reference_status = VALID` и `kind IN ('group', 'source')`.
-Source value с group parent является внутренним child этой группы и отдельно
-не показывается. Source value без group parent показывается самостоятельно с
-собственным `handle`, label, count и reusable `input`.
-
-Пример группировки:
+## Canonical query
 
 ```text
-source: color:red       -> parent group:red-tones
-source: color:dark-red  -> parent group:red-tones
-source: color:black     -> parent отсутствует, value показывается самостоятельно
+productBase = published scope & product TAG/FEATURE/vendor filters
 
-UI видит:
-- red-tones
-- black
+variantTermCandidates =
+  system.state=indexable
+  & AND(OR(values внутри каждой variant term group))
+
+variantCandidates = variantTermCandidates & numeric price candidates
+
+productMatches =
+  variant witness exists
+    ? productBase & projectDistinctProducts(variantCandidates)
+    : productBase
 ```
 
-При выборе `red-tones` runtime фильтрует индекс по ключу group parent:
-`facetId:redTonesValueId`. При выборе негруппированного `black` используется
-ключ самого source value: `facetId:blackSourceValueId`. При индексировании
-source selection заранее разрешается либо в group parent, если он есть, либо
-в собственный source value. Поэтому query path не должен раскрывать группу
-каждый раз.
+Availability, OPTION и future criteria компилируются одинаково. PRICE остаётся
+typed numeric index. Все predicates пересекаются в variant space до projection,
+поэтому predicates разных variants одного product не склеиваются. Page и total
+используют один `compileProductMatchesBitmapSql` contract. Product без active
+variants остаётся в ALL, но исключается при variant witness.
 
-## Source candidates
+## Counts и metadata
 
-Listing не владеет catalog domain values. Для админского выбора источников он
-обращается к Catalog через candidate layer:
-
-- `facetSourceCandidates` показывает доступные источники facet;
-- `facetValueCandidates` показывает доступные values для выбранных источников.
-
-В Catalog это построено на candidate views. В persisted `facet_source` нельзя
-смешивать source candidates со значениями: source rows используются для
-`OPTION`/`FEATURE` namespaces, а конкретные значения живут в `facet_value`.
-
-Candidate views в Catalog возвращают уже нормализованные candidate records.
-Важно различать `id` candidate и публичный `handle`, который потом уходит в
-create input:
-
-- source candidates:
-  - `PRICE:price` - `facetType = PRICE`, `handle = price`;
-  - `IN_STOCK:availability` - `facetType = IN_STOCK`, `handle = availability`;
-  - `TAG:tags` - `facetType = TAG`, `handle = tags`;
-  - `OPTION:<product_option.slug>` - `facetType = OPTION`, `handle = <product_option.slug>`;
-  - `FEATURE:<product_feature.slug>` - `facetType = FEATURE`, `handle = <product_feature.slug>`.
-- value candidates:
-  - `TAG:<tag.handle>` - `facetType = TAG`, `sourceHandle = tags`,
-    `handle = <tag.handle>`;
-  - `OPTION:<product_option.slug>:<product_option_value.slug>` -
-    `facetType = OPTION`, `sourceHandle = <product_option.slug>`,
-    `handle = <product_option.slug>:<product_option_value.slug>`;
-  - `FEATURE:<product_feature.slug>:<product_feature_value.slug>` -
-    `facetType = FEATURE`, `sourceHandle = <product_feature.slug>`,
-    `handle = <product_feature.slug>:<product_feature_value.slug>`.
-
-`facetSourceCandidates` доступен для create flow всех facet types. Но persisted
-`listing.facet_source` после создания остается только для `OPTION` и `FEATURE`.
-Для `PRICE`, `IN_STOCK` и `TAG` выбранный source candidate валидирует create
-input, но не превращается в persisted `facet_source` row.
-
-При создании `OPTION`/`FEATURE` facet выбранные sources записываются в
-`listing.facet_source`. Для `TAG`, `OPTION`, `FEATURE` выбранные value
-candidates записываются в `listing.facet_value` как `kind = 'source'`. Если
-нужно публичное имя, ручной handle, swatch или группировка нескольких source
-values, создается `kind = 'group'`, а source values получают `parent_id` этого
-group value. Source values, которые не включены в group, сохраняют
-`parent_id IS NULL` и показываются в storefront как самостоятельные facet
-values.
-
-Для `PRICE` и `IN_STOCK` value candidates не создаются: scripts запрещают
-`facet_value` для этих типов. Они обрабатываются как virtual facets.
-
-## Что хранится в bitmap value key
-
-`listing.listing_posting_bitmap` - общий posting-list индекс. Его primary key:
+Target isolation исключает только target group:
 
 ```text
-store_id + entity_type + field + value_key
+candidateVariants = allOtherGroups & targetValue & numericCandidates
+count = cardinality(productBase & projectDistinctProducts(candidateVariants))
 ```
 
-`bitmap` хранит набор integer doc ids, а `value_key` говорит, для какого
-значения построен этот bitmap. Смысл `value_key` зависит от пары
-`entity_type`/`field`:
+Counts — distinct products. OPTION, availability и future criterion используют
+один algebra. Product TAG/FEATURE сохраняют текущий variant witness. Selected
+configured value остаётся при count `0`; unselected zero скрывается. Internal
+`system.*` terms не публикуются. OPTION metadata остаётся в
+`facet`/`facet_value`, а boolean metadata задаётся registry.
 
-| `entity_type` | `field` | Что лежит в `value_key` | Что лежит в `bitmap` |
-|---------------|---------|--------------------------|----------------------|
-| `product` | `category` | `categoryId` | `product_doc_id` продуктов в категории |
-| `product` | `vendor` | `vendorId` | `product_doc_id` продуктов vendor |
-| `product` | `facet` | `facetId:facetValueId` | `product_doc_id` продуктов с этим product-level facet value |
-| `variant` | `facet` | `facetId:facetValueId` | `variant_doc_id` вариантов с этим option facet value |
-| `variant` | `variant_product` | `productId` | `variant_doc_id` вариантов продукта |
+PRICE virtual facet исключает только active price range и считает min/max по
+price rows variants, matching remaining terms.
 
-Для дискретных listing facets (`TAG`, `FEATURE`, `OPTION`) важен формат:
+## Sort и cursor
+
+Matched-price collector стартует от `productMatches` и выбирает минимальную
+цену только среди canonical matching variants. ASC/DESC меняет итоговый порядок,
+но не eligible set. Product без eligible price остаётся в page с `NULLS LAST`.
+Availability aggregate разрешён только как ordering component. Cursor повторяет
+nullable DB tuple и содержит product/variant tie-breakers.
+
+## Write path
+
+`ListingBuildSyncWriteModelScript` создаёт version `2`: active variants,
+canonical sorted terms и criterion-neutral price rows. Single и batch writers
+в одной item transaction обновляют rows, price, sort, projection, postings и
+item state.
+
+Term changes сливаются по encoded key:
 
 ```text
-value_key = <listing.facet.id>:<listing.facet_value.id>
+bitmap = (bitmap - removedVariantDocIds) | addedVariantDocIds
 ```
 
-Пример:
+Keys/doc IDs сортируются; hot key обновляется один раз на batch. Empty declared
+universe/availability rows сохраняются, empty OPTION rows удаляются.
 
-```text
-facet.slug = color
-facet.id = 7f0...
-group facet_value.handle = red
-group facet_value.id = 9a1...
+Option signature tables, repository, DDL, wiring и SQL strategies удалены:
+same-variant parity/benefit не были доказаны, canonical term path является
+единственным correctness source.
 
-bitmap value_key = 7f0...:9a1...
-GraphQL value id/input value = red
-```
+## Snapshot, observability и audit
 
-Наружу API никогда не отдает `value_key`. UI работает с `facet.slug` и
-`facet_value.handle`, а `value_key` нужен только для быстрых пересечений bitmap.
+Один listing request выполняет normalization, page, total, metadata, virtual
+facets и counts последовательно внутри `REPEATABLE READ READ ONLY` transaction.
 
-Price не использует этот формат. Для price нет `field = facet` bitmap key вида
-`priceFacetId:priceValueId`, потому что нет `price` rows в `facet_value`.
+Request log содержит число groups/terms, cardinality term/numeric/final variant
+candidates, projected products, collector и snapshot strategy без raw payload.
 
-## Как хранится price
+`ListingPostingBitmapRepository.auditVariantTermIndex()` bounded-проверяет:
+cardinality, subset universe, availability partition, mapping, price subset,
+product availability aggregate parity и registry divergence.
 
-Price хранится не в `listing.facet_value` и не в `listing_posting_bitmap`.
+## DB decision
 
-Конфигурационный слой может содержать сам facet type:
-
-```text
-listing.facet.facet_type = PRICE
-```
-
-Но persisted `facet_source`/`facet_value` для price не нужны. Runtime данные
-цены лежат в индексных таблицах:
-
-| Таблица | Что хранит |
-|---------|------------|
-| `listing.product_listing_price_index` | product-level диапазон цены по currency: `min_price_minor`, `max_price_minor`, `has_price` |
-| `listing.variant_listing_price_index` | единственный source/runtime variant-level price index по currency: `price_minor`, `signature_key`, `product_doc_id`, `variant_doc_id`, `has_price`; partial covering indexes обслуживают range, sort и product-order paths |
-| `listing.listing_posting_product_sort` | price sort rows: `sort_kind = price`, `currency`, `bigint_value = minPriceMinor` |
-
-Price filter приходит через dedicated input:
-
-```graphql
-input ListingPriceRangeFilter {
-  min: BigInt
-  max: BigInt
-}
-```
-
-Runtime `price` facet строится в `virtualFacets`: SQL вычисляет текущий
-`minPriceMinor`/`maxPriceMinor` для matched result, а GraphQL mapper возвращает
-facet:
-
-```text
-id = price
-type = PRICE_RANGE
-uiType = RANGE
-value.id = range
-value.input = { price: { min, max } }
-```
-
-Поэтому price нельзя фильтровать через `productFacet`/`variantFacet`; если в
-facet resolution встретится `facet_type = PRICE`, такой ввод считается ошибкой
-`UNSUPPORTED_PRICE_FACET_FILTER`.
-
-## Write path индекса
-
-Каталог отправляет listing snapshot через broker action. Snapshot содержит:
-
-- product-level facets: `TAG`, `FEATURE`;
-- variant-level facets: `OPTION`;
-- price ranges;
-- availability;
-- category scopes;
-- vendor;
-- localized content.
-
-Далее listing pipeline делает несколько шагов:
-
-1. `catalogListingSnapshotMapper` превращает catalog product snapshot в
-   `ListingSellableItemSnapshot`.
-2. `ListingResolveFacetSelectionsScript` разрешает source handles в configured
-   `facet.id` и `facet_value.id`. Если value не настроен или reference stale,
-   selection отбрасывается и добавляется warning
-   `LISTING_FACET_VALUE_NOT_CONFIGURED`.
-3. `ListingBuildSyncWriteModelScript` строит deterministic write model:
-   product rows, variant rows, price rows, sort rows, search rows и posting keys.
-4. `ListingWriteIndexActionScript` в транзакции применяет write model к индексным
-   таблицам и обновляет `listing_index_item_state`.
-
-Ключевая нормализация происходит перед записью posting lists:
-
-```text
-facet selection -> facet.id + facet_value.id -> valueKey = facetId:valueId
-```
-
-Эта нормализация относится к дискретным product/variant facets. Price идет
-отдельно: `ListingBuildSyncWriteModelScript` пишет product price ranges,
-variant prices и price sort rows, но не создает facet bitmap memberships для
-price.
-
-Product-level facets пишутся в `listing_posting_bitmap` как:
-
-```text
-entity_type = product
-field = facet
-value_key = facetId:valueId
-bitmap = product doc ids
-```
-
-Variant-level option facets пишутся как:
-
-```text
-entity_type = variant
-field = facet
-value_key = facetId:valueId
-bitmap = variant doc ids
-```
-
-Для вариантов дополнительно строятся:
-
-- `listing_option_signature` - комбинация option facet values у варианта,
-  спроецированная в product bitmap;
-- `listing_option_signature_value` - связь signature с отдельными option value keys;
-- `listing_option_signature_product_membership` - membership signature/product;
-- `listing_posting_variant_projection_block` - блоки для быстрой проекции
-  variant bitmap обратно в product bitmap.
-
-Это нужно потому, что выдача возвращает продукты, а option facet живет на уровне
-вариантов.
-
-## Runtime query path
-
-Основной entry point - `StorefrontListingQueryRepository.getStorefrontListing`.
-Он нормализует request, строит filter hash/cursor state и выполняет SQL branches:
-
-- `page` - страница продуктов;
-- `totalCount` - общее число matched products;
-- `facetsMetadata` - список видимых facet values для текущего scope;
-- `virtualFacets` - price range и in-stock count;
-- `facetCounts` - counts по видимым facet values.
-
-Metadata и counts разделены намеренно:
-
-1. `facetsMetadata` сначала находит только values, которые реально присутствуют
-   в текущем scope.
-2. `facetCounts` получает этот список как ограничение и не пересчитывает
-   несуществующие values.
-3. `mergeFacetCounts` объединяет metadata с count map.
-
-## Resolution входных facet-фильтров
-
-Runtime принимает публичные `facet.slug` и `value.handle`, затем разрешает их в
-`facetId`, `facetType`, `facetValueId`, `valueKey`.
-
-Правила:
-
-- `group` value валиден, если он root, enabled и `reference_status = VALID`;
-- root `source` value валиден как самостоятельный публичный input, если он
-  enabled и `reference_status = VALID`;
-- `source` value с parent не является отдельным публичным input: storefront
-  использует handle его валидного group parent;
-- неизвестная пара `facet:value` приводит к validation error;
-- `PRICE` нельзя применять через `productFacet`/`variantFacet`, для него есть
-  `price` range input;
-- `IN_STOCK` может быть представлен virtual input `available`, а также
-  boolean-like handles внутри SQL resolution.
-
-После resolution filter plan разделяется на:
-
-- `productFacetGroups` для `TAG` и `FEATURE`;
-- `optionFacetGroups` для `OPTION`;
-- `vendorIds`;
-- `priceRange`;
-- `inStock`.
-
-Внутри одного facet несколько values объединяются через OR. Разные facets
-объединяются через AND.
-
-## Facet counts
-
-Counts считаются как количество matched sellable products для каждого visible
-facet value. Поведение соответствует обычным ecommerce facets:
-
-- при подсчете values текущего facet фильтр этого же facet исключается;
-- все остальные активные фильтры остаются;
-- selected values остаются в выдаче и показывают count в контексте остальных
-  фильтров.
-
-Product-level counts (`TAG`, `FEATURE`) используют product posting bitmaps.
-
-Option counts сложнее, потому что values находятся на variants, а result entity -
-product. Для `OPTION` есть несколько стратегий:
-
-- simple path, если нет option filters и price filter;
-- price-only path, если есть price filter, но нет option filters;
-- signature path для пересечения option groups;
-- heavy path для сложных случаев с большим числом option groups.
-
-Все стратегии сходятся к product count: variant matches проецируются в product
-bitmap через signatures или projection blocks.
-
-## Virtual facets
-
-Не все facets приходят из `listing.facet_value`.
-
-`available` и `price` формируются как virtual facets:
-
-- `available` возвращает boolean value `true` с count in-stock products;
-- `price` возвращается как `PRICE_RANGE`, если для текущего результата есть
-  price range в выбранной currency.
-
-Virtual facets нужны, потому что availability и price не являются дискретными
-source values с обычным `facet_value` lifecycle. Они считаются из индексных
-таблиц availability/price.
-
-## Sorting и порядок вывода
-
-Порядок facets задается `facet.lexo_rank`.
-Порядок видимых root values (`group` и негруппированных `source`) задается
-`facet_value.sort_index`, затем стабильным `facet_value.id`.
-
-GraphQL наружу отдает:
-
-- `ListingFacet.id = facet.slug`;
-- `ListingFacetValue.id = facet_value.handle`;
-- `ListingFacetValue.input` - готовый payload для следующего request.
-
-Это сохраняет URL/API стабильными и скрывает внутренние UUID.
-
-## Reference status
-
-`facet_source` и `facet_value` имеют `reference_status`:
-
-- `VALID` - источник актуален;
-- `STALE` - source больше не подтвержден catalog layer.
-
-Index write path не индексирует stale/невалидные source selections как активные
-facets. Runtime metadata выбирает только enabled + valid values. Это защищает
-storefront от показа фильтров, которые больше не соответствуют catalog data.
-
-## Производительность
-
-Основной performance design:
-
-- integer doc ids вместо UUID в runtime bitmaps;
-- roaring bitmap для posting lists;
-- отдельные product и variant posting bitmaps;
-- option signatures для комбинаций variant options;
-- projection blocks для variant-to-product projection;
-- параллельные SQL branches для page/total/metadata/virtual facets/counts;
-- опциональный profiling `listing:facetCounts` и `EXPLAIN ANALYZE` для e2e perf.
-
-Важно: facet counts не должны строиться через ad hoc joins к catalog domain
-таблицам. Runtime listing читает собственный индекс и facet configuration в
-schema `listing`.
-
-## Практические правила изменений
-
-- Для нового публичного facet value меняй configuration layer, а не posting
-  bitmap contract.
-- Внешним идентификатором остаются `facet.slug` и `facet_value.handle`.
-- Внутренним ключом индекса остается `facetId:valueId`.
-- Product-level facets идут в product postings; variant-level option facets -
-  в variant postings плюс option signatures/projection.
-- Price и availability держи как virtual facets, если не нужна полноценная
-  discrete configuration model.
-- При изменении grouping source/group values нужен reindex affected sellable
-  items, иначе posting bitmap продолжит ссылаться на старый resolved value id.
-- Counts должны сохранять isolated-facet поведение: исключать только текущий
-  facet group и учитывать остальные filters.
-
-## Основные файлы
-
-- `services/listing/src/api/graphql-admin/schema/listing.graphql` - публичный
-  listing contract.
-- `services/listing/src/api/graphql-admin/schema/facet.graphql` - admin contract
-  управления facets.
-- `services/listing/src/repositories/models/facet.ts` - configuration tables.
-- `services/listing/src/repositories/models/listingIndex.ts` - индексные tables.
-- `services/listing/src/scripts/ListingResolveFacetSelectionsScript.ts` -
-  resolution source values при индексации.
-- `services/listing/src/scripts/ListingBuildSyncWriteModelScript.ts` - сборка
-  deterministic write model.
-- `services/listing/src/scripts/ListingWriteIndexActionScript.ts` - применение
-  write model к индексу.
-- `services/listing/src/repositories/storefront/StorefrontListingQueryRepository.ts`
-  - runtime orchestration.
-- `services/listing/src/repositories/storefront/StorefrontFacetResolutionRepository.ts`
-  - typed resolution публичных facet filters.
-- `services/listing/src/repositories/storefront/sql/compileFacetsQuerySql.ts` -
-  metadata visible facet values.
-- `services/listing/src/repositories/storefront/sql/compileFacetCountsQuerySql.ts`
-  - SQL для facet counts.
-- `services/listing/src/resolvers/admin/listingFacetMapper.ts` - mapping runtime
-  result в GraphQL `ListingFacet`.
+Существующих posting columns и PK
+`(store_id, entity_type, field, value_key)` достаточно. Criterion-specific
+columns не добавляются. Price indexes остаются criterion-neutral. Initial DDL
+обновлён для clean DB; conversion/reindex старого listing index вне scope.

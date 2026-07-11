@@ -71,7 +71,7 @@ export class ListingConnectionResolver extends ListingType<
   }
 
   async facets(): Promise<ListingFacet[]> {
-    const [rows, hasNextPage, totalCount, facets, priceRange, inStockCount] =
+    const [rows, hasNextPage, totalCount, facets, priceRange, inStockCount, unavailableCount] =
       await Promise.all([
         this.$get("rows"),
         this.$get("hasNextPage"),
@@ -79,6 +79,7 @@ export class ListingConnectionResolver extends ListingType<
         this.$get("facets"),
         this.$get("priceRange"),
         this.$get("inStockCount"),
+        this.$get("unavailableCount"),
       ]);
 
     try {
@@ -90,6 +91,7 @@ export class ListingConnectionResolver extends ListingType<
           facets: facets ?? [],
           priceRange: priceRange ?? null,
           inStockCount: inStockCount ?? 0,
+          unavailableCount: unavailableCount ?? 0,
           userErrors: [],
         },
         this.$props

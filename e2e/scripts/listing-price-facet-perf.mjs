@@ -206,10 +206,6 @@ function productOptionValueKey(productIndex, groupIndex, valueHandle) {
   return `${productIndex}:${groupIndex}:${valueHandle}`;
 }
 
-function optionSignatureKey(valueKeys) {
-  return [...new Set(valueKeys)].sort().join('|');
-}
-
 function composeGlobalId(typeName, id) {
   return Buffer.from(`gid://shopana/${typeName}/${id}`, 'utf8').toString('base64');
 }
@@ -455,7 +451,6 @@ async function main() {
       return `${facet.id}:${value.id}`;
     });
   });
-  const signatureKeys = variantValueKeys.map(optionSignatureKey);
   const selectedFilterRows = facets.flatMap((facet) =>
     facet.selected.map((handle) => {
       const value = facet.values.find((candidate) => candidate.handle === handle);
@@ -516,13 +511,11 @@ async function main() {
       handles,
       variants,
       productPrices,
-      signatureKeys,
       now,
     });
     await seedCategoryBitmaps(tx, storeId, categories);
     await seedVariantProjectionBlock(tx, storeId, variants);
-    await seedOptionFacetBitmaps(tx, storeId, facets, variantValueKeys, variants);
-    await seedOptionSignatures(tx, storeId, variantValueKeys, variants);
+    await seedVariantTermBitmaps(tx, storeId, facets, variantValueKeys, variants);
   });
 
   await sql`ANALYZE listing.product_listing_index`;
@@ -530,9 +523,6 @@ async function main() {
   await sql`ANALYZE listing.variant_listing_price_index`;
   await sql`ANALYZE listing.listing_posting_bitmap`;
   await sql`ANALYZE listing.listing_posting_variant_storeion_block`;
-  await sql`ANALYZE listing.listing_option_signature`;
-  await sql`ANALYZE listing.listing_option_signature_value`;
-  await sql`ANALYZE listing.listing_option_signature_product_membership`;
 
   if (args.seedOnly) {
     await writeText(
@@ -1197,8 +1187,6 @@ async function seedListingRows(sql, input) {
     const variantIds = variantChunk.map((variant) => variant.variantId);
     const variantDocIds = variantChunk.map((variant) => variant.variantDocId);
     const variantPrices = variantChunk.map((variant) => variant.priceMinor);
-    const signatureKeys = variantChunk.map((variant) => input.signatureKeys[variant.variantDocId - 1]);
-
     await sql`
       INSERT INTO listing.variant_listing_index (
         store_id,
@@ -1206,7 +1194,6 @@ async function seedListingRows(sql, input) {
         product_doc_id,
         variant_id,
         variant_doc_id,
-        signature_key,
         in_stock,
         total_stock,
         indexed_at,
@@ -1218,7 +1205,6 @@ async function seedListingRows(sql, input) {
         product_doc_id,
         variant_id,
         variant_doc_id,
-        signature_key,
         true,
         1,
         now(),
@@ -1227,9 +1213,8 @@ async function seedListingRows(sql, input) {
         ${variantProductIds}::uuid[],
         ${variantProductDocIds}::int[],
         ${variantIds}::uuid[],
-        ${variantDocIds}::int[],
-        ${signatureKeys}::text[]
-      ) AS rows(product_id, product_doc_id, variant_id, variant_doc_id, signature_key)
+        ${variantDocIds}::int[]
+      ) AS rows(product_id, product_doc_id, variant_id, variant_doc_id)
     `;
 
     await sql`
@@ -1240,7 +1225,6 @@ async function seedListingRows(sql, input) {
         variant_doc_id,
         product_doc_id,
         product_id,
-        signature_key,
         price_minor,
         has_price,
         indexed_at,
@@ -1253,7 +1237,6 @@ async function seedListingRows(sql, input) {
         variant_doc_id,
         product_doc_id,
         product_id,
-        signature_key,
         price_minor,
         true,
         now(),
@@ -1263,9 +1246,8 @@ async function seedListingRows(sql, input) {
         ${variantProductDocIds}::int[],
         ${variantIds}::uuid[],
         ${variantDocIds}::int[],
-        ${signatureKeys}::text[],
         ${variantPrices}::bigint[]
-      ) AS rows(product_id, product_doc_id, variant_id, variant_doc_id, signature_key, price_minor)
+      ) AS rows(product_id, product_doc_id, variant_id, variant_doc_id, price_minor)
     `;
 
   }
@@ -1436,7 +1418,7 @@ async function seedVariantProjectionBlock(sql, storeId, variants) {
   }
 }
 
-async function seedOptionFacetBitmaps(sql, storeId, facets, variantValueKeys, variants) {
+async function seedVariantTermBitmaps(sql, storeId, facets, variantValueKeys, variants) {
   const grouped = new Map();
 
   for (const [variantIndex, valueKeys] of variantValueKeys.entries()) {
@@ -1449,8 +1431,9 @@ async function seedOptionFacetBitmaps(sql, storeId, facets, variantValueKeys, va
 
   for (const facet of facets) {
     for (const value of facet.values) {
-      const valueKey = `${facet.id}:${value.id}`;
-      const docIds = grouped.get(valueKey) ?? [];
+      const sourceValueKey = `${facet.id}:${value.id}`;
+      const valueKey = JSON.stringify(['v1', `option:${facet.id}`, value.id]);
+      const docIds = grouped.get(sourceValueKey) ?? [];
 
       await sql`
         WITH docs AS (
@@ -1473,7 +1456,7 @@ async function seedOptionFacetBitmaps(sql, storeId, facets, variantValueKeys, va
         SELECT
           ${storeId}::uuid,
           'variant',
-          'facet',
+          'term',
           ${valueKey},
           value,
           rb_cardinality(value),
@@ -1483,99 +1466,55 @@ async function seedOptionFacetBitmaps(sql, storeId, facets, variantValueKeys, va
       `;
     }
   }
-}
 
-async function seedOptionSignatures(sql, storeId, variantValueKeys, variants) {
-  const groups = new Map();
-
-  for (const [variantIndex, valueKeys] of variantValueKeys.entries()) {
-    const signatureKey = optionSignatureKey(valueKeys);
-    const group = groups.get(signatureKey) ?? { valueKeys, productVariantCounts: new Map() };
-    const variant = variants[variantIndex];
-    group.productVariantCounts.set(variant.productDocId, (group.productVariantCounts.get(variant.productDocId) ?? 0) + 1);
-    groups.set(signatureKey, group);
-  }
-
-  for (const [signatureKey, group] of groups.entries()) {
-    const optionSignatureId = randomUUID();
-    const facetIds = group.valueKeys.map((valueKey) => valueKey.split(':')[0]);
-    const membershipProductDocIds = [...group.productVariantCounts.keys()];
-    const membershipVariantCounts = membershipProductDocIds.map((productDocId) =>
-      group.productVariantCounts.get(productDocId),
-    );
-
+  const allVariantDocIds = variants.map((variant) => variant.variantDocId);
+  for (const [fieldKey, termValue] of [
+    ['system.state', 'indexable'],
+    ['criterion.availability', 'available'],
+  ]) {
+    const valueKey = JSON.stringify(['v1', fieldKey, termValue]);
     await sql`
       WITH docs AS (
-        SELECT unnest(${membershipProductDocIds}::int[]) AS doc_id
+        SELECT unnest(${allVariantDocIds}::int[]) AS doc_id
       ),
       bitmap AS (
-        SELECT rb_build_agg(doc_id) AS value
-        FROM docs
+        SELECT rb_build_agg(doc_id) AS value FROM docs
       )
-      INSERT INTO listing.listing_option_signature (
-        option_signature_id,
-        store_id,
-        signature_key,
-        option_value_count,
-        product_bitmap,
-        cardinality,
-        metadata,
-        updated_at
+      INSERT INTO listing.listing_posting_bitmap (
+        store_id, entity_type, field, value_key, bitmap, cardinality, metadata, updated_at
       )
       SELECT
-        ${optionSignatureId}::uuid,
         ${storeId}::uuid,
-        ${signatureKey},
-        ${group.valueKeys.length},
+        'variant',
+        'term',
+        ${valueKey},
         value,
         rb_cardinality(value),
         '{}'::jsonb,
         now()
       FROM bitmap
     `;
-
-    await sql`
-      INSERT INTO listing.listing_option_signature_value (
-        option_signature_id,
-        store_id,
-        signature_key,
-        facet_id,
-        value_key
-      )
-      SELECT
-        ${optionSignatureId}::uuid,
-        ${storeId}::uuid,
-        ${signatureKey},
-        facet_id,
-        value_key
-      FROM unnest(
-        ${facetIds}::uuid[],
-        ${group.valueKeys}::text[]
-      ) AS rows(facet_id, value_key)
-    `;
-
-    await sql`
-      INSERT INTO listing.listing_option_signature_product_membership (
-        option_signature_id,
-        store_id,
-        signature_key,
-        product_doc_id,
-        variant_count,
-        updated_at
-      )
-      SELECT
-        ${optionSignatureId}::uuid,
-        ${storeId}::uuid,
-        ${signatureKey},
-        product_doc_id,
-        variant_count,
-        now()
-      FROM unnest(
-        ${membershipProductDocIds}::int[],
-        ${membershipVariantCounts}::int[]
-      ) AS rows(product_doc_id, variant_count)
-    `;
   }
+
+  const unavailableValueKey = JSON.stringify([
+    'v1',
+    'criterion.availability',
+    'unavailable',
+  ]);
+  await sql`
+    INSERT INTO listing.listing_posting_bitmap (
+      store_id, entity_type, field, value_key, bitmap, cardinality, metadata, updated_at
+    )
+    SELECT
+      ${storeId}::uuid,
+      'variant',
+      'term',
+      ${unavailableValueKey},
+      ${sql.unsafe(emptyBitmapSql)},
+      0,
+      '{}'::jsonb,
+      now()
+  `;
 }
 
 function sqlLiteral(value) {

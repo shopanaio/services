@@ -9,6 +9,7 @@ import type {
   VariantListingIndexUpsertInput,
   VariantListingPriceRowInput,
 } from "../repositories/listing/listingRepositoryTypes.js";
+import type { ListingVariantTerm } from "../listing/variantTerms/index.js";
 
 export type ListingIndexQueuedSyncAction = {
   type: "syncSellableItem";
@@ -82,7 +83,7 @@ export type ListingIndexItemKey = {
 };
 
 export type ListingSyncWriteModel = {
-  version: 1;
+  version: 2;
   actionType: Extract<ListingIndexActionType, "syncSellableItem">;
   writeModelJson: ListingSyncWriteModelJson;
   writeModelHash: string;
@@ -110,7 +111,7 @@ export type ListingSyncWriteModelJson = {
       "variantDocId" | "productDocId"
     >[]
   >;
-  variantFacetValueKeysByVariantId: Record<string, readonly string[]>;
+  variantTermsByVariantId: Record<string, readonly ListingVariantTerm[]>;
   variantProductValueKeysByVariantId: Record<string, readonly string[]>;
 };
 

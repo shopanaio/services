@@ -8,20 +8,14 @@ import {
   VariantListingIndexRepository,
   VariantListingPriceIndexRepository,
   ListingPostingBitmapRepository,
-  ListingOptionSignatureRepository,
   ListingPostingProductSortRepository,
   ListingPostingVariantProjectionBlockRepository,
   ProductTitleBm25SearchIndexRepository,
 } from "./listing/index.js";
 import {
-  StorefrontFacetAggregationRepository,
   StorefrontFacetResolutionRepository,
   StorefrontListingQueryRepository,
-  StorefrontPostingBitmapQueryRepository,
-  StorefrontProductSortCollectorRepository,
   StorefrontProductTitleSearchQueryRepository,
-  StorefrontVariantPriceCollectorRepository,
-  StorefrontVariantProjectionQueryRepository,
 } from "./storefront/index.js";
 import { FacetRepository } from "./facet/FacetRepository.js";
 import { FacetValueRepository } from "./facet/FacetValueRepository.js";
@@ -49,7 +43,6 @@ export class Repository {
   public readonly variantListingIndex: VariantListingIndexRepository;
   public readonly variantListingPriceIndex: VariantListingPriceIndexRepository;
   public readonly listingPostingBitmap: ListingPostingBitmapRepository;
-  public readonly listingOptionSignature: ListingOptionSignatureRepository;
   public readonly listingPostingProductSort: ListingPostingProductSortRepository;
   public readonly listingPostingVariantProjectionBlock: ListingPostingVariantProjectionBlockRepository;
   public readonly productTitleBm25SearchIndex: ProductTitleBm25SearchIndexRepository;
@@ -57,12 +50,7 @@ export class Repository {
   public readonly facetValue: FacetValueRepository;
   public readonly facetSwatch: FacetSwatchRepository;
   public readonly storefrontFacetResolution: StorefrontFacetResolutionRepository;
-  public readonly storefrontPostingBitmapQuery: StorefrontPostingBitmapQueryRepository;
-  public readonly storefrontVariantProjectionQuery: StorefrontVariantProjectionQueryRepository;
-  public readonly storefrontProductSortCollector: StorefrontProductSortCollectorRepository;
-  public readonly storefrontVariantPriceCollector: StorefrontVariantPriceCollectorRepository;
   public readonly storefrontProductTitleSearchQuery: StorefrontProductTitleSearchQueryRepository;
-  public readonly storefrontFacetAggregation: StorefrontFacetAggregationRepository;
   public readonly storefrontListingQuery: StorefrontListingQueryRepository;
   public readonly txManager: TransactionManager<Database>;
 
@@ -78,7 +66,6 @@ export class Repository {
     variantListingIndex: VariantListingIndexRepository,
     variantListingPriceIndex: VariantListingPriceIndexRepository,
     listingPostingBitmap: ListingPostingBitmapRepository,
-    listingOptionSignature: ListingOptionSignatureRepository,
     listingPostingProductSort: ListingPostingProductSortRepository,
     listingPostingVariantProjectionBlock: ListingPostingVariantProjectionBlockRepository,
     productTitleBm25SearchIndex: ProductTitleBm25SearchIndexRepository,
@@ -86,12 +73,7 @@ export class Repository {
     facetValue: FacetValueRepository,
     facetSwatch: FacetSwatchRepository,
     storefrontFacetResolution: StorefrontFacetResolutionRepository,
-    storefrontPostingBitmapQuery: StorefrontPostingBitmapQueryRepository,
-    storefrontVariantProjectionQuery: StorefrontVariantProjectionQueryRepository,
-    storefrontProductSortCollector: StorefrontProductSortCollectorRepository,
-    storefrontVariantPriceCollector: StorefrontVariantPriceCollectorRepository,
     storefrontProductTitleSearchQuery: StorefrontProductTitleSearchQueryRepository,
-    storefrontFacetAggregation: StorefrontFacetAggregationRepository,
     storefrontListingQuery: StorefrontListingQueryRepository,
     txManager: TransactionManager<Database>
   ) {
@@ -102,7 +84,6 @@ export class Repository {
     this.variantListingIndex = variantListingIndex;
     this.variantListingPriceIndex = variantListingPriceIndex;
     this.listingPostingBitmap = listingPostingBitmap;
-    this.listingOptionSignature = listingOptionSignature;
     this.listingPostingProductSort = listingPostingProductSort;
     this.listingPostingVariantProjectionBlock = listingPostingVariantProjectionBlock;
     this.productTitleBm25SearchIndex = productTitleBm25SearchIndex;
@@ -110,12 +91,7 @@ export class Repository {
     this.facetValue = facetValue;
     this.facetSwatch = facetSwatch;
     this.storefrontFacetResolution = storefrontFacetResolution;
-    this.storefrontPostingBitmapQuery = storefrontPostingBitmapQuery;
-    this.storefrontVariantProjectionQuery = storefrontVariantProjectionQuery;
-    this.storefrontProductSortCollector = storefrontProductSortCollector;
-    this.storefrontVariantPriceCollector = storefrontVariantPriceCollector;
     this.storefrontProductTitleSearchQuery = storefrontProductTitleSearchQuery;
-    this.storefrontFacetAggregation = storefrontFacetAggregation;
     this.storefrontListingQuery = storefrontListingQuery;
     this.txManager = txManager;
   }
@@ -152,10 +128,6 @@ export class Repository {
       db,
       txManager
     );
-    const listingOptionSignature = new ListingOptionSignatureRepository(
-      db,
-      txManager
-    );
     const listingPostingProductSort = new ListingPostingProductSortRepository(
       db,
       txManager
@@ -172,30 +144,13 @@ export class Repository {
       db,
       txManager
     );
-    const storefrontPostingBitmapQuery =
-      new StorefrontPostingBitmapQueryRepository(db, txManager);
-    const storefrontVariantProjectionQuery =
-      new StorefrontVariantProjectionQueryRepository(db, txManager);
-    const storefrontProductSortCollector =
-      new StorefrontProductSortCollectorRepository(db, txManager);
-    const storefrontVariantPriceCollector =
-      new StorefrontVariantPriceCollectorRepository(db, txManager);
     const storefrontProductTitleSearchQuery =
       new StorefrontProductTitleSearchQueryRepository(db, txManager);
-    const storefrontFacetAggregation = new StorefrontFacetAggregationRepository(
-      db,
-      txManager
-    );
     const storefrontListingQuery = new StorefrontListingQueryRepository(
       db,
       txManager,
       storefrontFacetResolution,
-      storefrontPostingBitmapQuery,
-      storefrontVariantProjectionQuery,
-      storefrontProductSortCollector,
-      storefrontVariantPriceCollector,
       storefrontProductTitleSearchQuery,
-      storefrontFacetAggregation,
       heavyOptionFacetCountsEnabled,
       facetCountsProfilingEnabled
     );
@@ -208,7 +163,6 @@ export class Repository {
       variantListingIndex,
       variantListingPriceIndex,
       listingPostingBitmap,
-      listingOptionSignature,
       listingPostingProductSort,
       listingPostingVariantProjectionBlock,
       productTitleBm25SearchIndex,
@@ -216,12 +170,7 @@ export class Repository {
       facetValue,
       facetSwatch,
       storefrontFacetResolution,
-      storefrontPostingBitmapQuery,
-      storefrontVariantProjectionQuery,
-      storefrontProductSortCollector,
-      storefrontVariantPriceCollector,
       storefrontProductTitleSearchQuery,
-      storefrontFacetAggregation,
       storefrontListingQuery,
       txManager
     );

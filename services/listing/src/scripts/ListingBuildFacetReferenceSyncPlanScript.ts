@@ -9,6 +9,10 @@ import type {
   FacetReferenceStateSyncReason,
   FacetSourceRef,
 } from "../workflows/FacetReferenceStateSyncWorkflow.js";
+import {
+  decodeListingVariantTerm,
+  isOptionFieldKey,
+} from "../listing/variantTerms/index.js";
 
 export interface ListingFacetReferenceSyncPlan {
   organizationId: string;
@@ -63,7 +67,10 @@ export class ListingBuildFacetReferenceSyncPlanScript extends BaseScript<
     const writeModel = syncWriteModel.writeModelJson;
     const newValueKeys = [
       ...writeModel.productPostingValueKeys.facet,
-      ...Object.values(writeModel.variantFacetValueKeysByVariantId).flat(),
+      ...Object.values(writeModel.variantTermsByVariantId)
+        .flat()
+        .filter((term) => isOptionFieldKey(term.fieldKey))
+        .map(optionTermFacetValueKey),
     ];
 
     return this.buildPlan({
@@ -113,9 +120,14 @@ export class ListingBuildFacetReferenceSyncPlanScript extends BaseScript<
       const keys = await this.repository.listingPostingBitmap.getMembershipKeys({
         entityType: "variant",
         docId: variantDocId,
-        field: "facet",
+        field: "term",
       });
-      valueKeys.push(...keys.map((key) => key.valueKey));
+      valueKeys.push(
+        ...keys
+          .map((key) => decodeListingVariantTerm(key.valueKey))
+          .filter((term) => isOptionFieldKey(term.fieldKey))
+          .map(optionTermFacetValueKey)
+      );
     }
 
     return valueKeys;
@@ -143,4 +155,11 @@ export class ListingBuildFacetReferenceSyncPlanScript extends BaseScript<
       refsHash: hashContent({ v: 1, refs }),
     };
   }
+}
+
+function optionTermFacetValueKey(term: {
+  fieldKey: string;
+  valueKey: string;
+}): string {
+  return `${term.fieldKey.slice("option:".length)}:${term.valueKey}`;
 }

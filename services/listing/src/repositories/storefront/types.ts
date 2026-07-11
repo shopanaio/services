@@ -1,4 +1,5 @@
 import type { SQL } from "drizzle-orm";
+import type { ListingVariantTermGroup } from "../../listing/variantTerms/index.js";
 
 export class StorefrontRepositoryValidationError extends Error {
   constructor(
@@ -26,7 +27,7 @@ export type ProductPostingField =
   | "vendor"
   | "facet";
 
-export type VariantPostingField = "facet" | "variant_product";
+export type VariantPostingField = "term" | "variant_product";
 
 export type FacetRuntimeType =
   | "TAG"
@@ -88,6 +89,8 @@ export interface StorefrontListingUserError {
 
 export interface StorefrontFilterPlan {
   productFacetGroups: ResolvedFacetFilterGroup[];
+  variantTermGroups: ListingVariantTermGroup[];
+  /** @deprecated Use variantTermGroups. Retained only while old profiling labels are removed. */
   optionFacetGroups: ResolvedFacetFilterGroup[];
   vendorIds: string[];
   userErrors: StorefrontListingUserError[];
@@ -196,6 +199,7 @@ export interface StorefrontListingRepositoryResult {
   facets: StorefrontListingFacetResult[];
   priceRange: PriceRangeResult | null;
   inStockCount: number;
+  unavailableCount: number;
   userErrors: StorefrontListingUserError[];
 }
 
@@ -235,6 +239,7 @@ export interface ListingAggregatesResult {
   facets?: FacetCountResult[];
   priceRange?: PriceRangeResult | null;
   inStockCount?: number;
+  unavailableCount?: number;
 }
 
 export interface BitmapSqlRow extends Record<string, unknown> {

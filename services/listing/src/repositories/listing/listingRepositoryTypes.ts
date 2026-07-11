@@ -1,21 +1,27 @@
-import { createHash } from "crypto";
+import {
+  assertRegisteredListingVariantTerm,
+  decodeListingVariantTerm,
+  type ListingVariantTerm,
+} from "../../listing/variantTerms/index.js";
 
 export type ProductKind = "BASE" | "BUNDLE";
 export type ListingStatus = "published" | "draft";
 export type PostingEntityType = "product" | "variant";
+export type ProductPostingField = "category" | "vendor" | "facet";
+export type VariantPostingField = "term" | "variant_product";
+export type PostingField = ProductPostingField | VariantPostingField;
 
-export type PostingField =
-  | "category"
-  | "vendor"
-  | "facet"
-  | "variant_product"
-  | string;
-
-export interface PostingKeyInput {
-  entityType: PostingEntityType;
-  field: PostingField;
-  valueKey: string;
-}
+export type PostingKeyInput =
+  | {
+      entityType: "product";
+      field: ProductPostingField;
+      valueKey: string;
+    }
+  | {
+      entityType: "variant";
+      field: VariantPostingField;
+      valueKey: string;
+    };
 
 export interface ProductListingIndexUpsertInput {
   productId: string;
@@ -57,7 +63,6 @@ export interface VariantListingIndexUpsertInput {
   productDocId: number;
   variantId: string;
   variantDocId: number;
-  signatureKey?: string | null;
   inStock: boolean;
   totalStock: number;
 }
@@ -72,7 +77,6 @@ export interface VariantListingPriceRowInput {
   variantDocId: number;
   productDocId: number;
   productId: string;
-  signatureKey: string;
   hasPrice: boolean;
   priceMinor?: number | null;
 }
@@ -93,15 +97,6 @@ export interface ProductSortRowInput extends ProductSortKeyInput {
   bigintValue?: number | null;
   textValue?: string | null;
   numericValue?: string | null;
-}
-
-export interface OptionSignatureVariantInput {
-  valueKeys: readonly string[];
-}
-
-export interface OptionSignatureProductReplacementInput {
-  productDocId: number;
-  variants: readonly OptionSignatureVariantInput[];
 }
 
 export interface ProjectionBlockRowInput {
@@ -126,23 +121,44 @@ export interface ProductTitleBm25RowInput {
   title: string;
 }
 
-export interface PostingBitmapUpsertInput extends PostingKeyInput {
+export type PostingBitmapUpsertInput = PostingKeyInput & {
   bitmap: string;
   cardinality: number;
   metadata?: Record<string, unknown>;
-}
+};
 
-export interface PostingBitmapReplaceInput extends PostingBitmapUpsertInput {}
+export type PostingBitmapReplaceInput = PostingBitmapUpsertInput;
 
-export interface PostingDocIdsMutationInput extends PostingKeyInput {
+export type PostingDocIdsMutationInput = PostingKeyInput & {
   docIds: readonly number[];
-}
+};
 
 export interface PostingMembershipReplaceResult {
   addedMemberships: number;
   removedMemberships: number;
   touchedRows: number;
   deletedEmptyRows: number;
+}
+
+export interface ListingVariantTermDeltaInput {
+  term: ListingVariantTerm;
+  removedVariantDocIds: readonly number[];
+  addedVariantDocIds: readonly number[];
+}
+
+export interface ListingVariantTermDeltaResult {
+  touchedRows: number;
+  createdRows: number;
+  emptiedRows: number;
+}
+
+export interface ExactPostingLookupResult {
+  key: PostingKeyInput;
+  row: null | {
+    bitmap: string;
+    cardinality: number;
+    metadata: unknown;
+  };
 }
 
 export interface BulkWriteResult {
@@ -152,7 +168,6 @@ export interface BulkWriteResult {
 }
 
 export const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
-export const DEFAULT_VARIANT_SIGNATURE_KEY = "default";
 export const DEFAULT_VARIANT_PROJECTION_BLOCK_SIZE = 4096;
 export const LISTING_REPOSITORY_BULK_CHUNK_SIZE = 500;
 
@@ -173,31 +188,6 @@ export function chunkArray<T>(
 
 export function uniqueValues<T>(values: readonly T[]): T[] {
   return [...new Set(values)];
-}
-
-export function normalizeOptionValueKeys(valueKeys: readonly string[]): string[] {
-  return uniqueValues(
-    valueKeys.map((valueKey) => valueKey.trim()).filter(Boolean)
-  ).sort();
-}
-
-export function buildOptionSignatureKey(
-  valueKeys: readonly string[]
-): string | null {
-  const normalized = normalizeOptionValueKeys(valueKeys);
-  if (normalized.length === 0) {
-    return null;
-  }
-
-  const digest = createHash("sha256")
-    .update(JSON.stringify(normalized))
-    .digest("hex");
-
-  return `option:v1:${digest}`;
-}
-
-export function buildVariantSignatureKey(valueKeys: readonly string[]): string {
-  return buildOptionSignatureKey(valueKeys) ?? DEFAULT_VARIANT_SIGNATURE_KEY;
 }
 
 export function assertNonEmptyString(value: string, label: string): void {
@@ -244,18 +234,24 @@ export function assertPostingEntityType(value: PostingEntityType): void {
 
 export function assertWritablePostingField(field: PostingField): void {
   assertNonEmptyString(field, "field");
-  if (field === "collection") {
-    throw new Error("collection posting bitmaps are not supported by listing");
-  }
-  if (field === "price" || field === "in_stock") {
-    throw new Error(`${field} is a virtual facet and must not be stored as a posting bitmap`);
-  }
 }
 
 export function assertPostingKey(input: PostingKeyInput): void {
   assertPostingEntityType(input.entityType);
   assertWritablePostingField(input.field);
   assertNonEmptyString(input.valueKey, "valueKey");
+  if (input.entityType === "product") {
+    if (input.field !== "category" && input.field !== "vendor" && input.field !== "facet") {
+      throw new Error(`Unsupported product posting field: ${input.field}`);
+    }
+    return;
+  }
+  if (input.field !== "term" && input.field !== "variant_product") {
+    throw new Error(`Unsupported variant posting field: ${input.field}`);
+  }
+  if (input.field === "term") {
+    assertRegisteredListingVariantTerm(decodeListingVariantTerm(input.valueKey));
+  }
 }
 
 export function assertUniqueBy<T>(

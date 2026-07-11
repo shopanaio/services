@@ -6,11 +6,48 @@ import {
 } from "./compileListingProductMatchesSql.js";
 
 export function compileFacetsQuerySql(request: ListingSqlRequest): SQL {
+  const selectedValues = [
+    ...request.request.filterPlan.productFacetGroups.flatMap((group) =>
+      group.valueKeys
+    ),
+    ...request.request.filterPlan.optionFacetGroups.flatMap((group) =>
+      group.valueKeys
+    ),
+  ];
+  const selectedValuesCte = selectedValues.length > 0
+    ? sql`SELECT value_key FROM (VALUES ${sql.join(
+        [...new Set(selectedValues)].sort().map((value) => sql`(${value}::text)`),
+        sql`, `
+      )}) AS selected(value_key)`
+    : sql`SELECT NULL::text AS value_key WHERE false`;
   return sql`
     /* listing:facetsMetadata */
     WITH
     ${compileInputCte(request)},
     ${compileScopeProductCtes(request)},
+    scope_variants AS (
+      SELECT COALESCE(
+        rb_build_agg(vli.variant_doc_id),
+        (
+          SELECT rb_build_agg(doc_id) - rb_build_agg(doc_id)
+          FROM (VALUES (0::int)) AS empty_seed(doc_id)
+        )
+      ) AS bitmap
+      FROM input i
+      CROSS JOIN scope_products sp
+      JOIN listing.variant_listing_index vli
+        ON vli.store_id = i.store_id
+       AND sp.bitmap @> vli.product_doc_id
+      JOIN listing.listing_posting_bitmap universe
+        ON universe.store_id = i.store_id
+       AND universe.entity_type = 'variant'
+       AND universe.field = 'term'
+       AND universe.value_key = '["v1","system.state","indexable"]'
+       AND universe.bitmap @> vli.variant_doc_id
+    ),
+    selected_values AS (
+      ${selectedValuesCte}
+    ),
     candidate_values AS (
       SELECT DISTINCT p.value_key
       FROM input i
@@ -23,15 +60,27 @@ export function compileFacetsQuerySql(request: ListingSqlRequest): SQL {
 
       UNION
 
-      SELECT DISTINCT sv.value_key
+      SELECT DISTINCT f.id::text || ':' || fv.id::text AS value_key
       FROM input i
-      CROSS JOIN scope_products sp
-      JOIN listing.listing_option_signature os
-        ON os.store_id = i.store_id
-       AND rb_cardinality(sp.bitmap & os.product_bitmap) > 0
-      JOIN listing.listing_option_signature_value sv
-        ON sv.option_signature_id = os.option_signature_id
-       AND sv.store_id = os.store_id
+      CROSS JOIN scope_variants sv
+      JOIN listing.facet f
+        ON f.store_id = i.store_id
+       AND f.facet_type = 'OPTION'
+      JOIN listing.facet_value fv
+        ON fv.store_id = f.store_id
+       AND fv.facet_id = f.id
+      JOIN listing.listing_posting_bitmap p
+        ON p.store_id = i.store_id
+       AND p.entity_type = 'variant'
+       AND p.field = 'term'
+       AND p.value_key = (
+         '["v1","option:' || f.id::text || '","' || fv.id::text || '"]'
+       )
+       AND rb_cardinality(sv.bitmap & p.bitmap) > 0
+
+      UNION
+
+      SELECT value_key FROM selected_values
     ),
     facet_values AS (
       SELECT

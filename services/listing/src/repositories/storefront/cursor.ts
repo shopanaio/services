@@ -7,6 +7,7 @@ import {
   type StorefrontListingScope,
   type StorefrontSortInput,
 } from "./types.js";
+import type { ListingVariantTermGroup } from "../../listing/variantTerms/index.js";
 
 interface FilterHashInput {
   storeId: string;
@@ -17,6 +18,7 @@ interface FilterHashInput {
   filters: NormalizedStorefrontListingFilters;
   sort: StorefrontSortInput;
   manualScopeId?: string | null;
+  variantTermGroups?: readonly ListingVariantTermGroup[];
 }
 
 export function encodeListingCursor(payload: ListingCursorPayload): string {

@@ -417,10 +417,8 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
      *   - variant_listing_index upsert rows;
      *   - variant_listing_price_index price rows grouped by variantId;
      *   - listing_posting_bitmap variant memberships grouped by
-     *     variantDocId + field, for facet and variant_product.
-     *   - listing_option_signature rows, signature value rows, and
-     *     product memberships grouped by current in-stock variant option
-     *     signatures.
+     *     encoded term key (merged delta) and by variantDocId for
+     *     variant_product.
      * - Stale variant merged groups:
      *   - variant bitmap memberships to delete by stale variantDocId;
      *   - runtime variant price rows to delete by stale variantDocId;

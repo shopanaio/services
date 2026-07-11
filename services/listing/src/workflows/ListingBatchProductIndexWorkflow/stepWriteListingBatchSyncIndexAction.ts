@@ -14,7 +14,6 @@ import type {
   ProductTitleBm25RowInput,
   VariantListingIndexUpsertInput,
   VariantListingPriceRowInput,
-  OptionSignatureProductReplacementInput,
 } from "../../repositories/listing/listingRepositoryTypes.js";
 import type { VariantListingIndex } from "../../repositories/models/index.js";
 import type {
@@ -23,6 +22,7 @@ import type {
 } from "../../scripts/listingIndexActionTypes.js";
 import { ListingIndexActionScriptError } from "../../scripts/listingIndexActionTypes.js";
 import type { ListingBatchWriteModelItem } from "./stepBuildListingSyncWriteModelsBatch.js";
+import { encodeListingVariantTerm } from "../../listing/variantTerms/index.js";
 
 export type ListingBatchWriteIndexActionInput = {
   items: ListingBatchWriteModelItem[];
@@ -52,7 +52,7 @@ type ProductMembershipReplacement = {
 
 type VariantMembershipReplacement = {
   variantDocId: number;
-  field: "facet" | "variant_product";
+  field: "term" | "variant_product";
   nextValueKeys: readonly string[];
 };
 
@@ -71,7 +71,6 @@ type MergedBatchSyncPayload = {
   variantRows: VariantListingIndexUpsertInput[];
   sourcePriceRowsByVariantId: Map<string, VariantListingPriceRowInput[]>;
   variantMemberships: VariantMembershipReplacement[];
-  optionSignatureProductReplacements: OptionSignatureProductReplacementInput[];
   staleVariants: StaleVariant[];
   projectionRefreshVariantDocIds: number[];
   stateRows: ListingIndexItemStateRow[];
@@ -237,13 +236,23 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
     );
     await this.replaceProductMemberships(payload.productMemberships);
     await this.repository.variantListingIndex.upsertMany(payload.variantRows);
+    await this.repository.listingPostingBitmap.ensureDeclaredVariantTermRows();
     await this.repository.variantListingPriceIndex.replaceForVariants(
       payload.sourcePriceRowsByVariantId
     );
+    await this.repository.listingPostingBitmap.replaceVariantTermMemberships([
+      ...payload.variantMemberships
+        .filter((replacement) => replacement.field === "term")
+        .map((replacement) => ({
+          variantDocId: replacement.variantDocId,
+          nextValueKeys: replacement.nextValueKeys,
+        })),
+      ...payload.staleVariants.map((variant) => ({
+        variantDocId: variant.variantDocId,
+        nextValueKeys: [],
+      })),
+    ]);
     await this.replaceVariantMemberships(payload.variantMemberships);
-    await this.repository.listingOptionSignature.replaceForProducts(
-      payload.optionSignatureProductReplacements
-    );
     await this.deleteStaleVariantDependencies(payload.staleVariants);
     await this.repository.variantListingIndex.deleteByVariantIds(
       payload.staleVariants.map((variant) => variant.variantId)
@@ -285,8 +294,6 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
       VariantListingPriceRowInput[]
     >();
     const variantMemberships: VariantMembershipReplacement[] = [];
-    const optionSignatureProductReplacements: OptionSignatureProductReplacementInput[] =
-      [];
     const currentVariantIdsByProductId = new Map<string, Set<string>>();
 
     for (const item of input.appliedItems) {
@@ -336,16 +343,6 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
         buildProductMembership(productDocId, "vendor", writeModel),
         buildProductMembership(productDocId, "facet", writeModel)
       );
-      optionSignatureProductReplacements.push({
-        productDocId,
-        variants: writeModel.variants
-          .filter((variant) => variant.inStock)
-          .map((variant) => ({
-            valueKeys: sortedValueKeys(
-              writeModel.variantFacetValueKeysByVariantId[variant.variantId] ?? []
-            ),
-          })),
-      });
 
       for (const variant of writeModel.variants) {
         const variantDocId = getRequiredMapValue(
@@ -373,10 +370,10 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
         variantMemberships.push(
           {
             variantDocId,
-            field: "facet",
-            nextValueKeys: sortedValueKeys(
-              writeModel.variantFacetValueKeysByVariantId[variant.variantId] ?? []
-            ),
+            field: "term",
+            nextValueKeys: (writeModel.variantTermsByVariantId[variant.variantId] ?? [])
+              .map(encodeListingVariantTerm)
+              .sort(compareStrings),
           },
           {
             variantDocId,
@@ -443,10 +440,6 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
       variantRows: variantRows.sort(compareVariantRows),
       sourcePriceRowsByVariantId: sortStringMap(sourcePriceRowsByVariantId),
       variantMemberships: variantMemberships.sort(compareVariantMemberships),
-      optionSignatureProductReplacements:
-        optionSignatureProductReplacements.sort(
-          compareOptionSignatureProductReplacements
-        ),
       staleVariants,
       projectionRefreshVariantDocIds,
       stateRows,
@@ -467,6 +460,9 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
     replacements: readonly VariantMembershipReplacement[]
   ): Promise<void> {
     for (const replacement of replacements) {
+      if (replacement.field === "term") {
+        continue;
+      }
       await this.repository.listingPostingBitmap.replaceVariantMemberships(
         replacement
       );
@@ -691,13 +687,6 @@ function compareVariantMemberships(
     compareNumbers(left.variantDocId, right.variantDocId) ||
     compareStrings(left.field, right.field)
   );
-}
-
-function compareOptionSignatureProductReplacements(
-  left: OptionSignatureProductReplacementInput,
-  right: OptionSignatureProductReplacementInput
-): number {
-  return compareNumbers(left.productDocId, right.productDocId);
 }
 
 function compareStaleVariants(left: StaleVariant, right: StaleVariant): number {

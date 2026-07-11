@@ -77,6 +77,14 @@ function mapVirtualFacets(
           input: { available: true },
           swatch: null,
         },
+        {
+          id: "false",
+          label: "Unavailable",
+          count: result.unavailableCount,
+          selected: selected.has("in_stock:false"),
+          input: { available: false },
+          swatch: null,
+        },
       ],
     },
   ];

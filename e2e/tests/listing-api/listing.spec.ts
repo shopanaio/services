@@ -110,7 +110,7 @@ test.describe('Listing API', () => {
     expect(thirdPage.pageInfo.endCursor).toBe(thirdPage.edges[thirdPage.edges.length - 1].cursor);
   });
 
-  test('keeps out of stock products last and excludes them from facets', async ({ api, listingCatalog }) => {
+  test('keeps unavailable products last while retaining them in ALL facets', async ({ api, listingCatalog }) => {
     const { category, products, facetAssignments } = listingCatalog;
     const listingScope = {
       kind: 'CATEGORY',
@@ -137,9 +137,11 @@ test.describe('Listing API', () => {
     expect(listing.totalCount).toBe(30);
     expect(nodes.slice(0, 20).every((node) => inStockProductIds.includes(node.id))).toBe(true);
     expect(nodes.slice(20, 30).map((node) => node.id)).toEqual(outOfStockProductIds.reverse());
-    expect(listing.facets.find((facet) => facet.id === 'available')?.values[0]?.count).toBe(20);
-    expect(sumFacetCounts(listing.facets, 'color')).toBe(20);
-    expect(sumFacetCounts(listing.facets, 'size')).toBe(20);
+    const availabilityValues = listing.facets.find((facet) => facet.id === 'available')?.values;
+    expect(availabilityValues?.find((value) => value.id === 'true')?.count).toBe(20);
+    expect(availabilityValues?.find((value) => value.id === 'false')?.count).toBe(10);
+    expect(sumFacetCounts(listing.facets, 'color')).toBe(30);
+    expect(sumFacetCounts(listing.facets, 'size')).toBe(30);
 
     const colorFilter = facetInput(listing.facets, { facetId: 'color', valueId: 'black' });
     const { data: filteredData } = await api.admin.query('listing-api/Listing', {
@@ -154,8 +156,10 @@ test.describe('Listing API', () => {
     });
 
     const filteredNodes = filteredData.listingQuery.listing.edges.map((edge) => edge.node as ApiProduct);
-    expect(filteredNodes.every((node) => inStockProductIds.includes(node.id))).toBe(true);
-    expect(filteredNodes.some((node) => outOfStockProductIds.includes(node.id))).toBe(false);
+    const expectedBlackIds = facetAssignments
+      .filter((assignment) => assignment.options.color === 'black')
+      .map((assignment) => assignment.productId);
+    expect(filteredNodes.map((node) => node.id).sort()).toEqual(expectedBlackIds.sort());
   });
 
   test('paginates category listing products for every sort option', async ({ api, listingCatalog }) => {
@@ -534,10 +538,14 @@ function expectCatalogFacets(
   expect(returnedCatalogFacets.find((facet) => facet.id === 'size')?.values).toHaveLength(5);
   expect(returnedCatalogFacets.every((facet) => facet.values.length > 0)).toBe(true);
   expect(returnedCatalogFacets.every((facet) => facet.values.every((value) => value.count > 0))).toBe(true);
-  expect(sumFacetCounts(returnedCatalogFacets, 'color')).toBe(inStockAssignments(assignments).length);
-  expect(sumFacetCounts(returnedCatalogFacets, 'size')).toBe(inStockAssignments(assignments).length);
-  expect(listingFacets.find((facet) => facet.id === 'available')?.values[0]?.count).toBe(
+  expect(sumFacetCounts(returnedCatalogFacets, 'color')).toBe(assignments.length);
+  expect(sumFacetCounts(returnedCatalogFacets, 'size')).toBe(assignments.length);
+  const availabilityValues = listingFacets.find((facet) => facet.id === 'available')?.values;
+  expect(availabilityValues?.find((value) => value.id === 'true')?.count).toBe(
     inStockAssignments(assignments).length,
+  );
+  expect(availabilityValues?.find((value) => value.id === 'false')?.count).toBe(
+    assignments.length - inStockAssignments(assignments).length,
   );
 }
 
@@ -588,9 +596,6 @@ function filterExpectedProducts(
     if (!assignment) {
       return false;
     }
-    if (!assignment.inStock) {
-      return false;
-    }
     return filters.every((filter) => assignmentMatches(assignment, filter));
   });
 }
@@ -606,7 +611,7 @@ function filterExpectedProductsByPrice(
   return orderedProducts.filter((product) => {
     const assignment = assignmentByProductId.get(product.id);
     return (
-      assignment?.inStock === true &&
+      assignment !== undefined &&
       assignment.priceMinor >= minPriceMinor &&
       assignment.priceMinor <= maxPriceMinor
     );
@@ -645,7 +650,6 @@ function expectFacetCounts(
 
     for (const value of facet?.values ?? []) {
       const expectedCount = assignments.filter((assignment) =>
-        assignment.inStock &&
         [
           ...activeFilters.filter((filter) => filter.facetId !== facetId),
           { facetId, valueId: value.id },

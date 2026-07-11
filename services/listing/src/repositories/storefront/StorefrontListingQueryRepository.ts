@@ -14,12 +14,7 @@ import {
   normalizePositivePageSize,
 } from "./sqlHelpers.js";
 import { StorefrontFacetResolutionRepository } from "./StorefrontFacetResolutionRepository.js";
-import { StorefrontFacetAggregationRepository } from "./StorefrontFacetAggregationRepository.js";
-import { StorefrontPostingBitmapQueryRepository } from "./StorefrontPostingBitmapQueryRepository.js";
-import { StorefrontProductSortCollectorRepository } from "./StorefrontProductSortCollectorRepository.js";
 import { StorefrontProductTitleSearchQueryRepository } from "./StorefrontProductTitleSearchQueryRepository.js";
-import { StorefrontVariantPriceCollectorRepository } from "./StorefrontVariantPriceCollectorRepository.js";
-import { StorefrontVariantProjectionQueryRepository } from "./StorefrontVariantProjectionQueryRepository.js";
 import {
   compileFacetCountsProfileQuerySql,
   compileFacetCountsQuerySql,
@@ -34,6 +29,7 @@ import {
 import { compilePageQuerySql } from "./sql/compilePageQuerySql.js";
 import { compileTotalCountQuerySql } from "./sql/compileTotalCountQuerySql.js";
 import { compileVirtualFacetsQuerySql } from "./sql/compileVirtualFacetsQuerySql.js";
+import { compileVariantCandidateDiagnosticsSql } from "./sql/compileListingProductMatchesSql.js";
 import {
   mapFacetCountRows,
   mapFacetMetadataRows,
@@ -48,7 +44,7 @@ import {
   type VirtualFacetsSqlRow,
 } from "./sql/resultMappers.js";
 import type { Database } from "../../infrastructure/db/database.js";
-import type { TransactionManager } from "@shopana/shared-kernel";
+import { TransactionManager } from "@shopana/shared-kernel";
 import {
   StorefrontRepositoryValidationError,
   type NormalizedStorefrontFacetFilter,
@@ -64,6 +60,13 @@ import {
 interface BranchMetric {
   branch: string;
   durationMs: number;
+}
+
+interface VariantDiagnosticsSqlRow extends Record<string, unknown> {
+  termCandidateCardinality: number;
+  numericCandidateCardinality: number | null;
+  finalVariantCandidateCardinality: number;
+  projectedProductCardinality: number;
 }
 
 type FacetCountsProfileSqlRow = Record<string, unknown> & {
@@ -98,12 +101,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     db: Database,
     txManager: TransactionManager<Database>,
     private readonly facets: StorefrontFacetResolutionRepository,
-    private readonly postings: StorefrontPostingBitmapQueryRepository,
-    private readonly projection: StorefrontVariantProjectionQueryRepository,
-    private readonly productCollector: StorefrontProductSortCollectorRepository,
-    private readonly variantPriceCollector: StorefrontVariantPriceCollectorRepository,
     private readonly search: StorefrontProductTitleSearchQueryRepository,
-    private readonly aggregation: StorefrontFacetAggregationRepository,
     private readonly heavyOptionFacetCountsEnabled: boolean,
     private readonly facetCountsProfilingEnabled: boolean
   ) {
@@ -114,11 +112,28 @@ export class StorefrontListingQueryRepository extends BaseRepository {
   async getStorefrontListing(
     input: StorefrontListingInput
   ): Promise<StorefrontListingRepositoryResult> {
+    if (TransactionManager.isInTransaction()) {
+      throw new Error(
+        "Storefront listing snapshot boundary cannot reuse an existing transaction"
+      );
+    }
+    return this.txManager.run(async () => {
+      await this.connection.execute(
+        sql`SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY`
+      );
+      return this.getStorefrontListingInSnapshot(input);
+    });
+  }
+
+  private async getStorefrontListingInSnapshot(
+    input: StorefrontListingInput
+  ): Promise<StorefrontListingRepositoryResult> {
     const startedAt = Date.now();
     const branchMetrics: BranchMetric[] = [];
     let request: ResolvedListingRequest | null = null;
     let pageRows: ParallelPageSqlRow[] = [];
-    let sqlRoundTrips = 5;
+    let sqlRoundTrips = 6;
+    let variantDiagnostics: VariantDiagnosticsSqlRow | null = null;
 
     try {
       request = await this.normalize(input);
@@ -127,45 +142,41 @@ export class StorefrontListingQueryRepository extends BaseRepository {
         request,
         heavyOptionFacetCountsEnabled: this.heavyOptionFacetCountsEnabled,
       });
+      const diagnosticRows = await this.executeMeasured<VariantDiagnosticsSqlRow>(
+        "variantDiagnostics",
+        compileVariantCandidateDiagnosticsSql(sqlRequest),
+        branchMetrics
+      );
+      variantDiagnostics = diagnosticRows[0] ?? null;
 
-      const pageSqlRowsPromise = this.executeMeasured<ParallelPageSqlRow>(
+      const pageSqlRows = await this.executeMeasured<ParallelPageSqlRow>(
         "page",
         compilePageQuerySql(sqlRequest),
         branchMetrics
       );
-      const totalCountRowsPromise = this.executeMeasured<TotalCountSqlRow>(
+      const totalCountRows = await this.executeMeasured<TotalCountSqlRow>(
         "totalCount",
         compileTotalCountQuerySql(sqlRequest),
         branchMetrics
       );
-      const facetMetadataRowsPromise = this.executeMeasured<FacetMetadataSqlRow>(
+      const facetMetadataRows = await this.executeMeasured<FacetMetadataSqlRow>(
         "facetsMetadata",
         compileFacetsQuerySql(sqlRequest),
         branchMetrics
       );
-      const virtualFacetRowsPromise = this.executeMeasured<VirtualFacetsSqlRow>(
+      const virtualFacetRows = await this.executeMeasured<VirtualFacetsSqlRow>(
         "virtualFacets",
         compileVirtualFacetsQuerySql(sqlRequest),
         branchMetrics
       );
-
-      const facetMetadataRows = await facetMetadataRowsPromise;
       const visibleFacetValues =
         toFacetCountsVisibleFacetValues(facetMetadataRows);
-      const facetCountRowsPromise =
-        this.executeMeasuredWithLocalJitOff<FacetCountMapSqlRow>(
+      const facetCountRows =
+        await this.executeMeasuredWithLocalJitOff<FacetCountMapSqlRow>(
           "facetCounts",
           compileFacetCountsQuerySql(sqlRequest, { visibleFacetValues }),
           branchMetrics
         );
-
-      const [pageSqlRows, totalCountRows, facetCountRows, virtualFacetRows] =
-        await Promise.all([
-          pageSqlRowsPromise,
-          totalCountRowsPromise,
-          facetCountRowsPromise,
-          virtualFacetRowsPromise,
-        ]);
       pageRows = pageSqlRows;
 
       sqlRoundTrips += await this.profileListingSqlIfEnabled(
@@ -188,6 +199,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
         facets,
         priceRange: virtualFacets.priceRange,
         inStockCount: virtualFacets.inStockCount,
+        unavailableCount: virtualFacets.unavailableCount,
         userErrors: request.filterPlan.userErrors,
       };
     } finally {
@@ -203,6 +215,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
                 scope: request.input.scope,
                 normalizedQuery: request.normalizedQuery,
                 filters: request.filters,
+                variantTermGroups: request.filterPlan.variantTermGroups,
                 sort: request.sort,
                 manualScopeId: request.manualScopeId,
               })
@@ -213,6 +226,20 @@ export class StorefrontListingQueryRepository extends BaseRepository {
           vendorFilters: request.filters.vendorIds.length,
           hasPriceFilter: !!request.filters.priceRange,
           hasInStockFilter: request.filters.inStock !== undefined,
+          variantTermGroupCount: request.filterPlan.variantTermGroups.length,
+          variantTermCount: request.filterPlan.variantTermGroups.reduce(
+            (count, group) => count + group.terms.length,
+            0
+          ),
+          termCandidateCardinality:
+            variantDiagnostics?.termCandidateCardinality ?? null,
+          numericCandidateCardinality:
+            variantDiagnostics?.numericCandidateCardinality ?? null,
+          finalVariantCandidateCardinality:
+            variantDiagnostics?.finalVariantCandidateCardinality ?? null,
+          projectedProductCardinality:
+            variantDiagnostics?.projectedProductCardinality ?? null,
+          snapshotStrategy: "repeatable-read-read-only-sequential",
           selectedCollector:
             pageRows.find((row) => row.collectorKind)?.collectorKind ?? null,
           sqlRoundTrips,
@@ -443,6 +470,9 @@ export class StorefrontListingQueryRepository extends BaseRepository {
       first,
       filters: normalizedFiltersInput,
     };
+    const filterPlan = await this.facets.resolveFilterPlan({
+      filters: normalizedFiltersInput,
+    });
     const cursor = input.after ? decodeListingCursor(input.after) : null;
     const filterHash = buildListingFilterHash({
       storeId: this.storeId,
@@ -451,15 +481,12 @@ export class StorefrontListingQueryRepository extends BaseRepository {
       scope: input.scope,
       normalizedQuery,
       filters,
+      variantTermGroups: filterPlan.variantTermGroups,
       sort,
       manualScopeId,
     });
 
     assertCursorMatches(cursor, filterHash, sort.kind);
-    const filterPlan = await this.facets.resolveFilterPlan({
-      filters: normalizedFiltersInput,
-    });
-
     return {
       input: normalizedInput,
       filters,

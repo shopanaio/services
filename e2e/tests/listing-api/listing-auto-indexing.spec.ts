@@ -523,7 +523,7 @@ test.describe('Listing API automatic indexing', () => {
     const lifecycleColor = lifecycleProductDefinition.options[facets[0].sourceSlug];
     const lifecycleSnapshot = await readListingSnapshot(api, category);
     const lifecycleColorFilter = facetValueInput(lifecycleSnapshot.facets, facets[0].facetSlug, lifecycleColor);
-    const lifecycleColorProducts = availableProducts().filter(
+    const lifecycleColorProducts = expectedProducts.filter(
       (product) => {
         const index = expectedProducts.findIndex((candidate) => candidate.id === product.id);
         return expectedDefinitions[index].options[facets[0].sourceSlug] === lifecycleColor;
@@ -545,6 +545,9 @@ test.describe('Listing API automatic indexing', () => {
     await expectListingSnapshot(api, category, {
       totalCount: lifecycleColorProducts.length,
       productIds: lifecycleColorProducts.map((product) => product.id),
+      availableCount: lifecycleColorProducts.filter(
+        (product) => product.id !== unavailableProduct.id,
+      ).length,
       facets: [lifecycleColorFilter],
     });
 
@@ -563,11 +566,29 @@ test.describe('Listing API automatic indexing', () => {
       availableCount: availableProducts().length,
       facets: [availableFilter],
     });
+    const unavailableFilter = availabilityFacetInput(
+      availabilitySnapshot.facets,
+      false,
+    );
+    const unavailableDefinitions = expectedDefinitions.filter(
+      (_definition, index) => expectedProducts[index].id === unavailableProduct.id,
+    );
+    await expectListingSnapshot(api, category, {
+      totalCount: 1,
+      productIds: [unavailableProduct.id],
+      facetCounts: expectedFacetCounts(
+        createdFacets,
+        facets,
+        unavailableDefinitions,
+      ),
+      availableCount: availableProducts().length,
+      facets: [unavailableFilter],
+    });
 
     const unfilteredAvailabilitySnapshot = await expectListingSnapshot(api, category, {
       totalCount: expectedProducts.length,
       productIds: expectedProducts.map((product) => product.id),
-      facetCounts: expectedFacetCounts(createdFacets, facets, availableDefinitions()),
+      facetCounts: expectedFacetCounts(createdFacets, facets, expectedDefinitions),
       availableCount: availableProducts().length,
     });
     expect(unfilteredAvailabilitySnapshot.productIds.at(-1)).toBe(unavailableProduct.id);
@@ -579,7 +600,7 @@ test.describe('Listing API automatic indexing', () => {
       facetCounts: expectedFacetCounts(
         createdFacets.slice(0, 3),
         facets.slice(0, 3),
-        availableDefinitions(),
+        expectedDefinitions,
       ),
       availableCount: availableProducts().length,
       missingFacetIds: [createdFacets[3].id],
@@ -591,7 +612,7 @@ test.describe('Listing API automatic indexing', () => {
     const finalFacetCounts = expectedFacetCounts(
       createdFacets.slice(0, 3),
       facets.slice(0, 3),
-      availableDefinitions(),
+      expectedDefinitions,
     );
     const zeroCountFacetValues = Object.entries(finalFacetCounts).flatMap(
       ([facetId, values]) =>
@@ -1485,16 +1506,16 @@ function facetValueInput(
   return input;
 }
 
-function availabilityFacetInput(facets: ApiListingFacet[]) {
+function availabilityFacetInput(facets: ApiListingFacet[], available = true) {
   const facet = facets.find((candidate) => candidate.id === 'available');
-  const value = facet?.values.find((candidate) => candidate.id === 'true');
+  const value = facet?.values.find((candidate) => candidate.id === String(available));
 
   if (!facet || !value) {
     throw new Error('Missing listing availability facet value input');
   }
 
   const expectedInput: ApiListingProductFilter = {
-    available: true,
+    available,
   };
   const input = value.input as ApiListingProductFilter | null | undefined;
   expect(input, 'Listing availability facet value must expose reusable input').toEqual(expectedInput);

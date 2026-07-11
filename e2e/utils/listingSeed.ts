@@ -87,7 +87,6 @@ export async function seedListingCategoryProducts({
           priceMinor: product.priceMinor,
           manualSortKey: product.manualSortKey,
           searchTitle: product.searchTitle,
-          variantSignatureKey: optionSignatureKey(product.variantFacetValueKeys ?? []),
           inStock: product.inStock ?? true,
           categoryUuid,
           locale,
@@ -113,7 +112,6 @@ export async function seedListingCategoryProducts({
         projectUuid,
         entityType: 'product',
         productFacetEntries: seedProducts
-          .filter((product) => product.inStock ?? true)
           .flatMap((product) =>
             (product.productFacetValueKeys ?? []).map((valueKey) => ({
               valueKey,
@@ -122,27 +120,9 @@ export async function seedListingCategoryProducts({
           ),
       });
 
-      await seedFacetPostings(tx, {
+      await seedVariantTermPostings(tx, {
         projectUuid,
-        entityType: 'variant',
-        productFacetEntries: seedProducts
-          .filter((product) => product.inStock ?? true)
-          .flatMap((product) =>
-            (product.variantFacetValueKeys ?? []).map((valueKey) => ({
-              valueKey,
-              docId: product.variantDocId,
-            })),
-          ),
-      });
-
-      await seedOptionSignatures(tx, {
-        projectUuid,
-        products: seedProducts
-          .filter((product) => product.inStock ?? true)
-          .map((product) => ({
-            productDocId: product.productDocId,
-            valueKeys: product.variantFacetValueKeys ?? [],
-          })),
+        products: seedProducts,
       });
     });
   } finally {
@@ -258,7 +238,6 @@ async function seedListingProduct(
     priceMinor?: number | null;
     manualSortKey?: string | null;
     searchTitle?: string | null;
-    variantSignatureKey: string | null;
     inStock: boolean;
     categoryUuid: string;
     locale: string;
@@ -316,6 +295,15 @@ async function seedListingProduct(
       total_stock = EXCLUDED.total_stock,
       updated_at = now()
   `;
+
+  await seedVariantIndex(sql, {
+    projectUuid: input.projectUuid,
+    productUuid: input.productUuid,
+    productDocId: input.productDocId,
+    variantUuid: input.variantUuid ?? input.productUuid,
+    variantDocId: input.variantDocId,
+    inStock: input.inStock,
+  });
 
   await seedProductSort(sql, {
     projectUuid: input.projectUuid,
@@ -376,8 +364,6 @@ async function seedListingProduct(
       variantDocId: input.variantDocId,
       priceMinor: input.priceMinor,
       currency: input.currency,
-      signatureKey: input.variantSignatureKey ?? 'default',
-      inStock: input.inStock,
     });
 
     await seedProductSort(sql, {
@@ -489,42 +475,8 @@ async function seedVariantPrice(
     variantDocId: number;
     priceMinor: number;
     currency: string;
-    signatureKey: string;
-    inStock: boolean;
   },
 ) {
-  await sql`
-    INSERT INTO listing.variant_listing_index (
-      store_id,
-      product_id,
-      product_doc_id,
-      variant_id,
-      variant_doc_id,
-      signature_key,
-      in_stock,
-      total_stock,
-      indexed_at,
-      updated_at
-    )
-    VALUES (
-      ${input.projectUuid}::uuid,
-      ${input.productUuid}::uuid,
-      ${input.productDocId},
-      ${input.variantUuid}::uuid,
-      ${input.variantDocId},
-      ${input.signatureKey},
-      ${input.inStock},
-      ${input.inStock ? 1 : 0},
-      now(),
-      now()
-    )
-    ON CONFLICT (variant_id) DO UPDATE SET
-      signature_key = EXCLUDED.signature_key,
-      in_stock = EXCLUDED.in_stock,
-      total_stock = EXCLUDED.total_stock,
-      updated_at = now()
-  `;
-
   await sql`
     INSERT INTO listing.variant_listing_price_index (
       store_id,
@@ -533,7 +485,6 @@ async function seedVariantPrice(
       variant_doc_id,
       product_doc_id,
       product_id,
-      signature_key,
       price_minor,
       has_price,
       indexed_at,
@@ -546,7 +497,6 @@ async function seedVariantPrice(
       ${input.variantDocId},
       ${input.productDocId},
       ${input.productUuid}::uuid,
-      ${input.signatureKey},
       ${input.priceMinor},
       true,
       now(),
@@ -557,7 +507,6 @@ async function seedVariantPrice(
       variant_doc_id = EXCLUDED.variant_doc_id,
       product_doc_id = EXCLUDED.product_doc_id,
       product_id = EXCLUDED.product_id,
-      signature_key = EXCLUDED.signature_key,
       price_minor = EXCLUDED.price_minor,
       has_price = EXCLUDED.has_price,
       updated_at = now()
@@ -595,6 +544,36 @@ async function seedVariantPrice(
         EXCLUDED.max_price_minor
       ),
       has_price = EXCLUDED.has_price,
+      updated_at = now()
+  `;
+}
+
+async function seedVariantIndex(
+  sql: postgres.TransactionSql,
+  input: {
+    projectUuid: string;
+    productUuid: string;
+    productDocId: number;
+    variantUuid: string;
+    variantDocId: number;
+    inStock: boolean;
+  },
+) {
+  await sql`
+    INSERT INTO listing.variant_listing_index (
+      store_id, product_id, product_doc_id, variant_id, variant_doc_id,
+      in_stock, total_stock, indexed_at, updated_at
+    ) VALUES (
+      ${input.projectUuid}::uuid, ${input.productUuid}::uuid,
+      ${input.productDocId}, ${input.variantUuid}::uuid, ${input.variantDocId},
+      ${input.inStock}, ${input.inStock ? 1 : 0}, now(), now()
+    )
+    ON CONFLICT (variant_id) DO UPDATE SET
+      product_id = EXCLUDED.product_id,
+      product_doc_id = EXCLUDED.product_doc_id,
+      variant_doc_id = EXCLUDED.variant_doc_id,
+      in_stock = EXCLUDED.in_stock,
+      total_stock = EXCLUDED.total_stock,
       updated_at = now()
   `;
 }
@@ -810,135 +789,81 @@ async function seedFacetPostings(
   }
 }
 
-async function seedOptionSignatures(
+async function seedVariantTermPostings(
   sql: postgres.TransactionSql,
   input: {
     projectUuid: string;
-    products: { productDocId: number; valueKeys: string[] }[];
+    products: SeedListingProductWithDocIds[];
   },
 ) {
-  const groups = new Map<string, { productDocIds: number[]; valueKeys: string[] }>();
-
+  const entries: { valueKey: string; docId: number }[] = [];
+  const declaredKeys = [
+    encodeVariantTerm('system.state', 'indexable'),
+    encodeVariantTerm('criterion.availability', 'available'),
+    encodeVariantTerm('criterion.availability', 'unavailable'),
+  ];
   for (const product of input.products) {
-    const valueKeys = normalizeValueKeys(product.valueKeys);
-    if (valueKeys.length === 0) {
-      continue;
+    entries.push({
+      valueKey: encodeVariantTerm('system.state', 'indexable'),
+      docId: product.variantDocId,
+    });
+    entries.push({
+      valueKey: encodeVariantTerm(
+        'criterion.availability',
+        product.inStock ?? true ? 'available' : 'unavailable',
+      ),
+      docId: product.variantDocId,
+    });
+    for (const legacyValueKey of product.variantFacetValueKeys ?? []) {
+      const separator = legacyValueKey.indexOf(':');
+      const facetId = legacyValueKey.slice(0, separator);
+      const facetValueId = legacyValueKey.slice(separator + 1);
+      entries.push({
+        valueKey: encodeVariantTerm(`option:${facetId}`, facetValueId),
+        docId: product.variantDocId,
+      });
     }
-
-    const signatureKey = optionSignatureKey(valueKeys);
-    if (!signatureKey) {
-      continue;
-    }
-    const group = groups.get(signatureKey) ?? { productDocIds: [], valueKeys };
-    group.productDocIds.push(product.productDocId);
-    groups.set(signatureKey, group);
   }
-
-  for (const [signatureKey, group] of groups.entries()) {
-    const optionSignatureId = crypto.randomUUID();
-    const facetIds = group.valueKeys.map((valueKey) => valueKey.split(':')[0]);
-
+  const grouped = groupDocIdsByValueKey(entries);
+  for (const valueKey of [...new Set([...declaredKeys, ...grouped.keys()])].sort()) {
+    const docIds = grouped.get(valueKey) ?? [];
+    const [version, fieldKey, termValueKey] = JSON.parse(valueKey) as string[];
     await sql`
       WITH docs AS (
-        SELECT unnest(${group.productDocIds}::int[]) AS doc_id
+        SELECT unnest(${docIds}::int[]) AS doc_id
       ),
       bitmap AS (
-        SELECT rb_build_agg(doc_id) AS value
-        FROM docs
+        SELECT COALESCE(
+          (SELECT rb_build_agg(doc_id) FROM docs),
+          (SELECT rb_build_agg(doc_id) - rb_build_agg(doc_id)
+           FROM (VALUES (0::int)) AS empty_seed(doc_id))
+        ) AS value
       )
-      INSERT INTO listing.listing_option_signature (
-        option_signature_id,
-        store_id,
-        signature_key,
-        option_value_count,
-        product_bitmap,
-        cardinality,
-        metadata,
-        updated_at
+      INSERT INTO listing.listing_posting_bitmap (
+        store_id, entity_type, field, value_key, bitmap, cardinality, metadata, updated_at
       )
       SELECT
-        ${optionSignatureId}::uuid,
         ${input.projectUuid}::uuid,
-        ${signatureKey},
-        ${group.valueKeys.length},
-        value,
-        rb_cardinality(value),
-        '{}'::jsonb,
+        'variant', 'term', ${valueKey}, value, rb_cardinality(value),
+        ${JSON.stringify({
+          version,
+          registryVersion: '2026-07-11.v1',
+          registryField: fieldKey,
+          registryValue: termValueKey,
+        })}::jsonb,
         now()
       FROM bitmap
-      ON CONFLICT (store_id, signature_key) DO UPDATE SET
-        option_value_count = EXCLUDED.option_value_count,
-        product_bitmap = EXCLUDED.product_bitmap,
+      ON CONFLICT (store_id, entity_type, field, value_key) DO UPDATE SET
+        bitmap = EXCLUDED.bitmap,
         cardinality = EXCLUDED.cardinality,
         metadata = EXCLUDED.metadata,
         updated_at = now()
     `;
-
-    const [{ storedOptionSignatureId }] = await sql<{ storedOptionSignatureId: string }[]>`
-      SELECT option_signature_id::text AS "storedOptionSignatureId"
-      FROM listing.listing_option_signature
-      WHERE store_id = ${input.projectUuid}::uuid
-        AND signature_key = ${signatureKey}
-    `;
-
-    for (const [index, valueKey] of group.valueKeys.entries()) {
-      await sql`
-        INSERT INTO listing.listing_option_signature_value (
-          option_signature_id,
-          store_id,
-          signature_key,
-          facet_id,
-          value_key
-        )
-        VALUES (
-          ${storedOptionSignatureId}::uuid,
-          ${input.projectUuid}::uuid,
-          ${signatureKey},
-          ${facetIds[index]}::uuid,
-          ${valueKey}
-        )
-        ON CONFLICT (option_signature_id, value_key) DO UPDATE SET
-          store_id = EXCLUDED.store_id,
-          signature_key = EXCLUDED.signature_key,
-          facet_id = EXCLUDED.facet_id
-      `;
-    }
-
-    for (const productDocId of group.productDocIds) {
-      await sql`
-        INSERT INTO listing.listing_option_signature_product_membership (
-          option_signature_id,
-          store_id,
-          signature_key,
-          product_doc_id,
-          variant_count,
-          updated_at
-        )
-        VALUES (
-          ${storedOptionSignatureId}::uuid,
-          ${input.projectUuid}::uuid,
-          ${signatureKey},
-          ${productDocId},
-          1,
-          now()
-        )
-        ON CONFLICT (option_signature_id, product_doc_id) DO UPDATE SET
-          store_id = EXCLUDED.store_id,
-          signature_key = EXCLUDED.signature_key,
-          variant_count = EXCLUDED.variant_count,
-          updated_at = now()
-      `;
-    }
   }
 }
 
-function optionSignatureKey(valueKeys: string[]): string | null {
-  const normalized = normalizeValueKeys(valueKeys);
-  return normalized.length > 0 ? normalized.join('|') : null;
-}
-
-function normalizeValueKeys(valueKeys: string[]): string[] {
-  return [...new Set(valueKeys.map((valueKey) => valueKey.trim()).filter(Boolean))].sort();
+function encodeVariantTerm(fieldKey: string, valueKey: string): string {
+  return JSON.stringify(['v1', fieldKey, valueKey]);
 }
 
 function groupDocIdsByValueKey(entries: { valueKey: string; docId: number }[]): Map<string, number[]> {

@@ -1,5 +1,8 @@
 # Implementation plan: heavy OR optimization для option facet counts
 
+> **LEGACY DRAFT:** option signatures удалены. Canonical counts используют
+> universal variant terms; см. `../listing-index-db-contract.ru.md`.
+
 ## Статус
 
 Документ описывает implementation-ready изменение для

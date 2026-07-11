@@ -194,6 +194,11 @@ interface ListingAvailabilitySnapshot {
 `availableForSale` - публичный sellable-state flag. Конкретные складские правила
 и warehouse-level данные в этот контракт не входят.
 
+Listing materializer использует `availableForSale` как единственный источник
+`criterion.availability=available|unavailable`. `totalQuantity` не меняет этот
+term: quantity-zero variant с разрешённым backorder остаётся `available`.
+Broker payload не содержит и не может передать raw/encoded physical term key.
+
 ### Prices
 
 ```ts
@@ -285,6 +290,10 @@ Variant snapshot содержит только данные, которые вл
 filtering, price filtering, availability или matched variant selection.
 Canonical SKU, barcode, media, dimensions и inventory rows не входят в
 listing update API, если они не влияют на публичный listing behavior.
+
+Только `status=active` materializes в `system.state=indexable`, criterion/OPTION
+terms и runtime variant price index. `inactive`/`archived` source values могут
+присутствовать в snapshot, но не попадают в runtime index.
 
 ## Result contract
 

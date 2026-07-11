@@ -60,6 +60,7 @@ export interface FacetCountMapSqlRow extends FacetGuardSqlRow {
 export interface VirtualFacetsSqlRow extends FacetGuardSqlRow {
   priceRange: unknown | null;
   inStockCount: number | null;
+  unavailableCount: number | null;
 }
 
 export function mapPageRows(input: {
@@ -176,6 +177,7 @@ export function mergeFacetCounts(input: {
 export function mapVirtualFacetsRows(rows: readonly VirtualFacetsSqlRow[]): {
   priceRange: PriceRangeResult | null;
   inStockCount: number;
+  unavailableCount: number;
 } {
   assertNoFacetResolutionError(rows);
   const row = rows[0];
@@ -183,6 +185,7 @@ export function mapVirtualFacetsRows(rows: readonly VirtualFacetsSqlRow[]): {
   return {
     priceRange: toPriceRange(row?.priceRange ?? null),
     inStockCount: Number(row?.inStockCount ?? 0),
+    unavailableCount: Number(row?.unavailableCount ?? 0),
   };
 }
 

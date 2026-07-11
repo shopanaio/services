@@ -13,6 +13,7 @@ import type {
   VariantListingIndexUpsertInput,
   VariantListingPriceRowInput,
 } from "../repositories/listing/listingRepositoryTypes.js";
+import { encodeListingVariantTerm } from "../listing/variantTerms/index.js";
 
 export class ListingWriteIndexActionScript extends BaseScript<
   ListingPreparedSyncWriteAction | ListingPreparedDeleteWriteAction,
@@ -149,6 +150,24 @@ export class ListingWriteIndexActionScript extends BaseScript<
     );
 
     await this.repository.variantListingIndex.upsertMany(variantRows);
+    await this.repository.listingPostingBitmap.ensureDeclaredVariantTermRows();
+    const keepVariantIds = new Set(variantIds);
+    const staleVariants = existingVariants.filter(
+      (variant) => !keepVariantIds.has(variant.variantId)
+    );
+    await this.repository.listingPostingBitmap.replaceVariantTermMemberships([
+      ...variantRows.map((variant) => ({
+        variantDocId: variant.variantDocId,
+        nextValueKeys:
+          writeModel.variantTermsByVariantId[variant.variantId]?.map(
+            encodeListingVariantTerm
+          ) ?? [],
+      })),
+      ...staleVariants.map((variant) => ({
+        variantDocId: variant.variantDocId,
+        nextValueKeys: [],
+      })),
+    ]);
 
     const sourcePriceRows = new Map<string, VariantListingPriceRowInput[]>();
     for (const variant of variantRows) {
@@ -164,12 +183,6 @@ export class ListingWriteIndexActionScript extends BaseScript<
       );
       await this.repository.listingPostingBitmap.replaceVariantMemberships({
         variantDocId: variant.variantDocId,
-        field: "facet",
-        nextValueKeys:
-          writeModel.variantFacetValueKeysByVariantId[variant.variantId] ?? [],
-      });
-      await this.repository.listingPostingBitmap.replaceVariantMemberships({
-        variantDocId: variant.variantDocId,
         field: "variant_product",
         nextValueKeys:
           writeModel.variantProductValueKeysByVariantId[variant.variantId] ?? [],
@@ -179,20 +192,7 @@ export class ListingWriteIndexActionScript extends BaseScript<
     await this.repository.variantListingPriceIndex.replaceForVariants(
       sourcePriceRows
     );
-    await this.repository.listingOptionSignature.replaceForProduct({
-      productDocId,
-      variants: writeModel.variants
-        .filter((variant) => variant.inStock)
-        .map((variant) => ({
-          valueKeys:
-            writeModel.variantFacetValueKeysByVariantId[variant.variantId] ?? [],
-        })),
-    });
 
-    const keepVariantIds = new Set(variantIds);
-    const staleVariants = existingVariants.filter(
-      (variant) => !keepVariantIds.has(variant.variantId)
-    );
     await this.deleteVariantDependencies(staleVariants);
     if (staleVariants.length > 0) {
       await this.repository.variantListingIndex.deleteByVariantIds(
@@ -237,9 +237,6 @@ export class ListingWriteIndexActionScript extends BaseScript<
         product.productId
       );
       await this.repository.listingPostingBitmap.deleteProductMemberships(
-        product.productDocId
-      );
-      await this.repository.listingOptionSignature.deleteProductMemberships(
         product.productDocId
       );
       await this.repository.productListingIndex.delete(product.productId);

@@ -142,7 +142,6 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
         variantDocId: variantListingPriceIndex.variantDocId,
         productDocId: variantListingPriceIndex.productDocId,
         productId: variantListingPriceIndex.productId,
-        signatureKey: variantListingPriceIndex.signatureKey,
         priceMinor: variantListingPriceIndex.priceMinor,
         hasPrice: variantListingPriceIndex.hasPrice,
         indexedAt: variantListingPriceIndex.indexedAt,
@@ -207,7 +206,6 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
             variantDocId: sql`excluded.variant_doc_id`,
             productDocId: sql`excluded.product_doc_id`,
             productId: sql`excluded.product_id`,
-            signatureKey: sql`excluded.signature_key`,
             priceMinor: sql`excluded.price_minor`,
             hasPrice: sql`excluded.has_price`,
             indexedAt: now,
@@ -419,7 +417,6 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
           eq(variantListingIndex.storeId, this.storeId),
           inArray(variantListingIndex.productId, uniqueProductIds),
           inArray(variantListingPriceIndex.currency, uniqueCurrencies),
-          eq(variantListingIndex.inStock, true),
           eq(variantListingPriceIndex.hasPrice, true)
         )
       )
@@ -450,7 +447,6 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
     const variantDocId = normalizeDocId(row.variantDocId, "variantDocId");
     const productDocId = normalizeDocId(row.productDocId, "productDocId");
     const productId = normalizeString(row.productId, "productId");
-    const signatureKey = normalizeString(row.signatureKey, "signatureKey");
 
     if (!row.hasPrice) {
       if (row.priceMinor != null) {
@@ -464,7 +460,6 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
         variantDocId,
         productDocId,
         productId,
-        signatureKey,
         hasPrice: false,
         priceMinor: null,
         indexedAt: now,
@@ -485,7 +480,6 @@ export class VariantListingPriceIndexRepository extends BaseRepository {
       variantDocId,
       productDocId,
       productId,
-      signatureKey,
       hasPrice: true,
       priceMinor: row.priceMinor,
       indexedAt: now,
