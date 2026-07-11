@@ -61,8 +61,9 @@ storefront facets также остаются вне scope.
     numeric BM25 score.
 13. Analytics fact создаётся один раз после успешного первого storefront result,
     а не для pagination или внутренних exact/fuzzy attempts.
-14. Stale Catalog event/snapshot не может воскресить удалённый document или
-    пометить более новую desired sequence как applied.
+14. Search documents подчиняются canonical `listing_index_item_state`: stale и
+    noop action не изменяют physical rows, а stale Catalog event/snapshot не
+    может откатить latest item state или воскресить удалённый document.
 
 ## Внешние зависимости Listing
 
@@ -86,9 +87,10 @@ interface CatalogProductSnapshot {
 
 Listing ожидает события для product/variant title, SKU, vendor assignment/name,
 category membership/name, publication/delete, enabled locales и variant
-create/update/delete. Vendor/category rename должен приходить как bounded fan-out
-affected product IDs либо как событие, из которого Listing может безопасно
-сформировать bounded batch reconciliation.
+create/update/delete. Vendor/category rename и locale change должны запускать
+обычную переиндексацию affected products через существующий Listing item action
+contract и bounded batch workflow; отдельный search writer или собственная
+search sequence не создаются.
 
 До готовности конкретного source `SearchCapabilitiesService` возвращает field как
 `UPDATING` или `UNAVAILABLE`; backend не имитирует данные handle/UUID или другой
@@ -343,7 +345,6 @@ kind/status varchar not null
 published_at timestamptz null
 product_created_at/product_updated_at timestamptz not null
 product_revision int not null
-source_event_sequence bigint not null
 has_localized_title boolean not null
 product_title text not null
 variant_titles text[] not null
@@ -361,20 +362,38 @@ FK (store_id, product_doc_id, product_id)
 SKU — whole-value/raw semantics. Один BM25 index содержит key, tenant/locale/status
 metadata и searchable fields.
 
+Search document не хранит собственный event sequence и не принимает решение о
+freshness. Последняя применённая item revision хранится только в canonical
+`listing.listing_index_item_state`; документ получает её защиту за счёт записи в
+той же Listing item transaction.
+
 ### 2.3. Write lifecycle
 
-1. Catalog/project event monotonic upsert-ит desired item state.
-2. Existing listing item workflow получает актуальный Catalog snapshot.
-3. Builder повторно сверяет desired sequence/revision.
-4. В одной transaction обновляются listing rows, documents всех enabled locales
-   и applied item state.
-5. Ошибка оставляет `PENDING`; retry использует стабильный idempotency key.
-6. Retry exhaustion переводит item в `FAILED` с sanitized error.
-7. Более новое событие снова переводит item в `PENDING`; старое/equal — no-op.
+1. Product event или bounded reference/locale fan-out запускает существующий
+   Listing item reindex mechanism. Он создаёт обычный
+   `syncSellableItem`/`deleteSellableItem` action и назначает canonical
+   item-scoped `eventSequence`, effective idempotency key и payload hash; search
+   не генерирует собственную sequence.
+2. Существующий single/batch Listing workflow получает актуальный Catalog/project
+   snapshot и строит единый write model, включающий search documents всех enabled
+   locales. Нормализованные documents входят в deterministic `writeModelHash`,
+   сохраняемый как `listing_index_item_state.payload_hash` после apply.
+3. Final writer открывает существующую Listing item transaction, первым
+   write-side operation блокирует `listing_index_item_state` и повторно выполняет
+   canonical `ignored_stale`/`noop`/revision-conflict/`applied` decision.
+4. Только для `applied` в той же transaction обновляются product/variant rows,
+   postings, prices, sorts, search documents и latest
+   `listing_index_item_state`. `noop` и `ignored_stale` не пишут search rows.
+5. Ошибка любой physical write откатывает всю transaction вместе с item state;
+   retry и retry exhaustion остаются ответственностью существующего DBOS Listing
+   workflow и его durable history.
+6. Product delete удаляет все его search documents и атомарно записывает
+   `lifecycle_status=deleted`. Locale removal выполняется обычным sync/reindex:
+   writer удаляет отсутствующие locale rows и сохраняет item как `indexed`.
 
-Product delete и locale removal выполняют idempotent delete. Tombstone sequence
-не позволяет старому upsert воскресить row. Initial sync использует тот же
-bounded per-item workflow, а reference rename — existing batch workflow.
+Initial sync, reconciliation, vendor/category rename и locale changes используют
+те же single/batch reindex paths. Отдельного `search_index_item_state`, search
+tombstone или независимого search item workflow нет.
 
 ## 3. Backend data model
 
@@ -431,9 +450,16 @@ headers не сохраняются.
 - `search_index_state`: schema version, `READY/UPDATING/FAILED`, initial sync,
   last attempt/success, safe error, pending/failed counters;
 - `search_index_locale_state`: expected/indexed/published products и localized
-  title coverage;
-- `search_index_item_state`: desired/applied event sequences/actions/revisions,
-  attempts, retry time and status.
+  title coverage.
+
+Canonical item freshness и applied lifecycle не дублируются: их источником
+остаётся существующий `listing_index_item_state` с event sequence, payload hash,
+idempotency identity и `indexed/deleted` status. Pending/running/failed attempts
+берутся из durable DBOS state существующих Listing sync/delete/batch workflows.
+`search_index_state` и `search_index_locale_state` являются только агрегированными
+operational/readiness projections; periodic reconciliation сверяет их с
+`product_listing_index`, `product_search_document`, canonical item state и DBOS
+workflow state.
 
 `servingAvailable` вычисляется отдельно: после initial sync частичный backlog
 может давать `UPDATING/FAILED`, но успешно синхронизированные documents остаются
@@ -473,7 +499,6 @@ services/listing/src/repositories/search/
   SearchConfigurationApplyJobRepository.ts
   SearchRuntimeConfigurationRepository.ts
   SearchDocumentRepository.ts
-  SearchIndexItemStateRepository.ts
   SearchIndexStateRepository.ts
   SearchAnalyticsRepository.ts
 
@@ -588,14 +613,21 @@ query predicate; tenant leakage отсутствует; special characters param
 
 1. Заменить initial DDL на `product_search_document` и BM25 indexes.
 2. Добавить Drizzle models и repositories.
-3. Реализовать stable `search_id` upsert и monotonic sequence guard.
-4. Добавить index state/locale/item tables.
-5. Встроить document write и applied state в listing item transaction.
-6. Подключить bounded initial sync/reconciliation.
+3. Повысить версию Listing sync write model, включить deterministic search
+   documents в `writeModelJson` и `writeModelHash`, реализовать stable `search_id`
+   upsert; repository не принимает отдельный event sequence и не решает freshness.
+4. Добавить только aggregate `search_index_state` и
+   `search_index_locale_state`; item-level state не дублировать.
+5. Расширить single и batch final writers: search documents записываются только
+   после canonical decision под lock `listing_index_item_state` и до atomic
+   upsert latest item state.
+6. Подключить bounded initial sync/reconciliation через существующие Listing
+   `syncSellableItem`/batch reindex paths.
 
 Готовность: все ready fields searchable; SKU сохраняет identifier semantics;
-product write атомарно меняет listing/document; unavailable engine не имеет
-fallback.
+product write атомарно меняет listing/document/latest item state; stale/noop не
+пишут documents; failed transaction сохраняет previous documents и previous item
+state; unavailable engine не имеет fallback.
 
 ### Этап 3. Configuration persistence
 
@@ -718,15 +750,17 @@ boost влияет на relevance, но не переопределяет выб
 ### Этап 12. Index Status и Overview backend
 
 1. Реализовать status service и GraphQL index status.
-2. Связать status с durable item state и engine health.
+2. Связать status с canonical `listing_index_item_state`, durable DBOS state
+   существующих Listing indexing workflows и engine health.
 3. Разделить engine availability, initial locale readiness, field readiness и
    backlog/failure status.
 4. Добавить periodic counter reconciliation.
 5. Реализовать Overview composition, не зависящую от analytics readiness.
 
-Готовность: state переживает restart; retries/pending/failed отражаются честно;
-новое событие восстанавливает failed item; stale event не воскрешает product;
-неполный initial locale sync не рекламируется как ready.
+Готовность: aggregate state переживает restart; retries/pending/failed берутся из
+существующего durable Listing workflow state; новое событие повторно запускает
+canonical item reindex; stale/noop action не меняет search documents и не
+воскрешает product; неполный initial locale sync не рекламируется как ready.
 
 ### Этап 13. Analytics facts и request identity
 
@@ -772,6 +806,7 @@ request создаёт один fact; Preview/pagination не увеличива
 | Models | `services/listing/src/repositories/models/listingIndex.ts` и новые search models |
 | Current writer | `services/listing/src/repositories/listing/ProductTitleBm25SearchIndexRepository.ts` |
 | Listing write path | `ListingBuildSyncWriteModelScript`, `ListingWriteIndexActionScript`, batch workflow steps |
+| Item freshness state | `ListingIndexItemStateRepository` и `listing_index_item_state` |
 | Candidate SQL | `services/listing/src/repositories/storefront/sql/compileListingProductMatchesSql.ts` |
 | Orchestration | `services/listing/src/repositories/storefront/StorefrontListingQueryRepository.ts` |
 | Page/cursor | `services/listing/src/repositories/storefront/sql/compilePageQuerySql.ts` и listing request/cursor types |
@@ -797,8 +832,8 @@ request создаёт один fact; Preview/pagination не увеличива
 | Boost + business sort | Membership сохраняется, boost ranking выключен |
 | Settings save/apply fail | Old active revision продолжает serving |
 | Concurrent revisions N/N+1 | N не активируется после появления N+1 |
-| Index retry exhausted | Status failed, safe error, synced documents доступны |
-| Stale product event | Monotonic guard делает no-op |
+| Index retry exhausted | Existing DBOS Listing workflow status failed; previous committed documents доступны |
+| Stale product event | Canonical `listing_index_item_state` guard возвращает `ignored_stale`, documents не меняются |
 | Expired configuration cursor | `SEARCH_CURSOR_EXPIRED` |
 | Preview | Нет analytics fact и internal diagnostics leakage |
 | Storefront pagination | Не создаёт новый search fact |
@@ -809,8 +844,9 @@ request создаёт один fact; Preview/pagination не увеличива
 - storefront и Preview используют один executor;
 - query membership одинаков для page/total/facets при любом scope/sort;
 - synonyms/fuzzy/boost/OOS соблюдают зафиксированные interaction rules;
-- config application и document synchronization имеют независимые durable state
-  machines;
+- configuration apply имеет собственную durable state machine, а document
+  synchronization использует canonical Listing item workflow и
+  `listing_index_item_state` без дублирующего search item state;
 - stale revision и stale product event не активируют устаревшее состояние;
 - index status показывает честные readiness, backlog, failures и locale coverage;
 - Preview возвращает bounded reason codes без score/SQL/AST;
