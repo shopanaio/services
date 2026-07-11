@@ -710,6 +710,51 @@ test.describe('Admin category listing preview UI', () => {
 
     await expectPreviewFacetCounts(preview, facets, definitions);
 
+    const searchedProduct = definitions[0];
+    const searchInput = preview
+      .getByTestId('category-listing-preview-search')
+      .filter({ visible: true });
+    const searchResponsePromise = page.waitForResponse((response) => {
+      if (!response.url().includes('/graphql')) {
+        return false;
+      }
+
+      const request = response.request();
+      const body = request.postDataJSON() as {
+        operationName?: string;
+        variables?: { query?: string | null };
+      } | null;
+
+      return (
+        body?.operationName === 'CategoryListingPreview' &&
+        body.variables?.query === searchedProduct.title
+      );
+    });
+
+    await searchInput.fill(searchedProduct.title);
+    const searchResponse = await searchResponsePromise;
+    expect(searchResponse.ok()).toBe(true);
+    await expect(preview.getByTestId('category-listing-preview-total-count')).toHaveText(
+      '1 products',
+    );
+    await expect(cards).toHaveCount(1);
+    await expect(
+      preview.getByTestId(
+        `category-listing-preview-product-card-${searchedProduct.handle}`,
+      ),
+    ).toBeVisible();
+    for (const definition of definitions.slice(1)) {
+      await expect(
+        preview.getByTestId(`category-listing-preview-product-card-${definition.handle}`),
+      ).toBeHidden();
+    }
+
+    await searchInput.clear();
+    await expect(preview.getByTestId('category-listing-preview-total-count')).toHaveText(
+      `${PRODUCT_COUNT} products`,
+    );
+    await expect(cards).toHaveCount(PRODUCT_COUNT);
+
     await selectPreviewSort(page, 'Name Z to A');
     const nameDescDefinitions = [
       definitions.filter((definition) => definition.inStock),

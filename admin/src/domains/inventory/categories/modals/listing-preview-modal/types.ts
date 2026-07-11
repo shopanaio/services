@@ -4,6 +4,7 @@ import type {
 } from "@/graphql/types";
 
 export interface ListingPreviewState {
+  query: string;
   selectedFacetInputs: ApiListingProductFilter[];
   orderBy: ApiListingOrderByInput;
   after: string | null;

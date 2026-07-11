@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { Alert, Button, Collapse, Flex, Spin, Tag, Typography } from "antd";
+import { Alert, Button, Collapse, Flex, Input, Spin, Tag, Typography } from "antd";
 import { FilterOutlined } from "@ant-design/icons";
 import { ModalLayout, useModalStackContext } from "@/layouts/modals";
 import {
@@ -91,6 +91,7 @@ export const ListingPreviewModal = () => {
   const { category } = payload as ICategoryListingPreviewModalPayload;
   const { styles } = useListingPreviewStyles();
   const [state, setState] = useState<ListingPreviewState>(() => ({
+    query: "",
     selectedFacetInputs: [],
     orderBy: mapCategorySort(category),
     after: null,
@@ -101,6 +102,7 @@ export const ListingPreviewModal = () => {
     useCategoryListingPreview(category.id, {
       first: DEFAULT_PAGE_SIZE,
       after: state.after,
+      query: state.query || null,
       facets: state.selectedFacetInputs,
       orderBy: state.orderBy,
     });
@@ -207,6 +209,11 @@ export const ListingPreviewModal = () => {
     [resetCursor],
   );
 
+  const handleSearchChange = useCallback(
+    (query: string) => resetCursor({ query }),
+    [resetCursor],
+  );
+
   const handleNext = useCallback(() => {
     if (!pageInfo?.hasNextPage || !pageInfo.endCursor) {
       return;
@@ -233,17 +240,29 @@ export const ListingPreviewModal = () => {
   }, []);
 
   const clearFilters = useCallback(() => {
-    resetCursor({ selectedFacetInputs: [] });
+    resetCursor({ query: "", selectedFacetInputs: [] });
   }, [resetCursor]);
 
   const facetsContent = (
-    <ListingPreviewFacets
-      facets={facets}
-      selectedInputs={state.selectedFacetInputs}
-      onToggleValue={toggleFacetValue}
-      onSetRange={setRange}
-      onClearAll={clearFilters}
-    />
+    <div>
+      <div className={styles.searchFilter}>
+        <Typography.Text strong>Search</Typography.Text>
+        <Input.Search
+          allowClear
+          placeholder="Search products..."
+          value={state.query}
+          onChange={(event) => handleSearchChange(event.target.value)}
+          data-testid="category-listing-preview-search"
+        />
+      </div>
+      <ListingPreviewFacets
+        facets={facets}
+        selectedInputs={state.selectedFacetInputs}
+        onToggleValue={toggleFacetValue}
+        onSetRange={setRange}
+        onClearAll={clearFilters}
+      />
+    </div>
   );
 
   return (

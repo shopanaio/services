@@ -164,6 +164,14 @@ export const useListingPreviewStyles = createStyles(({ css, token }) => ({
     overflow: hidden;
     min-height: 40px;
   `,
+  searchFilter: css`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 0 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid ${token.colorBorderSecondary};
+  `,
   facetGroup: css`
     padding: 0 0 16px;
     margin-bottom: 16px;
