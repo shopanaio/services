@@ -1,6 +1,6 @@
 # Архитектура сервиса листинга
 
-Высокопроизводительный товарный листинг с фасетной фильтрацией, полнотекстовым поиском и персонализированным ранжированием через Metarank.
+Высокопроизводительный товарный листинг с фасетной фильтрацией, полнотекстовым поиском и ML-ранжированием предобученной ONNX-моделью внутри Listing process.
 
 ## Обзор
 
@@ -29,12 +29,12 @@
                                     │
                                     ▼
                     ┌─────────────────────────────────┐
-                    │           Metarank              │
-                    │    (Персонализированное ранжирование)       │
+                    │       ONNX Runtime              │
+                    │      (локальный ML rerank)          │
                     │                                 │
-                    │  • Модели LightGBM / XGBoost    │
-                    │  • Real-time персонализация    │
-                    │  • Обучение на кликах/покупках      │
+                    │  • LightGBM LambdaRank -> ONNX │
+                    │  • Batch inference на CPU       │
+                    │  • Без внешнего HTTP hop       │
                     └─────────────────────────────────┘
 ```
 
@@ -60,19 +60,23 @@
 - Поддержка нескольких локалей (uk, en, ru)
 - Возврат оценок релевантности для ранжирования
 
-### 3. Metarank (персонализированное ранжирование)
+### 3. ONNX Runtime (ML-ранжирование)
 
-Открытый feature store и сервис ранжирования для real-time персонализации.
+Предобученная LightGBM LambdaRank-модель экспортируется в `model.onnx` и выполняется локально через `onnxruntime-node` внутри Listing process. Runtime не обучает модель: training выполняется отдельной ephemeral job.
 
 **Зоны ответственности:**
-- Переранжирование кандидатов обученными моделями (LightGBM/XGBoost)
+- Переранжирование 200–500 кандидатов одним batch tensor
 - Объединение BM25-оценок с поведенческими сигналами
-- Real-time персонализация на основе истории пользователя
-- Обучение на кликах, добавлениях в корзину и покупках
+- Локальный inference без сетевого вызова и отдельного ranking service
+- Атомарная смена версии модели с warm-up и rollback
+- Fallback на BM25/popularity при ошибке inference
 
 **Ссылки:**
-- GitHub: https://github.com/metarank/metarank
-- Документация: https://docs.metarank.ai
+- ONNX Runtime Node.js: https://onnxruntime.ai/docs/get-started/with-javascript/node.html
+- ONNX Runtime: https://github.com/microsoft/onnxruntime
+- Modal training jobs: https://modal.com/docs
+- AWS SageMaker Training: https://docs.aws.amazon.com/sagemaker/latest/dg/train-model.html
+- AWS Batch: https://aws.amazon.com/batch/
 
 ---
 
@@ -211,15 +215,15 @@ t=20ms ──── PostgreSQL возвращает: 5 000 ID, подходящ�
 t=21ms ──── Пересечение: 800 ID (присутствуют в обоих результатах)
           │
           ├── PostgreSQL: стартует запрос подсчета фасетов (параллельно)
-          └── Metarank: стартует персонализированное ранжирование (параллельно)
+          └── ONNX Runtime: стартует локальный batch rerank (параллельно)
 
 t=35ms ──── Подсчеты фасетов готовы
 
-t=50ms ──── Metarank возвращает: top 50 персонализированных ID
+t=38ms ──── ONNX Runtime возвращает scores для candidate window
           │
-t=51ms ──── Ответ отправлен клиенту
+t=39ms ──── Ответ отправлен клиенту
 
-Итого: ~51ms (против ~95ms при последовательном выполнении)
+Итого: ~39ms. Числа иллюстративны; SLA определяется benchmark на production-like data.
 ```
 
 ### Диаграмма потока
@@ -259,22 +263,22 @@ t=51ms ──── Ответ отправлен клиенту
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│ 3. ПАРАЛЛЕЛЬНО: подсчет фасетов + Metarank                                │
+│ 3. ПАРАЛЛЕЛЬНО: подсчет фасетов + ONNX Runtime                            │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│   PostgreSQL                          Metarank                      │
+│   PostgreSQL                          ONNX Runtime                  │
 │   ┌─────────────────────┐            ┌─────────────────────┐        │
-│   │ SELECT              │            │ POST /rank/:model   │        │
-│   │   unnest(tag_ids),  │            │ {                   │        │
-│   │   count(*)          │            │   user: "user123",  │        │
-│   │ FROM psi            │            │   session: "sess1", │        │
-│   │ WHERE product_id    │            │   items: [...]      │        │
-│   │   = ANY($matched)   │            │ }                   │        │
+│   │ SELECT              │            │ session.run({       │        │
+│   │   unnest(tag_ids),  │            │   features:         │        │
+│   │   count(*)          │            │   Float32Tensor     │        │
+│   │ FROM psi            │            │ })                  │        │
+│   │ WHERE product_id    │            │                     │        │
+│   │   = ANY($matched)   │            │                     │        │
 │   │ GROUP BY 1          │            │                     │        │
 │   └─────────────────────┘            └─────────────────────┘        │
 │            │                                   │                    │
 │            ▼                                   ▼                    │
-│   { tag_a: 15, tag_b: 8 }            [id3, id2] (персонализировано)     │
+│   { tag_a: 15, tag_b: 8 }            [id3, id2] (ML score)             │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
                               │
@@ -584,7 +588,7 @@ listing_recall_stop_reason{reason}      // Почему цикл останов�
 | Нет потерянных результатов | Релевантные товары за пределами первой страницы находятся |
 | Ограниченная задержка | Timeout и лимиты страниц не дают запросам становиться медленными |
 | Предсказуемая нагрузка | Максимум кандидатов = perPage x maxPages |
-| Дружественно к ML | Достаточное разнообразие кандидатов для Metarank |
+| Дружественно к ML | Достаточное разнообразие кандидатов для ONNX rerank |
 | Наблюдаемость | Метрики показывают поведение recall |
 
 ### Рекомендуемая конфигурация
@@ -600,10 +604,10 @@ listing_recall_stop_reason{reason}      // Почему цикл останов�
 
 ## Стратегия сортировки
 
-| `sortBy` | Metarank | Typesense | PostgreSQL ORDER BY | Описание |
+| `sortBy` | ONNX rerank | Typesense | PostgreSQL ORDER BY | Описание |
 |----------|----------|-----------|---------------------|-------------|
-| `recommended` | да | нет | `popularity_score DESC` | Персонализированный просмотр, Metarank переранжирует лучших кандидатов |
-| `relevance` | да | да | - | Текстовый поиск + персонализация: BM25-оценки -> Metarank |
+| `recommended` | да | нет | `popularity_score DESC` | ML-модель переранжирует candidate window |
+| `relevance` | да | да | - | BM25-оценки и поведенческие features -> ONNX Runtime |
 | `price_asc` | нет | нет* | `min_price_minor ASC` | Строгий порядок по цене |
 | `price_desc` | нет | нет* | `min_price_minor DESC` | Строгий порядок по цене |
 | `newest` | нет | нет* | `published_at DESC` | Строгий порядок по дате |
@@ -611,10 +615,10 @@ listing_recall_stop_reason{reason}      // Почему цикл останов�
 
 \* Typesense все равно используется при текстовом запросе, но только для фильтрации (пересечения), а не для сортировки.
 
-### Почему не всегда использовать Metarank?
+### Почему не всегда использовать ML rerank?
 
 1. **Намерение пользователя**: когда пользователь выбирает "Цена: от низкой к высокой", он ожидает именно такой порядок
-2. **Задержка**: Metarank добавляет ~30ms, что лишнее для строгих сортировок
+2. **Задержка**: даже локальный inference не нужен для строгих сортировок
 3. **Предсказуемость**: пользователи ожидают стабильный порядок при сортировке по цене/дате
 
 ### Поток по sortBy
@@ -624,7 +628,7 @@ listing_recall_stop_reason{reason}      // Почему цикл останов�
 │                        sortBy = recommended                     │
 ├─────────────────────────────────────────────────────────────────┤
 │  PostgreSQL (фасеты) ──────────────────┐                        │
-│                                        ├──► Metarank ──► Результат │
+│                                        ├──► ONNX Runtime ──► Результат │
 │  (без Typesense, без query)              │                        │
 └─────────────────────────────────────────────────────────────────┘
 
@@ -632,7 +636,7 @@ listing_recall_stop_reason{reason}      // Почему цикл останов�
 │                  sortBy = relevance + query                     │
 ├─────────────────────────────────────────────────────────────────┤
 │  PostgreSQL (фасеты) ───┐                                       │
-│                         ├──► Пересечение ──► Metarank ──► Result  │
+│                         ├──► Пересечение ──► ONNX Runtime ──► Result  │
 │  Typesense (BM25) ──────┘                                       │
 └─────────────────────────────────────────────────────────────────┘
 
@@ -641,7 +645,7 @@ listing_recall_stop_reason{reason}      // Почему цикл останов�
 ├─────────────────────────────────────────────────────────────────┤
 │  PostgreSQL (фасеты + ORDER BY price) ─────────────────► Result │
 │                                                                 │
-│  (без Metarank, уже отсортировано)                                  │
+│  (без ML rerank, уже отсортировано)                                  │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
@@ -662,7 +666,7 @@ listing_recall_stop_reason{reason}      // Почему цикл останов�
 - **Среда выполнения**: Node.js
 - **База данных**: PostgreSQL + Knex.js (query builder)
 - **Поиск**: Typesense
-- **Ранжирование**: Metarank
+- **Ранжирование**: `onnxruntime-node` + предобученная LightGBM LambdaRank-модель
 - **Кеш + очередь**: Redis + BullMQ
 - **API**: GraphQL (Apollo Federation)
 - **HTTP**: Fastify
@@ -1078,7 +1082,7 @@ export interface SearchRequest {
   // Текстовый поиск
   query?: string;
 
-  // Персонализация (для Metarank)
+  // Контекст для ranking impression и future personalization features
   userId?: string;
   sessionId?: string;
 
@@ -1094,9 +1098,9 @@ export interface SearchRequest {
   inStock?: boolean;
 
   // Сортировка
-  // - recommended: персонализация Metarank (default)
-  // - relevance: BM25 + Metarank (когда есть query)
-  // - price_asc/price_desc/newest: строгая DB-сортировка, без Metarank
+  // - recommended: предобученная ONNX-модель (default)
+  // - relevance: BM25 + ONNX rerank (когда есть query)
+  // - price_asc/price_desc/newest: строгая DB-сортировка, без ML rerank
   sortBy?: 'recommended' | 'relevance' | 'price_asc' | 'price_desc' | 'popularity' | 'newest';
 
   // Пагинация
@@ -1134,31 +1138,23 @@ export interface TypesenseHit {
   score: number;
 }
 
-// Типы Metarank API
-// См.: https://docs.metarank.ai/reference/api
-
-export interface MetarankItem {
+export interface RankingCandidate {
   id: string;
-  // Значения features, извлеченные из product
-  price?: number;
-  popularity?: number;
-  bm25_score?: number;
-  in_stock?: boolean;
-  // Добавить больше features при необходимости
+  bm25Score: number;
+  priceNormalized: number;
+  popularity: number;
+  inStock: boolean;
+  ageDaysNormalized: number;
 }
 
-export interface MetarankRankRequest {
-  user?: string;           // ID пользователя для персонализации
-  session?: string;        // ID сессии
-  items: MetarankItem[];   // Items для ранжирования
-}
-
-export interface MetarankRankResponse {
-  items: Array<{
-    id: string;
-    score: number;
-  }>;
-  took: number;
+export interface RankingModelManifest {
+  modelVersion: string;
+  featureSchemaVersion: number;
+  featureNames: string[];
+  inputName: string;
+  outputName: string;
+  candidateLimit: number;
+  checksum: string;
 }
 ```
 
@@ -1172,18 +1168,29 @@ import { Redis } from 'ioredis';
 import { Queue } from 'bullmq';
 import Typesense from 'typesense';
 import pino from 'pino';
+import type { InferenceSession } from 'onnxruntime-node';
 
 export interface Kernel {
   db: Knex;
   redis: Redis;
   syncQueue: Queue;
   typesense: Typesense.Client;
-  metarankUrl: string;
-  metarankModel: string;
+  rankingSession: InferenceSession;
+  rankingManifest: RankingModelManifest;
   logger: pino.Logger;
 }
 
 export async function createKernel(): Promise<Kernel> {
+  const ort = await import('onnxruntime-node');
+  const rankingManifest = await loadAndValidateRankingManifest(
+    process.env.RANKING_MODEL_MANIFEST!
+  );
+  const rankingSession = await ort.InferenceSession.create(
+    process.env.RANKING_MODEL_PATH!,
+    { executionProviders: ['cpu'], graphOptimizationLevel: 'all' }
+  );
+  await warmUpRankingSession(rankingSession, rankingManifest);
+
   const db = Knex({
     client: 'pg',
     connection: process.env.DATABASE_URL,
@@ -1206,8 +1213,8 @@ export async function createKernel(): Promise<Kernel> {
     redis,
     syncQueue: new Queue('sync', { connection: redis }),
     typesense,
-    metarankUrl: process.env.METARANK_URL ?? 'http://localhost:8080',
-    metarankModel: process.env.METARANK_MODEL ?? 'xgboost',
+    rankingSession,
+    rankingManifest,
     logger: pino(),
   };
 }
@@ -1226,29 +1233,28 @@ export async function destroyKernel(kernel: Kernel): Promise<void> {
 
 import { Knex } from 'knex';
 import Typesense from 'typesense';
-import axios from 'axios';
+import * as ort from 'onnxruntime-node';
 import { Kernel } from './kernel';
 import {
   SearchRequest,
   SearchResponse,
   FacetResults,
   TypesenseHit,
-  MetarankItem,
-  MetarankRankRequest,
-  MetarankRankResponse,
+  RankingCandidate,
+  RankingModelManifest,
 } from './types';
 
 export class ListingService {
   private db: Knex;
   private typesense: Typesense.Client;
-  private metarankUrl: string;
-  private metarankModel: string;
+  private rankingSession: ort.InferenceSession;
+  private rankingManifest: RankingModelManifest;
 
   constructor(kernel: Kernel) {
     this.db = kernel.db;
     this.typesense = kernel.typesense;
-    this.metarankUrl = kernel.metarankUrl;
-    this.metarankModel = kernel.metarankModel;
+    this.rankingSession = kernel.rankingSession;
+    this.rankingManifest = kernel.rankingManifest;
   }
 
   async search(req: SearchRequest): Promise<SearchResponse> {
@@ -1311,12 +1317,12 @@ export class ListingService {
     // ФАЗА 4: параллельно counts фасетов + ранжирование
     // =========================================================
 
-    const useMetarank = this.shouldUseMetarank(req.sortBy, hasTextQuery);
+    const useOnnxRerank = this.shouldUseOnnxRerank(req.sortBy, hasTextQuery);
 
     const [facets, rankedIds] = await Promise.all([
       this.getFacetCounts(req.storeId, matchedIds),
-      useMetarank
-        ? this.rankWithMetarank(req, sortedIds, scores, limit)
+      useOnnxRerank
+        ? this.rankWithOnnx(sortedIds, scores, limit)
         : sortedIds.slice(0, limit),
     ]);
 
@@ -1496,43 +1502,55 @@ export class ListingService {
   }
 
   // ===========================================================
-  // Metarank: персонализированное ранжирование
+  // ONNX Runtime: локальное ML-ранжирование
   // ===========================================================
 
-  private async rankWithMetarank(
-    req: SearchRequest,
+  private async rankWithOnnx(
     productIds: string[],
     scores: Record<string, number>,
     limit: number
   ): Promise<string[]> {
-    // Взять лучших кандидатов для ранжирования
-    const candidates = productIds.slice(0, 500);
+    const candidates = await this.loadRankingCandidates(
+      productIds.slice(0, this.rankingManifest.candidateLimit),
+      scores
+    );
+    const featureCount = this.rankingManifest.featureNames.length;
+    const values = new Float32Array(candidates.length * featureCount);
 
-    // Собрать Metarank items с features
-    const items: MetarankItem[] = candidates.map((id) => ({
-      id,
-      bm25_score: scores[id] ?? 0,
-      // Добавить больше features из cache/db при необходимости
-    }));
+    for (let row = 0; row < candidates.length; row += 1) {
+      const candidate = candidates[row];
+      const offset = row * featureCount;
+      values[offset] = candidate.bm25Score;
+      values[offset + 1] = candidate.priceNormalized;
+      values[offset + 2] = candidate.inStock ? 1 : 0;
+      values[offset + 3] = candidate.popularity;
+      values[offset + 4] = candidate.ageDaysNormalized;
+    }
 
     try {
-      const response = await axios.post<MetarankRankResponse>(
-        `${this.metarankUrl}/rank/${this.metarankModel}`,
-        {
-          user: req.userId,       // Опционально: для персонализации
-          session: req.sessionId, // Опционально: session-based features
-          items,
-        } as MetarankRankRequest,
-        { timeout: 5000 }
+      const input = new ort.Tensor(
+        'float32',
+        values,
+        [candidates.length, featureCount]
       );
+      const result = await this.rankingSession.run({
+        [this.rankingManifest.inputName]: input,
+      });
+      const output = result[this.rankingManifest.outputName];
+      if (!output) throw new Error('ONNX ranking output is missing');
+      const rankingScores = output.data as Float32Array;
 
-      return response.data.items
+      return candidates
+        .map((candidate, index) => ({
+          id: candidate.id,
+          score: rankingScores[index],
+        }))
+        .sort((left, right) => right.score - left.score || left.id.localeCompare(right.id))
         .slice(0, limit)
-        .map((item) => item.id);
+        .map((candidate) => candidate.id);
     } catch (error) {
-      // Fallback: вернуть по BM25 score
-      console.error('Metarank failed, falling back to BM25:', error);
-      return candidates.slice(0, limit);
+      console.error('ONNX ranking failed, falling back to candidate order:', error);
+      return candidates.slice(0, limit).map((candidate) => candidate.id);
     }
   }
 
@@ -1541,18 +1559,18 @@ export class ListingService {
   // ===========================================================
 
   /**
-   * Определить, нужно ли использовать Metarank для ранжирования.
+   * Определить, нужно ли использовать ONNX-модель.
    *
-   * Использовать Metarank когда:
-   * - sortBy is 'recommended' (персонализировано browsing)
-   * - sortBy = 'relevance' И есть поисковый query
+   * Использовать ONNX rerank когда:
+   * - sortBy is 'recommended'
+   * - sortBy = 'relevance' и есть поисковый query
    *
-   * Не использовать Metarank когда:
+   * Не использовать ML rerank когда:
    * - sortBy = price_asc/price_desc (пользователь ожидает строгий порядок по цене)
    * - sortBy = newest (пользователь ожидает строгий порядок по дате)
    * - sortBy = popularity (использовать предварительно рассчитанный score)
    */
-  private shouldUseMetarank(
+  private shouldUseOnnxRerank(
     sortBy: string | undefined,
     hasTextQuery: boolean
   ): boolean {
@@ -1560,9 +1578,9 @@ export class ListingService {
 
     switch (sort) {
       case 'recommended':
-        return true;  // Всегда персонализировать для recommended
+        return true;
       case 'relevance':
-        return hasTextQuery;  // BM25 + Metarank при поиске
+        return hasTextQuery;
       case 'price_asc':
       case 'price_desc':
       case 'newest':
@@ -2230,180 +2248,87 @@ queue.push({ productId: '123' });
 
 ---
 
-## Интеграция Metarank
+## ONNX-модель и offline training
 
 ### Feedback-события
 
-Metarank обучается на пользовательских взаимодействиях. Отправляйте эти события для обучения модели ранжирования:
+Shopana хранит canonical `ranking`, `click`, `cart` и `purchase` events в собственной event/analytics системе. ONNX Runtime не собирает feedback и не обучает модель.
 
 ```typescript
-// metarank.events.ts
+export interface RankingImpressionEvent {
+  eventId: string;
+  rankingId: string;
+  storeId: string;
+  sessionId: string;
+  userId?: string;
+  query?: string;
+  modelVersion: string;
+  featureSchemaVersion: number;
+  occurredAt: string;
+  items: Array<{
+    productId: string;
+    position: number;
+    candidatePosition: number;
+    features: Record<string, number>;
+  }>;
+}
 
-import axios from 'axios';
-
-export class MetarankEvents {
-  constructor(private metarankUrl: string) {}
-
-  // Когда пользователь видит результаты поиска
-  async trackRanking(
-    user: string | undefined,
-    session: string,
-    items: string[],
-    query?: string
-  ): Promise<void> {
-    await axios.post(`${this.metarankUrl}/feedback`, {
-      event: 'ranking',
-      id: crypto.randomUUID(),
-      timestamp: new Date().toISOString(),
-      user,
-      session,
-      fields: query ? [{ name: 'query', value: query }] : [],
-      items: items.map((id, idx) => ({ id, position: idx + 1 })),
-    });
-  }
-
-  // Когда пользователь кликает по товару
-  async trackClick(
-    user: string | undefined,
-    session: string,
-    itemId: string,
-    rankingId: string
-  ): Promise<void> {
-    await axios.post(`${this.metarankUrl}/feedback`, {
-      event: 'interaction',
-      id: crypto.randomUUID(),
-      timestamp: new Date().toISOString(),
-      user,
-      session,
-      type: 'click',
-      item: itemId,
-      ranking: rankingId,
-    });
-  }
-
-  // Когда пользователь добавляет в корзину
-  async trackAddToCart(
-    user: string | undefined,
-    session: string,
-    itemId: string,
-    rankingId?: string
-  ): Promise<void> {
-    await axios.post(`${this.metarankUrl}/feedback`, {
-      event: 'interaction',
-      id: crypto.randomUUID(),
-      timestamp: new Date().toISOString(),
-      user,
-      session,
-      type: 'cart',
-      item: itemId,
-      ranking: rankingId,
-    });
-  }
-
-  // Когда пользователь покупает
-  async trackPurchase(
-    user: string | undefined,
-    session: string,
-    itemIds: string[]
-  ): Promise<void> {
-    for (const itemId of itemIds) {
-      await axios.post(`${this.metarankUrl}/feedback`, {
-        event: 'interaction',
-        id: crypto.randomUUID(),
-        timestamp: new Date().toISOString(),
-        user,
-        session,
-        type: 'purchase',
-        item: itemId,
-      });
-    }
-  }
+export interface RankingInteractionEvent {
+  eventId: string;
+  rankingId: string;
+  productId: string;
+  interaction: 'click' | 'cart' | 'purchase';
+  occurredAt: string;
 }
 ```
 
-### Конфигурация Metarank
+### Training pipeline
 
-Пример `config.yml` для Metarank:
+Периодическая ephemeral job читает impressions/interactions, строит point-in-time correct dataset, обучает `LightGBM LGBMRanker`, проверяет NDCG и экспортирует artifact:
 
-```yaml
-# metarank/config.yml
-
-state:
-  type: redis
-  host: redis
-  port: 6379
-
-features:
-  # Item features (из ваших данных)
-  - name: popularity
-    type: number
-    scope: item
-    source: metadata.popularity
-
-  - name: price
-    type: number
-    scope: item
-    source: metadata.price
-
-  - name: bm25_score
-    type: number
-    scope: item
-    source: ranking.bm25_score
-
-  # Interaction features (обучаемые)
-  - name: item_click_count
-    type: interaction_count
-    scope: item
-    interaction: click
-
-  - name: user_click_count
-    type: interaction_count
-    scope: user
-    interaction: click
-
-  - name: ctr
-    type: rate
-    scope: item
-    top: click
-    bottom: impression
-
-models:
-  xgboost:
-    type: lambdamart
-    backend: xgboost
-    features:
-      - popularity
-      - price
-      - bm25_score
-      - item_click_count
-      - ctr
-    weights:
-      click: 1
-      cart: 3
-      purchase: 5
+```text
+ranking events -> Parquet -> LightGBM LambdaRank
+  -> temporal validation -> model.onnx + manifest.json + metrics.json
+  -> MinIO/S3 -> candidate -> shadow -> canary -> production
 ```
 
-### Docker Compose
+`manifest.json` фиксирует `modelVersion`, точный порядок features, `featureSchemaVersion`, input/output names, candidate limit и checksum. Export pipeline обязан сравнить Python LightGBM scores с ONNX Runtime scores на фиксированном validation set.
 
-```yaml
-# docker-compose.yml
+### Ephemeral managed training
 
-services:
-  metarank:
-    image: metarank/metarank:latest
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./metarank/config.yml:/config.yml
-    command: ["serve", "--config", "/config.yml"]
-    depends_on:
-      - redis
+Training compute не работает постоянно. Container запускается по расписанию, публикует artifacts и завершается.
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
+Примеры managed runners:
+
+- Modal: https://modal.com/ и https://modal.com/docs/guide/cron
+- AWS SageMaker Training: https://docs.aws.amazon.com/sagemaker/latest/dg/train-model.html
+- AWS Batch: https://aws.amazon.com/batch/
+
+Пример Modal job:
+
+```python
+import modal
+
+app = modal.App("shopana-listing-ranking")
+image = modal.Image.debian_slim().uv_pip_install(
+    "lightgbm", "polars", "pyarrow", "onnxmltools", "onnxruntime"
+)
+
+@app.function(
+    image=image,
+    cpu=8,
+    memory=32768,
+    timeout=3 * 60 * 60,
+    schedule=modal.Cron("0 3 * * 0"),
+)
+def train_listing_ranker():
+    build_dataset()
+    model = train_lambdarank()
+    validate_model(model)
+    export_and_publish_onnx(model)
 ```
+
+Training job не активирует модель напрямую. Listing загружает только одобренную production version, проверяет checksum/schema, делает warm-up и атомарно меняет active `InferenceSession`.
 
 ---
 
@@ -2443,13 +2368,13 @@ try {
 }
 ```
 
-### 4. Metarank недоступен
+### 4. ONNX inference завершился ошибкой
 
 ```typescript
 try {
-  rankedIds = await this.rankWithMetarank(req, productIds, scores, limit);
+  rankedIds = await this.rankWithOnnx(productIds, scores, limit);
 } catch (error) {
-  console.error('Metarank unavailable:', error);
+  console.error('ONNX ranking failed:', error);
   // Fallback: вернуть по BM25-оценке или popularity
   rankedIds = productIds.slice(0, limit);
 }
@@ -2496,7 +2421,7 @@ listing_search_duration_ms{phase="postgres"}
 listing_search_duration_ms{phase="typesense"}
 listing_search_duration_ms{phase="intersection"}
 listing_search_duration_ms{phase="facets"}
-listing_search_duration_ms{phase="metarank"}
+listing_search_duration_ms{phase="onnx_ranking"}
 listing_search_duration_ms{phase="total"}
 
 // Количества
@@ -2506,7 +2431,7 @@ listing_search_candidates{source="intersection"}
 
 // Ошибки
 listing_search_errors{phase="typesense"}
-listing_search_errors{phase="metarank"}
+listing_search_errors{phase="onnx_ranking"}
 ```
 
 ---
@@ -2515,6 +2440,6 @@ listing_search_errors{phase="metarank"}
 
 1. **Кеширование**: Redis для горячих подсчетов фасетов и популярных поисковых запросов
 2. **Понимание запроса**: извлекать фильтры из естественного языка (например, "red nike under $100")
-3. **A/B-тестирование**: сравнивать модели Metarank через feature flags
+3. **A/B-тестирование**: сравнивать ONNX model versions через feature flags
 4. **Roaring bitmaps**: для 1M+ товаров, более быстрые подсчеты фасетов
 5. **Векторный поиск**: добавить семантический поиск через Typesense vectors или pgvector
