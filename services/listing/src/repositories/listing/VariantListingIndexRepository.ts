@@ -16,11 +16,6 @@ import {
   type VariantListingIndexUpsertInput,
 } from "./listingRepositoryTypes.js";
 
-export interface ProductStockAggregate {
-  inStock: boolean;
-  totalStock: number;
-}
-
 export class VariantListingIndexRepository extends BaseRepository {
   @ReadOnly()
   async exists(variantId: string): Promise<boolean> {
@@ -211,7 +206,6 @@ export class VariantListingIndexRepository extends BaseRepository {
           set: {
             productId: sql`excluded.product_id`,
             productDocId: sql`excluded.product_doc_id`,
-            inStock: sql`excluded.in_stock`,
             totalStock: sql`excluded.total_stock`,
             indexedAt: now,
             updatedAt: now,
@@ -232,32 +226,6 @@ export class VariantListingIndexRepository extends BaseRepository {
     const rows = await this.connection
       .update(variantListingIndex)
       .set(this.toPatchRow(patch))
-      .where(
-        and(
-          eq(variantListingIndex.storeId, this.storeId),
-          eq(variantListingIndex.variantId, variantId)
-        )
-      )
-      .returning();
-
-    return rows[0] ?? null;
-  }
-
-  async updateStock(
-    variantId: string,
-    input: {
-      inStock: boolean;
-      totalStock: number;
-    }
-  ): Promise<VariantListingIndex | null> {
-    assertNonNegativeInteger(input.totalStock, "totalStock");
-    const rows = await this.connection
-      .update(variantListingIndex)
-      .set({
-        inStock: input.inStock,
-        totalStock: input.totalStock,
-        updatedAt: nowIso(),
-      })
       .where(
         and(
           eq(variantListingIndex.storeId, this.storeId),
@@ -378,44 +346,6 @@ export class VariantListingIndexRepository extends BaseRepository {
     return result;
   }
 
-  @ReadOnly()
-  async getStockAggregatesByProductIds(
-    productIds: readonly string[]
-  ): Promise<Map<string, ProductStockAggregate>> {
-    const result = new Map<string, ProductStockAggregate>();
-    for (const productId of productIds) {
-      result.set(productId, { inStock: false, totalStock: 0 });
-    }
-
-    if (productIds.length === 0) {
-      return result;
-    }
-
-    const rows = await this.connection
-      .select({
-        productId: variantListingIndex.productId,
-        inStock: sql<boolean>`COALESCE(bool_or(${variantListingIndex.inStock}), false)`,
-        totalStock: sql<number>`COALESCE(sum(${variantListingIndex.totalStock}), 0)::int`,
-      })
-      .from(variantListingIndex)
-      .where(
-        and(
-          eq(variantListingIndex.storeId, this.storeId),
-          inArray(variantListingIndex.productId, [...new Set(productIds)])
-        )
-      )
-      .groupBy(variantListingIndex.productId);
-
-    for (const row of rows) {
-      result.set(row.productId, {
-        inStock: row.inStock,
-        totalStock: row.totalStock,
-      });
-    }
-
-    return result;
-  }
-
   private toInsertRow(
     row: VariantListingIndexUpsertInput,
     now: string
@@ -429,7 +359,6 @@ export class VariantListingIndexRepository extends BaseRepository {
       productDocId: row.productDocId,
       variantId: row.variantId,
       variantDocId: row.variantDocId,
-      inStock: row.inStock,
       totalStock: row.totalStock,
       indexedAt: now,
       updatedAt: now,
@@ -448,7 +377,6 @@ export class VariantListingIndexRepository extends BaseRepository {
       assertPositiveDocId(patch.productDocId, "productDocId");
       updateData.productDocId = patch.productDocId;
     }
-    if (patch.inStock !== undefined) updateData.inStock = patch.inStock;
     if (patch.totalStock !== undefined) {
       assertNonNegativeInteger(patch.totalStock, "totalStock");
       updateData.totalStock = patch.totalStock;

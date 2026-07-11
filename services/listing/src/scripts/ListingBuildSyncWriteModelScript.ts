@@ -27,12 +27,25 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
     const listingStatus: "published" | "draft" =
       item.status === "published" ? "published" : "draft";
     const indexableVariants = item.variants.filter(isIndexableVariant);
+    const variantTermsByVariantId: Record<
+      string,
+      readonly ListingVariantTerm[]
+    > = Object.fromEntries(
+      indexableVariants
+        .map((variant) => [variant.id, buildVariantTerms(variant)] as const)
+        .sort(([left], [right]) => String(left).localeCompare(String(right)))
+    );
+    const productAvailable = Object.values(variantTermsByVariantId).some(
+      (terms) =>
+        terms.some(
+          (term) =>
+            term.fieldKey === "criterion.availability" &&
+            term.valueKey === "available"
+        )
+    );
     const totalStock = indexableVariants.reduce(
       (sum, variant) => sum + (variant.availability.totalQuantity ?? 0),
       0
-    );
-    const inStock = indexableVariants.some(
-      (variant) => variant.availability.availableForSale
     );
 
     const writeModelJson: ListingSyncWriteModelJson = {
@@ -46,7 +59,6 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
         productCreatedAt: item.createdAt,
         productUpdatedAt: item.updatedAt,
         productRevision: item.productRevision,
-        inStock,
         totalStock,
       },
       productKind,
@@ -59,7 +71,7 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
           maxPriceMinor: price.maxAmountMinor,
         }))
         .sort((left, right) => left.currency.localeCompare(right.currency)),
-      productSortRows: buildProductSortRows(item, inStock),
+      productSortRows: buildProductSortRows(item, productAvailable),
       productTitleRows: Object.entries(item.content.translations)
         .filter(([, translation]) => translation.title.trim().length > 0)
         .map(([locale, translation]) => ({
@@ -88,7 +100,6 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
           return {
             productId: item.id,
             variantId: variant.id,
-            inStock: variant.availability.availableForSale,
             totalStock: variantTotalStock ?? 0,
           };
         })
@@ -109,11 +120,7 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
           ])
           .sort(([left], [right]) => String(left).localeCompare(String(right)))
       ),
-      variantTermsByVariantId: Object.fromEntries(
-        indexableVariants
-          .map((variant) => [variant.id, buildVariantTerms(variant)])
-          .sort(([left], [right]) => String(left).localeCompare(String(right)))
-      ),
+      variantTermsByVariantId,
       variantProductValueKeysByVariantId: Object.fromEntries(
         indexableVariants
           .map((variant) => [variant.id, [item.id]])
@@ -140,7 +147,7 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
 
 function buildProductSortRows(
   item: ListingPreparedSyncAction["params"]["item"],
-  inStock: boolean
+  productAvailable: boolean
 ): ListingSyncWriteModelJson["productSortRows"] {
   const title =
     item.content.translations[item.content.defaultLocale]?.title ??
@@ -150,7 +157,7 @@ function buildProductSortRows(
     {
       productId: item.id,
       sortKind: "newest",
-      boolValue: inStock,
+      boolValue: productAvailable,
       timestamptzValue: item.createdAt,
       timestamptzValue2: item.updatedAt,
     },
@@ -158,13 +165,13 @@ function buildProductSortRows(
       productId: item.id,
       sortKind: "name",
       locale: item.content.defaultLocale,
-      boolValue: inStock,
+      boolValue: productAvailable,
       textValue: title,
     },
     {
       productId: item.id,
       sortKind: "availability",
-      boolValue: inStock,
+      boolValue: productAvailable,
       bigintValue: item.availability.totalQuantity ?? 0,
     },
   ];
@@ -175,7 +182,7 @@ function buildProductSortRows(
         productId: item.id,
         sortKind: "price",
         currency: price.currencyCode,
-        boolValue: inStock,
+        boolValue: productAvailable,
         bigintValue: price.minAmountMinor,
       });
     }
@@ -187,7 +194,7 @@ function buildProductSortRows(
         productId: item.id,
         sortKind: "manual",
         manualScopeId: scope.categoryId,
-        boolValue: inStock,
+        boolValue: productAvailable,
         textValue: scope.manualRank,
       });
     }
@@ -220,8 +227,9 @@ function facetValueKeys(
 function buildVariantTerms(
   variant: ListingPreparedSyncAction["params"]["item"]["variants"][number]
 ): ListingVariantTerm[] {
+  const availableForSale = variant.availability.availableForSale;
   return materializeListingVariantTerms({
-    availableForSale: variant.availability.availableForSale,
+    availableForSale,
     options: variant.facets.flatMap((facet) => {
       if (!facet.facet.id) {
         throw new Error(`Variant OPTION term requires facet id: ${facet.facet.handle}`);

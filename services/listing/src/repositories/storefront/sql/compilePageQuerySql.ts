@@ -115,11 +115,19 @@ function compileMatchedVariantPricePageQuerySql(
       SELECT
         pli.product_doc_id,
         pli.product_id,
-        pli.in_stock,
+        availability.bool_value AS in_stock,
         chosen.variant_doc_id,
         chosen.price_minor
       FROM listing.product_listing_index pli
       JOIN input i ON true
+      JOIN listing.listing_posting_product_sort availability
+        ON availability.store_id = pli.store_id
+       AND availability.product_doc_id = pli.product_doc_id
+       AND availability.product_id = pli.product_id
+       AND availability.sort_kind = 'availability'
+       AND availability.locale = ''
+       AND availability.currency = ''
+       AND availability.manual_scope_id = ${ZERO_UUID}::uuid
       CROSS JOIN product_matches pm
       CROSS JOIN matching_variants mv
       LEFT JOIN LATERAL (

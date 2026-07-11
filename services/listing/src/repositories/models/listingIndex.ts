@@ -93,7 +93,6 @@ export const productListingIndex = listingSchema.table(
       mode: "string",
     }).notNull(),
     productRevision: integer("product_revision").notNull().default(0),
-    inStock: boolean("in_stock").notNull().default(false),
     totalStock: integer("total_stock").notNull().default(0),
     indexedAt: timestamp("indexed_at", { withTimezone: true, mode: "string" })
       .notNull()
@@ -134,27 +133,12 @@ export const productListingIndex = listingSchema.table(
       table.storeId,
       table.productDocId
     ),
-    index("idx_product_listing_visible_newest")
-      .on(
-        table.storeId,
-        table.inStock.desc(),
-        table.publishedAt.desc().nullsLast(),
-        table.productCreatedAt.desc(),
-        table.productId
-      )
-      .where(sql`${table.status} = 'published'`),
-    index("idx_product_listing_visible_created")
-      .on(
-        table.storeId,
-        table.inStock.desc(),
-        table.productCreatedAt.desc(),
-        table.productId
-      )
+    index("idx_product_listing_published_doc")
+      .on(table.storeId, table.productDocId)
       .where(sql`${table.status} = 'published'`),
     index("idx_product_listing_vendor")
       .on(table.storeId, table.vendorId)
       .where(sql`${table.vendorId} IS NOT NULL`),
-    index("idx_product_listing_in_stock").on(table.storeId, table.inStock),
   ]
 );
 
@@ -224,7 +208,6 @@ export const variantListingIndex = listingSchema.table(
     productDocId: integer("product_doc_id").notNull(),
     variantId: uuid("variant_id").primaryKey(),
     variantDocId: integer("variant_doc_id").notNull(),
-    inStock: boolean("in_stock").notNull().default(false),
     totalStock: integer("total_stock").notNull().default(0),
     indexedAt: timestamp("indexed_at", { withTimezone: true, mode: "string" })
       .notNull()
@@ -287,16 +270,6 @@ export const variantListingIndex = listingSchema.table(
       table.storeId,
       table.variantDocId
     ),
-    index("idx_variant_listing_in_stock").on(table.storeId, table.inStock),
-    index("idx_variant_listing_in_stock_product_variant")
-      .on(
-        table.storeId,
-        table.productDocId,
-        table.productId,
-        table.variantDocId,
-        table.variantId
-      )
-      .where(sql`${table.inStock} = true`),
   ]
 );
 

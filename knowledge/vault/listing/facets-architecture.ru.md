@@ -80,8 +80,12 @@ variant находится в `system.state=indexable` и ровно в одно
 state. Canonical availability определяется только `availableForSale`; quantity
 `0` не меняет backorder state.
 
-`product_listing_index.in_stock`, `variant_listing_index.in_stock` и product
-sort bool используются для diagnostics/order, но не для membership/counts.
+`criterion.availability` — единственный canonical source of truth. Product
+availability является производной проекцией: `true`, если существует хотя бы
+один canonical available variant; товар без active variants получает `false`.
+Значение хранится в `listing_posting_product_sort.bool_value` для ordering и
+diagnostics. В `product_listing_index` и `variant_listing_index` колонок
+`in_stock` нет.
 `variant_listing_price_index` содержит priced rows всех indexable variants
 независимо от availability.
 
@@ -166,7 +170,9 @@ candidates, projected products, collector и snapshot strategy без raw payloa
 
 `ListingPostingBitmapRepository.auditVariantTermIndex()` bounded-проверяет:
 cardinality, subset universe, availability partition, mapping, price subset,
-product availability aggregate parity и registry divergence.
+наличие и non-null availability sort projection, parity с canonical terms,
+одинаковое availability-значение во всех sort rows товара и registry
+divergence.
 
 ## DB decision
 

@@ -29,6 +29,7 @@ import {
   type ExactPostingLookupResult,
   type ListingVariantTermDeltaInput,
   type ListingVariantTermDeltaResult,
+  ZERO_UUID,
 } from "./listingRepositoryTypes.js";
 import {
   buildAvailabilityVariantTerm,
@@ -55,6 +56,9 @@ export interface ListingVariantTermAuditIssue {
     | "VARIANT_MAPPING_MISSING"
     | "PRICE_OUTSIDE_UNIVERSE"
     | "PRODUCT_AVAILABILITY_AGGREGATE_MISMATCH"
+    | "PRODUCT_AVAILABILITY_SORT_MISSING"
+    | "PRODUCT_AVAILABILITY_SORT_NULL"
+    | "PRODUCT_AVAILABILITY_SORT_INCONSISTENT"
     | "REGISTRY_DIVERGENCE";
   storeId: string;
   encodedKey?: string;
@@ -237,6 +241,35 @@ export class ListingPostingBitmapRepository extends BaseRepository {
             AND p.value_key = ${unavailableKey}
         ), (SELECT bitmap FROM empty_bitmap)) AS bitmap
       ),
+      product_availability AS (
+        SELECT
+          pli.product_id,
+          pli.product_doc_id,
+          COALESCE(
+            BOOL_OR(a.bitmap @> vli.variant_doc_id),
+            false
+          ) AS expected,
+          availability_sort.bool_value AS actual,
+          COUNT(availability_sort.product_doc_id)::int AS availability_sort_row_count
+        FROM listing.product_listing_index pli
+        CROSS JOIN available a
+        LEFT JOIN listing.variant_listing_index vli
+          ON vli.store_id = pli.store_id
+         AND vli.product_id = pli.product_id
+        LEFT JOIN listing.listing_posting_product_sort availability_sort
+          ON availability_sort.store_id = pli.store_id
+         AND availability_sort.product_doc_id = pli.product_doc_id
+         AND availability_sort.product_id = pli.product_id
+         AND availability_sort.sort_kind = 'availability'
+         AND availability_sort.locale = ''
+         AND availability_sort.currency = ''
+         AND availability_sort.manual_scope_id = ${ZERO_UUID}::uuid
+        WHERE pli.store_id = ${this.storeId}::uuid
+        GROUP BY
+          pli.product_id,
+          pli.product_doc_id,
+          availability_sort.bool_value
+      ),
       issues AS (
         SELECT
           'CARDINALITY_MISMATCH'::text AS code,
@@ -307,16 +340,48 @@ export class ListingPostingBitmapRepository extends BaseRepository {
 
         SELECT
           'PRODUCT_AVAILABILITY_AGGREGATE_MISMATCH', NULL,
-          BOOL_OR(a.bitmap @> vli.variant_doc_id)::text,
-          pli.in_stock::text
-        FROM listing.product_listing_index pli
-        JOIN listing.variant_listing_index vli
-          ON vli.store_id = pli.store_id
-         AND vli.product_id = pli.product_id
-        CROSS JOIN available a
-        WHERE pli.store_id = ${this.storeId}::uuid
-        GROUP BY pli.product_id, pli.in_stock
-        HAVING BOOL_OR(a.bitmap @> vli.variant_doc_id) <> pli.in_stock
+          pa.expected::text,
+          pa.actual::text
+        FROM product_availability pa
+        WHERE pa.availability_sort_row_count > 0
+          AND pa.actual IS NOT NULL
+          AND pa.expected <> pa.actual
+
+        UNION ALL
+
+        SELECT
+          'PRODUCT_AVAILABILITY_SORT_MISSING', NULL,
+          'availability sort row',
+          'missing'
+        FROM product_availability pa
+        WHERE pa.availability_sort_row_count = 0
+
+        UNION ALL
+
+        SELECT
+          'PRODUCT_AVAILABILITY_SORT_NULL', NULL,
+          'non-null bool_value',
+          'null'
+        FROM product_availability pa
+        WHERE pa.availability_sort_row_count > 0
+          AND pa.actual IS NULL
+
+        UNION ALL
+
+        SELECT
+          'PRODUCT_AVAILABILITY_SORT_INCONSISTENT', NULL,
+          COALESCE(pa.actual::text, 'null'),
+          COUNT(*) FILTER (
+            WHERE product_sort.bool_value IS DISTINCT FROM pa.actual
+          )::text
+        FROM product_availability pa
+        JOIN listing.listing_posting_product_sort product_sort
+          ON product_sort.store_id = ${this.storeId}::uuid
+         AND product_sort.product_doc_id = pa.product_doc_id
+         AND product_sort.product_id = pa.product_id
+        WHERE pa.availability_sort_row_count > 0
+        GROUP BY pa.product_id, pa.actual
+        HAVING BOOL_OR(product_sort.bool_value IS DISTINCT FROM pa.actual)
       )
       SELECT
         code AS "code",

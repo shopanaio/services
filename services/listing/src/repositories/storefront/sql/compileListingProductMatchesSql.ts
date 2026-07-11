@@ -7,7 +7,10 @@ import {
   encodeListingVariantTerm,
 } from "../../../listing/variantTerms/index.js";
 import { coalesceBitmapSql, emptyRoaringBitmapSql } from "../sqlHelpers.js";
-import type { ListingSqlRequest } from "./compileListingInputSql.js";
+import {
+  ZERO_UUID,
+  type ListingSqlRequest,
+} from "./compileListingInputSql.js";
 import { compileVariantProjectionSql } from "./compileVariantProjectionSql.js";
 
 export function compileInputCte(request: ListingSqlRequest): SQL {
@@ -304,13 +307,21 @@ function compileSearchCandidateRowsCte(request: ListingSqlRequest): SQL {
       SELECT
         pli.product_doc_id::int AS product_doc_id,
         pli.product_id AS product_id,
-        pli.in_stock AS in_stock,
+        availability.bool_value AS in_stock,
         pdb.score(ptsi.search_id)::double precision AS relevance_score
       FROM listing.product_title_bm25_search_index ptsi
       JOIN listing.product_listing_index pli
         ON pli.store_id = ptsi.store_id
        AND pli.product_id = ptsi.product_id
        AND pli.status = 'published'
+      JOIN listing.listing_posting_product_sort availability
+        ON availability.store_id = pli.store_id
+       AND availability.product_doc_id = pli.product_doc_id
+       AND availability.product_id = pli.product_id
+       AND availability.sort_kind = 'availability'
+       AND availability.locale = ''
+       AND availability.currency = ''
+       AND availability.manual_scope_id = ${ZERO_UUID}::uuid
       WHERE ptsi.store_id = ${request.storeId}::uuid
         AND ptsi.locale = ${request.locale}
         AND ptsi.status = 'published'

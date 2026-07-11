@@ -34,7 +34,6 @@ export interface ProductListingIndexUpsertInput {
   productCreatedAt: string;
   productUpdatedAt: string;
   productRevision: number;
-  inStock: boolean;
   totalStock: number;
 }
 
@@ -63,7 +62,6 @@ export interface VariantListingIndexUpsertInput {
   productDocId: number;
   variantId: string;
   variantDocId: number;
-  inStock: boolean;
   totalStock: number;
 }
 

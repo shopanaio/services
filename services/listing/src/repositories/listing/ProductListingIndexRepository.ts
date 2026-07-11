@@ -184,7 +184,6 @@ export class ProductListingIndexRepository extends BaseRepository {
         productCreatedAt: row.productCreatedAt ?? now,
         productUpdatedAt: row.productUpdatedAt ?? now,
         productRevision: 0,
-        inStock: false,
         totalStock: 0,
         indexedAt: now,
         updatedAt: now,
@@ -243,7 +242,6 @@ export class ProductListingIndexRepository extends BaseRepository {
             productCreatedAt: sql`excluded.product_created_at`,
             productUpdatedAt: sql`excluded.product_updated_at`,
             productRevision: sql`excluded.product_revision`,
-            inStock: sql`excluded.in_stock`,
             totalStock: sql`excluded.total_stock`,
             indexedAt: now,
             updatedAt: now,
@@ -265,32 +263,6 @@ export class ProductListingIndexRepository extends BaseRepository {
     const rows = await this.connection
       .update(productListingIndex)
       .set(updateData)
-      .where(
-        and(
-          eq(productListingIndex.storeId, this.storeId),
-          eq(productListingIndex.productId, productId)
-        )
-      )
-      .returning();
-
-    return rows[0] ?? null;
-  }
-
-  async updateStockAggregate(
-    productId: string,
-    input: {
-      inStock: boolean;
-      totalStock: number;
-    }
-  ): Promise<ProductListingIndex | null> {
-    assertNonNegativeInteger(input.totalStock, "totalStock");
-    const rows = await this.connection
-      .update(productListingIndex)
-      .set({
-        inStock: input.inStock,
-        totalStock: input.totalStock,
-        updatedAt: nowIso(),
-      })
       .where(
         and(
           eq(productListingIndex.storeId, this.storeId),
@@ -388,7 +360,6 @@ export class ProductListingIndexRepository extends BaseRepository {
       productCreatedAt: row.productCreatedAt,
       productUpdatedAt: row.productUpdatedAt,
       productRevision: row.productRevision,
-      inStock: row.inStock,
       totalStock: row.totalStock,
       indexedAt: now,
       updatedAt: now,
@@ -423,7 +394,6 @@ export class ProductListingIndexRepository extends BaseRepository {
       assertNonNegativeInteger(patch.productRevision, "productRevision");
       updateData.productRevision = patch.productRevision;
     }
-    if (patch.inStock !== undefined) updateData.inStock = patch.inStock;
     if (patch.totalStock !== undefined) {
       assertNonNegativeInteger(patch.totalStock, "totalStock");
       updateData.totalStock = patch.totalStock;

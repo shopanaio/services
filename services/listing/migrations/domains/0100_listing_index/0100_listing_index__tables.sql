@@ -27,7 +27,6 @@ CREATE TABLE listing.product_listing_index (
   product_updated_at     timestamptz NOT NULL,
   product_revision       int NOT NULL DEFAULT 0,
 
-  in_stock               boolean NOT NULL DEFAULT false,
   total_stock            int NOT NULL DEFAULT 0,
 
   indexed_at             timestamptz NOT NULL DEFAULT now(),
@@ -56,31 +55,13 @@ CREATE INDEX idx_product_listing_store_product
 CREATE INDEX idx_product_listing_store_doc
   ON listing.product_listing_index (store_id, product_doc_id);
 
-CREATE INDEX idx_product_listing_visible_newest
-  ON listing.product_listing_index (
-    store_id,
-    in_stock DESC,
-    published_at DESC NULLS LAST,
-    product_created_at DESC,
-    product_id
-  )
-  WHERE status = 'published';
-
-CREATE INDEX idx_product_listing_visible_created
-  ON listing.product_listing_index (
-    store_id,
-    in_stock DESC,
-    product_created_at DESC,
-    product_id
-  )
+CREATE INDEX idx_product_listing_published_doc
+  ON listing.product_listing_index (store_id, product_doc_id)
   WHERE status = 'published';
 
 CREATE INDEX idx_product_listing_vendor
   ON listing.product_listing_index (store_id, vendor_id)
   WHERE vendor_id IS NOT NULL;
-
-CREATE INDEX idx_product_listing_in_stock
-  ON listing.product_listing_index (store_id, in_stock);
 
 CREATE TABLE listing.product_listing_price_index (
   store_id             uuid NOT NULL,
@@ -144,7 +125,6 @@ CREATE TABLE listing.variant_listing_index (
   product_doc_id         int NOT NULL,
   variant_id             uuid NOT NULL,
   variant_doc_id         int NOT NULL,
-  in_stock               boolean NOT NULL DEFAULT false,
   total_stock            int NOT NULL DEFAULT 0,
 
   indexed_at             timestamptz NOT NULL DEFAULT now(),
@@ -187,19 +167,6 @@ CREATE INDEX idx_variant_listing_store_variant
 
 CREATE INDEX idx_variant_listing_store_doc
   ON listing.variant_listing_index (store_id, variant_doc_id);
-
-CREATE INDEX idx_variant_listing_in_stock
-  ON listing.variant_listing_index (store_id, in_stock);
-
-CREATE INDEX idx_variant_listing_in_stock_product_variant
-  ON listing.variant_listing_index (
-    store_id,
-    product_doc_id,
-    product_id,
-    variant_doc_id,
-    variant_id
-  )
-  WHERE in_stock = true;
 
 CREATE TABLE listing.listing_index_item_state (
   store_id                      uuid NOT NULL,
