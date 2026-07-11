@@ -167,6 +167,12 @@ test.describe('Listing service matrix perf', () => {
     api,
     request,
   }) => {
+    if (process.env.E2E_DISABLE_LISTING_EVENT_INDEXING !== 'true') {
+      throw new Error(
+        'Listing service matrix perf test requires E2E_DISABLE_LISTING_EVENT_INDEXING=true',
+      );
+    }
+
     await api.session.setupUserAndStore({
       defaultCurrency: 'USD',
       locales: ['en'],

@@ -63,6 +63,12 @@ export async function seedListingCategoryProducts({
   locale = 'en',
   currency = 'USD',
 }: SeedListingCategoryProductsInput): Promise<void> {
+  if (process.env.E2E_DISABLE_LISTING_EVENT_INDEXING !== 'true') {
+    throw new Error(
+      'Direct listing seed requires E2E_DISABLE_LISTING_EVENT_INDEXING=true',
+    );
+  }
+
   const sql = createListingSeedClient();
 
   try {
