@@ -4,16 +4,10 @@
 
 Статус: `proposal`.
 
-Документ выделяет из
-`services/listing/docs/search-admin-implementation-plan.ru.md` самостоятельный
-план изменений только для bounded context `listing` и каталога
-`services/listing`. Он покрывает storefront search, backend Search Admin,
-поисковые документы, конфигурацию, индексацию и эксплуатационные контракты.
-
 Реализация Catalog snapshot, broker-types и Admin UI не входит в этот план.
 Они описаны только как внешние зависимости Listing. Semantic/vector search,
 spellcheck, ML-reranking, персонализация, sponsored results и отдельное управление
-storefront facets также остаются вне scope.
+listing facets также остаются вне scope.
 
 План рассчитан на clean DB: stage/production данных и пользователей нет. Поэтому
 начальный title-only DDL можно заменить целевой схемой без dual-read, dual-write
@@ -26,7 +20,7 @@ storefront facets также остаются вне scope.
 - `pg_search` выполняет text/identifier matching и вычисляет BM25 score;
 - canonical listing bitmap pipeline остаётся источником истины для publication,
   navigation scope, same-variant filters, prices, availability, totals и facets;
-- storefront и Admin Preview вызывают один `SearchExecutionService`;
+- listing вызываeт `SearchExecutionService`;
 - settings, synonyms и boosts применяются из immutable versioned runtime revision;
 - fuzzy выполняется отдельным полным проходом только после final zero result;
 - search documents обновляются существующим event-driven listing workflow;
@@ -54,9 +48,9 @@ storefront facets также остаются вне scope.
 10. `HIDE` компилируется как canonical availability predicate в variant space до
     projection; `PLACE_LAST` использует только derived product ordering bucket.
     Оба режима имеют приоритет над boost.
-11. Pending/failed authoring revision не влияет на storefront до atomic
+11. Pending/failed authoring revision не влияет на listing до atomic
     activation.
-12. Preview не раскрывает SQL, AST, internal weights или numeric BM25 score.
+12. Listing не раскрывает SQL, AST, internal weights или numeric BM25 score.
 13. Search documents подчиняются canonical `listing_index_item_state`: stale и
     noop action не изменяют physical rows, а stale Catalog event/snapshot не
     может откатить latest item state или воскресить удалённый document.
@@ -64,7 +58,7 @@ storefront facets также остаются вне scope.
 ## Целевая схема выполнения
 
 ```text
-Storefront listing / Admin Preview
+Listing
   -> normalize locale/query/input
   -> resolve one pinned SearchRequestContext with runtime revision and index schema
   -> build safe SearchQueryPlan
@@ -76,15 +70,14 @@ Storefront listing / Admin Preview
        derive FUZZY SearchAttemptContext from the same pinned request context
        rerun the whole bundle with FUZZY plan
   -> apply relevance/business ordering and OOS policy
-  -> storefront: return listing
-  -> preview: return listing plus bounded reason diagnostics
+  -> return Listing
 ```
 
 ## 1. Canonical search execution
 
 ### 1.1. Нормализация
 
-Создать единый `SearchQueryNormalizer`, используемый storefront, Preview,
+Создать единый `SearchQueryNormalizer`, используемый Listing,
 synonyms и boosts:
 
 1. validate locale по enabled project locales;
@@ -281,7 +274,7 @@ algebra. Это не означает чтение одной физическо
 При concurrent indexing между statements допустимо, что page, `totalCount` и
 facet counts отражают разные committed состояния. Executor не повторяет branches,
 не сравнивает их результаты и не открывает координирующую read transaction.
-Eventual consistency существующего Listing index является частью storefront
+Eventual consistency существующего Listing index является частью Listing
 contract.
 
 ### 1.8. Fuzzy fallback
@@ -333,9 +326,9 @@ relevance/business keys, ordinal, product tie-breaker, issued-at и expiry.
 requests сохраняется существующая eventual-consistency semantics product index;
 snapshot search index не обещается.
 
-### 1.12. Preview diagnostics
+### 1.12. Listing diagnostics
 
-Preview вызывает тот же executor с `diagnosticsMode: "PREVIEW"` в pinned request
+Listing вызывает тот же executor с `diagnosticsMode: "PREVIEW"` в pinned request
 context. Дополнительный
 bounded query выполняется только по product IDs текущей page и возвращает reason
 codes: product/variant title, SKU exact/prefix, vendor, category, synonym, boost,
@@ -531,7 +524,7 @@ Scripts/services. Validation и normalization находятся в Scripts; dat
 
 - `capabilities`;
 - `settings`;
-- `preview`;
+- `listing`;
 - paginated `synonymGroup(s)`;
 - paginated `productBoost(s)`;
 - `indexStatus`;
@@ -545,10 +538,6 @@ Scripts/services. Validation и normalization находятся в Scripts; dat
 
 Все mutations возвращают entity/application state и `userErrors`. Node entities
 получают global ID. Lists используют server-side filtering и Relay cursors.
-
-Preview input разделяет query и navigation scope; поддерживает active и saved
-pending configuration modes. Pending preview компилирует ephemeral runtime plan
-и не активирует его.
 
 Минимальные Casbin permissions:
 
@@ -572,7 +561,7 @@ fuzzy flag, branch duration и counts synonyms/boosts. Raw query в technical lo
 Metrics: primary/fuzzy latency, cardinalities, config apply duration/failures и
 indexing lag/failures/coverage.
 
-Guardrails: maximum tokens, synonym units, alternatives, AST clauses, Preview
+Guardrails: maximum tokens, synonym units, alternatives, AST clauses, Listing
 timeout/cancellation, no unescaped parser strings, no silent truncation and no
 hidden top-K. Raw query, IP, user agent и auth data не сохраняются.
 
@@ -633,7 +622,7 @@ advertise соответствующей capability и не может быть 
 3. Разделить navigation scope и optional query во внутренних Listing types.
 4. Исправить `CATEGORY + query` для page/total/facets и business sorts.
 5. Свернуть duplicate search SQL в
-   `StorefrontProductTitleSearchQueryRepository`.
+   `ListingProductTitleSearchQueryRepository`.
 6. Удалить handle/UUID fallback.
 7. Добавить extension/index health diagnostics.
 
@@ -681,11 +670,11 @@ state; unavailable engine не имеет fallback.
    store.
 3. Реализовать authoring transaction: optimistic version, desired revision,
    immutable snapshot, audit и apply job.
-4. Добавить нормализацию и validation settings без подключения к storefront.
+4. Добавить нормализацию и validation settings.
 5. Опубликовать GraphQL `settings`, `settingsUpdate` и application state.
 
 Готовность: concurrent mutation получает configuration conflict; desired revision
-и audit записываются атомарно; незавершённая revision не влияет на storefront.
+и audit записываются атомарно; незавершённая revision не влияет на Listing.
 
 ### Этап 4. Configuration apply и runtime revisions
 
@@ -717,7 +706,7 @@ behavior.
 identifier tier стабилен; unsupported engine/schema combination возвращает
 `SEARCH_INDEX_UNAVAILABLE`.
 
-### Этап 6. Canonical storefront executor
+### Этап 6. Canonical Listing executor
 
 1. Создать `SearchExecutionService` и один раз построить pinned
    `SearchRequestContext` с active runtime revision, checksum и index schema.
@@ -729,7 +718,7 @@ identifier tier стабилен; unsupported engine/schema combination возв
 
 Готовность: query не теряется при scope/sort; page, total и facets используют
 одинаковую membership algebra без гарантии общего DB snapshot; same-variant
-filters сохраняют canonical semantics; storefront использует один pinned request
+filters сохраняют canonical semantics; Listing использует один pinned request
 context на всех параллельных branches и attempts.
 
 ### Этап 7. OOS policy и versioned cursor
@@ -760,19 +749,6 @@ revision/schema.
 Готовность: primary и fuzzy sets не смешиваются; SKU/synonyms не fuzzy-expand;
 page, total и facets используют один mode; отфильтрованный raw primary hit не
 блокирует fuzzy fallback.
-
-### Этап 9. Preview и capabilities
-
-1. Реализовать Preview через тот же `SearchExecutionService` с `PREVIEW`
-   diagnostics mode.
-2. Добавить bounded reason diagnostics только для текущей page.
-3. Реализовать ephemeral compile сохранённой pending revision тем же compiler
-   pipeline, что используется apply workflow.
-4. Опубликовать GraphQL `preview` и `capabilities`.
-5. Добавить timeout/cancellation и запрет score/SQL/AST leakage.
-
-Готовность: active Preview совпадает со storefront; pending Preview не активирует
-revision; unavailable fields честно отражаются в capabilities.
 
 ### Этап 10. Synonyms
 
@@ -832,9 +808,9 @@ canonical item reindex; stale/noop action не меняет search documents и 
 | Current writer | `services/listing/src/repositories/listing/ProductTitleBm25SearchIndexRepository.ts` |
 | Listing write path | `ListingBuildSyncWriteModelScript`, `ListingWriteIndexActionScript`, batch workflow steps |
 | Item freshness state | `ListingIndexItemStateRepository` и `listing_index_item_state` |
-| Candidate SQL | `services/listing/src/repositories/storefront/sql/compileListingProductMatchesSql.ts` |
-| Orchestration | `services/listing/src/repositories/storefront/StorefrontListingQueryRepository.ts` |
-| Page/cursor | `services/listing/src/repositories/storefront/sql/compilePageQuerySql.ts` и listing request/cursor types |
+| Candidate SQL | `services/listing/src/repositories/listing/sql/compileListingProductMatchesSql.ts` |
+| Orchestration | `services/listing/src/repositories/listing/ListingQueryRepository.ts` |
+| Page/cursor | `services/listing/src/repositories/listing/sql/compilePageQuerySql.ts` и listing request/cursor types |
 | Admin GraphQL | `services/listing/src/api/graphql-admin/schema/`, `services/listing/src/resolvers/admin/` |
 | New search modules | `services/listing/src/search/`, `repositories/search/`, `scripts/search/` |
 
@@ -860,12 +836,10 @@ canonical item reindex; stale/noop action не меняет search documents и 
 | Index retry exhausted | Existing DBOS Listing workflow status failed; previous committed documents доступны |
 | Stale product event | Canonical `listing_index_item_state` guard возвращает `ignored_stale`, documents не меняются |
 | Expired configuration cursor | `SEARCH_CURSOR_EXPIRED` |
-| Preview | Нет internal diagnostics leakage |
 
 ## 10. Definition of Done для Listing service
 
 - все advertised fields имеют реальный source и BM25 capability;
-- storefront и Preview используют один executor;
 - page/total/facets используют одинаковый membership compilation contract при
   любом scope/sort; общий DB snapshot и равенство результатов при concurrent
   indexing не гарантируются;
@@ -875,7 +849,6 @@ canonical item reindex; stale/noop action не меняет search documents и 
   `listing_index_item_state` без дублирующего search item state;
 - stale revision и stale product event не активируют устаревшее состояние;
 - index status показывает честные readiness, backlog, failures и locale coverage;
-- Preview возвращает bounded reason codes без score/SQL/AST;
 - GraphQL authorization, pagination, user errors и application states реализованы;
 - compatibility, failure and performance matrices подтверждены до rollout;
 - title-only repository/table/symbols удалены после завершения migration path.
