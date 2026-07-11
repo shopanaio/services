@@ -6,7 +6,6 @@ import type {
   ProductListingPriceRowInput,
   ProductSortRowInput,
   ProductTitleBm25RowInput,
-  RuntimeVariantPriceRowInput,
   VariantListingIndexUpsertInput,
   VariantListingPriceRowInput,
 } from "../repositories/listing/listingRepositoryTypes.js";
@@ -110,10 +109,6 @@ export type ListingSyncWriteModelJson = {
       VariantListingPriceRowInput,
       "variantDocId" | "productDocId"
     >[]
-  >;
-  runtimePricesByVariantId: Record<
-    string,
-    readonly Omit<RuntimeVariantPriceRowInput, "variantDocId" | "productDocId">[]
   >;
   variantFacetValueKeysByVariantId: Record<string, readonly string[]>;
   variantProductValueKeysByVariantId: Record<string, readonly string[]>;

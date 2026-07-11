@@ -402,7 +402,7 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
      *   delete planning. Stale variants are variants currently indexed for a
      *   product but absent from that product's next write model.
      * - Replacement operations are scoped to the affected product/variant ids:
-     *   replacing price rows, sort rows, title rows, runtime price rows, and
+     *   replacing price rows, sort rows, title rows, and
      *   bitmap memberships must delete old rows only for the specific products
      *   or variants in the applied set, not for the whole store.
      * - Product-level merged groups:
@@ -415,9 +415,7 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
      *     productDocId + field, for category, vendor, and facet.
      * - Variant-level merged groups:
      *   - variant_listing_index upsert rows;
-     *   - variant_listing_price_index source price rows grouped by variantId;
-     *   - listing_posting_variant_price runtime price rows grouped by
-     *     variantDocId;
+     *   - variant_listing_price_index price rows grouped by variantId;
      *   - listing_posting_bitmap variant memberships grouped by
      *     variantDocId + field, for facet and variant_product.
      *   - listing_option_signature rows, signature value rows, and

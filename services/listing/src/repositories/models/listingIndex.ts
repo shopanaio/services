@@ -382,6 +382,36 @@ export const variantListingPriceIndex = listingSchema.table(
         table.variantDocId
       )
       .where(sql`${table.hasPrice} = true AND ${table.signatureKey} IS NOT NULL`),
+    index("idx_variant_listing_price_range_covering")
+      .on(
+        table.storeId,
+        table.currency,
+        table.priceMinor,
+        table.productId,
+        table.variantDocId,
+        table.productDocId
+      )
+      .where(sql`${table.hasPrice} = true`),
+    index("idx_variant_listing_price_desc_covering")
+      .on(
+        table.storeId,
+        table.currency,
+        table.priceMinor.desc(),
+        table.productId,
+        table.variantDocId,
+        table.productDocId
+      )
+      .where(sql`${table.hasPrice} = true`),
+    index("idx_variant_listing_price_product_order")
+      .on(
+        table.storeId,
+        table.currency,
+        table.productId,
+        table.priceMinor,
+        table.variantDocId,
+        table.productDocId
+      )
+      .where(sql`${table.hasPrice} = true`),
   ]
 );
 
@@ -634,62 +664,6 @@ export const listingPostingProductSort = listingSchema.table(
   ]
 );
 
-export const listingPostingVariantPrice = listingSchema.table(
-  "listing_posting_variant_price",
-  {
-    storeId: uuid("store_id").notNull(),
-    currency: varchar("currency", { length: 3 }).notNull(),
-    variantDocId: integer("variant_doc_id").notNull(),
-    productDocId: integer("product_doc_id").notNull(),
-    productId: uuid("product_id").notNull(),
-    priceMinor: bigint("price_minor", { mode: "number" }).notNull(),
-  },
-  (table) => [
-    primaryKey({
-      columns: [table.storeId, table.currency, table.variantDocId],
-    }),
-    foreignKey({
-      name: "fk_listing_posting_variant_price_doc",
-      columns: [
-        table.storeId,
-        table.variantDocId,
-        table.productDocId,
-        table.productId,
-      ],
-      foreignColumns: [
-        variantListingIndex.storeId,
-        variantListingIndex.variantDocId,
-        variantListingIndex.productDocId,
-        variantListingIndex.productId,
-      ],
-    }).onDelete("cascade"),
-    index("idx_listing_posting_variant_price_range").on(
-      table.storeId,
-      table.currency,
-      table.priceMinor,
-      table.productId,
-      table.variantDocId,
-      table.productDocId
-    ),
-    index("idx_listing_posting_variant_price_desc").on(
-      table.storeId,
-      table.currency,
-      table.priceMinor.desc(),
-      table.productId,
-      table.variantDocId,
-      table.productDocId
-    ),
-    index("idx_listing_posting_variant_price_product_order").on(
-      table.storeId,
-      table.currency,
-      table.productId,
-      table.priceMinor,
-      table.variantDocId,
-      table.productDocId
-    ),
-  ]
-);
-
 export const listingPostingVariantProjectionBlock = listingSchema.table(
   "listing_posting_variant_storeion_block",
   {
@@ -848,11 +822,6 @@ export type ListingPostingProductSort =
   typeof listingPostingProductSort.$inferSelect;
 export type NewListingPostingProductSort =
   typeof listingPostingProductSort.$inferInsert;
-
-export type ListingPostingVariantPrice =
-  typeof listingPostingVariantPrice.$inferSelect;
-export type NewListingPostingVariantPrice =
-  typeof listingPostingVariantPrice.$inferInsert;
 
 export type ListingPostingVariantProjectionBlock =
   typeof listingPostingVariantProjectionBlock.$inferSelect;

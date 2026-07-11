@@ -307,6 +307,39 @@ CREATE INDEX idx_variant_listing_price_signature_range
   WHERE has_price = true
     AND signature_key IS NOT NULL;
 
+CREATE INDEX idx_variant_listing_price_range_covering
+  ON listing.variant_listing_price_index (
+    store_id,
+    currency,
+    price_minor,
+    product_id,
+    variant_doc_id,
+    product_doc_id
+  )
+  WHERE has_price = true;
+
+CREATE INDEX idx_variant_listing_price_desc_covering
+  ON listing.variant_listing_price_index (
+    store_id,
+    currency,
+    price_minor DESC,
+    product_id,
+    variant_doc_id,
+    product_doc_id
+  )
+  WHERE has_price = true;
+
+CREATE INDEX idx_variant_listing_price_product_order
+  ON listing.variant_listing_price_index (
+    store_id,
+    currency,
+    product_id,
+    price_minor,
+    variant_doc_id,
+    product_doc_id
+  )
+  WHERE has_price = true;
+
 CREATE TABLE listing.listing_option_signature (
   option_signature_id  uuid NOT NULL,
   store_id           uuid NOT NULL,
@@ -495,61 +528,6 @@ CREATE INDEX idx_listing_posting_product_sort_bigint_desc
     product_id
   )
   INCLUDE (product_doc_id);
-
-CREATE TABLE listing.listing_posting_variant_price (
-  store_id             uuid NOT NULL,
-  currency               varchar(3) NOT NULL,
-  variant_doc_id         int NOT NULL,
-  product_doc_id         int NOT NULL,
-  product_id             uuid NOT NULL,
-  price_minor            bigint NOT NULL,
-
-  PRIMARY KEY (store_id, currency, variant_doc_id),
-  CONSTRAINT fk_listing_posting_variant_price_doc
-    FOREIGN KEY (
-      store_id,
-      variant_doc_id,
-      product_doc_id,
-      product_id
-    )
-    REFERENCES listing.variant_listing_index(
-      store_id,
-      variant_doc_id,
-      product_doc_id,
-      product_id
-    )
-    ON DELETE CASCADE
-);
-
-CREATE INDEX idx_listing_posting_variant_price_range
-  ON listing.listing_posting_variant_price (
-    store_id,
-    currency,
-    price_minor,
-    product_id,
-    variant_doc_id,
-    product_doc_id
-  );
-
-CREATE INDEX idx_listing_posting_variant_price_desc
-  ON listing.listing_posting_variant_price (
-    store_id,
-    currency,
-    price_minor DESC,
-    product_id,
-    variant_doc_id,
-    product_doc_id
-  );
-
-CREATE INDEX idx_listing_posting_variant_price_product_order
-  ON listing.listing_posting_variant_price (
-    store_id,
-    currency,
-    product_id,
-    price_minor,
-    variant_doc_id,
-    product_doc_id
-  );
 
 CREATE TABLE listing.listing_posting_variant_storeion_block (
   store_id             uuid NOT NULL,

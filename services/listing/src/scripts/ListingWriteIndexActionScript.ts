@@ -10,7 +10,6 @@ import { ListingIndexActionScriptError } from "./listingIndexActionTypes.js";
 import type { Listing } from "@shopana/broker-types";
 import type {
   ProductSortRowInput,
-  RuntimeVariantPriceRowInput,
   VariantListingIndexUpsertInput,
   VariantListingPriceRowInput,
 } from "../repositories/listing/listingRepositoryTypes.js";
@@ -152,21 +151,10 @@ export class ListingWriteIndexActionScript extends BaseScript<
     await this.repository.variantListingIndex.upsertMany(variantRows);
 
     const sourcePriceRows = new Map<string, VariantListingPriceRowInput[]>();
-    const runtimePriceRows = new Map<number, RuntimeVariantPriceRowInput[]>();
     for (const variant of variantRows) {
       sourcePriceRows.set(
         variant.variantId,
         (writeModel.variantPricesByVariantId[variant.variantId] ?? []).map(
-          (row) => ({
-            ...row,
-            productDocId,
-            variantDocId: variant.variantDocId,
-          })
-        )
-      );
-      runtimePriceRows.set(
-        variant.variantDocId,
-        (writeModel.runtimePricesByVariantId[variant.variantId] ?? []).map(
           (row) => ({
             ...row,
             productDocId,
@@ -190,9 +178,6 @@ export class ListingWriteIndexActionScript extends BaseScript<
 
     await this.repository.variantListingPriceIndex.replaceForVariants(
       sourcePriceRows
-    );
-    await this.repository.listingPostingVariantPrice.replaceForVariants(
-      runtimePriceRows
     );
     await this.repository.listingOptionSignature.replaceForProduct({
       productDocId,
@@ -293,12 +278,6 @@ export class ListingWriteIndexActionScript extends BaseScript<
         variant.variantDocId
       );
     }
-    await this.repository.listingPostingVariantPrice.deleteByVariantDocIds(
-      variants.map((variant) => variant.variantDocId)
-    );
-    await this.repository.variantListingPriceIndex.deleteByVariantIds(
-      variants.map((variant) => variant.variantId)
-    );
   }
 
   private async upsertLatestState(

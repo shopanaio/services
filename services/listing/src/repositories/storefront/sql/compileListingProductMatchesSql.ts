@@ -279,7 +279,7 @@ function compilePricedVariantProductsBitmapSql(
     return emptyRoaringBitmapSql();
   }
 
-  // listing_posting_variant_price stores only priced runtime-eligible variants.
+  // The partial runtime indexes contain only priced variants.
   if (optionBitmap) {
     return coalesceBitmapSql(sql`(
       WITH option_variant_matches AS MATERIALIZED (
@@ -287,9 +287,10 @@ function compilePricedVariantProductsBitmapSql(
       )
       SELECT rb_build_agg(vp.product_doc_id)
       FROM option_variant_matches ovm
-      JOIN listing.listing_posting_variant_price vp
+      JOIN listing.variant_listing_price_index vp
         ON vp.store_id = ${request.storeId}::uuid
        AND vp.currency = ${request.currency}
+       AND vp.has_price = true
       WHERE ovm.bitmap @> vp.variant_doc_id
         ${compilePricePredicateSql(request, sql`vp`)}
     )`);
@@ -297,9 +298,10 @@ function compilePricedVariantProductsBitmapSql(
 
   return coalesceBitmapSql(sql`(
     SELECT rb_build_agg(vp.product_doc_id)
-    FROM listing.listing_posting_variant_price vp
+    FROM listing.variant_listing_price_index vp
     WHERE vp.store_id = ${request.storeId}::uuid
       AND vp.currency = ${request.currency}
+      AND vp.has_price = true
       ${compilePricePredicateSql(request, sql`vp`)}
   )`);
 }

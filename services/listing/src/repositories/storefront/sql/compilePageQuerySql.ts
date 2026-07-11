@@ -104,7 +104,7 @@ function compileMatchedVariantPricePageQuerySql(
   const pricePredicate = compilePricePredicateSql(request, sql`vp`);
   const optionPredicate = compileOptionVariantPredicateSql(request, sql`vp`);
 
-  // listing_posting_variant_price stores only priced runtime-eligible variants.
+  // The partial runtime indexes contain only priced variants.
   return sql`
     /* listing:page */
     WITH
@@ -122,11 +122,12 @@ function compileMatchedVariantPricePageQuerySql(
         vp.product_id,
         vp.variant_doc_id,
         vp.price_minor
-      FROM listing.listing_posting_variant_price vp
+      FROM listing.variant_listing_price_index vp
       JOIN input i ON true
       CROSS JOIN product_base pb
       WHERE vp.store_id = i.store_id
         AND vp.currency = i.currency
+        AND vp.has_price = true
         AND pb.bitmap @> vp.product_doc_id
         ${pricePredicate}
         ${optionPredicate}
@@ -216,10 +217,11 @@ function compileOptionBitmapMatchedVariantPricePageQuerySql(
         vp.price_minor
       FROM option_variant_ids ov
       JOIN input i ON true
-      JOIN listing.listing_posting_variant_price vp
+      JOIN listing.variant_listing_price_index vp
         ON vp.store_id = i.store_id
        AND vp.currency = i.currency
        AND vp.variant_doc_id = ov.variant_doc_id
+       AND vp.has_price = true
       CROSS JOIN product_base pb
       WHERE pb.bitmap @> vp.product_doc_id
         ${pricePredicate}

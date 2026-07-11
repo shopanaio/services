@@ -272,9 +272,8 @@ listing.facet.facet_type = PRICE
 | Таблица | Что хранит |
 |---------|------------|
 | `listing.product_listing_price_index` | product-level диапазон цены по currency: `min_price_minor`, `max_price_minor`, `has_price` |
-| `listing.variant_listing_price_index` | variant-level цену по currency: `price_minor`, `signature_key`, `product_doc_id`, `variant_doc_id`, `has_price` |
+| `listing.variant_listing_price_index` | единственный source/runtime variant-level price index по currency: `price_minor`, `signature_key`, `product_doc_id`, `variant_doc_id`, `has_price`; partial covering indexes обслуживают range, sort и product-order paths |
 | `listing.listing_posting_product_sort` | price sort rows: `sort_kind = price`, `currency`, `bigint_value = minPriceMinor` |
-| `listing.listing_posting_variant_price` | runtime rows для priced active/in-stock variants, используемые при option + price фильтрах |
 
 Price filter приходит через dedicated input:
 

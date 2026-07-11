@@ -24,8 +24,8 @@ price virtual facet              -> только in-stock prices
 - option filter без явного availability использует `plan.inStock ?? true`;
 - `compileFiltersSql.ts` неявно добавляет bitmap in-stock variants при OPTION
   или PRICE;
-- `listing_posting_variant_price` содержит только priced active available
-  variants;
+- `variant_listing_price_index` пока разделяет source/runtime contract неявно и
+  runtime paths трактуют priced rows как in-stock-only;
 - matched-price sorting, price range и price-related option counts опираются на
   этот in-stock-only posting.
 
@@ -463,9 +463,9 @@ UNAVAILABLE -> unavailable_product_bitmap
 Simple, candidate-only, heavy и forced-heavy paths обязаны использовать один
 helper.
 
-### Variant price posting
+### Variant price index
 
-Новый contract `listing.listing_posting_variant_price`:
+Новый contract `listing.variant_listing_price_index`:
 
 ```text
 одна row на каждый priced active variant + currency
@@ -496,8 +496,10 @@ row не удаляется только из-за availability.
 Нужны ли все indexes или partial variants, определяется через `EXPLAIN
 ANALYZE`; correctness не зависит от конкретного index set.
 
-`variant_listing_price_index` остается source/debug table. Runtime filter,
-range, matched sort и price-related counts читают expanded posting.
+`variant_listing_price_index` является единственным source/runtime price index.
+Runtime filter, range, matched sort и price-related counts читают его с явным
+`has_price = true`, используя partial covering indexes. Отдельный дублирующий
+price posting не создается.
 
 ### Product price aggregates и sort rows
 
@@ -570,7 +572,7 @@ product snapshot запрещен.
 6. Signature row удаляется только при полном отсутствии membership.
 7. Empty bucket сохраняется как non-null empty roaring bitmap.
 
-### `ListingPostingVariantPriceRepository`
+### `VariantListingPriceIndexRepository`
 
 1. Input/output types получают `inStock`.
 2. Insert/upsert пишет `in_stock`.
@@ -780,7 +782,7 @@ Range и `priceEligibleCount` вычисляются без active price range, 
 Source:
 
 ```text
-expanded listing_posting_variant_price
+variant_listing_price_index с `has_price = true`
 ```
 
 ```text
@@ -880,7 +882,8 @@ rg "in_stock = true|inStock \?\? true|force_zero|inStockVariantBitmap|product.*i
 Обновить текущие Drizzle/schema definitions для чистой базы:
 
 - добавить available/unavailable counters и bitmaps в option signature index;
-- добавить `listing_posting_variant_price.in_stock` и необходимые indexes;
+- добавить `variant_listing_price_index.in_stock` и необходимые partial
+  covering indexes;
 - добавить DB checks для bucket counters/bitmaps.
 
 Store-level state и schema-version columns не добавляются.
@@ -924,7 +927,7 @@ P13: available competitor с price 200
 
 1. Обновить `listingIndex.ts` и текущие schema definitions.
 2. Добавить signature counters/bitmaps для обоих availability buckets.
-3. Добавить stock state в variant price posting.
+3. Добавить stock state и runtime covering indexes в variant price index.
 4. Добавить checks/indexes.
 5. Обновить repository input/output types.
 
@@ -1001,7 +1004,7 @@ P13: available competitor с price 200
 - `services/listing/src/repositories/models/listingIndex.ts`
 - `services/listing/src/repositories/listing/listingRepositoryTypes.ts`
 - `services/listing/src/repositories/listing/ListingOptionSignatureRepository.ts`
-- `services/listing/src/repositories/listing/ListingPostingVariantPriceRepository.ts`
+- `services/listing/src/repositories/listing/VariantListingPriceIndexRepository.ts`
 - `services/listing/src/scripts/listingIndexActionTypes.ts`
 - `services/listing/src/scripts/ListingBuildSyncWriteModelScript.ts`
 - `services/listing/src/scripts/ListingWriteIndexActionScript.ts`
@@ -1039,7 +1042,7 @@ Seeder должен:
 - писать product/variant facet postings независимо от availability;
 - поддерживать несколько variants одного product;
 - писать canonical availability в `variant_listing_index.in_stock`;
-- писать `listing_posting_variant_price.in_stock` для всех priced active
+- писать `variant_listing_price_index.in_stock` для всех priced active
   variants;
 - считать total/available/unavailable signature counters;
 - строить all/available/unavailable signature bitmaps;

@@ -13,8 +13,8 @@ import {
   assertNonNegativeSafeInteger,
   normalizePositivePageSize,
 } from "./sqlHelpers.js";
-import { StorefrontFacetAggregationRepository } from "./StorefrontFacetAggregationRepository.js";
 import { StorefrontFacetResolutionRepository } from "./StorefrontFacetResolutionRepository.js";
+import { StorefrontFacetAggregationRepository } from "./StorefrontFacetAggregationRepository.js";
 import { StorefrontPostingBitmapQueryRepository } from "./StorefrontPostingBitmapQueryRepository.js";
 import { StorefrontProductSortCollectorRepository } from "./StorefrontProductSortCollectorRepository.js";
 import { StorefrontProductTitleSearchQueryRepository } from "./StorefrontProductTitleSearchQueryRepository.js";

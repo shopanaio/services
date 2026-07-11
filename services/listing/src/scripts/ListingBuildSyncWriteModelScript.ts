@@ -108,25 +108,6 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
           ])
           .sort(([left], [right]) => String(left).localeCompare(String(right)))
       ),
-      runtimePricesByVariantId: Object.fromEntries(
-        item.variants
-          .map((variant) => [
-            variant.id,
-            variant.status === "active" && variant.availability.availableForSale
-              ? variant.prices
-                  .filter((price) => price.amountMinor !== null)
-                  .map((price) => ({
-                    productId: item.id,
-                    currency: price.currencyCode,
-                    priceMinor: price.amountMinor as number,
-                  }))
-                  .sort((left, right) =>
-                    left.currency.localeCompare(right.currency)
-                  )
-              : [],
-          ])
-          .sort(([left], [right]) => String(left).localeCompare(String(right)))
-      ),
       variantFacetValueKeysByVariantId: Object.fromEntries(
         item.variants
           .map((variant) => [variant.id, variant.facets.flatMap(facetValueKeys).sort()])

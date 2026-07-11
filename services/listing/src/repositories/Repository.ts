@@ -10,7 +10,6 @@ import {
   ListingPostingBitmapRepository,
   ListingOptionSignatureRepository,
   ListingPostingProductSortRepository,
-  ListingPostingVariantPriceRepository,
   ListingPostingVariantProjectionBlockRepository,
   ProductTitleBm25SearchIndexRepository,
 } from "./listing/index.js";
@@ -52,7 +51,6 @@ export class Repository {
   public readonly listingPostingBitmap: ListingPostingBitmapRepository;
   public readonly listingOptionSignature: ListingOptionSignatureRepository;
   public readonly listingPostingProductSort: ListingPostingProductSortRepository;
-  public readonly listingPostingVariantPrice: ListingPostingVariantPriceRepository;
   public readonly listingPostingVariantProjectionBlock: ListingPostingVariantProjectionBlockRepository;
   public readonly productTitleBm25SearchIndex: ProductTitleBm25SearchIndexRepository;
   public readonly facet: FacetRepository;
@@ -82,7 +80,6 @@ export class Repository {
     listingPostingBitmap: ListingPostingBitmapRepository,
     listingOptionSignature: ListingOptionSignatureRepository,
     listingPostingProductSort: ListingPostingProductSortRepository,
-    listingPostingVariantPrice: ListingPostingVariantPriceRepository,
     listingPostingVariantProjectionBlock: ListingPostingVariantProjectionBlockRepository,
     productTitleBm25SearchIndex: ProductTitleBm25SearchIndexRepository,
     facet: FacetRepository,
@@ -107,7 +104,6 @@ export class Repository {
     this.listingPostingBitmap = listingPostingBitmap;
     this.listingOptionSignature = listingOptionSignature;
     this.listingPostingProductSort = listingPostingProductSort;
-    this.listingPostingVariantPrice = listingPostingVariantPrice;
     this.listingPostingVariantProjectionBlock = listingPostingVariantProjectionBlock;
     this.productTitleBm25SearchIndex = productTitleBm25SearchIndex;
     this.facet = facet;
@@ -164,10 +160,6 @@ export class Repository {
       db,
       txManager
     );
-    const listingPostingVariantPrice = new ListingPostingVariantPriceRepository(
-      db,
-      txManager
-    );
     const listingPostingVariantProjectionBlock =
       new ListingPostingVariantProjectionBlockRepository(db, txManager);
     const productTitleBm25SearchIndex =
@@ -218,7 +210,6 @@ export class Repository {
       listingPostingBitmap,
       listingOptionSignature,
       listingPostingProductSort,
-      listingPostingVariantPrice,
       listingPostingVariantProjectionBlock,
       productTitleBm25SearchIndex,
       facet,

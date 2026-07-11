@@ -95,14 +95,6 @@ export interface ProductSortRowInput extends ProductSortKeyInput {
   numericValue?: string | null;
 }
 
-export interface RuntimeVariantPriceRowInput {
-  currency: string;
-  variantDocId: number;
-  productDocId: number;
-  productId: string;
-  priceMinor: number;
-}
-
 export interface OptionSignatureVariantInput {
   valueKeys: readonly string[];
 }

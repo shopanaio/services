@@ -74,7 +74,7 @@ function compileOptionVariantPricesCte(request: ListingSqlRequest): SQL {
     return sql``;
   }
 
-  // listing_posting_variant_price stores only priced runtime-eligible variants.
+  // The partial runtime indexes contain only priced variants.
   return sql`
     option_variant_prices AS MATERIALIZED (
       SELECT
@@ -92,10 +92,11 @@ function compileOptionVariantPricesCte(request: ListingSqlRequest): SQL {
           price.product_id,
           price.variant_doc_id,
           price.price_minor
-        FROM listing.listing_posting_variant_price price
+        FROM listing.variant_listing_price_index price
         WHERE price.store_id = i.store_id
           AND price.currency = i.currency
           AND price.variant_doc_id = ov.variant_doc_id
+          AND price.has_price = true
         LIMIT 1
       ) vp ON true
       WHERE pb.bitmap @> vp.product_doc_id
@@ -233,11 +234,12 @@ function compilePricedInStockProductsBitmapSql(
   return sql`
     COALESCE((
       SELECT rb_build_agg(vp.product_doc_id)
-      FROM listing.listing_posting_variant_price vp
+      FROM listing.variant_listing_price_index vp
       JOIN input i ON true
       CROSS JOIN product_base pb
       WHERE vp.store_id = i.store_id
         AND vp.currency = i.currency
+        AND vp.has_price = true
         AND pb.bitmap @> vp.product_doc_id
         ${compilePricePredicateSql(request, sql`vp`)}
     ), ${emptyRoaringBitmapSql()})

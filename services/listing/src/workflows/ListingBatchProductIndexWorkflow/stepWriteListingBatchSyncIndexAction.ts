@@ -12,7 +12,6 @@ import type {
   ProductListingPriceRowInput,
   ProductSortRowInput,
   ProductTitleBm25RowInput,
-  RuntimeVariantPriceRowInput,
   VariantListingIndexUpsertInput,
   VariantListingPriceRowInput,
   OptionSignatureProductReplacementInput,
@@ -71,7 +70,6 @@ type MergedBatchSyncPayload = {
   productMemberships: ProductMembershipReplacement[];
   variantRows: VariantListingIndexUpsertInput[];
   sourcePriceRowsByVariantId: Map<string, VariantListingPriceRowInput[]>;
-  runtimePriceRowsByVariantDocId: Map<number, RuntimeVariantPriceRowInput[]>;
   variantMemberships: VariantMembershipReplacement[];
   optionSignatureProductReplacements: OptionSignatureProductReplacementInput[];
   staleVariants: StaleVariant[];
@@ -242,9 +240,6 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
     await this.repository.variantListingPriceIndex.replaceForVariants(
       payload.sourcePriceRowsByVariantId
     );
-    await this.repository.listingPostingVariantPrice.replaceForVariants(
-      payload.runtimePriceRowsByVariantDocId
-    );
     await this.replaceVariantMemberships(payload.variantMemberships);
     await this.repository.listingOptionSignature.replaceForProducts(
       payload.optionSignatureProductReplacements
@@ -288,10 +283,6 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
     const sourcePriceRowsByVariantId = new Map<
       string,
       VariantListingPriceRowInput[]
-    >();
-    const runtimePriceRowsByVariantDocId = new Map<
-      number,
-      RuntimeVariantPriceRowInput[]
     >();
     const variantMemberships: VariantMembershipReplacement[] = [];
     const optionSignatureProductReplacements: OptionSignatureProductReplacementInput[] =
@@ -379,16 +370,6 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
             }))
             .sort(compareCurrencyRows)
         );
-        runtimePriceRowsByVariantDocId.set(
-          variantDocId,
-          (writeModel.runtimePricesByVariantId[variant.variantId] ?? [])
-            .map((row) => ({
-              ...row,
-              productDocId,
-              variantDocId,
-            }))
-            .sort(compareCurrencyRows)
-        );
         variantMemberships.push(
           {
             variantDocId,
@@ -461,9 +442,6 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
       productMemberships: productMemberships.sort(compareProductMemberships),
       variantRows: variantRows.sort(compareVariantRows),
       sourcePriceRowsByVariantId: sortStringMap(sourcePriceRowsByVariantId),
-      runtimePriceRowsByVariantDocId: sortNumberMap(
-        runtimePriceRowsByVariantDocId
-      ),
       variantMemberships: variantMemberships.sort(compareVariantMemberships),
       optionSignatureProductReplacements:
         optionSignatureProductReplacements.sort(
@@ -504,12 +482,6 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
       );
     }
 
-    await this.repository.listingPostingVariantPrice.deleteByVariantDocIds(
-      variants.map((variant) => variant.variantDocId)
-    );
-    await this.repository.variantListingPriceIndex.deleteByVariantIds(
-      variants.map((variant) => variant.variantId)
-    );
   }
 
   private buildResult(

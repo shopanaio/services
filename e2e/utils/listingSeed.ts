@@ -564,29 +564,6 @@ async function seedVariantPrice(
   `;
 
   await sql`
-    INSERT INTO listing.listing_posting_variant_price (
-      store_id,
-      currency,
-      variant_doc_id,
-      product_doc_id,
-      product_id,
-      price_minor
-    )
-    VALUES (
-      ${input.projectUuid}::uuid,
-      ${input.currency},
-      ${input.variantDocId},
-      ${input.productDocId},
-      ${input.productUuid}::uuid,
-      ${input.priceMinor}
-    )
-    ON CONFLICT (store_id, currency, variant_doc_id) DO UPDATE SET
-      product_doc_id = EXCLUDED.product_doc_id,
-      product_id = EXCLUDED.product_id,
-      price_minor = EXCLUDED.price_minor
-  `;
-
-  await sql`
     INSERT INTO listing.product_listing_price_index (
       store_id,
       product_id,
