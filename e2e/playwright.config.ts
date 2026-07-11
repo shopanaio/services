@@ -17,7 +17,10 @@ const listingMatrixPerfSpecRequested = process.argv.some((argument) =>
   argument.includes('listing-service-matrix-perf.spec.ts'),
 );
 
-if (listingMatrixPerfSpecRequested) {
+if (
+  listingMatrixPerfSpecRequested &&
+  process.env.LISTING_FACET_COUNTS_PROFILE_ENABLED === undefined
+) {
   process.env.LISTING_FACET_COUNTS_PROFILE_ENABLED = 'true';
   process.env.E2E_LISTING_PERF_EXPLAIN_ANALYZE_PATH = resolve(
     process.cwd(),

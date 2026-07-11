@@ -109,6 +109,12 @@ const SELECTED_OPTION_AND_PRICE_FACETS = [
 ] as const;
 
 const PRICE_ONLY_FACETS = [{ price: PRICE_FILTER }] as const;
+const AVAILABLE_ONLY_FACETS = [{ available: true }] as const;
+const AVAILABLE_AND_PRICE_FACETS = [{ available: true }, ...PRICE_ONLY_FACETS] as const;
+const AVAILABLE_AND_OPTION_FACETS = [
+  { available: true },
+  ...SELECTED_OPTION_FACETS,
+] as const;
 
 const SCENARIOS = [
   {
@@ -158,6 +164,27 @@ const SCENARIOS = [
     facets: SELECTED_OPTION_AND_PRICE_FACETS,
     orderBy: { by: 'PRICE', direction: 'asc' },
     expected: 'optionAndPrice',
+  },
+  {
+    name: 'available:no-filters',
+    facets: AVAILABLE_ONLY_FACETS,
+    orderBy: { by: 'NEWEST' },
+    expected: 'category',
+    expectsAvailable: true,
+  },
+  {
+    name: 'available:price-only',
+    facets: AVAILABLE_AND_PRICE_FACETS,
+    orderBy: { by: 'NEWEST' },
+    expected: 'priceOnly',
+    expectsAvailable: true,
+  },
+  {
+    name: 'available:filters:no-price',
+    facets: AVAILABLE_AND_OPTION_FACETS,
+    orderBy: { by: 'NEWEST' },
+    expected: 'optionOnly',
+    expectsAvailable: true,
   },
 ] as const;
 
@@ -307,6 +334,9 @@ test.describe('Listing service matrix perf', () => {
         } else {
           expectNoSelectedOptionFacetValues(listing.facets);
         }
+        if ('expectsAvailable' in scenario && scenario.expectsAvailable) {
+          expectAvailabilityFacetValue(listing.facets, true);
+        }
 
         metrics.push({
           name: scenario.name,
@@ -324,15 +354,13 @@ test.describe('Listing service matrix perf', () => {
       const postgresDurations = await readRecentPostgresDurations(postgresLogsSince);
       const sqlTimingSummary = summarizeSqlTimings(postgresDurations.summary);
       assignQueryTimingsToScenarios(metrics, sqlTimingSummary);
-      const explainAnalyzeReport = labelExplainAnalyzeScenarios(
-        (await readOptionalFile(EXPLAIN_ANALYZE_REPORT_PATH)) ?? '',
-      );
-      if (!explainAnalyzeReport) {
-        throw new Error(
-          'EXPLAIN ANALYZE report was not generated; listing profiling must be enabled before services start',
-        );
+      const rawExplainAnalyzeReport = await readOptionalFile(EXPLAIN_ANALYZE_REPORT_PATH);
+      const explainAnalyzeReport = rawExplainAnalyzeReport
+        ? labelExplainAnalyzeScenarios(rawExplainAnalyzeReport)
+        : 'EXPLAIN ANALYZE disabled for this run.';
+      if (rawExplainAnalyzeReport) {
+        await writeFile(EXPLAIN_ANALYZE_REPORT_PATH, explainAnalyzeReport);
       }
-      await writeFile(EXPLAIN_ANALYZE_REPORT_PATH, explainAnalyzeReport);
       const report = {
         products: seedMeta.products,
         variants: seedMeta.variants,
@@ -354,7 +382,11 @@ test.describe('Listing service matrix perf', () => {
       console.log(`postgres raw log: ${POSTGRES_RAW_LOG_PATH}`);
       console.log(`postgres sql timings: ${POSTGRES_SQL_SUMMARY_PATH}`);
       console.log(`matrix report: ${MATRIX_REPORT_PATH}`);
-      console.log(`explain analyze: ${EXPLAIN_ANALYZE_REPORT_PATH}`);
+      console.log(
+        rawExplainAnalyzeReport
+          ? `explain analyze: ${EXPLAIN_ANALYZE_REPORT_PATH}`
+          : 'explain analyze: disabled',
+      );
       console.log(`full report: ${FULL_REPORT_PATH}`);
     } finally {
       await setPostgresDurationLogging(false);
@@ -451,13 +483,21 @@ function expectSelectedFacetValues(
 
 function expectNoSelectedOptionFacetValues(facets: ListingMatrixFacet[]) {
   for (const facet of facets) {
-    if (facet.id === 'price') {
+    if (facet.id === 'price' || facet.id === 'available') {
       continue;
     }
     for (const value of facet.values) {
       expect(value.selected, `selected ${facet.id}:${value.id}`).toBe(false);
     }
   }
+}
+
+function expectAvailabilityFacetValue(facets: ListingMatrixFacet[], available: boolean) {
+  const facet = facets.find((candidate) => candidate.id === 'available');
+  expect(facet, 'availability facet').toBeTruthy();
+  const value = facet?.values.find((candidate) => candidate.id === String(available));
+  expect(value, `availability ${available}`).toBeTruthy();
+  expect(value?.selected, `selected availability ${available}`).toBe(true);
 }
 
 async function setPostgresDurationLogging(enabled: boolean) {
