@@ -8,8 +8,8 @@
 `services/listing/docs/search-admin-must-have.ru.md`. Он описывает целевую
 архитектуру backend в `services/listing`, необходимые смежные contracts с
 Catalog/Checkout/Orders, Admin UI в `admin/src/domains/discovery/search`,
-GraphQL API, хранение данных, применение конфигурации, аналитику, rebuild
-поискового индекса и текстовые wireframes.
+GraphQL API, хранение данных, применение конфигурации, инкрементальное состояние
+поисковых документов, аналитику и текстовые wireframes.
 
 План рассчитан на clean DB: stage/production данных нет. Поэтому существующий
 начальный DDL BM25-индекса можно заменить целевым contract без dual-read,
@@ -30,8 +30,8 @@ variant filters, price, facets, availability и pagination. Synonyms расши�
 clauses, fuzzy выполняется вторым полным проходом только после нулевого результата,
 boosts добавляют exact curated candidates и меняют relevance ordering, а Admin Preview вызывает тот же execution
 path в диагностическом режиме. Настройки storefront читает из последней успешно
-применённой immutable revision, а BM25 rebuild использует отдельный blue/green
-slot, поэтому незавершённые изменения не влияют на текущую выдачу.
+применённой immutable revision, а поисковые документы поддерживаются существующим
+event-driven listing index workflow.
 
 ## Зафиксированные архитектурные решения
 
@@ -46,24 +46,18 @@ slot, поэтому незавершённые изменения не влия
    algebra остаётся единственным источником истины для scope, visibility,
    same-variant filters, prices, counts и facets.
 5. Все SQL-ветки одного listing request используют один `SearchExecutionContext`:
-   applied configuration revision, index generation, slot и fallback mode.
+   applied configuration revision, index schema version и fallback mode.
 6. Synonyms, boosts и settings применяются query-time через immutable runtime
-   configuration. Их изменение не rebuild-ит product documents.
-7. Каждый store получает два физически изолированных BM25 document slots и
-   store-scoped active pointer. Один shared table/index запрещён: staging rows
-   этого или другого tenant могли бы изменить BM25 corpus/IDF serving выдачи до
-   activation. Для MVP изоляция обеспечивается отдельной парой physical
-   table/index на store; partitioned-вариант допустим только после compatibility
-   proof, что каждый store имеет отдельный BM25 corpus.
-8. Fuzzy не смешивается с обычной выдачей. Сначала целиком выполняется primary
+   configuration.
+7. Fuzzy не смешивается с обычной выдачей. Сначала целиком выполняется primary
    listing; только если его `totalCount = 0`, выполняется такой же listing с fuzzy
    text plan.
-9. Product boost делает выбранный Product curated candidate для exact исходной
+8. Product boost делает выбранный Product curated candidate для exact исходной
    phrase, но не обходит scope, visibility, structured filters или out-of-stock
    rules.
-10. Product title обязателен. Для MVP вместо отсутствующего в домене product type
+9. Product title обязателен. Для MVP вместо отсутствующего в домене product type
     используется локализованное category name.
-11. Admin получает только понятные reason codes. SQL, query AST и numeric BM25
+10. Admin получает только понятные reason codes. SQL, query AST и numeric BM25
     score не входят в public GraphQL contract.
 
 ## Фактическая отправная точка
@@ -111,9 +105,8 @@ slot, поэтому незавершённые изменения не влия
 | Дублирующий repository search SQL почти не используется | Preview и storefront легко разойдутся | Оставить один canonical compiler/executor |
 | Default locale без title заменяется handle/ID | Admin не видит отсутствие localized data | Хранить пустой title + explicit coverage flag, без fallback |
 | Availability всегда первый sort key | Реализован только неявный `Place last` | Applied `SHOW/PLACE_LAST/HIDE` policy |
-| Один in-place BM25 table | Нельзя гарантировать last-known-good при rebuild | Два физических BM25 slots + atomic activation |
-| Cursor не знает config/index version | Следующая страница может иметь другое поведение | Pin revisions/generation в cursor и filter hash |
-| Только per-item listing state | Нет Ready/Updating/Failed и progress | Search index state/generation read model |
+| Cursor не знает config revision | Следующая страница может получить другие query-time rules | Pin configuration revision в cursor и filter hash |
+| Только per-item listing state | Нет Ready/Updating/Failed и pending/error counters | Search index synchronization state read model |
 | Нет persisted analytics | Нельзя связать search, click и purchase | Search request/click/purchase contracts и daily aggregate |
 
 Первый backend milestone обязан исправить обе ошибки `CATEGORY + query` даже если
@@ -134,13 +127,12 @@ slot, поэтому незавершённые изменения не влия
 6. Fuzzy mode определяется один раз для всего listing result; page не может быть
    fuzzy при exact total/facets или наоборот.
 7. Pending/failed authoring changes не видны storefront до atomic activation.
-8. Failed rebuild не меняет serving slot.
-9. SKU/barcode не получают synonym или fuzzy expansion.
-10. `HIDE` и `PLACE_LAST` имеют приоритет над boost.
-11. Preview не пишет search analytics.
-12. Analytics request записывается один раз после успешного storefront result,
+8. SKU/barcode не получают synonym или fuzzy expansion.
+9. `HIDE` и `PLACE_LAST` имеют приоритет над boost.
+10. Preview не пишет search analytics.
+11. Analytics request записывается один раз после успешного storefront result,
     а не по числу внутренних exact/fuzzy SQL attempts.
-13. Raw SQL, stack trace, internal weights и score не публикуются в Admin API.
+12. Raw SQL, stack trace, internal weights и score не публикуются в Admin API.
 
 ## Целевая схема взаимодействия
 
@@ -154,11 +146,11 @@ Admin mutation
 Catalog/project events
   -> existing Listing index workflow
   -> listing bitmap/sort read model
-  -> active search-document slot
-  -> building slot too, only while rebuild is active
+  -> incremental upsert/delete in search document index
+  -> synchronization state/pending counters
 
 Storefront/Admin Preview request
-  -> resolve active runtime revision + search index generation once
+  -> resolve active runtime revision once
   -> normalize input and build SearchQueryPlan
   -> pg_search primary candidates + BM25 score
   -> canonical scope/visibility/variant/price/facet bitmap pipeline
@@ -183,8 +175,6 @@ interface SearchExecutionContext {
   readonly normalizedQuery: NormalizedSearchQuery;
   readonly configurationRevision: number;
   readonly runtimeConfigurationChecksum: string;
-  readonly indexGenerationId: string;
-  readonly indexSlot: "A" | "B";
   readonly indexSchemaVersion: number;
   readonly mode: "PRIMARY" | "FUZZY";
   readonly analyticsMode: "TRACK" | "DO_NOT_TRACK";
@@ -405,7 +395,7 @@ productMatches
 ```
 
 Page, total, configured facets и virtual facets получают один resolved
-`mode`/configuration/generation. Search bitmap никогда не исключается при
+`mode`/configuration. Search bitmap никогда не исключается при
 facet target isolation.
 
 `publishedUniverse` является обязательным отдельным operand даже для category и
@@ -531,7 +521,7 @@ Search cursor version повышается и включает:
 - normalized query/filter hash;
 - locale, currency, scope, filters и sort;
 - configuration revision/checksum;
-- index generation ID/slot;
+- index schema version;
 - execution mode `PRIMARY/FUZZY`;
 - conditional availability bucket;
 - identifier priority;
@@ -543,9 +533,11 @@ Search cursor version повышается и включает:
 - product ID tie-breaker;
 - issued-at/expiry.
 
-Предыдущая runtime revision и предыдущий index slot сохраняются как минимум до
-истечения cursor TTL. Cursor старше retained revisions получает
-`SEARCH_CURSOR_EXPIRED`, а не продолжает pagination по новой выдаче.
+Предыдущие runtime revisions сохраняются как минимум до истечения cursor TTL.
+Cursor старше retained revisions получает `SEARCH_CURSOR_EXPIRED`, а не
+продолжает pagination с другими query-time rules. Инкрементальные изменения
+товаров следуют существующей eventual-consistency семантике listing pagination;
+план не обещает snapshot search index между отдельными HTTP requests.
 
 ### 11. Preview diagnostics
 
@@ -644,26 +636,13 @@ Fan-out события, которые должны re-sync affected products:
 Fan-out использует существующий batch listing index workflow и bounded batches,
 а не отдельные per-product workflows для каждого reference rename.
 
-### Два store-isolated физических BM25 slots
+### Единый инкрементально обновляемый search document index
 
-Вместо одного `product_title_bm25_search_index` каждый store получает два
-отдельных физических corpus-а:
+Существующий `product_title_bm25_search_index` заменяется одной расширенной
+tenant-scoped таблицей `listing.product_search_document`, которая поддерживается
+инкрементальными listing workflows.
 
-- `listing.product_search_<namespace>_a`;
-- `listing.product_search_<namespace>_b`.
-
-`namespace` — server-generated opaque identifier из
-`search_index_namespace`, а не `store_id`, handle или GraphQL input. DDL
-provisioner принимает только validated registry row и выбирает один из двух
-trusted suffixes. Это сознательный MVP trade-off: больше DB objects, но rebuild
-одного tenant не меняет membership или BM25 IDF/score другого tenant.
-
-После compatibility spike разрешена оптимизация до LIST-partitioned logical
-tables только если pinned `pg_search` создаёт отдельный local BM25 index/corpus
-на store partition и query pruning это подтверждает. Shared BM25 index с одним
-`store_id` filter не является корректной заменой физической isolation.
-
-Концептуальная строка каждой таблицы:
+Концептуальная строка:
 
 ```sql
 search_id                 uuid not null
@@ -694,39 +673,20 @@ foreign key (store_id, product_doc_id, product_id)
   -> product_listing_index(store_id, product_doc_id, product_id)
 ```
 
-Один BM25 index создаётся на каждом store-local physical slot. Он включает key
-field, locale/status/product-doc metadata и все searchable columns. `store_id`
-остаётся в rows/FK как defense-in-depth, хотя corpus уже tenant-local. Text
-columns используют явно закреплённый Unicode-compatible tokenizer. SKU/barcode
-arrays используют whole-value/raw semantics, чтобы exact и prefix query не
-превращались в обычный word search.
+Один BM25 index включает key field, `store_id`, locale/status/product-doc metadata
+и все searchable columns. Text columns используют явно закреплённый
+Unicode-compatible tokenizer. SKU/barcode arrays используют whole-value/raw
+semantics, чтобы exact и prefix query не превращались в обычный word search.
 
-`search_id` стабилен внутри slot для `(store, product, locale)`: обычный upsert
-его сохраняет. Штатный writer не должен делать delete+insert перед каждым update,
-как текущий `replaceForProduct`.
+`search_id` стабилен для `(store, product, locale)`: обычный upsert сохраняет его.
+Штатный writer не должен делать delete+insert перед каждым update, как текущий
+`replaceForProduct`. Product delete/unpublish и locale removal выполняют
+идемпотентный delete/update тем же listing index workflow.
 
-Physical namespace читается по `store_id` из registry, slot выбирается только из
-trusted enum `A | B`; готовое имя SQL table никогда не приходит из GraphQL или
-user input. Rebuild очищает весь target corpus данного store. Для обоих slots
-существуют одинаковые repository methods, DDL schema checksum и contract
-fixtures. Provision/upgrade failure оставляет capability `UNAVAILABLE`, а не
-переключает запрос на общий fallback index.
-
-Drizzle описывает registry/state/generation metadata. Динамические physical
-document tables используют один typed row contract и versioned SQL template в
-`SearchDocumentSlotRepository`; identifier создаётся специальным trusted
-identifier helper после lookup/allowlist, а все row values остаются bind
-parameters. Обычная string interpolation запрещена.
-
-### Почему не одна таблица с `generation_id`
-
-BM25/IDF score зависит от corpus. Если active/building generations одного store
-или documents разных stores лежат в одном ParadeDB index, вставка staging rows
-потенциально меняет score serving rows ещё до activation, даже при фильтре по
-`generation_id`/`store_id`. Store-local A/B одновременно отделяет generation и
-tenant corpus, поэтому last-known-good означает не только membership, но и
-ranking. Цена решения — provisioning/schema-upgrade lifecycle для физических
-indexes; его нельзя заменить тихим возвратом к shared index.
+Первичное заполнение clean DB выполняется существующим bootstrap/indexing flow.
+Дальше таблица поддерживается только Catalog/project events и reconciliation
+конкретных pending products. Изменение физической схемы `pg_search` является
+отдельной инфраструктурной migration-задачей, а не функцией Search Admin.
 
 ## Backend data model
 
@@ -937,43 +897,15 @@ actor_id, request_id, created_at
 
 ### 5. Index state
 
-#### `search_index_namespace`
-
-Одна registry row связывает store с физической парой BM25 indexes:
-
-```text
-store_id primary key
-namespace_key unique
-schema_version
-provision_status PROVISIONING|READY|FAILED|DECOMMISSIONING
-ddl_checksum
-last_error_code/message
-created_at, updated_at
-```
-
-`namespace_key` генерируется backend и проходит строгий identifier allowlist.
-Provisioner/upgrade workflow использует versioned DDL template и advisory lock;
-ни resolver, ни repository не конкатенируют пользовательские значения в table
-name.
-
-Namespace создаётся при search bootstrap store, schema upgrade строит новую
-generation/slot без in-place serving DDL, а store deletion ставит registry в
-`DECOMMISSIONING` и удаляет physical objects только после retention. Reconciler
-находит registry/physical-object drift и показывает `FAILED`, не создавая index
-во время read request.
-
 #### `search_index_state`
 
 ```text
 store_id primary key
-active_generation_id
-previous_generation_id
-building_generation_id
+schema_version
 overall_status READY | UPDATING | FAILED
-last_success_at
+initial_sync_completed_at
+last_successful_item_at
 last_attempt_at
-last_incremental_success_at
-last_incremental_attempt_at
 last_error_code
 last_error_message
 pending_product_count
@@ -981,83 +913,51 @@ failed_pending_product_count
 updated_at
 ```
 
-`overall_status = FAILED` не означает, что serving generation отсутствует.
-GraphQL отдельно сообщает `servingAvailable`; Admin показывает failure явно, но
-storefront продолжает читать active generation. State вычисляется так:
+GraphQL отдельно сообщает `servingAvailable`. State вычисляется так:
 
-- `FAILED`, если serving generation отсутствует, последний rebuild failed или
-  хотя бы один desired incremental item исчерпал retry budget;
-- `UPDATING`, если выполняется rebuild либо active generation отстаёт от
-  canonical desired items без terminal error;
-- `READY`, только когда serving generation существует, rebuild не failed и
-  incremental backlog пуст.
+- `FAILED`, если extension/index недоступен либо хотя бы один item исчерпал retry
+  budget;
+- `UPDATING`, пока initial sync не завершён или существует retryable backlog;
+- `READY`, когда initial sync завершён и backlog пуст.
 
-`last_success_at/last_attempt_at` — max по generation и incremental activity;
-отдельные incremental timestamps позволяют Index drawer объяснить, почему
-последний catalog change ещё не попал в search.
+Если initial sync уже завершён, `UPDATING/FAILED` может иметь
+`servingAvailable=true`: storefront читает успешно синхронизированные документы,
+а Admin честно показывает pending/failed products.
 
-#### `search_index_generation`
+#### `search_index_locale_state`
 
 ```text
-store_id, id, generation_number, slot A|B,
-schema_version, source_watermark,
-status BUILDING|CATCHING_UP|VALIDATING|READY|FAILED|RETIRED,
-trigger INITIAL|MANUAL|LOCALES_CHANGED|SCHEMA_CHANGED|RECOVERY,
-expected_products, processed_products, indexed_products,
-started_by, workflow_id,
-started_at, completed_at,
-error_code, error_message
+store_id, locale,
+expected_products, indexed_products,
+published_products,
+localized_title_products, missing_localized_title_products,
+updated_at,
+primary key (store_id, locale)
 ```
 
-#### `search_index_generation_locale`
+Counters обновляются инкрементально и периодически сверяются с
+`product_listing_index`; расхождение создаёт pending item или safe `FAILED`
+status, но не запускает массовую административную операцию.
 
-```text
-store_id, generation_id, locale,
-expected_products, document_count,
-published_document_count,
-localized_title_count, missing_localized_title_count,
-processed_products, updated_at
-```
-
-#### `search_index_generation_item_state`
-
-```text
-store_id, generation_id, product_id,
-applied_event_sequence,
-applied_action UPSERT|DELETE,
-status PENDING|APPLIED|FAILED,
-attempts, last_error_code/message, updated_at,
-primary key (store_id, generation_id, product_id)
-```
-
-Per-generation sequence/tombstone не позволяет stale full-build snapshot
-воскресить product после более нового update/delete, пришедшего во время
-rebuild, и отдельно показывает lag active/building generations.
-
-#### `search_index_desired_item`
-
-Canonical coalesced desired state/queue, независимая от generation:
+#### `search_index_item_state`
 
 ```text
 store_id, product_id,
-desired_event_sequence,
-desired_action UPSERT|DELETE,
-source_revision,
-created_at, updated_at,
+desired_event_sequence, desired_action UPSERT|DELETE,
+desired_source_revision,
+applied_event_sequence, applied_action UPSERT|DELETE nullable,
+status PENDING|APPLIED|FAILED,
+attempts, available_at,
+last_error_code/message,
+updated_at,
 primary key (store_id, product_id)
 ```
 
-Writer сравнивает desired row с `search_index_generation_item_state` отдельно для
-active и building generation и выполняет monotonic upsert/delete. Поэтому один
-`indexed_event_sequence` на product не используется. `pending_product_count`
-считается как distinct desired products, у которых active generation отстаёт;
-building lag отображается в progress отдельно.
-
-Desired tombstone удаляется только когда active и все retained non-retired
-generations применили sequence не ниже tombstone и истёк cursor retention.
-Generation item rows удаляются вместе с metadata окончательно retired
-generation. Upsert после delete с более новым sequence снова создаёт document;
-любая операция со старым/equal sequence является idempotent no-op.
+Catalog event monotonic upsert-ит desired side. Listing item workflow обновляет
+search document и applied side одной transaction. Ошибка оставляет item в
+`PENDING`, retry exhaustion переводит его в `FAILED`; событие со старым/equal
+sequence является idempotent no-op. Delete хранится как tombstone, чтобы старое
+событие не воскресило документ.
 
 ### 6. Search analytics facts
 
@@ -1074,7 +974,7 @@ locale, normalized_query, query_hash,
 scope_kind, scope_id nullable,
 execution_fingerprint,
 result_count, fallback_applied,
-configuration_revision, index_generation_id,
+configuration_revision, index_schema_version,
 previous_search_request_id nullable,
 first_clicked_at nullable, click_count,
 first_purchased_at nullable, purchase_count
@@ -1131,7 +1031,7 @@ fuzzy_searches, reformulations,
 last_searched_at
 ```
 
-Daily rollup является rebuildable projection из facts. Определения метрик:
+Daily rollup является пересчитываемой projection из facts. Определения метрик:
 
 - CTR = search requests с минимум одним valid click / matured search requests;
 - purchase rate = search requests с attributed order line / search requests,
@@ -1157,50 +1057,23 @@ Status не удаляет facts/aggregates. `RESOLVED` автоматическ
 `OPEN`, если после resolution накопилось не менее трёх новых qualifying searches;
 `IGNORED` остаётся ignored до ручного reopen.
 
-## Index rebuild lifecycle
+## Incremental search document lifecycle
 
-1. Mutation берёт store-scoped advisory lock.
-2. Если rebuild уже активен, возвращает существующую generation и
-   `alreadyRunning = true`.
-3. Проверяется `search_index_namespace = READY`, затем создаётся generation в
-   неактивном store-local slot; active slot остаётся serving.
-4. Inactive store-local corpus полностью очищается, затем заполняется bounded
-   Catalog snapshot batches этого store.
-5. Product updates во время build продолжают обновлять active slot и
-   `search_index_desired_item`; catch-up сравнивает desired sequence с отдельным
-   generation item state. Building upsert/delete применяется только если source
-   revision/sequence не старее уже applied state.
-6. Workflow replay-ит delta до watermark, затем выполняет audit:
-   - distinct expected/indexed counts;
-   - per-locale coverage;
-   - tenant/status consistency;
-   - search ID uniqueness;
-   - required field/index schema;
-   - bounded primary query smoke fixtures;
-   - parity product references с `product_listing_index`.
-7. В одной короткой transaction generation становится `READY`, pointers
-   `active/previous` переключаются, `last_success_at` обновляется.
-8. При ошибке building generation получает `FAILED`, active pointer не меняется,
-   sanitized error сохраняется.
-9. Previous slot сохраняется для retained cursors. Следующий rebuild может очистить
-   его после cursor TTL/retention.
-10. Пока inactive slot является защищённым previous slot, новый rebuild не
-    стартует и не инвалидирует валидные cursors. Mutation возвращает retryable
-    `SEARCH_INDEX_SLOT_RETAINED` и время освобождения slot; Admin временно
-    отключает действие. Для очередей rebuild это состояние можно позже расширить
-    до `WAITING_FOR_SLOT`, но MVP не скрывает его как успешный запуск.
+1. Catalog/project event monotonic upsert-ит `search_index_item_state.desired_*`.
+2. Existing listing item workflow получает актуальный Catalog snapshot.
+3. Перед write он повторно проверяет desired sequence/source revision: stale
+   snapshot не может пометить более новое состояние как `APPLIED`.
+4. В одной transaction обновляются listing rows, search documents всех enabled
+   locales и `applied_*` state.
+5. Ошибка оставляет item в `PENDING`; DBOS retry использует тот же idempotency key.
+6. После исчерпания retry budget item становится `FAILED`, safe error и counters
+   видны в Index Status.
+7. Более новое событие снова переводит item в `PENDING`; старое/equal событие
+   является no-op.
 
-Progress считается по products, а locale counters являются детализацией. Повторный
-клик `Rebuild` не создаёт второй DBOS workflow.
-
-Обычные incremental updates не меняют generation ID. Catalog event ingestion
-monotonic upsert-ит canonical desired state; успешный item workflow атомарно
-обновляет listing rows, serving search document и active generation item state с
-одним source revision. Failure оставляет desired sequence впереди applied state,
-попадает в retry/backlog и после исчерпания retry budget переводит Index Status в
-`FAILED`, не позволяя Overview показать ложный `READY`. Last-known-good rebuild
-semantics относятся к полному generation build, а per-item failure остаётся явно
-видимым incremental lag.
+Initial sync использует тот же bounded per-item workflow. Отдельного публичного
+массового operation API нет: Index Status показывает его суммарную готовность,
+pending products и ошибки.
 
 ## Admin GraphQL API
 
@@ -1220,7 +1093,7 @@ extend type ListingMutation {
 
 Admin вызывает `listingQuery.search.*` и `listingMutation.search.*`. Новые
 Node entities получают типы в `GlobalIdEntity`: `SearchSynonymGroup`,
-`SearchProductBoost`, `SearchIndexGeneration`, `SearchQueryWorkItem`.
+`SearchProductBoost`, `SearchQueryWorkItem`.
 
 ### Query surface
 
@@ -1275,7 +1148,7 @@ paginated Analytics API. Query list endpoints используют Relay cursor 
 ```graphql
 enum SearchCapabilityState {
   READY
-  BUILDING
+  UPDATING
   UNAVAILABLE
 }
 
@@ -1312,7 +1185,7 @@ type SearchCapabilities {
 }
 ```
 
-UI строит controls только из capabilities. Engine version, physical slot и SQL
+UI строит controls только из capabilities. Engine version и SQL
 не являются capability fields для обычного администратора.
 
 ### Preview contract
@@ -1389,7 +1262,7 @@ type SearchPreviewExecution {
   fuzzyFallbackApplied: Boolean!
   boostRankingActive: Boolean!
   configurationRevision: BigInt!
-  indexGenerationId: ID!
+  indexSchemaVersion: Int!
   localeDataStatus: SearchLocaleDataStatus!
   missingLocalizedProducts: Int!
 }
@@ -1624,7 +1497,7 @@ type SearchOverview {
 CTR считается только по requests не новее `clicksMatureThrough` (MVP: 30 минут),
 а purchase rate — только по requests не новее `purchasesMatureThrough` (MVP:
 7 дней). Нельзя считать свежие requests окончательными no-click/no-purchase
-outcomes; поздние click/purchase facts пересчитывают rebuildable daily rollups.
+outcomes; поздние click/purchase facts пересчитывают daily rollups.
 
 ### Index API
 
@@ -1643,39 +1516,17 @@ type SearchIndexLocaleStatus {
   missingLocalizedTitleProducts: Int!
 }
 
-type SearchIndexProgress {
-  phase: String!
-  processedProducts: Int!
-  totalProducts: Int!
-  percent: Float!
-}
-
 type SearchIndexStatus {
   status: SearchIndexStatusCode!
   servingAvailable: Boolean!
-  rebuildAvailable: Boolean!
-  rebuildBlockedUntil: DateTime
-  activeGenerationId: ID
-  buildingGenerationId: ID
-  lastSuccessfulAt: DateTime
+  schemaVersion: Int!
+  initialSyncCompletedAt: DateTime
+  lastSuccessfulItemAt: DateTime
   lastAttemptAt: DateTime
-  lastIncrementalSuccessfulAt: DateTime
-  lastIncrementalAttemptAt: DateTime
   pendingProducts: Int!
   failedPendingProducts: Int!
   locales: [SearchIndexLocaleStatus!]!
-  progress: SearchIndexProgress
   lastError: SearchPublicError
-}
-
-input SearchIndexRebuildInput {
-  confirm: Boolean!
-}
-
-type SearchIndexRebuildPayload {
-  indexStatus: SearchIndexStatus!
-  alreadyRunning: Boolean!
-  userErrors: [GenericUserError!]!
 }
 ```
 
@@ -1694,7 +1545,6 @@ type SearchAdminMutation {
   productBoostDelete(input: SearchProductBoostDeleteInput!): SearchDeletePayload!
 
   queryWorkItemUpdate(input: SearchQueryWorkItemUpdateInput!): SearchQueryWorkItemPayload!
-  indexRebuild(input: SearchIndexRebuildInput!): SearchIndexRebuildPayload!
 }
 ```
 
@@ -1777,7 +1627,7 @@ extend type ListingEdge {
 ```
 
 Token — opaque signed HMAC со `storeId`, request ID, product ID, position,
-configuration/index versions, issued-at и expiry. Клиент не может изменить
+configuration revision/index schema version, issued-at и expiry. Клиент не может изменить
 product/position без invalid signature.
 
 Click contract:
@@ -1887,8 +1737,8 @@ services/listing/src/repositories/search/
   SearchConfigurationRevisionRepository.ts
   SearchConfigurationApplyJobRepository.ts
   SearchRuntimeConfigurationRepository.ts
-  SearchIndexNamespaceRepository.ts
-  SearchDocumentSlotRepository.ts
+  SearchDocumentRepository.ts
+  SearchIndexItemStateRepository.ts
   SearchIndexStateRepository.ts
   SearchAnalyticsRepository.ts
 
@@ -1900,7 +1750,6 @@ services/listing/src/scripts/search/
 
 services/listing/src/workflows/
   SearchConfigurationApplyWorkflow.ts
-  SearchIndexRebuildWorkflow.ts
   SearchAnalyticsAggregateWorkflow.ts
 
 services/listing/src/api/graphql-admin/schema/search.graphql
@@ -1919,13 +1768,13 @@ middleware и generated types.
 1. `StorefrontProductTitleSearchQueryRepository` перестаёт содержать duplicate
    unused candidate/page SQL.
 2. Нормализация переносится в `SearchQueryNormalizer`.
-3. `compileSearchCandidateRowsCte` получает только compiled engine plan и trusted
-   slot от `SearchExecutionContext`.
+3. `compileSearchCandidateRowsCte` получает compiled engine plan из
+   `SearchExecutionContext`.
 4. Search candidate bitmap добавляется в `compileProductBaseBitmapSql` при любом
    non-empty query, независимо от scope/sort.
 5. `ResolvedListingRequest` получает pinned search execution metadata.
 6. `compilePageQuerySql`, total/facets/virtual facets читают один mode.
-7. Cursor version и hash расширяются config/index/mode.
+7. Cursor version и hash расширяются config/schema/mode.
 8. Product index writer строит multi-field documents и сохраняет `search_id` на
    update.
 9. Default-locale handle/ID fallback удаляется из search content mapper.
@@ -1936,7 +1785,7 @@ middleware и generated types.
 - mutation resolver декодирует global IDs и запускает Script/DBOS workflow;
 - authoring write + immutable desired snapshot + desired revision + audit +
   apply job/outbox выполняются в одной transaction;
-- apply/rebuild имеют deterministic store-scoped operation/workflow IDs;
+- apply workflow имеет deterministic store-scoped operation/workflow ID;
 - apply workflow компилирует только immutable revision, активирует её через CAS,
   coalesce-ит superseded saves и всегда догоняет последний `desired_revision`;
 - index writes используют existing listing item transaction;
@@ -1950,12 +1799,10 @@ middleware и generated types.
 listing.search.read
 listing.search.manage
 listing.search.analytics.read
-listing.search.rebuild
 ```
 
 Пользователь с `read` может Preview и видеть status/settings, но не сохранять.
 Analytics требует отдельного permission из-за сохранённых покупательских фраз.
-Rebuild отделён от обычного manage.
 
 ### User error codes
 
@@ -1970,10 +1817,8 @@ Rebuild отделён от обычного manage.
 | `SEARCH_BOOST_PHRASES_REQUIRED` | Нет phrases |
 | `SEARCH_PRODUCT_NOT_FOUND` | Cross-store/deleted target при save |
 | `SEARCH_CLIENT_ID_REUSED` | Idempotency ID повторён в session с другим execution fingerprint |
-| `SEARCH_INDEX_UNAVAILABLE` | Нет serving generation |
-| `SEARCH_REBUILD_IN_PROGRESS` | Применяется только там, где caller требует новый job; штатно возвращается existing |
-| `SEARCH_INDEX_SLOT_RETAINED` | Inactive slot защищён валидными cursors до указанного времени |
-| `SEARCH_CURSOR_EXPIRED` | Revision/generation больше не retained |
+| `SEARCH_INDEX_UNAVAILABLE` | Extension/index недоступен или initial sync ещё не даёт serving data |
+| `SEARCH_CURSOR_EXPIRED` | Configuration revision больше не retained |
 
 Field paths следуют GraphQL input, например
 `["input", "values", "2"]` или `["input", "enabledFields"]`.
@@ -1987,7 +1832,7 @@ Search request log содержит только bounded metadata:
 - store ID;
 - query hash, но не raw query в technical logs;
 - locale/scope;
-- config revision/index generation/mode;
+- config revision/index schema version/mode;
 - candidate/final cardinalities;
 - selected collector;
 - fallback applied;
@@ -2000,7 +1845,7 @@ Metrics:
 - primary zero/fuzzy hit ratios;
 - candidate/final cardinalities;
 - config apply duration/failures;
-- generation build/catch-up lag;
+- incremental indexing lag/failures;
 - index coverage/pending products;
 - analytics ingest/rollup lag;
 - expired/invalid tracking tokens.
@@ -2029,14 +1874,14 @@ Metrics:
 - `EXPLAIN ANALYZE` corpus matrices для global/category, filters, fuzzy, arrays,
   boost join и empty result.
 
-### Multi-tenant BM25 isolation gate
+### Multi-tenant BM25 behavior
 
-Go-live gate проверяет, что query store A физически использует только его local
-BM25 index и что writes/rebuild store B не меняют candidate set или score/order
-store A. MVP baseline — dedicated per-store A/B indexes. Partitioned layout может
-заменить его только после тех же concurrency/`EXPLAIN` fixtures; shared corpus с
-одним `store_id` predicate не проходит gate. Метрики отдельно следят за попыткой
-разрешить чужой namespace/slot и останавливают request как internal error.
+Compatibility fixtures обязаны доказать, что `store_id` predicate исключает
+cross-tenant membership/data leakage. Отдельно измеряется влияние общего corpus
+на relative BM25 score: обычные writes другого store не должны нарушать
+deterministic tie-breaking внутри одного request. Если tenant-local IDF станет
+обязательным продуктовым требованием, physical partitioning проектируется
+отдельно и не меняет Admin API этого плана.
 
 ## Admin UI architecture
 
@@ -2128,10 +1973,9 @@ admin/src/domains/discovery/search/
     hooks/
     page/page.tsx
   index-status/
-    graphql/{fragments,queries,mutations,operation-types,index}.ts
+    graphql/{fragments,queries,operation-types,index}.ts
     hooks/
     modals/index-status-drawer/
-    modals/rebuild-index-modal/
 ```
 
 Правила `knowledge/vault/patterns/admin-graphql-layer.md` обязательны:
@@ -2196,11 +2040,10 @@ FAILED: Changes could not be applied. Storefront still uses revision 41.
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ Search overview                         [Locale: All ▼] [Last 30 days ▼]     │
-│                                                       [Rebuild search index] │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ INDEX                                                                        │
 │ ┌──────────────────────────────────────────────────────────────────────────┐ │
-│ │ ● FAILED — storefront is serving the last successful index              │ │
+│ │ ● FAILED — 3 product updates require attention                          │ │
 │ │ Last successful update  11 Jul 2026, 10:42                              │ │
 │ │ Last attempt            11 Jul 2026, 11:03                              │ │
 │ │ Products                9,984 / 10,012       Pending 28 · Failed 3       │ │
@@ -2235,8 +2078,8 @@ Mark Ignored
 ```
 
 Если analytics ещё не mature, metric card показывает `Collecting data`, а не
-ложный `0%`. Index `UPDATING` показывает progress bar и phase; `READY` не
-показывает error block.
+ложный `0%`. Index `UPDATING` показывает expected/indexed и pending counters;
+`READY` не показывает error block.
 
 ### Preview
 
@@ -2252,7 +2095,7 @@ Mark Ignored
 │ Configuration [Active revision 41 ▼]                                        │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ Normalized query: red running shoes                                          │
-│ 126 results   [Primary match]   Config r41   Index generation 18             │
+│ 126 results   [Primary match]   Config r41   Index schema v2                 │
 │ Synonym “running shoes ↔ sneakers ↔ кросівки” applied                        │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ #  Product                         Availability       Why this result         │
@@ -2502,49 +2345,25 @@ Review modal позволяет optional note. Status меняет только 
 ┌──────────────────────────────────────────────────────────────────────┐
 │ Search index details                                            [×] │
 ├──────────────────────────────────────────────────────────────────────┤
-│ Status        Updating                                               │
-│ Serving       Generation 18 (last successful)                        │
-│ Building      Generation 19 · Catching up changes                    │
-│ Progress      [███████████████░░░░░] 76% · 7,600 / 10,012 products  │
+│ Status        Failed                                                 │
+│ Serving       Available                                               │
+│ Schema        v2 · pg_search compatible                              │
 │ Pending       28 products · 3 failed after retries                   │
-│ Last success  11 Jul 2026, 10:42                                    │
+│ Initial sync  Completed 10 Jul 2026, 09:15                           │
+│ Last success  11 Jul 2026, 10:42 · product update                   │
 │ Last attempt  11 Jul 2026, 11:03                                    │
 │                                                                      │
 │ Locale     Expected    Indexed    Localized title    Missing         │
 │ uk         10,012      9,984      9,602              382             │
 │ en         10,012      9,770      9,120              650             │
 │ ru         10,012      9,801      9,230              571             │
-│                                                                      │
-│ Storefront continues using generation 18 until validation succeeds.  │
 ├──────────────────────────────────────────────────────────────────────┤
-│                                            [Close] [Rebuild index]   │
+│                                                               [Close]│
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
 Failed drawer показывает public error отдельно от serving state. Stack trace и
 SQL отсутствуют.
-
-### Rebuild confirmation
-
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│ Rebuild search index?                                                │
-├──────────────────────────────────────────────────────────────────────┤
-│ Rebuilding can take time. Storefront will continue using the last    │
-│ successful index until the new index is complete and validated.      │
-│                                                                      │
-│ [ ] I understand this operation may take time                        │
-├──────────────────────────────────────────────────────────────────────┤
-│                                  [Cancel] [Rebuild search index]     │
-└──────────────────────────────────────────────────────────────────────┘
-```
-
-Если rebuild уже идёт, повторное действие открывает текущий progress и не
-создаёт ещё одну confirmation/job.
-
-Если единственный inactive slot ещё удерживается валидными cursors предыдущей
-generation, кнопка disabled до `rebuildBlockedUntil` с пояснением. Admin не
-предлагает «ускорить» rebuild ценой скрытой инвалидации pagination.
 
 ### Loading/error/empty states
 
@@ -2561,7 +2380,7 @@ generation, кнопка disabled до `rebuildBlockedUntil` с пояснени
 - stale optimistic version — form предлагает reload, не перезаписывает чужие
   изменения;
 - missing capability — disabled/hidden control с понятным explanation;
-- destructive delete/rebuild — confirmation.
+- destructive delete — confirmation.
 
 На mobile data tables превращаются в cards с actions menu. Preview filter bar и
 Settings sections складываются вертикально; primary save action остаётся sticky.
@@ -2576,21 +2395,19 @@ Settings sections складываются вертикально; primary save 
 Backend:
 
 1. Зафиксировать `pg_search 0.24.1` compatibility fixtures для compound match,
-   arrays, phrase, exact/prefix identifiers, fuzzy distance 1 и score.
-2. Провести physical isolation spike: dedicated per-store A/B baseline и, при
-   желании, LIST partitions; доказать, что writes другого store/building slot не
-   меняют serving score/order.
-3. Ввести `SearchQueryNormalizer` и explicit query length/locale validation.
-4. Отделить navigation scope от text predicate во внутренних types:
+   arrays, phrase, exact/prefix identifiers, fuzzy distance 1, score и
+   обязательный tenant predicate.
+2. Ввести `SearchQueryNormalizer` и explicit query length/locale validation.
+3. Отделить navigation scope от text predicate во внутренних types:
    `GLOBAL/CATEGORY/(future COLLECTION)` + optional query.
-5. Исправить `CATEGORY + query`:
+4. Исправить `CATEGORY + query`:
    - search bitmap входит в `productMatches` для page, total, facet и virtual
      facet branches;
    - explicit business sort не отключает text filter.
-6. Удалить/свернуть duplicate unused SQL methods из
+5. Удалить/свернуть duplicate unused SQL methods из
    `StorefrontProductTitleSearchQueryRepository`.
-7. Убрать search-title fallback на handle/UUID.
-8. Добавить runtime health diagnostics extension/version/index presence.
+6. Убрать search-title fallback на handle/UUID.
+7. Добавить runtime health diagnostics extension/version/index presence.
 
 Acceptance:
 
@@ -2598,7 +2415,7 @@ Acceptance:
 - price/name sort меняет только order, а не отменяет query;
 - empty/missing localized title не подменяется другой строкой;
 - special characters parameterized и не меняют query AST;
-- concurrent writes/rebuild другого store не меняют serving score/order;
+- query store A не возвращает documents store B;
 - существующий global title search сохраняет deterministic cursor semantics.
 
 ### Phase 1. Upstream search content contract
@@ -2631,29 +2448,28 @@ Acceptance:
 - deleted variant identifiers/title исчезают из следующего write model;
 - capabilities отражают реальную готовность каждого source.
 
-### Phase 2. Multi-field BM25 documents и index generations
+### Phase 2. Multi-field BM25 documents и incremental state
 
 Backend:
 
-1. Заменить title-only initial DDL на versioned DDL template для store-local A/B
-   physical document tables и BM25 indexes.
-2. Добавить Drizzle metadata models, typed document row contract, namespace
-   provisioner/repository и slot registry; physical identifier разрешается
-   только server-side trusted helper.
-3. Сохранять `search_id` при upsert и source revision/sequence monotonicity.
-4. Добавить namespace/index state/generation/locale/item/desired tables.
-5. Изменить existing listing item writer: active slot обновляется в той же
-   transaction, building slot/catch-up — по generation state.
-6. Реализовать initial generation bootstrap и active pointer.
-7. Реализовать `SearchCapabilities` из active document schema.
+1. Заменить title-only initial DDL на одну multi-field
+   `listing.product_search_document` и BM25 index.
+2. Добавить Drizzle model/repository и typed document contract.
+3. Сохранять `search_id` при upsert и проверять source revision/sequence
+   monotonicity.
+4. Добавить index state/locale/item tables.
+5. Изменить existing listing item writer: listing rows, search documents и
+   applied item state обновляются в одной transaction.
+6. Реализовать initial sync тем же bounded item workflow.
+7. Реализовать `SearchCapabilities` из document schema/source readiness.
 
 Acceptance:
 
-- enabled fields физически searchable по active slot;
+- enabled fields физически searchable в document index;
 - SKU/barcode exact и prefix не проходят fuzzy/token word semantics;
-- данные другого slot и другого store не влияют на serving membership/score;
-- product update atomically меняет listing и active document;
-- no serving generation даёт explicit unavailable, не `ILIKE` fallback.
+- tenant predicate исключает documents другого store;
+- product update atomically меняет listing и search document;
+- unavailable index/initial sync даёт explicit status, не `ILIKE` fallback.
 
 ### Phase 3. Configuration revisions, Settings и canonical Preview
 
@@ -2677,7 +2493,7 @@ Admin:
 
 Acceptance:
 
-- storefront request pin-ит одну config/index/mode для всех branches;
+- storefront request pin-ит одну config/schema/mode для всех branches;
 - Settings save показывает Pending до activation;
 - failed apply сохраняет previous storefront behavior;
 - fuzzy запускается только после final zero и не смешивается с primary;
@@ -2715,31 +2531,28 @@ Acceptance:
 - explicit business sort не активирует boost ranking;
 - delete остаётся pending до application и не создаёт ложное Applied state.
 
-### Phase 5. Rebuild, Index Status и Overview
+### Phase 5. Index Status и Overview
 
 Backend:
 
-1. Реализовать `SearchIndexRebuildWorkflow`: inactive slot, backfill, change
-   catch-up, audit, atomic flip.
-2. Реализовать idempotent rebuild mutation/current-job return.
-3. Добавить index status query с per-locale coverage и sanitized error.
-4. Retain previous generation для cursor TTL.
-5. Добавить Overview composition без analytics dependency.
+1. Добавить index status query с initial-sync state, per-locale coverage,
+   pending/failed counters и sanitized error.
+2. Связать status с durable `search_index_item_state` и extension/index health.
+3. Добавить периодическую сверку counters с `product_listing_index`.
+4. Добавить Overview composition без analytics dependency.
 
 Admin:
 
 1. Index status card/drawer.
-2. Rebuild confirmation/progress behavior.
-3. Overview shell с index state и empty analytics placeholders.
+2. Overview shell с index state и empty analytics placeholders.
 
 Acceptance:
 
-- storefront продолжает читать active slot во время любого rebuild phase;
-- failed rebuild даёт overall `FAILED`, но сообщает `servingAvailable=true`;
-- second click не запускает второй job;
-- late update/delete не теряется и stale snapshot не воскрешает product;
-- generation переключается только после audit/catch-up;
-- progress/counts переживают process restart.
+- initial sync и pending counts переживают process restart;
+- successful incremental item уменьшает pending count;
+- exhausted retry показывает `FAILED` и safe product-level aggregate error;
+- более новое событие может восстановить failed item;
+- stale event/snapshot не воскрешает удалённый product.
 
 ### Phase 6. Analytics facts и cross-service attribution
 
@@ -2787,12 +2600,11 @@ Acceptance:
 2. Снять performance matrix для global/category, filters, exact zero, fuzzy,
    boosts, arrays и Preview diagnostics.
 3. Зафиксировать AST limits/timeouts и autovacuum/VACUUM policy для BM25 tables.
-4. Подтвердить physical tenant corpus isolation: concurrent rebuild другого
-   store не меняет score/order; partition optimization допускается только после
-   этого gate.
-5. Добавить retention/privacy cleanup и aggregate rebuild tooling.
-6. Добавить failure injection для apply/rebuild/analytics delivery.
-7. Включать UI/API по capabilities/feature flag только после initial generation.
+4. Измерить cross-tenant IDF effect shared corpus и задокументировать ranking
+   trade-off без изменения membership isolation.
+5. Добавить retention/privacy cleanup и aggregate recomputation tooling.
+6. Добавить failure injection для apply/incremental indexing/analytics delivery.
+7. Включать UI/API по capabilities/feature flag только после initial sync.
 8. Удалить старые title-only symbols/docs, которые больше не отражают runtime.
 
 ## Основные code touchpoints
@@ -2865,12 +2677,10 @@ Acceptance:
 | Apply success | Atomic active revision switch + `APPLIED` |
 | Apply failure | `FAILED`, old active revision serving |
 | Revision N compiles after N+1 save | N `SUPERSEDED`; CAS не активирует stale behavior, N+1 job остаётся durable |
-| Rebuild running | Active slot serving, progress visible |
-| Rebuild failure | Overall `FAILED`, last good remains serving |
-| Rebuild double click | Existing job/status returned |
-| Incremental item retries exhausted | Index `FAILED`, serving generation остаётся доступной, failed count виден |
-| Other store rebuild | Serving membership и score/order текущего store не меняются |
-| Cursor after one generation flip | Previous retained slot/revision continues |
+| Initial sync incomplete | `UPDATING`; coverage и pending count видны |
+| Incremental item retries exhausted | Index `FAILED`, уже синхронизированные documents доступны, failed count виден |
+| New event after item failure | Item снова `PENDING` и может перейти в `APPLIED` |
+| Stale product event | Monotonic sequence делает его no-op |
 | Cursor after retention | `SEARCH_CURSOR_EXPIRED` |
 
 ### Analytics
@@ -2898,11 +2708,10 @@ Search Admin must-have готов, когда одновременно выпо�
   зарегистрированы, а не существуют только как internal repository types;
 - global/category query membership одинаков для page/total/facets и всех sorts;
 - synonyms/fuzzy/boost/OOS interaction соответствует таблице в этом документе;
-- config save/application и index rebuild имеют раздельные last-known-good state
-  machines;
+- config save/application и incremental index synchronization имеют раздельные
+  state machines;
 - config apply восстанавливается из durable revision job и не активирует stale
   revision при concurrent save;
-- BM25 serving corpus физически изолирован по store и active/building slot;
 - Overview показывает честный Ready/Updating/Failed и per-locale coverage;
 - Preview возвращает понятные reasons без score/SQL/corrected query;
 - analytics связывает search -> click -> order line и имеет documented metric
@@ -2921,9 +2730,9 @@ Search Admin must-have готов, когда одновременно выпо�
 3. Collection scope отсутствует в canonical listing bitmap contract.
 4. Compound/phrase/prefix APIs нужно проверить именно на pinned
    `pg_search 0.24.1`.
-5. Per-store BM25 objects требуют versioned provisioning/upgrade/cleanup; до
-   завершения scale benchmark переход к shared corpus запрещён.
-6. A/B generation catch-up требует monotonic revision/tombstone protection.
+5. Общий BM25 corpus может создавать cross-tenant влияние на relative IDF/score,
+   хотя `store_id` обязан полностью изолировать membership/data.
+6. Incremental indexing требует monotonic revision/tombstone protection.
 7. Purchase rate требует изменения Checkout и Orders, а не только listing/Admin.
 8. Stable anonymous session требует storefront privacy/consent decision.
 9. Любой hidden candidate cap ломает точность total/facets и запрещён без нового
