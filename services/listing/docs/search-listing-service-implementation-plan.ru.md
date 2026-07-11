@@ -8,8 +8,7 @@
 `services/listing/docs/search-admin-implementation-plan.ru.md` самостоятельный
 план изменений только для bounded context `listing` и каталога
 `services/listing`. Он покрывает storefront search, backend Search Admin,
-поисковые документы, конфигурацию, индексацию, аналитику и эксплуатационные
-контракты.
+поисковые документы, конфигурацию, индексацию и эксплуатационные контракты.
 
 Реализация Catalog snapshot, broker-types и Admin UI не входит в этот план.
 Они описаны только как внешние зависимости Listing. Semantic/vector search,
@@ -31,7 +30,7 @@ storefront facets также остаются вне scope.
 - settings, synonyms и boosts применяются из immutable versioned runtime revision;
 - fuzzy выполняется отдельным полным проходом только после final zero result;
 - search documents обновляются существующим event-driven listing workflow;
-- backend публикует Admin GraphQL для управления, Preview, status и analytics;
+- backend публикует Admin GraphQL для управления, Preview и status;
 - все ветки одного request используют pinned configuration revision, index schema
   version и execution mode.
 
@@ -39,8 +38,8 @@ storefront facets также остаются вне scope.
 
 1. Tenant всегда определяется через `ServiceContext.store.id`; `storeId` не
    принимается из public input.
-2. Locale обязательна и входит в document identity, query plan, cursor,
-   configuration и analytics key. Cross-locale fallback отсутствует.
+2. Locale обязательна и входит в document identity, query plan, cursor и
+   configuration. Cross-locale fallback отсутствует.
 3. `publishedUniverse` применяется независимо от BM25, category scope и boost.
 4. Один `productMatches` используется page, `totalCount`, configured facets и
    virtual facets.
@@ -57,11 +56,8 @@ storefront facets также остаются вне scope.
     Оба режима имеют приоритет над boost.
 11. Pending/failed authoring revision не влияет на storefront до atomic
     activation.
-12. Preview не пишет analytics и не раскрывает SQL, AST, internal weights или
-    numeric BM25 score.
-13. Analytics fact создаётся один раз после успешного первого storefront result,
-    а не для pagination или внутренних exact/fuzzy attempts.
-14. Search documents подчиняются canonical `listing_index_item_state`: stale и
+12. Preview не раскрывает SQL, AST, internal weights или numeric BM25 score.
+13. Search documents подчиняются canonical `listing_index_item_state`: stale и
     noop action не изменяют physical rows, а stale Catalog event/snapshot не
     может откатить latest item state или воскресить удалённый document.
 
@@ -110,8 +106,8 @@ Storefront listing / Admin Preview
   -> when final primary totalCount = 0 and fuzzy is allowed:
        rerun the whole bundle with FUZZY plan
   -> apply relevance/business ordering and OOS policy
-  -> storefront: return listing and record one analytics fact
-  -> preview: return listing plus bounded reason diagnostics, no analytics
+  -> storefront: return listing
+  -> preview: return listing plus bounded reason diagnostics
 ```
 
 ## 1. Canonical search execution
@@ -119,7 +115,7 @@ Storefront listing / Admin Preview
 ### 1.1. Нормализация
 
 Создать единый `SearchQueryNormalizer`, используемый storefront, Preview,
-synonyms, boosts и analytics:
+synonyms и boosts:
 
 1. validate locale по enabled project locales;
 2. удалить control characters;
@@ -156,7 +152,6 @@ interface SearchExecutionContext {
   readonly runtimeConfigurationChecksum: string;
   readonly indexSchemaVersion: number;
   readonly mode: "PRIMARY" | "FUZZY";
-  readonly analyticsMode: "TRACK" | "DO_NOT_TRACK";
   readonly diagnosticsMode: "NONE" | "PREVIEW";
 }
 ```
@@ -316,7 +311,7 @@ snapshot search index не обещается.
 
 ### 1.11. Preview diagnostics
 
-Preview вызывает тот же executor с `DO_NOT_TRACK + PREVIEW`. Дополнительный
+Preview вызывает тот же executor с `PREVIEW` diagnostics mode. Дополнительный
 bounded query выполняется только по product IDs текущей page и возвращает reason
 codes: product/variant title, SKU exact/prefix, vendor, category, synonym, boost,
 fuzzy fallback и OOS placed last. Numeric score, SQL и AST не публикуются.
@@ -465,19 +460,6 @@ workflow state.
 может давать `UPDATING/FAILED`, но успешно синхронизированные documents остаются
 доступны.
 
-### 3.6. Analytics
-
-- `search_request`: normalized query/hash, locale/scope, execution fingerprint,
-  result count, fuzzy flag, config/schema revisions и unique request dedupe key;
-- `search_query_daily`: пересчитываемая daily projection searches, zero results,
-  result sum, fuzzy count and last searched;
-- `search_query_work_item`: `ZERO_RESULTS`, `OPEN/RESOLVED/IGNORED`, note and
-  review timestamps.
-
-Preview, subsequent cursor pages и повторная доставка одного request не создают
-новый fact. `RESOLVED` может reopen после трёх новых qualifying searches;
-`IGNORED` reopen только вручную. Review status не изменяет facts/rollups.
-
 ## 4. Module and code structure
 
 ```text
@@ -489,7 +471,6 @@ services/listing/src/search/
   execution/
   configuration/
   index/
-  analytics/
 
 services/listing/src/repositories/search/
   SearchSettingsRepository.ts
@@ -500,17 +481,14 @@ services/listing/src/repositories/search/
   SearchRuntimeConfigurationRepository.ts
   SearchDocumentRepository.ts
   SearchIndexStateRepository.ts
-  SearchAnalyticsRepository.ts
 
 services/listing/src/scripts/search/
   SearchSettingsUpdateScript.ts
   SearchSynonymGroup*Script.ts
   SearchProductBoost*Script.ts
-  SearchQueryWorkItemUpdateScript.ts
 
 services/listing/src/workflows/
   SearchConfigurationApplyWorkflow.ts
-  SearchAnalyticsAggregateWorkflow.ts
 
 services/listing/src/api/graphql-admin/schema/search.graphql
 services/listing/src/resolvers/admin/search/
@@ -533,28 +511,25 @@ Scripts/services. Validation и normalization находятся в Scripts; dat
 - paginated `productBoost(s)`;
 - `indexStatus`;
 - `overview`;
-- `analytics`, paginated `queryMetrics` и `queryWorkItems`.
 
 ### Mutations
 
 - `settingsUpdate`;
 - synonym group create/update/delete;
-- product boost create/update/delete;
-- query work item update.
+- product boost create/update/delete.
 
 Все mutations возвращают entity/application state и `userErrors`. Node entities
 получают global ID. Lists используют server-side filtering и Relay cursors.
 
 Preview input разделяет query и navigation scope; поддерживает active и saved
-pending configuration modes. Pending preview компилирует ephemeral runtime plan,
-не активирует его и не пишет analytics.
+pending configuration modes. Pending preview компилирует ephemeral runtime plan
+и не активирует его.
 
 Минимальные Casbin permissions:
 
 ```text
 listing.search.read
 listing.search.manage
-listing.search.analytics.read
 ```
 
 Обязательные user error codes: configuration conflict, unavailable field/locale,
@@ -568,13 +543,12 @@ Technical logs содержат store ID, query hash, locale/scope, revision/sch
 candidate/final cardinalities, collector, fuzzy flag, branch duration и counts
 synonyms/boosts. Raw query в technical logs запрещён.
 
-Metrics: primary/fuzzy latency, zero/hit ratio, cardinalities, config apply
-duration/failures, indexing lag/failures/coverage, analytics rollup lag.
+Metrics: primary/fuzzy latency, cardinalities, config apply duration/failures и
+indexing lag/failures/coverage.
 
 Guardrails: maximum tokens, synonym units, alternatives, AST clauses, Preview
 timeout/cancellation, no unescaped parser strings, no silent truncation and no
-hidden top-K. Analytics query retention задаётся явно; IP, user agent, auth data
-не сохраняются.
+hidden top-K. Raw query, IP, user agent и auth data не сохраняются.
 
 Compatibility corpus должен доказать tenant membership isolation. Влияние общего
 BM25 corpus на relative IDF измеряется отдельно; tenant-local IDF/partitioning не
@@ -713,8 +687,8 @@ page, total и facets используют один mode; отфильтрова
 
 ### Этап 9. Preview и capabilities
 
-1. Реализовать Preview через тот же `SearchExecutionService` с
-   `DO_NOT_TRACK + PREVIEW`.
+1. Реализовать Preview через тот же `SearchExecutionService` с `PREVIEW`
+   diagnostics mode.
 2. Добавить bounded reason diagnostics только для текущей page.
 3. Реализовать ephemeral compile сохранённой pending revision тем же compiler
    pipeline, что используется apply workflow.
@@ -722,8 +696,7 @@ page, total и facets используют один mode; отфильтрова
 5. Добавить timeout/cancellation и запрет score/SQL/AST leakage.
 
 Готовность: active Preview совпадает со storefront; pending Preview не активирует
-revision; Preview не пишет analytics; unavailable fields честно отражаются в
-capabilities.
+revision; unavailable fields честно отражаются в capabilities.
 
 ### Этап 10. Synonyms
 
@@ -755,46 +728,22 @@ boost влияет на relevance, но не переопределяет выб
 3. Разделить engine availability, initial locale readiness, field readiness и
    backlog/failure status.
 4. Добавить periodic counter reconciliation.
-5. Реализовать Overview composition, не зависящую от analytics readiness.
+5. Реализовать Overview composition для search configuration и index status.
 
 Готовность: aggregate state переживает restart; retries/pending/failed берутся из
 существующего durable Listing workflow state; новое событие повторно запускает
 canonical item reindex; stale/noop action не меняет search documents и не
 воскрешает product; неполный initial locale sync не рекламируется как ready.
 
-### Этап 13. Analytics facts и request identity
-
-1. Зафиксировать contract request dedupe key, связь первой страницы с cursor pages
-   и dedupe TTL.
-2. Записывать idempotent fact после первого успешного storefront execution.
-3. Исключить Preview, cursor pagination и retry одного request.
-4. Добавить retention cleanup для raw facts и normalized queries.
-5. Добавить metrics для write failures и dedupe conflicts.
-
-Готовность: одинаковый текст в двух новых searches создаёт два facts; retry одного
-request создаёт один fact; Preview/pagination не увеличивают count; retention
-применяется воспроизводимо.
-
-### Этап 14. Analytics projections и review workflow
-
-1. Реализовать daily rollup/recomputation workflow.
-2. Добавить overview metrics, analytics connections и filters.
-3. Реализовать zero-result worklist/review mutations.
-4. Реализовать reopen policy для resolved/ignored work items.
-5. Добавить rollup lag/status observability.
-
-Готовность: rollup воспроизводим из facts; review не меняет history; повторный
-расчёт идемпотентен; Overview работает при временном lag projection.
-
-### Этап 15. Hardening и rollout
+### Этап 13. Hardening и rollout
 
 1. Создать `uk/en/ru` corpus с identifiers, multiword synonyms, OOS/mixed
    variants, missing locale data и large candidate sets.
 2. Снять `EXPLAIN ANALYZE` matrix для global/category, filters, fuzzy, boosts,
    arrays и diagnostics.
 3. Зафиксировать limits/timeouts и BM25 VACUUM/autovacuum policy.
-4. Добавить failure injection для config apply, item indexing и analytics.
-5. Проверить privacy/retention и cross-tenant IDF trade-off.
+4. Добавить failure injection для config apply и item indexing.
+5. Проверить privacy и cross-tenant IDF trade-off.
 6. Включать GraphQL capabilities только после соответствующей readiness.
 7. Удалить title-only symbols и устаревшие docs после перехода.
 
@@ -835,8 +784,7 @@ request создаёт один fact; Preview/pagination не увеличива
 | Index retry exhausted | Existing DBOS Listing workflow status failed; previous committed documents доступны |
 | Stale product event | Canonical `listing_index_item_state` guard возвращает `ignored_stale`, documents не меняются |
 | Expired configuration cursor | `SEARCH_CURSOR_EXPIRED` |
-| Preview | Нет analytics fact и internal diagnostics leakage |
-| Storefront pagination | Не создаёт новый search fact |
+| Preview | Нет internal diagnostics leakage |
 
 ## 10. Definition of Done для Listing service
 
@@ -850,7 +798,6 @@ request создаёт один fact; Preview/pagination не увеличива
 - stale revision и stale product event не активируют устаревшее состояние;
 - index status показывает честные readiness, backlog, failures и locale coverage;
 - Preview возвращает bounded reason codes без score/SQL/AST;
-- analytics facts idempotent, privacy/retention определены;
 - GraphQL authorization, pagination, user errors и application states реализованы;
 - compatibility, failure and performance matrices подтверждены до rollout;
 - title-only repository/table/symbols удалены после завершения migration path.
