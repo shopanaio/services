@@ -115,6 +115,8 @@ interface SearchRequestContext {
   readonly normalizedQuery: NormalizedSearchQuery;
   readonly configurationRevision: number;
   readonly runtimeConfigurationChecksum: string;
+  readonly runtimeConfiguration: CompiledSearchRuntimeConfiguration;
+  readonly compatibility: SearchCompatibilityTuple;
   readonly indexSchemaVersion: number;
   readonly diagnosticsMode: "NONE" | "PREVIEW";
 }
@@ -125,12 +127,13 @@ interface SearchAttemptContext {
 }
 ```
 
-Executor всегда создаёт `PRIMARY` attempt. Если final primary `totalCount = 0` и
-fuzzy разрешён, он создаёт новый `FUZZY` attempt, ссылающийся на тот же
-`SearchRequestContext`. Runtime configuration, checksum и index schema между
-attempts повторно не читаются. Page, total и все facets внутри одной attempt
-обязаны получать один и тот же `SearchAttemptContext`; смешивание modes внутри
-result bundle запрещено.
+Для request без cursor executor всегда создаёт `PRIMARY` attempt. Если final
+primary `totalCount = 0` и fuzzy разрешён, он создаёт новый `FUZZY` attempt,
+ссылающийся на тот же `SearchRequestContext`. Continuation request создаёт только
+attempt того mode, который записан в cursor. Runtime configuration, checksum и
+index schema между attempts повторно не читаются. Page, total и все facets внутри
+одной attempt обязаны получать один и тот же `SearchAttemptContext`; смешивание
+modes внутри result bundle запрещено.
 
 Runtime snapshot кэшируется по
 `store:<storeId>:search-config:<revision>`, а не только по store. Старые revisions
@@ -146,6 +149,8 @@ type SearchClause =
   | { kind: "token"; token: string; fields: SearchTextField[] }
   | { kind: "phrase"; tokens: string[]; fields: SearchTextField[] }
   | { kind: "synonym"; groupId: string; alternatives: SearchClause[] }
+  | { kind: "fuzzyToken"; token: string; fields: SearchTextField[]; distance: 1 }
+  | { kind: "all"; clauses: SearchClause[]; requireSameField: boolean }
   | { kind: "identifierExact"; value: string; fields: IdentifierField[] }
   | { kind: "identifierPrefix"; value: string; fields: IdentifierField[] };
 
@@ -279,12 +284,15 @@ contract.
 
 ### 1.8. Fuzzy fallback
 
-1. Выполнить полный primary bundle.
+1. Для первой страницы выполнить полный primary bundle.
 2. При `totalCount > 0` вернуть primary.
 3. При final zero, enabled typo tolerance и query длиной не менее 3 code points
    построить fuzzy plan.
 4. Повторить весь listing bundle в `FUZZY` mode.
 5. Вернуть только fuzzy result, не объединяя candidate sets.
+6. Для continuation request не выбирать mode заново: `PRIMARY` cursor выполняет
+   только primary bundle, `FUZZY` cursor — только fuzzy bundle на retained
+   revision из cursor.
 
 Distance фиксирован на `1`; AND semantics сохраняется; fuzzy применяется только
 к original text alternatives. SKU и synonym alternatives не fuzzy-expand.
@@ -333,6 +341,378 @@ context. Дополнительный
 bounded query выполняется только по product IDs текущей page и возвращает reason
 codes: product/variant title, SKU exact/prefix, vendor, category, synonym, boost,
 fuzzy fallback и OOS placed last. Numeric score, SQL и AST не публикуются.
+
+### 1.13. Нормативный алгоритм `listing + query`
+
+Этот раздел является execution contract. Предыдущие подразделы определяют
+компоненты, а приведённый ниже алгоритм фиксирует их порядок, входы, результаты и
+поведение на пустых множествах. Физическая форма SQL/CTE может меняться между
+global и segmented bitmap implementations, но observable membership, ranking,
+counts и cursor tuple должны оставаться эквивалентными.
+
+#### 1.13.1. Начальные limits и versioned compatibility tuple
+
+Начальные limits являются code constants, применяются до SQL compilation и не
+могут изменяться Admin settings:
+
+| Limit | Значение |
+|---|---:|
+| Нормализованный query | 128 Unicode code points |
+| Original query tokens | 16 |
+| Tokens в одном synonym value | 8 |
+| Раскрытых synonym groups в request | 8 |
+| Alternatives в одном semantic unit | 24 |
+| Всего leaf clauses в plan | 256 |
+| SKU prefix minimum | 3 Unicode code points |
+| Fuzzy minimum query length | 3 Unicode code points |
+| Fuzzy edit distance | 1 |
+
+Превышение limit возвращает validation error до обращения к `pg_search`;
+truncation query, tokens, synonym alternatives или AST запрещён. Изменение
+normalization/tokenization либо смысла clause требует новой версии
+compatibility tuple:
+
+```ts
+interface SearchCompatibilityTuple {
+  readonly pgSearchVersion: string;
+  readonly documentSchemaVersion: number;
+  readonly compilerVersion: number;
+  readonly tokenizerVersion: number;
+  readonly normalizerVersion: number;
+}
+```
+
+Runtime revision с tuple, не поддерживаемым текущим process, не обслуживается и
+возвращает `SEARCH_INDEX_UNAVAILABLE`.
+
+#### 1.13.2. Routing и нормализация request
+
+Public Listing input сначала нормализуется независимо от search:
+
+1. Получить `storeId` только из `ServiceContext`; проверить locale, currency,
+   scope, filters, sort, page size и cursor shape.
+2. Отделить navigation scope (`GLOBAL` или `CATEGORY`) от optional `query`.
+   Внутренний legacy scope `SEARCH` после migration не создаётся.
+3. Отсутствующий `query`, `null` или строка, ставшая пустой после normalization,
+   означает обычный Listing без search predicate. Для него `RELEVANCE` является
+   validation error.
+4. Для non-empty query удалить Unicode control characters, выполнить NFKC,
+   trim и collapse Unicode whitespace. Если результат длиннее 128 code points,
+   вернуть validation error, не обрезать строку.
+5. Построить `lookupKey` через pinned ICU locale-aware full case folding. Отдельно
+   построить identifier form из исходного NFKC/trim/case-fold значения: whitespace
+   внутри SKU и значимые separators не удаляются и не заменяются.
+6. Tokenize `lookupKey` tokenizer-ом из compatibility tuple. Пустой token set для
+   non-empty display query является validation error. Порядок и offsets tokens
+   сохраняются.
+7. Вычислить query hash как SHA-256 от length-prefixed tuple
+   `(storeId, locale, normalizerVersion, lookupKey)`. Простая конкатенация без
+   length prefix запрещена.
+8. Нормализовать filters в canonical `FilterPlan`: OR значений внутри одной
+   группы, AND между группами; availability/OPTION/future criteria становятся
+   variant term groups, price остаётся numeric variant predicate.
+
+Для первой страницы executor один раз читает active configuration pointer и
+index state. Для continuation request он берёт revision, checksum, index schema
+и mode из cursor и загружает соответствующую retained runtime revision, даже
+если она уже не active. Отсутствующая retained revision возвращает
+`SEARCH_CURSOR_EXPIRED`; молча перейти на новую active revision запрещено.
+После загрузки executor создаёт `SearchRequestContext`. Несовпадение checksum,
+schema или compatibility tuple завершает request до запуска параллельных
+branches. Все attempts и branches получают этот объект по ссылке; повторное
+чтение active pointer запрещено.
+
+#### 1.13.3. Построение PRIMARY plan
+
+Planner обходит original tokens слева направо:
+
+1. В текущей позиции найти в locale synonym trie самое длинное совпадение.
+   Благодаря `search_synonym_claim` одно normalized value принадлежит не более
+   чем одной active group. Если совпадения нет, span состоит из одного token.
+2. Создать ровно один required semantic unit на span. Unit не может быть пустым.
+3. Добавить original text alternative: `token` для одного token либо `phrase`
+   для multi-token span. Phrase требует полного совпадения tokens в одном
+   searchable field и одном array element; совпадения, распределённые по разным
+   fields или разным elements одного array field, phrase не удовлетворяют.
+4. При найденной synonym group добавить каждое другое normalized value группы
+   как `token` или `phrase` alternative этого же unit. Synonym не создаёт новый
+   top-level unit и не меняет число обязательных units.
+5. Из identifier form исходного span добавить `identifierExact`. Если длина span
+   не меньше трёх code points, добавить `identifierPrefix`. Эти clauses строятся
+   только из original span, никогда из synonym value.
+6. Из полного identifier form query независимо построить
+   `wholeQueryIdentifierAlternatives`: exact всегда, prefix только от трёх code
+   points. Эта ветка может самостоятельно удовлетворить весь document match.
+7. Получить boost product IDs только по exact original `lookupKey + locale`.
+   Synonym value, identifier normalization и исправленная fuzzy форма boost не
+   активируют.
+8. Проверить per-unit и total limits. После построения plan массивы сортируются
+   только там, где порядок не участвует в semantics; required units всегда
+   сохраняют original token order.
+
+Результирующая semantics неизменна:
+
+```text
+unitMatch[i] = OR(original text, synonym alternatives, original identifier)
+semanticMatch = AND(unitMatch[0..n])
+wholeIdentifierMatch = OR(whole-query exact, whole-query prefix)
+documentMatch = semanticMatch OR wholeIdentifierMatch
+```
+
+Enabled fields runtime revision ограничивают fields clause, но не могут удалить
+последнюю alternative required unit. Если после применения capabilities хотя бы
+один unit пуст, plan не исполняется и возвращается safe configuration error.
+
+#### 1.13.4. Компиляция candidate relation
+
+`PgSearchQueryCompiler` получает только typed plan, attempt context и bound
+parameters. Compiler не принимает raw query string. Для каждого attempt он
+строит логически следующую relation без `LIMIT`/top-K:
+
+```text
+document_candidates(
+  product_id,
+  match_priority,       # exact SKU=3, prefix SKU=2, text/synonym/fuzzy=1
+  relevance_score
+)
+
+boost_candidates(
+  product_id,
+  match_priority=1,
+  relevance_score=0,
+  boosted=true
+)
+
+candidate_rows = document_candidates UNION ALL boost_candidates
+
+resolved_candidates =
+  candidate_rows
+  JOIN product_listing_index USING (store_id, product_id)
+  GROUP BY product_id, product_doc_id
+  SELECT
+    MAX(match_priority)                         AS identifier_priority,
+    BOOL_OR(boosted)                            AS boosted,
+    COALESCE(MAX(document relevance_score), 0)  AS relevance_score
+```
+
+Обязательные predicates `store_id = request.storeId` и
+`locale = request.locale` входят внутрь engine query, а не только во внешний
+join. `product_listing_index` на этом этапе используется для tenant-scoped
+identity resolution; publication проверяется отдельно canonical bitmap pipeline.
+Поскольку physical contract хранит один document на `(store, product, locale)`,
+`MAX(document relevance_score)` однозначен; aggregation также защищает relation
+от duplicate rows compound query и пересечения с boost candidates. `NULL`, NaN
+и infinite score compiler обязан отклонить как engine error.
+
+`searchProducts` строится как exact bitmap всех `product_doc_id` из
+`resolved_candidates`. Пустая relation даёт canonical empty bitmap. Rank columns
+не входят в bitmap и сохраняются в relation для page collector и cursor.
+
+#### 1.13.5. Canonical membership compilation
+
+Для каждого SQL branch compiler строит одну и ту же membership algebra из
+immutable normalized input, request context, attempt context и query plan:
+
+```text
+publishedUniverse = bitmap(all published product_doc_id текущего store)
+
+navigationScopeProducts =
+  GLOBAL   -> publishedUniverse
+  CATEGORY -> category product posting
+
+scopeProducts = publishedUniverse & navigationScopeProducts
+
+searchProducts = bitmap(resolved_candidates)
+
+productBase = scopeProducts
+  & searchProducts
+  & AND(OR(values каждой TAG/FEATURE group))
+  & OR(selected vendors)                       # если filter присутствует
+
+variantTermGroups =
+  selected OPTION/availability/future criterion groups
+  + criterion.availability=available           # только для OOS HIDE
+
+variantTermCandidates = system.state=indexable
+  & AND(OR(values каждой variantTermGroup))
+
+variantCandidates = variantTermCandidates
+  & priceCandidates                             # если price filter присутствует
+
+variantWitness =
+  variantTermGroups не пусты OR price filter присутствует
+
+productMatches =
+  variantWitness
+    ? productBase & projectDistinctProducts(variantCandidates)
+    : productBase
+```
+
+`searchProducts` обязателен в `productBase` для любого non-empty query при любом
+scope и sort. Ни business sort, ни facet target isolation не могут заменить или
+удалить его. Missing posting row трактуется как empty bitmap; required group с
+нулём найденных postings делает `productMatches` empty, а не исчезает из AND.
+
+`HIDE` хранится в plan как policy predicate отдельно от пользовательского
+availability filter, даже если оба компилируются в один canonical term. Поэтому
+target isolation может убрать пользовательскую группу, но никогда не убирает
+OOS policy. `SHOW` и `PLACE_LAST` не добавляют variant membership predicate.
+
+Global и segmented bitmap compiler обязаны возвращать одинаковый logical
+`productMatches`. В segmented implementation все операции выполняются по
+segment, missing segment означает empty, total суммирует cardinality
+непересекающихся product segments, а projection остаётся exact. Segment ID не
+попадает в request hash или cursor.
+
+#### 1.13.6. Выполнение result bundle
+
+Одна search attempt запускает следующие branches параллельно отдельными
+`READ COMMITTED` statements:
+
+```text
+page
+totalCount
+configured facets metadata + counts
+virtual availability facet
+virtual price facet
+```
+
+Ошибка любой обязательной branch завершает всю attempt; partial Listing не
+возвращается и fuzzy после technical error не запускается.
+
+Branch rules:
+
+- `totalCount` — exact `rb_cardinality(productMatches)` либо сумма exact segment
+  cardinalities. Candidate cap и estimate вместо результата запрещены.
+- `page` — выбрать только products из `productMatches`, применить keyset seek,
+  взять `first + 1`, вернуть первые `first`, а лишнюю row использовать только для
+  `hasNextPage`.
+- TAG/FEATURE count — удалить только target product facet group, сохранить
+  search bitmap, остальные product groups и общий variant witness, затем
+  пересечь target value posting и посчитать distinct products.
+- OPTION/future criterion count — удалить только target user group, сохранить
+  search bitmap, остальные term groups, price и OOS `HIDE`, добавить target
+  value в variant space, после чего выполнить exact projection и distinct
+  product count.
+- Availability count — изолировать только пользовательский availability filter;
+  OOS `HIDE`, если активен, остаётся policy predicate. Поэтому при `HIDE`
+  unavailable count закономерно равен `0`.
+- Price bounds — исключить только selected price range, сохранить search,
+  product predicates и все variant term predicates; `MIN/MAX` считать по price
+  rows matching variants, а не по всем variants прошедших products.
+
+Все branch compilers получают один `MembershipPlan`. Допустимо повторно
+скомпилировать эквивалентные CTE в отдельных statements; недопустимо заново
+нормализовать query, разрешать config revision или менять attempt mode.
+
+#### 1.13.7. Ordering, page и cursor
+
+Для `RELEVANCE` ordering tuple имеет точную форму:
+
+```text
+availability_bucket DESC   # только PLACE_LAST: available=1, unavailable=0
+identifier_priority DESC   # exact=3, prefix=2, text/synonym/fuzzy/boost-only=1
+boosted DESC
+relevance_score DESC
+product_id ASC
+```
+
+При `SHOW` availability component отсутствует; при `HIDE` unavailable products
+уже исключены membership. Boost-only product получает score `0`. Exact/prefix
+identifier tier сильнее boost и BM25. Любое равенство полностью разрешается
+`product_id ASC`.
+
+Для business sort используются только conditional `PLACE_LAST` bucket,
+business keys и существующие product/variant tie-breakers. `boosted` и
+`relevance_score` не входят в business ordering. Matched-price collector выбирает
+variant/price только из `variantCandidates`, соответствующих тому же
+`productMatches`, и не расширяет membership.
+
+Cursor кодирует значения полного фактического ordering tuple без округления
+score, плюс request hash, locale, currency, scope/filter/sort fingerprint,
+configuration revision/checksum, index schema, attempt mode, issued-at и expiry.
+Decode выполняется до SQL compilation. Несовпадение любого fingerprint field
+возвращает invalid cursor; отсутствие retained runtime revision —
+`SEARCH_CURSOR_EXPIRED`. Seek predicate является строгим lexicographic
+«после cursor» для того же tuple; offset pagination запрещена.
+
+#### 1.13.8. Exact-first fuzzy retry
+
+Top-level executor работает следующим образом:
+
+```ts
+async function executeSearchListing(input: NormalizedListingInput) {
+  const request = await pinSearchRequestContext(input);
+  const primaryPlan = buildPrimaryPlan(request);
+
+  if (input.cursor?.mode === "FUZZY") {
+    return await runFullBundle({
+      request,
+      attempt: { request, mode: "FUZZY" },
+      plan: buildFuzzyPlan(primaryPlan),
+      input,
+    });
+  }
+
+  const primary = await runFullBundle({
+    request,
+    attempt: { request, mode: "PRIMARY" },
+    plan: primaryPlan,
+    input,
+  });
+
+  if (
+    input.cursor?.mode === "PRIMARY" ||
+    primary.totalCount > 0 ||
+    !request.runtimeConfiguration.typoToleranceEnabled ||
+    request.normalizedQuery.codePointLength < 3
+  ) {
+    return primary;
+  }
+
+  const fuzzyPlan = buildFuzzyPlan(primaryPlan);
+  return await runFullBundle({
+    request,
+    attempt: { request, mode: "FUZZY" },
+    plan: fuzzyPlan,
+    input,
+  });
+}
+```
+
+На первой странице cursor отсутствует: executor всегда начинает с PRIMARY и
+может перейти в FUZZY только по final zero. Continuation request обязан повторить
+mode cursor: `PRIMARY` не переключается в fuzzy даже при новом zero, а `FUZZY`
+не выполняет повторный primary probe. Cursor другого mode не применяется к
+результату attempt.
+
+`buildFuzzyPlan` не перечитывает config и не меняет required unit boundaries.
+Он сохраняет exact original, synonym и identifier alternatives и добавляет:
+
+- для single-token original alternative — `fuzzyToken(distance=1)`;
+- для multi-token original span — `all` из `fuzzyToken(distance=1)` каждого
+  original token с `requireSameField=true`.
+
+Таким образом, fuzzy не применяется к synonym или SKU, все original tokens
+остаются обязательными, а tokens одного исходного multi-token span не могут
+совпасть в разных fields. Fuzzy result не объединяется с primary candidates.
+Решение о fallback принимается исключительно по возвращённому final primary
+`totalCount`; raw engine hits, primary page length и candidate cardinality его не
+блокируют. Если fuzzy также пуст, возвращается полный FUZZY bundle с нулевыми
+page/counts и cursor mode `FUZZY`.
+
+#### 1.13.9. Consistency и deterministic replay
+
+Branches одной attempt могут увидеть разные committed версии Listing index в
+рамках существующей eventual-consistency модели. Executor не сравнивает branch
+results и не повторяет bundle. При этом одинаковые normalized input,
+`SearchRequestContext`, `SearchAttemptContext`, `SearchQueryPlan` и
+`MembershipPlan` обязаны порождать одинаковую SQL semantics.
+
+Для compatibility corpus сохраняются normalized input, compatibility tuple,
+runtime checksum, mode и ожидаемые product IDs/order/counts без raw SQL. Replay
+должен доказывать equivalence page membership, total и target-isolated facets
+для global и segmented physical compilers.
 
 ## 2. Search document index
 
@@ -692,7 +1072,8 @@ behavior.
 
 ### Этап 5. Primary query planner и pg_search compiler
 
-1. Создать typed AST, limits и synonym-free `SearchQueryPlanBuilder`.
+1. Создать typed AST, limits и synonym-free `SearchQueryPlanBuilder` по
+   нормативному алгоритму 1.13.1–1.13.4.
 2. Реализовать versioned `PgSearchQueryCompiler` для token/phrase и exact/prefix
    SKU без fuzzy.
 3. Зафиксировать compatibility tuple: extension, document schema, compiler,
@@ -709,8 +1090,10 @@ identifier tier стабилен; unsupported engine/schema combination возв
 ### Этап 6. Canonical Listing executor
 
 1. Создать `SearchExecutionService` и один раз построить pinned
-   `SearchRequestContext` с active runtime revision, checksum и index schema.
-2. Встроить search candidates в canonical `productMatches` для GLOBAL и CATEGORY.
+   `SearchRequestContext`: с active runtime revision для первой страницы либо с
+   retained revision/checksum/schema из cursor для continuation.
+2. Встроить search candidates в canonical `productMatches` для GLOBAL и CATEGORY
+   по membership algorithm 1.13.5.
 3. Обеспечить одинаковый membership contract для page, total, configured facets
    и virtual facets.
 4. Сохранить search bitmap при target facet isolation и business sort.
@@ -727,7 +1110,9 @@ context на всех параллельных branches и attempts.
    `criterion.availability=available` в variant space и `PLACE_LAST` через
    derived product availability ordering projection.
 2. Добавить conditional availability bucket в ordering и cursor.
-3. Повысить cursor version и включить request/config/schema/order fingerprint.
+3. Повысить cursor version и включить request/config/schema/order fingerprint;
+   первая страница использует active revision, continuation — retained revision
+   и mode из cursor.
 4. Реализовать expiry и `SEARCH_CURSOR_EXPIRED` для недоступной revision.
 5. Проверить pagination для relevance и всех business sorts.
 
@@ -744,7 +1129,9 @@ revision/schema.
    полный result bundle в одном `FUZZY` mode без повторного resolve
    configuration/schema.
 4. Включить mode и fuzzy ordering keys в cursor.
-5. Добавить latency, concurrency и statement-timeout guardrails.
+5. Для continuation выполнять только mode cursor без повторного выбора
+   PRIMARY/FUZZY.
+6. Добавить latency, concurrency и statement-timeout guardrails.
 
 Готовность: primary и fuzzy sets не смешиваются; SKU/synonyms не fuzzy-expand;
 page, total и facets используют один mode; отфильтрованный raw primary hit не
@@ -793,7 +1180,8 @@ canonical item reindex; stale/noop action не меняет search documents и 
    variants, missing locale data и large candidate sets.
 2. Снять `EXPLAIN ANALYZE` matrix для global/category, filters, fuzzy, boosts,
    arrays и diagnostics.
-3. Зафиксировать limits/timeouts и BM25 VACUUM/autovacuum policy.
+3. Подтвердить limits из 1.13.1 на performance corpus, зафиксировать timeouts и
+   BM25 VACUUM/autovacuum policy; изменение limit требует version bump.
 4. Добавить failure injection для config apply и item indexing.
 5. Проверить privacy и cross-tenant IDF trade-off.
 6. Включать GraphQL capabilities только после соответствующей readiness.
@@ -829,6 +1217,9 @@ canonical item reindex; stale/noop action не меняет search documents и 
 | Missing locale title | Нет cross-locale fallback; SKU ещё может найти product |
 | Primary raw hit отфильтрован scope/OOS | Final zero разрешает fuzzy pass |
 | Query короче 3 code points | Fuzzy не запускается |
+| Query/AST превышает limit | Validation error без truncation и без обращения к engine |
+| PRIMARY cursor после изменения index | Выполняется только PRIMARY; mode не переключается на FUZZY |
+| FUZZY cursor | Сразу выполняется FUZZY на retained revision без primary probe |
 | Boost-only product | Проходит publication/scope/filters/OOS |
 | Boost + business sort | Membership сохраняется, boost ranking выключен |
 | Settings save/apply fail | Old active revision продолжает serving |
