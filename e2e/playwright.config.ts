@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { resolve } from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 import './expect';
 
@@ -12,6 +13,17 @@ const baseURL = startServers
   ? `http://127.0.0.1:${adminPort}`
   : process.env.BASE_URL;
 const workers = process.env.WORKERS ? parseInt(process.env.WORKERS, 10) : 5;
+const listingMatrixPerfSpecRequested = process.argv.some((argument) =>
+  argument.includes('listing-service-matrix-perf.spec.ts'),
+);
+
+if (listingMatrixPerfSpecRequested) {
+  process.env.LISTING_FACET_COUNTS_PROFILE_ENABLED = 'true';
+  process.env.E2E_LISTING_PERF_EXPLAIN_ANALYZE_PATH = resolve(
+    process.cwd(),
+    `test-results/listing-perf/matrix-${process.env.LISTING_PERF_PRODUCT_COUNT ?? '10000'}/matrix-${process.env.LISTING_PERF_PRODUCT_COUNT ?? '10000'}-explain-analyze.txt`,
+  );
+}
 
 if (startServers) {
   process.env.BASE_URL = baseURL;

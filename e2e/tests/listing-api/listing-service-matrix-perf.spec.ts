@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { test } from '@fixtures/base.extend';
@@ -25,6 +25,14 @@ const POSTGRES_SQL_SUMMARY_PATH = resolve(
 const MATRIX_REPORT_PATH = resolve(
   LISTING_PERF_RESULTS_DIR,
   `${MATRIX_RESULT_PREFIX}-comparison.json`,
+);
+const EXPLAIN_ANALYZE_REPORT_PATH = resolve(
+  LISTING_PERF_RESULTS_DIR,
+  `${MATRIX_RESULT_PREFIX}-explain-analyze.txt`,
+);
+const FULL_REPORT_PATH = resolve(
+  LISTING_PERF_RESULTS_DIR,
+  `${MATRIX_RESULT_PREFIX}-full-report.txt`,
 );
 const LISTING_SQL_QUERIES = [
   'listing:page',
@@ -232,6 +240,7 @@ test.describe('Listing service matrix perf', () => {
     try {
       const postgresLogsSince = new Date().toISOString();
       const metrics: ListingMatrixRunMetric[] = [];
+      await removeIfExists(EXPLAIN_ANALYZE_REPORT_PATH);
 
       for (const scenario of SCENARIOS) {
         const startedAt = performance.now();
@@ -315,6 +324,15 @@ test.describe('Listing service matrix perf', () => {
       const postgresDurations = await readRecentPostgresDurations(postgresLogsSince);
       const sqlTimingSummary = summarizeSqlTimings(postgresDurations.summary);
       assignQueryTimingsToScenarios(metrics, sqlTimingSummary);
+      const explainAnalyzeReport = labelExplainAnalyzeScenarios(
+        (await readOptionalFile(EXPLAIN_ANALYZE_REPORT_PATH)) ?? '',
+      );
+      if (!explainAnalyzeReport) {
+        throw new Error(
+          'EXPLAIN ANALYZE report was not generated; listing profiling must be enabled before services start',
+        );
+      }
+      await writeFile(EXPLAIN_ANALYZE_REPORT_PATH, explainAnalyzeReport);
       const report = {
         products: seedMeta.products,
         variants: seedMeta.variants,
@@ -326,12 +344,18 @@ test.describe('Listing service matrix perf', () => {
       };
 
       await writeFile(MATRIX_REPORT_PATH, `${JSON.stringify(report, null, 2)}\n`);
+      await writeFile(
+        FULL_REPORT_PATH,
+        buildFullReport({ report, explainAnalyzeReport, postgresSummary: postgresDurations.summary }),
+      );
 
       console.log(formatMatrixMetrics(metrics));
       console.log(formatSqlTimingSummary(report.sqlTimingSummary));
       console.log(`postgres raw log: ${POSTGRES_RAW_LOG_PATH}`);
       console.log(`postgres sql timings: ${POSTGRES_SQL_SUMMARY_PATH}`);
       console.log(`matrix report: ${MATRIX_REPORT_PATH}`);
+      console.log(`explain analyze: ${EXPLAIN_ANALYZE_REPORT_PATH}`);
+      console.log(`full report: ${FULL_REPORT_PATH}`);
     } finally {
       await setPostgresDurationLogging(false);
     }
@@ -504,7 +528,7 @@ function summarizeSqlTimings(summary: string): SqlTimingSummaryEntry[] {
   const timings = new Map<(typeof LISTING_SQL_QUERIES)[number], number[]>();
 
   for (const entry of summary.split('\n\n---\n\n')) {
-    if (!entry.includes('execute')) {
+    if (!entry.includes('execute') || entry.includes('EXPLAIN (ANALYZE')) {
       continue;
     }
 
@@ -588,4 +612,67 @@ function formatSqlTimingSummary(summary: SqlTimingSummaryEntry[]): string {
   }
 
   return lines.join('\n');
+}
+
+async function removeIfExists(path: string) {
+  try {
+    await unlink(path);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error;
+    }
+  }
+}
+
+async function readOptionalFile(path: string): Promise<string | null> {
+  try {
+    return await readFile(path, 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return null;
+    }
+    throw error;
+  }
+}
+
+function labelExplainAnalyzeScenarios(report: string): string {
+  let scenarioIndex = 0;
+  const labeled = report.replace(/^## Listing request (.+)$/gm, (_heading, generatedAt: string) => {
+    const scenario = SCENARIOS[scenarioIndex];
+    scenarioIndex += 1;
+    return scenario
+      ? `## Scenario ${scenario.name}\n\nListing request ${generatedAt}`
+      : `## Unexpected listing request ${generatedAt}`;
+  });
+
+  if (scenarioIndex !== SCENARIOS.length) {
+    throw new Error(
+      `Expected ${SCENARIOS.length} EXPLAIN ANALYZE scenario reports, received ${scenarioIndex}`,
+    );
+  }
+
+  return labeled;
+}
+
+function buildFullReport(input: {
+  report: unknown;
+  explainAnalyzeReport: string;
+  postgresSummary: string;
+}) {
+  return [
+    '# Listing service matrix performance report',
+    '',
+    '## Scenario comparison and query timings',
+    '',
+    JSON.stringify(input.report, null, 2),
+    '',
+    '## EXPLAIN ANALYZE by scenario and query',
+    '',
+    input.explainAnalyzeReport,
+    '',
+    '## Full PostgreSQL duration SQL report',
+    '',
+    input.postgresSummary,
+    '',
+  ].join('\n');
 }
