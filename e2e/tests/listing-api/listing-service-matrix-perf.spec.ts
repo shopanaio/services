@@ -26,6 +26,13 @@ const MATRIX_REPORT_PATH = resolve(
   LISTING_PERF_RESULTS_DIR,
   `${MATRIX_RESULT_PREFIX}-comparison.json`,
 );
+const LISTING_SQL_QUERIES = [
+  'listing:page',
+  'listing:totalCount',
+  'listing:facetsMetadata',
+  'listing:facetCounts',
+  'listing:virtualFacets',
+] as const;
 
 const LISTING_PERF_QUERY = /* GraphQL */ `
   query ListingServicePerfMatrix(
@@ -294,13 +301,20 @@ test.describe('Listing service matrix perf', () => {
 
         metrics.push({
           name: scenario.name,
+          input: {
+            facets: scenario.facets ?? [],
+            orderBy: scenario.orderBy,
+          },
           elapsedMs: Number(elapsedMs.toFixed(3)),
           totalCount: listing.totalCount,
           edgeCount: listing.edges.length,
+          queryTimingsMs: {},
         });
       }
 
       const postgresDurations = await readRecentPostgresDurations(postgresLogsSince);
+      const sqlTimingSummary = summarizeSqlTimings(postgresDurations.summary);
+      assignQueryTimingsToScenarios(metrics, sqlTimingSummary);
       const report = {
         products: seedMeta.products,
         variants: seedMeta.variants,
@@ -308,7 +322,7 @@ test.describe('Listing service matrix perf', () => {
         scopedCategory,
         pageSize: PAGE_SIZE,
         metrics,
-        sqlTimingSummary: summarizeSqlTimings(postgresDurations.summary),
+        sqlTimingSummary,
       };
 
       await writeFile(MATRIX_REPORT_PATH, `${JSON.stringify(report, null, 2)}\n`);
@@ -375,13 +389,18 @@ interface ListingMatrixConnection {
 
 interface ListingMatrixRunMetric {
   name: string;
+  input: {
+    facets: unknown;
+    orderBy: unknown;
+  };
   elapsedMs: number;
   totalCount: number;
   edgeCount: number;
+  queryTimingsMs: Record<string, number | null>;
 }
 
 interface SqlTimingSummaryEntry {
-  name: string;
+  name: (typeof LISTING_SQL_QUERIES)[number];
   count: number;
   avgMs: number;
   minMs: number;
@@ -482,7 +501,7 @@ function extractPostgresDurationEntries(log: string): string[] {
 }
 
 function summarizeSqlTimings(summary: string): SqlTimingSummaryEntry[] {
-  const timings = new Map<string, number[]>();
+  const timings = new Map<(typeof LISTING_SQL_QUERIES)[number], number[]>();
 
   for (const entry of summary.split('\n\n---\n\n')) {
     if (!entry.includes('execute')) {
@@ -495,8 +514,8 @@ function summarizeSqlTimings(summary: string): SqlTimingSummaryEntry[] {
       continue;
     }
 
-    const name = comment[1].trim();
-    if (!name.startsWith('listing:')) {
+    const name = comment[1].trim() as (typeof LISTING_SQL_QUERIES)[number];
+    if (!LISTING_SQL_QUERIES.includes(name)) {
       continue;
     }
 
@@ -505,29 +524,58 @@ function summarizeSqlTimings(summary: string): SqlTimingSummaryEntry[] {
     timings.set(name, existing);
   }
 
-  return [...timings.entries()]
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([name, runsMs]) => {
-      const sum = runsMs.reduce((total, duration) => total + duration, 0);
-      return {
-        name,
-        count: runsMs.length,
-        avgMs: Number((sum / runsMs.length).toFixed(3)),
-        minMs: Number(Math.min(...runsMs).toFixed(3)),
-        maxMs: Number(Math.max(...runsMs).toFixed(3)),
-        runsMs: runsMs.map((duration) => Number(duration.toFixed(3))),
-      };
-    });
+  return LISTING_SQL_QUERIES.map((name) => {
+    const runsMs = timings.get(name) ?? [];
+    const sum = runsMs.reduce((total, duration) => total + duration, 0);
+    return {
+      name,
+      count: runsMs.length,
+      avgMs: runsMs.length === 0 ? 0 : Number((sum / runsMs.length).toFixed(3)),
+      minMs: runsMs.length === 0 ? 0 : Number(Math.min(...runsMs).toFixed(3)),
+      maxMs: runsMs.length === 0 ? 0 : Number(Math.max(...runsMs).toFixed(3)),
+      runsMs: runsMs.map((duration) => Number(duration.toFixed(3))),
+    };
+  });
+}
+
+function assignQueryTimingsToScenarios(
+  metrics: ListingMatrixRunMetric[],
+  sqlTimingSummary: SqlTimingSummaryEntry[],
+) {
+  if (sqlTimingSummary.length !== LISTING_SQL_QUERIES.length) {
+    throw new Error(
+      `Expected ${LISTING_SQL_QUERIES.length} listing queries, received ${sqlTimingSummary.length}`,
+    );
+  }
+
+  for (const query of sqlTimingSummary) {
+    if (query.runsMs.length !== metrics.length) {
+      throw new Error(
+        `Cannot map ${query.name} timings to scenarios: expected ${metrics.length} runs, captured ${query.runsMs.length}`,
+      );
+    }
+  }
+
+  for (const [scenarioIndex, metric] of metrics.entries()) {
+    metric.queryTimingsMs = Object.fromEntries(
+      sqlTimingSummary.map((query) => [query.name, query.runsMs[scenarioIndex] ?? null]),
+    );
+  }
 }
 
 function formatMatrixMetrics(metrics: ListingMatrixRunMetric[]): string {
-  return [
-    'listing matrix elapsed:',
-    ...metrics.map(
-      (metric) =>
-        `${metric.name}: elapsed=${metric.elapsedMs}ms total=${metric.totalCount} edges=${metric.edgeCount}`,
-    ),
-  ].join('\n');
+  const lines = ['listing matrix elapsed and query timings:'];
+
+  for (const metric of metrics) {
+    lines.push(
+      `${metric.name}: elapsed=${metric.elapsedMs}ms total=${metric.totalCount} edges=${metric.edgeCount}`,
+    );
+    for (const [query, timing] of Object.entries(metric.queryTimingsMs)) {
+      lines.push(`  ${query}: ${timing === null ? 'not captured' : `${timing}ms`}`);
+    }
+  }
+
+  return lines.join('\n');
 }
 
 function formatSqlTimingSummary(summary: SqlTimingSummaryEntry[]): string {
