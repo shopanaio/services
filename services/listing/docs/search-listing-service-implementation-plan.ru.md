@@ -31,8 +31,8 @@ storefront facets также остаются вне scope.
 - fuzzy выполняется отдельным полным проходом только после final zero result;
 - search documents обновляются существующим event-driven listing workflow;
 - backend публикует Admin GraphQL для управления, Preview и status;
-- все ветки одного request используют pinned configuration revision, index schema
-  version и execution mode.
+- все ветки одного request используют pinned configuration revision и index
+  schema version; все ветки одной search attempt используют один execution mode.
 
 ## Обязательные инварианты
 
@@ -61,49 +61,19 @@ storefront facets также остаются вне scope.
     noop action не изменяют physical rows, а stale Catalog event/snapshot не
     может откатить latest item state или воскресить удалённый document.
 
-## Внешние зависимости Listing
-
-До включения всех searchable fields Listing должен получать versioned Catalog
-product snapshot со следующими данными:
-
-```ts
-interface CatalogProductSnapshot {
-  vendor?: { id: string; name: string } | null;
-  categories: Array<{
-    id: string;
-    content: Array<{ locale: string; name: string }>;
-  }>;
-  variants: Array<{
-    id: string;
-    sku: string | null;
-    content: Array<{ locale: string; title: string | null }>;
-  }>;
-}
-```
-
-Listing ожидает события для product/variant title, SKU, vendor assignment/name,
-category membership/name, publication/delete, enabled locales и variant
-create/update/delete. Vendor/category rename и locale change должны запускать
-обычную переиндексацию affected products через существующий Listing item action
-contract и bounded batch workflow; отдельный search writer или собственная
-search sequence не создаются.
-
-До готовности конкретного source `SearchCapabilitiesService` возвращает field как
-`UPDATING` или `UNAVAILABLE`; backend не имитирует данные handle/UUID или другой
-locale. Collection scope не публикуется до появления canonical listing scope
-provider.
-
 ## Целевая схема выполнения
 
 ```text
 Storefront listing / Admin Preview
   -> normalize locale/query/input
-  -> resolve pinned runtime revision and index schema
+  -> resolve one pinned SearchRequestContext with runtime revision and index schema
   -> build safe SearchQueryPlan
+  -> derive PRIMARY SearchAttemptContext from the pinned request context
   -> compile pg_search primary candidate relation
   -> intersect with canonical listing scope/filter pipeline
-  -> calculate page + total + facets from one productMatches contract
+  -> calculate PRIMARY page + total + facets from one productMatches contract
   -> when final primary totalCount = 0 and fuzzy is allowed:
+       derive FUZZY SearchAttemptContext from the same pinned request context
        rerun the whole bundle with FUZZY plan
   -> apply relevance/business ordering and OOS policy
   -> storefront: return listing
@@ -139,22 +109,35 @@ interface NormalizedSearchQuery {
 Для identifiers дополнительно строится NFKC/trim/case-fold форма без удаления
 дефисов, пробелов и других значимых разделителей SKU.
 
-### 1.2. Execution context
+### 1.2. Request и attempt contexts
 
-До запуска параллельных listing branches один раз разрешать:
+До запуска параллельных listing branches один раз разрешать immutable request
+context. Он содержит состояние, которое запрещено повторно разрешать между
+`PRIMARY` и `FUZZY` attempts:
 
 ```ts
-interface SearchExecutionContext {
+interface SearchRequestContext {
   readonly storeId: string;
   readonly locale: string;
   readonly normalizedQuery: NormalizedSearchQuery;
   readonly configurationRevision: number;
   readonly runtimeConfigurationChecksum: string;
   readonly indexSchemaVersion: number;
-  readonly mode: "PRIMARY" | "FUZZY";
   readonly diagnosticsMode: "NONE" | "PREVIEW";
 }
+
+interface SearchAttemptContext {
+  readonly request: SearchRequestContext;
+  readonly mode: "PRIMARY" | "FUZZY";
+}
 ```
+
+Executor всегда создаёт `PRIMARY` attempt. Если final primary `totalCount = 0` и
+fuzzy разрешён, он создаёт новый `FUZZY` attempt, ссылающийся на тот же
+`SearchRequestContext`. Runtime configuration, checksum и index schema между
+attempts повторно не читаются. Page, total и все facets внутри одной attempt
+обязаны получать один и тот же `SearchAttemptContext`; смешивание modes внутри
+result bundle запрещено.
 
 Runtime snapshot кэшируется по
 `store:<storeId>:search-config:<revision>`, а не только по store. Старые revisions
@@ -185,10 +168,33 @@ interface SearchQueryPlan {
 }
 ```
 
-Все semantic units обязательны (`AND`); внутри unit text, synonym и original SKU
-alternatives объединяются через `OR`. Whole-query SKU exact/prefix является
-отдельным полным alternative. Initial prefix threshold для SKU — 3 code points;
-короче допускается только exact.
+Верхнеуровневая boolean-семантика фиксирована и не определяется compiler-ом:
+
+```text
+unitMatch[i] = OR(
+  requiredUnits[i].textAlternatives,
+  requiredUnits[i].originalIdentifierAlternatives
+)
+
+semanticMatch = AND(unitMatch[0], unitMatch[1], ..., unitMatch[n])
+
+wholeQueryIdentifierMatch = OR(wholeQueryIdentifierAlternatives)
+
+documentMatch = OR(semanticMatch, wholeQueryIdentifierMatch)
+```
+
+`requiredUnits` после нормализации обязан быть непустым, и каждый `unitMatch`
+обязан содержать хотя бы одну alternative. Пустой
+`wholeQueryIdentifierAlternatives` компилируется как `FALSE`, а не удаляет
+`semanticMatch`. Таким образом, все semantic units обязательны (`AND`), внутри
+каждого unit text, synonym и identifier alternatives объединяются через `OR`, а
+exact/prefix совпадение полного исходного SKU может самостоятельно удовлетворить
+весь `documentMatch`. Synonym clause раскрывается только внутри alternative того
+unit, из которого она была построена, и не создаёт новую top-level ветку.
+
+Initial prefix threshold для SKU — 3 code points; короче допускается только
+exact. Identifier clauses строятся только из original normalized query/tokens:
+synonym expansion не создаёт identifier alternatives.
 
 Начальные internal weights: product title `8`, variant title `5`, vendor `2`,
 category `1`. SKU exact/prefix использует отдельный identifier tier. Эти значения
@@ -260,7 +266,25 @@ available, а другой соответствует остальным variant
 `CATEGORY + optional query` валиден всегда. `RELEVANCE` требует non-empty query;
 business sort меняет ordering, но не membership.
 
-### 1.7. Fuzzy fallback
+### 1.7. Согласованность SQL branches
+
+Request-level snapshot consistency между page, `totalCount`, configured facets и
+virtual facets не требуется. Branches могут выполняться параллельно отдельными
+statements в текущей `READ COMMITTED` semantics без общей transaction и без
+экспортированного PostgreSQL snapshot.
+
+Один `productMatches` означает общий deterministic SQL compilation contract:
+каждая branch получает одинаковые normalized input, `SearchRequestContext`,
+`SearchAttemptContext`, scope и filter plan и компилирует одинаковую membership
+algebra. Это не означает чтение одной физической версии Listing index.
+
+При concurrent indexing между statements допустимо, что page, `totalCount` и
+facet counts отражают разные committed состояния. Executor не повторяет branches,
+не сравнивает их результаты и не открывает координирующую read transaction.
+Eventual consistency существующего Listing index является частью storefront
+contract.
+
+### 1.8. Fuzzy fallback
 
 1. Выполнить полный primary bundle.
 2. При `totalCount > 0` вернуть primary.
@@ -272,14 +296,14 @@ business sort меняет ordering, но не membership.
 Distance фиксирован на `1`; AND semantics сохраняется; fuzzy применяется только
 к original text alternatives. SKU и synonym alternatives не fuzzy-expand.
 
-### 1.8. Synonyms
+### 1.9. Synonyms
 
 Runtime revision хранит locale-scoped token trie. Expander применяет
 longest-match-left-to-right. Multi-token synonym становится одним semantic unit;
 phrase должна совпасть целиком в одном field. Группы двунаправленные. Synonyms не
 меняют identifier clauses и не активируют boosts другой phrase.
 
-### 1.9. Boosts и ordering
+### 1.10. Boosts и ordering
 
 Boost lookup выполняется только по исходному `lookupKey`. Default relevance tuple:
 
@@ -298,7 +322,7 @@ projection используется только для ordering и не ста�
 При business sort boost сохраняет membership, но не переопределяет выбранный
 ordering.
 
-### 1.10. Cursor
+### 1.11. Cursor
 
 Повысить cursor version и включить normalized request hash, locale, currency,
 scope, filters, sort, configuration revision/checksum, index schema version,
@@ -309,9 +333,10 @@ relevance/business keys, ordinal, product tie-breaker, issued-at и expiry.
 requests сохраняется существующая eventual-consistency semantics product index;
 snapshot search index не обещается.
 
-### 1.11. Preview diagnostics
+### 1.12. Preview diagnostics
 
-Preview вызывает тот же executor с `PREVIEW` diagnostics mode. Дополнительный
+Preview вызывает тот же executor с `diagnosticsMode: "PREVIEW"` в pinned request
+context. Дополнительный
 bounded query выполняется только по product IDs текущей page и возвращает reason
 codes: product/variant title, SKU exact/prefix, vendor, category, synonym, boost,
 fuzzy fallback и OOS placed last. Numeric score, SQL и AST не публикуются.
@@ -539,9 +564,10 @@ input paths.
 
 ## 6. Observability, privacy and guardrails
 
-Technical logs содержат store ID, query hash, locale/scope, revision/schema/mode,
-candidate/final cardinalities, collector, fuzzy flag, branch duration и counts
-synonyms/boosts. Raw query в technical logs запрещён.
+Technical logs содержат store ID, query hash, locale/scope, request-level
+revision/schema, attempt-level mode, candidate/final cardinalities, collector,
+fuzzy flag, branch duration и counts synonyms/boosts. Raw query в technical logs
+запрещён.
 
 Metrics: primary/fuzzy latency, cardinalities, config apply duration/failures и
 indexing lag/failures/coverage.
@@ -556,7 +582,49 @@ BM25 corpus на relative IDF измеряется отдельно; tenant-loca
 
 ## 7. Пошаговая реализация
 
-### Этап 0. Correctness baseline и pg_search compatibility
+### Этап 0. External dependency gates, correctness baseline и pg_search compatibility
+
+До начала этапа 1 должны быть выполнены обязательные external dependency gates.
+Их реализация находится вне scope Listing, но версия и готовность каждого
+контракта должны быть подтверждены до подключения multi-field documents.
+
+| Gate | Внешний контракт | Критерий прохождения |
+|---|---|---|
+| G1. Product snapshot | Versioned Catalog snapshot содержит localized product title, vendor ID/name, categories ID/localized name и variants ID/SKU/localized title | Broker type/version опубликован; Listing hydration может запросить snapshot по product ID и проверить его версию |
+| G2. Product lifecycle events | Product/variant title, SKU, vendor assignment, category membership, publication/delete и variant create/update/delete | Для каждого изменения определён event classification в обычный `syncSellableItem` или `deleteSellableItem` action |
+| G3. Reference fan-out | Vendor/category rename позволяет bounded получить affected product IDs | Определены cursor/batch contract, upper bounds, retry и continuation semantics без отдельного search workflow |
+| G4. Locale lifecycle | Project предоставляет versioned enabled locales и события enable/disable | Locale change запускает bounded reindex affected products; removed locale rows удаляются canonical sync writer-ом |
+
+Целевой snapshot contract:
+
+```ts
+interface CatalogProductSnapshot {
+  content: Array<{ locale: string; title: string | null }>;
+  vendor?: { id: string; name: string } | null;
+  categories: Array<{
+    id: string;
+    content: Array<{ locale: string; name: string }>;
+  }>;
+  variants: Array<{
+    id: string;
+    sku: string | null;
+    content: Array<{ locale: string; title: string | null }>;
+  }>;
+}
+```
+
+Vendor/category rename и locale change используют существующий Listing item
+action contract и bounded batch workflow; отдельный search writer, search event
+sequence или search item workflow не создаются. Collection scope имеет отдельный
+gate и не публикуется до появления canonical listing scope provider.
+
+До прохождения gate конкретного source `SearchCapabilitiesService` возвращает
+соответствующее field как `UPDATING` или `UNAVAILABLE`; backend не имитирует
+данные через handle, UUID или другую locale. Непройденный gate запрещает
+advertise соответствующей capability и не может быть обойдён mock/fallback
+данными.
+
+После фиксации gates выполнить correctness baseline:
 
 1. Добавить integration fixtures для pinned `pg_search 0.24.1`: boolean compound,
    phrase, arrays, exact/prefix SKU, fuzzy distance 1, score, Cyrillic/Unicode,
@@ -569,8 +637,11 @@ BM25 corpus на relative IDF измеряется отдельно; tenant-loca
 6. Удалить handle/UUID fallback.
 7. Добавить extension/index health diagnostics.
 
-Готовность: category result set согласован между всеми branches; sort не удаляет
-query predicate; tenant leakage отсутствует; special characters parameterized.
+Готовность: G1–G4 имеют зафиксированные versioned contracts и подтверждённых
+owners; непрошедшие field gates отражаются в capabilities; все category branches
+используют один membership compilation contract; sort не удаляет query predicate;
+tenant leakage отсутствует; special characters parameterized. Межветочная
+snapshot consistency не проверяется.
 
 ### Этап 1. Listing search content contract
 
@@ -641,22 +712,25 @@ behavior.
 5. Добавить compiler integration corpus и query-shape performance baseline.
 
 Готовность: пользовательские значения параметризованы; tenant/locale predicates
-обязательны; identifier tier стабилен; unsupported engine/schema combination
-возвращает `SEARCH_INDEX_UNAVAILABLE`.
+обязательны; compiler сохраняет точную форму
+`OR(AND(unitMatch...), wholeQueryIdentifierMatch)` и правила пустых веток;
+identifier tier стабилен; unsupported engine/schema combination возвращает
+`SEARCH_INDEX_UNAVAILABLE`.
 
 ### Этап 6. Canonical storefront executor
 
-1. Создать `SearchExecutionService` и один раз pin-ить active runtime revision,
-   checksum и index schema для request.
+1. Создать `SearchExecutionService` и один раз построить pinned
+   `SearchRequestContext` с active runtime revision, checksum и index schema.
 2. Встроить search candidates в canonical `productMatches` для GLOBAL и CATEGORY.
 3. Обеспечить одинаковый membership contract для page, total, configured facets
    и virtual facets.
 4. Сохранить search bitmap при target facet isolation и business sort.
 5. Добавить `RELEVANCE` ordering без boosts и OOS policy.
 
-Готовность: query не теряется при scope/sort; page, total и facets согласованы;
-same-variant filters сохраняют canonical semantics; storefront использует pinned
-revision на всех параллельных branches.
+Готовность: query не теряется при scope/sort; page, total и facets используют
+одинаковую membership algebra без гарантии общего DB snapshot; same-variant
+filters сохраняют canonical semantics; storefront использует один pinned request
+context на всех параллельных branches и attempts.
 
 ### Этап 7. OOS policy и versioned cursor
 
@@ -677,7 +751,9 @@ revision/schema.
 
 1. Добавить fuzzy clauses только для original text alternatives.
 2. Запускать fuzzy после final primary `totalCount = 0` и minimum query length.
-3. Повторять полный result bundle в одном `FUZZY` mode.
+3. Создавать `FUZZY` attempt из того же pinned `SearchRequestContext` и повторять
+   полный result bundle в одном `FUZZY` mode без повторного resolve
+   configuration/schema.
 4. Включить mode и fuzzy ordering keys в cursor.
 5. Добавить latency, concurrency и statement-timeout guardrails.
 
@@ -790,7 +866,9 @@ canonical item reindex; stale/noop action не меняет search documents и 
 
 - все advertised fields имеют реальный source и BM25 capability;
 - storefront и Preview используют один executor;
-- query membership одинаков для page/total/facets при любом scope/sort;
+- page/total/facets используют одинаковый membership compilation contract при
+  любом scope/sort; общий DB snapshot и равенство результатов при concurrent
+  indexing не гарантируются;
 - synonyms/fuzzy/boost/OOS соблюдают зафиксированные interaction rules;
 - configuration apply имеет собственную durable state machine, а document
   synchronization использует canonical Listing item workflow и
