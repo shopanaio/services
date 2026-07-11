@@ -42,8 +42,9 @@ Criterion-neutral indexes покрывают price ASC/DESC и per-product minim
 
 ## Snapshot и migration policy
 
-Storefront branches выполняются последовательно в одной
-`REPEATABLE READ READ ONLY` transaction. Universal terms используют
+Storefront branches выполняются отдельными statements без общей transaction.
+До включения параллельного orchestration они запускаются последовательно и
+используют per-statement `READ COMMITTED` snapshots. Universal terms используют
 существующие posting columns/PK, поэтому отдельная migration не создаётся:
 initial clean-DB DDL обновлён. Conversion/reindex старого локального index вне
 scope.

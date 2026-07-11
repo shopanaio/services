@@ -950,6 +950,7 @@ DB и закрыть документацию по фактически реал
 | D-001 | 2026-07-11 | DECIDED | Criterion-specific price/signature indexes удалены; existing criterion-neutral covering indexes сохранены. Финальный `EXPLAIN ANALYZE` ожидает разрешённого performance run. | `listing-index-db-contract.ru.md` | 2, 9 |
 | D-002 | 2026-07-11 | DECIDED | Option signature tables/repository/wiring/strategies удалены: same-variant equivalence и benefit не доказаны. | Repository-wide static audit, clean schema | 7, 9 |
 | D-003 | 2026-07-11 | DECIDED | Branches выполняются последовательно на одном transaction connection в `REPEATABLE READ READ ONLY`. | `StorefrontListingQueryRepository.ts` | 8 |
+| D-004 | 2026-07-11 | DECIDED | Outer listing transaction удалена; branches используют отдельные statements и per-statement `READ COMMITTED` snapshots. | `StorefrontListingQueryRepository.ts` | 8 |
 
 ## Журнал блокеров
 

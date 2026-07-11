@@ -30,7 +30,8 @@ availability predicate на `vli.in_stock`.
 - isolated distinct-product counts and selected zero metadata;
 - matched minimum price ASC/DESC with NULL-last products;
 - both declared availability states in virtual metadata;
-- sequential `REPEATABLE READ READ ONLY` request snapshot;
+- sequential per-statement `READ COMMITTED` snapshots without an outer
+  listing transaction;
 - bounded cardinality/universe/partition/mapping/price/aggregate audit;
 - option signature schema and code fully removed.
 

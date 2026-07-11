@@ -157,7 +157,9 @@ same-variant parity/benefit не были доказаны, canonical term path 
 ## Snapshot, observability и audit
 
 Один listing request выполняет normalization, page, total, metadata, virtual
-facets и counts последовательно внутри `REPEATABLE READ READ ONLY` transaction.
+facets и counts отдельными statements без общей transaction. До включения
+параллельного orchestration branches запускаются последовательно; каждый
+statement использует собственный `READ COMMITTED` snapshot.
 
 Request log содержит число groups/terms, cardinality term/numeric/final variant
 candidates, projected products, collector и snapshot strategy без raw payload.

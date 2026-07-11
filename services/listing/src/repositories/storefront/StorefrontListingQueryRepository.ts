@@ -41,7 +41,7 @@ import {
   type VirtualFacetsSqlRow,
 } from "./sql/resultMappers.js";
 import type { Database } from "../../infrastructure/db/database.js";
-import { TransactionManager } from "@shopana/shared-kernel";
+import type { TransactionManager } from "@shopana/shared-kernel";
 import {
   StorefrontRepositoryValidationError,
   type NormalizedStorefrontFacetFilter,
@@ -101,20 +101,10 @@ export class StorefrontListingQueryRepository extends BaseRepository {
   async getStorefrontListing(
     input: StorefrontListingInput
   ): Promise<StorefrontListingRepositoryResult> {
-    if (TransactionManager.isInTransaction()) {
-      throw new Error(
-        "Storefront listing snapshot boundary cannot reuse an existing transaction"
-      );
-    }
-    return this.txManager.run(async () => {
-      await this.connection.execute(
-        sql`SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY`
-      );
-      return this.getStorefrontListingInSnapshot(input);
-    });
+    return this.executeStorefrontListing(input);
   }
 
-  private async getStorefrontListingInSnapshot(
+  private async executeStorefrontListing(
     input: StorefrontListingInput
   ): Promise<StorefrontListingRepositoryResult> {
     const startedAt = Date.now();
@@ -230,7 +220,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
             variantDiagnostics?.finalVariantCandidateCardinality ?? null,
           projectedProductCardinality:
             variantDiagnostics?.projectedProductCardinality ?? null,
-          snapshotStrategy: "repeatable-read-read-only-sequential",
+          snapshotStrategy: "read-committed-per-statement-sequential",
           selectedCollector:
             pageRows.find((row) => row.collectorKind)?.collectorKind ?? null,
           sqlRoundTrips,
