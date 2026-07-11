@@ -52,7 +52,9 @@ storefront facets также остаются вне scope.
    page с fuzzy total/facets.
 8. SKU не получает synonym или fuzzy expansion.
 9. Boost не обходит scope, publication, structured filters или OOS policy.
-10. `HIDE` и `PLACE_LAST` имеют приоритет над boost.
+10. `HIDE` компилируется как canonical availability predicate в variant space до
+    projection; `PLACE_LAST` использует только derived product ordering bucket.
+    Оба режима имеют приоритет над boost.
 11. Pending/failed authoring revision не влияет на storefront до atomic
     activation.
 12. Preview не пишет analytics и не раскрывает SQL, AST, internal weights или
@@ -240,13 +242,22 @@ productBase = scopeProducts
   & searchProducts
   & product facet groups
   & vendor filters
-  & optional HIDE availability membership
 
-variantCandidates = universal variant terms & numeric price candidates
+variantTermCandidates = system.state=indexable
+  & selected universal variant term groups
+  & criterion.availability=available when HIDE
+
+variantCandidates = variantTermCandidates & numeric price candidates
 
 productMatches = productBase
   & projectDistinctProducts(variantCandidates) when variant witness exists
 ```
+
+`HIDE` всегда создаёт variant witness и пересекается с OPTION, future criteria и
+price до projection. Поэтому product не проходит фильтрацию, если один variant
+available, а другой соответствует остальным variant predicates. `SHOW` и
+`PLACE_LAST` не добавляют availability predicate в membership; `PLACE_LAST`
+использует derived product availability projection только как ordering key.
 
 `GLOBAL + query` заменяет внутренний legacy `SEARCH` scope.
 `CATEGORY + optional query` валиден всегда. `RELEVANCE` требует non-empty query;
@@ -283,9 +294,12 @@ BM25 score DESC
 product_id ASC
 ```
 
-При `SHOW` availability key отсутствует. При `HIDE` unavailable candidates
-исключаются через canonical variant availability membership. При business sort
-boost сохраняет membership, но не переопределяет выбранный ordering.
+При `SHOW` availability key отсутствует. При `HIDE` canonical
+`criterion.availability=available` пересекается с остальными variant predicates
+до projection в product space. При `PLACE_LAST` derived product availability
+projection используется только для ordering и не становится membership source.
+При business sort boost сохраняет membership, но не переопределяет выбранный
+ordering.
 
 ### 1.10. Cursor
 
@@ -640,15 +654,18 @@ revision на всех параллельных branches.
 
 ### Этап 7. OOS policy и versioned cursor
 
-1. Реализовать `SHOW`, `HIDE` и `PLACE_LAST` через canonical availability.
+1. Реализовать `SHOW` без availability membership, `HIDE` как canonical
+   `criterion.availability=available` в variant space и `PLACE_LAST` через
+   derived product availability ordering projection.
 2. Добавить conditional availability bucket в ordering и cursor.
 3. Повысить cursor version и включить request/config/schema/order fingerprint.
 4. Реализовать expiry и `SEARCH_CURSOR_EXPIRED` для недоступной revision.
 5. Проверить pagination для relevance и всех business sorts.
 
-Готовность: `HIDE` использует variant availability membership; `PLACE_LAST`
-стабилен между страницами; cursor нельзя применить к изменённому request или
-несовместимой revision/schema.
+Готовность: `HIDE` пересекает availability, OPTION, future criteria и price до
+projection и не склеивает predicates разных variants; `PLACE_LAST` стабилен
+между страницами; cursor нельзя применить к изменённому request или несовместимой
+revision/schema.
 
 ### Этап 8. Exact-first fuzzy fallback
 
@@ -769,6 +786,7 @@ request создаёт один fact; Preview/pagination не увеличива
 | Category + query | Page/total/facets ограничены category и query |
 | Category + query + price/name sort | Query остаётся predicate |
 | Query + option + price | Variant predicates имеют same-variant semantics |
+| HIDE + option + price | Product проходит только при одном variant, одновременно available и соответствующем option/price |
 | Facet target isolation | Search bitmap сохраняется |
 | Draft in BM25/boost | `publishedUniverse` исключает product |
 | Exact/prefix SKU | Identifier tier без synonym/fuzzy |
@@ -809,8 +827,8 @@ request создаёт один fact; Preview/pagination не увеличива
 3. Shared BM25 corpus может влиять на tenant-relative IDF, хотя membership обязан
    быть полностью tenant-isolated.
 4. Hidden candidate cap нарушит exact totals/facets и запрещён.
-5. `HIDE` обязан использовать canonical variant availability membership, а не
-   derived sort projection.
+5. `HIDE` обязан пересекать canonical variant availability с OPTION/criteria и
+   price до projection, а не использовать derived product sort projection.
 6. Collection scope нельзя имитировать до canonical listing scope provider.
 7. High-frequency vendor/category rename fan-out требует bounded batching,
    monotonic sequence и наблюдаемого backlog.
