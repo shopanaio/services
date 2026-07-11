@@ -449,13 +449,14 @@ function expectedFacetCounts(
   facets: FacetDefinition[],
   products: PreviewProductDefinition[],
   selectedFacetValues: Readonly<Record<string, string[]>> = {},
+  availableOnly = false,
 ): Record<string, number> {
   return Object.fromEntries(
     publicFacetValues(facet).map((value) => [
       value.handle,
       products.filter((product) => {
         return (
-          product.inStock &&
+          (!availableOnly || product.inStock) &&
           value.sourceValueHandles.some((handle) =>
             product[facet.productField].includes(handle),
           ) &&
@@ -489,6 +490,7 @@ async function expectPreviewFacetCounts(
   facets: FacetDefinition[],
   products: PreviewProductDefinition[],
   selectedFacetValues: Readonly<Record<string, string[]>> = {},
+  availableOnly = false,
 ): Promise<void> {
   for (const facet of facets) {
     const expectedCounts = expectedFacetCounts(
@@ -496,6 +498,7 @@ async function expectPreviewFacetCounts(
       facets,
       products,
       selectedFacetValues,
+      availableOnly,
     );
     const facetGroup = preview
       .getByTestId(`category-listing-preview-facet-${facet.facetSlug}`)
@@ -742,7 +745,7 @@ test.describe('Admin category listing preview UI', () => {
     );
     await expect(cards).toHaveCount(IN_STOCK_PRODUCT_COUNT);
     await expect(preview.getByText('Available: Available', { exact: true })).toBeVisible();
-    await expectPreviewFacetCounts(preview, facets, definitions);
+    await expectPreviewFacetCounts(preview, facets, definitions, {}, true);
 
     for (const { definition } of inStockProducts) {
       await expect(
@@ -773,8 +776,7 @@ test.describe('Admin category listing preview UI', () => {
 
     const warmColors = new Set(['red', 'orange']);
     const warmProducts = products.filter(
-      ({ definition }) =>
-        definition.inStock && definition.colors.some((color) => warmColors.has(color)),
+      ({ definition }) => definition.colors.some((color) => warmColors.has(color)),
     );
     await expect(preview.getByTestId('category-listing-preview-total-count')).toHaveText(
       `${warmProducts.length} products`,
@@ -807,7 +809,7 @@ test.describe('Admin category listing preview UI', () => {
     await expect(preview.getByTestId('category-listing-preview-total-count')).toHaveText(
       `${IN_STOCK_PRODUCT_COUNT} products`,
     );
-    await expectPreviewFacetCounts(preview, facets, definitions);
+    await expectPreviewFacetCounts(preview, facets, definitions, {}, true);
     const tagsFacet = preview
       .getByTestId(`category-listing-preview-facet-${tagFacet.facetSlug}`)
       .filter({ visible: true });
@@ -826,7 +828,7 @@ test.describe('Admin category listing preview UI', () => {
     await expect(preview.getByText('Tags: Sale', { exact: true })).toBeVisible();
     await expectPreviewFacetCounts(preview, facets, definitions, {
       [tagFacet.facetSlug]: [saleTag.handle],
-    });
+    }, true);
 
     for (const { definition } of saleProducts) {
       await expect(
