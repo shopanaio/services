@@ -583,52 +583,159 @@ query predicate; tenant leakage отсутствует; special characters param
 product write атомарно меняет listing/document; unavailable engine не имеет
 fallback.
 
-### Этап 3. Configuration и canonical executor
+### Этап 3. Configuration persistence
 
 1. Создать configuration/settings/revision/job/runtime/audit tables.
-2. Реализовать authoring transaction и DBOS apply workflow с CAS/coalescing.
-3. Реализовать revision-addressed runtime cache.
-4. Создать AST builder, synonym-free primary compiler и canonical executor.
-5. Добавить OOS settings, exact-first fuzzy и versioned cursor.
-6. Реализовать Preview diagnostics и GraphQL settings/preview/capabilities.
+2. Реализовать repositories через transaction-aware `this.connection` и context
+   store.
+3. Реализовать authoring transaction: optimistic version, desired revision,
+   immutable snapshot, audit и apply job.
+4. Добавить нормализацию и validation settings без подключения к storefront.
+5. Опубликовать GraphQL `settings`, `settingsUpdate` и application state.
 
-Готовность: один request pin-ит revision/schema/mode; failed apply оставляет
-старое behavior; Preview совпадает со storefront и ничего не трекает.
+Готовность: concurrent mutation получает configuration conflict; desired revision
+и audit записываются атомарно; незавершённая revision не влияет на storefront.
 
-### Этап 4. Synonyms и boosts
+### Этап 4. Configuration apply и runtime revisions
 
-1. Создать authoring/claim/boost tables и repositories.
+1. Реализовать DBOS apply workflow с retry, CAS activation и coalescing.
+2. Компилировать immutable runtime configuration из сохранённой authoring
+   revision.
+3. Реализовать загрузку runtime revision из DB и revision-addressed cache.
+4. Зафиксировать retention contract не короче cursor TTL и safe cleanup старых
+   revisions.
+5. Добавить recovery незавершённых apply jobs и safe compile errors.
+
+Готовность: failed apply оставляет previous active revision; superseded revision
+не активируется; cache miss восстанавливается из DB; restart не меняет active
+behavior.
+
+### Этап 5. Primary query planner и pg_search compiler
+
+1. Создать typed AST, limits и synonym-free `SearchQueryPlanBuilder`.
+2. Реализовать versioned `PgSearchQueryCompiler` для token/phrase и exact/prefix
+   SKU без fuzzy.
+3. Зафиксировать compatibility tuple: extension, document schema, compiler,
+   tokenizer и normalizer versions.
+4. Реализовать полный candidate relation без hidden top-K.
+5. Добавить compiler integration corpus и query-shape performance baseline.
+
+Готовность: пользовательские значения параметризованы; tenant/locale predicates
+обязательны; identifier tier стабилен; unsupported engine/schema combination
+возвращает `SEARCH_INDEX_UNAVAILABLE`.
+
+### Этап 6. Canonical storefront executor
+
+1. Создать `SearchExecutionService` и один раз pin-ить active runtime revision,
+   checksum и index schema для request.
+2. Встроить search candidates в canonical `productMatches` для GLOBAL и CATEGORY.
+3. Обеспечить одинаковый membership contract для page, total, configured facets
+   и virtual facets.
+4. Сохранить search bitmap при target facet isolation и business sort.
+5. Добавить `RELEVANCE` ordering без boosts и OOS policy.
+
+Готовность: query не теряется при scope/sort; page, total и facets согласованы;
+same-variant filters сохраняют canonical semantics; storefront использует pinned
+revision на всех параллельных branches.
+
+### Этап 7. OOS policy и versioned cursor
+
+1. Реализовать `SHOW`, `HIDE` и `PLACE_LAST` через canonical availability.
+2. Добавить conditional availability bucket в ordering и cursor.
+3. Повысить cursor version и включить request/config/schema/order fingerprint.
+4. Реализовать expiry и `SEARCH_CURSOR_EXPIRED` для недоступной revision.
+5. Проверить pagination для relevance и всех business sorts.
+
+Готовность: `HIDE` использует variant availability membership; `PLACE_LAST`
+стабилен между страницами; cursor нельзя применить к изменённому request или
+несовместимой revision/schema.
+
+### Этап 8. Exact-first fuzzy fallback
+
+1. Добавить fuzzy clauses только для original text alternatives.
+2. Запускать fuzzy после final primary `totalCount = 0` и minimum query length.
+3. Повторять полный result bundle в одном `FUZZY` mode.
+4. Включить mode и fuzzy ordering keys в cursor.
+5. Добавить latency, concurrency и statement-timeout guardrails.
+
+Готовность: primary и fuzzy sets не смешиваются; SKU/synonyms не fuzzy-expand;
+page, total и facets используют один mode; отфильтрованный raw primary hit не
+блокирует fuzzy fallback.
+
+### Этап 9. Preview и capabilities
+
+1. Реализовать Preview через тот же `SearchExecutionService` с
+   `DO_NOT_TRACK + PREVIEW`.
+2. Добавить bounded reason diagnostics только для текущей page.
+3. Реализовать ephemeral compile сохранённой pending revision тем же compiler
+   pipeline, что используется apply workflow.
+4. Опубликовать GraphQL `preview` и `capabilities`.
+5. Добавить timeout/cancellation и запрет score/SQL/AST leakage.
+
+Готовность: active Preview совпадает со storefront; pending Preview не активирует
+revision; Preview не пишет analytics; unavailable fields честно отражаются в
+capabilities.
+
+### Этап 10. Synonyms
+
+1. Создать synonym authoring/value/claim tables и repositories.
 2. Реализовать Scripts с normalization, validation и optimistic concurrency.
-3. Компилировать synonym trie и exact phrase boost map в runtime revision.
-4. Добавить longest phrase expansion, curated candidates, cursor fields и reason
-   diagnostics.
+3. Компилировать locale-scoped synonym trie в runtime revision.
+4. Добавить longest-match-left-to-right и multi-token phrase semantics.
+5. Опубликовать GraphQL CRUD, application state и reason diagnostics.
+
+Готовность: active claim уникален в store/locale; SKU и fuzzy не получают synonym
+expansion; новая конфигурация влияет на serving только после atomic activation.
+
+### Этап 11. Product boosts
+
+1. Создать boost/phrase/product tables и repositories.
+2. Реализовать tenant-scoped product validation и bounded Scripts.
+3. Компилировать exact original lookup phrase map в runtime revision.
+4. Добавить boost-only candidates, cursor flag и Preview reason diagnostics.
 5. Опубликовать GraphQL CRUD и application state.
 
-Готовность: active claim уникален; SKU/fuzzy не получают synonym expansion;
-boost проходит canonical filters и не переопределяет business sort.
+Готовность: boost не обходит publication/scope/filters/OOS; rules не stack-ятся;
+boost влияет на relevance, но не переопределяет выбранный business sort.
 
-### Этап 5. Index Status и Overview backend
+### Этап 12. Index Status и Overview backend
 
 1. Реализовать status service и GraphQL index status.
 2. Связать status с durable item state и engine health.
-3. Добавить periodic counter reconciliation.
-4. Реализовать Overview composition, не зависящую от analytics readiness.
+3. Разделить engine availability, initial locale readiness, field readiness и
+   backlog/failure status.
+4. Добавить periodic counter reconciliation.
+5. Реализовать Overview composition, не зависящую от analytics readiness.
 
 Готовность: state переживает restart; retries/pending/failed отражаются честно;
-новое событие восстанавливает failed item; stale event не воскрешает product.
+новое событие восстанавливает failed item; stale event не воскрешает product;
+неполный initial locale sync не рекламируется как ready.
 
-### Этап 6. Analytics backend
+### Этап 13. Analytics facts и request identity
 
-1. Записывать idempotent fact после первого успешного storefront execution.
-2. Реализовать daily rollup/recomputation workflow.
-3. Добавить overview metrics, analytics connections и filters.
-4. Реализовать zero-result worklist/review mutations.
-5. Добавить retention cleanup.
+1. Зафиксировать contract request dedupe key, связь первой страницы с cursor pages
+   и dedupe TTL.
+2. Записывать idempotent fact после первого успешного storefront execution.
+3. Исключить Preview, cursor pagination и retry одного request.
+4. Добавить retention cleanup для raw facts и normalized queries.
+5. Добавить metrics для write failures и dedupe conflicts.
 
-Готовность: Preview/pagination не увеличивают count; dedupe работает; review не
-меняет history; rollup воспроизводим из facts.
+Готовность: одинаковый текст в двух новых searches создаёт два facts; retry одного
+request создаёт один fact; Preview/pagination не увеличивают count; retention
+применяется воспроизводимо.
 
-### Этап 7. Hardening и rollout
+### Этап 14. Analytics projections и review workflow
+
+1. Реализовать daily rollup/recomputation workflow.
+2. Добавить overview metrics, analytics connections и filters.
+3. Реализовать zero-result worklist/review mutations.
+4. Реализовать reopen policy для resolved/ignored work items.
+5. Добавить rollup lag/status observability.
+
+Готовность: rollup воспроизводим из facts; review не меняет history; повторный
+расчёт идемпотентен; Overview работает при временном lag projection.
+
+### Этап 15. Hardening и rollout
 
 1. Создать `uk/en/ru` corpus с identifiers, multiword synonyms, OOS/mixed
    variants, missing locale data и large candidate sets.
