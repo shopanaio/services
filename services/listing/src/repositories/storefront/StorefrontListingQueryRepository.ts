@@ -121,33 +121,40 @@ export class StorefrontListingQueryRepository extends BaseRepository {
         request,
         heavyOptionFacetCountsEnabled: this.heavyOptionFacetCountsEnabled,
       });
-      const diagnosticRows = await this.executeMeasured<VariantDiagnosticsSqlRow>(
-        "variantDiagnostics",
-        compileVariantCandidateDiagnosticsSql(sqlRequest),
-        branchMetrics
-      );
+      const [
+        diagnosticRows,
+        pageSqlRows,
+        totalCountRows,
+        facetMetadataRows,
+        virtualFacetRows,
+      ] = await Promise.all([
+        this.executeMeasured<VariantDiagnosticsSqlRow>(
+          "variantDiagnostics",
+          compileVariantCandidateDiagnosticsSql(sqlRequest),
+          branchMetrics
+        ),
+        this.executeMeasured<ParallelPageSqlRow>(
+          "page",
+          compilePageQuerySql(sqlRequest),
+          branchMetrics
+        ),
+        this.executeMeasured<TotalCountSqlRow>(
+          "totalCount",
+          compileTotalCountQuerySql(sqlRequest),
+          branchMetrics
+        ),
+        this.executeMeasured<FacetMetadataSqlRow>(
+          "facetsMetadata",
+          compileFacetsQuerySql(sqlRequest),
+          branchMetrics
+        ),
+        this.executeMeasured<VirtualFacetsSqlRow>(
+          "virtualFacets",
+          compileVirtualFacetsQuerySql(sqlRequest),
+          branchMetrics
+        ),
+      ]);
       variantDiagnostics = diagnosticRows[0] ?? null;
-
-      const pageSqlRows = await this.executeMeasured<ParallelPageSqlRow>(
-        "page",
-        compilePageQuerySql(sqlRequest),
-        branchMetrics
-      );
-      const totalCountRows = await this.executeMeasured<TotalCountSqlRow>(
-        "totalCount",
-        compileTotalCountQuerySql(sqlRequest),
-        branchMetrics
-      );
-      const facetMetadataRows = await this.executeMeasured<FacetMetadataSqlRow>(
-        "facetsMetadata",
-        compileFacetsQuerySql(sqlRequest),
-        branchMetrics
-      );
-      const virtualFacetRows = await this.executeMeasured<VirtualFacetsSqlRow>(
-        "virtualFacets",
-        compileVirtualFacetsQuerySql(sqlRequest),
-        branchMetrics
-      );
       const visibleFacetValues =
         toFacetCountsVisibleFacetValues(facetMetadataRows);
       const facetCountRows =
@@ -220,7 +227,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
             variantDiagnostics?.finalVariantCandidateCardinality ?? null,
           projectedProductCardinality:
             variantDiagnostics?.projectedProductCardinality ?? null,
-          snapshotStrategy: "read-committed-per-statement-sequential",
+          snapshotStrategy: "read-committed-per-statement-parallel",
           selectedCollector:
             pageRows.find((row) => row.collectorKind)?.collectorKind ?? null,
           sqlRoundTrips,
