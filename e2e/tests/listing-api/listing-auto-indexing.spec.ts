@@ -61,6 +61,9 @@ test.describe('Listing API automatic indexing', () => {
     await createSourceProducts(api, unique, facets);
     const createdFacets = await createOptionFacets(api, facets);
     const productDefinitions = productMatrix(unique, facets, 24, 20);
+    addSearchCohortToTitles(productDefinitions, 'Alpine', [0, 1, 2]);
+    addSearchCohortToTitles(productDefinitions, 'Harbor', [4, 5, 6]);
+    addSearchCohortToTitles(productDefinitions, 'Summit', [8, 9, 10, 11]);
 
     const publishedProducts: ApiProduct[] = [];
     for (const definition of productDefinitions.slice(0, 20)) {
@@ -139,6 +142,41 @@ test.describe('Listing API automatic indexing', () => {
         [facets[1].facetSlug]: ['m'],
       },
       facets: [colorRedFilter, sizeMFilter],
+    });
+
+    await expectSearchListingSnapshot(api, {
+      query: 'Alpine',
+      facets: [colorRedFilter],
+      productIds: nextProducts
+        .filter(
+          (_product, index) =>
+            nextDefinitions[index].title.includes('Alpine') &&
+            nextDefinitions[index].options[facets[0].sourceSlug] === 'red',
+        )
+        .map((product) => product.id),
+    });
+    await expectSearchListingSnapshot(api, {
+      query: 'Harbor',
+      facets: [sizeMFilter],
+      productIds: nextProducts
+        .filter(
+          (_product, index) =>
+            nextDefinitions[index].title.includes('Harbor') &&
+            nextDefinitions[index].options[facets[1].sourceSlug] === 'm',
+        )
+        .map((product) => product.id),
+    });
+    await expectSearchListingSnapshot(api, {
+      query: 'Summit',
+      facets: [colorRedFilter, sizeMFilter],
+      productIds: nextProducts
+        .filter(
+          (_product, index) =>
+            nextDefinitions[index].title.includes('Summit') &&
+            nextDefinitions[index].options[facets[0].sourceSlug] === 'red' &&
+            nextDefinitions[index].options[facets[1].sourceSlug] === 'm',
+        )
+        .map((product) => product.id),
     });
   });
 
@@ -714,6 +752,20 @@ function productMatrix(
       stock: 5 + (index % 5),
     };
   });
+}
+
+function addSearchCohortToTitles(
+  products: ProductDefinition[],
+  searchTerm: string,
+  indexes: number[],
+): void {
+  for (const index of indexes) {
+    const product = products[index];
+    if (!product) {
+      throw new Error(`Missing product definition at search cohort index ${index}`);
+    }
+    product.title = `${product.title} ${searchTerm}`;
+  }
 }
 
 async function createSourceProducts(api: Api, unique: string, facets: FacetDefinition[]): Promise<ApiProduct[]> {
@@ -1393,6 +1445,43 @@ async function expectListingErrors(
       },
     )
     .toBe(true);
+}
+
+async function expectSearchListingSnapshot(
+  api: Api,
+  expected: {
+    query: string;
+    facets: ApiListingProductFilter[];
+    productIds: string[];
+  },
+): Promise<void> {
+  const { data } = await api.admin.query('listing-api/Listing', {
+    variables: {
+      first: 50,
+      locale: 'en',
+      currency: 'USD',
+      scope: { kind: 'SEARCH' },
+      query: expected.query,
+      facets: expected.facets,
+      orderBy: { by: 'RELEVANCE' },
+    },
+  });
+  const listing = data.listingQuery.listing;
+  const cursors = listing.edges.map((edge) => edge.cursor);
+
+  expect(listing.totalCount).toBe(expected.productIds.length);
+  expect(listing.edges.map((edge) => edge.node.id).sort()).toEqual(
+    [...expected.productIds].sort(),
+  );
+  expect(cursors).toHaveLength(expected.productIds.length);
+  expect(cursors.every(Boolean)).toBe(true);
+  expect(new Set(cursors).size).toBe(cursors.length);
+  expect(listing.pageInfo).toEqual({
+    hasNextPage: false,
+    hasPreviousPage: false,
+    startCursor: cursors[0] ?? null,
+    endCursor: cursors.at(-1) ?? null,
+  });
 }
 
 async function readListingSnapshot(
