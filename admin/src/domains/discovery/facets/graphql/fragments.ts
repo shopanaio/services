@@ -1,5 +1,5 @@
 import { gql } from "@apollo/client";
-import { FILE_FRAGMENT } from "../../graphql/shared-fragments";
+import { FILE_FRAGMENT } from "@/domains/inventory/graphql/shared-fragments";
 
 export const FACET_SWATCH_FRAGMENT = gql`
   fragment FacetSwatchFields on FacetSwatch {

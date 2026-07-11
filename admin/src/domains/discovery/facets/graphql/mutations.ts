@@ -1,5 +1,5 @@
 import { gql } from "@apollo/client";
-import { USER_ERROR_FRAGMENT } from "../../graphql/shared-fragments";
+import { USER_ERROR_FRAGMENT } from "@/domains/inventory/graphql/shared-fragments";
 import {
   FACET_GRID_FRAGMENT,
   FACET_SWATCH_FRAGMENT,

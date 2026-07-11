@@ -23,9 +23,9 @@ import { OptionDisplayType } from "@/graphql/types";
 import type {
   OptionEditorSwatch,
   OptionEditorValue,
-} from "../../../../products/modals/edit-options-modal/types";
-import { useStyles as useOptionValueStyles } from "../../../../products/modals/edit-options-modal/edit-options-modal.styles";
-import { SortableValue } from "../../../../products/modals/edit-options-modal/components/sortable-value";
+} from "@/domains/inventory/products/modals/edit-options-modal/types";
+import { useStyles as useOptionValueStyles } from "@/domains/inventory/products/modals/edit-options-modal/edit-options-modal.styles";
+import { SortableValue } from "@/domains/inventory/products/modals/edit-options-modal/components/sortable-value";
 
 interface FacetValuesListProps {
   values: OptionEditorValue[];

@@ -1,5 +1,5 @@
 import type { FacetValueKind } from "@/graphql/types";
-import type { OptionEditorSwatch } from "../../../products/modals/edit-options-modal/types";
+import type { OptionEditorSwatch } from "@/domains/inventory/products/modals/edit-options-modal/types";
 
 export interface FacetValueEditorRow {
   id: string;

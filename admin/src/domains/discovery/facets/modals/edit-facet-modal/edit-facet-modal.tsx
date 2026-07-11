@@ -51,8 +51,8 @@ import type {
   FacetValueGridFields,
   FacetGridFields,
 } from "../../graphql/operation-types";
-import { DEFAULT_SWATCH } from "../../../products/modals/edit-options-modal/edit-options-modal.constants";
-import type { OptionEditorSwatch } from "../../../products/modals/edit-options-modal/types";
+import { DEFAULT_SWATCH } from "@/domains/inventory/products/modals/edit-options-modal/edit-options-modal.constants";
+import type { OptionEditorSwatch } from "@/domains/inventory/products/modals/edit-options-modal/types";
 import {
   editFacetSchema,
   type EditFacetFormInput,

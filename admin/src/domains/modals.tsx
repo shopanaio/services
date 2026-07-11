@@ -393,7 +393,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'facet-value-group',
       component: dynamic(() =>
-        import('@/domains/inventory/facets/modals/facet-value-group-modal').then(
+        import('@/domains/discovery/facets/modals/facet-value-group-modal').then(
           (m) => m.FacetValueGroupModal
         )
       ),
@@ -401,7 +401,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'facet-value-candidates',
       component: dynamic(() =>
-        import('@/domains/inventory/facets/modals/value-candidates-modal').then(
+        import('@/domains/discovery/facets/modals/value-candidates-modal').then(
           (m) => m.ValueCandidatesModal
         )
       ),
@@ -412,7 +412,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'facet-create',
       component: dynamic(() =>
-        import('@/domains/inventory/facets/modals/create-facet-modal').then(
+        import('@/domains/discovery/facets/modals/create-facet-modal').then(
           (m) => m.CreateFacetModal
         )
       ),
@@ -420,7 +420,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'facet-edit',
       component: dynamic(() =>
-        import('@/domains/inventory/facets/modals/edit-facet-modal').then(
+        import('@/domains/discovery/facets/modals/edit-facet-modal').then(
           (m) => m.EditFacetModal
         )
       ),
@@ -428,7 +428,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'facet-source-picker',
       component: dynamic(() =>
-        import('@/domains/inventory/facets/modals/facet-source-picker-modal').then(
+        import('@/domains/discovery/facets/modals/facet-source-picker-modal').then(
           (m) => m.FacetSourcePickerModal
         )
       ),
@@ -436,7 +436,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'facet-value-link-sources',
       component: dynamic(() =>
-        import('@/domains/inventory/facets/modals/link-source-values-modal').then(
+        import('@/domains/discovery/facets/modals/link-source-values-modal').then(
           (m) => m.LinkSourceValuesModal
         )
       ),

@@ -3,7 +3,7 @@ import dynamic from "next/dynamic";
 
 registerModule({
   key: "facets",
-  domain: "store",
+  domain: "discovery",
   sidebar: {
     label: "Facets",
     icon: null,
@@ -13,7 +13,7 @@ registerModule({
     {
       key: "facets-list",
       path: "/:orgName/:storeName/facets",
-      component: dynamic(() => import("@/domains/inventory/facets/page/page")),
+      component: dynamic(() => import("@/domains/discovery/facets/page/page")),
     },
   ],
 });

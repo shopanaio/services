@@ -17,9 +17,9 @@ import { LuEllipsis } from "react-icons/lu";
 import { FacetValueKind } from "@/graphql/types";
 import { useAgGridTheme } from "@/hooks";
 import { Dash } from "@/shared/components/editor-grid";
-import { DEFAULT_SWATCH } from "../../../../products/modals/edit-options-modal/edit-options-modal.constants";
-import { SwatchPicker } from "../../../../products/modals/edit-options-modal/components/swatch-picker";
-import type { OptionEditorSwatch } from "../../../../products/modals/edit-options-modal/types";
+import { DEFAULT_SWATCH } from "@/domains/inventory/products/modals/edit-options-modal/edit-options-modal.constants";
+import { SwatchPicker } from "@/domains/inventory/products/modals/edit-options-modal/components/swatch-picker";
+import type { OptionEditorSwatch } from "@/domains/inventory/products/modals/edit-options-modal/types";
 import type { FacetValueEditorRow } from "../types";
 
 interface FacetValuesGridProps {
