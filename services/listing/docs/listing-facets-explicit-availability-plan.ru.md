@@ -147,14 +147,10 @@ Page, totalCount, discrete counts, virtual facets и price sort должны в�
 - менять публичные `facet.slug` / `facet_value.handle`;
 - отказываться от roaring bitmap, option signatures или projection blocks;
 - добавлять Redis/cache для listing query;
-- поддерживать v1 и v2 physical index одновременно;
-- вводить product-level фильтр «нет ни одного available variant»;
-- сохранять code-only rollback после начала v2 writes: возврат к v1 требует
-  совместимых v1 schema/state и rebuild v1 index.
+- вводить product-level фильтр «нет ни одного available variant».
 
-Stage/prod данных и пользователей нет, поэтому выбран offline destructive
-cutover. Несмотря на это, migration, reindex и readiness должны быть
-реализованы как повторяемые операции, а не как ручной набор SQL-команд.
+Stage/prod данных и пользователей нет. План предполагает изменение текущего
+кода и целевой DB schema без переноса или заполнения исторических index rows.
 
 ## Термины
 
@@ -218,7 +214,7 @@ Availability означает upstream sellable-state, включая backorder:
 variant.in_stock = variant.availability.availableForSale
 ```
 
-Имя physical column `in_stock` сохраняется для совместимости, но его contract —
+Physical column продолжает называться `in_stock`, но его contract —
 `availableForSale`, а не `totalQuantity > 0`.
 
 `totalQuantity` не участвует в boolean availability. Для существующего
@@ -531,75 +527,6 @@ rows, запрещен: он теряет products без price.
 добавляются bucket-specific product price aggregates. Это optimization после
 измерений, а не альтернативная семантика.
 
-### Index contract и readiness state
-
-Добавить store-level state, например:
-
-```text
-listing.listing_index_store_state
-  store_id
-  index_contract_version
-  reindex_epoch
-  status = BUILDING | READY | FAILED
-  source_barrier
-  catchup_barrier
-  catchup_applied_at
-  expected_count
-  processed_count
-  applied_count
-  noop_count
-  missing_count
-  failed_count
-  last_cursor
-  updated_at
-```
-
-Read path обслуживает store только при:
-
-```text
-status = READY
-index_contract_version = 2
-```
-
-Reindex может перейти в READY только при:
-
-```text
-processed_count = expected_count
-applied_count + noop_count + missing_count = processed_count
-failed_count = 0
-missing_count = 0
-Events deliveries through opaque catchup_barrier = drained
-Listing apply-completion through catchup_barrier = confirmed
-structural/semantic audit = passed
-```
-
-Для нового store zero-row READY bootstrap выполняется только надежным,
-idempotent store-provisioning path: durable `storeCreated` delivery либо
-явный вызов Listing из provisioning workflow. Текущий best-effort/non-critical
-emit недостаточен для этого инварианта. Если product event обгоняет bootstrap,
-writer возвращает retryable `LISTING_INDEX_STATE_MISSING`; он не создает READY
-самостоятельно. Missing state существующего store также никогда не считается
-empty READY и устраняется только full reindex.
-
-Bootstrap выполняет только conditional insert `ON CONFLICT DO NOTHING`,
-проверяет, что store все еще существует, и принимает только v2 provisioning
-event/action, созданный после contract activation. Duplicate или поздний
-`storeCreated` никогда не перезаписывает существующий BUILDING/FAILED/READY
-state и его counters.
-
-`reindex_epoch` обязателен и меняется при каждом reset/reindex. New-store
-bootstrap и direct seed создают собственный epoch; обычные incremental writes
-его не меняют.
-
-`listing_index_item_state` получает `index_contract_version` и
-`sequence_origin = EVENT | REINDEX_BASELINE`. Для v2 его `event_sequence`
-допускает `0` только как internal reindex fence, когда у subject еще не было
-domain event; обычные broker events по-прежнему обязаны иметь positive
-sequence.
-
-`ListingSyncWriteModel.version = 2` является runtime contract, а не только
-частью hash.
-
 ## Изменения write path
 
 ### `ListingBuildSyncWriteModelScript`
@@ -614,8 +541,7 @@ sequence.
 7. Строить option signature inputs из всех indexable variants.
 8. Строить runtime price rows из всех priced indexable variants.
 9. Добавить `inStock` в каждую runtime price row.
-10. Поднять write model/hash version до `2`.
-11. Сохранить deterministic ordering всех arrays/maps.
+10. Сохранить deterministic ordering всех arrays/maps.
 
 Для sellable kind без variants отдельный adapter должен явно создать variant
 witness либо документировать отсутствие availability match. Скрытый fallback к
@@ -627,27 +553,12 @@ product snapshot запрещен.
 
 Обязательные свойства:
 
-- runtime guard отклоняет write model version != 2;
-- v1 persisted DBOS step не может записать v2 index;
-- normal event с sequence меньше current state -> `ignored_stale`;
-- normal event с sequence, равным sequence state с origin
-  `REINDEX_BASELINE`, -> `ignored_stale` независимо от event idempotency
-  key/hash: snapshot был прочитан после fence;
-- normal event с sequence больше baseline применяется и меняет origin на
-  `EVENT`;
-- для origin `EVENT`: same sequence + тот же event/key/hash -> noop;
-- для origin `EVENT`: same sequence + другой event/key/hash -> revision
-  conflict;
-- contract upgrade разрешен только explicit reindex action;
 - single и batch создают одинаковые rows во всех derived tables;
 - replace product/variants/postings/signatures и item-state update выполняются
   одной item transaction;
-- store readiness меняет только reindex/store-lifecycle orchestrator отдельной
-  store-level transaction; item writer никогда самостоятельно не ставит
-  `READY`.
-
-Workflow/step names и workflow-id namespace, содержащие persisted write model,
-версионируются для v2. Перед cutover все v1 workflows должны быть drained.
+- существующая eventSequence/idempotency классификация не меняет семантику:
+  stale event игнорируется, повтор того же event дает noop, conflict остается
+  ошибкой.
 
 ### `ListingOptionSignatureRepository`
 
@@ -677,11 +588,14 @@ unavailable -> available
 backorder on/off при quantity <= 0
 active -> inactive/archived
 inactive/archived -> active
-price add/update/delete в обоих buckets
-option signature add/update/delete в обоих buckets
+price add/update/delete для available/unavailable variants
+option signature add/update/delete для active variants
 variant delete
 product unpublish/delete
 ```
+
+Availability flip при неизменной signature обновляет bucket counters/bitmaps и
+price posting stock state в той же transaction.
 
 ## Изменения read path
 
@@ -773,15 +687,10 @@ variant_doc_id ASC NULLS LAST
 
 Cursor и seek повторяют весь tuple. Нельзя использовать только
 `priceMinor/productId/variantDocId` и нельзя подменять product sort key на
-`priceRow.in_stock`.
+availability matching variant.
 
-Cursor payload поднимается до v2; поле рекомендуется назвать
-`productAvailable`, а filter hash различает `ALL/AVAILABLE/UNAVAILABLE`.
-Каждый cursor также содержит `indexContractVersion` и `reindexEpoch` из
-store readiness row. Они проверяются внутри того же repeatable-read snapshot
-до seek. Cursor другого epoch отклоняется как stale: reset переаллоцирует
-`product_doc_id/variant_doc_id`, поэтому старый tie key нельзя безопасно
-переиспользовать даже при неизменном filter hash.
+Cursor повторяет текущий opaque contract, включает product availability key, а
+filter hash различает `ALL/AVAILABLE/UNAVAILABLE`.
 
 Product aggregate price row разрешено использовать как measured fast path
 только если parity test доказывает эквивалентность outer collector, включая
@@ -927,8 +836,8 @@ Write transaction atomicity недостаточна: пять независи�
 `READ COMMITTED` могут увидеть разные commits.
 
 `getStorefrontListing()` открывает `REPEATABLE READ READ ONLY` transaction до
-readiness check и `resolveFilterPlan()`. Store state, facet/value resolution,
-page, total, metadata, counts и virtual facets должны видеть один snapshot.
+`resolveFilterPlan()`. Facet/value resolution, page, total, metadata, counts и
+virtual facets должны видеть один snapshot.
 
 Pure input normalization, не читающая DB, может выполняться до transaction.
 
@@ -966,252 +875,21 @@ rg "in_stock = true|inStock \?\? true|force_zero|inStockVariantBitmap|product.*i
 
 Любой product stock predicate в membership/count/metadata является ошибкой.
 
-## Migration tooling
+## Изменения DB schema
 
-### Текущее ограничение
+Обновить текущие Drizzle/schema definitions для чистой базы:
 
-Listing использует raw `node-pg-migrate`, но сейчас не имеет `db:generate`
-script. Поэтому утверждение «сгенерировать listing migration текущим
-`shopana db generate`» неверно.
+- добавить available/unavailable counters и bitmaps в option signature index;
+- добавить `listing_posting_variant_price.in_stock` и необходимые indexes;
+- добавить DB checks для bucket counters/bitmaps.
 
-До schema change нужно выбрать и реализовать поддерживаемый путь:
-
-1. Добавить listing `db:generate` support в Shopana CLI/MCP; либо
-2. Формализовать создание нового node-pg-migrate SQL-файла как штатную Shopana
-   команду.
-
-Ручное редактирование release `.changeset` по-прежнему запрещено. SQL migration
-и package changeset — разные artifacts.
-
-### Migration contents
-
-Новая migration должна:
-
-1. Добавить signature membership counters.
-2. Добавить available/unavailable signature bitmaps.
-3. Добавить `listing_posting_variant_price.in_stock`.
-4. Добавить `listing_index_item_state.index_contract_version` и
-   `sequence_origin`.
-5. Изменить item-state check на `event_sequence >= 0`, зарезервировав `0`
-   только для reindex baseline.
-6. Создать `listing_index_store_state`.
-7. Добавить checks/indexes.
-8. Не создавать READY state для существующих stores: migration может
-   backfill-ить только BUILDING, а reindex обязан upsert-ить BUILDING до reset.
-9. Быть применимой к clean DB и заполненной v1 dev DB.
-
-Compatibility initialization для старых v1 rows допустима:
-
-```text
-item sequence_origin = EVENT
-available_variant_count = variant_count
-unavailable_variant_count = 0
-available_product_bitmap = product_bitmap
-unavailable_product_bitmap = empty bitmap
-variant price in_stock = true
-```
-
-Это только позволяет применить `NOT NULL`; оно не восстанавливает
-отсутствующие unavailable memberships. Readiness остается `BUILDING` до full
-reset/reindex. Transitional defaults разрешены только внутри migration:
-после backfill нужно установить checks/`NOT NULL` и удалить defaults, чтобы v1
-writer не мог молча создавать семантически неверные v2 rows.
-
-### Events ordering migration
-
-До full reindex Events migration создает durable subject counter и переводит
-`persistPendingEvent` с `MAX(domain_events)` на atomic counter increment.
-Backfill использует maximum retained sequence, затем offline reconciliation
-поднимает counter до maximum известных consumer fences, включая
-`listing_index_item_state.event_sequence`. Cutover блокируется, если любой
-consumer fence выше Events counter после reconciliation.
-
-Порядок обязателен: установить и проверить durable counters, переключить Events
-writer, затем запускать Listing reset/reindex. Cleanup event history до этого
-audit запрещен. При заявленном отсутствии stage/prod data reconciliation
-должен быть пустым, но clean и populated-dev smoke остаются обязательными.
-
-### Build/migrate order
-
-Migrator читает `services/listing/dist/migrations`, поэтому порядок:
-
-1. Создать source migration и обновить Drizzle models.
-2. Выполнить listing build через Shopana tooling, чтобы migration попала в
-   `dist/migrations`.
-3. Проверить source/dist migration identity.
-4. Выполнить migrate на clean temporary DB.
-5. Выполнить migrate на temporary DB с v1 rows.
-6. Только затем переходить к runtime/e2e verification.
-
-Порядок «migrate, затем build» запрещен.
-
-## Full reindex и cutover
-
-### Обязательный prerequisite
-
-В repository сейчас нет штатного full listing reindex workflow/CLI. Его нужно
-реализовать до переключения read path, например:
-
-```text
-shopana listing reindex --store <storeId> --contract-version 2
-```
-
-Команда должна быть доступна через Shopana CLI MCP.
-
-### `ListingFullReindexWorkflow`
-
-Workflow обязан:
-
-1. Создать уникальный `reindexEpoch` и перевести store в `BUILDING`.
-2. Остановить новые listing workflow starts и получить opaque durable
-   `sourceBarrier` в Events. Это barrier доставки, а не числовой
-   `eventSequence`: sequence монотонен только внутри
-   `(organizationId, subjectType, subjectId)` и несравним между products.
-3. Перечислить IDs всех sellable items store стабильной keyset-пагинацией,
-   включая drafts.
-4. Для каждого batch сначала получить из Events текущий per-subject
-   `eventSequenceFence`, затем прочитать Catalog snapshots для этих IDs.
-   Такой порядок гарантирует, что snapshot не старее fence; более новые events
-   будут безопасно переиграны после reindex.
-5. Выполнять reset только при остановленных new workflow starts.
-6. Писать только write model version 2 и сохранять `eventSequenceFence` в
-   `listing_index_item_state.event_sequence` с origin `REINDEX_BASELINE`.
-7. Обрабатывать items resumable batches.
-8. Хранить source/catch-up barriers и
-   expected/processed/applied/noop/missing/failed/last cursor.
-9. Поддерживать interruption/resume и empty store.
-10. Reconcile исчезнувший между enumeration и hydration item как explicit
-    delete/noop; `missing` остается transient failure и не допускается в
-    READY.
-11. Запускать structural/semantic audit.
-12. Оставляя store в `BUILDING`, возобновить v2 consumers, получить новый
-    opaque `catchupBarrier` и дождаться подтверждения Events, что все
-    listing-affecting deliveries до barrier переданы handlers.
-13. Отдельно дождаться Listing apply-completion barrier: каждый target subject
-    должен иметь terminal workflow result и item-state sequence не меньше
-    target sequence. Сам факт успешного enqueue/start workflow не считается
-    применением.
-14. Повторить audit после apply-completion.
-15. Переводить state в `READY` только при полном counter invariant,
-    `missing=0`, drained delivery/apply barriers и успешном audit.
-
-Explicit reindex action использует собственный idempotency namespace и не
-маскируется обычным product-event classifier. Обычный bump hash не является
-reindex mechanism.
-
-После reset `listing_index_item_state` reindex обязан восстановить реальный
-per-subject ordering fence каждого product. Произвольный synthetic sequence и
-единый числовой store watermark запрещены: они могут сделать следующий
-настоящий event stale или conflict. Для этого нужны batch broker contracts:
-
-```text
-Events.captureListingDeliveryBarrier(store) -> opaque barrier
-Events.getSubjectSequenceFences(subjectRefs[]) -> ref + eventSequence
-Events.awaitListingDeliveryBarrier(store, barrier) -> deliveries drained
-Events.getBarrierSubjectTargets(store, barrier) -> ref + max eventSequence
-Catalog.listListingItemIds(store, after, limit) -> stable keyset page
-Catalog.getListingSnapshots(store, ids[]) -> found + missing
-Listing.awaitAppliedBarrier(store, barrier, targets) -> workflows terminal + item state reached
-```
-
-Events должен хранить durable current sequence отдельно от retention-bound
-`domain_events`, например в `event_subject_sequence`. Вычисление следующего
-sequence через `MAX(domain_events.event_sequence)` не является допустимым
-source of truth: cleanup истории может сбросить sequence и сделать все новые
-events stale для Listing. `persistPendingEvent` атомарно increment-ит durable
-subject counter, а fence action читает его; отсутствие row дает fence `0`.
-
-`getSubjectSequenceFences` выполняется до `getListingSnapshots` для каждого
-batch. Events с sequence `<= fence` после reindex классифицируются как stale;
-events с sequence `> fence` применяются обычным classifier. Тесты обязаны
-проверять оба направления. Если Events/Catalog пока не предоставляют этот
-protocol, full reindex не готов к cutover; очистка item state без fence
-запрещена.
-
-Event handler сейчас подтверждает delivery после запуска DBOS workflow,
-поэтому Events barrier сам по себе недостаточен. Listing apply barrier хранит
-durable terminal acknowledgements (`applied/noop/ignored_stale/deleted`) либо
-эквивалентно доказывает для каждого target, что workflow завершен, а
-`listing_index_item_state.event_sequence >= targetSequence`. Failed/in-flight
-workflow запрещает READY даже при полностью drained Events deliveries.
-
-Protocol предполагает, что listing-affecting Catalog mutation становится
-видимой в Catalog до публикации соответствующего domain event, а delivery
-barrier закрывает все события, опубликованные до него. Если этот ordering не
-гарантирован инфраструктурой, reindex разрешен только под freeze таких
-mutations. Выбранный ниже offline cutover использует freeze независимо от
-наличия production traffic.
-
-### Reset scope
-
-Transactional reset очищает derived listing data:
-
-```text
-product_title_bm25_search_index
-listing_posting_variant_projection_block
-listing_posting_variant_price
-listing_posting_product_sort
-listing_posting_bitmap
-listing_option_signature_product_membership
-listing_option_signature_value
-listing_option_signature
-variant_listing_price_index
-listing_index_item_state
-variant_listing_index
-product_listing_price_index
-product_listing_index
-listing_doc_id_allocator
-```
-
-Facet configuration (`listing.facet*`, translations, sources, values,
-swatches) не очищается.
-
-### Offline cutover
-
-1. Зафиксировать v1 correctness/performance baseline.
-2. Build v2 artifacts и проверить migration assets в `dist`.
-3. Заблокировать listing reads, listing-affecting Catalog/facet mutations и
-   Project store create/delete.
-4. Применить Events ordering migration, reconcile durable subject counters и
-   переключить Events writer с `MAX(domain_events)` на counter.
-5. Зафиксировать полный список Project stores, остановить новые listing
-   workflow starts и зафиксировать opaque `sourceBarrier`.
-6. Drain всех in-flight v1 workflows; новые event deliveries остаются в
-   backlog до запуска v2 consumers.
-7. Применить Listing migration.
-8. Запустить v2 service со store state `BUILDING`.
-9. Выполнить transactional reset.
-10. Выполнить full reindex каждого store из frozen списка, включая empty, с
-   per-item sequence fences.
-11. Проверить initial counters, bitmaps и posting parity.
-12. Оставляя reads закрытыми и state `BUILDING`, возобновить v2 consumers.
-13. Зафиксировать opaque `catchupBarrier`, дождаться Events delivery drain и
-    затем Listing apply-completion всех target workflows.
-14. Повторить counters, invariant audit и page/count smoke matrix.
-15. Перевести store в `READY/version=2`.
-16. Включить reads, затем снять freeze Catalog/facet и Project store lifecycle
-    mutations.
-
-Migration считается forward-only. Rollback после начала v2 writes не является
-возвратом binary: старый writer не заполняет новые NOT NULL columns/checks.
-Возврат к v1 требует восстановления совместимых v1 schema + DB snapshot либо
-явной reverse migration, остановки, очистки derived index и полного v1 rebuild.
-Запуск v1 writer поверх v2 schema запрещен.
+Store-level state и schema-version columns не добавляются.
+Перенос данных и заполнение существующих rows не выполняются: Listing index не
+содержит persisted product/variant data.
 
 ## План реализации
 
-### Этап 0. Подготовить tooling
-
-1. Добавить поддерживаемый listing migration workflow в Shopana CLI/MCP.
-2. Реализовать Events delivery barrier/per-subject fence, Listing
-   apply-completion barrier и Catalog keyset snapshot batch contracts.
-3. Реализовать `ListingFullReindexWorkflow`, CLI command и readiness state.
-4. Добавить versioned, conditional store-created bootstrap для empty
-   `READY/version=2` state.
-5. Добавить build -> migrate smoke для clean и v1 DB.
-6. Версионировать v2 DBOS workflow/step IDs.
-
-### Этап 1. Зафиксировать contract fixtures
+### Этап 0. Зафиксировать contract fixtures
 
 Минимальные products:
 
@@ -1233,7 +911,7 @@ P13: available competitor с price 200
 
 Зафиксировать `ALL/AVAILABLE/UNAVAILABLE`, overlap mixed product и monotonicity.
 
-### Этап 2. Ввести canonical availability
+### Этап 1. Ввести canonical availability
 
 1. Добавить `ListingAvailabilityMode`.
 2. Normalize mode один раз после facet resolution.
@@ -1242,25 +920,22 @@ P13: available competitor с price 200
 5. Вычислять product aggregate и sort bool из canonical variants.
 6. Передать mode в filter hash и SQL requests.
 
-### Этап 3. Расширить physical index
+### Этап 2. Расширить physical index
 
-1. Создать migration поддерживаемым workflow.
-2. Обновить `listingIndex.ts`.
-3. Добавить signature counters/bitmaps.
-4. Добавить stock в variant price posting.
-5. Добавить store/item contract version state.
-6. Обновить repository input/output types.
+1. Обновить `listingIndex.ts` и текущие schema definitions.
+2. Добавить signature counters/bitmaps для обоих availability buckets.
+3. Добавить stock state в variant price posting.
+4. Добавить checks/indexes.
+5. Обновить repository input/output types.
 
-### Этап 4. Переписать write paths
+### Этап 3. Переписать write paths
 
-1. Write model version 2 + runtime guard.
-2. Signatures всех active variants с bucket counters.
-3. Prices всех priced active variants со stock state.
-4. Общий single/batch classifier и normalized payload builder.
-5. Проверить replace/delete/status/stock transitions.
-6. Добиться row-level single/batch parity.
+1. Использовать общий normalized payload builder для single/batch.
+2. Строить signatures и prices всех active variants с bucket stock state.
+3. Проверить replace/delete/status/stock transitions.
+4. Добиться row-level single/batch parity.
 
-### Этап 5. Переписать page, total и sort
+### Этап 4. Переписать page, total и sort
 
 1. Explicit AVAILABLE/UNAVAILABLE всегда создают variant witness.
 2. Удалить implicit/product stock membership.
@@ -1269,7 +944,7 @@ P13: available competitor с price 200
 5. Добавить product availability в matched-price order/cursor/seek.
 6. Проверить total/page parity и monotonicity.
 
-### Этап 6. Переписать metadata и discrete counts
+### Этап 5. Переписать metadata и discrete counts
 
 1. Stock-neutral metadata candidate discovery.
 2. Union resolved selected values.
@@ -1278,27 +953,24 @@ P13: available competitor с price 200
 5. Все option strategies через stock-aware signature helper.
 6. Candidate/heavy parity.
 
-### Этап 7. Переписать virtual facets
+### Этап 6. Переписать virtual facets
 
 1. PRICE range/count из matching variant prices.
 2. `priceEligibleCount` как distinct products.
 3. AVAILABLE возвращает true и false values/counts.
 4. Mapper корректно отражает selected mode.
 
-### Этап 8. Обеспечить snapshot consistency
+### Этап 7. Обеспечить snapshot consistency
 
 1. Выполнять logical branches в одном repeatable-read snapshot.
 2. Удалить независимый pool `Promise.all`.
 3. Сравнить transaction vs single-statement implementation по latency.
 
-### Этап 9. Reindex и docs
+### Этап 8. Обновить docs и удалить legacy semantics
 
-1. Выполнить offline cutover на disposable environment.
-2. Проверить interruption/resume, empty/new store и counter invariant.
-3. Проверить stale-before-fence, newer-after-fence и catch-up barrier.
-4. Обновить `knowledge/vault/listing/facets-architecture.ru.md`.
-5. Обновить price/index contract docs.
-6. Удалить комментарии/tests с implicit in-stock semantics.
+1. Обновить `knowledge/vault/listing/facets-architecture.ru.md`.
+2. Обновить price/index contract docs.
+3. Удалить комментарии/tests с implicit in-stock semantics.
 
 ## Основные файлы
 
@@ -1324,40 +996,17 @@ P13: available competitor с price 200
 - `packages/shared-kernel/src/TransactionManager.ts` либо listing-local
   repeatable-read transaction wrapper
 
-### Index/write/reindex
+### Index/write
 
-- `packages/broker-types/src/actions/catalog.ts`
-- `packages/broker-types/src/actions/listing.ts`
-- `packages/events/src/types.ts`
-- `services/events/src/actions/index.ts` и
-  `services/events/src/repositories/Repository.ts` для delivery barriers и
-  batched per-subject sequence fences
-- `services/events/src/repositories/models/` и `services/events/migrations/`
-  для durable subject sequence state, независимого от event retention
-- `services/catalog/src/actions/index.ts` для stable item-ID pages и batched
-  listing snapshots
-- `services/listing/src/handlers/ListingProductEventHandlers.ts`
-- `services/listing/src/handlers/ListingProductBatchEventHandlers.ts`
-- new `services/listing/src/handlers/ListingStoreEventHandlers.ts`
-- new Listing apply-barrier action/repository for durable terminal workflow
-  acknowledgements
-- `services/project/src/sagas/StoreCreateSaga.ts` для guaranteed store
-  provisioning delivery
 - `services/listing/src/repositories/models/listingIndex.ts`
 - `services/listing/src/repositories/listing/listingRepositoryTypes.ts`
 - `services/listing/src/repositories/listing/ListingOptionSignatureRepository.ts`
 - `services/listing/src/repositories/listing/ListingPostingVariantPriceRepository.ts`
-- `services/listing/src/repositories/listing/ListingIndexItemStateRepository.ts`
-- new `ListingIndexStoreStateRepository`
 - `services/listing/src/scripts/listingIndexActionTypes.ts`
 - `services/listing/src/scripts/ListingBuildSyncWriteModelScript.ts`
 - `services/listing/src/scripts/ListingWriteIndexActionScript.ts`
-- `services/listing/src/workflows/ListingBatchProductIndexWorkflow/stepFetchCatalogListingSnapshotsBatch.ts`
 - `services/listing/src/workflows/ListingBatchProductIndexWorkflow/stepWriteListingBatchSyncIndexAction.ts`
-- new `ListingFullReindexWorkflow`
 - `services/listing/migrations/domains/0100_listing_index/`
-- `packages/cli/src/`
-- `packages/shopana-cli-mcp/src/`
 
 ### Tests/performance
 
@@ -1389,25 +1038,12 @@ Seeder должен:
 
 - писать product/variant facet postings независимо от availability;
 - поддерживать несколько variants одного product;
-- писать `listing_posting_variant_price.in_stock`;
+- писать canonical availability в `variant_listing_index.in_stock`;
+- писать `listing_posting_variant_price.in_stock` для всех priced active
+  variants;
 - считать total/available/unavailable signature counters;
-- строить all/available/unavailable bitmaps;
-- не создавать runtime rows для inactive/archived variants;
-- в той же transaction завершать direct seed записью
-  `listing_index_store_state = READY/version=2` с новым `reindexEpoch`.
-
-Perf seeder выполняет тот же readiness transition после полной загрузки и
-`ANALYZE` preparation. Auto-indexing specs не выставляют READY вручную: они
-проверяют обычный store bootstrap/event path.
-
-Для store, созданного уже после v2 cutover, store lifecycle handler создает
-empty `READY/version=2` state с нулевыми counters через guaranteed provisioning
-delivery. Тест с product event, пришедшим раньше store bootstrap, ожидает
-retry, затем успешное применение без потери item. Existing store без v2 state
-не инициализируется лениво в READY — он обязан пройти full reindex.
-Duplicate/late `storeCreated` проверяется отдельно: conditional insert не
-меняет уже существующий READY/BUILDING/FAILED state. Event без v2 provisioning
-version и event для уже удаленного store не создают state.
+- строить all/available/unavailable signature bitmaps;
+- не создавать runtime rows для inactive/archived variants.
 
 Auto-indexing tests проверяют реальный Catalog -> event -> writer path; direct
 seed используется только для детерминированной read-path matrix. Listing broker
@@ -1440,8 +1076,6 @@ Prices и повторяющиеся signatures присутствуют в об
    предыдущего result; расширение OR-group проверяется отдельно.
 7. `totalCount` равен полной пагинации для каждого sort.
 8. Cursor нельзя переносить между modes.
-9. Cursor, выпущенный до нового reindex epoch, отклоняется после READY нового
-   epoch.
 
 ### Product facets
 
@@ -1510,33 +1144,6 @@ variant/product delete
 product publish/unpublish
 ```
 
-### Migration/reindex
-
-1. Migration проходит на clean DB.
-2. Migration проходит на v1-populated DB.
-3. v1 write model отклоняется v2 writer.
-4. Full reindex работает для empty/populated store.
-5. Reindex возобновляется после interruption.
-6. Readiness не становится READY при failed items.
-7. Readiness не становится READY при `missing > 0` или нарушенном counter
-   invariant.
-8. Event с sequence до per-item fence игнорируется как stale.
-9. Event с sequence ровно fence игнорируется как stale для
-   `REINDEX_BASELINE` в single и batch paths, даже при другом key/hash.
-10. Event с sequence после per-item fence применяется и меняет origin на
-    `EVENT`.
-11. Subject sequence не сбрасывается после cleanup старых `domain_events`;
-    fence `0` для нового subject принимает первый event с sequence `1`.
-12. Event delivery acknowledged, но искусственно задержанный index workflow не
-    разрешает READY до terminal apply acknowledgement.
-13. Event backlog до opaque catch-up barrier применяется без потерь до READY.
-14. Повторный epoch не создает duplicates.
-15. Новый store получает empty READY v2 state; existing store без state не
-    получает его лениво.
-16. Duplicate/late store-created bootstrap не меняет существующий state;
-    product-event-before-bootstrap успешно retry-ится.
-17. Cursor предыдущего epoch отклоняется после завершения следующего reindex.
-
 ### Snapshot consistency
 
 Concurrent stock transition между logical branch starts не может дать response,
@@ -1544,15 +1151,8 @@ Concurrent stock transition между logical branch starts не может д�
 
 ## Performance verification
 
-Перед изменениями сохранить warm v1 baseline. Для 10k dataset измерить:
-
-```text
-ALL
-AVAILABLE
-UNAVAILABLE
-```
-
-Сценарии:
+Перед изменениями сохранить warm baseline текущей реализации. Для 10k dataset
+измерить `ALL`, `AVAILABLE` и `UNAVAILABLE` в сценариях:
 
 - no filters;
 - product facets;
@@ -1567,71 +1167,44 @@ UNAVAILABLE
 
 - отсутствие per-value N+1;
 - отсутствие unbounded scan без store/currency bounds;
-- правильный signature bitmap column;
+- правильный availability bitmap/price index;
 - candidate/heavy parity;
 - отсутствие temp spill;
 - размер signature/price indexes;
 - влияние repeatable-read orchestration.
 
-Начальные budgets, которые фиксируются до implementation:
+Начальные budgets:
 
-- AVAILABLE median после warmup не хуже v1 equivalent более чем на 25%;
+- AVAILABLE median после warmup не хуже baseline более чем на 25%;
 - ALL и UNAVAILABLE не медленнее AVAILABLE более чем в 1.5 раза на одном
   representative scenario;
-- любое изменение budget требует сохраненного EXPLAIN и явного решения, а не
-  формулировки «приемлемо на глаз».
+- любое изменение budget требует сохраненного EXPLAIN и явного решения.
 
-### Write/reindex profile
+### Write profile
 
-Расширение одной signature до трех bitmaps нельзя оценивать только read
-benchmarks. На том же 10k dataset добавить:
+На том же dataset измерить:
 
-- single availability flip для product в common signature с высокой
-  cardinality;
-- batch из availability flips;
-- 8 parallel products, разделяющих одну signature/advisory lock;
-- full v2 reindex empty/populated store;
-- price add/delete при полном наборе новых indexes.
+- single и batch availability flips;
+- 8 parallel products с общей signature;
+- price add/delete в обоих availability buckets;
+- bulk load 10k products через обычный single/batch writer.
 
-Собирать p50/p95 write latency, products/sec, advisory-lock wait, retries и
-deadlocks, WAL bytes, rows touched, DB/index size и время bitmap refresh.
-Начальные budgets относительно сохраненного v1 write/reindex baseline:
-
-- single flip p95 не хуже более чем в 2 раза;
-- parallel shared-signature throughput и full-reindex throughput не ниже 60%;
-- deadlocks/lock timeouts отсутствуют;
-- WAL на 1000 flips не выше 3x, общий Listing index size не выше 2.5x.
-
-Если полный `rb_build_agg` трех bitmaps на каждое изменение common signature
-не проходит budget, repository должен перейти на корректный delta refresh под
-тем же lock: обновлять bucket bitmap только при переходе per-product counter
-`0 <-> >0`. Выбор full rebuild или delta подтверждается profile и parity
-tests; ослабление availability semantics не является optimization.
+Availability-only transition обновляет signature bucket counters/bitmaps и
+price posting stock state. Собирать p50/p95 latency, products/sec,
+advisory-lock wait, retries/deadlocks, WAL, время bitmap refresh и размер
+indexes. Budgets фиксируются относительно baseline до изменения.
 
 ## Observability
 
 Каждый listing request логирует:
 
 ```text
-indexContractVersion
 availabilityMode
 collectorKind
 snapshotStrategy
 branch durations
 candidate/returned facet values
 priceEligibleCount
-```
-
-Reindex логирует:
-
-```text
-storeId
-reindexEpoch
-expected/processed/applied/noop/missing/failed
-last cursor
-sourceBarrier/catchupBarrier
-deliveryDrained/applyCompleted
-readiness transition
 ```
 
 Diagnostics audit проверяет:
@@ -1659,8 +1232,6 @@ sort.bool_value = product.in_stock
 
 ### Backorder regression
 
-Quantity-based boolean исключит sellable backorder variant.
-
 Меры:
 
 - availability только из `availableForSale`;
@@ -1676,66 +1247,49 @@ Quantity-based boolean исключит sellable backorder variant.
 - mixed option/price fixtures;
 - запрет product stock membership predicates.
 
-### Index growth
+### Index growth и write contention
 
 Меры:
 
-- stock bitmaps в одной signature row;
-- price stock column вместо второй table;
-- indexes только после EXPLAIN;
-- storage comparison на 10k dataset.
+- три bitmaps хранятся в одной signature row;
+- stock хранится в существующем price posting, без второй table;
+- index set подтверждается EXPLAIN;
+- common-signature lock/WAL/storage измеряются на 10k profile.
 
 ### Single/batch divergence
 
 Меры:
 
 - общий builder/classifier;
-- row-level parity test;
-- одинаковая contract version.
+- row-level parity test.
 
 ### Mixed read snapshots
 
 Меры:
 
 - repeatable-read request boundary;
-- concurrent transition test;
-- readiness guard во время rebuild.
-
-### Incomplete reindex
-
-Меры:
-
-- full reindex является отдельным deliverable;
-- BUILDING/READY state;
-- resumable counters/cursor;
-- `processed=expected`, полный applied/noop/missing invariant;
-- `failed=0`, `missing=0`, drained delivery + apply barriers и повторный audit
-  до READY.
+- concurrent transition test.
 
 ## Проверка реализации
 
 Следовать project rules:
 
-- development/build/migrate/codegen/e2e запускать через Shopana CLI/MCP;
+- development/build/codegen/e2e запускать через Shopana CLI/MCP;
 - не запускать `test`, `tsc` напрямую;
 - Playwright запускать по одному spec-файлу;
-- build выполнять до migrate, потому что listing migrations читаются из dist;
 - release changeset вручную не редактировать; при необходимости генерировать
   разрешенной npm-командой.
 
 Порядок:
 
-1. Build v2 tooling, Events, Catalog и Listing.
-2. Events durable-sequence migration/retention smoke.
-3. Clean Listing DB migration smoke.
-4. v1-populated Listing DB migration smoke.
-5. Targeted listing read semantics spec.
-6. Auto-indexing transition spec.
-7. Single/batch parity.
-8. Reindex empty/interruption/resume/fence specs.
-9. Candidate/heavy parity.
-10. 10k performance matrix.
-11. Offline cutover rehearsal и post-backlog smoke.
+1. Build Listing.
+2. Clean DB schema smoke.
+3. Targeted listing read semantics spec.
+4. Auto-indexing transition spec.
+5. Single/batch row parity.
+6. Candidate/heavy parity.
+7. Concurrent snapshot consistency spec.
+8. 10k read/write performance matrix.
 
 ## Acceptance criteria
 
@@ -1755,8 +1309,8 @@ Quantity-based boolean исключит sellable backorder variant.
 8. Product aggregate, sort bool и canonical variants проходят parity audit.
 9. Backorder availableForSale=true остается available при zero/negative
    quantity.
-10. Inactive/archived variants из Listing broker contract отсутствуют во всех
-    runtime postings; Catalog delete очищает stale variant dependencies.
+10. Inactive/archived variants отсутствуют во всех runtime postings; Catalog
+    delete очищает stale variant dependencies.
 11. TAG/FEATURE/OPTION/PRICE по умолчанию учитывают оба stock buckets;
     TAG/FEATURE в ALL без variant filters считают product без active variants.
 12. Metadata сохраняет selected zero-count values и скрывает unselected zero
@@ -1766,40 +1320,20 @@ Quantity-based boolean исключит sellable backorder variant.
 14. Price range/count/sort используют matching availability bucket; ASC и
     DESC сортируют один canonical minimum matching price key.
 15. Price sort не меняет membership; NULL prices остаются в page.
-16. Matched-price cursor включает product availability и полный nullable price
-    tuple.
+16. Cursor содержит полный nullable sort tuple, а filter hash различает
+    ALL/AVAILABLE/UNAVAILABLE.
 17. Page и totalCount сохраняют parity для всех modes/scopes/sorts.
-18. Cursor hash различает ALL/AVAILABLE/UNAVAILABLE, а payload проверяет
-    `indexContractVersion/reindexEpoch`; cursor прошлого epoch отклоняется.
-19. Option signature index содержит all/available/unavailable counters и
-    bitmaps с union invariant.
-20. Variant price posting содержит все priced active variants обоих buckets.
-21. Single и batch writers дают одинаковый normalized index и одинаково
-    классифицируют exact-fence baseline event.
-22. v1 write model не может записаться в v2 index.
-23. Все logical read branches видят один repeatable snapshot.
-24. Supported Listing/Events migration workflow проверен на clean/v1 DB и
-    event-retention scenario.
-25. Full reindex CLI/workflow существует, resumable и доступен через Shopana
-    tooling.
-26. Empty-store reindex завершается READY.
-27. Populated-store reindex завершается только при
-    `processed=expected`, `applied+noop+missing=processed`, `failed=0` и
-    `missing=0`.
-28. Reindex пишет `REINDEX_BASELINE`: sequence меньше или равный fence
-    игнорируется как stale, sequence больше fence применяется и меняет origin
-    на EVENT, а fence `0` принимает первый positive event.
-29. Durable subject sequence переживает cleanup event history и не может быть
-    вычислен из `MAX` retained events.
-30. Readiness не включается до Events delivery drain, Listing terminal
-    apply-completion и повторного structural/semantic audit.
-31. Новый store получает empty `READY/version=2` только conditional v2
-    bootstrap insert; duplicate/late event не меняет state, а existing store
-    без v2 state требует full reindex.
-32. Direct seed поддерживает mixed multi-variant products, новый epoch и новые
-    NOT NULL columns.
-33. Auto-indexing покрывает availability/status/price/signature transitions.
-34. Candidate/heavy counts сохраняют parity.
-35. Read и write/reindex performance matrix укладывается в budgets без N+1,
-    unbounded scans, temp spill, deadlocks и неприемлемого WAL/lock wait.
-36. Knowledge base и index contract docs обновлены после успешного audit.
+18. Signature index содержит total/available/unavailable counters и bitmaps с
+    union invariant.
+19. Variant price posting содержит все priced active variants обоих buckets и
+    canonical stock state.
+20. DB schema создается на clean DB без переноса или заполнения старых rows.
+21. Single и batch writers дают одинаковый normalized index.
+22. Все logical read branches видят один repeatable snapshot.
+23. Direct seed поддерживает mixed multi-variant products и новые persisted
+    bucket/price fields.
+24. Auto-indexing покрывает availability/status/price/signature transitions.
+25. Candidate/heavy counts сохраняют parity.
+26. Read/write performance matrix укладывается в budgets без N+1, unbounded
+    scans, temp spill и deadlocks.
+27. Knowledge base и index contract docs обновлены после успешного audit.
