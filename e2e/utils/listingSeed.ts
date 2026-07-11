@@ -56,6 +56,12 @@ type SeedListingProductWithDocIds = ListingSeedProductInput & {
   variantDocId: number;
 };
 
+type CanonicalSeedListingProduct = SeedListingProductWithDocIds & {
+  availableForSale: boolean;
+  productAvailable: boolean;
+  variantTerms: readonly string[];
+};
+
 export async function seedListingCategoryProducts({
   storeId,
   category,
@@ -75,7 +81,9 @@ export async function seedListingCategoryProducts({
     await sql.begin(async (tx) => {
       const projectUuid = decodeGlobalId(storeId).id;
       const categoryUuid = decodeGlobalId(category.id).id;
-      const seedProducts = await assignProductDocIds(tx, projectUuid, products);
+      const seedProducts = (
+        await assignProductDocIds(tx, projectUuid, products)
+      ).map(materializeCanonicalSeedProduct);
 
       for (const product of seedProducts) {
         await seedListingProduct(tx, {
@@ -93,7 +101,8 @@ export async function seedListingCategoryProducts({
           priceMinor: product.priceMinor,
           manualSortKey: product.manualSortKey,
           searchTitle: product.searchTitle,
-          inStock: product.inStock ?? true,
+          availableForSale: product.availableForSale,
+          productAvailable: product.productAvailable,
           categoryUuid,
           locale,
           currency,
@@ -244,7 +253,8 @@ async function seedListingProduct(
     priceMinor?: number | null;
     manualSortKey?: string | null;
     searchTitle?: string | null;
-    inStock: boolean;
+    availableForSale: boolean;
+    productAvailable: boolean;
     categoryUuid: string;
     locale: string;
     currency: string;
@@ -254,6 +264,7 @@ async function seedListingProduct(
   const publishedAt = input.publishedAt ?? now;
   const createdAt = input.createdAt ?? publishedAt;
   const updatedAt = input.updatedAt ?? publishedAt;
+  const totalStock = input.availableForSale ? 1 : 0;
 
   await sql`
     INSERT INTO listing.product_listing_index (
@@ -267,7 +278,6 @@ async function seedListingProduct(
       product_created_at,
       product_updated_at,
       product_revision,
-      in_stock,
       total_stock,
       indexed_at,
       updated_at
@@ -283,8 +293,7 @@ async function seedListingProduct(
       ${createdAt},
       ${updatedAt},
       ${input.revision ?? 0},
-      ${input.inStock},
-      ${input.inStock ? 1 : 0},
+      ${totalStock},
       now(),
       now()
     )
@@ -297,7 +306,6 @@ async function seedListingProduct(
       product_created_at = EXCLUDED.product_created_at,
       product_updated_at = EXCLUDED.product_updated_at,
       product_revision = EXCLUDED.product_revision,
-      in_stock = EXCLUDED.in_stock,
       total_stock = EXCLUDED.total_stock,
       updated_at = now()
   `;
@@ -308,7 +316,7 @@ async function seedListingProduct(
     productDocId: input.productDocId,
     variantUuid: input.variantUuid ?? input.productUuid,
     variantDocId: input.variantDocId,
-    inStock: input.inStock,
+    totalStock,
   });
 
   await seedProductSort(sql, {
@@ -319,7 +327,7 @@ async function seedListingProduct(
     locale: '',
     currency: '',
     manualScopeId: ZERO_UUID,
-    boolValue: input.inStock,
+    boolValue: input.productAvailable,
     timestamptzValue: publishedAt,
     timestamptzValue2: createdAt,
     textValue: input.title ?? input.handle ?? input.productUuid,
@@ -333,7 +341,7 @@ async function seedListingProduct(
     locale: '',
     currency: '',
     manualScopeId: ZERO_UUID,
-    boolValue: input.inStock,
+    boolValue: input.productAvailable,
     timestamptzValue: createdAt,
   });
 
@@ -345,7 +353,7 @@ async function seedListingProduct(
     locale: input.locale,
     currency: '',
     manualScopeId: ZERO_UUID,
-    boolValue: input.inStock,
+    boolValue: input.productAvailable,
     textValue: input.title ?? input.handle ?? input.productUuid,
   });
 
@@ -357,7 +365,7 @@ async function seedListingProduct(
     locale: '',
     currency: '',
     manualScopeId: input.categoryUuid,
-    boolValue: input.inStock,
+    boolValue: input.productAvailable,
     textValue: input.manualSortKey ?? input.title ?? input.handle ?? input.productUuid,
   });
 
@@ -380,7 +388,7 @@ async function seedListingProduct(
       locale: '',
       currency: input.currency,
       manualScopeId: ZERO_UUID,
-      boolValue: input.inStock,
+      boolValue: input.productAvailable,
       bigintValue: input.priceMinor,
     });
     await seedProductSort(sql, {
@@ -391,10 +399,22 @@ async function seedListingProduct(
       locale: '',
       currency: input.currency,
       manualScopeId: ZERO_UUID,
-      boolValue: input.inStock,
+      boolValue: input.productAvailable,
       bigintValue: input.priceMinor,
     });
   }
+
+  await seedProductSort(sql, {
+    projectUuid: input.projectUuid,
+    productUuid: input.productUuid,
+    productDocId: input.productDocId,
+    sortKind: 'availability',
+    locale: '',
+    currency: '',
+    manualScopeId: ZERO_UUID,
+    boolValue: input.productAvailable,
+    bigintValue: totalStock,
+  });
 
   await seedProductSearchTitle(sql, {
     projectUuid: input.projectUuid,
@@ -562,23 +582,22 @@ async function seedVariantIndex(
     productDocId: number;
     variantUuid: string;
     variantDocId: number;
-    inStock: boolean;
+    totalStock: number;
   },
 ) {
   await sql`
     INSERT INTO listing.variant_listing_index (
       store_id, product_id, product_doc_id, variant_id, variant_doc_id,
-      in_stock, total_stock, indexed_at, updated_at
+      total_stock, indexed_at, updated_at
     ) VALUES (
       ${input.projectUuid}::uuid, ${input.productUuid}::uuid,
       ${input.productDocId}, ${input.variantUuid}::uuid, ${input.variantDocId},
-      ${input.inStock}, ${input.inStock ? 1 : 0}, now(), now()
+      ${input.totalStock}, now(), now()
     )
     ON CONFLICT (variant_id) DO UPDATE SET
       product_id = EXCLUDED.product_id,
       product_doc_id = EXCLUDED.product_doc_id,
       variant_doc_id = EXCLUDED.variant_doc_id,
-      in_stock = EXCLUDED.in_stock,
       total_stock = EXCLUDED.total_stock,
       updated_at = now()
   `;
@@ -799,7 +818,7 @@ async function seedVariantTermPostings(
   sql: postgres.TransactionSql,
   input: {
     projectUuid: string;
-    products: SeedListingProductWithDocIds[];
+    products: CanonicalSeedListingProduct[];
   },
 ) {
   const entries: { valueKey: string; docId: number }[] = [];
@@ -809,23 +828,9 @@ async function seedVariantTermPostings(
     encodeVariantTerm('criterion.availability', 'unavailable'),
   ];
   for (const product of input.products) {
-    entries.push({
-      valueKey: encodeVariantTerm('system.state', 'indexable'),
-      docId: product.variantDocId,
-    });
-    entries.push({
-      valueKey: encodeVariantTerm(
-        'criterion.availability',
-        product.inStock ?? true ? 'available' : 'unavailable',
-      ),
-      docId: product.variantDocId,
-    });
-    for (const legacyValueKey of product.variantFacetValueKeys ?? []) {
-      const separator = legacyValueKey.indexOf(':');
-      const facetId = legacyValueKey.slice(0, separator);
-      const facetValueId = legacyValueKey.slice(separator + 1);
+    for (const valueKey of product.variantTerms) {
       entries.push({
-        valueKey: encodeVariantTerm(`option:${facetId}`, facetValueId),
+        valueKey,
         docId: product.variantDocId,
       });
     }
@@ -870,6 +875,38 @@ async function seedVariantTermPostings(
 
 function encodeVariantTerm(fieldKey: string, valueKey: string): string {
   return JSON.stringify(['v1', fieldKey, valueKey]);
+}
+
+function materializeCanonicalSeedProduct(
+  product: SeedListingProductWithDocIds,
+): CanonicalSeedListingProduct {
+  const availableForSale = product.inStock ?? true;
+  const variantTerms = [
+    ...new Set([
+      encodeVariantTerm('system.state', 'indexable'),
+      encodeVariantTerm(
+        'criterion.availability',
+        availableForSale ? 'available' : 'unavailable',
+      ),
+      ...(product.variantFacetValueKeys ?? []).map((legacyValueKey) => {
+        const separator = legacyValueKey.indexOf(':');
+        const facetId = legacyValueKey.slice(0, separator);
+        const facetValueId = legacyValueKey.slice(separator + 1);
+        return encodeVariantTerm(`option:${facetId}`, facetValueId);
+      }),
+    ]),
+  ].sort();
+  const availableTerm = encodeVariantTerm(
+    'criterion.availability',
+    'available',
+  );
+
+  return {
+    ...product,
+    availableForSale,
+    productAvailable: variantTerms.includes(availableTerm),
+    variantTerms,
+  };
 }
 
 function groupDocIdsByValueKey(entries: { valueKey: string; docId: number }[]): Map<string, number[]> {

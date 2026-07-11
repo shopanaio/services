@@ -206,6 +206,45 @@ function productOptionValueKey(productIndex, groupIndex, valueHandle) {
   return `${productIndex}:${groupIndex}:${valueHandle}`;
 }
 
+function encodeVariantTerm(fieldKey, valueKey) {
+  return JSON.stringify(['v1', fieldKey, valueKey]);
+}
+
+function materializeVariantTerms(facets, variantValueKeys, variants) {
+  return variants.map((variant, variantIndex) => [
+    ...new Set([
+      encodeVariantTerm('system.state', 'indexable'),
+      encodeVariantTerm(
+        'criterion.availability',
+        variant.availableForSale ? 'available' : 'unavailable',
+      ),
+      ...facets.map((facet, facetIndex) => {
+        const sourceValueKey = variantValueKeys[variantIndex][facetIndex];
+        const facetValueId = sourceValueKey.slice(facet.id.length + 1);
+        return encodeVariantTerm(`option:${facet.id}`, facetValueId);
+      }),
+    ]),
+  ].sort());
+}
+
+function deriveProductAvailability(productDocIds, variants, variantTerms) {
+  const availableTerm = encodeVariantTerm(
+    'criterion.availability',
+    'available',
+  );
+  const availableProductDocIds = new Set();
+
+  for (const [variantIndex, terms] of variantTerms.entries()) {
+    if (terms.includes(availableTerm)) {
+      availableProductDocIds.add(variants[variantIndex].productDocId);
+    }
+  }
+
+  return productDocIds.map((productDocId) =>
+    availableProductDocIds.has(productDocId),
+  );
+}
+
 function composeGlobalId(typeName, id) {
   return Buffer.from(`gid://shopana/${typeName}/${id}`, 'utf8').toString('base64');
 }
@@ -425,6 +464,7 @@ async function main() {
         variantId: randomUUID(),
         variantDocId,
         variantOffset,
+        availableForSale: true,
         priceMinor: 1_000 + ((variantDocId * 37 + variantOffset * 997 + productIndex * 13) % 90_000),
         facetValues,
         optionValueIds: facets.map((_, groupIndex) =>
@@ -451,6 +491,16 @@ async function main() {
       return `${facet.id}:${value.id}`;
     });
   });
+  const variantTerms = materializeVariantTerms(
+    facets,
+    variantValueKeys,
+    variants,
+  );
+  const productAvailability = deriveProductAvailability(
+    productDocIds,
+    variants,
+    variantTerms,
+  );
   const selectedFilterRows = facets.flatMap((facet) =>
     facet.selected.map((handle) => {
       const value = facet.values.find((candidate) => candidate.handle === handle);
@@ -511,17 +561,19 @@ async function main() {
       handles,
       variants,
       productPrices,
+      productAvailability,
       now,
     });
     await seedCategoryBitmaps(tx, storeId, categories);
     await seedVariantProjectionBlock(tx, storeId, variants);
-    await seedVariantTermBitmaps(tx, storeId, facets, variantValueKeys, variants);
+    await seedVariantTermBitmaps(tx, storeId, variantTerms, variants);
   });
 
   await sql`ANALYZE listing.product_listing_index`;
   await sql`ANALYZE listing.variant_listing_index`;
   await sql`ANALYZE listing.variant_listing_price_index`;
   await sql`ANALYZE listing.listing_posting_bitmap`;
+  await sql`ANALYZE listing.listing_posting_product_sort`;
   await sql`ANALYZE listing.listing_posting_variant_storeion_block`;
 
   if (args.seedOnly) {
@@ -1141,6 +1193,12 @@ async function seedListingFacets(sql, storeId, facets) {
 async function seedListingRows(sql, input) {
   const productMinPrices = input.productPrices.map((price) => price.minPriceMinor);
   const productMaxPrices = input.productPrices.map((price) => price.maxPriceMinor);
+  const productAvailabilityFlags = input.productAvailability.map((available) =>
+    available ? 1 : 0,
+  );
+  const totalStocks = input.productAvailability.map((available) =>
+    available ? 1 : 0,
+  );
 
   await sql`
     INSERT INTO listing.product_listing_index (
@@ -1154,7 +1212,6 @@ async function seedListingRows(sql, input) {
       product_created_at,
       product_updated_at,
       product_revision,
-      in_stock,
       total_stock,
       indexed_at,
       updated_at
@@ -1170,15 +1227,15 @@ async function seedListingRows(sql, input) {
       ${input.now}::timestamptz,
       ${input.now}::timestamptz,
       1,
-      true,
-      1,
+      total_stock,
       now(),
       now()
     FROM unnest(
       ${input.productIds}::uuid[],
       ${input.productDocIds}::int[],
-      ${input.handles}::text[]
-    ) AS rows(product_id, product_doc_id, handle)
+      ${input.handles}::text[],
+      ${totalStocks}::int[]
+    ) AS rows(product_id, product_doc_id, handle, total_stock)
   `;
 
   for (const variantChunk of chunks(input.variants, VARIANT_INSERT_CHUNK_SIZE)) {
@@ -1186,6 +1243,9 @@ async function seedListingRows(sql, input) {
     const variantProductDocIds = variantChunk.map((variant) => variant.productDocId);
     const variantIds = variantChunk.map((variant) => variant.variantId);
     const variantDocIds = variantChunk.map((variant) => variant.variantDocId);
+    const variantTotalStocks = variantChunk.map((variant) =>
+      variant.availableForSale ? 1 : 0,
+    );
     const variantPrices = variantChunk.map((variant) => variant.priceMinor);
     await sql`
       INSERT INTO listing.variant_listing_index (
@@ -1194,7 +1254,6 @@ async function seedListingRows(sql, input) {
         product_doc_id,
         variant_id,
         variant_doc_id,
-        in_stock,
         total_stock,
         indexed_at,
         updated_at
@@ -1205,16 +1264,16 @@ async function seedListingRows(sql, input) {
         product_doc_id,
         variant_id,
         variant_doc_id,
-        true,
-        1,
+        total_stock,
         now(),
         now()
       FROM unnest(
         ${variantProductIds}::uuid[],
         ${variantProductDocIds}::int[],
         ${variantIds}::uuid[],
-        ${variantDocIds}::int[]
-      ) AS rows(product_id, product_doc_id, variant_id, variant_doc_id)
+        ${variantDocIds}::int[],
+        ${variantTotalStocks}::int[]
+      ) AS rows(product_id, product_doc_id, variant_id, variant_doc_id, total_stock)
     `;
 
     await sql`
@@ -1299,13 +1358,14 @@ async function seedListingRows(sql, input) {
       '',
       ${CURRENCY},
       ${ZERO_UUID}::uuid,
-      true,
+      product_available_flag = 1,
       min_price_minor
     FROM unnest(
       ${input.productIds}::uuid[],
       ${input.productDocIds}::int[],
+      ${productAvailabilityFlags}::int[],
       ${productMinPrices}::bigint[]
-    ) AS rows(product_id, product_doc_id, min_price_minor)
+    ) AS rows(product_id, product_doc_id, product_available_flag, min_price_minor)
   `;
 
   await sql`
@@ -1329,13 +1389,44 @@ async function seedListingRows(sql, input) {
       '',
       '',
       ${ZERO_UUID}::uuid,
-      true,
+      product_available_flag = 1,
       ${input.now}::timestamptz - (product_doc_id || ' seconds')::interval,
       ${input.now}::timestamptz - (product_doc_id || ' seconds')::interval
     FROM unnest(
       ${input.productIds}::uuid[],
-      ${input.productDocIds}::int[]
-    ) AS rows(product_id, product_doc_id)
+      ${input.productDocIds}::int[],
+      ${productAvailabilityFlags}::int[]
+    ) AS rows(product_id, product_doc_id, product_available_flag)
+  `;
+
+  await sql`
+    INSERT INTO listing.listing_posting_product_sort (
+      store_id,
+      product_doc_id,
+      product_id,
+      sort_kind,
+      locale,
+      currency,
+      manual_scope_id,
+      bool_value,
+      bigint_value
+    )
+    SELECT
+      ${input.storeId}::uuid,
+      product_doc_id,
+      product_id,
+      'availability',
+      '',
+      '',
+      ${ZERO_UUID}::uuid,
+      product_available_flag = 1,
+      total_stock
+    FROM unnest(
+      ${input.productIds}::uuid[],
+      ${input.productDocIds}::int[],
+      ${productAvailabilityFlags}::int[],
+      ${totalStocks}::bigint[]
+    ) AS rows(product_id, product_doc_id, product_available_flag, total_stock)
   `;
 }
 
@@ -1418,67 +1509,33 @@ async function seedVariantProjectionBlock(sql, storeId, variants) {
   }
 }
 
-async function seedVariantTermBitmaps(sql, storeId, facets, variantValueKeys, variants) {
+async function seedVariantTermBitmaps(sql, storeId, variantTerms, variants) {
   const grouped = new Map();
 
-  for (const [variantIndex, valueKeys] of variantValueKeys.entries()) {
-    for (const valueKey of valueKeys) {
+  for (const [variantIndex, terms] of variantTerms.entries()) {
+    for (const valueKey of terms) {
       const docIds = grouped.get(valueKey) ?? [];
       docIds.push(variants[variantIndex].variantDocId);
       grouped.set(valueKey, docIds);
     }
   }
 
-  for (const facet of facets) {
-    for (const value of facet.values) {
-      const sourceValueKey = `${facet.id}:${value.id}`;
-      const valueKey = JSON.stringify(['v1', `option:${facet.id}`, value.id]);
-      const docIds = grouped.get(sourceValueKey) ?? [];
+  const declaredKeys = [
+    encodeVariantTerm('system.state', 'indexable'),
+    encodeVariantTerm('criterion.availability', 'available'),
+    encodeVariantTerm('criterion.availability', 'unavailable'),
+  ];
 
-      await sql`
-        WITH docs AS (
-          SELECT unnest(${docIds}::int[]) AS doc_id
-        ),
-        bitmap AS (
-          SELECT COALESCE(rb_build_agg(doc_id), ${sql.unsafe(emptyBitmapSql)}) AS value
-          FROM docs
-        )
-        INSERT INTO listing.listing_posting_bitmap (
-          store_id,
-          entity_type,
-          field,
-          value_key,
-          bitmap,
-          cardinality,
-          metadata,
-          updated_at
-        )
-        SELECT
-          ${storeId}::uuid,
-          'variant',
-          'term',
-          ${valueKey},
-          value,
-          rb_cardinality(value),
-          '{}'::jsonb,
-          now()
-        FROM bitmap
-      `;
-    }
-  }
-
-  const allVariantDocIds = variants.map((variant) => variant.variantDocId);
-  for (const [fieldKey, termValue] of [
-    ['system.state', 'indexable'],
-    ['criterion.availability', 'available'],
-  ]) {
-    const valueKey = JSON.stringify(['v1', fieldKey, termValue]);
+  for (const valueKey of [...new Set([...declaredKeys, ...grouped.keys()])].sort()) {
+    const docIds = grouped.get(valueKey) ?? [];
+    const [version, fieldKey, termValue] = JSON.parse(valueKey);
     await sql`
       WITH docs AS (
-        SELECT unnest(${allVariantDocIds}::int[]) AS doc_id
+        SELECT unnest(${docIds}::int[]) AS doc_id
       ),
       bitmap AS (
-        SELECT rb_build_agg(doc_id) AS value FROM docs
+        SELECT COALESCE(rb_build_agg(doc_id), ${sql.unsafe(emptyBitmapSql)}) AS value
+        FROM docs
       )
       INSERT INTO listing.listing_posting_bitmap (
         store_id, entity_type, field, value_key, bitmap, cardinality, metadata, updated_at
@@ -1490,31 +1547,21 @@ async function seedVariantTermBitmaps(sql, storeId, facets, variantValueKeys, va
         ${valueKey},
         value,
         rb_cardinality(value),
-        '{}'::jsonb,
+        ${JSON.stringify({
+          version,
+          registryVersion: '2026-07-11.v1',
+          registryField: fieldKey,
+          registryValue: termValue,
+        })}::jsonb,
         now()
       FROM bitmap
+      ON CONFLICT (store_id, entity_type, field, value_key) DO UPDATE SET
+        bitmap = EXCLUDED.bitmap,
+        cardinality = EXCLUDED.cardinality,
+        metadata = EXCLUDED.metadata,
+        updated_at = now()
     `;
   }
-
-  const unavailableValueKey = JSON.stringify([
-    'v1',
-    'criterion.availability',
-    'unavailable',
-  ]);
-  await sql`
-    INSERT INTO listing.listing_posting_bitmap (
-      store_id, entity_type, field, value_key, bitmap, cardinality, metadata, updated_at
-    )
-    SELECT
-      ${storeId}::uuid,
-      'variant',
-      'term',
-      ${unavailableValueKey},
-      ${sql.unsafe(emptyBitmapSql)},
-      0,
-      '{}'::jsonb,
-      now()
-  `;
 }
 
 function sqlLiteral(value) {
@@ -1532,8 +1579,21 @@ function textArraySql(values) {
 function selectedFilterArrays(input) {
   return {
     facetIds: uuidArraySql(input.selectedFilterRows.map((row) => row.facetId)),
-    valueKeys: textArraySql(input.selectedFilterRows.map((row) => row.valueKey)),
+    valueKeys: textArraySql(
+      input.selectedFilterRows.map(optionTermValueKey),
+    ),
   };
+}
+
+function optionTermValueKey(row) {
+  const prefix = `${row.facetId}:`;
+  if (!row.valueKey.startsWith(prefix)) {
+    throw new Error(`Invalid OPTION value key: ${row.valueKey}`);
+  }
+  return encodeVariantTerm(
+    `option:${row.facetId}`,
+    row.valueKey.slice(prefix.length),
+  );
 }
 
 async function runPageSelect(sql, query) {
@@ -1570,24 +1630,13 @@ function buildPageSelectSql(input) {
       LEFT JOIN listing.listing_posting_bitmap p
         ON p.store_id = i.store_id
        AND p.entity_type = 'variant'
-       AND p.field = 'facet'
+       AND p.field = 'term'
        AND p.value_key = sfv.value_key
       GROUP BY sfv.facet_id
     ),
-    in_stock_variants AS (
-      SELECT COALESCE(rb_build_agg(vli.variant_doc_id), ${emptyBitmapSql}) AS bitmap
-      FROM listing.variant_listing_index vli
-      JOIN input i ON true
-      WHERE vli.store_id = i.store_id
-        AND vli.in_stock = true
-    ),
     variant_filters AS (
       SELECT rb_and_agg(bitmap) AS bitmap
-      FROM (
-        SELECT bitmap FROM option_filter_groups
-        UNION ALL
-        SELECT bitmap FROM in_stock_variants
-      ) x
+      FROM option_filter_groups
     ),
     raw_scope_products AS (
       SELECT COALESCE((
@@ -1663,10 +1712,6 @@ function buildPageSelectSql(input) {
         vp.variant_doc_id,
         vp.price_minor
       FROM listing.variant_listing_price_index vp
-      JOIN listing.variant_listing_index vli
-        ON vli.store_id = vp.store_id
-       AND vli.variant_id = vp.variant_id
-       AND vli.in_stock = true
       JOIN input i ON true
       CROSS JOIN matches m
       CROSS JOIN variant_filters vf
@@ -1694,11 +1739,15 @@ function buildPageSelectSql(input) {
         chosen.price_minor
       FROM variant_price_chosen chosen
       JOIN input i ON true
-      JOIN listing.product_listing_index pli
-        ON pli.store_id = i.store_id
-       AND pli.product_doc_id = chosen.product_doc_id
-       AND pli.product_id = chosen.product_id
-      ORDER BY pli.in_stock DESC, chosen.price_minor ASC NULLS LAST, chosen.product_id ASC
+      JOIN listing.listing_posting_product_sort availability
+        ON availability.store_id = i.store_id
+       AND availability.product_doc_id = chosen.product_doc_id
+       AND availability.product_id = chosen.product_id
+       AND availability.sort_kind = 'availability'
+       AND availability.locale = ''
+       AND availability.currency = ''
+       AND availability.manual_scope_id = ${sqlLiteral(ZERO_UUID)}::uuid
+      ORDER BY availability.bool_value DESC, chosen.price_minor ASC NULLS LAST, chosen.product_id ASC
       LIMIT (SELECT first + 1 FROM input)
     )
     SELECT *
@@ -1730,7 +1779,7 @@ function buildTotalSelectSql(input) {
       LEFT JOIN listing.listing_posting_bitmap p
         ON p.store_id = i.store_id
        AND p.entity_type = 'variant'
-       AND p.field = 'facet'
+       AND p.field = 'term'
        AND p.value_key = sfv.value_key
       GROUP BY sfv.facet_id
     ),
@@ -1769,7 +1818,7 @@ function buildTotalSelectSql(input) {
 
 async function runPageExplain(sql, input) {
   const facetIds = input.selectedFilterRows.map((row) => row.facetId);
-  const valueKeys = input.selectedFilterRows.map((row) => row.valueKey);
+  const valueKeys = input.selectedFilterRows.map(optionTermValueKey);
 
   const rows = await sql`
     EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)
@@ -1794,24 +1843,13 @@ async function runPageExplain(sql, input) {
       LEFT JOIN listing.listing_posting_bitmap p
         ON p.store_id = i.store_id
        AND p.entity_type = 'variant'
-       AND p.field = 'facet'
+       AND p.field = 'term'
        AND p.value_key = sfv.value_key
       GROUP BY sfv.facet_id
     ),
-    in_stock_variants AS (
-      SELECT COALESCE(rb_build_agg(vli.variant_doc_id), ${sql.unsafe(emptyBitmapSql)}) AS bitmap
-      FROM listing.variant_listing_index vli
-      JOIN input i ON true
-      WHERE vli.store_id = i.store_id
-        AND vli.in_stock = true
-    ),
     variant_filters AS (
       SELECT rb_and_agg(bitmap) AS bitmap
-      FROM (
-        SELECT bitmap FROM option_filter_groups
-        UNION ALL
-        SELECT bitmap FROM in_stock_variants
-      ) x
+      FROM option_filter_groups
     ),
     raw_scope_products AS (
       SELECT COALESCE((
@@ -1887,10 +1925,6 @@ async function runPageExplain(sql, input) {
         vp.variant_doc_id,
         vp.price_minor
       FROM listing.variant_listing_price_index vp
-      JOIN listing.variant_listing_index vli
-        ON vli.store_id = vp.store_id
-       AND vli.variant_id = vp.variant_id
-       AND vli.in_stock = true
       JOIN input i ON true
       CROSS JOIN matches m
       CROSS JOIN variant_filters vf
@@ -1918,11 +1952,15 @@ async function runPageExplain(sql, input) {
         chosen.price_minor
       FROM variant_price_chosen chosen
       JOIN input i ON true
-      JOIN listing.product_listing_index pli
-        ON pli.store_id = i.store_id
-       AND pli.product_doc_id = chosen.product_doc_id
-       AND pli.product_id = chosen.product_id
-      ORDER BY pli.in_stock DESC, chosen.price_minor ASC NULLS LAST, chosen.product_id ASC
+      JOIN listing.listing_posting_product_sort availability
+        ON availability.store_id = i.store_id
+       AND availability.product_doc_id = chosen.product_doc_id
+       AND availability.product_id = chosen.product_id
+       AND availability.sort_kind = 'availability'
+       AND availability.locale = ''
+       AND availability.currency = ''
+       AND availability.manual_scope_id = ${ZERO_UUID}::uuid
+      ORDER BY availability.bool_value DESC, chosen.price_minor ASC NULLS LAST, chosen.product_id ASC
       LIMIT (SELECT first + 1 FROM input)
     )
     SELECT *
@@ -1934,7 +1972,7 @@ async function runPageExplain(sql, input) {
 
 async function runTotalExplain(sql, input) {
   const facetIds = input.selectedFilterRows.map((row) => row.facetId);
-  const valueKeys = input.selectedFilterRows.map((row) => row.valueKey);
+  const valueKeys = input.selectedFilterRows.map(optionTermValueKey);
 
   const rows = await sql`
     EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)
@@ -1957,7 +1995,7 @@ async function runTotalExplain(sql, input) {
       LEFT JOIN listing.listing_posting_bitmap p
         ON p.store_id = i.store_id
        AND p.entity_type = 'variant'
-       AND p.field = 'facet'
+       AND p.field = 'term'
        AND p.value_key = sfv.value_key
       GROUP BY sfv.facet_id
     ),
