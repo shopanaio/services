@@ -25,7 +25,7 @@ physical index expansion
 listing_option_signature.available_product_bitmap
 listing_option_signature.unavailable_product_bitmap
 available_variant_count / unavailable_variant_count
-listing_posting_variant_price.in_stock
+variant_listing_price_index.in_stock
 ```
 
 Такие поля не добавляются как correctness source. Availability и будущие
@@ -35,6 +35,16 @@ bitmap которых содержит `variant_doc_id`.
 Если оба плана реализуются вместе, нормативным источником availability semantics
 остается explicit availability plan, а нормативным источником physical
 variant predicate index становится этот документ.
+
+Реализация выполняет полный incompatible cutover на term-based variant
+index. Legacy variant facet postings, readers и writers не сохраняются.
+Документ исходит из clean DB и не описывает migration, dual-read,
+dual-write или compatibility с данными старого listing index.
+
+Общий rebuild/reindex listing не требуется для реализации этого плана
+и не входит в его acceptance criteria. Migration, conversion, rebuild или
+reindex ранее созданного index являются отдельной operational задачей
+за scope этого документа.
 
 ## Контекст
 
@@ -82,7 +92,7 @@ criteria выполнились на одном варианте.
 - stable `variant_doc_id` в `variant_listing_index`;
 - `listing_posting_bitmap` с поддержкой `entity_type = 'variant'`;
 - roaring bitmap algebra;
-- typed `listing_posting_variant_price` для numeric price range/order;
+- typed `variant_listing_price_index` для numeric price range/order;
 - variant-to-product projection blocks;
 - `variant_product` postings для narrow lookup.
 
@@ -278,6 +288,41 @@ Encoding/decoding находится в shared helper и покрывается 
 `metadata` может дублировать decoded descriptor для diagnostics, но не является
 query source.
 
+### Полный cutover OPTION postings
+
+Существующий physical contract OPTION:
+
+```text
+entity_type = variant
+field       = facet
+value_key   = <facetId>:<facetValueId>
+```
+
+полностью заменяется на:
+
+```text
+entity_type = variant
+field       = term
+value_key   = canonicalEncode(["v1", "option:<facetId>", "<facetValueId>"])
+```
+
+После cutover:
+
+- OPTION writer не создает `entity_type=variant, field=facet` rows;
+- storefront membership, counts, metadata scope и diagnostics не читают
+  legacy variant facet postings;
+- fallback на legacy key encoding отсутствует;
+- dual-write и dual-read отсутствуют;
+- старые posting rows не мигрируются и не участвуют в runtime;
+- весь OPTION query/write code переводится на `ListingVariantTerm` в
+  рамках одной реализации.
+
+Product-level TAG/FEATURE postings не затрагиваются этим cutover и
+продолжают использовать `entity_type=product, field=facet`. Если
+option signature optimization остается после audit, ее rows создаются
+новым code path из canonical OPTION terms; legacy signature data не
+переиспользуются.
+
 ### Explicit negative states
 
 Для boolean-like criteria сохраняются явные states:
@@ -339,15 +384,10 @@ delivery ETA for every postcode and carrier
 price for arbitrary customer segment combinations
 ```
 
-Для bounded context допустим context-aware term:
-
-```text
-criterion.delivery.region = UA-30
-criterion.pickup.point = <pointId>
-```
-
-Но definition обязана иметь cardinality budget. При превышении budget criterion
-выносится в typed/context index, а не создает миллионы posting rows.
+Context-dependent criteria вроде delivery region, pickup point или
+address eligibility не добавляются как generic terms этим планом. Для
+каждого такого criterion отдельно выбирается term или typed/context
+index после фиксации domain semantics и performance profile.
 
 ## Целевая physical index model
 
@@ -430,18 +470,21 @@ projectVariantBitmapToProducts(variantBitmap)
 обязан быть единственным correctness path для перехода variant → product.
 `variant_product` posting остается narrow lookup optimization.
 
-### `listing.listing_posting_variant_price`
+### `listing.variant_listing_price_index`
 
-Price posting продолжает быть typed numeric index:
+`variant_listing_price_index` остается единственным source/runtime
+typed numeric index для price range и matched price sort:
 
 ```text
-одна row на priced indexable variant + currency
+одна row на indexable variant + currency из normalized price snapshot;
+runtime price candidate имеет has_price = true
 ```
 
-Unavailable или delivery-not-ready variant не удаляется из price posting только
-из-за criterion state.
+Unavailable или delivery-not-ready variant не удаляется из
+`variant_listing_price_index` только из-за criterion state. Runtime price
+candidates читают rows с `has_price = true`.
 
-В price row не добавляются:
+В row `variant_listing_price_index` не добавляются:
 
 ```text
 in_stock
@@ -460,7 +503,7 @@ matchingTermsBitmap
 Для matched price sort collector проверяет принадлежность price row тому же
 matching variant bitmap до выбора minimum price per product.
 
-Индексы price posting остаются criterion-neutral:
+Индексы `variant_listing_price_index` остаются criterion-neutral:
 
 ```text
 (store_id, currency, price_minor ASC,  product_id, variant_doc_id)
@@ -484,7 +527,7 @@ universal option term bitmaps
 -> variant-to-product projection
 ```
 
-Существующий signature index можно временно оставить как measured cache для
+Структуру signature index можно перестроить как measured cache для
 горячих OPTION count strategies при соблюдении условий:
 
 1. signature result имеет parity с canonical term path;
@@ -535,14 +578,17 @@ aggregate добавляется только как отдельный sort/dia
    Physical columns `listing_posting_bitmap` не меняются. Обновляются Drizzle
    literal types, repository validation и schema documentation.
 
-2. Изменить contract `listing_posting_variant_price`: хранить все priced
-   indexable variants, а не только in-stock variants.
+2. Зафиксировать contract `variant_listing_price_index`: хранить price
+   rows всех priced indexable variants независимо от criterion state.
+   Предложение explicit availability plan добавить
+   `variant_listing_price_index.in_stock` заменяется этим документом:
+   criterion-specific column не добавляется.
 
 3. Проверить criterion-neutral price indexes для scans по store/currency/price
    и per-product matched minimum lookup.
 
-4. Не добавлять availability/delivery columns в option signature или price
-   posting.
+4. Не добавлять availability/delivery columns в option signature или
+   `variant_listing_price_index`.
 
 ### Не требуются
 
@@ -561,8 +607,11 @@ aggregate добавляется только как отдельный sort/dia
 (store, variant, term, encoded(fieldKey, valueKey), bitmap)
 ```
 
-Stage/prod data отсутствуют. Текущая schema обновляется для clean DB; migration
-исторических index rows и dual-read period не нужны.
+Stage/prod data отсутствуют. План реализуется только для clean DB.
+Старые index rows не мигрируются, не конвертируются и не читаются.
+Compatibility period, dual-read и dual-write отсутствуют. Общий
+rebuild/reindex любого существующего index не является шагом этого
+плана и вынесен за его scope.
 
 ## Term registry
 
@@ -572,15 +621,28 @@ Schema-less physical storage не означает неконтролируем�
 вводится registry definitions:
 
 ```ts
+type ListingVariantTermValueDomain =
+  | { kind: "DECLARED"; values: readonly string[] }
+  | { kind: "CONFIGURED_OPTION_VALUES" }
+  | { kind: "VALIDATED_IDS" };
+
 interface ListingVariantTermDefinition {
   fieldKey: string;
-  valueKind: "BOOLEAN" | "ENUM" | "ID";
-  allowedValues?: readonly string[];
+  valueDomain: ListingVariantTermValueDomain;
   unknownPolicy: "FORBID" | "EXPLICIT" | "OMIT";
-  cardinalityBudget: number;
   publicFilterKind?: string;
 }
 ```
+
+Граница value domain задается так:
+
+- boolean/enum — exact `DECLARED.values`, например availability имеет ровно
+  `available`, `unavailable`;
+- OPTION — только configured resolved values конкретного facet;
+- ID criterion — только stable IDs, прошедшие criterion-specific
+  domain validation.
+
+Writer не может silently пропускать невалидные values.
 
 Registry отвечает за:
 
@@ -589,7 +651,7 @@ Registry отвечает за:
 - input normalization в term groups;
 - selected state и reusable input для virtual facets;
 - observability labels;
-- cardinality budget;
+- validation declared/configured/ID value domain;
 - diagnostics invariants.
 
 ### Что остается criterion-specific
@@ -765,7 +827,8 @@ physical compiler получает обычный term group.
 
 ### PRICE
 
-Price range строит bitmap `variant_doc_id` из expanded price posting:
+Price range строит bitmap `variant_doc_id` из
+`variant_listing_price_index` rows с `has_price = true`:
 
 ```text
 priceCandidates = variants with price in requested range/currency
@@ -860,7 +923,7 @@ snapshot согласно explicit availability plan.
 
 - migration новой DB column;
 - добавление bitmap columns;
-- изменение price posting schema;
+- изменение schema `variant_listing_price_index`;
 - изменение option signature schema;
 - новый projection algorithm;
 - новый facet count engine.
@@ -890,7 +953,7 @@ P11: selected criterion value с count=0
 ### Этап 1. Ввести term value object и registry
 
 1. Добавить `ListingVariantTerm` и canonical encoder.
-2. Добавить registry/validation/cardinality policies.
+2. Добавить registry validation и value-domain policies.
 3. Нормализовать availability в два terms.
 4. Нормализовать OPTION values в terms.
 5. Добавить `system.state=indexable`.
@@ -908,9 +971,11 @@ P11: selected criterion value с count=0
 
 1. Общий normalized term builder для single/batch.
 2. Terms только для indexable variants.
-3. Price posting для всех priced indexable variants.
+3. `variant_listing_price_index` для всех priced indexable variants.
 4. Atomic replace/delete/status/criterion transitions.
 5. Single/batch row-level parity.
+6. Удалить legacy OPTION `entity_type=variant, field=facet` write path и
+   не добавлять dual-write.
 
 ### Этап 4. Канонический read compiler
 
@@ -919,6 +984,8 @@ P11: selected criterion value с count=0
 3. Пересекать numeric price candidates до projection.
 4. Удалить product aggregate stock membership.
 5. Использовать один projection helper для page/total/counts.
+6. Удалить legacy OPTION `field=facet` readers/compilers и не добавлять
+   fallback на старый key encoding.
 
 ### Этап 5. Facet counts и virtual facets
 
@@ -957,7 +1024,7 @@ P11: selected criterion value с count=0
 - `services/listing/migrations/domains/0100_listing_index/0100_listing_index__tables.sql`
 - `services/listing/src/repositories/listing/listingRepositoryTypes.ts`
 - `services/listing/src/repositories/listing/ListingPostingBitmapRepository.ts`
-- `services/listing/src/repositories/listing/ListingPostingVariantPriceRepository.ts`
+- `services/listing/src/repositories/listing/VariantListingPriceIndexRepository.ts`
 - `services/listing/src/repositories/listing/ListingOptionSignatureRepository.ts`
 
 ### Write path
@@ -1029,7 +1096,8 @@ P11: selected criterion value с count=0
 
 ### Price/sort
 
-1. Price posting содержит prices всех indexable criterion states.
+1. `variant_listing_price_index` содержит prices всех indexable
+   criterion states.
 2. Price range пересекается с term candidates до projection.
 3. Price sort берет minimum matching variant price.
 4. Product без eligible price остается NULL-last.
@@ -1088,9 +1156,31 @@ price ASC/DESC с NULL prices
 - write p50/p95 и WAL;
 - lock wait/deadlocks для hot terms.
 
-Начальные budgets остаются совместимыми с explicit availability plan. Любое
-ухудшение или сохранение signature fast path требует сохраненного `EXPLAIN
-ANALYZE` и профиля.
+### Performance acceptance thresholds
+
+Performance verification выполняется на одинаковом 10k dataset,
+PostgreSQL configuration, hardware и warmup. Baseline снимается с текущего
+canonical listing path до cutover.
+
+Числовые thresholds:
+
+1. Availability-only median после warmup не хуже baseline более
+   чем на 25%.
+2. `ALL` и `UNAVAILABLE` не медленнее `AVAILABLE` более чем в
+   1.5 раза на одном representative scenario.
+
+Hard pass/fail conditions для всей 10k matrix:
+
+- нет per-value/per-variant N+1;
+- нет unbounded variant expansion;
+- нет temp spill;
+- нет lost bitmap updates и deadlocks в concurrency profile;
+- canonical/signature/projection results имеют parity.
+
+Query p95, write p50/p95, products/sec, WAL, lock wait и index bytes
+измеряются и сохраняются в профиле, но в этом плане для них
+не заданы числовые acceptance thresholds. Изменение thresholds
+требует сохраненного `EXPLAIN ANALYZE`, профиля и явного решения.
 
 ## Observability и audit
 
@@ -1115,7 +1205,7 @@ posting.cardinality = rb_cardinality(posting.bitmap)
 term bitmap subset system.state=indexable
 availability available & unavailable = empty
 availability available | unavailable = indexable variants
-price posting variant subset indexable variants
+variant_listing_price_index variant subset indexable variants
 variant mapping points to existing product doc
 projection block counters/bitmaps are valid
 product.in_stock = bool_or(indexable variant availability)
@@ -1136,8 +1226,10 @@ Availability и delivery booleans обновляют большие общие b
 - deterministic lock order;
 - batch delta aggregation;
 - измерение WAL/lock wait;
-- при необходимости shard posting по stable doc-id block, сохранив тот же
-  logical term contract.
+
+Начальная physical model не использует sharding. Sharded posting по stable
+doc-id block — отдельная optimization за scope этого плана; она требует
+отдельного physical key/compiler contract и не является скрытым fallback.
 
 ### Projection cost
 
@@ -1154,10 +1246,11 @@ Variant-level correctness переносит projection на read path.
 
 Меры:
 
-- registry и per-definition budget;
+- exact declared/configured value domains;
+- criterion-specific validation stable IDs;
 - запрет arbitrary raw keys;
 - typed tables для numeric/contextual data;
-- metrics rows/cardinality/bytes per fieldKey.
+- metrics posting rows, bitmap cardinality и bytes per fieldKey.
 
 ### Registry и physical index divergence
 
@@ -1165,8 +1258,10 @@ Variant-level correctness переносит projection на read path.
 
 - registry version в build metadata/diagnostics;
 - declared empty state rows;
-- clean rebuild command;
 - invariant audit до включения criterion в public API.
+
+Recovery уже существующего index через rebuild/reindex не входит в scope
+этого плана.
 
 ### Signature optimization нарушает same-variant
 
@@ -1207,14 +1302,16 @@ Variant-level correctness переносит projection на read path.
    product IDs.
 3. Добавление нового boolean/enum criterion не требует DB schema change.
 4. Availability хранится как обычные explicit available/unavailable terms.
-5. OPTION values компилируются в тот же variant term engine.
+5. OPTION values пишутся и компилируются только через variant term
+   engine; legacy `entity_type=variant, field=facet` read/write paths, dual-read
+   и dual-write отсутствуют.
 6. OR внутри group и AND между groups реализованы одним compiler.
 7. OPTION, availability, delivery criteria и PRICE совпадают на одном variant.
 8. Variant-to-product projection выполняется только после всех variant
    predicates.
 9. Product aggregate stock не участвует в membership/counts.
-10. Price posting содержит все priced indexable variants и не получает
-    criterion-specific columns.
+10. `variant_listing_price_index` содержит все priced indexable variants и не
+    получает criterion-specific columns.
 11. Price range/sort ограничиваются matching variant bitmap.
 12. Product без eligible price сохраняется в page как NULL-last.
 13. Page и total используют один `productMatches` bitmap.
@@ -1228,7 +1325,8 @@ Variant-level correctness переносит projection на read path.
 21. Option signatures не содержат availability/delivery-specific schema.
 22. Любой оставшийся signature fast path имеет parity с canonical term path.
 23. Все logical read branches видят один repeatable snapshot.
-24. Cardinality budgets защищают от uncontrolled term explosion.
-25. 10k read/write profile укладывается в budgets без N+1, unbounded expansion,
-    temp spill и deadlocks.
+24. Declared/configured domains, criterion-specific ID validation и запрет
+    arbitrary raw keys защищают от uncontrolled term explosion.
+25. 10k profile проходит явные query latency thresholds и hard
+    pass/fail conditions из раздела `Performance acceptance thresholds`.
 26. Knowledge base и index schema docs обновлены после implementation audit.
