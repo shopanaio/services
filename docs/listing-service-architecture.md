@@ -659,6 +659,150 @@ listing_recall_stop_reason{reason}      // Почему цикл останов�
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+### `recommended` без поискового запроса
+
+ONNX Runtime не сканирует и не ранжирует весь каталог. Он используется только как reranker ограниченного candidate window. Поэтому `recommended` без `query` требует отдельного этапа candidate retrieval:
+
+```text
+Каталог магазина + storefront-фильтры
+  -> предварительно рассчитанный retrieval_score
+  -> top 500-1000 кандидатов
+  -> загрузка features
+  -> ONNX batch rerank
+  -> ranking snapshot
+  -> стабильная пагинация
+```
+
+Кандидаты должны приходить в детерминированном предварительном порядке. Нельзя выбирать произвольные строки и затем применять `slice(0, candidateLimit)`: в таком случае модель увидит случайную часть каталога, а потенциально лучшие товары останутся вне candidate window.
+
+#### Хранение сигналов и retrieval score
+
+Следует хранить как готовый `retrieval_score`, так и его компоненты. Сырые события остаются в event/analytics системе, а Listing использует агрегированный read model:
+
+```sql
+CREATE TABLE listing_recommendation_signal (
+  store_id uuid NOT NULL,
+  product_id uuid NOT NULL,
+
+  impressions_7d bigint NOT NULL DEFAULT 0,
+  clicks_7d bigint NOT NULL DEFAULT 0,
+  carts_7d bigint NOT NULL DEFAULT 0,
+  purchases_7d bigint NOT NULL DEFAULT 0,
+
+  ctr_score real NOT NULL DEFAULT 0,
+  cart_rate_score real NOT NULL DEFAULT 0,
+  conversion_score real NOT NULL DEFAULT 0,
+  popularity_score real NOT NULL DEFAULT 0,
+  freshness_score real NOT NULL DEFAULT 0,
+  availability_score real NOT NULL DEFAULT 0,
+  business_boost real NOT NULL DEFAULT 0,
+
+  retrieval_score real NOT NULL DEFAULT 0,
+  score_version integer NOT NULL,
+  calculated_at timestamptz NOT NULL,
+
+  PRIMARY KEY (store_id, product_id)
+);
+
+CREATE INDEX listing_recommendation_top_idx
+ON listing_recommendation_signal (
+  store_id,
+  retrieval_score DESC,
+  product_id
+);
+```
+
+Итоговый score хранится готовым, чтобы storefront-запрос читал top-N непосредственно из B-tree индекса и не агрегировал события или не сортировал весь каталог:
+
+```sql
+SELECT product_id
+FROM listing_recommendation_signal
+WHERE store_id = $1
+ORDER BY retrieval_score DESC, product_id
+LIMIT 1000;
+```
+
+Для частого сценария категории нужен составной индекс `(store_id, category_id, retrieval_score DESC, product_id)` в соответствующем listing read model. Произвольные фасеты сначала ограничивают подходящее множество существующим facet index, после чего выбирается top-N по `retrieval_score`.
+
+#### Расчет компонентов
+
+Сигналы приводятся к сопоставимому диапазону `0..1`. Сырые количества нельзя непосредственно складывать с CTR или freshness.
+
+Популярность нормализуется логарифмом или percentile rank внутри магазина:
+
+```text
+popularity = log(1 + purchases_30d) / log(1 + maxPurchasesInStore)
+```
+
+CTR и conversion требуют Bayesian smoothing, чтобы товар с одним показом и одним кликом не получил score `1.0`:
+
+```text
+ctr = (clicks + storeAverageCtr * priorWeight)
+    / (impressions + priorWeight)
+```
+
+Аналогично рассчитываются `cart_rate_score` и `conversion_score`. Свежесть использует временное затухание:
+
+```text
+freshness = exp(-ageDays / decayPeriodDays)
+```
+
+Недавним событиям также задается больший вес, например через exponential decay. Непубликованные и недоступные товары исключаются фильтрами; `business_boost` предназначен для мягких merchandising-корректировок, а не для правил доступности.
+
+Начальная прозрачная формула может выглядеть так:
+
+```text
+retrieval_score =
+    0.30 * popularity_score
+  + 0.20 * conversion_score
+  + 0.15 * ctr_score
+  + 0.10 * cart_rate_score
+  + 0.15 * freshness_score
+  + 0.10 * availability_score
+  + business_boost
+```
+
+Коэффициенты являются версионируемой стартовой эвристикой, а не обученной моделью. `retrieval_score` отвечает за recall top-N, тогда как ONNX score уточняет порядок внутри candidate window.
+
+#### Обновление score
+
+Score не пересчитывается синхронно после каждого storefront-действия:
+
+1. `impression`, `click`, `cart` и `purchase` записываются как canonical events.
+2. Consumer обновляет временные buckets и отмечает затронутые товары как dirty.
+3. Периодическая job раз в 5-15 минут пересчитывает dirty products batch-ами и делает upsert агрегатов и `retrieval_score`.
+4. Полный периодический пересчет восстанавливает консистентность и применяет временное затухание даже к товарам без новых событий.
+
+Несколько арифметических операций PostgreSQL выполняет дешево. Основная стоимость — обновление строк и B-tree индекса, поэтому batch update только изменившихся товаров предпочтительнее пересчета всего каталога на каждый запрос. Вычислять формулу непосредственно в `ORDER BY` допустимо для небольшого набора, но это обычно лишает запрос возможности использовать индекс готового score.
+
+#### Cold start и разнообразие кандидатов
+
+Пока поведенческих данных недостаточно, используется content-based score:
+
+```text
+cold_start_score =
+    0.45 * freshness
+  + 0.25 * content_quality
+  + 0.20 * availability
+  + 0.10 * business_boost
+
+behavior_weight = min(1, impressions / required_impressions)
+
+retrieval_score =
+    behavior_weight * behavioral_score
+  + (1 - behavior_weight) * cold_start_score
+```
+
+`content_quality` может учитывать наличие изображения, описания, характеристик, корректной цены и остатка. Это не дает новым товарам навсегда остаться за пределами candidate window.
+
+Для достаточного разнообразия candidate retrieval объединяет несколько каналов, например popularity, trending, new, high-conversion, promoted и exploration. После deduplication объединенный набор ограничивается лимитом и передается в ONNX. Иначе модель будет видеть только уже популярные товары и не сможет поднять новые или нишевые позиции.
+
+#### Стабильная пагинация
+
+Нельзя независимо выбирать и переранжировать новое окно для каждой страницы: позиции будут меняться, а товары могут повторяться или пропадать. Первый запрос создает snapshot упорядоченных ID в Redis, а cursor содержит `rankingId` и позицию. Ключ snapshot учитывает как минимум `storeId`, hash фильтров, сегмент, locale и `modelVersion`; TTL может составлять 5-30 минут.
+
+Таким образом, один ranking snapshot последовательно пагинируется без повторного ONNX inference, а смена модели не изменяет уже начатую выдачу.
+
 ---
 
 ## Технологический стек
