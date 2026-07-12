@@ -49,17 +49,19 @@ locale-aware tokenization и stemming выполняются в процессе
 - canonical listing bitmap pipeline остаётся источником истины для publication,
   navigation scope, same-variant filters, prices, availability, totals и facets;
 - listing вызывает `SearchExecutionService`;
-- settings, synonyms и boosts применяются из текущей atomically activated runtime configuration;
+- settings, synonyms и boosts изменяются короткими атомарными транзакциями и
+  загружаются напрямую из authoring tables или их точечных cache entries;
 - typo-tolerant search выбирается только когда PRIMARY search candidate set после
   обязательного `publishedUniverse` пуст, но до применения category scope,
   facets, price, availability и других пользовательских Listing filters;
 - search indexes обновляются существующим event-driven listing workflow;
 - backend публикует Admin GraphQL для управления, Preview и status;
-- все ветки одного request используют один загруженный runtime configuration
-  snapshot и один фактический PostgreSQL search contract;
+- все ветки одного request используют один immutable request-level configuration
+  context и один фактический PostgreSQL search contract; persisted global
+  configuration snapshot не создаётся;
 - все ветки одной search attempt используют один execution mode.
-- query обслуживается только normalization contract/profile revision, для которой
-  активный locale index имеет состояние `READY`.
+- query использует текущий code-level normalization contract/profile revision и
+  выбирает только physical rows с теми же значениями.
 
 ## PostgreSQL search stack
 
@@ -115,7 +117,9 @@ revision. Обновление любого из этих компонентов
 10. `HIDE` компилируется как canonical availability predicate в variant space до
     projection; `PLACE_LAST` использует только derived product ordering bucket.
     Оба режима имеют приоритет над boost.
-11. Pending/failed authoring revision не влияет на listing до atomic activation.
+11. Изменение settings, synonym group или boost становится видимым только после
+    commit соответствующей атомарной транзакции; после commit инвалидируется
+    только затронутый cache key.
 12. Listing не раскрывает SQL, AST, internal weights, `ts_rank_cd`, trigram
     similarity или edit distance.
 13. Search indexes подчиняются canonical `listing_index_item_state`: stale и
@@ -147,9 +151,9 @@ revision. Обновление любого из этих компонентов
 ```text
 Listing
   -> normalize locale/query/input
-  -> resolve one SearchRequestContext from the active runtime configuration
+  -> load settings, locale synonyms and applicable boosts once into SearchRequestContext
   -> normalize query через versioned Node.js normalization profile
-  -> validate profile revision against active locale index
+  -> resolve current code-level normalization profile revision
   -> build safe SearchQueryPlan
   -> derive PRIMARY SearchAttemptContext
   -> compile PostgreSQL PRIMARY candidates and intersect with publishedUniverse
@@ -256,13 +260,19 @@ interface SearchRequestContext {
   readonly locale: string;
   readonly normalizedQuery: NormalizedSearchQuery;
   readonly lexicalizedQuery: LexicalizedSearchQuery;
-  readonly runtimeConfiguration: CompiledSearchRuntimeConfiguration;
+  readonly configuration: SearchRequestConfiguration;
   readonly diagnosticsMode: "NONE" | "PREVIEW";
 }
 
 interface SearchAttemptContext {
   readonly request: SearchRequestContext;
   readonly mode: "PRIMARY" | "FUZZY";
+}
+
+interface SearchRequestConfiguration {
+  readonly settings: SearchSettings;
+  readonly synonyms: CompiledLocaleSynonyms;
+  readonly boosts: readonly ApplicableProductBoost[];
 }
 ```
 
@@ -272,10 +282,14 @@ search candidate bitmap после `publishedUniverse` пуст, но до categ
 ссылкой на тот же request context. Continuation выполняет только mode из cursor
 и не делает повторный PRIMARY probe.
 
-Active runtime configuration загружается один раз при создании request context и
-используется всеми ветками текущего request. Cursor не закрепляет configuration:
-continuation использует runtime configuration, активную на момент нового request.
-Физический search index не версионируется.
+`SearchRequestConfiguration` один раз загружает settings, locale-scoped synonyms
+и applicable boosts из обычных таблиц или точечных caches и используется всеми
+ветками текущего request. Это immutable application object, а не persisted
+database snapshot. Cursor не закрепляет configuration: continuation загружает
+актуальные committed значения на момент нового request. Физический search index
+не версионируется. Глобальная версия, связывающая settings, все synonyms и все
+boosts, отсутствует: каждый resource атомарен независимо, а request фиксирует
+именно те committed resource values, которые loader загрузил для него.
 
 ### 1.3. Engine-neutral query plan
 
@@ -382,7 +396,7 @@ PRIMARY matching использует:
 - tenant-scoped composite GIN index на `(store_id, search_vector)` через
   `btree_gin`;
 - `ts_rank_cd` для rank отдельного field element с последующим умножением на
-  numeric field weight из active runtime configuration;
+  numeric field weight из request configuration;
 - отдельную identifier relation для SKU exact/prefix.
 
 Начальные field weights:
@@ -395,12 +409,12 @@ category name = 1
 ```
 
 Каждый logical field element хранится отдельной row, поэтому PostgreSQL weight
-classes `A`–`D` и `setweight` не используются. Active runtime configuration
-содержит versioned mapping `field -> positive finite numeric weight`. Compiler
+classes `A`–`D` и `setweight` не используются. `search_settings` содержит mapping
+`field -> positive finite numeric weight`, один раз загружаемый в request context. Compiler
 вычисляет rank отдельной row через `ts_rank_cd(search_vector, tsquery)` и умножает
 его на weight соответствующего field. Изменение numeric weight не изменяет
 physical `tsvector`, не требует database migration или перестроения search rows и
-начинает действовать только после atomic activation новой runtime revision.
+начинает действовать после commit атомарного settings update и cache invalidation.
 
 Rank product вычисляется без multiplicity bias:
 
@@ -446,9 +460,9 @@ relevance_rank = SUM(unit_rank по satisfied required units)
 weight в пределах зафиксированных limits. Например, после появления готового
 `collection_name` runtime mapping может содержать
 `{ product_title: 8, collection_name: 3 }`. Добавление mapping или изменение
-`collection_name: 3 -> 4` создаёт новую configuration revision и проходит обычный
-compile/CAS activation, но не требует DDL migration, `setweight` или изменения
-существующих `search_vector`. Pending/failed revision не влияет на serving.
+`collection_name: 3 -> 4` выполняется обычным optimistic update
+`search_settings.version` в одной транзакции и инвалидирует только settings cache;
+DDL migration, `setweight` или изменение существующих `search_vector` не нужны.
 
 Compiler обязан параметризовать values, помещать `store_id` и locale predicates
 в каждый text/identifier/vocabulary subquery и не иметь `ILIKE` fallback. Lexeme arrays
@@ -597,7 +611,7 @@ page использует только `membershipBitmap`; search rank keys не
 они не нужны для diagnostics.
 
 Повторная SQL compilation ranked relation обязана использовать те же immutable
-request context, attempt mode, runtime revision и query plan. Она не может
+request context, attempt mode, загруженные configuration values и query plan. Она не может
 повторно выбирать PRIMARY/FUZZY, расширять membership или запускать fallback.
 
 Для request без cursor executor сначала materialize-ит PRIMARY
@@ -674,7 +688,7 @@ attempt. Technical error не запускает FUZZY fallback.
 4. Создать один `SearchCandidateContract` выбранного mode и выполнить с ним
    полный Listing bundle ровно один раз.
 5. PRIMARY и FUZZY candidate sets не объединять.
-6. Continuation выполняет только mode cursor с active configuration нового request
+6. Continuation выполняет только mode cursor с committed configuration нового request
    и materialize-ит candidate bitmap этого mode без дополнительного probe.
 
 Решение о FUZZY принимается исключительно по пустоте опубликованного PRIMARY
@@ -683,19 +697,20 @@ search candidate bitmap. Итоговый `totalCount`, длина page и пр�
 
 ### 1.10. Synonyms
 
-Active runtime configuration хранит locale-scoped token trie. Expander применяет
-longest-match-left-to-right. Multi-token synonym становится одним semantic unit;
+Request context хранит locale-scoped token trie, построенный при cache fill из
+нормализованных synonym rows. Expander применяет longest-match-left-to-right.
+Multi-token synonym становится одним semantic unit;
 phrase должна совпасть целиком в одном field element. Группы двунаправленные.
 
-Synonyms компилируются application planner-ом, а не PostgreSQL thesaurus, чтобы
-они оставались immutable частью atomically activated runtime configuration. Synonyms
+Synonyms нормализуются и валидируются до короткой write transaction, сохраняются
+готовыми rows и собираются в trie при cache fill, а не через PostgreSQL thesaurus. Synonyms
 не меняют identifier clauses, не получают typo expansion и не активируют boosts
 другой phrase.
 
-Каждое synonym value нормализуется локальным Node.js pipeline при configuration
-apply. Compiled runtime revision хранит prepared lexemes, contract version и
-profile revision; изменение normalization profile требует повторной compilation до
-activation.
+Каждое synonym value нормализуется локальным Node.js pipeline до write
+transaction. Row хранит prepared lexemes, contract version и profile revision;
+изменение normalization profile требует отдельного bounded synonym migration,
+но не глобальной compilation settings/boosts.
 
 ### 1.11. Boosts и ordering
 
@@ -736,8 +751,8 @@ filters и OOS policy.
 
 Float rank/similarity кодируются без округления в стабильном binary/decimal
 representation. Просроченный cursor возвращает `SEARCH_CURSOR_EXPIRED`.
-Cursor не обязан закреплять runtime configuration revision или snapshot search
-index. Continuation использует configuration и committed index state, актуальные
+Cursor не обязан закреплять configuration version или snapshot search
+index. Continuation использует configuration и committed search rows, актуальные
 на момент нового HTTP request. Поэтому при изменении configuration, search rows,
 publication или ordering keys между страницами отдельные товары могут быть
 пропущены либо повторно появиться на следующей странице. Это ожидаемая
@@ -821,7 +836,7 @@ async function executeSearchListing(input: NormalizedListingInput) {
   if (
     input.cursor?.mode === "PRIMARY" ||
     !isEmpty(primaryCandidates.membershipBitmap) ||
-    !request.runtimeConfiguration.typoToleranceEnabled ||
+    !request.configuration.settings.typoToleranceEnabled ||
     !canRunTypoAttempt(request.lexicalizedQuery)
   ) {
     return runFullBundle({
@@ -969,7 +984,7 @@ ordered primary lexemes, полученных от normalization pipeline; raw l
 search table не хранится. `search_vector` строится writer-ом только через
 `to_tsvector('pg_catalog.simple', prepared_text)` без `setweight`; composite GIN
 создаётся на `(store_id, search_vector)`. Numeric field weight в physical row и `tsvector` не хранится:
-его разрешает compiler из active runtime configuration при вычислении rank.
+его разрешает compiler из request configuration при вычислении rank.
 Query relation всегда фильтрует active contract/model revision вместе с
 `store_id` и locale.
 
@@ -1029,8 +1044,8 @@ Stale vocabulary rows допустимы: они могут породить л�
 correctness результатов.
 
 Наличие localized title определяется существованием `field=product_title`
-element; отдельный per-product coverage row не создаётся. Aggregate coverage
-вычисляется reconciliation и хранится только в `search_index_locale_state`.
+element. Диагностика при необходимости вычисляет aggregate coverage on demand и
+не использует её как serving gate.
 
 Один giant concatenated text column как единственный source запрещён: он ломает
 same-element phrase semantics и создаёт ranking bias по числу values.
@@ -1068,18 +1083,26 @@ transaction-aware `this.connection` и context store.
 
 ### 3.1. Configuration control plane
 
-- `search_configuration_state`: desired/active/applying revisions и apply status;
 - `search_settings`: enabled fields, independent numeric field weights, typo
   tolerance, OOS policy и optimistic version;
-- `search_configuration_revision`: immutable authoring JSON и checksum;
-- `search_configuration_apply_job`: durable outbox/recovery row;
-- `search_runtime_configuration`: compiled settings, synonym trie, boost map и
-  activation metadata.
+- synonym и boost tables являются одновременно authoring и runtime source;
+- persisted compiled configuration snapshot, global revision, apply job и
+  activation state не создаются.
 
-Authoring mutation атомарно блокирует state, проверяет optimistic version,
-увеличивает desired revision, сохраняет snapshot, audit и apply job. Activation
-выполняется CAS по desired revision. Failed/superseded revision не меняет active
-pointer.
+Каждая mutation до transaction выполняет bounded normalization и внешнюю
+validation, затем в короткой transaction блокирует только изменяемый resource,
+проверяет его optimistic `version`, записывает rows и audit. После commit
+инвалидируется только соответствующий cache key:
+
+```text
+settings                       -> search:settings:{storeId}
+synonyms одного locale         -> search:synonyms:{storeId}:{locale}
+один product boost             -> search:boost:{storeId}:{locale}:{boostId}
+```
+
+Cache fill читает committed rows и строит только локальную in-memory структуру:
+settings object, synonym trie или boost lookup. Эти структуры не записываются в
+PostgreSQL и не требуют общей compilation/activation.
 
 ### 3.2. Synonyms
 
@@ -1088,35 +1111,30 @@ pointer.
 DB-level уникальность active value.
 
 Validation: enabled locale, 2–20 unique values, 128 code points/value и bounded
-token count. Runtime compiler batch-нормализует каждое value через active локальный
-normalization profile; value без valid primary lexemes, с revision mismatch или
-invalid output отклоняется safe compile error.
+token count. Script batch-нормализует каждое value через текущий локальный
+normalization profile до transaction; value без valid primary lexemes, с profile
+mismatch или invalid output отклоняется validation error и ничего не записывает.
 
 ### 3.3. Product boosts
 
 Создать `search_product_boost`, `search_product_boost_phrase` и
 `search_product_boost_product`. MVP: 1–20 phrases, 1–50 products. Phrase — exact
-normalized whole query, подготовленный тем же active Node.js profile/revision.
+normalized whole query, подготовленный тем же текущим Node.js profile/revision.
 Product проверяется tenant-scoped через внешний Catalog contract; cross-service
 FK отсутствует. Rules объединяют product set без stacking.
 
 ### 3.4. Audit
 
-Append-only `search_configuration_audit` хранит revision, resource/action,
-before/after JSON, actor, request и timestamp. Raw query, SQL, lexemes, AST и
-headers не сохраняются.
+Append-only `search_configuration_audit` хранит resource type/id/version,
+action, before/after JSON, actor, request и timestamp. Raw query, SQL, lexemes,
+AST и headers не сохраняются.
 
-### 3.5. Index state
-
-- `search_index_state`: `READY/UPDATING/FAILED`, last attempt/success, safe error
-  и counters;
-- `search_index_locale_state`: expected/indexed/published products, localized
-  title coverage, text/identifier/term readiness, active normalization contract
-  version/profile revision и synchronization progress.
-
-Canonical item freshness остаётся в `listing_index_item_state`. Search state —
-только aggregate operational projection. Reconciliation сверяет text elements,
-identifiers, vocabulary coverage, canonical product rows, item state и DBOS state.
+Canonical item freshness остаётся в `listing_index_item_state`. Operational
+status вычисляется on demand из canonical item/workflow state, доступности
+PostgreSQL extensions и metrics; отдельная aggregate database projection не
+поддерживается. Reconciliation сверяет text elements, identifiers, vocabulary
+coverage, canonical product rows, item state и DBOS state и публикует результат
+в observability, а не в отдельную search status table.
 
 ## 4. Module and code structure
 
@@ -1138,21 +1156,14 @@ services/listing/src/repositories/search/
   SearchSettingsRepository.ts
   SearchSynonymRepository.ts
   SearchProductBoostRepository.ts
-  SearchConfigurationRevisionRepository.ts
-  SearchConfigurationApplyJobRepository.ts
-  SearchRuntimeConfigurationRepository.ts
   SearchTextElementRepository.ts
   SearchIdentifierRepository.ts
   SearchTermRepository.ts
-  SearchIndexStateRepository.ts
 
 services/listing/src/scripts/search/
   SearchSettingsUpdateScript.ts
   SearchSynonymGroup*Script.ts
   SearchProductBoost*Script.ts
-
-services/listing/src/workflows/
-  SearchConfigurationApplyWorkflow.ts
 
 services/listing/src/api/graphql-admin/schema/search.graphql
 services/listing/src/resolvers/admin/search/
@@ -1160,7 +1171,8 @@ services/listing/src/resolvers/admin/search/
 
 Resolvers только decode global IDs, проверяют authorization и вызывают
 Scripts/services. Validation/normalization находятся в Scripts; data access — в
-repositories; durable orchestration — в DBOS workflows.
+repositories. Configuration mutations используют короткие repository
+transactions и не запускают DBOS workflow.
 
 ## 5. GraphQL backend Listing
 
@@ -1196,8 +1208,8 @@ input paths.
 
 ## 6. Observability, privacy and guardrails
 
-Technical logs содержат store ID, query hash, locale/scope, runtime revision,
-attempt mode, candidate/final cardinalities,
+Technical logs содержат store ID, query hash, locale/scope, загруженные resource
+versions, attempt mode, candidate/final cardinalities,
 collector, typo flag, branch duration и counts synonyms/boosts. Raw query и
 lexemes запрещены.
 
@@ -1211,10 +1223,10 @@ Metrics:
 - GIN pending-list/search latency и autovacuum lag;
 - tenant-scoped composite GIN usage, cross-tenant candidate amplification и
   index size/skew;
-- configuration apply duration/failures;
-- indexing lag/failures/locale coverage.
+- configuration transaction/cache-fill duration и failures;
+- indexing lag/failures и общий reconciliation drift.
 - normalization single/batch duration, failures, output size,
-  contract/profile mismatch и per-locale throughput.
+  contract/profile mismatch и normalization throughput.
 
 Guardrails:
 
@@ -1277,7 +1289,7 @@ recall подтверждён corpus-ом.
 Готовность: single/batch hydration одинаковы; missing locale не получает
 fallback; removed variant/category data исчезает.
 
-### Этап 2. Universal PostgreSQL FTS indexes и index state
+### Этап 2. Universal PostgreSQL FTS indexes
 
 1. Удалить initial title-search table и создать непартиционированные
    text/identifier/vocabulary search tables; `product_listing_index`
@@ -1291,7 +1303,7 @@ fallback; removed variant/category data исчезает.
 5. Добавить Drizzle models и repositories.
 6. Повысить Listing sync write-model version и hash.
 7. Записывать search rows только после canonical item-state decision.
-8. Добавить aggregate index/locale state и reconciliation.
+8. Добавить reconciliation diagnostics без persisted aggregate state.
 
 Готовность: phrase не пересекает elements; SKU не stemmed; stale/noop не пишет;
 failed transaction сохраняет previous search rows/item state; engine не имеет
@@ -1299,19 +1311,30 @@ failed transaction сохраняет previous search rows/item state; engine н
 
 ### Этап 3. Configuration persistence
 
-1. Создать configuration/settings/revision/job/runtime/audit tables.
+1. Создать settings, synonym, boost и audit tables; configuration state,
+   revision, apply job и persisted runtime snapshot не создавать.
 2. Реализовать repositories через `this.connection` и context store.
-3. Реализовать optimistic authoring transaction.
+3. Реализовать отдельную короткую optimistic transaction для каждого settings,
+   synonym group и product boost resource.
 4. Добавить normalization/validation settings.
-5. Опубликовать GraphQL settings/application state.
+5. Записывать audit в той же transaction.
+6. Опубликовать GraphQL settings/application state.
 
-### Этап 4. Configuration apply и runtime revisions
+### Этап 4. Request configuration и точечные caches
 
-1. Реализовать DBOS apply workflow с retry, CAS activation и coalescing.
-2. Компилировать immutable runtime configuration.
-3. Batch-нормализовать/валидировать synonym values через active локальный profile.
-4. Реализовать cache active runtime configuration с invalidation после activation.
-5. Добавить recovery apply jobs и safe compile errors.
+1. Реализовать `SearchRequestConfigurationLoader`, который один раз на request
+   загружает settings, synonyms текущего locale и applicable boosts.
+2. Batch-нормализовать/валидировать synonym values и boost phrases до write
+   transaction и сохранять prepared values в resource rows.
+3. Реализовать раздельные cache entries для settings, locale synonyms и каждого
+   boost; persisted compiled snapshot не создавать.
+4. После commit инвалидировать только cache key изменённого resource.
+5. При cache miss строить in-memory synonym trie/boost lookup из committed rows;
+   cache fill не изменяет database state.
+
+Готовность: добавление одного boost product не перечитывает и не пересобирает
+settings/synonyms/другие boosts; все ветки request используют один загруженный
+immutable context; rollback не инвалидирует cache и не меняет serving.
 
 ### Этап 5. Normalization pipeline, PRIMARY planner и PostgreSQL FTS compiler
 
@@ -1354,7 +1377,7 @@ fallback запрещены.
 3. Повысить cursor version и включить полный fingerprint/ordering tuple.
 4. Реализовать issued-at и expiry cursor без configuration pinning.
 5. Проверить pagination для relevance и business sorts, включая допустимые
-   пропуски/повторы при изменении configuration или index state между requests.
+   пропуски/повторы при изменении configuration или search rows между requests.
 
 ### Этап 8. Typo tolerance
 
@@ -1381,7 +1404,7 @@ error — нет.
 
 1. Создать synonym authoring/value/claim tables.
 2. Реализовать Scripts и optimistic concurrency.
-3. Компилировать locale trie в runtime revision.
+3. Собирать locale trie при cache fill из prepared synonym rows.
 4. Добавить longest-match-left-to-right и phrase semantics.
 5. Опубликовать GraphQL CRUD/diagnostics.
 
@@ -1389,17 +1412,17 @@ error — нет.
 
 1. Создать boost/phrase/product tables.
 2. Реализовать tenant-scoped product validation.
-3. Компилировать exact original lookup map.
+3. Собирать exact original lookup map при cache fill конкретного boost/locale.
 4. Добавить boost-only candidates/cursor/Preview reason.
 5. Опубликовать GraphQL CRUD.
 
-### Этап 11. Index Status и Overview backend
+### Этап 11. Status и Overview backend
 
 1. Реализовать status service и GraphQL.
-2. Связать status с canonical item state, DBOS и PostgreSQL search health.
-3. Разделить extension/normalization health, locale/profile readiness, field readiness
-   и backlog/failure.
-4. Добавить periodic counter reconciliation.
+2. Вычислять status on demand из canonical item state, DBOS, PostgreSQL
+   extensions и observability metrics.
+3. Показывать extension/normalization health и фактический backlog/failure.
+4. Добавить periodic reconciliation diagnostics без записи aggregate status row.
 5. Реализовать Overview composition.
 
 ### Этап 12. Hardening и rollout
@@ -1409,9 +1432,11 @@ error — нет.
 2. Снять `EXPLAIN ANALYZE` matrix для FTS, phrase, category, filters, typo,
    boosts, diagnostics и term dictionary skew.
 3. Зафиксировать statement timeouts, GIN/autovacuum policy и trigram threshold.
-4. Добавить failure injection для config apply и item indexing.
+4. Добавить failure injection для configuration transaction, post-commit cache
+   invalidation и item indexing.
 5. Проверить privacy и tenant-isolated membership/performance.
-6. Включать capabilities только после readiness.
+6. Включать capabilities по фактически доступным extensions, code-level profiles
+   и source contracts без persisted locale readiness row.
 7. Удалить title-only/legacy search symbols после перехода.
 
 ## 8. Основные Listing touchpoints
@@ -1449,7 +1474,7 @@ error — нет.
 | Stemmed primary form | Document и query используют один Node.js profile/revision и PostgreSQL `simple` |
 | Stopword-only query | Validation error, не broad listing |
 | Normalization failure | `SEARCH_NORMALIZATION_FAILED`, без PostgreSQL locale-dictionary/cross-locale fallback |
-| Profile revision mismatch | Query fail-closed до READY/atomic activation соответствующего locale index |
+| Profile revision mismatch | Rows другой revision исключаются обязательным predicate; cross-profile fallback отсутствует |
 | Special tsquery characters | Bound values, без parser injection |
 | PRIMARY нашёл candidate, filters исключили его | Пустой PRIMARY Listing; FUZZY не запускается |
 | PRIMARY нашёл только draft candidate | Candidate исключён `publishedUniverse`; FUZZY разрешён |
@@ -1461,13 +1486,14 @@ error — нет.
 | Synonym typo | Synonym alternative не fuzzy-expand |
 | FUZZY multi-token | Все original terms обязательны; phrase span same-element |
 | Query/AST превышает limit | Validation error без truncation |
-| PRIMARY cursor | Только PRIMARY с active configuration нового request |
-| FUZZY cursor | Сразу FUZZY без primary probe с active configuration нового request |
+| PRIMARY cursor | Только PRIMARY с committed configuration нового request |
+| FUZZY cursor | Сразу FUZZY без primary probe с committed configuration нового request |
 | Configuration/index изменились между страницами | Continuation остаётся валидной; пропуск или повтор товара допустим |
 | Boost-only product | Проходит publication/scope/filters/OOS |
 | Boost + business sort | Boost ranking выключен |
-| Settings apply fail | Previous active revision serving |
-| Concurrent revisions N/N+1 | N не активируется после N+1 |
+| Settings transaction rollback | Committed settings и cache serving не меняются |
+| Concurrent update одного resource | Optimistic version conflict; чужие settings/synonyms/boosts не затрагиваются |
+| Добавление product в boost | Меняется только boost row и инвалидируется cache этого boost |
 | Stale product event | Search rows не меняются |
 | GIN unavailable/`simple` contract missing | `SEARCH_INDEX_UNAVAILABLE`, no fallback |
 | `gin_fuzzy_search_limit` | `0`, totals/facets не получают random subset |
@@ -1476,8 +1502,8 @@ error — нет.
 
 ## 10. Definition of Done
 
-- все advertised fields имеют реальный source, ready normalization profile
-  revision и GIN index на `pg_catalog.simple`;
+- все advertised fields имеют реальный source, текущий code-level normalization
+  profile revision и GIN index на `pg_catalog.simple`;
 - page/total/facets используют одинаковый membership compilation contract при
   любом scope/sort;
 - primary FTS, phrase, identifiers, synonyms, typo tolerance, boosts и OOS
@@ -1487,10 +1513,13 @@ error — нет.
   hidden top-K или отдельного product mapping;
 - runtime search tables не partitioned, а storefront plans подтверждают
   tenant-scoped composite GIN scan по bound `store_id`;
-- configuration apply имеет durable state machine, а document sync использует
-  canonical Listing item workflow без дублирующего freshness state;
-- stale revision/event не активируют устаревшее состояние;
-- status честно показывает extension/normalization/index/locale readiness;
+- configuration mutations атомарны на уровне resource, audit пишется в той же
+  transaction, а cache invalidation после commit является точечной;
+- persisted global configuration snapshot/apply state отсутствует; document sync
+  использует canonical Listing item workflow без дублирующего freshness state;
+- optimistic conflict и stale item event не перезаписывают новое состояние;
+- status вычисляется из фактических extension/item/workflow/metrics sources без
+  persisted aggregate projection;
 - GraphQL authorization, pagination, user errors и application states реализованы;
 - correctness, failure и performance matrices подтверждены;
 - legacy title-only search table/repository/symbols удалены.
@@ -1532,9 +1561,11 @@ error — нет.
    `services/listing/migrations/domains/0100_listing_index/`: extensions,
    непартиционированные таблицы, tenant-scoped composite GIN indexes, generated expressions, constraints,
    indexes и DB-level invariants для search index, configuration, synonyms,
-   boosts, audit и operational state. Term vocabulary не получает surrogate ID,
+   boosts и audit. Term vocabulary не получает surrogate ID,
    sequence или product mapping: product postings принадлежат только FTS GIN над
-   `product_search_text.search_vector`. На этом же шаге удалить или заменить
+   `product_search_text.search_vector`. Таблицы `search_configuration_state`,
+   `search_configuration_revision`, `search_configuration_apply_job` и
+   `search_runtime_configuration` не создаются. На этом же шаге удалить или заменить
    legacy title-only physical contract. Gate слоя: физическая схема полностью
    определена, tenant isolation и UUIDv7 rules соблюдены, все необходимые
    PostgreSQL contracts выражены в DDL.
@@ -1550,14 +1581,10 @@ error — нет.
    1. `SearchTextElementRepository`;
    2. `SearchIdentifierRepository`;
    3. `SearchTermRepository`;
-   4. `SearchIndexStateRepository`;
-   5. `SearchSettingsRepository`;
-   6. `SearchSynonymRepository`;
-   7. `SearchProductBoostRepository`;
-   8. `SearchConfigurationRevisionRepository`;
-   9. `SearchConfigurationApplyJobRepository`;
-   10. `SearchRuntimeConfigurationRepository`;
-   11. изменения существующих `ListingIndexItemStateRepository`,
+   4. `SearchSettingsRepository`;
+   5. `SearchSynonymRepository`;
+   6. `SearchProductBoostRepository`;
+   7. изменения существующих `ListingIndexItemStateRepository`,
        `StorefrontListingQueryRepository` и Listing write repositories.
 
    Каждый repository считается завершённым только когда покрывает весь свой
@@ -1578,8 +1605,9 @@ error — нет.
    операцию в Script/service; validation, normalization и data access в
    резолверы не переносятся.
 6. **Интеграция с репозиториями.** Последним шагом связать готовые резолверы через
-   Scripts/services/DBOS workflows с готовыми repositories и включить их в
-   canonical Listing flows: configuration authoring/apply, item indexing,
+   Scripts/services и, только где требуется durable orchestration, DBOS workflows
+   с готовыми repositories и включить их в canonical Listing flows:
+   configuration transactions/cache invalidation, item indexing,
    search execution, synonyms, boosts, status и overview. Нормативная цепочка
    вызова: `GraphQL resolver -> Script/service/workflow -> Repository -> DB`;
    прямой вызов repository или raw SQL из GraphQL resolver запрещён. Gate слоя:
