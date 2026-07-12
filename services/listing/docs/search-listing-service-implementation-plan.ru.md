@@ -62,9 +62,6 @@ uk -> listing.search_uk
 Каждая configuration создаётся DDL и явно задаёт parser/dictionaries, stemming,
 stop words и `unaccent` policy. Для locale без проверенного language dictionary
 используется configuration на базе `simple`; другая locale не подставляется.
-Изменение search DDL требует полного rebuild search rows до возврата capability
-в состояние ready; параллельное обслуживание нескольких версий индекса не
-поддерживается.
 
 ## Обязательные инварианты
 
