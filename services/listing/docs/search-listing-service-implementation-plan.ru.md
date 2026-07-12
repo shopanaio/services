@@ -926,15 +926,16 @@ CREATE INDEX search_term_dictionary_store_term_trgm_gin
   USING gin (store_id, term gin_trgm_ops);
 ```
 
-Identifier table имеет indexes, описанные ниже. Primary/unique keys всегда
-включают `store_id` как часть tenant identity и FK contract. Vocabulary не имеет
-surrogate `term_id`, sequence или FK на products: его identity —
-`(store_id, locale, term)`.
+Identifier table имеет indexes, описанные ниже. Primary и foreign keys не
+включают tenant scope `store_id`: они строятся на stable entity/physical IDs.
+Tenant-local identity обеспечивается отдельными `UNIQUE` constraints, а runtime
+isolation — tenant-scoped indexes и обязательными predicates по `store_id`.
+Vocabulary не имеет surrogate `term_id`, sequence или FK на products; уникальность
+term обеспечивается `UNIQUE (store_id, locale, term)`.
 
 Bound `store_id` передаётся как uuid без function/cast на indexed column.
-Обязательные `EXPLAIN` fixtures подтверждают, что FTS использует composite
-`(store_id, search_vector)` GIN, а typo lookup — composite
-`(store_id, term gin_trgm_ops)` GIN; план, извлекающий cross-tenant GIN
+FTS использует composite `(store_id, search_vector)` GIN, а typo lookup —
+composite `(store_id, term gin_trgm_ops)` GIN. План, извлекающий cross-tenant GIN
 candidates и фильтрующий tenant только после index scan, contract не проходит.
 
 #### Canonical product document
@@ -951,8 +952,8 @@ indexes. Они хранят `product_doc_id` как денормализова�
 этого ключа/FK не имеет:
 
 ```text
-FK (store_id, product_doc_id, product_id)
-  -> product_listing_index(store_id, product_doc_id, product_id)
+FK (product_doc_id, product_id)
+  -> product_listing_index(product_doc_id, product_id)
   ON DELETE CASCADE
 ```
 
@@ -974,9 +975,9 @@ listing.product_search_text
   normalization_profile_revision varchar(64) not null
   search_vector tsvector not null
 
-  PK (store_id, product_id, locale, field, element_id)
-  FK (store_id, product_doc_id, product_id)
-    -> product_listing_index(store_id, product_doc_id, product_id)
+  PK (product_id, locale, field, element_id)
+  FK (product_doc_id, product_id)
+    -> product_listing_index(product_doc_id, product_id)
 ```
 
 Одна row содержит одно logical value. `prepared_text` — bounded строка из
@@ -1008,9 +1009,9 @@ listing.product_search_identifier
   kind varchar(16) not null  # SKU
   normalized_value text not null
 
-  PK (store_id, product_id, locale, kind, element_id)
-  FK (store_id, product_doc_id, product_id)
-    -> product_listing_index(store_id, product_doc_id, product_id)
+  PK (product_id, locale, kind, element_id)
+  FK (product_doc_id, product_id)
+    -> product_listing_index(product_doc_id, product_id)
 ```
 
 B-tree indexes обеспечивают tenant/locale exact и `text_pattern_ops` prefix.
@@ -1024,7 +1025,7 @@ listing.search_term_dictionary
   term text not null
   code_point_length smallint not null
 
-  PK (store_id, locale, term)
+  UNIQUE (store_id, locale, term)
 ```
 
 Dictionary индексируется composite GIN `(store_id, term gin_trgm_ops)`;
@@ -1259,20 +1260,16 @@ Guardrails:
 До этапа 1:
 
 1. Зафиксировать supported PostgreSQL major.
-2. Добавить DDL/smoke fixtures для FTS, GIN, `btree_gin`, `pg_trgm`, `fuzzystrmatch` и
-   единственной explicit configuration `pg_catalog.simple`.
-3. Зафиксировать tenant-scoped composite GIN contracts и `EXPLAIN`-проверки
-   применения `store_id` внутри FTS/trigram index condition.
-4. Зафиксировать TypeScript contract, profile versioning, single/batch limits,
+2. Зафиксировать TypeScript contract, profile versioning, single/batch limits,
    deterministic hashing, readiness и error mapping.
-5. Проверить normalization profiles `uk/en/ru`: NFKC, apostrophes, diacritics,
+3. Проверить normalization profiles `uk/en/ru`: NFKC, apostrophes, diacritics,
    special characters, normalized-token phrase semantics, stems,
    stopwords, surface typo terms, arrays/elements и SKU preservation.
-6. Зафиксировать distance-1 corpus и единый безопасный trigram threshold.
-7. Подтвердить, что execution role видит required extensions и
+4. Зафиксировать distance-1 corpus и единый безопасный trigram threshold.
+5. Подтвердить, что execution role видит required extensions и
    `pg_catalog.simple`.
-8. Исправить `CATEGORY + query` для page/total/facets и business sorts.
-9. Удалить handle/UUID fallback.
+6. Исправить `CATEGORY + query` для page/total/facets и business sorts.
+7. Удалить handle/UUID fallback.
 
 Готовность: unsupported locale/profile не advertised; tenant leakage
 отсутствует; raw input parameterized; normalization deterministic; typo prefilter
@@ -1298,12 +1295,10 @@ fallback; removed variant/category data исчезает.
    compilers; не создавать locale text-search configurations.
 3. Добавить tenant-scoped composite GIN FTS/trigram и B-tree identifier indexes;
    отдельный term-to-product mapping не создавать.
-4. Добавить `EXPLAIN` fixtures, доказывающие применение bound `store_id` внутри
-   composite GIN index condition без cross-tenant candidate scan.
-5. Добавить Drizzle models и repositories.
-6. Повысить Listing sync write-model version и hash.
-7. Записывать search rows только после canonical item-state decision.
-8. Добавить reconciliation diagnostics без persisted aggregate state.
+4. Добавить Drizzle models и repositories.
+5. Повысить Listing sync write-model version и hash.
+6. Записывать search rows только после canonical item-state decision.
+7. Добавить reconciliation diagnostics без persisted aggregate state.
 
 Готовность: phrase не пересекает elements; SKU не stemmed; stale/noop не пишет;
 failed transaction сохраняет previous search rows/item state; engine не имеет
@@ -1348,7 +1343,7 @@ immutable context; rollback не инвалидирует cache и не меня
 5. Реализовать per-unit matching и multiplicity-neutral rank aggregation.
 6. Зафиксировать supported PostgreSQL/normalization contract и full candidate
    relation без top-K.
-7. Добавить `EXPLAIN ANALYZE` и cross-language compatibility corpus.
+7. Добавить cross-language compatibility corpus.
 
 Готовность: exact boolean form сохранена; tenant/locale predicates обязательны;
 phrase same-element; ranking deterministic; неготовый или несовместимый
@@ -1429,15 +1424,13 @@ error — нет.
 
 1. Создать `uk/en/ru` corpus с identifiers, synonyms, OOS, missing locale и
    large candidate sets.
-2. Снять `EXPLAIN ANALYZE` matrix для FTS, phrase, category, filters, typo,
-   boosts, diagnostics и term dictionary skew.
-3. Зафиксировать statement timeouts, GIN/autovacuum policy и trigram threshold.
-4. Добавить failure injection для configuration transaction, post-commit cache
+2. Зафиксировать statement timeouts, GIN/autovacuum policy и trigram threshold.
+3. Добавить failure injection для configuration transaction, post-commit cache
    invalidation и item indexing.
-5. Проверить privacy и tenant-isolated membership/performance.
-6. Включать capabilities по фактически доступным extensions, code-level profiles
+4. Проверить privacy и tenant-isolated membership/performance.
+5. Включать capabilities по фактически доступным extensions, code-level profiles
    и source contracts без persisted locale readiness row.
-7. Удалить title-only/legacy search symbols после перехода.
+6. Удалить title-only/legacy search symbols после перехода.
 
 ## 8. Основные Listing touchpoints
 
