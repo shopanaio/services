@@ -28,13 +28,13 @@ spellcheck, ML-reranking, персонализация, sponsored results и о�
 - canonical listing bitmap pipeline остаётся источником истины для publication,
   navigation scope, same-variant filters, prices, availability, totals и facets;
 - listing вызывает `SearchExecutionService`;
-- settings, synonyms и boosts применяются из immutable versioned runtime revision;
+- settings, synonyms и boosts применяются из текущей atomically activated runtime configuration;
 - typo-tolerant search выполняется отдельным полным проходом только после final
   zero primary result;
 - search indexes обновляются существующим event-driven listing workflow;
 - backend публикует Admin GraphQL для управления, Preview и status;
-- все ветки одного request используют pinned configuration revision и один
-  фактический PostgreSQL search contract;
+- все ветки одного request используют один загруженный runtime configuration
+  snapshot и один фактический PostgreSQL search contract;
 - все ветки одной search attempt используют один execution mode.
 
 ## PostgreSQL search stack
@@ -102,15 +102,15 @@ stop words и `unaccent` policy. Для locale без проверенного l
 ```text
 Listing
   -> normalize locale/query/input
-  -> resolve one pinned SearchRequestContext
-  -> lexicalize query with pinned PostgreSQL text-search configurations
+  -> resolve one SearchRequestContext from the active runtime configuration
+  -> lexicalize query with explicit PostgreSQL text-search configurations
   -> build safe SearchQueryPlan
   -> derive PRIMARY SearchAttemptContext
   -> compile PostgreSQL FTS + identifier candidate relation
   -> intersect with canonical listing scope/filter pipeline
   -> calculate PRIMARY page + total + facets from one productMatches contract
   -> when final primary totalCount = 0 and typo tolerance is allowed:
-       derive FUZZY SearchAttemptContext from the same pinned request context
+       derive FUZZY SearchAttemptContext from the same request context
        compile pg_trgm term candidates + exact Levenshtein verification
        rerun the whole bundle in FUZZY mode
   -> apply relevance/business ordering and OOS policy
@@ -130,7 +130,7 @@ Listing
 5. ограничить display query 128 Unicode code points;
 6. построить locale-aware case-folded `lookupKey`;
 7. вычислить tenant-scoped query hash через length-prefixed tuple;
-8. передать normalized text в pinned PostgreSQL lexicalization contract.
+8. передать normalized text в explicit PostgreSQL lexicalization contract.
 
 ```ts
 interface NormalizedSearchQuery {
@@ -156,7 +156,7 @@ interface SearchLexicalUnit {
 
 FTS lexicalization выполняется одной bounded database operation с explicit
 `regconfig`. Primary lexemes получаются той же locale configuration, которой
-построены document vectors. Typo terms получаются отдельной pinned configuration
+построены document vectors. Typo terms получаются отдельной explicit configuration
 на базе `simple`, чтобы stemming document lexeme не сравнивался Levenshtein с
 опечаткой surface token.
 
@@ -178,8 +178,6 @@ interface SearchRequestContext {
   readonly locale: string;
   readonly normalizedQuery: NormalizedSearchQuery;
   readonly lexicalizedQuery: LexicalizedSearchQuery;
-  readonly configurationRevision: number;
-  readonly runtimeConfigurationChecksum: string;
   readonly runtimeConfiguration: CompiledSearchRuntimeConfiguration;
   readonly diagnosticsMode: "NONE" | "PREVIEW";
 }
@@ -194,9 +192,10 @@ Request без cursor всегда начинает с `PRIMARY`. Если final
 `totalCount = 0` и typo tolerance разрешён, создаётся `FUZZY` attempt со ссылкой
 на тот же request context. Continuation выполняет только mode из cursor.
 
-Runtime snapshot кэшируется по
-`store:<storeId>:search-config:<revision>`. Старые runtime revisions удерживаются
-не меньше cursor TTL. Физический search index не версионируется.
+Active runtime configuration загружается один раз при создании request context и
+используется всеми ветками текущего request. Cursor не закрепляет configuration:
+continuation использует runtime configuration, активную на момент нового request.
+Физический search index не версионируется.
 
 ### 1.3. Engine-neutral query plan
 
@@ -437,19 +436,19 @@ attempt. Technical error не запускает FUZZY fallback.
    plan из того же primary plan.
 4. Повторить весь Listing bundle в `FUZZY` mode.
 5. Вернуть только FUZZY result, не объединяя candidate sets.
-6. Continuation выполняет только mode cursor на retained revision.
+6. Continuation выполняет только mode cursor с active configuration нового request.
 
 Решение о fallback принимается исключительно по final primary `totalCount`.
 Raw FTS hits, identifier candidates и длина primary page его не блокируют.
 
 ### 1.10. Synonyms
 
-Runtime revision хранит locale-scoped token trie. Expander применяет
+Active runtime configuration хранит locale-scoped token trie. Expander применяет
 longest-match-left-to-right. Multi-token synonym становится одним semantic unit;
 phrase должна совпасть целиком в одном field element. Группы двунаправленные.
 
 Synonyms компилируются application planner-ом, а не PostgreSQL thesaurus, чтобы
-они оставались immutable частью runtime revision и atomic activation. Synonyms
+они оставались immutable частью atomically activated runtime configuration. Synonyms
 не меняют identifier clauses, не получают typo expansion и не активируют boosts
 другой phrase.
 
@@ -485,15 +484,14 @@ filters и OOS policy.
 Повысить cursor version и включить:
 
 - normalized request hash, locale, currency, scope, filters и sort;
-- configuration revision/checksum;
 - execution mode;
 - conditional availability bucket;
 - полный фактический PRIMARY или FUZZY ordering tuple;
 - ordinal/product tie-breaker, issued-at и expiry.
 
 Float rank/similarity кодируются без округления в стабильном binary/decimal
-representation. Отсутствующая retained revision возвращает
-`SEARCH_CURSOR_EXPIRED`. Snapshot search index между HTTP requests не обещается.
+representation. Просроченный cursor возвращает `SEARCH_CURSOR_EXPIRED`.
+Snapshot search index и runtime configuration между HTTP requests не обещаются.
 
 ### 1.13. Listing diagnostics
 
@@ -537,7 +535,7 @@ SQL, AST, lexemes, rank, trigram similarity и edit distance не публику
 
 ```ts
 async function executeSearchListing(input: NormalizedListingInput) {
-  const request = await pinAndLexicalizeSearchRequestContext(input);
+  const request = await resolveAndLexicalizeSearchRequestContext(input);
   const primaryPlan = buildPrimaryPlan(request);
 
   if (input.cursor?.mode === "FUZZY") {
@@ -749,7 +747,7 @@ pointer.
 DB-level уникальность active value.
 
 Validation: enabled locale, 2–20 unique values, 128 code points/value и bounded
-token count. Runtime compiler lexicalize каждое value pinned FTS configuration;
+token count. Runtime compiler lexicalize каждое value explicit FTS configuration;
 value без valid lexemes отклоняется safe compile error.
 
 ### 3.3. Product boosts
@@ -943,8 +941,8 @@ failed transaction сохраняет previous search rows/item state; engine н
 
 1. Реализовать DBOS apply workflow с retry, CAS activation и coalescing.
 2. Компилировать immutable runtime configuration.
-3. Lexicalize/validate synonym values pinned FTS configuration.
-4. Реализовать revision-addressed cache и retention >= cursor TTL.
+3. Lexicalize/validate synonym values explicit FTS configuration.
+4. Реализовать cache active runtime configuration с invalidation после activation.
 5. Добавить recovery apply jobs и safe compile errors.
 
 ### Этап 5. PRIMARY planner и PostgreSQL FTS compiler
@@ -962,7 +960,7 @@ PostgreSQL contract возвращает `SEARCH_INDEX_UNAVAILABLE`.
 
 ### Этап 6. Canonical Listing executor
 
-1. Создать `SearchExecutionService` и pinned request context.
+1. Создать `SearchExecutionService` и единый request context.
 2. Встроить candidates в `productMatches` для GLOBAL/CATEGORY.
 3. Обеспечить одинаковую membership algebra для всех branches.
 4. Сохранить search bitmap при target isolation/business sort.
@@ -973,7 +971,7 @@ PostgreSQL contract возвращает `SEARCH_INDEX_UNAVAILABLE`.
 1. Реализовать SHOW/HIDE/PLACE_LAST canonical semantics.
 2. Добавить conditional availability bucket.
 3. Повысить cursor version и включить полный fingerprint/ordering tuple.
-4. Реализовать retained revision expiry.
+4. Реализовать issued-at и expiry cursor без configuration pinning.
 5. Проверить pagination для relevance и business sorts.
 
 ### Этап 8. Typo tolerance
@@ -982,7 +980,7 @@ PostgreSQL contract возвращает `SEARCH_INDEX_UNAVAILABLE`.
 2. Реализовать `pg_trgm` candidate compiler без top-K.
 3. Добавить mandatory `levenshtein_less_equal(..., 1)` verifier.
 4. Запускать FUZZY только после final PRIMARY zero.
-5. Повторять полный result bundle на том же pinned request context.
+5. Повторять полный result bundle на том же request context.
 6. Добавить FUZZY cursor ordering и continuation semantics.
 7. Добавить timeout, candidate-work и dictionary-scan guardrails.
 
@@ -1057,7 +1055,7 @@ fallback; technical error — нет.
 | Phrase across variants | Не совпадает |
 | Exact/prefix SKU | Identifier tier без stemming/synonym/typo |
 | Missing locale title | Нет fallback; SKU ещё может найти product |
-| Stemmed primary form | Поведение соответствует pinned locale configuration |
+| Stemmed primary form | Поведение соответствует explicit locale configuration |
 | Stopword-only query | Validation error, не broad listing |
 | Special tsquery characters | Bound values, без parser injection |
 | Primary raw hit отфильтрован | Final zero разрешает FUZZY pass |
@@ -1068,8 +1066,8 @@ fallback; technical error — нет.
 | Synonym typo | Synonym alternative не fuzzy-expand |
 | FUZZY multi-token | Все original terms обязательны; phrase span same-element |
 | Query/AST превышает limit | Validation error без truncation |
-| PRIMARY cursor | Только PRIMARY на retained revision |
-| FUZZY cursor | Сразу FUZZY без primary probe |
+| PRIMARY cursor | Только PRIMARY с active configuration нового request |
+| FUZZY cursor | Сразу FUZZY без primary probe с active configuration нового request |
 | Boost-only product | Проходит publication/scope/filters/OOS |
 | Boost + business sort | Boost ranking выключен |
 | Settings apply fail | Previous active revision serving |
