@@ -8,6 +8,10 @@ Node.js normalization pipeline на `Intl.Segmenter` + `natural`. PostgreSQL н�
 выполняет locale-specific stemming или stopword filtering: документы, запросы,
 synonyms и boost phrases проходят один versioned normalization profile до записи
 или compilation.
+Исключение — typo vocabulary: он хранит исходные surface terms без normalization
+и revision и используется только для query-term expansion. Найденные fuzzy
+alternatives нормализуются уже после Levenshtein verification перед compilation
+в обычный PostgreSQL FTS query.
 Внешний search engine и `pg_search` не используются.
 
 Реализация Catalog snapshot, broker-types и Admin UI не входит в этот план. Они
@@ -38,8 +42,10 @@ locale-aware tokenization и stemming выполняются в процессе
 - `ts_rank_cd` вычисляет внутренний deterministic relevance rank, но не
   объявляется BM25 score;
 - SKU ищется отдельными exact/prefix predicates и B-tree indexes;
-- typo tolerance использует `pg_trgm` для индексируемого отбора терминов и
-  `fuzzystrmatch.levenshtein_less_equal` для окончательной проверки distance `1`;
+- typo tolerance использует `pg_trgm` для индексируемого отбора surface terms,
+  `fuzzystrmatch.levenshtein_less_equal` для окончательной проверки distance `1`,
+  затем нормализует подтверждённые alternatives и выполняет полнотекстовый поиск
+  тем же `tsvector`/GIN contract, что и PRIMARY;
 - canonical listing bitmap pipeline остаётся источником истины для publication,
   navigation scope, same-variant filters, prices, availability, totals и facets;
 - listing вызывает `SearchExecutionService`;
@@ -118,8 +124,9 @@ revision. Обновление любого из этих компонентов
 14. Phrase совпадает только внутри одного logical field element. Текст разных
     variants/categories и разных fields не может совместно удовлетворить phrase.
 15. Typo candidate prefilter не может превращаться в hidden top-K. Все прошедшие
-    зафиксированный trigram predicate кандидаты проверяются Levenshtein и участвуют
-    в exact Listing totals/facets.
+    зафиксированный trigram predicate terms проверяются Levenshtein; подтверждённые
+    alternatives компилируются в FTS query, а все совпавшие с ним документы
+    участвуют в exact Listing totals/facets.
 16. `gin_fuzzy_search_limit` для Listing connections равен `0`: случайная усечённая
     выборка GIN недопустима.
 17. Document, query, synonym и boost normalization используют один contract
@@ -149,7 +156,8 @@ Listing
   -> materialize PRIMARY search-visible candidate bitmap
   -> when PRIMARY search candidate bitmap is empty and typo tolerance is allowed:
        derive FUZZY SearchAttemptContext from the same request context
-       compile pg_trgm term candidates + exact Levenshtein verification
+       resolve pg_trgm vocabulary candidates + exact Levenshtein verification
+       normalize verified alternatives and compile expanded PostgreSQL FTS query
        materialize FUZZY search candidate bitmap
   -> choose one PRIMARY or FUZZY mode and one immutable SearchCandidateContract
   -> use its membership bitmap in every Listing membership branch
@@ -167,17 +175,20 @@ Listing
 
 1. validate locale по enabled project locales;
 2. удалить control characters;
-3. применить Unicode NFKC;
-4. trim и collapse Unicode whitespace;
-5. ограничить display query 128 Unicode code points;
-6. построить locale-aware case-folded `lookupKey`;
-7. вычислить tenant-scoped query hash через length-prefixed tuple;
-8. сегментировать normalized text через `Intl.Segmenter(locale, { granularity:
+3. из очищенной, но ещё не нормализованной строки выделить ordered surface terms
+   для typo vocabulary/query; сохранить исходный Unicode и регистр без NFKC,
+   case folding, stemming и stopword filtering;
+4. применить Unicode NFKC;
+5. trim и collapse Unicode whitespace;
+6. ограничить display query 128 Unicode code points;
+7. построить locale-aware case-folded `lookupKey`;
+8. вычислить tenant-scoped query hash через length-prefixed tuple;
+9. сегментировать normalized text через `Intl.Segmenter(locale, { granularity:
    'word' })`, сохранив source order, offsets и `isWordLike`;
-9. классифицировать SKU/code-like/mixed-script tokens, применить versioned
+10. классифицировать SKU/code-like/mixed-script tokens, применить versioned
    stopwords и locale-specific stemmer из `natural` только к searchable language
    tokens;
-10. проверить output limits, contract version, locale/profile revision и
+11. проверить output limits, contract version, locale/profile revision и
     deterministic output hash.
 
 ```ts
@@ -205,10 +216,14 @@ interface SearchLexicalUnit {
 ```
 
 Normalization pipeline возвращает ordered semantic units, prepared primary lexemes и
-отдельные normalized surface typo terms. Primary lexemes получаются тем же
-locale profile revision, которым построены document vectors. Surface typo term
-не заменяется stem: это сохраняет корректный Levenshtein contract для
-опечаток. PostgreSQL не является источником lexicalization.
+отдельные surface typo terms. Primary lexemes получаются тем же locale profile
+revision, которым построены document vectors. Surface typo term — точная surface
+строка token, выделенная tokenizer из source/query до NFKC, case folding,
+stemming и stopword filtering. Dictionary не нормализует и не версионирует term;
+он используется только для trigram/Levenshtein comparison. Только после выбора
+verified alternative эта строка проходит обычный query normalization pipeline и
+превращается в primary lexemes для expanded FTS. PostgreSQL не является
+источником lexicalization.
 
 Stopwords удаляются локальным pipeline до PostgreSQL одинаково для document/query
 и до построения обязательных semantic units (`requiredUnits`). Удалённый stopword
@@ -307,7 +322,30 @@ interface SearchQueryPlan {
   readonly matchedSynonymGroupIds: readonly string[];
   readonly applicableBoostProductIds: readonly string[];
 }
+
+interface VerifiedTypoAlternative {
+  readonly inputTerm: string;
+  readonly vocabularyTerm: string;
+  readonly editDistance: 0 | 1;
+  readonly trigramSimilarity: number;
+  readonly ftsLexemes: readonly string[];
+}
+
+interface ExpandedFuzzySearchQueryPlan extends SearchQueryPlan {
+  readonly verifiedAlternativesByUnit: ReadonlyMap<
+    number,
+    readonly VerifiedTypoAlternative[]
+  >;
+}
 ```
+
+`SearchQueryPlan` не содержит database-derived product matches. Для FUZZY
+dictionary lookup сначала создаёт полный `VerifiedTypoAlternative[]` в пределах
+request guardrails; затем application normalizer заполняет `ftsLexemes`, и
+builder создаёт immutable `ExpandedFuzzySearchQueryPlan`. Guardrail overflow
+завершает attempt technical error и не усекает alternatives. Пустой набор
+alternatives хотя бы одного обязательного unit означает пустой FUZZY result без
+FTS scan.
 
 Boolean semantics:
 
@@ -387,7 +425,7 @@ relevance_rank = SUM(unit_rank по satisfied required units)
 - limits и readiness requirements.
 
 Добавление нового logical field, например `collection_name`, не требует изменения
-схемы `product_search_text` или `product_search_term`: новое значение хранится в
+схемы `product_search_text` или vocabulary: новое значение хранится в
 существующей колонке `field`, а каждое значение коллекции — отдельным element с
 `element_id = collection_id`. Для добавления поля необходимо последовательно:
 
@@ -413,23 +451,40 @@ compile/CAS activation, но не требует DDL migration, `setweight` ил
 существующих `search_vector`. Pending/failed revision не влияет на serving.
 
 Compiler обязан параметризовать values, помещать `store_id` и locale predicates
-в каждый text/identifier/term subquery и не иметь `ILIKE` fallback. Lexeme arrays
+в каждый text/identifier/vocabulary subquery и не иметь `ILIKE` fallback. Lexeme arrays
 используются для validation/limits, но не сериализуются в raw `to_tsquery` syntax.
 Prepared text принимается только из validated normalization output; исходный
 пользовательский text никогда не передаётся в PostgreSQL FTS functions.
 
 ### 1.5. Typo compiler
 
-`PostgresTypoQueryCompiler` работает только в `FUZZY` mode:
+`PostgresTypoQueryCompiler` работает только в `FUZZY` mode. Dictionary является
+только vocabulary для query expansion и не содержит postings или product
+identity:
 
 1. Берёт только original `typoTerms`; synonym и SKU не расширяются.
-2. Ищет tenant/locale term candidates через `pg_trgm` operator и GIN.
+2. Ищет tenant/locale vocabulary candidates через `pg_trgm` operator и GIN.
 3. Применяет length band `abs(char_length(term)-char_length(input)) <= 1`.
 4. Для каждого кандидата обязательно проверяет
    `levenshtein_less_equal(term, input, 1) <= 1`.
-5. Требует совпадения всех terms обязательного unit.
-6. Для multi-token unit требует один `field + element_id`.
-7. Агрегирует element matches в product relation без `LIMIT`/top-K.
+5. Возвращает все verified alternatives без `LIMIT`/top-K`; dictionary lookup
+   сам по себе не создаёт product candidates.
+6. `SearchQueryNormalizer` нормализует verified surface alternatives тем же
+   profile, что document vectors, и строит bounded primary lexemes.
+7. Compiler формирует typed expanded FTS clause: OR alternatives внутри одного
+   required unit, AND между обязательными units.
+8. Выполняет expanded query через `search_vector @@ tsquery` и тот же composite
+   GIN `(store_id, search_vector)`, который обслуживает PRIMARY.
+9. Для multi-token unit применяет единый expanded `tsquery` к одной row
+   `field + element_id`; разные rows не могут совместно удовлетворить unit или
+   phrase.
+10. Агрегирует совпавшие FTS elements в product relation без candidate cap.
+
+`product_search_term` и собственный term-to-product posting index не создаются.
+Связь expanded lexeme с products уже хранится PostgreSQL GIN над
+`product_search_text.search_vector`. Dictionary решает только задачу поиска
+близких surface forms; stale dictionary term безопасен для correctness, потому
+что expanded FTS query не найдёт отсутствующий lexeme в document index.
 
 Единый `pg_trgm.similarity_threshold` фиксируется в database configuration
 для execution role Listing и не изменяется в runtime queries. Compatibility
@@ -457,12 +512,12 @@ FUZZY relevance tuple до Listing ordering:
 ```text
 total_edit_distance ASC
 minimum_trigram_similarity DESC
-primary_fts_rank DESC
+expanded_fts_rank DESC
 product_id ASC
 ```
 
-`primary_fts_rank` является optional secondary signal по exact surviving lexemes;
-он не меняет fuzzy membership.
+`expanded_fts_rank` вычисляется `ts_rank_cd` по тому же expanded query, который
+определил FUZZY membership; dictionary similarity не создаёт membership сама.
 
 ### 1.6. Candidate relation
 
@@ -488,9 +543,10 @@ resolved_candidates = GROUP BY product_id, product_doc_id
   relevance_rank      = MAX/SUM deterministic primary rank
 ```
 
-FUZZY использует аналогичную relation из verified term matches. Boost lookup
-остаётся exact по original `lookupKey + locale` и не активируется исправленной
-формой.
+FUZZY использует аналогичную FTS relation, скомпилированную из verified и затем
+нормализованных vocabulary alternatives. Dictionary rows не входят в product
+relation и не заменяют `search_vector @@ expanded_tsquery`. Boost lookup остаётся
+exact по original `lookupKey + locale` и не активируется исправленной формой.
 
 `SearchExecutionService` материализует не только bitmap, а immutable contract
 выбранной attempt:
@@ -530,7 +586,7 @@ PRIMARY:
 FUZZY:
   product_doc_id, product_id,
   boosted, total_edit_distance,
-  minimum_trigram_similarity, primary_fts_rank
+  minimum_trigram_similarity, expanded_fts_rank
 ```
 
 Ranked relation не определяет membership самостоятельно: page всегда пересекает
@@ -660,7 +716,7 @@ availability_bucket DESC  # только PLACE_LAST
 boosted DESC
 total_edit_distance ASC
 minimum_trigram_similarity DESC
-primary_fts_rank DESC
+expanded_fts_rank DESC
 product_id ASC
 ```
 
@@ -735,10 +791,18 @@ async function executeSearchListing(input: NormalizedListingInput) {
   const primaryPlan = buildPrimaryPlan(request);
 
   if (input.cursor?.mode === "FUZZY") {
+    const fuzzyPlan = await buildExpandedTypoPlan({
+      request,
+      primaryPlan,
+      verifiedAlternatives: await resolveVerifiedTypoAlternatives({
+        request,
+        primaryPlan,
+      }),
+    });
     const candidates = await materializeSearchCandidates({
       request,
       attempt: { request, mode: "FUZZY" },
-      plan: buildTypoPlan(primaryPlan),
+      plan: fuzzyPlan,
     });
     return runFullBundle({
       request,
@@ -768,10 +832,18 @@ async function executeSearchListing(input: NormalizedListingInput) {
     });
   }
 
+  const fuzzyPlan = await buildExpandedTypoPlan({
+    request,
+    primaryPlan,
+    verifiedAlternatives: await resolveVerifiedTypoAlternatives({
+      request,
+      primaryPlan,
+    }),
+  });
   const fuzzyCandidates = await materializeSearchCandidates({
     request,
     attempt: { request, mode: "FUZZY" },
-    plan: buildTypoPlan(primaryPlan),
+    plan: fuzzyPlan,
   });
 
   return runFullBundle({
@@ -830,8 +902,8 @@ CREATE INDEX product_search_text_store_vector_gin
  normalization_profile_revision, field)
 ```
 
-Term dictionary имеет tenant-scoped composite trigram GIN и B-tree на
-tenant/locale/revision:
+Term vocabulary имеет tenant-scoped composite trigram GIN и B-tree на
+tenant/locale:
 
 ```sql
 CREATE INDEX search_term_dictionary_store_term_trgm_gin
@@ -839,13 +911,10 @@ CREATE INDEX search_term_dictionary_store_term_trgm_gin
   USING gin (store_id, term gin_trgm_ops);
 ```
 
-Identifier и mapping tables имеют indexes, описанные ниже. Primary/unique keys
-всегда включают `store_id` как часть tenant identity и FK contract.
-
-`search_term_dictionary` использует composite primary key
-`(store_id, term_id)`, а не global `term_id` PK. `term_id` выделяется общей
-explicit PostgreSQL sequence, но database identity и FK contract включают
-`store_id`.
+Identifier table имеет indexes, описанные ниже. Primary/unique keys всегда
+включают `store_id` как часть tenant identity и FK contract. Vocabulary не имеет
+surrogate `term_id`, sequence или FK на products: его identity —
+`(store_id, locale, term)`.
 
 Bound `store_id` передаётся как uuid без function/cast на indexed column.
 Обязательные `EXPLAIN` fixtures подтверждают, что FTS использует composite
@@ -861,9 +930,10 @@ candidates и фильтрующий tenant только после index scan, 
 state. Publication, scope, product identity и `product_doc_id` всегда берутся из
 canonical Listing pipeline.
 
-Search tables являются только специализированными locale-scoped indexes. Они
-хранят `product_doc_id` как денормализованный bitmap key, но защищают его
-composite FK:
+Product-bound search tables являются только специализированными locale-scoped
+indexes. Они хранят `product_doc_id` как денормализованный bitmap key, но
+защищают его composite FK. Term vocabulary не является product-bound table и
+этого ключа/FK не имеет:
 
 ```text
 FK (store_id, product_doc_id, product_id)
@@ -907,7 +977,7 @@ Query relation всегда фильтрует active contract/model revision в
 или query compilation не создаются.
 Database contract использует только встроенные PostgreSQL functions и functions
 обязательных extensions: `to_tsvector`, `plainto_tsquery`,
-`phraseto_tsquery`, `ts_rank_cd`, `levenshtein_less_equal` и `nextval`, а также
+`phraseto_tsquery`, `ts_rank_cd`, `levenshtein_less_equal`, а также
 операторы `pg_trgm`. Добавление custom SQL function требует отдельного изменения
 этого architecture contract и не может быть неявной implementation detail.
 
@@ -930,49 +1000,33 @@ listing.product_search_identifier
 
 B-tree indexes обеспечивают tenant/locale exact и `text_pattern_ops` prefix.
 
-#### Typo term dictionary и mapping
+#### Typo term vocabulary и expanded FTS
 
 ```text
 listing.search_term_dictionary
-  term_id bigint not null default nextval('listing.search_term_id_seq')
   store_id uuid not null
   locale varchar(8) not null
   term text not null
   code_point_length smallint not null
-  normalization_contract_version varchar(32) not null
-  normalization_profile_revision varchar(64) not null
 
-  UNIQUE (
-    store_id,
-    locale,
-    normalization_contract_version,
-    normalization_profile_revision,
-    term
-  )
-  PK (store_id, term_id)
-  UNIQUE (store_id, locale, term_id)
-
-listing.product_search_term
-  store_id uuid not null
-  product_id uuid not null
-  product_doc_id int not null
-  locale varchar(8) not null
-  field varchar(32) not null
-  element_id uuid not null
-  term_id bigint not null
-
-  PK (store_id, product_id, locale, field, element_id, term_id)
-  FK (store_id, product_doc_id, product_id)
-    -> product_listing_index(store_id, product_doc_id, product_id)
-  FK (store_id, locale, term_id)
-    -> search_term_dictionary(store_id, locale, term_id)
+  PK (store_id, locale, term)
 ```
 
 Dictionary индексируется composite GIN `(store_id, term gin_trgm_ops)`;
-tenant/locale/revision B-tree обслуживает дополнительный scope. Mapping имеет indexes по `term_id` и
-`product_doc_id`. Surface typo terms формируются локальным pipeline отдельно от
-primary stems, затем deduplicate и stable sort. Orphan dictionary terms
-удаляются bounded cleanup-ом и не влияют на correctness.
+tenant/locale B-tree обслуживает дополнительный scope. Surface typo terms
+формируются tokenizer из source values отдельно от primary stems и сохраняются
+без NFKC, case folding, stemming, stopword filtering или profile versioning,
+затем deduplicate и stable sort по исходной строке.
+Dictionary не знает products, fields и elements и не дублирует PostgreSQL
+postings. После Levenshtein verification подтверждённые terms нормализуются в
+Node.js primary lexemes и компилируются в expanded `tsquery`; product membership
+разрешается исключительно через `product_search_text.search_vector`.
+
+Удаление/изменение term не требует полной переиндексации search documents.
+Vocabulary пополняется при обычном item write и очищается bounded reconciliation.
+Stale vocabulary rows допустимы: они могут породить лишнюю FTS alternative, но не
+ложный product match. Cleanup влияет на размер и latency dictionary, а не на
+correctness результатов.
 
 Наличие localized title определяется существованием `field=product_title`
 element; отдельный per-product coverage row не создаётся. Aggregate coverage
@@ -987,17 +1041,17 @@ same-element phrase semantics и создаёт ranking bias по числу val
    Listing item reindex mechanism и canonical item-scoped `eventSequence`.
 2. Single/batch workflow получает Catalog/project snapshot, batch-нормализует
    searchable elements локальным Node.js pipeline и строит единый write model: prepared
-   text elements, identifiers и surface typo terms всех enabled locales. Product
+   text elements, identifiers и surface typo terms vocabulary всех enabled locales. Product
    metadata повторно в search model не копируется.
 3. Все search rows входят в deterministic `writeModelHash`.
 4. Final writer первым write-side operation блокирует
    `listing_index_item_state` и повторяет canonical stale/noop/conflict decision.
 5. Только для `applied` в той же transaction обновляются listing rows, postings,
    prices, sorts, search rows и latest item state.
-6. Term dictionary rows могут быть upserted до mapping replacement, но mapping и
-   item state меняются атомарно; orphan term безопасен.
+6. Term vocabulary rows могут быть idempotently upserted независимо от item row
+   replacement; они не входят в product membership и stale term безопасен.
 7. Ошибка любой physical write откатывает item transaction.
-8. Delete каскадно удаляет elements/identifiers/mappings и атомарно записывает
+8. Delete каскадно удаляет elements/identifiers и атомарно записывает
    `lifecycle_status=deleted`.
 9. Locale removal удаляет отсутствующие locale rows обычным item sync path.
 10. Unsupported locale/profile, invalid output или internal normalization error не
@@ -1062,7 +1116,7 @@ headers не сохраняются.
 
 Canonical item freshness остаётся в `listing_index_item_state`. Search state —
 только aggregate operational projection. Reconciliation сверяет text elements,
-identifiers, term mappings, canonical product rows, item state и DBOS state.
+identifiers, vocabulary coverage, canonical product rows, item state и DBOS state.
 
 ## 4. Module and code structure
 
@@ -1151,8 +1205,9 @@ Metrics:
 
 - primary/fuzzy bundle latency;
 - FTS and identifier candidate cardinality;
-- trigram dictionary candidates и Levenshtein verified candidates;
-- term dictionary/mapping size;
+- trigram vocabulary candidates, Levenshtein verified alternatives и expanded
+  FTS candidate cardinality;
+- term vocabulary size и stale-term ratio;
 - GIN pending-list/search latency и autovacuum lag;
 - tenant-scoped composite GIN usage, cross-tenant candidate amplification и
   index size/skew;
@@ -1225,12 +1280,12 @@ fallback; removed variant/category data исчезает.
 ### Этап 2. Universal PostgreSQL FTS indexes и index state
 
 1. Удалить initial title-search table и создать непартиционированные
-   text/identifier/dictionary/mapping search tables; `product_listing_index`
+   text/identifier/vocabulary search tables; `product_listing_index`
    остаётся canonical product document.
 2. Зафиксировать `pg_catalog.simple` во всех generated expressions и SQL
    compilers; не создавать locale text-search configurations.
-3. Добавить tenant-scoped composite GIN FTS/trigram и B-tree
-   identifier/mapping indexes.
+3. Добавить tenant-scoped composite GIN FTS/trigram и B-tree identifier indexes;
+   отдельный term-to-product mapping не создавать.
 4. Добавить `EXPLAIN` fixtures, доказывающие применение bound `store_id` внутри
    composite GIN index condition без cross-tenant candidate scan.
 5. Добавить Drizzle models и repositories.
@@ -1303,19 +1358,24 @@ fallback запрещены.
 
 ### Этап 8. Typo tolerance
 
-1. Реализовать term dictionary/mapping write path.
-2. Реализовать `pg_trgm` candidate compiler без top-K.
-3. Добавить mandatory `levenshtein_less_equal(..., 1)` verifier.
-4. Запускать FUZZY только когда PRIMARY search candidate bitmap после
+1. Реализовать idempotent term vocabulary upsert и bounded stale-term cleanup без
+   product mappings, surrogate term ID и sequence.
+2. Реализовать `pg_trgm` vocabulary candidate compiler без top-K.
+3. Добавить mandatory `levenshtein_less_equal(..., 1)` verifier и Node.js
+   normalization verified alternatives в primary lexemes.
+4. Компилировать alternatives в expanded FTS `tsquery` и выполнять FUZZY
+   membership/rank через существующий `(store_id, search_vector)` GIN.
+5. Запускать FUZZY только когда PRIMARY search candidate bitmap после
    `publishedUniverse` пуст, но до category scope и пользовательских filters.
-5. После выбора mode выполнять полный result bundle один раз на том же request
+6. После выбора mode выполнять полный result bundle один раз на том же request
    context и immutable `SearchCandidateContract`.
-6. Добавить FUZZY cursor ordering и continuation semantics.
-7. Добавить timeout, candidate-work и dictionary-scan guardrails.
+7. Добавить FUZZY cursor ordering и continuation semantics.
+8. Добавить timeout, candidate-work и dictionary-scan guardrails.
 
-Готовность: synonym/SKU не typo-expand; все terms обязательны; same-element
-сохраняется; primary/fuzzy sets не смешиваются; filtered zero при непустом PRIMARY
-не запускает FUZZY; technical error — нет.
+Готовность: synonym/SKU не typo-expand; все terms обязательны; expanded query
+использует canonical FTS GIN; same-element сохраняется; primary/fuzzy sets не
+смешиваются; filtered zero при непустом PRIMARY не запускает FUZZY; technical
+error — нет.
 
 ### Этап 9. Synonyms
 
@@ -1395,7 +1455,7 @@ fallback запрещены.
 | PRIMARY нашёл только draft candidate | Candidate исключён `publishedUniverse`; FUZZY разрешён |
 | PRIMARY candidate set пуст | FUZZY запускается до применения Listing filters |
 | Query/token короче typo minimum | FUZZY не запускается |
-| Typo distance 1 | Trigram candidate подтверждён Levenshtein и найден |
+| Typo distance 1 | Vocabulary term подтверждён Levenshtein, normalized alternative включён в expanded FTS query и найден через `search_vector` |
 | Typo distance > 1 | Levenshtein verifier исключает candidate |
 | SKU typo | Не находится через FUZZY |
 | Synonym typo | Synonym alternative не fuzzy-expand |
@@ -1422,8 +1482,9 @@ fallback запрещены.
   любом scope/sort;
 - primary FTS, phrase, identifiers, synonyms, typo tolerance, boosts и OOS
   соблюдают interaction rules;
-- typo tolerance использует indexable trigram candidates и exact Levenshtein
-  verification без hidden top-K;
+- typo tolerance использует indexable trigram vocabulary candidates, exact
+  Levenshtein verification и expanded FTS по canonical `search_vector` без
+  hidden top-K или отдельного product mapping;
 - runtime search tables не partitioned, а storefront plans подтверждают
   tenant-scoped composite GIN scan по bound `store_id`;
 - configuration apply имеет durable state machine, а document sync использует
@@ -1446,8 +1507,9 @@ fallback запрещены.
 5. Единый trigram threshold обязан сохранять distance-1 recall
    поддерживаемых tokens;
    слишком низкий threshold создаёт большой candidate set.
-6. Term dictionary может иметь сильный tenant/locale skew и требует bounded
-   cleanup, indexes и performance corpus.
+6. Term vocabulary может иметь сильный tenant/locale skew и требует bounded
+   cleanup, indexes и performance corpus; stale terms ухудшают expansion latency,
+   но не создают product match без подтверждения canonical FTS index.
 7. Hidden candidate cap нарушает exact totals/facets и запрещён.
 8. `HIDE` обязан пересекать availability с OPTION/criteria/price до projection.
 9. Collection scope нельзя имитировать до canonical listing scope provider.
@@ -1470,7 +1532,9 @@ fallback запрещены.
    `services/listing/migrations/domains/0100_listing_index/`: extensions,
    непартиционированные таблицы, tenant-scoped composite GIN indexes, generated expressions, constraints,
    indexes и DB-level invariants для search index, configuration, synonyms,
-   boosts, audit и operational state. На этом же шаге удалить или заменить
+   boosts, audit и operational state. Term vocabulary не получает surrogate ID,
+   sequence или product mapping: product postings принадлежат только FTS GIN над
+   `product_search_text.search_vector`. На этом же шаге удалить или заменить
    legacy title-only physical contract. Gate слоя: физическая схема полностью
    определена, tenant isolation и UUIDv7 rules соблюдены, все необходимые
    PostgreSQL contracts выражены в DDL.
