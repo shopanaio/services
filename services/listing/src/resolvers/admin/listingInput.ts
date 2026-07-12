@@ -20,6 +20,7 @@ import {
   type StorefrontListingScope,
   type StorefrontSortInput,
 } from "../../repositories/storefront/types.js";
+import { SearchRuntimeError } from "../../search/errors.js";
 
 interface ListingInputDefaults {
   locale: string;
@@ -172,15 +173,19 @@ export function toGraphqlListingError(error: unknown): unknown {
 
   if (
     error instanceof ListingResolverInputError ||
-    error instanceof StorefrontRepositoryValidationError
+    error instanceof StorefrontRepositoryValidationError ||
+    error instanceof SearchRuntimeError
   ) {
     return new GraphQLError(error.message, {
       extensions: {
         code:
           error instanceof StorefrontRepositoryValidationError
             ? (error.code ?? "BAD_USER_INPUT")
-            : "BAD_USER_INPUT",
-        field: error.field,
+            : error instanceof SearchRuntimeError
+              ? error.code
+              : "BAD_USER_INPUT",
+        field:
+          error instanceof SearchRuntimeError ? ["query"] : error.field,
       },
     });
   }
@@ -215,7 +220,7 @@ function normalizeListingScope(
           ["query"]
         );
       }
-      return { kind: "search" };
+      return { kind: "global" };
     case "CATEGORY":
       if (!categoryId) {
         throw new ListingResolverInputError(

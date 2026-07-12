@@ -2,6 +2,7 @@ import { TransactionManager } from "@shopana/shared-kernel";
 import type { Database } from "../infrastructure/db/database.js";
 import {
   ListingIndexItemStateRepository,
+  ListingSearchIndexRepository,
   ListingDocIdAllocatorRepository,
   ProductListingIndexRepository,
   ProductListingPriceIndexRepository,
@@ -10,18 +11,24 @@ import {
   ListingPostingBitmapRepository,
   ListingPostingProductSortRepository,
   ListingPostingVariantProjectionBlockRepository,
-  ProductTitleBm25SearchIndexRepository,
 } from "./listing/index.js";
 import {
   StorefrontFacetResolutionRepository,
   StorefrontListingQueryRepository,
-  StorefrontProductTitleSearchQueryRepository,
 } from "./storefront/index.js";
 import { FacetRepository } from "./facet/FacetRepository.js";
 import { FacetValueRepository } from "./facet/FacetValueRepository.js";
 import { FacetSwatchRepository } from "./facet/FacetSwatchRepository.js";
 import { CatalogFacetCandidateClient } from "./facet/CatalogFacetCandidateClient.js";
 import type { ServiceBroker } from "@shopana/shared-kernel";
+import {
+  SearchIdentifierRepository,
+  SearchProductBoostRepository,
+  SearchSettingsRepository,
+  SearchSynonymRepository,
+  SearchTermRepository,
+  SearchTextElementRepository,
+} from "./search/index.js";
 
 export interface RepositoryConfig {
   db: Database;
@@ -37,6 +44,7 @@ const LISTING_FACET_COUNTS_PROFILING_ENABLED_DEFAULT = false;
 
 export class Repository {
   public readonly listingIndexItemState: ListingIndexItemStateRepository;
+  public readonly listingSearchIndex: ListingSearchIndexRepository;
   public readonly listingDocIdAllocator: ListingDocIdAllocatorRepository;
   public readonly productListingIndex: ProductListingIndexRepository;
   public readonly productListingPriceIndex: ProductListingPriceIndexRepository;
@@ -45,13 +53,17 @@ export class Repository {
   public readonly listingPostingBitmap: ListingPostingBitmapRepository;
   public readonly listingPostingProductSort: ListingPostingProductSortRepository;
   public readonly listingPostingVariantProjectionBlock: ListingPostingVariantProjectionBlockRepository;
-  public readonly productTitleBm25SearchIndex: ProductTitleBm25SearchIndexRepository;
   public readonly facet: FacetRepository;
   public readonly facetValue: FacetValueRepository;
   public readonly facetSwatch: FacetSwatchRepository;
   public readonly storefrontFacetResolution: StorefrontFacetResolutionRepository;
-  public readonly storefrontProductTitleSearchQuery: StorefrontProductTitleSearchQueryRepository;
   public readonly storefrontListingQuery: StorefrontListingQueryRepository;
+  public readonly searchTextElement: SearchTextElementRepository;
+  public readonly searchIdentifier: SearchIdentifierRepository;
+  public readonly searchTerm: SearchTermRepository;
+  public readonly searchSettings: SearchSettingsRepository;
+  public readonly searchSynonym: SearchSynonymRepository;
+  public readonly searchProductBoost: SearchProductBoostRepository;
   public readonly txManager: TransactionManager<Database>;
 
   public get db(): Database {
@@ -60,6 +72,7 @@ export class Repository {
 
   private constructor(
     listingIndexItemState: ListingIndexItemStateRepository,
+    listingSearchIndex: ListingSearchIndexRepository,
     listingDocIdAllocator: ListingDocIdAllocatorRepository,
     productListingIndex: ProductListingIndexRepository,
     productListingPriceIndex: ProductListingPriceIndexRepository,
@@ -68,16 +81,21 @@ export class Repository {
     listingPostingBitmap: ListingPostingBitmapRepository,
     listingPostingProductSort: ListingPostingProductSortRepository,
     listingPostingVariantProjectionBlock: ListingPostingVariantProjectionBlockRepository,
-    productTitleBm25SearchIndex: ProductTitleBm25SearchIndexRepository,
     facet: FacetRepository,
     facetValue: FacetValueRepository,
     facetSwatch: FacetSwatchRepository,
     storefrontFacetResolution: StorefrontFacetResolutionRepository,
-    storefrontProductTitleSearchQuery: StorefrontProductTitleSearchQueryRepository,
     storefrontListingQuery: StorefrontListingQueryRepository,
+    searchTextElement: SearchTextElementRepository,
+    searchIdentifier: SearchIdentifierRepository,
+    searchTerm: SearchTermRepository,
+    searchSettings: SearchSettingsRepository,
+    searchSynonym: SearchSynonymRepository,
+    searchProductBoost: SearchProductBoostRepository,
     txManager: TransactionManager<Database>
   ) {
     this.listingIndexItemState = listingIndexItemState;
+    this.listingSearchIndex = listingSearchIndex;
     this.listingDocIdAllocator = listingDocIdAllocator;
     this.productListingIndex = productListingIndex;
     this.productListingPriceIndex = productListingPriceIndex;
@@ -86,13 +104,17 @@ export class Repository {
     this.listingPostingBitmap = listingPostingBitmap;
     this.listingPostingProductSort = listingPostingProductSort;
     this.listingPostingVariantProjectionBlock = listingPostingVariantProjectionBlock;
-    this.productTitleBm25SearchIndex = productTitleBm25SearchIndex;
     this.facet = facet;
     this.facetValue = facetValue;
     this.facetSwatch = facetSwatch;
     this.storefrontFacetResolution = storefrontFacetResolution;
-    this.storefrontProductTitleSearchQuery = storefrontProductTitleSearchQuery;
     this.storefrontListingQuery = storefrontListingQuery;
+    this.searchTextElement = searchTextElement;
+    this.searchIdentifier = searchIdentifier;
+    this.searchTerm = searchTerm;
+    this.searchSettings = searchSettings;
+    this.searchSynonym = searchSynonym;
+    this.searchProductBoost = searchProductBoost;
     this.txManager = txManager;
   }
 
@@ -106,9 +128,16 @@ export class Repository {
       LISTING_FACET_COUNTS_PROFILING_ENABLED_DEFAULT;
     const txManager = new TransactionManager(db);
 
-    const listingIndexItemState = new ListingIndexItemStateRepository(
+    const listingIndexItemState = new ListingIndexItemStateRepository(db, txManager);
+    const searchTextElement = new SearchTextElementRepository(db, txManager);
+    const searchIdentifier = new SearchIdentifierRepository(db, txManager);
+    const searchTerm = new SearchTermRepository(db, txManager);
+    const listingSearchIndex = new ListingSearchIndexRepository(
       db,
-      txManager
+      txManager,
+      searchTextElement,
+      searchIdentifier,
+      searchTerm
     );
     const listingDocIdAllocator = new ListingDocIdAllocatorRepository(
       db,
@@ -134,8 +163,6 @@ export class Repository {
     );
     const listingPostingVariantProjectionBlock =
       new ListingPostingVariantProjectionBlockRepository(db, txManager);
-    const productTitleBm25SearchIndex =
-      new ProductTitleBm25SearchIndexRepository(db, txManager);
     const facetCandidateClient = new CatalogFacetCandidateClient(broker);
     const facet = new FacetRepository(db, txManager, facetCandidateClient);
     const facetValue = new FacetValueRepository(db, txManager);
@@ -144,19 +171,20 @@ export class Repository {
       db,
       txManager
     );
-    const storefrontProductTitleSearchQuery =
-      new StorefrontProductTitleSearchQueryRepository(db, txManager);
     const storefrontListingQuery = new StorefrontListingQueryRepository(
       db,
       txManager,
       storefrontFacetResolution,
-      storefrontProductTitleSearchQuery,
       heavyOptionFacetCountsEnabled,
       facetCountsProfilingEnabled
     );
+    const searchSettings = new SearchSettingsRepository(db, txManager);
+    const searchSynonym = new SearchSynonymRepository(db, txManager);
+    const searchProductBoost = new SearchProductBoostRepository(db, txManager);
 
     return new Repository(
       listingIndexItemState,
+      listingSearchIndex,
       listingDocIdAllocator,
       productListingIndex,
       productListingPriceIndex,
@@ -165,13 +193,17 @@ export class Repository {
       listingPostingBitmap,
       listingPostingProductSort,
       listingPostingVariantProjectionBlock,
-      productTitleBm25SearchIndex,
       facet,
       facetValue,
       facetSwatch,
       storefrontFacetResolution,
-      storefrontProductTitleSearchQuery,
       storefrontListingQuery,
+      searchTextElement,
+      searchIdentifier,
+      searchTerm,
+      searchSettings,
+      searchSynonym,
+      searchProductBoost,
       txManager
     );
   }

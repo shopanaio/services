@@ -1,0 +1,15 @@
+export const SEARCH_NORMALIZATION_LIMITS = Object.freeze({
+  queryCodePoints: 128,
+  queryUnits: 16,
+  queryLexemes: 32,
+  queryLexemeCodePoints: 64,
+  documentBatchElements: 512,
+  documentSourceCodePoints: 16_384,
+  documentLexemesPerElement: 1_024,
+  preparedTextCodePoints: 8_192,
+  identifierCodePoints: 255,
+  typoTermCodePoints: 64,
+  plannerClauses: 128,
+  synonymGroupsPerQuery: 8,
+  synonymAlternativesPerUnit: 32,
+} as const);

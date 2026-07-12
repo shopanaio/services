@@ -2,6 +2,8 @@ import type {
   StorefrontListingInput,
   StorefrontListingRepositoryResult,
 } from "../../repositories/storefront/types.js";
+import { StorefrontRepositoryValidationError } from "../../repositories/storefront/types.js";
+import { decodeListingCursor } from "../../repositories/storefront/cursor.js";
 import { ListingType } from "./ListingType.js";
 import {
   type ListingFacet,
@@ -25,11 +27,33 @@ export class ListingConnectionResolver extends ListingType<
 
   async $preload() {
     try {
-      const result = await this.$ctx.kernel
-        .getServices()
-        .repository.storefrontListingQuery.getStorefrontListing(
-          this.toRepositoryInput()
-        );
+      const services = this.$ctx.kernel.getServices();
+      let repositoryInput = this.toRepositoryInput();
+      if (repositoryInput.query) {
+        const continuationMode = repositoryInput.after
+          ? decodeListingCursor(repositoryInput.after).payload.mode
+          : null;
+        if (repositoryInput.after && continuationMode === null) {
+          throw new StorefrontRepositoryValidationError(
+            "Search continuation cursor has no execution mode",
+          );
+        }
+        const searchCandidates = await services.searchExecution.execute({
+          locale: repositoryInput.locale,
+          query: repositoryInput.query,
+          mode: continuationMode ?? undefined,
+          diagnosticsMode: "NONE",
+        });
+        repositoryInput = Object.freeze({
+          ...repositoryInput,
+          locale: searchCandidates.request.locale,
+          query: searchCandidates.request.normalizedQuery.display,
+          searchCandidates,
+        });
+        this.repositoryInput = repositoryInput;
+      }
+      const result = await services.repository.storefrontListingQuery
+        .getStorefrontListing(repositoryInput);
       for (const userError of result.userErrors) {
         this.$ctx.addGraphqlError(userError);
       }
@@ -139,7 +163,8 @@ function listingArgsToLogObject(args: ListingQueryArgs) {
     last: args.last ?? null,
     before: args.before ?? null,
     scope: args.scope ?? null,
-    query: args.query ?? null,
+    queryProvided: !!args.query?.trim(),
+    queryCodePointLength: args.query ? [...args.query].length : 0,
     locale: args.locale ?? null,
     currency: args.currency ?? null,
     orderBy: args.orderBy ?? null,

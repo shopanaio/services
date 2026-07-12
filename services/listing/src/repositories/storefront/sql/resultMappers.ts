@@ -1,4 +1,7 @@
-import { encodeListingCursor } from "../cursor.js";
+import {
+  encodeCursorFloat64,
+  encodeListingCursor,
+} from "../cursor.js";
 import {
   StorefrontRepositoryValidationError,
   type FacetRuntimeType,
@@ -23,11 +26,15 @@ export interface ParallelPageSqlRow extends FacetGuardSqlRow {
   boolValue: boolean | null;
   timestamptzValue: string | null;
   timestamptzValue2: string | null;
-  bigintValue: number | null;
+  bigintValue: string | null;
   textValue: string | null;
   variantDocId: number | null;
-  priceMinor: number | null;
+  priceMinor: string | null;
+  identifierPriority: number | null;
+  boosted: boolean | null;
   relevanceScore: number | null;
+  totalEditDistance: number | null;
+  minimumTrigramSimilarity: number | null;
 }
 
 export interface TotalCountSqlRow extends FacetGuardSqlRow {
@@ -153,7 +160,7 @@ function toListingPageRow(
   request: ResolvedListingRequest
 ): ListingPageRow {
   const cursorValues: ListingPageRow["cursorValues"] = {
-    inStock: row.inStock ?? false,
+    availabilityBucket: row.inStock ?? false,
     productId: row.productId,
   };
 
@@ -163,7 +170,18 @@ function toListingPageRow(
       cursorValues.variantDocId = row.variantDocId;
       break;
     case "relevance":
-      cursorValues.relevanceScore = row.relevanceScore;
+      cursorValues.boosted = row.boosted ?? false;
+      cursorValues.relevanceScoreBits = encodeCursorFloat64(
+        row.relevanceScore ?? Number.NaN,
+      );
+      if (request.searchCandidates?.attempt.mode === "FUZZY") {
+        cursorValues.totalEditDistance = row.totalEditDistance;
+        cursorValues.minimumTrigramSimilarityBits = encodeCursorFloat64(
+          row.minimumTrigramSimilarity ?? Number.NaN,
+        );
+      } else {
+        cursorValues.identifierPriority = row.identifierPriority;
+      }
       break;
     case "product_sort":
     default:
@@ -185,7 +203,18 @@ function toListingPageRow(
           cursorValues.bigintValue = row.bigintValue;
           break;
         case "relevance":
-          cursorValues.relevanceScore = row.relevanceScore;
+          cursorValues.boosted = row.boosted ?? false;
+          cursorValues.relevanceScoreBits = encodeCursorFloat64(
+            row.relevanceScore ?? Number.NaN,
+          );
+          if (request.searchCandidates?.attempt.mode === "FUZZY") {
+            cursorValues.totalEditDistance = row.totalEditDistance;
+            cursorValues.minimumTrigramSimilarityBits = encodeCursorFloat64(
+              row.minimumTrigramSimilarity ?? Number.NaN,
+            );
+          } else {
+            cursorValues.identifierPriority = row.identifierPriority;
+          }
           break;
       }
       break;
@@ -193,9 +222,11 @@ function toListingPageRow(
 
   const payload = {
     ...cursorValues,
-    version: 1,
+    version: 3,
     hash: request.filterHash,
     sort: request.sort.kind,
+    mode: request.searchCandidates?.attempt.mode ?? null,
+    issuedAt: request.cursorIssuedAt,
   } as ListingCursorPayload;
 
   return {
@@ -203,8 +234,13 @@ function toListingPageRow(
     productId: row.productId,
     inStock: row.inStock ?? false,
     matchedVariantDocId: row.variantDocId ?? undefined,
-    matchedPriceMinor: row.priceMinor ?? undefined,
+    matchedPriceMinor:
+      row.priceMinor === null ? undefined : Number(row.priceMinor),
+    identifierPriority: row.identifierPriority ?? undefined,
+    boosted: row.boosted ?? undefined,
     relevanceScore: row.relevanceScore ?? undefined,
+    totalEditDistance: row.totalEditDistance ?? undefined,
+    minimumTrigramSimilarity: row.minimumTrigramSimilarity ?? undefined,
     cursor: encodeListingCursor(payload),
     cursorValues: payload as unknown as Record<string, string | number | boolean | null>,
   };

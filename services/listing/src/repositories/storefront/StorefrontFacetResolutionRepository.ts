@@ -216,7 +216,7 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
     switch (scope.kind) {
       case "category":
         return this.productPostingScopeBitmapSql("category", scope.categoryId);
-      case "search":
+      case "global":
         return this.publishedProductBitmapSql();
     }
   }

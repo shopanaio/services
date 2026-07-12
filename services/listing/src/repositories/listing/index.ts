@@ -1,5 +1,6 @@
 export * from "./listingRepositoryTypes.js";
 export * from "./ListingIndexItemStateRepository.js";
+export * from "./ListingSearchIndexRepository.js";
 export * from "./ListingDocIdAllocatorRepository.js";
 export * from "./ProductListingIndexRepository.js";
 export * from "./ProductListingPriceIndexRepository.js";
@@ -8,4 +9,3 @@ export * from "./VariantListingPriceIndexRepository.js";
 export * from "./ListingPostingBitmapRepository.js";
 export * from "./ListingPostingProductSortRepository.js";
 export * from "./ListingPostingVariantProjectionBlockRepository.js";
-export * from "./ProductTitleBm25SearchIndexRepository.js";

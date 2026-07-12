@@ -10,3 +10,14 @@ export const roaringbitmap = customType<{
     return "roaringbitmap";
   },
 });
+
+export type TsVectorValue = string;
+
+export const tsvector = customType<{
+  data: TsVectorValue;
+  driverData: string;
+}>({
+  dataType() {
+    return "tsvector";
+  },
+});

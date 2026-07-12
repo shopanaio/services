@@ -1,7 +1,6 @@
 import { BaseScript } from "../kernel/BaseScript.js";
 import type {
   ProductSortRowInput,
-  ProductTitleBm25RowInput,
 } from "../repositories/listing/listingRepositoryTypes.js";
 
 export class ListingCleanupStaleVariantsScript extends BaseScript<
@@ -36,28 +35,6 @@ export class ListingCleanupStaleVariantsScript extends BaseScript<
       deletedVariantIds: stale.map((variant) => variant.variantId),
       deletedVariantDocIds: stale.map((variant) => variant.variantDocId),
     };
-  }
-
-  protected handleError(error: unknown): never {
-    throw error;
-  }
-}
-
-export class ListingReplaceProductTitleSearchRowsScript extends BaseScript<
-  {
-    productId: string;
-    rows: readonly ProductTitleBm25RowInput[];
-  },
-  void
-> {
-  protected async execute(input: {
-    productId: string;
-    rows: readonly ProductTitleBm25RowInput[];
-  }): Promise<void> {
-    await this.repository.productTitleBm25SearchIndex.replaceForProduct(
-      input.productId,
-      input.rows
-    );
   }
 
   protected handleError(error: unknown): never {

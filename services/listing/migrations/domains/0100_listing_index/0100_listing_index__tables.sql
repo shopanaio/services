@@ -39,6 +39,8 @@ CREATE TABLE listing.product_listing_index (
     UNIQUE (store_id, product_id),
   CONSTRAINT product_listing_store_doc_product_unique
     UNIQUE (store_id, product_doc_id, product_id),
+  CONSTRAINT product_listing_doc_product_unique
+    UNIQUE (product_doc_id, product_id),
   CONSTRAINT chk_product_listing_kind
     CHECK (kind IN ('BASE', 'BUNDLE')),
   CONSTRAINT chk_product_listing_status
@@ -385,6 +387,79 @@ CREATE INDEX idx_listing_posting_product_sort_bigint_desc
     currency,
     manual_scope_id,
     bool_value DESC,
+    bigint_value DESC NULLS LAST,
+    product_id
+  )
+  INCLUDE (product_doc_id);
+
+CREATE INDEX idx_listing_product_sort_newest_no_availability
+  ON listing.listing_posting_product_sort (
+    store_id,
+    sort_kind,
+    locale,
+    currency,
+    manual_scope_id,
+    timestamptz_value DESC NULLS LAST,
+    timestamptz_value_2 DESC NULLS LAST,
+    product_id
+  )
+  INCLUDE (product_doc_id);
+
+CREATE INDEX idx_listing_product_sort_created_no_availability
+  ON listing.listing_posting_product_sort (
+    store_id,
+    sort_kind,
+    locale,
+    currency,
+    manual_scope_id,
+    timestamptz_value DESC,
+    product_id
+  )
+  INCLUDE (product_doc_id);
+
+CREATE INDEX idx_listing_product_sort_text_asc_no_availability
+  ON listing.listing_posting_product_sort (
+    store_id,
+    sort_kind,
+    locale,
+    currency,
+    manual_scope_id,
+    text_value ASC NULLS LAST,
+    product_id
+  )
+  INCLUDE (product_doc_id);
+
+CREATE INDEX idx_listing_product_sort_text_desc_no_availability
+  ON listing.listing_posting_product_sort (
+    store_id,
+    sort_kind,
+    locale,
+    currency,
+    manual_scope_id,
+    text_value DESC NULLS LAST,
+    product_id
+  )
+  INCLUDE (product_doc_id);
+
+CREATE INDEX idx_listing_product_sort_bigint_asc_no_availability
+  ON listing.listing_posting_product_sort (
+    store_id,
+    sort_kind,
+    locale,
+    currency,
+    manual_scope_id,
+    bigint_value ASC NULLS LAST,
+    product_id
+  )
+  INCLUDE (product_doc_id);
+
+CREATE INDEX idx_listing_product_sort_bigint_desc_no_availability
+  ON listing.listing_posting_product_sort (
+    store_id,
+    sort_kind,
+    locale,
+    currency,
+    manual_scope_id,
     bigint_value DESC NULLS LAST,
     product_id
   )

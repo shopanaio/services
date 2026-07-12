@@ -72,20 +72,10 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
         }))
         .sort((left, right) => left.currency.localeCompare(right.currency)),
       productSortRows: buildProductSortRows(item, productAvailable),
-      productTitleRows: Object.entries(item.content.translations)
-        .filter(([, translation]) => translation.title.trim().length > 0)
-        .map(([locale, translation]) => ({
-          productId: item.id,
-          locale,
-          kind: productKind,
-          status: listingStatus,
-          publishedAt: item.publishedAt,
-          productCreatedAt: item.createdAt,
-          productUpdatedAt: item.updatedAt,
-          productRevision: item.productRevision,
-          title: translation.title,
-        }))
-        .sort((left, right) => left.locale.localeCompare(right.locale)),
+      // Search content is populated by the integration layer after bounded
+      // normalization. Null means "not prepared" and must preserve existing
+      // search rows; an explicit empty payload means "replace with no rows".
+      searchIndex: null,
       productPostingValueKeys: {
         category: item.scopes
           .filter((scope) => scope.scopeType === "category")
@@ -129,11 +119,11 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
     };
 
     return {
-      version: 2,
+      version: 3,
       actionType: "syncSellableItem",
       writeModelJson,
       writeModelHash: hashContent({
-        v: 2,
+        v: 3,
         actionType: "syncSellableItem",
         writeModelJson,
       }),

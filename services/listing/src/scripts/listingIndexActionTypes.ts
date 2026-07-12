@@ -5,10 +5,10 @@ import type {
   ProductListingIndexUpsertInput,
   ProductListingPriceRowInput,
   ProductSortRowInput,
-  ProductTitleBm25RowInput,
   VariantListingIndexUpsertInput,
   VariantListingPriceRowInput,
 } from "../repositories/listing/listingRepositoryTypes.js";
+import type { ListingSearchIndexProductWriteModel } from "../repositories/listing/ListingSearchIndexRepository.js";
 import type { ListingVariantTerm } from "../listing/variantTerms/index.js";
 
 export type ListingIndexQueuedSyncAction = {
@@ -83,7 +83,7 @@ export type ListingIndexItemKey = {
 };
 
 export type ListingSyncWriteModel = {
-  version: 2;
+  version: 3;
   actionType: Extract<ListingIndexActionType, "syncSellableItem">;
   writeModelJson: ListingSyncWriteModelJson;
   writeModelHash: string;
@@ -94,7 +94,8 @@ export type ListingSyncWriteModelJson = {
   productKind: ProductKind;
   productPrices: readonly ProductListingPriceRowInput[];
   productSortRows: readonly Omit<ProductSortRowInput, "productDocId">[];
-  productTitleRows: readonly ProductTitleBm25RowInput[];
+  /** Populated by the application integration layer after bounded normalization. */
+  searchIndex: ListingSearchIndexProductWriteModel | null;
   productPostingValueKeys: {
     category: readonly string[];
     vendor: readonly string[];

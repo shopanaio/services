@@ -14,6 +14,8 @@ import {
 import { createDatabase, type Database } from "../infrastructure/db/database.js";
 import { Loader } from "../loaders/Loader.js";
 import { Repository } from "../repositories/Repository.js";
+import { SearchExecutionService } from "../search/execution/index.js";
+import { SearchConfigurationService } from "../search/configuration/index.js";
 import { BaseScript } from "./BaseScript.js";
 import type { ListingKernelServices, RunScriptContext } from "./types.js";
 
@@ -24,6 +26,7 @@ export class Kernel extends BaseKernel<ListingKernelServices> {
   public cache!: Cache;
   public db!: Database;
   public workflow!: WorkflowRegistry;
+  public searchExecution!: SearchExecutionService;
 
   private constructor(
     broker: ServiceBroker,
@@ -31,13 +34,15 @@ export class Kernel extends BaseKernel<ListingKernelServices> {
     repository: Repository,
     workflow: WorkflowRegistry,
     cache: Cache,
-    db: Database
+    db: Database,
+    searchExecution: SearchExecutionService
   ) {
-    super(broker, logger, { repository, workflow, cache });
+    super(broker, logger, { repository, workflow, cache, searchExecution });
     this.repository = repository;
     this.workflow = workflow;
     this.cache = cache;
     this.db = db;
+    this.searchExecution = searchExecution;
   }
 
   static async create(
@@ -63,6 +68,16 @@ export class Kernel extends BaseKernel<ListingKernelServices> {
     const cache = createCache({
       ttl: 5 * 60 * 1000,
     });
+    const searchConfiguration = new SearchConfigurationService(
+      cache,
+      repository.searchSynonym,
+      repository.searchProductBoost,
+    );
+    const searchExecution = new SearchExecutionService({
+      connection: () => repository.db,
+      settings: repository.searchSettings,
+      configuration: searchConfiguration,
+    });
 
     this.instance = new Kernel(
       broker,
@@ -70,7 +85,8 @@ export class Kernel extends BaseKernel<ListingKernelServices> {
       repository,
       workflow,
       cache,
-      db
+      db,
+      searchExecution
     );
     return this.instance;
   }

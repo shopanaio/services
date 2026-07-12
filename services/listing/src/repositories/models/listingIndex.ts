@@ -32,13 +32,13 @@ export const listingDocIdAllocator = listingSchema.table(
     primaryKey({ columns: [table.storeId] }),
     check(
       "chk_listing_doc_id_allocator_product_positive",
-      sql`${table.nextProductDocId} > 0`
+      sql`${table.nextProductDocId} > 0`,
     ),
     check(
       "chk_listing_doc_id_allocator_variant_positive",
-      sql`${table.nextVariantDocId} > 0`
+      sql`${table.nextVariantDocId} > 0`,
     ),
-  ]
+  ],
 );
 
 export const listingIndexItemState = listingSchema.table(
@@ -49,11 +49,14 @@ export const listingIndexItemState = listingSchema.table(
     eventSequence: integer("event_sequence").notNull(),
     payloadHash: text("payload_hash").notNull(),
     lifecycleStatus: varchar("lifecycle_status", { length: 32 }).notNull(),
-    lastEffectiveIdempotencyKey: text("last_effective_idempotency_key")
-      .notNull(),
+    lastEffectiveIdempotencyKey: text(
+      "last_effective_idempotency_key",
+    ).notNull(),
     lastOperationId: text("last_operation_id").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
-      .notNull(),
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
   },
   (table) => [
     primaryKey({
@@ -61,13 +64,13 @@ export const listingIndexItemState = listingSchema.table(
     }),
     check(
       "chk_listing_index_item_state_event_sequence",
-      sql`${table.eventSequence} > 0`
+      sql`${table.eventSequence} > 0`,
     ),
     check(
       "chk_listing_index_item_state_lifecycle_status",
-      sql`${table.lifecycleStatus} IN ('indexed', 'deleted')`
+      sql`${table.lifecycleStatus} IN ('indexed', 'deleted')`,
     ),
-  ]
+  ],
 );
 
 export const productListingIndex = listingSchema.table(
@@ -104,34 +107,38 @@ export const productListingIndex = listingSchema.table(
   (table) => [
     unique("product_listing_store_doc_unique").on(
       table.storeId,
-      table.productDocId
+      table.productDocId,
     ),
     unique("product_listing_store_product_unique").on(
       table.storeId,
-      table.productId
+      table.productId,
     ),
     unique("product_listing_store_doc_product_unique").on(
       table.storeId,
       table.productDocId,
-      table.productId
+      table.productId,
+    ),
+    unique("product_listing_doc_product_unique").on(
+      table.productDocId,
+      table.productId,
     ),
     check("chk_product_listing_kind", sql`${table.kind} IN ('BASE', 'BUNDLE')`),
     check(
       "chk_product_listing_status",
-      sql`${table.status} IN ('published', 'draft')`
+      sql`${table.status} IN ('published', 'draft')`,
     ),
     check("chk_product_listing_doc_positive", sql`${table.productDocId} > 0`),
     check(
       "chk_product_listing_total_stock_nonnegative",
-      sql`${table.totalStock} >= 0`
+      sql`${table.totalStock} >= 0`,
     ),
     index("idx_product_listing_store_product").on(
       table.storeId,
-      table.productId
+      table.productId,
     ),
     index("idx_product_listing_store_doc").on(
       table.storeId,
-      table.productDocId
+      table.productDocId,
     ),
     index("idx_product_listing_published_doc")
       .on(table.storeId, table.productDocId)
@@ -139,7 +146,7 @@ export const productListingIndex = listingSchema.table(
     index("idx_product_listing_vendor")
       .on(table.storeId, table.vendorId)
       .where(sql`${table.vendorId} IS NOT NULL`),
-  ]
+  ],
 );
 
 export const productListingPriceIndex = listingSchema.table(
@@ -179,14 +186,14 @@ export const productListingPriceIndex = listingSchema.table(
         (${table.hasPrice} = false AND ${table.minPriceMinor} IS NULL AND ${table.maxPriceMinor} IS NULL)
         OR
         (${table.hasPrice} = true AND ${table.minPriceMinor} IS NOT NULL AND ${table.maxPriceMinor} IS NOT NULL AND ${table.minPriceMinor} >= 0 AND ${table.maxPriceMinor} >= ${table.minPriceMinor})
-      )`
+      )`,
     ),
     index("idx_product_listing_price_visible_asc")
       .on(
         table.storeId,
         table.currency,
         table.minPriceMinor.asc(),
-        table.productId
+        table.productId,
       )
       .where(sql`${table.hasPrice} = true`),
     index("idx_product_listing_price_visible_desc")
@@ -194,10 +201,10 @@ export const productListingPriceIndex = listingSchema.table(
         table.storeId,
         table.currency,
         table.maxPriceMinor.desc(),
-        table.productId
+        table.productId,
       )
       .where(sql`${table.hasPrice} = true`),
-  ]
+  ],
 );
 
 export const variantListingIndex = listingSchema.table(
@@ -219,21 +226,21 @@ export const variantListingIndex = listingSchema.table(
   (table) => [
     unique("variant_listing_store_product_variant_unique").on(
       table.productId,
-      table.variantId
+      table.variantId,
     ),
     unique("variant_listing_store_variant_unique").on(
       table.storeId,
-      table.variantId
+      table.variantId,
     ),
     unique("variant_listing_store_doc_unique").on(
       table.storeId,
-      table.variantDocId
+      table.variantDocId,
     ),
     unique("variant_listing_store_doc_variant_unique").on(
       table.storeId,
       table.variantDocId,
       table.productDocId,
-      table.productId
+      table.productId,
     ),
     foreignKey({
       name: "fk_variant_listing_product",
@@ -252,25 +259,25 @@ export const variantListingIndex = listingSchema.table(
     check("chk_variant_listing_doc_positive", sql`${table.variantDocId} > 0`),
     check(
       "chk_variant_listing_product_doc_positive",
-      sql`${table.productDocId} > 0`
+      sql`${table.productDocId} > 0`,
     ),
     check(
       "chk_variant_listing_total_stock_nonnegative",
-      sql`${table.totalStock} >= 0`
+      sql`${table.totalStock} >= 0`,
     ),
     index("idx_variant_listing_store_product").on(
       table.storeId,
-      table.productId
+      table.productId,
     ),
     index("idx_variant_listing_store_variant").on(
       table.storeId,
-      table.variantId
+      table.variantId,
     ),
     index("idx_variant_listing_store_doc").on(
       table.storeId,
-      table.variantDocId
+      table.variantDocId,
     ),
-  ]
+  ],
 );
 
 export const variantListingPriceIndex = listingSchema.table(
@@ -312,15 +319,15 @@ export const variantListingPriceIndex = listingSchema.table(
         (${table.hasPrice} = false AND ${table.priceMinor} IS NULL)
         OR
         (${table.hasPrice} = true AND ${table.priceMinor} IS NOT NULL AND ${table.priceMinor} >= 0)
-      )`
+      )`,
     ),
     check(
       "chk_variant_listing_price_variant_doc_positive",
-      sql`${table.variantDocId} > 0`
+      sql`${table.variantDocId} > 0`,
     ),
     check(
       "chk_variant_listing_price_product_doc_positive",
-      sql`${table.productDocId} > 0`
+      sql`${table.productDocId} > 0`,
     ),
     index("idx_variant_listing_price_value")
       .on(table.storeId, table.currency, table.priceMinor)
@@ -338,7 +345,7 @@ export const variantListingPriceIndex = listingSchema.table(
         table.priceMinor,
         table.productId,
         table.variantDocId,
-        table.productDocId
+        table.productDocId,
       )
       .where(sql`${table.hasPrice} = true`),
     index("idx_variant_listing_price_desc_covering")
@@ -348,7 +355,7 @@ export const variantListingPriceIndex = listingSchema.table(
         table.priceMinor.desc(),
         table.productId,
         table.variantDocId,
-        table.productDocId
+        table.productDocId,
       )
       .where(sql`${table.hasPrice} = true`),
     index("idx_variant_listing_price_product_order")
@@ -358,10 +365,10 @@ export const variantListingPriceIndex = listingSchema.table(
         table.productId,
         table.priceMinor,
         table.variantDocId,
-        table.productDocId
+        table.productDocId,
       )
       .where(sql`${table.hasPrice} = true`),
-  ]
+  ],
 );
 
 export const listingPostingBitmap = listingSchema.table(
@@ -387,11 +394,11 @@ export const listingPostingBitmap = listingSchema.table(
     }),
     check(
       "chk_listing_posting_bitmap_entity_type",
-      sql`${table.entityType} IN ('product', 'variant')`
+      sql`${table.entityType} IN ('product', 'variant')`,
     ),
     check(
       "chk_listing_posting_bitmap_no_collection_field",
-      sql`${table.field} <> 'collection'`
+      sql`${table.field} <> 'collection'`,
     ),
     check(
       "chk_listing_posting_bitmap_entity_field",
@@ -399,9 +406,9 @@ export const listingPostingBitmap = listingSchema.table(
         (${table.entityType} = 'product' AND ${table.field} IN ('category', 'vendor', 'facet'))
         OR
         (${table.entityType} = 'variant' AND ${table.field} IN ('term', 'variant_product'))
-      )`
+      )`,
     ),
-  ]
+  ],
 );
 
 export const listingPostingProductSort = listingSchema.table(
@@ -459,7 +466,7 @@ export const listingPostingProductSort = listingSchema.table(
       table.boolValue.desc(),
       table.timestamptzValue.desc().nullsLast(),
       table.timestamptzValue2.desc().nullsLast(),
-      table.productId
+      table.productId,
     ),
     // SQL migration adds INCLUDE (product_doc_id); Drizzle cannot express INCLUDE.
     index("idx_listing_posting_product_sort_text").on(
@@ -470,7 +477,7 @@ export const listingPostingProductSort = listingSchema.table(
       table.manualScopeId,
       table.boolValue.desc(),
       table.textValue.asc().nullsLast(),
-      table.productId
+      table.productId,
     ),
     // SQL migration adds INCLUDE (product_doc_id); Drizzle cannot express INCLUDE.
     index("idx_listing_posting_product_sort_bigint_asc").on(
@@ -481,7 +488,7 @@ export const listingPostingProductSort = listingSchema.table(
       table.manualScopeId,
       table.boolValue.desc(),
       table.bigintValue.asc().nullsLast(),
-      table.productId
+      table.productId,
     ),
     // SQL migration adds INCLUDE (product_doc_id); Drizzle cannot express INCLUDE.
     index("idx_listing_posting_product_sort_bigint_desc").on(
@@ -492,9 +499,66 @@ export const listingPostingProductSort = listingSchema.table(
       table.manualScopeId,
       table.boolValue.desc(),
       table.bigintValue.desc().nullsLast(),
-      table.productId
+      table.productId,
     ),
-  ]
+    // Bucketless search ordering for SHOW/HIDE. SQL migration adds
+    // INCLUDE (product_doc_id); Drizzle cannot express INCLUDE.
+    index("idx_listing_product_sort_newest_no_availability").on(
+      table.storeId,
+      table.sortKind,
+      table.locale,
+      table.currency,
+      table.manualScopeId,
+      table.timestamptzValue.desc().nullsLast(),
+      table.timestamptzValue2.desc().nullsLast(),
+      table.productId,
+    ),
+    index("idx_listing_product_sort_created_no_availability").on(
+      table.storeId,
+      table.sortKind,
+      table.locale,
+      table.currency,
+      table.manualScopeId,
+      table.timestamptzValue.desc(),
+      table.productId,
+    ),
+    index("idx_listing_product_sort_text_asc_no_availability").on(
+      table.storeId,
+      table.sortKind,
+      table.locale,
+      table.currency,
+      table.manualScopeId,
+      table.textValue.asc().nullsLast(),
+      table.productId,
+    ),
+    index("idx_listing_product_sort_text_desc_no_availability").on(
+      table.storeId,
+      table.sortKind,
+      table.locale,
+      table.currency,
+      table.manualScopeId,
+      table.textValue.desc().nullsLast(),
+      table.productId,
+    ),
+    index("idx_listing_product_sort_bigint_asc_no_availability").on(
+      table.storeId,
+      table.sortKind,
+      table.locale,
+      table.currency,
+      table.manualScopeId,
+      table.bigintValue.asc().nullsLast(),
+      table.productId,
+    ),
+    index("idx_listing_product_sort_bigint_desc_no_availability").on(
+      table.storeId,
+      table.sortKind,
+      table.locale,
+      table.currency,
+      table.manualScopeId,
+      table.bigintValue.desc().nullsLast(),
+      table.productId,
+    ),
+  ],
 );
 
 export const listingPostingVariantProjectionBlock = listingSchema.table(
@@ -513,105 +577,27 @@ export const listingPostingVariantProjectionBlock = listingSchema.table(
     primaryKey({ columns: [table.storeId, table.blockId] }),
     check(
       "chk_listing_storeion_block_id_nonnegative",
-      sql`${table.blockId} >= 0`
+      sql`${table.blockId} >= 0`,
     ),
     check(
       "chk_listing_storeion_block_range",
-      sql`${table.variantDocFrom} >= 0 AND ${table.variantDocTo} > ${table.variantDocFrom}`
+      sql`${table.variantDocFrom} >= 0 AND ${table.variantDocTo} > ${table.variantDocFrom}`,
     ),
     check(
       "chk_listing_storeion_block_counts_nonnegative",
-      sql`${table.variantCount} >= 0 AND ${table.productCount} >= 0`
+      sql`${table.variantCount} >= 0 AND ${table.productCount} >= 0`,
     ),
     index("idx_listing_storeion_block_range").on(
       table.storeId,
       table.variantDocFrom,
-      table.variantDocTo
+      table.variantDocTo,
     ),
-  ]
-);
-
-export const productTitleBm25SearchIndex = listingSchema.table(
-  "product_title_bm25_search_index",
-  {
-    searchId: uuid("search_id").notNull(),
-    storeId: uuid("store_id").notNull(),
-    productId: uuid("product_id").notNull(),
-    locale: varchar("locale", { length: 8 }).notNull(),
-    kind: varchar("kind", { length: 16 }).notNull(),
-    status: varchar("status", { length: 16 }).notNull(),
-    publishedAt: timestamp("published_at", {
-      withTimezone: true,
-      mode: "string",
-    }),
-    productCreatedAt: timestamp("product_created_at", {
-      withTimezone: true,
-      mode: "string",
-    }).notNull(),
-    productUpdatedAt: timestamp("product_updated_at", {
-      withTimezone: true,
-      mode: "string",
-    }).notNull(),
-    productRevision: integer("product_revision").notNull().default(0),
-    title: text("title").notNull().default(""),
-    indexedAt: timestamp("indexed_at", { withTimezone: true, mode: "string" })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => [
-    primaryKey({
-      name: "product_title_bm25_search_index_pkey",
-      columns: [table.productId, table.locale],
-    }),
-    unique("product_title_bm25_search_id_unique").on(table.searchId),
-    foreignKey({
-      name: "fk_product_title_bm25_product",
-      columns: [table.productId],
-      foreignColumns: [productListingIndex.productId],
-    }).onDelete("cascade"),
-    check(
-      "chk_product_title_bm25_kind",
-      sql`${table.kind} IN ('BASE', 'BUNDLE')`
-    ),
-    check(
-      "chk_product_title_bm25_status",
-      sql`${table.status} IN ('published', 'draft')`
-    ),
-    index("idx_product_title_bm25_store_locale_product").on(
-      table.storeId,
-      table.locale,
-      table.productId
-    ),
-    index("idx_product_title_bm25_visible")
-      .on(
-        table.storeId,
-        table.locale,
-        table.publishedAt.desc(),
-        table.productId
-      )
-      .where(sql`${table.status} = 'published'`),
-    index("idx_product_title_bm25_search")
-      .using(
-        "bm25",
-        table.searchId,
-        table.storeId,
-        table.locale,
-        table.status,
-        table.kind,
-        table.productId,
-        table.title,
-        table.publishedAt,
-        table.productCreatedAt
-      )
-      .with({ key_field: "search_id" }),
-  ]
+  ],
 );
 
 export type ListingDocIdAllocator = typeof listingDocIdAllocator.$inferSelect;
-export type NewListingDocIdAllocator = typeof listingDocIdAllocator.$inferInsert;
+export type NewListingDocIdAllocator =
+  typeof listingDocIdAllocator.$inferInsert;
 
 export type ListingIndexItemState = typeof listingIndexItemState.$inferSelect;
 export type NewListingIndexItemState =
@@ -645,8 +631,3 @@ export type ListingPostingVariantProjectionBlock =
   typeof listingPostingVariantProjectionBlock.$inferSelect;
 export type NewListingPostingVariantProjectionBlock =
   typeof listingPostingVariantProjectionBlock.$inferInsert;
-
-export type ProductTitleBm25SearchIndex =
-  typeof productTitleBm25SearchIndex.$inferSelect;
-export type NewProductTitleBm25SearchIndex =
-  typeof productTitleBm25SearchIndex.$inferInsert;

@@ -113,6 +113,8 @@ export enum GlobalIdEntity {
   Facet = "Facet",
   FacetValue = "FacetValue",
   FacetSwatch = "FacetSwatch",
+  SearchSynonymGroup = "SearchSynonymGroup",
+  SearchProductBoost = "SearchProductBoost",
   Option = "Option",
   OptionValue = "OptionValue",
   Feature = "Feature",

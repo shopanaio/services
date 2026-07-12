@@ -409,7 +409,7 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
      *   - product_listing_index bootstrap rows;
      *   - product_listing_index upsert rows;
      *   - product_listing_price_index rows grouped by productId;
-     *   - product_title_bm25_search_index rows grouped by productId;
+     *   - prepared search index rows grouped by productId;
      *   - listing_posting_product_sort rows grouped by productDocId;
      *   - listing_posting_bitmap product memberships grouped by
      *     productDocId + field, for category, vendor, and facet.

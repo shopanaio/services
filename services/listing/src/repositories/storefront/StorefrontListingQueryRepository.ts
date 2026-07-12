@@ -14,7 +14,6 @@ import {
   normalizePositivePageSize,
 } from "./sqlHelpers.js";
 import { StorefrontFacetResolutionRepository } from "./StorefrontFacetResolutionRepository.js";
-import { StorefrontProductTitleSearchQueryRepository } from "./StorefrontProductTitleSearchQueryRepository.js";
 import {
   compileFacetsWithCountsQuerySql,
 } from "./sql/compileFacetsWithCountsQuerySql.js";
@@ -85,7 +84,6 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     db: Database,
     txManager: TransactionManager<Database>,
     private readonly facets: StorefrontFacetResolutionRepository,
-    private readonly search: StorefrontProductTitleSearchQueryRepository,
     private readonly heavyOptionFacetCountsEnabled: boolean,
     private readonly facetCountsProfilingEnabled: boolean
   ) {
@@ -185,6 +183,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
                 currency: request.input.currency,
                 scope: request.input.scope,
                 normalizedQuery: request.normalizedQuery,
+                searchMode: request.searchCandidates?.attempt.mode ?? null,
                 filters: request.filters,
                 variantTermGroups: request.filterPlan.variantTermGroups,
                 sort: request.sort,
@@ -409,17 +408,71 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     }
 
     const first = normalizePositivePageSize(input.first);
-    const normalizedQuery = this.search.normalizeQuery(input.query);
-    if (input.scope.kind === "search" && !normalizedQuery) {
+    const normalizedQuery = normalizeSearchQuery(input.query);
+    const searchCandidates = input.searchCandidates ?? null;
+    if (normalizedQuery && !searchCandidates) {
       throw new StorefrontRepositoryValidationError(
-        "Search scope requires a non-empty query"
+        "Search candidate contract is unavailable",
+        ["query"],
+        "SEARCH_INDEX_UNAVAILABLE"
       );
+    }
+    if (!normalizedQuery && searchCandidates) {
+      throw new StorefrontRepositoryValidationError(
+        "Search candidate contract requires a non-empty query",
+        ["query"]
+      );
+    }
+    if (searchCandidates) {
+      if (searchCandidates.request.storeId !== this.storeId) {
+        throw new StorefrontRepositoryValidationError(
+          "Search candidate contract must belong to the current store"
+        );
+      }
+      if (searchCandidates.request.locale !== locale) {
+        throw new StorefrontRepositoryValidationError(
+          "Search candidate contract locale does not match the listing request"
+        );
+      }
+      if (searchCandidates.request.normalizedQuery.display !== normalizedQuery) {
+        throw new StorefrontRepositoryValidationError(
+          "Search candidate contract query does not match the listing request"
+        );
+      }
+      if (
+        searchCandidates.attempt.mode !== "PRIMARY" &&
+        searchCandidates.attempt.mode !== "FUZZY"
+      ) {
+        throw new StorefrontRepositoryValidationError(
+          "Search candidate mode is not supported"
+        );
+      }
+      if (!searchCandidates.plan.fingerprint.trim()) {
+        throw new StorefrontRepositoryValidationError(
+          "Search candidate fingerprint is required"
+        );
+      }
+      if (!searchCandidates.membershipBitmap.trim()) {
+        throw new StorefrontRepositoryValidationError(
+          "Search candidate membership bitmap is required"
+        );
+      }
     }
 
     const sort = this.resolveSort(input.sort, normalizedQuery);
     if (sort.kind === "relevance" && !normalizedQuery) {
       throw new StorefrontRepositoryValidationError(
         "Relevance sort requires a non-empty query"
+      );
+    }
+    if (
+      sort.kind === "relevance" &&
+      !searchCandidates?.rankedCandidateRelationSql
+    ) {
+      throw new StorefrontRepositoryValidationError(
+        "Relevance sort requires a ranked search candidate relation",
+        ["sort"],
+        "SEARCH_INDEX_UNAVAILABLE"
       );
     }
 
@@ -443,20 +496,28 @@ export class StorefrontListingQueryRepository extends BaseRepository {
       currency,
       scope: input.scope,
       normalizedQuery,
+      searchMode: searchCandidates?.attempt.mode ?? null,
       filters,
       variantTermGroups: filterPlan.variantTermGroups,
       sort,
       manualScopeId,
     });
 
-    assertCursorMatches(cursor, filterHash, sort.kind);
+    assertCursorMatches(
+      cursor,
+      filterHash,
+      sort.kind,
+      searchCandidates?.attempt.mode ?? null,
+    );
     return {
       input: normalizedInput,
       filters,
       filterPlan,
       normalizedQuery,
+      searchCandidates,
       sort,
       cursor,
+      cursorIssuedAt: new Date().toISOString(),
       filterHash,
       manualScopeId,
     };
@@ -519,7 +580,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     switch (scope.kind) {
       case "category":
         return scope.manualSortScopeId ?? scope.categoryId;
-      case "search":
+      case "global":
         throw new StorefrontRepositoryValidationError(
           "Manual sort requires category scope"
         );
@@ -648,6 +709,25 @@ function numberOrNull(value: number | string | null | undefined): number | null 
 
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function normalizeSearchQuery(query: string | undefined | null): string | null {
+  if (!query) {
+    return null;
+  }
+
+  const normalized = query.trim().replace(/\s+/gu, " ");
+  if (!normalized) {
+    return null;
+  }
+  if ([...normalized].length > 128) {
+    throw new StorefrontRepositoryValidationError(
+      "Search query exceeds 128 Unicode code points",
+      ["query"]
+    );
+  }
+
+  return normalized;
 }
 
 function explainAnalyzePlanLine(row: ExplainAnalyzeSqlRow): string {

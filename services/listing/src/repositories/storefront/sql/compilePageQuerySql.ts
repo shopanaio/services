@@ -1,5 +1,6 @@
 import { sql, type SQL } from "drizzle-orm";
 import { StorefrontRepositoryValidationError } from "../types.js";
+import { decodeCursorFloat64 } from "../cursor.js";
 import type {
   DecodedListingCursor,
   ProductSortCollectKind,
@@ -17,6 +18,7 @@ import {
   compileVariantCandidatesBitmapSql,
   hasVariantPredicate,
   shouldApplyProductStockAtProductLevel,
+  shouldUseAvailabilityOrderBucket,
 } from "./compileListingProductMatchesSql.js";
 
 export function compilePageQuerySql(request: ListingSqlRequest): SQL {
@@ -33,7 +35,8 @@ function compileProductSortPageQuerySql(request: ListingSqlRequest): SQL {
   const productConfig = productSortConfig(request);
   const productSeek = buildProductSortSeekPredicate(
     productConfig.sort,
-    request.request.cursor
+    request.request.cursor,
+    shouldUseAvailabilityOrderBucket(request),
   );
   const limitSql = sql`(SELECT first + 1 FROM input)`;
 
@@ -61,7 +64,11 @@ function compileProductSortPageQuerySql(request: ListingSqlRequest): SQL {
         s.text_value,
         NULL::int AS variant_doc_id,
         NULL::bigint AS price_minor,
-        NULL::double precision AS relevance_score
+        NULL::int AS identifier_priority,
+        NULL::boolean AS boosted,
+        NULL::double precision AS relevance_score,
+        NULL::int AS total_edit_distance,
+        NULL::double precision AS minimum_trigram_similarity
       FROM listing.listing_posting_product_sort s
       JOIN input i ON true
       CROSS JOIN product_matches m
@@ -89,13 +96,17 @@ function compileMatchedVariantPricePageQuerySql(
   const variantDirection = request.sortKind === "price_desc" ? "desc" : "asc";
   const variantSeek = buildMatchedPriceSeek(
     variantDirection,
-    request.request.cursor
+    request.request.cursor,
+    shouldUseAvailabilityOrderBucket(request),
   );
   const limitSql = sql`(SELECT first + 1 FROM input)`;
   const pricePredicate = compilePricePredicateSql(request, sql`vp`);
+  const availabilityOrder = shouldUseAvailabilityOrderBucket(request)
+    ? sql`chosen.in_stock DESC,`
+    : sql``;
   const finalOrder = variantDirection === "asc"
-    ? sql`chosen.in_stock DESC, chosen.price_minor ASC NULLS LAST, chosen.product_id ASC, chosen.variant_doc_id ASC NULLS LAST`
-    : sql`chosen.in_stock DESC, chosen.price_minor DESC NULLS LAST, chosen.product_id ASC, chosen.variant_doc_id ASC NULLS LAST`;
+    ? sql`${availabilityOrder} chosen.price_minor ASC NULLS LAST, chosen.product_id ASC, chosen.variant_doc_id ASC NULLS LAST`
+    : sql`${availabilityOrder} chosen.price_minor DESC NULLS LAST, chosen.product_id ASC, chosen.variant_doc_id ASC NULLS LAST`;
 
   return sql`
     /* listing:page */
@@ -160,7 +171,11 @@ function compileMatchedVariantPricePageQuerySql(
         NULL::text AS text_value,
         chosen.variant_doc_id,
         chosen.price_minor,
-        NULL::double precision AS relevance_score
+        NULL::int AS identifier_priority,
+        NULL::boolean AS boosted,
+        NULL::double precision AS relevance_score,
+        NULL::int AS total_edit_distance,
+        NULL::double precision AS minimum_trigram_similarity
       FROM matched_price_rows chosen
       WHERE true
         ${variantSeek}
@@ -182,8 +197,25 @@ function compileRelevancePageQuerySql(request: ListingSqlRequest): SQL {
     );
   }
 
-  const relevanceSeek = buildRelevanceSeek(request.request.cursor);
+  const relevanceSeek = buildRelevanceSeek(
+    request,
+    request.request.cursor,
+    shouldUseAvailabilityOrderBucket(request),
+  );
   const limitSql = sql`(SELECT first + 1 FROM input)`;
+  const availabilityOrder = shouldUseAvailabilityOrderBucket(request)
+    ? sql`c.in_stock DESC,`
+    : sql``;
+  const searchOrder = request.searchCandidates?.attempt.mode === "FUZZY"
+    ? sql`c.boosted DESC,
+        c.total_edit_distance ASC,
+        c.minimum_trigram_similarity DESC,
+        c.relevance_rank DESC,
+        c.product_id ASC`
+    : sql`c.identifier_priority DESC,
+        c.boosted DESC,
+        c.relevance_rank DESC,
+        c.product_id ASC`;
 
   return sql`
     /* listing:page */
@@ -209,12 +241,18 @@ function compileRelevancePageQuerySql(request: ListingSqlRequest): SQL {
         NULL::text AS text_value,
         NULL::int AS variant_doc_id,
         NULL::bigint AS price_minor,
-        c.relevance_score
+        c.identifier_priority,
+        c.boosted,
+        c.relevance_rank AS relevance_score,
+        c.total_edit_distance,
+        c.minimum_trigram_similarity
       FROM search_candidate_rows c
       CROSS JOIN product_matches m
       WHERE m.bitmap @> c.product_doc_id
         ${relevanceSeek}
-      ORDER BY c.in_stock DESC, c.relevance_score DESC NULLS LAST, c.product_id ASC
+      ORDER BY
+        ${availabilityOrder}
+        ${searchOrder}
       LIMIT ${limitSql}
     ),
     relevance_page_scan AS (
@@ -238,11 +276,16 @@ function compilePageSelectSql(pageScanSql: SQL): SQL {
       ps.bool_value AS "boolValue",
       ps.timestamptz_value AS "timestamptzValue",
       ps.timestamptz_value_2 AS "timestamptzValue2",
-      ps.bigint_value::double precision AS "bigintValue",
+      ps.bigint_value::text AS "bigintValue",
       ps.text_value AS "textValue",
       ps.variant_doc_id::int AS "variantDocId",
-      ps.price_minor::double precision AS "priceMinor",
-      ps.relevance_score::double precision AS "relevanceScore"
+      ps.price_minor::text AS "priceMinor",
+      ps.identifier_priority::int AS "identifierPriority",
+      ps.boosted AS "boosted",
+      ps.relevance_score::double precision AS "relevanceScore",
+      ps.total_edit_distance::int AS "totalEditDistance",
+      ps.minimum_trigram_similarity::double precision
+        AS "minimumTrigramSimilarity"
     FROM ${pageScanSql} ps
     ORDER BY ps.page_ordinal ASC NULLS LAST
   `;
@@ -260,6 +303,9 @@ function productSortConfig(request: ListingSqlRequest): {
   manualScopeId: string;
   orderBy: SQL;
 } {
+  const availabilityOrder = shouldUseAvailabilityOrderBucket(request)
+    ? sql`s.bool_value DESC,`
+    : sql``;
   switch (request.sortKind) {
     case "manual":
       return {
@@ -268,7 +314,7 @@ function productSortConfig(request: ListingSqlRequest): {
         locale: "",
         currency: "",
         manualScopeId: request.manualScopeId,
-        orderBy: sql`s.bool_value DESC, s.text_value ASC NULLS LAST, s.product_id ASC`,
+        orderBy: sql`${availabilityOrder} s.text_value ASC NULLS LAST, s.product_id ASC`,
       };
     case "created":
       return {
@@ -277,7 +323,7 @@ function productSortConfig(request: ListingSqlRequest): {
         locale: "",
         currency: "",
         manualScopeId: ZERO_UUID,
-        orderBy: sql`s.bool_value DESC, s.timestamptz_value DESC, s.product_id ASC`,
+        orderBy: sql`${availabilityOrder} s.timestamptz_value DESC, s.product_id ASC`,
       };
     case "name_asc":
       return {
@@ -286,7 +332,7 @@ function productSortConfig(request: ListingSqlRequest): {
         locale: request.locale,
         currency: "",
         manualScopeId: ZERO_UUID,
-        orderBy: sql`s.bool_value DESC, s.text_value ASC NULLS LAST, s.product_id ASC`,
+        orderBy: sql`${availabilityOrder} s.text_value ASC NULLS LAST, s.product_id ASC`,
       };
     case "name_desc":
       return {
@@ -295,7 +341,7 @@ function productSortConfig(request: ListingSqlRequest): {
         locale: request.locale,
         currency: "",
         manualScopeId: ZERO_UUID,
-        orderBy: sql`s.bool_value DESC, s.text_value DESC NULLS LAST, s.product_id ASC`,
+        orderBy: sql`${availabilityOrder} s.text_value DESC NULLS LAST, s.product_id ASC`,
       };
     case "price_asc":
       return {
@@ -304,7 +350,7 @@ function productSortConfig(request: ListingSqlRequest): {
         locale: "",
         currency: request.currency,
         manualScopeId: ZERO_UUID,
-        orderBy: sql`s.bool_value DESC, s.bigint_value ASC NULLS LAST, s.product_id ASC`,
+        orderBy: sql`${availabilityOrder} s.bigint_value ASC NULLS LAST, s.product_id ASC`,
       };
     case "price_desc":
       return {
@@ -313,7 +359,7 @@ function productSortConfig(request: ListingSqlRequest): {
         locale: "",
         currency: request.currency,
         manualScopeId: ZERO_UUID,
-        orderBy: sql`s.bool_value DESC, s.bigint_value DESC NULLS LAST, s.product_id ASC`,
+        orderBy: sql`${availabilityOrder} s.bigint_value DESC NULLS LAST, s.product_id ASC`,
       };
     case "newest":
     case "relevance":
@@ -323,7 +369,7 @@ function productSortConfig(request: ListingSqlRequest): {
         locale: "",
         currency: "",
         manualScopeId: ZERO_UUID,
-        orderBy: sql`s.bool_value DESC, s.timestamptz_value DESC NULLS LAST, s.timestamptz_value_2 DESC NULLS LAST, s.product_id ASC`,
+        orderBy: sql`${availabilityOrder} s.timestamptz_value DESC NULLS LAST, s.timestamptz_value_2 DESC NULLS LAST, s.product_id ASC`,
       };
     default:
       assertNeverSort(request.sortKind);
@@ -332,7 +378,8 @@ function productSortConfig(request: ListingSqlRequest): {
 
 function buildProductSortSeekPredicate(
   sort: ProductSortCollectKind,
-  cursor: DecodedListingCursor | null
+  cursor: DecodedListingCursor | null,
+  placeOutOfStockLast: boolean,
 ): SQL {
   if (!cursor) {
     return sql``;
@@ -400,12 +447,16 @@ function buildProductSortSeekPredicate(
       break;
   }
 
-  return sql`AND ${boolDescSeek(sql`s.bool_value`, payload.inStock, downstream)}`;
+  const seek = placeOutOfStockLast
+    ? boolDescSeek(sql`s.bool_value`, payload.availabilityBucket, downstream)
+    : downstream;
+  return sql`AND ${seek}`;
 }
 
 function buildMatchedPriceSeek(
   direction: "asc" | "desc",
-  cursor: DecodedListingCursor | null
+  cursor: DecodedListingCursor | null,
+  placeOutOfStockLast: boolean,
 ): SQL {
   if (!cursor) {
     return sql``;
@@ -414,14 +465,36 @@ function buildMatchedPriceSeek(
   if (payload.sort !== "price_asc" && payload.sort !== "price_desc") {
     return sql``;
   }
-  const productSeek = sql`chosen.product_id > ${payload.productId}::uuid`;
+  const variantSeek = ascNullsLastSeek(
+    sql`chosen.variant_doc_id`,
+    payload.variantDocId ?? null,
+    sql`false`,
+  );
+  const productSeek = sql`(
+    chosen.product_id > ${payload.productId}::uuid
+    OR (
+      chosen.product_id = ${payload.productId}::uuid
+      AND ${variantSeek}
+    )
+  )`;
   const priceSeek = direction === "asc"
     ? ascNullsLastSeek(sql`chosen.price_minor`, payload.priceMinor ?? null, productSeek)
     : descNullsLastSeek(sql`chosen.price_minor`, payload.priceMinor ?? null, productSeek);
-  return sql`AND ${boolDescSeek(sql`chosen.in_stock`, payload.inStock, priceSeek)}`;
+  const seek = placeOutOfStockLast
+    ? boolDescSeek(
+        sql`chosen.in_stock`,
+        payload.availabilityBucket,
+        priceSeek,
+      )
+    : priceSeek;
+  return sql`AND ${seek}`;
 }
 
-function buildRelevanceSeek(cursor: DecodedListingCursor | null): SQL {
+function buildRelevanceSeek(
+  request: ListingSqlRequest,
+  cursor: DecodedListingCursor | null,
+  placeOutOfStockLast: boolean,
+): SQL {
   if (!cursor) {
     return sql``;
   }
@@ -429,27 +502,87 @@ function buildRelevanceSeek(cursor: DecodedListingCursor | null): SQL {
   if (payload.sort !== "relevance") {
     return sql``;
   }
-  if (payload.relevanceScore === undefined || payload.relevanceScore === null) {
+  if (!payload.relevanceScoreBits) {
     throw new StorefrontRepositoryValidationError(
       "Relevance cursor is missing relevance score"
+    );
+  }
+  const relevanceScore = decodeCursorFloat64(payload.relevanceScoreBits);
+  if (typeof payload.boosted !== "boolean") {
+    throw new StorefrontRepositoryValidationError(
+      "Relevance cursor is missing boost ordering value"
+    );
+  }
+  if (
+    request.searchCandidates?.attempt.mode !== "FUZZY" &&
+    (payload.identifierPriority === undefined ||
+      payload.identifierPriority === null)
+  ) {
+    throw new StorefrontRepositoryValidationError(
+      "Relevance cursor is missing identifier priority"
     );
   }
 
   const productSeek = sql`c.product_id > ${payload.productId}::uuid`;
   const scoreSeek = sql`(
-    c.relevance_score < ${payload.relevanceScore}
-    OR c.relevance_score IS NULL
-    OR (c.relevance_score = ${payload.relevanceScore} AND ${productSeek})
+    c.relevance_rank < ${relevanceScore}
+    OR (
+      c.relevance_rank = ${relevanceScore}
+      AND ${productSeek}
+    )
   )`;
+  const downstream = request.searchCandidates?.attempt.mode === "FUZZY"
+    ? boolDescSeek(
+        sql`c.boosted`,
+        payload.boosted,
+        buildFuzzyRelevanceSeek(payload, scoreSeek),
+      )
+    : sql`(
+        c.identifier_priority < ${payload.identifierPriority}
+        OR (
+          c.identifier_priority = ${payload.identifierPriority}
+          AND ${boolDescSeek(sql`c.boosted`, payload.boosted, scoreSeek)}
+        )
+      )`;
+  const seek = placeOutOfStockLast
+    ? boolDescSeek(
+        sql`c.in_stock`,
+        payload.availabilityBucket,
+        downstream,
+      )
+    : downstream;
+  return sql`AND ${seek}`;
+}
 
-  if (payload.inStock) {
-    return sql`AND (
-      c.in_stock = false
-      OR (c.in_stock = true AND ${scoreSeek})
-    )`;
+function buildFuzzyRelevanceSeek(
+  payload: DecodedListingCursor["payload"],
+  scoreSeek: SQL,
+): SQL {
+  if (
+    payload.totalEditDistance === undefined ||
+    payload.totalEditDistance === null ||
+    !payload.minimumTrigramSimilarityBits
+  ) {
+    throw new StorefrontRepositoryValidationError(
+      "FUZZY relevance cursor is missing typo ordering values",
+    );
   }
-
-  return sql`AND (c.in_stock = false AND ${scoreSeek})`;
+  const similarity = decodeCursorFloat64(
+    payload.minimumTrigramSimilarityBits,
+  );
+  return sql`(
+    c.total_edit_distance > ${payload.totalEditDistance}
+    OR (
+      c.total_edit_distance = ${payload.totalEditDistance}
+      AND (
+        c.minimum_trigram_similarity < ${similarity}
+        OR (
+          c.minimum_trigram_similarity = ${similarity}
+          AND ${scoreSeek}
+        )
+      )
+    )
+  )`;
 }
 
 function boolDescSeek(column: SQL, cursorValue: boolean, downstream: SQL): SQL {

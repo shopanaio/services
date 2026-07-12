@@ -22,6 +22,7 @@ export class ListingIndexItemStateRepository extends BaseRepository {
   async findByItem(
     key: ListingIndexItemStateKey
   ): Promise<ListingIndexItemStateRow | null> {
+    this.assertCurrentStoreKey(key);
     const rows = await this.connection
       .select()
       .from(listingIndexItemState)
@@ -34,6 +35,7 @@ export class ListingIndexItemStateRepository extends BaseRepository {
   async lockByItem(
     key: ListingIndexItemStateKey
   ): Promise<ListingIndexItemStateRow | null> {
+    this.assertCurrentStoreKey(key);
     await this.connection.execute(
       sql`SELECT pg_advisory_xact_lock(hashtextextended(${this.lockKey(key)}, 0))`
     );
@@ -55,6 +57,7 @@ export class ListingIndexItemStateRepository extends BaseRepository {
       return new Map();
     }
 
+    keys.forEach((key) => this.assertCurrentStoreKey(key));
     assertUniqueBy(
       keys,
       (key) => this.mapKey(key),
@@ -99,6 +102,7 @@ export class ListingIndexItemStateRepository extends BaseRepository {
       return [];
     }
 
+    rows.forEach((row) => this.assertCurrentStoreKey(row));
     assertUniqueBy(
       rows,
       (row) => this.mapKey(row),
@@ -107,7 +111,10 @@ export class ListingIndexItemStateRepository extends BaseRepository {
     const result: ListingIndexItemStateRow[] = [];
 
     for (const chunk of chunkArray(rows)) {
-      const values: NewListingIndexItemState[] = chunk.map((row) => row);
+      const values: NewListingIndexItemState[] = chunk.map((row) => ({
+        ...row,
+        storeId: this.storeId,
+      }));
       const upserted = await this.connection
         .insert(listingIndexItemState)
         .values(values)
@@ -132,17 +139,25 @@ export class ListingIndexItemStateRepository extends BaseRepository {
 
   private whereItemKey(key: ListingIndexItemStateKey) {
     return and(
-      eq(listingIndexItemState.storeId, key.storeId),
+      eq(listingIndexItemState.storeId, this.storeId),
       eq(listingIndexItemState.itemId, key.itemId)
     );
   }
 
   private lockKey(key: ListingIndexItemStateKey): string {
-    return `listing_index_item_state:v1:${key.storeId}:${key.itemId}`;
+    return `listing_index_item_state:v1:${this.storeId}:${key.itemId}`;
   }
 
   private mapKey(key: ListingIndexItemStateKey): string {
-    return `${key.storeId}:${key.itemId}`;
+    return `${this.storeId}:${key.itemId}`;
+  }
+
+  private assertCurrentStoreKey(key: ListingIndexItemStateKey): void {
+    if (key.storeId !== this.storeId) {
+      throw new Error(
+        "Listing index item state key must belong to the current store"
+      );
+    }
   }
 }
 

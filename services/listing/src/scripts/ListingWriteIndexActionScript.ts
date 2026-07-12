@@ -122,10 +122,12 @@ export class ListingWriteIndexActionScript extends BaseScript<
       productId,
       writeModel.productPrices
     );
-    await this.repository.productTitleBm25SearchIndex.replaceForProduct(
-      productId,
-      writeModel.productTitleRows
-    );
+    if (writeModel.searchIndex) {
+      await this.repository.listingSearchIndex.replaceForProduct(
+        productId,
+        writeModel.searchIndex
+      );
+    }
     await this.repository.listingPostingProductSort.replaceForProduct(
       productDocId,
       writeModel.productSortRows.map((row) => ({
@@ -230,7 +232,7 @@ export class ListingWriteIndexActionScript extends BaseScript<
       await this.repository.listingPostingProductSort.deleteByProductDocId(
         product.productDocId
       );
-      await this.repository.productTitleBm25SearchIndex.deleteByProductId(
+      await this.repository.listingSearchIndex.deleteByProductId(
         product.productId
       );
       await this.repository.productListingPriceIndex.deleteByProductId(

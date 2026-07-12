@@ -6,6 +6,7 @@ import type {
 import type { WorkflowRegistry } from "@shopana/shared-kernel";
 import type { Cache } from "cache-manager";
 import type { Repository } from "../repositories/Repository.js";
+import type { SearchExecutionService } from "../search/execution/index.js";
 
 export interface Logger {
   debug(...args: unknown[]): void;
@@ -18,6 +19,7 @@ export interface ListingKernelServices extends BaseKernelServices {
   readonly repository: Repository;
   readonly cache: Cache;
   readonly workflow: WorkflowRegistry;
+  readonly searchExecution: SearchExecutionService;
 }
 
 export type ScriptContext = BaseScriptContext;

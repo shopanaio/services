@@ -1,5 +1,9 @@
 import type { SQL } from "drizzle-orm";
 import type { ListingVariantTermGroup } from "../../listing/variantTerms/index.js";
+import type {
+  SearchCandidateContract,
+  SearchExecutionMode,
+} from "../../search/execution/index.js";
 
 export class StorefrontRepositoryValidationError extends Error {
   constructor(
@@ -41,11 +45,15 @@ export interface StorefrontListingInput {
   locale: string;
   currency: string;
   query?: string;
+  searchCandidates?: StorefrontSearchCandidateContract | null;
   filters: StorefrontListingFilterInput[];
   sort?: StorefrontSortInput;
   first: number;
   after?: string | null;
 }
+
+/** Immutable canonical search contract shared by every Listing branch. */
+export type StorefrontSearchCandidateContract = SearchCandidateContract;
 
 export type StorefrontListingFilterInput =
   | {
@@ -73,7 +81,7 @@ export interface StorefrontSortInput {
 
 export type StorefrontListingScope =
   | { kind: "category"; categoryId: string; manualSortScopeId?: string }
-  | { kind: "search" };
+  | { kind: "global" };
 
 export interface ResolvedFacetFilterGroup {
   facetId: string;
@@ -133,18 +141,24 @@ export interface DecodedListingCursor {
 }
 
 export interface ListingCursorPayload {
-  version: 1;
+  version: 3;
   hash: string;
   sort: StorefrontSortKind;
-  inStock: boolean;
+  mode: SearchExecutionMode | null;
+  issuedAt: string;
+  availabilityBucket: boolean;
   productId: string;
   publishedAt?: string | null;
   productCreatedAt?: string | null;
   textValue?: string | null;
-  bigintValue?: number | null;
-  priceMinor?: number | null;
+  bigintValue?: string | null;
+  priceMinor?: string | null;
   variantDocId?: number | null;
-  relevanceScore?: number | null;
+  identifierPriority?: number | null;
+  boosted?: boolean | null;
+  relevanceScoreBits?: string | null;
+  totalEditDistance?: number | null;
+  minimumTrigramSimilarityBits?: string | null;
 }
 
 export type ListingCollectorKind =
@@ -175,8 +189,10 @@ export interface ResolvedListingRequest {
   filters: NormalizedStorefrontListingFilters;
   filterPlan: StorefrontFilterPlan;
   normalizedQuery: string | null;
+  searchCandidates: StorefrontSearchCandidateContract | null;
   sort: StorefrontSortInput;
   cursor: DecodedListingCursor | null;
+  cursorIssuedAt: string;
   filterHash: string;
   manualScopeId: string | null;
 }
@@ -189,7 +205,11 @@ export interface ListingPageRow {
   cursorValues: Record<string, string | number | boolean | null>;
   matchedVariantDocId?: number;
   matchedPriceMinor?: number;
+  identifierPriority?: number;
+  boosted?: boolean;
   relevanceScore?: number;
+  totalEditDistance?: number;
+  minimumTrigramSimilarity?: number;
 }
 
 export interface StorefrontListingRepositoryResult {
@@ -257,7 +277,7 @@ export interface ProductSortPageSqlRow extends Record<string, unknown> {
   boolValue: boolean | null;
   timestamptzValue: string | null;
   timestamptzValue2: string | null;
-  bigintValue: number | null;
+  bigintValue: string | null;
   textValue: string | null;
 }
 
@@ -266,14 +286,18 @@ export interface VariantPricePageSqlRow extends Record<string, unknown> {
   productId: string;
   inStock: boolean;
   variantDocId: number;
-  priceMinor: number;
+  priceMinor: string;
 }
 
 export interface SearchPageSqlRow extends Record<string, unknown> {
   productDocId: number;
   productId: string;
   inStock: boolean;
+  identifierPriority: number;
+  boosted: boolean;
   relevanceScore: number;
+  totalEditDistance: number;
+  minimumTrigramSimilarity: number;
 }
 
 export interface FacetCountSqlRow extends Record<string, unknown> {

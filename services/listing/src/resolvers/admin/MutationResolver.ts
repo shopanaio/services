@@ -72,6 +72,10 @@ export class MutationResolver extends ListingType<Record<string, never>> {
 }
 
 export class ListingMutationResolver extends ListingType<Record<string, never>> {
+  async search() {
+    return this.resolvers.listingSearchMutation();
+  }
+
   private facetWorkflowContext() {
     return {
       storeId: this.$ctx.store.id,

@@ -39,6 +39,10 @@ export class QueryResolver extends ListingType<Record<string, never>> {
 }
 
 export class ListingQueryResolver extends ListingType<Record<string, never>> {
+  async search() {
+    return this.resolvers.listingSearchQuery();
+  }
+
   node(_args: { id: string }) {
     return null;
   }

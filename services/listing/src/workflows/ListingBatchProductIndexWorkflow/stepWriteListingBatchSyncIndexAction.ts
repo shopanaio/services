@@ -11,10 +11,10 @@ import type {
   ProductListingIndexUpsertInput,
   ProductListingPriceRowInput,
   ProductSortRowInput,
-  ProductTitleBm25RowInput,
   VariantListingIndexUpsertInput,
   VariantListingPriceRowInput,
 } from "../../repositories/listing/listingRepositoryTypes.js";
+import type { ListingSearchIndexProductWriteModel } from "../../repositories/listing/ListingSearchIndexRepository.js";
 import type { VariantListingIndex } from "../../repositories/models/index.js";
 import type {
   ListingPreparedSyncAction,
@@ -65,7 +65,7 @@ type MergedBatchSyncPayload = {
   productBootstrapRows: ProductListingIndexBootstrapInput[];
   productRows: ProductListingIndexUpsertInput[];
   productPricesByProductId: Map<string, ProductListingPriceRowInput[]>;
-  productTitleRowsByProductId: Map<string, ProductTitleBm25RowInput[]>;
+  searchIndexByProductId: Map<string, ListingSearchIndexProductWriteModel>;
   productSortRowsByProductDocId: Map<number, ProductSortRowInput[]>;
   productMemberships: ProductMembershipReplacement[];
   variantRows: VariantListingIndexUpsertInput[];
@@ -228,8 +228,8 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
     await this.repository.productListingPriceIndex.replaceForProducts(
       payload.productPricesByProductId
     );
-    await this.repository.productTitleBm25SearchIndex.replaceForProducts(
-      payload.productTitleRowsByProductId
+    await this.repository.listingSearchIndex.replaceForProducts(
+      payload.searchIndexByProductId
     );
     await this.repository.listingPostingProductSort.replaceForProducts(
       payload.productSortRowsByProductDocId
@@ -279,9 +279,9 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
       string,
       ProductListingPriceRowInput[]
     >();
-    const productTitleRowsByProductId = new Map<
+    const searchIndexByProductId = new Map<
       string,
-      ProductTitleBm25RowInput[]
+      ListingSearchIndexProductWriteModel
     >();
     const productSortRowsByProductDocId = new Map<
       number,
@@ -325,10 +325,9 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
         productId,
         [...writeModel.productPrices].sort(compareCurrencyRows)
       );
-      productTitleRowsByProductId.set(
-        productId,
-        [...writeModel.productTitleRows].sort(compareProductTitleRows)
-      );
+      if (writeModel.searchIndex) {
+        searchIndexByProductId.set(productId, writeModel.searchIndex);
+      }
       productSortRowsByProductDocId.set(
         productDocId,
         writeModel.productSortRows
@@ -434,7 +433,11 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
       productBootstrapRows: productBootstrapRows.sort(compareProductBootstrapRows),
       productRows: productRows.sort(compareProductRows),
       productPricesByProductId: sortStringMap(productPricesByProductId),
-      productTitleRowsByProductId: sortStringMap(productTitleRowsByProductId),
+      searchIndexByProductId: new Map(
+        [...searchIndexByProductId.entries()].sort(([left], [right]) =>
+          compareStrings(left, right)
+        )
+      ),
       productSortRowsByProductDocId: sortNumberMap(productSortRowsByProductDocId),
       productMemberships: productMemberships.sort(compareProductMemberships),
       variantRows: variantRows.sort(compareVariantRows),
@@ -649,16 +652,6 @@ function compareProductSortRows(
     compareStrings(left.locale ?? "", right.locale ?? "") ||
     compareStrings(left.currency ?? "", right.currency ?? "") ||
     compareStrings(left.manualScopeId ?? "", right.manualScopeId ?? "")
-  );
-}
-
-function compareProductTitleRows(
-  left: ProductTitleBm25RowInput,
-  right: ProductTitleBm25RowInput
-): number {
-  return (
-    compareStrings(left.productId, right.productId) ||
-    compareStrings(left.locale, right.locale)
   );
 }
 

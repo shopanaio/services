@@ -1,0 +1,144 @@
+extend type ListingQuery {
+  """Search configuration and diagnostics namespace."""
+  search: ListingSearchQuery!
+}
+
+extend type ListingMutation {
+  """Search configuration mutation namespace."""
+  search: ListingSearchMutation!
+}
+
+type ListingSearchQuery {
+  synonymGroup(id: ID!): SearchSynonymGroup
+  synonymGroups(locale: LocaleCode, limit: Int = 20, offset: Int = 0): SearchSynonymGroupConnection!
+  productBoost(id: ID!): SearchProductBoost
+  productBoosts(locale: LocaleCode, limit: Int = 20, offset: Int = 0): SearchProductBoostConnection!
+  preview(query: String!, locale: LocaleCode!): SearchPreview!
+}
+
+type ListingSearchMutation {
+  synonymGroupCreate(input: SearchSynonymGroupCreateInput!): SearchSynonymGroupPayload!
+  synonymGroupUpdate(input: SearchSynonymGroupUpdateInput!): SearchSynonymGroupPayload!
+  synonymGroupDelete(input: SearchConfigurationDeleteInput!): SearchSynonymGroupDeletePayload!
+  productBoostCreate(input: SearchProductBoostCreateInput!): SearchProductBoostPayload!
+  productBoostUpdate(input: SearchProductBoostUpdateInput!): SearchProductBoostPayload!
+  productBoostDelete(input: SearchConfigurationDeleteInput!): SearchProductBoostDeletePayload!
+}
+
+type SearchSynonymGroup {
+  id: ID!
+  locale: LocaleCode!
+  name: String!
+  enabled: Boolean!
+  version: Int!
+  values: [SearchSynonymValue!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type SearchSynonymValue {
+  value: String!
+  position: Int!
+}
+
+type SearchSynonymGroupConnection {
+  nodes: [SearchSynonymGroup!]!
+  totalCount: Int!
+}
+
+type SearchProductBoost {
+  id: ID!
+  locale: LocaleCode!
+  name: String!
+  enabled: Boolean!
+  version: Int!
+  phrases: [SearchProductBoostPhrase!]!
+  productIds: [ID!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type SearchProductBoostPhrase {
+  phrase: String!
+  position: Int!
+}
+
+type SearchProductBoostConnection {
+  nodes: [SearchProductBoost!]!
+  totalCount: Int!
+}
+
+enum SearchPreviewReason {
+  SYNONYM_EXPANSION
+  PRODUCT_BOOST
+  BOOST_ONLY_CANDIDATE
+  TYPO_EXPANSION
+}
+
+type SearchPreview {
+  mode: String!
+  candidateCount: Int!
+  boostOnlyCandidateCount: Int!
+  matchedSynonymGroupIds: [ID!]!
+  applicableProductBoostIds: [ID!]!
+  reasons: [SearchPreviewReason!]!
+}
+
+input SearchSynonymGroupCreateInput {
+  locale: LocaleCode!
+  name: String!
+  enabled: Boolean = true
+  values: [String!]!
+}
+
+input SearchSynonymGroupUpdateInput {
+  id: ID!
+  expectedVersion: Int!
+  locale: LocaleCode!
+  name: String!
+  enabled: Boolean!
+  values: [String!]!
+}
+
+input SearchProductBoostCreateInput {
+  locale: LocaleCode!
+  name: String!
+  enabled: Boolean = true
+  phrases: [String!]!
+  productIds: [ID!]!
+}
+
+input SearchProductBoostUpdateInput {
+  id: ID!
+  expectedVersion: Int!
+  locale: LocaleCode!
+  name: String!
+  enabled: Boolean!
+  phrases: [String!]!
+  productIds: [ID!]!
+}
+
+input SearchConfigurationDeleteInput {
+  id: ID!
+  expectedVersion: Int!
+}
+
+type SearchSynonymGroupPayload {
+  synonymGroup: SearchSynonymGroup
+  userErrors: [GenericUserError!]!
+}
+
+type SearchSynonymGroupDeletePayload {
+  deletedSynonymGroupId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type SearchProductBoostPayload {
+  productBoost: SearchProductBoost
+  userErrors: [GenericUserError!]!
+}
+
+type SearchProductBoostDeletePayload {
+  deletedProductBoostId: ID
+  userErrors: [GenericUserError!]!
+}

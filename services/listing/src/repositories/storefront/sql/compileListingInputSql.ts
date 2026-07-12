@@ -22,6 +22,7 @@ export interface ListingSqlRequest {
   stockFilterJson: string;
   cursorJson: string;
   normalizedQuery: string | null;
+  searchCandidates: ResolvedListingRequest["searchCandidates"];
   scope: StorefrontListingScope;
   request: ResolvedListingRequest;
   heavyOptionFacetCountsEnabled: boolean;
@@ -58,6 +59,7 @@ export function toListingSqlRequest(input: {
     ),
     cursorJson: JSON.stringify(request.cursor?.payload ?? {}),
     normalizedQuery: request.normalizedQuery,
+    searchCandidates: request.searchCandidates,
     scope: request.input.scope,
     request,
     heavyOptionFacetCountsEnabled: input.heavyOptionFacetCountsEnabled,
@@ -90,7 +92,7 @@ function scopeIdFor(scope: StorefrontListingScope): string {
   switch (scope.kind) {
     case "category":
       return scope.categoryId;
-    case "search":
+    case "global":
       return ZERO_UUID;
   }
 }

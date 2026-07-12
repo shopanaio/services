@@ -31,6 +31,16 @@ export class ResolverRegistry {
     return new ListingMutationResolver({}, this.ctx);
   }
 
+  async listingSearchQuery() {
+    const { ListingSearchQueryResolver } = await import("./SearchResolvers.js");
+    return new ListingSearchQueryResolver({}, this.ctx);
+  }
+
+  async listingSearchMutation() {
+    const { ListingSearchMutationResolver } = await import("./SearchResolvers.js");
+    return new ListingSearchMutationResolver({}, this.ctx);
+  }
+
   async listingConnection(input: ListingQueryArgs) {
     const { ListingConnectionResolver } = await import(
       "./ListingConnectionResolver.js"

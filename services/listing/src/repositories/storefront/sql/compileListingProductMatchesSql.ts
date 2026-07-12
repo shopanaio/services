@@ -4,6 +4,7 @@ import type {
   ListingVariantTermGroup,
 } from "../../../listing/variantTerms/index.js";
 import {
+  buildAvailabilityVariantTerm,
   encodeListingVariantTerm,
 } from "../../../listing/variantTerms/index.js";
 import { coalesceBitmapSql, emptyRoaringBitmapSql } from "../sqlHelpers.js";
@@ -26,7 +27,7 @@ export function compileInputCte(request: ListingSqlRequest): SQL {
 }
 
 export function compileScopeProductCtes(request: ListingSqlRequest): SQL {
-  const searchCandidates = needsSearchCandidates(request)
+  const searchCandidates = request.sortKind === "relevance"
     ? sql`${compileSearchCandidateRowsCte(request)},`
     : sql``;
   return sql`
@@ -109,10 +110,17 @@ export function compileVariantTermGroupsBitmapSql(
   const groups = request.request.filterPlan.variantTermGroups.filter(
     (group) => group.groupKey !== options?.excludeGroupKey
   );
-  if (groups.length === 0) return null;
+  const policyAvailability = shouldHideOutOfStock(request)
+    ? compileVariantTermPostingBitmapSql(
+        request,
+        encodeListingVariantTerm(buildAvailabilityVariantTerm(true)),
+      )
+    : null;
+  if (groups.length === 0 && !policyAvailability) return null;
   return andBitmapSql([
     compileIndexableUniverseBitmapSql(request),
     ...groups.map((group) => compileVariantTermGroupBitmapSql(request, group)),
+    ...(policyAvailability ? [policyAvailability] : []),
   ]);
 }
 
@@ -195,7 +203,25 @@ export function compileProjectedVariantProductsBitmapSql(
 
 export function hasVariantPredicate(request: ListingSqlRequest): boolean {
   const plan = request.request.filterPlan;
-  return plan.variantTermGroups.length > 0 || !!plan.priceRange;
+  return (
+    plan.variantTermGroups.length > 0 ||
+    !!plan.priceRange ||
+    shouldHideOutOfStock(request)
+  );
+}
+
+export function shouldHideOutOfStock(request: ListingSqlRequest): boolean {
+  return searchOutOfStockPolicy(request) === "HIDE";
+}
+
+export function shouldPlaceOutOfStockLast(request: ListingSqlRequest): boolean {
+  return searchOutOfStockPolicy(request) === "PLACE_LAST";
+}
+
+export function shouldUseAvailabilityOrderBucket(
+  request: ListingSqlRequest,
+): boolean {
+  return !request.searchCandidates || shouldPlaceOutOfStockLast(request);
 }
 
 /** Product availability is ordering/diagnostics only. */
@@ -203,6 +229,11 @@ export function shouldApplyProductStockAtProductLevel(
   _request: ListingSqlRequest
 ): boolean {
   return false;
+}
+
+function searchOutOfStockPolicy(request: ListingSqlRequest) {
+  return request.searchCandidates?.request.configuration.settings
+    .outOfStockPolicy ?? null;
 }
 
 export function compileVariantTermPostingBitmapSql(
@@ -297,23 +328,30 @@ function compileVendorBitmapSql(request: ListingSqlRequest): SQL | null {
 }
 
 function compileSearchCandidateRowsCte(request: ListingSqlRequest): SQL {
-  if (!request.normalizedQuery) {
+  const contract = request.searchCandidates;
+  if (!contract?.rankedCandidateRelationSql) {
     throw new StorefrontRepositoryValidationError(
-      "Search scope requires a non-empty query"
+      "Relevance sort requires a ranked search candidate relation"
     );
   }
   return sql`
-    search_candidate_rows AS (
+    search_candidate_rows AS MATERIALIZED (
       SELECT
-        pli.product_doc_id::int AS product_doc_id,
-        pli.product_id AS product_id,
+        ranked.product_doc_id::int AS product_doc_id,
+        ranked.product_id AS product_id,
         availability.bool_value AS in_stock,
-        pdb.score(ptsi.search_id)::double precision AS relevance_score
-      FROM listing.product_title_bm25_search_index ptsi
+        ranked.identifier_priority::int AS identifier_priority,
+        ranked.boosted AS boosted,
+        ranked.relevance_rank::double precision AS relevance_rank,
+        ranked.total_edit_distance::int AS total_edit_distance,
+        ranked.minimum_trigram_similarity::double precision
+          AS minimum_trigram_similarity
+      FROM (${contract.rankedCandidateRelationSql}) ranked
       JOIN listing.product_listing_index pli
-        ON pli.store_id = ptsi.store_id
-       AND pli.product_id = ptsi.product_id
-       AND pli.status = 'published'
+        ON pli.store_id = ${request.storeId}::uuid
+       AND ranked.store_id = pli.store_id
+       AND pli.product_doc_id = ranked.product_doc_id
+       AND pli.product_id = ranked.product_id
       JOIN listing.listing_posting_product_sort availability
         ON availability.store_id = pli.store_id
        AND availability.product_doc_id = pli.product_doc_id
@@ -322,17 +360,21 @@ function compileSearchCandidateRowsCte(request: ListingSqlRequest): SQL {
        AND availability.locale = ''
        AND availability.currency = ''
        AND availability.manual_scope_id = ${ZERO_UUID}::uuid
-      WHERE ptsi.store_id = ${request.storeId}::uuid
-        AND ptsi.locale = ${request.locale}
-        AND ptsi.status = 'published'
-        AND ptsi.title @@@ ${request.normalizedQuery}
+      WHERE ranked.store_id = ${request.storeId}::uuid
+        AND pli.status = 'published'
+        AND ${contract.membershipBitmap}::roaringbitmap @> ranked.product_doc_id
     )
   `;
 }
 
 function compileScopeProductBitmapSql(request: ListingSqlRequest): SQL {
+  const searchMembership = request.searchCandidates
+    ? compileSearchMembershipBitmapSql(request)
+    : null;
+  let scopeBitmap: SQL;
+
   if (request.scopeKind === "category") {
-    return sql`(
+    scopeBitmap = sql`(
       ${compilePublishedProductBitmapSql(request)}
       & ${coalesceBitmapSql(sql`(
         SELECT p.bitmap FROM listing.listing_posting_bitmap p
@@ -342,13 +384,23 @@ function compileScopeProductBitmapSql(request: ListingSqlRequest): SQL {
           AND p.value_key = ${request.scopeId}
       )`)}
     )`;
+  } else if (request.scopeKind === "global") {
+    scopeBitmap = compilePublishedProductBitmapSql(request);
+  } else {
+    return emptyRoaringBitmapSql();
   }
-  if (request.scopeKind === "search") {
-    return coalesceBitmapSql(sql`(
-      SELECT rb_build_agg(c.product_doc_id) FROM search_candidate_rows c
-    )`);
+
+  return searchMembership
+    ? sql`(${scopeBitmap} & ${searchMembership})`
+    : scopeBitmap;
+}
+
+function compileSearchMembershipBitmapSql(request: ListingSqlRequest): SQL {
+  const contract = request.searchCandidates;
+  if (!contract) {
+    return emptyRoaringBitmapSql();
   }
-  return emptyRoaringBitmapSql();
+  return sql`${contract.membershipBitmap}::roaringbitmap`;
 }
 
 function compilePublishedProductBitmapSql(request: ListingSqlRequest): SQL {
@@ -367,8 +419,4 @@ function andBitmapSql(parts: readonly SQL[]): SQL {
 
 function joinTextValues(values: readonly string[]): SQL {
   return sql.join(values.map((value) => sql`${value}`), sql`, `);
-}
-
-function needsSearchCandidates(request: ListingSqlRequest): boolean {
-  return request.scopeKind === "search" || request.sortKind === "relevance";
 }

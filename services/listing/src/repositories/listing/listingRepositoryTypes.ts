@@ -107,18 +107,6 @@ export interface ProjectionBlockRowInput {
   productCount: number;
 }
 
-export interface ProductTitleBm25RowInput {
-  productId: string;
-  locale: string;
-  kind: ProductKind;
-  status: ListingStatus;
-  publishedAt?: string | null;
-  productCreatedAt: string;
-  productUpdatedAt: string;
-  productRevision: number;
-  title: string;
-}
-
 export type PostingBitmapUpsertInput = PostingKeyInput & {
   bitmap: string;
   cardinality: number;

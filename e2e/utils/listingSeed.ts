@@ -416,15 +416,12 @@ async function seedListingProduct(
     bigintValue: totalStock,
   });
 
-  await seedProductSearchTitle(sql, {
+  await seedProductSearchText(sql, {
     projectUuid: input.projectUuid,
     productUuid: input.productUuid,
+    productDocId: input.productDocId,
     locale: input.locale,
     title: input.searchTitle ?? input.title ?? input.handle ?? input.productUuid,
-    publishedAt,
-    createdAt,
-    updatedAt,
-    revision: input.revision ?? 0,
   });
 }
 
@@ -603,61 +600,53 @@ async function seedVariantIndex(
   `;
 }
 
-async function seedProductSearchTitle(
+async function seedProductSearchText(
   sql: postgres.TransactionSql,
   input: {
     projectUuid: string;
     productUuid: string;
+    productDocId: number;
     locale: string;
     title: string;
-    publishedAt: string;
-    createdAt: string;
-    updatedAt: string;
-    revision: number;
   },
 ) {
+  const preparedText = input.title.normalize('NFKC').trim().replace(/\s+/gu, ' ');
+  if (!preparedText) {
+    throw new Error('Listing search seed title must not be empty');
+  }
+
   await sql`
-    INSERT INTO listing.product_title_bm25_search_index (
-      search_id,
+    INSERT INTO listing.product_search_text (
       store_id,
       product_id,
+      product_doc_id,
       locale,
-      kind,
-      status,
-      published_at,
-      product_created_at,
-      product_updated_at,
-      product_revision,
-      title,
-      indexed_at,
-      updated_at
+      field,
+      element_id,
+      prepared_text,
+      normalization_contract_version,
+      normalization_profile_revision,
+      indexed_at
     )
     VALUES (
-      ${crypto.randomUUID()}::uuid,
       ${input.projectUuid}::uuid,
       ${input.productUuid}::uuid,
+      ${input.productDocId},
       ${input.locale},
-      'BASE',
-      'published',
-      ${input.publishedAt},
-      ${input.createdAt},
-      ${input.updatedAt},
-      ${input.revision},
-      ${input.title},
-      now(),
+      'product_title',
+      ${input.productUuid}::uuid,
+      ${preparedText},
+      'e2e-seed-v1',
+      'e2e-seed-v1',
       now()
     )
-    ON CONFLICT (product_id, locale) DO UPDATE SET
-      search_id = EXCLUDED.search_id,
+    ON CONFLICT (product_id, locale, field, element_id) DO UPDATE SET
       store_id = EXCLUDED.store_id,
-      kind = EXCLUDED.kind,
-      status = EXCLUDED.status,
-      published_at = EXCLUDED.published_at,
-      product_created_at = EXCLUDED.product_created_at,
-      product_updated_at = EXCLUDED.product_updated_at,
-      product_revision = EXCLUDED.product_revision,
-      title = EXCLUDED.title,
-      updated_at = now()
+      product_doc_id = EXCLUDED.product_doc_id,
+      prepared_text = EXCLUDED.prepared_text,
+      normalization_contract_version = EXCLUDED.normalization_contract_version,
+      normalization_profile_revision = EXCLUDED.normalization_profile_revision,
+      indexed_at = now()
   `;
 }
 

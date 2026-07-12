@@ -102,6 +102,7 @@ export async function startServer(serverConfig: ServerConfig) {
     "filters.graphql",
     "facet.graphql",
     "listing.graphql",
+    "search.graphql",
     "media.graphql",
     "relay.graphql",
   ];

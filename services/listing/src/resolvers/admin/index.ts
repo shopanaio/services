@@ -2,6 +2,10 @@ export { ListingType, Cache } from "./ListingType.js";
 export { ResolverRegistry, getResolverRegistry } from "./ResolverRegistry.js";
 export { QueryResolver, ListingQueryResolver } from "./QueryResolver.js";
 export { ListingConnectionResolver } from "./ListingConnectionResolver.js";
+export {
+  ListingSearchQueryResolver,
+  ListingSearchMutationResolver,
+} from "./SearchResolvers.js";
 export { FacetResolver } from "./FacetResolver.js";
 export { FacetSourceCandidateResolver } from "./FacetSourceCandidateResolver.js";
 export { FacetValueCandidateResolver } from "./FacetValueCandidateResolver.js";
