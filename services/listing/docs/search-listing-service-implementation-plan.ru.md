@@ -81,8 +81,7 @@ normalization profile и его revision. Unsupported profile не подмен�
 
 Версии Node.js/ICU и `natural`, правила NFKC/apostrophe/dash/case folding,
 stopword assets и SKU/code-like classification входят в immutable profile
-revision. Обновление любого из этих компонентов требует compatibility corpus и
-rebuild соответствующего locale index.
+revision. Обновление любого из этих компонентов требует compatibility corpus.
 
 ## Обязательные инварианты
 
@@ -844,7 +843,7 @@ headers не сохраняются.
   и counters;
 - `search_index_locale_state`: expected/indexed/published products, localized
   title coverage, text/identifier/term readiness, active normalization contract
-  version/profile revision и rebuild progress.
+  version/profile revision и synchronization progress.
 
 Canonical item freshness остаётся в `listing_index_item_state`. Search state —
 только aggregate operational projection. Reconciliation сверяет text elements,
@@ -1123,8 +1122,6 @@ fallback; technical error — нет.
 5. Проверить privacy и tenant-isolated membership/performance.
 6. Включать capabilities только после readiness.
 7. Удалить title-only/legacy search symbols после перехода.
-8. Проверить rolling update normalization profile: новая profile revision не обслуживает
-   query до полного locale rebuild и atomic activation index revision.
 
 ## 8. Основные Listing touchpoints
 
@@ -1220,5 +1217,3 @@ fallback; technical error — нет.
 11. `Intl.Segmenter` следует Unicode/ICU boundaries, которые могут не сохранять
     commerce identifiers (`USB-C`, `AB-123`, model codes); они требуют отдельной
     versioned classification/preservation policy и corpus coverage.
-12. Обновление profile revision требует полного rebuild соответствующего locale
-    index и atomic activation; смешивать revisions в одном serving set запрещено.
