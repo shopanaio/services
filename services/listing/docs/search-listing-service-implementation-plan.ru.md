@@ -28,8 +28,8 @@ locale-aware tokenization и stemming выполняются в процессе
 `listing` становится единственным владельцем runtime search:
 
 - PostgreSQL FTS (`tsvector`, `tsquery`, GIN) выполняет primary text matching;
-- high-cardinality runtime search tables изначально hash-partitioned
-  по `store_id` и используют aligned partition layout;
+- runtime search tables используют tenant-scoped composite GIN indexes, в которых
+  `store_id` является индексируемой колонкой вместе с search value;
 - Node.js normalization pipeline выполняет Unicode normalization,
   locale-aware tokenization через `Intl.Segmenter`, stemming через locale-specific
   stemmer из `natural` и stopword filtering для всех supported locales;
@@ -62,6 +62,7 @@ locale-aware tokenization и stemming выполняются в процессе
 ```sql
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;
+CREATE EXTENSION IF NOT EXISTS btree_gin;
 ```
 
 PostgreSQL FTS является встроенной возможностью и не требует extension.
@@ -129,9 +130,10 @@ revision. Обновление любого из этих компонентов
     симметричного stopword filtering и только внутри одного element; exact
     surface phrase с учётом удалённых stopwords не обещается.
 20. Каждый runtime search query содержит direct equality predicate
-    `store_id = $boundStoreId`, позволяющий PostgreSQL pruning всех
-    нецелевых hash partitions. Scan всех tenant partitions в storefront
-    request запрещён.
+    `store_id = $boundStoreId`, совпадающий с tenant-колонкой tenant-scoped
+    composite GIN. FTS и trigram lookup обязаны применять tenant predicate внутри
+    того же index condition; получение cross-tenant GIN candidates с последующей
+    heap-фильтрацией запрещено.
 
 ## Целевая схема выполнения
 
@@ -339,7 +341,8 @@ PRIMARY matching использует:
 - `plainto_tsquery('pg_catalog.simple', $boundPreparedText)` для terms и
   `phraseto_tsquery('pg_catalog.simple', $boundPreparedText)` для phrase;
 - typed `tsquery` AND/OR composition;
-- GIN index на `search_vector`;
+- tenant-scoped composite GIN index на `(store_id, search_vector)` через
+  `btree_gin`;
 - `ts_rank_cd` для rank отдельного field element с последующим умножением на
   numeric field weight из active runtime configuration;
 - отдельную identifier relation для SKU exact/prefix.
@@ -807,55 +810,48 @@ payload и normalization metadata входят в `writeModelHash`.
 
 ### 2.2. Physical contract
 
-#### Tenant partitioning
+#### Tenant-scoped indexes
 
-High-cardinality runtime search tables создаются как aligned PostgreSQL
-hash-partitioned tables по `store_id`:
+Runtime search tables создаются как обычные PostgreSQL tables без
+partitioning. Tenant isolation поисковых кандидатов обеспечивается составными
+GIN indexes через extension `btree_gin`: `store_id` входит в тот же индекс и в
+тот же index condition, что и FTS/trigram predicate.
 
-- `product_search_text`;
-- `product_search_identifier`;
-- `search_term_dictionary`;
-- `product_search_term`.
-
-Начальный `SEARCH_RUNTIME_PARTITION_COUNT` равен `32`. Все четыре
-таблицы используют одинаковые modulus/remainder bounds, чтобы rows
-одного store попадали в одинаковый partition ordinal. Изменение
-partition count требует controlled rebuild и не является runtime setting.
+Text table имеет composite GIN и дополнительный B-tree scope index:
 
 ```sql
-CREATE TABLE listing.product_search_text (
-  ...
-) PARTITION BY HASH (store_id);
-
-CREATE TABLE listing.product_search_text_p00
-  PARTITION OF listing.product_search_text
-  FOR VALUES WITH (MODULUS 32, REMAINDER 0);
--- p01 ... p31
+CREATE INDEX product_search_text_store_vector_gin
+  ON listing.product_search_text
+  USING gin (store_id, search_vector);
 ```
-
-Каждая text partition имеет локальный GIN на `search_vector` и B-tree
-scope index:
 
 ```text
 (store_id, locale, normalization_contract_version,
  normalization_profile_revision, field)
 ```
 
-Dictionary partitions имеют локальный `gin_trgm_ops` на `term` и B-tree
-на tenant/locale/revision. Identifier и mapping partitions имеют локальные
-indexes, описанные ниже. Primary/unique keys всегда включают
-partition key `store_id`.
+Term dictionary имеет tenant-scoped composite trigram GIN и B-tree на
+tenant/locale/revision:
+
+```sql
+CREATE INDEX search_term_dictionary_store_term_trgm_gin
+  ON listing.search_term_dictionary
+  USING gin (store_id, term gin_trgm_ops);
+```
+
+Identifier и mapping tables имеют indexes, описанные ниже. Primary/unique keys
+всегда включают `store_id` как часть tenant identity и FK contract.
 
 `search_term_dictionary` использует composite primary key
 `(store_id, term_id)`, а не global `term_id` PK. `term_id` выделяется общей
-explicit PostgreSQL sequence для всех partitions, но database identity и FK
-contract включают `store_id`.
+explicit PostgreSQL sequence, но database identity и FK contract включают
+`store_id`.
 
-Bound `store_id` передаётся как uuid без function/cast на partition column,
-чтобы plan-time или execution-time partition pruning оставлял одну
-partition каждой runtime table. Partitioning ограничивает cross-tenant
-work, но не делит один крупный store: per-store scale по-прежнему
-проверяется отдельно.
+Bound `store_id` передаётся как uuid без function/cast на indexed column.
+Обязательные `EXPLAIN` fixtures подтверждают, что FTS использует composite
+`(store_id, search_vector)` GIN, а typo lookup — composite
+`(store_id, term gin_trgm_ops)` GIN; план, извлекающий cross-tenant GIN
+candidates и фильтрующий tenant только после index scan, contract не проходит.
 
 #### Canonical product document
 
@@ -901,8 +897,8 @@ listing.product_search_text
 Одна row содержит одно logical value. `prepared_text` — bounded строка из
 ordered primary lexemes, полученных от normalization pipeline; raw localized source text в
 search table не хранится. `search_vector` строится writer-ом только через
-`to_tsvector('pg_catalog.simple', prepared_text)` без `setweight`; GIN index
-создаётся на vector. Numeric field weight в physical row и `tsvector` не хранится:
+`to_tsvector('pg_catalog.simple', prepared_text)` без `setweight`; composite GIN
+создаётся на `(store_id, search_vector)`. Numeric field weight в physical row и `tsvector` не хранится:
 его разрешает compiler из active runtime configuration при вычислении rank.
 Query relation всегда фильтрует active contract/model revision вместе с
 `store_id` и locale.
@@ -972,8 +968,8 @@ listing.product_search_term
     -> search_term_dictionary(store_id, locale, term_id)
 ```
 
-Dictionary `term` индексируется `gin_trgm_ops`; tenant/locale/revision B-tree index
-разрешает BitmapAnd или tenant prefilter. Mapping имеет indexes по `term_id` и
+Dictionary индексируется composite GIN `(store_id, term gin_trgm_ops)`;
+tenant/locale/revision B-tree обслуживает дополнительный scope. Mapping имеет indexes по `term_id` и
 `product_doc_id`. Surface typo terms формируются локальным pipeline отдельно от
 primary stems, затем deduplicate и stable sort. Orphan dictionary terms
 удаляются bounded cleanup-ом и не влияют на correctness.
@@ -1158,7 +1154,8 @@ Metrics:
 - trigram dictionary candidates и Levenshtein verified candidates;
 - term dictionary/mapping size;
 - GIN pending-list/search latency и autovacuum lag;
-- runtime partition pruning, partitions scanned и per-partition GIN size/skew;
+- tenant-scoped composite GIN usage, cross-tenant candidate amplification и
+  index size/skew;
 - configuration apply duration/failures;
 - indexing lag/failures/locale coverage.
 - normalization single/batch duration, failures, output size,
@@ -1174,7 +1171,7 @@ Guardrails:
 - bounded units/alternatives/terms;
 - no full tenant term dictionary scan;
 - no cross-locale or cross-tenant term lookup;
-- no storefront scan более одной aligned runtime partition на table;
+- no FTS/trigram plan, извлекающий cross-tenant GIN candidates;
 - GIN `fastupdate` и pending-list limits фиксируются benchmark-ом, не догадкой.
 - normalization input/output limits и fail-closed profile resolution не допускают
   silent cross-locale fallback или вызов PostgreSQL locale dictionaries.
@@ -1195,10 +1192,10 @@ Guardrails:
 До этапа 1:
 
 1. Зафиксировать supported PostgreSQL major.
-2. Добавить DDL/smoke fixtures для FTS, GIN, `pg_trgm`, `fuzzystrmatch` и
+2. Добавить DDL/smoke fixtures для FTS, GIN, `btree_gin`, `pg_trgm`, `fuzzystrmatch` и
    единственной explicit configuration `pg_catalog.simple`.
-3. Зафиксировать aligned hash partition layout с modulus `32` и
-   smoke-проверку partition pruning для bound `store_id`.
+3. Зафиксировать tenant-scoped composite GIN contracts и `EXPLAIN`-проверки
+   применения `store_id` внутри FTS/trigram index condition.
 4. Зафиксировать TypeScript contract, profile versioning, single/batch limits,
    deterministic hashing, readiness и error mapping.
 5. Проверить normalization profiles `uk/en/ru`: NFKC, apostrophes, diacritics,
@@ -1227,14 +1224,15 @@ fallback; removed variant/category data исчезает.
 
 ### Этап 2. Universal PostgreSQL FTS indexes и index state
 
-1. Удалить initial title-search table и создать aligned hash-partitioned
+1. Удалить initial title-search table и создать непартиционированные
    text/identifier/dictionary/mapping search tables; `product_listing_index`
    остаётся canonical product document.
 2. Зафиксировать `pg_catalog.simple` во всех generated expressions и SQL
    compilers; не создавать locale text-search configurations.
-3. Добавить GIN FTS/trigram и B-tree identifier/mapping indexes.
-4. Добавить partition-local scope indexes и `EXPLAIN` fixtures, доказывающие
-   pruning до одной partition на runtime table.
+3. Добавить tenant-scoped composite GIN FTS/trigram и B-tree
+   identifier/mapping indexes.
+4. Добавить `EXPLAIN` fixtures, доказывающие применение bound `store_id` внутри
+   composite GIN index condition без cross-tenant candidate scan.
 5. Добавить Drizzle models и repositories.
 6. Повысить Listing sync write-model version и hash.
 7. Записывать search rows только после canonical item-state decision.
@@ -1413,7 +1411,7 @@ fallback запрещены.
 | Stale product event | Search rows не меняются |
 | GIN unavailable/`simple` contract missing | `SEARCH_INDEX_UNAVAILABLE`, no fallback |
 | `gin_fuzzy_search_limit` | `0`, totals/facets не получают random subset |
-| Tenant partition pruning | Каждая runtime table читает только partition bound `store_id` |
+| Tenant-scoped GIN | FTS/trigram index condition включает bound `store_id`; cross-tenant candidates не извлекаются |
 | Expired configuration cursor | `SEARCH_CURSOR_EXPIRED` |
 
 ## 10. Definition of Done
@@ -1426,8 +1424,8 @@ fallback запрещены.
   соблюдают interaction rules;
 - typo tolerance использует indexable trigram candidates и exact Levenshtein
   verification без hidden top-K;
-- runtime search tables имеют aligned hash partitioning, а storefront plans
-  подтверждают pruning до одной partition на table;
+- runtime search tables не partitioned, а storefront plans подтверждают
+  tenant-scoped composite GIN scan по bound `store_id`;
 - configuration apply имеет durable state machine, а document sync использует
   canonical Listing item workflow без дублирующего freshness state;
 - stale revision/event не активируют устаревшее состояние;
@@ -1458,9 +1456,8 @@ fallback запрещены.
 11. `Intl.Segmenter` следует Unicode/ICU boundaries, которые могут не сохранять
     commerce identifiers (`USB-C`, `AB-123`, model codes); они требуют отдельной
     versioned classification/preservation policy и corpus coverage.
-12. Fixed hash modulus может дать skew между partitions; его изменение требует
-    controlled rebuild. Partitioning по `store_id` не разбивает rows одного very
-    large store и не заменяет per-store performance gates.
+12. Общие composite GIN indexes могут иметь tenant skew и write contention;
+    tenant-scoped index condition не заменяет per-store performance gates.
 
 ## 11. Строгий порядок выполнения по слоям
 
@@ -1471,7 +1468,7 @@ fallback запрещены.
 
 1. **Миграция и физическая база данных.** Сначала добавить handwritten SQL в
    `services/listing/migrations/domains/0100_listing_index/`: extensions,
-   таблицы, aligned hash partitions, generated expressions, constraints,
+   непартиционированные таблицы, tenant-scoped composite GIN indexes, generated expressions, constraints,
    indexes и DB-level invariants для search index, configuration, synonyms,
    boosts, audit и operational state. На этом же шаге удалить или заменить
    legacy title-only physical contract. Gate слоя: физическая схема полностью
