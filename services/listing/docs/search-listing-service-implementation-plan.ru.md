@@ -1407,3 +1407,71 @@ fallback запрещены.
 12. Fixed hash modulus может дать skew между partitions; его изменение требует
     controlled rebuild. Partitioning по `store_id` не разбивает rows одного very
     large store и не заменяет per-store performance gates.
+
+## 11. Строгий порядок выполнения по слоям
+
+Следующий порядок нормативный для реализации backend-части Search. Переход к
+следующему слою разрешён только после полного завершения и проверки контракта
+предыдущего слоя для всего согласованного search data model. Нельзя заранее
+создавать SDL, резолверы или временный доступ к БД в обход незавершённых слоёв.
+
+1. **Миграция и физическая база данных.** Сначала добавить handwritten SQL в
+   `services/listing/migrations/domains/0100_listing_index/`: extensions,
+   таблицы, aligned hash partitions, generated expressions, constraints,
+   indexes и DB-level invariants для search index, configuration, synonyms,
+   boosts, audit и operational state. На этом же шаге удалить или заменить
+   legacy title-only physical contract. Gate слоя: физическая схема полностью
+   определена, tenant isolation и UUIDv7 rules соблюдены, все необходимые
+   PostgreSQL contracts выражены в DDL.
+2. **Drizzle models.** После фиксации DDL отразить каждую таблицу, колонку,
+   constraint-relevant type и relation в
+   `services/listing/src/repositories/models/`, добавить `$inferSelect` /
+   `$inferInsert` types и exports из model index. Drizzle models обязаны точно
+   повторять уже принятую физическую схему; они не подменяют handwritten
+   Listing migrations. Gate слоя: ни одна search-таблица или используемая
+   колонка не остаётся без типизированной Drizzle model.
+3. **Репозитории — каждый отдельно и до конца.** Реализовать репозитории в
+   следующем строгом порядке:
+   1. `SearchTextElementRepository`;
+   2. `SearchIdentifierRepository`;
+   3. `SearchTermRepository`;
+   4. `SearchIndexStateRepository`;
+   5. `SearchSettingsRepository`;
+   6. `SearchSynonymRepository`;
+   7. `SearchProductBoostRepository`;
+   8. `SearchConfigurationRevisionRepository`;
+   9. `SearchConfigurationApplyJobRepository`;
+   10. `SearchRuntimeConfigurationRepository`;
+   11. изменения существующих `ListingIndexItemStateRepository`,
+       `StorefrontListingQueryRepository` и Listing write repositories.
+
+   Каждый repository считается завершённым только когда покрывает весь свой
+   read/write contract, использует transaction-aware `this.connection`, всегда
+   ограничивает данные текущим `store_id` и подключён к repository aggregator.
+   Нельзя переходить к API с частично реализованными repositories или читать
+   search tables из scripts/services через raw connection в обход repository.
+4. **Изменение GraphQL API SDL.** Только после стабилизации repository contracts
+   добавить `search.graphql`: namespaces `listingQuery.search` и
+   `listingMutation.search`, queries, mutations, inputs, payloads, connections,
+   status/application-state types и обязательные user error codes. После SDL
+   обновить generated GraphQL types обычным project codegen flow. Gate слоя:
+   subgraph SDL композируется, а generated types полностью описывают новый API.
+5. **Резолверы.** Затем реализовать query, mutation, entity, connection и payload
+   resolvers в `services/listing/src/resolvers/admin/search/`, подключить их к
+   GraphQL resolver registry и Casbin permissions. Резолверы только декодируют
+   global IDs, выполняют authorization, формируют resolver objects и делегируют
+   операцию в Script/service; validation, normalization и data access в
+   резолверы не переносятся.
+6. **Интеграция с репозиториями.** Последним шагом связать готовые резолверы через
+   Scripts/services/DBOS workflows с готовыми repositories и включить их в
+   canonical Listing flows: configuration authoring/apply, item indexing,
+   search execution, synonyms, boosts, status и overview. Нормативная цепочка
+   вызова: `GraphQL resolver -> Script/service/workflow -> Repository -> DB`;
+   прямой вызов repository или raw SQL из GraphQL resolver запрещён. Gate слоя:
+   каждый SDL operation достигает нужного repository только через свой
+   application contract, а write operations сохраняют transaction, stale-event
+   и tenant-isolation invariants.
+
+Итоговая последовательность без исключений:
+
+`миграция/БД -> Drizzle models -> каждый repository -> GraphQL SDL/codegen -> resolvers -> интеграция Scripts/services/workflows с repositories`.
