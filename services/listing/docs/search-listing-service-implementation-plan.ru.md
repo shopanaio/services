@@ -3,10 +3,11 @@
 ## Статус и назначение
 
 План описывает search runtime Listing service на стандартном PostgreSQL Full
-Text Search, универсальной configuration `pg_catalog.simple` и внешнем Python
-text-normalizer с gRPC API. PostgreSQL не выполняет locale-specific stemming,
-lemmatization или stopword filtering: документы, запросы, synonyms и boost
-phrases проходят один versioned normalizer contract до записи или compilation.
+Text Search, универсальной configuration `pg_catalog.simple` и встроенном
+Node.js normalization pipeline на `Intl.Segmenter` + `natural`. PostgreSQL не
+выполняет locale-specific stemming или stopword filtering: документы, запросы,
+synonyms и boost phrases проходят один versioned normalization profile до записи
+или compilation.
 Внешний search engine и `pg_search` не используются.
 
 Реализация Catalog snapshot, broker-types и Admin UI не входит в этот план. Они
@@ -14,8 +15,9 @@ phrases проходят один versioned normalizer contract до запис�
 spellcheck, ML-reranking, персонализация, sponsored results и отдельное
 управление listing facets остаются вне scope.
 
-Реализация внешнего сервиса вынесена в
-`search-text-normalizer-python-grpc-implementation-plan.ru.md`.
+Отдельный Python/gRPC normalizer не используется. Unicode normalization,
+locale-aware tokenization и stemming выполняются в процессе Listing без сетевого
+вызова.
 
 План рассчитан на clean DB: stage/production данных и пользователей нет. Поэтому
 начальный title-only DDL можно заменить целевой схемой без dual-read, dual-write
@@ -26,8 +28,9 @@ spellcheck, ML-reranking, персонализация, sponsored results и о�
 `listing` становится единственным владельцем runtime search:
 
 - PostgreSQL FTS (`tsvector`, `tsquery`, GIN) выполняет primary text matching;
-- Python normalizer выполняет Unicode normalization, locale-aware tokenization,
-  lemmatization/stemming и stopword filtering для всех supported locales;
+- Node.js normalization pipeline выполняет Unicode normalization,
+  locale-aware tokenization через `Intl.Segmenter`, stemming через locale-specific
+  stemmer из `natural` и stopword filtering для всех supported locales;
 - PostgreSQL для всех locale использует только explicit `pg_catalog.simple` над
   уже подготовленным текстом;
 - `ts_rank_cd` вычисляет внутренний deterministic relevance rank, но не
@@ -46,7 +49,7 @@ spellcheck, ML-reranking, персонализация, sponsored results и о�
 - все ветки одного request используют один загруженный runtime configuration
   snapshot и один фактический PostgreSQL search contract;
 - все ветки одной search attempt используют один execution mode.
-- query обслуживается только normalizer contract/model revision, для которой
+- query обслуживается только normalization contract/profile revision, для которой
   активный locale index имеет состояние `READY`.
 
 ## PostgreSQL search stack
@@ -62,11 +65,24 @@ PostgreSQL FTS является встроенной возможностью и
 Единственная разрешённая FTS configuration — `pg_catalog.simple`; неявный
 `default_text_search_config`, locale-specific PostgreSQL dictionaries и
 `unaccent` в database search path запрещены. Accent/diacritic policy является
-частью versioned Python normalizer contract.
+частью versioned normalization contract.
 
-Locale registry связывает locale не с PostgreSQL configuration, а с внешним
-normalizer profile и его model revision. Unsupported profile не подменяется
+Locale registry связывает locale не с PostgreSQL configuration, а с локальным
+normalization profile и его revision. Unsupported profile не подменяется
 другим языком и не advertised в capabilities.
+
+Начальные normalization profiles:
+
+| Locale | Tokenizer | Stemmer |
+|---|---|---|
+| `uk` | `Intl.Segmenter('uk', { granularity: 'word' })` | `natural.PorterStemmerUk` |
+| `ru` | `Intl.Segmenter('ru', { granularity: 'word' })` | `natural.PorterStemmerRu` |
+| `en` | `Intl.Segmenter('en', { granularity: 'word' })` | `natural.PorterStemmer` |
+
+Версии Node.js/ICU и `natural`, правила NFKC/apostrophe/dash/case folding,
+stopword assets и SKU/code-like classification входят в immutable profile
+revision. Обновление любого из этих компонентов требует compatibility corpus и
+rebuild соответствующего locale index.
 
 ## Обязательные инварианты
 
@@ -102,8 +118,8 @@ normalizer profile и его model revision. Unsupported profile не подме
 16. `gin_fuzzy_search_limit` для Listing connections равен `0`: случайная усечённая
     выборка GIN недопустима.
 17. Document, query, synonym и boost normalization используют один contract
-    version и locale model revision; несовпадение с active index fail-closed.
-18. Python normalizer не вызывается внутри открытой database transaction:
+    version и locale profile revision; несовпадение с active index fail-closed.
+18. Локальный normalization pipeline выполняется до открытия database transaction:
     нормализованный результат входит в deterministic write model до final writer.
 19. Phrase означает смежность нормализованных searchable lexemes после
     симметричного stopword filtering и только внутри одного element; exact
@@ -115,8 +131,8 @@ normalizer profile и его model revision. Unsupported profile не подме
 Listing
   -> normalize locale/query/input
   -> resolve one SearchRequestContext from the active runtime configuration
-  -> normalize query через versioned Python gRPC contract
-  -> validate normalizer revision against active locale index
+  -> normalize query через versioned Node.js normalization profile
+  -> validate profile revision against active locale index
   -> build safe SearchQueryPlan
   -> derive PRIMARY SearchAttemptContext
   -> compile PostgreSQL FTS + identifier candidate relation
@@ -132,7 +148,7 @@ Listing
 
 ## 1. Canonical search execution
 
-### 1.1. Нормализация и внешняя lexicalization
+### 1.1. Нормализация и локальная lexicalization
 
 Создать единый `SearchQueryNormalizer`, используемый Listing, synonyms и boosts:
 
@@ -143,10 +159,13 @@ Listing
 5. ограничить display query 128 Unicode code points;
 6. построить locale-aware case-folded `lookupKey`;
 7. вычислить tenant-scoped query hash через length-prefixed tuple;
-8. передать normalized text и locale во внешний Python normalizer по bounded
-   unary gRPC call;
-9. проверить response limits, contract version, locale/model revision и
-   deterministic response hash.
+8. сегментировать normalized text через `Intl.Segmenter(locale, { granularity:
+   'word' })`, сохранив source order, offsets и `isWordLike`;
+9. классифицировать SKU/code-like/mixed-script tokens, применить versioned
+   stopwords и locale-specific stemmer из `natural` только к searchable language
+   tokens;
+10. проверить output limits, contract version, locale/profile revision и
+    deterministic output hash.
 
 ```ts
 interface NormalizedSearchQuery {
@@ -160,8 +179,8 @@ interface LexicalizedSearchQuery {
   readonly originalUnits: readonly SearchLexicalUnit[];
   readonly identifierForm: string;
   readonly wholeQueryPrimaryText: string;
-  readonly normalizerContractVersion: string;
-  readonly modelRevision: string;
+  readonly normalizationContractVersion: string;
+  readonly profileRevision: string;
 }
 
 interface SearchLexicalUnit {
@@ -172,13 +191,13 @@ interface SearchLexicalUnit {
 }
 ```
 
-Normalizer возвращает ordered semantic units, prepared primary lexemes и
+Normalization pipeline возвращает ordered semantic units, prepared primary lexemes и
 отдельные normalized surface typo terms. Primary lexemes получаются тем же
-locale profile/model revision, которым построены document vectors. Surface typo
-term не заменяется stem/lemma: это сохраняет корректный Levenshtein contract для
+locale profile revision, которым построены document vectors. Surface typo term
+не заменяется stem: это сохраняет корректный Levenshtein contract для
 опечаток. PostgreSQL не является источником lexicalization.
 
-Stopwords удаляются normalizer-ом до PostgreSQL одинаково для document/query.
+Stopwords удаляются локальным pipeline до PostgreSQL одинаково для document/query.
 `wholeQueryPrimaryText` собирается только из validated primary lexemes и
 передаётся в `plainto_tsquery('pg_catalog.simple', $boundText)`. Phrase
 компилируется из подготовленной последовательности через
@@ -330,7 +349,7 @@ relevance_rank = SUM(unit_rank по satisfied required units)
 Compiler обязан параметризовать values, помещать `store_id` и locale predicates
 в каждый text/identifier/term subquery и не иметь `ILIKE` fallback. Lexeme arrays
 используются для validation/limits, но не сериализуются в raw `to_tsquery` syntax.
-Prepared text принимается только из validated normalizer response; исходный
+Prepared text принимается только из validated normalization output; исходный
 пользовательский text никогда не передаётся в PostgreSQL FTS functions.
 
 ### 1.5. Typo compiler
@@ -479,9 +498,9 @@ Synonyms компилируются application planner-ом, а не PostgreSQL
 не меняют identifier clauses, не получают typo expansion и не активируют boosts
 другой phrase.
 
-Каждое synonym value нормализуется Python service при configuration apply.
-Compiled runtime revision хранит prepared lexemes, contract version и model
-revision; изменение normalizer revision требует повторной compilation до
+Каждое synonym value нормализуется локальным Node.js pipeline при configuration
+apply. Compiled runtime revision хранит prepared lexemes, contract version и
+profile revision; изменение normalization profile требует повторной compilation до
 activation.
 
 ### 1.11. Boosts и ordering
@@ -624,10 +643,10 @@ SKU            -> variant ID
 ```
 
 После snapshot mapping все searchable elements группируются по locale и
-нормализуются batch gRPC operation. Response сортируется обратно по stable
-`elementId`; missing/duplicate/unknown IDs, превышение limits или revision
-mismatch завершают build до открытия write transaction. Normalized payload и
-normalizer metadata входят в `writeModelHash`.
+нормализуются локальной bounded batch operation. Результат сортируется обратно по
+stable `elementId`; missing/duplicate/unknown IDs, превышение limits или profile
+revision mismatch завершают build до открытия write transaction. Normalized
+payload и normalization metadata входят в `writeModelHash`.
 
 ### 2.2. Physical contract
 
@@ -663,8 +682,8 @@ listing.product_search_text
   field varchar(32) not null
   element_id uuid not null
   prepared_text text not null
-  normalizer_contract_version varchar(32) not null
-  normalizer_model_revision varchar(64) not null
+  normalization_contract_version varchar(32) not null
+  normalization_profile_revision varchar(64) not null
   search_vector tsvector not null
 
   PK (store_id, product_id, locale, field, element_id)
@@ -673,7 +692,7 @@ listing.product_search_text
 ```
 
 Одна row содержит одно logical value. `prepared_text` — bounded строка из
-ordered primary lexemes, полученных от normalizer; raw localized source text в
+ordered primary lexemes, полученных от normalization pipeline; raw localized source text в
 search table не хранится. `search_vector` строится writer-ом только через
 `setweight(to_tsvector('pg_catalog.simple', prepared_text), weightFor(field))`;
 GIN index создаётся на vector. Weight однозначно выводится из field registry и
@@ -708,14 +727,14 @@ listing.search_term_dictionary
   locale varchar(8) not null
   term text not null
   code_point_length smallint not null
-  normalizer_contract_version varchar(32) not null
-  normalizer_model_revision varchar(64) not null
+  normalization_contract_version varchar(32) not null
+  normalization_profile_revision varchar(64) not null
 
   UNIQUE (
     store_id,
     locale,
-    normalizer_contract_version,
-    normalizer_model_revision,
+    normalization_contract_version,
+    normalization_profile_revision,
     term
   )
   UNIQUE (store_id, locale, term_id)
@@ -738,8 +757,8 @@ listing.product_search_term
 
 Dictionary `term` индексируется `gin_trgm_ops`; tenant/locale/revision B-tree index
 разрешает BitmapAnd или tenant prefilter. Mapping имеет indexes по `term_id` и
-`product_doc_id`. Surface typo terms возвращаются внешним normalizer-ом отдельно
-от primary lemmas, затем deduplicate и stable sort. Orphan dictionary terms
+`product_doc_id`. Surface typo terms формируются локальным pipeline отдельно от
+primary stems, затем deduplicate и stable sort. Orphan dictionary terms
 удаляются bounded cleanup-ом и не влияют на correctness.
 
 Наличие localized title определяется существованием `field=product_title`
@@ -754,7 +773,7 @@ same-element phrase semantics и создаёт ranking bias по числу val
 1. Product event или bounded reference/locale fan-out запускает существующий
    Listing item reindex mechanism и canonical item-scoped `eventSequence`.
 2. Single/batch workflow получает Catalog/project snapshot, batch-нормализует
-   searchable elements через Python gRPC и строит единый write model: prepared
+   searchable elements локальным Node.js pipeline и строит единый write model: prepared
    text elements, identifiers и surface typo terms всех enabled locales. Product
    metadata повторно в search model не копируется.
 3. Все search rows входят в deterministic `writeModelHash`.
@@ -768,8 +787,9 @@ same-element phrase semantics и создаёт ranking bias по числу val
 8. Delete каскадно удаляет elements/identifiers/mappings и атомарно записывает
    `lifecycle_status=deleted`.
 9. Locale removal удаляет отсутствующие locale rows обычным item sync path.
-10. gRPC timeout/unavailable/invalid response не открывает write transaction и
-    переводит item attempt в retryable failure; предыдущие search rows остаются.
+10. Unsupported locale/profile, invalid output или internal normalization error не
+    открывает write transaction и переводит item attempt в retryable failure;
+    предыдущие search rows остаются.
 
 Отдельного search item workflow, event sequence, tombstone или freshness state
 нет.
@@ -800,15 +820,15 @@ pointer.
 DB-level уникальность active value.
 
 Validation: enabled locale, 2–20 unique values, 128 code points/value и bounded
-token count. Runtime compiler batch-нормализует каждое value через active Python
-normalizer profile; value без valid primary lexemes, с revision mismatch или
-invalid response отклоняется safe compile error.
+token count. Runtime compiler batch-нормализует каждое value через active локальный
+normalization profile; value без valid primary lexemes, с revision mismatch или
+invalid output отклоняется safe compile error.
 
 ### 3.3. Product boosts
 
 Создать `search_product_boost`, `search_product_boost_phrase` и
 `search_product_boost_product`. MVP: 1–20 phrases, 1–50 products. Phrase — exact
-normalized whole query, подготовленный тем же active Python profile/revision.
+normalized whole query, подготовленный тем же active Node.js profile/revision.
 Product проверяется tenant-scoped через внешний Catalog contract; cross-service
 FK отсутствует. Rules объединяют product set без stacking.
 
@@ -823,8 +843,8 @@ headers не сохраняются.
 - `search_index_state`: `READY/UPDATING/FAILED`, last attempt/success, safe error
   и counters;
 - `search_index_locale_state`: expected/indexed/published products, localized
-  title coverage, text/identifier/term readiness, active normalizer contract
-  version/model revision и rebuild progress.
+  title coverage, text/identifier/term readiness, active normalization contract
+  version/profile revision и rebuild progress.
 
 Canonical item freshness остаётся в `listing_index_item_state`. Search state —
 только aggregate operational projection. Reconciliation сверяет text elements,
@@ -835,7 +855,10 @@ identifiers, term mappings, canonical product rows, item state и DBOS state.
 ```text
 services/listing/src/search/
   normalization/
-  normalizer-client/
+    profiles/
+    tokenization/
+    stemming/
+    stopwords/
   capabilities/
   runtime/
   planner/
@@ -919,8 +942,8 @@ Metrics:
 - GIN pending-list/search latency и autovacuum lag;
 - configuration apply duration/failures;
 - indexing lag/failures/locale coverage.
-- normalizer unary/batch latency, status codes, deadline exceeded, response size,
-  contract/model mismatch и per-locale throughput.
+- normalization single/batch duration, failures, output size,
+  contract/profile mismatch и per-locale throughput.
 
 Guardrails:
 
@@ -933,12 +956,12 @@ Guardrails:
 - no full tenant term dictionary scan;
 - no cross-locale or cross-tenant term lookup;
 - GIN `fastupdate` и pending-list limits фиксируются benchmark-ом, не догадкой.
-- normalizer deadlines, request/response limits и circuit breaker не допускают
-  silent local fallback или вызов PostgreSQL locale dictionaries.
+- normalization input/output limits и fail-closed profile resolution не допускают
+  silent cross-locale fallback или вызов PostgreSQL locale dictionaries.
 
 ## 7. Пошаговая реализация
 
-### Этап 0. External gates, normalizer contract и PostgreSQL baseline
+### Этап 0. External gates, normalization contract и PostgreSQL baseline
 
 Обязательные gates:
 
@@ -947,17 +970,17 @@ Guardrails:
 | G1 Product snapshot | Localized product/variant titles, vendor/category names, SKU | Versioned snapshot опубликован |
 | G2 Lifecycle events | Content, assignment, publication/delete, variants | Каждое изменение классифицировано в canonical Listing action |
 | G3 Reference fan-out | Bounded affected product IDs для rename | Cursor/batch/retry contract определён |
-| G4 Text normalizer | Versioned Python gRPC API, locale profiles и model revisions | Compatibility corpus и deployment contract утверждены |
+| G4 Text normalization | Versioned Node.js contract, `Intl.Segmenter`, locale-specific `natural` stemmers и profile revisions | Compatibility corpus и runtime contract утверждены |
 
 До этапа 1:
 
 1. Зафиксировать supported PostgreSQL major.
 2. Добавить DDL/smoke fixtures для FTS, GIN, `pg_trgm`, `fuzzystrmatch` и
    единственной explicit configuration `pg_catalog.simple`.
-3. Зафиксировать gRPC proto, contract versioning, deadlines, batch limits,
-   health/readiness и error mapping.
-4. Проверить normalizer profiles `uk/en/ru`: NFKC, apostrophes, diacritics,
-   special characters, normalized-token phrase semantics, lemmas/stems,
+3. Зафиксировать TypeScript contract, profile versioning, single/batch limits,
+   deterministic hashing, readiness и error mapping.
+4. Проверить normalization profiles `uk/en/ru`: NFKC, apostrophes, diacritics,
+   special characters, normalized-token phrase semantics, stems,
    stopwords, surface typo terms, arrays/elements и SKU preservation.
 5. Зафиксировать distance-1 corpus и единый безопасный trigram threshold.
 6. Подтвердить, что execution role видит required extensions и
@@ -966,7 +989,7 @@ Guardrails:
 8. Удалить handle/UUID fallback.
 
 Готовность: unsupported locale/profile не advertised; tenant leakage
-отсутствует; raw input parameterized; normalizer deterministic; typo prefilter
+отсутствует; raw input parameterized; normalization deterministic; typo prefilter
 recall подтверждён corpus-ом.
 
 ### Этап 1. Listing search content contract
@@ -1008,20 +1031,21 @@ failed transaction сохраняет previous search rows/item state; engine н
 
 1. Реализовать DBOS apply workflow с retry, CAS activation и coalescing.
 2. Компилировать immutable runtime configuration.
-3. Batch-нормализовать/валидировать synonym values через active gRPC profile.
+3. Batch-нормализовать/валидировать synonym values через active локальный profile.
 4. Реализовать cache active runtime configuration с invalidation после activation.
 5. Добавить recovery apply jobs и safe compile errors.
 
-### Этап 5. Normalizer client, PRIMARY planner и PostgreSQL FTS compiler
+### Этап 5. Normalization pipeline, PRIMARY planner и PostgreSQL FTS compiler
 
 1. Создать engine-neutral AST и limits.
-2. Реализовать generated gRPC client adapter с deadline, response validation,
-   retry policy только для idempotent operations и no-fallback semantics.
-3. Реализовать query normalization и batch document normalization adapters.
+2. Реализовать profile registry, `Intl.Segmenter` adapter, locale-specific
+   `natural` stemmers, versioned stopwords и SKU/code-like preservation.
+3. Реализовать query normalization и bounded batch document normalization с
+   единым deterministic output contract.
 4. Реализовать `PostgresFtsQueryCompiler` на `pg_catalog.simple` для
    prepared lexeme/phrase и exact/prefix SKU.
 5. Реализовать per-unit matching и multiplicity-neutral rank aggregation.
-6. Зафиксировать supported PostgreSQL/normalizer contract и full candidate
+6. Зафиксировать supported PostgreSQL/normalization contract и full candidate
    relation без top-K.
 7. Добавить `EXPLAIN ANALYZE` и cross-language compatibility corpus.
 
@@ -1029,8 +1053,9 @@ failed transaction сохраняет previous search rows/item state; engine н
 phrase same-element; ranking deterministic; неготовый или несовместимый
 PostgreSQL contract возвращает `SEARCH_INDEX_UNAVAILABLE`.
 
-Normalizer unavailable, deadline exceeded или revision mismatch возвращает
-`SEARCH_NORMALIZER_UNAVAILABLE`; PostgreSQL/local fallback запрещён.
+Unsupported profile, normalization failure или revision mismatch возвращает
+`SEARCH_NORMALIZATION_FAILED`; PostgreSQL locale-dictionary и cross-locale
+fallback запрещены.
 
 ### Этап 6. Canonical Listing executor
 
@@ -1082,7 +1107,7 @@ fallback; technical error — нет.
 
 1. Реализовать status service и GraphQL.
 2. Связать status с canonical item state, DBOS и PostgreSQL search health.
-3. Разделить extension/normalizer health, locale/model readiness, field readiness
+3. Разделить extension/normalization health, locale/profile readiness, field readiness
    и backlog/failure.
 4. Добавить periodic counter reconciliation.
 5. Реализовать Overview composition.
@@ -1098,7 +1123,7 @@ fallback; technical error — нет.
 5. Проверить privacy и tenant-isolated membership/performance.
 6. Включать capabilities только после readiness.
 7. Удалить title-only/legacy search symbols после перехода.
-8. Проверить rolling update normalizer-а: новая model revision не обслуживает
+8. Проверить rolling update normalization profile: новая profile revision не обслуживает
    query до полного locale rebuild и atomic activation index revision.
 
 ## 8. Основные Listing touchpoints
@@ -1131,10 +1156,10 @@ fallback; technical error — нет.
 | Phrase across variants | Не совпадает |
 | Exact/prefix SKU | Identifier tier без stemming/synonym/typo |
 | Missing locale title | Нет fallback; SKU ещё может найти product |
-| Lemmatized/stemmed primary form | Document и query используют один Python profile/revision и PostgreSQL `simple` |
+| Stemmed primary form | Document и query используют один Node.js profile/revision и PostgreSQL `simple` |
 | Stopword-only query | Validation error, не broad listing |
-| Normalizer unavailable | `SEARCH_NORMALIZER_UNAVAILABLE`, без PostgreSQL/local fallback |
-| Normalizer revision mismatch | Query fail-closed до READY/atomic activation соответствующего locale index |
+| Normalization failure | `SEARCH_NORMALIZATION_FAILED`, без PostgreSQL locale-dictionary/cross-locale fallback |
+| Profile revision mismatch | Query fail-closed до READY/atomic activation соответствующего locale index |
 | Special tsquery characters | Bound values, без parser injection |
 | Primary raw hit отфильтрован | Final zero разрешает FUZZY pass |
 | Query/token короче typo minimum | FUZZY не запускается |
@@ -1157,7 +1182,7 @@ fallback; technical error — нет.
 
 ## 10. Definition of Done
 
-- все advertised fields имеют реальный source, ready normalizer profile/model
+- все advertised fields имеют реальный source, ready normalization profile
   revision и GIN index на `pg_catalog.simple`;
 - page/total/facets используют одинаковый membership compilation contract при
   любом scope/sort;
@@ -1168,7 +1193,7 @@ fallback; technical error — нет.
 - configuration apply имеет durable state machine, а document sync использует
   canonical Listing item workflow без дублирующего freshness state;
 - stale revision/event не активируют устаревшее состояние;
-- status честно показывает extension/normalizer/index/locale readiness;
+- status честно показывает extension/normalization/index/locale readiness;
 - GraphQL authorization, pagination, user errors и application states реализованы;
 - correctness, failure и performance matrices подтверждены;
 - legacy title-only search table/repository/symbols удалены.
@@ -1178,7 +1203,7 @@ fallback; technical error — нет.
 1. Listing зависит от расширенного Catalog snapshot и reference fan-out.
 2. PostgreSQL FTS relevance — `ts_rank_cd`, а не BM25; quality необходимо
    подтвердить corpus-ом.
-3. Качество Python tokenizer/lemmatizer различается по locale; каждый profile
+3. Качество `Intl.Segmenter` + `natural` stemmer различается по locale; каждый profile
    требует собственного compatibility/relevance corpus и не может молча
    использовать profile другого языка.
 4. GIN write amplification, pending list и autovacuum могут влиять на latency.
@@ -1192,7 +1217,8 @@ fallback; technical error — нет.
 9. Collection scope нельзя имитировать до canonical listing scope provider.
 10. High-frequency rename/locale fan-out требует bounded batching и наблюдаемого
     backlog.
-11. Python service добавляет network dependency в query path; нужны bounded
-    deadlines, keepalive, capacity planning и fail-closed readiness.
-12. Обновление model revision требует полного rebuild соответствующего locale
+11. `Intl.Segmenter` следует Unicode/ICU boundaries, которые могут не сохранять
+    commerce identifiers (`USB-C`, `AB-123`, model codes); они требуют отдельной
+    versioned classification/preservation policy и corpus coverage.
+12. Обновление profile revision требует полного rebuild соответствующего locale
     index и atomic activation; смешивать revisions в одном serving set запрещено.
