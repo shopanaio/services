@@ -340,30 +340,74 @@ PRIMARY matching использует:
   `phraseto_tsquery('pg_catalog.simple', $boundPreparedText)` для phrase;
 - typed `tsquery` AND/OR composition;
 - GIN index на `search_vector`;
-- `ts_rank_cd` с fixed field weights;
+- `ts_rank_cd` для rank отдельного field element с последующим умножением на
+  numeric field weight из active runtime configuration;
 - отдельную identifier relation для SKU exact/prefix.
 
-Начальные веса `ts_rank_cd`:
+Начальные field weights:
 
 ```text
-A = product title = 8
-B = variant title = 5
-C = vendor name   = 2
-D = category name = 1
+product title = 8
+variant title = 5
+vendor name   = 2
+category name = 1
 ```
 
-PostgreSQL принимает четыре weight classes, поэтому physical field element
-получает ровно одну class. Веса являются code constants, не Admin settings.
+Каждый logical field element хранится отдельной row, поэтому PostgreSQL weight
+classes `A`–`D` и `setweight` не используются. Active runtime configuration
+содержит versioned mapping `field -> positive finite numeric weight`. Compiler
+вычисляет rank отдельной row через `ts_rank_cd(search_vector, tsquery)` и умножает
+его на weight соответствующего field. Изменение numeric weight не изменяет
+physical `tsvector`, не требует database migration или перестроения search rows и
+начинает действовать только после atomic activation новой runtime revision.
 
 Rank product вычисляется без multiplicity bias:
 
 ```text
-unit_rank = MAX(rank всех alternatives/elements одного required unit)
+element_rank = ts_rank_cd(search_vector, tsquery) * runtimeWeight(field)
+unit_rank = MAX(element_rank всех alternatives/elements одного required unit)
 relevance_rank = SUM(unit_rank по satisfied required units)
 ```
 
 Количество variants/categories не должно само по себе повышать product rank.
 `NULL`, NaN и infinite rank завершают attempt как engine error.
+
+#### Расширение набора полей и изменение весов
+
+`SearchFieldRegistry` является единственным code-level registry поддерживаемых
+текстовых полей. Для каждого поля он фиксирует:
+
+- стабильный `field` key;
+- source в `ListingSearchContentSnapshot`;
+- правило построения stable `elementId`;
+- участие в PRIMARY и FUZZY search;
+- limits и readiness requirements.
+
+Добавление нового logical field, например `collection_name`, не требует изменения
+схемы `product_search_text` или `product_search_term`: новое значение хранится в
+существующей колонке `field`, а каждое значение коллекции — отдельным element с
+`element_id = collection_id`. Для добавления поля необходимо последовательно:
+
+1. добавить source в versioned Catalog snapshot и
+   `ListingSearchContentSnapshot`;
+2. добавить deterministic mapping значений и stable element identity;
+3. зарегистрировать field key в `SearchFieldRegistry`;
+4. включить поле в document normalization/write model и query planner;
+5. классифицировать source events и reference fan-out для изменений этого поля;
+6. добавить поле в compatibility corpus, limits, capabilities и field readiness.
+
+`search_settings.enabledFields` может включать только поля, уже известные
+`SearchFieldRegistry` и готовые для соответствующих tenant/locale. Admin settings
+не создают новые field types и не меняют physical index contract. Неизвестное или
+неготовое поле отклоняется как `unavailable field`.
+
+Для каждого enabled field settings задают независимый positive finite numeric
+weight в пределах зафиксированных limits. Например, после появления готового
+`collection_name` runtime mapping может содержать
+`{ product_title: 8, collection_name: 3 }`. Добавление mapping или изменение
+`collection_name: 3 -> 4` создаёт новую configuration revision и проходит обычный
+compile/CAS activation, но не требует DDL migration, `setweight` или изменения
+существующих `search_vector`. Pending/failed revision не влияет на serving.
 
 Compiler обязан параметризовать values, помещать `store_id` и locale predicates
 в каждый text/identifier/term subquery и не иметь `ILIKE` fallback. Lexeme arrays
@@ -857,10 +901,19 @@ listing.product_search_text
 Одна row содержит одно logical value. `prepared_text` — bounded строка из
 ordered primary lexemes, полученных от normalization pipeline; raw localized source text в
 search table не хранится. `search_vector` строится writer-ом только через
-`setweight(to_tsvector('pg_catalog.simple', prepared_text), weightFor(field))`;
-GIN index создаётся на vector. Weight однозначно выводится из field registry и
-отдельно в row не хранится. Query relation всегда фильтрует active contract/model
-revision вместе с `store_id` и locale.
+`to_tsvector('pg_catalog.simple', prepared_text)` без `setweight`; GIN index
+создаётся на vector. Numeric field weight в physical row и `tsvector` не хранится:
+его разрешает compiler из active runtime configuration при вычислении rank.
+Query relation всегда фильтрует active contract/model revision вместе с
+`store_id` и locale.
+
+Собственные SQL functions для выбора веса, нормализации, lexicalization, stemming
+или query compilation не создаются.
+Database contract использует только встроенные PostgreSQL functions и functions
+обязательных extensions: `to_tsvector`, `plainto_tsquery`,
+`phraseto_tsquery`, `ts_rank_cd`, `levenshtein_less_equal` и `nextval`, а также
+операторы `pg_trgm`. Добавление custom SQL function требует отдельного изменения
+этого architecture contract и не может быть неявной implementation detail.
 
 #### Identifiers
 
@@ -966,7 +1019,8 @@ transaction-aware `this.connection` и context store.
 ### 3.1. Configuration control plane
 
 - `search_configuration_state`: desired/active/applying revisions и apply status;
-- `search_settings`: enabled fields, typo tolerance, OOS policy и optimistic version;
+- `search_settings`: enabled fields, independent numeric field weights, typo
+  tolerance, OOS policy и optimistic version;
 - `search_configuration_revision`: immutable authoring JSON и checksum;
 - `search_configuration_apply_job`: durable outbox/recovery row;
 - `search_runtime_configuration`: compiled settings, synonym trie, boost map и
