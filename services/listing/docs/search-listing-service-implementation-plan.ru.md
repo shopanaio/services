@@ -33,8 +33,8 @@ spellcheck, ML-reranking, персонализация, sponsored results и о�
   zero primary result;
 - search indexes обновляются существующим event-driven listing workflow;
 - backend публикует Admin GraphQL для управления, Preview и status;
-- все ветки одного request используют pinned configuration revision, text-search
-  configuration version и document schema version;
+- все ветки одного request используют pinned configuration revision и один
+  фактический PostgreSQL search contract;
 - все ветки одной search attempt используют один execution mode.
 
 ## PostgreSQL search stack
@@ -48,7 +48,7 @@ CREATE EXTENSION IF NOT EXISTS unaccent;
 ```
 
 PostgreSQL FTS является встроенной возможностью и не требует extension. `unaccent`
-используется только в тех versioned text-search configurations, где это явно
+используется только в тех text-search configurations, где это явно
 зафиксировано. Неявный `default_text_search_config` запрещён.
 
 Начальный locale registry:
@@ -61,9 +61,10 @@ uk -> listing.search_uk
 
 Каждая configuration создаётся DDL и явно задаёт parser/dictionaries, stemming,
 stop words и `unaccent` policy. Для locale без проверенного language dictionary
-используется versioned configuration на базе `simple`; другая locale не
-подставляется. Text-search configurations неизменяемы в пределах поддерживаемой
-compatibility version.
+используется configuration на базе `simple`; другая locale не подставляется.
+Изменение search DDL требует полного rebuild search rows до возврата capability
+в состояние ready; параллельное обслуживание нескольких версий индекса не
+поддерживается.
 
 ## Обязательные инварианты
 
@@ -183,9 +184,6 @@ interface SearchRequestContext {
   readonly configurationRevision: number;
   readonly runtimeConfigurationChecksum: string;
   readonly runtimeConfiguration: CompiledSearchRuntimeConfiguration;
-  readonly compatibility: SearchCompatibilityTuple;
-  readonly documentSchemaVersion: number;
-  readonly textSearchConfigurationVersion: number;
   readonly diagnosticsMode: "NONE" | "PREVIEW";
 }
 
@@ -200,8 +198,8 @@ Request без cursor всегда начинает с `PRIMARY`. Если final
 на тот же request context. Continuation выполняет только mode из cursor.
 
 Runtime snapshot кэшируется по
-`store:<storeId>:search-config:<revision>`. Старые revisions, document schema и
-text-search configurations удерживаются не меньше cursor TTL.
+`store:<storeId>:search-config:<revision>`. Старые runtime revisions удерживаются
+не меньше cursor TTL. Физический search index не версионируется.
 
 ### 1.3. Engine-neutral query plan
 
@@ -491,8 +489,7 @@ filters и OOS policy.
 
 - normalized request hash, locale, currency, scope, filters и sort;
 - configuration revision/checksum;
-- document schema и text-search configuration versions;
-- compatibility tuple и mode;
+- execution mode;
 - conditional availability bucket;
 - полный фактический PRIMARY или FUZZY ordering tuple;
 - ordinal/product tie-breaker, issued-at и expiry.
@@ -516,7 +513,7 @@ codes:
 
 SQL, AST, lexemes, rank, trigram similarity и edit distance не публикуются.
 
-### 1.14. Limits и compatibility
+### 1.14. Limits
 
 Начальные code constants:
 
@@ -536,19 +533,8 @@ SQL, AST, lexemes, rank, trigram similarity и edit distance не публику
 
 Превышение limit возвращает validation error; truncation запрещён.
 
-```ts
-interface SearchCompatibilityTuple {
-  readonly postgresMajorVersion: number;
-  readonly documentSchemaVersion: number;
-  readonly compilerVersion: number;
-  readonly normalizerVersion: number;
-  readonly primaryTextSearchConfigurationVersion: number;
-  readonly typoTextSearchConfigurationVersion: number;
-  readonly typoCompilerVersion: number;
-}
-```
-
-Unsupported tuple возвращает `SEARCH_INDEX_UNAVAILABLE`.
+Несовместимый или неготовый фактический PostgreSQL search contract возвращает
+`SEARCH_INDEX_UNAVAILABLE`.
 
 ### 1.15. Нормативный top-level алгоритм
 
@@ -654,7 +640,7 @@ listing.product_search_text
 Одна row содержит одно logical value. `search_vector` строится writer-ом с
 explicit locale `regconfig` через
 `setweight(to_tsvector(regconfig, normalized_text), weightFor(field))`; GIN index
-создаётся на vector. Weight однозначно выводится из versioned field registry и
+создаётся на vector. Weight однозначно выводится из field registry и
 отдельно в row не хранится.
 
 #### Identifiers
@@ -751,8 +737,8 @@ transaction-aware `this.connection` и context store.
 - `search_settings`: enabled fields, typo tolerance, OOS policy и optimistic version;
 - `search_configuration_revision`: immutable authoring JSON и checksum;
 - `search_configuration_apply_job`: durable outbox/recovery row;
-- `search_runtime_configuration`: compiled settings, synonym trie, boost map,
-  compatibility tuple и activation metadata.
+- `search_runtime_configuration`: compiled settings, synonym trie, boost map и
+  activation metadata.
 
 Authoring mutation атомарно блокирует state, проверяет optimistic version,
 увеличивает desired revision, сохраняет snapshot, audit и apply job. Activation
@@ -784,11 +770,10 @@ headers не сохраняются.
 
 ### 3.5. Index state
 
-- `search_index_state`: schema/config versions, `READY/UPDATING/FAILED`, last
-  attempt/success, safe error и counters;
-- `search_index_locale_state`: document schema и text-search configuration
-  versions, expected/indexed/published products, localized title coverage,
-  text/identifier/term readiness.
+- `search_index_state`: `READY/UPDATING/FAILED`, last attempt/success, safe error
+  и counters;
+- `search_index_locale_state`: expected/indexed/published products, localized
+  title coverage, text/identifier/term readiness.
 
 Canonical item freshness остаётся в `listing_index_item_state`. Search state —
 только aggregate operational projection. Reconciliation сверяет text elements,
@@ -869,8 +854,8 @@ input paths.
 
 ## 6. Observability, privacy and guardrails
 
-Technical logs содержат store ID, query hash, locale/scope, revision/schema,
-text-search configuration version, attempt mode, candidate/final cardinalities,
+Technical logs содержат store ID, query hash, locale/scope, runtime revision,
+attempt mode, candidate/final cardinalities,
 collector, typo flag, branch duration и counts synonyms/boosts. Raw query и
 lexemes запрещены.
 
@@ -898,7 +883,7 @@ Guardrails:
 
 ## 7. Пошаговая реализация
 
-### Этап 0. External gates и PostgreSQL compatibility baseline
+### Этап 0. External gates и PostgreSQL baseline
 
 Обязательные gates:
 
@@ -927,7 +912,7 @@ Guardrails:
 
 1. Принять новую версию Catalog snapshot.
 2. Добавить `ListingSearchContentSnapshot` и deterministic mapper.
-3. Добавить `SearchFieldRegistry`, element identity и schema version.
+3. Добавить `SearchFieldRegistry` и element identity.
 4. Подключить event classification и bounded fan-out.
 5. Возвращать capabilities из фактической source readiness.
 
@@ -971,12 +956,12 @@ failed transaction сохраняет previous search rows/item state; engine н
 2. Реализовать database lexicalization service.
 3. Реализовать `PostgresFtsQueryCompiler` для lexeme/phrase and exact/prefix SKU.
 4. Реализовать per-unit matching и multiplicity-neutral rank aggregation.
-5. Зафиксировать compatibility tuple и full candidate relation без top-K.
+5. Зафиксировать supported PostgreSQL contract и full candidate relation без top-K.
 6. Добавить `EXPLAIN ANALYZE` corpus.
 
 Готовность: exact boolean form сохранена; tenant/locale predicates обязательны;
-phrase same-element; ranking deterministic; unsupported tuple возвращает
-`SEARCH_INDEX_UNAVAILABLE`.
+phrase same-element; ranking deterministic; неготовый или несовместимый
+PostgreSQL contract возвращает `SEARCH_INDEX_UNAVAILABLE`.
 
 ### Этап 6. Canonical Listing executor
 
@@ -1112,7 +1097,7 @@ fallback; technical error — нет.
 - stale revision/event не активируют устаревшее состояние;
 - status честно показывает extension/configuration/index/locale readiness;
 - GraphQL authorization, pagination, user errors и application states реализованы;
-- compatibility, correctness, failure и performance matrices подтверждены;
+- correctness, failure и performance matrices подтверждены;
 - legacy title-only search table/repository/symbols удалены.
 
 ## Открытые риски
