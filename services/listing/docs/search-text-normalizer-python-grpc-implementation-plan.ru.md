@@ -4,8 +4,8 @@
 
 Документ описывает отдельный stateless Python-сервис языковой подготовки текста
 для Listing search. Сервис выполняет Unicode normalization, locale-aware
-tokenization, lemmatization/stemming, stopword filtering и подготовку surface
-terms для typo tolerance.
+tokenization, lemmatization/stemming, stopword filtering, подготовку surface
+terms для typo tolerance и query-only spell correction.
 
 Сервис не является search engine, не подключается к Neon/PostgreSQL, не владеет
 tenant/store data, synonyms, boosts, ranking или search configuration. Listing
@@ -28,6 +28,7 @@ Python server и generated TypeScript client. Копии `.proto` в двух с
 - locale-specific profiles скрыты за единым интерфейсом;
 - deterministic output при одинаковых input, contract version и model revision;
 - отдельные primary lexemes и surface typo terms;
+- bounded spell candidates для query с confidence и explainable token changes;
 - unary API для query и bounded batch API для indexing/configuration apply;
 - model загружается один раз при старте worker;
 - readiness публикуется только после загрузки и self-check всех configured
@@ -49,6 +50,12 @@ Storefront query
   -> TextNormalizer.Normalize
   -> Listing query plan
   -> PostgreSQL plainto_tsquery/phraseto_tsquery('pg_catalog.simple', ...)
+
+Final PRIMARY zero
+  -> TextNormalizer.CorrectQuery
+  -> Listing tenant/catalog validation and confidence policy
+  -> TextNormalizer.Normalize(corrected query)
+  -> полный corrected Listing bundle
 ```
 
 Listing выполняет tenant authorization, request hashing, limits public input,
@@ -80,6 +87,18 @@ opaque request/item IDs, locale, purpose и bounded text.
     нестабильной JSON serialization.
 14. Изменение tokenization, normalization, stopwords или model означает новую
     model revision либо contract version; mutable in-place update запрещён.
+15. Spell correction применяется только к storefront query после final PRIMARY
+    zero; documents, synonyms, boosts и non-zero query автоматически не
+    исправляются.
+16. Brand, SKU, model name, abbreviation и явно protected source unit не
+    исправляются.
+17. Correction возвращает bounded candidates, confidence и edit metadata, но не
+    принимает окончательное решение: Listing проверяет tenant catalog match и
+    применяет policy.
+18. Spell correction выполняется над surface forms до lemmatization. Исправленный
+    query повторно проходит обычный `Normalize` с той же model revision.
+19. Correction не выполняет synonym expansion, transliteration или свободное
+    paraphrasing и не может генерировать token вне versioned dictionary.
 
 ## 1. gRPC contract
 
@@ -95,6 +114,7 @@ package shopana.textnormalizer.v1;
 service TextNormalizerService {
   rpc Normalize(NormalizeRequest) returns (NormalizeResponse);
   rpc NormalizeBatch(NormalizeBatchRequest) returns (NormalizeBatchResponse);
+  rpc CorrectQuery(CorrectQueryRequest) returns (CorrectQueryResponse);
   rpc GetCapabilities(GetCapabilitiesRequest) returns (GetCapabilitiesResponse);
 }
 
@@ -180,6 +200,39 @@ message NormalizerLimits {
   uint32 max_units_per_item = 4;
   uint32 max_lexemes_per_item = 5;
 }
+
+message CorrectQueryRequest {
+  string request_id = 1;
+  string locale = 2;
+  string text = 3;
+  repeated uint32 protected_source_indices = 4;
+  string required_contract_version = 5;
+  string required_model_revision = 6;
+  string required_dictionary_revision = 7;
+  uint32 max_candidates = 8;
+}
+
+message CorrectQueryResponse {
+  string request_id = 1;
+  string locale = 2;
+  string contract_version = 3;
+  string model_revision = 4;
+  string dictionary_revision = 5;
+  repeated CorrectionCandidate candidates = 6;
+}
+
+message CorrectionCandidate {
+  string corrected_text = 1;
+  double confidence = 2;
+  repeated TokenCorrection changes = 3;
+}
+
+message TokenCorrection {
+  uint32 source_index = 1;
+  string original = 2;
+  string corrected = 3;
+  uint32 edit_distance = 4;
+}
 ```
 
 `prepared_text` является canonical join ordered primary lexemes через один ASCII
@@ -200,6 +253,7 @@ space. Listing перепроверяет, что оно совпадает с u
 - supported purposes;
 - unary/batch item/text/token limits;
 - feature flags: lemma, stem, stopwords, diacritics, typo surface terms;
+- spell correction support и immutable dictionary revision;
 - readiness конкретного profile без внутренних filesystem paths.
 
 Listing использует capabilities для startup/readiness diagnostics, но не
@@ -220,6 +274,11 @@ active Listing locale index state.
 
 Item-level errors разрешены только в `NormalizeBatchResponse`. Transport/protocol
 failure завершает весь RPC.
+
+`CorrectQuery` не вызывается для normalization/indexing errors и не является
+technical fallback. Ошибка correction не должна скрывать уже рассчитанный
+PRIMARY zero result; Listing возвращает zero result без correction либо safe
+degradation marker согласно public contract.
 
 ## 2. Normalization pipeline
 
@@ -282,7 +341,75 @@ Stopword lists являются versioned assets репозитория. Runtime
 - один source token может вернуть несколько primary lexemes только при явно
   versioned compound policy;
 - transliteration, synonym expansion, spelling correction и language detection
-  не входят в normalization v1.
+  не входят в normalization operation.
+
+### 2.4. Spell correction pipeline
+
+Spell correction является отдельной query-only operation:
+
+```text
+validate query/revisions
+  -> common surface tokenization
+  -> exclude protected/short/code-like tokens
+  -> SymSpell candidate generation
+  -> edit-distance and keyboard features
+  -> frequency/bigram scoring
+  -> bounded candidate ranking
+  -> confidence calibration
+  -> token-level change metadata
+```
+
+Baseline — SymSpell с `max_edit_distance=1`; distance `2` разрешается только для
+длинных tokens после quality/performance corpus. Tokens длиной до трёх code
+points по умолчанию не исправляются. Unbounded candidate expansion запрещён.
+
+Correction dictionary хранит surface forms, потому что исправление выполняется
+до lemma/stem. Начальный ориентир на locale:
+
+```text
+150–300k частотных language surface forms
++ 20–200k versioned commerce/catalog terms
++ protected brands/model names отдельным registry
+= около 200–500k correction entries
+```
+
+Миллионы неконтролируемых word forms не являются целью: они увеличивают memory,
+candidate ambiguity и false corrections. Dictionary build обязан фильтровать
+OCR noise, URLs, identifiers и low-frequency garbage. General frequency source,
+catalog vocabulary и query/click-derived weights имеют отдельное provenance и
+license manifest.
+
+Service может генерировать candidates из общего versioned dictionary, но не
+владеет tenant catalog. Listing обязательно проверяет candidates против своего
+locale term dictionary/search result. Store-specific query/click frequency может
+применяться Listing reranker-ом либо публиковаться как отдельный versioned
+dictionary artifact только после отдельного privacy/ownership решения.
+
+Confidence не равен raw SymSpell score. Начальный policy contract:
+
+```text
+confidence >= calibrated auto-correct threshold
+  -> Listing может выполнить corrected full bundle
+
+confidence между suggest и auto-correct threshold
+  -> вернуть "Возможно, вы имели в виду" без автоматической замены
+
+confidence < suggest threshold
+  -> correction отсутствует
+```
+
+Численные thresholds принимаются только после offline corpus и online metrics.
+Редкое, но корректное слово не исправляется, если PRIMARY уже вернул результат.
+
+Spell correction улучшает recall и zero-result rate, но не улучшает ranking
+корректно написанного запроса. Synonyms и lemmatization остаются независимыми
+слоями:
+
+```text
+spell          -> ошибочно написанное слово
+lemmatization  -> грамматические формы одного слова
+synonyms       -> разные слова с близким значением
+```
 
 ## 3. Python project structure
 
@@ -307,6 +434,11 @@ services/text-normalizer/
       uk.py
       en.py
       ru.py
+    correction/
+      symspell.py
+      dictionary.py
+      ranker.py
+      confidence.py
     assets/stopwords/
     observability/
       logging.py
@@ -316,6 +448,7 @@ services/text-normalizer/
   scripts/
     download_models.py
     build_model_manifest.py
+    build_correction_dictionary.py
     benchmark.py
   tests/
     contract/
@@ -381,6 +514,17 @@ Model revision не задаётся произвольным ENV string: она
 - Listing может применять bounded cache по
   `(locale, contractVersion, modelRevision, normalized input hash)`.
 
+### Query correction
+
+- запускается параллельно с PRIMARY только как speculative bounded work либо
+  после final zero; результат до final zero не применяется;
+- baseline dictionary 200–500k surface forms и edit distance `1`;
+- candidate generation и ranking имеют отдельные limits;
+- warm target для `CorrectQuery + Normalize` — initial `p95 <= 15 ms` и
+  `p99 <= 30 ms` внутри private network; окончательный SLO принимается только
+  после benchmark;
+- cache key включает locale, contract/model/dictionary revisions и input hash.
+
 ### Indexing batch
 
 - stable item IDs;
@@ -401,8 +545,18 @@ Metrics:
 - requests/duration/in-flight по method, locale, purpose и status;
 - batch items, input code points, token/lexeme/output counts;
 - profile readiness и loaded model revision;
+- correction dictionary revision, candidates/change counts и protected tokens;
 - deadline exceeded, resource exhausted, revision mismatch;
 - process CPU/RSS, event-loop lag и worker restarts.
+
+Listing, а не stateless normalizer, агрегирует product/business quality metrics:
+
+- zero-result rate до и после correction;
+- доля query с correction candidate;
+- auto-correction и suggestion acceptance rate;
+- corrected-query CTR/conversion;
+- false correction/undo rate;
+- corrected bundle latency и доля protected tokens.
 
 Tracing содержит request ID, locale, purpose, contract/model revision и counts.
 Raw input, source tokens, primary lexemes, typo terms и prepared text запрещены в
@@ -424,6 +578,11 @@ Guardrails:
 `contractVersion` меняется при несовместимой семантике proto/output. `modelRevision`
 меняется при любом результате normalization: tokenizer, stopwords, lemma model,
 diacritics или code-token policy.
+
+`dictionaryRevision` меняется при изменении spell vocabulary, frequencies,
+bigrams, protected registry или ranker/confidence artifacts. Dictionary update
+не требует rebuild document FTS index, но требует compatibility corpus и
+координированной activation correction capability.
 
 Rollout новой revision:
 
@@ -451,7 +610,9 @@ in-place раньше индекса.
 3. Собрать `uk/en/ru` corpus: inflections, apostrophes, diacritics, mixed script,
    brands, numbers, product codes, stopword-only и typo distance 1.
 4. Сравнить candidate libraries по quality, license, RSS и latency.
-5. Зафиксировать initial profiles, stopword assets и manifests.
+5. Собрать typo/correction pairs, включая UA-GEC и domain fixtures; внешние
+   datasets проходят отдельную license review.
+6. Зафиксировать initial profiles, stopword/correction assets и manifests.
 
 ### Этап 1. Service skeleton
 
@@ -465,33 +626,40 @@ in-place раньше индекса.
 1. Реализовать common Unicode/token validation pipeline.
 2. Реализовать profile registry без fallback.
 3. Добавить initial locale profiles и versioned stopwords.
-4. Реализовать prepared text/output hash.
-5. Добавить determinism и golden corpus fixtures.
+4. Реализовать correction dictionary builder и protected registry.
+5. Реализовать prepared text/output hash.
+6. Добавить determinism и golden corpus fixtures.
 
 ### Этап 3. gRPC methods
 
 1. Реализовать `Normalize`.
 2. Реализовать bounded `NormalizeBatch` с per-item outcomes.
-3. Реализовать `GetCapabilities` и profile readiness.
-4. Добавить status/error mapping, cancellation и limits.
-5. Проверить generated TypeScript client compatibility.
+3. Реализовать bounded `CorrectQuery` и token change metadata.
+4. Реализовать `GetCapabilities` и profile readiness.
+5. Добавить status/error mapping, cancellation и limits.
+6. Проверить generated TypeScript client compatibility.
 
 ### Этап 4. Listing integration
 
 1. Добавить Listing client adapter и configuration.
 2. Подключить unary query normalization.
-3. Подключить batch document/synonym/boost normalization до DB transaction.
-4. Включить contract/model revision в write model, index state и query predicate.
-5. Реализовать fail-closed readiness и safe errors.
+3. Подключить exact-first correction только после final PRIMARY zero.
+4. Добавить protected brand/SKU units, tenant candidate validation и confidence
+   policy.
+5. Подключить batch document/synonym/boost normalization до DB transaction.
+6. Включить contract/model revision в write model, index state и query predicate.
+7. Реализовать fail-closed normalization readiness и safe correction degradation.
 
 ### Этап 5. Hardening
 
 1. Выполнить correctness corpus и cross-version compatibility checks.
 2. Провести unary/batch/mixed load benchmark.
-3. Настроить workers, concurrency, deadlines и message limits.
-4. Добавить Unicode/protobuf fuzzing и failure injection.
-5. Проверить rolling revision rollout, rebuild, activation и rollback.
-6. Зафиксировать runbook и alert thresholds.
+3. Измерить correction precision/recall, false correction и latency на словарях
+   200k/500k/1m.
+4. Настроить workers, concurrency, deadlines и message limits.
+5. Добавить Unicode/protobuf fuzzing и failure injection.
+6. Проверить rolling revision rollout, rebuild, activation и rollback.
+7. Зафиксировать runbook и alert thresholds.
 
 ## 9. Acceptance matrix
 
@@ -505,6 +673,14 @@ in-place раньше индекса.
 | Stopword-only query | Нет primary lexemes; Listing возвращает validation error |
 | Phrase with stopword | Phrase строится по adjacent searchable lexemes после filtering |
 | Typo token | Surface typo term сохранён отдельно от lemma |
+| PRIMARY имеет result | Spell correction не вызывается |
+| PRIMARY final zero | Correction candidates вычисляются bounded operation |
+| Protected brand/SKU | Token не изменяется |
+| Short/code-like token | Не исправляется согласно policy |
+| High-confidence candidate с catalog hits | Listing может выполнить corrected bundle |
+| Medium confidence | Только "Возможно, вы имели в виду" |
+| Candidate без tenant catalog match | Не используется для automatic correction |
+| Correction unavailable | PRIMARY zero возвращается без semantic/local fallback |
 | Unsupported locale | `NOT_FOUND`, без substitute profile |
 | Required revision mismatch | `FAILED_PRECONDITION` |
 | Duplicate batch ID | Protocol-level `INVALID_ARGUMENT` |
@@ -521,6 +697,9 @@ in-place раньше индекса.
 - unary и batch methods соблюдают limits, deadlines и error contract;
 - output deterministic и подтверждён golden corpus;
 - document/query/synonym/boost parity подтверждена для каждой locale;
+- exact-first spell correction имеет calibrated confidence, protected tokens и
+  tenant catalog validation;
+- correction quality подтверждена typo corpus и метриками false correction;
 - Listing fail-closed проверяет contract/model revision;
 - PostgreSQL получает только prepared lexemes и использует `pg_catalog.simple`;
 - performance/capacity benchmark и operational runbook готовы;
@@ -541,3 +720,9 @@ in-place раньше индекса.
 6. Model revision rollout требует временно хранить/обслуживать две revisions.
 7. Лицензии model data могут отличаться от Python package license и должны быть
    проверены до включения artifacts в container.
+8. General-language dictionary без catalog/query frequencies может выбирать
+   лингвистически корректное, но коммерчески нерелевантное исправление.
+9. Слишком большой dictionary повышает RSS и false-positive rate; размер и
+   thresholds принимаются benchmark-ом.
+10. Automatic correction без exact-first и calibrated confidence способен
+    ухудшить поиск редких brands и domain terms.
