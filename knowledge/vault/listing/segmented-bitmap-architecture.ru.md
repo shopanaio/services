@@ -151,6 +151,60 @@ CREATE TABLE listing.listing_posting_bitmap_segment (
 Дополнительный range index не требуется для canonical read, если запрос всегда
 адресует `segment_id`. Он может быть добавлен только для audit/rebuild tooling.
 
+### Segment directory и pruning
+
+Перед чтением posting payload compiler использует компактный routing index:
+для каждого posting key хранится bitmap непустых `segment_id`. Это bitmap
+физических segments, а не product/variant doc IDs.
+
+```sql
+CREATE TABLE listing.listing_posting_segment_directory (
+  store_id       uuid NOT NULL,
+  entity_type    varchar(16) NOT NULL,
+  field          varchar(64) NOT NULL,
+  value_key      text NOT NULL,
+  segment_bitmap roaringbitmap NOT NULL,
+  segment_count  int NOT NULL,
+  updated_at     timestamptz NOT NULL DEFAULT now(),
+
+  PRIMARY KEY (store_id, entity_type, field, value_key),
+
+  CHECK (segment_count >= 0)
+);
+```
+
+Directory является rebuildable acceleration projection. Canonical membership
+остаётся в `listing_posting_bitmap_segment`; наличие segment в directory
+означает только возможность match, а не доказывает непустой результат после
+пересечения с другими predicates.
+
+Compiler сначала выполняет algebra над segment IDs:
+
+```text
+candidateSegments =
+  universeSegments
+  & categoryScopeSegments
+  & AND(OR(valueSegments внутри каждой term group))
+  & priceEligibleSegments
+```
+
+После этого posting rows загружаются только для `candidateSegments`, и exact
+bitmap algebra выполняется внутри них. OR внутри группы применяется и к segment
+directory, и к document postings. Отсутствующая directory row означает empty
+segment set; это не отменяет обязательную group skeleton semantics.
+
+Наиболее полезны directory entries для storefront scope: category, collection,
+channel/market и других селективных scopes. Популярные широкие terms вроде
+`system.state=indexable` или `available` могут покрывать все segments и сами по
+себе не дают pruning.
+
+Для планирования рядом с directory поддерживаются rebuildable per-segment
+summaries: posting cardinality, serialized bitmap bytes и distinct product
+count. Price segments дополнительно хранят `min_price_minor` и
+`max_price_minor`, а product sort segments — нижнюю и верхнюю границы sort key.
+Summaries используются для pruning, порядка чтения и выбора projection
+strategy, но не заменяют exact membership checks.
+
 Начальный physical field contract:
 
 | entity_type | field | Source | Назначение |
@@ -245,6 +299,12 @@ matching product segments
 
 Это исключает scan всех sort rows большого store при маленьком page size.
 
+Sort bounds позволяют page collector читать segments лениво в порядке лучшего
+возможного sort key. После получения global `first + 1` collector прекращает
+чтение, только если bound всех непрочитанных matching segments доказывает, что
+они не могут изменить страницу. Early stop применим к page, но не к exact total
+и facet counts.
+
 ## Canonical segmented algebra
 
 ### Product predicates
@@ -278,6 +338,11 @@ variantCandidates[segment] =
   & AND(groupBitmap[group, segment])
   & priceCandidates[segment]
 ```
+
+До этой document-level algebra compiler вычисляет `candidateSegments` через
+segment directory. Запрос к postings обязан быть ограничен полученным набором
+segment IDs. Если directory показывает все segments, compiler переходит к broad
+segment path; он не разворачивает global bitmap через `rb_iterate`.
 
 Отсутствующая posting row в segment означает empty bitmap. Compiler обязан
 начинать с universe segments и left-join group postings, чтобы missing row не
@@ -410,6 +475,11 @@ Price bounds выбирают adaptive path:
   + product base membership по product_doc_id
 ```
 
+До выбора path price summary отбрасывает segments, чей
+`[min_price_minor, max_price_minor]` не пересекается с requested range. Summary
+не доказывает membership для граничных или overlapping segments; внутри них
+сохраняется exact price predicate.
+
 `variant_listing_price_index` уже содержит `variant_doc_id` и `product_doc_id`;
 широкий price path не должен проходить через `variant_listing_index`.
 
@@ -443,6 +513,14 @@ cardinality = rb_cardinality(nextBitmap)
 Empty undeclared rows удаляются. Declared universe/availability semantics
 сохраняются на уровне registry; нет необходимости хранить empty row для каждого
 физически несуществующего segment.
+
+В той же item transaction writer обновляет соответствующий segment directory:
+добавляет `segment_id` при переходе posting `empty -> non-empty`, удаляет при
+`non-empty -> empty` и пересчитывает `segment_count`. Изменение membership
+внутри уже непустого segment не блокирует общую directory row: иначе популярный
+term снова превратил бы её в hot row. Изменения directory keys сортируются до
+locking так же, как posting keys. Directory и summaries должны полностью
+восстанавливаться offline builder без canonical source changes.
 
 ### Product projection correctness
 
@@ -498,6 +576,8 @@ candidate compilation и mapping scan на каждый visible value.
 
 Listing debug/profile добавляет:
 
+- число segments до и после directory pruning;
+- долю запросов, где directory вернул все segments;
 - product/variant segment count;
 - total и max candidate cardinality;
 - sum cardinality по batch values;
@@ -536,6 +616,9 @@ Bounded и offline audit проверяют:
 8. projection blocks покрывают mapping без overlap/gap активных doc IDs;
 9. price rows принадлежат indexable universe segment;
 10. registry metadata не расходится между segments одного declared term.
+11. directory bitmap совпадает с набором непустых canonical posting segments;
+12. `segment_count` directory совпадает с canonical rows;
+13. price/sort summary bounds покрывают canonical значения segment.
 
 ## Rollout
 
@@ -545,7 +628,7 @@ Bounded и offline audit проверяют:
 
 1. создать synthetic datasets 100k и 1m;
 2. добавить segmented tables и offline builder;
-3. построить segments из canonical listing index;
+3. построить segments, directory и summaries из canonical listing index;
 4. выполнить parity audit global и segmented results;
 5. реализовать segment compiler за feature flag;
 6. сравнить result parity и performance matrices;
@@ -567,6 +650,8 @@ Bounded и offline audit проверяют:
 - отсутствие более чем 10% regression на матрицах 1k и 10k;
 - bounded growth latency на 100k и 1m;
 - отсутствие full-store mapping scans в broad plans;
+- selective requests читают только directory-selected posting segments;
+- broad requests не деградируют в global `rb_iterate` при отсутствии pruning;
 - отсутствие broad per-ID price lookups;
 - bounded `rb_iterate` rows;
 - write throughput и lock wait не хуже global design на large-store dataset;
@@ -587,6 +672,8 @@ hardware. Архитектурный контракт определяет фо�
 | Skew/holey doc IDs | cardinality-based strategy, не считать range density по умолчанию |
 | Слишком большие segment rows | наблюдать serialized bytes; пересмотреть physical segment size по benchmark |
 | Слишком много tiny segments | natural 65 536 baseline, не создавать empty rows |
+| Directory stale относительно postings | same-transaction boundary transitions + offline parity audit |
+| Широкий term адресует все segments | broad segment path либо измеренная hot-scope projection |
 | `integer` doc ID exhaustion | отдельное решение: controlled allocator lifecycle либо roaringbitmap64/bigint migration |
 
 ## Итоговое решение
@@ -596,6 +683,8 @@ hardware. Архитектурный контракт определяет фо�
 
 ```text
 segmented canonical postings
+  + segment directory и scope-aware pruning
+  + price/sort segment summaries
   + derived variant category scope
   + adaptive narrow/block/direct projection
   + term-specific product shortcut
@@ -606,3 +695,10 @@ segmented canonical postings
 Малый store естественно использует один segment и сохраняет простой execution
 path. Большой store распределяет работу по сотням bounded segments без полного
 scan mapping table и без материализации миллионов doc IDs в SQL rows.
+
+Directory устраняет чтение всех segments для селективных запросов. Для широкого
+exact total или facet count, реально покрывающего весь store, пропустить
+matching segments без потери корректности невозможно. Такой workload требует
+broad bounded segment execution либо заранее рассчитанной rebuildable projection
+для измеренного hot scope; произвольные комбинации predicates не
+материализуются.
