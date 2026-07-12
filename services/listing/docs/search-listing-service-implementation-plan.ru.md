@@ -2,8 +2,6 @@
 
 ## Статус и назначение
 
-Статус: `proposal`.
-
 План описывает search runtime Listing service на стандартном PostgreSQL Full
 Text Search и поставляемых вместе с PostgreSQL расширениях. Внешний search
 engine и `pg_search` не используются.
@@ -33,7 +31,7 @@ spellcheck, ML-reranking, персонализация, sponsored results и о�
 - settings, synonyms и boosts применяются из immutable versioned runtime revision;
 - typo-tolerant search выполняется отдельным полным проходом только после final
   zero primary result;
-- search documents обновляются существующим event-driven listing workflow;
+- search indexes обновляются существующим event-driven listing workflow;
 - backend публикует Admin GraphQL для управления, Preview и status;
 - все ветки одного request используют pinned configuration revision, text-search
   configuration version и document schema version;
@@ -71,7 +69,7 @@ stop words и `unaccent` policy. Для locale без проверенного l
 
 1. Tenant всегда определяется через `ServiceContext.store.id`; `storeId` не
    принимается из public input.
-2. Locale обязательна и входит в document identity, query plan, cursor и
+2. Locale обязательна и входит в search row identity, query plan, cursor и
    configuration. Cross-locale fallback отсутствует.
 3. `publishedUniverse` применяется независимо от FTS, SKU, category scope и boost.
 4. Один `productMatches` используется page, `totalCount`, configured facets и
@@ -90,9 +88,9 @@ stop words и `unaccent` policy. Для locale без проверенного l
 11. Pending/failed authoring revision не влияет на listing до atomic activation.
 12. Listing не раскрывает SQL, AST, internal weights, `ts_rank_cd`, trigram
     similarity или edit distance.
-13. Search documents подчиняются canonical `listing_index_item_state`: stale и
+13. Search indexes подчиняются canonical `listing_index_item_state`: stale и
     noop action не изменяют physical rows, а stale Catalog event/snapshot не
-    может откатить latest item state или воскресить удалённый document.
+    может откатить latest item state или воскресить удалённые search rows.
 14. Phrase совпадает только внутри одного logical field element. Текст разных
     variants/categories и разных fields не может совместно удовлетворить phrase.
 15. Typo candidate prefilter не может превращаться в hidden top-K. Все прошедшие
@@ -311,7 +309,7 @@ relevance_rank = SUM(unit_rank по satisfied required units)
 `NULL`, NaN и infinite rank завершают attempt как engine error.
 
 Compiler обязан параметризовать values, помещать `store_id` и locale predicates
-в каждый document/identifier subquery и не иметь `ILIKE` fallback. Lexeme arrays
+в каждый text/identifier/term subquery и не иметь `ILIKE` fallback. Lexeme arrays
 используются для validation/limits, но не сериализуются в raw `to_tsquery` syntax.
 
 ### 1.5. Typo compiler
@@ -614,26 +612,26 @@ SKU            -> variant ID
 
 ### 2.2. Physical contract
 
-#### Product document
+#### Canonical product document
+
+Отдельная `product_search_document` не создаётся. Canonical product document —
+существующая `listing.product_listing_index`. Search не копирует `kind`,
+`status`, publication timestamps, product timestamps, revision или lifecycle
+state. Publication, scope, product identity и `product_doc_id` всегда берутся из
+canonical Listing pipeline.
+
+Search tables являются только специализированными locale-scoped indexes. Они
+хранят `product_doc_id` как денормализованный bitmap key, но защищают его
+composite FK:
 
 ```text
-listing.product_search_document
-  search_id uuid PK
-  store_id uuid not null
-  product_id uuid not null
-  product_doc_id int not null
-  locale varchar(8) not null
-  kind/status varchar not null
-  published_at timestamptz null
-  product_created_at/product_updated_at timestamptz not null
-  product_revision int not null
-  has_localized_title boolean not null
-  indexed_at/updated_at timestamptz not null
-
-  UNIQUE (store_id, product_id, locale)
-  FK (store_id, product_doc_id, product_id)
-    -> product_listing_index(store_id, product_doc_id, product_id)
+FK (store_id, product_doc_id, product_id)
+  -> product_listing_index(store_id, product_doc_id, product_id)
+  ON DELETE CASCADE
 ```
+
+`product_doc_id` не является второй product identity и не обновляется отдельно
+от item transaction. Отдельный `search_id` не используется.
 
 #### Logical text elements
 
@@ -643,19 +641,22 @@ listing.product_search_text
   product_id uuid not null
   product_doc_id int not null
   locale varchar(8) not null
+  index_generation int not null
   field varchar(32) not null
   element_id uuid not null
   normalized_text text not null
   search_vector tsvector not null
-  weight "char" not null
 
-  PK (store_id, product_id, locale, field, element_id)
+  PK (store_id, product_id, locale, index_generation, field, element_id)
+  FK (store_id, product_doc_id, product_id)
+    -> product_listing_index(store_id, product_doc_id, product_id)
 ```
 
 Одна row содержит одно logical value. `search_vector` строится writer-ом с
 explicit locale `regconfig` через
-`setweight(to_tsvector(regconfig, normalized_text), weight)`; GIN index создаётся
-на vector. `weight` ограничен `A/B/C/D` и должен соответствовать field registry.
+`setweight(to_tsvector(regconfig, normalized_text), weightFor(field))`; GIN index
+создаётся на vector. Weight однозначно выводится из versioned field registry и
+отдельно в row не хранится.
 
 #### Identifiers
 
@@ -665,11 +666,14 @@ listing.product_search_identifier
   product_id uuid not null
   product_doc_id int not null
   locale varchar(8) not null
+  index_generation int not null
   element_id uuid not null
   kind varchar(16) not null  # SKU
   normalized_value text not null
 
-  PK (store_id, product_id, locale, kind, element_id)
+  PK (store_id, product_id, locale, index_generation, kind, element_id)
+  FK (store_id, product_doc_id, product_id)
+    -> product_listing_index(store_id, product_doc_id, product_id)
 ```
 
 B-tree indexes обеспечивают tenant/locale exact и `text_pattern_ops` prefix.
@@ -685,17 +689,23 @@ listing.search_term_dictionary
   code_point_length smallint not null
 
   UNIQUE (store_id, locale, term)
+  UNIQUE (store_id, locale, term_id)
 
 listing.product_search_term
   store_id uuid not null
   product_id uuid not null
   product_doc_id int not null
   locale varchar(8) not null
+  index_generation int not null
   field varchar(32) not null
   element_id uuid not null
   term_id bigint not null
 
-  PK (store_id, product_id, locale, field, element_id, term_id)
+  PK (store_id, product_id, locale, index_generation, field, element_id, term_id)
+  FK (store_id, product_doc_id, product_id)
+    -> product_listing_index(store_id, product_doc_id, product_id)
+  FK (store_id, locale, term_id)
+    -> search_term_dictionary(store_id, locale, term_id)
 ```
 
 Dictionary `term` индексируется `gin_trgm_ops`; tenant/locale B-tree index
@@ -703,6 +713,13 @@ Dictionary `term` индексируется `gin_trgm_ops`; tenant/locale B-tre
 `product_doc_id`. Термины строятся из `simple` typo configuration, deduplicate и
 stable sort. Orphan dictionary terms удаляются bounded cleanup-ом и не влияют на
 correctness.
+
+Все search reads обязаны фильтровать `index_generation`, полученный из pinned
+`search_index_locale_state`. Building generation записывается рядом с active и
+не участвует в serving до atomic locale-level activation. Наличие localized
+title определяется существованием active `field=product_title` element; отдельный
+per-product coverage row не создаётся. Aggregate coverage вычисляется
+reconciliation и хранится только в `search_index_locale_state`.
 
 Один giant concatenated text column как единственный source запрещён: он ломает
 same-element phrase semantics и создаёт ranking bias по числу values.
@@ -712,7 +729,8 @@ same-element phrase semantics и создаёт ranking bias по числу val
 1. Product event или bounded reference/locale fan-out запускает существующий
    Listing item reindex mechanism и canonical item-scoped `eventSequence`.
 2. Single/batch workflow получает Catalog/project snapshot и строит единый write
-   model: documents, text elements, identifiers и typo terms всех enabled locales.
+   model: text elements, identifiers и typo terms всех enabled locales. Product
+   metadata повторно в search model не копируется.
 3. Все search rows входят в deterministic `writeModelHash`.
 4. Final writer первым write-side operation блокирует
    `listing_index_item_state` и повторяет canonical stale/noop/conflict decision.
@@ -721,7 +739,7 @@ same-element phrase semantics и создаёт ranking bias по числу val
 6. Term dictionary rows могут быть upserted до mapping replacement, но mapping и
    item state меняются атомарно; orphan term безопасен.
 7. Ошибка любой physical write откатывает item transaction.
-8. Delete удаляет documents/elements/identifiers/mappings и атомарно записывает
+8. Delete каскадно удаляет elements/identifiers/mappings и атомарно записывает
    `lifecycle_status=deleted`.
 9. Locale removal удаляет отсутствующие locale rows обычным sync/reindex path.
 
@@ -774,15 +792,17 @@ headers не сохраняются.
 
 - `search_index_state`: schema/config versions, `READY/UPDATING/FAILED`, initial
   sync, last attempt/success, safe error и counters;
-- `search_index_locale_state`: expected/indexed/published products, localized
-  title coverage, text/identifier/term readiness.
+- `search_index_locale_state`: active/building generation, document schema и
+  text-search configuration versions, expected/indexed/published products,
+  localized title coverage, text/identifier/term readiness.
 
 Canonical item freshness остаётся в `listing_index_item_state`. Search state —
-только aggregate operational projection. Reconciliation сверяет documents,
-text elements, identifiers, term mappings, canonical item state и DBOS state.
+только aggregate operational projection и locale-level generation pointer.
+Reconciliation сверяет text elements, identifiers, term mappings, canonical
+product rows, item state и DBOS state.
 
-`servingAvailable` вычисляется отдельно: успешно синхронизированные документы
-остаются доступны при частичном backlog после initial readiness.
+`servingAvailable` вычисляется отдельно: active search generation остаётся
+доступным при частичном backlog building generation после initial readiness.
 
 ## 4. Module and code structure
 
@@ -804,7 +824,6 @@ services/listing/src/repositories/search/
   SearchConfigurationRevisionRepository.ts
   SearchConfigurationApplyJobRepository.ts
   SearchRuntimeConfigurationRepository.ts
-  SearchDocumentRepository.ts
   SearchTextElementRepository.ts
   SearchIdentifierRepository.ts
   SearchTermRepository.ts
@@ -926,18 +945,19 @@ Guardrails:
 Готовность: single/batch hydration одинаковы; missing locale не получает
 fallback; removed variant/category data исчезает.
 
-### Этап 2. PostgreSQL FTS documents и index state
+### Этап 2. PostgreSQL FTS indexes и index state
 
-1. Заменить initial title-search DDL целевыми document/text/identifier/term tables.
+1. Удалить initial title-search table и создать только text/identifier/term
+   search tables; `product_listing_index` остаётся canonical product document.
 2. Создать explicit locale text-search configurations.
 3. Добавить GIN FTS/trigram и B-tree identifier/mapping indexes.
 4. Добавить Drizzle models и repositories.
 5. Повысить Listing sync write-model version и hash.
 6. Записывать search rows только после canonical item-state decision.
-7. Добавить aggregate index/locale state и reconciliation.
+7. Добавить aggregate index/locale generation state и reconciliation.
 
 Готовность: phrase не пересекает elements; SKU не stemmed; stale/noop не пишет;
-failed transaction сохраняет previous document/item state; engine не имеет
+failed transaction сохраняет previous search rows/item state; engine не имеет
 `ILIKE` fallback.
 
 ### Этап 3. Configuration persistence
