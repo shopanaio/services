@@ -62,8 +62,8 @@ uk -> listing.search_uk
 Каждая configuration создаётся DDL и явно задаёт parser/dictionaries, stemming,
 stop words и `unaccent` policy. Для locale без проверенного language dictionary
 используется versioned configuration на базе `simple`; другая locale не
-подставляется. Изменение configuration требует новой compatibility version и
-полного reindex соответствующей locale.
+подставляется. Text-search configurations неизменяемы в пределах поддерживаемой
+compatibility version.
 
 ## Обязательные инварианты
 
@@ -325,16 +325,16 @@ Compiler обязан параметризовать values, помещать `s
 6. Для multi-token unit требует один `field + element_id`.
 7. Агрегирует element matches в product relation без `LIMIT`/top-K.
 
-Trigram threshold является versioned code constant и может зависеть от token
-length. Compatibility corpus обязан доказать recall distance-1 примеров для
-поддерживаемых locale/Unicode classes. Если безопасный indexable threshold для
-короткого token не подтверждён, typo tolerance для этого token не запускается;
-нельзя компенсировать риск full dictionary scan или скрытым top-K.
+Единый `pg_trgm.similarity_threshold` фиксируется в database configuration
+для execution role Listing и не изменяется в runtime queries. Compatibility
+corpus обязан доказать recall distance-1 примеров для всех поддерживаемых
+locale/Unicode classes при этом пороге. Если безопасный единый indexable
+threshold не подтверждён, typo tolerance не advertised; нельзя
+компенсировать риск full dictionary scan или скрытым top-K.
 
-Индексируемый predicate использует `%` operator. Если threshold зависит от длины,
-compiler задаёт его transaction-local внутри того же statement через materialized
-`set_config('pg_trgm.similarity_threshold', $threshold, true)` CTE. Изменение
-session-level GUC, способное утечь следующему request connection pool, запрещено.
+Индексируемый predicate использует `%` operator. При старте Listing
+проверяет фактический `pg_trgm.similarity_threshold`; несовместимое значение
+помечает typo search capability как unavailable.
 
 Начальные ограничения:
 
@@ -641,13 +641,12 @@ listing.product_search_text
   product_id uuid not null
   product_doc_id int not null
   locale varchar(8) not null
-  index_generation int not null
   field varchar(32) not null
   element_id uuid not null
   normalized_text text not null
   search_vector tsvector not null
 
-  PK (store_id, product_id, locale, index_generation, field, element_id)
+  PK (store_id, product_id, locale, field, element_id)
   FK (store_id, product_doc_id, product_id)
     -> product_listing_index(store_id, product_doc_id, product_id)
 ```
@@ -666,12 +665,11 @@ listing.product_search_identifier
   product_id uuid not null
   product_doc_id int not null
   locale varchar(8) not null
-  index_generation int not null
   element_id uuid not null
   kind varchar(16) not null  # SKU
   normalized_value text not null
 
-  PK (store_id, product_id, locale, index_generation, kind, element_id)
+  PK (store_id, product_id, locale, kind, element_id)
   FK (store_id, product_doc_id, product_id)
     -> product_listing_index(store_id, product_doc_id, product_id)
 ```
@@ -696,12 +694,11 @@ listing.product_search_term
   product_id uuid not null
   product_doc_id int not null
   locale varchar(8) not null
-  index_generation int not null
   field varchar(32) not null
   element_id uuid not null
   term_id bigint not null
 
-  PK (store_id, product_id, locale, index_generation, field, element_id, term_id)
+  PK (store_id, product_id, locale, field, element_id, term_id)
   FK (store_id, product_doc_id, product_id)
     -> product_listing_index(store_id, product_doc_id, product_id)
   FK (store_id, locale, term_id)
@@ -714,12 +711,9 @@ Dictionary `term` индексируется `gin_trgm_ops`; tenant/locale B-tre
 stable sort. Orphan dictionary terms удаляются bounded cleanup-ом и не влияют на
 correctness.
 
-Все search reads обязаны фильтровать `index_generation`, полученный из pinned
-`search_index_locale_state`. Building generation записывается рядом с active и
-не участвует в serving до atomic locale-level activation. Наличие localized
-title определяется существованием active `field=product_title` element; отдельный
-per-product coverage row не создаётся. Aggregate coverage вычисляется
-reconciliation и хранится только в `search_index_locale_state`.
+Наличие localized title определяется существованием `field=product_title`
+element; отдельный per-product coverage row не создаётся. Aggregate coverage
+вычисляется reconciliation и хранится только в `search_index_locale_state`.
 
 Один giant concatenated text column как единственный source запрещён: он ломает
 same-element phrase semantics и создаёт ranking bias по числу values.
@@ -741,7 +735,7 @@ same-element phrase semantics и создаёт ranking bias по числу val
 7. Ошибка любой physical write откатывает item transaction.
 8. Delete каскадно удаляет elements/identifiers/mappings и атомарно записывает
    `lifecycle_status=deleted`.
-9. Locale removal удаляет отсутствующие locale rows обычным sync/reindex path.
+9. Locale removal удаляет отсутствующие locale rows обычным item sync path.
 
 Отдельного search item workflow, event sequence, tombstone или freshness state
 нет.
@@ -790,19 +784,15 @@ headers не сохраняются.
 
 ### 3.5. Index state
 
-- `search_index_state`: schema/config versions, `READY/UPDATING/FAILED`, initial
-  sync, last attempt/success, safe error и counters;
-- `search_index_locale_state`: active/building generation, document schema и
-  text-search configuration versions, expected/indexed/published products,
-  localized title coverage, text/identifier/term readiness.
+- `search_index_state`: schema/config versions, `READY/UPDATING/FAILED`, last
+  attempt/success, safe error и counters;
+- `search_index_locale_state`: document schema и text-search configuration
+  versions, expected/indexed/published products, localized title coverage,
+  text/identifier/term readiness.
 
 Canonical item freshness остаётся в `listing_index_item_state`. Search state —
-только aggregate operational projection и locale-level generation pointer.
-Reconciliation сверяет text elements, identifiers, term mappings, canonical
-product rows, item state и DBOS state.
-
-`servingAvailable` вычисляется отдельно: active search generation остаётся
-доступным при частичном backlog building generation после initial readiness.
+только aggregate operational projection. Reconciliation сверяет text elements,
+identifiers, term mappings, canonical product rows, item state и DBOS state.
 
 ## 4. Module and code structure
 
@@ -917,7 +907,6 @@ Guardrails:
 | G1 Product snapshot | Localized product/variant titles, vendor/category names, SKU | Versioned snapshot опубликован |
 | G2 Lifecycle events | Content, assignment, publication/delete, variants | Каждое изменение классифицировано в canonical Listing action |
 | G3 Reference fan-out | Bounded affected product IDs для rename | Cursor/batch/retry contract определён |
-| G4 Locale lifecycle | Versioned enabled locales/events | Enable/disable запускает bounded reindex |
 
 До этапа 1:
 
@@ -926,7 +915,7 @@ Guardrails:
    `unaccent` и explicit locale configurations.
 3. Проверить `uk/en/ru`, NFKC, special characters, phrase positions, stemming,
    stopwords, arrays/elements и SKU exact/prefix.
-4. Зафиксировать distance-1 corpus и безопасные trigram thresholds по длине.
+4. Зафиксировать distance-1 corpus и единый безопасный trigram threshold.
 5. Подтвердить, что execution role видит required extensions/configurations.
 6. Исправить `CATEGORY + query` для page/total/facets и business sorts.
 7. Удалить handle/UUID fallback.
@@ -954,7 +943,7 @@ fallback; removed variant/category data исчезает.
 4. Добавить Drizzle models и repositories.
 5. Повысить Listing sync write-model version и hash.
 6. Записывать search rows только после canonical item-state decision.
-7. Добавить aggregate index/locale generation state и reconciliation.
+7. Добавить aggregate index/locale state и reconciliation.
 
 Готовность: phrase не пересекает elements; SKU не stemmed; stale/noop не пишет;
 failed transaction сохраняет previous search rows/item state; engine не имеет
@@ -1050,7 +1039,7 @@ fallback; technical error — нет.
    large candidate sets.
 2. Снять `EXPLAIN ANALYZE` matrix для FTS, phrase, category, filters, typo,
    boosts, diagnostics и term dictionary skew.
-3. Зафиксировать statement timeouts, GIN/autovacuum policy и thresholds.
+3. Зафиксировать statement timeouts, GIN/autovacuum policy и trigram threshold.
 4. Добавить failure injection для config apply и item indexing.
 5. Проверить privacy и tenant-isolated membership/performance.
 6. Включать capabilities только после readiness.
@@ -1134,7 +1123,8 @@ fallback; technical error — нет.
 3. Built-in language dictionaries различаются по locale; особенно `uk` требует
    явно проверенной configuration и не может молча использовать `ru`.
 4. GIN write amplification, pending list и autovacuum могут влиять на latency.
-5. Trigram threshold обязан сохранять distance-1 recall поддерживаемых tokens;
+5. Единый trigram threshold обязан сохранять distance-1 recall
+   поддерживаемых tokens;
    слишком низкий threshold создаёт большой candidate set.
 6. Term dictionary может иметь сильный tenant/locale skew и требует bounded
    cleanup, indexes и performance corpus.
