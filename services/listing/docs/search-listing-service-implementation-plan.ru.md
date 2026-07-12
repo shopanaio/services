@@ -1034,8 +1034,8 @@ fallback; technical error — нет.
 | Legacy writer to replace | `services/listing/src/repositories/listing/ProductTitleBm25SearchIndexRepository.ts` |
 | Listing write path | `ListingBuildSyncWriteModelScript`, `ListingWriteIndexActionScript`, batch workflow steps |
 | Item freshness | `ListingIndexItemStateRepository`, `listing_index_item_state` |
-| Candidate SQL | `services/listing/src/repositories/listing/sql/compileListingProductMatchesSql.ts` |
-| Orchestration | `services/listing/src/repositories/listing/ListingQueryRepository.ts` |
+| Candidate SQL | `services/listing/src/repositories/storefront/sql/compileListingProductMatchesSql.ts` |
+| Orchestration | `services/listing/src/repositories/storefront/StorefrontListingQueryRepository.ts` |
 | Page/cursor | `compilePageQuerySql.ts` и listing request/cursor types |
 | Admin GraphQL | `services/listing/src/api/graphql-admin/schema/`, resolvers |
 | New search modules | `services/listing/src/search/`, `repositories/search/`, `scripts/search/` |
