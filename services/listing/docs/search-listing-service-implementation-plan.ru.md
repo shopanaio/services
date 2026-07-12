@@ -28,6 +28,8 @@ locale-aware tokenization и stemming выполняются в процессе
 `listing` становится единственным владельцем runtime search:
 
 - PostgreSQL FTS (`tsvector`, `tsquery`, GIN) выполняет primary text matching;
+- high-cardinality runtime search tables изначально hash-partitioned
+  по `store_id` и используют aligned partition layout;
 - Node.js normalization pipeline выполняет Unicode normalization,
   locale-aware tokenization через `Intl.Segmenter`, stemming через locale-specific
   stemmer из `natural` и stopword filtering для всех supported locales;
@@ -42,8 +44,9 @@ locale-aware tokenization и stemming выполняются в процессе
   navigation scope, same-variant filters, prices, availability, totals и facets;
 - listing вызывает `SearchExecutionService`;
 - settings, synonyms и boosts применяются из текущей atomically activated runtime configuration;
-- typo-tolerant search выполняется отдельным полным проходом только после final
-  zero primary result;
+- typo-tolerant search выбирается только когда PRIMARY search candidate set после
+  обязательного `publishedUniverse` пуст, но до применения category scope,
+  facets, price, availability и других пользовательских Listing filters;
 - search indexes обновляются существующим event-driven listing workflow;
 - backend публикует Admin GraphQL для управления, Preview и status;
 - все ветки одного request используют один загруженный runtime configuration
@@ -98,6 +101,8 @@ revision. Обновление любого из этих компонентов
    contract `knowledge/vault/listing/facets-architecture.ru.md`.
 7. Typo-tolerant mode выбирается один раз для всего result bundle; нельзя смешивать
    PRIMARY page с FUZZY total/facets.
+   Пустой итоговый Listing после category/price/facet/OOS-фильтров не является
+   основанием для переключения с PRIMARY на FUZZY.
 8. SKU не получает synonym, stemming или typo expansion.
 9. Boost не обходит scope, publication, structured filters или OOS policy.
 10. `HIDE` компилируется как canonical availability predicate в variant space до
@@ -123,6 +128,10 @@ revision. Обновление любого из этих компонентов
 19. Phrase означает смежность нормализованных searchable lexemes после
     симметричного stopword filtering и только внутри одного element; exact
     surface phrase с учётом удалённых stopwords не обещается.
+20. Каждый runtime search query содержит direct equality predicate
+    `store_id = $boundStoreId`, позволяющий PostgreSQL pruning всех
+    нецелевых hash partitions. Scan всех tenant partitions в storefront
+    request запрещён.
 
 ## Целевая схема выполнения
 
@@ -134,13 +143,16 @@ Listing
   -> validate profile revision against active locale index
   -> build safe SearchQueryPlan
   -> derive PRIMARY SearchAttemptContext
-  -> compile PostgreSQL FTS + identifier candidate relation
-  -> intersect with canonical listing scope/filter pipeline
-  -> calculate PRIMARY page + total + facets from one productMatches contract
-  -> when final primary totalCount = 0 and typo tolerance is allowed:
+  -> compile PostgreSQL PRIMARY candidates and intersect with publishedUniverse
+  -> materialize PRIMARY search-visible candidate bitmap
+  -> when PRIMARY search candidate bitmap is empty and typo tolerance is allowed:
        derive FUZZY SearchAttemptContext from the same request context
        compile pg_trgm term candidates + exact Levenshtein verification
-       rerun the whole bundle in FUZZY mode
+       materialize FUZZY search candidate bitmap
+  -> choose one PRIMARY or FUZZY mode and one immutable SearchCandidateContract
+  -> use its membership bitmap in every Listing membership branch
+  -> use its ranked candidate relation only in relevance page ordering
+  -> calculate page + total + facets once from one productMatches contract
   -> apply relevance/business ordering and OOS policy
   -> return Listing
 ```
@@ -196,16 +208,22 @@ locale profile revision, которым построены document vectors. Sur
 не заменяется stem: это сохраняет корректный Levenshtein contract для
 опечаток. PostgreSQL не является источником lexicalization.
 
-Stopwords удаляются локальным pipeline до PostgreSQL одинаково для document/query.
+Stopwords удаляются локальным pipeline до PostgreSQL одинаково для document/query
+и до построения обязательных semantic units (`requiredUnits`). Удалённый stopword
+не создаёт отдельный required unit и не превращает обычный запрос в validation
+error. Source position удалённого token сохраняется только в normalization
+metadata для deterministic hashing и diagnostics.
+
 `wholeQueryPrimaryText` собирается только из validated primary lexemes и
 передаётся в `plainto_tsquery('pg_catalog.simple', $boundText)`. Phrase
 компилируется из подготовленной последовательности через
 `phraseto_tsquery('pg_catalog.simple', $boundText)` и означает normalized-token
 phrase после удаления stopwords.
 
-Stopword-only query, unit без primary lexeme и query, распавшийся в недопустимое
-число lexemes, возвращает validation error до выполнения listing branches.
-Silent deletion обязательного unit запрещён.
+Validation error до выполнения listing branches возвращается, если после
+stopword filtering в запросе не осталось ни одного searchable semantic unit или
+если query распался в недопустимое число lexemes. Silent deletion обязательного
+non-stopword unit запрещён.
 
 Для identifiers дополнительно строится NFKC/trim/case-fold форма без удаления
 дефисов, пробелов и других значимых разделителей SKU.
@@ -231,9 +249,11 @@ interface SearchAttemptContext {
 }
 ```
 
-Request без cursor всегда начинает с `PRIMARY`. Если final primary
-`totalCount = 0` и typo tolerance разрешён, создаётся `FUZZY` attempt со ссылкой
-на тот же request context. Continuation выполняет только mode из cursor.
+Request без cursor всегда начинает с `PRIMARY`. Если materialized PRIMARY
+search candidate bitmap после `publishedUniverse` пуст, но до category scope и
+пользовательских filters, и typo tolerance разрешён, создаётся `FUZZY` attempt со
+ссылкой на тот же request context. Continuation выполняет только mode из cursor
+и не делает повторный PRIMARY probe.
 
 Active runtime configuration загружается один раз при создании request context и
 используется всеми ветками текущего request. Cursor не закрепляет configuration:
@@ -425,8 +445,67 @@ FUZZY использует аналогичную relation из verified term ma
 остаётся exact по original `lookupKey + locale` и не активируется исправленной
 формой.
 
-`searchProducts` строится как exact bitmap всех resolved `product_doc_id`.
-Candidate cap и estimate до Listing totals/facets запрещены.
+`SearchExecutionService` материализует не только bitmap, а immutable contract
+выбранной attempt:
+
+```ts
+interface SearchCandidateContract {
+  readonly request: SearchRequestContext;
+  readonly attempt: SearchAttemptContext;
+  readonly plan: SearchQueryPlan;
+  readonly membershipBitmap: RoaringBitmap;
+}
+```
+
+`membershipBitmap` строится как exact bitmap всех resolved `product_doc_id` и
+является единственным search membership predicate для page, `totalCount`,
+configured facets и virtual facets. Candidate cap и estimate до Listing
+totals/facets запрещены.
+
+Executor получает bitmap из PostgreSQL один раз в canonical serialized
+`roaringbitmap` representation и передаёт его как bound parameter во все
+параллельные branch statements. Session-local temporary table не используется,
+поэтому correctness не зависит от того, какое connection pool выдаст каждой
+branch. Serialization/deserialization обязаны сохранять exact cardinality и
+doc IDs; размер payload, время materialization и bind/decode latency входят в
+metrics и statement/request resource guardrails. Превышение resource guardrail
+завершает attempt technical error, но не усекает candidate set.
+
+Bitmap намеренно не содержит ordering metadata. Для relevance page branch
+`PostgresFtsQueryCompiler` или `PostgresTypoQueryCompiler` компилирует из того же
+contract ranked candidate relation:
+
+```text
+PRIMARY:
+  product_doc_id, product_id,
+  identifier_priority, boosted, relevance_rank
+
+FUZZY:
+  product_doc_id, product_id,
+  boosted, total_edit_distance,
+  minimum_trigram_similarity, primary_fts_rank
+```
+
+Ranked relation не определяет membership самостоятельно: page всегда пересекает
+её `product_doc_id` с `membershipBitmap`, затем с canonical `productMatches` и
+только после этого применяет ordering/cursor/limit. Она не передаётся в Node.js
+как unbounded array и не используется `totalCount` или facets. При business sort
+page использует только `membershipBitmap`; search rank keys не вычисляются, если
+они не нужны для diagnostics.
+
+Повторная SQL compilation ranked relation обязана использовать те же immutable
+request context, attempt mode, runtime revision и query plan. Она не может
+повторно выбирать PRIMARY/FUZZY, расширять membership или запускать fallback.
+
+Для request без cursor executor сначала materialize-ит PRIMARY
+`SearchCandidateContract.membershipBitmap`
+после обязательного пересечения с `publishedUniverse`. Именно пустота этого bitmap
+выбирает FUZZY mode. Category scope, facets, price, availability и другие
+пользовательские Listing predicates в mode probe не входят. Draft/неопубликованный
+candidate не считается найденным storefront-результатом и не блокирует FUZZY.
+FUZZY bitmap также пересекается с `publishedUniverse`. После выбора mode один
+immutable `SearchCandidateContract` передаётся всем Listing branches; PRIMARY и
+FUZZY candidate sets и ordering metadata не объединяются.
 
 ### 1.7. Listing intersection
 
@@ -435,7 +514,7 @@ selected sort:
 
 ```text
 scopeProducts = publishedUniverse & navigationScopeProducts
-searchProducts = bitmap(resolved primary/fuzzy candidates)
+searchProducts = SearchCandidateContract.membershipBitmap
 
 productBase = scopeProducts
   & searchProducts
@@ -467,24 +546,37 @@ Page, `totalCount`, configured facets и virtual facets выполняются �
 
 Один `productMatches` означает общий deterministic compilation contract: каждая
 branch получает одинаковые normalized input, request/attempt contexts, plan,
-scope и filters. Concurrent indexing может привести к чтению разных committed
-состояний; executor не сравнивает и не повторяет branches.
+`membershipBitmap`, scope и filters. Relevance page branch дополнительно
+компилирует ranked relation из того же `SearchCandidateContract` и обязательно
+ограничивает её materialized membership bitmap.
+
+Page, `totalCount` и facets не обязаны читать один physical PostgreSQL snapshot:
+concurrent indexing может привести к чтению разных committed canonical Listing
+состояний. Однако search membership текущего request не пересчитывается по
+отдельности в branches: переданный bitmap остаётся одинаковым. Executor не
+сравнивает и не повторяет branches.
 
 Ошибка FTS, trigram, Levenshtein или любой обязательной Listing branch завершает
 attempt. Technical error не запускает FUZZY fallback.
 
-### 1.9. Exact-first typo fallback
+### 1.9. Exact-first выбор search mode
 
-1. Для первой страницы выполнить полный PRIMARY bundle.
-2. При `totalCount > 0` вернуть PRIMARY.
-3. При final zero, enabled typo tolerance и прохождении limits построить FUZZY
-   plan из того же primary plan.
-4. Повторить весь Listing bundle в `FUZZY` mode.
-5. Вернуть только FUZZY result, не объединяя candidate sets.
-6. Continuation выполняет только mode cursor с active configuration нового request.
+1. Для первой страницы materialize-ить exact PRIMARY search candidate bitmap,
+   пересечённый с обязательным `publishedUniverse`, но без category scope и
+   пользовательских Listing filters.
+2. Если PRIMARY bitmap непуст, выбрать `PRIMARY` независимо от того, сколько
+   товаров останется после category, facets, price или OOS policy.
+3. Только если PRIMARY bitmap пуст, typo tolerance включён и limits пройдены,
+   построить FUZZY plan из того же primary plan и materialize-ить FUZZY bitmap.
+4. Создать один `SearchCandidateContract` выбранного mode и выполнить с ним
+   полный Listing bundle ровно один раз.
+5. PRIMARY и FUZZY candidate sets не объединять.
+6. Continuation выполняет только mode cursor с active configuration нового request
+   и materialize-ит candidate bitmap этого mode без дополнительного probe.
 
-Решение о fallback принимается исключительно по final primary `totalCount`.
-Raw FTS hits, identifier candidates и длина primary page его не блокируют.
+Решение о FUZZY принимается исключительно по пустоте опубликованного PRIMARY
+search candidate bitmap. Итоговый `totalCount`, длина page и причины исключения
+кандидатов пользовательскими Listing filters на выбор mode не влияют.
 
 ### 1.10. Synonyms
 
@@ -541,7 +633,14 @@ filters и OOS policy.
 
 Float rank/similarity кодируются без округления в стабильном binary/decimal
 representation. Просроченный cursor возвращает `SEARCH_CURSOR_EXPIRED`.
-Snapshot search index и runtime configuration между HTTP requests не обещаются.
+Cursor не обязан закреплять runtime configuration revision или snapshot search
+index. Continuation использует configuration и committed index state, актуальные
+на момент нового HTTP request. Поэтому при изменении configuration, search rows,
+publication или ordering keys между страницами отдельные товары могут быть
+пропущены либо повторно появиться на следующей странице. Это ожидаемая
+weak-consistency семантика pagination, а не engine/cursor error. Cursor гарантирует
+только корректное декодирование request fingerprint, execution mode и ordering
+tuple; стабильный snapshot всего result set между HTTP requests не обещается.
 
 ### 1.13. Listing diagnostics
 
@@ -589,34 +688,49 @@ async function executeSearchListing(input: NormalizedListingInput) {
   const primaryPlan = buildPrimaryPlan(request);
 
   if (input.cursor?.mode === "FUZZY") {
-    return runFullBundle({
+    const candidates = await materializeSearchCandidates({
       request,
       attempt: { request, mode: "FUZZY" },
       plan: buildTypoPlan(primaryPlan),
+    });
+    return runFullBundle({
+      request,
+      attempt: { request, mode: "FUZZY" },
+      candidates,
       input,
     });
   }
 
-  const primary = await runFullBundle({
+  const primaryCandidates = await materializeSearchCandidates({
     request,
     attempt: { request, mode: "PRIMARY" },
     plan: primaryPlan,
-    input,
   });
 
   if (
     input.cursor?.mode === "PRIMARY" ||
-    primary.totalCount > 0 ||
+    !isEmpty(primaryCandidates.membershipBitmap) ||
     !request.runtimeConfiguration.typoToleranceEnabled ||
     !canRunTypoAttempt(request.lexicalizedQuery)
   ) {
-    return primary;
+    return runFullBundle({
+      request,
+      attempt: { request, mode: "PRIMARY" },
+      candidates: primaryCandidates,
+      input,
+    });
   }
+
+  const fuzzyCandidates = await materializeSearchCandidates({
+    request,
+    attempt: { request, mode: "FUZZY" },
+    plan: buildTypoPlan(primaryPlan),
+  });
 
   return runFullBundle({
     request,
     attempt: { request, mode: "FUZZY" },
-    plan: buildTypoPlan(primaryPlan),
+    candidates: fuzzyCandidates,
     input,
   });
 }
@@ -648,6 +762,56 @@ revision mismatch завершают build до открытия write transacti
 payload и normalization metadata входят в `writeModelHash`.
 
 ### 2.2. Physical contract
+
+#### Tenant partitioning
+
+High-cardinality runtime search tables создаются как aligned PostgreSQL
+hash-partitioned tables по `store_id`:
+
+- `product_search_text`;
+- `product_search_identifier`;
+- `search_term_dictionary`;
+- `product_search_term`.
+
+Начальный `SEARCH_RUNTIME_PARTITION_COUNT` равен `32`. Все четыре
+таблицы используют одинаковые modulus/remainder bounds, чтобы rows
+одного store попадали в одинаковый partition ordinal. Изменение
+partition count требует controlled rebuild и не является runtime setting.
+
+```sql
+CREATE TABLE listing.product_search_text (
+  ...
+) PARTITION BY HASH (store_id);
+
+CREATE TABLE listing.product_search_text_p00
+  PARTITION OF listing.product_search_text
+  FOR VALUES WITH (MODULUS 32, REMAINDER 0);
+-- p01 ... p31
+```
+
+Каждая text partition имеет локальный GIN на `search_vector` и B-tree
+scope index:
+
+```text
+(store_id, locale, normalization_contract_version,
+ normalization_profile_revision, field)
+```
+
+Dictionary partitions имеют локальный `gin_trgm_ops` на `term` и B-tree
+на tenant/locale/revision. Identifier и mapping partitions имеют локальные
+indexes, описанные ниже. Primary/unique keys всегда включают
+partition key `store_id`.
+
+`search_term_dictionary` использует composite primary key
+`(store_id, term_id)`, а не global `term_id` PK. `term_id` выделяется общей
+explicit PostgreSQL sequence для всех partitions, но database identity и FK
+contract включают `store_id`.
+
+Bound `store_id` передаётся как uuid без function/cast на partition column,
+чтобы plan-time или execution-time partition pruning оставлял одну
+partition каждой runtime table. Partitioning ограничивает cross-tenant
+work, но не делит один крупный store: per-store scale по-прежнему
+проверяется отдельно.
 
 #### Canonical product document
 
@@ -721,7 +885,7 @@ B-tree indexes обеспечивают tenant/locale exact и `text_pattern_ops
 
 ```text
 listing.search_term_dictionary
-  term_id bigint generated identity PK
+  term_id bigint not null default nextval('listing.search_term_id_seq')
   store_id uuid not null
   locale varchar(8) not null
   term text not null
@@ -736,6 +900,7 @@ listing.search_term_dictionary
     normalization_profile_revision,
     term
   )
+  PK (store_id, term_id)
   UNIQUE (store_id, locale, term_id)
 
 listing.product_search_term
@@ -939,6 +1104,7 @@ Metrics:
 - trigram dictionary candidates и Levenshtein verified candidates;
 - term dictionary/mapping size;
 - GIN pending-list/search latency и autovacuum lag;
+- runtime partition pruning, partitions scanned и per-partition GIN size/skew;
 - configuration apply duration/failures;
 - indexing lag/failures/locale coverage.
 - normalization single/batch duration, failures, output size,
@@ -954,6 +1120,7 @@ Guardrails:
 - bounded units/alternatives/terms;
 - no full tenant term dictionary scan;
 - no cross-locale or cross-tenant term lookup;
+- no storefront scan более одной aligned runtime partition на table;
 - GIN `fastupdate` и pending-list limits фиксируются benchmark-ом, не догадкой.
 - normalization input/output limits и fail-closed profile resolution не допускают
   silent cross-locale fallback или вызов PostgreSQL locale dictionaries.
@@ -976,16 +1143,18 @@ Guardrails:
 1. Зафиксировать supported PostgreSQL major.
 2. Добавить DDL/smoke fixtures для FTS, GIN, `pg_trgm`, `fuzzystrmatch` и
    единственной explicit configuration `pg_catalog.simple`.
-3. Зафиксировать TypeScript contract, profile versioning, single/batch limits,
+3. Зафиксировать aligned hash partition layout с modulus `32` и
+   smoke-проверку partition pruning для bound `store_id`.
+4. Зафиксировать TypeScript contract, profile versioning, single/batch limits,
    deterministic hashing, readiness и error mapping.
-4. Проверить normalization profiles `uk/en/ru`: NFKC, apostrophes, diacritics,
+5. Проверить normalization profiles `uk/en/ru`: NFKC, apostrophes, diacritics,
    special characters, normalized-token phrase semantics, stems,
    stopwords, surface typo terms, arrays/elements и SKU preservation.
-5. Зафиксировать distance-1 corpus и единый безопасный trigram threshold.
-6. Подтвердить, что execution role видит required extensions и
+6. Зафиксировать distance-1 corpus и единый безопасный trigram threshold.
+7. Подтвердить, что execution role видит required extensions и
    `pg_catalog.simple`.
-7. Исправить `CATEGORY + query` для page/total/facets и business sorts.
-8. Удалить handle/UUID fallback.
+8. Исправить `CATEGORY + query` для page/total/facets и business sorts.
+9. Удалить handle/UUID fallback.
 
 Готовность: unsupported locale/profile не advertised; tenant leakage
 отсутствует; raw input parameterized; normalization deterministic; typo prefilter
@@ -1004,15 +1173,18 @@ fallback; removed variant/category data исчезает.
 
 ### Этап 2. Universal PostgreSQL FTS indexes и index state
 
-1. Удалить initial title-search table и создать только text/identifier/term
-   search tables; `product_listing_index` остаётся canonical product document.
+1. Удалить initial title-search table и создать aligned hash-partitioned
+   text/identifier/dictionary/mapping search tables; `product_listing_index`
+   остаётся canonical product document.
 2. Зафиксировать `pg_catalog.simple` во всех generated expressions и SQL
    compilers; не создавать locale text-search configurations.
 3. Добавить GIN FTS/trigram и B-tree identifier/mapping indexes.
-4. Добавить Drizzle models и repositories.
-5. Повысить Listing sync write-model version и hash.
-6. Записывать search rows только после canonical item-state decision.
-7. Добавить aggregate index/locale state и reconciliation.
+4. Добавить partition-local scope indexes и `EXPLAIN` fixtures, доказывающие
+   pruning до одной partition на runtime table.
+5. Добавить Drizzle models и repositories.
+6. Повысить Listing sync write-model version и hash.
+7. Записывать search rows только после canonical item-state decision.
+8. Добавить aggregate index/locale state и reconciliation.
 
 Готовность: phrase не пересекает elements; SKU не stemmed; stale/noop не пишет;
 failed transaction сохраняет previous search rows/item state; engine не имеет
@@ -1061,8 +1233,12 @@ fallback запрещены.
 1. Создать `SearchExecutionService` и единый request context.
 2. Встроить candidates в `productMatches` для GLOBAL/CATEGORY.
 3. Обеспечить одинаковую membership algebra для всех branches.
-4. Сохранить search bitmap при target isolation/business sort.
-5. Добавить PRIMARY relevance ordering без boosts/OOS policy.
+4. Реализовать `SearchCandidateContract`: exact membership bitmap для всех
+   branches и ranked relation для relevance page.
+5. Сохранить membership bitmap при target isolation/business sort.
+6. Пересекать ranked relation с тем же membership bitmap и `productMatches` до
+   cursor/limit.
+7. Добавить PRIMARY relevance ordering без boosts/OOS policy.
 
 ### Этап 7. OOS policy и versioned cursor
 
@@ -1070,21 +1246,24 @@ fallback запрещены.
 2. Добавить conditional availability bucket.
 3. Повысить cursor version и включить полный fingerprint/ordering tuple.
 4. Реализовать issued-at и expiry cursor без configuration pinning.
-5. Проверить pagination для relevance и business sorts.
+5. Проверить pagination для relevance и business sorts, включая допустимые
+   пропуски/повторы при изменении configuration или index state между requests.
 
 ### Этап 8. Typo tolerance
 
 1. Реализовать term dictionary/mapping write path.
 2. Реализовать `pg_trgm` candidate compiler без top-K.
 3. Добавить mandatory `levenshtein_less_equal(..., 1)` verifier.
-4. Запускать FUZZY только после final PRIMARY zero.
-5. Повторять полный result bundle на том же request context.
+4. Запускать FUZZY только когда PRIMARY search candidate bitmap после
+   `publishedUniverse` пуст, но до category scope и пользовательских filters.
+5. После выбора mode выполнять полный result bundle один раз на том же request
+   context и immutable `SearchCandidateContract`.
 6. Добавить FUZZY cursor ordering и continuation semantics.
 7. Добавить timeout, candidate-work и dictionary-scan guardrails.
 
 Готовность: synonym/SKU не typo-expand; все terms обязательны; same-element
-сохраняется; primary/fuzzy sets не смешиваются; final filtered zero разрешает
-fallback; technical error — нет.
+сохраняется; primary/fuzzy sets не смешиваются; filtered zero при непустом PRIMARY
+не запускает FUZZY; technical error — нет.
 
 ### Этап 9. Synonyms
 
@@ -1148,6 +1327,8 @@ fallback; technical error — нет.
 | Query + option + price | Same-variant semantics |
 | HIDE + option + price | Один variant одновременно available и соответствует filters |
 | Facet target isolation | Search bitmap сохраняется |
+| Relevance page | Ranked relation пересекается с тем же membership bitmap до cursor/limit |
+| Business sort + query | Использует search membership bitmap без обязательного вычисления rank |
 | Draft в FTS/boost | `publishedUniverse` исключает product |
 | Phrase variant title | Совпадает только внутри одного variant title element |
 | Phrase across variants | Не совпадает |
@@ -1158,7 +1339,9 @@ fallback; technical error — нет.
 | Normalization failure | `SEARCH_NORMALIZATION_FAILED`, без PostgreSQL locale-dictionary/cross-locale fallback |
 | Profile revision mismatch | Query fail-closed до READY/atomic activation соответствующего locale index |
 | Special tsquery characters | Bound values, без parser injection |
-| Primary raw hit отфильтрован | Final zero разрешает FUZZY pass |
+| PRIMARY нашёл candidate, filters исключили его | Пустой PRIMARY Listing; FUZZY не запускается |
+| PRIMARY нашёл только draft candidate | Candidate исключён `publishedUniverse`; FUZZY разрешён |
+| PRIMARY candidate set пуст | FUZZY запускается до применения Listing filters |
 | Query/token короче typo minimum | FUZZY не запускается |
 | Typo distance 1 | Trigram candidate подтверждён Levenshtein и найден |
 | Typo distance > 1 | Levenshtein verifier исключает candidate |
@@ -1168,6 +1351,7 @@ fallback; technical error — нет.
 | Query/AST превышает limit | Validation error без truncation |
 | PRIMARY cursor | Только PRIMARY с active configuration нового request |
 | FUZZY cursor | Сразу FUZZY без primary probe с active configuration нового request |
+| Configuration/index изменились между страницами | Continuation остаётся валидной; пропуск или повтор товара допустим |
 | Boost-only product | Проходит publication/scope/filters/OOS |
 | Boost + business sort | Boost ranking выключен |
 | Settings apply fail | Previous active revision serving |
@@ -1175,6 +1359,7 @@ fallback; technical error — нет.
 | Stale product event | Search rows не меняются |
 | GIN unavailable/`simple` contract missing | `SEARCH_INDEX_UNAVAILABLE`, no fallback |
 | `gin_fuzzy_search_limit` | `0`, totals/facets не получают random subset |
+| Tenant partition pruning | Каждая runtime table читает только partition bound `store_id` |
 | Expired configuration cursor | `SEARCH_CURSOR_EXPIRED` |
 
 ## 10. Definition of Done
@@ -1187,6 +1372,8 @@ fallback; technical error — нет.
   соблюдают interaction rules;
 - typo tolerance использует indexable trigram candidates и exact Levenshtein
   verification без hidden top-K;
+- runtime search tables имеют aligned hash partitioning, а storefront plans
+  подтверждают pruning до одной partition на table;
 - configuration apply имеет durable state machine, а document sync использует
   canonical Listing item workflow без дублирующего freshness state;
 - stale revision/event не активируют устаревшее состояние;
@@ -1217,3 +1404,6 @@ fallback; technical error — нет.
 11. `Intl.Segmenter` следует Unicode/ICU boundaries, которые могут не сохранять
     commerce identifiers (`USB-C`, `AB-123`, model codes); они требуют отдельной
     versioned classification/preservation policy и corpus coverage.
+12. Fixed hash modulus может дать skew между partitions; его изменение требует
+    controlled rebuild. Partitioning по `store_id` не разбивает rows одного very
+    large store и не заменяет per-store performance gates.
