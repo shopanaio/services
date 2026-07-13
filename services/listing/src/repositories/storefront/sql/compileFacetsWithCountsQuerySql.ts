@@ -214,17 +214,24 @@ export function compileFacetsWithCountsQuerySql(
         rb_cardinality(input.bitmap) AS matched_count
       FROM variant_projection_inputs input
     ),
+    narrow_variant_projection_matches AS MATERIALIZED (
+      SELECT
+        matches.projection_key,
+        matches.bitmap
+      FROM variant_projection_matches matches
+      WHERE matches.matched_count BETWEEN 1 AND ${NARROW_VARIANT_PROJECTION_THRESHOLD}
+    ),
     narrow_projected_variant_values AS (
       SELECT
         matches.projection_key,
         rb_build_agg(vli.product_doc_id) AS product_bitmap
-      FROM variant_projection_matches matches
+      FROM narrow_variant_projection_matches matches
       CROSS JOIN LATERAL rb_iterate(matches.bitmap) AS matched(variant_doc_id)
       JOIN listing.variant_listing_index vli
         ON vli.store_id = ${request.storeId}::uuid
        AND vli.variant_doc_id = matched.variant_doc_id
-      WHERE matches.matched_count <= ${NARROW_VARIANT_PROJECTION_THRESHOLD}
       GROUP BY matches.projection_key
+      HAVING COUNT(vli.product_doc_id) > 0
     ),
     matched_projection_blocks AS MATERIALIZED (
       SELECT
@@ -262,7 +269,8 @@ export function compileFacetsWithCountsQuerySql(
     projected_variant_values AS MATERIALIZED (
       SELECT
         projected.projection_key,
-        rb_or_agg(projected.product_bitmap) AS product_bitmap
+        rb_or_agg(projected.product_bitmap)
+          FILTER (WHERE projected.product_bitmap IS NOT NULL) AS product_bitmap
       FROM (
         SELECT projection_key, product_bitmap
         FROM narrow_projected_variant_values

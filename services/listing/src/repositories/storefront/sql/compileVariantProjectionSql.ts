@@ -17,14 +17,19 @@ export function compileVariantProjectionSql(input: {
         rb_cardinality(vb.bitmap) AS matched_count
       FROM variant_bitmap vb
     ),
+    narrow_matches AS MATERIALIZED (
+      SELECT vm.bitmap
+      FROM variant_matches vm
+      WHERE vm.matched_count BETWEEN 1 AND ${NARROW_VARIANT_PROJECTION_THRESHOLD}
+    ),
     narrow_projected AS (
       SELECT rb_build_agg(vli.product_doc_id) AS product_bitmap
-      FROM variant_matches vm
+      FROM narrow_matches vm
       CROSS JOIN LATERAL rb_iterate(vm.bitmap) AS matched(variant_doc_id)
       JOIN listing.variant_listing_index vli
         ON vli.store_id = ${input.projectIdSql}
        AND vli.variant_doc_id = matched.variant_doc_id
-      WHERE vm.matched_count <= ${NARROW_VARIANT_PROJECTION_THRESHOLD}
+      HAVING COUNT(vli.product_doc_id) > 0
     ),
     matched_blocks AS MATERIALIZED (
       SELECT
@@ -56,9 +61,11 @@ export function compileVariantProjectionSql(input: {
       JOIN listing.variant_listing_index vli
         ON vli.store_id = ${input.projectIdSql}
        AND vli.variant_doc_id = matched.variant_doc_id
+      HAVING COUNT(vli.product_doc_id) > 0
     ),
     projected AS (
-      SELECT rb_or_agg(product_bitmap) AS product_bitmap
+      SELECT rb_or_agg(product_bitmap)
+        FILTER (WHERE product_bitmap IS NOT NULL) AS product_bitmap
       FROM (
         SELECT product_bitmap FROM narrow_projected
         UNION ALL

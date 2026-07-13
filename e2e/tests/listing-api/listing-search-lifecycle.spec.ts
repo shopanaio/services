@@ -431,15 +431,26 @@ async function createListingProduct(
       values: [valueHandle],
     })),
   });
-  const inventoryItemId = product.variants.edges[0]?.node.inventoryItem?.id;
-  if (!inventoryItemId) {
-    throw new Error(`Created product ${product.id} does not have a variant inventory item`);
+  const variant = product.variants.edges[0]?.node;
+  if (!variant) {
+    throw new Error(`Created product ${product.id} does not have a variant`);
   }
 
-  await setVariantStock(api, {
-    inventoryItemId,
-    warehouseId: input.warehouseId,
-    onHand: input.definition.stock,
+  await api.admin.product.update({
+    productId: product.id,
+    expectedRevision: product.revision,
+    operations: {
+      variants: [
+        {
+          action: 'UPDATE',
+          variantId: variant.id,
+          inventory: {
+            warehouseId: input.warehouseId,
+            onHand: input.definition.stock,
+          },
+        },
+      ],
+    },
   });
   await addProductToCategory(api, product.id, input.category.id);
   return product;
@@ -455,22 +466,6 @@ async function createWarehouse(api: Api, code: string): Promise<{ id: string }> 
     throw new Error('Failed to create warehouse for listing/search lifecycle test');
   }
   return { id: result.warehouse.id };
-}
-
-async function setVariantStock(
-  api: Api,
-  input: { inventoryItemId: string; warehouseId: string; onHand: number },
-): Promise<void> {
-  const { data } = await api.admin.mutation('inventory-api/VariantSetStock', {
-    variables: {
-      input: {
-        id: input.inventoryItemId,
-        trackInventory: true,
-        stock: { warehouseId: input.warehouseId, onHand: input.onHand },
-      },
-    },
-  });
-  expect(data.inventoryMutation.inventoryItemUpdate.userErrors).toHaveLength(0);
 }
 
 async function addProductToCategory(
