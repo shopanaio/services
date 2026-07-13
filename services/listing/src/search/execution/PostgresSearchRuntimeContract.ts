@@ -29,7 +29,7 @@ PostgresSearchRuntimeContract = Object.freeze({
 export function compilePostgresSearchRuntimeProbeSql(): SQL {
   return sql`
     SELECT
-      to_regconfig('pg_catalog.simple') IS NOT NULL
+      'pg_catalog.simple'::regconfig IS NOT NULL
         AS "simpleConfigurationAvailable",
       EXISTS (
         SELECT 1 FROM pg_extension WHERE extname = 'btree_gin'
