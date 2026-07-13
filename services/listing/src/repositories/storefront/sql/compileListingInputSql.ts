@@ -71,8 +71,8 @@ export function compileListingInputSql(request: ListingSqlRequest): SQL {
     input AS (
       SELECT
         ${request.storeId}::uuid AS store_id,
-        ${request.locale}::text AS locale,
-        ${request.currency}::text AS currency,
+        ${request.locale}::listing.locale_code AS locale,
+        ${request.currency}::listing.currency_code AS currency,
         ${request.scopeKind}::text AS scope_kind,
         ${request.scopeId}::uuid AS scope_id,
         ${request.manualScopeId}::uuid AS manual_scope_id,

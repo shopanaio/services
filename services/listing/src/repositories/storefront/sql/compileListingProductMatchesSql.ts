@@ -19,8 +19,8 @@ export function compileInputCte(request: ListingSqlRequest): SQL {
     input AS (
       SELECT
         ${request.storeId}::uuid AS store_id,
-        ${request.locale}::text AS locale,
-        ${request.currency}::text AS currency,
+        ${request.locale}::listing.locale_code AS locale,
+        ${request.currency}::listing.currency_code AS currency,
         ${request.first}::int AS first
     )
   `;
