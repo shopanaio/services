@@ -31,6 +31,22 @@ export interface CompiledPostgresFtsQuery {
   readonly membershipBitmapSql: SQL;
 }
 
+export interface PostgresFtsFuzzyClauseDescription {
+  readonly lexemes: readonly string[];
+  readonly fields: readonly SearchTextField[];
+  readonly requireSameElement: boolean;
+}
+
+export interface PostgresFtsFuzzyUnitDescription {
+  readonly unitIndex: number;
+  readonly clauses: readonly PostgresFtsFuzzyClauseDescription[];
+}
+
+export interface PostgresFtsFuzzyExecutionDescription {
+  readonly executed: boolean;
+  readonly units: readonly PostgresFtsFuzzyUnitDescription[];
+}
+
 export class PostgresFtsQueryCompiler {
   constructor(private readonly fields = new SearchFieldRegistry()) {}
 
@@ -80,9 +96,7 @@ export class PostgresFtsQueryCompiler {
   ): CompiledPostgresFtsQuery {
     validateCommonContext(plan, context, this.fields);
     validateFuzzyPlan(plan, this.fields);
-    const hasEmptyUnit = plan.requiredUnits.some((unit) =>
-      !hasCompleteTypoAlternatives(unit, plan.verifiedAlternativesByUnit)
-    );
+    const hasEmptyUnit = !hasCompleteFuzzyPlan(plan);
     const baseRankedCandidateRelationSql = hasEmptyUnit
       ? compileEmptyCandidateRelation()
       : compileFuzzyCandidateRelation(plan, context, true);
@@ -117,6 +131,40 @@ export class PostgresFtsQueryCompiler {
       membershipCandidateRelationSql,
       rankedCandidateRelationSql,
       membershipBitmapSql,
+    });
+  }
+
+  describeFuzzyExecution(
+    plan: ExpandedFuzzySearchQueryPlan,
+  ): PostgresFtsFuzzyExecutionDescription {
+    validateFuzzyPlan(plan, this.fields);
+    if (!hasCompleteFuzzyPlan(plan)) {
+      return Object.freeze({
+        executed: false,
+        units: Object.freeze([]),
+      });
+    }
+
+    return Object.freeze({
+      executed: true,
+      units: Object.freeze(plan.requiredUnits.map((unit) =>
+        Object.freeze({
+          unitIndex: unit.index,
+          clauses: Object.freeze(buildFuzzyCombinations(
+            unit,
+            plan.verifiedAlternativesByUnit.get(unit.index) ?? [],
+          ).map((combination) => {
+            const lexemes = combination.alternatives.flatMap(
+              (alternative) => alternative.ftsLexemes,
+            );
+            return Object.freeze({
+              lexemes: Object.freeze(lexemes),
+              fields: Object.freeze([...combination.fields]),
+              requireSameElement: combination.requireSameElement,
+            });
+          })),
+        })
+      )),
     });
   }
 }
@@ -532,6 +580,14 @@ function hasCompleteTypoAlternatives(
     ),
   );
   return typoClause.terms.every((term) => inputTerms.has(term));
+}
+
+function hasCompleteFuzzyPlan(
+  plan: ExpandedFuzzySearchQueryPlan,
+): boolean {
+  return plan.requiredUnits.every((unit) =>
+    hasCompleteTypoAlternatives(unit, plan.verifiedAlternativesByUnit)
+  );
 }
 
 function compileEmptyCandidateRelation(): SQL {

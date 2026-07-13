@@ -10,7 +10,12 @@ import { SearchRuntimeError } from "../../search/errors.js";
 import type {
   SearchProductBoostAggregate,
   SearchSynonymGroupAggregate,
+  SearchTextField,
 } from "../../repositories/search/searchRepositoryTypes.js";
+import type {
+  SearchExplain,
+  SearchExplainClause,
+} from "../../search/execution/SearchExplain.js";
 import {
   SearchProductBoostCreateScript,
   SearchProductBoostDeleteScript,
@@ -82,55 +87,83 @@ export class ListingSearchQueryResolver extends ListingType<Record<string, never
   }
 
   @Policy(READ_POLICY)
-  async preview(args: { query: string; locale: string }) {
+  async explain(args: { query: string; locale: string }) {
+    return this.resolveExplain(args);
+  }
+
+  private async resolveExplain(args: { query: string; locale: string }) {
     try {
-      const contract = await this.$ctx.kernel.searchExecution.execute({
+      const explain = await this.$ctx.kernel.searchExecution.explain({
         query: args.query,
         locale: args.locale,
-        diagnosticsMode: "PREVIEW",
       });
-      const reasons = new Set<string>();
-      if (contract.plan.matchedSynonymGroupIds.length > 0) {
-        reasons.add("SYNONYM_EXPANSION");
-      }
-      if (contract.plan.applicableBoostProductIds.length > 0) {
-        reasons.add("PRODUCT_BOOST");
-      }
-      if (contract.boostOnlyCandidateCount > 0) {
-        reasons.add("BOOST_ONLY_CANDIDATE");
-      }
-      if (contract.attempt.mode === "FUZZY") {
-        reasons.add("TYPO_EXPANSION");
-      }
-      return {
-        mode: contract.attempt.mode,
-        candidateCount: contract.membershipCardinality,
-        boostOnlyCandidateCount: contract.boostOnlyCandidateCount,
-        matchedSynonymGroupIds: contract.plan.matchedSynonymGroupIds.map(
-          (id) => encodeGlobalIdByType(id, GlobalIdEntity.SearchSynonymGroup),
-        ),
-        applicableProductBoostIds: contract.request.configuration.boosts.map(
-          (boost) => encodeGlobalIdByType(
-            boost.boostId,
-            GlobalIdEntity.SearchProductBoost,
-          ),
-        ),
-        reasons: [...reasons],
-      };
+      return mapSearchExplain(explain);
     } catch (error) {
-      if (
-        error instanceof SearchRuntimeError &&
-        error.code === "SEARCH_NORMALIZATION_FAILED"
-      ) {
-        throw new GraphQLError(error.message, {
+      if (error instanceof SearchRuntimeError) {
+        const message = error.code === "SEARCH_INDEX_UNAVAILABLE"
+          ? "Search index is unavailable"
+          : error.message;
+        throw new GraphQLError(message, {
           extensions: { code: error.code },
         });
       }
       throw new GraphQLError(
-        "Search preview is unavailable",
+        "Search explain is unavailable",
         { extensions: { code: "SEARCH_INDEX_UNAVAILABLE" } },
       );
     }
+  }
+}
+
+function mapSearchExplain(explain: SearchExplain) {
+  return {
+    ...explain,
+    units: explain.units.map((unit) => ({
+      ...unit,
+      clauses: unit.clauses.map(mapSearchExplainClause),
+    })),
+    wholeQueryClauses: explain.wholeQueryClauses.map(mapSearchExplainClause),
+    settings: {
+      ...explain.settings,
+      enabledFields: explain.settings.enabledFields.map(mapSearchExplainField),
+      fieldWeights: explain.settings.fieldWeights.map((fieldWeight) => ({
+        field: mapSearchExplainField(fieldWeight.field),
+        weight: fieldWeight.weight,
+      })),
+    },
+    matchedSynonymGroupIds: explain.matchedSynonymGroupIds.map((id) =>
+      encodeGlobalIdByType(id, GlobalIdEntity.SearchSynonymGroup)
+    ),
+    applicableProductBoostIds: explain.applicableProductBoostIds.map((id) =>
+      encodeGlobalIdByType(id, GlobalIdEntity.SearchProductBoost)
+    ),
+  };
+}
+
+function mapSearchExplainClause(clause: SearchExplainClause): object {
+  return {
+    ...clause,
+    fields: clause.fields.map(mapSearchExplainField),
+    synonymGroupId: clause.synonymGroupId
+      ? encodeGlobalIdByType(
+          clause.synonymGroupId,
+          GlobalIdEntity.SearchSynonymGroup,
+        )
+      : null,
+    alternatives: clause.alternatives.map(mapSearchExplainClause),
+  };
+}
+
+function mapSearchExplainField(field: SearchTextField): string {
+  switch (field) {
+    case "product_title":
+      return "PRODUCT_TITLE";
+    case "variant_title":
+      return "VARIANT_TITLE";
+    case "vendor_name":
+      return "VENDOR_NAME";
+    case "category_name":
+      return "CATEGORY_NAME";
   }
 }
 

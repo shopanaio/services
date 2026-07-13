@@ -185,7 +185,11 @@ export function toGraphqlListingError(error: unknown): unknown {
               ? error.code
               : "BAD_USER_INPUT",
         field:
-          error instanceof SearchRuntimeError ? ["query"] : error.field,
+          error instanceof SearchRuntimeError
+            ? error.code === "SEARCH_NORMALIZATION_FAILED"
+              ? ["query"]
+              : undefined
+            : error.field,
       },
     });
   }

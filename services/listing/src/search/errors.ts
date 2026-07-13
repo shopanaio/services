@@ -1,5 +1,6 @@
 export type SearchRuntimeErrorCode =
   | "SEARCH_NORMALIZATION_FAILED"
+  | "SEARCH_CONFIGURATION_UNAVAILABLE"
   | "SEARCH_INDEX_UNAVAILABLE";
 
 export class SearchRuntimeError extends Error {
@@ -25,4 +26,15 @@ export function indexUnavailable(
   cause?: unknown,
 ): SearchRuntimeError {
   return new SearchRuntimeError("SEARCH_INDEX_UNAVAILABLE", message, cause);
+}
+
+export function configurationUnavailable(
+  message: string,
+  cause?: unknown,
+): SearchRuntimeError {
+  return new SearchRuntimeError(
+    "SEARCH_CONFIGURATION_UNAVAILABLE",
+    message,
+    cause,
+  );
 }

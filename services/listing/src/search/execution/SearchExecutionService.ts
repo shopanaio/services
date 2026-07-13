@@ -8,7 +8,11 @@ import type {
   SearchTextField,
 } from "../../repositories/search/searchRepositoryTypes.js";
 import type { SearchConfigurationService } from "../configuration/index.js";
-import { indexUnavailable, SearchRuntimeError } from "../errors.js";
+import {
+  configurationUnavailable,
+  indexUnavailable,
+  SearchRuntimeError,
+} from "../errors.js";
 import { SearchQueryNormalizer } from "../normalization/SearchQueryNormalizer.js";
 import type {
   LexicalizedSearchQuery,
@@ -39,10 +43,14 @@ import {
   POSTGRES_TYPO_MAX_VERIFIED_CANDIDATES_PER_TERM,
   PostgresTypoQueryCompiler,
 } from "./PostgresTypoQueryCompiler.js";
+import {
+  createSearchExplain,
+  type SearchExplain,
+  type SearchExplainInput,
+} from "./SearchExplain.js";
 
 export const SEARCH_MEMBERSHIP_BITMAP_MAX_SERIALIZED_BYTES = 64 * 1024 * 1024;
 
-export type SearchDiagnosticsMode = "NONE" | "PREVIEW";
 export type SearchExecutionMode = "PRIMARY" | "FUZZY";
 
 export interface SearchRequestSettings {
@@ -71,7 +79,6 @@ export interface SearchRequestContext {
   readonly normalizedQuery: NormalizedSearchQuery;
   readonly lexicalizedQuery: LexicalizedSearchQuery;
   readonly configuration: SearchRequestConfiguration;
-  readonly diagnosticsMode: SearchDiagnosticsMode;
 }
 
 export interface SearchAttemptContext {
@@ -82,7 +89,7 @@ export interface SearchAttemptContext {
 export interface SearchCandidateContract {
   readonly request: SearchRequestContext;
   readonly attempt: SearchAttemptContext;
-  readonly plan: SearchQueryPlan;
+  readonly plan: SearchQueryPlan | ExpandedFuzzySearchQueryPlan;
   readonly membershipBitmap: string;
   readonly membershipCardinality: number;
   readonly membershipSerializedBytes: number;
@@ -94,7 +101,6 @@ export interface SearchExecutionInput {
   readonly locale: string;
   readonly query: string;
   readonly mode?: SearchExecutionMode;
-  readonly diagnosticsMode?: SearchDiagnosticsMode;
 }
 
 export interface SearchExecutionDependencies {
@@ -165,6 +171,16 @@ export class SearchExecutionService {
       if (error instanceof SearchRuntimeError) throw error;
       throw indexUnavailable("Canonical search execution failed", error);
     }
+  }
+
+  async explain(input: SearchExplainInput): Promise<SearchExplain> {
+    const contract = await this.execute(input);
+    const fuzzyExecution = contract.attempt.mode === "FUZZY"
+      ? this.compiler.describeFuzzyExecution(
+          contract.plan as ExpandedFuzzySearchQueryPlan,
+        )
+      : null;
+    return createSearchExplain(input.query, contract, fuzzyExecution);
   }
 
   private async executeFuzzy(
@@ -411,7 +427,6 @@ export class SearchExecutionService {
       normalizedQuery: normalized.normalizedQuery,
       lexicalizedQuery: normalized.lexicalizedQuery,
       configuration,
-      diagnosticsMode: input.diagnosticsMode ?? "NONE",
     });
   }
 
@@ -546,23 +561,35 @@ function normalizeSettings(
   fields: SearchFieldRegistry,
 ): SearchRequestSettings {
   if (!row) {
-    throw indexUnavailable("Search settings are unavailable for the current store");
+    throw configurationUnavailable(
+      "Search settings are not configured for the current store",
+    );
   }
   if (!Array.isArray(row.enabledFields)) {
-    throw indexUnavailable("Search settings enabled fields are invalid");
+    throw configurationUnavailable("Search settings enabled fields are invalid");
   }
-  const enabledFields = fields.normalizeEnabledFields(
-    row.enabledFields as SearchTextField[],
-  );
+  let enabledFields: readonly SearchTextField[];
+  try {
+    enabledFields = fields.normalizeEnabledFields(
+      row.enabledFields as SearchTextField[],
+    );
+  } catch (error) {
+    throw configurationUnavailable(
+      "Search settings enabled fields are invalid",
+      error,
+    );
+  }
   if (!row.fieldWeights || typeof row.fieldWeights !== "object") {
-    throw indexUnavailable("Search settings field weights are invalid");
+    throw configurationUnavailable("Search settings field weights are invalid");
   }
   const rawWeights = row.fieldWeights as Partial<Record<SearchTextField, unknown>>;
   const fieldWeights: Partial<Record<SearchTextField, number>> = {};
   for (const field of enabledFields) {
     const weight = rawWeights[field];
     if (typeof weight !== "number" || !Number.isFinite(weight) || weight <= 0) {
-      throw indexUnavailable(`Invalid runtime weight for search field: ${field}`);
+      throw configurationUnavailable(
+        `Invalid runtime weight for search field: ${field}`,
+      );
     }
     fieldWeights[field] = weight;
   }
@@ -571,7 +598,9 @@ function normalizeSettings(
     row.outOfStockPolicy !== "HIDE" &&
     row.outOfStockPolicy !== "PLACE_LAST"
   ) {
-    throw indexUnavailable("Search settings out-of-stock policy is invalid");
+    throw configurationUnavailable(
+      "Search settings out-of-stock policy is invalid",
+    );
   }
   return Object.freeze({
     version: row.version,

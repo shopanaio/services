@@ -42,7 +42,6 @@ export class ListingConnectionResolver extends ListingType<
           locale: repositoryInput.locale,
           query: repositoryInput.query,
           mode: continuationMode ?? undefined,
-          diagnosticsMode: "NONE",
         });
         repositoryInput = Object.freeze({
           ...repositoryInput,

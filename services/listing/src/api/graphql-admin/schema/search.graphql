@@ -13,7 +13,8 @@ type ListingSearchQuery {
   synonymGroups(locale: LocaleCode, limit: Int = 20, offset: Int = 0): SearchSynonymGroupConnection!
   productBoost(id: ID!): SearchProductBoost
   productBoosts(locale: LocaleCode, limit: Int = 20, offset: Int = 0): SearchProductBoostConnection!
-  preview(query: String!, locale: LocaleCode!): SearchPreview!
+  """Explain the canonical request-level search plan and its candidate membership."""
+  explain(query: String!, locale: LocaleCode!): SearchExplain!
 }
 
 type ListingSearchMutation {
@@ -68,20 +69,111 @@ type SearchProductBoostConnection {
   totalCount: Int!
 }
 
-enum SearchPreviewReason {
+enum SearchExecutionMode {
+  PRIMARY
+  FUZZY
+}
+
+enum SearchLexicalUnitKind {
+  TEXT
+  NUMBER
+  CODE
+  FOREIGN
+  MIXED_SCRIPT
+  STOPWORD
+}
+
+enum SearchExplainClauseKind {
+  FTS_TERMS
+  FTS_PHRASE
+  SYNONYM
+  IDENTIFIER_EXACT
+  IDENTIFIER_PREFIX
+}
+
+enum SearchExplainField {
+  PRODUCT_TITLE
+  VARIANT_TITLE
+  VENDOR_NAME
+  CATEGORY_NAME
+}
+
+enum SearchOutOfStockPolicy {
+  SHOW
+  HIDE
+  PLACE_LAST
+}
+
+enum SearchExplainReason {
+  STOPWORD_REMOVAL
   SYNONYM_EXPANSION
+  IDENTIFIER_EXPANSION
   PRODUCT_BOOST
   BOOST_ONLY_CANDIDATE
+  FUZZY_FALLBACK
   TYPO_EXPANSION
 }
 
-type SearchPreview {
-  mode: String!
+type SearchExplain {
+  mode: SearchExecutionMode!
+  originalQuery: String!
+  normalizedQuery: String!
+  locale: LocaleCode!
+  normalizationContractVersion: String!
+  normalizationProfileRevision: String!
+  units: [SearchExplainUnit!]!
+  wholeQueryClauses: [SearchExplainClause!]!
+  settings: SearchExplainSettings!
   candidateCount: Int!
   boostOnlyCandidateCount: Int!
+  membershipSerializedBytes: Int!
+  planFingerprint: String!
   matchedSynonymGroupIds: [ID!]!
   applicableProductBoostIds: [ID!]!
-  reasons: [SearchPreviewReason!]!
+  reasons: [SearchExplainReason!]!
+}
+
+type SearchExplainUnit {
+  source: String!
+  normalized: String!
+  kind: SearchLexicalUnitKind!
+  removedAsStopword: Boolean!
+  lexemes: [String!]!
+  """Required plan unit containing this token, or null for a removed stopword."""
+  planUnitIndex: Int
+  """Executed clauses; emitted once on the first token of a grouped plan unit."""
+  clauses: [SearchExplainClause!]!
+  typoAlternatives: [SearchExplainTypoAlternative!]!
+}
+
+type SearchExplainClause {
+  kind: SearchExplainClauseKind!
+  value: String
+  lexemes: [String!]!
+  fields: [SearchExplainField!]!
+  synonymGroupId: ID
+  requireSameElement: Boolean!
+  alternatives: [SearchExplainClause!]!
+}
+
+type SearchExplainTypoAlternative {
+  value: String!
+  lexemes: [String!]!
+  editDistance: Int!
+  trigramSimilarity: Float!
+}
+
+type SearchExplainSettings {
+  version: Int!
+  enabledFields: [SearchExplainField!]!
+  fieldWeights: [SearchExplainFieldWeight!]!
+  typoToleranceEnabled: Boolean!
+  outOfStockPolicy: SearchOutOfStockPolicy!
+}
+
+type SearchExplainFieldWeight {
+  field: SearchExplainField!
+  weight: Float!
 }
 
 input SearchSynonymGroupCreateInput {
