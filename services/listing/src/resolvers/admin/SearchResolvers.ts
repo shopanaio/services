@@ -4,7 +4,7 @@ import {
   GlobalIdEntity,
   type GlobalIdType,
 } from "@shopana/shared-graphql-guid";
-import { hashContent, Policy } from "@shopana/shared-kernel";
+import { hashContent } from "@shopana/shared-kernel";
 import { GraphQLError } from "graphql";
 import type { UserError } from "../../kernel/BaseScript.js";
 import { SearchRuntimeError } from "../../search/errors.js";
@@ -40,11 +40,6 @@ import {
 } from "./generated/types.js";
 import { ListingType } from "./ListingType.js";
 
-const READ_POLICY = {
-  resource: "store.search",
-  action: "read",
-} as const;
-
 const searchFieldRegistry = new SearchFieldRegistry();
 
 export class ListingSearchQueryResolver extends ListingType<Record<string, never>> {
@@ -53,7 +48,6 @@ export class ListingSearchQueryResolver extends ListingType<Record<string, never
     return settings ? mapSearchSettings(settings) : null;
   }
 
-  @Policy(READ_POLICY)
   async synonymGroup(args: { id: string }) {
     const groupId = safeDecode(args.id, GlobalIdEntity.SearchSynonymGroup);
     if (!groupId) return null;
@@ -63,7 +57,6 @@ export class ListingSearchQueryResolver extends ListingType<Record<string, never
     return aggregate ? mapSynonymGroup(aggregate) : null;
   }
 
-  @Policy(READ_POLICY)
   async synonymGroups(args: {
     locale?: string | null;
     limit?: number | null;
@@ -80,7 +73,6 @@ export class ListingSearchQueryResolver extends ListingType<Record<string, never
     };
   }
 
-  @Policy(READ_POLICY)
   async productBoost(args: { id: string }) {
     const boostId = safeDecode(args.id, GlobalIdEntity.SearchProductBoost);
     if (!boostId) return null;
@@ -90,7 +82,6 @@ export class ListingSearchQueryResolver extends ListingType<Record<string, never
     return aggregate ? mapProductBoost(aggregate) : null;
   }
 
-  @Policy(READ_POLICY)
   async productBoosts(args: {
     locale?: string | null;
     limit?: number | null;
@@ -107,7 +98,6 @@ export class ListingSearchQueryResolver extends ListingType<Record<string, never
     };
   }
 
-  @Policy(READ_POLICY)
   async explain(args: { query: string; locale: string }) {
     return this.resolveExplain(args);
   }

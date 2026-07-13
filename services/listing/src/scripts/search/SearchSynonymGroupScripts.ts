@@ -1,4 +1,3 @@
-import { Policy } from "@shopana/shared-kernel";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import { searchSynonymsCacheKey } from "../../search/configuration/cacheKeys.js";
 import {
@@ -15,16 +14,10 @@ import type {
   SearchSynonymGroupUpdateParams,
 } from "./types.js";
 
-const POLICY = {
-  resource: "store.search",
-  action: "admin",
-} as const;
-
 export class SearchSynonymGroupCreateScript extends BaseScript<
   SearchSynonymGroupCreateParams,
   SearchSynonymGroupResult
 > {
-  @Policy<SearchSynonymGroupCreateParams>(POLICY)
   protected async execute(
     params: SearchSynonymGroupCreateParams,
   ): Promise<SearchSynonymGroupResult> {
@@ -78,7 +71,6 @@ export class SearchSynonymGroupUpdateScript extends BaseScript<
   SearchSynonymGroupUpdateParams,
   SearchSynonymGroupResult
 > {
-  @Policy<SearchSynonymGroupUpdateParams>(POLICY)
   protected async execute(
     params: SearchSynonymGroupUpdateParams,
   ): Promise<SearchSynonymGroupResult> {
@@ -142,7 +134,6 @@ export class SearchSynonymGroupDeleteScript extends BaseScript<
   SearchSynonymGroupDeleteParams,
   SearchSynonymGroupResult
 > {
-  @Policy<SearchSynonymGroupDeleteParams>(POLICY)
   protected async execute(
     params: SearchSynonymGroupDeleteParams,
   ): Promise<SearchSynonymGroupResult> {

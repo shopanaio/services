@@ -1,4 +1,3 @@
-import { Policy } from "@shopana/shared-kernel";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import { searchProductBoostCacheKey } from "../../search/configuration/cacheKeys.js";
 import {
@@ -15,16 +14,10 @@ import type {
   SearchProductBoostUpdateParams,
 } from "./types.js";
 
-const POLICY = {
-  resource: "store.search",
-  action: "admin",
-} as const;
-
 export class SearchProductBoostCreateScript extends BaseScript<
   SearchProductBoostCreateParams,
   SearchProductBoostResult
 > {
-  @Policy<SearchProductBoostCreateParams>(POLICY)
   protected async execute(
     params: SearchProductBoostCreateParams,
   ): Promise<SearchProductBoostResult> {
@@ -70,7 +63,6 @@ export class SearchProductBoostUpdateScript extends BaseScript<
   SearchProductBoostUpdateParams,
   SearchProductBoostResult
 > {
-  @Policy<SearchProductBoostUpdateParams>(POLICY)
   protected async execute(
     params: SearchProductBoostUpdateParams,
   ): Promise<SearchProductBoostResult> {
@@ -120,7 +112,6 @@ export class SearchProductBoostDeleteScript extends BaseScript<
   SearchProductBoostDeleteParams,
   SearchProductBoostResult
 > {
-  @Policy<SearchProductBoostDeleteParams>(POLICY)
   protected async execute(
     params: SearchProductBoostDeleteParams,
   ): Promise<SearchProductBoostResult> {
