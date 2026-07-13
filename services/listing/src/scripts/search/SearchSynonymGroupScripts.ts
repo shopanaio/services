@@ -5,11 +5,9 @@ import {
   normalizeSynonymValues,
   normalizeSearchLocale,
   SearchConfigurationInputError,
-  validateExpectedVersion,
   validateSearchResourceName,
 } from "./searchConfigurationValidation.js";
 import { searchConfigurationUserErrors } from "./scriptError.js";
-import { invalidateSearchCacheAfterCommit } from "./cacheInvalidation.js";
 import type {
   SearchSynonymGroupCreateParams,
   SearchSynonymGroupDeleteParams,
@@ -47,15 +45,11 @@ export class SearchSynonymGroupCreateScript extends BaseScript<
       actorId: this.currentUser.id,
       requestId: this.context.requestId,
     });
-    await invalidateSearchCacheAfterCommit({
-      cache: this.services.cache,
-      logger: this.logger,
-      storeId,
-      resourceType: "synonym_group",
-      resourceId: synonymGroup.group.groupId,
-      keys: [searchSynonymsCacheKey(storeId, locale)],
-    });
-    return { synonymGroup, userErrors: [] };
+    return {
+      synonymGroup,
+      cacheKeys: [searchSynonymsCacheKey(storeId, locale)],
+      userErrors: [],
+    };
   }
 
   protected handleError(error: unknown): SearchSynonymGroupResult {
@@ -90,7 +84,6 @@ export class SearchSynonymGroupUpdateScript extends BaseScript<
   protected async execute(
     params: SearchSynonymGroupUpdateParams,
   ): Promise<SearchSynonymGroupResult> {
-    validateExpectedVersion(params.expectedVersion);
     const current = await this.repository.searchSynonym.findById(params.groupId);
     if (!current) {
       return {
@@ -125,7 +118,6 @@ export class SearchSynonymGroupUpdateScript extends BaseScript<
     }
     const result = await this.repository.searchSynonym.update({
       groupId: params.groupId,
-      expectedVersion: params.expectedVersion,
       locale,
       name,
       enabled: params.enabled,
@@ -136,20 +128,13 @@ export class SearchSynonymGroupUpdateScript extends BaseScript<
     if (result.status === "not_found") {
       return { userErrors: [{ message: "Synonym group not found", field: ["input", "id"], code: "NOT_FOUND" }] };
     }
-    if (result.status === "conflict") {
-      return { userErrors: [{ message: `Synonym group version conflict; current version is ${result.currentVersion}`, field: ["input", "expectedVersion"], code: "CONFIGURATION_CONFLICT" }] };
-    }
-    await invalidateSearchCacheAfterCommit({
-      cache: this.services.cache,
-      logger: this.logger,
-      storeId,
-      resourceType: "synonym_group",
-      resourceId: params.groupId,
-      keys: [current.group.locale, locale].map((value) =>
+    return {
+      synonymGroup: result.value,
+      cacheKeys: [current.group.locale, locale].map((value) =>
         searchSynonymsCacheKey(storeId, value)
       ),
-    });
-    return { synonymGroup: result.value, userErrors: [] };
+      userErrors: [],
+    };
   }
 
   protected handleError(error: unknown): SearchSynonymGroupResult {
@@ -165,36 +150,24 @@ export class SearchSynonymGroupDeleteScript extends BaseScript<
   protected async execute(
     params: SearchSynonymGroupDeleteParams,
   ): Promise<SearchSynonymGroupResult> {
-    validateExpectedVersion(params.expectedVersion);
     const current = await this.repository.searchSynonym.findById(params.groupId);
     if (!current) {
       return { userErrors: [{ message: "Synonym group not found", field: ["input", "id"], code: "NOT_FOUND" }] };
     }
     const result = await this.repository.searchSynonym.delete({
       groupId: params.groupId,
-      expectedVersion: params.expectedVersion,
       actorId: this.currentUser.id,
       requestId: this.context.requestId,
     });
-    if (result.status === "conflict") {
-      return { userErrors: [{ message: `Synonym group version conflict; current version is ${result.currentVersion}`, field: ["input", "expectedVersion"], code: "CONFIGURATION_CONFLICT" }] };
-    }
     if (result.status === "not_found") {
       return { userErrors: [{ message: "Synonym group not found", field: ["input", "id"], code: "NOT_FOUND" }] };
     }
-    await invalidateSearchCacheAfterCommit({
-      cache: this.services.cache,
-      logger: this.logger,
-      storeId: this.context.store.id,
-      resourceType: "synonym_group",
-      resourceId: params.groupId,
-      keys: [
-        searchSynonymsCacheKey(this.context.store.id, current.group.locale),
-      ],
-    });
     return {
       synonymGroup: result.value,
       deletedSynonymGroupId: params.groupId,
+      cacheKeys: [
+        searchSynonymsCacheKey(this.context.store.id, current.group.locale),
+      ],
       userErrors: [],
     };
   }

@@ -130,15 +130,6 @@ export function validateSearchResourceName(name: string): string {
   return normalized;
 }
 
-export function validateExpectedVersion(version: number): void {
-  if (!Number.isInteger(version) || version <= 0) {
-    fail("Expected version must be a positive integer", [
-      "input",
-      "expectedVersion",
-    ], "CONFIGURATION_CONFLICT");
-  }
-}
-
 export async function validateCatalogProducts(input: {
   broker: ServiceBroker;
   storeId: string;

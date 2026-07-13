@@ -35,12 +35,10 @@ export interface SearchProductBoostCreateInput extends SearchAuditInput {
 export interface SearchProductBoostUpdateInput
   extends SearchProductBoostCreateInput {
   boostId: string;
-  expectedVersion: number;
 }
 
 export interface SearchProductBoostDeleteInput extends SearchAuditInput {
   boostId: string;
-  expectedVersion: number;
 }
 
 export interface SearchProductBoostPage {
@@ -228,14 +226,10 @@ export class SearchProductBoostRepository extends BaseRepository {
   @Transactional()
   async update(
     input: SearchProductBoostUpdateInput,
-  ): Promise<SearchOptimisticMutationResult<SearchProductBoostAggregate>> {
+  ): Promise<Exclude<SearchOptimisticMutationResult<SearchProductBoostAggregate>, { status: "conflict" }>> {
     this.assertWriteInput(input);
-    this.assertExpectedVersion(input.expectedVersion);
     const current = await this.lockBoost(input.boostId);
     if (!current) return { status: "not_found" };
-    if (current.version !== input.expectedVersion) {
-      return { status: "conflict", currentVersion: current.version };
-    }
     const before = await this.aggregateForLockedBoost(current);
 
     await this.connection
@@ -294,16 +288,10 @@ export class SearchProductBoostRepository extends BaseRepository {
   @Transactional()
   async delete(
     input: SearchProductBoostDeleteInput,
-  ): Promise<SearchOptimisticMutationResult<SearchProductBoostAggregate>> {
+  ): Promise<Exclude<SearchOptimisticMutationResult<SearchProductBoostAggregate>, { status: "conflict" }>> {
     this.assertAudit(input);
-    if (!Number.isInteger(input.expectedVersion) || input.expectedVersion <= 0) {
-      throw new Error("expectedVersion must be a positive integer");
-    }
     const current = await this.lockBoost(input.boostId);
     if (!current) return { status: "not_found" };
-    if (current.version !== input.expectedVersion) {
-      return { status: "conflict", currentVersion: current.version };
-    }
     const aggregate = await this.aggregateForLockedBoost(current);
     const rows = await this.connection
       .delete(searchProductBoost)
@@ -546,12 +534,6 @@ export class SearchProductBoostRepository extends BaseRepository {
     }
     if (!Number.isInteger(offset) || offset < 0) {
       throw new Error("offset must be a non-negative integer");
-    }
-  }
-
-  private assertExpectedVersion(expectedVersion: number): void {
-    if (!Number.isInteger(expectedVersion) || expectedVersion <= 0) {
-      throw new Error("expectedVersion must be a positive integer");
     }
   }
 }

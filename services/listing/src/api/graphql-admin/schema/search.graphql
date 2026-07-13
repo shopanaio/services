@@ -20,14 +20,13 @@ type ListingSearchQuery {
 }
 
 type ListingSearchMutation {
-  settingsCreate(input: SearchSettingsCreateInput!): SearchSettingsPayload!
-  settingsUpdate(input: SearchSettingsUpdateInput!): SearchSettingsPayload!
-  synonymGroupCreate(input: SearchSynonymGroupCreateInput!): SearchSynonymGroupPayload!
-  synonymGroupUpdate(input: SearchSynonymGroupUpdateInput!): SearchSynonymGroupPayload!
-  synonymGroupDelete(input: SearchConfigurationDeleteInput!): SearchSynonymGroupDeletePayload!
-  productBoostCreate(input: SearchProductBoostCreateInput!): SearchProductBoostPayload!
-  productBoostUpdate(input: SearchProductBoostUpdateInput!): SearchProductBoostPayload!
-  productBoostDelete(input: SearchConfigurationDeleteInput!): SearchProductBoostDeletePayload!
+  """Unified update of the complete search configuration."""
+  settingsUpdate(
+    """Expected global search configuration version."""
+    expectedVersion: Int!
+    """Operations to apply."""
+    operations: SearchSettingsOperationsInput!
+  ): SearchSettingsUpdatePayload!
 }
 
 type SearchSynonymGroup {
@@ -194,17 +193,25 @@ type SearchFieldConfiguration {
   weight: Float!
 }
 
-input SearchSettingsCreateInput {
+input SearchSettingsOperationsInput {
+  """Main search settings replacement."""
+  settings: SearchSettingsValuesInput
+  """Synonym group operations."""
+  synonymGroups: [SearchSynonymGroupOperationInput!]
+  """Product boost operations."""
+  productBoosts: [SearchProductBoostOperationInput!]
+}
+
+input SearchSettingsValuesInput {
   fields: [SearchFieldConfigurationInput!]!
   typoToleranceEnabled: Boolean!
   outOfStockPolicy: SearchOutOfStockPolicy!
 }
 
-input SearchSettingsUpdateInput {
-  expectedVersion: Int!
-  fields: [SearchFieldConfigurationInput!]!
-  typoToleranceEnabled: Boolean!
-  outOfStockPolicy: SearchOutOfStockPolicy!
+enum SearchConfigurationOperationAction {
+  CREATE
+  UPDATE
+  DELETE
 }
 
 input SearchFieldConfigurationInput {
@@ -212,67 +219,47 @@ input SearchFieldConfigurationInput {
   weight: Float!
 }
 
-input SearchSynonymGroupCreateInput {
-  locale: LocaleCode!
-  name: String!
-  enabled: Boolean = true
-  values: [String!]!
+input SearchSynonymGroupOperationInput {
+  action: SearchConfigurationOperationAction!
+  id: ID
+  clientMutationId: String
+  locale: LocaleCode
+  name: String
+  enabled: Boolean
+  values: [String!]
 }
 
-input SearchSynonymGroupUpdateInput {
-  id: ID!
-  expectedVersion: Int!
-  locale: LocaleCode!
-  name: String!
-  enabled: Boolean!
-  values: [String!]!
+input SearchProductBoostOperationInput {
+  action: SearchConfigurationOperationAction!
+  id: ID
+  clientMutationId: String
+  locale: LocaleCode
+  name: String
+  enabled: Boolean
+  phrases: [String!]
+  productIds: [ID!]
 }
 
-input SearchProductBoostCreateInput {
-  locale: LocaleCode!
-  name: String!
-  enabled: Boolean = true
-  phrases: [String!]!
-  productIds: [ID!]!
+enum SearchSettingsOperationType {
+  SETTINGS_UPDATE
+  SYNONYM_GROUP_CREATE
+  SYNONYM_GROUP_UPDATE
+  SYNONYM_GROUP_DELETE
+  PRODUCT_BOOST_CREATE
+  PRODUCT_BOOST_UPDATE
+  PRODUCT_BOOST_DELETE
 }
 
-input SearchProductBoostUpdateInput {
-  id: ID!
-  expectedVersion: Int!
-  locale: LocaleCode!
-  name: String!
-  enabled: Boolean!
-  phrases: [String!]!
-  productIds: [ID!]!
+type SearchSettingsOperationResult {
+  type: SearchSettingsOperationType!
+  applied: Boolean!
+  clientMutationId: String
+  entityId: ID
+  errors: [GenericUserError!]!
 }
 
-input SearchConfigurationDeleteInput {
-  id: ID!
-  expectedVersion: Int!
-}
-
-type SearchSynonymGroupPayload {
-  synonymGroup: SearchSynonymGroup
-  userErrors: [GenericUserError!]!
-}
-
-type SearchSynonymGroupDeletePayload {
-  deletedSynonymGroupId: ID
-  userErrors: [GenericUserError!]!
-}
-
-type SearchProductBoostPayload {
-  productBoost: SearchProductBoost
-  userErrors: [GenericUserError!]!
-}
-
-type SearchProductBoostDeletePayload {
-  deletedProductBoostId: ID
-  userErrors: [GenericUserError!]!
-}
-
-type SearchSettingsPayload {
+type SearchSettingsUpdatePayload {
   settings: SearchSettings
-  currentVersion: Int
+  operationResults: [SearchSettingsOperationResult!]!
   userErrors: [GenericUserError!]!
 }

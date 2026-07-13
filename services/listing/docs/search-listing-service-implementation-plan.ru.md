@@ -49,7 +49,8 @@ locale-aware tokenization и stemming выполняются в процессе
 - canonical listing bitmap pipeline остаётся источником истины для publication,
   navigation scope, same-variant filters, prices, availability, totals и facets;
 - listing вызывает `SearchExecutionService`;
-- settings, synonyms и boosts изменяются короткими атомарными транзакциями и
+- settings, synonyms и boosts изменяются одной aggregate mutation через DBOS;
+  отдельные operations сохраняют короткие локальные repository transactions и
   загружаются напрямую из authoring tables или их точечных cache entries;
 - typo-tolerant search выбирается только когда PRIMARY search candidate set после
   обязательного `publishedUniverse` пуст, но до применения category scope,
@@ -117,9 +118,11 @@ revision. Обновление любого из этих компонентов
 10. `HIDE` компилируется как canonical availability predicate в variant space до
     projection; `PLACE_LAST` использует только derived product ordering bucket.
     Оба режима имеют приоритет над boost.
-11. Изменение settings, synonym group или boost становится видимым только после
-    commit соответствующей атомарной транзакции; после commit инвалидируется
-    только затронутый cache key.
+11. Изменение search configuration сначала выполняет store-scoped CAS общей
+    `SearchSettings.version`, затем последовательно применяет operations. Ошибка
+    одной operation не откатывает version или уже применённые operations; cache
+    keys агрегируются из durable step results и инвалидируются отдельным DBOS
+    step.
 12. Listing не раскрывает SQL, AST, internal weights, `ts_rank_cd`, trigram
     similarity или edit distance.
 13. Search indexes подчиняются canonical `listing_index_item_state`: stale и
@@ -1164,14 +1167,21 @@ services/listing/src/scripts/search/
   SearchSynonymGroup*Script.ts
   SearchProductBoost*Script.ts
 
+services/listing/src/workflows/
+  SearchSettingsUpdateWorkflow.ts
+  dto/SearchSettingsUpdateWorkflowDto.ts
+
 services/listing/src/api/graphql-admin/schema/search.graphql
 services/listing/src/resolvers/admin/search/
 ```
 
-Resolvers только decode global IDs, проверяют authorization и вызывают
-Scripts/services. Validation/normalization находятся в Scripts; data access — в
-repositories. Configuration mutations используют короткие repository
-transactions и не запускают DBOS workflow.
+Resolver единой configuration mutation декодирует global IDs, проверяет
+action-specific required/forbidden fields и преобразует секционный GraphQL input
+во внутренний discriminated union. Затем он запускает
+`listing.searchSettingsUpdate` с request/payload-based idempotency. Batch
+validation и aggregate version CAS выполняются до operations. Scripts не
+увеличивают aggregate version; их короткие локальные repository transactions и
+audit сохраняются. Общей database transaction на workflow нет.
 
 ## 5. GraphQL backend Listing
 
@@ -1189,9 +1199,17 @@ Queries:
 
 Mutations:
 
-- `settingsUpdate`;
-- synonym group create/update/delete;
-- product boost create/update/delete.
+- только `settingsUpdate(expectedVersion, operations)` для settings, synonym
+  group и product boost operations.
+
+`SearchSettings.version` является общей version всей search configuration.
+`expectedVersion: 0` и обязательная `operations.settings` инициализируют row с
+version `1`. Для существующей configuration один store-scoped CAS увеличивает
+version ровно один раз до выполнения operations. При CAS conflict operations не
+запускаются. После успешного CAS operations выполняются последовательно с
+partial failure и отдельным `SearchSettingsOperationResult` на каждую operation.
+Локальные `expectedVersion` у synonym groups и product boosts в mutation input
+отсутствуют; их resource versions продолжают обновляться внутри repositories.
 
 Минимальные Casbin permissions:
 
@@ -1306,11 +1324,12 @@ failed transaction сохраняет previous search rows/item state; engine н
 1. Создать settings, synonym, boost и audit tables; configuration state,
    revision, apply job и persisted runtime snapshot не создавать.
 2. Реализовать repositories через `this.connection` и context store.
-3. Реализовать отдельную короткую optimistic transaction для каждого settings,
-   synonym group и product boost resource.
-4. Добавить normalization/validation settings.
-5. Записывать audit в той же transaction.
-6. Опубликовать GraphQL settings/application state.
+3. Реализовать store-scoped aggregate version CAS в
+   `SearchSettingsRepository` и короткую локальную transaction для каждой
+   settings, synonym group и product boost operation.
+4. Добавить batch normalization/validation до CAS.
+5. Записывать audit в той же локальной operation transaction.
+6. Опубликовать единую GraphQL `settingsUpdate` mutation с operation results.
 
 ### Этап 5. Normalization pipeline, PRIMARY planner и PostgreSQL FTS compiler
 
@@ -1379,10 +1398,11 @@ error — нет.
 ### Этап 9. Synonyms
 
 1. Создать synonym authoring/value/claim tables.
-2. Реализовать Scripts и optimistic concurrency.
+2. Реализовать Scripts с локальными transactions/resource versions; глобальную
+   concurrency обеспечивать aggregate settings CAS.
 3. Собирать locale trie при cache fill из prepared synonym rows.
 4. Добавить longest-match-left-to-right и phrase semantics.
-5. Опубликовать GraphQL CRUD/diagnostics.
+5. Публиковать write operations через единую GraphQL `settingsUpdate` mutation.
 
 ### Этап 10. Product boosts
 
@@ -1390,7 +1410,7 @@ error — нет.
 2. Реализовать tenant-scoped product validation.
 3. Собирать exact original lookup map при cache fill конкретного boost/locale.
 4. Добавить boost-only candidates/cursor/Preview reason.
-5. Опубликовать GraphQL CRUD.
+5. Публиковать write operations через единую GraphQL `settingsUpdate` mutation.
 
 ### Этап 11. Status и Overview backend
 
@@ -1465,9 +1485,10 @@ error — нет.
 | Configuration/index изменились между страницами | Continuation остаётся валидной; пропуск или повтор товара допустим |
 | Boost-only product | Проходит publication/scope/filters/OOS |
 | Boost + business sort | Boost ranking выключен |
-| Settings transaction rollback | Committed settings и cache serving не меняются |
-| Concurrent update одного resource | Optimistic version conflict; чужие settings/synonyms/boosts не затрагиваются |
-| Добавление product в boost | Меняется только boost row и инвалидируется cache этого boost |
+| Batch validation failure | Aggregate version не меняется; все operations `applied: false` |
+| Aggregate version conflict | Operations не запускаются; возвращается `VERSION_CONFLICT` |
+| Partial failure после CAS | Version сохраняется; успешные operations не откатываются; ошибки агрегируются |
+| Добавление product в boost | Aggregate version увеличивается один раз, меняется boost и отдельный DBOS step инвалидирует его cache key |
 | Stale product event | Search rows не меняются |
 | GIN unavailable/`simple` contract missing | `SEARCH_INDEX_UNAVAILABLE`, no fallback |
 | `gin_fuzzy_search_limit` | `0`, totals/facets не получают random subset |
@@ -1486,8 +1507,10 @@ error — нет.
   hidden top-K или отдельного product mapping;
 - runtime search tables не partitioned, а storefront plans подтверждают
   tenant-scoped composite GIN scan по bound `store_id`;
-- configuration mutations атомарны на уровне resource, audit пишется в той же
-  transaction, а cache invalidation после commit является точечной;
+- единая configuration mutation использует предварительную batch-validation,
+  store-scoped aggregate CAS, последовательные operations и partial failure;
+  audit остаётся в локальной resource transaction, а cache invalidation
+  выполняется отдельным replay-safe DBOS step;
 - persisted global configuration snapshot/apply state отсутствует; document sync
   использует canonical Listing item workflow без дублирующего freshness state;
 - optimistic conflict и stale item event не перезаписывают новое состояние;

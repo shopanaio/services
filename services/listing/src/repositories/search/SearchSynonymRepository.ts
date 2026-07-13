@@ -33,12 +33,10 @@ export interface SearchSynonymGroupCreateInput extends SearchAuditInput {
 export interface SearchSynonymGroupUpdateInput
   extends SearchSynonymGroupCreateInput {
   groupId: string;
-  expectedVersion: number;
 }
 
 export interface SearchSynonymGroupDeleteInput extends SearchAuditInput {
   groupId: string;
-  expectedVersion: number;
 }
 
 export interface SearchSynonymClaimConflict {
@@ -254,14 +252,10 @@ export class SearchSynonymRepository extends BaseRepository {
   @Transactional()
   async update(
     input: SearchSynonymGroupUpdateInput,
-  ): Promise<SearchOptimisticMutationResult<SearchSynonymGroupAggregate>> {
+  ): Promise<Exclude<SearchOptimisticMutationResult<SearchSynonymGroupAggregate>, { status: "conflict" }>> {
     this.assertWriteInput(input);
-    this.assertExpectedVersion(input.expectedVersion);
     const current = await this.lockGroup(input.groupId);
     if (!current) return { status: "not_found" };
-    if (current.version !== input.expectedVersion) {
-      return { status: "conflict", currentVersion: current.version };
-    }
     const before: SearchSynonymGroupAggregate = {
       group: current,
       values: await this.getValues([input.groupId]),
@@ -325,16 +319,10 @@ export class SearchSynonymRepository extends BaseRepository {
   @Transactional()
   async delete(
     input: SearchSynonymGroupDeleteInput,
-  ): Promise<SearchOptimisticMutationResult<SearchSynonymGroupAggregate>> {
+  ): Promise<Exclude<SearchOptimisticMutationResult<SearchSynonymGroupAggregate>, { status: "conflict" }>> {
     this.assertAudit(input);
-    if (!Number.isInteger(input.expectedVersion) || input.expectedVersion <= 0) {
-      throw new Error("expectedVersion must be a positive integer");
-    }
     const current = await this.lockGroup(input.groupId);
     if (!current) return { status: "not_found" };
-    if (current.version !== input.expectedVersion) {
-      return { status: "conflict", currentVersion: current.version };
-    }
     const aggregate = {
       group: current,
       values: await this.getValues([input.groupId]),
@@ -520,12 +508,6 @@ export class SearchSynonymRepository extends BaseRepository {
     }
     if (!Number.isInteger(offset) || offset < 0) {
       throw new Error("offset must be a non-negative integer");
-    }
-  }
-
-  private assertExpectedVersion(expectedVersion: number): void {
-    if (!Number.isInteger(expectedVersion) || expectedVersion <= 0) {
-      throw new Error("expectedVersion must be a positive integer");
     }
   }
 }

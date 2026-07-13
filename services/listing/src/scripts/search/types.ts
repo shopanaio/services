@@ -7,9 +7,9 @@ import type {
   SearchSettings as SearchSettingsModel,
 } from "../../repositories/models/index.js";
 import type {
-  SearchFieldConfigurationInput,
   SearchOutOfStockPolicy,
-} from "../../resolvers/admin/generated/types.js";
+  SearchTextField,
+} from "../../repositories/search/searchRepositoryTypes.js";
 
 export interface SearchSynonymGroupWriteParams {
   locale: string;
@@ -19,22 +19,23 @@ export interface SearchSynonymGroupWriteParams {
 }
 
 export interface SearchSynonymGroupCreateParams
-  extends SearchSynonymGroupWriteParams {}
+  extends SearchSynonymGroupWriteParams {
+  clientMutationId: string;
+}
 
 export interface SearchSynonymGroupUpdateParams
   extends SearchSynonymGroupWriteParams {
   groupId: string;
-  expectedVersion: number;
 }
 
 export interface SearchSynonymGroupDeleteParams {
   groupId: string;
-  expectedVersion: number;
 }
 
 export interface SearchSynonymGroupResult {
   synonymGroup?: SearchSynonymGroupAggregate;
   deletedSynonymGroupId?: string;
+  cacheKeys?: string[];
   userErrors: UserError[];
 }
 
@@ -47,39 +48,41 @@ export interface SearchProductBoostWriteParams {
 }
 
 export interface SearchProductBoostCreateParams
-  extends SearchProductBoostWriteParams {}
+  extends SearchProductBoostWriteParams {
+  clientMutationId: string;
+}
 
 export interface SearchProductBoostUpdateParams
   extends SearchProductBoostWriteParams {
   boostId: string;
-  expectedVersion: number;
 }
 
 export interface SearchProductBoostDeleteParams {
   boostId: string;
-  expectedVersion: number;
 }
 
 export interface SearchProductBoostResult {
   productBoost?: SearchProductBoostAggregate;
   deletedProductBoostId?: string;
+  cacheKeys?: string[];
   userErrors: UserError[];
 }
 
+export interface SearchFieldConfiguration {
+  field: SearchTextField;
+  weight: number;
+}
+
 export interface SearchSettingsWriteParams {
-  fields: readonly SearchFieldConfigurationInput[];
+  fields: readonly SearchFieldConfiguration[];
   typoToleranceEnabled: boolean;
   outOfStockPolicy: SearchOutOfStockPolicy;
 }
 
-export interface SearchSettingsCreateParams extends SearchSettingsWriteParams {}
-
-export interface SearchSettingsUpdateParams extends SearchSettingsWriteParams {
-  expectedVersion: number;
-}
+export interface SearchSettingsUpdateParams extends SearchSettingsWriteParams {}
 
 export interface SearchSettingsResult {
   settings?: SearchSettingsModel;
-  currentVersion?: number;
+  cacheKeys?: string[];
   userErrors: UserError[];
 }

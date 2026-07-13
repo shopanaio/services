@@ -1,3 +1,7 @@
+export function searchSettingsCacheKey(storeId: string): string {
+  return `search:settings:${storeId}`;
+}
+
 export function searchSynonymsCacheKey(storeId: string, locale: string): string {
   return `search:synonyms:${storeId}:${locale}`;
 }

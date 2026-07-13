@@ -5,11 +5,9 @@ import {
   normalizeBoostPhrases,
   normalizeSearchLocale,
   validateCatalogProducts,
-  validateExpectedVersion,
   validateSearchResourceName,
 } from "./searchConfigurationValidation.js";
 import { searchConfigurationUserErrors } from "./scriptError.js";
-import { invalidateSearchCacheAfterCommit } from "./cacheInvalidation.js";
 import type {
   SearchProductBoostCreateParams,
   SearchProductBoostDeleteParams,
@@ -52,21 +50,17 @@ export class SearchProductBoostCreateScript extends BaseScript<
       actorId: this.currentUser.id,
       requestId: this.context.requestId,
     });
-    await invalidateSearchCacheAfterCommit({
-      cache: this.services.cache,
-      logger: this.logger,
-      storeId,
-      resourceType: "product_boost",
-      resourceId: productBoost.boost.boostId,
-      keys: [
+    return {
+      productBoost,
+      cacheKeys: [
         searchProductBoostCacheKey(
           storeId,
           locale,
           productBoost.boost.boostId,
         ),
       ],
-    });
-    return { productBoost, userErrors: [] };
+      userErrors: [],
+    };
   }
 
   protected handleError(error: unknown): SearchProductBoostResult {
@@ -82,7 +76,6 @@ export class SearchProductBoostUpdateScript extends BaseScript<
   protected async execute(
     params: SearchProductBoostUpdateParams,
   ): Promise<SearchProductBoostResult> {
-    validateExpectedVersion(params.expectedVersion);
     const current = await this.repository.searchProductBoost.findById(params.boostId);
     if (!current) {
       return { userErrors: [{ message: "Product boost not found", field: ["input", "id"], code: "NOT_FOUND" }] };
@@ -102,7 +95,6 @@ export class SearchProductBoostUpdateScript extends BaseScript<
     });
     const result = await this.repository.searchProductBoost.update({
       boostId: params.boostId,
-      expectedVersion: params.expectedVersion,
       locale,
       name,
       enabled: params.enabled,
@@ -111,23 +103,16 @@ export class SearchProductBoostUpdateScript extends BaseScript<
       actorId: this.currentUser.id,
       requestId: this.context.requestId,
     });
-    if (result.status === "conflict") {
-      return { userErrors: [{ message: `Product boost version conflict; current version is ${result.currentVersion}`, field: ["input", "expectedVersion"], code: "CONFIGURATION_CONFLICT" }] };
-    }
     if (result.status === "not_found") {
       return { userErrors: [{ message: "Product boost not found", field: ["input", "id"], code: "NOT_FOUND" }] };
     }
-    await invalidateSearchCacheAfterCommit({
-      cache: this.services.cache,
-      logger: this.logger,
-      storeId,
-      resourceType: "product_boost",
-      resourceId: params.boostId,
-      keys: [current.boost.locale, locale].map((value) =>
+    return {
+      productBoost: result.value,
+      cacheKeys: [current.boost.locale, locale].map((value) =>
         searchProductBoostCacheKey(storeId, value, params.boostId)
       ),
-    });
-    return { productBoost: result.value, userErrors: [] };
+      userErrors: [],
+    };
   }
 
   protected handleError(error: unknown): SearchProductBoostResult {
@@ -143,40 +128,28 @@ export class SearchProductBoostDeleteScript extends BaseScript<
   protected async execute(
     params: SearchProductBoostDeleteParams,
   ): Promise<SearchProductBoostResult> {
-    validateExpectedVersion(params.expectedVersion);
     const current = await this.repository.searchProductBoost.findById(params.boostId);
     if (!current) {
       return { userErrors: [{ message: "Product boost not found", field: ["input", "id"], code: "NOT_FOUND" }] };
     }
     const result = await this.repository.searchProductBoost.delete({
       boostId: params.boostId,
-      expectedVersion: params.expectedVersion,
       actorId: this.currentUser.id,
       requestId: this.context.requestId,
     });
-    if (result.status === "conflict") {
-      return { userErrors: [{ message: `Product boost version conflict; current version is ${result.currentVersion}`, field: ["input", "expectedVersion"], code: "CONFIGURATION_CONFLICT" }] };
-    }
     if (result.status === "not_found") {
       return { userErrors: [{ message: "Product boost not found", field: ["input", "id"], code: "NOT_FOUND" }] };
     }
-    await invalidateSearchCacheAfterCommit({
-      cache: this.services.cache,
-      logger: this.logger,
-      storeId: this.context.store.id,
-      resourceType: "product_boost",
-      resourceId: params.boostId,
-      keys: [
+    return {
+      productBoost: result.value,
+      deletedProductBoostId: params.boostId,
+      cacheKeys: [
         searchProductBoostCacheKey(
           this.context.store.id,
           current.boost.locale,
           params.boostId,
         ),
       ],
-    });
-    return {
-      productBoost: result.value,
-      deletedProductBoostId: params.boostId,
       userErrors: [],
     };
   }

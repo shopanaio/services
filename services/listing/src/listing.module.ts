@@ -19,6 +19,7 @@ import {
   FacetValueUnmergeWorkflow,
   FacetValueUpdateWorkflow,
 } from "./workflows/FacetMutationWorkflows.js";
+import { SearchSettingsUpdateWorkflow } from "./workflows/SearchSettingsUpdateWorkflow.js";
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: "listing" })],
@@ -38,6 +39,7 @@ import {
     FacetValueDeleteWorkflow,
     FacetValueMergeWorkflow,
     FacetValueUnmergeWorkflow,
+    SearchSettingsUpdateWorkflow,
   ],
 })
 export class ListingModule {}

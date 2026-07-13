@@ -1,61 +1,19 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type {
-  SearchOutOfStockPolicy,
   SearchSettingsValueInput,
   SearchTextField,
 } from "../../repositories/search/searchRepositoryTypes.js";
-import type {
-  SearchField,
-  SearchFieldConfigurationInput,
-  SearchOutOfStockPolicy as ApiSearchOutOfStockPolicy,
-} from "../../resolvers/admin/generated/types.js";
+import { searchSettingsCacheKey } from "../../search/configuration/cacheKeys.js";
 import { SearchFieldRegistry } from "../../search/planner/SearchFieldRegistry.js";
 import { SearchConfigurationInputError } from "./searchConfigurationValidation.js";
 import { searchConfigurationUserErrors } from "./scriptError.js";
 import type {
-  SearchSettingsCreateParams,
   SearchSettingsResult,
   SearchSettingsUpdateParams,
   SearchSettingsWriteParams,
 } from "./types.js";
 
 const fieldRegistry = new SearchFieldRegistry();
-
-export class SearchSettingsCreateScript extends BaseScript<
-  SearchSettingsCreateParams,
-  SearchSettingsResult
-> {
-  protected async execute(
-    params: SearchSettingsCreateParams,
-  ): Promise<SearchSettingsResult> {
-    const values = validateAndNormalizeSettings(params);
-    const result = await this.repository.searchSettings.update({
-      ...values,
-      expectedVersion: null,
-      actorId: this.currentUser.id,
-      requestId: this.context.requestId,
-    });
-
-    if (result.status === "conflict") {
-      return {
-        currentVersion: result.currentVersion,
-        userErrors: [{
-          message: "Search settings are already initialized",
-          field: ["input"],
-          code: "ALREADY_INITIALIZED",
-        }],
-      };
-    }
-    if (result.status === "not_found") {
-      throw new Error("Search settings create returned not_found");
-    }
-    return { settings: result.value, userErrors: [] };
-  }
-
-  protected handleError(error: unknown): SearchSettingsResult {
-    return { userErrors: searchConfigurationUserErrors(error) };
-  }
-}
 
 export class SearchSettingsUpdateScript extends BaseScript<
   SearchSettingsUpdateParams,
@@ -64,11 +22,9 @@ export class SearchSettingsUpdateScript extends BaseScript<
   protected async execute(
     params: SearchSettingsUpdateParams,
   ): Promise<SearchSettingsResult> {
-    validateSettingsExpectedVersion(params.expectedVersion);
-    const values = validateAndNormalizeSettings(params);
+    const values = validateAndNormalizeSearchSettings(params);
     const result = await this.repository.searchSettings.update({
       ...values,
-      expectedVersion: params.expectedVersion,
       actorId: this.currentUser.id,
       requestId: this.context.requestId,
     });
@@ -77,23 +33,16 @@ export class SearchSettingsUpdateScript extends BaseScript<
       return {
         userErrors: [{
           message: "Search settings are not initialized",
-          field: ["input"],
-          code: "NOT_INITIALIZED",
+          field: [],
+          code: "SETTINGS_NOT_INITIALIZED",
         }],
       };
     }
-    if (result.status === "conflict") {
-      return {
-        currentVersion: result.currentVersion,
-        userErrors: [{
-          message:
-            `Search settings version conflict; current version is ${result.currentVersion}`,
-          field: ["input", "expectedVersion"],
-          code: "CONFIGURATION_CONFLICT",
-        }],
-      };
-    }
-    return { settings: result.value, userErrors: [] };
+    return {
+      settings: result.value,
+      cacheKeys: [searchSettingsCacheKey(this.context.store.id)],
+      userErrors: [],
+    };
   }
 
   protected handleError(error: unknown): SearchSettingsResult {
@@ -101,17 +50,7 @@ export class SearchSettingsUpdateScript extends BaseScript<
   }
 }
 
-function validateSettingsExpectedVersion(expectedVersion: number): void {
-  if (!Number.isInteger(expectedVersion) || expectedVersion <= 0) {
-    throw new SearchConfigurationInputError([{
-      message: "Expected version must be a positive integer",
-      field: ["input", "expectedVersion"],
-      code: "INVALID_EXPECTED_VERSION",
-    }]);
-  }
-}
-
-function validateAndNormalizeSettings(
+export function validateAndNormalizeSearchSettings(
   params: SearchSettingsWriteParams,
 ): SearchSettingsValueInput {
   if (params.fields.length === 0) {
@@ -131,7 +70,7 @@ function validateAndNormalizeSettings(
   const weights = new Map<SearchTextField, number>();
 
   params.fields.forEach((configuration, index) => {
-    const field = toSearchTextField(configuration.field);
+    const field = configuration.field;
     fieldRegistry.get(field);
     if (seen.has(field)) {
       userErrors.push({
@@ -172,34 +111,6 @@ function validateAndNormalizeSettings(
     enabledFields,
     fieldWeights,
     typoToleranceEnabled: params.typoToleranceEnabled,
-    outOfStockPolicy: toSearchOutOfStockPolicy(params.outOfStockPolicy),
+    outOfStockPolicy: params.outOfStockPolicy,
   };
-}
-
-function toSearchTextField(field: SearchField): SearchTextField {
-  switch (field) {
-    case "PRODUCT_TITLE":
-      return "product_title";
-    case "VARIANT_TITLE":
-      return "variant_title";
-    case "VENDOR_NAME":
-      return "vendor_name";
-    case "CATEGORY_NAME":
-      return "category_name";
-  }
-  throw new Error(`Unsupported search field: ${field}`);
-}
-
-function toSearchOutOfStockPolicy(
-  policy: ApiSearchOutOfStockPolicy,
-): SearchOutOfStockPolicy {
-  switch (policy) {
-    case "SHOW":
-      return "SHOW";
-    case "HIDE":
-      return "HIDE";
-    case "PLACE_LAST":
-      return "PLACE_LAST";
-  }
-  throw new Error(`Unsupported search out-of-stock policy: ${policy}`);
 }
