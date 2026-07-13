@@ -309,24 +309,19 @@ function buildProductSortRows(
   item: ListingPreparedSyncAction["params"]["item"],
   productAvailable: boolean
 ): ListingSyncWriteModelJson["productSortRows"] {
-  const title =
-    item.content.translations[item.content.defaultLocale]?.title ??
-    Object.values(item.content.translations)[0]?.title ??
-    item.id;
   const rows: Omit<ProductSortRowInput, "productDocId">[] = [
     {
       productId: item.id,
       sortKind: "newest",
       boolValue: productAvailable,
-      timestamptzValue: item.createdAt,
-      timestamptzValue2: item.updatedAt,
+      timestamptzValue: item.publishedAt,
+      timestamptzValue2: item.createdAt,
     },
     {
       productId: item.id,
-      sortKind: "name",
-      locale: item.content.defaultLocale,
+      sortKind: "created",
       boolValue: productAvailable,
-      textValue: title,
+      timestamptzValue: item.createdAt,
     },
     {
       productId: item.id,
@@ -335,6 +330,18 @@ function buildProductSortRows(
       bigintValue: item.availability.totalQuantity ?? 0,
     },
   ];
+
+  for (const [locale, translation] of Object.entries(
+    item.content.translations
+  )) {
+    rows.push({
+      productId: item.id,
+      sortKind: "name",
+      locale,
+      boolValue: productAvailable,
+      textValue: translation.title,
+    });
+  }
 
   for (const price of item.priceRanges) {
     if (price.minAmountMinor !== null) {

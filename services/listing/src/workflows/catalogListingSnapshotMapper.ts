@@ -111,8 +111,8 @@ function mapScopes(
     .map((category) => ({
       scopeType: "category" as const,
       categoryId: category.id,
-      primary: category.id === primaryCategoryId,
-      manualRank: null,
+      primary: category.primary ?? category.id === primaryCategoryId,
+      manualRank: category.manualRank ?? null,
     }))
     .sort((left, right) => {
       if (left.primary !== right.primary) return left.primary ? -1 : 1;

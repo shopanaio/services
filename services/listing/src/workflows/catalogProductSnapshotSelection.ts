@@ -77,7 +77,7 @@ function buildProductSnapshotSelectionFromArgs(
                   },
                   primaryCategory: {
                     fieldName: "primaryCategory",
-                    fields: ["id"],
+                    fields: ["id", "primary", "manualRank"],
                     populate: {
                       content: {
                         fieldName: "content",
@@ -87,7 +87,7 @@ function buildProductSnapshotSelectionFromArgs(
                   },
                   categories: {
                     fieldName: "categories",
-                    fields: ["id"],
+                    fields: ["id", "primary", "manualRank"],
                     populate: {
                       content: {
                         fieldName: "content",

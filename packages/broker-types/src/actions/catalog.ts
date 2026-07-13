@@ -281,7 +281,10 @@ export interface CatalogProductCategorySnapshotSelection {
   fieldName?: "primaryCategory" | "categories";
 }
 
-export type CatalogProductCategorySnapshotField = "id";
+export type CatalogProductCategorySnapshotField =
+  | "id"
+  | "primary"
+  | "manualRank";
 
 export interface CatalogProductCategorySnapshotPopulate {
   content?: CatalogCategoryLocalizedContentSnapshotSelection;
@@ -497,6 +500,10 @@ export interface CatalogProductAvailabilitySnapshot {
 export interface CatalogProductCategorySnapshot {
   /** Source: catalog.product_category.category_id. */
   id: string;
+  /** Source: catalog.product_category.is_primary. */
+  primary?: boolean;
+  /** Source: catalog.product_category.lexo_rank. */
+  manualRank?: string | null;
   /** Source: catalog.category_translation rows. */
   content: CatalogCategoryLocalizedContentSnapshot[];
 }

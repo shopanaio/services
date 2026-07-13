@@ -104,7 +104,14 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
     );
     const primary = links.find((link) => link.isPrimary);
     return primary
-      ? new CatalogProductCategorySnapshotResolver(primary.categoryId, this.$ctx)
+      ? new CatalogProductCategorySnapshotResolver(
+          {
+            categoryId: primary.categoryId,
+            primary: true,
+            manualRank: primary.lexoRank,
+          },
+          this.$ctx
+        )
       : null;
   }
 
@@ -120,7 +127,15 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
         return a.categoryId.localeCompare(b.categoryId);
       })
       .map(
-        (link) => new CatalogProductCategorySnapshotResolver(link.categoryId, this.$ctx)
+        (link) =>
+          new CatalogProductCategorySnapshotResolver(
+            {
+              categoryId: link.categoryId,
+              primary: link.isPrimary,
+              manualRank: link.lexoRank,
+            },
+            this.$ctx
+          )
       );
   }
 
