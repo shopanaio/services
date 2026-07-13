@@ -156,13 +156,11 @@ test.describe('Listing and search lifecycle', () => {
     const sizeSEntries = searchEntries.filter(
       (entry) => entry.definition.options[facets[1].sourceSlug] === 's',
     );
-    const filteredFacetCounts = visiblePositiveFacetCounts(
-      expectedFilteredFacetCounts(
-        createdFacets,
-        facets,
-        definitionsOf(searchEntries),
-        { [facets[1].sourceSlug]: 's' },
-      ),
+    const filteredFacetCounts = expectedFilteredFacetCounts(
+      createdFacets,
+      facets,
+      definitionsOf(searchEntries),
+      { [facets[1].sourceSlug]: 's' },
     );
     const sortCases: { orderBy: ApiListingOrderByInput; productIds: string[] }[] = [
       {
@@ -584,17 +582,6 @@ function expectedFilteredFacetCounts(
           ).length,
         ]),
       ),
-    ]),
-  );
-}
-
-function visiblePositiveFacetCounts(
-  facetCounts: Record<string, Record<string, number>>,
-): Record<string, Record<string, number>> {
-  return Object.fromEntries(
-    Object.entries(facetCounts).map(([facetId, values]) => [
-      facetId,
-      Object.fromEntries(Object.entries(values).filter(([, count]) => count > 0)),
     ]),
   );
 }

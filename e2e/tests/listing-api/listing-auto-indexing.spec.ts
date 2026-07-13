@@ -944,14 +944,14 @@ async function createListingProduct(
     })),
   });
   const variant = product.variants.edges[0]?.node;
-  const inventoryItemId = variant?.inventoryItem?.id;
 
-  if (!variant || !inventoryItemId) {
-    throw new Error(`Created product ${product.id} does not have a variant inventory item`);
+  if (!variant) {
+    throw new Error(`Created product ${product.id} does not have a variant`);
   }
 
-  await setVariantStock(api, {
-    inventoryItemId,
+  const productWithStock = await setVariantStock(api, {
+    product,
+    variantId: variant.id,
     warehouseId: input.warehouseId,
     onHand: input.definition.stock,
   });
@@ -960,7 +960,7 @@ async function createListingProduct(
     categoryId: input.category.id,
   });
 
-  return product;
+  return productWithStock;
 }
 
 async function createOptionFacets(api: Api, facets: FacetDefinition[]): Promise<ApiFacet[]> {
@@ -1099,25 +1099,29 @@ async function createWarehouse(api: Api, codePrefix: string): Promise<{ id: stri
 async function setVariantStock(
   api: Api,
   input: {
-    inventoryItemId: string;
+    product: ApiProduct;
+    variantId: string;
     warehouseId: string;
     onHand: number;
   },
-) {
-  const { data } = await api.admin.mutation('inventory-api/VariantSetStock', {
-    variables: {
-      input: {
-        id: input.inventoryItemId,
-        trackInventory: true,
-        stock: {
-          warehouseId: input.warehouseId,
-          onHand: input.onHand,
+): Promise<ApiProduct> {
+  return api.admin.product.update({
+    productId: input.product.id,
+    expectedRevision: input.product.revision,
+    operations: {
+      variants: [
+        {
+          action: 'UPDATE',
+          variantId: input.variantId,
+          inventory: {
+            warehouseId: input.warehouseId,
+            onHand: input.onHand,
+            trackInventory: true,
+          },
         },
-      },
+      ],
     },
   });
-
-  expect(data.inventoryMutation.inventoryItemUpdate.userErrors).toHaveLength(0);
 }
 
 async function addProductToCategory(
