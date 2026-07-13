@@ -246,10 +246,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
           if (!batchResult.applied) {
             results[index].applied = false;
             results[index].errors.push(
-              ...prefixUserErrors(
-                batchResult.errors,
-                input.operations[index].meta?.fieldPrefix,
-              ),
+              ...prefixUserErrors(batchResult.errors, input.operations[index]),
             );
           }
         }
@@ -285,19 +282,13 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
           this.kernel.repository,
           op.params,
         );
-        errors = prefixUserErrors(
-          validation.userErrors,
-          op.meta?.fieldPrefix,
-        );
+        errors = prefixUserErrors(validation.userErrors, op);
       } else if (op.type === "productFeaturesSync") {
         const validation = await validateFeatureSyncParams(
           this.kernel.repository,
           op.params,
         );
-        errors = prefixUserErrors(
-          validation.userErrors,
-          op.meta?.fieldPrefix,
-        );
+        errors = prefixUserErrors(validation.userErrors, op);
       }
 
       if (errors.length > 0) {
@@ -1598,14 +1589,15 @@ function prefixOperationResultErrors(
 ): OperationResult {
   return {
     ...result,
-    errors: prefixUserErrors(result.errors, op.meta?.fieldPrefix),
+    errors: prefixUserErrors(result.errors, op),
   };
 }
 
 function prefixUserErrors(
   errors: readonly UserError[],
-  fieldPrefix: readonly string[] | undefined,
+  op: ProductUpdateOperation,
 ): UserError[] {
+  const fieldPrefix = op.meta?.fieldPrefix;
   if (!fieldPrefix || fieldPrefix.length === 0) {
     return [...errors];
   }
@@ -1613,12 +1605,44 @@ function prefixUserErrors(
   const lastPrefixPart = fieldPrefix[fieldPrefix.length - 1];
   return errors.map((error) => {
     const field = error.field ?? [];
-    const relativeField = field[0] === lastPrefixPart ? field.slice(1) : field;
+    let relativeField = field;
+    if (relativeField[0] === lastPrefixPart || relativeField[0] === "input") {
+      relativeField = relativeField.slice(1);
+    }
+
+    if (isProductIdField(op, relativeField)) {
+      return {
+        ...error,
+        field: productIdFieldPath(fieldPrefix),
+      };
+    }
+
+    if (op.type === "variantDelete" && relativeField[0] === "id") {
+      relativeField = ["variantId", ...relativeField.slice(1)];
+    }
+
     return {
       ...error,
       field: [...fieldPrefix, ...relativeField],
     };
   });
+}
+
+function isProductIdField(
+  op: ProductUpdateOperation,
+  field: readonly string[],
+): boolean {
+  return (
+    field[0] === "productId" ||
+    (op.type === "productUpdate" && field[0] === "id")
+  );
+}
+
+function productIdFieldPath(fieldPrefix: readonly string[]): string[] {
+  const operationsIndex = fieldPrefix.lastIndexOf("operations");
+  return operationsIndex === -1
+    ? ["productId"]
+    : [...fieldPrefix.slice(0, operationsIndex), "productId"];
 }
 
 function validateVariantOptions(args: {
