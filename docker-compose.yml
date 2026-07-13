@@ -10,10 +10,10 @@ services:
       context: ./e2e
       dockerfile: Dockerfile.postgres
       args:
-        PARADEDB_IMAGE: paradedb/paradedb:0.24.1-pg17
-        POSTGRES_MAJOR: "17"
+        POSTGRES_IMAGE: postgres:18
+        POSTGRES_MAJOR: "18"
         PG_ROARINGBITMAP_VERSION: 1.2.0
-    image: shopana-e2e-postgres:pg17-paradedb-roaringbitmap
+    image: shopana-postgres:pg18-roaringbitmap
     container_name: shopana-postgres
     restart: unless-stopped
     environment:
@@ -39,8 +39,6 @@ services:
       - "logging_collector=off" # Логи идут в stdout
       - "-c"
       - "max_connections=200" # Increased from default 100
-      - "-c"
-      - "shared_preload_libraries=pg_search,pg_cron"
 
   # ============================================
   # MinIO (S3-compatible storage)
