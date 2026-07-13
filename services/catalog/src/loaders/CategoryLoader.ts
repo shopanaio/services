@@ -11,6 +11,7 @@ import type { Repository } from "../repositories/Repository.js";
 export class CategoryLoader {
   public readonly category: DataLoader<string, Category | null>;
   public readonly categoryTranslation: DataLoader<string, CategoryTranslation | null>;
+  public readonly categoryTranslations: DataLoader<string, CategoryTranslation[]>;
   public readonly categoryMedia: DataLoader<string, CategoryMedia[]>;
   public readonly categorySeo: DataLoader<string, CategorySeo | null>;
   public readonly categoryChildrenIds: DataLoader<string, string[]>;
@@ -36,6 +37,17 @@ export class CategoryLoader {
         );
         return categoryIds.map(
           (id) => results.find((t) => t.categoryId === id) ?? null
+        );
+      }
+    );
+
+    this.categoryTranslations = new DataLoader<string, CategoryTranslation[]>(
+      async (categoryIds) => {
+        const results = await repository.category.getAllTranslationsByCategoryIds(
+          categoryIds
+        );
+        return categoryIds.map((id) =>
+          results.filter((translation) => translation.categoryId === id)
         );
       }
     );

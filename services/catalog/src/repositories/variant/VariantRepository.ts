@@ -463,6 +463,22 @@ export class VariantRepository extends BaseRepository {
       );
   }
 
+  async getAllTranslationsByVariantIds(
+    variantIds: readonly string[]
+  ): Promise<VariantTranslation[]> {
+    if (variantIds.length === 0) return [];
+
+    return this.connection
+      .select()
+      .from(variantTranslation)
+      .where(
+        and(
+          eq(variantTranslation.storeId, this.storeId),
+          inArray(variantTranslation.variantId, [...variantIds])
+        )
+      );
+  }
+
   async getActivePricingByVariantIds(
     variantIds: readonly string[]
   ): Promise<ItemPricing[]> {

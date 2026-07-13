@@ -37,6 +37,7 @@ export class Loader {
   public readonly variant;
   public readonly variantIds;
   public readonly variantTranslation;
+  public readonly variantTranslations;
   public readonly variantPricing;
   public readonly variantPriceById;
   public readonly variantPriceIds;
@@ -46,6 +47,7 @@ export class Loader {
   // Category
   public readonly category;
   public readonly categoryTranslation;
+  public readonly categoryTranslations;
   public readonly categoryMedia;
   public readonly categorySeo;
   public readonly categoryChildrenIds;
@@ -136,6 +138,7 @@ export class Loader {
     this.variant = variantLoader.variant;
     this.variantIds = variantLoader.variantIds;
     this.variantTranslation = variantLoader.variantTranslation;
+    this.variantTranslations = variantLoader.variantTranslations;
     this.variantPricing = variantLoader.variantPricing;
     this.variantPriceById = variantLoader.variantPriceById;
     this.variantPriceIds = variantLoader.variantPriceIds;
@@ -145,6 +148,7 @@ export class Loader {
     // Category
     this.category = categoryLoader.category;
     this.categoryTranslation = categoryLoader.categoryTranslation;
+    this.categoryTranslations = categoryLoader.categoryTranslations;
     this.categoryMedia = categoryLoader.categoryMedia;
     this.categorySeo = categoryLoader.categorySeo;
     this.categoryChildrenIds = categoryLoader.categoryChildrenIds;

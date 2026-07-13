@@ -1,11 +1,15 @@
 import type {
   CatalogProductAvailabilitySnapshot,
+  CatalogProductVariantInventoryItemSnapshot,
   CatalogProductVariantPriceSnapshot,
+  CatalogVariantLocalizedContentSnapshot,
 } from "@shopana/broker-types";
 import { PreloadNotFoundError } from "@shopana/type-resolver";
 import { CatalogProductAvailabilitySnapshotResolver } from "./CatalogProductAvailabilitySnapshotResolver.js";
 import { CatalogProductVariantOptionSelectionSnapshotResolver } from "./CatalogProductVariantOptionSelectionSnapshotResolver.js";
+import { CatalogProductVariantInventoryItemSnapshotResolver } from "./CatalogProductVariantInventoryItemSnapshotResolver.js";
 import { CatalogProductVariantPriceSnapshotResolver } from "./CatalogProductVariantPriceSnapshotResolver.js";
+import { CatalogVariantLocalizedContentSnapshotResolver } from "./CatalogVariantLocalizedContentSnapshotResolver.js";
 import { ServiceType } from "./ServiceType.js";
 
 export class CatalogProductVariantSnapshotResolver extends ServiceType<
@@ -18,6 +22,8 @@ export class CatalogProductVariantSnapshotResolver extends ServiceType<
     updatedAt: string;
     availability: CatalogProductAvailabilitySnapshot;
     prices: CatalogProductVariantPriceSnapshot[];
+    content: CatalogVariantLocalizedContentSnapshot[];
+    inventoryItem: CatalogProductVariantInventoryItemSnapshot | null;
     options: Array<{
       id?: string;
       handle: string;
@@ -36,9 +42,11 @@ export class CatalogProductVariantSnapshotResolver extends ServiceType<
       );
     }
 
-    const [prices, optionSelections] = await Promise.all([
+    const [prices, optionSelections, content, inventoryItem] = await Promise.all([
       this.createPriceSnapshots(),
       this.createOptionSelectionSnapshots(),
+      this.createContentSnapshots(),
+      this.createInventoryItemSnapshot(),
     ]);
 
     return {
@@ -53,6 +61,8 @@ export class CatalogProductVariantSnapshotResolver extends ServiceType<
       ).$snapshot(),
       prices,
       options: optionSelections,
+      content,
+      inventoryItem,
     };
   }
 
@@ -108,6 +118,38 @@ export class CatalogProductVariantSnapshotResolver extends ServiceType<
     );
   }
 
+  async content(): Promise<CatalogVariantLocalizedContentSnapshotResolver[]> {
+    const translations = await this.$ctx.loaders.variantTranslations.load(
+      this.$props
+    );
+    return translations
+      .filter(
+        (translation) =>
+          typeof translation.title === "string" &&
+          translation.title.trim().length > 0
+      )
+      .sort((left, right) => left.locale.localeCompare(right.locale))
+      .map(
+        (translation) =>
+          new CatalogVariantLocalizedContentSnapshotResolver(
+            { variantId: this.$props, locale: translation.locale },
+            this.$ctx
+          )
+      );
+  }
+
+  async inventoryItem(): Promise<CatalogProductVariantInventoryItemSnapshotResolver | null> {
+    const inventoryItem = await this.$ctx.loaders.inventoryItemByVariant.load(
+      this.$props
+    );
+    return inventoryItem
+      ? new CatalogProductVariantInventoryItemSnapshotResolver(
+          this.$props,
+          this.$ctx
+        )
+      : null;
+  }
+
   async $snapshot() {
     return this.$data;
   }
@@ -122,5 +164,19 @@ export class CatalogProductVariantSnapshotResolver extends ServiceType<
   private async createOptionSelectionSnapshots() {
     const resolvers = await this.options();
     return Promise.all(resolvers.map((resolver) => resolver.$snapshot()));
+  }
+
+  private async createContentSnapshots(): Promise<
+    CatalogVariantLocalizedContentSnapshot[]
+  > {
+    const resolvers = await this.content();
+    return Promise.all(resolvers.map((resolver) => resolver.$snapshot()));
+  }
+
+  private async createInventoryItemSnapshot(): Promise<
+    CatalogProductVariantInventoryItemSnapshot | null
+  > {
+    const resolver = await this.inventoryItem();
+    return resolver ? resolver.$snapshot() : null;
   }
 }

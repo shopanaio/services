@@ -7,4 +7,8 @@ export { ServiceQueryResolver } from "./QueryResolver.js";
 export type { ServiceQueryProductsArgs } from "./QueryResolver.js";
 export { ServiceProductConnectionResolver } from "./ProductConnectionResolver.js";
 export { ProductSnapshotResolver } from "./ProductSnapshotResolver.js";
+export { CatalogProductVendorSnapshotResolver } from "./CatalogProductVendorSnapshotResolver.js";
+export { CatalogCategoryLocalizedContentSnapshotResolver } from "./CatalogCategoryLocalizedContentSnapshotResolver.js";
+export { CatalogVariantLocalizedContentSnapshotResolver } from "./CatalogVariantLocalizedContentSnapshotResolver.js";
+export { CatalogProductVariantInventoryItemSnapshotResolver } from "./CatalogProductVariantInventoryItemSnapshotResolver.js";
 export { CatalogProductSeoSnapshotResolver } from "./CatalogProductSeoSnapshotResolver.js";

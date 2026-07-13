@@ -14,6 +14,7 @@ import { CatalogProductLocalizedContentSnapshotResolver } from "./CatalogProduct
 import { CatalogProductSeoSnapshotResolver } from "./CatalogProductSeoSnapshotResolver.js";
 import { CatalogProductTagSnapshotResolver } from "./CatalogProductTagSnapshotResolver.js";
 import { CatalogProductVariantSnapshotResolver } from "./CatalogProductVariantSnapshotResolver.js";
+import { CatalogProductVendorSnapshotResolver } from "./CatalogProductVendorSnapshotResolver.js";
 import { ServiceType } from "./ServiceType.js";
 
 export class ProductSnapshotResolver extends ServiceType<string, Product> {
@@ -32,7 +33,7 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
   }
 
   snapshotVersion(): CatalogProductSnapshotVersion {
-    return "2026-07-05";
+    return "2026-07-13";
   }
 
   async storeId(): Promise<string> {
@@ -81,6 +82,13 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
 
   async seo(): Promise<CatalogProductSeoSnapshotResolver[]> {
     return this.seoResolvers();
+  }
+
+  async vendor(): Promise<CatalogProductVendorSnapshotResolver | null> {
+    const vendorId = await this.$get("vendorId");
+    return vendorId
+      ? new CatalogProductVendorSnapshotResolver(vendorId, this.$ctx)
+      : null;
   }
 
   availability(): CatalogProductAvailabilitySnapshotResolver {
@@ -141,6 +149,7 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
     const [
       content,
       seo,
+      vendor,
       availability,
       primaryCategory,
       categories,
@@ -150,6 +159,7 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
     ] = await Promise.all([
       this.contentSnapshot(),
       this.seoSnapshot(),
+      this.vendorSnapshot(),
       this.availability().$snapshot(),
       this.primaryCategorySnapshot(),
       this.categorySnapshots(),
@@ -173,6 +183,7 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
       vendorId: product.vendorId,
       content,
       seo,
+      vendor,
       availability,
       primaryCategory,
       categories,
@@ -196,6 +207,11 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
     return Promise.all(
       (await resolvers).map(async (resolver) => resolver.$snapshot())
     );
+  }
+
+  private async vendorSnapshot() {
+    const resolver = await this.vendor();
+    return resolver ? resolver.$snapshot() : null;
   }
 
   private async localizedContentResolvers(): Promise<

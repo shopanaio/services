@@ -40,6 +40,10 @@ type CatalogQueryResult =
               createdAt?: string;
               updatedAt?: string;
               vendorId?: string | null;
+              vendor?: {
+                id?: string;
+                name?: string;
+              } | null;
               content?: Array<{
                 locale?: string;
                 title?: string;
@@ -65,9 +69,17 @@ type CatalogQueryResult =
               };
               primaryCategory?: {
                 id?: string;
+                content?: Array<{
+                  locale?: string;
+                  name?: string;
+                }>;
               } | null;
               categories?: Array<{
                 id?: string;
+                content?: Array<{
+                  locale?: string;
+                  name?: string;
+                }>;
               }>;
               tags?: Array<{
                 id?: string;
@@ -95,6 +107,14 @@ type CatalogQueryResult =
                   currencyCode?: string;
                   amountMinor?: number | null;
                 }>;
+                content?: Array<{
+                  locale?: string;
+                  title?: string;
+                }>;
+                inventoryItem?: {
+                  id?: string;
+                  sku?: string | null;
+                } | null;
                 options?: Array<{
                   id?: string;
                   handle?: string;
@@ -191,6 +211,10 @@ function buildFullProductSnapshotSelectionFromArgs(args: unknown) {
                     fieldName: 'seo',
                     fields: ['locale', 'seoTitle', 'seoDescription'],
                   },
+                  vendor: {
+                    fieldName: 'vendor',
+                    fields: ['id', 'name'],
+                  },
                   availability: {
                     fieldName: 'availability',
                     fields: ['availableForSale', 'totalQuantity'],
@@ -198,10 +222,22 @@ function buildFullProductSnapshotSelectionFromArgs(args: unknown) {
                   primaryCategory: {
                     fieldName: 'primaryCategory',
                     fields: ['id'],
+                    populate: {
+                      content: {
+                        fieldName: 'content',
+                        fields: ['locale', 'name'],
+                      },
+                    },
                   },
                   categories: {
                     fieldName: 'categories',
                     fields: ['id'],
+                    populate: {
+                      content: {
+                        fieldName: 'content',
+                        fields: ['locale', 'name'],
+                      },
+                    },
                   },
                   tags: {
                     fieldName: 'tags',
@@ -228,6 +264,14 @@ function buildFullProductSnapshotSelectionFromArgs(args: unknown) {
                       prices: {
                         fieldName: 'prices',
                         fields: ['currencyCode', 'amountMinor'],
+                      },
+                      content: {
+                        fieldName: 'content',
+                        fields: ['locale', 'title'],
+                      },
+                      inventoryItem: {
+                        fieldName: 'inventoryItem',
+                        fields: ['id', 'sku'],
                       },
                       options: {
                         fieldName: 'options',
@@ -294,6 +338,17 @@ test.describe('Catalog query action', () => {
       name: 'Catalog Query Action Category',
       handle: `catalog-query-action-category-${crypto.randomUUID().slice(0, 8)}`,
     });
+    const { data: vendorData } = await api.admin.mutation('inventory-api/VendorCreate', {
+      variables: {
+        input: {
+          name: 'Catalog Query Action Vendor',
+        },
+      },
+    });
+    const vendorResult = vendorData.catalogMutation.vendorCreate;
+    expect(vendorResult.userErrors).toHaveLength(0);
+    expect(vendorResult.vendor).toBeTruthy();
+    const vendor = vendorResult.vendor!;
     const tag = await api.admin.tag.create({
       name: 'Catalog Query Action Tag',
       handle: `catalog-query-action-tag-${crypto.randomUUID().slice(0, 8)}`,
@@ -308,6 +363,7 @@ test.describe('Catalog query action', () => {
             { categoryId: category.id, action: 'ADD' },
             { categoryId: category.id, action: 'SET_PRIMARY' },
           ],
+          vendorId: vendor.id,
           tags: [{ tagId: tag.id, action: 'ADD' }],
         },
       },
@@ -340,6 +396,7 @@ test.describe('Catalog query action', () => {
     expect(featuresResult.features[0].values).toHaveLength(2);
 
     const categoryId = decodeGlobalId(category.id).id;
+    const vendorId = decodeGlobalId(vendor.id).id;
     const tagId = decodeGlobalId(tag.id).id;
     const featureId = decodeGlobalId(featuresResult.features[0].id).id;
     const featureValueIds = featuresResult.features[0].values.map((value: { id: string }) =>
@@ -367,7 +424,7 @@ test.describe('Catalog query action', () => {
     const node = products?.edges?.[0]?.node;
     expect(node).toEqual(
       expect.objectContaining({
-        snapshotVersion: '2026-07-05',
+        snapshotVersion: '2026-07-13',
         id: productId,
         storeId,
         revision: expect.any(Number),
@@ -375,7 +432,7 @@ test.describe('Catalog query action', () => {
         handle,
         status: 'draft',
         publishedAt: null,
-        vendorId: null,
+        vendorId,
       }),
     );
     expect(node?.revision).toBeGreaterThan(product.revision);
@@ -387,11 +444,27 @@ test.describe('Catalog query action', () => {
       }),
     );
     expect(node?.seo).toEqual([]);
-    expect(node?.primaryCategory).toEqual({ id: categoryId });
+    expect(node?.vendor).toEqual({
+      id: vendorId,
+      name: 'Catalog Query Action Vendor',
+    });
+    expect(node?.primaryCategory).toEqual({
+      id: categoryId,
+      content: expect.arrayContaining([
+        expect.objectContaining({
+          name: 'Catalog Query Action Category',
+        }),
+      ]),
+    });
     expect(node?.categories).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: categoryId,
+          content: expect.arrayContaining([
+            expect.objectContaining({
+              name: 'Catalog Query Action Category',
+            }),
+          ]),
         }),
       ]),
     );
@@ -456,6 +529,11 @@ test.describe('Catalog query action', () => {
               amountMinor: 1299,
             }),
           ]),
+          content: [],
+          inventoryItem: {
+            id: expect.any(String),
+            sku: null,
+          },
           options: expect.arrayContaining([
             expect.objectContaining({
               handle: 'size',
@@ -525,7 +603,7 @@ test.describe('Catalog query action', () => {
       expect(edge.cursor).toBeTruthy();
       expect(edge.node).toEqual(
         expect.objectContaining({
-          snapshotVersion: '2026-07-05',
+          snapshotVersion: '2026-07-13',
           storeId,
           kind: 'BASE',
           status: 'draft',
@@ -535,6 +613,11 @@ test.describe('Catalog query action', () => {
       expect(edge.node?.variants).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
+            content: [],
+            inventoryItem: {
+              id: expect.any(String),
+              sku: null,
+            },
             prices: expect.arrayContaining([
               expect.objectContaining({
                 currencyCode: 'USD',

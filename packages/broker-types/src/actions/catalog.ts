@@ -208,6 +208,7 @@ export type ProductSnapshotField =
 export interface ProductSnapshotPopulate {
   content?: CatalogProductLocalizedContentSnapshotSelection;
   seo?: CatalogProductSeoSnapshotSelection;
+  vendor?: CatalogProductVendorSnapshotSelection;
   availability?: CatalogProductAvailabilitySnapshotSelection;
   primaryCategory?: CatalogProductCategorySnapshotSelection;
   categories?: CatalogProductCategorySnapshotSelection;
@@ -215,6 +216,15 @@ export interface ProductSnapshotPopulate {
   features?: CatalogProductFeatureSelectionSnapshotSelection;
   variants?: CatalogProductVariantSnapshotSelection;
 }
+
+export interface CatalogProductVendorSnapshotSelection {
+  fields?: CatalogProductVendorSnapshotField[];
+  populate?: never;
+  args?: never;
+  fieldName?: "vendor";
+}
+
+export type CatalogProductVendorSnapshotField = "id" | "name";
 
 export interface CatalogProductLocalizedContentSnapshotSelection {
   fields?: CatalogProductLocalizedContentSnapshotField[];
@@ -266,12 +276,25 @@ export type CatalogProductAvailabilitySnapshotField =
 
 export interface CatalogProductCategorySnapshotSelection {
   fields?: CatalogProductCategorySnapshotField[];
-  populate?: never;
+  populate?: CatalogProductCategorySnapshotPopulate;
   args?: never;
   fieldName?: "primaryCategory" | "categories";
 }
 
 export type CatalogProductCategorySnapshotField = "id";
+
+export interface CatalogProductCategorySnapshotPopulate {
+  content?: CatalogCategoryLocalizedContentSnapshotSelection;
+}
+
+export interface CatalogCategoryLocalizedContentSnapshotSelection {
+  fields?: CatalogCategoryLocalizedContentSnapshotField[];
+  populate?: never;
+  args?: never;
+  fieldName?: "content";
+}
+
+export type CatalogCategoryLocalizedContentSnapshotField = "locale" | "name";
 
 export interface CatalogProductTagSnapshotSelection {
   fields?: CatalogProductTagSnapshotField[];
@@ -322,7 +345,27 @@ export interface CatalogProductVariantSnapshotPopulate {
   availability?: CatalogProductAvailabilitySnapshotSelection;
   prices?: CatalogProductVariantPriceSnapshotSelection;
   options?: CatalogProductVariantOptionSelectionSnapshotSelection;
+  content?: CatalogVariantLocalizedContentSnapshotSelection;
+  inventoryItem?: CatalogProductVariantInventoryItemSnapshotSelection;
 }
+
+export interface CatalogVariantLocalizedContentSnapshotSelection {
+  fields?: CatalogVariantLocalizedContentSnapshotField[];
+  populate?: never;
+  args?: never;
+  fieldName?: "content";
+}
+
+export type CatalogVariantLocalizedContentSnapshotField = "locale" | "title";
+
+export interface CatalogProductVariantInventoryItemSnapshotSelection {
+  fields?: CatalogProductVariantInventoryItemSnapshotField[];
+  populate?: never;
+  args?: never;
+  fieldName?: "inventoryItem";
+}
+
+export type CatalogProductVariantInventoryItemSnapshotField = "id" | "sku";
 
 export interface CatalogProductVariantPriceSnapshotSelection {
   fields?: CatalogProductVariantPriceSnapshotField[];
@@ -357,7 +400,7 @@ export interface CatalogProductOptionValueRefSelection {
 
 export type CatalogProductOptionValueRefField = "id" | "handle";
 
-export type CatalogProductSnapshotVersion = "2026-07-05";
+export type CatalogProductSnapshotVersion = "2026-07-13";
 
 export type CatalogProductKind = "BASE" | "BUNDLE";
 
@@ -390,6 +433,8 @@ export interface ProductSnapshot {
   content: CatalogProductLocalizedContentSnapshot[];
   /** Source: catalog.product_seo rows. */
   seo: CatalogProductSeoSnapshot[];
+  /** Source: catalog.vendor. */
+  vendor: CatalogProductVendorSnapshot | null;
   /** Source: computed from catalog.inventory_item and catalog.warehouse_stock. */
   availability: CatalogProductAvailabilitySnapshot;
   /** Source: catalog.product_category where is_primary = true. */
@@ -405,6 +450,13 @@ export interface ProductSnapshot {
 }
 
 export type CatalogProductSnapshot = ProductSnapshot;
+
+export interface CatalogProductVendorSnapshot {
+  /** Source: catalog.vendor.id. */
+  id: string;
+  /** Source: catalog.vendor.name. */
+  name: string;
+}
 
 export interface CatalogProductLocalizedContentSnapshot {
   /** Source: catalog.product_translation.locale. */
@@ -445,6 +497,15 @@ export interface CatalogProductAvailabilitySnapshot {
 export interface CatalogProductCategorySnapshot {
   /** Source: catalog.product_category.category_id. */
   id: string;
+  /** Source: catalog.category_translation rows. */
+  content: CatalogCategoryLocalizedContentSnapshot[];
+}
+
+export interface CatalogCategoryLocalizedContentSnapshot {
+  /** Source: catalog.category_translation.locale. */
+  locale: string;
+  /** Source: catalog.category_translation.name. */
+  name: string;
 }
 
 export interface CatalogProductTagSnapshot {
@@ -487,6 +548,24 @@ export interface CatalogProductVariantSnapshot {
   prices: CatalogProductVariantPriceSnapshot[];
   /** Source: catalog.product_option_variant_link joined with option/value tables. */
   options: CatalogProductVariantOptionSelectionSnapshot[];
+  /** Source: catalog.variant_translation rows. */
+  content: CatalogVariantLocalizedContentSnapshot[];
+  /** Source: catalog.inventory_item. */
+  inventoryItem: CatalogProductVariantInventoryItemSnapshot | null;
+}
+
+export interface CatalogVariantLocalizedContentSnapshot {
+  /** Source: catalog.variant_translation.locale. */
+  locale: string;
+  /** Source: catalog.variant_translation.title. */
+  title: string;
+}
+
+export interface CatalogProductVariantInventoryItemSnapshot {
+  /** Stable source identity for the inventory/SKU element. */
+  id: string;
+  /** Source: catalog.inventory_item.sku. */
+  sku: string | null;
 }
 
 export interface CatalogProductVariantPriceSnapshot {

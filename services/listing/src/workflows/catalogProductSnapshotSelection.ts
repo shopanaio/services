@@ -67,6 +67,10 @@ function buildProductSnapshotSelectionFromArgs(
                     fieldName: "seo",
                     fields: ["locale", "seoTitle", "seoDescription"],
                   },
+                  vendor: {
+                    fieldName: "vendor",
+                    fields: ["id", "name"],
+                  },
                   availability: {
                     fieldName: "availability",
                     fields: ["availableForSale", "totalQuantity"],
@@ -74,10 +78,22 @@ function buildProductSnapshotSelectionFromArgs(
                   primaryCategory: {
                     fieldName: "primaryCategory",
                     fields: ["id"],
+                    populate: {
+                      content: {
+                        fieldName: "content",
+                        fields: ["locale", "name"],
+                      },
+                    },
                   },
                   categories: {
                     fieldName: "categories",
                     fields: ["id"],
+                    populate: {
+                      content: {
+                        fieldName: "content",
+                        fields: ["locale", "name"],
+                      },
+                    },
                   },
                   tags: {
                     fieldName: "tags",
@@ -104,6 +120,14 @@ function buildProductSnapshotSelectionFromArgs(
                       prices: {
                         fieldName: "prices",
                         fields: ["currencyCode", "amountMinor"],
+                      },
+                      content: {
+                        fieldName: "content",
+                        fields: ["locale", "title"],
+                      },
+                      inventoryItem: {
+                        fieldName: "inventoryItem",
+                        fields: ["id", "sku"],
                       },
                       options: {
                         fieldName: "options",

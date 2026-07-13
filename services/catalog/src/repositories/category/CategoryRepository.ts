@@ -642,6 +642,22 @@ export class CategoryRepository extends BaseRepository {
       );
   }
 
+  async getAllTranslationsByCategoryIds(
+    categoryIds: readonly string[],
+  ): Promise<CategoryTranslation[]> {
+    if (categoryIds.length === 0) return [];
+
+    return this.connection
+      .select()
+      .from(categoryTranslation)
+      .where(
+        and(
+          eq(categoryTranslation.storeId, this.storeId),
+          inArray(categoryTranslation.categoryId, [...categoryIds]),
+        ),
+      );
+  }
+
   async getMediaByCategoryIds(
     categoryIds: readonly string[],
   ): Promise<CategoryMedia[]> {

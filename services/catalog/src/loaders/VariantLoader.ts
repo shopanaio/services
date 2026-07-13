@@ -17,6 +17,7 @@ export class VariantLoader {
   public readonly variant: DataLoader<string, Variant | null>;
   public readonly variantIds: DataLoader<string, string[]>;
   public readonly variantTranslation: DataLoader<string, VariantTranslation | null>;
+  public readonly variantTranslations: DataLoader<string, VariantTranslation[]>;
   public readonly variantPricing: DataLoader<string, ItemPricing[]>;
   public readonly variantPriceById: DataLoader<string, ItemPricing | null>;
   public readonly variantPriceIds: DataLoader<string, string[]>;
@@ -39,6 +40,13 @@ export class VariantLoader {
     this.variantTranslation = new DataLoader<string, VariantTranslation | null>(async (variantIds) => {
       const results = await repository.variant.getTranslationsByVariantIds(variantIds);
       return variantIds.map((id) => results.find((t) => t.variantId === id) ?? null);
+    });
+
+    this.variantTranslations = new DataLoader<string, VariantTranslation[]>(async (variantIds) => {
+      const results = await repository.variant.getAllTranslationsByVariantIds(variantIds);
+      return variantIds.map((id) =>
+        results.filter((translation) => translation.variantId === id)
+      );
     });
 
     this.variantPricing = new DataLoader<string, ItemPricing[]>(async (variantIds) => {
